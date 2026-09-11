@@ -54,11 +54,164 @@ minecraft {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+// =====================================================================================
+// 导出任务（IDEA 里对应两个运行配置：导出 Dynasty 模组 / 导出 Dynasty 整合包）
+// Export tasks — wired to two IDEA run configurations.
+// =====================================================================================
+def dynastyHome = System.getProperty('user.home')
+def dynastyExportDir = file("${dynastyHome}/Desktop/导出")
+def hmclGameDir = file("${dynastyHome}/Public/.minecraft")
+
+/** 把 build/libs 里的本体 jar 复制到某目录，返回文件名 / copies the mod jar into a folder */
+def copyOwnJar = { File targetDir ->
+    targetDir.mkdirs()
+    def jars = file('build/libs').listFiles()?.findAll {
+        it.name.startsWith('dynasty-') && it.name.endsWith('.jar')
+                && !it.name.contains('sources') && !it.name.contains('javadoc')
+    }
+    jars?.each { new File(targetDir, it.name).bytes = it.bytes }
+    return jars?.collect { it.name } ?: []
+}
+
+def runPython = { String script ->
+    def f = file(script)
+    if (!f.exists()) {
+        return
+    }
+    try {
+        exec { commandLine 'python3', f.absolutePath }
+    } catch (Exception e) {
+        logger.lifecycle("（跳过 ${script}：${e.message}）")
+    }
+}
+
+def openDir = { File dir ->
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+        try {
+            exec { commandLine 'open', dir.absolutePath }
+        } catch (Exception ignored) {
+        }
+    }
+}
+
+/** 导出模组：出 build/libs/dynasty-x.jar 并复制到桌面「导出」文件夹 */
+tasks.register('exportMod') {
+    group = 'dynasty'
+    description = '导出 Dynasty 模组 jar（build/libs → 桌面/导出/Dynasty模组）'
+    dependsOn 'build'
+    doLast {
+        def out = new File(dynastyExportDir, 'Dynasty模组')
+        def names = copyOwnJar(out)
+        logger.lifecycle("✅ 已导出模组：${out}")
+        names.each { logger.lifecycle("   ${it}") }
+        openDir(out)
+    }
+}
+
+/** 导出整合包：生成 dist/（CF zip、mrpack、手动包）→ 复制到桌面「导出」→ 同步进 HMCL 实例 */
+tasks.register('exportModpack') {
+    group = 'dynasty'
+    description = '导出 Dynasty 整合包（dist/ + 桌面/导出/Dynasty整合包 + 同步进 HMCL 实例）'
+    dependsOn 'build'
+    doLast {
+        runPython('tools/art/make_modpack.py')
+        runPython('tools/art/make_uploadable_packs.py')
+        runPython('tools/art/make_manual_and_guide.py')
+
+        def out = new File(dynastyExportDir, 'Dynasty整合包')
+        out.mkdirs()
+        def dist = file('dist')
+        int copied = 0
+        if (dist.isDirectory()) {
+            dist.listFiles().each { f ->
+                if (f.isFile()) {
+                    new File(out, f.name).bytes = f.bytes
+                    copied++
+                }
+            }
+        }
+
+        // 同步到 HMCL 实例（存在则同步 mods + 本体 jar）
+        def versionDir = new File(hmclGameDir, "versions/Dynasty 王朝 ${mod_version}")
+        if (hmclGameDir.isDirectory()) {
+            def modsDir = new File(versionDir, 'mods')
+            modsDir.mkdirs()
+            file('modpack/mods').listFiles()?.each { f ->
+                if (f.name.endsWith('.jar')) {
+                    new File(modsDir, f.name).bytes = f.bytes
+                }
+            }
+            copyOwnJar(modsDir)
+            logger.lifecycle("✅ 已同步进 HMCL 实例：${modsDir}")
+        } else {
+            logger.lifecycle("（未发现 HMCL 目录 ${hmclGameDir}，跳过同步）")
+        }
+
+        logger.lifecycle("✅ 已导出整合包：${out}（${copied} 个文件）")
+        logger.lifecycle("   其中 dynasty-modpack-*.zip → CurseForge，dynasty-*.mrpack → Modrinth")
+        openDir(out)
+    }
+}
+
+/**
+ * 跑整合包：构建本体 → 生成 dist/（可上传包）→ 组装一个「整合包实例」目录，直接能丢进启动器。
+ * Modpack runner: build the mod, regenerate dist/, and assemble a ready-to-play instance folder.
+ */
+tasks.register('dynastyModpack') {
+    group = 'dynasty'
+    description = '构建本体 + 生成整合包(dist/) + 组装可直接放进启动器的实例目录（整合包实例/mods）'
+    dependsOn 'build'
+    doLast {
+        def instanceDir = file('整合包实例/mods')
+        instanceDir.mkdirs()
+        int copied = 0
+        [file('build/libs'), file('modpack/mods')].each { dir ->
+            if (dir != null && dir.isDirectory()) {
+                dir.listFiles().each { f ->
+                    if (f.name.endsWith('.jar') && !f.name.contains('sources') && !f.name.contains('javadoc')) {
+                        new File(instanceDir, f.name).bytes = f.bytes
+                        copied++
+                    }
+                }
+            }
+        }
+        ['tools/art/make_modpack.py', 'tools/art/make_uploadable_packs.py',
+         'tools/art/make_manual_and_guide.py'].each { script ->
+            def f = file(script)
+            if (f.exists()) {
+                try {
+                    exec { commandLine 'python3', f.absolutePath }
+                } catch (Exception e) {
+                    logger.lifecycle("（跳过 ${script}：${e.message}）")
+                }
+            }
+        }
+        logger.lifecycle("✅ 整合包实例已就绪：${instanceDir}（${copied} 个 jar）")
+        logger.lifecycle("   把这个目录里的 mods/ 丢进 1.20.1 + Forge 47.4.10 的实例即可开玩。")
+        if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+            try {
+                exec { commandLine 'open', file('整合包实例').absolutePath }
+            } catch (Exception ignored) {
+            }
+        }
+    }
+}
+
 repositories {
+    // 本地 Maven 仓库：放置整合包内的第三方模组（libs/repo 由 tools/art/make_local_repo.py 生成）
+    maven {
+        url = uri('libs/repo')
+    }
 }
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // 第三方开源模组：开发环境只做「编译依赖」（Mixin 模组在 official 映射的开发环境无法应用，
+    // 属于 Forge 开发环境的已知限制）；完整运行时统一由整合包 modpack/mods/ 提供（生产环境正常）。
+    // Curios is compile-only here: Mixin-based third-party mods cannot be applied in the official-mapped
+    // dev workspace. The full set ships inside modpack/mods/ for real gameplay.
+    compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.14.1+1.20.1")
 }
 
 tasks.named('processResources', ProcessResources).configure {
