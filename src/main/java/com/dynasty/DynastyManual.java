@@ -44,18 +44,20 @@ public final class DynastyManual {
         }
     }
 
-    /** 首次进入时发放说明书与百宝妆匣 / hands out the manual and trinket box once */
+    /** 首次进入时发放说明书 / hands out the manual once */
     public static void giveOnce(ServerPlayer player) {
         if (player.getPersistentData().getBoolean("dynasty_manual_given")) {
             return;
         }
         player.getPersistentData().putBoolean("dynasty_manual_given", true);
         give(player, new ItemStack(MANUAL.get()));
-        give(player, new ItemStack(DynastyTrinkets.TRINKET_BOX.get()));
+        DynastyRankPerks.apply(player);
         player.sendSystemMessage(Component.literal(
-                "§6[王朝] §r欢迎来到王朝！已赠送 §e王朝说明书§r 与 §e百宝妆匣§r。"));
+                "§6[王朝] §r欢迎来到王朝！已赠送 §e王朝说明书§r（右键打开：开局流程 / 兵甲进化 / 维度 / 图鉴）。"));
         player.sendSystemMessage(Component.literal(
-                "§7按住 §eShift §7悬停物品可看用法与数值；打开背包点左上角「✦ 王朝任务」看任务与图鉴。"));
+                "§7任务在 §dFTB 任务书§7 里：右键「任务书」物品或按 §eOpen Quests§7 键打开。"));
+        player.sendSystemMessage(Component.literal(
+                "§7共 §f12 章 187 条§7，左侧栏按 §f王朝主线 / 万里山河 / 神兵宝甲 §7分好组，按顺序解锁。"));
     }
 
     private static void give(ServerPlayer player, ItemStack stack) {

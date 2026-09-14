@@ -17,8 +17,8 @@ public final class DynastyContent {
         com.dynasty.DynastyFineItems.ITEMS.register(modEventBus);
         DynastyGear.ITEMS.register(modEventBus);
         DynastyWeapons.ITEMS.register(modEventBus);
+        DynastyRelics.ITEMS.register(modEventBus);
         DynastyTrinkets.ITEMS.register(modEventBus);
-        DynastyMenus.MENUS.register(modEventBus);
         DynastyManual.ITEMS.register(modEventBus);
         DynastyEffects.EFFECTS.register(modEventBus);
         DynastyTabs.TABS.register(modEventBus);

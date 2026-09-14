@@ -21,6 +21,7 @@ public final class DynastyCuriosSetup {
     private static final String BRIDGE = "com.dynasty.DynastyCuriosBridge";
     private static Method attachMethod;
     private static Method collectMethod;
+    private static Method growMethod;
     private static boolean available;
 
     static {
@@ -34,6 +35,7 @@ public final class DynastyCuriosSetup {
                 Class<?> bridge = Class.forName(BRIDGE);
                 attachMethod = bridge.getMethod("attach", IEventBus.class);
                 collectMethod = bridge.getMethod("collectEquipped", LivingEntity.class, Set.class);
+                growMethod = bridge.getMethod("growSlots", LivingEntity.class, String.class, int.class);
                 Dynasty.LOGGER.info("[Dynasty] Curios detected - trinket slots enabled");
             } catch (Throwable throwable) {
                 available = false;
@@ -41,6 +43,21 @@ public final class DynastyCuriosSetup {
             }
         } else {
             Dynasty.LOGGER.info("[Dynasty] Curios not present - trinkets use the built-in pouch");
+        }
+    }
+
+    /**
+     * 把「王朝饰品」槽扩到 1 + wantExtra 格（开局只有 1 个背饰格，靠官阶慢慢开）。
+     * Grows the trinket slot to 1 + wantExtra; growth only, no-op when already big enough.
+     */
+    public static void growTrinketSlots(LivingEntity entity, int wantExtra) {
+        if (!available || growMethod == null) {
+            return;
+        }
+        try {
+            growMethod.invoke(null, entity, "dynasty_trinket", DynastyRankPerks.BASE_SLOTS + wantExtra);
+        } catch (Throwable ignored) {
+            // Curios 侧异常不影响本体 / never let Curios break the base mod
         }
     }
 

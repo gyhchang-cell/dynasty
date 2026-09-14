@@ -97,6 +97,22 @@ public class DynastyBlocks {
         BLOCK_ITEMS.register("jade_portal", () -> new BlockItem(JADE_PORTAL.get(), new Item.Properties()));
     }
 
+    /** 云门：通往九霄天界 / Cloud Gate to the nine-heaven realm */
+    public static final RegistryObject<Block> CLOUD_PORTAL = BLOCKS.register("cloud_portal",
+            () -> new com.dynasty.block.DynastyPortalBlock(portalProps(),
+                    com.dynasty.block.DynastyPortalBlock.JIUXIAO));
+    static {
+        BLOCK_ITEMS.register("cloud_portal", () -> new BlockItem(CLOUD_PORTAL.get(), new Item.Properties()));
+    }
+
+    /** 龙门：通往东海龙宫 / Dragon Gate to the Dragon Palace */
+    public static final RegistryObject<Block> DRAGON_GATE = BLOCKS.register("dragon_gate",
+            () -> new com.dynasty.block.DynastyPortalBlock(portalProps(),
+                    com.dynasty.block.DynastyPortalBlock.DRAGON_PALACE));
+    static {
+        BLOCK_ITEMS.register("dragon_gate", () -> new BlockItem(DRAGON_GATE.get(), new Item.Properties()));
+    }
+
     /** 地府传送门 / Underworld portal */
     public static final RegistryObject<Block> UNDERWORLD_PORTAL = BLOCKS.register("underworld_portal",
             () -> new com.dynasty.block.DynastyPortalBlock(
@@ -111,6 +127,10 @@ public class DynastyBlocks {
     public static final RegistryObject<Block> DRAGON_THRONE = simple("dragon_throne", stone(3.5F));
     /** 祭坛 / Altar */
     public static final RegistryObject<Block> ALTAR = simple("altar", stone(3.0F).lightLevel(s -> 7));
+    /** 法阵·祭坛：用 Boss 信物召唤 Boss / ritual altar for summoning bosses */
+    public static final RegistryObject<Block> RITUAL_ALTAR =
+            custom("ritual_altar", () -> new com.dynasty.block.RitualAltarBlock(
+                    stone(4.0F).lightLevel(s -> 11)));
     /** 编钟 / Chime Bell */
     public static final RegistryObject<Block> CHIME_BELL =
             custom("chime_bell", () -> new com.dynasty.block.DynastyInstrumentBlock(

@@ -6,6 +6,8 @@
 
 ---
 
+> **本次更新（1.4.0 平衡重制）**：修复饰品槽打不开、武器从木矛 5 伤害起步并加入「Boss 信物」条件、护甲进化链与数值上调、5 种新建筑、物品名下一行简介、整合包新增 11 个优化/便利模组。详见 [`docs/更新日志-1.4.0.md`](docs/更新日志-1.4.0.md)。
+
 ## 内容总览
 
 ### 世界与维度
@@ -32,7 +34,7 @@
 | **Overflowing Bars** 8.0.1 + **Puzzles Lib** 8.1.33 | **更美观的血条 / 护甲条 / 饥饿条** |
 | **JEI** 15.59.0.210 | 配方查询（与内置「图鉴」页互补） |
 
-* 安装：把 `modpack/mods/` 里 5 个 jar 丢进 **1.20.1 + Forge 47.4.10** 的 `mods/` 即可；也可用 Prism/HMCL 导入 `modpack/modrinth.index.json`。
+* 安装：把 `modpack/mods/` 里全部 29 个 jar 丢进 **1.20.1 + Forge 47.4.10** 的 `mods/` 即可；也可用 Prism/HMCL 导入 `modpack/modrinth.index.json`。
 * **要上传整合包**：直接用 `dist/` 里的成品 ——
   * `dist/dynasty-modpack-1.4.0.zip` → 上传 **CurseForge**（项目类型选 Modpack）
   * `dist/dynasty-1.4.0.mrpack` → 上传 **Modrinth**（项目类型选 Modpack）
@@ -42,7 +44,7 @@
 
 ### 用 IDEA 跑得到吗？
 详见 **[`docs/idea.md`](docs/idea.md)**（含常见报错对照表）。
-* **开发本体**：可以。IDEA 打开 `~/Desktop/dynasty` → 等 Gradle 同步 → 右上角选 `runClient` 运行。Curios 只作为编译依赖，本体在没有第三方模组时会**优雅降级**（饰品退回自带的「百宝妆匣」6 槽位），启动日志会写 `Curios not present - trinkets use the built-in pouch`。
+* **开发本体**：可以。IDEA 打开 `~/Desktop/dynasty` → 等 Gradle 同步 → 右上角选 `runClient` 运行。Curios 只作为编译依赖；没有 Curios 时饰品效果依然生效（放副手/背包），但**槽位只由 Curios 提供**，启动日志会写 `Curios not present`。
 * **想连 Curios / 血条模组一起在 IDEA 里跑**：不行（而且不要把它们的 jar 丢进 `run/mods/`）。它们都是 **Mixin 模组**，Mixin 目标名是 SRG 名称，而 Forge 开发环境用 official 映射，会 `Mixin apply failed ... f_19803_`——这是 Forge 开发环境的已知限制，与本模组无关。
 * **真正玩整合包**：用启动器（PCL2 / HMCL / Prism / CurseForge），生产环境下 5 个模组同时生效。
 
@@ -55,7 +57,7 @@
 每一级都是**合成升级**（前一把武器 + 材料），全部配方写在任务界面「图鉴」页里。
 
 ### 饰品系统（Curios 兼容）
-* **百宝妆匣**右键打开 **6 个饰品槽**；同时生成 `data/curios/tags/items/*.json` 标签，装上 Curios 后本模组饰品可直接放进**它的槽位**（charm / necklace / ring / belt / head / curio）。
+* 饰品**只用 Curios 槽位**（不再有第二个存放界面）：本模组自带 `data/curios/tags/items/*.json` 标签 + 一个 6 格「王朝饰品」槽位定义（`data/curios/curios/slots/dynasty_trinket.json`），所以饰品可以直接放进 charm / necklace / ring / belt / head / curio 与王朝饰品槽。
 * 饰品**放在饰品槽、背包或 Curios 槽都生效**（同名饰品只算一次）。
 * 每件都有独特意义：玉佩（减伤 8%）、玉璧（生命 +150）、金印（功名 +25%、回忠诚）、龙鳞护符（护甲 +12、抗击退）、凤羽翎（速度 +10%、缓降）、麒麟角坠（幸运 +3、回复）、狐尾坠（跳跃 II）、锦囊（水肺 + 夜视）、铜镜（每 30 秒净化负面）、司南（抗性 + 显示坐标）。
 
@@ -65,7 +67,7 @@
 * 同一份文案也用在 **Shift 悬停**提示里，两个入口数据一致（`DynastyCodex`）。
 
 ### 开局说明书
-* 首次进入世界自动赠送 **王朝说明书** + **百宝妆匣**，并在聊天栏提示玩法。
+* 首次进入世界自动赠送 **王朝说明书**，并在聊天栏提示玩法与饰品槽位置。
 * 说明书内含 16 页：开局路线、维度、建筑、科举、军队、神兽、Boss、节日、**数值一览、武器进化链、饰品、图鉴用法、开局 30 分钟路线** 等。
 
 ### 数值一览（1.3 大数值平衡）

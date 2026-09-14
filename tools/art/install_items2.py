@@ -33,7 +33,6 @@ NEW = {
     "fire_talisman": ("火符", "Fire Talisman"),
     "thunder_talisman": ("雷符", "Thunder Talisman"),
     "return_talisman": ("归乡符", "Return Talisman"),
-    "quest_ledger": ("王朝手札", "Quest Ledger"),
     "festival_lantern": ("节令灯", "Festival Lantern"),
 }
 

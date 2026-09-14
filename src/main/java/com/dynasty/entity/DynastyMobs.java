@@ -57,7 +57,7 @@ public final class DynastyMobs {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Mob.createMobAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 240.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.28D)
                     .add(Attributes.FOLLOW_RANGE, 24.0D);
         }
@@ -83,7 +83,7 @@ public final class DynastyMobs {
                         + ADVICE[this.getRandom().nextInt(ADVICE.length)]));
                 DynastyStats.addLoyalty(serverPlayer, 2);
                 serverPlayer.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 20 * 60, 0));
-                com.dynasty.DynastyQuestManager.notifyEvent(serverPlayer, "minister");
+                com.dynasty.DynastyAdvancements.awardForEvent(serverPlayer, "minister");
                 this.playSound(SoundEvents.VILLAGER_YES, 1.0F, 1.0F);
             }
             return InteractionResult.sidedSuccess(this.level().isClientSide);
@@ -99,7 +99,7 @@ public final class DynastyMobs {
         }
 
         public static AttributeSupplier.Builder createAttributes() {
-            return stats(1024.0D, 900.0D, 0.36D, 20.0D, 40.0D);
+            return stats(200.0D, 900.0D, 0.36D, 20.0D, 40.0D);
         }
 
         @Override
@@ -144,7 +144,7 @@ public final class DynastyMobs {
         }
 
         public static AttributeSupplier.Builder createAttributes() {
-            return stats(1024.0D, 300.0D, 0.28D, 20.0D, 32.0D);
+            return stats(110.0D, 300.0D, 0.28D, 20.0D, 32.0D);
         }
 
         @Override
@@ -182,7 +182,7 @@ public final class DynastyMobs {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Monster.createMonsterAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 300.0D)
                     .add(Attributes.ATTACK_DAMAGE, 600.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.30D)
                     .add(Attributes.ARMOR, 20.0D)
@@ -212,7 +212,7 @@ public final class DynastyMobs {
         }
 
         public static AttributeSupplier.Builder createAttributes() {
-            return stats(1024.0D, 400.0D, 0.30D, 20.0D, 40.0D);
+            return stats(90.0D, 400.0D, 0.30D, 20.0D, 40.0D);
         }
 
         @Override
@@ -238,7 +238,7 @@ public final class DynastyMobs {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Monster.createMonsterAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 520.0D)
                     .add(Attributes.ATTACK_DAMAGE, 700.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.30D)
                     .add(Attributes.ARMOR, 20.0D)

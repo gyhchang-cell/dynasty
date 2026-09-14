@@ -63,15 +63,41 @@ public class DynastyTabs {
                 output.accept(DynastyItems.TEA.get());
 
                 // 武器工具 / weapons & tools
+                output.accept(DynastyWeapons.MU_MAO.get());
+                output.accept(DynastyWeapons.SHI_GE.get());
+                output.accept(DynastyWeapons.TONG_DAO.get());
+                output.accept(DynastyWeapons.TIE_JIAN.get());
+                output.accept(DynastyWeapons.LIE_GONG.get());
                 output.accept(DynastyGear.SWORD_BRONZE.get());
+                output.accept(DynastyWeapons.TANG_DAO.get());
+                output.accept(DynastyWeapons.HUAN_SHOU_DAO.get());
+                output.accept(DynastyWeapons.CHANG_GONG.get());
+                output.accept(DynastyWeapons.SHENBI_BOW.get());
+                output.accept(DynastyWeapons.LUOYAN_BOW.get());
+                output.accept(DynastyWeapons.TIANLANG_BOW.get());
+                output.accept(DynastyWeapons.CHANG_QIANG.get());
+                output.accept(DynastyWeapons.YU_DI.get());
                 output.accept(DynastyGear.SWORD_SILVER.get());
                 output.accept(DynastyGear.SWORD_JADE.get());
+                output.accept(DynastyWeapons.JUQUE_SWORD.get());
+                output.accept(DynastyWeapons.POJUN_AXE.get());
+                output.accept(DynastyWeapons.DRAGON_BOW.get());
                 output.accept(DynastyGear.SWORD_DRAGON_CRYSTAL.get());
                 output.accept(DynastyGear.HALBERD_FANGTIAN.get());
+                output.accept(DynastyWeapons.XUANTIAN_AXE.get());
+                output.accept(DynastyWeapons.TIANZI_SWORD.get());
                 output.accept(DynastyGear.PICKAXE_JADE.get());
                 output.accept(DynastyGear.PICKAXE_DRAGON_CRYSTAL.get());
 
-                // 盔甲 / armor
+                // 盔甲 / armor（进化链：布衣 → 将军铠 → 玉甲 → 龙鳞甲 → 玄天甲）
+                output.accept(DynastyGear.CLOTH_HELMET.get());
+                output.accept(DynastyGear.CLOTH_CHESTPLATE.get());
+                output.accept(DynastyGear.CLOTH_LEGGINGS.get());
+                output.accept(DynastyGear.CLOTH_BOOTS.get());
+                output.accept(DynastyGear.GENERAL_HELMET.get());
+                output.accept(DynastyGear.GENERAL_CHESTPLATE.get());
+                output.accept(DynastyGear.GENERAL_LEGGINGS.get());
+                output.accept(DynastyGear.GENERAL_BOOTS.get());
                 output.accept(DynastyGear.JADE_HELMET.get());
                 output.accept(DynastyGear.JADE_CHESTPLATE.get());
                 output.accept(DynastyGear.JADE_LEGGINGS.get());
@@ -80,23 +106,41 @@ public class DynastyTabs {
                 output.accept(DynastyGear.DRAGON_SCALE_CHESTPLATE.get());
                 output.accept(DynastyGear.DRAGON_SCALE_LEGGINGS.get());
                 output.accept(DynastyGear.DRAGON_SCALE_BOOTS.get());
-                output.accept(DynastyGear.GENERAL_HELMET.get());
-                output.accept(DynastyGear.GENERAL_CHESTPLATE.get());
-                output.accept(DynastyGear.GENERAL_LEGGINGS.get());
-                output.accept(DynastyGear.GENERAL_BOOTS.get());
+                output.accept(DynastyGear.XUANTIAN_HELMET.get());
+                output.accept(DynastyGear.XUANTIAN_CHESTPLATE.get());
+                output.accept(DynastyGear.XUANTIAN_LEGGINGS.get());
+                output.accept(DynastyGear.XUANTIAN_BOOTS.get());
+
+                // 第二十轮扩充的 10 套新盔甲（表格注册，这里直接铺出来）
+                for (net.minecraftforge.registries.RegistryObject<net.minecraft.world.item.Item> piece
+                        : DynastyGear.EXTRA_ARMOR) {
+                    output.accept(piece.get());
+                }
+
+                // 帝兵材料与信物 / relics & imperial tokens
+                output.accept(DynastyRelics.BLUEPRINT.get());
+                output.accept(DynastyRelics.REFINED_STEEL.get());
+                output.accept(DynastyRelics.REBEL_HEAD.get());
+                output.accept(DynastyRelics.EUNUCH_TOKEN.get());
+                output.accept(DynastyRelics.EMPEROR_BONE.get());
+                output.accept(DynastyRelics.DRAGON_EMPEROR_SEAL.get());
+                output.accept(DynastyRelics.XUANTIAN_JADE.get());
 
                 // 刷怪蛋 / spawn eggs
                 output.accept(DynastyItems.TERRACOTTA_WARRIOR_SPAWN_EGG.get());
                 output.accept(DynastyItems.IMPERIAL_SOLDIER_SPAWN_EGG.get());
                 output.accept(DynastyItems.UNDEAD_FIRST_EMPEROR_SPAWN_EGG.get());
 
-                // 传送门 / portals
+                // 传送门 / portals（四个维度都要能在这里找到）
                 output.accept(DynastyBlocks.JADE_PORTAL.get());
                 output.accept(DynastyBlocks.UNDERWORLD_PORTAL.get());
+                output.accept(DynastyBlocks.CLOUD_PORTAL.get());
+                output.accept(DynastyBlocks.DRAGON_GATE.get());
 
                 // 宫廷装饰 / decoration
                 output.accept(DynastyBlocks.DRAGON_THRONE.get());
                 output.accept(DynastyBlocks.ALTAR.get());
+                output.accept(DynastyBlocks.RITUAL_ALTAR.get());
                 output.accept(DynastyBlocks.CHIME_BELL.get());
                 output.accept(DynastyBlocks.TAIKO_DRUM.get());
                 output.accept(DynastyBlocks.INCENSE_BURNER.get());
@@ -165,13 +209,13 @@ public class DynastyTabs {
                 output.accept(DynastyFineItems.INK_BRUSH.get());
                 output.accept(DynastyFineItems.BRONZE_MIRROR.get());
                 output.accept(DynastyFineItems.ROOF_TILE.get());
-                output.accept(DynastyFineItems.WIND_TALISMAN.get());
-                output.accept(DynastyFineItems.STEALTH_TALISMAN.get());
-                output.accept(DynastyFineItems.HEALING_TALISMAN.get());
                 output.accept(DynastyFineItems.FIRE_TALISMAN.get());
                 output.accept(DynastyFineItems.THUNDER_TALISMAN.get());
+                output.accept(DynastyFineItems.WIND_TALISMAN.get());
+                output.accept(DynastyFineItems.STEALTH_TALISMAN.get());
+                output.accept(DynastyFineItems.VAJRA_TALISMAN.get());
+                output.accept(DynastyFineItems.SOUL_TALISMAN.get());
                 output.accept(DynastyFineItems.RETURN_TALISMAN.get());
-                output.accept(DynastyFineItems.QUEST_LEDGER.get());
                 output.accept(DynastyFineItems.FESTIVAL_LANTERN.get());
 
                 // 兵器谱（进化链）
@@ -182,9 +226,11 @@ public class DynastyTabs {
                 output.accept(DynastyWeapons.JUQUE_SWORD.get());
                 output.accept(DynastyWeapons.POJUN_AXE.get());
                 output.accept(DynastyWeapons.DRAGON_BOW.get());
+                output.accept(DynastyWeapons.SHENBI_BOW.get());
+                output.accept(DynastyWeapons.LUOYAN_BOW.get());
+                output.accept(DynastyWeapons.TIANLANG_BOW.get());
 
                 // 饰品与说明书
-                output.accept(DynastyTrinkets.TRINKET_BOX.get());
                 output.accept(DynastyTrinkets.JADE_PENDANT.get());
                 output.accept(DynastyTrinkets.JADE_BI_DISC.get());
                 output.accept(DynastyTrinkets.GOLD_SEAL_CHARM.get());
@@ -194,6 +240,23 @@ public class DynastyTabs {
                 output.accept(DynastyTrinkets.FOX_TAIL_CHARM.get());
                 output.accept(DynastyTrinkets.SILK_POUCH.get());
                 output.accept(DynastyTrinkets.SOUTH_POINTING_COMPASS.get());
+                output.accept(DynastyTrinkets.HEART_MIRROR.get());
+                output.accept(DynastyTrinkets.JADE_CROWN.get());
+                output.accept(DynastyTrinkets.JADE_CICADA.get());
+                output.accept(DynastyTrinkets.DRAGON_PEARL.get());
+                output.accept(DynastyTrinkets.PHOENIX_RING.get());
+                output.accept(DynastyTrinkets.STORM_CHARM.get());
+                output.accept(DynastyTrinkets.MOON_PENDANT.get());
+                output.accept(DynastyTrinkets.TIGER_CREST.get());
+                output.accept(DynastyTrinkets.JADE_TORTOISE.get());
+                output.accept(DynastyTrinkets.WAR_DRUM_CHARM.get());
+                output.accept(DynastyTrinkets.CINNABAR_POUCH.get());
+                output.accept(DynastyTrinkets.DRAGON_WHISKER.get());
+                output.accept(DynastyTrinkets.TIGER_TOKEN.get());
+                output.accept(DynastyTrinkets.SUN_FEATHER.get());
+                output.accept(DynastyTrinkets.WAR_HORSE_BELL.get());
+                output.accept(DynastyTrinkets.IRON_WAIST_TOKEN.get());
+                output.accept(DynastyTrinkets.AUSPICIOUS_BELL.get());
                 output.accept(DynastyManual.MANUAL.get());
             }).build());
 }

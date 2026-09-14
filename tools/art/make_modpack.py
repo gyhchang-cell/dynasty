@@ -22,6 +22,17 @@ PACK_MODS = [
      D + "QAGBst4M/versions/mIyVGf3d/PuzzlesLib-v8.1.33-1.20.1-Forge.jar"),
 ]
 
+# 优化 / 便利模组（由 tools/art/fetch_qol_mods.py 下载并登记）
+QOL_JSON = os.path.join(ROOT, "tools/art/qol_mods.json")
+QOL = json.load(open(QOL_JSON, encoding="utf-8")) if os.path.exists(QOL_JSON) else []
+# FTB 系列（由 tools/art/fetch_ftb_mods.py 下载并登记）
+FTB_JSON = os.path.join(ROOT, "tools/art/ftb_mods.json")
+FTB = json.load(open(FTB_JSON, encoding="utf-8")) if os.path.exists(FTB_JSON) else []
+for record in QOL + FTB:
+    PACK_MODS.append((record["filename"],
+                      os.path.join(ROOT, "libs", record["filename"]),
+                      record["url"]))
+
 
 def hashes(path):
     sha1, sha512 = hashlib.sha1(), hashlib.sha512()

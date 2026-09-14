@@ -47,4 +47,19 @@ public final class DynastyCuriosBridge {
             }
         });
     }
+
+    /**
+     * 把「王朝饰品」槽扩到至少 wantTotal 格（只增不减，幂等）。
+     * Grows the dynasty_trinket slot to at least `wantTotal`; growth only, idempotent.
+     */
+    public static void growSlots(LivingEntity entity, String slot, int wantTotal) {
+        CuriosApi.getCuriosInventory(entity).ifPresent(handler ->
+                handler.getStacksHandler(slot).ifPresent(stacks -> {
+                    int current = stacks.getSlots();
+                    if (wantTotal > current) {
+                        stacks.grow(wantTotal - current);
+                        Dynasty.LOGGER.info("[Dynasty] 饰品槽 {}: {} → {}", slot, current, wantTotal);
+                    }
+                }));
+    }
 }

@@ -9,14 +9,9 @@ final class DynastyCodexItems {
     }
 
     static void add(List<DynastyCodex.Entry> l) {
-        l.add(new DynastyCodex.Entry("trinket_box", "合成：丝绸×2 + 竹简×2 + 金锭",
-                "Craft: 2 silk + 2 bamboo slips + gold ingot",
-                "右键打开 6 个饰品槽；装 Curios 的整合包里，本模组饰品也能放进 Curios 槽位。",
-                "Right-click for six accessory slots; with Curios our trinkets also fit its slots.",
-                "dynasty:silk", "dynasty:bamboo_slip", "minecraft:gold_ingot"));
         l.add(new DynastyCodex.Entry("jade_pendant", "合成：玉×2 + 丝绸", "Craft: 2 jade + silk",
-                "额外 8% 减伤，可与盔甲套装减伤叠加。",
-                "Extra 8% damage reduction, stacks with the armor set bonus.",
+                "饰品：额外 8% 减伤，可与盔甲套装减伤叠加；放进 Curios 的饰品槽即生效。",
+                "Trinket: extra 8% damage reduction, stacks with the armor set bonus.",
                 "dynasty:jade", "dynasty:silk"));
         l.add(new DynastyCodex.Entry("jade_bi_disc", "合成：玉×3 + 金锭", "Craft: 3 jade + gold ingot",
                 "最大生命 +150。", "+150 max health.",

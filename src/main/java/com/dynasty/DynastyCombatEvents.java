@@ -44,6 +44,8 @@ public class DynastyCombatEvents {
             }
             String weaponId = DynastyTrinkets.idOf(weapon);
             if (weaponId != null) {
+                // 名器特攻：原版攻击力上限 2048，超出部分在这里补
+                amount += (float) DynastyBalance.weaponBonus(weaponId);
                 switch (weaponId) {
                     case "tang_dao" -> attacker.addEffect(new net.minecraft.world.effect.MobEffectInstance(
                             net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED, 60, 0, true, false));
@@ -53,6 +55,18 @@ public class DynastyCombatEvents {
                         event.getEntity().push(0.0D, 0.4D, 0.0D);
                     }
                     case "pojun_axe" -> armorPierce = true;
+                    case "xuantian_axe" -> {
+                        armorPierce = true;
+                        event.getEntity().addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                                net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 80, 1));
+                    }
+                    case "tianzi_sword" -> {
+                        // 天子剑：命中回气（回复 2% 最大生命）+ 对王朝敌人额外 20% 伤害
+                        attacker.heal((float) (attacker.getMaxHealth() * 0.02D));
+                        if (DynastyBalance.isDynastyMob(event.getEntity().getType())) {
+                            amount *= 1.2F;
+                        }
+                    }
                     case "halberd_fangtian" -> {
                         double yaw = Math.toRadians(attacker.getYRot());
                         event.getEntity().push(-Math.sin(yaw) * 0.8D, 0.25D, Math.cos(yaw) * 0.8D);

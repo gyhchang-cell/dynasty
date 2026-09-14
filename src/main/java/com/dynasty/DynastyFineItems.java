@@ -83,16 +83,22 @@ public class DynastyFineItems {
     public static final RegistryObject<Item> ROOF_TILE = basic("roof_tile");
 
     // ---------------------------------------------------------------- 符箓
-    public static final RegistryObject<Item> WIND_TALISMAN = charm("wind_talisman");
-    public static final RegistryObject<Item> STEALTH_TALISMAN = charm("stealth_talisman");
-    public static final RegistryObject<Item> HEALING_TALISMAN = charm("healing_talisman");
+    /** 火符：爆炎（一次性，600+攻击×3）*/
     public static final RegistryObject<Item> FIRE_TALISMAN = charm("fire_talisman");
+    /** 雷符：三道落雷（一次性，800+攻击×4）*/
     public static final RegistryObject<Item> THUNDER_TALISMAN = charm("thunder_talisman");
+    /** 御风符：罡风击飞 + 疾风 */
+    public static final RegistryObject<Item> WIND_TALISMAN = charm("wind_talisman");
+    /** 隐身符：隐身 60 秒并清除仇恨 */
+    public static final RegistryObject<Item> STEALTH_TALISMAN = charm("stealth_talisman");
+    /** 金刚符：抗性 III + 力量 II（替代原来的回春符，不回血）*/
+    public static final RegistryObject<Item> VAJRA_TALISMAN = charm("vajra_talisman");
+    /** 摄魂符：范围 500+攻击×3 伤害 + 失明 + 虚弱 */
+    public static final RegistryObject<Item> SOUL_TALISMAN = charm("soul_talisman");
+    /** 归乡符：回出生点并净化 */
     public static final RegistryObject<Item> RETURN_TALISMAN = charm("return_talisman");
 
     // ---------------------------------------------------------------- 特殊功能物品
-    public static final RegistryObject<Item> QUEST_LEDGER = ITEMS.register("quest_ledger",
-            () -> new QuestLedgerItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> FESTIVAL_LANTERN = ITEMS.register("festival_lantern",
             () -> new FestivalLanternItem(new Item.Properties().stacksTo(1)));
 

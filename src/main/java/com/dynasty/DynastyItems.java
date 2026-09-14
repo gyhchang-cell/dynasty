@@ -136,6 +136,14 @@ public class DynastyItems {
                 type, primary, secondary, new Item.Properties()));
     }
 
+    public static final RegistryObject<Item> JADE_GUARD_SPAWN_EGG = egg("jade_guard_spawn_egg",
+            com.dynasty.entity.DynastyEntities.JADE_GUARD, 0x3E6B52, 0xE8C86A);
+    public static final RegistryObject<Item> SOUL_SOLDIER_SPAWN_EGG = egg("soul_soldier_spawn_egg",
+            com.dynasty.entity.DynastyEntities.SOUL_SOLDIER, 0x2E2E3A, 0x6B6BC0);
+    public static final RegistryObject<Item> THUNDER_ENVOY_SPAWN_EGG = egg("thunder_envoy_spawn_egg",
+            com.dynasty.entity.DynastyEntities.THUNDER_ENVOY, 0x2E3E8B, 0x7FE8F0);
+    public static final RegistryObject<Item> MERFOLK_SPAWN_EGG = egg("merfolk_spawn_egg",
+            com.dynasty.entity.DynastyEntities.MERFOLK, 0x1E5E6B, 0xE8E0B0);
     public static final RegistryObject<Item> MINISTER_SPAWN_EGG = egg("minister_spawn_egg",
             com.dynasty.entity.DynastyEntities.MINISTER, 0x2E4A8B, 0xE8D9A0);
     public static final RegistryObject<Item> ASSASSIN_SPAWN_EGG = egg("assassin_spawn_egg",
@@ -160,4 +168,14 @@ public class DynastyItems {
             com.dynasty.entity.DynastyEntities.REBEL_GENERAL, 0x4A3A2A, 0xC0392B);
     public static final RegistryObject<Item> EUNUCH_MASTERMIND_SPAWN_EGG = egg("eunuch_mastermind_spawn_egg",
             com.dynasty.entity.DynastyEntities.EUNUCH_MASTERMIND, 0x4B2A5A, 0xC2A0E0);
+    public static final RegistryObject<Item> NINE_HEAVEN_GENERAL_SPAWN_EGG = egg("nine_heaven_general_spawn_egg",
+            com.dynasty.entity.DynastyEntities.NINE_HEAVEN_GENERAL, 0x2E6B8B, 0xFFF3B0);
+
+    /** 天将令：九霄天将的信物（可到法阵·祭坛重复召唤）/ the Nine-Heaven token */
+    public static final RegistryObject<Item> SKY_TOKEN = basic("sky_token");
+
+    /** 龙宫玉印：东海龙王的信物 / the Dragon King's seal */
+    public static final RegistryObject<Item> SEA_TOKEN = basic("sea_token");
+    public static final RegistryObject<Item> DRAGON_KING_SPAWN_EGG = egg("dragon_king_spawn_egg",
+            com.dynasty.entity.DynastyEntities.DRAGON_KING, 0x1B3A6B, 0x7BE3C8);
 }

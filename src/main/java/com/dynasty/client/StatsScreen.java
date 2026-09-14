@@ -13,7 +13,8 @@ import net.minecraft.network.chat.Component;
 public class StatsScreen extends Screen {
 
     private static final String[] RANK_ZH = {
-            "布衣", "童生", "秀才", "举人", "贡士", "进士", "翰林", "侍郎", "尚书", "大学士", "丞相", "摄政王"
+            "布衣", "童生", "秀才", "举人", "贡士", "进士", "庶吉士", "编修", "侍读", "侍讲",
+            "翰林", "侍郎", "尚书", "大学士", "太傅", "少师", "太师", "丞相", "摄政王", "天子"
     };
 
     private int rank, merit, loyalty, rebellion;

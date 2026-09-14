@@ -111,13 +111,26 @@ public class DynastyCommands {
                     player.sendSystemMessage(Component.literal("§6[图鉴]§r 已获得《王朝图鉴》，右键打开。"));
                     return 1;
                 }))
+                .then(Commands.literal("merit")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("amount", IntegerArgumentType.integer(-10000, 10000)).executes(ctx -> {
+                            if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
+                                return 0;
+                            }
+                            com.dynasty.DynastyStats.addMerit(player, ctx.getArgument("amount", Integer.class));
+                            player.sendSystemMessage(Component.literal("§6[功名]§r 当前功名 "
+                                    + com.dynasty.DynastyStats.getMerit(player)
+                                    + "（" + com.dynasty.DynastyStats.rankName(player, true) + "）"));
+                            return 1;
+                        })))
                 .then(Commands.literal("rank")
                         .requires(source -> source.hasPermission(2))
-                        .then(Commands.argument("level", IntegerArgumentType.integer(0, 11)).executes(ctx -> {
+                        .then(Commands.argument("level", IntegerArgumentType.integer(0, 19)).executes(ctx -> {
                             if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
                                 return 0;
                             }
                             com.dynasty.DynastyStats.setRank(player, ctx.getArgument("level", Integer.class));
+                            com.dynasty.DynastyRankPerks.apply(player);
                             player.sendSystemMessage(Component.literal("§6[官职]§r 官阶已设为 "
                                     + com.dynasty.DynastyStats.rankName(player, true)));
                             return 1;

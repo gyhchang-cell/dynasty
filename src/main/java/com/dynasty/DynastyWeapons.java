@@ -29,8 +29,21 @@ import net.minecraftforge.registries.RegistryObject;
 import java.util.UUID;
 
 /**
- * 兵器谱：从青铜剑到方天画戟的「进化链」武器，每一把都有独特机制。
- * Weapon roster: an evolution chain from bronze sword to the Fangtian halberd, each with its own gimmick.
+ * 兵器谱（重制版）：从木矛一路进化到天子剑。
+ *
+ * 进化链（括号内为总攻击力）：
+ *   木矛(5) → 石戈(9) → 铜刀(14) → 铁剑(20) → 青铜剑(34) → 唐刀(46) → 环首刀(62)
+ *   → 长枪(82) → 玉笛(105) → 官银剑(132) → 玉剑(170) → 巨阙重剑(500)
+ *   → 破军战斧(650) → 龙晶剑(1400) → 方天画戟(1900) → 玄天钺(2500) → 天子剑(3200)
+ *   名器还会额外带「特攻」（DynastyBalance.WEAPON_BONUS，命中时再补固定伤害）：
+ *   龙晶剑 +150 / 七星 +220 / 屠龙刀 +350 / 尚方宝剑 +400 / 天子剑 +500 …
+ *   弓分两条支线（长弓是分叉点）：
+ *     速射流：猎弓(×1.5+4) → 长弓(×2+20) → 神臂弓(×2.8+70) → 落雁弓(×3.3+120) → 天狼弓(×3.8+200、穿透 1)
+ *     穿透流：长弓 → 龙吟弓(×3.5+150、穿透 3) → 射日弓(×4.5+280)
+ *
+ * 后半段每一把都要求「上一把武器 + 稀有材料 + Boss 掉落物（特定条件）」。
+ *
+ * Weapon roster: a real progression chain from a wooden spear to the Sword of Heaven.
  */
 @SuppressWarnings("null")
 public final class DynastyWeapons {
@@ -43,7 +56,7 @@ public final class DynastyWeapons {
 
     private static final UUID REACH_UUID = UUID.fromString("7a1c9e30-4b62-4f7d-8f2a-51c3d9e0a101");
 
-    /** 长柄武器：攻击距离 +3，命中时轻挑目标 / polearm: +3 reach, light upward jab */
+    /** 长柄武器：攻击距离 +3，命中时轻挑目标 / polearm: +3 reach */
     public static class PolearmItem extends SwordItem {
         public PolearmItem(Tier tier, int damage, float speed, Item.Properties props) {
             super(tier, damage, speed, props);
@@ -100,17 +113,45 @@ public final class DynastyWeapons {
         }
     }
 
-    /** 龙吟弓：箭矢伤害大增、强击退、可穿透 / Dragon Bow */
-    public static class DragonBowItem extends BowItem {
-        public DragonBowItem(Item.Properties props) {
+    /** 弓：把箭矢伤害按倍率放大 / bows scale arrow damage */
+    public static class HuntingBowItem extends BowItem {
+        private final double multiplier;
+        private final double bonus;
+
+        public HuntingBowItem(double multiplier, double bonus, Item.Properties props) {
             super(props);
+            this.multiplier = multiplier;
+            this.bonus = bonus;
         }
 
         @Override
         public AbstractArrow customArrow(AbstractArrow arrow) {
-            arrow.setBaseDamage(arrow.getBaseDamage() * 3.0D + 50.0D);
-            arrow.setKnockback(2);
-            arrow.setPierceLevel((byte) 3);
+            arrow.setBaseDamage(arrow.getBaseDamage() * this.multiplier + this.bonus);
+            return super.customArrow(arrow);
+        }
+    }
+
+    /** 龙吟弓 / 天狼弓：箭矢伤害大增，可带击退与穿透 / damage bows with knockback + pierce */
+    public static class DragonBowItem extends BowItem {
+        private final double multiplier;
+        private final double bonus;
+        private final int knockback;
+        private final int pierce;
+
+        public DragonBowItem(double multiplier, double bonus, int knockback, int pierce,
+                             Item.Properties props) {
+            super(props);
+            this.multiplier = multiplier;
+            this.bonus = bonus;
+            this.knockback = knockback;
+            this.pierce = pierce;
+        }
+
+        @Override
+        public AbstractArrow customArrow(AbstractArrow arrow) {
+            arrow.setBaseDamage(arrow.getBaseDamage() * this.multiplier + this.bonus);
+            arrow.setKnockback(this.knockback);
+            arrow.setPierceLevel((byte) this.pierce);
             return super.customArrow(arrow);
         }
     }
@@ -119,33 +160,159 @@ public final class DynastyWeapons {
         return ITEMS.register(name, () -> new SwordItem(tier, dmg, speed, new Item.Properties()));
     }
 
-    // ---- 进化链 / evolution chain（攻击力逐个递加）----
+    // ========== 一、基础期：原版同级，伤害不高（开局不再直接 1000）==========
 
-    /** 1. 唐刀：攻速最快（2.8 次/秒）/ Tang Dao: fastest swing */
+    /** 1. 木矛 / Wooden spear：5 伤害 */
+    public static final RegistryObject<Item> MU_MAO =
+            sword("mu_mao", DynastyTiers.PRIMITIVE, 4, -2.0F);                          // 5
+
+    /** 2. 石戈 / Stone dagger-axe：9 伤害 */
+    public static final RegistryObject<Item> SHI_GE =
+            sword("shi_ge", DynastyTiers.STONE, 7, -2.2F);                              // 9
+
+    /** 3. 铜刀 / Copper sabre：14 伤害（原版铜锭） */
+    public static final RegistryObject<Item> TONG_DAO =
+            sword("tong_dao", DynastyTiers.COPPER, 10, -2.0F);                          // 14
+
+    /** 4. 铁剑 / Iron sword：20 伤害 */
+    public static final RegistryObject<Item> TIE_JIAN =
+            sword("tie_jian", DynastyTiers.IRON, 14, -2.4F);                            // 20
+
+    /** 5. 猎弓 / Hunting bow：箭矢 ×1.5 + 4 */
+    public static final RegistryObject<Item> LIE_GONG = ITEMS.register("lie_gong",
+            () -> new HuntingBowItem(1.5D, 4.0D, new Item.Properties().durability(420)));
+
+    // ========== 二、王朝期（青铜起进入高数值）==========
+
+    /** 6. 唐刀 / Tang Dao：46，攻速最快 */
     public static final RegistryObject<Item> TANG_DAO =
-            sword("tang_dao", DynastyTiers.BRONZE, 499, -1.0F);                         // 1000
+            sword("tang_dao", DynastyTiers.BRONZE, 23, -1.0F);
 
-    /** 2. 环首刀：受击后反击（力量）/ Huan Shou Dao: counter-attack */
+    /** 7. 环首刀 / Huan Shou Dao：62，受击后获得力量 II */
     public static final RegistryObject<Item> HUAN_SHOU_DAO =
-            sword("huan_shou_dao", DynastyTiers.BRONZE, 599, -2.2F);                    // 1100
+            sword("huan_shou_dao", DynastyTiers.BRONZE, 39, -2.2F);
 
-    /** 3. 长枪：攻击距离 +3 / Chang Qiang: reach */
+    /** 8. 长弓 / Longbow：箭矢 ×2 + 20 */
+    public static final RegistryObject<Item> CHANG_GONG = ITEMS.register("chang_gong",
+            () -> new HuntingBowItem(2.0D, 20.0D, new Item.Properties().durability(1600)));
+
+    /** 9. 长枪 / Chang Qiang：82，攻击距离 +3 */
     public static final RegistryObject<Item> CHANG_QIANG = ITEMS.register("chang_qiang",
-            () -> new PolearmItem(DynastyTiers.OFFICIAL_SILVER, 599, -2.6F, new Item.Properties())); // 1300
+            () -> new PolearmItem(DynastyTiers.OFFICIAL_SILVER, 41, -2.6F, new Item.Properties()));
 
-    /** 4. 玉笛：右键吹奏，范围削弱 / Jade Flute: area debuff */
+    /** 10. 玉笛 / Jade Flute：105，右键范围削弱 */
     public static final RegistryObject<Item> YU_DI = ITEMS.register("yu_di",
-            () -> new FluteItem(DynastyTiers.JADE, 549, -1.8F, new Item.Properties()));  // 1450
+            () -> new FluteItem(DynastyTiers.JADE, 34, -1.8F, new Item.Properties()));
 
-    /** 5. 巨阙重剑：击退 + 缓慢 / Juque Greatsword */
+    /** 11. 巨阙重剑 / Juque Greatsword：500，击退 + 缓慢 II */
     public static final RegistryObject<Item> JUQUE_SWORD =
-            sword("juque_sword", DynastyTiers.JADE, 799, -3.0F);                        // 1700
+            sword("juque_sword", DynastyTiers.JADE, 429, -3.0F);
 
-    /** 6. 破军战斧：无视一半士气减伤 / Po Jun Axe */
+    // ========== 三、名将期（需要 Boss 掉落物）==========
+
+    /** 12. 破军战斧 / Po Jun Axe：650，无视一半士气减伤（需叛将首级） */
     public static final RegistryObject<Item> POJUN_AXE = ITEMS.register("pojun_axe",
-            () -> new AxeItem(DynastyTiers.DRAGON_CRYSTAL, 450, -2.9F, new Item.Properties())); // 1750
+            () -> new AxeItem(DynastyTiers.DRAGON_CRYSTAL, 509, -2.9F, new Item.Properties()));
 
-    /** 7. 龙吟弓：远程重箭（穿透 3）/ Dragon Bow */
+    /** 13. 龙吟弓 / Dragon Bow：箭矢 ×3.5 + 150、穿透 3（需凤凰羽 + 龙鳞） */
     public static final RegistryObject<Item> DRAGON_BOW = ITEMS.register("dragon_bow",
-            () -> new DragonBowItem(new Item.Properties().durability(8000)));
+            () -> new DragonBowItem(3.5D, 150.0D, 2, 3, new Item.Properties().durability(8000)));
+
+    // ========== 四、帝兵期（需要多件 Boss 掉落物）==========
+
+    /** 14. 玄天钺 / Xuantian Axe：2500，破甲（需龙帝玉玺） */
+    public static final RegistryObject<Item> XUANTIAN_AXE = ITEMS.register("xuantian_axe",
+            () -> new AxeItem(DynastyTiers.DRAGON_CRYSTAL, 2359, -3.0F, new Item.Properties()));
+
+    /** 15. 天子剑 / Sword of Heaven：3200（毕业武器，原版上限已解除），命中回气 + 对王朝敌人加伤 */
+    public static final RegistryObject<Item> TIANZI_SWORD =
+            sword("tianzi_sword", DynastyTiers.DRAGON_CRYSTAL, 3059, -2.2F);
+
+    // ========== 五、扩展兵器（2024 补充：掉落 / 条件获得，不只是合成）==========
+
+    /** 16. 斩马刀 / Horse-Cleaver：180（合成：环首刀 + 精钢×3） */
+    public static final RegistryObject<Item> ZHANMA_DAO =
+            sword("zhanma_dao", DynastyTiers.OFFICIAL_SILVER, 189, -2.4F);
+
+    /** 17. 鱼肠剑 / Yuchang Dagger：200、攻速极快（刺客稀有掉落） */
+    public static final RegistryObject<Item> YUCHANG_DAGGER =
+            sword("yuchang_dagger", DynastyTiers.BRONZE, 177, -1.2F);
+
+    /** 18. 青釭剑 / Qinggang Sword：600（击败宦官首脑必掉） */
+    public static final RegistryObject<Item> QINGGANG_SWORD =
+            sword("qinggang_sword", DynastyTiers.JADE, 529, -2.0F);
+
+    /** 19. 御赐金锏 / Gilded Mace：600（官阶到尚书·第 12 阶，朝廷御赐） */
+    public static final RegistryObject<Item> GILDED_MACE =
+            sword("gilded_mace", DynastyTiers.JADE, 729, -2.6F);
+
+    /** 20. 倚天剑 / Yitian Sword：800（击败叛将必掉） */
+    public static final RegistryObject<Item> YITIAN_SWORD =
+            sword("yitian_sword", DynastyTiers.JADE, 729, -2.0F);
+
+    /** 21. 龙胆亮银枪 / Dragon Spear：1100、攻击距离 +3（击败亡故始皇必掉） */
+    public static final RegistryObject<Item> DRAGON_SPEAR = ITEMS.register("dragon_spear",
+            () -> new PolearmItem(DynastyTiers.DRAGON_CRYSTAL, 959, -2.4F, new Item.Properties()));
+
+    /** 22. 射日弓 / Sunbow：箭矢 ×4.5 + 280（白天击败凤凰后领悟） */
+    public static final RegistryObject<Item> SUNBOW = ITEMS.register("sunbow",
+            () -> new HuntingBowItem(4.5D, 280.0D, new Item.Properties().durability(9000)));
+
+    /** 23. 七星宝刀 / Seven-Star Saber：1600（击败 5 种 Boss 后习得） */
+    public static final RegistryObject<Item> SEVEN_STAR_SABER =
+            sword("seven_star_saber", DynastyTiers.DRAGON_CRYSTAL, 1459, -2.2F);
+
+    /** 24. 屠龙刀 / Dragon Slayer：2300（合成：龙晶剑 + 龙宫玉印 + 龙帝玉玺） */
+    public static final RegistryObject<Item> DRAGON_SLAYER =
+            sword("dragon_slayer", DynastyTiers.DRAGON_CRYSTAL, 2159, -2.4F);
+
+    /** 25. 尚方宝剑 / Imperial Sword：2800（官阶到丞相·第 17 阶，御赐） */
+    public static final RegistryObject<Item> SUPREME_SWORD =
+            sword("supreme_sword", DynastyTiers.DRAGON_CRYSTAL, 2659, -2.0F);
+
+    // ========== 六、弓·速射支线（长弓 → 神臂弓 → 落雁弓 → 天狼弓）==========
+    // 弓系从长弓一分为二：这条是「速射」，另一条（龙吟弓 → 射日弓）是「穿透」。
+    // The bow tree forks at the longbow: this is the rapid-fire branch.
+
+    /** 26. 神臂弓 / Shenbi Bow：箭矢 ×2.8 + 70（长弓 + 精钢×3 + 丝绸×2 + 图纸） */
+    public static final RegistryObject<Item> SHENBI_BOW = ITEMS.register("shenbi_bow",
+            () -> new HuntingBowItem(2.8D, 70.0D, new Item.Properties().durability(3000)));
+
+    /** 27. 落雁弓 / Luoyan Bow：箭矢 ×3.3 + 120（神臂弓 + 精钢×4 + 银锭×2 + 图纸） */
+    public static final RegistryObject<Item> LUOYAN_BOW = ITEMS.register("luoyan_bow",
+            () -> new HuntingBowItem(3.3D, 120.0D, new Item.Properties().durability(6000)));
+
+    /** 28. 天狼弓 / Tianlang Bow：箭矢 ×3.8 + 200、穿透 1（落雁弓 + 龙晶×2 + 精钢×6） */
+    public static final RegistryObject<Item> TIANLANG_BOW = ITEMS.register("tianlang_bow",
+            () -> new DragonBowItem(3.8D, 200.0D, 1, 1, new Item.Properties().durability(7500)));
+    /** 30. 龙渊剑 / Longyuan Sword：1800，特攻 +200 */
+    public static final RegistryObject<Item> LONGYUAN_SWORD =
+            sword("longyuan_sword", DynastyTiers.DRAGON_CRYSTAL, 1659, -2.0F);
+    /** 31. 巨灵斧 / Juling Axe：2200，特攻 +300 */
+    public static final RegistryObject<Item> JULING_AXE = ITEMS.register("juling_axe",
+            () -> new AxeItem(DynastyTiers.DRAGON_CRYSTAL, 2059, -3.0F, new Item.Properties()));
+    /** 32. 青龙偃月刀 / Qinglong Guandao：2600，特攻 +350 */
+    public static final RegistryObject<Item> QINGLONG_DAO =
+            sword("qinglong_dao", DynastyTiers.DRAGON_CRYSTAL, 2459, -2.4F);
+    /** 33. 霸王枪 / Overlord Spear：3000，特攻 +400（长柄，攻击距离 +3）*/
+    public static final RegistryObject<Item> BAWANG_SPEAR = ITEMS.register("bawang_spear",
+            () -> new PolearmItem(DynastyTiers.DRAGON_CRYSTAL, 2859, -2.4F, new Item.Properties()));
+    /** 34. 后羿弓 / Houyi Bow：箭矢 ×4.0 + 300（毕业弓） */
+    public static final RegistryObject<Item> HOUYI_BOW = ITEMS.register("houyi_bow",
+            () -> new HuntingBowItem(4.0D, 300D, new Item.Properties().durability(12000)));
+    /** 35. 雷霆锤 / Thunder Hammer：3300，特攻 +450 */
+    public static final RegistryObject<Item> LEITING_HAMMER = ITEMS.register("leiting_hammer",
+            () -> new AxeItem(DynastyTiers.DRAGON_CRYSTAL, 3159, -3.1F, new Item.Properties()));
+    /** 36. 太乙拂尘 / Taiyi Whisk：3600，特攻 +500（长柄，攻击距离 +3）*/
+    public static final RegistryObject<Item> TAIYI_WHISK = ITEMS.register("taiyi_whisk",
+            () -> new PolearmItem(DynastyTiers.DRAGON_CRYSTAL, 3459, -2.2F, new Item.Properties()));
+    /** 37. 玄武盾刀 / Xuanwu Blade：4000，特攻 +550 */
+    public static final RegistryObject<Item> XUANWU_BLADE =
+            sword("xuanwu_blade", DynastyTiers.DRAGON_CRYSTAL, 3859, -2.6F);
+    /** 38. 朱雀羽扇 / Zhuque Fan：4400，特攻 +600 */
+    public static final RegistryObject<Item> ZHUQUE_FAN =
+            sword("zhuque_fan", DynastyTiers.DRAGON_CRYSTAL, 4259, -2.0F);
+    /** 39. 混元珠杖 / Hunyuan Staff：5000，特攻 +800（长柄，攻击距离 +3）*/
+    public static final RegistryObject<Item> HUNYUAN_STAFF = ITEMS.register("hunyuan_staff",
+            () -> new PolearmItem(DynastyTiers.DRAGON_CRYSTAL, 4859, -2.4F, new Item.Properties()));
 }

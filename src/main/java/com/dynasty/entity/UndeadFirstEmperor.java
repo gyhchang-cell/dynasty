@@ -1,5 +1,6 @@
 package com.dynasty.entity;
 
+import com.dynasty.DynastyBossCombat;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
@@ -8,6 +9,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -26,7 +28,7 @@ import net.minecraft.world.level.Level;
  * The Undead First Emperor: the boss of the imperial mausoleum, with three health phases.
  */
 @SuppressWarnings("null")
-public class UndeadFirstEmperor extends Monster {
+public class UndeadFirstEmperor extends Monster implements DynastyBossCombat.BarHolder {
 
     private final ServerBossEvent bossEvent =
             new ServerBossEvent(Component.translatable("entity.dynasty.undead_first_emperor"),
@@ -34,6 +36,14 @@ public class UndeadFirstEmperor extends Monster {
 
     private int phase = 0;
     private int summonCooldown = 0;
+    /** 尸毒光环冷却 / miasma cooldown */
+    private int miasmaCooldown = 100;
+    /** 凋零之首 / wither skull cooldown */
+    private int skullCooldown = 60;
+    /** 落雷 / lightning cooldown */
+    private int smiteCooldown = 160;
+    /** 号召俑军 / rally cooldown */
+    private int rallyCooldown = 240;
 
     public UndeadFirstEmperor(EntityType<? extends UndeadFirstEmperor> type, Level level) {
         super(type, level);
@@ -43,11 +53,16 @@ public class UndeadFirstEmperor extends Monster {
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 1024.0D)
-                .add(Attributes.ATTACK_DAMAGE, 1800.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.26D)
-                .add(Attributes.ARMOR, 24.0D)
-                .add(Attributes.KNOCKBACK_RESISTANCE, 0.6D)
+                .add(Attributes.ATTACK_DAMAGE, 2200.0D)
+                .add(Attributes.MOVEMENT_SPEED, 0.29D)
+                .add(Attributes.ARMOR, 45.0D)
+                .add(Attributes.KNOCKBACK_RESISTANCE, 0.9D)
                 .add(Attributes.FOLLOW_RANGE, 40.0D);
+    }
+
+    @Override
+    public ServerBossEvent dynastyBossBar() {
+        return this.bossEvent;
     }
 
     @Override
@@ -84,14 +99,48 @@ public class UndeadFirstEmperor extends Monster {
             summonMinions(4);
         } else if (phase == 1 && ratio <= 0.33F) {
             phase = 2;
-            this.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, Integer.MAX_VALUE, 1, false, false));
-            this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, Integer.MAX_VALUE, 2, false, false));
+            // 残血狂暴：提速增伤 + 抗性 / enrage
+            DynastyBossAI.enrage(this, 2);
             summonMinions(6);
         }
 
         if (phase > 0 && --summonCooldown <= 0) {
-            summonCooldown = 300;
+            summonCooldown = 220;
             summonMinions(2);
+        }
+        // 尸毒光环：发作前 1 秒先起雾 / telegraphed miasma
+        if (--miasmaCooldown <= 0) {
+            miasmaCooldown = 120;
+            for (Player player : this.level().getEntitiesOfClass(Player.class,
+                    this.getBoundingBox().inflate(7.0D))) {
+                player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 120, 0));
+                player.addEffect(new MobEffectInstance(MobEffects.HUNGER, 120, 0));
+            }
+            this.playSound(net.minecraft.sounds.SoundEvents.WITHER_AMBIENT, 1.2F, 0.7F);
+        } else if (miasmaCooldown == 20) {
+            DynastyBossAI.telegraph(this.level(), this, 7.0D, net.minecraft.sounds.SoundEvents.WITHER_AMBIENT);
+        }
+
+        LivingEntity target = this.getTarget();
+        if (target == null) {
+            return;
+        }
+        double dist = this.distanceTo(target);
+        // 远程：凋零之首 / ranged wither skull
+        if (--this.skullCooldown <= 0 && dist > 5.0D) {
+            this.skullCooldown = phase == 2 ? 45 : 80;
+            DynastyBossAI.shootWitherSkull(this, target);
+        }
+        // 玩家放风筝就在脚下劈雷 / punish kiting with lightning
+        if (--this.smiteCooldown <= 0 && dist > 14.0D) {
+            this.smiteCooldown = 200;
+            DynastyBossAI.telegraph(this.level(), this, 4.0D, net.minecraft.sounds.SoundEvents.TRIDENT_THUNDER);
+            DynastyBossAI.callLightning(this.level(), target, DynastyBossAI.damage(this, 0.6F));
+        }
+        // 三阶段号召俑军 / rally the terracotta army
+        if (phase == 2 && --this.rallyCooldown <= 0) {
+            this.rallyCooldown = 260;
+            DynastyBossAI.rally(this.level(), this, 16.0D);
         }
     }
 

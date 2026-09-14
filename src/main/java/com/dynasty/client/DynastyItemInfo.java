@@ -60,8 +60,12 @@ public final class DynastyItemInfo {
 
     private static String[] category(String path, ItemStack stack) {
         if (stack.getItem() instanceof BlockItem) {
-            return new String[]{"建筑方块：用于建造宫殿、城池与装饰。",
-                    "Building block: palace, city and decoration."};
+            String[] own = DynastyBlockInfo.use(path);
+            if (own != null) {
+                return own;
+            }
+            return new String[]{"王朝方块：" + path + "（放置装饰用）。",
+                    "Dynasty block: " + path + "."};
         }
         if (path.endsWith("_spawn_egg")) {
             return new String[]{"刷怪蛋：右键地面放出该生物。",
@@ -91,5 +95,47 @@ public final class DynastyItemInfo {
         }
         return new String[]{"王朝物品：可用于合成、交易或收藏（详见王朝图鉴）。",
                 "Dynasty item: used for crafting, trade or collection (see the Codex)."};
+    }
+
+    /** 是否为本模组物品 / whether the stack belongs to this mod */
+    public static boolean isDynasty(ItemStack stack) {
+        ResourceLocation id = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
+        return id != null && id.getNamespace().equals(com.dynasty.Dynasty.MODID);
+    }
+
+    /**
+     * 物品名下面那一行「一句话介绍」（不按 Shift 也能看到）。
+     * The single-line description shown right under the item name (always visible).
+     */
+    public static String shortText(ItemStack stack) {
+        ResourceLocation id = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
+        if (id == null || !id.getNamespace().equals(com.dynasty.Dynasty.MODID)) {
+            return "";
+        }
+        boolean zh = chinese();
+        String path = id.getPath();
+        String[] special = DynastyItemUsage.special(path);
+        String[] chosen = special != null ? special : codex(path);
+        if (chosen == null) {
+            chosen = category(path, stack);
+        }
+        String line = strip(zh ? chosen[0] : chosen[1]);
+        if (line.length() > 34) {
+            line = line.substring(0, 34) + "…";
+        }
+        return line;
+    }
+
+    /** 去掉颜色代码与「前导标题」，只留一句短介绍 / strip colour codes and the leading label */
+    private static String strip(String text) {
+        String out = text.replaceAll("§.", "");
+        int split = out.indexOf('：');
+        if (split < 0) {
+            split = out.indexOf(':');
+        }
+        if (split > 0) {
+            out = out.substring(split + 1);
+        }
+        return out.trim();
     }
 }

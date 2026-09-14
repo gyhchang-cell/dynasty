@@ -45,7 +45,6 @@ def misc():
     cv.px(12, 10, hx("E86A5A"))
     cv.line(13, 14, 18, 14, hx("C0392B"))
     cv.rect(20, 20, 23, 26, hx("D9453A"))
-    save(cv, "quest_ledger")
 
     cv = Cv(S, S)
     cv.rect(12, 2, 19, 4, GOLD_DARK)

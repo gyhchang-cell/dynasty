@@ -41,7 +41,6 @@ recipes = {
     "fire_talisman": ([D + "talisman_paper", M + "coal", M + "coal"], D + "fire_talisman", 1),
     "thunder_talisman": ([D + "talisman_paper", M + "gunpowder"], D + "thunder_talisman", 1),
     "return_talisman": ([D + "talisman_paper", M + "ender_pearl"], D + "return_talisman", 1),
-    "quest_ledger": ([M + "book", D + "silk", D + "bamboo_slip"], D + "quest_ledger", 1),
     "festival_lantern": ([M + "paper", M + "paper", M + "paper", M + "paper",
                           D + "gold_coin", M + "torch"], D + "festival_lantern", 1),
     "dynasty_guide_craft": ([M + "book", D + "silk"], D + "dynasty_guide", 1),

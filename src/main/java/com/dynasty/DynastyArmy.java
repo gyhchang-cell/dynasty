@@ -42,7 +42,7 @@ public final class DynastyArmy {
         double loyalty = 1.0D + DynastyStats.getLoyalty(player) / 200.0D;
         player.sendSystemMessage(Component.literal("§6[军阵] §f" + formationName(formation)
                 + "§7 已列阵（" + spawned + " 名禁军，忠诚加成 ×" + String.format("%.2f", loyalty) + "）"));
-        DynastyQuestManager.notifyEvent(player, "army");
+        DynastyAdvancements.awardForEvent(player, "army");
         return spawned;
     }
 

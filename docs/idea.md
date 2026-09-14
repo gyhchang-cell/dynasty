@@ -95,7 +95,7 @@ IDEA 重新导入工程后会自动出现在右上角下拉框：
 
 * ✅ 改代码、跑 `runClient`/`runServer` 调试本体、看日志、加物品。
 * ❌ 不要在 IDEA 里期待 Curios 饰品槽或美化血条生效 —— 那三个是 Mixin 模组，开发环境（official 映射）无法应用它们的 Mixin。
-  想连带它们一起玩，请用**启动器 + `modpack/mods/`（5 个 jar）**。
+  想连带它们一起玩，请用**启动器 + `modpack/mods/`（29 个 jar）**。
 
 ## 四、兜底：命令行永远可用
 

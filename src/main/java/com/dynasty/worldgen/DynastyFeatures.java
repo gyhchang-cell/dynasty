@@ -33,6 +33,85 @@ public class DynastyFeatures {
     public static final RegistryObject<Feature<NoneFeatureConfiguration>> IMPERIAL_TOMB =
             FEATURES.register("imperial_tomb", () -> new ImperialTombFeature(NoneFeatureConfiguration.CODEC));
 
+    // ---- 2024 新增建筑 / new buildings ----
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> GREAT_WALL =
+            FEATURES.register("great_wall", () -> new DynastyBuildings.GreatWallFeature(NoneFeatureConfiguration.CODEC));
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> PAGODA =
+            FEATURES.register("pagoda", () -> new DynastyBuildings.PagodaFeature(NoneFeatureConfiguration.CODEC));
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> HEAVEN_ALTAR =
+            FEATURES.register("heaven_altar", () -> new DynastyBuildings.AltarFeature(NoneFeatureConfiguration.CODEC));
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> POST_STATION =
+            FEATURES.register("post_station", () -> new DynastyBuildings.PostStationFeature(NoneFeatureConfiguration.CODEC));
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> PAIFANG =
+            FEATURES.register("paifang", () -> new DynastyBuildings.PaifangFeature(NoneFeatureConfiguration.CODEC));
+
+    // ---- 第二批建筑（含法阵召唤场）/ second batch ----
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> RITUAL_CIRCLE =
+            FEATURES.register("ritual_circle", () -> new DynastyBuildings2.RitualCircleFeature(NoneFeatureConfiguration.CODEC));
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> TEMPLE =
+            FEATURES.register("temple", () -> new DynastyBuildings2.TempleFeature(NoneFeatureConfiguration.CODEC));
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> BARRACKS =
+            FEATURES.register("barracks", () -> new DynastyBuildings2.BarracksFeature(NoneFeatureConfiguration.CODEC));
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> WATCHTOWER =
+            FEATURES.register("watchtower", () -> new DynastyBuildings2.WatchtowerFeature(NoneFeatureConfiguration.CODEC));
+    // ---- 九霄天界建筑 / nine-heaven buildings ----
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> SKY_PAGODA =
+            FEATURES.register("sky_pagoda", () -> new DynastyBuildings2.SkyBuilding(
+                    NoneFeatureConfiguration.CODEC, DynastyBuildings2.SkyBuilding.Kind.PAGODA));
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> CLOUD_PLATFORM =
+            FEATURES.register("cloud_platform", () -> new DynastyBuildings2.SkyBuilding(
+                    NoneFeatureConfiguration.CODEC, DynastyBuildings2.SkyBuilding.Kind.PLATFORM));
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> SKY_DOJO =
+            FEATURES.register("sky_dojo", () -> new DynastyBuildings2.SkyBuilding(
+                    NoneFeatureConfiguration.CODEC, DynastyBuildings2.SkyBuilding.Kind.DOJO));
+
+    // ---- 第三批：各维度新建筑（中式构件拼出来的，不再是火柴盒）----
+    private static RegistryObject<Feature<NoneFeatureConfiguration>> city(String id,
+                                                                          DynastyBuildings3.Kind kind) {
+        return FEATURES.register(id, () -> new DynastyBuildings3.CityBuilding(
+                NoneFeatureConfiguration.CODEC, kind));
+    }
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> HALL =
+            city("hall", DynastyBuildings3.Kind.HALL);
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> OBSERVATORY =
+            city("observatory", DynastyBuildings3.Kind.OBSERVATORY);
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> MARKET =
+            city("market", DynastyBuildings3.Kind.MARKET);
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> GHOST_GATE =
+            city("ghost_gate", DynastyBuildings3.Kind.GHOST_GATE);
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> JUDGE_HALL =
+            city("judge_hall", DynastyBuildings3.Kind.JUDGE_HALL);
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> BRIDGE =
+            city("bridge", DynastyBuildings3.Kind.BRIDGE);
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> SKY_STAIR =
+            city("sky_stair", DynastyBuildings3.Kind.SKY_STAIR);
+
+    /** 雷池 / the thunder pool */
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> THUNDER_POOL =
+            city("thunder_pool", DynastyBuildings3.Kind.THUNDER_POOL);
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> DRAGON_HALL =
+            city("dragon_hall", DynastyBuildings3.Kind.DRAGON_HALL);
+
+    public static final RegistryObject<Feature<NoneFeatureConfiguration>> PEARL_TOWER =
+            city("pearl_tower", DynastyBuildings3.Kind.PEARL_TOWER);
+
     static BlockState marble() {
         return DynastyBlocks.MARBLE_BLOCK.get().defaultBlockState();
     }

@@ -101,6 +101,42 @@ public class DynastyEntities {
                     .of(DynastyBosses.EunuchMastermind::new, MobCategory.MONSTER)
                     .sized(0.7F, 2.1F).clientTrackingRange(14).build("eunuch_mastermind"));
 
+    /** 九霄天将 / the Nine-Heaven General */
+    public static final RegistryObject<EntityType<DynastyBosses.NineHeavenGeneral>> NINE_HEAVEN_GENERAL =
+            ENTITIES.register("nine_heaven_general", () -> EntityType.Builder
+                    .of(DynastyBosses.NineHeavenGeneral::new, MobCategory.MONSTER)
+                    .sized(0.7F, 2.3F).clientTrackingRange(16).build("nine_heaven_general"));
+
+    /** 东海龙王 / the Dragon King of the East Sea */
+    public static final RegistryObject<EntityType<DynastyBosses.DragonKing>> DRAGON_KING =
+            ENTITIES.register("dragon_king", () -> EntityType.Builder
+                    .of(DynastyBosses.DragonKing::new, MobCategory.MONSTER)
+                    .sized(1.2F, 2.8F).clientTrackingRange(16).build("dragon_king"));
+
+    /** 玉甲卫 / Jade Guard */
+    public static final RegistryObject<EntityType<DynastyRealmMobs.JadeGuard>> JADE_GUARD =
+            ENTITIES.register("jade_guard", () -> EntityType.Builder
+                    .of(DynastyRealmMobs.JadeGuard::new, MobCategory.MONSTER)
+                    .sized(0.6F, 1.9F).clientTrackingRange(10).build("jade_guard"));
+
+    /** 冥卒 / Soul Soldier */
+    public static final RegistryObject<EntityType<DynastyRealmMobs.SoulSoldier>> SOUL_SOLDIER =
+            ENTITIES.register("soul_soldier", () -> EntityType.Builder
+                    .of(DynastyRealmMobs.SoulSoldier::new, MobCategory.MONSTER)
+                    .sized(0.6F, 1.9F).clientTrackingRange(10).build("soul_soldier"));
+
+    /** 雷使 / Thunder Envoy */
+    public static final RegistryObject<EntityType<DynastyRealmMobs.ThunderEnvoy>> THUNDER_ENVOY =
+            ENTITIES.register("thunder_envoy", () -> EntityType.Builder
+                    .of(DynastyRealmMobs.ThunderEnvoy::new, MobCategory.MONSTER)
+                    .sized(0.6F, 1.9F).clientTrackingRange(10).build("thunder_envoy"));
+
+    /** 鲛人 / Merfolk */
+    public static final RegistryObject<EntityType<DynastyRealmMobs.Merfolk>> MERFOLK =
+            ENTITIES.register("merfolk", () -> EntityType.Builder
+                    .of(DynastyRealmMobs.Merfolk::new, MobCategory.MONSTER)
+                    .sized(0.6F, 1.9F).clientTrackingRange(10).build("merfolk"));
+
     @SubscribeEvent
     public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(TERRACOTTA_WARRIOR.get(), TerracottaWarrior.createAttributes().build());
@@ -118,5 +154,11 @@ public class DynastyEntities {
         event.put(DRAGON_EMPEROR.get(), DynastyBosses.DragonEmperor.createAttributes().build());
         event.put(REBEL_GENERAL.get(), DynastyBosses.RebelGeneral.createAttributes().build());
         event.put(EUNUCH_MASTERMIND.get(), DynastyBosses.EunuchMastermind.createAttributes().build());
+        event.put(NINE_HEAVEN_GENERAL.get(), DynastyBosses.NineHeavenGeneral.createAttributes().build());
+        event.put(DRAGON_KING.get(), DynastyBosses.DragonKing.createAttributes().build());
+        event.put(JADE_GUARD.get(), DynastyRealmMobs.JadeGuard.createAttributes().build());
+        event.put(SOUL_SOLDIER.get(), DynastyRealmMobs.SoulSoldier.createAttributes().build());
+        event.put(THUNDER_ENVOY.get(), DynastyRealmMobs.ThunderEnvoy.createAttributes().build());
+        event.put(MERFOLK.get(), DynastyRealmMobs.Merfolk.createAttributes().build());
     }
 }

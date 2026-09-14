@@ -62,7 +62,7 @@ public final class DynastyKeju {
             player.addEffect(new MobEffectInstance(DynastyEffects.MANDATE_OF_HEAVEN.get(), 20 * 180, 0));
             player.getInventory().add(new ItemStack(Items.WRITABLE_BOOK));
             player.sendSystemMessage(Component.literal("§a[科举] 金榜题名！你获得了官职认可（龙威 + 疾风 + 天命）"));
-            DynastyQuestManager.notifyEvent(player, "keju");
+            DynastyAdvancements.awardForEvent(player, "keju");
         } else {
             player.sendSystemMessage(Component.literal("§c[科举] 答错了，正确答案是：" + correct));
         }

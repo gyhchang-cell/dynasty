@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | `dynasty-modpack-1.4.0.zip` | **CurseForge 整合包格式**（内含 `manifest.json`，模组由启动器自动下载；我们自己的模组在 `overrides/mods/`） | CurseForge → 上传项目 → 类型选 **Modpack** |
 | `dynasty-1.4.0.mrpack` | **Modrinth 整合包格式**（`modrinth.index.json` + CDN 下载地址 + 哈希） | Modrinth → 上传项目 → 类型选 **Modpack** |
-| `dynasty-1.4.0-manual.zip` | 免启动器的手动包（直接是 `mods/` 里 5 个 jar） | 网盘/群里发给朋友、或服务端用 |
+| `dynasty-1.4.0-manual.zip` | 免启动器的手动包（直接是 `mods/` 里全部 jar） | 网盘/群里发给朋友、或服务端用 |
 
 > 注意：上传时选的是**上面这三个文件**，不是文件夹本身。文件夹（`modpack/`）是给你本地查看和生成的源材料。
 
@@ -23,5 +23,5 @@
 4. 同样，若审核要求本体也发布到 Modrinth，告诉我，我改成 index 引用。
 
 ## 自测（上传前先验证能不能装）
-* 把 `dist/dynasty-1.4.0-manual.zip` 解压，把 `mods/` 里 5 个 jar 丢进你自己的实例 → 能进游戏就说明包没问题。
+* 把 `dist/dynasty-1.4.0-manual.zip` 解压，把 `mods/` 里 16 个 jar 丢进你自己的实例 → 能进游戏就说明包没问题。
 * 或直接双击整合包 zip 用 Prism/HMCL"从压缩包导入"试一次。

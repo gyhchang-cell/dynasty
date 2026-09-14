@@ -23,6 +23,8 @@ public final class DynastyCodex {
         if (entries == null) {
             entries = new ArrayList<>();
             DynastyCodexWeapons.add(entries);
+            DynastyCodexGear.add(entries);
+            DynastyCodexGear3.add(entries);      // 第三十一轮：10 套甲 + 50 件饰品（脚本生成）
             DynastyCodexItems.add(entries);
             DynastyCodexTools.add(entries);
         }

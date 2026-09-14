@@ -54,13 +54,22 @@ public class DynastyWorldEvents {
                 var dim = level.dimension().location();
                 if (dim.getNamespace().equals(com.dynasty.Dynasty.MODID)) {
                     if (dim.getPath().equals("celestial_dynasty")) {
-                        DynastyQuestManager.notifyEvent(player, "dim_celestial");
+                        DynastyAdvancements.awardForEvent(player, "dim_celestial");
                     } else if (dim.getPath().equals("underworld")) {
-                        DynastyQuestManager.notifyEvent(player, "dim_underworld");
+                        DynastyAdvancements.awardForEvent(player, "dim_underworld");
+                    } else if (dim.getPath().equals("jiuxiao")) {
+                        DynastyAdvancements.award(player, "entered_jiuxiao");
+                    } else if (dim.getPath().equals("dragon_palace")) {
+                        DynastyAdvancements.award(player, "entered_dragon_palace");
                     }
                 }
                 // 4) 饰品效果刷新 / refresh trinket effects
                 DynastyTrinkets.tick(player);
+                // 5) 官阶/民心类成就（FTB 任务书据此自动判定）/ derived advancement checks
+                if (player.tickCount % 40 == 0) {
+                    DynastyAdvancements.checkDerived(player);
+                    DynastyWeaponGifts.tick(player);
+                }
             }
         }
     }
@@ -95,32 +104,8 @@ public class DynastyWorldEvents {
     public static void onPlayerLogin(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             DynastyTrinkets.tick(player);
-            DynastyTrinketSync.send(player);
             DynastyManual.giveOnce(player);
         }
-    }
-
-    /** 服务器启动时校验任务数据 / validates quest data on server start */
-    @SubscribeEvent
-    public static void onServerStarted(net.minecraftforge.event.server.ServerStartedEvent event) {
-        int problems = 0;
-        for (DynastyQuests.Quest quest : DynastyQuests.all()) {
-            net.minecraft.resources.ResourceLocation id = net.minecraft.resources.ResourceLocation.tryParse(quest.target);
-            if (id == null) {
-                continue;
-            }
-            if (quest.type == DynastyQuests.Type.ITEM
-                    && net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(id) == null) {
-                Dynasty.LOGGER.warn("[Dynasty] quest {} targets unknown item {}", quest.index, quest.target);
-                problems++;
-            } else if (quest.type == DynastyQuests.Type.KILL
-                    && net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(id) == null) {
-                Dynasty.LOGGER.warn("[Dynasty] quest {} targets unknown entity {}", quest.index, quest.target);
-                problems++;
-            }
-        }
-        Dynasty.LOGGER.info("[Dynasty] quests validated: {} quests, {} problems",
-                DynastyQuests.count(), problems);
     }
 
     @SubscribeEvent
@@ -129,35 +114,39 @@ public class DynastyWorldEvents {
             return;
         }
         var type = event.getEntity().getType();
-        // 任务：击杀计数 / quest kill counters
-        net.minecraft.resources.ResourceLocation killId = net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(type);
-        if (killId != null) {
-            DynastyQuestManager.onKill(player, killId.toString());
-        }
+        // 功名统一由 DynastyMerit 结算（Boss 多、小怪少且有上限）
+        DynastyMerit.onMobKill(player, type);
+        // 条件兵器：Boss 种类统计 / 白天斩凤凰等
+        DynastyWeaponGifts.onMobKill(player, type);
         if (type == DynastyEntities.DRAGON_EMPEROR.get()) {
-            DynastyStats.addMerit(player, 300);
             DynastyStats.addLoyalty(player, 25);
             DynastyStats.addRebellion(player, -50);
-            player.sendSystemMessage(Component.literal("§6[战功] 龙帝伏诛！功名 +300"));
+            player.sendSystemMessage(Component.literal("§6[战功] 龙帝伏诛！民心大定，叛乱 -50"));
         } else if (type == DynastyEntities.UNDEAD_FIRST_EMPEROR.get()) {
-            DynastyStats.addMerit(player, 200);
             DynastyStats.addLoyalty(player, 15);
-            player.sendSystemMessage(Component.literal("§6[战功] 亡故始皇安息。功名 +200"));
+            player.sendSystemMessage(Component.literal("§6[战功] 亡故始皇安息。"));
         } else if (type == DynastyEntities.REBEL_GENERAL.get()) {
-            DynastyStats.addMerit(player, 150);
             DynastyStats.addRebellion(player, -40);
-            player.sendSystemMessage(Component.literal("§6[战功] 叛将授首！功名 +150，叛乱 -40"));
+            player.sendSystemMessage(Component.literal("§6[战功] 叛将授首！叛乱 -40"));
         } else if (type == DynastyEntities.EUNUCH_MASTERMIND.get()) {
-            DynastyStats.addMerit(player, 160);
             DynastyStats.addLoyalty(player, 10);
-            player.sendSystemMessage(Component.literal("§6[战功] 权阉伏法！功名 +160"));
+            player.sendSystemMessage(Component.literal("§6[战功] 权阉伏法！"));
         } else if (type == DynastyEntities.NIAN_BEAST.get()) {
-            DynastyStats.addMerit(player, 120);
             DynastyStats.addLoyalty(player, 12);
-            player.sendSystemMessage(Component.literal("§6[战功] 年兽驱除！功名 +120"));
-        } else if (type == DynastyEntities.PHOENIX.get() || type == DynastyEntities.QILIN.get()
-                || type == DynastyEntities.NINE_TAILED_FOX.get()) {
-            DynastyStats.addMerit(player, 40);
+            player.sendSystemMessage(Component.literal("§6[战功] 年兽驱除！"));
+        }
+    }
+
+    /** 第一次捡起王朝物品也给功名 / merit for the first pickup of each item */
+    @SubscribeEvent
+    public static void onItemPickup(net.minecraftforge.event.entity.player.EntityItemPickupEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player) || event.getItem().level().isClientSide()) {
+            return;
+        }
+        net.minecraft.resources.ResourceLocation id =
+                net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(event.getItem().getItem().getItem());
+        if (id != null && id.getNamespace().equals(com.dynasty.Dynasty.MODID)) {
+            DynastyMerit.onFirstObtain(player, id.getPath());
         }
     }
 }

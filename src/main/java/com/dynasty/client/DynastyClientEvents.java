@@ -38,6 +38,12 @@ public class DynastyClientEvents {
     public static final ModelLayerLocation EUNUCH_MASTERMIND_LAYER = layer("eunuch_mastermind");
     public static final ModelLayerLocation QILIN_LAYER = layer("qilin");
     public static final ModelLayerLocation NINE_TAILED_FOX_LAYER = layer("nine_tailed_fox");
+    public static final ModelLayerLocation NINE_HEAVEN_GENERAL_LAYER = layer("nine_heaven_general");
+    public static final ModelLayerLocation DRAGON_KING_LAYER = layer("dragon_king");
+    public static final ModelLayerLocation JADE_GUARD_LAYER = layer("jade_guard");
+    public static final ModelLayerLocation SOUL_SOLDIER_LAYER = layer("soul_soldier");
+    public static final ModelLayerLocation THUNDER_ENVOY_LAYER = layer("thunder_envoy");
+    public static final ModelLayerLocation MERFOLK_LAYER = layer("merfolk");
     public static final ModelLayerLocation PHOENIX_LAYER = layer("phoenix");
 
     private static ResourceLocation tex(String name) {
@@ -58,6 +64,12 @@ public class DynastyClientEvents {
     private static final ResourceLocation TEX_EUNUCH_MASTERMIND = tex("eunuch_mastermind");
     private static final ResourceLocation TEX_QILIN = tex("qilin");
     private static final ResourceLocation TEX_NINE_TAILED_FOX = tex("nine_tailed_fox");
+    private static final ResourceLocation TEX_NINE_HEAVEN_GENERAL = tex("nine_heaven_general");
+    private static final ResourceLocation TEX_DRAGON_KING = tex("dragon_king");
+    private static final ResourceLocation TEX_JADE_GUARD = tex("jade_guard");
+    private static final ResourceLocation TEX_SOUL_SOLDIER = tex("soul_soldier");
+    private static final ResourceLocation TEX_THUNDER_ENVOY = tex("thunder_envoy");
+    private static final ResourceLocation TEX_MERFOLK = tex("merfolk");
     private static final ResourceLocation TEX_PHOENIX = tex("phoenix");
 
     @SubscribeEvent
@@ -75,6 +87,12 @@ public class DynastyClientEvents {
         event.registerLayerDefinition(DRAGON_EMPEROR_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.4F));
         event.registerLayerDefinition(REBEL_GENERAL_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.25F));
         event.registerLayerDefinition(EUNUCH_MASTERMIND_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.2F));
+        event.registerLayerDefinition(NINE_HEAVEN_GENERAL_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.2F));
+        event.registerLayerDefinition(DRAGON_KING_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.3F));
+        event.registerLayerDefinition(JADE_GUARD_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
+        event.registerLayerDefinition(SOUL_SOLDIER_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
+        event.registerLayerDefinition(THUNDER_ENVOY_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
+        event.registerLayerDefinition(MERFOLK_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
         event.registerLayerDefinition(QILIN_LAYER,
                 () -> DetailedBeastModel.createLayer(DetailedBeastModel.Kind.QILIN));
         event.registerLayerDefinition(NINE_TAILED_FOX_LAYER,
@@ -93,6 +111,12 @@ public class DynastyClientEvents {
                 ROYAL_GUARD_LAYER, REBEL_SOLDIER_LAYER, NIAN_BEAST_LAYER, DRAGON_EMPEROR_LAYER,
                 REBEL_GENERAL_LAYER, EUNUCH_MASTERMIND_LAYER, QILIN_LAYER, NINE_TAILED_FOX_LAYER,
                 PHOENIX_LAYER,
+                NINE_HEAVEN_GENERAL_LAYER,
+                DRAGON_KING_LAYER,
+                JADE_GUARD_LAYER,
+                SOUL_SOLDIER_LAYER,
+                THUNDER_ENVOY_LAYER,
+                MERFOLK_LAYER,
         };
         for (ModelLayerLocation layer : layers) {
             modelSet.bakeLayer(layer);
@@ -118,6 +142,10 @@ public class DynastyClientEvents {
     /** 全部刷怪蛋 / all Dynasty spawn eggs（注册完成后再调用） */
     private static net.minecraft.world.item.Item[] spawnEggs() {
         return new net.minecraft.world.item.Item[]{
+                com.dynasty.DynastyItems.JADE_GUARD_SPAWN_EGG.get(),
+                com.dynasty.DynastyItems.SOUL_SOLDIER_SPAWN_EGG.get(),
+                com.dynasty.DynastyItems.THUNDER_ENVOY_SPAWN_EGG.get(),
+                com.dynasty.DynastyItems.MERFOLK_SPAWN_EGG.get(),
                 com.dynasty.DynastyItems.TERRACOTTA_WARRIOR_SPAWN_EGG.get(),
                 com.dynasty.DynastyItems.IMPERIAL_SOLDIER_SPAWN_EGG.get(),
                 com.dynasty.DynastyItems.UNDEAD_FIRST_EMPEROR_SPAWN_EGG.get(),
@@ -172,6 +200,18 @@ public class DynastyClientEvents {
         event.registerEntityRenderer(DynastyEntities.PHOENIX.get(),
                 ctx -> new DynastyDetailedBeastRenderer<>(ctx, PHOENIX_LAYER, TEX_PHOENIX, 0.7F,
                         DetailedBeastModel.Kind.PHOENIX));
+        event.registerEntityRenderer(DynastyEntities.JADE_GUARD.get(),
+                ctx -> new DynastyHumanoidRenderer<>(ctx, JADE_GUARD_LAYER, TEX_JADE_GUARD, 0.5F));
+        event.registerEntityRenderer(DynastyEntities.SOUL_SOLDIER.get(),
+                ctx -> new DynastyHumanoidRenderer<>(ctx, SOUL_SOLDIER_LAYER, TEX_SOUL_SOLDIER, 0.5F));
+        event.registerEntityRenderer(DynastyEntities.THUNDER_ENVOY.get(),
+                ctx -> new DynastyHumanoidRenderer<>(ctx, THUNDER_ENVOY_LAYER, TEX_THUNDER_ENVOY, 0.5F));
+        event.registerEntityRenderer(DynastyEntities.MERFOLK.get(),
+                ctx -> new DynastyHumanoidRenderer<>(ctx, MERFOLK_LAYER, TEX_MERFOLK, 0.5F));
+        event.registerEntityRenderer(DynastyEntities.NINE_HEAVEN_GENERAL.get(),
+                ctx -> new DynastyHumanoidRenderer<>(ctx, NINE_HEAVEN_GENERAL_LAYER, TEX_NINE_HEAVEN_GENERAL, 0.9F));
+        event.registerEntityRenderer(DynastyEntities.DRAGON_KING.get(),
+                ctx -> new DynastyHumanoidRenderer<>(ctx, DRAGON_KING_LAYER, TEX_DRAGON_KING, 0.9F));
     }
 
     /** 精细化神兽渲染器（麒麟 / 九尾狐 / 凤凰）/ renderer for the detailed beast models */

@@ -1,7 +1,6 @@
 package com.dynasty.network;
 
 import com.dynasty.Dynasty;
-import com.dynasty.DynastyTrinketSync;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -28,19 +27,13 @@ public class DynastyNetwork {
                 OpenKejuPacket::encode, OpenKejuPacket::decode, OpenKejuPacket::handle);
         CHANNEL.registerMessage(id++, AnswerKejuPacket.class,
                 AnswerKejuPacket::encode, AnswerKejuPacket::decode, AnswerKejuPacket::handle);
-        CHANNEL.registerMessage(id++, QuestRequestPacket.class,
-                QuestRequestPacket::encode, QuestRequestPacket::decode, QuestRequestPacket::handle);
-        CHANNEL.registerMessage(id++, QuestSyncPacket.class,
-                QuestSyncPacket::encode, QuestSyncPacket::decode, QuestSyncPacket::handle);
-        CHANNEL.registerMessage(id++, QuestClaimPacket.class,
-                QuestClaimPacket::encode, QuestClaimPacket::decode, QuestClaimPacket::handle);
+        CHANNEL.registerMessage(id++, StatsRequestPacket.class,
+                StatsRequestPacket::encode, StatsRequestPacket::decode, StatsRequestPacket::handle);
         CHANNEL.registerMessage(id++, ArmyFormPacket.class,
                 ArmyFormPacket::encode, ArmyFormPacket::decode, ArmyFormPacket::handle);
         CHANNEL.registerMessage(id++, StatsRequestPacket.class,
                 StatsRequestPacket::encode, StatsRequestPacket::decode, StatsRequestPacket::handle);
         CHANNEL.registerMessage(id++, StatsSyncPacket.class,
                 StatsSyncPacket::encode, StatsSyncPacket::decode, StatsSyncPacket::handle);
-        CHANNEL.registerMessage(id++, DynastyTrinketSync.class,
-                DynastyTrinketSync::encode, DynastyTrinketSync::decode, DynastyTrinketSync::handle);
     }
 }

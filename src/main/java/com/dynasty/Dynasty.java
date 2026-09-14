@@ -25,6 +25,10 @@ public class Dynasty {
         // 王朝全部内容 / all Dynasty content
         DynastyContent.register(modEventBus);
         DynastyCuriosSetup.register(modEventBus);
+        DynastyFtbSetup.register();
+
+        // 解开原版属性硬上限（攻击力 2048 / 生命 1024 / 护甲 30），毕业数值才能继续涨
+        DynastyAttributeCaps.unlock();
 
         LOGGER.info("[Dynasty] content registered under namespace '{}'", MODID);
     }

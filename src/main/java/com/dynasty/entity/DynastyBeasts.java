@@ -52,7 +52,7 @@ public final class DynastyBeasts {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Mob.createMobAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 600.0D)
                     .add(Attributes.ATTACK_DAMAGE, 500.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.34D)
                     .add(Attributes.ARMOR, 20.0D)
@@ -84,7 +84,7 @@ public final class DynastyBeasts {
                 player.getItemInHand(hand).shrink(1);
                 DynastyStats.addLoyalty(serverPlayer, 3);
                 serverPlayer.sendSystemMessage(Component.literal("§d[麒麟] §r祥瑞降临，民心 +3"));
-                com.dynasty.DynastyQuestManager.notifyEvent(serverPlayer, "qilin");
+                com.dynasty.DynastyAdvancements.awardForEvent(serverPlayer, "qilin");
                 this.playSound(SoundEvents.HORSE_EAT, 1.0F, 0.8F);
                 return InteractionResult.CONSUME;
             }
@@ -115,7 +115,7 @@ public final class DynastyBeasts {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Mob.createMobAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 700.0D)
                     .add(Attributes.ATTACK_DAMAGE, 600.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.32D)
                     .add(Attributes.FLYING_SPEED, 0.32D)
@@ -230,7 +230,7 @@ public final class DynastyBeasts {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Mob.createMobAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 650.0D)
                     .add(Attributes.ATTACK_DAMAGE, 650.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.40D)
                     .add(Attributes.ARMOR, 20.0D)

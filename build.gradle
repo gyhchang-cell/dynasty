@@ -94,16 +94,144 @@ def openDir = { File dir ->
     }
 }
 
-/** 导出模组：出 build/libs/dynasty-x.jar 并复制到桌面「导出」文件夹 */
+/**
+ * 把 modpack/mods 里的全部 jar + 最新本体 jar 同步进 HMCL 的 Dynasty 实例。
+ * 同时写「版本隔离目录」与「全局 mods 目录」，所以启动器开不开版本隔离都能加载。
+ *
+ * Syncs every pack jar plus the freshly built mod into the HMCL "Dynasty" instance
+ * (both the version-isolated folder and the global mods folder).
+ */
+def syncHmcl = {
+    if (!hmclGameDir.isDirectory()) {
+        logger.lifecycle("（未发现 HMCL 目录 ${hmclGameDir}，跳过同步）")
+        return 0
+    }
+    // 目标：全局 mods + 版本隔离目录 + 所有名字里带 Dynasty 的实例（含 HMCL 导入整合包生成的实例）
+    def modTargets = [new File(hmclGameDir, 'mods'),
+                      new File(hmclGameDir, "versions/Dynasty 王朝 ${mod_version}/mods")]
+    def versionsDir = new File(hmclGameDir, 'versions')
+    if (versionsDir.isDirectory()) {
+        versionsDir.listFiles()?.each { dir ->
+            if (dir.isDirectory() && dir.name.contains('Dynasty')) {
+                modTargets.add(new File(dir, 'mods'))
+            }
+        }
+    }
+    // 必须删掉的坏文件：
+    //   * 旧版 item-filters → FTB Quests 起不来
+    //   * CustomSkinLoader 的 Universal 版 → 缺类崩溃
+    //   * TexTrue's Embeddium Options → Embeddium 明确声明不兼容（0.0.0-NOT-COMPATIBLE）
+    def blacklist = ['item-filters-forge-2001.1.0-build.53.jar',
+                     'CustomSkinLoader_Universal-15.0.1.jar',
+                     'CustomSkinLoader_Universal-15.0.jar',
+                     'textrues_embeddium_options-0.1.5+mc1.20.1.jar',
+                     'sodiumoptionsapi-forge-1.0.10-1.20.1.jar',
+                     // Inventory Profiles Next 会挡住背包左上角的任务按钮
+                     'InventoryProfilesNext-forge-1.20-1.10.20.jar',
+                     'libIPN-forge-1.20-4.0.2.jar']
+
+    int total = 0
+    modTargets.unique().each { dir ->
+        dir.mkdirs()
+        def names = [] as Set
+        file('modpack/mods').listFiles()?.each { f ->
+            if (f.name.endsWith('.jar')) {
+                new File(dir, f.name).bytes = f.bytes
+                names.add(f.name)
+            }
+        }
+        copyOwnJar(dir).each { names.add(it) }
+        // 删除上一次同步过、现在已被整合包移除的模组（只删我们自己放过的东西）
+        def manifest = new File(dir, '.dynasty-pack-jars.txt')
+        if (manifest.exists()) {
+            manifest.readLines().findAll { it.endsWith('.jar') && !names.contains(it) }.each { stale ->
+                if (new File(dir, stale).delete()) {
+                    logger.lifecycle("   已移除旧模组: ${stale}")
+                }
+            }
+        }
+        blacklist.each { bad ->
+            def file = new File(dir, bad)
+            if (file.exists() && file.delete()) {
+                logger.lifecycle("   已移除不兼容模组: ${bad}")
+            }
+        }
+        manifest.text = names.join('\n')
+        total = names.size()
+        logger.lifecycle("✅ 已同步 ${names.size()} 个 jar → ${dir}")
+    }
+    // 顺带同步整合包实例目录 / also refresh the ready-made instance folder
+    def instanceDir = file('整合包实例/mods')
+    instanceDir.mkdirs()
+    file('modpack/mods').listFiles()?.each { f ->
+        if (f.name.endsWith('.jar')) {
+            new File(instanceDir, f.name).bytes = f.bytes
+        }
+    }
+    copyOwnJar(instanceDir)
+
+    // 把 modpack/config 里的配置（FTB 任务书等）同步进游戏目录
+    def configSource = file('modpack/config')
+    if (configSource.isDirectory()) {
+        def configTargets = [new File(hmclGameDir, 'config'),
+                             new File(hmclGameDir, "versions/Dynasty 王朝 ${mod_version}/config")]
+        if (versionsDir.isDirectory()) {
+            versionsDir.listFiles()?.each { dir ->
+                if (dir.isDirectory() && dir.name.contains('Dynasty')) {
+                    configTargets.add(new File(dir, 'config'))
+                }
+            }
+        }
+            configTargets.unique().each { target ->
+            target.mkdirs()
+            configSource.eachFileRecurse { f ->
+                if (f.isFile()) {
+                    def relative = configSource.toPath().relativize(f.toPath()).toString()
+                    def dest = new File(target, relative)
+                    dest.parentFile.mkdirs()
+                    dest.bytes = f.bytes
+                }
+            }
+            // 删掉源里已经没有的任务章节（例如被精简掉的章节）/ drop removed quest chapters
+            def questDir = new File(target, 'ftbquests/quests/chapters')
+            if (questDir.isDirectory()) {
+                def keep = file('modpack/config/ftbquests/quests/chapters').listFiles()
+                        ?.collect { it.name } as Set ?: ([] as Set)
+                questDir.listFiles()?.each { stale ->
+                    if (stale.name.startsWith('dynasty_') && !keep.contains(stale.name)) {
+                        if (stale.delete()) {
+                            logger.lifecycle("   已移除旧任务章节: ${stale.name}")
+                        }
+                    }
+                }
+            }
+            logger.lifecycle("✅ 已同步整合包 config → ${target}")
+        }
+    }
+    return total
+}
+
+/** 只做同步：把最新 jar + 整合包模组刷新进 HMCL 实例 */
+tasks.register('syncHmcl') {
+    group = 'dynasty'
+    description = '把最新本体 jar 与整合包模组同步进 HMCL 的 Dynasty 实例（含全局 mods）'
+    dependsOn 'build'
+    doLast {
+        syncHmcl()
+    }
+}
+
+/** 导出模组：出 build/libs/dynasty-x.jar → 桌面「导出」文件夹 + 同步进 HMCL 实例 */
 tasks.register('exportMod') {
     group = 'dynasty'
-    description = '导出 Dynasty 模组 jar（build/libs → 桌面/导出/Dynasty模组）'
+    description = '导出 Dynasty 模组 jar（build/libs → 桌面/导出/Dynasty模组 + 同步 HMCL 实例）'
     dependsOn 'build'
     doLast {
         def out = new File(dynastyExportDir, 'Dynasty模组')
         def names = copyOwnJar(out)
         logger.lifecycle("✅ 已导出模组：${out}")
         names.each { logger.lifecycle("   ${it}") }
+        syncHmcl()
         openDir(out)
     }
 }
@@ -118,6 +246,71 @@ tasks.register('exportModpack') {
         runPython('tools/art/make_uploadable_packs.py')
         runPython('tools/art/make_manual_and_guide.py')
 
+        // 模组解析自检：把「缺前置 / 不兼容」这类会让游戏起不来的问题在导出阶段就报出来
+        def verifier = file('tools/art/verify_modpack.py')
+        if (verifier.exists()) {
+            try {
+                exec {
+                    commandLine 'python3', verifier.absolutePath,
+                            file('modpack/mods').absolutePath
+                }
+            } catch (Exception e) {
+                logger.lifecycle("（自检脚本执行异常：${e.message}）")
+            }
+        }
+
+        // 任务书自检：id 能否被 FTB 解析、前置是否都指向真实任务、引用是否存在、坐标是否铺开
+        def questVerifier = file('tools/art/verify_ftbquests.py')
+        if (questVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', questVerifier.absolutePath }
+            } catch (Exception e) {
+                logger.lifecycle("（任务书自检发现异常：${e.message}）")
+            }
+        }
+
+        // 世界生成自检：噪声 id / 生物群系 / 特征 / 结构的引用是否都真实存在
+        // （地府崩溃过一次：地表规则里把噪声名当方块名改掉了，这里能在导出阶段拦住）
+        def worldgenVerifier = file('tools/art/verify_worldgen.py')
+        if (worldgenVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', worldgenVerifier.absolutePath }
+            } catch (Exception e) {
+                logger.lifecycle("（世界生成自检发现异常：${e.message}）")
+            }
+        }
+
+        // 特征顺序自检：复刻原版 FeatureSorter，避免 Feature order cycle（进天朝崩过一次）
+        def featureOrderVerifier = file('tools/art/verify_feature_order.py')
+        if (featureOrderVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', featureOrderVerifier.absolutePath }
+            } catch (Exception e) {
+                logger.lifecycle("（特征顺序自检发现异常：${e.message}）")
+            }
+        }
+
+        // 实体自检：每个实体都要有渲染器与贴图（九霄天将 / 东海龙王 缺渲染器崩过）
+        def entityVerifier = file('tools/art/verify_entities.py')
+        if (entityVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', entityVerifier.absolutePath }
+            } catch (Exception e) {
+                logger.lifecycle("（实体自检发现异常：${e.message}）")
+            }
+        }
+
+        // 装备自检：护甲 / 饰品的表、贴图、模型、配方、词条、Curios 标签六处必须齐全
+        //（曾经漏注册 / 漏进 Curios 标签 → 物品根本戴不上）
+        def gearVerifier = file('tools/art/verify_gear.py')
+        if (gearVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', gearVerifier.absolutePath }
+            } catch (Exception e) {
+                logger.lifecycle("（装备自检发现异常：${e.message}）")
+            }
+        }
+
         def out = new File(dynastyExportDir, 'Dynasty整合包')
         out.mkdirs()
         def dist = file('dist')
@@ -131,21 +324,8 @@ tasks.register('exportModpack') {
             }
         }
 
-        // 同步到 HMCL 实例（存在则同步 mods + 本体 jar）
-        def versionDir = new File(hmclGameDir, "versions/Dynasty 王朝 ${mod_version}")
-        if (hmclGameDir.isDirectory()) {
-            def modsDir = new File(versionDir, 'mods')
-            modsDir.mkdirs()
-            file('modpack/mods').listFiles()?.each { f ->
-                if (f.name.endsWith('.jar')) {
-                    new File(modsDir, f.name).bytes = f.bytes
-                }
-            }
-            copyOwnJar(modsDir)
-            logger.lifecycle("✅ 已同步进 HMCL 实例：${modsDir}")
-        } else {
-            logger.lifecycle("（未发现 HMCL 目录 ${hmclGameDir}，跳过同步）")
-        }
+        // 同步到 HMCL 实例（版本隔离目录 + 全局 mods 目录 + 整合包实例目录）
+        syncHmcl()
 
         logger.lifecycle("✅ 已导出整合包：${out}（${copied} 个文件）")
         logger.lifecycle("   其中 dynasty-modpack-*.zip → CurseForge，dynasty-*.mrpack → Modrinth")
@@ -187,6 +367,7 @@ tasks.register('dynastyModpack') {
             }
         }
         logger.lifecycle("✅ 整合包实例已就绪：${instanceDir}（${copied} 个 jar）")
+        syncHmcl()
         logger.lifecycle("   把这个目录里的 mods/ 丢进 1.20.1 + Forge 47.4.10 的实例即可开玩。")
         if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
             try {
