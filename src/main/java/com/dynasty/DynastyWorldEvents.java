@@ -108,6 +108,14 @@ public class DynastyWorldEvents {
         }
     }
 
+    /** 玩家登出：清掉饰品的扫描/属性缓存，避免长服上攒着一堆废弃条目。/ on logout: drop trinket caches. */
+    @SubscribeEvent
+    public static void onPlayerLogout(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            DynastyTrinkets.forget(player);
+        }
+    }
+
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) {

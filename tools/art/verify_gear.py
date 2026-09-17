@@ -38,7 +38,12 @@ def read(path):
 
 
 def check_trinkets():
-    table = load("gen_trinkets3", os.path.join(ROOT, "tools/art/gen_trinkets3.py")).TRINKETS
+    # 真源 = 所有饰品生成器（每批一张表）/ source of truth: every trinket generator table
+    table = {}
+    for generator in ("gen_trinkets3", "gen_trinkets4"):
+        path = os.path.join(ROOT, "tools/art/%s.py" % generator)
+        if os.path.exists(path):
+            table.update(load(generator, path).TRINKETS)
     java = read(os.path.join(SRC, "DynastyTrinkets.java"))
     java_ids = re.findall(r'\{"([a-z_]+)", -?\d+, ', java)
     missing_java = [t for t in table if t not in java_ids]
@@ -46,7 +51,7 @@ def check_trinkets():
     for tid in missing_java:
         problems.append("饰品 %s 没写进 DynastyTrinkets.EXTRA_TABLE（物品不会被注册）" % tid)
     for tid in extra_java:
-        problems.append("DynastyTrinkets.EXTRA_TABLE 里的 %s 不在 gen_trinkets3.py 表里" % tid)
+        problems.append("DynastyTrinkets.EXTRA_TABLE 里的 %s 不在饰品生成器表里" % tid)
     if len(java_ids) != len(set(java_ids)):
         problems.append("EXTRA_TABLE 里有重复 id")
 

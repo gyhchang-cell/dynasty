@@ -315,4 +315,25 @@ public final class DynastyWeapons {
     /** 39. 混元珠杖 / Hunyuan Staff：5000，特攻 +800（长柄，攻击距离 +3）*/
     public static final RegistryObject<Item> HUNYUAN_STAFF = ITEMS.register("hunyuan_staff",
             () -> new PolearmItem(DynastyTiers.DRAGON_CRYSTAL, 4859, -2.4F, new Item.Properties()));
+
+    // ========== 六、第三十二轮的 6 把帝兵（材料 / 贴图 / 配方见 tools/art/gen_weapons4.py）==========
+
+    /** 40. 麒麟战斧 / Qilin War Axe：2000，特攻 +250 */
+    public static final RegistryObject<Item> QILIN_WAR_AXE = ITEMS.register("qilin_war_axe",
+            () -> new AxeItem(DynastyTiers.DRAGON_CRYSTAL, 1859, -2.9F, new Item.Properties()));
+    /** 41. 太乙法剑 / Taiyi Sword：2300，特攻 +300 */
+    public static final RegistryObject<Item> TAIYI_SWORD =
+            sword("taiyi_sword", DynastyTiers.DRAGON_CRYSTAL, 2159, -2.2F);
+    /** 42. 白虎戟 / White Tiger Glaive：2600，特攻 +330（长柄，攻击距离 +3）*/
+    public static final RegistryObject<Item> BAIHU_GLAIVE = ITEMS.register("baihu_glaive",
+            () -> new PolearmItem(DynastyTiers.DRAGON_CRYSTAL, 2459, -2.8F, new Item.Properties()));
+    /** 43. 雷霆枪 / Thunder Spear：2900，特攻 +360（长柄，攻击距离 +3）*/
+    public static final RegistryObject<Item> THUNDER_SPEAR = ITEMS.register("thunder_spear",
+            () -> new PolearmItem(DynastyTiers.DRAGON_CRYSTAL, 2759, -2.6F, new Item.Properties()));
+    /** 44. 紫微刀 / Ziwei Saber：3200，特攻 +400 */
+    public static final RegistryObject<Item> ZIWEI_SABER =
+            sword("ziwei_saber", DynastyTiers.DRAGON_CRYSTAL, 3059, -2.4F);
+    /** 45. 朱雀弓 / Vermilion Bow：箭矢 ×4.0 + 300、穿透 2（特攻 +300） */
+    public static final RegistryObject<Item> ZHUQUE_BOW = ITEMS.register("zhuque_bow",
+            () -> new DragonBowItem(4.0D, 300.0D, 2, 4, new Item.Properties().durability(9000)));
 }

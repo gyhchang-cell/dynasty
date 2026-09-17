@@ -559,6 +559,55 @@ TRINKET_CLASSES = [
         ("dragon_king_scale", "龙王逆鳞：攻击 +20%、抗击退 +0.5、护甲 +6（龙宫终极饰品）。"),
     ]),
 ]
+# 第三十二轮：30 件新饰品按主题追加到既有的 5 类里（保持「五类五列」的布局不变，
+# 新增类别会把这一章拉得过宽 —— 自检里「跨度 > 40 格」就是这么踩出来的）。
+_TRINKET_EXTRA = [
+    ("入门佩饰（前期）", [
+        ("conch_horn", "海螺号：生命 +240、移速 +8%。"),
+        ("jade_brush_holder", "玉笔筒：攻速 +12%、攻击 +6%。"),
+        ("ink_slab_charm", "砚台坠：幸运 +2、生命 +160。"),
+        ("scroll_case_charm", "书箱坠：攻速 +10%、幸运 +1。"),
+    ]),
+    ("通灵瑞兽（中期 · 神兽掉落）", [
+        ("qilin_hoof_charm", "麒麟蹄：生命 +260、攻速 +8%。"),
+        ("turtle_blood_charm", "龟血符：生命 +300、护甲 +16，残血自动抗性。"),
+        ("fox_spirit_pendant", "狐灵佩：移速 +12%、幸运 +2。"),
+        ("phoenix_wing_charm", "凤翼坠：移速 +10%、常驻缓降。"),
+        ("dragon_blood_pearl", "龙血珠：生命 +360、攻击 +14%。"),
+        ("immortal_crane_feather", "仙鹤羽：移速 +12%、缓降（跑图最舒服）。"),
+    ]),
+    ("功名文房（中期 · 朝堂与学识）", [
+        ("phoenix_hairpin", "凤钗：生命 +240、幸运 +1。"),
+        ("dragon_robe_sash", "龙袍玉带：护甲 +14、生命 +200。"),
+        ("mandarin_rank_badge", "补子官徽：幸运 +2、生命 +180。"),
+        ("imperial_pearl_earring", "东珠耳坠：生命 +200、幸运 +1。"),
+        ("gilded_lotus_crown", "金莲冠：攻击 +10%、移速 +5%。"),
+        ("scholar_ink_badge", "墨玉印坠：生命 +180、幸运 +1。"),
+    ]),
+    ("战阵护身（中后期 · 战斗）", [
+        ("war_banner_charm", "战旗坠：攻击 +12%、攻速 +6%。"),
+        ("iron_helmet_plume", "盔缨：护甲 +12、移速 +6%。"),
+        ("pike_tassel", "枪缨：攻击 +10%、攻击距离 +1。"),
+        ("drum_beater", "鼓槌：攻速 +15%、攻击 +5%。"),
+        ("armor_piercer_token", "破甲符牌：攻击 +16%、击退 +0.35。"),
+        ("dragon_scale_sash", "龙鳞带：护甲 +16、抗击退 +0.45。"),
+    ]),
+    ("传世至宝（终盘 · 神物）", [
+        ("thunder_seal_charm", "雷印符：攻击 +14%、攻速 +10%。"),
+        ("star_diagram_charm", "星图佩：幸运 +3、生命 +140。"),
+        ("zen_bead_string", "禅珠串：生命 +220，残血自动生命恢复。"),
+        ("alchemy_furnace_charm", "丹炉坠：生命 +260、常驻再生。"),
+        ("pearl_net_charm", "珠网坠：生命 +200、幸运 +2。"),
+        ("storm_anchor_charm", "镇海锚坠：护甲 +20、击退 +0.5。"),
+        ("guqin_tassel", "琴穗：攻速 +8%、生命 +120。"),
+        ("tide_compass_charm", "潮信坠：攻击距离 +2、移速 +6%。"),
+    ]),
+]
+for _extra_cls, _extra_items in _TRINKET_EXTRA:
+    for _cls_name, _cls_note, _cls_items in TRINKET_CLASSES:
+        if _cls_name == _extra_cls:
+            _cls_items.extend(_extra_items)
+
 CH10 = []
 for _cls_name, _cls_note, _cls_items in TRINKET_CLASSES:
     for _i, (_item, _item_desc) in enumerate(_cls_items):
@@ -844,6 +893,30 @@ CH13 += [
     I("ziwei_chestplate", 1),
     I("ziwei_leggings", 1),
     I("ziwei_boots", 1),
+]
+
+# ================================================================================
+# 第三十二轮：7 个高阶材料 / 6 把帝兵 / 30 件饰品（食物按既有精简规则不进任务书）
+# ================================================================================
+CH2 += [
+    # ---- 10 套甲 / 10 件兵器点名要的高阶材料（此前只出现在配方里、做不出来）----
+    I("xuanwu_shell", 1, branch=True, desc="玄武壳：龙鳞×2 + 精钢×2 + 图纸 —— 玄武甲与玄武系兵器的甲片。"),
+    I("qinglong_scale", 1, desc="青龙鳞：龙鳞×2 + 龙晶 + 图纸。"),
+    I("baihu_fang", 1, desc="白虎牙：龙晶×2 + 精钢×2 + 图纸。"),
+    I("zhuque_feather", 1, desc="朱雀羽：凤凰羽×2 + 朱砂×2 + 图纸。"),
+    I("taiyi_jade", 1, desc="太乙玉：玄天玉 + 玉×2 + 图纸。"),
+    I("thunder_token", 1, desc="雷部令：符纸×2 + 朱砂×2 + 图纸。"),
+    I("hunyuan_pearl", 1, desc="混元珠：龙晶×2 + 龙帝玉玺 + 帝骸骨（毕业材料）。"),
+]
+
+CH3 += [
+    # ---- 6 把帝兵：材料都来自上面那一批 / six weapons built from the new materials ----
+    I("qilin_war_axe", 1, branch=True, desc="麒麟战斧（斧线）：麒麟角 + 精钢×2 + 图纸，攻 2000、特攻 +250。"),
+    I("taiyi_sword", 1, desc="太乙法剑（剑线）：太乙玉 + 龙晶 + 图纸，攻 2300、特攻 +300。"),
+    I("baihu_glaive", 1, desc="白虎戟（长柄）：白虎牙 + 精钢×2 + 图纸，攻 2600、特攻 +330（攻击距离 +3）。"),
+    I("thunder_spear", 1, desc="雷霆枪（长柄）：雷部令 + 精钢×2 + 图纸，攻 2900、特攻 +360（攻击距离 +3）。"),
+    I("ziwei_saber", 1, desc="紫微刀（刀线）：龙晶 + 玄天玉 + 图纸，攻 3200、特攻 +400。"),
+    I("zhuque_bow", 1, desc="朱雀弓（弓线）：朱雀羽 + 凤凰羽 + 龙吟弓 + 图纸，箭矢 ×4.0 + 300、穿透 2。"),
 ]
 
 CHAPTER_LAYOUT = {

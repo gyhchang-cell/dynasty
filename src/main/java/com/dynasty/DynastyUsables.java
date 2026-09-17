@@ -182,4 +182,31 @@ public final class DynastyUsables {
             return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
         }
     }
+
+    /**
+     * 百宝妆匣：右键随机开出一件王朝饰品，开完即消耗。
+     * Trinket Box: rolls one random accessory and is consumed on use.
+     */
+    public static class TrinketBoxItem extends Item {
+        public TrinketBoxItem(Properties props) {
+            super(props);
+        }
+
+        @Override
+        public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+            ItemStack stack = player.getItemInHand(hand);
+            if (!level.isClientSide()) {
+                ItemStack gift = DynastyTrinkets.randomGift(player.getRandom());
+                if (!player.getInventory().add(gift)) {
+                    player.drop(gift, false);
+                }
+                level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP,
+                        SoundSource.PLAYERS, 0.8F, 1.4F);
+                if (!player.getAbilities().instabuild) {
+                    stack.shrink(1);
+                }
+            }
+            return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+        }
+    }
 }

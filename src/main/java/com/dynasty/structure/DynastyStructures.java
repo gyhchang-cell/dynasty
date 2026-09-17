@@ -30,6 +30,22 @@ public final class DynastyStructures {
     public static final RegistryObject<StructureType<TombStructure>> IMPERIAL_TOMB =
             STRUCTURE_TYPES.register("imperial_tomb", () -> () -> TombStructure.CODEC);
 
+    /** 国子监 / Imperial Academy（科举联动）*/
+    public static final RegistryObject<StructureType<AcademyStructure>> ACADEMY =
+            STRUCTURE_TYPES.register("academy", () -> () -> AcademyStructure.CODEC);
+
+    /** 长城关隘 / Great Wall Gate */
+    public static final RegistryObject<StructureType<WallGateStructure>> GREAT_WALL_GATE =
+            STRUCTURE_TYPES.register("great_wall_gate", () -> () -> WallGateStructure.CODEC);
+
+    /** 皇陵石刻 / Imperial Stone Grove */
+    public static final RegistryObject<StructureType<StoneGroveStructure>> STONE_GROVE =
+            STRUCTURE_TYPES.register("stone_grove", () -> () -> StoneGroveStructure.CODEC);
+
+    /** 观星台 / Star Altar */
+    public static final RegistryObject<StructureType<StarAltarStructure>> STAR_ALTAR =
+            STRUCTURE_TYPES.register("star_altar", () -> () -> StarAltarStructure.CODEC);
+
     public static final RegistryObject<StructurePieceType> PALACE_PIECE =
             PIECE_TYPES.register("palace_piece", PalacePieceType::new);
 
@@ -41,6 +57,18 @@ public final class DynastyStructures {
 
     public static final RegistryObject<StructurePieceType> TOMB_PIECE =
             PIECE_TYPES.register("tomb_piece", TombPieceType::new);
+
+    public static final RegistryObject<StructurePieceType> ACADEMY_PIECE =
+            PIECE_TYPES.register("academy_piece", AcademyPieceType::new);
+
+    public static final RegistryObject<StructurePieceType> WALL_GATE_PIECE =
+            PIECE_TYPES.register("wall_gate_piece", WallGatePieceType::new);
+
+    public static final RegistryObject<StructurePieceType> STONE_GROVE_PIECE =
+            PIECE_TYPES.register("stone_grove_piece", StoneGrovePieceType::new);
+
+    public static final RegistryObject<StructurePieceType> STAR_ALTAR_PIECE =
+            PIECE_TYPES.register("star_altar_piece", StarAltarPieceType::new);
 
     // 部件反序列化器（放在独立类里，避免初始化器自引用）
     // Deserializers in separate classes to avoid static initializer self-reference.
@@ -77,6 +105,42 @@ public final class DynastyStructures {
                 net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
                 net.minecraft.nbt.CompoundTag tag) {
             return new TombPiece(DynastyStructures.TOMB_PIECE.get(), tag);
+        }
+    }
+
+    static final class AcademyPieceType implements StructurePieceType {
+        @Override
+        public net.minecraft.world.level.levelgen.structure.StructurePiece load(
+                net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
+                net.minecraft.nbt.CompoundTag tag) {
+            return new AcademyPiece(DynastyStructures.ACADEMY_PIECE.get(), tag);
+        }
+    }
+
+    static final class WallGatePieceType implements StructurePieceType {
+        @Override
+        public net.minecraft.world.level.levelgen.structure.StructurePiece load(
+                net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
+                net.minecraft.nbt.CompoundTag tag) {
+            return new WallGatePiece(DynastyStructures.WALL_GATE_PIECE.get(), tag);
+        }
+    }
+
+    static final class StoneGrovePieceType implements StructurePieceType {
+        @Override
+        public net.minecraft.world.level.levelgen.structure.StructurePiece load(
+                net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
+                net.minecraft.nbt.CompoundTag tag) {
+            return new StoneGrovePiece(DynastyStructures.STONE_GROVE_PIECE.get(), tag);
+        }
+    }
+
+    static final class StarAltarPieceType implements StructurePieceType {
+        @Override
+        public net.minecraft.world.level.levelgen.structure.StructurePiece load(
+                net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
+                net.minecraft.nbt.CompoundTag tag) {
+            return new StarAltarPiece(DynastyStructures.STAR_ALTAR_PIECE.get(), tag);
         }
     }
 }

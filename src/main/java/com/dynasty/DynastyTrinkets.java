@@ -20,7 +20,9 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -118,6 +120,13 @@ public final class DynastyTrinkets {
      *
      * Fifty extra accessories, driven from one table (five classes of ten).
      */
+    /**
+     * 百宝妆匣：右键随机开出一件王朝饰品（消耗品）。
+     * Trinket Box: rolls one random accessory; consumed on use.
+     */
+    public static final RegistryObject<Item> TRINKET_BOX = ITEMS.register("trinket_box",
+            () -> new DynastyUsables.TrinketBoxItem(new Item.Properties().stacksTo(16)));
+
     private static final Object[][] EXTRA_TABLE = {
             {"jade_marrow_charm", 0, 180D, 1, 5D, 0, 0, 0},
             {"jade_ruyi", 11, 2D, -1, 0D, 11, 0, 0},
@@ -169,6 +178,37 @@ public final class DynastyTrinkets {
             {"tiangang_talisman", 4, 0.18D, 2, 0.4D, 0, 0, 0},
             {"disha_talisman", 1, 18D, 6, 0.4D, 0, 0, 0},
             {"purple_qi_pearl", 0, 320D, 4, 0.14D, 0, 0, 0},
+            // ---- 第三十二轮：+30 件（六类各 5 件，宫廷 / 战阵 / 灵兽 / 文房 / 道法 / 海事）----
+            {"phoenix_hairpin", 0, 240D, 11, 1D, 0, 0, 0},
+            {"dragon_robe_sash", 1, 14D, 0, 200D, 0, 0, 0},
+            {"mandarin_rank_badge", 11, 2D, 0, 180D, 0, 0, 0},
+            {"imperial_pearl_earring", 0, 200D, 11, 1D, 0, 0, 0},
+            {"gilded_lotus_crown", 4, 0.1D, 3, 0.05D, 0, 0, 0},
+            {"war_banner_charm", 4, 0.12D, 5, 0.06D, 0, 0, 0},
+            {"iron_helmet_plume", 1, 12D, 3, 0.06D, 0, 0, 0},
+            {"pike_tassel", 4, 0.1D, 7, 1D, 0, 0, 0},
+            {"drum_beater", 5, 0.15D, 4, 0.05D, 0, 0, 0},
+            {"armor_piercer_token", 4, 0.16D, 6, 0.35D, 0, 0, 0},
+            {"phoenix_wing_charm", 3, 0.1D, -1, 0D, 8, 0, 0},
+            {"qilin_hoof_charm", 0, 260D, 5, 0.08D, 0, 0, 0},
+            {"turtle_blood_charm", 0, 300D, 1, 16D, 4, 0, 4},
+            {"fox_spirit_pendant", 3, 0.12D, 11, 2D, 0, 0, 0},
+            {"dragon_blood_pearl", 0, 360D, 4, 0.14D, 0, 0, 0},
+            {"jade_brush_holder", 5, 0.12D, 4, 0.06D, 0, 0, 0},
+            {"ink_slab_charm", 11, 2D, 0, 160D, 0, 0, 0},
+            {"scroll_case_charm", 5, 0.1D, 11, 1D, 0, 0, 0},
+            {"guqin_tassel", 5, 0.08D, 0, 120D, 0, 0, 0},
+            {"scholar_ink_badge", 0, 180D, 11, 1D, 0, 0, 0},
+            {"thunder_seal_charm", 4, 0.14D, 5, 0.1D, 0, 0, 0},
+            {"immortal_crane_feather", 3, 0.12D, -1, 0D, 8, 0, 0},
+            {"star_diagram_charm", 11, 3D, 0, 140D, 0, 0, 0},
+            {"zen_bead_string", 0, 220D, -1, 0D, 12, 0, 4},
+            {"alchemy_furnace_charm", 0, 260D, -1, 0D, 5, 0, 0},
+            {"conch_horn", 0, 240D, 3, 0.08D, 0, 0, 0},
+            {"dragon_scale_sash", 1, 16D, 2, 0.45D, 0, 0, 0},
+            {"pearl_net_charm", 0, 200D, 11, 2D, 0, 0, 0},
+            {"tide_compass_charm", 7, 2D, 3, 0.06D, 0, 0, 0},
+            {"storm_anchor_charm", 1, 20D, 6, 0.5D, 0, 0, 0},
     };
 
     /** 50 件新饰品的物品注册（表驱动，id 与贴图/配方/Curios 标签同名）/ register from the table */
@@ -261,6 +301,30 @@ public final class DynastyTrinkets {
         return ITEMS.register(name, () -> new Item(new Item.Properties().stacksTo(1)));
     }
 
+    /**
+     * 百宝妆匣开奖：从全部饰品里抽一件；前三分之一的「早期线」权重 3，高阶线权重 1。
+     * Gift roll: early-line accessories are three times as likely as the late-game ones.
+     */
+    public static ItemStack randomGift(net.minecraft.util.RandomSource random) {
+        List<RegistryObject<Item>> all = accessoryItems();
+        List<Item> pool = new ArrayList<>();
+        int early = Math.max(1, all.size() / 3);
+        for (int i = 0; i < all.size(); i++) {
+            Item item = all.get(i).get();
+            if (item == null) {
+                continue;
+            }
+            int weight = i < early ? 3 : 1;
+            for (int w = 0; w < weight; w++) {
+                pool.add(item);
+            }
+        }
+        if (pool.isEmpty()) {
+            return new ItemStack(DynastyRelics.REFINED_STEEL.get(), 3);
+        }
+        return new ItemStack(pool.get(random.nextInt(pool.size())));
+    }
+
     /** 全部饰品 id / all accessory ids（含第三十一轮的 50 件）*/
     public static final List<String> IDS = buildIds();
 
@@ -345,18 +409,52 @@ public final class DynastyTrinkets {
     }
 
     // ---------------------------------------------------------------- 生效判定
+    /** 饰品 id 的 Set 视图：生效判定 / 筛选是 O(1)（原先是 List.contains，O(n)）*/
+    private static final java.util.Set<String> ID_SET = java.util.Set.copyOf(IDS);
+
+    /** 同一 tick 内的扫描缓存：tick() 会连续问 6~7 次，不再重复扫背包与 Curios */
+    private static final Map<UUID, java.util.Set<String>> SCAN_CACHE = new HashMap<>();
+    private static final Map<UUID, Integer> SCAN_STAMP = new HashMap<>();
+
+    /** 玩家登出时清掉缓存（由 DynastyWorldEvents 的登出事件调用）*/
+    public static void forget(Player player) {
+        UUID id = player.getUUID();
+        SCAN_CACHE.remove(id);
+        SCAN_STAMP.remove(id);
+        APPLIED.remove(id);
+    }
+
     public static boolean has(Player player, String id) {
         return activeIds(player).contains(id);
     }
 
     /**
      * 生效中的饰品：Curios 槽 + 副手 + 背包。
+     *
+     * 结果按「tickCount」缓存：同一个 tick 内重复调用直接复用。
+     * 背包内容不可能在同一 tick 内改变，所以语义与原来完全一致，
+     * 但每秒的扫描次数从 7 次降到 1 次（tick() 里 6 处 has(...) 都走缓存）。
+     *
      * Active trinkets: Curios slots, off hand and the player inventory.
+     * The result is cached for the current tick, cutting 7 scans/second down to one.
      */
     public static java.util.Set<String> activeIds(Player player) {
+        UUID uuid = player.getUUID();
+        Integer stamp = SCAN_STAMP.get(uuid);
+        if (stamp != null && stamp == player.tickCount) {
+            java.util.Set<String> cached = SCAN_CACHE.get(uuid);
+            if (cached != null) {
+                return cached;
+            }
+        }
         java.util.Set<String> out = new java.util.LinkedHashSet<>();
-        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-            String id = idOf(player.getInventory().getItem(i));
+        NonNullList<ItemStack> items = player.getInventory().items;
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack stack = items.get(i);
+            if (stack.isEmpty()) {                              // 空格子直接跳过，省掉注册表查询
+                continue;
+            }
+            String id = idOf(stack);
             if (id != null) {
                 out.add(id);
             }
@@ -368,7 +466,9 @@ public final class DynastyTrinkets {
         // Curios 槽位里的饰品（通过反射桥接，没有 Curios 时自动跳过）
         // trinkets worn in Curios slots (reflectively bridged; skipped when Curios is absent)
         DynastyCuriosSetup.collectEquipped(player, out);
-        out.retainAll(IDS);
+        out.retainAll(ID_SET);
+        SCAN_CACHE.put(uuid, out);
+        SCAN_STAMP.put(uuid, player.tickCount);
         return out;
     }
 
@@ -528,12 +628,30 @@ public final class DynastyTrinkets {
         }
     }
 
-    private static void apply(ServerPlayer player) {
-        // 每个饰品最多计算一次 / every accessory is counted at most once
-        for (String id : IDS) {
-            clearAttrs(player, id);
-        }
+    /**
+     * 上一轮真正加过属性的饰品：只清理这些。
+     *
+     * 原来每秒对全部 119 件饰品各清一遍 8 个属性（空手玩家也白跑约 950 次属性操作），
+     * 现在只清「上一轮的」与「本轮新出现的」，仍然保留「先清再加」的幂等语义。
+     *
+     * Accessories that actually had attributes applied last round - only those get cleared,
+     * keeping the idempotent clear-then-add behaviour while dropping the useless work.
+     */
+    private static final Map<UUID, java.util.Set<String>> APPLIED = new HashMap<>();
+
+    private static java.util.Set<String> apply(ServerPlayer player) {
         java.util.Set<String> active = activeIds(player);
+        java.util.Set<String> previous = APPLIED.get(player.getUUID());
+        if (previous != null) {
+            for (String id : previous) {
+                clearAttrs(player, id);
+            }
+        }
+        for (String id : active) {
+            if (previous == null || !previous.contains(id)) {
+                clearAttrs(player, id);
+            }
+        }
         for (String id : active) {
             switch (id) {
                 case "jade_bi_disc" -> addAttr(player, id, 0, 150.0D);
@@ -728,5 +846,7 @@ public final class DynastyTrinkets {
         if (player.getHealth() > player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());
         }
+        APPLIED.put(player.getUUID(), active);   // 记下本轮，下一轮只清这些
+        return active;
     }
 }

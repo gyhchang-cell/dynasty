@@ -73,6 +73,48 @@ public class DynastyItems {
             () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
                     .nutrition(3).saturationMod(0.4F).fast().build())));
 
+    // ---- 第三十二轮：+8 种食物（贴图 / 配方 / 词条见 tools/art/gen_food2.py）----
+
+    /** 寿桃：宴席上的甜点 */
+    public static final RegistryObject<Item> PEACH_BUN = ITEMS.register("peach_bun",
+            () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(8).saturationMod(0.8F).build())));
+
+    /** 荷花酥 */
+    public static final RegistryObject<Item> LOTUS_CAKE = ITEMS.register("lotus_cake",
+            () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(6).saturationMod(0.6F).build())));
+
+    /** 芝麻团 */
+    public static final RegistryObject<Item> SESAME_BALL = ITEMS.register("sesame_ball",
+            () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(5).saturationMod(0.6F).fast().build())));
+
+    /** 糖油饼 */
+    public static final RegistryObject<Item> SWEET_SOUP_CAKE = ITEMS.register("sweet_soup_cake",
+            () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(6).saturationMod(0.7F).build())));
+
+    /** 竹筒饭：野外的饱腹主粮 */
+    public static final RegistryObject<Item> BAMBOO_RICE = ITEMS.register("bamboo_rice",
+            () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(7).saturationMod(0.8F).build())));
+
+    /** 八宝粥：回饱腹最多的一道 */
+    public static final RegistryObject<Item> EIGHT_TREASURE_PORRIDGE = ITEMS.register("eight_treasure_porridge",
+            () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(8).saturationMod(0.9F).build())));
+
+    /** 柿饼：随身干粮，吃得快 */
+    public static final RegistryObject<Item> DRIED_PERSIMMON = ITEMS.register("dried_persimmon",
+            () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(4).saturationMod(0.5F).fast().build())));
+
+    /** 菊花酒：重阳的节令酒 */
+    public static final RegistryObject<Item> CHRYSANTHEMUM_WINE = ITEMS.register("chrysanthemum_wine",
+            () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
+                    .nutrition(3).saturationMod(0.4F).fast().build())));
+
     public static final RegistryObject<Item> HOTPOT = ITEMS.register("hotpot",
             () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
                     .nutrition(10).saturationMod(1.0F).build())));

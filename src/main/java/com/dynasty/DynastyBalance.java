@@ -56,6 +56,13 @@ public final class DynastyBalance {
         WEAPON_BONUS.put("houyi_bow", 250D);
         WEAPON_BONUS.put("leiting_hammer", 450D);
         WEAPON_BONUS.put("taiyi_whisk", 500D);
+        // 第三十二轮的 6 把帝兵 / the six imperial weapons of round 32
+        WEAPON_BONUS.put("qilin_war_axe", 250D);
+        WEAPON_BONUS.put("taiyi_sword", 300D);
+        WEAPON_BONUS.put("baihu_glaive", 330D);
+        WEAPON_BONUS.put("thunder_spear", 360D);
+        WEAPON_BONUS.put("ziwei_saber", 400D);
+        WEAPON_BONUS.put("zhuque_bow", 300D);
         WEAPON_BONUS.put("xuanwu_blade", 550D);
         WEAPON_BONUS.put("zhuque_fan", 600D);
         WEAPON_BONUS.put("hunyuan_staff", 800D);

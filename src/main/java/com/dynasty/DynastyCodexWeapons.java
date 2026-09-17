@@ -193,5 +193,37 @@ final class DynastyCodexWeapons {
                 "毕业兵器之一：需要先做出「tianzi_sword」。",
                 "One of the endgame weapons; requires tianzi_sword.",
                 "dynasty:tianzi_sword");
+
+        // ---- 第三十二轮的 6 把帝兵 / the six imperial weapons of round 32 ----
+        add(l, "qilin_war_axe", "合成：麒麟角 + 精钢×2 + 图纸（攻击 2000，特攻 +250）",
+                "Craft: qilin horn + 2 refined steel + blueprint (2000 damage, +250 extra)",
+                "麒麟战斧：攻高、击退稳，配麒麟线饰品很好用。",
+                "Qilin War Axe: heavy hits with steady knockback; pairs well with the qilin trinket line.",
+                "dynasty:qilin_horn", "dynasty:refined_steel", "dynasty:blueprint");
+        add(l, "taiyi_sword", "合成：太乙玉 + 龙晶 + 图纸（攻击 2300，特攻 +300）",
+                "Craft: taiyi jade + dragon crystal + blueprint (2300 damage, +300 extra)",
+                "太乙法剑：需要先做出太乙玉（玄天玉 + 玉×2）。",
+                "Taiyi Sword: needs Taiyi Jade (xuantian jade + 2 jade) first.",
+                "dynasty:taiyi_jade", "dynasty:dragon_crystal", "dynasty:blueprint");
+        add(l, "baihu_glaive", "合成：白虎牙 + 精钢×2 + 图纸（攻击 2600，特攻 +330）",
+                "Craft: white tiger fang + 2 refined steel + blueprint (2600 damage, +330 extra)",
+                "白虎戟：长柄，攻击距离 +3，适合骑马冲阵。",
+                "White Tiger Glaive: a polearm with +3 reach, ideal for mounted charges.",
+                "dynasty:baihu_fang", "dynasty:refined_steel", "dynasty:blueprint");
+        add(l, "thunder_spear", "合成：雷部令 + 精钢×2 + 图纸（攻击 2900，特攻 +360）",
+                "Craft: thunder token + 2 refined steel + blueprint (2900 damage, +360 extra)",
+                "雷霆枪：雷部令来自符纸路线，冲锋时伤害很稳。",
+                "Thunder Spear: the thunder token comes from the talisman line.",
+                "dynasty:thunder_token", "dynasty:refined_steel", "dynasty:blueprint");
+        add(l, "ziwei_saber", "合成：龙晶 + 玄天玉 + 图纸（攻击 3200，特攻 +400）",
+                "Craft: dragon crystal + xuantian jade + blueprint (3200 damage, +400 extra)",
+                "紫微刀：帝兵期的刀，攻速比战斧快。",
+                "Ziwei Saber: a late-game sabre, faster than the war axes.",
+                "dynasty:dragon_crystal", "dynasty:xuantian_jade", "dynasty:blueprint");
+        add(l, "zhuque_bow", "合成：朱雀羽 + 凤凰羽 + 龙吟弓 + 图纸（箭矢 ×4.0 + 300）",
+                "Craft: vermilion feather + phoenix feather + dragon bow + blueprint (×4.0 + 300)",
+                "朱雀弓：需要朱雀羽（凤凰羽×2 + 朱砂×2），穿透 2。",
+                "Vermilion Bow: needs a Vermilion Feather (2 phoenix feather + 2 cinnabar); pierces 2 targets.",
+                "dynasty:zhuque_feather", "dynasty:phoenix_feather", "dynasty:dragon_bow");
     }
 }

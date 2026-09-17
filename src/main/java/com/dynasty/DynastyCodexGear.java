@@ -69,6 +69,43 @@ final class DynastyCodexGear {
                 "玄天套装的强化玉料。", "The material that upgrades armour into the Xuantian set.",
                 "dynasty:emperor_bone", "dynasty:jade", "dynasty:dragon_crystal");
 
+        // 10 套甲 / 10 件兵器点名要的高阶材料 / materials for the ten sets and weapons
+        add(l, "xuanwu_shell", "合成：龙鳞×2 + 精钢×2 + 图纸",
+                "Craft: 2 dragon scale + 2 refined steel + blueprint",
+                "玄武甲的甲片：极致防御路线（四件套减伤 88%）。",
+                "The plate of the Xuanwu set: the pure-defence route.",
+                "dynasty:dragon_scale", "dynasty:refined_steel", "dynasty:blueprint");
+        add(l, "qinglong_scale", "合成：龙鳞×2 + 龙晶 + 图纸",
+                "Craft: 2 dragon scale + dragon crystal + blueprint",
+                "青龙鳞甲、青龙偃月刀的鳞料；青龙线攻击 +10%。",
+                "Scale for the Qinglong set and the Qinglong glaive: +10% attack.",
+                "dynasty:dragon_scale", "dynasty:dragon_crystal", "dynasty:blueprint");
+        add(l, "baihu_fang", "合成：龙晶×2 + 精钢×2 + 图纸",
+                "Craft: 2 dragon crystal + 2 refined steel + blueprint",
+                "白虎铠、霸王枪的锋料；白虎线攻高击退高。",
+                "Fang for the White Tiger set and the Hegemon spear: high attack and knockback.",
+                "dynasty:dragon_crystal", "dynasty:refined_steel", "dynasty:blueprint");
+        add(l, "zhuque_feather", "合成：凤凰羽×2 + 朱砂×2 + 图纸",
+                "Craft: 2 phoenix feather + 2 cinnabar + blueprint",
+                "朱雀羽衣、朱雀羽扇的羽料；朱雀线抗火、火伤减半。",
+                "Feather for the Vermilion set and fan: fire resistance and halved fire damage.",
+                "dynasty:phoenix_feather", "dynasty:cinnabar", "dynasty:blueprint");
+        add(l, "taiyi_jade", "合成：玄天玉 + 玉×2 + 图纸",
+                "Craft: xuantian jade + 2 jade + blueprint",
+                "太乙甲、太乙拂尘的玉料；太乙线全属性小幅提升。",
+                "Jade for the Taiyi set and whisk: a small boost to every attribute.",
+                "dynasty:xuantian_jade", "dynasty:jade", "dynasty:blueprint");
+        add(l, "thunder_token", "合成：符纸×2 + 朱砂×2 + 图纸",
+                "Craft: 2 talisman paper + 2 cinnabar + blueprint",
+                "雷部令：雷霆锤的引雷令牌，也是雷部使者相关的信物。",
+                "Thunder Token: the lightning token for the Thunder Hammer.",
+                "dynasty:talisman_paper", "dynasty:cinnabar", "dynasty:blueprint");
+        add(l, "hunyuan_pearl", "合成：龙晶×2 + 龙帝玉玺 + 帝骸骨",
+                "Craft: 2 dragon crystal + Dragon Emperor Seal + Emperor Bone",
+                "★★ 毕业材料：混元甲与混元珠杖的唯一材料，必须先打龙帝与始皇。",
+                "★★ The graduation material: needed by the Hunyuan set and staff. Slay the Dragon Emperor and the First Emperor first.",
+                "dynasty:dragon_crystal", "dynasty:dragon_emperor_seal", "dynasty:emperor_bone");
+
         // 新饰品 / new trinkets
         add(l, "heart_mirror", "合成：青铜锭×2 + 银锭 + 丝绸",
                 "Craft: 2 bronze + silver ingot + silk",
