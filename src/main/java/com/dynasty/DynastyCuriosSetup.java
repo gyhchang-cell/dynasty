@@ -46,16 +46,28 @@ public final class DynastyCuriosSetup {
         }
     }
 
+    /** 所有 Curios 标准槽：开局就要有，否则玩家只有 back 一个槽。 */
+    private static final String[] STANDARD_SLOTS = {
+            "back", "belt", "body", "bracelet", "charm", "curio", "hands", "head", "necklace", "ring"
+    };
+
+    /** 每个标准槽的初始格数（戒指 2 格，其余 1 格）。 */
+    private static final int STANDARD_SIZE = 1;
+    private static final int RING_SIZE = 2;
+
     /**
-     * 把「王朝饰品」槽扩到 1 + wantExtra 格（开局只有 1 个背饰格，靠官阶慢慢开）。
-     * Grows the trinket slot to 1 + wantExtra; growth only, no-op when already big enough.
+     * 开格子：王朝饰品槽按官阶成长，所有 Curios 标准槽至少各开 STANDARD_SIZE 格（只增不减，幂等）。
+     * Grows the dynasty trinket slot by rank and guarantees every standard Curios slot exists.
      */
     public static void growTrinketSlots(LivingEntity entity, int wantExtra) {
         if (!available || growMethod == null) {
             return;
         }
         try {
-            growMethod.invoke(null, entity, "dynasty_trinket", DynastyRankPerks.BASE_SLOTS + wantExtra);
+            growMethod.invoke(null, entity, DynastyRankPerks.SLOT, DynastyRankPerks.BASE_SLOTS + wantExtra);
+            for (String slot : STANDARD_SLOTS) {
+                growMethod.invoke(null, entity, slot, "ring".equals(slot) ? RING_SIZE : STANDARD_SIZE);
+            }
         } catch (Throwable ignored) {
             // Curios 侧异常不影响本体 / never let Curios break the base mod
         }

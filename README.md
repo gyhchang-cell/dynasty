@@ -57,7 +57,7 @@
 每一级都是**合成升级**（前一把武器 + 材料），全部配方写在任务界面「图鉴」页里。
 
 ### 饰品系统（Curios 兼容）
-* 饰品**只用 Curios 槽位**（不再有第二个存放界面）：本模组自带 `data/curios/tags/items/*.json` 标签 + 一个 6 格「王朝饰品」槽位定义（`data/curios/curios/slots/dynasty_trinket.json`），所以饰品可以直接放进 charm / necklace / ring / belt / head / curio 与王朝饰品槽。
+* 饰品**只用 Curios 槽位**（不再有第二个存放界面）：本模组自带 `data/curios/tags/items/*.json` 标签（back / belt / body / bracelet / charm / curio / hands / head / necklace / ring 共 10 个标准槽 + 王朝饰品槽）+ 一个「王朝饰品」槽位定义（`data/curios/curios/slots/dynasty_trinket.json`），并通过 `data/dynasty/curios/entities/player.json` **在开局就把这 11 个槽全部给玩家**（每个标准槽至少 1 格、戒指 2 格，王朝饰品槽随官阶继续长）。
 * 饰品**放在饰品槽、背包或 Curios 槽都生效**（同名饰品只算一次）。
 * 每件都有独特意义：玉佩（减伤 8%）、玉璧（生命 +150）、金印（功名 +25%、回忠诚）、龙鳞护符（护甲 +12、抗击退）、凤羽翎（速度 +10%、缓降）、麒麟角坠（幸运 +3、回复）、狐尾坠（跳跃 II）、锦囊（水肺 + 夜视）、铜镜（每 30 秒净化负面）、司南（抗性 + 显示坐标）。
 
