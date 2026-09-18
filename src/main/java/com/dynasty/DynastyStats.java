@@ -147,6 +147,6 @@ public final class DynastyStats {
         player.sendSystemMessage(Component.literal("§7官阶加成：§f+" + DynastyRankPerks.bonusHealth(rank)
                 + " 生命、§f+" + String.format("%.2f", DynastyRankPerks.bonusAttack(rank))
                 + " 攻击、§f+" + String.format("%.2f", DynastyRankPerks.bonusArmor(rank))
-                + " 护甲、§f+" + DynastyRankPerks.bonusSlots(rank) + " 饰品槽"));
+                + " 护甲；§d任务万能槽 +" + DynastySlotProgression.bonusSlots(player)));
     }
 }

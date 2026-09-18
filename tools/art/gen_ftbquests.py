@@ -10,7 +10,7 @@
   * 任务判定全部用系统原生类型：item / kill / dimension / advancement。
   * 武器、护甲的说明里会写明「配方需要先做出上一级」，做成一条升级长链。
   * 奖励 = 物品 + 经验；另外每条任务都给功名（`/dynasty merit N`），
-    功名越高官阶越高 → 属性加成 + 更多饰品槽。
+    功名提升官阶属性；五个关键任务额外解锁永久万能饰品槽。
 
 运行：python3 tools/art/gen_ftbquests.py
 """
@@ -19,11 +19,22 @@ import heapq
 import json
 import math
 import os
+from gen_curios import classifications, SLOT_NAMES
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT_DIR = os.path.join(ROOT, "modpack", "config", "ftbquests", "quests")
 CH_DIR = os.path.join(OUT_DIR, "chapters")
 LANG = os.path.join(ROOT, "src/main/resources/assets/dynasty/lang/zh_cn.json")
+
+# 保留原有任务 ID / 目标 / 顺序；奖励附加到已有节点，旧存档可以补领。
+SLOT_MILESTONES = {
+    ("advancement", "dynasty:exam_passed", 1): ("scholar", "金榜题名"),
+    ("kill", "dynasty:rebel_general", 1): ("pacifier", "平叛立功"),
+    ("advancement", "dynasty:entered_celestial", 1): ("celestial", "踏入天朝"),
+    ("advancement", "dynasty:slay_emperor", 1): ("emperor", "帝陵破局"),
+    ("advancement", "dynasty:slay_dragon_king", 1): ("dragon_king", "沧海定波"),
+}
+ACCESSORY_SLOTS = classifications()
 
 # 升级链：item → 它配方里需要的上一级物品（写进任务说明，做成「慢慢升级」的体验）
 UPGRADE = {
@@ -123,7 +134,7 @@ def names():
     if _NAMES is None:
         raw = json.load(open(LANG, encoding="utf-8"))
         out = {}
-        for prefix in ("item.dynasty.", "block.dynasty."):
+        for prefix in ("item.dynasty.", "block.dynasty.", "entity.dynasty."):
             for key, value in raw.items():
                 if key.startswith(prefix):
                     out[key[len(prefix):]] = value
@@ -364,7 +375,7 @@ CH5 = [
     A("keju", name="科举之路", desc="把一整套卷子答完。"),
     A("rank_scholar", name="金榜题名", desc="官阶升至「进士」。"),
     # ---- ② 藏书线 ----
-    # ---- ③ 官阶线：一级一级往上考（功名越高，属性与饰品槽越多）----
+    # ---- ③ 官阶线：一级一级往上考（功名提升属性，任务里程碑增加万能槽）----
     A("rank_official", name="官阶初授", branch=True, desc="第一次拿到官阶，王朝从此记你的名字。"),
     A("rank_hanlin", name="翰苑清贵", desc="官阶升至翰林（第 10 阶）。"),
     A("rank_minister", name="位列部堂", desc="官阶升至尚书（第 12 阶）——朝廷御赐金锏。"),
@@ -949,11 +960,10 @@ CHAPTERS = [
      "17 套主线甲胄 × 4 件（竹甲 → 龙王鳞铠）；10 套终盘甲（玄武/朱雀/青龙/白虎/北斗/天罡/地煞/太乙/紫微/混元）"
      "写在各世界章节里：在哪拿到就写在哪。"),
     ("dynasty_c10", "十二、饰品图鉴", "dynasty:heart_mirror", CH10, "c1", 2,
-     "图鉴收录 38 件饰品，分五类：入门 → 通灵 → 功名 → 战阵 → 传世，只放 Curios；"
-     "另有 50 件新饰品（玉器 / 兵器配饰 / 灵兽 / 文人 / 道家）按材料所在的章节铺开。"),
+     "119 件饰品分布于图鉴与各世界章节；按头部、项链、戒指等分类佩戴。金色里程碑解锁万能槽。"),
     # ---- 王朝主线 ----
     ("dynasty_c5", "三、朝堂科举", "dynasty:exam_paper", CH5, "prev", 0,
-     "答对试卷换功名，功名换官阶、属性与饰品槽。"),
+     "答对试卷换功名、晋升官阶；完成「科举中第」永久解锁 +1 万能饰品槽。"),
     ("dynasty_c6", "四、军旅与平叛", "dynasty:tiger_tally", CH6, "prev", 0,
      "虎符调兵、平定叛乱，把江山守住。"),
     ("dynasty_c9", "五、神兽与帝王", "dynasty:qilin_horn", CH9, "prev", 0,
@@ -1062,7 +1072,7 @@ FILE_DEFAULTS = """{
 \tpause_game: false
 \tprogression_mode: "linear"
 \tshow_lock_icons: true
-\ttitle: "Dynasty 王朝"
+\ttitle: "&6&l王朝 &r&8· 山河行纪"
 \tversion: 13
 }
 """
@@ -1142,7 +1152,7 @@ def title_for(kind, target, count, opts):
 
 
 def desc_for(kind, target, count, opts):
-    parts = []
+    parts = ["&6&l目标&r"]
     if kind == "item":
         parts.append("收集「%s」×%d。" % (display(target), count))
     elif kind == "kill":
@@ -1154,10 +1164,23 @@ def desc_for(kind, target, count, opts):
         parts.append(("完成成就「%s」。" % adv_title(target)) + (" " + text if text else ""))
     prev = UPGRADE.get(target.split(":")[-1]) if kind == "item" else None
     if prev:
-        parts.append("升级链：配方需要先做出上一级的「%s」，一把一把往上换。" % display(prev))
+        parts.extend(["", "&b&l制作路线&r", "需要先做出上一级的「%s」，按 R 查看配方。" % display(prev)])
     if opts.get("desc"):
-        parts.append(opts["desc"])
-    return "".join(parts)
+        parts.extend(["", "&e&l行前提示&r", opts["desc"]])
+    accessory = ACCESSORY_SLOTS.get(target.split(":")[-1]) if kind == "item" else None
+    if accessory:
+        parts.extend(["", "&d&l佩戴位置&r", "分类槽：%s；也可放入万能饰品槽。" % SLOT_NAMES[accessory],
+                      "装备在 Curios 面板中才生效；背包与副手不提供饰品效果。",
+                      "同名饰品只生效一次，优先搭配不同功能。"])
+    milestone = SLOT_MILESTONES.get((kind, target, count))
+    if milestone:
+        parts.extend(["", "&6&l里程碑奖励 · " + milestone[1] + "&r",
+                      "&d永久 +1 Curios 万能饰品槽&r", "完成后自动解锁，每位玩家仅生效一次。",
+                      "开局 1 格，五项里程碑各加 1 格，全部完成共 6 格。",
+                      "死亡、退出重进后保留；旧存档已完成的里程碑会自动补发。"])
+    if kind == "item":
+        parts.extend(["", "&8物品仅检测，不会被任务收走。"])
+    return ", ".join('"%s"' % escape(part) for part in parts)
 
 
 def icon_for(kind, target):
@@ -1199,7 +1222,7 @@ def auto_rewards(kind, target, count):
     return rewards, 4 + 2 * tier, 8 + 4 * tier
 
 
-def rewards_line(index, rewards, xp, merit):
+def rewards_line(index, rewards, xp, merit, milestone=None):
     out = []
     slot = 0
     for item, count in rewards:
@@ -1213,6 +1236,11 @@ def rewards_line(index, rewards, xp, merit):
         # 以玩家身份执行、临时给 2 级权限（命令本身要 OP 才能手动用）
         out.append('{ id: "%s", type: "command", command: "dynasty merit %d", '
                    'elevate_perms: true, silent: true }' % (reward_id(index, slot), merit))
+    if milestone:
+        out.append('{ id: "%s", type: "command", command: "dynasty unlock_curio %s", '
+                   'title: "&d永久 +1 万能饰品槽", icon: { id: "dynasty:jade_ring" }, '
+                   'team_reward: false, elevate_perms: true, silent: true }'
+                   % (reward_id(index, 90), milestone[0]))
     return ", ".join(out)
 
 
@@ -1461,8 +1489,22 @@ LAYOUTS = {
 
 
 def layout_lines(rows, style="rows"):
-    """按章节风格排布 / dispatch by chapter layout style."""
-    return LAYOUTS.get(style, layout_rows)(rows)
+    """保留各章造型，避开放射支线弯折后的节点碰撞；不改变任务顺序或前置。"""
+    positions = LAYOUTS.get(style, layout_rows)(rows)
+    offsets = sorted(((dx / 5, dy / 5) for dx in range(-20, 21) for dy in range(-20, 21)),
+                     key=lambda p: (p[0] ** 2 + p[1] ** 2, abs(p[1]), p[0], p[1]))
+    placed = {}
+    for node, (x, y) in positions.items():
+        for dx, dy in offsets:
+            candidate = (round(x + dx, 1), round(y + dy, 1))
+            if max(map(abs, candidate)) > 10.5:
+                continue
+            if all(math.dist(candidate, other) >= 1.49 for other in placed.values()):
+                placed[node] = candidate
+                break
+        else:
+            raise ValueError("任务排布过密，需要拆分支线：%s / %s" % (style, node))
+    return center(placed)
 
 
 def build():
@@ -1621,6 +1663,7 @@ def build():
         warnings.append("删掉回边：任务 %d 不再前置任务 %d（否则成环）" % (node, nxt))
 
     per_chapter = {}
+    slot_progression = {}
     for number, (filename, title, icon, _ignored, _entry_mode, _group, _sub) in enumerate(CHAPTERS):
         steps = kept_steps[number]
         base = len([f for f in flat if f[0] < number])
@@ -1644,6 +1687,9 @@ def build():
             kind, target, count, opts = step
             index = base + pos
             deps = node_deps[index]
+            milestone = SLOT_MILESTONES.get((kind, target, count))
+            if milestone:
+                slot_progression[milestone[0]] = {"title": milestone[1], "quest_id": quest_id(index)}
             deps_txt = ""
             if deps:
                 deps_txt = "\n\t\t\tdependencies: [%s]" % ", ".join(
@@ -1660,19 +1706,24 @@ def build():
             x, y = coords.get(index, (0.0, 0.0))
             subtitle = ""
             if number == 0 and pos == 0:
-                subtitle = ('\n\t\t\tsubtitle: "任务不再一条条卡死：'
-                            '只有配方 / 剧情门槛会锁，其余可以随便挑着做"')
+                subtitle = '\n\t\t\tsubtitle: "从此处启程 · 选择支线，逐步解锁王朝之旅"'
+            if milestone:
+                subtitle = '\n\t\t\tsubtitle: "&d里程碑 · 永久 +1 万能饰品槽"'
+            elif kind == "item" and target.split(":")[-1] in ACCESSORY_SLOTS:
+                subtitle = '\n\t\t\tsubtitle: "&7佩戴：%s / 万能饰品"' % SLOT_NAMES[ACCESSORY_SLOTS[target.split(":")[-1]]]
 
             # 节点形状（照「愚者」的做法分主次，主线一眼能看出头尾）：
             #   shape: 章首齿轮 / 线首菱形 / 章末六边形 / 其余用全局默认圆点
             # Node shapes: gear for the chapter opener, diamond for line heads,
             # hexagon for the chapter finale, everything else the global default (circle).
-            if index == base and base == min(coords):
-                shape_txt = '\n\t\t\tshape: "gear"\n\t\t\tsize: 2.0d'
+            if milestone:
+                shape_txt = '\n\t\t\tshape: "hexagon"\n\t\t\tsize: 1.5d'
+            elif index == base and base == min(coords):
+                shape_txt = '\n\t\t\tshape: "gear"\n\t\t\tsize: 1.4d'
             elif index in line_heads:
-                shape_txt = '\n\t\t\tshape: "diamond"\n\t\t\tsize: 1.5d'
+                shape_txt = '\n\t\t\tshape: "diamond"\n\t\t\tsize: 1.1d'
             elif index == chapter_last:
-                shape_txt = '\n\t\t\tshape: "hexagon"\n\t\t\tsize: 2.0d'
+                shape_txt = '\n\t\t\tshape: "hexagon"\n\t\t\tsize: 1.3d'
             else:
                 shape_txt = ""
 
@@ -1683,15 +1734,15 @@ def build():
                 '\t\t\tx: %.1fd\n'
                 '\t\t\ty: %.1fd\n'
                 '\t\t\ticon: { id: "%s" }\n'
-                '\t\t\tdescription: ["%s"]\n'
+                '\t\t\tdescription: [%s]\n'
                 '\t\t\ttasks: [%s]\n'
                 '\t\t\trewards: [%s]%s\n'
                 '\t\t}'
-                % (quest_id(index), escape(title_for(kind, target, count, opts)), subtitle,
+                % (quest_id(index), ("&6" if milestone else "") + escape(title_for(kind, target, count, opts)), subtitle,
                    shape_txt, x, y, icon_for(kind, target),
-                   escape(desc_for(kind, target, count, opts)),
+                   desc_for(kind, target, count, opts),
                    task_line(index, kind, target, count),
-                   rewards_line(index, rewards, xp, merit), deps_txt))
+                   rewards_line(index, rewards, xp, merit, milestone), deps_txt))
         per_chapter[number] = (filename, title, icon, body, len(steps))
 
     for number in sorted(per_chapter):
@@ -1718,7 +1769,11 @@ def build():
         print("chapter: %-16s %3d 条  %s §  %s" % (filename + ".snbt", count, title,
                                                    CHAPTER_GROUPS[group][0]))
 
-    print("任务总数：%d，章节：%d" % (len(flat), len(CHAPTERS)))
+    assert len(slot_progression) == len(SLOT_MILESTONES), "里程碑目标被删除或遗漏"
+    with open(os.path.join(ROOT, "src/main/resources/data/dynasty/curios_progression.json"), "w", encoding="utf-8") as f:
+        json.dump(slot_progression, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    print("任务总数：%d，章节：%d；永久万能槽里程碑：%d" % (len(flat), len(CHAPTERS), len(slot_progression)))
     if dupes:
         print("重复任务（已合并）：%d 条" % len(dupes))
         for d in dupes:
@@ -1731,4 +1786,3 @@ def build():
 
 if __name__ == "__main__":
     build()
-

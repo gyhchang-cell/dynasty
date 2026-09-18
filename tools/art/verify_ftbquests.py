@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import zipfile
+import math
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CHAPTER_DIR = os.path.join(ROOT, "modpack/config/ftbquests/quests/chapters")
@@ -142,6 +143,10 @@ def layout_check(name, coords, problems):
         return None
     xs = [float(a) for a, _b in coords]
     ys = [float(b) for _a, b in coords]
+    points = list(zip(xs, ys))
+    nearest = min(math.dist(a, b) for i, a in enumerate(points) for b in points[i + 1:])
+    if nearest < 1.4:
+        problems.append("%s: 最近节点只有 %.2f 格，图标可能重叠（至少 1.4 格）" % (name, nearest))
     rows = sorted(set(ys))
     gaps = [b - a for a, b in zip(rows, rows[1:])]
     span_x, span_y = max(xs) - min(xs), max(ys) - min(ys)

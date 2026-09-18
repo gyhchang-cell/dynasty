@@ -170,12 +170,8 @@ def advancements_and_lang():
 
 
 def curios_tag():
-    path = os.path.join(ROOT, "src/main/resources/data/curios/tags/items/dynasty_trinket.json")
-    data = read(path)
-    for item in ("dynasty:sea_pearl", "dynasty:dragon_bone_ring"):
-        if item not in data["values"]:
-            data["values"].append(item)
-    write(path, data)
+    from gen_curios import build as build_curios
+    build_curios()
 
 
 def main():
@@ -189,4 +185,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

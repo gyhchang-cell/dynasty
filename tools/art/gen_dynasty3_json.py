@@ -297,7 +297,7 @@ ZH = {
     "advancements.dynasty.entered_celestial.description": "穿过天朝传送门进入天朝·龙庭",
     "advancements.dynasty.entered_underworld.title": "下探地府",
     "advancements.dynasty.entered_underworld.description": "穿过地府传送门进入地府",
-    "curios.identifier.dynasty_trinket": "王朝饰品",
+    "curios.identifier.curio": "万能饰品",
 }
 
 EN = {
@@ -377,7 +377,7 @@ EN = {
     "advancements.dynasty.entered_celestial.description": "Enter the celestial dynasty",
     "advancements.dynasty.entered_underworld.title": "Entered the Underworld",
     "advancements.dynasty.entered_underworld.description": "Enter the underworld",
-    "curios.identifier.dynasty_trinket": "Dynasty Trinket",
+    "curios.identifier.curio": "Universal Curio",
 }
 
 
@@ -408,7 +408,7 @@ def merge_lang():
         data = json.load(open(path, encoding="utf-8"))
         data.update(table)
         # 已删除的物品（回春符 → 换成金刚符）/ removed items
-        for stale in ("item.dynasty.healing_talisman",):
+        for stale in ("item.dynasty.healing_talisman", "curios.identifier.dynasty_trinket"):
             data.pop(stale, None)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

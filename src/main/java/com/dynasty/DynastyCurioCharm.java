@@ -14,11 +14,11 @@ import java.util.UUID;
 
 /**
  * 饰品接入 Curios：本模组饰品直接使用 Curios 的槽位（charm / necklace / ring / belt / head / curio）。
- * 数值与效果统一由 DynastyTrinkets 每秒结算（饰品放在 Curios 槽、副手或背包都生效），
+ * 数值与效果统一由 DynastyTrinkets 每秒结算（安装 Curios 时必须装备），
  * 因此这里只负责「能被 Curios 装备 / 右键自动佩戴 / 装备音效」。
  *
  * Curios integration: our trinkets use Curios' own slots. All numbers and effects are resolved
- * once per second by DynastyTrinkets (works in Curios slots, in the pouch or in the inventory).
+ * once per second by DynastyTrinkets; only equipped Curios contribute effects.
  */
 public class DynastyCurioCharm implements ICurioItem {
 

@@ -23,7 +23,7 @@ from PIL import Image
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ASSETS = os.path.join(ROOT, "src/main/resources/assets/dynasty")
 DATA = os.path.join(ROOT, "src/main/resources/data/dynasty")
-CURIOS = os.path.join(ROOT, "src/main/resources/data/curios/tags/items/dynasty_trinket.json")
+CURIOS = os.path.join(ROOT, "src/main/resources/data/dynasty/tags/items/accessories.json")
 
 # id: (中文名, 英文名, 贴图来源, 染色, [材料…], (属性1, 值1, 属性2, 值2, 效果, 等级, 条件))
 TRINKETS = {
@@ -194,6 +194,8 @@ def main():
             added += 1
     tag["values"] = values
     write(CURIOS, tag)
+    from gen_curios import build as build_curios
+    build_curios()
     print("Curios 标签新增 %d 条（合计 %d 件饰品）" % (added, len(values)))
 
     print("\n--- EXTRA_TABLE 追加行（Java，可直接粘贴）---")

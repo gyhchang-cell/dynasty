@@ -29,9 +29,9 @@ import java.util.UUID;
  * 饰品系统：全部走 Curios 槽位。
  *
  * 1) 饰品物品通过 Curios 物品标签（data/curios/tags/items/*.json）放进 Curios 的
- *    charm / necklace / ring / belt / head / curio，以及本模组自带的 6 格「王朝饰品」槽；
- * 2) 效果统一由 DynastyTrinkets 每秒结算；放在 Curios 槽、副手或背包里都生效
- *    （方便没有 Curios 的环境也能玩，但槽位只提供 Curios 一处）。
+ *    标准分类槽或任务成长的 curio 万能槽，不再创建本模组专属槽；
+ * 2) 效果统一由 DynastyTrinkets 每秒结算；安装 Curios 时必须装备。
+ *    独立运行本体、未安装 Curios 时才启用背包和副手兼容。
  *
  * Trinket system: Curios-only slots; effects are recalculated once per second.
  */
@@ -435,7 +435,7 @@ public final class DynastyTrinkets {
      * 背包内容不可能在同一 tick 内改变，所以语义与原来完全一致，
      * 但每秒的扫描次数从 7 次降到 1 次（tick() 里 6 处 has(...) 都走缓存）。
      *
-     * Active trinkets: Curios slots, off hand and the player inventory.
+     * Active trinkets: equipped Curios; inventory fallback only without Curios.
      * The result is cached for the current tick, cutting 7 scans/second down to one.
      */
     public static java.util.Set<String> activeIds(Player player) {
@@ -448,20 +448,22 @@ public final class DynastyTrinkets {
             }
         }
         java.util.Set<String> out = new java.util.LinkedHashSet<>();
-        NonNullList<ItemStack> items = player.getInventory().items;
-        for (int i = 0; i < items.size(); i++) {
-            ItemStack stack = items.get(i);
-            if (stack.isEmpty()) {                              // 空格子直接跳过，省掉注册表查询
-                continue;
+        // 安装 Curios 时只计算真正佩戴的饰品；独立运行本体时保留背包兼容。
+        if (!DynastyCuriosSetup.isLoaded()) {
+            NonNullList<ItemStack> items = player.getInventory().items;
+            for (ItemStack stack : items) {
+                if (stack.isEmpty()) {
+                    continue;
+                }
+                String id = idOf(stack);
+                if (id != null) {
+                    out.add(id);
+                }
             }
-            String id = idOf(stack);
-            if (id != null) {
-                out.add(id);
+            String offhand = idOf(player.getOffhandItem());
+            if (offhand != null) {
+                out.add(offhand);
             }
-        }
-        String offhand = idOf(player.getOffhandItem());
-        if (offhand != null) {
-            out.add(offhand);
         }
         // Curios 槽位里的饰品（通过反射桥接，没有 Curios 时自动跳过）
         // trinkets worn in Curios slots (reflectively bridged; skipped when Curios is absent)

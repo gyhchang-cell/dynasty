@@ -35,39 +35,28 @@ public final class DynastyCuriosSetup {
                 Class<?> bridge = Class.forName(BRIDGE);
                 attachMethod = bridge.getMethod("attach", IEventBus.class);
                 collectMethod = bridge.getMethod("collectEquipped", LivingEntity.class, Set.class);
-                growMethod = bridge.getMethod("growSlots", LivingEntity.class, String.class, int.class);
+                growMethod = bridge.getMethod("syncQuestSlots", LivingEntity.class, int.class);
                 Dynasty.LOGGER.info("[Dynasty] Curios detected - trinket slots enabled");
             } catch (Throwable throwable) {
                 available = false;
                 Dynasty.LOGGER.warn("[Dynasty] Curios bridge unavailable: {}", throwable.toString());
             }
         } else {
-            Dynasty.LOGGER.info("[Dynasty] Curios not present - trinkets use the built-in pouch");
+            Dynasty.LOGGER.info("[Dynasty] Curios not present - trinkets use inventory fallback");
         }
     }
 
-    /** 所有 Curios 标准槽：开局就要有，否则玩家只有 back 一个槽。 */
-    private static final String[] STANDARD_SLOTS = {
-            "back", "belt", "body", "bracelet", "charm", "curio", "hands", "head", "necklace", "ring"
-    };
+    public static boolean isLoaded() {
+        return ModList.get().isLoaded("curios");
+    }
 
-    /** 每个标准槽的初始格数（戒指 2 格，其余 1 格）。 */
-    private static final int STANDARD_SIZE = 1;
-    private static final int RING_SIZE = 2;
-
-    /**
-     * 开格子：王朝饰品槽按官阶成长，所有 Curios 标准槽至少各开 STANDARD_SIZE 格（只增不减，幂等）。
-     * Grows the dynasty trinket slot by rank and guarantees every standard Curios slot exists.
-     */
-    public static void growTrinketSlots(LivingEntity entity, int wantExtra) {
+    /** 标准槽的基础格数由数据包定义，这里只同步任务奖励。 */
+    public static void syncQuestSlots(LivingEntity entity, int bonus) {
         if (!available || growMethod == null) {
             return;
         }
         try {
-            growMethod.invoke(null, entity, DynastyRankPerks.SLOT, DynastyRankPerks.BASE_SLOTS + wantExtra);
-            for (String slot : STANDARD_SLOTS) {
-                growMethod.invoke(null, entity, slot, "ring".equals(slot) ? RING_SIZE : STANDARD_SIZE);
-            }
+            growMethod.invoke(null, entity, bonus);
         } catch (Throwable ignored) {
             // Curios 侧异常不影响本体 / never let Curios break the base mod
         }

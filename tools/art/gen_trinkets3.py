@@ -21,7 +21,7 @@ from PIL import Image
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ASSETS = os.path.join(ROOT, "src/main/resources/assets/dynasty")
 DATA = os.path.join(ROOT, "src/main/resources/data/dynasty")
-CURIOS = os.path.join(ROOT, "src/main/resources/data/curios/tags/items/dynasty_trinket.json")
+CURIOS = os.path.join(ROOT, "src/main/resources/data/dynasty/tags/items/accessories.json")
 
 # id: (中文名, 英文名, 贴图来源, 染色, [材料…], (属性1, 值1, 属性2, 值2, 效果, 等级, 条件))
 TRINKETS = {
@@ -197,7 +197,7 @@ def main():
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.write("\n")
 
-    # ⑤ Curios 标签：饰品必须进 dynasty_trinket 标签，否则戴不上
+    # ⑤ 饰品总表与标准 Curios 分类
     tag = json.load(open(CURIOS, encoding="utf-8"))
     values = tag.get("values", [])
     added = 0
@@ -208,6 +208,8 @@ def main():
             added += 1
     tag["values"] = values
     write(CURIOS, tag)
+    from gen_curios import build as build_curios
+    build_curios()
     print("Curios 标签新增 %d 条（合计 %d 件饰品）" % (added, len(values)))
 
     if problems:

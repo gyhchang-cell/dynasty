@@ -123,6 +123,20 @@ public class DynastyCommands {
                                     + "（" + com.dynasty.DynastyStats.rankName(player, true) + "）"));
                             return 1;
                         })))
+                .then(Commands.literal("unlock_curio")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("milestone", com.mojang.brigadier.arguments.StringArgumentType.word())
+                                .suggests((ctx, builder) -> {
+                                    com.dynasty.DynastySlotProgression.milestoneIds().forEach(builder::suggest);
+                                    return builder.buildFuture();
+                                })
+                                .executes(ctx -> {
+                                    if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
+                                        return 0;
+                                    }
+                                    return com.dynasty.DynastySlotProgression.unlock(player,
+                                            ctx.getArgument("milestone", String.class));
+                                })))
                 .then(Commands.literal("rank")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.argument("level", IntegerArgumentType.integer(0, 19)).executes(ctx -> {

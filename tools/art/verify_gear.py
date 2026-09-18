@@ -2,7 +2,7 @@
 
 为什么要有这一步（踩过的坑）：
   * 饰品的 id 只写在 Python 表里、忘了注册进 Java → 物品根本不存在；
-  * 注册了却没进 `dynasty_trinket` Curios 标签 → 玩家戴不上；
+  * 注册了却没有标准 Curios 分类 → 玩家戴不上（分类由 verify_curios 补充核对）；
   * 贴图忘了生成 → 游戏里是紫黑格；
   * 护甲的四处 Java 表（材质 / 注册 / 套装加成 / 提示名）少改一处 →
     要么合成不出来，要么不显示「套装加成」。
@@ -19,7 +19,7 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ASSETS = os.path.join(ROOT, "src/main/resources/assets/dynasty")
 DATA = os.path.join(ROOT, "src/main/resources/data/dynasty")
-CURIOS = os.path.join(ROOT, "src/main/resources/data/curios/tags/items/dynasty_trinket.json")
+CURIOS = os.path.join(ROOT, "src/main/resources/data/dynasty/tags/items/accessories.json")
 SRC = os.path.join(ROOT, "src/main/java/com/dynasty")
 PIECES = ("helmet", "chestplate", "leggings", "boots")
 
@@ -111,6 +111,8 @@ def check_armor():
 
 
 def main():
+    from verify_curios import verify
+    verify()
     check_trinkets()
     check_armor()
     if problems:
