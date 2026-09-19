@@ -57,7 +57,9 @@ public final class DynastyManual {
         player.sendSystemMessage(Component.literal(
                 "§7任务在 §dFTB 任务书§7 里：右键「任务书」物品或按 §eOpen Quests§7 键打开。"));
         player.sendSystemMessage(Component.literal(
-                "§7共 §f12 章 438 条§7，分为 §f王朝主线 / 万里山河 / 神兵宝甲§7；金色里程碑可永久增加万能饰品槽。"));
+                "§7共 §f12 章 488 条§7，分为 §f王朝主线 / 万里山河 / 神兵宝甲§7；金色里程碑可永久增加万能饰品槽。"));
+        player.sendSystemMessage(Component.literal(
+                "§7饰品三种新玩法（命中触发 / 同系连携 / 伤势）见说明书「二十九、饰品的三种新玩法」。"));
     }
 
     private static void give(ServerPlayer player, ItemStack stack) {

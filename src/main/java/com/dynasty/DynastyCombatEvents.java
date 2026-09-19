@@ -78,6 +78,11 @@ public class DynastyCombatEvents {
             }
         }
 
+        // 1.5) 饰品命中触发（加伤部分）：会心 / 突袭 / 连击 —— 参数写在饰品表第 12~14 格
+        if (attacker instanceof Player attackerPlayer) {
+            amount = DynastyTrinketOnHit.bonus(attackerPlayer, event.getEntity(), amount);
+        }
+
         // 2) 环首刀：受击反击 / Huan Shou Dao: counter attack
         if (event.getEntity() instanceof Player counter
                 && ("huan_shou_dao".equals(DynastyTrinkets.idOf(counter.getMainHandItem()))
@@ -141,6 +146,16 @@ public class DynastyCombatEvents {
         }
 
         event.setAmount(Math.max(1.0F, amount));
+
+        // 7) 饰品命中触发（结算后）：吸血 / 斩杀 / 雷罚 —— 吸血按**最终**伤害算
+        if (attacker instanceof Player attackerPlayer) {
+            DynastyTrinketOnHit.after(attackerPlayer, event.getEntity(), event.getAmount());
+        }
+
+        // 8) 伤势：玩家被重击就累积（生命上限会掉，丹药 / 睡觉能治，见 DynastyInjury）
+        if (victim instanceof Player injured) {
+            DynastyInjury.onHurt(injured, event.getAmount());
+        }
     }
 
     /** 方天画戟横扫：对主目标周围的敌人造成额外伤害 / Fangtian halberd sweep */

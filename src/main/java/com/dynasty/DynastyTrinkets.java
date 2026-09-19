@@ -209,57 +209,202 @@ public final class DynastyTrinkets {
             {"pearl_net_charm", 0, 200D, 11, 2D, 0, 0, 0},
             {"tide_compass_charm", 7, 2D, 3, 0.06D, 0, 0, 0},
             {"storm_anchor_charm", 1, 20D, 6, 0.5D, 0, 0, 0},
+
+            // ================= 第三十四轮：50 件「新格式」饰品 =================
+            // 14 格 = {id, 属性1, 值1, 属性2, 值2, 效果, 等级, 条件, 属性3, 值3, 条件3,
+            //          命中触发, 数值, 概率%}（命中触发见 DynastyTrinketOnHit）
+            // 第三格属性带**自己的条件** → 一件饰品能同时「白天 +攻、夜里 +移速」。
+            // 效果列 21~27 全是模组自有效果（龙威/铁壁/疾风/威慑/天命/忠诚/内伤），
+            // 新饰品不再给自己上原版 buff；27 内伤兼作代价（拿命换伤害）。
+            // five themed groups of ten: day/night duality, life-for-damage bargains,
+            // imperial edicts (mod effects), underworld sacrifice, frontier utility.
+            // ---- 一、昼夜双生 ----
+            // ---- 一、昼夜双生 ----
+            // ---- 一、昼夜双生（连携组 1）----
+            {"dawn_blade_charm", 4, 0.22D, -1, 0D, 0, 0, 1, 3, 0.1D, 2, 4, 0.35D, 100, 1},
+            {"dusk_veil_charm", 4, 0.26D, -1, 0D, 0, 0, 2, 9, -0.2D, 1, 3, 0.45D, 25, 1},
+            {"noon_pendant", 0, 240D, -1, 0D, 0, 0, 1, 0, -160D, 2, 0, 0D, 0, 1},
+            {"moonlit_mirror", 5, 0.14D, -1, 0D, 0, 0, 2, 11, 2D, 1, 0, 0D, 0, 1},
+            {"sun_chaser_ring", 3, 0.12D, 4, 0.1D, 0, 0, 1, -1, 0D, 0, 0, 0D, 0, 1},
+            {"night_heron_feather", 4, 0.18D, 6, 0.35D, 0, 0, 2, -1, 0D, 0, 4, 0.3D, 100, 1},
+            {"twilight_cicada", 2, 0.4D, -1, 0D, 0, 0, 1, 7, 1D, 2, 0, 0D, 0, 1},
+            {"eclipse_bead", 4, 0.3D, -1, 0D, 0, 0, 2, 1, -6D, 1, 3, 0.55D, 20, 1},
+            {"dawn_drum", 5, 0.12D, 3, 0.08D, 0, 0, 1, -1, 0D, 0, 0, 0D, 0, 1},
+            {"starless_night_ring", 0, 220D, -1, 0D, 0, 0, 2, 4, 0.16D, 2, 1, 0.08D, 100, 1},
+            // ---- 二、生死代价（连携组 2）----
+            {"blood_oath_seal", 9, -0.3D, 4, 0.35D, 0, 0, 0, -1, 0D, 0, 1, 0.15D, 100, 2},
+            {"bone_reaper_tally", 9, -0.2D, 4, 0.25D, 0, 0, 0, 6, 0.5D, 0, 2, 0.2D, 100, 2},
+            {"internal_injury_talisman", 4, 0.45D, -1, 0D, 27, 0, 0, -1, 0D, 0, 0, 0D, 0, 2},
+            {"lifedrain_ring", 4, 0.3D, 5, 0.1D, 27, 1, 0, -1, 0D, 0, 1, 0.12D, 100, 2},
+            {"crimson_pact_charm", 9, -0.4D, 4, 0.5D, 0, 0, 0, -1, 0D, 0, 1, 0.2D, 60, 2},
+            {"flesh_gamble_dice", 4, 0.2D, -1, 0D, 0, 0, 0, 4, 0.4D, 4, 0, 0D, 0, 2},
+            {"deathbed_talisman", 4, 0.3D, 3, 0.3D, 0, 0, 4, -1, 0D, 0, 2, 0.25D, 60, 2},
+            {"scarlet_lotus", 1, 14D, 5, 0.15D, 0, 0, 4, -1, 0D, 0, 0, 0D, 0, 2},
+            {"blood_iron_sash", 9, -0.15D, 1, 18D, 0, 0, 0, -1, 0D, 0, 0, 0D, 0, 2},
+            {"soul_candle_charm", 9, -0.25D, -1, 0D, 0, 0, 0, 4, 0.28D, 2, 1, 0.1D, 50, 2},
+            // ---- 三、天朝敕令（连携组 3）----
+            {"edict_of_dragon", 4, 0.1D, -1, 0D, 21, 0, 0, -1, 0D, 0, 0, 0D, 0, 3},
+            {"edict_of_iron", 1, 8D, -1, 0D, 22, 0, 0, -1, 0D, 0, 0, 0D, 0, 3},
+            {"edict_of_swift", 3, 0.06D, -1, 0D, 23, 0, 0, -1, 0D, 0, 0, 0D, 0, 3},
+            {"edict_of_mandate", 11, 2D, -1, 0D, 25, 0, 0, -1, 0D, 0, 0, 0D, 0, 3},
+            {"edict_of_dread", 4, 0.1D, -1, 0D, 24, 0, 0, -1, 0D, 0, 2, 0.1D, 100, 3},
+            {"edict_of_loyalty", 0, 180D, -1, 0D, 26, 0, 0, -1, 0D, 0, 0, 0D, 0, 3},
+            {"seal_of_two_heavens", 4, 0.12D, -1, 0D, 21, 0, 0, 3, 0.06D, 1, 0, 0D, 0, 3},
+            {"throne_inheritance_charm", 0, 260D, -1, 0D, 25, 0, 0, -1, 0D, 0, 0, 0D, 0, 3},
+            {"war_deity_signet", 4, 0.15D, -1, 0D, 21, 1, 0, -1, 0D, 0, 3, 0.4D, 30, 3},
+            {"unbroken_wall_charm", 2, 0.5D, -1, 0D, 22, 1, 0, -1, 0D, 0, 0, 0D, 0, 3},
+            // ---- 四、幽冥献祭（连携组 4）----
+            {"sacrificial_blade_charm", 4, 0.38D, -1, 0D, 27, 0, 0, -1, 0D, 0, 2, 0.18D, 80, 4},
+            {"nether_binding_ring", 4, 0.4D, -1, 0D, 0, 0, 2, 9, -0.2D, 1, 6, 60D, 30, 4},
+            {"ghost_ferry_tally", 5, 0.3D, -1, 0D, 27, 0, 0, 9, -0.25D, 0, 2, 0.15D, 60, 4},
+            {"bone_chill_pendant", 4, 0.25D, -1, 0D, 27, 1, 3, -1, 0D, 0, 6, 45D, 35, 4},
+            {"candle_of_the_dead", 4, 0.3D, -1, 0D, 0, 0, 2, 0, -150D, 1, 0, 0D, 0, 4},
+            {"tomb_warden_seal", 1, 25D, -1, 0D, 27, 0, 0, -1, 0D, 0, 0, 0D, 0, 4},
+            {"jade_shroud_charm", 0, 400D, 3, -0.1D, 27, 0, 0, -1, 0D, 0, 0, 0D, 0, 4},
+            {"karma_ledger_charm", 4, 0.3D, -1, 0D, 0, 0, 0, 1, 30D, 4, 0, 0D, 0, 4},
+            {"abyss_pearl", 4, 0.35D, 6, 0.4D, 0, 0, 2, -1, 0D, 0, 3, 0.5D, 30, 4},
+            {"underworld_gate_key", 4, 0.45D, -1, 0D, 0, 0, 7, -1, 0D, 0, 6, 90D, 25, 4},
+            // ---- 五、巧匠边塞（连携组 5）----
+            {"ranging_compass_charm", 7, 2D, 4, 0.08D, 0, 0, 0, -1, 0D, 0, 0, 0D, 0, 5},
+            {"quickdraw_glove", 5, 0.18D, 6, 0.6D, 0, 0, 0, -1, 0D, 0, 5, 0.05D, 100, 5},
+            {"siege_hammer_charm", 4, 0.25D, -1, 0D, 0, 0, 6, -1, 0D, 0, 2, 0.12D, 80, 5},
+            {"dusk_raider_badge", 4, 0.2D, 3, 0.12D, 0, 0, 2, -1, 0D, 0, 0, 0D, 0, 5},
+            {"rain_prayer_knot", 5, 0.2D, 4, 0.3D, 0, 0, 7, -1, 0D, 0, 0, 0D, 0, 5},
+            {"diver_signet", 1, 20D, 4, 0.25D, 0, 0, 3, -1, 0D, 0, 0, 0D, 0, 5},
+            {"cavalry_sash", 4, 0.15D, 3, 0.1D, 0, 0, 5, -1, 0D, 0, 0, 0D, 0, 5},
+            {"wound_binder_charm", 1, 25D, 5, 0.18D, 0, 0, 4, -1, 0D, 0, 0, 0D, 0, 5},
+            {"iron_ration_charm", 0, 350D, 5, -0.08D, 0, 0, 0, -1, 0D, 0, 0, 0D, 0, 5},
+            {"warlord_drum_charm", 5, 0.12D, -1, 0D, 0, 0, 6, 4, 0.4D, 4, 5, 0.06D, 100, 5},
     };
+
+    /** 连携组的名字（组号 ↔ 主题）/ synergy group names */
+    private static final Map<Integer, String> LINK_GROUP_NAMES = Map.of(
+            1, "昼夜双生", 2, "生死代价", 3, "天朝敕令", 4, "幽冥献祭", 5, "巧匠边塞");
+
+    /**
+     * 连携加成：{组, 需要件数, 类型(0 属性 / 1 模组效果), 编码, 数值, 条件}。
+     * 由 tools/art/gen_trinkets5.py 打印，改表请改生成器再粘回来。
+     */
+    private static final Object[][] LINK_TABLE = {
+            {1, 2, 0, 3, 0.05D, 0},
+            {1, 3, 0, 4, 0.08D, 0},
+            {1, 3, 0, 3, 0.05D, 0},
+            {1, 4, 0, 4, 0.12D, 0},
+            {1, 4, 0, 3, 0.08D, 0},
+            {2, 2, 0, 4, 0.06D, 0},
+            {2, 3, 0, 4, 0.12D, 0},
+            {2, 4, 0, 4, 0.16D, 0},
+            {2, 4, 0, 0, 200D, 0},
+            {3, 2, 0, 11, 2D, 0},
+            {3, 3, 0, 11, 3D, 0},
+            {3, 3, 0, 0, 200D, 0},
+            {3, 4, 1, 21, 0D, 0},
+            {3, 4, 0, 4, 0.1D, 0},
+            {4, 2, 0, 4, 0.08D, 0},
+            {4, 3, 0, 4, 0.12D, 0},
+            {4, 4, 0, 4, 0.16D, 0},
+            {4, 4, 0, 0, 250D, 0},
+            {5, 2, 0, 5, 0.06D, 0},
+            {5, 3, 0, 5, 0.1D, 0},
+            {5, 3, 0, 3, 0.06D, 0},
+            {5, 4, 0, 5, 0.14D, 0},
+            {5, 4, 0, 7, 1D, 0},
+    };
+
+    /** 连携引擎看到的是「表里的 id」，不是物品实例 / the link engine works off table ids */
+    static Object[][] linkTable() {
+        return LINK_TABLE;
+    }
+
+    static Map<Integer, String> linkGroupNames() {
+        return LINK_GROUP_NAMES;
+    }
 
     /** 50 件新饰品的物品注册（表驱动，id 与贴图/配方/Curios 标签同名）/ register from the table */
     public static final List<RegistryObject<Item>> EXTRA_CHARMS = registerExtraCharms();
+
+    static {
+        // 命中触发（吸血 / 斩杀 / 会心 / 突袭 / 连击 / 雷罚）的参数同样来自这张表：
+        // 建表时抽一次，之后每次命中只查那张小表。
+        DynastyTrinketOnHit.index(EXTRA_TABLE);
+        DynastyTrinketLink.index(EXTRA_TABLE, LINK_TABLE, LINK_GROUP_NAMES);
+    }
 
     private static List<RegistryObject<Item>> registerExtraCharms() {
         List<RegistryObject<Item>> out = new ArrayList<>();
         for (Object[] row : EXTRA_TABLE) {
             String id = (String) row[0];
-            out.add(ITEMS.register(id, () -> new Item(new Item.Properties().stacksTo(1))));
+            out.add(ITEMS.register(id, () -> new DynastyTrinketTips.Charm(row)));
         }
         return out;
     }
 
+    // 悬浮说明统一在 DynastyTrinketTips：表驱动饰品自动生成，手写饰品查 LEGACY 表。
+    // Tooltip text lives in DynastyTrinketTips; check it before adding new codes.
+
     /** 条件是否满足（白天 / 夜晚 / 水下 / 残血 / 骑乘）/ is the accessory condition met */
-    private static boolean conditionMet(Player player, int condition) {
+    static boolean conditionMet(Player player, int condition) {
         return switch (condition) {
             case 1 -> player.level().isDay();
             case 2 -> !player.level().isDay();
             case 3 -> player.isUnderWater() || player.isInWater();
             case 4 -> player.getHealth() < player.getMaxHealth() * 0.4F;
             case 5 -> player.isPassenger();
+            case 6 -> player.getHealth() >= player.getMaxHealth() - 0.01F;   // 满血 / at full health
+            case 7 -> player.level().isThundering();                        // 雷雨 / thunderstorm
             default -> true;
         };
     }
 
-    /** 表驱动结算新饰品（属性 + 效果，每秒刷新一次）/ resolve the table-driven accessories */
+    /**
+     * 表驱动结算新饰品（属性 + 效果，每秒刷新一次）。
+     *
+     * v2 格式（第三十四轮起）：一行最多 11 格 ——
+     * `{id, 属性1, 值1, 属性2, 值2, 效果, 等级, 条件, 属性3, 值3, 条件3}`
+     * 前两格共用第 8 格的条件，第三格带**自己的条件**，于是可以写
+     * 「白天 +25% 攻击、夜里 −120 生命」「残血再 +40% 攻击」这类双面设计。
+     * 老行（8 格）照旧生效。
+     *
+     * v2 spec: up to 11 columns; the third attribute carries its own condition,
+     * which enables day/night and low-health duality on a single accessory.
+     */
     private static void applyExtra(Player player, java.util.Set<String> active) {
         for (Object[] row : EXTRA_TABLE) {
             String id = (String) row[0];
             if (!active.contains(id) || !conditionMet(player, (Integer) row[7])) {
                 continue;
             }
-            applySpecAttr(player, id, (Integer) row[1], (Double) row[2]);
-            applySpecAttr(player, id, (Integer) row[3], (Double) row[4]);
+            applySpecAttr(player, id, 0, (Integer) row[1], (Double) row[2]);
+            applySpecAttr(player, id, 0, (Integer) row[3], (Double) row[4]);
             applySpecEffect(player, (Integer) row[5], (Integer) row[6]);
+            if (row.length > 10 && conditionMet(player, (Integer) row[10])) {
+                applySpecAttr(player, id, 1, (Integer) row[8], (Double) row[9]);
+            }
         }
     }
 
-    /** 属性编码 → 原版属性（3/4/5 是百分比，其余是固定值）/ attribute code to vanilla attribute */
-    private static void applySpecAttr(Player player, String id, int code, double value) {
+    /**
+     * 属性编码 → 原版属性（3/4/5/9 是百分比，其余是固定值）。
+     *
+     * slot 决定 UUID 段：第一/二格用 0~99，第三格用 100~199，
+     * 这样同一件饰品用同一种属性能分两次相加（白天 +攻击、夜里 −生命）。
+     *
+     * attribute code to vanilla attribute; slot picks the UUID range so one
+     * accessory can touch the same attribute twice under different conditions.
+     */
+    static void applySpecAttr(Player player, String id, int slot, int code, double value) {
+        int key = slot * 100;
         switch (code) {
-            case 0 -> addAttr(player, id, 0, value);          // 生命
-            case 1 -> addAttr(player, id, 1, value);          // 护甲
-            case 2 -> addAttr(player, id, 2, value);          // 抗击退
-            case 3 -> multiplyAttr(player, id, 3, value);     // 移速 %
-            case 4 -> multiplyAttr(player, id, 5, value);     // 攻击 %
-            case 5 -> multiplyAttr(player, id, 6, value);     // 攻速 %
-            case 6 -> addAttr(player, id, 7, value);          // 击退
-            case 7 -> addReach(player, id, value);            // 攻击距离
-            case 11 -> addAttr(player, id, 4, value);         // 幸运
+            case 0 -> addAttr(player, id, key + 0, 0, value);          // 生命
+            case 1 -> addAttr(player, id, key + 1, 1, value);          // 护甲
+            case 2 -> addAttr(player, id, key + 2, 2, value);          // 抗击退
+            case 3 -> multiplyAttr(player, id, key + 3, 3, value);     // 移速 %
+            case 4 -> multiplyAttr(player, id, key + 5, 5, value);     // 攻击 %
+            case 5 -> multiplyAttr(player, id, key + 6, 6, value);     // 攻速 %
+            case 6 -> addAttr(player, id, key + 7, 7, value);          // 击退
+            case 7 -> addReach(player, id, key + 8, value);            // 攻击距离
+            case 9 -> multiplyAttr(player, id, key + 9, 0, value);     // 生命上限 %
+            case 11 -> addAttr(player, id, key + 4, 4, value);         // 幸运
             default -> {
                 // -1 = 这一格没有属性
             }
@@ -267,17 +412,31 @@ public final class DynastyTrinkets {
     }
 
     /** 「距离」= Forge 的实体触及距离 / Forge entity reach */
-    private static void addReach(Player player, String id, double amount) {
+    private static void addReach(Player player, String id, int key, double amount) {
         AttributeInstance instance =
                 player.getAttribute(net.minecraftforge.common.ForgeMod.ENTITY_REACH.get());
         if (instance != null) {
-            instance.addTransientModifier(new AttributeModifier(uuid(id, 8),
+            instance.addTransientModifier(new AttributeModifier(uuid(id, key),
                     "dynasty_trinket_reach", amount, AttributeModifier.Operation.ADDITION));
         }
     }
 
-    /** 效果编码 → 原版效果（12 比 5 更强一档）/ effect code to vanilla effect */
-    private static void applySpecEffect(Player player, int code, int amplifier) {
+    /**
+     * 效果编码 → 效果。
+     *
+     * 21~27 是**模组自有效果**（龙威 / 铁壁 / 疾风 / 威慑 / 天命 / 忠诚 / 内伤），
+     * 1~12 是早期批次用的原版效果（保留兼容）。新饰品只用模组效果：既不会和药水
+     * 撞车，也能把「内伤」这种负面模组效果当成**代价**来写。
+     *
+     * 21-27 are the mod's own effects, 1-12 are legacy vanilla ones kept for the
+     * older accessories. New accessories use mod effects only.
+     */
+    static void applySpecEffect(Player player, int code, int amplifier) {
+        net.minecraft.world.effect.MobEffect mod = modEffect(code);
+        if (mod != null) {
+            player.addEffect(new MobEffectInstance(mod, 60, amplifier, true, false));
+            return;
+        }
         net.minecraft.world.effect.MobEffect effect = switch (code) {
             case 1 -> MobEffects.NIGHT_VISION;
             case 2 -> MobEffects.WATER_BREATHING;
@@ -297,8 +456,23 @@ public final class DynastyTrinkets {
         player.addEffect(new MobEffectInstance(effect, ticks, level, true, false));
     }
 
+    /** 模组自有效果编码 → 效果 / mod-owned effect codes */
+    private static net.minecraft.world.effect.MobEffect modEffect(int code) {
+        return switch (code) {
+            case 21 -> DynastyEffects.DRAGON_MIGHT.get();
+            case 22 -> DynastyEffects.IRON_WALL.get();
+            case 23 -> DynastyEffects.SWIFT_WIND.get();
+            case 24 -> DynastyEffects.INTIMIDATION.get();
+            case 25 -> DynastyEffects.MANDATE_OF_HEAVEN.get();
+            case 26 -> DynastyEffects.LOYALTY.get();
+            case 27 -> DynastyEffects.INTERNAL_INJURY.get();
+            default -> null;
+        };
+    }
+
+    /** 手写饰品：同样带悬浮说明（文案见 DynastyTrinketTips.LEGACY）/ legacy charm with tooltip */
     private static RegistryObject<Item> charm(String name) {
-        return ITEMS.register(name, () -> new Item(new Item.Properties().stacksTo(1)));
+        return ITEMS.register(name, () -> new DynastyTrinketTips.Charm(name));
     }
 
     /**
@@ -422,6 +596,8 @@ public final class DynastyTrinkets {
         SCAN_CACHE.remove(id);
         SCAN_STAMP.remove(id);
         APPLIED.remove(id);
+        DynastyTrinketOnHit.forget(player);     // 连击状态也一起清
+        DynastyTrinketLink.forget(player);      // 连携提示去重记录
     }
 
     public static boolean has(Player player, String id) {
@@ -514,10 +690,10 @@ public final class DynastyTrinkets {
         return UUID.nameUUIDFromBytes(("dynasty_trinket_" + id + "_" + attr).getBytes());
     }
 
-    private static void addAttr(Player player, String id, int attr, double amount) {
+    private static void addAttr(Player player, String id, int key, int attr, double amount) {
         AttributeInstance instance = player.getAttribute(ATTRS[attr]);
         if (instance != null) {
-            instance.addTransientModifier(new AttributeModifier(uuid(id, attr),
+            instance.addTransientModifier(new AttributeModifier(uuid(id, key),
                     ATTR_NAMES[attr], amount, AttributeModifier.Operation.ADDITION));
         }
     }
@@ -538,26 +714,47 @@ public final class DynastyTrinkets {
     }
 
     /** 百分比加成（例如龙珠 +25% 攻击）/ percentage modifier */
-    private static void multiplyAttr(Player player, String id, int attr, double ratio) {
+    private static void multiplyAttr(Player player, String id, int key, int attr, double ratio) {
         AttributeInstance instance = player.getAttribute(ATTRS[attr]);
         if (instance != null) {
-            instance.addTransientModifier(new AttributeModifier(uuid(id, attr),
+            instance.addTransientModifier(new AttributeModifier(uuid(id, key),
                     ATTR_NAMES[attr], ratio, AttributeModifier.Operation.MULTIPLY_TOTAL));
         }
     }
 
-    private static void clearAttrs(Player player, String id) {
-        for (int a = 0; a < ATTRS.length; a++) {
-            AttributeInstance instance = player.getAttribute(ATTRS[a]);
-            if (instance != null) {
-                instance.removeModifier(uuid(id, a));
+    // 旧批次饰品（apply() 里的 39 件）仍用 4 参写法：UUID 就用属性号本身，
+    // 和第一批完全一致，老存档换下饰品照样清得干净。
+    // legacy accessories keep the 4-arg form: the UUID stays the attribute index,
+    // byte-for-byte identical to the first batches.
+    private static void addAttr(Player player, String id, int attr, double amount) {
+        addAttr(player, id, attr, attr, amount);
+    }
+
+    private static void multiplyAttr(Player player, String id, int attr, double ratio) {
+        multiplyAttr(player, id, attr, attr, ratio);
+    }
+
+    /**
+     * 清掉一件饰品加过的全部属性：0~99（第一格）/ 100~199（第三格）/ 200~299 三段都清，
+     * 换下饰品时不会留下幽灵加成。
+     *
+     * clear every slot of an accessory so removing it never leaves ghost modifiers.
+     */
+    static void clearAttrs(Player player, String id) {
+        for (int slot = 0; slot < 3; slot++) {
+            int key = slot * 100;
+            for (int a = 0; a < ATTRS.length; a++) {
+                AttributeInstance instance = player.getAttribute(ATTRS[a]);
+                if (instance != null) {
+                    instance.removeModifier(uuid(id, key + a));
+                }
             }
-        }
-        // 「距离」用的是 Forge 的触及距离属性，单独清一次 / clear the Forge reach modifier too
-        AttributeInstance reach =
-                player.getAttribute(net.minecraftforge.common.ForgeMod.ENTITY_REACH.get());
-        if (reach != null) {
-            reach.removeModifier(uuid(id, 8));
+            // 「距离」用的是 Forge 的触及距离属性，单独清一次 / clear the Forge reach modifier too
+            AttributeInstance reach =
+                    player.getAttribute(net.minecraftforge.common.ForgeMod.ENTITY_REACH.get());
+            if (reach != null) {
+                reach.removeModifier(uuid(id, key + 8));
+            }
         }
     }
 
@@ -845,6 +1042,7 @@ public final class DynastyTrinkets {
             }
         }
         applyExtra(player, active);          // 第三十一轮的 50 件（表驱动）
+        DynastyTrinketLink.apply(player, active);   // 同系连携（2/3/4 件档位）
         if (player.getHealth() > player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());
         }

@@ -321,6 +321,38 @@ tasks.register('exportModpack') {
             }
         }
 
+        // 词条自检：每个物品（item./block. 双查）与每个模组效果都要有中英词条
+        //（只查 item. 会把方块误判成「缺词条」，所以两边都认）
+        def langVerifier = file('tools/art/verify_lang.py')
+        if (langVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', langVerifier.absolutePath }
+            } catch (Exception e) {
+                logger.lifecycle("（词条自检发现异常：${e.message}）")
+            }
+        }
+
+        // 数值审计：饰品表的编码与数值是否在设计上下限内（百分比写成点数 / 生命上限扣太狠
+        // 这类问题在游戏里很难发现，这里直接拦）
+        def balanceVerifier = file('tools/art/verify_balance.py')
+        if (balanceVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', balanceVerifier.absolutePath }
+            } catch (Exception e) {
+                logger.lifecycle("（数值审计发现异常：${e.message}）")
+            }
+        }
+
+        // 战利品表自检：结构引用的箱子表存在 + 表里物品存在 + 权重/数量合法（表名打错箱子就是空的）
+        def lootVerifier = file('tools/art/verify_loot.py')
+        if (lootVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', lootVerifier.absolutePath }
+            } catch (Exception e) {
+                logger.lifecycle("（战利品表自检发现异常：${e.message}）")
+            }
+        }
+
         def out = new File(dynastyExportDir, 'Dynasty整合包')
         out.mkdirs()
         def dist = file('dist')

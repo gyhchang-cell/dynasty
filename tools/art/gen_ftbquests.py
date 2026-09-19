@@ -619,6 +619,75 @@ for _extra_cls, _extra_items in _TRINKET_EXTRA:
         if _cls_name == _extra_cls:
             _cls_items.extend(_extra_items)
 
+# 第三十四轮：50 件「新格式」饰品（第三格属性带自己的条件 + 模组自有效果 + 代价设计）
+# 仍旧并进这 5 类 —— 新开一类会把「十二、饰品图鉴」横向拉宽，自检有「跨度 > 40 格」。
+_TRINKET_EXTRA2 = [
+    ("入门佩饰（前期）", [
+        ("ranging_compass_charm", "望距罗盘：攻击距离 +2、攻击 +8%。"),
+        ("quickdraw_glove", "疾抽手套：攻速 +18%、击退 +0.6；连击每层 +5%"),
+        ("siege_hammer_charm", "破阵锤坠：满血时攻击 +25%，一开场就要打出优势；命中斩杀 12% 血线以下的目标"),
+        ("dusk_raider_badge", "夜袭徽：夜里攻击 +20%、移速 +12%。"),
+        ("rain_prayer_knot", "祈雨结：雷雨天攻速 +20%、攻击 +30%。"),
+        ("diver_signet", "潜蛟印：水下护甲 +20、攻击 +25%。"),
+        ("cavalry_sash", "铁骑带：骑乘时攻击 +15%、移速 +10%。"),
+        ("wound_binder_charm", "绷带佩：残血时护甲 +25、攻速 +18%。"),
+        ("iron_ration_charm", "军粮坠：生命 +350，代价是攻速 −8%。"),
+        ("warlord_drum_charm", "战鼓墩：满血攻速 +12%；残血攻击 +40%；连击每层 +6%"),
+    ]),
+    ("通灵瑞兽（中期 · 神兽掉落）", [
+        ("dawn_blade_charm", "破晓刃坠：白天攻击 +22%、夜里移速 +10%；命中满血目标 +35%"),
+        ("dusk_veil_charm", "暮色帷幕：夜里攻击 +26%，白天生命上限 −20%；命中 25% 会心 +45%"),
+        ("noon_pendant", "正阳佩：白天生命 +240、夜里 −160。"),
+        ("moonlit_mirror", "月华镜：夜里攻速 +14%、白天幸运 +2。"),
+        ("sun_chaser_ring", "追阳戒：白天移速 +12%、攻击 +10%。"),
+        ("night_heron_feather", "夜鹭羽：夜里攻击 +18%、击退 +0.35；命中满血目标 +30%"),
+        ("twilight_cicada", "蝉蜕影：白天抗击退 +0.4、夜里攻击距离 +1。"),
+        ("eclipse_bead", "蚀月珠：夜里攻击 +30%，白天护甲 −6；命中 20% 会心 +55%"),
+        ("dawn_drum", "晨钟坠：白天攻速 +12%、移速 +8%。"),
+        ("starless_night_ring", "无星夜戒：夜里生命 +220、攻击 +16%；命中回血 8%"),
+    ]),
+    ("功名文房（中期 · 朝堂与学识）", [
+        ("edict_of_dragon", "龙威敕令：常驻【龙威】+ 攻击 +10%（模组自有效果，不占药水位）。"),
+        ("edict_of_iron", "铁壁敕令：常驻【铁壁】、护甲 +8。"),
+        ("edict_of_swift", "疾风敕令：常驻【疾风】、移速 +6%。"),
+        ("edict_of_mandate", "天命敕令：常驻【天命】、幸运 +2。"),
+        ("edict_of_dread", "威慑敕令：常驻【威慑】、攻击 +10%；命中斩杀 10% 血线以下的目标"),
+        ("edict_of_loyalty", "忠诚敕令：常驻【忠诚】、生命 +180。"),
+        ("seal_of_two_heavens", "双天印：常驻【龙威】，白天再 +6% 移速。"),
+        ("throne_inheritance_charm", "承天佩：常驻【天命】、生命 +260。"),
+        ("war_deity_signet", "战神印：【龙威 II】、攻击 +15%；命中 30% 会心 +40%"),
+        ("unbroken_wall_charm", "不倾之壁：【铁壁 II】、抗击退 +0.5。"),
+    ]),
+    ("战阵护身（中后期 · 战斗）", [
+        ("blood_oath_seal", "血誓印：生命上限 −30%，攻击 +35%（拿命换伤害）；命中回血 15%"),
+        ("bone_reaper_tally", "白骨算筹：生命上限 −20%，攻击 +25%、击退 +0.5；命中斩杀 20% 血线以下的目标"),
+        ("internal_injury_talisman", "内伤符：攻击 +45%，代价是常驻【内伤】。"),
+        ("lifedrain_ring", "汲生戒：攻击 +30%、攻速 +10%，代价是【内伤 II】；命中回血 12%"),
+        ("crimson_pact_charm", "血契坠：生命上限 −40%、攻击 +50%，押得最狠的一件；命中回血 20%"),
+        ("flesh_gamble_dice", "血肉骰：攻击 +20%，残血时再 +40%。"),
+        ("deathbed_talisman", "榻前符：残血时攻击 +30%、移速 +30%；命中斩杀 25% 血线以下的目标"),
+        ("scarlet_lotus", "血莲：残血时护甲 +14、攻速 +15%。"),
+        ("blood_iron_sash", "血铁腰带：生命上限 −15%、护甲 +18。"),
+        ("soul_candle_charm", "命烛坠：生命上限 −25%，夜里攻击 +28%；命中回血 10%"),
+    ]),
+    ("传世至宝（终盘 · 神物）", [
+        ("sacrificial_blade_charm", "祭刃坠：攻击 +38%，代价是常驻【内伤】；命中斩杀 18% 血线以下的目标"),
+        ("nether_binding_ring", "幽冥缚戒：夜里攻击 +40%，白天生命上限 −20%；命中 30% 雷罚 +60 伤害"),
+        ("ghost_ferry_tally", "渡鬼符：攻速 +30%、生命上限 −25%，常驻【内伤】；命中斩杀 15% 血线以下的目标"),
+        ("bone_chill_pendant", "寒骨佩：水下攻击 +25%，代价是【内伤 II】；命中 35% 雷罚 +45 伤害"),
+        ("candle_of_the_dead", "亡者烛：夜里攻击 +30%，白天生命 −150。"),
+        ("tomb_warden_seal", "守陵印：护甲 +25，代价是常驻【内伤】。"),
+        ("jade_shroud_charm", "玉殓佩：生命 +400，代价是移速 −10% + 常驻【内伤】。"),
+        ("karma_ledger_charm", "因果牒：攻击 +30%、残血时护甲 +30。"),
+        ("abyss_pearl", "深渊珠：夜里攻击 +35%、击退 +0.4；命中 30% 会心 +50%"),
+        ("underworld_gate_key", "鬼门钥：雷雨天攻击 +45%，晴天就是块石头；命中 25% 雷罚 +90 伤害"),
+    ]),
+]
+for _extra_cls, _extra_items in _TRINKET_EXTRA2:
+    for _cls_name, _cls_note, _cls_items in TRINKET_CLASSES:
+        if _cls_name == _extra_cls:
+            _cls_items.extend(_extra_items)
+
 CH10 = []
 for _cls_name, _cls_note, _cls_items in TRINKET_CLASSES:
     for _i, (_item, _item_desc) in enumerate(_cls_items):
@@ -935,7 +1004,7 @@ CHAPTER_LAYOUT = {
     "dynasty_c2": "cols",       # 农桑百工：一类一列
     "dynasty_c3": "cols",       # 兵器谱：和甲胄谱一样「一类一列」，别再堆成方阵（玩家反馈乱）
     "dynasty_c4": "cols",       # 甲胄谱：一类一列
-    "dynasty_c10": "cols",      # 饰品图鉴：五类五列
+    "dynasty_c10": ("cols", 12, 10),  # 饰品图鉴：五类十列；169 件太密，用「一列 12 个」排成一整块
     "dynasty_c5": "fan",        # 朝堂科举：中心开花
     "dynasty_c6": "rows",       # 军旅平叛：横排
     "dynasty_c9": "fan",        # 神兽与帝王：中心开花
@@ -960,7 +1029,11 @@ CHAPTERS = [
      "17 套主线甲胄 × 4 件（竹甲 → 龙王鳞铠）；10 套终盘甲（玄武/朱雀/青龙/白虎/北斗/天罡/地煞/太乙/紫微/混元）"
      "写在各世界章节里：在哪拿到就写在哪。"),
     ("dynasty_c10", "十二、饰品图鉴", "dynasty:heart_mirror", CH10, "c1", 2,
-     "119 件饰品分布于图鉴与各世界章节；按头部、项链、戒指等分类佩戴。金色里程碑解锁万能槽。"),
+     "169 件饰品分布于图鉴与各世界章节；按头部、项链、戒指等分类佩戴。金色里程碑解锁万能槽。\n"
+     "§6连携：§r同系饰品一起戴有额外加成，取达到的最高档 —— "
+     "昼夜双生（移速→攻击+移速→攻击+移速加强）、生死代价（攻击递增，4 件补生命）、"
+     "天朝敕令（幸运→幸运+生命→龙威+攻击）、幽冥献祭（攻击递增，4 件补生命）、"
+     "巧匠边塞（攻速→攻速+移速→攻速+攻击距离）。2 件起生效，4 件满档，摘下立刻回退。"),
     # ---- 王朝主线 ----
     ("dynasty_c5", "三、朝堂科举", "dynasty:exam_paper", CH5, "prev", 0,
      "答对试卷换功名、晋升官阶；完成「科举中第」永久解锁 +1 万能饰品槽。"),
@@ -1361,15 +1434,17 @@ def layout_rows(rows):
     return center(pos)
 
 
-def layout_cols(rows):
+def layout_cols(rows, max_col=MAX_COL, per_block=COLS_PER_BLOCK):
     """
-    竖排：每条线一列，**一列最多 MAX_RUN 个**，超出的在右边紧挨着再起一列（折列）；
-    一「段」最多 COLS_PER_BLOCK 列，超过就换到下面一段（左对齐重排）——
+    竖排：每条线一列，**一列最多 max_col 个**，超出的在右边紧挨着再起一列（折列）；
+    一「段」最多 per_block 列，超过就换到下面一段（左对齐重排）——
     所以「兵器谱 / 甲胄谱 / 饰品图鉴」这类图鉴章是方方正正的几块，不会拉成一条长横杠。
+    两个参数可按章覆盖（见 CHAPTER_LAYOUT 的元组写法）：饰品图鉴条目最多，用
+    「一列 12 个、一段 10 列」正好排成一整块，不再摊成上下两块。
 
     Vertical columns with wrapping and block packing: each line is one column, long columns
-    fold into the next one, and a block holds at most COLS_PER_BLOCK columns before the rest
-    continues in a new block below.
+    fold into the next one, and a block holds at most per_block columns before the rest
+    continues in a new block below. Both caps can be overridden per chapter.
     """
     lines = split_lines(rows)
     pos = {}
@@ -1377,8 +1452,8 @@ def layout_cols(rows):
     group = None
     for line in lines:
         line_group = rows[line[0]][3].get("group")     # 线首上的分组标记（流派 / 合体）
-        chunks = wrap_runs(line, per=MAX_COL)
-        if used and used + len(chunks) > COLS_PER_BLOCK:       # 换下一段
+        chunks = wrap_runs(line, per=max_col)
+        if used and used + len(chunks) > per_block:             # 换下一段
             y0 -= (height - 1) * STEP_Y + STEP_Y + CHAIN_GAP
             x, used, height = 0.0, 0, 0
         elif used and line_group and group and line_group != group:
@@ -1488,16 +1563,43 @@ LAYOUTS = {
 }
 
 
+def layout_for(style):
+    """CHAPTER_LAYOUT 的值可以是名字，也可以是 (名字, 每列上限, 每段列数)。
+
+    图鉴章饰品太多：默认「一列 10 个、一段 10 列」会把饰品图鉴摊成上下两块、
+    纵向拉到 30 格，自检的「离中心 ≤ 11 格」就过不去。改成「一列 12 个、一段 10 列」
+    后正好是一整块 10 列 × 12 行，既紧凑又远低于 40 格的跨度上限。
+
+    A layout spec may be a name or (name, per-column cap, columns per block) so a big
+    catalogue chapter packs into one compact block instead of two tall ones.
+    """
+    if isinstance(style, (tuple, list)):
+        name, max_col, per_block = style
+        return lambda rows: layout_cols(rows, max_col=max_col, per_block=per_block)
+    return LAYOUTS.get(style, layout_rows)
+
+
 def layout_lines(rows, style="rows"):
-    """保留各章造型，避开放射支线弯折后的节点碰撞；不改变任务顺序或前置。"""
-    positions = LAYOUTS.get(style, layout_rows)(rows)
+    """保留各章造型，避开放射支线弯折后的节点碰撞；不改变任务顺序或前置。
+
+    排布范围跟着章节大小走：小章仍守 ±10.5 格的方正区域；节点多的图鉴章
+    （饰品图鉴现在 118 件、两段各 10 列）允许用更大范围，上限 19 格 ——
+    这样整章跨度仍不超过自检的 40 格，但不会再因为「一列装不下」直接报错。
+
+    The packing box scales with the chapter: small chapters keep the tidy
+    +/-10.5 area, while big catalogue chapters may use up to 19 (the 40-block
+    span guard in verify_ftbquests still applies).
+    """
+    positions = layout_for(style)(rows)
+    span = max((max(map(abs, p)) for p in positions.values()), default=0.0)
+    limit = min(19.0, max(10.5, span + 1.0))
     offsets = sorted(((dx / 5, dy / 5) for dx in range(-20, 21) for dy in range(-20, 21)),
                      key=lambda p: (p[0] ** 2 + p[1] ** 2, abs(p[1]), p[0], p[1]))
     placed = {}
     for node, (x, y) in positions.items():
         for dx, dy in offsets:
             candidate = (round(x + dx, 1), round(y + dy, 1))
-            if max(map(abs, candidate)) > 10.5:
+            if max(map(abs, candidate)) > limit:
                 continue
             if all(math.dist(candidate, other) >= 1.49 for other in placed.values()):
                 placed[node] = candidate

@@ -79,7 +79,9 @@ public class DynastyFineItems {
     public static final RegistryObject<Item> INK_STICK = basic("ink_stick");
     public static final RegistryObject<Item> INK_BRUSH = ITEMS.register("ink_brush",
             () -> new Item(new Item.Properties().stacksTo(1).durability(64)));
-    public static final RegistryObject<Item> BRONZE_MIRROR = basic("bronze_mirror");
+    // 铜镜是饰品（带悬浮说明）：说明文案在 DynastyTrinketTips.LEGACY
+    public static final RegistryObject<Item> BRONZE_MIRROR = ITEMS.register("bronze_mirror",
+            () -> new DynastyTrinketTips.Charm("bronze_mirror"));
     public static final RegistryObject<Item> ROOF_TILE = basic("roof_tile");
 
     // ---------------------------------------------------------------- 符箓

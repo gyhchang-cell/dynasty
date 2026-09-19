@@ -40,9 +40,13 @@ for b in bad:
 codex = ""
 for f in glob.glob(os.path.join(JAVA, "com/dynasty/DynastyCodex*.java")):
     codex += open(f, encoding="utf-8").read()
+# 两种写法都要认：手写的 `new DynastyCodex.Entry("id", ...)` 和生成器产出的 `entry(l, "id", ...)`
 entries = set(re.findall(r'new DynastyCodex\.Entry\("([a-z0-9_]+)"', codex))
+entries |= set(re.findall(r'entry\(l, "([a-z0-9_]+)"', codex))
 ingredients = set()
 for m in re.finditer(r'new DynastyCodex\.Entry\("([a-z0-9_]+)".*?\)\)', codex, re.S):
+    ingredients |= set(re.findall(r'"(dynasty:[a-z0-9_]+)"', m.group(0)))
+for m in re.finditer(r'entry\(l, "([a-z0-9_]+)".*?\);', codex, re.S):
     ingredients |= set(re.findall(r'"(dynasty:[a-z0-9_]+)"', m.group(0)))
 print("codex entries:", len(entries),
       "unknown:", sorted(e for e in entries if e not in ids),
