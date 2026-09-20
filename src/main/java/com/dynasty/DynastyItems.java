@@ -218,6 +218,17 @@ public class DynastyItems {
 
     /** 龙宫玉印：东海龙王的信物 / the Dragon King's seal */
     public static final RegistryObject<Item> SEA_TOKEN = basic("sea_token");
+
+    /**
+     * 王朝徽记：创造模式物品栏「王朝」标签页的封面。
+     *
+     * 1.20.1 的标签页 `icon(...)` 只能给 `ItemStack`，没有「直接贴一张图」的接口，
+     * 所以封面只能是一件物品：这张贴图由 `tools/art/gen_tab_icon.py` 从成品画
+     * （`tools/art/sources/tab_cover_source.jpg`，原生像素网格 8×8）按 1:1 转出来。
+     * 它**不进创造栏列表**（`DynastyTabs` 里没有 `accept`），玩家拿不到、也不占背包 ——
+     * 纯粹当封面用。/ purely a creative-tab icon, deliberately not listed in the tab.
+     */
+    public static final RegistryObject<Item> DYNASTY_EMBLEM = basic("dynasty_emblem");
     public static final RegistryObject<Item> DRAGON_KING_SPAWN_EGG = egg("dragon_king_spawn_egg",
             com.dynasty.entity.DynastyEntities.DRAGON_KING, 0x1B3A6B, 0x7BE3C8);
 }

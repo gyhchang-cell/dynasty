@@ -40,6 +40,7 @@ public final class DynastyBossCombat {
     // ---------------------------------------------------------------- ①② 护盾 / 破绽
     @SubscribeEvent
     public static void onHurt(LivingHurtEvent event) {
+        if (DynastyBowRitual.isSolarDamage(event.getSource()) || QinglongDescent.isDragonDamage(event.getSource())) return;
         LivingEntity victim = event.getEntity();
         if (victim.level().isClientSide() || !DynastyBalance.isBossOrBeast(victim.getType())) {
             return;

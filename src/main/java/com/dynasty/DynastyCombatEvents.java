@@ -27,6 +27,13 @@ public class DynastyCombatEvents {
 
     @SubscribeEvent
     public static void onLivingHurt(LivingHurtEvent event) {
+        // The area seal has an explicit max-health percentage, not weapon/enchantment scaling.
+        if (DynastyBowRitual.isSolarDamage(event.getSource())) return;
+        // Qinglong stores the result of this pipeline at contact; do not apply bonuses twice.
+        if (QinglongDescent.isDragonDamage(event.getSource())) {
+            afterHit(event);
+            return;
+        }
         float amount = event.getAmount();
         LivingEntity attacker = event.getSource().getEntity() instanceof LivingEntity living ? living : null;
 
@@ -147,6 +154,12 @@ public class DynastyCombatEvents {
 
         event.setAmount(Math.max(1.0F, amount));
 
+        if (!QinglongDescent.shouldDefer(event.getSource())) afterHit(event);
+    }
+
+    private static void afterHit(LivingHurtEvent event) {
+        LivingEntity attacker = event.getSource().getEntity() instanceof LivingEntity living ? living : null;
+        LivingEntity victim = event.getEntity();
         // 7) 饰品命中触发（结算后）：吸血 / 斩杀 / 雷罚 —— 吸血按**最终**伤害算
         if (attacker instanceof Player attackerPlayer) {
             DynastyTrinketOnHit.after(attackerPlayer, event.getEntity(), event.getAmount());

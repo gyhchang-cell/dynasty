@@ -11,7 +11,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public class DynastyNetwork {
 
-    private static final String PROTOCOL = "1";
+    private static final String PROTOCOL = "6";
 
     @SuppressWarnings("removal")
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -23,6 +23,15 @@ public class DynastyNetwork {
     private static int id = 0;
 
     public static void register() {
+        CHANNEL.registerMessage(id++, DragonDescentPacket.class,
+                DragonDescentPacket::encode, DragonDescentPacket::decode, DragonDescentPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(id++, WeaponImpactPacket.class,
+                WeaponImpactPacket::encode, WeaponImpactPacket::decode, WeaponImpactPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(id++, BowEffectPacket.class,
+                BowEffectPacket::encode, BowEffectPacket::decode, BowEffectPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(id++, OpenKejuPacket.class,
                 OpenKejuPacket::encode, OpenKejuPacket::decode, OpenKejuPacket::handle);
         CHANNEL.registerMessage(id++, AnswerKejuPacket.class,

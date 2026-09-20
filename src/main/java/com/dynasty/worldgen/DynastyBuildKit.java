@@ -2,6 +2,8 @@ package com.dynasty.worldgen;
 
 import com.dynasty.DynastyBlocks;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
@@ -72,6 +74,11 @@ public final class DynastyBuildKit {
 
     public static BlockState darkOakStair() {
         return Blocks.DARK_OAK_STAIRS.defaultBlockState();
+    }
+
+    /** Roof slopes face toward the ridge, never all in the same direction. */
+    public static BlockState facing(BlockState state, Direction direction) {
+        return state.hasProperty(StairBlock.FACING) ? state.setValue(StairBlock.FACING,direction) : state;
     }
 
     public static BlockState darkPrismarine() {
@@ -208,13 +215,14 @@ public final class DynastyBuildKit {
             for (int x = x0; x <= x1; x++) {
                 for (int z = z0; z <= z1; z++) {
                     if (x == x0 || x == x1 || z == z0 || z == z1) {
-                        level.setBlock(new BlockPos(x, yy, z), tile, 2);
+                        Direction inward=x==x0?Direction.EAST:x==x1?Direction.WEST:z==z0?Direction.SOUTH:Direction.NORTH;
+                        level.setBlock(new BlockPos(x, yy, z), facing(stair,inward), 2);
                     }
                 }
             }
             for (int[] corner : new int[][]{{x0, z0}, {x0, z1}, {x1, z0}, {x1, z1}}) {
-                level.setBlock(new BlockPos(corner[0], yy, corner[1]), stair, 2);
-                level.setBlock(new BlockPos(corner[0], yy - 1, corner[1]), lantern(), 2);
+                level.setBlock(new BlockPos(corner[0], yy, corner[1]), ridge, 2);
+                if(layer==0)level.setBlock(new BlockPos(corner[0], yy - 1, corner[1]), lantern(), 2);
             }
             if (layer == 0) {
                 for (int x = x0 + 2; x <= x1 - 2; x += 3) {
@@ -239,9 +247,9 @@ public final class DynastyBuildKit {
             int za = z0 + layer;
             int zb = z1 - layer;
             for (int x = x0 - 1; x <= x1 + 1; x++) {
-                level.setBlock(new BlockPos(x, yy, za), layer == 0 ? stair : tile, 2);
+                level.setBlock(new BlockPos(x, yy, za), facing(stair,Direction.SOUTH), 2);
                 if (zb != za) {
-                    level.setBlock(new BlockPos(x, yy, zb), layer == 0 ? stair : tile, 2);
+                    level.setBlock(new BlockPos(x, yy, zb), facing(stair,Direction.NORTH), 2);
                 }
             }
             if (za >= zb - 1) {

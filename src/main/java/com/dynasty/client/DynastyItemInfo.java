@@ -46,6 +46,9 @@ public final class DynastyItemInfo {
         if (chosen != null) {
             out.add(zh ? chosen[0] : chosen[1]);
         }
+        // 追加「翻译键」写的补充说明（料理用途 / 信物用途 / 传送门目的地与回程提醒）；
+        // 没有对应键的物品不受影响，重复行由 DynastyInfoKeys 自己过滤。
+        out.addAll(DynastyInfoKeys.lines(path, out.isEmpty() ? null : out.get(0)));
         return out;
     }
 

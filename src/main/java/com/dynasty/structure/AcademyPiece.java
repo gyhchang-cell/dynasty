@@ -51,19 +51,20 @@ public class AcademyPiece extends DynastyStructurePiece {
 
         // 1) 台基与院墙 / platform and enclosure wall
         fill(level, box, 0, 0, 0, SIZE - 1, 0, SIZE - 1, marble);
-        walls(level, box, 0, 1, 0, SIZE - 1, 5, SIZE - 1, brick);
-        fill(level, box, 0, 6, 0, SIZE - 1, 6, SIZE - 1, air);
-        walls(level, box, 0, 6, 0, SIZE - 1, 6, SIZE - 1, brick);      // 压顶 / coping
-        fill(level, box, 15, 1, 32, 18, 4, 33, air);                    // 南门 / south gate
+        walls(level, box, 0, 1, 0, SIZE - 1, 3, SIZE - 1, brick);
+        walls(level, box, 0, 4, 0, SIZE - 1, 4, SIZE - 1,Blocks.DARK_PRISMARINE_SLAB.defaultBlockState());
+        fill(level, box, 15, 1, 32, 18, 3, 33, air);
+        for(int x:new int[]{14,19}) {
+            fill(level,box,x,1,33,x,4,33,pillar);
+            set(level,box,x,5,33,lantern);
+        }
 
         // 2) 明伦堂（讲堂）/ lecture hall
         walls(level, box, 10, 1, 6, 23, 8, 19, brick);
         fill(level, box, 11, 1, 7, 22, 1, 18, jade);                    // 地面 / floor
         fill(level, box, 11, 2, 7, 22, 7, 18, air);
-        fill(level, box, 10, 8, 6, 23, 8, 19, brick);                   // 重檐 / tiered roof
-        fill(level, box, 11, 9, 7, 22, 9, 18, brick);
-        fill(level, box, 13, 10, 9, 20, 10, 16, brick);
-        fill(level, box, 14, 11, 10, 19, 11, 15, brick);
+        glazedRoof(level,box,9,5,24,20,8,4);
+        fill(level,box,13,12,12,20,12,13,jade);
 
         for (int[] c : new int[][]{{12, 8}, {12, 17}, {21, 8}, {21, 17}}) {   // 讲堂立枨
             for (int y = 2; y <= 8; y++) {
@@ -81,11 +82,22 @@ public class AcademyPiece extends DynastyStructurePiece {
         walls(level, box, 2, 1, 6, 8, 5, 19, brick);
         fill(level, box, 3, 1, 7, 7, 1, 18, marble);
         fill(level, box, 3, 2, 7, 7, 4, 18, air);
-        fill(level, box, 2, 6, 6, 8, 6, 19, brick);
+        glazedRoof(level,box,1,5,9,20,6,3);
         walls(level, box, 25, 1, 6, 31, 5, 19, brick);
         fill(level, box, 26, 1, 7, 30, 1, 18, marble);
         fill(level, box, 26, 2, 7, 30, 4, 18, air);
-        fill(level, box, 25, 6, 6, 31, 6, 19, brick);
+        glazedRoof(level,box,24,5,32,20,6,3);
+
+        // Open usable doors and fit symmetrical recessed lattice windows.
+        fill(level,box,16,2,19,17,4,19,air);
+        fill(level,box,8,2,12,8,3,13,air);
+        fill(level,box,25,2,12,25,3,13,air);
+        var window=Blocks.DARK_OAK_FENCE.defaultBlockState();
+        for(int x:new int[]{12,13,20,21})fill(level,box,x,4,19,x,5,19,window);
+        for(int z:new int[]{8,9,16,17}) {
+            fill(level,box,10,4,z,10,5,z,window);
+            fill(level,box,23,4,z,23,5,z,window);
+        }
 
         // 4) 神道：石刻与灯笼 / stone-lined approach
         fill(level, box, 15, 1, 20, 18, 1, 31, marble);

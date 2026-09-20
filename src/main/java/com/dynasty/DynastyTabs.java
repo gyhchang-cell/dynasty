@@ -5,6 +5,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
@@ -21,7 +22,10 @@ public class DynastyTabs {
     public static final RegistryObject<CreativeModeTab> DYNASTY_TAB = TABS.register("dynasty", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.dynasty.dynasty"))
             .withTabsBefore(CreativeModeTabs.COMBAT)
-            .icon(() -> new ItemStack(DynastyItems.JADE_SEAL.get()))
+            // 封面 = 「金龙抱玉印」（ChatGPT 出的成品画，tools/art/gen_tab_icon.py 转成贴图）。
+            // 标签页图标只能是一个 ItemStack，所以专门注册了 DynastyItems.DYNASTY_EMBLEM，
+            // 它不在下面的列表里（玩家拿不到），只当封面。/ tab icon needs an ItemStack, hence the emblem item.
+            .icon(() -> new ItemStack(DynastyItems.DYNASTY_EMBLEM.get()))
             .displayItems((params, output) -> {
                 // 方块 / blocks
                 output.accept(DynastyBlocks.JADE_ORE.get());
@@ -193,6 +197,12 @@ public class DynastyTabs {
                 output.accept(DynastyItems.EUNUCH_MASTERMIND_SPAWN_EGG.get());
 
                 // 新增：美食 / 材料 / 符箓 / 手札与节令灯
+                output.accept(DynastyBasicFoods.GRILLED_MEAT_SKEWER.get());
+                output.accept(DynastyBasicFoods.WHEAT_CAKE.get());
+                output.accept(DynastyBasicFoods.HONEY_ROAST.get());
+                output.accept(DynastyBasicFoods.COUNTRYSIDE_STEW.get());
+                output.accept(DynastyBasicFoods.MUSHROOM_FISH_SOUP.get());
+                output.accept(DynastyBasicFoods.PUMPKIN_SWEET_CAKE.get());
                 output.accept(DynastyFineItems.ZONGZI.get());
                 output.accept(DynastyFineItems.TANGYUAN.get());
                 output.accept(DynastyFineItems.NIANGao.get());
@@ -258,5 +268,88 @@ public class DynastyTabs {
                 output.accept(DynastyTrinkets.IRON_WAIST_TOKEN.get());
                 output.accept(DynastyTrinkets.AUSPICIOUS_BELL.get());
                 output.accept(DynastyManual.MANUAL.get());
+
+                // ----------------------------------------------------------------
+                // 第三十四轮补：此前**注册了但没进创造栏**的物品（玩家在创造模式里看不到）
+                // 表驱动饰品（gen_trinkets3/4/5 共 130 件）整批循环进来
+                for (RegistryObject<Item> charm : DynastyTrinkets.EXTRA_CHARMS) {
+                    output.accept(charm.get());
+                }
+                // DynastyItems（16 件）
+                output.accept(DynastyItems.PEACH_BUN.get());
+                output.accept(DynastyItems.LOTUS_CAKE.get());
+                output.accept(DynastyItems.SESAME_BALL.get());
+                output.accept(DynastyItems.SWEET_SOUP_CAKE.get());
+                output.accept(DynastyItems.BAMBOO_RICE.get());
+                output.accept(DynastyItems.EIGHT_TREASURE_PORRIDGE.get());
+                output.accept(DynastyItems.DRIED_PERSIMMON.get());
+                output.accept(DynastyItems.CHRYSANTHEMUM_WINE.get());
+                output.accept(DynastyItems.JADE_GUARD_SPAWN_EGG.get());
+                output.accept(DynastyItems.SOUL_SOLDIER_SPAWN_EGG.get());
+                output.accept(DynastyItems.THUNDER_ENVOY_SPAWN_EGG.get());
+                output.accept(DynastyItems.MERFOLK_SPAWN_EGG.get());
+                output.accept(DynastyItems.NINE_HEAVEN_GENERAL_SPAWN_EGG.get());
+                output.accept(DynastyItems.SKY_TOKEN.get());
+                output.accept(DynastyItems.SEA_TOKEN.get());
+                output.accept(DynastyItems.DRAGON_KING_SPAWN_EGG.get());
+                // DynastyRelics（7 件）
+                output.accept(DynastyRelics.XUANWU_SHELL.get());
+                output.accept(DynastyRelics.QINGLONG_SCALE.get());
+                output.accept(DynastyRelics.BAIHU_FANG.get());
+                output.accept(DynastyRelics.ZHUQUE_FEATHER.get());
+                output.accept(DynastyRelics.TAIYI_JADE.get());
+                output.accept(DynastyRelics.THUNDER_TOKEN.get());
+                output.accept(DynastyRelics.HUNYUAN_PEARL.get());
+                // DynastyWeapons（26 件）
+                output.accept(DynastyWeapons.ZHANMA_DAO.get());
+                output.accept(DynastyWeapons.YUCHANG_DAGGER.get());
+                output.accept(DynastyWeapons.QINGGANG_SWORD.get());
+                output.accept(DynastyWeapons.GILDED_MACE.get());
+                output.accept(DynastyWeapons.YITIAN_SWORD.get());
+                output.accept(DynastyWeapons.DRAGON_SPEAR.get());
+                output.accept(DynastyWeapons.SUNBOW.get());
+                output.accept(DynastyWeapons.SEVEN_STAR_SABER.get());
+                output.accept(DynastyWeapons.DRAGON_SLAYER.get());
+                output.accept(DynastyWeapons.SUPREME_SWORD.get());
+                output.accept(DynastyWeapons.LONGYUAN_SWORD.get());
+                output.accept(DynastyWeapons.JULING_AXE.get());
+                output.accept(DynastyWeapons.QINGLONG_DAO.get());
+                output.accept(DynastyWeapons.BAWANG_SPEAR.get());
+                output.accept(DynastyWeapons.HOUYI_BOW.get());
+                output.accept(DynastyWeapons.LEITING_HAMMER.get());
+                output.accept(DynastyWeapons.TAIYI_WHISK.get());
+                output.accept(DynastyWeapons.XUANWU_BLADE.get());
+                output.accept(DynastyWeapons.ZHUQUE_FAN.get());
+                output.accept(DynastyWeapons.HUNYUAN_STAFF.get());
+                output.accept(DynastyWeapons.QILIN_WAR_AXE.get());
+                output.accept(DynastyWeapons.TAIYI_SWORD.get());
+                output.accept(DynastyWeapons.BAIHU_GLAIVE.get());
+                output.accept(DynastyWeapons.THUNDER_SPEAR.get());
+                output.accept(DynastyWeapons.ZIWEI_SABER.get());
+                output.accept(DynastyWeapons.ZHUQUE_BOW.get());
+                // DynastyGear（9 件）
+                output.accept(DynastyGear.SEA_TRIDENT.get());
+                output.accept(DynastyGear.SEA_SILK_HELMET.get());
+                output.accept(DynastyGear.SEA_SILK_CHESTPLATE.get());
+                output.accept(DynastyGear.SEA_SILK_LEGGINGS.get());
+                output.accept(DynastyGear.SEA_SILK_BOOTS.get());
+                output.accept(DynastyGear.DARK_IRON_HELMET.get());
+                output.accept(DynastyGear.DARK_IRON_CHESTPLATE.get());
+                output.accept(DynastyGear.DARK_IRON_LEGGINGS.get());
+                output.accept(DynastyGear.DARK_IRON_BOOTS.get());
+                // DynastyTrinkets（13 件）
+                output.accept(DynastyTrinkets.SEA_PEARL.get());
+                output.accept(DynastyTrinkets.DRAGON_BONE_RING.get());
+                output.accept(DynastyTrinkets.CLOUD_BROCADE.get());
+                output.accept(DynastyTrinkets.STAR_COMPASS.get());
+                output.accept(DynastyTrinkets.DRAGON_KING_SCALE.get());
+                output.accept(DynastyTrinkets.SKY_FEATHER.get());
+                output.accept(DynastyTrinkets.IMPERIAL_SEAL_CHARM.get());
+                output.accept(DynastyTrinkets.TOMB_CANDLE.get());
+                output.accept(DynastyTrinkets.INKSTONE.get());
+                output.accept(DynastyTrinkets.BAMBOO_FLUTE.get());
+                output.accept(DynastyTrinkets.MERIT_BADGE.get());
+                output.accept(DynastyTrinkets.SEA_CONCH.get());
+                output.accept(DynastyTrinkets.TRINKET_BOX.get());
             }).build());
 }

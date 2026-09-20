@@ -20,6 +20,24 @@ import net.minecraftforge.fml.common.Mod;
 @SuppressWarnings({"null", "removal"})
 public class DynastyClientEvents {
 
+    /** 与原版弓相同的拉弓属性：仅为后羿弓注册，贴图按蓄力阶段切换。 */
+    @SubscribeEvent
+    public static void onClientSetup(net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent event) {
+        event.enqueueWork(() -> {
+            net.minecraft.world.item.Item bow = com.dynasty.DynastyWeapons.HOUYI_BOW.get();
+            net.minecraft.client.renderer.item.ItemProperties.register(
+                    bow, new ResourceLocation(Dynasty.MODID, "pulling"),
+                    (stack, level, living, seed) ->
+                            living != null && living.isUsingItem() && living.getUseItem() == stack ? 1.0F : 0.0F);
+            net.minecraft.client.renderer.item.ItemProperties.register(
+                    bow, new ResourceLocation(Dynasty.MODID, "pull"),
+                    (stack, level, living, seed) ->
+                            living != null && living.getUseItem() == stack
+                                    ? Math.min(1.0F, (stack.getUseDuration() - living.getUseItemRemainingTicks()) / 20.0F)
+                                    : 0.0F);
+        });
+    }
+
     private static ModelLayerLocation layer(String name) {
         return new ModelLayerLocation(new ResourceLocation(Dynasty.MODID, name), "main");
     }
@@ -84,13 +102,13 @@ public class DynastyClientEvents {
         event.registerLayerDefinition(REBEL_SOLDIER_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
         event.registerLayerDefinition(NIAN_BEAST_LAYER,
                 () -> DetailedBeastModel.createLayer(DetailedBeastModel.Kind.NIAN));
-        event.registerLayerDefinition(DRAGON_EMPEROR_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.4F));
+        event.registerLayerDefinition(DRAGON_EMPEROR_LAYER, () -> DynastyHumanoidModel.decoratedLayer(1));
         event.registerLayerDefinition(REBEL_GENERAL_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.25F));
         event.registerLayerDefinition(EUNUCH_MASTERMIND_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.2F));
-        event.registerLayerDefinition(NINE_HEAVEN_GENERAL_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.2F));
+        event.registerLayerDefinition(NINE_HEAVEN_GENERAL_LAYER, () -> DynastyHumanoidModel.decoratedLayer(2));
         event.registerLayerDefinition(DRAGON_KING_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.3F));
-        event.registerLayerDefinition(JADE_GUARD_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
-        event.registerLayerDefinition(SOUL_SOLDIER_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
+        event.registerLayerDefinition(JADE_GUARD_LAYER, () -> DynastyHumanoidModel.decoratedLayer(3));
+        event.registerLayerDefinition(SOUL_SOLDIER_LAYER, () -> DynastyHumanoidModel.decoratedLayer(4));
         event.registerLayerDefinition(THUNDER_ENVOY_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
         event.registerLayerDefinition(MERFOLK_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
         event.registerLayerDefinition(QILIN_LAYER,
@@ -186,7 +204,7 @@ public class DynastyClientEvents {
                 ctx -> new DynastyDetailedBeastRenderer<>(ctx, NIAN_BEAST_LAYER, TEX_NIAN_BEAST, 0.9F,
                         DetailedBeastModel.Kind.NIAN));
         event.registerEntityRenderer(DynastyEntities.DRAGON_EMPEROR.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, DRAGON_EMPEROR_LAYER, TEX_DRAGON_EMPEROR, 0.9F));
+                ctx -> new DynastyHumanoidRenderer<>(ctx, DRAGON_EMPEROR_LAYER, TEX_DRAGON_EMPEROR, 0.9F,1));
         event.registerEntityRenderer(DynastyEntities.REBEL_GENERAL.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, REBEL_GENERAL_LAYER, TEX_REBEL_GENERAL, 0.7F));
         event.registerEntityRenderer(DynastyEntities.EUNUCH_MASTERMIND.get(),
@@ -201,15 +219,15 @@ public class DynastyClientEvents {
                 ctx -> new DynastyDetailedBeastRenderer<>(ctx, PHOENIX_LAYER, TEX_PHOENIX, 0.7F,
                         DetailedBeastModel.Kind.PHOENIX));
         event.registerEntityRenderer(DynastyEntities.JADE_GUARD.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, JADE_GUARD_LAYER, TEX_JADE_GUARD, 0.5F));
+                ctx -> new DynastyHumanoidRenderer<>(ctx, JADE_GUARD_LAYER, TEX_JADE_GUARD, 0.5F,3));
         event.registerEntityRenderer(DynastyEntities.SOUL_SOLDIER.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, SOUL_SOLDIER_LAYER, TEX_SOUL_SOLDIER, 0.5F));
+                ctx -> new DynastyHumanoidRenderer<>(ctx, SOUL_SOLDIER_LAYER, TEX_SOUL_SOLDIER, 0.5F,4));
         event.registerEntityRenderer(DynastyEntities.THUNDER_ENVOY.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, THUNDER_ENVOY_LAYER, TEX_THUNDER_ENVOY, 0.5F));
         event.registerEntityRenderer(DynastyEntities.MERFOLK.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, MERFOLK_LAYER, TEX_MERFOLK, 0.5F));
         event.registerEntityRenderer(DynastyEntities.NINE_HEAVEN_GENERAL.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, NINE_HEAVEN_GENERAL_LAYER, TEX_NINE_HEAVEN_GENERAL, 0.9F));
+                ctx -> new DynastyHumanoidRenderer<>(ctx, NINE_HEAVEN_GENERAL_LAYER, TEX_NINE_HEAVEN_GENERAL, 0.9F,2));
         event.registerEntityRenderer(DynastyEntities.DRAGON_KING.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, DRAGON_KING_LAYER, TEX_DRAGON_KING, 0.9F));
     }
@@ -270,11 +288,22 @@ public class DynastyClientEvents {
     private static class DynastyHumanoidRenderer<T extends Mob> extends HumanoidMobRenderer<T, DynastyHumanoidModel<T>> {
 
         private final ResourceLocation texture;
+        private final float visualScale;
 
         DynastyHumanoidRenderer(EntityRendererProvider.Context ctx, ModelLayerLocation layer,
                                 ResourceLocation texture, float shadow) {
+            this(ctx,layer,texture,shadow,0);
+        }
+        DynastyHumanoidRenderer(EntityRendererProvider.Context ctx,ModelLayerLocation layer,
+                                ResourceLocation texture,float shadow,int style) {
             super(ctx, new DynastyHumanoidModel<>(ctx.bakeLayer(layer)), shadow);
             this.texture = texture;
+            this.visualScale=switch(style){case 1->1.35F;case 2->1.28F;case 3->1.08F;case 4->1.05F;default->1F;};
+            if(style>0)addLayer(new DynastyAuraLayer<>(this,style));
+        }
+
+        @Override protected void scale(T entity,com.mojang.blaze3d.vertex.PoseStack pose,float partial) {
+            pose.scale(visualScale,visualScale,visualScale);
         }
 
         @Override

@@ -14,6 +14,7 @@ public final class DynastyContent {
         DynastyBlocks.BLOCKS.register(modEventBus);
         DynastyBlocks.BLOCK_ITEMS.register(modEventBus);
         DynastyItems.ITEMS.register(modEventBus);
+        com.dynasty.DynastyBasicFoods.ITEMS.register(modEventBus);
         com.dynasty.DynastyFineItems.ITEMS.register(modEventBus);
         DynastyGear.ITEMS.register(modEventBus);
         DynastyWeapons.ITEMS.register(modEventBus);

@@ -7,6 +7,6 @@ mkdir -p "$ART_DEST"
 for item in phoenix_hairpin bagua_mirror tiger_tally; do
     magick "$ART_REPO/docs/art/readable-batch-02/sources/$item.png" \
         -channel A -threshold 50% +channel -trim +repage \
-        -sample 28x28 -gravity center -background none -extent 32x32 \
-        +dither -colors 20 "PNG32:$ART_DEST/$item.png"
+        -sample 60x60 -gravity center -background none -extent 64x64 \
+        +dither -colors 48 "PNG32:$ART_DEST/$item.png"
 done

@@ -74,8 +74,7 @@ public class WallGatePiece extends DynastyStructurePiece {
         walls(level, box, 11, 8, 9, 18, 13, 14, brick);
         fill(level, box, 12, 8, 10, 17, 8, 13, jade);
         fill(level, box, 12, 9, 10, 17, 12, 13, air);
-        fill(level, box, 10, 14, 8, 19, 14, 15, brick);
-        fill(level, box, 12, 15, 10, 17, 15, 13, brick);
+        glazedRoof(level,box,10,8,19,15,14,2);
         for (int[] c : new int[][]{{12, 10}, {12, 13}, {17, 10}, {17, 13}}) {
             for (int y = 9; y <= 13; y++) {
                 set(level, box, c[0], y, c[1], pillar);
@@ -87,7 +86,7 @@ public class WallGatePiece extends DynastyStructurePiece {
             walls(level, box, x1, 8, 9, x1 + 4, 12, 14, brick);
             fill(level, box, x1, 8, 10, x1 + 4, 8, 13, marble);
             fill(level, box, x1 + 1, 9, 10, x1 + 3, 11, 13, air);
-            fill(level, box, x1 - 1, 13, 8, x1 + 5, 13, 15, brick);
+            glazedRoof(level,box,x1-1,8,x1+5,15,13,2);
             set(level, box, x1 + 2, 9, 10, lantern);
         }
 

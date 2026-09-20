@@ -78,24 +78,35 @@ public class MainHallPiece extends DynastyStructurePiece {
         }
 
         // 5) 重檐屋顶 / double-eave roof
-        for (int layer = 0; layer < 4; layer++) {
-            int x1 = 2 + layer;
-            int z1 = 2 + layer;
-            int x2 = 19 - layer;
-            int z2 = 17 - layer;
-            walls(level, box, x1, 13 + layer, z1, x2, 13 + layer, z2,
-                    layer % 2 == 0 ? brick : jade);
-            fill(level, box, x1 + 1, 13 + layer, z1 + 1, x2 - 1, 13 + layer, z2 - 1, air);
-        }
-        for (int layer = 0; layer < 3; layer++) {
-            int x1 = 6 + layer;
-            int z1 = 6 + layer;
-            int x2 = 15 - layer;
-            int z2 = 13 - layer;
-            walls(level, box, x1, 17 + layer, z1, x2, 17 + layer, z2,
-                    layer % 2 == 0 ? brick : jade);
-        }
+        glazedRoof(level,box,2,2,19,17,13,4);
+        glazedRoof(level,box,6,6,15,13,17,3);
         fill(level, box, 9, 20, 8, 12, 20, 11, jade);
+        // Symmetrical lattice bays and quiet marble sill bands.
+        var lattice=Blocks.DARK_OAK_FENCE.defaultBlockState();
+        for(int z=6;z<=14;z+=3) {
+            fill(level,box,4,6,z,4,8,z,lattice);
+            fill(level,box,17,6,z,17,8,z,lattice);
+            set(level,box,4,5,z,marble);set(level,box,17,5,z,marble);
+        }
+        for(int x:new int[]{6,7,14,15})fill(level,box,x,6,4,x,8,4,lattice);
+        // A real three-step approach within this piece's original bounding box.
+        for(int k=0;k<3;k++)fill(level,box,9,k,19-k,12,k,19-k,
+            com.dynasty.worldgen.DynastyBuildKit.facing(Blocks.QUARTZ_STAIRS.defaultBlockState(),Direction.NORTH));
+        // Exterior colonnade breaks up the tall stone wall without narrowing the entrance.
+        for(int x:new int[]{4,7,14,17}) {
+            set(level,box,x,2,17,marble);
+            fill(level,box,x,3,17,x,11,17,pillar);
+            set(level,box,x,12,17,DynastyBlocks.BRONZE_BLOCK.get().defaultBlockState());
+        }
+        for(int x:new int[]{3,18})for(int z:new int[]{4,8,12,16}) {
+            fill(level,box,x,3,z,x,11,z,pillar);
+            set(level,box,x,12,z,DynastyBlocks.BRONZE_BLOCK.get().defaultBlockState());
+        }
+        fill(level,box,4,11,17,17,11,17,pillar);
+        for(int x:new int[]{6,15})set(level,box,x,12,17,lantern);
+        var grille=lattice.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.EAST,true)
+            .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WEST,true);
+        for(int x:new int[]{5,6,15,16})fill(level,box,x,5,16,x,8,16,grille);
 
         // 6) 殿内陈设：龙椅、屏风、匾额、香炉 / throne, screens, plaque, censer
         set(level, box, 10, 3, 6, DynastyBlocks.DRAGON_THRONE.get().defaultBlockState());

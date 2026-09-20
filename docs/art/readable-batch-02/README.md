@@ -12,7 +12,7 @@
 
 三件分别使用内置 image_gen 生成，凤钗另做一次小尺寸可读性修订：缩短钗脚并扩大间距。完整提示词位于 `prompts.json` 和 `revision.json`，最终生成原稿位于 `sources/`，本轮开始时的旧图位于 `before/`。
 
-实际游戏贴图为 32×32 RGBA PNG，最近邻采样，无抖色，最多 20 色，二值透明边缘。导出命令：`sh tools/art/export_readable_batch_02.sh`（需要 ImageMagick）。脚本只处理本批三个明确列出的文件。恢复任一旧图时，复制 `before/` 对应文件至 `src/main/resources/assets/dynasty/textures/item/`。
+本批首次交付为 32×32 RGBA PNG；最新资源在 `../icons-large-01/` 中升级为 64×64。当前导出脚本采用最近邻采样、无抖色、最多 48 色和二值透明边缘。导出命令：`sh tools/art/export_readable_batch_02.sh`（需要 ImageMagick）。脚本只处理本批三个明确列出的文件。恢复最初的旧图时，复制 `before/` 对应文件至 `src/main/resources/assets/dynasty/textures/item/`。
 
 检查范围：小尺寸图像目视检查、PNG 尺寸/透明通道、模型引用、资源变化范围、Forge 构建、构建 JAR 与整合包 JAR 内资源一致性。本轮没有启动游戏进行实机验收。
 

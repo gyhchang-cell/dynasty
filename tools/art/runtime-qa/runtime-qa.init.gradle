@@ -1,0 +1,31 @@
+// Opt-in only: ./gradlew --offline -I tools/art/runtime-qa/runtime-qa.init.gradle runClient
+// The extra source set is never added to main, jar or reobfJar. No world is opened.
+allprojects { p ->
+    afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        def qa = p.sourceSets.create('runtimeQa') {
+            java.srcDir p.file('tools/art/runtime-qa/src')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            // Keep compile-only integrations (Curios's unmapped mixins) out of the dev runtime.
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.minecraft.runs.client {
+            workingDirectory p.file('build/runtime-render-qa/client')
+            property 'dynasty.runtimeQa', 'true'
+            property 'dynasty.runtimeQa.output', p.file('build/runtime-render-qa/results').absolutePath
+            mods {
+                dynasty { source qa }
+            }
+        }
+        p.tasks.configureEach { task ->
+            if (task.name == 'runClient') {
+                task.dependsOn qa.classesTaskName
+                task.doFirst {
+                    // Only this harness's two disposable completion markers, never game data.
+                    p.delete(p.file('build/runtime-render-qa/results/PASS.txt'),
+                             p.file('build/runtime-render-qa/results/FAIL.txt'))
+                }
+            }
+        }
+    }
+}

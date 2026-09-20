@@ -1,14 +1,14 @@
-"""把王朝的完整成长线做成 FTB Quests 任务书（11 章，约 300 条，环环相扣）。
+"""FTB Quests 生成入口：新版编排见 quest_story.py，旧定义仅保留作迁移参考。
 
 输出：
   modpack/config/ftbquests/quests/data.snbt              （全局默认：物品不收取）
   modpack/config/ftbquests/quests/chapters/dynasty_c1..c11.snbt
 
 规则：
-  * 每章内部按顺序串成一条链（前一条没完成，后面的锁着）；
-    需要「同时满足多个前置」的地方用 opts["extra"] 加额外前置（FTB 原生 dependencies，默认要求全部完成）。
-  * 任务判定全部用系统原生类型：item / kill / dimension / advancement。
-  * 武器、护甲的说明里会写明「配方需要先做出上一级」，做成一条升级长链。
+  * 八个主线小章节明确串联；配方/装备/饰品/复战为不锁主线的独立选项。
+  * 旧任务/检测/奖励 ID 从 quest_legacy_v1.json 读取，禁止重排重新编号。
+  * 原生 item / kill / dimension / advancement 检测；无奖励 checkmark 仅用于阅读提示。
+  * 配方从真实资源生成说明，替代配方不能合并成多个必须条件。
   * 奖励 = 物品 + 经验；另外每条任务都给功名（`/dynasty merit N`），
     功名提升官阶属性；五个关键任务额外解锁永久万能饰品槽。
 
@@ -1609,7 +1609,7 @@ def layout_lines(rows, style="rows"):
     return center(placed)
 
 
-def build():
+def build_legacy():
     os.makedirs(CH_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, "data.snbt"), "w", encoding="utf-8") as f:
         f.write(FILE_DEFAULTS)
@@ -1884,6 +1884,12 @@ def build():
         print("WARN:")
         for w in warnings:
             print("   -", w)
+
+
+def build():
+    # v2: save identities are frozen, so editing the story cannot renumber rewards.
+    from quest_story import build as build_story
+    build_story(FILE_DEFAULTS)
 
 
 if __name__ == "__main__":

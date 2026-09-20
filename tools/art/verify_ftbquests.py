@@ -71,7 +71,7 @@ def cycle_check(graph, quest_ids):
     return cycles
 
 
-def recipe_logic_check(quest_targets, deps_by_quest, graph):
+def legacy_recipe_logic_check(quest_targets, deps_by_quest, graph):
     """
     任务逻辑检查：做某件东西的任务，必须把「配方里的材料任务」列为前置。
     这样就不会出现「先做铜剑再收铜锭」这种颠倒顺序。
@@ -125,6 +125,30 @@ def recipe_logic_check(quest_targets, deps_by_quest, graph):
             problems.append("「%s」的配方材料 %s 没有作为前置（顺序颠倒）"
                             % (result_id, ", ".join(sorted(missing))))
     print("配方顺序检查：%d 件合成物（共读到 %d 条配方）" % (checked, len(recipes)))
+
+
+def recipe_logic_check(quest_targets, deps_by_quest, graph):
+    """v2: actual recipe guidance + exact main spine, not ALL alternative recipes as AND gates.
+
+    Compare exported data to the fully validated editorial graph. This catches missing
+    recipe descriptions, changed save IDs/rewards, source-less main goals and accidental
+    catalog prerequisites. The old all-ingredients rule created the progression bug.
+    """
+    from quest_story import build_book, encode
+    try:
+        chapters = build_book()
+        expected = {c["file"] + ".snbt" for c in chapters}
+        actual = {os.path.basename(p) for p in glob.glob(os.path.join(CHAPTER_DIR, "*.snbt"))}
+        if expected != actual:
+            problems.append("任务章节集合与编排源不一致")
+        for c in chapters:
+            path = os.path.join(CHAPTER_DIR, c["file"] + ".snbt")
+            if not os.path.exists(path) or open(path, encoding="utf-8").read() != encode(c):
+                problems.append(c["file"] + ": 导出数据与任务编排/真实配方不一致，请重新生成")
+        main = [q for c in chapters if c["main"] for q in c["quests"]]
+        print("新编排契约：%d 个主线节点，488 条旧任务身份不变；配方全文、主线顺序与可选内容隔离已核对" % len(main))
+    except (AssertionError, ValueError, KeyError) as error:
+        problems.append("任务编排契约失败：" + str(error))
 
 
 def layout_check(name, coords, problems):

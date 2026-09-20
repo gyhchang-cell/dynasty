@@ -189,17 +189,21 @@ public class TalismanCharmItem extends Item {
 
     /** 归乡符：回程并净化 / Return talisman */
     private void returnTalisman(ServerPlayer player, ServerLevel world) {
-        BlockPos spawn = world.getSharedSpawnPos();
+        ServerLevel home = player.server.overworld();
+        BlockPos spawn = home.getSharedSpawnPos();
+        BlockPos arrival = com.dynasty.block.DynastyPortalBlock.findArrival(home, spawn.getX(), spawn.getZ());
         play(world, player.position(), SoundEvents.ENDERMAN_TELEPORT, 1.2F, 0.8F);
         smoke(world, player.position(), 2.0D, ParticleTypes.PORTAL, 80);
-        player.teleportTo(spawn.getX() + 0.5D, spawn.getY() + 0.6D, spawn.getZ() + 0.5D);
+        player.teleportTo(home, arrival.getX() + 0.5D, arrival.getY(), arrival.getZ() + 0.5D,
+                player.getYRot(), player.getXRot());
+        player.fallDistance = 0.0F;
         player.getActiveEffects().stream()
                 .filter(effect -> !effect.getEffect().isBeneficial())
                 .map(effect -> effect.getEffect())
                 .toList()
                 .forEach(player::removeEffect);
-        smoke(world, player.position(), 2.0D, ParticleTypes.REVERSE_PORTAL, 60);
-        play(world, player.position(), SoundEvents.ENDERMAN_TELEPORT, 1.2F, 1.4F);
+        smoke(home, player.position(), 2.0D, ParticleTypes.REVERSE_PORTAL, 60);
+        play(home, player.position(), SoundEvents.ENDERMAN_TELEPORT, 1.2F, 1.4F);
         player.sendSystemMessage(Component.literal("§d[归乡符] §r一瞬千里，回到城郭，身心俱净。"));
     }
 

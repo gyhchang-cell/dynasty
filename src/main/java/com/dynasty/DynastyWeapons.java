@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -124,10 +125,57 @@ public final class DynastyWeapons {
             this.bonus = bonus;
         }
 
+        public double visualDamageScore() {
+            return this.multiplier * 2.0D + this.bonus;
+        }
+
+        @Override
+        public void onUseTick(Level level, LivingEntity user, ItemStack stack, int remainingTicks) {
+            super.onUseTick(level, user, stack, remainingTicks);
+            if (level instanceof ServerLevel server && user instanceof Player player) {
+                DynastyBowRitual.onCharge(server, player, this,
+                        stack.getUseDuration() - remainingTicks, visualDamageScore());
+            }
+        }
+
+        @Override
+        public void releaseUsing(ItemStack stack, Level level, LivingEntity user, int remainingTicks) {
+            int chargedTicks = stack.getUseDuration() - remainingTicks;
+            super.releaseUsing(stack, level, user, remainingTicks);
+            if (level instanceof ServerLevel server && user instanceof Player player) {
+                DynastyBowRitual.onRelease(server, player, this, chargedTicks, visualDamageScore());
+            }
+        }
+
         @Override
         public AbstractArrow customArrow(AbstractArrow arrow) {
             arrow.setBaseDamage(arrow.getBaseDamage() * this.multiplier + this.bonus);
+            DynastyBowRitual.trackArrow(arrow, this, visualDamageScore());
             return super.customArrow(arrow);
+        }
+    }
+
+    /** 后羿弓：毕业弓共享分级法阵，另有物品栏动态光泽。 */
+    public static class HouyiBowItem extends HuntingBowItem {
+        public HouyiBowItem(Item.Properties props) {
+            super(4.0D, 300D, props);
+        }
+
+        @Override
+        public boolean isFoil(ItemStack stack) {
+            return true;
+        }
+    }
+
+    /** 龙渊剑：保留原有攻击数值，增加物品栏动态附魔光泽。 */
+    public static class LongyuanSwordItem extends SwordItem {
+        public LongyuanSwordItem(Tier tier, int damage, float speed, Item.Properties props) {
+            super(tier, damage, speed, props);
+        }
+
+        @Override
+        public boolean isFoil(ItemStack stack) {
+            return true;
         }
     }
 
@@ -147,11 +195,34 @@ public final class DynastyWeapons {
             this.pierce = pierce;
         }
 
+        public double visualDamageScore() {
+            return this.multiplier * 2.0D + this.bonus;
+        }
+
+        @Override
+        public void onUseTick(Level level, LivingEntity user, ItemStack stack, int remainingTicks) {
+            super.onUseTick(level, user, stack, remainingTicks);
+            if (level instanceof ServerLevel server && user instanceof Player player) {
+                DynastyBowRitual.onCharge(server, player, this,
+                        stack.getUseDuration() - remainingTicks, visualDamageScore());
+            }
+        }
+
+        @Override
+        public void releaseUsing(ItemStack stack, Level level, LivingEntity user, int remainingTicks) {
+            int chargedTicks = stack.getUseDuration() - remainingTicks;
+            super.releaseUsing(stack, level, user, remainingTicks);
+            if (level instanceof ServerLevel server && user instanceof Player player) {
+                DynastyBowRitual.onRelease(server, player, this, chargedTicks, visualDamageScore());
+            }
+        }
+
         @Override
         public AbstractArrow customArrow(AbstractArrow arrow) {
             arrow.setBaseDamage(arrow.getBaseDamage() * this.multiplier + this.bonus);
             arrow.setKnockback(this.knockback);
             arrow.setPierceLevel((byte) this.pierce);
+            DynastyBowRitual.trackArrow(arrow, this, visualDamageScore());
             return super.customArrow(arrow);
         }
     }
@@ -287,7 +358,8 @@ public final class DynastyWeapons {
             () -> new DragonBowItem(3.8D, 200.0D, 1, 1, new Item.Properties().durability(7500)));
     /** 30. 龙渊剑 / Longyuan Sword：1800，特攻 +200 */
     public static final RegistryObject<Item> LONGYUAN_SWORD =
-            sword("longyuan_sword", DynastyTiers.DRAGON_CRYSTAL, 1659, -2.0F);
+            ITEMS.register("longyuan_sword",
+                    () -> new LongyuanSwordItem(DynastyTiers.DRAGON_CRYSTAL, 1659, -2.0F, new Item.Properties()));
     /** 31. 巨灵斧 / Juling Axe：2200，特攻 +300 */
     public static final RegistryObject<Item> JULING_AXE = ITEMS.register("juling_axe",
             () -> new AxeItem(DynastyTiers.DRAGON_CRYSTAL, 2059, -3.0F, new Item.Properties()));
@@ -299,7 +371,7 @@ public final class DynastyWeapons {
             () -> new PolearmItem(DynastyTiers.DRAGON_CRYSTAL, 2859, -2.4F, new Item.Properties()));
     /** 34. 后羿弓 / Houyi Bow：箭矢 ×4.0 + 300（毕业弓） */
     public static final RegistryObject<Item> HOUYI_BOW = ITEMS.register("houyi_bow",
-            () -> new HuntingBowItem(4.0D, 300D, new Item.Properties().durability(12000)));
+            () -> new HouyiBowItem(new Item.Properties().durability(12000)));
     /** 35. 雷霆锤 / Thunder Hammer：3300，特攻 +450 */
     public static final RegistryObject<Item> LEITING_HAMMER = ITEMS.register("leiting_hammer",
             () -> new AxeItem(DynastyTiers.DRAGON_CRYSTAL, 3159, -3.1F, new Item.Properties()));
