@@ -44,5 +44,11 @@ public class DynastyNetwork {
                 StatsRequestPacket::encode, StatsRequestPacket::decode, StatsRequestPacket::handle);
         CHANNEL.registerMessage(id++, StatsSyncPacket.class,
                 StatsSyncPacket::encode, StatsSyncPacket::decode, StatsSyncPacket::handle);
+        CHANNEL.registerMessage(id++, BountyBoardPacket.class,
+                BountyBoardPacket::encode, BountyBoardPacket::decode, BountyBoardPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(id++, BountyActionPacket.class,
+                BountyActionPacket::encode, BountyActionPacket::decode, BountyActionPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER));
     }
 }

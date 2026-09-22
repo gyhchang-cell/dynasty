@@ -25,6 +25,7 @@ public class StarAltarPiece extends DynastyStructurePiece {
     public static final int SIZE = 26;
     public static final int HEIGHT = 20;
     private static final ResourceLocation LOOT = new ResourceLocation("dynasty", "chests/ritual_circle");
+    private final boolean remastered;
 
     /** 北斗七星：平台面上的星位 / the Big Dipper laid into the platform */
     private static final int[][] DIPPER = {
@@ -40,15 +41,32 @@ public class StarAltarPiece extends DynastyStructurePiece {
         super(type, genDepth,
                 makeBoundingBox(pos.getX(), pos.getY(), pos.getZ(), Direction.NORTH, SIZE, HEIGHT, SIZE));
         this.setOrientation(Direction.NORTH);
+        this.remastered = true;
     }
 
     public StarAltarPiece(StructurePieceType type, CompoundTag tag) {
         super(type, tag);
+        this.remastered = tag.getInt("DynastyStarLayout") >= 2;
+    }
+
+    @Override
+    protected void addAdditionalSaveData(net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
+                                         CompoundTag tag) {
+        super.addAdditionalSaveData(ctx, tag);
+        tag.putInt("DynastyStarLayout", remastered ? 2 : 1);
+    }
+
+    void lootChest(WorldGenLevel level, BoundingBox box, RandomSource random, int x, int y, int z, ResourceLocation table) {
+        createChest(level, box, random, x, y, z, table);
     }
 
     @Override
     public void postProcess(WorldGenLevel level, StructureManager manager, ChunkGenerator generator,
                             RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
+        if (remastered) {
+            CelestialObservatory.build(this, level, box, random);
+            return;
+        }
         BlockState marble = DynastyBlocks.MARBLE_BLOCK.get().defaultBlockState();
         BlockState jade = DynastyBlocks.JADE_BLOCK.get().defaultBlockState();
         BlockState bronze = DynastyBlocks.BRONZE_BLOCK.get().defaultBlockState();

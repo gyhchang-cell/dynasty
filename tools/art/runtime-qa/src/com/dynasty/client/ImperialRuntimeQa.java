@@ -55,7 +55,7 @@ public final class ImperialRuntimeQa {
                 compareReload("jade-dragon","jade-dragon-after-reload");
                 compareReload("gold-dragon","gold-dragon-after-reload");
                 require(mc.level==null,"no world was opened after resource reload");
-                results.add("PASS: 38 real Minecraft FBO frames; resource reload + VBO rebuild; no GL errors.");
+                results.add("PASS: "+results.stream().filter(s->s.contains("non-background pixels=")).count()+" real Minecraft FBO frames; resource reload + VBO rebuild; no GL errors.");
                 Files.write(OUT.resolve("PASS.txt"),results);finished=true;mc.stop();
             }catch(Throwable error){fail(mc,error);}
             return;
@@ -96,9 +96,14 @@ public final class ImperialRuntimeQa {
             mobPreview("soul_soldier",4,1.05F);
             architecturePreview("main-hall",false);
             architecturePreview("academy",true);
+            campusPreview("palace",64,false);
+            campusPreview("palace",64,true);
+            campusPreview("tomb",40,true);
+            campusPreview("observatory",26,false);
+            for(String id:new String[]{"exam_paper","ink_stick","bamboo_slip"})itemPreview(id);
             for(String id:new String[]{"phoenix_hairpin","jade_cicada","zen_bead_string","star_compass","auspicious_bell","yuchang_dagger","seven_star_saber","leiting_hammer","phoenix_feather_charm","jade_kylin","imperial_pearl_earring","taiyi_sword"})itemPreview(id);
             require(mc.level==null,"no world was opened");
-            results.add("PASS: real ShaderInstance.apply + dynamic BufferUploader + static VertexBuffer.drawWithShader; 35 nonempty frames; no GL errors.");
+            results.add("PASS: real ShaderInstance.apply + dynamic BufferUploader + static VertexBuffer.drawWithShader; all recorded frames nonempty; no GL errors.");
             results.add("Depth/blend checks simulate translucent draw order; they do not assert Forge world event sequencing.");
             reloadStarted=System.nanoTime();reload=mc.reloadResourcePacks();
             results.add("Requested asynchronous resource reload; render thread was not blocked.");
@@ -109,20 +114,44 @@ public final class ImperialRuntimeQa {
     private static void guardian(String name,float yaw,double formed)throws Exception {
         frame(name,9.1,4.45,()->HouyiAvatarRenderer.drawGuanYu(new Matrix4f(),Vec3.ZERO,yaw,formed));
     }
+    private static void campusPreview(String name,int size,boolean cutaway)throws Exception {
+        var blocks=com.dynasty.structure.ArchitectureCapture.blocks(name);
+        require(blocks.size()>1000,"production campus "+name+" placements="+blocks.size());
+        frame("campus-"+name+(cutaway?"-cutaway":""),size*1.38,8,()-> {
+            var mc=Minecraft.getInstance();var buffers=mc.renderBuffers().bufferSource();
+            var pose=new com.mojang.blaze3d.vertex.PoseStack();pose.translate(0,8,0);
+            pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(cutaway?50:30));
+            pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-30));
+            pose.translate(-size/2.0,-5,-size/2.0);
+            for(var e:blocks.entrySet()) {
+                var s=e.getValue();var p=e.getKey();
+                if(s.isAir()||s.getRenderShape()!=net.minecraft.world.level.block.RenderShape.MODEL
+                        ||(cutaway&&p.getY()>(name.equals("tomb")?3:7)))continue;
+                pose.pushPose();pose.translate(p.getX(),p.getY(),p.getZ());
+                mc.getBlockRenderer().renderSingleBlock(s,pose,buffers,15728880,
+                        net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY);
+                pose.popPose();
+            }
+            buffers.endBatch();
+        });
+    }
     private static void itemPreview(String id)throws Exception {
         var item=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new ResourceLocation("dynasty",id));
         require(item!=null&&item!=net.minecraft.world.item.Items.AIR,"registered item "+id);
         frame("item-"+id,1.15,0,()-> {
             var mc=Minecraft.getInstance();var buffers=mc.renderBuffers().bufferSource();
+            // Match vanilla inventory lighting for flat generated-item models.
+            com.mojang.blaze3d.platform.Lighting.setupForFlatItems();
             mc.getItemRenderer().renderStatic(new net.minecraft.world.item.ItemStack(item),net.minecraft.world.item.ItemDisplayContext.GUI,
                 15728880,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,new com.mojang.blaze3d.vertex.PoseStack(),buffers,null,0);
             buffers.endBatch();
+            com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
         });
     }
     private static void mobPreview(String name,int style,float size)throws Exception {
         for(int view=0;view<2;view++) {
         final int angle=view==0?155:205;
-        frame("mob-"+name+(view==0?"":"-opposite"),3.4,1.6,()-> {
+        frame("mob-"+name+(view==0?"":"-opposite"),style<=2?4.8:3.4,1.6,()-> {
             var model=new DynastyHumanoidModel<net.minecraft.world.entity.Mob>(DynastyHumanoidModel.decoratedLayer(style).bakeRoot());
             model.young=false;
             var pose=new com.mojang.blaze3d.vertex.PoseStack();

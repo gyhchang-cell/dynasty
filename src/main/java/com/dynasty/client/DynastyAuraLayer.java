@@ -23,6 +23,11 @@ public final class DynastyAuraLayer<T extends Mob> extends RenderLayer<T,Dynasty
         int alpha=boss?155:95;
         var sink=buffers.getBuffer(RenderType.debugQuads());
         var matrix=pose.last().pose();
+        if(boss) new BossRegaliaGeometry((a,b,c,d,tint)-> {
+            for(var point:new BossRegaliaGeometry.P[]{a,b,c,d})
+                sink.vertex(matrix,(float)point.x(),(float)point.y(),(float)point.z())
+                    .color((tint>>16)&255,(tint>>8)&255,tint&255,255).endVertex();
+        }).draw(style,age);
         var sigil=new BowSigilGeometry(1,(x1,y1,x2,y2,width)-> {
             double dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);
             if(len<1e-8)return;

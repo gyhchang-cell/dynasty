@@ -39,6 +39,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
 
 /** 服务端同步的弓蓄力法阵。箭仍使用原版视角发射，视觉瞄准阵跟随玩家的完整视线向量。 */
 @Mod.EventBusSubscriber(modid = Dynasty.MODID)
@@ -181,7 +183,19 @@ public final class DynastyBowRitual {
 
     @SubscribeEvent
     public static void onLevelTick(TickEvent.LevelTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel server)) return;
+        if (!(event.level instanceof ServerLevel server)) return;
+        if (event.phase == TickEvent.Phase.START) {
+            // Guide before vanilla advances the arrow: rotation, physics and tracking agree
+            // in this same tick. Keep particles/network decoration on the cheaper END cadence.
+            for (Map.Entry<UUID, Shot> entry : ARROWS.entrySet()) {
+                Shot shot = entry.getValue();
+                if (shot.tier() < 2 || !shot.dimension().equals(server.dimension())
+                        || server.getGameTime() - shot.createdAt() > 200L) continue;
+                Entity entity = server.getEntity(entry.getKey());
+                if (entity instanceof AbstractArrow arrow && arrow.isAlive()) home(server, arrow, shot);
+            }
+            return;
+        }
         Iterator<Blast> blasts = BLASTS.iterator();
         while (blasts.hasNext()) {
             Blast blast = blasts.next();
@@ -217,7 +231,6 @@ public final class DynastyBowRitual {
                 continue;
             }
             Vec3 p = arrow.position();
-            if (shot.tier() >= 2) home(server, arrow);
             if (arrow.tickCount <= 4 || arrow.tickCount % 10 == 0) {
                 sendEffect(server, p, new BowEffectPacket(0, arrow.getId(), shot.tier(), shot.phoenix(), p.x, p.y, p.z));
             }
@@ -237,9 +250,18 @@ public final class DynastyBowRitual {
                 || !(arrow.level() instanceof ServerLevel server)) return;
         Shot shot = ARROWS.get(arrow.getUUID());
         if (shot == null) return;
+        if (event.getRayTraceResult() instanceof net.minecraft.world.phys.EntityHitResult hit) {
+            shot.hitEntities.add(hit.getEntity().getUUID());
+            if (hit.getEntity().getUUID().equals(shot.targetId)) shot.targetId = null;
+        }
         // 穿透箭碰到第一个生物后仍会飞行，尾迹应持续到撞上方块或失速。
         if (event.getRayTraceResult().getType() != HitResult.Type.ENTITY || arrow.getPierceLevel() <= 0) {
             ARROWS.remove(arrow.getUUID());
+            Vec3 stopped = event.getRayTraceResult().getLocation();
+            // An embedded vanilla arrow can retain nonzero velocity: explicitly stop its
+            // visual marker. Kind 2 uses the existing packet format, no new channel/message.
+            sendEffect(server, stopped, new BowEffectPacket(2, arrow.getId(), shot.tier(), shot.phoenix(),
+                    stopped.x, stopped.y, stopped.z));
         }
         Vec3 center = event.getRayTraceResult().getLocation();
         // A piercing arrow may hit several entities; only its first impact detonates the area seal.
@@ -293,30 +315,56 @@ public final class DynastyBowRitual {
     }
 
     static void home(ServerLevel server, AbstractArrow arrow) {
+        Shot shot = ARROWS.get(arrow.getUUID());
+        if (shot == null) shot = new Shot(server.dimension(), 0, false, server.getGameTime());
+        home(server, arrow, shot);
+    }
+
+    private static void home(ServerLevel server, AbstractArrow arrow, Shot shot) {
         Vec3 velocity = arrow.getDeltaMovement();
         if (velocity.lengthSqr() < 0.04D) return;
-        Vec3 forward = velocity.normalize();
-        LivingEntity best = null;
-        double bestDistance = 36;
-        for (LivingEntity candidate : server.getEntitiesOfClass(LivingEntity.class, arrow.getBoundingBox().inflate(6),
-                entity -> entity.isAlive() && !(entity instanceof Player)
-                        && entity != arrow.getOwner() && (arrow.getOwner() == null || !entity.isAlliedTo(arrow.getOwner()))
-                        && entity instanceof net.minecraft.world.entity.monster.Enemy)) {
-            Vec3 delta = candidate.getBoundingBox().getCenter().subtract(arrow.position());
-            double distance = delta.lengthSqr();
-            if (distance >= bestDistance || delta.normalize().dot(forward) < 0.65D) continue;
-            HitResult hit = server.clip(new net.minecraft.world.level.ClipContext(arrow.position(),
-                    candidate.getBoundingBox().getCenter(), net.minecraft.world.level.ClipContext.Block.COLLIDER,
-                    net.minecraft.world.level.ClipContext.Fluid.NONE, arrow));
-            if (hit.getType() != HitResult.Type.MISS) continue;
-            best = candidate; bestDistance = distance;
+        // customArrow is called BEFORE vanilla shootFromRotation. Capture the actual launch
+        // vector on its first live flight tick, never the player's later camera direction.
+        if (shot.launchDirection == null) shot.launchDirection = velocity.normalize();
+        LivingEntity best = shot.targetId != null && server.getEntity(shot.targetId) instanceof LivingEntity target
+                && canSeek(server, arrow, shot, target) ? target : null;
+        if (best == null) {
+            shot.targetId = null;
+            double bestScore = Double.POSITIVE_INFINITY;
+            for (LivingEntity candidate : server.getEntitiesOfClass(LivingEntity.class,
+                    arrow.getBoundingBox().inflate(BowTrajectoryMath.SEEK_RADIUS), Entity::isAlive)) {
+                if (!canSeek(server, arrow, shot, candidate)) continue;
+                Vec3 delta = candidate.getBoundingBox().getCenter().subtract(arrow.position());
+                // Prefer the aimed-at target, not an off-axis monster merely closer in space.
+                double along = delta.dot(shot.launchDirection);
+                double lateralSq = Math.max(0, delta.lengthSqr() - along * along);
+                double score = lateralSq * 4 + delta.lengthSqr() * 0.05D;
+                if (score < bestScore) { best = candidate; bestScore = score; }
+            }
+            if (best != null) shot.targetId = best.getUUID();
         }
         if (best != null) {
-            Vec3 aim = best.getBoundingBox().getCenter().subtract(arrow.position()).normalize();
-            arrow.setDeltaMovement(forward.scale(0.78D).add(aim.scale(0.22D)).normalize().scale(velocity.length()));
-            arrow.hasImpulse = true;
-            arrow.hurtMarked = true;
+            Vec3 steered = BowTrajectoryMath.steer(velocity, best.getBoundingBox().getCenter().subtract(arrow.position()));
+            if (steered.distanceToSqr(velocity) > 1.0E-10D) {
+                arrow.setDeltaMovement(steered);
+                // ServerEntity sends both position/rotation and motion for hasImpulse.
+                // hurtMarked would send a second, redundant velocity packet in the same tick.
+                arrow.hasImpulse = true;
+            }
         }
+    }
+
+    private static boolean canSeek(ServerLevel server, AbstractArrow arrow, Shot shot, LivingEntity candidate) {
+        if (!candidate.isAlive() || candidate instanceof Player
+                || !(candidate instanceof net.minecraft.world.entity.monster.Enemy)
+                || candidate == arrow.getOwner() || shot.hitEntities.contains(candidate.getUUID())
+                || (arrow.getOwner() != null && candidate.isAlliedTo(arrow.getOwner()))) return false;
+        Vec3 target = candidate.getBoundingBox().getCenter();
+        if (!BowTrajectoryMath.insideAssistCorridor(target.subtract(arrow.position()),
+                arrow.getDeltaMovement(), shot.launchDirection)) return false;
+        return server.clip(new net.minecraft.world.level.ClipContext(arrow.position(), target,
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE, arrow)).getType() == HitResult.Type.MISS;
     }
 
     static void clearAvatarSpace(ServerLevel server, ServerPlayer player, double formed) {
@@ -353,6 +401,9 @@ public final class DynastyBowRitual {
         private final boolean phoenix;
         private final long createdAt;
         private boolean detonated;
+        private Vec3 launchDirection;
+        private UUID targetId;
+        private final Set<UUID> hitEntities = new HashSet<>();
         Shot(ResourceKey<Level> dimension, int tier, boolean phoenix, long createdAt) {
             this.dimension = dimension; this.tier = tier; this.phoenix = phoenix; this.createdAt = createdAt;
         }

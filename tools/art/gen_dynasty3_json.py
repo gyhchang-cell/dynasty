@@ -220,6 +220,60 @@ def relic_recipes():
 
 
 # ------------------------------------------------------------------ 语言
+# Explorer's Compass 1.20.1-1.4.0 reads Util.makeDescriptionId("structure", id),
+# not block names or structure_set.*. Nature's Compass uses biome.<namespace>.<path>.
+# Keep the names in one bilingual table; verify_compass_localization.py compares
+# this table against every worldgen registry JSON, including structure groups.
+WORLDGEN_NAMES = {
+    "structure": {
+        "palace": ("皇家宫殿", "Imperial Palace"),
+        "academy": ("国子监", "Imperial Academy"),
+        "imperial_tomb": ("帝陵", "Imperial Tomb"),
+        "great_wall_gate": ("长城关隘", "Great Wall Gate"),
+        "star_altar": ("九霄星坛", "Nine-Heaven Star Altar"),
+        "stone_grove": ("幽冥石林", "Underworld Stone Grove"),
+    },
+    "biome": {
+        "celestial_plains": ("天朝平原", "Celestial Plains"),
+        "jade_forest": ("玉林", "Jade Forest"),
+        "dragon_ridge": ("龙脊山脉", "Dragon Ridge"),
+        "celestial_sea": ("碧海云海", "Celestial Sea"),
+        "underworld_wastes": ("幽冥荒原", "Underworld Wastes"),
+        "soul_river": ("忘川河畔", "Soul River"),
+        "jiuxiao_skyland": ("九霄仙岛", "Nine-Heaven Skyland"),
+        "jiuxiao_cloud_sea": ("云海", "Cloud Sea"),
+        "dragon_palace_hall": ("龙宫正殿", "Dragon Palace Hall"),
+        "dragon_palace_deep": ("深渊", "Abyss"),
+    },
+    "dimension": {
+        "celestial_dynasty": ("天朝·龙庭", "Celestial Dynasty"),
+        "underworld": ("地府", "Underworld"),
+        "jiuxiao": ("九霄天界", "Nine-Heaven Realm"),
+        "dragon_palace": ("东海龙宫", "Dragon Palace"),
+    },
+}
+
+
+def worldgen_lang(locale):
+    index = {"zh_cn": 0, "en_us": 1}[locale]
+    return {f"{kind}.dynasty.{name.replace('/', '.')}": pair[index]
+            for kind, entries in WORLDGEN_NAMES.items()
+            for name, pair in entries.items()}
+
+
+def merge_worldgen_lang():
+    """Refresh only navigation names, without regenerating models or recipes."""
+    for locale in ("zh_cn", "en_us"):
+        path = os.path.join(LANG_DIR, locale + ".json")
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        data.update(worldgen_lang(locale))
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        print("navigation lang:", locale, len(worldgen_lang(locale)), "keys")
+
+
 ZH = {
     "item.dynasty.mu_mao": "木矛",
     "item.dynasty.shi_ge": "石戈",
@@ -414,6 +468,7 @@ def merge_lang():
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.write("\n")
         print("lang:", filename, len(data), "keys")
+    merge_worldgen_lang()
 
 
 def clean_removed():

@@ -1,0 +1,17 @@
+// 仅用于科举测试：把 Gradle 的完整编译 classpath 导出成一个文件，
+// 让 tools/keju/run_keju_tests.sh 可以用 javac/java 直接跑测试（不改 build.gradle）。
+// Usage: ./gradlew --offline -I tools/keju/keju-qa.init.gradle kejuQaClasspath
+allprojects {
+    tasks.register('kejuQaClasspath') {
+        doLast {
+            def files = configurations.findByName('compileClasspath')
+            if (files == null) {
+                throw new GradleException('compileClasspath 不存在：本项目不是 java 项目？')
+            }
+            def out = new File(project.buildDir, 'keju-qa-classpath.txt')
+            out.parentFile.mkdirs()
+            out.text = files.files.join(File.pathSeparator)
+            println "KEJU_QA_CLASSPATH=${out.absolutePath} entries=${files.files.size()}"
+        }
+    }
+}

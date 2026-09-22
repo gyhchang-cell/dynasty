@@ -21,6 +21,17 @@ class QuestStoryTest(unittest.TestCase):
     def test_reproducible(self):
         self.assertEqual(self.book, story.build_book())
 
+    def test_compass_material_reward_precedes_both_compasses(self):
+        supplies, compasses = self.book[1]["quests"][:2]
+        self.assertEqual("minecraft:cobblestone", supplies["target"])
+        self.assertEqual(4, supplies["count"])
+        self.assertIn('id: "minecraft:compass", Count: 2b', supplies["rewards"])
+        self.assertIn('team_reward: false', supplies["rewards"])
+        self.assertEqual([supplies["id"]], compasses["deps"])
+        for item in ("naturescompass:naturescompass", "explorerscompass:explorerscompass"):
+            self.assertIn(item, compasses["tasks"])
+            self.assertIn(item, story.recipe_index())
+
     def test_export_matches_source(self):
         for c in self.book:
             self.assertEqual(story.encode(c), (story.OUT / "chapters" / (c["file"]+".snbt")).read_text())

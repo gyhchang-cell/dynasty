@@ -14,6 +14,8 @@ import os
 import re
 import sys
 
+from verify_compass_localization import localization_errors
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ASSETS = os.path.join(ROOT, "src/main/resources/assets/dynasty")
 JAVA = os.path.join(ROOT, "src/main/java/com/dynasty")
@@ -43,13 +45,15 @@ def check():
             if ("effect.dynasty." + effect) not in data:
                 problems.append("效果 %s 缺 %s 词条（effect.dynasty.%s）" % (effect, name, effect))
 
+    problems.extend(localization_errors(lang))
+
     print("词条自检：物品模型 %d 个、模组效果 %d 个" % (len(models), len(effects)))
     if problems:
         print("词条自检：发现问题 ❌")
         for problem in problems[:25]:
             print("   -", problem)
         sys.exit(1)
-    print("词条自检：通过 ✅（每个物品与模组效果都有中英词条）")
+    print("词条自检：通过 ✅（物品、效果及罗盘所用结构/群系/维度都有中英词条）")
 
 
 if __name__ == "__main__":

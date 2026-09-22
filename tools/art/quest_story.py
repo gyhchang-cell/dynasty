@@ -29,6 +29,8 @@ TUTORIAL_IDS = {
     "先准备水下生存": 0x10007,
     "返回龙庭，整理终战配装": 0x10008,
     "你来决定毕业流派": 0x10009,
+    "出行准备 · 领取指南针材料": 0x1000a,
+    "制作两种探索罗盘": 0x1000b,
 }
 LANG = json.loads((ROOT / "src/main/resources/assets/dynasty/lang/zh_cn.json").read_text())
 SLOTS = classifications()
@@ -67,7 +69,10 @@ def ingredient(entry):
 
 def recipe_index():
     result = defaultdict(list)
-    for path in sorted((DATA / "recipes").glob("*.json")):
+    paths = list((DATA / "recipes").glob("*.json"))
+    for namespace in ("naturescompass", "explorerscompass"):
+        paths.extend((DATA.parent / namespace / "recipes").glob("*.json"))
+    for path in sorted(paths):
         data = json.loads(path.read_text())
         output = data.get("result")
         target = output.get("item") if isinstance(output, dict) else output
@@ -209,7 +214,15 @@ def build_book():
         take("tie_jian", "完成本章基础兵器路线；还不适合裸装打 Boss。"),
         new("先学会挡伤害", "拥有攻击手段后，再补防御和食物。", "六块木板加铁锭做盾，放副手使用。盾不是万能防御，Boss 大招仍要躲。下一章准备图纸和王朝装备。", "minecraft:shield"),
     ])
-    chapter("02 · 工坊、图纸与配装", "终点：能制作青铜期装备，并知道饰品在哪里佩戴。", [
+    supplies = new("出行准备 · 领取指南针材料", "先准备导航工具，避免漫无目的找建筑和 Boss。",
+        "在背包准备四块圆石，完成后点击奖励领取两个原版指南针；再砍四块原木，下一步分别合成两种罗盘。奖励每人仅领取一次，不收走圆石。", "minecraft:cobblestone", 4)
+    supplies["rewards"] = '[{ id: "3000000001000a01", type: "item", item: { id: "minecraft:compass", Count: 2b }, team_reward: false }]'
+    compasses = new("制作两种探索罗盘", "一件寻找生物群系，一件寻找建筑；两种工具各司其职。",
+        "先领取上一任务的两个原版指南针。工作台中心放指南针，上下左右放原木，四角留空，合成自然罗盘；把原木换成圆石，合成探索者罗盘。两件都放在背包即可完成，不收走物品。手持右键打开搜索；自然罗盘找群系，探索者罗盘找建筑。先进入目标所在维度再搜索。找到群系不等于直接找到 Boss，具体位置与召唤方式查看 Boss 图鉴。", "naturescompass:naturescompass")
+    compasses["tasks"] = compasses["tasks"][:-1] + ', { id: "200000000001000c", type: "item", item: { id: "explorerscompass:explorerscompass", Count: 1b }, count: 1L }]'
+    chapter("02 · 罗盘、工坊与配装", "终点：制作两种导航罗盘、青铜期装备，并知道饰品在哪里佩戴。", [
+        supplies,
+        compasses,
         take("bronze_ingot", "先解决青铜材料来源。"),
         take("cinnabar", "朱砂串起徽墨、图纸与符箓。先探索遗迹取得。"),
         take("bamboo_slip", "准备图纸的竹简底材。"),

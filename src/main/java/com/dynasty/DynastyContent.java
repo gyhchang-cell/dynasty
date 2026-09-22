@@ -13,6 +13,8 @@ public final class DynastyContent {
     public static void register(IEventBus modEventBus) {
         DynastyBlocks.BLOCKS.register(modEventBus);
         DynastyBlocks.BLOCK_ITEMS.register(modEventBus);
+        com.dynasty.puzzle.PuzzleBlocks.BLOCKS.register(modEventBus);
+        com.dynasty.puzzle.PuzzleBlocks.ITEMS.register(modEventBus);
         DynastyItems.ITEMS.register(modEventBus);
         com.dynasty.DynastyBasicFoods.ITEMS.register(modEventBus);
         com.dynasty.DynastyFineItems.ITEMS.register(modEventBus);

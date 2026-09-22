@@ -24,8 +24,8 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
  */
 public class PalacePiece extends DynastyStructurePiece {
 
-    public static final int SIZE = 48;
-    public static final int HEIGHT = 28;
+    public static final int SIZE = 64;
+    public static final int HEIGHT = 32;
     private static final ResourceLocation LOOT = new ResourceLocation("dynasty", "chests/dynasty_palace");
 
     public PalacePiece(StructurePieceType type, int genDepth, BlockPos pos) {
@@ -40,6 +40,12 @@ public class PalacePiece extends DynastyStructurePiece {
 
     @Override
     public void addChildren(StructurePiece piece, StructurePieceAccessor accessor, RandomSource random) {
+        if (this.boundingBox.getXSpan() == SIZE) {
+            // NORTH reverses local Z: anchor the child's MIN world Z from its far local edge.
+            accessor.addPiece(new MainHallPiece(DynastyStructures.MAIN_HALL_PIECE.get(), this.genDepth + 1,
+                    world(21, 3, 14 + MainHallPiece.DEPTH - 1)));
+            return;
+        }
         int x = this.boundingBox.minX();
         int y = this.boundingBox.minY();
         int z = this.boundingBox.minZ();
@@ -54,6 +60,11 @@ public class PalacePiece extends DynastyStructurePiece {
     @Override
     public void postProcess(WorldGenLevel level, StructureManager manager, ChunkGenerator generator,
                             RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
+        // Already-saved 48-block pieces retain their old footprint and layout.
+        if (this.boundingBox.getXSpan() == SIZE) {
+            PalaceCourtyard.build(this, level, box, random);
+            return;
+        }
         BlockState brick = DynastyBlocks.PALACE_BRICKS.get().defaultBlockState();
         BlockState marble = DynastyBlocks.MARBLE_BLOCK.get().defaultBlockState();
         BlockState jade = DynastyBlocks.JADE_BLOCK.get().defaultBlockState();
@@ -122,5 +133,29 @@ public class PalacePiece extends DynastyStructurePiece {
         createChest(level, box, random, 40, 4, 7, LOOT);
         createChest(level, box, random, 7, 4, 40, LOOT);
         createChest(level, box, random, 40, 4, 40, LOOT);
+
+        // Walkable entry stairs instead of a three-block vertical terrace edge.
+        for(int step=0;step<3;step++)fill(level,box,20,step+1,44-step,27,step+1,44-step,
+                com.dynasty.worldgen.DynastyBuildKit.facing(Blocks.QUARTZ_STAIRS.defaultBlockState(),Direction.NORTH));
+        // Shallow paired pools frame the approach without occupying the main hall or corner towers.
+        for(int x:new int[]{16,28}) {
+            fill(level,box,x,3,34,x+3,3,38,brick);
+            fill(level,box,x+1,3,35,x+2,3,37,Blocks.WATER.defaultBlockState());
+            for(int z:new int[]{34,38}) {
+                set(level,box,x,4,z,Blocks.STONE_BRICK_WALL.defaultBlockState());
+                set(level,box,x,5,z,lantern);
+            }
+        }
+        // Timber brackets, balcony sill and tiled lintel articulate the main gate facade.
+        for(int x:new int[]{18,29}) {
+            fill(level,box,x,4,42,x,10,42,pillar);
+            fill(level,box,x-1,10,42,x+1,10,42,Blocks.DARK_OAK_SLAB.defaultBlockState());
+            set(level,box,x,9,41,lantern);
+        }
+        glazedRoof(level,box,18,40,29,45,13,3);
+    }
+
+    void lootChest(WorldGenLevel level, BoundingBox box, RandomSource random, int x, int y, int z) {
+        createChest(level, box, random, x, y, z, LOOT);
     }
 }

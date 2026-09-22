@@ -27,6 +27,13 @@ public class DynastyTabs {
             // 它不在下面的列表里（玩家拿不到），只当封面。/ tab icon needs an ItemStack, hence the emblem item.
             .icon(() -> new ItemStack(DynastyItems.DYNASTY_EMBLEM.get()))
             .displayItems((params, output) -> {
+                // Optional navigation tools: also visible in Dynasty's creative/search tab.
+                for (String mod : new String[]{"naturescompass", "explorerscompass"}) {
+                    var key = new net.minecraft.resources.ResourceLocation(mod, mod);
+                    if (net.minecraftforge.registries.ForgeRegistries.ITEMS.containsKey(key)) {
+                        output.accept(net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(key));
+                    }
+                }
                 // 方块 / blocks
                 output.accept(DynastyBlocks.JADE_ORE.get());
                 output.accept(DynastyBlocks.DEEPSLATE_JADE_ORE.get());
@@ -208,6 +215,7 @@ public class DynastyTabs {
                 output.accept(DynastyFineItems.NIANGao.get());
                 output.accept(DynastyFineItems.OSMANTHUS_CAKE.get());
                 output.accept(DynastyFineItems.CURED_MEAT.get());
+                output.accept(DynastyBlocks.BOUNTY_BOARD.get());
                 output.accept(DynastyFineItems.ROAST_DUCK.get());
                 output.accept(DynastyFineItems.LONGEVITY_NOODLES.get());
                 output.accept(DynastyFineItems.BAIJIU.get());

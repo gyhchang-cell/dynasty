@@ -1,39 +1,42 @@
 package com.dynasty;
 
+import com.dynasty.keju.KejuBankCache;
+import com.dynasty.keju.KejuCooldown;
+import com.dynasty.keju.KejuReloadListener;
+import com.dynasty.keju.KejuRules;
+import com.dynasty.keju.KejuServerState;
+import com.dynasty.keju.KejuSession;
+import com.dynasty.keju.KejuSessionRegistry;
 import com.dynasty.network.DynastyNetwork;
 import com.dynasty.network.OpenKejuPacket;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.network.PacketDistributor;
 
-import java.io.BufferedReader;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * 科举系统（服务端逻辑）：题库驱动的出题、判定与奖励。
  *
  * 题目来自数据包 `data/dynasty/keju/questions.json`：三档（县试 / 会试 / 殿试），
- * 每档带功名门槛与奖励，出题时按玩家功名自动挑档；文件缺失或损坏时回落到内置题库。
- * 答对给效果 + 功名（功名奖励有 30 秒冷却，防止刷分）。
+ * 每档带功名门槛与奖励，出题时按玩家功名自动挑档；题库由 {@code /reload} 热重载，
+ * 校验失败沿用上一份有效题库，首次加载没有有效题库时回落到内置七题兜底。
  *
- * Keju: a datapack-driven question bank with three tiers (merit-gated), graceful
- * fallback to the built-in questions, and a cooldown on the merit reward.
+ * 答题走**一次性会话**：开题时把令牌、题目与档位奖励快照固定下来，
+ * 判分只看快照，客户端只提交「令牌 + 1..3 选项」。先验证再消费，
+ * 旧令牌 / 别人的令牌 / 非法选项都不会吃掉当前有效题目。
+ *
+ * 答对给三个效果与一本可书写书（不受冷却限制），档位功名带 30 秒冷却。
+ *
+ * Keju: datapack-driven question bank with hot reload, strict validation, a
+ * one-shot session per exam, and a merit cooldown that only gates the merit.
  */
 @SuppressWarnings("null")
 public final class DynastyKeju {
@@ -41,21 +44,13 @@ public final class DynastyKeju {
     private DynastyKeju() {
     }
 
-    /** 题库文件 / the question bank file */
-    private static final ResourceLocation BANK = new ResourceLocation("dynasty", "keju/questions.json");
+    /** 题库数据包位置 / datapack location of the bank */
+    public static final ResourceLocation BANK_LOCATION = new ResourceLocation("dynasty", "keju/questions.json");
 
-    /** 功名奖励冷却（毫秒）/ merit reward cooldown */
-    private static final long REWARD_COOLDOWN_MS = 30_000L;
+    /** 档位功名奖励冷却（毫秒），与题库契约同源：仍为 30 秒。 */
+    public static final long REWARD_COOLDOWN_MS = KejuRules.REWARD_COOLDOWN_MS;
 
-    /** 一题 / one question（correct 为 1..3）*/
-    private record Question(String text, String[] options, int correct) {
-    }
-
-    /** 一档 / one tier */
-    private record Tier(String zh, String en, int minMerit, int merit, List<Question> questions) {
-    }
-
-    /** 内置兜底题库（数据包缺失时使用）/ fallback bank */
+    /** 内置兜底题库（数据包缺失或整库校验失败时使用，题数下限见 KejuRules.FALLBACK_MIN_QUESTIONS）。*/
     private static final String[][] FALLBACK = {
             {"秦始皇统一六国是在公元前哪一年？", "前 221 年", "前 206 年", "前 256 年", "1"},
             {"「贞观之治」出现在哪个朝代？", "汉朝", "唐朝", "宋朝", "2"},
@@ -66,176 +61,161 @@ public final class DynastyKeju {
             {"《史记》的作者是谁？", "司马迁", "班固", "司马光", "1"},
     };
 
-    private static List<Tier> BANK_CACHE;
-    private static MinecraftServer BANK_OWNER;
+    /** 每个服务器实例各自的待答会话与奖励冷却（按实例身份隔离）。*/
+    private static final KejuServerState<MinecraftServer> STATE = new KejuServerState<>(REWARD_COOLDOWN_MS);
 
-    private static final Map<UUID, Integer> PENDING = new HashMap<>();
-    private static final Map<UUID, Long> LAST_REWARD = new HashMap<>();
+    /** 取该服务器的会话表。/ session registry of that server instance. */
+    private static KejuSessionRegistry sessions(MinecraftServer server) {
+        return STATE.sessions(server);
+    }
 
-    /** 打开科举界面：按功名挑档、随机出题并发给玩家。/ Opens the exam GUI with a tier-appropriate question. */
+    /** 取该服务器的奖励冷却表。/ merit cooldown of that server instance. */
+    private static KejuCooldown meritCooldown(MinecraftServer server) {
+        return STATE.cooldown(server);
+    }
+
+    /** 打开科举界面：按功名挑档、随机出题、建立一次性会话并发给玩家。 */
     public static void openExam(ServerPlayer player) {
-        List<Tier> bank = bank(player);
+        MinecraftServer server = player.getServer();
+        List<KejuRules.Tier> bank = bank(server);
         if (bank.isEmpty()) {
             return;
         }
-        int tierIndex = tierFor(bank, DynastyStats.getMerit(player));
-        Tier tier = bank.get(tierIndex);
+        KejuRules.Tier tier = bank.get(KejuRules.tierFor(bank, DynastyStats.getMerit(player)));
         if (tier.questions().isEmpty()) {
             return;
         }
-        int index = player.getRandom().nextInt(tier.questions().size());
-        Question question = tier.questions().get(index);
-        int token = tierIndex * 1000 + index;
-        PENDING.put(player.getUUID(), token);
+        KejuRules.Question question = tier.questions().get(player.getRandom().nextInt(tier.questions().size()));
+        KejuSession session = sessions(server).open(player.getUUID(), tier, question, System.currentTimeMillis());
         DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                new OpenKejuPacket(token, question.text(),
-                        question.options()[0], question.options()[1], question.options()[2]));
+                new OpenKejuPacket(session.token(), question.text(),
+                        question.options().get(0), question.options().get(1), question.options().get(2)));
         player.displayClientMessage(Component.literal("§6[科举] §r" + tier.zh()
                 + "：答对 +" + tier.merit() + " 功名"), false);
     }
 
     /** 玩家当前待答的题目令牌（无则 null）。/ Pending question token for a player, or null. */
-    public static Integer pending(net.minecraft.world.entity.player.Player player) {
-        return PENDING.get(player.getUUID());
+    public static Integer pending(Player player) {
+        MinecraftServer server = player instanceof ServerPlayer serverPlayer ? serverPlayer.getServer() : null;
+        if (server == null) {
+            return null;
+        }
+        KejuSession session = sessions(server).peek(player.getUUID());
+        return session == null ? null : session.token();
     }
 
-    /** 判定答案并给予奖励。/ Grades the answer and grants rewards. */
-    public static void handleAnswer(ServerPlayer player, int index, int choice) {
-        Integer token = PENDING.remove(player.getUUID());
-        if (token == null || token != index) {
-            player.sendSystemMessage(Component.literal("§c[科举] 题目已失效，请重新开始考试。"));
-            return;
-        }
-        List<Tier> bank = bank(player);
-        if (bank.isEmpty()) {
-            return;
-        }
-        int tierIndex = Math.max(0, Math.min(bank.size() - 1, index / 1000));
-        Tier tier = bank.get(tierIndex);
-        int qi = index % 1000;
-        Question question = qi >= 0 && qi < tier.questions().size() ? tier.questions().get(qi) : null;
-        if (question == null) {
-            return;
-        }
-
-        if (choice == question.correct()) {
-            player.addEffect(new MobEffectInstance(DynastyEffects.DRAGON_MIGHT.get(), 20 * 180, 0));
-            player.addEffect(new MobEffectInstance(DynastyEffects.SWIFT_WIND.get(), 20 * 180, 0));
-            player.addEffect(new MobEffectInstance(DynastyEffects.MANDATE_OF_HEAVEN.get(), 20 * 180, 0));
-            player.getInventory().add(new ItemStack(Items.WRITABLE_BOOK));
-            long now = System.currentTimeMillis();
-            Long last = LAST_REWARD.get(player.getUUID());
-            if (last == null || now - last >= REWARD_COOLDOWN_MS) {
-                LAST_REWARD.put(player.getUUID(), now);
-                DynastyStats.addMerit(player, tier.merit());
-                player.sendSystemMessage(Component.literal("§a[科举] " + tier.zh()
-                        + "中第！功名 +" + tier.merit() + "（龙威 + 疾风 + 天命）"));
-            } else {
-                long left = (REWARD_COOLDOWN_MS - (now - last)) / 1000L + 1;
-                player.sendSystemMessage(Component.literal("§a[科举] " + tier.zh()
-                        + "中第！功名奖励冷却中（还剩 " + left + " 秒），效果照给。"));
-            }
-            DynastyMerit.onEvent(player, "keju");
-            DynastyAdvancements.awardForEvent(player, "keju");
-        } else {
-            player.sendSystemMessage(Component.literal("§c[科举] 答错了，正确答案是："
-                    + question.options()[question.correct() - 1]));
-        }
-    }
-
-    /** 按功名挑档（题库按门槛升序，取最高够格的一档）。/ highest tier the merit qualifies for. */
-    private static int tierFor(List<Tier> bank, int merit) {
-        int best = 0;
-        for (int i = 0; i < bank.size(); i++) {
-            if (merit >= bank.get(i).minMerit()) {
-                best = i;
-            }
-        }
-        return best;
-    }
-
-    /** 取题库：数据包优先，服务器换实例时重新读一次。/ bank from the datapack, cached per server. */
-    private static List<Tier> bank(ServerPlayer player) {
+    /**
+     * 判定答案并给予奖励。先验证再消费：只有令牌与选项都合法的那一次提交才结束本题。
+     */
+    public static void handleAnswer(ServerPlayer player, int token, int choice) {
         MinecraftServer server = player.getServer();
-        if (BANK_CACHE != null && BANK_OWNER == server) {
-            return BANK_CACHE;
+        KejuSessionRegistry.Submission verdict = sessions(server).submit(player.getUUID(), token, choice);
+        switch (verdict.status()) {
+            case NO_SESSION -> player.sendSystemMessage(Component.literal("§c[科举] 题目已失效，请重新开始考试。"));
+            case WRONG_TOKEN -> player.sendSystemMessage(Component.literal("§c[科举] 这次提交已过期（当前题目仍然有效，请重新作答）。"));
+            case ILLEGAL_CHOICE -> player.sendSystemMessage(Component.literal("§c[科举] 请选择 1 / 2 / 3。"));
+            case ACCEPTED -> grant(player, verdict.session(), verdict.correct());
         }
-        List<Tier> loaded = load(server);
-        BANK_CACHE = loaded;
-        BANK_OWNER = server;
-        return loaded;
     }
 
-    private static List<Tier> load(MinecraftServer server) {
-        if (server != null) {
-            try {
-                Optional<Resource> resource = server.getResourceManager().getResource(BANK);
-                if (resource.isPresent()) {
-                    try (BufferedReader reader = resource.get().openAsReader()) {
-                        JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-                        List<Tier> tiers = parse(root);
-                        if (!tiers.isEmpty()) {
-                            return tiers;
-                        }
-                    }
-                }
-            } catch (Exception error) {
-                Dynasty.LOGGER.warn("[Dynasty] 科举题库读取失败，改用内置题库 / keju bank load failed", error);
-            }
+    /** 发放奖励：效果与书不受冷却限制；只有档位功名受 30 秒冷却限制（保持原语义）。 */
+    private static void grant(ServerPlayer player, KejuSession session, boolean correct) {
+        if (!correct) {
+            player.sendSystemMessage(Component.literal("§c[科举] 答错了，正确答案是："
+                    + session.correctOption()));
+            return;
         }
-        return fallback();
+        long now = System.currentTimeMillis();
+        KejuCooldown meritCooldown = meritCooldown(player.getServer());
+        player.addEffect(new MobEffectInstance(DynastyEffects.DRAGON_MIGHT.get(), 20 * 180, 0));
+        player.addEffect(new MobEffectInstance(DynastyEffects.SWIFT_WIND.get(), 20 * 180, 0));
+        player.addEffect(new MobEffectInstance(DynastyEffects.MANDATE_OF_HEAVEN.get(), 20 * 180, 0));
+        player.getInventory().add(new ItemStack(Items.WRITABLE_BOOK));
+        if (meritCooldown.ready(player.getUUID(), now)) {
+            meritCooldown.mark(player.getUUID(), now);
+            meritCooldown.pruneExpired(now);
+            DynastyStats.addMerit(player, session.merit());
+            player.sendSystemMessage(Component.literal("§a[科举] " + session.tierZh()
+                    + "中第！功名 +" + session.merit() + "（龙威 + 疾风 + 天命）"));
+        } else {
+            long left = meritCooldown.remaining(player.getUUID(), now) / 1000L + 1;
+            player.sendSystemMessage(Component.literal("§a[科举] " + session.tierZh()
+                    + "中第！功名奖励冷却中（还剩 " + left + " 秒），效果照给。"));
+        }
+        DynastyMerit.onEvent(player, "keju");
+        DynastyAdvancements.awardForEvent(player, "keju");
     }
 
-    private static List<Tier> parse(JsonObject root) {
-        List<Tier> tiers = new ArrayList<>();
-        JsonArray array = root.getAsJsonArray("tiers");
-        if (array == null) {
-            return tiers;
-        }
-        for (JsonElement element : array) {
-            if (!element.isJsonObject()) {
-                continue;
-            }
-            JsonObject tier = element.getAsJsonObject();
-            JsonArray raw = tier.getAsJsonArray("questions");
-            List<Question> questions = new ArrayList<>();
-            if (raw != null) {
-                for (JsonElement candidate : raw) {
-                    if (!candidate.isJsonObject()) {
-                        continue;
-                    }
-                    JsonObject q = candidate.getAsJsonObject();
-                    JsonArray options = q.getAsJsonArray("a");
-                    if (q.get("q") == null || options == null || options.size() < 3) {
-                        continue;
-                    }
-                    int correct = q.has("correct") ? q.get("correct").getAsInt() : 1;
-                    if (correct < 1 || correct > 3) {
-                        correct = 1;
-                    }
-                    questions.add(new Question(q.get("q").getAsString(),
-                            new String[]{options.get(0).getAsString(), options.get(1).getAsString(),
-                                    options.get(2).getAsString()}, correct));
-                }
-            }
-            if (questions.isEmpty()) {
-                continue;
-            }
-            tiers.add(new Tier(tier.has("zh") ? tier.get("zh").getAsString() : "科举",
-                    tier.has("en") ? tier.get("en").getAsString() : "Exam",
-                    tier.has("minMerit") ? tier.get("minMerit").getAsInt() : 0,
-                    tier.has("merit") ? tier.get("merit").getAsInt() : 10,
-                    List.copyOf(questions)));
-        }
-        tiers.sort(Comparator.comparingInt(Tier::minMerit));
-        return tiers;
-    }
-
-    private static List<Tier> fallback() {
-        List<Question> questions = new ArrayList<>();
+    /** 内置兜底题库（唯一来源就是上面的 FALLBACK 表，兜底题数下限由 KejuRules 校验）。 */
+    private static List<KejuRules.Tier> fallbackTiers() {
+        List<KejuRules.Question> questions = new ArrayList<>();
         for (String[] row : FALLBACK) {
-            questions.add(new Question(row[0], new String[]{row[1], row[2], row[3]}, Integer.parseInt(row[4])));
+            questions.add(new KejuRules.Question(row[0], List.of(row[1], row[2], row[3]), Integer.parseInt(row[4])));
         }
-        return List.of(new Tier("县试", "County Exam", 0, 12, List.copyOf(questions)));
+        return List.of(new KejuRules.Tier("county", "县试", "County Exam", 0, 12, questions));
+    }
+
+    /** 取现役题库：还没加载过就先按服务器资源管理器读一次（缺文件 / 非法则回落兜底）。 */
+    private static List<KejuRules.Tier> bank(MinecraftServer server) {
+        if (!KejuBankCache.loaded()) {
+            onBankReload(server == null
+                    ? KejuRules.load(null, KejuRules.BANK_RESOURCE_PATH)
+                    : KejuReloadListener.readBank(server.getResourceManager(), BANK_LOCATION));
+        }
+        return KejuBankCache.active();
+    }
+
+    /**
+     * 题库重载结果处理：整份合法才替换现役题库；校验失败或文件缺失时保留旧题库，
+     * 首次加载（还没有有效题库）时回落到内置兜底。会话与冷却都不受影响。
+     */
+    public static void onBankReload(KejuRules.Load load) {
+        if (load == null) {
+            return;
+        }
+        if (load.ok()) {
+            KejuBankCache.install(load);
+            Dynasty.LOGGER.info("[Dynasty] 科举题库已装载：{} 档 / {} 题（{}）",
+                    load.tiers().size(), load.questionCount(), load.source());
+            return;
+        }
+        for (String problem : load.errors()) {
+            Dynasty.LOGGER.warn("[Dynasty] 科举题库问题：{}", problem);
+        }
+        if (!KejuBankCache.loaded()) {
+            List<KejuRules.Tier> fallback = fallbackTiers();
+            List<String> fallbackProblems = new ArrayList<>();
+            KejuRules.validateFallback(fallback, fallbackProblems);
+            for (String problem : fallbackProblems) {
+                Dynasty.LOGGER.error("[Dynasty] {}", problem);
+            }
+            KejuBankCache.installFallback(fallback, load.missingFile()
+                    ? "内置兜底题库（缺少 " + load.source() + "）"
+                    : "内置兜底题库（题库校验失败：" + load.errors().get(0) + "）");
+            Dynasty.LOGGER.warn("[Dynasty] 科举题库不可用，回落到内置兜底题库（{} 题）",
+                    fallback.get(0).questions().size());
+            return;
+        }
+        if (load.missingFile()) {
+            Dynasty.LOGGER.warn("[Dynasty] 科举题库文件缺失，继续沿用上一份有效题库：{}", load.source());
+        } else {
+            Dynasty.LOGGER.warn("[Dynasty] 科举题库校验失败，新题库不生效，继续沿用上一份有效题库");
+        }
+    }
+
+    /** 服务器关闭：清空该实例的待答会话、奖励冷却与服务端题库缓存。 */
+    public static void shutdown(MinecraftServer server) {
+        STATE.shutdown(server);
+        KejuBankCache.clear();
+    }
+
+    /** 玩家登出：丢弃待答会话，只清理已过期的冷却记录（冷却期内的记录保留）。 */
+    public static void forgetPlayer(ServerPlayer player) {
+        MinecraftServer server = player.getServer();
+        if (server == null) {
+            return;
+        }
+        sessions(server).forget(player.getUUID());
+        meritCooldown(server).pruneExpired(System.currentTimeMillis());
     }
 }

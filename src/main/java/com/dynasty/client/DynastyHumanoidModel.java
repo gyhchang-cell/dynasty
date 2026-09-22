@@ -33,6 +33,19 @@ public class DynastyHumanoidModel<T extends Mob> extends HumanoidModel<T> {
     public static LayerDefinition decoratedLayer(int style) {
         var mesh=HumanoidModel.createMesh(new CubeDeformation(style<=2?.18F:.04F),0);
         var root=mesh.getRoot();
+        if(style<=2) {
+            // Layered breastplate and flared greaves change the body silhouette as well as the halo.
+            var chest=root.getChild("body");
+            chest.addOrReplaceChild("breast_keel",CubeListBuilder.create().texOffs(20,20)
+                .addBox(-2.5F,0,-.5F,5,7,1),PartPose.offsetAndRotation(0,1,-2.6F,-.13F,0,0));
+            for(int side:new int[]{-1,1}) {
+                chest.addOrReplaceChild("waist_flare_"+side,CubeListBuilder.create().texOffs(16,16)
+                    .addBox(-1.5F,0,-2.5F,3,5,5),PartPose.offsetAndRotation(side*4.3F,8,0,0,0,-side*.32F));
+                var leg=root.getChild(side<0?"right_leg":"left_leg");
+                leg.addOrReplaceChild("knee_guard",CubeListBuilder.create().texOffs(20,20)
+                    .addBox(-2.4F,-1,-1,4.8F,4,1.5F),PartPose.offsetAndRotation(0,5,-2,.12F,0,0));
+            }
+        }
         for(int side:new int[]{-1,1}) {
             var arm=root.getChild(side<0?"right_arm":"left_arm");
             int plates=style<=2?3:2;

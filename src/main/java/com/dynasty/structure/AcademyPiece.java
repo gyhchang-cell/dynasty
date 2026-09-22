@@ -22,8 +22,8 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
  */
 public class AcademyPiece extends DynastyStructurePiece {
 
-    public static final int SIZE = 34;
-    public static final int HEIGHT = 14;
+    public static final int SIZE = 46;
+    public static final int HEIGHT = 18;
     private static final ResourceLocation LOOT = new ResourceLocation("dynasty", "chests/temple");
 
     public AcademyPiece(StructurePieceType type, int genDepth, BlockPos pos) {
@@ -36,9 +36,18 @@ public class AcademyPiece extends DynastyStructurePiece {
         super(type, tag);
     }
 
+    void lootChest(WorldGenLevel level, BoundingBox box, RandomSource random, int x,int y,int z,ResourceLocation table) {
+        createChest(level,box,random,x,y,z,table);
+    }
+
     @Override
     public void postProcess(WorldGenLevel level, StructureManager manager, ChunkGenerator generator,
                             RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
+        // Persisted old starts retain their 34-block layout, including not-yet-generated chunks.
+        if (getBoundingBox().getXSpan() >= SIZE) {
+            AcademyCourtyard.build(this, level, box, random);
+            return;
+        }
         BlockState brick = DynastyBlocks.PALACE_BRICKS.get().defaultBlockState();
         BlockState marble = DynastyBlocks.MARBLE_BLOCK.get().defaultBlockState();
         BlockState jade = DynastyBlocks.JADE_BLOCK.get().defaultBlockState();

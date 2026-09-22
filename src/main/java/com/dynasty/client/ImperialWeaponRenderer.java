@@ -50,14 +50,16 @@ public final class ImperialWeaponRenderer {
     private static ClientLevel world;
 
     private static void updateTarget(Descent effect,float partial) {
-        if(effect.finished>=0)return;
         var target=world.getEntity(effect.packet.targetId());
-        if(target==null||!target.getUUID().equals(effect.packet.targetUuid())||!target.isAlive())return;
+        if(target==null||!target.getUUID().equals(effect.packet.targetUuid()))return;
         if(!effect.measured) {
             effect.halfHeight=target.getBbHeight()*.5;
             effect.headOffset=Math.max(2.4,effect.halfHeight+1.1);
             effect.measured=true;
         }
+        // A late observer may receive only the landing packet, including a now-dead target.
+        // Measure its silhouette before freezing the server-provided hit point for the fade.
+        if(effect.finished>=0||!target.isAlive())return;
         // Non-player victims are sealed at the packet's initial center. Players are not rooted:
         // preserve normal PvP movement and keep their visual mark attached as before.
         if(target instanceof net.minecraft.world.entity.player.Player)
@@ -192,17 +194,20 @@ public final class ImperialWeaponRenderer {
                 double fade=effect.finished<0?1:Math.max(0,1-(world.getGameTime()-effect.finished+partial)/12.0);
                 double yaw=Math.toRadians(p.yaw());
                 Vec3 forward=new Vec3(-Math.sin(yaw),0,Math.cos(yaw)),right=new Vec3(Math.cos(yaw),0,Math.sin(yaw));
-                var phase=ImperialWeaponGeometry.descentPhase(age,QinglongDescent.DRAGON_START_TICK,QinglongDescent.WINDUP_TICKS);
+                var phase=ImperialWeaponGeometry.descentPhase(age,QinglongDescent.DRAGON_START_TICK,
+                        QinglongDescent.WINDUP_TICKS,effect.finished>=0);
                 double floor=-effect.halfHeight+.045;
                 geometry(matrix,center,right,new Vec3(0,1,0),forward,1)
                         .sealCage(age,phase.charge(),phase.connection(),floor,effect.headOffset,
                                 ImperialWeaponGeometry.DESCENT_SEAL_RADIUS,fade);
                 if(phase.dragonAlpha()>0 && fade>0 && meshFaces()+ImperialDragonMesh.FACES.size()<=120000) {
-                    var offset=ImperialWeaponGeometry.descentDragonOrigin(effect.headOffset,phase.travel());
-                    Vec3 dragonOrigin=center.add(right.scale(offset.x())).add(0,offset.y(),0).add(forward.scale(offset.z()));
-                    geometry(matrix,dragonOrigin,right,new Vec3(0,1,0),forward,1)
+                    var pose=ImperialWeaponGeometry.descentDragonPose(effect.headOffset,phase.travel());
+                    Vec3 up=new Vec3(0,1,0);
+                    Vec3 dragonOrigin=point(center,right,up,forward,pose.origin(),1);
+                    geometry(matrix,dragonOrigin,point(Vec3.ZERO,right,up,forward,pose.x(),1),
+                            point(Vec3.ZERO,right,up,forward,pose.y(),1),point(Vec3.ZERO,right,up,forward,pose.z(),1),1)
                             .dragon(new ImperialWeaponGeometry.P(0,0,0),ImperialWeaponGeometry.DESCENT_DRAGON_SIZE,
-                                    Math.PI*.75,age,0x36cbbb,phase.dragonAlpha()*fade);
+                                    0,age,0x36cbbb,phase.dragonAlpha()*fade);
                 }
                 if(effect.finished>=0)geometry(matrix,center.add(0,floor,0),right,forward,new Vec3(0,1,0),
                         ImperialWeaponGeometry.DESCENT_SEAL_RADIUS+(1-fade)*.9)
@@ -271,7 +276,8 @@ public final class ImperialWeaponRenderer {
             double age=Math.max(0,world.getGameTime()-effect.packet.started()+partial);
             double fade=effect.finished<0?1:Math.max(0,1-(world.getGameTime()-effect.finished+partial)/12.0);
             updateTarget(effect,partial);
-            if(age>QinglongDescent.DRAGON_START_TICK&&fade>0&&effect.position.distanceToSqr(camera)<=64*64)count++;
+            if((effect.finished>=0||age>QinglongDescent.DRAGON_START_TICK)
+                    &&fade>0&&effect.position.distanceToSqr(camera)<=64*64)count++;
         }
         // Remote, expired and still-only-forming seals must not hide a local pair of golden dragons.
         return Math.min(count,120000/ImperialDragonMesh.FACES.size())*ImperialDragonMesh.FACES.size();

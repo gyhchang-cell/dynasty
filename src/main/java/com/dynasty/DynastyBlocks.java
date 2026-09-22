@@ -131,6 +131,12 @@ public class DynastyBlocks {
     public static final RegistryObject<Block> RITUAL_ALTAR =
             custom("ritual_altar", () -> new com.dynasty.block.RitualAltarBlock(
                     stone(4.0F).lightLevel(s -> 11)));
+
+    /** 悬赏告示板：右键打开日常委托界面 / bounty board for daily commissions */
+    public static final RegistryObject<Block> BOUNTY_BOARD =
+            custom("bounty_board", () -> new com.dynasty.bounty.BountyBoardBlock(
+                    BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
+                            .strength(2.0F).sound(SoundType.WOOD)));
     /** 编钟 / Chime Bell */
     public static final RegistryObject<Block> CHIME_BELL =
             custom("chime_bell", () -> new com.dynasty.block.DynastyInstrumentBlock(

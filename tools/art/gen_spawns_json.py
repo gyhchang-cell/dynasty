@@ -6,9 +6,25 @@
 """
 import json
 import os
+from pathlib import Path
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT = os.path.join(ROOT, "src/main/resources/data/dynasty/forge/biome_modifier")
+SOLDIER = "dynasty:imperial_soldier"
+PATROL_BIOMES = ("celestial_plains", "jade_forest", "dragon_ridge", "underworld_wastes",
+                 "soul_river", "jiuxiao_skyland", "dragon_palace_hall")
+
+
+def normalize_patrols(biome):
+    """CREATURE entities must not enter MONSTER spawn loops (the caps use entity category).
+
+    Mutate only the patrol entry; keep every building, other mob and biome property intact.
+    """
+    spawners = biome.setdefault("spawners", {})
+    for category, entries in spawners.items():
+        spawners[category] = [entry for entry in entries if entry["type"] != SOLDIER]
+    spawners.setdefault("creature", []).append(
+        {"type": SOLDIER, "weight": 3, "minCount": 1, "maxCount": 1})
 
 # 文件后缀 -> (群系标签, [(实体, 权重, 最少, 最多)])
 SPAWNS = {
@@ -20,7 +36,7 @@ SPAWNS = {
     "elite_celestial": ("#dynasty:celestial", [("dynasty:eunuch_mastermind", 2, 1, 1)]),
     "elite_palace": ("#dynasty:dragon_palace", [("dynasty:rebel_general", 2, 1, 1)]),
     "overworld_army": ("#minecraft:is_overworld",
-                       [("dynasty:imperial_soldier", 8, 1, 2),
+                       [(SOLDIER, 3, 1, 1),
                         ("dynasty:assassin", 6, 1, 1),
                         ("dynasty:archer", 6, 1, 2),
                         ("dynasty:royal_guard", 3, 1, 1)]),
@@ -44,6 +60,12 @@ def main():
             handle.write("\n")
         print("spawn:", suffix, "->", biomes,
               ", ".join(s[0] for s in spawners))
+    for name in PATROL_BIOMES:
+        path = Path(ROOT) / "src/main/resources/data/dynasty/worldgen/biome" / (name + ".json")
+        biome = json.loads(path.read_text(encoding="utf-8"))
+        normalize_patrols(biome)
+        path.write_text(json.dumps(biome, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print("patrol:", name, "-> creature / weight 3 / single soldier")
 
 
 if __name__ == "__main__":

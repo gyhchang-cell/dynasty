@@ -42,14 +42,13 @@ public final class VerifyImperialDragon {
         check(Math.abs(size/2.7-1.5)<1e-10,"Attack dragon must be 1.5 times the original scale");
         check(ImperialWeaponGeometry.DRAGON_ENLARGEMENT==3.0,"Decorative guardians must retain their scale");
         check(ImperialWeaponGeometry.DESCENT_START_HEIGHT==12.0,"Raised descent height must be preserved");
-        P impact=ImperialDragonMesh.impactOffset(size,Math.PI*.75);
-        check(length(subtract(impact,rotate(ImperialDragonMesh.MUZZLE,size,Math.PI*.75)))<1e-10,"Impact landmark transform drifted");
+        P impact=ImperialWeaponGeometry.descentDragonPose(2.4,0).direction(ImperialDragonMesh.MUZZLE).scale(size);
         // The renderer subtracts this local offset in the yaw-dependent right/up/forward basis.
         for(double yaw:new double[]{0,Math.PI/2,Math.PI*.79})for(double age:new double[]{18,19,26,31,32,44}){
             P target=new P(11.2,68.7,-4.5),right=new P(Math.cos(yaw),0,Math.sin(yaw)),forward=new P(-Math.sin(yaw),0,Math.cos(yaw));
             var phase=ImperialWeaponGeometry.descentPhase(age,18,32);
             double lift=(2.4+12.0)*(1-phase.travel()*phase.travel());
-            P offset=ImperialWeaponGeometry.descentDragonOrigin(2.4,phase.travel());
+            P offset=ImperialWeaponGeometry.descentDragonPose(2.4,phase.travel()).origin();
             P origin=target.add(right.scale(offset.x())).add(new P(0,offset.y(),0)).add(forward.scale(offset.z()));
             P nose=origin.add(right.scale(impact.x())).add(new P(0,impact.y(),0)).add(forward.scale(impact.z()));
             check(length(subtract(nose,target.add(new P(0,lift,0))))<1e-9,"Descent muzzle drifts off the target axis");

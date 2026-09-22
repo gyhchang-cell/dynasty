@@ -47,6 +47,8 @@ public class MainHallPiece extends DynastyStructurePiece {
         BlockState screen = DynastyBlocks.SCREEN.get().defaultBlockState();
         BlockState air = Blocks.AIR.defaultBlockState();
 
+        fill(level,box,2,3,2,19,22,17,air);
+
         // 1) 殿基（三层须弥座）/ hall podium (three tiers)
         fill(level, box, 1, 0, 1, 20, 0, 18, marble);
         fill(level, box, 2, 1, 2, 19, 1, 17, brick);
@@ -68,7 +70,7 @@ public class MainHallPiece extends DynastyStructurePiece {
         fill(level, box, 8, 11, 16, 13, 11, 16, marble);
 
         // 4) 金柱 / interior columns
-        for (int x = 5; x <= 16; x += 3) {
+        for (int x : new int[]{5,16}) {
             for (int z = 5; z <= 15; z += 3) {
                 for (int y = 3; y <= 11; y++) {
                     set(level, box, x, y, z, pillar);
@@ -117,13 +119,22 @@ public class MainHallPiece extends DynastyStructurePiece {
         set(level, box, 11, 11, 5, DynastyBlocks.PLAQUE.get().defaultBlockState());
         set(level, box, 8, 3, 9, DynastyBlocks.ALTAR.get().defaultBlockState());
         set(level, box, 13, 3, 9, DynastyBlocks.ALTAR.get().defaultBlockState());
-        set(level, box, 10, 3, 12, DynastyBlocks.INCENSE_BURNER.get().defaultBlockState());
-        set(level, box, 11, 3, 12, DynastyBlocks.CHIME_BELL.get().defaultBlockState());
+        set(level, box, 7, 3, 12, DynastyBlocks.INCENSE_BURNER.get().defaultBlockState());
+        set(level, box, 14, 3, 12, DynastyBlocks.CHIME_BELL.get().defaultBlockState());
+        // Keep the ceremonial axis free, with a real walkable carpet approach.
+        fill(level,box,9,3,8,12,3,15,Blocks.RED_CARPET.defaultBlockState());
+        for(int x:new int[]{6,15})for(int z:new int[]{7,10,13}) {
+            set(level,box,x,3,z,Blocks.LECTERN.defaultBlockState());
+            set(level,box,x,3,z+1,com.dynasty.worldgen.DynastyBuildKit.facing(
+                    Blocks.DARK_OAK_STAIRS.defaultBlockState(),Direction.NORTH));
+        }
+        set(level,box,7,3,5,Blocks.CARTOGRAPHY_TABLE.defaultBlockState());
+        set(level,box,14,3,5,Blocks.ENDER_CHEST.defaultBlockState());
         set(level, box, 5, 3, 15, DynastyBlocks.TAIKO_DRUM.get().defaultBlockState());
         set(level, box, 16, 3, 15, DynastyBlocks.TAIKO_DRUM.get().defaultBlockState());
 
         // 7) 封顶与宝箱 / ceiling details + treasure
-        createChest(level, box, random, 5, 3, 15, LOOT);
-        createChest(level, box, random, 16, 3, 15, LOOT);
+        createChest(level, box, random, 7, 3, 15, LOOT);
+        createChest(level, box, random, 14, 3, 15, LOOT);
     }
 }

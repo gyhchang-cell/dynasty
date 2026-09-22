@@ -12,15 +12,43 @@ public final class ImperialWeaponGeometry {
     public record DescentPhase(double charge,double connection,double travel,double dragonAlpha) {}
     /** Server timing is supplied by the caller so previews and rendering use the same phase math. */
     public static DescentPhase descentPhase(double age,int dragonStart,int impactTick) {
+        return descentPhase(age,dragonStart,impactTick,false);
+    }
+    /** A confirmed server hit always wins over the client's interpolated clock. */
+    public static DescentPhase descentPhase(double age,int dragonStart,int impactTick,boolean landed) {
+        if(landed)age=Math.max(age,impactTick);
         return new DescentPhase(clamp(age/SEAL_FORMATION_TICKS),
                 clamp((age-SEAL_FORMATION_TICKS)/Math.max(1,dragonStart-SEAL_FORMATION_TICKS)),
                 clamp((age-dragonStart)/Math.max(1,impactTick-dragonStart)),clamp((age-dragonStart)/3));
     }
-    /** Local X/right, Y/up, Z/forward origin; the actual sculpted muzzle lands at the target center. */
-    public static P descentDragonOrigin(double headOffset,double travel) {
-        var hit=ImperialDragonMesh.impactOffset(DESCENT_DRAGON_SIZE,Math.PI*.75);
+    /** A rigid model-space transform, shared by the cached mesh and diagnostics. */
+    public record DescentPose(P origin,P x,P y,P z) {
+        public P direction(P value){return x.scale(value.x).add(y.scale(value.y)).add(z.scale(value.z));}
+        public P point(P value){return origin.add(direction(value).scale(DESCENT_DRAGON_SIZE));}
+    }
+    private static final class DiveAxes {
+        // The sculpted head has its own sideways yaw: rotateZ(135 degrees) alone never makes
+        // its actual snout point down. Build a full orthonormal frame from the real landmarks.
+        static final P FRONT=unit(ImperialDragonMesh.MUZZLE.add(ImperialDragonMesh.HEAD_CENTER.scale(-1)));
+        static final P UP=unit(new P(0,1,0).add(FRONT.scale(-FRONT.y)));
+        static final P RIGHT=cross(FRONT,UP);
+        // Snout -> -Y; original body-up -> -Z, leaving the long body trailing away from the caster.
+        static final P X=new P(RIGHT.x,-FRONT.x,-UP.x);
+        static final P Y=new P(RIGHT.y,-FRONT.y,-UP.y);
+        static final P Z=new P(RIGHT.z,-FRONT.z,-UP.z);
+    }
+    private static P cross(P a,P b){return new P(a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x);}
+    private static P unit(P p){return p.scale(1/Math.sqrt(p.x*p.x+p.y*p.y+p.z*p.z));}
+    /** Nose-first descent through the upper seal's centre; endpoint is the authoritative hit point. */
+    public static DescentPose descentDragonPose(double headOffset,double travel) {
+        var rotation=new DescentPose(new P(0,0,0),DiveAxes.X,DiveAxes.Y,DiveAxes.Z);
+        P hit=rotation.direction(ImperialDragonMesh.MUZZLE).scale(DESCENT_DRAGON_SIZE);
         double t=clamp(travel),lift=(headOffset+DESCENT_START_HEIGHT)*(1-t*t);
-        return new P(-hit.x(),lift-hit.y(),-hit.z());
+        return new DescentPose(new P(-hit.x,lift-hit.y,-hit.z),DiveAxes.X,DiveAxes.Y,DiveAxes.Z);
+    }
+    /** Compatibility accessor; callers drawing a dragon must also apply descentDragonPose axes. */
+    public static P descentDragonOrigin(double headOffset,double travel) {
+        return descentDragonPose(headOffset,travel).origin;
     }
     public record P(double x, double y, double z) {
         public P add(P p) { return new P(x+p.x,y+p.y,z+p.z); }

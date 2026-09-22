@@ -143,8 +143,11 @@ public final class QinglongDescent {
             resolving=true;
             try {
                 // Normal armor, resistance, absorption, PvP and protection hooks still apply.
+                // Capture where damage is applied, before death/retaliation hooks can move or
+                // resize the target. The visual landing must not jump to its post-hit position.
+                Vec3 impactCenter=target.getBoundingBox().getCenter();
                 boolean landed=target.hurt(source,strike.damage);
-                send(level,target,strike,landed?1:2);
+                send(level,strike,impactCenter,landed?1:2);
             } finally {resolving=false;}
         }
     }

@@ -32,7 +32,7 @@ public class PalaceStructure extends Structure {
         if (y <= ctx.chunkGenerator().getSeaLevel() + 1) {
             return Optional.empty();
         }
-        BlockPos origin = new BlockPos(x - 24, y - 2, z - 24);
+        BlockPos origin = new BlockPos(x - PalacePiece.SIZE / 2, y - 2, z - PalacePiece.SIZE / 2);
         return Optional.of(new GenerationStub(origin, builder -> {
             PalacePiece piece = new PalacePiece(DynastyStructures.PALACE_PIECE.get(), 0, origin);
             builder.addPiece(piece);

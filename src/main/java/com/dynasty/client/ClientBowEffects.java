@@ -30,6 +30,7 @@ public final class ClientBowEffects {
             IMPACTS.add(effect);
             if (IMPACTS.size() > 48) IMPACTS.remove(0);
         }
+        else if (packet.kind() == 2) ARROWS.remove(packet.entityId());
     }
     private ClientBowEffects() {}
 }

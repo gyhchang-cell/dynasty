@@ -60,6 +60,10 @@ def add_guides(chapters):
         token_quest = next(q for q in quests if q["kind"]=="item" and q["target"]=="dynasty:"+token)
         token_name = token_quest["title"].split(" ×")[0]
         description = [jump("← 返回主线讨伐 · "+title,main["id"]),"",
+            "&b&l罗盘导航 · 先到对应维度&r",
+            "主手拿自然罗盘，在聊天输入 /dynasty_find "+boss+"，直接请求寻找该 Boss 的一种栖息生物群系。不是追踪 Boss 实体，也不保证到达即刷新。",
+            "找王朝建筑请使用探索者罗盘。输入 /dynasty_find 打开可点击目的地列表；罗盘只搜索当前维度，不负责传送。",
+            "",
             "&6&l在哪里打 · 首次寻找&r",location,
             "怪物生成受难度、刷怪条件与附近实体数量影响。和平难度不适合找这些敌对 Boss；自然生成不是到点必刷。",
             "","&e&l开战前准备&r",prepare,"","&c&l怎么打 · 阶段与应对&r",tactics,

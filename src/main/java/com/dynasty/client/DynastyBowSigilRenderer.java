@@ -2,6 +2,7 @@ package com.dynasty.client;
 
 import com.dynasty.Dynasty;
 import com.dynasty.DynastyBowRitual;
+import com.dynasty.BowTrajectoryMath;
 import com.dynasty.DynastyWeapons;
 import com.dynasty.HouyiAvatarShape;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -105,11 +106,14 @@ public final class DynastyBowSigilRenderer {
             var entity = mc.level.getEntity(packet.entityId());
             if (!(entity instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow)
                     || !arrow.isAlive() || arrow.getDeltaMovement().lengthSqr() < 0.01) continue;
-            Vec3 direction = arrow.getDeltaMovement().normalize();
+            // Match ArrowRenderer's interpolated model axis. Delta movement already includes
+            // next-tick gravity/steering and would tilt the seal away from the visible arrow.
+            Vec3 direction = BowTrajectoryMath.renderedDirection(
+                    arrow.yRotO, arrow.getYRot(), arrow.xRotO, arrow.getXRot(), partial);
             Vec3 right = direction.cross(new Vec3(0,1,0)).normalize();
             if (right.lengthSqr() < 0.01) right = new Vec3(1,0,0);
             Vec3 up = right.cross(direction).normalize();
-            Vec3 p = arrow.getPosition(partial).add(direction.scale(0.35)).subtract(camera);
+            Vec3 p = arrow.getPosition(partial).add(direction.scale(0.25)).subtract(camera);
             float[] color = packet.phoenix() ? new float[]{1,0.25F,0.3F} : new float[]{1,0.68F,0.32F};
             double size = 0.18 + packet.tier()*0.045;
             new Sigil(matrix,p,right.scale(size),up.scale(size),color,1).draw(Math.min(2,packet.tier()),arrow.tickCount+partial);
