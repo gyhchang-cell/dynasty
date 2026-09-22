@@ -37,21 +37,21 @@ public class ImperialTombFeature extends Feature<NoneFeatureConfiguration> {
                     BlockPos p = origin.offset(dx, dy, dz);
                     boolean shell = Math.abs(dx) == r || Math.abs(dz) == r || dy == -1 || dy == h;
                     if (shell) {
-                        level.setBlock(p, (dy == -1) ? DynastyFeatures.bricks() : DynastyFeatures.marble(), 2);
+                        DynastyFeaturePlacement.setBlock(level, p, (dy == -1) ? DynastyFeatures.bricks() : DynastyFeatures.marble(), 2);
                     } else {
-                        level.setBlock(p, Blocks.CAVE_AIR.defaultBlockState(), 2);
+                        DynastyFeaturePlacement.setBlock(level, p, Blocks.CAVE_AIR.defaultBlockState(), 2);
                     }
                 }
             }
         }
-        level.setBlock(origin.below(), DynastyFeatures.jade(), 2);
-        level.setBlock(origin, Blocks.CHEST.defaultBlockState(), 2);
-        if (level.getBlockEntity(origin) instanceof ChestBlockEntity chest) {
+        DynastyFeaturePlacement.setBlock(level, origin.below(), DynastyFeatures.jade(), 2);
+        if (DynastyFeaturePlacement.setBlock(level, origin, Blocks.CHEST.defaultBlockState(), 2)
+                && level.getBlockEntity(origin) instanceof ChestBlockEntity chest) {
             chest.setLootTable(new ResourceLocation(Dynasty.MODID, "chests/imperial_tomb"), rand.nextLong());
         }
         for (int dx : new int[]{-r + 1, r - 1}) {
             for (int dz : new int[]{-r + 1, r - 1}) {
-                level.setBlock(origin.offset(dx, 2, dz), DynastyFeatures.lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(dx, 2, dz), DynastyFeatures.lantern(), 2);
             }
         }
         // 守卫：兵马俑 / guardians

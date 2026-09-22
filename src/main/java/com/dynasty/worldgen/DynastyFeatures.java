@@ -150,22 +150,22 @@ public class DynastyFeatures {
             for (int dx = -half; dx <= half; dx++) {
                 for (int dz = -half; dz <= half; dz++) {
                     BlockPos p = new BlockPos(origin.getX() + dx, y - 1, origin.getZ() + dz);
-                    level.setBlock(p, (Math.abs(dx) == half || Math.abs(dz) == half) ? bricks() : marble(), 2);
-                    level.setBlock(p.above(), Blocks.AIR.defaultBlockState(), 2);
+                    DynastyFeaturePlacement.setBlock(level, p, (Math.abs(dx) == half || Math.abs(dz) == half) ? bricks() : marble(), 2);
+                    DynastyFeaturePlacement.setBlock(level, p.above(), Blocks.AIR.defaultBlockState(), 2);
                 }
             }
             for (int dx : new int[]{-half + 1, half - 1}) {
                 for (int dz : new int[]{-half + 1, half - 1}) {
                     for (int h = 0; h < 4; h++) {
-                        level.setBlock(new BlockPos(origin.getX() + dx, y + h, origin.getZ() + dz), pillar(), 2);
+                        DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + dx, y + h, origin.getZ() + dz), pillar(), 2);
                     }
-                    level.setBlock(new BlockPos(origin.getX() + dx, y + 4, origin.getZ() + dz), lantern(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + dx, y + 4, origin.getZ() + dz), lantern(), 2);
                 }
             }
-            level.setBlock(new BlockPos(origin.getX(), y, origin.getZ()), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), y, origin.getZ()), jade(), 2);
             BlockPos chestPos = new BlockPos(origin.getX(), y + 1, origin.getZ());
-            level.setBlock(chestPos, Blocks.CHEST.defaultBlockState(), 2);
-            if (level.getBlockEntity(chestPos) instanceof ChestBlockEntity chest) {
+            if (DynastyFeaturePlacement.setBlock(level, chestPos, Blocks.CHEST.defaultBlockState(), 2)
+                    && level.getBlockEntity(chestPos) instanceof ChestBlockEntity chest) {
                 chest.setLootTable(new ResourceLocation(Dynasty.MODID, "chests/palace_ruin"), rand.nextLong());
             }
             return true;

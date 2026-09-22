@@ -61,7 +61,7 @@ public final class DynastyBuildings {
     static void plane(WorldGenLevel level, int x0, int z0, int x1, int z1, int y, BlockState state) {
         for (int x = x0; x <= x1; x++) {
             for (int z = z0; z <= z1; z++) {
-                level.setBlock(new BlockPos(x, y, z), state, 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y, z), state, 2);
             }
         }
     }
@@ -70,7 +70,7 @@ public final class DynastyBuildings {
         for (int x = x0; x <= x1; x++) {
             for (int y = y0; y <= y1; y++) {
                 for (int z = z0; z <= z1; z++) {
-                    level.setBlock(new BlockPos(x, y, z), air(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y, z), air(), 2);
                 }
             }
         }
@@ -79,20 +79,20 @@ public final class DynastyBuildings {
     static void walls(WorldGenLevel level, int x0, int y0, int z0, int x1, int y1, int z1, BlockState state) {
         for (int y = y0; y <= y1; y++) {
             for (int x = x0; x <= x1; x++) {
-                level.setBlock(new BlockPos(x, y, z0), state, 2);
-                level.setBlock(new BlockPos(x, y, z1), state, 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y, z0), state, 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y, z1), state, 2);
             }
             for (int z = z0; z <= z1; z++) {
-                level.setBlock(new BlockPos(x0, y, z), state, 2);
-                level.setBlock(new BlockPos(x1, y, z), state, 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x0, y, z), state, 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x1, y, z), state, 2);
             }
         }
     }
 
     static void chest(WorldGenLevel level, RandomSource rand, int x, int y, int z, ResourceLocation loot) {
         BlockPos pos = new BlockPos(x, y, z);
-        level.setBlock(pos, Blocks.CHEST.defaultBlockState(), 2);
-        if (level.getBlockEntity(pos) instanceof ChestBlockEntity be) {
+        if (DynastyFeaturePlacement.setBlock(level, pos, Blocks.CHEST.defaultBlockState(), 2)
+                && level.getBlockEntity(pos) instanceof ChestBlockEntity be) {
             be.setLootTable(loot, rand.nextLong());
         }
     }
@@ -129,12 +129,12 @@ public final class DynastyBuildings {
                     for (int w = -1; w <= 1; w++) {
                         int px = alongX ? bx : bx + w;
                         int pz = alongX ? bz + w : bz;
-                        level.setBlock(new BlockPos(px, y + wy, pz), wy == 5 ? bricks() : marble(), 2);
+                        DynastyFeaturePlacement.setBlock(level, new BlockPos(px, y + wy, pz), wy == 5 ? bricks() : marble(), 2);
                     }
                 }
-                level.setBlock(new BlockPos(bx, y + 6, bz), bricks(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(bx, y + 6, bz), bricks(), 2);
                 if (i % 6 == 0) {
-                    level.setBlock(new BlockPos(alongX ? bx : bx + 1, y + 7, alongX ? bz + 1 : bz),
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(alongX ? bx : bx + 1, y + 7, alongX ? bz + 1 : bz),
                             lantern(), 2);
                 }
                 if (i == length / 2) {
@@ -142,14 +142,14 @@ public final class DynastyBuildings {
                         for (int dx = -2; dx <= 2; dx++) {
                             for (int dz = -2; dz <= 2; dz++) {
                                 if (Math.abs(dx) == 2 || Math.abs(dz) == 2) {
-                                    level.setBlock(new BlockPos(bx + dx, y + wy, bz + dz),
+                                    DynastyFeaturePlacement.setBlock(level, new BlockPos(bx + dx, y + wy, bz + dz),
                                             wy >= 9 ? bricks() : pillar(), 2);
                                 }
                             }
                         }
                     }
                     plane(level, bx - 2, bz - 2, bx + 2, bz + 2, y + 12, bricks());
-                    level.setBlock(new BlockPos(bx, y + 13, bz), lantern(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(bx, y + 13, bz), lantern(), 2);
                     chest(level, rand, bx + 1, y + 7, bz + 1, loot("palace_ruin"));
                 }
             }
@@ -191,13 +191,13 @@ public final class DynastyBuildings {
                         origin.getX() + radius + 1, origin.getZ() + radius + 1, base + 3, marble());
                 for (int dx = -radius - 1; dx <= radius + 1; dx += 2 * (radius + 1)) {
                     for (int dz = -radius - 1; dz <= radius + 1; dz += 2 * (radius + 1)) {
-                        level.setBlock(new BlockPos(origin.getX() + dx, base + 4, origin.getZ() + dz),
+                        DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + dx, base + 4, origin.getZ() + dz),
                                 lantern(), 2);
                     }
                 }
                 // 塔心柱 / central pillar
                 for (int h = 0; h <= 3; h++) {
-                    level.setBlock(new BlockPos(origin.getX(), base + h, origin.getZ()), pillar(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), base + h, origin.getZ()), pillar(), 2);
                 }
                 if (tier % 2 == 0) {
                     chest(level, rand, origin.getX() + 1, base + 1, origin.getZ() + 1, loot("palace_ruin"));
@@ -206,9 +206,9 @@ public final class DynastyBuildings {
             }
             // 塔刹 / finial
             int top = y0 + 1 + 7 * 4;
-            level.setBlock(new BlockPos(origin.getX(), top, origin.getZ()), jade(), 2);
-            level.setBlock(new BlockPos(origin.getX(), top + 1, origin.getZ()), bronze(), 2);
-            level.setBlock(new BlockPos(origin.getX(), top + 2, origin.getZ()), lantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), top, origin.getZ()), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), top + 1, origin.getZ()), bronze(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), top + 2, origin.getZ()), lantern(), 2);
             return true;
         }
     }
@@ -223,7 +223,7 @@ public final class DynastyBuildings {
             for (int x = -r; x <= r; x++) {
                 for (int z = -r; z <= r; z++) {
                     if (x * x + z * z <= r * r) {
-                        level.setBlock(new BlockPos(cx + x, y, cz + z), state, 2);
+                        DynastyFeaturePlacement.setBlock(level, new BlockPos(cx + x, y, cz + z), state, 2);
                     }
                 }
             }
@@ -244,15 +244,15 @@ public final class DynastyBuildings {
             disc(level, origin.getX(), origin.getZ(), y0 + 2, 5, bricks());
             for (int[] c : new int[][]{{-4, -4}, {-4, 4}, {4, -4}, {4, 4}}) {
                 for (int h = 0; h < 5; h++) {
-                    level.setBlock(new BlockPos(origin.getX() + c[0], y0 + 3 + h, origin.getZ() + c[1]),
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y0 + 3 + h, origin.getZ() + c[1]),
                             pillar(), 2);
                 }
-                level.setBlock(new BlockPos(origin.getX() + c[0], y0 + 8, origin.getZ() + c[1]),
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y0 + 8, origin.getZ() + c[1]),
                         lantern(), 2);
             }
-            level.setBlock(new BlockPos(origin.getX(), y0 + 3, origin.getZ()),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), y0 + 3, origin.getZ()),
                     DynastyBlocks.ALTAR.get().defaultBlockState(), 2);
-            level.setBlock(new BlockPos(origin.getX(), y0 + 3, origin.getZ() + 1), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), y0 + 3, origin.getZ() + 1), jade(), 2);
             chest(level, rand, origin.getX() + 1, y0 + 3, origin.getZ() - 1, loot("palace_ruin"));
             return true;
         }
@@ -270,11 +270,11 @@ public final class DynastyBuildings {
             plane(level, x - 1, z - 1, x + w + 1, z + d + 1, y + 4, marble());
             for (int dx = -1; dx <= w + 1; dx += w + 2) {
                 for (int dz = -1; dz <= d + 1; dz += d + 2) {
-                    level.setBlock(new BlockPos(x + dx, y + 5, z + dz), lantern(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x + dx, y + 5, z + dz), lantern(), 2);
                 }
             }
-            level.setBlock(new BlockPos(x + w / 2, y + 1, z + d / 2), pillar(), 2);
-            level.setBlock(new BlockPos(x + w / 2, y + 2, z + d / 2), lantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x + w / 2, y + 1, z + d / 2), pillar(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x + w / 2, y + 2, z + d / 2), lantern(), 2);
         }
 
         @Override
@@ -289,19 +289,19 @@ public final class DynastyBuildings {
             for (int x = -9; x <= 9; x++) {
                 for (int z = -9; z <= 9; z++) {
                     boolean edge = Math.abs(x) == 9 || Math.abs(z) == 9;
-                    level.setBlock(new BlockPos(origin.getX() + x, y - 1, origin.getZ() + z),
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + x, y - 1, origin.getZ() + z),
                             edge ? bricks() : marble(), 2);
                 }
             }
             house(level, origin.getX() - 7, origin.getZ() - 7, y, 5, 5);
             house(level, origin.getX() + 2, origin.getZ() - 7, y, 5, 4);
             house(level, origin.getX() - 7, origin.getZ() + 2, y, 4, 5);
-            level.setBlock(new BlockPos(origin.getX() + 3, y, origin.getZ() + 3),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + 3, y, origin.getZ() + 3),
                     Blocks.WATER.defaultBlockState(), 2);
             for (int[] c : new int[][]{{2, 2}, {2, 4}, {4, 2}, {4, 4}}) {
-                level.setBlock(new BlockPos(origin.getX() + c[0], y + 1, origin.getZ() + c[1]),
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + 1, origin.getZ() + c[1]),
                         bronze(), 2);
-                level.setBlock(new BlockPos(origin.getX() + c[0], y + 2, origin.getZ() + c[1]),
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + 2, origin.getZ() + c[1]),
                         bricks(), 2);
             }
             chest(level, rand, origin.getX() + 3, y + 1, origin.getZ() + 2, loot("palace_ruin"));
@@ -325,18 +325,18 @@ public final class DynastyBuildings {
             }
             for (int side : new int[]{-3, 3}) {
                 for (int h = 0; h < 6; h++) {
-                    level.setBlock(new BlockPos(origin.getX() + side, y + h, origin.getZ()), pillar(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + side, y + h, origin.getZ()), pillar(), 2);
                 }
             }
             plane(level, origin.getX() - 4, origin.getZ(), origin.getX() + 4, origin.getZ(), y + 6, bricks());
             plane(level, origin.getX() - 5, origin.getZ(), origin.getX() + 5, origin.getZ(), y + 7, marble());
             for (int dx = -5; dx <= 5; dx += 10) {
-                level.setBlock(new BlockPos(origin.getX() + dx, y + 8, origin.getZ()), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + dx, y + 8, origin.getZ()), lantern(), 2);
             }
-            level.setBlock(new BlockPos(origin.getX(), y + 5, origin.getZ()),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), y + 5, origin.getZ()),
                     DynastyBlocks.PLAQUE.get().defaultBlockState(), 2);
-            level.setBlock(new BlockPos(origin.getX() - 1, y + 5, origin.getZ()), jade(), 2);
-            level.setBlock(new BlockPos(origin.getX() + 1, y + 5, origin.getZ()), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() - 1, y + 5, origin.getZ()), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + 1, y + 5, origin.getZ()), jade(), 2);
             return true;
         }
     }

@@ -89,7 +89,9 @@ public final class ImperialRuntimeQa {
             });
             verifyTransparency();
             sealDescent("qinglong-cage-forming",13);
+            sealDescent("qinglong-cage-dragon-start",21);
             sealDescent("qinglong-cage-dragon-descending",26);
+            sealDescent("qinglong-cage-dragon-landing",32);
             mobPreview("dragon_emperor",1,1.35F);
             mobPreview("nine_heaven_general",2,1.28F);
             mobPreview("jade_guard",3,1.08F);
@@ -230,10 +232,14 @@ public final class ImperialRuntimeQa {
                 var cage=(ImperialWeaponGeometry)geometry.invoke(null,pose,center,right,up,forward,1d);
                 cage.sealCage(age,phase.charge(),phase.connection(),-.955,2.4,ImperialWeaponGeometry.DESCENT_SEAL_RADIUS,1);
                 if(phase.dragonAlpha()>0) {
-                    var offset=ImperialWeaponGeometry.descentDragonOrigin(2.4,phase.travel());
-                    var dragon=(ImperialWeaponGeometry)geometry.invoke(null,pose,center.add(offset.x(),offset.y(),offset.z()),right,up,forward,1d);
+                    var dive=ImperialWeaponGeometry.descentDragonPose(2.4,phase.travel());
+                    var offset=dive.origin();
+                    var dragon=(ImperialWeaponGeometry)geometry.invoke(null,pose,center.add(offset.x(),offset.y(),offset.z()),
+                            new Vec3(dive.x().x(),dive.x().y(),dive.x().z()),
+                            new Vec3(dive.y().x(),dive.y().y(),dive.y().z()),
+                            new Vec3(dive.z().x(),dive.z().y(),dive.z().z()),1d);
                     dragon.dragon(new ImperialWeaponGeometry.P(0,0,0),ImperialWeaponGeometry.DESCENT_DRAGON_SIZE,
-                            Math.PI*.75,age,0x36cbbb,phase.dragonAlpha());
+                            0,age,0x36cbbb,phase.dragonAlpha());
                     require(dragons.size()==1,"seal frame queues exactly one cached production dragon");
                 }
                 glow=buffer.end();drawFaces.invoke(null,pose);

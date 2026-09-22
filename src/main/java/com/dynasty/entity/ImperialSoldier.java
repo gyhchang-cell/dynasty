@@ -32,6 +32,7 @@ public class ImperialSoldier extends PathfinderMob {
     static final int NATURAL_LOCAL_LIMIT = 4;
     static final double NATURAL_LOCAL_RADIUS = 48.0D;
     private UUID ownerId;
+    private boolean savedLeashProtection;
 
     public ImperialSoldier(EntityType<? extends ImperialSoldier> type, Level level) {
         super(type, level);
@@ -64,6 +65,9 @@ public class ImperialSoldier extends PathfinderMob {
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         ownerId = tag.hasUUID("DynastyOwner") ? tag.getUUID("DynastyOwner") : null;
+        // Leash holders resolve only on a later mob tick; isLeashed() is false during join.
+        // Conservatively keep this protection for the session, even if later unhitched.
+        savedLeashProtection = tag.contains("Leash", 10);
     }
 
     private static boolean natural(MobSpawnType reason) {
@@ -74,7 +78,10 @@ public class ImperialSoldier extends PathfinderMob {
     public boolean checkSpawnRules(LevelAccessor level, MobSpawnType reason) {
         if (!super.checkSpawnRules(level, reason)) return false;
         if (!natural(reason)) return true; // Commands, eggs and the player's army are not wild patrols.
-        if (!Mob.checkMobSpawnRules(getType(), level, reason, blockPosition(), level.getRandom())) return false;
+        // WorldGenRegion cannot see live entities, so its animal population pass bypasses
+        // density checks. Patrols enter only through the live, capped natural-spawn pass.
+        if (reason == MobSpawnType.CHUNK_GENERATION) return false;
+        if (!Mob.checkMobSpawnRules(DynastyEntities.IMPERIAL_SOLDIER.get(), level, reason, blockPosition(), level.getRandom())) return false;
         return level.getEntitiesOfClass(ImperialSoldier.class,
                 getBoundingBox().inflate(NATURAL_LOCAL_RADIUS),
                 soldier -> soldier != this && soldier.isAlive() && natural(soldier.getSpawnType()))
@@ -88,7 +95,7 @@ public class ImperialSoldier extends PathfinderMob {
 
     @Override
     public boolean requiresCustomPersistence() {
-        return ownerId != null || hasCustomName() || super.requiresCustomPersistence();
+        return ownerId != null || hasCustomName() || savedLeashProtection || super.requiresCustomPersistence();
     }
 
     @Override
@@ -96,7 +103,7 @@ public class ImperialSoldier extends PathfinderMob {
         // Forge saves forge:spawn_type even for old worlds. Unknown/command origins are
         // deliberately preserved: the old army did not save its owner's UUID.
         return natural(getSpawnType()) && ownerId == null && !hasCustomName()
-                && !isPersistenceRequired() && !isLeashed() && !isPassenger() && !isVehicle();
+                && !isPersistenceRequired() && !savedLeashProtection && !isLeashed() && !isPassenger() && !isVehicle();
     }
 
     @Override

@@ -101,6 +101,81 @@ public final class BowRitualGameTests {
     }
 
     @GameTest(template = "bow_ritual_test", timeoutTicks = 30)
+    public static void homingKeepsItsTargetInsteadOfZigzagging(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var player = testPlayer(helper);
+        var first = helper.spawn(EntityType.ZOMBIE, 5, 2, 8);
+        var other = helper.spawn(EntityType.ZOMBIE, 3, 2, 9);
+        first.setNoAi(true); first.setNoGravity(true);
+        other.setNoAi(true); other.setNoGravity(true);
+        Arrow arrow = new Arrow(level, player);
+        arrow.setPos(Vec3.atCenterOf(helper.absolutePos(new BlockPos(4, 2, 4))));
+        arrow.setDeltaMovement(0, 0, 3);
+        DynastyBowRitual.trackArrow(arrow, DynastyWeapons.HOUYI_BOW.get(), 308);
+        DynastyBowRitual.home(level, arrow);
+        helper.assertTrue(arrow.getDeltaMovement().x > 0, "Initial target should be on the right");
+        // A new, nearer enemy would steal the old nearest-distance selection every two ticks.
+        other.setPos(arrow.position().add(-0.3, -0.4, 2.0));
+        arrow.setDeltaMovement(0, 0, 3);
+        DynastyBowRitual.home(level, arrow);
+        helper.assertTrue(arrow.getDeltaMovement().x > 0, "A still-valid lock must not switch sides");
+        helper.assertTrue(Math.abs(arrow.getDeltaMovement().length() - 3) < 1.0E-8,
+                "Guidance must not alter arrow speed");
+        player.discard(); helper.succeed();
+    }
+
+    @GameTest(template = "bow_ritual_test", timeoutTicks = 30)
+    public static void homingNeverPullsTowardPlayersOrWideSideTargets(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var player = testPlayer(helper);
+        var bystander = testPlayer(helper);
+        Vec3 origin = Vec3.atCenterOf(helper.absolutePos(new BlockPos(4,2,4)));
+        player.setPos(origin.add(0,0,-2));
+        bystander.setPos(origin.add(0,-0.5,3));
+        var side = helper.spawn(EntityType.ZOMBIE,8,2,8);
+        var behind = helper.spawn(EntityType.ZOMBIE,4,2,2);
+        var sheep = helper.spawn(EntityType.SHEEP,4,2,6);
+        side.setNoAi(true); behind.setNoAi(true); sheep.setNoAi(true);
+        Arrow arrow = new Arrow(level,player);
+        arrow.setPos(origin); arrow.setDeltaMovement(0,0,3);
+        DynastyBowRitual.home(level,arrow);
+        helper.assertTrue(arrow.getDeltaMovement().distanceToSqr(new Vec3(0,0,3)) < 1.0E-10,
+                "Players, animals, rear targets and 45-degree side targets must not hijack the shot");
+        player.discard(); bystander.discard(); helper.succeed();
+    }
+
+    @GameTest(template = "bow_ritual_test", timeoutTicks = 30)
+    public static void trajectoryKeepsVanillaLaunchGravityAndRenderPitch(GameTestHelper helper) {
+        var player = helper.makeMockSurvivalPlayer();
+        player.setPos(Vec3.atCenterOf(helper.absolutePos(new BlockPos(7,20,7))));
+        player.setXRot(-60); player.setYRot(33); player.setDeltaMovement(Vec3.ZERO);
+        Arrow arrow = new Arrow(helper.getLevel(),player);
+        arrow.shootFromRotation(player,player.getXRot(),player.getYRot(),0,3,0);
+        // Vanilla's lookup-table trig yields a nearly, not exactly, unit look vector.
+        // Normalize both before checking angular agreement (same strict dot threshold).
+        Vec3 launch = arrow.getDeltaMovement().normalize();
+        Vec3 look = player.getLookAngle().normalize();
+        helper.assertTrue(launch.dot(look) > 0.99999,
+                "Upward shots must leave along the aiming vector: launch=" + launch + ", look=" + look);
+        Vec3 expectedPosition = arrow.position();
+        Vec3 expectedVelocity = arrow.getDeltaMovement();
+        for (int tick = 0; tick < 4; tick++) {
+            expectedPosition = expectedPosition.add(expectedVelocity);
+            expectedVelocity = expectedVelocity.scale((double)0.99F).add(0,-(double)0.05F,0);
+            arrow.tick();
+            helper.assertTrue(arrow.position().distanceToSqr(expectedPosition) < 1.0E-10,
+                    "Unguided arrow must preserve vanilla ballistic position");
+            helper.assertTrue(arrow.getDeltaMovement().distanceToSqr(expectedVelocity) < 1.0E-10,
+                    "Unguided arrow must preserve vanilla gravity and drag");
+        }
+        Vec3 rendered = BowTrajectoryMath.renderedDirection(170,190,10,30,0.5F);
+        helper.assertTrue(Math.abs(rendered.y - Math.sin(Math.toRadians(20))) < 1.0E-10
+                && rendered.z < 0 && Math.abs(rendered.x) < 1.0E-10,
+                "Seal must use vanilla interpolated arrow yaw/pitch, including positive-up pitch");
+        helper.succeed();
+    }
+
+    @GameTest(template = "bow_ritual_test", timeoutTicks = 30)
     public static void avatarClearsOnlyItsShape(GameTestHelper helper) {
         var level = helper.getLevel();
         var player = testPlayer(helper);

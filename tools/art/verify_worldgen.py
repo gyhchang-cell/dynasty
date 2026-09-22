@@ -16,6 +16,7 @@ import json
 import os
 import re
 import sys
+from test_patrol_spawns import validate_patrol_spawns
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DATA = os.path.join(ROOT, "src/main/resources/data/dynasty")
@@ -74,6 +75,7 @@ def walk(node):
 
 
 def main():
+    problems.extend(validate_patrol_spawns())
     dimension_types = load_all(os.path.join(DATA, "dimension_type"))
     dimensions = load_all(os.path.join(DATA, "dimension"))
     noises = load_all(os.path.join(WORLDGEN, "noise_settings"))

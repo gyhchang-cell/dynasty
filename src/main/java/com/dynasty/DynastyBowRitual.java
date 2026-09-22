@@ -330,6 +330,8 @@ public final class DynastyBowRitual {
                 && canSeek(server, arrow, shot, target) ? target : null;
         if (best == null) {
             shot.targetId = null;
+            if (arrow.tickCount < shot.nextScanTick) return;
+            shot.nextScanTick = arrow.tickCount + 2;
             double bestScore = Double.POSITIVE_INFINITY;
             for (LivingEntity candidate : server.getEntitiesOfClass(LivingEntity.class,
                     arrow.getBoundingBox().inflate(BowTrajectoryMath.SEEK_RADIUS), Entity::isAlive)) {
@@ -403,6 +405,7 @@ public final class DynastyBowRitual {
         private boolean detonated;
         private Vec3 launchDirection;
         private UUID targetId;
+        private int nextScanTick;
         private final Set<UUID> hitEntities = new HashSet<>();
         Shot(ResourceKey<Level> dimension, int tier, boolean phoenix, long createdAt) {
             this.dimension = dimension; this.tier = tier; this.phoenix = phoenix; this.createdAt = createdAt;

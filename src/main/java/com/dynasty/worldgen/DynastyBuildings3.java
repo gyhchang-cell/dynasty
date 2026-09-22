@@ -76,16 +76,16 @@ public class DynastyBuildings3 {
             hallBody(level, x - 5, base + 5, z - 3, x + 5, base + 8, z + 3, marble(), pillar());
             roof(level, x, base + 10, z, 6, 4, bricks(), jade(), quartzStair());
             floor(level, x - 7, base, z - 4, x + 7, z + 4, bricks());
-            level.setBlock(new BlockPos(x, base + 1, z + 3),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, base + 1, z + 3),
                     DynastyBlocks.DRAGON_THRONE.get().defaultBlockState(), 2);
-            level.setBlock(new BlockPos(x, base + 2, z + 3), lantern(), 2);
-            level.setBlock(new BlockPos(x - 6, base + 1, z - 4),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, base + 2, z + 3), lantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x - 6, base + 1, z - 4),
                     DynastyBlocks.INCENSE_BURNER.get().defaultBlockState(), 2);
-            level.setBlock(new BlockPos(x + 6, base + 1, z - 4),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x + 6, base + 1, z - 4),
                     DynastyBlocks.INCENSE_BURNER.get().defaultBlockState(), 2);
-            level.setBlock(new BlockPos(x - 3, base + 1, z - 3),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x - 3, base + 1, z - 3),
                     DynastyBlocks.CHIME_BELL.get().defaultBlockState(), 2);
-            level.setBlock(new BlockPos(x + 3, base + 1, z - 3),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x + 3, base + 1, z - 3),
                     DynastyBlocks.TAIKO_DRUM.get().defaultBlockState(), 2);
             chest(level, rand, x - 6, base + 1, z + 3, "palace_ruin");
             chest(level, rand, x + 6, base + 1, z + 3, "palace_ruin");
@@ -111,13 +111,13 @@ public class DynastyBuildings3 {
             railing(level, x - 3, z - 3, x + 3, z + 3, top + 1, pillar());
             for (int[] c : new int[][]{{-3, -3}, {-3, 3}, {3, -3}, {3, 3}}) {
                 column(level, x + c[0], top, top + 2, z + c[1], pillar());
-                level.setBlock(new BlockPos(x + c[0], top + 3, z + c[1]), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + c[0], top + 3, z + c[1]), lantern(), 2);
             }
-            level.setBlock(new BlockPos(x, top + 1, z), bronze(), 2);
-            level.setBlock(new BlockPos(x, top + 2, z), jade(), 2);
-            level.setBlock(new BlockPos(x, top + 3, z), jade(), 2);
-            level.setBlock(new BlockPos(x, top + 4, z), jade(), 2);
-            level.setBlock(new BlockPos(x, top + 5, z), lantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, top + 1, z), bronze(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, top + 2, z), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, top + 3, z), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, top + 4, z), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, top + 5, z), lantern(), 2);
             chest(level, rand, x, top + 1, z + 2, "palace_ruin");
             chest(level, rand, x - 2, top + 1, z - 2, "palace_ruin");
             guard(level, rand, x, top + 1, z, DynastyEntities.ARCHER.get(), 2);
@@ -138,9 +138,9 @@ public class DynastyBuildings3 {
             }
             for (int i = 3; i < length; i += 6) {
                 column(level, x + i, y + 1, y + 3, z - 1, pillar());
-                level.setBlock(new BlockPos(x + i, y + 4, z - 1), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + i, y + 4, z - 1), lantern(), 2);
                 column(level, x + i, y + 1, y + 3, z + 1, pillar());
-                level.setBlock(new BlockPos(x + i, y + 4, z + 1), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + i, y + 4, z + 1), lantern(), 2);
             }
             chest(level, rand, x + 4, y + 1, z + 5, "palace_ruin");
             chest(level, rand, x + 11, y + 1, z - 5, "palace_ruin");
@@ -154,8 +154,8 @@ public class DynastyBuildings3 {
             floor(level, x - hx, y, z - hx, x + hx, z + hx, marble());
             hallBody(level, x - hx, y + 1, z - hx, x + hx, y + 3, z + hx, bricks(), pillar());
             gableRoof(level, x - hx, y + 5, z - hx, x + hx, z + hx, darkOakStair(), jade(), darkOakStair());
-            level.setBlock(new BlockPos(x, y + 6, z - hx), plaque(), 2);
-            level.setBlock(new BlockPos(x + side, y + 1, z + side * hx), bronze(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y + 6, z - hx), plaque(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x + side, y + 1, z + side * hx), bronze(), 2);
             if (rand.nextBoolean()) {
                 chest(level, rand, x - 1, y + 1, z + 1, "palace_ruin");
             }
@@ -168,16 +168,16 @@ public class DynastyBuildings3 {
                 column(level, x + side, y + 1, y + 7, z - 2, blackstone());
                 column(level, x + side, y + 1, y + 7, z + 2, blackstone());
                 column(level, x + side, y + 1, y + 7, z, bone());
-                level.setBlock(new BlockPos(x + side, y + 8, z - 2), lantern(), 2);
-                level.setBlock(new BlockPos(x + side, y + 8, z + 2), lantern(), 2);
-                level.setBlock(new BlockPos(x + side, y + 8, z), soulSoil(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + side, y + 8, z - 2), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + side, y + 8, z + 2), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + side, y + 8, z), soulSoil(), 2);
             }
             plane(level, x - 6, z - 2, x + 6, z + 2, y + 8, blackstone());
             plane(level, x - 5, z - 1, x + 5, z + 1, y + 9, soulSoil());
-            level.setBlock(new BlockPos(x, y + 8, z - 2), lantern(), 2);
-            level.setBlock(new BlockPos(x, y + 8, z + 2), lantern(), 2);
-            level.setBlock(new BlockPos(x, y + 6, z - 3), plaque(), 2);
-            level.setBlock(new BlockPos(x, y + 6, z + 3), plaque(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y + 8, z - 2), lantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y + 8, z + 2), lantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y + 6, z - 3), plaque(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y + 6, z + 3), plaque(), 2);
             chest(level, rand, x + 3, y + 1, z - 1, "palace_ruin");
             guard(level, rand, x, y + 1, z, DynastyEntities.SOUL_SOLDIER.get(), 3);
             materials(level, rand, x - 3, y + 1, z + 1, bone(), 6);
@@ -190,12 +190,12 @@ public class DynastyBuildings3 {
             hallBody(level, x - 7, base, z - 4, x + 7, base + 4, z + 4, blackstone(), bone());
             roof(level, x, base + 5, z, 9, 6, soulSoil(), blackstone(), blackstoneStair());
             floor(level, x - 6, base, z - 3, x + 6, z + 3, blackstone());
-            level.setBlock(new BlockPos(x, base + 1, z + 2),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, base + 1, z + 2),
                     DynastyBlocks.ALTAR.get().defaultBlockState(), 2);
-            level.setBlock(new BlockPos(x, base + 2, z + 2), lantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, base + 2, z + 2), lantern(), 2);
             for (int i = -2; i <= 2; i += 2) {
                 column(level, x + i, base + 1, base + 3, z - 3, bone());
-                level.setBlock(new BlockPos(x + i, base + 4, z - 3), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + i, base + 4, z - 3), lantern(), 2);
             }
             chest(level, rand, x - 5, base + 1, z + 2, "palace_ruin");
             chest(level, rand, x + 5, base + 1, z + 2, "palace_ruin");
@@ -210,18 +210,18 @@ public class DynastyBuildings3 {
                 int arch = (int) Math.round(4.0D * Math.sin(Math.PI * i / span));
                 int yy = y + arch;
                 for (int w = -2; w <= 2; w++) {
-                    level.setBlock(new BlockPos(x + i, yy, z + w), blackstone(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x + i, yy, z + w), blackstone(), 2);
                     if (Math.abs(w) == 2) {
-                        level.setBlock(new BlockPos(x + i, yy + 1, z + w), bone(), 2);
+                        DynastyFeaturePlacement.setBlock(level, new BlockPos(x + i, yy + 1, z + w), bone(), 2);
                     }
-                    level.setBlock(new BlockPos(x + i, yy - 1, z + w), air(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x + i, yy - 1, z + w), air(), 2);
                 }
             }
             for (int i = 0; i <= span; i += span) {
                 column(level, x + i, y, y + 5, z - 3, bone());
                 column(level, x + i, y, y + 5, z + 3, bone());
-                level.setBlock(new BlockPos(x + i, y + 6, z - 3), lantern(), 2);
-                level.setBlock(new BlockPos(x + i, y + 6, z + 3), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + i, y + 6, z - 3), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + i, y + 6, z + 3), lantern(), 2);
             }
             chest(level, rand, x + span / 2, y + 4, z, "palace_ruin");
             guard(level, rand, x + span / 2, y + 4, z, DynastyEntities.SOUL_SOLDIER.get(), 2);
@@ -234,15 +234,15 @@ public class DynastyBuildings3 {
             for (int i = 0; i < steps; i++) {
                 int yy = y + i;
                 for (int w = -2; w <= 2; w++) {
-                    level.setBlock(new BlockPos(x, yy, z + i * 1).offset(0, 0, 0), marble(), 2);
-                    level.setBlock(new BlockPos(x + w, yy, z + i), marble(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x, yy, z + i * 1).offset(0, 0, 0), marble(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x + w, yy, z + i), marble(), 2);
                     if (Math.abs(w) == 2) {
-                        level.setBlock(new BlockPos(x + w, yy + 1, z + i), pillar(), 2);
+                        DynastyFeaturePlacement.setBlock(level, new BlockPos(x + w, yy + 1, z + i), pillar(), 2);
                     }
                 }
                 if (i % 6 == 0) {
-                    level.setBlock(new BlockPos(x - 3, yy + 1, z + i), lantern(), 2);
-                    level.setBlock(new BlockPos(x + 3, yy + 1, z + i), lantern(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x - 3, yy + 1, z + i), lantern(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x + 3, yy + 1, z + i), lantern(), 2);
                 }
             }
             int top = y + steps;
@@ -250,7 +250,7 @@ public class DynastyBuildings3 {
             railing(level, x - 6, z + steps - 6, x + 6, z + steps + 6, top + 1, pillar());
             for (int[] c : new int[][]{{-6, -6}, {-6, 6}, {6, -6}, {6, 6}}) {
                 column(level, x + c[0], top + 1, top + 4, z + steps + c[1], pillar());
-                level.setBlock(new BlockPos(x + c[0], top + 5, z + steps + c[1]), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + c[0], top + 5, z + steps + c[1]), lantern(), 2);
             }
             chest(level, rand, x, top + 1, z + steps, "palace_ruin");
             guard(level, rand, x, top + 1, z + steps, DynastyEntities.THUNDER_ENVOY.get(), 2);
@@ -267,12 +267,12 @@ public class DynastyBuildings3 {
             railing(level, x - 7, z - 7, x + 7, z + 7, base + 1, pillar());
             for (int[] c : new int[][]{{-5, -5}, {-5, 0}, {-5, 5}, {0, -5}, {0, 5}, {5, -5}, {5, 0}, {5, 5}}) {
                 column(level, x + c[0], base + 1, base + 4, z + c[1], marble());
-                level.setBlock(new BlockPos(x + c[0], base + 5, z + c[1]),
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + c[0], base + 5, z + c[1]),
                         net.minecraft.world.level.block.Blocks.LIGHTNING_ROD.defaultBlockState(), 2);
             }
-            level.setBlock(new BlockPos(x, base + 1, z), jade(), 2);
-            level.setBlock(new BlockPos(x, base + 2, z), bronze(), 2);
-            level.setBlock(new BlockPos(x, base + 3, z), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, base + 1, z), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, base + 2, z), bronze(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, base + 3, z), jade(), 2);
             chest(level, rand, x + 6, base + 1, z + 6, "palace_ruin");
             chest(level, rand, x - 6, base + 1, z - 6, "palace_ruin");
             guard(level, rand, x, base + 1, z, DynastyEntities.THUNDER_ENVOY.get(), 3);
@@ -286,11 +286,11 @@ public class DynastyBuildings3 {
             hallBody(level, x - 8, base, z - 5, x + 8, base + 4, z + 5, prismarine(), darkPrismarine());
             roof(level, x, base + 5, z, 10, 7, darkPrismarine(), prismarine(), prismarineStair());
             floor(level, x - 7, base, z - 4, x + 7, z + 4, darkPrismarine());
-            level.setBlock(new BlockPos(x, base + 1, z + 3),
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, base + 1, z + 3),
                     DynastyBlocks.DRAGON_THRONE.get().defaultBlockState(), 2);
-            level.setBlock(new BlockPos(x, base + 2, z + 3), seaLantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, base + 2, z + 3), seaLantern(), 2);
             for (int[] c : new int[][]{{-5, -4}, {5, -4}, {-5, 4}, {5, 4}}) {
-                level.setBlock(new BlockPos(x + c[0], base + 1, z + c[1]), seaLantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + c[0], base + 1, z + c[1]), seaLantern(), 2);
             }
             chest(level, rand, x - 6, base + 1, z + 3, "dragon_palace");
             chest(level, rand, x + 6, base + 1, z + 3, "dragon_palace");
@@ -311,8 +311,8 @@ public class DynastyBuildings3 {
                         darkPrismarine());
                 for (int[] c : new int[][]{{-radius - 1, -radius - 1}, {-radius - 1, radius + 1},
                                            {radius + 1, -radius - 1}, {radius + 1, radius + 1}}) {
-                    level.setBlock(new BlockPos(x + c[0], ty + 3, z + c[1]), prismarineStair(), 2);
-                    level.setBlock(new BlockPos(x + c[0], ty + 2, z + c[1]), seaLantern(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x + c[0], ty + 3, z + c[1]), prismarineStair(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x + c[0], ty + 2, z + c[1]), seaLantern(), 2);
                 }
                 if (tier % 2 == 0) {
                     chest(level, rand, x + 1, ty + 1, z + 1, "dragon_palace");
@@ -320,9 +320,9 @@ public class DynastyBuildings3 {
                 radius = Math.max(2, radius - 1);
             }
             int top = base + 5 * 4;
-            level.setBlock(new BlockPos(x, top, z), seaLantern(), 2);
-            level.setBlock(new BlockPos(x, top + 1, z), prismarine(), 2);
-            level.setBlock(new BlockPos(x, top + 2, z), seaLantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, top, z), seaLantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, top + 1, z), prismarine(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x, top + 2, z), seaLantern(), 2);
             chest(level, rand, x, top + 1, z + 1, "dragon_palace");
             guard(level, rand, x, top + 1, z, DynastyEntities.MERFOLK.get(), 2);
             materials(level, rand, x + 1, top + 1, z - 1, seaLantern(), 4);

@@ -75,25 +75,25 @@ public final class DynastyBuildings2 {
                     if (d > 64) {
                         continue;
                     }
-                    level.setBlock(new BlockPos(origin.getX() + x, y - 1, origin.getZ() + z), marble(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + x, y - 1, origin.getZ() + z), marble(), 2);
                     if (d <= 25 && d >= 16) {
-                        level.setBlock(new BlockPos(origin.getX() + x, y, origin.getZ() + z), jade(), 2);
+                        DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + x, y, origin.getZ() + z), jade(), 2);
                     } else if (d <= 9) {
-                        level.setBlock(new BlockPos(origin.getX() + x, y, origin.getZ() + z), bricks(), 2);
+                        DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + x, y, origin.getZ() + z), bricks(), 2);
                     }
                 }
             }
             // 中央法阵祭坛 + 四块玉石 / central altar with jade ring
-            level.setBlock(new BlockPos(origin.getX(), y + 1, origin.getZ()), altar(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), y + 1, origin.getZ()), altar(), 2);
             for (int[] c : new int[][]{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}) {
-                level.setBlock(new BlockPos(origin.getX() + c[0], y + 1, origin.getZ() + c[1]), jade(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + 1, origin.getZ() + c[1]), jade(), 2);
             }
             // 四根立柱 / four pillars
             for (int[] c : new int[][]{{-6, -6}, {-6, 6}, {6, -6}, {6, 6}}) {
                 for (int h = 0; h < 4; h++) {
-                    level.setBlock(new BlockPos(origin.getX() + c[0], y + h, origin.getZ() + c[1]), pillar(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + h, origin.getZ() + c[1]), pillar(), 2);
                 }
-                level.setBlock(new BlockPos(origin.getX() + c[0], y + 4, origin.getZ() + c[1]), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + 4, origin.getZ() + c[1]), lantern(), 2);
             }
             DynastyBuildings.chest(level, rand, origin.getX() + 2, y + 1, origin.getZ() + 2, DynastyBuildings.loot("ritual_circle"));
             return true;
@@ -127,7 +127,7 @@ public final class DynastyBuildings2 {
             DynastyBuildings.plane(level, origin.getX() - 15, origin.getZ() - 15,
                     origin.getX() + 15, origin.getZ() + 15, y + 6, marble());
             for (int[] c : new int[][]{{-14, -14}, {-14, 14}, {14, -14}, {14, 14}}) {
-                level.setBlock(new BlockPos(origin.getX() + c[0], y + 7, origin.getZ() + c[1]), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + 7, origin.getZ() + c[1]), lantern(), 2);
             }
             // 大门 / gateway on the south wall
             DynastyBuildings.clear(level, origin.getX() - 2, y, origin.getZ() + 14,
@@ -136,22 +136,22 @@ public final class DynastyBuildings2 {
             // 神像台 + 法阵祭坛 / idol platform and ritual altar
             DynastyBuildings.plane(level, origin.getX() - 4, origin.getZ() - 4,
                     origin.getX() + 4, origin.getZ() + 4, y, bricks());
-            level.setBlock(new BlockPos(origin.getX(), y + 1, origin.getZ()), altar(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), y + 1, origin.getZ()), altar(), 2);
             for (int[] c : new int[][]{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}) {
-                level.setBlock(new BlockPos(origin.getX() + c[0], y + 1, origin.getZ() + c[1]), jade(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + 1, origin.getZ() + c[1]), jade(), 2);
             }
             for (int[] c : new int[][]{{-3, -3}, {-3, 3}, {3, -3}, {3, 3}}) {
                 for (int h = 1; h <= 6; h++) {
-                    level.setBlock(new BlockPos(origin.getX() + c[0], y + h, origin.getZ() + c[1]), pillar(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + h, origin.getZ() + c[1]), pillar(), 2);
                 }
-                level.setBlock(new BlockPos(origin.getX() + c[0], y + 7, origin.getZ() + c[1]), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + 7, origin.getZ() + c[1]), lantern(), 2);
             }
             // 两侧神台与宝箱 / side shrines
             for (int side : new int[]{-9, 9}) {
                 DynastyBuildings.plane(level, origin.getX() + side - 2, origin.getZ() - 2,
                         origin.getX() + side + 2, origin.getZ() + 2, y, bricks());
-                level.setBlock(new BlockPos(origin.getX() + side, y + 1, origin.getZ()), bronze(), 2);
-                level.setBlock(new BlockPos(origin.getX() + side, y + 2, origin.getZ()), jade(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + side, y + 1, origin.getZ()), bronze(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + side, y + 2, origin.getZ()), jade(), 2);
                 DynastyBuildings.chest(level, rand, origin.getX() + side, y + 1, origin.getZ() + 2,
                         DynastyBuildings.loot("temple"));
             }
@@ -171,7 +171,7 @@ public final class DynastyBuildings2 {
             DynastyBuildings.walls(level, x, y, z, x + w, y + 3, z + d, bricks());
             DynastyBuildings.clear(level, x + 1, y, z + 1, x + w - 1, y + 3, z + d - 1);
             DynastyBuildings.plane(level, x - 1, z - 1, x + w + 1, z + d + 1, y + 4, marble());
-            level.setBlock(new BlockPos(x + w / 2, y + 2, z + d / 2), lantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(x + w / 2, y + 2, z + d / 2), lantern(), 2);
         }
 
         @Override
@@ -185,7 +185,7 @@ public final class DynastyBuildings2 {
             }
             for (int x = -11; x <= 11; x++) {
                 for (int z = -11; z <= 11; z++) {
-                    level.setBlock(new BlockPos(origin.getX() + x, y - 1, origin.getZ() + z),
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + x, y - 1, origin.getZ() + z),
                             (Math.abs(x) == 11 || Math.abs(z) == 11) ? bricks() : marble(), 2);
                 }
             }
@@ -195,9 +195,9 @@ public final class DynastyBuildings2 {
             // 兵器架 / weapon racks
             for (int[] c : new int[][]{{-6, 2}, {6, 2}, {0, 0}}) {
                 for (int h = 0; h < 3; h++) {
-                    level.setBlock(new BlockPos(origin.getX() + c[0], y + h, origin.getZ() + c[1]), pillar(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + h, origin.getZ() + c[1]), pillar(), 2);
                 }
-                level.setBlock(new BlockPos(origin.getX() + c[0], y + 3, origin.getZ() + c[1]), bronze(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + 3, origin.getZ() + c[1]), bronze(), 2);
             }
             DynastyBuildings.chest(level, rand, origin.getX(), y, origin.getZ() - 2,
                     DynastyBuildings.loot("barracks"));
@@ -224,7 +224,7 @@ public final class DynastyBuildings2 {
             }
             for (int x = -4; x <= 4; x++) {
                 for (int z = -4; z <= 4; z++) {
-                    level.setBlock(new BlockPos(origin.getX() + x, y - 1, origin.getZ() + z), marble(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + x, y - 1, origin.getZ() + z), marble(), 2);
                 }
             }
             // 塔身 / tower body
@@ -236,15 +236,15 @@ public final class DynastyBuildings2 {
             DynastyBuildings.plane(level, origin.getX() - 5, origin.getZ() - 5,
                     origin.getX() + 5, origin.getZ() + 5, y + 15, marble());
             for (int[] c : new int[][]{{-5, -5}, {-5, 5}, {5, -5}, {5, 5}}) {
-                level.setBlock(new BlockPos(origin.getX() + c[0], y + 16, origin.getZ() + c[1]), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + c[0], y + 16, origin.getZ() + c[1]), lantern(), 2);
             }
-            level.setBlock(new BlockPos(origin.getX(), y + 16, origin.getZ()), bronze(), 2);
-            level.setBlock(new BlockPos(origin.getX(), y + 17, origin.getZ()), lantern(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), y + 16, origin.getZ()), bronze(), 2);
+            DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX(), y + 17, origin.getZ()), lantern(), 2);
             // 层间地板与箱 / floors and chests
             for (int floorY : new int[]{y + 5, y + 10}) {
                 DynastyBuildings.plane(level, origin.getX() - 2, origin.getZ() - 2,
                         origin.getX() + 2, origin.getZ() + 2, floorY, bricks());
-                level.setBlock(new BlockPos(origin.getX() + 1, floorY + 1, origin.getZ() + 1), jade(), 2);
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(origin.getX() + 1, floorY + 1, origin.getZ() + 1), jade(), 2);
                 DynastyBuildings.chest(level, rand, origin.getX() - 1, floorY + 1, origin.getZ() - 1,
                         DynastyBuildings.loot("watchtower"));
             }
@@ -285,9 +285,9 @@ public final class DynastyBuildings2 {
             int y = origin.getY();
             for (int x = -4; x <= 4; x++) {
                 for (int z = -4; z <= 4; z++) {
-                    level.setBlock(origin.offset(x, y - 1, z), marble(), 2);
+                    DynastyFeaturePlacement.setBlock(level, origin.offset(x, y - 1, z), marble(), 2);
                     if (Math.abs(x) == 4 || Math.abs(z) == 4) {
-                        level.setBlock(origin.offset(x, y, z), bricks(), 2);
+                        DynastyFeaturePlacement.setBlock(level, origin.offset(x, y, z), bricks(), 2);
                     }
                 }
             }
@@ -302,20 +302,20 @@ public final class DynastyBuildings2 {
                         }
                         boolean door = z == r && Math.abs(x) <= 1 && tier % 2 == 0;
                         if (!door) {
-                            level.setBlock(origin.offset(x, ty, z), bricks(), 2);
+                            DynastyFeaturePlacement.setBlock(level, origin.offset(x, ty, z), bricks(), 2);
                         }
-                        level.setBlock(origin.offset(x, ty + 3, z), roof(), 2);
+                        DynastyFeaturePlacement.setBlock(level, origin.offset(x, ty + 3, z), roof(), 2);
                     }
                 }
                 for (int cx : new int[]{-r, r}) {
                     for (int cz : new int[]{-r, r}) {
-                        level.setBlock(origin.offset(cx, ty, cz), pillar(), 2);
-                        level.setBlock(origin.offset(cx, ty + 2, cz), lantern(), 2);
+                        DynastyFeaturePlacement.setBlock(level, origin.offset(cx, ty, cz), pillar(), 2);
+                        DynastyFeaturePlacement.setBlock(level, origin.offset(cx, ty + 2, cz), lantern(), 2);
                     }
                 }
             }
-            level.setBlock(origin.offset(0, y + 21, 0), jade(), 2);
-            level.setBlock(origin.offset(0, y + 22, 0), bronze(), 2);
+            DynastyFeaturePlacement.setBlock(level, origin.offset(0, y + 21, 0), jade(), 2);
+            DynastyFeaturePlacement.setBlock(level, origin.offset(0, y + 22, 0), bronze(), 2);
             return true;
         }
 
@@ -324,17 +324,17 @@ public final class DynastyBuildings2 {
             int y = origin.getY();
             for (int x = -4; x <= 4; x++) {
                 for (int z = -4; z <= 4; z++) {
-                    level.setBlock(origin.offset(x, y - 1, z), marble(), 2);
+                    DynastyFeaturePlacement.setBlock(level, origin.offset(x, y - 1, z), marble(), 2);
                 }
             }
             for (int[] corner : new int[][]{{-4, -4}, {-4, 4}, {4, -4}, {4, 4}}) {
-                level.setBlock(origin.offset(corner[0], y, corner[1]), pillar(), 2);
-                level.setBlock(origin.offset(corner[0], y + 1, corner[1]), pillar(), 2);
-                level.setBlock(origin.offset(corner[0], y + 2, corner[1]), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(corner[0], y, corner[1]), pillar(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(corner[0], y + 1, corner[1]), pillar(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(corner[0], y + 2, corner[1]), lantern(), 2);
             }
-            level.setBlock(origin.offset(0, y, 0), altar(), 2);
+            DynastyFeaturePlacement.setBlock(level, origin.offset(0, y, 0), altar(), 2);
             for (int[] d : new int[][]{{2, 0}, {-2, 0}, {0, 2}, {0, -2}}) {
-                level.setBlock(origin.offset(d[0], y, d[1]), jade(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(d[0], y, d[1]), jade(), 2);
             }
             return true;
         }
@@ -345,22 +345,22 @@ public final class DynastyBuildings2 {
             for (int x = -6; x <= 6; x++) {
                 for (int z = -6; z <= 6; z++) {
                     boolean border = Math.abs(x) == 6 || Math.abs(z) == 6;
-                    level.setBlock(origin.offset(x, y - 1, z), border ? marble() : bricks(), 2);
+                    DynastyFeaturePlacement.setBlock(level, origin.offset(x, y - 1, z), border ? marble() : bricks(), 2);
                 }
             }
             for (int[] corner : new int[][]{{-6, -6}, {-6, 6}, {6, -6}, {6, 6}}) {
-                level.setBlock(origin.offset(corner[0], y, corner[1]), pillar(), 2);
-                level.setBlock(origin.offset(corner[0], y + 1, corner[1]), pillar(), 2);
-                level.setBlock(origin.offset(corner[0], y + 2, corner[1]), lantern(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(corner[0], y, corner[1]), pillar(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(corner[0], y + 1, corner[1]), pillar(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(corner[0], y + 2, corner[1]), lantern(), 2);
             }
             // 靶子与兵器架 / targets and weapon racks
             for (int[] t : new int[][]{{-3, -3}, {3, -3}, {-3, 3}, {3, 3}}) {
-                level.setBlock(origin.offset(t[0], y, t[1]), Blocks.TARGET.defaultBlockState(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(t[0], y, t[1]), Blocks.TARGET.defaultBlockState(), 2);
             }
             for (int i = -2; i <= 2; i++) {
-                level.setBlock(origin.offset(i, y, 6), bronze(), 2);
+                DynastyFeaturePlacement.setBlock(level, origin.offset(i, y, 6), bronze(), 2);
             }
-            level.setBlock(origin.offset(0, y, 0), altar(), 2);
+            DynastyFeaturePlacement.setBlock(level, origin.offset(0, y, 0), altar(), 2);
             return true;
         }
     }

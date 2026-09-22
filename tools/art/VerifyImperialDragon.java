@@ -10,6 +10,7 @@ public final class VerifyImperialDragon {
     private static P subtract(P a,P b){return new P(a.x()-b.x(),a.y()-b.y(),a.z()-b.z());}
     private static P cross(P a,P b){return new P(a.y()*b.z()-a.z()*b.y(),a.z()*b.x()-a.x()*b.z(),a.x()*b.y()-a.y()*b.x());}
     private static double length(P p){return Math.sqrt(p.x()*p.x()+p.y()*p.y()+p.z()*p.z());}
+    private static double dot(P a,P b){return a.x()*b.x()+a.y()*b.y()+a.z()*b.z();}
     private static ImperialMeshNormals.Point point(P p){return new ImperialMeshNormals.Point(p.x(),p.y(),p.z());}
     private static void check(boolean valid,String message){if(!valid)throw new AssertionError(message);}
     private static P rotate(P p,double scale,double angle){
@@ -43,6 +44,48 @@ public final class VerifyImperialDragon {
         check(ImperialWeaponGeometry.DRAGON_ENLARGEMENT==3.0,"Decorative guardians must retain their scale");
         check(ImperialWeaponGeometry.DESCENT_START_HEIGHT==12.0,"Raised descent height must be preserved");
         P impact=ImperialWeaponGeometry.descentDragonPose(2.4,0).direction(ImperialDragonMesh.MUZZLE).scale(size);
+        var dive=ImperialWeaponGeometry.descentDragonPose(2.4,0);
+        check(Math.abs(dot(cross(dive.x(),dive.y()),dive.z())-1)<1e-12,"Dive must be a rigid rotation, not a mirror");
+        for(P axis:new P[]{dive.x(),dive.y(),dive.z()})check(Math.abs(length(axis)-1)<1e-12,"Non-unit dive axis");
+        check(Math.abs(dot(dive.x(),dive.y()))<1e-12&&Math.abs(dot(dive.x(),dive.z()))<1e-12
+                &&Math.abs(dot(dive.y(),dive.z()))<1e-12,"Dive axes are not orthogonal");
+        P headForward=subtract(ImperialDragonMesh.MUZZLE,ImperialDragonMesh.HEAD_CENTER);
+        P direction=dive.direction(headForward).scale(1/length(headForward));
+        check(length(subtract(direction,new P(0,-1,0)))<1e-12,"Nose points sideways instead of along the dive");
+        // The pre-fix endpoint check alone passed despite the head flying roughly sixty degrees
+        // sideways to its velocity. Keep that concrete counterexample in the regression suite.
+        P oldDirection=rotate(headForward,1/length(headForward),Math.PI*.75);
+        check(dot(oldDirection,new P(0,-1,0))<.7,"Fixture no longer exposes the original side-on descent");
+        int trajectoryFrames=0;
+        for(double headOffset:new double[]{2.4,3.8,7.0})for(int yawDegrees=0;yawDegrees<360;yawDegrees+=15) {
+            double yaw=Math.toRadians(yawDegrees),previousY=Double.POSITIVE_INFINITY;
+            for(int step=0;step<=112;step++) {
+                double travel=step/112.0;
+                var pose=ImperialWeaponGeometry.descentDragonPose(headOffset,travel);
+                P nose=pose.point(ImperialDragonMesh.MUZZLE),skull=pose.point(ImperialDragonMesh.HEAD_CENTER);
+                check(Math.abs(nose.x())<1e-10&&Math.abs(nose.z())<1e-10,"Nose misses the vertical seal axis");
+                check(nose.y()<=previousY+1e-10,"Dragon reverses direction during descent");
+                previousY=nose.y();
+                P facing=subtract(nose,skull).scale(1/length(subtract(nose,skull)));
+                P worldFacing=new P(Math.cos(yaw)*facing.x()-Math.sin(yaw)*facing.z(),facing.y(),
+                        Math.sin(yaw)*facing.x()+Math.cos(yaw)*facing.z());
+                check(length(subtract(worldFacing,new P(0,-1,0)))<1e-10,"Caster yaw turned the dive away from its path");
+                if(step==0)check(Math.abs(nose.y()-headOffset-12)<1e-10,"Raised take-off position changed");
+                if(step==112)check(length(nose)<1e-10,"Final nose position is not the target centre");
+                trajectoryFrames++;
+            }
+            double crossing=Math.sqrt(12/(headOffset+12));
+            P upperSeal=ImperialWeaponGeometry.descentDragonPose(headOffset,crossing).point(ImperialDragonMesh.MUZZLE);
+            check(length(subtract(upperSeal,new P(0,headOffset,0)))<1e-10,"Nose did not pass through the upper seal centre");
+        }
+        for(double clientAge:new double[]{-2,0,17.9,18,19,26,31.99,32,44}) {
+            var confirmed=ImperialWeaponGeometry.descentPhase(clientAge,18,32,true);
+            check(confirmed.charge()==1&&confirmed.connection()==1&&confirmed.travel()==1&&confirmed.dragonAlpha()==1,
+                    "Server-confirmed hit must finish the visual flight even with a lagging client clock");
+            var predicted=ImperialWeaponGeometry.descentPhase(clientAge,18,32,false);
+            if(clientAge<18)check(predicted.dragonAlpha()==0,"Unconfirmed dragon appears before its windup");
+            if(clientAge<32)check(predicted.travel()<1,"Unconfirmed dragon lands before the damage tick");
+        }
         // The renderer subtracts this local offset in the yaw-dependent right/up/forward basis.
         for(double yaw:new double[]{0,Math.PI/2,Math.PI*.79})for(double age:new double[]{18,19,26,31,32,44}){
             P target=new P(11.2,68.7,-4.5),right=new P(Math.cos(yaw),0,Math.sin(yaw)),forward=new P(-Math.sin(yaw),0,Math.cos(yaw));
@@ -82,6 +125,9 @@ public final class VerifyImperialDragon {
         }
         System.out.println("Dragon geometry PASS: "+faces.size()+" quads; max edge "+maxEdge+"; material counts "+Arrays.toString(counts));
         System.out.println("Actual muzzle "+ImperialDragonMesh.MUZZLE+"; descent impact offset "+impact+"; exact age-32 landing / enlarged inward golden heads PASS");
+        System.out.println("Nose-first trajectory PASS: "+trajectoryFrames+" frames / 24 caster yaws / 3 target heights; upper-seal crossing / no reflection / server-confirmed landing PASS");
+        System.out.printf("Pre-fix nose/velocity angle %.2f degrees; corrected angle 0 degrees.%n",
+                Math.toDegrees(Math.acos(dot(oldDirection,new P(0,-1,0)))));
         System.out.println("Finite/area/bounds/smooth-normal/dual-guardian/descent transforms PASS; visual reference fidelity is not automatically certified.");
     }
 }
