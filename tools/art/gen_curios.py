@@ -23,6 +23,16 @@ GROUPS = {
             "blood_iron_sash cavalry_sash",
 }
 
+# Explicit one-slot classifications from the immutable school content contract.
+_schools = json.loads((ROOT / "docs/content/schools-v1-contract.json").read_text())
+for _item in _schools["items"]:
+    if _item["kind"] == "accessory":
+        GROUPS[_item["slot"]] = GROUPS.get(_item["slot"], "") + " " + _item["id"]
+
+from gen_trinkets7 import ITEMS as SCHOOL_ACCESSORIES
+for _item in SCHOOL_ACCESSORIES.values():
+    GROUPS[_item['slot']] = GROUPS.get(_item['slot'], '') + ' ' + _item['id']
+
 
 def accessories():
     text = (ROOT / "src/main/java/com/dynasty/DynastyTrinkets.java").read_text()
@@ -54,7 +64,8 @@ def build():
         previous = json.loads(path.read_text()) if path.exists() else {}
         # curios:curio 是所有槽通用的物品标签，不能把王朝饰品加入这里。
         foreign = [v for v in previous.get("values", [])
-                   if not (isinstance(v, str) and v.startswith("dynasty:"))]
+                   if v != "#curios:dynasty_trinket"
+                   and not (isinstance(v, str) and v.startswith("dynasty:"))]
         values = foreign + ["dynasty:" + item for item in sorted(mapping) if mapping[item] == slot]
         write(path, {"replace": False, "values": values})
         slot_data = {"size": 2 if slot == "ring" else 1, "operation": "SET"}

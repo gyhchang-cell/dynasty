@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """生成整合包：mods / config / modrinth.index.json / curseforge-manifest / 下载脚本（无需联网）。"""
 import json, os, shutil, hashlib
+from export_policy import release_mod
 
 ROOT = os.path.expanduser("~/Desktop/dynasty")
 PACK = os.path.join(ROOT, "modpack")
@@ -29,6 +30,8 @@ QOL = json.load(open(QOL_JSON, encoding="utf-8")) if os.path.exists(QOL_JSON) el
 FTB_JSON = os.path.join(ROOT, "tools/art/ftb_mods.json")
 FTB = json.load(open(FTB_JSON, encoding="utf-8")) if os.path.exists(FTB_JSON) else []
 for record in QOL + FTB:
+    if not release_mod(record['filename']):
+        continue
     PACK_MODS.append((record["filename"],
                       os.path.join(ROOT, "libs", record["filename"]),
                       record["url"]))
@@ -53,7 +56,9 @@ for filename, src, url in PACK_MODS:
     files.append({
         "path": "mods/" + filename,
         "hashes": {"sha1": s1, "sha512": s512},
-        "env": {"client": "required", "server": "required"},
+        "env": next(({"client": r.get("client", "required"), "server": r.get("server", "required")}
+                     for r in QOL + FTB if r["filename"] == filename),
+                    {"client": "required", "server": "required"}),
         "downloads": [url],
         "fileSize": os.path.getsize(os.path.join(MODS, filename)),
     })

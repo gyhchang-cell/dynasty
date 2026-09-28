@@ -31,6 +31,8 @@ public final class DynastyContent {
         DynastyPotions.POTIONS.register(modEventBus);
         com.dynasty.structure.DynastyStructures.STRUCTURE_TYPES.register(modEventBus);
         com.dynasty.structure.DynastyStructures.PIECE_TYPES.register(modEventBus);
+        com.dynasty.structure.megabuild.MegabuildStructures.STRUCTURE_TYPES.register(modEventBus);
+        com.dynasty.structure.megabuild.MegabuildStructures.PIECE_TYPES.register(modEventBus);
         com.dynasty.network.DynastyNetwork.register();
     }
 }

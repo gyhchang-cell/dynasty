@@ -1,0 +1,40 @@
+<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>八种工坊 · 实际模型预览</title><style>
+body{max-width:1350px;margin:32px auto;padding:20px;background:#202925;color:#edf2e9;font:16px/1.65 system-ui}a{color:#afd9af}section{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px}article{background:#303b33;border:1px solid #536756;border-radius:8px;padding:16px}h2{font-size:20px;margin:0}canvas{display:block;width:100%;height:auto;cursor:grab;touch-action:none;image-rendering:pixelated}small{color:#b3c9b5}button{font:inherit;background:#506951;color:white;border:0;padding:8px 14px;border-radius:4px;margin:10px 0}
+</style><h1>八种工坊 · 外形与碰撞一致</h1><p>直接读取项目模型的方块尺寸绘制；不是游戏截图。拖动可转动查看。凹槽、桌下和架侧留空，只有实体部分阻挡玩家。</p><p><a href="gallery.html">返回材质新旧对比</a></p><button id="wire">显示碰撞边线</button><section id="grid"></section>
+<script>
+const DATA=__WORKSHOP_DATA__;
+let wire=false;const redraw=[];
+document.querySelector('#wire').onclick=()=>{wire=!wire;document.querySelector('#wire').textContent=wire?'隐藏碰撞边线':'显示碰撞边线';redraw.forEach(f=>f());};
+for(const model of DATA){
+ const article=document.createElement('article');article.innerHTML=`<h2>${model.name}</h2><small>${model.id}</small><canvas width="380" height="320"></canvas>`;document.querySelector('#grid').append(article);
+ const canvas=article.querySelector('canvas'),ctx=canvas.getContext('2d');let yaw=-.65,down=null;
+ const textures={};for(const [key,url] of Object.entries(model.textures)){const img=new Image();img.src=url;img.onload=()=>draw();textures[key]=img;}
+ function world(x,y,z){x-=8;z-=8;return [x*Math.cos(yaw)-z*Math.sin(yaw),y-8,x*Math.sin(yaw)+z*Math.cos(yaw)];}
+ function project(p){return [190+p[0]*12,165-p[1]*10+p[2]*6];}
+ function polygon(points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();}
+ function draw(){
+  ctx.clearRect(0,0,380,320);ctx.fillStyle='#26342b';ctx.beginPath();ctx.ellipse(190,265,112,24,0,0,Math.PI*2);ctx.fill();
+  const faces=[];
+  for(const [a,b,key] of model.boxes){
+   const [x,y,z]=a,[X,Y,Z]=b;
+   const raw=[
+    {v:[[x,Y,z],[X,Y,z],[X,Y,Z],[x,Y,Z]],n:[0,1,0],uv:[x,z,X,Z],shade:0},
+    {v:[[X,Y,z],[x,Y,z],[x,y,z],[X,y,z]],n:[0,0,-1],uv:[16-X,16-Y,16-x,16-y],shade:.19},
+    {v:[[x,Y,Z],[X,Y,Z],[X,y,Z],[x,y,Z]],n:[0,0,1],uv:[x,16-Y,X,16-y],shade:.12},
+    {v:[[x,Y,z],[x,Y,Z],[x,y,Z],[x,y,z]],n:[-1,0,0],uv:[z,16-Y,Z,16-y],shade:.24},
+    {v:[[X,Y,Z],[X,Y,z],[X,y,z],[X,y,Z]],n:[1,0,0],uv:[16-Z,16-Y,16-z,16-y],shade:.16}
+   ];
+   for(const face of raw){const n=face.n,nz=n[0]*Math.sin(yaw)+n[2]*Math.cos(yaw);if(n[1]*.6-nz<=0)continue;const p=face.v.map(v=>world(...v));faces.push({...face,p:p.map(project),depth:p.reduce((s,v)=>s+v[2]-.6*v[1],0)/4,key});}
+  }
+  faces.sort((a,b)=>b.depth-a.depth);
+  for(const f of faces){const image=textures[f.key],p=f.p,[u,v,U,V]=f.uv;ctx.save();polygon(p);ctx.clip();ctx.imageSmoothingEnabled=false;
+   if(image?.complete&&image.naturalWidth){const du=U-u,dv=V-v;ctx.setTransform((p[1][0]-p[0][0])/du,(p[1][1]-p[0][1])/du,(p[3][0]-p[0][0])/dv,(p[3][1]-p[0][1])/dv,p[0][0],p[0][1]);ctx.drawImage(image,u,v,du,dv,0,0,du,dv);}else{ctx.fillStyle='#857d63';ctx.fill();}
+   ctx.restore();ctx.fillStyle=`rgba(0,0,0,${f.shade})`;polygon(p);ctx.fill();if(wire){ctx.strokeStyle='#a7ffc2';ctx.lineWidth=.8;polygon(p);ctx.stroke();}
+  }
+ }
+ canvas.onpointerdown=e=>{down=e.clientX;canvas.setPointerCapture(e.pointerId);};canvas.onpointerup=()=>down=null;
+ canvas.onpointermove=e=>{if(down!==null){yaw+=(e.clientX-down)/100;down=e.clientX;draw();}};
+ redraw.push(draw);draw();
+}
+</script></html>

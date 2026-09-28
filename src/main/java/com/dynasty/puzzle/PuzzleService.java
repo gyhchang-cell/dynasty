@@ -140,7 +140,7 @@ public final class PuzzleService {
             if (room.rewardClaimed()) {
                 feedback(player, "dynasty.puzzle.msg.already_claimed");
             } else {
-                claim(player, level, room, data);
+                feedback(player, depositReward(level, pos, room, data)?"dynasty.puzzle.msg.solved_claim":"dynasty.puzzle.msg.chest_blocked");
             }
             return;
         }
@@ -154,6 +154,7 @@ public final class PuzzleService {
             feedback(player, "dynasty.puzzle.msg.demo_start");
             return;
         }
+        if(kind==PuzzleRules.Kind.ELEMENTS){lampHint(player,level,pos);return;}
         feedback(player, switch (kind) {
             case STAR -> "dynasty.puzzle.msg.star_status";
             case ELEMENTS -> "dynasty.puzzle.msg.lamp_rules";
@@ -191,6 +192,14 @@ public final class PuzzleService {
             return;
         }
         List<BlockPos> parts = discoverParts(level, controllerPos, kind);
+        // Initialize every slot from the visible room, in canonical order. Rotated rooms
+        // must not seed a different puzzle merely because the first clicked lamp differs.
+        if(kind==PuzzleRules.Kind.ELEMENTS && room.lamps().isEmpty())
+            for(BlockPos part:parts)room.lamps().put(offsetKey(part,controllerPos),level.getBlockState(part).getValue(PuzzleBlocks.LIT)?1:0);
+        if(kind==PuzzleRules.Kind.STAR && room.dials().isEmpty())
+            for(BlockPos part:parts)room.dials().put(offsetKey(part,controllerPos),switch(level.getBlockState(part).getValue(PuzzleBlocks.FACING)){
+                case NORTH -> 0; case EAST -> 1; case SOUTH -> 2; default -> 3;
+            });
         int index = parts.indexOf(pos);
         if (index < 0) {
             feedback(player, "dynasty.puzzle.msg.wrong_part");
@@ -255,23 +264,53 @@ public final class PuzzleService {
         room.solve(rollReward(level, controllerPos, room));
         data.setDirty();
         openGates(level, controllerPos);
+        boolean deposited=depositReward(level, controllerPos, room, data);
         broadcast(level, controllerPos, Component.translatable("dynasty.puzzle.msg.solved")
                 .withStyle(ChatFormatting.GOLD));
-        feedback(player, "dynasty.puzzle.msg.solved_claim");
+        feedback(player, deposited?"dynasty.puzzle.msg.solved_claim":"dynasty.puzzle.msg.chest_blocked");
     }
 
     // ------------------------------------------------------------------ 奖励（一次性公共奖励）
+
+    /** Materialize the already-rolled public reward once, without replacing player blocks. */
+    static boolean depositReward(ServerLevel level, BlockPos controller, PuzzleRoomState room, PuzzleSavedData data) {
+        if (!room.solved() || room.rewardClaimed()) return false;
+        BlockPos pos=controller.above();
+        if (!level.getBlockState(pos).isAir()) return false;
+        java.util.List<ItemStack> rewards=decode(room.rewardRoll());
+        if (rewards.size()>27) return false;
+        if (!level.setBlock(pos, net.minecraft.world.level.block.Blocks.CHEST.defaultBlockState(),3)) return false;
+        if (!(level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.ChestBlockEntity chest)) return false;
+        for(int i=0;i<rewards.size();i++) chest.setItem(i,rewards.get(i).copy());
+        chest.setChanged();
+        room.claim("reward_chest");data.setDirty();
+        return true;
+    }
 
     /** 抽奖：结果**编码成一行存进房间状态**（背包满重试不会重新抽奖）*/
     private static String rollReward(ServerLevel level, BlockPos controllerPos, PuzzleRoomState room) {
         Random random = new Random(PuzzleRules.roomKey(level.dimension().location().toString(),
                 controllerPos.getX(), controllerPos.getY(), controllerPos.getZ()).hashCode() * 31L
                 + room.layout());
-        LootTable table = level.getServer().getLootData().getLootTable(REWARD_TABLE);
+        LootTable table = level.getServer().getLootData().getLootTable(rewardTable(room.kind(), room.layout()));
         LootParams params = new LootParams.Builder(level)
                 .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(controllerPos))
                 .create(LootContextParamSets.CHEST);
         return encode(table.getRandomItems(params, random.nextLong()));
+    }
+
+    /**
+     * 主题奖励表：机关类型 + 难度档 → 战利品表（配置全在
+     * {@code data/dynasty/loot_tables/puzzles/*.json}，由 tools/puzzle/gen_ruin_loot.py 统一生成）。
+     * 表缺失时回落到 v1 的通用表，绝不吞掉奖励。
+     */
+    public static ResourceLocation rewardTable(PuzzleRules.Kind kind, int layout) {
+        String theme = switch (kind) {
+            case STAR -> "star";
+            case BELL -> "music";
+            case ELEMENTS -> "seal";
+        };
+        return new ResourceLocation(Dynasty.MODID, "puzzles/" + theme + "_tier" + PuzzleRules.wrap(layout));
     }
 
     private static String encode(List<ItemStack> stacks) {
@@ -350,6 +389,18 @@ public final class PuzzleService {
 
     // ------------------------------------------------------------------ 部件发现 / 开门 / 线索 / 提示
 
+    private static void lampHint(ServerPlayer player,ServerLevel level,BlockPos controller) {
+        var parts=discoverParts(level,controller,PuzzleRules.Kind.ELEMENTS);
+        if(parts.size()!=4){feedback(player,"dynasty.puzzle.msg.wrong_part");return;}
+        int[] order=ringOrder(controller,parts),bits=new int[4];
+        for(int i=0;i<4;i++)bits[i]=level.getBlockState(parts.get(order[i])).getValue(PuzzleBlocks.LIT)?1:0;
+        int[] solution=PuzzleRules.lampSolution(bits);
+        if(solution==null||solution.length==0){feedback(player,"dynasty.puzzle.msg.lamp_rules");return;}
+        var p=parts.get(order[solution[0]]);int dx=p.getX()-controller.getX(),dz=p.getZ()-controller.getZ();
+        String direction=Math.abs(dx)>Math.abs(dz)?(dx>0?"东":"西"):(dz>0?"南":"北");
+        player.displayClientMessage(Component.literal("目标：四盏灯全部亮。下一步点击"+direction+"侧灯；点击会同时切换它和顺时针下一盏。需要帮助时再点中央机关。"),false);
+    }
+
     /** 在控制器有限范围内按 (y,x,z) 排序找出该类型的所有部件（同房间下标稳定）*/
     public static List<BlockPos> discoverParts(ServerLevel level, BlockPos controllerPos, PuzzleRules.Kind kind) {
         Block part = PuzzleBlocks.partFor(kind);
@@ -409,11 +460,12 @@ public final class PuzzleService {
             }
         } else if (kind == PuzzleRules.Kind.ELEMENTS) {
             List<BlockPos> parts = discoverParts(level, controllerPos, kind);
+            int[] ring = ringOrder(controllerPos, parts);
             for (int i = 0; i < parts.size(); i++) {
                 BlockState state = level.getBlockState(parts.get(i));
                 if (state.is(PuzzleBlocks.ELEMENT_LAMP.get())) {
                     level.setBlock(parts.get(i), state.setValue(PuzzleBlocks.LIT,
-                            PuzzleRules.lampInitial(layout)[Math.floorMod(i, 4)] == 1), 3);
+                            PuzzleRules.lampInitial(layout)[Math.floorMod(indexOf(ring,i), 4)] == 1), 3);
                 }
             }
         }
@@ -514,7 +566,9 @@ public final class PuzzleService {
         int layout = state.getValue(PuzzleBlocks.VARIANT);
         if (kind == PuzzleRules.Kind.STAR) {
             List<BlockPos> dials = discoverParts(level, controllerPos, kind);
-            int index = dials.indexOf(pos);
+            // Tablets are mounted directly above the dial they describe.
+            int index = dials.indexOf(pos.below());
+            if (index < 0) index = dials.indexOf(pos);
             int dialIndex = index >= 0 ? index % 4 : Math.floorMod(pos.getX() + pos.getZ(), 4);
             player.displayClientMessage(Component.translatable("dynasty.puzzle.clue.star",
                     dialIndex + 1, Component.translatable(facingName(PuzzleRules.starTarget(layout, dialIndex)))),

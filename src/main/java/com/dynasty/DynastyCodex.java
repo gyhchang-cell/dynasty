@@ -22,6 +22,7 @@ public final class DynastyCodex {
     public static List<Entry> all() {
         if (entries == null) {
             entries = new ArrayList<>();
+            DynastyCodexSchools.add(entries);    // Active school mechanics before generic passive descriptions.
             DynastyCodexWeapons.add(entries);
             DynastyCodexGear.add(entries);
             DynastyCodexGear3.add(entries);      // 第三十一轮：10 套甲 + 50 件饰品（脚本生成）

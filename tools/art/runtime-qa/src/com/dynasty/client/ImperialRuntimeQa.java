@@ -50,6 +50,8 @@ public final class ImperialRuntimeQa {
             try {
                 reload.join();require(ImperialMaterialShader.bind(new Matrix4f(),1),"production material re-registered after resource reload");
                 guardian("guanyu-after-reload",35,1);
+                sealDescent("qinglong-dive-after-reload",26);
+                compareReload("qinglong-cage-dragon-descending","qinglong-dive-after-reload");
                 dragon("jade-dragon-after-reload",true,1);dragon("gold-dragon-after-reload",false,1);
                 compareReload("guanyu-angle","guanyu-after-reload");
                 compareReload("jade-dragon","jade-dragon-after-reload");
@@ -71,6 +73,10 @@ public final class ImperialRuntimeQa {
             require(mc.getResourceManager().getResource(new ResourceLocation("dynasty","textures/effect/guanyu_brocade.png")).isPresent(),"brocade texture resource loads");
             require(ImperialMaterialShader.bind(new Matrix4f(),1),"production ImperialMaterialShader is registered");
             require(ImperialMaterialShader.bindGlow(),"production glow shader is registered");
+            require(!DynastyBowSigilRenderer.showsAimingSigil(com.dynasty.DynastyWeapons.HOUYI_BOW.get()),
+                    "Houyi never draws a crosshair aiming seal");
+            require(DynastyBowSigilRenderer.showsAimingSigil(com.dynasty.DynastyWeapons.ZHUQUE_BOW.get()),
+                    "Other bows retain their aiming sigils");
             checkGl("before test");
             guardian("guanyu-front",0,1);
             guardian("guanyu-angle",35,1);
@@ -96,14 +102,34 @@ public final class ImperialRuntimeQa {
             mobPreview("nine_heaven_general",2,1.28F);
             mobPreview("jade_guard",3,1.08F);
             mobPreview("soul_soldier",4,1.05F);
+            mobPreview("rebel_general",5,1.1F);
+            mobPreview("eunuch_mastermind",6,1.1F);
+            mobPreview("dragon_king",7,1.1F);
+            mobPreview("thunder_envoy",8,1.1F);
+            mobPreview("merfolk",9,1.0F);
+            mobPreview("undead_first_emperor",10,1.1F);
             architecturePreview("main-hall",false);
             architecturePreview("academy",true);
             campusPreview("palace",64,false);
             campusPreview("palace",64,true);
             campusPreview("tomb",40,true);
-            campusPreview("observatory",26,false);
-            for(String id:new String[]{"exam_paper","ink_stick","bamboo_slip"})itemPreview(id);
+            campusPreview("observatory",42,false);
+            for(String id:new String[]{"exam_paper","ink_stick","bamboo_slip","wanjun_ring","tianheng_sword_knot",
+                    "zhenhai_heartguard","buzhou_armlet","sheyue_thumbring","jinwu_quiver","sanqing_talisman_chain","yuxu_talisman_case"})itemPreview(id);
+            for(String id:new String[]{"pojun_ring","wuqu_sword_knot","baizhan_ring","qixing_sword_knot",
+                    "xuanjia_clasp","shanyue_bracelet","beichen_heartguard","xuanyue_armlet",
+                    "yanling_thumbring","shenji_quiver","guanri_thumbring","zhuiri_quiver",
+                    "lingwen_pendant","leibu_seal","ziwei_talisman_chain","taiqing_talisman_case",
+                    "bear_paw","heart_mirror","arrow_quiver","talisman_pouch","wrist_guard","sword_tassel",
+                    "iron_pauldron","knee_guard","quickdraw_glove","scale_plate","jade_cong","incense_sachet"})itemPreview(id);
             for(String id:new String[]{"phoenix_hairpin","jade_cicada","zen_bead_string","star_compass","auspicious_bell","yuchang_dagger","seven_star_saber","leiting_hammer","phoenix_feather_charm","jade_kylin","imperial_pearl_earring","taiyi_sword"})itemPreview(id);
+            for(String id:new String[]{"zhenyue_blade","liuyun_sword","zhuxing_bow","chiling_brush",
+                    "zhenguan_mirror","huben_bracer","liancheng_tassel","tayun_pendant",
+                    "guanxing_pendant","mingxian_ring","sitian_seal","dingfeng_silk"})itemPreview(id);
+            for(String id:new String[]{"juque_sword","sword_dragon_crystal","xuanwu_blade","taiyi_whisk","hunyuan_staff",
+                    "beichen_spear","chengying_sword","leifu_staff","shenbi_bow","dragon_bow","fengling_bow","tang_dao","chang_gong"})itemPreview(id);
+            for(String id:new String[]{"houyi_bow","zhuxing_bow","shenbi_bow","dragon_bow","fengling_bow","chang_gong"})
+                for(int stage=0;stage<3;stage++)schoolBowPreview(id,stage);
             require(mc.level==null,"no world was opened");
             results.add("PASS: real ShaderInstance.apply + dynamic BufferUploader + static VertexBuffer.drawWithShader; all recorded frames nonempty; no GL errors.");
             results.add("Depth/blend checks simulate translucent draw order; they do not assert Forge world event sequencing.");
@@ -148,6 +174,57 @@ public final class ImperialRuntimeQa {
                 15728880,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,new com.mojang.blaze3d.vertex.PoseStack(),buffers,null,0);
             buffers.endBatch();
             com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
+        });
+    }
+    private static void schoolBowPreview(String id,int stage)throws Exception {
+        var mc=Minecraft.getInstance();
+        var item=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new ResourceLocation("dynasty",id));
+        var stack=new net.minecraft.world.item.ItemStack(item);
+        var base=mc.getItemRenderer().getModel(stack,null,null,0);
+        var overrides=base.getOverrides().getOverrides();
+        require(overrides.size()==3,"star bow has three baked draw overrides");
+        // Override models are not standalone inventory registry entries. Inspect the actual
+        // baked models owned by the bow; Minecraft stores them in reverse predicate order.
+        var modelField=net.minecraft.client.renderer.block.model.ItemOverrides.BakedOverride.class.getDeclaredField("model");
+        modelField.setAccessible(true);
+        var model=(net.minecraft.client.resources.model.BakedModel)modelField.get(overrides.get(2-stage));
+        require(model!=null&&model!=mc.getModelManager().getMissingModel(),"star bow pulling model "+stage+" loads");
+        frame("item-"+id+"-pulling-"+stage,1.15,0,()-> {
+            var buffers=mc.renderBuffers().bufferSource();
+            com.mojang.blaze3d.platform.Lighting.setupForFlatItems();
+            mc.getItemRenderer().render(stack,net.minecraft.world.item.ItemDisplayContext.GUI,false,
+                    new com.mojang.blaze3d.vertex.PoseStack(),buffers,15728880,
+                    net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,model);
+            buffers.endBatch();
+            com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
+        });
+        // Opposite face catches mirrored/transparent UV loss that GUI-only tests miss.
+        frame("item-"+id+"-pulling-"+stage+"-back",1.15,0,()-> {
+            var buffers=mc.renderBuffers().bufferSource();
+            var pose=new com.mojang.blaze3d.vertex.PoseStack();
+            pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180));
+            com.mojang.blaze3d.platform.Lighting.setupForFlatItems();
+            mc.getItemRenderer().render(stack,net.minecraft.world.item.ItemDisplayContext.GUI,false,
+                    pose,buffers,15728880,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,model);
+            buffers.endBatch();
+            com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
+        });
+        for(int hand:new int[]{1,-1}) frame("hand-"+id+"-"+stage+(hand==1?"-right":"-left"),.8,0,()-> {
+            var pose=new com.mojang.blaze3d.vertex.PoseStack();
+            // Vanilla right/left equipped-hand position and BOW transform, no player skin.
+            pose.translate(.56*hand,-.52,-.72);
+            pose.translate(-.2785682*hand,.18344387,.15731531);
+            pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-13.935F));
+            pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(35.3F*hand));
+            pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-9.785F*hand));
+            pose.translate(0,0,(stage+1)/3F*.04);
+            pose.scale(1,1,1+(stage+1)/3F*.2F);
+            pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-45*hand));
+            var buffers=mc.renderBuffers().bufferSource();
+            var context=hand==1?net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_RIGHT_HAND:net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_LEFT_HAND;
+            mc.getItemRenderer().render(stack,context,hand==-1,pose,buffers,15728880,
+                    net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,model);
+            buffers.endBatch();
         });
     }
     private static void mobPreview(String name,int style,float size)throws Exception {
@@ -214,12 +291,12 @@ public final class ImperialRuntimeQa {
         var dragonsField=ImperialWeaponRenderer.class.getDeclaredField("DRAGONS");dragonsField.setAccessible(true);
         BufferBuilder buffer=(BufferBuilder)bufferField.get(null);
         var faces=(List<?>)facesField.get(null);var dragons=(List<?>)dragonsField.get(null);
-        frame(name,14,4,()-> {
+        frame(name,age<18?14:32,age<18?4:12,()-> {
             double sizeRatio=ImperialWeaponGeometry.DESCENT_DRAGON_SIZE/2.7;
-            Vec3 camera=age<18?new Vec3(6,6,10):new Vec3(12,13,31).scale(sizeRatio);
+            Vec3 camera=age<18?new Vec3(6,6,10):new Vec3(12,17,38).scale(sizeRatio);
             var view=RenderSystem.getModelViewStack();view.setIdentity();
             view.mulPoseMatrix(new Matrix4f().lookAt((float)camera.x,(float)camera.y,(float)camera.z,
-                    0,age<18?1.3f:(float)(5*sizeRatio),0,0,1,0));RenderSystem.applyModelViewMatrix();
+                    0,age<18?1.3f:12f,0,0,1,0));RenderSystem.applyModelViewMatrix();
             // The production stroke callback expects camera-relative positions before the event
             // pose transform; translating back here lets the FBO's ordinary view matrix handle them.
             Matrix4f pose=new Matrix4f().translation((float)camera.x,(float)camera.y,(float)camera.z);
@@ -238,7 +315,7 @@ public final class ImperialRuntimeQa {
                             new Vec3(dive.x().x(),dive.x().y(),dive.x().z()),
                             new Vec3(dive.y().x(),dive.y().y(),dive.y().z()),
                             new Vec3(dive.z().x(),dive.z().y(),dive.z().z()),1d);
-                    dragon.dragon(new ImperialWeaponGeometry.P(0,0,0),ImperialWeaponGeometry.DESCENT_DRAGON_SIZE,
+                    dragon.divingDragon(new ImperialWeaponGeometry.P(0,0,0),ImperialWeaponGeometry.DESCENT_DRAGON_SIZE,
                             0,age,0x36cbbb,phase.dragonAlpha());
                     require(dragons.size()==1,"seal frame queues exactly one cached production dragon");
                 }
@@ -264,9 +341,11 @@ public final class ImperialRuntimeQa {
         try {
             target.setClearColor(.055f,.075f,.105f,1);target.clear(Minecraft.ON_OSX);target.bindWrite(true);
             model.setIdentity();
-            model.mulPoseMatrix(new Matrix4f().lookAt(0,(float)targetY,(float)(size*2.1),0,(float)targetY,0,0,1,0));
+            boolean handFrame=name.startsWith("hand-");
+            model.mulPoseMatrix(handFrame?new Matrix4f().lookAt(0,0,0,0,0,-1,0,1,0):
+                    new Matrix4f().lookAt(0,(float)targetY,(float)(size*2.1),0,(float)targetY,0,0,1,0));
             RenderSystem.applyModelViewMatrix();
-            RenderSystem.setProjectionMatrix(new Matrix4f().perspective(.57f,1,.05f,256),VertexSorting.DISTANCE_TO_ORIGIN);
+            RenderSystem.setProjectionMatrix(new Matrix4f().perspective(handFrame?(float)Math.toRadians(70):.57f,1,.05f,256),VertexSorting.DISTANCE_TO_ORIGIN);
             RenderSystem.setShaderFogStart(1000);RenderSystem.setShaderFogEnd(2000);
             RenderSystem.setShaderColor(1,1,1,1);
             RenderSystem.enableDepthTest();RenderSystem.depthMask(true);RenderSystem.disableBlend();RenderSystem.disableCull();

@@ -20,7 +20,7 @@ ATTR = {
     0: ("生命", "health", False), 1: ("护甲", "armour", False), 2: ("抗击退", "knockback resistance", False),
     3: ("移速", "movement speed", True), 4: ("攻击", "attack", True), 5: ("攻速", "attack speed", True),
     6: ("击退", "attack knockback", False), 7: ("攻击距离", "attack range", False),
-    9: ("生命上限", "max health", True), 11: ("幸运", "luck", False),
+    9: ("生命上限", "max health", True), 11: ("幸运", "luck", False), 12: ("护甲韧性", "armour toughness", False),
 }
 EFFECT = {
     21: ("龙威", "Dragon Might"), 22: ("铁壁", "Iron Wall"), 23: ("疾风", "Swift Wind"),
@@ -122,7 +122,7 @@ def main():
     en_lang = json.load(open(os.path.join(ASSETS, "lang", "en_us.json"), encoding="utf-8"))
 
     table, procs = {}, {}
-    for generator in ("gen_trinkets3", "gen_trinkets4", "gen_trinkets5"):
+    for generator in ("gen_trinkets3", "gen_trinkets4", "gen_trinkets5", "gen_trinkets6", "gen_trinkets7"):
         module = load(generator)
         table.update(module.TRINKETS)
         procs.update(getattr(module, "ON_HIT", {}))
@@ -138,6 +138,10 @@ def main():
         mat_en = " + ".join(en_lang.get("item.dynasty." + m.split(":")[1], m) for m in materials)
         zh_parts = use_line(values, procs.get(tid, (0, 0.0, 0)), link_of.get(tid, 0), True)
         en_parts = use_line(values, procs.get(tid, (0, 0.0, 0)), link_of.get(tid, 0), False)
+        from gen_trinkets7 import ITEMS
+        if tid in ITEMS and ITEMS[tid]['zh_effect']:
+            zh_parts.append(ITEMS[tid]['zh_effect'])
+            en_parts.append(ITEMS[tid]['en_effect'])
         lines.append(
             '        entry(l, "%s",\n'
             '                "合成：%s",\n'

@@ -282,7 +282,7 @@ public final class DynastyBuildings2 {
 
         /** 九霄宝塔：五层塔身，层层有屋檐与朱柱 / five-tier pagoda */
         private boolean pagoda(WorldGenLevel level, BlockPos origin) {
-            int y = origin.getY();
+            int y = 0; // origin.offset expects relative coordinates, never add world Y twice.
             for (int x = -4; x <= 4; x++) {
                 for (int z = -4; z <= 4; z++) {
                     DynastyFeaturePlacement.setBlock(level, origin.offset(x, y - 1, z), marble(), 2);
@@ -321,7 +321,7 @@ public final class DynastyBuildings2 {
 
         /** 云台：悬浮石台 + 中央法阵祭坛（可直接召唤 Boss）/ platform with an altar */
         private boolean platform(WorldGenLevel level, BlockPos origin) {
-            int y = origin.getY();
+            int y = 0;
             for (int x = -4; x <= 4; x++) {
                 for (int z = -4; z <= 4; z++) {
                     DynastyFeaturePlacement.setBlock(level, origin.offset(x, y - 1, z), marble(), 2);
@@ -341,7 +341,7 @@ public final class DynastyBuildings2 {
 
         /** 演武场：砖石校场 + 靶子与兵器架 / training ground */
         private boolean dojo(WorldGenLevel level, BlockPos origin) {
-            int y = origin.getY();
+            int y = 0;
             for (int x = -6; x <= 6; x++) {
                 for (int z = -6; z <= 6; z++) {
                     boolean border = Math.abs(x) == 6 || Math.abs(z) == 6;

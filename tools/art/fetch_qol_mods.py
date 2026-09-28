@@ -2,7 +2,7 @@
 
 原则：
   * 优化类：只提升帧数与内存，不改玩法；
-  * 便利类：信息显示、操作、连锁采掘（连锁已由本体内置，故不再带 Vein Mining）；
+  * 便利类：信息显示、操作；连锁采掘交给独立 FTB Ultimine 模组。
   * 生存类：死亡保护、定位、地图、睡眠、收割等，让长时间生存更舒服；
   * 只用主流、仍在维护的项目；自动解析必需前置（如 Waystones → Balm）。
 
@@ -19,6 +19,9 @@ os.makedirs(LIBS, exist_ok=True)
 
 # slug -> 说明（写进整合包简介）
 SLUGS = {
+    "patchouli": "双页图鉴与可点击分类",
+    "equipment-compare": "Shift对比装备属性（客户端）",
+    "lootr": "多人探索独立战利品箱",
     # ---- 性能优化 ----
     "embeddium": "渲染优化（帧数）",
     "ferrite-core": "内存占用优化",

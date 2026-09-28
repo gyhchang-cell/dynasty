@@ -1,0 +1,16 @@
+// Opt-in integration test: reuse the existing pinned Curios dependency, never change the shipped mod.
+// ./gradlew --offline -I tools/art/schools-curios-qa.init.gradle runGameTestServer
+allprojects { p ->
+    afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        p.dependencies.add('runtimeOnly', p.fg.deobf('top.theillusivec4.curios:curios-forge:5.14.1+1.20.1'))
+        p.minecraft.runs.gameTestServer {
+            workingDirectory p.file('build/schools-curios-qa')
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', p.file('build/createSrgToMcp/output.srg').absolutePath
+        }
+        p.tasks.configureEach { task ->
+            if (task.name == 'runGameTestServer') task.dependsOn('createSrgToMcp')
+        }
+    }
+}

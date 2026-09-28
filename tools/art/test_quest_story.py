@@ -12,7 +12,7 @@ class QuestStoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.book = story.build_book()
-        cls.main = [q for c in cls.book if c["main"] for q in c["quests"]]
+        cls.main = [q for c in cls.book if c["main"] for q in c["quests"] if q['role']=='main']
 
     def test_frozen_ids_and_rewards(self):
         story.validate(self.book)
@@ -47,8 +47,10 @@ class QuestStoryTest(unittest.TestCase):
 
     def test_small_main_chapters_and_no_catalog_gate(self):
         self.assertEqual(8, sum(c["main"] for c in self.book))
-        self.assertTrue(all(5 <= len(c["quests"]) <= 10 for c in self.book if c["main"]))
-        self.assertTrue(all(not q["deps"] for c in self.book if not c["main"] for q in c["quests"]))
+        self.assertEqual([18,21,16,13,12,11,12,10],[len(c['quests']) for c in self.book if c['main']])
+        self.assertEqual(32,sum(q['role']=='chapter_branch' for c in self.book for q in c['quests']))
+        self.assertEqual(2,sum(q.get('target') in ('dynasty:tiangong_citadel','dynasty:tiangong_mining_estate') for c in self.book for q in c['quests']))
+        self.assertTrue(all(not q["deps"] for c in self.book if not c["main"] for q in c["quests"] if q["role"]!="build"))
 
     def test_milestones_still_personal(self):
         allq = {q["id"]:q for c in self.book for q in c["quests"]}
@@ -138,6 +140,140 @@ class QuestStoryTest(unittest.TestCase):
         guide["description"][0]=json.dumps(link)
         with self.assertRaises(AssertionError):
             story.validate(book)
+
+    def test_four_real_build_journeys(self):
+        from quest_routes import ROUTES
+        from weapon_evolution_paths import PATHS
+        routes=[c for c in self.book if c.get("route")]
+        self.assertEqual(set(ROUTES),{c["route"] for c in routes})
+        for c in routes:
+            self.assertEqual(35+len(PATHS[c['route']]),len(c["quests"]))
+            self.assertEqual(0,len(c["quest_links"]))
+            self.assertEqual(34+len(PATHS[c['route']]),sum(q["kind"]!="checkmark" for q in c["quests"]))
+            self.assertEqual(9,sum(q["kind"]=="advancement" for q in c["quests"]))
+            self.assertNotIn("repeatable:",story.encode(c))
+            self.assertIn("can_repeat: false",story.encode(c))
+            for q in c["quests"]:
+                self.assertNotIn("command",q["rewards"])
+                if q["rewards"]!="[]": self.assertIn("team_reward: false",q["rewards"])
+        self.assertEqual(4,len({c["layout"] for c in routes}))
+
+    def test_no_decorative_dependency_lines(self):
+        for chapter in self.book:
+            self.assertFalse(any('/backdrop_' in image['image'] for image in chapter.get('images',[])))
+        for c in self.book:
+            if c.get('route'):
+                self.assertEqual([],c['quests'][3]['deps'])
+                self.assertEqual([],c['quests'][4]['deps'])
+                self.assertTrue(all(c['quests'][3]['id'] not in q['deps'] and c['quests'][4]['id'] not in q['deps'] for q in c['quests']))
+                self.assertIn('不要求格挡、走位、连击或满蓄',c['quests'][5]['how'])
+                self.assertEqual(6,sum(q['subtitle']=='锻造进化' for q in c['quests']))
+
+    def test_new_ids_are_explicit_and_reordering_safe(self):
+        from quest_routes import ROUTES, code
+        from weapon_evolution_paths import PATHS
+        for c in self.book:
+            if c.get("route"):
+                base=ROUTES[c["route"]]["base"]
+                self.assertEqual([code(1,base+i) for i in range(12)] +
+                                 [code(1,base+0x20+i) for i in (1,3,6,10)]+[code(1,base+i) for i in range(0x62,0x68)]+[code(1,base+0x80),code(1,base+0x81)]+[code(1,base+i) for i in range(0x90,0x96)]+[code(1,base+i) for i in range(0xa0,0xa5)],
+                                 [q["id"] for q in c["quests"][:35]])
+                self.assertEqual([code(1,base+0xb0+i) for i in range(len(PATHS[c['route']]))],
+                                 [q['id'] for q in c['quests'][35:]])
+        reversed_book=list(reversed(copy.deepcopy(self.book)))
+        # Reordering optional chapters must not alter any identity; main itself stays ordered.
+        optional=[c for c in reversed_book if not c["main"]]
+        main=[c for c in self.book if c["main"]]
+        story.validate(main+optional)
+
+    def test_actual_trial_advancements_and_recipes_exist(self):
+        for c in self.book:
+            if not c.get("route"): continue
+            for q in c["quests"]:
+                if q["kind"]=="advancement":
+                    path=story.DATA/"advancements"/(q["target"].split(":")[1]+".json")
+                    data=json.loads(path.read_text())
+                    self.assertEqual({"minecraft:impossible"},{v["trigger"] for v in data["criteria"].values()})
+                    self.assertFalse(data.get("rewards"),"Trial rewards must not duplicate quest rewards")
+                for target in re.findall(r'item: \{ id: "(dynasty:[^"]+)"',q["tasks"]):
+                    short=target.split(":")[1]
+                    self.assertTrue((story.ROOT/"src/main/resources/assets/dynasty/models/item"/(short+".json")).exists(),target)
+
+    def test_home_is_navigation_not_main_gate(self):
+        home=next(c for c in self.book if c["file"]=="dynasty_home")
+        self.assertFalse(home["main"])
+        self.assertTrue(all(not q["deps"] and q["rewards"]=="[]" for q in home["quests"]))
+        self.assertEqual(1,len(home["quests"]),"Navigation cards must not add eight fake completion tasks")
+        self.assertEqual(8,sum(bool(i.get("click")) for i in home["images"]))
+        self.assertEqual(69,len(self.main))
+        self.assertEqual(9,len([c for c in self.book if c["group"]==4]))
+
+    def test_layout_includes_links_and_has_no_overlap(self):
+        for c in self.book:
+            problems=[]
+            layout_check(c["file"],[(q["x"],q["y"]) for q in c["quests"]+c.get("quest_links",[])],problems)
+            self.assertEqual([],problems,c["file"])
+
+    def test_build_branches_are_thematic_not_copied_collect_goals(self):
+        routes=[c for c in self.book if c.get("route")]
+        branches=[{(q["kind"],q["target"]) for q in c["quests"] if q["id"][-2:] in {"06","07","08","09","0b"}} for c in routes]
+        for i,a in enumerate(branches):
+            for b in branches[i+1:]: self.assertLessEqual(len(a&b),1)
+        for c in routes:
+            self.assertFalse(any(q["target"] in {"dynasty:return_talisman","explorerscompass:explorerscompass"} for q in c["quests"]))
+        archery=next(c for c in routes if c["route"]=="archer")
+        self.assertTrue(any(q["target"]=="minecraft:arrow" and q["count"]==64 for q in archery["quests"]))
+        target=next(q for q in archery["quests"] if q["target"]=="minecraft:target")
+        self.assertIn("不检测搭建",target["how"])
+
+    def test_charm_sections_follow_real_mechanics_and_cover_every_entry(self):
+        from quest_atlas import charm_sections,CHARM_SECTIONS
+        groups=charm_sections()
+        self.assertEqual(3,groups["blood_oath_seal"])
+        self.assertEqual(3,groups["internal_injury_talisman"])
+        self.assertEqual(2,groups["dawn_blade_charm"])
+        self.assertEqual(2,groups["jade_cicada"])
+        self.assertEqual(0,groups["war_deity_signet"])
+        self.assertEqual(1,groups["alchemy_furnace_charm"])
+        c=next(c for c in self.book if c["file"]=="dynasty_accessory_charm")
+        entries=c["quests"][1:]+c["quest_links"]
+        self.assertEqual({"dynasty:"+item for item in groups},{q["target"] for q in entries})
+        for q in entries: self.assertEqual(CHARM_SECTIONS[groups[q["target"].split(":")[1]]],q["atlas_section"])
+        counts=[s["count"] for s in c["atlas_sections"]]
+        self.assertNotEqual(min(counts),max(counts),"Do not force equal-size semantic categories")
+
+    def test_native_lists_do_not_confuse_images_links_and_quests(self):
+        from quest_snbt import list_compounds,object_id
+        for c in self.book:
+            text=story.encode(c)
+            self.assertEqual([q["id"] for q in c["quests"]],[object_id(b) for b in list_compounds(text,"quests")])
+            self.assertEqual(len(c.get("quest_links",[])),len(list_compounds(text,"quest_links")))
+            self.assertEqual(len(c.get("images",[])),len(list_compounds(text,"images")))
+            self.assertNotIn("atlas_section:",text,"Editorial metadata is not a native FTB field")
+            for block in list_compounds(text,"quest_links"):
+                for axis in ("x","y"): self.assertRegex(block,r"\b"+axis+r": -?\d+\.\d+d")
+
+    def test_cross_build_gate_and_cycle_rejected(self):
+        book=copy.deepcopy(self.book)
+        routes=[c for c in book if c.get("route")]
+        routes[0]["quests"][0]["deps"]=[routes[1]["quests"][0]["id"]]
+        with self.assertRaises(AssertionError): story.validate(book)
+        book=copy.deepcopy(self.book)
+        route=next(c for c in book if c.get("route"))
+        route["quests"][0]["deps"]=[route["quests"][2]["id"]]
+        with self.assertRaises(AssertionError): story.validate(book)
+
+    def test_broken_native_image_or_quest_link_rejected(self):
+        for kind in ("image","link","resource","slot"):
+            book=copy.deepcopy(self.book)
+            c=next(c for c in book if c.get("route"))
+            if kind=="image": c["images"][0]["click"]="#100000000fffffff"
+            elif kind=="link": next(ch for ch in book if ch.get('quest_links'))['quest_links'][0]["linked_quest"]="100000000fffffff"
+            elif kind=="resource": c["images"][0]["image"]="https://invalid.example/art.png"
+            else:
+                atlas=next(c for c in book if c["file"]=="dynasty_accessory_necklace")
+                atlas["quest_links"].pop()
+            with self.assertRaises(AssertionError): story.validate(book)
 
 
 if __name__ == "__main__":

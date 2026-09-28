@@ -29,6 +29,8 @@ public final class DynastyBowSigilRenderer {
 
     private DynastyBowSigilRenderer() {}
 
+    static boolean showsAimingSigil(Item item) { return item != DynastyWeapons.HOUYI_BOW.get(); }
+
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
@@ -74,8 +76,11 @@ public final class DynastyBowSigilRenderer {
             Vec3 center = eye.add(look.scale(2.6D)).subtract(camera);
             double radius = (0.28D + tier * 0.035D) * (0.8D + charge * 0.2D);
             double time = player.tickCount + partial;
-            Sigil aim = new Sigil(matrix, center, right.scale(radius), up.scale(radius), color, charge);
-            aim.draw(tier, time);
+            // Houyi keeps the floor ward/avatar/projectile seals, but never obscures the crosshair.
+            if (showsAimingSigil(item)) {
+                Sigil aim = new Sigil(matrix, center, right.scale(radius), up.scale(radius), color, charge);
+                aim.draw(tier, time);
+            }
             if (tier >= 2) {
                 double groundRadius = DynastyBowRitual.impactRadius(tier);
                 // Keep all three airborne layers below the feet, clear of the aiming view.

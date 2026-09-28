@@ -21,6 +21,10 @@ public final class DynastyStructures {
 
     public static final DeferredRegister<StructurePieceType> PIECE_TYPES =
             DeferredRegister.create(Registries.STRUCTURE_PIECE, Dynasty.MODID);
+    public static final RegistryObject<StructureType<TravelSiteStructure>> TRAVEL_SITE =
+            STRUCTURE_TYPES.register("travel_site", () -> () -> TravelSiteStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> TRAVEL_SITE_PIECE =
+            PIECE_TYPES.register("travel_site", () -> TravelSitePiece::new);
 
     /** 皇家宫殿 / Imperial Palace */
     public static final RegistryObject<StructureType<PalaceStructure>> PALACE =
@@ -46,6 +50,26 @@ public final class DynastyStructures {
     public static final RegistryObject<StructureType<StarAltarStructure>> STAR_ALTAR =
             STRUCTURE_TYPES.register("star_altar", () -> () -> StarAltarStructure.CODEC);
 
+    // ------------------------------------------------------------------ 解谜遗迹（自然生成，机关玩法）
+    /** 九霄：观星密室（星盘归位）*/
+    public static final RegistryObject<StructureType<com.dynasty.puzzle.PuzzleRuinStructures.Star>> STAR_VAULT =
+            STRUCTURE_TYPES.register("star_vault", () -> () -> com.dynasty.puzzle.PuzzleRuinStructures.Star.CODEC);
+
+    /** 主世界：古乐遗址（编钟回声）*/
+    public static final RegistryObject<StructureType<com.dynasty.puzzle.PuzzleRuinStructures.Bell>> MUSIC_RUIN =
+            STRUCTURE_TYPES.register("music_ruin", () -> () -> com.dynasty.puzzle.PuzzleRuinStructures.Bell.CODEC);
+
+    /** 幽冥：四象封印室（灯阵）*/
+    public static final RegistryObject<StructureType<com.dynasty.puzzle.PuzzleRuinStructures.Seal>> SEAL_VAULT =
+            STRUCTURE_TYPES.register("seal_vault", () -> () -> com.dynasty.puzzle.PuzzleRuinStructures.Seal.CODEC);
+
+    public static final RegistryObject<StructurePieceType> STAR_VAULT_PIECE =
+            PIECE_TYPES.register("star_vault_piece", StarVaultPieceType::new);
+    public static final RegistryObject<StructurePieceType> MUSIC_RUIN_PIECE =
+            PIECE_TYPES.register("music_ruin_piece", MusicRuinPieceType::new);
+    public static final RegistryObject<StructurePieceType> SEAL_VAULT_PIECE =
+            PIECE_TYPES.register("seal_vault_piece", SealVaultPieceType::new);
+
     public static final RegistryObject<StructurePieceType> PALACE_PIECE =
             PIECE_TYPES.register("palace_piece", PalacePieceType::new);
 
@@ -57,6 +81,8 @@ public final class DynastyStructures {
 
     public static final RegistryObject<StructurePieceType> TOMB_PIECE =
             PIECE_TYPES.register("tomb_piece", TombPieceType::new);
+    public static final RegistryObject<StructurePieceType> TOMB_ACCESS_PIECE =
+            PIECE_TYPES.register("tomb_access", () -> TombAccessPiece::new);
 
     public static final RegistryObject<StructurePieceType> ACADEMY_PIECE =
             PIECE_TYPES.register("academy_piece", AcademyPieceType::new);
@@ -141,6 +167,33 @@ public final class DynastyStructures {
                 net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
                 net.minecraft.nbt.CompoundTag tag) {
             return new StarAltarPiece(DynastyStructures.STAR_ALTAR_PIECE.get(), tag);
+        }
+    }
+
+    static final class StarVaultPieceType implements StructurePieceType {
+        @Override
+        public net.minecraft.world.level.levelgen.structure.StructurePiece load(
+                net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
+                net.minecraft.nbt.CompoundTag tag) {
+            return new com.dynasty.puzzle.PuzzleRuinPiece.Star(DynastyStructures.STAR_VAULT_PIECE.get(), tag);
+        }
+    }
+
+    static final class MusicRuinPieceType implements StructurePieceType {
+        @Override
+        public net.minecraft.world.level.levelgen.structure.StructurePiece load(
+                net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
+                net.minecraft.nbt.CompoundTag tag) {
+            return new com.dynasty.puzzle.PuzzleRuinPiece.Bell(DynastyStructures.MUSIC_RUIN_PIECE.get(), tag);
+        }
+    }
+
+    static final class SealVaultPieceType implements StructurePieceType {
+        @Override
+        public net.minecraft.world.level.levelgen.structure.StructurePiece load(
+                net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
+                net.minecraft.nbt.CompoundTag tag) {
+            return new com.dynasty.puzzle.PuzzleRuinPiece.Lamp(DynastyStructures.SEAL_VAULT_PIECE.get(), tag);
         }
     }
 }

@@ -55,6 +55,13 @@ public final class DynastyCuriosBridge {
         });
     }
 
+    public static void collectStacks(LivingEntity entity, java.util.List<net.minecraft.world.item.ItemStack> out) {
+        CuriosApi.getCuriosInventory(entity).ifPresent(handler -> {
+            var equipped=handler.getEquippedCurios();
+            for(int i=0;i<equipped.getSlots();i++) out.add(equipped.getStackInSlot(i));
+        });
+    }
+
     private static final UUID QUEST_SLOTS = UUID.fromString("d1a5c0de-0000-4000-8000-000000000010");
 
     /** 只更新自己的加槽修饰符，不覆盖其他模组的奖励；同一进度重复同步不会叠加。 */

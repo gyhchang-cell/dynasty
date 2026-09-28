@@ -19,7 +19,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 # 编码 → (名称, 最小值, 最大值, 百分号)
 FLAT = {0: ("生命", -200, 500), 1: ("护甲", -10, 40), 2: ("抗击退", -1.0, 1.0),
-        6: ("击退", -1.0, 1.5), 7: ("攻击距离", -2.0, 3.0), 11: ("幸运", -3.0, 5.0)}
+        6: ("击退", -1.0, 1.5), 7: ("攻击距离", -2.0, 3.0), 11: ("幸运", -3.0, 5.0), 12: ("护甲韧性", 0, 30)}
 RATIO = {3: ("移速%", -0.25, 0.30), 4: ("攻击%", -0.40, 0.60), 5: ("攻速%", -0.30, 0.40),
          9: ("生命上限%", -0.60, 0.50)}
 CONDITION_TEXT = {0: "常驻", 1: "白天", 2: "夜晚", 3: "水下", 4: "残血", 5: "骑乘", 6: "满血", 7: "雷雨"}
@@ -93,7 +93,7 @@ def main():
     table = {}
     proc_table = {}
     proc_range = {}
-    for generator in ("gen_trinkets3", "gen_trinkets4", "gen_trinkets5"):
+    for generator in ("gen_trinkets3", "gen_trinkets4", "gen_trinkets5", "gen_trinkets6", "gen_trinkets7"):
         if os.path.exists(os.path.join(ROOT, "tools/art/%s.py" % generator)):
             module = load(generator)
             table.update(module.TRINKETS)

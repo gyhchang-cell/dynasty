@@ -408,4 +408,18 @@ public final class DynastyWeapons {
     /** 45. 朱雀弓 / Vermilion Bow：箭矢 ×4.0 + 300、穿透 2（特攻 +300） */
     public static final RegistryObject<Item> ZHUQUE_BOW = ITEMS.register("zhuque_bow",
             () -> new DragonBowItem(4.0D, 300.0D, 2, 4, new Item.Properties().durability(9000)));
+
+    // Optional mid-game schools; these do not replace or rebalance existing weapon chains.
+    public static final RegistryObject<Item> ZHENYUE_BLADE = ITEMS.register("zhenyue_blade", DynastySchoolWeapons.GuardBlade::new);
+    public static final RegistryObject<Item> LIUYUN_SWORD = ITEMS.register("liuyun_sword",
+            () -> new DynastySchoolWeapons.SchoolBlade("liuyun_sword", 137, -2.0F));
+    public static final RegistryObject<Item> ZHUXING_BOW = ITEMS.register("zhuxing_bow", DynastySchoolWeapons.StarBow::new);
+    public static final RegistryObject<Item> CHILING_BRUSH = ITEMS.register("chiling_brush", DynastySchoolWeapons.EdictBrush::new);
+    public static final RegistryObject<Item> BEICHEN_SPEAR = ITEMS.register("beichen_spear",
+            () -> new DynastySchoolWeapons.SchoolBlade("beichen_spear", 227, -2.7F));
+    public static final RegistryObject<Item> CHENGYING_SWORD = ITEMS.register("chengying_sword",
+            () -> new DynastySchoolWeapons.SchoolBlade("chengying_sword", 187, -1.8F));
+    public static final RegistryObject<Item> FENGLING_BOW = ITEMS.register("fengling_bow", DynastySchoolWeapons.WindBow::new);
+    public static final RegistryObject<Item> LEIFU_STAFF = ITEMS.register("leifu_staff",
+            () -> new DynastySchoolWeapons.SchoolBlade("leifu_staff", 197, -2.3F));
 }

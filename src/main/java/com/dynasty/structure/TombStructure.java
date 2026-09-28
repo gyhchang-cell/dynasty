@@ -28,8 +28,11 @@ public class TombStructure extends Structure {
         int minY = ctx.heightAccessor().getMinBuildHeight();
         int y = Math.max(minY + 18, -20);
         BlockPos origin = new BlockPos(x, y, z);
-        return Optional.of(new GenerationStub(origin, builder ->
-                builder.addPiece(new TombPiece(DynastyStructures.TOMB_PIECE.get(), 0, origin))));
+        int surface=ctx.chunkGenerator().getFirstFreeHeight(x+19,z+3,net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE_WG,ctx.heightAccessor(),ctx.randomState());
+        return Optional.of(new GenerationStub(new BlockPos(x+19,surface,z+3), builder -> {
+                builder.addPiece(new TombPiece(DynastyStructures.TOMB_PIECE.get(), 0, origin));
+                builder.addPiece(new TombAccessPiece(origin.offset(17,1,1),Math.max(y+17,surface)));
+        }));
     }
 
     @Override

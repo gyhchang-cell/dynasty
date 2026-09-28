@@ -23,6 +23,16 @@ CURIOS = os.path.join(ROOT, "src/main/resources/data/dynasty/tags/items/accessor
 SRC = os.path.join(ROOT, "src/main/java/com/dynasty")
 PIECES = ("helmet", "chestplate", "leggings", "boots")
 
+# User-approved remasters have explicit native resolutions; all other legacy items stay 32px.
+# 128px references: docs/art/items-remaster-v2. 64px originals: readable-batch-01 and earlier art rounds.
+LEGACY_HD_SIZES = {
+    "jade_ruyi": 64, "wine_gourd": 64, "bagua_mirror": 64, "alchemy_furnace_charm": 64,
+    "jade_kylin": 128, "phoenix_hairpin": 128, "imperial_pearl_earring": 128, "zen_bead_string": 128,
+    "bear_paw":128, "heart_mirror":128, "arrow_quiver":128, "talisman_pouch":128,
+    "wrist_guard":128, "sword_tassel":128, "iron_pauldron":128, "knee_guard":128,
+    "quickdraw_glove":128, "scale_plate":128, "jade_cong":128, "incense_sachet":128,
+}
+
 problems = []
 
 
@@ -40,10 +50,13 @@ def read(path):
 def check_trinkets():
     # 真源 = 所有饰品生成器（每批一张表）/ source of truth: every trinket generator table
     table = {}
-    for generator in ("gen_trinkets3", "gen_trinkets4", "gen_trinkets5"):
+    sizes = dict(LEGACY_HD_SIZES)
+    for generator in ("gen_trinkets3", "gen_trinkets4", "gen_trinkets5", "gen_trinkets6", "gen_trinkets7"):
         path = os.path.join(ROOT, "tools/art/%s.py" % generator)
         if os.path.exists(path):
-            table.update(load(generator, path).TRINKETS)
+            module = load(generator, path)
+            table.update(module.TRINKETS)
+            sizes.update(getattr(module, "TEXTURE_SIZE", {}))
     java = read(os.path.join(SRC, "DynastyTrinkets.java"))
     java_ids = re.findall(r'\{"([a-z_]+)", -?\d+, ', java)
     missing_java = [t for t in table if t not in java_ids]
@@ -67,9 +80,10 @@ def check_trinkets():
         else:
             from PIL import Image
             with Image.open(os.path.join(ASSETS, "textures/item/%s.png" % tid)) as image:
-                if image.size != (32, 32):
-                    problems.append("饰品 %s 的贴图不是 32×32（实际 %s）"
-                                    % (tid, "×".join(str(n) for n in image.size)))
+                expected = sizes.get(tid, 32)
+                if image.size != (expected, expected):
+                    problems.append("饰品 %s 的贴图不是 %d×%d（实际 %s）"
+                                    % (tid, expected, expected, "×".join(str(n) for n in image.size)))
                 if image.convert("RGBA").getchannel("A").getextrema()[1] == 0:
                     problems.append("饰品 %s 的贴图全透明（画失败？）" % tid)
         if not os.path.exists(os.path.join(ASSETS, "models/item/%s.json" % tid)):
@@ -172,8 +186,8 @@ def check_armor():
             problems.append("护甲 %s 没有进 DynastyGear.EXTRA_SET_TABLE（物品不会注册）" % set_id)
         if 'SET_BONUS.put("%s"' % set_id not in balance:
             problems.append("护甲 %s 没有进 DynastyBalance.SET_BONUS（没有套装加成）" % set_id)
-        if 'path.startsWith("%s")' % set_id not in tooltips:
-            problems.append("护甲 %s 没有进 DynastyTooltips.setName（提示不显示套装名）" % set_id)
+        if 'DynastyBalance.setNameBonus(path)' not in tooltips:
+            problems.append("护甲悬浮属性必须从真实 SET_BONUS 读取，不能维护另一份重复数值表")
         for piece in PIECES:
             name = "%s_%s" % (set_id, piece)
             if not os.path.exists(os.path.join(ASSETS, "textures/item/%s.png" % name)):

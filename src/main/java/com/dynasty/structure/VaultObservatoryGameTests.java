@@ -117,9 +117,11 @@ public final class VaultObservatoryGameTests {
         var p = new StarCapture();
         p.postProcess(null, null, null, RandomSource.create(1), p.getBoundingBox(), null, BlockPos.ZERO);
         var map = p.layout;
-        h.assertTrue(map.chests == 2, "Observatory must preserve two original-tier chests");
-        h.assertTrue(map.writes < 17000, "Observatory placement budget grew unexpectedly");
+        h.assertTrue(map.chests == 3, "Observatory has two original chests plus one lower workshop chest");
+        h.assertTrue(map.writes < 45000, "Expanded observatory exceeded placement budget");
         var lower = map.reachable(new BlockPos(4, 1, 5), false);
+        h.assertTrue(lower.contains(new BlockPos(12,1,12)), "Hollow core must connect to the lower gallery");
+        h.assertTrue(map.at(new BlockPos(16,1,16)).is(Blocks.SMITHING_TABLE), "Lower workshop missing");
         for (int[] point : new int[][]{{4,16},{21,9},{5,5},{20,20},{12,4},{12,21},{4,12},{21,12}})
             h.assertTrue(lower.contains(new BlockPos(point[0],1,point[1])),
                     "Blocked lower cloister: " + point[0] + "," + point[1]);
@@ -129,6 +131,8 @@ public final class VaultObservatoryGameTests {
         }
         h.assertTrue(map.at(new BlockPos(12,13,12)).is(Blocks.SEA_LANTERN), "Armillary sphere core missing");
         h.assertTrue(map.at(new BlockPos(8,4,18)).is(Blocks.SEA_LANTERN), "Flat star inlay missing");
+        h.assertTrue(map.at(new BlockPos(31,1,6)).is(Blocks.CARTOGRAPHY_TABLE), "New instrument hall missing");
+        h.assertTrue(map.at(new BlockPos(28,1,12)).isAir(), "Archive entrance blocked");
         var saved = new CompoundTag();
         p.addAdditionalSaveData(null, saved);
         h.assertTrue(saved.getInt("DynastyStarLayout") == 2, "New starts must persist their layout version");

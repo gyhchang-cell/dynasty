@@ -48,9 +48,11 @@ for (const name of names) {
     const model = JSON.parse(fs.readFileSync(json, 'utf8'));
     assert.equal(model.render_type, 'minecraft:cutout');
     assert.equal(model.textures.layer0, `dynasty:item/${name}`);
-    assert.ok(model.elements.length > 30 && model.elements.length < 200);
+    assert.ok(model.elements.length > 30 && model.elements.length < 1000);
+    assert.deepEqual(model.elements[0].faces.north.uv,[16,0,0,16]);
+    assert.deepEqual(model.elements[0].faces.south.uv,[0,0,16,16]);
     const coverage = new Uint8Array(64 * 64);
-    for (const part of model.elements) {
+    for (const part of model.elements.slice(1)) {
         assert.ok(part.to[2] - part.from[2] <= 0.5, `${name}: bow is too thick`);
         const x0 = Math.round(part.from[0] * 4);
         const x1 = Math.round(part.to[0] * 4);
@@ -67,7 +69,10 @@ for (const name of names) {
     for (let i = 0; i < 64 * 64; i++) {
         const alpha = rgba[i * 4 + 3];
         assert.ok(alpha === 0 || alpha === 255, `${name}: alpha must be binary`);
-        assert.equal(coverage[i], alpha === 255 ? 1 : 0, `${name}: model/sprite mismatch at pixel ${i}`);
+        const x=i%64,y=Math.floor(i/64);
+        const solid=(px,py)=>px>=0&&py>=0&&px<64&&py<64&&rgba[(py*64+px)*4+3]>=26;
+        const boundary=solid(x,y)&&(!solid(x-1,y)||!solid(x+1,y)||!solid(x,y-1)||!solid(x,y+1));
+        assert.equal(coverage[i], boundary ? 1 : 0, `${name}: silhouette mismatch at pixel ${i}`);
     }
     if (name !== 'houyi_bow') {
         checkDrawnAim(model, name);

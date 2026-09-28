@@ -46,6 +46,7 @@ public class AcademyPiece extends DynastyStructurePiece {
         // Persisted old starts retain their 34-block layout, including not-yet-generated chunks.
         if (getBoundingBox().getXSpan() >= SIZE) {
             AcademyCourtyard.build(this, level, box, random);
+            PlayerBuildOverrides.apply("academy",this,level,box);
             return;
         }
         BlockState brick = DynastyBlocks.PALACE_BRICKS.get().defaultBlockState();

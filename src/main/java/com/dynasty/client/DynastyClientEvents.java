@@ -35,6 +35,16 @@ public class DynastyClientEvents {
                             living != null && living.getUseItem() == stack
                                     ? Math.min(1.0F, (stack.getUseDuration() - living.getUseItemRemainingTicks()) / 20.0F)
                                     : 0.0F);
+            for (net.minecraft.world.item.Item starBow : new net.minecraft.world.item.Item[]{
+                    com.dynasty.DynastyWeapons.ZHUXING_BOW.get(), com.dynasty.DynastyWeapons.FENGLING_BOW.get(),
+                    com.dynasty.DynastyWeapons.SHENBI_BOW.get(), com.dynasty.DynastyWeapons.DRAGON_BOW.get(),
+                    com.dynasty.DynastyWeapons.CHANG_GONG.get()}) {
+            net.minecraft.client.renderer.item.ItemProperties.register(starBow, new ResourceLocation(Dynasty.MODID, "pulling"),
+                    (stack, level, living, seed) -> living != null && living.isUsingItem() && living.getUseItem() == stack ? 1F : 0F);
+            net.minecraft.client.renderer.item.ItemProperties.register(starBow, new ResourceLocation(Dynasty.MODID, "pull"),
+                    (stack, level, living, seed) -> living != null && living.getUseItem() == stack
+                            ? Math.min(1F, (stack.getUseDuration() - living.getUseItemRemainingTicks()) / 20F) : 0F);
+            }
         });
     }
 
@@ -94,7 +104,7 @@ public class DynastyClientEvents {
     public static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(WARRIOR_LAYER, DynastyHumanoidModel::createBodyLayer);
         event.registerLayerDefinition(SOLDIER_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
-        event.registerLayerDefinition(EMPEROR_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.25F));
+        event.registerLayerDefinition(EMPEROR_LAYER, () -> DynastyHumanoidModel.decoratedLayer(10));
         event.registerLayerDefinition(MINISTER_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
         event.registerLayerDefinition(ASSASSIN_LAYER, () -> DynastyHumanoidModel.createBodyLayer(-0.05F));
         event.registerLayerDefinition(ARCHER_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
@@ -103,14 +113,14 @@ public class DynastyClientEvents {
         event.registerLayerDefinition(NIAN_BEAST_LAYER,
                 () -> DetailedBeastModel.createLayer(DetailedBeastModel.Kind.NIAN));
         event.registerLayerDefinition(DRAGON_EMPEROR_LAYER, () -> DynastyHumanoidModel.decoratedLayer(1));
-        event.registerLayerDefinition(REBEL_GENERAL_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.25F));
-        event.registerLayerDefinition(EUNUCH_MASTERMIND_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.2F));
+        event.registerLayerDefinition(REBEL_GENERAL_LAYER, () -> DynastyHumanoidModel.decoratedLayer(5));
+        event.registerLayerDefinition(EUNUCH_MASTERMIND_LAYER, () -> DynastyHumanoidModel.decoratedLayer(6));
         event.registerLayerDefinition(NINE_HEAVEN_GENERAL_LAYER, () -> DynastyHumanoidModel.decoratedLayer(2));
-        event.registerLayerDefinition(DRAGON_KING_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.3F));
+        event.registerLayerDefinition(DRAGON_KING_LAYER, () -> DynastyHumanoidModel.decoratedLayer(7));
         event.registerLayerDefinition(JADE_GUARD_LAYER, () -> DynastyHumanoidModel.decoratedLayer(3));
         event.registerLayerDefinition(SOUL_SOLDIER_LAYER, () -> DynastyHumanoidModel.decoratedLayer(4));
-        event.registerLayerDefinition(THUNDER_ENVOY_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
-        event.registerLayerDefinition(MERFOLK_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
+        event.registerLayerDefinition(THUNDER_ENVOY_LAYER, () -> DynastyHumanoidModel.decoratedLayer(8));
+        event.registerLayerDefinition(MERFOLK_LAYER, () -> DynastyHumanoidModel.decoratedLayer(9));
         event.registerLayerDefinition(QILIN_LAYER,
                 () -> DetailedBeastModel.createLayer(DetailedBeastModel.Kind.QILIN));
         event.registerLayerDefinition(NINE_TAILED_FOX_LAYER,
@@ -121,6 +131,10 @@ public class DynastyClientEvents {
 
     @SubscribeEvent
     public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        for(String skin:event.getSkins()) {
+            net.minecraft.client.renderer.entity.player.PlayerRenderer renderer=event.getSkin(skin);
+            if(renderer!=null)renderer.addLayer(new DivineArmorLightLayer(renderer));
+        }
         // 所有模型层注册完成后统一烘焙一次：模型定义有误会立刻暴露，而不是等实体出现才崩
         // Bake every layer once, after all layer definitions are registered.
         net.minecraft.client.model.geom.EntityModelSet modelSet = event.getEntityModels();

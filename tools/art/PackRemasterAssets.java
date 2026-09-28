@@ -52,7 +52,7 @@ public final class PackRemasterAssets {
             graphics.drawImage(source,0,0,128,128,null);
             for(int y=0;y<128;y++)for(int x=0;x<128;x++)
                 if((target.getRGB(x,y)>>>24)<250)throw new IllegalStateException("Block face must be opaque: "+args[1]);
-        } else if(args[0].equals("item")) {
+        } else if(args[0].equals("item") || args[0].equals("item-fixed")) {
             int minX=source.getWidth(),minY=source.getHeight(),maxX=-1,maxY=-1;
             int clear=0;
             for(int y=0;y<source.getHeight();y++)for(int x=0;x<source.getWidth();x++) {
@@ -60,6 +60,10 @@ public final class PackRemasterAssets {
                 if(alpha>24){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}else clear++;
             }
             if(clear<source.getWidth()*source.getHeight()/20||maxX<0)throw new IllegalStateException("Real transparent background required");
+            // Animation frames share a canvas anchor; individual alpha cropping shifts the grip.
+            if(args[0].equals("item-fixed")) {
+                minX=0;minY=0;maxX=source.getWidth()-1;maxY=source.getHeight()-1;
+            }
             int w=maxX-minX+1,h=maxY-minY+1;double fit=120.0/Math.max(w,h);
             int dw=(int)Math.round(w*fit),dh=(int)Math.round(h*fit),x=(128-dw)/2,y=(128-dh)/2;
             target=new BufferedImage(128,128,BufferedImage.TYPE_INT_ARGB);graphics=target.createGraphics();

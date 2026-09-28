@@ -206,7 +206,7 @@ public final class ImperialWeaponRenderer {
                     Vec3 dragonOrigin=point(center,right,up,forward,pose.origin(),1);
                     geometry(matrix,dragonOrigin,point(Vec3.ZERO,right,up,forward,pose.x(),1),
                             point(Vec3.ZERO,right,up,forward,pose.y(),1),point(Vec3.ZERO,right,up,forward,pose.z(),1),1)
-                            .dragon(new ImperialWeaponGeometry.P(0,0,0),ImperialWeaponGeometry.DESCENT_DRAGON_SIZE,
+                            .divingDragon(new ImperialWeaponGeometry.P(0,0,0),ImperialWeaponGeometry.DESCENT_DRAGON_SIZE,
                                     0,age,0x36cbbb,phase.dragonAlpha()*fade);
                 }
                 if(effect.finished>=0)geometry(matrix,center.add(0,floor,0),right,forward,new Vec3(0,1,0),
@@ -329,6 +329,9 @@ public final class ImperialWeaponRenderer {
             }
         },new ImperialWeaponGeometry.Surface() {
             public boolean dragonInstance(ImperialWeaponGeometry.P local,double size,double angle,int color,double alpha,boolean mirrored) {
+                return dragonInstance(local,size,angle,color,alpha,mirrored,false);
+            }
+            public boolean dragonInstance(ImperialWeaponGeometry.P local,double size,double angle,int color,double alpha,boolean mirrored,boolean diving) {
                 if(!ImperialMaterialShader.available())return false;
                 if(alpha<=0||meshFaces()+ImperialDragonMesh.FACES.size()>120000)return true;
                 Matrix4f pose=new Matrix4f().m00((float)(x.x*scale)).m01((float)(x.y*scale)).m02((float)(x.z*scale))
@@ -337,7 +340,7 @@ public final class ImperialWeaponRenderer {
                         .m30((float)origin.x).m31((float)origin.y).m32((float)origin.z)
                         .translate((float)local.x(),(float)local.y(),(float)local.z()).rotateZ((float)angle)
                         .scale((float)(mirrored?-size:size),(float)size,(float)size);
-                DRAGONS.add(new ImperialDragonRenderer.Instance(pose,((color>>16)&255)<150,(float)Math.min(1,alpha*1.4)));
+                DRAGONS.add(new ImperialDragonRenderer.Instance(pose,((color>>16)&255)<150,(float)Math.min(1,alpha*1.4),diving));
                 return true;
             }
             public void face(ImperialWeaponGeometry.P a,ImperialWeaponGeometry.P b,ImperialWeaponGeometry.P c,

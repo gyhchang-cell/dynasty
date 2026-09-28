@@ -43,26 +43,35 @@ public final class VerifyImperialDragon {
         check(Math.abs(size/2.7-1.5)<1e-10,"Attack dragon must be 1.5 times the original scale");
         check(ImperialWeaponGeometry.DRAGON_ENLARGEMENT==3.0,"Decorative guardians must retain their scale");
         check(ImperialWeaponGeometry.DESCENT_START_HEIGHT==12.0,"Raised descent height must be preserved");
-        P impact=ImperialWeaponGeometry.descentDragonPose(2.4,0).direction(ImperialDragonMesh.MUZZLE).scale(size);
+        P impact=ImperialWeaponGeometry.descentDragonPose(2.4,0).direction(ImperialDragonMesh.DIVE_MUZZLE).scale(size);
         var dive=ImperialWeaponGeometry.descentDragonPose(2.4,0);
         check(Math.abs(dot(cross(dive.x(),dive.y()),dive.z())-1)<1e-12,"Dive must be a rigid rotation, not a mirror");
         for(P axis:new P[]{dive.x(),dive.y(),dive.z()})check(Math.abs(length(axis)-1)<1e-12,"Non-unit dive axis");
         check(Math.abs(dot(dive.x(),dive.y()))<1e-12&&Math.abs(dot(dive.x(),dive.z()))<1e-12
                 &&Math.abs(dot(dive.y(),dive.z()))<1e-12,"Dive axes are not orthogonal");
-        P headForward=subtract(ImperialDragonMesh.MUZZLE,ImperialDragonMesh.HEAD_CENTER);
+        P headForward=subtract(ImperialDragonMesh.DIVE_MUZZLE,ImperialDragonMesh.HEAD_CENTER);
         P direction=dive.direction(headForward).scale(1/length(headForward));
         check(length(subtract(direction,new P(0,-1,0)))<1e-12,"Nose points sideways instead of along the dive");
-        // The pre-fix endpoint check alone passed despite the head flying roughly sixty degrees
-        // sideways to its velocity. Keep that concrete counterexample in the regression suite.
-        P oldDirection=rotate(headForward,1/length(headForward),Math.PI*.75);
-        check(dot(oldDirection,new P(0,-1,0))<.7,"Fixture no longer exposes the original side-on descent");
+        check(Math.abs((.60-ImperialDragonMesh.DIVE_TAIL_CENTER.y())/(.60-ImperialDragonMesh.TAIL_CENTER.y())-1.25)<1e-12,
+                "Attack body must be elongated 25% without resizing the head");
+        P bodyDirection=dive.direction(subtract(ImperialDragonMesh.HEAD_CENTER,ImperialDragonMesh.DIVE_TAIL_CENTER));
+        check(-bodyDirection.y()/length(bodyDirection)>.98,"Body is horizontal despite a downward snout");
+        check(dive.point(ImperialDragonMesh.DIVE_TAIL_CENTER).y()>dive.point(ImperialDragonMesh.HEAD_CENTER).y()+8,
+                "Tail must trail above the descending head");
+        check(ImperialDragonMesh.DIVE_FACES.size()==faces.size(),"Attack pose lost dragon anatomy");
+        for(var face:ImperialDragonMesh.DIVE_FACES){
+            for(P vertex:new P[]{face.a(),face.b(),face.c(),face.d()})
+                check(Double.isFinite(vertex.x()+vertex.y()+vertex.z()),"Nonfinite dive vertex");
+            check(length(subtract(face.a(),face.b()))<.5&&length(subtract(face.b(),face.c()))<.5,
+                    "Neck pose creates a stretched seam");
+        }
         int trajectoryFrames=0;
         for(double headOffset:new double[]{2.4,3.8,7.0})for(int yawDegrees=0;yawDegrees<360;yawDegrees+=15) {
             double yaw=Math.toRadians(yawDegrees),previousY=Double.POSITIVE_INFINITY;
             for(int step=0;step<=112;step++) {
                 double travel=step/112.0;
                 var pose=ImperialWeaponGeometry.descentDragonPose(headOffset,travel);
-                P nose=pose.point(ImperialDragonMesh.MUZZLE),skull=pose.point(ImperialDragonMesh.HEAD_CENTER);
+                P nose=pose.point(ImperialDragonMesh.DIVE_MUZZLE),skull=pose.point(ImperialDragonMesh.HEAD_CENTER);
                 check(Math.abs(nose.x())<1e-10&&Math.abs(nose.z())<1e-10,"Nose misses the vertical seal axis");
                 check(nose.y()<=previousY+1e-10,"Dragon reverses direction during descent");
                 previousY=nose.y();
@@ -75,7 +84,7 @@ public final class VerifyImperialDragon {
                 trajectoryFrames++;
             }
             double crossing=Math.sqrt(12/(headOffset+12));
-            P upperSeal=ImperialWeaponGeometry.descentDragonPose(headOffset,crossing).point(ImperialDragonMesh.MUZZLE);
+            P upperSeal=ImperialWeaponGeometry.descentDragonPose(headOffset,crossing).point(ImperialDragonMesh.DIVE_MUZZLE);
             check(length(subtract(upperSeal,new P(0,headOffset,0)))<1e-10,"Nose did not pass through the upper seal centre");
         }
         for(double clientAge:new double[]{-2,0,17.9,18,19,26,31.99,32,44}) {
@@ -98,11 +107,15 @@ public final class VerifyImperialDragon {
             if(age>=32)check(length(subtract(nose,target))<1e-9,"Nose does not land on target at damage tick");
         }
         // Verify the complete golden aura sway range, including the mirrored left guardian.
-        for(double angle:new double[]{-.22,-.18,-.14}){
-            P nose=rotate(ImperialDragonMesh.MUZZLE,3.54,angle).add(new P(3.15,0,.24));
-            P skull=rotate(ImperialDragonMesh.HEAD_CENTER,3.54,angle).add(new P(3.15,0,.24));
+        for(double angle:new double[]{ImperialWeaponGeometry.IMPERIAL_PAIR_ANGLE-.025,
+                ImperialWeaponGeometry.IMPERIAL_PAIR_ANGLE,ImperialWeaponGeometry.IMPERIAL_PAIR_ANGLE+.025}){
+            P nose=rotate(ImperialDragonMesh.MUZZLE,3.54,angle).add(new P(
+                    ImperialWeaponGeometry.IMPERIAL_PAIR_OFFSET*3,0,.24));
+            P skull=rotate(ImperialDragonMesh.HEAD_CENTER,3.54,angle).add(new P(
+                    ImperialWeaponGeometry.IMPERIAL_PAIR_OFFSET*3,0,.24));
             check(nose.x()>0&&nose.x()<skull.x(),"Right guardian no longer faces inward");
             check(-nose.x()<0&&-nose.x()>-skull.x(),"Mirrored left guardian no longer faces inward");
+            check(nose.x()>0.8&&nose.x()<1.6,"Imperial guardian heads are too far apart or intersect");
         }
         check(counts[0]>8000&&counts[8]>2000&&counts[6]>600,"Missing scales/skin/ventral plates");
         check(counts[2]>300&&counts[3]>2000&&counts[7]>300,"Missing mouth/teeth/gums");
@@ -120,14 +133,14 @@ public final class VerifyImperialDragon {
         for(double t:new double[]{0,8,40,80}){
             emitted[0]=0;geometry.aura(1,t,Math.min(1,t/40));
             check(emitted[0]==faces.size()*2,"Dual golden guardians lost a body part");
-            emitted[0]=0;geometry.dragon(new P(0,2,0),1.8,Math.PI*.75,t,0x36cbbb,1);
+            emitted[0]=0;geometry.divingDragon(new P(0,2,0),1.8,Math.PI,t,0x36cbbb,1);
             check(emitted[0]==faces.size(),"Descending dragon count changed");
         }
         System.out.println("Dragon geometry PASS: "+faces.size()+" quads; max edge "+maxEdge+"; material counts "+Arrays.toString(counts));
         System.out.println("Actual muzzle "+ImperialDragonMesh.MUZZLE+"; descent impact offset "+impact+"; exact age-32 landing / enlarged inward golden heads PASS");
         System.out.println("Nose-first trajectory PASS: "+trajectoryFrames+" frames / 24 caster yaws / 3 target heights; upper-seal crossing / no reflection / server-confirmed landing PASS");
-        System.out.printf("Pre-fix nose/velocity angle %.2f degrees; corrected angle 0 degrees.%n",
-                Math.toDegrees(Math.acos(dot(oldDirection,new P(0,-1,0)))));
+        System.out.printf("Attack body's angle from vertical %.2f degrees; snout angle 0 degrees.%n",
+                Math.toDegrees(Math.acos(-bodyDirection.y()/length(bodyDirection))));
         System.out.println("Finite/area/bounds/smooth-normal/dual-guardian/descent transforms PASS; visual reference fidelity is not automatically certified.");
     }
 }

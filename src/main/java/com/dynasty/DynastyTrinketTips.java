@@ -5,6 +5,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
 
 import java.util.List;
 import java.util.Map;
@@ -111,35 +113,88 @@ public final class DynastyTrinketTips {
         @Override
         public void appendHoverText(ItemStack stack, Level level, List<Component> lines, TooltipFlag flag) {
             super.appendHoverText(stack, level, lines, flag);
+            // 默认只给最重要的几行（属性），效果 / 触发条件算详情、按住 Shift 展开；
+            // 这里只做「追加」，不清空列表，附魔与其它模组的提示不受影响。
+            List<Component> brief = new java.util.ArrayList<>(3);
+            List<Component> details = new java.util.ArrayList<>(3);
+            DynastyAccessoryRefining.tooltip(stack,brief,details);
+            var accessoryBonus = DynastyAccessoryData.get(id);
+            if (accessoryBonus != null && !accessoryBonus.kind().equals("none")) {
+                brief.add(Component.translatable("tooltip.dynasty.accessory_damage." + id)
+                        .withStyle(net.minecraft.ChatFormatting.BLUE));
+            }
+            if (DynastySchoolCombat.ACCESSORIES.contains(id)) {
+                brief.add(Component.translatable("tooltip.dynasty.school.passive." + id)
+                        .withStyle(net.minecraft.ChatFormatting.BLUE));
+                details.add(Component.translatable("tooltip.dynasty.school." + id));
+            }
             if (row == null) {
                 for (String line : legacy(id)) {
-                    lines.add(Component.literal(line));
+                    String clean = line.replaceAll("§.", "").replace("常驻", "");
+                    String condition = "";
+                    for (String prefix : new String[]{"夜晚 ", "白天 ", "水下 "}) {
+                        if (clean.startsWith(prefix)) { condition = prefix; break; }
+                    }
+                    String[] attributes = clean.split("\\s*·\\s*");
+                    for (int i = 0; i < attributes.length; i++) {
+                        addLine(brief, details, "§9" + (i == 0 ? "" : condition) + attributes[i]);
+                    }
                 }
+            } else {
+                addLine(brief, details, attributeLine((Integer) row[7], (Integer) row[1], (Double) row[2],
+                        -1, 0D));
+                addLine(brief, details, attributeLine((Integer) row[7], (Integer) row[3], (Double) row[4],
+                        -1, 0D));
+                if (row.length > 10) {
+                    addLine(brief, details, attributeLine((Integer) row[10], (Integer) row[8], (Double) row[9],
+                            -1, 0D));
+                }
+                String effect = effectName((Integer) row[5], (Integer) row[6]);
+                if (effect != null) {
+                    details.add(Component.literal("§7效果：§d" + effect));
+                }
+                // 第 12~14 格：命中触发（吸血 / 斩杀 / 会心 / 突袭 / 连击 / 雷罚）
+                if (row.length > 13) {
+                    String proc = onHitName((Integer) row[11], (Double) row[12], (Integer) row[13]);
+                    if (proc != null) {
+                        details.add(Component.literal("§7命中时：§c" + proc));
+                    }
+                }
+            }
+            lines.addAll(brief);
+            if (tooltipShift()) {
+                lines.addAll(details);
+            } else if (!details.isEmpty()) {
+                Component hint = tooltipHint();
+                if (hint != null) {
+                    lines.add(hint);
+                }
+            }
+        }
+
+        /** 属性行走「默认预算」还是「详情」，由预算决定 / stat line goes to brief or details */
+        private static void addLine(List<Component> brief, List<Component> details, String text) {
+            if (text == null || text.isEmpty()) {
                 return;
             }
-            String first = attributeLine((Integer) row[7], (Integer) row[1], (Double) row[2],
-                    (Integer) row[3], (Double) row[4]);
-            if (!first.isEmpty()) {
-                lines.add(Component.literal(first));
+            if (brief.size() < DynastyTooltipBudget.BRIEF_LIMIT) {
+                brief.add(Component.literal(text));
+            } else {
+                details.add(Component.literal(text));
             }
-            if (row.length > 10) {
-                String third = attributeLine((Integer) row[10], (Integer) row[8], (Double) row[9],
-                        -1, 0D);
-                if (!third.isEmpty()) {
-                    lines.add(Component.literal(third));
-                }
-            }
-            String effect = effectName((Integer) row[5], (Integer) row[6]);
-            if (effect != null) {
-                lines.add(Component.literal("§7效果：§d" + effect));
-            }
-            // 第 12~14 格：命中触发（吸血 / 斩杀 / 会心 / 突袭 / 连击 / 雷罚）
-            if (row.length > 13) {
-                String proc = onHitName((Integer) row[11], (Double) row[12], (Integer) row[13]);
-                if (proc != null) {
-                    lines.add(Component.literal("§7命中时：§c" + proc));
-                }
-            }
+        }
+
+        /** 是否按住 Shift：只在客户端求值，服务器不会加载客户端类。*/
+        private static boolean tooltipShift() {
+            Boolean held = DistExecutor.unsafeCallWhenOn(Dist.CLIENT,
+                    () -> com.dynasty.client.DynastyTooltipGate::shiftDown);
+            return held != null && held;
+        }
+
+        /** 「按住 Shift 查看详情」提示（服务器上返回 null，调用方跳过）。*/
+        private static Component tooltipHint() {
+            return DistExecutor.unsafeCallWhenOn(Dist.CLIENT,
+                    () -> com.dynasty.client.DynastyTooltipGate::holdShiftHint);
         }
     }
 
@@ -157,7 +212,8 @@ public final class DynastyTrinketTips {
         if (parts.isEmpty()) {
             return "";
         }
-        return "§7[" + conditionText(condition) + "] §f" + String.join(" §8· §f", parts);
+        return (condition == 0 ? "§9" : "§7[" + conditionText(condition) + "] §9")
+                + String.join(" §8· §9", parts);
     }
 
     private static String conditionText(int condition) {
@@ -178,6 +234,7 @@ public final class DynastyTrinketTips {
             case 7 -> "攻击距离 " + number(value);
             case 9 -> "生命上限 " + percent(value);
             case 11 -> "幸运 " + number(value);
+            case 12 -> "护甲韧性 " + number(value);
             default -> null;                                   // -1 = 这一格没有属性
         };
     }

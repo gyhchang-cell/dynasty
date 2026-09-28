@@ -11,6 +11,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -24,6 +25,7 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.DragonFireball;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -233,11 +235,17 @@ public final class DynastyBosses {
         private int spearCooldown = 90;
         /** 阶段（0 普通 / 1 狂暴）/ phase */
         private int phase = 0;
+        /**
+         * 按玩家逐个订阅的血条：进入实体跟踪范围（14 区块 ≈ 224 格）**不等于**玩家看得见，
+         * 所以这里只登记候选，到底给不给血条交给 {@link DynastyBossBarSubscriptions} 判定。
+         */
+        private final DynastyBossBarSubscriptions barSubscriptions;
 
         public RebelGeneral(EntityType<? extends RebelGeneral> type, Level level) {
             super(type, level);
             this.setRebel(true);
             this.xpReward = 300;
+            this.barSubscriptions = new DynastyBossBarSubscriptions(this, this.bossEvent);
         }
 
         public static AttributeSupplier.Builder createAttributes() {
@@ -275,6 +283,8 @@ public final class DynastyBosses {
         @Override
         protected void customServerAiStep() {
             super.customServerAiStep();
+            // 血条：每 tick 只做节流登记；真正的订阅判定每 10 tick 一次，且只看跟踪自己的玩家
+            this.barSubscriptions.tick();
             this.bossEvent.setProgress(this.getHealth() / this.getMaxHealth());
             LivingEntity target = this.getTarget();
             if (target == null) {
@@ -322,19 +332,43 @@ public final class DynastyBosses {
         @Override
         public void startSeenByPlayer(ServerPlayer player) {
             super.startSeenByPlayer(player);
-            this.bossEvent.addPlayer(player);
+            // 进入跟踪范围只登记候选：14 区块（≈224 格）远大于「看得见」，
+            // 隔着山体 / 在地下 / 刚进维度都不该直接塞一根血条
+            this.barSubscriptions.startSeenByPlayer(player);
         }
 
         @Override
         public void stopSeenByPlayer(ServerPlayer player) {
             super.stopSeenByPlayer(player);
-            this.bossEvent.removePlayer(player);
+            this.barSubscriptions.stopSeenByPlayer(player);
+        }
+
+        @Override
+        public void die(net.minecraft.world.damagesource.DamageSource source) {
+            this.barSubscriptions.clear();          // 死亡立刻摘条，不等到 remove
+            super.die(source);
         }
 
         @Override
         public void remove(Entity.RemovalReason reason) {
-            this.bossEvent.removeAllPlayers();
+            this.barSubscriptions.clear();
             super.remove(reason);
+        }
+
+        /**
+         * 自然生成的落点校验：脚下要有可站立面、身体（2.2 格高）不能卡在方块里。
+         * 刷怪蛋 / 命令 / 结构守卫等入口一律放行，见 {@link DynastySpawnPlacement}。
+         */
+        @Override
+        public boolean checkSpawnRules(LevelAccessor level, MobSpawnType reason) {
+            if (!super.checkSpawnRules(level, reason)) {
+                return false;
+            }
+            if (!DynastySpawnPlacement.strict(reason)) {
+                return true;
+            }
+            return DynastySpawnPlacement.hasStandingSpace(level, blockPosition(),
+                    getType().getDimensions().makeBoundingBox(getX(), getY(), getZ()));
         }
     }
 

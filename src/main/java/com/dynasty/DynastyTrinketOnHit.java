@@ -55,6 +55,20 @@ public final class DynastyTrinketOnHit {
 
     private static final Map<String, Proc> PROCS = new HashMap<>();
     private static final Map<UUID, Combo> COMBO_STATE = new HashMap<>();
+    private static final ThreadLocal<Boolean> SYNTHETIC_DAMAGE = new ThreadLocal<>();
+
+    /** Extra proc damage keeps player kill credit, but is never a fresh attack or another proc trigger. */
+    public static boolean isSyntheticDamage() { return Boolean.TRUE.equals(SYNTHETIC_DAMAGE.get()); }
+
+    private static void supplementalDamage(Player attacker, LivingEntity target, float amount) {
+        if (isSyntheticDamage()) return;
+        SYNTHETIC_DAMAGE.set(true);
+        try {
+            target.hurt(attacker.damageSources().playerAttack(attacker), amount);
+        } finally {
+            SYNTHETIC_DAMAGE.remove();
+        }
+    }
 
     private DynastyTrinketOnHit() {
     }
@@ -88,7 +102,7 @@ public final class DynastyTrinketOnHit {
      * @return 加成后的伤害；没有可用饰品时原样返回
      */
     public static float bonus(Player attacker, LivingEntity target, float amount) {
-        if (PROCS.isEmpty() || amount <= 0.0F) {
+        if (isSyntheticDamage() || PROCS.isEmpty() || amount <= 0.0F) {
             return amount;
         }
         java.util.Set<String> active = DynastyTrinkets.activeIds(attacker);
@@ -134,10 +148,10 @@ public final class DynastyTrinketOnHit {
     /**
      * 命中结算后的效果（吸血 / 斩杀 / 雷罚）。
      *
-     * @param dealt 本次实际造成的伤害（各段减伤已经算完）
+     * @param dealt 最终 Hurt 阶段金额（含流派与模组减伤，原版护甲/吸收仍由后续原版管线处理）
      */
     public static void after(Player attacker, LivingEntity target, float dealt) {
-        if (PROCS.isEmpty()) {
+        if (isSyntheticDamage() || PROCS.isEmpty()) {
             return;
         }
         java.util.Set<String> active = DynastyTrinkets.activeIds(attacker);
@@ -163,8 +177,7 @@ public final class DynastyTrinketOnHit {
                 }
                 case THUNDER -> {
                     if (target.isAlive() && roll(attacker, proc.chance())) {
-                        target.hurt(attacker.damageSources().playerAttack(attacker),
-                                (float) proc.value());
+                        supplementalDamage(attacker, target, (float) proc.value());
                     }
                 }
                 default -> {
@@ -178,8 +191,7 @@ public final class DynastyTrinketOnHit {
      * Execute: enough damage to finish a low-health mob, plus a chat hint.
      */
     private static void execute(Player attacker, LivingEntity target, double threshold) {
-        target.hurt(attacker.damageSources().playerAttack(attacker),
-                (float) (target.getMaxHealth() * 4.0D + 100.0D));
+        supplementalDamage(attacker, target, (float) (target.getMaxHealth() * 4.0D + 100.0D));
         if (!target.isAlive() && attacker instanceof ServerPlayer server) {
             server.displayClientMessage(Component.literal(
                     "§4[斩杀] §r" + target.getName().getString() + " 在 "

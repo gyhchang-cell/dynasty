@@ -10,20 +10,22 @@ import net.minecraft.world.phys.Vec3;
 
 /** Shared immutable dragon meshes. A moving/descending dragon uploads only an instance matrix. */
 final class ImperialDragonRenderer {
-    record Instance(Matrix4f worldFromLocal,boolean jade,float opacity) {}
+    record Instance(Matrix4f worldFromLocal,boolean jade,float opacity,boolean diving) {
+        Instance(Matrix4f pose,boolean jade,float opacity){this(pose,jade,opacity,false);}
+    }
     private static final BufferBuilder BUFFER=new BufferBuilder(1048576);
-    private static VertexBuffer gold,jade;
+    private static VertexBuffer gold,jade,diveJade;
     static void invalidate() {
         if(!RenderSystem.isOnRenderThread()) {RenderSystem.recordRenderCall(ImperialDragonRenderer::invalidate);return;}
-        if(gold!=null)gold.close();if(jade!=null)jade.close();gold=null;jade=null;
+        if(gold!=null)gold.close();if(jade!=null)jade.close();if(diveJade!=null)diveJade.close();gold=null;jade=null;diveJade=null;
     }
     static void draw(Matrix4f worldView,Instance instance) {
         if(!ImperialMaterialShader.bindDragonLocal(instance.worldFromLocal,
                 HouyiAvatarRenderer.sceneLight(Vec3.ZERO),instance.opacity))return;
-        VertexBuffer mesh=instance.jade?jade:gold;
+        VertexBuffer mesh=instance.diving?diveJade:instance.jade?jade:gold;
         if(mesh==null||mesh.isInvalid()) {
-            mesh=upload(instance.jade);
-            if(instance.jade)jade=mesh;else gold=mesh;
+            mesh=upload(instance.jade,instance.diving);
+            if(instance.diving)diveJade=mesh;else if(instance.jade)jade=mesh;else gold=mesh;
         }
         mesh.bind();
         try {
@@ -31,12 +33,13 @@ final class ImperialDragonRenderer {
                     RenderSystem.getProjectionMatrix(),RenderSystem.getShader());
         } finally {VertexBuffer.unbind();}
     }
-    private static VertexBuffer upload(boolean jadePalette) {
+    private static VertexBuffer upload(boolean jadePalette,boolean diving) {
         BufferBuilder buffer=BUFFER;
         buffer.begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR_NORMAL);
-        var normals=ImperialWeaponGeometry.dragonNormals();
-        for(int i=0;i<ImperialDragonMesh.FACES.size();i++) {
-            var face=ImperialDragonMesh.FACES.get(i);var normal=normals.get(i);
+        var normals=ImperialWeaponGeometry.dragonNormals(diving);
+        var faces=diving?ImperialDragonMesh.DIVE_FACES:ImperialDragonMesh.FACES;
+        for(int i=0;i<faces.size();i++) {
+            var face=faces.get(i);var normal=normals.get(i);
             int color=ImperialDragonMesh.color(face.material(),jadePalette);
             vertex(buffer,face.a(),normal.a(),color);vertex(buffer,face.b(),normal.b(),color);
             vertex(buffer,face.c(),normal.c(),color);vertex(buffer,face.d(),normal.d(),color);

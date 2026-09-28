@@ -173,15 +173,20 @@ public final class DynastyBuildKit {
         stairsUp(level, cx + hx + 1, y, cz, 3, 2, true, true, stair);
     }
 
-    /** 踏步：从 (x,y,z) 往指定方向逐级上升 / a run of steps */
+    /** (x,y,z) is the uppermost step; toward selects the outward/downhill direction. */
     public static void stairsUp(WorldGenLevel level, int x, int y, int z, int width, int height,
                                 boolean alongX, boolean toward, BlockState state) {
         for (int step = 0; step < height; step++) {
-            int offset = step + 1;
+            int offset = step;
             for (int w = -width / 2; w <= width / 2; w++) {
                 int px = alongX ? x + (toward ? offset : -offset) : x + w;
                 int pz = alongX ? z + w : z + (toward ? offset : -offset);
-                DynastyFeaturePlacement.setBlock(level, new BlockPos(px, y + step, pz), state, 2);
+                Direction uphill = alongX ? (toward ? Direction.WEST : Direction.EAST)
+                        : (toward ? Direction.NORTH : Direction.SOUTH);
+                BlockPos pos = new BlockPos(px, y - step, pz);
+                DynastyFeaturePlacement.setBlock(level, pos, facing(state, uphill), 2);
+                for (int h = 1; h <= 3; h++)
+                    DynastyFeaturePlacement.setBlock(level, pos.above(h), air(), 2);
             }
         }
     }
@@ -262,8 +267,11 @@ public final class DynastyBuildKit {
     }
 
     /** 殿身：墙 + 柱列 + 门窗洞 + 匾额 / hall body with walls, columns, door and windows */
-    public static void hallBody(WorldGenLevel level, int x0, int y0, int z0, int x1, int z1, int height,
+    public static void hallBody(WorldGenLevel level, int x0, int y0, int z0, int x1, int y1, int z1,
                                 BlockState wall, BlockState col) {
+        int height = y1 - y0 + 1;
+        if (height < 3 || height > 32 || x1 < x0 || z1 < z0)
+            throw new IllegalArgumentException("Invalid hall bounds: expected x/y/z endpoints and 3..32 block height");
         walls(level, x0, y0, z0, x1, y0 + height - 1, z1, wall);
         columnRing(level, x0, z0, x1, z1, y0, y0 + height - 1, 3, col);
         clearBox(level, x0 + 1, y0, z0 + 1, x1 - 1, y0 + height - 1, z1 - 1);
@@ -286,10 +294,12 @@ public final class DynastyBuildKit {
     public static void railing(WorldGenLevel level, int x0, int z0, int x1, int z1, int y,
                                BlockState post) {
         for (int x = x0; x <= x1; x++) {
+            if (Math.abs(x - (x0 + x1) / 2) <= 1) continue;
             DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y, z0), post, 2);
             DynastyFeaturePlacement.setBlock(level, new BlockPos(x, y, z1), post, 2);
         }
         for (int z = z0; z <= z1; z++) {
+            if (Math.abs(z - (z0 + z1) / 2) <= 1) continue;
             DynastyFeaturePlacement.setBlock(level, new BlockPos(x0, y, z), post, 2);
             DynastyFeaturePlacement.setBlock(level, new BlockPos(x1, y, z), post, 2);
         }

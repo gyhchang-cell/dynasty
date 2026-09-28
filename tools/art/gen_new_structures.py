@@ -46,6 +46,8 @@ def main():
             "structures": [{"structure": "dynasty:%s" % name, "weight": 1}],
         })
         print("structure wired:", name, biomes, "spacing", spacing)
+    from gen_realm_terrain import main as realm_overrides
+    realm_overrides()
 
 
 if __name__ == "__main__":

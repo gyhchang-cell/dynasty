@@ -27,7 +27,8 @@ public class DynastyCommands {
                 .then(Commands.literal("help").executes(ctx -> {
                     ctx.getSource().sendSuccess(() -> Component.literal(
                             "§6[王朝]§r /dynasty keju 参加科举 | /dynasty answer <1-3> 作答 | "
-                                    + "/dynasty army <1-10> 调兵 | /dynasty found 开国"), false);
+                                    + "/dynasty army <1-10> 调兵 | /dynasty found 开国 | "
+                                    + "/dynasty stats 官阶 | /dynasty school 流派熟练度"), false);
                     return 1;
                 }))
                 .then(Commands.literal("keju").executes(ctx -> {
@@ -100,6 +101,11 @@ public class DynastyCommands {
                         return 0;
                     }
                     com.dynasty.DynastyStats.showStats(player);
+                    return 1;
+                }))
+                .then(Commands.literal("school").executes(ctx -> {
+                    if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) return 0;
+                    com.dynasty.DynastySchoolProgression.showProgress(player);
                     return 1;
                 }))
                 .then(Commands.literal("guide").executes(ctx -> {

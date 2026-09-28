@@ -21,6 +21,7 @@ public final class DynastyCuriosSetup {
     private static final String BRIDGE = "com.dynasty.DynastyCuriosBridge";
     private static Method attachMethod;
     private static Method collectMethod;
+    private static Method stacksMethod;
     private static Method growMethod;
     private static boolean available;
 
@@ -35,6 +36,7 @@ public final class DynastyCuriosSetup {
                 Class<?> bridge = Class.forName(BRIDGE);
                 attachMethod = bridge.getMethod("attach", IEventBus.class);
                 collectMethod = bridge.getMethod("collectEquipped", LivingEntity.class, Set.class);
+                stacksMethod = bridge.getMethod("collectStacks", LivingEntity.class, java.util.List.class);
                 growMethod = bridge.getMethod("syncQuestSlots", LivingEntity.class, int.class);
                 Dynasty.LOGGER.info("[Dynasty] Curios detected - trinket slots enabled");
             } catch (Throwable throwable) {
@@ -44,6 +46,12 @@ public final class DynastyCuriosSetup {
         } else {
             Dynasty.LOGGER.info("[Dynasty] Curios not present - trinkets use inventory fallback");
         }
+    }
+
+    public static void collectStacks(LivingEntity entity, java.util.List<net.minecraft.world.item.ItemStack> out) {
+        if(!available || stacksMethod==null) return;
+        try { stacksMethod.invoke(null,entity,out); }
+        catch(ReflectiveOperationException failure) { Dynasty.LOGGER.warn("Could not read equipped refinement",failure); }
     }
 
     public static boolean isLoaded() {

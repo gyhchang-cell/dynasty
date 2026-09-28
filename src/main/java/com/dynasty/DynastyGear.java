@@ -32,7 +32,11 @@ public class DynastyGear {
     }
 
     private static RegistryObject<Item> armor(String name, net.minecraft.world.item.ArmorMaterial material, ArmorItem.Type type) {
-        return ITEMS.register(name, () -> new ArmorItem(material, type, new Item.Properties()));
+        return ITEMS.register(name, () -> new ArmorItem(material, type, new Item.Properties()) {
+            @Override public boolean isFoil(net.minecraft.world.item.ItemStack stack) {
+                return material == DynastyArmorMaterials.XUANTIAN || super.isFoil(stack);
+            }
+        });
     }
 
     // ---- 剑 / Swords（总攻击力 = 基础1 + 材质加成 + 参数）----

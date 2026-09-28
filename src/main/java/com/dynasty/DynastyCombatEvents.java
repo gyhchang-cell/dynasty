@@ -31,7 +31,6 @@ public class DynastyCombatEvents {
         if (DynastyBowRitual.isSolarDamage(event.getSource())) return;
         // Qinglong stores the result of this pipeline at contact; do not apply bonuses twice.
         if (QinglongDescent.isDragonDamage(event.getSource())) {
-            afterHit(event);
             return;
         }
         float amount = event.getAmount();
@@ -40,7 +39,7 @@ public class DynastyCombatEvents {
         // 1) 攻击方：附魔加伤 + 武器独有机制 / attacker: enchantments + weapon gimmicks
         boolean armorPierce = false;
         if (attacker != null) {
-            ItemStack weapon = attacker.getMainHandItem();
+            ItemStack weapon = DynastySchoolCombat.firingWeapon(event.getSource(), attacker.getMainHandItem());
             int breaker = weapon.getEnchantmentLevel(DynastyEnchantments.BREAKER.get());
             if (breaker > 0) {
                 amount += breaker * 150.0F;
@@ -154,13 +153,21 @@ public class DynastyCombatEvents {
 
         event.setAmount(Math.max(1.0F, amount));
 
-        if (!QinglongDescent.shouldDefer(event.getSource())) afterHit(event);
+    }
+
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void onFinalLivingHurt(LivingHurtEvent event) {
+        // School bonuses run at LOW. Resolve lifesteal/procs once from the final pre-armour amount.
+        // The first Qinglong contact is deferred; only its later dragon damage resolves procs.
+        if (event.isCanceled() || DynastyBowRitual.isSolarDamage(event.getSource())
+                || QinglongDescent.shouldDefer(event.getSource())) return;
+        afterHit(event);
     }
 
     private static void afterHit(LivingHurtEvent event) {
         LivingEntity attacker = event.getSource().getEntity() instanceof LivingEntity living ? living : null;
         LivingEntity victim = event.getEntity();
-        // 7) 饰品命中触发（结算后）：吸血 / 斩杀 / 雷罚 —— 吸血按**最终**伤害算
+        // 7) 饰品命中触发：吸血 / 斩杀 / 雷罚，使用流派加成后的最终 Hurt 金额。
         if (attacker instanceof Player attackerPlayer) {
             DynastyTrinketOnHit.after(attackerPlayer, event.getEntity(), event.getAmount());
         }

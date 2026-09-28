@@ -12,6 +12,7 @@ def verify():
     actual = {}
     for slot in SLOT_NAMES:
         tag = json.loads((DATA / f"curios/tags/items/{slot}.json").read_text())
+        assert "#curios:dynasty_trinket" not in tag["values"], "废弃标签引用会使整个分类标签加载失败：" + slot
         for item in tag["values"]:
             if isinstance(item, str) and item.startswith("dynasty:"):
                 assert item not in actual, "重复分类：" + item

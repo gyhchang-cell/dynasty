@@ -70,11 +70,13 @@ public final class PuzzleBlocks {
             BLOCKS.register("echo_bell", () -> new Part(
                     stone(2.5F).mapColor(MapColor.GOLD).sound(SoundType.METAL), false, false)));
     public static final RegistryObject<Block> ELEMENT_LAMP = itemBlock("element_lamp",
-            BLOCKS.register("element_lamp", () -> new LampPart(stone(2.5F))));
+            BLOCKS.register("element_lamp", () -> new LampPart(stone(2.5F).lightLevel(s -> s.getValue(LIT) ? 12 : 0))));
     public static final RegistryObject<Block> CLUE_TABLET = itemBlock("clue_tablet",
             BLOCKS.register("clue_tablet", () -> new Part(stone(2.0F), false, false)));
     public static final RegistryObject<Block> RUIN_GATE = itemBlock("ruin_gate",
-            BLOCKS.register("ruin_gate", () -> new Gate(stone(3.0F))));
+            BLOCKS.register("ruin_gate", () -> new Gate(stone(-1.0F).strength(-1.0F,3600000.0F).noLootTable())));
+    public static final RegistryObject<Block> RUIN_SHELL = itemBlock("ruin_shell",
+            BLOCKS.register("ruin_shell", () -> new Block(stone(-1.0F).strength(-1.0F,3600000.0F).noLootTable())));
 
     public static Block partFor(PuzzleRules.Kind kind) {
         return switch (kind) {

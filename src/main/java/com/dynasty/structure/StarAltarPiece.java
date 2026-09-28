@@ -22,7 +22,7 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
  */
 public class StarAltarPiece extends DynastyStructurePiece {
 
-    public static final int SIZE = 26;
+    public static final int SIZE = 42;
     public static final int HEIGHT = 20;
     private static final ResourceLocation LOOT = new ResourceLocation("dynasty", "chests/ritual_circle");
     private final boolean remastered;
@@ -65,6 +65,8 @@ public class StarAltarPiece extends DynastyStructurePiece {
                             RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
         if (remastered) {
             CelestialObservatory.build(this, level, box, random);
+            if (getBoundingBox().getXSpan() >= 42)
+                CelestialObservatory.buildAnnex(this, level, box, random);
             return;
         }
         BlockState marble = DynastyBlocks.MARBLE_BLOCK.get().defaultBlockState();

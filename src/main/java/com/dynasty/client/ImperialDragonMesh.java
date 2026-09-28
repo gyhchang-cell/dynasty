@@ -9,6 +9,7 @@ public final class ImperialDragonMesh {
     public record Face(P a,P b,P c,P d,int material) {}
     private record Frame(P center,P tangent,P back,P side,double radius) {}
     private static final List<Face> BUILD=new ArrayList<>();
+    private static int headFaceStart;
     // A relaxed S: reduce lateral bends without stretching the head or detaching the legs.
     private static final P[] SPINE={p(.34,-1.45,-.09),p(.18,-1.36,-.035),p(-.20,-1.18,.065),
             p(-.34,-.87,.135),p(-.17,-.54,.18),p(.20,-.25,.17),p(.36,.10,.09),
@@ -27,6 +28,34 @@ public final class ImperialDragonMesh {
     public static final P IMPACT_POINT=MUZZLE;
     public static final P HEAD_CENTER=HEAD;
     public static final List<Face> FACES=create();
+    /** Separate attack pose: the skull follows the spine, rather than rotating the whole body sideways. */
+    public static final P DIVE_MUZZLE=divePoint(MUZZLE,1);
+    public static final P TAIL_CENTER=SPINE[0];
+    public static final P DIVE_TAIL_CENTER=extendDiveBody(TAIL_CENTER);
+    public static final List<Face> DIVE_FACES=createDive();
+    private static P divePoint(P point,double weight){
+        P front=unit(sub(MUZZLE,HEAD)),axis=unit(cross(front,p(0,1,0)));
+        double angle=Math.acos(clamp(front.y(),-1,1))*weight,c=Math.cos(angle),s=Math.sin(angle);
+        P q=sub(point,HEAD);
+        return HEAD.add(q.scale(c)).add(cross(axis,q).scale(s)).add(axis.scale(dot(axis,q)*(1-c)));
+    }
+    private static P diveVertex(P point,boolean head){
+        // Extend the attack body's lower spine 25%; keep the skull and aiming landmark intact.
+        double t=clamp((point.y()-.60)/(.94-.60),0,1);
+        P posed=divePoint(point,head?1:t*t*(3-2*t));
+        return head?posed:extendDiveBody(posed);
+    }
+    private static P extendDiveBody(P point){
+        return p(point.x(),point.y()-.25*Math.max(0,.60-point.y()),point.z());
+    }
+    private static List<Face> createDive(){
+        List<Face> result=new ArrayList<>(FACES.size());
+        for(int i=0;i<FACES.size();i++){
+            Face f=FACES.get(i);boolean head=i>=headFaceStart;
+            result.add(new Face(diveVertex(f.a,head),diveVertex(f.b,head),diveVertex(f.c,head),diveVertex(f.d,head),f.material));
+        }
+        return List.copyOf(result);
+    }
     private static P p(double x,double y,double z){return new P(x,y,z);}
     private static P sub(P a,P b){return a.add(b.scale(-1));}
     private static double dot(P a,P b){return a.x()*b.x()+a.y()*b.y()+a.z()*b.z();}
@@ -306,7 +335,7 @@ public final class ImperialDragonMesh {
                 (IMPACT_POINT.x()*s+IMPACT_POINT.y()*c)*size,IMPACT_POINT.z()*size);
     }
     private static List<Face> create(){
-        body();limbs();head();
+        body();limbs();headFaceStart=BUILD.size();head();
         if(BUILD.size()>56000)throw new IllegalStateException("Dragon geometry exceeded 56k face budget: "+BUILD.size());
         for(Face f:BUILD)for(P v:new P[]{f.a,f.b,f.c,f.d})if(!Double.isFinite(v.x()+v.y()+v.z()))throw new IllegalStateException("Non-finite dragon vertex");
         List<Face> mesh=List.copyOf(BUILD);BUILD.clear();return mesh;

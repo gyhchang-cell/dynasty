@@ -31,6 +31,16 @@ public final class DynastyItemInfo {
 
     /** 该物品的说明行（可为空）/ usage lines for the item */
     public static List<String> lines(ItemStack stack) {
+        return lines(stack, true);
+    }
+
+    /**
+     * 该物品的说明行。
+     *
+     * @param includeGeneric 是否带上「通用兜底一句话」（护甲 / 武器 / 货币…）。
+     *                       盔甲的套装行已经在悬停里单独给出，通用护甲句属于重复，故传 false。
+     */
+    public static List<String> lines(ItemStack stack, boolean includeGeneric) {
         List<String> out = new ArrayList<>();
         ResourceLocation id = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
         if (id == null || !id.getNamespace().equals(com.dynasty.Dynasty.MODID)) {
@@ -40,7 +50,10 @@ public final class DynastyItemInfo {
         String path = id.getPath();
         String[] special = DynastyItemUsage.special(path);
         String[] chosen = special != null ? special : codex(path);
-        if (chosen == null) {
+        if (chosen == null && stack.getItem() instanceof BlockItem) {
+            chosen = DynastyBlockInfo.use(path);
+        }
+        if (chosen == null && includeGeneric) {
             chosen = category(path, stack);
         }
         if (chosen != null) {

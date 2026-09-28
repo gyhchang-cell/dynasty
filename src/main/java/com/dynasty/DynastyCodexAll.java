@@ -3,7 +3,7 @@ package com.dynasty;
 import java.util.List;
 
 /**
- * 图鉴·全部表驱动饰品（gen_trinkets3/4/5 共 130 件）。
+ * 图鉴·全部表驱动饰品（gen_trinkets3/4/5 共 162 件）。
  *
  * ⚠ 本文件由 tools/art/gen_codex_all.py 生成，不要手改 —— 改生成器（或饰品表）再重跑，
  *   这样「配方材料 / 属性 / 效果 / 命中触发 / 连携组」永远和表一致。
@@ -58,12 +58,24 @@ final class DynastyCodexAll {
                 "八卦镜：护甲 +14、常驻抗性 I。",
                 "Bagua Mirror: armour +14, permanent Resistance I.",
                 "dynasty:bronze_mirror", "dynasty:cinnabar", "dynasty:jade");
+        entry(l, "baizhan_ring",
+                "合成：破军戒 + 龙晶 + 精钢 + 玉",
+                "Craft: Army-Breaker Ring + Dragon Crystal + Refined Steel + Jade",
+                "百战戒：生命 +120、攻速 +6%、近战伤害 +28%。",
+                "Hundred-Battles Ring: health +120, attack speed +6%, Melee damage +28%.",
+                "dynasty:pojun_ring", "dynasty:dragon_crystal", "dynasty:refined_steel", "dynasty:jade");
         entry(l, "bear_paw",
                 "合成：minecraft:leather + 精钢",
                 "Craft: minecraft:leather + Refined Steel",
                 "熊掌：生命 +300、攻击 +8%。",
                 "Bear Paw: health +300, attack +8%.",
                 "minecraft:leather", "dynasty:refined_steel");
+        entry(l, "beichen_heartguard",
+                "合成：玄甲扣 + 龙晶 + 精钢 + 兵器图纸",
+                "Craft: Black-Armour Clasp + Dragon Crystal + Refined Steel + Weapon Blueprint",
+                "北辰护心镜：护甲韧性 +20、近战伤害 +24%。",
+                "North-Star Heartguard: armour toughness +20, Melee damage +24%.",
+                "dynasty:xuanjia_clasp", "dynasty:dragon_crystal", "dynasty:refined_steel", "dynasty:blueprint");
         entry(l, "belt_buckle",
                 "合成：青铜锭 + 银锭",
                 "Craft: Bronze Ingot + Silver Ingot",
@@ -106,6 +118,12 @@ final class DynastyCodexAll {
                 "笔架坠：攻速 +14%、攻击 +6%。",
                 "Brush Rack Charm: attack speed +14%, attack +6%.",
                 "dynasty:ink_brush", "dynasty:jade", "dynasty:bronze_ingot");
+        entry(l, "buzhou_armlet",
+                "合成：玄岳臂环 + 天将令",
+                "Craft: Mystic-Mountain Armlet + Sky Token",
+                "不周臂环：护甲韧性 +30、生命 +400、近战伤害 +76%。",
+                "Buzhou Armlet: armour toughness +30, health +400, Melee damage +76%.",
+                "dynasty:xuanyue_armlet", "dynasty:sky_token");
         entry(l, "candle_of_the_dead",
                 "合成：帝骸骨 + 符纸 + 朱砂",
                 "Craft: Emperor's Bone + Talisman Paper + Cinnabar",
@@ -166,6 +184,12 @@ final class DynastyCodexAll {
                 "鹿角：生命 +260、常驻再生 I。",
                 "Deer Antler: health +260, permanent Regeneration I.",
                 "minecraft:bone", "dynasty:jade");
+        entry(l, "dingfeng_silk",
+                "合成：丝绸 + 丝绸 + 符纸 + 朱砂",
+                "Craft: Silk + Silk + Talisman Paper + Cinnabar",
+                "定风帛：护甲 +3。",
+                "Wind-Stilling Silk: armour +3.",
+                "dynasty:silk", "dynasty:silk", "dynasty:talisman_paper", "dynasty:cinnabar");
         entry(l, "disha_talisman",
                 "合成：帝骸骨 + 符纸 + 朱砂",
                 "Craft: Emperor's Bone + Talisman Paper + Cinnabar",
@@ -298,6 +322,18 @@ final class DynastyCodexAll {
                 "金丹：生命 +400、常驻再生 III。",
                 "Golden Pill: health +400, permanent Regeneration III.",
                 "dynasty:pill_longevity", "dynasty:dragon_crystal", "dynasty:gold_coin");
+        entry(l, "guanri_thumbring",
+                "合成：雁翎扳指 + 龙晶 + 玉 + minecraft:gold_ingot",
+                "Craft: Wild-Goose Thumb Ring + Dragon Crystal + Jade + minecraft:gold_ingot",
+                "贯日扳指：护甲韧性 +8、箭矢伤害 +28%。",
+                "Sun-Piercer Thumb Ring: armour toughness +8, Arrow damage +28%.",
+                "dynasty:yanling_thumbring", "dynasty:dragon_crystal", "dynasty:jade", "minecraft:gold_ingot");
+        entry(l, "guanxing_pendant",
+                "合成：玉 + minecraft:amethyst_shard + 丝绸",
+                "Craft: Jade + minecraft:amethyst_shard + Silk",
+                "观星坠：生命 +40。",
+                "Stargazer Pendant: health +40.",
+                "dynasty:jade", "minecraft:amethyst_shard", "dynasty:silk");
         entry(l, "guqin_string",
                 "合成：丝绸 + 生丝",
                 "Craft: Silk + Raw Silk",
@@ -322,6 +358,12 @@ final class DynastyCodexAll {
                 "马镫：骑乘：移速 +10%。",
                 "Horse Stirrup: movement speed +10% (while mounted).",
                 "dynasty:bronze_ingot", "minecraft:leather");
+        entry(l, "huben_bracer",
+                "合成：精钢 + 丝绸 + 青铜锭",
+                "Craft: Refined Steel + Silk + Bronze Ingot",
+                "虎贲护腕：抗击退 +0.15。",
+                "Tiger-Guard Bracer: knockback resistance +0.15.",
+                "dynasty:refined_steel", "dynasty:silk", "dynasty:bronze_ingot");
         entry(l, "immortal_crane_feather",
                 "合成：凤凰羽 + 玉 + 丝绸",
                 "Craft: Phoenix Feather + Jade + Silk",
@@ -448,6 +490,12 @@ final class DynastyCodexAll {
                 "玉璋：攻击 +12%、攻速 +8%。",
                 "Jade Zhang: attack +12%, attack speed +8%.",
                 "dynasty:jade", "dynasty:jade_block", "dynasty:gold_coin");
+        entry(l, "jinwu_quiver",
+                "合成：逐日箭囊 + 天将令",
+                "Craft: Sun-Chaser Quiver + Sky Token",
+                "金乌箭囊：生命 +320、护甲 +10、箭矢伤害 +52%。",
+                "Golden-Crow Quiver: health +320, armour +10, Arrow damage +52%.",
+                "dynasty:zhuiri_quiver", "dynasty:sky_token");
         entry(l, "karma_ledger_charm",
                 "合成：竹简 + 徽墨 + 朱砂",
                 "Craft: Bamboo Slip + Ink Stick + Cinnabar",
@@ -460,24 +508,48 @@ final class DynastyCodexAll {
                 "护膝：移速 +5%、抗击退 +0.2。",
                 "Knee Guard: movement speed +5%, knockback resistance +0.2.",
                 "dynasty:refined_steel", "minecraft:leather");
+        entry(l, "leibu_seal",
+                "合成：朱砂 + 青铜锭 + 符纸 + 兵器图纸",
+                "Craft: Cinnabar + Bronze Ingot + Talisman Paper + Weapon Blueprint",
+                "雷部印：护甲韧性 +8、律令兵器伤害 +22%。",
+                "Thunder-Ministry Seal: armour toughness +8, Edict weapon damage +22%.",
+                "dynasty:cinnabar", "dynasty:bronze_ingot", "dynasty:talisman_paper", "dynasty:blueprint");
         entry(l, "leopard_tail",
                 "合成：丝绸 + 生丝 + minecraft:bone",
                 "Craft: Silk + Raw Silk + minecraft:bone",
                 "豹尾：移速 +12%、攻速 +6%。",
                 "Leopard Tail: movement speed +12%, attack speed +6%.",
                 "dynasty:silk", "dynasty:raw_silk", "minecraft:bone");
+        entry(l, "liancheng_tassel",
+                "合成：丝绸 + 丝绸 + 玉 + 金币",
+                "Craft: Silk + Silk + Jade + Gold Coin",
+                "连城剑穗：攻速 +6%。",
+                "Unbroken-Chain Tassel: attack speed +6%.",
+                "dynasty:silk", "dynasty:silk", "dynasty:jade", "dynasty:gold_coin");
         entry(l, "lifedrain_ring",
                 "合成：帝骸骨 + 朱砂 + 玉",
                 "Craft: Emperor's Bone + Cinnabar + Jade",
                 "汲生戒：攻击 +30%、攻速 +10%、常驻内伤 II、命中吸血 12%、连携·生死代价。",
                 "Lifedrain Ring: attack +30%, attack speed +10%, permanent Internal Injury II, 12% lifesteal on hit, synergy: Life for Power.",
                 "dynasty:emperor_bone", "dynasty:cinnabar", "dynasty:jade");
+        entry(l, "lingwen_pendant",
+                "合成：玉 + 符纸 + 丝绸",
+                "Craft: Jade + Talisman Paper + Silk",
+                "灵纹佩：生命 +80、律令兵器伤害 +15%。",
+                "Spirit-Script Pendant: health +80, Edict weapon damage +15%.",
+                "dynasty:jade", "dynasty:talisman_paper", "dynasty:silk");
         entry(l, "mandarin_rank_badge",
                 "合成：丝绸 + 金币 + 朱砂",
                 "Craft: Silk + Gold Coin + Cinnabar",
                 "补子官徽：幸运 +2、生命 +180。",
                 "Rank Badge: luck +2, health +180.",
                 "dynasty:silk", "dynasty:gold_coin", "dynasty:cinnabar");
+        entry(l, "mingxian_ring",
+                "合成：青铜锭 + 玉 + minecraft:string",
+                "Craft: Bronze Ingot + Jade + minecraft:string",
+                "鸣弦环：护甲 +3。",
+                "Singing-String Ring: armour +3.",
+                "dynasty:bronze_ingot", "dynasty:jade", "minecraft:string");
         entry(l, "mirror_pouch",
                 "合成：铜镜 + 丝绸",
                 "Craft: Bronze Mirror + Silk",
@@ -544,6 +616,12 @@ final class DynastyCodexAll {
                 "诗文卷轴：幸运 +2、常驻幸运 I。",
                 "Poem Scroll: luck +2, permanent Luck I.",
                 "dynasty:talisman_paper", "dynasty:ink_stick", "dynasty:silk");
+        entry(l, "pojun_ring",
+                "合成：精钢 + 玉 + 丝绸",
+                "Craft: Refined Steel + Jade + Silk",
+                "破军戒：攻速 +4%、近战伤害 +12%。",
+                "Army-Breaker Ring: attack speed +4%, Melee damage +12%.",
+                "dynasty:refined_steel", "dynasty:jade", "dynasty:silk");
         entry(l, "purple_qi_pearl",
                 "合成：避水珠 + 玄天玉 + 龙晶",
                 "Craft: Water-Repelling Pearl + Xuantian Jade + Dragon Crystal",
@@ -556,6 +634,12 @@ final class DynastyCodexAll {
                 "麒麟蹄：生命 +260、攻速 +8%。",
                 "Qilin Hoof Charm: health +260, attack speed +8%.",
                 "dynasty:qilin_horn", "dynasty:silk");
+        entry(l, "qixing_sword_knot",
+                "合成：武曲剑结 + 玄天玉 + 丝绸 + 龙晶",
+                "Craft: War-Star Sword Knot + Xuantian Jade + Silk + Dragon Crystal",
+                "七星剑结：攻速 +8%、近战伤害 +36%。",
+                "Seven-Star Sword Knot: attack speed +8%, Melee damage +36%.",
+                "dynasty:wuqu_sword_knot", "dynasty:xuantian_jade", "dynasty:silk", "dynasty:dragon_crystal");
         entry(l, "quickdraw_glove",
                 "合成：丝绸 + 精钢 + 竹简",
                 "Craft: Silk + Refined Steel + Bamboo Slip",
@@ -592,6 +676,12 @@ final class DynastyCodexAll {
                 "祭刃坠：攻击 +38%、常驻内伤 I、命中斩杀 18% 血线以下的目标（80% 概率）、连携·幽冥献祭。",
                 "Sacrificial Blade Charm: attack +38%, permanent Internal Injury I, executes below 18% health (80% chance), synergy: Underworld Sacrifice.",
                 "dynasty:emperor_bone", "dynasty:refined_steel", "dynasty:cinnabar");
+        entry(l, "sanqing_talisman_chain",
+                "合成：紫微符链 + 玄天玉",
+                "Craft: Purple-Star Talisman Chain + Xuantian Jade",
+                "三清符链：生命 +400、护甲韧性 +12、律令兵器伤害 +48%。",
+                "Three-Purities Talisman Chain: health +400, armour toughness +12, Edict weapon damage +48%.",
+                "dynasty:ziwei_talisman_chain", "dynasty:xuantian_jade");
         entry(l, "scale_plate",
                 "合成：龙鳞 + 精钢",
                 "Craft: Dragon Scale + Refined Steel",
@@ -628,12 +718,36 @@ final class DynastyCodexAll {
                 "双天印：攻击 +12%、白天：移速 +6%、常驻龙威 I、连携·天朝敕令。",
                 "Seal of Two Heavens: attack +12%, movement speed +6% (in daylight), permanent Dragon Might I, synergy: Imperial Edict.",
                 "dynasty:hunyuan_pearl", "dynasty:gold_coin", "dynasty:blueprint");
+        entry(l, "shanyue_bracelet",
+                "合成：玉 + 玉 + 精钢 + 丝绸",
+                "Craft: Jade + Jade + Refined Steel + Silk",
+                "山岳镯：护甲韧性 +14、生命 +120。",
+                "Mountain Bracelet: armour toughness +14, health +120.",
+                "dynasty:jade", "dynasty:jade", "dynasty:refined_steel", "dynasty:silk");
+        entry(l, "shenji_quiver",
+                "合成：箭囊 + 精钢 + 丝绸 + 兵器图纸",
+                "Craft: Arrow Quiver + Refined Steel + Silk + Weapon Blueprint",
+                "神机箭囊：护甲 +6、箭矢伤害 +18%。",
+                "Ingenious Quiver: armour +6, Arrow damage +18%.",
+                "dynasty:arrow_quiver", "dynasty:refined_steel", "dynasty:silk", "dynasty:blueprint");
+        entry(l, "sheyue_thumbring",
+                "合成：贯日扳指 + 玄天玉",
+                "Craft: Sun-Piercer Thumb Ring + Xuantian Jade",
+                "射月扳指：护甲韧性 +16、移速 +6%、箭矢伤害 +44%。",
+                "Moon-Shooter Thumb Ring: armour toughness +16, movement speed +6%, Arrow damage +44%.",
+                "dynasty:guanri_thumbring", "dynasty:xuantian_jade");
         entry(l, "siege_hammer_charm",
                 "合成：精钢 + 龙鳞 + 丝绸",
                 "Craft: Refined Steel + Dragon Scale + Silk",
                 "破阵锤坠：满血：攻击 +25%、命中斩杀 12% 血线以下的目标（80% 概率）、连携·巧匠边塞。",
                 "Siege Hammer Charm: attack +25% (at full health), executes below 12% health (80% chance), synergy: Frontier Craft.",
                 "dynasty:refined_steel", "dynasty:dragon_scale", "dynasty:silk");
+        entry(l, "sitian_seal",
+                "合成：玉 + 朱砂 + 青铜锭",
+                "Craft: Jade + Cinnabar + Bronze Ingot",
+                "司天印：生命 +40。",
+                "Celestial Bureau Seal: health +40.",
+                "dynasty:jade", "dynasty:cinnabar", "dynasty:bronze_ingot");
         entry(l, "snake_gall",
                 "合成：朱砂 + 金创药",
                 "Craft: Cinnabar + Healing Salve",
@@ -682,12 +796,24 @@ final class DynastyCodexAll {
                 "剑穗：攻击 +6%、攻击距离 +1。",
                 "Sword Tassel: attack +6%, attack range +1.",
                 "dynasty:silk", "dynasty:silver_ingot");
+        entry(l, "taiqing_talisman_case",
+                "合成：雷部印 + 天将令 + 玄天玉 + 丝绸",
+                "Craft: Thunder-Ministry Seal + Sky Token + Xuantian Jade + Silk",
+                "太清符匣：护甲韧性 +16、律令兵器伤害 +40%。",
+                "Supreme-Purity Talisman Casket: armour toughness +16, Edict weapon damage +40%.",
+                "dynasty:leibu_seal", "dynasty:sky_token", "dynasty:xuantian_jade", "dynasty:silk");
         entry(l, "talisman_pouch",
                 "合成：符纸 + 符纸 + 丝绸",
                 "Craft: Talisman Paper + Talisman Paper + Silk",
                 "符纸包：幸运 +3、常驻幸运 I。",
                 "Talisman Pouch: luck +3, permanent Luck I.",
                 "dynasty:talisman_paper", "dynasty:talisman_paper", "dynasty:silk");
+        entry(l, "tayun_pendant",
+                "合成：玉 + 丝绸 + minecraft:feather",
+                "Craft: Jade + Silk + minecraft:feather",
+                "踏云佩：移速 +4%。",
+                "Cloudstep Pendant: movement speed +4%.",
+                "dynasty:jade", "dynasty:silk", "minecraft:feather");
         entry(l, "tea_cup",
                 "合成：玉 + 茶",
                 "Craft: Jade + Tea",
@@ -712,6 +838,12 @@ final class DynastyCodexAll {
                 "天罡符：攻击 +18%、抗击退 +0.4。",
                 "Tiangang Talisman: attack +18%, knockback resistance +0.4.",
                 "dynasty:sky_token", "dynasty:talisman_paper", "dynasty:cinnabar");
+        entry(l, "tianheng_sword_knot",
+                "合成：七星剑结 + 天将令",
+                "Craft: Seven-Star Sword Knot + Sky Token",
+                "天衡剑结：攻速 +12%、护甲韧性 +10、近战伤害 +52%。",
+                "Heaven-Balance Sword Knot: attack speed +12%, armour toughness +10, Melee damage +52%.",
+                "dynasty:qixing_sword_knot", "dynasty:sky_token");
         entry(l, "tide_compass_charm",
                 "合成：铜镜 + 龙晶 + 丝绸",
                 "Craft: Bronze Mirror + Dragon Crystal + Silk",
@@ -760,6 +892,12 @@ final class DynastyCodexAll {
                 "鬼门钥：雷雨：攻击 +45%、命中附加 90 点雷罚（25% 概率）、连携·幽冥献祭。",
                 "Underworld Gate Key: attack +45% (in a thunderstorm), 90 extra thunder damage on hit (25% chance), synergy: Underworld Sacrifice.",
                 "dynasty:emperor_bone", "dynasty:thunder_token", "dynasty:talisman_paper");
+        entry(l, "wanjun_ring",
+                "合成：百战戒 + 玄天玉",
+                "Craft: Hundred-Battles Ring + Xuantian Jade",
+                "万钧戒：生命 +260、攻速 +10%、近战伤害 +44%。",
+                "Ten-Thousand-Force Ring: health +260, attack speed +10%, Melee damage +44%.",
+                "dynasty:baizhan_ring", "dynasty:xuantian_jade");
         entry(l, "war_banner_charm",
                 "合成：丝绸 + 竹简 + 精钢",
                 "Craft: Silk + Bamboo Slip + Refined Steel",
@@ -796,11 +934,65 @@ final class DynastyCodexAll {
                 "护腕：护甲 +10、抗击退 +0.3。",
                 "Wrist Guard: armour +10, knockback resistance +0.3.",
                 "dynasty:refined_steel", "dynasty:silk");
+        entry(l, "wuqu_sword_knot",
+                "合成：精钢 + 丝绸 + 青铜锭 + 兵器图纸",
+                "Craft: Refined Steel + Silk + Bronze Ingot + Weapon Blueprint",
+                "武曲剑结：护甲 +4、近战伤害 +20%。",
+                "War-Star Sword Knot: armour +4, Melee damage +20%.",
+                "dynasty:refined_steel", "dynasty:silk", "dynasty:bronze_ingot", "dynasty:blueprint");
+        entry(l, "xuanjia_clasp",
+                "合成：精钢 + 青铜锭 + 玉",
+                "Craft: Refined Steel + Bronze Ingot + Jade",
+                "玄甲扣：护甲韧性 +8、近战伤害 +10%。",
+                "Black-Armour Clasp: armour toughness +8, Melee damage +10%.",
+                "dynasty:refined_steel", "dynasty:bronze_ingot", "dynasty:jade");
+        entry(l, "xuanyue_armlet",
+                "合成：山岳镯 + 玄天玉 + 帝骸骨 + 精钢",
+                "Craft: Mountain Bracelet + Xuantian Jade + Emperor's Bone + Refined Steel",
+                "玄岳臂环：护甲韧性 +30、每点护甲韧性转为 +0.6% 近战伤害（最多 +60%）。",
+                "Mystic-Mountain Armlet: armour toughness +30, Each toughness point grants +0.6% melee damage (max +60%).",
+                "dynasty:shanyue_bracelet", "dynasty:xuantian_jade", "dynasty:emperor_bone", "dynasty:refined_steel");
+        entry(l, "yanling_thumbring",
+                "合成：玉 + 丝绸 + minecraft:feather",
+                "Craft: Jade + Silk + minecraft:feather",
+                "雁翎扳指：移速 +4%、箭矢伤害 +12%。",
+                "Wild-Goose Thumb Ring: movement speed +4%, Arrow damage +12%.",
+                "dynasty:jade", "dynasty:silk", "minecraft:feather");
+        entry(l, "yuxu_talisman_case",
+                "合成：太清符匣 + 天将令",
+                "Craft: Supreme-Purity Talisman Casket + Sky Token",
+                "玉虚符匣：护甲韧性 +24、生命 +240、律令兵器伤害 +56%。",
+                "Jade-Void Talisman Casket: armour toughness +24, health +240, Edict weapon damage +56%.",
+                "dynasty:taiqing_talisman_case", "dynasty:sky_token");
         entry(l, "zen_bead_string",
                 "合成：玉 + 丝绸 + 金币",
                 "Craft: Jade + Silk + Gold Coin",
                 "禅珠串：残血：生命 +220、常驻生命恢复 II。",
                 "Zen Bead String: health +220 (at low health), permanent Regeneration II.",
                 "dynasty:jade", "dynasty:silk", "dynasty:gold_coin");
+        entry(l, "zhenguan_mirror",
+                "合成：铜镜 + 精钢 + 玉",
+                "Craft: Bronze Mirror + Refined Steel + Jade",
+                "镇关镜：护甲 +4。",
+                "Pass-Warden Mirror: armour +4.",
+                "dynasty:bronze_mirror", "dynasty:refined_steel", "dynasty:jade");
+        entry(l, "zhenhai_heartguard",
+                "合成：北辰护心镜 + 玄天玉",
+                "Craft: North-Star Heartguard + Xuantian Jade",
+                "镇海护心镜：护甲韧性 +30、生命 +300、近战伤害 +38%。",
+                "Sea-Calming Heartguard: armour toughness +30, health +300, Melee damage +38%.",
+                "dynasty:beichen_heartguard", "dynasty:xuantian_jade");
+        entry(l, "zhuiri_quiver",
+                "合成：神机箭囊 + 天将令 + 龙晶 + 丝绸",
+                "Craft: Ingenious Quiver + Sky Token + Dragon Crystal + Silk",
+                "逐日箭囊：生命 +160、箭矢伤害 +36%。",
+                "Sun-Chaser Quiver: health +160, Arrow damage +36%.",
+                "dynasty:shenji_quiver", "dynasty:sky_token", "dynasty:dragon_crystal", "dynasty:silk");
+        entry(l, "ziwei_talisman_chain",
+                "合成：灵纹佩 + 玄天玉 + 丝绸 + 龙晶",
+                "Craft: Spirit-Script Pendant + Xuantian Jade + Silk + Dragon Crystal",
+                "紫微符链：生命 +220、律令兵器伤害 +32%。",
+                "Purple-Star Talisman Chain: health +220, Edict weapon damage +32%.",
+                "dynasty:lingwen_pendant", "dynasty:xuantian_jade", "dynasty:silk", "dynasty:dragon_crystal");
     }
 }

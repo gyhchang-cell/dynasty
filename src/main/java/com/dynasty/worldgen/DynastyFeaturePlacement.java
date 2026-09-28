@@ -10,6 +10,19 @@ import net.minecraft.world.level.block.state.BlockState;
 final class DynastyFeaturePlacement {
     private DynastyFeaturePlacement() { }
 
+    /** Reject a whole legacy feature before writing, rather than silently leave half a building. */
+    static boolean fits(WorldGenLevel level, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
+        if (minY < level.getMinBuildHeight() || maxY >= level.getMaxBuildHeight()) return false;
+        if (level instanceof WorldGenRegion region) {
+            var c = region.getCenter();
+            return SectionPos.blockToSectionCoord(minX) >= c.x - 1
+                    && SectionPos.blockToSectionCoord(maxX) <= c.x + 1
+                    && SectionPos.blockToSectionCoord(minZ) >= c.z - 1
+                    && SectionPos.blockToSectionCoord(maxZ) <= c.z + 1;
+        }
+        return true;
+    }
+
     static boolean setBlock(WorldGenLevel level, BlockPos pos, BlockState state, int flags) {
         // WorldGenRegion can store DUMMY block-entity NBT even when ProtoChunk rejects the height.
         if (level.isOutsideBuildHeight(pos)) return false;

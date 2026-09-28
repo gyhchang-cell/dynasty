@@ -1,0 +1,22 @@
+// Dedicated disposable client; Patchouli is remapped for this dev launch only.
+allprojects { p ->
+    afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        p.dependencies.add('runtimeOnly', p.fg.deobf('com.dynpacks:patchouli:1.20.1-85'))
+        def qa = p.sourceSets.create('bookQa') {
+            java.srcDir p.file('tools/art/book-qa/src')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.minecraft.runs.client {
+            workingDirectory p.file('build/school-accessories-v2/book-qa/client')
+            property 'dynasty.bookQa.workDir', p.file('build/school-accessories-v2/book-qa/client').absolutePath
+            property 'dynasty.bookQa', 'true'
+            property 'dynasty.bookQa.output', p.file('build/school-accessories-v2/book-qa/results').absolutePath
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', p.file('build/createSrgToMcp/output.srg').absolutePath
+            mods { dynasty { source qa } }
+        }
+        p.tasks.configureEach { task -> if (task.name=='runClient') task.dependsOn qa.classesTaskName }
+    }
+}

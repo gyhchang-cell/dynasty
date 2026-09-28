@@ -4,6 +4,7 @@
 2) dist/dynasty-1.4.0.mrpack        —— Modrinth「整合包」上传格式（modrinth.index.json + overrides/）
 """
 import json, os, shutil, zipfile, hashlib
+from export_policy import release_mod, release_config
 
 ROOT = os.path.expanduser("~/Desktop/dynasty")
 DIST = os.path.join(ROOT, "dist")
@@ -40,7 +41,7 @@ QOL = json.load(open(QOL_JSON, encoding="utf-8")) if os.path.exists(QOL_JSON) el
 # ---- FTB 系列（fetch_ftb_mods.py 下载并登记，CF 上没有引用 ID，一并打进 overrides）----
 FTB_JSON = os.path.join(ROOT, "tools", "art", "ftb_mods.json")
 FTB = json.load(open(FTB_JSON, encoding="utf-8")) if os.path.exists(FTB_JSON) else []
-QOL = QOL + FTB
+QOL = [r for r in QOL + FTB if release_mod(r['filename'])]
 QOL_FILENAMES = [record["filename"] for record in QOL]
 for record in QOL:
     MR_FILES.append((record["filename"], record["url"]))
@@ -67,6 +68,8 @@ def add_config_to(zip_file):
         for name in files:
             full = os.path.join(base, name)
             rel = os.path.relpath(full, config_dir).replace(os.sep, "/")
+            if not release_config(rel):
+                continue
             zip_file.writestr("overrides/config/" + rel, open(full, "rb").read())
 
 

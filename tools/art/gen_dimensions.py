@@ -188,6 +188,8 @@ def celestial():
 def main():
     underworld()
     celestial()
+    from gen_realm_terrain import main as realm_overrides
+    realm_overrides()
     for path in (os.path.join(TYPE_DIR, "underworld.json"),
                  os.path.join(TYPE_DIR, "celestial_dynasty.json"),
                  os.path.join(NOISE_DIR, "underworld.json")):

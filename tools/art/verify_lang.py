@@ -22,6 +22,13 @@ JAVA = os.path.join(ROOT, "src/main/java/com/dynasty")
 
 problems = []
 
+# Render-only overrides are not registered items. Keep this explicit (no broad suffix exemption).
+RENDER_VARIANTS = {f"{bow}_pulling_{stage}": bow
+                   for bow in ("houyi_bow", "zhuxing_bow", "shenbi_bow", "dragon_bow", "fengling_bow", "chang_gong") for stage in range(3)}
+# PuzzleBlocks deliberately gives the BlockItem a distinct registry ID: star_dial already names a Curio.
+# BlockItem.getDescriptionId uses its underlying block's ID, not its item registry ID.
+BLOCK_ITEM_NAMES = {"puzzle_star_dial": "star_dial"}
+
 
 def read(path):
     return open(path, encoding="utf-8").read()
@@ -34,9 +41,24 @@ def check():
             for name in ("zh_cn", "en_us")}
 
     for item in sorted(models):
+        if item in RENDER_VARIANTS:
+            base = RENDER_VARIANTS[item]
+            path = os.path.join(ASSETS, "models/item", base + ".json")
+            parent = json.load(open(path, encoding="utf-8"))
+            references = {entry.get("model") for entry in parent.get("overrides", [])}
+            if f"dynasty:item/{item}" not in references:
+                problems.append(f"渲染变体 {item} 未被 {base} 的 overrides 引用")
+            # The base weapon remains subject to the full bilingual item-name check below.
+            continue
         for name, data in lang.items():
-            if ("item.dynasty." + item) not in data and ("block.dynasty." + item) not in data:
+            block_id = BLOCK_ITEM_NAMES.get(item, item)
+            if ("item.dynasty." + item) not in data and ("block.dynasty." + block_id) not in data:
                 problems.append("%s 缺 %s 词条（item. 或 block. 前缀都认）" % (item, name))
+
+    puzzle_source = read(os.path.join(JAVA, "puzzle/PuzzleBlocks.java"))
+    for item, block in BLOCK_ITEM_NAMES.items():
+        if not re.search(r'itemBlock\("' + item + r'",\s*BLOCKS\.register\("' + block + r'"', puzzle_source):
+            problems.append(f"方块物品语言映射 {item} → {block} 与真实注册不符")
 
     effects = set(re.findall(r'EFFECTS\.register\("([a-z0-9_]+)"',
                              read(os.path.join(JAVA, "DynastyEffects.java"))))

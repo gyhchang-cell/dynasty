@@ -99,6 +99,46 @@ public final class FeaturePlacementGameTests {
     }
 
     @GameTest(template = "bow_ritual_test", timeoutTicks = 40)
+    public static void hallEndpointsNeverBecomeWorldCoordinateHeight(GameTestHelper h) {
+        for (int y : new int[]{40, 140}) {
+            var region = new Region(h.getLevel());
+            int x=-40,z=-24;
+            DynastyBuildKit.hallBody(region,x-8,y,z-5,x+8,y+4,z+5,
+                    Blocks.STONE_BRICKS.defaultBlockState(),Blocks.OAK_LOG.defaultBlockState());
+            h.assertTrue(region.getBlockState(new BlockPos(x-8,y+4,z-5)).is(Blocks.OAK_LOG),"Hall corner missing");
+            h.assertTrue(region.getBlockState(new BlockPos(x,y+30,z-5)).isAir(),"Hall escaped intended height");
+            h.assertTrue(region.getBlockState(new BlockPos(x,y+1,z)).isAir(),"Hall interior not hollow");
+            h.assertTrue(region.writeAttempts<2500,"Hall work grows with world position");
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "bow_ritual_test", timeoutTicks = 40)
+    public static void stairFlightsFaceTheirUpperLanding(GameTestHelper h) {
+        for(boolean alongX:new boolean[]{false,true})for(boolean outward:new boolean[]{false,true}) {
+            var region=new Region(h.getLevel());
+            DynastyBuildKit.stairsUp(region,-40,70,-24,3,4,alongX,outward,Blocks.QUARTZ_STAIRS.defaultBlockState());
+            var expected=alongX?(outward?net.minecraft.core.Direction.WEST:net.minecraft.core.Direction.EAST)
+                    :(outward?net.minecraft.core.Direction.NORTH:net.minecraft.core.Direction.SOUTH);
+            for(int i=0;i<4;i++) {
+                int d=outward?i:-i;
+                var pos=new BlockPos(-40+(alongX?d:0),70-i,-24+(alongX?0:d));
+                h.assertTrue(region.getBlockState(pos).getValue(net.minecraft.world.level.block.StairBlock.FACING)==expected,"Stair faces downhill");
+                h.assertTrue(region.getBlockState(pos.above(2)).isAir(),"Stair has no headroom");
+            }
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "bow_ritual_test", timeoutTicks = 40)
+    public static void oversizedFeaturesRejectBeforePartialPlacement(GameTestHelper h) {
+        var region=new Region(h.getLevel());
+        h.assertTrue(!DynastyFeaturePlacement.fits(region,-80,60,-24,-20,90,0),"Half structure would be accepted");
+        h.assertTrue(DynastyFeaturePlacement.fits(region,-60,60,-45,-25,90,-8),"Valid full footprint rejected");
+        h.assertTrue(region.writeAttempts==0,"Preflight touched world");h.succeed();
+    }
+
+    @GameTest(template = "bow_ritual_test", timeoutTicks = 40)
     public static void outsideHeightNeverStoresDummyBlockEntities(GameTestHelper h) {
         var region = new Region(h.getLevel());
         for (int y : new int[]{region.getMinBuildHeight() - 1, region.getMaxBuildHeight(),

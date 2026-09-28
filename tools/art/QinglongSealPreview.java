@@ -57,7 +57,7 @@ public final class QinglongSealPreview {
             if(age<=8)check(full.stream().noneMatch(s->s.color!=0x79ffe2),"Cage connected before arrays formed");
             check(tip>=previousTip-1e-9,"Pillar reveal moved downwards");previousTip=tip;
             if(age>=START)check(close(tip,TOP),"Cage not closed before descent");
-            var muzzle=ImperialWeaponGeometry.descentDragonPose(TOP,phase.travel()).point(ImperialDragonMesh.MUZZLE);
+            var muzzle=ImperialWeaponGeometry.descentDragonPose(TOP,phase.travel()).point(ImperialDragonMesh.DIVE_MUZZLE);
             check(close(muzzle.x(),0)&&close(muzzle.z(),0),"Dragon misses target horizontally");
             if(age>=LAND)check(close(muzzle.y(),0),"Dragon misses target vertically at impact");
             maximum=Math.max(maximum,full.size());frames++;

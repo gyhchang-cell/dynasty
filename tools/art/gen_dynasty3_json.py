@@ -232,6 +232,9 @@ WORLDGEN_NAMES = {
         "great_wall_gate": ("长城关隘", "Great Wall Gate"),
         "star_altar": ("九霄星坛", "Nine-Heaven Star Altar"),
         "stone_grove": ("幽冥石林", "Underworld Stone Grove"),
+        "star_vault": ("九霄观星密室", "Nine-Heaven Star Vault"),
+        "music_ruin": ("古乐遗址", "Ancient Music Ruins"),
+        "seal_vault": ("幽冥四象封印室", "Underworld Four-Sigil Vault"),
     },
     "biome": {
         "celestial_plains": ("天朝平原", "Celestial Plains"),
@@ -457,6 +460,9 @@ def item_models():
 
 
 def merge_lang():
+    from gen_schools import language as school_language
+    ZH.update(school_language("zh_cn"))
+    EN.update(school_language("en_us"))
     for filename, table in (("zh_cn.json", ZH), ("en_us.json", EN)):
         path = os.path.join(LANG_DIR, filename)
         data = json.load(open(path, encoding="utf-8"))
@@ -538,6 +544,8 @@ def main():
     item_models()
     block_resources()
     merge_lang()
+    from gen_living_workshop import merge_lang as merge_workshop_lang
+    merge_workshop_lang()
     clean_removed()
     print("recipes written:", len(os.listdir(RECIPE_DIR)))
 

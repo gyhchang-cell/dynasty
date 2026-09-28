@@ -112,5 +112,6 @@ public class WallGatePiece extends DynastyStructurePiece {
         createChest(level, box, random, 2, 9, 12, TURRET_LOOT);
         createChest(level, box, random, 27, 9, 12, TURRET_LOOT);
         createChest(level, box, random, 13, 9, 12, TOWER_LOOT);
+        PlayerBuildOverrides.apply("gate",this,level,box);
     }
 }

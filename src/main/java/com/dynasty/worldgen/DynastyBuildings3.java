@@ -53,6 +53,10 @@ public class DynastyBuildings3 {
             if (y <= level.getSeaLevel() + 1) {
                 return false;
             }
+            int maxX = kind == Kind.MARKET ? 20 : kind == Kind.BRIDGE ? 15 : 12;
+            int maxZ = kind == Kind.SKY_STAIR ? 30 : 12;
+            if (!DynastyFeaturePlacement.fits(level, x-12, y-3, z-12, x+maxX, y+30, z+maxZ))
+                return false;
             switch (kind) {
                 case HALL -> hall(level, rand, x, y, z);
                 case OBSERVATORY -> observatory(level, rand, x, y, z);
@@ -234,8 +238,8 @@ public class DynastyBuildings3 {
             for (int i = 0; i < steps; i++) {
                 int yy = y + i;
                 for (int w = -2; w <= 2; w++) {
-                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x, yy, z + i * 1).offset(0, 0, 0), marble(), 2);
-                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x + w, yy, z + i), marble(), 2);
+                    DynastyFeaturePlacement.setBlock(level, new BlockPos(x + w, yy, z + i),
+                            facing(quartzStair(), net.minecraft.core.Direction.SOUTH), 2);
                     if (Math.abs(w) == 2) {
                         DynastyFeaturePlacement.setBlock(level, new BlockPos(x + w, yy + 1, z + i), pillar(), 2);
                     }
@@ -245,16 +249,16 @@ public class DynastyBuildings3 {
                     DynastyFeaturePlacement.setBlock(level, new BlockPos(x + 3, yy + 1, z + i), lantern(), 2);
                 }
             }
-            int top = y + steps;
-            floor(level, x - 6, top, z + steps - 6, x + 6, z + steps + 6, marble());
-            railing(level, x - 6, z + steps - 6, x + 6, z + steps + 6, top + 1, pillar());
+            int top = y + steps - 1;
+            floor(level, x - 6, top, z + steps, x + 6, z + steps + 12, marble());
+            railing(level, x - 6, z + steps, x + 6, z + steps + 12, top + 1, pillar());
             for (int[] c : new int[][]{{-6, -6}, {-6, 6}, {6, -6}, {6, 6}}) {
-                column(level, x + c[0], top + 1, top + 4, z + steps + c[1], pillar());
-                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + c[0], top + 5, z + steps + c[1]), lantern(), 2);
+                column(level, x + c[0], top + 1, top + 4, z + steps + 6 + c[1], pillar());
+                DynastyFeaturePlacement.setBlock(level, new BlockPos(x + c[0], top + 5, z + steps + 6 + c[1]), lantern(), 2);
             }
-            chest(level, rand, x, top + 1, z + steps, "palace_ruin");
-            guard(level, rand, x, top + 1, z + steps, DynastyEntities.THUNDER_ENVOY.get(), 2);
-            materials(level, rand, x + 3, top + 1, z + steps - 3, jade(), 5);
+            chest(level, rand, x + 4, top + 1, z + steps + 8, "palace_ruin");
+            guard(level, rand, x, top + 1, z + steps + 6, DynastyEntities.THUNDER_ENVOY.get(), 2);
+            materials(level, rand, x + 3, top + 1, z + steps + 4, jade(), 5);
         }
 
         /** 雷池：水台 + 柱阵 + 避雷针 / the thunder pool */

@@ -30,7 +30,14 @@ TUTORIAL_IDS = {
     "返回龙庭，整理终战配装": 0x10008,
     "你来决定毕业流派": 0x10009,
     "出行准备 · 领取指南针材料": 0x1000a,
-    "制作两种探索罗盘": 0x1000b,
+    "制作两种探险者指南针": 0x1000b,
+    "先备好采矿工具": 0x10020,
+    "带一桶水出门": 0x10021,
+    "建立锻造工位": 0x10022,
+    "把战利品安全送回": 0x10023,
+    "终战的应急补给": 0x10024,
+    "建立复战祭坛": 0x10025,
+    "九霄行囊 · 御风": 0x10026,
 }
 LANG = json.loads((ROOT / "src/main/resources/assets/dynasty/lang/zh_cn.json").read_text())
 SLOTS = classifications()
@@ -40,6 +47,8 @@ VANILLA = dict(zip(
 STRUCTURES = {"imperial_tomb":"帝陵地宫", "imperial_mausoleum":"帝王陵", "ritual_circle":"法阵遗迹",
     "temple":"神庙", "palace_ruin":"宫殿遗迹", "watchtower":"烽火台", "barracks":"兵营",
     "palace":"宫殿", "pagoda":"宝塔", "academy":"书院", "great_wall":"长城", "inn":"驿站"}
+VANILLA.update({"arrow":"箭","target":"标靶","spyglass":"望远镜","leather_boots":"皮革靴子"})
+VANILLA.update({'iron_pickaxe':'铁镐','smithing_table':'锻造台','ender_chest':'末影箱'})
 
 
 def name(target):
@@ -83,6 +92,8 @@ def recipe_index():
             entries = [data["key"][char] for row in data["pattern"] for char in row if char != " "]
         if "ingredient" in data:
             entries = [data["ingredient"]]
+        if data["type"] == "minecraft:smithing_transform":
+            entries = [data[part] for part in ("template", "base", "addition")]
         result[target].append({"id": path.stem, "type": data["type"],
             "ingredients": dict(Counter(ingredient(e) for e in entries)),
             "output": output.get("count", 1) if isinstance(output, dict) else 1})
@@ -208,6 +219,8 @@ def build_book():
         new("安置储物箱", "先把备用材料存好，再出门冒险。", "八块木板在工作台围成一圈。任务只检测持有；放到据点、记录坐标。", "minecraft:chest"),
         new("点亮第一晚", "照明和退路比第一把神兵重要。", "木棍加煤炭或木炭做火把；造一个封闭小屋，条件允许就做床设置重生点。", "minecraft:torch", 8),
         new("烧炼矿物", "铜锭和铁锭是接下来升级的基础。", "八块圆石围成一圈做熔炉；用燃料烧炼粗铜、粗铁。先留一把镐的材料。", "minecraft:furnace"),
+        new('先备好采矿工具','玉矿和深层龙晶需要合适的镐，先准备再下矿。','三块铁锭加两根木棍制作铁镐；采掘时给自己留照明和回程台阶。','minecraft:iron_pickaxe'),
+        new('带一桶水出门','一件工具兼顾灭火、下矿落差和返程搭路。','三块铁锭做桶，对水源右键装满；水桶不能代替护甲，也不是所有维度都能放水。','minecraft:water_bucket'),
         take("mu_mao", "认识第一把王朝武器。"),
         take("shi_ge", "学会把旧武器作为下一把的材料。"),
         take("tong_dao", "用已经烧好的铜锭继续升级。"),
@@ -217,8 +230,8 @@ def build_book():
     supplies = new("出行准备 · 领取指南针材料", "先准备导航工具，避免漫无目的找建筑和 Boss。",
         "在背包准备四块圆石，完成后点击奖励领取两个原版指南针；再砍四块原木，下一步分别合成两种罗盘。奖励每人仅领取一次，不收走圆石。", "minecraft:cobblestone", 4)
     supplies["rewards"] = '[{ id: "3000000001000a01", type: "item", item: { id: "minecraft:compass", Count: 2b }, team_reward: false }]'
-    compasses = new("制作两种探索罗盘", "一件寻找生物群系，一件寻找建筑；两种工具各司其职。",
-        "先领取上一任务的两个原版指南针。工作台中心放指南针，上下左右放原木，四角留空，合成自然罗盘；把原木换成圆石，合成探索者罗盘。两件都放在背包即可完成，不收走物品。手持右键打开搜索；自然罗盘找群系，探索者罗盘找建筑。先进入目标所在维度再搜索。找到群系不等于直接找到 Boss，具体位置与召唤方式查看 Boss 图鉴。", "naturescompass:naturescompass")
+    compasses = new("制作两种探险者指南针", "一件寻找生物群系，一件寻找建筑；两种工具各司其职。",
+        "先领取上一任务的两个原版指南针。工作台中心放指南针，上下左右放原木，四角留空，合成自然指南针；把原木换成圆石，合成探险者指南针。两件都放在背包即可完成，不收走物品。手持右键打开搜索；自然指南针找群系，探险者指南针找建筑。先进入目标所在维度再搜索。找到群系不等于直接找到 Boss，具体位置与召唤方式查看 Boss 图鉴。", "naturescompass:naturescompass")
     compasses["tasks"] = compasses["tasks"][:-1] + ', { id: "200000000001000c", type: "item", item: { id: "explorerscompass:explorerscompass", Count: 1b }, count: 1L }]'
     chapter("02 · 罗盘、工坊与配装", "终点：制作两种导航罗盘、青铜期装备，并知道饰品在哪里佩戴。", [
         supplies,
@@ -228,6 +241,8 @@ def build_book():
         take("bamboo_slip", "准备图纸的竹简底材。"),
         take("ink_stick", "把煤炭和朱砂制成徽墨，补齐图纸材料。"),
         take("blueprint", "真正进入装备升级阶段。"),
+        take('refined_steel','精钢是后续流派兵器和新饰品的共用材料；先建立稳定供给。'),
+        new('建立锻造工位','以后进化已经练过的武器，在这里保留等级和历练。','两块铁锭和四块木板制作锻造台。进化时依次放图纸、旧兵器和材料；具体组合看山河录的流派页。这里只检测持有锻造台。','minecraft:smithing_table'),
         take("sword_bronze", "把本章准备的材料用在一把真实武器上。"),
         take("jade", "准备玉器与未来传送门的共用材料。"),
         new("选择你的防具与饰品", "这里开始自由配装，不强迫收齐所有套装。",
@@ -238,12 +253,14 @@ def build_book():
         take("exam_passed", "答对一次，解锁第一项永久槽位里程碑。", kind="advancement"),
         take("tiger_tally", "战斗前先了解友军支援。"),
         take("army_led", "真正召集一次部队，认识军队操作。", kind="advancement"),
+        take('healing_salve','首战之前备好紧急治疗；不要等残血才查配方。','朱砂、糖和闪烁的西瓜片合成金创膏。手持右键服用，提供瞬间治疗II；任务只检测持有，不会消耗。'),
         take("rebel_general", "首次 Boss 挑战；成功后获得第二个永久万能槽。", kind="kill", count=1),
         take("rebel_head", "确认收起首战信物，以后可用于武器或复战。"),
     ])
     chapter("04 · 做好回程，再入天朝", "终点：建立天朝往返路线，领取第三个永久万能槽，再取得内廷令牌。", [
         take("talisman_paper", "先制作跨维度旅行的保底回程材料。"),
         take("return_talisman", "必须先有回程办法，再进入陌生维度。"),
+        take('pill_longevity','回程之外再备一种持续恢复，补足长距离探索的续航。','朱砂、糖和玉合成延寿丹。右键服用获得30秒再生II；重伤时仍应撤退，不是无敌。'),
         take("dragon_crystal", "先在主世界获得门的核心材料，避免误以为必须先进入天朝。"),
         take("jade_portal", "准备两座门，一座留家里，一座带到对面。"),
         take("celestial_dynasty", "放置传送门并右键，实际到达新世界。", "到达后先放回程门、记录坐标，再探索附近地形。不要急着打龙帝。", kind="dimension"),
@@ -258,10 +275,12 @@ def build_book():
         take("undead_first_emperor", "拿到帝骸骨，推进高阶装备路线。", kind="kill", count=1),
         take("slay_emperor", "斩帝里程碑：领取第四个永久万能槽。", kind="advancement"),
         take("emperor_bone", "战后先确认战利品数量，不要漏捡关键材料。"),
+        new('建立复战祭坛','学会用首杀信物复战，之后有目标地补充升级材料。','四块玉石块和龙晶合成法阵·祭坛，也可从遗迹取得。周围同高度八格中至少摆四块玉石块；使用对应Boss信物召唤，会消耗信物。先把帝骸骨留给兵器进化；本任务不要求再次击杀Boss。','dynasty:ritual_altar'),
         take("xuantian_jade", "用已有材料制作玄天玉，为更高阶装备做准备。"),
     ])
     chapter("06 · 九霄试炼", "终点：取得天将令；先改善配装，再挑战高空 Boss。", [
         take("cloud_portal", "准备登天入口和回程入口。"),
+        new('九霄行囊 · 御风','登高前准备缓降和机动手段，遇险先拉开距离。','符纸、两根羽毛和丝绸合成御风符。右键使用可获得45秒缓降、速度III和跳跃提升II，并推开周围敌人；到期前回到安全平台，它不是永久飞行。','dynasty:wind_talisman'),
         take("jiuxiao", "抵达九霄，先确认站脚点和撤离方向。", "右键九霄传送门进入；准备缓降、搭路方块与归乡符，别直接跳入云海。", kind="dimension"),
         take("entered_jiuxiao", "记录登临九霄。", kind="advancement"),
         take("nine_heaven_general", "检验自己的走位与配装，不是堆击杀数量。", kind="kill", count=1),
@@ -274,6 +293,7 @@ def build_book():
         take("dragon_gate", "准备龙宫的双向入口。"),
         take("dragon_palace", "亲自进入龙宫，先设立安全回程点。", "放置龙宫传送门并右键。确认氧气与水下呼吸效果仍有效，别直接下潜追怪。", kind="dimension"),
         take("entered_dragon_palace", "记录龙宫探索。", kind="advancement"),
+        new('把战利品安全送回','远征越来越长，为稀有材料准备跨维度的个人仓库。','八块黑曜石围住末影之眼制作末影箱；主世界和龙宫中的末影箱共用你的物品。没有精准采集时拆箱不会掉箱子，请在两端各放一只。任务只检测持有。','minecraft:ender_chest'),
         take("dragon_king", "清楚自己的续航后再挑战龙王。", kind="kill", count=1),
         take("slay_dragon_king", "完成第五项里程碑：开局一格加五格，共六个万能槽。", kind="advancement"),
         take("sea_token", "拿走龙宫玉印，完成这一条探索线路。"),
@@ -281,6 +301,7 @@ def build_book():
     chapter("08 · 问鼎与毕业路线", "终点：击败龙帝；毕业装备按自己的流派选择，不要求全收集。", [
         new("返回龙庭，整理终战配装", "用前几章的战利品改善装备，再打龙帝。",
             "回到天朝·龙庭。检查一整套防具、实际佩戴的饰品和恢复品；查兵器谱选择自己能做的进阶武器。任务书不会要求先做必须用龙帝掉落才能合成的毕业装备。"),
+        new('终战的应急补给','准备吸收生命与恢复，给自己留一次撤退机会。','八块金锭围住苹果制作金苹果；受伤前吃下获得吸收与短时再生。它不能硬扛龙帝的大招，仍要离开预警区。','minecraft:golden_apple'),
         take("dragon_emperor", "完成旅程最终讨伐。", kind="kill", count=1),
         take("slay_dragon_emperor", "记录龙帝首杀；不是要求重复再杀一次。", kind="advancement"),
         take("dragon_emperor_seal", "把终战战利品带回，开启自己的毕业配装。"),
@@ -363,7 +384,7 @@ def build_book():
                         parts = [f"{name(k) if ' / ' not in k else ' 或 '.join(name(v) for v in k.split(' / '))}×{v}" for k,v in r["ingredients"].items()]
                         method = "烧炼" if r["type"].endswith(("smelting","blasting","smoking")) else "合成"
                         desc.append(f"{method}：{' + '.join(parts)} → {name(q['target'])}×{r['output']}。")
-                    desc.append("多条配方是任选一种，不是全部完成。悬停物品按 R 看摆法，按 U 看用途。标签材料可用哪些物品，以配方界面为准。")
+                    desc.append("点击本页任务栏里的物品图标，直接打开 JEI 合成界面。多条配方任选一种；也可悬停按 R 看配方、按 U 看用途。标签材料以配方界面为准。")
                     refs = sorted({where[k] for r in rs for k in r["ingredients"] if k in where and where[k]!=c["title"]})
                     if refs:
                         desc.append("材料任务可查："+"；".join(refs)+"。这些是导航，不是额外锁定条件。")
@@ -388,7 +409,15 @@ def build_book():
                 desc.extend(["","&a&l完成后去哪&r","回到『主线旅程』继续未完成节点，或留在此页选择真正需要的装备。无需清空本页。"])
             q["description"] = desc
     from boss_quest_guides import add_guides
+    from quest_story_branches import add_branches
+    add_branches(chapters,recipes,name)
     add_guides(chapters)
+    from quest_routes import add_routes, add_home, load_contracts
+    from quest_atlas import add_catalog_navigation, decorate
+    add_routes(chapters, recipes, name, load_contracts())
+    add_home(chapters)
+    add_catalog_navigation(chapters, SLOTS)
+    decorate(chapters)
     validate(chapters, original)
     return chapters
 
@@ -403,7 +432,7 @@ def validate(chapters, original=None):
     for old in original:
         q = byid[old["id"]]
         assert q["tasks"]==old["tasks"] and q["rewards"]==old["rewards"], "Save contract changed: "+old["id"]
-    main = [q for c in chapters if c["main"] for q in c["quests"]]
+    main = [q for c in chapters if c["main"] for q in c["quests"] if q['role']=='main']
     mainids = {q["id"] for q in main}
     assert not main[0]["deps"], "No accessible root"
     for i,q in enumerate(main):
@@ -413,14 +442,67 @@ def validate(chapters, original=None):
         assert not (q["kind"]=="kill" and q["target"] in {"dynasty:royal_guard","dynasty:imperial_soldier","dynasty:jade_guard"}), "Friendly kill gate"
     for q in allq:
         assert all(d in byid for d in q["deps"]), "Dangling dependency"
-        if q["role"]!="main":
+        if q["role"] not in {"main", "build", "chapter_branch", "exploration_branch"}:
             assert not q["deps"], "Optional content is gated"
+        if q["role"] == "exploration_branch":
+            chapter=next(c for c in chapters if q in c['quests'])
+            assert chapter['main'] and all(d in {n['id'] for n in chapter['quests']} for d in q['deps']), "Exploration must stay in its own chapter"
+        if q["role"] == "build":
+            assert all(byid[d].get("route")==q["route"] and byid[d]["role"]=="build" for d in q["deps"]), "Build gates another route"
         if q["kind"]=="checkmark":
             assert q["rewards"]=="[]", "Reading page must not farm rewards"
     identities = [c["id"] for c in chapters] + list(byid)
+    identities += [link["id"] for c in chapters for link in c.get("quest_links",[])]
     identities += [i for q in allq for i in re.findall(r'\{ id: "([0-9a-f]{16})", type:',q["tasks"]+q["rewards"])]
     assert len(identities)==len(set(identities)), "Duplicate object IDs"
     assert all(0<int(i,16)<0x8000000000000000 for i in identities), "Invalid signed long ID"
+    from quest_routes import GROUPS, ROUTES
+    assert all(c["group"] in dict(GROUPS) for c in chapters), "Unknown chapter group"
+    graph={q["id"]:q["deps"] for q in allq}
+    visiting, visited=set(),set()
+    def visit(qid):
+        assert qid not in visiting, "Cycle in quest dependencies"
+        if qid in visited:
+            return
+        visiting.add(qid)
+        for dep in graph[qid]: visit(dep)
+        visiting.remove(qid); visited.add(qid)
+    for qid in graph: visit(qid)
+    chapterids={c["id"] for c in chapters}
+    for c in chapters:
+        for link in c.get("quest_links",[]):
+            assert link["linked_quest"] in byid, "Broken QuestLink"
+            assert byid[link["linked_quest"]]["target"]==link["target"], "QuestLink target mismatch"
+        for decoration in c.get("images",[]):
+            resource=decoration["image"]
+            assert resource.startswith("dynasty:textures/gui/quests/") and ".." not in resource, "Non-local atlas art"
+            path=ROOT/"src/main/resources/assets"/resource.replace(":","/",1)
+            assert path.is_file(), "Missing chapter image: "+resource
+            click=decoration.get("click","")
+            assert not click or click.startswith("#") and click[1:] in (set(byid)|chapterids), "Broken image jump"
+            assert 0 <= decoration["alpha"] <= 255 and decoration["width"]>0 and decoration["height"]>0
+        if c.get("route"):
+            from weapon_evolution_paths import PATHS, recipe_id
+            paths=PATHS[c['route']]
+            assert len(c["quests"])==35+len(paths), "Build content count must preserve all existing quests and new evolutions"
+            assert sum(q["kind"]!="checkmark" for q in c["quests"])>=10, "Build must use real gameplay goals"
+            assert not c.get("quest_links",[]), "Duplicate equipment reference icons must stay removed"
+            actual={q.get('evolution_recipe'):q for q in c['quests'] if q.get('evolution_recipe')}
+            assert set(actual)=={'dynasty:'+recipe_id(c['route'],p[0]) for p in paths}, 'Missing weapon evolution task'
+            for key,base,result,material,_ in paths:
+                rid=recipe_id(c['route'],key)
+                data=json.loads((ROOT/f'src/main/resources/data/dynasty/recipes/{rid}.json').read_text())
+                assert data['type']=='minecraft:smithing_transform', 'Evolution must preserve weapon NBT'
+                assert data['base']=={'item':'dynasty:'+base} and data['addition']=={'item':'dynasty:'+material}
+                assert data['result']=={'item':'dynasty:'+result} and data['template']=={'item':'dynasty:blueprint'}
+                q=actual['dynasty:'+rid]
+                assert q['target']=='dynasty:'+result and len(q['deps'])==1
+                assert byid[q['deps'][0]]['target']=='dynasty:'+base, 'Evolution must connect to its actual predecessor'
+    for slot in SLOT_NAMES:
+        c=next(c for c in chapters if c["file"]==("dynasty_c10" if slot=="head" else "dynasty_accessory_"+slot))
+        targets=[q["target"] for q in c["quests"] if q["kind"]=="item"]+[l["target"] for l in c.get("quest_links",[])]
+        expected={"dynasty:"+item for item,kind in SLOTS.items() if kind==slot}
+        assert set(targets)==expected and len(targets)==len(set(targets)), "Incorrect Curios atlas coverage: "+slot
 
 
 def encode(chapter):
@@ -429,17 +511,26 @@ def encode(chapter):
     for q in chapter["quests"]:
         lines = ["\t\t{", f'\t\t\tid: "{q["id"]}"', '\t\t\ttitle: '+quote(q.get("display_title",q["title"])),
             '\t\t\tsubtitle: '+quote(q["subtitle"]), f'\t\t\tshape: "{q["shape"]}"',
-            '\t\t\tsize: 1.0d',f'\t\t\tx: {q["x"]:.2f}d',f'\t\t\ty: {q["y"]:.2f}d',
+            f'\t\t\tsize: {q.get("size",1.0):.2f}d',f'\t\t\tx: {q["x"]:.2f}d',f'\t\t\ty: {q["y"]:.2f}d',
             '\t\t\ticon: '+q["icon"], '\t\t\tdescription: '+quote(q["description"]),
-            '\t\t\ttasks: '+q["tasks"], '\t\t\trewards: '+q["rewards"]]
+            '\t\t\tdisable_jei: false', '\t\t\ttasks: '+q["tasks"], '\t\t\trewards: '+q["rewards"]]
         if q["deps"]:
             lines.append('\t\t\tdependencies: '+quote(q["deps"]))
+        if q["role"]=="build":
+            lines.extend(['\t\t\tcan_repeat: false', '\t\t\thide_until_deps_complete: false'])
         lines.append('\t\t}')
         blocks.append('\n'.join(lines))
+    def value(v):
+        if isinstance(v,float): return f"{v:.3f}d"
+        if isinstance(v,bool): return str(v).lower()
+        if isinstance(v,int): return str(v)
+        return quote(v)
+    images='[\n'+',\n'.join('\t\t{ '+', '.join(k+': '+value(v) for k,v in d.items())+' }' for d in chapter.get("images",[]))+'\n\t]'
+    links='[\n'+',\n'.join('\t\t{ '+', '.join(k+': '+value(v) for k,v in d.items() if k in {"id","linked_quest","x","y","shape","size"})+' }' for d in chapter.get("quest_links",[]))+'\n\t]'
     return ('{\n\tdefault_hide_dependency_lines: false\n\tdefault_quest_shape: ""\n'
         f'\tfilename: "{chapter["file"]}"\n\tgroup: "5{chapter["group"]:015x}"\n'
         f'\ticon: {chapter["quests"][0]["icon"]}\n\tid: "{chapter["id"]}"\n'
-        f'\torder_index: {chapter["order"]}\n\tquest_links: [ ]\n\tquests: [\n'+',\n'.join(blocks)+'\n\t]\n'
+        f'\torder_index: {chapter["order"]}\n\timages: {images}\n\tquest_links: {links}\n\tquests: [\n'+',\n'.join(blocks)+'\n\t]\n'
         '\tsubtitle: '+quote([chapter["goal"]])+'\n\ttitle: '+quote(chapter["title"])+'\n}\n')
 
 
@@ -452,10 +543,9 @@ def build(defaults):
     assert not unknown, "Unexpected existing chapters; inspect before migration: "+str(unknown)
     for filename,text in files.items():
         (OUT/"chapters"/filename).write_text(text)
-    groups = ["&6&l主线旅程 · 从这里开始","&2&l支线探索 · 自由选择","&b&l装备与配方 · 按需查询",
-              "&d&l饰品搭配 · 按槽位查询","&8旧版记录 · 非推荐"]
+    from quest_routes import GROUPS
     (OUT/"chapter_groups.snbt").write_text('{\n\tchapter_groups: [\n'+ '\n'.join(
-        f'\t\t{{ id: "5{i+1:015x}", title: "{t}" }}' for i,t in enumerate(groups))+'\n\t]\n}\n')
+        f'\t\t{{ id: "5{i:015x}", title: "{t}" }}' for i,t in GROUPS)+'\n\t]\n}\n')
     (OUT/"data.snbt").write_text(defaults)
     DOC.mkdir(parents=True,exist_ok=True)
     (DOC/"book.json").write_text(json.dumps(chapters,ensure_ascii=False,indent=2)+'\n')

@@ -13,6 +13,46 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 final class CelestialObservatory {
     private static final ResourceLocation LOOT = new ResourceLocation("dynasty", "chests/ritual_circle");
 
+    /** New 42x42 starts gain a connected instrument hall and an open star garden. */
+    static void buildAnnex(StarAltarPiece p, WorldGenLevel w, BoundingBox b, RandomSource random) {
+        var floor=DynastyBlocks.MARBLE_BLOCK.get().defaultBlockState();
+        var jade=DynastyBlocks.JADE_BLOCK.get().defaultBlockState();
+        var pillar=DynastyBlocks.CRIMSON_PILLAR.get().defaultBlockState();
+        var lamp=DynastyBlocks.IMPERIAL_LANTERN.get().defaultBlockState();
+        var air=Blocks.AIR.defaultBlockState();
+        p.fill(w,b,26,0,0,41,0,41,floor);
+        p.fill(w,b,0,0,26,25,0,41,floor);
+        p.fill(w,b,26,1,0,41,18,41,air);
+        p.fill(w,b,0,1,26,25,18,41,air);
+        // A full-height, walk-through archive: open portal, recessed windows, roof and brackets.
+        p.walls(w,b,28,1,3,39,6,23,DynastyBlocks.PALACE_BRICKS.get().defaultBlockState());
+        for(int x:new int[]{28,39})for(int z:new int[]{3,9,17,23}) {
+            p.fill(w,b,x,1,z,x,7,z,pillar);
+            p.set(w,b,x,6,z,lamp);
+        }
+        p.fill(w,b,28,1,11,28,4,15,air);
+        for(int z:new int[]{6,18})p.fill(w,b,39,2,z,39,4,z+2,Blocks.GLASS_PANE.defaultBlockState());
+        p.glazedRoof(w,b,27,2,40,24,8,5);
+        for(int z=5;z<=21;z+=4) {
+            p.fill(w,b,37,1,z,38,3,z+1,Blocks.BOOKSHELF.defaultBlockState());
+            p.set(w,b,35,1,z,Blocks.LECTERN.defaultBlockState());
+        }
+        p.set(w,b,31,1,6,Blocks.CARTOGRAPHY_TABLE.defaultBlockState());
+        p.set(w,b,31,1,20,Blocks.SMITHING_TABLE.defaultBlockState());
+        // Continuous ground-level route, shallow reflecting pools and covered southern pavilion.
+        p.fill(w,b,1,0,28,39,0,30,jade);
+        p.fill(w,b,25,0,10,27,0,30,jade);
+        for(int x:new int[]{5,19}) {
+            p.fill(w,b,x,0,34,x+8,0,38,jade);
+            p.fill(w,b,x+1,0,35,x+7,0,37,Blocks.WATER.defaultBlockState());
+            for(int xx:new int[]{x,x+8}) {p.set(w,b,xx,1,34,Blocks.STONE_BRICK_WALL.defaultBlockState());p.set(w,b,xx,2,34,lamp);}
+        }
+        for(int x:new int[]{32,39})for(int z:new int[]{32,39})p.fill(w,b,x,1,z,x,5,z,pillar);
+        p.glazedRoof(w,b,31,31,40,40,6,4);
+        p.set(w,b,34,1,35,DynastyBlocks.CHIME_BELL.get().defaultBlockState());
+        p.set(w,b,37,1,35,DynastyBlocks.TAIKO_DRUM.get().defaultBlockState());
+    }
+
     static void build(StarAltarPiece p, WorldGenLevel w, BoundingBox b, RandomSource random) {
         var marble = DynastyBlocks.MARBLE_BLOCK.get().defaultBlockState();
         var jade = DynastyBlocks.JADE_BLOCK.get().defaultBlockState();
@@ -26,6 +66,16 @@ final class CelestialObservatory {
         p.fill(w, b, 3, 4, 3, 22, 4, 22, marble);
         p.walls(w, b, 3, 4, 3, 22, 4, 22, jade);
         p.walls(w, b, 7, 4, 7, 18, 4, 18, bronze);
+        // Replace the solid plinth with a lit, accessible archive/workroom.
+        p.fill(w,b,8,1,8,17,3,17,air);
+        for(int z:new int[]{7,18})p.fill(w,b,11,1,z,14,3,z,air);
+        for(int x:new int[]{7,18})p.fill(w,b,x,1,11,x,3,14,air);
+        p.fill(w,b,8,1,9,8,2,10,Blocks.BOOKSHELF.defaultBlockState());
+        p.fill(w,b,17,1,15,17,2,16,Blocks.BOOKSHELF.defaultBlockState());
+        p.set(w,b,9,1,9,Blocks.LECTERN.defaultBlockState());
+        p.set(w,b,16,1,16,Blocks.SMITHING_TABLE.defaultBlockState());
+        p.set(w,b,9,3,15,lamp);p.set(w,b,16,3,9,lamp);
+        p.lootChest(w,b,random,9,1,16,LOOT);
 
         // Lower-level piers are spaced to leave a two-block-wide walkable covered loop.
         for (int x : new int[]{3, 22}) for (int z : new int[]{3, 8, 17, 22}) {

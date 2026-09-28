@@ -29,7 +29,8 @@ public class PalaceStructure extends Structure {
         int y = ctx.chunkGenerator().getFirstFreeHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG,
                 ctx.heightAccessor(), ctx.randomState());
         // 不在水面/海底生成 / never spawn under water
-        if (y <= ctx.chunkGenerator().getSeaLevel() + 1) {
+        if (y < ctx.chunkGenerator().getSeaLevel() || !ctx.chunkGenerator()
+                .getBaseColumn(x,z,ctx.heightAccessor(),ctx.randomState()).getBlock(y-1).getFluidState().isEmpty()) {
             return Optional.empty();
         }
         BlockPos origin = new BlockPos(x - PalacePiece.SIZE / 2, y - 2, z - PalacePiece.SIZE / 2);

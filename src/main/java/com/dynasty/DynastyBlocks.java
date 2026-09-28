@@ -39,6 +39,28 @@ public class DynastyBlocks {
         return BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(strength).sound(SoundType.STONE);
     }
 
+    private static RegistryObject<Block> workshop(String id, com.dynasty.block.LivingWorkshopBlock.Kind kind) {
+        return custom(id, () -> new com.dynasty.block.LivingWorkshopBlock(stone(3.0F).noOcclusion()
+                .lightLevel(s -> s.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT) ? 10 : 0),kind));
+    }
+    public static final RegistryObject<Block> MARROW_VAT = workshop("marrow_vat",com.dynasty.block.LivingWorkshopBlock.Kind.MARROW);
+    public static final RegistryObject<Block> ESSENCE_CONDENSER = workshop("essence_condenser",com.dynasty.block.LivingWorkshopBlock.Kind.ESSENCE);
+    public static final RegistryObject<Block> JADE_MENDING_FORGE = workshop("jade_mending_forge",com.dynasty.block.LivingWorkshopBlock.Kind.REPAIR);
+    public static final RegistryObject<Block> VITALITY_SHRINE = workshop("vitality_shrine",com.dynasty.block.LivingWorkshopBlock.Kind.VITALITY);
+    public static final RegistryObject<Block> HIDE_STRETCHER = workshop("hide_stretcher",com.dynasty.block.LivingWorkshopBlock.Kind.HIDE);
+    public static final RegistryObject<Block> HERBAL_BASIN = workshop("herbal_basin",com.dynasty.block.LivingWorkshopBlock.Kind.HERBAL);
+    public static final RegistryObject<Block> LAPIDARY_BENCH = workshop("lapidary_bench",com.dynasty.block.LivingWorkshopBlock.Kind.LAPIDARY);
+    public static final RegistryObject<Block> EMBER_BRAZIER = workshop("ember_brazier",com.dynasty.block.LivingWorkshopBlock.Kind.EMBER);
+
+    public static final RegistryObject<Block> CELESTIAL_STONE = simple("celestial_stone", stone(2.5F).requiresCorrectToolForDrops());
+    public static final RegistryObject<Block> UNDERWORLD_STONE = simple("underworld_stone", stone(3.0F).requiresCorrectToolForDrops());
+    public static final RegistryObject<Block> CLOUD_STONE = simple("cloud_stone", stone(1.8F).requiresCorrectToolForDrops());
+    public static final RegistryObject<Block> TIDAL_STONE = simple("tidal_stone", stone(2.5F).requiresCorrectToolForDrops());
+    public static final RegistryObject<Block> JADE_SOIL = simple("jade_soil", BlockBehaviour.Properties.of().strength(0.7F).sound(SoundType.GRAVEL));
+    public static final RegistryObject<Block> SPIRIT_SOIL = simple("spirit_soil", BlockBehaviour.Properties.of().strength(0.8F).sound(SoundType.SOUL_SOIL));
+    public static final RegistryObject<Block> STAR_SOIL = simple("star_soil", BlockBehaviour.Properties.of().strength(0.6F).sound(SoundType.SAND));
+    public static final RegistryObject<Block> PEARL_SAND = simple("pearl_sand", BlockBehaviour.Properties.of().strength(0.6F).sound(SoundType.SAND));
+
     /** 玉矿 / Jade Ore */
     public static final RegistryObject<Block> JADE_ORE =
             simple("jade_ore", stone(3.0F).requiresCorrectToolForDrops());

@@ -5,6 +5,9 @@ public final class ImperialWeaponGeometry {
     public static final double DESCENT_SEAL_RADIUS=2.35;
     /** Three times the preceding release's linear dimensions, not a damage multiplier. */
     public static final double DRAGON_ENLARGEMENT=3.0;
+    // Pull the two imperial guardians toward the seal without scaling or reshaping either mesh.
+    public static final double IMPERIAL_PAIR_OFFSET=.93;
+    public static final double IMPERIAL_PAIR_ANGLE=0.0;
     // Independent attack scale: leave the paired imperial guardians unchanged.
     public static final double DESCENT_DRAGON_SIZE=2.7*1.5;
     public static final double DESCENT_START_HEIGHT=12.0;
@@ -27,22 +30,16 @@ public final class ImperialWeaponGeometry {
         public P point(P value){return origin.add(direction(value).scale(DESCENT_DRAGON_SIZE));}
     }
     private static final class DiveAxes {
-        // The sculpted head has its own sideways yaw: rotateZ(135 degrees) alone never makes
-        // its actual snout point down. Build a full orthonormal frame from the real landmarks.
-        static final P FRONT=unit(ImperialDragonMesh.MUZZLE.add(ImperialDragonMesh.HEAD_CENTER.scale(-1)));
-        static final P UP=unit(new P(0,1,0).add(FRONT.scale(-FRONT.y)));
-        static final P RIGHT=cross(FRONT,UP);
-        // Snout -> -Y; original body-up -> -Z, leaving the long body trailing away from the caster.
-        static final P X=new P(RIGHT.x,-FRONT.x,-UP.x);
-        static final P Y=new P(RIGHT.y,-FRONT.y,-UP.y);
-        static final P Z=new P(RIGHT.z,-FRONT.z,-UP.z);
+        // The attack mesh raises its snout along its spine first. Rotate the upright body
+        // head-down as one rigid object: the tail remains above the head, never horizontal.
+        static final P X=new P(-1,0,0),Y=new P(0,-1,0),Z=new P(0,0,1);
     }
     private static P cross(P a,P b){return new P(a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x);}
     private static P unit(P p){return p.scale(1/Math.sqrt(p.x*p.x+p.y*p.y+p.z*p.z));}
     /** Nose-first descent through the upper seal's centre; endpoint is the authoritative hit point. */
     public static DescentPose descentDragonPose(double headOffset,double travel) {
         var rotation=new DescentPose(new P(0,0,0),DiveAxes.X,DiveAxes.Y,DiveAxes.Z);
-        P hit=rotation.direction(ImperialDragonMesh.MUZZLE).scale(DESCENT_DRAGON_SIZE);
+        P hit=rotation.direction(ImperialDragonMesh.DIVE_MUZZLE).scale(DESCENT_DRAGON_SIZE);
         double t=clamp(travel),lift=(headOffset+DESCENT_START_HEIGHT)*(1-t*t);
         return new DescentPose(new P(-hit.x,lift-hit.y,-hit.z),DiveAxes.X,DiveAxes.Y,DiveAxes.Z);
     }
@@ -62,6 +59,9 @@ public final class ImperialWeaponGeometry {
         }
         /** Runtime may draw one cached mesh; offline consumers keep the expanded-face fallback. */
         default boolean dragonInstance(P origin,double size,double angle,int color,double alpha,boolean mirrored) {return false;}
+        default boolean dragonInstance(P origin,double size,double angle,int color,double alpha,boolean mirrored,boolean diving) {
+            return !diving&&dragonInstance(origin,size,angle,color,alpha,mirrored);
+        }
     }
     private final Stroke out;
     private final Surface mesh;
@@ -79,11 +79,19 @@ public final class ImperialWeaponGeometry {
 
     /** Curving celestial dragon with a tapered body, dorsal spines, jaw, antlers and whiskers. */
     public void dragon(P origin,double size,double angle,double time,int color,double alpha) {
-        if(mesh.dragonInstance(origin,size,angle,color,alpha,false))return;
+        dragon(origin,size,angle,time,color,alpha,false);
+    }
+    public void divingDragon(P origin,double size,double angle,double time,int color,double alpha) {
+        dragon(origin,size,angle,time,color,alpha,true);
+    }
+    private void dragon(P origin,double size,double angle,double time,int color,double alpha,boolean diving) {
+        if(mesh.dragonInstance(origin,size,angle,color,alpha,false,diving))return;
         boolean jade=((color>>16)&255)<150;
-        for(int i=0;i<ImperialDragonMesh.FACES.size();i++) {
-            var face=ImperialDragonMesh.FACES.get(i);
-            var normals=DragonNormals.VALUE.get(i);
+        var faces=diving?ImperialDragonMesh.DIVE_FACES:ImperialDragonMesh.FACES;
+        var smooth=dragonNormals(diving);
+        for(int i=0;i<faces.size();i++) {
+            var face=faces.get(i);
+            var normals=smooth.get(i);
             mesh.normalFace(transform(face.a(),origin,size,angle),transform(face.b(),origin,size,angle),
                     transform(face.c(),origin,size,angle),transform(face.d(),origin,size,angle),
                     ImperialDragonMesh.color(face.material(),jade),alpha,normal(normals.a(),angle),
@@ -97,6 +105,12 @@ public final class ImperialWeaponGeometry {
                         point(f.a()),point(f.b()),point(f.c()),point(f.d()),f.material())).toList());
     }
     static java.util.List<ImperialMeshNormals.Normals> dragonNormals(){return DragonNormals.VALUE;}
+    private static final class DiveNormals {
+        static final java.util.List<ImperialMeshNormals.Normals> VALUE=ImperialMeshNormals.build(
+                ImperialDragonMesh.DIVE_FACES.stream().map(f->new ImperialMeshNormals.Quad(
+                        point(f.a()),point(f.b()),point(f.c()),point(f.d()),f.material())).toList());
+    }
+    static java.util.List<ImperialMeshNormals.Normals> dragonNormals(boolean diving){return diving?DiveNormals.VALUE:DragonNormals.VALUE;}
     private static ImperialMeshNormals.Point point(P p){return new ImperialMeshNormals.Point(p.x,p.y,p.z);}
     private static P normal(ImperialMeshNormals.Point p,double a) {
         return new P(p.x()*Math.cos(a)-p.y()*Math.sin(a),p.x()*Math.sin(a)+p.y()*Math.cos(a),p.z());
@@ -117,7 +131,8 @@ public final class ImperialWeaponGeometry {
                 double x=Math.cos(a)*1.2,y=Math.sin(a)*1.2;
                 line(x,y,x*1.09,y*1.09,0,.018,0xffd274,alpha);
             }
-            dragon(new P(1.05,0,.08).scale(DRAGON_ENLARGEMENT),1.18*DRAGON_ENLARGEMENT,-.18+Math.sin(time*.015)*.04,time,0xffb938,alpha);
+            dragon(new P(IMPERIAL_PAIR_OFFSET,0,.08).scale(DRAGON_ENLARGEMENT),1.18*DRAGON_ENLARGEMENT,
+                    IMPERIAL_PAIR_ANGLE+Math.sin(time*.015)*.025,time,0xffb938,alpha);
             // Mirrored guardian faces inward; both heads stay upright rather than orbiting upside down.
             new ImperialWeaponGeometry(out,new Surface() {
                 private P mirror(P p){return new P(-p.x,p.y,p.z);}
@@ -132,7 +147,8 @@ public final class ImperialWeaponGeometry {
                     return mesh.dragonInstance(mirror(origin),size,-angle,color,alpha,!mirrored);
                 }
             })
-                    .dragon(new P(1.05,0,-.08).scale(DRAGON_ENLARGEMENT),1.18*DRAGON_ENLARGEMENT,-.18+Math.sin(time*.015)*.04,time,0xffdc83,alpha);
+                    .dragon(new P(IMPERIAL_PAIR_OFFSET,0,-.08).scale(DRAGON_ENLARGEMENT),1.18*DRAGON_ENLARGEMENT,
+                            IMPERIAL_PAIR_ANGLE+Math.sin(time*.015)*.025,time,0xffdc83,alpha);
         } else {
             dragon(new P(.15,-.02,0).scale(DRAGON_ENLARGEMENT),1.30*DRAGON_ENLARGEMENT,-.15+Math.sin(time*.015)*.07,time,0x22dcb2,alpha);
             for(int k=0;k<3;k++) {

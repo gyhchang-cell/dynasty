@@ -21,7 +21,8 @@ public final class CompassBridgeGameTests {
                     :registry.registryOrThrow(Registries.STRUCTURE).containsKey(id);
             h.assertTrue(exists,"Unregistered destination: "+id);
             h.assertTrue(h.getLevel().getServer().levelKeys().stream().anyMatch(k->k.location()
-                    .equals(new ResourceLocation("dynasty",d.dimension()))),"Missing dimension "+d.dimension());
+                    .equals(d.dimension().contains(":") ? new ResourceLocation(d.dimension())
+                            : new ResourceLocation("dynasty",d.dimension()))),"Missing dimension "+d.dimension());
         }
         h.succeed();
     }

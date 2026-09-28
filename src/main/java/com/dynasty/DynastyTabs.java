@@ -42,6 +42,14 @@ public class DynastyTabs {
                 output.accept(DynastyBlocks.BRONZE_BLOCK.get());
                 output.accept(DynastyBlocks.PALACE_BRICKS.get());
                 output.accept(DynastyBlocks.MARBLE_BLOCK.get());
+                output.accept(DynastyBlocks.CELESTIAL_STONE.get());
+                output.accept(DynastyBlocks.UNDERWORLD_STONE.get());
+                output.accept(DynastyBlocks.CLOUD_STONE.get());
+                output.accept(DynastyBlocks.TIDAL_STONE.get());
+                output.accept(DynastyBlocks.JADE_SOIL.get());
+                output.accept(DynastyBlocks.SPIRIT_SOIL.get());
+                output.accept(DynastyBlocks.STAR_SOIL.get());
+                output.accept(DynastyBlocks.PEARL_SAND.get());
                 output.accept(DynastyBlocks.CRIMSON_PILLAR.get());
                 output.accept(DynastyBlocks.IMPERIAL_LANTERN.get());
 
@@ -216,6 +224,14 @@ public class DynastyTabs {
                 output.accept(DynastyFineItems.OSMANTHUS_CAKE.get());
                 output.accept(DynastyFineItems.CURED_MEAT.get());
                 output.accept(DynastyBlocks.BOUNTY_BOARD.get());
+                output.accept(DynastyBlocks.MARROW_VAT.get());
+                output.accept(DynastyBlocks.ESSENCE_CONDENSER.get());
+                output.accept(DynastyBlocks.JADE_MENDING_FORGE.get());
+                output.accept(DynastyBlocks.VITALITY_SHRINE.get());
+                output.accept(DynastyBlocks.HIDE_STRETCHER.get());
+                output.accept(DynastyBlocks.HERBAL_BASIN.get());
+                output.accept(DynastyBlocks.LAPIDARY_BENCH.get());
+                output.accept(DynastyBlocks.EMBER_BRAZIER.get());
                 output.accept(DynastyFineItems.ROAST_DUCK.get());
                 output.accept(DynastyFineItems.LONGEVITY_NOODLES.get());
                 output.accept(DynastyFineItems.BAIJIU.get());
@@ -335,6 +351,14 @@ public class DynastyTabs {
                 output.accept(DynastyWeapons.THUNDER_SPEAR.get());
                 output.accept(DynastyWeapons.ZIWEI_SABER.get());
                 output.accept(DynastyWeapons.ZHUQUE_BOW.get());
+                output.accept(DynastyWeapons.ZHENYUE_BLADE.get());
+                output.accept(DynastyWeapons.LIUYUN_SWORD.get());
+                output.accept(DynastyWeapons.ZHUXING_BOW.get());
+                output.accept(DynastyWeapons.CHILING_BRUSH.get());
+                output.accept(DynastyWeapons.BEICHEN_SPEAR.get());
+                output.accept(DynastyWeapons.CHENGYING_SWORD.get());
+                output.accept(DynastyWeapons.FENGLING_BOW.get());
+                output.accept(DynastyWeapons.LEIFU_STAFF.get());
                 // DynastyGear（9 件）
                 output.accept(DynastyGear.SEA_TRIDENT.get());
                 output.accept(DynastyGear.SEA_SILK_HELMET.get());

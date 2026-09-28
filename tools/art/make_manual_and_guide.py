@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """额外生成：手动安装包（mods/ 里全部 jar 的 zip，给朋友/服主直接用）+ 上传指南。"""
 import json, os, zipfile
+from export_policy import release_mod, release_config
 
 ROOT = os.path.expanduser("~/Desktop/dynasty")
 DIST = os.path.join(ROOT, "dist")
 MODS = os.path.join(ROOT, "modpack", "mods")
 VERSION = "1.4.0"
 
-MOD_NAMES = sorted(n for n in os.listdir(MODS) if n.endswith(".jar")) if os.path.isdir(MODS) else []
+MOD_NAMES = sorted(n for n in os.listdir(MODS) if n.endswith(".jar") and release_mod(n)) if os.path.isdir(MODS) else []
 MOD_COUNT = len(MOD_NAMES)
 CONFIG_DIR = os.path.join(ROOT, "modpack", "config")
 
@@ -23,7 +24,7 @@ README = """Dynasty 王朝 · 手动安装包 %s
 
 说明：除 dynasty 本体外，其余都是优化 / 信息 / 操作 / 生存便利类模组，
       不改玩法、不加数值；不想要哪个直接删掉对应 jar 也不会崩。
-连锁采掘已做进本体：按住潜行破坏矿石或原木即可连带采集。
+连锁采掘由 FTB Ultimine 提供；在按键设置中搜索 Ultimine 查看和更改连锁按键。
 """ % (VERSION, MOD_COUNT, MOD_COUNT, "\n".join("  " + n for n in MOD_NAMES))
 
 zip_path = os.path.join(DIST, "dynasty-%s-manual.zip" % VERSION)
@@ -36,6 +37,8 @@ with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
             for name in files:
                 full = os.path.join(base, name)
                 rel = os.path.relpath(full, CONFIG_DIR)
+                if not release_config(rel):
+                    continue
                 z.writestr("config/" + rel.replace(os.sep, "/"), open(full, "rb").read())
     z.writestr("安装说明-README.txt", README)
 print("手动安装包:", zip_path, os.path.getsize(zip_path), "bytes", "(%d jars)" % MOD_COUNT)

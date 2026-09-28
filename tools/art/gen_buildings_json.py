@@ -60,3 +60,5 @@ for name, (chance, biomes, heightmap) in BUILDINGS.items():
         pass
     print("building json:", name, "->", ", ".join(biomes))
 print("done")
+from gen_realm_terrain import main as realm_overrides
+realm_overrides()

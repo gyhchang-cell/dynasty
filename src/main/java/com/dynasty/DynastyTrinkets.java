@@ -128,6 +128,41 @@ public final class DynastyTrinkets {
             () -> new DynastyUsables.TrinketBoxItem(new Item.Properties().stacksTo(16)));
 
     private static final Object[][] EXTRA_TABLE = {
+        // BEGIN SCHOOL ACCESSORIES V2 (gen_trinkets7.py)
+        {"pojun_ring", 5, 0.04D, -1, 0.0D, 0, 0, 0},
+        {"wuqu_sword_knot", 1, 4.0D, -1, 0.0D, 0, 0, 0},
+        {"baizhan_ring", 0, 120.0D, 5, 0.06D, 0, 0, 0},
+        {"qixing_sword_knot", 5, 0.08D, -1, 0.0D, 0, 0, 0},
+        {"xuanjia_clasp", 12, 8.0D, -1, 0.0D, 0, 0, 0},
+        {"shanyue_bracelet", 12, 14.0D, 0, 120.0D, 0, 0, 0},
+        {"beichen_heartguard", 12, 20.0D, -1, 0.0D, 0, 0, 0},
+        {"xuanyue_armlet", 12, 30.0D, -1, 0.0D, 0, 0, 0},
+        {"yanling_thumbring", 3, 0.04D, -1, 0.0D, 0, 0, 0},
+        {"shenji_quiver", 1, 6.0D, -1, 0.0D, 0, 0, 0},
+        {"guanri_thumbring", 12, 8.0D, -1, 0.0D, 0, 0, 0},
+        {"zhuiri_quiver", 0, 160.0D, -1, 0.0D, 0, 0, 0},
+        {"lingwen_pendant", 0, 80.0D, -1, 0.0D, 0, 0, 0},
+        {"leibu_seal", 12, 8.0D, -1, 0.0D, 0, 0, 0},
+        {"ziwei_talisman_chain", 0, 220.0D, -1, 0.0D, 0, 0, 0},
+        {"taiqing_talisman_case", 12, 16.0D, -1, 0.0D, 0, 0, 0},
+        {"wanjun_ring", 0, 260.0D, 5, 0.1D, 0, 0, 0},
+        {"tianheng_sword_knot", 5, 0.12D, 12, 10.0D, 0, 0, 0},
+        {"zhenhai_heartguard", 12, 30.0D, 0, 300.0D, 0, 0, 0},
+        {"buzhou_armlet", 12, 30.0D, 0, 400.0D, 0, 0, 0},
+        {"sheyue_thumbring", 12, 16.0D, 3, 0.06D, 0, 0, 0},
+        {"jinwu_quiver", 0, 320.0D, 1, 10.0D, 0, 0, 0},
+        {"sanqing_talisman_chain", 0, 400.0D, 12, 12.0D, 0, 0, 0},
+        {"yuxu_talisman_case", 12, 24.0D, 0, 240.0D, 0, 0, 0},
+        // END SCHOOL ACCESSORIES V2
+            // Four-school attachments: small passive stats; their active hooks live in DynastySchoolCombat.
+            {"zhenguan_mirror", 1, 4D, -1, 0D, 0, 0, 0},
+            {"huben_bracer", 2, 0.15D, -1, 0D, 0, 0, 0},
+            {"liancheng_tassel", 5, 0.06D, -1, 0D, 0, 0, 0},
+            {"tayun_pendant", 3, 0.04D, -1, 0D, 0, 0, 0},
+            {"guanxing_pendant", 0, 40D, -1, 0D, 0, 0, 0},
+            {"mingxian_ring", 1, 3D, -1, 0D, 0, 0, 0},
+            {"sitian_seal", 0, 40D, -1, 0D, 0, 0, 0},
+            {"dingfeng_silk", 1, 3D, -1, 0D, 0, 0, 0},
             {"jade_marrow_charm", 0, 180D, 1, 5D, 0, 0, 0},
             {"jade_ruyi", 11, 2D, -1, 0D, 11, 0, 0},
             {"jade_ring", 5, 0.1D, 7, 1D, 0, 0, 0},
@@ -405,6 +440,7 @@ public final class DynastyTrinkets {
             case 7 -> addReach(player, id, key + 8, value);            // 攻击距离
             case 9 -> multiplyAttr(player, id, key + 9, 0, value);     // 生命上限 %
             case 11 -> addAttr(player, id, key + 4, 4, value);         // 幸运
+            case 12 -> addAttr(player, id, key + 8, 8, value);         // 护甲韧性
             default -> {
                 // -1 = 这一格没有属性
             }
@@ -679,12 +715,12 @@ public final class DynastyTrinkets {
     private static final Attribute[] ATTRS = {
             Attributes.MAX_HEALTH, Attributes.ARMOR, Attributes.KNOCKBACK_RESISTANCE,
             Attributes.MOVEMENT_SPEED, Attributes.LUCK, Attributes.ATTACK_DAMAGE,
-            Attributes.ATTACK_SPEED, Attributes.ATTACK_KNOCKBACK};
+            Attributes.ATTACK_SPEED, Attributes.ATTACK_KNOCKBACK, Attributes.ARMOR_TOUGHNESS};
 
     private static final String[] ATTR_NAMES = {
             "dynasty_trinket_health", "dynasty_trinket_armor", "dynasty_trinket_kb",
             "dynasty_trinket_speed", "dynasty_trinket_luck", "dynasty_trinket_attack",
-            "dynasty_trinket_attack_speed", "dynasty_trinket_attack_knockback"};
+            "dynasty_trinket_attack_speed", "dynasty_trinket_attack_knockback", "dynasty_trinket_toughness"};
 
     private static UUID uuid(String id, int attr) {
         return UUID.nameUUIDFromBytes(("dynasty_trinket_" + id + "_" + attr).getBytes());

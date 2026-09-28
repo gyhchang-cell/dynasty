@@ -15,6 +15,7 @@ import re
 import sys
 import zipfile
 import math
+from quest_snbt import list_compounds, object_id
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CHAPTER_DIR = os.path.join(ROOT, "modpack/config/ftbquests/quests/chapters")
@@ -221,13 +222,17 @@ def main():
     deps_by_quest = {}
     for path in chapters:
         text = open(path, encoding="utf-8").read()
-        ids = re.findall(r'\n\t\t\tid: "([0-9a-fA-F]{6,16})"', text)
+        blocks = list_compounds(text,"quests")
+        ids = [object_id(block) for block in blocks]
+        if any(qid is None for qid in ids):
+            problems.append(os.path.basename(path)+": malformed quest id")
+            ids=[qid for qid in ids if qid]
         quest_ids.update(ids)
         deps += re.findall(r'"([0-9a-fA-F]{6,16})"', " ".join(
             re.findall(r"dependencies: \[([^\]]*)\]", text)))
         # 逐个任务块：取「任务 id → 物品目标 / 前置」用于配方顺序检查
-        for block in re.split(r"\n\t\t\},?", text):
-            qid = re.search(r'\n\t\t\tid: "([0-9a-fA-F]{6,16})"', block)
+        for block in blocks:
+            qid = re.search(r'\bid: "([0-9a-fA-F]{6,16})"', block)
             if not qid:
                 continue
             item = re.search(r'tasks: \[\{ id: "2[0-9a-f]{15}", type: "item", item: \{ id: "([^"]+)"', block)
@@ -237,7 +242,13 @@ def main():
             if dep:
                 refs = re.findall(r'"([0-9a-fA-F]{6,16})"', dep.group(1))
                 deps_by_quest[qid.group(1)] = refs
-        coords = re.findall(r"\n\t\t\tx: (-?[\d.]+)d\n\t\t\ty: (-?[\d.]+)d", text)
+        coords=[]
+        for block in blocks+list_compounds(text,"quest_links"):
+            xy=[re.search(r'\b'+axis+r': (-?[\d.]+)d',block) for axis in ("x","y")]
+            if not all(xy):
+                problems.append(os.path.basename(path)+": node position missing")
+            else:
+                coords.append(tuple(m[1] for m in xy))
         unique = len(set(coords))
         stats = layout_check(os.path.basename(path), coords, problems)
         per_chapter.append((os.path.basename(path), len(ids), unique, stats))
