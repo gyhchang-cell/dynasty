@@ -3,8 +3,14 @@
 1) dist/dynasty-modpack-1.4.0.zip   —— CurseForge「整合包」上传格式（manifest.json + overrides/）
 2) dist/dynasty-1.4.0.mrpack        —— Modrinth「整合包」上传格式（modrinth.index.json + overrides/）
 """
-import json, os, shutil, zipfile, hashlib
+import argparse, json, os, shutil, zipfile, hashlib
 from export_policy import release_mod, release_config
+from check_modrinth_pack import check_pack
+from modrinth_release import prepare_release, manual_guide
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--platform', choices=('both', 'curseforge', 'modrinth'), default='both')
+args = parser.parse_args()
 
 ROOT = os.path.expanduser("~/Desktop/dynasty")
 DIST = os.path.join(ROOT, "dist")
@@ -42,9 +48,22 @@ QOL = json.load(open(QOL_JSON, encoding="utf-8")) if os.path.exists(QOL_JSON) el
 FTB_JSON = os.path.join(ROOT, "tools", "art", "ftb_mods.json")
 FTB = json.load(open(FTB_JSON, encoding="utf-8")) if os.path.exists(FTB_JSON) else []
 QOL = [r for r in QOL + FTB if release_mod(r['filename'])]
+# Mandatory boss animation runtime, shared by clients and dedicated servers.
+QOL.append({"filename": "geckolib-forge-1.20.1-4.8.4.jar",
+            "url": "https://cdn.modrinth.com/data/8BmcQJ2H/versions/aC5KMoNg/geckolib-forge-1.20.1-4.8.4.jar",
+            "client": "required", "server": "required"})
 QOL_FILENAMES = [record["filename"] for record in QOL]
 for record in QOL:
     MR_FILES.append((record["filename"], record["url"]))
+
+# JEI can occur both in the base dependencies and in the downloaded QOL list.
+# Keep one installation entry; refuse conflicting sources instead of hiding them.
+mr_sources = {}
+for filename, url in MR_FILES:
+    if filename in mr_sources and mr_sources[filename] != url:
+        raise ValueError("Modrinth 模组下载地址冲突: " + filename)
+    mr_sources[filename] = url
+MR_FILES = list(mr_sources.items())
 
 
 def hashes(path):
@@ -97,6 +116,7 @@ CF_README = """Dynasty 王朝 整合包 1.4.0（平衡重制）
 MR_README = CF_README
 
 # ---------------------------------------------------------------- CurseForge
+outputs = []
 manifest = {
     "minecraft": {"version": "1.20.1", "modLoaders": [{"id": "forge-47.4.10", "primary": True}]},
     "manifestType": "minecraftModpack",
@@ -109,48 +129,57 @@ manifest = {
     "overrides": "overrides",
 }
 cf_zip = os.path.join(DIST, "dynasty-modpack-%s.zip" % VERSION)
-with zipfile.ZipFile(cf_zip, "w", zipfile.ZIP_DEFLATED) as z:
-    z.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
-    z.writestr("overrides/README.txt", CF_README)
-    z.writestr("overrides/mods/" + OWN_JAR, open(OURS, "rb").read())
-    # 优化/便利模组没有 CF 项目 ID，直接打包进 overrides（自包含，装完即玩）
-    for filename in QOL_FILENAMES:
-        path = os.path.join(MODS, filename)
-        if os.path.exists(path):
-            z.writestr("overrides/mods/" + filename, open(path, "rb").read())
-    add_config_to(z)
-print("CurseForge 包:", cf_zip, os.path.getsize(cf_zip), "bytes")
+if args.platform in ('both', 'curseforge'):
+    with zipfile.ZipFile(cf_zip, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+        z.writestr("overrides/README.txt", CF_README)
+        z.writestr("overrides/mods/" + OWN_JAR, open(OURS, "rb").read())
+        # Existing CF export behavior is deliberately left unchanged in this task.
+        for filename in QOL_FILENAMES:
+            path = os.path.join(MODS, filename)
+            if os.path.exists(path):
+                z.writestr("overrides/mods/" + filename, open(path, "rb").read())
+        add_config_to(z)
+    outputs.append(cf_zip)
+    print("CurseForge 包:", cf_zip, os.path.getsize(cf_zip), "bytes")
 
 # ---------------------------------------------------------------- Modrinth
-mr_files = []
-for filename, url in MR_FILES:
-    path = os.path.join(MODS, filename)
-    s1, s512 = hashes(path)
-    mr_files.append({
-        "path": "mods/" + filename,
-        "hashes": {"sha1": s1, "sha512": s512},
-        "env": {"client": "required", "server": "required"},
-        "downloads": [url],
-        "fileSize": os.path.getsize(path),
-    })
-index = {
-    "formatVersion": 1,
-    "game": "minecraft",
-    "versionId": VERSION,
-    "name": "Dynasty 王朝",
-    "summary": "Dynasty 王朝本体 + Curios 饰品槽 + 美化血条 + JEI + 11 个优化/便利模组（含连锁挖矿）",
-    "files": mr_files,
-    "dependencies": {"minecraft": "1.20.1", "forge": "47.4.10"},
-}
-mr_zip = os.path.join(DIST, "dynasty-%s.mrpack" % VERSION)
-with zipfile.ZipFile(mr_zip, "w", zipfile.ZIP_DEFLATED) as z:
-    z.writestr("modrinth.index.json", json.dumps(index, ensure_ascii=False, indent=2))
-    z.writestr("overrides/README.txt", MR_README)
-    z.writestr("overrides/mods/" + OWN_JAR, open(OURS, "rb").read())
-    add_config_to(z)
-print("Modrinth 包:", mr_zip, os.path.getsize(mr_zip), "bytes")
+if args.platform in ('both', 'modrinth'):
+    mr_files, manual, embedded = prepare_release(MR_FILES, MODS)
+    index = {
+        "formatVersion": 1, "game": "minecraft", "versionId": VERSION,
+        "name": "Dynasty 王朝",
+        "summary": "中国古代/神话 RPG；本体与任务配置保留。完整任务功能需按随包说明补装 FTB 依赖。",
+        "files": mr_files,
+        "dependencies": {"minecraft": "1.20.1", "forge": "47.4.10"},
+    }
+    mr_zip = os.path.join(DIST, "dynasty-%s.mrpack" % VERSION)
+    temporary = mr_zip + '.pending'
+    guide = manual_guide(manual)
+    try:
+        with zipfile.ZipFile(temporary, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("modrinth.index.json", json.dumps(index, ensure_ascii=False, indent=2))
+            z.writestr("overrides/README.txt", guide)
+            z.writestr("overrides/DYNASTY-INSTALL-FIRST.txt", guide)
+            z.writestr("overrides/dynasty-manual-dependencies.json", json.dumps(manual, ensure_ascii=False, indent=2))
+            z.write(OURS, "overrides/mods/" + OWN_JAR)
+            for record in embedded:
+                z.write(os.path.join(MODS, record['filename']), "overrides/mods/" + record['filename'])
+                z.write(os.path.join(ROOT, "tools", "art", record['license_file']),
+                        "overrides/" + record['license_file'])
+            add_config_to(z)
+        report = check_pack(temporary, MODS)
+        if report['errors'] or report['warnings']:
+            raise ValueError("Modrinth 发布校验失败: " + json.dumps(report, ensure_ascii=False))
+        os.replace(temporary, mr_zip)
+    finally:
+        if os.path.isfile(temporary):
+            os.unlink(temporary)
+    outputs.append(mr_zip)
+    print("Modrinth 包:", mr_zip, os.path.getsize(mr_zip), "bytes")
+    print("官方哈希核验:", len(mr_files), "文件；合法内嵌:", len(embedded), "；需官方补装:", len(manual))
 
 # 目录列表打印
-for name in (cf_zip, mr_zip):
+for name in outputs:
     with zipfile.ZipFile(name) as z:
-        print(" -", os.path.basename(name), "包含:", z.namelist())
+        print(" -", os.path.basename(name), "包含", len(z.namelist()), "项")

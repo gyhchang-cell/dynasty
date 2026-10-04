@@ -1,0 +1,54 @@
+PHASE 2 / PHASE 3 — 镇渊帝君
+
+范围：只新增出场流程与原创骨骼模型、动画及配套音画；保留原有战斗招式、
+祭坛、维度和奖励系统。不实现 PHASE 4 或后续阶段，不修改玩家建筑存档。
+采用 Ponytail full：复用现有 SavedData、实体注册和恢复流程，不另建并行系统。
+
+实现：14 秒服务端时钟，封印 0–3 秒、凝聚 3–7 秒、苏醒与咆哮 7–14 秒。
+手爪先显现，之后手臂、肩、胸、头、腿；包含核心心跳、吸入粒子、抬头、
+眼睛发亮、名字与血条、低频音效、咆哮冲击及轻微无伤击退。
+出场完成前禁止 AI、攻击、受伤和推动。暂停时关闭 AI、血条和出场推进。
+服务端持久化时钟；重进、撤离后继续，不重复扣祭品或重新播放已完成片段。
+队友可用 join 进入同一场战斗，共用 Boss，不复制奖励。
+
+模型：GeckoLib 4.8.4（Forge 1.20.1），87 骨骼、122 个立方体部件，
+约 5.4 格高。非 HumanoidModel；原创头、下颌、角、胸腹、肩甲、手腕、
+三指爪、腿、脚趾和背部结构。独立骨链支持出场、呼吸、行走及原有近战动作。
+核心与眼睛全亮；战斗音乐和苏醒低频音效为程序合成，不使用第三方录音。
+
+安装测试：退出游戏，备份后在测试实例 mods 中替换同名 Dynasty JAR，
+并加入更新目录内的 geckolib-forge-1.20.1-4.8.4.jar。
+多人客户端、服务端都需要两个 JAR。不要同时保留多个 Dynasty/GeckoLib 版本。
+本次未自动同步你正在玩的实例，也没有修改任何存档。
+
+在测试世界空地执行：
+/dynasty_ritual place
+/give @s dynasty:qinglong_scale 2
+/give @s dynasty:baihu_fang 2
+/give @s dynasty:zhuque_feather 2
+/give @s dynasty:xuanwu_shell 2
+/give @s dynasty:tianming_jade 2
+对应四柱右键献祭；四象演出结束后在中央献天命玉。
+传送进场后观察完整 14 秒出场，确认结束前不攻击、不受伤，结束后才战斗。
+第二个玩家执行 /dynasty_ritual join 第一位玩家名字，检查同一 Boss 和同步进度。
+中途退出重进；或 /dynasty_ritual escape 后 /dynasty_ritual resume，
+检查时钟和血量保留、没有重复 Boss。胜利后检查仍为一次性奖励。
+
+验证：runGameTestServer 的 111 项必需测试；真实客户端 GPU 的 68 张
+多角度分阶段渲染；离线 Gradle build。自动化不能替代实际多人试玩和美术验收。
+日志：build/phase-two-three-validation.log、build/phase-two-three-render.log。
+最终复核结果：独立 build 成功，客户端 68 帧渲染通过。
+全量测试最近一次为 110/111：fullworkshopplacement 的刷怪笼出怪断言失败；
+此前一次为弓箭 homingKeepsItsTargetInsteadOfZigzagging 断言失败。
+这些不属于本阶段修改范围，未通过改断言掩盖；本阶段相关测试均通过。
+更早一次全量 111/111 通过，但不能据此声称最终全量稳定通过。
+多人真实联机、实际音效与美术效果仍需游戏内验收。
+无必须由用户补充的资源。若需要真人台词，可后续提供授权配音替换合成低频声。
+
+材质来源：本任务 imagegen 原创四象限黑铁/古金/暗红/琥珀材质图集。
+原始输出：/Users/a15356015027/.codex/generated_images/01a0b3cd-a8f4-7620-8174-d631c852f383/exec-c559c3b1-f4f3-491b-99e6-bf71230939da.png
+项目输出：src/main/resources/assets/dynasty/textures/entity/zhenyuan_sovereign.png
+Prompt: Original Minecraft boss UV material atlas, exact 2x2 grid without margins:
+charcoal ancient iron; muted gold squared spiral engraving; dark crimson scales;
+amber crystal. Flat pixel materials, limited palette, hard edges, no photographic
+noise, no 3D rendering, no recognizable franchise assets.

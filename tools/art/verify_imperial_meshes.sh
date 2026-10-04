@@ -8,6 +8,7 @@ verify_classpath="build/classes/java/main:$(paste -sd: build/classpath/runGameTe
 mkdir -p "$verify_output"
 javac -proc:none -cp "$verify_classpath" -d "$verify_output" \
   src/main/java/com/dynasty/HouyiAvatarShape.java \
+  src/main/java/com/dynasty/HouyiArcherSculpture.java \
   src/main/java/com/dynasty/GuanYuSculptor.java \
   src/main/java/com/dynasty/GuanYuAvatarShape.java \
   src/main/java/com/dynasty/client/ImperialMeshNormals.java \

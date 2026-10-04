@@ -120,7 +120,9 @@ final class WorkshopShapes {
         'ember.done':'Fire Resistance for 2 minutes.'}}
     for lang,entries in translations.items():
         p=ASSET/'lang'/f'{lang}.json'; data=json.loads(p.read_text())
-        data.update({'workshop.dynasty.'+k:v for k,v in entries.items()})
+        # Legacy transaction descriptions are deliberately not regenerated.
+        for key in list(data):
+            if key.startswith('workshop.dynasty.') and key != 'workshop.dynasty.next': del data[key]
         for _,id,zh,en,_,_ in WORKSHOPS:
             data[f'block.dynasty.{id}']=zh if lang=='zh_cn' else en
         write(p,data)

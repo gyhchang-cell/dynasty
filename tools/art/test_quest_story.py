@@ -47,7 +47,7 @@ class QuestStoryTest(unittest.TestCase):
 
     def test_small_main_chapters_and_no_catalog_gate(self):
         self.assertEqual(8, sum(c["main"] for c in self.book))
-        self.assertEqual([18,21,16,13,12,11,12,10],[len(c['quests']) for c in self.book if c['main']])
+        self.assertEqual([18,23,19,13,12,11,12,11],[len(c['quests']) for c in self.book if c['main']])
         self.assertEqual(32,sum(q['role']=='chapter_branch' for c in self.book for q in c['quests']))
         self.assertEqual(2,sum(q.get('target') in ('dynasty:tiangong_citadel','dynasty:tiangong_mining_estate') for c in self.book for q in c['quests']))
         self.assertTrue(all(not q["deps"] for c in self.book if not c["main"] for q in c["quests"] if q["role"]!="build"))
@@ -205,7 +205,7 @@ class QuestStoryTest(unittest.TestCase):
         self.assertTrue(all(not q["deps"] and q["rewards"]=="[]" for q in home["quests"]))
         self.assertEqual(1,len(home["quests"]),"Navigation cards must not add eight fake completion tasks")
         self.assertEqual(8,sum(bool(i.get("click")) for i in home["images"]))
-        self.assertEqual(69,len(self.main))
+        self.assertEqual(75,len(self.main))
         self.assertEqual(9,len([c for c in self.book if c["group"]==4]))
 
     def test_layout_includes_links_and_has_no_overlap(self):

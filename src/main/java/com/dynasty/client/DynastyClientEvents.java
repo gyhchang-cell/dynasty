@@ -209,18 +209,18 @@ public class DynastyClientEvents {
         event.registerEntityRenderer(DynastyEntities.ASSASSIN.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, ASSASSIN_LAYER, TEX_ASSASSIN, 0.5F));
         event.registerEntityRenderer(DynastyEntities.ARCHER.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, ARCHER_LAYER, TEX_ARCHER, 0.5F));
+                ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.ARCHER));
         event.registerEntityRenderer(DynastyEntities.ROYAL_GUARD.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, ROYAL_GUARD_LAYER, TEX_ROYAL_GUARD, 0.5F));
+                ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.GUARD));
         event.registerEntityRenderer(DynastyEntities.REBEL_SOLDIER.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, REBEL_SOLDIER_LAYER, TEX_REBEL_SOLDIER, 0.5F));
+                ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.REBEL));
         event.registerEntityRenderer(DynastyEntities.NIAN_BEAST.get(),
                 ctx -> new DynastyDetailedBeastRenderer<>(ctx, NIAN_BEAST_LAYER, TEX_NIAN_BEAST, 0.9F,
                         DetailedBeastModel.Kind.NIAN));
         event.registerEntityRenderer(DynastyEntities.DRAGON_EMPEROR.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, DRAGON_EMPEROR_LAYER, TEX_DRAGON_EMPEROR, 0.9F,1));
         event.registerEntityRenderer(DynastyEntities.REBEL_GENERAL.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, REBEL_GENERAL_LAYER, TEX_REBEL_GENERAL, 0.7F));
+                ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.GENERAL));
         event.registerEntityRenderer(DynastyEntities.EUNUCH_MASTERMIND.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, EUNUCH_MASTERMIND_LAYER, TEX_EUNUCH_MASTERMIND, 0.7F));
         event.registerEntityRenderer(DynastyEntities.QILIN.get(),

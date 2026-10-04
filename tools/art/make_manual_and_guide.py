@@ -22,8 +22,8 @@ README = """Dynasty 王朝 · 手动安装包 %s
 模组清单（%d 个）：
 %s
 
-说明：除 dynasty 本体外，其余都是优化 / 信息 / 操作 / 生存便利类模组，
-      不改玩法、不加数值；不想要哪个直接删掉对应 jar 也不会崩。
+说明：本包同时包含玩法扩展、界面与优化模组，以及它们的依赖库。
+      不要随意删除依赖；调整模组后应重新运行依赖检查。
 连锁采掘由 FTB Ultimine 提供；在按键设置中搜索 Ultimine 查看和更改连锁按键。
 """ % (VERSION, MOD_COUNT, MOD_COUNT, "\n".join("  " + n for n in MOD_NAMES))
 
@@ -68,7 +68,7 @@ GUIDE = """# 上传整合包指南（照做即可）
 4. 同样，若审核要求本体也发布到 Modrinth，告诉我，我改成 index 引用。
 
 ## 自测（上传前先验证能不能装）
-* 把 `dist/dynasty-%s-manual.zip` 解压，把 `mods/` 里 16 个 jar 丢进你自己的实例 → 能进游戏就说明包没问题。
+* 把 `dist/dynasty-%s-manual.zip` 解压，把 `mods/` 中随包附带的 jar 和 `config/` 一起装入独立测试实例；进入测试世界验证，不覆盖正在编辑的建筑存档。
 * 或直接双击整合包 zip 用 Prism/HMCL"从压缩包导入"试一次。
 """ % (VERSION, VERSION, VERSION, VERSION, VERSION, VERSION, VERSION, VERSION)
 

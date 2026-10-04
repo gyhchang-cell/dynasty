@@ -1,0 +1,231 @@
+cod1 四模板剩余视觉硬要求：下一轮实施方案
+日期：2026-10-02
+状态：DESIGN ONLY。生产资源与 Java 冻结中；本文未应用任何实现补丁。
+
+一、边界与原文依据
+
+原文 #5：法袍袖口内外四段布料摆动骨骼；法杖顶端布幡挂载物理惯性链。
+原文 #4：肩甲上下滑轨；大腿双层板甲片跟随。
+原文 #15：四肢交替攀爬；树干/陡壁垂直飞奔；前肢肘向前弯、后腿反关节。
+本轮已冻结的插刀/空袍双瓣面具/四肢蜷缩死亡不是本方案的待实现替代品。
+不改注册、技能时长/关键帧、服务端伤害、主轮廓比例、PNG 或原有旧角色资产。
+解除冻结后仍须单独编译与实机验证；当前 20 阶段证据不能证明未来实现已通过。
+
+坐标单位：geo 文件每 16 单位 = 1 block；作者 +Y 向上、-Z 向前。
+以下坐标均来自当前 geo，不再乘祭酒的 0.815 高度缩放，避免重复缩放。
+left 作者 X 为正，right 为负。渲染坐标 X 被镜像，但 GeoBone.positionX 不镜像。
+
+二、已核对的刀手 GeoBone 存储约定（不需要修动画）
+
+本地依赖：geckolib-forge-1.20.1 4.8.4_mapped_official_1.20.1.jar。
+javap -c -p 确认：
+  GeoBone.setPosX(float): 参数直接写 positionX 字段。
+  GeoBone.getPosX(): 直接读 positionX 字段，无取负。
+  RenderUtils.translateMatrixToBone: translate(-getPosX()/16, getPosY()/16, getPosZ()/16)。
+  RenderUtils.rotateMatrixAroundBone: 依序向 PoseStack 施加 Z、Y、X 旋转。
+故 40 tick 之后刀骨的正确存储值为：
+  position = [+14.081163, +1.179010, -11.476758] model units。
+  rotation ≈ [+0.018052028, -0.4028871, +1.1855202] rad（含 Z 43° bind rotation）。
+  该局部平移进入渲染矩阵后 X = -0.8800726875 block，不是 GeoBone.getPosX 的值。
+实际客户端 deathdiag1 输出与这些数值一致；FAILED.png 可见刀身竖直触地。
+QA 修正 X 符号即可，不调整生产动画、不放宽角度/位置容差。
+验证分层：原始 GeoBone 数值断言与世界刀尖接触断言分开；不能混用两种空间。
+
+三、祭酒：四段袖口与真实惯性符幡
+
+A. 四段袖口最小拆分（每侧四个受控布段；不是增加四块装饰方块）
+
+保留主臂链与已冻结的 body_* 子骨。每侧使用两个二段布料链，内层随上臂、
+外层随小臂，合计四段；防止一条衣料父链绕过肘关节而脱离手臂。
+现有袖尾继续作为外层末段的薄片延伸，不计作四段之一。
+
+right / left 仅将以下 X 的 -4 改为 +4：
+  right_upper_arm
+    right_sleeve_inner_spring  pivot [-4,16.626,0]  新、空的程序偏移骨
+      right_sleeve_inner       pivot [-4,16.626,0]  保留，内层近端
+        right_sleeve_inner_tip pivot [-4,14.018,0]  新，内层远端
+  right_forearm
+    right_sleeve_outer_spring  pivot [-4,12.388,0]  新、空的程序偏移骨
+      right_sleeve_outer       pivot [-4,12.388,0]  保留，外层近端
+        right_sleeve_outer_tip pivot [-4,9.3725,0] 新，外层远端
+          right_sleeve_tail    pivot [-4,6.52,1]   保留、重挂父节点
+
+几何分配保持原 cube 的 origin/size/uv/pivot/rotation：
+  sleeve_inner 原第1块（原Y17.2–20.4，已缩放后14.018–16.626）留近端；
+  原第2块（原Y14–17.4）移到 inner_tip。共有体积和外轮廓不变。
+  sleeve_outer 原上方块（原Y11.5–15.4）留近端；
+  下方宽块（原Y8–11.7）与金边（原Y8–8.75）移到 outer_tip。
+  sleeve_tail 原 cube 不改。所有新增偏移骨在 rest/death 下为 identity。
+每侧新增 4 骨，两侧合计 8 骨；原 109 cubes 不增加、不删减。
+
+程序运动只写四个专用偏移位置：inner_spring、inner_tip、outer_spring、outer_tip。
+不直接累加已有 sleeve_outer 的动画 rotation，避免周期 clip 与惯性叠加漂移。
+更新接口拟放 TemplateMobModel.setCustomAnimations；具体调用顺序先以本地
+GeckoLib 源码/字节码核实，必须位于本帧主动画采样后、骨骼渲染前。
+每次渲染先把专用偏移骨恢复初始 snapshot，再应用此实体的偏移，避免共享
+GeoModel 的不同实体互相污染。状态只保存数值，不保存共享 GeoBone 引用。
+
+物理输入和初值：
+  每实体/维度独立状态；固定 dt=0.05s，每客户端 tick 最多推进一次。
+  输入为实体局部速度/加速度、bodyYaw 角速度，以及上臂/前臂锚点运动。
+  施法时即使实体未平移，手臂锚点加速度仍应驱动袖摆。
+  旋转目标由加速度反方向和重力投影产生；不是仅用 sin(tickCount) 冒充惯性。
+  初调：近段 k=80 s^-2、damping=14 s^-1，远段 k=55、damping=11。
+  近段 pitch/roll 限幅 10°，远段 18°；响应按两链各自父段传递。
+  采用固定步半隐式积分，超时最多补4步；暂停不积时、传送/换维度重置。
+  远段延迟/超调由状态积分产生，不用固定相位动画代替。
+  死亡一开始程序偏移归零，既有空袍死亡 clip 全权接管，不能又把袖子拉回手臂。
+
+B. 三条符幡沿现有两段链做约束惯性，避免无必要新增几何
+
+原始锚点（X分别 -10.5 / -7.2 / -3.9）：
+  staff -> talisman_i:     pivot [X,24.45,-0.8]。
+  talisman_0/2 -> tip:     pivot [X,19.234,-1]。
+  talisman_1 -> tip:       pivot [X,20.049,-1]。
+  0/2 自由端参考点 [X,15.811,-1]；1 自由端 [X,16.626,-1]。
+  链段长度由上述 rest world transform 实算，不用未缩放数值硬写长度。
+
+每条链为三粒点：固定于杖顶的 p0 + 中铰点 p1 + 自由端 p2。
+每条新增一个 talisman_spring_i 空 wrapper，位于 staff 与 talisman_i 之间；
+原 talisman_i 的施法关键帧保持原样，tip 从 identity snapshot 加程序偏移。
+三条合计新增 3 骨；两段可见纸片和所有朱砂小 cube 原样复用。
+计算方式：固定 tick Verlet/阻尼积分，重力沿世界-Y，父杖锚点真实位移驱动。
+每tick做4次长度约束投影，根固定；段长误差上限0.02 model units。
+将约束方向变换回当前父骨空间后求二维摆角；X/Z 上限各25°，扭转≤10°。
+实体移动、停止、转向与挥杖都须有可观察的滞后；静止后振幅逐步衰减。
+活动施法期间可把额外惯性权重降至0.35，保留原符幡发力关键帧；死亡禁用。
+
+祭酒验证断言：
+  1. 四受控袖段/侧存在、父链合法；原所有 cubes 在rest的世界顶点一致，误差1e-5。
+  2. 同一轨迹以30/60/144 FPS渲染，整tick袖/符状态误差≤0.5°；重复同tick不推进状态。
+  3. 加速→急停后，tip 角速度未瞬间归零；保持静止40tick后偏角≤1°。
+  4. 顺/逆90°转身后惯性横摆符号相反；靠 sin(gameTime) 的实现不通过。
+  5. 袖近/远段在运动中有不同姿态；符tip与根段有延迟，不能整条刚体摆动。
+  6. 死亡40tick原 body_* scale=.001、面具分离和袍片floor接触断言继续通过。
+  7. 两祭酒同时不同方向运动时无状态串用；实体卸载/换维度清理缓存。
+
+四、盾士：肩甲滑轨与双层随腿板甲
+
+A. 肩甲滑轨
+
+现有 shoulder_plate 有3枚重叠甲片，但都只继承肩转，没有独立上下位移。
+插入 identity wrapper，保留 plate 原名、原 cubes 与 pivot：
+  right_shoulder -> right_shoulder_rail [-6.5,25,0] -> right_shoulder_plate [-6.5,25,0]
+  left_shoulder  -> left_shoulder_rail  [+6.5,25,0] -> left_shoulder_plate  [+6.5,25,0]
+只修改 rail 的本地 positionY，不给盾本身增加位移，不改变服务端防御方向。
+建议行程 0–1.2 model units（0–0.075 block），根据真实肩角/步态冲击驱动：
+  moving ? clamp(0.85*abs(sin(shoulderX))+0.35*footfallPulse,0,1.2) : 0。
+  施法/攻击肩角也驱动行程；80ms临界阻尼回位，停止后5tick内回到0.05单位以内。
+使用专用 rail wrapper，避免在共享骨中不断累积 positionY。
+死亡开始置 rail=identity，既有跪盾 clip 保持权威，盾仍直立。
+
+B. 双层大腿板甲
+
+当前 hip_plate 父为pelvis，原 pivot 为 [±3.5,13,0]；thigh pivot [±3,12.6,0]。
+改为 thigh 的子骨但保留 absolute pivot，rest不移动任何物件：
+  right_thigh -> right_hip_plate [-3.5,13,0]
+                    -> right_hip_plate_lower [-3.5,10.4,0]
+  left_thigh  -> left_hip_plate  [+3.5,13,0]
+                    -> left_hip_plate_lower  [+3.5,10.4,0]
+原高6单位的板片分为上片 y=9.8..13、下片 y=7..10.4，搭接0.6单位。
+下片沿Z前移0.12单位，形成可见双层边缘；这是一项明确对应原文的几何小改，
+不能将它宣传为逐顶点完全不变。宽4.2单位及外侧±7°斜角保持。
+原四条金属边条按所属Y分配给上下片；仍取当前atlas的同类小区域，不画PNG。
+主片随thigh原有步态旋转；下片加0.2倍膝角的被动摆量，最大8°，不缩放整条腿。
+死亡时新父链会影响板片位置，必须重看跪盾正/侧/45°，不能沿用旧死亡图。
+
+盾士验证断言：
+  1. 给肩角±40°，railY明显非零且0≤Y≤1.2；其余X/Z保持0。
+  2. 同样root、不同左右腿相位时，两侧甲片world rotation分别跟随各自thigh。
+  3. 上下板片独立，有持续搭接，不是同一厚块画两条横线；动作周期不穿到另一腿。
+  4. shield正面尺寸仍28.8×14.4单位，shield/death末帧世界姿态保持原基线。
+  5. shield attack contact16、mace后续段、跪盾10秒寿命均不变。
+
+五、山魈：由真实壁面法向驱动的贴壁四足姿态与爪接触
+
+当前已确认：服务端同步CLIMBING布尔并设置向上速度；客户端仅选择run。
+没有壁面法向、视觉root贴壁变换或爪端接触约束。单写固定-65° pitch不能补齐。
+
+A. 窄小而明确的服务端状态扩展（解除冻结后需主代理协调，不可客户端猜伤害）
+
+新增可跟踪同步的 climb face/anchor 状态，而非每tick广播粒子或整份NBT：
+  climbFace: BYTE，0无效，1..4为N/S/E/W实际BlockHitResult侧面。
+  climbSurface: BlockPos，可选接触点局部坐标量化；仅入墙/换面/脱离时dirty同步。
+  climbEpoch: long，开始贴壁的server gameTime，用于观察者一致的步态相位。
+体积仅接近自身AABB扩张0.25的墙面；每4tick或碰撞方向变化时重采样。
+分别从胸与前爪高度向速度/目标平面方向短raycast；ClipContext.Block.COLLIDER，
+Fluid.NONE；拒绝Y轴面、空碰撞shape、超出可触及范围的命中。
+优先保留上一有效壁面，只有新面明显更近或旧面失效才换，避免墙角左右抖动。
+水平碰撞本身不是法向；不能用玩家方向直接代替wall normal。
+死亡、跳扑脱离、失去可碰撞壁面、换维度时清掉face/anchor；当前死亡onClimbable
+保护必须保留。客户端只消费该状态画姿态，不自行启动攀爬/投石/伤害。
+
+B. 根姿态的可验证坐标构造
+
+N = 实际侧面向外法向（由同步Direction得出）；F = 世界向上切向(0,1,0)。
+R = normalize(F × N)。目标墙面局部坐标基为 [R, N, -F]：
+  模型 +X -> R，+Y背部外侧 -> N，-Z面朝前 -> F（沿墙向上）。
+先抵消renderer已有entity/bodyYaw变换：Qlocal = inverse(Qentity) * Qwall。
+不能同时又改entityYaw再重复乘一次墙面yaw。四个朝向都用同一个构造验证。
+以实体pos+(0,0.5,0)投影到真实壁面，得到视觉model origin；加N*0.02block安全间隙。
+实体服务端位置/碰撞箱不动。视觉平移限定≤0.75block，否则放弃接触并平滑退出。
+从地面到墙面用6tick shortest-path quaternion slerp；转角先释放摆动腿再换面。
+若视图根pitch数值正确但爪伸进墙，仍不算通过，必须验证世界接触点。
+
+C. 爪接触点与有限IK
+
+四条接触链均复用当前骨架，不创建四个实体：
+  前：shoulder -> upper_arm -> elbow -> forearm -> wrist -> hand -> claw_contact(new empty)
+  后：thigh -> knee -> shin -> ankle -> foot -> foot_contact(new empty)
+前爪anchor候选（作者坐标）：[±5.4,0.45,-11.55]，位于现有前爪底面前缘。
+后爪anchor候选：[±2.8,-0.82,6.05]，位于现有后脚底面前缘；需要用rest FK
+核对它在实际cube表面，不能忽略大腿25°/小腿-32°初始转角。
+前主要joint pivot：shoulder [±5.4,12.8,-5.6]、elbow [±5.4,6.8,-5.8]、
+wrist [±5.4,2.4,-6.7]。后：thigh [±2.8,8.1,6.8]、knee [±2.8,4.5,7.7]、
+ankle [±2.8,0.9,8]。长度由真实FK求，禁止只用两段Y差代替。
+
+相位按climbEpoch+server clock取12tick周期，对角组RF+LH与LF+RH相差π。
+每组半周期stance、半周期swing；stance开始把爪投影到碰撞shape并锁世界落点，
+直到本组抬爪才解除。不能每帧把落点随身体上移，否则视觉仍是四脚滑墙。
+swing目标沿F前进一个步幅，沿N抬离墙0.06block；落足重新raycast真实shape。
+每可见实体每2tick最多4条短ray（长度≤0.7block）；远于32block停细IK，仅根姿态。
+ray未命中则该爪不标接触，不能把墙面的无限平面当作真实树干接触。
+用有限两关节IK/2轮CCD求肩-肘/髋-膝修正，手腕/脚踝对齐接触面法向。
+选前肘向前、后膝反关节的固定弯曲侧；目标超出reach就释放接触，不能拉长肢体。
+程序修正角度受限，模型骨骼scale始终1；不以客户端IK位置反推任何伤害。
+
+动作交互：
+  locomotion时启用四足贴壁。
+  跳扑前摇在0–8tick释放接触/回到起跳朝向；launch14/impact24不改。
+  投石若仍在墙面：保留根贴壁和其余三爪支撑，右臂不受IK覆盖，保留rock18。
+  hurt可短时释放最近摆动爪；DEATH立即完全交还已冻结死亡clip，身体正常坠落。
+这些分支必须补墙上施法/离墙的实机测试；不能只测平地skills后推断通过。
+
+山魈验证断言（纯计算 + GameTest状态 + 两客户端骨骼/截图三层）
+  1. 四朝向满方墙：dot(modelBackUpWorld,N)>0.98，dot(modelForwardWorld,UP)>0.98。
+  2. 稳定stance爪到实际碰撞面的距离≤0.04block，法向点积>0.9。
+  3. 同一stance期间爪世界滑移≤0.06block；不以root坐标变化替代接触成功。
+  4. swing爪确有0.04–0.10block离壁间隙；对角两组相位差π±0.1rad。
+  5. 转90°外角、单格树干、墙顶部、墙突然移除、突出半砖：不贴空气、不拉长腿、
+     接触失败可见释放；root角变化每tick≤25°，没有一帧180°翻折。
+  6. wall死亡下一tick不再onClimbable；既有蜷缩/褪色过程继续，尸体不悬墙。
+  7. 两观察者相同epoch/face，模型根方向误差≤2°；帧率变化不改变步态相位。
+  8. pounce14/24、rock18原服务端事件及原clip关键帧全部不变。
+
+六、执行顺序、缓存预算与证据
+
+解除冻结后建议依次：祭酒 -> 盾士 -> 山魈，三小步各自编译/资源检查/复核再下一步。
+山魈需主代理明确允许同步状态字段变化，不作为纯资源修改偷偷混入。
+先做可重复的静态FK/坐标转换测试，再开客户端，避免把GeoBone存储与渲染空间混淆。
+每实体状态以dimension+UUID为key，限制活跃64；卸载、维度变化、logout统一清理。
+骨骼数量预计：祭酒79+8+3=90；盾士39+2+2=43；山魈36+4=40。
+程序骨只作用于可见/近处；不能每tick遍历整世界找模型，也不新增每tick网络VFX。
+
+必须保留的回归证据：
+  - 三个人形主关节链、四模型rest灰模/剪影/前侧45°图。
+  - 原技能26个非死亡clip的数值/时序对比；新增程序层不覆盖攻击主骨。
+  - 六死亡末态断言与盾尸10秒掩体、刀尖/面具/空袍地面接触。
+  - 祭酒加速急停、相反转向、挥杖、双实体隔离的逐tick状态样本。
+  - 盾士滑轨/腿甲左右步态对比及死亡侧视图。
+  - 四朝向墙、树干、转角、失墙、顶沿、墙上起跳/投石/死亡的实际双方帧。
+新截图及日志使用新run；失败目录不删除；只有真实运行过的改动才写实机通过。

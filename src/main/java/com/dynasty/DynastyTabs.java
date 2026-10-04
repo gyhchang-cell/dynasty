@@ -61,6 +61,9 @@ public class DynastyTabs {
                 output.accept(DynastyItems.DRAGON_COIN.get());
 
                 // 材料 / materials
+                output.accept(com.dynasty.ritual.ZhenyuanRitualContent.TIANMING_JADE.get());
+                com.dynasty.workshop.DynastyTreasures.ITEMS.getEntries().forEach(item->output.accept(item.get()));
+                com.dynasty.blueprint.BlueprintEntities.ITEMS.getEntries().forEach(item->output.accept(item.get()));
                 output.accept(DynastyItems.BRONZE_INGOT.get());
                 output.accept(DynastyItems.SILVER_INGOT.get());
                 output.accept(DynastyItems.JADE.get());

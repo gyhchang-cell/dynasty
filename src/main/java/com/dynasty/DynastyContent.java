@@ -13,8 +13,12 @@ public final class DynastyContent {
     public static void register(IEventBus modEventBus) {
         DynastyBlocks.BLOCKS.register(modEventBus);
         DynastyBlocks.BLOCK_ITEMS.register(modEventBus);
+        com.dynasty.workshop.WorkshopBlockEntity.TYPES.register(modEventBus);
+        com.dynasty.workshop.DynastyTreasures.ITEMS.register(modEventBus);
         com.dynasty.puzzle.PuzzleBlocks.BLOCKS.register(modEventBus);
         com.dynasty.puzzle.PuzzleBlocks.ITEMS.register(modEventBus);
+        com.dynasty.ritual.ZhenyuanRitualContent.register(modEventBus);
+        com.dynasty.ritual.ZhenyuanBosses.ENTITIES.register(modEventBus);
         DynastyItems.ITEMS.register(modEventBus);
         com.dynasty.DynastyBasicFoods.ITEMS.register(modEventBus);
         com.dynasty.DynastyFineItems.ITEMS.register(modEventBus);
@@ -26,6 +30,8 @@ public final class DynastyContent {
         DynastyEffects.EFFECTS.register(modEventBus);
         DynastyTabs.TABS.register(modEventBus);
         com.dynasty.entity.DynastyEntities.ENTITIES.register(modEventBus);
+        com.dynasty.blueprint.BlueprintEntities.register(modEventBus);
+        modEventBus.addListener(com.dynasty.blueprint.BlueprintSpawns::register);
         com.dynasty.worldgen.DynastyFeatures.FEATURES.register(modEventBus);
         DynastyEnchantments.ENCHANTMENTS.register(modEventBus);
         DynastyPotions.POTIONS.register(modEventBus);
@@ -33,6 +39,9 @@ public final class DynastyContent {
         com.dynasty.structure.DynastyStructures.PIECE_TYPES.register(modEventBus);
         com.dynasty.structure.megabuild.MegabuildStructures.STRUCTURE_TYPES.register(modEventBus);
         com.dynasty.structure.megabuild.MegabuildStructures.PIECE_TYPES.register(modEventBus);
+        com.dynasty.structure.megabuild.NaturalSculptures.TYPES.register(modEventBus);
+        com.dynasty.structure.megabuild.NaturalSculptures.PIECES.register(modEventBus);
+        com.dynasty.structure.megabuild.NaturalSculptures.PLACEMENTS.register(modEventBus);
         com.dynasty.network.DynastyNetwork.register();
     }
 }

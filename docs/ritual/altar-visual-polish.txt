@@ -1,0 +1,57 @@
+祭坛阶段与照明优化 / 2026-10-01
+
+范围：沿用现有四个贡品柱＋中央核心（并非只保留三个祭坛）。
+不修改 Boss 战、技能、死亡、奖励或 PHASE 4/5。不变更祭品 ID、归位判定、
+任务流程、同步字段或存档格式。Ponytail full：直接复用原渲染器和建筑完成步骤。
+
+中央金球基础直径（Minecraft 格，轻微呼吸/特殊演出脉冲不计）：
+0/4：3.0；1/4：4.6；2/4：6.2；3/4：7.1；4/4：8.0。
+对应最终尺寸的 37.5%、57.5%、77.5%、88.75%、100%。
+原初始直径 1.65，现为 3.0。使用原有服务器 mask/变化时间插值，32 tick 过渡。
+球心升到供台上方 5.5 格，避免大球穿地；原提示文字移至球下方，内容不变。
+轨道与主题色光点范围随半径增长；每个已激活主题最多 14 个核心环绕光点，
+归位新增约 1.6 秒主题色扩散。原青龙、白虎、朱雀、玄武独立动画不删除。
+各贡品透明容器半径从 .42 平滑长到 .67，低矮实体碰撞箱不变。
+最终献祭压缩/消失仍按原时间轴运行，只调整尺寸体系。
+客户端渲染距离提高到 128 格；服务器不新增逐 tick 粒子广播。
+
+永久照明：ZhenyuanSceneLighting.mouth，由 SculptureWorkshop.Job.finish
+在新龙头完成并成功绑定祭坛后调用，使用普通持久化 Light Block。
+优先各供台附近，然后中心周围半径 29 格内以约 9 格间距采样。
+寻找真实可行走地面，只在脚位上方 3 格空气添加光源；相邻灯至少 7 格。
+中心/供台亮度 11，外围路线/转角亮度 10。只补空气，不改原材料或祭坛归属。
+完整龙头实际添加 33 个。再次调用保持同一布局，保护已有方块。
+Boss 活动场地已有灯笼之间新增 49 个亮度 9 的隐形补光点，间距 12 格；
+入口路线、中心活动区及四周活动区域补光，不改原场地材料或战斗逻辑。
+光明方块正常游戏不可见；创造模式持光明方块时原版会显示定位标记。
+这些修改用于新生成龙头/新建竞技场，现有玩家存档不自动扫描或改写。
+
+修改文件：
+src/main/java/com/dynasty/client/ZhenyuanNodeRenderer.java
+src/main/java/com/dynasty/ritual/ZhenyuanNodeBlockEntity.java
+src/main/java/com/dynasty/ritual/ZhenyuanSceneLighting.java（新增）
+src/main/java/com/dynasty/ritual/ZhenyuanArena.java（只照明）
+src/main/java/com/dynasty/structure/megabuild/SculptureWorkshop.java
+src/main/java/com/dynasty/ritual/ZhenyuanNodeGameTests.java
+src/main/java/com/dynasty/structure/megabuild/SculptureFullGameTests.java
+tools/ritual/runtime/com/dynasty/client/ZhenyuanRenderQa.java
+docs/ritual/altar-visual-polish.txt
+
+验证：
+真实客户端离屏 GPU 渲染通过，逐阶段同视角核对初始和完整球体。
+完整龙头＋庄园放置测试通过，原体素逐格校验（仅允许源空气新增光明方块），
+光源数量/等级与五个供台、方块实体、供奉站位、返回地面均通过。
+全量回归 113 项中 112 项通过：祭坛、NBT 往返、客户端标签、交互、
+照明密度/重复执行/保护原材料等通过。
+原有 fullworkshopplacement 刷怪笼出怪测试仍失败，未修改该逻辑或断言。
+构建结果见 build/altar-visual-build.log；专项见 build/altar-lighting-full.log。
+
+尚待实际验收：无夜视、正常亮度的龙嘴内完整巡视；不同显示器/光影包下
+暗部是否足够；最终金球从具体玩家路线看是否遮挡；真实多人联机的观感。
+目前不能把离屏渲染等同于这些场景均已实测。既有存档没有自动补光，
+如要在已建龙头补光，应另行明确指定目标，不能重新生成覆盖原建筑。
+
+测试安装：退出游戏，在备份测试实例替换更新目录内 Dynasty JAR；保留
+GeckoLib 4.8.4。新空地使用 /dynasty_build longque_sanctuary instant confirm。
+移除夜视、正常亮度巡视，逐个供奉四象，再检查最终献祭仍正常。
+退出重进检查归位和光明方块保存。多人客户端/服务端都更新同一 JAR。

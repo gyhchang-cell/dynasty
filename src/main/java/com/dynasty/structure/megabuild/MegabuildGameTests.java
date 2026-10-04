@@ -42,6 +42,8 @@ public final class MegabuildGameTests {
             h.assertTrue(level.getBlockState(origin.offset(87,1,7)).getCollisionShape(level,origin.offset(87,1,7)).isEmpty(),"Entry obstructed");
             h.assertTrue(level.getBlockState(origin.offset(48,1,122)).is(net.minecraft.world.level.block.Blocks.ANVIL),"Workshop missing");
             h.assertTrue(level.getBlockState(origin.offset(18,1,33)).getValue(net.minecraft.world.level.block.StairBlock.FACING)==net.minecraft.core.Direction.SOUTH,"Stair mirrored in actual world");
+            var cageChunks=new java.util.HashSet<net.minecraft.world.level.ChunkPos>();
+            for(int[] c:new TiangongCitadel(0).cages){var cp=new net.minecraft.world.level.ChunkPos(origin.offset(c[0],c[1],c[2]));cageChunks.add(cp);level.setChunkForced(cp.x,cp.z,true);}
             h.runAfterDelay(80,()->{
                 var city=new TiangongCitadel(0);
                 for(int[] c:city.cages){
@@ -53,8 +55,8 @@ public final class MegabuildGameTests {
                         h.assertTrue(level.getBrightness(net.minecraft.world.level.LightLayer.SKY,q)==0,"Skylight leaks: "+q);
                     }
                 }
-                var player=net.minecraftforge.common.util.FakePlayerFactory.getMinecraft(level);
-                level.players().add(player);
+                var player=new net.minecraftforge.common.util.FakePlayer(level,new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(),"cage-qa"));
+                player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);level.addNewPlayer(player);
                 var difficulty=level.getDifficulty();
                 try{
                     level.getServer().setDifficulty(net.minecraft.world.Difficulty.NORMAL,true);
@@ -72,6 +74,7 @@ public final class MegabuildGameTests {
                     }
                 }finally{
                     level.players().remove(player);
+                    player.discard();for(var cp:cageChunks)level.setChunkForced(cp.x,cp.z,false);
                     level.getServer().setDifficulty(difficulty,true);
                 }
                 h.succeed();

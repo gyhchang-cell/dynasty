@@ -1,0 +1,99 @@
+cod1 template-model resource review — 2026-10-02
+
+Scope: four new template entities only. Legacy character classes, meshes and bitmaps are untouched.
+
+zuwu_daoshou: 42 bones / 73 cuboids / 7 clips.
+ludun_jiashi: 39 bones / 117 cuboids / 7 clips.
+fufa_jijiu: 79 bones / 109 cuboids / 8 clips.
+shanjing_shanxiao: 36 bones / 53 cuboids / 8 clips.
+Total: 196 bones / 352 cuboids / 30 clips.
+
+All human rigs: root > pelvis > waist > waist_upper > chest > neck > head;
+shoulder > upper_arm > elbow > forearm > wrist > hand;
+thigh > knee > shin > ankle > foot. Equipment and clothing have independent bones.
+The shanxiao is one quadruped rig with separate front-arm and reverse hind-leg chains.
+
+Distinct silhouettes checked in neutral gray and solid black before final colour review:
+wide stepped conical iron hat, asymmetric red shoulder rags, outward-downward ring-pommel dao;
+1.8 by 0.9 block three-leaf bowed tower shield, overlapping armour and eight-sided mace;
+stooped slim ritualist, crown, separate cinnabar mask, widening robe sleeves, beads, talisman staff;
+arched animal torso, massive long forelimbs, short bent hind legs, fangs, backward spines and hook tail.
+
+33 PNG sheets, five views per sheet = 165 recorded views:
+four gray, four black silhouettes, four original-atlas colour sheets, eight action sheets,
+and three ritualist two-piece mask-collapse sheets at death ticks 20, 32 and 40.
+The death-completion pass adds ten further sheets: six gray death sheets (three creatures,
+ticks 20/40) and four additional coloured sword/beast death sheets; the two priest colour
+death sheets are updated in place rather than counted twice.
+Each sheet includes front, left 90 degrees, right 90 degrees, back and 45 degrees.
+Action sheets capture dao ticks 12/22, shield tick 16 and corpse cover tick 40,
+priest attack tick 24 and buff tick 20, shanxiao pounce tick 24 and rock tick 18.
+The WebGL viewer reads shipped geo/animation JSON directly. Its coordinate conversion follows
+GeckoLib 4.8.4 BakedModelFactory: X position mirrored; X/Y rotation negated.
+
+Animation timelines (20 ticks per second; server remains damage authority):
+dao attack/skill: 36 ticks; contact at 12 and 22.
+shield attack/skill: 32 ticks; shield contact at 16, mace follow-through during recovery.
+priest attack: 50 ticks; releases at 24, 28, 32.
+priest buff/skill: 40 ticks; activation pose at 20.
+shanxiao attack/skill: 42 ticks; launch 14, contact 24.
+shanxiao rock: 32 ticks; release 18.
+Idle, walk, run, attack, skill, hurt and held death are present for every rig.
+Shared entity controller seeks action clips using the synchronized server action age.
+
+Textures: unmodified existing Dynasty pixel atlases, mapped through continuous opaque
+2x2, 4x4 and 8x8 native swatches. UV dimensions follow each face's actual dimensions up to
+the selected patch size. Of 2112 cube faces, 1402 use more than one pixel; the remaining
+710 are narrow edges, rivets, claws and similarly small surfaces. The preview now displays
+the actual atlas texture with nearest-neighbour sampling, not one averaged colour per cube.
+Dao + shield use royal_guard.png; priest uses imperial_soldier.png; shanxiao uses nian_beast.png.
+The possession-effect icon is an unchanged copy of internal_injury.png at its native 18x18 size.
+No raster image was generated, resampled or painted for this pass.
+
+Generator validation: unique bone names, parents exist, positive cube sizes, full human joint
+chains, animation bones exist, all numeric channels finite, keyframes within declared durations,
+expected attack contact/launch ticks exist, and all face UVs remain within the image and
+sample only opaque source texels. Validation passes for all four assets.
+
+Limited refinement pass: mask_left and mask_right are independent children of mask.
+They remain joined until death tick 12, then separate, turn and land as two pieces.
+The living silhouette, principal rig proportions, attack timings and all combat code are unchanged.
+The shanxiao retains the original cod1 blue/green face and ordinary fangs; no red-face/gold-fang
+design change was made. No climb-specific root pitch was added in this resource pass.
+
+Death-completion pass (resources only, awaiting the separate actual-client death QA):
+- Dao: the right shoulder, elbow and wrist drive a downward planting motion. After tick 18
+  the independent dao bone compensates for every parent transform, keeping its world blade
+  vertical and its point 0.18 model units into the floor while the body falls to the left.
+  The helmet drops and rolls twice, ending on the floor. These are authored bones, not physics.
+- Priest: 26 identity body_* child bones contain the same original anatomy surface cubes.
+  Their scale reaches 0.001 by tick 24; joint parents and original robe/sleeve pieces remain.
+  The robe, sleeves, necklace, staff and crown independently collapse onto the ground.
+  The two mask halves lie apart in front. No cube or atlas pixel was added or removed.
+- Shanxiao: waist, neck, head, both shoulders/elbows/wrists, thighs/knees/ankles and tail
+  articulate into a curled side-lying body; this no longer consists of just root/chest rotation.
+  Root height follows the lowest posed vertex for floor contact. Fur fading is renderer-owned.
+All 26 non-death clips are exactly equal to the prior frozen baseline. Folding body_* cubes
+back into their identical parents reproduces the entire prior living geometry byte-for-byte
+as parsed JSON. The three other geometries and shield death clip are unchanged.
+
+Reproduce from repository root:
+node tools/blueprint/generate_template_models.mjs
+node docs/blueprint-cod1/models/render-previews.mjs
+node docs/blueprint-cod1/models/render-previews.mjs --textured
+node docs/blueprint-cod1/models/render-previews.mjs --actions
+node docs/blueprint-cod1/models/render-previews.mjs --mask-death
+node docs/blueprint-cod1/models/render-previews.mjs --deaths
+The preview runner accepts BLUEPRINT_THREE_PATH, BLUEPRINT_PLAYWRIGHT_PATH and
+BLUEPRINT_BROWSER_PATH; defaults point to this machine's already installed local dependencies.
+There are no external network downloads.
+
+LIMITS: These are local resource previews, not Minecraft runtime screenshots or multiplayer tests.
+No in-game verification is claimed here. In-game locomotion foot slide, wall contacts, held gear
+under all attack transitions, resource reloads and observer synchronization still require runtime QA.
+Atlas reuse now provides real block-like native colour variation. Its material palette still
+inherits the existing artwork: some narrow bronze trim reads copper-brown and some small
+faces remain uniform. This is not bespoke painted texture art. The empty robe and mask are
+authored visual-only bones, not physically simulated cloth or colliding fragment entities.
+Full locomotion clearance, wall-facing climb pose, inertial cloth/streamer motion and
+particle/fragment timing still require separate actual-client review or further implementation.

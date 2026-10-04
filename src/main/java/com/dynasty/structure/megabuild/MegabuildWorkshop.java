@@ -46,26 +46,6 @@ public final class MegabuildWorkshop {
             }catch(Exception e){failure=e;done=true;source.sendFailure(Component.literal("搭建中止，已放置部分保留："+e.getMessage()));}
         }
     }
-    @SubscribeEvent public static void commands(RegisterCommandsEvent e){
-        var root=Commands.literal("dynasty_build").requires(s->s.hasPermission(2));
-        for(String id:new String[]{"tiangong_citadel","tiangong_mining_estate"}){
-            boolean city=id.equals("tiangong_citadel");
-            root.then(Commands.literal(id).executes(c->{
-                c.getSource().sendSuccess(()->Component.literal("会从当前位置向东、向南覆盖 "+(city?"176×176×56":"96×96×36")+" 区域！请先备份并选择空地。确认后输入 /dynasty_build "+id+" confirm。"),false);return 1;
-            }).then(Commands.literal("confirm").executes(c->start(c.getSource(),city))));
-        }
-        e.getDispatcher().register(root);
-    }
-    private static int start(CommandSourceStack s,boolean city){
-        if(active!=null){s.sendFailure(Component.literal("已有建筑正在搭建，请等待完成。"));return 0;}
-        BlockPos p=BlockPos.containing(s.getPosition());int size=city?176:96,height=city?56:36;
-        if(p.getY()<s.getLevel().getMinBuildHeight()||p.getY()+height>s.getLevel().getMaxBuildHeight()
-            ||!s.getLevel().getWorldBorder().isWithinBounds(p)||!s.getLevel().getWorldBorder().isWithinBounds(p.offset(size-1,0,size-1))){
-            s.sendFailure(Component.literal("超出世界高度或边界，请换一处空地。"));return 0;
-        }
-        active=new Job(s,city,p);
-        s.sendSuccess(()->Component.literal("开始分区搭建，请等待完成提示。无需提前加载整片区域。"),false);return 1;
-    }
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent e){
         if(e.phase==TickEvent.Phase.END&&active!=null){active.step();if(active.done)active=null;}
     }

@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Dynasty cod1 — authored rig review</title><style>
+*{box-sizing:border-box}body{margin:0;background:#e9e7e1;color:#252c2c;font:14px system-ui}header{height:72px;padding:15px 26px;background:#242d2c;color:#f6f2e9}h1{font-size:20px;margin:0 0 4px;font-weight:600}header p{margin:0;opacity:.72;font-size:12px}#views{display:grid;grid-template-columns:repeat(5,300px);width:1500px}figure{margin:0;border-right:1px solid #b4b8b1;background:#e9e7e1}canvas{display:block;width:300px;height:430px}figcaption{padding:11px 18px;border-top:1px solid #c9cec6;font-weight:600;font-size:13px}footer{padding:13px 25px;font-size:12px;line-height:1.6;background:#d8dbd2}code{font-family:ui-monospace,monospace}
+</style></head><body><header><h1 id="title">Model review</h1><p>Original articulated Bedrock geometry · exact exported resource · orthographic views · local WebGL review, not a Minecraft screenshot</p></header><main id="views"></main><footer id="notes"></footer>
+<script type="module">
+import * as THREE from '/__three__/three.module.js';
+import {applyClimbPose} from '/tools/blueprint/climb_ik_math.mjs';
+const params=new URLSearchParams(location.search),id=params.get('id')||'zuwu_daoshou',mode=params.get('mode')||'gray',clip=params.get('clip')||'idle',tick=+(params.get('tick')||0);
+const base='/src/main/resources/assets/dynasty/', geo=(await(await fetch(base+'geo/blueprint/'+id+'.geo.json')).json())['minecraft:geometry'][0], animation=(await(await fetch(base+'animations/blueprint/'+id+'.animation.json')).json()).animations['animation.'+id+'.'+clip];
+const atlas={zuwu_daoshou:'royal_guard',ludun_jiashi:'royal_guard',fufa_jijiu:'imperial_soldier',shanjing_shanxiao:'nian_beast'}[id],im=new Image();im.src=base+'textures/entity/'+atlas+'.png';await im.decode();const sample=document.createElement('canvas');sample.width=im.width;sample.height=im.height;const sc=sample.getContext('2d');sc.drawImage(im,0,0);
+const atlasTexture=new THREE.Texture(im);atlasTexture.colorSpace=THREE.SRGBColorSpace;atlasTexture.magFilter=THREE.NearestFilter;atlasTexture.minFilter=THREE.NearestFilter;atlasTexture.generateMipmaps=false;atlasTexture.needsUpdate=true;
+const names={zuwu_daoshou:'卒伍刀手 / Zuwu Daoshou',ludun_jiashi:'橹盾甲士 / Ludun Jiashi',fufa_jijiu:'符法祭酒 / Fufa Jijiu',shanjing_shanxiao:'山精山魈 / Shanjing Shanxiao'};
+document.getElementById('title').textContent=names[id]+' — '+mode.toUpperCase()+' · '+clip+' · tick '+tick;
+document.getElementById('notes').innerHTML='<code>'+id+'</code> · '+geo.bones.length+' bones · '+geo.bones.reduce((n,b)=>n+b.cubes.length,0)+' cuboids · '+(mode==='textured'?'Unmodified original Dynasty atlas; continuous native UV swatches and nearest-neighbour filtering.':'Neutral material removes colour cues so body proportions, equipment and silhouettes are visible.')+'<br>Front / left 90° / right 90° / back / three-quarter 45°. Standing origin is the floor. Preview loads the same JSON used by GeckoLib.';
+function val(ch,t){if(Array.isArray(ch))return ch;const k=Object.keys(ch).map(Number).sort((a,b)=>a-b);if(t<=k[0])return ch[Object.keys(ch).find(v=>+v===k[0])];for(let i=1;i<k.length;i++)if(t<=k[i]){const a=ch[Object.keys(ch).find(v=>+v===k[i-1])],b=ch[Object.keys(ch).find(v=>+v===k[i])],f=(t-k[i-1])/(k[i]-k[i-1]);return a.map((v,j)=>v+(b[j]-v)*f);}return ch[Object.keys(ch).find(v=>+v===k.at(-1))];}
+// Match GeckoLib 4.8.4 BakedModelFactory: mirror X positions, negate X/Y Euler angles.
+const point=(v,i)=>i===0?-v:v,angle=(v,i)=>v*Math.PI/180*(i<2?-1:1);
+function model(){const root=new THREE.Group(),groups={};for(const b of geo.bones){const g=new THREE.Group();groups[b.name]=g;const parent=b.parent?geo.bones.find(n=>n.name===b.parent).pivot:[0,0,0];g.position.set(...b.pivot.map((v,i)=>point(v-parent[i],i)));const ar=animation?.bones[b.name]?.rotation,av=ar?val(ar,tick/20):[0,0,0],rest=b.rotation||[0,0,0];g.rotation.set(...rest.map((v,i)=>angle(v+av[i],i)),'ZYX');const ap=animation?.bones[b.name]?.position;if(ap){const q=val(ap,tick/20);g.position.add(new THREE.Vector3(...q.map(point)));}(b.parent?groups[b.parent]:root).add(g);
+const as=animation?.bones[b.name]?.scale;if(as)g.scale.set(...val(as,tick/20));
+for(const c of b.cubes){
+const [w,h,d]=c.size,color=mode==='silhouette'?0x000000:mode==='gray'?0xb0b3ad:0xffffff;
+const mat=mode==='silhouette'?new THREE.MeshBasicMaterial({color}):new THREE.MeshStandardMaterial({color,map:mode==='textured'?atlasTexture:null,roughness:1,metalness:0}),meshGeometry=new THREE.BoxGeometry(w,h,d);
+for(const [i,face]of ['west','east','up','down','south','north'].entries()){
+ const f=c.uv[face],u=f.uv[0]/im.width,v=1-f.uv[1]/im.height,du=f.uv_size[0]/im.width,dv=f.uv_size[1]/im.height;
+ for(const [j,uv]of [[u,v],[u+du,v],[u,v-dv],[u+du,v-dv]].entries())meshGeometry.attributes.uv.setXY(i*4+j,...uv);
+}
+const mesh=new THREE.Mesh(meshGeometry,mat);mesh.position.set(...c.origin.map((v,i)=>point(v+c.size[i]/2-b.pivot[i],i)));if(c.rotation){const pivot=c.pivot||c.origin.map((v,i)=>v+c.size[i]/2),cg=new THREE.Group();cg.position.set(...pivot.map((v,i)=>point(v-b.pivot[i],i)));cg.rotation.set(...c.rotation.map(angle),'ZYX');mesh.position.set(...c.origin.map((v,i)=>point(v+c.size[i]/2-pivot[i],i)));cg.add(mesh);g.add(cg);}else g.add(mesh);}}
+if(clip==='climb')applyClimbPose(THREE,groups,tick);
+return root;}
+for(const [label,yaw]of [['FRONT · 0°',0],['LEFT · 90°',-90],['RIGHT · 90°',90],['BACK · 180°',180],['THREE QUARTER · 45°',45]]){
+const fig=document.createElement('figure'),canvas=document.createElement('canvas'),caption=document.createElement('figcaption');caption.textContent=label;fig.append(canvas,caption);document.getElementById('views').append(fig);
+const scene=new THREE.Scene();scene.background=new THREE.Color(mode==='silhouette'?0xf5f4ee:0xe9e7e1);const m=model();scene.add(m);
+if(params.get('wall')==='1'){m.rotation.x=Math.PI/2;m.position.set(0,14.08,.32);const wall=new THREE.Mesh(new THREE.PlaneGeometry(60,55),new THREE.MeshBasicMaterial({color:0x7c8982,transparent:true,opacity:.12,side:THREE.DoubleSide,depthWrite:false}));wall.position.set(0,25,0);scene.add(wall);}
+const bounds=new THREE.Box3().setFromObject(m),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
+const span=clip==='idle'?(id==='shanjing_shanxiao'?39:42):Math.max(42,size.y+8,Math.hypot(size.x,size.z)*430/300+8);
+const cam=new THREE.OrthographicCamera(-span*300/430/2,span*300/430/2,span/2,-span/2,.1,400),ang=yaw*Math.PI/180;
+cam.position.set(center.x+Math.sin(ang)*90,center.y+4,center.z-Math.cos(ang)*90);cam.lookAt(center);
+scene.add(new THREE.HemisphereLight(0xffffff,0x575d58,2.1));const key=new THREE.DirectionalLight(0xffffff,3);key.position.set(-28,50,-36);scene.add(key);const fill=new THREE.DirectionalLight(0xc6d4de,1);fill.position.set(30,20,30);scene.add(fill);
+if(mode!=='silhouette'){const grid=new THREE.GridHelper(70,14,0xbfc3bc,0xd0d2ca);grid.position.y=-.1;scene.add(grid);}
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1.5);renderer.setSize(300,430);renderer.render(scene,cam);}
+window.reviewReady=true;
+</script></body></html>

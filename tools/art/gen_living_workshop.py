@@ -31,6 +31,7 @@ def merge_lang():
  for lang,entries in names().items():
   p=RES/f'assets/dynasty/lang/{lang}.json';data=json.loads(p.read_text());data.update(entries);write(f'assets/dynasty/lang/{lang}.json',data)
 def main():
+ raise SystemExit('Retired bulk-transaction generator. Use workshop_assets_v9.py for shapes, then generate_workshop_assets.mjs for current items/text. Recipes live in WorkshopRecipes.java.')
  for id,(_,__,key,base,core,*_) in STATIONS.items():
   write(f'assets/dynasty/blockstates/{id}.json',{'variants':{'lit=false':{'model':'dynasty:block/'+id},'lit=true':{'model':'dynasty:block/'+id}}})
   # Stepped base, housing and rim: deliberately recognizable workstation shapes, not solid cubes.

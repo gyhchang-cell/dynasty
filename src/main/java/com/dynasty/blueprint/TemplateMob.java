@@ -1,0 +1,596 @@
+package com.dynasty.blueprint;
+
+import com.dynasty.blueprint.combat.AttackState;
+import com.dynasty.blueprint.combat.CombatGeometry;
+import com.dynasty.blueprint.combat.Combatant;
+import com.dynasty.blueprint.combat.CenteredGroundNavigation;
+import com.dynasty.blueprint.combat.ShieldCoverMoveControl;
+import com.dynasty.blueprint.combat.Faction;
+import com.dynasty.blueprint.combat.MobRole;
+import com.dynasty.blueprint.combat.SkillDefinition;
+import com.dynasty.blueprint.combat.TacticalMemory;
+import com.dynasty.blueprint.combat.TimedAttack;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
+import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
+import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.ai.navigation.WallClimberNavigation;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.HitResult;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.util.GeckoLibUtil;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.UUID;
+
+/** Shared state machine for the four stage-two prototypes. Every hit and cooperation decision is server-owned. */
+public final class TemplateMob extends Monster implements GeoEntity, Combatant {
+    public enum Kind { SWORD, SHIELD, PRIEST, BEAST }
+    private static final EntityDataAccessor<Integer> SKILL = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Long> START = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
+    private static final EntityDataAccessor<Float> SPEED = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Integer> BUFF_TARGET = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> CLIMBING = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> POSSESSED = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Byte> CLIMB_FACE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.BYTE);
+    private static final EntityDataAccessor<Float> CLIMB_DISTANCE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Long> CLIMB_START = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
+    private static final UUID FORMATION_SPEED = UUID.fromString("10f91bd5-2b86-4fe6-a038-a340a0461011");
+    private final Kind kind;
+    private final TimedAttack attack = new TimedAttack();
+    private final TacticalMemory tactics = new TacticalMemory();
+    private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
+    private UUID supportCandidate, possessedAlly, possessor;
+    private long possessedUntil, linkUntil, nextTacticalScan, nextMovement, coverUntil, deathStarted = -1;
+    private boolean formation, lootDropped;
+    private float animationPartial;
+    private long lastAnimationStart = Long.MIN_VALUE;
+    private Vec3 leapDestination = Vec3.ZERO;
+    private BlockPos highGround;
+
+    public TemplateMob(EntityType<? extends TemplateMob> type, Level level, Kind kind) {
+        super(type, level);
+        this.kind = kind;
+        this.xpReward = kind == Kind.SHIELD ? 8 : 5;
+        setMaxUpStep(kind == Kind.BEAST ? 1.0F : .6F);
+        if (kind == Kind.BEAST) this.navigation = new com.dynasty.blueprint.combat.SummitClimberNavigation(this, level);
+        else if (kind == Kind.SHIELD) {
+            this.navigation = new CenteredGroundNavigation(this, level);
+            this.moveControl = new ShieldCoverMoveControl(this);
+        }
+    }
+
+    public Kind kind() { return kind; }
+    public String blueprintId() {
+        return switch (kind) {
+            case SWORD -> "zuwu_daoshou"; case SHIELD -> "ludun_jiashi";
+            case PRIEST -> "fufa_jijiu"; case BEAST -> "shanjing_shanxiao";
+        };
+    }
+    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : Faction.DYNASTY_ARMY; }
+    @Override public MobRole role() {
+        return switch (kind) { case SWORD -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD; case PRIEST -> MobRole.SUPPORT; case BEAST -> MobRole.BEAST; };
+    }
+    public TimedAttack attack() { return attack; }
+    public int skillId() { return entityData.get(SKILL); }
+    public long skillStartTime() { return entityData.get(START); }
+    public float skillSpeed() { return entityData.get(SPEED); }
+    public int buffTargetId() { return entityData.get(BUFF_TARGET); }
+    /** Non-player potion maps are not a client synchronization contract. Visual state is explicit. */
+    public boolean isPossessed() { return entityData.get(POSSESSED); }
+    /** Server-measured horizontal direction INTO the wall, not its outward surface normal. */
+    public Direction climbFace() { int face = entityData.get(CLIMB_FACE); return face < 0 ? null : Direction.from2DDataValue(face); }
+    public float climbContactDistance() { return entityData.get(CLIMB_DISTANCE); }
+    public long climbStartTime() { return entityData.get(CLIMB_START); }
+    public boolean isCoveringBackline() {
+        return kind == Kind.SHIELD && isAlive() && skillId() == 0 && !navigation.isDone()
+                && level().getGameTime() < coverUntil && validEnemy(getTarget());
+    }
+    public AttackState skillPhase() { return AttackState.values()[Math.min(AttackState.values().length - 1, Math.max(0, entityData.get(PHASE)))]; }
+    public float actionAge(float partialTick) { return skillStartTime() < 0 ? 0 : Math.max(0, level().getGameTime() - skillStartTime() + partialTick) * skillSpeed(); }
+
+    @Override protected void defineSynchedData() {
+        super.defineSynchedData(); entityData.define(SKILL, 0); entityData.define(PHASE, AttackState.IDLE.ordinal());
+        entityData.define(START, -1L); entityData.define(SPEED, 1F); entityData.define(BUFF_TARGET, -1); entityData.define(CLIMBING, false); entityData.define(POSSESSED, false);
+        entityData.define(CLIMB_FACE, (byte)-1); entityData.define(CLIMB_DISTANCE, 0F); entityData.define(CLIMB_START, -1L);
+    }
+    @Override protected void registerGoals() {
+        goalSelector.addGoal(0, new FloatGoal(this));
+        goalSelector.addGoal(1, new CombatGoal());
+        goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, .65));
+        goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 12));
+        goalSelector.addGoal(7, new RandomLookAroundGoal(this));
+        targetSelector.addGoal(1, new HurtByTargetGoal(this));
+        targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+    }
+    @Override public void setTarget(LivingEntity target) {
+        if (target != null && (target == this || target instanceof Combatant c && c.faction() == faction())) return;
+        super.setTarget(target);
+    }
+
+    private boolean validEnemy(LivingEntity other) {
+        return other != null && other.isAlive() && !other.isSpectator() && !Combatant.allied(this, other)
+                && !(other instanceof Player player && (player.isCreative() || player.isSpectator()));
+    }
+    private boolean validSupport(LivingEntity ally) {
+        return ally != null && ally != this && ally.isAlive() && ally instanceof Combatant c
+                && c.faction() == faction() && c.role() != MobRole.SUPPORT && c.role() != MobRole.BEAST
+                && distanceToSqr(ally) <= 16 * 16 && hasLineOfSight(ally);
+    }
+    private LivingEntity resolve(UUID id) {
+        return id != null && level() instanceof ServerLevel server && server.getEntity(id) instanceof LivingEntity living ? living : null;
+    }
+
+    /** The same validation gates AI and operator/GameTest starts; no client can request a damage frame. */
+    public boolean startSkill(int id, LivingEntity target) {
+        if (level().isClientSide || !isAlive() || isRemoved() || !allows(id)) return false;
+        SkillDefinition base = TemplateSkills.byId(id);
+        if (base == null || (id == TemplateSkills.POSSESSION ? !validSupport(target) : !validEnemy(target))) return false;
+        double range = distanceTo(target);
+        if (range < base.minRange() || range > base.maxRange() || base.requiresSight() && !hasLineOfSight(target)) return false;
+        if (id == TemplateSkills.ROCK_THROW && !onHighGround(target)) return false;
+        Vec3 direction = target.position().subtract(position()).multiply(1, 0, 1).normalize();
+        if (direction.lengthSqr() < .0001) direction = getLookAngle().multiply(1, 0, 1).normalize();
+        float speed = hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
+        SkillDefinition effective = TemplateSkills.accelerated(base, speed);
+        if (!attack.tryStart(effective, level().getGameTime(), position(), direction, target.getUUID())) return false;
+        entityData.set(SPEED, speed);
+        coverUntil = 0;
+        entityData.set(SKILL, id); entityData.set(START, attack.started()); entityData.set(PHASE, AttackState.WINDUP.ordinal());
+        navigation.stop(); face(direction);
+        if (id == TemplateSkills.POSSESSION) entityData.set(BUFF_TARGET, target.getId());
+        if (id == TemplateSkills.POUNCE) {
+            Vec3 towards = target.position().subtract(position()).multiply(1, 0, 1);
+            leapDestination = position().add(towards.normalize().scale(Math.min(5.6, towards.length())));
+        }
+        BlueprintVisualEvent.start(this, effective, attack.origin(), attack.direction(), target.getId());
+        playSound(kind == Kind.BEAST ? SoundEvents.FOX_AGGRO : kind == Kind.PRIEST ? SoundEvents.EVOKER_PREPARE_ATTACK : SoundEvents.PLAYER_ATTACK_SWEEP,
+                .6F, kind == Kind.SHIELD ? .65F : 1F);
+        return true;
+    }
+    private boolean allows(int id) {
+        return switch (kind) {
+            case SWORD -> id == TemplateSkills.SWORD_COMBO;
+            case SHIELD -> id == TemplateSkills.SHIELD_COMBO;
+            case PRIEST -> id == TemplateSkills.TALISMAN_VOLLEY || id == TemplateSkills.POSSESSION;
+            case BEAST -> id == TemplateSkills.POUNCE || id == TemplateSkills.ROCK_THROW;
+        };
+    }
+
+    @Override protected void customServerAiStep() {
+        super.customServerAiStep();
+        tickCombat();
+    }
+    @Override public void tick() {
+        super.tick();
+        // NoAI disables autonomous selection, but explicitly started server actions still have a clock.
+        if (!level().isClientSide && isNoAi()) tickCombat();
+    }
+    private void tickCombat() {
+        if (!isAlive()) return;
+        long now = level().getGameTime();
+        if (now >= nextTacticalScan) { nextTacticalScan = now + 20; updateTactics(now); }
+        if (possessedUntil > 0 && now >= possessedUntil) clearPossession();
+        entityData.set(POSSESSED, hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()));
+        LivingEntity linked = resolve(possessedAlly);
+        if (linkUntil > 0 && (now >= linkUntil || linked != null && !validSupport(linked))) releaseSupport();
+        if (linked != null && linkUntil > now) entityData.set(BUFF_TARGET, linked.getId());
+        if (attack.current() != null) {
+            face(attack.direction());
+            navigation.stop();
+            if (skillId() != TemplateSkills.POUNCE) setDeltaMovement(getDeltaMovement().multiply(.35, 1, .35));
+            attack.advance(now, this::impact);
+            // Damage callbacks (e.g. thorns) may synchronously enter die(). Do not erase its
+            // authoritative death clock or cancel the death visual that die() has just sent.
+            if (!isAlive()) return;
+            if (attack.current() == null && skillId() != 0) finishAction();
+        }
+        entityData.set(PHASE, attack.state(now).ordinal());
+        if (kind == Kind.BEAST) {
+            entityData.set(CLIMBING, horizontalCollision && getTarget() != null);
+            updateClimbContact();
+            if (onClimbable() && getTarget() != null && (highGround != null || getTarget().getY() > getY() + .5))
+                setDeltaMovement(getDeltaMovement().x, .22, getDeltaMovement().z);
+        }
+    }
+
+    private void clearClimbContact() {
+        entityData.set(CLIMB_FACE, (byte)-1);
+        entityData.set(CLIMB_DISTANCE, 0F);
+        entityData.set(CLIMB_START, -1L);
+    }
+
+    /** Bounded real collision probes; renderers never guess a wall from the enemy's position.
+     * No new navigation, movement or camera constraint is introduced. Only changed metadata
+     * is synchronized, and distance is quantized to stop sub-pixel network jitter. */
+    private void updateClimbContact() {
+        if (!entityData.get(CLIMBING) || !isAlive()) { clearClimbContact(); return; }
+        Direction previous = climbFace(), best = null;
+        double reach = getBbWidth() * .5 + .18, bestDistance = Double.POSITIVE_INFINITY;
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            // Include the lower collision edge as the forequarters crest a ledge. The
+            // body-height probes can already be above the block while feet still climb it.
+            for (double height : new double[]{.025, getBbHeight() * .35, getBbHeight() * .8}) {
+                Vec3 from = position().add(0, height, 0);
+                Vec3 to = from.add(direction.getStepX() * reach, 0, direction.getStepZ() * reach);
+                if (!level().hasChunkAt(BlockPos.containing(to))) continue;
+                var hit = level().clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+                if (hit.getType() != HitResult.Type.BLOCK || hit.getDirection().getAxis() == Direction.Axis.Y) continue;
+                Direction intoWall = hit.getDirection().getOpposite();
+                double distance = hit.getLocation().subtract(from).horizontalDistance();
+                if (distance < .001 || distance > reach) continue;
+                // At inside corners prefer the established face within one texel to avoid flips.
+                if (best == null || distance < bestDistance - 1.0 / 16
+                        || Math.abs(distance - bestDistance) <= 1.0 / 16 && intoWall == previous) {
+                    best = intoWall; bestDistance = distance;
+                }
+            }
+        }
+        if (best == null) {
+            // horizontalCollision describes the preceding travel step. Once the whole
+            // bounding box clears the lip it must not retain a phantom wall attachment.
+            entityData.set(CLIMBING, false); clearClimbContact(); return;
+        }
+        if (previous != best || climbStartTime() < 0) entityData.set(CLIMB_START, level().getGameTime());
+        entityData.set(CLIMB_FACE, (byte)best.get2DDataValue());
+        entityData.set(CLIMB_DISTANCE, (float)(Math.round(bestDistance * 64) / 64.0));
+    }
+
+    private void updateTactics(long now) {
+        if (!(level() instanceof ServerLevel server)) return;
+        if (kind == Kind.SWORD) {
+            List<TemplateMob> shields = server.getEntitiesOfClass(TemplateMob.class, getBoundingBox().inflate(12),
+                    e -> e.isAlive() && e.kind == Kind.SHIELD && distanceToSqr(e) <= 144
+                            && Combatant.allied(this, e) && hasLineOfSight(e));
+            formation = !shields.isEmpty();
+            AttributeInstance movement = getAttribute(Attributes.MOVEMENT_SPEED);
+            if (movement != null) {
+                if (formation && movement.getModifier(FORMATION_SPEED) == null)
+                    movement.addTransientModifier(new AttributeModifier(FORMATION_SPEED, "Shield formation", .3, AttributeModifier.Operation.MULTIPLY_TOTAL));
+                if (!formation) movement.removeModifier(FORMATION_SPEED);
+            }
+            for (TemplateMob shield : shields) {
+                LivingEntity marked = shield.tactics.target(server, now);
+                if (validEnemy(marked) && distanceToSqr(marked) <= 24 * 24 && hasLineOfSight(marked)) { setTarget(marked); break; }
+            }
+        } else if (kind == Kind.PRIEST) {
+            supportCandidate = server.getEntitiesOfClass(LivingEntity.class, getBoundingBox().inflate(16),
+                            e -> validSupport(e) && !e.hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()))
+                    .stream().max(Comparator.comparingDouble(e -> e.getAttributeValue(Attributes.ATTACK_DAMAGE)))
+                    .map(Entity::getUUID).orElse(null);
+        } else if (kind == Kind.SHIELD && validEnemy(getTarget()) && attack.state(now) == AttackState.IDLE) {
+            coverBackline();
+        } else if (kind == Kind.BEAST && validEnemy(getTarget()) && distanceToSqr(getTarget()) > 64) {
+            // Keep a chosen summit while ascending. Re-scanning only dy=2..5 halfway up
+            // used to forget a narrow pillar as soon as its top became just one block higher.
+            if (highGround == null || !validHighGround(highGround) || highGround.distSqr(blockPosition()) > 100)
+                highGround = findHighGround();
+        }
+    }
+
+    private void coverBackline() {
+        LivingEntity enemy = getTarget();
+        Vec3 towardEnemy = enemy.position().subtract(position()).multiply(1, 0, 1).normalize();
+        level().getEntitiesOfClass(LivingEntity.class, getBoundingBox().inflate(12), e -> e != this && e.isAlive() && distanceToSqr(e) <= 144
+                        && e instanceof Combatant c && c.faction() == faction() && (c.role() == MobRole.RANGED || c.role() == MobRole.SUPPORT)
+                        && e.position().subtract(position()).dot(towardEnemy) < .5 && hasLineOfSight(e))
+                .stream().min(Comparator.comparingDouble(this::distanceToSqr)).ifPresent(ally -> {
+                    Vec3 intercept = ally.position().add(enemy.position().subtract(ally.position()).multiply(1, 0, 1).normalize().scale(1.8));
+                    Path path = navigation.createPath(intercept.x, intercept.y, intercept.z, 0);
+                    // Failed paths must not make a shield walk through a wall toward an unreachable cover point.
+                    if (path != null && path.canReach()) {
+                        navigation.moveTo(path, 1); nextMovement = level().getGameTime() + 20;
+                        coverUntil = level().getGameTime() + 22;
+                    }
+                });
+    }
+
+    private BlockPos findHighGround() {
+        BlockPos best = null;
+        // Every integer column matters: checkerboard sampling misses lone tree trunks
+        // and narrow stone pillars. This bounded search still runs only every 20 ticks.
+        for (int dx = -5; dx <= 5; dx++) for (int dz = -5; dz <= 5; dz++) {
+            if (dx * dx + dz * dz > 32) continue;
+            for (int dy = 5; dy >= 2; dy--) {
+                BlockPos feet = blockPosition().offset(dx, dy, dz);
+                if (!level().hasChunkAt(feet)) continue;
+                if (validHighGround(feet)) {
+                    if (best == null || feet.distSqr(blockPosition()) < best.distSqr(blockPosition())) best = feet;
+                    break;
+                }
+            }
+        }
+        return best;
+    }
+    private boolean validHighGround(BlockPos feet) {
+        return level().hasChunkAt(feet) && level().getBlockState(feet.below()).isSolidRender(level(), feet.below())
+                && level().isEmptyBlock(feet) && level().isEmptyBlock(feet.above())
+                && level().noCollision(this, getDimensions(getPose()).makeBoundingBox(feet.getX()+.5, feet.getY(), feet.getZ()+.5));
+    }
+    private boolean onHighGround(LivingEntity target) {
+        return getY() > target.getY() + 1.5 && (onGround() || onClimbable())
+                && !level().getBlockState(blockPosition().below()).isAir();
+    }
+
+    private void impact(int frame) {
+        SkillDefinition current = attack.current();
+        if (current == null || !isAlive()) return;
+        LivingEntity victim = resolve(attack.target());
+        int index = current.impactTicks().indexOf(frame);
+        switch (current.id()) {
+            case TemplateSkills.SWORD_COMBO -> melee(current, 1, .2, false, false);
+            case TemplateSkills.SHIELD_COMBO -> melee(current, index == 0 ? .6F : 1.3F, index == 0 ? .85 : .15, index == 0, false);
+            case TemplateSkills.TALISMAN_VOLLEY -> {
+                if (validEnemy(victim) && distanceToSqr(victim) <= 24 * 24 && hasLineOfSight(victim)) {
+                    TemplateProjectile.shoot(this, victim, false, (float)getAttributeValue(Attributes.ATTACK_DAMAGE));
+                    playSound(SoundEvents.BLAZE_SHOOT, .5F, 1.4F);
+                }
+            }
+            case TemplateSkills.POSSESSION -> {
+                if (validSupport(victim)) applySupport(victim);
+                else entityData.set(BUFF_TARGET, -1);
+            }
+            case TemplateSkills.POUNCE -> {
+                if (index == 0) {
+                    Vec3 movement = leapDestination.subtract(position()).multiply(.14, 0, .14);
+                    setDeltaMovement(movement.x, .48, movement.z); hasImpulse = true;
+                } else melee(current, 1.15F, .35, false, true);
+            }
+            case TemplateSkills.ROCK_THROW -> {
+                if (validEnemy(victim) && distanceToSqr(victim) <= 24 * 24 && hasLineOfSight(victim))
+                    TemplateProjectile.shoot(this, victim, true, (float)getAttributeValue(Attributes.ATTACK_DAMAGE) * 1.1F);
+            }
+            default -> { }
+        }
+    }
+
+    private void melee(SkillDefinition skill, float multiplier, double knockback, boolean handoff, boolean tear) {
+        if (!(level() instanceof ServerLevel server)) return;
+        double range = kind == Kind.BEAST ? 2.2 : skill.maxRange();
+        Vec3 origin = kind == Kind.BEAST ? position() : attack.origin();
+        for (LivingEntity hit : CombatGeometry.query(server, origin, attack.direction(), CombatGeometry.Shape.SECTOR,
+                range, 1, skill.angleDegrees(), 1.6, e -> validEnemy(e) && hasLineOfSight(e))) {
+            // Separate authored contacts in a combo are separate attacks, not duplicate tick damage.
+            hit.invulnerableTime = 0;
+            if (hit.hurt(damageSources().mobAttack(this), (float)getAttributeValue(Attributes.ATTACK_DAMAGE) * multiplier)) {
+                hit.knockback(knockback, -attack.direction().x, -attack.direction().z);
+                if (handoff) tactics.mark(hit, level().getGameTime(), 80);
+                if (tear) hit.addEffect(new MobEffectInstance(MobEffects.WITHER, 45, 0), this);
+            }
+            if (!isAlive() || attack.current() != skill) return;
+        }
+        playSound(kind == Kind.SHIELD ? SoundEvents.SHIELD_BLOCK : SoundEvents.PLAYER_ATTACK_SWEEP, .8F, .85F);
+    }
+
+    private void applySupport(LivingEntity target) {
+        releaseSupport();
+        target.addEffect(new MobEffectInstance(BlueprintEntities.BINGSHA_POSSESSION.get(), 160, 0, false, true, true), this);
+        possessedAlly = target.getUUID(); linkUntil = level().getGameTime() + 160; entityData.set(BUFF_TARGET, target.getId());
+        if (target instanceof TemplateMob mob) { mob.possessor = getUUID(); mob.possessedUntil = linkUntil; mob.entityData.set(POSSESSED, true); }
+    }
+    private void releaseSupport() {
+        LivingEntity ally = resolve(possessedAlly);
+        if (ally instanceof TemplateMob mob && getUUID().equals(mob.possessor)) mob.clearPossession();
+        possessedAlly = null; linkUntil = 0; entityData.set(BUFF_TARGET, -1);
+    }
+    private void clearPossession() {
+        removeEffect(BlueprintEntities.BINGSHA_POSSESSION.get()); possessor = null; possessedUntil = 0; entityData.set(POSSESSED, false);
+    }
+    public void interruptAttack(int stunTicks) {
+        if (level().isClientSide || !isAlive()) return;
+        attack.stun(level().getGameTime(), stunTicks); finishAction(); entityData.set(PHASE, AttackState.STUN.ordinal());
+    }
+    private void finishAction() {
+        entityData.set(SKILL, 0); entityData.set(START, -1L); entityData.set(SPEED, 1F);
+        if (linkUntil == 0) entityData.set(BUFF_TARGET, -1);
+        BlueprintVisualEvent.cancel(this);
+    }
+    private void face(Vec3 direction) {
+        float yaw = (float)(Math.atan2(direction.z, direction.x) * 180 / Math.PI) - 90;
+        setYRot(yaw); yBodyRot = yaw; yHeadRot = yaw;
+    }
+
+    @Override public boolean hurt(DamageSource source, float amount) {
+        if (level().isClientSide) return false;
+        Entity direct = source.getDirectEntity();
+        boolean projectile = source.is(DamageTypeTags.IS_PROJECTILE) || direct instanceof Projectile;
+        Vec3 sourcePosition = direct == null ? source.getSourcePosition() : direct.position();
+        boolean frontal = sourcePosition != null && CombatGeometry.inFront(position(), getLookAngle(), sourcePosition, 120);
+        if (kind == Kind.SHIELD && frontal) {
+            if (projectile) {
+                if (direct instanceof Projectile) direct.discard();
+                playSound(SoundEvents.SHIELD_BLOCK, .7F, .7F); return false;
+            }
+            if (direct instanceof LivingEntity && source.getEntity() == direct) amount *= .2F;
+        }
+        if (!isAlive()) return false;
+        if (kind == Kind.SWORD && formation && direct instanceof AbstractArrow) amount *= .8F;
+        boolean damaged = super.hurt(source, amount);
+        if (damaged && isAlive() && attack.current() != null && attack.current().interruptible()
+                && attack.state(level().getGameTime()) == AttackState.WINDUP && amount >= Math.max(3, getMaxHealth() * .08F))
+            interruptAttack(10);
+        return damaged;
+    }
+    @Override public boolean onClimbable() {
+        // A dead wall-climber must fall under ordinary gravity. Keeping the last synchronized
+        // climbing flag would continue vanilla's wall boost / slow-fall during its death clip.
+        if (kind == Kind.BEAST) return isAlive() && (entityData.get(CLIMBING) || super.onClimbable());
+        return super.onClimbable();
+    }
+    @Override public boolean causeFallDamage(float distance, float multiplier, DamageSource source) {
+        return kind == Kind.BEAST ? super.causeFallDamage(Math.max(0, distance - 5), multiplier, source) : super.causeFallDamage(distance, multiplier, source);
+    }
+    @Override public boolean canBeCollidedWith() { return kind == Kind.SHIELD && !isRemoved(); }
+    @Override public boolean canBeHitByProjectile() { return kind == Kind.SHIELD && !isRemoved() || super.canBeHitByProjectile(); }
+
+    @Override public void die(DamageSource source) {
+        if (deathStarted >= 0) return;
+        super.die(source);
+        if (!isDeadOrDying()) return;
+        deathStarted = level().getGameTime(); attack.cancel(); navigation.stop(); setTarget(null); releaseSupport(); clearPossession();
+        entityData.set(CLIMBING, false);
+        clearClimbContact();
+        entityData.set(SKILL, 0); entityData.set(START, deathStarted); entityData.set(SPEED, 1F);
+        BlueprintVisualEvent.cancel(this);
+        BlueprintVisualEvent.death(this);
+    }
+    public int deathDuration() { return kind == Kind.SHIELD ? 200 : kind == Kind.SWORD ? 60 : 44; }
+    @Override protected void dropAllDeathLoot(DamageSource source) {
+        if (lootDropped) return;
+        lootDropped = true; super.dropAllDeathLoot(source);
+    }
+    @Override protected void tickDeath() {
+        ++deathTime;
+        if (!level().isClientSide && deathStarted >= 0)
+            deathTime = (int)Math.min(240, Math.max(deathTime, level().getGameTime() - deathStarted));
+        if (kind == Kind.SHIELD) setDeltaMovement(Vec3.ZERO);
+        int duration = deathDuration();
+        if (deathTime >= duration && !level().isClientSide && !isRemoved()) {
+            level().broadcastEntityEvent(this, (byte)60); remove(RemovalReason.KILLED);
+        }
+    }
+    @Override protected boolean isAffectedByFluids() { return !(kind == Kind.SHIELD && isDeadOrDying()) && super.isAffectedByFluids(); }
+
+    @Override public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.put("BlueprintAttack", attack.save()); tag.putFloat("BlueprintSpeed", skillSpeed());
+        tag.putBoolean("BlueprintLootDropped", lootDropped); tag.putLong("BlueprintDeathStart", deathStarted); tag.putInt("BlueprintDeathTicks", deathTime);
+        tag.putLong("PossessedUntil", possessedUntil); tag.putLong("LinkUntil", linkUntil);
+        if (possessor != null) tag.putUUID("Possessor", possessor);
+        if (possessedAlly != null) tag.putUUID("PossessedAlly", possessedAlly);
+        tag.putDouble("LeapX", leapDestination.x); tag.putDouble("LeapY", leapDestination.y); tag.putDouble("LeapZ", leapDestination.z);
+    }
+    @Override public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        float speed = tag.getFloat("BlueprintSpeed") > 1 ? 1.3F : 1F;
+        entityData.set(SPEED, speed);
+        attack.load(tag.getCompound("BlueprintAttack"), id -> {
+            SkillDefinition def = TemplateSkills.byId(id); return def != null && allows(id) ? TemplateSkills.accelerated(def, speed) : null;
+        }, level().getGameTime());
+        entityData.set(SKILL, attack.current() == null ? 0 : attack.current().id()); entityData.set(START, attack.started());
+        entityData.set(PHASE, attack.state(level().getGameTime()).ordinal());
+        lootDropped = tag.getBoolean("BlueprintLootDropped"); deathStarted = tag.contains("BlueprintDeathStart") ? tag.getLong("BlueprintDeathStart") : -1;
+        deathTime = Math.max(0, tag.getInt("BlueprintDeathTicks"));
+        if (isDeadOrDying()) { attack.cancel(); entityData.set(SKILL, 0); entityData.set(START, deathStarted); }
+        possessor = tag.hasUUID("Possessor") ? tag.getUUID("Possessor") : null;
+        possessedAlly = tag.hasUUID("PossessedAlly") ? tag.getUUID("PossessedAlly") : null;
+        possessedUntil = tag.getLong("PossessedUntil"); linkUntil = tag.getLong("LinkUntil");
+        if (possessedUntil > 0 && level().getGameTime() >= possessedUntil) clearPossession();
+        entityData.set(POSSESSED, hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()));
+        LivingEntity ally = resolve(possessedAlly); if (ally != null) entityData.set(BUFF_TARGET, ally.getId());
+        leapDestination = new Vec3(tag.getDouble("LeapX"), tag.getDouble("LeapY"), tag.getDouble("LeapZ"));
+    }
+
+    public String visualAnimation() {
+        if (isDeadOrDying()) return "death";
+        if (hurtTime > 0 && skillId() == 0) return "hurt";
+        if (skillId() == TemplateSkills.POSSESSION) return "buff";
+        if (skillId() == TemplateSkills.ROCK_THROW) return "rock";
+        if (skillId() == TemplateSkills.POUNCE) return "skill";
+        if (skillId() != 0) return "attack";
+        if (kind == Kind.BEAST && onClimbable() && climbFace() != null) return "climb";
+        if (getDeltaMovement().horizontalDistanceSqr() > .001) return isSprinting() ? "run" : "walk";
+        return "idle";
+    }
+    @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return animationCache; }
+    @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        controllers.add(new AnimationController<TemplateMob>(this, "body", 0, state -> {
+            String animation = visualAnimation();
+            animationPartial = state.getPartialTick();
+            if (lastAnimationStart != skillStartTime()) {
+                lastAnimationStart = skillStartTime(); state.getController().forceAnimationReset();
+            }
+            RawAnimation sequence = RawAnimation.begin();
+            String key = "animation." + blueprintId() + "." + animation;
+            return state.setAndContinue(animation.equals("idle") || animation.equals("walk") || animation.equals("run") || animation.equals("climb")
+                    ? sequence.thenLoop(key) : sequence.thenPlayAndHold(key));
+        }) {
+            @Override protected double adjustTick(double tick) {
+                boolean resetting = shouldResetTick;
+                double local = super.adjustTick(tick);
+                // GeckoLib polls a new queued clip only at transition tick zero. Replacing that
+                // zero with a nonzero server age leaves the old idle clip installed forever.
+                if (resetting || getAnimationState() != AnimationController.State.RUNNING) return local;
+                if (kind == Kind.BEAST && climbFace() != null && climbStartTime() >= 0 && skillId() == 0 && isAlive())
+                    return Math.max(0, level().getGameTime() - climbStartTime() + animationPartial);
+                // Late observers seek to the authoritative contact frame instead of restarting the clip.
+                return skillStartTime() >= 0 && (skillId() != 0 || isDeadOrDying()) ? actionAge(animationPartial) : local;
+            }
+        });
+    }
+    @Override protected SoundEvent getAmbientSound() { return kind == Kind.BEAST ? SoundEvents.FOX_AMBIENT : null; }
+    @Override protected SoundEvent getHurtSound(DamageSource source) { return kind == Kind.BEAST ? SoundEvents.FOX_HURT : SoundEvents.PLAYER_HURT; }
+    @Override protected SoundEvent getDeathSound() { return kind == Kind.BEAST ? SoundEvents.FOX_DEATH : SoundEvents.ZOMBIE_DEATH; }
+
+    private final class CombatGoal extends Goal {
+        CombatGoal() { setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK)); }
+        @Override public boolean canUse() { return validEnemy(getTarget()); }
+        @Override public boolean canContinueToUse() { return canUse(); }
+        @Override public boolean requiresUpdateEveryTick() { return true; }
+        @Override public void stop() { navigation.stop(); setSprinting(false); }
+        @Override public void tick() {
+            LivingEntity target = getTarget();
+            if (!validEnemy(target)) return;
+            long now = level().getGameTime();
+            getLookControl().setLookAt(target, 30, 30);
+            if (attack.state(now) != AttackState.IDLE) { navigation.stop(); return; }
+            if (kind == Kind.PRIEST && attack.ready(TemplateSkills.POSSESSION, now)
+                    && startSkill(TemplateSkills.POSSESSION, resolve(supportCandidate))) return;
+            double distance = distanceTo(target);
+            // Goal selection runs before customServerAiStep. Acquire the summit before the
+            // first chase can carry us away from a nearby narrow climbing opportunity.
+            if (kind == Kind.BEAST && distance > 8 && highGround == null) highGround = findHighGround();
+            int skill = kind == Kind.SWORD ? TemplateSkills.SWORD_COMBO : kind == Kind.SHIELD ? TemplateSkills.SHIELD_COMBO
+                    : kind == Kind.PRIEST ? TemplateSkills.TALISMAN_VOLLEY : distance > 8 ? TemplateSkills.ROCK_THROW : TemplateSkills.POUNCE;
+            boolean ascending = kind == Kind.BEAST && highGround != null && !onHighGround(target);
+            if (!ascending && attack.ready(skill, now) && startSkill(skill, target)) return;
+            if (now < nextMovement) return;
+            nextMovement = now + 10;
+            if (kind == Kind.PRIEST && distance < 6) {
+                Vec3 retreat = position().add(position().subtract(target.position()).multiply(1, 0, 1).normalize().scale(4));
+                Path path = navigation.createPath(retreat.x, retreat.y, retreat.z, 0);
+                if (path != null && path.canReach()) navigation.moveTo(path, 1);
+            } else if (ascending) {
+                navigation.moveTo(highGround.getX() + .5, highGround.getY(), highGround.getZ() + .5, 1.1);
+            } else if (kind != Kind.PRIEST || distance > 18 || !hasLineOfSight(target)) {
+                setSprinting(kind == Kind.SWORD && distance < 5 || kind == Kind.BEAST);
+                navigation.moveTo(target, isSprinting() ? 1.25 : 1);
+            } else navigation.stop();
+        }
+    }
+}

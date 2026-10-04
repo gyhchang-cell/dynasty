@@ -24,30 +24,38 @@ public final class RenderImperialMeshes {
     private record Paint(double r,double g,double b) {}
     private record Mesh(String id,String name,double[] vertices,double[] normals,int[] materials,Paint[] palette,P min,P max) {}
     private static final P KEY=new P(-.45,.8,.6).unit(), FILL=new P(.7,.35,-.45).unit();
-    private static int[] pixels;private static double[] depths;private static int width,height;
+    private static int[] pixels;private static double[] depths;private static int width,height;private static boolean silhouette,orthographic;
     public static void main(String[] args)throws Exception {
         if(args.length<2)throw new IllegalArgumentException("RenderImperialMeshes meshes.json output.png [guanyu|jade_dragon|gold_dragon] [four|threequarter|front|side|back|portrait]");
         String id=args.length>2?args[2]:"guanyu",mode=args.length>3?args[3]:"four";
+        silhouette=mode.equals("silhouette")||mode.equals("profile-black");
+        orthographic=mode.equals("profile")||mode.equals("profile-black")||mode.equals("clay-profile");
+        boolean clay=mode.equals("clay")||mode.equals("clay-profile"),six=mode.equals("six")||mode.equals("clay")||mode.equals("silhouette");
         JsonObject data;try(var reader=Files.newBufferedReader(Path.of(args[0]))){data=JsonParser.parseReader(reader).getAsJsonObject();}
         Mesh mesh=null;
         for(var e:data.getAsJsonArray("models")) {
             JsonObject o=e.getAsJsonObject();if(!o.get("id").getAsString().equals(id))continue;
             var ps=o.getAsJsonArray("materials");Paint[] paints=new Paint[ps.size()];
-            for(int i=0;i<paints.length;i++){var a=ps.get(i).getAsJsonObject().getAsJsonArray("rgb");paints[i]=new Paint(a.get(0).getAsDouble(),a.get(1).getAsDouble(),a.get(2).getAsDouble());}
+            for(int i=0;i<paints.length;i++){var a=ps.get(i).getAsJsonObject().getAsJsonArray("rgb");paints[i]=clay?new Paint(.58,.58,.58):new Paint(a.get(0).getAsDouble(),a.get(1).getAsDouble(),a.get(2).getAsDouble());}
             var ids=o.getAsJsonArray("materialIndices");int[] materials=new int[ids.size()];for(int i=0;i<materials.length;i++)materials[i]=ids.get(i).getAsInt();
             var b=o.getAsJsonObject("bounds");mesh=new Mesh(id,o.get("name").getAsString(),array(o.getAsJsonArray("positions")),array(o.getAsJsonArray("normals")),materials,paints,point(array(b.getAsJsonArray("min")),0),point(array(b.getAsJsonArray("max")),0));
         }
         if(mesh==null)throw new IllegalArgumentException("Unknown model: "+id);
-        width=1800;height=mode.equals("four")?1400:1600;
+        width=six?2400:1800;height=six?1900:mode.equals("four")?1400:1600;
         BufferedImage image=new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);pixels=((DataBufferInt)image.getRaster().getDataBuffer()).getData();depths=new double[pixels.length];Arrays.fill(depths,Double.POSITIVE_INFINITY);
         for(int y=0;y<height;y++){double t=(double)y/height;int r=(int)(16+4*t),g=(int)(24+6*t),b=(int)(34+9*t);Arrays.fill(pixels,y*width,(y+1)*width,(r<<16)|(g<<8)|b);}
         long start=System.nanoTime();
-        if(mode.equals("four")) {
+        if(silhouette)Arrays.fill(pixels,0xeeeeee);
+        if(six) {
+            double[] angles={0,-Math.PI/2,Math.PI/2,Math.PI,Math.PI/4,Math.PI*3/4};
+            for(int i=0;i<angles.length;i++)render(mesh,(i%3)*800,120+(i/3)*850,800,850,angles[i],.015,false);
+        } else if(mode.equals("four")) {
             render(mesh,0,120,900,600,0,.015,false);render(mesh,900,120,900,600,Math.PI/2,.015,false);
             render(mesh,0,720,900,600,Math.PI,.015,false);render(mesh,900,720,900,600,.43,.11,false);
-        } else {double yaw=switch(mode){case "front"->0;case "side"->Math.PI/2;case "back"->Math.PI;case "portrait"->.09;default->.43;};render(mesh,0,120,width,height-190,yaw,mode.equals("portrait")?.035:.08,mode.equals("portrait"));}
+        } else {double yaw=switch(mode){case "front","profile","profile-black","clay-profile"->0;case "side"->-Math.PI/2;case "back"->Math.PI;case "front45"->Math.PI/4;case "rear45"->Math.PI*3/4;case "portrait"->.09;default->.43;};render(mesh,0,120,width,height-190,yaw,orthographic?0:mode.equals("portrait")?.035:.015,mode.equals("portrait"));}
         Graphics2D g=image.createGraphics();g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,RenderingHints.VALUE_TEXT_ANTIALIAS_ON);g.setColor(new Color(217,191,131));g.setFont(new Font("SansSerif",Font.BOLD,29));g.drawString("DYNASTY  /  "+mesh.name,38,50);g.setColor(new Color(149,168,187));g.setFont(new Font("SansSerif",Font.PLAIN,18));g.drawString("ACTUAL RUNTIME MESH · Z-BUFFERED MATERIAL PREVIEW · NOT AN IN-GAME SCREENSHOT",38,86);
         if(mode.equals("four")){g.setColor(new Color(66,79,91));g.setStroke(new BasicStroke(1));g.drawLine(900,120,900,1320);g.drawLine(0,720,1800,720);g.setFont(new Font("SansSerif",Font.PLAIN,18));g.setColor(new Color(167,184,201));g.drawString("FRONT / 正面",28,152);g.drawString("SIDE / 侧面",928,152);g.drawString("BACK / 背面",28,752);g.drawString("THREE-QUARTER / 立体视角",928,752);}
+        if(six){String[] labels={"FRONT","LEFT 90","RIGHT 90","BACK","FRONT 45","REAR 45"};g.setColor(new Color(167,184,201));for(int i=0;i<labels.length;i++)g.drawString((clay?"CLAY / ":"")+labels[i],28+(i%3)*800,150+(i/3)*850);}
         g.setColor(new Color(144,160,177));g.setFont(new Font("SansSerif",Font.PLAIN,18));g.drawString(String.format("%,d QUADS  ·  shared runtime smooth normals  ·  opaque depth-tested surfaces",mesh.materials.length),38,height-38);g.dispose();
         Path output=Path.of(args[1]);if(output.getParent()!=null)Files.createDirectories(output.getParent());ImageIO.write(image,"png",output.toFile());
         System.out.printf("Rendered %s %s · %,d quads · %.2fs · %s%n",id,mode,mesh.materials.length,(System.nanoTime()-start)/1e9,output.toAbsolutePath());
@@ -62,7 +70,7 @@ public final class RenderImperialMeshes {
         Vertex[] q=new Vertex[4];
         for(int f=0;f<m.materials.length;f++) {
             boolean visible=true;
-            for(int i=0;i<4;i++){int index=f*12+i*3;P world=point(m.vertices,index),normal=point(m.normals,index),v=world.sub(eye);double z=v.dot(forward);if(z<size*.003){visible=false;break;}q[i]=new Vertex(x+w*.5+v.dot(right)/z*focal,y+h*.50-v.dot(up)/z*focal,z,world,normal);}
+            for(int i=0;i<4;i++){int index=f*12+i*3;P world=point(m.vertices,index),normal=point(m.normals,index),v=world.sub(eye);double z=v.dot(forward);if(z<size*.003){visible=false;break;}double projectionDepth=orthographic?distance:z;q[i]=new Vertex(x+w*.5+v.dot(right)/projectionDepth*focal,y+h*.50-v.dot(up)/projectionDepth*focal,z,world,normal);}
             if(!visible)continue;Paint p=m.palette[m.materials[f]];triangle(q[0],q[1],q[2],p,eye,x,y,w,h);triangle(q[0],q[2],q[3],p,eye,x,y,w,h);
         }
     }
@@ -79,7 +87,7 @@ public final class RenderImperialMeshes {
             double diffuse=.28+.64*Math.max(0,n.dot(KEY))+.16*Math.max(0,n.dot(FILL));
             double highlight=Math.pow(Math.max(0,n.dot(KEY.add(view).unit())),26+54*metal),rim=Math.pow(1-Math.max(0,n.dot(view)),3),spec=highlight*(.055+.365*metal);
             double r=p.r*diffuse+(.8+.2*metal)*spec+p.r*.13*rim,g=p.g*diffuse+(.88-.01*metal)*spec+p.g*.17*rim,bv=p.b*diffuse+(1-.36*metal)*spec+p.b*.20*rim;
-            pixels[index]=(channel(r)<<16)|(channel(g)<<8)|channel(bv);depths[index]=z;
+            pixels[index]=silhouette?0:(channel(r)<<16)|(channel(g)<<8)|channel(bv);depths[index]=z;
         }
     }
     private static int channel(double v){return (int)Math.round(Math.max(0,Math.min(1,v))*255);}

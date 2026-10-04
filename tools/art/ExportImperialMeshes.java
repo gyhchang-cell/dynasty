@@ -27,7 +27,7 @@ public final class ExportImperialMeshes {
     private static final Locale L=Locale.ROOT;
 
     public static void main(String[] args) throws Exception {
-        if(args.length!=1) throw new IllegalArgumentException("Usage: ExportImperialMeshes output.json");
+        if(args.length<1||args.length>2) throw new IllegalArgumentException("Usage: ExportImperialMeshes output.json [guanyu]");
         List<Model> models=new ArrayList<>();
         List<Paint> guanPaints=new ArrayList<>();
         for(var m:HouyiAvatarShape.Material.values()) {
@@ -41,6 +41,26 @@ public final class ExportImperialMeshes {
             guanFaces.add(quad(v,f.material().ordinal()));
         }
         models.add(new Model("guanyu","关羽 · 实际游戏网格",guanFaces,guanPaints));
+        if(args.length==2&&args[1].equals("houyi")) {
+            List<Quad> faces=new ArrayList<>();
+            for(var f:HouyiAvatarShape.MESH)faces.add(quad(new Point[]{point(f.a()),point(f.b()),point(f.c()),point(f.d())},f.material().ordinal()));
+            models.add(new Model("houyi","后羿 · 神射手重塑 · 实际游戏网格",faces,guanPaints));
+        }
+        if(args.length==2&&args[1].equals("guandao")) {
+            Class<?> sculpt=Class.forName("com.dynasty.GuanYuSculptor");
+            var ctor=sculpt.getDeclaredConstructor();ctor.setAccessible(true);
+            var field=sculpt.getDeclaredField("faces");field.setAccessible(true);
+            for(String part:new String[]{"guandaoBlade","weapon"}) {
+                Object builder=ctor.newInstance();var method=GuanYuAvatarShape.class.getDeclaredMethod(part,sculpt);method.setAccessible(true);method.invoke(null,builder);
+                List<Quad> faces=new ArrayList<>();
+                for(Object item:(List<?>)field.get(builder)) {
+                    var f=(HouyiAvatarShape.Face)item;
+                    faces.add(quad(new Point[]{point(f.a()),point(f.b()),point(f.c()),point(f.d())},f.material().ordinal()));
+                }
+                models.add(new Model(part,part.equals("weapon")?"完整偃月刀 · 宽面侧视":"偃月刀头 · 宽面侧视",faces,guanPaints));
+            }
+        }
+        if(args.length==1) {
         List<Quad> dragonFaces=new ArrayList<>();
         for(var f:ImperialDragonMesh.FACES) {
             dragonFaces.add(quad(new Point[]{point(f.a()),point(f.b()),point(f.c()),point(f.d())},f.material()));
@@ -54,6 +74,7 @@ public final class ExportImperialMeshes {
                         i==1||(!jade&&i==0)?.72:.10,i==1?.32:.58,i==4?.9:0));
             }
             models.add(new Model(jade?"jade_dragon":"gold_dragon",jade?"青龙 · 实际游戏网格":"金龙 · 实际游戏网格",dragonFaces,paints));
+        }
         }
         Path path=Path.of(args[0]);
         if(path.getParent()!=null) Files.createDirectories(path.getParent());

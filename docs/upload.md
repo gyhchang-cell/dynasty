@@ -23,5 +23,5 @@
 4. 同样，若审核要求本体也发布到 Modrinth，告诉我，我改成 index 引用。
 
 ## 自测（上传前先验证能不能装）
-* 把 `dist/dynasty-1.4.0-manual.zip` 解压，把 `mods/` 里 16 个 jar 丢进你自己的实例 → 能进游戏就说明包没问题。
+* 把 `dist/dynasty-1.4.0-manual.zip` 解压，把 `mods/` 中随包附带的 jar 和 `config/` 一起装入独立测试实例；进入测试世界验证，不覆盖正在编辑的建筑存档。
 * 或直接双击整合包 zip 用 Prism/HMCL"从压缩包导入"试一次。

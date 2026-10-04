@@ -35,6 +35,9 @@ public final class ImperialMaterialShader {
     }
     public static boolean bind(Matrix4f worldView,float sceneLight) {
         if(material==null)return false;
+        // Do not inherit tint/alpha from the held-item or another mod's overlay.
+        RenderSystem.setShaderColor(1,1,1,1);
+        RenderSystem.depthFunc(org.lwjgl.opengl.GL11.GL_LEQUAL);
         RenderSystem.setShader(()->material);
         var light=material.getUniform("SceneLight");
         if(light!=null)light.set(Math.max(.35f,Math.min(1f,sceneLight)));

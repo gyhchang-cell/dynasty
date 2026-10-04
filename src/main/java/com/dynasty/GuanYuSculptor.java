@@ -22,6 +22,21 @@ final class GuanYuSculptor {
             quad(sample.apply(u/(double)us,v/(double)vs),sample.apply((u+1.)/us,v/(double)vs),
                     sample.apply((u+1.)/us,(v+1.)/vs),sample.apply(u/(double)us,(v+1.)/vs),m);
     }
+    /** Closed sheet with a real rim. Used for cloth and plate silhouettes, not a second coplanar face. */
+    void shell(int us,int vs,BiFunction<Double,Double,P> sample,P thickness,Material front,Material back) {
+        surface(us,vs,sample,front);
+        surface(us,vs,(u,v)->sample.apply(1-u,v).add(thickness),back);
+        for(int i=0;i<us;i++)for(double v:new double[]{0,1}) {
+            P a=sample.apply(i/(double)us,v),b=sample.apply((i+1.)/us,v);
+            if(v==0)quad(b,a,a.add(thickness),b.add(thickness),back);
+            else quad(a,b,b.add(thickness),a.add(thickness),back);
+        }
+        for(int i=0;i<vs;i++)for(double u:new double[]{0,1}) {
+            P a=sample.apply(u,i/(double)vs),b=sample.apply(u,(i+1.)/vs);
+            if(u==0)quad(a,b,b.add(thickness),a.add(thickness),back);
+            else quad(b,a,a.add(thickness),b.add(thickness),back);
+        }
+    }
     /** A cross-section profile contains y, half-width, front depth, back depth, and center x/z. */
     void profile(double[][] rings,int sides,int rows,Material m) {
         surface(sides,rows,(u,v)->profilePoint(rings,u,v),m);

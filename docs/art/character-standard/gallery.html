@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>王朝 · 角色建模标准 / 四个代表角色</title>
+<style>body{margin:0;background:#101a20;color:#e6e0d1;font:16px/1.7 system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:40px 24px}h1,h2{font-weight:600;color:#d6bb7d}p{max-width:950px}nav{position:sticky;top:0;padding:12px;background:#16252dee;display:flex;gap:20px;flex-wrap:wrap}a{color:#b4d4ca}section{padding-top:26px}img{width:100%;display:block;background:#16232c}figure{margin:10px 0}figcaption,small{color:#b7c1c3}.world{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.world img{aspect-ratio:1.4;object-fit:contain}details{padding:14px;background:#1a292f;margin:12px 0}summary{cursor:pointer}code{color:#d9bf85}table{border-collapse:collapse;width:100%}td,th{border:1px solid #3b484b;padding:10px;text-align:left}.notice{border-left:3px solid #c2a366;padding:14px 20px;background:#1b292f}button{background:#344a50;border:0;border-radius:4px;color:#f5eddc;padding:9px 16px;cursor:pointer;margin-right:10px}@media(max-width:800px){.world{grid-template-columns:1fr 1fr}}</style>
+<main><small>DYNASTY / ORIGINAL CHARACTER SYSTEM / FOUR-ROLE REVIEW</small><h1>先看轮廓，再看身份，最后看装饰</h1>
+<p>本轮只替换弓兵、普通叛军、锦衣卫刀兵、叛将。关羽、后羿、镇渊帝君及其他 Boss 的模型没有改动。这里的灰模、黑色剪影直接从游戏使用的骨骼与几何导出；标注「游戏内」的图片来自独立 Forge 测试存档，不是生成图片。</p>
+<nav><a href="#archer">弓兵</a><a href="#rebel">叛军</a><a href="#guard">锦衣卫刀兵</a><a href="#general">叛将</a><a href="#standard">统一标准</a><a href="#test">游戏测试</a></nav>
+<div class="notice">本页用于这四个代表角色的验收，不代表已经把全部怪物批量替换。当前游玩的启动器实例未热替换，原建筑和存档未写入。</div>
+<div id="roles"></div>
+<section id="standard"><h2>统一建模与动画标准</h2>
+<table><tr><th>等级</th><th>几何与身份要求</th><th>性能边界</th></tr>
+<tr><td>普通人形</td><td>弓兵修长轻装，叛军单肩杂甲；必须有真实腰、肘、膝、腕、脚，不能只换皮肤。</td><td>目标不超过 180 个实体几何块；本轮弓兵 117、叛军 108（包含隐藏变体）。</td></tr>
+<tr><td>精英 / 叛将</td><td>精英刀兵下沉重心、多层胸肩甲；叛将独立冠盔、护心镜、肩甲、长甲裙、披风及重刃。将领不直接等比放大普通叛军。</td><td>精英目标不超过 240 块，将领不超过 320 块；本轮刀兵 150、叛将 159。</td></tr>
+<tr><td>最终 Boss</td><td>保留已确认的最高规格。每个 Boss 独立主题、剪影、身体比例、武器及动作语言，不套杂兵模型。后续修改前先做身份设计与剪影验收。</td><td>沿用各 Boss 已有独立预算；不能为统一模板降低现有质量。本轮不重制。</td></tr></table>
+<p>关节链：pelvis → waist → abdomen → chest → neck → head；shoulder → upper_arm → elbow → forearm → wrist → hand；thigh → knee → shin → ankle → foot。衣摆、披风、甲片依附相应部位，不以贴图替代所有体积。</p>
+<p>动作：胸肩参与射手瞄准，双臂使用两段逆运动学，弓弦端点与手跟随骨骼；近战用腰胸、肩、肘、腕依次发力。叛军挥击 14 Tick、刀兵 18 Tick、叛将 24 Tick，实际命中位于中段关键帧；前摇期间没有提前扣血。伤害和攻击目标由服务端决定，只同步每次挥击的起始时间。</p>
+<p>个体：三套受控装束组合，由保存并同步的实体 UUID 稳定选择；脸宽、胡须、束发、头巾垂带、半肩披布、额脊、腰包按职业组合。不用每次渲染随机抽取，重进世界不会变脸。暂不新增实体 ID，不改掉落和基础属性。</p>
+<p>原创与材质：人体、服装、甲胄、武器几何及配色由本项目代码构建，未移植其他整合包资产。使用 Minecraft 原有中性像素材质作为细微表面颗粒，通过材质色区表现布、皮、甲和金属；不是写实皮肤或高清噪点。共用一个纹理通道，不为每件甲片增加单独纹理。</p>
+<p>验收门槛：正面、左右 90°、背面、前后 45°，加纯黑剪影。检查头身、胸腰骨盆侧面体积、衣甲层次、武器握持、运动时接缝与遮挡；剪影不分职业就返回几何阶段，不能靠重涂颜色交差。</p></section>
+<section id="test"><h2>测试与进入游戏</h2>
+<p>主要移动 Bug 是战场内部范围 <code>deflate(.4)</code> 把合法的 Y=65 落脚高度排除，服务端每 10 Tick 重传送、清速度并重设视角。现已删除该周期定位路径、献祭末段牵引和客户端输入清零。首次进入仍安全落地一次，重进同场地不再次锚定。</p>
+<p>保留竞技场防拆与防越维度逃逸，不限制正常 WASD、跳跃、冲刺、潜行、视角、战斗和弓/食物使用；准星指向场地墙面不再吞掉普通物品右键。</p>
+<p><a href="runtime-PASS.txt">客户端逐项记录</a> · <a href="arena-free-movement-world.png">Boss 维度实测画面</a>。服务端回归包含两人不同站位、地面与空中、登场各阶段、阶段保存恢复、献祭末段自由移动，以及挥击关键帧只命中一次。</p>
+<p>创造模式观察指令（不要在重要建筑内刷怪）：</p>
+<pre><code>/summon dynasty:archer ~ ~ ~ {NoAI:1b,PersistenceRequired:1b}
+/summon dynasty:rebel_soldier ~3 ~ ~ {NoAI:1b,PersistenceRequired:1b}
+/summon dynasty:royal_guard ~6 ~ ~ {NoAI:1b,PersistenceRequired:1b}
+/summon dynasty:rebel_general ~9 ~ ~ {NoAI:1b,PersistenceRequired:1b}</code></pre>
+<p>观察动作时去掉 <code>NoAI:1b</code>，在独立测试场地用生存模式测试，注意这些怪物保留原有高伤害。联机时服务端和所有客户端都必须更新相同版本的模组。</p></section></main>
+<script>
+const names={archer:['弓兵','轻胸甲、窄腰、箭袋、束发与侧身拉弓；手臂不是两根直棍。'],rebel:['普通叛军','单侧肩甲、杂甲补片、布条与刀鞘；不对称轮廓与较松散重心。'],guard:['锦衣卫 · 重甲刀兵','层叠胸甲、护心镜、肩甲、长甲裙、护胫；低重心与较重挥击。'],general:['叛将','更宽胸肩、独立冠盔、三层肩甲、长战袍披风、胡须与专属重刃。']};
+for(const [id,[name,desc]] of Object.entries(names)){
+const s=document.createElement('section');s.id=id;s.innerHTML=`<h2>${name}</h2><p>${desc}</p><div><button data-mode="six">材质六视图</button><button data-mode="clay">灰模</button><button data-mode="silhouette">黑色剪影</button></div><figure><img class="studio" src="${id}-six.png" loading="lazy"><figcaption>游戏实际骨骼几何导出 · 非游戏截图</figcaption></figure><details><summary>查看真实游戏六角度截图</summary><div class="world">${['front','left','right','back','45','rear45'].map(v=>`<figure><a href="${id}-world-${v}.png"><img src="${id}-world-${v}.png" loading="lazy"></a><figcaption>游戏内 ${v}</figcaption></figure>`).join('')}</div></details><details><summary>三套外观组合与动作关键帧</summary><div class="world">${['','-variant1','-variant2',...Array.from({length:5},(_,i)=>'-action'+i)].map(v=>`<figure><img src="${id}${v}-front.png" loading="lazy"><figcaption>${v||'基础组合'}</figcaption></figure>`).join('')}</div></details>`;
+s.querySelectorAll('button').forEach(b=>b.onclick=()=>s.querySelector('.studio').src=id+'-'+b.dataset.mode+'.png');document.querySelector('#roles').appendChild(s);
+}
+</script></html>

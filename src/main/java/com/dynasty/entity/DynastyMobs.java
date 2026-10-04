@@ -193,7 +193,7 @@ public final class DynastyMobs {
         @Override
         protected void registerGoals() {
             this.goalSelector.addGoal(0, new FloatGoal(this));
-            this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.25D, true));
+            this.goalSelector.addGoal(2, new CharacterMeleeGoal(this, 1.25D));
             this.goalSelector.addGoal(7, new RandomStrollGoal(this, 0.85D));
             this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 12.0F));
             this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
@@ -218,7 +218,7 @@ public final class DynastyMobs {
         @Override
         protected void registerGoals() {
             this.goalSelector.addGoal(0, new FloatGoal(this));
-            this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.2D, true));
+            this.goalSelector.addGoal(2, new CharacterMeleeGoal(this, 1.2D));
             this.goalSelector.addGoal(7, new RandomStrollGoal(this, 0.9D));
             this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 12.0F));
             this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));

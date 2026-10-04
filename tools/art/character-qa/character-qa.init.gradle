@@ -1,0 +1,16 @@
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def qa = p.sourceSets.create('characterQa') {
+        java.srcDir p.file('tools/art/character-qa/src')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.minecraft.runs.client {
+        workingDirectory p.file('build/character-world-qa/client')
+        property 'dynasty.characterQa', 'true'
+        property 'dynasty.characterQa.output', p.file(p.findProperty('unificationQa') ? 'docs/art/unification/characters' : 'docs/art/character-standard').absolutePath
+        args '--width', '1400', '--height', '1000'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.configureEach { task -> if(task.name=='runClient')task.dependsOn qa.classesTaskName }
+} }

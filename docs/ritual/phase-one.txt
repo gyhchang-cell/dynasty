@@ -1,0 +1,77 @@
+PHASE 1 implementation / 2026-09-30
+
+Scope: existing Forge 1.20.1 / 47.4.10 / Java 17. Reuses Zhenyuan node,
+SavedData, renderer, registry and encounter entry. No PHASE 2 intro, new Boss
+model, skills or dragon transformation. Existing fights/rewards remain working.
+
+Server timeline: Qinglong 100 ticks; Baihu 64; Zhuque 110; Xuanwu 160.
+Third completion: 10 ticks silence, pulse/quake, third flow delayed to tick 32.
+Fourth: 20 ticks silence; restart in completion order at 20/26/32/38;
+convergence/title at 42; FINAL_OFFERING_READY at 90.
+Final: 240 ticks. Four flows enter at 10/20/30/40, stronger absorption at 60,
+expansion through 120, compression to 20% at 140, suction/pause through 170,
+shockwave/pull/lift at 170, fade at 215..235, existing dimension entry at 240.
+Server reserves each tribute immediately, commits activation only after animation.
+The stored mask, pending mask, per-pillar clocks, stage clock, completion order,
+ready/running/fight/defeated flags survive normal world/server saves and reloads.
+Legacy unstarted altars migrate without resetting paid offerings. Existing active
+or paused encounters retain their original recovery and single-reward workflow.
+Multiple players can supply different pillars. The final payer is the existing
+single-encounter participant; bystanders see the ceremony and nearby third omen.
+Missing owner or unloaded nodes pause the authoritative clock; no forced loads.
+Returning within 64 blocks resumes the paid final ritual without re-payment.
+
+Visuals are bounded client-side geometry, not collectible item entities.
+Snapshots use existing BE update packets every four active ticks. Tick-side focus
+registration keeps cinema working while looking away. Audio is a transient master
+listener gain (no saved option writes), restored when the ritual/focus ends.
+Camera/FOV/input effects reset automatically on death, disconnect or dimension change.
+Pulses stay below 3 Hz; no rapid full-screen strobing. Normal player movement is
+restrained only during the final 70 ticks, without permanent ability flags.
+
+Testing:
+Use a COPY/test world; quit Minecraft and replace only dynasty-1.4.0.jar with
+build/libs/dynasty-1.4.0.jar (both client and server for multiplayer).
+This task does NOT deploy to your playing instance or edit any player save.
+In a clear area with room around you run /dynasty_ritual place.
+/give @s dynasty:qinglong_scale 2
+/give @s dynasty:baihu_fang 2
+/give @s dynasty:zhuque_feather 2
+/give @s dynasty:xuanwu_shell 2
+/give @s dynasty:tianming_jade 2
+Hold each tribute and right-click its corresponding labelled low pedestal.
+Try a wrong item and repeated clicks; verify no extra item consumption.
+Try offering jade early: '四象尚未归位。' and no consumption.
+Use any order, or two players on different pillars. Observe the third/fourth events.
+Wait for '四象归位 / 献上最后的祭品。', then offer jade in the middle.
+Watch the full 12-second final ceremony before the existing arena transfer.
+Save/quit midway and reload: progress resumes, accepted offerings remain reserved.
+After final payment /dynasty_ritual status reports the phase and animation clock.
+
+Resources: no mandatory external resources. Tianming jade uses the existing jade
+texture as an explicit temporary asset; rename via lang JSON, replace texture via
+its item model, add acquisition later via a normal recipe/loot table without code changes.
+No new acquisition/balance progression has been invented in this phase.
+
+Modified implementation files:
+src/main/java/com/dynasty/DynastyTabs.java
+src/main/java/com/dynasty/ritual/ZhenyuanRitualContent.java
+src/main/java/com/dynasty/ritual/ZhenyuanRitualSavedData.java
+src/main/java/com/dynasty/ritual/ZhenyuanRitualService.java
+src/main/java/com/dynasty/ritual/ZhenyuanNodeBlock.java
+src/main/java/com/dynasty/ritual/ZhenyuanNodeBlockEntity.java
+src/main/java/com/dynasty/ritual/ZhenyuanPhaseOne.java
+src/main/java/com/dynasty/client/ZhenyuanNodeRenderer.java
+src/main/java/com/dynasty/client/RitualPhaseOneEffects.java
+src/main/java/com/dynasty/ritual/ZhenyuanRitualGameTests.java
+src/main/java/com/dynasty/ritual/ZhenyuanPhaseOneGameTests.java
+src/main/resources/assets/dynasty/lang/{zh_cn,en_us}.json
+src/main/resources/assets/dynasty/models/item/tianming_jade.json
+tools/ritual/runtime/com/dynasty/client/ZhenyuanRenderQa.java
+
+Validation commands:
+./gradlew --offline -I tools/ritual/qa.init.gradle runGameTestServer
+./gradlew --offline -I tools/ritual/runtime.init.gradle runClient
+./gradlew --offline build
+Automated render capture is actual Minecraft GPU output, not a multiplayer
+gameplay test. Human visual/multiplayer acceptance is still required in a test world.

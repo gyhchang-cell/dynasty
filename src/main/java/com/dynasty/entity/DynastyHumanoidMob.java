@@ -12,6 +12,19 @@ import net.minecraft.world.level.Level;
  */
 @SuppressWarnings("null")
 public abstract class DynastyHumanoidMob extends Monster {
+    private static final net.minecraft.network.syncher.EntityDataAccessor<Long> CHARACTER_ATTACK_START =
+            net.minecraft.network.syncher.SynchedEntityData.defineId(DynastyHumanoidMob.class, net.minecraft.network.syncher.EntityDataSerializers.LONG);
+    @Override protected void defineSynchedData() {
+        super.defineSynchedData();entityData.define(CHARACTER_ATTACK_START,-1L);
+    }
+    /** Only the three remastered melee roles use this clock. One network update per swing. */
+    public int characterAttackDuration(){return this instanceof DynastyBosses.RebelGeneral?24:this instanceof DynastyMobs.RoyalGuard?18:14;}
+    public void beginCharacterAttack(){entityData.set(CHARACTER_ATTACK_START,level().getGameTime());}
+    public void cancelCharacterAttack(){entityData.set(CHARACTER_ATTACK_START,-1L);}
+    public float characterAttackProgress(float partial) {
+        long start=entityData.get(CHARACTER_ATTACK_START);float elapsed=level().getGameTime()-start+partial;
+        return start<0||elapsed<0||elapsed>=characterAttackDuration()?0:elapsed/characterAttackDuration();
+    }
 
     protected DynastyHumanoidMob(EntityType<? extends DynastyHumanoidMob> type, Level level) {
         super(type, level);

@@ -23,17 +23,62 @@ public final class HouyiAvatarRenderer {
     private static final BufferBuilder BUFFER = new BufferBuilder(1048576);
     private static final P LIGHT = new P(-0.45,0.8,0.6).unit();
     private static VertexBuffer guardianBuffer;
+    private static VertexBuffer archerBuffer;
 
     static void invalidateGuardianBuffer() {
-        if(guardianBuffer==null)return;
         if(!RenderSystem.isOnRenderThread()) {RenderSystem.recordRenderCall(HouyiAvatarRenderer::invalidateGuardianBuffer);return;}
-        guardianBuffer.close();guardianBuffer=null;
+        if(guardianBuffer!=null){guardianBuffer.close();guardianBuffer=null;}
+        if(archerBuffer!=null){archerBuffer.close();archerBuffer=null;}
     }
 
     public static void draw(Matrix4f matrix, Vec3 origin, float yaw, double formed) {
+        if(formed<=0)return;
         Vec3 aim=HouyiAvatarShape.forward(yaw);
         Vec3 zAxis=aim.cross(new Vec3(0,1,0)), xAxis=aim.scale(-1);
-        drawMesh(matrix,origin,xAxis,zAxis,formed,10,HouyiAvatarShape.MESH);
+        if(formed>=1)drawFormedArcher(matrix,origin,xAxis,zAxis);
+        else drawMesh(matrix,origin,xAxis,zAxis,formed,10,HouyiAvatarShape.MESH);
+    }
+
+    /** Depth-only pass hides internal overlapping parts while retaining the apparition's alpha.
+     * Static local-space VBO is shared across players, never rebuilt/sorted per formed frame. */
+    private static void drawFormedArcher(Matrix4f matrix,Vec3 origin,Vec3 xAxis,Vec3 zAxis) {
+        try(ImperialRenderState state=new ImperialRenderState()) {
+            if(archerBuffer==null||archerBuffer.isInvalid()) {
+                BUFFER.begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);
+                for(Face face:HouyiAvatarShape.MESH) {
+                    double shade=face.material()==Material.LIGHT?1:.43+.57*Math.max(0,face.normal().dot(LIGHT));
+                    Material m=face.material();
+                    float alpha=m==Material.LIGHT?.96f:.88f;
+                    for(P p:new P[]{face.a(),face.b(),face.c(),face.a(),face.c(),face.d()})
+                        BUFFER.vertex(p.x(),p.y(),p.z()).color((float)(m.r*shade),(float)(m.g*shade),(float)(m.b*shade),alpha).endVertex();
+                }
+                archerBuffer=new VertexBuffer(VertexBuffer.Usage.STATIC);
+                archerBuffer.bind();try{archerBuffer.upload(BUFFER.end());}finally{VertexBuffer.unbind();}
+            }
+            Matrix4f local=new Matrix4f().m00((float)xAxis.x).m02((float)xAxis.z)
+                    .m20((float)zAxis.x).m22((float)zAxis.z)
+                    .m30((float)origin.x).m31((float)origin.y).m32((float)origin.z);
+            Matrix4f transform=new Matrix4f(RenderSystem.getModelViewMatrix()).mul(matrix).mul(local);
+            RenderSystem.setShader(GameRenderer::getPositionColorShader);
+            RenderSystem.enableDepthTest();RenderSystem.disableCull();
+            RenderSystem.disableBlend();RenderSystem.depthMask(true);
+            // Preserve unusual color masks from other render hooks too.
+            boolean[] mask=new boolean[4];
+            try(var stack=org.lwjgl.system.MemoryStack.stackPush()) {
+                var values=stack.malloc(4);org.lwjgl.opengl.GL11.glGetBooleanv(org.lwjgl.opengl.GL11.GL_COLOR_WRITEMASK,values);
+                for(int i=0;i<4;i++)mask[i]=values.get(i)!=0;
+            }
+            archerBuffer.bind();
+            int oldDepthFunc=org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL11.GL_DEPTH_FUNC);
+            try {
+                RenderSystem.depthFunc(org.lwjgl.opengl.GL11.GL_LEQUAL);
+                RenderSystem.colorMask(false,false,false,false);
+                archerBuffer.drawWithShader(transform,RenderSystem.getProjectionMatrix(),RenderSystem.getShader());
+                RenderSystem.colorMask(mask[0],mask[1],mask[2],mask[3]);
+                RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.depthMask(false);
+                archerBuffer.drawWithShader(transform,RenderSystem.getProjectionMatrix(),RenderSystem.getShader());
+            } finally {RenderSystem.colorMask(mask[0],mask[1],mask[2],mask[3]);RenderSystem.depthFunc(oldDepthFunc);VertexBuffer.unbind();}
+        }
     }
 
     public static void drawGuanYu(Matrix4f matrix,Vec3 origin,float yaw,double formed) {

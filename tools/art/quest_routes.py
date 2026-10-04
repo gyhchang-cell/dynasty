@@ -291,7 +291,7 @@ def add_routes(chapters, recipes, name, contracts):
 def add_home(chapters):
     byfile = {c["file"]:c for c in chapters}
     first = byfile["dynasty_story_01"]["quests"][0]
-    final = byfile["dynasty_story_08"]["quests"][-1]
+    final = next(q for q in byfile["dynasty_story_08"]["quests"] if q['target']=='dynasty:story_visit_longque_sanctuary')
     rows = [node(0x40000, "从这里看懂整本任务书", "checkmark", "guide:home",
                  "主线告诉你下一步去哪；流派让你决定怎样战斗。不是把所有页面清空才算通关。",
                  "新玩家点击『安家起步』；青铜装备与图纸就绪后可旁听任一流派。四种流派能随时切换、不锁职业。老玩家已完成的任务身份、奖励和五项加槽里程碑不变。",
@@ -299,7 +299,7 @@ def add_home(chapters):
     entries = [("安家起步 · 主线 01",first["id"],"没有据点和工具：先从工作台、照明和铁剑开始。", "dynasty:dynasty_manual"),
                ("工坊已成 · 主线 02",byfile["dynasty_story_02"]["quests"][0]["id"],"有据点后：导航罗盘、图纸、青铜与饰品佩戴。", "dynasty:blueprint"),
                ("维度探索 · 主线 04",byfile["dynasty_story_04"]["quests"][0]["id"],"已平叛、知道回程方法：按主线探索天朝、幽冥、九霄、龙宫。", "dynasty:jade_portal"),
-               ("问鼎之后 · 自选毕业",final["id"],"已打败龙帝：查毕业配方，继续流派演练、探索、营造，不必全收集。", "dynasty:tianzi_sword")]
+               ("问鼎之后 · 龙阙终章",final["id"],"已打败龙帝：深入龙阙，转入第 09 章四象镇渊。配装可以自选，主线并未结束。", "dynasty:tianzi_sword")]
     cards=[]
     for i,(title,target,how,icon) in enumerate(entries):
         cards.append({"asset":"card_stage_"+str(i),"target":target,"x":-5.0,"y":-3.0+i*3,"hover":[title,how]})

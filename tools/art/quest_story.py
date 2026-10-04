@@ -415,6 +415,10 @@ def build_book():
     from quest_routes import add_routes, add_home, load_contracts
     from quest_atlas import add_catalog_navigation, decorate
     add_routes(chapters, recipes, name, load_contracts())
+    from quest_boss_ascent import add_boss_ascent
+    add_boss_ascent(chapters, recipes, name)
+    from quest_world_mainline import add_world_mainline
+    add_world_mainline(chapters)
     add_home(chapters)
     add_catalog_navigation(chapters, SLOTS)
     decorate(chapters)
@@ -448,7 +452,10 @@ def validate(chapters, original=None):
             chapter=next(c for c in chapters if q in c['quests'])
             assert chapter['main'] and all(d in {n['id'] for n in chapter['quests']} for d in q['deps']), "Exploration must stay in its own chapter"
         if q["role"] == "build":
-            assert all(byid[d].get("route")==q["route"] and byid[d]["role"]=="build" for d in q["deps"]), "Build gates another route"
+            assert all((byid[d].get("route")==q["route"] and byid[d]["role"]=="build") or
+                       (q.get('route')=='boss_ascent' and d==q.get('world_story_gate') and
+                        byid[d]['role']=='main' and byid[d]['target']=='dynasty:story_visit_longque_sanctuary')
+                       for d in q["deps"]), "Build gates another route"
         if q["kind"]=="checkmark":
             assert q["rewards"]=="[]", "Reading page must not farm rewards"
     identities = [c["id"] for c in chapters] + list(byid)

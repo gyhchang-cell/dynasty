@@ -168,4 +168,4 @@ curl -L --retry 2 -o "item-filters-forge-2001.1.0-build.59.jar" "https://edge.fo
 echo ">> alltheleaks-1.1.3+1.20.1-forge.jar"
 curl -L --retry 2 -o "alltheleaks-1.1.3+1.20.1-forge.jar" "https://edge.forgecdn.net/files/8779/054/alltheleaks-1.1.3+1.20.1-forge.jar"
 echo ">> jecharacters-1.20.1-forge-4.6.11.jar"
-curl -L --retry 2 -o "jecharacters-1.20.1-forge-4.6.11.jar" "https://edge.forgecdn.net/files/8771/525/jecharacters-1.20.1-forge-4.6.11.jar"
+curl -L --retry 2 -o "jecharacters-1.20.1-forge-4.6.11.jar" "https://cdn.modrinth.com/data/I7k4B65h/versions/oUqz8dp4/jecharacters-1.20.1-forge-4.6.11.jar"

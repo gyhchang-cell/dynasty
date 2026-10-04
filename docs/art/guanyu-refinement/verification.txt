@@ -1,0 +1,28 @@
+关羽细化验收（2026-10-01）
+
+范围：仅附件中的关羽部分。后羿、战斗行为、网络状态、方块清除边界、建筑和用户存档未修改。
+保留九格高度、原有武器朝向及握持点。复用已有程序网格和渲染缓存。
+
+模型：胸背加厚收腰；肩甲闭合厚度并重排包边；前后甲裙有厚度且分片；五束封闭长须；加强颧骨、眼窝、眉毛；披风分层和六尾；冠后补服帖巾片。
+赤面：生产 shader 中增加固定在模型坐标上的微弱像素色差，降低皮肤高光。没有替换已有锦纹图片。
+原本已经具备的丹凤眼、握持手指/拇指、护臂、靴、刀刃曲面及龙纹继续保留并检查。
+
+修改源码：
+src/main/java/com/dynasty/GuanYuAvatarShape.java
+src/main/java/com/dynasty/GuanYuSculptor.java
+src/main/resources/assets/dynasty/shaders/core/imperial_material.fsh
+tools/art/RenderImperialMeshes.java（六视角/灰模）
+tools/art/ExportImperialMeshes.java、export_imperial_meshes.sh（只导出关羽，避开无关龙模型的旧导出预算限制）
+
+验证：
+gradlew --offline build 成功。
+verify_imperial_meshes.sh 成功；73,224 quads；有限坐标、法线、握持轴、刀杆及整把武器非握持部位穿插检查通过。
+生产 OpenGL 着色器编译/链接及锦纹读取、GPU 绘制成功；检查正面、35度、侧面、背面。
+六视角材质/无贴图预览已检查；这些是离线真实网格渲染，不是游戏截图。
+runGameTestServer 有一项旧失败 fullworkshopplacement：刷怪笼没有刷出僵尸。没有将其记作全部测试通过，也未越界修改建筑系统。
+没有人工进入客户端世界进行多人实测；请在客户端验收后再开始后羿。
+
+测试：用 build/libs/dynasty-1.4.0.jar 替换测试实例旧版同名模组，保留依赖，重启客户端。
+/give @s dynasty:qinglong_dao
+主手持刀约两秒，F5 看身后关羽。空地测试各个方向，检查长须、脸部、肩甲和披风。
+无需额外美术资源。本轮没有自动覆盖正在玩的实例。

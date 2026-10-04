@@ -1,0 +1,18 @@
+// Isolated test-only sources and save directory. Never packaged with the mod.
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def qa = p.sourceSets.create('guandaoQa') {
+        java.srcDir p.file('tools/art/guandao-qa/src')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.minecraft.runs.client {
+        workingDirectory p.file('build/guandao-world-qa/client')
+        property 'dynasty.guandaoQa', 'true'
+        property 'dynasty.guandaoQa.output', p.file(p.findProperty('guandaoRegression') ? 'docs/art/unification/weapon' : 'docs/art/guandao-refined').absolutePath
+        property 'dynasty.guandaoQa.regression', p.findProperty('guandaoRegression') ? 'true' : 'false'
+        args '--width', '1600', '--height', '1000'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.configureEach { task -> if(task.name=='runClient')task.dependsOn qa.classesTaskName }
+} }

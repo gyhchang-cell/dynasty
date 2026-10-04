@@ -11,7 +11,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public class DynastyNetwork {
 
-    private static final String PROTOCOL = "6";
+    private static final String PROTOCOL = "7";
 
     @SuppressWarnings("removal")
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -50,5 +50,11 @@ public class DynastyNetwork {
         CHANNEL.registerMessage(id++, BountyActionPacket.class,
                 BountyActionPacket::encode, BountyActionPacket::decode, BountyActionPacket::handle,
                 java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER));
+        // Append only: preserve existing packet ordinals. Both peers must use the new protocol.
+        CHANNEL.registerMessage(id++, com.dynasty.blueprint.BlueprintVisualEvent.class,
+                com.dynasty.blueprint.BlueprintVisualEvent::encode,
+                com.dynasty.blueprint.BlueprintVisualEvent::decode,
+                com.dynasty.blueprint.BlueprintVisualEvent::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
     }
 }

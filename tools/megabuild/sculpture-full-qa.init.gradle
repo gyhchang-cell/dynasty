@@ -1,0 +1,20 @@
+// Opt-in full 3.85-million-block placement. Never points at a launcher/player save.
+gradle.projectsEvaluated {
+    // Every full run is a new isolated flat world. Reusing a previous world would hit
+    // the previous sculpture, and Forge's default server.properties creates noise terrain.
+    def qaDir = rootProject.file('build/sculpture-full-qa/runs/' + System.currentTimeMillis())
+    qaDir.mkdirs()
+    rootProject.copy {
+        from rootProject.file('tools/megabuild/qa-server.properties')
+        into qaDir
+        rename { 'server.properties' }
+    }
+    rootProject.minecraft.runs.gameTestServer {
+        workingDirectory qaDir
+        // Forge filters generator results by TEMPLATE namespace, not @GameTestHolder.
+        property 'forge.enabledGameTestNamespaces', 'dynasty_sculpture_full'
+        property 'dynasty.sculptureFullQa', 'true'
+        property 'dynasty.sculptureDirectQa', rootProject.findProperty('sculptureDirectQa') ?: 'false'
+        property 'dynasty.sculptureQaReport', rootProject.file('build/sculpture-full-qa/verified-world.json').absolutePath
+    }
+}

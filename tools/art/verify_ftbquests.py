@@ -207,9 +207,10 @@ def main():
         problems.append("找不到构建出的 jar（先 ./gradlew build）")
 
     entities = set()
-    ent_file = os.path.join(ROOT, "src/main/java/com/dynasty/entity/DynastyEntities.java")
-    if os.path.exists(ent_file):
-        entities = set(re.findall(r'"([a-z_]+)"', open(ent_file, encoding="utf-8").read()))
+    for relative in ("entity/DynastyEntities.java", "ritual/ZhenyuanBosses.java"):
+        ent_file = os.path.join(ROOT, "src/main/java/com/dynasty", relative)
+        if os.path.exists(ent_file):
+            entities.update(re.findall(r'"([a-z_]+)"', open(ent_file, encoding="utf-8").read()))
 
     chapters = sorted(glob.glob(os.path.join(CHAPTER_DIR, "*.snbt")))
     if not chapters:

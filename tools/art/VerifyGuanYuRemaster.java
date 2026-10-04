@@ -16,7 +16,7 @@ import java.util.HashSet;
 /** Reproducible geometric checks; does not launch Minecraft or touch a saved world. */
 public final class VerifyGuanYuRemaster {
     private static final List<String> failures=new ArrayList<>();
-    private static final double SHAFT_RADIUS=.059;
+    private static final double SHAFT_RADIUS=.10;
     private static final double CLEARANCE_MARGIN=.02;
     private static final Material[] HAND={Material.GUAN_SKIN,Material.GUAN_HIGHLIGHT,Material.GUAN_SHADOW};
     private record Triangle(P a,P b,P c,Material material) {}
@@ -32,9 +32,10 @@ public final class VerifyGuanYuRemaster {
             Method method=GuanYuAvatarShape.class.getDeclaredMethod(part,GuanYuSculptor.class);
             method.setAccessible(true);method.invoke(null,builder);parts.put(part,List.copyOf(builder.faces));
         }
-        checkBounds(mesh,"whole body",-4.1,2.7,-.02,GuanYuAvatarShape.HEIGHT+.015,-1.65,1.5);
+        checkBounds(mesh,"body plus raised guandao",-5.2,2.7,-.02,10.35,-1.65,1.8);
         checkBounds(parts.get("head"),"head/beard/crown",-.85,.85,5.5,9.015,-.70,1.15);
         verifyCaps();
+        verifyBladeAndGrip(parts.get("arms"));
         double gripDistance=distanceToSegment(GuanYuAvatarShape.GRIP,GuanYuAvatarShape.SHAFT_BOTTOM,GuanYuAvatarShape.SHAFT_TOP);
         check(gripDistance<.008,"Grip axis misses shaft: "+gripDistance);
         System.out.printf("Grip-axis offset: %.6f blocks%n",gripDistance);
@@ -57,13 +58,67 @@ public final class VerifyGuanYuRemaster {
         System.out.println("PASS: finite geometry, bounds, outward caps, grip axis, shaft clearance, whole-weapon surface intersections and normal cache");
     }
     private static ImperialMeshNormals.Point point(P p){return new ImperialMeshNormals.Point(p.x(),p.y(),p.z());}
+    private static void verifyBladeAndGrip(List<Face> arms)throws Exception {
+        // The user's photographs supersede all earlier invented aspect/area targets.
+        Method outlineMethod=GuanYuAvatarShape.class.getDeclaredMethod("photoOutline");outlineMethod.setAccessible(true);
+        @SuppressWarnings("unchecked") List<P> outline=(List<P>)outlineMethod.invoke(null);
+        Method build=GuanYuAvatarShape.class.getDeclaredMethod("photoBladeMesh",GuanYuSculptor.class);build.setAccessible(true);
+        GuanYuSculptor blade=new GuanYuSculptor();build.invoke(null,blade);
+        double outlineArea=0;for(int i=0;i<outline.size();i++){P a=outline.get(i),b=outline.get((i+1)%outline.size());outlineArea+=a.x()*b.y()-a.y()*b.x();}
+        outlineArea=Math.abs(outlineArea)*.5;
+        double frontArea=0,maxThickness=0;Map<String,Integer> edgeUses=new HashMap<>();
+        for(Face f:blade.faces) {
+            if(f.material()==Material.GUAN_RELIEF||f.material()==Material.GOLD_OLD)continue; // attached low relief, not structural shell
+            List<P> vertices=f.d().equals(f.a())?List.of(f.a(),f.b(),f.c()):List.of(f.a(),f.b(),f.c(),f.d());
+            if(vertices.stream().allMatch(v->v.z()>0))frontArea+=(Math.abs(f.b().sub(f.a()).cross(f.c().sub(f.a())).z())+Math.abs(f.c().sub(f.a()).cross(f.d().sub(f.a())).z()))*.5;
+            for(int i=0;i<vertices.size();i++) {
+                P a=vertices.get(i),b=vertices.get((i+1)%vertices.size());
+                if(a.sub(b).dot(a.sub(b))<1e-20)continue;
+                String aa=vertexKey(a),bb=vertexKey(b),key=aa.compareTo(bb)<0?aa+"|"+bb:bb+"|"+aa;
+                edgeUses.merge(key,1,Integer::sum);maxThickness=Math.max(maxThickness,Math.abs(a.z())*2);
+                check(insideOutline(outline,a),"Refinement exceeded locked silhouette");
+            }
+        }
+        check(Math.abs(outlineArea-frontArea)<1e-8,"Concave triangulation lost/overlapped blade area");
+        check(edgeUses.values().stream().allMatch(n->n==2),"Photograph extrusion has open or nonmanifold edges");
+        check(Math.abs(outlineArea-2.228781)<.000001,"Approved silhouette area changed");
+        check(Math.abs(maxThickness-.26)<1e-8,"Spine stock must have real .26-block thickness");
+        long bright=blade.faces.stream().filter(f->f.material()==Material.GUAN_EDGE).count(),bevel=blade.faces.stream().filter(f->f.material()==Material.GUAN_BEVEL).count();
+        check(bright>=250&&bevel>=250,"Continuous main-edge bevel missing");
+        check(outline.stream().anyMatch(q->q.x()<-.98&&q.y()>3.08),"Photographed swept tip lost");
+        check(GuanYuAvatarShape.SHAFT_TOP.sub(GuanYuAvatarShape.SHAFT_BOTTOM).dot(GuanYuAvatarShape.SHAFT_TOP.sub(GuanYuAvatarShape.SHAFT_BOTTOM))>25,"Existing shaft length changed");
+        System.out.printf("Photo trace: %d points; area %.6f = triangulated %.6f; thickness %.3f; closed manifold PASS%n",outline.size(),outlineArea,frontArea,maxThickness);
+        P up=GuanYuAvatarShape.WEAPON_UP;
+        double outward=Math.toDegrees(Math.atan2(-up.x(),up.y())),forward=Math.toDegrees(Math.atan2(up.z(),up.y()));
+        check(outward>=10&&outward<=15&&forward>=5&&forward<=10,"Weapon pose outside requested tilt range");
+        double nearest=Double.POSITIVE_INFINITY;
+        P g=GuanYuAvatarShape.GRIP,a=g.sub(up.scale(.28)),b=g.add(up.scale(.28));
+        for(Face f:arms)if(handContact(f.a(),f.material()))for(Triangle t:triangles(f))if(!degenerate(t))
+            nearest=Math.min(nearest,Math.sqrt(segmentTriangleDistance(a,b,t).squared));
+        System.out.printf("Weapon lean: outward %.2f°, forward %.2f°; hand bore minimum radius %.5f%n",outward,forward,nearest);
+        check(nearest>=.08,"Palm/finger geometry penetrates the grip bore");
+    }
+    private static String vertexKey(P a){return Math.round(a.x()*1e8)+","+Math.round(a.y()*1e8)+","+Math.round(a.z()*1e8);}
+    private static boolean insideOutline(List<P> q,P v){boolean inside=false;for(int i=0,j=q.size()-1;i<q.size();j=i++){P a=q.get(i),b=q.get(j),d=b.sub(a);double t=Math.max(0,Math.min(1,v.sub(a).dot(d)/Math.max(1e-20,d.dot(d))));P closest=a.add(d.scale(t));if(Math.hypot(v.x()-closest.x(),v.y()-closest.y())<1e-8)return true;if((a.y()>v.y())!=(b.y()>v.y())&&v.x()<(b.x()-a.x())*(v.y()-a.y())/(b.y()-a.y())+a.x())inside=!inside;}return inside;}
+    private static double bladeArea(P[] spine,P[] edge) {
+        var outline=new ArrayList<P>();
+        for(int i=0;i<=480;i++)outline.add(curvePoint(spine,i/480.));
+        for(int i=480;i>=0;i--)outline.add(curvePoint(edge,i/480.));
+        double area=0;for(int i=0;i<outline.size();i++){P a=outline.get(i),b=outline.get((i+1)%outline.size());area+=a.x()*b.y()-a.y()*b.x();}
+        return Math.abs(area)*.5;
+    }
+    private static P curvePoint(P[] points,double t) {
+        if(points.length==6)return GuanYuSculptor.path(points,t); // historical Catmull-Rom baseline
+        try {Method m=GuanYuAvatarShape.class.getDeclaredMethod("bladeCurve",P[].class,double.class);m.setAccessible(true);return (P)m.invoke(null,points,t);}
+        catch(Exception e){throw new IllegalStateException(e);}
+    }
     private static void verifyWeaponIdentity(List<Face> faces) {
         var counts=new EnumMap<Material,Integer>(Material.class);
         for(Face f:faces)counts.merge(f.material(),1,Integer::sum);
-        check(counts.getOrDefault(Material.JADE_METAL,0)>500,"Guandao must retain a dedicated green metal body/socket/shaft without cloth-shader selection");
-        check(counts.getOrDefault(Material.STEEL,0)>=400&&counts.getOrDefault(Material.IVORY,0)>=200,"Guandao wide silver bevel is missing");
-        check(counts.getOrDefault(Material.GOLD_PALE,0)>1000,"Guandao gold relief/guard geometry is missing");
-        check(counts.getOrDefault(Material.SILK_RED,0)+counts.getOrDefault(Material.CRIMSON,0)>1800,"Guandao red silk tassel geometry is missing");
+        check(counts.getOrDefault(Material.GUAN_BLADE,0)>0,"Photograph-traced dark metal blade is missing");
+        check(counts.getOrDefault(Material.GUAN_SHAFT,0)>0,"Dark wood shaft is missing");
+        check(counts.getOrDefault(Material.GOLD_OLD,0)>250,"Bronze socket and shaft fittings missing");
+        check(counts.getOrDefault(Material.SILK_RED,0)+counts.getOrDefault(Material.CRIMSON,0)>200,"Three short red tassels missing");
         System.out.println("Guandao material/geometry identity: "+counts);
     }
     private static void verifyPhoenixEyes()throws Exception {
@@ -109,7 +164,8 @@ public final class VerifyGuanYuRemaster {
     }
     private static boolean handContact(P p,Material material) {
         boolean skin=false;for(Material m:HAND)if(material==m)skin=true;
-        return skin&&p.x()>-2.48&&p.x()<-1.72&&p.y()>5.14&&p.y()<5.73&&p.z()>.55&&p.z()<1.12;
+        P d=p.sub(GuanYuAvatarShape.GRIP);
+        return skin&&Math.abs(d.dot(GuanYuAvatarShape.WEAPON_UP))<.30&&d.dot(d)<.42*.42;
     }
     private record Cell(int x,int y,int z) {}
     private record LabeledTriangle(Triangle triangle,String part) {}
@@ -179,7 +235,7 @@ public final class VerifyGuanYuRemaster {
                 double maxX=Math.max(Math.max(f.a().x(),f.b().x()),Math.max(f.c().x(),f.d().x()));
                 double minZ=Math.min(Math.min(f.a().z(),f.b().z()),Math.min(f.c().z(),f.d().z()));
                 double maxZ=Math.max(Math.max(f.a().z(),f.b().z()),Math.max(f.c().z(),f.d().z()));
-                if(minX>Math.max(bottom.x(),top.x())+.12||maxX<Math.min(bottom.x(),top.x())-.12||minZ>bottom.z()+.12||maxZ<bottom.z()-.12)continue;
+                if(minX>Math.max(bottom.x(),top.x())+.12||maxX<Math.min(bottom.x(),top.x())-.12||minZ>Math.max(bottom.z(),top.z())+.12||maxZ<Math.min(bottom.z(),top.z())-.12)continue;
                 candidates.add(new Triangle(f.a(),f.b(),f.c(),f.material()));
                 candidates.add(new Triangle(f.a(),f.c(),f.d(),f.material()));
             }

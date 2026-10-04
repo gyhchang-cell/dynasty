@@ -18,8 +18,15 @@ final class ImperialRenderState implements AutoCloseable {
     private final ShaderInstance shader=RenderSystem.getShader();
     private final int texture0=RenderSystem.getShaderTexture(0);
     private final int activeTexture=GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
+    private final int depthFunc=GL11.glGetInteger(GL11.GL_DEPTH_FUNC);
+    private final float[] shaderColor=RenderSystem.getShaderColor().clone();
+    private final boolean[] colorMask=new boolean[4];
     private final int boundTexture0;
     ImperialRenderState() {
+        try(var stack=org.lwjgl.system.MemoryStack.stackPush()) {
+            var mask=stack.malloc(4);GL11.glGetBooleanv(GL11.GL_COLOR_WRITEMASK,mask);
+            for(int i=0;i<4;i++)colorMask[i]=mask.get(i)!=0;
+        }
         // Query another unit without changing Minecraft's cached active-unit state.
         GL13.glActiveTexture(GL13.GL_TEXTURE0);
         boundTexture0=GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
@@ -27,6 +34,9 @@ final class ImperialRenderState implements AutoCloseable {
     }
     @Override public void close() {
         RenderSystem.depthMask(depthMask);
+        RenderSystem.depthFunc(depthFunc);
+        RenderSystem.colorMask(colorMask[0],colorMask[1],colorMask[2],colorMask[3]);
+        RenderSystem.setShaderColor(shaderColor[0],shaderColor[1],shaderColor[2],shaderColor[3]);
         if(depth)RenderSystem.enableDepthTest();else RenderSystem.disableDepthTest();
         if(cull)RenderSystem.enableCull();else RenderSystem.disableCull();
         RenderSystem.blendFuncSeparate(srcRgb,dstRgb,srcAlpha,dstAlpha);
