@@ -409,24 +409,26 @@ def make_catalog(source: Path) -> dict:
             "expectedCounts": COUNTS, "protectedFinalBoss": "dynasty:zhenyuan_sovereign", "entries": entries}
 
 
-def game_test_evidence(test_log: Path) -> dict:
+def game_test_evidence(test_log: Path, namespaces: tuple[str, ...] = ("dynasty",)) -> dict:
     """Match a complete successful run to current annotated dynasty test sources.
 
-    No test totals are constants. Other namespaces (e.g. sculpture_full) are not
-    part of this run; generated tests or changed annotation syntax fail closed.
+    No test totals are constants. Only explicitly supplied namespaces are counted;
+    generated tests or changed annotation syntax fail closed.
     A current-source match is not a byte-for-byte archive of the executed build.
     """
     pattern = r'@GameTest\([^)]*\)\s*public static void (\w+)\('
     discovered, blueprint_tests = [], []
     for path in sorted((ROOT / "src/main/java").rglob("*.java")):
         text = path.read_text()
-        if not re.search(r'@GameTestHolder\(\s*(?:Dynasty.MODID|"dynasty")\s*\)', text):
+        holder = re.search(r'@GameTestHolder\(\s*(Dynasty.MODID|"[\w.-]+")\s*\)', text)
+        namespace = "dynasty" if holder and holder[1] == "Dynasty.MODID" else holder[1].strip('"') if holder else None
+        if namespace not in namespaces:
             continue
         assert "@GameTestGenerator" not in text, f"Generated tests require explicit discovery support: {path}"
         names = re.findall(pattern, text)
         assert len(names) == len(re.findall(r'@GameTest\s*\(', text)), f"Unsupported test annotation syntax: {path}"
         assert not re.search(r'@GameTest\([^)]*required\s*=\s*false', text), "Optional tests need separate log accounting"
-        discovered.append(dict(probe(rel(path)), count=len(names)))
+        discovered.append(dict(probe(rel(path)), count=len(names), namespace=namespace))
         if path.parent == ROOT / "src/main/java/com/dynasty/blueprint":
             blueprint_tests.extend(names)
     assert blueprint_tests and len(blueprint_tests) == len(set(blueprint_tests)), "Missing/ambiguous blueprint tests"
@@ -438,12 +440,13 @@ def game_test_evidence(test_log: Path) -> dict:
     total = int(completed[0])
     assert total == int(passed[0]) == sum(p["count"] for p in discovered), "Log total differs from current annotated dynasty tests"
     assert not failures and "BUILD SUCCESSFUL" in log, "Server test run was not wholly successful"
+    assert "MissingPaletteEntryException" not in log, "Background chunk-light failure cannot count as a clean run"
     lines = log.splitlines()
     build_lines = [i + 1 for i, line in enumerate(lines) if re.fullmatch(r'> Task :build(?: UP-TO-DATE)?', line)]
     return {"suite": {"total": total, "passed": total, "failed": 0, "failures": []},
             "blueprintTests": {"count": len(blueprint_tests), "passed": len(blueprint_tests), "names": blueprint_tests,
                 "basis": f"All {total} current annotated dynasty tests completed and passed; includes {len(blueprint_tests)} blueprint tests."},
-            "sourceDiscovery": {"namespace": "dynasty", "method": "@GameTestHolder plus @GameTest annotations; count must match complete log", "files": discovered},
+            "sourceDiscovery": {"namespace": namespaces[0] if len(namespaces)==1 else list(namespaces), "method": "@GameTestHolder plus @GameTest annotations; count must match complete log", "files": discovered},
             "productionBuild": {"status": "PASS_LOGGED_BUILD_TASK" if build_lines else "NOT_RECORDED_IN_THIS_LOG",
                 "buildTaskLines": build_lines,
                 "artifactTasks": re.findall(r'^> Task :(jar|reobfJar|assemble|build)(?: UP-TO-DATE)?$', log, re.M)},
@@ -472,22 +475,31 @@ def structure_attempt_weights(definitions: str, spawn_source: str) -> dict:
     return result
 
 
-def client_stage_contract() -> dict:
+def client_stage_contract(army: bool = False) -> dict:
     """Read the current QA stage names; old 14-stage or death-only runs cannot pass."""
     qa_path = ROOT / "tools/blueprint/qa-src/com/dynasty/client/BlueprintClientQa.java"
     source = qa_path.read_text()
-    match = re.search(r'String\[\] NAMES = \{(.*?)\};', source, re.S)
+    match = re.search(r'String\[\] NAMES = ARMY \? new String\[\]\{(.*?)\}\s*:\s*new String\[\]\{(.*?)\};', source, re.S)
+    if match:
+        raw = match[1 if army else 2]
+    else:
+        match = re.search(r'String\[\] NAMES = \{(.*?)\};', source, re.S)
+        raw = match[1] if match else ""
     assert match, "Cannot discover current client QA stages"
-    names = re.findall(r'"([a-z0-9-]+)"', match[1])
-    assert len(names) == len(set(names)) == 22, "Client acceptance contract changed; review parser explicitly"
-    assert names[14:20] == ["sword-death-mid", "sword-death-planted", "priest-death-mid",
-                          "priest-death-empty-robe", "shanxiao-death-mid", "shanxiao-death-curled-faded"]
-    assert names[20:] == ["autonomous-wall-climb", "autonomous-summit-rock"]
+    names = re.findall(r'"([a-z0-9-]+)"', raw)
+    assert len(names) == len(set(names)) == (23 if army else 22), "Client acceptance contract changed; review parser explicitly"
+    if army:
+        assert names[14] == "scout-knee"
+        assert names[18:] == ["spear-death", "crossbow-death", "scout-death", "powder-death", "banner-death"]
+    else:
+        assert names[14:20] == ["sword-death-mid", "sword-death-planted", "priest-death-mid",
+                              "priest-death-empty-robe", "shanxiao-death-mid", "shanxiao-death-curled-faded"]
+        assert names[20:] == ["autonomous-wall-climb", "autonomous-summit-rock"]
     return {"stageNames": names, "stageCount": len(names), "currentQaSource": probe(rel(qa_path)),
             "sourceHashScope": "Current parser contract snapshot; not proof of which classes a past client loaded."}
 
 
-def client_artifact_manifest(run_dir: Path, run: str) -> dict:
+def client_artifact_manifest(run_dir: Path, run: str, army: bool = False) -> dict:
     """Check the QA owner's frozen runClient classpath snapshot, not a packaged JAR."""
     path = run_dir / "artifact-manifest.json"
     if not path.is_file():
@@ -506,7 +518,10 @@ def client_artifact_manifest(run_dir: Path, run: str) -> dict:
         root = ROOT / tree["root"]
         files = sorted((p for p in root.rglob("*") if p.is_file()), key=lambda p: p.relative_to(root).as_posix())
         hashes = {p.relative_to(root).as_posix(): digest(p) for p in files}
-        aggregate = hashlib.sha256("".join(name + "\0" + value + "\n" for name, value in hashes.items()).encode()).hexdigest()
+        # The frozen manifest owns ordering (older snapshots used Path-part order).
+        # Verify complete file membership and every byte, not an incidental sorter.
+        aggregate = hashlib.sha256("".join(entry["path"] + "\0" + hashes.get(entry["path"], "MISSING") + "\n"
+                                           for entry in tree["entries"]).encode()).hexdigest()
         assert len(files) == tree["fileCount"] and sum(p.stat().st_size for p in files) == tree["bytes"], f"Classpath changed since snapshot: {tree['root']}"
         assert aggregate == tree["sha256"], f"Classpath hash changed since snapshot: {tree['root']}"
         seen = set()
@@ -517,27 +532,71 @@ def client_artifact_manifest(run_dir: Path, run: str) -> dict:
             assert hashes[name] == entry["sha256"] and (root / name).stat().st_size == entry["bytes"], "Detailed snapshot hash mismatch"
             if tree["root"] == "build/resources/main":
                 detailed_resources.add(name)
-                assert digest(ROOT / "src/main/resources" / name) == entry["sha256"], "Source asset differs from frozen runClient resource"
+                if name not in ("META-INF/mods.toml", "pack.mcmeta"):
+                    assert digest(ROOT / "src/main/resources" / name) == entry["sha256"], "Source asset differs from frozen runClient resource"
             if tree["root"] == "build/classes/java/main":
                 detailed_classes.add(name)
+        assert seen == set(hashes), "Snapshot must identify every supplied classpath file"
         checked.append({"root": tree["root"], "fileCount": len(files), "bytes": tree["bytes"],
                         "sha256": aggregate, "detailedEntryCount": len(seen)})
     assert {"com/dynasty/blueprint/TemplateMob.class", "com/dynasty/blueprint/combat/CenteredGroundNavigation.class"} <= detailed_classes
     ids = ("zuwu_daoshou", "ludun_jiashi", "fufa_jijiu", "shanjing_shanxiao")
+    atlases = ("royal_guard", "imperial_soldier", "nian_beast")
+    if army:
+        ids = ("juma_changqiangbing", "liannu_zhenzu", "tiesuo_chihou", "kuijun_sishi", "zhenwang_zhangqiguan")
+        atlases = ("archer", "rebel_soldier", "assassin", "royal_guard")
+        assert {"com/dynasty/blueprint/ArmyBehaviors.class", "com/dynasty/blueprint/ArmyCaltrop.class"} <= detailed_classes
     required_resources = {f"assets/dynasty/geo/blueprint/{identity}.geo.json" for identity in ids}
     required_resources |= {f"assets/dynasty/animations/blueprint/{identity}.animation.json" for identity in ids}
-    required_resources |= {f"assets/dynasty/textures/entity/{atlas}.png" for atlas in ("royal_guard", "imperial_soldier", "nian_beast")}
+    required_resources |= {f"assets/dynasty/textures/entity/{atlas}.png" for atlas in atlases}
     assert required_resources <= detailed_resources, "Missing blueprint/atlas snapshot details"
     production_hash = hashlib.sha256("".join(tree["root"] + "\0" + tree["sha256"] + "\n"
                                                for tree in trees if tree["root"] in production_roots).encode()).hexdigest()
     assert production_hash == manifest["productionSha256"], "Combined production snapshot hash mismatch"
+    for source in manifest.get("expandedInputs", []):
+        assert digest(ROOT / source["path"]) == source["sha256"], "Expanded resource input changed since run"
     return {"status": "FROZEN_RUNCLIENT_CLASSPATH_SNAPSHOT_MATCHES_CURRENT_OUTPUTS", "manifest": probe(rel(path)),
             "createdAt": manifest["createdAt"], "scope": manifest["scope"], "productionSha256": production_hash,
             "trees": checked, "sourceAssetDetailsMatch": True,
+            "expandedResourceInputs": manifest.get("expandedInputs", "OLDER_SNAPSHOT_OUTPUT_BYTES_ONLY"),
             "limits": "Run-owner classpath snapshot and current output comparison; not per-class classloader instrumentation, not proof of loading the packaged release JAR, and not an archive of all production bytes."}
 
 
-def client_run_evidence(directory: Path, players: int) -> dict:
+def client_lifecycle_evidence(run_dir: Path, run: str, players: int, ids: set[str]) -> dict:
+    """Optional recorded lifecycle checks; absent evidence stays pending, never PASS."""
+    roles = ("host",) if players == 1 else ("host", "peer")
+    paths = [run_dir / role / "resource-reload.json" for role in roles]
+    if not any(path.exists() for path in paths):
+        return {"status": "PENDING", "resourceReload": "PENDING", "rejoin": "PENDING"}
+    assert all(path.exists() for path in paths), "Incomplete resource-reload evidence"
+    data = [json.loads(path.read_text()) for path in paths]
+    for role, row in zip(roles, data):
+        assert row["run"] == run and row["role"] == role and row["status"] == "PASS_ACTUAL_RESOURCE_RELOAD", "Mixed resource-reload run"
+        assert len(row["mobs"]) == len(ids) and {m["id"] for m in row["mobs"]} == ids
+        assert len({m["uuid"] for m in row["mobs"]}) == len(ids)
+        for mob in row["mobs"]: uuid.UUID(mob["uuid"])
+    rejoin = None
+    if players == 2:
+        before_path, after_path = (run_dir / "peer" / name for name in ("rejoin-before.json", "rejoin.json"))
+        before, after = json.loads(before_path.read_text()), json.loads(after_path.read_text())
+        assert data[0]["mobs"] == data[1]["mobs"] == before == after["mobs"], "Rejoin replaced existing tracked identities"
+        assert after["run"] == run and after["role"] == "peer" and after["players"] == 2
+        assert after["status"] == "PASS_REAL_TCP_DISCONNECT_RECONNECT" and after["clientTick"] > data[1]["clientTick"]
+        rejoin = {"before":probe(rel(before_path)),"after":probe(rel(after_path)),"status":after["status"]}
+        events_path = run_dir / "coord/peer-session-events.jsonl"
+        if events_path.exists():
+            events = [json.loads(line) for line in events_path.read_text().splitlines()]
+            assert [e["event"] for e in events[:3]] == ["JOIN", "LEAVE", "JOIN"], "No real join/leave/join sequence"
+            assert all(e["run"] == run for e in events) and len({e["uuid"] for e in events[:3]}) == 1
+            assert events[0]["serverTick"] < events[1]["serverTick"] < events[2]["serverTick"]
+            rejoin["serverEvents"] = probe(rel(events_path))
+        else:
+            rejoin["serverEvents"] = "OLDER_RUN_CLIENT_RECORDS_ONLY"
+    return {"status":"PASS_RECORDED_LIFECYCLE_SCOPE", "resourceReload":[probe(rel(path)) for path in paths],
+        "rejoin":rejoin if rejoin else "NOT_APPLICABLE_SOLO_NO_SERVER_RESTART", "scope":"Idle tracked fixtures retain identity; following action/death render stages pass. Not active-combat rejoin or server disk restart."}
+
+
+def client_run_evidence(directory: Path, players: int, army: bool = False) -> dict:
     """Fail closed on incomplete, mixed-run, old-stage or single-client 'network' evidence.
 
     PASS is a harness result, not an art review. UUIDs are printed for action/death
@@ -547,7 +606,7 @@ def client_run_evidence(directory: Path, players: int) -> dict:
     directory = directory.resolve()
     run_dir = directory.parent if directory.name == "host" else directory
     rel(run_dir)  # Evidence must be preserved in this repository, not an ephemeral external path.
-    contract = client_stage_contract()
+    contract = client_stage_contract(army)
     names, stage_count = contract["stageNames"], contract["stageCount"]
     for role in (("host",) if players == 1 else ("host", "peer")):
         assert not (run_dir / role / "FAIL.txt").exists(), f"Failure report exists for {role}"
@@ -569,6 +628,14 @@ def client_run_evidence(directory: Path, players: int) -> dict:
                     17: ("fufa_jijiu", 0, "death"), 18: ("shanjing_shanxiao", 0, "death"),
                     19: ("shanjing_shanxiao", 0, "death"),
                     20: ("shanjing_shanxiao", 0, "climb"), 21: ("shanjing_shanxiao", 6, "rock")}
+    if army:
+        ordered_ids = ["juma_changqiangbing", "liannu_zhenzu", "tiesuo_chihou", "kuijun_sishi", "zhenwang_zhangqiguan"]
+        ids = set(ordered_ids)
+        action_owner = {index: (ordered_ids[owner], skill, clip) for index, (owner, skill, clip) in enumerate([
+            (0,10,"attack"),(0,11,"brace"),(1,12,"attack"),(1,13,"roll"),(2,14,"attack"),(2,15,"grapple"),(2,19,"knee"),
+            (3,16,"attack"),(3,17,"detonate"),(4,18,"attack"),*( (i,0,"death") for i in range(5))], 8)}
+    first_action = 8 if army else 7
+    count_words = (str(len(ids)),) if army else ("four", "4")
     expected_pngs = {f"{index:02d}-{name}.png" for index, name in enumerate(names)}
     clients = {}
     for role in (("host",) if players == 1 else ("host", "peer")):
@@ -585,7 +652,7 @@ def client_run_evidence(directory: Path, players: int) -> dict:
             assert "NOT a multiplayer or visual-quality pass" in pass_lines[-1]
         else:
             assert "actual Gecko action/death clips" in pass_lines[-1] and "Screenshots still require visual review" in pass_lines[-1]
-        captures = re.findall(r'^Captured ([a-z0-9-]+); four exact UUIDs tracked; players=(\d+); FPS=(\d+)$', observations, re.M)
+        captures = re.findall(r'^Captured ([a-z0-9-]+); (?:' + "|".join(count_words) + r') exact UUIDs tracked; players=(\d+); FPS=(\d+)$', observations, re.M)
         assert [c[0] for c in captures] == names and all(int(c[1]) == players for c in captures), f"Missing/out-of-order captures or wrong player count: {role}"
         pngs = sorted(output.glob("*.png"))
         assert {p.name for p in pngs} == expected_pngs, f"Missing/unexpected screenshots: {role}"
@@ -601,16 +668,16 @@ def client_run_evidence(directory: Path, players: int) -> dict:
             for kind in ("ready", "captured"):
                 path = coord / f"{kind}-{index}-{role}.txt"
                 lines = path.read_text().splitlines()
-                expected_data = (f"All four exact entity UUIDs tracked; players={players}" if kind == "ready"
-                                 else f"Captured {name}; four exact UUIDs tracked; players={players}; FPS={captures[index][2]}")
-                assert lines == [run, expected_data], f"Mismatched acknowledgement: {path}"
+                expected_data = [(f"All {word} exact entity UUIDs tracked; players={players}" if kind == "ready"
+                                 else f"Captured {name}; {word} exact UUIDs tracked; players={players}; FPS={captures[index][2]}") for word in count_words]
+                assert len(lines) == 2 and lines[0] == run and lines[1] in expected_data, f"Mismatched acknowledgement: {path}"
                 acknowledgements.append(probe(rel(path)))
         states, last_key = {}, None
         for line in observations.splitlines():
             row = re.fullmatch(r'([a-z0-9-]+) entity=(\w+) uuid=([\da-f-]+) skill=(\d+) phase=(\w+) start=(-?\d+) clientTime=(\d+) actionAge=([\d.Ee+-]+)', line)
             if row:
                 stage, identity, entity_uuid, skill, phase, start, client_time, age = row.groups()
-                assert stage in names[7:] and identity in ids
+                assert stage in names[first_action:] and identity in ids
                 uuid.UUID(entity_uuid)
                 key = (stage, identity)
                 assert key not in states, f"Duplicate observed entity: {role}/{key}"
@@ -623,8 +690,8 @@ def client_run_evidence(directory: Path, players: int) -> dict:
                 observed = states[last_key]
                 assert "render" not in observed and render[4] in ("RUNNING", "PAUSED", "STOPPED", "TRANSITIONING"), f"Malformed Gecko state: {role}/{last_key}"
                 observed["render"] = {"requested": render[2], "queued": render[3], "controller": render[4]}
-        assert len(states) == (stage_count - 7) * len(ids), f"Missing UUID/action states: {role}"
-        for index in range(7, stage_count):
+        assert len(states) == (stage_count - first_action) * len(ids), f"Missing UUID/action states: {role}"
+        for index in range(first_action, stage_count):
             owner, skill, clip = action_owner[index]
             stage_states = [states[(names[index], identity)] for identity in sorted(ids)]
             assert len({s["uuid"] for s in stage_states}) == len(ids), "Entity UUIDs are not distinct"
@@ -632,7 +699,7 @@ def client_run_evidence(directory: Path, players: int) -> dict:
                 is_owner = observed["id"] == owner
                 expected_clip = f"animation.{observed['id']}." + (clip if is_owner else "idle")
                 assert observed["skill"] == (skill if is_owner else 0)
-                assert (observed["start"] >= 0 if is_owner and index != 20 else observed["start"] == -1)
+                assert (observed["start"] >= 0 if is_owner and (army or index != 20) else observed["start"] == -1)
                 assert observed["phase"] in ({"WINDUP", "ACTIVE", "RECOVERY"} if is_owner and skill else {"IDLE"})
                 assert observed.get("render", {}).get("requested") == expected_clip
                 if is_owner:
@@ -645,7 +712,9 @@ def client_run_evidence(directory: Path, players: int) -> dict:
             # the autonomous skill start. Compare action identity to server telemetry below.
             assert last["uuid"] == final_mobs[identity]["uuid"], "Final shared entity differs from client"
         encounters = {}
-        for index in (20, 21):
+        if army:
+            assert re.search(r'Real hook attachment target=\d+ expires=\d+', observations), "No actual hit hook synchronized"
+        for index in (() if army else (20, 21)):
             event = json.loads((output / f"{index}-encounter.json").read_text())
             server = event["server"]
             assert event["run"] == server["run"] == run and event["role"] == role and event["stage"] == index
@@ -663,7 +732,8 @@ def client_run_evidence(directory: Path, players: int) -> dict:
                 assert server["skill"] == event["clientSkill"] == 6 and server["skillStart"] == event["clientStart"]
                 assert event["visibleRockUuids"] and set(event["visibleRockUuids"]) & {r["uuid"] for r in server["rocks"]}
             encounters[index] = event
-        assert encounters[20]["uuid"] == encounters[21]["uuid"], "Encounter actor replaced between climbing and throwing"
+        if not army:
+            assert encounters[20]["uuid"] == encounters[21]["uuid"], "Encounter actor replaced between climbing and throwing"
         clients[role] = {"players": players, "report": probe(rel(report_path)), "observations": probe(rel(observations_path)),
                          "screenshots": screenshots, "acknowledgements": acknowledgements,
                          "captures": [{"stage": c[0], "players": int(c[1]), "fps": int(c[2])} for c in captures],
@@ -674,27 +744,28 @@ def client_run_evidence(directory: Path, players: int) -> dict:
         host_map, peer_map = ({(s["stage"], s["id"]): s for s in states} for states in (host_states, peer_states))
         for key in host_map:
             assert all(host_map[key][field] == peer_map[key][field] for field in ("uuid", "skill", "start")), f"Cross-client entity/action identity mismatch: {key}"
-        for index in (20, 21):
+        for index in (() if army else (20, 21)):
             host, peer = (clients[role]["encounters"][index] for role in ("host", "peer"))
             assert abs(host["serverTick"] - peer["serverTick"]) <= 3
             if index == 20:
                 assert host["clientClimbStart"] == peer["clientClimbStart"] and host["clientClimbFace"] == peer["clientClimbFace"]
             else:
                 assert set(host["visibleRockUuids"]) & set(peer["visibleRockUuids"]), "Clients saw different projectiles"
-        cross_client = {"identityActionMatches": len(host_map), "printedUuidStageCount": stage_count - 7,
+        cross_client = {"identityActionMatches": len(host_map), "printedUuidStageCount": stage_count - first_action,
                         "phaseDifferences": [{"stage": key[0], "id": key[1], "host": host_map[key]["phase"], "peer": peer_map[key]["phase"]}
                                              for key in host_map if host_map[key]["phase"] != peer_map[key]["phase"]],
                         "limits": "Phase is checked against each client's synchronized clock by the harness; phase-boundary samples need not be identical. First seven static stages have exact-tracking acknowledgements, not printed UUID tables."}
     return {"status": "HARNESS_PASS_QUALITY_PENDING", "run": run, "players": players, **contract,
-            "artifactIdentity": client_artifact_manifest(run_dir, run),
+            "artifactIdentity": client_artifact_manifest(run_dir, run, army),
+            "lifecycle": client_lifecycle_evidence(run_dir, run, players, ids),
             "coordination": [probe(rel(p)) for p in (state_path, complete_path, listening_path)],
             "clients": clients, "crossClient": cross_client,
             "screenshots": [shot for client in clients.values() for shot in client["screenshots"]],
-            "limits": "Actual Minecraft/Gecko state and screenshots; controlled NoAI/NoGravity action fixtures. Active/dead subject clips must actually run; off-camera inactive fixtures may have stopped controllers. Not visual-quality approval, natural spawning, autonomous combat, rejoin or resource-reload acceptance."}
+            "limits": "Actual Minecraft/Gecko state and screenshots; controlled NoAI/NoGravity action fixtures. Active/dead clips must run; off-camera inactive fixtures may stop. Optional lifecycle has its own limited scope; no full art, discovery, terrain, active-combat rejoin or server-restart acceptance."}
 
 
 def refresh_templates(catalog: dict, test_log: Path, solo_dir: Path | None = None,
-                      network_dir: Path | None = None) -> dict:
+                      network_dir: Path | None = None, namespaces: tuple[str, ...] = ("dynasty",)) -> dict:
     """Extract the four actual prototypes without implying that runtime acceptance passed.
 
     This deliberately narrow Java-source extractor fails if the expected contracts
@@ -716,6 +787,8 @@ def refresh_templates(catalog: dict, test_log: Path, solo_dir: Path | None = Non
         r'new Spawn\("([^"]+)",Level.OVERWORLD,List.of\((.*?)\),List.of\((.*?)\),\s*'
         r'(-?\d+),(-?\d+),(\d+),(\d+),"([^"]+)","([^"]+)",(\d+),(\d+),(\d+),(\d+),"([^"]+)",\s*'
         r'"([^"]+)","([^"]+)"\)', definitions, re.S)
+    registrations = {key: value for key, value in registrations.items() if value[1] in ("SWORD","SHIELD","PRIEST","BEAST")}
+    spawn_rows = [row for row in spawn_rows if row[0] in registrations]
     assert len(registrations) == len(spawn_rows) == 4, "Template source format/count changed"
     skill_ids = dict(re.findall(r'(\w+) = (\d+)', skill_source))
     skills = {}
@@ -742,7 +815,7 @@ def refresh_templates(catalog: dict, test_log: Path, solo_dir: Path | None = Non
         "PRIEST": "Three talisman launches use 1.0x attack damage; possession activates at tick20 for160 ticks, movement/attack speed +30%, knockback resistance +1 (clamped). Possession accelerates complete skill timelines, including cooldown.",
         "BEAST": "Pounce tick14 launches, tick24 deals 1.15x within2.2 blocks and Wither45 ticks. Rock release tick18 uses1.1x, radius2.3 and knockback0.9. Projectiles expire after100 ticks."}
     loot = {entry["id"]: entry for entry in json.loads((OUT / "template-loot-status.json").read_text())["templates"]}
-    tests = game_test_evidence(test_log)
+    tests = game_test_evidence(test_log, namespaces)
     total, test_count = tests["suite"]["total"], tests["blueprintTests"]["count"]
     build_passed = tests["productionBuild"]["status"] == "PASS_LOGGED_BUILD_TASK"
     solo = client_run_evidence(solo_dir, 1) if solo_dir else None
@@ -835,7 +908,7 @@ def refresh_templates(catalog: dict, test_log: Path, solo_dir: Path | None = Non
                     "probability": weights[field] / weights["maximumAttemptWeight"]}
                     for period, field in (("dayBright", "dayBrightWeight"), ("night", "nightWeight"), ("dayLowLight", "dayLowLightWeight"))})
             spawn.update(localCapScope="PER_PERSISTENT_STRUCTURE_MARKER", squadComposition={
-                "military_sites": {"ludun_jiashi": 1, "zuwu_daoshou": 3},
+                "military_sites": {"ludun_jiashi": 1, "liannu_zhenzu": 2, "juma_changqiangbing": 1},
                 "ritual_sites": {"fufa_jijiu": 1, "zuwu_daoshou": 2}},
                 spawnBudget={"intervalTicks": int(re.search(r'getGameTime\(\)%(\d+)!=0', spawn_source)[1]),
                     "maximumAdditionsPerLevelPerInterval": int(re.search(r'int remaining=(\d+);', spawn_source)[1])},
@@ -853,14 +926,16 @@ def refresh_templates(catalog: dict, test_log: Path, solo_dir: Path | None = Non
             "note": f"PARTIAL：{test_count}项新GameTest通过；整套{total}/{total}；"
                 + (f"真实单客户端{solo['stageCount']}阶段harness通过；" if solo else "未记录当前单机harness通过；")
                 + (f"真实双客户端{network['stageCount']}阶段harness及实体身份核对通过；" if network else "未记录当前双端harness通过；")
-                + "视觉质量、自然场景及重进/重载矩阵未据此完成，不标DONE。"}
+                + "视觉质量、自然场景、活动战斗重连及服务器重启未据此完成；空闲重连/资源重载单独记录，不标DONE。"}
         entry["implementationEvidence"] = {"kind": kind, "texturePolicy": "REUSE_UNMODIFIED_EXISTING_OWN_ATLAS",
             "modelReview": "docs/blueprint-cod1/models/REVIEW.txt", "gameTestEvidence": "docs/blueprint-cod1/template-verification.json",
-            "remaining": ([] if solo else ["Current 20-stage single-client harness"])
-                + ([] if network else ["Current 20-stage real two-client harness"])
+            "remaining": ([] if solo else ["Current single-client harness"])
+                + ([] if network else ["Current real two-client harness"])
                 + ([] if frozen else ["Frozen runClient classpath identity snapshot"])
                 + ["Visual review: held gear, death floor contacts, empty robe/mask final pose, curled/faded shanxiao, particles and foot sliding",
-                   "Natural-spawn/player-discovery and narrow-terrain matrix", "Two-player late tracking, rejoin and resource reload on final artifact"]
+                   "Natural-spawn/player-discovery and narrow-terrain matrix", "Active-combat two-player late tracking/rejoin and server disk restart"]
+                + ([] if solo and network and all(r.get("lifecycle",{}).get("status","").startswith("PASS") for r in (solo,network))
+                   else ["Actual resource reload and idle multiplayer rejoin"])
                 + ([] if build_passed else ["Final production build"])
                 + ["Pending decorative drops and original blueprint location/quest hooks"],
             "originalLocationPolicy": "pendingWorldPlacement retains proposed cod1 locations; those tags remain inactive and are not fabricated registrations."}

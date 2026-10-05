@@ -30,7 +30,7 @@ public final class TemplateSkills {
             case POSSESSION -> BUFF;
             case POUNCE -> LEAP;
             case ROCK_THROW -> ROCK;
-            default -> null;
+            default -> ArmySkills.byId(id);
         };
     }
 

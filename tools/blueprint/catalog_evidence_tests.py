@@ -213,6 +213,57 @@ class ClientEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "run/schema"):
             catalog.client_artifact_manifest(run, "different-run")
 
+    def lifecycle_fixture(self, players=2):
+        run = self.fixture(players)
+        mobs = [{"id": identity, "uuid": str(uuid.uuid5(uuid.NAMESPACE_DNS, identity)),
+                 "entityId": index + 1, "skill": 0, "start": -1} for index, identity in enumerate(IDS)]
+        roles = ["host"] if players == 1 else ["host", "peer"]
+        for role in roles:
+            (run / role / "resource-reload.json").write_text(json.dumps(dict(run=run.name,role=role,
+                status="PASS_ACTUAL_RESOURCE_RELOAD",mobs=mobs,clientTick=100)))
+        if players == 2:
+            (run / "peer/rejoin-before.json").write_text(json.dumps(mobs))
+            (run / "peer/rejoin.json").write_text(json.dumps(dict(run=run.name,role="peer",players=2,
+                status="PASS_REAL_TCP_DISCONNECT_RECONNECT",mobs=mobs,clientTick=200)))
+            events = [dict(run=run.name,event=event,serverTick=tick,uuid=str(uuid.uuid5(uuid.NAMESPACE_DNS,"peer")))
+                      for event,tick in (("JOIN",50),("LEAVE",75),("JOIN",125))]
+            (run / "coord/peer-session-events.jsonl").write_text("\n".join(map(json.dumps,events))+"\n")
+        return run
+
+    def test_no_lifecycle_records_never_imply_reload_or_rejoin(self):
+        evidence = catalog.client_lifecycle_evidence(self.fixture(), "fixture-network", 2, set(IDS))
+        self.assertEqual(evidence["status"], "PENDING")
+
+    def test_real_recorded_session_requires_identity_preservation(self):
+        run = self.lifecycle_fixture()
+        evidence = catalog.client_lifecycle_evidence(run,run.name,2,set(IDS))
+        self.assertEqual(evidence["status"],"PASS_RECORDED_LIFECYCLE_SCOPE")
+        path = run / "peer/rejoin.json"
+        data = json.loads(path.read_text())
+        data["mobs"][0]["uuid"] = str(uuid.uuid4())
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(AssertionError,"Rejoin replaced"):
+            catalog.client_lifecycle_evidence(run,run.name,2,set(IDS))
+
+    def test_server_rejoin_sequence_cannot_be_two_joins_without_disconnect(self):
+        run = self.lifecycle_fixture()
+        path = run / "coord/peer-session-events.jsonl"
+        path.write_text(path.read_text().replace('"LEAVE"','"JOIN"'))
+        with self.assertRaisesRegex(AssertionError,"join/leave/join"):
+            catalog.client_lifecycle_evidence(run,run.name,2,set(IDS))
+
+    def test_manifest_accepts_historical_entry_order_without_altering_bytes(self):
+        run = self.fixture(1)
+        path = self.artifact_manifest(run)
+        data = json.loads(path.read_text())
+        tree = data["trees"][0]
+        tree["entries"].reverse()
+        tree["sha256"] = hashlib.sha256("".join(e["path"]+"\0"+e["sha256"]+"\n" for e in tree["entries"]).encode()).hexdigest()
+        data["productionSha256"] = hashlib.sha256("".join(t["root"]+"\0"+t["sha256"]+"\n" for t in data["trees"][:2]).encode()).hexdigest()
+        path.write_text(json.dumps(data))
+        self.assertEqual(catalog.client_artifact_manifest(run,run.name)["status"],
+                         "FROZEN_RUNCLIENT_CLASSPATH_SNAPSHOT_MATCHES_CURRENT_OUTPUTS")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -45,12 +45,16 @@ def main():
                     0 if category=='dungeons' else 1 if category=='ecology' else 2],
                 'tests':'未实机验证'})
         groups[category] = records
+    registrations = (ROOT/'src/main/java/com/dynasty/blueprint/BlueprintEntities.java').read_text()
+    implemented = re.findall(r'\w+ = mob\("([^"]+)", TemplateMob.Kind.', registrations)
+    assert len(implemented) == len(set(implemented)), 'Duplicate cod1 runtime identity'
     report = {'source':str(SOURCE), 'sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
         'scope':'Only cod2 sections 6–10; no existing entity or final Boss replacement',
         'baseline':{'command':'./gradlew build --offline','result':'BUILD SUCCESSFUL in 8s',
             'ordinaryTests':'NO-SOURCE; not GameTests or client verification'},
-        'cod1RuntimeEntities':['zuwu_daoshou','ludun_jiashi','fufa_jijiu','shanjing_shanxiao'],
-        'cod1MissingDependencies':'26 base mobs, 15 elites, 12 bosses, 25 artifacts, 12 avatars',
+        'cod1RuntimeEntities':implemented,
+        'cod1RuntimeStatus':'PARTIAL; runtime registration is not complete acceptance',
+        'cod1MissingDependencies':f'{30-len(implemented)} base mobs, 15 elites, 12 bosses, 25 artifacts, 12 avatars',
         **groups,
         'models':{'status':'NOT_STARTED','requiredClasses':8,'tests':'未实机验证'},
         'animations':{'status':'NOT_STARTED','requiredProfiles':11,'tests':'未实机验证'}}

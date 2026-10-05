@@ -101,6 +101,10 @@ public final class BlueprintFrameworkGameTests {
         h.assertTrue(TemplateContentDefinitions.effectiveWeight(sword,true,15)>TemplateContentDefinitions.effectiveWeight(sword,false,15),"Swordsmen modestly favor night");
         h.assertTrue(TemplateContentDefinitions.effectiveWeight(priest,false,7)>TemplateContentDefinitions.effectiveWeight(priest,false,15),"Priests favor dark rooms during day");
         h.assertTrue(TemplateContentDefinitions.effectiveWeight(priest,true,15)>TemplateContentDefinitions.effectiveWeight(priest,false,15),"Priests favor night");
-        h.assertTrue(priest.localCap()==1&&sword.localCap()==3,"No extra squad members");h.succeed();
+        var crossbow=TemplateContentDefinitions.ALL.stream().filter(d->d.id().equals("liannu_zhenzu")).findFirst().orElseThrow();
+        var spear=TemplateContentDefinitions.ALL.stream().filter(d->d.id().equals("juma_changqiangbing")).findFirst().orElseThrow();
+        var shield=TemplateContentDefinitions.ALL.stream().filter(d->d.id().equals("ludun_jiashi")).findFirst().orElseThrow();
+        h.assertTrue(priest.localCap()==1&&sword.localCap()==2,"Ritual squad remains priest plus two swordsmen");
+        h.assertTrue(shield.localCap()==1&&crossbow.localCap()==2&&spear.localCap()==1,"Military squad remains shield plus two crossbows plus spear");h.succeed();
     }
 }

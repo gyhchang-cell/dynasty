@@ -52,7 +52,7 @@ public final class TemplateSecondaryMotion {
         var mc=Minecraft.getInstance();
         if(mc.level!=world){STATES.clear();world=mc.level;}
         if(!mob.isAlive()||mc.level==null||mc.gameRenderer.getMainCamera().getPosition().distanceToSqr(mob.position())>32*32){STATES.remove(mob.getUUID());return;}
-        if(mob.kind()==TemplateMob.Kind.SWORD)return;
+        if(mob.kind()==TemplateMob.Kind.SWORD||mob.kind()==TemplateMob.Kind.POWDER)return;
         Motion s=STATES.computeIfAbsent(mob.getUUID(),id->new Motion());
         while(STATES.size()>64)STATES.remove(STATES.keySet().iterator().next());
         long now=mc.level.getGameTime();s.seen=now;
@@ -90,6 +90,23 @@ public final class TemplateSecondaryMotion {
                 float target=Mth.clamp(Math.abs(Mth.sin(arm))*.85F+pulse,0,1.2F);
                 for(int n=0;n<steps;n++)s.rail[i]+=(target-s.rail[i])*.62F;
             }
+            String[] gear=gearBones(mob.kind());
+            for(int j=0;j<gear.length;j++){
+                float limit=(mob.kind()==TemplateMob.Kind.FLAG?8:mob.kind()==TemplateMob.Kind.SCOUT?12:7)*Mth.DEG_TO_RAD;
+                // Acceleration/yaw/body-action response only. Authored idle waves remain on
+                // child bones; these identity wrappers never accumulate their transforms.
+                float bodyDelta=fresh?0:armR-s.rightArm;
+                float target=Mth.clamp(-forward*1.8F-bodyDelta*.14F,-limit,limit);
+                float targetRoll=Mth.clamp(-sideways*1.5F-turn*.38F,-limit,limit);
+                if(mob.kind()==TemplateMob.Kind.FLAG&&j>0){target+=s.angle[j-1]*.25F;targetRoll+=s.roll[j-1]*.25F;}
+                target=Mth.clamp(target,-limit,limit);targetRoll=Mth.clamp(targetRoll,-limit,limit);
+                for(int n=0;n<steps;n++){
+                    s.speed[j]+=(58*(target-s.angle[j])-12*s.speed[j])*.05F;
+                    s.rollSpeed[j]+=(58*(targetRoll-s.roll[j])-12*s.rollSpeed[j])*.05F;
+                    s.angle[j]=Mth.clamp(s.angle[j]+s.speed[j]*.05F,-limit,limit);
+                    s.roll[j]=Mth.clamp(s.roll[j]+s.rollSpeed[j]*.05F,-limit,limit);
+                }
+            }
             s.velocity=v;s.yaw=yaw;s.rightArm=armR;s.leftArm=armL;s.tick=now;
         }
         if(mob.kind()==TemplateMob.Kind.PRIEST){
@@ -106,11 +123,19 @@ public final class TemplateSecondaryMotion {
                 model.getBone(SIDES[i]+"_climb_"+IK_PARTS[j]).ifPresent(b->b.setRotY(s.ikY[index]));
             }
         }else if(mob.kind()==TemplateMob.Kind.BEAST){s.face=null;java.util.Arrays.fill(s.stance,false);java.util.Arrays.fill(s.ik,0);}
+        String[] gear=gearBones(mob.kind());
+        for(int j=0;j<gear.length;j++)set(model,gear[j],s.angle[j],s.roll[j]);
     }
+    private static String[] gearBones(TemplateMob.Kind kind){return switch(kind){
+        case SPEAR->SPEAR_GEAR;case CROSSBOW->CROSSBOW_GEAR;case SCOUT->SCOUT_GEAR;case FLAG->FLAG_GEAR;default->NO_GEAR;};}
+    private static final String[] NO_GEAR={},SPEAR_GEAR={"skirt_spring_front","skirt_spring_back","skirt_spring_left","skirt_spring_right"},
+        CROSSBOW_GEAR={"gear_pouch_0","gear_pouch_1","gear_pouch_2"},SCOUT_GEAR={"right_chain_spring","left_chain_spring"},
+        FLAG_GEAR={"flag_spring_0","flag_spring_1","flag_spring_2","flag_spring_3"};
     private static void resetProcedural(TemplateMobModel model,TemplateMob.Kind kind){
         if(kind==TemplateMob.Kind.PRIEST){for(String side:SIDES)for(String n:new String[]{"sleeve_inner_spring","sleeve_inner_tip","sleeve_outer_spring","sleeve_outer_tip"})reset(model,side+"_"+n);for(int i=0;i<3;i++){reset(model,"talisman_spring_"+i);reset(model,"talisman_tip_"+i);}}
         if(kind==TemplateMob.Kind.SHIELD)for(String side:SIDES){reset(model,side+"_shoulder_rail");reset(model,side+"_hip_plate_lower");}
         if(kind==TemplateMob.Kind.BEAST)for(String side:SIDES)for(String part:IK_PARTS)reset(model,side+"_climb_"+part);
+        for(String gear:gearBones(kind))reset(model,gear);
     }
     private static void reset(TemplateMobModel model,String name){model.getBone(name).ifPresent(b->{b.setRotX(0);b.setRotY(0);b.setRotZ(0);b.setPosX(0);b.setPosY(0);b.setPosZ(0);});}
     private static void set(TemplateMobModel model,String name,float x,float z){model.getBone(name).ifPresent(b->{b.setRotX(x);b.setRotZ(z);});}

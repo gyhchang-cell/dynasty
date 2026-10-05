@@ -28,6 +28,12 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
         event.registerEntityRenderer(BlueprintEntities.LUDUN_JIASHI.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.FUFA_JIJIU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.SHANJING_SHANXIAO.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.JUMA_CHANGQIANGBING.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.LIANNU_ZHENZU.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.TIESUO_CHIHOU.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.KUIJUN_SISHI.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.ZHENWANG_ZHANGQIGUAN.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.ARMY_CALTROP.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.TEMPLATE_PROJECTILE.get(), ThrownItemRenderer::new);
     }
 

@@ -27,6 +27,15 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> RITUAL=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ritual_sites"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
+        event.register(BlueprintEntities.TIESUO_CHIHOU.get(),SpawnPlacements.Type.ON_GROUND,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->{
+                if(reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND)return true;
+                var server=level.getLevel();
+                return server.dimension()==Level.OVERWORLD&&server.getDifficulty()!=net.minecraft.world.Difficulty.PEACEFUL
+                    &&!server.isDay()&&pos.getY()>=60&&pos.getY()<=220&&server.getMaxLocalRawBrightness(pos)<=7
+                    &&com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
+                    &&server.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.getType()==type).size()<2;
+            },SpawnPlacementRegisterEvent.Operation.REPLACE);
         event.register(BlueprintEntities.SHANJING_SHANXIAO.get(),SpawnPlacements.Type.ON_GROUND,
             Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)-> {
                 if(reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND)return true;
@@ -61,8 +70,8 @@ public final class BlueprintSpawns {
                     if(!marker.members.isEmpty())continue;
                     marker.produced=0;state.setDirty();
                 }
-                var type=group==RITUAL&&marker.produced==0?BlueprintEntities.FUFA_JIJIU.get():
-                    group==MILITARY&&marker.produced==0?BlueprintEntities.LUDUN_JIASHI.get():BlueprintEntities.ZUWU_DAOSHOU.get();
+                var type=group==MILITARY?militaryMember(marker.produced):marker.produced==0?
+                    BlueprintEntities.FUFA_JIJIU.get():BlueprintEntities.ZUWU_DAOSHOU.get();
                 var id=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(type).getPath();
                 var definition=TemplateContentDefinitions.ALL.stream().filter(d->d.id().equals(id)).findFirst().orElseThrow();
                 // Only the already-loaded room around the entrant, never generate neighbouring chunks to spawn.
@@ -88,6 +97,9 @@ public final class BlueprintSpawns {
                 if(level.addFreshEntity(mob)) {marker.members.add(mob.getUUID());marker.produced++;state.setDirty();remaining--;}
             }
         }
+    }
+    static net.minecraft.world.entity.EntityType<TemplateMob> militaryMember(int index){
+        return switch(index){case 0->BlueprintEntities.LUDUN_JIASHI.get();case 1,2->BlueprintEntities.LIANNU_ZHENZU.get();default->BlueprintEntities.JUMA_CHANGQIANGBING.get();};
     }
     @SubscribeEvent public static void died(LivingDeathEvent event) {
         if(!(event.getEntity().level() instanceof ServerLevel level))return;

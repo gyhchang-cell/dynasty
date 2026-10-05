@@ -155,7 +155,7 @@ public final class BlueprintAutonomyGameTests {
             }).thenSucceed();
     }
 
-    @GameTest(template="bow_ritual_test", batch="blueprint_autonomy", timeoutTicks=300)
+    @GameTest(template="bow_ritual_test", batch="blueprint_autonomy", timeoutTicks=350)
     public static void shieldAutonomouslyProtectsNearestReachableBacklineBeyondEightBlocks(GameTestHelper h) {
         arena(h);
         TemplateMob shield = actor(h, BlueprintEntities.LUDUN_JIASHI.get(), 3, 7);
@@ -171,6 +171,14 @@ public final class BlueprintAutonomyGameTests {
         Vec3 wrongIntercept = farther.position().add(target.position().subtract(farther.position()).normalize().scale(1.8));
         boolean[] usedReachableCoverPath = {false};
         shield.setTarget(target);
+        for(int diagnosticTick:new int[]{1,2,5,10,20,40})h.runAfterDelay(diagnosticTick,()->{
+            Vec3 forward=target.position().subtract(shield.position()).multiply(1,0,1).normalize();
+            for(var ally:List.of(nearest,farther))Dynasty.LOGGER.info("[blueprint-cover-candidate] tick={} shield={} ally={} alive={} distance={} rearDot={} sight={} contained={} role={} cover={} pathTarget={}",
+                diagnosticTick,shield.position(),ally.position(),ally.isAlive(),shield.distanceToSqr(ally),
+                ally.position().subtract(shield.position()).dot(forward),shield.hasLineOfSight(ally),
+                shield.getBoundingBox().inflate(12).intersects(ally.getBoundingBox()),ally.role(),shield.isCoveringBackline(),
+                shield.getNavigation().getPath()==null?"none":shield.getNavigation().getPath().getTarget());
+        });
         h.onEachTick(() -> {
             var path = shield.getNavigation().getPath();
             if (path != null && path.canReach()
@@ -207,8 +215,16 @@ public final class BlueprintAutonomyGameTests {
                 h.assertTrue(shield.position().distanceToSqr(initial) > 16, "Shield must physically move, not merely name an ally");
                 h.assertTrue(shield.position().distanceToSqr(wrongIntercept) > 4,
                         "Shield must protect the nearest ally, not the farther valid ally");
-                cleanup(h, shield, target, nearest, farther);
-            }).thenSucceed();
+            }).thenIdle(90).thenExecute(()->{
+                h.assertTrue(shield.isAlive()&&!shield.isNoAi(),"Guard retains active production AI");
+                h.assertTrue(shield.position().distanceToSqr(intercept)<2.25,
+                    "Guard must hold its reached cover point, not chase away during a scan boundary; at="+shield.position());
+                // Moving the passive enemy is the input to this second case; never
+                // force the shield's skill/path/velocity. The guard must decide to counter.
+                target.setPos(shield.position().add(0,0,2));
+            }).thenWaitUntil(()->h.assertTrue(target.getHealth()<200,
+                "A close enemy must trigger the real shield contact despite an active cover plan"))
+            .thenExecute(()->cleanup(h,shield,target,nearest,farther)).thenSucceed();
     }
 
     @GameTest(template="bow_ritual_test", batch="blueprint_autonomy", timeoutTicks=260)
@@ -257,7 +273,10 @@ public final class BlueprintAutonomyGameTests {
             if (!probing[0]) return;
             Vec3 towardEnemy = target.position().subtract(shield.position()).multiply(1, 0, 1).normalize();
             h.assertTrue(shield.isCoveringBackline() && !shield.isNoAi() && !shield.isNoGravity(),
-                    "The directional probes must happen during actual autonomous cover movement");
+                    "The directional probes must happen during actual autonomous cover movement; pos="
+                            + shield.position() + ", probe=" + probePosition[0] + ", target=" + shield.getTarget()
+                            + ", skill=" + shield.skillId() + ", phase=" + shield.skillPhase()
+                            + ", pathDone=" + shield.getNavigation().isDone() + ", age=" + shield.tickCount);
             h.assertTrue(shield.getLookAngle().multiply(1, 0, 1).normalize().dot(towardEnemy) > .95,
                     "The real defensive yaw, not just head/body rendering, must remain enemy-facing");
         });

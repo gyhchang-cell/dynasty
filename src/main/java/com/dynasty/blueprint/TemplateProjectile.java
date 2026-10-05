@@ -27,6 +27,8 @@ import java.util.UUID;
 /** Shared, bounded server projectile; the item renderer is only a visual representation. */
 public final class TemplateProjectile extends ThrowableItemProjectile implements net.minecraftforge.entity.IEntityAdditionalSpawnData {
     private static final EntityDataAccessor<Boolean> ROCK = SynchedEntityData.defineId(TemplateProjectile.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> ARMY_MODE = SynchedEntityData.defineId(TemplateProjectile.class, EntityDataSerializers.INT);
+    private long actionEpoch=-1;
     private UUID target;
     private float damage = 4;
     private int lived;
@@ -50,7 +52,19 @@ public final class TemplateProjectile extends ThrowableItemProjectile implements
         return projectile;
     }
 
-    @Override protected void defineSynchedData() { super.defineSynchedData(); entityData.define(ROCK, false); }
+    public static TemplateProjectile shootArmy(TemplateMob owner,LivingEntity victim,boolean hook) {
+        var projectile=new TemplateProjectile(BlueprintEntities.TEMPLATE_PROJECTILE.get(),owner.level());
+        projectile.setOwner(owner);projectile.entityData.set(ARMY_MODE,hook?2:1);
+        projectile.actionEpoch=owner.skillStartTime();projectile.target=victim.getUUID();
+        projectile.damage=(float)owner.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+        projectile.setItem(new ItemStack(hook?Items.IRON_NUGGET:Items.ARROW));
+        projectile.setPos(owner.getX(),owner.getEyeY()-.3,owner.getZ());
+        Vec3 aim=(hook?victim.position().add(0,.25,0):victim.getBoundingBox().getCenter()).subtract(projectile.position());
+        projectile.shoot(aim.x,aim.y,aim.z,hook?1.35F:1.65F,0);
+        owner.level().addFreshEntity(projectile);return projectile;
+    }
+    public int armyMode(){return entityData.get(ARMY_MODE);}
+    @Override protected void defineSynchedData() { super.defineSynchedData(); entityData.define(ROCK, false);entityData.define(ARMY_MODE,0); }
     @Override protected Item getDefaultItem() { return Items.PAPER; }
     public boolean isRock() { return entityData.get(ROCK); }
     @Override protected float getGravity() { return isRock() ? .045F : 0; }
@@ -66,11 +80,11 @@ public final class TemplateProjectile extends ThrowableItemProjectile implements
     }
 
     @Override public void tick() {
-        if (level().isClientSide && !isRock() && tickCount % 3 == 0)
+        if (level().isClientSide && armyMode()==0 && !isRock() && tickCount % 3 == 0)
             level().addParticle(net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME, getX(), getY(), getZ(), 0, .005, 0);
         if (!level().isClientSide) {
             if (++lived > 100 || spent || getOwner() == null || !getOwner().isAlive()) { discard(); return; }
-            if (!isRock() && lived < 35 && target != null && level() instanceof ServerLevel server
+            if (armyMode()==0 && !isRock() && lived < 35 && target != null && level() instanceof ServerLevel server
                     && server.getEntity(target) instanceof LivingEntity victim && victim.isAlive()
                     && distanceToSqr(victim) < 32 * 32 && !Combatant.allied(getOwner(), victim)) {
                 Vec3 desired = victim.getBoundingBox().getCenter().subtract(position()).normalize().scale(.7);
@@ -90,7 +104,12 @@ public final class TemplateProjectile extends ThrowableItemProjectile implements
         spent = true;
         Entity owner = getOwner();
         if (owner == null) { discard(); return; }
-        if (isRock()) {
+        if (armyMode()!=0) {
+            if(result instanceof EntityHitResult hit&&hit.getEntity() instanceof LivingEntity living&&!Combatant.allied(owner,living)){
+                if(armyMode()==2&&owner instanceof TemplateMob mob)mob.onArmyHookHit(living,actionEpoch);
+                else {living.invulnerableTime=0;living.hurt(damageSources().thrown(this,owner),damage);}
+            }
+        } else if (isRock()) {
             for (LivingEntity hit : CombatGeometry.query(server, result.getLocation(), getDeltaMovement(), CombatGeometry.Shape.CIRCLE,
                     2.3, 0, 360, 2.0, e -> !Combatant.allied(owner, e) && !e.isInvulnerable())) {
                 if (hit.hurt(damageSources().thrown(this, owner), damage)) {
@@ -112,11 +131,13 @@ public final class TemplateProjectile extends ThrowableItemProjectile implements
     @Override public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putBoolean("Rock", isRock()); tag.putFloat("Damage", damage); tag.putInt("Lived", lived); tag.putBoolean("Spent", spent);
+        tag.putInt("ArmyMode",armyMode());tag.putLong("ArmyEpoch",actionEpoch);
         if (target != null) tag.putUUID("Target", target);
     }
     @Override public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         entityData.set(ROCK, tag.getBoolean("Rock")); damage = Math.max(0, Math.min(30, tag.getFloat("Damage")));
         lived = Math.max(0, tag.getInt("Lived")); spent = tag.getBoolean("Spent"); target = tag.hasUUID("Target") ? tag.getUUID("Target") : null;
+        entityData.set(ARMY_MODE,Math.max(0,Math.min(2,tag.getInt("ArmyMode"))));actionEpoch=tag.contains("ArmyEpoch")?tag.getLong("ArmyEpoch"):-1;
     }
 }

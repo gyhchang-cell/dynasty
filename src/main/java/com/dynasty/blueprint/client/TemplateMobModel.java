@@ -5,7 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.core.animation.AnimationState;
 
-/** The four prototypes share loading, but each owns an independently authored articulated rig. */
+/** Shared loading; each profession owns an independently authored articulated rig. */
 public final class TemplateMobModel extends GeoModel<TemplateMob> {
     @Override public void setCustomAnimations(TemplateMob mob, long instanceId, AnimationState<TemplateMob> state) {
         super.setCustomAnimations(mob, instanceId, state);
@@ -22,7 +22,10 @@ public final class TemplateMobModel extends GeoModel<TemplateMob> {
     @Override public ResourceLocation getTextureResource(TemplateMob mob) {
         // Continuous opaque native swatches preserve pixel grain without replacing legacy artwork.
         String atlas = switch (mob.blueprintId()) {
-            case "zuwu_daoshou", "ludun_jiashi" -> "royal_guard";
+            case "zuwu_daoshou", "ludun_jiashi", "zhenwang_zhangqiguan" -> "royal_guard";
+            case "juma_changqiangbing" -> "archer";
+            case "liannu_zhenzu", "kuijun_sishi" -> "rebel_soldier";
+            case "tiesuo_chihou" -> "assassin";
             case "shanjing_shanxiao" -> "nian_beast";
             default -> "imperial_soldier";
         };

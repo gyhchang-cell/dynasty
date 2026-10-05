@@ -4,6 +4,7 @@ import com.dynasty.blueprint.BlueprintEntities;
 import com.dynasty.blueprint.TemplateMob;
 import com.dynasty.blueprint.TemplateSkills;
 import com.dynasty.blueprint.TemplateProjectile;
+import com.dynasty.blueprint.ArmySkills;
 import com.dynasty.blueprint.combat.AttackState;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -20,6 +21,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.decoration.ArmorStand;
@@ -54,12 +56,16 @@ public final class BlueprintClientQa {
     private static final boolean HOST = ROLE.equals("host"), SOLO = Boolean.getBoolean("dynasty.blueprintQa.solo");
     private static final boolean CONNECTION_ONLY = Boolean.getBoolean("dynasty.blueprintQa.connectionOnly");
     private static final boolean DEATH_ONLY = Boolean.getBoolean("dynasty.blueprintQa.deathOnly");
+    private static final boolean ARMY = Boolean.getBoolean("dynasty.blueprintQa.army");
+    private static final boolean LIFECYCLE = Boolean.getBoolean("dynasty.blueprintQa.lifecycle");
     private static final Path ROOT = Path.of(System.getProperty("dynasty.blueprintQa.output", "build/blueprint-client/results"));
     private static final Path OUT = ROOT.resolve(ROLE), COORD = ROOT.resolve("coord");
     private static final Gson JSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Gson LINE_JSON = new Gson();
     private static final long DEADLINE = System.nanoTime() + 1_200_000_000_000L;
-    private static final String[] NAMES = {"overview-front", "overview-side", "overview-45", "zuwu-front", "ludun-front", "fufa-front", "shanxiao-front",
+    private static final String[] NAMES = ARMY ? new String[]{"army-front","army-side","army-45","spear-front","crossbow-front","scout-front","powder-front","banner-front",
+            "spear-thrust","spear-brace","crossbow-volley","crossbow-roll","scout-cut","scout-grapple","scout-knee","powder-stab","powder-detonate","banner-slam",
+            "spear-death","crossbow-death","scout-death","powder-death","banner-death"} : new String[]{"overview-front", "overview-side", "overview-45", "zuwu-front", "ludun-front", "fufa-front", "shanxiao-front",
             "sword-combo", "shield-combo", "possession-link", "shanxiao-pounce", "talisman-volley", "shanxiao-rock", "shield-death-cover",
             "sword-death-mid", "sword-death-planted", "priest-death-mid", "priest-death-empty-robe", "shanxiao-death-mid", "shanxiao-death-curled-faded",
             "autonomous-wall-climb", "autonomous-summit-rock"};
@@ -81,7 +87,7 @@ public final class BlueprintClientQa {
     private static CompletableFuture<Stage> pending;
     private static CompletableFuture<Void> setup;
     private static final List<TemplateMob> fixtures = new ArrayList<>(); // Accessed on integrated server thread only.
-    private static Cow target;
+    private static LivingEntity target;
     private static final List<String> LOG = new ArrayList<>();
     private static boolean encounterActive; // Server thread only, never used to control the subject's AI.
     private static double encounterInitialY, encounterPeakY;
@@ -94,6 +100,26 @@ public final class BlueprintClientQa {
     private static int rejectedClimbFrames;
     private static long lastSecondaryTick = Long.MIN_VALUE;
     private static double secondaryResponse;
+    private static CompletableFuture<Void> resourceReload;
+    private static boolean reloadRecorded, rejoining, reconnectStarted, rejoinRecorded;
+    private static long reconnectAfter;
+    private static List<Expected> beforeRejoin;
+
+    @SubscribeEvent public static void joined(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+        connectionEvent(event.getEntity(), "JOIN");
+    }
+    @SubscribeEvent public static void left(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
+        connectionEvent(event.getEntity(), "LEAVE");
+    }
+    private static void connectionEvent(net.minecraft.world.entity.player.Player player, String event) {
+        if (!HOST || !LIFECYCLE || player.level().isClientSide || !player.getGameProfile().getName().equals("BlueprintPeer")) return;
+        try {
+            Files.createDirectories(COORD);
+            Files.writeString(COORD.resolve("peer-session-events.jsonl"), LINE_JSON.toJson(Map.of("run",RUN,
+                "event",event,"uuid",player.getUUID().toString(),"serverTick",player.level().getGameTime()))+"\n",
+                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception error) { encounterFailure="Could not record real peer session event: "+error; }
+    }
 
     /** Read-only server telemetry. The sole encounter stimulus is setTarget in activate(20). */
     @SubscribeEvent public static void serverTick(TickEvent.ServerTickEvent event) {
@@ -271,6 +297,13 @@ public final class BlueprintClientQa {
         if (ROLE.isEmpty() || done || event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getInstance();
         try {
+            if (rejoining && !reconnectStarted && mc.level == null) {
+                if (System.nanoTime() < reconnectAfter) return;
+                reconnectStarted = true; connectionStarted = System.nanoTime();
+                String address = "127.0.0.1:25587";
+                ConnectScreen.startConnecting(new TitleScreen(), mc, ServerAddress.parseString(address),
+                    new ServerData("Disposable blueprint QA rejoin", address, false), false);
+            }
             diagnose(mc);
             if (encounterFailure != null) throw new AssertionError(encounterFailure);
             if (System.nanoTime() > DEADLINE) throw new AssertionError("QA timed out waiting for world, peer or acknowledged stage");
@@ -325,11 +358,11 @@ public final class BlueprintClientQa {
                     Stage produced = pending.join(); publish(produced); local = produced; pending = null;
                 }
                 if (hostIndex < 0) { hostIndex = firstStage(); pending = server.submit(() -> prepare(server, hostIndex)); return; }
-                if (local != null && local.index == hostIndex && local.phase.equals("READY") && hostIndex >= 7 && acknowledged("ready", hostIndex)) {
+                if (local != null && local.index == hostIndex && local.phase.equals("READY") && hostIndex >= actionFirst() && acknowledged("ready", hostIndex)) {
                     pending = server.submit(() -> activate(server, hostIndex)); return;
                 }
                 if (acknowledged("captured", hostIndex)) {
-                    if (hostIndex >= 20 && !SOLO) verifyEncounterPair(hostIndex);
+                    if (!ARMY && hostIndex >= 20 && !SOLO) verifyEncounterPair(hostIndex);
                     if (hostIndex == lastStage()) {
                         Files.writeString(COORD.resolve("complete.txt"), RUN + " all stages acknowledged by " + (SOLO ? "host only" : "both TCP clients"));
                         if (SOLO || Files.exists(ROOT.resolve("peer/PASS.txt"))) finish(mc, null);
@@ -351,16 +384,62 @@ public final class BlueprintClientQa {
             if (!HOST && captured && Files.exists(COORD.resolve("complete.txt"))) { finish(mc, null); return; }
             camera(mc, observed);
             if (!allTracked(mc, state)) { if (++settled > 200) throw new AssertionError("Missing or mismatched prototype entity after 10 seconds, stage=" + observed); return; }
+            if (LIFECYCLE && observed == 0 && !lifecycle(mc, state)) return;
             settled++;
-            if (observed >= 20 && Files.exists(COORD.resolve("encounter-window.json"))) {
+            if (!ARMY && observed >= 20 && Files.exists(COORD.resolve("encounter-window.json"))) {
                 clientEncounterWindow = List.of(JSON.fromJson(Files.readString(COORD.resolve("encounter-window.json")), EncounterSample[].class));
             }
             // Stage 21 continues the already tracked, freely moving stage-20 encounter.
-            if (settled >= (observed == 21 ? 1 : 25) && !readySent) {
-                writeAck("ready", state.index, "All four exact entity UUIDs tracked; players=" + mc.level.players().size()); readySent = true;
+            if (settled >= (!ARMY && observed == 21 ? 1 : 25) && !readySent) {
+                writeAck("ready", state.index, "All "+prototypeCount()+" exact entity UUIDs tracked; players=" + mc.level.players().size()); readySent = true;
             }
             if (!HOST && Files.exists(COORD.resolve("complete.txt"))) finish(mc, null);
         } catch (Throwable error) { finish(mc, error); }
+    }
+
+    /** Actual F3+T-equivalent resource reload and peer disconnect/reconnect; no server state injection. */
+    private static boolean lifecycle(Minecraft mc, Stage state) throws Exception {
+        if (resourceReload == null) {
+            resourceReload = mc.reloadResourcePacks();
+            return false;
+        }
+        if (!resourceReload.isDone()) return false;
+        resourceReload.join(); // Fail on an actual resource-manager error.
+        if (!allTracked(mc, state)) return false;
+        if (!reloadRecorded) {
+            for (Expected expected : state.mobs) {
+                var mob = (TemplateMob)mc.level.getEntity(expected.entityId);
+                if (mob.skillId() != expected.skill || mob.skillStartTime() != expected.start)
+                    throw new AssertionError("Resource reload changed synchronized action identity");
+            }
+            Files.writeString(OUT.resolve("resource-reload.json"), JSON.toJson(Map.of(
+                "run", RUN, "role", ROLE, "status", "PASS_ACTUAL_RESOURCE_RELOAD", "mobs", state.mobs,
+                "clientTick", mc.level.getGameTime(), "scope", "Existing tracked entity UUID/action identity; rendered clips checked in following stages")));
+            reloadRecorded = true;
+        }
+        if (!HOST && !rejoining) {
+            beforeRejoin = List.copyOf(state.mobs);
+            Files.writeString(OUT.resolve("rejoin-before.json"), JSON.toJson(beforeRejoin));
+            rejoining = true; reconnectAfter = System.nanoTime() + 1_000_000_000L;
+            // Only the peer disconnects. The host's ordinary integrated server continues ticking.
+            mc.level.disconnect(); mc.clearLevel(new TitleScreen());
+            return false;
+        }
+        if (!HOST && !rejoinRecorded) {
+            if (!reconnectStarted || mc.level.players().size() != 2) return false;
+            if (!beforeRejoin.equals(state.mobs)) throw new AssertionError("Host recreated fixtures instead of preserving rejoin identity");
+            for (Expected expected : beforeRejoin) {
+                var mob = (TemplateMob)mc.level.getEntity(expected.entityId);
+                if (mob.skillId() != expected.skill || mob.skillStartTime() != expected.start)
+                    throw new AssertionError("Rejoin changed existing action identity");
+            }
+            Files.writeString(OUT.resolve("rejoin.json"), JSON.toJson(Map.of("run", RUN, "role", ROLE,
+                "status", "PASS_REAL_TCP_DISCONNECT_RECONNECT", "mobs", beforeRejoin,
+                "players", mc.level.players().size(), "clientTick", mc.level.getGameTime(),
+                "scope", "Same tracked fixtures after actual second-player rejoin; not a full server restart test")));
+            rejoinRecorded = true;
+        }
+        return SOLO || Files.exists(ROOT.resolve("peer/rejoin.json"));
     }
 
     private static void diagnose(Minecraft mc) throws Exception {
@@ -431,6 +510,7 @@ public final class BlueprintClientQa {
     }
 
     private static Stage prepare(MinecraftServer server, int index) {
+        if(ARMY)return prepareArmy(server,index);
         var world = server.overworld();
         if (index == 21) {
             if (!encounterActive || fixtures.size() != 4) throw new AssertionError("Summit stage lost its original autonomous encounter");
@@ -453,7 +533,7 @@ public final class BlueprintClientQa {
             }
             world.addFreshEntity(mob); fixtures.add(mob);
         }
-        target = EntityType.COW.create(world); target.setNoAi(true); target.setNoGravity(true); target.setInvulnerable(true);
+        var cow = EntityType.COW.create(world); cow.setNoAi(true);target=cow; target.setNoGravity(true); target.setInvulnerable(true);
         // The real living target still collides and receives attacks; only its distracting test-fixture model is hidden.
         target.setInvisible(true);
         target.moveTo(index < 7 || index >= 14 ? -30 : index == 8 ? 4 : index >= 10 ? 12 : 0, -60, index == 11 ? 12 : index == 12 ? 10 : 2.3, 180, 0);
@@ -474,6 +554,7 @@ public final class BlueprintClientQa {
         return snapshot(index, "READY", world.getGameTime());
     }
     private static Stage activate(MinecraftServer server, int index) {
+        if(ARMY)return activateArmy(server,index);
         boolean started = switch (index) {
             case 7 -> fixtures.get(0).startSkill(TemplateSkills.SWORD_COMBO, target);
             case 8 -> fixtures.get(1).startSkill(TemplateSkills.SHIELD_COMBO, target);
@@ -501,6 +582,46 @@ public final class BlueprintClientQa {
     }
     private static Stage snapshot(int stage, String phase, long now) {
         return new Stage(RUN, stage, phase, now, fixtures.stream().map(m -> new Expected(m.getId(), m.getUUID().toString(), m.blueprintId(), m.skillId(), m.skillStartTime())).toList());
+    }
+    private static int prototypeCount(){return ARMY?5:4;}
+    private static int actionFirst(){return ARMY?8:7;}
+    private static int deathFirst(){return ARMY?18:13;}
+    private static int armySubject(int stage){return stage<8?Math.max(0,stage-3):stage<10?0:stage<12?1:stage<15?2:stage<17?3:stage==17?4:stage-18;}
+    private static int armySkill(int stage){return switch(stage){
+        case 8->ArmySkills.THRUST;case 9->ArmySkills.BRACE;case 10->ArmySkills.VOLLEY;case 11->ArmySkills.ROLL;
+        case 12->ArmySkills.CUT;case 13->ArmySkills.GRAPPLE;case 14->ArmySkills.KNEE;case 15->ArmySkills.STAB;
+        case 16->ArmySkills.DETONATE;case 17->ArmySkills.SLAM;default->throw new AssertionError("Not an army action stage: "+stage);
+    };}
+    private static Stage prepareArmy(MinecraftServer server,int index){
+        var world=server.overworld();encounterActive=false;
+        for(var mob:fixtures)mob.discard();fixtures.clear();if(target!=null)target.discard();
+        var types=List.of(BlueprintEntities.JUMA_CHANGQIANGBING.get(),BlueprintEntities.LIANNU_ZHENZU.get(),BlueprintEntities.TIESUO_CHIHOU.get(),BlueprintEntities.KUIJUN_SISHI.get(),BlueprintEntities.ZHENWANG_ZHANGQIGUAN.get());
+        float yaw=index==1?90:index==2?45:0;
+        for(int i=0;i<types.size();i++){
+            var mob=types.get(i).create(world);mob.moveTo(i*5,-60,0,yaw,0);mob.setYBodyRot(yaw);mob.setYHeadRot(yaw);
+            mob.setNoAi(true);mob.setNoGravity(true);mob.setPersistenceRequired();mob.setInvulnerable(true);
+            world.addFreshEntity(mob);fixtures.add(mob);
+        }
+        var stand=EntityType.ARMOR_STAND.create(world);stand.setInvisible(true);stand.setNoGravity(true);stand.setInvulnerable(true);target=stand;
+        int subject=armySubject(index);double distance=index==10?10:index==13?10:index==8||index==9?3:2.3;
+        target.moveTo(index<8||index>=18?-30:subject*5,-60,distance,180,0);world.addFreshEntity(target);
+        for(var player:server.getPlayerList().getPlayers()){
+            player.setGameMode(GameType.CREATIVE);player.teleportTo(world,10,-60,32,180,0);player.getAbilities().flying=true;player.onUpdateAbilities();
+        }
+        return snapshot(index,"READY",world.getGameTime());
+    }
+    private static Stage activateArmy(MinecraftServer server,int index){
+        var mob=fixtures.get(armySubject(index));boolean started;
+        if(index>=18){mob.setInvulnerable(false);mob.hurt(mob.damageSources().genericKill(),10000);started=mob.isDeadOrDying();}
+        else{
+            int skill=armySkill(index);
+            if(index==9){target.setSprinting(true);target.setDeltaMovement(0,0,-.25);}
+            if(index==16)mob.setTarget(target); // Manual clip test; proximity fuse is independently covered by GameTest.
+            started=mob.startSkill(skill,target);
+            if(index==9)target.setDeltaMovement(Vec3.ZERO);
+        }
+        if(!started)throw new AssertionError("Server refused army action "+index);
+        return snapshot(index,"ACTIVE",server.overworld().getGameTime());
     }
     private static void publish(Stage stage) throws Exception {
         Path temporary = COORD.resolve("stage-next.json"); Files.writeString(temporary, JSON.toJson(stage));
@@ -532,7 +653,7 @@ public final class BlueprintClientQa {
         Files.writeString(COORD.resolve(status + "-" + stage + "-" + ROLE + ".txt"), RUN + "\n" + data);
     }
     private static boolean allTracked(Minecraft mc, Stage state) {
-        if (state.mobs.size() != 4) throw new AssertionError("Expected exactly four server prototypes");
+        if (state.mobs.size() != prototypeCount()) throw new AssertionError("Expected exactly "+prototypeCount()+" server prototypes");
         for (Expected expected : state.mobs) {
             if (!(mc.level.getEntity(expected.entityId) instanceof TemplateMob mob) || !mob.getUUID().toString().equals(expected.uuid)
                     || !mob.blueprintId().equals(expected.id)) return false;
@@ -540,10 +661,11 @@ public final class BlueprintClientQa {
         if (!SOLO && mc.level.players().size() < 2) return false;
         return true;
     }
-    private static int firstStage() { return DEATH_ONLY ? 14 : 0; }
-    private static int lastStage() { return DEATH_ONLY ? 19 : NAMES.length - 1; }
-    private static int deathFixture(int stage) { return stage == 13 ? 1 : stage <= 15 ? 0 : stage <= 17 ? 2 : 3; }
+    private static int firstStage() { return DEATH_ONLY ? ARMY?18:14 : 0; }
+    private static int lastStage() { return DEATH_ONLY && !ARMY ? 19 : NAMES.length - 1; }
+    private static int deathFixture(int stage) { return ARMY?stage-18:stage == 13 ? 1 : stage <= 15 ? 0 : stage <= 17 ? 2 : 3; }
     private static int captureAge(int stage) {
+        if(ARMY)return stage>=18?stage==21?24:stage==22?40:32:switch(stage){case 8,9,12,15->12;case 10,17->18;case 11->10;case 13->25;case 14->6;case 16->15;default->17;};
         return switch (stage) {
             case 9, 11 -> 26;
             case 13, 15 -> 55;
@@ -553,6 +675,7 @@ public final class BlueprintClientQa {
         };
     }
     private static int lastCaptureAge(int stage) {
+        if(ARMY)return stage>=18?stage==21?28:41:TemplateSkills.byId(armySkill(stage)).totalTicks()-2;
         return switch (stage) {
             case 13 -> 180;
             case 15 -> 58;
@@ -565,6 +688,15 @@ public final class BlueprintClientQa {
     }
     private static void camera(Minecraft mc, int stage) {
         mc.options.hideGui = true; mc.options.setCameraType(CameraType.FIRST_PERSON);
+        if(ARMY){
+            boolean individual=stage>=3;int subject=armySubject(stage);
+            double x=individual?subject*5:10,z=individual?8:32;
+            if(stage>=8&&local!=null&&mc.level.getEntity(local.mobs.get(subject).entityId) instanceof TemplateMob mob)x=mob.getX();
+            Vec3 eye=new Vec3(x,-58.1,z),look=new Vec3(x,-58.4,0),delta=look.subtract(eye);
+            mc.options.fov().set(individual?42:42);var camera=new ArmorStand(mc.level,eye.x,eye.y,eye.z);
+            camera.setPos(eye.x,eye.y-camera.getEyeHeight(),eye.z);camera.setYRot(180);camera.setYHeadRot(180);camera.yHeadRotO=180;
+            camera.setXRot((float)-Math.toDegrees(Math.atan2(delta.y,delta.horizontalDistance())));camera.setOldPosAndRot();mc.setCameraEntity(camera);return;
+        }
         if (stage >= 20) {
             mc.options.fov().set(48);
             Vec3 eye = new Vec3(10.5, -55.8, -1), look = new Vec3(4.5, -58.3, 5);
@@ -595,19 +727,19 @@ public final class BlueprintClientQa {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.getOverlay() != null || !allTracked(mc, local)) return;
         try {
-            if (observed >= 20) {
+            if (!ARMY && observed >= 20) {
                 enableContactTracking(mc);
                 if (!readySent || !local.phase.equals("ACTIVE") || !observeEncounter(mc)) return;
             } else if (!readySent) return;
-            else if (observed >= 7) {
+            else if (observed >= actionFirst()) {
                 if (!local.phase.equals("ACTIVE")) return;
-                if (observed == 8 || observed == 9) sampleSecondaryMotion(mc);
+                if (ARMY && armySubject(observed) != 3 || !ARMY && (observed == 8 || observed == 9)) sampleSecondaryMotion(mc);
                 long age = mc.level.getGameTime() - local.published;
                 int wanted = captureAge(observed);
                 if (age < wanted) return;
                 if (age > lastCaptureAge(observed))
                     throw new AssertionError("Missed active contact capture window, stage=" + observed + " age=" + age);
-                if (observed == 8 && secondaryResponse <= .02 || observed == 9 && secondaryResponse <= .005)
+                if (!ARMY && (observed == 8 && secondaryResponse <= .02 || observed == 9 && secondaryResponse <= .005))
                     throw new AssertionError("Actual secondary bones never responded during " + NAMES[observed] + ": maximum=" + secondaryResponse);
                 for (Expected expected : local.mobs) {
                     TemplateMob mob = (TemplateMob) mc.level.getEntity(expected.entityId);
@@ -626,23 +758,30 @@ public final class BlueprintClientQa {
                     }
                     LOG.add(NAMES[observed] + " entity=" + expected.id + " uuid=" + expected.uuid + " skill=" + mob.skillId()
                             + " phase=" + mob.skillPhase() + " start=" + mob.skillStartTime() + " clientTime=" + mc.level.getGameTime() + " actionAge=" + mob.actionAge(0));
+                    if(ARMY)LOG.add("Army facing yaw="+mob.getYRot()+" body="+mob.yBodyRot+" bodyOld="+mob.yBodyRotO+" head="+mob.yHeadRot);
                     observeAnimation(mc, mob, expected.skill != 0 || mob.isDeadOrDying());
                 }
-                if (observed == 9) {
+                if (!ARMY && observed == 9) {
                     TemplateMob priest = (TemplateMob) mc.level.getEntity(local.mobs.get(2).entityId);
                     TemplateMob ally = (TemplateMob) mc.level.getEntity(local.mobs.get(0).entityId);
                     if (priest.buffTargetId() != ally.getId() || !ally.isPossessed())
                         throw new AssertionError("Possession target/state failed to synchronize to " + ROLE + "; target="+priest.buffTargetId()+", expected="+ally.getId()+", possessed="+ally.isPossessed());
                 }
-                if (observed >= 13 && !((TemplateMob) mc.level.getEntity(local.mobs.get(deathFixture(observed)).entityId)).isDeadOrDying())
+                if (observed >= deathFirst() && !((TemplateMob) mc.level.getEntity(local.mobs.get(deathFixture(observed)).entityId)).isDeadOrDying())
                     throw new AssertionError("Death state not synchronized for " + NAMES[observed]);
+                if(ARMY&&observed==13){
+                    var scout=(TemplateMob)mc.level.getEntity(local.mobs.get(2).entityId);
+                    if(scout.hookTargetId()<0||mc.level.getEntity(scout.hookTargetId())==null||scout.hookExpires()<=mc.level.getGameTime())
+                        throw new AssertionError("Real hook attachment failed to synchronize to "+ROLE);
+                    LOG.add("Real hook attachment target="+scout.hookTargetId()+" expires="+scout.hookExpires());
+                }
             }
             try (var image = Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
                 if (image.getWidth() < 600 || image.getHeight() < 400) throw new AssertionError("Unexpected framebuffer size");
                 image.writeToFile(OUT.resolve(String.format("%02d-%s.png", observed, NAMES[observed])));
             }
             captured = true;
-            String data = "Captured " + NAMES[observed] + "; four exact UUIDs tracked; players=" + mc.level.players().size() + "; FPS=" + mc.getFps();
+            String data = "Captured " + NAMES[observed] + "; "+prototypeCount()+" exact UUIDs tracked; players=" + mc.level.players().size() + "; FPS=" + mc.getFps();
             LOG.add(data); Files.write(OUT.resolve("observations.txt"), LOG); writeAck("captured", observed, data);
         } catch (Throwable error) {
             try (var failedFrame = Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
@@ -668,7 +807,7 @@ public final class BlueprintClientQa {
             }
             LOG.add("Rendered " + mob.blueprintId() + " requested=" + wanted + " queued=" + queued + " controller=" + state + bones);
             if (mob.isDeadOrDying()) {
-                if (requireAction && (mob.kind() == TemplateMob.Kind.PRIEST || mob.kind() == TemplateMob.Kind.SHIELD))
+                if (requireAction && (ARMY || mob.kind() == TemplateMob.Kind.PRIEST || mob.kind() == TemplateMob.Kind.SHIELD))
                     secondaryPose(renderer, mob, true);
                 int overlay = renderer.getPackedOverlay(mob, 0, 0);
                 var tint = renderer.getRenderColor(mob, 0, 0xF000F0);
@@ -676,18 +815,23 @@ public final class BlueprintClientQa {
                         + " rgba=" + tint.getRed() + "," + tint.getGreen() + "," + tint.getBlue() + "," + tint.getAlpha());
                 if (mob.hurtTime <= 0 && overlay != net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY)
                     throw new AssertionError("Death corpse incorrectly retains damage overlay: " + mob.blueprintId());
-                if (observed == 15) {
+                if (!ARMY && observed == 15) {
                     var dao = renderer.getGeoModel().getBone("dao").orElseThrow(() -> new AssertionError("Missing planted dao bone"));
-                    // Frozen authored endpoint compensates the fallen parent chain; the model
-                    // preview verifies its world-space blade is vertical and tip is at y=-.18px.
-                    if (Math.abs(dao.getRotX() - .018052F) > .05F || Math.abs(dao.getRotY() + .402887F) > .05F
-                            || Math.abs(dao.getRotZ() - 1.185524F) > .05F || Math.abs(dao.getPosX() - 14.081163F) > .05F
-                            || Math.abs(dao.getPosY() - 1.17901F) > .05F || Math.abs(dao.getPosZ() + 11.476758F) > .05F)
+                    // Load the shipped endpoint rather than freezing obsolete local offsets.
+                    // Generator checks the independent world-space tip/floor and upright invariants.
+                    var rotation=authoredEndpoint(mc,mob.blueprintId(),"death","dao","rotation");
+                    var position=authoredEndpoint(mc,mob.blueprintId(),"death","dao","position");
+                    var rest=dao.getInitialSnapshot();
+                    if (Math.abs(dao.getRotX()-(rest.getRotX()-Math.toRadians(rotation[0])))>.05
+                            || Math.abs(dao.getRotY()-(rest.getRotY()-Math.toRadians(rotation[1])))>.05
+                            || Math.abs(dao.getRotZ()-(rest.getRotZ()+Math.toRadians(rotation[2])))>.05
+                            || Math.abs(dao.getPosX()-position[0])>.05
+                            || Math.abs(dao.getPosY()-position[1])>.05 || Math.abs(dao.getPosZ()-position[2])>.05)
                         throw new AssertionError("Dao has not reached the planted endpoint compensated against the collapsed body: actual rot="
                                 + dao.getRotX() + "," + dao.getRotY() + "," + dao.getRotZ() + " pos="
                                 + dao.getPosX() + "," + dao.getPosY() + "," + dao.getPosZ());
                 }
-                if (observed == 17) {
+                if (!ARMY && observed == 17) {
                     for (String boneName : List.of("body_head", "body_chest")) {
                         var body = renderer.getGeoModel().getBone(boneName).orElseThrow(() -> new AssertionError("Missing empty-robe body bone " + boneName));
                         if (body.getScaleX() > .02F || body.getScaleY() > .02F || body.getScaleZ() > .02F)
@@ -698,7 +842,7 @@ public final class BlueprintClientQa {
                     if (Math.abs(left.getPosX() - right.getPosX()) < 1F)
                         throw new AssertionError("Priest mask fragments have not separated");
                 }
-                if (observed == 19) {
+                if (!ARMY && observed == 19) {
                     int bent = 0;
                     for (String boneName : List.of("right_elbow", "left_elbow", "right_knee", "left_knee")) {
                         var limb = renderer.getGeoModel().getBone(boneName).orElseThrow(() -> new AssertionError("Missing curled limb " + boneName));
@@ -715,12 +859,23 @@ public final class BlueprintClientQa {
             throw new AssertionError("Actual Gecko animation did not reach synchronized action: requested=" + wanted + ", queued=" + queued + ", controller=" + state);
     }
 
+    private static double[] authoredEndpoint(Minecraft mc,String id,String clip,String bone,String channel) {
+        var resource=new net.minecraft.resources.ResourceLocation("dynasty","animations/blueprint/"+id+".animation.json");
+        try(var reader=mc.getResourceManager().getResource(resource).orElseThrow().openAsReader()) {
+            var key=com.google.gson.JsonParser.parseReader(reader).getAsJsonObject().getAsJsonObject("animations")
+                .getAsJsonObject("animation."+id+"."+clip).getAsJsonObject("bones").getAsJsonObject(bone).getAsJsonObject(channel);
+            String last=key.keySet().stream().max(java.util.Comparator.comparingDouble(Double::parseDouble)).orElseThrow();
+            var values=key.getAsJsonArray(last);
+            return new double[]{values.get(0).getAsDouble(),values.get(1).getAsDouble(),values.get(2).getAsDouble()};
+        }catch(java.io.IOException e){throw new java.io.UncheckedIOException(e);}
+    }
+
     private static void sampleSecondaryMotion(Minecraft mc) throws Exception {
         if (lastSecondaryTick == mc.level.getGameTime()) return;
         lastSecondaryTick = mc.level.getGameTime();
-        TemplateMob mob = (TemplateMob) mc.level.getEntity(local.mobs.get(observed == 8 ? 1 : 2).entityId);
+        TemplateMob mob = (TemplateMob) mc.level.getEntity(local.mobs.get(ARMY ? armySubject(observed) : observed == 8 ? 1 : 2).entityId);
         var renderer = (com.dynasty.blueprint.client.TemplateMobRenderer) mc.getEntityRenderDispatcher().getRenderer(mob);
-        Map<String, Object> sample = secondaryPose(renderer, mob, false);
+        Map<String, Object> sample = secondaryPose(renderer, mob, mob.isDeadOrDying());
         sample.put("run", RUN); sample.put("role", ROLE); sample.put("stage", observed);
         sample.put("clientTick", mc.level.getGameTime()); sample.put("uuid", mob.getUUID().toString());
         sample.put("skill", mob.skillId()); sample.put("start", mob.skillStartTime());
@@ -763,6 +918,25 @@ public final class BlueprintClientQa {
                 }
                 result.put(entry.getKey(), offset);
             }
+        } else if (ARMY) {
+            String[] gear=switch(mob.kind()) {
+                case SPEAR -> new String[]{"skirt_spring_front","skirt_spring_back","skirt_spring_left","skirt_spring_right"};
+                case CROSSBOW -> new String[]{"gear_pouch_0","gear_pouch_1","gear_pouch_2"};
+                case SCOUT -> new String[]{"right_chain_spring","left_chain_spring"};
+                case FLAG -> new String[]{"flag_spring_0","flag_spring_1","flag_spring_2","flag_spring_3"};
+                default -> new String[]{};
+            };
+            double limit=mob.kind()==TemplateMob.Kind.FLAG?8:mob.kind()==TemplateMob.Kind.SCOUT?12:7;
+            for(String name:gear) {
+                var bone=renderer.getGeoModel().getBone(name).orElseThrow(()->new AssertionError("Missing profession secondary bone "+name));
+                float[] offset={bone.getRotX(),bone.getRotY(),bone.getRotZ()};
+                for(float angle:offset) {
+                    if(!Float.isFinite(angle)||Math.abs(angle)>Math.toRadians(limit+.1)) throw new AssertionError("Profession secondary bone exceeded range: "+name);
+                    if(death&&Math.abs(angle)>.001) throw new AssertionError("Profession secondary bone retained spring at death: "+name);
+                }
+                result.put(name,offset);
+            }
+            if(com.dynasty.blueprint.client.TemplateSecondaryMotion.activeStates()>64) throw new AssertionError("Unbounded secondary-motion cache");
         }
         return result;
     }

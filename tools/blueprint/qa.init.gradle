@@ -14,6 +14,8 @@ allprojects { p -> afterEvaluate {
         property 'dynasty.blueprintQa.solo', p.hasProperty('qaSolo') ? 'true' : 'false'
         property 'dynasty.blueprintQa.connectionOnly', p.hasProperty('qaConnectionOnly') ? 'true' : 'false'
         property 'dynasty.blueprintQa.deathOnly', p.hasProperty('qaDeathOnly') ? 'true' : 'false'
+        property 'dynasty.blueprintQa.army', p.hasProperty('qaArmy') ? 'true' : 'false'
+        property 'dynasty.blueprintQa.lifecycle', p.hasProperty('qaLifecycle') ? 'true' : 'false'
         property 'dynasty.blueprintQa.run', runId
         property 'dynasty.blueprintQa.output', p.file('docs/blueprint-cod1/ingame/' + runId).absolutePath
         property 'mixin.env.remapRefMap', 'true'
@@ -21,5 +23,8 @@ allprojects { p -> afterEvaluate {
         args '--username', role == 'peer' ? 'BlueprintPeer' : 'BlueprintHost', '--width', '1400', '--height', '900'
         mods { dynasty { source qa } }
     }
-    p.tasks.configureEach { task -> if (task.name == 'runClient') task.dependsOn qa.classesTaskName }
+    p.tasks.configureEach { task -> if (task.name == 'runClient') {
+        task.dependsOn qa.classesTaskName
+        task.doFirst { p.exec { commandLine 'python3', p.file('tools/blueprint/freeze_client_classpath.py').absolutePath, runId } }
+    } }
 } }

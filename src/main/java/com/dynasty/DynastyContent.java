@@ -17,6 +17,7 @@ public final class DynastyContent {
         com.dynasty.workshop.DynastyTreasures.ITEMS.register(modEventBus);
         com.dynasty.puzzle.PuzzleBlocks.BLOCKS.register(modEventBus);
         com.dynasty.puzzle.PuzzleBlocks.ITEMS.register(modEventBus);
+        com.dynasty.dungeon.DungeonContent.register(modEventBus);
         com.dynasty.ritual.ZhenyuanRitualContent.register(modEventBus);
         com.dynasty.ritual.ZhenyuanBosses.ENTITIES.register(modEventBus);
         DynastyItems.ITEMS.register(modEventBus);

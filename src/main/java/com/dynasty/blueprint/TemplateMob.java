@@ -57,9 +57,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-/** Shared state machine for the four stage-two prototypes. Every hit and cooperation decision is server-owned. */
+/** Validated template lifecycle; additional army professions compose their own server actions. */
 public final class TemplateMob extends Monster implements GeoEntity, Combatant {
-    public enum Kind { SWORD, SHIELD, PRIEST, BEAST }
+    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG }
     private static final EntityDataAccessor<Integer> SKILL = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> START = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
@@ -70,8 +70,11 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     private static final EntityDataAccessor<Byte> CLIMB_FACE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.BYTE);
     private static final EntityDataAccessor<Float> CLIMB_DISTANCE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Long> CLIMB_START = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
+    private static final EntityDataAccessor<Integer> HOOK_TARGET = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Long> HOOK_EXPIRES = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
     private static final UUID FORMATION_SPEED = UUID.fromString("10f91bd5-2b86-4fe6-a038-a340a0461011");
     private final Kind kind;
+    private final ArmyBehaviors.Behavior army;
     private final TimedAttack attack = new TimedAttack();
     private final TacticalMemory tactics = new TacticalMemory();
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
@@ -86,6 +89,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     public TemplateMob(EntityType<? extends TemplateMob> type, Level level, Kind kind) {
         super(type, level);
         this.kind = kind;
+        this.army = ArmyBehaviors.create(this,kind);
         this.xpReward = kind == Kind.SHIELD ? 8 : 5;
         setMaxUpStep(kind == Kind.BEAST ? 1.0F : .6F);
         if (kind == Kind.BEAST) this.navigation = new com.dynasty.blueprint.combat.SummitClimberNavigation(this, level);
@@ -100,17 +104,27 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         return switch (kind) {
             case SWORD -> "zuwu_daoshou"; case SHIELD -> "ludun_jiashi";
             case PRIEST -> "fufa_jijiu"; case BEAST -> "shanjing_shanxiao";
+            case SPEAR -> "juma_changqiangbing"; case CROSSBOW -> "liannu_zhenzu";
+            case SCOUT -> "tiesuo_chihou"; case POWDER -> "kuijun_sishi"; case FLAG -> "zhenwang_zhangqiguan";
         };
     }
     @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : Faction.DYNASTY_ARMY; }
     @Override public MobRole role() {
-        return switch (kind) { case SWORD -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD; case PRIEST -> MobRole.SUPPORT; case BEAST -> MobRole.BEAST; };
+        return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
+            case PRIEST,FLAG -> MobRole.SUPPORT; case CROSSBOW -> MobRole.RANGED; case BEAST -> MobRole.BEAST; };
     }
     public TimedAttack attack() { return attack; }
     public int skillId() { return entityData.get(SKILL); }
     public long skillStartTime() { return entityData.get(START); }
     public float skillSpeed() { return entityData.get(SPEED); }
     public int buffTargetId() { return entityData.get(BUFF_TARGET); }
+    public int hookTargetId() { return entityData.get(HOOK_TARGET); }
+    public long hookExpires() { return entityData.get(HOOK_EXPIRES); }
+    void syncHook(LivingEntity target,long expires) {
+        if(level().isClientSide)return;
+        entityData.set(HOOK_TARGET,target==null?-1:target.getId());
+        entityData.set(HOOK_EXPIRES,target==null?-1:expires);
+    }
     /** Non-player potion maps are not a client synchronization contract. Visual state is explicit. */
     public boolean isPossessed() { return entityData.get(POSSESSED); }
     /** Server-measured horizontal direction INTO the wall, not its outward surface normal. */
@@ -128,6 +142,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         super.defineSynchedData(); entityData.define(SKILL, 0); entityData.define(PHASE, AttackState.IDLE.ordinal());
         entityData.define(START, -1L); entityData.define(SPEED, 1F); entityData.define(BUFF_TARGET, -1); entityData.define(CLIMBING, false); entityData.define(POSSESSED, false);
         entityData.define(CLIMB_FACE, (byte)-1); entityData.define(CLIMB_DISTANCE, 0F); entityData.define(CLIMB_START, -1L);
+        entityData.define(HOOK_TARGET,-1); entityData.define(HOOK_EXPIRES,-1L);
     }
     @Override protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
@@ -143,7 +158,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         super.setTarget(target);
     }
 
-    private boolean validEnemy(LivingEntity other) {
+    boolean validEnemy(LivingEntity other) {
         return other != null && other.isAlive() && !other.isSpectator() && !Combatant.allied(this, other)
                 && !(other instanceof Player player && (player.isCreative() || player.isSpectator()));
     }
@@ -152,7 +167,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
                 && c.faction() == faction() && c.role() != MobRole.SUPPORT && c.role() != MobRole.BEAST
                 && distanceToSqr(ally) <= 16 * 16 && hasLineOfSight(ally);
     }
-    private LivingEntity resolve(UUID id) {
+    LivingEntity resolve(UUID id) {
         return id != null && level() instanceof ServerLevel server && server.getEntity(id) instanceof LivingEntity living ? living : null;
     }
 
@@ -164,11 +179,14 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         double range = distanceTo(target);
         if (range < base.minRange() || range > base.maxRange() || base.requiresSight() && !hasLineOfSight(target)) return false;
         if (id == TemplateSkills.ROCK_THROW && !onHighGround(target)) return false;
+        if (army != null && !army.canStart(id,target)) return false;
         Vec3 direction = target.position().subtract(position()).multiply(1, 0, 1).normalize();
         if (direction.lengthSqr() < .0001) direction = getLookAngle().multiply(1, 0, 1).normalize();
-        float speed = hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
+        // A fuse uses real elapsed time, not attack speed: three consecutive close seconds.
+        float speed = id != ArmySkills.DETONATE && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
         SkillDefinition effective = TemplateSkills.accelerated(base, speed);
         if (!attack.tryStart(effective, level().getGameTime(), position(), direction, target.getUUID())) return false;
+        if(army!=null)army.started(id,target);
         entityData.set(SPEED, speed);
         coverUntil = 0;
         entityData.set(SKILL, id); entityData.set(START, attack.started()); entityData.set(PHASE, AttackState.WINDUP.ordinal());
@@ -189,6 +207,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             case SHIELD -> id == TemplateSkills.SHIELD_COMBO;
             case PRIEST -> id == TemplateSkills.TALISMAN_VOLLEY || id == TemplateSkills.POSSESSION;
             case BEAST -> id == TemplateSkills.POUNCE || id == TemplateSkills.ROCK_THROW;
+            default -> army != null && army.allows(id);
         };
     }
 
@@ -204,6 +223,8 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     private void tickCombat() {
         if (!isAlive()) return;
         long now = level().getGameTime();
+        if(army!=null)army.tick(now);
+        if(!isAlive())return;
         if (now >= nextTacticalScan) { nextTacticalScan = now + 20; updateTactics(now); }
         if (possessedUntil > 0 && now >= possessedUntil) clearPossession();
         entityData.set(POSSESSED, hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()));
@@ -213,7 +234,8 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (attack.current() != null) {
             face(attack.direction());
             navigation.stop();
-            if (skillId() != TemplateSkills.POUNCE) setDeltaMovement(getDeltaMovement().multiply(.35, 1, .35));
+            if (skillId() != TemplateSkills.POUNCE && skillId() != ArmySkills.ROLL && skillId() != ArmySkills.GRAPPLE)
+                setDeltaMovement(getDeltaMovement().multiply(.35, 1, .35));
             attack.advance(now, this::impact);
             // Damage callbacks (e.g. thorns) may synchronously enter die(). Do not erase its
             // authoritative death clock or cancel the death visual that die() has just sent.
@@ -317,6 +339,10 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
                         navigation.moveTo(path, 1); nextMovement = level().getGameTime() + 20;
                         coverUntil = level().getGameTime() + 22;
                     }
+                    if(Boolean.getBoolean("dynasty.blueprint.coverTrace"))com.dynasty.Dynasty.LOGGER.info(
+                        "[blueprint-cover-plan] tick={} guard={} ally={} desired={} onGround={} reachable={} pathTarget={} nextMove={} until={}",
+                        level().getGameTime(),position(),ally.position(),intercept,onGround(),path!=null&&path.canReach(),
+                        path==null?"none":path.getTarget(),nextMovement,coverUntil);
                 });
     }
 
@@ -377,6 +403,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             }
             default -> { }
         }
+        if(army!=null)army.impact(current,frame);
     }
 
     private void melee(SkillDefinition skill, float multiplier, double knockback, boolean handoff, boolean tear) {
@@ -413,10 +440,12 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     }
     public void interruptAttack(int stunTicks) {
         if (level().isClientSide || !isAlive()) return;
-        attack.stun(level().getGameTime(), stunTicks); finishAction(); entityData.set(PHASE, AttackState.STUN.ordinal());
+        int duration=hasEffect(BlueprintEntities.JUNHUN_AURA.get())?Math.max(1,stunTicks/2):stunTicks;
+        attack.stun(level().getGameTime(), duration); finishAction(); entityData.set(PHASE, AttackState.STUN.ordinal());
     }
     private void finishAction() {
         entityData.set(SKILL, 0); entityData.set(START, -1L); entityData.set(SPEED, 1F);
+        syncHook(null,-1);
         if (linkUntil == 0) entityData.set(BUFF_TARGET, -1);
         BlueprintVisualEvent.cancel(this);
     }
@@ -463,19 +492,26 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         super.die(source);
         if (!isDeadOrDying()) return;
         deathStarted = level().getGameTime(); attack.cancel(); navigation.stop(); setTarget(null); releaseSupport(); clearPossession();
+        syncHook(null,-1);
         entityData.set(CLIMBING, false);
         clearClimbContact();
         entityData.set(SKILL, 0); entityData.set(START, deathStarted); entityData.set(SPEED, 1F);
         BlueprintVisualEvent.cancel(this);
         BlueprintVisualEvent.death(this);
+        if(!level().isClientSide&&army!=null)army.died(source);
     }
     public int deathDuration() { return kind == Kind.SHIELD ? 200 : kind == Kind.SWORD ? 60 : 44; }
+    void onArmyHookHit(LivingEntity target,long epoch) {
+        if(!level().isClientSide&&army!=null&&isAlive()&&skillId()==ArmySkills.GRAPPLE&&skillStartTime()==epoch)
+            army.hookHit(target);
+    }
     @Override protected void dropAllDeathLoot(DamageSource source) {
         if (lootDropped) return;
         lootDropped = true; super.dropAllDeathLoot(source);
     }
     @Override protected void tickDeath() {
         ++deathTime;
+        if(!level().isClientSide&&army!=null)army.tickDead(level().getGameTime());
         if (!level().isClientSide && deathStarted >= 0)
             deathTime = (int)Math.min(240, Math.max(deathTime, level().getGameTime() - deathStarted));
         if (kind == Kind.SHIELD) setDeltaMovement(Vec3.ZERO);
@@ -494,6 +530,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (possessor != null) tag.putUUID("Possessor", possessor);
         if (possessedAlly != null) tag.putUUID("PossessedAlly", possessedAlly);
         tag.putDouble("LeapX", leapDestination.x); tag.putDouble("LeapY", leapDestination.y); tag.putDouble("LeapZ", leapDestination.z);
+        if(army!=null)tag.put("ArmyActionState",army.save());
     }
     @Override public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
@@ -514,11 +551,13 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         entityData.set(POSSESSED, hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()));
         LivingEntity ally = resolve(possessedAlly); if (ally != null) entityData.set(BUFF_TARGET, ally.getId());
         leapDestination = new Vec3(tag.getDouble("LeapX"), tag.getDouble("LeapY"), tag.getDouble("LeapZ"));
+        if(army!=null)army.load(tag.getCompound("ArmyActionState"));
     }
 
     public String visualAnimation() {
         if (isDeadOrDying()) return "death";
         if (hurtTime > 0 && skillId() == 0) return "hurt";
+        if(army!=null&&skillId()!=0)return army.animation(skillId());
         if (skillId() == TemplateSkills.POSSESSION) return "buff";
         if (skillId() == TemplateSkills.ROCK_THROW) return "rock";
         if (skillId() == TemplateSkills.POUNCE) return "skill";
@@ -569,6 +608,19 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             long now = level().getGameTime();
             getLookControl().setLookAt(target, 30, 30);
             if (attack.state(now) != AttackState.IDLE) { navigation.stop(); return; }
+            // Goal selection precedes customServerAiStep. At a twenty-tick scan boundary
+            // the old chase used to overwrite the validated cover path before it could
+            // be refreshed; at its endpoint it also chased out of the guarded position.
+            // Keep the finite server-owned cover plan higher priority than chase, but
+            // a close enemy still has priority for the authored shield counter.
+            // Navigation still advances normally; no position, velocity or player lock.
+            if(kind==Kind.SHIELD&&now<coverUntil&&distanceToSqr(target)>6.25)return;
+            if(army!=null){
+                int id=army.choose(target,now);
+                if(id>0&&attack.ready(id,now)&&startSkill(id,target))return;
+                if(now>=nextMovement){nextMovement=now+10;army.move(target,now);}
+                return;
+            }
             if (kind == Kind.PRIEST && attack.ready(TemplateSkills.POSSESSION, now)
                     && startSkill(TemplateSkills.POSSESSION, resolve(supportCandidate))) return;
             double distance = distanceTo(target);

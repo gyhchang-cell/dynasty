@@ -1,8 +1,14 @@
-# cod1 第 1～5 项：工程审计与内容落点目录
+# cod1 第 1～5 项：实现进度与验证记录
 
-这里记录 94 个蓝图条目的身份、既有工程对应关系和世界落点。当前为 **4 个基础模板 PARTIAL，剩余 90 项 NOT_STARTED，0 项 DONE**；30/15/12/25/12 的类别总数不变。目录本身不是运行时注册文件；四模板的 `ACTIVE_RUNTIME` 只表示已有注册、资源和活动生成代码，不表示单机/双人验收通过。
+这里记录 94 个蓝图条目的身份、既有工程对应关系和世界落点。当前为 **9 个基础怪 PARTIAL，剩余 85 项 NOT_STARTED，0 项 DONE**；30/15/12/25/12 的类别总数不变。目录不是运行时注册文件，`ACTIVE_RUNTIME` 不等于完整验收。
 
-卒伍刀手、橹盾甲士、符法祭酒、山精山魈已映射真实实现；另外26只基础怪、15精英、12 Boss、25神器、12神影尚未启动。最新服务器证据 `/tmp/dynasty-cod1-tests5.log` 为136/136通过，其中含17项新GameTest（包括跨维度成员清理、时段/低光权重和伤害回调致死时钟回归）；同一日志实际执行 `:jar`、`:reobfJar`、`:assemble`、`:build` 并报告 `BUILD SUCCESSFUL`，本轮生产构建通过。冻结资源实际为170骨骼、352 cuboids、30动画片段，计数与哈希记录于 `template-verification.json`，不等于实机质量通过。真实客户端 `ingame/solo-20261002-c/host` 的14阶段状态/截图流程也通过；其报告明确不代表多人或视觉质量通过。双客户端及最终模型质量仍由主代理验收。
+真实运行时已有卒伍刀手、橹盾甲士、符法祭酒、山精山魈、拒马长枪兵、连弩阵卒、铁索斥候、溃军死士、阵亡掌旗官；另外 21 基础怪、15 精英、12 Boss、25 神器、12 神影未启动。最新完整服务器回归为 **179/179**（dynasty 146、dynasty_army 21、dynasty_cod2 12），同次 `:build` 成功，见 [179 项回归日志](evidence/regression-20261005-179-guard-counter.log)。普通 Gradle test 为 NO-SOURCE，不能代替这些 GameTest。
+
+当前资源：四模板 230 骨骼 / 410 cuboids / 31 clips；军系五只 264 / 642 / 35。灰模、黑剪影、原有自产 atlas 和动作/死亡五视图已生成。握持通道、两手接点、落地死亡、斥候独立膝撞、断旗落地、山魈真实攀壁接触已做检查；这仍不等于最终美术质量完成。
+
+修改守护路径之前的真实实机记录仍保留：`template-{solo,network}-20261005-lifecycle-final` 各 22 阶段，`army-{solo,network}-20261005-lifecycle-final` 各 23 阶段。双客户端确实经历同 UUID 的 JOIN→LEAVE→JOIN，真实资源重载后仍跟踪原实体，再继续动作/死亡检查。其范围是**空闲实体重连**，不是活动战斗重连或服务器存档重启。最新守护修改后两次联机复测在 LOGIN 超时；随后客户端启动报 `Can't find a primary monitor`。因此新构建的客户端状态重新记为 PENDING，不能拿较早通过的截图冒充当前构建。详见 [本轮实机状态](evidence/current-client-status-20261005.json)。
+
+保留的失败回归中，死士三秒引信断言曾失败一次；后续逐帧记录与三次完整运行通过，未证明该间歇性失败的根因已消除。引信已有独立于附身攻速的实时时钟，本轮没有为追求绿灯缩短引信或放宽该断言。
 
 ## 文件
 
@@ -13,7 +19,9 @@
 | `registry-snapshot.json` | 原有源码注册位置与资源路径/哈希清单，不复制大量工作区贴图 |
 | `baseline-build.json` | 修改前完整构建成功证据；普通 Gradle test 为 NO-SOURCE，不等于 GameTest 或进游戏测试 |
 | `catalog-validation.json` | 最近一次生成时的静态校验结果 |
-| `template-verification.json` | 四模板服务器测试、单客户端14阶段截图流程及模型审查证据；多人/最终质量仍PENDING |
+| `template-verification.json` | 当前四模板资源、179 项服务器回归及构建证据；当前客户端复测 PENDING |
+| `army-verification.json` | 五只军系的属性、技能、模型计数、真实世界入口与剩余验收 |
+| `models/model-manifest.json` | 九个实际资源模型的骨骼、cuboid、clip 与握持信息 |
 | `stage0-2-audit.md` | 独立阶段边界核对、实现审查及尚未解决的验收差距；不改写原任务范围 |
 | `../../tools/blueprint/catalog.py` | 可重复提取、生成、检查工具，无第三方依赖 |
 
@@ -24,14 +32,15 @@
 ```sh
 python3 tools/blueprint/catalog.py --check
 python3 tools/blueprint/catalog.py --generate --source '/Users/a15356015027/Desktop/code x提示词/cod1.txt'
-python3 tools/blueprint/catalog.py --generate --refresh-templates --template-test-log /tmp/dynasty-cod1-tests5.log --solo-evidence docs/blueprint-cod1/ingame/solo-20261002-c/host
+python3 tools/blueprint/refresh_army_audit.py --server-log docs/blueprint-cod1/evidence/regression-20261005-179-guard-counter.log
+python3 tools/blueprint/catalog_evidence_tests.py
 ```
 
 `--check` 只读，检查原文精确名称、94 项类别计数、唯一 ID、真实维度 ID、各类别必填字段、标签存在性、最终 Boss 保护以及 DONE 的实机证据。资源在扫描后出现/消失会单独列出，不会悄悄被算成已完成。
 
 `--generate` 机械生成 JSON/TSV 并刷新资源存在性。保留已有 `implementationStatus`、`verification` 和 `implementationEvidence`；对于非 NOT_STARTED 条目，还保留实施者填写的实际资源、属性、生成/来源字段。初次基线构建证据与静态清单默认保留；只有显式 `--refresh-inventory` 才重新扫描清单。该参数用于校正扫描器，不表示重新建立构建基线。
 
-`--refresh-templates` 显式提取 `BlueprintEntities`、`TemplateSkills`、`TemplateContentDefinitions` 及实际 biome modifier；结合 `BlueprintSpawns` 的固定编组、已消费的生成尝试权重、局部上限和保存标记，重建四模板的 PARTIAL 记录。必须显式提供 `--template-test-log`；测试总数从完整成功日志读取，新测试数从蓝图 `@GameTest` 注解读取，并与当前 `dynasty` 命名空间全部测试注解计数交叉核对，不硬编码136/17。缺失、失败、过时或不同测试子集的日志会拒绝刷新。`--solo-evidence` 只记录确有PASS报告和14张截图的单客户端流程，不将其扩大为视觉质量或双人通过。该操作不设置 DONE。源结构或测试结果不符时直接失败，不能把任意日志自动当成原证据。普通 `--generate` 不覆盖后续主代理补充的实机结果。
+`refresh_army_audit.py` 提取四模板与五军系实际注册、属性、技能、地点与资源。测试数量从完整成功日志及当前注解读取，不硬编码；失败或不同子集的日志拒绝刷新。可显式传入 `--solo`、`--network`、`--template-solo`、`--template-network`，但必须是完整、角色一致、动作身份吻合且冻结 classpath 仍与当前编译输出逐字节一致的运行。缺少最新客户端通过证据就保持 PENDING，不设置 DONE。证据解析器另有 18 个临时文件回归测试，它们不是游戏测试。
 
 原文可通过 `--source` 指定位置。目录仅保存名称、技能名、出现/获得地点和引用行号等工程索引，不重抄模型、技能和剧情设计全文。JSON 中的源摘要可识别文档变化。
 
@@ -53,10 +62,13 @@ python3 tools/blueprint/catalog.py --generate --refresh-templates --template-tes
 
 | 模板 | 已接入的真实地点 | 实际编组/限制 |
 | --- | --- | --- |
-| 卒伍刀手 | `#dynasty:blueprint/military_sites`：`great_wall_gate`、`tiangong_citadel`；`#dynasty:blueprint/ritual_sites`：`star_altar`、`herbal_retreat` | 军事点3名刀手+1盾士；祭祀点2名刀手+1祭酒；Y -32～220 |
+| 卒伍刀手 | `#dynasty:blueprint/ritual_sites`：`star_altar`、`herbal_retreat` | 祭祀点2名刀手+1祭酒；Y -32～220 |
 | 橹盾甲士 | 上述军事点标签 | 每标记1名；Y -32～220 |
 | 符法祭酒 | 上述祭祀点标签 | 每标记1名；Y -40～240 |
 | 山精山魈 | `#dynasty:blueprint/shanxiao_habitat`：原版森林或山地标签 | 主世界Y 50～240，权重4，组1～3，24格内同类最多3只，白天通过率1/4 |
+| 拒马长枪兵 / 连弩阵卒 | 上述军事点标签 | 1盾 + 2弩 + 1枪的有限编组；不影响安全村落 |
+| 铁索斥候 | 上述森林/山地标签 | 主世界Y 60～220；夜间；光照0～7；权重2、组1～2，32格同类上限2 |
+| 溃军死士 / 阵亡掌旗官 | 待实现的真实战场遭遇 | 当前权重0，无普通自然入口；不要把关隘或客栈冒充古战场中央残阵 |
 
 结构生成只搜索玩家所在真实结构的已加载安全落点，每100 tick主世界最多新增2只；成员UUID、累计产出、冷却和清理状态持久化。最后成员死亡/永久移除后须等待12000 tick再重置整组，区块卸载不当作死亡；成员跨维度后永久移除仍清理其主世界marker。结构编组固定，但权重已用于生成尝试门槛：刀手白天8/10、夜晚10/10；祭酒明亮白天2/4、夜晚或光照≤7时4/4；盾士1/1。目录将其记为 `ACTIVE_STRUCTURE_ATTEMPT_GATE` 并提取实际分母、权重和通过率；不是抽取不同怪物的随机池，也不会增加编组数量、局部上限或绕过冷却。三种军队没有全地图自然入口；所有模板的未来场景任务钩子及部分特殊掉落仍待实现。
 
@@ -99,4 +111,4 @@ python3 tools/blueprint/catalog.py --generate --refresh-templates --template-tes
 | 神器逻辑 | `DynastySchoolWeapons.java`、`DynastySchoolCombat.java`、`QinglongDescent.java`、`DynastyBowRitual.java` | 复用服务端验证、时间轴、唯一事件及清理范式；青龙与太阳 DamageType 特殊处理不能递归或重复结算 |
 | 现有神影 | `client/ImperialWeaponRenderer.java`、`ImperialDragonRenderer.java`、`HouyiAvatarRenderer.java` | 保留关羽/青龙/后羿渲染；它们不等于 12 种新神影已完成 |
 
-后续执行仍受阶段 2 门槛约束：4 个模板怪完成单机与双人验证后，才批量扩展剩余 26 只。目录全覆盖不代表该门槛已通过。
+下一批仍受文档的“实现→构建→资源→实机”门槛约束。九只的原始场景与任务、战场遭遇、部分材料用途、活动战斗重连、服务器重启、最终美术与平衡矩阵未完成。目录全覆盖不代表剩余 85 项已经实现，也不代表 cod2 的十座成品地牢完成。

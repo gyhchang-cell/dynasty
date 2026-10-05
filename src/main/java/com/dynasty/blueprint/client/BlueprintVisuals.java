@@ -103,6 +103,21 @@ public final class BlueprintVisuals {
                 continue;
             }
             boolean buff=p.key().contains("buff")||p.key().contains("possession");
+            if(p.key().equals("powder_detonate")){
+                for(int i=0;i<2&&budget>0;i++,budget--)mc.level.addParticle(age<p.windup()?ParticleTypes.SMOKE:ParticleTypes.FLAME,
+                        caster.getX()+(i==0?-.35:.35),caster.getY()+.85,caster.getZ(),0,.012,0);
+                continue;
+            }
+            if(p.key().equals("scout_grapple")&&caster instanceof TemplateMob scout){
+                // A thrown hook that misses must never appear attached to the intended victim.
+                if(scout.hookTargetId()<0||now>=scout.hookExpires())continue;
+                var hooked=mc.level.getEntity(scout.hookTargetId());
+                if(hooked==null||scout.distanceToSqr(hooked)>400)continue;
+                int count=Math.min(8,budget);budget-=count;
+                var iron=new DustParticleOptions(new Vector3f(.38F,.42F,.43F),.4F);
+                for(int i=0;i<count;i++){var at=caster.position().add(0,.8,0).lerp(hooked.position().add(0,.2,0),(i+1D)/(count+1));
+                    mc.level.addParticle(iron,at.x,at.y,at.z,0,0,0);}continue;
+            }
             var color=buff?new Vector3f(.78F,.12F,.19F):p.key().contains("talisman")?new Vector3f(.12F,.65F,.85F):new Vector3f(.70F,.50F,.24F);
             var dust=new DustParticleOptions(color,.7F);
             var target=mc.level.getEntity(p.targetId());
@@ -125,8 +140,9 @@ public final class BlueprintVisuals {
         }
     }
     private static int deathParticles(Minecraft mc,BlueprintVisualEvent p,long age,int budget) {
-        boolean priest=p.key().endsWith("fufa_jijiu"),shield=p.key().endsWith("ludun_jiashi"),sword=p.key().endsWith("zuwu_daoshou");
-        if(!(priest && age<18 || shield && age>=188 || sword && age>=40))return 0;
+        boolean priest=p.key().endsWith("fufa_jijiu"),shield=p.key().endsWith("ludun_jiashi"),sword=p.key().endsWith("zuwu_daoshou"),
+            cross=p.key().endsWith("liannu_zhenzu"),powder=p.key().endsWith("kuijun_sishi"),flag=p.key().endsWith("zhenwang_zhangqiguan");
+        if(!(priest&&age<18||shield&&age>=188||sword&&age>=40||cross&&age>=8&&age<20||powder&&age<30||flag&&age>=8&&age<28))return 0;
         int count=Math.min(budget,priest?8:4);
         // No visual entities, frame packets or random state to replicate: seed + absolute age is deterministic.
         var random=net.minecraft.util.RandomSource.create(p.seed()^age*0x9e3779b97f4a7c15L);
@@ -136,6 +152,10 @@ public final class BlueprintVisuals {
             if(priest) {
                 if(i%3==0)mc.level.addParticle(ParticleTypes.SOUL_FIRE_FLAME,x,y,z,(x-p.origin().x)*.05,.025,(z-p.origin().z)*.05);
                 else mc.level.addParticle(new ItemParticleOption(ParticleTypes.ITEM,new ItemStack(Items.PAPER)),x,y,z,(x-p.origin().x)*.2,.06,(z-p.origin().z)*.2);
+            } else if(cross){
+                mc.level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK,Blocks.OAK_PLANKS.defaultBlockState()),x,y+.8,z,(x-p.origin().x)*.12,.03,(z-p.origin().z)*.12);
+            } else if(powder){mc.level.addParticle(ParticleTypes.SMOKE,x,y+.3,z,0,.018,0);
+            } else if(flag){mc.level.addParticle(ParticleTypes.SOUL,x,y+.7,z,0,.025,0);
             } else if(shield) {
                 mc.level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK,(i%2==0?Blocks.IRON_BLOCK:Blocks.DARK_OAK_PLANKS).defaultBlockState()),x,y,z,(x-p.origin().x)*.05,.02,(z-p.origin().z)*.05);
             } else mc.level.addParticle(ParticleTypes.SMOKE,x,y,z,0,.012,0);

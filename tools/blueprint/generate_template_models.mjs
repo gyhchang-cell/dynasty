@@ -14,8 +14,9 @@ function pngPixels(file){
  for(let y=0;y<h;y++){const f=r[q++];for(let x=0;x<s;x++){const a=x>=c?data[y*s+x-c]:0,b=y?data[(y-1)*s+x]:0,d=y&&x>=c?data[(y-1)*s+x-c]:0;let v=r[q++];if(f===1)v+=a;if(f===2)v+=b;if(f===3)v+=Math.floor((a+b)/2);if(f===4){const t=a+b-d,pa=Math.abs(t-a),pb=Math.abs(t-b),pc=Math.abs(t-d);v+=pa<=pb&&pa<=pc?a:pb<=pc?b:d;}data[y*s+x]=v&255;}}
  return {w,h,c,data};
 }
-const atlasNames={zuwu_daoshou:'royal_guard',ludun_jiashi:'royal_guard',fufa_jijiu:'imperial_soldier',shanjing_shanxiao:'nian_beast'};
-let bones=[],activeId='',uvMap={};
+const atlasNames={zuwu_daoshou:'royal_guard',ludun_jiashi:'royal_guard',fufa_jijiu:'imperial_soldier',shanjing_shanxiao:'nian_beast',
+ juma_changqiangbing:'archer',liannu_zhenzu:'rebel_soldier',tiesuo_chihou:'assassin',kuijun_sishi:'rebel_soldier',zhenwang_zhangqiguan:'royal_guard'};
+let bones=[],activeId='',uvMap={},grips=[];
 function bone(name,parent,pivot,cubes=[],rotation){const b={name,pivot,cubes};if(parent)b.parent=parent;if(rotation)b.rotation=rotation;bones.push(b);return name;}
 function cube(x,y,z,w,h,d,mat='cloth',rotation,pivot){
  const uv={},patch=uvMap[mat];
@@ -45,7 +46,40 @@ function materialPatch(im,mat,col){
  }
  assert(best,`No opaque ${n}x${n} swatch for ${activeId}/${mat}`);return best;
 }
-function start(id){activeId=id;bones=[];const im=pngPixels(`${base}/textures/entity/${atlasNames[id]}.png`);uvMap={};for(const [mat,col]of Object.entries(palette))uvMap[mat]=materialPatch(im,mat,col);bone('root',null,[0,0,0]);return im;}
+function start(id){activeId=id;bones=[];grips=[];const im=pngPixels(`${base}/textures/entity/${atlasNames[id]}.png`);uvMap={};for(const [mat,col]of Object.entries(palette))uvMap[mat]=materialPatch(im,mat,col);bone('root',null,[0,0,0]);return im;}
+// A closed hand is a C-shaped palm with four three-part fingers, not a solid cube.
+// Author in the handle's local frame; transform the hand and handle independently so
+// death clips can release the weapon without also detaching the fingers from the wrist.
+function closedGrip(side,center,radius,{rotation=[0,0,0],pivot=center,axis='y'}={}){
+ const hand=bones.find(b=>b.name===`${side}_hand`);hand.cubes=[];
+ const wrist=bones.find(b=>b.name===`${side}_wrist`);
+ // The original wrist cuboid overlapped the long handle above the fist as well.
+ wrist.cubes=[];
+ const local=[],r=radius+.12,cy=-.95;
+ local.push({part:'palm',o:[-r-.86,cy,-r-.44],s:[.72,1.9,2*r+.88]});
+ for(let i=0;i<4;i++){
+  const y=cy+i*.46;
+  local.push({part:`finger_${i}_proximal`,o:[-r-.22,y,-r-.4],s:[2*r+.62,.36,.28]});
+  local.push({part:`finger_${i}_middle`,o:[r+.12,y,-r-.32],s:[.28,.36,2*r+.64]});
+  local.push({part:`finger_${i}_distal`,o:[-.12,y,r+.12],s:[r+.52,.36,.28]});
+ }
+ local.push({part:'thumb_proximal',o:[-r-.35,.72,-r-.6],s:[r+.9,.48,.28]},
+            {part:'thumb_distal',o:[r+.12,.38,-r-.6],s:[.34,.63,.28]});
+ const permute=v=>axis==='x'?[v[1],v[0],v[2]]:axis==='z'?[v[0],v[2],v[1]]:v;
+ const joint=`${side}_grip`;bone(joint,hand.name,pivot,[],rotation);
+ for(const {part,o,s}of local){
+  // There must be an actual clear shaft channel, not merely a groove painted on skin.
+  assert(!(o[0]<radius&&o[0]+s[0]>-radius&&o[2]<radius&&o[2]+s[2]>-radius),`${activeId}: ${part} crosses handle`);
+  const origin=addV(center,permute(o)),size=permute(s);
+  // Ordinary mobs do not need one ticking/animated bone per phalanx; the twelve
+  // distinct cuboids share the wrist's grip bone, retaining the real empty channel.
+  add(joint,cube(...origin,...size,'skin'));
+ }
+ const palmOrigin=addV(center,permute([-r-.86,cy,-r-.44]));
+ // A short offset cuff links the palm back to the forearm without filling the shaft channel.
+ add(joint,cube(...palmOrigin,.7,.65,.7,'leather'));
+ grips.push({side,axis,center,radius,clearance:.12,rotation,pivot,fingerSegments:12});
+}
 function face(head,y,z,width=4.2,mask=false){
  add(head,cube(-width/2,y,z,width,4,3.4,mask?'black':'skin'),cube(-1.7,y-.65,z-.1,3.4,1.2,3,'skin'),cube(-.42,y+1,z-.65,.84,1.7,.75,mask?'red':'skin'));
  for(const s of [-1,1]){add(head,cube(s*1.14-.65,y+2.7,z-.3,1.3,.35,.45,'black',[0,0,s*12]),cube(s*1.08-.35,y+2.2,z-.4,.7,.28,.15,'paper'),cube(s*1.06-.14,y+2.2,z-.53,.28,.28,.14,'black'));
@@ -92,6 +126,7 @@ function soldier(){
  bone('skirt_right','pelvis',[-2.5,11,0],[cube(-4.3,7.7,-2.55,3.4,4,.7,'leather',[0,0,-7])]);
  bone('dao','right_hand',[-4.4,11.9,-.6],[cube(-4.75,9.2,-.9,.7,3.8,.7,'leather'),cube(-5.7,9,-1,2.6,.45,.9,'gold'),cube(-4.85,-1.9,-.95,.85,11,.5,'iron'),cube(-4.05,-1.8,-1,.22,10.8,.6,'edge'),cube(-4.7,-3,-.96,.7,1.3,.5,'edge',[0,0,-18])],[0,0,43]);
  for(const [x,y,w,h]of [[-5.1,13.1,1.5,.32],[-5.1,14.3,1.5,.32],[-5.1,13.1,.3,1.4],[-3.9,13.1,.3,1.4]])add('dao',cube(x,y,-.9,w,h,.6,'gold'));
+ closedGrip('right',[-4.4,11.9,-.55],.35,{rotation:[0,0,43],pivot:[-4.4,11.9,-.6]});
  bone('scabbard','pelvis',[3,11,1.2],[cube(2.8,1.4,1.1,.9,10.2,1.1,'black'),cube(2.6,10.4,.95,1.25,.65,1.4,'gold')],[0,0,-15]);
 }
 function shieldman(){
@@ -116,6 +151,8 @@ function shieldman(){
  add('shield',cube(.7,14.8,-6.7,2.6,3.3,.9,'iron',[0,0,45]));
  for(const x of [-4.8,8.4])for(const y of [4,8,13,18,24,27])add('shield',cube(x,y,-6.4,.4,.45,.45,'edge'));
  bone('mace','right_hand',[-6.5,14.4,0],[cube(-6.9,12.5,-.4,.8,14.5,.8,'leather'),cube(-8.2,25,-1.7,3.4,4.4,3.4,'gold'),cube(-8.15,25,-1.75,3.3,4.4,3.5,'gold',[0,45,0]),cube(-6.9,29.2,-.4,.8,3,.8,'iron'),cube(-8.4,26.8,-.35,4,.65,.7,'iron'),cube(-6.85,26.8,-2.2,.7,.65,4.4,'iron')],[0,0,8]);
+ closedGrip('right',[-6.5,14.4,0],.4,{rotation:[0,0,8]});
+ closedGrip('left',[6.15,14,-2.6],.4);
 }
 function priest(){
  human({hip:11,chestY:20.6,shoulder:4,width:5.6,depth:3.2,headY:24.1,priest:true});
@@ -137,6 +174,7 @@ function priest(){
  }
  bone('beads','chest',[0,19,-2.7]);for(let i=0;i<9;i++){const a=Math.PI*(i/8);add('beads',cube(Math.cos(a)*2.5-.6,19.2-Math.sin(a)*3,-3,.95,.95,.95,'black',[0,0,45]));}
  bone('staff','right_hand',[-4,9,-.5],[cube(-7.4,1,-1,.85,31,.85,'leather'),cube(-8.1,25.2,-1.2,2.1,1.1,1.3,'gold'),cube(-7.8,31.4,-1.4,1.6,2,1.6,'leather'),cube(-11.6,30.2,-1.05,9.3,.8,.95,'leather',[0,0,-5]),cube(-7.2,9,-.9,3.4,.7,.7,'leather')]);
+ closedGrip('right',[-4.3,9.35,-.55],.35,{axis:'x'});
  for(let i=0;i<3;i++){const x=-10.5+i*3.3;
   bone(`talisman_${i}`,'staff',[x,30,-.8],[cube(x-.65,23.1+(i%2),-1.05,1.3,6.7-(i%2),.18,'paper')]);
   bone(`talisman_tip_${i}`,`talisman_${i}`,[x,23.6+(i%2),-1],[cube(x-.65,19.4+(i%2),-1,1.3,4.2,.18,'paper')]);
@@ -149,6 +187,10 @@ function priest(){
  const anatomy=new Set(['pelvis','waist','waist_upper','chest','neck','head']);
  for(const b of [...bones])if(anatomy.has(b.name)||/_(upper_arm|elbow|forearm|wrist|hand|thigh|knee|shin|ankle|foot)$/.test(b.name)){
   if(!b.cubes.length)continue;
+  const cubes=b.cubes;b.cubes=[];bone(`body_${b.name}`,b.name,[...b.pivot],cubes);
+ }
+ // Finger surface bones must disappear with the priest's anatomy, not remain on the empty robe.
+ for(const b of [...bones])if(b.name==='right_grip'){
   const cubes=b.cubes;b.cubes=[];bone(`body_${b.name}`,b.name,[...b.pivot],cubes);
  }
  for(const s of [-1,1]){const side=s<0?'right':'left',x=s*4,inner=bones.find(b=>b.name===`${side}_sleeve_inner`),outer=bones.find(b=>b.name===`${side}_sleeve_outer`);
@@ -192,6 +234,113 @@ function beast(){
   bone(`${side}_claw_contact`,`${side}_hand`,[s*5.4,.45,-11.55]);
   bone(`${side}_foot_contact`,`${side}_foot`,[s*2.8,-.82,6.05]);
  }
+}
+// The next five roles share joint naming only: proportions, garment construction, equipment,
+// rest poses, articulated secondary pieces and action clips are independently authored.
+function segment(a,b,width,depth,mat){
+ const d=b.map((v,i)=>v-a[i]),len=Math.hypot(...d),mid=a.map((v,i)=>(v+b[i])/2);
+ const rz=-Math.atan2(d[0],d[1])*180/Math.PI,rx=Math.atan2(d[2],Math.hypot(d[0],d[1]))*180/Math.PI;
+ return cube(mid[0]-width/2,mid[1]-len/2,mid[2]-depth/2,width,len,depth,mat,[rx,0,rz],mid);
+}
+function armTo(side,elbow,hand,{upper='cloth',fore='leather',width=2.1}={}){
+ const shoulder=bones.find(b=>b.name===`${side}_shoulder`).pivot;
+ for(const joint of ['upper_arm','elbow','forearm','wrist','hand'])bones.find(b=>b.name===`${side}_${joint}`).cubes=[];
+ bones.find(b=>b.name===`${side}_upper_arm`).pivot=[...shoulder];
+ bones.find(b=>b.name===`${side}_elbow`).pivot=[...elbow];bones.find(b=>b.name===`${side}_forearm`).pivot=[...elbow];
+ bones.find(b=>b.name===`${side}_wrist`).pivot=[...hand];bones.find(b=>b.name===`${side}_hand`).pivot=[...hand];
+ add(`${side}_upper_arm`,segment(elbow,shoulder,width,2.4,upper));add(`${side}_forearm`,segment(hand,elbow,width*.85,2,fore));
+ add(`${side}_elbow`,cube(elbow[0]-width/2,elbow[1]-.6,elbow[2]-1.1,width,1.2,2.2,'leather'));
+}
+function belt(y,width=6,depth=4){bone('belt','waist',[0,y,0],[cube(-width/2,y,-depth/2,width,1,depth,'leather'),cube(-.6,y,-depth/2-.35,1.2,1,.4,'gold')]);}
+function spearman(){
+ human({hip:13.2,chestY:24.7,shoulder:4.15,width:6.8,depth:4,headY:26.8});belt(14.3,6,4.6);
+ bone('iron_crown','head',[0,29,0],[cube(-2.4,28,-2.3,4.8,1,4.4,'iron'),cube(-1.2,29,-1,2.4,2.2,2.2,'black'),cube(-.65,31,-.7,1.3,1.5,1.4,'iron')]);
+ for(const s of [-1,1])add('iron_crown',cube(s*2-.5,25.6,-1.5,1,3,2.7,'iron'));
+ for(const side of ['left','right'])bone(`${side}_shoulder_plate`,`${side}_shoulder`,[side==='right'?-4.15:4.15,24.7,0],[cube(side==='right'?-5.4:3,23,-2.2,2.6,1.5,4.4,'iron')]);
+ for(let row=0;row<5;row++)for(let col=0;col<5;col++)add('chest_front',cube(-3.15+col*1.27,18+row*1.15,-2.82,1.13,1.3,.4,(col+row)%3?'iron':'jade'));
+ for(const [name,x,z,r]of [['front',0,-2.6,0],['back',0,2.3,0],['left',3.1,0,-9],['right',-3.1,0,9]])
+  bone(`skirt_${name}`,'pelvis',[x,13,z],[cube(x-2.5,7.2,z-.35,5,6,.7,'jade',[0,0,r]),cube(x-2.5,7.2,z-.55,5,.55,1,'iron')]);
+ for(const name of ['front','back','left','right'])wrapBone(`skirt_${name}`,`skirt_spring_${name}`);
+ const pivot=[-4,17,-3.8],r=[0,0,-40],axis=[Math.sin(40*Math.PI/180),Math.cos(40*Math.PI/180),0];
+ const second=pivot.map((v,i)=>v+axis[i]*9.2);
+ armTo('right',[-5.3,19.5,-1.7],pivot);armTo('left',[5.4,21.3,-2],second);
+ bone('spear','right_hand',pivot,[],r);
+ for(let i=0;i<3;i++)bone(`spear_${i}`,i===0?'spear':`spear_${i-1}`,[pivot[0],pivot[1]-18+i*15,pivot[2]],
+  [cube(pivot[0]-.32,pivot[1]-18+i*15,pivot[2]-.32,.64,15,.64,'leather')]);
+ add('spear_2',cube(-4.5,44,-4.3,1,1.4,1,'gold'),cube(-4.5,45.2,-4.17,1,3.4,.75,'iron'),cube(-4.28,48.4,-4.12,.56,2.1,.6,'edge'),cube(-5.8,43.8,-4.05,1.8,.6,.55,'iron',[0,0,-22]),cube(-6.2,43.6,-4.05,.6,2,.55,'iron',[0,0,22]));
+ closedGrip('right',pivot,.32,{rotation:r});closedGrip('left',second,.32,{rotation:r});
+}
+function crossbowman(){
+ human({hip:11.4,chestY:21.8,shoulder:4.6,width:7.6,depth:4.6,headY:24.2});belt(12.7,6.2,4.9);
+ for(const side of ['left','right']){const arm=bones.find(b=>b.name===`${side}_upper_arm`);arm.cubes[0]=cube(side==='right'?-5.6:3.6,16.4,-1.4,2,5.4,2.8,'skin');}
+ bone('headband','head',[0,26,0],[cube(-2.2,26,-2.4,4.4,.8,4.5,'paper'),cube(1.5,25.7,1.8,1.2,1.5,1,'leather')]);
+ bone('arrow_box','chest',[0,22,3.2],[cube(-3.6,15.1,2.4,7.2,9.9,4,'leather'),cube(-3.8,24.3,2.2,7.6,1.2,4.4,'gold')]);
+ for(let i=0;i<5;i++)add('arrow_box',cube(-2.8+i*1.25,25.1,3.3,.4,2,.4,'iron'));
+ for(let i=0;i<3;i++)bone(`gear_pouch_${i}`,'belt',[-2.8+i*2.8,12.8,2.8],[cube(-3.65+i*2.8,10,2.6,1.7,2.4,1.6,'leather'),cube(-3.75+i*2.8,12,2.45,1.9,.6,1.9,'gold')]);
+ const right=[-1.1,17.3,-5.5],left=[1.7,17.3,-10.5];armTo('right',[-5.4,18.3,-1.8],right,{upper:'skin'});armTo('left',[5.2,17.8,-4],left,{upper:'skin'});
+ bone('crossbow','right_hand',right,[cube(-2.25,16.2,-13.5,4.5,2.7,11,'leather'),cube(-2.5,17.8,-13.6,5,.5,11.2,'gold'),cube(-7,16.3,-12,14,.7,1.2,'leather'),cube(-7.1,16,-11.7,14.2,.15,.25,'paper')]);
+ bone('crossbow_lever','crossbow',[0,18.5,-5.5],[cube(-.45,18,-10.4,.9,.7,6,'leather'),cube(-1.8,18.4,-4.6,3.6,.75,.75,'iron')]);
+ bone('crossbow_magazine','crossbow',[0,19,-8],[cube(-1.3,18.5,-9.6,2.6,3.4,5.2,'leather'),cube(-1.5,21.5,-9.8,3,.5,5.6,'gold')]);
+ bone('crossbow_tongue','crossbow',[0,17.5,-11.4],[cube(-.45,17.4,-13.9,.9,.35,3,'iron')]);
+ add('crossbow',cube(right[0]-.35,right[1]-1.6,right[2]-.35,.7,3.2,.7,'leather'),cube(left[0]-.35,left[1]-1.6,left[2]-.35,.7,3.2,.7,'leather'));
+ closedGrip('right',right,.35);closedGrip('left',left,.35);
+ for(const b of bones.filter(b=>b.name.startsWith('left_')&&/(thigh|knee|shin|ankle|foot)$/.test(b.name)))for(const p of [b.pivot,...b.cubes.flatMap(c=>[c.origin,...(c.pivot?[c.pivot]:[])])])p[2]-=1.25;
+}
+function scout(){
+ human({hip:12.5,chestY:23.6,shoulder:3.3,width:5.5,depth:3.5,headY:25.3});belt(13.4,5.8,4);
+ for(const b of bones)for(const c of b.cubes)if(['chest','chest_front','chest_back','pelvis'].includes(b.name)){
+  for(const f of Object.values(c.uv))f.uv=[...uvMap.black.uv];
+ }
+ bone('headwrap','head',[0,27,0],[cube(-2.4,27,-2.2,4.8,1.25,4.5,'black'),cube(-2.2,25,-2.55,4.4,1.3,.4,'black'),cube(-1,24,1.8,2,3.5,.7,'black')]);
+ bone('cross_straps','chest',[0,21,-2.5],[cube(-.3,16,-2.65,.6,8.5,.55,'leather',[0,0,29]),cube(-.3,16,-2.65,.6,8.5,.55,'leather',[0,0,-29]),cube(-.6,20,-3,1.2,1.2,.5,'iron')]);
+ for(const s of [-1,1]){const side=s<0?'right':'left',x=s*3.3;
+  for(let k=0;k<5;k++)add(`${side}_shin`,cube(s*2.2-1.2,2+k*.9,-1.5,2.4,.28,3,'paper'));
+  closedGrip(side,[x,12.1,0],.28);
+  bone(`${side}_claw`,`${side}_hand`,[x,12.1,0],[cube(x-.28,10.8,-.28,.56,3,.56,'iron'),cube(x-1.8,10.5,-1.1,3.6,.55,2.2,'iron')]);
+  for(let k=0;k<3;k++)add(`${side}_claw`,cube(x-1.6+k*1.3,7.8,-.9,.45,2.9,.6,'edge',[0,0,s*(k-1)*9]));
+  for(let k=0;k<8;k++){const t=k/7,cx=x+s*(.8+Math.sin(t*Math.PI)*1.8),y=13.8-Math.sin(t*Math.PI)*6.5,z=1.1+t*.3;
+   const links=[];
+   // Eight articulated spans, two interlocking rectangular low-poly links per span.
+   // Alternating face planes expose real holes instead of disconnected solid beads.
+   for(let j=0;j<2;j++){
+    const u=Math.min(1,t+j/14),px=x+s*(.8+Math.sin(u*Math.PI)*1.8),py=13.8-Math.sin(u*Math.PI)*6.5,pz=1.1+u*.3;
+    if(j===0)links.push(cube(px-.42,py-.85,pz-.15,.22,1.7,.3,'iron'),cube(px+.2,py-.85,pz-.15,.22,1.7,.3,'iron'),cube(px-.2,py-.85,pz-.15,.4,.2,.3,'iron'),cube(px-.2,py+.65,pz-.15,.4,.2,.3,'iron'));
+    else links.push(cube(px-.15,py-.85,pz-.42,.3,1.7,.22,'iron'),cube(px-.15,py-.85,pz+.2,.3,1.7,.22,'iron'),cube(px-.15,py-.85,pz-.2,.3,.2,.4,'iron'),cube(px-.15,py+.65,pz-.2,.3,.2,.4,'iron'));
+   }
+   bone(`${side}_chain_${k}`,k?`${side}_chain_${k-1}`:'pelvis',[cx,y,z],links);
+  }
+ }
+ for(const side of ['left','right'])wrapBone(`${side}_chain_0`,`${side}_chain_spring`);
+}
+function powderman(){
+ human({hip:11.7,chestY:23.4,shoulder:4.3,width:7.4,depth:4.5,headY:26});belt(12.8,7.1,4.8);
+ bones.find(b=>b.name==='waist_upper').rotation=[14,0,0];bones.find(b=>b.name==='chest').rotation=[8,0,0];bones.find(b=>b.name==='head').rotation=[-12,0,0];
+ for(const name of ['chest','chest_front','chest_back'])for(const c of bones.find(b=>b.name===name).cubes)for(const f of Object.values(c.uv))f.uv=[...uvMap.skin.uv];
+ bone('blindfold','head',[0,27,-2.5],[cube(-2.3,27,-2.6,4.6,.95,4.7,'paper'),cube(-1.5,24,1.8,1.4,3.7,.5,'red')]);
+ for(let i=0;i<4;i++)add('chest_front',cube(-2.9+i*1.5,18+i*.6,-3.12,.3,2.7,.1,'red',[0,0,22-i*13]));
+ for(const s of [-1,1]){const side=s<0?'right':'left',x=s*5.15;
+  bone(`${side}_powder_jar`,'pelvis',[x,12,0],[cube(x-1.4,9.2,-1.6,2.8,4,3.2,'red'),cube(x-1.8,10,-1.4,3.6,2.6,2.8,'leather'),cube(x-.8,13.1,-.8,1.6,.8,1.6,'black'),cube(x-.18,13.8,-.18,.36,1.6,.36,'paper')]);
+  closedGrip(side,[s*4.3,11.7,0],.3);
+  bone(`${side}_broken_dao`,`${side}_hand`,[s*4.3,11.7,0],[cube(s*4.3-.3,10.5,-.3,.6,3.3,.6,'leather'),cube(s*4.3-1.2,10.3,-.5,2.4,.5,1,'gold'),cube(s*4.3-.7,5,-.45,1.4,5.3,.65,'iron'),cube(s*4.3-.9,5,-.5,.3,4.8,.75,'edge'),cube(s*4.3-.2,4.2,-.45,.9,1,.65,'iron',[0,0,s*20])]);
+ }
+}
+function flagman(){
+ human({hip:13.9,chestY:26.2,shoulder:5.7,width:9.5,depth:5.6,headY:28.1,heavy:true});belt(15,8,5.7);
+ bone('shadow_hood','head',[0,30.2,0],[cube(-3.2,28.2,-2.6,6.4,4,5.6,'black'),cube(-1.4,32,-1.1,2.8,1.3,2.4,'iron')]);
+ for(let row=0;row<5;row++)for(let col=0;col<6;col++)add('chest_front',cube(-4.2+col*1.43,19+row*1.3,-3.6,1.3,1.55,.5,(row+col)%4?'black':'iron'));
+ for(const s of [-1,1])bone(`${s<0?'right':'left'}_skirt`,'pelvis',[s*3,14,0],[cube(s*3-2,6.5,-2.9,4,7.6,1,'black',[0,0,s*6]),cube(s*3-2,6.5,-3.1,4,.5,1.3,'gold')]);
+ const right=[-3.8,17.5,-4],left=[-3.8,25.7,-4];armTo('right',[-6.5,21.4,-1.4],right,{upper:'iron'});armTo('left',[4,23.6,-3.5],left,{upper:'iron'});
+ // The upper pole has a real break joint above both fists, rather than folding
+ // the cloth while leaving a full unbroken pole protruding through it.
+ bone('flagstaff','right_hand',right,[cube(-4.25,.25,-4.45,.9,32.25,.9,'leather')]);
+ bone('flag_upper','flagstaff',[-3.8,32.5,-4],[cube(-4.25,32.5,-4.45,.9,20.75,.9,'leather'),cube(-4.35,53,-4.55,1.1,1.5,1.1,'gold'),cube(-4.1,54,-4.3,.6,2,.6,'iron'),cube(-3.8,49,-4.2,17.5,2.2,.4,'red'),cube(-4.7,50.5,-4.5,20,.6,1,'gold')]);
+ for(let k=0;k<4;k++){
+  bone(`flag_cloth_${k}`,k?`flag_cloth_${k-1}`:'flag_upper',[-3.8,49-k*4,-4],[]);
+  for(let i=0;i<3;i++)add(`flag_cloth_${k}`,cube(-3.5+i*5.65,45.2-k*4+(k===3?i*.85:0),-4.25,5.5,4.1-(k===3?i*.85:0),.3,i===1?'black':'red'));
+  if(k<3)add(`flag_cloth_${k}`,cube(1.8,46-k*4,-4.46,1,2.4,.15,'gold'),cube(1.1,47-k*4,-4.46,2.6,.55,.15,'gold'));
+ }
+ for(let k=0;k<4;k++)wrapBone(`flag_cloth_${k}`,`flag_spring_${k}`);
+ closedGrip('right',right,.45);closedGrip('left',left,.45);
 }
 function frames(values){return Object.fromEntries(values.map(([t,v])=>[(t/20).toFixed(2),v]));}
 function channel(values,kind='rotation'){return {[kind]:frames(values)};}
@@ -268,6 +417,9 @@ function animations(id){
   for(let tick=1;tick<=40;tick++)land(death,'root',tick,{y:.03,exclude:['dao','helmet','scabbard']});
   for(let tick=18;tick<=40;tick++)land(death,'dao',tick,{rotation:[0,0,0],x:4.4,z:-9,y:-.18});
   for(let tick=19;tick<=40;tick++)land(death,'helmet',tick,{rotation:[0,0,Math.max(0,tick-28)*60],x:-5-(tick-19)*.16,z:2.5,y:Math.max(.03,(28-tick)*1.4)});
+  const planted=subtreeBounds(death,'dao',40),tr=posed(death,40).dao;
+  assert(Math.abs(planted.min[1]+.18)<1e-5,'Planted dao tip must reach the floor');
+  assert(tr.a.every((v,i)=>Math.abs(v-ident[i])<1e-5),'Planted dao must be upright, regardless of its parent pose');
  }
  if(quad){
   death.root={...pos([0,[0,0,0]],[12,[0,-.5,0]],[32,[0,0,0]]),...rot([0,[0,0,0]],[12,[0,0,45]],[32,[0,0,86]])};
@@ -296,19 +448,139 @@ function animations(id){
  }
  put('death',quad?32:40,'hold_on_last_frame',death);return {format_version:'1.8.0',animations:result};
 }
+function rotationBetween(a,b){
+ const na=Math.hypot(...a),nb=Math.hypot(...b);a=a.map(v=>v/na);b=b.map(v=>v/nb);
+ const c=a.reduce((v,n,i)=>v+n*b[i],0),v=[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+ assert(c>-.9999,'IK half-turn must be explicitly authored');
+ const k=[0,-v[2],v[1],v[2],0,-v[0],-v[1],v[0],0],kk=mulM(k,k);
+ return ident.map((n,i)=>n+k[i]+kk[i]/(1+c));
+}
+function pinSupportGrip(channels,weapon,total){
+ const shoulder=bones.find(b=>b.name==='left_shoulder'),elbow=bones.find(b=>b.name==='left_elbow'),hand=bones.find(b=>b.name==='left_hand'),w=bones.find(b=>b.name===weapon);
+ const restUpper=mirror(subV(elbow.pivot,shoulder.pivot)),restLower=mirror(subV(hand.pivot,elbow.pivot)),l1=Math.hypot(...restUpper),l2=Math.hypot(...restLower);
+ const rest=posed({},0),gripOffset=mulV(transpose(rest[weapon].a),subV(rest.left_hand.p,rest[weapon].p)),orientationOffset=mulM(transpose(rest[weapon].a),rest.left_hand.a);
+ let maxError=0;
+ for(let tick=0;tick<=total;tick++){
+  const tr=posed(channels,tick),target=addV(tr[weapon].p,mulV(tr[weapon].a,gripOffset));
+  const start=tr.left_shoulder.p,delta=subV(target,start),distance=Math.hypot(...delta),u=delta.map(v=>v/distance);
+  assert(distance<l1+l2+.03,`${activeId}/${weapon}: support arm overreach ${distance}/${l1+l2} at ${tick}`);
+  const along=(distance**2+l1**2-l2**2)/(2*distance),bend=Math.sqrt(Math.max(0,l1**2-along**2));
+  let pole=mulV(tr.chest.a,[1,-.45,.45]);pole=subV(pole,u.map(v=>v*pole.reduce((n,p,i)=>n+p*u[i],0)));
+  const plen=Math.hypot(...pole);pole=pole.map(v=>v/plen);
+  const wantedElbow=addV(start,addV(u.map(v=>v*along),pole.map(v=>v*bend))),parent=tr.chest.a;
+  key(channels,'left_shoulder','rotation',tick,matrixEuler(rotationBetween(restUpper,mulV(transpose(parent),subV(wantedElbow,start)))));
+  const bent=posed(channels,tick),ep=bent.left_elbow.p;
+  key(channels,'left_elbow','rotation',tick,matrixEuler(rotationBetween(restLower,mulV(transpose(bent.left_upper_arm.a),subV(target,ep)))));
+  const upper=posed(channels,tick),desiredOrientation=mulM(tr[weapon].a,orientationOffset);
+  key(channels,'left_wrist','rotation',tick,matrixEuler(mulM(transpose(upper.left_forearm.a),desiredOrientation)));
+  maxError=Math.max(maxError,Math.hypot(...subV(posed(channels,tick).left_hand.p,target)));
+ }
+ assert(maxError<.001,`${activeId}: support hand left the handle: ${maxError}`);
+ return maxError;
+}
+function uprightFlagGrip(channels,total){
+ for(let tick=0;tick<=total;tick++){
+  const tr=posed(channels,tick),compensation=matrixEuler(transpose(tr.right_hand.a));
+  // Keep the weapon AND the fist's empty shaft channel vertical. The wrist
+  // translates with the strike, so the staff cannot slide out of a fixed palm.
+  key(channels,'flagstaff','rotation',tick,compensation);
+  key(channels,'right_grip','rotation',tick,compensation);
+  const current=posed(channels,tick);
+  assert(Math.hypot(...subV(current.flagstaff.p,current.right_grip.p))<.001,'Banner fist separated from staff');
+  assert(current.flagstaff.a.every((v,i)=>Math.abs(v-ident[i])<.001),'Banner staff lost vertical orientation');
+ }
+}
+function armyAnimations(id){
+ const spear=id==='juma_changqiangbing',cross=id==='liannu_zhenzu',scout=id==='tiesuo_chihou',powder=id==='kuijun_sishi',flag=id==='zhenwang_zhangqiguan';
+ const result={},bimanual=spear?'spear':cross?'crossbow':flag?'flagstaff':null;
+ const put=(name,ticks,loop,b)=>{if(flag)uprightFlagGrip(b,ticks);if(bimanual)pinSupportGrip(b,bimanual,ticks);result[`animation.${id}.${name}`]={loop,animation_length:ticks/20,bones:b};};
+ const idle={chest:rot([0,[0,0,0]],[30,[powder?2.4:.9,0,0]],[60,[0,0,0]]),head:rot([0,[0,0,0]],[30,[0,scout?6:2,0]],[60,[0,0,0]])};
+ if(scout){idle.waist_upper={rotation:[7,0,0]};idle.right_shoulder={rotation:[0,0,-9]};idle.left_shoulder={rotation:[0,0,9]};}
+ if(powder){idle.waist=rot([0,[0,0,-2]],[30,[0,0,2]],[60,[0,0,-2]]);}
+ if(flag)for(let i=0;i<4;i++)idle[`flag_cloth_${i}`]=rot([0,[0,0,0]],[15,[8+i*2,0,0]],[30,[-5-i*2,0,0]],[45,[4+i*2,0,0]],[60,[0,0,0]]);
+ if(scout)for(const side of ['left','right'])for(let i=0;i<8;i++)idle[`${side}_chain_${i}`]=rot([0,[0,0,0]],[30,[i%2?3:-3,0,0]],[60,[0,0,0]]);
+ put('idle',60,true,idle);
+ for(const [name,period,amplitude]of [['walk',flag?36:cross?26:22,flag?12:cross?17:24],['run',flag?26:scout?14:18,flag?20:scout?42:34]]){
+  const b={waist:rot([0,[0,0,0]],[period/2,[0,scout?6:powder?9:2,0]],[period,[0,0,0]]),root:pos([0,[0,0,0]],[period/4,[0,.5,0]],[period/2,[0,0,0]],[period*3/4,[0,.5,0]],[period,[0,0,0]])};
+  for(const s of [-1,1]){const side=s<0?'right':'left',cycle=[0,period/4,period/2,period*3/4,period];
+   b[`${side}_thigh`]=rot(...cycle.map((t,i)=>[t,[[0,amplitude,0,-amplitude,0][i]*s,0,0]]));
+   b[`${side}_knee`]=rot(...cycle.map((t,i)=>[t,[Math.max(0,[0,-amplitude,0,amplitude,0][i]*s)*1.2,0,0]]));
+   b[`${side}_ankle`]=rot(...cycle.map((t,i)=>[t,[-Math.max(0,[0,-amplitude,0,amplitude,0][i]*s)*.3,0,0]]));
+   if(!bimanual){b[`${side}_shoulder`]=rot(...cycle.map((t,i)=>[t,[[0,-amplitude,0,amplitude,0][i]*s*.45,0,s*5]]));b[`${side}_elbow`]={rotation:[scout?-25:-12,0,0]};}
+  }
+  if(powder)b.chest=rot([0,[3,0,0]],[period/4,[8,0,7]],[period/2,[3,0,0]],[period*3/4,[8,0,-7]],[period,[3,0,0]]);
+  if(flag)for(let i=0;i<4;i++)b[`flag_cloth_${i}`]=rot([0,[8,0,0]],[period/2,[-6-i,0,0]],[period,[8,0,0]]);
+  put(name,period,true,b);
+ }
+ let attack,total;
+ if(spear){total=26;attack={waist:rot([0,[0,0,0]],[10,[0,-10,0]],[12,[5,9,0]],[18,[5,9,0]],[26,[0,0,0]]),right_shoulder:rot([0,[0,0,0]],[10,[3,0,0]],[12,[-12,0,0]],[18,[-12,0,0]],[26,[0,0,0]]),right_elbow:rot([0,[0,0,0]],[10,[-3,0,0]],[12,[0,0,0]],[26,[0,0,0]])};
+  put('brace',48,false,{root:pos([0,[0,0,0]],[8,[0,-2.3,0]],[33,[0,-2.3,0]],[48,[0,0,0]]),right_thigh:rot([0,[0,0,0]],[8,[-28,0,0]],[33,[-28,0,0]],[48,[0,0,0]]),right_knee:rot([0,[0,0,0]],[8,[54,0,0]],[33,[54,0,0]],[48,[0,0,0]]),waist:rot([0,[0,0,0]],[8,[8,0,0]],[33,[8,0,0]],[48,[0,0,0]])});
+ }else if(cross){total=46;attack={crossbow_lever:rot([0,[0,0,0]],[10,[-28,0,0]],[14,[8,0,0]],[16,[-18,0,0]],[18,[8,0,0]],[20,[-18,0,0]],[22,[8,0,0]],[34,[-24,0,0]],[46,[0,0,0]]),crossbow_tongue:pos([0,[0,0,0]],[14,[0,0,-1]],[16,[0,0,0]],[18,[0,0,-1]],[20,[0,0,0]],[22,[0,0,-1]],[46,[0,0,0]]),chest:rot([0,[0,0,0]],[14,[-2,0,0]],[16,[0,0,0]],[18,[-2,0,0]],[20,[0,0,0]],[22,[-2,0,0]],[46,[0,0,0]])};
+  put('roll',32,false,{root:{...rot([0,[0,0,0]],[6,[-10,0,0]],[10,[110,0,0]],[14,[235,0,0]],[20,[350,0,0]],[32,[360,0,0]]),...pos([0,[0,0,0]],[6,[0,-3,0]],[12,[0,-7,0]],[20,[0,-3,0]],[32,[0,0,0]])},right_knee:rot([0,[0,0,0]],[6,[65,0,0]],[20,[65,0,0]],[32,[0,0,0]]),left_knee:rot([0,[0,0,0]],[6,[65,0,0]],[20,[65,0,0]],[32,[0,0,0]])});
+ }else if(scout){total=30;attack={waist:rot([0,[0,0,0]],[7,[0,-28,0]],[9,[0,15,0]],[13,[0,28,0]],[15,[0,-15,0]],[30,[0,0,0]]),right_shoulder:rot([0,[0,0,0]],[7,[28,0,-26]],[9,[-64,0,35]],[15,[-20,0,5]],[30,[0,0,0]]),left_shoulder:rot([0,[0,0,0]],[9,[-20,0,-5]],[13,[28,0,26]],[15,[-64,0,-35]],[30,[0,0,0]]),right_elbow:rot([0,[0,0,0]],[9,[-24,0,0]],[30,[0,0,0]]),left_elbow:rot([0,[0,0,0]],[15,[-24,0,0]],[30,[0,0,0]])};
+  put('grapple',58,false,{right_shoulder:rot([0,[0,0,0]],[10,[38,0,-20]],[12,[-78,0,5]],[30,[-40,0,0]],[43,[0,0,0]],[58,[0,0,0]]),right_elbow:rot([0,[0,0,0]],[10,[-65,0,0]],[12,[-4,0,0]],[32,[-40,0,0]],[58,[0,0,0]])});
+  put('knee',18,false,{waist:rot([0,[0,0,0]],[6,[10,0,0]],[10,[10,0,0]],[18,[0,0,0]]),left_thigh:rot([0,[0,0,0]],[6,[-72,0,0]],[10,[-72,0,0]],[18,[0,0,0]]),left_knee:rot([0,[0,0,0]],[6,[92,0,0]],[10,[92,0,0]],[18,[0,0,0]]),right_shoulder:rot([0,[0,0,0]],[6,[-30,0,12]],[18,[0,0,0]]),left_shoulder:rot([0,[0,0,0]],[6,[-30,0,-12]],[18,[0,0,0]])});
+ }else if(powder){total=30;attack={waist:rot([0,[0,0,0]],[8,[0,18,0]],[12,[0,-16,0]],[17,[0,20,0]],[30,[0,0,0]]),right_shoulder:rot([0,[0,0,0]],[8,[-64,0,8]],[10,[-30,0,0]],[17,[-65,0,12]],[30,[0,0,0]]),left_shoulder:rot([0,[0,0,0]],[8,[-20,0,0]],[12,[-68,0,-8]],[17,[-30,0,0]],[30,[0,0,0]]),right_elbow:rot([0,[0,0,0]],[8,[-18,0,0]],[17,[-18,0,0]],[30,[0,0,0]])};
+  put('detonate',36,false,{waist:rot([0,[0,0,0]],[12,[-10,0,0]],[20,[-18,0,0]],[36,[-18,0,0]]),right_shoulder:rot([0,[0,0,0]],[12,[0,0,-50]],[20,[0,0,-75]],[36,[0,0,-75]]),left_shoulder:rot([0,[0,0,0]],[12,[0,0,50]],[20,[0,0,75]],[36,[0,0,75]]),root:scale([0,[1,1,1]],[18,[1.06,1.02,1.06]],[20,[1.15,1.06,1.15]],[21,[.01,.01,.01]],[36,[.01,.01,.01]])});
+ }else{total=40;attack={right_hand:pos([0,[0,0,0]],[16,[0,2.1,0]],[18,[0,-.15,0]],[24,[0,0,0]],[40,[0,0,0]]),right_shoulder:rot([0,[0,0,0]],[16,[-6,0,0]],[18,[2,0,0]],[40,[0,0,0]]),waist:rot([0,[0,0,0]],[16,[-3,0,0]],[18,[5,0,0]],[40,[0,0,0]])};}
+ put('attack',total,false,attack);put('hurt',10,false,{chest:rot([0,[0,0,0]],[3,[-8,0,flag?2:8]],[10,[0,0,0]]),head:rot([0,[0,0,0]],[3,[-8,0,-4]],[10,[0,0,0]])});
+ const death={root:{...rot([0,[0,0,0]],[12,[spear?-25:20,0,0]],[40,[spear?-87:86,0,scout?7:0]]),...pos([0,[0,0,0]],[12,[0,-3,0]],[40,[0,-10,0]])},head:rot([0,[0,0,0]],[12,[20,0,0]],[40,[25,0,0]])};
+ for(const s of [-1,1]){const side=s<0?'right':'left';death[`${side}_shoulder`]=rot([0,[0,0,0]],[12,[-45,0,s*15]],[40,[-70,0,s*10]]);death[`${side}_elbow`]=rot([0,[0,0,0]],[12,[-55,0,0]],[40,[-90,0,0]]);death[`${side}_knee`]=rot([0,[0,0,0]],[12,[20,0,0]],[40,[36,0,0]]);}
+ if(cross){death.crossbow=scale([0,[1,1,1]],[7,[1,1,1]],[12,[.001,.001,.001]],[40,[.001,.001,.001]]);death.arrow_box={...pos([0,[0,0,0]],[7,[0,0,0]]),...rot([0,[0,0,0]],[7,[0,0,0]])};}
+ if(scout){
+  // Three alternating loss-of-balance steps, then a face-first slide. Released
+  // chain spans remain floor-pinned independently of the collapsing pelvis.
+  death.root={...rot([0,[0,0,0]],[6,[12,0,-5]],[10,[34,0,7]],[14,[16,0,-8]],[18,[43,0,6]],[22,[30,0,-4]],[28,[82,0,4]],[40,[87,0,4]]),
+   ...pos([0,[0,0,0]],[6,[0,0,-3]],[10,[0,0,-7]],[14,[0,0,-11]],[18,[0,0,-15]],[22,[0,0,-20]],[28,[0,0,-25]],[40,[0,0,-28]])};
+  for(const s of [-1,1]){const side=s<0?'right':'left';
+   death[`${side}_thigh`]=rot([0,[0,0,0]],[6,[s*22,0,0]],[10,[-s*30,0,0]],[14,[s*24,0,0]],[18,[-s*30,0,0]],[22,[s*20,0,0]],[28,[0,0,0]],[40,[0,0,0]]);
+   death[`${side}_knee`]=rot([0,[0,0,0]],[6,[s<0?42:8,0,0]],[10,[s>0?45:8,0,0]],[14,[s<0?45:8,0,0]],[18,[s>0?45:8,0,0]],[28,[12,0,0]],[40,[12,0,0]]);
+   // The released hands collapse beside the torso, rather than becoming rigid
+   // support struts underneath it. Face/chest can then reach the floor.
+   death[`${side}_shoulder`]=rot([0,[0,0,0]],[12,[-25,0,s*15]],[22,[-12,0,s*22]],[28,[0,0,s*12]],[40,[0,0,s*12]]);
+   death[`${side}_elbow`]=rot([0,[0,0,0]],[12,[-35,0,0]],[22,[-12,0,0]],[28,[0,0,0]],[40,[0,0,0]]);
+   death[`${side}_chain_0`]={...rot([0,[0,0,0]],[17,[0,0,0]]),...pos([0,[0,0,0]],[17,[0,0,0]])};
+  }
+  death.head=rot([0,[0,0,0]],[12,[12,0,0]],[22,[5,0,0]],[28,[-3,0,0]],[40,[-3,0,0]]);
+ }
+ if(powder){delete death.root.rotation;delete death.root.position;death.root=scale([0,[1,1,1]],[26,[1,1,1]],[30,[.001,.001,.001]],[40,[.001,.001,.001]]);death.waist=rot([0,[0,0,0]],[15,[48,0,0]],[26,[75,0,0]],[40,[75,0,0]]);}
+ if(flag){death.root=pos([0,[0,0,0]],[40,[0,0,0]]);for(const b of [...bones])if(!b.name.startsWith('flag')&&b.cubes.length){const c=b.cubes;b.cubes=[];bone(`ghost_${b.name}`,b.name,[...b.pivot],c);death[`ghost_${b.name}`]=scale([0,[1,1,1]],[8,[1,1,1]],[22,[.001,.001,.001]],[40,[.001,.001,.001]]);}death.flagstaff={...pos([0,[0,0,0]],[20,[0,0,0]]),...rot([0,[0,0,0]],[20,[0,0,0]])};death.flag_upper=rot([0,[0,0,0]],[20,[0,0,0]]);
+  for(let tick=1;tick<=40;tick++)land(death,'flagstaff',tick,{rotation:[0,0,0],y:.03,exclude:['flag_upper']});
+  // The broken upper section detaches at its real joint, tips over, then settles
+  // on the ground. Rotating an attached cloth alone left an impossible upturned flag.
+  const joint=posed(death,20).flag_upper.p;
+  for(let tick=21;tick<=40;tick++){
+   const f=(tick-20)/20,ease=f*f*(3-2*f);
+   land(death,'flag_upper',tick,{rotation:[90*ease,0,12*ease],x:joint[0]+9*ease,z:joint[2]+3*ease,y:Math.max(.04,(1-ease)*joint[1])});
+  }
+ }
+ if(!flag&&!powder)for(let t=1;t<=40;t++)land(death,'root',t,{y:.03,exclude:spear?['spear']:cross?['arrow_box']:scout?['right_chain_0','left_chain_0']:[]});
+ if(scout)for(const s of [-1,1])for(let t=18;t<=40;t++)land(death,`${s<0?'right':'left'}_chain_0`,t,{rotation:[90,0,s*12],x:s*(5+(t-18)*.18),z:-18-(t-18)*.8,y:Math.max(.04,(26-t)*.22)});
+ if(spear){death.spear={...rot([0,[0,0,0]],[8,[0,0,0]]),...pos([0,[0,0,0]],[8,[0,0,0]])};for(let t=9;t<=40;t++)land(death,'spear',t,{rotation:[0,0,(40-t)*12],x:-7,z:6,y:t<28?(28-t)*.4:-.1});}
+ if(cross)for(let t=8;t<=40;t++)land(death,'arrow_box',t,{rotation:[86,0,12],x:3,z:-3,y:Math.max(.05,(20-t)*.4)});
+ // Do not constrain a released weapon back to the hand during an authored death.
+ result[`animation.${id}.death`]={loop:'hold_on_last_frame',animation_length:2,bones:death};
+ return {format_version:'1.8.0',animations:result};
+}
 fs.mkdirSync(`${base}/geo/blueprint`,{recursive:true});fs.mkdirSync(`${base}/animations/blueprint`,{recursive:true});fs.mkdirSync(out,{recursive:true});
 const report=[];
-for(const [id,build]of Object.entries({zuwu_daoshou:soldier,ludun_jiashi:shieldman,fufa_jijiu:priest,shanjing_shanxiao:beast})){
+const originals={zuwu_daoshou:soldier,ludun_jiashi:shieldman,fufa_jijiu:priest,shanjing_shanxiao:beast};
+const armies={juma_changqiangbing:spearman,liannu_zhenzu:crossbowman,tiesuo_chihou:scout,kuijun_sishi:powderman,zhenwang_zhangqiguan:flagman};
+for(const [id,build]of Object.entries(process.argv.includes('--army')?armies:{...originals,...armies})){
  const im=start(id);build();const names=new Set(bones.map(b=>b.name));assert.equal(names.size,bones.length);for(const b of bones){if(b.parent)assert(names.has(b.parent),b.name);for(const c of b.cubes){assert(c.size.every(n=>n>0));for(const f of Object.values(c.uv)){assert(f.uv[0]>=0&&f.uv[1]>=0&&f.uv[0]+f.uv_size[0]<=im.w&&f.uv[1]+f.uv_size[1]<=im.h);for(let y=f.uv[1];y<f.uv[1]+f.uv_size[1];y++)for(let x=f.uv[0];x<f.uv[0]+f.uv_size[0];x++)assert(im.c!==4||im.data[(y*im.w+x)*im.c+3]>=250,'Transparent UV pixel');}}}
- const geo={format_version:'1.12.0','minecraft:geometry':[{description:{identifier:`geometry.${id}`,texture_width:im.w,texture_height:im.h,visible_bounds_width:4,visible_bounds_height:4,visible_bounds_offset:[0,1.4,0]},bones}]},anim=animations(id);
+ const anim=Object.hasOwn(armies,id)?armyAnimations(id):animations(id);
+ for(const b of bones)names.add(b.name);assert.equal(names.size,bones.length,'Animation surface children must remain unique');
+ const geo={format_version:'1.12.0','minecraft:geometry':[{description:{identifier:`geometry.${id}`,texture_width:im.w,texture_height:im.h,visible_bounds_width:6,visible_bounds_height:6,visible_bounds_offset:[0,1.8,0]},bones}]};
  for(const [key,a]of Object.entries(anim.animations))for(const [n,channels]of Object.entries(a.bones)){assert(names.has(n),`${key}: ${n}`);for(const ch of Object.values(channels)){if(Array.isArray(ch))assert(ch.every(Number.isFinite));else for(const [t,v]of Object.entries(ch)){assert(+t>=0&&+t<=a.animation_length,`${key}: time ${t}`);assert(v.every(Number.isFinite));}}}
  if(id!=='shanjing_shanxiao')for(const side of ['left','right'])for(const joint of ['shoulder','upper_arm','elbow','forearm','wrist','hand','thigh','knee','shin','ankle','foot'])assert(names.has(`${side}_${joint}`));
- const impacts={zuwu_daoshou:[12,22],ludun_jiashi:[16],fufa_jijiu:[24,28,32],shanjing_shanxiao:[14,24]}[id];
+ const impacts={zuwu_daoshou:[12,22],ludun_jiashi:[16],fufa_jijiu:[24,28,32],shanjing_shanxiao:[14,24],juma_changqiangbing:[12],liannu_zhenzu:[14,18,22],tiesuo_chihou:[9,15],kuijun_sishi:[8,12,17],zhenwang_zhangqiguan:[18]}[id];
  for(const t of impacts)assert(Object.values(anim.animations[`animation.${id}.attack`].bones).some(b=>Object.values(b).some(c=>Object.hasOwn(c,(t/20).toFixed(2)))),`${id}: missing contact/launch ${t}`);
  fs.writeFileSync(`${base}/geo/blueprint/${id}.geo.json`,JSON.stringify(geo,null,2)+'\n');fs.writeFileSync(`${base}/animations/blueprint/${id}.animation.json`,JSON.stringify(anim,null,2)+'\n');
  const faces=bones.flatMap(b=>b.cubes).flatMap(c=>Object.values(c.uv)),nativePatchFaces=faces.filter(f=>f.uv_size[0]*f.uv_size[1]>1).length;
- report.push({id,texture:`textures/entity/${atlasNames[id]}.png`,bones:bones.length,cubes:bones.reduce((n,b)=>n+b.cubes.length,0),animations:Object.keys(anim.animations).length,uv_patches:uvMap,native_patch_faces:nativePatchFaces,total_faces:faces.length,visual_review_file:'REVIEW.txt',runtime_verified:false});
+ report.push({id,texture:`textures/entity/${atlasNames[id]}.png`,bones:bones.length,cubes:bones.reduce((n,b)=>n+b.cubes.length,0),animations:Object.keys(anim.animations).length,grips,uv_patches:uvMap,native_patch_faces:nativePatchFaces,total_faces:faces.length,visual_review_file:'REVIEW.txt',runtime_verified:false});
 }
-fs.writeFileSync(`${out}/model-manifest.json`,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report.map(({id,bones,cubes,animations})=>({id,bones,cubes,animations})),null,2));
+const previous=process.argv.includes('--army')&&fs.existsSync(`${out}/model-manifest.json`)?JSON.parse(fs.readFileSync(`${out}/model-manifest.json`)).filter(r=>!Object.hasOwn(armies,r.id)):[];
+fs.writeFileSync(`${out}/model-manifest.json`,JSON.stringify([...previous,...report],null,2)+'\n');console.log(JSON.stringify(report.map(({id,bones,cubes,animations})=>({id,bones,cubes,animations})),null,2));
 // The existing internal-injury sigil is already original pixel art for blood magic.
 fs.copyFileSync(`${base}/textures/mob_effect/internal_injury.png`,`${base}/textures/mob_effect/bingsha_possession.png`);
+fs.copyFileSync(`${base}/textures/mob_effect/bingsha_possession.png`,`${base}/textures/mob_effect/junhun_aura.png`);
