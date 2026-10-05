@@ -29,16 +29,19 @@ public final class DungeonRoomController implements DungeonMechanism {
     }
     public DungeonHazard hazard(String key,boolean floor) {
         if(hazards.size()>=64&&!hazards.containsKey(key))throw new IllegalStateException("Room hazard budget exceeded");
-        return hazards.computeIfAbsent(key,k->new DungeonHazard(20,floor?40:4,36));
+        var clock=hazards.computeIfAbsent(key,k->new DungeonHazard(20,floor?40:6,36,floor?0:2));
+        if(!floor){var upgraded=clock.upgradeIdleArrowVolley();if(upgraded!=clock){hazards.put(key,upgraded);clock=upgraded;}}
+        return clock;
     }
-    public boolean doorOpen(){return completed&&(requiredTargets==63||openingTicks>=12)||trialFailed;}
+    // Failure releases the trial entrance only. The exit still requires the eyes.
+    public boolean doorOpen(){return completed&&(requiredTargets==63||openingTicks>=12);}
     public int openingTicks(){return openingTicks;}
     public boolean trialRunning(){return trialRunning;}
     public boolean trialFailed(){return trialFailed;}
     public boolean allowRetry(){if(!trialFailed)return false;trialFailed=false;return true;}
     public int trialTicks(){return trialTicks;}
     public boolean startTrial(long time){
-        if(!timedTrial||completed||trialRunning)return false;
+        if(!timedTrial||completed||trialRunning||trialFailed)return false;
         trialFailed=false;trialRunning=true;trialTicks=0;trialLastUpdate=time;return true;
     }
     /** Loaded/occupied time only. A timeout releases doors; another attempt keeps hit eyes. */
@@ -100,7 +103,7 @@ public final class DungeonRoomController implements DungeonMechanism {
         openingTicks=0;trialRunning=false;trialFailed=false;trialTicks=0;trialLastUpdate=-1;
         hazards.values().forEach(DungeonHazard::reset);
     }
-    @Override public void complete(){completed=true;phase=Phase.IDLE;phaseTicks=0;contactPending=false;trialRunning=false;}
+    @Override public void complete(){completed=true;phase=Phase.IDLE;phaseTicks=0;contactPending=false;trialRunning=false;trialFailed=false;}
     @Override public void syncVisual(){/* The owning core updates only loaded marker BEs. */}
     @Override public CompoundTag save(){
         CompoundTag tag=new CompoundTag();tag.putInt("Progress",progress);tag.putBoolean("Completed",completed);

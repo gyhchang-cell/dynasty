@@ -28,6 +28,253 @@ import java.util.UUID;
 @GameTestHolder("dynasty_cod2")
 @PrefixGameTestTemplate(false)
 public final class DungeonFrameworkGameTests {
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha")
+    public static void oldSavedArrowClockUpgradesAfterRecoveryWithoutReplayingDamage(GameTestHelper h) {
+        var old=new DungeonHazard(20,4,36);old.trigger(100);
+        for(long t=102;t<=120;t+=2)old.tickActive(t);
+        old.consumeContact();var saved=old.save();saved.remove("PulseTicks");
+        var hazards=new CompoundTag();hazards.put("poison_arrow_a",saved);
+        var roomTag=new CompoundTag();roomTag.put("Hazards",hazards);
+        var room=new DungeonRoomController();room.load(roomTag);
+        var clock=room.hazard("poison_arrow_a",false);
+        h.assertTrue(clock.duration()==4&&!clock.consumeContact(),"Old active volley is not replayed or reset on upgrade");
+        clock.tickActive(10000);
+        for(long t=10002;t<=10040;t+=2)clock.tickActive(t);
+        clock=room.hazard("poison_arrow_a",false);clock.trigger(10042);int shots=0;
+        for(long t=10044;t<=10068;t+=2){clock.tickActive(t);if(clock.consumeContact())shots++;}
+        h.assertTrue(shots==3,"Existing worlds adopt three-arrow volleys after the previous recovery");
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_garrison",timeoutTicks=100)
+    public static void tombGarrisonUsesExistingLedgerAndCannotRefillAfterUnload(GameTestHelper h) {
+        var level=h.getLevel();var origin=h.absolutePos(new BlockPos(0,80,0));var id=UUID.randomUUID();
+        var core=origin.offset(27,48,37);var entrant=origin.offset(32,49,64);
+        boolean previous=level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING);
+        var spawned=new java.util.ArrayList<net.minecraft.world.entity.Entity>();
+        var forced=new java.util.HashSet<ChunkPos>();
+        for(int x:new int[]{10,27,52})for(int z:new int[]{37,50,78}) {
+            var chunk=new ChunkPos(origin.offset(x,49,z));
+            if(!level.getForcedChunks().contains(chunk.toLong())){level.setChunkForced(chunk.x,chunk.z,true);forced.add(chunk);}
+        }
+        // Fixture-only tickets: entity sections must become visible before UUID lookup.
+        // Production merely visits already-loaded markers near real players.
+        h.runAfterDelay(20,()->{
+        try {
+            level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
+            level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());
+            ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(id,"shendao","core",core,-1,java.util.List.of());
+            for(int x:new int[]{10,52})for(int z:new int[]{50,78})for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++) {
+                level.setBlockAndUpdate(origin.offset(x+dx,48,z+dz),Blocks.STONE.defaultBlockState());
+                for(int dy=49;dy<=52;dy++)level.setBlockAndUpdate(origin.offset(x+dx,dy,z+dz),Blocks.AIR.defaultBlockState());
+            }
+            h.assertTrue(!com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,origin.offset(32,25,64)),"Lower caves cannot trigger the upper gallery garrison");
+            var state=com.dynasty.blueprint.BlueprintSpawnState.get(level);String key="chensha@"+id+":shendao";
+            for(int n=0;n<4;n++) {
+                if(n>0)state.markers.get(key).nextSpawn=level.getGameTime();
+                h.assertTrue(com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,entrant),"Authored garrison member "+n+" must actually spawn; origin="+origin+" difficulty="+level.getDifficulty()+" coreLoaded="+level.hasChunkAt(core));
+                var marker=state.markers.get(key);
+                h.assertTrue(!com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,entrant),"Nearby players cannot bypass the spawn interval");
+                for(var uuid:marker.members) {
+                    var mob=level.getEntity(uuid);
+                    if(mob!=null&&!spawned.contains(mob))spawned.add(mob);
+                }
+            }
+            h.assertTrue(spawned.size()==4,"Four actual entities, not only a produced counter");
+            var first=spawned.get(0);first.remove(net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK);
+            h.assertTrue(state.markers.get(key).members.contains(first.getUUID()),"Unloaded membership remains reserved");
+            var restored=com.dynasty.blueprint.BlueprintSpawnState.load(state.save(new CompoundTag()));
+            h.assertTrue(restored.markers.get(key).produced==4&&restored.markers.get(key).members.size()==4,"Restart preserves garrison cap and UUIDs");
+            state.markers.get(key).nextSpawn=level.getGameTime();
+            h.assertTrue(!com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,entrant),"Unloaded entity cannot cause a fifth spawn");
+            state.memberDied(first.getUUID(),level.getGameTime());
+            for(var entity:spawned)if(!entity.isRemoved())entity.discard();
+            h.assertTrue(state.markers.get(key).members.isEmpty(),"Existing removal listener releases living members");
+            h.assertTrue(!com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,entrant)&&state.markers.get(key).cleared,"Authored defeated garrison is permanent, not an infinite farm");
+            h.succeed();
+        } finally {
+            for(var entity:spawned)if(!entity.isRemoved())entity.discard();
+            level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(previous,level.getServer());
+            for(var chunk:forced)level.setChunkForced(chunk.x,chunk.z,false);
+        }
+        });
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha")
+    public static void worldgenAcceptsChunkAccessAndDoesNotReserveEveryWorldPosition(GameTestHelper h) {
+        var level=h.getLevel();var generator=level.getChunkSource().getGenerator();
+        var chunk=level.getChunk(h.absolutePos(new BlockPos(3,2,3)));
+        var context=new net.minecraft.world.level.levelgen.structure.Structure.GenerationContext(level.registryAccess(),generator,
+            generator.getBiomeSource(),level.getChunkSource().randomState(),level.getStructureManager(),level.getSeed(),chunk.getPos(),chunk,b->true);
+        h.assertTrue(ChenshaStructure.generationLevel(context)==level,"Natural generation supplies ChunkAccess, not a ServerLevelAccessor");
+        boolean possible=false;
+        for(int x=20000;x<40000&&!possible;x+=512)for(int z=20000;z<24000&&!possible;z+=512)
+            possible=ChenshaStructure.clearOfReservedSites(context,level,x,z);
+        h.assertTrue(possible,"Other-dimension structures and theoretical mineshafts must not exclude the whole world");
+        h.assertTrue(!ChenshaStructure.farFromSpawn(new BlockPos(2490,0,0),BlockPos.ZERO),"Nearest edge respects spawn exclusion");
+        h.assertTrue(ChenshaStructure.farFromSpawn(new BlockPos(2500,0,0),BlockPos.ZERO),"Spawn exclusion has a finite boundary");
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha")
+    public static void dungeonCommandsSelectRequestedRoomAndTrap(GameTestHelper h) {
+        var level=h.getLevel();var core=h.absolutePos(new BlockPos(3,2,3));var trap=core.east(3);var id=UUID.randomUUID();
+        level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());level.setBlockAndUpdate(trap,DungeonContent.TRAP.get().defaultBlockState());
+        ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(id,"probe","core",core,-1,java.util.List.of());
+        ((DungeonMechanismBlockEntity)level.getBlockEntity(trap)).configure(id,"shendao","poison_arrow_b",core,-1,java.util.List.of());
+        var source=level.getServer().createCommandSourceStack().withLevel(level).withPosition(net.minecraft.world.phys.Vec3.atCenterOf(core)).withPermission(2);
+        var commands=level.getServer().getCommands();var state=DungeonStateStore.get(level);
+        commands.performPrefixedCommand(source,"dynasty dungeon trap test poison_arrow_b");
+        h.assertTrue(state.room(id,"shendao").hazard("poison_arrow_b",false).phase()==DungeonMechanism.Phase.WARNING,"Named trap command must not silently select the nearer core");
+        commands.performPrefixedCommand(source,"dynasty dungeon room complete shendao");
+        h.assertTrue(state.room(id,"shendao").completed()&&!state.room(id,"probe").completed(),"Room command must match its requested ID");
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha")
+    public static void arrowVolleyDoesNotReplayShotsAfterReload(GameTestHelper h) {
+        var clock=new DungeonHazard(20,6,36,2);clock.trigger(100);int shots=0;
+        for(long t=102;t<=120;t+=2){clock.tickActive(t);if(clock.consumeContact())shots++;}
+        h.assertTrue(shots==1,"First arrow launches only after the full warning");
+        clock=DungeonHazard.restore(clock.save());clock.tickActive(10000);
+        h.assertTrue(!clock.consumeContact(),"Reload cannot replay the first arrow");
+        for(long t=10002;t<=10008;t+=2){clock.tickActive(t);if(clock.consumeContact())shots++;}
+        h.assertTrue(shots==3&&clock.phase()==DungeonMechanism.Phase.RECOVERY,"Exactly three server contact frames per volley");
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha",timeoutTicks=80)
+    public static void trapArrowsActuallyHitPoisonAndExpire(GameTestHelper h) {
+        var cow=h.spawn(net.minecraft.world.entity.EntityType.COW,new BlockPos(8,3,8));cow.setNoAi(true);
+        var arrow=DungeonContent.TRAP_ARROW.get().create(h.getLevel());
+        arrow.setPos(cow.getX()-3,cow.getY()+.6,cow.getZ());arrow.shoot(1,0,0,1.6F,0);
+        h.getLevel().addFreshEntity(arrow);
+        h.runAtTickTime(8,()->h.assertTrue(cow.hasEffect(net.minecraft.world.effect.MobEffects.POISON)&&cow.getHealth()<cow.getMaxHealth(),"Real poison arrow collision must hurt the target"));
+        var survivor=DungeonContent.TRAP_ARROW.get().create(h.getLevel());survivor.setPos(cow.getX(),cow.getY()+10,cow.getZ());
+        survivor.setNoGravity(true);h.getLevel().addFreshEntity(survivor);
+        h.runAtTickTime(10,()->{
+            var saved=survivor.saveWithoutId(new CompoundTag());
+            var restored=DungeonContent.TRAP_ARROW.get().create(h.getLevel());restored.load(saved);
+            h.assertTrue(restored.pickup==net.minecraft.world.entity.projectile.AbstractArrow.Pickup.DISALLOWED,"Reload cannot enable arrow farming");
+            h.assertTrue(restored.saveWithoutId(new CompoundTag()).getInt("DungeonRemainingTicks")<=31,"Remaining lifetime survives NBT");
+        });
+        h.runAtTickTime(45,()->{h.assertTrue(survivor.isRemoved(),"Unclaimed projectiles expire without a global scanner");h.succeed();});
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha")
+    public static void shortcutNeedsSteleAndIsSharedPersistently(GameTestHelper h) {
+        var level=h.getLevel();var pos=h.absolutePos(new BlockPos(3,2,3));var lift=pos.east(3);var id=UUID.randomUUID();
+        level.setBlockAndUpdate(pos,DungeonContent.SHORTCUT_STELE.get().defaultBlockState());
+        level.setBlockAndUpdate(lift,DungeonContent.ELEVATOR.get().defaultBlockState());
+        var stele=(DungeonMechanismBlockEntity)level.getBlockEntity(pos);var elevator=(DungeonMechanismBlockEntity)level.getBlockEntity(lift);
+        stele.configure(id,"imperial_vault","return_lift",pos,-1,java.util.List.of());
+        elevator.configure(id,"imperial_vault","return_lift",pos,-1,java.util.List.of());
+        var first=h.makeMockSurvivalPlayer();first.setPos(lift.getX()+.5,lift.getY()+1,lift.getZ()+.5);
+        var room=DungeonStateStore.get(level).room(id,"imperial_vault");
+        elevator.interact(first);h.assertTrue(!room.shortcutOpen("return_lift"),"The lift cannot unlock itself");
+        first.setPos(pos.getX()+.5,pos.getY()+1,pos.getZ()+.5);stele.interact(first);
+        h.assertTrue(!room.shortcutOpen("return_lift"),"Bare-handed interaction cannot break the protected stele");
+        first.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_PICKAXE));
+        stele.interact(first);stele.interact(first);
+        var restored=DungeonStateStore.load(DungeonStateStore.get(level).save(new CompoundTag())).room(id,"imperial_vault");
+        h.assertTrue(restored.shortcutOpen("return_lift")&&!restored.unlockShortcut("return_lift"),"Shortcut is instance-wide and survives a save/reload");
+        elevator.syncVisual(restored);
+        h.assertTrue(level.getBlockState(pos).getValue(DungeonMechanismBlock.OPEN)&&level.getBlockState(lift).getValue(DungeonMechanismBlock.ACTIVE),"Broken stele and shared lift synchronise their state");
+        restored.reset();h.assertTrue(restored.shortcutOpen("return_lift"),"Room reset cannot erase the permanent route");h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha")
+    public static void floorWaitsForOccupantBeforeRestoringCollision(GameTestHelper h) {
+        var level=h.getLevel();var pos=h.absolutePos(new BlockPos(3,2,3));
+        level.setBlockAndUpdate(pos,DungeonContent.FLOOR.get().defaultBlockState().setValue(DungeonMechanismBlock.OPEN,true));
+        var floor=(DungeonMechanismBlockEntity)level.getBlockEntity(pos);floor.configure(UUID.randomUUID(),"shendao","floor",pos,-1,java.util.List.of());
+        var cow=h.spawn(net.minecraft.world.entity.EntityType.COW,new BlockPos(3,2,3));cow.setNoAi(true);
+        var room=new DungeonRoomController();floor.syncVisual(room);
+        h.assertTrue(level.getBlockState(pos).getValue(DungeonMechanismBlock.OPEN),"Restoring floor must not suffocate an occupant");
+        cow.setPos(cow.getX()+4,cow.getY(),cow.getZ());floor.syncVisual(room);
+        h.assertTrue(!level.getBlockState(pos).getValue(DungeonMechanismBlock.OPEN),"Floor restores as soon as the cell is clear");h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha")
+    public static void mercuryTimeoutReleasesEntranceWithoutUnlockingExit(GameTestHelper h) {
+        var room=new DungeonRoomController();room.configureTargets(56,true);
+        h.assertTrue(room.startTrial(100),"An occupied trial starts once");
+        room.recordTarget(3);room.recordTarget(4);
+        for(long t=102;t<=1300;t+=2)room.tickRoom(t,true);
+        h.assertTrue(room.trialFailed()&&!room.trialRunning()&&!room.doorOpen(),"Timeout must not bypass the third eye");
+        var level=h.getLevel();var entrance=h.absolutePos(new BlockPos(3,2,3));var exit=entrance.east(3);
+        var id=UUID.randomUUID();
+        for(var p:java.util.List.of(entrance,exit))level.setBlockAndUpdate(p,DungeonContent.DOOR.get().defaultBlockState());
+        var entryBe=(DungeonMechanismBlockEntity)level.getBlockEntity(entrance);
+        var exitBe=(DungeonMechanismBlockEntity)level.getBlockEntity(exit);
+        entryBe.configure(id,"mercury","trial_entry",entrance,-1,java.util.List.of());
+        exitBe.configure(id,"mercury","mercury_exit",entrance,-1,java.util.List.of());
+        entryBe.syncVisual(room);exitBe.syncVisual(room);
+        h.assertTrue(level.getBlockState(entrance).getValue(DungeonMechanismBlock.OPEN),"Failed players can retreat");
+        h.assertTrue(!level.getBlockState(exit).getValue(DungeonMechanismBlock.OPEN),"Boss route remains sealed");
+        var restored=new DungeonRoomController();restored.load(room.save());
+        h.assertTrue(restored.trialFailed()&&!restored.doorOpen()&&!restored.startTrial(1500),"Restart cannot bypass retry/exit gates");
+        h.assertTrue(restored.allowRetry()&&restored.startTrial(1500),"Leaving the room permits another attempt");
+        h.assertTrue(restored.progress()==24,"Two players' eye progress survives retry");
+        restored.recordTarget(5);
+        for(long t=1502;t<=1512;t+=2)restored.tickRoom(t,true);
+        exitBe.syncVisual(restored);
+        h.assertTrue(level.getBlockState(exit).getValue(DungeonMechanismBlock.OPEN),"All eyes open the exit after its animation");
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha")
+    public static void allThreeChenshaStairRunsHaveSupportAndPlayerHeadroom(GameTestHelper h) {
+        var origin=new BlockPos(-23,20,-31);var id=ChenshaStructure.instanceId(39,origin);var capture=new Capture();
+        for(int x=0;x<4;x++)for(int z=0;z<6;z++){
+            var original=new ChenshaPiece(origin,x,z,id);var restored=new ChenshaPiece(null,original.createTag(null));
+            h.assertTrue(restored.getBoundingBox().equals(original.getBoundingBox()),"Column extent survives piece NBT");
+            var box=restored.getBoundingBox();
+            for(int cx=box.minX()>>4;cx<=box.maxX()>>4;cx++)for(int cz=box.minZ()>>4;cz<=box.maxZ()>>4;cz++){
+                var clip=new BoundingBox(cx*16,-64,cz*16,cx*16+15,320,cz*16+15);capture.clip=clip;
+                restored.postProcess(capture.level,null,null,RandomSource.create(9),clip,new ChunkPos(cx,cz),origin);
+            }
+        }
+        for(var marker:ChenshaPiece.markers()){
+            var part=capture.entities.get(origin.offset(marker.offset()));
+            h.assertTrue(part instanceof DungeonMechanismBlockEntity be&&id.equals(be.instance())&&marker.room().equals(be.roomId())&&be.validBinding(),"Invalid generated binding: "+marker.id());
+            if(marker.block()==DungeonContent.CORE.get()){
+                long count=ChenshaPiece.markers().stream().filter(m->m.room().equals(marker.room())).count();
+                h.assertTrue(part.saveWithoutMetadata().getLongArray("Markers").length==count,"Room marker list was silently truncated: "+marker.room());
+            }
+        }
+        for(int run=0;run<3;run++){
+            int start=run==0?10:run==1?59:28,end=run==0?34:run==1?83:52;
+            for(int z=start;z<=end;z++){
+                int floor=run==0?82-z:run==1?107-z:z-28;
+                for(int x=30;x<=34;x++){
+                    h.assertTrue(capture.blocks.get(origin.offset(x,floor,z)).is(DungeonContent.MASONRY.get()),"Missing stair support: "+run+"/"+x+"/"+z);
+                    for(int dy=1;dy<=3;dy++){
+                        var state=capture.blocks.get(origin.offset(x,floor+dy,z));
+                        h.assertTrue(state.isAir()||state.is(DungeonContent.DOOR.get()),"Blocked stair headroom: "+run+"/"+x+"/"+z+"/"+dy);
+                    }
+                }
+            }
+        }
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_chensha")
+    public static void chenshaRoomHazardsPauseIndependentlyAcrossRestart(GameTestHelper h) {
+        var room=new DungeonRoomController();room.configureTargets(0,false);
+        var a=room.hazard("poison_arrow_a",false);var b=room.hazard("poison_arrow_b",false);
+        a.trigger(100);b.trigger(110);
+        for(long t=102;t<=120;t+=2)a.tickActive(t);
+        for(long t=112;t<=120;t+=2)b.tickActive(t);
+        h.assertTrue(a.consumeContact()&&!b.consumeContact(),"Independent emitters cannot share a contact frame");
+        var restored=new DungeonRoomController();restored.load(room.save());
+        var reloaded=restored.hazard("poison_arrow_b",false);reloaded.tickActive(10000);
+        h.assertTrue(reloaded.phase()==DungeonMechanism.Phase.WARNING&&reloaded.ticks()==10&&!reloaded.consumeContact(),"Unloaded time does not fire the second trap");
+        for(long t=10002;t<=10010;t+=2)reloaded.tickActive(t);
+        h.assertTrue(reloaded.consumeContact()&&!reloaded.consumeContact(),"Resumed trap fires once");
+        h.succeed();
+    }
+
     @GameTest(template="bow_ritual_test",batch="cod2_framework")
     public static void targetsAreIdempotentAndProgressSurvivesReload(GameTestHelper h) {
         var room=new DungeonRoomController();

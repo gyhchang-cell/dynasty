@@ -21,6 +21,7 @@ public final class DungeonMechanismRenderer implements BlockEntityRenderer<Dunge
     public DungeonMechanismRenderer(BlockEntityRendererProvider.Context ignored){}
     @SubscribeEvent public static void register(EntityRenderersEvent.RegisterRenderers event){
         event.registerBlockEntityRenderer(DungeonContent.MECHANISM.get(),DungeonMechanismRenderer::new);
+        event.registerEntityRenderer(DungeonContent.TRAP_ARROW.get(),net.minecraft.client.renderer.entity.TippableArrowRenderer::new);
     }
     @Override public void render(DungeonMechanismBlockEntity be,float partial,PoseStack pose,MultiBufferSource buffers,int light,int overlay){
         if(be.kind()!=DungeonMechanismBlock.Kind.DOOR&&be.kind()!=DungeonMechanismBlock.Kind.FLOOR)return;
@@ -33,7 +34,8 @@ public final class DungeonMechanismRenderer implements BlockEntityRenderer<Dunge
                 Minecraft.getInstance().getBlockRenderer().renderSingleBlock(Blocks.POLISHED_DEEPSLATE.defaultBlockState(),pose,buffers,light,overlay);
             }else{
                 int phase=state.getValue(DungeonMechanismBlock.STAGE);float progress=be.visualProgress(partial);
-                float angle=switch(phase){case 1->(float)Math.sin(progress*Math.PI*6)*3;case 2->90;case 3->90*(1-progress);default->0;};
+                float angle=switch(phase){case 1->(float)Math.sin(progress*Math.PI*6)*3;case 2->90;case 3->90*(1-progress);
+                    default->state.getValue(DungeonMechanismBlock.OPEN)?90:0;};
                 pose.translate(.5,1,.5);
                 pose.mulPose(Axis.YP.rotationDegrees(-state.getValue(DungeonMechanismBlock.FACING).toYRot()));
                 pose.translate(-.5,0,-.5);pose.mulPose(Axis.XP.rotationDegrees(angle));
