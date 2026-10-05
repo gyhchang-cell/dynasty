@@ -17,6 +17,41 @@ public final class DungeonRoomController implements DungeonMechanism {
     private boolean worldRewardGranted;
     private final Set<UUID> rewardedPlayers=new HashSet<>();
     private final Set<String> shortcuts=new HashSet<>();
+    private int requiredTargets=63, openingTicks;
+    private final java.util.Map<String,DungeonHazard> hazards=new java.util.HashMap<>();
+    private boolean timedTrial, trialRunning, trialFailed;
+    private int trialTicks;
+    private long trialLastUpdate=-1;
+
+    public void configureTargets(int mask,boolean timed) {
+        requiredTargets=mask&63;timedTrial=timed;
+        if(requiredTargets!=0&&(progress&requiredTargets)==requiredTargets)complete();
+    }
+    public DungeonHazard hazard(String key,boolean floor) {
+        if(hazards.size()>=64&&!hazards.containsKey(key))throw new IllegalStateException("Room hazard budget exceeded");
+        return hazards.computeIfAbsent(key,k->new DungeonHazard(20,floor?40:4,36));
+    }
+    public boolean doorOpen(){return completed&&(requiredTargets==63||openingTicks>=12)||trialFailed;}
+    public int openingTicks(){return openingTicks;}
+    public boolean trialRunning(){return trialRunning;}
+    public boolean trialFailed(){return trialFailed;}
+    public boolean allowRetry(){if(!trialFailed)return false;trialFailed=false;return true;}
+    public int trialTicks(){return trialTicks;}
+    public boolean startTrial(long time){
+        if(!timedTrial||completed||trialRunning)return false;
+        trialFailed=false;trialRunning=true;trialTicks=0;trialLastUpdate=time;return true;
+    }
+    /** Loaded/occupied time only. A timeout releases doors; another attempt keeps hit eyes. */
+    public boolean tickRoom(long time,boolean occupied){
+        long delta=trialLastUpdate<0?0:time-trialLastUpdate;trialLastUpdate=time;
+        if(!occupied||delta<0||delta>4)return false;
+        boolean changed=false;
+        if(completed&&openingTicks<12){openingTicks=Math.min(12,openingTicks+(int)delta);changed=true;}
+        if(trialRunning){trialTicks=Math.min(1200,trialTicks+(int)delta);changed|=delta>0;
+            if(trialTicks>=1200){trialRunning=false;trialFailed=true;changed=true;}}
+        return changed;
+    }
+    public void pauseHazards(long time){hazards.values().forEach(h->h.pause(time));}
 
     public int progress(){return progress;}
     public boolean completed(){return completed;}
@@ -27,7 +62,7 @@ public final class DungeonRoomController implements DungeonMechanism {
         int bit=1<<target;
         if((progress&bit)!=0) return false;
         progress|=bit;
-        if(progress==63) complete();
+        if(requiredTargets!=0&&(progress&requiredTargets)==requiredTargets) complete();
         return true;
     }
     public boolean claimWorldReward(){
@@ -62,8 +97,10 @@ public final class DungeonRoomController implements DungeonMechanism {
     @Override public void reset(){
         // Resetting a room cannot reopen its world/player unique reward ledger.
         progress=0;completed=false;phase=Phase.IDLE;phaseTicks=0;contactPending=false;lastUpdate=-1;
+        openingTicks=0;trialRunning=false;trialFailed=false;trialTicks=0;trialLastUpdate=-1;
+        hazards.values().forEach(DungeonHazard::reset);
     }
-    @Override public void complete(){completed=true;phase=Phase.IDLE;phaseTicks=0;contactPending=false;}
+    @Override public void complete(){completed=true;phase=Phase.IDLE;phaseTicks=0;contactPending=false;trialRunning=false;}
     @Override public void syncVisual(){/* The owning core updates only loaded marker BEs. */}
     @Override public CompoundTag save(){
         CompoundTag tag=new CompoundTag();tag.putInt("Progress",progress);tag.putBoolean("Completed",completed);
@@ -72,6 +109,10 @@ public final class DungeonRoomController implements DungeonMechanism {
         var players=new net.minecraft.nbt.ListTag();for(var id:rewardedPlayers)players.add(net.minecraft.nbt.StringTag.valueOf(id.toString()));
         tag.put("Players",players);
         var paths=new net.minecraft.nbt.ListTag();for(String id:shortcuts)paths.add(net.minecraft.nbt.StringTag.valueOf(id));tag.put("Shortcuts",paths);
+        tag.putInt("RequiredTargets",requiredTargets);tag.putInt("OpeningTicks",openingTicks);
+        tag.putBoolean("TimedTrial",timedTrial);tag.putBoolean("TrialRunning",trialRunning);tag.putBoolean("TrialFailed",trialFailed);
+        tag.putInt("TrialTicks",trialTicks);tag.putLong("TrialLastUpdate",trialLastUpdate);
+        var clocks=new CompoundTag();hazards.forEach((key,value)->clocks.put(key,value.save()));tag.put("Hazards",clocks);
         return tag;
     }
     @Override public void load(CompoundTag tag){
@@ -83,5 +124,12 @@ public final class DungeonRoomController implements DungeonMechanism {
         rewardedPlayers.clear();shortcuts.clear();
         for(var value:tag.getList("Players",8))try{rewardedPlayers.add(UUID.fromString(value.getAsString()));}catch(IllegalArgumentException ignored){}
         for(var value:tag.getList("Shortcuts",8))shortcuts.add(value.getAsString());
+        requiredTargets=tag.contains("RequiredTargets")?tag.getInt("RequiredTargets")&63:63;
+        openingTicks=tag.contains("OpeningTicks")?Math.max(0,Math.min(12,tag.getInt("OpeningTicks"))):completed?12:0;
+        timedTrial=tag.getBoolean("TimedTrial");trialRunning=tag.getBoolean("TrialRunning")&&!completed;
+        trialFailed=tag.getBoolean("TrialFailed");trialTicks=Math.max(0,Math.min(1200,tag.getInt("TrialTicks")));
+        trialLastUpdate=tag.contains("TrialLastUpdate")?tag.getLong("TrialLastUpdate"):-1;
+        hazards.clear();var clocks=tag.getCompound("Hazards");
+        for(String key:clocks.getAllKeys())if(hazards.size()<64)hazards.put(key,DungeonHazard.restore(clocks.getCompound(key)));
     }
 }

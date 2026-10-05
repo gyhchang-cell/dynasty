@@ -26,7 +26,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public final class DungeonMechanismBlock extends BaseEntityBlock {
-    public enum Kind {CORE,SEAL,TARGET,DOOR,FLOOR,TRAP}
+    public enum Kind {CORE,SEAL,TARGET,DOOR,FLOOR,TRAP,ELEVATOR}
     public static final BooleanProperty ACTIVE=BooleanProperty.create("active"),OPEN=BlockStateProperties.OPEN;
     public static final DirectionProperty FACING=BlockStateProperties.HORIZONTAL_FACING;
     public static final IntegerProperty STAGE=IntegerProperty.create("stage",0,3);
@@ -38,7 +38,8 @@ public final class DungeonMechanismBlock extends BaseEntityBlock {
     }
     public Kind kind(){return kind;}
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<net.minecraft.world.level.block.Block,BlockState> builder){builder.add(ACTIVE,OPEN,FACING,STAGE);}
-    @Override public RenderShape getRenderShape(BlockState state){return kind==Kind.CORE?RenderShape.INVISIBLE:RenderShape.MODEL;}
+    @Override public RenderShape getRenderShape(BlockState state){return kind==Kind.CORE?RenderShape.INVISIBLE:
+        kind==Kind.DOOR||kind==Kind.FLOOR?RenderShape.ENTITYBLOCK_ANIMATED:RenderShape.MODEL;}
     @Override public VoxelShape getCollisionShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext ctx){
         return kind==Kind.CORE||((kind==Kind.DOOR||kind==Kind.FLOOR)&&state.getValue(OPEN))?Shapes.empty():Shapes.block();
     }

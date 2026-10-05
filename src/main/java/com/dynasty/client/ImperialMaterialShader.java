@@ -48,6 +48,7 @@ public final class ImperialMaterialShader {
         var mode=material.getUniform("MaterialMode");
         if(mode!=null)mode.set(0f);
         var opacity=material.getUniform("MeshOpacity");if(opacity!=null)opacity.set(1f);
+        var inside=material.getUniform("ViewerInside");if(inside!=null)inside.set(0f);
         return true;
     }
     public static boolean available(){return material!=null;}
@@ -58,6 +59,7 @@ public final class ImperialMaterialShader {
                 .m30((float)origin.x).m31((float)origin.y).m32((float)origin.z);
         var local=material.getUniform("LocalFromPosition");
         if(local!=null)local.set(new Matrix4f(worldView).mul(worldFromLocal).invert());
+        guardianViewer(worldFromLocal);
         enableBrocade();
         return true;
     }
@@ -68,8 +70,15 @@ public final class ImperialMaterialShader {
         if(lighting!=null)lighting.set(new Matrix4f(worldFromLocal).invert());
         var local=material.getUniform("LocalFromPosition");
         if(local!=null)local.set(new Matrix4f());
+        guardianViewer(worldFromLocal);
         enableBrocade();
         return true;
+    }
+    private static void guardianViewer(Matrix4f worldFromLocal) {
+        // Positions are relative to this observer's camera, regardless of the holder's identity.
+        var viewer=new Matrix4f(worldFromLocal).invert().transformPosition(new org.joml.Vector3f());
+        var inside=material.getUniform("ViewerInside");
+        if(inside!=null)inside.set(com.dynasty.GuanYuAvatarShape.contains(viewer.x,viewer.y,viewer.z,1)?1f:0f);
     }
     public static boolean bindDragonLocal(Matrix4f worldFromLocal,float sceneLight,float opacity) {
         if(!bind(new Matrix4f(),sceneLight))return false;

@@ -7,11 +7,14 @@ allprojects { p -> afterEvaluate {
         runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
     }
     p.minecraft.runs.client {
-        workingDirectory p.file('build/guandao-world-qa/client')
+        def role = p.findProperty('guandaoRole') ?: 'solo'
+        workingDirectory p.file('build/guandao-world-qa/' + (role == 'solo' ? 'client' : role))
+        property 'dynasty.guandaoQa.role', role
         property 'dynasty.guandaoQa', 'true'
-        property 'dynasty.guandaoQa.output', p.file(p.findProperty('guandaoRegression') ? 'docs/art/unification/weapon' : 'docs/art/guandao-refined').absolutePath
+        property 'dynasty.guandaoQa.output', p.file(p.findProperty('guandaoOutput') ?: (p.findProperty('guandaoRegression') ? 'docs/art/unification/weapon' : 'docs/art/guandao-refined')).absolutePath
         property 'dynasty.guandaoQa.regression', p.findProperty('guandaoRegression') ? 'true' : 'false'
-        args '--width', '1600', '--height', '1000'
+        property 'dynasty.guandaoQa.startStage', p.findProperty('guandaoStartStage') ?: '0'
+        args '--username', role == 'peer' ? 'GuandaoPeer' : 'GuandaoHost', '--width', '1600', '--height', '1000'
         mods { dynasty { source qa } }
     }
     p.tasks.configureEach { task -> if(task.name=='runClient')task.dependsOn qa.classesTaskName }

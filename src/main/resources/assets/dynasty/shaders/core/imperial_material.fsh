@@ -8,6 +8,7 @@ uniform vec4 FogColor;
 uniform sampler2D Sampler0;
 uniform float MaterialMode;
 uniform float MeshOpacity;
+uniform float ViewerInside;
 uniform vec3 RobeColorA;
 uniform vec3 RobeColorB;
 
@@ -54,7 +55,9 @@ void main() {
     color.a *= smoothstep(0.65, 2.50, cameraDepth);
     // Closed armor's inward-facing surfaces must not enclose a flying camera.
     // Keep intentionally two-sided ribbons/cloth at ordinary viewing distances.
-    if (cameraDepth < 3.0 && dot(surfaceNormal, -viewPosition) < 0.0) discard;
+    // Inside the guardian, a distant inward surface can still cover the entire view (e.g.
+    // looking up from the pelvis into the chest). Its distance is not a safe culling limit.
+    if ((cameraDepth < 3.0 || ViewerInside > 0.5) && dot(surfaceNormal, -viewPosition) < 0.0) discard;
     if (color.a <= threshold(ivec2(gl_FragCoord.xy))) discard;
     bool cloth = MaterialMode > 0.5 && (distance(vertexColor.rgb, RobeColorA) < 0.008
                                      || distance(vertexColor.rgb, RobeColorB) < 0.008);

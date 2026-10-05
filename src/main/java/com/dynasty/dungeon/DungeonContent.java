@@ -29,11 +29,18 @@ public final class DungeonContent {
     public static final RegistryObject<Block> DOOR=mechanism("seal_door",DungeonMechanismBlock.Kind.DOOR);
     public static final RegistryObject<Block> FLOOR=mechanism("resettable_floor",DungeonMechanismBlock.Kind.FLOOR);
     public static final RegistryObject<Block> TRAP=mechanism("pressure_trap_emitter",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> ELEVATOR=mechanism("dungeon_elevator_controller",DungeonMechanismBlock.Kind.ELEVATOR);
+    public static final RegistryObject<Block> MASONRY=BLOCKS.register("dungeon_masonry",()->new Block(BlockBehaviour.Properties.of()
+        .strength(-1F,3600000F).noLootTable()){
+            @Override public net.minecraft.world.level.material.PushReaction getPistonPushReaction(net.minecraft.world.level.block.state.BlockState state){return net.minecraft.world.level.material.PushReaction.BLOCK;}
+        });
     public static final RegistryObject<BlockEntityType<DungeonMechanismBlockEntity>> MECHANISM=ENTITIES.register("dungeon_mechanism",
         ()->BlockEntityType.Builder.of(DungeonMechanismBlockEntity::new,
-            CORE.get(),SEAL.get(),EYE.get(),DOOR.get(),FLOOR.get(),TRAP.get()).build(null));
+            CORE.get(),SEAL.get(),EYE.get(),DOOR.get(),FLOOR.get(),TRAP.get(),ELEVATOR.get()).build(null));
     public static final RegistryObject<StructureType<DungeonProbeStructure>> PROBE=STRUCTURES.register("dungeon_probe",()->()->DungeonProbeStructure.CODEC);
     public static final RegistryObject<StructurePieceType> PROBE_PIECE=PIECES.register("dungeon_probe_piece",()->DungeonProbePiece::new);
+    public static final RegistryObject<StructureType<ChenshaStructure>> CHENSHA=STRUCTURES.register("chensha_xuangong",()->()->ChenshaStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> CHENSHA_PIECE=PIECES.register("chensha_xuangong_piece",()->ChenshaPiece::new);
     public static void register(IEventBus bus){BLOCKS.register(bus);ENTITIES.register(bus);STRUCTURES.register(bus);PIECES.register(bus);}
     private DungeonContent(){}
 }
