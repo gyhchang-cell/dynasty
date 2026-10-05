@@ -57,13 +57,16 @@ public final class BlueprintClientQa {
     private static final boolean CONNECTION_ONLY = Boolean.getBoolean("dynasty.blueprintQa.connectionOnly");
     private static final boolean DEATH_ONLY = Boolean.getBoolean("dynasty.blueprintQa.deathOnly");
     private static final boolean ARMY = Boolean.getBoolean("dynasty.blueprintQa.army");
+    private static final boolean BATTLEFIELD = Boolean.getBoolean("dynasty.blueprintQa.battlefield");
+    private static final String RESUME_WORLD=System.getProperty("dynasty.blueprintQa.resumeWorld","");
+    private static final String PREVIOUS_RUN=System.getProperty("dynasty.blueprintQa.previousRun","");
     private static final boolean LIFECYCLE = Boolean.getBoolean("dynasty.blueprintQa.lifecycle");
     private static final Path ROOT = Path.of(System.getProperty("dynasty.blueprintQa.output", "build/blueprint-client/results"));
     private static final Path OUT = ROOT.resolve(ROLE), COORD = ROOT.resolve("coord");
     private static final Gson JSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Gson LINE_JSON = new Gson();
     private static final long DEADLINE = System.nanoTime() + 1_200_000_000_000L;
-    private static final String[] NAMES = ARMY ? new String[]{"army-front","army-side","army-45","spear-front","crossbow-front","scout-front","powder-front","banner-front",
+    private static final String[] NAMES = BATTLEFIELD ? new String[]{"battlefield-encounter"} : ARMY ? new String[]{"army-front","army-side","army-45","spear-front","crossbow-front","scout-front","powder-front","banner-front",
             "spear-thrust","spear-brace","crossbow-volley","crossbow-roll","scout-cut","scout-grapple","scout-knee","powder-stab","powder-detonate","banner-slam",
             "spear-death","crossbow-death","scout-death","powder-death","banner-death"} : new String[]{"overview-front", "overview-side", "overview-45", "zuwu-front", "ludun-front", "fufa-front", "shanxiao-front",
             "sword-combo", "shield-combo", "possession-link", "shanxiao-pounce", "talisman-volley", "shanxiao-rock", "shield-death-cover",
@@ -104,6 +107,8 @@ public final class BlueprintClientQa {
     private static boolean reloadRecorded, rejoining, reconnectStarted, rejoinRecorded;
     private static long reconnectAfter;
     private static List<Expected> beforeRejoin;
+    private static List<String> restartMembers=List.of(); // Server thread; prior process evidence, never a spawn list.
+    private static int battlefieldTerrainFrames;
 
     @SubscribeEvent public static void joined(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
         connectionEvent(event.getEntity(), "JOIN");
@@ -309,6 +314,16 @@ public final class BlueprintClientQa {
             if (System.nanoTime() > DEADLINE) throw new AssertionError("QA timed out waiting for world, peer or acknowledged stage");
             if (Files.exists(ROOT.resolve(HOST ? "peer/FAIL.txt" : "host/FAIL.txt"))) throw new AssertionError("Other client failed; see its FAIL.txt");
             if (mc.getOverlay() != null) return;
+            if(HOST&&started&&!RESUME_WORLD.isEmpty()&&mc.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen confirm
+                    &&confirm.getTitle().getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents title
+                    &&title.getKey().equals("selectWorld.backupQuestion.experimental")){
+                // Only our already-validated disposable saved world; use Forge's ordinary Proceed action.
+                for(var child:confirm.children())if(child instanceof net.minecraft.client.gui.components.Button button
+                        &&button.getMessage().equals(net.minecraft.network.chat.CommonComponents.GUI_PROCEED)){
+                    button.onPress();return;
+                }
+                throw new AssertionError("Disposable-world confirmation has no Proceed button");
+            }
             if (mc.screen instanceof AccessibilityOnboardingScreen) mc.setScreen(new TitleScreen());
             if (!started && mc.screen instanceof TitleScreen) {
                 if (!mc.gameDirectory.getCanonicalPath().endsWith("/build/blueprint-client/" + ROLE)) throw new AssertionError("Refusing non-disposable game directory");
@@ -324,11 +339,19 @@ public final class BlueprintClientQa {
                     String address = "127.0.0.1:25587";
                     ConnectScreen.startConnecting(new TitleScreen(), mc, ServerAddress.parseString(address), new ServerData("Disposable blueprint QA", address, false), false);
                 } else {
+                    if(!RESUME_WORLD.isEmpty()){
+                        if(!BATTLEFIELD||!RESUME_WORLD.matches("blueprint-[A-Za-z0-9_.-]+")||!PREVIOUS_RUN.matches("[A-Za-z0-9_.-]+"))
+                            throw new AssertionError("Restart QA only accepts an existing disposable blueprint world and prior run");
+                        mc.createWorldOpenFlows().loadLevel(new TitleScreen(),RESUME_WORLD);return;
+                    }
                     GameRules rules = new GameRules(); rules.getRule(GameRules.RULE_DOMOBSPAWNING).set(false, null);
                     rules.getRule(GameRules.RULE_DAYLIGHT).set(false, null);
                     mc.createWorldOpenFlows().createFreshLevel("blueprint-" + RUN + "-" + System.currentTimeMillis(),
                             new LevelSettings("Disposable blueprint QA", GameType.CREATIVE, false, net.minecraft.world.Difficulty.NORMAL, true, rules, WorldDataConfiguration.DEFAULT),
-                            new WorldOptions(57, false, false), registry -> registry.registryOrThrow(Registries.WORLD_PRESET).getOrThrow(WorldPresets.FLAT).createWorldDimensions());
+                            new WorldOptions(57, false, false), registry -> {
+                                var dimensions=registry.registryOrThrow(Registries.WORLD_PRESET).getOrThrow(WorldPresets.FLAT).createWorldDimensions();
+                                return BATTLEFIELD?dimensions.replaceOverworldGenerator(registry,battlefieldTerrain(registry)):dimensions;
+                            });
                 }
                 return;
             }
@@ -337,7 +360,7 @@ public final class BlueprintClientQa {
             if (HOST && setup == null) {
                 MinecraftServer server = mc.getSingleplayerServer();
                 setup = server.submit(() -> {
-                    server.overworld().setDayTime(6000);
+                    if(!BATTLEFIELD)server.overworld().setDayTime(6000);
                     if (!SOLO) {
                         server.setUsesAuthentication(false);
                         try { server.getConnection().startTcpServerListener(java.net.InetAddress.getByName("127.0.0.1"), 25587); }
@@ -358,6 +381,9 @@ public final class BlueprintClientQa {
                     Stage produced = pending.join(); publish(produced); local = produced; pending = null;
                 }
                 if (hostIndex < 0) { hostIndex = firstStage(); pending = server.submit(() -> prepare(server, hostIndex)); return; }
+                if (BATTLEFIELD && local != null && local.phase.equals("SPAWNING")) {
+                    pending = server.submit(() -> pollBattlefield(server)); return;
+                }
                 if (local != null && local.index == hostIndex && local.phase.equals("READY") && hostIndex >= actionFirst() && acknowledged("ready", hostIndex)) {
                     pending = server.submit(() -> activate(server, hostIndex)); return;
                 }
@@ -379,6 +405,7 @@ public final class BlueprintClientQa {
                 lastSecondaryTick = Long.MIN_VALUE; secondaryResponse = 0;
             }
             local = state;
+            if (BATTLEFIELD && state.phase.equals("SPAWNING")) return;
             // The final short-lived corpse may expire after its valid capture/ACK. Completion
             // depends on both saved captures, not on keeping an expired fixture alive longer.
             if (!HOST && captured && Files.exists(COORD.resolve("complete.txt"))) { finish(mc, null); return; }
@@ -509,7 +536,72 @@ public final class BlueprintClientQa {
         }
     }
 
+    private static net.minecraft.world.level.levelgen.FlatLevelSource battlefieldTerrain(net.minecraft.core.RegistryAccess registry){
+        var settings=net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings.getDefault(
+            registry.lookupOrThrow(Registries.BIOME),registry.lookupOrThrow(Registries.STRUCTURE_SET),registry.lookupOrThrow(Registries.PLACED_FEATURE));
+        settings.getLayersInfo().clear();settings.getLayersInfo().add(new net.minecraft.world.level.levelgen.flat.FlatLayerInfo(127,Blocks.STONE));
+        settings.getLayersInfo().add(new net.minecraft.world.level.levelgen.flat.FlatLayerInfo(1,Blocks.GRASS_BLOCK));settings.updateLayers();
+        return new net.minecraft.world.level.levelgen.FlatLevelSource(settings);
+    }
+    private static Stage prepareBattlefield(MinecraftServer server){
+        var world=server.overworld();
+        for(var player:server.getPlayerList().getPlayers())player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+            net.minecraft.world.effect.MobEffects.NIGHT_VISION,12000,0,false,false,false)); // Readable QA capture; does not alter spawn light checks.
+        var structure=world.registryAccess().registryOrThrow(Registries.STRUCTURE)
+            .get(new net.minecraft.resources.ResourceLocation("dynasty:ruined_battlefield"));
+        if(structure==null)throw new AssertionError("Battlefield is missing from the runtime worldgen registry");
+        if(!RESUME_WORLD.isEmpty()){
+            try{
+                var prior=JSON.fromJson(Files.readString(ROOT.resolveSibling(PREVIOUS_RUN).resolve("host/world-encounter.json")),com.google.gson.JsonObject.class);
+                var members=prior.getAsJsonArray("mobs");var ids=new ArrayList<String>();
+                for(var member:members)ids.add(member.getAsJsonObject().get("uuid").getAsString());
+                if(ids.size()!=7)throw new AssertionError("Prior process did not record the complete encounter");restartMembers=List.copyOf(ids);
+            }catch(java.io.IOException e){throw new RuntimeException(e);}
+            var start=world.getChunk(0,0).getStartForStructure(structure);
+            if(start==null||!start.isValid())throw new AssertionError("Restart lost its persisted structure start");
+            var box=start.getBoundingBox();
+            for(int x=box.minX()>>4;x<=box.maxX()>>4;x++)for(int z=box.minZ()>>4;z<=box.maxZ()>>4;z++)world.getChunk(x,z);
+            for(var player:server.getPlayerList().getPlayers())player.teleportTo(world,8.5,64,-1.5,0,0);
+            return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
+        }
+        var generator=world.getChunkSource().getGenerator();var chunk=new net.minecraft.world.level.ChunkPos(0,0);
+        var start=structure.generate(world.registryAccess(),generator,generator.getBiomeSource(),world.getChunkSource().randomState(),
+            world.getStructureManager(),world.getSeed(),chunk,0,world,b->true);
+        if(!start.isValid())throw new AssertionError("Production battlefield generator rejected the dry, level fixture");
+        world.getChunk(0,0).setStartForStructure(structure,start);var box=start.getBoundingBox();
+        for(int x=box.minX()>>4;x<=box.maxX()>>4;x++)for(int z=box.minZ()>>4;z<=box.maxZ()>>4;z++){
+            var part=world.getChunk(x,z);part.addReferenceForStructure(structure,chunk.toLong());
+            var clip=new net.minecraft.world.level.levelgen.structure.BoundingBox(x*16,box.minY(),z*16,x*16+15,box.maxY(),z*16+15);
+            for(var piece:start.getPieces())piece.postProcess(world,world.structureManager(),generator,net.minecraft.util.RandomSource.create(3),clip,part.getPos(),BlockPos.ZERO);
+        }
+        world.setDayTime(18000);world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,server);
+        for(var player:server.getPlayerList().getPlayers()){
+            player.setGameMode(GameType.CREATIVE);player.teleportTo(world,8.5,64,-1.5,0,0);
+        }
+        return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
+    }
+    private static Stage pollBattlefield(MinecraftServer server){
+        var world=server.overworld();var marker=com.dynasty.blueprint.BlueprintSpawnState.get(world).markers.get("dynasty:ruined_battlefield@0");
+        if(marker==null||marker.produced<7)return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
+        if(marker.produced!=7||marker.members.size()!=7)throw new AssertionError("Production spawner exceeded or lost battlefield membership");
+        if(!restartMembers.isEmpty()&&!marker.members.stream().map(UUID::toString).collect(java.util.stream.Collectors.toSet()).equals(new java.util.HashSet<>(restartMembers)))
+            throw new AssertionError("Server restart replaced or duplicated the saved encounter");
+        var visit=server.getAdvancements().getAdvancement(new net.minecraft.resources.ResourceLocation("dynasty:visit_ruined_battlefield"));
+        if(visit==null)throw new AssertionError("Battlefield exploration hook is not loaded");
+        for(var player:server.getPlayerList().getPlayers())
+            if(!player.getAdvancements().getOrStartProgress(visit).isDone())
+                throw new AssertionError("Entering the real structure did not award the exploration hook: "+player.getGameProfile().getName());
+        fixtures.clear();
+        for(var uuid:marker.members){
+            if(world.getEntity(uuid)==null)return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of()); // Entity regions load asynchronously.
+            if(!(world.getEntity(uuid) instanceof TemplateMob mob))throw new AssertionError("Encounter UUID is not a template mob");
+            fixtures.add(mob);
+        }
+        return snapshot(0,"READY",world.getGameTime());
+    }
+
     private static Stage prepare(MinecraftServer server, int index) {
+        if(BATTLEFIELD)return prepareBattlefield(server);
         if(ARMY)return prepareArmy(server,index);
         var world = server.overworld();
         if (index == 21) {
@@ -583,7 +675,7 @@ public final class BlueprintClientQa {
     private static Stage snapshot(int stage, String phase, long now) {
         return new Stage(RUN, stage, phase, now, fixtures.stream().map(m -> new Expected(m.getId(), m.getUUID().toString(), m.blueprintId(), m.skillId(), m.skillStartTime())).toList());
     }
-    private static int prototypeCount(){return ARMY?5:4;}
+    private static int prototypeCount(){return BATTLEFIELD?7:ARMY?5:4;}
     private static int actionFirst(){return ARMY?8:7;}
     private static int deathFirst(){return ARMY?18:13;}
     private static int armySubject(int stage){return stage<8?Math.max(0,stage-3):stage<10?0:stage<12?1:stage<15?2:stage<17?3:stage==17?4:stage-18;}
@@ -688,6 +780,14 @@ public final class BlueprintClientQa {
     }
     private static void camera(Minecraft mc, int stage) {
         mc.options.hideGui = true; mc.options.setCameraType(CameraType.FIRST_PERSON);
+        if(BATTLEFIELD){
+            Vec3 eye=new Vec3(32,82,40),look=new Vec3(8,65,8),delta=look.subtract(eye);
+            mc.options.fov().set(60);var camera=new ArmorStand(mc.level,eye.x,eye.y,eye.z);
+            camera.setPos(eye.x,eye.y-camera.getEyeHeight(),eye.z);
+            float yaw=(float)Math.toDegrees(Math.atan2(-delta.x,delta.z));
+            camera.setYRot(yaw);camera.setYHeadRot(yaw);camera.yHeadRotO=yaw;
+            camera.setXRot((float)-Math.toDegrees(Math.atan2(delta.y,delta.horizontalDistance())));camera.setOldPosAndRot();mc.setCameraEntity(camera);return;
+        }
         if(ARMY){
             boolean individual=stage>=3;int subject=armySubject(stage);
             double x=individual?subject*5:10,z=individual?8:32;
@@ -724,9 +824,34 @@ public final class BlueprintClientQa {
 
     @SubscribeEvent public static void render(TickEvent.RenderTickEvent event) {
         if (ROLE.isEmpty() || done || event.phase != TickEvent.Phase.END || captured || local == null) return;
+        if (BATTLEFIELD && local.phase.equals("SPAWNING")) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.getOverlay() != null || !allTracked(mc, local)) return;
         try {
+            if(BATTLEFIELD){
+                if(!readySent)return;
+                // Entity tracking can finish before chunk meshes after F3+T or a TCP rejoin.
+                // Require both floor and structure sections, then several actual rendered frames.
+                for(int x:new int[]{-8,8,24})for(int z:new int[]{-8,8,24})for(int y:new int[]{63,64}){
+                    var pos=new BlockPos(x,y,z);
+                    if(!mc.level.hasChunkAt(pos)||!mc.levelRenderer.isChunkCompiled(pos)
+                            ||y==63&&mc.level.getBlockState(pos).isAir()){
+                        battlefieldTerrainFrames=0;return;
+                    }
+                }
+                if(++battlefieldTerrainFrames<3)return;
+                var counts=new java.util.HashMap<String,Integer>();
+                for(var expected:local.mobs){
+                    var mob=(TemplateMob)mc.level.getEntity(expected.entityId);
+                    if(mob.isNoAi()||mob.isNoGravity())throw new AssertionError("World encounter disabled ordinary AI/physics");
+                    counts.merge(mob.blueprintId(),1,Integer::sum);
+                }
+                if(!counts.equals(Map.of("zhenwang_zhangqiguan",1,"fufa_jijiu",1,"tiesuo_chihou",2,"kuijun_sishi",3)))
+                    throw new AssertionError("Client received an incorrect or duplicated encounter: "+counts);
+                Files.writeString(OUT.resolve("world-encounter.json"),JSON.toJson(Map.of("run",RUN,"role",ROLE,
+                    "counts",counts,"mobs",local.mobs,"players",mc.level.players().size(),"resumedWorld",RESUME_WORLD,"previousRun",PREVIOUS_RUN,
+                    "scope","Production structure generator and ordinary BlueprintSpawns ticks; no mobs spawned by the harness")));
+            }
             if (!ARMY && observed >= 20) {
                 enableContactTracking(mc);
                 if (!readySent || !local.phase.equals("ACTIVE") || !observeEncounter(mc)) return;
@@ -944,6 +1069,10 @@ public final class BlueprintClientQa {
     private static void finish(Minecraft mc, Throwable error) {
         if (done) return; done = true;
         if (error != null) { error.printStackTrace(); LOG.add("FAIL: " + error); }
+        else if(BATTLEFIELD) LOG.add("PASS: " + (SOLO ? "single client" : "two real TCP clients")
+                + " tracked seven production-spawned battlefield members with normal AI/physics and the exploration hook."
+                + (RESUME_WORLD.isEmpty() ? "" : " All seven UUIDs survived a separate-process world reload.")
+                + " This does not certify active-combat reconnect, combat restart, final art or performance.");
         else LOG.add(SOLO ? "PASS: isolated single-client " + (lastStage() - firstStage() + 1) + " stages, actual Gecko action/death clips, and screenshot harness. This is NOT a multiplayer or visual-quality pass."
                 : "PASS: real loopback TCP clients acknowledged all " + (lastStage() - firstStage() + 1) + " stages with matching entity identity, action start, phase, actual Gecko action/death clips, possession effect and target. Screenshots still require visual review.");
         try { Files.createDirectories(OUT); Files.write(OUT.resolve(error == null ? "PASS.txt" : "FAIL.txt"), LOG); }

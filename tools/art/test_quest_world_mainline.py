@@ -42,6 +42,27 @@ class WorldMainlineTest(unittest.TestCase):
         for i in (14,24,34,44,51):
             self.assertTrue(rows[code(1,0x90000+i)]['target'].startswith('dynasty:ritual_'))
 
+    def test_six_cod1_branches_have_real_hooks_without_changing_main_gates(self):
+        rows={q['id']:q for q in self.rows}
+        ids={code(1,0xA0000+i) for i in range(6,12)}
+        targets={'dynasty:visit_ruined_battlefield'}|{'dynasty:story_slay_'+name for name in
+            ('juma_changqiangbing','liannu_zhenzu','tiesuo_chihou','kuijun_sishi','zhenwang_zhangqiguan')}
+        self.assertEqual(targets,{rows[i]['target'] for i in ids})
+        for i in ids:
+            q=rows[i]
+            self.assertEqual('exploration_branch',q['role'])
+            self.assertEqual('advancement',q['kind'])
+            data=json.loads((story.ROOT/'src/main/resources/data/dynasty/advancements'/
+                            (q['target'].split(':')[1]+'.json')).read_text())
+            if 'story_slay_' in q['target']:
+                self.assertEqual('minecraft:player_killed_entity',data['criteria']['slay']['trigger'])
+                self.assertEqual(q['target'].replace('story_slay_',''),data['criteria']['slay']['conditions']['entity']['type'])
+            else:
+                self.assertEqual('dynasty:ruined_battlefield',data['criteria']['visit']['conditions']['player'][0]['predicate']['structure'])
+            self.assertNotIn('type: "command"',q['rewards'])
+            self.assertNotIn('type: "item"',q['rewards'])
+        self.assertTrue(all(not ids.intersection(q['deps']) for q in self.rows if q['role']=='main'))
+
     def test_other_routes_cannot_use_story_gate_exception(self):
         book=copy.deepcopy(self.book)
         q=next(q for c in book for q in c['quests'] if q.get('route')=='guard')

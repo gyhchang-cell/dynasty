@@ -31,10 +31,10 @@ public final class TemplateContentDefinitions {
             -32,220,0,15,"ALL","ANY",1,2,2,2,"STRUCTURE_MARKER","two crossbows per gate defensive squad","PERSISTENT_MARKER"),
         new Spawn("tiesuo_chihou",Level.OVERWORLD,List.of(tag("dynasty:blueprint/shanxiao_habitat")),List.of(),
             60,220,0,7,"NIGHT","ANY",2,1,2,2,"NATURAL_ECOLOGY","forest/mountain; at most two within32; no cave below height60","VANILLA_DISTANCE_DESPAWN"),
-        new Spawn("kuijun_sishi",Level.OVERWORLD,List.of(),List.of(),
-            -32,220,0,7,"NIGHT","ANY",0,2,4,4,"ENCOUNTER_ONLY_PENDING_BATTLEFIELD","not scattered into unrelated structures; battlefield integration remains pending","ENCOUNTER_MEMBERSHIP"),
-        new Spawn("zhenwang_zhangqiguan",Level.OVERWORLD,List.of(),List.of(),
-            -32,220,0,15,"ALL","ANY",0,1,1,1,"ENCOUNTER_ONLY_PENDING_BATTLEFIELD","one banner per battlefield encounter; never ordinary natural spawning","ENCOUNTER_MEMBERSHIP")
+        new Spawn("kuijun_sishi",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/battlefields")),
+            -32,220,0,7,"NIGHT","ANY",1,3,3,3,"STRUCTURE_MARKER","three powder units in the ruined battlefield squad; never ordinary natural spawning","ENCOUNTER_MEMBERSHIP"),
+        new Spawn("zhenwang_zhangqiguan",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/battlefields")),
+            -32,220,0,7,"NIGHT","ANY",1,1,1,1,"STRUCTURE_MARKER","one banner per battlefield encounter; never ordinary natural spawning","ENCOUNTER_MEMBERSHIP")
     );
     static int maximumWeight(Spawn definition) {
         return switch(definition.id()) {case "zuwu_daoshou"->10;case "fufa_jijiu"->4;default->definition.spawnWeight();};

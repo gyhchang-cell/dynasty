@@ -25,6 +25,10 @@ public final class DynastyStructures {
             STRUCTURE_TYPES.register("travel_site", () -> () -> TravelSiteStructure.CODEC);
     public static final RegistryObject<StructurePieceType> TRAVEL_SITE_PIECE =
             PIECE_TYPES.register("travel_site", () -> TravelSitePiece::new);
+    public static final RegistryObject<StructureType<BattlefieldStructure>> BATTLEFIELD =
+            STRUCTURE_TYPES.register("battlefield", () -> () -> BattlefieldStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> BATTLEFIELD_PIECE =
+            PIECE_TYPES.register("battlefield", () -> BattlefieldPiece::new);
 
     /** 皇家宫殿 / Imperial Palace */
     public static final RegistryObject<StructureType<PalaceStructure>> PALACE =

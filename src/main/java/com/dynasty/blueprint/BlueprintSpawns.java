@@ -25,6 +25,7 @@ import java.util.List;
 public final class BlueprintSpawns {
     private static final TagKey<Structure> MILITARY=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/military_sites"));
     private static final TagKey<Structure> RITUAL=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ritual_sites"));
+    private static final TagKey<Structure> BATTLEFIELD=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/battlefields"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
         event.register(BlueprintEntities.TIESUO_CHIHOU.get(),SpawnPlacements.Type.ON_GROUND,
@@ -55,8 +56,9 @@ public final class BlueprintSpawns {
         int remaining=2; // Absolute per-level work cap, independent of player count.
         for(var player:level.players()) {
             if(player.isSpectator())continue;
-            for(var group:List.of(MILITARY,RITUAL)) for(var holder:registry.getTagOrEmpty(group)) {
+            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD)) for(var holder:registry.getTagOrEmpty(group)) {
                 if(remaining<=0)return;
+                if(group==BATTLEFIELD&&level.isDay())continue;
                 var start=level.structureManager().getStructureAt(player.blockPosition(),holder.value());
                 if(!start.isValid())continue;
                 var box=start.getBoundingBox();var centre=box.getCenter();
@@ -65,12 +67,12 @@ public final class BlueprintSpawns {
                 var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);
                 if(marker==null) {marker=new BlueprintSpawnState.Marker(key,centre);state.markers.put(key,marker);state.setDirty();}
                 if(marker.cleared || marker.nextSpawn>level.getGameTime())continue;
-                int wanted=group==MILITARY?4:3;
+                int wanted=group==BATTLEFIELD?7:group==MILITARY?4:3;
                 if(marker.produced>=wanted) {
                     if(!marker.members.isEmpty())continue;
                     marker.produced=0;state.setDirty();
                 }
-                var type=group==MILITARY?militaryMember(marker.produced):marker.produced==0?
+                var type=group==BATTLEFIELD?battlefieldMember(marker.produced):group==MILITARY?militaryMember(marker.produced):marker.produced==0?
                     BlueprintEntities.FUFA_JIJIU.get():BlueprintEntities.ZUWU_DAOSHOU.get();
                 var id=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(type).getPath();
                 var definition=TemplateContentDefinitions.ALL.stream().filter(d->d.id().equals(id)).findFirst().orElseThrow();
@@ -89,6 +91,7 @@ public final class BlueprintSpawns {
                 // Weight affects attempts, never multiplies the authored squad or bypasses its cap/cooldown.
                 int light=level.getMaxLocalRawBrightness(found);
                 if(light<definition.minLight()||light>definition.maxLight()
+                        ||group==BATTLEFIELD&&light>7
                         ||level.random.nextInt(TemplateContentDefinitions.maximumWeight(definition))
                             >=TemplateContentDefinitions.effectiveWeight(definition,!level.isDay(),light))continue;
                 var mob=type.create(level);if(mob==null)continue;
@@ -100,6 +103,11 @@ public final class BlueprintSpawns {
     }
     static net.minecraft.world.entity.EntityType<TemplateMob> militaryMember(int index){
         return switch(index){case 0->BlueprintEntities.LUDUN_JIASHI.get();case 1,2->BlueprintEntities.LIANNU_ZHENZU.get();default->BlueprintEntities.JUMA_CHANGQIANGBING.get();};
+    }
+    static net.minecraft.world.entity.EntityType<TemplateMob> battlefieldMember(int index){
+        return switch(index){case 0->BlueprintEntities.ZHENWANG_ZHANGQIGUAN.get();case 1->BlueprintEntities.FUFA_JIJIU.get();
+            case 2,3->BlueprintEntities.TIESUO_CHIHOU.get();case 4,5,6->BlueprintEntities.KUIJUN_SISHI.get();
+            default->throw new IllegalArgumentException("Battlefield squad index: "+index);};
     }
     @SubscribeEvent public static void died(LivingDeathEvent event) {
         if(!(event.getEntity().level() instanceof ServerLevel level))return;

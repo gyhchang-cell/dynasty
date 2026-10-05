@@ -41,7 +41,8 @@ public final class BlueprintAutonomyGameTests {
         for (int x = 0; x < 16; x++) for (int z = 0; z < 16; z++) {
             h.setBlock(x, 1, z, Blocks.STONE);
             for (int y = 2; y < 14; y++)
-                h.setBlock(x, y, z, y <= 7 && (x == 0 || x == 15 || z == 0 || z == 15)
+                // Keep natural falling overburden outside the arena, without changing mob physics.
+                h.setBlock(x, y, z, y == 13 || y <= 7 && (x == 0 || x == 15 || z == 0 || z == 15)
                         ? Blocks.STONE : Blocks.AIR);
         }
     }

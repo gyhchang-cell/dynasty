@@ -16,9 +16,9 @@ def add_world_mainline(chapters):
     beast = quest(1, '山林试锋 · 山精山魈', 'story_slay_shanjing_shanxiao',
         '在主世界森林或山地（高度 50～240）寻找山精山魈，亲自击败一只。夜间更容易遇到；注意攀爬与扑击，先准备盾牌、照明和撤退路线。和平难度或关闭生物生成时不会自然出现。', 'dynasty:mu_mao')
     swords = quest(2, '破阵先锋 · 卒伍刀手', 'story_slay_zuwu_daoshou',
-        '前往主世界长城关隘或天工城（great_wall_gate / tiangong_citadel），进入建筑寻找巡防敌人。先处理一名卒伍刀手，观察攻击前摇再反击；敌群受生成上限与冷却保护，不会无限增援。', 'dynasty:tong_dao')
+        '前往主世界观星祭坛或林间药庐（star_altar / herbal_retreat），寻找护卫符法祭酒的两名卒伍刀手。先处理一名刀手，观察攻击前摇再反击；敌群受生成上限与冷却保护，不会无限增援。', 'dynasty:tong_dao')
     shield = quest(3, '侧击破盾 · 橹盾甲士', 'story_slay_ludun_jiashi',
-        '同一类军事遗迹里寻找橹盾甲士；不要一直正面硬打，绕侧面并留意盾击。击败一名后再推进符法敌人的调查。', 'minecraft:shield')
+        '前往主世界长城关隘或天工城（great_wall_gate / tiangong_citadel），寻找橹盾甲士；不要一直正面硬打，绕侧面并留意盾击。击败一名后再推进符法敌人的调查。', 'minecraft:shield')
     priest = quest(4, '断符寻源 · 符法祭酒', 'story_slay_fufa_jijiu',
         '用探险者指南针寻找主世界观星祭坛或草庐（star_altar / herbal_retreat），进入建筑寻找符法祭酒。躲开符弹并打断施法，击败一名，再按旧主线挑战叛将。怪物需要非和平难度并开启生物生成。', 'dynasty:talisman_pouch')
     dragon = quest(5, '龙阙寻源 · 深入巨龙遗迹', 'story_visit_longque_sanctuary',
@@ -32,6 +32,26 @@ def add_world_mainline(chapters):
     n = next(i for i,q in enumerate(third['quests']) if q['kind']=='kill' and q['target']=='dynasty:rebel_general')
     third['quests'][n:n] = [swords,shield,priest]
     insert_before_branches(eighth,[dragon])
+    # Existing mainline IDs, rewards and gates stay intact. These are additional combat branches.
+    encounters = [
+        (6, '焦土寻旗 · 古战场', 'visit_ruined_battlefield', 'minecraft:black_banner',
+         '用探险者指南针寻找主世界焦土古战场（dynasty:ruined_battlefield）。只在新生成区块出现；进入残营即可记录。夜间低光时生成一名掌旗官、一名祭酒、两名斥候和三名死士；最后一员被清理后，整组至少等待十分钟再生。', shield['id']),
+        (7, '破枪阵 · 拒马长枪兵', 'story_slay_juma_changqiangbing', 'minecraft:iron_sword',
+         '在长城关隘或天工城寻找盾甲士身后的拒马长枪兵。不要正面疾跑撞入枪阵，观察突刺后绕侧反击，亲自击败一名。', shield['id']),
+        (8, '断箭雨 · 连弩阵卒', 'story_slay_liannu_zhenzu', 'minecraft:crossbow',
+         '同一军事遗迹中有两名连弩阵卒。借掩体避开三连弩，注意翻滚留下的铁蒺藜，亲自击败一名。', shield['id']),
+        (9, '避飞爪 · 铁索斥候', 'story_slay_tiesuo_chihou', 'minecraft:tripwire_hook',
+         '夜间在主世界森林、山地（高度60～220）或焦土古战场寻找铁索斥候。躲开飞爪，别在其贴近时停留；亲自击败一名。', swords['id']),
+        (10, '断引信 · 溃军死士', 'story_slay_kuijun_sishi', 'minecraft:gunpowder',
+         '夜间进入焦土古战场。死士连续贴近三秒会自爆；拉开三格距离或利用遮挡打断引信，再亲自击败一名。远程击杀后仍须离开尸体，防备延迟的小范围爆炸。', code(1,0xA0006)),
+        (11, '拔残旗 · 阵亡掌旗官', 'story_slay_zhenwang_zhangqiguan', 'minecraft:black_banner',
+         '夜间古战场每组只有一名掌旗官。先识别军旗光环和横扫前摇，亲自击败掌旗官，削弱附近军兵。此支线不代替叛将或镇渊帝君的主线挑战。', code(1,0xA0006)),
+    ]
+    for column,(i,title,target,icon,how,dependency) in enumerate(encounters):
+        q=node(0xA0000+i,title,'advancement','dynasty:'+target,'学习已有军兵的不同攻击与撤退窗口。',
+               how+' 服务器保存探访或亲自击杀记录；提前完成也会记录。',xp=25,role='exploration_branch')
+        q.update(subtitle='支线 · 军阵实战',icon='{ id: "'+icon+'" }',deps=[dependency],x=-4+column*2,y=-6.0)
+        third['quests'].append(q)
     eighth['goal']='击败龙帝后深入龙阙，继续第 09 章四象镇渊；毕业配装仍可自由选择。'
     previous=None
     spine=[q for c in chapters if c['main'] for q in c['quests'] if q['role']=='main']
