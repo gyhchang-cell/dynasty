@@ -124,6 +124,39 @@ public final class ArmyGameTests {
         h.runAfterDelay(45,()->enemy.setPos(mob.position().add(0,0,2)));
         h.runAfterDelay(94,()->{h.assertTrue(mob.isAlive(),"Nonconsecutive near ticks cannot accumulate");h.succeed();});
     }
+    @GameTest(template="bow_ritual_test",timeoutTicks=130,batch="army")
+    public static void breakingLitPowderFuseAllowsFreshThreeSecondFuse(GameTestHelper h){
+        arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=target(h,6,8);mob.setTarget(enemy);
+        h.runAfterDelay(48,()->{
+            h.assertTrue(mob.skillId()==ArmySkills.DETONATE,"Fixture reaches lit fuse before retreat");
+            enemy.setPos(mob.position().add(0,0,7));
+        });
+        h.runAfterDelay(54,()->h.assertTrue(mob.skillId()!=ArmySkills.DETONATE,"Retreat cancels the lit animation"));
+        h.runAfterDelay(60,()->enemy.setPos(mob.position().add(0,0,2)));
+        h.runAfterDelay(115,()->h.assertTrue(mob.isAlive(),"Returning target must earn a full new three seconds"));
+        h.runAfterDelay(125,()->{
+            trace(h,"relit-fuse",mob,enemy);
+            h.assertTrue(mob.isDeadOrDying(),"Cancelled fuse must not retain a spent skill cooldown");
+            h.assertTrue(enemy.getHealth()<190,"Fresh proximity fuse causes a real explosion");h.succeed();
+        });
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=125,batch="army")
+    public static void reloadingLitPowderFuseRequiresFreshContinuousProximity(GameTestHelper h){
+        arena(h);var original=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=target(h,6,8);original.setTarget(enemy);
+        TemplateMob[] restored={null};
+        h.runAfterDelay(48,()->{
+            h.assertTrue(original.skillId()==ArmySkills.DETONATE,"Save a genuinely lit fuse");
+            var saved=new CompoundTag();original.saveWithoutId(saved);original.discard();
+            var copy=BlueprintEntities.KUIJUN_SISHI.get().create(h.getLevel());copy.load(saved);copy.setTarget(enemy);
+            h.getLevel().addFreshEntity(copy);restored[0]=copy;
+        });
+        h.runAfterDelay(103,()->h.assertTrue(restored[0].isAlive(),"Reload cannot discharge the old fuse or shorten its new clock"));
+        h.runAfterDelay(118,()->{
+            trace(h,"reloaded-fuse",restored[0],enemy);
+            h.assertTrue(restored[0].isDeadOrDying(),"Restored live powder unit can complete a new sixty-tick fuse");
+            h.assertTrue(enemy.getHealth()<190,"Reloaded fuse damages the server target");h.succeed();
+        });
+    }
     @GameTest(template="bow_ritual_test",timeoutTicks=75,batch="army")
     public static void projectileDeathHasDelayedSmallBlastWithoutReloadReplay(GameTestHelper h){
         arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=new BlastWitness(h.getLevel());

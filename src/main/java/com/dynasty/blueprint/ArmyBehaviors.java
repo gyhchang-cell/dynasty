@@ -192,12 +192,18 @@ public final class ArmyBehaviors {
         public int choose(LivingEntity target,long now){return ArmySkills.STAB;}
         public void tick(long now){
             var enemy=mob.getTarget();boolean close=mob.validEnemy(enemy)&&mob.distanceToSqr(enemy)<9&&mob.hasLineOfSight(enemy);
-            if(lastTick>=0&&now-lastTick!=1)nearTicks=0;lastTick=now;
+            if(!close||lastTick>=0&&now-lastTick!=1)resetFuse();lastTick=now;
             nearTicks=close?Math.min(60,nearTicks+1):0;
-            if(!close&&mob.skillId()==ArmySkills.DETONATE)mob.interruptAttack(1);
             if(nearTicks>=40&&mob.skillId()!=ArmySkills.DETONATE&&mob.attack().ready(ArmySkills.DETONATE,now)){
                 mob.attack().cancel();mob.startSkill(ArmySkills.DETONATE,enemy);
             }
+        }
+        private void resetFuse(){
+            nearTicks=0;
+            // tryStart reserves a cooldown immediately. A broken fuse never spent its blast,
+            // so retaining that reservation would suppress the next continuous three seconds.
+            mob.attack().resetCooldown(ArmySkills.DETONATE);
+            if(mob.skillId()==ArmySkills.DETONATE&&mob.isAlive())mob.interruptAttack(1);
         }
         public void impact(SkillDefinition skill,int frame){
             if(skill.id()==ArmySkills.STAB)hit(skill,CombatGeometry.Shape.SECTOR,1,.6F,.1,false);
@@ -218,7 +224,7 @@ public final class ArmyBehaviors {
         public void tickDead(long now){if(deadExplosionAt>=0&&now>=deadExplosionAt)explode(smallExplosion?2.5:4,smallExplosion?2F:3.5F);}
         public void move(LivingEntity target,long now){mob.setSprinting(true);mob.getNavigation().moveTo(target,1.3);}
         public CompoundTag save(){var t=new CompoundTag();t.putInt("NearTicks",nearTicks);t.putLong("LastTick",lastTick);t.putLong("DeadExplosionAt",deadExplosionAt);t.putBoolean("Exploded",exploded);t.putBoolean("SmallExplosion",smallExplosion);return t;}
-        public void load(CompoundTag tag){nearTicks=0;lastTick=-1;deadExplosionAt=tag.contains("DeadExplosionAt")?tag.getLong("DeadExplosionAt"):-1;exploded=tag.getBoolean("Exploded");
+        public void load(CompoundTag tag){resetFuse();lastTick=-1;deadExplosionAt=tag.contains("DeadExplosionAt")?tag.getLong("DeadExplosionAt"):-1;exploded=tag.getBoolean("Exploded");
             // Never discharge a missed explosion frame when an unloaded corpse is restored.
             smallExplosion=tag.getBoolean("SmallExplosion");if(deadExplosionAt>=0&&deadExplosionAt<mob.level().getGameTime())exploded=true;}
     }
