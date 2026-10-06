@@ -1,5 +1,31 @@
 # cod2 实施状态
 
+## 2026-10-05 云端续开发交接
+
+分支 `codex/cod2-continuation-20261005`，基线 `7888e007ad35b5a01348731166ee28d417e95095`。以下为本批更新；后面的“第一阶段”是历史记录。**沉沙玄宫仍为 PARTIAL，cod2 未整体完成。**
+
+- 修复自然生成拿到 `ChunkAccess` 后被错误拒绝，以及原版废矿候选点使所有落点被排除的问题；保留已有 Structure、ID、巨龙/庄园避让和出生点距离限制。
+- 修复三段楼梯被房间覆盖、试炼超时直接打开前进出口、侧门未封闭、调试命令选错房间/陷阱的问题。
+- 毒箭为真实服务端三连射实体，带中毒、禁止拾取、有时限；石碑需要镐，解锁实例共享且持久化的返程吊篮；门和翻板恢复碰撞时避开占据者。
+- `BlueprintSpawns` 复用原驻军 SavedData 接入前室两刀手、两长枪兵，固定可站立落点，100 tick 间隔，4 个总量上限；卸载保留 UUID，清除后不重复生成。没有注册第二套生态管理器。
+- 增加独立客户端 QA 源集，不打入正式 jar；用真实客户端交互、BE/实体包、资源重载、客机断线重连验证机关。
+
+验证：驻军批次的 189 项相关回归与 build 通过；旧存档毒箭兼容补丁后的最终 23 项 cod2 测试与 build 通过；最终构建的单机及双客户端均通过六阶段检查。早期驻军独立测试的区块可见性/自然地形干扰已修正，原断言保留。
+
+尚缺：昭明帝和其 `startEncounter`、精英/中层指定怪、最终奖励的真实发放及唯一账本接入、整座地牢从自然发现到通关的实机验收。九座剩余地下城、完整十区生态、30 事件、全实体模型动画也未完成；不要把框架/注册/测试通过记作这些条目 DONE。此分支没有纳入另一个工作区的 cod1 未提交修改。
+
+本地接续：先保留本地未提交内容，获取本分支，检查和本地 cod1 的合并差异；从沉沙玄宫剩余链路继续。若 Boss 依赖仍不存在，保持 PARTIAL，不换名旧 Boss 充数。新批次的验证证据见 `evidence/continuation-20261005.txt`。
+
+客户端复测（Java 17、可用图形桌面；每次换新 run-id，准备后不要同时重新编译。先释放 Gradle 构建锁，再启动两个实际 JVM）：
+
+```sh
+./gradlew -I tools/blueprint/cod2-client.init.gradle -Pcod2ClientRun=prepared-new -Pcod2PrepareOnly runClient
+python3 tools/blueprint/run_cod2_clients.py build/cod2-client/prepared-new/launch.json local-pair-new
+python3 tools/blueprint/run_cod2_clients.py build/cod2-client/prepared-new/launch.json local-solo-new --solo
+```
+
+隔离存档及观测输出在 `build/cod2-client/<run-id>/`。这是运行链路检查，不代表最终建筑、美术和完整地牢验收。
+
 本轮未全部完成。已完整阅读 979 行设计文档并核对现有工程，建立 [IMPLEMENTATION_MAP.json](IMPLEMENTATION_MAP.json)：10 地牢、10 生态区、30 事件的原文要求与缺失清单。模型/动画尚未开始，目录或规划清单不代表功能已实现。
 
 ## 当前实现

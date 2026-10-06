@@ -25,6 +25,7 @@ import java.util.List;
 public final class BlueprintSpawns {
     private static final TagKey<Structure> MILITARY=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/military_sites"));
     private static final TagKey<Structure> RITUAL=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ritual_sites"));
+    private static final TagKey<Structure> TOMBS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","dungeons/chensha_garrisons"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
         event.register(BlueprintEntities.TIESUO_CHIHOU.get(),SpawnPlacements.Type.ON_GROUND,
@@ -55,12 +56,18 @@ public final class BlueprintSpawns {
         int remaining=2; // Absolute per-level work cap, independent of player count.
         for(var player:level.players()) {
             if(player.isSpectator())continue;
-            for(var group:List.of(MILITARY,RITUAL)) for(var holder:registry.getTagOrEmpty(group)) {
+            for(var group:List.of(MILITARY,RITUAL,TOMBS)) for(var holder:registry.getTagOrEmpty(group)) {
                 if(remaining<=0)return;
                 var start=level.structureManager().getStructureAt(player.blockPosition(),holder.value());
                 if(!start.isValid())continue;
                 var box=start.getBoundingBox();var centre=box.getCenter();
                 String key=registry.getKey(holder.value())+"@"+start.getChunkPos().toLong();
+                if(group==TOMBS) {
+                    if(!checked.contains(key)&&spawnChenshaMember(level,new BlockPos(box.minX(),box.minY(),box.minZ()),player.blockPosition())) {
+                        checked.add(key);remaining--;
+                    }
+                    continue;
+                }
                 if(!checked.add(key))continue;
                 var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);
                 if(marker==null) {marker=new BlueprintSpawnState.Marker(key,centre);state.markers.put(key,marker);state.setDirty();}
@@ -97,6 +104,37 @@ public final class BlueprintSpawns {
                 if(level.addFreshEntity(mob)) {marker.members.add(mob.getUUID());marker.produced++;state.setDirty();remaining--;}
             }
         }
+    }
+    /** Authored upper-gallery garrison, using the existing encounter ledger and death/unload lifecycle. */
+    public static boolean spawnChenshaMember(ServerLevel level,BlockPos origin,BlockPos entrant) {
+        if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+                ||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return false;
+        int x=entrant.getX()-origin.getX(),y=entrant.getY()-origin.getY(),z=entrant.getZ()-origin.getZ();
+        if(x<5||x>58||y<49||y>56||z<34||z>87)return false;
+        var core=origin.offset(27,48,37);
+        if(!level.hasChunkAt(core)||!(level.getBlockEntity(core) instanceof com.dynasty.dungeon.DungeonMechanismBlockEntity be)
+                ||!be.validBinding()||!be.roomId().equals("shendao"))return false;
+        var state=BlueprintSpawnState.get(level);String key="chensha@"+be.instance()+":shendao";
+        var marker=state.markers.computeIfAbsent(key,k->new BlueprintSpawnState.Marker(k,origin.offset(32,49,64)));
+        if(marker.cleared)return false;
+        if(marker.produced>=4) {
+            if(marker.members.isEmpty()){marker.cleared=true;state.setDirty();}
+            return false;
+        }
+        if(marker.nextSpawn>level.getGameTime()||marker.members.size()>=4)return false;
+        var type=marker.produced%2==0?BlueprintEntities.ZUWU_DAOSHOU.get():BlueprintEntities.JUMA_CHANGQIANGBING.get();
+        // Fixed authored floor positions: never select ordinary caves within the structure's bounding box.
+        var offsets=List.of(new BlockPos(10,49,50),new BlockPos(52,49,50),new BlockPos(10,49,78),new BlockPos(52,49,78));
+        var pos=origin.offset(offsets.get(marker.produced));
+        if(!level.hasChunkAt(pos)||pos.distSqr(entrant)<36||pos.distSqr(entrant)>48*48
+                ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,
+                    type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5)))return false;
+        var mob=type.create(level);if(mob==null)return false;
+        mob.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,0,0);mob.setPersistenceRequired();
+        mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.STRUCTURE,null,null);
+        if(!level.addFreshEntity(mob))return false;
+        marker.members.add(mob.getUUID());marker.produced++;marker.nextSpawn=level.getGameTime()+100;state.setDirty();
+        return true;
     }
     static net.minecraft.world.entity.EntityType<TemplateMob> militaryMember(int index){
         return switch(index){case 0->BlueprintEntities.LUDUN_JIASHI.get();case 1,2->BlueprintEntities.LIANNU_ZHENZU.get();default->BlueprintEntities.JUMA_CHANGQIANGBING.get();};

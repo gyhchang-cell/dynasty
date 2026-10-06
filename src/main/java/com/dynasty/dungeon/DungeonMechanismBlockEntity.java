@@ -50,8 +50,18 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         if(level==null||level.isClientSide||player.isSpectator()||player.distanceToSqr(Vec3.atCenterOf(worldPosition))>36)return;
         var state=room();if(state==null)return;
         if(kind()==DungeonMechanismBlock.Kind.SEAL){if(state.recordTarget(symbol)){changed();syncVisual(state);}}
-        else if(kind()==DungeonMechanismBlock.Kind.ELEVATOR){
-            if(state.unlockShortcut(mechanismId))changed();
+        else if(kind()==DungeonMechanismBlock.Kind.SHORTCUT){
+            if(!player.getMainHandItem().is(net.minecraft.tags.ItemTags.PICKAXES)){
+                player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.dungeon.stele_pickaxe"),true);return;
+            }
+            if(state.unlockShortcut(mechanismId)){
+                changed();level.playSound(null,worldPosition,net.minecraft.sounds.SoundEvents.STONE_BREAK,net.minecraft.sounds.SoundSource.BLOCKS,1,.65F);
+            }
+            syncVisual(state);
+        }else if(kind()==DungeonMechanismBlock.Kind.ELEVATOR){
+            if(!state.shortcutOpen(mechanismId)){
+                player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.dungeon.lift_locked"),true);return;
+            }
             syncVisual(state);useElevator(player);
         }else if(kind()==DungeonMechanismBlock.Kind.CORE){player.displayClientMessage(net.minecraft.network.chat.Component.literal(
             "破封 "+Integer.bitCount(state.progress()&7)+"/3，兽眼 "+Integer.bitCount((state.progress()>>3)&7)+"/3"),true);}
@@ -90,7 +100,14 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         var old=getBlockState();boolean solved=symbol>=0&&(room.progress()&(1<<symbol))!=0;
         var phase=hazard()?clock(room).phase():DungeonMechanism.Phase.IDLE;
         boolean open=kind()==DungeonMechanismBlock.Kind.DOOR?
-            mechanismId.startsWith("trial_entry")?!room.trialRunning():room.doorOpen():kind()==DungeonMechanismBlock.Kind.FLOOR&&(phase==DungeonMechanism.Phase.ACTIVE||phase==DungeonMechanism.Phase.RECOVERY);
+            mechanismId.startsWith("trial_entry")?!room.trialRunning():room.doorOpen():
+            kind()==DungeonMechanismBlock.Kind.SHORTCUT?room.shortcutOpen(mechanismId):
+            kind()==DungeonMechanismBlock.Kind.FLOOR&&(phase==DungeonMechanism.Phase.ACTIVE||phase==DungeonMechanism.Phase.RECOVERY);
+        // A returning floor or closing seal cannot materialise inside a player/mob.
+        if(!open&&old.getValue(DungeonMechanismBlock.OPEN)
+                &&(kind()==DungeonMechanismBlock.Kind.FLOOR||kind()==DungeonMechanismBlock.Kind.DOOR)
+                &&level instanceof ServerLevel sl&&!sl.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class,
+                    new AABB(worldPosition).deflate(.001),e->e.isAlive()&&!e.isSpectator()).isEmpty())open=true;
         boolean active=solved||phase==DungeonMechanism.Phase.WARNING||phase==DungeonMechanism.Phase.ACTIVE
             ||kind()==DungeonMechanismBlock.Kind.DOOR&&room.completed()||kind()==DungeonMechanismBlock.Kind.ELEVATOR&&room.shortcutOpen(mechanismId);
         var next=old.setValue(DungeonMechanismBlock.ACTIVE,active).setValue(DungeonMechanismBlock.OPEN,open).setValue(DungeonMechanismBlock.STAGE,phase.ordinal());
@@ -147,12 +164,12 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
     }
     private void damageTrap(ServerLevel sl){
         var facing=getBlockState().getValue(DungeonMechanismBlock.FACING);
-        Vec3 center=Vec3.atCenterOf(worldPosition).add(facing.getStepX()*2,.7,facing.getStepZ()*2);
-        var area=new AABB(center,center).inflate(facing.getStepX()==0?1:2,1,facing.getStepZ()==0?1:2);
-        for(Player player:sl.getEntitiesOfClass(Player.class,area,p->!p.isSpectator()&&!p.isCreative())){
-            player.hurt(sl.damageSources().magic(),3);
-            player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.POISON,60,0));
-        }
+        Vec3 center=Vec3.atCenterOf(worldPosition).add(-facing.getStepX()*.45,.75,-facing.getStepZ()*.45);
+        if(sl.getEntitiesOfClass(DungeonTrapArrow.class,new AABB(worldPosition).inflate(24)).size()>=12)return;
+        var arrow=DungeonContent.TRAP_ARROW.get().create(sl);if(arrow==null)return;
+        arrow.setPos(center.x,center.y,center.z);
+        arrow.shoot(facing.getStepX(),0,facing.getStepZ(),1.6F,.5F);
+        sl.addFreshEntity(arrow);
         sl.sendParticles(net.minecraft.core.particles.ParticleTypes.CRIT,center.x,center.y,center.z,8,.5,.15,.5,.02);
         sl.playSound(null,worldPosition,net.minecraft.sounds.SoundEvents.DISPENSER_LAUNCH,net.minecraft.sounds.SoundSource.BLOCKS,1,1);
     }

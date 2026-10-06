@@ -278,6 +278,18 @@ def merge_worldgen_lang():
 
 
 ZH = {
+    "block.dynasty.dungeon_core": "地宫机关中枢",
+    "block.dynasty.seal_stone": "断龙封石",
+    "block.dynasty.shootable_beast_eye": "石兽机关眼",
+    "block.dynasty.seal_door": "地宫封门",
+    "block.dynasty.resettable_floor": "翻转青砖",
+    "block.dynasty.pressure_trap_emitter": "毒箭压板机关",
+    "block.dynasty.dungeon_elevator_controller": "回程吊篮机关",
+    "block.dynasty.dungeon_shortcut_stele": "无字机关碑",
+    "block.dynasty.dungeon_masonry": "地宫封护石砖",
+    "entity.dynasty.dungeon_trap_arrow": "地宫毒箭",
+    "message.dynasty.dungeon.stele_pickaxe": "用镐击破无字碑，放下回程吊篮。",
+    "message.dynasty.dungeon.lift_locked": "吊篮尚未放下；寻找大殿角落的无字碑。",
     "item.dynasty.mu_mao": "木矛",
     "item.dynasty.shi_ge": "石戈",
     "item.dynasty.tong_dao": "铜刀",
@@ -358,6 +370,18 @@ ZH = {
 }
 
 EN = {
+    "block.dynasty.dungeon_core": "Dungeon Mechanism Core",
+    "block.dynasty.seal_stone": "Sealing Stone",
+    "block.dynasty.shootable_beast_eye": "Beast Eye Target",
+    "block.dynasty.seal_door": "Sealed Dungeon Door",
+    "block.dynasty.resettable_floor": "Resettable Trap Floor",
+    "block.dynasty.pressure_trap_emitter": "Poison Arrow Pressure Trap",
+    "block.dynasty.dungeon_elevator_controller": "Return Lift Controller",
+    "block.dynasty.dungeon_shortcut_stele": "Unmarked Mechanism Stele",
+    "block.dynasty.dungeon_masonry": "Sealed Dungeon Masonry",
+    "entity.dynasty.dungeon_trap_arrow": "Dungeon Poison Arrow",
+    "message.dynasty.dungeon.stele_pickaxe": "Strike the unmarked stele with a pickaxe to lower the return lift.",
+    "message.dynasty.dungeon.lift_locked": "The lift is locked. Find the unmarked stele in a corner of the vault.",
     "item.dynasty.mu_mao": "Wooden Spear",
     "item.dynasty.shi_ge": "Stone Dagger-Axe",
     "item.dynasty.tong_dao": "Copper Sabre",

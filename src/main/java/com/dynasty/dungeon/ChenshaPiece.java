@@ -47,20 +47,10 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         // Entry mound and three-seal hall at the natural surface datum.
         if(rect(x,z,25,0,39,11)&&in(y,72,79))result=y==72||y==79||x==25||x==39||z==0||z==11?shell():Blocks.AIR.defaultBlockState();
         if(rect(x,z,30,0,34,1)&&in(y,73,76))result=Blocks.AIR.defaultBlockState();
-        // Surface -> upper floor; a continuous, solid, head-clear stair run.
-        if(in(x,29,35)&&in(z,10,34)){
-            int floor=82-z;
-            if(in(y,floor,floor+5))result=y==floor||y==floor+5||x==29||x==35?shell():Blocks.AIR.defaultBlockState();
-        }
         // Upper ambulatory around a 20-block deep horse burial well.
         if(rect(x,z,4,33,59,88)&&in(y,48,57))result=y==48||y==57||x==4||x==59||z==33||z==88?shell():Blocks.AIR.defaultBlockState();
         if(rect(x,z,17,40,25,48)&&in(y,28,55))result=y==28||x==17||x==25||z==40||z==48?shell():Blocks.AIR.defaultBlockState();
         if(rect(x,z,18,41,24,47)&&y==28)result=Blocks.BONE_BLOCK.defaultBlockState();
-        // Upper -> middle staircase approaches the south chamber of the 3x3 gallery.
-        if(in(x,29,35)&&in(z,59,83)){
-            int floor=107-z;
-            if(in(y,floor,floor+5))result=y==floor||y==floor+5||x==29||x==35?shell():Blocks.AIR.defaultBlockState();
-        }
         // Nine independent vaulted chambers linked by three-block-wide bronze chain bridges.
         if(rect(x,z,4,32,59,89)&&in(y,18,33)){
             boolean chamber=false,edge=false;
@@ -75,11 +65,9 @@ public final class ChenshaPiece extends DynastyStructurePiece {
             if(chamber&&edge&&bridge&&in(y,25,28))result=Blocks.AIR.defaultBlockState();
             if(y==31&&!chamber&&bridge)result=Blocks.CHAIN.defaultBlockState();
         }
-        // Middle -> lowest arena; explicit connector at z52.
-        if(in(x,29,35)&&in(z,28,52)){
-            int floor=z-28;
-            if(in(y,floor,floor+5))result=y==floor||y==floor+5||x==29||x==35?shell():Blocks.AIR.defaultBlockState();
-        }
+        // Side entrances of the mercury room narrow to two blocks so the
+        // authored seal doors can close every approach within the marker budget.
+        if((x==24||x==39)&&(z==58||z==61)&&in(y,25,28))result=shell();
         // Spherical-ish imperial vault and an annular hazardous moat surrounding the dragon dais.
         if(rect(x,z,8,2,55,29)&&in(y,0,17)){
             double d=Math.pow((x-31.5)/23.5,2)+Math.pow((z-15.5)/13.5,2);
@@ -101,6 +89,19 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         // Two safe poison-pit basins beneath distinct resettable panels.
         if(rect(x,z,30,40,34,42)&&in(y,43,47))result=y==43?shell():Blocks.AIR.defaultBlockState();
         if(rect(x,z,30,40,34,42)&&y==44)result=Blocks.POINTED_DRIPSTONE.defaultBlockState();
+        // Connectors have final precedence over room floors/ceilings. Otherwise
+        // the middle gallery erases the last nine steps of the descending run.
+        if(in(x,29,35)){
+            int floor=in(z,10,34)?82-z:-1;
+            if(floor>=0&&in(y,floor,floor+5))
+                result=y==floor||y==floor+5||x==29||x==35?shell():Blocks.AIR.defaultBlockState();
+            floor=in(z,59,83)?107-z:-1;
+            if(floor>=0&&in(y,floor,floor+5))
+                result=y==floor||y==floor+5||x==29||x==35?shell():Blocks.AIR.defaultBlockState();
+            floor=in(z,28,52)?z-28:-1;
+            if(floor>=0&&in(y,floor,floor+5))
+                result=y==floor||y==floor+5||x==29||x==35?shell():Blocks.AIR.defaultBlockState();
+        }
         return result;
     }
     public static List<Marker> markers(){
@@ -115,7 +116,10 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         result.add(new Marker(new BlockPos(25,24,55),"mercury","mercury_core",DungeonContent.CORE.get(),-1));
         for(int i=0;i<3;i++)result.add(new Marker(new BlockPos(25+i*6,28,57),"mercury","eye_"+i,DungeonContent.EYE.get(),i+3));
         gate(result,"mercury","trial_entry",67,25);gate(result,"mercury","mercury_exit",52,25);
+        for(int x:new int[]{24,39})for(int z=59;z<=60;z++)for(int y=25;y<=28;y++)
+            result.add(new Marker(new BlockPos(x,y,z),"mercury","trial_entry_side_"+x,DungeonContent.DOOR.get(),-1));
         result.add(new Marker(new BlockPos(24,0,12),"imperial_vault","vault_core",DungeonContent.CORE.get(),-1));
+        result.add(new Marker(new BlockPos(20,1,9),"imperial_vault","return_lift",DungeonContent.SHORTCUT_STELE.get(),-1));
         result.add(new Marker(new BlockPos(41,1,8),"imperial_vault","return_lift",DungeonContent.ELEVATOR.get(),-1));
         return List.copyOf(result);
     }
@@ -141,7 +145,7 @@ public final class ChenshaPiece extends DynastyStructurePiece {
                     all.stream().filter(m->m.room().equals(marker.room())).map(m->origin.offset(m.offset())).toList():List.of());
                 if(marker.block()==DungeonContent.CORE.get()){
                     int required=marker.room().equals("entrance")?7:marker.room().equals("mercury")?56:0;
-                    be.configureRoom(required,marker.room().equals("mercury"),origin.offset(27,25,55),origin.offset(37,31,65));
+                    be.configureRoom(required,marker.room().equals("mercury"),origin.offset(25,25,53),origin.offset(38,31,66));
                 }
                 if(marker.block()==DungeonContent.ELEVATOR.get())be.setDestination(origin.offset(41,73,8));
             }
