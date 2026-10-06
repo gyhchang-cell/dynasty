@@ -9,8 +9,8 @@
 #   ③ 用 --offline 构建（避免 ForgeGradle 联网检查卡在 socket 上）；
 #   ④ 跑完自动打开 ~/Desktop/导出 文件夹，失败时明确告诉你去哪找报错。
 # ============================================================================
-set -u
-PROJECT="/Users/a15356015027/Desktop/dynasty"
+set -euo pipefail
+PROJECT="$(cd "$(dirname "$0")" && pwd)"
 JDK17="/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home"
 LOG="/tmp/dynasty_export.log"
 
@@ -53,13 +53,16 @@ if ./gradlew exportMod exportModpack --offline --console=plain 2>&1 | tee "$LOG"
   ls -lh "$HOME/Desktop/导出/Dynasty整合包/" 2>/dev/null | tail -4
   echo
   echo "（这三份包可以直接上传：CF 用 dynasty-modpack-1.4.0.zip，Modrinth 用 .mrpack，"
-  echo "  网盘/QQ 群用 dynasty-1.4.0-manual.zip；单模组 jar 在「导出/Dynasty模组」里）"
+  echo "  完整本地包（含 FTB + 任务配置）用 dynasty-1.4.0-manual.zip；单模组 jar 在「导出/Dynasty模组」里）"
   open "$HOME/Desktop/导出" 2>/dev/null || true
 else
   echo "-----------------------------------------------------------------"
   echo "❌ 导出失败。请把上面最后 30 行（或 $LOG）发给 AI 排查。"
   echo "   常见原因：① 网络不稳 → 去掉脚本里的 --offline 再试；② 磁盘空间不足；"
   echo "   ③ JDK 不是 17（照上面打印的 Java 版本确认）。"
+  read -n 1 -s -r -p "按任意键关闭这个窗口…" || true
+  exit 1
 fi
 echo
 read -n 1 -s -r -p "按任意键关闭这个窗口…"
+

@@ -204,7 +204,13 @@ class QuestStoryTest(unittest.TestCase):
         home=next(c for c in self.book if c["file"]=="dynasty_home")
         self.assertFalse(home["main"])
         self.assertTrue(all(not q["deps"] and q["rewards"]=="[]" for q in home["quests"]))
-        self.assertEqual(1,len(home["quests"]),"Navigation cards must not add eight fake completion tasks")
+        self.assertEqual(1, sum(q["role"] == "guide" for q in home["quests"]),
+                         "Navigation cards must not add fake completion tasks")
+        side = [q for q in home["quests"] if q["role"] != "guide"]
+        self.assertEqual(1, len(side))
+        self.assertEqual("10000000000F1001", side[0]["id"])
+        self.assertEqual("advancement", side[0]["kind"])
+        self.assertEqual("dynasty:first_infusion", side[0]["target"])
         self.assertEqual(8,sum(bool(i.get("click")) for i in home["images"]))
         self.assertEqual(75,len(self.main))
         self.assertEqual(9,len([c for c in self.book if c["group"]==4]))

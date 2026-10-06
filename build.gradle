@@ -79,13 +79,9 @@ def copyOwnJar = { File targetDir ->
 def runPython = { String script ->
     def f = file(script)
     if (!f.exists()) {
-        return
+        throw new GradleException("缺少打包脚本：${script}")
     }
-    try {
-        exec { commandLine 'python3', f.absolutePath }
-    } catch (Exception e) {
-        logger.lifecycle("（跳过 ${script}：${e.message}）")
-    }
+    exec { commandLine 'python3', f.absolutePath }
 }
 
 def openDir = { File dir ->
@@ -246,8 +242,8 @@ tasks.register('exportModpack') {
     dependsOn 'build'
     doLast {
         runPython('tools/art/make_modpack.py')
-        runPython('tools/art/make_uploadable_packs.py')
         runPython('tools/art/make_manual_and_guide.py')
+        runPython('tools/art/make_uploadable_packs.py')
 
         // 模组解析自检：把「缺前置 / 不兼容」这类会让游戏起不来的问题在导出阶段就报出来
         def verifier = file('tools/art/verify_modpack.py')
@@ -410,17 +406,8 @@ tasks.register('dynastyModpack') {
                 }
             }
         }
-        ['tools/art/make_modpack.py', 'tools/art/make_uploadable_packs.py',
-         'tools/art/make_manual_and_guide.py'].each { script ->
-            def f = file(script)
-            if (f.exists()) {
-                try {
-                    exec { commandLine 'python3', f.absolutePath }
-                } catch (Exception e) {
-                    logger.lifecycle("（跳过 ${script}：${e.message}）")
-                }
-            }
-        }
+        ['tools/art/make_modpack.py', 'tools/art/make_manual_and_guide.py',
+         'tools/art/make_uploadable_packs.py'].each { script -> runPython(script) }
         logger.lifecycle("✅ 整合包实例已就绪：${instanceDir}（${copied} 个 jar）")
         syncHmcl()
         logger.lifecycle("   把这个目录里的 mods/ 丢进 1.20.1 + Forge 47.4.10 的实例即可开玩。")
@@ -498,3 +485,4 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
