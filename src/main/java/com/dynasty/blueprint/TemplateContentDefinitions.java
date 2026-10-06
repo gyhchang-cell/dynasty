@@ -38,7 +38,9 @@ public final class TemplateContentDefinitions {
         new Spawn("pijia_panjiang_huwei",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/rebel_guard_sites")),
             -32,300,0,15,"ALL","ANY",1,1,2,2,"STRUCTURE_MARKER","two authored upper-gate positions; shared 32-block cap; no ordinary biome spawn","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
         new Spawn("yinbing_guizu",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/ghost_sites")),
-            -32,220,0,7,"NIGHT OR LOW LIGHT","ANY",2,2,5,5,"STRUCTURE_MARKER","ruined battlefield; stable group size per structure; maximum five spirits within32","PERSISTENT_MARKER; 10-minute cooldown after all killed")
+            -32,220,0,7,"NIGHT OR LOW LIGHT","ANY",2,2,5,5,"STRUCTURE_MARKER","ruined battlefield; stable group size per structure; maximum five spirits within32","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
+        new Spawn("shibian_lishi",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/corpse_sites")),
+            -63,48,0,15,"ALL","ANY",1,1,2,2,"STRUCTURE_MARKER","authored imperial tomb antechamber; no ordinary cave spawning","PERSISTENT_MARKER; 10-minute cooldown after all killed")
     );
     static int maximumWeight(Spawn definition) {
         return switch(definition.id()) {case "zuwu_daoshou"->10;case "fufa_jijiu"->4;default->definition.spawnWeight();};

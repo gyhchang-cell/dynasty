@@ -24,7 +24,7 @@ public final class SalvageGameTests {
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=40,batch="salvage")
     public static void everyOriginalMobLootTableProducesItsNamedFunctionalDrops(GameTestHelper h){
-        var expected=Map.of(
+        var expected=new HashMap<>(Map.of(
             "zuwu_daoshou",Set.of("copper_coin","broken_iron_blade","coarse_linen"),
             "ludun_jiashi",Set.of("heavy_shield_remnant","wrought_iron_billet","damaged_chainmail"),
             "fufa_jijiu",Set.of("cinnabar","talisman_paper","dry_peach_branch"),
@@ -33,7 +33,8 @@ public final class SalvageGameTests {
             "liannu_zhenzu",Set.of("minecraft:leather","short_crossbow_bolt","bronze_gear_part"),
             "tiesuo_chihou",Set.of("fine_steel_chain","iron_grappling_claw","swift_boot_scrap"),
             "kuijun_sishi",Set.of("poor_gunpowder","pottery_fragment","bloodied_cloth"),
-            "zhenwang_zhangqiguan",Set.of("broken_tiger_tally","black_army_banner_scrap","vengeful_war_soul"));
+            "zhenwang_zhangqiguan",Set.of("broken_tiger_tally","black_army_banner_scrap","vengeful_war_soul")));
+        expected.put("shibian_lishi",Set.of("blackened_bone","congealed_corpse_oil","strongman_wrist_weight"));
         for(var entry:expected.entrySet()){
             var type=ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",entry.getKey()));var entity=type.create(h.getLevel());
             var params=new net.minecraft.world.level.storage.loot.LootParams.Builder(h.getLevel())
@@ -56,7 +57,7 @@ public final class SalvageGameTests {
     public static void allRepairProfilesAcceptMatchingGearAndPreserveForeignData(GameTestHelper h){
         var p=player(h);var menu=new AnvilMenu(0,p.getInventory());
         for(var pair:new String[][]{
-            {"broken_iron_blade","minecraft:iron_sword"},{"broken_iron_blade","tie_jian"},{"coarse_linen","minecraft:leather_helmet"},{"heavy_shield_remnant","minecraft:shield"},
+            {"strongman_wrist_weight","minecraft:chainmail_chestplate"},{"broken_iron_blade","minecraft:iron_sword"},{"broken_iron_blade","tie_jian"},{"coarse_linen","minecraft:leather_helmet"},{"heavy_shield_remnant","minecraft:shield"},
             {"wrought_iron_billet","minecraft:iron_pickaxe"},{"damaged_chainmail","minecraft:chainmail_chestplate"},{"dry_peach_branch","minecraft:bow"},
             {"shanxiao_claw","minecraft:iron_axe"},{"ghost_face_fur","minecraft:leather_chestplate"},{"iron_spearhead","minecraft:iron_sword"},
             {"tough_wood_shaft","minecraft:crossbow"},{"rusted_lamellar_plate","minecraft:iron_leggings"},{"bronze_gear_part","minecraft:crossbow"},
@@ -105,7 +106,7 @@ public final class SalvageGameTests {
     @GameTest(template="bow_ritual_test",timeoutTicks=30,batch="salvage")
     public static void recoveredMaterialsCraftThroughServerRecipeManager(GameTestHelper h){
         var p=player(h);
-        for(var row:new String[][]{{"poor_gunpowder","4","minecraft:gunpowder",""},{"pottery_fragment","4","minecraft:brick",""},
+        for(var row:new String[][]{{"blackened_bone","2","minecraft:bone_meal",""},{"poor_gunpowder","4","minecraft:gunpowder",""},{"pottery_fragment","4","minecraft:brick",""},
             {"broken_tiger_tally","4","tiger_crest",""},{"black_army_banner_scrap","6","minecraft:black_banner","minecraft:stick"},
             {"vengeful_war_soul","1","minecraft:experience_bottle","minecraft:glass_bottle"}}){
             var menu=new CraftingMenu(0,p.getInventory(),ContainerLevelAccess.create(h.getLevel(),h.absolutePos(new BlockPos(2,2,2))));

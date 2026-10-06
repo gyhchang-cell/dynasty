@@ -26,6 +26,7 @@ public final class TemplateMobModel extends GeoModel<TemplateMob> {
             case "juma_changqiangbing" -> "archer";
             case "liannu_zhenzu", "kuijun_sishi" -> "rebel_soldier";
             case "tiesuo_chihou" -> "assassin";
+            case "shibian_lishi" -> "nian_beast";
             case "shanjing_shanxiao" -> "nian_beast";
             default -> "imperial_soldier";
         };

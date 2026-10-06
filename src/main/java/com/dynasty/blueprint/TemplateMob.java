@@ -59,7 +59,7 @@ import java.util.UUID;
 
 /** Validated template lifecycle; additional army professions compose their own server actions. */
 public final class TemplateMob extends Monster implements GeoEntity, Combatant {
-    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST }
+    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE }
     private static final EntityDataAccessor<Integer> SKILL = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> START = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
@@ -108,11 +108,12 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             case SCOUT -> "tiesuo_chihou"; case POWDER -> "kuijun_sishi"; case FLAG -> "zhenwang_zhangqiguan";
             case AXE_GUARD -> "pijia_panjiang_huwei";
             case GHOST -> "yinbing_guizu";
+            case CORPSE -> "shibian_lishi";
         };
     }
-    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : kind == Kind.GHOST ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
+    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
     @Override public MobRole role() {
-        return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER,AXE_GUARD,GHOST -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
+        return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER,AXE_GUARD,GHOST,CORPSE -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
             case PRIEST,FLAG -> MobRole.SUPPORT; case CROSSBOW -> MobRole.RANGED; case BEAST -> MobRole.BEAST; };
     }
     public TimedAttack attack() { return attack; }
@@ -521,6 +522,9 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         return kind == Kind.BEAST ? super.causeFallDamage(Math.max(0, distance - 5), multiplier, source) : super.causeFallDamage(distance, multiplier, source);
     }
     @Override public boolean canBeCollidedWith() { return kind == Kind.SHIELD && !isRemoved(); }
+    @Override public net.minecraft.world.entity.MobType getMobType() {
+        return kind == Kind.CORPSE ? net.minecraft.world.entity.MobType.UNDEAD : super.getMobType();
+    }
     public boolean isPhased() { return kind == Kind.GHOST && skillId() == ArmySkills.GHOST_PHASE && actionAge(0) < 6 && isAlive(); }
     @Override public boolean canBeHitByProjectile() { return !isPhased() && (kind == Kind.SHIELD && !isRemoved() || super.canBeHitByProjectile()); }
     @Override public boolean isPickable() { return !isPhased() && super.isPickable(); }

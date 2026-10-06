@@ -43,6 +43,11 @@ public final class BlueprintSalvage {
     public static final RegistryObject<Item> BROKEN_TIGER_TALLY=plain("broken_tiger_tally");
     public static final RegistryObject<Item> BLACK_ARMY_BANNER_SCRAP=plain("black_army_banner_scrap");
     public static final RegistryObject<Item> VENGEFUL_WAR_SOUL=plain("vengeful_war_soul");
+    public static final RegistryObject<Item> BLACKENED_BONE=plain("blackened_bone");
+    public static final RegistryObject<Item> CONGEALED_CORPSE_OIL=BlueprintEntities.ITEMS.register("congealed_corpse_oil",()->new Item(new Item.Properties()){
+        @Override public int getBurnTime(ItemStack stack,@Nullable net.minecraft.world.item.crafting.RecipeType<?> recipeType){return 400;}
+    });
+    public static final RegistryObject<Item> STRONGMAN_WRIST_WEIGHT=register("strongman_wrist_weight",Use.CHAINMAIL);
     private enum Use { IRON_AXE, IRON_SWORD, IRON_GEAR, IRON_ARMOR, JADE_GEAR, LEATHER_ARMOR, LEATHER_BOOTS, SHIELD, CHAINMAIL, BOWS, CROSSBOW }
     private static RegistryObject<Item> register(String id,Use use){return BlueprintEntities.ITEMS.register(id,()->new ComponentItem(use));}
     private static RegistryObject<Item> plain(String id){return BlueprintEntities.ITEMS.register(id,()->new Item(new Item.Properties()));}

@@ -37,7 +37,7 @@ public final class ArmyBehaviors {
     }
     static Behavior create(TemplateMob mob,TemplateMob.Kind kind){return switch(kind){
         case SPEAR->new Spear(mob);case CROSSBOW->new Crossbow(mob);case SCOUT->new Scout(mob);
-        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);default->null;};}
+        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);default->null;};}
     private ArmyBehaviors(){}
     public static boolean charging(LivingEntity target,Vec3 position){
         Vec3 velocity=target.getVehicle()==null?target.getDeltaMovement():target.getVehicle().getDeltaMovement();
@@ -86,6 +86,49 @@ public final class ArmyBehaviors {
             }
             return count;
         }
+    }
+    private static final class Corpse extends Base {
+        long spillCooldown, nextBound;
+        Corpse(TemplateMob mob){super(mob);}
+        public boolean allows(int id){return id==ArmySkills.CORPSE_SMASH;}
+        public int choose(LivingEntity target,long now){return ArmySkills.CORPSE_SMASH;}
+        public void impact(SkillDefinition skill,int frame){
+            hit(skill,CombatGeometry.Shape.CONE,1.3,1.5F,.7,false);
+            var floor=level().getBlockState(mob.blockPosition().below());
+            if(!floor.isAir())level().sendParticles(new net.minecraft.core.particles.BlockParticleOption(
+                net.minecraft.core.particles.ParticleTypes.BLOCK,floor),mob.getX(),mob.getY()+.1,mob.getZ(),18,1,.15,1,.08);
+            mob.playSound(SoundEvents.ZOMBIE_ATTACK_IRON_DOOR,.7F,.6F);
+        }
+        public void move(LivingEntity target,long now){
+            boolean rush=mob.distanceToSqr(target)>9&&mob.hasLineOfSight(target);
+            mob.setSprinting(rush);mob.getNavigation().moveTo(target,rush?1.65:.8);
+            if(rush&&mob.onGround()&&now>=nextBound&&!mob.getNavigation().isDone()){
+                Vec3 direction=target.position().subtract(mob.position()).multiply(1,0,1).normalize();
+                mob.setDeltaMovement(direction.scale(.33).add(0,.25,0));mob.hasImpulse=true;nextBound=now+14;
+            }
+        }
+        public void tick(long now){if(!mob.validEnemy(mob.getTarget())||mob.skillId()!=0)mob.setSprinting(false);}
+        public void hurtAccepted(DamageSource source,boolean frontal){
+            long now=level().getGameTime();if(now<spillCooldown)return;
+            spillCooldown=now+25;
+            // Damage-triggered bounded query only; three patches shared by nearby corpses.
+            if(level().getEntitiesOfClass(CorpseMiasma.class,mob.getBoundingBox().inflate(8)).size()>=3)return;
+            var floor=mob.blockPosition();
+            for(int i=0;i<6;i++,floor=floor.below()){
+                if(!level().hasChunkAt(floor))return;
+                if(!level().getBlockState(floor.below()).isFaceSturdy(level(),floor.below(),net.minecraft.core.Direction.UP)
+                        ||!level().getBlockState(floor).getCollisionShape(level(),floor).isEmpty()||!level().getFluidState(floor).isEmpty())continue;
+                var cloud=new CorpseMiasma(BlueprintEntities.CORPSE_MIASMA.get(),level());
+                cloud.moveTo(mob.getX(),floor.getY()+.02,mob.getZ());cloud.setOwner(mob);cloud.activate(now);
+                level().addFreshEntity(cloud);
+                level().sendParticles(net.minecraft.core.particles.ParticleTypes.WITCH,mob.getX(),mob.getY()+1,mob.getZ(),9,.5,.5,.5,0);
+                return;
+            }
+        }
+        public void tickDead(long now){if(mob.actionAge(0)>=16&&mob.actionAge(0)<17)
+            level().sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE,mob.getX(),mob.getY()+1,mob.getZ(),24,.7,.6,.7,.035);}
+        public CompoundTag save(){var tag=new CompoundTag();tag.putLong("SpillCooldown",spillCooldown);tag.putLong("NextBound",nextBound);return tag;}
+        public void load(CompoundTag tag){spillCooldown=tag.getLong("SpillCooldown");nextBound=tag.getLong("NextBound");}
     }
     private static final class Ghost extends Base {
         boolean evadeReady;
