@@ -130,7 +130,9 @@ public final class GuandaoWorldQa {
             String name=REGRESSION?"camera-regression-"+stage:NAMES[stage];
             try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){
                 image.writeToFile(OUT.resolve(name+".png"));
-                if(REGRESSION){int black=0,dark=0,total=0;for(int y=0;y<image.getHeight();y+=8)for(int x=0;x<image.getWidth();x+=8){int c=image.getPixelRGBA(x,y);int r=c&255,g=(c>>8)&255,b=(c>>16)&255;if(r<10&&g<10&&b<10)black++;if(r<40&&g<40&&b<40)dark++;total++;}
+                // A stride of eight aliases the shader's 4x4 Bayer reveal and can report
+                // 68% dark for a frame whose actual dark coverage is 56%. Count every pixel.
+                if(REGRESSION){int black=0,dark=0,total=0;for(int y=0;y<image.getHeight();y++)for(int x=0;x<image.getWidth();x++){int c=image.getPixelRGBA(x,y);int r=c&255,g=(c>>8)&255,b=(c>>16)&255;if(r<10&&g<10&&b<10)black++;if(r<40&&g<40&&b<40)dark++;total++;}
                     double fraction=black/(double)total,darkFraction=dark/(double)total;log.add(name+" black pixels="+fraction+"; dark pixels="+darkFraction);if(fraction>.96 || stage>=36&&darkFraction>.65)throw new AssertionError("Fullscreen dark occlusion "+name);
                 }
             }
@@ -141,6 +143,10 @@ public final class GuandaoWorldQa {
     private static void networkTick(Minecraft mc)throws Exception {
         if(System.nanoTime()>deadline)throw new AssertionError("Network QA timed out");
         if(Files.exists(OUT.resolve(HOST?"peer/runtime-FAIL.txt":"host/runtime-FAIL.txt")))throw new AssertionError("Other real client failed");
+        // The peer exits after its last capture. Finish before the two-player readiness gate,
+        // otherwise a successful peer disconnect strands the host until the QA timeout.
+        if(netCaptured&&netObserved==13&&Files.exists(COORD.resolve("complete.txt"))
+                &&(!HOST||Files.exists(OUT.resolve("peer/runtime-PASS.txt")))){finish(mc,null);return;}
         if(mc.getOverlay()!=null)return;
         if(mc.screen instanceof AccessibilityOnboardingScreen)mc.setScreen(new TitleScreen());
         if(!started&&mc.screen instanceof TitleScreen){
@@ -194,7 +200,6 @@ public final class GuandaoWorldQa {
             if(netObserved==11){if(netReload==null)netReload=mc.reloadResourcePacks();if(!netReload.isDone())return;netReload.join();}
             wait++;
         }
-        if(Files.exists(COORD.resolve("complete.txt"))&&(!HOST||Files.exists(OUT.resolve("peer/runtime-PASS.txt"))))finish(mc,null);
     }
     private static NetStage networkPrepare(Minecraft mc,int index){
         var server=mc.getSingleplayerServer();var world=server.overworld();
@@ -205,7 +210,10 @@ public final class GuandaoWorldQa {
             player.getInventory().selected=0;player.getInventory().setChanged();
         }
         if(netTarget!=null)netTarget.discard();
-        netTarget=net.minecraft.world.entity.EntityType.COW.create(world);netTarget.moveTo(0,-56,-4,0,0);netTarget.setNoAi(true);netTarget.setNoGravity(true);
+        // Keep the real damage target below the inside-guardian cameras. A floating cow at -56
+        // puts its opaque belly/legs across the upward view and even encloses the chest camera,
+        // so the black-screen assertion measures vanilla entity occlusion instead of our renderer.
+        netTarget=net.minecraft.world.entity.EntityType.COW.create(world);netTarget.moveTo(0,-60,-4,0,0);netTarget.setNoAi(true);netTarget.setNoGravity(true);
         netTarget.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(100000);netTarget.setHealth(100000);world.addFreshEntity(netTarget);
         return new NetStage(index,world.getGameTime(),players.get(index==3?1:0).getUUID(),netTarget.getUUID());
     }
@@ -243,7 +251,8 @@ public final class GuandaoWorldQa {
                 if(((Map<?,?>)field.get(null)).isEmpty())throw new AssertionError("Actual server dragon packet did not reach "+ROLE);
             }
             try(var image=Screenshot.takeScreenshot(mc.getMainRenderTarget())){
-                int dark=0,total=0;for(int y=0;y<image.getHeight();y+=8)for(int x=0;x<image.getWidth();x+=8){int c=image.getPixelRGBA(x,y);if((c&255)<40&&((c>>8)&255)<40&&((c>>16)&255)<40)dark++;total++;}
+                // Preserve the same coverage threshold without sampling one repeated dither phase.
+                int dark=0,total=0;for(int y=0;y<image.getHeight();y++)for(int x=0;x<image.getWidth();x++){int c=image.getPixelRGBA(x,y);if((c&255)<40&&((c>>8)&255)<40&&((c>>16)&255)<40)dark++;total++;}
                 double fraction=dark/(double)total;image.writeToFile(NET_OUT.resolve(String.format("%02d-network.png",netObserved)));
                 if(fraction>.65)throw new AssertionError("Fullscreen dark occlusion stage="+netObserved+" dark="+fraction);
                 log.add("stage="+netObserved+" role="+ROLE+" realPlayers="+mc.level.players().size()+" holder="+netStage.holder+" target="+netStage.target+" dark="+fraction+" fps="+mc.getFps());

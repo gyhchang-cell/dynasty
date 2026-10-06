@@ -28,6 +28,8 @@ RENDER_VARIANTS = {f"{bow}_pulling_{stage}": bow
 # PuzzleBlocks deliberately gives the BlockItem a distinct registry ID: star_dial already names a Curio.
 # BlockItem.getDescriptionId uses its underlying block's ID, not its item registry ID.
 BLOCK_ITEM_NAMES = {"puzzle_star_dial": "star_dial"}
+# Shared display/texture parents, not inventory items. Require actual child references below.
+MODEL_PARENTS = {"solid_handheld", "solid_bow"}
 
 
 def read(path):
@@ -41,6 +43,16 @@ def check():
             for name in ("zh_cn", "en_us")}
 
     for item in sorted(models):
+        if item in MODEL_PARENTS:
+            path = os.path.join(ASSETS, "models/item", item + ".json")
+            parent = json.load(open(path, encoding="utf-8"))
+            children = [json.load(open(os.path.join(ASSETS, "models/item", name + ".json"), encoding="utf-8"))
+                        for name in models - {item}]
+            if not any(child.get("parent") == f"dynasty:item/{item}" for child in children):
+                problems.append(f"共享模型 {item} 没有实际子模型")
+            if "elements" in parent or "overrides" in parent:
+                problems.append(f"共享模型 {item} 不应包含物品几何或覆盖项")
+            continue
         if item in RENDER_VARIANTS:
             base = RENDER_VARIANTS[item]
             path = os.path.join(ASSETS, "models/item", base + ".json")

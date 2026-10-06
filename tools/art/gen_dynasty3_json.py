@@ -226,6 +226,17 @@ def relic_recipes():
 # this table against every worldgen registry JSON, including structure groups.
 WORLDGEN_NAMES = {
     "structure": {
+        "chensha_xuangong": ("沉沙玄宫", "Sunken Sand Palace"),
+        "desert_caravan": ("沙海商旅院", "Desert Caravan"),
+        "dungeon_framework_probe": ("地宫机关试验场", "Dungeon Mechanism Test Site"),
+        "herbal_retreat": ("林间药庐", "Herbal Retreat"),
+        "longque_sanctuary": ("龙阙镇渊巨像", "Longque Abyss-Warding Colossus"),
+        "post_house": ("官道驿站", "Post House"),
+        "ruined_battlefield": ("焦土古战场", "Scorched Battlefield"),
+        "sculpture_tiles": ("雕塑构件", "Sculpture Tiles"),
+        "tiangong_citadel": ("天工山城", "Tiangong Citadel"),
+        "tiangong_mining_estate": ("山麓采矿庄园", "Mining Estate at the Foothills"),
+        "yunqi_manor": ("云栖庄园", "Yunqi Manor"),
         "palace": ("皇家宫殿", "Imperial Palace"),
         "academy": ("国子监", "Imperial Academy"),
         "imperial_tomb": ("帝陵", "Imperial Tomb"),
@@ -237,6 +248,7 @@ WORLDGEN_NAMES = {
         "seal_vault": ("幽冥四象封印室", "Underworld Four-Sigil Vault"),
     },
     "biome": {
+
         "celestial_plains": ("天朝平原", "Celestial Plains"),
         "jade_forest": ("玉林", "Jade Forest"),
         "dragon_ridge": ("龙脊山脉", "Dragon Ridge"),
@@ -249,6 +261,7 @@ WORLDGEN_NAMES = {
         "dragon_palace_deep": ("深渊", "Abyss"),
     },
     "dimension": {
+        "zhenyuan_arena": ("镇渊帝君祭场", "Zhenyuan Sovereign Arena"),
         "celestial_dynasty": ("天朝·龙庭", "Celestial Dynasty"),
         "underworld": ("地府", "Underworld"),
         "jiuxiao": ("九霄天界", "Nine-Heaven Realm"),

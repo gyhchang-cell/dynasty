@@ -26,7 +26,8 @@ public final class ArmyGameTests {
     private static void arena(GameTestHelper h){
         for(int x=0;x<16;x++)for(int z=0;z<16;z++){
             h.setBlock(x,1,z,Blocks.STONE);
-            for(int y=2;y<14;y++)h.setBlock(x,y,z,y<8&&(x==0||z==0||x==15||z==15)?Blocks.STONE:Blocks.AIR);
+            // Normal-world gravel above the template must not fall into combat fixtures.
+            for(int y=2;y<14;y++)h.setBlock(x,y,z,y==13||y<8&&(x==0||z==0||x==15||z==15)?Blocks.STONE:Blocks.AIR);
         }
     }
     private static TemplateMob actor(GameTestHelper h,EntityType<TemplateMob> type,int x,int z){
@@ -54,6 +55,28 @@ public final class ArmyGameTests {
         var saved=new CompoundTag();mob.addAdditionalSaveData(saved);
         com.mojang.logging.LogUtils.getLogger().info("ARMY_DIAGNOSTIC {} at={} enemy={} delta={} skill={} phase={} age={} hp={}/{} sight={} data={}",
             label,mob.position(),enemy.position(),mob.getDeltaMovement(),mob.skillId(),mob.skillPhase(),mob.actionAge(0),mob.getHealth(),enemy.getHealth(),mob.hasLineOfSight(enemy),saved.getCompound("ArmyActionState"));
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=40,batch="army")
+    public static void existingNineMobsAwardTheirRealQuestKillCriteria(GameTestHelper h){
+        var level=h.getLevel();
+        // A real ServerPlayer is required: Forge deliberately ignores FakePlayer advancement awards.
+        var player=new net.minecraft.server.level.ServerPlayer(level.getServer(),level,
+            new com.mojang.authlib.GameProfile(UUID.randomUUID(),"cod1-kill-hooks"));
+        player.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(level.getServer(),
+            new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),player);
+        for(var definition:TemplateContentDefinitions.ALL){
+            var id=new net.minecraft.resources.ResourceLocation("dynasty",definition.id());
+            var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(id);
+            var mob=(TemplateMob)type.create(level);mob.setNoAi(true);mob.setNoGravity(true);
+            mob.moveTo(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(6,2,6))));level.addFreshEntity(mob);
+            var advancement=level.getServer().getAdvancements().getAdvancement(new net.minecraft.resources.ResourceLocation("dynasty","story_slay_"+definition.id()));
+            h.assertTrue(advancement!=null,"Kill hook must be loaded by the real advancement manager: "+id);
+            h.assertTrue(!player.getAdvancements().getOrStartProgress(advancement).isDone(),"No completion before the actual kill: "+id);
+            mob.hurt(level.damageSources().playerAttack(player),10000);
+            h.assertTrue(mob.isDeadOrDying()&&player.getAdvancements().getOrStartProgress(advancement).isDone(),
+                "Actual player kill awards the quest criterion: "+id);
+        }
+        h.succeed();
     }
 
     @GameTest(template="bow_ritual_test",timeoutTicks=40,batch="army")
@@ -124,6 +147,54 @@ public final class ArmyGameTests {
         h.runAfterDelay(45,()->enemy.setPos(mob.position().add(0,0,2)));
         h.runAfterDelay(94,()->{h.assertTrue(mob.isAlive(),"Nonconsecutive near ticks cannot accumulate");h.succeed();});
     }
+    @GameTest(template="bow_ritual_test",timeoutTicks=80,batch="army")
+    public static void fallingOverburdenCannotPolluteTheContinuousFuseFixture(GameTestHelper h){
+        arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=target(h,6,8);mob.setTarget(enemy);
+        // Natural GameTest worlds can have gravel directly over the excavated arena.
+        // Keep this overburden within the same X/Z footprint, above its ceiling.
+        for(int y=14;y<=16;y++)h.setBlock(6,y,7,Blocks.GRAVEL);
+        h.runAfterDelay(30,()->{
+            h.assertBlockPresent(Blocks.GRAVEL,new BlockPos(6,14,7));
+            h.assertTrue(mob.hasLineOfSight(enemy),"External falling terrain cannot obstruct this controlled fuse fixture");
+        });
+        h.runAfterDelay(55,()->h.assertTrue(mob.isAlive(),"Fixture protection must not shorten the fuse"));
+        h.runAfterDelay(65,()->{
+            h.assertTrue(mob.isDeadOrDying()&&enemy.getHealth()<190,"Real sixty-tick fuse still explodes beneath protected overburden");h.succeed();
+        });
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=130,batch="army")
+    public static void breakingLitPowderFuseAllowsFreshThreeSecondFuse(GameTestHelper h){
+        arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=target(h,6,8);mob.setTarget(enemy);
+        h.runAfterDelay(48,()->{
+            h.assertTrue(mob.skillId()==ArmySkills.DETONATE,"Fixture reaches lit fuse before retreat");
+            enemy.setPos(mob.position().add(0,0,7));
+        });
+        h.runAfterDelay(54,()->h.assertTrue(mob.skillId()!=ArmySkills.DETONATE,"Retreat cancels the lit animation"));
+        h.runAfterDelay(60,()->enemy.setPos(mob.position().add(0,0,2)));
+        h.runAfterDelay(115,()->h.assertTrue(mob.isAlive(),"Returning target must earn a full new three seconds"));
+        h.runAfterDelay(125,()->{
+            trace(h,"relit-fuse",mob,enemy);
+            h.assertTrue(mob.isDeadOrDying(),"Cancelled fuse must not retain a spent skill cooldown");
+            h.assertTrue(enemy.getHealth()<190,"Fresh proximity fuse causes a real explosion");h.succeed();
+        });
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=125,batch="army")
+    public static void reloadingLitPowderFuseRequiresFreshContinuousProximity(GameTestHelper h){
+        arena(h);var original=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=target(h,6,8);original.setTarget(enemy);
+        TemplateMob[] restored={null};
+        h.runAfterDelay(48,()->{
+            h.assertTrue(original.skillId()==ArmySkills.DETONATE,"Save a genuinely lit fuse");
+            var saved=new CompoundTag();original.saveWithoutId(saved);original.discard();
+            var copy=BlueprintEntities.KUIJUN_SISHI.get().create(h.getLevel());copy.load(saved);copy.setTarget(enemy);
+            h.getLevel().addFreshEntity(copy);restored[0]=copy;
+        });
+        h.runAfterDelay(103,()->h.assertTrue(restored[0].isAlive(),"Reload cannot discharge the old fuse or shorten its new clock"));
+        h.runAfterDelay(118,()->{
+            trace(h,"reloaded-fuse",restored[0],enemy);
+            h.assertTrue(restored[0].isDeadOrDying(),"Restored live powder unit can complete a new sixty-tick fuse");
+            h.assertTrue(enemy.getHealth()<190,"Reloaded fuse damages the server target");h.succeed();
+        });
+    }
     @GameTest(template="bow_ritual_test",timeoutTicks=75,batch="army")
     public static void projectileDeathHasDelayedSmallBlastWithoutReloadReplay(GameTestHelper h){
         arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=new BlastWitness(h.getLevel());
@@ -169,12 +240,82 @@ public final class ArmyGameTests {
             h.runAfterDelay(18,()->{equal(h,enemy.getHealth(),195,"Restored consumed frame never hits again");h.succeed();});});
     }
     @GameTest(template="bow_ritual_test",batch="army")
-    public static void gateSquadAndPendingBattlefieldSpawnsRemainBounded(GameTestHelper h){
+    public static void gateAndBattlefieldSquadsRemainBounded(GameTestHelper h){
         h.assertTrue(BlueprintSpawns.militaryMember(0)==BlueprintEntities.LUDUN_JIASHI.get()&&BlueprintSpawns.militaryMember(1)==BlueprintEntities.LIANNU_ZHENZU.get()
             &&BlueprintSpawns.militaryMember(2)==BlueprintEntities.LIANNU_ZHENZU.get()&&BlueprintSpawns.militaryMember(3)==BlueprintEntities.JUMA_CHANGQIANGBING.get(),"Gate uses authored four-member defensive squad");
         for(var def:TemplateContentDefinitions.ALL)if(def.id().equals("kuijun_sishi")||def.id().equals("zhenwang_zhangqiguan"))
-            h.assertTrue(def.spawnWeight()==0&&def.spawnReason().contains("PENDING"),"No unsupported battlefield units scattered globally");
+            h.assertTrue(def.biomeTags().isEmpty()&&def.structureTags().contains(new net.minecraft.resources.ResourceLocation("dynasty:blueprint/battlefields"))
+                &&def.spawnReason().equals("STRUCTURE_MARKER"),"Battlefield units stay structure-only, never ordinary biome spawns");
+        h.assertTrue(BlueprintSpawns.battlefieldMember(0)==BlueprintEntities.ZHENWANG_ZHANGQIGUAN.get()
+            &&BlueprintSpawns.battlefieldMember(1)==BlueprintEntities.FUFA_JIJIU.get()
+            &&BlueprintSpawns.battlefieldMember(2)==BlueprintEntities.TIESUO_CHIHOU.get()
+            &&BlueprintSpawns.battlefieldMember(3)==BlueprintEntities.TIESUO_CHIHOU.get()
+            &&java.util.stream.IntStream.range(4,7).allMatch(i->BlueprintSpawns.battlefieldMember(i)==BlueprintEntities.KUIJUN_SISHI.get()),
+            "One banner supports the authored priest, two scouts and three powder units");
         h.assertTrue(ArmySkills.ALL.size()==10&&ArmySkills.ALL.stream().allMatch(s->s.impactTicks().stream().allMatch(t->s.phaseAt(t)==AttackState.ACTIVE)),"All ten server action contacts lie in ACTIVE");h.succeed();
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=1000,batch="army_world")
+    public static void battlefieldGeneratesAndOwnsBoundedPersistentEncounter(GameTestHelper h){
+        var level=h.getLevel();var registry=level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE);
+        var id=new net.minecraft.resources.ResourceLocation("dynasty:ruined_battlefield");var structure=registry.get(id);
+        h.assertTrue(structure!=null,"Worldgen registry loads the actual battlefield");
+        var settings=net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings.getDefault(
+            level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BIOME),
+            level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE_SET),
+            level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.PLACED_FEATURE));
+        settings.getLayersInfo().clear();settings.getLayersInfo().add(new net.minecraft.world.level.levelgen.flat.FlatLayerInfo(128,Blocks.STONE));settings.updateLayers();
+        var generator=new net.minecraft.world.level.levelgen.FlatLevelSource(settings);
+        var chunk=new net.minecraft.world.level.ChunkPos(64,64);
+        var start=structure.generate(level.registryAccess(),generator,generator.getBiomeSource(),level.getChunkSource().randomState(),
+            level.getStructureManager(),level.getSeed(),chunk,0,level,b->true);
+        h.assertTrue(start.isValid()&&start.getPieces().size()==1,"Real generator produces a battlefield start on safe dry terrain");
+        var piece=start.getPieces().get(0);var box=start.getBoundingBox();
+        var context=net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext.fromLevel(level);
+        var restored=com.dynasty.structure.DynastyStructures.BATTLEFIELD_PIECE.get().load(context,piece.createTag(context));
+        h.assertTrue(restored.getBoundingBox().equals(piece.getBoundingBox()),"Battlefield piece survives disk NBT serialization");
+        level.getChunk(chunk.x,chunk.z).setStartForStructure(structure,start);
+        for(int x=box.minX()>>4;x<=box.maxX()>>4;x++)for(int z=box.minZ()>>4;z<=box.maxZ()>>4;z++){
+            var part=level.getChunk(x,z);part.addReferenceForStructure(structure,chunk.toLong());
+            var clip=new net.minecraft.world.level.levelgen.structure.BoundingBox(x*16,box.minY(),z*16,x*16+15,box.maxY(),z*16+15);
+            restored.postProcess(level,level.structureManager(),generator,net.minecraft.util.RandomSource.create(3),clip,part.getPos(),BlockPos.ZERO);
+        }
+        var bounds=piece.getBoundingBox();var floor=new BlockPos(bounds.minX()+16,bounds.minY()+3,bounds.minZ()+6);
+        h.assertTrue(!level.getBlockState(floor).isAir()&&level.getBlockState(floor.above()).isAir(),"Structure has a real walkable approach");
+        // Vanilla's mock login has no Netty channel and cannot complete Forge's handshake.
+        // Real TCP tracking is covered by the opt-in client harness; this fixture exercises server spawning.
+        var player=new net.minecraftforge.common.util.FakePlayer(level,new com.mojang.authlib.GameProfile(UUID.randomUUID(),"battlefield-test")){
+            @Override public boolean isCreative(){return true;}
+        };
+        player.setPos(Vec3.atBottomCenterOf(floor.above()));level.addNewPlayer(player);
+        h.assertTrue(level.players().contains(player)&&level.structureManager().getStructureAt(player.blockPosition(),structure).isValid(),
+            "Actual player is inside an indexed world structure, not a manually spawned squad");
+        long previousDay=level.getDayTime();boolean spawning=level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING);
+        level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());level.setDayTime(6000);
+        String key=id+"@"+chunk.toLong();
+        h.runAfterDelay(110,()->{
+            h.assertTrue(!BlueprintSpawnState.get(level).markers.containsKey(key),"Daylight does not activate the haunted battlefield");
+            level.setDayTime(18000);
+        });
+        h.runAfterDelay(850,()->{
+            var data=BlueprintSpawnState.get(level);var marker=data.markers.get(key);
+            h.assertTrue(marker!=null&&marker.produced==7&&marker.members.size()==7,"Ordinary server ticks produce exactly seven members");
+            var counts=new java.util.HashMap<TemplateMob.Kind,Integer>();
+            for(var uuid:marker.members){
+                var entity=level.getEntity(uuid);h.assertTrue(entity instanceof TemplateMob,"Persistent membership resolves to a real mob");
+                var mob=(TemplateMob)entity;h.assertTrue(!mob.isNoAi()&&!mob.isNoGravity(),"Encounter uses normal AI and physics");
+                counts.merge(mob.kind(),1,Integer::sum);
+            }
+            h.assertTrue(counts.equals(java.util.Map.of(TemplateMob.Kind.FLAG,1,TemplateMob.Kind.PRIEST,1,TemplateMob.Kind.SCOUT,2,TemplateMob.Kind.POWDER,3)),"No duplicated banner or excess powder units");
+            var saved=BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(key);
+            h.assertTrue(saved.members.equals(marker.members)&&saved.produced==7,"All member UUIDs and production count survive SavedData serialization");
+            for(var uuid:java.util.List.copyOf(marker.members))level.getEntity(uuid).discard();
+            h.assertTrue(marker.members.isEmpty()&&marker.nextSpawn>=level.getGameTime()+12000,"Actual removal releases members and starts the existing ten-minute cooldown");
+        });
+        h.runAfterDelay(960,()->{
+            var marker=BlueprintSpawnState.get(level).markers.get(key);h.assertTrue(marker.members.isEmpty(),"Another encounter tick cannot bypass persisted respawn cooldown");
+            player.discard();level.setDayTime(previousDay);
+            level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(spawning,level.getServer());h.succeed();
+        });
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=90,batch="army")
     public static void hookMissNeverPublishesOrPullsAnUnhitTarget(GameTestHelper h){
@@ -239,11 +380,19 @@ public final class ArmyGameTests {
         h.assertTrue(!mob.isNoAi()&&!mob.isNoGravity(),"Subject must retain real AI and gravity");
         var enemy=target(h,3,13);var initial=mob.position();
         boolean[] routed={false},selected={false},sprinted={false};
+        int[] diagnosticTicks={0};
         mob.setTarget(enemy); // Never call startSkill or push/teleport the subject in this fixture.
         h.onEachTick(()->{
             if(Math.abs(mob.getX()-initial.x)>1.2)routed[0]=true;
             if(mob.skillId()==expectedSkill)selected[0]=true;
             if(mob.isSprinting())sprinted[0]=true;
+            if(detonation&&diagnosticTicks[0]++%20==0){
+                var saved=new CompoundTag();mob.addAdditionalSaveData(saved);
+                com.mojang.logging.LogUtils.getLogger().info("ARMY_AUTONOMOUS_FUSE sample={} initial={} mob={} enemy={} target={} mobHurtBy={} enemyHurtBy={} near={} skill={} sight={} nearby={}",
+                    diagnosticTicks[0],initial,mob.position(),enemy.position(),mob.getTarget(),mob.getLastHurtByMob(),enemy.getLastHurtByMob(),
+                    saved.getCompound("ArmyActionState"),mob.skillId(),mob.hasLineOfSight(enemy),
+                    h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class,mob.getBoundingBox().inflate(12),e->e!=mob&&e!=enemy).stream().limit(12).toList());
+            }
         });
         h.startSequence().thenWaitUntil(()->h.assertTrue(enemy.getHealth()<200&&(!detonation||mob.isDeadOrDying()),
                 "Waiting for autonomous contact: "+mob.blueprintId()+" position="+mob.position()+" skill="+mob.skillId()

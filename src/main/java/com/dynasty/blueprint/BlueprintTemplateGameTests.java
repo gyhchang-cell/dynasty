@@ -160,6 +160,72 @@ public final class BlueprintTemplateGameTests {
         });
     }
 
+    @GameTest(template="bow_ritual_test", timeoutTicks=50)
+    public static void restoredAllyReconcilesPriestDeathWhileItWasUnloaded(GameTestHelper h) {
+        var priest = mob(h, BlueprintEntities.FUFA_JIJIU.get(), 5, 5);
+        var ally = mob(h, BlueprintEntities.ZUWU_DAOSHOU.get(), 7, 5);
+        double speed = ally.getAttributeValue(Attributes.MOVEMENT_SPEED);
+        var saved = new CompoundTag();
+        TemplateMob[] restored = {null};
+        h.assertTrue(priest.startSkill(TemplateSkills.POSSESSION, ally), "Begin actual possession");
+        h.runAfterDelay(24, () -> {
+            h.assertTrue(ally.isPossessed(), "Save an active buff, not an idle fixture");
+            ally.saveWithoutId(saved);
+            ally.remove(net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK);
+        });
+        h.runAfterDelay(27, () -> priest.hurt(priest.damageSources().genericKill(), 10000));
+        h.runAfterDelay(29, () -> {
+            var copy = BlueprintEntities.ZUWU_DAOSHOU.get().create(h.getLevel());
+            copy.load(saved);
+            h.assertTrue(copy.getUUID().equals(ally.getUUID()), "Restore full entity identity");
+            h.assertTrue(h.getLevel().addFreshEntity(copy), "Restore after the old entity has unloaded");
+            restored[0] = copy;
+        });
+        h.runAfterDelay(33, () -> {
+            h.assertTrue(!restored[0].isPossessed()
+                    && !restored[0].hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()),
+                    "Loading an ally after caster death must not resurrect the buff");
+            equal(h, restored[0].getAttributeValue(Attributes.MOVEMENT_SPEED), speed, "No orphaned speed modifier");
+            h.succeed();
+        });
+    }
+
+    @GameTest(template="bow_ritual_test", timeoutTicks=55)
+    public static void activeComboRetainsIdentityAndEncounterMembershipAcrossEntityUnload(GameTestHelper h) {
+        var sword = mob(h, BlueprintEntities.ZUWU_DAOSHOU.get(), 5, 5);
+        var enemy = victim(h, 5, 7);
+        var state = BlueprintSpawnState.get(h.getLevel());
+        String key = "test@active@" + sword.getUUID();
+        var marker = new BlueprintSpawnState.Marker(key, sword.blockPosition());
+        marker.members.add(sword.getUUID()); marker.produced = 1; state.markers.put(key, marker);
+        var saved = new CompoundTag();
+        TemplateMob[] restored = {null};
+        h.assertTrue(sword.startSkill(TemplateSkills.SWORD_COMBO, enemy), "Start real two-contact attack");
+        long start = sword.skillStartTime();
+        h.runAfterDelay(15, () -> {
+            equal(h, enemy.getHealth(), 195, "First contact already consumed");
+            sword.saveWithoutId(saved);
+            sword.remove(net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK);
+        });
+        h.runAfterDelay(18, () -> {
+            var copy = BlueprintEntities.ZUWU_DAOSHOU.get().create(h.getLevel()); copy.load(saved);
+            h.assertTrue(h.getLevel().addFreshEntity(copy), "Reinsert persisted entity"); restored[0] = copy;
+            h.assertTrue(copy.getUUID().equals(sword.getUUID()) && copy.skillStartTime() == start,
+                    "UUID and attack epoch survive full NBT loading");
+            var persisted = BlueprintSpawnState.load(state.save(new CompoundTag())).markers.get(key);
+            h.assertTrue(persisted.members.equals(marker.members) && persisted.members.contains(copy.getUUID())
+                    && persisted.produced == 1 && persisted.nextSpawn == 0, "Unload never releases or refills the encounter slot");
+        });
+        h.runAfterDelay(39, () -> {
+            equal(h, enemy.getHealth(), 190, "Only the remaining contact executes after reload");
+            h.assertTrue(!restored[0].attack().ready(TemplateSkills.SWORD_COMBO, h.getLevel().getGameTime()),
+                    "Restart does not reset the attack cooldown");
+            restored[0].hurt(restored[0].damageSources().genericKill(), 10000);
+            h.assertTrue(marker.members.isEmpty(), "Actual death releases the retained encounter membership");
+            state.markers.remove(key); state.setDirty(); h.succeed();
+        });
+    }
+
     @GameTest(template="bow_ritual_test", timeoutTicks=115)
     public static void projectilesHaveFiniteLifetimeEvenWithoutCollision(GameTestHelper h) {
         TemplateMob priest = mob(h, BlueprintEntities.FUFA_JIJIU.get(), 5, 5);

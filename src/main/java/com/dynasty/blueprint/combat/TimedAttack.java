@@ -52,6 +52,8 @@ public final class TimedAttack {
     public Vec3 direction() { return direction; }
     public UUID target() { return target; }
     public boolean ready(int id, long now) { return now >= cooldowns.getOrDefault(id, 0L); }
+    /** A cancelled proximity fuse is unspent; other attack cooldowns remain authoritative. */
+    public void resetCooldown(int id) { cooldowns.remove(id); }
     public CompoundTag save() {
         var t = new CompoundTag(); t.putInt("Version", 1); t.putLong("Started", started); t.putLong("StunUntil", stunnedUntil);
         t.putInt("Skill", current == null ? 0 : current.id()); if (target != null) t.putUUID("Target", target);

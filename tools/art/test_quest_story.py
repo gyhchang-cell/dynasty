@@ -47,7 +47,8 @@ class QuestStoryTest(unittest.TestCase):
 
     def test_small_main_chapters_and_no_catalog_gate(self):
         self.assertEqual(8, sum(c["main"] for c in self.book))
-        self.assertEqual([18,23,19,13,12,11,12,11],[len(c['quests']) for c in self.book if c['main']])
+        # Chapter 03 preserves its 19 nodes and adds six cod1 encounter branches.
+        self.assertEqual([18,23,25,13,12,11,12,11],[len(c['quests']) for c in self.book if c['main']])
         self.assertEqual(32,sum(q['role']=='chapter_branch' for c in self.book for q in c['quests']))
         self.assertEqual(2,sum(q.get('target') in ('dynasty:tiangong_citadel','dynasty:tiangong_mining_estate') for c in self.book for q in c['quests']))
         self.assertTrue(all(not q["deps"] for c in self.book if not c["main"] for q in c["quests"] if q["role"]!="build"))
