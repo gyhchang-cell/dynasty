@@ -23,6 +23,25 @@ public final class BlueprintEntities {
     public static final RegistryObject<MobEffect> JUNHUN_AURA = EFFECTS.register("junhun_aura", ArmyAuraEffect::new);
     public static final RegistryObject<MobEffect> SPIRIT_CHILL = EFFECTS.register("spirit_chill", SpiritChillEffect::new);
 
+    public static final RegistryObject<EntityType<TemplateMob>> MINGSHA_SHIXIE=mob("mingsha_shixie",TemplateMob.Kind.SCORPION,1.5F,.9F);
+    public static final RegistryObject<Item> MINGSHA_SHIXIE_EGG=egg("mingsha_shixie",MINGSHA_SHIXIE,0xB39456,0xD9C27C);
+    public static final RegistryObject<MobEffect> SAND_RESONANCE=EFFECTS.register("sand_resonance",SandResonanceEffect::new);
+    public static final RegistryObject<MobEffect> ROOT_GRIP=EFFECTS.register("root_grip",()->new SoulBindEffect("805d1817-a544-456e-b70d-cb58e676fcf1"));
+    public static final RegistryObject<MobEffect> SOUL_BIND = EFFECTS.register("soul_bind",SoulBindEffect::new);
+    public static final RegistryObject<MobEffect> LANTERN_GLARE = EFFECTS.register("lantern_glare",()->new MobEffect(net.minecraft.world.effect.MobEffectCategory.HARMFUL,0xE9E4CF){});
+    public static final RegistryObject<EntityType<TemplateMob>> KUMU_SHUJING=mob("kumu_shujing",TemplateMob.Kind.TREE,1.2F,2.8F);
+    public static final RegistryObject<EntityType<RootSnare>> ROOT_SNARE=ENTITIES.register("root_snare",
+        ()->EntityType.Builder.<RootSnare>of(RootSnare::new,MobCategory.MISC).sized(2.4F,2F).clientTrackingRange(8).updateInterval(10).build("root_snare"));
+    public static final RegistryObject<Item> KUMU_SHUJING_EGG=egg("kumu_shujing",KUMU_SHUJING,0x342F26,0xAD9F47);
+    public static final RegistryObject<EntityType<TemplateMob>> CHIMU_ZHUHA=mob("chimu_zhuha",TemplateMob.Kind.TOAD,1.4F,1F);
+    public static final RegistryObject<EntityType<CorpseMiasma>> TOAD_VENOM_POOL=ENTITIES.register("toad_venom_pool",
+        ()->EntityType.Builder.<CorpseMiasma>of(CorpseMiasma::new,MobCategory.MISC).sized(2.2F,.5F).clientTrackingRange(8).updateInterval(10).build("toad_venom_pool"));
+    public static final RegistryObject<Item> CHIMU_ZHUHA_EGG=egg("chimu_zhuha",CHIMU_ZHUHA,0x682A24,0xCE7837);
+    public static final RegistryObject<EntityType<TemplateMob>> MUXUE_FEILU = mob("muxue_feilu",TemplateMob.Kind.SKULL,.85F,1.7F);
+    public static final RegistryObject<EntityType<SkullBloodPool>> SKULL_BLOOD_POOL = ENTITIES.register("skull_blood_pool",
+        ()->EntityType.Builder.<SkullBloodPool>of(SkullBloodPool::new,MobCategory.MISC).sized(2.4F,.5F).clientTrackingRange(8).updateInterval(10).build("skull_blood_pool"));
+    public static final RegistryObject<EntityType<TemplateMob>> ZHIREN_JIANKE = mob("zhiren_jianke",TemplateMob.Kind.PAPER,.6F,1.85F);
+    public static final RegistryObject<EntityType<TemplateMob>> FUHUN_BAIBU_TONGZI = mob("fuhun_baibu_tongzi",TemplateMob.Kind.CHILD,.55F,1.2F);
     public static final RegistryObject<EntityType<TemplateMob>> ZUWU_DAOSHOU = mob("zuwu_daoshou", TemplateMob.Kind.SWORD, .65F, 1.85F);
     public static final RegistryObject<EntityType<TemplateMob>> LUDUN_JIASHI = mob("ludun_jiashi", TemplateMob.Kind.SHIELD, .95F, 2.05F);
     public static final RegistryObject<EntityType<TemplateMob>> FUFA_JIJIU = mob("fufa_jijiu", TemplateMob.Kind.PRIEST, .65F, 1.80F);
@@ -58,6 +77,12 @@ public final class BlueprintEntities {
 
     public static final RegistryObject<Item> SHIBIAN_LISHI_EGG = egg("shibian_lishi", SHIBIAN_LISHI, 0x26332E, 0x713C80);
 
+    public static final RegistryObject<Item> FUHUN_BAIBU_TONGZI_EGG = egg("fuhun_baibu_tongzi", FUHUN_BAIBU_TONGZI, 0xDDD3B5, 0x252420);
+
+    public static final RegistryObject<Item> ZHIREN_JIANKE_EGG = egg("zhiren_jianke", ZHIREN_JIANKE, 0xDED4BB, 0xAF403C);
+
+    public static final RegistryObject<Item> MUXUE_FEILU_EGG = egg("muxue_feilu", MUXUE_FEILU, 0x514A40, 0x702A31);
+
     private BlueprintEntities() { }
     private static RegistryObject<EntityType<TemplateMob>> mob(String id, TemplateMob.Kind kind, float width, float height) {
         return ENTITIES.register(id, () -> EntityType.Builder.<TemplateMob>of((type, level) -> new TemplateMob(type, level, kind), MobCategory.MONSTER)
@@ -92,5 +117,12 @@ public final class BlueprintEntities {
         event.put(PIJIA_PANJIANG_HUWEI.get(), attributes(100, 8, .19, 10, .6));
         event.put(YINBING_GUIZU.get(), attributes(42, 5, .25, 2, .1));
         event.put(SHIBIAN_LISHI.get(), attributes(84, 7, .19, 3, .5));
+        event.put(FUHUN_BAIBU_TONGZI.get(), attributes(28, 2, .24, 0, 0));
+        event.put(ZHIREN_JIANKE.get(), attributes(32, 5, .34, 0, 0));
+        event.put(CHIMU_ZHUHA.get(),attributes(52,6,.25,2,.1));
+        event.put(MINGSHA_SHIXIE.get(),attributes(48,5,.27,8,.35));
+        event.put(KUMU_SHUJING.get(),attributes(70,8,.18,6,.4));
+        event.put(MUXUE_FEILU.get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,30).add(Attributes.ATTACK_DAMAGE,5)
+            .add(Attributes.MOVEMENT_SPEED,.3).add(Attributes.FLYING_SPEED,.35).add(Attributes.FOLLOW_RANGE,28).build());
     }
 }

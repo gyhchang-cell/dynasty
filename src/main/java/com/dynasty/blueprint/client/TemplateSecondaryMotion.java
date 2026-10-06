@@ -33,6 +33,7 @@ public final class TemplateSecondaryMotion {
         final float[] angle=new float[14], speed=new float[14], roll=new float[14], rollSpeed=new float[14];
         final float[] rail=new float[2], ik=new float[12], ikY=new float[12], ikZ=new float[12];
         final double[] plantedY=new double[4];
+        final float[] scorpionFloor=new float[6],scorpionLeg=new float[12];
         final boolean[] stance=new boolean[4];
         Direction face;
     }
@@ -123,24 +124,52 @@ public final class TemplateSecondaryMotion {
                 model.getBone(SIDES[i]+"_climb_"+IK_PARTS[j]).ifPresent(b->b.setRotY(s.ikY[index]));
             }
         }else if(mob.kind()==TemplateMob.Kind.BEAST){s.face=null;java.util.Arrays.fill(s.stance,false);java.util.Arrays.fill(s.ik,0);}
+        if(mob.kind()==TemplateMob.Kind.SCORPION&&!mob.burrowed()&&mob.skillId()!=com.dynasty.blueprint.ArmySkills.SCORPION_EMERGE){
+            if(advance)solveScorpion(mob,s,now);
+            for(int i=0;i<6;i++){set(model,"leg_ik_hip_"+i,0,s.scorpionLeg[i*2]);set(model,"leg_ik_knee_"+i,0,s.scorpionLeg[i*2+1]);}
+        }
         String[] gear=gearBones(mob.kind());
         for(int j=0;j<gear.length;j++)set(model,gear[j],s.angle[j],s.roll[j]);
+        if(mob.kind()==TemplateMob.Kind.CHILD)model.getBone("lamp_inertia").ifPresent(b->b.setRotY(s.roll[0]*.7F));
     }
     private static String[] gearBones(TemplateMob.Kind kind){return switch(kind){
-        case SPEAR->SPEAR_GEAR;case CROSSBOW->CROSSBOW_GEAR;case SCOUT->SCOUT_GEAR;case FLAG->FLAG_GEAR;default->NO_GEAR;};}
-    private static final String[] NO_GEAR={},SPEAR_GEAR={"skirt_spring_front","skirt_spring_back","skirt_spring_left","skirt_spring_right"},
+        case SPEAR->SPEAR_GEAR;case CROSSBOW->CROSSBOW_GEAR;case SCOUT->SCOUT_GEAR;case FLAG->FLAG_GEAR;case CHILD->CHILD_GEAR;case SKULL->SKULL_GEAR;case TREE->TREE_GEAR;default->NO_GEAR;};}
+    private static final String[] TREE_GEAR={"root_spring_0","root_spring_1","root_spring_2","root_spring_3","root_spring_4","root_spring_5"},SKULL_GEAR={"viscera_spring_0","viscera_spring_1","viscera_spring_2","viscera_spring_3"},CHILD_GEAR={"lamp_inertia","ribbon_spring_0","ribbon_spring_1","ribbon_spring_2"},NO_GEAR={},SPEAR_GEAR={"skirt_spring_front","skirt_spring_back","skirt_spring_left","skirt_spring_right"},
         CROSSBOW_GEAR={"gear_pouch_0","gear_pouch_1","gear_pouch_2"},SCOUT_GEAR={"right_chain_spring","left_chain_spring"},
         FLAG_GEAR={"flag_spring_0","flag_spring_1","flag_spring_2","flag_spring_3"};
     private static void resetProcedural(TemplateMobModel model,TemplateMob.Kind kind){
         if(kind==TemplateMob.Kind.PRIEST){for(String side:SIDES)for(String n:new String[]{"sleeve_inner_spring","sleeve_inner_tip","sleeve_outer_spring","sleeve_outer_tip"})reset(model,side+"_"+n);for(int i=0;i<3;i++){reset(model,"talisman_spring_"+i);reset(model,"talisman_tip_"+i);}}
         if(kind==TemplateMob.Kind.SHIELD)for(String side:SIDES){reset(model,side+"_shoulder_rail");reset(model,side+"_hip_plate_lower");}
         if(kind==TemplateMob.Kind.BEAST)for(String side:SIDES)for(String part:IK_PARTS)reset(model,side+"_climb_"+part);
+        if(kind==TemplateMob.Kind.SCORPION)for(int i=0;i<6;i++){reset(model,"leg_ik_hip_"+i);reset(model,"leg_ik_knee_"+i);}
         for(String gear:gearBones(kind))reset(model,gear);
     }
     private static void reset(TemplateMobModel model,String name){model.getBone(name).ifPresent(b->{b.setRotX(0);b.setRotY(0);b.setRotZ(0);b.setPosX(0);b.setPosY(0);b.setPosZ(0);});}
     private static void set(TemplateMobModel model,String name,float x,float z){model.getBone(name).ifPresent(b->{b.setRotX(x);b.setRotZ(z);});}
     private static float rotation(TemplateMobModel model,String name){return model.getBone(name).map(GeoBone::getRotX).orElse(0F);}
 
+    /** Six bounded near-camera ground rays every four ticks; ordinary two-link visual IK. */
+    private static void solveScorpion(TemplateMob mob,Motion s,long now){
+        double yaw=Math.toRadians(mob.yBodyRot),cos=Math.cos(yaw),sin=Math.sin(yaw);
+        boolean moving=mob.getDeltaMovement().horizontalDistanceSqr()>.0001;
+        for(int i=0;i<6;i++){
+            int side=i<3?-1:1;double x=side*13/16D,z=(-5+i%3*5)/16D;
+            if(Math.floorMod(now-mob.getId(),4)==0){
+                var at=mob.position().add(x*cos-z*sin,0,x*sin+z*cos);
+                var hit=mob.level().clip(new net.minecraft.world.level.ClipContext(at.add(0,.6,0),at.add(0,-.75,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,mob));
+                s.scorpionFloor[i]=hit.getType()==net.minecraft.world.phys.HitResult.Type.BLOCK?(float)Mth.clamp(hit.getLocation().y-mob.getY(),-.75,.5):-.35F;
+            }
+            double phase=now*(Math.PI/8)+(i%3+i/3)*Math.PI;
+            double lift=moving?Math.max(0,Math.sin(phase))*1.6:0;
+            double dx=8,dy=Mth.clamp(s.scorpionFloor[i]*16+.5+lift-7,-9,1);
+            double a=Math.sqrt(34),b=Math.sqrt(21.25),r=Mth.clamp(Math.hypot(dx,dy),Math.abs(a-b)+.01,a+b-.01);
+            double knee=-Math.acos(Mth.clamp((r*r-a*a-b*b)/(2*a*b),-1,1));
+            double hip=Math.atan2(dy,dx)-Math.atan2(b*Math.sin(knee),a+b*Math.cos(knee));
+            double restHip=Math.atan2(-3,5),restKnee=Math.atan2(-3.5,3)-restHip;
+            s.scorpionLeg[i*2]=(float)Mth.clamp(side*(hip-restHip),-.8,.8);
+            s.scorpionLeg[i*2+1]=(float)Mth.clamp(side*(knee-restKnee),-1.2,1.2);
+        }
+    }
     private static void solveClimb(TemplateMobModel model,TemplateMob mob,Motion s,long now){
         if(s.face!=mob.climbFace()){s.face=mob.climbFace();java.util.Arrays.fill(s.stance,false);}
         // Contact phase is keyed to the server epoch. The six-tick stepping cycle bounds limb

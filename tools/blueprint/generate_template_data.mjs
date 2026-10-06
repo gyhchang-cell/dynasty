@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 const resource = 'src/main/resources';
 const prototypes = [
+  ['mingsha_shixie','鸣沙石蝎','Singing Sand Scorpion',[['dynasty:resonant_scorpion_shell',1,2],['dynasty:metal_sting_needle',0,1],['dynasty:pure_yellow_sand',1,3]],[]],
+  ['kumu_shujing','枯木树精','Hollow Deadwood Spirit',[['dynasty:ancient_tree_heart',0,1],['dynasty:hardened_dead_bark',1,3],['dynasty:glowing_parasite_mushroom',0,2]],[]],
+  ['chimu_zhuha','赤目朱蛤','Red-Eyed Vermilion Toad',[['dynasty:red_toad_gland',0,1],['dynasty:tough_toad_hide',1,2],['dynasty:poison_gel',1,2]],[]],
+  ['muxue_feilu','墓穴飞颅','Tomb Flying Skull',[['dynasty:pointed_dead_tooth',1,2],['dynasty:rusted_helmet_spike',0,1],['dynasty:yin_air_sac',0,1]],[]],
+  ['zhiren_jianke','纸人剑客','Paper Swordsman',[['dynasty:tough_bamboo_sliver',1,2],['dynasty:paper_cutting_knife',0,1],['dynasty:painted_cinnabar',0,2]],[]],
   ['zuwu_daoshou', '卒伍刀手', 'Rank-and-File Swordsman', [['dynasty:copper_coin',1,3],['dynasty:broken_iron_blade',0,1],['dynasty:coarse_linen',0,2]],[]],
   ['ludun_jiashi', '橹盾甲士', 'Tower-Shield Armiger', [['dynasty:heavy_shield_remnant',0,1],['dynasty:wrought_iron_billet',1,2],['dynasty:damaged_chainmail',0,1]],[]],
   ['fufa_jijiu', '符法祭酒', 'Talisman Ritualist', [['dynasty:cinnabar',0,2],['dynasty:talisman_paper',0,1],['dynasty:dry_peach_branch',1,2]],[]],
@@ -14,6 +19,7 @@ const prototypes = [
   ['zhenwang_zhangqiguan','阵亡掌旗官','Fallen Standard Bearer',[['dynasty:broken_tiger_tally',0,1],['dynasty:black_army_banner_scrap',1,2],['dynasty:vengeful_war_soul',0,1]],[]],
   ['pijia_panjiang_huwei','披甲叛将护卫','Rebel Axeguard',
     [['dynasty:kaishan_axe_blade',0,1],['dynasty:refined_wrought_iron',1,2],['dynasty:broken_heart_mirror',0,1]],[]],
+  ['fuhun_baibu_tongzi','缚魂白布童子','Shrouded Lantern Child',[['dynasty:white_wax_tear',1,2],['dynasty:wronged_shroud',0,2],['dynasty:pale_milk_tooth',0,1]],[]],
   ['shibian_lishi','尸变力士','Corpse Strongman',[['dynasty:blackened_bone',1,2],['dynasty:congealed_corpse_oil',0,2],['dynasty:strongman_wrist_weight',0,1]],[]],
   ['yinbing_guizu','阴兵鬼卒','Spectral Halberdier',
     [['dynasty:yin_jade_shard',1,2],['dynasty:nether_tatter',0,1],['dynasty:ancient_coin_rust',0,2]],[]],
@@ -39,7 +45,16 @@ langs.zh_cn['effect.dynasty.junhun_aura']='军魂不散';langs.en_us['effect.dyn
 langs.zh_cn['entity.dynasty.army_caltrop']='扎马钉';langs.en_us['entity.dynasty.army_caltrop']='Caltrop';
 langs.zh_cn['effect.dynasty.spirit_chill']='阴寒蚀骨';langs.en_us['effect.dynasty.spirit_chill']='Spirit Chill';
 fs.copyFileSync(`${resource}/assets/dynasty/textures/mob_effect/iron_wall.png`,`${resource}/assets/dynasty/textures/mob_effect/spirit_chill.png`);
+langs.zh_cn['entity.dynasty.skull_blood_pool']='腐蚀污血';langs.en_us['entity.dynasty.skull_blood_pool']='Corrosive Skull Blood';
+langs.zh_cn['tooltip.dynasty.yin_air_sac']='吞服后获得10秒缓降和水下呼吸，不恢复饱食度。';langs.en_us['tooltip.dynasty.yin_air_sac']='Consume for10 seconds of slow falling and water breathing; restores no hunger.';
 langs.zh_cn['entity.dynasty.corpse_miasma']='尸毒黏液';langs.en_us['entity.dynasty.corpse_miasma']='Corpse Miasma';
+langs.zh_cn['effect.dynasty.soul_bind']='白布缚魂';langs.en_us['effect.dynasty.soul_bind']='Soul Binding';
+langs.zh_cn['effect.dynasty.lantern_glare']='惨白灯晕';langs.en_us['effect.dynasty.lantern_glare']='Lantern Glare';
+for(const effect of ['soul_bind','lantern_glare','root_grip','sand_resonance'])fs.copyFileSync(`${resource}/assets/dynasty/textures/mob_effect/iron_wall.png`,`${resource}/assets/dynasty/textures/mob_effect/${effect}.png`);
+langs.zh_cn['effect.dynasty.root_grip']='绞杀根须';langs.en_us['effect.dynasty.root_grip']='Strangling Roots';
+langs.zh_cn['entity.dynasty.root_snare']='根须牢笼';langs.en_us['entity.dynasty.root_snare']='Root Cage';
+langs.zh_cn['tooltip.dynasty.glowing_parasite_mushroom']='食用后获得20秒夜视。';langs.en_us['tooltip.dynasty.glowing_parasite_mushroom']='Eat for20 seconds of night vision.';
+langs.zh_cn['effect.dynasty.sand_resonance']='金石鸣沙';langs.en_us['effect.dynasty.sand_resonance']='Stone Resonance';
 const components=[
  ['kaishan_axe_blade','开山斧刃','Broad Axe Blade','minecraft:block/iron_block',[[3,5,7,12,12,9],[1,4,7,4,13,9],[10,7,6,14,10,10]]],
  ['refined_wrought_iron','精炼熟铁锭','Refined Wrought Iron','minecraft:block/iron_block',[[3,4,5,13,8,11],[4,8,6,12,10,10]]],
@@ -54,6 +69,12 @@ const shapes={blade:[[6,2,7,9,12,9],[4,10,7,7,14,9]],cloth:[[3,5,7,12,12,8],[4,2
  gear:[[3,6,7,6,10,9],[10,6,7,13,10,9],[6,3,7,10,6,9],[6,10,7,10,13,9]],chain:[[4,3,7,6,9,9],[8,3,7,10,9,9],[6,3,7,8,5,9],[6,7,7,8,9,9],[8,8,7,10,14,9],[12,8,7,14,14,9],[10,8,7,12,10,9],[10,12,7,12,14,9]],
  dust:[[3,3,6,6,6,9],[8,3,7,12,6,10],[6,6,7,9,9,10]],tally:[[3,6,6,12,10,10],[3,10,6,6,12,10],[10,3,7,12,6,9]],soul:[[5,4,6,11,11,10],[7,11,7,10,14,9],[6,2,7,8,4,9]]};
 for(const [id,zh,en,shape,texture]of [
+ ['resonant_scorpion_shell','鸣沙石硬壳片','Resonant Scorpion Shell','plate','sandstone'],['metal_sting_needle','金石尾刺针','Metal Sting Needle','blade','gold_block'],['pure_yellow_sand','精纯黄砂','Pure Yellow Sand','dust','sand'],
+ ['ancient_tree_heart','千年老树心','Ancient Tree Heart','gall','stripped_dark_oak_log'],['hardened_dead_bark','坚硬枯木皮','Hardened Dead Bark','plate','dark_oak_log'],['glowing_parasite_mushroom','荧光寄生菇','Glowing Parasite Mushroom','gall','shroomlight'],
+ ['red_toad_gland','火红朱蛤腺体','Fiery Toad Gland','gall','red_terracotta'],['tough_toad_hide','粗糙坚韧蛙皮','Tough Toad Hide','cloth','red_wool'],['poison_gel','毒凝胶','Poison Gel','gall','slime_block'],
+ ['pointed_dead_tooth','尖锐死人牙','Pointed Dead Tooth','claw','bone_block_side'],['rusted_helmet_spike','生锈盔顶刺','Rusted Helmet Spike','blade','exposed_copper'],['yin_air_sac','阴气囊','Yin Air Sac','gall','gray_terracotta'],
+ ['tough_bamboo_sliver','极轻的韧竹篾','Tough Bamboo Sliver','branch','bamboo_block'],['paper_cutting_knife','裁纸小刀','Paper Cutting Knife','blade','iron_block'],['painted_cinnabar','点朱丹砂','Painted Cinnabar','dust','red_terracotta'],
+ ['white_wax_tear','白蜡灯泪','White Wax Tear','gall','white_terracotta'],['wronged_shroud','冤魂碎布片','Wronged Soul Shroud','cloth','white_wool'],['pale_milk_tooth','惨白乳齿','Pale Milk Tooth','claw','bone_block_side'],
  ['blackened_bone','发黑的腐骨','Blackened Rotten Bone','branch','black_terracotta'],['congealed_corpse_oil','凝固尸油','Congealed Corpse Oil','gall','purple_terracotta'],['strongman_wrist_weight','力士铅腕套','Strongman Wrist Weight','gear','deepslate'],
  ['broken_iron_blade','残破的生铁刀片','Broken Iron Blade','blade','iron_block'],['coarse_linen','粗麻碎布','Coarse Linen Scrap','cloth','brown_wool'],
  ['heavy_shield_remnant','沉重盾面残件','Heavy Shield Remnant','plate','spruce_planks'],['wrought_iron_billet','熟铁铸块','Wrought Iron Billet','ingot','iron_block'],
@@ -81,7 +102,7 @@ for(const [key,zh,en]of [
  ['leather_armor','铁砧修补皮甲：每缕恢复25%耐久，保留染色与附魔。','Anvil: repairs 25% leather armour durability, preserving dye and enchantments.']]){
  langs.zh_cn[`tooltip.dynasty.salvage.${key}`]=zh;langs.en_us[`tooltip.dynasty.salvage.${key}`]=en;
 }
-for(const [key,zh,en]of [['iron_sword','铁剑','iron swords'],['leather_boots','皮靴','leather boots'],['shield','普通盾牌','ordinary shields'],['chainmail','锁链甲','chainmail armour'],['bows','普通弓或弩','ordinary bows or crossbows'],['crossbow','普通弩','ordinary crossbows']]){
+for(const [key,zh,en]of [['shears','剪刀','shears'],['iron_sword','铁剑','iron swords'],['leather_boots','皮靴','leather boots'],['shield','普通盾牌','ordinary shields'],['chainmail','锁链甲','chainmail armour'],['bows','普通弓或弩','ordinary bows or crossbows'],['crossbow','普通弩','ordinary crossbows']]){
  langs.zh_cn[`tooltip.dynasty.salvage.${key}`]=`铁砧修复${zh}：每件恢复25%耐久，消耗材料与经验。`;
  langs.en_us[`tooltip.dynasty.salvage.${key}`]=`Anvil: repairs 25% durability on ${en} per component; costs materials and levels.`;
 }
@@ -89,10 +110,31 @@ langs.zh_cn['tooltip.dynasty.green_beast_gall']='食用后解除中毒，不恢�
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/rebel_guard_sites.json`,{replace:false,values:['dynasty:great_wall_gate']});
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/ghost_sites.json`,{replace:false,values:['dynasty:ruined_battlefield']});
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/corpse_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
+write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/shroud_child_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
+write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/paper_swordsman_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
+write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/flying_skull_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
+write(`${resource}/data/dynasty/tags/worldgen/biome/blueprint/scorpion_habitat.json`,{replace:false,values:['minecraft:desert','#minecraft:is_badlands']});
+write(`${resource}/data/dynasty/forge/biome_modifier/blueprint_scorpion.json`,{type:'forge:add_spawns',biomes:'#dynasty:blueprint/scorpion_habitat',spawners:{type:'dynasty:mingsha_shixie',weight:4,minCount:1,maxCount:2}});
+write(`${resource}/data/dynasty/recipes/smelt_scorpion_shell.json`,{type:'minecraft:smelting',ingredient:{item:'dynasty:resonant_scorpion_shell'},result:'minecraft:glass',experience:.2,cookingtime:200});
+write(`${resource}/data/dynasty/recipes/recover_sting_arrows.json`,{type:'minecraft:crafting_shapeless',ingredients:[{item:'dynasty:metal_sting_needle'},{item:'minecraft:stick'},{item:'minecraft:feather'}],result:{item:'minecraft:arrow',count:4}});
+for(const [id,material]of [['smelt_scorpion_shell','resonant_scorpion_shell'],['recover_sting_arrows','metal_sting_needle']])write(`${resource}/data/dynasty/advancements/recipes/${id}.json`,{criteria:{has_material:{trigger:'minecraft:inventory_changed',conditions:{items:[{items:[`dynasty:${material}`]}]}}},rewards:{recipes:[`dynasty:${id}`]}});
+write(`${resource}/data/dynasty/tags/worldgen/biome/blueprint/tree_habitat.json`,{replace:false,values:['#minecraft:is_forest','minecraft:taiga','minecraft:snowy_taiga','minecraft:old_growth_pine_taiga','minecraft:old_growth_spruce_taiga']});
+write(`${resource}/data/dynasty/forge/biome_modifier/blueprint_tree.json`,{type:'forge:add_spawns',biomes:'#dynasty:blueprint/tree_habitat',spawners:{type:'dynasty:kumu_shujing',weight:3,minCount:1,maxCount:1}});
+write(`${resource}/data/dynasty/tags/worldgen/biome/blueprint/toad_habitat.json`,{replace:false,values:['minecraft:swamp','minecraft:mangrove_swamp','minecraft:lush_caves','minecraft:dripstone_caves','minecraft:river']});
+write(`${resource}/data/dynasty/forge/biome_modifier/blueprint_toad.json`,{type:'forge:add_spawns',biomes:'#dynasty:blueprint/toad_habitat',spawners:{type:'dynasty:chimu_zhuha',weight:4,minCount:1,maxCount:2}});
+langs.zh_cn['entity.dynasty.toad_venom_pool']='火毒血沼';langs.en_us['entity.dynasty.toad_venom_pool']='Burning Toad Venom';
+write(`${resource}/data/dynasty/recipes/recover_toad_fire_charge.json`,{type:'minecraft:crafting_shapeless',ingredients:[{item:'dynasty:red_toad_gland'},{item:'minecraft:gunpowder'},{item:'minecraft:coal'}],result:{item:'minecraft:fire_charge'}});
+write(`${resource}/data/dynasty/advancements/recipes/recover_toad_fire_charge.json`,{criteria:{has_material:{trigger:'minecraft:inventory_changed',conditions:{items:[{items:['dynasty:red_toad_gland']}]}}},rewards:{recipes:['dynasty:recover_toad_fire_charge']}});
 const arrowsFile=`${resource}/data/minecraft/tags/items/arrows.json`;
 const arrows=fs.existsSync(arrowsFile)?JSON.parse(fs.readFileSync(arrowsFile,'utf8')):{replace:false,values:[]};
 if(!arrows.values.includes('dynasty:short_crossbow_bolt'))arrows.values.push('dynasty:short_crossbow_bolt');write(arrowsFile,arrows);
 for(const [id,ingredient,count,result,extra]of [
+ ['recover_yellow_sand','pure_yellow_sand',4,'minecraft:sand'],
+ ['recover_tree_heart','ancient_tree_heart',1,'minecraft:golden_apple','minecraft:apple'],
+ ['recover_poison_gel','poison_gel',4,'minecraft:slime_ball'],
+ ['recover_dead_tooth','pointed_dead_tooth',2,'minecraft:bone_meal'],
+ ['recover_painted_cinnabar','painted_cinnabar',2,'dynasty:cinnabar'],
+ ['recover_wax_candle','white_wax_tear',2,'minecraft:candle','minecraft:string'],['recover_milk_tooth','pale_milk_tooth',2,'minecraft:bone_meal'],
  ['recover_rotten_bone','blackened_bone',2,'minecraft:bone_meal'],
  ['recover_ancient_coin','ancient_coin_rust',4,'dynasty:copper_coin'],['recover_gunpowder','poor_gunpowder',4,'minecraft:gunpowder'],
  ['recover_pottery','pottery_fragment',4,'minecraft:brick'],['recover_tiger_tally','broken_tiger_tally',4,'dynasty:tiger_crest'],

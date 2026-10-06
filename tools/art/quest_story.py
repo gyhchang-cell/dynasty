@@ -422,6 +422,27 @@ def build_book():
     add_home(chapters)
     add_catalog_navigation(chapters, SLOTS)
     decorate(chapters)
+    # Preserve the optional infusion task when regenerating the quest book.
+    infusion = {'id': '10000000000F1001',
+     'title': '炼物入器 · 可选工艺',
+     'icon': '{ id: "dynasty:infusion_table" }',
+     'kind': 'advancement',
+     'target': 'dynasty:first_infusion',
+     'count': 1,
+     'tasks': '[{ id: "20000000000F1001", type: "advancement", advancement: "dynasty:first_infusion", '
+              'criterion: "" }]',
+     'rewards': '[]',
+     'purpose': '给已有特殊材料增加装备用途，保留其原功能。',
+     'how': '获得玉后，使用炼入台；2份材料和3级经验炼入一次。',
+     'deps': [],
+     'role': 'side',
+     'display_title': '炼物入器 · 可选工艺',
+     'x': 3.0,
+     'y': -5.8,
+     'shape': 'square',
+     'subtitle': '可选 · 装备深化',
+     'description': ['获得玉后，使用炼入台。2份材料和3级经验，三处炼入位共4容量；同类特性冲突，可替换或移除。材料原用途不变。']}
+    next(c for c in chapters if c["file"] == "dynasty_home")["quests"].append(infusion)
     validate(chapters, original)
     return chapters
 

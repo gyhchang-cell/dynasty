@@ -13,6 +13,15 @@ public final class TemplateContentDefinitions {
             int localCap, String spawnReason, String specialCondition, String despawnPolicy) {}
     private static ResourceLocation tag(String id) {return new ResourceLocation(id);}
     public static final List<Spawn> ALL = List.of(
+        new Spawn("mingsha_shixie",Level.OVERWORLD,List.of(tag("dynasty:blueprint/scorpion_habitat")),List.of(),
+            50,200,0,15,"ALL","DRY",4,1,2,3,"NATURAL_ECOLOGY",
+            "sand floor; surface or <=4 blocks below; dry standing space; maximum three within32","VANILLA_DISTANCE_DESPAWN"),
+        new Spawn("kumu_shujing",Level.OVERWORLD,List.of(tag("dynasty:blueprint/tree_habitat")),List.of(),
+            -63,220,0,12,"ALL; LOW LIGHT","ANY",3,1,1,2,"NATURAL_ECOLOGY",
+            "dry dirt floor; >=3 nearby logs; collision-free standing space; maximum two within32","VANILLA_DISTANCE_DESPAWN"),
+        new Spawn("chimu_zhuha",Level.OVERWORLD,List.of(tag("dynasty:blueprint/toad_habitat")),List.of(),
+            -63,100,0,12,"NIGHT_OR_RAIN_OR_COVER","RAIN_OR_COVER_DURING_DAY",4,1,2,2,"NATURAL_ECOLOGY",
+            "connected water >=12 blocks across >=9 columns; shore/water space; local cap2 within32","VANILLA_DISTANCE_DESPAWN"),
         new Spawn("zuwu_daoshou",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/ritual_sites")),
             -32,220,0,15,"ALL; night weight 10 instead of 8","ANY",8,2,2,2,"STRUCTURE_MARKER",
             "two swordsmen guarding an existing ritual priest; safe solid floor","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
@@ -40,7 +49,13 @@ public final class TemplateContentDefinitions {
         new Spawn("yinbing_guizu",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/ghost_sites")),
             -32,220,0,7,"NIGHT OR LOW LIGHT","ANY",2,2,5,5,"STRUCTURE_MARKER","ruined battlefield; stable group size per structure; maximum five spirits within32","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
         new Spawn("shibian_lishi",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/corpse_sites")),
-            -63,48,0,15,"ALL","ANY",1,1,2,2,"STRUCTURE_MARKER","authored imperial tomb antechamber; no ordinary cave spawning","PERSISTENT_MARKER; 10-minute cooldown after all killed")
+            -63,48,0,15,"ALL","ANY",1,1,2,2,"STRUCTURE_MARKER","authored imperial tomb antechamber; no ordinary cave spawning","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
+        new Spawn("fuhun_baibu_tongzi",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/shroud_child_sites")),
+            -63,64,0,15,"NIGHT OR LOW LIGHT","ANY",1,1,1,1,"STRUCTURE_MARKER","authored imperial tomb west gallery; night or light<=7; maximum one within32","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
+        new Spawn("zhiren_jianke",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/paper_swordsman_sites")),
+            -63,64,0,15,"ALL","ANY",1,1,3,3,"STRUCTURE_MARKER","authored imperial tomb courtyard; maximum three within32; no biome spawning","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
+        new Spawn("muxue_feilu",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/flying_skull_sites")),
+            -63,64,0,7,"ALL; LOW LIGHT","ANY",1,1,3,3,"STRUCTURE_MARKER","authored imperial tomb airspace; maximum three within32; no solid/wet landing","PERSISTENT_MARKER; 10-minute cooldown after all killed")
     );
     static int maximumWeight(Spawn definition) {
         return switch(definition.id()) {case "zuwu_daoshou"->10;case "fufa_jijiu"->4;default->definition.spawnWeight();};

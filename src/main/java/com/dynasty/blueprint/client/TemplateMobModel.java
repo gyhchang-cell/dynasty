@@ -10,6 +10,9 @@ public final class TemplateMobModel extends GeoModel<TemplateMob> {
     @Override public void setCustomAnimations(TemplateMob mob, long instanceId, AnimationState<TemplateMob> state) {
         super.setCustomAnimations(mob, instanceId, state);
         TemplateSecondaryMotion.apply(this, mob, state.getPartialTick());
+        if(mob.kind()==TemplateMob.Kind.TOAD)
+            // Independent identity wrapper: never multiply a shared animated bone across draws.
+            getBone("tongue_reach").ifPresent(b->b.setScaleZ(mob.skillId()==com.dynasty.blueprint.ArmySkills.TOAD_TONGUE?mob.tongueReach()/5:1));
     }
     @Override public ResourceLocation getModelResource(TemplateMob mob) {
         return new ResourceLocation("dynasty", "geo/blueprint/" + mob.blueprintId() + ".geo.json");
@@ -26,7 +29,8 @@ public final class TemplateMobModel extends GeoModel<TemplateMob> {
             case "juma_changqiangbing" -> "archer";
             case "liannu_zhenzu", "kuijun_sishi" -> "rebel_soldier";
             case "tiesuo_chihou" -> "assassin";
-            case "shibian_lishi" -> "nian_beast";
+            case "fuhun_baibu_tongzi" -> "imperial_soldier";
+            case "shibian_lishi", "chimu_zhuha", "kumu_shujing", "mingsha_shixie" -> "nian_beast";
             case "shanjing_shanxiao" -> "nian_beast";
             default -> "imperial_soldier";
         };

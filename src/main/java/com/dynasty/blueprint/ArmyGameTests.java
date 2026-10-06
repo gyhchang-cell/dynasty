@@ -302,7 +302,7 @@ public final class ArmyGameTests {
             &&BlueprintSpawns.battlefieldMember(3)==BlueprintEntities.TIESUO_CHIHOU.get()
             &&java.util.stream.IntStream.range(4,7).allMatch(i->BlueprintSpawns.battlefieldMember(i)==BlueprintEntities.KUIJUN_SISHI.get()),
             "One banner supports the authored priest, two scouts and three powder units");
-        h.assertTrue(ArmySkills.ALL.size()==15&&ArmySkills.ALL.stream().allMatch(s->s.impactTicks().stream().allMatch(t->s.phaseAt(t)==AttackState.ACTIVE)),"All fifteen server action contacts lie in ACTIVE");h.succeed();
+        h.assertTrue(ArmySkills.ALL.size()==30&&ArmySkills.ALL.stream().allMatch(s->s.impactTicks().stream().allMatch(t->s.phaseAt(t)==AttackState.ACTIVE)),"All thirty server action contacts lie in ACTIVE");h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=1000,batch="army_world")
     public static void battlefieldGeneratesAndOwnsBoundedPersistentEncounter(GameTestHelper h){

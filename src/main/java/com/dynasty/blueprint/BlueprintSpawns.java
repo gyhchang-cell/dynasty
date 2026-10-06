@@ -30,8 +30,20 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> GUARDS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/rebel_guard_sites"));
     private static final TagKey<Structure> GHOSTS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ghost_sites"));
     private static final TagKey<Structure> CORPSES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/corpse_sites"));
+    private static final TagKey<Structure> CHILDREN=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/shroud_child_sites"));
+    private static final TagKey<Structure> PAPERS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/paper_swordsman_sites"));
+    private static final TagKey<Structure> SKULLS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/flying_skull_sites"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
+        event.register(BlueprintEntities.MINGSHA_SHIXIE.get(),SpawnPlacements.Type.ON_GROUND,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
+                reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||scorpionHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
+        event.register(BlueprintEntities.KUMU_SHUJING.get(),SpawnPlacements.Type.ON_GROUND,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
+                reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||treeHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
+        event.register(BlueprintEntities.CHIMU_ZHUHA.get(),SpawnPlacements.Type.NO_RESTRICTIONS,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
+                reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||toadHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
         event.register(BlueprintEntities.TIESUO_CHIHOU.get(),SpawnPlacements.Type.ON_GROUND,
             Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->{
                 if(reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND)return true;
@@ -51,6 +63,59 @@ public final class BlueprintSpawns {
                     && server.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(24),e->e.getType()==type).size()<3;
             },SpawnPlacementRegisterEvent.Operation.REPLACE);
     }
+    static boolean scorpionHabitat(ServerLevel level,BlockPos pos){
+        var habitat=TagKey.create(Registries.BIOME,new ResourceLocation("dynasty","blueprint/scorpion_habitat"));
+        var type=BlueprintEntities.MINGSHA_SHIXIE.get();
+        return level.dimension()==Level.OVERWORLD&&level.getDifficulty()!=net.minecraft.world.Difficulty.PEACEFUL
+            &&pos.getY()>=50&&pos.getY()<=200&&level.hasChunkAt(pos)&&level.getBiome(pos).is(habitat)
+            &&pos.getY()>=level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,pos.getX(),pos.getZ())-4
+            &&!level.isRainingAt(pos)&&level.getFluidState(pos).isEmpty()&&level.getBlockState(pos.below()).is(net.minecraft.tags.BlockTags.SAND)
+            &&com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
+            &&level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()<3;
+    }
+    /** At most245 loaded block reads per spawn attempt; no periodic terrain scan. */
+    static boolean treeHabitat(ServerLevel level,BlockPos pos){
+        var habitat=TagKey.create(Registries.BIOME,new ResourceLocation("dynasty","blueprint/tree_habitat"));
+        var type=BlueprintEntities.KUMU_SHUJING.get();
+        if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+                ||pos.getY()<level.getMinBuildHeight()+1||pos.getY()>220||!level.hasChunkAt(pos)
+                ||!level.getBiome(pos).is(habitat)||level.getMaxLocalRawBrightness(pos)>12
+                ||!level.getBlockState(pos.below()).is(net.minecraft.tags.BlockTags.DIRT)
+                ||!level.getFluidState(pos).isEmpty()
+                ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
+                ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()>=2)return false;
+        int logs=0;
+        for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=0;y<5;y++){
+            var p=pos.offset(x,y,z);
+            if(level.hasChunkAt(p)&&level.getBlockState(p).is(net.minecraft.tags.BlockTags.LOGS)&&++logs>=3)return true;
+        }
+        return false;
+    }
+    /** Spawn-attempt-only bounded water connectivity check; never scans from a mob tick. */
+    static boolean toadHabitat(ServerLevel level,BlockPos pos){
+        var habitat=TagKey.create(Registries.BIOME,new ResourceLocation("dynasty","blueprint/toad_habitat"));
+        if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+                ||pos.getY()<level.getMinBuildHeight()+1||pos.getY()>100||!level.hasChunkAt(pos)||!level.getBiome(pos).is(habitat)
+                ||level.getMaxLocalRawBrightness(pos)>12||level.isDay()&&!level.isRainingAt(pos)&&level.canSeeSky(pos))return false;
+        var type=BlueprintEntities.CHIMU_ZHUHA.get();var box=type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5);
+        if(!level.noCollision(null,box)||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()>=2)return false;
+        if(!level.getFluidState(pos).is(net.minecraft.tags.FluidTags.WATER)
+                &&!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,box))return false;
+        var wet=new java.util.HashSet<BlockPos>();
+        for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=-1;y<=1;y++){
+            var p=pos.offset(x,y,z);if(level.hasChunkAt(p)&&level.getFluidState(p).is(net.minecraft.tags.FluidTags.WATER))wet.add(p);
+        }
+        while(!wet.isEmpty()){
+            var queue=new java.util.ArrayDeque<BlockPos>();var first=wet.iterator().next();wet.remove(first);queue.add(first);
+            int water=0;var columns=new java.util.HashSet<Long>();
+            while(!queue.isEmpty()){
+                var p=queue.remove();water++;columns.add(BlockPos.asLong(p.getX(),0,p.getZ()));
+                if(water>=12&&columns.size()>=9)return true;
+                for(var direction:net.minecraft.core.Direction.values()){var next=p.relative(direction);if(wet.remove(next))queue.add(next);}
+            }
+        }
+        return false;
+    }
     @SubscribeEvent public static void tick(TickEvent.LevelTickEvent event) {
         if(event.phase!=TickEvent.Phase.END || !(event.level instanceof ServerLevel level) || level.dimension()!=Level.OVERWORLD
                 || level.getGameTime()%100!=0 || level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
@@ -60,7 +125,7 @@ public final class BlueprintSpawns {
         int remaining=2; // Absolute per-level work cap, independent of player count.
         for(var player:level.players()) {
             if(player.isSpectator())continue;
-            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES)) for(var holder:registry.getTagOrEmpty(group)) {
+            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES,CHILDREN,PAPERS,SKULLS)) for(var holder:registry.getTagOrEmpty(group)) {
                 if(remaining<=0)return;
                 if(group==BATTLEFIELD&&level.isDay())continue;
                 var start=level.structureManager().getStructureAt(player.blockPosition(),holder.value());
@@ -68,6 +133,24 @@ public final class BlueprintSpawns {
                 var box=start.getBoundingBox();var centre=box.getCenter();
                 String key=registry.getKey(holder.value())+"@"+start.getChunkPos().toLong();
                 if(group==GHOSTS)key+=":ghosts";
+                if(group==SKULLS){
+                    if(!checked.add(key+":flying_skulls"))continue;
+                    for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
+                            &&spawnFlyingSkull(level,key+":flying_skulls",tomb.flyingSkullPositions(),player.blockPosition())){remaining--;break;}
+                    continue;
+                }
+                if(group==PAPERS){
+                    if(!checked.add(key+":paper_swordsmen"))continue;
+                    for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
+                            &&spawnPaperSwordsman(level,key+":paper_swordsmen",tomb.paperSwordsmanPositions(),player.blockPosition())){remaining--;break;}
+                    continue;
+                }
+                if(group==CHILDREN){
+                    if(!checked.add(key+":shroud_child"))continue;
+                    for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
+                            &&spawnShroudChild(level,key+":shroud_child",tomb.shroudChildPosition(),player.blockPosition())){remaining--;break;}
+                    continue;
+                }
                 if(group==CORPSES){
                     if(!checked.add(key+":corpses"))continue;
                     for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
@@ -128,22 +211,32 @@ public final class BlueprintSpawns {
     }
     /** Authored upper-gate positions reuse the existing encounter ledger and death/unload lifecycle. */
     public static boolean spawnGateGuard(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
-        return spawnAuthoredPair(level,key,positions,entrant,BlueprintEntities.PIJIA_PANJIANG_HUWEI.get(),-32,300);
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.PIJIA_PANJIANG_HUWEI.get(),-32,300);
     }
     public static boolean spawnTombCorpse(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
-        return spawnAuthoredPair(level,key,positions,entrant,BlueprintEntities.SHIBIAN_LISHI.get(),level.getMinBuildHeight()+1,48);
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.SHIBIAN_LISHI.get(),level.getMinBuildHeight()+1,48);
     }
-    private static boolean spawnAuthoredPair(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant,
+    public static boolean spawnShroudChild(ServerLevel level,String key,BlockPos pos,BlockPos entrant){
+        if(!level.hasChunkAt(pos)||level.isDay()&&level.getMaxLocalRawBrightness(pos)>7)return false;
+        return spawnAuthoredGroup(level,key,List.of(pos),entrant,BlueprintEntities.FUHUN_BAIBU_TONGZI.get(),level.getMinBuildHeight()+1,64);
+    }
+    public static boolean spawnPaperSwordsman(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.ZHIREN_JIANKE.get(),level.getMinBuildHeight()+1,64);
+    }
+    public static boolean spawnFlyingSkull(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.MUXUE_FEILU.get(),level.getMinBuildHeight()+1,64);
+    }
+    private static boolean spawnAuthoredGroup(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant,
             net.minecraft.world.entity.EntityType<TemplateMob> type,int minY,int maxY){
-        if(positions.size()!=2||level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+        if(positions.isEmpty()||positions.size()>3||level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
                 ||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return false;
         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);
-        if(marker!=null&&(marker.cleared||marker.nextSpawn>level.getGameTime()||marker.produced>=2&&!marker.members.isEmpty()))return false;
-        int index=marker==null||marker.produced>=2?0:marker.produced;
+        if(marker!=null&&(marker.cleared||marker.nextSpawn>level.getGameTime()||marker.produced>=positions.size()&&!marker.members.isEmpty()))return false;
+        int index=marker==null||marker.produced>=positions.size()?0:marker.produced;
         var pos=positions.get(index);
         if(pos.getY()<minY||pos.getY()>Math.min(maxY,level.getMaxBuildHeight()-3)||!level.hasChunkAt(pos)||pos.distSqr(entrant)<25||pos.distSqr(entrant)>32*32
-                ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()>=2
-                ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5)))return false;
+                ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()>=positions.size()
+                ||!authoredSpace(level,type,pos))return false;
         var mob=type.create(level);if(mob==null)return false;
         mob.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,0,0);mob.setPersistenceRequired();
         mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.STRUCTURE,null,null);
@@ -151,6 +244,13 @@ public final class BlueprintSpawns {
         if(marker==null){marker=new BlueprintSpawnState.Marker(key,pos);state.markers.put(key,marker);}
         if(index==0)marker.produced=0;
         marker.members.add(mob.getUUID());marker.produced++;marker.nextSpawn=level.getGameTime()+100;state.setDirty();return true;
+    }
+
+    private static boolean authoredSpace(ServerLevel level,net.minecraft.world.entity.EntityType<TemplateMob> type,BlockPos pos){
+        var box=type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5);
+        if(type==BlueprintEntities.MUXUE_FEILU.get())return level.getMaxLocalRawBrightness(pos)<=7
+            &&level.getFluidState(pos).isEmpty()&&level.noCollision(null,box);
+        return com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,box);
     }
 
     /** Authored upper-gallery garrison, using the existing encounter ledger and death/unload lifecycle. */

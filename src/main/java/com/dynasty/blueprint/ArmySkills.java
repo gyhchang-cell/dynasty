@@ -9,6 +9,12 @@ public final class ArmySkills {
     public static final int AXE_CLAMP=20,AXE_COUNTER=21;
     public static final int GHOST_THRUST=22,GHOST_PHASE=23;
     public static final int CORPSE_SMASH=24;
+    public static final int CHILD_LAUGH=25,CHILD_CURSE=26;
+    public static final int PAPER_SLASH=27,PAPER_SHED=28;
+    public static final int SKULL_DIVE=29,SKULL_BLOOD=30;
+    public static final int TOAD_TONGUE=31,TOAD_LEAP=32,TOAD_BURST=33;
+    public static final int TREE_WAKE=34,TREE_SWEEP=35,TREE_ROOTS=36;
+    public static final int SCORPION_EMERGE=37,SCORPION_CLAW=38,SCORPION_SONG=39;
     public static final List<SkillDefinition> ALL=List.of(
         skill(THRUST,"spear_thrust",12,1,13,34,0,3.5,28,1,.9,true,12),
         skill(BRACE,"spear_brace",8,25,15,65,0,6,25,3,1.1,false,8),
@@ -24,7 +30,22 @@ public final class ArmySkills {
         skill(AXE_COUNTER,"guard_axe_counter",10,1,23,100,0,3.6,360,1.8F,1.1,false,10),
         skill(GHOST_THRUST,"ghost_frost_thrust",14,1,19,38,0,3.8,30,1,.15,true,14),
         skill(GHOST_PHASE,"ghost_phase",0,6,10,120,0,16,360,0,0,false,0),
-        skill(CORPSE_SMASH,"corpse_smash",20,1,25,55,0,3.3,110,1.5F,.7,true,20));
+        skill(CORPSE_SMASH,"corpse_smash",20,1,25,55,0,3.3,110,1.5F,.7,true,20),
+        skill(CHILD_LAUGH,"child_laugh",12,1,17,50,0,6,360,.5F,0,true,12),
+        skill(CHILD_CURSE,"child_curse",40,1,19,180,1.5,10,360,0,0,true,40),
+        skill(PAPER_SLASH,"paper_slash",6,1,13,24,0,2.8,105,1,.08,true,6),
+        skill(PAPER_SHED,"paper_shed",6,1,9,1,0,12,360,0,0,false,6),
+        skill(SKULL_DIVE,"skull_dive",14,12,18,60,0,12,40,1,0,true,14),
+        skill(SKULL_BLOOD,"skull_blood",20,1,29,160,0,8,360,0,0,true,20),
+        skill(TOAD_TONGUE,"toad_tongue",10,1,17,36,0,5,30,1,0,true,10),
+        skill(TOAD_LEAP,"toad_leap",10,20,10,45,3.5,24,60,1,0,true,10),
+        skill(TOAD_BURST,"toad_burst",12,1,19,200,0,24,360,1,0,true,12),
+        skill(TREE_WAKE,"tree_wake",20,1,9,1,0,24,360,0,0,false,20),
+        skill(TREE_SWEEP,"tree_sweep",18,1,23,48,0,3.7,140,1,.65,true,18),
+        skill(TREE_ROOTS,"tree_roots",28,1,31,180,3,10,360,0,0,true,28),
+        skill(SCORPION_EMERGE,"scorpion_emerge",22,1,9,1,0,24,360,0,0,false,22),
+        skill(SCORPION_CLAW,"scorpion_claw",12,9,19,40,0,3,80,1,0,true,12,20),
+        skill(SCORPION_SONG,"scorpion_song",20,1,27,180,0,5,360,0,0,true,20));
     private ArmySkills(){}
     private static SkillDefinition skill(int id,String key,int w,int a,int r,int cd,double min,double max,double angle,
             float damage,double knockback,boolean interrupt,int... contacts){
