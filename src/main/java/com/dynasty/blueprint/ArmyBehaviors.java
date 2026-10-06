@@ -33,11 +33,11 @@ public final class ArmyBehaviors {
         default void load(CompoundTag tag){}
         default String animation(int id){return switch(id){case ArmySkills.BRACE->"brace";case ArmySkills.ROLL->"roll";
             case ArmySkills.GRAPPLE->"grapple";case ArmySkills.KNEE->"knee";case ArmySkills.DETONATE->"detonate";
-            case ArmySkills.AXE_COUNTER->"counter";case ArmySkills.GHOST_PHASE->"phase";default->"attack";};}
+            case ArmySkills.CHILD_CURSE->"curse";case ArmySkills.AXE_COUNTER->"counter";case ArmySkills.GHOST_PHASE->"phase";default->"attack";};}
     }
     static Behavior create(TemplateMob mob,TemplateMob.Kind kind){return switch(kind){
         case SPEAR->new Spear(mob);case CROSSBOW->new Crossbow(mob);case SCOUT->new Scout(mob);
-        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);default->null;};}
+        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);case CHILD->new ShroudChild(mob);default->null;};}
     private ArmyBehaviors(){}
     public static boolean charging(LivingEntity target,Vec3 position){
         Vec3 velocity=target.getVehicle()==null?target.getDeltaMovement():target.getVehicle().getDeltaMovement();
@@ -86,6 +86,60 @@ public final class ArmyBehaviors {
             }
             return count;
         }
+    }
+    /** Player look direction is sampled only on the server; a single turn cancels this cast. */
+    static boolean observing(LivingEntity observer,LivingEntity subject){
+        Vec3 toward=subject.getEyePosition().subtract(observer.getEyePosition());
+        return toward.lengthSqr()<.01||observer.getLookAngle().dot(toward.normalize())>.6&&observer.hasLineOfSight(subject);
+    }
+    private static final class ShroudChild extends Base {
+        ShroudChild(TemplateMob mob){super(mob);}
+        public boolean allows(int id){return id==ArmySkills.CHILD_LAUGH||id==ArmySkills.CHILD_CURSE;}
+        private boolean behindPlayer(LivingEntity target){
+            return target instanceof net.minecraft.server.level.ServerPlayer&&target.getLookAngle()
+                .dot(mob.getEyePosition().subtract(target.getEyePosition()).normalize())<-.35;
+        }
+        public boolean canStart(int id,LivingEntity target){return id!=ArmySkills.CHILD_CURSE||behindPlayer(target);}
+        public int choose(LivingEntity target,long now){
+            return behindPlayer(target)&&mob.attack().ready(ArmySkills.CHILD_CURSE,now)?ArmySkills.CHILD_CURSE:ArmySkills.CHILD_LAUGH;
+        }
+        public void started(int id,LivingEntity target){mob.playSound(SoundEvents.VEX_CHARGE,.45F,1.7F);}
+        public void tick(long now){
+            if(mob.skillId()!=ArmySkills.CHILD_CURSE)return;
+            var target=victim();
+            if(!mob.validEnemy(target)||mob.distanceToSqr(target)>100||!mob.hasLineOfSight(target)||observing(target,mob)){
+                mob.cancelAction();return;
+            }
+            if(now%5==0)level().sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD,
+                target.getX(),target.getY()+.15,target.getZ(),3,.4,.08,.4,.005);
+        }
+        public void impact(SkillDefinition skill,int frame){
+            if(skill.id()==ArmySkills.CHILD_CURSE){
+                var target=victim();
+                if(target instanceof net.minecraft.server.level.ServerPlayer player&&mob.validEnemy(player)
+                        &&mob.distanceToSqr(player)<=100&&mob.hasLineOfSight(player)&&!observing(player,mob)){
+                    player.addEffect(new MobEffectInstance(BlueprintEntities.SOUL_BIND.get(),30,0),mob);
+                    int food=player.getFoodData().getFoodLevel();player.getFoodData().setFoodLevel(Math.max(0,food-(int)Math.ceil(food*.1)));
+                }
+                return;
+            }
+            for(var target:CombatGeometry.query(level(),mob.position(),mob.attack().direction(),CombatGeometry.Shape.CIRCLE,
+                    6,1,360,2,e->mob.validEnemy(e)&&mob.hasLineOfSight(e))){
+                target.hurt(mob.damageSources().indirectMagic(mob,mob),2);
+                if(target instanceof net.minecraft.server.level.ServerPlayer&&observing(target,mob))
+                    target.addEffect(new MobEffectInstance(BlueprintEntities.LANTERN_GLARE.get(),16,0),mob);
+            }
+            for(int i=0;i<16;i++){double a=i*Math.PI/8;level().sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD,
+                mob.getX()+Math.cos(a)*2,mob.getY()+.8,mob.getZ()+Math.sin(a)*2,1,0,0,0,0);}
+        }
+        public void move(LivingEntity target,long now){
+            mob.setSprinting(false);
+            Vec3 away=mob.position().subtract(target.position()).multiply(1,0,1).normalize();
+            Vec3 point=mob.distanceToSqr(target)<16?mob.position().add(away.scale(3))
+                :target.position().subtract(target.getLookAngle().multiply(1,0,1).normalize().scale(4));
+            navigate(point,.85);
+        }
+        public void died(DamageSource source){mob.playSound(SoundEvents.ALLAY_DEATH,.55F,1.35F);}
     }
     private static final class Corpse extends Base {
         long spillCooldown, nextBound;

@@ -24,7 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.ArrayList;
 
-/** World-space particle hints only; never touches RenderSystem, camera, matrices or player controls. */
+/** Bounded world-space hints and finite translucent glare; no camera or input mutation. */
 @Mod.EventBusSubscriber(modid="dynasty", value=Dist.CLIENT)
 public final class BlueprintVisuals {
     private record Key(UUID caster, long started) {}
@@ -32,6 +32,17 @@ public final class BlueprintVisuals {
     private static ResourceLocation world;
     private static final ArrayList<Integer> SUPPORTS = new ArrayList<>();
     private static final ArrayList<Integer> SHIELDS = new ArrayList<>();
+    @SubscribeEvent public static void glare(net.minecraftforge.client.event.RenderGuiOverlayEvent.Post event) {
+        if(!event.getOverlay().id().equals(net.minecraftforge.client.gui.overlay.VanillaGuiOverlay.HOTBAR.id()))return;
+        var mc=Minecraft.getInstance();if(mc.player==null||!mc.player.isAlive()||mc.options.hideGui)return;
+        var effect=mc.player.getEffect(BlueprintEntities.LANTERN_GLARE.get());if(effect==null)return;
+        int width=mc.getWindow().getGuiScaledWidth(),height=mc.getWindow().getGuiScaledHeight();
+        int alpha=Math.min(48,Math.max(0,effect.getDuration())*3);var gui=event.getGuiGraphics();
+        // Under25% combined opacity around the edges, under5% over the centre; expires with native effect sync.
+        gui.fill(0,0,width,height,((alpha/4)<<24)|0xFFF9E6);
+        gui.fillGradient(0,0,width,height/4,(alpha<<24)|0xFFF9E6,0x00FFF9E6);
+        gui.fillGradient(0,height*3/4,width,height,0x00FFF9E6,(alpha<<24)|0xFFF9E6);
+    }
     private BlueprintVisuals() {}
     public static void accept(BlueprintVisualEvent p) {
         var mc=Minecraft.getInstance();
@@ -142,14 +153,17 @@ public final class BlueprintVisuals {
     private static int deathParticles(Minecraft mc,BlueprintVisualEvent p,long age,int budget) {
         boolean priest=p.key().endsWith("fufa_jijiu"),shield=p.key().endsWith("ludun_jiashi"),sword=p.key().endsWith("zuwu_daoshou"),
             cross=p.key().endsWith("liannu_zhenzu"),powder=p.key().endsWith("kuijun_sishi"),flag=p.key().endsWith("zhenwang_zhangqiguan");
-        if(!(priest&&age<18||shield&&age>=188||sword&&age>=40||cross&&age>=8&&age<20||powder&&age<30||flag&&age>=8&&age<28))return 0;
+        boolean child=p.key().endsWith("fuhun_baibu_tongzi");
+        if(!(child&&age<30||priest&&age<18||shield&&age>=188||sword&&age>=40||cross&&age>=8&&age<20||powder&&age<30||flag&&age>=8&&age<28))return 0;
         int count=Math.min(budget,priest?8:4);
         // No visual entities, frame packets or random state to replicate: seed + absolute age is deterministic.
         var random=net.minecraft.util.RandomSource.create(p.seed()^age*0x9e3779b97f4a7c15L);
         for(int i=0;i<count;i++) {
             double x=p.origin().x+(random.nextDouble()-.5)*.8,z=p.origin().z+(random.nextDouble()-.5)*.8;
             double y=p.origin().y+(priest?.6:shield?.4:.15)+random.nextDouble()*(priest?.6:shield?1.2:.25);
-            if(priest) {
+            if(child){
+                mc.level.addParticle(new ItemParticleOption(ParticleTypes.ITEM,new ItemStack(age<18?Items.PAPER:Items.BONE_MEAL)),x,y+.6,z,(x-p.origin().x)*.14,.025,(z-p.origin().z)*.14);
+            } else if(priest) {
                 if(i%3==0)mc.level.addParticle(ParticleTypes.SOUL_FIRE_FLAME,x,y,z,(x-p.origin().x)*.05,.025,(z-p.origin().z)*.05);
                 else mc.level.addParticle(new ItemParticleOption(ParticleTypes.ITEM,new ItemStack(Items.PAPER)),x,y,z,(x-p.origin().x)*.2,.06,(z-p.origin().z)*.2);
             } else if(cross){

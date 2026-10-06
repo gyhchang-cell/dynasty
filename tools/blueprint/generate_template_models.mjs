@@ -15,7 +15,7 @@ function pngPixels(file){
  return {w,h,c,data};
 }
 const atlasNames={zuwu_daoshou:'royal_guard',ludun_jiashi:'royal_guard',fufa_jijiu:'imperial_soldier',shanjing_shanxiao:'nian_beast',
- juma_changqiangbing:'archer',liannu_zhenzu:'rebel_soldier',tiesuo_chihou:'assassin',kuijun_sishi:'rebel_soldier',zhenwang_zhangqiguan:'royal_guard',pijia_panjiang_huwei:'royal_guard',yinbing_guizu:'royal_guard',shibian_lishi:'nian_beast'};
+ juma_changqiangbing:'archer',liannu_zhenzu:'rebel_soldier',tiesuo_chihou:'assassin',kuijun_sishi:'rebel_soldier',zhenwang_zhangqiguan:'royal_guard',pijia_panjiang_huwei:'royal_guard',yinbing_guizu:'royal_guard',shibian_lishi:'nian_beast',fuhun_baibu_tongzi:'imperial_soldier'};
 let bones=[],activeId='',uvMap={},grips=[];
 function bone(name,parent,pivot,cubes=[],rotation){const b={name,pivot,cubes};if(parent)b.parent=parent;if(rotation)b.rotation=rotation;bones.push(b);return name;}
 function cube(x,y,z,w,h,d,mat='cloth',rotation,pivot){
@@ -110,6 +110,77 @@ function human({hip=11.5,chestY=22.5,shoulder=4.4,width=7.4,depth=4.2,headY=25,h
   bone(`${side}_foot`,`${side}_ankle`,[lx,1,0],[cube(lx-1.5,0,-3,3,1.4,4.5,'black')]);
  }
 }
+function shroudChild(){
+ bone('pelvis','root',[0,6,0],[cube(-2.3,4.8,-1.6,4.6,3,3.2,'paper')]);
+ bone('waist','pelvis',[0,7,0],[cube(-2,6.5,-1.5,4,2.6,3,'paper')]);
+ bone('chest','waist',[0,11,0],[cube(-2.6,8,-1.7,5.2,4.2,3.4,'paper')]);
+ bone('neck','chest',[0,12,0],[cube(-.7,12,-.7,1.4,1.2,1.4,'bone')]);
+ bone('head','neck',[0,14.5,0],[cube(-3,12.8,-2.5,6,5.3,5,'paper')]);
+ for(let i=0;i<4;i++)add('head',cube(-3.1,13+i*1.25,-2.6,6.2,.3,5.2,'bone',[0,0,i%2?5:-5]));
+ bone('single_eye','head',[.95,15.5,-2.7],[cube(.4,15,-2.75,1.1,1.1,.25,'black')]);
+ bone('topknot','head',[0,18,0],[cube(-.65,18,-.5,1.3,1,1,'black'),cube(-1.05,18.55,-.4,2.1,.5,.8,'black')]);
+ for(const s of [-1,1]){
+  const side=s<0?'right':'left',x=s*3;
+  bone(`${side}_shoulder`,'chest',[x,11,0]);
+  bone(`${side}_upper_arm`,`${side}_shoulder`,[x,11,0],[cube(x-.7,8.8,-.65,1.4,2.2,1.3,'paper')]);
+  bone(`${side}_elbow`,`${side}_upper_arm`,[x,8.8,0]);
+  bone(`${side}_forearm`,`${side}_elbow`,[x,8.8,0],[cube(x-.65,8.1,-3.6,1.3,1.3,3.6,'paper')]);
+  bone(`${side}_wrist`,`${side}_forearm`,[x,8.4,-3.5]);
+  bone(`${side}_hand`,`${side}_wrist`,[x,8.4,-3.5]);
+  closedGrip(side,[x,8.4,-3.5],.18,{axis:'x'});
+  const lx=s*1.25;
+  bone(`${side}_thigh`,'pelvis',[lx,6,0],[cube(lx-.7,3.8,-.8,1.4,2.2,1.6,'paper')]);
+  bone(`${side}_knee`,`${side}_thigh`,[lx,3.8,0]);
+  bone(`${side}_shin`,`${side}_knee`,[lx,3.8,0],[cube(lx-.6,1.8,-.65,1.2,2,1.3,'paper')]);
+  bone(`${side}_ankle`,`${side}_shin`,[lx,1.8,0]);
+  bone(`${side}_foot`,`${side}_ankle`,[lx,1.8,0],[cube(lx-.65,1.5,-1.25,1.3,.7,1.9,'bone')]);
+ }
+ bone('lamp_handle','chest',[0,8.4,-3.5],[cube(-4,8.22,-3.68,8,.36,.36,'bone')]);
+ bone('lamp_inertia','lamp_handle',[0,8.4,-3.5]);
+ bone('lantern','lamp_inertia',[0,8.4,-3.5],[cube(-.2,6.7,-3.7,.4,1.7,.4,'bone'),cube(-1.6,6.4,-5.1,3.2,.5,3.2,'bone'),cube(-1.6,2.7,-5.1,3.2,.5,3.2,'bone')]);
+ for(const x of [-1.4,1.1])for(const z of [-4.9,-2.4])add('lantern',cube(x,3,z,.3,3.5,.3,'bone'));
+ const cage=bones.find(b=>b.name==='lantern'),fragments=cage.cubes;cage.cubes=[];
+ fragments.forEach((c,i)=>bone(`lamp_fragment_${i}`,'lantern',[0,4.5,-3.5],[c]));
+ bone('lantern_flame','lantern',[0,4.5,-3.5],[cube(-.35,3.2,-3.85,.7,2.2,.7,'paper'),cube(-.6,3.4,-3.6,1.2,1.4,.2,'gold')]);
+ for(let ribbon=0;ribbon<3;ribbon++){
+  const x=(ribbon-1)*2.4,z=ribbon===1?2:0;
+  bone(`ribbon_spring_${ribbon}`,'chest',[x,11,z]);
+  for(let j=0;j<4;j++){
+   const name=`ribbon_${ribbon}_${j}`,y=11-j*2.2;
+   bone(name,j?`ribbon_${ribbon}_${j-1}`:`ribbon_spring_${ribbon}`,[x,y,z],[cube(x-.55,y-2.3,z-.15,1.1,2.4,.3,'paper')]);
+   if(j===3)add(name,cube(x-.52,y-2.85,z-.15,.32,.65,.3,'bone'),cube(x+.08,y-2.65,z-.15,.4,.45,.3,'bone'));
+  }
+ }
+}
+function childAnimations(id){
+ const result={},put=(name,ticks,loop,b)=>result[`animation.${id}.${name}`]={loop,animation_length:ticks/20,bones:b};
+ for(const [name,ticks,amplitude]of [['idle',60,.35],['walk',36,.7],['run',28,.85]]){
+  const b={root:pos([0,[0,0,0]],[ticks/2,[0,amplitude,0]],[ticks,[0,0,0]]),head:rot([0,[0,0,-4]],[ticks/2,[0,0,4]],[ticks,[0,0,-4]])};
+  for(let r=0;r<3;r++)for(let j=0;j<4;j++)b[`ribbon_${r}_${j}`]=rot([0,[j*3,4*r,-4-j]],[ticks/2,[8+j*4,-4*r,5+j]],[ticks,[j*3,4*r,-4-j]]);
+  b.lantern_flame=scale([0,[1,1,1]],[ticks/2,[.85,1.2,.85]],[ticks,[1,1,1]]);
+  put(name,ticks,true,b);
+ }
+ // Chest carries both closed hands and the same handle, preserving grip while shaking.
+ put('attack',30,false,{chest:rot([0,[0,0,0]],[8,[0,0,-8]],[10,[0,0,8]],[12,[0,0,-8]],[16,[0,0,6]],[22,[0,0,-4]],[30,[0,0,0]]),
+  head:rot([0,[0,0,0]],[8,[-12,0,0]],[12,[-18,0,0]],[30,[0,0,0]]),lantern_flame:scale([0,[1,1,1]],[12,[1.7,1.5,1.7]],[20,[1,1,1]],[30,[1,1,1]])});
+ const curse={root:pos([0,[0,0,0]],[32,[0,1.3,0]],[40,[0,1.3,0]],[60,[0,0,0]]),head:rot([0,[0,0,0]],[30,[0,0,24]],[40,[0,0,24]],[60,[0,0,0]]),lantern_flame:scale([0,[1,1,1]],[32,[1.5,1.8,1.5]],[40,[2,2,2]],[60,[1,1,1]])};
+ for(let r=0;r<3;r++)for(let j=0;j<4;j++)curse[`ribbon_${r}_${j}`]=rot([0,[0,0,0]],[32,[15+j*5,0,(r-1)*18]],[40,[15+j*5,0,(r-1)*18]],[60,[0,0,0]]);
+ put('curse',60,false,curse);
+ put('hurt',10,false,{chest:rot([0,[0,0,0]],[3,[-10,0,8]],[10,[0,0,0]])});
+ const death={lantern_flame:scale([0,[1,1,1]],[12,[1,1,1]],[17,[.001,.001,.001]],[44,[.001,.001,.001]])};
+ for(const b of [...bones])if(!b.name.startsWith('lamp')&&!b.name.startsWith('lantern')&&!b.name.startsWith('ribbon')&&b.cubes.length){
+  const c=b.cubes;b.cubes=[];bone(`shroud_${b.name}`,b.name,[...b.pivot],c);
+  death[`shroud_${b.name}`]=scale([0,[1,1,1]],[10,[1,1,1]],[28,[.001,.001,.001]],[44,[.001,.001,.001]]);
+ }
+ // Detached shroud strips and lamp are world-floor authored; no falling auxiliary entities.
+ for(let t=1;t<=44;t++){
+  land(death,'lamp_handle',t,{rotation:[0,0,Math.min(80,t*4)],x:0,z:-4,y:Math.max(.04,(18-t)*.35)});
+  for(let r=0;r<3;r++)land(death,`ribbon_spring_${r}`,t,{rotation:[Math.min(88,t*4),0,(r-1)*18],x:(r-1)*(2.4+Math.min(t,25)*.16),z:Math.min(t,25)*.1,y:Math.max(.04,(28-t)*.35)});
+  if(t>=18)for(let i=0;i<7;i++){const spread=Math.min(1,(t-18)/8),a=i*Math.PI*2/7;land(death,`lamp_fragment_${i}`,t,{rotation:[88*spread,0,i*37*spread],x:Math.cos(a)*spread*2.3,z:-4+Math.sin(a)*spread*2.3,y:.04});}
+ }
+ put('death',44,'hold_on_last_frame',death);return {format_version:'1.8.0',animations:result};
+}
+
 function corpseStrongman(){
  human({hip:12,chestY:28,shoulder:7,width:11,depth:6,headY:31,heavy:true});
  for(const name of ['chest_front','chest_back'])bones.find(b=>b.name===name).cubes=[];
@@ -721,23 +792,23 @@ fs.mkdirSync(`${base}/geo/blueprint`,{recursive:true});fs.mkdirSync(`${base}/ani
 const report=[];
 const originals={zuwu_daoshou:soldier,ludun_jiashi:shieldman,fufa_jijiu:priest,shanjing_shanxiao:beast};
 const armies={juma_changqiangbing:spearman,liannu_zhenzu:crossbowman,tiesuo_chihou:scout,kuijun_sishi:powderman,zhenwang_zhangqiguan:flagman};
-const additions={shibian_lishi:corpseStrongman,pijia_panjiang_huwei:axeGuard,yinbing_guizu:ghostSoldier};
-const selected=process.argv.includes('--corpse')?{shibian_lishi:corpseStrongman}:process.argv.includes('--ghost')?{yinbing_guizu:ghostSoldier}:process.argv.includes('--guard')?{pijia_panjiang_huwei:axeGuard}:process.argv.includes('--army')?armies:{...originals,...armies,...additions};
+const additions={fuhun_baibu_tongzi:shroudChild,shibian_lishi:corpseStrongman,pijia_panjiang_huwei:axeGuard,yinbing_guizu:ghostSoldier};
+const selected=process.argv.includes('--child')?{fuhun_baibu_tongzi:shroudChild}:process.argv.includes('--corpse')?{shibian_lishi:corpseStrongman}:process.argv.includes('--ghost')?{yinbing_guizu:ghostSoldier}:process.argv.includes('--guard')?{pijia_panjiang_huwei:axeGuard}:process.argv.includes('--army')?armies:{...originals,...armies,...additions};
 for(const [id,build]of Object.entries(selected)){
  const im=start(id);build();const names=new Set(bones.map(b=>b.name));assert.equal(names.size,bones.length);for(const b of bones){if(b.parent)assert(names.has(b.parent),b.name);for(const c of b.cubes){assert(c.size.every(n=>n>0));for(const f of Object.values(c.uv)){assert(f.uv[0]>=0&&f.uv[1]>=0&&f.uv[0]+f.uv_size[0]<=im.w&&f.uv[1]+f.uv_size[1]<=im.h);for(let y=f.uv[1];y<f.uv[1]+f.uv_size[1];y++)for(let x=f.uv[0];x<f.uv[0]+f.uv_size[0];x++)assert(im.c!==4||im.data[(y*im.w+x)*im.c+3]>=250,'Transparent UV pixel');}}}
- const anim=id==='shibian_lishi'?corpseAnimations(id):id==='yinbing_guizu'?ghostAnimations(id):id==='pijia_panjiang_huwei'?guardAnimations(id):Object.hasOwn(armies,id)?armyAnimations(id):animations(id);
+ const anim=id==='fuhun_baibu_tongzi'?childAnimations(id):id==='shibian_lishi'?corpseAnimations(id):id==='yinbing_guizu'?ghostAnimations(id):id==='pijia_panjiang_huwei'?guardAnimations(id):Object.hasOwn(armies,id)?armyAnimations(id):animations(id);
  for(const b of bones)names.add(b.name);assert.equal(names.size,bones.length,'Animation surface children must remain unique');
  const geo={format_version:'1.12.0','minecraft:geometry':[{description:{identifier:`geometry.${id}`,texture_width:im.w,texture_height:im.h,visible_bounds_width:6,visible_bounds_height:6,visible_bounds_offset:[0,1.8,0]},bones}]};
  for(const [key,a]of Object.entries(anim.animations))for(const [n,channels]of Object.entries(a.bones)){assert(names.has(n),`${key}: ${n}`);for(const ch of Object.values(channels)){if(Array.isArray(ch))assert(ch.every(Number.isFinite));else for(const [t,v]of Object.entries(ch)){assert(+t>=0&&+t<=a.animation_length,`${key}: time ${t}`);assert(v.every(Number.isFinite));}}}
  if(!['shanjing_shanxiao','yinbing_guizu'].includes(id))for(const side of ['left','right'])for(const joint of ['shoulder','upper_arm','elbow','forearm','wrist','hand','thigh','knee','shin','ankle','foot'])assert(names.has(`${side}_${joint}`));
  if(id==='yinbing_guizu'){assert(!names.has('head'));for(let i=0;i<3;i++)assert(names.has(`smoke_tail_${i}`));for(const side of ['left','right'])for(const joint of ['shoulder','upper_arm','elbow','forearm','wrist','hand','ghost_flame'])assert(names.has(`${side}_${joint}`));}
- const impacts={zuwu_daoshou:[12,22],ludun_jiashi:[16],fufa_jijiu:[24,28,32],shanjing_shanxiao:[14,24],juma_changqiangbing:[12],liannu_zhenzu:[14,18,22],tiesuo_chihou:[9,15],kuijun_sishi:[8,12,17],zhenwang_zhangqiguan:[18],pijia_panjiang_huwei:[16,22],yinbing_guizu:[14],shibian_lishi:[20]}[id];
+ const impacts={zuwu_daoshou:[12,22],ludun_jiashi:[16],fufa_jijiu:[24,28,32],shanjing_shanxiao:[14,24],juma_changqiangbing:[12],liannu_zhenzu:[14,18,22],tiesuo_chihou:[9,15],kuijun_sishi:[8,12,17],zhenwang_zhangqiguan:[18],pijia_panjiang_huwei:[16,22],yinbing_guizu:[14],shibian_lishi:[20],fuhun_baibu_tongzi:[12]}[id];
  for(const t of impacts)assert(Object.values(anim.animations[`animation.${id}.attack`].bones).some(b=>Object.values(b).some(c=>Object.hasOwn(c,(t/20).toFixed(2)))),`${id}: missing contact/launch ${t}`);
  fs.writeFileSync(`${base}/geo/blueprint/${id}.geo.json`,JSON.stringify(geo,null,2)+'\n');fs.writeFileSync(`${base}/animations/blueprint/${id}.animation.json`,JSON.stringify(anim,null,2)+'\n');
  const faces=bones.flatMap(b=>b.cubes).flatMap(c=>Object.values(c.uv)),nativePatchFaces=faces.filter(f=>f.uv_size[0]*f.uv_size[1]>1).length;
  report.push({id,texture:`textures/entity/${atlasNames[id]}.png`,bones:bones.length,cubes:bones.reduce((n,b)=>n+b.cubes.length,0),animations:Object.keys(anim.animations).length,grips,uv_patches:uvMap,native_patch_faces:nativePatchFaces,total_faces:faces.length,visual_review_file:'REVIEW.txt',runtime_verified:false});
 }
-const previous=['--army','--guard','--ghost','--corpse'].some(flag=>process.argv.includes(flag))&&fs.existsSync(`${out}/model-manifest.json`)?JSON.parse(fs.readFileSync(`${out}/model-manifest.json`)).filter(r=>!Object.hasOwn(selected,r.id)):[];
+const previous=['--army','--guard','--ghost','--corpse','--child'].some(flag=>process.argv.includes(flag))&&fs.existsSync(`${out}/model-manifest.json`)?JSON.parse(fs.readFileSync(`${out}/model-manifest.json`)).filter(r=>!Object.hasOwn(selected,r.id)):[];
 fs.writeFileSync(`${out}/model-manifest.json`,JSON.stringify([...previous,...report],null,2)+'\n');console.log(JSON.stringify(report.map(({id,bones,cubes,animations})=>({id,bones,cubes,animations})),null,2));
 // The existing internal-injury sigil is already original pixel art for blood magic.
 fs.copyFileSync(`${base}/textures/mob_effect/internal_injury.png`,`${base}/textures/mob_effect/bingsha_possession.png`);

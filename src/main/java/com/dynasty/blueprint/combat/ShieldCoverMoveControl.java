@@ -17,7 +17,8 @@ public final class ShieldCoverMoveControl extends MoveControl {
     }
 
     @Override public void tick() {
-        boolean covering = shield.isCoveringBackline();
+        boolean covering = shield.isCoveringBackline() || shield.kind()==TemplateMob.Kind.CHILD && shield.skillId()==0
+                && shield.isAlive() && shield.getTarget()!=null && shield.getTarget().isAlive();
         if (remappedLastTick) {
             // MOVE_TO/WAIT do not clear xxa in vanilla. Never leave our previous lateral input
             // behind when the path ends, the target dies, or another goal takes over.

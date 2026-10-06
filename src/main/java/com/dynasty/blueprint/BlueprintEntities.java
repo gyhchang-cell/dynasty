@@ -23,6 +23,9 @@ public final class BlueprintEntities {
     public static final RegistryObject<MobEffect> JUNHUN_AURA = EFFECTS.register("junhun_aura", ArmyAuraEffect::new);
     public static final RegistryObject<MobEffect> SPIRIT_CHILL = EFFECTS.register("spirit_chill", SpiritChillEffect::new);
 
+    public static final RegistryObject<MobEffect> SOUL_BIND = EFFECTS.register("soul_bind",SoulBindEffect::new);
+    public static final RegistryObject<MobEffect> LANTERN_GLARE = EFFECTS.register("lantern_glare",()->new MobEffect(net.minecraft.world.effect.MobEffectCategory.HARMFUL,0xE9E4CF){});
+    public static final RegistryObject<EntityType<TemplateMob>> FUHUN_BAIBU_TONGZI = mob("fuhun_baibu_tongzi",TemplateMob.Kind.CHILD,.55F,1.2F);
     public static final RegistryObject<EntityType<TemplateMob>> ZUWU_DAOSHOU = mob("zuwu_daoshou", TemplateMob.Kind.SWORD, .65F, 1.85F);
     public static final RegistryObject<EntityType<TemplateMob>> LUDUN_JIASHI = mob("ludun_jiashi", TemplateMob.Kind.SHIELD, .95F, 2.05F);
     public static final RegistryObject<EntityType<TemplateMob>> FUFA_JIJIU = mob("fufa_jijiu", TemplateMob.Kind.PRIEST, .65F, 1.80F);
@@ -58,6 +61,8 @@ public final class BlueprintEntities {
 
     public static final RegistryObject<Item> SHIBIAN_LISHI_EGG = egg("shibian_lishi", SHIBIAN_LISHI, 0x26332E, 0x713C80);
 
+    public static final RegistryObject<Item> FUHUN_BAIBU_TONGZI_EGG = egg("fuhun_baibu_tongzi", FUHUN_BAIBU_TONGZI, 0xDDD3B5, 0x252420);
+
     private BlueprintEntities() { }
     private static RegistryObject<EntityType<TemplateMob>> mob(String id, TemplateMob.Kind kind, float width, float height) {
         return ENTITIES.register(id, () -> EntityType.Builder.<TemplateMob>of((type, level) -> new TemplateMob(type, level, kind), MobCategory.MONSTER)
@@ -92,5 +97,6 @@ public final class BlueprintEntities {
         event.put(PIJIA_PANJIANG_HUWEI.get(), attributes(100, 8, .19, 10, .6));
         event.put(YINBING_GUIZU.get(), attributes(42, 5, .25, 2, .1));
         event.put(SHIBIAN_LISHI.get(), attributes(84, 7, .19, 3, .5));
+        event.put(FUHUN_BAIBU_TONGZI.get(), attributes(28, 2, .24, 0, 0));
     }
 }

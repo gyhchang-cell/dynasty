@@ -94,6 +94,9 @@ public final class CorpseGameTests {
             piece.postProcess(level,level.structureManager(),level.getChunkSource().getGenerator(),net.minecraft.util.RandomSource.create(4),
                 new net.minecraft.world.level.levelgen.structure.BoundingBox(x*16,box.minY(),z*16,x*16+15,box.maxY(),z*16+15),part.getPos(),origin);
         }
+        var childFloor=piece.shroudChildPosition();
+        h.assertTrue(com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,childFloor,
+            BlueprintEntities.FUHUN_BAIBU_TONGZI.get().getDimensions().makeBoundingBox(childFloor.getX()+.5,childFloor.getY(),childFloor.getZ()+.5)),"Child marker is a real collision-free gallery floor");
         var positions=piece.corpsePositions();var entrant=positions.get(0).offset(0,0,10);
         h.assertTrue(box.isInside(entrant),"Entrant is inside the actual oriented antechamber");
         for(var pos:positions)h.assertTrue(com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,
@@ -110,6 +113,17 @@ public final class CorpseGameTests {
             h.assertTrue(marker!=null&&marker.produced==2&&marker.members.size()==2,"Ordinary structure entry ticks produce exactly two corpses");
             var saved=BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(key);
             h.assertTrue(saved.members.equals(marker.members),"Restart checkpoint preserves exact member identities");
+            var childKey=id+"@"+chunk.toLong()+":shroud_child";var childMarker=data.markers.get(childKey);
+            h.assertTrue(childMarker!=null&&childMarker.produced==1&&childMarker.members.size()==1,"Same ordinary tomb entry also produces exactly one shroud child");
+            var childSaved=BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(childKey);
+            h.assertTrue(childSaved.members.equals(childMarker.members),"Child uses the same persistent encounter ledger");
+            var child=(TemplateMob)level.getEntity(childMarker.members.iterator().next());
+            h.assertTrue(child.kind()==TemplateMob.Kind.CHILD&&!child.isNoAi(),"Actual child AI is active in authored tomb");
+            var childNbt=new CompoundTag();child.save(childNbt);child.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
+            h.assertTrue(!BlueprintSpawns.spawnShroudChild(level,childKey,piece.shroudChildPosition(),entrant),"Unloaded child retains its slot");
+            var childCopy=BlueprintEntities.FUHUN_BAIBU_TONGZI.get().create(level);childCopy.load(childNbt);level.addFreshEntity(childCopy);
+            childCopy.hurt(level.damageSources().genericKill(),10000);
+            h.assertTrue(childMarker.members.isEmpty()&&childMarker.nextSpawn>=level.getGameTime()+11999,"Child death preserves encounter cooldown");
             UUID uuid=marker.members.iterator().next();var mob=(TemplateMob)level.getEntity(uuid);
             h.assertTrue(mob.kind()==TemplateMob.Kind.CORPSE&&!mob.isNoAi(),"Encounter owns the actual active corpse entity");
             var tag=new CompoundTag();mob.save(tag);mob.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);

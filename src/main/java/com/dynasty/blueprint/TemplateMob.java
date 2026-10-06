@@ -59,7 +59,7 @@ import java.util.UUID;
 
 /** Validated template lifecycle; additional army professions compose their own server actions. */
 public final class TemplateMob extends Monster implements GeoEntity, Combatant {
-    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE }
+    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE, CHILD }
     private static final EntityDataAccessor<Integer> SKILL = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> START = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
@@ -93,7 +93,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         this.xpReward = kind == Kind.SHIELD ? 8 : 5;
         setMaxUpStep(kind == Kind.BEAST ? 1.0F : .6F);
         if (kind == Kind.BEAST) this.navigation = new com.dynasty.blueprint.combat.SummitClimberNavigation(this, level);
-        else if (kind == Kind.SHIELD) {
+        else if (kind == Kind.SHIELD || kind == Kind.CHILD) {
             this.navigation = new CenteredGroundNavigation(this, level);
             this.moveControl = new ShieldCoverMoveControl(this);
         }
@@ -109,12 +109,13 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             case AXE_GUARD -> "pijia_panjiang_huwei";
             case GHOST -> "yinbing_guizu";
             case CORPSE -> "shibian_lishi";
+            case CHILD -> "fuhun_baibu_tongzi";
         };
     }
-    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
+    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE || kind == Kind.CHILD) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
     @Override public MobRole role() {
         return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER,AXE_GUARD,GHOST,CORPSE -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
-            case PRIEST,FLAG -> MobRole.SUPPORT; case CROSSBOW -> MobRole.RANGED; case BEAST -> MobRole.BEAST; };
+            case PRIEST,FLAG,CHILD -> MobRole.SUPPORT; case CROSSBOW -> MobRole.RANGED; case BEAST -> MobRole.BEAST; };
     }
     public TimedAttack attack() { return attack; }
     public int skillId() { return entityData.get(SKILL); }
@@ -186,7 +187,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         Vec3 direction = target.position().subtract(position()).multiply(1, 0, 1).normalize();
         if (direction.lengthSqr() < .0001) direction = getLookAngle().multiply(1, 0, 1).normalize();
         // A fuse uses real elapsed time, not attack speed: three consecutive close seconds.
-        float speed = id != ArmySkills.DETONATE && id != ArmySkills.AXE_COUNTER && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
+        float speed = id != ArmySkills.DETONATE && id != ArmySkills.AXE_COUNTER && id != ArmySkills.CHILD_CURSE && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
         SkillDefinition effective = TemplateSkills.accelerated(base, speed);
         if (!attack.tryStart(effective, level().getGameTime(), position(), direction, target.getUUID())) return false;
         if(army!=null)army.started(id,target);

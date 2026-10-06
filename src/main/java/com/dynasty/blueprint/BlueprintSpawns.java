@@ -30,6 +30,7 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> GUARDS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/rebel_guard_sites"));
     private static final TagKey<Structure> GHOSTS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ghost_sites"));
     private static final TagKey<Structure> CORPSES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/corpse_sites"));
+    private static final TagKey<Structure> CHILDREN=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/shroud_child_sites"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
         event.register(BlueprintEntities.TIESUO_CHIHOU.get(),SpawnPlacements.Type.ON_GROUND,
@@ -60,7 +61,7 @@ public final class BlueprintSpawns {
         int remaining=2; // Absolute per-level work cap, independent of player count.
         for(var player:level.players()) {
             if(player.isSpectator())continue;
-            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES)) for(var holder:registry.getTagOrEmpty(group)) {
+            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES,CHILDREN)) for(var holder:registry.getTagOrEmpty(group)) {
                 if(remaining<=0)return;
                 if(group==BATTLEFIELD&&level.isDay())continue;
                 var start=level.structureManager().getStructureAt(player.blockPosition(),holder.value());
@@ -68,6 +69,12 @@ public final class BlueprintSpawns {
                 var box=start.getBoundingBox();var centre=box.getCenter();
                 String key=registry.getKey(holder.value())+"@"+start.getChunkPos().toLong();
                 if(group==GHOSTS)key+=":ghosts";
+                if(group==CHILDREN){
+                    if(!checked.add(key+":shroud_child"))continue;
+                    for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
+                            &&spawnShroudChild(level,key+":shroud_child",tomb.shroudChildPosition(),player.blockPosition())){remaining--;break;}
+                    continue;
+                }
                 if(group==CORPSES){
                     if(!checked.add(key+":corpses"))continue;
                     for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
@@ -128,21 +135,25 @@ public final class BlueprintSpawns {
     }
     /** Authored upper-gate positions reuse the existing encounter ledger and death/unload lifecycle. */
     public static boolean spawnGateGuard(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
-        return spawnAuthoredPair(level,key,positions,entrant,BlueprintEntities.PIJIA_PANJIANG_HUWEI.get(),-32,300);
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.PIJIA_PANJIANG_HUWEI.get(),-32,300);
     }
     public static boolean spawnTombCorpse(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
-        return spawnAuthoredPair(level,key,positions,entrant,BlueprintEntities.SHIBIAN_LISHI.get(),level.getMinBuildHeight()+1,48);
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.SHIBIAN_LISHI.get(),level.getMinBuildHeight()+1,48);
     }
-    private static boolean spawnAuthoredPair(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant,
+    public static boolean spawnShroudChild(ServerLevel level,String key,BlockPos pos,BlockPos entrant){
+        if(!level.hasChunkAt(pos)||level.isDay()&&level.getMaxLocalRawBrightness(pos)>7)return false;
+        return spawnAuthoredGroup(level,key,List.of(pos),entrant,BlueprintEntities.FUHUN_BAIBU_TONGZI.get(),level.getMinBuildHeight()+1,64);
+    }
+    private static boolean spawnAuthoredGroup(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant,
             net.minecraft.world.entity.EntityType<TemplateMob> type,int minY,int maxY){
-        if(positions.size()!=2||level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+        if(positions.isEmpty()||positions.size()>2||level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
                 ||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return false;
         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);
-        if(marker!=null&&(marker.cleared||marker.nextSpawn>level.getGameTime()||marker.produced>=2&&!marker.members.isEmpty()))return false;
-        int index=marker==null||marker.produced>=2?0:marker.produced;
+        if(marker!=null&&(marker.cleared||marker.nextSpawn>level.getGameTime()||marker.produced>=positions.size()&&!marker.members.isEmpty()))return false;
+        int index=marker==null||marker.produced>=positions.size()?0:marker.produced;
         var pos=positions.get(index);
         if(pos.getY()<minY||pos.getY()>Math.min(maxY,level.getMaxBuildHeight()-3)||!level.hasChunkAt(pos)||pos.distSqr(entrant)<25||pos.distSqr(entrant)>32*32
-                ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()>=2
+                ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()>=positions.size()
                 ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5)))return false;
         var mob=type.create(level);if(mob==null)return false;
         mob.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,0,0);mob.setPersistenceRequired();

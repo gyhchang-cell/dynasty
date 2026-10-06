@@ -125,10 +125,11 @@ public final class TemplateSecondaryMotion {
         }else if(mob.kind()==TemplateMob.Kind.BEAST){s.face=null;java.util.Arrays.fill(s.stance,false);java.util.Arrays.fill(s.ik,0);}
         String[] gear=gearBones(mob.kind());
         for(int j=0;j<gear.length;j++)set(model,gear[j],s.angle[j],s.roll[j]);
+        if(mob.kind()==TemplateMob.Kind.CHILD)model.getBone("lamp_inertia").ifPresent(b->b.setRotY(s.roll[0]*.7F));
     }
     private static String[] gearBones(TemplateMob.Kind kind){return switch(kind){
-        case SPEAR->SPEAR_GEAR;case CROSSBOW->CROSSBOW_GEAR;case SCOUT->SCOUT_GEAR;case FLAG->FLAG_GEAR;default->NO_GEAR;};}
-    private static final String[] NO_GEAR={},SPEAR_GEAR={"skirt_spring_front","skirt_spring_back","skirt_spring_left","skirt_spring_right"},
+        case SPEAR->SPEAR_GEAR;case CROSSBOW->CROSSBOW_GEAR;case SCOUT->SCOUT_GEAR;case FLAG->FLAG_GEAR;case CHILD->CHILD_GEAR;default->NO_GEAR;};}
+    private static final String[] CHILD_GEAR={"lamp_inertia","ribbon_spring_0","ribbon_spring_1","ribbon_spring_2"},NO_GEAR={},SPEAR_GEAR={"skirt_spring_front","skirt_spring_back","skirt_spring_left","skirt_spring_right"},
         CROSSBOW_GEAR={"gear_pouch_0","gear_pouch_1","gear_pouch_2"},SCOUT_GEAR={"right_chain_spring","left_chain_spring"},
         FLAG_GEAR={"flag_spring_0","flag_spring_1","flag_spring_2","flag_spring_3"};
     private static void resetProcedural(TemplateMobModel model,TemplateMob.Kind kind){

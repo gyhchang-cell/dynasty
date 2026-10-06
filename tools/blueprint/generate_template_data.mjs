@@ -14,6 +14,7 @@ const prototypes = [
   ['zhenwang_zhangqiguan','阵亡掌旗官','Fallen Standard Bearer',[['dynasty:broken_tiger_tally',0,1],['dynasty:black_army_banner_scrap',1,2],['dynasty:vengeful_war_soul',0,1]],[]],
   ['pijia_panjiang_huwei','披甲叛将护卫','Rebel Axeguard',
     [['dynasty:kaishan_axe_blade',0,1],['dynasty:refined_wrought_iron',1,2],['dynasty:broken_heart_mirror',0,1]],[]],
+  ['fuhun_baibu_tongzi','缚魂白布童子','Shrouded Lantern Child',[['dynasty:white_wax_tear',1,2],['dynasty:wronged_shroud',0,2],['dynasty:pale_milk_tooth',0,1]],[]],
   ['shibian_lishi','尸变力士','Corpse Strongman',[['dynasty:blackened_bone',1,2],['dynasty:congealed_corpse_oil',0,2],['dynasty:strongman_wrist_weight',0,1]],[]],
   ['yinbing_guizu','阴兵鬼卒','Spectral Halberdier',
     [['dynasty:yin_jade_shard',1,2],['dynasty:nether_tatter',0,1],['dynasty:ancient_coin_rust',0,2]],[]],
@@ -40,6 +41,9 @@ langs.zh_cn['entity.dynasty.army_caltrop']='扎马钉';langs.en_us['entity.dynas
 langs.zh_cn['effect.dynasty.spirit_chill']='阴寒蚀骨';langs.en_us['effect.dynasty.spirit_chill']='Spirit Chill';
 fs.copyFileSync(`${resource}/assets/dynasty/textures/mob_effect/iron_wall.png`,`${resource}/assets/dynasty/textures/mob_effect/spirit_chill.png`);
 langs.zh_cn['entity.dynasty.corpse_miasma']='尸毒黏液';langs.en_us['entity.dynasty.corpse_miasma']='Corpse Miasma';
+langs.zh_cn['effect.dynasty.soul_bind']='白布缚魂';langs.en_us['effect.dynasty.soul_bind']='Soul Binding';
+langs.zh_cn['effect.dynasty.lantern_glare']='惨白灯晕';langs.en_us['effect.dynasty.lantern_glare']='Lantern Glare';
+for(const effect of ['soul_bind','lantern_glare'])fs.copyFileSync(`${resource}/assets/dynasty/textures/mob_effect/iron_wall.png`,`${resource}/assets/dynasty/textures/mob_effect/${effect}.png`);
 const components=[
  ['kaishan_axe_blade','开山斧刃','Broad Axe Blade','minecraft:block/iron_block',[[3,5,7,12,12,9],[1,4,7,4,13,9],[10,7,6,14,10,10]]],
  ['refined_wrought_iron','精炼熟铁锭','Refined Wrought Iron','minecraft:block/iron_block',[[3,4,5,13,8,11],[4,8,6,12,10,10]]],
@@ -54,6 +58,7 @@ const shapes={blade:[[6,2,7,9,12,9],[4,10,7,7,14,9]],cloth:[[3,5,7,12,12,8],[4,2
  gear:[[3,6,7,6,10,9],[10,6,7,13,10,9],[6,3,7,10,6,9],[6,10,7,10,13,9]],chain:[[4,3,7,6,9,9],[8,3,7,10,9,9],[6,3,7,8,5,9],[6,7,7,8,9,9],[8,8,7,10,14,9],[12,8,7,14,14,9],[10,8,7,12,10,9],[10,12,7,12,14,9]],
  dust:[[3,3,6,6,6,9],[8,3,7,12,6,10],[6,6,7,9,9,10]],tally:[[3,6,6,12,10,10],[3,10,6,6,12,10],[10,3,7,12,6,9]],soul:[[5,4,6,11,11,10],[7,11,7,10,14,9],[6,2,7,8,4,9]]};
 for(const [id,zh,en,shape,texture]of [
+ ['white_wax_tear','白蜡灯泪','White Wax Tear','gall','white_terracotta'],['wronged_shroud','冤魂碎布片','Wronged Soul Shroud','cloth','white_wool'],['pale_milk_tooth','惨白乳齿','Pale Milk Tooth','claw','bone_block_side'],
  ['blackened_bone','发黑的腐骨','Blackened Rotten Bone','branch','black_terracotta'],['congealed_corpse_oil','凝固尸油','Congealed Corpse Oil','gall','purple_terracotta'],['strongman_wrist_weight','力士铅腕套','Strongman Wrist Weight','gear','deepslate'],
  ['broken_iron_blade','残破的生铁刀片','Broken Iron Blade','blade','iron_block'],['coarse_linen','粗麻碎布','Coarse Linen Scrap','cloth','brown_wool'],
  ['heavy_shield_remnant','沉重盾面残件','Heavy Shield Remnant','plate','spruce_planks'],['wrought_iron_billet','熟铁铸块','Wrought Iron Billet','ingot','iron_block'],
@@ -89,10 +94,12 @@ langs.zh_cn['tooltip.dynasty.green_beast_gall']='食用后解除中毒，不恢�
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/rebel_guard_sites.json`,{replace:false,values:['dynasty:great_wall_gate']});
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/ghost_sites.json`,{replace:false,values:['dynasty:ruined_battlefield']});
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/corpse_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
+write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/shroud_child_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
 const arrowsFile=`${resource}/data/minecraft/tags/items/arrows.json`;
 const arrows=fs.existsSync(arrowsFile)?JSON.parse(fs.readFileSync(arrowsFile,'utf8')):{replace:false,values:[]};
 if(!arrows.values.includes('dynasty:short_crossbow_bolt'))arrows.values.push('dynasty:short_crossbow_bolt');write(arrowsFile,arrows);
 for(const [id,ingredient,count,result,extra]of [
+ ['recover_wax_candle','white_wax_tear',2,'minecraft:candle','minecraft:string'],['recover_milk_tooth','pale_milk_tooth',2,'minecraft:bone_meal'],
  ['recover_rotten_bone','blackened_bone',2,'minecraft:bone_meal'],
  ['recover_ancient_coin','ancient_coin_rust',4,'dynasty:copper_coin'],['recover_gunpowder','poor_gunpowder',4,'minecraft:gunpowder'],
  ['recover_pottery','pottery_fragment',4,'minecraft:brick'],['recover_tiger_tally','broken_tiger_tally',4,'dynasty:tiger_crest'],

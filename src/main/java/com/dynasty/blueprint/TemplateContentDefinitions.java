@@ -40,7 +40,9 @@ public final class TemplateContentDefinitions {
         new Spawn("yinbing_guizu",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/ghost_sites")),
             -32,220,0,7,"NIGHT OR LOW LIGHT","ANY",2,2,5,5,"STRUCTURE_MARKER","ruined battlefield; stable group size per structure; maximum five spirits within32","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
         new Spawn("shibian_lishi",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/corpse_sites")),
-            -63,48,0,15,"ALL","ANY",1,1,2,2,"STRUCTURE_MARKER","authored imperial tomb antechamber; no ordinary cave spawning","PERSISTENT_MARKER; 10-minute cooldown after all killed")
+            -63,48,0,15,"ALL","ANY",1,1,2,2,"STRUCTURE_MARKER","authored imperial tomb antechamber; no ordinary cave spawning","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
+        new Spawn("fuhun_baibu_tongzi",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/shroud_child_sites")),
+            -63,64,0,15,"NIGHT OR LOW LIGHT","ANY",1,1,1,1,"STRUCTURE_MARKER","authored imperial tomb west gallery; night or light<=7; maximum one within32","PERSISTENT_MARKER; 10-minute cooldown after all killed")
     );
     static int maximumWeight(Spawn definition) {
         return switch(definition.id()) {case "zuwu_daoshou"->10;case "fufa_jijiu"->4;default->definition.spawnWeight();};

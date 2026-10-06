@@ -48,6 +48,9 @@ public final class BlueprintSalvage {
         @Override public int getBurnTime(ItemStack stack,@Nullable net.minecraft.world.item.crafting.RecipeType<?> recipeType){return 400;}
     });
     public static final RegistryObject<Item> STRONGMAN_WRIST_WEIGHT=register("strongman_wrist_weight",Use.CHAINMAIL);
+    public static final RegistryObject<Item> WHITE_WAX_TEAR=plain("white_wax_tear");
+    public static final RegistryObject<Item> WRONGED_SHROUD=register("wronged_shroud",Use.LEATHER_ARMOR);
+    public static final RegistryObject<Item> PALE_MILK_TOOTH=plain("pale_milk_tooth");
     private enum Use { IRON_AXE, IRON_SWORD, IRON_GEAR, IRON_ARMOR, JADE_GEAR, LEATHER_ARMOR, LEATHER_BOOTS, SHIELD, CHAINMAIL, BOWS, CROSSBOW }
     private static RegistryObject<Item> register(String id,Use use){return BlueprintEntities.ITEMS.register(id,()->new ComponentItem(use));}
     private static RegistryObject<Item> plain(String id){return BlueprintEntities.ITEMS.register(id,()->new Item(new Item.Properties()));}
