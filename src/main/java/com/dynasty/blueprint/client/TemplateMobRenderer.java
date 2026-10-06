@@ -38,6 +38,8 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
         event.registerEntityRenderer(BlueprintEntities.SHIBIAN_LISHI.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.FUHUN_BAIBU_TONGZI.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ZHIREN_JIANKE.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.CHIMU_ZHUHA.get(),TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.TOAD_VENOM_POOL.get(),net.minecraft.client.renderer.entity.NoopRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.MUXUE_FEILU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.SKULL_BLOOD_POOL.get(), net.minecraft.client.renderer.entity.NoopRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.CORPSE_MIASMA.get(), net.minecraft.client.renderer.entity.NoopRenderer::new);
@@ -83,7 +85,7 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
             net.minecraft.client.renderer.RenderType type,MultiBufferSource buffers,com.mojang.blaze3d.vertex.VertexConsumer sink,
             boolean rerender,float partial,int light,int overlay,float red,float green,float blue,float alpha) {
         boolean vein=mob.kind()==TemplateMob.Kind.CORPSE&&bone.getName().startsWith("vein_");
-        super.renderRecursively(pose,mob,bone,type,buffers,sink,rerender,partial,vein||mob.kind()==TemplateMob.Kind.CHILD&&bone.getName().equals("lantern_flame")?15728880:light,overlay,
+        super.renderRecursively(pose,mob,bone,type,buffers,sink,rerender,partial,vein||mob.kind()==TemplateMob.Kind.TOAD&&(bone.getName().startsWith("venom_gland_")||bone.getName().startsWith("eye_"))||mob.kind()==TemplateMob.Kind.CHILD&&bone.getName().equals("lantern_flame")?15728880:light,overlay,
             vein?.75F:red,vein?.25F:green,vein?1F:blue,alpha);
     }
 
