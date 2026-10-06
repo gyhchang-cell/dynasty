@@ -3,7 +3,7 @@
 import json, os, zipfile
 from export_policy import release_mod, release_config
 
-ROOT = os.path.expanduser("~/Desktop/dynasty")
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DIST = os.path.join(ROOT, "dist")
 MODS = os.path.join(ROOT, "modpack", "mods")
 VERSION = "1.4.0"
@@ -27,21 +27,9 @@ README = """Dynasty 王朝 · 手动安装包 %s
 连锁采掘由 FTB Ultimine 提供；在按键设置中搜索 Ultimine 查看和更改连锁按键。
 """ % (VERSION, MOD_COUNT, MOD_COUNT, "\n".join("  " + n for n in MOD_NAMES))
 
-zip_path = os.path.join(DIST, "dynasty-%s-manual.zip" % VERSION)
-with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-    for name in MOD_NAMES:
-        z.writestr("mods/" + name, open(os.path.join(MODS, name), "rb").read())
-    # 配置（FTB 任务书等）一起打包，解压即用
-    if os.path.isdir(CONFIG_DIR):
-        for base, _dirs, files in os.walk(CONFIG_DIR):
-            for name in files:
-                full = os.path.join(base, name)
-                rel = os.path.relpath(full, CONFIG_DIR)
-                if not release_config(rel):
-                    continue
-                z.writestr("config/" + rel.replace(os.sep, "/"), open(full, "rb").read())
-    z.writestr("安装说明-README.txt", README)
-print("手动安装包:", zip_path, os.path.getsize(zip_path), "bytes", "(%d jars)" % MOD_COUNT)
+# Full pack validation is mandatory, and uses the newly built core jar.
+from export_ftb_complete import export
+zip_path = str(export(ROOT))
 
 GUIDE = """# 上传整合包指南（照做即可）
 
@@ -50,8 +38,8 @@ GUIDE = """# 上传整合包指南（照做即可）
 | 文件 | 用途 | 上传到哪 |
 | --- | --- | --- |
 | `dynasty-modpack-%s.zip` | **CurseForge 整合包格式**（内含 `manifest.json`，模组由启动器自动下载；我们自己的模组在 `overrides/mods/`） | CurseForge → 上传项目 → 类型选 **Modpack** |
-| `dynasty-%s.mrpack` | **Modrinth 整合包格式**（`modrinth.index.json` + CDN 下载地址 + 哈希） | Modrinth → 上传项目 → 类型选 **Modpack** |
-| `dynasty-%s-manual.zip` | 免启动器的手动包（直接是 `mods/` 里全部 jar） | 网盘/群里发给朋友、或服务端用 |
+| `dynasty-%s.mrpack` | **Modrinth 发布格式**（FTB 仍需按随包说明补装） | Modrinth → 上传项目 → 类型选 **Modpack** |
+| `dynasty-%s-manual.zip` | 完整本地包（全部模组、FTB 任务和配置） | 本地客户端安装；不是专用服务器包 |
 
 > 注意：上传时选的是**上面这三个文件**，不是文件夹本身。文件夹（`modpack/`）是给你本地查看和生成的源材料。
 
@@ -64,7 +52,7 @@ GUIDE = """# 上传整合包指南（照做即可）
 ## Modrinth 具体步骤
 1. Modrinth → `Create a project` → 类型选 **Modpack**
 2. 版本号 `%s`，支持的加载器选 Forge、游戏版本 `1.20.1`
-3. 上传 `dist/dynasty-%s.mrpack`
+3. 上传 `dist/dynasty-%s.mrpack`；此发布格式仍需补装 FTB，完整本地游玩使用 manual.zip。
 4. 同样，若审核要求本体也发布到 Modrinth，告诉我，我改成 index 引用。
 
 ## 自测（上传前先验证能不能装）
@@ -76,3 +64,4 @@ guide = os.path.join(ROOT, "docs", "upload.md")
 open(guide, "w", encoding="utf-8").write(GUIDE)
 print("上传指南:", guide)
 print("dist 内容:", sorted(os.listdir(DIST)))
+

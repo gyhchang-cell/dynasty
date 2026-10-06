@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--platform', choices=('both', 'curseforge', 'modrinth'), default='both')
 args = parser.parse_args()
 
-ROOT = os.path.expanduser("~/Desktop/dynasty")
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DIST = os.path.join(ROOT, "dist")
 MODS = os.path.join(ROOT, "modpack", "mods")
 os.makedirs(DIST, exist_ok=True)
@@ -183,3 +183,4 @@ if args.platform in ('both', 'modrinth'):
 for name in outputs:
     with zipfile.ZipFile(name) as z:
         print(" -", os.path.basename(name), "包含", len(z.namelist()), "项")
+
