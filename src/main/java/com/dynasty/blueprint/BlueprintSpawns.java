@@ -27,6 +27,8 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> RITUAL=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ritual_sites"));
     private static final TagKey<Structure> BATTLEFIELD=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/battlefields"));
     private static final TagKey<Structure> TOMBS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","dungeons/chensha_garrisons"));
+    private static final TagKey<Structure> GUARDS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/rebel_guard_sites"));
+    private static final TagKey<Structure> GHOSTS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ghost_sites"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
         event.register(BlueprintEntities.TIESUO_CHIHOU.get(),SpawnPlacements.Type.ON_GROUND,
@@ -57,13 +59,20 @@ public final class BlueprintSpawns {
         int remaining=2; // Absolute per-level work cap, independent of player count.
         for(var player:level.players()) {
             if(player.isSpectator())continue;
-            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS)) for(var holder:registry.getTagOrEmpty(group)) {
+            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS)) for(var holder:registry.getTagOrEmpty(group)) {
                 if(remaining<=0)return;
                 if(group==BATTLEFIELD&&level.isDay())continue;
                 var start=level.structureManager().getStructureAt(player.blockPosition(),holder.value());
                 if(!start.isValid())continue;
                 var box=start.getBoundingBox();var centre=box.getCenter();
                 String key=registry.getKey(holder.value())+"@"+start.getChunkPos().toLong();
+                if(group==GHOSTS)key+=":ghosts";
+                if(group==GUARDS){
+                    if(!checked.add(key+":upper_guards"))continue;
+                    for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.WallGatePiece gate
+                            &&spawnGateGuard(level,key+":upper_guards",gate.upperGuardPositions(),player.blockPosition())){remaining--;break;}
+                    continue;
+                }
                 if(group==TOMBS) {
                     if(!checked.contains(key)&&spawnChenshaMember(level,new BlockPos(box.minX(),box.minY(),box.minZ()),player.blockPosition())) {
                         checked.add(key);remaining--;
@@ -74,12 +83,14 @@ public final class BlueprintSpawns {
                 var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);
                 if(marker==null) {marker=new BlueprintSpawnState.Marker(key,centre);state.markers.put(key,marker);state.setDirty();}
                 if(marker.cleared || marker.nextSpawn>level.getGameTime())continue;
-                int wanted=group==BATTLEFIELD?7:group==MILITARY?4:3;
+                int wanted=group==GHOSTS?2+Math.floorMod(key.hashCode(),4):group==BATTLEFIELD?7:group==MILITARY?4:3;
                 if(marker.produced>=wanted) {
                     if(!marker.members.isEmpty())continue;
                     marker.produced=0;state.setDirty();
                 }
-                var type=group==BATTLEFIELD?battlefieldMember(marker.produced):group==MILITARY?militaryMember(marker.produced):marker.produced==0?
+                if(group==GHOSTS&&level.getEntitiesOfClass(TemplateMob.class,new AABB(player.blockPosition()).inflate(32),
+                    e->e.isAlive()&&e.kind()==TemplateMob.Kind.GHOST).size()>=5)continue;
+                var type=group==GHOSTS?BlueprintEntities.YINBING_GUIZU.get():group==BATTLEFIELD?battlefieldMember(marker.produced):group==MILITARY?militaryMember(marker.produced):marker.produced==0?
                     BlueprintEntities.FUFA_JIJIU.get():BlueprintEntities.ZUWU_DAOSHOU.get();
                 var id=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(type).getPath();
                 var definition=TemplateContentDefinitions.ALL.stream().filter(d->d.id().equals(id)).findFirst().orElseThrow();
@@ -108,6 +119,26 @@ public final class BlueprintSpawns {
             }
         }
     }
+    /** Authored upper-gate positions reuse the existing encounter ledger and death/unload lifecycle. */
+    public static boolean spawnGateGuard(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
+        if(positions.size()!=2||level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+                ||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return false;
+        var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);
+        if(marker!=null&&(marker.cleared||marker.nextSpawn>level.getGameTime()||marker.produced>=2&&!marker.members.isEmpty()))return false;
+        int index=marker==null||marker.produced>=2?0:marker.produced;
+        var pos=positions.get(index);var type=BlueprintEntities.PIJIA_PANJIANG_HUWEI.get();
+        if(pos.getY()<-32||pos.getY()>Math.min(300,level.getMaxBuildHeight()-3)||!level.hasChunkAt(pos)||pos.distSqr(entrant)<25||pos.distSqr(entrant)>32*32
+                ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.kind()==TemplateMob.Kind.AXE_GUARD).size()>=2
+                ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5)))return false;
+        var mob=type.create(level);if(mob==null)return false;
+        mob.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,0,0);mob.setPersistenceRequired();
+        mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.STRUCTURE,null,null);
+        if(!level.addFreshEntity(mob))return false;
+        if(marker==null){marker=new BlueprintSpawnState.Marker(key,pos);state.markers.put(key,marker);}
+        if(index==0)marker.produced=0;
+        marker.members.add(mob.getUUID());marker.produced++;marker.nextSpawn=level.getGameTime()+100;state.setDirty();return true;
+    }
+
     /** Authored upper-gallery garrison, using the existing encounter ledger and death/unload lifecycle. */
     public static boolean spawnChenshaMember(ServerLevel level,BlockPos origin,BlockPos entrant) {
         if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL

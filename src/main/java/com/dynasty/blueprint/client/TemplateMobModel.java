@@ -22,7 +22,7 @@ public final class TemplateMobModel extends GeoModel<TemplateMob> {
     @Override public ResourceLocation getTextureResource(TemplateMob mob) {
         // Continuous opaque native swatches preserve pixel grain without replacing legacy artwork.
         String atlas = switch (mob.blueprintId()) {
-            case "zuwu_daoshou", "ludun_jiashi", "zhenwang_zhangqiguan" -> "royal_guard";
+            case "zuwu_daoshou", "ludun_jiashi", "zhenwang_zhangqiguan", "pijia_panjiang_huwei", "yinbing_guizu" -> "royal_guard";
             case "juma_changqiangbing" -> "archer";
             case "liannu_zhenzu", "kuijun_sishi" -> "rebel_soldier";
             case "tiesuo_chihou" -> "assassin";

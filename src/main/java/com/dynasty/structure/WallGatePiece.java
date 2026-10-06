@@ -38,6 +38,11 @@ public class WallGatePiece extends DynastyStructurePiece {
         super(type, tag);
     }
 
+    /** Piece-relative positions also work after loading its orientation from NBT. */
+    public java.util.List<BlockPos> upperGuardPositions() {
+        return java.util.List.of(getWorldPos(14,9,11).immutable(),getWorldPos(15,9,12).immutable());
+    }
+
     @Override
     public void postProcess(WorldGenLevel level, StructureManager manager, ChunkGenerator generator,
                             RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
@@ -99,6 +104,9 @@ public class WallGatePiece extends DynastyStructurePiece {
             fill(level, box, 16, 1, z, 16, y, 23, brick);               // 东挡墙 / east wall
         }
         fill(level, box, 14, 7, 14, 15, 8, 14, air);                    // 与马道接口 / opening
+        // The upper garrison must be reachable from the existing stair, not sealed behind the tower wall.
+        fill(level, box, 14, 8, 14, 15, 8, 15, jade);
+        fill(level, box, 14, 9, 14, 15, 11, 14, air);
 
         // 6) 陈列 / details
         set(level, box, 12, 8, 12, DynastyBlocks.TAIKO_DRUM.get().defaultBlockState());

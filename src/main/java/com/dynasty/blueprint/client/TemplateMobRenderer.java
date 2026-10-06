@@ -33,6 +33,8 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
         event.registerEntityRenderer(BlueprintEntities.TIESUO_CHIHOU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.KUIJUN_SISHI.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ZHENWANG_ZHANGQIGUAN.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.PIJIA_PANJIANG_HUWEI.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.YINBING_GUIZU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ARMY_CALTROP.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.TEMPLATE_PROJECTILE.get(), ThrownItemRenderer::new);
     }
@@ -72,6 +74,7 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
     }
 
     @Override public Color getRenderColor(TemplateMob mob, float partialTick, int light) {
+        if (mob.kind() == TemplateMob.Kind.GHOST) return Color.ofRGBA(.55F,.85F,1F,mob.isPhased()?.18F:.65F);
         if (mob.kind() == TemplateMob.Kind.BEAST && mob.isDeadOrDying()) {
             // The native blue-green fur loses its cool hue toward dry charcoal as it curls.
             // Use the synchronized death clock, so late observers do not restart the fade.
@@ -80,6 +83,12 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
             return Color.ofRGB(1F - .10F * fade, 1F - .26F * fade, 1F - .46F * fade);
         }
         return super.getRenderColor(mob, partialTick, light);
+    }
+
+    @Override public net.minecraft.client.renderer.RenderType getRenderType(TemplateMob mob,
+            net.minecraft.resources.ResourceLocation texture,MultiBufferSource buffers,float partialTick){
+        return mob.kind()==TemplateMob.Kind.GHOST?net.minecraft.client.renderer.RenderType.entityTranslucent(texture)
+            :super.getRenderType(mob,texture,buffers,partialTick);
     }
 
     @Override public int getPackedOverlay(TemplateMob mob, float u, float partialTick) {

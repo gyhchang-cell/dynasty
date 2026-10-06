@@ -6,6 +6,8 @@ import java.util.List;
 /** Authored contact ticks; names also select independent client animation clips. */
 public final class ArmySkills {
     public static final int THRUST=10,BRACE=11,VOLLEY=12,ROLL=13,CUT=14,GRAPPLE=15,STAB=16,DETONATE=17,SLAM=18,KNEE=19;
+    public static final int AXE_CLAMP=20,AXE_COUNTER=21;
+    public static final int GHOST_THRUST=22,GHOST_PHASE=23;
     public static final List<SkillDefinition> ALL=List.of(
         skill(THRUST,"spear_thrust",12,1,13,34,0,3.5,28,1,.9,true,12),
         skill(BRACE,"spear_brace",8,25,15,65,0,6,25,3,1.1,false,8),
@@ -16,7 +18,11 @@ public final class ArmySkills {
         skill(STAB,"powder_stab",8,10,12,28,0,2.5,95,.6F,.1,true,8,12,17),
         skill(DETONATE,"powder_detonate",20,1,15,200,0,4,360,3.5F,1.4,false,20),
         skill(SLAM,"banner_slam",18,1,21,62,0,3.3,360,1,.65,true,18),
-        skill(KNEE,"scout_knee",6,1,11,30,0,2.5,50,1.2F,.5,true,6));
+        skill(KNEE,"scout_knee",6,1,11,30,0,2.5,50,1.2F,.5,true,6),
+        skill(AXE_CLAMP,"guard_axe_clamp",16,7,19,44,0,3.2,105,1.15F,.25,true,16,22),
+        skill(AXE_COUNTER,"guard_axe_counter",10,1,23,100,0,3.6,360,1.8F,1.1,false,10),
+        skill(GHOST_THRUST,"ghost_frost_thrust",14,1,19,38,0,3.8,30,1,.15,true,14),
+        skill(GHOST_PHASE,"ghost_phase",0,6,10,120,0,16,360,0,0,false,0));
     private ArmySkills(){}
     private static SkillDefinition skill(int id,String key,int w,int a,int r,int cd,double min,double max,double angle,
             float damage,double knockback,boolean interrupt,int... contacts){

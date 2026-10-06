@@ -133,6 +133,56 @@ public final class ArmyGameTests {
         });
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=90,batch="army")
+    public static void assaultHookPullsTowardPossessedPowderAndStopsWhenSupportEnds(GameTestHelper h){
+        arena(h);var scout=actor(h,BlueprintEntities.TIESUO_CHIHOU.get(),4,3);
+        var powder=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),8,7);var enemy=target(h,4,13);
+        enemy.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(0);
+        powder.setTarget(enemy);powder.addEffect(new MobEffectInstance(BlueprintEntities.BINGSHA_POSSESSION.get(),160));
+        Vec3 scoutStart=scout.position();
+        h.runAfterDelay(2,()->h.assertTrue(scout.startSkill(ArmySkills.GRAPPLE,enemy),"Start existing physical hook"));
+        h.startSequence().thenWaitUntil(()->h.assertTrue(scout.hookTargetId()==enemy.getId(),"Wait for physical projectile collision"))
+            .thenIdle(1).thenExecute(()->{
+                Vec3 pressure=powder.position().subtract(enemy.position()).multiply(1,0,1).normalize();
+                h.assertTrue(enemy.getDeltaMovement().dot(pressure)>.1,"Victim velocity points toward the supported powder unit");
+                equal(h,scout.position().distanceTo(scoutStart),0,"Assault link must not pull the scout instead");
+                h.assertTrue(enemy.hurtMarked,"Velocity change is marked for vanilla multiplayer synchronization");
+                var tag=new CompoundTag();scout.addAdditionalSaveData(tag);
+                h.assertTrue(tag.getCompound("ArmyActionState").getUUID("AssaultAnchor").equals(powder.getUUID()),"Persist the actual pressure anchor UUID");
+                powder.removeEffect(BlueprintEntities.BINGSHA_POSSESSION.get());
+            }).thenIdle(2).thenExecute(()->h.assertTrue(scout.hookTargetId()<0,"Lost possession releases the finite link"))
+            .thenSucceed();
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=90,batch="army")
+    public static void assaultHookNeverPullsThroughSolidCollision(GameTestHelper h){
+        arena(h);var scout=actor(h,BlueprintEntities.TIESUO_CHIHOU.get(),4,3);
+        var powder=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),10,10);var enemy=target(h,4,13);
+        enemy.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(0);
+        powder.setTarget(enemy);powder.addEffect(new MobEffectInstance(BlueprintEntities.BINGSHA_POSSESSION.get(),160));
+        h.runAfterDelay(2,()->h.assertTrue(scout.startSkill(ArmySkills.GRAPPLE,enemy),"Start hook with clear launch path"));
+        h.startSequence().thenWaitUntil(()->h.assertTrue(scout.hookTargetId()==enemy.getId(),"Wait for actual hook contact"))
+            .thenExecute(()->{
+                for(int y=2;y<5;y++)for(int z=11;z<15;z++)h.setBlock(5,y,z,Blocks.STONE);
+                enemy.setDeltaMovement(Vec3.ZERO);
+            }).thenIdle(2).thenExecute(()->{
+                h.assertTrue(scout.hookTargetId()<0,"Wall blocking powder sight/collision releases tether");
+                equal(h,enemy.getDeltaMovement().horizontalDistance(),0,"No continued forced velocity into wall");
+            }).thenSucceed();
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=95,batch="army")
+    public static void livePriestPossessionHandsItsTargetToIdleAssaultMembers(GameTestHelper h){
+        arena(h);var priest=actor(h,BlueprintEntities.FUFA_JIJIU.get(),4,4);
+        var powder=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);
+        var scout=actor(h,BlueprintEntities.TIESUO_CHIHOU.get(),3,7);
+        var chosen=target(h,9,12);var other=target(h,12,3);
+        priest.setTarget(chosen);powder.setTarget(other);scout.setTarget(other);
+        h.assertTrue(priest.startSkill(TemplateSkills.POSSESSION,powder),"Existing priest support action starts");
+        h.runAfterDelay(65,()->{
+            h.assertTrue(powder.isPossessed(),"Actual authored support contact must occur");
+            h.assertTrue(powder.getTarget()==chosen&&scout.getTarget()==chosen,"Idle assault units share supported priest's target");
+            h.succeed();
+        });
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=90,batch="army")
     public static void powderFuseRequiresThreeSecondsAndNeverChangesTerrainOrAllies(GameTestHelper h){
         arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=target(h,6,8);var ally=actor(h,BlueprintEntities.LUDUN_JIASHI.get(),8,6);
         mob.setTarget(enemy);mob.addEffect(new MobEffectInstance(BlueprintEntities.BINGSHA_POSSESSION.get(),160));h.setBlock(5,2,6,Blocks.GOLD_BLOCK);float health=ally.getHealth();
@@ -252,7 +302,7 @@ public final class ArmyGameTests {
             &&BlueprintSpawns.battlefieldMember(3)==BlueprintEntities.TIESUO_CHIHOU.get()
             &&java.util.stream.IntStream.range(4,7).allMatch(i->BlueprintSpawns.battlefieldMember(i)==BlueprintEntities.KUIJUN_SISHI.get()),
             "One banner supports the authored priest, two scouts and three powder units");
-        h.assertTrue(ArmySkills.ALL.size()==10&&ArmySkills.ALL.stream().allMatch(s->s.impactTicks().stream().allMatch(t->s.phaseAt(t)==AttackState.ACTIVE)),"All ten server action contacts lie in ACTIVE");h.succeed();
+        h.assertTrue(ArmySkills.ALL.size()==14&&ArmySkills.ALL.stream().allMatch(s->s.impactTicks().stream().allMatch(t->s.phaseAt(t)==AttackState.ACTIVE)),"All fourteen server action contacts lie in ACTIVE");h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=1000,batch="army_world")
     public static void battlefieldGeneratesAndOwnsBoundedPersistentEncounter(GameTestHelper h){
@@ -308,6 +358,12 @@ public final class ArmyGameTests {
             h.assertTrue(counts.equals(java.util.Map.of(TemplateMob.Kind.FLAG,1,TemplateMob.Kind.PRIEST,1,TemplateMob.Kind.SCOUT,2,TemplateMob.Kind.POWDER,3)),"No duplicated banner or excess powder units");
             var saved=BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(key);
             h.assertTrue(saved.members.equals(marker.members)&&saved.produced==7,"All member UUIDs and production count survive SavedData serialization");
+            var ghosts=data.markers.get(key+":ghosts");
+            int expectedGhosts=2+Math.floorMod((key+":ghosts").hashCode(),4);
+            h.assertTrue(ghosts!=null&&ghosts.produced==expectedGhosts&&ghosts.members.size()==expectedGhosts,"Same real battlefield spawns its bounded two-to-five ghost group");
+            for(var uuid:java.util.List.copyOf(ghosts.members)){
+                var entity=level.getEntity(uuid);h.assertTrue(entity instanceof TemplateMob ghost&&ghost.kind()==TemplateMob.Kind.GHOST,"Spirit marker holds real spectral mobs");entity.discard();
+            }
             for(var uuid:java.util.List.copyOf(marker.members))level.getEntity(uuid).discard();
             h.assertTrue(marker.members.isEmpty()&&marker.nextSpawn>=level.getGameTime()+12000,"Actual removal releases members and starts the existing ten-minute cooldown");
         });
