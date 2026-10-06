@@ -3,7 +3,7 @@
 import json, os, shutil, hashlib
 from export_policy import release_mod
 
-ROOT = os.path.expanduser("~/Desktop/dynasty")
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 PACK = os.path.join(ROOT, "modpack")
 MODS = os.path.join(PACK, "mods")
 os.makedirs(MODS, exist_ok=True)
@@ -107,3 +107,4 @@ os.chmod(script, 0o755)
 
 print("modpack ready:", PACK)
 print("mods:", sorted(os.listdir(MODS)))
+
