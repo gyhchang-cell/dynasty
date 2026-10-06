@@ -34,6 +34,7 @@ public final class SalvageGameTests {
             "tiesuo_chihou",Set.of("fine_steel_chain","iron_grappling_claw","swift_boot_scrap"),
             "kuijun_sishi",Set.of("poor_gunpowder","pottery_fragment","bloodied_cloth"),
             "zhenwang_zhangqiguan",Set.of("broken_tiger_tally","black_army_banner_scrap","vengeful_war_soul")));
+        expected.put("muxue_feilu",Set.of("pointed_dead_tooth","rusted_helmet_spike","yin_air_sac"));
         expected.put("zhiren_jianke",Set.of("tough_bamboo_sliver","paper_cutting_knife","painted_cinnabar"));
         expected.put("fuhun_baibu_tongzi",Set.of("white_wax_tear","wronged_shroud","pale_milk_tooth"));
         expected.put("shibian_lishi",Set.of("blackened_bone","congealed_corpse_oil","strongman_wrist_weight"));
@@ -59,7 +60,7 @@ public final class SalvageGameTests {
     public static void allRepairProfilesAcceptMatchingGearAndPreserveForeignData(GameTestHelper h){
         var p=player(h);var menu=new AnvilMenu(0,p.getInventory());
         for(var pair:new String[][]{
-            {"tough_bamboo_sliver","minecraft:bow"},{"paper_cutting_knife","minecraft:shears"},{"wronged_shroud","minecraft:leather_helmet"},{"strongman_wrist_weight","minecraft:chainmail_chestplate"},{"broken_iron_blade","minecraft:iron_sword"},{"broken_iron_blade","tie_jian"},{"coarse_linen","minecraft:leather_helmet"},{"heavy_shield_remnant","minecraft:shield"},
+            {"rusted_helmet_spike","minecraft:iron_helmet"},{"tough_bamboo_sliver","minecraft:bow"},{"paper_cutting_knife","minecraft:shears"},{"wronged_shroud","minecraft:leather_helmet"},{"strongman_wrist_weight","minecraft:chainmail_chestplate"},{"broken_iron_blade","minecraft:iron_sword"},{"broken_iron_blade","tie_jian"},{"coarse_linen","minecraft:leather_helmet"},{"heavy_shield_remnant","minecraft:shield"},
             {"wrought_iron_billet","minecraft:iron_pickaxe"},{"damaged_chainmail","minecraft:chainmail_chestplate"},{"dry_peach_branch","minecraft:bow"},
             {"shanxiao_claw","minecraft:iron_axe"},{"ghost_face_fur","minecraft:leather_chestplate"},{"iron_spearhead","minecraft:iron_sword"},
             {"tough_wood_shaft","minecraft:crossbow"},{"rusted_lamellar_plate","minecraft:iron_leggings"},{"bronze_gear_part","minecraft:crossbow"},
@@ -108,7 +109,7 @@ public final class SalvageGameTests {
     @GameTest(template="bow_ritual_test",timeoutTicks=30,batch="salvage")
     public static void recoveredMaterialsCraftThroughServerRecipeManager(GameTestHelper h){
         var p=player(h);
-        for(var row:new String[][]{{"painted_cinnabar","2","cinnabar",""},{"white_wax_tear","2","minecraft:candle","minecraft:string"},{"pale_milk_tooth","2","minecraft:bone_meal",""},{"blackened_bone","2","minecraft:bone_meal",""},{"poor_gunpowder","4","minecraft:gunpowder",""},{"pottery_fragment","4","minecraft:brick",""},
+        for(var row:new String[][]{{"pointed_dead_tooth","2","minecraft:bone_meal",""},{"painted_cinnabar","2","cinnabar",""},{"white_wax_tear","2","minecraft:candle","minecraft:string"},{"pale_milk_tooth","2","minecraft:bone_meal",""},{"blackened_bone","2","minecraft:bone_meal",""},{"poor_gunpowder","4","minecraft:gunpowder",""},{"pottery_fragment","4","minecraft:brick",""},
             {"broken_tiger_tally","4","tiger_crest",""},{"black_army_banner_scrap","6","minecraft:black_banner","minecraft:stick"},
             {"vengeful_war_soul","1","minecraft:experience_bottle","minecraft:glass_bottle"}}){
             var menu=new CraftingMenu(0,p.getInventory(),ContainerLevelAccess.create(h.getLevel(),h.absolutePos(new BlockPos(2,2,2))));

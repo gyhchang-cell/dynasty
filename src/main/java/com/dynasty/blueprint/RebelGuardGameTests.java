@@ -106,9 +106,16 @@ public final class RebelGuardGameTests {
     @GameTest(template="bow_ritual_test",timeoutTicks=340,batch="guard_world")
     public static void actualDeathsDropRegisteredMaterialsAndReloadCannotDuplicateThem(GameTestHelper h){
         var guard=guard(h);var ghost=h.spawn(BlueprintEntities.YINBING_GUIZU.get(),new BlockPos(10,2,10));ghost.setNoAi(true);
-        guard.hurt(h.getLevel().damageSources().genericKill(),10000);ghost.hurt(h.getLevel().damageSources().genericKill(),10000);
         var area=guard.getBoundingBox().inflate(8);
-        var dropped=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,area);
+        // Other batches can leave moving drops near this fixture. Count only the six
+        // registered guard/ghost materials, excluding entities already present beforehand.
+        var materials=java.util.Set.of(BlueprintSalvage.KAISHAN_AXE_BLADE.get(),BlueprintSalvage.REFINED_WROUGHT_IRON.get(),
+            BlueprintSalvage.BROKEN_HEART_MIRROR.get(),BlueprintSalvage.YIN_JADE_SHARD.get(),BlueprintSalvage.NETHER_TATTER.get(),BlueprintSalvage.ANCIENT_COIN_RUST.get());
+        var prior=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,area).stream().map(Entity::getUUID).collect(java.util.stream.Collectors.toSet());
+        java.util.function.Predicate<net.minecraft.world.entity.item.ItemEntity> ours=e->!prior.contains(e.getUUID())&&materials.contains(e.getItem().getItem());
+        guard.hurt(h.getLevel().damageSources().genericKill(),10000);ghost.hurt(h.getLevel().damageSources().genericKill(),10000);
+        var dropped=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,area,ours);
+        dropped.forEach(e->{e.setNoGravity(true);e.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);});
         h.assertTrue(dropped.stream().anyMatch(e->e.getItem().is(BlueprintSalvage.REFINED_WROUGHT_IRON.get())),"Real guard death invokes registered loot table");
         h.assertTrue(dropped.stream().anyMatch(e->e.getItem().is(BlueprintSalvage.YIN_JADE_SHARD.get())),"Real ghost death invokes registered loot table");
         int count=dropped.stream().mapToInt(e->e.getItem().getCount()).sum();
@@ -116,8 +123,8 @@ public final class RebelGuardGameTests {
         var copy=BlueprintEntities.PIJIA_PANJIANG_HUWEI.get().create(h.getLevel());copy.load(saved);h.getLevel().addFreshEntity(copy);
         copy.die(h.getLevel().damageSources().genericKill());
         h.runAfterDelay(15,()->{
-            int after=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,area).stream().mapToInt(e->e.getItem().getCount()).sum();
-            h.assertTrue(after==count,"Reloading corpse and repeated death callback cannot repeat loot");h.succeed();
+            int after=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,area,ours).stream().mapToInt(e->e.getItem().getCount()).sum();
+            h.assertTrue(after==count,"Reloading corpse and repeated death callback cannot repeat loot: before="+count+" after="+after);h.succeed();
         });
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=340,batch="guard_world")

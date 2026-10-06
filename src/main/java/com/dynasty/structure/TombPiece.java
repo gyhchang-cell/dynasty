@@ -50,6 +50,10 @@ public class TombPiece extends DynastyStructurePiece {
         return java.util.List.of(getWorldPos(19,1,29).immutable(),getWorldPos(20,1,34).immutable());
     }
 
+    public java.util.List<BlockPos> flyingSkullPositions() {
+        return java.util.List.of(getWorldPos(14,4,17).immutable(),getWorldPos(25,4,17).immutable(),getWorldPos(20,3,14).immutable());
+    }
+
     public java.util.List<BlockPos> paperSwordsmanPositions() {
         return remastered ? java.util.List.of(getWorldPos(15,1,12).immutable(),getWorldPos(24,1,12).immutable(),getWorldPos(20,1,14).immutable())
             : java.util.List.of(getWorldPos(15,1,19).immutable(),getWorldPos(24,1,19).immutable());

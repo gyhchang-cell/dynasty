@@ -80,7 +80,7 @@ public final class CorpseGameTests {
         });
         h.runAfterDelay(49,()->{h.assertTrue(cow.getHealth()==189.5F&&mob.skillId()==0,"No repeated contacts or stale action");h.succeed();});
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=650,batch="corpse_world")
+    @GameTest(template="bow_ritual_test",timeoutTicks=850,batch="corpse_world")
     public static void realTombEntrySpawnsPersistentCorpsesOnlyOnAuthoredFloor(GameTestHelper h){
         var level=h.getLevel();var id=new net.minecraft.resources.ResourceLocation("dynasty","imperial_tomb");
         var structure=level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE).get(id);
@@ -94,6 +94,9 @@ public final class CorpseGameTests {
             piece.postProcess(level,level.structureManager(),level.getChunkSource().getGenerator(),net.minecraft.util.RandomSource.create(4),
                 new net.minecraft.world.level.levelgen.structure.BoundingBox(x*16,box.minY(),z*16,x*16+15,box.maxY(),z*16+15),part.getPos(),origin);
         }
+        for(var air:piece.flyingSkullPositions())h.assertTrue(level.getMaxLocalRawBrightness(air)<=7
+            &&level.noCollision(null,BlueprintEntities.MUXUE_FEILU.get().getDimensions().makeBoundingBox(air.getX()+.5,air.getY(),air.getZ()+.5)),
+            "Skull marker has generated dark airspace: "+air+" light="+level.getMaxLocalRawBrightness(air));
         for(var paperFloor:piece.paperSwordsmanPositions())h.assertTrue(com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,paperFloor,
             BlueprintEntities.ZHIREN_JIANKE.get().getDimensions().makeBoundingBox(paperFloor.getX()+.5,paperFloor.getY(),paperFloor.getZ()+.5)),"Paper courtyard marker has actual generated standing space");
         var childFloor=piece.shroudChildPosition();
@@ -110,11 +113,21 @@ public final class CorpseGameTests {
         boolean spawning=level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING);
         level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
         String key=id+"@"+chunk.toLong()+":corpses";
-        h.runAfterDelay(550,()->{
+        h.runAfterDelay(750,()->{
             var data=BlueprintSpawnState.get(level);var marker=data.markers.get(key);
             h.assertTrue(marker!=null&&marker.produced==2&&marker.members.size()==2,"Ordinary structure entry ticks produce exactly two corpses");
             var saved=BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(key);
             h.assertTrue(saved.members.equals(marker.members),"Restart checkpoint preserves exact member identities");
+            var skullKey=id+"@"+chunk.toLong()+":flying_skulls";var skulls=data.markers.get(skullKey);
+            h.assertTrue(skulls!=null&&skulls.produced==3&&skulls.members.size()==3,"Same actual tomb entry generates three skulls in authored low-light airspace");
+            h.assertTrue(BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(skullKey).members.equals(skulls.members),"Skull squad identity survives SavedData reload");
+            for(var member:List.copyOf(skulls.members)){
+                var skull=(TemplateMob)level.getEntity(member);h.assertTrue(skull.kind()==TemplateMob.Kind.SKULL&&!skull.isNoAi()&&skull.isNoGravity(),"Actual flying skull AI is active");
+                var nbt=new CompoundTag();skull.save(nbt);skull.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
+                h.assertTrue(!BlueprintSpawns.spawnFlyingSkull(level,skullKey,piece.flyingSkullPositions(),entrant),"Unloaded skull retains its encounter slot");
+                var copy=BlueprintEntities.MUXUE_FEILU.get().create(level);copy.load(nbt);level.addFreshEntity(copy);copy.hurt(level.damageSources().genericKill(),10000);
+            }
+            h.assertTrue(skulls.members.isEmpty()&&skulls.nextSpawn>=level.getGameTime()+11999,"Skull deaths retain ten-minute cooldown");
             var paperKey=id+"@"+chunk.toLong()+":paper_swordsmen";var papers=data.markers.get(paperKey);
             h.assertTrue(papers!=null&&papers.produced==3&&papers.members.size()==3,"Real tomb entry produces three courtyard paper swordsmen within shared tick budget");
             h.assertTrue(BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(paperKey).members.equals(papers.members),"Paper squad identities survive SavedData restart checkpoint");

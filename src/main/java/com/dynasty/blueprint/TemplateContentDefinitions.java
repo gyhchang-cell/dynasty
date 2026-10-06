@@ -44,7 +44,9 @@ public final class TemplateContentDefinitions {
         new Spawn("fuhun_baibu_tongzi",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/shroud_child_sites")),
             -63,64,0,15,"NIGHT OR LOW LIGHT","ANY",1,1,1,1,"STRUCTURE_MARKER","authored imperial tomb west gallery; night or light<=7; maximum one within32","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
         new Spawn("zhiren_jianke",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/paper_swordsman_sites")),
-            -63,64,0,15,"ALL","ANY",1,1,3,3,"STRUCTURE_MARKER","authored imperial tomb courtyard; maximum three within32; no biome spawning","PERSISTENT_MARKER; 10-minute cooldown after all killed")
+            -63,64,0,15,"ALL","ANY",1,1,3,3,"STRUCTURE_MARKER","authored imperial tomb courtyard; maximum three within32; no biome spawning","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
+        new Spawn("muxue_feilu",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/flying_skull_sites")),
+            -63,64,0,7,"ALL; LOW LIGHT","ANY",1,1,3,3,"STRUCTURE_MARKER","authored imperial tomb airspace; maximum three within32; no solid/wet landing","PERSISTENT_MARKER; 10-minute cooldown after all killed")
     );
     static int maximumWeight(Spawn definition) {
         return switch(definition.id()) {case "zuwu_daoshou"->10;case "fufa_jijiu"->4;default->definition.spawnWeight();};

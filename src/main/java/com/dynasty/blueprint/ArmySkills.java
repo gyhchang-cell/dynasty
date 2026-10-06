@@ -11,6 +11,7 @@ public final class ArmySkills {
     public static final int CORPSE_SMASH=24;
     public static final int CHILD_LAUGH=25,CHILD_CURSE=26;
     public static final int PAPER_SLASH=27,PAPER_SHED=28;
+    public static final int SKULL_DIVE=29,SKULL_BLOOD=30;
     public static final List<SkillDefinition> ALL=List.of(
         skill(THRUST,"spear_thrust",12,1,13,34,0,3.5,28,1,.9,true,12),
         skill(BRACE,"spear_brace",8,25,15,65,0,6,25,3,1.1,false,8),
@@ -30,7 +31,9 @@ public final class ArmySkills {
         skill(CHILD_LAUGH,"child_laugh",12,1,17,50,0,6,360,.5F,0,true,12),
         skill(CHILD_CURSE,"child_curse",40,1,19,180,1.5,10,360,0,0,true,40),
         skill(PAPER_SLASH,"paper_slash",6,1,13,24,0,2.8,105,1,.08,true,6),
-        skill(PAPER_SHED,"paper_shed",6,1,9,1,0,12,360,0,0,false,6));
+        skill(PAPER_SHED,"paper_shed",6,1,9,1,0,12,360,0,0,false,6),
+        skill(SKULL_DIVE,"skull_dive",14,12,18,60,0,12,40,1,0,true,14),
+        skill(SKULL_BLOOD,"skull_blood",20,1,29,160,0,8,360,0,0,true,20));
     private ArmySkills(){}
     private static SkillDefinition skill(int id,String key,int w,int a,int r,int cd,double min,double max,double angle,
             float damage,double knockback,boolean interrupt,int... contacts){

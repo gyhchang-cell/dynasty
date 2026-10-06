@@ -25,6 +25,9 @@ public final class BlueprintEntities {
 
     public static final RegistryObject<MobEffect> SOUL_BIND = EFFECTS.register("soul_bind",SoulBindEffect::new);
     public static final RegistryObject<MobEffect> LANTERN_GLARE = EFFECTS.register("lantern_glare",()->new MobEffect(net.minecraft.world.effect.MobEffectCategory.HARMFUL,0xE9E4CF){});
+    public static final RegistryObject<EntityType<TemplateMob>> MUXUE_FEILU = mob("muxue_feilu",TemplateMob.Kind.SKULL,.85F,1.7F);
+    public static final RegistryObject<EntityType<SkullBloodPool>> SKULL_BLOOD_POOL = ENTITIES.register("skull_blood_pool",
+        ()->EntityType.Builder.<SkullBloodPool>of(SkullBloodPool::new,MobCategory.MISC).sized(2.4F,.5F).clientTrackingRange(8).updateInterval(10).build("skull_blood_pool"));
     public static final RegistryObject<EntityType<TemplateMob>> ZHIREN_JIANKE = mob("zhiren_jianke",TemplateMob.Kind.PAPER,.6F,1.85F);
     public static final RegistryObject<EntityType<TemplateMob>> FUHUN_BAIBU_TONGZI = mob("fuhun_baibu_tongzi",TemplateMob.Kind.CHILD,.55F,1.2F);
     public static final RegistryObject<EntityType<TemplateMob>> ZUWU_DAOSHOU = mob("zuwu_daoshou", TemplateMob.Kind.SWORD, .65F, 1.85F);
@@ -66,6 +69,8 @@ public final class BlueprintEntities {
 
     public static final RegistryObject<Item> ZHIREN_JIANKE_EGG = egg("zhiren_jianke", ZHIREN_JIANKE, 0xDED4BB, 0xAF403C);
 
+    public static final RegistryObject<Item> MUXUE_FEILU_EGG = egg("muxue_feilu", MUXUE_FEILU, 0x514A40, 0x702A31);
+
     private BlueprintEntities() { }
     private static RegistryObject<EntityType<TemplateMob>> mob(String id, TemplateMob.Kind kind, float width, float height) {
         return ENTITIES.register(id, () -> EntityType.Builder.<TemplateMob>of((type, level) -> new TemplateMob(type, level, kind), MobCategory.MONSTER)
@@ -102,5 +107,7 @@ public final class BlueprintEntities {
         event.put(SHIBIAN_LISHI.get(), attributes(84, 7, .19, 3, .5));
         event.put(FUHUN_BAIBU_TONGZI.get(), attributes(28, 2, .24, 0, 0));
         event.put(ZHIREN_JIANKE.get(), attributes(32, 5, .34, 0, 0));
+        event.put(MUXUE_FEILU.get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,30).add(Attributes.ATTACK_DAMAGE,5)
+            .add(Attributes.MOVEMENT_SPEED,.3).add(Attributes.FLYING_SPEED,.35).add(Attributes.FOLLOW_RANGE,28).build());
     }
 }

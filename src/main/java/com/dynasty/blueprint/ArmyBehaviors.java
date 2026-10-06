@@ -34,11 +34,11 @@ public final class ArmyBehaviors {
         default void load(CompoundTag tag){}
         default String animation(int id){return switch(id){case ArmySkills.BRACE->"brace";case ArmySkills.ROLL->"roll";
             case ArmySkills.GRAPPLE->"grapple";case ArmySkills.KNEE->"knee";case ArmySkills.DETONATE->"detonate";
-            case ArmySkills.PAPER_SHED->"shed";case ArmySkills.CHILD_CURSE->"curse";case ArmySkills.AXE_COUNTER->"counter";case ArmySkills.GHOST_PHASE->"phase";default->"attack";};}
+            case ArmySkills.SKULL_BLOOD->"blood";case ArmySkills.PAPER_SHED->"shed";case ArmySkills.CHILD_CURSE->"curse";case ArmySkills.AXE_COUNTER->"counter";case ArmySkills.GHOST_PHASE->"phase";default->"attack";};}
     }
     static Behavior create(TemplateMob mob,TemplateMob.Kind kind){return switch(kind){
         case SPEAR->new Spear(mob);case CROSSBOW->new Crossbow(mob);case SCOUT->new Scout(mob);
-        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);case CHILD->new ShroudChild(mob);case PAPER->new PaperSwordsman(mob);default->null;};}
+        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);case CHILD->new ShroudChild(mob);case PAPER->new PaperSwordsman(mob);case SKULL->new FlyingSkull(mob);default->null;};}
     private ArmyBehaviors(){}
     public static boolean charging(LivingEntity target,Vec3 position){
         Vec3 velocity=target.getVehicle()==null?target.getDeltaMovement():target.getVehicle().getDeltaMovement();
@@ -93,6 +93,68 @@ public final class ArmyBehaviors {
         Vec3 toward=subject.getEyePosition().subtract(observer.getEyePosition());
         return toward.lengthSqr()<.01||observer.getLookAngle().dot(toward.normalize())>.6&&observer.hasLineOfSight(subject);
     }
+    private static final class FlyingSkull extends Base {
+        Vec3 divePoint=Vec3.ZERO;boolean launched,contact;
+        FlyingSkull(TemplateMob mob){super(mob);}
+        public boolean allows(int id){return id==ArmySkills.SKULL_DIVE||id==ArmySkills.SKULL_BLOOD;}
+        public boolean canStart(int id,LivingEntity target){
+            return mob.getY()-target.getY()>=3 && (id!=ArmySkills.SKULL_BLOOD||mob.position().subtract(target.position()).horizontalDistanceSqr()<=9);
+        }
+        public int choose(LivingEntity target,long now){return mob.attack().ready(ArmySkills.SKULL_BLOOD,now)
+            &&canStart(ArmySkills.SKULL_BLOOD,target)?ArmySkills.SKULL_BLOOD:ArmySkills.SKULL_DIVE;}
+        public void started(int id,LivingEntity target){
+            if(id==ArmySkills.SKULL_DIVE){divePoint=target.position().add(0,.65,0);launched=false;contact=false;}
+        }
+        public void move(LivingEntity target,long now){
+            mob.setSprinting(false);
+            // Twelve short collision probes per existing ten-tick movement budget.
+            for(int dy:new int[]{4,3,5})for(int side:new int[]{0,1,-1,2}){
+                double angle=(now/60.0)+side*Math.PI/2;
+                Vec3 desired=target.position().add(side==0?0:Math.cos(angle)*2,dy,side==0?0:Math.sin(angle)*2);
+                var box=mob.getType().getDimensions().makeBoundingBox(desired.x,desired.y,desired.z);
+                if(!level().hasChunkAt(net.minecraft.core.BlockPos.containing(desired))
+                        ||!level().hasChunkAt(net.minecraft.core.BlockPos.containing(box.minX,box.minY,box.minZ))
+                        ||!level().hasChunkAt(net.minecraft.core.BlockPos.containing(box.maxX,box.maxY,box.maxZ))||!level().getWorldBorder().isWithinBounds(box)
+                        ||!level().noCollision(mob,box))continue;
+                var path=mob.getNavigation().createPath(desired.x,desired.y,desired.z,0);
+                if(path!=null&&path.canReach()){mob.getNavigation().moveTo(path,1);return;}
+            }
+        }
+        public void tick(long now){
+            if(mob.skillId()!=ArmySkills.SKULL_DIVE||!launched)return;
+            double age=mob.actionAge(0);
+            if(age<14||age>=26||contact){mob.setDeltaMovement(mob.getDeltaMovement().scale(.5));return;}
+            Vec3 delta=divePoint.subtract(mob.position());
+            if(delta.lengthSqr()<.06||mob.horizontalCollision||mob.verticalCollision){launched=false;mob.setDeltaMovement(Vec3.ZERO);return;}
+            var ray=level().clip(new net.minecraft.world.level.ClipContext(mob.getEyePosition(),mob.getEyePosition().add(delta.normalize().scale(.85)),
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,mob));
+            if(ray.getType()!=net.minecraft.world.phys.HitResult.Type.MISS){launched=false;mob.setDeltaMovement(Vec3.ZERO);return;}
+            mob.setDeltaMovement(delta.normalize().scale(Math.min(.8,delta.length())));
+            var target=victim();
+            if(mob.validEnemy(target)&&mob.getBoundingBox().inflate(.3).intersects(target.getBoundingBox())&&mob.hasLineOfSight(target)){
+                contact=true;target.hurt(mob.damageSources().mobAttack(mob),(float)mob.getAttributeValue(Attributes.ATTACK_DAMAGE));
+                mob.setDeltaMovement(0,.25,0);
+            }
+        }
+        public void impact(SkillDefinition skill,int frame){
+            if(skill.id()==ArmySkills.SKULL_DIVE){launched=true;return;}
+            var origin=mob.blockPosition();net.minecraft.core.BlockPos floor=null;
+            for(int d=0;d<8;d++){
+                var p=origin.below(d);
+                if(!level().hasChunkAt(p))return;
+                if(level().getBlockState(p).isFaceSturdy(level(),p,net.minecraft.core.Direction.UP)){floor=p.above();break;}
+            }
+            if(floor==null||!level().getFluidState(floor).isEmpty()
+                    ||level().getEntitiesOfClass(SkullBloodPool.class,new net.minecraft.world.phys.AABB(floor).inflate(8)).size()>=3)return;
+            var pool=new SkullBloodPool(BlueprintEntities.SKULL_BLOOD_POOL.get(),level());pool.setPos(floor.getX()+.5,floor.getY()+.03,floor.getZ()+.5);
+            pool.setOwner(mob);pool.activate(now());level().addFreshEntity(pool);
+            for(int i=0;i<8;i++){var p=mob.position().lerp(pool.position(),i/7D);level().sendParticles(new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(.2F,.03F,.04F),.8F),p.x,p.y,p.z,1,.03,0,.03,0);}
+        }
+        private long now(){return level().getGameTime();}
+        public CompoundTag save(){var tag=new CompoundTag();tag.putDouble("DiveX",divePoint.x);tag.putDouble("DiveY",divePoint.y);tag.putDouble("DiveZ",divePoint.z);tag.putBoolean("Launched",launched);tag.putBoolean("Contact",contact);return tag;}
+        public void load(CompoundTag tag){divePoint=new Vec3(tag.getDouble("DiveX"),tag.getDouble("DiveY"),tag.getDouble("DiveZ"));launched=tag.getBoolean("Launched")&&Double.isFinite(divePoint.lengthSqr());contact=tag.getBoolean("Contact");}
+    }
+
     private static final class PaperSwordsman extends Base {
         long substitutionUntil;boolean substituting;
         PaperSwordsman(TemplateMob mob){super(mob);}

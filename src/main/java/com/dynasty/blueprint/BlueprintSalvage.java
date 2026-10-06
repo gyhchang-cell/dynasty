@@ -54,6 +54,20 @@ public final class BlueprintSalvage {
     public static final RegistryObject<Item> TOUGH_BAMBOO_SLIVER=register("tough_bamboo_sliver",Use.BOWS);
     public static final RegistryObject<Item> PAPER_CUTTING_KNIFE=register("paper_cutting_knife",Use.SHEARS);
     public static final RegistryObject<Item> PAINTED_CINNABAR=plain("painted_cinnabar");
+    public static final RegistryObject<Item> POINTED_DEAD_TOOTH=plain("pointed_dead_tooth");
+    public static final RegistryObject<Item> RUSTED_HELMET_SPIKE=register("rusted_helmet_spike",Use.IRON_ARMOR);
+    public static final RegistryObject<Item> YIN_AIR_SAC=BlueprintEntities.ITEMS.register("yin_air_sac",BreathSac::new);
+    private static final class BreathSac extends Item {
+        BreathSac(){super(new Properties().food(new net.minecraft.world.food.FoodProperties.Builder().nutrition(0).saturationMod(0).alwaysEat().build()));}
+        @Override public ItemStack finishUsingItem(ItemStack stack,Level level,net.minecraft.world.entity.LivingEntity user){
+            if(!level.isClientSide){user.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SLOW_FALLING,200));
+                user.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.WATER_BREATHING,200));}
+            return super.finishUsingItem(stack,level,user);
+        }
+        @Override public void appendHoverText(ItemStack stack,@Nullable Level level,List<Component> lines,TooltipFlag flag){
+            lines.add(Component.translatable("tooltip.dynasty.yin_air_sac").withStyle(ChatFormatting.GRAY));
+        }
+    }
     private enum Use { SHEARS, IRON_AXE, IRON_SWORD, IRON_GEAR, IRON_ARMOR, JADE_GEAR, LEATHER_ARMOR, LEATHER_BOOTS, SHIELD, CHAINMAIL, BOWS, CROSSBOW }
     private static RegistryObject<Item> register(String id,Use use){return BlueprintEntities.ITEMS.register(id,()->new ComponentItem(use));}
     private static RegistryObject<Item> plain(String id){return BlueprintEntities.ITEMS.register(id,()->new Item(new Item.Properties()));}
