@@ -25,6 +25,10 @@ public final class BlueprintEntities {
 
     public static final RegistryObject<MobEffect> SOUL_BIND = EFFECTS.register("soul_bind",SoulBindEffect::new);
     public static final RegistryObject<MobEffect> LANTERN_GLARE = EFFECTS.register("lantern_glare",()->new MobEffect(net.minecraft.world.effect.MobEffectCategory.HARMFUL,0xE9E4CF){});
+    public static final RegistryObject<EntityType<TemplateMob>> CHIMU_ZHUHA=mob("chimu_zhuha",TemplateMob.Kind.TOAD,1.4F,1F);
+    public static final RegistryObject<EntityType<CorpseMiasma>> TOAD_VENOM_POOL=ENTITIES.register("toad_venom_pool",
+        ()->EntityType.Builder.<CorpseMiasma>of(CorpseMiasma::new,MobCategory.MISC).sized(2.2F,.5F).clientTrackingRange(8).updateInterval(10).build("toad_venom_pool"));
+    public static final RegistryObject<Item> CHIMU_ZHUHA_EGG=egg("chimu_zhuha",CHIMU_ZHUHA,0x682A24,0xCE7837);
     public static final RegistryObject<EntityType<TemplateMob>> MUXUE_FEILU = mob("muxue_feilu",TemplateMob.Kind.SKULL,.85F,1.7F);
     public static final RegistryObject<EntityType<SkullBloodPool>> SKULL_BLOOD_POOL = ENTITIES.register("skull_blood_pool",
         ()->EntityType.Builder.<SkullBloodPool>of(SkullBloodPool::new,MobCategory.MISC).sized(2.4F,.5F).clientTrackingRange(8).updateInterval(10).build("skull_blood_pool"));
@@ -107,6 +111,7 @@ public final class BlueprintEntities {
         event.put(SHIBIAN_LISHI.get(), attributes(84, 7, .19, 3, .5));
         event.put(FUHUN_BAIBU_TONGZI.get(), attributes(28, 2, .24, 0, 0));
         event.put(ZHIREN_JIANKE.get(), attributes(32, 5, .34, 0, 0));
+        event.put(CHIMU_ZHUHA.get(),attributes(52,6,.25,2,.1));
         event.put(MUXUE_FEILU.get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,30).add(Attributes.ATTACK_DAMAGE,5)
             .add(Attributes.MOVEMENT_SPEED,.3).add(Attributes.FLYING_SPEED,.35).add(Attributes.FOLLOW_RANGE,28).build());
     }

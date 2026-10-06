@@ -35,6 +35,9 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> SKULLS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/flying_skull_sites"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
+        event.register(BlueprintEntities.CHIMU_ZHUHA.get(),SpawnPlacements.Type.NO_RESTRICTIONS,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
+                reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||toadHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
         event.register(BlueprintEntities.TIESUO_CHIHOU.get(),SpawnPlacements.Type.ON_GROUND,
             Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->{
                 if(reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND)return true;
@@ -53,6 +56,31 @@ public final class BlueprintSpawns {
                     && com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
                     && server.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(24),e->e.getType()==type).size()<3;
             },SpawnPlacementRegisterEvent.Operation.REPLACE);
+    }
+    /** Spawn-attempt-only bounded water connectivity check; never scans from a mob tick. */
+    static boolean toadHabitat(ServerLevel level,BlockPos pos){
+        var habitat=TagKey.create(Registries.BIOME,new ResourceLocation("dynasty","blueprint/toad_habitat"));
+        if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+                ||pos.getY()<level.getMinBuildHeight()+1||pos.getY()>100||!level.hasChunkAt(pos)||!level.getBiome(pos).is(habitat)
+                ||level.getMaxLocalRawBrightness(pos)>12||level.isDay()&&!level.isRainingAt(pos)&&level.canSeeSky(pos))return false;
+        var type=BlueprintEntities.CHIMU_ZHUHA.get();var box=type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5);
+        if(!level.noCollision(null,box)||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()>=2)return false;
+        if(!level.getFluidState(pos).is(net.minecraft.tags.FluidTags.WATER)
+                &&!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,box))return false;
+        var wet=new java.util.HashSet<BlockPos>();
+        for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=-1;y<=1;y++){
+            var p=pos.offset(x,y,z);if(level.hasChunkAt(p)&&level.getFluidState(p).is(net.minecraft.tags.FluidTags.WATER))wet.add(p);
+        }
+        while(!wet.isEmpty()){
+            var queue=new java.util.ArrayDeque<BlockPos>();var first=wet.iterator().next();wet.remove(first);queue.add(first);
+            int water=0;var columns=new java.util.HashSet<Long>();
+            while(!queue.isEmpty()){
+                var p=queue.remove();water++;columns.add(BlockPos.asLong(p.getX(),0,p.getZ()));
+                if(water>=12&&columns.size()>=9)return true;
+                for(var direction:net.minecraft.core.Direction.values()){var next=p.relative(direction);if(wet.remove(next))queue.add(next);}
+            }
+        }
+        return false;
     }
     @SubscribeEvent public static void tick(TickEvent.LevelTickEvent event) {
         if(event.phase!=TickEvent.Phase.END || !(event.level instanceof ServerLevel level) || level.dimension()!=Level.OVERWORLD

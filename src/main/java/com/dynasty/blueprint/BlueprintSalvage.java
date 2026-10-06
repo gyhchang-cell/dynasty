@@ -54,6 +54,9 @@ public final class BlueprintSalvage {
     public static final RegistryObject<Item> TOUGH_BAMBOO_SLIVER=register("tough_bamboo_sliver",Use.BOWS);
     public static final RegistryObject<Item> PAPER_CUTTING_KNIFE=register("paper_cutting_knife",Use.SHEARS);
     public static final RegistryObject<Item> PAINTED_CINNABAR=plain("painted_cinnabar");
+    public static final RegistryObject<Item> RED_TOAD_GLAND=plain("red_toad_gland");
+    public static final RegistryObject<Item> TOUGH_TOAD_HIDE=register("tough_toad_hide",Use.LEATHER_ARMOR);
+    public static final RegistryObject<Item> POISON_GEL=plain("poison_gel");
     public static final RegistryObject<Item> POINTED_DEAD_TOOTH=plain("pointed_dead_tooth");
     public static final RegistryObject<Item> RUSTED_HELMET_SPIKE=register("rusted_helmet_spike",Use.IRON_ARMOR);
     public static final RegistryObject<Item> YIN_AIR_SAC=BlueprintEntities.ITEMS.register("yin_air_sac",BreathSac::new);

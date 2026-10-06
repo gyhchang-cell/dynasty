@@ -153,15 +153,17 @@ public final class BlueprintVisuals {
     private static int deathParticles(Minecraft mc,BlueprintVisualEvent p,long age,int budget) {
         boolean priest=p.key().endsWith("fufa_jijiu"),shield=p.key().endsWith("ludun_jiashi"),sword=p.key().endsWith("zuwu_daoshou"),
             cross=p.key().endsWith("liannu_zhenzu"),powder=p.key().endsWith("kuijun_sishi"),flag=p.key().endsWith("zhenwang_zhangqiguan");
-        boolean child=p.key().endsWith("fuhun_baibu_tongzi"),paper=p.key().endsWith("zhiren_jianke"),skull=p.key().endsWith("muxue_feilu");
-        if(!(skull&&age<28||paper&&age<10||child&&age<30||priest&&age<18||shield&&age>=188||sword&&age>=40||cross&&age>=8&&age<20||powder&&age<30||flag&&age>=8&&age<28))return 0;
+        boolean child=p.key().endsWith("fuhun_baibu_tongzi"),paper=p.key().endsWith("zhiren_jianke"),skull=p.key().endsWith("muxue_feilu"),toad=p.key().endsWith("chimu_zhuha");
+        if(!(toad&&age>=12&&age<28||skull&&age<28||paper&&age<10||child&&age<30||priest&&age<18||shield&&age>=188||sword&&age>=40||cross&&age>=8&&age<20||powder&&age<30||flag&&age>=8&&age<28))return 0;
         int count=Math.min(budget,priest?8:4);
         // No visual entities, frame packets or random state to replicate: seed + absolute age is deterministic.
         var random=net.minecraft.util.RandomSource.create(p.seed()^age*0x9e3779b97f4a7c15L);
         for(int i=0;i<count;i++) {
             double x=p.origin().x+(random.nextDouble()-.5)*.8,z=p.origin().z+(random.nextDouble()-.5)*.8;
             double y=p.origin().y+(priest?.6:shield?.4:.15)+random.nextDouble()*(priest?.6:shield?1.2:.25);
-            if(skull){
+            if(toad){
+                mc.level.addParticle(new ItemParticleOption(ParticleTypes.ITEM,new ItemStack(Items.WHITE_DYE)),x,y+.4,z,(x-p.origin().x)*.04,.005,(z-p.origin().z)*.04);
+            } else if(skull){
                 mc.level.addParticle(age<8?new ItemParticleOption(ParticleTypes.ITEM,new ItemStack(Items.IRON_NUGGET)):age<18?ParticleTypes.SMOKE:new ItemParticleOption(ParticleTypes.ITEM,new ItemStack(Items.BONE_MEAL)),x,y,z,(x-p.origin().x)*.1,.025,(z-p.origin().z)*.1);
             } else if(paper){
                 mc.level.addParticle(age<6?ParticleTypes.END_ROD:ParticleTypes.SQUID_INK,x,y,z,0,age<6?.02:0,0);

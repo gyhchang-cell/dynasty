@@ -28,6 +28,7 @@ import java.util.UUID;
 public final class TemplateProjectile extends ThrowableItemProjectile implements net.minecraftforge.entity.IEntityAdditionalSpawnData {
     private static final EntityDataAccessor<Boolean> ROCK = SynchedEntityData.defineId(TemplateProjectile.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> ARMY_MODE = SynchedEntityData.defineId(TemplateProjectile.class, EntityDataSerializers.INT);
+    private long venomExpires=-1;
     private long actionEpoch=-1;
     private UUID target;
     private float damage = 4;
@@ -63,11 +64,17 @@ public final class TemplateProjectile extends ThrowableItemProjectile implements
         projectile.shoot(aim.x,aim.y,aim.z,hook?1.35F:1.65F,0);
         owner.level().addFreshEntity(projectile);return projectile;
     }
+    public static TemplateProjectile shootVenom(TemplateMob owner,double angle){
+        var p=new TemplateProjectile(BlueprintEntities.TEMPLATE_PROJECTILE.get(),owner.level());p.setOwner(owner);p.entityData.set(ARMY_MODE,3);
+        p.venomExpires=owner.level().getGameTime()+80;p.setItem(new ItemStack(Items.MAGMA_CREAM));
+        p.setPos(owner.getX(),owner.getY()+.8,owner.getZ());p.setDeltaMovement(Math.cos(angle)*.4,.35,Math.sin(angle)*.4);
+        owner.level().addFreshEntity(p);return p;
+    }
     public int armyMode(){return entityData.get(ARMY_MODE);}
     @Override protected void defineSynchedData() { super.defineSynchedData(); entityData.define(ROCK, false);entityData.define(ARMY_MODE,0); }
     @Override protected Item getDefaultItem() { return Items.PAPER; }
     public boolean isRock() { return entityData.get(ROCK); }
-    @Override protected float getGravity() { return isRock() ? .045F : 0; }
+    @Override protected float getGravity() { return armyMode()==3?.05F:isRock() ? .045F : 0; }
     @Override public Packet<ClientGamePacketListener> getAddEntityPacket() { return NetworkHooks.getEntitySpawningPacket(this); }
     // Forge's custom spawn packet does not invoke vanilla Projectile.recreateFromPacket's
     // owner-data path. Supply it explicitly, so both observing clients know the thrower.
@@ -80,10 +87,14 @@ public final class TemplateProjectile extends ThrowableItemProjectile implements
     }
 
     @Override public void tick() {
+        if(level().isClientSide&&armyMode()==3&&tickCount%3==0){
+            level().addParticle(net.minecraft.core.particles.ParticleTypes.SMALL_FLAME,getX(),getY(),getZ(),0,.005,0);
+            level().addParticle(net.minecraft.core.particles.ParticleTypes.WITCH,getX(),getY(),getZ(),0,.002,0);
+        }
         if (level().isClientSide && armyMode()==0 && !isRock() && tickCount % 3 == 0)
             level().addParticle(net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME, getX(), getY(), getZ(), 0, .005, 0);
         if (!level().isClientSide) {
-            if (++lived > 100 || spent || getOwner() == null || !getOwner().isAlive()) { discard(); return; }
+            if (armyMode()==3&&level().getGameTime()>=venomExpires || ++lived > 100 || spent || getOwner() == null || !getOwner().isAlive()) { discard(); return; }
             if (armyMode()==0 && !isRock() && lived < 35 && target != null && level() instanceof ServerLevel server
                     && server.getEntity(target) instanceof LivingEntity victim && victim.isAlive()
                     && distanceToSqr(victim) < 32 * 32 && !Combatant.allied(getOwner(), victim)) {
@@ -104,7 +115,23 @@ public final class TemplateProjectile extends ThrowableItemProjectile implements
         spent = true;
         Entity owner = getOwner();
         if (owner == null) { discard(); return; }
-        if (armyMode()!=0) {
+        if(armyMode()==3){
+            if(result instanceof EntityHitResult hit&&hit.getEntity() instanceof LivingEntity living&&!Combatant.allied(owner,living)){
+                living.hurt(damageSources().thrown(this,owner),3);living.setSecondsOnFire(2);
+                living.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.POISON,40),owner);
+            }
+            var pos=net.minecraft.core.BlockPos.containing(result.getLocation().add(0,.05,0));
+            for(int down=0;down<4;down++,pos=pos.below()){
+                if(!server.hasChunkAt(pos))break;
+                if(!server.getBlockState(pos.below()).isFaceSturdy(server,pos.below(),net.minecraft.core.Direction.UP)
+                        ||!server.getBlockState(pos).getCollisionShape(server,pos).isEmpty()||!server.getFluidState(pos).isEmpty())continue;
+                if(server.getEntitiesOfClass(CorpseMiasma.class,new net.minecraft.world.phys.AABB(pos).inflate(12),CorpseMiasma::isFiery).size()<6){
+                    var pool=new CorpseMiasma(BlueprintEntities.TOAD_VENOM_POOL.get(),server);pool.setPos(pos.getX()+.5,pos.getY()+.03,pos.getZ()+.5);
+                    if(owner instanceof LivingEntity living)pool.setOwner(living);pool.activateFirePoison(server.getGameTime());server.addFreshEntity(pool);
+                }
+                break;
+            }
+        } else if (armyMode()!=0) {
             if(result instanceof EntityHitResult hit&&hit.getEntity() instanceof LivingEntity living&&!Combatant.allied(owner,living)){
                 if(armyMode()==2&&owner instanceof TemplateMob mob)mob.onArmyHookHit(living,actionEpoch);
                 else {living.invulnerableTime=0;living.hurt(damageSources().thrown(this,owner),damage);}
@@ -130,14 +157,14 @@ public final class TemplateProjectile extends ThrowableItemProjectile implements
 
     @Override public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
-        tag.putBoolean("Rock", isRock()); tag.putFloat("Damage", damage); tag.putInt("Lived", lived); tag.putBoolean("Spent", spent);
+        tag.putLong("VenomExpires",venomExpires);tag.putBoolean("Rock", isRock()); tag.putFloat("Damage", damage); tag.putInt("Lived", lived); tag.putBoolean("Spent", spent);
         tag.putInt("ArmyMode",armyMode());tag.putLong("ArmyEpoch",actionEpoch);
         if (target != null) tag.putUUID("Target", target);
     }
     @Override public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
-        entityData.set(ROCK, tag.getBoolean("Rock")); damage = Math.max(0, Math.min(30, tag.getFloat("Damage")));
+        venomExpires=tag.contains("VenomExpires")?tag.getLong("VenomExpires"):-1;entityData.set(ROCK, tag.getBoolean("Rock")); damage = Math.max(0, Math.min(30, tag.getFloat("Damage")));
         lived = Math.max(0, tag.getInt("Lived")); spent = tag.getBoolean("Spent"); target = tag.hasUUID("Target") ? tag.getUUID("Target") : null;
-        entityData.set(ARMY_MODE,Math.max(0,Math.min(2,tag.getInt("ArmyMode"))));actionEpoch=tag.contains("ArmyEpoch")?tag.getLong("ArmyEpoch"):-1;
+        entityData.set(ARMY_MODE,Math.max(0,Math.min(3,tag.getInt("ArmyMode"))));actionEpoch=tag.contains("ArmyEpoch")?tag.getLong("ArmyEpoch"):-1;
     }
 }

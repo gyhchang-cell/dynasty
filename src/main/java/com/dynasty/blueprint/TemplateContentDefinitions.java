@@ -13,6 +13,9 @@ public final class TemplateContentDefinitions {
             int localCap, String spawnReason, String specialCondition, String despawnPolicy) {}
     private static ResourceLocation tag(String id) {return new ResourceLocation(id);}
     public static final List<Spawn> ALL = List.of(
+        new Spawn("chimu_zhuha",Level.OVERWORLD,List.of(tag("dynasty:blueprint/toad_habitat")),List.of(),
+            -63,100,0,12,"NIGHT_OR_RAIN_OR_COVER","RAIN_OR_COVER_DURING_DAY",4,1,2,2,"NATURAL_ECOLOGY",
+            "connected water >=12 blocks across >=9 columns; shore/water space; local cap2 within32","VANILLA_DISTANCE_DESPAWN"),
         new Spawn("zuwu_daoshou",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/ritual_sites")),
             -32,220,0,15,"ALL; night weight 10 instead of 8","ANY",8,2,2,2,"STRUCTURE_MARKER",
             "two swordsmen guarding an existing ritual priest; safe solid floor","PERSISTENT_MARKER; 10-minute cooldown after all killed"),

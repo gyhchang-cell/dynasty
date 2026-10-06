@@ -59,7 +59,8 @@ import java.util.UUID;
 
 /** Validated template lifecycle; additional army professions compose their own server actions. */
 public final class TemplateMob extends Monster implements GeoEntity, Combatant {
-    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE, CHILD, PAPER, SKULL }
+    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE, CHILD, PAPER, SKULL, TOAD }
+    private static final EntityDataAccessor<Float> TONGUE_REACH = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> SKILL = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> START = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
@@ -93,6 +94,13 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         this.xpReward = kind == Kind.SHIELD ? 8 : 5;
         setMaxUpStep(kind == Kind.BEAST ? 1.0F : .6F);
         if (kind == Kind.BEAST) this.navigation = new com.dynasty.blueprint.combat.SummitClimberNavigation(this, level);
+        else if (kind == Kind.TOAD) {
+            this.navigation=new net.minecraft.world.entity.ai.navigation.AmphibiousPathNavigation(this,level);
+            setPathfindingMalus(net.minecraft.world.level.pathfinder.BlockPathTypes.WATER,0);
+            setPathfindingMalus(net.minecraft.world.level.pathfinder.BlockPathTypes.WATER_BORDER,0);
+            goalSelector.getAvailableGoals().stream().map(net.minecraft.world.entity.ai.goal.WrappedGoal::getGoal)
+                .filter(g->g instanceof WaterAvoidingRandomStrollGoal).toList().forEach(goalSelector::removeGoal);
+        }
         else if (kind == Kind.SKULL) {
             this.navigation = new net.minecraft.world.entity.ai.navigation.FlyingPathNavigation(this,level);
             this.moveControl = new net.minecraft.world.entity.ai.control.FlyingMoveControl(this,16,true);
@@ -120,18 +128,21 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             case CHILD -> "fuhun_baibu_tongzi";
             case PAPER -> "zhiren_jianke";
             case SKULL -> "muxue_feilu";
+            case TOAD -> "chimu_zhuha";
         };
     }
-    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE || kind == Kind.CHILD || kind == Kind.PAPER || kind == Kind.SKULL) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
+    @Override public Faction faction() { return (kind == Kind.BEAST || kind == Kind.TOAD) ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE || kind == Kind.CHILD || kind == Kind.PAPER || kind == Kind.SKULL) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
     @Override public MobRole role() {
         return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER,AXE_GUARD,GHOST,CORPSE,PAPER -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
-            case PRIEST,FLAG,CHILD -> MobRole.SUPPORT; case CROSSBOW,SKULL -> MobRole.RANGED; case BEAST -> MobRole.BEAST; };
+            case PRIEST,FLAG,CHILD -> MobRole.SUPPORT; case CROSSBOW,SKULL -> MobRole.RANGED; case BEAST,TOAD -> MobRole.BEAST; };
     }
     public TimedAttack attack() { return attack; }
     public int skillId() { return entityData.get(SKILL); }
     public long skillStartTime() { return entityData.get(START); }
     public float skillSpeed() { return entityData.get(SPEED); }
     public int buffTargetId() { return entityData.get(BUFF_TARGET); }
+    public float tongueReach(){return entityData.get(TONGUE_REACH);}
+    void setTongueReach(float reach){entityData.set(TONGUE_REACH,net.minecraft.util.Mth.clamp(reach,0,5));}
     public int hookTargetId() { return entityData.get(HOOK_TARGET); }
     public long hookExpires() { return entityData.get(HOOK_EXPIRES); }
     void syncHook(LivingEntity target,long expires) {
@@ -153,7 +164,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     public float actionAge(float partialTick) { return skillStartTime() < 0 ? 0 : Math.max(0, level().getGameTime() - skillStartTime() + partialTick) * skillSpeed(); }
 
     @Override protected void defineSynchedData() {
-        super.defineSynchedData(); entityData.define(SKILL, 0); entityData.define(PHASE, AttackState.IDLE.ordinal());
+        super.defineSynchedData(); entityData.define(TONGUE_REACH,5F); entityData.define(SKILL, 0); entityData.define(PHASE, AttackState.IDLE.ordinal());
         entityData.define(START, -1L); entityData.define(SPEED, 1F); entityData.define(BUFF_TARGET, -1); entityData.define(CLIMBING, false); entityData.define(POSSESSED, false);
         entityData.define(CLIMB_FACE, (byte)-1); entityData.define(CLIMB_DISTANCE, 0F); entityData.define(CLIMB_START, -1L);
         entityData.define(HOOK_TARGET,-1); entityData.define(HOOK_EXPIRES,-1L);
@@ -197,7 +208,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         Vec3 direction = target.position().subtract(position()).multiply(1, 0, 1).normalize();
         if (direction.lengthSqr() < .0001) direction = getLookAngle().multiply(1, 0, 1).normalize();
         // A fuse uses real elapsed time, not attack speed: three consecutive close seconds.
-        float speed = id != ArmySkills.DETONATE && id != ArmySkills.AXE_COUNTER && id != ArmySkills.CHILD_CURSE && id != ArmySkills.SKULL_DIVE && id != ArmySkills.SKULL_BLOOD && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
+        float speed = id != ArmySkills.DETONATE && id != ArmySkills.AXE_COUNTER && id != ArmySkills.CHILD_CURSE && id != ArmySkills.SKULL_DIVE && id != ArmySkills.SKULL_BLOOD && id != ArmySkills.TOAD_LEAP && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
         SkillDefinition effective = TemplateSkills.accelerated(base, speed);
         if (!attack.tryStart(effective, level().getGameTime(), position(), direction, target.getUUID())) return false;
         if(army!=null)army.started(id,target);
@@ -255,7 +266,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (attack.current() != null) {
             face(attack.direction());
             navigation.stop();
-            if (skillId() != TemplateSkills.POUNCE && skillId() != ArmySkills.ROLL && skillId() != ArmySkills.GRAPPLE && skillId() != ArmySkills.SKULL_DIVE)
+            if (skillId() != TemplateSkills.POUNCE && skillId() != ArmySkills.ROLL && skillId() != ArmySkills.GRAPPLE && skillId() != ArmySkills.SKULL_DIVE && skillId() != ArmySkills.TOAD_LEAP)
                 setDeltaMovement(getDeltaMovement().multiply(.35, 1, .35));
             attack.advance(now, this::impact);
             // Damage callbacks (e.g. thorns) may synchronously enter die(). Do not erase its
@@ -516,8 +527,9 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         }
         if (!isAlive()) return false;
         if (kind == Kind.SWORD && formation && direct instanceof AbstractArrow) amount *= .8F;
+        float before=getHealth();
         boolean damaged = super.hurt(source, amount);
-        if (damaged && isAlive() && army != null) army.hurtAccepted(source, frontal);
+        if (damaged && isAlive() && army != null) army.hurtAccepted(source, frontal, Math.max(0,before-getHealth()));
         if (damaged && isAlive() && attack.current() != null && attack.current().interruptible()
                 && attack.state(level().getGameTime()) == AttackState.WINDUP && amount >= Math.max(3, getMaxHealth() * .08F))
             interruptAttack(10);
@@ -532,7 +544,15 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (kind == Kind.BEAST) return isAlive() && (entityData.get(CLIMBING) || super.onClimbable());
         return super.onClimbable();
     }
+    @Override public boolean canBreatheUnderwater(){return kind==Kind.TOAD||super.canBreatheUnderwater();}
+    @Override public boolean checkSpawnObstruction(net.minecraft.world.level.LevelReader reader){
+        return kind==Kind.TOAD?reader.isUnobstructed(this):super.checkSpawnObstruction(reader);
+    }
     @Override public void travel(Vec3 input) {
+        if(kind==Kind.TOAD&&isAlive()&&isInWater()&&isControlledByLocalInstance()){
+            moveRelative(.1F,input);move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());
+            setDeltaMovement(getDeltaMovement().scale(.8));calculateEntityAnimation(false);return;
+        }
         if (kind != Kind.SKULL || !isAlive() || isInWater() || isInLava()) {
             super.travel(input); return;
         }
@@ -547,7 +567,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     }
 
     @Override public boolean causeFallDamage(float distance, float multiplier, DamageSource source) {
-        return kind == Kind.BEAST ? super.causeFallDamage(Math.max(0, distance - 5), multiplier, source) : super.causeFallDamage(distance, multiplier, source);
+        return kind == Kind.BEAST || kind == Kind.TOAD ? super.causeFallDamage(Math.max(0, distance - 5), multiplier, source) : super.causeFallDamage(distance, multiplier, source);
     }
     @Override public boolean canBeCollidedWith() { return kind == Kind.SHIELD && !isRemoved(); }
     @Override public net.minecraft.world.entity.MobType getMobType() {
@@ -605,7 +625,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
 
     @Override public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
-        tag.put("BlueprintAttack", attack.save()); tag.putFloat("BlueprintSpeed", skillSpeed());
+        tag.putFloat("TongueReach",tongueReach()); tag.put("BlueprintAttack", attack.save()); tag.putFloat("BlueprintSpeed", skillSpeed());
         tag.putBoolean("BlueprintLootDropped", lootDropped); tag.putLong("BlueprintDeathStart", deathStarted); tag.putInt("BlueprintDeathTicks", deathTime);
         tag.putLong("PossessedUntil", possessedUntil); tag.putLong("LinkUntil", linkUntil);
         if (possessor != null) tag.putUUID("Possessor", possessor);
@@ -615,6 +635,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     }
     @Override public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        setTongueReach(tag.contains("TongueReach")?tag.getFloat("TongueReach"):5);
         float speed = tag.getFloat("BlueprintSpeed") > 1 ? 1.3F : 1F;
         entityData.set(SPEED, speed);
         attack.load(tag.getCompound("BlueprintAttack"), id -> {
@@ -673,9 +694,9 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             }
         });
     }
-    @Override protected SoundEvent getAmbientSound() { return kind == Kind.BEAST ? SoundEvents.FOX_AMBIENT : null; }
-    @Override protected SoundEvent getHurtSound(DamageSource source) { return kind == Kind.BEAST ? SoundEvents.FOX_HURT : kind == Kind.CHILD ? SoundEvents.ALLAY_HURT : kind == Kind.PAPER ? SoundEvents.BOOK_PAGE_TURN : kind == Kind.SKULL ? SoundEvents.SKELETON_HURT : SoundEvents.PLAYER_HURT; }
-    @Override protected SoundEvent getDeathSound() { return kind == Kind.BEAST ? SoundEvents.FOX_DEATH : kind == Kind.CHILD ? SoundEvents.ALLAY_DEATH : kind == Kind.PAPER ? SoundEvents.FIRE_EXTINGUISH : kind == Kind.SKULL ? SoundEvents.SKELETON_DEATH : SoundEvents.ZOMBIE_DEATH; }
+    @Override protected SoundEvent getAmbientSound() { return kind == Kind.TOAD ? SoundEvents.FROG_AMBIENT : kind == Kind.BEAST ? SoundEvents.FOX_AMBIENT : null; }
+    @Override protected SoundEvent getHurtSound(DamageSource source) { return kind == Kind.TOAD ? SoundEvents.FROG_HURT : kind == Kind.BEAST ? SoundEvents.FOX_HURT : kind == Kind.CHILD ? SoundEvents.ALLAY_HURT : kind == Kind.PAPER ? SoundEvents.BOOK_PAGE_TURN : kind == Kind.SKULL ? SoundEvents.SKELETON_HURT : SoundEvents.PLAYER_HURT; }
+    @Override protected SoundEvent getDeathSound() { return kind == Kind.TOAD ? SoundEvents.FROG_DEATH : kind == Kind.BEAST ? SoundEvents.FOX_DEATH : kind == Kind.CHILD ? SoundEvents.ALLAY_DEATH : kind == Kind.PAPER ? SoundEvents.FIRE_EXTINGUISH : kind == Kind.SKULL ? SoundEvents.SKELETON_DEATH : SoundEvents.ZOMBIE_DEATH; }
     @Override protected void playStepSound(BlockPos pos, net.minecraft.world.level.block.state.BlockState state) {
         if (kind == Kind.GHOST || kind == Kind.CHILD || kind == Kind.SKULL) return;
         if (kind == Kind.PAPER) playSound(SoundEvents.BOOK_PAGE_TURN, .2F, 1.6F);
