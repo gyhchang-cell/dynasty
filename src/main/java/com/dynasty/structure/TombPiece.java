@@ -45,6 +45,11 @@ public class TombPiece extends DynastyStructurePiece {
         tag.putInt("DynastyTombLayout", remastered ? 2 : 1);
     }
 
+    /** Actual antechamber floor positions, transformed with the persisted piece orientation. */
+    public java.util.List<BlockPos> corpsePositions() {
+        return java.util.List.of(getWorldPos(19,1,29).immutable(),getWorldPos(20,1,34).immutable());
+    }
+
     void lootChest(WorldGenLevel level, BoundingBox box, RandomSource random, int x, int y, int z, ResourceLocation table) {
         createChest(level, box, random, x, y, z, table);
     }

@@ -21,6 +21,7 @@ public final class BlueprintEntities {
     public static final DeferredRegister<MobEffect> EFFECTS = DeferredRegister.create(ForgeRegistries.MOB_EFFECTS, Dynasty.MODID);
     public static final RegistryObject<MobEffect> BINGSHA_POSSESSION = EFFECTS.register("bingsha_possession", TemplateSupportEffect::new);
     public static final RegistryObject<MobEffect> JUNHUN_AURA = EFFECTS.register("junhun_aura", ArmyAuraEffect::new);
+    public static final RegistryObject<MobEffect> SPIRIT_CHILL = EFFECTS.register("spirit_chill", SpiritChillEffect::new);
 
     public static final RegistryObject<EntityType<TemplateMob>> ZUWU_DAOSHOU = mob("zuwu_daoshou", TemplateMob.Kind.SWORD, .65F, 1.85F);
     public static final RegistryObject<EntityType<TemplateMob>> LUDUN_JIASHI = mob("ludun_jiashi", TemplateMob.Kind.SHIELD, .95F, 2.05F);
@@ -31,6 +32,11 @@ public final class BlueprintEntities {
     public static final RegistryObject<EntityType<TemplateMob>> TIESUO_CHIHOU = mob("tiesuo_chihou", TemplateMob.Kind.SCOUT, .6F, 1.78F);
     public static final RegistryObject<EntityType<TemplateMob>> KUIJUN_SISHI = mob("kuijun_sishi", TemplateMob.Kind.POWDER, .65F, 1.82F);
     public static final RegistryObject<EntityType<TemplateMob>> ZHENWANG_ZHANGQIGUAN = mob("zhenwang_zhangqiguan", TemplateMob.Kind.FLAG, .8F, 2.1F);
+    public static final RegistryObject<EntityType<TemplateMob>> PIJIA_PANJIANG_HUWEI = mob("pijia_panjiang_huwei", TemplateMob.Kind.AXE_GUARD, 1.1F, 2.15F);
+    public static final RegistryObject<EntityType<TemplateMob>> YINBING_GUIZU = mob("yinbing_guizu", TemplateMob.Kind.GHOST, .65F, 1.8F);
+    public static final RegistryObject<EntityType<TemplateMob>> SHIBIAN_LISHI = mob("shibian_lishi", TemplateMob.Kind.CORPSE, 1.25F, 2.3F);
+    public static final RegistryObject<EntityType<CorpseMiasma>> CORPSE_MIASMA = ENTITIES.register("corpse_miasma",
+        () -> EntityType.Builder.<CorpseMiasma>of(CorpseMiasma::new,MobCategory.MISC).sized(2.6F,.5F).clientTrackingRange(8).updateInterval(10).build("corpse_miasma"));
     public static final RegistryObject<EntityType<ArmyCaltrop>> ARMY_CALTROP = ENTITIES.register("army_caltrop",
             () -> EntityType.Builder.<ArmyCaltrop>of(ArmyCaltrop::new, MobCategory.MISC)
                     .sized(.4F, .15F).clientTrackingRange(6).updateInterval(10).build("army_caltrop"));
@@ -47,6 +53,10 @@ public final class BlueprintEntities {
     public static final RegistryObject<Item> TIESUO_CHIHOU_EGG = egg("tiesuo_chihou", TIESUO_CHIHOU, 0x20272B, 0x728087);
     public static final RegistryObject<Item> KUIJUN_SISHI_EGG = egg("kuijun_sishi", KUIJUN_SISHI, 0x6B5E55, 0x985645);
     public static final RegistryObject<Item> ZHENWANG_ZHANGQIGUAN_EGG = egg("zhenwang_zhangqiguan", ZHENWANG_ZHANGQIGUAN, 0x182D30, 0xBA8047);
+    public static final RegistryObject<Item> PIJIA_PANJIANG_HUWEI_EGG = egg("pijia_panjiang_huwei", PIJIA_PANJIANG_HUWEI, 0x313C39, 0xB78C45);
+    public static final RegistryObject<Item> YINBING_GUIZU_EGG = egg("yinbing_guizu", YINBING_GUIZU, 0x32434C, 0x7DD9E8);
+
+    public static final RegistryObject<Item> SHIBIAN_LISHI_EGG = egg("shibian_lishi", SHIBIAN_LISHI, 0x26332E, 0x713C80);
 
     private BlueprintEntities() { }
     private static RegistryObject<EntityType<TemplateMob>> mob(String id, TemplateMob.Kind kind, float width, float height) {
@@ -57,6 +67,7 @@ public final class BlueprintEntities {
         return ITEMS.register(id + "_spawn_egg", () -> new ForgeSpawnEggItem(type, base, spot, new Item.Properties()));
     }
     public static void register(IEventBus bus) {
+        BlueprintSalvage.bootstrap();
         ENTITIES.register(bus);
         ITEMS.register(bus);
         EFFECTS.register(bus);
@@ -78,5 +89,8 @@ public final class BlueprintEntities {
         event.put(TIESUO_CHIHOU.get(), attributes(36, 4, .32, 1, 0));
         event.put(KUIJUN_SISHI.get(), attributes(34, 4, .28, 0, 0));
         event.put(ZHENWANG_ZHANGQIGUAN.get(), attributes(64, 6, .16, 6, .4));
+        event.put(PIJIA_PANJIANG_HUWEI.get(), attributes(100, 8, .19, 10, .6));
+        event.put(YINBING_GUIZU.get(), attributes(42, 5, .25, 2, .1));
+        event.put(SHIBIAN_LISHI.get(), attributes(84, 7, .19, 3, .5));
     }
 }

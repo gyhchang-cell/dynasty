@@ -33,6 +33,10 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
         event.registerEntityRenderer(BlueprintEntities.TIESUO_CHIHOU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.KUIJUN_SISHI.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ZHENWANG_ZHANGQIGUAN.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.PIJIA_PANJIANG_HUWEI.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.YINBING_GUIZU.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.SHIBIAN_LISHI.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.CORPSE_MIASMA.get(), net.minecraft.client.renderer.entity.NoopRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ARMY_CALTROP.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.TEMPLATE_PROJECTILE.get(), ThrownItemRenderer::new);
     }
@@ -71,7 +75,16 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
         pose.mulPose(Axis.XP.rotationDegrees(90F));
     }
 
+    @Override public void renderRecursively(PoseStack pose,TemplateMob mob,software.bernie.geckolib.cache.object.GeoBone bone,
+            net.minecraft.client.renderer.RenderType type,MultiBufferSource buffers,com.mojang.blaze3d.vertex.VertexConsumer sink,
+            boolean rerender,float partial,int light,int overlay,float red,float green,float blue,float alpha) {
+        boolean vein=mob.kind()==TemplateMob.Kind.CORPSE&&bone.getName().startsWith("vein_");
+        super.renderRecursively(pose,mob,bone,type,buffers,sink,rerender,partial,vein?15728880:light,overlay,
+            vein?.75F:red,vein?.25F:green,vein?1F:blue,alpha);
+    }
+
     @Override public Color getRenderColor(TemplateMob mob, float partialTick, int light) {
+        if (mob.kind() == TemplateMob.Kind.GHOST) return Color.ofRGBA(.55F,.85F,1F,mob.isPhased()?.18F:.65F);
         if (mob.kind() == TemplateMob.Kind.BEAST && mob.isDeadOrDying()) {
             // The native blue-green fur loses its cool hue toward dry charcoal as it curls.
             // Use the synchronized death clock, so late observers do not restart the fade.
@@ -80,6 +93,12 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
             return Color.ofRGB(1F - .10F * fade, 1F - .26F * fade, 1F - .46F * fade);
         }
         return super.getRenderColor(mob, partialTick, light);
+    }
+
+    @Override public net.minecraft.client.renderer.RenderType getRenderType(TemplateMob mob,
+            net.minecraft.resources.ResourceLocation texture,MultiBufferSource buffers,float partialTick){
+        return mob.kind()==TemplateMob.Kind.GHOST?net.minecraft.client.renderer.RenderType.entityTranslucent(texture)
+            :super.getRenderType(mob,texture,buffers,partialTick);
     }
 
     @Override public int getPackedOverlay(TemplateMob mob, float u, float partialTick) {

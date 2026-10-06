@@ -59,7 +59,7 @@ import java.util.UUID;
 
 /** Validated template lifecycle; additional army professions compose their own server actions. */
 public final class TemplateMob extends Monster implements GeoEntity, Combatant {
-    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG }
+    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE }
     private static final EntityDataAccessor<Integer> SKILL = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> START = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
@@ -106,11 +106,14 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             case PRIEST -> "fufa_jijiu"; case BEAST -> "shanjing_shanxiao";
             case SPEAR -> "juma_changqiangbing"; case CROSSBOW -> "liannu_zhenzu";
             case SCOUT -> "tiesuo_chihou"; case POWDER -> "kuijun_sishi"; case FLAG -> "zhenwang_zhangqiguan";
+            case AXE_GUARD -> "pijia_panjiang_huwei";
+            case GHOST -> "yinbing_guizu";
+            case CORPSE -> "shibian_lishi";
         };
     }
-    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : Faction.DYNASTY_ARMY; }
+    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
     @Override public MobRole role() {
-        return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
+        return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER,AXE_GUARD,GHOST,CORPSE -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
             case PRIEST,FLAG -> MobRole.SUPPORT; case CROSSBOW -> MobRole.RANGED; case BEAST -> MobRole.BEAST; };
     }
     public TimedAttack attack() { return attack; }
@@ -177,13 +180,13 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         SkillDefinition base = TemplateSkills.byId(id);
         if (base == null || (id == TemplateSkills.POSSESSION ? !validSupport(target) : !validEnemy(target))) return false;
         double range = distanceTo(target);
-        if (range < base.minRange() || range > base.maxRange() || base.requiresSight() && !hasLineOfSight(target)) return false;
+        if (range < base.minRange() || range > (id == ArmySkills.AXE_COUNTER ? 40 : base.maxRange()) || base.requiresSight() && !hasLineOfSight(target)) return false;
         if (id == TemplateSkills.ROCK_THROW && !onHighGround(target)) return false;
         if (army != null && !army.canStart(id,target)) return false;
         Vec3 direction = target.position().subtract(position()).multiply(1, 0, 1).normalize();
         if (direction.lengthSqr() < .0001) direction = getLookAngle().multiply(1, 0, 1).normalize();
         // A fuse uses real elapsed time, not attack speed: three consecutive close seconds.
-        float speed = id != ArmySkills.DETONATE && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
+        float speed = id != ArmySkills.DETONATE && id != ArmySkills.AXE_COUNTER && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
         SkillDefinition effective = TemplateSkills.accelerated(base, speed);
         if (!attack.tryStart(effective, level().getGameTime(), position(), direction, target.getUUID())) return false;
         if(army!=null)army.started(id,target);
@@ -324,6 +327,18 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
                             .thenComparingDouble(e -> assaultSupport(e) ? -e.distanceToSqr(getTarget())
                                     : e.getAttributeValue(Attributes.ATTACK_DAMAGE)))
                     .map(Entity::getUUID).orElse(null);
+        } else if ((kind == Kind.SCOUT || kind == Kind.POWDER) && attack.current() == null) {
+            // Reuse the priest's live possession link as a short-lived assault signal.
+            // Never redirect an attack already in flight or retain a cross-world player cache.
+            server.getEntitiesOfClass(TemplateMob.class, getBoundingBox().inflate(16),
+                            e -> e.kind == Kind.PRIEST && e.isAlive() && e.linkUntil > now
+                                    && distanceToSqr(e) <= 256 && hasLineOfSight(e)
+                                    && e.resolve(e.possessedAlly) instanceof TemplateMob powder
+                                    && powder.kind == Kind.POWDER && powder.isAlive() && powder.isPossessed()
+                                    && validEnemy(e.getTarget()) && distanceToSqr(e.getTarget()) <= 28 * 28
+                                    && hasLineOfSight(e.getTarget()))
+                    .stream().min(Comparator.comparingDouble(this::distanceToSqr))
+                    .ifPresent(priest -> setTarget(priest.getTarget()));
         } else if (kind == Kind.SHIELD && validEnemy(getTarget()) && attack.state(now) == AttackState.IDLE) {
             coverBackline();
         } else if (kind == Kind.BEAST && validEnemy(getTarget()) && distanceToSqr(getTarget()) > 64) {
@@ -454,8 +469,14 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     }
     public void interruptAttack(int stunTicks) {
         if (level().isClientSide || !isAlive()) return;
+        if (army != null && !army.canInterrupt()) return;
         int duration=hasEffect(BlueprintEntities.JUNHUN_AURA.get())?Math.max(1,stunTicks/2):stunTicks;
         attack.stun(level().getGameTime(), duration); finishAction(); entityData.set(PHASE, AttackState.STUN.ordinal());
+    }
+    /** Cancel both the server clock and its tracked animation, including a failed follow-up start. */
+    void cancelAction() {
+        if (level().isClientSide) return;
+        attack.cancel(); finishAction(); entityData.set(PHASE, attack.state(level().getGameTime()).ordinal());
     }
     private void finishAction() {
         entityData.set(SKILL, 0); entityData.set(START, -1L); entityData.set(SPEED, 1F);
@@ -470,6 +491,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
 
     @Override public boolean hurt(DamageSource source, float amount) {
         if (level().isClientSide) return false;
+        if (amount > 0 && isAlive() && army != null && army.evade(source)) return false;
         Entity direct = source.getDirectEntity();
         boolean projectile = source.is(DamageTypeTags.IS_PROJECTILE) || direct instanceof Projectile;
         Vec3 sourcePosition = direct == null ? source.getSourcePosition() : direct.position();
@@ -484,6 +506,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (!isAlive()) return false;
         if (kind == Kind.SWORD && formation && direct instanceof AbstractArrow) amount *= .8F;
         boolean damaged = super.hurt(source, amount);
+        if (damaged && isAlive() && army != null) army.hurtAccepted(source, frontal);
         if (damaged && isAlive() && attack.current() != null && attack.current().interruptible()
                 && attack.state(level().getGameTime()) == AttackState.WINDUP && amount >= Math.max(3, getMaxHealth() * .08F))
             interruptAttack(10);
@@ -499,7 +522,22 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         return kind == Kind.BEAST ? super.causeFallDamage(Math.max(0, distance - 5), multiplier, source) : super.causeFallDamage(distance, multiplier, source);
     }
     @Override public boolean canBeCollidedWith() { return kind == Kind.SHIELD && !isRemoved(); }
-    @Override public boolean canBeHitByProjectile() { return kind == Kind.SHIELD && !isRemoved() || super.canBeHitByProjectile(); }
+    @Override public net.minecraft.world.entity.MobType getMobType() {
+        return kind == Kind.CORPSE ? net.minecraft.world.entity.MobType.UNDEAD : super.getMobType();
+    }
+    public boolean isPhased() { return kind == Kind.GHOST && skillId() == ArmySkills.GHOST_PHASE && actionAge(0) < 6 && isAlive(); }
+    @Override public boolean canBeHitByProjectile() { return !isPhased() && (kind == Kind.SHIELD && !isRemoved() || super.canBeHitByProjectile()); }
+    @Override public boolean isPickable() { return !isPhased() && super.isPickable(); }
+    @Override public boolean isPushable() { return kind != Kind.GHOST && super.isPushable(); }
+    @Override public void push(Entity other) {
+        if (kind != Kind.GHOST || other instanceof com.dynasty.DynastyBossCombat.BarHolder) super.push(other);
+    }
+    @Override protected void doPush(Entity other) {
+        if (kind != Kind.GHOST || other instanceof com.dynasty.DynastyBossCombat.BarHolder) super.doPush(other);
+    }
+    @Override public boolean canCollideWith(Entity other) {
+        return kind == Kind.GHOST ? other instanceof com.dynasty.DynastyBossCombat.BarHolder && other.isAlive() : super.canCollideWith(other);
+    }
 
     @Override public void die(DamageSource source) {
         if (deathStarted >= 0) return;
@@ -609,6 +647,11 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     @Override protected SoundEvent getAmbientSound() { return kind == Kind.BEAST ? SoundEvents.FOX_AMBIENT : null; }
     @Override protected SoundEvent getHurtSound(DamageSource source) { return kind == Kind.BEAST ? SoundEvents.FOX_HURT : SoundEvents.PLAYER_HURT; }
     @Override protected SoundEvent getDeathSound() { return kind == Kind.BEAST ? SoundEvents.FOX_DEATH : SoundEvents.ZOMBIE_DEATH; }
+    @Override protected void playStepSound(BlockPos pos, net.minecraft.world.level.block.state.BlockState state) {
+        if (kind == Kind.GHOST) return;
+        if (kind == Kind.AXE_GUARD) playSound(SoundEvents.ARMOR_EQUIP_IRON, .35F, .65F);
+        else super.playStepSound(pos, state);
+    }
 
     private final class CombatGoal extends Goal {
         CombatGoal() { setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK)); }
