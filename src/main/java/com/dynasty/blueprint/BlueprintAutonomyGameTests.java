@@ -123,6 +123,26 @@ public final class BlueprintAutonomyGameTests {
         @Override public MobRole role() { return MobRole.SUPPORT; }
     }
 
+    @GameTest(template="bow_ritual_test", batch="blueprint_autonomy", timeoutTicks=120)
+    public static void priestPrioritizesTheAssaultFrontPowderUnit(GameTestHelper h) {
+        arena(h);
+        var priest = actor(h, BlueprintEntities.FUFA_JIJIU.get(), 8, 5);
+        var strongest = actor(h, BlueprintEntities.ZUWU_DAOSHOU.get(), 6, 7);
+        var front = actor(h, BlueprintEntities.KUIJUN_SISHI.get(), 8, 9);
+        var rear = actor(h, BlueprintEntities.KUIJUN_SISHI.get(), 11, 6);
+        var target = enemy(h, 8, 13);
+        strongest.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(18);
+        priest.setTarget(target); front.setTarget(target); rear.setTarget(target);
+        h.startSequence().thenWaitUntil(() -> h.assertTrue(front.isPossessed(),
+                "The assault formation must strengthen its foremost powder unit"))
+            .thenExecute(() -> {
+                h.assertTrue(priest.buffTargetId() == front.getId(), "Actual cast links the front unit");
+                h.assertTrue(!strongest.isPossessed() && !rear.isPossessed(), "One front unit, not the strongest generic ally");
+                h.assertTrue(!priest.isNoAi() && !front.isNoAi(), "Production AI selected and cast the skill");
+                cleanup(h, priest, strongest, front, rear, target);
+            }).thenSucceed();
+    }
+
     @GameTest(template="bow_ritual_test", batch="blueprint_autonomy", timeoutTicks=300)
     public static void swordAutonomouslyRoutesAroundWallAndLandsBothContacts(GameTestHelper h) {
         arena(h);

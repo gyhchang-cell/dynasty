@@ -27,22 +27,30 @@ public final class DungeonCommands {
                     store.setDirty();be.syncVisual(state);return 1;
                 })))))
             .then(Commands.literal("trap").then(Commands.literal("test").then(Commands.argument("id",com.mojang.brigadier.arguments.StringArgumentType.word()).executes(c->{
-                if(!com.mojang.brigadier.arguments.StringArgumentType.getString(c,"id").equals("poison_arrow"))return 0;
-                return triggerNearest(c.getSource());
+                return triggerNearest(c.getSource(),com.mojang.brigadier.arguments.StringArgumentType.getString(c,"id"));
             }))))));
     }
-    private static DungeonMechanismBlockEntity nearby(CommandSourceStack source){
+    private static DungeonMechanismBlockEntity nearby(CommandSourceStack source,java.util.function.Predicate<DungeonMechanismBlockEntity> matches){
         var center=net.minecraft.core.BlockPos.containing(source.getPosition());var level=source.getLevel();
+        DungeonMechanismBlockEntity nearest=null;double distance=Double.MAX_VALUE;
         // Bounded debug search only; never an ambient world tick scan.
         for(var pos:net.minecraft.core.BlockPos.betweenClosed(center.offset(-8,-8,-8),center.offset(8,8,8)))
-            if(level.hasChunkAt(pos)&&level.getBlockEntity(pos) instanceof DungeonMechanismBlockEntity be&&be.validBinding())return be;
-        return null;
+            if(level.hasChunkAt(pos)&&level.getBlockEntity(pos) instanceof DungeonMechanismBlockEntity be&&be.validBinding()&&matches.test(be)){
+                double candidate=pos.distToCenterSqr(source.getPosition());
+                if(candidate<distance){nearest=be;distance=candidate;}
+            }
+        return nearest;
     }
     private static int room(CommandSourceStack source,String id,boolean complete){
-        var be=nearby(source);if(be==null||!be.roomId().equals(id)){source.sendFailure(Component.literal("请站在对应试验房机关附近；当前房间 ID 为 probe。"));return 0;}
+        var be=nearby(source,b->b.roomId().equals(id));if(be==null){source.sendFailure(Component.literal("附近没有房间 "+id+" 的已加载机关。"));return 0;}
         var store=DungeonStateStore.get(source.getLevel());var room=store.room(be.instance(),id);
         if(complete)room.complete();else room.reset();store.setDirty();be.syncVisual(room);
-        source.sendSuccess(()->Component.literal(complete?"试验房已完成":"试验房已重置；唯一奖励记录保留"),false);return 1;
+        source.sendSuccess(()->Component.literal(complete?"房间已完成":"房间已重置；唯一奖励记录保留"),false);return 1;
     }
-    private static int triggerNearest(CommandSourceStack source){var be=nearby(source);if(be==null)return 0;be.trigger();return 1;}
+    private static int triggerNearest(CommandSourceStack source,String id){
+        var be=nearby(source,b->(b.kind()==DungeonMechanismBlock.Kind.TRAP||b.kind()==DungeonMechanismBlock.Kind.FLOOR)
+            &&(b.mechanismId().equals(id)||id.equals("poison_arrow")&&b.mechanismId().startsWith("poison_arrow_")));
+        if(be==null){source.sendFailure(Component.literal("附近没有陷阱 "+id+"。"));return 0;}
+        be.trigger();return 1;
+    }
 }

@@ -24,7 +24,11 @@ class CompassLocalizationTests(unittest.TestCase):
     def test_all_registry_names_have_authored_bilingual_translations(self):
         self.assertEqual([], localization_errors(self.languages))
         self.assertEqual({"palace", "academy", "imperial_tomb", "great_wall_gate",
-                          "star_altar", "stone_grove"}, registered_names()["structure"])
+                          "star_altar", "stone_grove", "star_vault", "music_ruin", "seal_vault",
+                          "chensha_xuangong", "desert_caravan", "dungeon_framework_probe",
+                          "herbal_retreat", "longque_sanctuary", "post_house", "ruined_battlefield",
+                          "sculpture_tiles", "tiangong_citadel", "tiangong_mining_estate", "yunqi_manor"},
+                         registered_names()["structure"])
 
     def test_any_missing_structure_translation_is_detected(self):
         for name in registered_names()["structure"]:

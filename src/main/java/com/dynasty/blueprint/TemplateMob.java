@@ -226,7 +226,14 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if(army!=null)army.tick(now);
         if(!isAlive())return;
         if (now >= nextTacticalScan) { nextTacticalScan = now + 20; updateTactics(now); }
-        if (possessedUntil > 0 && now >= possessedUntil) clearPossession();
+        if (possessedUntil > 0) {
+            LivingEntity source = resolve(possessor);
+            // An unloaded ally could not receive releaseSupport when its priest died or
+            // changed links. Reconcile once both are loaded; a missing UUID alone is not death.
+            if (now >= possessedUntil || source != null && (!source.isAlive()
+                    || source instanceof TemplateMob priest && !getUUID().equals(priest.possessedAlly)))
+                clearPossession();
+        }
         entityData.set(POSSESSED, hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()));
         LivingEntity linked = resolve(possessedAlly);
         if (linkUntil > 0 && (now >= linkUntil || linked != null && !validSupport(linked))) releaseSupport();
@@ -313,7 +320,9 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         } else if (kind == Kind.PRIEST) {
             supportCandidate = server.getEntitiesOfClass(LivingEntity.class, getBoundingBox().inflate(16),
                             e -> validSupport(e) && !e.hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()))
-                    .stream().max(Comparator.comparingDouble(e -> e.getAttributeValue(Attributes.ATTACK_DAMAGE)))
+                    .stream().max(Comparator.<LivingEntity>comparingInt(e -> assaultSupport(e) ? 1 : 0)
+                            .thenComparingDouble(e -> assaultSupport(e) ? -e.distanceToSqr(getTarget())
+                                    : e.getAttributeValue(Attributes.ATTACK_DAMAGE)))
                     .map(Entity::getUUID).orElse(null);
         } else if (kind == Kind.SHIELD && validEnemy(getTarget()) && attack.state(now) == AttackState.IDLE) {
             coverBackline();
@@ -323,6 +332,11 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             if (highGround == null || !validHighGround(highGround) || highGround.distSqr(blockPosition()) > 100)
                 highGround = findHighGround();
         }
+    }
+
+    private boolean assaultSupport(LivingEntity ally) {
+        return validEnemy(getTarget()) && ally instanceof TemplateMob mob && mob.kind == Kind.POWDER
+                && mob.getTarget() == getTarget();
     }
 
     private void coverBackline() {

@@ -226,6 +226,17 @@ def relic_recipes():
 # this table against every worldgen registry JSON, including structure groups.
 WORLDGEN_NAMES = {
     "structure": {
+        "chensha_xuangong": ("沉沙玄宫", "Sunken Sand Palace"),
+        "desert_caravan": ("沙海商旅院", "Desert Caravan"),
+        "dungeon_framework_probe": ("地宫机关试验场", "Dungeon Mechanism Test Site"),
+        "herbal_retreat": ("林间药庐", "Herbal Retreat"),
+        "longque_sanctuary": ("龙阙镇渊巨像", "Longque Abyss-Warding Colossus"),
+        "post_house": ("官道驿站", "Post House"),
+        "ruined_battlefield": ("焦土古战场", "Scorched Battlefield"),
+        "sculpture_tiles": ("雕塑构件", "Sculpture Tiles"),
+        "tiangong_citadel": ("天工山城", "Tiangong Citadel"),
+        "tiangong_mining_estate": ("山麓采矿庄园", "Mining Estate at the Foothills"),
+        "yunqi_manor": ("云栖庄园", "Yunqi Manor"),
         "palace": ("皇家宫殿", "Imperial Palace"),
         "academy": ("国子监", "Imperial Academy"),
         "imperial_tomb": ("帝陵", "Imperial Tomb"),
@@ -237,6 +248,7 @@ WORLDGEN_NAMES = {
         "seal_vault": ("幽冥四象封印室", "Underworld Four-Sigil Vault"),
     },
     "biome": {
+
         "celestial_plains": ("天朝平原", "Celestial Plains"),
         "jade_forest": ("玉林", "Jade Forest"),
         "dragon_ridge": ("龙脊山脉", "Dragon Ridge"),
@@ -249,6 +261,7 @@ WORLDGEN_NAMES = {
         "dragon_palace_deep": ("深渊", "Abyss"),
     },
     "dimension": {
+        "zhenyuan_arena": ("镇渊帝君祭场", "Zhenyuan Sovereign Arena"),
         "celestial_dynasty": ("天朝·龙庭", "Celestial Dynasty"),
         "underworld": ("地府", "Underworld"),
         "jiuxiao": ("九霄天界", "Nine-Heaven Realm"),
@@ -278,6 +291,18 @@ def merge_worldgen_lang():
 
 
 ZH = {
+    "block.dynasty.dungeon_core": "地宫机关中枢",
+    "block.dynasty.seal_stone": "断龙封石",
+    "block.dynasty.shootable_beast_eye": "石兽机关眼",
+    "block.dynasty.seal_door": "地宫封门",
+    "block.dynasty.resettable_floor": "翻转青砖",
+    "block.dynasty.pressure_trap_emitter": "毒箭压板机关",
+    "block.dynasty.dungeon_elevator_controller": "回程吊篮机关",
+    "block.dynasty.dungeon_shortcut_stele": "无字机关碑",
+    "block.dynasty.dungeon_masonry": "地宫封护石砖",
+    "entity.dynasty.dungeon_trap_arrow": "地宫毒箭",
+    "message.dynasty.dungeon.stele_pickaxe": "用镐击破无字碑，放下回程吊篮。",
+    "message.dynasty.dungeon.lift_locked": "吊篮尚未放下；寻找大殿角落的无字碑。",
     "item.dynasty.mu_mao": "木矛",
     "item.dynasty.shi_ge": "石戈",
     "item.dynasty.tong_dao": "铜刀",
@@ -358,6 +383,18 @@ ZH = {
 }
 
 EN = {
+    "block.dynasty.dungeon_core": "Dungeon Mechanism Core",
+    "block.dynasty.seal_stone": "Sealing Stone",
+    "block.dynasty.shootable_beast_eye": "Beast Eye Target",
+    "block.dynasty.seal_door": "Sealed Dungeon Door",
+    "block.dynasty.resettable_floor": "Resettable Trap Floor",
+    "block.dynasty.pressure_trap_emitter": "Poison Arrow Pressure Trap",
+    "block.dynasty.dungeon_elevator_controller": "Return Lift Controller",
+    "block.dynasty.dungeon_shortcut_stele": "Unmarked Mechanism Stele",
+    "block.dynasty.dungeon_masonry": "Sealed Dungeon Masonry",
+    "entity.dynasty.dungeon_trap_arrow": "Dungeon Poison Arrow",
+    "message.dynasty.dungeon.stele_pickaxe": "Strike the unmarked stele with a pickaxe to lower the return lift.",
+    "message.dynasty.dungeon.lift_locked": "The lift is locked. Find the unmarked stele in a corner of the vault.",
     "item.dynasty.mu_mao": "Wooden Spear",
     "item.dynasty.shi_ge": "Stone Dagger-Axe",
     "item.dynasty.tong_dao": "Copper Sabre",
