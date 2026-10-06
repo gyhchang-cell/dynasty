@@ -53,10 +53,11 @@ if ./gradlew exportMod exportModpack --offline --console=plain 2>&1 | tee "$LOG"
   ls -lh "$HOME/Desktop/导出/Dynasty整合包/" 2>/dev/null | tail -4
   echo
   echo "（这三份包可以直接上传：CF 用 dynasty-modpack-1.4.0.zip，Modrinth 用 .mrpack，"
-  echo "  完整本地包（含 FTB + 任务配置）用 dynasty-1.4.0-manual.zip；单模组 jar 在「导出/Dynasty模组」里）"
+  echo "  自己玩请导入 dynasty-1.4.0-complete.zip（含全部 FTB + 任务配置，无需补装）；manual.zip 为手动安装包）"
   open "$HOME/Desktop/导出" 2>/dev/null || true
 else
   echo "-----------------------------------------------------------------"
+  echo "若只是后续平台发布校验失败，已生成的完整 FTB 包仍在桌面「导出/Dynasty整合包」和工程 dist 中。"
   echo "❌ 导出失败。请把上面最后 30 行（或 $LOG）发给 AI 排查。"
   echo "   常见原因：① 网络不稳 → 去掉脚本里的 --offline 再试；② 磁盘空间不足；"
   echo "   ③ JDK 不是 17（照上面打印的 Java 版本确认）。"

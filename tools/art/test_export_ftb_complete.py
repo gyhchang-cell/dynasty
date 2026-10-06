@@ -48,6 +48,19 @@ class CompletePackTest(unittest.TestCase):
             self.assertEqual(archive.read('config/ftbquests/quests/chapters/original.snbt'),
                              b'{ id: "1234567890ABCDEF" }')
 
+    def test_launcher_import_contains_all_ftb_and_identical_configuration(self):
+        output = export(self.root)
+        with zipfile.ZipFile(output) as manual, zipfile.ZipFile(
+                self.root / 'dist/dynasty-1.4.0-complete.zip') as complete:
+            manifest = json.loads(complete.read('manifest.json'))
+            self.assertEqual('minecraftModpack', manifest['manifestType'])
+            self.assertEqual('forge-47.4.10', manifest['minecraft']['modLoaders'][0]['id'])
+            self.assertEqual([], manifest['files'])
+            for name in manual.namelist():
+                self.assertEqual(manual.read(name), complete.read('overrides/' + name))
+            for name in REQUIRED:
+                self.assertIn('overrides/mods/' + name, complete.namelist())
+
     def test_missing_dependency_preserves_previous_export(self):
         output = export(self.root)
         previous = output.read_bytes()
