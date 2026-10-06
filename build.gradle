@@ -243,6 +243,15 @@ tasks.register('exportModpack') {
     doLast {
         runPython('tools/art/make_modpack.py')
         runPython('tools/art/make_manual_and_guide.py')
+        // Deliver the complete local pack before optional online publication checks.
+        def localOut = new File(dynastyExportDir, 'Dynasty整合包')
+        localOut.mkdirs()
+        ['complete.zip', 'manual.zip'].each { suffix ->
+            def complete = file("dist/dynasty-${project.version}-${suffix}")
+            if (!complete.isFile()) throw new GradleException("缺少完整 FTB 包：${complete}")
+            new File(localOut, complete.name).bytes = complete.bytes
+        }
+        logger.lifecycle("完整 FTB 游玩包已保存：${localOut}/dynasty-${project.version}-complete.zip；直接导入启动器，无需补装 FTB。")
         runPython('tools/art/make_uploadable_packs.py')
 
         // 模组解析自检：把「缺前置 / 不兼容」这类会让游戏起不来的问题在导出阶段就报出来
@@ -379,7 +388,7 @@ tasks.register('exportModpack') {
         syncHmcl()
 
         logger.lifecycle("✅ 已导出整合包：${out}（${copied} 个文件）")
-        logger.lifecycle("   其中 dynasty-modpack-*.zip → CurseForge，dynasty-*.mrpack → Modrinth")
+        logger.lifecycle("   其中 dynasty-modpack-*.zip → CurseForge，dynasty-*-complete.zip → 完整本地游玩（含 FTB）；dynasty-*.mrpack → Modrinth 发布")
         openDir(out)
     }
 }

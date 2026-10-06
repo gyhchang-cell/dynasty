@@ -149,6 +149,33 @@ def export(root):
     finally:
         if os.path.exists(tempname):
             os.unlink(tempname)
+    # Launcher-importable local pack: every validated mod and quest is embedded.
+    # No mod download or manual FTB installation is needed after importing.
+    installable = dist / ('dynasty-' + version + '-complete.zip')
+    manifest = {
+        'minecraft': {'version': '1.20.1', 'modLoaders': [
+            {'id': 'forge-47.4.10', 'primary': True}]},
+        'manifestType': 'minecraftModpack', 'manifestVersion': 1,
+        'name': 'Dynasty 王朝 · FTB 完整游玩包', 'version': version,
+        'author': 'Newton', 'files': [], 'overrides': 'overrides',
+    }
+    fd, pending = tempfile.mkstemp(prefix=installable.name + '.', suffix='.pending', dir=dist)
+    os.close(fd)
+    try:
+        # Copy the already-validated snapshot, not potentially changing source files.
+        with zipfile.ZipFile(output) as snapshot, zipfile.ZipFile(
+                pending, 'w', zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr('manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
+            for entry in snapshot.infolist():
+                archive.writestr('overrides/' + entry.filename, snapshot.read(entry.filename))
+        with zipfile.ZipFile(pending) as archive:
+            if archive.testzip():
+                raise ValueError('完整导入包 CRC 校验失败')
+        os.replace(pending, installable)
+    finally:
+        if os.path.exists(pending):
+            os.unlink(pending)
+    print('直接导入启动器（包含全部 FTB，无需补装）:', installable)
     print('FTB 完整包已生成:', output)
     print('任务章节:', len(chapters), '；模组:', sum(n.startswith('mods/') for n in sources))
     return output
