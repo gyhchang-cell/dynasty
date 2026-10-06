@@ -60,6 +60,20 @@ public final class BlueprintSalvage {
     public static final RegistryObject<Item> POINTED_DEAD_TOOTH=plain("pointed_dead_tooth");
     public static final RegistryObject<Item> RUSTED_HELMET_SPIKE=register("rusted_helmet_spike",Use.IRON_ARMOR);
     public static final RegistryObject<Item> YIN_AIR_SAC=BlueprintEntities.ITEMS.register("yin_air_sac",BreathSac::new);
+    public static final RegistryObject<Item> RESONANT_SCORPION_SHELL=plain("resonant_scorpion_shell");
+    public static final RegistryObject<Item> METAL_STING_NEEDLE=plain("metal_sting_needle");
+    public static final RegistryObject<Item> PURE_YELLOW_SAND=plain("pure_yellow_sand");
+    public static final RegistryObject<Item> ANCIENT_TREE_HEART=plain("ancient_tree_heart");
+    public static final RegistryObject<Item> HARDENED_DEAD_BARK=BlueprintEntities.ITEMS.register("hardened_dead_bark",()->new Item(new Item.Properties()){
+        @Override public int getBurnTime(ItemStack stack,@Nullable net.minecraft.world.item.crafting.RecipeType<?> recipeType){return 600;}
+    });
+    public static final RegistryObject<Item> GLOWING_PARASITE_MUSHROOM=BlueprintEntities.ITEMS.register("glowing_parasite_mushroom",()->new Item(new Item.Properties().food(
+        new net.minecraft.world.food.FoodProperties.Builder().nutrition(2).saturationMod(.2F).alwaysEat()
+            .effect(()->new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.NIGHT_VISION,400),1).build())){
+        @Override public void appendHoverText(ItemStack stack,@Nullable Level level,List<Component> lines,TooltipFlag flag){
+            lines.add(Component.translatable("tooltip.dynasty.glowing_parasite_mushroom").withStyle(ChatFormatting.GRAY));
+        }
+    });
     private static final class BreathSac extends Item {
         BreathSac(){super(new Properties().food(new net.minecraft.world.food.FoodProperties.Builder().nutrition(0).saturationMod(0).alwaysEat().build()));}
         @Override public ItemStack finishUsingItem(ItemStack stack,Level level,net.minecraft.world.entity.LivingEntity user){

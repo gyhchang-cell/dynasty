@@ -34,6 +34,8 @@ public final class SalvageGameTests {
             "tiesuo_chihou",Set.of("fine_steel_chain","iron_grappling_claw","swift_boot_scrap"),
             "kuijun_sishi",Set.of("poor_gunpowder","pottery_fragment","bloodied_cloth"),
             "zhenwang_zhangqiguan",Set.of("broken_tiger_tally","black_army_banner_scrap","vengeful_war_soul")));
+        expected.put("mingsha_shixie",Set.of("resonant_scorpion_shell","metal_sting_needle","pure_yellow_sand"));
+        expected.put("kumu_shujing",Set.of("ancient_tree_heart","hardened_dead_bark","glowing_parasite_mushroom"));
         expected.put("chimu_zhuha",Set.of("red_toad_gland","tough_toad_hide","poison_gel"));
         expected.put("muxue_feilu",Set.of("pointed_dead_tooth","rusted_helmet_spike","yin_air_sac"));
         expected.put("zhiren_jianke",Set.of("tough_bamboo_sliver","paper_cutting_knife","painted_cinnabar"));
@@ -110,7 +112,7 @@ public final class SalvageGameTests {
     @GameTest(template="bow_ritual_test",timeoutTicks=30,batch="salvage")
     public static void recoveredMaterialsCraftThroughServerRecipeManager(GameTestHelper h){
         var p=player(h);
-        for(var row:new String[][]{{"poison_gel","4","minecraft:slime_ball",""},{"pointed_dead_tooth","2","minecraft:bone_meal",""},{"painted_cinnabar","2","cinnabar",""},{"white_wax_tear","2","minecraft:candle","minecraft:string"},{"pale_milk_tooth","2","minecraft:bone_meal",""},{"blackened_bone","2","minecraft:bone_meal",""},{"poor_gunpowder","4","minecraft:gunpowder",""},{"pottery_fragment","4","minecraft:brick",""},
+        for(var row:new String[][]{{"pure_yellow_sand","4","minecraft:sand",""},{"ancient_tree_heart","1","minecraft:golden_apple","minecraft:apple"},{"poison_gel","4","minecraft:slime_ball",""},{"pointed_dead_tooth","2","minecraft:bone_meal",""},{"painted_cinnabar","2","cinnabar",""},{"white_wax_tear","2","minecraft:candle","minecraft:string"},{"pale_milk_tooth","2","minecraft:bone_meal",""},{"blackened_bone","2","minecraft:bone_meal",""},{"poor_gunpowder","4","minecraft:gunpowder",""},{"pottery_fragment","4","minecraft:brick",""},
             {"broken_tiger_tally","4","tiger_crest",""},{"black_army_banner_scrap","6","minecraft:black_banner","minecraft:stick"},
             {"vengeful_war_soul","1","minecraft:experience_bottle","minecraft:glass_bottle"}}){
             var menu=new CraftingMenu(0,p.getInventory(),ContainerLevelAccess.create(h.getLevel(),h.absolutePos(new BlockPos(2,2,2))));

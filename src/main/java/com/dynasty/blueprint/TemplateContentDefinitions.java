@@ -13,6 +13,12 @@ public final class TemplateContentDefinitions {
             int localCap, String spawnReason, String specialCondition, String despawnPolicy) {}
     private static ResourceLocation tag(String id) {return new ResourceLocation(id);}
     public static final List<Spawn> ALL = List.of(
+        new Spawn("mingsha_shixie",Level.OVERWORLD,List.of(tag("dynasty:blueprint/scorpion_habitat")),List.of(),
+            50,200,0,15,"ALL","DRY",4,1,2,3,"NATURAL_ECOLOGY",
+            "sand floor; surface or <=4 blocks below; dry standing space; maximum three within32","VANILLA_DISTANCE_DESPAWN"),
+        new Spawn("kumu_shujing",Level.OVERWORLD,List.of(tag("dynasty:blueprint/tree_habitat")),List.of(),
+            -63,220,0,12,"ALL; LOW LIGHT","ANY",3,1,1,2,"NATURAL_ECOLOGY",
+            "dry dirt floor; >=3 nearby logs; collision-free standing space; maximum two within32","VANILLA_DISTANCE_DESPAWN"),
         new Spawn("chimu_zhuha",Level.OVERWORLD,List.of(tag("dynasty:blueprint/toad_habitat")),List.of(),
             -63,100,0,12,"NIGHT_OR_RAIN_OR_COVER","RAIN_OR_COVER_DURING_DAY",4,1,2,2,"NATURAL_ECOLOGY",
             "connected water >=12 blocks across >=9 columns; shore/water space; local cap2 within32","VANILLA_DISTANCE_DESPAWN"),

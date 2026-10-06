@@ -100,11 +100,11 @@ public final class SkullGameTests {
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=265,batch="skull")
     public static void airSacIsConsumedAndItsEffectsExpire(GameTestHelper h){
-        skull(h);var p=player(h,3,3);p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new net.minecraft.world.item.ItemStack(BlueprintSalvage.YIN_AIR_SAC.get(),2));
+        skull(h);var p=player(h,3,3);p.setInvulnerable(true);p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new net.minecraft.world.item.ItemStack(BlueprintSalvage.YIN_AIR_SAC.get(),2));
         p.startUsingItem(net.minecraft.world.InteractionHand.MAIN_HAND);
         h.runAfterDelay(38,()->h.assertTrue(p.getMainHandItem().getCount()==1&&p.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING)
             &&p.hasEffect(net.minecraft.world.effect.MobEffects.WATER_BREATHING)&&p.getFoodData().getFoodLevel()==10,"Actual use consumes one sac, grants timed effects, restores no hunger"));
-        h.runAfterDelay(245,()->{h.assertTrue(!p.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING)&&!p.hasEffect(net.minecraft.world.effect.MobEffects.WATER_BREATHING),"Both effects expire natively");p.discard();h.succeed();});
+        h.runAfterDelay(245,()->{h.assertTrue(p.isAlive(),"Consumption fixture survives unrelated mobs");h.assertTrue(!p.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING)&&!p.hasEffect(net.minecraft.world.effect.MobEffects.WATER_BREATHING),"Both effects expire natively");p.discard();h.succeed();});
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="skull")
     public static void skullClipsLoadThroughRealAnimationParser(GameTestHelper h) throws Exception {

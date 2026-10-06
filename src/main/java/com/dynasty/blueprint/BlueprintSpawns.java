@@ -35,6 +35,12 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> SKULLS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/flying_skull_sites"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
+        event.register(BlueprintEntities.MINGSHA_SHIXIE.get(),SpawnPlacements.Type.ON_GROUND,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
+                reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||scorpionHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
+        event.register(BlueprintEntities.KUMU_SHUJING.get(),SpawnPlacements.Type.ON_GROUND,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
+                reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||treeHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
         event.register(BlueprintEntities.CHIMU_ZHUHA.get(),SpawnPlacements.Type.NO_RESTRICTIONS,
             Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
                 reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||toadHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
@@ -56,6 +62,34 @@ public final class BlueprintSpawns {
                     && com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
                     && server.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(24),e->e.getType()==type).size()<3;
             },SpawnPlacementRegisterEvent.Operation.REPLACE);
+    }
+    static boolean scorpionHabitat(ServerLevel level,BlockPos pos){
+        var habitat=TagKey.create(Registries.BIOME,new ResourceLocation("dynasty","blueprint/scorpion_habitat"));
+        var type=BlueprintEntities.MINGSHA_SHIXIE.get();
+        return level.dimension()==Level.OVERWORLD&&level.getDifficulty()!=net.minecraft.world.Difficulty.PEACEFUL
+            &&pos.getY()>=50&&pos.getY()<=200&&level.hasChunkAt(pos)&&level.getBiome(pos).is(habitat)
+            &&pos.getY()>=level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,pos.getX(),pos.getZ())-4
+            &&!level.isRainingAt(pos)&&level.getFluidState(pos).isEmpty()&&level.getBlockState(pos.below()).is(net.minecraft.tags.BlockTags.SAND)
+            &&com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
+            &&level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()<3;
+    }
+    /** At most245 loaded block reads per spawn attempt; no periodic terrain scan. */
+    static boolean treeHabitat(ServerLevel level,BlockPos pos){
+        var habitat=TagKey.create(Registries.BIOME,new ResourceLocation("dynasty","blueprint/tree_habitat"));
+        var type=BlueprintEntities.KUMU_SHUJING.get();
+        if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+                ||pos.getY()<level.getMinBuildHeight()+1||pos.getY()>220||!level.hasChunkAt(pos)
+                ||!level.getBiome(pos).is(habitat)||level.getMaxLocalRawBrightness(pos)>12
+                ||!level.getBlockState(pos.below()).is(net.minecraft.tags.BlockTags.DIRT)
+                ||!level.getFluidState(pos).isEmpty()
+                ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
+                ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()>=2)return false;
+        int logs=0;
+        for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=0;y<5;y++){
+            var p=pos.offset(x,y,z);
+            if(level.hasChunkAt(p)&&level.getBlockState(p).is(net.minecraft.tags.BlockTags.LOGS)&&++logs>=3)return true;
+        }
+        return false;
     }
     /** Spawn-attempt-only bounded water connectivity check; never scans from a mob tick. */
     static boolean toadHabitat(ServerLevel level,BlockPos pos){

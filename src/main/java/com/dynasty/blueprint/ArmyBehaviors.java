@@ -35,11 +35,11 @@ public final class ArmyBehaviors {
         default void load(CompoundTag tag){}
         default String animation(int id){return switch(id){case ArmySkills.BRACE->"brace";case ArmySkills.ROLL->"roll";
             case ArmySkills.GRAPPLE->"grapple";case ArmySkills.KNEE->"knee";case ArmySkills.DETONATE->"detonate";
-            case ArmySkills.TOAD_LEAP->"leap";case ArmySkills.TOAD_BURST->"burst";case ArmySkills.SKULL_BLOOD->"blood";case ArmySkills.PAPER_SHED->"shed";case ArmySkills.CHILD_CURSE->"curse";case ArmySkills.AXE_COUNTER->"counter";case ArmySkills.GHOST_PHASE->"phase";default->"attack";};}
+            case ArmySkills.SCORPION_EMERGE->"emerge";case ArmySkills.SCORPION_SONG->"song";case ArmySkills.TREE_WAKE->"wake";case ArmySkills.TREE_ROOTS->"roots";case ArmySkills.TOAD_LEAP->"leap";case ArmySkills.TOAD_BURST->"burst";case ArmySkills.SKULL_BLOOD->"blood";case ArmySkills.PAPER_SHED->"shed";case ArmySkills.CHILD_CURSE->"curse";case ArmySkills.AXE_COUNTER->"counter";case ArmySkills.GHOST_PHASE->"phase";default->"attack";};}
     }
     static Behavior create(TemplateMob mob,TemplateMob.Kind kind){return switch(kind){
         case SPEAR->new Spear(mob);case CROSSBOW->new Crossbow(mob);case SCOUT->new Scout(mob);
-        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);case CHILD->new ShroudChild(mob);case PAPER->new PaperSwordsman(mob);case SKULL->new FlyingSkull(mob);case TOAD->new RedToad(mob);default->null;};}
+        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);case CHILD->new ShroudChild(mob);case PAPER->new PaperSwordsman(mob);case SKULL->new FlyingSkull(mob);case TOAD->new RedToad(mob);case TREE->new TreeSpirit(mob);case SCORPION->new SandScorpion(mob);default->null;};}
     private ArmyBehaviors(){}
     public static boolean charging(LivingEntity target,Vec3 position){
         Vec3 velocity=target.getVehicle()==null?target.getDeltaMovement():target.getVehicle().getDeltaMovement();
@@ -94,6 +94,110 @@ public final class ArmyBehaviors {
         Vec3 toward=subject.getEyePosition().subtract(observer.getEyePosition());
         return toward.lengthSqr()<.01||observer.getLookAngle().dot(toward.normalize())>.6&&observer.hasLineOfSight(subject);
     }
+    private static final class SandScorpion extends Base {
+        UUID clamped;long surfaceUntil,nextSandCheck;
+        SandScorpion(TemplateMob mob){super(mob);}
+        public boolean allows(int id){return id==ArmySkills.SCORPION_EMERGE||id==ArmySkills.SCORPION_CLAW||id==ArmySkills.SCORPION_SONG;}
+        public boolean canStart(int id,LivingEntity target){return id==ArmySkills.SCORPION_EMERGE?mob.burrowed():!mob.burrowed();}
+        public int choose(LivingEntity target,long now){
+            if(mob.burrowed())return mob.distanceToSqr(target)<=20.25?ArmySkills.SCORPION_EMERGE:0;
+            return mob.distanceToSqr(target)<=25&&mob.attack().ready(ArmySkills.SCORPION_SONG,now)?ArmySkills.SCORPION_SONG:ArmySkills.SCORPION_CLAW;
+        }
+        public void tick(long now){
+            if(now<nextSandCheck)return;nextSandCheck=now+10;
+            boolean sand=mob.onGround()&&level().getBlockState(mob.blockPosition().below()).is(net.minecraft.tags.BlockTags.SAND)&&!mob.isInWater();
+            var target=mob.getTarget();
+            if(mob.burrowed()&&!sand){
+                // Harmless self-targeted emergence retains the ordinary persisted action clock,
+                // even if terrain changes when no enemy is visible.
+                mob.startSkill(ArmySkills.SCORPION_EMERGE,mob);
+            }else if(!mob.isNoAi()&&sand&&!mob.burrowed()&&now>=surfaceUntil&&mob.skillId()==0
+                    &&(!mob.validEnemy(target)||mob.distanceToSqr(target)>36))mob.setBurrowed(true);
+        }
+        public void started(int id,LivingEntity target){
+            if(id==ArmySkills.SCORPION_EMERGE){mob.setBurrowed(false);surfaceUntil=level().getGameTime()+100;}
+            if(id==ArmySkills.SCORPION_CLAW)clamped=null;
+        }
+        public void move(LivingEntity target,long now){
+            mob.setSprinting(mob.burrowed());
+            if(mob.burrowed()){mob.getNavigation().moveTo(target,1.45);return;}
+            var toward=target.position().subtract(mob.position()).multiply(1,0,1).normalize();
+            double side=(now/20%2==0?1:-1)*1.1;
+            navigate(target.position().subtract(toward.scale(2)).add(-toward.z*side,0,toward.x*side),1.1);
+        }
+        public void impact(SkillDefinition skill,int frame){
+            if(skill.id()==ArmySkills.SCORPION_EMERGE)return;
+            if(skill.id()==ArmySkills.SCORPION_SONG){
+                mob.playSound(SoundEvents.AMETHYST_BLOCK_RESONATE,1.2F,1.8F);
+                for(var target:level().getEntitiesOfClass(net.minecraft.server.level.ServerPlayer.class,mob.getBoundingBox().inflate(5),p->mob.validEnemy(p)&&mob.distanceToSqr(p)<=25&&mob.hasLineOfSight(p))){
+                    target.addEffect(new MobEffectInstance(MobEffects.CONFUSION,140));
+                    target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN,100,1));
+                    target.addEffect(new MobEffectInstance(BlueprintEntities.SAND_RESONANCE.get(),100));
+                }
+                return;
+            }
+            var target=victim();if(!mob.validEnemy(target)||!mob.hasLineOfSight(target)||mob.distanceToSqr(target)>9)return;
+            if(frame==12){
+                if(!CombatGeometry.contains(mob.position(),mob.attack().direction(),CombatGeometry.Shape.SECTOR,3,1.4,80,1.6,target.getBoundingBox()))return;
+                if(target.hurt(mob.damageSources().mobAttack(mob),3)){clamped=target.getUUID();target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,12,4),mob);}
+            }else if(frame==20&&target.getUUID().equals(clamped)){
+                target.invulnerableTime=0;
+                if(target.hurt(mob.damageSources().mobAttack(mob),5))target.addEffect(new MobEffectInstance(MobEffects.POISON,60),mob);
+                clamped=null;
+            }
+        }
+        public CompoundTag save(){var t=new CompoundTag();t.putLong("SurfaceUntil",surfaceUntil);if(clamped!=null)t.putUUID("Clamped",clamped);return t;}
+        public void load(CompoundTag t){surfaceUntil=t.getLong("SurfaceUntil");clamped=t.hasUUID("Clamped")?t.getUUID("Clamped"):null;}
+    }
+
+    private static final class TreeSpirit extends Base {
+        net.minecraft.core.BlockPos rootPoint=net.minecraft.core.BlockPos.ZERO;
+        boolean waking;long nextWakeScan;
+        TreeSpirit(TemplateMob mob){super(mob);}
+        public boolean allows(int id){return id==ArmySkills.TREE_WAKE||id==ArmySkills.TREE_SWEEP||id==ArmySkills.TREE_ROOTS;}
+        public boolean canStart(int id,LivingEntity target){return mob.treeAwake()&&(id!=ArmySkills.TREE_WAKE||waking);}
+        public int choose(LivingEntity target,long now){
+            if(!mob.treeAwake())return 0;
+            return mob.distanceToSqr(target)>9&&mob.attack().ready(ArmySkills.TREE_ROOTS,now)?ArmySkills.TREE_ROOTS:ArmySkills.TREE_SWEEP;
+        }
+        private void awaken(LivingEntity target){
+            if(mob.treeAwake()||!mob.validEnemy(target))return;
+            mob.setTreeAwake(true);mob.setTarget(target);waking=true;
+            try{mob.startSkill(ArmySkills.TREE_WAKE,target);}finally{waking=false;}
+            mob.playSound(SoundEvents.WOOD_BREAK,.9F,.55F);
+        }
+        public void tick(long now){
+            if(mob.skillId()==ArmySkills.TREE_ROOTS&&mob.actionAge(0)<28&&now%5==0&&level().hasChunkAt(rootPoint))
+                level().sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK,net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState()),rootPoint.getX()+.5,rootPoint.getY()+.1,rootPoint.getZ()+.5,5,.6,.03,.6,.015);
+            if(mob.treeAwake()||now<nextWakeScan)return;nextWakeScan=now+10;
+            var enemy=mob.getTarget();if(mob.validEnemy(enemy)&&mob.distanceToSqr(enemy)<=25&&mob.hasLineOfSight(enemy)){awaken(enemy);return;}
+            level().getEntitiesOfClass(net.minecraft.server.level.ServerPlayer.class,mob.getBoundingBox().inflate(5),p->mob.validEnemy(p)&&mob.distanceToSqr(p)<=25&&mob.hasLineOfSight(p))
+                .stream().min(java.util.Comparator.comparingDouble(mob::distanceToSqr)).ifPresent(this::awaken);
+        }
+        public void hurtAccepted(DamageSource source,boolean frontal){
+            if(source.getEntity() instanceof LivingEntity living)awaken(living);
+        }
+        public void move(LivingEntity target,long now){
+            mob.setSprinting(false);if(!mob.treeAwake()){mob.getNavigation().stop();return;}mob.getNavigation().moveTo(target,.7);
+        }
+        public void started(int id,LivingEntity target){
+            if(id==ArmySkills.TREE_ROOTS)rootPoint=target.blockPosition();
+        }
+        public void impact(SkillDefinition skill,int frame){
+            if(skill.id()==ArmySkills.TREE_WAKE)return;
+            if(skill.id()==ArmySkills.TREE_SWEEP){hit(skill,CombatGeometry.Shape.SECTOR,1.4,1,.65,false);return;}
+            if(!level().hasChunkAt(rootPoint)||!level().getFluidState(rootPoint).isEmpty()
+                    ||!level().getBlockState(rootPoint.below()).isFaceSturdy(level(),rootPoint.below(),net.minecraft.core.Direction.UP))return;
+            Vec3 at=Vec3.atBottomCenterOf(rootPoint);
+            if(level().clip(new net.minecraft.world.level.ClipContext(mob.getEyePosition(),at.add(0,.5,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,mob)).getType()!=net.minecraft.world.phys.HitResult.Type.MISS)return;
+            var box=BlueprintEntities.ROOT_SNARE.get().getDimensions().makeBoundingBox(at.x,at.y,at.z);
+            if(!level().noCollision(null,box)||level().getEntitiesOfClass(RootSnare.class,box.inflate(16)).size()>=2)return;
+            var cage=new RootSnare(BlueprintEntities.ROOT_SNARE.get(),level());cage.setPos(at);cage.activate(mob);level().addFreshEntity(cage);
+        }
+        public CompoundTag save(){var t=new CompoundTag();t.putLong("RootPoint",rootPoint.asLong());return t;}
+        public void load(CompoundTag t){rootPoint=net.minecraft.core.BlockPos.of(t.getLong("RootPoint"));}
+    }
+
     private static final class RedToad extends Base {
         Vec3 tongueDirection=new Vec3(0,0,1),landing=Vec3.ZERO;
         UUID pulled;long pullUntil,burstUntil;boolean leaping,landed;

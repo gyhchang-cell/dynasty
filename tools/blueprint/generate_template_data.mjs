@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 const resource = 'src/main/resources';
 const prototypes = [
+  ['mingsha_shixie','鸣沙石蝎','Singing Sand Scorpion',[['dynasty:resonant_scorpion_shell',1,2],['dynasty:metal_sting_needle',0,1],['dynasty:pure_yellow_sand',1,3]],[]],
+  ['kumu_shujing','枯木树精','Hollow Deadwood Spirit',[['dynasty:ancient_tree_heart',0,1],['dynasty:hardened_dead_bark',1,3],['dynasty:glowing_parasite_mushroom',0,2]],[]],
   ['chimu_zhuha','赤目朱蛤','Red-Eyed Vermilion Toad',[['dynasty:red_toad_gland',0,1],['dynasty:tough_toad_hide',1,2],['dynasty:poison_gel',1,2]],[]],
   ['muxue_feilu','墓穴飞颅','Tomb Flying Skull',[['dynasty:pointed_dead_tooth',1,2],['dynasty:rusted_helmet_spike',0,1],['dynasty:yin_air_sac',0,1]],[]],
   ['zhiren_jianke','纸人剑客','Paper Swordsman',[['dynasty:tough_bamboo_sliver',1,2],['dynasty:paper_cutting_knife',0,1],['dynasty:painted_cinnabar',0,2]],[]],
@@ -48,7 +50,11 @@ langs.zh_cn['tooltip.dynasty.yin_air_sac']='吞服后获得10秒缓降和水下�
 langs.zh_cn['entity.dynasty.corpse_miasma']='尸毒黏液';langs.en_us['entity.dynasty.corpse_miasma']='Corpse Miasma';
 langs.zh_cn['effect.dynasty.soul_bind']='白布缚魂';langs.en_us['effect.dynasty.soul_bind']='Soul Binding';
 langs.zh_cn['effect.dynasty.lantern_glare']='惨白灯晕';langs.en_us['effect.dynasty.lantern_glare']='Lantern Glare';
-for(const effect of ['soul_bind','lantern_glare'])fs.copyFileSync(`${resource}/assets/dynasty/textures/mob_effect/iron_wall.png`,`${resource}/assets/dynasty/textures/mob_effect/${effect}.png`);
+for(const effect of ['soul_bind','lantern_glare','root_grip','sand_resonance'])fs.copyFileSync(`${resource}/assets/dynasty/textures/mob_effect/iron_wall.png`,`${resource}/assets/dynasty/textures/mob_effect/${effect}.png`);
+langs.zh_cn['effect.dynasty.root_grip']='绞杀根须';langs.en_us['effect.dynasty.root_grip']='Strangling Roots';
+langs.zh_cn['entity.dynasty.root_snare']='根须牢笼';langs.en_us['entity.dynasty.root_snare']='Root Cage';
+langs.zh_cn['tooltip.dynasty.glowing_parasite_mushroom']='食用后获得20秒夜视。';langs.en_us['tooltip.dynasty.glowing_parasite_mushroom']='Eat for20 seconds of night vision.';
+langs.zh_cn['effect.dynasty.sand_resonance']='金石鸣沙';langs.en_us['effect.dynasty.sand_resonance']='Stone Resonance';
 const components=[
  ['kaishan_axe_blade','开山斧刃','Broad Axe Blade','minecraft:block/iron_block',[[3,5,7,12,12,9],[1,4,7,4,13,9],[10,7,6,14,10,10]]],
  ['refined_wrought_iron','精炼熟铁锭','Refined Wrought Iron','minecraft:block/iron_block',[[3,4,5,13,8,11],[4,8,6,12,10,10]]],
@@ -63,6 +69,8 @@ const shapes={blade:[[6,2,7,9,12,9],[4,10,7,7,14,9]],cloth:[[3,5,7,12,12,8],[4,2
  gear:[[3,6,7,6,10,9],[10,6,7,13,10,9],[6,3,7,10,6,9],[6,10,7,10,13,9]],chain:[[4,3,7,6,9,9],[8,3,7,10,9,9],[6,3,7,8,5,9],[6,7,7,8,9,9],[8,8,7,10,14,9],[12,8,7,14,14,9],[10,8,7,12,10,9],[10,12,7,12,14,9]],
  dust:[[3,3,6,6,6,9],[8,3,7,12,6,10],[6,6,7,9,9,10]],tally:[[3,6,6,12,10,10],[3,10,6,6,12,10],[10,3,7,12,6,9]],soul:[[5,4,6,11,11,10],[7,11,7,10,14,9],[6,2,7,8,4,9]]};
 for(const [id,zh,en,shape,texture]of [
+ ['resonant_scorpion_shell','鸣沙石硬壳片','Resonant Scorpion Shell','plate','sandstone'],['metal_sting_needle','金石尾刺针','Metal Sting Needle','blade','gold_block'],['pure_yellow_sand','精纯黄砂','Pure Yellow Sand','dust','sand'],
+ ['ancient_tree_heart','千年老树心','Ancient Tree Heart','gall','stripped_dark_oak_log'],['hardened_dead_bark','坚硬枯木皮','Hardened Dead Bark','plate','dark_oak_log'],['glowing_parasite_mushroom','荧光寄生菇','Glowing Parasite Mushroom','gall','shroomlight'],
  ['red_toad_gland','火红朱蛤腺体','Fiery Toad Gland','gall','red_terracotta'],['tough_toad_hide','粗糙坚韧蛙皮','Tough Toad Hide','cloth','red_wool'],['poison_gel','毒凝胶','Poison Gel','gall','slime_block'],
  ['pointed_dead_tooth','尖锐死人牙','Pointed Dead Tooth','claw','bone_block_side'],['rusted_helmet_spike','生锈盔顶刺','Rusted Helmet Spike','blade','exposed_copper'],['yin_air_sac','阴气囊','Yin Air Sac','gall','gray_terracotta'],
  ['tough_bamboo_sliver','极轻的韧竹篾','Tough Bamboo Sliver','branch','bamboo_block'],['paper_cutting_knife','裁纸小刀','Paper Cutting Knife','blade','iron_block'],['painted_cinnabar','点朱丹砂','Painted Cinnabar','dust','red_terracotta'],
@@ -105,6 +113,13 @@ write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/corpse_sites.j
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/shroud_child_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/paper_swordsman_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/flying_skull_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
+write(`${resource}/data/dynasty/tags/worldgen/biome/blueprint/scorpion_habitat.json`,{replace:false,values:['minecraft:desert','#minecraft:is_badlands']});
+write(`${resource}/data/dynasty/forge/biome_modifier/blueprint_scorpion.json`,{type:'forge:add_spawns',biomes:'#dynasty:blueprint/scorpion_habitat',spawners:{type:'dynasty:mingsha_shixie',weight:4,minCount:1,maxCount:2}});
+write(`${resource}/data/dynasty/recipes/smelt_scorpion_shell.json`,{type:'minecraft:smelting',ingredient:{item:'dynasty:resonant_scorpion_shell'},result:'minecraft:glass',experience:.2,cookingtime:200});
+write(`${resource}/data/dynasty/recipes/recover_sting_arrows.json`,{type:'minecraft:crafting_shapeless',ingredients:[{item:'dynasty:metal_sting_needle'},{item:'minecraft:stick'},{item:'minecraft:feather'}],result:{item:'minecraft:arrow',count:4}});
+for(const [id,material]of [['smelt_scorpion_shell','resonant_scorpion_shell'],['recover_sting_arrows','metal_sting_needle']])write(`${resource}/data/dynasty/advancements/recipes/${id}.json`,{criteria:{has_material:{trigger:'minecraft:inventory_changed',conditions:{items:[{items:[`dynasty:${material}`]}]}}},rewards:{recipes:[`dynasty:${id}`]}});
+write(`${resource}/data/dynasty/tags/worldgen/biome/blueprint/tree_habitat.json`,{replace:false,values:['#minecraft:is_forest','minecraft:taiga','minecraft:snowy_taiga','minecraft:old_growth_pine_taiga','minecraft:old_growth_spruce_taiga']});
+write(`${resource}/data/dynasty/forge/biome_modifier/blueprint_tree.json`,{type:'forge:add_spawns',biomes:'#dynasty:blueprint/tree_habitat',spawners:{type:'dynasty:kumu_shujing',weight:3,minCount:1,maxCount:1}});
 write(`${resource}/data/dynasty/tags/worldgen/biome/blueprint/toad_habitat.json`,{replace:false,values:['minecraft:swamp','minecraft:mangrove_swamp','minecraft:lush_caves','minecraft:dripstone_caves','minecraft:river']});
 write(`${resource}/data/dynasty/forge/biome_modifier/blueprint_toad.json`,{type:'forge:add_spawns',biomes:'#dynasty:blueprint/toad_habitat',spawners:{type:'dynasty:chimu_zhuha',weight:4,minCount:1,maxCount:2}});
 langs.zh_cn['entity.dynasty.toad_venom_pool']='火毒血沼';langs.en_us['entity.dynasty.toad_venom_pool']='Burning Toad Venom';
@@ -114,6 +129,8 @@ const arrowsFile=`${resource}/data/minecraft/tags/items/arrows.json`;
 const arrows=fs.existsSync(arrowsFile)?JSON.parse(fs.readFileSync(arrowsFile,'utf8')):{replace:false,values:[]};
 if(!arrows.values.includes('dynasty:short_crossbow_bolt'))arrows.values.push('dynasty:short_crossbow_bolt');write(arrowsFile,arrows);
 for(const [id,ingredient,count,result,extra]of [
+ ['recover_yellow_sand','pure_yellow_sand',4,'minecraft:sand'],
+ ['recover_tree_heart','ancient_tree_heart',1,'minecraft:golden_apple','minecraft:apple'],
  ['recover_poison_gel','poison_gel',4,'minecraft:slime_ball'],
  ['recover_dead_tooth','pointed_dead_tooth',2,'minecraft:bone_meal'],
  ['recover_painted_cinnabar','painted_cinnabar',2,'dynasty:cinnabar'],

@@ -93,18 +93,21 @@ public final class ToadGameTests {
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=180,batch="toad_effects")
     public static void firePoisonAffectsNearbyEnemyOnlyAndExpiresAcrossUnload(GameTestHelper h){
-        var owner=toad(h);var a=player(h,7,8);var b=player(h,12,8);var ally=h.spawn(BlueprintEntities.SHANJING_SHANXIAO.get(),new BlockPos(7,2,8));ally.setNoAi(true);
+        var owner=toad(h);
+        // This fixture measures poison/fire expiry, not attacks by naturally spawned assassins.
+        for(int n=0;n<16;n++)for(int y=2;y<10;y++){h.setBlock(0,y,n,Blocks.STONE);h.setBlock(15,y,n,Blocks.STONE);h.setBlock(n,y,0,Blocks.STONE);h.setBlock(n,y,15,Blocks.STONE);}
+        var a=player(h,7,8);var b=player(h,12,8);var ally=h.spawn(BlueprintEntities.SHANJING_SHANXIAO.get(),new BlockPos(7,2,8));ally.setNoAi(true);
         var pool=new CorpseMiasma(BlueprintEntities.TOAD_VENOM_POOL.get(),h.getLevel());var saved=new CompoundTag();
         h.runAfterDelay(65,()->{pool.setPos(a.position());pool.setOwner(owner);pool.activateFirePoison(h.getLevel().getGameTime());h.getLevel().addFreshEntity(pool);});
         h.runAfterDelay(93,()->{
             h.assertTrue(a.getHealth()<20&&a.hasEffect(net.minecraft.world.effect.MobEffects.POISON)&&a.isOnFire(),"Real player receives both timed damage types");
             h.assertTrue(b.getHealth()==20&&!b.isOnFire()&&!b.hasEffect(net.minecraft.world.effect.MobEffects.POISON),"Other player outside radius is safe");
             h.assertTrue(!ally.isOnFire()&&!ally.hasEffect(net.minecraft.world.effect.MobEffects.POISON),"Woodland allies are immune");
-            pool.save(saved);pool.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);a.moveTo(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(12,2,12))));
+            pool.save(saved);pool.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);a.setInvulnerable(true);b.setInvulnerable(true);a.moveTo(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(12,2,12))));
         });
         h.runAfterDelay(160,()->{
             var restored=new CorpseMiasma(BlueprintEntities.TOAD_VENOM_POOL.get(),h.getLevel());restored.load(saved);h.getLevel().addFreshEntity(restored);
-            h.runAfterDelay(3,()->{h.assertTrue(restored.isRemoved()&&!a.isOnFire()&&!a.hasEffect(net.minecraft.world.effect.MobEffects.POISON),"Expired loaded area cannot reapply damage or effects");a.discard();b.discard();h.succeed();});
+            h.runAfterDelay(3,()->{h.assertTrue(restored.isRemoved()&&!a.isOnFire()&&!a.hasEffect(net.minecraft.world.effect.MobEffects.POISON),"Expired area leaves no residual effects: removed="+restored.isRemoved()+" alive="+a.isAlive()+" fire="+a.isOnFire()+" poison="+a.getEffect(net.minecraft.world.effect.MobEffects.POISON));a.discard();b.discard();h.succeed();});
         });
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=40,batch="toad_ecology")
