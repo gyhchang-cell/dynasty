@@ -50,6 +50,11 @@ public class TombPiece extends DynastyStructurePiece {
         return java.util.List.of(getWorldPos(19,1,29).immutable(),getWorldPos(20,1,34).immutable());
     }
 
+    public java.util.List<BlockPos> paperSwordsmanPositions() {
+        return remastered ? java.util.List.of(getWorldPos(15,1,12).immutable(),getWorldPos(24,1,12).immutable(),getWorldPos(20,1,14).immutable())
+            : java.util.List.of(getWorldPos(15,1,19).immutable(),getWorldPos(24,1,19).immutable());
+    }
+
     public BlockPos shroudChildPosition() { return getWorldPos(5,1,remastered?34:24).immutable(); }
 
     void lootChest(WorldGenLevel level, BoundingBox box, RandomSource random, int x, int y, int z, ResourceLocation table) {

@@ -29,15 +29,16 @@ public final class ArmyBehaviors {
         default void hurtAccepted(DamageSource source,boolean frontal){}
         default boolean evade(DamageSource source){return false;}
         default boolean canInterrupt(){return true;}
+        default boolean preventFatal(DamageSource source,float damage){return false;}
         default CompoundTag save(){return new CompoundTag();}
         default void load(CompoundTag tag){}
         default String animation(int id){return switch(id){case ArmySkills.BRACE->"brace";case ArmySkills.ROLL->"roll";
             case ArmySkills.GRAPPLE->"grapple";case ArmySkills.KNEE->"knee";case ArmySkills.DETONATE->"detonate";
-            case ArmySkills.CHILD_CURSE->"curse";case ArmySkills.AXE_COUNTER->"counter";case ArmySkills.GHOST_PHASE->"phase";default->"attack";};}
+            case ArmySkills.PAPER_SHED->"shed";case ArmySkills.CHILD_CURSE->"curse";case ArmySkills.AXE_COUNTER->"counter";case ArmySkills.GHOST_PHASE->"phase";default->"attack";};}
     }
     static Behavior create(TemplateMob mob,TemplateMob.Kind kind){return switch(kind){
         case SPEAR->new Spear(mob);case CROSSBOW->new Crossbow(mob);case SCOUT->new Scout(mob);
-        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);case CHILD->new ShroudChild(mob);default->null;};}
+        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);case CHILD->new ShroudChild(mob);case PAPER->new PaperSwordsman(mob);default->null;};}
     private ArmyBehaviors(){}
     public static boolean charging(LivingEntity target,Vec3 position){
         Vec3 velocity=target.getVehicle()==null?target.getDeltaMovement():target.getVehicle().getDeltaMovement();
@@ -92,6 +93,68 @@ public final class ArmyBehaviors {
         Vec3 toward=subject.getEyePosition().subtract(observer.getEyePosition());
         return toward.lengthSqr()<.01||observer.getLookAngle().dot(toward.normalize())>.6&&observer.hasLineOfSight(subject);
     }
+    private static final class PaperSwordsman extends Base {
+        long substitutionUntil;boolean substituting;
+        PaperSwordsman(TemplateMob mob){super(mob);}
+        public boolean allows(int id){return id==ArmySkills.PAPER_SLASH||id==ArmySkills.PAPER_SHED;}
+        public boolean canStart(int id,LivingEntity target){return id!=ArmySkills.PAPER_SHED||substituting;}
+        public int choose(LivingEntity target,long now){return ArmySkills.PAPER_SLASH;}
+        public void tick(long now){if(mob.getTarget()==null||!mob.getTarget().isAlive()||mob.skillId()!=0)mob.setSprinting(false);}
+        public void move(LivingEntity target,long now){
+            mob.setSprinting(true);
+            Vec3 forward=target.position().subtract(mob.position()).multiply(1,0,1).normalize();
+            double side=((now/20+mob.getId())&1)==0?1.5:-1.5;
+            Vec3 next=mob.distanceToSqr(target)>16?mob.position().add(forward.scale(3)).add(-forward.z*side,0,forward.x*side):target.position();
+            navigate(next,1.25);
+        }
+        public void impact(SkillDefinition skill,int frame){
+            if(skill.id()!=ArmySkills.PAPER_SLASH)return;
+            for(var target:CombatGeometry.query(level(),mob.position(),mob.attack().direction(),CombatGeometry.Shape.SECTOR,
+                    skill.maxRange(),1,skill.angleDegrees(),1.6,e->mob.validEnemy(e)&&mob.hasLineOfSight(e))){
+                if(target.hurt(mob.damageSources().mobAttack(mob),(float)mob.getAttributeValue(Attributes.ATTACK_DAMAGE)))
+                    //60 ticks gives a real delayed damage tick after the slash's invulnerability window.
+                    target.addEffect(new MobEffectInstance(MobEffects.WITHER,60,0),mob);
+                if(!mob.isAlive()||mob.attack().current()!=skill)return;
+            }
+        }
+        public boolean preventFatal(DamageSource source,float damage){
+            long now=level().getGameTime();
+            if(damage<mob.getHealth()||now<substitutionUntil||source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))return false;
+            LivingEntity target=source.getEntity() instanceof LivingEntity living?living:mob.getTarget();
+            if(!mob.validEnemy(target)||mob.distanceToSqr(target)>256)return false;
+            Vec3 landing=paperLanding(mob,target);if(landing==null)return false;
+            Vec3 origin=mob.position();substitutionUntil=now+1200;mob.cancelAction();mob.setHealth(Math.max(1,mob.getHealth()));
+            mob.teleportTo(landing.x,landing.y,landing.z);mob.setDeltaMovement(Vec3.ZERO);mob.setTarget(target);
+            // One ordinary action epoch synchronizes the re-form clip to all trackers.
+            mob.attack().endStun(now);substituting=true;
+            try {mob.startSkill(ArmySkills.PAPER_SHED,target);} finally {substituting=false;}
+            level().sendParticles(new net.minecraft.core.particles.ItemParticleOption(net.minecraft.core.particles.ParticleTypes.ITEM,
+                new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.PAPER)),origin.x,origin.y+.8,origin.z,18,.25,.6,.12,.025);
+            mob.playSound(SoundEvents.BOOK_PAGE_TURN,.8F,.6F);return true;
+        }
+        public CompoundTag save(){var tag=new CompoundTag();tag.putLong("SubstitutionUntil",substitutionUntil);return tag;}
+        public void load(CompoundTag tag){substitutionUntil=Math.min(level().getGameTime()+1200,Math.max(0,tag.getLong("SubstitutionUntil")));}
+    }
+    /** Nine bounded candidate columns: directly behind, then either rear diagonal. Never loads chunks. */
+    static Vec3 paperLanding(TemplateMob mob,LivingEntity target){
+        var level=(ServerLevel)mob.level();Vec3 forward=target.getLookAngle().multiply(1,0,1).normalize();
+        if(forward.lengthSqr()<.001)return null;
+        for(double angle:new double[]{0,Math.PI/4,-Math.PI/4})for(int dy:new int[]{0,1,-1}){
+            Vec3 back=forward.yRot((float)angle).scale(-5),candidate=target.position().add(back).add(0,dy,0);
+            var pos=net.minecraft.core.BlockPos.containing(candidate);candidate=new Vec3(candidate.x,pos.getY(),candidate.z);
+            var box=mob.getType().getDimensions().makeBoundingBox(candidate.x,candidate.y,candidate.z);
+            if(!level.hasChunkAt(pos)||!level.hasChunkAt(net.minecraft.core.BlockPos.containing(box.minX,box.minY,box.minZ))
+                    ||!level.hasChunkAt(net.minecraft.core.BlockPos.containing(box.maxX,box.maxY,box.maxZ))
+                    ||!level.getWorldBorder().isWithinBounds(box)||!level.getFluidState(pos).isEmpty()
+                    ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,box)
+                    ||!level.getEntitiesOfClass(LivingEntity.class,box,e->e!=mob&&e.isAlive()).isEmpty())continue;
+            var line=level.clip(new net.minecraft.world.level.ClipContext(target.getEyePosition(),candidate.add(0,mob.getEyeHeight(),0),
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,mob));
+            if(line.getType()==net.minecraft.world.phys.HitResult.Type.MISS)return candidate;
+        }
+        return null;
+    }
+
     private static final class ShroudChild extends Base {
         ShroudChild(TemplateMob mob){super(mob);}
         public boolean allows(int id){return id==ArmySkills.CHILD_LAUGH||id==ArmySkills.CHILD_CURSE;}
@@ -139,7 +202,6 @@ public final class ArmyBehaviors {
                 :target.position().subtract(target.getLookAngle().multiply(1,0,1).normalize().scale(4));
             navigate(point,.85);
         }
-        public void died(DamageSource source){mob.playSound(SoundEvents.ALLAY_DEATH,.55F,1.35F);}
     }
     private static final class Corpse extends Base {
         long spillCooldown, nextBound;

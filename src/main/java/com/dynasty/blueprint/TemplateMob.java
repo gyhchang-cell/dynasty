@@ -59,7 +59,7 @@ import java.util.UUID;
 
 /** Validated template lifecycle; additional army professions compose their own server actions. */
 public final class TemplateMob extends Monster implements GeoEntity, Combatant {
-    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE, CHILD }
+    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE, CHILD, PAPER }
     private static final EntityDataAccessor<Integer> SKILL = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Long> START = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.LONG);
@@ -110,11 +110,12 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             case GHOST -> "yinbing_guizu";
             case CORPSE -> "shibian_lishi";
             case CHILD -> "fuhun_baibu_tongzi";
+            case PAPER -> "zhiren_jianke";
         };
     }
-    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE || kind == Kind.CHILD) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
+    @Override public Faction faction() { return kind == Kind.BEAST ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE || kind == Kind.CHILD || kind == Kind.PAPER) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
     @Override public MobRole role() {
-        return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER,AXE_GUARD,GHOST,CORPSE -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
+        return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER,AXE_GUARD,GHOST,CORPSE,PAPER -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
             case PRIEST,FLAG,CHILD -> MobRole.SUPPORT; case CROSSBOW -> MobRole.RANGED; case BEAST -> MobRole.BEAST; };
     }
     public TimedAttack attack() { return attack; }
@@ -513,6 +514,9 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             interruptAttack(10);
         return damaged;
     }
+    public boolean preventPaperFatal(DamageSource source,float damage) {
+        return kind==Kind.PAPER && !level().isClientSide && isAlive() && army.preventFatal(source,damage);
+    }
     @Override public boolean onClimbable() {
         // A dead wall-climber must fall under ordinary gravity. Keeping the last synchronized
         // climbing flag would continue vanilla's wall boost / slow-fall during its death clip.
@@ -553,7 +557,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         BlueprintVisualEvent.death(this);
         if(!level().isClientSide&&army!=null)army.died(source);
     }
-    public int deathDuration() { return kind == Kind.SHIELD ? 200 : kind == Kind.SWORD ? 60 : 44; }
+    public int deathDuration() { return kind == Kind.PAPER ? 10 : kind == Kind.SHIELD ? 200 : kind == Kind.SWORD ? 60 : 44; }
     void onArmyHookHit(LivingEntity target,long epoch) {
         if(!level().isClientSide&&army!=null&&isAlive()&&skillId()==ArmySkills.GRAPPLE&&skillStartTime()==epoch)
             army.hookHit(target);
@@ -646,11 +650,12 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         });
     }
     @Override protected SoundEvent getAmbientSound() { return kind == Kind.BEAST ? SoundEvents.FOX_AMBIENT : null; }
-    @Override protected SoundEvent getHurtSound(DamageSource source) { return kind == Kind.BEAST ? SoundEvents.FOX_HURT : SoundEvents.PLAYER_HURT; }
-    @Override protected SoundEvent getDeathSound() { return kind == Kind.BEAST ? SoundEvents.FOX_DEATH : SoundEvents.ZOMBIE_DEATH; }
+    @Override protected SoundEvent getHurtSound(DamageSource source) { return kind == Kind.BEAST ? SoundEvents.FOX_HURT : kind == Kind.CHILD ? SoundEvents.ALLAY_HURT : kind == Kind.PAPER ? SoundEvents.BOOK_PAGE_TURN : SoundEvents.PLAYER_HURT; }
+    @Override protected SoundEvent getDeathSound() { return kind == Kind.BEAST ? SoundEvents.FOX_DEATH : kind == Kind.CHILD ? SoundEvents.ALLAY_DEATH : kind == Kind.PAPER ? SoundEvents.FIRE_EXTINGUISH : SoundEvents.ZOMBIE_DEATH; }
     @Override protected void playStepSound(BlockPos pos, net.minecraft.world.level.block.state.BlockState state) {
-        if (kind == Kind.GHOST) return;
-        if (kind == Kind.AXE_GUARD) playSound(SoundEvents.ARMOR_EQUIP_IRON, .35F, .65F);
+        if (kind == Kind.GHOST || kind == Kind.CHILD) return;
+        if (kind == Kind.PAPER) playSound(SoundEvents.BOOK_PAGE_TURN, .2F, 1.6F);
+        else if (kind == Kind.AXE_GUARD) playSound(SoundEvents.ARMOR_EQUIP_IRON, .35F, .65F);
         else super.playStepSound(pos, state);
     }
 

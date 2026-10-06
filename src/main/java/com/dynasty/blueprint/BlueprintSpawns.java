@@ -31,6 +31,7 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> GHOSTS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ghost_sites"));
     private static final TagKey<Structure> CORPSES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/corpse_sites"));
     private static final TagKey<Structure> CHILDREN=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/shroud_child_sites"));
+    private static final TagKey<Structure> PAPERS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/paper_swordsman_sites"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
         event.register(BlueprintEntities.TIESUO_CHIHOU.get(),SpawnPlacements.Type.ON_GROUND,
@@ -61,7 +62,7 @@ public final class BlueprintSpawns {
         int remaining=2; // Absolute per-level work cap, independent of player count.
         for(var player:level.players()) {
             if(player.isSpectator())continue;
-            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES,CHILDREN)) for(var holder:registry.getTagOrEmpty(group)) {
+            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES,CHILDREN,PAPERS)) for(var holder:registry.getTagOrEmpty(group)) {
                 if(remaining<=0)return;
                 if(group==BATTLEFIELD&&level.isDay())continue;
                 var start=level.structureManager().getStructureAt(player.blockPosition(),holder.value());
@@ -69,6 +70,12 @@ public final class BlueprintSpawns {
                 var box=start.getBoundingBox();var centre=box.getCenter();
                 String key=registry.getKey(holder.value())+"@"+start.getChunkPos().toLong();
                 if(group==GHOSTS)key+=":ghosts";
+                if(group==PAPERS){
+                    if(!checked.add(key+":paper_swordsmen"))continue;
+                    for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
+                            &&spawnPaperSwordsman(level,key+":paper_swordsmen",tomb.paperSwordsmanPositions(),player.blockPosition())){remaining--;break;}
+                    continue;
+                }
                 if(group==CHILDREN){
                     if(!checked.add(key+":shroud_child"))continue;
                     for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
@@ -144,9 +151,12 @@ public final class BlueprintSpawns {
         if(!level.hasChunkAt(pos)||level.isDay()&&level.getMaxLocalRawBrightness(pos)>7)return false;
         return spawnAuthoredGroup(level,key,List.of(pos),entrant,BlueprintEntities.FUHUN_BAIBU_TONGZI.get(),level.getMinBuildHeight()+1,64);
     }
+    public static boolean spawnPaperSwordsman(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.ZHIREN_JIANKE.get(),level.getMinBuildHeight()+1,64);
+    }
     private static boolean spawnAuthoredGroup(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant,
             net.minecraft.world.entity.EntityType<TemplateMob> type,int minY,int maxY){
-        if(positions.isEmpty()||positions.size()>2||level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+        if(positions.isEmpty()||positions.size()>3||level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
                 ||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return false;
         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);
         if(marker!=null&&(marker.cleared||marker.nextSpawn>level.getGameTime()||marker.produced>=positions.size()&&!marker.members.isEmpty()))return false;

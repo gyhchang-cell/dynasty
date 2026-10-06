@@ -80,7 +80,7 @@ public final class CorpseGameTests {
         });
         h.runAfterDelay(49,()->{h.assertTrue(cow.getHealth()==189.5F&&mob.skillId()==0,"No repeated contacts or stale action");h.succeed();});
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=340,batch="corpse_world")
+    @GameTest(template="bow_ritual_test",timeoutTicks=650,batch="corpse_world")
     public static void realTombEntrySpawnsPersistentCorpsesOnlyOnAuthoredFloor(GameTestHelper h){
         var level=h.getLevel();var id=new net.minecraft.resources.ResourceLocation("dynasty","imperial_tomb");
         var structure=level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE).get(id);
@@ -94,6 +94,8 @@ public final class CorpseGameTests {
             piece.postProcess(level,level.structureManager(),level.getChunkSource().getGenerator(),net.minecraft.util.RandomSource.create(4),
                 new net.minecraft.world.level.levelgen.structure.BoundingBox(x*16,box.minY(),z*16,x*16+15,box.maxY(),z*16+15),part.getPos(),origin);
         }
+        for(var paperFloor:piece.paperSwordsmanPositions())h.assertTrue(com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,paperFloor,
+            BlueprintEntities.ZHIREN_JIANKE.get().getDimensions().makeBoundingBox(paperFloor.getX()+.5,paperFloor.getY(),paperFloor.getZ()+.5)),"Paper courtyard marker has actual generated standing space");
         var childFloor=piece.shroudChildPosition();
         h.assertTrue(com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,childFloor,
             BlueprintEntities.FUHUN_BAIBU_TONGZI.get().getDimensions().makeBoundingBox(childFloor.getX()+.5,childFloor.getY(),childFloor.getZ()+.5)),"Child marker is a real collision-free gallery floor");
@@ -108,11 +110,21 @@ public final class CorpseGameTests {
         boolean spawning=level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING);
         level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
         String key=id+"@"+chunk.toLong()+":corpses";
-        h.runAfterDelay(270,()->{
+        h.runAfterDelay(550,()->{
             var data=BlueprintSpawnState.get(level);var marker=data.markers.get(key);
             h.assertTrue(marker!=null&&marker.produced==2&&marker.members.size()==2,"Ordinary structure entry ticks produce exactly two corpses");
             var saved=BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(key);
             h.assertTrue(saved.members.equals(marker.members),"Restart checkpoint preserves exact member identities");
+            var paperKey=id+"@"+chunk.toLong()+":paper_swordsmen";var papers=data.markers.get(paperKey);
+            h.assertTrue(papers!=null&&papers.produced==3&&papers.members.size()==3,"Real tomb entry produces three courtyard paper swordsmen within shared tick budget");
+            h.assertTrue(BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(paperKey).members.equals(papers.members),"Paper squad identities survive SavedData restart checkpoint");
+            for(var member:List.copyOf(papers.members)){
+                var paper=(TemplateMob)level.getEntity(member);h.assertTrue(paper.kind()==TemplateMob.Kind.PAPER&&!paper.isNoAi(),"Authored courtyard owns active paper AI");
+                var nbt=new CompoundTag();paper.save(nbt);paper.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
+                h.assertTrue(!BlueprintSpawns.spawnPaperSwordsman(level,paperKey,piece.paperSwordsmanPositions(),entrant),"Unloaded paper member is never replaced");
+                var loaded=BlueprintEntities.ZHIREN_JIANKE.get().create(level);loaded.load(nbt);level.addFreshEntity(loaded);loaded.hurt(level.damageSources().genericKill(),10000);
+            }
+            h.assertTrue(papers.members.isEmpty()&&papers.nextSpawn>=level.getGameTime()+11999,"Final paper death preserves encounter cooldown");
             var childKey=id+"@"+chunk.toLong()+":shroud_child";var childMarker=data.markers.get(childKey);
             h.assertTrue(childMarker!=null&&childMarker.produced==1&&childMarker.members.size()==1,"Same ordinary tomb entry also produces exactly one shroud child");
             var childSaved=BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(childKey);

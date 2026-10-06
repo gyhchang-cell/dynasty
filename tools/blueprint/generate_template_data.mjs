@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 const resource = 'src/main/resources';
 const prototypes = [
+  ['zhiren_jianke','纸人剑客','Paper Swordsman',[['dynasty:tough_bamboo_sliver',1,2],['dynasty:paper_cutting_knife',0,1],['dynasty:painted_cinnabar',0,2]],[]],
   ['zuwu_daoshou', '卒伍刀手', 'Rank-and-File Swordsman', [['dynasty:copper_coin',1,3],['dynasty:broken_iron_blade',0,1],['dynasty:coarse_linen',0,2]],[]],
   ['ludun_jiashi', '橹盾甲士', 'Tower-Shield Armiger', [['dynasty:heavy_shield_remnant',0,1],['dynasty:wrought_iron_billet',1,2],['dynasty:damaged_chainmail',0,1]],[]],
   ['fufa_jijiu', '符法祭酒', 'Talisman Ritualist', [['dynasty:cinnabar',0,2],['dynasty:talisman_paper',0,1],['dynasty:dry_peach_branch',1,2]],[]],
@@ -58,6 +59,7 @@ const shapes={blade:[[6,2,7,9,12,9],[4,10,7,7,14,9]],cloth:[[3,5,7,12,12,8],[4,2
  gear:[[3,6,7,6,10,9],[10,6,7,13,10,9],[6,3,7,10,6,9],[6,10,7,10,13,9]],chain:[[4,3,7,6,9,9],[8,3,7,10,9,9],[6,3,7,8,5,9],[6,7,7,8,9,9],[8,8,7,10,14,9],[12,8,7,14,14,9],[10,8,7,12,10,9],[10,12,7,12,14,9]],
  dust:[[3,3,6,6,6,9],[8,3,7,12,6,10],[6,6,7,9,9,10]],tally:[[3,6,6,12,10,10],[3,10,6,6,12,10],[10,3,7,12,6,9]],soul:[[5,4,6,11,11,10],[7,11,7,10,14,9],[6,2,7,8,4,9]]};
 for(const [id,zh,en,shape,texture]of [
+ ['tough_bamboo_sliver','极轻的韧竹篾','Tough Bamboo Sliver','branch','bamboo_block'],['paper_cutting_knife','裁纸小刀','Paper Cutting Knife','blade','iron_block'],['painted_cinnabar','点朱丹砂','Painted Cinnabar','dust','red_terracotta'],
  ['white_wax_tear','白蜡灯泪','White Wax Tear','gall','white_terracotta'],['wronged_shroud','冤魂碎布片','Wronged Soul Shroud','cloth','white_wool'],['pale_milk_tooth','惨白乳齿','Pale Milk Tooth','claw','bone_block_side'],
  ['blackened_bone','发黑的腐骨','Blackened Rotten Bone','branch','black_terracotta'],['congealed_corpse_oil','凝固尸油','Congealed Corpse Oil','gall','purple_terracotta'],['strongman_wrist_weight','力士铅腕套','Strongman Wrist Weight','gear','deepslate'],
  ['broken_iron_blade','残破的生铁刀片','Broken Iron Blade','blade','iron_block'],['coarse_linen','粗麻碎布','Coarse Linen Scrap','cloth','brown_wool'],
@@ -86,7 +88,7 @@ for(const [key,zh,en]of [
  ['leather_armor','铁砧修补皮甲：每缕恢复25%耐久，保留染色与附魔。','Anvil: repairs 25% leather armour durability, preserving dye and enchantments.']]){
  langs.zh_cn[`tooltip.dynasty.salvage.${key}`]=zh;langs.en_us[`tooltip.dynasty.salvage.${key}`]=en;
 }
-for(const [key,zh,en]of [['iron_sword','铁剑','iron swords'],['leather_boots','皮靴','leather boots'],['shield','普通盾牌','ordinary shields'],['chainmail','锁链甲','chainmail armour'],['bows','普通弓或弩','ordinary bows or crossbows'],['crossbow','普通弩','ordinary crossbows']]){
+for(const [key,zh,en]of [['shears','剪刀','shears'],['iron_sword','铁剑','iron swords'],['leather_boots','皮靴','leather boots'],['shield','普通盾牌','ordinary shields'],['chainmail','锁链甲','chainmail armour'],['bows','普通弓或弩','ordinary bows or crossbows'],['crossbow','普通弩','ordinary crossbows']]){
  langs.zh_cn[`tooltip.dynasty.salvage.${key}`]=`铁砧修复${zh}：每件恢复25%耐久，消耗材料与经验。`;
  langs.en_us[`tooltip.dynasty.salvage.${key}`]=`Anvil: repairs 25% durability on ${en} per component; costs materials and levels.`;
 }
@@ -95,10 +97,12 @@ write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/rebel_guard_si
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/ghost_sites.json`,{replace:false,values:['dynasty:ruined_battlefield']});
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/corpse_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
 write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/shroud_child_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
+write(`${resource}/data/dynasty/tags/worldgen/structure/blueprint/paper_swordsman_sites.json`,{replace:false,values:['dynasty:imperial_tomb']});
 const arrowsFile=`${resource}/data/minecraft/tags/items/arrows.json`;
 const arrows=fs.existsSync(arrowsFile)?JSON.parse(fs.readFileSync(arrowsFile,'utf8')):{replace:false,values:[]};
 if(!arrows.values.includes('dynasty:short_crossbow_bolt'))arrows.values.push('dynasty:short_crossbow_bolt');write(arrowsFile,arrows);
 for(const [id,ingredient,count,result,extra]of [
+ ['recover_painted_cinnabar','painted_cinnabar',2,'dynasty:cinnabar'],
  ['recover_wax_candle','white_wax_tear',2,'minecraft:candle','minecraft:string'],['recover_milk_tooth','pale_milk_tooth',2,'minecraft:bone_meal'],
  ['recover_rotten_bone','blackened_bone',2,'minecraft:bone_meal'],
  ['recover_ancient_coin','ancient_coin_rust',4,'dynasty:copper_coin'],['recover_gunpowder','poor_gunpowder',4,'minecraft:gunpowder'],

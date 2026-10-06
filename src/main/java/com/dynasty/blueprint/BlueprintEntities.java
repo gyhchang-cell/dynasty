@@ -25,6 +25,7 @@ public final class BlueprintEntities {
 
     public static final RegistryObject<MobEffect> SOUL_BIND = EFFECTS.register("soul_bind",SoulBindEffect::new);
     public static final RegistryObject<MobEffect> LANTERN_GLARE = EFFECTS.register("lantern_glare",()->new MobEffect(net.minecraft.world.effect.MobEffectCategory.HARMFUL,0xE9E4CF){});
+    public static final RegistryObject<EntityType<TemplateMob>> ZHIREN_JIANKE = mob("zhiren_jianke",TemplateMob.Kind.PAPER,.6F,1.85F);
     public static final RegistryObject<EntityType<TemplateMob>> FUHUN_BAIBU_TONGZI = mob("fuhun_baibu_tongzi",TemplateMob.Kind.CHILD,.55F,1.2F);
     public static final RegistryObject<EntityType<TemplateMob>> ZUWU_DAOSHOU = mob("zuwu_daoshou", TemplateMob.Kind.SWORD, .65F, 1.85F);
     public static final RegistryObject<EntityType<TemplateMob>> LUDUN_JIASHI = mob("ludun_jiashi", TemplateMob.Kind.SHIELD, .95F, 2.05F);
@@ -63,6 +64,8 @@ public final class BlueprintEntities {
 
     public static final RegistryObject<Item> FUHUN_BAIBU_TONGZI_EGG = egg("fuhun_baibu_tongzi", FUHUN_BAIBU_TONGZI, 0xDDD3B5, 0x252420);
 
+    public static final RegistryObject<Item> ZHIREN_JIANKE_EGG = egg("zhiren_jianke", ZHIREN_JIANKE, 0xDED4BB, 0xAF403C);
+
     private BlueprintEntities() { }
     private static RegistryObject<EntityType<TemplateMob>> mob(String id, TemplateMob.Kind kind, float width, float height) {
         return ENTITIES.register(id, () -> EntityType.Builder.<TemplateMob>of((type, level) -> new TemplateMob(type, level, kind), MobCategory.MONSTER)
@@ -98,5 +101,6 @@ public final class BlueprintEntities {
         event.put(YINBING_GUIZU.get(), attributes(42, 5, .25, 2, .1));
         event.put(SHIBIAN_LISHI.get(), attributes(84, 7, .19, 3, .5));
         event.put(FUHUN_BAIBU_TONGZI.get(), attributes(28, 2, .24, 0, 0));
+        event.put(ZHIREN_JIANKE.get(), attributes(32, 5, .34, 0, 0));
     }
 }

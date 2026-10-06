@@ -51,7 +51,10 @@ public final class BlueprintSalvage {
     public static final RegistryObject<Item> WHITE_WAX_TEAR=plain("white_wax_tear");
     public static final RegistryObject<Item> WRONGED_SHROUD=register("wronged_shroud",Use.LEATHER_ARMOR);
     public static final RegistryObject<Item> PALE_MILK_TOOTH=plain("pale_milk_tooth");
-    private enum Use { IRON_AXE, IRON_SWORD, IRON_GEAR, IRON_ARMOR, JADE_GEAR, LEATHER_ARMOR, LEATHER_BOOTS, SHIELD, CHAINMAIL, BOWS, CROSSBOW }
+    public static final RegistryObject<Item> TOUGH_BAMBOO_SLIVER=register("tough_bamboo_sliver",Use.BOWS);
+    public static final RegistryObject<Item> PAPER_CUTTING_KNIFE=register("paper_cutting_knife",Use.SHEARS);
+    public static final RegistryObject<Item> PAINTED_CINNABAR=plain("painted_cinnabar");
+    private enum Use { SHEARS, IRON_AXE, IRON_SWORD, IRON_GEAR, IRON_ARMOR, JADE_GEAR, LEATHER_ARMOR, LEATHER_BOOTS, SHIELD, CHAINMAIL, BOWS, CROSSBOW }
     private static RegistryObject<Item> register(String id,Use use){return BlueprintEntities.ITEMS.register(id,()->new ComponentItem(use));}
     private static RegistryObject<Item> plain(String id){return BlueprintEntities.ITEMS.register(id,()->new Item(new Item.Properties()));}
     private BlueprintSalvage(){}
@@ -65,6 +68,7 @@ public final class BlueprintSalvage {
             boolean armor=stack.getItem() instanceof ArmorItem item&&item.getMaterial().getRepairIngredient().test(iron);
             return switch(use){case IRON_AXE->tool&&stack.getItem() instanceof AxeItem;case IRON_SWORD->tool&&stack.getItem() instanceof SwordItem;
                 case IRON_GEAR->tool||armor;case IRON_ARMOR->armor;
+                case SHEARS->stack.is(Items.SHEARS);
                 case SHIELD->stack.is(Items.SHIELD);
                 case CHAINMAIL->stack.getItem() instanceof ArmorItem item&&item.getMaterial()==ArmorMaterials.CHAIN;
                 case BOWS->stack.is(Items.BOW)||stack.is(Items.CROSSBOW);

@@ -37,6 +37,7 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
         event.registerEntityRenderer(BlueprintEntities.YINBING_GUIZU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.SHIBIAN_LISHI.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.FUHUN_BAIBU_TONGZI.get(), TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.ZHIREN_JIANKE.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.CORPSE_MIASMA.get(), net.minecraft.client.renderer.entity.NoopRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ARMY_CALTROP.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.TEMPLATE_PROJECTILE.get(), ThrownItemRenderer::new);

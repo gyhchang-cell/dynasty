@@ -41,6 +41,8 @@ public final class TimedAttack {
         if (age >= active.totalTicks() || age < 0) cancel();
     }
     public void cancel() { current = null; started = -1; target = null; fired.clear(); }
+    /** A successful scripted escape ends hit-stun, preserving all attack cooldowns. */
+    public void endStun(long now) { stunnedUntil = Math.min(stunnedUntil, now); }
     public void stun(long now, int ticks) { cancel(); stunnedUntil = Math.max(stunnedUntil, now + Math.max(1, ticks)); }
     public AttackState state(long now) {
         return now < stunnedUntil ? AttackState.STUN : current == null ? AttackState.IDLE
