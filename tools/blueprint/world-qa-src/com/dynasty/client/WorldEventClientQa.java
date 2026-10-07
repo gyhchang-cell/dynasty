@@ -40,6 +40,29 @@ public final class WorldEventClientQa {
     private static long reconnectAt;
     private static CompletableFuture<Void> setup,reload;
     private static UUID active;
+    private static int hammerPhases;
+    private static long hammerRenders;
+    private static long hammerDrawsAtStageStart;
+    @Mod.EventBusSubscriber(modid="dynasty",bus=Mod.EventBusSubscriber.Bus.MOD,value=Dist.CLIENT)
+    public static final class RendererProbe {
+        @SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+        public static void register(net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers event){
+            if(ROLE.isEmpty())return;
+            event.registerBlockEntityRenderer(DungeonContent.MECHANISM.get(),context->{
+                var delegate=new com.dynasty.dungeon.client.DungeonMechanismRenderer(context);
+                return new net.minecraft.client.renderer.blockentity.BlockEntityRenderer<DungeonMechanismBlockEntity>(){
+                    @Override public void render(DungeonMechanismBlockEntity be,float partial,com.mojang.blaze3d.vertex.PoseStack pose,
+                            net.minecraft.client.renderer.MultiBufferSource buffers,int light,int overlay){
+                        delegate.render(be,partial,pose,buffers,light,overlay);
+                        if(be.getBlockPos().equals(CRUSHER)&&be.mechanismId().equals("crusher")){
+                            hammerRenders++;hammerPhases|=1<<be.getBlockState().getValue(DungeonMechanismBlock.STAGE);
+                        }
+                    }
+                    @Override public int getViewDistance(){return delegate.getViewDistance();}
+                };
+            });
+        }
+    }
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent e){
         if(ROLE.isEmpty()||finished||e.phase!=TickEvent.Phase.END)return;var mc=Minecraft.getInstance();
         try{
@@ -65,7 +88,7 @@ public final class WorldEventClientQa {
                     if(stage==9){Files.writeString(ROOT.resolve("complete"),"Ten actual world client stages observed");finish(mc,null);return;}publish(stage+1);
                 }
             }else{if(Files.exists(ROOT.resolve("complete"))){finish(mc,null);return;}if(!Files.exists(ROOT.resolve("stage")))return;stage=Integer.parseInt(Files.readString(ROOT.resolve("stage")).trim());}
-            if(observed!=stage){observed=stage;acted=false;frames=0;}if(ack(stage))return;
+            if(observed!=stage){observed=stage;acted=false;frames=0;if(stage==7){hammerPhases=0;hammerDrawsAtStageStart=hammerRenders;}}if(ack(stage))return;
             if(mc.level.getGameTime()%40==0)Files.writeString(ROOT.resolve(ROLE+"-status"),"stage="+stage+" serverStage="+serverStage+" dimension="+mc.level.dimension().location()+" gameTime="+mc.level.getGameTime()+"\n");
             if(stage==0){
                 for(var item:WorldEventItems.ITEMS.getEntries())require(mc.getItemRenderer().getModel(new ItemStack(item.get()),mc.level,mc.player,0)!=mc.getModelManager().getMissingModel(),"Missing real event reward item model "+item.getId());
@@ -89,9 +112,11 @@ public final class WorldEventClientQa {
             }else if(stage==7){
                 if(!(mc.level.getBlockEntity(CRUSHER) instanceof DungeonMechanismBlockEntity be)||!be.validBinding())return;
                 require(be.getRenderBoundingBox().maxY>=CRUSHER.getY()+4,"Moving hammer render bounds clipped");
+                require(mc.getBlockRenderer().getBlockModel(net.minecraft.world.level.block.Blocks.IRON_BLOCK.defaultBlockState()).getParticleIcon().contents().name()
+                    .equals(new net.minecraft.resources.ResourceLocation("minecraft:block/iron_block")),"Hammer source model does not use the actual vanilla iron texture");
                 for(var p:List.of(CRUSHER,new BlockPos(5,-61,2),new BlockPos(6,-61,2),new BlockPos(7,-61,2),new BlockPos(8,-61,2),new BlockPos(9,-61,2)))
                     if(mc.getBlockRenderer().getBlockModel(mc.level.getBlockState(p))==mc.getModelManager().getMissingModel())return;
-                if(frames<45){frames++;return;}
+                if(hammerRenders-hammerDrawsAtStageStart<45||(hammerPhases&14)!=14)return;
             }else if(stage==8){if(!WorldEventVisuals.hasActive("xuanniao_zhige")||WorldEventVisuals.celestialDraws()<5)return;
             }else if(stage==9){
                 if(!mc.level.dimension().equals(TARGET))return;if(WorldEventVisuals.activeStates()!=0||WorldEventVisuals.phantomCount()!=0||WorldEventVisuals.processionFog())return;

@@ -8,7 +8,7 @@ import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL20;
 
 /** Restore the caller's actual GL state, including non-default blend functions used by other mods. */
-final class ImperialRenderState implements AutoCloseable {
+public final class ImperialRenderState implements AutoCloseable {
     private final boolean blend=GL11.glIsEnabled(GL11.GL_BLEND),depth=GL11.glIsEnabled(GL11.GL_DEPTH_TEST),
             cull=GL11.glIsEnabled(GL11.GL_CULL_FACE),depthMask=GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
     private final int srcRgb=GL11.glGetInteger(GL14.GL_BLEND_SRC_RGB),dstRgb=GL11.glGetInteger(GL14.GL_BLEND_DST_RGB),
@@ -22,7 +22,7 @@ final class ImperialRenderState implements AutoCloseable {
     private final float[] shaderColor=RenderSystem.getShaderColor().clone();
     private final boolean[] colorMask=new boolean[4];
     private final int boundTexture0;
-    ImperialRenderState() {
+    public ImperialRenderState() {
         try(var stack=org.lwjgl.system.MemoryStack.stackPush()) {
             var mask=stack.malloc(4);GL11.glGetBooleanv(GL11.GL_COLOR_WRITEMASK,mask);
             for(int i=0;i<4;i++)colorMask[i]=mask.get(i)!=0;

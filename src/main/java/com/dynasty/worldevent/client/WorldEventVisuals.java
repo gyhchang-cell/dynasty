@@ -95,13 +95,13 @@ public final class WorldEventVisuals {
     private static void bird(PoseStack pose,float age){
         celestialDraws++;
         var b=Tesselator.getInstance().getBuilder();var matrix=pose.last().pose();float flap=(float)Math.sin(age*.045)*3;
-        RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        try{
+        try(var state=new com.dynasty.client.ImperialRenderState()){
+            RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
             b.begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);
             triangle(b,matrix,0,0,-7,-2,0,2,2,0,2);triangle(b,matrix,-1,0,0,-27,flap,5,-7,1,7);triangle(b,matrix,1,0,0,7,1,7,27,flap,5);
             triangle(b,matrix,-1,0,2,-3,0,15,0,0,10);triangle(b,matrix,1,0,2,0,0,10,3,0,15);
             BufferUploader.drawWithShader(b.end());
-        }finally{RenderSystem.enableCull();RenderSystem.disableBlend();}
+        }
     }
     private static void triangle(BufferBuilder b,org.joml.Matrix4f matrix,float ax,float ay,float az,float bx,float by,float bz,float cx,float cy,float cz){
         b.vertex(matrix,ax,ay,az).color(1F,.77F,.16F,.68F).endVertex();b.vertex(matrix,bx,by,bz).color(1F,.77F,.16F,.68F).endVertex();b.vertex(matrix,cx,cy,cz).color(1F,.77F,.16F,.68F).endVertex();
