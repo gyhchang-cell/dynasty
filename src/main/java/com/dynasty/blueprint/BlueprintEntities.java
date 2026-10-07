@@ -83,6 +83,13 @@ public final class BlueprintEntities {
 
     public static final RegistryObject<Item> MUXUE_FEILU_EGG = egg("muxue_feilu", MUXUE_FEILU, 0x514A40, 0x702A31);
 
+    public static final RegistryObject<EntityType<TemplateMob>> BISHUI_XUANJIAO_YOUZI=mob("bishui_xuanjiao_youzi",TemplateMob.Kind.SERPENT,.7F,1.1F);
+    public static final RegistryObject<Item> BISHUI_XUANJIAO_YOUZI_EGG=egg("bishui_xuanjiao_youzi",BISHUI_XUANJIAO_YOUZI,0x285F58,0x18292C);
+    public static final RegistryObject<MobEffect> COLD_POOL_COIL=EFFECTS.register("cold_pool_coil",ColdPoolCoilEffect::new);
+
+    public static final RegistryObject<EntityType<TemplateMob>> JUBI_SHIGANDANG=mob("jubi_shigandang",TemplateMob.Kind.STONE_GUARD,1.2F,2.4F);
+    public static final RegistryObject<Item> JUBI_SHIGANDANG_EGG=egg("jubi_shigandang",JUBI_SHIGANDANG,0x646F69,0x917B42);
+
     private BlueprintEntities() { }
     private static RegistryObject<EntityType<TemplateMob>> mob(String id, TemplateMob.Kind kind, float width, float height) {
         return ENTITIES.register(id, () -> EntityType.Builder.<TemplateMob>of((type, level) -> new TemplateMob(type, level, kind), MobCategory.MONSTER)
@@ -105,6 +112,8 @@ public final class BlueprintEntities {
                 .add(Attributes.KNOCKBACK_RESISTANCE, resistance).add(Attributes.ATTACK_SPEED, 1).build();
     }
     private static void attributes(EntityAttributeCreationEvent event) {
+        event.put(JUBI_SHIGANDANG.get(),attributes(90,8,.18,9,.6));
+        event.put(BISHUI_XUANJIAO_YOUZI.get(),attributes(62,6,.32,4,.15));
         event.put(ZUWU_DAOSHOU.get(), attributes(48, 5, .25, 3, .05));
         event.put(LUDUN_JIASHI.get(), attributes(80, 7, .18, 8, .5));
         event.put(FUFA_JIJIU.get(), attributes(40, 4, .23, 1, 0));

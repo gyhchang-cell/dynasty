@@ -13,6 +13,12 @@ public final class TemplateContentDefinitions {
             int localCap, String spawnReason, String specialCondition, String despawnPolicy) {}
     private static ResourceLocation tag(String id) {return new ResourceLocation(id);}
     public static final List<Spawn> ALL = List.of(
+        new Spawn("jubi_shigandang",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/stone_guard_sites")),
+            -63,300,0,15,"ALL","ANY",1,1,1,1,"STRUCTURE_MARKER",
+            "one authored great-wall gate forecourt position; loaded solid floor only","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
+        new Spawn("bishui_xuanjiao_youzi",Level.OVERWORLD,List.of(tag("dynasty:blueprint/serpent_habitat")),List.of(),
+            -62,220,0,15,"ALL","ANY",3,1,1,2,"NATURAL_ECOLOGY",
+            "covered river/cave or mountain pool above90; two water layers; connected24 water blocks; cap2 within32","VANILLA_DISTANCE_DESPAWN"),
         new Spawn("mingsha_shixie",Level.OVERWORLD,List.of(tag("dynasty:blueprint/scorpion_habitat")),List.of(),
             50,200,0,15,"ALL","DRY",4,1,2,3,"NATURAL_ECOLOGY",
             "sand floor; surface or <=4 blocks below; dry standing space; maximum three within32","VANILLA_DISTANCE_DESPAWN"),

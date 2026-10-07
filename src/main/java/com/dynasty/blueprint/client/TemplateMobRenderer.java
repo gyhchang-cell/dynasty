@@ -24,6 +24,8 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
     }
 
     @SubscribeEvent public static void register(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(BlueprintEntities.BISHUI_XUANJIAO_YOUZI.get(),TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.JUBI_SHIGANDANG.get(),TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ZUWU_DAOSHOU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.LUDUN_JIASHI.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.FUFA_JIJIU.get(), TemplateMobRenderer::new);

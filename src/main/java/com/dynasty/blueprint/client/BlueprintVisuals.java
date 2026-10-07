@@ -113,6 +113,17 @@ public final class BlueprintVisuals {
                 budget-=deathParticles(mc,p,age,budget);
                 continue;
             }
+            if(p.key().equals("stone_slam")){
+                var d=p.direction().multiply(1,0,1).normalize();
+                var side=new Vec3(-d.z,0,d.x).scale(com.dynasty.blueprint.StoneGuardBehavior.SLAM_WIDTH*.5);
+                int count=Math.min(6,budget);budget-=count;
+                for(int i=0;i<count;i++){
+                    double u=((age/3+i/2)%6)/5.0;
+                    var at=p.origin().add(d.scale(p.range()*u)).add(side.scale(i%2==0?1:-1)).add(0,.08,0);
+                    if(age<p.windup())mc.level.addParticle(new DustParticleOptions(new Vector3f(.85F,.65F,.25F),.7F),at.x,at.y,at.z,0,0,0);
+                    else if(age<p.windup()+6)mc.level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK,Blocks.STONE.defaultBlockState()),at.x,at.y,at.z,0,.1,0);
+                }continue;
+            }
             boolean buff=p.key().contains("buff")||p.key().contains("possession");
             if(p.key().equals("powder_detonate")){
                 for(int i=0;i<2&&budget>0;i++,budget--)mc.level.addParticle(age<p.windup()?ParticleTypes.SMOKE:ParticleTypes.FLAME,
