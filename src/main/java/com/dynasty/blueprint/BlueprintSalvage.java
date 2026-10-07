@@ -14,6 +14,9 @@ import net.minecraftforge.registries.RegistryObject;
 /** Real recovered components: vanilla anvil owns inventory/XP consumption and multiplayer updates. */
 @Mod.EventBusSubscriber(modid="dynasty")
 public final class BlueprintSalvage {
+    public static final RegistryObject<Item> COLD_CONDENSED_WATER=plain("cold_condensed_water"), SUBMERGED_IRON_SCRAP=plain("submerged_iron_scrap"), WATER_GHOST_HAIR=plain("water_ghost_hair");
+    public static final RegistryObject<Item> LUMINOUS_FISH_GLUE=plain("luminous_fish_glue"), SOFT_FISH_BONE=plain("soft_fish_bone"), PURE_SPIRIT_DROP=plain("pure_spirit_drop");
+    public static final RegistryObject<Item> THIN_BAT_MEMBRANE=plain("thin_bat_membrane"), GREEN_PHOSPHOR=plain("green_phosphor"), GHOST_FACE_FLAKE=plain("ghost_face_flake");
     public static final RegistryObject<Item> KAISHAN_AXE_BLADE=register("kaishan_axe_blade",Use.IRON_AXE);
     public static final RegistryObject<Item> REFINED_WROUGHT_IRON=register("refined_wrought_iron",Use.IRON_GEAR);
     public static final RegistryObject<Item> BROKEN_HEART_MIRROR=register("broken_heart_mirror",Use.IRON_ARMOR);

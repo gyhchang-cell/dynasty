@@ -13,6 +13,15 @@ public final class TemplateContentDefinitions {
             int localCap, String spawnReason, String specialCondition, String despawnPolicy) {}
     private static ResourceLocation tag(String id) {return new ResourceLocation(id);}
     public static final List<Spawn> ALL = List.of(
+        new Spawn("shashui_funigui",Level.OVERWORLD,List.of(tag("dynasty:blueprint/drowner_habitat")),List.of(),
+            -62,220,0,7,"NIGHT_OR_COVER","ANY",3,1,2,2,"NATURAL_ECOLOGY",
+            "two water layers, swamp/river or existing underworld water biome, loaded collision-free body;cap2","VANILLA_DISTANCE_DESPAWN"),
+        new Spawn("xueju_mangguyu",Level.OVERWORLD,List.of(tag("minecraft:is_overworld")),List.of(),
+            -61,0,0,7,"ALL; DEEP_CAVE","ANY",2,1,3,3,"NATURAL_ECOLOGY",
+            "loaded dry5x5x6 deep cavity, ordinary collision; cap3 within32","VANILLA_DISTANCE_DESPAWN"),
+        new Spawn("youdeng_guimianfu",Level.OVERWORLD,List.of(tag("minecraft:is_overworld")),List.of(),
+            -61,80,0,7,"ALL; CAVE","ANY",3,1,3,3,"NATURAL_ECOLOGY",
+            "loaded dry5x5x6 cave pocket, no sky and cap3 within32; ordinary flight collision","VANILLA_DISTANCE_DESPAWN"),
         new Spawn("bazu_digongzhu",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/mining_spider_sites")),
             -63,300,0,15,"ALL","ANY",1,1,2,2,"STRUCTURE_MARKER",
             "authored ceiling pockets under mining-estate upper quarry bench; collision and loaded support required","PERSISTENT_MARKER; 10-minute cooldown after all killed"),

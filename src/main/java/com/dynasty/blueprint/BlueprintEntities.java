@@ -97,6 +97,13 @@ public final class BlueprintEntities {
     public static final RegistryObject<EntityType<TemplateMob>> BAZU_DIGONGZHU=mob("bazu_digongzhu",TemplateMob.Kind.MINING_SPIDER,2.5F,1.4F);
     public static final RegistryObject<Item> BAZU_DIGONGZHU_EGG=egg("bazu_digongzhu",BAZU_DIGONGZHU,0x927238,0x394650);
     private BlueprintEntities() { }
+    public static final RegistryObject<EntityType<TemplateMob>> YOUDENG_GUIMIANFU=mob("youdeng_guimianfu",TemplateMob.Kind.LANTERN_BAT,.85F,1.2F);
+    public static final RegistryObject<Item> YOUDENG_GUIMIANFU_EGG=egg("youdeng_guimianfu",YOUDENG_GUIMIANFU,0x332E25,0x65C67E);
+    public static final RegistryObject<EntityType<TemplateMob>> XUEJU_MANGGUYU=mob("xueju_mangguyu",TemplateMob.Kind.BLIND_FISH,1.2F,1.3F);
+    public static final RegistryObject<Item> XUEJU_MANGGUYU_EGG=egg("xueju_mangguyu",XUEJU_MANGGUYU,0xD0D1BB,0x8BE4DA);
+    public static final RegistryObject<EntityType<TemplateMob>> SHASHUI_FUNIGUI=mob("shashui_funigui",TemplateMob.Kind.DROWNER,.8F,1.9F);
+    public static final RegistryObject<Item> SHASHUI_FUNIGUI_EGG=egg("shashui_funigui",SHASHUI_FUNIGUI,0x152A30,0x5C6A63);
+    public static final RegistryObject<MobEffect> DROWNING_BIND=EFFECTS.register("drowning_bind",DrowningBindEffect::new);
     private static RegistryObject<EntityType<TemplateMob>> mob(String id, TemplateMob.Kind kind, float width, float height) {
         return ENTITIES.register(id, () -> EntityType.Builder.<TemplateMob>of((type, level) -> new TemplateMob(type, level, kind), MobCategory.MONSTER)
                 .sized(width, height).clientTrackingRange(10).updateInterval(3).build(id));
@@ -118,6 +125,11 @@ public final class BlueprintEntities {
                 .add(Attributes.KNOCKBACK_RESISTANCE, resistance).add(Attributes.ATTACK_SPEED, 1).build();
     }
     private static void attributes(EntityAttributeCreationEvent event) {
+        event.put(SHASHUI_FUNIGUI.get(),attributes(48,5,.23,3,.1));
+        event.put(XUEJU_MANGGUYU.get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,54).add(Attributes.ATTACK_DAMAGE,6)
+            .add(Attributes.MOVEMENT_SPEED,.18).add(Attributes.FLYING_SPEED,.22).add(Attributes.FOLLOW_RANGE,24).build());
+        event.put(YOUDENG_GUIMIANFU.get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,32).add(Attributes.ATTACK_DAMAGE,5)
+            .add(Attributes.MOVEMENT_SPEED,.3).add(Attributes.FLYING_SPEED,.4).add(Attributes.FOLLOW_RANGE,28).build());
         event.put(BAZU_DIGONGZHU.get(),attributes(76,7,.23,8,.5));
         event.put(QINGTONG_SHUANGTOUSHEKUI.get(),attributes(60,6,.24,8,.3));
         event.put(XUNSHAN_MUJIAQUAN.get(),attributes(38,5,.31,5,.15));

@@ -39,6 +39,15 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> SPIDERS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/mining_spider_sites"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
+        event.register(BlueprintEntities.SHASHUI_FUNIGUI.get(),SpawnPlacements.Type.NO_RESTRICTIONS,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
+                reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||drownerHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
+        event.register(BlueprintEntities.XUEJU_MANGGUYU.get(),SpawnPlacements.Type.NO_RESTRICTIONS,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
+                reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||fishHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
+        event.register(BlueprintEntities.YOUDENG_GUIMIANFU.get(),SpawnPlacements.Type.NO_RESTRICTIONS,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
+                reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||batHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
         event.register(BlueprintEntities.BISHUI_XUANJIAO_YOUZI.get(),SpawnPlacements.Type.NO_RESTRICTIONS,
             Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
                 reason==MobSpawnType.SPAWN_EGG||reason==MobSpawnType.COMMAND||serpentHabitat(level.getLevel(),pos),SpawnPlacementRegisterEvent.Operation.REPLACE);
@@ -69,6 +78,29 @@ public final class BlueprintSpawns {
                     && com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
                     && server.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(24),e->e.getType()==type).size()<3;
             },SpawnPlacementRegisterEvent.Operation.REPLACE);
+    }
+    static boolean drownerHabitat(ServerLevel level,BlockPos pos){
+        boolean dimension=level.dimension()==Level.OVERWORLD||level.dimension().location().toString().equals("dynasty:underworld");
+        return dimension&&level.getDifficulty()!=net.minecraft.world.Difficulty.PEACEFUL&&level.hasChunkAt(pos)
+            &&level.getMaxLocalRawBrightness(pos)<=7&&level.getBiome(pos).is(TagKey.create(Registries.BIOME,new ResourceLocation("dynasty","blueprint/drowner_habitat")))
+            &&DrownerBehavior.deepWater(level,pos)&&level.noCollision(null,BlueprintEntities.SHASHUI_FUNIGUI.get().getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
+            &&level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),m->m.isAlive()&&m.kind()==TemplateMob.Kind.DROWNER).size()<2;
+    }
+    static boolean fishHabitat(ServerLevel level,BlockPos pos){
+        if(pos.getY()>0||!cavePocket(level,pos))return false;
+        return level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),m->m.isAlive()&&m.kind()==TemplateMob.Kind.BLIND_FISH).size()<3;
+    }
+    /** A loaded five-by-five, six-block-tall dry cave pocket; no chunk generation during spawn checks. */
+    static boolean batHabitat(ServerLevel level,BlockPos pos){
+        return cavePocket(level,pos)&&level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),m->m.isAlive()&&m.kind()==TemplateMob.Kind.LANTERN_BAT).size()<3;
+    }
+    static boolean cavePocket(ServerLevel level,BlockPos pos){
+        if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+            ||pos.getY()<level.getMinBuildHeight()+3||pos.getY()>80||!level.hasChunkAt(pos)||level.canSeeSky(pos)
+            ||level.getMaxLocalRawBrightness(pos)>7)return false;
+        for(int x=-2;x<=2;x++)for(int z=-2;z<=2;z++)for(int y=-1;y<=4;y++){
+            var p=pos.offset(x,y,z);if(!level.hasChunkAt(p)||!level.getFluidState(p).isEmpty()||!level.getBlockState(p).getCollisionShape(level,p).isEmpty())return false;
+        }return true;
     }
     /** Deep connected water only: river caves and mountain pools, never a lone puddle. */
     static boolean serpentHabitat(ServerLevel level,BlockPos pos){

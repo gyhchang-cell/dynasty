@@ -3,12 +3,12 @@
 输入：用户上传 cod1_new(5).txt，与仓库 cod1_new.txt 逐字节相同。
 代码基线：main 6feb7f140bfb0884d34f8b1d4e9e0f3732efa053。交付分支：cod1。
 原 cod1 6df2048 是 main 的祖先，本次快进接入 main 已有成果，保留强化系统及最新完整 FTB 导出。
-本次续作新增第21～23只巡山木甲犬、青铜双头蛇傀和八足地工蛛的运行代码、模型动画、生成、掉落与测试。全部 cod1 任务仍未完成。
+本次续作新增第24～26只幽灯鬼面蝠、穴居盲骨鱼和煞水浮溺鬼的运行代码、模型动画、生成、掉落与测试。全部 cod1 任务仍未完成。
 
 ## 当前状态
 
-**0 DONE / 23 PARTIAL / 71 NOT_STARTED。** 23只基础怪有运行代码和资源，但最新构建的单机、双人及性能验收待完成。
-待开发7基础怪、15精英、12Boss、25神器、12神影；下一内容条目是第24只幽灯鬼面蝠。
+**0 DONE / 26 PARTIAL / 68 NOT_STARTED。** 26只基础怪有运行代码和资源，但最新构建的单机、双人及性能验收待完成。
+待开发4基础怪、15精英、12Boss、25神器、12神影；下一内容条目是第27只巨力赑屃傀儡。
 DungeonDefinition 中的 pilin_zhijinwu/juchui_jinjia_lishi 是设计引用，不是实体注册，不因此标已实现。相似旧实体、Boss和装备也不替代蓝图精确条目。镇渊帝君保持最终Boss。
 
 ## 验收边界
@@ -18,7 +18,7 @@ ImperialWeaponRenderer / ImperialRenderState 已有渲染阶段分离、状态�
 ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试记录保留，不重复重写。
 仓库272/272及已有客户端截图是历史证据，不算本次重新运行通过。当前环境验证结果见本文末尾。
 
-## 已实现但待验收的23项
+## 已实现但待验收的26项
 
 实现类均在 src/main/java/com/dynasty/blueprint：BlueprintEntities + TemplateMob；技能在 TemplateSkills 或 ArmySkills/ArmyBehaviors。
 生成：TemplateContentDefinitions、BlueprintSpawns及结构/生态数据。资源前缀为 src/main/resources/assets/dynasty。
@@ -52,15 +52,16 @@ ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试�
 | 青铜双头蛇傀 / `qingtong_shuangtoushekui` | `geo/blueprint/qingtong_shuangtoushekui.geo.json`；同名 animation | 原生图集，见TemplateMobModel | BronzeSnakeBehavior；前后头攻击、有限喷火毒雾、共享冷却、铁栏攀爬、天工城落点；3种功能掉落 | 未验收 | 未验收 | 未测 |
 | 八足地工蛛 / `bazu_digongzhu` | `geo/blueprint/bazu_digongzhu.geo.json`；同名 animation | 原生图集，见TemplateMobModel | MiningSpiderBehavior；真实顶棚支撑与爬行、预警落地单次冲击、矿场落点；3种功能掉落 | 未验收 | 未验收 | 未测 |
 
-## 剩余71项
+| 幽灯鬼面蝠 / `youdeng_guimianfu` | `geo/blueprint/youdeng_guimianfu.geo.json`；同名 animation | 原生图集，见TemplateMobModel | LanternBatBehavior；有碰撞盘旋/锁向俯冲/掠过/回升，有限绿色眩光，朝向与视线检查；生态及3种功能掉落 | 未验收 | 未验收 | 未测 |
+| 穴居盲骨鱼 / `xueju_mangguyu` | `geo/blueprint/xueju_mangguyu.geo.json`；同名 animation | 原生图集，见TemplateMobModel | BlindFishBehavior；缓慢浮游、甩尾、3个定点有限灵涡，读档保留绝对过期；生态及3种功能掉落 | 未验收 | 未验收 | 未测 |
+| 煞水浮溺鬼 / `shashui_funigui` | `geo/blueprint/shashui_funigui.geo.json`；同名 animation | 原生图集，见TemplateMobModel | DrownerBehavior；深水水鞭、同实体扁平化水、短时水中束足、横向逃脱与复原；生态及3种功能掉落 | 未验收 | 未验收 | 未测 |
+
+## 剩余68项
 
 以下条目未见对应的完整运行实现。实现类、geo、animation、texture、技能、运行落点和奖励接口待实施；单机、双人、性能均待验收。
 
 | 类别 | 编号 | 名称 | 拟定ID | 状态 |
 | --- | --- | --- | --- | --- |
-| BASIC | 24 | 幽灯鬼面蝠 | `dynasty:youdeng_guimianfu` | NOT_STARTED |
-| BASIC | 25 | 穴居盲骨鱼 | `dynasty:xueju_mangguyu` | NOT_STARTED |
-| BASIC | 26 | 煞水浮溺鬼 | `dynasty:shashui_funigui` | NOT_STARTED |
 | BASIC | 27 | 巨力赑屃傀儡 | `dynasty:juli_bixi_kuilei` | NOT_STARTED |
 | BASIC | 28 | 百目魔蜈 | `dynasty:baimu_mowu` | NOT_STARTED |
 | BASIC | 29 | 铜臂飞天夜叉 | `dynasty:tongbi_feitian_yecha` | NOT_STARTED |
@@ -155,3 +156,12 @@ ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试�
 - 三者各自拥有模型、动画、3种功能掉落与现有击杀进度。天工城与矿场使用原遭遇预算及持久化，四种结构旋转和重载落点均有测试；矿场工作间补可步行入口。
 - 最新 `dynasty_army` **134/134** GameTest、`build` 通过。[日志](evidence/mechanical-21-23-134.txt)。NoAI测试实体不能验证真实移动，落地与攀爬回归已使用实际AI/物理；未削弱伤害、范围或墙体断言。
 - 图形客户端、双人和性能未验收，维持23 PARTIAL /71 NOT_STARTED。静态 content-definitions.json 是旧目录快照，当前数量以本文与运行源码为准。
+
+## 第24～26项洞穴与水域续作
+
+- 幽灯鬼面蝠：18骨骼、38块体、7动画，双翼各4骨针、独立灯笼；18刻锁定预警、俯冲一次接触、掠过不追踪、恢复升空；绿色眩光最多60刻，检查距离/朝向/墙体，无黑屏、相机或输入锁。主世界有顶干燥5×5×6洞穴，1～3只、32格内上限3。
+- 穴居盲骨鱼：28骨骼、27块体、7动画，8段脊柱与独立鱼鳍、半透明及死亡淡出；有碰撞浮游、甩尾、3个固定灵涡最多60刻，单目标重叠不叠加拉力，阻墙、死亡及读档到期清理；主世界Y≤0深层空腔生态。
+- 煞水浮溺鬼：23骨骼、25块体、7动画，三段流体身躯、分节水鞭及发丝；两层深水、水下呼吸、原版出生阻挡检查；同实体转为3.8×0.3扁平碰撞箱，技能期间减速与抑制向上游动，横向游出即可逃脱。沼泽/河流与阴司已有soul_river生态，未新增维度。
+- 9种新掉落提供原版或已有材料加工配方；原强化材料与FTB导出保留。沿用现有击杀进度，未重排任务树。
+- 最新 `dynasty_army` 149/149 与构建通过，日志：`evidence/cave-24-26-149.txt`。客户端单机、双人、表现与性能待验收。
+- content-definitions.json / world-placement.tsv 已按26个实际注册实体、运行落点、资源及掉落同步；旧静态路径与状态不再用于判断当前数量。当前0 DONE /26 PARTIAL /68 NOT_STARTED，全部任务仍未完成。

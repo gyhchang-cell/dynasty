@@ -19,7 +19,16 @@ public final class ArmySkills {
     public static final int DOG_BITE=44,DOG_ALARM=45;
     public static final int BRONZE_FRONT_STAB=46,BRONZE_REAR_STAB=47,BRONZE_FIRE=48,BRONZE_POISON=49;
     public static final int SPIDER_DRILL=50,SPIDER_DROP=51;
+    public static final int DROWNER_WHIP=56,DROWNER_POOL=57;
+    public static final int FISH_TAIL=54,FISH_RESONANCE=55;
+    public static final int BAT_DIVE=52,BAT_GLARE=53;
     public static final List<SkillDefinition> ALL=List.of(
+        skill(DROWNER_WHIP,"drowner_whip",14,1,21,40,0,3.5,65,1,.1,true,14),
+        skill(DROWNER_POOL,"drowner_pool",24,60,20,220,0,5,360,0,0,true,24),
+        skill(FISH_TAIL,"fish_tail",16,1,23,45,0,3.5,150,1,.4,true,16),
+        skill(FISH_RESONANCE,"fish_resonance",30,1,29,220,0,10,360,0,0,true,30),
+        skill(BAT_DIVE,"bat_dive",18,22,20,90,0,14,45,1,0,true,18),
+        skill(BAT_GLARE,"bat_glare",24,1,25,240,0,10,360,0,0,true,24),
         skill(SPIDER_DRILL,"spider_drill",12,1,23,42,0,2.8,100,1,.3,true,12),
         skill(SPIDER_DROP,"spider_drop",20,60,20,160,0,8,360,1.4F,.6,true,20),
         skill(BRONZE_FRONT_STAB,"bronze_front_stab",10,1,15,32,0,2.6,50,1,.2,true,10),

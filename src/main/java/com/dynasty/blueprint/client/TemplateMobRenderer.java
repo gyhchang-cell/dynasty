@@ -28,6 +28,9 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
         event.registerEntityRenderer(BlueprintEntities.JUBI_SHIGANDANG.get(),TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.XUNSHAN_MUJIAQUAN.get(),TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.QINGTONG_SHUANGTOUSHEKUI.get(),TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.SHASHUI_FUNIGUI.get(),TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.XUEJU_MANGGUYU.get(),TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.YOUDENG_GUIMIANFU.get(),TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.BAZU_DIGONGZHU.get(),TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ZUWU_DAOSHOU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.LUDUN_JIASHI.get(), TemplateMobRenderer::new);
@@ -97,11 +100,13 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
             net.minecraft.client.renderer.RenderType type,MultiBufferSource buffers,com.mojang.blaze3d.vertex.VertexConsumer sink,
             boolean rerender,float partial,int light,int overlay,float red,float green,float blue,float alpha) {
         boolean vein=mob.kind()==TemplateMob.Kind.CORPSE&&bone.getName().startsWith("vein_");
-        super.renderRecursively(pose,mob,bone,type,buffers,sink,rerender,partial,vein||mob.kind()==TemplateMob.Kind.TREE&&bone.getName().startsWith("fungus_")||mob.kind()==TemplateMob.Kind.TOAD&&(bone.getName().startsWith("venom_gland_")||bone.getName().startsWith("eye_"))||mob.kind()==TemplateMob.Kind.CHILD&&bone.getName().equals("lantern_flame")?15728880:light,overlay,
+        super.renderRecursively(pose,mob,bone,type,buffers,sink,rerender,partial,vein||mob.kind()==TemplateMob.Kind.BLIND_FISH&&(bone.getName().startsWith("dorsal_")||bone.getName().startsWith("ribbon_"))||mob.kind()==TemplateMob.Kind.LANTERN_BAT&&bone.getName().equals("flame")||mob.kind()==TemplateMob.Kind.TREE&&bone.getName().startsWith("fungus_")||mob.kind()==TemplateMob.Kind.TOAD&&(bone.getName().startsWith("venom_gland_")||bone.getName().startsWith("eye_"))||mob.kind()==TemplateMob.Kind.CHILD&&bone.getName().equals("lantern_flame")?15728880:light,overlay,
             vein?.75F:red,vein?.25F:green,vein?1F:blue,alpha);
     }
 
     @Override public Color getRenderColor(TemplateMob mob, float partialTick, int light) {
+        if(mob.kind()==TemplateMob.Kind.DROWNER)return Color.ofRGBA(.32F,.46F,.49F,.65F);
+        if(mob.kind()==TemplateMob.Kind.BLIND_FISH)return Color.ofRGBA(1F,1F,.95F,mob.isDeadOrDying()?Math.max(0,.72F*(1-mob.actionAge(partialTick)/44F)):.72F);
         if (mob.kind() == TemplateMob.Kind.GHOST) return Color.ofRGBA(.55F,.85F,1F,mob.isPhased()?.18F:.65F);
         if (mob.kind() == TemplateMob.Kind.BEAST && mob.isDeadOrDying()) {
             // The native blue-green fur loses its cool hue toward dry charcoal as it curls.
@@ -115,7 +120,7 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
 
     @Override public net.minecraft.client.renderer.RenderType getRenderType(TemplateMob mob,
             net.minecraft.resources.ResourceLocation texture,MultiBufferSource buffers,float partialTick){
-        return mob.kind()==TemplateMob.Kind.GHOST?net.minecraft.client.renderer.RenderType.entityTranslucent(texture)
+        return (mob.kind()==TemplateMob.Kind.GHOST||mob.kind()==TemplateMob.Kind.BLIND_FISH||mob.kind()==TemplateMob.Kind.DROWNER)?net.minecraft.client.renderer.RenderType.entityTranslucent(texture)
             :super.getRenderType(mob,texture,buffers,partialTick);
     }
 

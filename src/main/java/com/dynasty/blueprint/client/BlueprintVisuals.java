@@ -37,11 +37,12 @@ public final class BlueprintVisuals {
         var mc=Minecraft.getInstance();if(mc.player==null||!mc.player.isAlive()||mc.options.hideGui)return;
         var effect=mc.player.getEffect(BlueprintEntities.LANTERN_GLARE.get());if(effect==null)return;
         int width=mc.getWindow().getGuiScaledWidth(),height=mc.getWindow().getGuiScaledHeight();
+        int color=effect.getAmplifier()>0?0x62D994:0xFFF9E6;
         int alpha=Math.min(48,Math.max(0,effect.getDuration())*3);var gui=event.getGuiGraphics();
         // Under25% combined opacity around the edges, under5% over the centre; expires with native effect sync.
-        gui.fill(0,0,width,height,((alpha/4)<<24)|0xFFF9E6);
-        gui.fillGradient(0,0,width,height/4,(alpha<<24)|0xFFF9E6,0x00FFF9E6);
-        gui.fillGradient(0,height*3/4,width,height,0x00FFF9E6,(alpha<<24)|0xFFF9E6);
+        gui.fill(0,0,width,height,((alpha/4)<<24)|color);
+        gui.fillGradient(0,0,width,height/4,(alpha<<24)|color,color);
+        gui.fillGradient(0,height*3/4,width,height,color,(alpha<<24)|color);
     }
     private BlueprintVisuals() {}
     public static void accept(BlueprintVisualEvent p) {
