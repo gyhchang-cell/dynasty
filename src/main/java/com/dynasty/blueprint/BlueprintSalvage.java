@@ -74,6 +74,12 @@ public final class BlueprintSalvage {
             lines.add(Component.translatable("tooltip.dynasty.glowing_parasite_mushroom").withStyle(ChatFormatting.GRAY));
         }
     });
+    public static final RegistryObject<Item> YOUNG_JIAO_SCALE=register("young_jiao_scale",Use.LEATHER_ARMOR);
+    public static final RegistryObject<Item> COLD_POOL_ESSENCE=BlueprintEntities.ITEMS.register("cold_pool_essence",BreathSac::new);
+    public static final RegistryObject<Item> SLIPPERY_JIAO_GALL=BlueprintEntities.ITEMS.register("slippery_jiao_gall",Antidote::new);
+    public static final RegistryObject<Item> WARDING_INSCRIPTION_SHARD=register("warding_inscription_shard",Use.SHIELD);
+    public static final RegistryObject<Item> ANCIENT_BRONZE_CHAIN_RING=register("ancient_bronze_chain_ring",Use.CHAINMAIL);
+    public static final RegistryObject<Item> HARD_BLUESTONE=plain("hard_bluestone");
     private static final class BreathSac extends Item {
         BreathSac(){super(new Properties().food(new net.minecraft.world.food.FoodProperties.Builder().nutrition(0).saturationMod(0).alwaysEat().build()));}
         @Override public ItemStack finishUsingItem(ItemStack stack,Level level,net.minecraft.world.entity.LivingEntity user){

@@ -18,7 +18,7 @@ import java.util.UUID;
 public final class DungeonMechanismBlockEntity extends BlockEntity {
     private UUID instance;
     private String roomId="probe",mechanismId="";
-    private BlockPos controller=BlockPos.ZERO,areaMin,areaMax,destination;
+    private BlockPos controller=BlockPos.ZERO,areaMin,areaMax,destination,environmentOrigin,encounterOrigin;
     private int symbol=-1,requiredTargets=63;
     private boolean timedTrial;
     private final List<BlockPos> markers=new ArrayList<>();
@@ -28,8 +28,19 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
     public DungeonMechanismBlockEntity(BlockPos pos,BlockState state){super(DungeonContent.MECHANISM.get(),pos,state);}
     public void configure(UUID instance,String room,String mechanism,BlockPos core,int symbol,List<BlockPos> markerPositions){
         this.instance=instance;roomId=room;mechanismId=mechanism;controller=core.immutable();this.symbol=symbol>=0&&symbol<=5?symbol:-1;
+        environmentOrigin=null;encounterOrigin=null;
         markers.clear();markers.addAll(markerPositions.stream().filter(p->p.closerThan(core,128)).distinct().limit(64).toList());
         registered=false;setChanged();
+    }
+    public void configureEnvironment(BlockPos origin) {
+        environmentOrigin=kind()==DungeonMechanismBlock.Kind.CORE&&ChenshaEnvironment.validCore(roomId,worldPosition,origin)?origin.immutable():null;
+        setChanged();
+    }
+    public void configureEncounter(BlockPos origin){
+        encounterOrigin=validBinding()&&(kind()==DungeonMechanismBlock.Kind.CORE||kind()==DungeonMechanismBlock.Kind.COFFIN)
+            &&DungeonEncounters.validChenshaBinding(roomId,worldPosition,origin,kind()==DungeonMechanismBlock.Kind.COFFIN)
+            &&controller.equals(origin.offset(ChenshaPiece.core("imperial_vault")))?origin.immutable():null;
+        setChanged();
     }
     public void configureRoom(int targets,boolean timed,BlockPos min,BlockPos max){
         requiredTargets=targets&63;timedTrial=timed;
@@ -49,7 +60,11 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
     public void interact(Player player){
         if(level==null||level.isClientSide||player.isSpectator()||player.distanceToSqr(Vec3.atCenterOf(worldPosition))>36)return;
         var state=room();if(state==null)return;
-        if(kind()==DungeonMechanismBlock.Kind.SEAL){if(state.recordTarget(symbol)){changed();syncVisual(state);}}
+        if(kind()==DungeonMechanismBlock.Kind.COFFIN&&level instanceof ServerLevel sl
+                &&player instanceof net.minecraft.server.level.ServerPlayer serverPlayer&&encounterOrigin!=null){
+            var result=DungeonEncounters.claimChensha(sl,instance,encounterOrigin,serverPlayer);
+            player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.dungeon.coffin."+result.name().toLowerCase(java.util.Locale.ROOT)),true);
+        }else if(kind()==DungeonMechanismBlock.Kind.SEAL){if(state.recordTarget(symbol)){changed();syncVisual(state);}}
         else if(kind()==DungeonMechanismBlock.Kind.SHORTCUT){
             if(!player.getMainHandItem().is(net.minecraft.tags.ItemTags.PICKAXES)){
                 player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.dungeon.stele_pickaxe"),true);return;
@@ -110,6 +125,10 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
                     new AABB(worldPosition).deflate(.001),e->e.isAlive()&&!e.isSpectator()).isEmpty())open=true;
         boolean active=solved||phase==DungeonMechanism.Phase.WARNING||phase==DungeonMechanism.Phase.ACTIVE
             ||kind()==DungeonMechanismBlock.Kind.DOOR&&room.completed()||kind()==DungeonMechanismBlock.Kind.ELEVATOR&&room.shortcutOpen(mechanismId);
+        if(kind()==DungeonMechanismBlock.Kind.COFFIN&&encounterOrigin!=null&&level instanceof ServerLevel sl){
+            var encounter=DungeonStateStore.get(sl).encounter(instance,DungeonDefinition.CHENSHA.id().toString(),false);
+            open=active=encounter!=null&&encounter.phase()==DungeonEncounterState.Phase.DEFEATED;
+        }
         var next=old.setValue(DungeonMechanismBlock.ACTIVE,active).setValue(DungeonMechanismBlock.OPEN,open).setValue(DungeonMechanismBlock.STAGE,phase.ordinal());
         int ticks=hazard()?clock(room).ticks():0,duration=hazard()?clock(room).duration():1;
         boolean snapshot=visualPhase!=phase.ordinal()||doorTicks!=room.openingTicks()
@@ -132,6 +151,8 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         boolean nearby=sl.players().stream().anyMatch(p->!p.isSpectator()&&p.distanceToSqr(Vec3.atCenterOf(pos))<96*96);
         boolean changed=room.tickRoom(time,nearby);
         if(!nearby){room.pause(time);room.pauseHazards(time);if(changed)be.changed();return;}
+        if(be.environmentOrigin!=null)changed|=ChenshaEnvironment.tick(sl,be.environmentOrigin,be.roomId,room,time);
+        if(be.encounterOrigin!=null&&time%20==0)DungeonEncounters.tickChensha(sl,be.instance,be.encounterOrigin);
         var loaded=new ArrayList<DungeonMechanismBlockEntity>();
         for(BlockPos marker:be.markers)if(sl.hasChunkAt(marker)&&sl.getBlockEntity(marker) instanceof DungeonMechanismBlockEntity part
                 &&be.instance.equals(part.instance)&&be.roomId.equals(part.roomId))loaded.add(part);
@@ -140,10 +161,18 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
             var clock=part.clock(room);boolean local=loaded.stream().filter(p->p.hazard()&&p.mechanismId.equals(part.mechanismId))
                 .anyMatch(p->sl.players().stream().anyMatch(player->!player.isSpectator()&&player.distanceToSqr(Vec3.atCenterOf(p.worldPosition))<24*24));
             if(!local){clock.pause(time);continue;}
+            var profile=DungeonTrapProfile.forId(part.mechanismId);
+            if(profile!=null&&profile.periodic&&clock.phase()==DungeonMechanism.Phase.IDLE)clock.trigger(time);
             var before=clock.phase();int beforeTicks=clock.ticks();clock.tickActive(time);
             changed|=before!=clock.phase()||beforeTicks!=clock.ticks();
             boolean contact=clock.consumeContact();
             if(contact)for(var emitter:loaded)if(emitter.kind()==DungeonMechanismBlock.Kind.TRAP&&emitter.mechanismId.equals(part.mechanismId))emitter.damageTrap(sl);
+            if(profile!=null&&clock.phase()==DungeonMechanism.Phase.ACTIVE)for(var emitter:loaded)
+                if(emitter.kind()==DungeonMechanismBlock.Kind.TRAP&&emitter.mechanismId.equals(part.mechanismId))DungeonTrapEffects.continuous(sl,emitter,profile);
+            if(contact&&profile==DungeonTrapProfile.MINE){int budget=3;
+                for(var other:loaded)if(budget>0&&other!=part&&DungeonTrapProfile.forId(other.mechanismId)==DungeonTrapProfile.MINE
+                    &&other.worldPosition.distSqr(part.worldPosition)<=16&&other.clock(room).phase()==DungeonMechanism.Phase.IDLE){other.trigger();budget--;}
+            }
         }
         if(be.timedTrial&&be.areaMin!=null){
             var area=new AABB(be.areaMin,be.areaMax.offset(1,1,1));
@@ -163,6 +192,7 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         if(changed)be.changed();
     }
     private void damageTrap(ServerLevel sl){
+        var profile=DungeonTrapProfile.forId(mechanismId);if(profile!=null){DungeonTrapEffects.contact(sl,this,profile);return;}
         var facing=getBlockState().getValue(DungeonMechanismBlock.FACING);
         Vec3 center=Vec3.atCenterOf(worldPosition).add(-facing.getStepX()*.45,.75,-facing.getStepZ()*.45);
         if(sl.getEntitiesOfClass(DungeonTrapArrow.class,new AABB(worldPosition).inflate(24)).size()>=12)return;
@@ -181,6 +211,8 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         tag.putInt("RequiredTargets",requiredTargets);tag.putBoolean("TimedTrial",timedTrial);
         if(areaMin!=null){tag.putLong("AreaMin",areaMin.asLong());tag.putLong("AreaMax",areaMax.asLong());}
         if(destination!=null)tag.putLong("Destination",destination.asLong());
+        if(environmentOrigin!=null)tag.putLong("EnvironmentOrigin",environmentOrigin.asLong());
+        if(encounterOrigin!=null)tag.putLong("EncounterOrigin",encounterOrigin.asLong());
         tag.putInt("VisualPhase",visualPhase);tag.putInt("VisualTicks",visualTicks);tag.putInt("VisualDuration",visualDuration);
         tag.putInt("DoorTicks",doorTicks);tag.putLong("VisualTime",visualTime);
     }
@@ -194,9 +226,16 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         if(areaMin==null||areaMax==null||!areaMin.closerThan(controller,128)||!areaMax.closerThan(controller,128)){areaMin=null;areaMax=null;}
         destination=tag.contains("Destination")?BlockPos.of(tag.getLong("Destination")):null;
         if(destination!=null&&!destination.closerThan(worldPosition,128))destination=null;
+        environmentOrigin=tag.contains("EnvironmentOrigin")?BlockPos.of(tag.getLong("EnvironmentOrigin")):null;
+        if(environmentOrigin!=null&&(kind()!=DungeonMechanismBlock.Kind.CORE||!ChenshaEnvironment.validCore(roomId,worldPosition,environmentOrigin)))environmentOrigin=null;
+        encounterOrigin=tag.contains("EncounterOrigin")?BlockPos.of(tag.getLong("EncounterOrigin")):null;
+        if(encounterOrigin!=null&&(!validBinding()||(kind()!=DungeonMechanismBlock.Kind.CORE&&kind()!=DungeonMechanismBlock.Kind.COFFIN)
+            ||!DungeonEncounters.validChenshaBinding(roomId,worldPosition,encounterOrigin,kind()==DungeonMechanismBlock.Kind.COFFIN)
+            ||!controller.equals(encounterOrigin.offset(ChenshaPiece.core("imperial_vault")))))encounterOrigin=null;
         visualPhase=Math.max(0,Math.min(3,tag.getInt("VisualPhase")));visualTicks=Math.max(0,tag.getInt("VisualTicks"));
         visualDuration=Math.max(1,tag.getInt("VisualDuration"));doorTicks=Math.max(0,Math.min(12,tag.getInt("DoorTicks")));visualTime=tag.getLong("VisualTime");registered=false;
     }
     @Override public CompoundTag getUpdateTag(){return saveWithoutMetadata();}
+    @Override public AABB getRenderBoundingBox(){return DungeonTrapProfile.forId(mechanismId)==DungeonTrapProfile.CRUSHER?new AABB(worldPosition).expandTowards(0,4,0):super.getRenderBoundingBox();}
     @Override public ClientboundBlockEntityDataPacket getUpdatePacket(){return ClientboundBlockEntityDataPacket.create(this);}
 }

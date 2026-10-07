@@ -33,15 +33,23 @@ public final class DungeonContent {
     public static final RegistryObject<Block> DOOR=mechanism("seal_door",DungeonMechanismBlock.Kind.DOOR);
     public static final RegistryObject<Block> FLOOR=mechanism("resettable_floor",DungeonMechanismBlock.Kind.FLOOR);
     public static final RegistryObject<Block> TRAP=mechanism("pressure_trap_emitter",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> CRUSHER=mechanism("dungeon_crusher",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> CONVEYOR=mechanism("dungeon_conveyor",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> STEAM=mechanism("dungeon_steam_nozzle",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> MINE=mechanism("dungeon_buried_mine",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> ARROW_RAIN=mechanism("dungeon_arrow_rain_controller",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> WIND_FIELD=mechanism("dungeon_wind_field",DungeonMechanismBlock.Kind.TRAP);
     public static final RegistryObject<Block> ELEVATOR=mechanism("dungeon_elevator_controller",DungeonMechanismBlock.Kind.ELEVATOR);
     public static final RegistryObject<Block> SHORTCUT_STELE=mechanism("dungeon_shortcut_stele",DungeonMechanismBlock.Kind.SHORTCUT);
+    public static final RegistryObject<Block> COFFIN=mechanism("dungeon_imperial_coffin",DungeonMechanismBlock.Kind.COFFIN);
     public static final RegistryObject<Block> MASONRY=BLOCKS.register("dungeon_masonry",()->new Block(BlockBehaviour.Properties.of()
         .strength(-1F,3600000F).noLootTable()){
             @Override public net.minecraft.world.level.material.PushReaction getPistonPushReaction(net.minecraft.world.level.block.state.BlockState state){return net.minecraft.world.level.material.PushReaction.BLOCK;}
         });
     public static final RegistryObject<BlockEntityType<DungeonMechanismBlockEntity>> MECHANISM=ENTITIES.register("dungeon_mechanism",
         ()->BlockEntityType.Builder.of(DungeonMechanismBlockEntity::new,
-            CORE.get(),SEAL.get(),EYE.get(),DOOR.get(),FLOOR.get(),TRAP.get(),ELEVATOR.get(),SHORTCUT_STELE.get()).build(null));
+            CORE.get(),SEAL.get(),EYE.get(),DOOR.get(),FLOOR.get(),TRAP.get(),ELEVATOR.get(),SHORTCUT_STELE.get(),COFFIN.get(),
+            CRUSHER.get(),CONVEYOR.get(),STEAM.get(),MINE.get(),ARROW_RAIN.get(),WIND_FIELD.get()).build(null));
     public static final RegistryObject<StructureType<DungeonProbeStructure>> PROBE=STRUCTURES.register("dungeon_probe",()->()->DungeonProbeStructure.CODEC);
     public static final RegistryObject<StructurePieceType> PROBE_PIECE=PIECES.register("dungeon_probe_piece",()->DungeonProbePiece::new);
     public static final RegistryObject<StructureType<ChenshaStructure>> CHENSHA=STRUCTURES.register("chensha_xuangong",()->()->ChenshaStructure.CODEC);

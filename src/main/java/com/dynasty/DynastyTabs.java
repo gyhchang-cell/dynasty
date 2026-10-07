@@ -35,6 +35,7 @@ public class DynastyTabs {
                     }
                 }
                 // 方块 / blocks
+                for(var item:com.dynasty.worldevent.WorldEventItems.ITEMS.getEntries())output.accept(item.get());
                 output.accept(com.dynasty.infusion.InfusionContent.TABLE_ITEM.get());
                 output.accept(DynastyBlocks.JADE_ORE.get());
                 output.accept(DynastyBlocks.DEEPSLATE_JADE_ORE.get());

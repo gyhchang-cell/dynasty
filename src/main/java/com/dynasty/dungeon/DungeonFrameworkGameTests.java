@@ -48,7 +48,7 @@ public final class DungeonFrameworkGameTests {
 
     @GameTest(template="bow_ritual_test",batch="cod2_garrison",timeoutTicks=100)
     public static void tombGarrisonUsesExistingLedgerAndCannotRefillAfterUnload(GameTestHelper h) {
-        var level=h.getLevel();var origin=h.absolutePos(new BlockPos(0,80,0));var id=UUID.randomUUID();
+        var level=h.getLevel();var origin=h.absolutePos(new BlockPos(3072,80,2048));var id=UUID.randomUUID();
         var core=origin.offset(27,48,37);var entrant=origin.offset(32,49,64);
         boolean previous=level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING);
         var spawned=new java.util.ArrayList<net.minecraft.world.entity.Entity>();
@@ -59,8 +59,13 @@ public final class DungeonFrameworkGameTests {
         }
         // Fixture-only tickets: entity sections must become visible before UUID lookup.
         // Production merely visits already-loaded markers near real players.
-        h.runAfterDelay(20,()->{
-        try {
+        var state=com.dynasty.blueprint.BlueprintSpawnState.get(level);String key="chensha@"+id+":shendao";
+        h.startSequence().thenIdle(20).thenWaitUntil(()->{
+            for(var chunk:forced){
+                var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
+                h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Fixture chunks must expose entity sections before spawning");
+            }
+        }).thenExecute(()->{
             level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
             level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());
             ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(id,"shendao","core",core,-1,java.util.List.of());
@@ -69,17 +74,28 @@ public final class DungeonFrameworkGameTests {
                 for(int dy=49;dy<=52;dy++)level.setBlockAndUpdate(origin.offset(x+dx,dy,z+dz),Blocks.AIR.defaultBlockState());
             }
             h.assertTrue(!com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,origin.offset(32,25,64)),"Lower caves cannot trigger the upper gallery garrison");
-            var state=com.dynasty.blueprint.BlueprintSpawnState.get(level);String key="chensha@"+id+":shendao";
+            // Keep this ledger fixture stationary while asynchronous entity sections publish.
+            // Autonomous navigation/falling on the tiny temporary pads belongs to cod1 AI tests.
+            java.util.function.Consumer<net.minecraftforge.event.entity.EntityJoinLevelEvent> hold=e->{
+                if(e.getLevel()==level&&e.getEntity() instanceof com.dynasty.blueprint.TemplateMob mob
+                    &&mob.getY()==origin.getY()+49&&(mob.getBlockX()==origin.getX()+10||mob.getBlockX()==origin.getX()+52)
+                    &&(mob.getBlockZ()==origin.getZ()+50||mob.getBlockZ()==origin.getZ()+78))mob.setNoAi(true);
+            };
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.addListener(hold);
+            try{
             for(int n=0;n<4;n++) {
                 if(n>0)state.markers.get(key).nextSpawn=level.getGameTime();
                 h.assertTrue(com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,entrant),"Authored garrison member "+n+" must actually spawn; origin="+origin+" difficulty="+level.getDifficulty()+" coreLoaded="+level.hasChunkAt(core));
                 var marker=state.markers.get(key);
                 h.assertTrue(!com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,entrant),"Nearby players cannot bypass the spawn interval");
-                for(var uuid:marker.members) {
-                    var mob=level.getEntity(uuid);
-                    if(mob!=null&&!spawned.contains(mob))spawned.add(mob);
-                }
             }
+            }finally{net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(hold);}
+        }).thenWaitUntil(()->{
+            var marker=state.markers.get(key);
+            h.assertTrue(marker.members.size()==4&&marker.members.stream().allMatch(uuid->level.getEntity(uuid)!=null),"Wait for all four spawned UUIDs to enter the server entity lookup; reserved="+marker.members.size()+", visible="+marker.members.stream().filter(uuid->level.getEntity(uuid)!=null).count());
+        }).thenExecute(()->{
+        try {
+            for(var uuid:state.markers.get(key).members)spawned.add(level.getEntity(uuid));
             h.assertTrue(spawned.size()==4,"Four actual entities, not only a produced counter");
             var first=spawned.get(0);first.remove(net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK);
             h.assertTrue(state.markers.get(key).members.contains(first.getUUID()),"Unloaded membership remains reserved");
@@ -225,7 +241,7 @@ public final class DungeonFrameworkGameTests {
 
     @GameTest(template="bow_ritual_test",batch="cod2_chensha")
     public static void allThreeChenshaStairRunsHaveSupportAndPlayerHeadroom(GameTestHelper h) {
-        var origin=new BlockPos(-23,20,-31);var id=ChenshaStructure.instanceId(39,origin);var capture=new Capture();
+        var origin=new BlockPos(-23,20,-31);var id=ChenshaStructure.instanceId(39,origin);var capture=new Capture(h.getLevel());
         for(int x=0;x<4;x++)for(int z=0;z<6;z++){
             var original=new ChenshaPiece(origin,x,z,id);var restored=new ChenshaPiece(null,original.createTag(null));
             h.assertTrue(restored.getBoundingBox().equals(original.getBoundingBox()),"Column extent survives piece NBT");
@@ -243,6 +259,8 @@ public final class DungeonFrameworkGameTests {
                 h.assertTrue(part.saveWithoutMetadata().getLongArray("Markers").length==count,"Room marker list was silently truncated: "+marker.room());
             }
         }
+        for(int y=44;y<=48;y++)h.assertTrue(capture.postprocessed.contains(origin.offset(35,y,41)),
+            "Every generated return ladder is queued for vanilla postprocessing inside its own chunk");
         for(int run=0;run<3;run++){
             int start=run==0?10:run==1?59:28,end=run==0?34:run==1?83:52;
             for(int z=start;z<=end;z++){
@@ -413,7 +431,7 @@ public final class DungeonFrameworkGameTests {
     @GameTest(template="bow_ritual_test",batch="cod2_framework")
     public static void pieceRoundTripAndChunkClippingKeepAllMarkers(GameTestHelper h) {
         BlockPos origin=new BlockPos(-23,70,-31);var id=DungeonProbeStructure.instanceId(39,origin);
-        var capture=new Capture();
+        var capture=new Capture(h.getLevel());
         for(int part=0;part<3;part++) {
             var original=new DungeonProbePiece(origin,part,id);var restored=new DungeonProbePiece(null,original.createTag(null));
             h.assertTrue(restored.getBoundingBox().equals(original.getBoundingBox()),"Piece extent unchanged after reload");
@@ -476,7 +494,10 @@ public final class DungeonFrameworkGameTests {
         final Map<BlockPos,BlockState> blocks=new HashMap<>();
         final Map<BlockPos,BlockEntity> entities=new HashMap<>();
         BoundingBox clip;
-        final WorldGenLevel level=(WorldGenLevel)Proxy.newProxyInstance(WorldGenLevel.class.getClassLoader(),new Class<?>[]{WorldGenLevel.class},(proxy,method,args)->{
+        final java.util.Set<BlockPos> postprocessed=new java.util.HashSet<>();
+        final Map<ChunkPos,net.minecraft.world.level.chunk.ProtoChunk> chunks=new HashMap<>();
+        final WorldGenLevel level;
+        Capture(net.minecraft.server.level.ServerLevel source){level=(WorldGenLevel)Proxy.newProxyInstance(WorldGenLevel.class.getClassLoader(),new Class<?>[]{WorldGenLevel.class},(proxy,method,args)->{
             switch(method.getName()) {
                 case "setBlock": {
                     var pos=((BlockPos)args[0]).immutable();var state=(BlockState)args[1];
@@ -485,12 +506,24 @@ public final class DungeonFrameworkGameTests {
                     if(state.getBlock() instanceof BaseEntityBlock block)entities.put(pos,block.newBlockEntity(pos,state));
                     return true;
                 }
+                case "getChunk": {
+                    var chunk=args[0] instanceof BlockPos p?new ChunkPos(p):new ChunkPos((int)args[0],(int)args[1]);
+                    if(chunk.x!=(clip.minX()>>4)||chunk.z!=(clip.minZ()>>4))
+                        throw new AssertionError("Cross-chunk postprocessing request: "+chunk);
+                    return chunks.computeIfAbsent(chunk,c->new net.minecraft.world.level.chunk.ProtoChunk(c,
+                        net.minecraft.world.level.chunk.UpgradeData.EMPTY,source,source.registryAccess().registryOrThrow(Registries.BIOME),null){
+                            @Override public void markPosForPostprocessing(BlockPos pos){
+                                if(!clip.isInside(pos))throw new AssertionError("Cross-chunk postprocessing: "+pos);
+                                postprocessed.add(pos.immutable());super.markPosForPostprocessing(pos);
+                            }
+                        });
+                }
                 case "getBlockState":return blocks.getOrDefault(args[0],Blocks.AIR.defaultBlockState());
                 case "getBlockEntity":return entities.get(args[0]);
                 case "getFluidState":return Fluids.EMPTY.defaultFluidState();
                 case "toString":return "DungeonChunkCapture";
                 default:throw new AssertionError("Unexpected worldgen operation: "+method.getName());
             }
-        });
+        });}
     }
 }

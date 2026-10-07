@@ -39,9 +39,15 @@ public final class DungeonClientQa {
     private static final UUID INSTANCE=UUID.fromString("3c292093-20a5-4453-a2a1-45aec66bc398");
     private static final BlockPos CORE=new BlockPos(-2,-59,2), SEAL=new BlockPos(0,-59,2),
         DOOR=new BlockPos(1,-59,2), STELE=new BlockPos(-1,-59,2), LIFT=new BlockPos(2,-60,2);
+    private static final BlockPos CHENSHA=new BlockPos(64,-56,64);
+    private static final UUID CHENSHA_INSTANCE=ChenshaStructure.instanceId(57,CHENSHA);
     private static final List<BlockPos> MARKERS=List.of(SEAL,DOOR,STELE,LIFT);
     private static final long DEADLINE=System.nanoTime()+600_000_000_000L;
     private static boolean started,finished,acted,reconnected;
+    private static boolean environmentReconnected;
+    private static volatile int columns,serverStage=-1;
+    private static int captures=-1;
+    private static float safeHealth;
     private static volatile int stage=-1;
     private static int observed=-1,frames;
     private static long reconnectAt;
@@ -87,7 +93,8 @@ public final class DungeonClientQa {
                 if(!Files.exists(ROOT.resolve("listening")))Files.writeString(ROOT.resolve("listening"),"127.0.0.1:"+PORT);
                 if(stage<0)publish(0);
                 if(acknowledged(stage)&& (SOLO||Files.exists(ROOT.resolve(stage+"-peer")))) {
-                    if(stage==5) { Files.writeString(ROOT.resolve("complete"),"Observed six stages");finish(mc,null);return; }
+                    if(stage==5&&columns<24)return;
+                    if(stage==12) { Files.writeString(ROOT.resolve("complete"),"Observed thirteen stages");finish(mc,null);return; }
                     publish(stage+1);
                 }
             } else {
@@ -97,7 +104,8 @@ public final class DungeonClientQa {
             }
             if(observed!=stage) {observed=stage;acted=false;frames=0;}
             if(acknowledged(stage))return;
-            if(!(mc.level.getBlockEntity(SEAL) instanceof DungeonMechanismBlockEntity seal)||!INSTANCE.equals(seal.instance()))return;
+            var seal=mc.level.getBlockEntity(SEAL);
+            if(stage<6&&(!(seal instanceof DungeonMechanismBlockEntity bound)||!INSTANCE.equals(bound.instance())))return;
             if(stage==0) {
                 require(!active(mc,SEAL)&&!open(mc,DOOR)&&!open(mc,STELE),"Initial mechanisms already solved");
                 require(mc.getBlockEntityRenderDispatcher().getRenderer(seal)!=null,"Mechanism renderer missing");
@@ -131,8 +139,59 @@ public final class DungeonClientQa {
                 }
                 if(!open(mc,STELE)||!active(mc,LIFT)||!open(mc,DOOR))return;
                 require(INSTANCE.equals(((DungeonMechanismBlockEntity)mc.level.getBlockEntity(LIFT)).instance()),"Reload/rejoin lost BE binding");
+            } else if(stage==6) {
+                if(mc.player.getY()>CHENSHA.getY()+20||mc.player.getX()<CHENSHA.getX())return;
+                if(mc.player.getHealth()>18)return;
+                require(mc.level.getBlockState(mc.player.blockPosition().below()).is(Blocks.LIGHT_BLUE_STAINED_GLASS),"Real mercury contact surface missing");
+                var pos=CHENSHA.offset(ChenshaPiece.core("mercury"));
+                if(!(mc.level.getBlockEntity(pos) instanceof DungeonMechanismBlockEntity core))return;
+                require(CHENSHA_INSTANCE.equals(core.instance()),"Authored mercury controller binding not synced");
+            } else if(stage==7) {
+                if(mc.player.getY()<CHENSHA.getY()+24)return;
+                if(!acted){safeHealth=mc.player.getHealth();acted=true;}
+                require(mc.player.getHealth()>=safeHealth,"Mercury keeps damaging a player standing on the chamber platform");
+                if(frames<40){frames++;return;}
+                require(mc.player.getMainHandItem().is(Items.WRITTEN_BOOK),"Expedition diary not received via inventory packets");
+                require(mc.player.getMainHandItem().getTag().getList("pages",8).size()==3,"Diary pages missing on client");
+            } else if(stage==8) {
+                if(!HOST&&!environmentReconnected) {
+                    mc.level.disconnect();mc.clearLevel(new TitleScreen());reconnectAt=System.nanoTime()+1_000_000_000L;
+                    environmentReconnected=true;return;
+                }
+                if(mc.player.getY()<CHENSHA.getY()+24||mc.player.getX()<CHENSHA.getX())return;
+                require(mc.player.getHealth()>=safeHealth,"Safe platform regained an exposure after reconnect");
+            } else if(stage==9) {
+                if(!acted) {reload=mc.reloadResourcePacks();acted=true;return;}
+                if(!reload.isDone())return;reload.join();
+                require(mc.getLanguageManager().getLanguage("zh_cn")!=null,"Chinese language resource missing");
+                require(!net.minecraft.network.chat.Component.translatable("book.dynasty.chensha.diary.1").getString().equals("book.dynasty.chensha.diary.1"),"Diary clue translation missing after reload");
+            } else if(stage==10) {
+                if(mc.player.getX()>CHENSHA.getX()+22||mc.player.getY()>CHENSHA.getY()+2)return;
+                for(var star:ChenshaPiece.vaultStars())if(!mc.level.getBlockState(CHENSHA.offset(star)).is(Blocks.SEA_LANTERN))return;
+                require(mc.level.getBlockState(CHENSHA.offset(31,9,15)).is(Blocks.SMOOTH_QUARTZ),"Nine-tier dais not received on client");
+                if(frames<30){frames++;return;}
+            } else if(stage==11||stage==12) {
+                var coffin=CHENSHA.offset(ChenshaPiece.coffinOffset());
+                if(mc.player.distanceToSqr(Vec3.atCenterOf(coffin))>16)return;
+                if(!(mc.level.getBlockEntity(coffin) instanceof DungeonMechanismBlockEntity bound))return;
+                require(bound.kind()==DungeonMechanismBlock.Kind.COFFIN&&CHENSHA_INSTANCE.equals(bound.instance()),"Imperial coffin binding missing on client");
+                require(bound.saveWithoutMetadata().getLong("EncounterOrigin")==CHENSHA.asLong(),"Coffin origin binding not synchronised");
+                require(!open(mc,coffin)&&mc.level.getBlockState(coffin).getDestroySpeed(mc.level,coffin)<0,"Coffin bypassed the missing boss or lost its protection");
+                require(mc.getBlockRenderer().getBlockModel(mc.level.getBlockState(coffin))!=mc.getModelManager().getMissingModel(),"Coffin block model missing");
+                if(stage==11) {
+                    if(!acted){use(mc,coffin);acted=true;return;}
+                    require(mc.player.getMainHandItem().is(Items.WRITTEN_BOOK)&&mc.player.getMainHandItem().getCount()==1,"Sealed coffin changed the player's diary inventory");
+                    if(frames++<40)return;
+                }else{
+                    if(!acted){reload=mc.reloadResourcePacks();acted=true;return;}
+                    if(!reload.isDone())return;reload.join();
+                }
             }
             if(++frames<5)return;
+            if(stage>=6&&captures!=stage) {
+                captures=stage;
+                net.minecraft.client.Screenshot.grab(mc.gameDirectory,"chensha-"+stage+"-"+ROLE+".png",mc.getMainRenderTarget(),message->{});
+            }
             Files.writeString(ROOT.resolve(stage+"-"+ROLE),"PASS stage="+stage+" tick="+mc.level.getGameTime()+" player="+mc.player.getUUID()+"\n");
         } catch(Throwable failure) {finish(mc,failure.toString());}
     }
@@ -159,15 +218,55 @@ public final class DungeonClientQa {
         if(HOST&&event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player)prepare(player);
     }
     private static void prepare(net.minecraft.server.level.ServerPlayer player) {
-        player.setGameMode(GameType.CREATIVE);player.teleportTo(-.5,-59,.5);
-        player.getInventory().selected=0;player.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(Items.IRON_PICKAXE));
+        player.setGameMode(stage>=6?GameType.SURVIVAL:GameType.CREATIVE);
+        if(stage>=11)player.teleportTo(CHENSHA.getX()+(player.getGameProfile().getName().equals("DungeonHost")?30.5:32.5),CHENSHA.getY()+10,CHENSHA.getZ()+17.5);
+        else if(stage>=7)player.teleportTo(CHENSHA.getX()+12.5,CHENSHA.getY()+25,CHENSHA.getZ()+60.5);
+        else player.teleportTo(-.5,-59,.5);
+        player.getInventory().selected=0;
+        if(stage<6)player.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(Items.IRON_PICKAXE));
         player.inventoryMenu.broadcastChanges();
     }
     @SubscribeEvent public static void serverTick(TickEvent.ServerTickEvent event) {
-        if(!HOST||stage!=3||event.phase!=TickEvent.Phase.END)return;
-        var level=Minecraft.getInstance().getSingleplayerServer().overworld();
-        if(level.getGameTime()%20!=0)return;
-        var arrow=DungeonContent.TRAP_ARROW.get().create(level);arrow.setPos(0,-56,2);arrow.setNoGravity(true);level.addFreshEntity(arrow);
+        if(!HOST||setup==null||!setup.isDone()||event.phase!=TickEvent.Phase.END)return;
+        var server=Minecraft.getInstance().getSingleplayerServer();var level=server.overworld();
+        if(columns<24) {
+            // Test fixture only: one clipped column per server tick, disposable
+            // flat world; production generation never issues these chunk requests.
+            int x=columns%4,z=columns/4;
+            var chunk=new ChunkPos(CHENSHA.offset(x*16,0,z*16));level.getChunk(chunk.x,chunk.z);
+            var clip=new net.minecraft.world.level.levelgen.structure.BoundingBox(chunk.getMinBlockX(),level.getMinBuildHeight(),chunk.getMinBlockZ(),
+                chunk.getMaxBlockX(),level.getMaxBuildHeight()-1,chunk.getMaxBlockZ());
+            new ChenshaPiece(CHENSHA,x,z,CHENSHA_INSTANCE).postProcess(level,level.structureManager(),level.getChunkSource().getGenerator(),
+                net.minecraft.util.RandomSource.create(57),clip,chunk,CHENSHA);
+            columns++;
+        }
+        if(stage>=6&&serverStage!=stage) {
+            serverStage=stage;
+            if(stage==6)for(var player:server.getPlayerList().getPlayers()) {
+                player.setGameMode(GameType.SURVIVAL);player.getFoodData().setFoodLevel(10);player.getFoodData().setSaturation(0);
+                player.setHealth(20);player.teleportTo(CHENSHA.getX()+(player.getGameProfile().getName().equals("DungeonHost")?10.5:12.5),CHENSHA.getY()+19,CHENSHA.getZ()+60.5);
+            }
+            if(stage==7) {
+                var chest=(net.minecraft.world.level.block.entity.ChestBlockEntity)level.getBlockEntity(CHENSHA.offset(12,49,52));
+                chest.unpackLootTable(null);ItemStack book=ItemStack.EMPTY;
+                for(int i=0;i<chest.getContainerSize();i++)if(chest.getItem(i).is(Items.WRITTEN_BOOK))book=chest.getItem(i);
+                if(book.isEmpty())throw new AssertionError("Generated expedition diary chest is empty");
+                for(var player:server.getPlayerList().getPlayers()) {
+                    player.teleportTo(CHENSHA.getX()+12.5,CHENSHA.getY()+25,CHENSHA.getZ()+60.5);
+                    player.setItemInHand(InteractionHand.MAIN_HAND,book.copy());player.inventoryMenu.broadcastChanges();
+                }
+            }
+            if(stage==10)for(var player:server.getPlayerList().getPlayers()) {
+                player.teleportTo(level,CHENSHA.getX()+20.5,CHENSHA.getY()+1,CHENSHA.getZ()+(player.getGameProfile().getName().equals("DungeonHost")?16.5:18.5),-90,-25);
+            }
+            if(stage==11)for(var player:server.getPlayerList().getPlayers()) {
+                boolean host=player.getGameProfile().getName().equals("DungeonHost");
+                player.teleportTo(level,CHENSHA.getX()+(host?30.5:32.5),CHENSHA.getY()+10,CHENSHA.getZ()+17.5,host?-90:90,35);
+            }
+        }
+        if(stage==3&&level.getGameTime()%20==0) {
+            var arrow=DungeonContent.TRAP_ARROW.get().create(level);arrow.setPos(0,-56,2);arrow.setNoGravity(true);level.addFreshEntity(arrow);
+        }
     }
     private static void use(Minecraft mc,BlockPos pos) {
         mc.gameMode.useItemOn(mc.player,InteractionHand.MAIN_HAND,new BlockHitResult(Vec3.atCenterOf(pos),Direction.NORTH,pos,false));
@@ -186,7 +285,7 @@ public final class DungeonClientQa {
     }
     private static void finish(Minecraft mc,String failure) {
         finished=true;
-        try {Files.createDirectories(ROOT);Files.writeString(ROOT.resolve(ROLE+(failure==null?"-PASS.txt":"-FAIL.txt")),failure==null?"All six client stages passed\n":failure+"\n");}
+        try {Files.createDirectories(ROOT);Files.writeString(ROOT.resolve(ROLE+(failure==null?"-PASS.txt":"-FAIL.txt")),failure==null?"All thirteen client stages passed\n":failure+"\n");}
         catch(Exception e){e.printStackTrace();}
         mc.stop();
     }

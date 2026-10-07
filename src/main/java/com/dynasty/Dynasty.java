@@ -26,6 +26,7 @@ public class Dynasty {
         DynastyContent.register(modEventBus);
         DynastyCuriosSetup.register(modEventBus);
         DynastyFtbSetup.register();
+        com.dynasty.worldevent.WorldEventConfig.register();
 
         // 解开原版属性硬上限（攻击力 2048 / 生命 1024 / 护甲 30），毕业数值才能继续涨
         DynastyAttributeCaps.unlock();

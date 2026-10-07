@@ -11,7 +11,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public class DynastyNetwork {
 
-    private static final String PROTOCOL = "7";
+    private static final String PROTOCOL = "8";
 
     @SuppressWarnings("removal")
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -55,6 +55,11 @@ public class DynastyNetwork {
                 com.dynasty.blueprint.BlueprintVisualEvent::encode,
                 com.dynasty.blueprint.BlueprintVisualEvent::decode,
                 com.dynasty.blueprint.BlueprintVisualEvent::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(id++, com.dynasty.worldevent.WorldEventStatePacket.class,
+                com.dynasty.worldevent.WorldEventStatePacket::encode,
+                com.dynasty.worldevent.WorldEventStatePacket::decode,
+                com.dynasty.worldevent.WorldEventStatePacket::handle,
                 java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
     }
 }

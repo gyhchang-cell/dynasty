@@ -26,7 +26,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public final class DungeonMechanismBlock extends BaseEntityBlock {
-    public enum Kind {CORE,SEAL,TARGET,DOOR,FLOOR,TRAP,ELEVATOR,SHORTCUT}
+    public enum Kind {CORE,SEAL,TARGET,DOOR,FLOOR,TRAP,ELEVATOR,SHORTCUT,COFFIN}
     public static final BooleanProperty ACTIVE=BooleanProperty.create("active"),OPEN=BlockStateProperties.OPEN;
     public static final DirectionProperty FACING=BlockStateProperties.HORIZONTAL_FACING;
     public static final IntegerProperty STAGE=IntegerProperty.create("stage",0,3);

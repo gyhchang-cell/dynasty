@@ -33,6 +33,8 @@ public final class DynastyContent {
         DynastyTabs.TABS.register(modEventBus);
         com.dynasty.entity.DynastyEntities.ENTITIES.register(modEventBus);
         com.dynasty.blueprint.BlueprintEntities.register(modEventBus);
+        com.dynasty.blueprint.EcologyBiomeModifier.SERIALIZERS.register(modEventBus);
+        com.dynasty.worldevent.WorldEventItems.ITEMS.register(modEventBus);
         modEventBus.addListener(com.dynasty.blueprint.BlueprintSpawns::register);
         com.dynasty.worldgen.DynastyFeatures.FEATURES.register(modEventBus);
         DynastyEnchantments.ENCHANTMENTS.register(modEventBus);

@@ -24,6 +24,8 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
     }
 
     @SubscribeEvent public static void register(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(BlueprintEntities.BISHUI_XUANJIAO_YOUZI.get(),TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.JUBI_SHIGANDANG.get(),TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ZUWU_DAOSHOU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.LUDUN_JIASHI.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.FUFA_JIJIU.get(), TemplateMobRenderer::new);
@@ -101,6 +103,7 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
             float fade = Mth.clamp((mob.actionAge(partialTick) - 6F) / 26F, 0F, 1F);
             return Color.ofRGB(1F - .10F * fade, 1F - .26F * fade, 1F - .46F * fade);
         }
+        if(mob.getPersistentData().getBoolean("DynastyEventPhantom"))return Color.ofRGBA(.35F,.85F,1F,.35F);
         return super.getRenderColor(mob, partialTick, light);
     }
 

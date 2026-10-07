@@ -15,7 +15,12 @@ public final class ArmySkills {
     public static final int TOAD_TONGUE=31,TOAD_LEAP=32,TOAD_BURST=33;
     public static final int TREE_WAKE=34,TREE_SWEEP=35,TREE_ROOTS=36;
     public static final int SCORPION_EMERGE=37,SCORPION_CLAW=38,SCORPION_SONG=39;
+    public static final int SERPENT_BITE=40,SERPENT_COIL=41,STONE_UPPERCUT=42,STONE_SLAM=43;
     public static final List<SkillDefinition> ALL=List.of(
+        skill(STONE_UPPERCUT,"stone_uppercut",16,1,23,50,0,2.8,120,1,.45,true,16),
+        skill(STONE_SLAM,"stone_slam",30,1,29,110,0,3,0,1.6F,.65,true,30),
+        skill(SERPENT_BITE,"serpent_bite",12,1,17,38,0,2.8,65,1,0,true,12),
+        skill(SERPENT_COIL,"serpent_coil",18,25,21,180,0,3.2,70,.5F,0,true,18),
         skill(THRUST,"spear_thrust",12,1,13,34,0,3.5,28,1,.9,true,12),
         skill(BRACE,"spear_brace",8,25,15,65,0,6,25,3,1.1,false,8),
         skill(VOLLEY,"crossbow_volley",14,9,23,46,3,24,50,1,.1,true,14,18,22),
