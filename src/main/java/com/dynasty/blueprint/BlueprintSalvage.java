@@ -14,6 +14,10 @@ import net.minecraftforge.registries.RegistryObject;
 /** Real recovered components: vanilla anvil owns inventory/XP consumption and multiplayer updates. */
 @Mod.EventBusSubscriber(modid="dynasty")
 public final class BlueprintSalvage {
+    public static final RegistryObject<Item> COLD_PALANQUIN_CURTAIN=plain("cold_palanquin_curtain"), WHITE_SILK_STRIP=plain("white_silk_strip"), BROKEN_JADE_HAIRPIN=plain("broken_jade_hairpin"), YIN_CONDENSED_CORE=plain("yin_condensed_core");
+    public static final RegistryObject<Item> YECHA_CHARRED_FEATHER=plain("yecha_charred_feather"), CAST_BRONZE_JOINT=plain("cast_bronze_joint"), VICIOUS_DEMON_TOOTH=plain("vicious_demon_tooth");
+    public static final RegistryObject<Item> CENTIPEDE_DARK_CARAPACE=plain("centipede_dark_carapace"), HUNDRED_EYE_ESSENCE=plain("hundred_eye_essence"), TOXIC_MANDIBLE=plain("toxic_mandible");
+    public static final RegistryObject<Item> BIXI_BRONZE_SHELL=plain("bixi_bronze_shell"), ANCIENT_STELE_RUBBING=plain("ancient_stele_rubbing"), STURDY_BRONZE_RIVET=plain("sturdy_bronze_rivet");
     public static final RegistryObject<Item> COLD_CONDENSED_WATER=plain("cold_condensed_water"), SUBMERGED_IRON_SCRAP=plain("submerged_iron_scrap"), WATER_GHOST_HAIR=plain("water_ghost_hair");
     public static final RegistryObject<Item> LUMINOUS_FISH_GLUE=plain("luminous_fish_glue"), SOFT_FISH_BONE=plain("soft_fish_bone"), PURE_SPIRIT_DROP=plain("pure_spirit_drop");
     public static final RegistryObject<Item> THIN_BAT_MEMBRANE=plain("thin_bat_membrane"), GREEN_PHOSPHOR=plain("green_phosphor"), GHOST_FACE_FLAKE=plain("ghost_face_flake");

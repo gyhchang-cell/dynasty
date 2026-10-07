@@ -479,7 +479,7 @@ def client_stage_contract(army: bool = False) -> dict:
     """Read the current QA stage names; old 14-stage or death-only runs cannot pass."""
     qa_path = ROOT / "tools/blueprint/qa-src/com/dynasty/client/BlueprintClientQa.java"
     source = qa_path.read_text()
-    match = re.search(r'String\[\] NAMES = ARMY \? new String\[\]\{(.*?)\}\s*:\s*new String\[\]\{(.*?)\};', source, re.S)
+    match = re.search(r'String\[\] NAMES = (?:BATTLEFIELD \? new String\[\]\{[^}]*\}\s*:\s*)?ARMY \? new String\[\]\{(.*?)\}\s*:\s*new String\[\]\{(.*?)\};', source, re.S)
     if match:
         raw = match[1 if army else 2]
     else:

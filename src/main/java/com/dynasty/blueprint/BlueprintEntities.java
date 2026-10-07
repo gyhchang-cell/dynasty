@@ -104,6 +104,15 @@ public final class BlueprintEntities {
     public static final RegistryObject<EntityType<TemplateMob>> SHASHUI_FUNIGUI=mob("shashui_funigui",TemplateMob.Kind.DROWNER,.8F,1.9F);
     public static final RegistryObject<Item> SHASHUI_FUNIGUI_EGG=egg("shashui_funigui",SHASHUI_FUNIGUI,0x152A30,0x5C6A63);
     public static final RegistryObject<MobEffect> DROWNING_BIND=EFFECTS.register("drowning_bind",DrowningBindEffect::new);
+    public static final RegistryObject<EntityType<TemplateMob>> JULI_BIXI_KUILEI=mob("juli_bixi_kuilei",TemplateMob.Kind.BIXI,2.4F,2.2F);
+    public static final RegistryObject<Item> JULI_BIXI_KUILEI_EGG=egg("juli_bixi_kuilei",JULI_BIXI_KUILEI,0x686658,0xA58043);
+    public static final RegistryObject<MobEffect> HEAVY_STAGGER=EFFECTS.register("heavy_stagger",()->new SoulBindEffect("a6a09ce6-e963-4084-a29b-86f0b531cbe4"));
+    public static final RegistryObject<EntityType<TemplateMob>> BAIMU_MOWU=mob("baimu_mowu",TemplateMob.Kind.CENTIPEDE,1.3F,.85F);
+    public static final RegistryObject<Item> BAIMU_MOWU_EGG=egg("baimu_mowu",BAIMU_MOWU,0x30243F,0xCFAD3D);
+    public static final RegistryObject<EntityType<TemplateMob>> TONGBI_FEITIAN_YECHA=mob("tongbi_feitian_yecha",TemplateMob.Kind.YECHA,1.4F,2.2F);
+    public static final RegistryObject<Item> TONGBI_FEITIAN_YECHA_EGG=egg("tongbi_feitian_yecha",TONGBI_FEITIAN_YECHA,0x292724,0xA37843);
+    public static final RegistryObject<EntityType<TemplateMob>> YINYANG_ZHIJIAO_YOUHUN=mob("yinyang_zhijiao_youhun",TemplateMob.Kind.PALANQUIN,1.8F,2F);
+    public static final RegistryObject<Item> YINYANG_ZHIJIAO_YOUHUN_EGG=egg("yinyang_zhijiao_youhun",YINYANG_ZHIJIAO_YOUHUN,0xD1C9AF,0x632B32);
     private static RegistryObject<EntityType<TemplateMob>> mob(String id, TemplateMob.Kind kind, float width, float height) {
         return ENTITIES.register(id, () -> EntityType.Builder.<TemplateMob>of((type, level) -> new TemplateMob(type, level, kind), MobCategory.MONSTER)
                 .sized(width, height).clientTrackingRange(10).updateInterval(3).build(id));
@@ -125,6 +134,11 @@ public final class BlueprintEntities {
                 .add(Attributes.KNOCKBACK_RESISTANCE, resistance).add(Attributes.ATTACK_SPEED, 1).build();
     }
     private static void attributes(EntityAttributeCreationEvent event) {
+        event.put(YINYANG_ZHIJIAO_YOUHUN.get(),attributes(85,7,.2,4,1));
+        event.put(TONGBI_FEITIAN_YECHA.get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,70).add(Attributes.ATTACK_DAMAGE,7)
+            .add(Attributes.MOVEMENT_SPEED,.25).add(Attributes.FLYING_SPEED,.3).add(Attributes.FOLLOW_RANGE,28).add(Attributes.ARMOR,5).build());
+        event.put(BAIMU_MOWU.get(),attributes(58,5,.34,7,.2));
+        event.put(JULI_BIXI_KUILEI.get(),attributes(120,8,.14,12,.85));
         event.put(SHASHUI_FUNIGUI.get(),attributes(48,5,.23,3,.1));
         event.put(XUEJU_MANGGUYU.get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,54).add(Attributes.ATTACK_DAMAGE,6)
             .add(Attributes.MOVEMENT_SPEED,.18).add(Attributes.FLYING_SPEED,.22).add(Attributes.FOLLOW_RANGE,24).build());

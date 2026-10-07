@@ -17,7 +17,7 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class SkullGameTests {
     private static TemplateMob skull(GameTestHelper h){
-        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=11;y++)h.setBlock(x,y,z,y==1||y==11?Blocks.STONE:Blocks.AIR);
+        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=11;y++)h.setBlock(x,y,z,y==1||y==11||x==0||x==15||z==0||z==15?Blocks.STONE:Blocks.AIR);
         var mob=h.spawn(BlueprintEntities.MUXUE_FEILU.get(),new BlockPos(7,6,5));mob.setNoAi(true);return mob;
     }
     private static net.minecraft.world.entity.animal.Cow enemy(GameTestHelper h){
