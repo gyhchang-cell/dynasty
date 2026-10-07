@@ -198,7 +198,9 @@ public final class BlueprintSpawns {
                     continue;
                 }
                 if(group==TOMBS) {
-                    if(!checked.contains(key)&&spawnChenshaMember(level,new BlockPos(box.minX(),box.minY(),box.minZ()),player.blockPosition())) {
+                    var origin=new BlockPos(box.minX(),box.minY(),box.minZ());
+                    if(!checked.contains(key)&&(spawnChenshaMember(level,origin,player.blockPosition())
+                            ||spawnChenshaMiddleMember(level,origin,player.blockPosition()))) {
                         checked.add(key);remaining--;
                     }
                     continue;
@@ -318,6 +320,40 @@ public final class BlueprintSpawns {
         mob.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,0,0);mob.setPersistenceRequired();
         mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.STRUCTURE,null,null);
         if(!level.addFreshEntity(mob))return false;
+        marker.members.add(mob.getUUID());marker.produced++;marker.nextSpawn=level.getGameTime()+100;state.setDirty();
+        return true;
+    }
+    /** Finite middle-gallery encounter. Reuses cod1's flying skull, never substitutes a missing elite/Boss. */
+    public static boolean spawnChenshaMiddleMember(ServerLevel level,BlockPos origin,BlockPos entrant) {
+        if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+                ||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return false;
+        int x=entrant.getX()-origin.getX(),y=entrant.getY()-origin.getY(),z=entrant.getZ()-origin.getZ();
+        if(x<5||x>58||y<25||y>32||z<33||z>88)return false;
+        var core=origin.offset(com.dynasty.dungeon.ChenshaPiece.core("mercury"));
+        if(!level.hasChunkAt(core)||!(level.getBlockEntity(core) instanceof com.dynasty.dungeon.DungeonMechanismBlockEntity be)
+                ||!be.validBinding()||!be.roomId().equals("mercury"))return false;
+        var state=BlueprintSpawnState.get(level);String key="chensha@"+be.instance()+":mercury_skulls";
+        var marker=state.markers.get(key);
+        var offsets=com.dynasty.dungeon.ChenshaPiece.middleSkullOffsets();
+        if(marker!=null) {
+            if(marker.cleared)return false;
+            if(marker.produced>=offsets.size()) {
+                if(marker.members.isEmpty()){marker.cleared=true;state.setDirty();}
+                return false;
+            }
+            if(marker.nextSpawn>level.getGameTime())return false;
+        }
+        int index=marker==null?0:marker.produced;
+        var pos=origin.offset(offsets.get(index));var type=BlueprintEntities.MUXUE_FEILU.get();
+        if(!level.hasChunkAt(pos)||pos.distSqr(entrant)<36||pos.distSqr(entrant)>48*48
+                ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),
+                    e->e.isAlive()&&e.getType()==type).size()>=offsets.size()
+                ||!authoredSpace(level,type,pos))return false;
+        var mob=type.create(level);if(mob==null)return false;
+        mob.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,0,0);mob.setPersistenceRequired();
+        mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.STRUCTURE,null,null);
+        if(!level.addFreshEntity(mob))return false;
+        if(marker==null){marker=new BlueprintSpawnState.Marker(key,core);state.markers.put(key,marker);}
         marker.members.add(mob.getUUID());marker.produced++;marker.nextSpawn=level.getGameTime()+100;state.setDirty();
         return true;
     }
