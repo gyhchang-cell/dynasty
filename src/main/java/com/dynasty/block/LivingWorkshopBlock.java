@@ -37,6 +37,11 @@ public final class LivingWorkshopBlock extends Block implements EntityBlock {
         if(level.isClientSide)return InteractionResult.SUCCESS;
         if(!(level.getBlockEntity(pos) instanceof WorkshopBlockEntity vat))return InteractionResult.PASS;
         var held=p.getItemInHand(hand);
+        if((held.isEmpty()&&!vat.ready()) || p.isShiftKeyDown()) {
+            if(p instanceof net.minecraft.server.level.ServerPlayer server)
+                net.minecraftforge.network.NetworkHooks.openScreen(server,vat,pos);
+            return InteractionResult.CONSUME;
+        }
         if(vat.ready()){
             if(!held.isEmpty())return InteractionResult.CONSUME;
             var result=vat.collect();if(!p.getInventory().add(result))p.drop(result,false);

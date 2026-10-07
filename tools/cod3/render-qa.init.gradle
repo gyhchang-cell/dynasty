@@ -1,0 +1,18 @@
+// Opt-in framebuffer QA, excluded from the published jar. No world or user save is opened.
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def qa = p.sourceSets.create('cod3RenderQa') {
+        java.srcDir p.file('tools/cod3/render-qa')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.minecraft.runs.client {
+        workingDirectory p.file('build/cod3-render-qa/client')
+        property 'dynasty.cod3RenderQa', 'true'
+        property 'dynasty.cod3RenderQa.output', p.file('build/cod3-render-qa/results').absolutePath
+        property 'forge.logging.console.level', 'info'
+        jvmArgs '-Xmx1024m', '-XX:ActiveProcessorCount=2'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.configureEach { task -> if(task.name=='runClient')task.dependsOn qa.classesTaskName }
+} }
