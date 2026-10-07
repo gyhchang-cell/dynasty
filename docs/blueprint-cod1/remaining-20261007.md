@@ -3,22 +3,22 @@
 输入：用户上传 cod1_new(5).txt，与仓库 cod1_new.txt 逐字节相同。
 代码基线：main 6feb7f140bfb0884d34f8b1d4e9e0f3732efa053。交付分支：cod1。
 原 cod1 6df2048 是 main 的祖先，本次快进接入 main 已有成果，保留强化系统及最新完整 FTB 导出。
-本次没有新实现怪物、精英、Boss、神器或神影，也没有完成 cod1 剩余部分。
+本次续作新增第19只碧水玄蛟幼崽和第20只巨臂石敢当的运行代码、模型动画、生成、掉落与测试。全部 cod1 任务仍未完成。
 
 ## 当前状态
 
-**0 DONE / 18 PARTIAL / 76 NOT_STARTED。** 18只基础怪有运行代码和资源，但最新构建的单机、双人及性能验收待完成。
-待开发12基础怪、15精英、12Boss、25神器、12神影；下一内容条目是第19只碧水玄蛟幼崽。
+**0 DONE / 20 PARTIAL / 74 NOT_STARTED。** 20只基础怪有运行代码和资源，但最新构建的单机、双人及性能验收待完成。
+待开发10基础怪、15精英、12Boss、25神器、12神影；下一内容条目是第21只巡山木甲犬。
 DungeonDefinition 中的 pilin_zhijinwu/juchui_jinjia_lishi 是设计引用，不是实体注册，不因此标已实现。相似旧实体、Boss和装备也不替代蓝图精确条目。镇渊帝君保持最终Boss。
 
-## 先决条件
+## 验收边界
 
 输入第40—49行要求先验证青龙黑屏修复再继续，第1636—1643行禁止以构建或GameTest代替最新单机及双人。
 ImperialWeaponRenderer / ImperialRenderState 已有渲染阶段分离、状态恢复和旁观世界空间逻辑；不删除神影、缩模型或关效果。
 ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试记录保留，不重复重写。
 仓库272/272及已有客户端截图是历史证据，不算本次重新运行通过。当前环境验证结果见本文末尾。
 
-## 已实现但待验收的18项
+## 已实现但待验收的20项
 
 实现类均在 src/main/java/com/dynasty/blueprint：BlueprintEntities + TemplateMob；技能在 TemplateSkills 或 ArmySkills/ArmyBehaviors。
 生成：TemplateContentDefinitions、BlueprintSpawns及结构/生态数据。资源前缀为 src/main/resources/assets/dynasty。
@@ -45,14 +45,15 @@ ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试�
 | 枯木树精 / `kumu_shujing` | `geo/blueprint/kumu_shujing.geo.json`；`animations/blueprint/kumu_shujing.animation.json` | 共享图集，见TemplateMobModel | 已有运行实现，最终质量待验 | 未验收 | 未验收 | 未测 |
 | 鸣沙石蝎 / `mingsha_shixie` | `geo/blueprint/mingsha_shixie.geo.json`；`animations/blueprint/mingsha_shixie.animation.json` | 共享图集，见TemplateMobModel | 已有运行实现，最终质量待验 | 未验收 | 未验收 | 未测 |
 
-## 剩余76项
+| 碧水玄蛟幼崽 / `bishui_xuanjiao_youzi` | `geo/blueprint/bishui_xuanjiao_youzi.geo.json`；同名 animation | `nian_beast` 原生图集 | WaterSerpentBehavior；水陆寻路、咬击、有限缠绕、潜行/伤害脱身、抗连控；深潭生态及3种功能掉落 | 未验收 | 未验收 | 未测 |
+| 巨臂石敢当 / `jubi_shigandang` | `geo/blueprint/jubi_shigandang.geo.json`；同名 animation | `royal_guard` 原生图集 | StoneGuardBehavior；上撩、30 tick 蓄力直线重砸、命中破盾；关隘固定点及3种功能掉落 | 未验收 | 未验收 | 未测 |
+
+## 剩余74项
 
 以下条目未见对应的完整运行实现。实现类、geo、animation、texture、技能、运行落点和奖励接口待实施；单机、双人、性能均待验收。
 
 | 类别 | 编号 | 名称 | 拟定ID | 状态 |
 | --- | --- | --- | --- | --- |
-| BASIC | 19 | 碧水玄蛟幼崽 | `dynasty:bishui_xuanjiao_youzi` | NOT_STARTED |
-| BASIC | 20 | 巨臂石敢当 | `dynasty:jubi_shigandang` | NOT_STARTED |
 | BASIC | 21 | 巡山木甲犬 | `dynasty:xunshan_mujiaquan` | NOT_STARTED |
 | BASIC | 22 | 青铜双头蛇傀 | `dynasty:qingtong_shuangtoushekui` | NOT_STARTED |
 | BASIC | 23 | 八足地工蛛 | `dynasty:bazu_digongzhu` | NOT_STARTED |
@@ -128,14 +129,19 @@ ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试�
 | PHANTOM | 11 | 墨家巨子千手天工枢 | `dynasty:mojia_juzi_qianshou_tiangongshu` | NOT_STARTED |
 | PHANTOM | 12 | 烈火祝融九龙绕体神像 | `dynasty:liehuo_zhurong_jiulong_raoti_shenxiang` | NOT_STARTED |
 
-## 本次环境验证结果
+## 本次续作验证
 
-- 工作区维护清理了原构建缓存，重新克隆代码成功。
-- Gradle wrapper直连下载失败（Network is unreachable）；用当前环境已有代理下载Gradle 8.8成功，并开始恢复Forge/Minecraft依赖。
-- 现有bundled dependencies已通过tools/art/make_local_repo.py恢复到本地仓库。
-- 当前只有Java运行时、缺少javac和Xvfb。系统包安装因setgroups/seteuid权限错误失败；没有禁用系统安全限制。
-- loopback socket检查通过，不沿用过去的socket禁用结论。
-- 无法完成要求的图形客户端验收，因此中止本次仍在依赖准备阶段的构建（退出130）；没有本轮compileJava/build/GameTest通过结果，没有本轮客户端截图。
-- 本次只同步已有main成果并核对缺口；未越过用户文件规定的实机门槛开发新条目。
+用户再次要求完成所有 cod1 任务后继续实施代码，实机验收单独保留，未把服务端通过标成 DONE。
+运行复用既有 TemplateMob / TimedAttack / BlueprintSpawns / BlueprintSpawnState / BlueprintVisualEvent；原材料、强化系统、FTB 导出及最终 Boss 未改。
+当前新增两只怪均有独立行为与模型；没有用注册名或重命名旧怪冒充剩余74项。
 
-继续条件：在可运行游戏的环境完成最新构建单机/双人验收；或者用户明确同意先实施后续代码、把实机验收留给本地，同时继续保留PARTIAL状态。
+- 第19项：14节脊椎、47骨骼、7动画，主世界暗河/高山深潭，连通水体与附近数量限制；无穿墙拖拽、骑乘或输入/相机锁。
+- 第20项：不对称碑体及四段巨臂、13骨骼、7动画；真实长城关隘前庭，通过已有每轮生成预算和遭遇成员存档，单只上限。
+- 两者添加 `story_slay_<ID>` 隐藏进度，沿用既有击杀触发器，不创建任务系统或改排任务树。
+- 旧测试写死的技能数量改为注册ID唯一性及所有接触帧属于ACTIVE的验证；沙蝎生态夹具固定绝对海拔132，未放宽正式生成条件。
+- 图形客户端、双人旁观和性能验证未运行，仍为 PARTIAL。
+
+本轮最终结果：`dynasty_army` 命名空间 **117/117 GameTest 通过**，`build` 成功。这是蓝图怪物回归，不是全项目所有命名空间的复测。
+日志：[frontier-19-20-117.txt](evidence/frontier-19-20-117.txt)。客户端/双人实机仍未执行。
+
+本地复测可用既有入口：`./gradlew -I tools/blueprint/army-test.init.gradle -ParmyTestRun=frontier-19-20-unique runGameTestServer build`。每次采用新的 run ID，避免复用遭遇存档污染结构生成测试。云端专用服务器复测跳过不需要的 `downloadAssets`；构建期间曾遭共享缓存锁与内存上限，最终使用独立缓存、768 MiB Gradle / 1536 MiB 游戏堆和2工作线程成功。
