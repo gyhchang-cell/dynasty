@@ -13,6 +13,15 @@ public final class TemplateContentDefinitions {
             int localCap, String spawnReason, String specialCondition, String despawnPolicy) {}
     private static ResourceLocation tag(String id) {return new ResourceLocation(id);}
     public static final List<Spawn> ALL = List.of(
+        new Spawn("bazu_digongzhu",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/mining_spider_sites")),
+            -63,300,0,15,"ALL","ANY",1,1,2,2,"STRUCTURE_MARKER",
+            "authored ceiling pockets under mining-estate upper quarry bench; collision and loaded support required","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
+        new Spawn("qingtong_shuangtoushekui",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/bronze_snake_sites")),
+            -63,300,0,15,"ALL","ANY",1,1,2,2,"STRUCTURE_MARKER",
+            "two authored mechanical chamber positions in v4 Tiangong; no biome spawn","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
+        new Spawn("xunshan_mujiaquan",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/clockwork_dog_sites")),
+            -63,300,0,15,"ALL","ANY",1,2,2,2,"STRUCTURE_MARKER",
+            "two authored v4 Tiangong entry patrols; alarm shares targets only within same site and20 blocks","PERSISTENT_MARKER; 10-minute cooldown after all killed"),
         new Spawn("jubi_shigandang",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/stone_guard_sites")),
             -63,300,0,15,"ALL","ANY",1,1,1,1,"STRUCTURE_MARKER",
             "one authored great-wall gate forecourt position; loaded solid floor only","PERSISTENT_MARKER; 10-minute cooldown after all killed"),

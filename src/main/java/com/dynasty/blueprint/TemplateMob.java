@@ -59,7 +59,7 @@ import java.util.UUID;
 
 /** Validated template lifecycle; additional army professions compose their own server actions. */
 public final class TemplateMob extends Monster implements GeoEntity, Combatant {
-    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE, CHILD, PAPER, SKULL, TOAD, TREE, SCORPION, SERPENT, STONE_GUARD }
+    public enum Kind { SWORD, SHIELD, PRIEST, BEAST, SPEAR, CROSSBOW, SCOUT, POWDER, FLAG, AXE_GUARD, GHOST, CORPSE, CHILD, PAPER, SKULL, TOAD, TREE, SCORPION, SERPENT, STONE_GUARD, CLOCKWORK_DOG, BRONZE_SNAKE, MINING_SPIDER }
     private static final EntityDataAccessor<Boolean> BURROWED=SynchedEntityData.defineId(TemplateMob.class,EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> TREE_AWAKE=SynchedEntityData.defineId(TemplateMob.class,EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Float> TONGUE_REACH = SynchedEntityData.defineId(TemplateMob.class, EntityDataSerializers.FLOAT);
@@ -88,13 +88,29 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     private long lastAnimationStart = Long.MIN_VALUE;
     private Vec3 leapDestination = Vec3.ZERO;
     private BlockPos highGround;
+    private String encounterSite="";
+    public String encounterSite(){return encounterSite;}
+    public void bindEncounter(String key){
+        int at=key.indexOf('@'),suffix=at<0?-1:key.indexOf(':',at);
+        encounterSite=(suffix<0?key:key.substring(0,suffix));
+        if(encounterSite.length()>256)encounterSite="";
+        if(kind==Kind.CLOCKWORK_DOG)restrictTo(blockPosition(),12);
+    }
+    @Override public boolean canBeAffected(net.minecraft.world.effect.MobEffectInstance effect){
+        if(kind==Kind.CLOCKWORK_DOG&&(effect.getEffect()==net.minecraft.world.effect.MobEffects.POISON
+            ||effect.getEffect()==net.minecraft.world.effect.MobEffects.WITHER||effect.getEffect()==com.dynasty.DynastyEffects.INTERNAL_INJURY.get()))return false;
+        return super.canBeAffected(effect);
+    }
 
     public TemplateMob(EntityType<? extends TemplateMob> type, Level level, Kind kind) {
         super(type, level);
         this.kind = kind;
         this.army = ArmyBehaviors.create(this,kind);
+        if(kind==Kind.CLOCKWORK_DOG)goalSelector.getAvailableGoals().stream().map(net.minecraft.world.entity.ai.goal.WrappedGoal::getGoal)
+            .filter(g->g instanceof WaterAvoidingRandomStrollGoal).toList().forEach(goalSelector::removeGoal);
         this.xpReward = kind == Kind.SHIELD ? 8 : 5;
         setMaxUpStep(kind == Kind.BEAST ? 1.0F : .6F);
+        if(kind==Kind.BRONZE_SNAKE)this.navigation=new net.minecraft.world.entity.ai.navigation.WallClimberNavigation(this,level);
         if (kind == Kind.BEAST) this.navigation = new com.dynasty.blueprint.combat.SummitClimberNavigation(this, level);
         else if(kind==Kind.TREE){
             goalSelector.getAvailableGoals().stream().map(net.minecraft.world.entity.ai.goal.WrappedGoal::getGoal)
@@ -142,18 +158,23 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             case SCORPION -> "mingsha_shixie";
             case SERPENT -> "bishui_xuanjiao_youzi";
             case STONE_GUARD -> "jubi_shigandang";
+            case CLOCKWORK_DOG -> "xunshan_mujiaquan";
+            case BRONZE_SNAKE -> "qingtong_shuangtoushekui";
+            case MINING_SPIDER -> "bazu_digongzhu";
         };
     }
-    @Override public Faction faction() { return kind==Kind.STONE_GUARD?Faction.CONSTRUCT: (kind == Kind.BEAST || kind == Kind.TOAD || kind == Kind.TREE || kind == Kind.SCORPION || kind == Kind.SERPENT) ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE || kind == Kind.CHILD || kind == Kind.PAPER || kind == Kind.SKULL) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
+    @Override public Faction faction() { return (kind==Kind.STONE_GUARD||kind==Kind.CLOCKWORK_DOG||kind==Kind.BRONZE_SNAKE||kind==Kind.MINING_SPIDER)?Faction.CONSTRUCT: (kind == Kind.BEAST || kind == Kind.TOAD || kind == Kind.TREE || kind == Kind.SCORPION || kind == Kind.SERPENT) ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE || kind == Kind.CHILD || kind == Kind.PAPER || kind == Kind.SKULL) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
     @Override public MobRole role() {
         return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER,AXE_GUARD,GHOST,CORPSE,PAPER -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
-            case PRIEST,FLAG,CHILD -> MobRole.SUPPORT; case CROSSBOW,SKULL -> MobRole.RANGED; case BEAST,TOAD,TREE,SCORPION,SERPENT,STONE_GUARD -> MobRole.BEAST; };
+            case PRIEST,FLAG,CHILD -> MobRole.SUPPORT; case CROSSBOW,SKULL -> MobRole.RANGED; case BEAST,TOAD,TREE,SCORPION,SERPENT,STONE_GUARD,CLOCKWORK_DOG,BRONZE_SNAKE,MINING_SPIDER -> MobRole.BEAST; };
     }
     public TimedAttack attack() { return attack; }
     public int skillId() { return entityData.get(SKILL); }
     public long skillStartTime() { return entityData.get(START); }
     public float skillSpeed() { return entityData.get(SPEED); }
     public int buffTargetId() { return entityData.get(BUFF_TARGET); }
+    public boolean hanging(){return kind==Kind.MINING_SPIDER&&entityData.get(CLIMBING);}
+    void setHanging(boolean value){entityData.set(CLIMBING,value);}
     public boolean burrowed(){return entityData.get(BURROWED);}
     void setBurrowed(boolean state){entityData.set(BURROWED,state);}
     public boolean treeAwake(){return entityData.get(TREE_AWAKE);}
@@ -225,7 +246,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         Vec3 direction = target.position().subtract(position()).multiply(1, 0, 1).normalize();
         if (direction.lengthSqr() < .0001) direction = getLookAngle().multiply(1, 0, 1).normalize();
         // A fuse uses real elapsed time, not attack speed: three consecutive close seconds.
-        float speed = id != ArmySkills.DETONATE && id != ArmySkills.AXE_COUNTER && id != ArmySkills.CHILD_CURSE && id != ArmySkills.SKULL_DIVE && id != ArmySkills.SKULL_BLOOD && id != ArmySkills.TOAD_LEAP && id != ArmySkills.SERPENT_COIL && id != ArmySkills.SERPENT_BITE && id != ArmySkills.STONE_SLAM && id != ArmySkills.STONE_UPPERCUT && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
+        float speed = id != ArmySkills.DETONATE && id != ArmySkills.AXE_COUNTER && id != ArmySkills.CHILD_CURSE && id != ArmySkills.SKULL_DIVE && id != ArmySkills.SKULL_BLOOD && id != ArmySkills.TOAD_LEAP && id != ArmySkills.SERPENT_COIL && id != ArmySkills.SERPENT_BITE && id != ArmySkills.STONE_SLAM && id != ArmySkills.STONE_UPPERCUT && id != ArmySkills.DOG_BITE && id != ArmySkills.DOG_ALARM && kind != Kind.BRONZE_SNAKE && kind != Kind.MINING_SPIDER && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;
         SkillDefinition effective = TemplateSkills.accelerated(base, speed);
         if (!attack.tryStart(effective, level().getGameTime(), position(), direction, target.getUUID())) return false;
         if(army!=null)army.started(id,target);
@@ -292,6 +313,15 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             if (attack.current() == null && skillId() != 0) finishAction();
         }
         entityData.set(PHASE, attack.state(now).ordinal());
+        if(kind==Kind.BRONZE_SNAKE){
+            boolean bars=false;
+            if(horizontalCollision)for(var d:Direction.Plane.HORIZONTAL)for(int y=0;y<2;y++){
+                var p=blockPosition().relative(d).above(y);
+                if(level().hasChunkAt(p)&&level().getBlockState(p).is(net.minecraft.world.level.block.Blocks.IRON_BARS))bars=true;
+            }
+            entityData.set(CLIMBING,bars&&isAlive());
+            if(bars&&getTarget()!=null&&getTarget().getY()>getY()+.5&&skillId()==0)setDeltaMovement(getDeltaMovement().x,.18,getDeltaMovement().z);
+        }
         if (kind == Kind.BEAST) {
             entityData.set(CLIMBING, horizontalCollision && getTarget() != null);
             updateClimbContact();
@@ -335,7 +365,8 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (best == null) {
             // horizontalCollision describes the preceding travel step. Once the whole
             // bounding box clears the lip it must not retain a phantom wall attachment.
-            entityData.set(CLIMBING, false); clearClimbContact(); return;
+            entityData.set(CLIMBING, false);
+        if(kind==Kind.MINING_SPIDER)setNoGravity(false); clearClimbContact(); return;
         }
         if (previous != best || climbStartTime() < 0) entityData.set(CLIMB_START, level().getGameTime());
         entityData.set(CLIMB_FACE, (byte)best.get2DDataValue());
@@ -524,6 +555,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         BlueprintVisualEvent.cancel(this);
     }
     private void face(Vec3 direction) {
+        if(kind==Kind.BRONZE_SNAKE&&(skillId()==ArmySkills.BRONZE_REAR_STAB||skillId()==ArmySkills.BRONZE_POISON))direction=direction.scale(-1);
         float yaw = (float)(Math.atan2(direction.z, direction.x) * 180 / Math.PI) - 90;
         setYRot(yaw); yBodyRot = yaw; yHeadRot = yaw;
     }
@@ -558,7 +590,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     @Override public boolean onClimbable() {
         // A dead wall-climber must fall under ordinary gravity. Keeping the last synchronized
         // climbing flag would continue vanilla's wall boost / slow-fall during its death clip.
-        if (kind == Kind.BEAST) return isAlive() && (entityData.get(CLIMBING) || super.onClimbable());
+        if (kind == Kind.BEAST || kind == Kind.BRONZE_SNAKE) return isAlive() && (entityData.get(CLIMBING) || super.onClimbable());
         return super.onClimbable();
     }
     @Override public boolean canBreatheUnderwater(){return kind==Kind.TOAD||kind==Kind.SERPENT||super.canBreatheUnderwater();}
@@ -615,6 +647,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         deathStarted = level().getGameTime(); attack.cancel(); navigation.stop(); setTarget(null); releaseSupport(); clearPossession();
         syncHook(null,-1);
         entityData.set(CLIMBING, false);
+        if(kind==Kind.MINING_SPIDER)setNoGravity(false);
         clearClimbContact();
         entityData.set(SKILL, 0); entityData.set(START, deathStarted); entityData.set(SPEED, 1F);
         BlueprintVisualEvent.cancel(this);
@@ -645,6 +678,8 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
 
     @Override public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
+        tag.putString("BlueprintEncounterSite",encounterSite);
+        if(kind==Kind.CLOCKWORK_DOG&&hasRestriction())tag.putLong("ClockworkPatrolHome",getRestrictCenter().asLong());
         tag.putBoolean("Burrowed",burrowed());
         tag.putBoolean("TreeAwake",treeAwake());tag.putFloat("TongueReach",tongueReach()); tag.put("BlueprintAttack", attack.save()); tag.putFloat("BlueprintSpeed", skillSpeed());
         tag.putBoolean("BlueprintLootDropped", lootDropped); tag.putLong("BlueprintDeathStart", deathStarted); tag.putInt("BlueprintDeathTicks", deathTime);
@@ -656,6 +691,8 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     }
     @Override public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        encounterSite=tag.getString("BlueprintEncounterSite");if(encounterSite.length()>256)encounterSite="";
+        if(kind==Kind.CLOCKWORK_DOG&&tag.contains("ClockworkPatrolHome"))restrictTo(BlockPos.of(tag.getLong("ClockworkPatrolHome")),12);
         setBurrowed(tag.getBoolean("Burrowed"));
         setTreeAwake(tag.getBoolean("TreeAwake"));
         setTongueReach(tag.contains("TongueReach")?tag.getFloat("TongueReach"):5);
@@ -676,6 +713,10 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         entityData.set(POSSESSED, hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()));
         LivingEntity ally = resolve(possessedAlly); if (ally != null) entityData.set(BUFF_TARGET, ally.getId());
         leapDestination = new Vec3(tag.getDouble("LeapX"), tag.getDouble("LeapY"), tag.getDouble("LeapZ"));
+        if(encounterSite.isBlank()&&level() instanceof ServerLevel server){
+            // Upgrade old structure members once on load, using the existing persisted UUID ledger.
+            for(var marker:BlueprintSpawnState.get(server).markers.values())if(marker.members.contains(getUUID())){bindEncounter(marker.key);break;}
+        }
         if(army!=null)army.load(tag.getCompound("ArmyActionState"));
     }
 
@@ -690,6 +731,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (skillId() == TemplateSkills.POUNCE) return "skill";
         if (skillId() != 0) return "attack";
         if (kind == Kind.BEAST && onClimbable() && climbFace() != null) return "climb";
+        if(kind==Kind.BRONZE_SNAKE&&onClimbable())return "climb";
         if (getDeltaMovement().horizontalDistanceSqr() > .001) return isSprinting() ? "run" : "walk";
         return "idle";
     }

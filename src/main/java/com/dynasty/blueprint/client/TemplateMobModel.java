@@ -27,7 +27,7 @@ public final class TemplateMobModel extends GeoModel<TemplateMob> {
         String atlas = switch (mob.blueprintId()) {
             case "jubi_shigandang", "zuwu_daoshou", "ludun_jiashi", "zhenwang_zhangqiguan", "pijia_panjiang_huwei", "yinbing_guizu" -> "royal_guard";
             case "juma_changqiangbing" -> "archer";
-            case "liannu_zhenzu", "kuijun_sishi" -> "rebel_soldier";
+            case "bazu_digongzhu", "qingtong_shuangtoushekui", "xunshan_mujiaquan", "liannu_zhenzu", "kuijun_sishi" -> "rebel_soldier";
             case "tiesuo_chihou" -> "assassin";
             case "fuhun_baibu_tongzi" -> "imperial_soldier";
             case "bishui_xuanjiao_youzi", "shibian_lishi", "chimu_zhuha", "kumu_shujing", "mingsha_shixie" -> "nian_beast";

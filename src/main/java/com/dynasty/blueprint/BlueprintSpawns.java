@@ -34,6 +34,9 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> PAPERS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/paper_swordsman_sites"));
     private static final TagKey<Structure> SKULLS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/flying_skull_sites"));
     private static final TagKey<Structure> STONE_GUARDS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/stone_guard_sites"));
+    private static final TagKey<Structure> DOGS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/clockwork_dog_sites"));
+    private static final TagKey<Structure> BRONZE_SNAKES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/bronze_snake_sites"));
+    private static final TagKey<Structure> SPIDERS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/mining_spider_sites"));
     private BlueprintSpawns() {}
     public static void register(SpawnPlacementRegisterEvent event) {
         event.register(BlueprintEntities.BISHUI_XUANJIAO_YOUZI.get(),SpawnPlacements.Type.NO_RESTRICTIONS,
@@ -153,7 +156,7 @@ public final class BlueprintSpawns {
         int remaining=2; // Absolute per-level work cap, independent of player count.
         for(var player:level.players()) {
             if(player.isSpectator())continue;
-            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES,CHILDREN,PAPERS,SKULLS,STONE_GUARDS)) for(var holder:registry.getTagOrEmpty(group)) {
+            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES,CHILDREN,PAPERS,SKULLS,STONE_GUARDS,DOGS,BRONZE_SNAKES,SPIDERS)) for(var holder:registry.getTagOrEmpty(group)) {
                 if(remaining<=0)return;
                 if(group==BATTLEFIELD&&level.isDay())continue;
                 var start=level.structureManager().getStructureAt(player.blockPosition(),holder.value());
@@ -184,6 +187,23 @@ public final class BlueprintSpawns {
                     for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
                             &&spawnTombCorpse(level,key+":corpses",tomb.corpsePositions(),player.blockPosition())){remaining--;break;}
                     continue;
+                }
+                if(group==SPIDERS){
+                    if(!checked.add(key+":mining_spiders"))continue;
+                    for(var piece:start.getPieces())if(spawnMiningSpiders(level,key+":mining_spiders",com.dynasty.structure.megabuild.MechanicalPatrols.spiderPositions(piece),player.blockPosition())){remaining--;break;}
+                    continue;
+                }
+                if(group==BRONZE_SNAKES){
+                    if(!checked.add(key+":bronze_snakes"))continue;
+                    for(var piece:start.getPieces())if(spawnBronzeSnakes(level,key+":bronze_snakes",com.dynasty.structure.megabuild.MechanicalPatrols.snakePositions(piece),player.blockPosition())){remaining--;break;}
+                    continue;
+                }
+                if(group==DOGS){
+                    if(!checked.add(key+":clockwork_dogs"))continue;
+                    for(var piece:start.getPieces()){
+                        var positions=com.dynasty.structure.megabuild.MechanicalPatrols.dogPositions(piece);
+                        if(spawnClockworkDogs(level,key+":clockwork_dogs",positions,player.blockPosition())){remaining--;break;}
+                    }continue;
                 }
                 if(group==STONE_GUARDS){
                     if(!checked.add(key+":stone_guard"))continue;
@@ -237,7 +257,7 @@ public final class BlueprintSpawns {
                         ||level.random.nextInt(TemplateContentDefinitions.maximumWeight(definition))
                             >=TemplateContentDefinitions.effectiveWeight(definition,!level.isDay(),light))continue;
                 var mob=type.create(level);if(mob==null)continue;
-                mob.moveTo(found.getX()+.5,found.getY(),found.getZ()+.5,0,0);mob.setPersistenceRequired();
+                mob.moveTo(found.getX()+.5,found.getY(),found.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);
                 mob.finalizeSpawn(level,level.getCurrentDifficultyAt(found),MobSpawnType.STRUCTURE,null,null);
                 if(level.addFreshEntity(mob)) {marker.members.add(mob.getUUID());marker.produced++;state.setDirty();remaining--;}
             }
@@ -263,6 +283,15 @@ public final class BlueprintSpawns {
     public static boolean spawnStoneGuard(ServerLevel level,String key,BlockPos pos,BlockPos entrant){
         return spawnAuthoredGroup(level,key,List.of(pos),entrant,BlueprintEntities.JUBI_SHIGANDANG.get(),level.getMinBuildHeight()+1,300);
     }
+    public static boolean spawnClockworkDogs(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.XUNSHAN_MUJIAQUAN.get(),level.getMinBuildHeight()+1,300);
+    }
+    public static boolean spawnBronzeSnakes(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.QINGTONG_SHUANGTOUSHEKUI.get(),level.getMinBuildHeight()+1,300);
+    }
+    public static boolean spawnMiningSpiders(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.BAZU_DIGONGZHU.get(),level.getMinBuildHeight()+1,300);
+    }
     private static boolean spawnAuthoredGroup(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant,
             net.minecraft.world.entity.EntityType<TemplateMob> type,int minY,int maxY){
         if(positions.isEmpty()||positions.size()>3||level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
@@ -275,7 +304,7 @@ public final class BlueprintSpawns {
                 ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),e->e.isAlive()&&e.getType()==type).size()>=positions.size()
                 ||!authoredSpace(level,type,pos))return false;
         var mob=type.create(level);if(mob==null)return false;
-        mob.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,0,0);mob.setPersistenceRequired();
+        mob.moveTo(pos.getX()+.5,pos.getY()+(type==BlueprintEntities.BAZU_DIGONGZHU.get()?.6:0),pos.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);
         mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.STRUCTURE,null,null);
         if(!level.addFreshEntity(mob))return false;
         if(marker==null){marker=new BlueprintSpawnState.Marker(key,pos);state.markers.put(key,marker);}
@@ -285,6 +314,8 @@ public final class BlueprintSpawns {
 
     private static boolean authoredSpace(ServerLevel level,net.minecraft.world.entity.EntityType<TemplateMob> type,BlockPos pos){
         var box=type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5);
+        if(type==BlueprintEntities.BAZU_DIGONGZHU.get())return level.noCollision(null,box.move(0,.6,0))
+            &&MiningSpiderBehavior.supported(level,new net.minecraft.world.phys.Vec3(pos.getX()+.5,pos.getY()+.6,pos.getZ()+.5),type.getHeight());
         if(type==BlueprintEntities.MUXUE_FEILU.get())return level.getMaxLocalRawBrightness(pos)<=7
             &&level.getFluidState(pos).isEmpty()&&level.noCollision(null,box);
         return com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,box);
@@ -315,7 +346,7 @@ public final class BlueprintSpawns {
                 ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,
                     type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5)))return false;
         var mob=type.create(level);if(mob==null)return false;
-        mob.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,0,0);mob.setPersistenceRequired();
+        mob.moveTo(pos.getX()+.5,pos.getY()+(type==BlueprintEntities.BAZU_DIGONGZHU.get()?.6:0),pos.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);
         mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.STRUCTURE,null,null);
         if(!level.addFreshEntity(mob))return false;
         marker.members.add(mob.getUUID());marker.produced++;marker.nextSpawn=level.getGameTime()+100;state.setDirty();

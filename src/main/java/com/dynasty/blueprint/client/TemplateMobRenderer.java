@@ -26,6 +26,9 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
     @SubscribeEvent public static void register(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(BlueprintEntities.BISHUI_XUANJIAO_YOUZI.get(),TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.JUBI_SHIGANDANG.get(),TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.XUNSHAN_MUJIAQUAN.get(),TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.QINGTONG_SHUANGTOUSHEKUI.get(),TemplateMobRenderer::new);
+        event.registerEntityRenderer(BlueprintEntities.BAZU_DIGONGZHU.get(),TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.ZUWU_DAOSHOU.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.LUDUN_JIASHI.get(), TemplateMobRenderer::new);
         event.registerEntityRenderer(BlueprintEntities.FUFA_JIJIU.get(), TemplateMobRenderer::new);
@@ -70,6 +73,10 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
     }
 
     @Override protected void applyRotations(TemplateMob mob, PoseStack pose, float age, float bodyYaw, float partialTick) {
+        if(mob.kind()==TemplateMob.Kind.MINING_SPIDER&&mob.hanging()&&mob.isAlive()){
+            super.applyRotations(mob,pose,age,bodyYaw,partialTick);
+            pose.translate(0,mob.getBbHeight(),0);pose.mulPose(Axis.ZP.rotationDegrees(180));return;
+        }
         var wall = mob.climbFace();
         if (mob.kind() != TemplateMob.Kind.BEAST || !mob.isAlive() || mob.skillId() != 0
                 || !mob.onClimbable() || wall == null) {

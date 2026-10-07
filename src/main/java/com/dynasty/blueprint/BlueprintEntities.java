@@ -90,6 +90,12 @@ public final class BlueprintEntities {
     public static final RegistryObject<EntityType<TemplateMob>> JUBI_SHIGANDANG=mob("jubi_shigandang",TemplateMob.Kind.STONE_GUARD,1.2F,2.4F);
     public static final RegistryObject<Item> JUBI_SHIGANDANG_EGG=egg("jubi_shigandang",JUBI_SHIGANDANG,0x646F69,0x917B42);
 
+    public static final RegistryObject<EntityType<TemplateMob>> XUNSHAN_MUJIAQUAN=mob("xunshan_mujiaquan",TemplateMob.Kind.CLOCKWORK_DOG,.8F,.85F);
+    public static final RegistryObject<Item> XUNSHAN_MUJIAQUAN_EGG=egg("xunshan_mujiaquan",XUNSHAN_MUJIAQUAN,0x79552F,0xBC8A41);
+    public static final RegistryObject<EntityType<TemplateMob>> QINGTONG_SHUANGTOUSHEKUI=mob("qingtong_shuangtoushekui",TemplateMob.Kind.BRONZE_SNAKE,.9F,.9F);
+    public static final RegistryObject<Item> QINGTONG_SHUANGTOUSHEKUI_EGG=egg("qingtong_shuangtoushekui",QINGTONG_SHUANGTOUSHEKUI,0x987A47,0x437065);
+    public static final RegistryObject<EntityType<TemplateMob>> BAZU_DIGONGZHU=mob("bazu_digongzhu",TemplateMob.Kind.MINING_SPIDER,2.5F,1.4F);
+    public static final RegistryObject<Item> BAZU_DIGONGZHU_EGG=egg("bazu_digongzhu",BAZU_DIGONGZHU,0x927238,0x394650);
     private BlueprintEntities() { }
     private static RegistryObject<EntityType<TemplateMob>> mob(String id, TemplateMob.Kind kind, float width, float height) {
         return ENTITIES.register(id, () -> EntityType.Builder.<TemplateMob>of((type, level) -> new TemplateMob(type, level, kind), MobCategory.MONSTER)
@@ -112,6 +118,9 @@ public final class BlueprintEntities {
                 .add(Attributes.KNOCKBACK_RESISTANCE, resistance).add(Attributes.ATTACK_SPEED, 1).build();
     }
     private static void attributes(EntityAttributeCreationEvent event) {
+        event.put(BAZU_DIGONGZHU.get(),attributes(76,7,.23,8,.5));
+        event.put(QINGTONG_SHUANGTOUSHEKUI.get(),attributes(60,6,.24,8,.3));
+        event.put(XUNSHAN_MUJIAQUAN.get(),attributes(38,5,.31,5,.15));
         event.put(JUBI_SHIGANDANG.get(),attributes(90,8,.18,9,.6));
         event.put(BISHUI_XUANJIAO_YOUZI.get(),attributes(62,6,.32,4,.15));
         event.put(ZUWU_DAOSHOU.get(), attributes(48, 5, .25, 3, .05));

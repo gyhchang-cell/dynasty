@@ -3,12 +3,12 @@
 输入：用户上传 cod1_new(5).txt，与仓库 cod1_new.txt 逐字节相同。
 代码基线：main 6feb7f140bfb0884d34f8b1d4e9e0f3732efa053。交付分支：cod1。
 原 cod1 6df2048 是 main 的祖先，本次快进接入 main 已有成果，保留强化系统及最新完整 FTB 导出。
-本次续作新增第19只碧水玄蛟幼崽和第20只巨臂石敢当的运行代码、模型动画、生成、掉落与测试。全部 cod1 任务仍未完成。
+本次续作新增第21～23只巡山木甲犬、青铜双头蛇傀和八足地工蛛的运行代码、模型动画、生成、掉落与测试。全部 cod1 任务仍未完成。
 
 ## 当前状态
 
-**0 DONE / 20 PARTIAL / 74 NOT_STARTED。** 20只基础怪有运行代码和资源，但最新构建的单机、双人及性能验收待完成。
-待开发10基础怪、15精英、12Boss、25神器、12神影；下一内容条目是第21只巡山木甲犬。
+**0 DONE / 23 PARTIAL / 71 NOT_STARTED。** 23只基础怪有运行代码和资源，但最新构建的单机、双人及性能验收待完成。
+待开发7基础怪、15精英、12Boss、25神器、12神影；下一内容条目是第24只幽灯鬼面蝠。
 DungeonDefinition 中的 pilin_zhijinwu/juchui_jinjia_lishi 是设计引用，不是实体注册，不因此标已实现。相似旧实体、Boss和装备也不替代蓝图精确条目。镇渊帝君保持最终Boss。
 
 ## 验收边界
@@ -18,7 +18,7 @@ ImperialWeaponRenderer / ImperialRenderState 已有渲染阶段分离、状态�
 ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试记录保留，不重复重写。
 仓库272/272及已有客户端截图是历史证据，不算本次重新运行通过。当前环境验证结果见本文末尾。
 
-## 已实现但待验收的20项
+## 已实现但待验收的23项
 
 实现类均在 src/main/java/com/dynasty/blueprint：BlueprintEntities + TemplateMob；技能在 TemplateSkills 或 ArmySkills/ArmyBehaviors。
 生成：TemplateContentDefinitions、BlueprintSpawns及结构/生态数据。资源前缀为 src/main/resources/assets/dynasty。
@@ -48,15 +48,16 @@ ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试�
 | 碧水玄蛟幼崽 / `bishui_xuanjiao_youzi` | `geo/blueprint/bishui_xuanjiao_youzi.geo.json`；同名 animation | `nian_beast` 原生图集 | WaterSerpentBehavior；水陆寻路、咬击、有限缠绕、潜行/伤害脱身、抗连控；深潭生态及3种功能掉落 | 未验收 | 未验收 | 未测 |
 | 巨臂石敢当 / `jubi_shigandang` | `geo/blueprint/jubi_shigandang.geo.json`；同名 animation | `royal_guard` 原生图集 | StoneGuardBehavior；上撩、30 tick 蓄力直线重砸、命中破盾；关隘固定点及3种功能掉落 | 未验收 | 未验收 | 未测 |
 
-## 剩余74项
+| 巡山木甲犬 / `xunshan_mujiaquan` | `geo/blueprint/xunshan_mujiaquan.geo.json`；同名 animation | 原生图集，见TemplateMobModel | ClockworkDogBehavior；原生巡逻、咬击、同遭遇有限警报、免疫毒腐蚀、天工城落点；3种功能掉落 | 未验收 | 未验收 | 未测 |
+| 青铜双头蛇傀 / `qingtong_shuangtoushekui` | `geo/blueprint/qingtong_shuangtoushekui.geo.json`；同名 animation | 原生图集，见TemplateMobModel | BronzeSnakeBehavior；前后头攻击、有限喷火毒雾、共享冷却、铁栏攀爬、天工城落点；3种功能掉落 | 未验收 | 未验收 | 未测 |
+| 八足地工蛛 / `bazu_digongzhu` | `geo/blueprint/bazu_digongzhu.geo.json`；同名 animation | 原生图集，见TemplateMobModel | MiningSpiderBehavior；真实顶棚支撑与爬行、预警落地单次冲击、矿场落点；3种功能掉落 | 未验收 | 未验收 | 未测 |
+
+## 剩余71项
 
 以下条目未见对应的完整运行实现。实现类、geo、animation、texture、技能、运行落点和奖励接口待实施；单机、双人、性能均待验收。
 
 | 类别 | 编号 | 名称 | 拟定ID | 状态 |
 | --- | --- | --- | --- | --- |
-| BASIC | 21 | 巡山木甲犬 | `dynasty:xunshan_mujiaquan` | NOT_STARTED |
-| BASIC | 22 | 青铜双头蛇傀 | `dynasty:qingtong_shuangtoushekui` | NOT_STARTED |
-| BASIC | 23 | 八足地工蛛 | `dynasty:bazu_digongzhu` | NOT_STARTED |
 | BASIC | 24 | 幽灯鬼面蝠 | `dynasty:youdeng_guimianfu` | NOT_STARTED |
 | BASIC | 25 | 穴居盲骨鱼 | `dynasty:xueju_mangguyu` | NOT_STARTED |
 | BASIC | 26 | 煞水浮溺鬼 | `dynasty:shashui_funigui` | NOT_STARTED |
@@ -133,7 +134,7 @@ ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试�
 
 用户再次要求完成所有 cod1 任务后继续实施代码，实机验收单独保留，未把服务端通过标成 DONE。
 运行复用既有 TemplateMob / TimedAttack / BlueprintSpawns / BlueprintSpawnState / BlueprintVisualEvent；原材料、强化系统、FTB 导出及最终 Boss 未改。
-当前新增两只怪均有独立行为与模型；没有用注册名或重命名旧怪冒充剩余74项。
+当前新增两只怪均有独立行为与模型；没有用注册名或重命名旧怪冒充剩余71项。
 
 - 第19项：14节脊椎、47骨骼、7动画，主世界暗河/高山深潭，连通水体与附近数量限制；无穿墙拖拽、骑乘或输入/相机锁。
 - 第20项：不对称碑体及四段巨臂、13骨骼、7动画；真实长城关隘前庭，通过已有每轮生成预算和遭遇成员存档，单只上限。
@@ -141,7 +142,16 @@ ArmyBehaviors.Powder / TimedAttack 已有引信取消/重载修复；旧测试�
 - 旧测试写死的技能数量改为注册ID唯一性及所有接触帧属于ACTIVE的验证；沙蝎生态夹具固定绝对海拔132，未放宽正式生成条件。
 - 图形客户端、双人旁观和性能验证未运行，仍为 PARTIAL。
 
-本轮最终结果：`dynasty_army` 命名空间 **117/117 GameTest 通过**，`build` 成功。这是蓝图怪物回归，不是全项目所有命名空间的复测。
+第19～20项历史结果：`dynasty_army` 命名空间 **117/117 GameTest 通过**，`build` 成功。这是蓝图怪物回归，不是全项目所有命名空间的复测。
 日志：[frontier-19-20-117.txt](evidence/frontier-19-20-117.txt)。客户端/双人实机仍未执行。
 
 本地复测可用既有入口：`./gradlew -I tools/blueprint/army-test.init.gradle -ParmyTestRun=frontier-19-20-unique runGameTestServer build`。每次采用新的 run ID，避免复用遭遇存档污染结构生成测试。云端专用服务器复测跳过不需要的 `downloadAssets`；构建期间曾遭共享缓存锁与内存上限，最终使用独立缓存、768 MiB Gradle / 1536 MiB 游戏堆和2工作线程成功。
+
+## 第21～23项机关怪续作
+
+- 木甲犬：固定巡逻范围、咬击与前摇警报，仅唤醒同结构遭遇的最多16名已加载友军；读档保留家点和遭遇身份。
+- 双头蛇傀：单身体双头独立前后攻击、锁向3秒火/毒扇区、共同吐息冷却与读档约束、真实铁栏接触攀爬；实墙阻隔伤害。
+- 地工蛛：9点真实顶棚支撑、普通碰撞下顶棚移动、失去顶棚取消前摇、真实重力落地后仅一次半径3冲击；不穿墙、不修改输入。
+- 三者各自拥有模型、动画、3种功能掉落与现有击杀进度。天工城与矿场使用原遭遇预算及持久化，四种结构旋转和重载落点均有测试；矿场工作间补可步行入口。
+- 最新 `dynasty_army` **134/134** GameTest、`build` 通过。[日志](evidence/mechanical-21-23-134.txt)。NoAI测试实体不能验证真实移动，落地与攀爬回归已使用实际AI/物理；未削弱伤害、范围或墙体断言。
+- 图形客户端、双人和性能未验收，维持23 PARTIAL /71 NOT_STARTED。静态 content-definitions.json 是旧目录快照，当前数量以本文与运行源码为准。

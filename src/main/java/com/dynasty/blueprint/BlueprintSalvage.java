@@ -80,6 +80,19 @@ public final class BlueprintSalvage {
     public static final RegistryObject<Item> WARDING_INSCRIPTION_SHARD=register("warding_inscription_shard",Use.SHIELD);
     public static final RegistryObject<Item> ANCIENT_BRONZE_CHAIN_RING=register("ancient_bronze_chain_ring",Use.CHAINMAIL);
     public static final RegistryObject<Item> HARD_BLUESTONE=plain("hard_bluestone");
+    public static final RegistryObject<Item> BRONZE_CLOCKSPRING=register("bronze_clockspring",Use.CROSSBOW);
+    public static final RegistryObject<Item> JOINERY_GEAR=register("joinery_gear",Use.BOWS);
+    public static final RegistryObject<Item> FIRE_OIL_GLASS_BEAD=BlueprintEntities.ITEMS.register("fire_oil_glass_bead",()->new Item(new Item.Properties()){
+        @Override public int getBurnTime(ItemStack stack,@Nullable net.minecraft.world.item.crafting.RecipeType<?> type){return 800;}
+    });
+    public static final RegistryObject<Item> BRONZE_BALL_JOINT=register("bronze_ball_joint",Use.CROSSBOW);
+    public static final RegistryObject<Item> MINIATURE_OIL_NOZZLE=plain("miniature_oil_nozzle");
+    public static final RegistryObject<Item> SERPENT_COPPER_PLATE=register("serpent_copper_plate",Use.SHIELD);
+    public static final RegistryObject<Item> DIAMOND_DRILL_FRAGMENT=register("diamond_drill_fragment",Use.IRON_GEAR);
+    public static final RegistryObject<Item> HEATPROOF_COPPER_PLATE=register("heatproof_copper_plate",Use.SHIELD);
+    public static final RegistryObject<Item> REFINED_COAL_BALL=BlueprintEntities.ITEMS.register("refined_coal_ball",()->new Item(new Item.Properties()){
+        @Override public int getBurnTime(ItemStack stack,@Nullable net.minecraft.world.item.crafting.RecipeType<?> type){return 2400;}
+    });
     private static final class BreathSac extends Item {
         BreathSac(){super(new Properties().food(new net.minecraft.world.food.FoodProperties.Builder().nutrition(0).saturationMod(0).alwaysEat().build()));}
         @Override public ItemStack finishUsingItem(ItemStack stack,Level level,net.minecraft.world.entity.LivingEntity user){

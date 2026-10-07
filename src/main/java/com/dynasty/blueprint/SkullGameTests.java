@@ -81,7 +81,7 @@ public final class SkullGameTests {
         h.runAfterDelay(95,()->{
             var restored=new SkullBloodPool(BlueprintEntities.SKULL_BLOOD_POOL.get(),h.getLevel());restored.load(saved);h.getLevel().addFreshEntity(restored);
             h.runAfterDelay(3,()->{h.assertTrue(restored.isRemoved()&&!a.hasEffect(net.minecraft.world.effect.MobEffects.POISON)
-                &&a.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET).getDamageValue()==2,"Expired loaded pool cannot catch up corrosion, duplicate pulses or leave permanent poison");a.discard();b.discard();h.succeed();});
+                &&a.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET).getDamageValue()==2,"Expired loaded pool cannot catch up corrosion, duplicate pulses or leave permanent poison: removed="+restored.isRemoved()+" poison="+a.hasEffect(net.minecraft.world.effect.MobEffects.POISON)+" alive="+a.isAlive()+" armour="+a.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET).getDamageValue());a.discard();b.discard();h.succeed();});
         });
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=270,batch="skull")
