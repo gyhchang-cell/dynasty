@@ -225,7 +225,7 @@ public final class DungeonFrameworkGameTests {
 
     @GameTest(template="bow_ritual_test",batch="cod2_chensha")
     public static void allThreeChenshaStairRunsHaveSupportAndPlayerHeadroom(GameTestHelper h) {
-        var origin=new BlockPos(-23,20,-31);var id=ChenshaStructure.instanceId(39,origin);var capture=new Capture();
+        var origin=new BlockPos(-23,20,-31);var id=ChenshaStructure.instanceId(39,origin);var capture=new Capture(h.getLevel());
         for(int x=0;x<4;x++)for(int z=0;z<6;z++){
             var original=new ChenshaPiece(origin,x,z,id);var restored=new ChenshaPiece(null,original.createTag(null));
             h.assertTrue(restored.getBoundingBox().equals(original.getBoundingBox()),"Column extent survives piece NBT");
@@ -243,6 +243,8 @@ public final class DungeonFrameworkGameTests {
                 h.assertTrue(part.saveWithoutMetadata().getLongArray("Markers").length==count,"Room marker list was silently truncated: "+marker.room());
             }
         }
+        for(int y=44;y<=48;y++)h.assertTrue(capture.postprocessed.contains(origin.offset(35,y,41)),
+            "Every generated return ladder is queued for vanilla postprocessing inside its own chunk");
         for(int run=0;run<3;run++){
             int start=run==0?10:run==1?59:28,end=run==0?34:run==1?83:52;
             for(int z=start;z<=end;z++){
@@ -413,7 +415,7 @@ public final class DungeonFrameworkGameTests {
     @GameTest(template="bow_ritual_test",batch="cod2_framework")
     public static void pieceRoundTripAndChunkClippingKeepAllMarkers(GameTestHelper h) {
         BlockPos origin=new BlockPos(-23,70,-31);var id=DungeonProbeStructure.instanceId(39,origin);
-        var capture=new Capture();
+        var capture=new Capture(h.getLevel());
         for(int part=0;part<3;part++) {
             var original=new DungeonProbePiece(origin,part,id);var restored=new DungeonProbePiece(null,original.createTag(null));
             h.assertTrue(restored.getBoundingBox().equals(original.getBoundingBox()),"Piece extent unchanged after reload");
@@ -476,7 +478,10 @@ public final class DungeonFrameworkGameTests {
         final Map<BlockPos,BlockState> blocks=new HashMap<>();
         final Map<BlockPos,BlockEntity> entities=new HashMap<>();
         BoundingBox clip;
-        final WorldGenLevel level=(WorldGenLevel)Proxy.newProxyInstance(WorldGenLevel.class.getClassLoader(),new Class<?>[]{WorldGenLevel.class},(proxy,method,args)->{
+        final java.util.Set<BlockPos> postprocessed=new java.util.HashSet<>();
+        final Map<ChunkPos,net.minecraft.world.level.chunk.ProtoChunk> chunks=new HashMap<>();
+        final WorldGenLevel level;
+        Capture(net.minecraft.server.level.ServerLevel source){level=(WorldGenLevel)Proxy.newProxyInstance(WorldGenLevel.class.getClassLoader(),new Class<?>[]{WorldGenLevel.class},(proxy,method,args)->{
             switch(method.getName()) {
                 case "setBlock": {
                     var pos=((BlockPos)args[0]).immutable();var state=(BlockState)args[1];
@@ -485,12 +490,24 @@ public final class DungeonFrameworkGameTests {
                     if(state.getBlock() instanceof BaseEntityBlock block)entities.put(pos,block.newBlockEntity(pos,state));
                     return true;
                 }
+                case "getChunk": {
+                    var chunk=args[0] instanceof BlockPos p?new ChunkPos(p):new ChunkPos((int)args[0],(int)args[1]);
+                    if(chunk.x!=(clip.minX()>>4)||chunk.z!=(clip.minZ()>>4))
+                        throw new AssertionError("Cross-chunk postprocessing request: "+chunk);
+                    return chunks.computeIfAbsent(chunk,c->new net.minecraft.world.level.chunk.ProtoChunk(c,
+                        net.minecraft.world.level.chunk.UpgradeData.EMPTY,source,source.registryAccess().registryOrThrow(Registries.BIOME),null){
+                            @Override public void markPosForPostprocessing(BlockPos pos){
+                                if(!clip.isInside(pos))throw new AssertionError("Cross-chunk postprocessing: "+pos);
+                                postprocessed.add(pos.immutable());super.markPosForPostprocessing(pos);
+                            }
+                        });
+                }
                 case "getBlockState":return blocks.getOrDefault(args[0],Blocks.AIR.defaultBlockState());
                 case "getBlockEntity":return entities.get(args[0]);
                 case "getFluidState":return Fluids.EMPTY.defaultFluidState();
                 case "toString":return "DungeonChunkCapture";
                 default:throw new AssertionError("Unexpected worldgen operation: "+method.getName());
             }
-        });
+        });}
     }
 }
