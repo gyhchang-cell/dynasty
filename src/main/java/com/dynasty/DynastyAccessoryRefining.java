@@ -70,7 +70,7 @@ public final class DynastyAccessoryRefining {
         double result=0;
         for(var entry:best.entrySet()) {
             String school=DynastyAccessoryData.get(entry.getKey()).school();
-            if(switch(school) {case "archer" -> arrow; case "talisman" -> melee && edict; default -> melee;})
+            if(switch(school) {case "archer" -> arrow; case "talisman" -> (melee || EdictSpells.isSpell(source)) && edict; default -> melee;})
                 result+=bonus(entry.getValue());
         }
         return result;

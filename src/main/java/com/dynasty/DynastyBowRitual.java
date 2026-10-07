@@ -110,11 +110,25 @@ public final class DynastyBowRitual {
         }
     }
 
+    public static int visualTheme(Item bow) {
+        var key=net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(bow);
+        if(key==null)return 0;
+        return switch(key.getPath()) {
+            case "zhuque_bow" -> 1;
+            case "zhuxing_bow", "tianlang_bow" -> 2;
+            case "fengling_bow", "chang_gong" -> 3;
+            case "shenbi_bow" -> 4;
+            default -> 0;
+        };
+    }
+
     static void trackArrow(AbstractArrow arrow, Item bow, double score) {
         if (!(arrow.level() instanceof ServerLevel server)) return;
         int tier = tier(score);
         boolean phoenix = bow == DynastyWeapons.ZHUQUE_BOW.get();
-        ARROWS.put(arrow.getUUID(), new Shot(server.dimension(), tier, phoenix, server.getGameTime()));
+        var shot=new Shot(server.dimension(), tier, phoenix, server.getGameTime());
+        shot.theme=visualTheme(bow);
+        ARROWS.put(arrow.getUUID(),shot);
         if (arrow.getOwner() instanceof Player player) {
             LAST_SHOT.put(player.getUUID(), server.getGameTime());
         }
@@ -232,7 +246,7 @@ public final class DynastyBowRitual {
             }
             Vec3 p = arrow.position();
             if (arrow.tickCount <= 4 || arrow.tickCount % 10 == 0) {
-                sendEffect(server, p, new BowEffectPacket(0, arrow.getId(), shot.tier(), shot.phoenix(), p.x, p.y, p.z));
+                sendEffect(server, p, new BowEffectPacket(0, arrow.getId(), shot.tier(), shot.phoenix(), p.x, p.y, p.z, shot.theme));
             }
             DustParticleOptions color = shot.phoenix() ? RED : shot.tier() >= 3 ? GOLD : CYAN;
             server.sendParticles(color, p.x, p.y, p.z,
@@ -261,14 +275,14 @@ public final class DynastyBowRitual {
             // An embedded vanilla arrow can retain nonzero velocity: explicitly stop its
             // visual marker. Kind 2 uses the existing packet format, no new channel/message.
             sendEffect(server, stopped, new BowEffectPacket(2, arrow.getId(), shot.tier(), shot.phoenix(),
-                    stopped.x, stopped.y, stopped.z));
+                    stopped.x, stopped.y, stopped.z, shot.theme));
         }
         Vec3 center = event.getRayTraceResult().getLocation();
         // A piercing arrow may hit several entities; only its first impact detonates the area seal.
         if (!shot.detonated && shot.tier() >= 3) {
             shot.detonated = true;
             sendEffect(server, center, new BowEffectPacket(1, arrow.getId(), shot.tier(), shot.phoenix(),
-                    center.x, center.y, center.z));
+                    center.x, center.y, center.z, shot.theme));
             DamageSource source = new DamageSource(server.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
                     .getHolderOrThrow(SOLAR_DAMAGE), arrow, arrow.getOwner());
             BLASTS.add(new Blast(server.dimension(), center, impactRadius(shot.tier()), source, server.getGameTime() + 1));
@@ -403,6 +417,7 @@ public final class DynastyBowRitual {
         private final boolean phoenix;
         private final long createdAt;
         private boolean detonated;
+        private int theme;
         private Vec3 launchDirection;
         private UUID targetId;
         private int nextScanTick;

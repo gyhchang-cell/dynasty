@@ -12,6 +12,7 @@ public final class DynastyContent {
 
     public static void register(IEventBus modEventBus) {
         com.dynasty.infusion.InfusionContent.register(modEventBus);
+        com.dynasty.army.ArmyContent.register(modEventBus);
         DynastyBlocks.BLOCKS.register(modEventBus);
         DynastyBlocks.BLOCK_ITEMS.register(modEventBus);
         com.dynasty.workshop.WorkshopBlockEntity.TYPES.register(modEventBus);

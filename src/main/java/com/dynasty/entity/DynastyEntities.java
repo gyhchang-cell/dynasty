@@ -89,7 +89,7 @@ public class DynastyEntities {
     public static final RegistryObject<EntityType<DynastyBosses.DragonEmperor>> DRAGON_EMPEROR =
             ENTITIES.register("dragon_emperor", () -> EntityType.Builder
                     .of(DynastyBosses.DragonEmperor::new, MobCategory.MONSTER)
-                    .sized(0.8F, 2.6F).clientTrackingRange(16).fireImmune().build("dragon_emperor"));
+                    .sized(5.4F, 4.5F).clientTrackingRange(16).fireImmune().build("dragon_emperor"));
 
     public static final RegistryObject<EntityType<DynastyBosses.RebelGeneral>> REBEL_GENERAL =
             ENTITIES.register("rebel_general", () -> EntityType.Builder

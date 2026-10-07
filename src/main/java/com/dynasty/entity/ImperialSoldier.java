@@ -109,12 +109,81 @@ public class ImperialSoldier extends PathfinderMob {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
+        this.goalSelector.addGoal(1, new FormationGoal());
         this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.2D, true));
         this.goalSelector.addGoal(6, new FollowOwnerGoal());
         this.goalSelector.addGoal(7, new RandomStrollGoal(this, 0.9D));
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Monster.class, true));
+    }
+
+    public boolean isRosterSoldier(){return getPersistentData().hasUUID("ArmySoldier");}
+    @Override public boolean isAlliedTo(net.minecraft.world.entity.Entity other) {
+        if(ownerId!=null&&(ownerId.equals(other.getUUID())||other instanceof ImperialSoldier s&&ownerId.equals(s.ownerId)))return true;
+        return super.isAlliedTo(other);
+    }
+    @Override public void push(net.minecraft.world.entity.Entity other) {
+        if(isRosterSoldier()&&other instanceof ImperialSoldier s&&s.isRosterSoldier()&&ownerId!=null&&ownerId.equals(s.ownerId))return;
+        super.push(other);
+    }
+    @Override protected boolean shouldDropLoot(){return !isRosterSoldier()&&super.shouldDropLoot();}
+    @Override public int getExperienceReward(){return isRosterSoldier()?0:super.getExperienceReward();}
+    private class FormationGoal extends Goal {
+        FormationGoal(){setFlags(EnumSet.of(Flag.MOVE,Flag.LOOK));}
+        @Override public boolean canUse(){return isRosterSoldier();}
+        @Override public boolean requiresUpdateEveryTick(){return true;}
+        @Override public void tick() {
+            var self=ImperialSoldier.this;
+            if(!(getOwner() instanceof net.minecraft.server.level.ServerPlayer owner)||!owner.isAlive()) {getNavigation().stop();setTarget(null);return;}
+            if(!com.dynasty.army.ArmyRoster.valid(self,owner)){discard();return;}
+            var tag=getPersistentData();
+            var record=com.dynasty.army.ArmyRoster.find(owner,tag.getUUID("ArmySoldier"));
+            if(record.getBoolean("RecallRequested")&&!com.dynasty.army.ArmyEncounters.active(owner)
+                    &&(getLastHurtByMob()==null||tickCount-getLastHurtByMobTimestamp()>=40)) {
+                com.dynasty.army.ArmyRoster.snapshot(record,self);record.putString("State","RESERVE");record.remove("Entity");record.remove("RecallRequested");discard();return;
+            }
+            var target=com.dynasty.army.ArmyRoster.slot(owner.position(),tag.getFloat("ArmyYaw"),tag.getInt("ArmySlot"),tag.getInt("ArmyFormation"));
+            if(distanceToSqr(owner)>96*96){getNavigation().stop();setTarget(null);return;}
+            var p=net.minecraft.core.BlockPos.containing(target);
+            boolean ground=false;
+            for(int dy=1;dy>=-2;dy--) {
+                var feet=p.offset(0,dy,0);var floor=feet.below();
+                if(!level().hasChunkAt(feet))continue;
+                if(level().getBlockState(floor).isFaceSturdy(level(),floor,net.minecraft.core.Direction.UP)
+                        &&level().getBlockState(feet).getCollisionShape(level(),feet).isEmpty()
+                        &&level().getBlockState(feet.above()).getCollisionShape(level(),feet.above()).isEmpty()
+                        &&level().getFluidState(feet).isEmpty()){target=new net.minecraft.world.phys.Vec3(target.x,feet.getY(),target.z);ground=true;break;}
+            }
+            double error=position().distanceToSqr(target);
+            if(!ground||error<.12*.12)getNavigation().stop();
+            else if(tickCount%5==0)getNavigation().moveTo(target.x,target.y,target.z,tag.getBoolean("ArmyBanner")?1.28:1.15);
+            var enemy=getTarget();
+            int ready=Math.max(0,tag.getInt("ArmyAttackCooldown")-1);tag.putInt("ArmyAttackCooldown",ready);
+            if(enemy!=null&&enemy.isAlive()&&!isAlliedTo(enemy)&&error<.75*.75&&hasLineOfSight(enemy)) {
+                getLookControl().setLookAt(enemy,20,getMaxHeadXRot());
+                if(ready==0) {
+                    if(tag.getInt("ArmyRole")==1&&distanceToSqr(enemy)<18*18) {
+                        var line=new net.minecraft.world.phys.AABB(getEyePosition(),enemy.getEyePosition()).inflate(.2);
+                        boolean blocked=level().getEntitiesOfClass(ImperialSoldier.class,line,e->e!=self&&isAlliedTo(e))
+                            .stream().anyMatch(e->e.getBoundingBox().inflate(.1).clip(getEyePosition(),enemy.getEyePosition()).isPresent());
+                        if(!blocked) {
+                            var arrow=new net.minecraft.world.entity.projectile.Arrow(level(),self);
+                            var direction=enemy.getEyePosition().subtract(arrow.position());
+                            arrow.shoot(direction.x,direction.y+Math.sqrt(direction.x*direction.x+direction.z*direction.z)*.12,direction.z,1.8f,2);
+                            arrow.getPersistentData().putUUID("ArmyShotOwner",owner.getUUID());
+                            arrow.getPersistentData().putUUID("ArmyShotSoldier",tag.getUUID("ArmySoldier"));
+                            arrow.setBaseDamage(90);arrow.pickup=net.minecraft.world.entity.projectile.AbstractArrow.Pickup.DISALLOWED;
+                            level().addFreshEntity(arrow);tag.putInt("ArmyAttackCooldown",tag.getBoolean("ArmyVolley")?34:40);
+                        }
+                    } else if(tag.getInt("ArmyRole")!=1&&distanceToSqr(enemy)<5.3) {
+                        swing(net.minecraft.world.InteractionHand.MAIN_HAND);doHurtTarget(enemy);tag.putInt("ArmyAttackCooldown",24);
+                    }
+                }
+            }
+            if(tickCount%40==0&&!com.dynasty.army.ArmyEncounters.active(owner))com.dynasty.army.ArmySupport.snapshot(owner,java.util.List.of(self));
+            if(tickCount%40==0)com.dynasty.army.ArmyRoster.snapshot(com.dynasty.army.ArmyRoster.find(owner,tag.getUUID("ArmySoldier")),self);
+        }
     }
 
     /** 跟随召唤者；离得太远直接传送过去。 / Follows the summoner, teleporting when far away. */

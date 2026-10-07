@@ -78,6 +78,7 @@ public class DynastyTabs {
                 output.accept(DynastyItems.OFFICIAL_SEAL.get());
                 output.accept(DynastyItems.EDICT.get());
                 output.accept(DynastyItems.TIGER_TALLY.get());
+                output.accept(com.dynasty.army.ArmyContent.DESK_ITEM.get());
                 output.accept(DynastyItems.EXAM_PAPER.get());
 
                 // 食物 / food

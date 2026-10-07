@@ -115,15 +115,12 @@ public final class DynastyBossCombat {
         if (id == null || !id.getNamespace().equals(Dynasty.MODID)) {
             return;
         }
-        FirstKill reward = FIRST_KILL.get(id.getPath());
-        if (reward == null) {
-            return;
-        }
-        LivingEntity credit = event.getEntity().getKillCredit();
-        if (!(credit instanceof ServerPlayer player)) {
-            return;
-        }
-        String flag = "dynasty_firstkill_" + id.getPath();
+        if(event.getEntity().getPersistentData().hasUUID("ArmyEncounter"))return;
+        if(event.getEntity().getKillCredit() instanceof ServerPlayer player)awardFirstKill(player,id.getPath());
+    }
+    public static void awardFirstKill(ServerPlayer player,String bossId) {
+        FirstKill reward=FIRST_KILL.get(bossId);if(reward==null)return;
+        String flag = "dynasty_firstkill_" + bossId;
         if (player.getPersistentData().getBoolean(flag)) {
             return;                                        // 一种只给一次 / once per player
         }

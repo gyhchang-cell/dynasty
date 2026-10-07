@@ -72,7 +72,11 @@ public final class DynastySchoolCombat {
         return source.getDirectEntity() instanceof AbstractArrow arrow && arrow.getPersistentData().getBoolean(STAR_ARROW);
     }
     public static ItemStack firingWeapon(DamageSource source, ItemStack held) {
-        if (!isStarArrow(source)) return held;
+        if (!isStarArrow(source)) {
+            if(source.getDirectEntity() instanceof AbstractArrow && source.getEntity() instanceof Player player)
+                return DynastyWeaponProgression.attackWeapon(player,source);
+            return held;
+        }
         return ItemStack.of(source.getDirectEntity().getPersistentData().getCompound(FIRING_WEAPON));
     }
 
