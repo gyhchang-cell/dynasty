@@ -196,7 +196,7 @@ public final class DynastyUsables {
         public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
             ItemStack stack = player.getItemInHand(hand);
             if (!level.isClientSide()) {
-                ItemStack gift = DynastyTrinkets.randomGift(player.getRandom());
+                ItemStack gift = com.dynasty.expansion.ContentProgress.gift(player);
                 if (!player.getInventory().add(gift)) {
                     player.drop(gift, false);
                 }

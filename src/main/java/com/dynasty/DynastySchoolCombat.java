@@ -72,6 +72,8 @@ public final class DynastySchoolCombat {
         return source.getDirectEntity() instanceof AbstractArrow arrow && arrow.getPersistentData().getBoolean(STAR_ARROW);
     }
     public static ItemStack firingWeapon(DamageSource source, ItemStack held) {
+        if(source.getDirectEntity() instanceof AbstractArrow a && a.getPersistentData().contains("cod4FiringWeapon"))
+            return ItemStack.of(a.getPersistentData().getCompound("cod4FiringWeapon"));
         if (!isStarArrow(source)) return held;
         return ItemStack.of(source.getDirectEntity().getPersistentData().getCompound(FIRING_WEAPON));
     }
@@ -204,7 +206,7 @@ public final class DynastySchoolCombat {
         if (!charging(player, s)) { endCharge(player); return; }
         silkResistance(player, has(player, "dingfeng_silk"));
         if (now(player) - s.chargeStart >= SchoolCombatRules.EDICT_CHARGE) {
-            s.edictUntil = now(player) + SchoolCombatRules.EDICT_WINDOW;
+            s.edictUntil = now(player) + SchoolCombatRules.EDICT_WINDOW + (DynastySchoolProgression.equippedSynergy(player, "talisman") ? SchoolCombatRules.EDICT_WINDOW / 5 : 0);
             endCharge(player);
             player.stopUsingItem();
             cue(player, "edict_ready");

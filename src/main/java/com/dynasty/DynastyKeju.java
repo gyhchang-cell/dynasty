@@ -127,7 +127,9 @@ public final class DynastyKeju {
         }
         long now = System.currentTimeMillis();
         KejuCooldown meritCooldown = meritCooldown(player.getServer());
-        player.addEffect(new MobEffectInstance(DynastyEffects.DRAGON_MIGHT.get(), 20 * 180, 0));
+        int cod4Duration = com.dynasty.expansion.EquipmentBehaviors.pieces(player,"brocade")>=4
+                || player.level().getGameTime()<player.getPersistentData().getLong("cod4ExamWine") ? 20*216 : 20*180;
+        player.addEffect(new MobEffectInstance(DynastyEffects.DRAGON_MIGHT.get(), cod4Duration, 0));
         player.addEffect(new MobEffectInstance(DynastyEffects.SWIFT_WIND.get(), 20 * 180, 0));
         player.addEffect(new MobEffectInstance(DynastyEffects.MANDATE_OF_HEAVEN.get(), 20 * 180, 0));
         player.getInventory().add(new ItemStack(Items.WRITABLE_BOOK));

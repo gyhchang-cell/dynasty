@@ -443,6 +443,8 @@ def build_book():
      'subtitle': '可选 · 装备深化',
      'description': ['获得玉后，使用炼入台。2份材料和3级经验，三处炼入位共4容量；同类特性冲突，可替换或移除。材料原用途不变。']}
     next(c for c in chapters if c["file"] == "dynasty_home")["quests"].append(infusion)
+    from quest_cod4 import add_cod4
+    add_cod4(chapters)
     validate(chapters, original)
     return chapters
 
@@ -512,7 +514,7 @@ def validate(chapters, original=None):
         if c.get("route"):
             from weapon_evolution_paths import PATHS, recipe_id
             paths=PATHS[c['route']]
-            assert len(c["quests"])==35+len(paths), "Build content count must preserve all existing quests and new evolutions"
+            assert sum(q.get("route")!="cod4" for q in c["quests"])==35+len(paths), "Build content count must preserve all existing quests and new evolutions"
             assert sum(q["kind"]!="checkmark" for q in c["quests"])>=10, "Build must use real gameplay goals"
             assert not c.get("quest_links",[]), "Duplicate equipment reference icons must stay removed"
             actual={q.get('evolution_recipe'):q for q in c['quests'] if q.get('evolution_recipe')}

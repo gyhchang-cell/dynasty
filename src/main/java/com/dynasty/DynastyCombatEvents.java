@@ -60,7 +60,7 @@ public class DynastyCombatEvents {
                                 net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
                         event.getEntity().push(0.0D, 0.4D, 0.0D);
                     }
-                    case "pojun_axe" -> armorPierce = true;
+                    case "pojun_axe", "siege_crossbow" -> armorPierce = true;
                     case "xuantian_axe" -> {
                         armorPierce = true;
                         event.getEntity().addEffect(new net.minecraft.world.effect.MobEffectInstance(

@@ -30,7 +30,6 @@ public class DynastySetBonus {
 
     private static final UUID HEALTH_UUID = UUID.fromString("3f2a7c10-5d44-4a6e-9c1d-0b7e6a51d001");
     private static final String HEALTH_NAME = "dynasty_set_health";
-    private static int counter;
 
     @SubscribeEvent
     public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
@@ -44,7 +43,7 @@ public class DynastySetBonus {
         if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)) {
             return;
         }
-        if (++counter % 20 == 0) {
+        if (player.tickCount % 20 == 0) {
             refresh(player);
         }
     }
