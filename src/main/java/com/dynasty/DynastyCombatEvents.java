@@ -23,7 +23,16 @@ import java.util.UUID;
 @Mod.EventBusSubscriber(modid = Dynasty.MODID)
 public class DynastyCombatEvents {
 
+    private static final ThreadLocal<Boolean> SWEEP = ThreadLocal.withInitial(() -> false);
     private static final Map<UUID, Long> HINT_TIME = new HashMap<>();
+
+    /** Cap final damage after armour/sets; the old pre-armour cap made geared players nearly invulnerable. */
+    @SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void finalEnemyCap(net.minecraftforge.event.entity.living.LivingDamageEvent event) {
+        if(event.getEntity() instanceof Player p && event.getSource().getEntity() instanceof LivingEntity attacker
+                && DynastyBalance.isDynastyMob(attacker.getType()))
+            event.setAmount(Math.min(event.getAmount(),p.getMaxHealth()*DynastyBalance.playerDamageCapFactor(attacker.getType())));
+    }
 
     @SubscribeEvent
     public static void onLivingHurt(LivingHurtEvent event) {
@@ -38,7 +47,7 @@ public class DynastyCombatEvents {
 
         // 1) 攻击方：附魔加伤 + 武器独有机制 / attacker: enchantments + weapon gimmicks
         boolean armorPierce = false;
-        if (attacker != null) {
+        if (attacker != null && !EdictSpells.isSpell(event.getSource()) && !DynastyTrinketOnHit.isSyntheticDamage() && !SWEEP.get()) {
             ItemStack weapon = DynastySchoolCombat.firingWeapon(event.getSource(), attacker.getMainHandItem());
             int breaker = weapon.getEnchantmentLevel(DynastyEnchantments.BREAKER.get());
             if (breaker > 0) {
@@ -85,7 +94,7 @@ public class DynastyCombatEvents {
         }
 
         // 1.5) 饰品命中触发（加伤部分）：会心 / 突袭 / 连击 —— 参数写在饰品表第 12~14 格
-        if (attacker instanceof Player attackerPlayer) {
+        if (attacker instanceof Player attackerPlayer && !SWEEP.get()) {
             amount = DynastyTrinketOnHit.bonus(attackerPlayer, event.getEntity(), amount);
         }
 
@@ -100,14 +109,6 @@ public class DynastyCombatEvents {
         // 2) 王朝生物对玩家的伤害按玩家体质缩放，避免开局被一击秒杀（数字依旧很大）
         // dynasty mobs' damage scales with the victim's max health so early game stays playable
         LivingEntity victim = event.getEntity();
-        if (victim instanceof Player victimPlayer && attacker != null
-                && DynastyBalance.isDynastyMob(attacker.getType())) {
-            float capFactor = DynastyBalance.playerDamageCapFactor(attacker.getType());
-            float cap = (float) (victimPlayer.getMaxHealth() * capFactor);
-            if (amount > cap) {
-                amount = cap;
-            }
-        }
 
         // 3) 挨打方：王朝套装减伤 / victim: dynasty armor set reduction
         if (victim instanceof Player player) {
@@ -168,7 +169,7 @@ public class DynastyCombatEvents {
         LivingEntity attacker = event.getSource().getEntity() instanceof LivingEntity living ? living : null;
         LivingEntity victim = event.getEntity();
         // 7) 饰品命中触发：吸血 / 斩杀 / 雷罚，使用流派加成后的最终 Hurt 金额。
-        if (attacker instanceof Player attackerPlayer) {
+        if (attacker instanceof Player attackerPlayer && !SWEEP.get()) {
             DynastyTrinketOnHit.after(attackerPlayer, event.getEntity(), event.getAmount());
         }
 
@@ -180,10 +181,14 @@ public class DynastyCombatEvents {
 
     /** 方天画戟横扫：对主目标周围的敌人造成额外伤害 / Fangtian halberd sweep */
     private static void sweep(LivingEntity attacker, LivingEntity main, float damage) {
+        if(SWEEP.get() || DynastyTrinketOnHit.isSyntheticDamage())return;
+        SWEEP.set(true);
+        try {
         for (LivingEntity nearby : attacker.level().getEntitiesOfClass(LivingEntity.class,
                 main.getBoundingBox().inflate(3.0D),
-                e -> e != attacker && e != main && e.isAlive())) {
+                e -> e != attacker && e != main && e.isAlive() && !attacker.isAlliedTo(e) && !e.isAlliedTo(attacker) && attacker.hasLineOfSight(e))) {
             nearby.hurt(attacker.damageSources().mobAttack(attacker), damage);
         }
+        } finally { SWEEP.remove(); }
     }
 }

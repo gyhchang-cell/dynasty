@@ -34,6 +34,10 @@ public abstract class DynastyStructurePiece extends StructurePiece {
         placeBlock(level, state, dx, dy, dz, box);
     }
 
+    protected void story(WorldGenLevel level,BoundingBox clip,int x,int y,int z,int kind) {
+        set(level,clip,x,y,z,com.dynasty.cod3.StoryAnchor.BLOCK.get().defaultBlockState().setValue(com.dynasty.cod3.StoryAnchor.KIND,kind));
+    }
+
     protected void fill(WorldGenLevel level, BoundingBox box, int x1, int y1, int z1,
                         int x2, int y2, int z2, BlockState state) {
         for (int y = y1; y <= y2; y++) {

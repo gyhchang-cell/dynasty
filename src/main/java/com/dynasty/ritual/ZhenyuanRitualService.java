@@ -100,6 +100,7 @@ public final class ZhenyuanRitualService {
         // All checks precede inventory mutation; server main-thread execution serializes competing clicks.
         s.owner = player.getUUID(); s.yaw = player.getYRot();
         s.mask |= 1 << node.getSlot();
+        if((s.mask&15)==15)com.dynasty.cod3.Cod3WorldState.get(level).unlock(level,"world_08");
         if (!player.getAbilities().instabuild) held.shrink(1);
         if (s.mask == ZhenyuanRitualRules.ALL) {
             s.phase = "charging"; s.chargeEnds = level.getServer().overworld().getGameTime() + ZhenyuanRitualRules.CHARGE_TICKS;

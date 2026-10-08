@@ -111,7 +111,7 @@ public final class ImperialWeaponRenderer {
     }
     public static void receive(WeaponImpactPacket packet) {
         clean();
-        if(world==null || packet.style()<1 || packet.style()>2
+        if(world==null || packet.style()<1 || packet.style()>12
                 || !Double.isFinite(packet.x()) || !Double.isFinite(packet.y())
                 || !Double.isFinite(packet.z()) || !Float.isFinite(packet.yaw()))return;
         IMPACTS.add(new Impact(packet,world.getGameTime()));

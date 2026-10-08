@@ -84,9 +84,7 @@ public final class DynastyUsables {
         public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
             ItemStack stack = player.getItemInHand(hand);
             if (!player.isShiftKeyDown()) {
-                if (level.isClientSide()) {
-                    com.dynasty.client.ClientArmy.open();
-                }
+                if (player instanceof net.minecraft.server.level.ServerPlayer sp)com.dynasty.army.ArmyContent.open(sp,null);
                 return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
             }
             for (Mob mob : level.getEntitiesOfClass(Mob.class, player.getBoundingBox().inflate(10.0D))) {

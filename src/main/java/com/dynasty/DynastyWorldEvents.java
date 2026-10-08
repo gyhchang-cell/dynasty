@@ -118,10 +118,11 @@ public class DynastyWorldEvents {
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
-        if (!(event.getSource().getEntity() instanceof ServerPlayer player)) {
-            return;
-        }
-        var type = event.getEntity().getType();
+        ServerPlayer player=com.dynasty.army.ArmySupport.owner(event.getSource());
+        if(player==null||event.getEntity().getPersistentData().hasUUID("ArmyEncounter"))return;
+        creditKill(player,event.getEntity().getType());
+    }
+    public static void creditKill(ServerPlayer player,net.minecraft.world.entity.EntityType<?> type) {
         // 功名统一由 DynastyMerit 结算（Boss 多、小怪少且有上限）
         DynastyMerit.onMobKill(player, type);
         // 条件兵器：Boss 种类统计 / 白天斩凤凰等

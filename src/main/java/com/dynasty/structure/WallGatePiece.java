@@ -88,6 +88,7 @@ public class WallGatePiece extends DynastyStructurePiece {
             }
         }
 
+        story(level,box,16,8,11,31);
         // 4) 东西角楼 / flanking turrets
         for (int x1 : new int[]{1, 24}) {
             walls(level, box, x1, 8, 9, x1 + 4, 12, 14, brick);

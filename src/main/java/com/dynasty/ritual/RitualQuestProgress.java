@@ -17,6 +17,7 @@ public final class RitualQuestProgress {
         if(a!=null)for(String criterion:p.getAdvancements().getOrStartProgress(a).getRemainingCriteria())p.getAdvancements().award(a,criterion);
     }
     static void restore(MinecraftServer server,ZhenyuanRitualSavedData.Session s){
+        if((s.mask&15)==15)com.dynasty.cod3.Cod3WorldState.get(server.overworld()).unlock(server.overworld(),"world_08");
         for(int i=0;i<4;i++)if((s.mask&(1<<i))!=0&&s.offeringPlayers[i]!=null){
             var player=server.getPlayerList().getPlayer(s.offeringPlayers[i]);if(player!=null)grant(player,IDS[i]);
         }

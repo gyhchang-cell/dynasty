@@ -445,6 +445,8 @@ def build_book():
     next(c for c in chapters if c["file"] == "dynasty_home")["quests"].append(infusion)
     from quest_cod4 import add_cod4
     add_cod4(chapters)
+    from quest_cod6 import apply
+    apply(chapters)
     validate(chapters, original)
     return chapters
 
@@ -458,7 +460,8 @@ def validate(chapters, original=None):
     assert len(byid)==len(allq), "Duplicate quest ID"
     for old in original:
         q = byid[old["id"]]
-        assert q["tasks"]==old["tasks"] and q["rewards"]==old["rewards"], "Save contract changed: "+old["id"]
+        from quest_cod6 import expected_tasks
+        assert q["tasks"]==expected_tasks(old) and q["rewards"]==old["rewards"], "Save contract changed: "+old["id"]
     main = [q for c in chapters if c["main"] for q in c["quests"] if q['role']=='main']
     mainids = {q["id"] for q in main}
     assert not main[0]["deps"], "No accessible root"
