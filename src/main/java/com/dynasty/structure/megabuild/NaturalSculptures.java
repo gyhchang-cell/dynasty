@@ -59,6 +59,30 @@ public final class NaturalSculptures {
             @Override protected void apply(Map<String,Resource> loaded,ResourceManager manager,ProfilerFiller profiler){resources=loaded;datums.clear();}
         });
     }
+    /** Read-only, local roof preview. Requires a saved structure start and its authored roof still in place. */
+    static Map<BlockPos,BlockState> roofPreview(net.minecraft.server.level.ServerPlayer player) {
+        ServerLevel level=player.serverLevel();var registry=level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        for(String id:SculptureBlueprint.IDS) {
+            var structure=registry.get(new net.minecraft.resources.ResourceLocation("dynasty",id));if(structure==null)continue;
+            var start=level.structureManager().getStructureAt(player.blockPosition(),structure);if(!start.isValid())continue;
+            Tile selected=null;for(var piece:start.getPieces())if(piece instanceof Tile tile){selected=tile;break;}
+            if(selected==null)continue;var r=resources.get(selected.id);if(r==null)continue;
+            var plan=new LinkedHashMap<BlockPos,BlockState>();var b=r.blueprint;
+            for(int x=player.getBlockX()-24;x<=player.getBlockX()+24;x++)for(int z=player.getBlockZ()-24;z<=player.getBlockZ()+24;z++) {
+                int lx=x-selected.origin.getX(),lz=z-selected.origin.getZ();if(lx<0||lz<0||lx>=b.width||lz>=b.length)continue;
+                int top=b.columnTop(lx,lz);if(top<4)continue;
+                BlockPos roof=new BlockPos(x,selected.origin.getY()+top,z);
+                if(!level.hasChunkAt(roof)||!level.getBlockState(roof).equals(r.palette[b.at(lx,top,lz)]))continue;
+                for(int y=top+1;y<=b.clearTop(lx,lz);y++) {
+                    var pos=new BlockPos(x,selected.origin.getY()+y,z);var state=level.getBlockState(pos);
+                    if(level.getBlockEntity(pos)==null&&RoofRepair.terrain(state)&&plan.size()<8192)plan.put(pos,state);
+                }
+            }
+            return plan;
+        }
+        return Map.of();
+    }
+
     public record Site(int x,int z,String id){}
     /** One candidate (either building) per 10,000 x 10,000 blocks, before terrain rejection. */
     public static Site site(long seed,int chunkX,int chunkZ){
@@ -97,7 +121,7 @@ public final class NaturalSculptures {
             int datum=datums.computeIfAbsent(key,k->terrain(ctx,site,b));
             if(datum==Integer.MIN_VALUE)return Optional.empty();
             BlockPos origin=new BlockPos(ox,datum-4,oz);
-            BoundingBox box=new BoundingBox(x0,origin.getY(),z0,x1,origin.getY()+b.height-1,z1);
+            BoundingBox box=new BoundingBox(x0,origin.getY(),z0,x1,origin.getY()+b.height+4,z1);
             return Optional.of(new GenerationStub(new BlockPos(x0,datum,z0),builder->builder.addPiece(new Tile(id,origin,box))));
         }
         private int terrain(GenerationContext ctx,Site site,SculptureBlueprint b){
@@ -132,7 +156,7 @@ public final class NaturalSculptures {
                 min=Math.min(min,y);max=Math.max(max,y);
             }
             boolean flat=ctx.chunkGenerator() instanceof net.minecraft.world.level.levelgen.FlatLevelSource;
-            if(max-min>18||(!flat&&min<ctx.chunkGenerator().getSeaLevel())||max+b.height>=ctx.heightAccessor().getMaxBuildHeight())return Integer.MIN_VALUE;
+            if(max-min>18||(!flat&&min<ctx.chunkGenerator().getSeaLevel())||max+b.height+5>=ctx.heightAccessor().getMaxBuildHeight())return Integer.MIN_VALUE;
             return max;
         }
     }
@@ -150,12 +174,15 @@ public final class NaturalSculptures {
                 // Short foundation ties low terrain to the courtyard/dragon base, never a giant pillar.
                 int ground=level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG,x,z);
                 for(int y=Math.max(ground,origin.getY()-18);y<origin.getY();y++)level.setBlock(p.set(x,y,z),net.minecraft.world.level.block.Blocks.STONE_BRICKS.defaultBlockState(),2);
-                for(int y=0;y<b.height;y++){
-                    int index=b.at(x-origin.getX(),y,z-origin.getZ());
+                int localX=x-origin.getX(),localZ=z-origin.getZ();
+                int clearTop=b.clearTop(localX,localZ);
+                for(int y=0;y<=Math.max(b.height-1,clearTop);y++){
+                    if(origin.getY()+y<clip.minY()||origin.getY()+y>clip.maxY())continue;
+                    int index=y<b.height?b.at(localX,y,localZ):0;
                     if(index==0){
                         // Clear natural terrain only above the model's local base, inside its silhouette.
                         // Do not cut an enormous rectangular air box through the landscape.
-                        if(y>=4&&b.at(x-origin.getX(),3,z-origin.getZ())!=0)
+                        if(y>=4&&y<=clearTop)
                             level.setBlock(p.set(x,origin.getY()+y,z),net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),2);
                         continue;
                     }

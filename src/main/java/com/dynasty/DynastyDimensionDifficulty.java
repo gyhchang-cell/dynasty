@@ -86,6 +86,8 @@ public final class DynastyDimensionDifficulty {
     }
 
     private static void applyDifficulty(Mob mob) {
+        // Paid troops keep the roster's stored HP and damage across every deployment/dimension.
+        if (mob instanceof com.dynasty.entity.ImperialSoldier && mob.getPersistentData().hasUUID("ArmySoldier")) return;
         double tier = tier(mob.level().dimension());
         double rank = rankFactor(mob);
         if (tier <= 1.0D && rank <= 1.0D) {

@@ -1,0 +1,53 @@
+name: Build PR mod
+on:
+  push:
+    branches: [cod1-3, cod4, cod5]
+    paths:
+      - 'src/**'
+      - 'build.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/cod5-build.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: dynasty-mod-build-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    if: contains(fromJSON('["refs/heads/cod1-3","refs/heads/cod4","refs/heads/cod5"]'), github.ref)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SOURCE_BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare bundled dependencies and build
+        run: |
+          python3 tools/art/make_local_repo.py
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 -Dorg.gradle.java.home="$JAVA_HOME" build
+      - name: Publish mod built from this branch commit
+        run: |
+          cp build/libs/dynasty-1.4.0.jar modpack/mods/dynasty-1.4.0.jar
+          mkdir -p docs/maintenance/builds
+          checksum="docs/maintenance/builds/${SOURCE_BRANCH}.sha256"
+          sha256sum modpack/mods/dynasty-1.4.0.jar > "$checksum"
+          git add modpack/mods/dynasty-1.4.0.jar "$checksum"
+          if [ "$SOURCE_BRANCH" = cod5 ]; then
+            cp "$checksum" docs/infusion/jar.sha256
+            git add docs/infusion/jar.sha256
+          fi
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "build(${SOURCE_BRANCH}): publish merged mod jar"
+          # Refuse to attach an old build to source that changed during this run.
+          git push origin "HEAD:${SOURCE_BRANCH}"

@@ -33,7 +33,23 @@ public final class MechanicalPatrolGameTests {
                 for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)h.assertTrue(clear(rotated.at(p.getX()+x,4,p.getZ()+z))&&clear(rotated.at(p.getX()+x,5,p.getZ()+z))&&!clear(rotated.at(p.getX()+x,6,p.getZ()+z)),"Real quarry ceiling supports full spider footprint");
             }
         }
-        h.assertTrue(mine.walkable(new int[]{47,1,4},new int[]{31,1,45}),"Quarry route reaches the existing under-bench encounter through new east opening");
+        h.assertTrue(mine.walkable(new int[]{47,1,4},new int[]{31,1,66}),"Quarry route reaches the ceiling encounter through the east opening");
+        var legacy=new LegacyMiningEstate(42,true).blueprint();
+        h.assertTrue(legacy.walkable(new int[]{47,1,4},new int[]{31,1,45}),"Layout 4 retains main east opening");
+        h.assertTrue(new LegacyMiningEstate(42).blueprint().at(38,1,43)==Blueprint.Kind.WALL,"Pre-v4 wall remains unchanged");
+        for(int rotation=0;rotation<4;rotation++) {
+            var piece=new MegabuildPiece(MegabuildStructures.MINING_PIECE.get(),0,origin,seed->mine,42,rotation,96,36);
+            var tag=piece.createTag(context);
+            var restored=MegabuildStructures.MINING_PIECE.get().load(context,tag);
+            h.assertTrue(MechanicalPatrols.spiderPositions(piece).equals(MechanicalPatrols.spiderPositions(restored)),"New quarry positions persist");
+            tag.putInt("MegabuildLayout",4);
+            var old=(MegabuildPiece)MegabuildStructures.MINING_PIECE.get().load(context,tag);
+            var rotated=legacy.rotate(rotation);
+            for(var world:MechanicalPatrols.spiderPositions(old)) {
+                var at=world.subtract(origin);
+                for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)h.assertTrue(clear(rotated.at(at.getX()+x,4,at.getZ()+z))&&clear(rotated.at(at.getX()+x,5,at.getZ()+z))&&!clear(rotated.at(at.getX()+x,6,at.getZ()+z)),"Legacy spider footprint survives reload");
+            }
+        }
         h.succeed();
     }
 }

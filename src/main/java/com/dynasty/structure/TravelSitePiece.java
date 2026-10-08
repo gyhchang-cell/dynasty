@@ -58,6 +58,8 @@ public class TravelSitePiece extends DynastyStructurePiece {
             set(l,b,5,2,5,Blocks.SMOKER.defaultBlockState());set(l,b,7,2,5,Blocks.BARREL.defaultBlockState());
             for(int x=5;x<=8;x++)set(l,b,x,2,18,Blocks.BOOKSHELF.defaultBlockState());
             loot(l,b,r,16,2,5,"minecraft:chests/village/village_plains_house");
+            story(l,b,23,1,16,30);story(l,b,15,1,22,33);story(l,b,8,1,18,34);story(l,b,25,1,17,40);
+            story(l,b,8,2,6,4);story(l,b,7,2,22,7);story(l,b,10,2,20,25);
             loot(l,b,r,24,2,5,"minecraft:chests/village/village_weaponsmith");
         }else if(style==1){
             room(l,b,3,3,11,10,brick);
@@ -70,6 +72,8 @@ public class TravelSitePiece extends DynastyStructurePiece {
             glazedRoof(l,b,19,3,28,12,5,3);
             set(l,b,22,1,7,Blocks.CAULDRON.defaultBlockState());set(l,b,24,1,7,Blocks.BREWING_STAND.defaultBlockState());
             for(int x=5;x<12;x++)set(l,b,x,2,5,Blocks.BOOKSHELF.defaultBlockState());
+            story(l,b,10,1,8,32);story(l,b,23,0,7,35);story(l,b,18,1,25,39);story(l,b,26,0,8,42);
+            story(l,b,11,2,5,8);story(l,b,27,1,23,11);story(l,b,9,2,12,22);
             loot(l,b,r,11,2,11,"minecraft:chests/village/village_temple");
         }else{
             room(l,b,3,3,24,7,brick);room(l,b,3,15,7,10,brick);room(l,b,20,15,7,10,brick);
@@ -81,6 +85,8 @@ public class TravelSitePiece extends DynastyStructurePiece {
             set(l,b,5,2,5,Blocks.CARTOGRAPHY_TABLE.defaultBlockState());set(l,b,7,2,5,Blocks.LECTERN.defaultBlockState());
             set(l,b,5,2,17,Blocks.SMOKER.defaultBlockState());set(l,b,22,2,17,Blocks.STONECUTTER.defaultBlockState());
             loot(l,b,r,25,2,5,"minecraft:chests/village/village_cartographer");
+            story(l,b,23,1,22,41);story(l,b,9,1,20,37);story(l,b,5,1,8,33);
+            story(l,b,15,1,16,7);story(l,b,26,2,23,24);story(l,b,21,2,19,14);
             loot(l,b,r,7,2,17,"minecraft:chests/village/village_desert_house");
         }
     }

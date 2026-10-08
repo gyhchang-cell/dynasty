@@ -70,19 +70,7 @@ public class DynastyCommands {
                                 return 0;
                             }
                             int count = ctx.getArgument("count", Integer.class);
-                            var level = ctx.getSource().getLevel();
-                            for (int i = 0; i < count; i++) {
-                                ImperialSoldier soldier = DynastyEntities.IMPERIAL_SOLDIER.get().create(level);
-                                if (soldier == null) {
-                                    continue;
-                                }
-                                double dx = (player.getRandom().nextDouble() - 0.5D) * 4.0D;
-                                double dz = (player.getRandom().nextDouble() - 0.5D) * 4.0D;
-                                soldier.setOwner(player);
-                                soldier.moveTo(player.getX() + dx, player.getY(), player.getZ() + dz, player.getYRot(), 0.0F);
-                                level.addFreshEntity(soldier);
-                            }
-                            player.sendSystemMessage(Component.literal("§6[虎符]§r 已调动 " + count + " 名帝国士兵！"));
+                            com.dynasty.DynastyArmy.formUp(player,"square",Math.min(9,count));
                             return 1;
                         })))
                 .then(Commands.literal("found").executes(ctx -> {
