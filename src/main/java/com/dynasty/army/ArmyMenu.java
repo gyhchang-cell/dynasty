@@ -10,7 +10,8 @@ public final class ArmyMenu extends AbstractContainerMenu {
     public final BlockPos desk;
     private final Player owner;
     private int selected=-1;
-    public final ContainerData view=new SimpleContainerData(6+36*3+1);
+    private long retreatUntil=-1;
+    public final ContainerData view=new SimpleContainerData(6+36*3+2);
     public ArmyMenu(int id,Inventory inventory,BlockPos desk) {
         super(ArmyContent.MENU.get(),id);owner=inventory.player;this.desk=desk;addDataSlots(view);
         if(!owner.level().isClientSide){view.set(2,1+owner.getRandom().nextInt(30000));refresh();}
@@ -20,6 +21,7 @@ public final class ArmyMenu extends AbstractContainerMenu {
         var list=ArmyRoster.soldiers(owner);view.set(0,list.size());view.set(1,ArmyRoster.coins(owner));
         view.set(3,ArmyRoster.data(owner).getInt("Formation"));view.set(4,desk!=null?1:0);view.set(5,owner instanceof ServerPlayer p?(ArmyEncounters.active(p)?2:ArmyEncounters.inside(p)?1:0):0);
         view.set(114,selected);
+        view.set(115,owner instanceof ServerPlayer p&&retreatUntil>=p.server.overworld().getGameTime()?1:0);
         for(int i=0;i<36;i++) {
             var r=list.getCompound(i);view.set(6+i*3,r.getInt("Role"));view.set(7+i*3,(int)Math.ceil(r.getFloat("Health")));
             view.set(8+i*3,(r.getBoolean("RecallRequested")?128:r.getString("State").equals("DEPLOYED")?32:r.getString("State").equals("WOUNDED")?64:0)+(i<list.size()?r.getInt("Slot")+1:0));
@@ -46,7 +48,11 @@ public final class ArmyMenu extends AbstractContainerMenu {
             }
         }
         else if(action==200)ok=ArmyEncounters.start(p);
-        else if(action==201){ArmyEncounters.finish(p,false,"主动撤离");ok=true;}
+        else if(action==201&&ArmyEncounters.inside(p)) {
+            long now=p.server.overworld().getGameTime();
+            if(ArmyEncounters.active(p)&&retreatUntil<now){retreatUntil=now+100;ok=true;}
+            else {ArmyEncounters.finish(p,false,"主动撤离");retreatUntil=-1;ok=true;}
+        }
         else if(action<3&&desk!=null)ok=ArmyRoster.recruit(p,action);
         else if(action==10)ok=ArmyRoster.deploy(p,view.get(3),9)>0;
         else if(action==11)ok=ArmyRoster.recall(p)>0;
@@ -71,11 +77,37 @@ public final class ArmyMenu extends AbstractContainerMenu {
             var preset=new net.minecraft.nbt.ListTag();for(var value:ArmyRoster.soldiers(p)) {var n=(net.minecraft.nbt.CompoundTag)value;var row=new net.minecraft.nbt.CompoundTag();row.putUUID("Id",n.getUUID("Id"));row.putInt("Slot",n.getInt("Slot"));preset.add(row);}
             ArmyRoster.data(p).put("Preset"+(action-100),preset);ArmyRoster.data(p).putInt("PresetFormation"+(action-100),view.get(3));ok=true;
         } else if(action>=110&&action<113&&!deployed()&&ArmyRoster.data(p).contains("Preset"+(action-110),9)) {
-            for(var value:ArmyRoster.soldiers(p))((net.minecraft.nbt.CompoundTag)value).putInt("Slot",-1);
-            for(var value:ArmyRoster.data(p).getList("Preset"+(action-110),10)){var n=(net.minecraft.nbt.CompoundTag)value;var r=ArmyRoster.find(p,n.getUUID("Id"));if(r!=null)r.putInt("Slot",n.getInt("Slot"));}
-            ArmyRoster.data(p).putInt("Formation",ArmyRoster.data(p).getInt("PresetFormation"+(action-110)));ok=true;
+            ok=loadPreset(p,action-110);
         }
         if(ok)ArmyRoster.changed(p);refresh();broadcastChanges();return ok;
+    }
+    /** Validate the complete stored preset before touching the current formation. */
+    static boolean loadPreset(ServerPlayer p,int presetIndex) {
+        if(presetIndex<0||presetIndex>2||ArmyEncounters.active(p))return false;
+        var data=ArmyRoster.data(p);String key="Preset"+presetIndex;
+        if(!data.contains(key,9))return false;
+        int formation=data.getInt("PresetFormation"+presetIndex);if(formation<0||formation>=5)return false;
+        var usedIds=new java.util.HashSet<java.util.UUID>();var usedSlots=new java.util.HashSet<Integer>();
+        var assignments=new java.util.HashMap<java.util.UUID,Integer>();
+        for(var value:data.getList(key,10)) {
+            var row=(net.minecraft.nbt.CompoundTag)value;
+            if(!row.hasUUID("Id")||!usedIds.add(row.getUUID("Id")))return false;
+            int slot=row.getInt("Slot");if(slot< -1||slot>=ArmyRoster.DEPLOY_LIMIT)return false;
+            if(slot>=0&&!usedSlots.add(slot))return false;
+            var soldier=ArmyRoster.find(p,row.getUUID("Id"));
+            // An unavailable former member leaves a gap; it never creates an asset.
+            if(soldier!=null&&slot>=0&&(soldier.getString("State").equals("RESERVE")||soldier.getString("State").equals("WOUNDED")))
+                assignments.put(row.getUUID("Id"),slot);
+        }
+        for(var value:ArmyRoster.soldiers(p)) {
+            var row=(net.minecraft.nbt.CompoundTag)value;
+            if(row.getString("State").equals("DEPLOYED"))return false;
+        }
+        for(var value:ArmyRoster.soldiers(p)) {
+            var row=(net.minecraft.nbt.CompoundTag)value;
+            row.putInt("Slot",row.hasUUID("Id")?assignments.getOrDefault(row.getUUID("Id"),-1):-1);
+        }
+        data.putInt("Formation",formation);return true;
     }
     private boolean deployed(){for(var value:ArmyRoster.soldiers(owner))if(((net.minecraft.nbt.CompoundTag)value).getString("State").equals("DEPLOYED"))return true;return false;}
 }
