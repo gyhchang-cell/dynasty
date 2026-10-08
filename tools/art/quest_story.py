@@ -443,6 +443,8 @@ def build_book():
      'subtitle': '可选 · 装备深化',
      'description': ['获得玉后，使用炼入台。2份材料和3级经验；三处炼入位，装备容量3至5。点击纹章可替换或移除；移除消耗1级经验。材料不再通用修复耐久。']}
     next(c for c in chapters if c["file"] == "dynasty_home")["quests"].append(infusion)
+    from quest_cod6 import apply
+    apply(chapters)
     validate(chapters, original)
     return chapters
 
@@ -456,7 +458,8 @@ def validate(chapters, original=None):
     assert len(byid)==len(allq), "Duplicate quest ID"
     for old in original:
         q = byid[old["id"]]
-        assert q["tasks"]==old["tasks"] and q["rewards"]==old["rewards"], "Save contract changed: "+old["id"]
+        from quest_cod6 import expected_tasks
+        assert q["tasks"]==expected_tasks(old) and q["rewards"]==old["rewards"], "Save contract changed: "+old["id"]
     main = [q for c in chapters if c["main"] for q in c["quests"] if q['role']=='main']
     mainids = {q["id"] for q in main}
     assert not main[0]["deps"], "No accessible root"

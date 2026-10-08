@@ -23,6 +23,8 @@ import java.util.List;
 public final class DynastyCompassBridge {
     public record Destination(String id,String label,String dimension,String target,boolean biome) {}
     public static final List<Destination> DESTINATIONS=List.of(
+        new Destination("yunqi_manor","云栖庄园","minecraft:overworld","yunqi_manor",false),
+        new Destination("longque_sanctuary","龙阙祭坛","minecraft:overworld","longque_sanctuary",false),
         new Destination("tiangong_citadel","天工山城","minecraft:overworld","tiangong_citadel",false),
         new Destination("tiangong_mining_estate","山麓采矿庄园","minecraft:overworld","tiangong_mining_estate",false),
         new Destination("palace","皇家宫殿","celestial_dynasty","palace",false),

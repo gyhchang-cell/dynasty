@@ -184,7 +184,19 @@ public final class ZhenyuanNodeRenderer implements BlockEntityRenderer<ZhenyuanN
                 double u=((tick-140)/30+i/40.0)%1,a=i*2.39996,r=(1-u)*10;
                 g.diamond(heart.add(Math.cos(a)*r,Math.sin(a*1.7)*r*.6,Math.sin(a)*r),.06,COLORS[i%4],.9);
             }
-            if(finale&&tick>=170) wave(g,new Vec3(0,1.2,0),tick-170,50,22,COLORS[4]);
+            if(finale&&tick>=170) {
+                wave(g,new Vec3(0,1.2,0),tick-170,50,22,COLORS[4]);
+                double opening=smooth(clamp((tick-170)/30));
+                for(int side:new int[]{-1,1}) {
+                    Vec3 foot=new Vec3(side*.15,1.1,0), edge=new Vec3(side*2.5*opening,5.2,0), top=new Vec3(side*.15,10,0);
+                    g.line(foot,edge,.075,COLORS[4],.85);g.line(edge,top,.075,COLORS[4],.85);
+                    g.quad(foot,edge,top,foot,COLORS[side<0?0:3],.10);
+                }
+                for(int theme=0;theme<4;theme++) {
+                    double a=theme*Math.PI/2;
+                    beast(g,theme,heart.add(Math.cos(a)*5,Math.sin(a)*3,1),.75,t,.55*opening);
+                }
+            }
         } else {
             boolean active=(mask&(1<<slot))!=0, pending=(data.getInt("Pending")&(1<<slot))!=0;
             int[] times=data.getIntArray("OfferingTicks"), order=data.getIntArray("Order");
@@ -205,6 +217,12 @@ public final class ZhenyuanNodeRenderer implements BlockEntityRenderer<ZhenyuanN
                 if(finale) flowing=tick>=10+slot*10&&tick<140;
                 if(flowing) {
                     Vec3 destination=Vec3.atLowerCornerOf(BlockPos.of(data.getLong("Heart")).subtract(n.getBlockPos())).add(heart);
+                    Vec3 previousPoint=new Vec3(0,1.12,0);
+                    for(int segment=1;segment<=24;segment++) {
+                        double u=segment/24.0;
+                        Vec3 p=new Vec3(0,1.12,0).lerp(destination,u).add(0,Math.sin(Math.PI*u)*1.4,0);
+                        g.line(previousPoint,p,finale?.055:.025,COLORS[slot],.38);previousPoint=p;
+                    }
                     int sparks=finale&&tick>=60?40:finale||stage.equals("FOURTH_CONVERGENCE")&&tick>38?28:10;
                     for(int i=0;i<sparks;i++) {
                         double u=(t*(finale?.04:.012)+i/(double)sparks)%1;
@@ -236,7 +254,7 @@ public final class ZhenyuanNodeRenderer implements BlockEntityRenderer<ZhenyuanN
         Vec3 center=new Vec3(0,2.15+Math.sin(time*.025+slot)*.035,0);
         double radius=.30*(1+Math.sin(time*.045+slot)*.04);
         g.rotatedSphere(center,radius,color,.68*activation,time*.008,10,20);
-        g.ring(center,X,Z,radius*1.25,.009,color,.55*activation,time*.012,Math.PI*2);
+        beast(g,slot,center,.43,time,.30*activation);
         for(int i=0;i<5;i++) {
             double a=time*(slot==3?.009:.018)+i*Math.PI*2/5;
             double y=switch(slot) {
@@ -255,24 +273,73 @@ public final class ZhenyuanNodeRenderer implements BlockEntityRenderer<ZhenyuanN
         for(int i=0;i<32;i++) { double a=i*Math.PI/16;g.diamond(center.add(Math.cos(a)*radius*u,.08*Math.sin(i+age),Math.sin(a)*radius*u),.04,color,1-u); }
     }
     private static void offeringAnimation(Geometry g,int slot,double age,double progress,double time) {
-        float[] color=COLORS[slot];
+        double form=smooth(clamp(progress/.28));
+        double collapse=1-smooth(clamp((progress-.70)/.30));
+        double scale=(.12+1.8*collapse)*form;
+        beast(g,slot,new Vec3(0,2.15,0),scale,time,.72*form);
+    }
+
+    /** Original low-poly silhouettes: coiling dragon, carved tiger, feather wings and plated turtle. */
+    private static void beast(Geometry g,int slot,Vec3 center,double scale,double time,double alpha) {
+        if(scale<.001)return;
+        float[] c=COLORS[slot];
         if(slot==0) {
-            if(age<20)return;
-            for(int i=0;i<28;i++) {double u=i/28.0,h=Math.min(1,(age-20)/60.0),a=u*Math.PI*7+time*.06;
-                g.diamond(new Vec3(Math.cos(a)*(.4-u*.12),.1+u*h*1.2,Math.sin(a)*(.4-u*.12)),.026,color,.8);}
+            Vec3 last=null;
+            for(int i=0;i<=40;i++) {
+                double u=i/40.0,a=u*Math.PI*3.3+time*.025;
+                Vec3 p=center.add(Math.cos(a)*scale*.8,(u-.5)*scale*1.6,Math.sin(a)*scale*.8);
+                if(last!=null)g.line(last,p,scale*(.045+.13*u),c,alpha);
+                if(i%4==0)g.diamond(p.add(0,scale*.13,0),scale*.10,COLORS[4],alpha*.8);
+                last=p;
+            }
+            // Forward muzzle, brow and swept horns attach to the leading end of the coil.
+            g.sphere(last,scale*.22,c,alpha,false,5,8);
+            g.line(last,last.add(scale*.32,-scale*.05,0),scale*.13,c,alpha);
+            for(int side:new int[]{-1,1}) {
+                Vec3 brow=last.add(0,scale*.14,side*scale*.13);
+                g.line(brow,brow.add(-scale*.18,scale*.36,side*scale*.09),scale*.035,COLORS[4],alpha);
+                g.diamond(last.add(scale*.14,scale*.06,side*scale*.17),scale*.035,COLORS[4],alpha);
+            }
         } else if(slot==1) {
-            if(age<16) {g.diamond(new Vec3(.2,1.2,0),.025,color,.7);return;}
-            for(int blade=0;blade<5;blade++) {double a=time*.32+blade*1.26;
-                g.ring(new Vec3(0,1.12,0),new Vec3(Math.cos(a),0,Math.sin(a)),Y,.6+blade*.055,.025,color,.85,a,1.1);}
-            if(age>42&&age<47)g.sphere(new Vec3(0,1.12,0),.7,color,.35,true,8,16);
+            // Shallow sculpted mask, broad cheeks, two incisors; claw cuts frame the face.
+            g.sphere(center,scale*.48,c,alpha,false,5,8);
+            for(int side:new int[]{-1,1}) {
+                g.diamond(center.add(side*scale*.38,scale*.42,0),scale*.19,c,alpha);
+                g.line(center.add(side*scale*.12,scale*.13,-scale*.43),center.add(side*scale*.34,scale*.19,-scale*.35),scale*.04,COLORS[4],alpha);
+                g.line(center.add(side*scale*.22,-scale*.10,-scale*.39),center.add(side*scale*.16,-scale*.48,-scale*.46),scale*.065,COLORS[4],alpha);
+                for(int i=0;i<3;i++) {
+                    Vec3 root=center.add(side*(.6+i*.16)*scale,.7*scale,-.18*scale);
+                    g.line(root,root.add(-side*.24*scale,-1.3*scale,-.1*scale),scale*.025,c,alpha*.7);
+                }
+            }
+            g.diamond(center.add(0,0,-scale*.49),scale*.13,COLORS[4],alpha);
         } else if(slot==2) {
-            for(int i=0;i<32;i++) {double u=(i/32.0+time*.013)%1,a=i*2.4+time*.08,h=Math.min(1,age/65);
-                Vec3 p=new Vec3(Math.cos(a)*(.45-u*.23),.1+u*h*1.5,Math.sin(a)*(.45-u*.23));
-                g.line(p,p.add(0,.13+u*.1,0),.026,i%3==0?COLORS[4]:color,.9);}
+            g.diamond(center,scale*.29,COLORS[4],alpha);
+            for(int side:new int[]{-1,1})for(int i=0;i<7;i++) {
+                double fan=.35+i*.15;
+                Vec3 root=center.add(side*scale*.15,scale*.1,0);
+                Vec3 tip=center.add(side*scale*(.65+fan),scale*(1.2-i*.16),scale*.12*i);
+                Vec3 mid=root.lerp(tip,.55);
+                g.quad(root,mid.add(0,scale*.11,scale*.09),tip,mid.add(0,-scale*.11,-scale*.09),c,alpha);
+                g.line(root,tip,scale*.012,COLORS[4],alpha);
+            }
+            for(int i=-1;i<=1;i++)g.line(center,center.add(i*scale*.45,-scale*(1.1+Math.abs(i)*.2),scale*.3),scale*.065,c,alpha*.8);
         } else {
-            for(int band=0;band<4;band++) { double a=time*.007+band*.7;
-                g.ring(new Vec3(0,.3+band*.24,0),X,Z,.55+progress*.15,.014,color,.3+progress*.5,a,Math.PI*1.6);
-                g.diamond(new Vec3(Math.cos(a)*.6,.3+band*.24,Math.sin(a)*.6),.045,color,.7);}
+            // Six thick faceted carapace plates, low head and a serpentine rim.
+            for(int i=0;i<6;i++) {
+                double a=i*Math.PI/3;
+                Vec3 p=center.add(Math.cos(a)*scale*.42,scale*.10,Math.sin(a)*scale*.42);
+                g.sphere(p,scale*.34,c,alpha,false,3,6);
+                g.line(p,p.add(0,scale*.22,0),scale*.025,COLORS[4],alpha);
+            }
+            g.sphere(center.add(0,-scale*.18,-scale*.8),scale*.21,c,alpha,false,4,8);
+            for(int x:new int[]{-1,1})for(int z:new int[]{-1,1})g.line(center.add(x*scale*.3,-scale*.2,z*scale*.3),center.add(x*scale*.72,-scale*.4,z*scale*.6),scale*.09,c,alpha);
+            Vec3 prev=null;
+            for(int i=0;i<=28;i++) {
+                double a=i*Math.PI*2/28+time*.009;
+                Vec3 p=center.add(Math.cos(a)*scale*.91,Math.sin(a*2)*scale*.16,Math.sin(a)*scale*.91);
+                if(prev!=null)g.line(prev,p,scale*.045,COLORS[4],alpha*.65);prev=p;
+            }
         }
     }
 

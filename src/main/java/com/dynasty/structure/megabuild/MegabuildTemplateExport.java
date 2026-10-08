@@ -21,6 +21,14 @@ final class MegabuildTemplateExport {
                 nbt.putString("LootTable","dynasty:chests/"+(k==Blueprint.Kind.RICH_CHEST?"tiangong_rich":"tiangong_common"));
                 block.put("nbt",nbt);
             }
+            if(k==Blueprint.Kind.MINING_CHEST){
+                var chest=new net.minecraft.world.SimpleContainer(27);
+                MiningRewards.fillNew(chest,new net.minecraft.core.BlockPos(x,y,z).asLong());
+                var items=net.minecraft.core.NonNullList.withSize(27,net.minecraft.world.item.ItemStack.EMPTY);
+                for(int i=0;i<27;i++)items.set(i,chest.getItem(i));
+                var nbt=new CompoundTag();nbt.putString("id","minecraft:chest");
+                net.minecraft.world.ContainerHelper.saveAllItems(nbt,items);block.put("nbt",nbt);
+            }
             if(k==Blueprint.Kind.SPAWNER_ZOMBIE||k==Blueprint.Kind.SPAWNER_SKELETON)block.put("nbt",CityEncounters.spawnerTag(k));
             blocks.add(block);
         }

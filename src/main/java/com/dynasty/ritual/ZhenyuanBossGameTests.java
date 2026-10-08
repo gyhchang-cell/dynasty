@@ -14,7 +14,7 @@ public final class ZhenyuanBossGameTests {
     public static void finalBossHasThreeReadablePhases(GameTestHelper h) {
         var boss=ZhenyuanBosses.FINAL_BOSS.get().create(h.getLevel());
         h.assertTrue(boss!=null,"final boss registered");
-        h.assertTrue(boss.getMaxHealth()==60000F,"final boss health must not clamp to vanilla maximum");
+        h.assertTrue(boss.getMaxHealth()==90000F,"final boss health must not clamp to vanilla maximum");
         boss.setHealth(boss.getMaxHealth()); h.assertTrue(boss.ritualPhase()==0,"full phase");
         boss.setHealth(boss.getMaxHealth()*.5F); h.assertTrue(boss.ritualPhase()==1,"middle phase");
         boss.setHealth(boss.getMaxHealth()*.2F); h.assertTrue(boss.ritualPhase()==2,"last phase");

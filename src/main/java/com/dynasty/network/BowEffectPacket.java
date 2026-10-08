@@ -7,14 +7,15 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 /** Server-authoritative projectile identity and impact position. */
-public record BowEffectPacket(int kind, int entityId, int tier, boolean phoenix, double x, double y, double z) {
+public record BowEffectPacket(int kind, int entityId, int tier, boolean phoenix, double x, double y, double z, int theme) {
+    public BowEffectPacket(int kind,int entityId,int tier,boolean phoenix,double x,double y,double z) { this(kind,entityId,tier,phoenix,x,y,z,0); }
     public static void encode(BowEffectPacket p, FriendlyByteBuf b) {
         b.writeVarInt(p.kind); b.writeVarInt(p.entityId); b.writeVarInt(p.tier); b.writeBoolean(p.phoenix);
-        b.writeDouble(p.x); b.writeDouble(p.y); b.writeDouble(p.z);
+        b.writeDouble(p.x); b.writeDouble(p.y); b.writeDouble(p.z); b.writeVarInt(p.theme);
     }
     public static BowEffectPacket decode(FriendlyByteBuf b) {
         return new BowEffectPacket(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readBoolean(),
-                b.readDouble(), b.readDouble(), b.readDouble());
+                b.readDouble(), b.readDouble(), b.readDouble(), b.readVarInt());
     }
     public static void handle(BowEffectPacket p, Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();

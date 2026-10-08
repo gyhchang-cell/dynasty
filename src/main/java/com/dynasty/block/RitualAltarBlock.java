@@ -101,14 +101,14 @@ public class RitualAltarBlock extends Block {
         if (boss == null) {
             return InteractionResult.SUCCESS;
         }
-        if (!player.getAbilities().instabuild) {
-            stack.shrink(1);
-        }
         boss.moveTo(pos.getX() + 0.5D, pos.getY() + 1.2D, pos.getZ() + 0.5D,
                 player.getYRot() + 180.0F, 0.0F);
         boss.addEffect(new net.minecraft.world.effect.MobEffectInstance(
                 net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE, 200, 1, false, false));
-        level.addFreshEntity(boss);
+        com.dynasty.cod3.BossSequenceRunner.start(boss,20);
+        if(!level.addFreshEntity(boss))return InteractionResult.CONSUME;
+        if(!player.getAbilities().instabuild)stack.shrink(1);
+        player.displayClientMessage(Component.translatable("cod3.dynasty.altar.warning", boss.getDisplayName()), true);
         summonEffects(server, pos, player);
         for (Player nearby : server.getEntitiesOfClass(Player.class, player.getBoundingBox().inflate(48.0D))) {
             nearby.displayClientMessage(Component.literal("§6[法阵] §r" + boss.getDisplayName().getString()

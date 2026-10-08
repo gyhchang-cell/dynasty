@@ -116,6 +116,9 @@ public class StarAltarPiece extends DynastyStructurePiece {
         set(level, box, 8, 5, 17, bronze);
         set(level, box, 17, 5, 17, bronze);
 
+        story(level,box,6,5,12,1);
+        story(level,box,19,5,12,27);
+        story(level,box,10,5,17,23);
         // 6) 供箱 / offering chests
         createChest(level, box, random, 9, 5, 9, LOOT);
         createChest(level, box, random, 16, 5, 16, LOOT);

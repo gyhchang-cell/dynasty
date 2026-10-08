@@ -19,13 +19,29 @@ public final class ImperialWeaponEffects {
         return 0;
     }
 
+    public static int impactStyle(ItemStack stack) {
+        String id=DynastyTrinkets.idOf(stack);
+        if(id==null)return 0;
+        return switch(id) {
+            case "tianzi_sword" -> 1; case "qinglong_dao" -> 2;
+            case "tang_dao" -> 3; case "liuyun_sword" -> 4;
+            case "beichen_spear" -> 5; case "leiting_hammer" -> 6;
+            case "pojun_axe" -> 7; case "sea_trident" -> 8;
+            case "baihu_glaive" -> 9; case "xuanwu_blade" -> 10;
+            case "ziwei_saber" -> 11; case "chengying_sword" -> 12;
+            default -> 0;
+        };
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void hit(LivingDamageEvent event) {
         if (event.isCanceled() || event.getAmount() <= 0 || !(event.getEntity().level() instanceof ServerLevel level)
                 || !(event.getSource().getEntity() instanceof LivingEntity attacker)
                 || event.getSource().getDirectEntity() != attacker) return;
-        int style = style(attacker.getMainHandItem());
-        if (style != 1 || QinglongDescent.isDragonDamage(event.getSource())) return;
+        if (!event.getSource().is(net.minecraft.world.damagesource.DamageTypes.PLAYER_ATTACK)
+                || DynastyTrinketOnHit.isSyntheticDamage()) return;
+        int style = impactStyle(attacker.getMainHandItem());
+        if (style == 0 || style == 2 || QinglongDescent.isDragonDamage(event.getSource())) return;
         var position = event.getEntity().position().add(0, event.getEntity().getBbHeight() * .55, 0);
         DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
                 position.x, position.y, position.z, 48, level.dimension())),

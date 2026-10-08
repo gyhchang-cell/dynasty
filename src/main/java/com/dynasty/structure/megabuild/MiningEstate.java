@@ -1,41 +1,64 @@
 package com.dynasty.structure.megabuild;
+
 import static com.dynasty.structure.megabuild.Blueprint.Kind.*;
-/** Surface mine with ramped benches, working rooms and a public entrance. */
+
+/** Mirrored solid quarry benches. Roads and stair headroom are excluded from the ore volume. */
 public final class MiningEstate {
-    public static final int SIZE=96,HEIGHT=36;
+    public static final int SIZE=96, HEIGHT=36;
     private final Blueprint bp=new Blueprint(SIZE,HEIGHT,SIZE);
-    public MiningEstate(long seed){
+    public MiningEstate(long seed) {
         bp.box(4,0,4,91,0,91,PLATFORM);
         bp.hollowBox(4,1,4,91,7,91,WALL);
-        bp.doorway(43,1,4,51,4,4);
-        bp.box(43,0,0,51,0,91,FLOOR);
-        LegacyCitadelV2.hall(bp,57,12,85,32,0,2,1);
-        LegacyCitadelV2.hall(bp,59,42,85,61,0,2,2);
-        LegacyCitadelV2.hall(bp,56,70,86,86,0,2,0);
-        // Raised quarry benches are hollow underneath and reachable by stairs.
-        for(int tier=0;tier<3;tier++){
-            int y=tier*3;
-            int z=14+tier*13;
-            bp.box(10,y,z,38,y,z+10,FLOOR);
-            if(tier>0){
-                bp.hollowBox(10,1,z,38,y-1,z+10,WALL);
-                bp.stairs(24,y-2,z-3,3,4,STAIR_S);
+        bp.doorway(43,1,4,52,4,4);
+        bp.box(43,0,0,52,0,91,FLOOR);
+        var random=new java.util.Random(seed);
+        for(int tier=0;tier<3;tier++) {
+            int height=3+tier*3, z0=14+tier*18;
+            for(int x=10;x<=38;x++)for(int z=z0;z<=z0+12;z++)for(int y=1;y<=height;y++) {
+                var mineral=mineral(random.nextInt(100));
+                bp.set(x,y,z,mineral); bp.set(95-x,y,z,mineral);
             }
-            for(int x=12;x<=36;x+=4)for(int zz=z+3;zz<=z+8;zz+=4)
-                bp.set(x,y+1,zz,tier==0?ORE_COPPER:tier==1?ORE_IRON:ORE_COAL);
+            // Side access avoids putting a taller ramp through the previous bench.
+            for(int step=0;step<height;step++)for(int x=39;x<=41;x++) {
+                int z=z0+step;
+                bp.box(x,1,z,x,step+1,z,FLOOR);
+                bp.box(95-x,1,z,95-x,step+1,z,FLOOR);
+            }
         }
-        bp.set(12,1,65,CHEST);
-        bp.set(36,1,65,RICH_CHEST);
-        for(int x:new int[]{11,37})for(int z:new int[]{58,80}){
-            bp.box(x,1,z,x,4,z,DARK_WOOD);bp.set(x,5,z,LANTERN);
+        // The former southern hall becomes two equal stepped mineral mounds.
+        for(int y=1;y<=6;y++)for(int x=10+y;x<=38-y;x++)for(int z=70+y;z<=87-y;z++) {
+            var mineral=mineral(random.nextInt(100));
+            bp.set(x,y,z,mineral); bp.set(95-x,y,z,mineral);
+        }
+        // Retain main's reachable ceiling encounter without hollowing cod6's ore benches.
+        // These mirrored galleries occupy the gap before the southern mineral mounds.
+        for (int side=0;side<2;side++) {
+            int lo=side==0?10:57, hi=side==0?38:85;
+            bp.hollowBox(lo,1,64,hi,6,68,WALL);
+            bp.box(lo,6,64,hi,6,68,FLOOR);
+            bp.doorway(side==0?hi:lo,1,65,side==0?hi:lo,3,67);
+        }
+        for(int x:new int[]{39,56})for(int z:new int[]{29,65})bp.set(x,1,z,MINING_CHEST);
+        for(int x:new int[]{42,53})for(int z:new int[]{10,64,88}) {
+            bp.box(x,1,z,x,3,z,DARK_WOOD); bp.set(x,4,z,LANTERN);
         }
     }
+    private static Blueprint.Kind mineral(int n) {
+        if(n<38)return RAW_IRON;
+        if(n<68)return RAW_COPPER;
+        if(n<75)return RAW_GOLD;
+        if(n<82)return ORE_COAL;
+        if(n<88)return ORE_IRON;
+        if(n<93)return ORE_COPPER;
+        if(n<96)return ORE_REDSTONE;
+        if(n<98)return ORE_LAPIS;
+        return n==98?ORE_GOLD:ORE_DIAMOND;
+    }
     public Blueprint blueprint(){return bp;}
-    public static void main(String[] args){
+    public static void main(String[] args) {
         var b=new MiningEstate(0).blueprint();
-        System.out.println("Estate: "+b.solidCount()+" "+b.countByCategory());
-        for(int[] end:new int[][]{{70,1,20},{72,8,50},{70,8,78},{25,7,47}})
-            if(!b.walkable(new int[]{47,1,4},end))throw new AssertionError("Blocked estate route "+java.util.Arrays.toString(end));
-        System.out.println("Estate entrance, upper rooms and quarry PASS");
+        for(int[] end:new int[][]{{47,1,90},{40,1,65},{55,1,65},{24,4,16},{71,10,59}})
+            if(!b.walkable(new int[]{47,1,4},end))throw new AssertionError("Blocked quarry route "+java.util.Arrays.toString(end));
+        System.out.println("Solid mirrored quarry routes PASS");
     }
 }
