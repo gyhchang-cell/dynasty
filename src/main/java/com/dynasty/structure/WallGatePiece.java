@@ -43,6 +43,8 @@ public class WallGatePiece extends DynastyStructurePiece {
         return java.util.List.of(getWorldPos(14,9,11).immutable(),getWorldPos(15,9,12).immutable());
     }
 
+    public BlockPos stoneGuardPosition(){return getWorldPos(10,1,5).immutable();}
+
     @Override
     public void postProcess(WorldGenLevel level, StructureManager manager, ChunkGenerator generator,
                             RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {

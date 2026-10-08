@@ -17,7 +17,7 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class SkullGameTests {
     private static TemplateMob skull(GameTestHelper h){
-        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=11;y++)h.setBlock(x,y,z,y==1||y==11?Blocks.STONE:Blocks.AIR);
+        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=11;y++)h.setBlock(x,y,z,y==1||y==11||x==0||x==15||z==0||z==15?Blocks.STONE:Blocks.AIR);
         var mob=h.spawn(BlueprintEntities.MUXUE_FEILU.get(),new BlockPos(7,6,5));mob.setNoAi(true);return mob;
     }
     private static net.minecraft.world.entity.animal.Cow enemy(GameTestHelper h){
@@ -81,7 +81,7 @@ public final class SkullGameTests {
         h.runAfterDelay(95,()->{
             var restored=new SkullBloodPool(BlueprintEntities.SKULL_BLOOD_POOL.get(),h.getLevel());restored.load(saved);h.getLevel().addFreshEntity(restored);
             h.runAfterDelay(3,()->{h.assertTrue(restored.isRemoved()&&!a.hasEffect(net.minecraft.world.effect.MobEffects.POISON)
-                &&a.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET).getDamageValue()==2,"Expired loaded pool cannot catch up corrosion, duplicate pulses or leave permanent poison");a.discard();b.discard();h.succeed();});
+                &&a.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET).getDamageValue()==2,"Expired loaded pool cannot catch up corrosion, duplicate pulses or leave permanent poison: removed="+restored.isRemoved()+" poison="+a.hasEffect(net.minecraft.world.effect.MobEffects.POISON)+" alive="+a.isAlive()+" armour="+a.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET).getDamageValue());a.discard();b.discard();h.succeed();});
         });
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=270,batch="skull")

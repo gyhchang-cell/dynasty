@@ -74,7 +74,13 @@ public final class DynastySchoolCombat {
     public static ItemStack firingWeapon(DamageSource source, ItemStack held) {
         if(source.getDirectEntity() instanceof AbstractArrow a && a.getPersistentData().contains("cod4FiringWeapon"))
             return ItemStack.of(a.getPersistentData().getCompound("cod4FiringWeapon"));
-        if (!isStarArrow(source)) return held;
+        if (!isStarArrow(source)) {
+            if(source.getDirectEntity() instanceof AbstractArrow && source.getEntity() instanceof Player player) {
+                var snapshot=DynastyWeaponProgression.attackWeapon(player,source);
+                if(!snapshot.isEmpty())return snapshot;
+            }
+            return held;
+        }
         return ItemStack.of(source.getDirectEntity().getPersistentData().getCompound(FIRING_WEAPON));
     }
 

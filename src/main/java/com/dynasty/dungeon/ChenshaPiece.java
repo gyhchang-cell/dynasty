@@ -86,9 +86,15 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         if(in(x,40,42)&&z==8&&in(y,1,3))result=Blocks.AIR.defaultBlockState();
         if(in(x,37,42)&&z==8&&in(y,73,75))result=Blocks.AIR.defaultBlockState();
         if(in(x,39,43)&&z==8&&y==72)result=shell();
-        // Two safe poison-pit basins beneath distinct resettable panels.
+        // Spike basin beneath the grouped resettable panels.
         if(rect(x,z,30,40,34,42)&&in(y,43,47))result=y==43?shell():Blocks.AIR.defaultBlockState();
         if(rect(x,z,30,40,34,42)&&y==44)result=Blocks.POINTED_DRIPSTONE.defaultBlockState();
+        // A restored trap floor must not seal survivors in the pit. This side
+        // ladder leads only back to the upper gallery, never past a progression seal.
+        if(x==35&&z==41&&in(y,43,51))result=y==43?shell():Blocks.AIR.defaultBlockState();
+        if(x==36&&z==41&&in(y,44,48))result=shell();
+        if(x==35&&z==41&&in(y,44,48))result=Blocks.LADDER.defaultBlockState()
+            .setValue(net.minecraft.world.level.block.LadderBlock.FACING,Direction.WEST);
         // Connectors have final precedence over room floors/ceilings. Otherwise
         // the middle gallery erases the last nine steps of the descending run.
         if(in(x,29,35)){
@@ -103,6 +109,10 @@ public final class ChenshaPiece extends DynastyStructurePiece {
                 result=y==floor||y==floor+5||x==29||x==35?shell():Blocks.AIR.defaultBlockState();
         }
         return result;
+    }
+    /** Airborne cod1 skull per side chamber; no arbitrary cave or mercury-trial spawn points. */
+    public static List<BlockPos> middleSkullOffsets(){
+        return List.of(new BlockPos(12,28,60),new BlockPos(52,28,60));
     }
     public static List<Marker> markers(){
         var result=new ArrayList<Marker>();
