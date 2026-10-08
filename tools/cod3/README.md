@@ -40,3 +40,7 @@ python3 tools/cod3/verify_assets.py
 完整服务器套件含大型结构模板，需要比独立 cod3 测试更大的堆。所有测试世界均位于独立 `build/` 目录。客户端 harness 只打开隔离的标题画面，真实 FBO 绘制 40 VFX 的两档、25 奇观、15 NPC 正侧面、八 GUI 的空/满背景和 30 地标，并记录 GL 状态检查；它不等同于双人联机、所有 GUI 缩放和完整世界画面的人工验收。
 
 `build_catalog.py <原任务文件>` 可重建内置目录；NPC 与地标的确定性生成脚本也在本目录。构建与运行不依赖原任务附件。
+
+## 2026-10-08 续做
+
+当前源码进度与按原文删减的依据见 [续做记录](../../docs/cod3/continuation-2026-10-08.md)，本轮构建及 19 项专用服回归见 [验证记录](verification/continuation-2026-10-08.md)。后续任务原文为 [remaining-tasks.txt](../../docs/cod3/remaining-tasks.txt)；完整分镜、剧情与真实客户端验收仍需继续。
