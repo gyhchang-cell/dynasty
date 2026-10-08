@@ -30,9 +30,12 @@ public final class InfusionJei implements IModPlugin {
         @Override public IDrawable getIcon(){return icon;}
         @Override public void setRecipe(IRecipeLayoutBuilder b,InfusionTraits.Trait t,IFocusGroup focus){b.addSlot(RecipeIngredientRole.INPUT,3,3).addItemStack(new ItemStack(ForgeRegistries.ITEMS.getValue(new ResourceLocation("dynasty",t.material())),t.count()));b.addSlot(RecipeIngredientRole.CATALYST,149,3).addItemStack(new ItemStack(InfusionContent.TABLE_ITEM.get()));}
         @Override public void draw(InfusionTraits.Trait t,mezz.jei.api.gui.ingredient.IRecipeSlotsView slots,net.minecraft.client.gui.GuiGraphics g,double x,double y){
-            int line=26;line=wrap(g,t.name(),line,0x27634c);line=wrap(g,Component.translatable("infusion.dynasty.jei_types",t.applicability()),line,0x444444);line=wrap(g,t.description(),line,0x444444);line=wrap(g,Component.translatable("infusion.dynasty.trait_cost",t.cost()),line,0x444444);line=wrap(g,Component.translatable("infusion.dynasty.apply_cost"),line,0x444444);line=wrap(g,Component.translatable("infusion.dynasty.jei_gate",Component.translatable("infusion.dynasty.gate.get_jade")),line,0x444444);
-            if(!t.gate().isEmpty())wrap(g,Component.translatable("infusion.dynasty.jei_gate",Component.translatable("infusion.dynasty.gate."+t.gate())),line,0x444444);
+            int yLine=26;for(var line:details(t))yLine=wrap(g,line,yLine,0x444444);
         }
+        public static java.util.List<Component> details(InfusionTraits.Trait t){
+            var lines=new java.util.ArrayList<Component>();lines.add(t.name());lines.add(Component.translatable("infusion.dynasty.jei_types",t.applicability()));lines.add(t.description());lines.add(Component.translatable("infusion.dynasty.trait_cost",t.cost()));lines.add(Component.translatable("infusion.dynasty.jei_cost"));lines.add(Component.translatable("infusion.dynasty.jei_gate",Component.translatable("infusion.dynasty.gate.get_jade")));if(!t.gate().isEmpty())lines.add(Component.translatable("infusion.dynasty.jei_gate",Component.translatable("infusion.dynasty.gate."+t.gate())));return lines;
+        }
+
         private int wrap(net.minecraft.client.gui.GuiGraphics g,Component text,int y,int color){var f=net.minecraft.client.Minecraft.getInstance().font;for(var line:f.split(text,164)){g.drawString(f,line,3,y,color,false);y+=10;}return y+2;}
     }
 }

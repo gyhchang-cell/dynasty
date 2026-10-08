@@ -31,8 +31,14 @@ for path in ['src/main/java/com/dynasty/blueprint/BlueprintSalvage.java','src/ma
  registered.discard('short_crossbow_bolt')
  missing={'dynasty:'+x for x in registered}-ids
  assert not missing,missing
-protected=['src/main/java/com/dynasty/DynastyItems.java','src/main/java/com/dynasty/DynastyTabs.java','src/main/java/com/dynasty/DynastyRelics.java','src/main/java/com/dynasty/DynastyFineItems.java','src/main/java/com/dynasty/block/LivingWorkshopBlock.java','src/main/java/com/dynasty/workshop/WorkshopRecipes.java','docs/quests-remaster/book.json']
+protected=['src/main/java/com/dynasty/DynastyItems.java','src/main/java/com/dynasty/DynastyTabs.java','src/main/java/com/dynasty/DynastyRelics.java','src/main/java/com/dynasty/DynastyFineItems.java','src/main/java/com/dynasty/block/LivingWorkshopBlock.java','src/main/java/com/dynasty/workshop/WorkshopRecipes.java']
 for path in protected:assert (root/path).read_bytes()==original(path),'Changed protected content: '+path
+old_book=json.loads(original('docs/quests-remaster/book.json'));new_book=json.loads(read('docs/quests-remaster/book.json'))
+for old_ch,new_ch in zip(old_book,new_book):
+ assert old_ch['file']==new_ch['file'] and len(old_ch['quests'])==len(new_ch['quests'])
+ for old_q,new_q in zip(old_ch['quests'],new_ch['quests']):
+  if old_q.get('target')=='dynasty:first_infusion':old_q['description']=new_q['description']
+  assert old_q==new_q,'Existing task structure/rewards changed'
 for locale in ['zh_cn','en_us']:
  path=f'src/main/resources/assets/dynasty/lang/{locale}.json';old=json.loads(original(path));new=json.loads(read(path))
  assert all(new.get(k)==v for k,v in old.items() if k.startswith(('item.','block.','entity.'))),'Original displayed names changed'

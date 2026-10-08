@@ -49,7 +49,7 @@ public final class InfusionTraits {
     public static Trait material(ItemStack stack){var id=ForgeRegistries.ITEMS.getKey(stack.getItem());return id!=null&&id.getNamespace().equals("dynasty")?get(id.getPath()):null;}
     public static boolean accessory(ItemStack stack){return stack.getItem() instanceof com.dynasty.DynastyTrinketTips.Charm;}
     public static boolean eligible(ItemStack s){return s.getCount()==1&&(accessory(s)||s.isDamageableItem()&&(s.getItem() instanceof TieredItem||s.getItem() instanceof ArmorItem||s.getItem() instanceof ShieldItem||s.getItem() instanceof ProjectileWeaponItem||s.getItem() instanceof TridentItem));}
-    public static int maxCapacity(ItemStack s){return switch(s.getRarity()){case EPIC->5;case RARE->4;default->s.getMaxDamage()>=45000?5:s.getMaxDamage()>=8000?4:3;};}
+    public static int maxCapacity(ItemStack s){int rarity=switch(s.getRarity()){case EPIC->5;case RARE->4;default->3;};return Math.max(rarity,s.getMaxDamage()>=45000?5:s.getMaxDamage()>=8000?4:3);}
     public static List<String> slots(ItemStack s){
         var out=new ArrayList<>(List.of("","",""));
         if(s.hasTag()){var tag=s.getTag().getCompound(KEY);for(int i=0;i<SLOTS;i++){String id=tag.getString("slot"+i);if(get(id)!=null)out.set(i,id);}}return out;

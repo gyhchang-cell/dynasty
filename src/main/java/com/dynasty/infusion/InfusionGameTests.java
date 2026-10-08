@@ -61,12 +61,12 @@ public final class InfusionGameTests {
     public static void progressionOutOfRangeAndForeignPlayerCannotMutateInputs(GameTestHelper h){
         var p=player(h);var m=menu(h,p);m.getSlot(0).set(new ItemStack(Items.IRON_SWORD));m.getSlot(1).set(new ItemStack(item("cinnabar"),2));p.experienceLevel=9;
         h.assertTrue(!apply(m,p)&&m.material().getCount()==2,"Base progression gates transaction");
-        p.getAbilities().instabuild=true;var stranger=player(h);h.assertTrue(!apply(m,stranger),"Menu belongs to owner");
+        p.setGameMode(net.minecraft.world.level.GameType.CREATIVE);var stranger=player(h);h.assertTrue(!apply(m,stranger),"Menu belongs to owner");
         p.setPos(p.getX()+30,p.getY(),p.getZ());h.assertTrue(!apply(m,p)&&m.material().getCount()==2,"Out of reach fails");h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="infusion")
     public static void sharedInventoryPersistsAndRejectsStalePlayerTransactions(GameTestHelper h){
-        var a=player(h);var b=player(h);a.getAbilities().instabuild=true;b.getAbilities().instabuild=true;
+        var a=player(h);var b=player(h);a.setGameMode(net.minecraft.world.level.GameType.CREATIVE);b.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
         var one=menu(h,a);var two=new InfusionMenu(4,b.getInventory(),a.blockPosition());b.containerMenu=two;
         one.getSlot(0).set(new ItemStack(Items.IRON_SWORD));one.getSlot(1).set(new ItemStack(item("cinnabar"),4));
         one.broadcastChanges();two.broadcastChanges();int stale=two.revision();
@@ -183,7 +183,7 @@ public final class InfusionGameTests {
                 p.setPos(net.minecraft.world.phys.Vec3.atCenterOf(h.absolutePos(new BlockPos(2,3,2))));
                 LivingEntity target=behavior.equals("venom")?new net.minecraft.world.entity.monster.Creeper(EntityType.CREEPER,level):new Zombie(EntityType.ZOMBIE,level);
                 target.setPos(p.getX(),p.getY(),p.getZ()+10);target.setYRot(0);p.setOnGround(false);
-                level.setDayTime(behavior.equals("night_soul")||behavior.equals("soul_siphon")?18000:6000);level.setWeatherParameters(0,100,true,behavior.equals("storm_call"));
+                level.setDayTime(behavior.equals("night_soul")||behavior.equals("soul_siphon")?18000:6000);level.setWeatherParameters(0,100,true,behavior.equals("storm_call"));level.setRainLevel(behavior.equals("storm_call")?1:0);level.setThunderLevel(behavior.equals("storm_call")?1:0);level.updateSkyBrightness();
                 var trait=InfusionTraits.ALL.stream().filter(t->t.effect().equals(behavior)).findFirst().orElseThrow();
                 p.setItemSlot(EquipmentSlot.MAINHAND,gear(trait.material(),behavior.equals("hunter_mark")?Items.BOW:Items.IRON_SWORD));
                 int times=behavior.equals("heavy_stagger")?3:behavior.equals("venom")?2:1;
@@ -201,7 +201,7 @@ public final class InfusionGameTests {
                     case "sunpurge"->target.isOnFire();case "air_step"->p.hasEffect(MobEffects.SLOW_FALLING);case "soul_siphon"->target.hasEffect(MobEffects.WITHER);default->false;};
                 h.assertTrue(ok,"Real new offensive trigger: "+behavior);
             }
-        }finally{level.setDayTime(time);level.setWeatherParameters(0,0,rain,thunder);}
+        }finally{level.setDayTime(time);level.setWeatherParameters(0,0,rain,thunder);level.setRainLevel(rain?1:0);level.setThunderLevel(thunder?1:0);level.updateSkyBrightness();}
         h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=30,batch="infusion")
