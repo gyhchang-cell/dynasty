@@ -24,7 +24,8 @@ problems = []
 
 # Render-only overrides are not registered items. Keep this explicit (no broad suffix exemption).
 RENDER_VARIANTS = {f"{bow}_pulling_{stage}": bow
-                   for bow in ("houyi_bow", "zhuxing_bow", "shenbi_bow", "dragon_bow", "fengling_bow", "chang_gong") for stage in range(3)}
+                   for bow in ("houyi_bow", "zhuxing_bow", "shenbi_bow", "dragon_bow", "fengling_bow", "chang_gong",
+                               "lie_gong", "luoyan_bow", "tianlang_bow", "sunbow", "zhuque_bow") for stage in range(3)}
 # PuzzleBlocks deliberately gives the BlockItem a distinct registry ID: star_dial already names a Curio.
 # BlockItem.getDescriptionId uses its underlying block's ID, not its item registry ID.
 BLOCK_ITEM_NAMES = {"puzzle_star_dial": "star_dial"}

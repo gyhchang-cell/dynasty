@@ -104,6 +104,7 @@ public final class DynastySchoolProgression {
                                  net.minecraft.world.damagesource.DamageSource source) {
         if (!(target instanceof net.minecraft.world.entity.monster.Enemy)
                 || target.isAlliedTo(player) || player.isAlliedTo(target)) return null;
+        if (EdictSpells.isSpell(source)) return "talisman";
         Set<String> ornaments = DynastyTrinkets.activeIds(player);
         var used = DynastyWeaponProgression.attackWeapon(player, source);
         String stored = DynastyWeaponProgression.storedSchool(used);

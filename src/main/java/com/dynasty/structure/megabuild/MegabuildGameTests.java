@@ -105,7 +105,7 @@ public final class MegabuildGameTests {
             var restored=new Capture(p.createTag(null));
             restored.postProcess(null,null,null,RandomSource.create(0),box,null,BlockPos.ZERO);
             h.assertTrue(restored.writes.equals(p.writes),"NBT reload or rotation changed geometry");
-            h.assertTrue(p.createTag(null).getInt("MegabuildLayout")==4,"Version missing");
+            h.assertTrue(p.createTag(null).getInt("MegabuildLayout")==6,"Version missing");
         }
         for(String id:new String[]{"tiangong_citadel","tiangong_mining_estate"})
             h.assertTrue(h.getLevel().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE).containsKey(new ResourceLocation("dynasty",id)),"Missing structure "+id);

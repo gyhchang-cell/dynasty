@@ -67,14 +67,14 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
     private void build() {
         boolean general=role==Role.GENERAL,guard=role==Role.GUARD,archer=role==Role.ARCHER;
         boolean heavy=general||guard;
-        float leg=general?15.6f:archer?14.2f:12.6f, shoulder=general?6.1f:guard?4.8f:archer?3.6f:3.8f;
+        float leg=general?15.6f:archer?14.2f:12.6f, shoulder=general?6.1f:guard?5.0f:archer?3.6f:3.8f;
         int coat=general?RED:guard?TEAL:archer?CLOTH:0x746449;
         Joint pelvis=j(root,"pelvis",0,-leg,0);centered(pelvis,heavy?6.8f:5.5f,2.3f,heavy?4.4f:3.6f,coat);
-        Joint waist=j(pelvis,"waist",0,-1,0);centered(waist,heavy?5.3f:archer?4.0f:4.6f,1.2f,3.5f,LEATHER);
+        Joint waist=j(pelvis,"waist",0,-1,0);centered(waist,guard?5.05f:heavy?5.3f:archer?4.0f:4.6f,1.2f,3.5f,LEATHER);
         box(waist,-1,-.15f,-2.05f,2,1.5f,.55f,BRONZE);
         Joint abdomen=j(waist,"abdomen",0,-2.4f,0);centered(abdomen,heavy?5.4f:4.6f,2.5f,heavy?3.7f:3.2f,coat);
         Joint chest=j(abdomen,"chest",0,-4.6f,0);
-        centered(chest,general?9.6f:guard?8.3f:archer?5.9f:6.4f,general?5.2f:4.6f,general?5.6f:guard?4.8f:archer?3.4f:3.9f,coat);
+        centered(chest,general?9.6f:guard?8.3f:archer?5.9f:6.4f,general?5.2f:4.6f,general?5.6f:guard?5.0f:archer?3.4f:3.9f,coat);
         // Crossed lapels have independent volume; the outer cuirass sits in front of the inner tunic.
         detail(chest,"lapel_left",-1,-.1f,-2.35f,.72f,4.8f,.42f,LINEN,0,0,-.4f);
         detail(chest,"lapel_right",1.6f,-.1f,-2.38f,.65f,3.9f,.42f,LINEN,0,0,.4f);
@@ -100,7 +100,7 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
             for(int k=0;k<3;k++)detail(chest,"repair_tie"+k,-1.7f,1.3f+k,-2.8f,2.6f,.2f,.18f,LEATHER,0,0,.15f);
         }
         Joint neck=j(chest,"neck",0,-1.4f,0);centered(neck,2,1.6f,2.2f,SKIN_SHADE);
-        Joint head=j(neck,"head",0,-4.1f,-.05f);float hw=general?4.7f:4.35f;
+        Joint head=j(neck,"head",0,-4.1f,-.05f);float hw=general?4.7f:guard?4.08f:4.35f;
         box(head,-hw/2,0,-1.85f,hw,3.65f,3.7f,SKIN);
         box(head,-1.65f,3,-1.7f,3.3f,1.15f,3.1f,SKIN_SHADE);
         box(head,-.43f,1,-2.23f,.86f,1.6f,.62f,SKIN_LIGHT);
@@ -159,6 +159,8 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
             if(heavy)for(int row=0;row<4;row++)box(skirt,-1.68f,.3f+row*1.2f,-.6f,3.36f,1,.38f,row%2==0?STEEL:DARK);
         }
         if(general) {
+            detail(chest,"siege_pauldron",-6.7f,-.4f,0,3.8f,3,6.7f,STEEL,0,0,-.2f);
+            detail(chest,"siege_pauldron_edge",-7.8f,.8f,0,1.2f,4.8f,7.2f,BRONZE,0,0,-.17f);
             Joint cape=j(chest,"cape",0,0,2.9f,.10f,0,0);
             centered(cape,10.6f,8,.7f,RED);
             Joint hem=j(cape,"cape_hem",0,8,.15f,.10f,0,0);centered(hem,12,9,.75f,RED);

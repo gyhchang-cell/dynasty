@@ -29,7 +29,7 @@ public final class DynastyBowSigilRenderer {
 
     private DynastyBowSigilRenderer() {}
 
-    static boolean showsAimingSigil(Item item) { return item != DynastyWeapons.HOUYI_BOW.get(); }
+    static boolean showsAimingSigil(Item item) { return item != DynastyWeapons.HOUYI_BOW.get() && DynastyBowRitual.visualTheme(item)==0; }
 
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
@@ -42,7 +42,9 @@ public final class DynastyBowSigilRenderer {
         ClientBowEffects.clean();
         if (ClientBowEffects.ARROWS.isEmpty() && ClientBowEffects.IMPACTS.isEmpty()
                 && mc.level.players().stream().noneMatch(Player::isUsingItem)) return;
+        try(ImperialRenderState state=new ImperialRenderState()) {
         boolean begun = true;
+        try {
         RenderSystem.enableBlend();
         RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
         RenderSystem.enableDepthTest();
@@ -81,7 +83,9 @@ public final class DynastyBowSigilRenderer {
                 Sigil aim = new Sigil(matrix, center, right.scale(radius), up.scale(radius), color, charge);
                 aim.draw(tier, time);
             }
-            if (tier >= 2) {
+            int theme=DynastyBowRitual.visualTheme(item);
+            if(theme>0) new Sigil(matrix,center,right.scale(radius*1.6),up.scale(radius*1.6),color,charge).theme(theme,time);
+            if (tier >= 2 && theme==0) {
                 double groundRadius = DynastyBowRitual.impactRadius(tier);
                 // Keep all three airborne layers below the feet, clear of the aiming view.
                 // This is only a visual offset; the ward's protection stays around the player.
@@ -121,7 +125,9 @@ public final class DynastyBowSigilRenderer {
             Vec3 p = arrow.getPosition(partial).add(direction.scale(0.25)).subtract(camera);
             float[] color = packet.phoenix() ? new float[]{1,0.25F,0.3F} : new float[]{1,0.68F,0.32F};
             double size = 0.18 + packet.tier()*0.045;
-            new Sigil(matrix,p,right.scale(size),up.scale(size),color,1).draw(Math.min(2,packet.tier()),arrow.tickCount+partial);
+            var mesh=new Sigil(matrix,p,right.scale(size),up.scale(size),color,1);
+            if(packet.theme()==0)mesh.draw(Math.min(2,packet.tier()),arrow.tickCount+partial);
+            else mesh.theme(packet.theme(),arrow.tickCount+partial);
         }
         for (ClientBowEffects.Effect effect : ClientBowEffects.IMPACTS) {
             var packet = effect.packet();
@@ -129,7 +135,8 @@ public final class DynastyBowSigilRenderer {
             double visible = Math.min(1,age/6.0) * Math.min(1,(60-age)/15.0);
             Vec3 p = new Vec3(packet.x(),packet.y()+0.06,packet.z()).subtract(camera);
             float[] color = packet.phoenix() ? new float[]{1,0.25F,0.3F} : new float[]{1,0.68F,0.32F};
-            floorSeal(matrix,p,DynastyBowRitual.impactRadius(packet.tier()),color,visible,packet.tier(),age);
+            if(packet.theme()==0)floorSeal(matrix,p,DynastyBowRitual.impactRadius(packet.tier()),color,visible,packet.tier(),age);
+            else new Sigil(matrix,p,new Vec3(2,0,0),new Vec3(0,0,2),color,visible).theme(packet.theme(),age);
         }
         if (begun) {
             BufferUploader.drawWithShader(BUFFER.end());
@@ -140,6 +147,8 @@ public final class DynastyBowSigilRenderer {
         }
         for (Avatar avatar : avatars) {
             HouyiAvatarRenderer.draw(matrix,avatar.origin(),avatar.yaw(),avatar.formed());
+        }
+        } finally { if(BUFFER.building()) BUFFER.end().release(); }
         }
     }
 
@@ -174,6 +183,33 @@ public final class DynastyBowSigilRenderer {
 
         void draw(int tier, double time) {
             new BowSigilGeometry(charge, this::stroke).draw(tier, time);
+        }
+        void theme(int kind,double time) {
+            switch(kind) {
+                case 1 -> { // Folded feather vanes, open center.
+                    for(int side:new int[]{-1,1})for(int k=0;k<5;k++) {
+                        double x=side*(.28+k*.17),y=-.55+k*.22;
+                        stroke(x,y,x+side*.4,y+.38,.018);stroke(x,y,x+side*.08,y+.5,.012);
+                    }
+                }
+                case 2 -> { // Five unequal stars, linked constellation.
+                    for(int i=0;i<5;i++) {
+                        double x=-.9+i*.45,y=Math.sin(i*1.6+time*.005)*.35;
+                        stroke(x-.05,y,x+.05,y,.013);stroke(x,y-.08,x,y+.08,.013);
+                        if(i<4)stroke(x,y,x+.45,Math.sin((i+1)*1.6+time*.005)*.35,.005);
+                    }
+                }
+                case 3 -> { // Two wind ribbons with a clear gap at the sight line.
+                    for(int side:new int[]{-1,1})for(int i=0;i<20;i++) {
+                        double t=i/20.0,u=(i+1)/20.0;
+                        stroke(side*(.35+.3*Math.sin(t*3)),t*1.8-.9,side*(.35+.3*Math.sin(u*3)),u*1.8-.9,.012);
+                    }
+                }
+                case 4 -> { // Mechanical range rails: no mystic circle.
+                    for(int side:new int[]{-1,1}) {stroke(side*.55,-.65,side*.55,.65,.013);
+                        for(int k=0;k<4;k++)stroke(side*.55,-.5+k*.33,side*.7,-.5+k*.33,.012);}
+                }
+            }
         }
         void bagua(double time) { new BowSigilGeometry(charge, this::stroke).drawBagua(time); }
         void bands(double time) { new BowSigilGeometry(charge, this::stroke).draw(0, time); }

@@ -23,9 +23,10 @@ public final class ClientBowEffects {
     }
     public static void receive(BowEffectPacket packet) {
         clean();
-        if (world == null) return;
+        if (world == null || packet.tier()<0 || packet.tier()>4 || packet.theme()<0 || packet.theme()>4
+                || !Double.isFinite(packet.x()+packet.y()+packet.z())) return;
         Effect effect = new Effect(packet, world.getGameTime());
-        if (packet.kind() == 0) ARROWS.put(packet.entityId(), effect);
+        if (packet.kind() == 0) { ARROWS.put(packet.entityId(), effect); if(ARROWS.size()>96) ARROWS.remove(ARROWS.keySet().iterator().next()); }
         else if (packet.kind() == 1) {
             IMPACTS.add(effect);
             if (IMPACTS.size() > 48) IMPACTS.remove(0);

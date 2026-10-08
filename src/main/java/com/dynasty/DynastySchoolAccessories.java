@@ -44,6 +44,11 @@ final class DynastySchoolAccessories {
             case "chiling_brush", "leifu_staff", "taiyi_sword", "taiyi_whisk", "hunyuan_staff", "zhuque_fan" -> true;
             default -> false;
         };
+        if (EdictSpells.isSpell(source)) {
+            double amount=0;
+            for (String id:equipped) { var data=DynastyAccessoryData.get(id); if(data!=null && data.kind().equals("edict")) amount+=data.amount(); }
+            return amount;
+        }
         return bonus(equipped, melee, arrow, edict, player.getAttributeValue(Attributes.ARMOR_TOUGHNESS));
     }
 }

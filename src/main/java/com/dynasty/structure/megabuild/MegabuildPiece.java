@@ -34,7 +34,7 @@ class MegabuildPiece extends DynastyStructurePiece {
     private long seed;
     private int rot;
     private Blueprint cached;
-    private int layoutVersion=4;
+    private int layoutVersion=6;
 
     MegabuildPiece(StructurePieceType type, int depth, BlockPos corner,
                    Function<Long, Blueprint> factory, long seed, int rot, int size, int height) {
@@ -53,7 +53,8 @@ class MegabuildPiece extends DynastyStructurePiece {
         super(type, tag);
         this.layoutVersion = tag.contains("MegabuildLayout") ? tag.getInt("MegabuildLayout") : 2;
         this.factory = size==176 && layoutVersion<=3 ?
-            (layoutVersion<=2 ? seed -> new LegacyCitadelV2(seed).blueprint() : seed -> new LegacyCitadelV3(seed).blueprint()) : factory;
+            (layoutVersion<=2 ? seed -> new LegacyCitadelV2(seed).blueprint() : seed -> new LegacyCitadelV3(seed).blueprint()) : size==MiningEstate.SIZE && layoutVersion<=4 ? seed -> new LegacyMiningEstate(seed, layoutVersion==4).blueprint()
+            : size==MiningEstate.SIZE && layoutVersion==5 ? seed -> new LegacyMiningEstateV5(seed).blueprint() : factory;
         this.size = size;
         this.height = height;
         this.seed = tag.getLong("MegabuildSeed");
@@ -94,6 +95,15 @@ class MegabuildPiece extends DynastyStructurePiece {
                             spawner.load(CityEncounters.spawnerTag(kind));
                         continue;
                     }
+                    if(kind==Blueprint.Kind.MINING_CHEST) {
+                        var p=world(x,y,z);
+                        if(!level.getBlockState(p).is(Blocks.CHEST) && level.getBlockEntity(p)==null) {
+                            placeBlock(level,Blocks.CHEST.defaultBlockState(),x,y,z,box);
+                            if(level.getBlockEntity(p) instanceof net.minecraft.world.level.block.entity.ChestBlockEntity chest)
+                                MiningRewards.fillNew(chest,seed^p.asLong());
+                        }
+                        continue;
+                    }
                     if (kind == Blueprint.Kind.CHEST || kind == Blueprint.Kind.RICH_CHEST) {
                         createChest(level, box, random, x, y, z, kind==Blueprint.Kind.RICH_CHEST
                             ? new ResourceLocation(Dynasty.MODID,"chests/tiangong_rich") : CHEST_TABLE);
@@ -106,7 +116,8 @@ class MegabuildPiece extends DynastyStructurePiece {
     }
 
     java.util.List<BlockPos> miningSpiderPositions(){
-        return size==MiningEstate.SIZE?rotateMechanical(new int[][]{{17,4,44},{31,4,45}}):java.util.List.of();
+        return size==MiningEstate.SIZE && layoutVersion!=5?rotateMechanical(layoutVersion>=6
+            ?new int[][]{{17,4,66},{31,4,66}}:new int[][]{{17,4,44},{31,4,45}}):java.util.List.of();
     }
     java.util.List<BlockPos> bronzeSnakePositions(){return mechanicalPositions(new int[][]{{35,1,52},{66,1,36}});}
     java.util.List<BlockPos> clockworkPatrols(){return mechanicalPositions(new int[][]{{84,1,20},{91,1,28}});}
@@ -143,6 +154,14 @@ class MegabuildPiece extends DynastyStructurePiece {
             case FURNACE -> Blocks.FURNACE.defaultBlockState();
             case BOOKSHELF -> Blocks.BOOKSHELF.defaultBlockState();
             case CROP -> Blocks.OAK_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT,true);
+            case RAW_IRON -> Blocks.RAW_IRON_BLOCK.defaultBlockState();
+            case RAW_COPPER -> Blocks.RAW_COPPER_BLOCK.defaultBlockState();
+            case RAW_GOLD -> Blocks.RAW_GOLD_BLOCK.defaultBlockState();
+            case ORE_GOLD -> Blocks.GOLD_ORE.defaultBlockState();
+            case ORE_REDSTONE -> Blocks.REDSTONE_ORE.defaultBlockState();
+            case ORE_LAPIS -> Blocks.LAPIS_ORE.defaultBlockState();
+            case ORE_DIAMOND -> Blocks.DIAMOND_ORE.defaultBlockState();
+            case MINING_CHEST -> Blocks.CHEST.defaultBlockState();
             case ORE_IRON -> Blocks.IRON_ORE.defaultBlockState();
             case ORE_COPPER -> Blocks.COPPER_ORE.defaultBlockState();
             case ORE_COAL -> Blocks.COAL_ORE.defaultBlockState();

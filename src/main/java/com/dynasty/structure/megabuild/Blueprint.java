@@ -26,7 +26,7 @@ public final class Blueprint {
         STAIR_N, STAIR_E, STAIR_S, STAIR_W,
         CHEST, RICH_CHEST, FURNACE, BOOKSHELF, CROP, ORE_IRON, ORE_COPPER, ORE_COAL, BARREL, GATE,
         WATER, LOG, ANVIL, CRAFTING, BREWING, HAY,
-        LIGHT, SPAWNER_ZOMBIE, SPAWNER_SKELETON, TINTED_GLASS, CHISELED, RED_WOOD,
+        LIGHT, SPAWNER_ZOMBIE, SPAWNER_SKELETON, TINTED_GLASS, CHISELED, RED_WOOD, RAW_IRON, RAW_COPPER, RAW_GOLD, ORE_GOLD, ORE_REDSTONE, ORE_LAPIS, ORE_DIAMOND, MINING_CHEST,
     }
 
     public final int sizeX;
@@ -267,11 +267,11 @@ public final class Blueprint {
             case COPPER -> 'c';
             case LANTERN -> '*';
             case STAIR_N, STAIR_E, STAIR_S, STAIR_W -> '>';
-            case CHEST, RICH_CHEST -> '@';
+            case CHEST, RICH_CHEST, MINING_CHEST -> '@';
             case FURNACE -> 'f';
             case BOOKSHELF -> 'b';
             case CROP -> '~';
-            case ORE_IRON, ORE_COPPER, ORE_COAL -> 'o';
+            case ORE_IRON, ORE_COPPER, ORE_COAL, RAW_IRON, RAW_COPPER, RAW_GOLD, ORE_GOLD, ORE_REDSTONE, ORE_LAPIS, ORE_DIAMOND -> 'o';
             case BARREL -> 'b';
             case WATER, LOG, ANVIL, CRAFTING, BREWING, HAY, TINTED_GLASS, CHISELED, RED_WOOD -> '+';
             case LIGHT -> ' ';

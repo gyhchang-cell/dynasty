@@ -160,6 +160,22 @@ public class DynastyHumanoidModel<T extends Mob> extends HumanoidModel<T> {
                 CubeListBuilder.create().texOffs(16,16).addBox(-1.3F,-3,-.5F,2.6F,6,1),
                 PartPose.offsetAndRotation(side*(8+i*2),i*4-4,4+i,0,side*.45F,side*.2F));
         }
+        if(style==6) { // Court sorcerer: long sleeve folds and a recessed mask, not a villager head.
+            root.getChild("head").addOrReplaceChild("edict_mask",CubeListBuilder.create().texOffs(20,20).addBox(-2.8F,-5.5F,-.7F,5.6F,5.5F,1.4F),PartPose.offset(0,0,-4));
+            for(int side:new int[]{-1,1})root.getChild(side<0?"right_arm":"left_arm").addOrReplaceChild("sleeve_fold",CubeListBuilder.create().texOffs(16,16).addBox(-2.4F,0,-2.5F,4.8F,13,5),PartPose.offsetAndRotation(0,4,0,.12F,0,side*.14F));
+        }
+        if(style==2) { // Heavenly general: two suspended thunder drums behind the shoulders.
+            for(int side:new int[]{-1,1})torso.addOrReplaceChild("thunder_drum_"+side,CubeListBuilder.create().texOffs(16,16)
+                .addBox(-3.5F,-3.5F,-1.5F,7,7,3),PartPose.offsetAndRotation(side*9,-5,5,0,side*.28F,side*.18F));
+        }
+        if(style==7) { // Sea king: broad gill fans distinguish the water court from the quadruped emperor.
+            for(int side:new int[]{-1,1})for(int i=0;i<3;i++)root.getChild("head").addOrReplaceChild("gill_"+side+"_"+i,CubeListBuilder.create().texOffs(20,20)
+                .addBox(-.4F,-3,-.4F,.8F,6,3),PartPose.offsetAndRotation(side*(4+i*.8F),-2+i,1+i,0,side*.35F,side*(.25F+i*.2F)));
+        }
+        if(style==10) { // Dead emperor: split coffin cuirass with a hollow center.
+            for(int side:new int[]{-1,1})torso.addOrReplaceChild("coffin_plate_"+side,CubeListBuilder.create().texOffs(16,16)
+                .addBox(-1.8F,0,-.8F,3.6F,11,1.6F),PartPose.offsetAndRotation(side*2.7F,0,-2.8F,0,side*.2F,side*.08F));
+        }
         return LayerDefinition.create(mesh,64,64);
     }
 
