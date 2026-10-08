@@ -1,43 +1,21 @@
-2026-10-06 — Dynasty existing-material infusion validation
-Baseline: main 7a79adb; delivery branch: cod1
-Runtime: Minecraft 1.20.1, Forge 47.4.10, Java 17.0.20
+cod5 rebuild validation — 2026-10-08
+Baseline: main 86c3d2a422a4413626d10bc6f1728bca5744e2b6
 
-PASS: full non-incremental Java compilation, runGameTestServer, build, reobfJar.
-GameTest log: 10 tests are now running!
-GameTest log: ========= 10 GAME TESTS COMPLETE ======================
-GameTest log: All 10 required tests passed :)
-Gradle log: BUILD SUCCESSFUL in 1m 38s
+PASS: JDK17 / Forge 47.4.10 compileJava and build / reobfJar.
+PASS: tools/audit_infusion.py: 95 existing materials, 40 behaviors, original material names/IDs/creative order/item textures/models/loot/recipes preserved; generic special-material repair removed.
+PASS: 13 infusion GameTests on the final source (cod5-final, BUILD SUCCESSFUL), including all 95 material NBT round trips; native/legacy capacity; shared inventory serialization; stale-player rejection; exact survival costs; advancement bridge; original + new offensive/defensive/spell conditions.
+PASS: 279 required tests in dynasty,dynasty_infusion,dynasty_army namespaces, isolated world cod5-regression. Includes legacy workshop and material repair-removal regression tests.
+PASS: two actual Forge clients + integrated server over loopback TCP: one infusion costs 2 materials / 3 levels, peer stale removal does not mutate contents or spend XP.
+PASS: real shift-click, drop pickup by second player, and dimension transfer preserve infusion NBT.
+PASS: client rendering captured in en_us / zh_cn at 1920x1080 scale 2/3/4, 640x480 scale 2, 960x540 scale 2 with crest hover, on both clients. Inspected English small window and Chinese hover.
 
-Coverage:
-- All 24 real material registrations, NBT persistence and removal preserving foreign data.
-- Type/family/capacity rejection, including melee-only materials rejected on bows.
-- Real ServerPlayer progression, atomic costs, repeated-click no-op, first-use advancement.
-- Out-of-range and foreign-player rejection; closed containers return independent inputs.
-- Inventory versus equipped activation; player-scoped cooldown across equipment swaps.
-- Original salvage material still repairs equipment in the vanilla anvil.
-- All 12 offensive profiles, including combos across weapon durability changes.
-- Defensive and existing-talisman triggers, shield wear, timed guard, knockback and fall cooldown.
-PASS: tools/audit_infusion.py checks original definitions/translations/assets/recipes/old quests.
-PASS: new resource JSON, referenced textures, packaged infusion classes/resources.
+PASS: JEI runtime has exactly 95 recipes. All 95 descriptions fit the category in en_us and zh_cn; longest English layout inspected.
+PASS: exited the client/server process, reopened the same saved world in a new process, and verified stored gear trait and material count.
+Client evidence: ingame/host-PASS.txt, peer-PASS.txt, restart-PASS.txt, 24 PNG captures in all-screenshots.zip, and screenshot hashes.
+Final source build supplied to the clients: 2c8bcacec225f2227a03b8d1da4d8d0fbe43ec4f.
+The mod JAR is built and committed by .github/workflows/cod5-build.yml; docs/infusion/jar.sha256 records the delivered checksum.
+Audio device is unavailable in this execution environment; sound dispatch is implemented but audible quality was not verified.
 
-Reproduction:
-python3 tools/art/make_local_repo.py
-./gradlew -I tools/infusion-test.init.gradle -PinfusionTestRun=<new-id> runGameTestServer build --offline
-Use installed Java 17; on Linux override this repository's original Mac Java-home property.
-
-Environment notes:
-The shared Gradle cache was locked, so validation used a separate cache copy.
-Minecraft metadata networking was unavailable; the existing cached 1.20.1 version.json
-was supplied to downloadMCMeta by a temporary init script. No game source was changed for this.
-An incremental compiler run restored stale test classes; final results above came from
-full compilation with --no-build-cache. The committed test init now disables incremental compilation.
-Two early failing runs are not counted as successful validation: first a namespaced test-template
-error, then a FakePlayer advancement fixture; both were corrected before the final passing run.
-
-Limits:
-This is server GameTest and build verification, not an interactive client GUI or multiplayer playtest.
-The dev test server did not load FTB binaries; its optional quest bridge was checked through the
-real advancement award and additive config diff, not by opening the live FTB quest book.
-Full modpack export with all third-party mods was not executed in this run.
-
-Built JAR SHA-256: 23a55a132e5c945b9cda3a52934e67932db5537316904e140980d7a9c41f52f0
+Known unrelated baseline issue: tools/art/test_quest_story.py passes 28/29; test_export_matches_source fails for dynasty_story_02. Re-executing the baseline quest generator and comparing the baseline chapter confirms the same pre-existing mismatch. The existing chapter was not rewritten by this infusion task.
+GitHub build/publish: workflow 37787451662 succeeded; JAR commit 9288ade056781eddc9249d839eeff21f08a80c35.
+Delivered JAR SHA-256: ba826285075be0df869d03684f3bb7ec378648d9f42f7c5c7de41d8d29df9f1e.

@@ -81,5 +81,10 @@ public class DynastyNetwork {
                 com.dynasty.blueprint.BlueprintVisualEvent::decode,
                 com.dynasty.blueprint.BlueprintVisualEvent::handle,
                 java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
+        // IDs 12-16 belong to cod3/edict/world-event/combat-feedback extensions.
+        registerExtension(17, com.dynasty.infusion.InfusionRequest.class,
+                com.dynasty.infusion.InfusionRequest::encode, com.dynasty.infusion.InfusionRequest::decode,
+                com.dynasty.infusion.InfusionRequest::handle,
+                net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER, 1);
     }
 }
