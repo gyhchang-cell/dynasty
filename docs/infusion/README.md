@@ -22,7 +22,7 @@
 
 ## 构建和验证
 
-需要 JDK17。先运行 `python3 tools/art/make_local_repo.py`，再运行 `./gradlew build`。可用原项目打包脚本生成整合包。
+GitHub 的 `cod5` 分支在源码更新后会构建并更新 `modpack/mods/dynasty-1.4.0.jar`，校验值见 `jar.sha256`。本地构建需要 JDK17。先运行 `python3 tools/art/make_local_repo.py`，再运行 `./gradlew build`。可用原项目打包脚本生成整合包。
 
 静态审计：`python3 tools/audit_infusion.py`。
 
