@@ -81,7 +81,7 @@ public final class BossDeathState extends SavedData {
             }
             if(entity instanceof Mob boss&&age>=0&&age<n.getInt("Duration")){
                 var def=Cod3Catalog.sequence("deaths",n.getString("Type"));
-                if(def!=null)for(var step:def.steps())if(age==step.startTick())try{if(step.type()==BossSequenceDefinition.Type.SPAWN_CLIENT_VFX)Cod3Vfx.sequence(boss,def.id(),(int)age,step);else BossSequenceRunner.play(boss,step);}catch(RuntimeException ex){Dynasty.LOGGER.warn("cod3 death effect skipped",ex);}
+                if(def!=null)for(var step:def.steps())if(age==step.startTick()&&step.allowedDuringDeath())try{if(step.type()==BossSequenceDefinition.Type.SPAWN_CLIENT_VFX)Cod3Vfx.sequence(boss,def.id(),(int)age,step);else BossSequenceRunner.play(boss,step);}catch(RuntimeException ex){Dynasty.LOGGER.warn("cod3 death effect skipped",ex);}
             }
             if(age<n.getInt("Duration")&&!n.getBoolean("RewardGranted"))continue;
             BlockPos pos=BlockPos.of(n.getLong("Position"));if(!l.hasChunkAt(pos))continue;
