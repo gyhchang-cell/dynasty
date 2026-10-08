@@ -117,9 +117,12 @@ public final class DynastyBossCombat {
         if (id == null || !id.getNamespace().equals(Dynasty.MODID)) {
             return;
         }
+        if(event.getEntity().getPersistentData().hasUUID("ArmyEncounter"))return;
         LivingEntity credit = event.getEntity().getKillCredit();
         if (credit instanceof ServerPlayer player) grantFirstKill(player, id.getPath());
     }
+
+    public static void awardFirstKill(ServerPlayer player, String bossId) { grantFirstKill(player, bossId); }
 
     public static void grantFirstKill(ServerPlayer player, String bossId) {
         FirstKill reward = FIRST_KILL.get(bossId);

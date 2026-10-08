@@ -74,6 +74,16 @@ public final class Cod3GameTests {
         var input=be.recipe().costs().get(0).stack();be.accept(input);h.assertTrue(a.deposited()==b.deposited()&&a.deposited()==1,"Menus do not share the counter");
         p.setPos(p.getX()+20,p.getY(),p.getZ());h.assertTrue(!a.stillValid(p),"Distant menu stayed valid");h.succeed();
     }
+    @GameTest(template="bow_ritual_test")
+    public static void armyEncounterKeepsExclusiveRewardOwnership(GameTestHelper h) {
+        var boss=DynastyEntities.REBEL_GENERAL.get().create(h.getLevel());
+        boss.getPersistentData().putUUID("ArmyEncounter",UUID.randomUUID());
+        var event=new net.minecraftforge.event.entity.living.LivingDeathEvent(boss,boss.damageSources().genericKill());
+        BossDeathState.death(event);
+        h.assertTrue(!BossDeathState.managed(boss)&&!event.isCanceled(),"Army settlement must retain the death and loot pipeline");
+        h.assertTrue(!boss.isNoAi()&&!boss.isInvulnerable(),"Unmanaged arena boss must not be frozen");
+        h.succeed();
+    }
     @GameTest(template="bow_ritual_test",timeoutTicks=300)
     public static void deathDefersLootThenCleansOnce(GameTestHelper h){
         var boss=DynastyEntities.REBEL_GENERAL.get().create(h.getLevel());boss.moveTo(h.absolutePos(new BlockPos(3,2,3)),0,0);h.getLevel().addFreshEntity(boss);boss.setHealth(0);boss.die(boss.damageSources().genericKill());

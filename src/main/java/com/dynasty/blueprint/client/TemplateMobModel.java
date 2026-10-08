@@ -10,6 +10,10 @@ public final class TemplateMobModel extends GeoModel<TemplateMob> {
     @Override public void setCustomAnimations(TemplateMob mob, long instanceId, AnimationState<TemplateMob> state) {
         super.setCustomAnimations(mob, instanceId, state);
         TemplateSecondaryMotion.apply(this, mob, state.getPartialTick());
+        if(mob.kind()==TemplateMob.Kind.DROWNER&&mob.isAlive()){
+            boolean pool=mob.waterPool();
+            getBone("body").ifPresent(b->{b.setScaleY(pool?.12F:1);b.setScaleX(pool?2.5F:1);b.setScaleZ(pool?2.5F:1);});
+        }
         if(mob.kind()==TemplateMob.Kind.TOAD)
             // Independent identity wrapper: never multiply a shared animated bone across draws.
             getBone("tongue_reach").ifPresent(b->b.setScaleZ(mob.skillId()==com.dynasty.blueprint.ArmySkills.TOAD_TONGUE?mob.tongueReach()/5:1));
@@ -25,13 +29,13 @@ public final class TemplateMobModel extends GeoModel<TemplateMob> {
     @Override public ResourceLocation getTextureResource(TemplateMob mob) {
         // Continuous opaque native swatches preserve pixel grain without replacing legacy artwork.
         String atlas = switch (mob.blueprintId()) {
-            case "zuwu_daoshou", "ludun_jiashi", "zhenwang_zhangqiguan", "pijia_panjiang_huwei", "yinbing_guizu" -> "royal_guard";
+            case "juli_bixi_kuilei", "xueju_mangguyu", "jubi_shigandang", "zuwu_daoshou", "ludun_jiashi", "zhenwang_zhangqiguan", "pijia_panjiang_huwei", "yinbing_guizu" -> "royal_guard";
             case "juma_changqiangbing" -> "archer";
-            case "liannu_zhenzu", "kuijun_sishi" -> "rebel_soldier";
+            case "bazu_digongzhu", "qingtong_shuangtoushekui", "xunshan_mujiaquan", "liannu_zhenzu", "kuijun_sishi" -> "rebel_soldier";
             case "tiesuo_chihou" -> "assassin";
             case "fuhun_baibu_tongzi" -> "imperial_soldier";
-            case "shibian_lishi", "chimu_zhuha", "kumu_shujing", "mingsha_shixie" -> "nian_beast";
-            case "shanjing_shanxiao" -> "nian_beast";
+            case "bishui_xuanjiao_youzi", "shibian_lishi", "chimu_zhuha", "kumu_shujing", "mingsha_shixie" -> "nian_beast";
+            case "tongbi_feitian_yecha", "baimu_mowu", "youdeng_guimianfu", "shanjing_shanxiao" -> "nian_beast";
             default -> "imperial_soldier";
         };
         return new ResourceLocation("dynasty", "textures/entity/" + atlas + ".png");

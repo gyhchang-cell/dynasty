@@ -27,6 +27,8 @@ public final class BossDeathState extends SavedData {
     @SubscribeEvent(priority=EventPriority.HIGHEST)
     public static void death(LivingDeathEvent e){
         if(!(e.getEntity() instanceof Mob boss)||!(boss.level() instanceof ServerLevel l))return;
+        // The army encounter owns victory, evacuation and loot receipts for these actors.
+        if(boss.getPersistentData().hasUUID("ArmyEncounter"))return;
         var id=ForgeRegistries.ENTITY_TYPES.getKey(boss.getType());var def=Cod3Catalog.sequence("deaths",id.toString());if(def==null)return;
         var data=get(l);if(data.entries.containsKey(boss.getUUID()))return;
         var n=new CompoundTag();n.putBoolean("PreviousNoAi",boss.isNoAi());n.putBoolean("PreviousInvulnerable",boss.isInvulnerable());n.putUUID("Boss",boss.getUUID());n.putString("Sequence",def.id());n.putString("Type",id.toString());n.putLong("Start",l.getGameTime());n.putInt("Duration",def.totalTicks());n.putLong("Position",boss.blockPosition().asLong());n.put("Loot",new ListTag());n.putInt("XP",0);

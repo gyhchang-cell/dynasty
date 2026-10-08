@@ -14,6 +14,7 @@ public class TombAccessPiece extends DynastyStructurePiece {
         setOrientation(Direction.NORTH);
     }
     public TombAccessPiece(net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext c,CompoundTag tag){super(DynastyStructures.TOMB_ACCESS_PIECE.get(),tag);}
+    public BlockPos palanquinPosition(){return getWorldPos(3,getBoundingBox().getYSpan()-6,3).immutable();}
     @Override public void postProcess(WorldGenLevel level,StructureManager manager,net.minecraft.world.level.chunk.ChunkGenerator generator,net.minecraft.util.RandomSource random,BoundingBox box,ChunkPos chunk,BlockPos pos) {
         int surface=getBoundingBox().getYSpan()-6;
         var wall=Blocks.DEEPSLATE_BRICKS.defaultBlockState();var air=Blocks.AIR.defaultBlockState();
@@ -22,6 +23,8 @@ public class TombAccessPiece extends DynastyStructurePiece {
         fill(level,box,1,0,1,4,0,4,wall);
         fill(level,box,1,1,0,4,3,0,air);fill(level,box,1,1,5,4,3,5,air);
         fill(level,box,2,surface,0,3,surface+2,0,air);
+        // Surface landing leaves the original ladder column open, and gives the procession a real floor.
+        fill(level,box,1,surface-1,2,4,surface-1,4,wall);
         fill(level,box,2,1,1,2,surface+1,1,Blocks.LADDER.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING,Direction.SOUTH));
         for(int y=4;y<surface;y+=8)set(level,box,4,y,4,Blocks.SEA_LANTERN.defaultBlockState());
         fill(level,box,0,surface+4,0,5,surface+4,5,com.dynasty.DynastyBlocks.JADE_BLOCK.get().defaultBlockState());

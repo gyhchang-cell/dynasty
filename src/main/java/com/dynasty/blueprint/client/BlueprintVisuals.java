@@ -37,11 +37,12 @@ public final class BlueprintVisuals {
         var mc=Minecraft.getInstance();if(mc.player==null||!mc.player.isAlive()||mc.options.hideGui)return;
         var effect=mc.player.getEffect(BlueprintEntities.LANTERN_GLARE.get());if(effect==null)return;
         int width=mc.getWindow().getGuiScaledWidth(),height=mc.getWindow().getGuiScaledHeight();
+        int color=effect.getAmplifier()>=2?0xE6C54A:effect.getAmplifier()>0?0x62D994:0xFFF9E6;
         int alpha=Math.min(48,Math.max(0,effect.getDuration())*3);var gui=event.getGuiGraphics();
         // Under25% combined opacity around the edges, under5% over the centre; expires with native effect sync.
-        gui.fill(0,0,width,height,((alpha/4)<<24)|0xFFF9E6);
-        gui.fillGradient(0,0,width,height/4,(alpha<<24)|0xFFF9E6,0x00FFF9E6);
-        gui.fillGradient(0,height*3/4,width,height,0x00FFF9E6,(alpha<<24)|0xFFF9E6);
+        gui.fill(0,0,width,height,((alpha/4)<<24)|color);
+        gui.fillGradient(0,0,width,height/4,(alpha<<24)|color,color);
+        gui.fillGradient(0,height*3/4,width,height,color,(alpha<<24)|color);
     }
     private BlueprintVisuals() {}
     public static void accept(BlueprintVisualEvent p) {
@@ -112,6 +113,36 @@ public final class BlueprintVisuals {
             if(death) {
                 budget-=deathParticles(mc,p,age,budget);
                 continue;
+            }
+            if(p.key().equals("stone_slam")){
+                var d=p.direction().multiply(1,0,1).normalize();
+                var side=new Vec3(-d.z,0,d.x).scale(com.dynasty.blueprint.StoneGuardBehavior.SLAM_WIDTH*.5);
+                int count=Math.min(6,budget);budget-=count;
+                for(int i=0;i<count;i++){
+                    double u=((age/3+i/2)%6)/5.0;
+                    var at=p.origin().add(d.scale(p.range()*u)).add(side.scale(i%2==0?1:-1)).add(0,.08,0);
+                    if(age<p.windup())mc.level.addParticle(new DustParticleOptions(new Vector3f(.85F,.65F,.25F),.7F),at.x,at.y,at.z,0,0,0);
+                    else if(age<p.windup()+6)mc.level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK,Blocks.STONE.defaultBlockState()),at.x,at.y,at.z,0,.1,0);
+                }continue;
+            }
+            if((p.key().equals("bronze_fire")||p.key().equals("bronze_poison"))&&age>=p.windup()){
+                if(age>=p.windup()+60)continue;
+                int count=Math.min(6,budget);budget-=count;
+                for(int i=0;i<count;i++){
+                    double u=((age+i*11)%30)/30.0;
+                    double angle=Math.atan2(p.direction().z,p.direction().x)+Math.toRadians(p.angle())*(i/(double)Math.max(1,count-1)-.5);
+                    var at=p.origin().add(Math.cos(angle)*p.range()*u,.4,Math.sin(angle)*p.range()*u);
+                    var effect=p.key().equals("bronze_fire")?ParticleTypes.FLAME:new DustParticleOptions(new Vector3f(.35F,.65F,.18F),.8F);
+                    mc.level.addParticle(effect,at.x,at.y,at.z,0,.005,0);
+                }continue;
+            }
+            if(p.key().equals("spider_drop")&&age<p.windup()){
+                var floor=mc.level.clip(new net.minecraft.world.level.ClipContext(p.origin(),p.origin().add(0,-12,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,caster)).getLocation();
+                int count=Math.min(6,budget);budget-=count;
+                for(int i=0;i<count;i++){
+                    double angle=(i/(double)count+age*.015)*Math.PI*2,r=com.dynasty.blueprint.MiningSpiderBehavior.IMPACT_RADIUS;
+                    mc.level.addParticle(new DustParticleOptions(new Vector3f(.9F,.55F,.2F),.8F),floor.x+Math.cos(angle)*r,floor.y+.08,floor.z+Math.sin(angle)*r,0,0,0);
+                }continue;
             }
             boolean buff=p.key().contains("buff")||p.key().contains("possession");
             if(p.key().equals("powder_detonate")){
