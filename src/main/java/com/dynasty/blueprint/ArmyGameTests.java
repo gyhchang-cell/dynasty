@@ -245,6 +245,39 @@ public final class ArmyGameTests {
             h.assertTrue(enemy.getHealth()<190,"Reloaded fuse damages the server target");h.succeed();
         });
     }
+    @GameTest(template="bow_ritual_test",timeoutTicks=140,batch="army")
+    public static void stunningLitPowderFuseRequiresFreshThreeSecondsWithoutSpentCooldown(GameTestHelper h){
+        arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=target(h,6,8);mob.setTarget(enemy);
+        h.runAfterDelay(48,()->{
+            h.assertTrue(mob.skillId()==ArmySkills.DETONATE,"Interrupt an actually lit fuse");
+            mob.interruptAttack(10);
+            h.assertTrue(mob.skillPhase()==AttackState.STUN,"The real server interrupt enters hit-stun");
+        });
+        h.runAfterDelay(55,()->{
+            h.assertTrue(mob.skillPhase()==AttackState.STUN&&mob.isAlive(),"Proximity must not erase hit-stun");
+            var saved=new CompoundTag();mob.addAdditionalSaveData(saved);
+            h.assertTrue(saved.getCompound("ArmyActionState").getInt("NearTicks")==0,"Stunned ticks cannot advance the new fuse");
+        });
+        h.runAfterDelay(112,()->h.assertTrue(mob.isAlive(),"A new full three seconds starts after recovery"));
+        h.runAfterDelay(125,()->{
+            trace(h,"stunned-fuse",mob,enemy);
+            h.assertTrue(mob.isDeadOrDying()&&enemy.getHealth()<190,"An interrupted unspent fuse can detonate after fresh continuous proximity");
+            h.succeed();
+        });
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=130,batch="army")
+    public static void oneTickInterruptionCannotLeavePowderFuseCooldownReserved(GameTestHelper h){
+        arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=target(h,6,8);mob.setTarget(enemy);
+        h.runAfterDelay(48,()->{
+            h.assertTrue(mob.skillId()==ArmySkills.DETONATE,"One-tick interrupt starts from a lit fuse");
+            mob.interruptAttack(1);
+        });
+        h.runAfterDelay(103,()->h.assertTrue(mob.isAlive(),"Expired one-tick stun still resets the old fuse"));
+        h.runAfterDelay(118,()->{
+            h.assertTrue(mob.isDeadOrDying()&&enemy.getHealth()<190,"A stun that expires before the next tick cannot leave a spent cooldown");
+            h.succeed();
+        });
+    }
     @GameTest(template="bow_ritual_test",timeoutTicks=75,batch="army")
     public static void projectileDeathHasDelayedSmallBlastWithoutReloadReplay(GameTestHelper h){
         arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=new BlastWitness(h.getLevel());
