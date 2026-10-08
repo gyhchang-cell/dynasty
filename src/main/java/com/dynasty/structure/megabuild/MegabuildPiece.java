@@ -105,6 +105,22 @@ class MegabuildPiece extends DynastyStructurePiece {
         }
     }
 
+    java.util.List<BlockPos> miningSpiderPositions(){
+        return size==MiningEstate.SIZE?rotateMechanical(new int[][]{{17,4,44},{31,4,45}}):java.util.List.of();
+    }
+    java.util.List<BlockPos> bronzeSnakePositions(){return mechanicalPositions(new int[][]{{35,1,52},{66,1,36}});}
+    java.util.List<BlockPos> clockworkPatrols(){return mechanicalPositions(new int[][]{{84,1,20},{91,1,28}});}
+    private java.util.List<BlockPos> mechanicalPositions(int[][] authored){
+        if(size!=TiangongCitadel.SIZE||layoutVersion<4)return java.util.List.of();
+        return rotateMechanical(authored);
+    }
+    private java.util.List<BlockPos> rotateMechanical(int[][] authored){
+        var points=new java.util.ArrayList<BlockPos>();
+        for(int[] p:authored){
+            int x=p[0],z=p[2];for(int i=0;i<Math.floorMod(rot,4);i++){int old=x;x=size-1-z;z=old;}
+            points.add(world(x,p[1],z).immutable());
+        }return java.util.List.copyOf(points);
+    }
     private synchronized Blueprint blueprint() {
         if(cached==null) cached=factory.apply(seed).rotate(rot);
         return cached;

@@ -62,7 +62,10 @@ public final class EcologyGameTests {
         h.assertTrue(!LoadedStructureRegions.contains(level,pos,new ResourceLocation("dynasty:ecology/toxic_miao"),24),"Missing authored Miao structure stays inactive");
         h.assertTrue(tickets.equals(level.getForcedChunks()),"Region query acquires no forced chunk tickets");
         h.assertTrue(EcologyRules.ALL.size()==10&&!EcologyRules.ALL.get(9).naturalSpawning()&&EcologyRules.ALL.get(9).members().isEmpty(),"Final altar has no natural guardian pool");
-        h.assertTrue(EcologyRules.missingDependencies().contains(new ResourceLocation("dynasty:baimu_mowu")),"Missing cod1 creature is explicit, not replaced");h.succeed();
+        var missing=EcologyRules.missingDependencies();
+        h.assertTrue(!missing.contains(new ResourceLocation("dynasty:baimu_mowu")),"Merged cod1 creature is available under its authored registry ID");
+        for(var rule:EcologyRules.ALL)for(var member:rule.members())
+            h.assertTrue(missing.contains(member.mobType())==!net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.containsKey(member.mobType()),"Missing dependencies exactly match real registry availability without substitutes");h.succeed();
     }
     private EcologyGameTests(){}
 }

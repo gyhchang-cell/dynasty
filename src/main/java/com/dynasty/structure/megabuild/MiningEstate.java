@@ -24,6 +24,8 @@ public final class MiningEstate {
             for(int x=12;x<=36;x+=4)for(int zz=z+3;zz<=z+8;zz+=4)
                 bp.set(x,y+1,zz,tier==0?ORE_COPPER:tier==1?ORE_IRON:ORE_COAL);
         }
+        // Open the existing hollow upper bench to the east quarry route.
+        bp.doorway(38,1,43,38,3,46);
         bp.set(12,1,65,CHEST);
         bp.set(36,1,65,RICH_CHEST);
         for(int x:new int[]{11,37})for(int z:new int[]{58,80}){

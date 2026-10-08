@@ -110,6 +110,7 @@ public final class ChenshaEcologyGameTests {
                 h.assertTrue(!BlueprintSpawns.spawnChenshaMiddleMember(level,origin,entrant),"doMobSpawning=false is respected");
                 level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
                 var be=(DungeonMechanismBlockEntity)level.getBlockEntity(core);
+                h.assertTrue(be!=null,"Remote fixture core remains loaded before binding checks");
                 be.configure(instance,"shendao","wrong_room",core,-1,List.of());
                 h.assertTrue(!BlueprintSpawns.spawnChenshaMiddleMember(level,origin,entrant),"Wrong room core cannot fabricate an encounter");
                 be.configure(instance,"mercury","mercury_core",core,-1,List.of());

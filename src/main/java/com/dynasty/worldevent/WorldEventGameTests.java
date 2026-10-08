@@ -166,7 +166,7 @@ public final class WorldEventGameTests {
             }catch(RuntimeException|Error e){cleanup.run();throw e;}
         }).thenIdle(25).thenExecute(()->{
             var attacker=(TemplateMob)actors.get(0);var target=(TemplateMob)actors.get(1);
-            h.assertTrue(target.getHealth()==health[0]&&attacker.attack().current()==null&&DynastyWorldEventManager.pacified(attacker),"Blessing cancels the real server damage frame, not just the target cursor");
+            h.assertTrue(target.getHealth()==health[0]&&attacker.attack().current()==null&&DynastyWorldEventManager.pacified(attacker),"Blessing cancels the real server damage frame, not just the target cursor; health="+target.getHealth()+" initial="+health[0]+" skill="+attacker.skillId()+" pacified="+DynastyWorldEventManager.pacified(attacker)+" ticks="+attacker.tickCount);
             event[0].phase=WorldEventInstance.Phase.FAILED;
         }).thenIdle(55).thenExecute(()->{
             var attacker=(TemplateMob)actors.get(0);var target=(TemplateMob)actors.get(1);
