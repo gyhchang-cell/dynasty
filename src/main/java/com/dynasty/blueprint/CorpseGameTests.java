@@ -102,6 +102,8 @@ public final class CorpseGameTests {
         var childFloor=piece.shroudChildPosition();
         h.assertTrue(com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,childFloor,
             BlueprintEntities.FUHUN_BAIBU_TONGZI.get().getDimensions().makeBoundingBox(childFloor.getX()+.5,childFloor.getY(),childFloor.getZ()+.5)),"Child marker is a real collision-free gallery floor");
+        var bixiFloor=piece.bixiPosition();
+        h.assertTrue(com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,bixiFloor,BlueprintEntities.JULI_BIXI_KUILEI.get().getDimensions().makeBoundingBox(bixiFloor.getX()+.5,bixiFloor.getY(),bixiFloor.getZ()+.5)),"Bixi marker has actual generated wide standing space");
         var positions=piece.corpsePositions();var entrant=positions.get(0).offset(0,0,10);
         h.assertTrue(box.isInside(entrant),"Entrant is inside the actual oriented antechamber");
         for(var pos:positions)h.assertTrue(com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,

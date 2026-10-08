@@ -15,7 +15,7 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class StoneGuardGameTests {
     private static TemplateMob guard(GameTestHelper h){
-        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=7;y++)h.setBlock(x,y,z,y==1?Blocks.STONE:Blocks.AIR);
+        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=7;y++)h.setBlock(x,y,z,y==1||y==7||x==0||x==15||z==0||z==15?Blocks.STONE:Blocks.AIR);
         var mob=h.spawn(BlueprintEntities.JUBI_SHIGANDANG.get(),new BlockPos(7,2,5));mob.setNoAi(true);mob.setNoGravity(true);return mob;
     }
     private static net.minecraft.world.entity.animal.Cow cow(GameTestHelper h,int x,int z){
@@ -28,7 +28,7 @@ public final class StoneGuardGameTests {
         h.assertTrue(mob.startSkill(ArmySkills.STONE_SLAM,front),"Starts actual heavy slam");
         h.runAfterDelay(28,()->h.assertTrue(front.getHealth()==200,"Full 1.5-second tell has no damage"));
         h.runAfterDelay(34,()->h.assertTrue(Math.abs(front.getHealth()-187.2)<.01&&side.getHealth()==200&&rear.getHealth()==200&&far.getHealth()==200,"One 12.8 damage contact, bounded strip only"));
-        h.runAfterDelay(63,()->{h.assertTrue(Math.abs(front.getHealth()-187.2)<.01&&mob.skillId()==0,"No recovery damage");h.assertBlockPresent(Blocks.STONE,new BlockPos(7,1,8));h.succeed();});
+        h.runAfterDelay(63,()->{h.assertTrue(Math.abs(front.getHealth()-187.2)<.01&&mob.skillId()==0,"No recovery damage: health="+front.getHealth()+" skill="+mob.skillId());h.assertBlockPresent(Blocks.STONE,new BlockPos(7,1,8));h.succeed();});
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=55,batch="stone_guard")
     public static void dodgingSlamTellLeavesAttackDirectionLocked(GameTestHelper h){
