@@ -52,7 +52,7 @@ public class UndeadFirstEmperor extends Monster implements DynastyBossCombat.Bar
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 1024.0D)
+                .add(Attributes.MAX_HEALTH, 16000.0D)
                 .add(Attributes.ATTACK_DAMAGE, 2200.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.29D)
                 .add(Attributes.ARMOR, 45.0D)

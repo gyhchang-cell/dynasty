@@ -60,7 +60,7 @@ public final class DynastyBosses {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Monster.createMonsterAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 24000.0D)
                     .add(Attributes.ATTACK_DAMAGE, 2596.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.33D)
                     .add(Attributes.ARMOR, 60.0D)
@@ -176,7 +176,8 @@ public final class DynastyBosses {
                     target.getZ() - this.getZ()).normalize();
             DragonFireball fireball = new DragonFireball(this.level(), this,
                     dir.x, dir.y, dir.z);
-            fireball.moveTo(this.getX(), this.getEyeY() - 0.3D, this.getZ(), 0.0F, 0.0F);
+            var mouth=this.position().add(this.getLookAngle().scale(2.5)).add(0,3.0,0);
+            fireball.moveTo(mouth.x, mouth.y, mouth.z, 0.0F, 0.0F);
             this.level().addFreshEntity(fireball);
             this.playSound(SoundEvents.ENDER_DRAGON_SHOOT, 2.0F, 0.8F);
         }
@@ -250,7 +251,7 @@ public final class DynastyBosses {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Monster.createMonsterAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 8000.0D)
                     .add(Attributes.ATTACK_DAMAGE, 1900.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.33D)
                     .add(Attributes.ARMOR, 50.0D)
@@ -396,7 +397,7 @@ public final class DynastyBosses {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Monster.createMonsterAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 10000.0D)
                     .add(Attributes.ATTACK_DAMAGE, 1400.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.31D)
                     .add(Attributes.ARMOR, 45.0D)
@@ -526,7 +527,7 @@ public final class DynastyBosses {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Monster.createMonsterAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 18000.0D)
                     .add(Attributes.ATTACK_DAMAGE, 2048.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.36D)
                     .add(Attributes.ARMOR, 55.0D)
@@ -671,7 +672,7 @@ public final class DynastyBosses {
 
         public static AttributeSupplier.Builder createAttributes() {
             return Monster.createMonsterAttributes()
-                    .add(Attributes.MAX_HEALTH, 1024.0D)
+                    .add(Attributes.MAX_HEALTH, 20000.0D)
                     .add(Attributes.ATTACK_DAMAGE, 2048.0D)
                     .add(Attributes.MOVEMENT_SPEED, 0.33D)
                     .add(Attributes.ARMOR, 62.0D)

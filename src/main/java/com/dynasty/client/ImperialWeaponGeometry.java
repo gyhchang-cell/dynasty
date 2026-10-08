@@ -235,6 +235,7 @@ public final class ImperialWeaponGeometry {
     private static double ease(double value){return value*value*(3-2*value);}
 
     public void impact(int style,double progress,double alpha) {
+        if(style>=3) { distinctImpact(style,progress,alpha); return; }
         if(style==1) {
             // Narrow imperial blade sigil with swept cloud filigree, no square box or bulky glyph.
             double length=1.25+progress*.3;
@@ -258,6 +259,56 @@ public final class ImperialWeaponGeometry {
             dragon(new P(0,0,0),(.8+progress*.7)*DRAGON_ENLARGEMENT,-progress*1.2,progress*25,0x35edbd,alpha);
             for(int k=0;k<3;k++)line(-.55+k*.32,.65,.1+k*.32,-.55,0,.028,0xb5ffe6,alpha);
         }
+    }
+
+    /** Visual echoes of an already resolved hit; geometry never adds another damage event. */
+    private void distinctImpact(int style,double p,double alpha) {
+        double grow=.7+p*.65;
+        switch(style) {
+            case 3 -> { // Tang sabre: broad diagonal cut with three broken finishing marks.
+                out.line(new P(-grow,grow*.6,0),new P(grow,-grow*.6,0),.13*(1-p),0xffc687,alpha);
+                for(int i=0;i<3;i++)line(-.5+i*.4,-.45,-.3+i*.4,-.64,0,.04,0xffe1ad,alpha);
+            }
+            case 4 -> { // Flowing cloud sword: three slender upright echoes.
+                for(int i=-1;i<=1;i++){double x=i*.5;line(x,-.8,x,.9,0,.018,0xc3edff,alpha);line(x,.9,x-.13,.55,0,.025,0x91caff,alpha);line(x,.9,x+.13,.55,0,.025,0x91caff,alpha);}
+            }
+            case 5 -> { // North-star spear: compressed converging thrust, narrow diamond point.
+                for(int sign:new int[]{-1,1})line(sign*.55,-.85,0,1.3,0,.025,0x9fb7ff,alpha);
+                line(0,-1.1,0,1.3,0,.07*(1-p),0xdfe8ff,alpha);
+            }
+            case 6 -> { // Thunder hammer: angular branching fractures.
+                for(int sign:new int[]{-1,1}){line(0,.2,sign*.4,-.2,0,.08,0x9ebeff,alpha);line(sign*.4,-.2,sign*.65,.0,0,.06,0xbad5ff,alpha);line(sign*.65,0,sign*1.3,-.55,0,.035,0x91acff,alpha);}
+            }
+            case 7 -> { // Army breaker: split wedge, asymmetric chips.
+                for(int side:new int[]{-1,1}){line(0,.85,side*.8,-.45,0,.075,0xeaa35b,alpha);line(side*.8,-.45,side*.2,-.15,0,.04,0xffd196,alpha);}
+                for(int i=0;i<5;i++)line(-.9+i*.4,-.6,-.84+i*.4,-.75-p*.3,0,.04,0xbda384,alpha);
+            }
+            case 8 -> { // Sea trident: three separate streams merge at a point.
+                for(int branch=-1;branch<=1;branch++)for(int i=0;i<20;i++){
+                    double t=i/20.0,u=(i+1)/20.0;
+                    line(branch*.7*(1-t)+Math.sin(t*5)*.14,-.9+t*2,branch*.7*(1-u)+Math.sin(u*5)*.14,-.9+u*2,0,.032,0x76e6f5,alpha);
+                }
+            }
+            case 9 -> { // White tiger: three bowed claw scars.
+                for(int claw=0;claw<3;claw++)for(int i=0;i<18;i++){
+                    double t=i/18.0,u=(i+1)/18.0;
+                    line(-.7+claw*.5+t*.6,.9-t*1.8,-.7+claw*.5+u*.6,.9-u*1.8,0,.065*Math.sin(Math.PI*t),0xf9ead1,alpha);
+                }
+            }
+            case 10 -> { // Black tortoise: layered open shell plates.
+                for(int row=0;row<3;row++){double y=.6-row*.4;line(-.7,y,0,y+.2,0,.04,0x69b5b8,alpha);line(0,y+.2,.7,y,0,.04,0x8ae7d5,alpha);}
+            }
+            case 11 -> { // Purple star sabre: irregular constellation joined along the cut.
+                for(int i=0;i<5;i++){double x=-.9+i*.45,y=Math.sin(i*1.8)*.35;ringAt(x,y,.055,0xcfacff,alpha);if(i<4)line(x,y,x+.45,Math.sin((i+1)*1.8)*.35,0,.012,0xb38bff,alpha);}
+            }
+            case 12 -> { // Shadowless blade: doubled negative-space slash.
+                for(int side:new int[]{-1,1}){line(-.9,.7+side*.08,.8,-.6+side*.08,0,.017,0xe3ebff,alpha);line(.8,-.6+side*.08,.45,-.15+side*.08,0,.012,0xb9c9ff,alpha);}
+            }
+        }
+    }
+    private void ringAt(double x,double y,double r,int color,double alpha) {
+        line(x-r,y,x,y+r,0,.015,color,alpha);line(x,y+r,x+r,y,0,.015,color,alpha);
+        line(x+r,y,x,y-r,0,.015,color,alpha);line(x,y-r,x-r,y,0,.015,color,alpha);
     }
 
     /** Hand-drawn strokes for 敕, kept upright and separate from the rotating dragons. */

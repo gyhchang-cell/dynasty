@@ -38,7 +38,10 @@ public class DynastyClientEvents {
             for (net.minecraft.world.item.Item starBow : new net.minecraft.world.item.Item[]{
                     com.dynasty.DynastyWeapons.ZHUXING_BOW.get(), com.dynasty.DynastyWeapons.FENGLING_BOW.get(),
                     com.dynasty.DynastyWeapons.SHENBI_BOW.get(), com.dynasty.DynastyWeapons.DRAGON_BOW.get(),
-                    com.dynasty.DynastyWeapons.CHANG_GONG.get()}) {
+                    com.dynasty.DynastyWeapons.CHANG_GONG.get(),
+                    com.dynasty.DynastyWeapons.LIE_GONG.get(), com.dynasty.DynastyWeapons.LUOYAN_BOW.get(),
+                    com.dynasty.DynastyWeapons.TIANLANG_BOW.get(), com.dynasty.DynastyWeapons.SUNBOW.get(),
+                    com.dynasty.DynastyWeapons.ZHUQUE_BOW.get()}) {
             net.minecraft.client.renderer.item.ItemProperties.register(starBow, new ResourceLocation(Dynasty.MODID, "pulling"),
                     (stack, level, living, seed) -> living != null && living.isUsingItem() && living.getUseItem() == stack ? 1F : 0F);
             net.minecraft.client.renderer.item.ItemProperties.register(starBow, new ResourceLocation(Dynasty.MODID, "pull"),
@@ -201,7 +204,7 @@ public class DynastyClientEvents {
         event.registerEntityRenderer(DynastyEntities.TERRACOTTA_WARRIOR.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, WARRIOR_LAYER, TEX_WARRIOR, 0.5F));
         event.registerEntityRenderer(DynastyEntities.IMPERIAL_SOLDIER.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, SOLDIER_LAYER, TEX_SOLDIER, 0.5F));
+                ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.GUARD));
         event.registerEntityRenderer(DynastyEntities.UNDEAD_FIRST_EMPEROR.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, EMPEROR_LAYER, TEX_EMPEROR, 0.7F));
         event.registerEntityRenderer(DynastyEntities.MINISTER.get(),
@@ -218,7 +221,7 @@ public class DynastyClientEvents {
                 ctx -> new DynastyDetailedBeastRenderer<>(ctx, NIAN_BEAST_LAYER, TEX_NIAN_BEAST, 0.9F,
                         DetailedBeastModel.Kind.NIAN));
         event.registerEntityRenderer(DynastyEntities.DRAGON_EMPEROR.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, DRAGON_EMPEROR_LAYER, TEX_DRAGON_EMPEROR, 0.9F,1));
+                DragonEmperorRenderer::new);
         event.registerEntityRenderer(DynastyEntities.REBEL_GENERAL.get(),
                 ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.GENERAL));
         event.registerEntityRenderer(DynastyEntities.EUNUCH_MASTERMIND.get(),

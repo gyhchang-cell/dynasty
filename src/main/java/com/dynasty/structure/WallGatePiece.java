@@ -43,6 +43,8 @@ public class WallGatePiece extends DynastyStructurePiece {
         return java.util.List.of(getWorldPos(14,9,11).immutable(),getWorldPos(15,9,12).immutable());
     }
 
+    public BlockPos stoneGuardPosition(){return getWorldPos(10,1,5).immutable();}
+
     @Override
     public void postProcess(WorldGenLevel level, StructureManager manager, ChunkGenerator generator,
                             RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
@@ -86,6 +88,7 @@ public class WallGatePiece extends DynastyStructurePiece {
             }
         }
 
+        story(level,box,16,8,11,31);
         // 4) 东西角楼 / flanking turrets
         for (int x1 : new int[]{1, 24}) {
             walls(level, box, x1, 8, 9, x1 + 4, 12, 14, brick);

@@ -113,7 +113,7 @@ public final class ZhenyuanSovereign extends Monster implements software.bernie.
         applyEncounterGate(false);
     }
     public static AttributeSupplier.Builder attributes() {
-        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 60000)
+        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 90000)
                 .add(Attributes.ATTACK_DAMAGE, 1800).add(Attributes.ARMOR, 35)
                 .add(Attributes.ARMOR_TOUGHNESS, 12).add(Attributes.MOVEMENT_SPEED, .27)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1).add(Attributes.FOLLOW_RANGE, 90);

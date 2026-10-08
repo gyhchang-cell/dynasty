@@ -24,6 +24,7 @@ public final class SculptureBlueprint {
     public final int width, height, length, blockCount;
     public final List<String> palette;
     public final byte[] voxels;
+    private final short[] columnTop;
     public final int[] ritualCore;
     public final List<Cell> ritualOwned;
     public final List<Node> ritualNodes;
@@ -37,6 +38,9 @@ public final class SculptureBlueprint {
         if(p.isEmpty()||p.size()>256||!p.get(0).equals("minecraft:air"))throw new IOException("Invalid palette");
         palette=List.copyOf(p); int count=0;
         for(byte value:raw){int v=Byte.toUnsignedInt(value);if(v>=palette.size())throw new IOException("Invalid palette index");if(v!=0)count++;}
+        columnTop=new short[width*length];java.util.Arrays.fill(columnTop,(short)-1);
+        for(int y=0;y<height;y++)for(int z=0;z<length;z++)for(int x=0;x<width;x++)
+            if(at(x,y,z)!=0)columnTop[x+z*width]=(short)y;
         if(count!=blockCount)throw new IOException("Non-air count mismatch");
         List<Cell> owned=new ArrayList<>();List<Node> nodes=new ArrayList<>();
         var ritual=m.get("ritual");
@@ -62,6 +66,13 @@ public final class SculptureBlueprint {
     }
     public boolean inside(int x,int y,int z){return x>=0&&x<width&&y>=0&&y<height&&z>=0&&z<length;}
     public int at(int x,int y,int z){return Byte.toUnsignedInt(voxels[x+z*width+y*width*length]);}
+    public int columnTop(int x,int z){return x<0||z<0||x>=width||z>=length?-1:columnTop[x+z*width];}
+    /** Clear interiors/courtyards and five blocks over each roof, not to world height. */
+    public int clearTop(int x,int z){
+        int top=columnTop(x,z);
+        if(top<0)return -1;
+        return Math.min(height+4,Math.max(9,top+5));
+    }
     public int volume(){return voxels.length;}
 
     public static SculptureBlueprint load(ResourceManager resources,String id)throws IOException{

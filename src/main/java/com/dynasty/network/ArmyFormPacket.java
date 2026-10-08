@@ -30,7 +30,7 @@ public class ArmyFormPacket {
     public static void handle(ArmyFormPacket pkt, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
-            if (player != null) {
+            if (player != null && com.dynasty.army.ArmyRoster.hasTally(player) && pkt.formation>=0 && pkt.formation<DynastyArmy.FORMATIONS.length && pkt.count>=1 && pkt.count<=9) {
                 int idx = Math.max(0, Math.min(DynastyArmy.FORMATIONS.length - 1, pkt.formation));
                 DynastyArmy.formUp(player, DynastyArmy.FORMATIONS[idx], pkt.count);
             }

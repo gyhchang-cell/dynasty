@@ -23,6 +23,9 @@ public class DynastyBlocks {
     public static final DeferredRegister<Item> BLOCK_ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, Dynasty.MODID);
 
+    /** Structure-only victory remnant; no survival item and no ticking entity. */
+    public static final RegistryObject<Block> BIXI_STELE=BLOCKS.register("bixi_stele",()->new Block(
+        BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(-1F,3600000F).sound(SoundType.STONE).noLootTable()));
     private static RegistryObject<Block> simple(String name, BlockBehaviour.Properties props) {
         RegistryObject<Block> block = BLOCKS.register(name, () -> new Block(props));
         BLOCK_ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));

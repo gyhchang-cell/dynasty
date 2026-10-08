@@ -86,7 +86,7 @@ public final class ScorpionGameTests {
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=35,batch="scorpion_ecology")
     public static void registeredDesertSpawnRequiresShallowDrySandAndCapsThree(GameTestHelper h){
-        scorpion(h).discard();var level=h.getLevel();var pos=h.absolutePos(new BlockPos(7,132,7));
+        scorpion(h).discard();var level=h.getLevel();var base=h.absolutePos(new BlockPos(7,0,7));var pos=new BlockPos(base.getX(),132,base.getZ());
         for(int x=-4;x<=4;x++)for(int z=-4;z<=4;z++){
             level.setBlockAndUpdate(pos.offset(x,-2,z),Blocks.STONE.defaultBlockState());level.setBlockAndUpdate(pos.offset(x,-1,z),Blocks.SAND.defaultBlockState());
             for(int y=0;y<8;y++)level.setBlockAndUpdate(pos.offset(x,y,z),Blocks.AIR.defaultBlockState());

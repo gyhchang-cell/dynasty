@@ -46,7 +46,7 @@ try:
         code = process.wait(timeout=660)
         passed = out / "results" / (role + "-PASS.txt")
         if code != 0 or not passed.is_file():
-            raise RuntimeError(f"{role} did not pass; inspect {out / (role + '.log')}")
+            raise RuntimeError(f"{role} did not pass (exit={code}); inspect {out / (role + '.log')}")
         print(role, passed.read_text().strip(), flush=True)
 finally:
     for process in reversed(children):

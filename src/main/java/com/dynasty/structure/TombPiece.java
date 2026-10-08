@@ -59,6 +59,8 @@ public class TombPiece extends DynastyStructurePiece {
             : java.util.List.of(getWorldPos(15,1,19).immutable(),getWorldPos(24,1,19).immutable());
     }
 
+    public BlockPos bixiPosition(){return getWorldPos(20,1,remastered?20:24).immutable();}
+
     public BlockPos shroudChildPosition() { return getWorldPos(5,1,remastered?34:24).immutable(); }
 
     void lootChest(WorldGenLevel level, BoundingBox box, RandomSource random, int x, int y, int z, ResourceLocation table) {
