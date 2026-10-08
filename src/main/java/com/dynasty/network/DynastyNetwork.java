@@ -13,7 +13,14 @@ public class DynastyNetwork {
 
     // Base wire schema 9; extensions also advertise IDs, payload revision and direction.
     // A cod3-only peer must never accept a cod6-only peer merely sharing a version.
-    private static final java.util.SortedMap<Integer,String> EXTENSIONS = new java.util.TreeMap<>();
+    // Forge snapshots the supplier when the channel is constructed. Declare the complete
+    // immutable table first; filling it during common setup makes the channel reject itself.
+    private static final java.util.SortedMap<Integer,String> EXTENSIONS = java.util.Collections.unmodifiableSortedMap(
+            new java.util.TreeMap<>(java.util.Map.of(
+                    12, "com.dynasty.cod3.Cod3VisualPacket:PLAY_TO_CLIENT:v1",
+                    13, "com.dynasty.network.EdictCastPacket:PLAY_TO_SERVER:v1",
+                    14, "com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v1")));
+    private static final java.util.Set<Integer> REGISTERED_EXTENSIONS = new java.util.HashSet<>();
     public static String protocolVersion() { return "9/" + EXTENSIONS; }
     public static boolean acceptsProtocol(String remote) { return protocolVersion().equals(remote); }
 
@@ -22,9 +29,12 @@ public class DynastyNetwork {
             java.util.function.Function<net.minecraft.network.FriendlyByteBuf,T> decoder,
             java.util.function.BiConsumer<T,java.util.function.Supplier<net.minecraftforge.network.NetworkEvent.Context>> handler,
             net.minecraftforge.network.NetworkDirection direction, int wireRevision) {
-        if (packetId < 12 || EXTENSIONS.containsKey(packetId))
+        if (packetId < 12 || REGISTERED_EXTENSIONS.contains(packetId))
             throw new IllegalArgumentException("Reserved or duplicate Dynasty packet ID: " + packetId);
-        EXTENSIONS.put(packetId, type.getName() + ":" + direction + ":v" + wireRevision);
+        String schema = type.getName() + ":" + direction + ":v" + wireRevision;
+        if (!schema.equals(EXTENSIONS.get(packetId)))
+            throw new IllegalArgumentException("Dynasty packet is missing from the frozen wire schema: " + packetId);
+        REGISTERED_EXTENSIONS.add(packetId);
         CHANNEL.registerMessage(packetId, type, encoder, decoder, handler, java.util.Optional.of(direction));
     }
 
