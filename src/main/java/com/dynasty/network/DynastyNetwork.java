@@ -11,10 +11,10 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public class DynastyNetwork {
 
-    // Base wire schema 9; extensions also advertise IDs, payload revision and direction.
+    // Base wire schema 10 adds the server-owned exam duration to OpenKejuPacket.
     // A cod3-only peer must never accept a cod6-only peer merely sharing a version.
     private static final java.util.SortedMap<Integer,String> EXTENSIONS = new java.util.TreeMap<>();
-    public static String protocolVersion() { return "9/" + EXTENSIONS; }
+    public static String protocolVersion() { return "10/" + EXTENSIONS; }
     public static boolean acceptsProtocol(String remote) { return protocolVersion().equals(remote); }
 
     public static <T> void registerExtension(int packetId, Class<T> type,

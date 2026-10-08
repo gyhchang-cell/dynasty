@@ -37,6 +37,7 @@ public final class KejuQaTests {
         bankQuestions();
         bankCache();
         sessions();
+        examDeadlines();
         cooldowns();
         serverStates();
         layoutChecks();
@@ -624,10 +625,10 @@ public final class KejuQaTests {
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
         OpenKejuPacket.encode(open, buffer);
         OpenKejuPacket decoded = OpenKejuPacket.decode(buffer);
-        check("网络：Open 包（一个 int + 四个字符串）往返一致",
+        check("网络：Open 包（令牌、题干、选项、计时）往返一致",
                 decoded.index() == 4242 && "题干一行".equals(decoded.question())
                         && "甲".equals(decoded.options()[0]) && "乙".equals(decoded.options()[1])
-                        && "丙".equals(decoded.options()[2]));
+                        && "丙".equals(decoded.options()[2]) && decoded.answerMillis() == 30000);
 
         FriendlyByteBuf longQuestion = new FriendlyByteBuf(Unpooled.buffer());
         longQuestion.writeInt(1);
@@ -665,5 +666,21 @@ public final class KejuQaTests {
         } catch (RuntimeException error) {
             return true;
         }
+    }
+
+    private static void examDeadlines() {
+        var q=new KejuRules.Question("Question",List.of("A","B","C"),1);
+        var tier=new KejuRules.Tier("test","Test","Test",0,12,List.of(q));
+        var sessions=new KejuSessionRegistry(42);var player=UUID.randomUUID();
+        var opened=sessions.open(player,tier,q,1000,31000);
+        check("超时仍先核对令牌",sessions.submit(player,opened.token()+1,1,32000).status()==KejuSessionRegistry.Status.WRONG_TOKEN&&sessions.peek(player)!=null);
+        check("到期边界拒绝奖励",sessions.submit(player,opened.token(),1,31000).status()==KejuSessionRegistry.Status.EXPIRED);
+        check("过期会话不能重放",sessions.submit(player,opened.token(),1,31001).status()==KejuSessionRegistry.Status.NO_SESSION);
+        opened=sessions.open(player,tier,q,1000,37000);
+        check("扩展时间内仍可答题",sessions.submit(player,opened.token(),1,36000).accepted());
+        var packet=new OpenKejuPacket(5,"Q","A","B","C",42000);
+        var buffer=new FriendlyByteBuf(Unpooled.buffer());OpenKejuPacket.encode(packet,buffer);
+        check("双加成时间传入客户端",OpenKejuPacket.decode(buffer).answerMillis()==42000&&buffer.readableBytes()==0);buffer.release();
+        check("拒绝非法答题时间",rejected(()->new OpenKejuPacket(5,"Q","A","B","C",-1)));
     }
 }

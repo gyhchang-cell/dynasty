@@ -45,7 +45,25 @@ public final class ExpansionClient {
         if(emitted>=128)return;
         if(p.type()==14) {
             int count=Math.min(32,128-emitted);emitted+=count;
-            for(int i=0;i<count;i++){double f=(double)i/(count-1);level.addParticle(ParticleTypes.CRIT,p.sx()+(p.x()-p.sx())*f,p.sy()+(p.y()-p.sy())*f,p.sz()+(p.z()-p.sz())*f,0,0,0);}
+            for(int i=0;i<count;i++){double f=(double)i/Math.max(1,count-1);level.addParticle(ParticleTypes.CRIT,p.sx()+(p.x()-p.sx())*f,p.sy()+(p.y()-p.sy())*f,p.sz()+(p.z()-p.sz())*f,0,0,0);}
+            return;
+        }
+        if(p.type()==CombatFeedback.FIRE_RING || p.type()==CombatFeedback.CINNABAR || p.type()==CombatFeedback.SMALL_THUNDER) {
+            int count=Math.min(40,128-emitted);emitted+=count;
+            for(int i=0;i<count;i++) {
+                double a=i*Math.PI*2/Math.max(1,count);
+                if(p.type()==CombatFeedback.SMALL_THUNDER) {
+                    double t=i/(double)Math.max(1,count-1),jitter=Math.sin(i*2.4)*.16;
+                    level.addParticle(ParticleTypes.ELECTRIC_SPARK,p.x()+jitter,p.y()+2.5-t*2.5,p.z()-jitter,0,-.08,0);
+                } else {
+                    boolean fire=p.type()==CombatFeedback.FIRE_RING;
+                    net.minecraft.core.particles.ParticleOptions particle=fire?ParticleTypes.FLAME:
+                        new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(.85F,.1F,.06F),1.3F);
+                    double radius=fire?2.8:1.5;
+                    level.addParticle(particle,p.x()+Math.cos(a)*radius,p.y()-.4,p.z()+Math.sin(a)*radius,Math.cos(a)*.12,.08,Math.sin(a)*.12);
+                }
+            }
+            level.playLocalSound(p.x(),p.y(),p.z(),p.type()==CombatFeedback.SMALL_THUNDER?SoundEvents.LIGHTNING_BOLT_IMPACT:SoundEvents.FIRECHARGE_USE,SoundSource.PLAYERS,.35F,1.4F,false);
             return;
         }
         var type=switch(p.type()) {case CombatFeedback.THUNDER->ParticleTypes.ELECTRIC_SPARK;case CombatFeedback.WATER->ParticleTypes.BUBBLE;case CombatFeedback.HEAL->ParticleTypes.HAPPY_VILLAGER;case CombatFeedback.CRITICAL,CombatFeedback.STAR,CombatFeedback.PERFECT->ParticleTypes.CRIT;case CombatFeedback.ARMOR->ParticleTypes.ASH;default->ParticleTypes.ENCHANTED_HIT;};

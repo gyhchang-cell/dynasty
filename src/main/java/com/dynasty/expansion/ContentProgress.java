@@ -20,7 +20,7 @@ public final class ContentProgress {
         for(ItemStack stack:p.getArmorSlots())obtained.add(EquipmentBehaviors.id(stack));
         obtained.addAll(DynastyTrinkets.activeIds(p));
         for(String id:obtained) {
-            if(id.isEmpty())continue;
+            if(id.isEmpty() || ExpansionContent.SUPPLIES.containsKey(id))continue;
             DynastyAdvancements.award(p,"cod4_obtain_"+id);
         }
         if(DynastyStats.getRank(p)>=3 && !EquipmentBehaviors.saved(p).getBoolean("crownGranted")) {
@@ -48,6 +48,13 @@ public final class ContentProgress {
     private static void unlockExisting(ServerPlayer p,String id) {var key=new ResourceLocation("dynasty",id);if(p.server.getRecipeManager().byKey(key).isPresent())p.awardRecipesByKey(new ResourceLocation[]{key});}
     private static void unlock(ServerPlayer p,String id) {p.awardRecipesByKey(new ResourceLocation[]{new ResourceLocation("dynasty","cod4/"+id)});}
     @SubscribeEvent public static void tick(TickEvent.PlayerTickEvent e) {if(e.phase==TickEvent.Phase.END && e.player instanceof ServerPlayer p && p.tickCount%100==0)reconcile(p);}
+    /** Keep legacy advancement IDs and completed rewards; new progress requires actual crafting. */
+    @SubscribeEvent public static void crafted(PlayerEvent.ItemCraftedEvent e) {
+        if(e.getEntity() instanceof ServerPlayer p && !e.getCrafting().isEmpty()) {
+            String id=EquipmentBehaviors.id(e.getCrafting());
+            if(ExpansionContent.SUPPLIES.containsKey(id))DynastyAdvancements.award(p,"cod4_obtain_"+id);
+        }
+    }
     @SubscribeEvent public static void login(PlayerEvent.PlayerLoggedInEvent e) {if(e.getEntity() instanceof ServerPlayer p)reconcile(p);}
     @SubscribeEvent public static void clone(PlayerEvent.Clone e) {
         if(e.getOriginal().getPersistentData().contains(Player.PERSISTED_NBT_TAG))e.getEntity().getPersistentData().put(Player.PERSISTED_NBT_TAG,e.getOriginal().getPersistentData().getCompound(Player.PERSISTED_NBT_TAG).copy());

@@ -156,7 +156,11 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
         if((spec.id().equals("herb_picker") || spec.id().equals("swindler")) && stack.is(ExpansionContent.item("copper_coin")) && specialCooldown==0) {
-            if(!level().isClientSide){if(!p.getAbilities().instabuild)stack.shrink(1);spawnAtLocation(spec.id().equals("herb_picker")?Items.WHEAT_SEEDS:Items.DEAD_BUSH);specialCooldown=200;if(spec.id().equals("swindler"))fleeTicks=80;}
+            if(!level().isClientSide){if(!p.getAbilities().instabuild)stack.shrink(1);if(spec.id().equals("herb_picker")) {
+                    ItemStack herbs=new ItemStack(com.dynasty.DynastyItems.TEA.get(),2);
+                    if(!p.getInventory().add(herbs))p.drop(herbs,false);
+                    p.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4.herbs"),true);
+                } else spawnAtLocation(Items.DEAD_BUSH);specialCooldown=200;if(spec.id().equals("swindler"))fleeTicks=80;}
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
         return super.mobInteract(p,hand);

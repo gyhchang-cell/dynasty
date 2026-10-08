@@ -37,6 +37,16 @@ public final class LivingWorkshopBlock extends Block implements EntityBlock {
         if(level.isClientSide)return InteractionResult.SUCCESS;
         if(!(level.getBlockEntity(pos) instanceof WorkshopBlockEntity vat))return InteractionResult.PASS;
         var held=p.getItemInHand(hand);
+        // A deliberate cleanse gesture leaves the existing workshop recipe/deposits untouched.
+        if(kind==Kind.REPAIR && p.isShiftKeyDown() && held.is(com.dynasty.expansion.ExpansionContent.MATERIALS.get("sprite_jade").get())
+                && p.hasEffect(com.dynasty.expansion.ExpansionEffects.BREAK.get())) {
+            p.removeEffect(com.dynasty.expansion.ExpansionEffects.BREAK.get());
+            if(!p.getAbilities().instabuild)held.shrink(1);
+            p.getInventory().setChanged();
+            com.dynasty.expansion.CombatFeedback.send(p,com.dynasty.expansion.CombatFeedback.HEAL);
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.armor_cleansed"),true);
+            return InteractionResult.CONSUME;
+        }
         if((held.isEmpty()&&!vat.ready()) || p.isShiftKeyDown()) {
             if(p instanceof net.minecraft.server.level.ServerPlayer server)
                 net.minecraftforge.network.NetworkHooks.openScreen(server,vat,pos);

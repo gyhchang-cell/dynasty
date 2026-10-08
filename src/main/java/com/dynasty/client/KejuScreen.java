@@ -69,9 +69,15 @@ public class KejuScreen extends Screen {
     private final List<Integer> optionTops = new ArrayList<>();
     private final List<Integer> optionHeights = new ArrayList<>();
     private Button confirm;
+    private final long deadline;
 
     public KejuScreen(int index, String question, String[] options) {
+        this(index, question, options, 30000);
+    }
+
+    public KejuScreen(int index, String question, String[] options, int answerMillis) {
         super(Component.translatable("screen.dynasty.keju"));
+        this.deadline = net.minecraft.Util.getMillis() + answerMillis;
         this.index = index;
         this.question = question == null ? "" : question;
         this.options = options == null ? new String[]{} : options.clone();
@@ -125,7 +131,7 @@ public class KejuScreen extends Screen {
         confirm = Button.builder(Component.literal("确认作答"), b -> submit())
                 .bounds(panelX + (panelW - buttonW) / 2, panelY + panelH - 10 - 18, buttonW, 18)
                 .build();
-        confirm.active = selected > 0 && !submitted;
+        confirm.active = selected > 0 && !submitted && remainingMillis() > 0;
         this.addRenderableWidget(confirm);
     }
 
@@ -164,7 +170,7 @@ public class KejuScreen extends Screen {
         this.renderBackground(graphics);
         graphics.fill(panelX - 1, panelY - 1, panelX + panelW + 1, panelY + panelH + 1, 0xFF3B2F22);
         graphics.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xFFF3E9D2);
-        graphics.drawCenteredString(this.font, this.title, panelX + panelW / 2, panelY + PAD, 0xFF6B4A16);
+        graphics.drawCenteredString(this.font, Component.translatable("screen.dynasty.keju.timed_title", (remainingMillis()+999)/1000), panelX + panelW / 2, panelY + PAD, 0xFF6B4A16);
 
         graphics.enableScissor(panelX + 1, viewTop, panelX + panelW - 1, viewBottom);
         int contentTop = viewTop - scroll;
@@ -222,6 +228,7 @@ public class KejuScreen extends Screen {
 
     /** 固定底部的一行操作提示（鼠标与键盘都能照做）。 */
     private String hint() {
+        if (remainingMillis() == 0) return Component.translatable("message.dynasty.keju.expired").getString();
         if (submitted) {
             return "§7已提交，等待放榜…";
         }
@@ -281,7 +288,7 @@ public class KejuScreen extends Screen {
 
     /** 选中某个选项（越界 / 已提交时忽略）。 */
     private void select(int slot) {
-        if (submitted || slot < 1 || slot > optionLines.size()) {
+        if (submitted || remainingMillis() == 0 || slot < 1 || slot > optionLines.size()) {
             return;
         }
         selected = slot;
@@ -325,7 +332,7 @@ public class KejuScreen extends Screen {
 
     /** 提交作答：未选择不发；同一次界面最多发一个包（连点无效），随后关闭。 */
     private void submit() {
-        if (submitted || selected <= 0) {
+        if (submitted || selected <= 0 || remainingMillis() == 0) {
             return;
         }
         submitted = true;
@@ -339,5 +346,11 @@ public class KejuScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    private long remainingMillis() { return Math.max(0, deadline - net.minecraft.Util.getMillis()); }
+    @Override public void tick() {
+        super.tick();
+        if (confirm != null) confirm.active = selected > 0 && !submitted && remainingMillis() > 0;
     }
 }

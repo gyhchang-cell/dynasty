@@ -17,8 +17,15 @@ public class OpenKejuPacket {
     private final int index;
     private final String question;
     private final String[] options;
+    private final int answerMillis;
 
     public OpenKejuPacket(int index, String question, String a, String b, String c) {
+        this(index, question, a, b, c, 30000);
+    }
+
+    public OpenKejuPacket(int index, String question, String a, String b, String c, int answerMillis) {
+        if (answerMillis < 1000 || answerMillis > 120000) throw new IllegalArgumentException("Invalid exam duration");
+        this.answerMillis = answerMillis;
         this.index = index;
         this.question = question;
         this.options = new String[]{a, b, c};
@@ -30,10 +37,11 @@ public class OpenKejuPacket {
         for (String option : pkt.options) {
             buf.writeUtf(option);
         }
+        buf.writeVarInt(pkt.answerMillis);
     }
 
     /**
-     * 线协议不变：一个 int（本次令牌）+ 四个字符串（题干 + 三个选项）。
+     * 线协议 v10：令牌、题干、三个选项和答题时限（毫秒）。
      * 读取时按 {@link KejuNet} 的长度上限拒绝超长字段（题库校验用同一套上限）。
      */
     public static OpenKejuPacket decode(FriendlyByteBuf buf) {
@@ -42,13 +50,14 @@ public class OpenKejuPacket {
         String a = buf.readUtf(KejuNet.MAX_OPTION_CHARS);
         String b = buf.readUtf(KejuNet.MAX_OPTION_CHARS);
         String c = buf.readUtf(KejuNet.MAX_OPTION_CHARS);
-        return new OpenKejuPacket(index, question, a, b, c);
+        return new OpenKejuPacket(index, question, a, b, c, buf.readVarInt());
     }
 
     /** 本次令牌。/ the session token. */
     public int index() {
         return index;
     }
+    public int answerMillis() { return answerMillis; }
 
     public String question() {
         return question;
@@ -67,6 +76,6 @@ public class OpenKejuPacket {
             return;
         }
         context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> com.dynasty.client.ClientKeju.open(pkt.index, pkt.question, pkt.options)));
+                () -> () -> com.dynasty.client.ClientKeju.open(pkt.index, pkt.question, pkt.options, pkt.answerMillis)));
     }
 }

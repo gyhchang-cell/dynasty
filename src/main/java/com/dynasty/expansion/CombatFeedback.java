@@ -24,15 +24,24 @@ public record CombatFeedback(int type, double x, double y, double z, double sx, 
         var start=from.getEyePosition();
         DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(from.getX(),from.getY(),from.getZ(),32,level.dimension())),new CombatFeedback(14,end.x,end.y,end.z,start.x,start.y,start.z));
     }
-    public static final int NORMAL=0, HEAVY=1, CRITICAL=2, BLOCK=3, PERFECT=4, ARMOR=5, STAGGER=6, KNOCKDOWN=7, LAUNCH=8, IMMUNE=9, THUNDER=10, WATER=11, STAR=12, HEAL=13;
+    public static final int NORMAL=0, HEAVY=1, CRITICAL=2, BLOCK=3, PERFECT=4, ARMOR=5, STAGGER=6, KNOCKDOWN=7, LAUNCH=8, IMMUNE=9, THUNDER=10, WATER=11, STAR=12, HEAL=13, FIRE_RING=15, CINNABAR=16, SMALL_THUNDER=17;
     public static void send(LivingEntity target, int type) {
         if (!(target.level() instanceof ServerLevel level)) return;
         // Per-entity throttling also bounds AoE/proc feedback in crowded encounters.
         long now=level.getGameTime();
         var data=target.getPersistentData();
-        if (data.contains("cod4FeedbackTick") && now-data.getLong("cod4FeedbackTick")<3) return;
+        if (!allowsFeedback(data, now, type)) return;
+        data.putInt("cod4FeedbackType", type);
         data.putLong("cod4FeedbackTick", now);
         DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(target.getX(), target.getY(), target.getZ(), 32, level.dimension())), new CombatFeedback(type,target.getX(),target.getY()+target.getBbHeight()*.55,target.getZ()));
+    }
+    public static boolean allowsFeedback(net.minecraft.nbt.CompoundTag data,long now,int type) {
+        return !data.contains("cod4FeedbackTick") || now-data.getLong("cod4FeedbackTick")>=3
+                || priority(type)>priority(data.getInt("cod4FeedbackType"));
+    }
+    private static int priority(int type) {
+        return switch(type) {case IMMUNE->5;case ARMOR,PERFECT,STAGGER,KNOCKDOWN,LAUNCH->4;
+            case THUNDER,SMALL_THUNDER,FIRE_RING,CINNABAR->3;case HEAVY,CRITICAL->2;case NORMAL->0;default->1;};
     }
     @SubscribeEvent(priority=EventPriority.LOWEST)
     public static void hit(LivingDamageEvent e) {
@@ -49,7 +58,7 @@ public record CombatFeedback(int type, double x, double y, double z, double sx, 
     public static void encode(CombatFeedback p,FriendlyByteBuf b) { b.writeVarInt(p.type);b.writeDouble(p.x);b.writeDouble(p.y);b.writeDouble(p.z);b.writeDouble(p.sx);b.writeDouble(p.sy);b.writeDouble(p.sz); }
     public static CombatFeedback decode(FriendlyByteBuf b) {
         var p=new CombatFeedback(b.readVarInt(),b.readDouble(),b.readDouble(),b.readDouble(),b.readDouble(),b.readDouble(),b.readDouble());
-        if (p.type<0 || p.type>14 || !Double.isFinite(p.x+p.y+p.z+p.sx+p.sy+p.sz) || new net.minecraft.world.phys.Vec3(p.x-p.sx,p.y-p.sy,p.z-p.sz).lengthSqr()>1024) throw new IllegalArgumentException("Invalid combat feedback");
+        if (p.type<0 || p.type>17 || !Double.isFinite(p.x+p.y+p.z+p.sx+p.sy+p.sz) || new net.minecraft.world.phys.Vec3(p.x-p.sx,p.y-p.sy,p.z-p.sz).lengthSqr()>1024) throw new IllegalArgumentException("Invalid combat feedback");
         return p;
     }
     public static void handle(CombatFeedback p,Supplier<NetworkEvent.Context> supplier) {

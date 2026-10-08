@@ -18,12 +18,12 @@ public final class ProgressionMerchant implements Merchant {
     private Player customer;
     private MerchantOffers offers=new MerchantOffers();
     private final ServerPlayer owner;
-    private ProgressionMerchant(ServerPlayer player) {
+    ProgressionMerchant(ServerPlayer player) {
         owner=player;customer=player;
         if(done("cod4_obtain_heart_mirror"))offer("heart_mirror",32);
         if(done("entered_dragon_palace"))offer("sea_pearl",48);
         if(DynastyStats.getRank(player)>=3 || DynastySchoolProgression.rank(player,"guard")>=3) {
-            offer("qimen_cable",8);offer("qimen_gear",8);offer("rope_dart",48);offer("flying_claw",48);
+            offer("qimen_cable",8);offer("qimen_gear",8);offer("rope_dart",48);offer("flying_claw",48);offer("meteor_hammer",64);offer("mandarin_duck_axe",64);
         }
     }
     private boolean done(String id) {var a=owner.server.getAdvancements().getAdvancement(new ResourceLocation("dynasty",id));return a!=null && owner.getAdvancements().getOrStartProgress(a).isDone();}
@@ -31,7 +31,7 @@ public final class ProgressionMerchant implements Merchant {
     private void offer(String item,int coins) {
         ItemStack output=new ItemStack(ExpansionContent.item(item));
         var n=EquipmentBehaviors.saved(owner);long day=owner.level().getGameTime()/24000;
-        if(n.getLong("stockDay")!=day){n.putLong("stockDay",day);for(String id:java.util.List.of("heart_mirror","sea_pearl","qimen_cable","qimen_gear","rope_dart","flying_claw"))n.remove("stock_"+id);}
+        if(n.getLong("stockDay")!=day){n.putLong("stockDay",day);for(String id:java.util.List.of("heart_mirror","sea_pearl","qimen_cable","qimen_gear","rope_dart","flying_claw","meteor_hammer","mandarin_duck_axe"))n.remove("stock_"+id);}
         var offer=new MerchantOffer(new ItemStack(ExpansionContent.item("copper_coin"),coins),ItemStack.EMPTY,output,n.getInt(stockKey(output)),8,0,0);offers.add(offer);
     }
     @SubscribeEvent public static void interact(PlayerInteractEvent.EntityInteract e) {

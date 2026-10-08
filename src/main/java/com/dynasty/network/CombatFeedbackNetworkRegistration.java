@@ -13,7 +13,7 @@ public final class CombatFeedbackNetworkRegistration {
         event.enqueueWork(() -> {
             DynastyNetwork.registerExtension(16, com.dynasty.expansion.CombatFeedback.class,
                     com.dynasty.expansion.CombatFeedback::encode, com.dynasty.expansion.CombatFeedback::decode,
-                    com.dynasty.expansion.CombatFeedback::handle, NetworkDirection.PLAY_TO_CLIENT, 1);
+                    com.dynasty.expansion.CombatFeedback::handle, NetworkDirection.PLAY_TO_CLIENT, 2);
         });
     }
     private CombatFeedbackNetworkRegistration() {}

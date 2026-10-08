@@ -86,10 +86,12 @@ public final class DynastyKeju {
             return;
         }
         KejuRules.Question question = tier.questions().get(player.getRandom().nextInt(tier.questions().size()));
-        KejuSession session = sessions(server).open(player.getUUID(), tier, question, System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        int answerMillis = answerDurationMillis(player);
+        KejuSession session = sessions(server).open(player.getUUID(), tier, question, now, now + answerMillis);
         DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
                 new OpenKejuPacket(session.token(), question.text(),
-                        question.options().get(0), question.options().get(1), question.options().get(2)));
+                        question.options().get(0), question.options().get(1), question.options().get(2), answerMillis));
         player.displayClientMessage(Component.literal("§6[科举] §r" + tier.zh()
                 + "：答对 +" + tier.merit() + " 功名"), false);
     }
@@ -104,6 +106,13 @@ public final class DynastyKeju {
         return session == null ? null : session.token();
     }
 
+    /** Thirty seconds per question; robe and wine each add 20% of the base (36/42 seconds). */
+    public static int answerDurationMillis(Player player) {
+        int bonus = com.dynasty.expansion.EquipmentBehaviors.pieces(player,"brocade") >= 4 ? 6000 : 0;
+        if (player.level().getGameTime() < player.getPersistentData().getLong("cod4ExamWine")) bonus += 6000;
+        return 30000 + bonus;
+    }
+
     /**
      * 判定答案并给予奖励。先验证再消费：只有令牌与选项都合法的那一次提交才结束本题。
      */
@@ -114,6 +123,7 @@ public final class DynastyKeju {
             case NO_SESSION -> player.sendSystemMessage(Component.literal("§c[科举] 题目已失效，请重新开始考试。"));
             case WRONG_TOKEN -> player.sendSystemMessage(Component.literal("§c[科举] 这次提交已过期（当前题目仍然有效，请重新作答）。"));
             case ILLEGAL_CHOICE -> player.sendSystemMessage(Component.literal("§c[科举] 请选择 1 / 2 / 3。"));
+            case EXPIRED -> player.sendSystemMessage(Component.translatable("message.dynasty.keju.expired"));
             case ACCEPTED -> grant(player, verdict.session(), verdict.correct());
         }
     }

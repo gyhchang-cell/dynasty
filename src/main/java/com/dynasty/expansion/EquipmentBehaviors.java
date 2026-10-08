@@ -77,12 +77,40 @@ public final class EquipmentBehaviors {
         attribute(p,"all_speed",Attributes.MOVEMENT_SPEED,all,AttributeModifier.Operation.MULTIPLY_TOTAL);
         ownedEffect(p,MobEffects.NIGHT_VISION,pieces(p,"draco_king")>=2 || pieces(p,"zhuque")>=2);
         ownedEffect(p,MobEffects.DOLPHINS_GRACE,pieces(p,"sea_silk")>=4 && wet);
+        skyJump(p);
+        if(pieces(p,"beidou")<4) {n.remove("cod4StarIFrame");n.remove("cod4ContinuousSteps");}
+        if(pieces(p,"xuanwu")<4)n.remove("cod4Shell");
+        if(pieces(p,"xuanwu")<2 && !p.getMainHandItem().is(ExpansionContent.DUCK.get()))n.remove("cod4Counter");
+        if(pieces(p,"dark_iron")<3 && pieces(p,"hunyuan")<4 && now(p)>=n.getLong("cod4QiUntil"))n.remove("cod4Rage");
         if(p.getHealth()>p.getMaxHealth())p.setHealth(p.getMaxHealth());
     }
+    private static void skyJump(Player p) {
+        var data=p.getPersistentData();var current=p.getEffect(MobEffects.JUMP);
+        boolean enabled=pieces(p,"sky")>=4;
+        if(enabled && current!=null && current.getAmplifier()<1) {
+            // Vanilla would hide a weaker potion under our effect; save it before upgrading so
+            // unequipping can restore its remaining duration instead of removing somebody else's buff.
+            var backup=new CompoundTag();current.save(backup);data.put("cod4JumpBackup",backup);
+            data.putLong("cod4JumpBackupUntil",current.isInfiniteDuration()?Long.MAX_VALUE:now(p)+current.getDuration());
+            p.addEffect(new MobEffectInstance(MobEffects.JUMP,30,1,true,false));
+            data.putBoolean("cod4Own_minecraft:jump_boost",true);
+        }
+        ownedEffect(p,MobEffects.JUMP,enabled,1);
+        if(!enabled && data.contains("cod4JumpBackup")) {
+            var backup=MobEffectInstance.load(data.getCompound("cod4JumpBackup"));
+            long remaining=data.getLong("cod4JumpBackupUntil")-now(p);
+            if(backup!=null && remaining>0 && !p.hasEffect(MobEffects.JUMP))
+                p.addEffect(new MobEffectInstance(MobEffects.JUMP,backup.isInfiniteDuration()?-1:(int)Math.min(Integer.MAX_VALUE,remaining),backup.getAmplifier(),backup.isAmbient(),backup.isVisible(),backup.showIcon()));
+            data.remove("cod4JumpBackup");data.remove("cod4JumpBackupUntil");
+        }
+    }
     private static void ownedEffect(Player p,MobEffect effect,boolean enabled) {
+        ownedEffect(p,effect,enabled,0);
+    }
+    private static void ownedEffect(Player p,MobEffect effect,boolean enabled,int amplifier) {
         String key="cod4Own_"+net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getKey(effect);
-        var current=p.getEffect(effect);boolean ours=current!=null && current.isAmbient() && !current.isVisible() && current.getAmplifier()==0 && current.getDuration()<=30;
-        if(enabled && (current==null || ours)) {p.addEffect(new MobEffectInstance(effect,30,0,true,false));p.getPersistentData().putBoolean(key,true);}
+        var current=p.getEffect(effect);boolean ours=current!=null && current.isAmbient() && !current.isVisible() && current.getAmplifier()==amplifier && current.getDuration()<=30;
+        if(enabled && (current==null || ours)) {p.addEffect(new MobEffectInstance(effect,30,amplifier,true,false));p.getPersistentData().putBoolean(key,true);}
         else if(!enabled && p.getPersistentData().getBoolean(key)) {if(ours)p.removeEffect(effect);p.getPersistentData().remove(key);}
     }
     @SubscribeEvent public static void equipment(LivingEquipmentChangeEvent e) {if(e.getEntity() instanceof ServerPlayer p)refresh(p);}
@@ -93,8 +121,8 @@ public final class EquipmentBehaviors {
         n.putDouble("cod4X",p.getX());n.putDouble("cod4Y",p.getY());n.putDouble("cod4Z",p.getZ());
         if(moved>.16 && moved<16) {
             n.putLong("cod4Moved",now(p));
-            if(pieces(p,"beidou")>=4 && ready(p,"starStep",200)){n.putLong("cod4StarIFrame",now(p)+4);CombatFeedback.send(p,CombatFeedback.STAR);}
         }
+        advanceStarStep(p,moved);
         if(pieces(p,"cloth")>=4 && p.isSprinting() && moved>0 && moved<4) {
             var food=p.getFoodData();food.setExhaustion(Math.max(0,food.getExhaustionLevel()-(float)Math.sqrt(moved)*.1F));
         }
@@ -114,7 +142,7 @@ public final class EquipmentBehaviors {
         if(pieces(p,"brocade")>=3 && now(p)-n.getLong("cod4LastCombat")>200)p.heal(1);
         if(pieces(p,"sea_silk")>=4 && p.isInWater())p.heal(1);
         if(has(p,"jade_cicada") && p.getHealth()<p.getMaxHealth()*.3 && ready(p,"cicada",3600)){p.heal(p.getMaxHealth()*.08F);CombatFeedback.send(p,CombatFeedback.HEAL);}
-        if(pieces(p,"cinnabar")>=3 && p.hasEffect(ExpansionEffects.SHA.get())) {p.removeEffect(ExpansionEffects.SHA.get());CombatFeedback.send(p,CombatFeedback.HEAL);}
+        purifyCinnabar(p);
         if(pieces(p,"xuantian")>=4)for(var mob:p.level().getEntitiesOfClass(Mob.class,p.getBoundingBox().inflate(4),m->m.getTarget()==p && !ExpansionEffects.boss(m)))mob.addEffect(new MobEffectInstance(MobEffects.WEAKNESS,30,0));
         if(pieces(p,"draco_king")>=3) SummonedGuard.maintain(p,pieces(p,"draco_king")>=4?2:1);
         if(pieces(p,"taiyi")>=4 && p.experienceLevel>=30 && ready(p,"taiyiGlow",6000)) {p.heal(p.getMaxHealth()*.05F);CombatFeedback.send(p,CombatFeedback.HEAL);}
@@ -134,7 +162,40 @@ public final class EquipmentBehaviors {
         if(!(e.getEntity() instanceof ServerPlayer p))return;
         if(pieces(p,"sky")>=4)e.setCanceled(true);else if(pieces(p,"bamboo")>=2)e.setDistance(Math.max(0,e.getDistance()-1));
     }
-    @SubscribeEvent public static void jump(LivingEvent.LivingJumpEvent e) {if(e.getEntity() instanceof ServerPlayer p && pieces(p,"sky")>=4)p.push(0,.2,0);}
+    /** Ten consecutive sprint displacement ticks; teleports, stopping and unequipping reset the sequence. */
+    public static void advanceStarStep(Player p,double moved) {
+        var n=p.getPersistentData();
+        int steps=pieces(p,"beidou")>=4 && p.isSprinting() && !p.isPassenger() && moved>.01 && moved<4
+                ? Math.min(10,n.getInt("cod4ContinuousSteps")+1) : 0;
+        n.putInt("cod4ContinuousSteps",steps);
+        if(steps==10 && ready(p,"starStep",200)) {
+            n.putInt("cod4ContinuousSteps",0);n.putLong("cod4StarIFrame",now(p)+4);
+            CombatFeedback.send(p,CombatFeedback.STAR);
+        }
+    }
+    public static boolean auspiciousGuard(Player p,float roll) {
+        return pieces(p,"qilin")>=3 && roll<.15F;
+    }
+    public static void phoenixIgnited(Player p) {
+        p.getPersistentData().putLong("cod4PhoenixAttack",now(p)+60);
+        CombatFeedback.send(p,CombatFeedback.FIRE_RING);
+    }
+    public static boolean phoenixAttackActive(Player p) {
+        return p.isOnFire() || now(p)<p.getPersistentData().getLong("cod4PhoenixAttack");
+    }
+    public static void smallThunder(Player p,LivingEntity target) {
+        if(!ExpansionWeapons.enemy(p,target))return;
+        // Add to this real hit once, without a lightning entity that can burn terrain or hit bystanders.
+        CombatFeedback.send(target,CombatFeedback.SMALL_THUNDER);
+    }
+    public static void purifyCinnabar(ServerPlayer p) {
+        if(pieces(p,"cinnabar")<3 || !p.hasEffect(ExpansionEffects.SHA.get()))return;
+        p.removeEffect(ExpansionEffects.SHA.get());
+        for(var ally:p.level().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(3),
+                e->e==p || e.isAlliedTo(p) || e instanceof net.minecraft.world.entity.TamableAnimal pet && p.getUUID().equals(pet.getOwnerUUID())))
+            if(ally.distanceToSqr(p)<=9)ally.removeEffect(ExpansionEffects.SHA.get());
+        CombatFeedback.send(p,CombatFeedback.CINNABAR);
+    }
     @SubscribeEvent public static void effect(MobEffectEvent.Added e) {
         if(!shortening && e.getEntity() instanceof ServerPlayer p && pieces(p,"cinnabar")>=2 && !e.getEffectInstance().getEffect().isBeneficial()) {
             var effect=e.getEffectInstance();if(effect.isInfiniteDuration())return;
@@ -163,19 +224,27 @@ public final class EquipmentBehaviors {
         if(!(e.getEntity() instanceof ServerPlayer p) || e.getAmount()<=0)return;
         if(now(p)<p.getPersistentData().getLong("cod4StarIFrame") && !e.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY))e.setCanceled(true);
         if(e.getSource().is(DamageTypeTags.IS_FIRE) && (pieces(p,"phoenix")>=2 || pieces(p,"zhuque")>=2 || has(p,"phoenix_feather_charm"))) {
+            if(has(p,"phoenix_ring"))phoenixIgnited(p);
             e.setCanceled(true);p.clearFire();p.getPersistentData().putLong("cod4PhoenixSpeed",now(p)+60);
-            if(pieces(p,"phoenix")>=4 && ready(p,"fireRing",80))for(var mob:p.level().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(3),m->ExpansionWeapons.enemy(p,m)))mob.setSecondsOnFire(3);
+            if(pieces(p,"phoenix")>=4 && ready(p,"fireRing",80)) {
+                CombatFeedback.send(p,CombatFeedback.FIRE_RING);
+                for(var mob:p.level().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(3),m->ExpansionWeapons.enemy(p,m) && m.distanceToSqr(p)<=9))mob.setSecondsOnFire(3);
+            }
         }
     }
     @SubscribeEvent(priority=EventPriority.LOW) public static void hurt(LivingHurtEvent e) {
-        if(e.getEntity().level().isClientSide || e.getAmount()<=0 || DynastyTrinketOnHit.isSyntheticDamage())return;
+        if(e.getEntity().level().isClientSide || e.getAmount()<=0 || e.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY) || DynastyTrinketOnHit.isSyntheticDamage())return;
         if(e.getEntity() instanceof ServerPlayer p) {
             var n=p.getPersistentData();n.putLong("cod4LastCombat",now(p));
             if(p.isBlocking() && Set.of("zhenyue_blade","beichen_spear").contains(id(p.getMainHandItem())) && DynastySchoolProgression.equippedSynergy(p,"guard") && !e.getSource().is(DamageTypeTags.BYPASSES_SHIELD))e.setAmount(e.getAmount()*.92F);
             if((pieces(p,"dark_iron")>=3 && n.getInt("cod4Still")>=40) || pieces(p,"hunyuan")>=4)n.putInt("cod4Rage",Math.min(5,n.getInt("cod4Rage")+1));
             if(has(p,"jade_pendant") && !has(p,"heart_mirror") && p.getHealth()<p.getMaxHealth()*.4F)e.setAmount(e.getAmount()*.88F);
-            if(pieces(p,"qilin")>=3 && p.getRandom().nextFloat()<.15)e.setAmount(e.getAmount()*.5F);
-            if(pieces(p,"qilin")>=4 && p.getHealth()<p.getMaxHealth()*.25 && ready(p,"qilinShield",6000)){e.setAmount(0);CombatFeedback.send(p,CombatFeedback.PERFECT);}
+            if(auspiciousGuard(p,p.getRandom().nextFloat())) {
+                e.setAmount(0);e.setCanceled(true);CombatFeedback.send(p,CombatFeedback.PERFECT);return;
+            }
+            if(pieces(p,"bronze")>=2 && p.getRandom().nextFloat()<.1F)
+                p.level().playSound(null,p.blockPosition(),net.minecraft.sounds.SoundEvents.SHIELD_BLOCK,net.minecraft.sounds.SoundSource.PLAYERS,.7F,.65F);
+            if(e.getAmount()>0 && pieces(p,"qilin")>=4 && p.getHealth()<p.getMaxHealth()*.25 && ready(p,"qilinShield",6000)){e.setAmount(0);CombatFeedback.send(p,CombatFeedback.PERFECT);}
             if(pieces(p,"bronze")>=4 && e.getSource().getEntity() instanceof com.dynasty.entity.ImperialSoldier)e.setAmount(e.getAmount()*.8F);
             if(has(p,"fox_tail_charm") && p.getRandom().nextFloat()<.1 && e.getSource().getEntity() instanceof Mob mob && !ExpansionEffects.boss(mob)){mob.setTarget(null);mob.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,40,1));}
             if(p.isUsingItem() && p.getUseItem().is(ExpansionContent.DUCK.get()) && p.getOffhandItem().is(ExpansionContent.DUCK.get()) && !e.getSource().is(DamageTypeTags.BYPASSES_SHIELD)) {
@@ -206,8 +275,11 @@ public final class EquipmentBehaviors {
         if(pieces(p,"ziwei")>=3 && p.getRandom().nextFloat()<.1){bonus+=.5F;n.putLong("cod4Crit",now(p)+60);CombatFeedback.send(e.getEntity(),CombatFeedback.CRITICAL);}
         if(pieces(p,"ziwei")>=4 && now(p)<n.getLong("cod4Crit"))bonus+=.15F;
         if(has(p,"dragon_scale_charm") && net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(e.getEntity().getType()).getPath().contains("dragon"))bonus+=.15F;
-        if(has(p,"phoenix_ring") && p.isOnFire())bonus+=.15F;
-        if(has(p,"storm_charm") && p.level().isThundering() && p.getRandom().nextFloat()<.1)ExpansionEffects.apply(e.getEntity(),ExpansionEffects.THUNDER,60);
+        if(has(p,"phoenix_ring") && phoenixAttackActive(p))bonus+=.15F;
+        float thunderDamage=0;
+        if(has(p,"storm_charm") && p.level().isThundering() && p.getRandom().nextFloat()<.1F) {
+            smallThunder(p,e.getEntity());thunderDamage=4;
+        }
         if(e.getSource().getDirectEntity()==p && p.getAttackStrengthScale(.5F)>.8F) {
             int combo=DynastyTrinketOnHit.advanceCombo(p,e.getEntity());
             if(pieces(p,"qinglong")>=2)bonus+=.06F*Math.min(3,combo);
@@ -215,7 +287,7 @@ public final class EquipmentBehaviors {
         }
         var used=DynastySchoolCombat.firingWeapon(e.getSource(),p.getMainHandItem());
         if(e.getSource().getDirectEntity() instanceof net.minecraft.world.entity.projectile.AbstractArrow && Set.of("zhuxing_bow","fengling_bow").contains(id(used)) && DynastySchoolProgression.equippedSynergy(p,"archer")){bonus+=.08F;CombatFeedback.send(e.getEntity(),CombatFeedback.STAR);}
-        e.setAmount(e.getAmount()*(1+bonus+seriesBonus(p,e.getEntity(),used))+twinBonus(p,used));
+        e.setAmount(e.getAmount()*(1+bonus+seriesBonus(p,e.getEntity(),used))+twinBonus(p,used)+thunderDamage);
     }
     private static float seriesBonus(Player p,LivingEntity target,ItemStack used) {
         String main=id(used),off=id(p.getOffhandItem());

@@ -63,8 +63,19 @@ public final class SmallInteractions {
             root.putBoolean(key+"_done",true);
             switch(id) {
                 case "wayside_shrine","nameless_tomb"->p.addEffect(new MobEffectInstance(MobEffects.LUCK,2400));
-                case "old_weapon_rack","abandoned_armory"->give(p,new ItemStack(ExpansionContent.MATERIALS.get("qimen_gear").get()));
-                case "herb_spot"->give(p,new ItemStack(ExpansionContent.SUPPLIES.get("regen_pill").get()));
+                case "old_weapon_rack"->{
+                    ItemStack weapon=new ItemStack(ExpansionContent.item("tie_jian"));
+                    if(weapon.isDamageableItem())weapon.setDamageValue(weapon.getMaxDamage()*3/4);
+                    give(p,weapon);
+                    level.playSound(null,pos,net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_IRON,net.minecraft.sounds.SoundSource.BLOCKS,.6F,.75F);
+                }
+                case "abandoned_armory"->give(p,new ItemStack(ExpansionContent.MATERIALS.get("qimen_gear").get()));
+                case "herb_spot"->{
+                    give(p,new ItemStack(com.dynasty.DynastyItems.TEA.get(),2));
+                    p.displayClientMessage(Component.translatable("message.dynasty.cod4.herbs"),true);
+                    ((net.minecraft.server.level.ServerLevel)level).sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK,Blocks.FERN.defaultBlockState()),pos.getX()+.5,pos.getY()+.3,pos.getZ()+.5,12,.25,.15,.25,.02);
+                    level.playSound(null,pos,net.minecraft.sounds.SoundEvents.CROP_BREAK,net.minecraft.sounds.SoundSource.BLOCKS,.7F,1F);
+                }
                 case "ancient_well","mortuary_room"->{p.removeEffect(ExpansionEffects.YIN.get());p.removeEffect(ExpansionEffects.SOUL.get());}
                 case "wayside_tea_stall"->p.removeEffect(MobEffects.POISON);
                 case "old_bellows"->give(p,new ItemStack(Items.IRON_NUGGET,3));

@@ -24,7 +24,11 @@ public final class ExpansionSupplies extends Item {
         if(!level.isClientSide && user instanceof ServerPlayer p) {
             switch(kind) {
                 case "regen_pill" -> { p.heal(p.getMaxHealth()*.12F);p.addEffect(new MobEffectInstance(MobEffects.REGENERATION,100,1)); }
-                case "qi_pill" -> ExpansionEffects.apply(p,ExpansionEffects.YANG,100);
+                case "qi_pill" -> {
+                    p.getPersistentData().putLong("cod4QiUntil",level.getGameTime()+200);
+                    p.getPersistentData().putInt("cod4Rage",Math.min(5,p.getPersistentData().getInt("cod4Rage")+2));
+                    ExpansionEffects.apply(p,ExpansionEffects.YANG,100);
+                }
                 case "antidote_pill" -> { p.removeEffect(MobEffects.POISON);p.getPersistentData().putLong("cod4Antidote",level.getGameTime()+600); }
                 case "zhuangyuan_wine" -> p.getPersistentData().putLong("cod4ExamWine",level.getGameTime()+1200);
                 case "marching_wine" -> { ExpansionEffects.apply(p,ExpansionEffects.YANG,100);p.addEffect(new MobEffectInstance(MobEffects.CONFUSION,80,0)); }
