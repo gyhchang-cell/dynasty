@@ -108,6 +108,8 @@ public final class DynastyBossCombat {
 
     @SubscribeEvent
     public static void onDeath(LivingDeathEvent event) {
+        if(com.dynasty.cod3.BossDeathState.managed(event.getEntity())
+                && !event.getEntity().getPersistentData().getBoolean("dynasty_reward_granted"))return;
         if (event.getEntity().level().isClientSide()) {
             return;
         }
@@ -115,18 +117,24 @@ public final class DynastyBossCombat {
         if (id == null || !id.getNamespace().equals(Dynasty.MODID)) {
             return;
         }
-        FirstKill reward = FIRST_KILL.get(id.getPath());
-        if (reward == null) {
-            return;
-        }
+        if(event.getEntity().getPersistentData().hasUUID("ArmyEncounter"))return;
         LivingEntity credit = event.getEntity().getKillCredit();
-        if (!(credit instanceof ServerPlayer player)) {
-            return;
-        }
-        String flag = "dynasty_firstkill_" + id.getPath();
-        if (player.getPersistentData().getBoolean(flag)) {
+        if (credit instanceof ServerPlayer player) grantFirstKill(player, id.getPath());
+    }
+
+    public static void awardFirstKill(ServerPlayer player, String bossId) { grantFirstKill(player, bossId); }
+
+    public static void grantFirstKill(ServerPlayer player, String bossId) {
+        FirstKill reward = FIRST_KILL.get(bossId);
+        if (reward == null) return;
+        String flag = "dynasty_firstkill_" + bossId;
+        var persisted=player.getPersistentData().getCompound(net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG);
+        player.getPersistentData().put(net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG,persisted);
+        if (player.getPersistentData().getBoolean(flag)||persisted.getBoolean(flag)) {
+            persisted.putBoolean(flag,true); // Migrate legacy receipts on their next check.
             return;                                        // 一种只给一次 / once per player
         }
+        persisted.putBoolean(flag,true);
         player.getPersistentData().putBoolean(flag, true);
 
         DynastyStats.addMerit(player, reward.merit());

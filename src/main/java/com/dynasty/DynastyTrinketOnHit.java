@@ -121,6 +121,7 @@ public final class DynastyTrinketOnHit {
                 case CRIT -> {
                     if (roll(attacker, proc.chance())) {
                         bonusRatio += proc.value();
+                        com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,proc.code());
                     }
                 }
                 case AMBUSH -> {
@@ -128,11 +129,13 @@ public final class DynastyTrinketOnHit {
                     if (target.getHealth() >= target.getMaxHealth() - 0.01F
                             && roll(attacker, proc.chance())) {
                         bonusRatio += proc.value();
+                        com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,proc.code());
                     }
                 }
                 case COMBO -> {
                     if (roll(attacker, proc.chance())) {
                         bonusRatio += proc.value() * stacks(attacker, target, now);
+                        com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,proc.code());
                     }
                 }
                 default -> {
@@ -167,6 +170,7 @@ public final class DynastyTrinketOnHit {
                 case LIFESTEAL -> {
                     if (dealt > 0.0F && roll(attacker, proc.chance())) {
                         attacker.heal((float) (dealt * proc.value()));
+                        com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,proc.code());
                     }
                 }
                 case EXECUTE -> {
@@ -178,6 +182,7 @@ public final class DynastyTrinketOnHit {
                 case THUNDER -> {
                     if (target.isAlive() && roll(attacker, proc.chance())) {
                         supplementalDamage(attacker, target, (float) proc.value());
+                        com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,proc.code());
                     }
                 }
                 default -> {
@@ -193,6 +198,7 @@ public final class DynastyTrinketOnHit {
     private static void execute(Player attacker, LivingEntity target, double threshold) {
         supplementalDamage(attacker, target, (float) (target.getMaxHealth() * 4.0D + 100.0D));
         if (!target.isAlive() && attacker instanceof ServerPlayer server) {
+            com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,EXECUTE);
             server.displayClientMessage(Component.literal(
                     "§4[斩杀] §r" + target.getName().getString() + " 在 "
                             + Math.round(threshold * 100) + "% 血线之下被一击了结。"), false);
