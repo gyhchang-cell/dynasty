@@ -19,13 +19,15 @@ import net.minecraftforge.registries.ForgeRegistries;
 public final class InfusionGameTests {
     private static Item item(String id){return ForgeRegistries.ITEMS.getValue(new ResourceLocation("dynasty",id));}
     private static FakePlayer player(GameTestHelper h){var p=new FakePlayer(h.getLevel(),new GameProfile(UUID.randomUUID(),"infusion-qa"));p.setPos(net.minecraft.world.phys.Vec3.atCenterOf(h.absolutePos(new BlockPos(2,2,2))));return p;}
-    private static InfusionMenu menu(GameTestHelper h,net.minecraft.world.entity.player.Player p){var pos=p.blockPosition();h.getLevel().setBlockAndUpdate(pos,InfusionContent.TABLE.get().defaultBlockState());return new InfusionMenu(3,p.getInventory(),pos);}
+    private static InfusionMenu menu(GameTestHelper h,net.minecraft.world.entity.player.Player p){var pos=p.blockPosition();h.getLevel().setBlockAndUpdate(pos,InfusionContent.TABLE.get().defaultBlockState());var menu=new InfusionMenu(3,p.getInventory(),pos);p.containerMenu=menu;return menu;}
+    private static boolean apply(InfusionMenu m,net.minecraft.world.entity.player.Player p){m.broadcastChanges();return m.request(p,0,-1,m.revision());}
+    private static boolean remove(InfusionMenu m,net.minecraft.world.entity.player.Player p){m.broadcastChanges();return m.request(p,1,0,m.revision());}
     private static ItemStack gear(String id,Item type){return InfusionTraits.preview(new ItemStack(type),InfusionTraits.get(id),0,false);}
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="infusion")
-    public static void all24ExistingMaterialsRoundTripWithoutTouchingForeignNbt(GameTestHelper h){
-        h.assertTrue(InfusionTraits.ALL.size()==24,"24 profiles");
+    public static void all95ExistingMaterialsRoundTripWithoutTouchingForeignNbt(GameTestHelper h){
+        h.assertTrue(InfusionTraits.ALL.size()==95,"95 materials");
         for(var t:InfusionTraits.ALL){h.assertTrue(item(t.material())!=null&&item(t.material())!=Items.AIR,"Registered original material: "+t.material());
-            var base=new ItemStack(t.kind()==InfusionTraits.Kind.ARMOR?Items.IRON_CHESTPLATE:Items.IRON_SWORD);base.setDamageValue(11);base.getOrCreateTag().putString("ForeignData","preserve");
+            var base=new ItemStack(t.effect().equals("hunter_mark")?Items.BOW:t.kind()==InfusionTraits.Kind.ARMOR?Items.IRON_CHESTPLATE:Items.IRON_SWORD);base.setDamageValue(11);base.getOrCreateTag().putString("ForeignData","preserve");
             var out=InfusionTraits.preview(base,t,0,false);h.assertTrue(!out.isEmpty()&&InfusionTraits.active(out).contains(t.material()),"Active correct trait: "+t.material());
             var restored=ItemStack.of(out.save(new net.minecraft.nbt.CompoundTag()));
             h.assertTrue(restored.getDamageValue()==11&&restored.getTag().getString("ForeignData").equals("preserve")&&InfusionTraits.active(restored).contains(t.material()),"NBT survives serialization");
@@ -36,8 +38,8 @@ public final class InfusionGameTests {
     public static void conflictCapacityAndIncompatibleEquipmentAreRejected(GameTestHelper h){
         var sword=gear("dragon_crystal",Items.IRON_SWORD);
         h.assertTrue(InfusionTraits.preview(sword,InfusionTraits.get("cinnabar"),1,false).isEmpty(),"Same spell family conflicts");
-        sword=InfusionTraits.preview(sword,InfusionTraits.get("baihu_fang"),1,false);
-        h.assertTrue(!sword.isEmpty()&&InfusionTraits.preview(sword,InfusionTraits.get("jade"),2,false).isEmpty(),"4 capacity cap");
+        sword=InfusionTraits.preview(sword,InfusionTraits.get("shanxiao_claw"),1,false);
+        h.assertTrue(!sword.isEmpty()&&InfusionTraits.preview(sword,InfusionTraits.get("jade"),2,false).isEmpty(),"Native iron capacity is 3");
         h.assertTrue(gear("ghost_face_fur",Items.IRON_SWORD).isEmpty(),"Armor effect cannot enter sword");
         h.assertTrue(gear("shanxiao_claw",Items.BOW).isEmpty()&&gear("baihu_fang",Items.CROSSBOW).isEmpty(),"Melee-only traits cannot waste bow capacity");
         h.assertTrue(gear("jade",Items.APPLE).isEmpty(),"Food cannot become equipment");h.succeed();
@@ -50,25 +52,31 @@ public final class InfusionGameTests {
         p.setPos(net.minecraft.world.phys.Vec3.atCenterOf(h.absolutePos(new BlockPos(2,2,2))));
         var adv=h.getLevel().getServer().getAdvancements().getAdvancement(new ResourceLocation("dynasty","get_jade"));p.getAdvancements().award(adv,"has_item");p.experienceLevel=9;
         var m=menu(h,p);m.getSlot(0).set(new ItemStack(Items.IRON_SWORD));m.getSlot(1).set(new ItemStack(item("cinnabar"),4));
-        h.assertTrue(m.clickMenuButton(p,3),"Apply succeeds, status="+m.check(false));
+        h.assertTrue(apply(m,p),"Apply succeeds, status="+m.check(false));
         h.assertTrue(p.getAdvancements().getOrStartProgress(h.getLevel().getServer().getAdvancements().getAdvancement(new ResourceLocation("dynasty","first_infusion"))).isDone(),"First use advances existing task bridge");h.assertTrue(p.experienceLevel==6&&m.material().getCount()==2,"Exactly 2 materials, 3 XP levels");
-        h.assertTrue(!m.clickMenuButton(p,3)&&p.experienceLevel==6&&m.material().getCount()==2,"Duplicate click is a no-op");
-        h.assertTrue(m.clickMenuButton(p,4)&&p.experienceLevel==5&&InfusionTraits.active(m.gear()).isEmpty(),"Remove consumes only 1 level, no refund");h.succeed();
+        h.assertTrue(!apply(m,p)&&p.experienceLevel==6&&m.material().getCount()==2,"Duplicate click is a no-op");
+        h.assertTrue(remove(m,p)&&p.experienceLevel==5&&InfusionTraits.active(m.gear()).isEmpty(),"Remove consumes only 1 level, no refund");h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="infusion")
     public static void progressionOutOfRangeAndForeignPlayerCannotMutateInputs(GameTestHelper h){
         var p=player(h);var m=menu(h,p);m.getSlot(0).set(new ItemStack(Items.IRON_SWORD));m.getSlot(1).set(new ItemStack(item("cinnabar"),2));p.experienceLevel=9;
-        h.assertTrue(!m.clickMenuButton(p,3)&&m.material().getCount()==2,"Base progression gates transaction");
-        p.getAbilities().instabuild=true;var stranger=player(h);h.assertTrue(!m.clickMenuButton(stranger,3),"Menu belongs to owner");
-        p.setPos(p.getX()+30,p.getY(),p.getZ());h.assertTrue(!m.clickMenuButton(p,3)&&m.material().getCount()==2,"Out of reach fails");h.succeed();
+        h.assertTrue(!apply(m,p)&&m.material().getCount()==2,"Base progression gates transaction");
+        p.getAbilities().instabuild=true;var stranger=player(h);h.assertTrue(!apply(m,stranger),"Menu belongs to owner");
+        p.setPos(p.getX()+30,p.getY(),p.getZ());h.assertTrue(!apply(m,p)&&m.material().getCount()==2,"Out of reach fails");h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="infusion")
-    public static void closingMenusReturnsEachPlayersInputsWithoutSharedStorage(GameTestHelper h){
-        var a=player(h);var b=player(h);var one=menu(h,a);var two=menu(h,b);
-        one.getSlot(0).set(new ItemStack(Items.IRON_SWORD));two.getSlot(0).set(new ItemStack(Items.IRON_CHESTPLATE));
+    public static void sharedInventoryPersistsAndRejectsStalePlayerTransactions(GameTestHelper h){
+        var a=player(h);var b=player(h);a.getAbilities().instabuild=true;b.getAbilities().instabuild=true;
+        var one=menu(h,a);var two=new InfusionMenu(4,b.getInventory(),a.blockPosition());b.containerMenu=two;
+        one.getSlot(0).set(new ItemStack(Items.IRON_SWORD));one.getSlot(1).set(new ItemStack(item("cinnabar"),4));
+        one.broadcastChanges();two.broadcastChanges();int stale=two.revision();
+        h.assertTrue(one.request(a,0,-1,one.revision()),"First viewer applies");
+        h.assertTrue(!two.request(b,1,0,stale)&&InfusionTraits.active(two.gear()).size()==1,"Second viewer stale removal cannot mutate shared gear");
         one.removed(a);two.removed(b);
-        h.assertTrue(a.getInventory().countItem(Items.IRON_SWORD)==1&&a.getInventory().countItem(Items.IRON_CHESTPLATE)==0,"A gets only A gear");
-        h.assertTrue(b.getInventory().countItem(Items.IRON_CHESTPLATE)==1,"B gets own gear");h.succeed();
+        var be=(InfusionBlockEntity)h.getLevel().getBlockEntity(a.blockPosition());var saved=be.saveWithoutMetadata();
+        var restored=new InfusionBlockEntity(a.blockPosition(),InfusionContent.TABLE.get().defaultBlockState());restored.load(saved);
+        h.assertTrue(InfusionTraits.active(restored.getItem(0)).contains("cinnabar")&&restored.getItem(1).getCount()==4,"Closing and serialization retain shared inventory");
+        h.assertTrue(a.getInventory().countItem(Items.IRON_SWORD)==0&&b.getInventory().countItem(Items.IRON_SWORD)==0,"Closing does not duplicate stored gear");h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="infusion")
     public static void defenseRequiresEquippedGearAndHasPlayerScopedCooldown(GameTestHelper h){
@@ -81,10 +89,10 @@ public final class InfusionGameTests {
         h.assertTrue(!p.hasEffect(MobEffects.MOVEMENT_SPEED),"Swapping copies cannot reset cooldown");h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="infusion")
-    public static void originalMaterialRepairStillWorks(GameTestHelper h){
+    public static void specialMaterialRepairIsRemovedButVanillaRepairWorks(GameTestHelper h){
         var p=player(h);var anvil=new net.minecraft.world.inventory.AnvilMenu(0,p.getInventory());
         var axe=new ItemStack(Items.IRON_AXE);axe.setDamageValue(100);anvil.getSlot(0).set(axe);anvil.getSlot(1).set(new ItemStack(item("shanxiao_claw")));anvil.createResult();
-        h.assertTrue(!anvil.getSlot(2).getItem().isEmpty()&&anvil.getSlot(2).getItem().getDamageValue()<100,"Existing anvil repair untouched");h.succeed();
+        h.assertTrue(anvil.getSlot(2).getItem().isEmpty(),"Special material repair removed");anvil.getSlot(1).set(new ItemStack(Items.IRON_INGOT));anvil.createResult();h.assertTrue(!anvil.getSlot(2).getItem().isEmpty()&&anvil.getSlot(2).getItem().getDamageValue()<100,"Vanilla repair still works");h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="infusion")
     public static void everyOffensiveProfileExecutesItsDistinctCondition(GameTestHelper h){
@@ -164,6 +172,58 @@ public final class InfusionGameTests {
         h.assertTrue(fall.getDamageMultiplier()==.5f,"Wind halves fall damage");
         var again=new net.minecraftforge.event.entity.living.LivingFallEvent(p,10,1);InfusionCombat.fall(again);
         h.assertTrue(again.getDamageMultiplier()==1,"Wind cooldown cannot be bypassed");h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",timeoutTicks=30,batch="infusion")
+    public static void newOffensiveBehaviorsExecuteConditionsAndCooldowns(GameTestHelper h){
+        var level=h.getLevel();long time=level.getDayTime();boolean rain=level.isRaining(),thunder=level.isThundering();
+        try {
+            for(String behavior:List.of("heavy_stagger","venom","backstrike","night_soul","storm_call","sunpurge","hunter_mark","air_step","soul_siphon")){
+                var p=new FakePlayer(level,new GameProfile(UUID.randomUUID(),"infusion-new")){@Override public float getAttackStrengthScale(float partial){return 1;}};
+                p.setPos(net.minecraft.world.phys.Vec3.atCenterOf(h.absolutePos(new BlockPos(2,3,2))));
+                LivingEntity target=behavior.equals("venom")?new net.minecraft.world.entity.monster.Creeper(EntityType.CREEPER,level):new Zombie(EntityType.ZOMBIE,level);
+                target.setPos(p.getX(),p.getY(),p.getZ()+10);target.setYRot(0);p.setOnGround(false);
+                level.setDayTime(behavior.equals("night_soul")||behavior.equals("soul_siphon")?18000:6000);level.setWeatherParameters(0,100,true,behavior.equals("storm_call"));
+                var trait=InfusionTraits.ALL.stream().filter(t->t.effect().equals(behavior)).findFirst().orElseThrow();
+                p.setItemSlot(EquipmentSlot.MAINHAND,gear(trait.material(),behavior.equals("hunter_mark")?Items.BOW:Items.IRON_SWORD));
+                int times=behavior.equals("heavy_stagger")?3:behavior.equals("venom")?2:1;
+                for(int i=0;i<times;i++){
+                    if(behavior.equals("hunter_mark")){
+                        var arrow=new net.minecraft.world.entity.projectile.Arrow(level,p);arrow.setCritArrow(true);
+                        InfusionCombat.arrow(new net.minecraftforge.event.entity.EntityJoinLevelEvent(arrow,level));
+                        InfusionCombat.hurt(new LivingHurtEvent(target,p.damageSources().arrow(arrow,p),10));
+                    }else{InfusionCombat.attack(new net.minecraftforge.event.entity.player.AttackEntityEvent(p,target));InfusionCombat.hurt(new LivingHurtEvent(target,p.damageSources().playerAttack(p),10));}
+                }
+                boolean ok=switch(behavior){
+                    case "heavy_stagger","backstrike","storm_call"->target.hasEffect(MobEffects.MOVEMENT_SLOWDOWN);
+                    case "venom"->target.hasEffect(MobEffects.POISON);
+                    case "night_soul","hunter_mark"->target.hasEffect(MobEffects.GLOWING);
+                    case "sunpurge"->target.isOnFire();case "air_step"->p.hasEffect(MobEffects.SLOW_FALLING);case "soul_siphon"->target.hasEffect(MobEffects.WITHER);default->false;};
+                h.assertTrue(ok,"Real new offensive trigger: "+behavior);
+            }
+        }finally{level.setDayTime(time);level.setWeatherParameters(0,0,rain,thunder);}
+        h.succeed();
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=30,batch="infusion")
+    public static void newDefenseBehaviorsExecuteAndDoNotGrantInventoryBonuses(GameTestHelper h){
+        for(String behavior:List.of("water_ward","last_stand","retaliation","poison_ward","lifebloom","wither_ward","parry_cleanse")){
+            var p=new FakePlayer(h.getLevel(),new GameProfile(UUID.randomUUID(),"infusion-ward")){@Override public boolean isInWater(){return true;}};
+            var trait=InfusionTraits.ALL.stream().filter(t->t.effect().equals(behavior)).findFirst().orElseThrow();
+            p.setItemSlot(EquipmentSlot.CHEST,gear(trait.material(),Items.IRON_CHESTPLATE));p.setHealth(5);
+            p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.POISON,100));p.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.WITHER,100));
+            var z=new Zombie(EntityType.ZOMBIE,h.getLevel());var hit=new LivingHurtEvent(p,p.damageSources().mobAttack(z),4);
+            if(behavior.equals("parry_cleanse")){p.setItemSlot(EquipmentSlot.OFFHAND,new ItemStack(Items.SHIELD));p.startUsingItem(net.minecraft.world.InteractionHand.OFF_HAND);InfusionCombat.shield(new net.minecraftforge.event.entity.living.ShieldBlockEvent(p,p.damageSources().mobAttack(z),4));}
+            else InfusionCombat.hurt(hit);
+            boolean ok=switch(behavior){case "water_ward"->p.hasEffect(MobEffects.WATER_BREATHING);case "last_stand"->hit.getAmount()==3&&p.hasEffect(MobEffects.ABSORPTION);case "retaliation"->z.hasEffect(MobEffects.WEAKNESS);case "poison_ward","parry_cleanse"->!p.hasEffect(MobEffects.POISON);case "lifebloom"->p.hasEffect(MobEffects.REGENERATION);case "wither_ward"->!p.hasEffect(MobEffects.WITHER);default->false;};
+            h.assertTrue(ok,"Real new defense trigger: "+behavior);
+        }h.succeed();
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="infusion")
+    public static void legacyCapacityAndSharedEffectsRemainSafe(GameTestHelper h){
+        var s=new ItemStack(Items.IRON_SWORD);var tag=new net.minecraft.nbt.CompoundTag();tag.putInt("version",1);tag.putString("slot0","dragon_crystal");tag.putString("slot1","baihu_fang");s.getOrCreateTag().put(InfusionTraits.KEY,tag);
+        h.assertTrue(InfusionTraits.active(s).size()==2&&InfusionTraits.maxCapacity(s)==3,"Existing four-capacity save remains effective");
+        h.assertTrue(InfusionTraits.preview(s,InfusionTraits.get("jade"),2,false).isEmpty(),"New writes respect native capacity");
+        var claw=gear("shanxiao_claw",Items.IRON_SWORD);h.assertTrue(InfusionTraits.problem(claw,InfusionTraits.get("iron_grappling_claw"),1,false)==9,"Different materials sharing a behavior cannot stack");h.succeed();
     }
 
 }

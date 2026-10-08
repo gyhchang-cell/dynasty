@@ -77,11 +77,10 @@ groups={
 'storm_call':'sky_token thunder_token thunder_talisman',
 'nether_tatter':'brocade',
 'ink_stick':'bamboo_slip',
-'dragon_scale':'dragon_emperoror_seal',
+'dragon_scale':'dragon_emperor_seal',
 'xuanwu_shell':'xuantian_jade vajra_talisman',
 'jade':'hunyuan_pearl tianming_jade',
 'ghost_face_fur':'stealth_talisman'}
-groups['dragon_scale']='dragon_emperor_seal'
 materials={id:id for id in profiles if id in re.findall(r't\("([a-z_]+)"',old)}
 for effect,ids in groups.items():
  for id in ids.split():assert id not in materials,id;materials[id]=effect
@@ -104,7 +103,9 @@ for id,effect in materials.items():
  zn,zd,kind,family,cost,gate=profiles[effect];key='infusion.dynasty.effect.'+effect
  zh[key]=zn+' I';zh[key+'.description']=zd;en[key]=english[effect][0]+' I';en[key+'.description']=english[effect][1]
  refs=[p for p,text in references.items() if '"dynasty:'+id+'"' in text]
- if not refs:refs=['java:registry-and-codex/'+id]
+ if not refs:
+  refs=[str(p.relative_to(ROOT)) for p in (ROOT/'src/main/java').rglob('*.java') if ('\"'+id+'\"') in p.read_text() and '/infusion/' not in str(p)]
+ assert refs,'Missing original source: '+id
  rows.append(dict(itemId='dynasty:'+id,chineseName=zh['item.dynasty.'+id],materialCategory=categories.get(id,'ritual'),applicableTypes=[kind],enhancementId='dynasty:'+effect,tier=1,capacityCost=cost,requiredCount=2,conflictGroup=family,nameKey=key,descriptionKey=key+'.description',gate=gate,VFX='minecraft:electric_spark' if effect in ['dragon_crystal','storm_call'] else 'minecraft:enchant',SFX='minecraft:block.amethyst_block.chime',sourceReferences=refs))
 assert len(rows)==95,len(rows)
 p=RES/'data/dynasty/infusion/materials.json';p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n')

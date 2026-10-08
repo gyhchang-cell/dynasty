@@ -10,6 +10,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.entity.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.common.extensions.IForgeMenuType;
@@ -21,16 +22,25 @@ public final class InfusionContent {
     public static final DeferredRegister<Block> BLOCKS=DeferredRegister.create(ForgeRegistries.BLOCKS,Dynasty.MODID);
     public static final DeferredRegister<Item> ITEMS=DeferredRegister.create(ForgeRegistries.ITEMS,Dynasty.MODID);
     public static final DeferredRegister<MenuType<?>> MENUS=DeferredRegister.create(ForgeRegistries.MENU_TYPES,Dynasty.MODID);
+    public static final DeferredRegister<BlockEntityType<?>> ENTITIES=DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES,Dynasty.MODID);
     public static final RegistryObject<Block> TABLE=BLOCKS.register("infusion_table",Table::new);
     public static final RegistryObject<Item> TABLE_ITEM=ITEMS.register("infusion_table",()->new BlockItem(TABLE.get(),new Item.Properties()));
+    public static final RegistryObject<BlockEntityType<InfusionBlockEntity>> ENTITY=ENTITIES.register("infusion_table",()->BlockEntityType.Builder.of(InfusionBlockEntity::new,TABLE.get()).build(null));
     public static final RegistryObject<MenuType<InfusionMenu>> MENU=MENUS.register("infusion",()->IForgeMenuType.create((id,inv,buf)->new InfusionMenu(id,inv,buf.readBlockPos())));
-    public static void register(IEventBus bus){BLOCKS.register(bus);ITEMS.register(bus);MENUS.register(bus);}
-    private static final class Table extends Block {
+    public static void register(IEventBus bus){BLOCKS.register(bus);ITEMS.register(bus);MENUS.register(bus);ENTITIES.register(bus);}
+    private static final class Table extends BaseEntityBlock {
         Table(){super(Properties.copy(Blocks.SMITHING_TABLE).noOcclusion());}
+        @Override public RenderShape getRenderShape(BlockState s){return RenderShape.MODEL;}
+        @Override public BlockEntity newBlockEntity(BlockPos p,BlockState s){return new InfusionBlockEntity(p,s);}
         @Override public InteractionResult use(BlockState state,Level level,BlockPos pos,Player p,InteractionHand hand,BlockHitResult hit){
             if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;
-            if(p instanceof ServerPlayer sp)NetworkHooks.openScreen(sp,new SimpleMenuProvider((id,inv,who)->new InfusionMenu(id,inv,pos),Component.translatable("block.dynasty.infusion_table")),pos);
+            if(!level.isClientSide&&level.getBlockEntity(pos)==null)level.setBlockEntity(new InfusionBlockEntity(pos,state));
+            if(p instanceof ServerPlayer sp&&level.getBlockEntity(pos) instanceof InfusionBlockEntity be)NetworkHooks.openScreen(sp,be,pos);
             return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+        @Override public void onRemove(BlockState old,Level level,BlockPos pos,BlockState next,boolean moving){
+            if(!old.is(next.getBlock())&&level.getBlockEntity(pos) instanceof InfusionBlockEntity be){Containers.dropContents(level,pos,be);level.updateNeighbourForOutputSignal(pos,this);}
+            super.onRemove(old,level,pos,next,moving);
         }
     }
     private InfusionContent(){}
