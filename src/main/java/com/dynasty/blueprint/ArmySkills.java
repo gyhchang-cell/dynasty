@@ -16,7 +16,39 @@ public final class ArmySkills {
     public static final int TREE_WAKE=34,TREE_SWEEP=35,TREE_ROOTS=36;
     public static final int SCORPION_EMERGE=37,SCORPION_CLAW=38,SCORPION_SONG=39;
     public static final int SERPENT_BITE=40,SERPENT_COIL=41,STONE_UPPERCUT=42,STONE_SLAM=43;
+    public static final int DOG_BITE=44,DOG_ALARM=45;
+    public static final int BRONZE_FRONT_STAB=46,BRONZE_REAR_STAB=47,BRONZE_FIRE=48,BRONZE_POISON=49;
+    public static final int SPIDER_DRILL=50,SPIDER_DROP=51;
+    public static final int PALANQUIN_BUMP=64,PALANQUIN_HOLD=65;
+    public static final int YECHA_SWIPE=62,YECHA_GRAB=63;
+    public static final int CENTIPEDE_BITE=60,CENTIPEDE_GAZE=61;
+    public static final int BIXI_BITE=58,BIXI_STOMP=59;
+    public static final int DROWNER_WHIP=56,DROWNER_POOL=57;
+    public static final int FISH_TAIL=54,FISH_RESONANCE=55;
+    public static final int BAT_DIVE=52,BAT_GLARE=53;
     public static final List<SkillDefinition> ALL=List.of(
+        skill(PALANQUIN_BUMP,"palanquin_bump",16,1,27,50,0,3,80,1,.5,true,16),
+        skill(PALANQUIN_HOLD,"palanquin_hold",24,40,20,240,0,3,80,1,0,true,24),
+        skill(YECHA_SWIPE,"yecha_swipe",16,1,23,48,0,3.2,105,1,.4,true,16),
+        skill(YECHA_GRAB,"yecha_grab",20,60,24,240,0,12,60,1,0,true,20),
+        skill(CENTIPEDE_BITE,"centipede_bite",12,1,19,34,0,2.8,70,1,0,true,12),
+        skill(CENTIPEDE_GAZE,"centipede_gaze",26,1,25,220,0,8,360,0,0,true,26),
+        skill(BIXI_BITE,"bixi_bite",18,1,27,50,0,3.6,65,1,.2,true,18),
+        skill(BIXI_STOMP,"bixi_stomp",32,1,35,160,0,5,360,1.5F,.3,true,32),
+        skill(DROWNER_WHIP,"drowner_whip",14,1,21,40,0,3.5,65,1,.1,true,14),
+        skill(DROWNER_POOL,"drowner_pool",24,60,20,220,0,5,360,0,0,true,24),
+        skill(FISH_TAIL,"fish_tail",16,1,23,45,0,3.5,150,1,.4,true,16),
+        skill(FISH_RESONANCE,"fish_resonance",30,1,29,220,0,10,360,0,0,true,30),
+        skill(BAT_DIVE,"bat_dive",18,22,20,90,0,14,45,1,0,true,18),
+        skill(BAT_GLARE,"bat_glare",24,1,25,240,0,10,360,0,0,true,24),
+        skill(SPIDER_DRILL,"spider_drill",12,1,23,42,0,2.8,100,1,.3,true,12),
+        skill(SPIDER_DROP,"spider_drop",20,60,20,160,0,8,360,1.4F,.6,true,20),
+        skill(BRONZE_FRONT_STAB,"bronze_front_stab",10,1,15,32,0,2.6,50,1,.2,true,10),
+        skill(BRONZE_REAR_STAB,"bronze_rear_stab",10,1,15,32,0,2.6,50,1,.2,true,10),
+        skill(BRONZE_FIRE,"bronze_fire",18,60,24,180,0,5,50,.4F,0,true,18,28,38,48,58,68),
+        skill(BRONZE_POISON,"bronze_poison",18,60,24,180,0,5,50,.4F,0,true,18,28,38,48,58,68),
+        skill(DOG_BITE,"dog_bite",8,1,13,30,0,2.3,80,1,.1,true,8),
+        skill(DOG_ALARM,"dog_alarm",20,1,19,200,0,20,360,0,0,true,20),
         skill(STONE_UPPERCUT,"stone_uppercut",16,1,23,50,0,2.8,120,1,.45,true,16),
         skill(STONE_SLAM,"stone_slam",30,1,29,110,0,3,0,1.6F,.65,true,30),
         skill(SERPENT_BITE,"serpent_bite",12,1,17,38,0,2.8,65,1,0,true,12),

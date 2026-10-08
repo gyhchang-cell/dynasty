@@ -4,7 +4,8 @@ import static com.dynasty.structure.megabuild.Blueprint.Kind.*;
 public final class LegacyMiningEstate {
     public static final int SIZE=96,HEIGHT=36;
     private final Blueprint bp=new Blueprint(SIZE,HEIGHT,SIZE);
-    public LegacyMiningEstate(long seed){
+    public LegacyMiningEstate(long seed){ this(seed, false); }
+    public LegacyMiningEstate(long seed, boolean openQuarry){
         bp.box(4,0,4,91,0,91,PLATFORM);
         bp.hollowBox(4,1,4,91,7,91,WALL);
         bp.doorway(43,1,4,51,4,4);
@@ -24,6 +25,8 @@ public final class LegacyMiningEstate {
             for(int x=12;x<=36;x+=4)for(int zz=z+3;zz<=z+8;zz+=4)
                 bp.set(x,y+1,zz,tier==0?ORE_COPPER:tier==1?ORE_IRON:ORE_COAL);
         }
+        // Layout 4 in main opened this route; older saves keep their original wall.
+        if(openQuarry)bp.doorway(38,1,43,38,3,46);
         bp.set(12,1,65,CHEST);
         bp.set(36,1,65,RICH_CHEST);
         for(int x:new int[]{11,37})for(int z:new int[]{58,80}){

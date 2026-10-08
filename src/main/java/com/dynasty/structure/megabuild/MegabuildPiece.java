@@ -34,7 +34,7 @@ class MegabuildPiece extends DynastyStructurePiece {
     private long seed;
     private int rot;
     private Blueprint cached;
-    private int layoutVersion=5;
+    private int layoutVersion=6;
 
     MegabuildPiece(StructurePieceType type, int depth, BlockPos corner,
                    Function<Long, Blueprint> factory, long seed, int rot, int size, int height) {
@@ -53,7 +53,8 @@ class MegabuildPiece extends DynastyStructurePiece {
         super(type, tag);
         this.layoutVersion = tag.contains("MegabuildLayout") ? tag.getInt("MegabuildLayout") : 2;
         this.factory = size==176 && layoutVersion<=3 ?
-            (layoutVersion<=2 ? seed -> new LegacyCitadelV2(seed).blueprint() : seed -> new LegacyCitadelV3(seed).blueprint()) : size==MiningEstate.SIZE && layoutVersion<=4 ? seed -> new LegacyMiningEstate(seed).blueprint() : factory;
+            (layoutVersion<=2 ? seed -> new LegacyCitadelV2(seed).blueprint() : seed -> new LegacyCitadelV3(seed).blueprint()) : size==MiningEstate.SIZE && layoutVersion<=4 ? seed -> new LegacyMiningEstate(seed, layoutVersion==4).blueprint()
+            : size==MiningEstate.SIZE && layoutVersion==5 ? seed -> new LegacyMiningEstateV5(seed).blueprint() : factory;
         this.size = size;
         this.height = height;
         this.seed = tag.getLong("MegabuildSeed");
@@ -114,6 +115,23 @@ class MegabuildPiece extends DynastyStructurePiece {
         }
     }
 
+    java.util.List<BlockPos> miningSpiderPositions(){
+        return size==MiningEstate.SIZE && layoutVersion!=5?rotateMechanical(layoutVersion>=6
+            ?new int[][]{{17,4,66},{31,4,66}}:new int[][]{{17,4,44},{31,4,45}}):java.util.List.of();
+    }
+    java.util.List<BlockPos> bronzeSnakePositions(){return mechanicalPositions(new int[][]{{35,1,52},{66,1,36}});}
+    java.util.List<BlockPos> clockworkPatrols(){return mechanicalPositions(new int[][]{{84,1,20},{91,1,28}});}
+    private java.util.List<BlockPos> mechanicalPositions(int[][] authored){
+        if(size!=TiangongCitadel.SIZE||layoutVersion<4)return java.util.List.of();
+        return rotateMechanical(authored);
+    }
+    private java.util.List<BlockPos> rotateMechanical(int[][] authored){
+        var points=new java.util.ArrayList<BlockPos>();
+        for(int[] p:authored){
+            int x=p[0],z=p[2];for(int i=0;i<Math.floorMod(rot,4);i++){int old=x;x=size-1-z;z=old;}
+            points.add(world(x,p[1],z).immutable());
+        }return java.util.List.copyOf(points);
+    }
     private synchronized Blueprint blueprint() {
         if(cached==null) cached=factory.apply(seed).rotate(rot);
         return cached;

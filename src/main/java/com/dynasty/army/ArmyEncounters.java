@@ -110,7 +110,7 @@ public final class ArmyEncounters {
 
         if(victory) {
             String id=BOSSES[s.getInt("Stage")];
-            DynastyBossCombat.awardFirstKill(p,id);
+            DynastyBossCombat.grantFirstKill(p,id);
             DynastyWorldEvents.creditKill(p,net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",id)));
             for(var value:s.getList("Loot",10))deliver(p,net.minecraft.world.item.ItemStack.of((CompoundTag)value));
             s.remove("Loot");

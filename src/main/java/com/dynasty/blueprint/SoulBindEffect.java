@@ -18,7 +18,7 @@ public final class SoulBindEffect extends MobEffect {
     }
     @SubscribeEvent public static void jumped(LivingEvent.LivingJumpEvent event){
         var entity=event.getEntity();
-        if(!entity.level().isClientSide&&(entity.hasEffect(BlueprintEntities.SOUL_BIND.get())||entity.hasEffect(BlueprintEntities.ROOT_GRIP.get()))){
+        if(!entity.level().isClientSide&&(entity.hasEffect(BlueprintEntities.SOUL_BIND.get())||entity.hasEffect(BlueprintEntities.ROOT_GRIP.get())||entity.hasEffect(BlueprintEntities.HEAVY_STAGGER.get()))){
             var v=entity.getDeltaMovement();entity.setDeltaMovement(v.x,Math.min(0,v.y),v.z);entity.hurtMarked=true;
         }
     }

@@ -52,6 +52,15 @@ public final class Cod6QuarryGameTests {
         var tag=piece.createTag(null);tag.putInt("MegabuildLayout",4);
         var restored=new MegabuildPiece(MegabuildStructures.MINING_PIECE.get(),tag,MegabuildStructures::mining,96,36);
         h.assertTrue(restored.createTag(null).getInt("MegabuildLayout")==4,"Old layout silently upgraded");
+        tag.putInt("MegabuildLayout",5);
+        var previousCod6=new MegabuildPiece(MegabuildStructures.MINING_PIECE.get(),tag,MegabuildStructures::mining,96,36);
+        h.assertTrue(previousCod6.createTag(null).getInt("MegabuildLayout")==5,"Existing cod6 save was upgraded");
+        h.assertTrue(MechanicalPatrols.spiderPositions(previousCod6).isEmpty(),"Legacy solid benches must not spawn spiders inside ore");
+        var legacyCell=origin.offset(17,6,66);level.getChunkAt(legacyCell);
+        previousCod6.postProcess(level,level.structureManager(),level.getChunkSource().getGenerator(),level.random,
+            new net.minecraft.world.level.levelgen.structure.BoundingBox(legacyCell),new net.minecraft.world.level.ChunkPos(legacyCell),legacyCell);
+        h.assertTrue(level.getBlockState(legacyCell).isAir(),"Layout 5 unexpectedly gained a gallery roof on reload");
+        h.assertTrue(new MiningEstate(0).blueprint().at(17,6,66)==Blueprint.Kind.FLOOR,"Layout 6 gallery roof missing");
         try { MegabuildTemplateExport.write(new MiningEstate(0).blueprint(),java.nio.file.Path.of("../cod6-export/tiangong_mining_estate.nbt")); }
         catch(Exception ex){throw new RuntimeException(ex);}
         h.succeed();

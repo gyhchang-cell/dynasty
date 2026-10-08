@@ -11,14 +11,29 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public class DynastyNetwork {
 
-    private static final String PROTOCOL = "8";
+    // Base wire schema 9; extensions also advertise IDs, payload revision and direction.
+    // A cod3-only peer must never accept a cod6-only peer merely sharing a version.
+    private static final java.util.SortedMap<Integer,String> EXTENSIONS = new java.util.TreeMap<>();
+    public static String protocolVersion() { return "9/" + EXTENSIONS; }
+    public static boolean acceptsProtocol(String remote) { return protocolVersion().equals(remote); }
+
+    public static <T> void registerExtension(int packetId, Class<T> type,
+            java.util.function.BiConsumer<T,net.minecraft.network.FriendlyByteBuf> encoder,
+            java.util.function.Function<net.minecraft.network.FriendlyByteBuf,T> decoder,
+            java.util.function.BiConsumer<T,java.util.function.Supplier<net.minecraftforge.network.NetworkEvent.Context>> handler,
+            net.minecraftforge.network.NetworkDirection direction, int wireRevision) {
+        if (packetId < 12 || EXTENSIONS.containsKey(packetId))
+            throw new IllegalArgumentException("Reserved or duplicate Dynasty packet ID: " + packetId);
+        EXTENSIONS.put(packetId, type.getName() + ":" + direction + ":v" + wireRevision);
+        CHANNEL.registerMessage(packetId, type, encoder, decoder, handler, java.util.Optional.of(direction));
+    }
 
     @SuppressWarnings("removal")
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(Dynasty.MODID, "dynasty"),
-            () -> PROTOCOL,
-            PROTOCOL::equals,
-            PROTOCOL::equals);
+            DynastyNetwork::protocolVersion,
+            DynastyNetwork::acceptsProtocol,
+            DynastyNetwork::acceptsProtocol);
 
     private static int id = 0;
 
@@ -55,10 +70,6 @@ public class DynastyNetwork {
                 com.dynasty.blueprint.BlueprintVisualEvent::encode,
                 com.dynasty.blueprint.BlueprintVisualEvent::decode,
                 com.dynasty.blueprint.BlueprintVisualEvent::handle,
-                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
-        CHANNEL.registerMessage(id++, EdictCastPacket.class, EdictCastPacket::encode, EdictCastPacket::decode, EdictCastPacket::handle,
-                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER));
-        CHANNEL.registerMessage(id++, EdictVisualPacket.class, EdictVisualPacket::encode, EdictVisualPacket::decode, EdictVisualPacket::handle,
                 java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
     }
 }

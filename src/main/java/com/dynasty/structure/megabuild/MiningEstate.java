@@ -30,6 +30,14 @@ public final class MiningEstate {
             var mineral=mineral(random.nextInt(100));
             bp.set(x,y,z,mineral); bp.set(95-x,y,z,mineral);
         }
+        // Retain main's reachable ceiling encounter without hollowing cod6's ore benches.
+        // These mirrored galleries occupy the gap before the southern mineral mounds.
+        for (int side=0;side<2;side++) {
+            int lo=side==0?10:57, hi=side==0?38:85;
+            bp.hollowBox(lo,1,64,hi,6,68,WALL);
+            bp.box(lo,6,64,hi,6,68,FLOOR);
+            bp.doorway(side==0?hi:lo,1,65,side==0?hi:lo,3,67);
+        }
         for(int x:new int[]{39,56})for(int z:new int[]{29,65})bp.set(x,1,z,MINING_CHEST);
         for(int x:new int[]{42,53})for(int z:new int[]{10,64,88}) {
             bp.box(x,1,z,x,3,z,DARK_WOOD); bp.set(x,4,z,LANTERN);

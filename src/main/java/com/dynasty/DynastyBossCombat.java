@@ -116,14 +116,23 @@ public final class DynastyBossCombat {
             return;
         }
         if(event.getEntity().getPersistentData().hasUUID("ArmyEncounter"))return;
-        if(event.getEntity().getKillCredit() instanceof ServerPlayer player)awardFirstKill(player,id.getPath());
+        LivingEntity credit = event.getEntity().getKillCredit();
+        if (credit instanceof ServerPlayer player) grantFirstKill(player, id.getPath());
     }
-    public static void awardFirstKill(ServerPlayer player,String bossId) {
-        FirstKill reward=FIRST_KILL.get(bossId);if(reward==null)return;
+
+    public static void awardFirstKill(ServerPlayer player, String bossId) { grantFirstKill(player, bossId); }
+
+    public static void grantFirstKill(ServerPlayer player, String bossId) {
+        FirstKill reward = FIRST_KILL.get(bossId);
+        if (reward == null) return;
         String flag = "dynasty_firstkill_" + bossId;
-        if (player.getPersistentData().getBoolean(flag)) {
+        var persisted=player.getPersistentData().getCompound(net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG);
+        player.getPersistentData().put(net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG,persisted);
+        if (player.getPersistentData().getBoolean(flag)||persisted.getBoolean(flag)) {
+            persisted.putBoolean(flag,true); // Migrate legacy receipts on their next check.
             return;                                        // 一种只给一次 / once per player
         }
+        persisted.putBoolean(flag,true);
         player.getPersistentData().putBoolean(flag, true);
 
         DynastyStats.addMerit(player, reward.merit());
