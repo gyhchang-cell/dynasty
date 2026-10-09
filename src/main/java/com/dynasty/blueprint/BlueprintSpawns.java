@@ -290,7 +290,8 @@ public final class BlueprintSpawns {
                 if(group==TOMBS) {
                     var origin=new BlockPos(box.minX(),box.minY(),box.minZ());
                     if(!checked.contains(key)&&(spawnChenshaMember(level,origin,player.blockPosition())
-                            ||spawnChenshaMiddleMember(level,origin,player.blockPosition()))) {
+                            ||spawnChenshaMiddleMember(level,origin,player.blockPosition())
+                            ||spawnChenshaDrowner(level,origin,player.blockPosition()))) {
                         checked.add(key);remaining--;
                     }
                     continue;
@@ -429,6 +430,42 @@ public final class BlueprintSpawns {
         mob.moveTo(pos.getX()+.5,pos.getY()+(type==BlueprintEntities.BAZU_DIGONGZHU.get()?.6:0),pos.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);
         mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.STRUCTURE,null,null);
         if(!level.addFreshEntity(mob))return false;
+        marker.members.add(mob.getUUID());marker.produced++;marker.nextSpawn=level.getGameTime()+100;state.setDirty();
+        return true;
+    }
+    /** Fixed aquatic encounter, sharing the global structure budget and persistent death ledger. */
+    public static boolean spawnChenshaDrowner(ServerLevel level,BlockPos origin,BlockPos entrant) {
+        if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+                ||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return false;
+        int x=entrant.getX()-origin.getX(),y=entrant.getY()-origin.getY(),z=entrant.getZ()-origin.getZ();
+        if(x<5||x>58||y<21||y>32||z<33||z>88)return false;
+        var core=origin.offset(com.dynasty.dungeon.ChenshaPiece.core("mercury"));
+        if(!level.hasChunkAt(core)||!(level.getBlockEntity(core) instanceof com.dynasty.dungeon.DungeonMechanismBlockEntity be)
+                ||!be.validBinding()||!be.roomId().equals("mercury"))return false;
+        var state=BlueprintSpawnState.get(level);String key="chensha@"+be.instance()+":mercury_drowners";
+        var marker=state.markers.get(key);var offsets=com.dynasty.dungeon.ChenshaPiece.middleDrownerOffsets();
+        if(marker!=null) {
+            if(marker.cleared)return false;
+            if(marker.produced>=offsets.size()) {
+                if(marker.members.isEmpty()){marker.cleared=true;state.setDirty();}
+                return false;
+            }
+            if(marker.nextSpawn>level.getGameTime())return false;
+        }
+        var pos=origin.offset(offsets.get(marker==null?0:marker.produced));
+        var type=BlueprintEntities.SHASHUI_FUNIGUI.get();
+        // Existing dry tombs stay untouched. A missing/unloaded channel is not permission
+        // to search natural caves, allocate a ledger or force-load neighbouring chunks.
+        if(!level.hasChunkAt(pos)||pos.distSqr(entrant)<36||pos.distSqr(entrant)>48*48
+                ||!DrownerBehavior.deepWater(level,pos)||level.getMaxLocalRawBrightness(pos)>7
+                ||!level.noCollision(null,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
+                ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),
+                    e->e.isAlive()&&e.getType()==type).size()>=offsets.size())return false;
+        var mob=type.create(level);if(mob==null)return false;
+        mob.moveTo(pos.getX()+.5,pos.getY(),pos.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);
+        mob.finalizeSpawn(level,level.getCurrentDifficultyAt(pos),MobSpawnType.STRUCTURE,null,null);
+        if(!level.addFreshEntity(mob))return false;
+        if(marker==null){marker=new BlueprintSpawnState.Marker(key,core);state.markers.put(key,marker);}
         marker.members.add(mob.getUUID());marker.produced++;marker.nextSpawn=level.getGameTime()+100;state.setDirty();
         return true;
     }

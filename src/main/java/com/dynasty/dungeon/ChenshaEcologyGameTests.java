@@ -68,7 +68,7 @@ public final class ChenshaEcologyGameTests {
         h.succeed();
     }
 
-    @GameTest(template="bow_ritual_test",batch="cod2_middle_ecology",timeoutTicks=140)
+    @GameTest(template="bow_ritual_test",batch="cod2_middle_ecology",timeoutTicks=600)
     public static void middleSkullsRespectBindingBudgetAndPersistentDefeat(GameTestHelper h) {
         var level=h.getLevel();var origin=h.absolutePos(new BlockPos(2048,80,2048));
         var core=origin.offset(ChenshaPiece.core("mercury"));
@@ -92,6 +92,7 @@ public final class ChenshaEcologyGameTests {
             for(var chunk:forced){
                 var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
                 h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Skull fixture waits for loaded entity sections");
+                h.assertTrue(level.areEntitiesLoaded(chunk.toLong()),"Skull fixture waits for asynchronous entity storage before spawning");
             }
         }).thenExecute(()->{
             // Light-isolated fixture; tickets and terrain edits are test-only.
@@ -151,6 +152,148 @@ public final class ChenshaEcologyGameTests {
                 for(var entity:entities)if(!entity.isRemoved())entity.discard();
                 h.assertTrue(state.markers.get(key).members.isEmpty(),"Shared removal lifecycle releases membership");
                 h.assertTrue(!BlueprintSpawns.spawnChenshaMiddleMember(level,origin,entrant)&&state.markers.get(key).cleared,"Cleared gallery never refills");
+                restored=BlueprintSpawnState.load(state.save(new CompoundTag()));
+                h.assertTrue(restored.markers.get(key).cleared,"Permanent defeat survives serialization");
+                h.succeed();
+            } finally {
+                cleanup.run();
+            }
+        });
+    }
+    @GameTest(template="bow_ritual_test",batch="cod2_middle_layout")
+    public static void drownerChannelsContainWaterAndRetainDryRoutes(GameTestHelper h) {
+        var points=ChenshaPiece.middleDrownerOffsets();
+        h.assertTrue(points.size()==2&&new HashSet<>(points).size()==2,"Two authored aquatic sites");
+        for(var p:points) {
+            int cx=p.getX();
+            h.assertTrue(ChenshaPiece.cell(cx,23,62).is(Blocks.WATER)
+                &&ChenshaPiece.cell(cx,22,62).is(Blocks.WATER),"Spawn has two-deep water");
+            for(int x=cx-5;x<=cx+5;x++)for(int z=53;z<=66;z++) {
+                h.assertTrue(ChenshaPiece.cell(x,20,z).is(DungeonContent.MASONRY.get()),"Channel floor contains liquid");
+                if(x==cx-5||x==cx+5||z==53||z==66)for(int y=21;y<=24;y++)
+                    h.assertTrue(ChenshaPiece.cell(x,y,z).is(DungeonContent.MASONRY.get()),"Channel rim contains liquid");
+            }
+            for(int z=53;z<=56;z++) {
+                int top=77-z;
+                h.assertTrue(ChenshaPiece.cell(cx,top,z).is(DungeonContent.MASONRY.get()),"Consecutive one-block escape steps");
+                for(int y=top+1;y<=top+2;y++)h.assertTrue(!ChenshaPiece.cell(cx,y,z).is(DungeonContent.MASONRY.get()),"Escape step has headroom");
+            }
+            // Every channel is bypassable on both sides, without entering the water.
+            for(int z=54;z<=65;z++)for(int x:new int[]{cx-6,cx+6})
+                h.assertTrue(ChenshaPiece.cell(x,24,z).is(DungeonContent.MASONRY.get())
+                    &&ChenshaPiece.cell(x,25,z).isAir(),"Dry gallery bypass remains open");
+        }
+        for(var m:ChenshaPiece.markers())h.assertTrue(!ChenshaPiece.cell(m.offset().getX(),m.offset().getY(),m.offset().getZ()).is(Blocks.WATER),"No water overwrites progression marker");
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_water_ecology",timeoutTicks=140)
+    public static void middleDrownersRespectWaterBindingBudgetAndPersistentDefeat(GameTestHelper h) {
+        var level=h.getLevel();var origin=h.absolutePos(new BlockPos(2304,60,2304));
+        var core=origin.offset(ChenshaPiece.core("mercury"));
+        var entrant=origin.offset(32,25,60);var instance=UUID.randomUUID();
+        String key="chensha@"+instance+":mercury_drowners";
+        var forced=new HashSet<ChunkPos>();var entities=new ArrayList<Entity>();
+        boolean spawning=level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING);
+        var state=BlueprintSpawnState.get(level);
+        Runnable cleanup=()->{
+            for(var entity:entities)if(!entity.isRemoved())entity.discard();
+            var ledger=state.markers.get(key);if(ledger!=null)for(var uuid:List.copyOf(ledger.members)){var entity=level.getEntity(uuid);if(entity!=null)entity.discard();}
+            level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(spawning,level.getServer());
+            for(var chunk:forced)level.setChunkForced(chunk.x,chunk.z,false);
+        };
+        var positions=ChenshaPiece.middleDrownerOffsets().stream().map(origin::offset).toList();
+        for(var center:List.of(core,positions.get(0),positions.get(1)))for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++) {
+            var chunk=new ChunkPos(center.offset(dx*16,0,dz*16));
+            if(!level.getForcedChunks().contains(chunk.toLong())){level.setChunkForced(chunk.x,chunk.z,true);forced.add(chunk);}
+        }
+        h.startSequence().thenIdle(20).thenWaitUntil(()->{
+            for(var chunk:forced){
+                var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
+                h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Drowner fixture waits for loaded entity sections");
+            }
+        }).thenExecute(()->{
+            // Light-isolated fixture; tickets and terrain edits are test-only.
+            for(var p:positions)for(int x=-3;x<=3;x++)for(int y=-3;y<=4;y++)for(int z=-3;z<=3;z++)
+                level.setBlockAndUpdate(p.offset(x,y,z),(Math.abs(x)==3||Math.abs(z)==3||y==-3||y==4)?
+                    Blocks.STONE.defaultBlockState():y<=1?Blocks.WATER.defaultBlockState():Blocks.AIR.defaultBlockState());
+            level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());
+            ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(instance,"mercury","mercury_core",core,-1,List.of());
+        }).thenIdle(30).thenExecute(()->{
+            try {
+                level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,origin.offset(32,49,60)),"Upper floor cannot activate middle ecology");
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,origin.offset(32,1,20)),"Boss vault cannot activate middle ecology");
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,origin.offset(2,25,60)),"Outside corridor cannot activate encounter");
+                level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false,level.getServer());
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"doMobSpawning=false is respected");
+                level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
+                var be=(DungeonMechanismBlockEntity)level.getBlockEntity(core);
+                h.assertTrue(be!=null,"Remote fixture core remains loaded before binding checks");
+                be.configure(instance,"shendao","wrong_room",core,-1,List.of());
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"Wrong room core cannot fabricate an encounter");
+                be.configure(instance,"mercury","mercury_core",core,-1,List.of());
+                var first=positions.get(0);
+                level.setBlockAndUpdate(first,Blocks.STONE.defaultBlockState());
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"Occupied airborne volume rejects spawn");
+                h.assertTrue(!state.markers.containsKey(key),"Rejected attempt does not consume or allocate encounter state");
+                level.setBlockAndUpdate(first,Blocks.WATER.defaultBlockState());
+                // One-block puddles and drained legacy rooms cannot create aquatic actors.
+                level.setBlockAndUpdate(first.below(),Blocks.STONE.defaultBlockState());
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"Shallow water cannot spawn drowner");
+                h.assertTrue(!state.markers.containsKey(key),"Invalid water leaves no reserved ledger");
+                level.setBlockAndUpdate(first.below(),Blocks.WATER.defaultBlockState());
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,first),"Cannot spawn on top of entrant");
+                var nearby=new ArrayList<Entity>();
+                for(int i=0;i<2;i++) {
+                    var other=BlueprintEntities.SHASHUI_FUNIGUI.get().create(level);
+                    other.moveTo(first.getX()+i+1.5,first.getY(),first.getZ()+.5,0,0);
+                    other.setNoAi(true);other.setNoGravity(true);level.addFreshEntity(other);nearby.add(other);
+                }
+                try {
+                    h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"Nearby water actors count toward local cap");
+                } finally {nearby.forEach(Entity::discard);}
+                java.util.function.Consumer<net.minecraftforge.event.entity.EntityJoinLevelEvent> cancel=e->{
+                    if(e.getLevel()==level&&e.getEntity().getType()==BlueprintEntities.SHASHUI_FUNIGUI.get())e.setCanceled(true);
+                };
+                net.minecraftforge.common.MinecraftForge.EVENT_BUS.addListener(cancel);
+                try {
+                    h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"Cancelled spawn is not a successful member");
+                    h.assertTrue(!state.markers.containsKey(key),"Cancelled join consumes no encounter or reward state");
+                } finally {net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(cancel);}
+
+                java.util.function.Consumer<net.minecraftforge.event.entity.EntityJoinLevelEvent> hold=e->{
+                    if(e.getLevel()==level&&e.getEntity().getType()==BlueprintEntities.SHASHUI_FUNIGUI.get()
+                            &&positions.stream().anyMatch(p->p.equals(e.getEntity().blockPosition())))e.getEntity().setNoGravity(true);
+                    if(e.getLevel()==level&&e.getEntity() instanceof com.dynasty.blueprint.TemplateMob mob
+                            &&positions.contains(mob.blockPosition()))mob.setNoAi(true);
+                };
+                net.minecraftforge.common.MinecraftForge.EVENT_BUS.addListener(hold);
+                try{
+                    for(int i=0;i<2;i++) {
+                        if(i>0)state.markers.get(key).nextSpawn=level.getGameTime();
+                        h.assertTrue(BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"Actual middle drowner "+i+" spawns");
+                        h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant.offset(1,0,0)),"Second entrant cannot bypass cooldown or cap");
+                    }
+                }finally{net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(hold);}
+            }catch(RuntimeException|Error e){cleanup.run();throw e;}
+        }).thenWaitUntil(()->{
+            h.assertTrue(state.markers.get(key).members.size()==2,"Exactly two UUIDs must remain reserved");
+            for(var uuid:state.markers.get(key).members){var entity=level.getEntity(uuid);h.assertTrue(entity!=null,"Wait for each asynchronous loaded entity section");if(!entities.contains(entity))entities.add(entity);}
+        }).thenExecute(()->{
+            try{
+                h.assertTrue(entities.size()==2&&entities.stream().allMatch(e->e.getType()==BlueprintEntities.SHASHUI_FUNIGUI.get()),"Both actors reuse cod1 aquatic drowner entity");
+                var drowner=entities.get(0);drowner.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
+                h.assertTrue(state.markers.get(key).members.contains(drowner.getUUID()),"Chunk unload reserves UUID");
+                var restored=BlueprintSpawnState.load(state.save(new CompoundTag()));
+                h.assertTrue(restored.markers.get(key).members.equals(state.markers.get(key).members)
+                    &&restored.markers.get(key).produced==2,"SavedData round trip preserves exact members and production cap");
+                state.markers.get(key).nextSpawn=level.getGameTime();
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"Unloaded members do not spawn replacements");
+                state.memberDied(drowner.getUUID(),level.getGameTime());
+                for(var entity:entities)if(!entity.isRemoved())entity.discard();
+                h.assertTrue(state.markers.get(key).members.isEmpty(),"Shared removal lifecycle releases membership");
+                h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant)&&state.markers.get(key).cleared,"Cleared gallery never refills");
                 restored=BlueprintSpawnState.load(state.save(new CompoundTag()));
                 h.assertTrue(restored.markers.get(key).cleared,"Permanent defeat survives serialization");
                 h.succeed();

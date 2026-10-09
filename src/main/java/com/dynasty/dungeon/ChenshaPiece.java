@@ -83,6 +83,15 @@ public final class ChenshaPiece extends DynastyStructurePiece {
             if(chamber&&edge&&bridge&&in(y,25,28))result=Blocks.AIR.defaultBlockState();
             if(y==31&&!chamber&&bridge)result=Blocks.CHAIN.defaultBlockState();
         }
+        // Small contained water channels for the existing aquatic actor. The central
+        // mercury trial remains a visual/area hazard; no new fluid or broad water update.
+        for(int cx:new int[]{12,52})if(rect(x,z,cx-5,53,cx+5,66)&&in(y,20,24)) {
+            boolean rim=x==cx-5||x==cx+5||z==53||z==66;
+            result=y==20||rim?shell():Blocks.WATER.defaultBlockState();
+            // Three full-width steps return swimmers to the dry north gallery.
+            int stepTop=z==54?23:z==55?22:z==56?21:-1;
+            if(y<=stepTop)result=shell();
+        }
         // Side entrances of the mercury room narrow to two blocks so the
         // authored seal doors can close every approach within the marker budget.
         if((x==24||x==39)&&(z==58||z==61)&&in(y,25,28))result=shell();
@@ -140,6 +149,10 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         return List.of(new BlockPos(12,28,60),new BlockPos(52,28,60));
     }
     public static BlockPos coffinOffset(){return new BlockPos(31,10,17);}
+    /** One submerged spawn in each enclosed side channel, outside the timed puzzle. */
+    public static List<BlockPos> middleDrownerOffsets(){
+        return List.of(new BlockPos(12,23,62),new BlockPos(52,23,62));
+    }
     public static List<Marker> markers(){
         var result=new ArrayList<Marker>();
         result.add(new Marker(new BlockPos(27,72,5),"entrance","entrance_core",DungeonContent.CORE.get(),-1));
