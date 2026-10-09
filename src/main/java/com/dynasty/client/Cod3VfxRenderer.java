@@ -30,7 +30,7 @@ public final class Cod3VfxRenderer {
         if(world==null)return;
         ACTIVE.removeIf(p->{
             if(world.getGameTime()-p.start()>=p.duration()||p.start()-world.getGameTime()>40)return true;
-            if(p.sequence().startsWith("equipment_")){
+            if(p.sequence().startsWith("equipment_")||p.sequence().matches("accessory_proc_[13456]")){
                 var owner=world.getEntity(p.entityId());
                 return owner==null||!owner.isAlive()||owner.getUUID().getLeastSignificantBits()!=p.seed();
             }
@@ -84,7 +84,7 @@ public final class Cod3VfxRenderer {
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
                 Vec3 origin=p.origin(),direction=p.direction();
                 if(p.entityId()>=0){var entity=world.getEntity(p.entityId());
-                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")||p.sequence().startsWith("secondary_")||p.sequence().startsWith("equipment_")))continue;
+                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")||p.sequence().startsWith("secondary_")||p.sequence().startsWith("equipment_")||p.sequence().matches("accessory_proc_[13456]")))continue;
                     if(p.sequence().equals("equipment_beidou_stride")&&entity instanceof net.minecraft.world.entity.player.Player wearer&&com.dynasty.expansion.EquipmentBehaviors.pieces(wearer,"beidou")<4)continue;
                     if(p.sequence().equals("secondary_roots")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(com.dynasty.expansion.ExpansionEffects.STAGGER.get()))continue;
                     if(p.sequence().equals("secondary_coil")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN))continue;
@@ -101,6 +101,7 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("secondary_possession"))geometry.possession(age);
                 else if(p.sequence().equals("secondary_echo"))geometry.echo(life);
                 else if(p.sequence().equals("secondary_alarm"))geometry.alarm(life);
+                else if(p.sequence().matches("accessory_proc_[1-6]"))geometry.proc(Integer.parseInt(p.sequence().substring("accessory_proc_".length())),direction,age,life);
                 else if(p.sequence().startsWith("equipment_accessory_"))geometry.accessory(p.sequence().substring("equipment_accessory_".length()),age,life);
                 else if(p.sequence().equals("equipment_beidou_stride"))geometry.starStride(age);
                 else if(p.sequence().equals("equipment_phoenix_embers"))geometry.phoenixEmbers(age,life);
@@ -195,6 +196,16 @@ public final class Cod3VfxRenderer {
             beam(p(.12,.85,head+.08),p(.28,1.15,head-.12),.05);
             beam(p(-.12,.7,head+.25),p(-.45,.58,head+.35),.025);
             beam(p(.12,.7,head+.25),p(.45,.58,head+.35),.025);
+        }
+        void proc(int code,Vec3 direction,double age,double life){
+            switch(code){
+                case 1->{double length=Math.min(6,direction.length())/scale;for(int strand=0;strand<2;strand++){Vec3 last=p(0,1.1,0);for(int i=1;i<=10;i++){double t=i/10.;Vec3 next=p(Math.sin(t*Math.PI*2+age*.45+strand*Math.PI)*.08,1.1+.10*Math.sin(t*Math.PI),length*t);beam(last,next,.025);last=next;}}}
+                case 2->{for(int branch=0;branch<3;branch++){double x=(branch-1)*.28;Vec3 last=p(x,.5,0);for(int i=1;i<=4;i++){Vec3 next=p(x+(i%2==0?-.08:.08),.5+i*.18,0);beam(last,next,.035);if(i==2)beam(next,next.add(r.scale(.12*scale)),.025);last=next;}}}
+                case 3,4->{for(int star=0;star<(code==3?5:3);star++){double a=star*Math.PI*2/(code==3?5:3)+life*.8,x=Math.cos(a)*.45,y=1.25+Math.sin(a)*.30;beam(p(x-.10,y,0),p(x+.10,y,0),.025);beam(p(x,y-.14,0),p(x,y+.14,0),.035);}}
+                case 5->{for(int strip=0;strip<3;strip++)beam(p(-.38,1+strip*.16,-.08),p(.38,1.15+strip*.16,.08),.035*(1-life)+.01);}
+                case 6->{for(int branch=0;branch<2;branch++){Vec3 last=p((branch-.5)*.35,1.8,0);for(int i=1;i<=6;i++){Vec3 next=p((branch-.5)*.35+Math.sin(i*2.1+seed)*.12,1.8-i*.22,0);beam(last,next,.035);if(i==3)beam(next,next.add(r.scale((branch==0?-.2:.2)*scale)).add(0,-.16,0),.018);last=next;}}}
+                default->{}
+            }
         }
         /** Small item-specific silhouettes, drawn by the same bounded world-space primitives. */
         void accessory(String id,double age,double life){

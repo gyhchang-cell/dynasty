@@ -163,6 +163,13 @@ public final class EquipmentFeedback {
         if(attacker.level() instanceof ServerLevel l){
             var n=attacker.getPersistentData();String key="cod3_proc_at_"+code;if(n.contains(key)&&n.getLong(key)==l.getGameTime())return;n.putLong(key,l.getGameTime());
             Cod3Vfx.send(l,switch(code){case 1->37;case 2->34;case 3,4->12;case 5->29;case 6->31;default->14;},target.position().add(0,.5,0),attacker.getLookAngle(),10,.12);
+            if(code<1||code>6)return;
+            LivingEntity owner=code==1?attacker:target;
+            int tint=switch(code){case 1->0xCF4A69;case 2->0xB76476;case 3,4->0xF2D178;case 6->0xAACDFF;default->0x75DBBF;};
+            var packet=new Cod3VisualPacket(l.dimension().location().toString(),14,code==2?-1:owner.getId(),
+                    code==2?l.random.nextLong():owner.getUUID().getLeastSignificantBits(),l.getGameTime(),10,.6,
+                    owner.position(),target.position().subtract(attacker.position()),"accessory_proc_"+code,0,tint);
+            com.dynasty.network.DynastyNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.NEAR.with(()->new net.minecraftforge.network.PacketDistributor.TargetPoint(owner.getX(),owner.getY(),owner.getZ(),32,l.dimension())),packet);
         }
     }
 }

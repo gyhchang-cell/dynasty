@@ -70,7 +70,7 @@ for id in sorted(ids):
  if peers:flags.append('DUPLICATE')
  proc=int(values[10]) if values and len(values)>=13 else 0;link=int(values[13]) if values and len(values)>13 else 0
  cue=visual.get(id)
- if proc:cue='DynastyTrinketOnHit actual proc '+str(proc)+' -> EquipmentFeedback.proc -> existing type-specific native template; item-specific visuals/client inspection pending'
+ if proc:cue='DynastyTrinketOnHit actual proc '+str(proc)+' -> EquipmentFeedback.proc -> original template plus finite accessory_proc_'+str(proc)+' dedicated red threads/gold stars/arcs/fractures on existing wire; real client inspection pending'
  if not cue:flags.append('NO_VISUAL')
  acquisition=[{'kind':'recipe','path':x} for x in sorted(recipes[id])]+[{'kind':'loot','path':x} for x in sorted(loot[id])]+[{'kind':'quest_reward',**x} for x in rewards[id]]
  acquisition.append({'kind':'trinket_box_unseen_pool','hook':'DynastyUsables.TrinketBoxItem.use -> ContentProgress.gift -> every canonical DynastyTrinkets.IDS until seen; then original weighted pool','source_recipes':recipes['trinket_box']})

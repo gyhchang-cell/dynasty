@@ -22,7 +22,7 @@ public final class AccessoryCueNativeGameTests {
     private static ServerPlayer player(GameTestHelper h,String id,String slot,boolean tick){
         var p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),new GameProfile(UUID.randomUUID(),"accessory-native"));
         p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);
-        p.setPos(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(6,52,6))));p.setNoGravity(true);p.getFoodData().setFoodLevel(17);
+        p.setPos(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(switch(id){case "jade_bi_disc"->6;case "moon_pendant"->8;case "qilin_horn_charm"->10;case "silk_pouch"->12;case "jade_cicada"->14;default->6;},52,6))));p.setNoGravity(true);p.getFoodData().setFoodLevel(17);
         p.getAttribute(Attributes.MAX_HEALTH).setBaseValue(5000);p.setHealth(5000);p.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
         p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(Items.STICK));for(int i=0;i<61;i++)p.tick();
         if(!id.isEmpty())SchoolCombatGameTests.equip(p,slot,new ItemStack(net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty",id))));
@@ -35,12 +35,12 @@ public final class AccessoryCueNativeGameTests {
     private static float hurt(ServerPlayer p,Zombie z){p.invulnerableTime=0;float hp=p.getHealth();p.hurt(p.damageSources().mobAttack(z),100);return hp-p.getHealth();}
     private static void close(ServerPlayer...players){for(var p:players){net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent(p));DynastyTrinkets.forget(p);p.discard();}}
     public static final class HealthTrace {
-        final UUID owner;final List<String> damage=new ArrayList<>();int heals;float healed;
+        final UUID owner;final List<String> damage=new ArrayList<>(),ambientHeals=new ArrayList<>();int heals;float healed;
         HealthTrace(ServerPlayer p){owner=p.getUUID();}
         @net.minecraftforge.eventbus.api.SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST)
         public void damage(net.minecraftforge.event.entity.living.LivingDamageEvent e){if(e.getEntity().getUUID().equals(owner))damage.add(e.getSource().getMsgId()+":"+e.getAmount()+":"+e.getSource().getEntity());}
         @net.minecraftforge.eventbus.api.SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST)
-        public void heal(net.minecraftforge.event.entity.living.LivingHealEvent e){if(e.getEntity().getUUID().equals(owner)){heals++;healed+=e.getAmount();}}
+        public void heal(net.minecraftforge.event.entity.living.LivingHealEvent e){if(e.getEntity().getUUID().equals(owner)){heals++;healed+=e.getAmount();if(e.getAmount()<2)ambientHeals.add("amount="+e.getAmount()+", effects="+e.getEntity().getActiveEffects()+", stack="+java.util.Arrays.toString(Thread.currentThread().getStackTrace()));}}
     }
     @GameTest(template="bow_ritual_test",batch="cod4_accessory_native_passive",setupTicks=20,timeoutTicks=250)
     public static void actualPlayerTicksGateNightAndWornPassiveCuesAndCicadaHealKeeps180SecondCooldown(GameTestHelper h){
@@ -57,7 +57,7 @@ public final class AccessoryCueNativeGameTests {
             cicada.setHealth(hp);h.getLevel().setDayTime(18000);
             h.runAfterDelay(65,()->{try{
                 h.assertTrue(bi.getPersistentData().contains(cue("jade_bi_disc"))&&moon.getPersistentData().contains(cue("moon_pendant")),"Actual nighttime ticks produce distinct jade-disc and moon patterns");
-                h.assertTrue(cicada.getHealth()==hp&&EquipmentBehaviors.saved(cicada).getLong("cicada")==until&&cicada.getPersistentData().getLong(cue("jade_cicada"))==at,"Continued low health neither repeats healing nor restarts the original cooldown or cue");
+                h.assertTrue(cicada.getHealth()==hp&&EquipmentBehaviors.saved(cicada).getLong("cicada")==until&&cicada.getPersistentData().getLong(cue("jade_cicada"))==at,"Continued low health neither repeats healing nor restarts the original cooldown or cue: health="+cicada.getHealth()+", expected="+hp+", heals="+trace.heals+", healed="+trace.healed+", damage="+trace.damage+", ambient="+trace.ambientHeals+", pos="+cicada.position()+", difficulty="+h.getLevel().getDifficulty()+", food="+cicada.getFoodData().getFoodLevel()+", until="+EquipmentBehaviors.saved(cicada).getLong("cicada")+", cue="+cicada.getPersistentData().getLong(cue("jade_cicada")));
                 SchoolCombatGameTests.equip(bi,"necklace",ItemStack.EMPTY);SchoolCombatGameTests.equip(moon,"necklace",ItemStack.EMPTY);SchoolCombatGameTests.equip(horn,"necklace",ItemStack.EMPTY);SchoolCombatGameTests.equip(silk,"belt",ItemStack.EMPTY);
                 long[] previous={bi.getPersistentData().getLong(cue("jade_bi_disc")),moon.getPersistentData().getLong(cue("moon_pendant")),horn.getPersistentData().getLong(cue("qilin_horn_charm")),silk.getPersistentData().getLong(cue("silk_pouch"))};
                 h.runAfterDelay(65,()->{try{ServerPlayer[] ps={bi,moon,horn,silk};String[] ids={"jade_bi_disc","moon_pendant","qilin_horn_charm","silk_pouch"};for(int i=0;i<ps.length;i++)h.assertTrue(ps[i].getPersistentData().getLong(cue(ids[i]))==previous[i],"Unequipping ends actual native passive cue: "+ids[i]);h.succeed();}finally{h.getLevel().setDayTime(day);h.getLevel().getServer().setDifficulty(difficulty,true);net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(trace);close(bi,moon,horn,silk,cicada);}});
