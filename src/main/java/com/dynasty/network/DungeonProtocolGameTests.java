@@ -22,7 +22,7 @@ public final class DungeonProtocolGameTests {
         String schema=DynastyNetwork.protocolSchema();
         h.assertTrue(schema.contains("12=com.dynasty.cod3.Cod3VisualPacket:PLAY_TO_CLIENT:v1")
             &&schema.contains("13=com.dynasty.network.EdictCastPacket:PLAY_TO_SERVER:v1")
-            &&schema.contains("14=com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v1")
+            &&schema.contains("14=com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v2")
             &&schema.contains("17=com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1"),"Merged packet identities missing");
         for(String remote:new String[]{"8","9/{}",schema.replace("13=","15="),
                 schema.replace(", 17=com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1", ""),

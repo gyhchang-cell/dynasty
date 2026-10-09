@@ -59,7 +59,13 @@ public class HandheldMeshPreview {
         GL11.glViewport(0,0,W,H);GL11.glEnable(GL11.GL_DEPTH_TEST);GL11.glEnable(GL11.GL_CULL_FACE);GL11.glDisable(GL11.GL_BLEND);GL11.glClearColor(23/255f,33/255f,39/255f,1);
         Path base=Path.of("src/main/resources/assets/dynasty"),out=Path.of("docs/art/build-feedback-v5/mesh-qa");Files.createDirectories(out);
         for(String id:new String[]{"leifu_staff","taiyi_whisk","hunyuan_staff","qinglong_dao"}){
-            var model=JsonParser.parseString(Files.readString(base.resolve("models/item/"+id+".json"))).getAsJsonObject();var geometry=mesh(model);GL15.glBufferData(GL15.GL_ARRAY_BUFFER,geometry,GL15.GL_STATIC_DRAW);
+            var model=JsonParser.parseString(Files.readString(base.resolve("models/item/"+id+".json"))).getAsJsonObject();
+            if(!model.has("elements")) {
+                // This static tool can preview the preserved icon; articulated runtime poses require the game renderer.
+                model=JsonParser.parseString(Files.readString(base.resolve("models/item/"+id+"_icon.json"))).getAsJsonObject();
+                System.out.println(id+": inventory artwork only; dynamic held model is not captured by this tool.");
+            }
+            var geometry=mesh(model);GL15.glBufferData(GL15.GL_ARRAY_BUFFER,geometry,GL15.GL_STATIC_DRAW);
             var bitmap=ImageIO.read(base.resolve("textures/item/"+id+".png").toFile());int tw=bitmap.getWidth(),th=bitmap.getHeight();var texels=BufferUtils.createByteBuffer(tw*th*4);
             for(int y=0;y<th;y++)for(int x=0;x<tw;x++){int c=bitmap.getRGB(x,y);texels.put((byte)(c>>16)).put((byte)(c>>8)).put((byte)c).put((byte)(c>>24));}texels.flip();
             int texture=GL11.glGenTextures();GL11.glBindTexture(GL11.GL_TEXTURE_2D,texture);GL11.glTexImage2D(GL11.GL_TEXTURE_2D,0,GL11.GL_RGBA8,tw,th,0,GL11.GL_RGBA,GL11.GL_UNSIGNED_BYTE,texels);

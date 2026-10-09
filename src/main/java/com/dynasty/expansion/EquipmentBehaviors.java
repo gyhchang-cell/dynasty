@@ -334,17 +334,40 @@ public final class EquipmentBehaviors {
     private static float seriesBonus(Player p,LivingEntity target,ItemStack used) {
         String main=id(used),off=id(p.getOffhandItem());
         Set<String> imperial=Set.of("qilin_war_axe","taiyi_sword","baihu_glaive","thunder_spear","ziwei_saber","zhuque_bow");
-        String source=java.util.Map.of("dragon_spear","dragon_king","yitian_sword","rebel_general","qinggang_sword","eunuch_mastermind","dragon_slayer","dragon_emperor","sunbow","nine_heaven_general","seven_star_saber","undead_first_emperor","supreme_sword","dragon_emperor").get(main);
-        float revenge=source!=null && p.getPersistentData().getBoolean("dynasty_firstkill_"+source)?.15F:0;
         float bonus=0;
         String element=main.startsWith("xuanwu")?"xuanwu":main.startsWith("zhuque")?"zhuque":main.startsWith("qinglong")||main.equals("thunder_spear")?"qinglong":main.startsWith("baihu")?"baihu":"";
         if(!element.isEmpty() && (pieces(p,element)>0 || DynastyTrinkets.activeIds(p).stream().anyMatch(s->s.startsWith(element))))bonus+=.1F;
-        var targetId=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(target.getType());
-        if(source!=null && targetId!=null && targetId.getNamespace().equals("dynasty")) {
-            boolean faction=switch(source){case "dragon_king"->java.util.Set.of("dragon_king","merfolk","crab_soldier","river_imp","carp_spirit").contains(targetId.getPath());case "undead_first_emperor"->target.getMobType()==MobType.UNDEAD;case "rebel_general"->targetId.getPath().startsWith("rebel") || targetId.getPath().equals("bandit_thug");case "nine_heaven_general"->targetId.getPath().equals("thunder_envoy") || targetId.getPath().equals("nine_heaven_general");default->java.util.Set.of(source,"royal_guard","jade_guard").contains(targetId.getPath());};
-            if(faction)bonus+=revenge;
+        return bonus+revengeBonus(p,target,main);
+    }
+    /** Canonical drop/gift provenance, with no extra weapon-use gate or second reward flag. */
+    public static float revengeBonus(Player p,LivingEntity target,String weapon){
+        if(p.isAlliedTo(target)||target.isAlliedTo(p))return 0;
+        var n=p.getPersistentData();boolean eligible=false;
+        String source=switch(weapon){case "dragon_spear"->"undead_first_emperor";case "yitian_sword"->"rebel_general";
+            case "qinggang_sword"->"eunuch_mastermind";case "dragon_slayer"->"dragon_emperor";default->"";};
+        if(!source.isEmpty())eligible=n.getBoolean("dynasty_firstkill_"+source)&&faction(target,source);
+        if(weapon.equals("sunbow"))eligible=n.getBoolean("dynasty_gift_sunbow")&&faction(target,"phoenix");
+        if(weapon.equals("supreme_sword"))eligible=(DynastyStats.getRank(p)>=17||n.getBoolean("dynasty_gift_supreme_sword"))&&faction(target,"court");
+        if(weapon.equals("seven_star_saber")&&n.getInt("dynasty_boss_kinds")>=5){
+            var defeated=new HashSet<>(Arrays.asList(n.getString("dynasty_boss_kinds_list").split(",")));
+            for(String boss:List.of("dragon_emperor","rebel_general","eunuch_mastermind","undead_first_emperor","nine_heaven_general","dragon_king"))
+                if((defeated.contains(boss)||n.getBoolean("dynasty_firstkill_"+boss))&&faction(target,boss)){eligible=true;break;}
         }
-        return bonus;
+        return eligible?.15F:0;
+    }
+    private static boolean faction(LivingEntity target,String source){
+        var id=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(target.getType());if(id==null)return false;
+        if(source.equals("undead_first_emperor")&&target.getMobType()==MobType.UNDEAD)return true;
+        if(!id.getNamespace().equals("dynasty"))return false;String name=id.getPath();
+        return switch(source){
+            case "undead_first_emperor"->name.equals(source);
+            case "dragon_king"->Set.of("dragon_king","merfolk","shrimp_soldier","crab_soldier","river_imp","carp_spirit").contains(name);
+            case "rebel_general"->name.startsWith("rebel")||name.equals("bandit_thug");
+            case "nine_heaven_general"->Set.of("thunder_envoy","nine_heaven_general").contains(name);
+            case "phoenix"->name.equals("phoenix");
+            case "court"->Set.of("rebel_general","rebel_soldier","bandit_thug","assassin","eunuch_mastermind").contains(name);
+            default->Set.of(source,"royal_guard","jade_guard").contains(name);
+        };
     }
     public static float twinBonus(Player p,ItemStack used) {
         Set<String> imperial=Set.of("qilin_war_axe","taiyi_sword","baihu_glaive","thunder_spear","ziwei_saber","zhuque_bow");

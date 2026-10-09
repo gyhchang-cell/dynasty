@@ -30,6 +30,8 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
     private static final EntityDataAccessor<Integer> STATE=SynchedEntityData.defineId(SecondaryMob.class,EntityDataSerializers.INT);
     public final SecondaryMobs.Spec spec;
     private final AnimatableInstanceCache cache=GeckoLibUtil.createInstanceCache(this);
+    final SecondaryCombatActions combatActions=new SecondaryCombatActions(this);
+    private static final java.util.List<String> SKILL_ANIMATIONS=java.util.List.of("pounce","coil","stalk","dive","circle","burrow","eruption","pinch","sting","possession","return_water","side_charge");
     private int specialCooldown, fleeTicks, shellTicks, animationTicks;
     private int deceptionStage, hardenTicks, rollingTicks;
     private int waterDragTicks;
@@ -62,8 +64,8 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
             }
         });
         goalSelector.addGoal(2,new MeleeAttackGoal(this,1.1,false) {
-            @Override public boolean canUse() { return !friendly && rollingTicks==0 && !spec.id().equals("locust_swarm") && !spec.id().equals("swindler") && !spec.id().equals("famished_refugee") && !spec.id().equals("herb_picker") && !spec.id().equals("snail_maiden") && super.canUse(); }
-            @Override public boolean canContinueToUse(){return rollingTicks==0&&!friendly&&super.canContinueToUse();}
+            @Override public boolean canUse() { return !friendly && rollingTicks==0 && !combatActions.active() && !spec.id().equals("locust_swarm") && !spec.id().equals("swindler") && !spec.id().equals("famished_refugee") && !spec.id().equals("herb_picker") && !spec.id().equals("snail_maiden") && super.canUse(); }
+            @Override public boolean canContinueToUse(){return rollingTicks==0&&!friendly&&!combatActions.active()&&super.canContinueToUse();}
         });
         goalSelector.addGoal(5,spec.flying()?new WaterAvoidingRandomFlyingGoal(this,1):new RandomStrollGoal(this,.8));
         goalSelector.addGoal(6,new LookAtPlayerGoal(this,Player.class,8));
@@ -74,7 +76,8 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
     }
     @Override protected void registerGoals() { /* spec is assigned after the vanilla constructor */ }
     @Override protected void defineSynchedData() { super.defineSynchedData();entityData.define(STATE,0); }
-    public String animation() { return switch(entityData.get(STATE)) { case 1->"wander";case 2->"hunt";case 3->"flee";case 4->"attack";case 5->"special";case 6->"evade";default->"idle"; }; }
+    public String animation() { int state=entityData.get(STATE);if(state>=7&&state<7+SKILL_ANIMATIONS.size())return SKILL_ANIMATIONS.get(state-7);return switch(state) { case 1->"wander";case 2->"hunt";case 3->"flee";case 4->"attack";case 5->"special";case 6->"evade";default->"idle"; }; }
+    void skillAnimation(String name){int index=SKILL_ANIMATIONS.indexOf(name);animate(index<0?name.equals("evade")?6:5:index+7,12);}
     private void animate(int state,int ticks) { entityData.set(STATE,state);animationTicks=ticks; }
     @Override public boolean isAlliedTo(Entity other) {
         if(getPersistentData().hasUUID("cod4Summoner")) {
@@ -102,6 +105,7 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         if(getPersistentData().hasUUID("cod4Summoner")) SummonedGuard.tick(this);
         tickWaterDrag();
         tickRangedSkill();
+        combatActions.tick();
         LivingEntity target=getTarget();
         if(rollingTicks>0){
             rollingTicks--;animate(5,2);
@@ -113,15 +117,16 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
                 if(contactAttack(victim))break;
         }
         if(spec.family().equals("ghost")) { noPhysics=target!=null;setNoGravity(true);if(target!=null) setDeltaMovement(target.getEyePosition().subtract(position()).normalize().scale(.1)); }
-        if(spec.flying() && target!=null && tickCount%10==0) getMoveControl().setWantedPosition(target.getX(),target.getEyeY()+1,target.getZ(),1.2);
+        if(spec.flying() && target!=null && !combatActions.active() && tickCount%10==0) getMoveControl().setWantedPosition(target.getX(),target.getEyeY()+1,target.getZ(),1.2);
         if(spec.id().equals("clockwork_rat") && stolen.isEmpty() && tickCount%20==0) {
             var items=level().getEntitiesOfClass(ItemEntity.class,getBoundingBox().inflate(2),e->!e.getItem().isEmpty());
             if(!items.isEmpty()) { stolen=items.get(0).getItem().split(1);fleeTicks=80; }
         }
         if(spec.id().equals("night_watchman") && tickCount%40==0)addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION,60));
-        if(target==null || !hasLineOfSight(target) || specialCooldown>0) return;
+        if(target==null || !hasLineOfSight(target) || specialCooldown>0 || combatActions.active() || fleeTicks>0) return;
         double distance=distanceToSqr(target);
         if(distance>100) return;
+        if(combatActions.begin(target)){specialCooldown=80;return;}
         switch(spec.id()) {
             case "night_watchman","wooden_magpie" -> {
                 for(var mob:level().getEntitiesOfClass(SecondaryMob.class,getBoundingBox().inflate(12),m->m.spec.id().equals(spec.id()))) if(mob!=this && !mob.friendly)mob.setTarget(target);
@@ -219,6 +224,7 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         boolean hit=super.doHurtTarget(victim);
         if(!hit || !(victim instanceof LivingEntity target))return hit;
         animate(4,12);
+        combatActions.successfulMelee(target);
         switch(spec.id()) {
             case "giant_python","crab_soldier","tree_spirit" -> {
                 ExpansionEffects.apply(target,ExpansionEffects.STAGGER,30);
@@ -241,6 +247,7 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         if(shellTicks>0 && !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY))return false;
         if(spec!=null && spec.id().equals("snail_maiden")) {shellTicks=40;animate(5,40);}
         boolean result=super.hurt(source,amount);
+        if(result&&source.getEntity() instanceof LivingEntity attacker)combatActions.evade(attacker);
         if(result && spec!=null && (spec.neutral() || getHealth()<getMaxHealth()*.25F)) {fleeTicks=80;animate(3,30);}
         if(result && spec!=null && spec.id().equals("swindler")){deceptionStage=3;fleeTicks=200;animate(3,200);if(source.getEntity() instanceof Player p)customer=p.getUUID();}
         return result;
@@ -286,7 +293,7 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
     private static void tell(Player p,String key){p.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4."+key),true);}
     @Override protected void dropCustomDeathLoot(DamageSource s,int looting,boolean recentlyHit) {super.dropCustomDeathLoot(s,looting,recentlyHit);if(!stolen.isEmpty()){spawnAtLocation(stolen);stolen=ItemStack.EMPTY;}}
     @Override public void addAdditionalSaveData(CompoundTag nbt) {super.addAdditionalSaveData(nbt);nbt.putBoolean("Cod4Friendly",friendly);nbt.put("Cod4Stolen",stolen.save(new CompoundTag()));nbt.putInt("Cod4Cooldown",specialCooldown);nbt.putInt("Cod4Deception",deceptionStage);nbt.putInt("Cod4Flee",fleeTicks);if(customer!=null)nbt.putUUID("Cod4Customer",customer);}
-    @Override public void readAdditionalSaveData(CompoundTag nbt) {super.readAdditionalSaveData(nbt);friendly=nbt.getBoolean("Cod4Friendly");stolen=ItemStack.of(nbt.getCompound("Cod4Stolen"));specialCooldown=Math.max(0,Math.min(200,nbt.getInt("Cod4Cooldown")));deceptionStage=Math.max(0,Math.min(3,nbt.getInt("Cod4Deception")));fleeTicks=Math.max(0,Math.min(200,nbt.getInt("Cod4Flee")));customer=nbt.hasUUID("Cod4Customer")?nbt.getUUID("Cod4Customer"):null;getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);hardenTicks=0;rollingTicks=0;waterDragTicks=0;waterDragReady=0;draggedTarget=null;waterAnchor=null;projectileWindup=0;pendingProjectile=null;}
+    @Override public void readAdditionalSaveData(CompoundTag nbt) {super.readAdditionalSaveData(nbt);friendly=nbt.getBoolean("Cod4Friendly");stolen=ItemStack.of(nbt.getCompound("Cod4Stolen"));specialCooldown=Math.max(0,Math.min(200,nbt.getInt("Cod4Cooldown")));deceptionStage=Math.max(0,Math.min(3,nbt.getInt("Cod4Deception")));fleeTicks=Math.max(0,Math.min(200,nbt.getInt("Cod4Flee")));customer=nbt.hasUUID("Cod4Customer")?nbt.getUUID("Cod4Customer"):null;getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);hardenTicks=0;rollingTicks=0;combatActions.reset();waterDragTicks=0;waterDragReady=0;draggedTarget=null;waterAnchor=null;projectileWindup=0;pendingProjectile=null;}
     @Override public AnimatableInstanceCache getAnimatableInstanceCache() {return cache;}
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {controllers.add(new AnimationController<>(this,"body",4,state->state.setAndContinue(RawAnimation.begin().thenLoop(animation()))));}
 }

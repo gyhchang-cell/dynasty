@@ -99,6 +99,10 @@ public final class ChenshaEcologyGameTests {
             for(var p:positions)for(int x=-3;x<=3;x++)for(int y=-3;y<=4;y++)for(int z=-3;z<=3;z++)
                 level.setBlockAndUpdate(p.offset(x,y,z),(Math.abs(x)==3||Math.abs(z)==3||y==-3||y==4)?
                     Blocks.STONE.defaultBlockState():Blocks.AIR.defaultBlockState());
+            // The fixture core is deliberately remote from authored masonry; seal natural fluids out.
+            for(int x=-2;x<=2;x++)for(int y=-2;y<=2;y++)for(int z=-2;z<=2;z++)
+                level.setBlockAndUpdate(core.offset(x,y,z),(Math.abs(x)==2||Math.abs(y)==2||Math.abs(z)==2)?
+                    Blocks.STONE.defaultBlockState():Blocks.AIR.defaultBlockState());
             level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());
             ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(instance,"mercury","mercury_core",core,-1,List.of());
         }).thenIdle(30).thenWaitUntil(()->{

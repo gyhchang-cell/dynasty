@@ -17,7 +17,7 @@ public class DynastyNetwork {
             new java.util.TreeMap<>(java.util.Map.of(
                     12, "com.dynasty.cod3.Cod3VisualPacket:PLAY_TO_CLIENT:v1",
                     13, "com.dynasty.network.EdictCastPacket:PLAY_TO_SERVER:v1",
-                    14, "com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v1",
+                    14, "com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v2",
                     15, "com.dynasty.worldevent.WorldEventStatePacket:PLAY_TO_CLIENT:v1",
                     16, "com.dynasty.expansion.CombatFeedback:PLAY_TO_CLIENT:v2",
                     17, "com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1")));

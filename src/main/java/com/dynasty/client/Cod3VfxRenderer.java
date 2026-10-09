@@ -41,7 +41,7 @@ public final class Cod3VfxRenderer {
             String status="status_"+packet.sequence().substring("status_clear_".length());
             ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(status));return;
         }
-        if(packet.sequence().matches("status_[1-8]")||packet.sequence().equals("secondary_roots"))ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(packet.sequence()));
+        if(packet.sequence().matches("status_[1-8]")||packet.sequence().startsWith("secondary_"))ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(packet.sequence()));
         if(packet.template()==0){
             // Typed selection excludes sound, WAIT and SET_* steps from the visual queue.
             Cod3Vfx.resume(packet, Cod3Catalog.sequenceById(packet.sequence())).forEach(Cod3VfxRenderer::add);
@@ -80,7 +80,9 @@ public final class Cod3VfxRenderer {
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
                 Vec3 origin=p.origin(),direction=p.direction();
                 if(p.entityId()>=0){var entity=world.getEntity(p.entityId());
-                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")||p.sequence().equals("secondary_roots")))continue;
+                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")||p.sequence().startsWith("secondary_")))continue;
+                    if(p.sequence().equals("secondary_roots")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(com.dynasty.expansion.ExpansionEffects.STAGGER.get()))continue;
+                    if(p.sequence().equals("secondary_coil")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN))continue;
                     if(entity!=null){if(p.template()==4){if(!entity.isAlive()||entity.getDeltaMovement().lengthSqr()<.0025)continue;direction=entity.getDeltaMovement().normalize();}origin=entity.getPosition(e.getPartialTick());}}
                 double distance=origin.distanceTo(camera);if(distance>256||distance<.8)continue;
                 if(p.scale()>2){if(distance>96&&farLarge++>=1||distance>32&&distance<=96&&mediumLarge++>=2||distance<=32&&nearLarge++>=3)continue;}
@@ -90,6 +92,10 @@ public final class Cod3VfxRenderer {
                 var geometry=new Geometry(pose.last().pose(),camera,origin,direction,p.scale(),p.tint()==0?d.color():p.tint(),alpha,segments,p.seed());
                 if(p.sequence().matches("status_[1-8]"))geometry.status(Integer.parseInt(p.sequence().substring(7)),p.tick()+1,age);
                 else if(p.sequence().equals("secondary_roots"))geometry.roots(age);
+                else if(p.sequence().equals("secondary_coil"))geometry.coil(age);
+                else if(p.sequence().equals("secondary_possession"))geometry.possession(age);
+                else if(p.sequence().equals("secondary_echo"))geometry.echo(life);
+                else if(p.sequence().equals("secondary_alarm"))geometry.alarm(life);
                 else if(p.sequence().equals("qinglong_combo_wave"))geometry.dragonWave(life,age);
                 else if(p.sequence().matches("scenic_(0[1-9]|1[0-9]|2[0-5])"))geometry.scenic(Integer.parseInt(p.sequence().substring(7)),life);else geometry.draw(p.template(),d,expansion,life,age);
             }
@@ -142,6 +148,21 @@ public final class Cod3VfxRenderer {
         void soldier(double x,double z,double time){
             mesh(x,2.4,z,.45);box(x,1,z,.32,1,.2);beam(p(x,.8,z),p(x-.35,0,z+.3*Math.sin(time)),.15);beam(p(x,.8,z),p(x+.35,0,z-.3*Math.sin(time)),.15);beam(p(x-.7,.2,z),p(x-.7,4,z),.05);beam(p(x,1.7,z),p(x-.7,1.3,z),.1);
         }
+        void coil(double age){
+            Vec3 last=p(.5,.04,0);
+            for(int i=1;i<=32;i++){double t=i/32.,a=t*Math.PI*5;Vec3 next=p(Math.cos(a)*.5,t*1.15,Math.sin(a)*.5);beam(last,next,.10+.015*Math.sin(age*.2));last=next;}
+            mesh(last.subtract(o).dot(r),1.2,last.subtract(o).dot(f),.12);
+        }
+        void possession(double age){
+            double turn=age*.09;
+            for(int side=-1;side<=1;side+=2){
+                Vec3 a=p(side*.28,.45,-.32),b=p(side*.48,.9,-.3),c=p(side*(.28+Math.sin(turn)*.05),1.45,-.32);
+                triangle(a,b,c,.65);beam(a,c,.035);
+            }
+            mesh(0,1.65,-.32,.17);beam(p(-.22,.8,-.32),p(.22,.8,-.32),.02);
+        }
+        void echo(double life){for(int band=0;band<3;band++)ring(.25+life*(1.1+band*.35),.8+band*.15,Math.PI*1.5);}
+        void alarm(double life){for(int i=0;i<3;i++){double y=1.8+i*.2+life*.2;beam(p(-.18,y,0),p(0,y+.12,0),.035);beam(p(0,y+.12,0),p(.18,y,0),.035);}}
         void dragonWave(double life,double age){
             // One tapered, travelling body with a horned head, rather than another water ring.
             double head=.35+life*1.6;

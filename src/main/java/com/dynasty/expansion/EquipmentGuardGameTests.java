@@ -65,7 +65,7 @@ public final class EquipmentGuardGameTests {
         try{
             h.assertTrue(p.isInWater(),"Fixture is genuinely submerged");SummonedGuard.maintain(p,99);
             var first=h.getLevel().getEntitiesOfClass(SecondaryMob.class,p.getBoundingBox().inflate(8),m->m.getPersistentData().hasUUID("cod4Summoner")&&m.getPersistentData().getUUID("cod4Summoner").equals(p.getUUID()));owned.addAll(first);
-            h.assertTrue(first.size()==1&&first.get(0).getType()==SecondaryMobs.SHRIMP.get(),"Three pieces enforce one shrimp even with an oversized request");
+            h.assertTrue(first.size()==1&&first.get(0).getType()==SecondaryMobs.SHRIMP.get(),"Three pieces enforce one shrimp even with an oversized request: count="+first.size()+", pieces="+EquipmentBehaviors.pieces(p,"draco_king")+", wet="+p.isInWater()+", lease="+EquipmentBehaviors.saved(p));
             SummonedGuard.maintain(p,2);h.assertTrue(h.getLevel().getEntitiesOfClass(SecondaryMob.class,p.getBoundingBox().inflate(8),m->m.getPersistentData().hasUUID("cod4Summoner")).size()==1,"Same saved lease cannot duplicate a guard");
             suit(p,"draco_king",4);EquipmentBehaviors.saved(p).putLong("guardsUntil",0);SummonedGuard.maintain(p,2);
             SummonedGuard.tick(first.get(0));h.assertTrue(first.get(0).isRemoved(),"A previous generation carrier loses authority");
@@ -106,6 +106,34 @@ public final class EquipmentGuardGameTests {
             h.assertTrue(DynastyTrinketOnHit.advanceCombo(p,target)==3,"Actual returned Qi advances the existing combo by two");
             suit(p,"qinglong",3);EquipmentBehaviors.refresh(p);h.assertTrue(!EquipmentBehaviors.qiActive(p),"Losing the fourth piece immediately stops equipment Qi");h.succeed();
         }finally{net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent(p));DynastyTrinkets.forget(p);p.discard();}});
+    }
+    @GameTest(template="bow_ritual_test",batch="cod4_blocked_sea_guard")
+    public static void blockedWaterSpawnDoesNotConsumeLeaseAndCanRetry(GameTestHelper h){
+        for(int x=2;x<=10;x++)for(int z=2;z<=10;z++)for(int y=1;y<=4;y++)h.setBlock(x,y,z,Blocks.STONE);
+        h.setBlock(6,2,6,Blocks.WATER);h.setBlock(6,3,6,Blocks.WATER);var p=player(h);h.getLevel().addNewPlayer(p);suit(p,"draco_king",3);p.baseTick();
+        try{
+            SummonedGuard.maintain(p,1);h.assertTrue(EquipmentBehaviors.saved(p).getLong("guardsUntil")==0,"No safe water tile cannot consume thirty seconds of lease");
+            h.setBlock(5,2,6,Blocks.WATER);h.setBlock(5,3,6,Blocks.WATER);SummonedGuard.maintain(p,1);
+            var guards=h.getLevel().getEntitiesOfClass(SecondaryMob.class,p.getBoundingBox().inflate(8),m->m.getPersistentData().hasUUID("cod4Summoner")&&m.getPersistentData().getUUID("cod4Summoner").equals(p.getUUID()));
+            h.assertTrue(guards.size()==1&&guards.get(0).getType()==SecondaryMobs.SHRIMP.get(),"Opening a nearby water tile immediately retries once without resetting the clock");
+            guards.forEach(Entity::discard);h.succeed();
+        }finally{h.getLevel().removePlayerImmediately(p,Entity.RemovalReason.DISCARDED);}
+    }
+    @GameTest(template="bow_ritual_test",batch="cod4_weapon_provenance")
+    public static void revengeBonusesUseActualDropsAndCanonicalGiftProgress(GameTestHelper h){
+        var p=player(h);var zombie=new Zombie(h.getLevel());var phoenix=com.dynasty.entity.DynastyEntities.PHOENIX.get().create(h.getLevel());
+        var rebel=com.dynasty.entity.DynastyEntities.REBEL_GENERAL.get().create(h.getLevel());var n=p.getPersistentData();
+        try{
+            n.putBoolean("dynasty_firstkill_dragon_king",true);h.assertTrue(EquipmentBehaviors.revengeBonus(p,zombie,"dragon_spear")==0,"A dragon-king kill is not the dragon spear's real source");
+            n.putBoolean("dynasty_firstkill_undead_first_emperor",true);h.assertTrue(EquipmentBehaviors.revengeBonus(p,zombie,"dragon_spear")==.15F,"First-Emperor drop counters the actual undead faction");
+            n.putBoolean("dynasty_firstkill_nine_heaven_general",true);h.assertTrue(EquipmentBehaviors.revengeBonus(p,phoenix,"sunbow")==0,"Unrelated sky boss does not unlock the phoenix gift");
+            n.putBoolean("dynasty_gift_sunbow",true);h.assertTrue(EquipmentBehaviors.revengeBonus(p,phoenix,"sunbow")==.15F,"Daytime phoenix gift uses its canonical one-time flag");
+            h.assertTrue(EquipmentBehaviors.revengeBonus(p,zombie,"seven_star_saber")==0,"One defeated boss is not the five-kind achievement");
+            n.putInt("dynasty_boss_kinds",5);n.putString("dynasty_boss_kinds_list","dragon_emperor,rebel_general,eunuch_mastermind,undead_first_emperor,dragon_king");
+            h.assertTrue(EquipmentBehaviors.revengeBonus(p,zombie,"seven_star_saber")==.15F,"Five-kind achievement recognises factions actually defeated");
+            n.putBoolean("dynasty_firstkill_dragon_emperor",true);h.assertTrue(EquipmentBehaviors.revengeBonus(p,rebel,"supreme_sword")==0,"Dragon Emperor does not replace court rank");
+            n.putBoolean("dynasty_gift_supreme_sword",true);h.assertTrue(EquipmentBehaviors.revengeBonus(p,rebel,"supreme_sword")==.15F,"Canonical court gift counters court enemies");h.succeed();
+        }finally{DynastyTrinkets.forget(p);p.discard();}
     }
     private EquipmentGuardGameTests(){}
 }

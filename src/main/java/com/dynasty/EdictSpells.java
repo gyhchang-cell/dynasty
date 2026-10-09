@@ -53,7 +53,7 @@ public final class EdictSpells {
     public static boolean visible(ServerPlayer p,LivingEntity e){return p.hasLineOfSight(e);}
     private static void visual(Cast c,int kind) {
         DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(c.origin.x,c.origin.y,c.origin.z,64,c.dimension)),
-                new EdictVisualPacket(c.id,kind,c.start,c.origin,c.point));
+                new EdictVisualPacket(c.id,kind,c.start,c.origin,c.point,c.dimension.location().toString(),c.owner.getId(),c.owner.getUUID()));
     }
     @SubscribeEvent(priority=EventPriority.HIGHEST) public static void attack(AttackEntityEvent e) {
         if(!weapon(e.getEntity().getMainHandItem()))return;e.setCanceled(true);

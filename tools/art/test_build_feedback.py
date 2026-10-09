@@ -6,14 +6,19 @@ ROOT=Path(__file__).resolve().parents[2];RES=ROOT/'src/main/resources'
 class FeedbackTests(unittest.TestCase):
     def test_new_visits_have_real_world_predicates(self):
         rows=[q for c in build_book() for q in c['quests'] if q['role']=='exploration_branch']
-        self.assertEqual(6,len(rows))
+        visits={'dynasty:visit_post_house','dynasty:visit_herbal_retreat','dynasty:tiangong_mining_estate','dynasty:visit_desert_caravan','dynasty:tiangong_citadel','dynasty:visit_ruined_battlefield'}
+        found={q['target'] for q in rows if q['kind']=='advancement'}
+        self.assertTrue(visits<=found,'All six visits must remain present alongside newer crafting/combat branches')
         for q in rows:
-            if q['kind']!='advancement':continue
+            if q['kind']!='advancement' or q['target'] not in visits:continue
             a=json.loads((RES/('data/dynasty/advancements/'+q['target'].split(':')[1]+'.json')).read_text())
-            pred=a['criteria']['visit']['conditions']['player'][0]['predicate']
+            location=[c for c in a['criteria'].values() if c['trigger']=='minecraft:location']
+            self.assertEqual(1,len(location));pred=location[0]['conditions']['player'][0]['predicate']
             self.assertEqual('minecraft:overworld',pred['dimension'])
             structure=json.loads((RES/('data/dynasty/worldgen/structure/'+pred['structure'].split(':')[1]+'.json')).read_text())
-            self.assertEqual('dynasty:travel_site',structure['type']);self.assertTrue(structure['biomes'])
+            expected=q['target'] if q['target'] in {'dynasty:tiangong_mining_estate','dynasty:tiangong_citadel'} else 'dynasty:travel_site'
+            if q['target']=='dynasty:visit_ruined_battlefield':expected='dynasty:battlefield'
+            self.assertEqual(expected,structure['type']);self.assertTrue(structure['biomes'])
     def test_refinement_pages_do_not_repeat_previous_band(self):
         from quest_growth import refining_costs
         for start,end in [(0,1),(1,5),(5,15),(15,30)]:
@@ -44,8 +49,16 @@ class FeedbackTests(unittest.TestCase):
                 self.assertAlmostEqual(16/w,e['to'][0]-e['from'][0]);self.assertAlmostEqual(16/h,e['to'][1]-e['from'][1])
             self.assertEqual(expected,actual,p.name)
         self.assertGreaterEqual(count,32)
-        for key in ('leifu_staff','taiyi_whisk'):
+        for key in ('leifu_staff','taiyi_whisk_icon'):
             self.assertTrue(json.loads((RES/f'assets/dynasty/models/item/{key}.json').read_text())['dynasty_solid_edges'])
+    def test_whisk_held_path_preserves_original_inventory_art(self):
+        held=json.loads((RES/'assets/dynasty/models/item/taiyi_whisk.json').read_text())
+        icon=json.loads((RES/'assets/dynasty/models/item/taiyi_whisk_icon.json').read_text())
+        parent=json.loads((RES/'assets/dynasty/models/item/solid_handheld.json').read_text())
+        self.assertEqual('builtin/entity',held['parent'])
+        self.assertEqual(parent['display'],held['display'])
+        self.assertEqual('dynasty:item/taiyi_whisk',icon['textures']['layer0'])
+        self.assertTrue(icon['elements']);self.assertTrue(icon['dynasty_solid_edges'])
     def test_armor_outputs_are_complete_square_rgba_icons(self):
         manifest=json.loads((ROOT/'docs/art/build-feedback-v5/armor-assets.json').read_text());self.assertEqual(12,len(manifest))
         for row in manifest:

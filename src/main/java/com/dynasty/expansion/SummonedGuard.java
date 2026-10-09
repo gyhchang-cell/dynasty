@@ -15,16 +15,25 @@ public final class SummonedGuard {
         if(pieces<3||count==0||!p.isInWater())return;
         var n=EquipmentBehaviors.saved(p);long now=p.level().getGameTime();
         if(now<n.getLong("guardsUntil"))return;
-        n.putLong("guardsUntil",now+600);
-        long generation=n.getLong("guardGeneration")+1;n.putLong("guardGeneration",generation);
+        long generation=n.getLong("guardGeneration")+1;
+        int spawned=0;
         for(int i=0;i<count;i++) {
             var guard=(i==0?SecondaryMobs.SHRIMP.get():SecondaryMobs.TYPES.get("crab_soldier").get()).create(p.level());if(guard==null)continue;
-            guard.moveTo(p.getX()+i*2-1,p.getY(),p.getZ()+1,0,0);
-            if(!p.level().noCollision(guard))continue;
+            boolean placed=false;
+            // A blocked preferred tile must not consume the entire thirty-second lease.
+            for(int ring=1;ring<=3&&!placed;ring++)for(int x=-ring;x<=ring&&!placed;x++)for(int z=-ring;z<=ring&&!placed;z++){
+                if(Math.max(Math.abs(x),Math.abs(z))!=ring)continue;
+                var pos=p.blockPosition().offset(x,0,z);
+                if(!p.level().hasChunkAt(pos)||!p.level().getFluidState(pos).is(net.minecraft.tags.FluidTags.WATER))continue;
+                guard.moveTo(pos.getX()+.5,p.getY(),pos.getZ()+.5,0,0);
+                placed=p.level().noCollision(guard);
+            }
+            if(!placed)continue;
             guard.getPersistentData().putUUID("cod4Summoner",p.getUUID());guard.getPersistentData().putLong("cod4Expires",now+600);
             guard.getPersistentData().putLong("cod4GuardGeneration",generation);guard.getPersistentData().putInt("cod4MinPieces",i==0?3:4);
-            p.level().addFreshEntity(guard);
+            if(p.level().addFreshEntity(guard))spawned++;
         }
+        if(spawned>0){n.putLong("guardsUntil",now+600);n.putLong("guardGeneration",generation);}
     }
     public static void tick(SecondaryMob mob) {
         var n=mob.getPersistentData();var owner=mob.level().getPlayerByUUID(n.getUUID("cod4Summoner"));

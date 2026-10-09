@@ -381,7 +381,7 @@ public final class DynastyWeapons {
             () -> new AxeItem(DynastyTiers.DRAGON_CRYSTAL, 3159, -3.1F, new Item.Properties()));
     /** 36. 太乙拂尘 / Taiyi Whisk：3600，特攻 +500（长柄，攻击距离 +3）*/
     public static final RegistryObject<Item> TAIYI_WHISK = ITEMS.register("taiyi_whisk",
-            () -> new PolearmItem(DynastyTiers.DRAGON_CRYSTAL, 3459, -2.2F, new Item.Properties()));
+            () -> new TaiyiWhiskItem(DynastyTiers.DRAGON_CRYSTAL, 3459, -2.2F, new Item.Properties()));
     /** 37. 玄武盾刀 / Xuanwu Blade：4000，特攻 +550 */
     public static final RegistryObject<Item> XUANWU_BLADE =
             sword("xuanwu_blade", DynastyTiers.DRAGON_CRYSTAL, 3859, -2.6F);

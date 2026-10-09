@@ -13,7 +13,7 @@ public final class InfusionProtocolGameTests {
         h.assertTrue(schema.contains(infusion),"Infusion wire slot/direction/revision missing");
         h.assertTrue(schema.contains("12=com.dynasty.cod3.Cod3VisualPacket:PLAY_TO_CLIENT:v1"),"Cod3 packet overwritten");
         h.assertTrue(schema.contains("13=com.dynasty.network.EdictCastPacket:PLAY_TO_SERVER:v1"),"Edict request overwritten");
-        h.assertTrue(schema.contains("14=com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v1"),"Edict feedback overwritten");
+        h.assertTrue(schema.contains("14=com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v2"),"Edict feedback overwritten");
         h.assertTrue(DynastyNetwork.acceptsProtocol(local),"Same schema rejected");
         h.assertTrue(!DynastyNetwork.acceptsProtocol("8"),"Legacy schema accepted");
         h.assertTrue(!DynastyNetwork.acceptsProtocol(DynastyNetwork.fingerprintSchema(schema.replace(infusion,""))),"Peer missing infusion accepted");

@@ -14,7 +14,7 @@ public final class EdictNetworkRegistration {
             DynastyNetwork.registerExtension(13, EdictCastPacket.class, EdictCastPacket::encode,
                     EdictCastPacket::decode, EdictCastPacket::handle, NetworkDirection.PLAY_TO_SERVER, 1);
             DynastyNetwork.registerExtension(14, EdictVisualPacket.class, EdictVisualPacket::encode,
-                    EdictVisualPacket::decode, EdictVisualPacket::handle, NetworkDirection.PLAY_TO_CLIENT, 1);
+                    EdictVisualPacket::decode, EdictVisualPacket::handle, NetworkDirection.PLAY_TO_CLIENT, EdictVisualPacket.WIRE_REVISION);
         });
     }
     private EdictNetworkRegistration() {}

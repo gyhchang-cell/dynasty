@@ -20,12 +20,25 @@ public final class EdictRenderer {
     private static final BufferBuilder BUFFER=new BufferBuilder(65536);
     private static final Map<UUID,EdictVisualPacket> CASTS=new LinkedHashMap<>();
     private static net.minecraft.client.multiplayer.ClientLevel world;
+    static void reset(){CASTS.clear();world=null;}
     private static void clean(){var current=Minecraft.getInstance().level;if(world!=current){CASTS.clear();world=current;}if(world!=null)CASTS.values().removeIf(p->world.getGameTime()-p.born()>100);}
     public static void receive(EdictVisualPacket p) {
-        clean();if(world==null)return;
+        clean();if(world==null||!p.valid()||!world.dimension().location().toString().equals(p.dimension()))return;
         if(p.kind()==-1){CASTS.remove(p.id());return;}
         if(p.kind()<0||p.kind()>5||!Double.isFinite(p.origin().lengthSqr()+p.end().lengthSqr())||p.origin().distanceToSqr(p.end())>1024)return;
         CASTS.put(p.id(),p);while(CASTS.size()>24)CASTS.remove(CASTS.keySet().iterator().next());
+    }
+    /** Resolve the actual holder, never the nearest player or the local viewer. */
+    static EdictVisualPacket heldCast(net.minecraft.world.item.ItemStack stack){
+        clean();if(world==null)return null;
+        EdictVisualPacket newest=null;
+        for(var cast:CASTS.values()){
+            var holder=world.getEntity(cast.ownerId());
+            if(!(holder instanceof net.minecraft.world.entity.player.Player p)||!p.getUUID().equals(cast.ownerUuid())||!p.isAlive()
+                    ||p.isSpectator()||p.getMainHandItem()!=stack||world.getGameTime()-cast.born()>EdictSpells.WINDUP[cast.kind()]+16)continue;
+            if(newest==null||newest.born()<cast.born())newest=cast;
+        }
+        return newest;
     }
     @SubscribeEvent public static void input(InputEvent.InteractionKeyMappingTriggered e) {
         var p=Minecraft.getInstance().player;
@@ -41,6 +54,7 @@ public final class EdictRenderer {
             RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();RenderSystem.depthMask(false);RenderSystem.disableCull();
             RenderSystem.setShader(GameRenderer::getPositionColorShader);BUFFER.begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
             for(var p:CASTS.values()) {
+                if(p.ownerId()>=0){var owner=world.getEntity(p.ownerId());if(owner==null||!owner.isAlive()||!owner.getUUID().equals(p.ownerUuid()))continue;}
                 double age=world.getGameTime()+e.getPartialTick()-p.born(),windup=EdictSpells.WINDUP[p.kind()];
                 if(age<0||age>windup+12||p.end().distanceToSqr(camera)>64*64)continue;
                 double phase=Math.min(1,age/windup),alpha=.8*Math.min(1,age/3)*Math.min(1,(windup+12-age)/12);
