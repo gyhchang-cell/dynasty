@@ -133,7 +133,7 @@ public final class WorldEventGameTests {
             h.assertTrue(!p.getPersistentData().contains(WorldEventItems.PERMIT)&&mob.getTarget()==p,"Accepted attack revokes pass and permits retaliation");h.succeed();
         }finally{mob.discard();level.removePlayerImmediately(p,Entity.RemovalReason.DISCARDED);}
     }
-    @GameTest(template="bow_ritual_test",batch="cod2_event_peace",timeoutTicks=400)
+    @GameTest(template="bow_ritual_test",batch="cod2_event_peace",timeoutTicks=800)
     public static void celestialPeaceCancelsAnActualPendingAttackAndCombatReturnsAfterItEnds(GameTestHelper h){
         var level=h.getLevel();var center=new BlockPos(8192,100,8192);
         var forced=new HashSet<net.minecraft.world.level.ChunkPos>();var actors=new ArrayList<Entity>();

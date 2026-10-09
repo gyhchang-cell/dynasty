@@ -46,7 +46,7 @@ public final class DungeonFrameworkGameTests {
         h.succeed();
     }
 
-    @GameTest(template="bow_ritual_test",batch="cod2_garrison",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod2_garrison",timeoutTicks=600)
     public static void tombGarrisonUsesExistingLedgerAndCannotRefillAfterUnload(GameTestHelper h) {
         var level=h.getLevel();var origin=h.absolutePos(new BlockPos(3072,80,2048));var id=UUID.randomUUID();
         var core=origin.offset(27,48,37);var entrant=origin.offset(32,49,64);
@@ -54,8 +54,11 @@ public final class DungeonFrameworkGameTests {
         var spawned=new java.util.ArrayList<net.minecraft.world.entity.Entity>();
         var forced=new java.util.HashSet<ChunkPos>();
         for(int x:new int[]{10,27,52})for(int z:new int[]{37,50,78}) {
-            var chunk=new ChunkPos(origin.offset(x,49,z));
-            if(!level.getForcedChunks().contains(chunk.toLong())){level.setChunkForced(chunk.x,chunk.z,true);forced.add(chunk);}
+            var center=new ChunkPos(origin.offset(x,49,z));
+            for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++) {
+                var chunk=new ChunkPos(center.x+dx,center.z+dz);
+                if(!level.getForcedChunks().contains(chunk.toLong())){level.setChunkForced(chunk.x,chunk.z,true);forced.add(chunk);}
+            }
         }
         // Fixture-only tickets: entity sections must become visible before UUID lookup.
         // Production merely visits already-loaded markers near real players.
@@ -64,6 +67,7 @@ public final class DungeonFrameworkGameTests {
             for(var chunk:forced){
                 var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
                 h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Fixture chunks must expose entity sections before spawning");
+                h.assertTrue(level.areEntitiesLoaded(chunk.toLong()),"Fixture entity storage must finish asynchronous loading before spawning");
             }
         }).thenExecute(()->{
             level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
