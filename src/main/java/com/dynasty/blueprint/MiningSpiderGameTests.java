@@ -42,10 +42,16 @@ public final class MiningSpiderGameTests {
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=25,batch="mining_spider")
     public static void authoredSpawnRejectsMissingCeilingAndRetainsEncounterCap(GameTestHelper h){
-        spider(h).discard();var level=h.getLevel();var p=h.absolutePos(new BlockPos(7,5,7));var entrant=p.offset(8,0,0);String key="test-spider-"+java.util.UUID.randomUUID();
-        h.setBlock(7,7,7,Blocks.AIR);h.assertTrue(!BlueprintSpawns.spawnMiningSpiders(level,key,java.util.List.of(p),entrant),"Missing support forbids ceiling spawn");h.setBlock(7,7,7,Blocks.STONE);
+        // Native population cap uses a32-block AABB. Other simultaneous fixture spiders
+        // are legitimate occupants: prepare this encounter above their physical region.
+        var level=h.getLevel();var p=h.absolutePos(new BlockPos(7,55,7));
+        for(int x=-4;x<=4;x++)for(int z=-4;z<=4;z++)for(int y=-4;y<=3;y++)level.setBlock(p.offset(x,y,z),(y==-4||y==2?Blocks.STONE:Blocks.AIR).defaultBlockState(),3);
+        var entrant=p.offset(8,0,0);String key="test-spider-"+java.util.UUID.randomUUID();
+        h.assertTrue(level.getEntitiesOfClass(TemplateMob.class,new net.minecraft.world.phys.AABB(p).inflate(32),e->e.isAlive()&&e.getType()==BlueprintEntities.BAZU_DIGONGZHU.get()).isEmpty(),"Actual isolated fixture contains no other native capped spiders");
+        level.setBlock(p.above(2),Blocks.AIR.defaultBlockState(),3);h.assertTrue(!BlueprintSpawns.spawnMiningSpiders(level,key,java.util.List.of(p),entrant),"Missing support forbids ceiling spawn");level.setBlock(p.above(2),Blocks.STONE.defaultBlockState(),3);
         h.assertTrue(BlueprintSpawns.spawnMiningSpiders(level,key,java.util.List.of(p),entrant),"Legal loaded roof permits authored spider");
-        h.assertTrue(!BlueprintSpawns.spawnMiningSpiders(level,key,java.util.List.of(p),entrant),"Encounter cap prevents duplicate spawn");h.succeed();
+        h.assertTrue(!BlueprintSpawns.spawnMiningSpiders(level,key,java.util.List.of(p),entrant),"Encounter cap prevents duplicate spawn");
+        level.getEntitiesOfClass(TemplateMob.class,new net.minecraft.world.phys.AABB(p).inflate(3),e->e.getType()==BlueprintEntities.BAZU_DIGONGZHU.get()).forEach(net.minecraft.world.entity.Entity::discard);h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="mining_spider")
     public static void eightLegRigClipsLoadThroughActualParser(GameTestHelper h) throws Exception {

@@ -29,13 +29,20 @@ public final class BronzeSnakeGameTests {
         h.runAfterDelay(16,()->h.assertTrue(Math.abs(net.minecraft.util.Mth.wrapDegrees(mob.yBodyRot))<1,"Body remains oriented forward while rear head attacks"));
         h.runAfterDelay(29,()->{h.assertTrue(rear.getHealth()==194&&front.getHealth()==200,"One rear contact, no opposite-head phantom hit");h.succeed();});
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=120,batch="bronze_snake")
+    @GameTest(template="bow_ritual_test",timeoutTicks=150,batch="bronze_fire")
     public static void fireBreathIsTelegraphedBoundedAndStopsAfterThreeSeconds(GameTestHelper h){
         var mob=snake(h);var front=enemy(h,11);var rear=enemy(h,3);var ally=h.spawn(BlueprintEntities.XUNSHAN_MUJIAQUAN.get(),new BlockPos(7,2,10));ally.setNoAi(true);float allyHp=ally.getHealth();
-        h.assertTrue(mob.startSkill(ArmySkills.BRONZE_FIRE,front),"Starts fire cone");
-        h.runAfterDelay(16,()->h.assertTrue(front.getHealth()==200&&!front.isOnFire(),"No hidden early fire"));
-        h.runAfterDelay(22,()->h.assertTrue(front.getHealth()<200&&front.isOnFire()&&rear.getHealth()==200&&ally.getHealth()==allyHp,"Only enemies in forward cone burn"));
-        h.runAfterDelay(80,()->{front.clearFire();float hp=front.getHealth();h.runAfterDelay(20,()->{h.assertTrue(front.getHealth()==hp,"No breath damage in recovery");h.succeed();});});
+        h.startSequence().thenWaitUntil(()->h.assertTrue(mob.tickCount>=2&&front.tickCount>=2&&h.getLevel().getEntity(front.getUUID())==front,"Real caster and damage targets visible and ticking before breath"))
+        .thenExecute(()->{
+            h.assertTrue(mob.startSkill(ArmySkills.BRONZE_FIRE,front),"Starts fire cone");
+            h.runAfterDelay(16,()->h.assertTrue(front.getHealth()==200&&!front.isOnFire(),"No hidden early fire"));
+            h.runAfterDelay(22,()->h.assertTrue(front.getHealth()<200&&front.isOnFire()&&rear.getHealth()==200&&ally.getHealth()==allyHp,"Only enemies in forward cone burn"));
+        })
+        .thenWaitUntil(()->h.assertTrue(mob.attack().state(h.getLevel().getGameTime())==com.dynasty.blueprint.combat.AttackState.RECOVERY,"Actual original breath enters recovery after18+60 native ticks"))
+        .thenExecute(()->{front.clearFire();float hp=front.getHealth();h.runAfterDelay(20,()->{
+            try{var damage=front.getLastDamageSource();h.assertTrue(front.getHealth()==hp,"No breath damage in recovery: before="+hp+", after="+front.getHealth()+", skill="+mob.skillId()+", age="+mob.actionAge(0)+", fire="+front.getRemainingFireTicks()+", source="+(damage==null?"none":damage.getMsgId())+", direct="+(damage==null?null:damage.getDirectEntity()));h.succeed();}
+            finally{mob.discard();front.discard();rear.discard();ally.discard();}
+        });});
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=60,batch="bronze_snake")
     public static void wallAndSharedReloadCooldownPreventBreathExploits(GameTestHelper h){

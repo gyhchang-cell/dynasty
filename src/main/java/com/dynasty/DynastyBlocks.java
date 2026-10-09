@@ -105,8 +105,8 @@ public class DynastyBlocks {
 
     /** 宫灯 / Imperial Lantern */
     public static final RegistryObject<Block> IMPERIAL_LANTERN =
-            simple("imperial_lantern", BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_RED)
-                    .strength(1.0F).sound(SoundType.WOOD).lightLevel(state -> 15));
+            custom("imperial_lantern", () -> new com.dynasty.block.OilFueledBlock(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_RED)
+                    .strength(1.0F).sound(SoundType.WOOD).lightLevel(state -> 15),com.dynasty.block.OilFueledBlock.Kind.LANTERN));
 
     private static BlockBehaviour.Properties portalProps() {
         return BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_GREEN)
@@ -174,8 +174,8 @@ public class DynastyBlocks {
                             .strength(2.0F).sound(SoundType.WOOD), false));
     /** 香炉 / Incense Burner */
     public static final RegistryObject<Block> INCENSE_BURNER =
-            simple("incense_burner", BlockBehaviour.Properties.of().mapColor(MapColor.GOLD)
-                    .strength(2.0F).sound(SoundType.METAL).lightLevel(s -> 5));
+            custom("incense_burner", () -> new com.dynasty.block.OilFueledBlock(BlockBehaviour.Properties.of().mapColor(MapColor.GOLD)
+                    .strength(2.0F).sound(SoundType.METAL).lightLevel(s -> s.getValue(com.dynasty.block.OilFueledBlock.FUEL)>0?15:5),com.dynasty.block.OilFueledBlock.Kind.INCENSE));
     /** 屏风 / Screen */
     public static final RegistryObject<Block> SCREEN =
             simple("screen", BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)

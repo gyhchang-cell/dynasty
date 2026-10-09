@@ -207,6 +207,9 @@ zh['message.dynasty.cod4.lift_cargo_sent']='钢索已转运附近的一叠掉落
 zh['message.dynasty.cod4.lift_cargo_unavailable']='没有可转运的掉落，或出口尚不可用；未消耗钢索。';en['message.dynasty.cod4.lift_cargo_unavailable']='No eligible cargo or safe loaded exit; no cable consumed.'
 zh['tooltip.dynasty.qimen_cable']='可维修受损木鹊或拉动陷阱；潜行持索点击已解锁的回程吊篮，可转运附近一叠掉落。';en['tooltip.dynasty.qimen_cable']='Repair an injured magpie or trip a trap; sneak-click an unlocked return lift to move one nearby dropped stack.'
 zh['tooltip.dynasty.qimen_gear']='投在八格内可作为发条鼠诱饵；点击闲置陷阱可安装一次预警机括。';en['tooltip.dynasty.qimen_gear']='Drop within eight blocks to bait a clockwork rat; click an idle trap to fit its warning gear once.'
+zh['message.dynasty.cod4.oil_added']='已添灯油：%1$s份；每份燃烧一分钟。';en['message.dynasty.cod4.oil_added']='Oil added: %1$s units; each burns for one minute.'
+zh['tooltip.dynasty.oil_lantern']='添油后夜间燃烧，使六格内获得短时夜视；白天暂停耗油，原基础照明保留。';en['tooltip.dynasty.oil_lantern']='Oil burns at night to grant brief night vision within six blocks; daylight pauses fuel, base lighting stays.'
+zh['tooltip.dynasty.oil_incense']='添油后亮度提高，可净化四格内阴气与灼魂；最多三份油，拆除返还未燃烧的后备油。';en['tooltip.dynasty.oil_incense']='Oil brightens the burner and clears Yin Qi and Soul Burn within four blocks; holds three units, unused reserves return on removal.'
 # Material-owned variants preserve the canonical accessory IDs, base recipes, slots and saved investment.
 for rid,material,item,cn,english in [('gray_wolf_fang_charm','wolf_fang','tiger_claw','灰狼牙饰','Gray Wolf Fang Charm'),('crab_soldier_shell_charm','crab_shell','scale_plate','蟹将甲饰','Crab Soldier Shell Charm')]:
  zh['item.dynasty.'+rid]=cn;en['item.dynasty.'+rid]=english

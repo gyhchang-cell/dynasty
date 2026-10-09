@@ -177,20 +177,20 @@ public final class DungeonFrameworkGameTests {
 
     @GameTest(template="bow_ritual_test",batch="cod2_chensha",timeoutTicks=80)
     public static void trapArrowsActuallyHitPoisonAndExpire(GameTestHelper h) {
-        var cow=h.spawn(net.minecraft.world.entity.EntityType.COW,new BlockPos(8,3,8));cow.setNoAi(true);
-        var arrow=DungeonContent.TRAP_ARROW.get().create(h.getLevel());
-        arrow.setPos(cow.getX()-3,cow.getY()+.6,cow.getZ());arrow.shoot(1,0,0,1.6F,0);
-        h.getLevel().addFreshEntity(arrow);
-        h.runAtTickTime(8,()->h.assertTrue(cow.hasEffect(net.minecraft.world.effect.MobEffects.POISON)&&cow.getHealth()<cow.getMaxHealth(),"Real poison arrow collision must hurt the target"));
-        var survivor=DungeonContent.TRAP_ARROW.get().create(h.getLevel());survivor.setPos(cow.getX(),cow.getY()+10,cow.getZ());
-        survivor.setNoGravity(true);h.getLevel().addFreshEntity(survivor);
-        h.runAtTickTime(10,()->{
-            var saved=survivor.saveWithoutId(new CompoundTag());
-            var restored=DungeonContent.TRAP_ARROW.get().create(h.getLevel());restored.load(saved);
-            h.assertTrue(restored.pickup==net.minecraft.world.entity.projectile.AbstractArrow.Pickup.DISALLOWED,"Reload cannot enable arrow farming");
-            h.assertTrue(restored.saveWithoutId(new CompoundTag()).getInt("DungeonRemainingTicks")<=31,"Remaining lifetime survives NBT");
+        for(int x=3;x<=10;x++)for(int z=6;z<=10;z++)for(int y=2;y<=6;y++)h.setBlock(x,y,z,y==2?net.minecraft.world.level.block.Blocks.STONE:net.minecraft.world.level.block.Blocks.AIR);
+        var cow=h.spawn(net.minecraft.world.entity.EntityType.COW,new BlockPos(8,3,8));cow.setNoAi(true);cow.setNoGravity(true);
+        h.startSequence().thenWaitUntil(()->h.assertTrue(h.getLevel().getEntity(cow.getUUID())==cow&&cow.tickCount>=2,"Real damage target visible and ticking before projectile launch"))
+        .thenExecute(()->{
+            var arrow=DungeonContent.TRAP_ARROW.get().create(h.getLevel());arrow.setPos(cow.getX()-3,cow.getY()+.6,cow.getZ());arrow.shoot(1,0,0,1.6F,0);h.getLevel().addFreshEntity(arrow);
+            var survivor=DungeonContent.TRAP_ARROW.get().create(h.getLevel());survivor.setPos(cow.getX(),cow.getY()+10,cow.getZ());survivor.setNoGravity(true);h.getLevel().addFreshEntity(survivor);
+            h.runAfterDelay(8,()->h.assertTrue(cow.hasEffect(net.minecraft.world.effect.MobEffects.POISON)&&cow.getHealth()<cow.getMaxHealth(),"Real poison arrow collision must hurt the target; arrow ticks="+arrow.tickCount+", target ticks="+cow.tickCount+", at="+arrow.position()));
+            h.runAfterDelay(10,()->{
+                var saved=survivor.saveWithoutId(new CompoundTag());var restored=DungeonContent.TRAP_ARROW.get().create(h.getLevel());restored.load(saved);
+                h.assertTrue(restored.pickup==net.minecraft.world.entity.projectile.AbstractArrow.Pickup.DISALLOWED,"Reload cannot enable arrow farming");
+                h.assertTrue(survivor.tickCount>=9&&restored.saveWithoutId(new CompoundTag()).getInt("DungeonRemainingTicks")<=31,"Actual native ticking remaining lifetime survives NBT");restored.discard();
+            });
+            h.runAfterDelay(45,()->{try{h.assertTrue(survivor.isRemoved(),"Unclaimed projectiles expire without a global scanner");h.succeed();}finally{arrow.discard();survivor.discard();cow.discard();}});
         });
-        h.runAtTickTime(45,()->{h.assertTrue(survivor.isRemoved(),"Unclaimed projectiles expire without a global scanner");h.succeed();});
     }
 
     @GameTest(template="bow_ritual_test",batch="cod2_chensha")

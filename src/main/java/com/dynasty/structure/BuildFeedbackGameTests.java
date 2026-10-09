@@ -64,7 +64,8 @@ public final class BuildFeedbackGameTests {
         try(var input=BuildFeedbackGameTests.class.getResourceAsStream("/data/dynasty/build_overrides/"+id+".json")){
             var rows=com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(input)).getAsJsonArray();
             for(var row:rows){var o=row.getAsJsonObject();var c=o.getAsJsonArray("pos");var s=blocks.get(new BlockPos(c.get(0).getAsInt(),c.get(1).getAsInt(),c.get(2).getAsInt()));
-                h.assertTrue(net.minecraft.commands.arguments.blocks.BlockStateParser.serialize(s).equals(o.get("state").getAsString()),"Imported edit lost: "+row);
+                var expected=net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(net.minecraft.core.registries.BuiltInRegistries.BLOCK.asLookup(),o.get("state").getAsString(),false).blockState();
+                h.assertTrue(s.equals(expected),"Imported edit lost: "+row);
             }
         }catch(Exception e){throw new IllegalStateException(e);}
     }
