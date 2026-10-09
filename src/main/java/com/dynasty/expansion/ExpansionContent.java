@@ -10,7 +10,7 @@ import java.util.*;
 public final class ExpansionContent {
     public static final DeferredRegister<Item> ITEMS=DeferredRegister.create(ForgeRegistries.ITEMS,Dynasty.MODID);
     public static final Map<String,RegistryObject<Item>> MATERIALS=new LinkedHashMap<>();
-    static { for(String id:List.of("qimen_cable","qimen_gear","fox_pelt","wolf_fang","python_gall","crab_shell","kappa_scale","sprite_jade","lantern_oil","locust_dust")) MATERIALS.put(id, ITEMS.register(id,()->new Item(new Item.Properties()))); }
+    static { for(String id:List.of("qimen_cable","qimen_gear","fox_pelt","wolf_fang","python_gall","crab_shell","kappa_scale","sprite_jade","lantern_oil","locust_dust")) MATERIALS.put(id, ITEMS.register(id,()->id.equals("locust_dust")?new CropDust():new Item(new Item.Properties()))); }
     public static final RegistryObject<Item> REPEATING=ITEMS.register("repeating_crossbow",()->new ExpansionWeapons.BurstCrossbow(false));
     public static final RegistryObject<Item> SIEGE=ITEMS.register("siege_crossbow",()->new ExpansionWeapons.BurstCrossbow(true));
     public static final RegistryObject<Item> ROPE=ITEMS.register("rope_dart",()->new ExpansionWeapons.QimenSword("rope_dart",420,-2.2F));

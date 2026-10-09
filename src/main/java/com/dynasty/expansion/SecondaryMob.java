@@ -39,7 +39,14 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
     private int projectileWindup;
     private java.util.UUID pendingProjectile;
     private java.util.UUID draggedTarget;
-    private net.minecraft.core.BlockPos waterAnchor;
+    private net.minecraft.core.BlockPos waterAnchor,cropFleeOrigin;
+    public static final int CROP_FLEE_TICKS=120;
+    public boolean cropPest(){return java.util.Set.of("locust_swarm","corpse_beetle","venom_scorpion").contains(spec.id());}
+    public boolean repelFromCrop(net.minecraft.core.BlockPos origin){
+        if(level().isClientSide||!isAlive()||isNoAi()||!cropPest()||getPersistentData().hasUUID("cod4Summoner")||cropFleeOrigin!=null&&fleeTicks>0
+            ||distanceToSqr(Vec3.atCenterOf(origin))>64)return false;
+        cropFleeOrigin=origin.immutable();fleeTicks=CROP_FLEE_TICKS;setTarget(null);combatActions.reset();getNavigation().stop();animate(3,CROP_FLEE_TICKS);return true;
+    }
     private java.util.UUID customer;
     private static final java.util.UUID HARDENING=java.util.UUID.nameUUIDFromBytes("dynasty:stone_sprite_hardening".getBytes(java.nio.charset.StandardCharsets.UTF_8));
     private boolean friendly;
@@ -56,8 +63,16 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         });
         goalSelector.addGoal(1,new Goal() {
             { setFlags(java.util.EnumSet.of(Flag.MOVE,Flag.LOOK)); }
+            private int nextMove;
             @Override public boolean canUse() { return fleeTicks>0; }
+            @Override public void start(){nextMove=0;}
             @Override public void tick() {
+                if(cropFleeOrigin!=null){
+                    if(tickCount<nextMove)return;nextMove=tickCount+10;
+                    Vec3 away=position().subtract(Vec3.atCenterOf(cropFleeOrigin)).multiply(1,0,1).normalize();
+                    if(away.lengthSqr()<.01)away=new Vec3(1,0,0);
+                    getNavigation().moveTo(getX()+away.x*8,getY(),getZ()+away.z*8,1.4);return;
+                }
                 LivingEntity attacker=getLastHurtByMob();
                 if(attacker==null && customer!=null)attacker=level().getPlayerByUUID(customer);
                 if(attacker!=null) {Vec3 away=position().subtract(attacker.position()).normalize().scale(8);getNavigation().moveTo(getX()+away.x,getY(),getZ()+away.z,1.4);}
@@ -118,7 +133,7 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         super.aiStep();
         if(level().isClientSide || !isAlive()) return;
         if(specialCooldown>0)specialCooldown--;
-        if(fleeTicks>0)fleeTicks--;
+        if(fleeTicks>0)fleeTicks--;if(fleeTicks==0)cropFleeOrigin=null;
         if(shellTicks>0)shellTicks--;
         if(hardenTicks>0 && --hardenTicks==0)getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);
         if(animationTicks>0)animationTicks--;else entityData.set(STATE,fleeTicks>0?3:getTarget()!=null?2:getDeltaMovement().horizontalDistanceSqr()>.001?1:0);
@@ -134,12 +149,12 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
             if(horizontalCollision)rollingTicks=0;
             else if(target!=null && touching(target)){doHurtTarget(target);rollingTicks=0;}
         }
-        if(spec.id().equals("locust_swarm") && specialCooldown==0){
+        if(spec.id().equals("locust_swarm") && specialCooldown==0 && fleeTicks==0){
             for(var victim:level().getEntitiesOfClass(Player.class,getBoundingBox(),p->p.isAlive()&&!p.isSpectator()&&!p.isCreative()&&!isAlliedTo(p)))
                 if(contactAttack(victim))break;
         }
         if(spec.family().equals("ghost")) { noPhysics=target!=null;setNoGravity(true);if(target!=null) setDeltaMovement(target.getEyePosition().subtract(position()).normalize().scale(.1)); }
-        if(spec.flying() && target!=null && !combatActions.active() && tickCount%10==0) getMoveControl().setWantedPosition(target.getX(),target.getEyeY()+1,target.getZ(),1.2);
+        if(spec.flying() && target!=null && fleeTicks==0 && !combatActions.active() && tickCount%10==0) getMoveControl().setWantedPosition(target.getX(),target.getEyeY()+1,target.getZ(),1.2);
         if(spec.id().equals("clockwork_rat") && stolen.isEmpty() && tickCount%20==0) {
             var items=level().getEntitiesOfClass(ItemEntity.class,getBoundingBox().inflate(2),e->!e.getItem().isEmpty());
             if(!items.isEmpty()) {
@@ -247,7 +262,7 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         setDeltaMovement(direction.x,.08,direction.z);hurtMarked=true;animate(5,16);
     }
     @Override public boolean doHurtTarget(Entity victim) {
-        if(isAlliedTo(victim))return false;
+        if(isAlliedTo(victim)||cropFleeOrigin!=null&&fleeTicks>0)return false;
         boolean hit=super.doHurtTarget(victim);
         if(!hit || !(victim instanceof LivingEntity target))return hit;
         animate(4,12);
@@ -325,8 +340,10 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
     }
     private static void tell(Player p,String key){p.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4."+key),true);}
     @Override protected void dropCustomDeathLoot(DamageSource s,int looting,boolean recentlyHit) {super.dropCustomDeathLoot(s,looting,recentlyHit);if(!stolen.isEmpty()){spawnAtLocation(stolen);stolen=ItemStack.EMPTY;}}
-    @Override public void addAdditionalSaveData(CompoundTag nbt) {super.addAdditionalSaveData(nbt);nbt.putBoolean("Cod4Friendly",friendly);nbt.put("Cod4Stolen",stolen.save(new CompoundTag()));nbt.putInt("Cod4Cooldown",specialCooldown);nbt.putInt("Cod4Deception",deceptionStage);nbt.putInt("Cod4Flee",fleeTicks);if(customer!=null)nbt.putUUID("Cod4Customer",customer);}
-    @Override public void readAdditionalSaveData(CompoundTag nbt) {super.readAdditionalSaveData(nbt);friendly=nbt.getBoolean("Cod4Friendly");stolen=ItemStack.of(nbt.getCompound("Cod4Stolen"));specialCooldown=Math.max(0,Math.min(200,nbt.getInt("Cod4Cooldown")));deceptionStage=Math.max(0,Math.min(3,nbt.getInt("Cod4Deception")));fleeTicks=Math.max(0,Math.min(200,nbt.getInt("Cod4Flee")));customer=nbt.hasUUID("Cod4Customer")?nbt.getUUID("Cod4Customer"):null;getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);hardenTicks=0;rollingTicks=0;combatActions.reset();waterDragTicks=0;waterDragReady=0;draggedTarget=null;waterAnchor=null;projectileWindup=0;pendingProjectile=null;}
+    @Override public void addAdditionalSaveData(CompoundTag nbt) {super.addAdditionalSaveData(nbt);nbt.putBoolean("Cod4Friendly",friendly);nbt.put("Cod4Stolen",stolen.save(new CompoundTag()));nbt.putInt("Cod4Cooldown",specialCooldown);nbt.putInt("Cod4Deception",deceptionStage);nbt.putInt("Cod4Flee",fleeTicks);if(cropFleeOrigin!=null&&fleeTicks>0)nbt.putLong("Cod4CropFleeOrigin",cropFleeOrigin.asLong());else nbt.remove("Cod4CropFleeOrigin");if(customer!=null)nbt.putUUID("Cod4Customer",customer);}
+    @Override public void readAdditionalSaveData(CompoundTag nbt) {super.readAdditionalSaveData(nbt);friendly=nbt.getBoolean("Cod4Friendly");stolen=ItemStack.of(nbt.getCompound("Cod4Stolen"));specialCooldown=Math.max(0,Math.min(200,nbt.getInt("Cod4Cooldown")));deceptionStage=Math.max(0,Math.min(3,nbt.getInt("Cod4Deception")));fleeTicks=Math.max(0,Math.min(200,nbt.getInt("Cod4Flee")));cropFleeOrigin=nbt.contains("Cod4CropFleeOrigin",net.minecraft.nbt.Tag.TAG_LONG)&&fleeTicks>0&&cropPest()?net.minecraft.core.BlockPos.of(nbt.getLong("Cod4CropFleeOrigin")):null;
+        if(cropFleeOrigin!=null&&(distanceToSqr(Vec3.atCenterOf(cropFleeOrigin))>4096||!level().getWorldBorder().isWithinBounds(cropFleeOrigin)))cropFleeOrigin=null;
+        customer=nbt.hasUUID("Cod4Customer")?nbt.getUUID("Cod4Customer"):null;getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);hardenTicks=0;rollingTicks=0;combatActions.reset();waterDragTicks=0;waterDragReady=0;draggedTarget=null;waterAnchor=null;projectileWindup=0;pendingProjectile=null;}
     @Override public AnimatableInstanceCache getAnimatableInstanceCache() {return cache;}
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {controllers.add(new AnimationController<>(this,"body",4,state->state.setAndContinue(RawAnimation.begin().thenLoop(animation()))));}
 }
