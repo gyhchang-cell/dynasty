@@ -46,7 +46,7 @@ public final class DungeonFrameworkGameTests {
         h.succeed();
     }
 
-    @GameTest(template="bow_ritual_test",batch="cod2_garrison",timeoutTicks=200)
+    @GameTest(template="bow_ritual_test",batch="cod2_garrison",timeoutTicks=600)
     public static void tombGarrisonUsesExistingLedgerAndCannotRefillAfterUnload(GameTestHelper h) {
         var level=h.getLevel();var origin=h.absolutePos(new BlockPos(4096,80,4096));var id=UUID.randomUUID();
         var core=origin.offset(27,48,37);var entrant=origin.offset(32,49,64);
@@ -75,6 +75,7 @@ public final class DungeonFrameworkGameTests {
                 var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
                 h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),
                     "Garrison fixture waits for loaded entity sections");
+                h.assertTrue(level.areEntitiesLoaded(chunk.toLong()),"Fixture entity storage finishes asynchronous loading before spawning");
             }
         }).thenExecute(()->{
             try{

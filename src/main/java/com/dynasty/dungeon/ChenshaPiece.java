@@ -41,6 +41,11 @@ public final class ChenshaPiece extends DynastyStructurePiece {
     private static boolean in(int v,int min,int max){return v>=min&&v<=max;}
     private static boolean rect(int x,int z,int x0,int z0,int x1,int z1){return in(x,x0,x1)&&in(z,z0,z1);}
     private static BlockState shell(){return DungeonContent.MASONRY.get().defaultBlockState();}
+    /** Nine accessible one-block risers, preserving the arena entrance and lift routes. */
+    public static int daisHeight(int x,int z) {
+        if(!rect(x,z,22,6,41,25))return 0;
+        return Math.min(9,1+Math.min(Math.min(x-22,41-x),Math.min(z-6,25-z)));
+    }
     /** null leaves the natural terrain untouched. Each column writes only its authored cells. */
     public static BlockState cell(int x,int y,int z){
         BlockState result=null;
@@ -83,8 +88,9 @@ public final class ChenshaPiece extends DynastyStructurePiece {
             int roof=ChenshaVaultLayout.roofHeight(x,z);
             if(d<=1.1&&y<=roof)result=y==0||y==roof||d>1?shell():Blocks.AIR.defaultBlockState();
             if(y==0&&ChenshaVaultLayout.moatCell(x,z))result=DungeonContent.MERCURY_CHANNEL.get().defaultBlockState();
-            int dais=ChenshaVaultLayout.daisHeight(x,z);
-            if(dais>0&&in(y,1,dais))result=Blocks.QUARTZ_BLOCK.defaultBlockState();
+            int dais=x<=31?daisHeight(x,z):ChenshaVaultLayout.daisHeight(x,z);
+            if(dais>0&&in(y,1,dais))result=(x<=31?
+                (y==dais?Blocks.SMOOTH_QUARTZ:Blocks.QUARTZ_BRICKS):Blocks.QUARTZ_BLOCK).defaultBlockState();
             if(y==0&&in(x,30,34)&&in(z,22,27))result=Blocks.QUARTZ_BLOCK.defaultBlockState();
         }
         // Do not let the arena's north wall block the downward stair connector.
