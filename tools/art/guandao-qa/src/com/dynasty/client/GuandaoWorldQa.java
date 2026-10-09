@@ -43,12 +43,25 @@ public final class GuandaoWorldQa {
     private static net.minecraft.world.entity.animal.Cow netTarget;
     private static int netObserved=-1;
     private static boolean netCaptured;
+    private static boolean wireChecked;
     private static net.minecraft.client.player.RemotePlayer remote;
     private static int views(){return REGRESSION?56:NAMES.length;}
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
         if(!Boolean.getBoolean("dynasty.guandaoQa")||done||event.phase!=TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();
         try {
+            if (!wireChecked && mc.getOverlay()==null) {
+                var method=net.minecraftforge.network.NetworkRegistry.class.getDeclaredMethod("buildChannelVersions");
+                method.setAccessible(true);
+                var channels=(Map<?,?>)method.invoke(null);
+                var advertised=channels.get(new net.minecraft.resources.ResourceLocation("dynasty:dynasty"));
+                String expected=com.dynasty.network.DynastyNetwork.protocolVersion();
+                log.add("Forge cached wire schema="+advertised+"; expected="+expected);
+                System.out.println("GUANDAO_WIRE_DIAG cached="+advertised+" expected="+expected);
+                if (!expected.equals(advertised)) throw new AssertionError("Forge cached an incomplete wire schema before client login");
+                if (expected.length()>256) throw new AssertionError("Forge login wire version exceeds 256 characters");
+                wireChecked=true;
+            }
             if(NETWORK){networkTick(mc);return;}
             if(System.nanoTime()>deadline)throw new AssertionError("QA timed out");
             if(mc.getOverlay()!=null)return;

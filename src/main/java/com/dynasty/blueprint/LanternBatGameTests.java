@@ -58,8 +58,15 @@ public final class LanternBatGameTests {
         h.assertTrue(BlueprintSpawns.batHabitat(h.getLevel(),p),"Real covered large cave accepted");
         h.setBlock(7,5,7,Blocks.STONE);h.assertTrue(!BlueprintSpawns.batHabitat(h.getLevel(),p),"Low ceiling/solid pocket rejected");h.setBlock(7,5,7,Blocks.AIR);
         h.setBlock(7,4,7,Blocks.WATER);h.assertTrue(!BlueprintSpawns.batHabitat(h.getLevel(),p),"Submerged pocket rejected");h.setBlock(7,4,7,Blocks.AIR);
-        for(int i=0;i<3;i++){var b=h.spawn(BlueprintEntities.YOUDENG_GUIMIANFU.get(),new BlockPos(7+i,6,7));b.setNoAi(true);}
-        h.assertTrue(!BlueprintSpawns.batHabitat(h.getLevel(),p),"Three loaded bats cap local population");h.succeed();
+        var bats=new java.util.ArrayList<TemplateMob>();
+        for(int i=0;i<3;i++){var b=h.spawn(BlueprintEntities.YOUDENG_GUIMIANFU.get(),new BlockPos(7+i,6,7));b.setNoAi(true);bats.add(b);}
+        // Newly loaded test sections may not expose entities to spatial queries until a tick.
+        // Require the actual three live fixtures before exercising the unchanged production cap.
+        h.startSequence().thenWaitUntil(()->h.assertTrue(h.getLevel().getEntitiesOfClass(TemplateMob.class,
+                new net.minecraft.world.phys.AABB(p).inflate(32),b->b.isAlive()&&b.kind()==TemplateMob.Kind.LANTERN_BAT).containsAll(bats),
+                "Three real bat fixtures must be visible to the native entity query"))
+            .thenExecute(()->h.assertTrue(!BlueprintSpawns.batHabitat(h.getLevel(),p),"Three loaded bats cap local population"))
+            .thenSucceed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="lantern_bat")
     public static void actualAnimationParserLoadsAllFlightAndDeathClips(GameTestHelper h)throws Exception{
