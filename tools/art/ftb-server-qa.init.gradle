@@ -1,0 +1,24 @@
+// Opt-in native quest QA: exact installed jars, copied config and a fresh build-only world.
+// Apply before remote-validation.init.gradle with -PmaintenanceRun=<fresh-id>.
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def qaRun=p.findProperty('maintenanceRun')?.toString()
+    if (!qaRun || !(qaRun ==~ /[A-Za-z0-9_.-]+/)) throw new GradleException('Native FTB QA requires a fresh maintenanceRun identifier')
+    p.repositories.flatDir { dirs p.file('modpack/mods') }
+    ['ftb-quests-forge:2001.4.22','ftb-library-forge:2001.2.13','ftb-teams-forge:2001.3.2','item-filters-forge:2001.1.0-build.59','architectury:9.2.14-forge'].each { artifact ->
+        p.dependencies.add('runtimeOnly',p.fg.deobf('dynasty_local_qa:'+artifact))
+    }
+    p.minecraft.runs.gameTestServer {
+        property 'mixin.env.remapRefMap','true'
+        property 'mixin.env.refMapRemappingFile',p.file('build/createSrgToMcp/output.srg').absolutePath
+        property 'dynasty.ftbRewardQa','true'
+    }
+    p.tasks.configureEach { task -> if (task.name=='runGameTestServer') {
+        task.dependsOn('createSrgToMcp')
+        task.doFirst {
+            def copied=p.file('build/maintenance-gametest/'+qaRun+'/config/ftbquests/quests')
+            if (copied.exists()) throw new GradleException('Use a fresh maintenanceRun; refusing to overwrite an existing QA quest tree')
+            p.copy { from p.file('modpack/config/ftbquests/quests'); into copied }
+        }
+    } }
+} }

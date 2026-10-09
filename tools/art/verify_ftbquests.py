@@ -233,6 +233,12 @@ def main():
             re.findall(r"dependencies: \[([^\]]*)\]", text)))
         # 逐个任务块：取「任务 id → 物品目标 / 前置」用于配方顺序检查
         for block in blocks:
+            inner = "\n".join(line[2:] if line.startswith("\t\t") else line for line in block.splitlines())
+            for reward in list_compounds(inner, "rewards"):
+                if re.search(r'\btype:\s*"xp"', reward):
+                    amount = re.search(r'\bxp:\s*(\d+)', reward)
+                    if not amount or int(amount[1]) <= 0 or re.search(r'\bvalue:', reward):
+                        problems.append(os.path.basename(path) + ": XPReward requires positive xp, not legacy value: " + (object_id(reward) or "missing ID"))
             qid = re.search(r'\bid: "([0-9a-fA-F]{6,16})"', block)
             if not qid:
                 continue

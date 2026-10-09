@@ -86,6 +86,10 @@ public final class SecondarySkillGameTests {
     }
     @GameTest(template="bow_ritual_test",batch="cod4_water_drag",timeoutTicks=100,setupTicks=20)
     public static void shoreDragMovesTowardRealWaterAndStopsAfterFiniteWindow(GameTestHelper h){
+        // The skill searches the full 9x5x9 loaded neighborhood. Clear that entire
+        // neighborhood, including template margins: natural pools outside the narrow
+        // projectile corridor are legitimate water and must not falsify the dry case.
+        for(int x=-1;x<=7;x++)for(int z=-1;z<=7;z++)for(int y=0;y<=4;y++)h.setBlock(x,y,z,Blocks.AIR);
         corridor(h);var source=mob(h,"river_imp",new BlockPos(3,2,3));var target=victim(h,new BlockPos(7,2,3));
         h.assertTrue(!source.beginWaterDrag(target),"Dry ground cannot invent a water destination");
         h.setBlock(3,2,3,Blocks.WATER);h.setBlock(3,1,3,Blocks.STONE);

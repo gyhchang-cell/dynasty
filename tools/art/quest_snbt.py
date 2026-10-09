@@ -6,6 +6,19 @@ descriptions and commands must not be interpreted as structural punctuation.
 import re
 
 
+def normalize_legacy_xp_rewards(text):
+    """FTB Quests 2001.4.22 reads XPReward.xp, while kill tasks still read value.
+
+    Correct only the field name inside the same XP reward compound. Keep every
+    identity, amount, ownership flag, command and immutable legacy snapshot.
+    """
+    for block in list_compounds("\trewards: " + text, "rewards"):
+        corrected = re.sub(r'(\btype:\s*"xp"[^{}]*?)\bvalue:', r'\1xp:', block)
+        if corrected != block:
+            text = text.replace(block, corrected, 1)
+    return text
+
+
 def list_compounds(text, field):
     match=re.search(r"^\t"+re.escape(field)+r":\s*\[",text,re.M)
     if not match:
@@ -35,4 +48,3 @@ def list_compounds(text, field):
 def object_id(block):
     match=re.search(r'\bid:\s*"([0-9a-fA-F]{16})"',block)
     return match[1] if match else None
-

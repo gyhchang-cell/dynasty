@@ -15,6 +15,7 @@ import net.minecraftforge.event.entity.living.ShieldBlockEvent;
 import net.minecraftforge.gametest.*;
 import java.util.*;
 
+// Real spawned guards must be queried only after the forced fixture chunk becomes visible.
 @GameTestHolder("dynasty_cod4") @PrefixGameTestTemplate(false)
 public final class EquipmentGuardGameTests {
     private static ServerPlayer player(GameTestHelper h){
@@ -26,7 +27,7 @@ public final class EquipmentGuardGameTests {
         EquipmentSlot[] slots={EquipmentSlot.HEAD,EquipmentSlot.CHEST,EquipmentSlot.LEGS,EquipmentSlot.FEET};String[] names={"helmet","chestplate","leggings","boots"};
         for(int i=0;i<slots.length;i++)p.setItemSlot(slots[i],i<count?new ItemStack(ExpansionContent.item(id+"_"+names[i])):ItemStack.EMPTY);
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_perfect_guard")
+    @GameTest(template="bow_ritual_test",batch="cod4_perfect_guard",setupTicks=20)
     public static void perfectGuardUsesSixActualBlockingTicksAfterSchoolReduction(GameTestHelper h){
         var p=player(h);suit(p,"xuanwu",2);for(int i=0;i<60;i++)p.tick();
         p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(DynastyWeapons.ZHENYUE_BLADE.get()));p.setYRot(-90);p.startUsingItem(InteractionHand.MAIN_HAND);
@@ -57,7 +58,7 @@ public final class EquipmentGuardGameTests {
             h.succeed();
         }finally{p.stopUsingItem();net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent(p));DynastyTrinkets.forget(p);p.discard();}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_sea_guards",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_sea_guards",timeoutTicks=100,setupTicks=20)
     public static void dragonArmorLeasesShrimpThenCrabAndNeverDuplicates(GameTestHelper h){
         for(int x=2;x<=11;x++)for(int z=2;z<=11;z++){h.setBlock(x,1,z,Blocks.STONE);h.setBlock(x,2,z,Blocks.WATER);h.setBlock(x,3,z,Blocks.WATER);}
         var p=player(h);h.getLevel().addNewPlayer(p);suit(p,"draco_king",3);p.baseTick();
@@ -77,7 +78,7 @@ public final class EquipmentGuardGameTests {
             h.assertTrue(next.stream().allMatch(Entity::isRemoved),"Unequipping the set releases every temporary guard");h.succeed();
         }finally{owned.forEach(Entity::discard);h.getLevel().removePlayerImmediately(p,Entity.RemovalReason.DISCARDED);}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_hunyuan_qi")
+    @GameTest(template="bow_ritual_test",batch="cod4_hunyuan_qi",setupTicks=20)
     public static void hunyuanNeutralisationAndRageFeedExistingQiWithUnequipCleanup(GameTestHelper h){
         var p=player(h);suit(p,"hunyuan",4);
         try{
@@ -95,7 +96,7 @@ public final class EquipmentGuardGameTests {
             h.assertTrue(EquipmentBehaviors.qiActive(p),"Independent pill Qi survives removing an equipment grant");h.succeed();
         }finally{DynastyTrinkets.forget(p);p.discard();}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_qinglong_qi",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_qinglong_qi",timeoutTicks=100,setupTicks=20)
     public static void fifthComboWaveReturnsExistingQiOnceAndResetsOnUnequip(GameTestHelper h){
         var p=player(h);suit(p,"qinglong",4);var target=new Zombie(h.getLevel());
         h.assertTrue(!EquipmentBehaviors.comboWave(p,target,4)&&!EquipmentBehaviors.qiActive(p),"Four stacks do not manufacture a full-combo grant");
@@ -107,7 +108,7 @@ public final class EquipmentGuardGameTests {
             suit(p,"qinglong",3);EquipmentBehaviors.refresh(p);h.assertTrue(!EquipmentBehaviors.qiActive(p),"Losing the fourth piece immediately stops equipment Qi");h.succeed();
         }finally{net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent(p));DynastyTrinkets.forget(p);p.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_blocked_sea_guard")
+    @GameTest(template="bow_ritual_test",batch="cod4_blocked_sea_guard",setupTicks=20)
     public static void blockedWaterSpawnDoesNotConsumeLeaseAndCanRetry(GameTestHelper h){
         for(int x=2;x<=10;x++)for(int z=2;z<=10;z++)for(int y=1;y<=4;y++)h.setBlock(x,y,z,Blocks.STONE);
         h.setBlock(6,2,6,Blocks.WATER);h.setBlock(6,3,6,Blocks.WATER);var p=player(h);h.getLevel().addNewPlayer(p);suit(p,"draco_king",3);p.baseTick();
@@ -119,7 +120,7 @@ public final class EquipmentGuardGameTests {
             guards.forEach(Entity::discard);h.succeed();
         }finally{h.getLevel().removePlayerImmediately(p,Entity.RemovalReason.DISCARDED);}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_weapon_provenance")
+    @GameTest(template="bow_ritual_test",batch="cod4_weapon_provenance",setupTicks=20)
     public static void revengeBonusesUseActualDropsAndCanonicalGiftProgress(GameTestHelper h){
         var p=player(h);var zombie=new Zombie(h.getLevel());var phoenix=com.dynasty.entity.DynastyEntities.PHOENIX.get().create(h.getLevel());
         var rebel=com.dynasty.entity.DynastyEntities.REBEL_GENERAL.get().create(h.getLevel());var n=p.getPersistentData();
@@ -135,7 +136,7 @@ public final class EquipmentGuardGameTests {
             n.putBoolean("dynasty_gift_supreme_sword",true);h.assertTrue(EquipmentBehaviors.revengeBonus(p,rebel,"supreme_sword")==.15F,"Canonical court gift counters court enemies");h.succeed();
         }finally{DynastyTrinkets.forget(p);p.discard();}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_atomic_guard_pair")
+    @GameTest(template="bow_ritual_test",batch="cod4_atomic_guard_pair",setupTicks=20)
     public static void partlyBlockedPairDoesNotLeaseOneGuardOrOverlapAndCanRetry(GameTestHelper h){
         for(int x=2;x<=10;x++)for(int z=2;z<=10;z++)for(int y=1;y<=4;y++)h.setBlock(x,y,z,Blocks.STONE);
         for(int x:new int[]{5,6})for(int y=2;y<=3;y++)h.setBlock(x,y,6,Blocks.WATER);
@@ -146,7 +147,7 @@ public final class EquipmentGuardGameTests {
             h.assertTrue(guards.isEmpty()&&EquipmentBehaviors.saved(p).getLong("guardsUntil")==0,"A single safe tile cannot consume a pair lease or spawn overlapping carriers");
             for(int y=2;y<=3;y++)h.setBlock(7,y,6,Blocks.WATER);SummonedGuard.maintain(p,2);
             guards=h.getLevel().getEntitiesOfClass(SecondaryMob.class,p.getBoundingBox().inflate(8),m->m.getPersistentData().hasUUID("cod4Summoner")&&m.getPersistentData().getUUID("cod4Summoner").equals(p.getUUID()));
-            h.assertTrue(guards.size()==2&&!guards.get(0).getBoundingBox().intersects(guards.get(1).getBoundingBox()),"Opening a second tile immediately creates the complete non-overlapping pair");
+            h.assertTrue(guards.size()==2&&!guards.get(0).getBoundingBox().intersects(guards.get(1).getBoundingBox()),"Opening a second tile immediately creates the complete non-overlapping pair: visible="+guards.size()+", lease="+EquipmentBehaviors.saved(p).getLong("guardsUntil"));
             guards.forEach(Entity::discard);h.succeed();
         }finally{h.getLevel().removePlayerImmediately(p,Entity.RemovalReason.DISCARDED);}
     }

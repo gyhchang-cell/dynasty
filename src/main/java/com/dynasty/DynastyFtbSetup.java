@@ -25,6 +25,7 @@ public final class DynastyFtbSetup {
     private static final String BUTTON_CLASS = "dev.ftb.mods.ftblibrary.sidebar.SidebarButton";
     /** 要隐藏的按钮 id（FTB Teams 的队伍按钮）/ sidebar button ids to hide */
     private static final String[] HIDDEN = {"my_team", "team"};
+    static final Consumer<Object> SIDEBAR_HANDLER = DynastyFtbSetup::hide;
 
     public static void register() {
         if (ModList.get() == null || !ModList.get().isLoaded("ftblibrary")) {
@@ -35,12 +36,14 @@ public final class DynastyFtbSetup {
             Class<?> eventClass = Class.forName(EVENT_CLASS);
             Field eventField = eventClass.getField("EVENT");
             Object archEvent = eventField.get(null);
-            Method register = findRegister(archEvent.getClass());
+            // EventFactory.EventImpl is package-private. Invoke its public Event interface.
+            Method register = findRegister(eventField.getType());
             if (register == null) {
                 Dynasty.LOGGER.warn("[Dynasty] FTB sidebar tweak: no register() found - skipped");
                 return;
             }
-            register.invoke(archEvent, (Consumer<Object>) DynastyFtbSetup::hide);
+            if ((Boolean) eventField.getType().getMethod("isRegistered", Object.class).invoke(archEvent, SIDEBAR_HANDLER)) return;
+            register.invoke(archEvent, SIDEBAR_HANDLER);
             Dynasty.LOGGER.info("[Dynasty] FTB sidebar tweak attached (hide team button)");
         } catch (Throwable throwable) {
             Dynasty.LOGGER.warn("[Dynasty] could not attach FTB sidebar tweak: {}", throwable.toString());

@@ -1303,7 +1303,7 @@ def rewards_line(index, rewards, xp, merit, milestone=None):
                    % (reward_id(index, slot), item, count))
         slot += 1
     if xp > 0:
-        out.append('{ id: "%s", type: "xp", value: %d }' % (reward_id(index, slot), xp))
+        out.append('{ id: "%s", type: "xp", xp: %d }' % (reward_id(index, slot), xp))
         slot += 1
     if merit > 0:
         # 以玩家身份执行、临时给 2 级权限（命令本身要 OP 才能手动用）

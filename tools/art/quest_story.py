@@ -447,6 +447,10 @@ def build_book():
     add_cod4(chapters)
     from quest_cod6 import apply
     apply(chapters)
+    from quest_snbt import normalize_legacy_xp_rewards
+    for chapter in chapters:
+        for quest in chapter["quests"]:
+            quest["rewards"] = normalize_legacy_xp_rewards(quest["rewards"])
     validate(chapters, original)
     return chapters
 
@@ -461,7 +465,8 @@ def validate(chapters, original=None):
     for old in original:
         q = byid[old["id"]]
         from quest_cod6 import expected_tasks
-        assert q["tasks"]==expected_tasks(old) and q["rewards"]==old["rewards"], "Save contract changed: "+old["id"]
+        from quest_snbt import normalize_legacy_xp_rewards
+        assert q["tasks"]==expected_tasks(old) and q["rewards"]==normalize_legacy_xp_rewards(old["rewards"]), "Save contract changed: "+old["id"]
     main = [q for c in chapters if c["main"] for q in c["quests"] if q['role']=='main']
     mainids = {q["id"] for q in main}
     assert not main[0]["deps"], "No accessible root"

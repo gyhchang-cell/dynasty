@@ -109,6 +109,12 @@ for row in rows:
     row['OLD_SAVE_COMPAT']=compat
     notes=row['NOTES']
     if ident in gaps and gaps[ident] not in notes:notes+='; '+gaps[ident]
+    if ident in gaps and stages:
+        hint='Remaining Site/secret closure must reuse existing Stage '+','.join(stages)+'; no separate exported secret task node is present'
+        if hint not in notes:notes+='; '+hint
+    if ident in trade and stages:
+        hint='Remaining material functions belong to existing Stage '+','.join(stages)+'; native workshop/NPC integration pending, not an invented new mainline'
+        if hint not in notes:notes+='; '+hint
     deps=';'.join(sorted({entry['node']+'<-'+(','.join(entry['deps']) or 'none') for entry in found}))
     if deps:notes=re.sub(r';? ?FTB dependencies:.*','',notes)+'; FTB dependencies:'+deps
     row['NOTES']=notes

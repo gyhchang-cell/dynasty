@@ -22,6 +22,20 @@ class QuestStoryTest(unittest.TestCase):
         story.validate(self.book)
         self.assertEqual(488, sum(len(c["quests"]) for c in json.loads(story.LEGACY.read_text())))
 
+    def test_native_xp_migration_preserves_immutable_reward_contract(self):
+        from quest_snbt import normalize_legacy_xp_rewards
+        original = [q for c in json.loads(story.LEGACY.read_text()) for q in c["quests"]]
+        actual = {q["id"]: q for c in self.book for q in c["quests"]}
+        for old in original:
+            rewards = actual[old["id"]]["rewards"]
+            self.assertEqual(normalize_legacy_xp_rewards(old["rewards"]), rewards)
+            self.assertEqual(old["rewards"].replace('type: "xp", value:', 'type: "xp", xp:'), rewards)
+        broken = copy.deepcopy(self.book)
+        reward = next(q for c in broken for q in c["quests"] if 'type: "xp", xp:' in q["rewards"])
+        reward["rewards"] = reward["rewards"].replace('type: "xp", xp:', 'type: "xp", value:')
+        with self.assertRaises(AssertionError):
+            story.validate(broken)
+
     def test_reproducible(self):
         self.assertEqual(self.book, story.build_book())
 
