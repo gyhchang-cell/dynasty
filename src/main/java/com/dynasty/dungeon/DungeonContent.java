@@ -35,6 +35,11 @@ public final class DungeonContent {
     public static final RegistryObject<Block> TRAP=mechanism("pressure_trap_emitter",DungeonMechanismBlock.Kind.TRAP);
     public static final RegistryObject<Block> ELEVATOR=mechanism("dungeon_elevator_controller",DungeonMechanismBlock.Kind.ELEVATOR);
     public static final RegistryObject<Block> SHORTCUT_STELE=mechanism("dungeon_shortcut_stele",DungeonMechanismBlock.Kind.SHORTCUT);
+    // A protected fantasy hazard surface, not a flowing real-world mercury fluid.
+    public static final RegistryObject<Block> MERCURY_CHANNEL=BLOCKS.register("mercury_channel",()->new Block(BlockBehaviour.Properties.of()
+        .strength(-1F,3600000F).noLootTable().lightLevel(s->2)){
+            @Override public net.minecraft.world.level.material.PushReaction getPistonPushReaction(net.minecraft.world.level.block.state.BlockState state){return net.minecraft.world.level.material.PushReaction.BLOCK;}
+        });
     public static final RegistryObject<Block> MASONRY=BLOCKS.register("dungeon_masonry",()->new Block(BlockBehaviour.Properties.of()
         .strength(-1F,3600000F).noLootTable()){
             @Override public net.minecraft.world.level.material.PushReaction getPistonPushReaction(net.minecraft.world.level.block.state.BlockState state){return net.minecraft.world.level.material.PushReaction.BLOCK;}

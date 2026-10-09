@@ -79,11 +79,13 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         if((x==24||x==39)&&(z==58||z==61)&&in(y,25,28))result=shell();
         // Spherical-ish imperial vault and an annular hazardous moat surrounding the dragon dais.
         if(rect(x,z,8,2,55,29)&&in(y,0,17)){
-            double d=Math.pow((x-31.5)/23.5,2)+Math.pow((z-15.5)/13.5,2);
-            int roof=8+(int)(9*Math.sqrt(Math.max(0,1-d)));
+            double d=ChenshaVaultLayout.moatRadius(x,z);
+            int roof=ChenshaVaultLayout.roofHeight(x,z);
             if(d<=1.1&&y<=roof)result=y==0||y==roof||d>1?shell():Blocks.AIR.defaultBlockState();
-            if(y==0&&d>.55&&d<.8)result=Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
-            if(rect(x,z,25,10,38,21)&&y==1)result=Blocks.QUARTZ_BLOCK.defaultBlockState();
+            if(y==0&&ChenshaVaultLayout.moatCell(x,z))result=DungeonContent.MERCURY_CHANNEL.get().defaultBlockState();
+            int dais=ChenshaVaultLayout.daisHeight(x,z);
+            if(dais>0&&in(y,1,dais))result=Blocks.QUARTZ_BLOCK.defaultBlockState();
+            if(y==0&&in(x,30,34)&&in(z,22,27))result=Blocks.QUARTZ_BLOCK.defaultBlockState();
         }
         // Do not let the arena's north wall block the downward stair connector.
         if(in(x,30,34)&&in(z,27,29)&&in(y,1,4))result=Blocks.AIR.defaultBlockState();
@@ -174,6 +176,8 @@ public final class ChenshaPiece extends DynastyStructurePiece {
             }
         }
         fixture(level,clip,new BlockPos(52,25,91),Blocks.CHEST.defaultBlockState(),new ResourceLocation("dynasty:dungeons/chensha_artisan_supplies"));
+        for(BlockPos pearl:ChenshaVaultLayout.constellationOffsets())
+            fixture(level,clip,pearl,Blocks.PEARLESCENT_FROGLIGHT.defaultBlockState(),null);
         for(BlockPos lamp:List.of(new BlockPos(27,75,7),new BlockPos(37,75,7),new BlockPos(12,53,38),new BlockPos(53,53,83),
                 new BlockPos(26,30,60),new BlockPos(37,30,60),new BlockPos(20,6,10),new BlockPos(44,6,21)))
             fixture(level,clip,lamp,Blocks.SOUL_LANTERN.defaultBlockState(),null);

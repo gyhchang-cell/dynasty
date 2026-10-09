@@ -245,6 +245,21 @@ public final class DungeonFrameworkGameTests {
         }
         for(int y=44;y<=48;y++)h.assertTrue(capture.postprocessed.contains(origin.offset(35,y,41)),
             "Every generated return ladder is queued for vanilla postprocessing inside its own chunk");
+        var pearls=ChenshaVaultLayout.constellationOffsets();
+        h.assertTrue(pearls.size()==28&&new java.util.HashSet<>(pearls).size()==28,"Exactly 28 distinct constellation lamps");
+        for(var pearl:pearls)h.assertTrue(capture.blocks.get(origin.offset(pearl)).is(Blocks.PEARLESCENT_FROGLIGHT),
+            "Constellation fixtures survive negative-coordinate cross-chunk clipping: "+pearl);
+        int last=0;
+        for(int z=25;z>=17;z--) {
+            int tier=ChenshaVaultLayout.daisHeight(32,z);
+            h.assertTrue(tier==last+1,"All nine main-axis tiers are reachable by single-block jumps");
+            h.assertTrue(capture.blocks.get(origin.offset(32,tier,z)).is(Blocks.QUARTZ_BLOCK),"Missing authored dais tier "+tier);
+            for(int dy=1;dy<=3;dy++)h.assertTrue(capture.blocks.get(origin.offset(32,tier+dy,z)).isAir(),"Dais lacks player headroom");
+            last=tier;
+        }
+        h.assertTrue(last==9,"Dais contains nine actual levels, not just decorative trim");
+        for(int z=22;z<=27;z++)h.assertTrue(!capture.blocks.get(origin.offset(32,0,z)).is(DungeonContent.MERCURY_CHANNEL.get()),
+            "Main route across the moat remains dry");
         for(int run=0;run<3;run++){
             int start=run==0?10:run==1?59:28,end=run==0?34:run==1?83:52;
             for(int z=start;z<=end;z++){

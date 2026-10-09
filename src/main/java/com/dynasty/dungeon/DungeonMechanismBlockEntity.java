@@ -132,6 +132,7 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         boolean nearby=sl.players().stream().anyMatch(p->!p.isSpectator()&&p.distanceToSqr(Vec3.atCenterOf(pos))<96*96);
         boolean changed=room.tickRoom(time,nearby);
         if(!nearby){room.pause(time);room.pauseHazards(time);if(changed)be.changed();return;}
+        changed|=ChenshaMercuryMoat.tick(sl,be,room,time);
         var loaded=new ArrayList<DungeonMechanismBlockEntity>();
         for(BlockPos marker:be.markers)if(sl.hasChunkAt(marker)&&sl.getBlockEntity(marker) instanceof DungeonMechanismBlockEntity part
                 &&be.instance.equals(part.instance)&&be.roomId.equals(part.roomId))loaded.add(part);

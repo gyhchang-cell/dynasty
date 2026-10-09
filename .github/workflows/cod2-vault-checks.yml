@@ -1,0 +1,50 @@
+name: Cod2 vault checks
+on:
+  push:
+    branches: [codex/cod2-chensha-20261009]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cod2-vault-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  vault:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare bundled mod dependencies
+        run: |
+          python3 tools/art/make_local_repo.py
+          chmod +x gradlew
+          mkdir -p build/vault-ci
+      - name: Build and run all Cod2 server tests
+        run: |
+          ./gradlew --no-daemon --max-workers=2 -I tools/blueprint/cod2-test.init.gradle -Pcod2TestRun=vault-ci-${GITHUB_RUN_ID} runGameTestServer build 2>&1 | tee build/vault-ci/server.log
+      - name: Prepare real clients
+        run: |
+          ./gradlew --no-daemon --max-workers=2 -I tools/blueprint/cod2-client.init.gradle -Pcod2Vault -Pcod2PrepareOnly -Pcod2ClientRun=vault-ci-prepared runClient 2>&1 | tee build/vault-ci/client-prepare.log
+      - name: Single client acceptance
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a -s '-screen 0 1280x960x24' python3 tools/blueprint/run_cod2_clients.py build/cod2-client/vault-ci-prepared/launch.json vault-ci-solo --solo
+      - name: Two client acceptance
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a -s '-screen 0 1280x960x24' python3 tools/blueprint/run_cod2_clients.py build/cod2-client/vault-ci-prepared/launch.json vault-ci-pair
+      - name: Retain validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cod2-vault-evidence
+          path: |
+            build/vault-ci/
+            build/cod2-gametest/
+            build/cod2-client/
+            build/libs/
+          retention-days: 14
