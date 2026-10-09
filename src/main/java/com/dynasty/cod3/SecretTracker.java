@@ -200,7 +200,13 @@ public final class SecretTracker extends SavedData {
         if(p.getAbilities().instabuild)return true;
         if(number==5){if(count(p,Items.COOKED_CHICKEN)<2||!held(p,"dynasty:baijiu"))return false;consume(p,Items.COOKED_CHICKEN,2);p.getMainHandItem().shrink(1);}
         if(number==15||number==17||number==22||number==23){int needed=number==22?3:1;if(p.getMainHandItem().getCount()<needed)return false;p.getMainHandItem().shrink(needed);}
-        if(number==16){var cinnabar=ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty:cinnabar"));if(count(p,cinnabar)<1)return false;consume(p,cinnabar,1);}
+        if(number==16){
+            var jade=com.dynasty.expansion.ExpansionContent.MATERIALS.get("sprite_jade").get();
+            var cinnabar=ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty:cinnabar"));
+            // A carried sprite-jade offering can replace the original cinnabar;
+            // the original brush gesture, anchor and personal receipt stay intact.
+            var offering=count(p,jade)>0?jade:cinnabar;if(count(p,offering)<1)return false;consume(p,offering,1);
+        }
         if(number==29){if(!held(p,"minecraft:potion"))return false;p.getMainHandItem().shrink(1);var bottle=new ItemStack(Items.GLASS_BOTTLE);if(!p.getInventory().add(bottle))p.drop(bottle,false);}
         return true;
     }
@@ -224,7 +230,7 @@ public final class SecretTracker extends SavedData {
             case 12->{if(!p.isShiftKeyDown()){progress.remove("Since");yield false;}if(!progress.contains("Since"))progress.putLong("Since",l.getGameTime());yield l.getGameTime()-progress.getLong("Since")>=6000;}
             case 14->l.isThundering()&&day>=11000&&day<=13000&&trigger==SecretDefinition.Trigger.WEATHER_WINDOW;
             case 15,17,23->trigger==SecretDefinition.Trigger.USE_ITEM_AT_POS;
-            case 16->trigger==SecretDefinition.Trigger.USE_ITEM_AT_POS&&count(p,ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty:cinnabar")))>=1;
+            case 16->trigger==SecretDefinition.Trigger.USE_ITEM_AT_POS&&(count(p,ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty:cinnabar")))>=1||count(p,com.dynasty.expansion.ExpansionContent.MATERIALS.get("sprite_jade").get())>=1);
             case 22->trigger==SecretDefinition.Trigger.USE_ITEM_AT_POS&&p.getMainHandItem().getCount()>=3;
             case 18->p.getY()>pos.getY()+1;
             case 20->l.isNight()&&trigger==SecretDefinition.Trigger.HIT_TARGET;

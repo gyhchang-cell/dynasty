@@ -228,3 +228,9 @@ for key,z,e in [('no_ruin','附近未找到遗迹。','No nearby ruin found.'),(
 write(A/'lang/zh_cn.json',zh);write(A/'lang/en_us.json',en)
 write(ROOT/'docs/cod4/recipes.json',recipes)
 print('Generated 30 rigs, 210 animation states, item/block/effect assets and 27 recipes')
+
+# Preserve the original secret 16 brush route and its real alternate offering.
+for language, clue in {"zh_cn":"持敕令笔点石敢当额心，以朱砂或石精玉粒献祭；石像位置", "en_us":"Touch the stone idol forehead with the Edict Brush, offering cinnabar or stone-sprite jade; stone idol site"}.items():
+    path=A/"lang"/(language+".json")
+    value=json.loads(path.read_text()); value["cod3.dynasty.secret.clue.16"]=clue
+    path.write_text(json.dumps(value,ensure_ascii=False,indent=2)+"\n")

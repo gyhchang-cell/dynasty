@@ -57,7 +57,10 @@ public final class LivingWorkshopBlock extends Block implements EntityBlock {
             var result=vat.collect();if(!p.getInventory().add(result))p.drop(result,false);
         } else if(!vat.accept(held)) {
             var next=vat.recipe().next(vat.deposited());
-            if(next!=null)p.displayClientMessage(Component.translatable("workshop.dynasty.next",next.stack().getHoverName(),vat.deposited(),vat.recipe().total()),true);
+            if(next!=null){
+                if(vat.recipe().choices(next).size()>1)p.displayClientMessage(Component.translatable("workshop.dynasty.next_alternative",next.stack().getHoverName(),vat.recipe().choices(next).get(1).getHoverName(),vat.deposited(),vat.recipe().total()),true);
+                else p.displayClientMessage(Component.translatable("workshop.dynasty.next",next.stack().getHoverName(),vat.deposited(),vat.recipe().total()),true);
+            }
             return InteractionResult.CONSUME;
         }
         p.getInventory().setChanged();

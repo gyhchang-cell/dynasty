@@ -15,6 +15,15 @@ public final class WorkshopRecipes {
         public int total(){return costs.stream().mapToInt(Cost::count).sum();}
         public Cost next(int deposited){for(var c:costs){if(deposited<c.count)return c;deposited-=c.count;}return null;}
         public ItemStack result(){return new Cost(output,count).stack();}
+        /** Stone-sprite jade is a lapidary substitute, not a global crystal replacement. */
+        public List<ItemStack> choices(Cost cost){
+            if(kind==Kind.LAPIDARY && cost.id().equals("dynasty:dragon_crystal"))
+                return List.of(cost.stack(),new Cost("dynasty:sprite_jade",cost.count()).stack());
+            return List.of(cost.stack());
+        }
+        public boolean accepts(int deposited,ItemStack held){
+            var cost=next(deposited);return cost!=null&&!held.isEmpty()&&choices(cost).stream().anyMatch(s->held.is(s.getItem()));
+        }
     }
     private static Cost c(String id,int n){return new Cost("dynasty:"+id,n);}
     public static final List<Recipe> ALL=List.of(

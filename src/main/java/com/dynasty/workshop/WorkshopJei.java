@@ -27,7 +27,7 @@ public final class WorkshopJei implements IModPlugin {
         @Override public IDrawable getBackground(){return background;}
         @Override public IDrawable getIcon(){return icon;}
         @Override public void setRecipe(IRecipeLayoutBuilder b,WorkshopRecipes.Recipe r,IFocusGroup focus){
-            int x=4;for(var cost:r.costs()){b.addSlot(RecipeIngredientRole.INPUT,x,7).addItemStack(cost.stack());x+=22;}
+            int x=4;for(var cost:r.costs()){b.addSlot(RecipeIngredientRole.INPUT,x,7).addItemStacks(r.choices(cost));x+=22;}
             b.addSlot(RecipeIngredientRole.CATALYST,91,7).addItemStack(new WorkshopRecipes.Cost("dynasty:"+r.station(),1).stack());
             b.addSlot(RecipeIngredientRole.OUTPUT,136,7).addItemStack(r.result());
         }
