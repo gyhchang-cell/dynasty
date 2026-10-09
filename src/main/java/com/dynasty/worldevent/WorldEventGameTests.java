@@ -133,7 +133,7 @@ public final class WorldEventGameTests {
             h.assertTrue(!p.getPersistentData().contains(WorldEventItems.PERMIT)&&mob.getTarget()==p,"Accepted attack revokes pass and permits retaliation");h.succeed();
         }finally{mob.discard();level.removePlayerImmediately(p,Entity.RemovalReason.DISCARDED);}
     }
-    @GameTest(template="bow_ritual_test",batch="cod2_event_peace",timeoutTicks=200)
+    @GameTest(template="bow_ritual_test",batch="cod2_event_peace",timeoutTicks=400)
     public static void celestialPeaceCancelsAnActualPendingAttackAndCombatReturnsAfterItEnds(GameTestHelper h){
         var level=h.getLevel();var center=new BlockPos(8192,100,8192);
         var forced=new HashSet<net.minecraft.world.level.ChunkPos>();var actors=new ArrayList<Entity>();
@@ -150,7 +150,8 @@ public final class WorldEventGameTests {
         float[] health=new float[1];
         h.startSequence().thenIdle(20).thenWaitUntil(()->{
             for(var chunk:forced){var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
-                h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Remote event fixture waits for loaded entity sections");}
+                h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Remote event fixture waits for loaded entity sections");
+                h.assertTrue(level.areEntitiesLoaded(chunk.toLong()),"Remote event fixture waits for asynchronous entity storage");}
         }).thenExecute(()->{
             try{
                 for(int x=-4;x<=4;x++)for(int z=-4;z<=4;z++){
@@ -160,10 +161,17 @@ public final class WorldEventGameTests {
                 player[0]=player(h,center);var attacker=BlueprintEntities.YINBING_GUIZU.get().create(level);var target=BlueprintEntities.TIESUO_CHIHOU.get().create(level);
                 for(var mob:List.of(attacker,target)){mob.setNoAi(true);mob.setNoGravity(true);actors.add(mob);}
                 attacker.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(center));target.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(center.east(2)));
-                level.addFreshEntity(attacker);level.addFreshEntity(target);health[0]=target.getHealth();
-                h.assertTrue(attacker.startSkill(com.dynasty.blueprint.ArmySkills.GHOST_THRUST,target),"Real contact is pending before blessing");
-                event[0]=fixture(h,"xuanniao_zhige",center,player[0]);event[0].phase=WorldEventInstance.Phase.ACTIVE;
+                level.addFreshEntity(attacker);level.addFreshEntity(target);
             }catch(RuntimeException|Error e){cleanup.run();throw e;}
+        }).thenWaitUntil(()->{
+            for(var actor:actors)
+                h.assertTrue(level.getEntity(actor.getUUID())==actor&&actor.tickCount>0,
+                    "Real event actors must enter server UUID lookup and tick before testing combat");
+        }).thenExecute(()->{
+            var attacker=(TemplateMob)actors.get(0);var target=(TemplateMob)actors.get(1);
+            health[0]=target.getHealth();
+            h.assertTrue(attacker.startSkill(com.dynasty.blueprint.ArmySkills.GHOST_THRUST,target),"Real contact is pending before blessing");
+            event[0]=fixture(h,"xuanniao_zhige",center,player[0]);event[0].phase=WorldEventInstance.Phase.ACTIVE;
         }).thenIdle(25).thenExecute(()->{
             var attacker=(TemplateMob)actors.get(0);var target=(TemplateMob)actors.get(1);
             h.assertTrue(target.getHealth()==health[0]&&attacker.attack().current()==null&&DynastyWorldEventManager.pacified(attacker),"Blessing cancels the real server damage frame, not just the target cursor; health="+target.getHealth()+" initial="+health[0]+" skill="+attacker.skillId()+" pacified="+DynastyWorldEventManager.pacified(attacker)+" ticks="+attacker.tickCount);
