@@ -22,10 +22,22 @@ public class DynastyNetwork {
                     16, "com.dynasty.expansion.CombatFeedback:PLAY_TO_CLIENT:v2",
                     17, "com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1")));
     private static final java.util.Set<Integer> REGISTERED_EXTENSIONS = new java.util.HashSet<>();
-    public static String protocolVersion() {
+    private static final String PROTOCOL_VERSION = fingerprintSchema(protocolSchema());
+    public static String protocolSchema() {
         return "11/keju=" + OpenKejuPacket.WIRE_REVISION + "/army="
                 + com.dynasty.army.ArmyMenu.LAYOUT_REVISION + "/" + EXTENSIONS;
     }
+    // Forge's login ModList encodes each channel version with writeUtf(..., 256).
+    // Fingerprint the complete frozen schema; never drop an extension to fit the limit.
+    static String fingerprintSchema(String schema) {
+        try {
+            return "12/" + java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                .digest(schema.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new AssertionError("Java must provide SHA-256", impossible);
+        }
+    }
+    public static String protocolVersion() { return PROTOCOL_VERSION; }
     public static boolean acceptsProtocol(String remote) { return protocolVersion().equals(remote); }
 
     public static <T> void registerExtension(int packetId, Class<T> type,

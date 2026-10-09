@@ -1,0 +1,31 @@
+Temporary directed validation fixture; excluded from the shipped JAR.
+
+Save the Java below as build/cod1-wire-qa/src/com/dynasty/network/Cod1WireQa.java; copy src/main/resources/data/dynasty_network/structures/bow_ritual_test.nbt to build/cod1-wire-qa/resources/data/dynasty_wire_qa/structures/bow_ritual_test.nbt.
+
+package com.dynasty.network;
+import net.minecraft.gametest.framework.*;
+import net.minecraftforge.gametest.*;
+@GameTestHolder("dynasty_wire_qa") @PrefixGameTestTemplate(false) public final class Cod1WireQa {
+@GameTest(template="bow_ritual_test") public static void cod3(GameTestHelper h) throws Exception {Cod3ProtocolGameTests.wireSchemaRejectsMismatchedPeers(h);}
+@GameTest(template="bow_ritual_test") public static void edicts(GameTestHelper h) throws Exception {EdictProtocolGameTests.wireSchemaRejectsMismatchedPeers(h);}
+@GameTest(template="bow_ritual_test") public static void infusion(GameTestHelper h) throws Exception {InfusionProtocolGameTests.infusionSchemaPreservesOtherExtensionsAndRejectsMismatchedPeers(h);}
+@GameTest(template="bow_ritual_test") public static void combatFeedback(GameTestHelper h) throws Exception {CombatFeedbackProtocolGameTests.wireSchemaRejectsMismatchedPeers(h);}
+@GameTest(template="bow_ritual_test") public static void cachedForge(GameTestHelper h) throws Exception {DungeonProtocolGameTests.frozenForgeChannelAcceptsItsOwnCompleteWireTable(h);}
+@GameTest(template="bow_ritual_test") public static void boundedWire(GameTestHelper h) throws Exception {NetworkCompatibilityGameTests.frozenSchemaRejectsIndependentWireChanges(h);}
+}
+
+Save the init script as build/cod1-wire-qa/wire.init.gradle:
+
+allprojects { p -> afterEvaluate {
+ if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+ def qa=p.sourceSets.create('cod1WireQa') {
+  java.srcDir p.file('build/cod1-wire-qa/src')
+  resources.srcDir p.file('build/cod1-wire-qa/resources')
+  compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+  runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+ }
+ p.minecraft.runs.gameTestServer { mods { dynasty { source qa } } }
+ p.tasks.matching { it.name=='runGameTestServer' }.configureEach { dependsOn qa.classesTaskName }
+} }
+
+Run the existing repair init plus this init, with -PrepairNamespaces=dynasty_army,dynasty_wire_qa and build runGameTestServer. The six wrapper methods call the existing protocol tests directly.
