@@ -77,4 +77,17 @@ public final class WellSecretGameTests {
             }
         });}
     }
+    @GameTest(template="bow_ritual_test",batch="cod4_well_native",setupTicks=20)
+    public static void deathCloneRetainsSixPaidDeliveriesButResetsContinuousChallenges(GameTestHelper h){
+        var p=player(h);var at=well(h);ready(p);var progress=new CompoundTag();
+        progress.putLong("Anchor",at.asLong());progress.putString("SiteDimension",h.getLevel().dimension().location().toString());progress.putInt("Count",6);progress.putLong("Last",h.getLevel().getGameTime()-10);
+        p.getPersistentData().put("cod3_progress_8",progress);EquipmentBehaviors.saved(p).putInt("site_ancient_well_count",6);
+        var continuous=new CompoundTag();continuous.putLong("Since",h.getLevel().getGameTime()-10000);p.getPersistentData().put("cod3_progress_9",continuous);
+        var q=player(h,p.getGameProfile());SecretTracker.clone(new PlayerEvent.Clone(q,p,true));
+        h.assertTrue(q.getPersistentData().getCompound("cod3_progress_8").getInt("Count")==6&&EquipmentBehaviors.saved(q).getInt("site_ancient_well_count")==6,"Death clone retains both native paid progress and original persistent Site progress");
+        h.assertTrue(!q.getPersistentData().contains("cod3_progress_9"),"Continuous underwater challenge does not inherit uninterrupted time through death");
+        q.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(Items.WATER_BUCKET));use(h,q,at);
+        h.assertTrue(SecretTracker.wellClaimed(q)&&q.getInventory().countItem(ExpansionContent.item("jade"))==1&&q.getMainHandItem().is(Items.BUCKET),"One final actual water delivery completes preserved six, without making the clone redo paid buckets");
+        h.assertTrue(progress.getInt("Count")==6,"Clone owns a deep copy of native progress, not the original player's mutable compound");h.succeed();
+    }
 }

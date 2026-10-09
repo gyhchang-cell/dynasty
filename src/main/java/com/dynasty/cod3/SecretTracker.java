@@ -38,7 +38,7 @@ public final class SecretTracker extends SavedData {
     }
     public boolean claim(ServerPlayer p,int n,BlockPos anchor){
         boolean indexed=p.serverLevel().getBlockEntity(anchor) instanceof StoryAnchor.Anchor&&Objects.equals(nearby(p.blockPosition()).get(anchor),n);
-        if(!indexed&&!verifiedWell(p,n,anchor))return false;
+        if(!indexed&&!verifiedSite(p,n,anchor))return false;
         var def=SecretDefinition.of(n);if(!def.enabled())return false;
         var personal=p.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG);
         if(!p.getPersistentData().contains(Player.PERSISTED_NBT_TAG))p.getPersistentData().put(Player.PERSISTED_NBT_TAG,personal);
@@ -52,19 +52,20 @@ public final class SecretTracker extends SavedData {
     }
     /** Thin adapter for the registered COD4 well; rewards, scope and payment stay in this ledger. */
     public record WaterDelivery(boolean accepted,boolean claimed,int count) {}
-    private static boolean wellContext(ServerPlayer p,BlockPos pos){
+    private static boolean siteContext(ServerPlayer p,BlockPos pos,String id){
         return p.isAlive()&&!p.isSpectator()&&p.serverLevel().hasChunkAt(pos)&&p.distanceToSqr(Vec3.atCenterOf(pos))<=36
-                &&p.serverLevel().getBlockState(pos).is(com.dynasty.expansion.SmallInteractions.ENTRIES.get("ancient_well").get());
+                &&p.serverLevel().getBlockState(pos).is(com.dynasty.expansion.SmallInteractions.ENTRIES.get(id).get());
     }
-    private static boolean verifiedWell(ServerPlayer p,int n,BlockPos pos){
-        if(n!=8||!wellContext(p,pos))return false;var state=progress(p,8);var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);
+    private static boolean verifiedSite(ServerPlayer p,int n,BlockPos pos){
+        if(n!=8&&n!=30)return false;String id=n==8?"ancient_well":"puzzle_box";
+        if(!siteContext(p,pos,id))return false;var state=progress(p,n);var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);
         return state.contains("SiteReady")&&state.getLong("SiteReady")==pos.asLong()&&state.getString("SiteDimension").equals(p.serverLevel().dimension().location().toString())
-                &&state.getInt("Count")>=7&&site.contains("site_ancient_well_start")&&p.level().getGameTime()-site.getLong("site_ancient_well_start")>=3600;
+                &&state.getInt("Count")>=(n==8?7:4)&&site.contains("site_"+id+"_start")&&p.level().getGameTime()-site.getLong("site_"+id+"_start")>=(n==8?3600:2400);
     }
     public static boolean wellClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,8,SecretDefinition.of(8));}
     public static WaterDelivery deliverWellWater(ServerPlayer p,BlockPos pos){
         var state=progress(p,8);int before=state.getInt("Count");
-        if(!wellContext(p,pos))return new WaterDelivery(false,false,before);
+        if(!siteContext(p,pos,"ancient_well"))return new WaterDelivery(false,false,before);
         if(wellClaimed(p))return new WaterDelivery(false,true,before);
         var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);long now=p.level().getGameTime();
         if(!site.contains("site_ancient_well_start")||now<site.getLong("site_ancient_well_next")||!p.getMainHandItem().is(Items.WATER_BUCKET))return new WaterDelivery(false,false,before);
@@ -88,6 +89,28 @@ public final class SecretTracker extends SavedData {
         if(ready)state.putLong("SiteReady",pos.asLong());
         boolean claimed=ready&&get(p.serverLevel()).claim(p,8,pos);
         return new WaterDelivery(true,claimed,delivered);
+    }
+    public record PuzzleStep(boolean accepted,boolean claimed,int count,boolean reset) {}
+    public static boolean puzzleClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,30,SecretDefinition.of(30));}
+    public static int puzzleCount(ServerPlayer p){return Math.min(4,Math.max(0,progress(p,30).getInt("Count")));}
+    /** Four cardinal presses reuse secret 30; original stand/sneak alternation is retained. */
+    public static PuzzleStep pressPuzzle(ServerPlayer p,BlockPos pos){
+        var state=progress(p,30);int before=puzzleCount(p);
+        if(!siteContext(p,pos,"puzzle_box"))return new PuzzleStep(false,false,before,false);
+        if(puzzleClaimed(p))return new PuzzleStep(false,true,before,false);
+        var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);long now=p.level().getGameTime();
+        if(!site.contains("site_puzzle_box_start")||now<site.getLong("site_puzzle_box_next"))return new PuzzleStep(false,false,before,false);
+        String dimension=p.serverLevel().dimension().location().toString();
+        if(state.contains("SiteDimension")&&!dimension.equals(state.getString("SiteDimension"))||state.contains("Anchor")&&state.getLong("Anchor")!=pos.asLong()){
+            state.getAllKeys().stream().toList().forEach(state::remove);before=0;
+        }
+        if(p.isShiftKeyDown()!=(before%2==1)||state.contains("Last")&&now-state.getLong("Last")<10)return new PuzzleStep(false,false,before,false);
+        if(before>=3&&now-site.getLong("site_puzzle_box_start")<2400)return new PuzzleStep(false,false,before,false);
+        boolean ready=conditions(p,30,pos,SecretDefinition.Trigger.COMBINATION);int after=puzzleCount(p);
+        state.putString("SiteDimension",dimension);state.putLong("Last",now);
+        if(after<=before)return new PuzzleStep(false,false,after,true);
+        if(ready)state.putLong("SiteReady",pos.asLong());
+        return new PuzzleStep(true,ready&&get(p.serverLevel()).claim(p,30,pos),after,false);
     }
     private static int count(ServerPlayer p,Item item){int amount=0;for(var stack:p.getInventory().items)if(stack.is(item))amount+=stack.getCount();return amount;}
     private static void consume(ServerPlayer p,Item item,int amount){for(var stack:p.getInventory().items)if(stack.is(item)){int taken=Math.min(amount,stack.getCount());stack.shrink(taken);amount-=taken;if(amount==0)break;}p.getInventory().setChanged();}
@@ -154,5 +177,11 @@ public final class SecretTracker extends SavedData {
         if(e.getEntity() instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow&&arrow.getOwner() instanceof ServerPlayer p&&e.getRayTraceResult() instanceof net.minecraft.world.phys.BlockHitResult hit)
             trigger(p,hit.getBlockPos(),SecretDefinition.Trigger.HIT_TARGET);
     }
-    @SubscribeEvent public static void clone(PlayerEvent.Clone e){var stored=e.getOriginal().getPersistentData().getCompound(Player.PERSISTED_NBT_TAG);e.getEntity().getPersistentData().put(Player.PERSISTED_NBT_TAG,stored.copy());}
+    @SubscribeEvent public static void clone(PlayerEvent.Clone e){
+        var original=e.getOriginal().getPersistentData();var copied=e.getEntity().getPersistentData();
+        copied.put(Player.PERSISTED_NBT_TAG,original.getCompound(Player.PERSISTED_NBT_TAG).copy());
+        // Discrete paid deliveries and lock steps survive death. Continuous posture,
+        // underwater and timed equipment challenges deliberately keep their reset.
+        for(int n:new int[]{8,30}){String key="cod3_progress_"+n;if(original.contains(key))copied.put(key,original.getCompound(key).copy());}
+    }
 }

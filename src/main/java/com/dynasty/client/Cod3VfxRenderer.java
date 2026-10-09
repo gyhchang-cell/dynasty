@@ -105,6 +105,8 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("equipment_phoenix_embers"))geometry.phoenixEmbers(age,life);
                 else if(p.sequence().equals("site_bellows"))geometry.bellows(life);
                 else if(p.sequence().equals("site_waterwheel"))geometry.waterwheel(age);
+                else if(p.sequence().equals("site_puzzle_press"))geometry.puzzle(life,false);
+                else if(p.sequence().equals("site_puzzle_open"))geometry.puzzle(life,true);
                 else if(p.sequence().equals("qinglong_combo_wave"))geometry.dragonWave(life,age);
                 else if(p.sequence().matches("scenic_(0[1-9]|1[0-9]|2[0-5])"))geometry.scenic(Integer.parseInt(p.sequence().substring(7)),life);else geometry.draw(p.template(),d,expansion,life,age);
             }
@@ -204,6 +206,15 @@ public final class Cod3VfxRenderer {
                 double a=i*Math.PI*2/5+age*.12,x=Math.cos(a)*(.35+life*.3),z=Math.sin(a)*(.35+life*.3),y=.7+life*.5;
                 triangle(p(x-.06,y-.10,z),p(x+.06,y-.10,z),p(x,y+.18,z),.95);mesh(x,y+.18,z,.035);
             }
+        }
+        void puzzle(double life,boolean open){
+            double slide=open?Math.min(1,life/.55)*.7:Math.sin(Math.PI*life)*.12;
+            // Three perpendicular interlocking pins slide apart, with a finite
+            // raised centre latch; no ring, visual entity or gameplay collision.
+            box(-slide,.05,0,.32,.12,.09);
+            box(0,.18,slide,.09,.12,.32);
+            box(slide,.31,0,.25,.12,.08);
+            box(0,.42+(open?slide*.4:0),0,.08,.08,.08);
         }
         void bellows(double life){
             double stroke=Math.sin(life*Math.PI*2)*.12;

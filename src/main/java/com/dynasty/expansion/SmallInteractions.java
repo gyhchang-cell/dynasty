@@ -34,6 +34,7 @@ public final class SmallInteractions {
             if(!(player instanceof ServerPlayer p))return InteractionResult.SUCCESS;
             var root=EquipmentBehaviors.saved(p);String key="site_"+id;
             if(id.equals("ancient_well"))return useWell((net.minecraft.server.level.ServerLevel)level,pos,p);
+            if(id.equals("puzzle_box"))return usePuzzle((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("broken_waterwheel")&&state.getValue(REPAIRED)){
                 root.putBoolean(key+"_done",true);
                 com.dynasty.cod3.Cod3WorldState.get((net.minecraft.server.level.ServerLevel)level).unlock((net.minecraft.server.level.ServerLevel)level,"world_02");
@@ -62,13 +63,11 @@ public final class SmallInteractions {
                 case "mortuary_room","wayside_tea_stall"->held.is(Items.MILK_BUCKET);
                 case "broken_waterwheel"->held.is(ExpansionContent.MATERIALS.get("qimen_cable").get());
                 case "old_bellows"->held.is(Items.CHARCOAL);
-                case "ancient_well"->held.is(Items.BUCKET) || held.is(Items.WATER_BUCKET);
-                case "puzzle_box"->p.isShiftKeyDown()==(root.getInt(key+"_count")%2==1);
                 default->true;
             };
             if(!valid){p.displayClientMessage(Component.translatable("interaction.dynasty."+id),false);return InteractionResult.CONSUME;}
-            int needed=id.equals("ancient_well")?7:Set.of("puzzle_box","sword_scar_wall","battlefield_remnant").contains(id)?3:1;
-            int duration=switch(id){case "abandoned_armory","ancient_well"->3600;case "sword_scar_wall","puzzle_box","mortuary_room","ghost_market_boat","wayside_tea_stall"->2400;case "nameless_tomb","herb_spot","battlefield_remnant","broken_waterwheel"->1200;default->600;};
+            int needed=Set.of("sword_scar_wall","battlefield_remnant").contains(id)?3:1;
+            int duration=switch(id){case "abandoned_armory"->3600;case "sword_scar_wall","mortuary_room","ghost_market_boat","wayside_tea_stall"->2400;case "nameless_tomb","herb_spot","battlefield_remnant","broken_waterwheel"->1200;default->600;};
             int interval=(duration+needed-1)/needed;
             if(!root.contains(key+"_start")) {root.putLong(key+"_start",now);root.putLong(key+"_next",now+interval);p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",(interval+19)/20),true);return InteractionResult.CONSUME;}
             if(id.equals("old_bellows")&&!assistFurnace((net.minecraft.server.level.ServerLevel)level,pos)){
@@ -100,7 +99,7 @@ public final class SmallInteractions {
                     ((net.minecraft.server.level.ServerLevel)level).sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK,Blocks.FERN.defaultBlockState()),pos.getX()+.5,pos.getY()+.3,pos.getZ()+.5,12,.25,.15,.25,.02);
                     level.playSound(null,pos,net.minecraft.sounds.SoundEvents.CROP_BREAK,net.minecraft.sounds.SoundSource.BLOCKS,.7F,1F);
                 }
-                case "ancient_well","mortuary_room"->{p.removeEffect(ExpansionEffects.YIN.get());p.removeEffect(ExpansionEffects.SOUL.get());}
+                case "mortuary_room"->{p.removeEffect(ExpansionEffects.YIN.get());p.removeEffect(ExpansionEffects.SOUL.get());}
                 case "wayside_tea_stall"->p.removeEffect(MobEffects.POISON);
                 case "old_bellows"->{
                     give(p,new ItemStack(Items.IRON_NUGGET,3));
@@ -119,6 +118,44 @@ public final class SmallInteractions {
             com.dynasty.DynastyAdvancements.award(p,"cod4_"+id);
             CombatFeedback.send(p,CombatFeedback.HEAL);return InteractionResult.CONSUME;
         }
+    }
+    private static void puzzleClue(ServerPlayer p,boolean reset){
+        int count=com.dynasty.cod3.SecretTracker.puzzleCount(p);String[] directions={"north","east","south","west"};
+        p.displayClientMessage(Component.translatable(reset?"message.dynasty.cod4.puzzle_reset":"message.dynasty.cod4.puzzle_clue",
+                Component.translatable("message.dynasty.cod4.puzzle_"+directions[count%4]),
+                Component.translatable(count%2==0?"message.dynasty.cod4.puzzle_stand":"message.dynasty.cod4.puzzle_sneak")),false);
+    }
+    private static InteractionResult usePuzzle(net.minecraft.server.level.ServerLevel level,BlockPos pos,ServerPlayer p){
+        if(!p.isAlive()||p.isSpectator()||!level.hasChunkAt(pos)||p.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos))>36)return InteractionResult.PASS;
+        var root=EquipmentBehaviors.saved(p);String key="site_puzzle_box";long now=level.getGameTime();
+        if(com.dynasty.cod3.SecretTracker.puzzleClaimed(p)){
+            root.putBoolean(key+"_done",true);com.dynasty.DynastyAdvancements.award(p,"cod4_puzzle_box");
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.site_done"),true);return InteractionResult.CONSUME;
+        }
+        if(!root.contains(key+"_start")){
+            if(p.isShiftKeyDown()||p.getDirection()!=net.minecraft.core.Direction.NORTH){puzzleClue(p,false);return InteractionResult.CONSUME;}
+            root.putLong(key+"_start",now);root.putLong(key+"_next",now+800);puzzleClue(p,false);
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",40),true);return InteractionResult.CONSUME;
+        }
+        if(now<root.getLong(key+"_next")){
+            puzzleClue(p,false);p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",(root.getLong(key+"_next")-now+19)/20),true);return InteractionResult.CONSUME;
+        }
+        var step=com.dynasty.cod3.SecretTracker.pressPuzzle(p,pos);
+        if(!step.accepted()){
+            puzzleClue(p,step.reset());if(step.reset())level.playSound(null,pos,net.minecraft.sounds.SoundEvents.WOODEN_BUTTON_CLICK_OFF,net.minecraft.sounds.SoundSource.BLOCKS,.4F,.6F);
+            return InteractionResult.CONSUME;
+        }
+        // The three old alternating steps and counters remain. West releases the
+        // final pin after ten ticks, without extending each old 800-tick stage.
+        root.putInt(key+"_count",Math.max(root.getInt(key+"_count"),Math.min(3,step.count())));
+        root.putLong(key+"_next",now+(step.count()<3?800:10));
+        feedback(level,pos,step.claimed()?"site_puzzle_open":"site_puzzle_press",0xcba269);
+        level.playSound(null,pos,net.minecraft.sounds.SoundEvents.WOODEN_BUTTON_CLICK_ON,net.minecraft.sounds.SoundSource.BLOCKS,.5F,step.claimed()?1.3F:.8F);
+        if(!step.claimed()){puzzleClue(p,false);return InteractionResult.CONSUME;}
+        boolean oldDone=root.getBoolean(key+"_done");root.putBoolean(key+"_done",true);
+        if(!oldDone)give(p,new ItemStack(ExpansionContent.item("copper_coin"),2));
+        com.dynasty.DynastyAdvancements.award(p,"cod4_puzzle_box");
+        p.displayClientMessage(Component.translatable("message.dynasty.cod4.puzzle_open"),false);return InteractionResult.CONSUME;
     }
     /** Retain old site timers/completion and use the native secret's real water counter. */
     private static InteractionResult useWell(net.minecraft.server.level.ServerLevel level,BlockPos pos,ServerPlayer p){
