@@ -152,7 +152,7 @@ public final class SmallInteractions {
         }
         p.displayClientMessage(Component.translatable("message.dynasty.cod4.mortuary_clue"),false);
         if(!root.contains(key+"_start")){root.putLong(key+"_start",now);root.putLong(key+"_next",now+2400);}
-        if(now<root.getLong(key+"_next")||now-root.getLong(key+"_start")<2400){
+        if((!root.getBoolean(key+"_done")&&now<root.getLong(key+"_next"))||now-root.getLong(key+"_start")<2400){
             p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",Math.max(1,(root.getLong(key+"_next")-now+19)/20)),true);return InteractionResult.CONSUME;
         }
         if(!com.dynasty.cod3.SecretTracker.rescueMortuary(p,pos,victim))return InteractionResult.CONSUME;

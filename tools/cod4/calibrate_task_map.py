@@ -63,7 +63,7 @@ assert len(supplies)==8
 school={'zhenyue_blade':'guard','beichen_spear':'guard','liuyun_sword':'sword','chengying_sword':'sword','zhuxing_bow':'archer','fengling_bow':'archer','chiling_brush':'talisman','leifu_staff':'talisman'}
 advanced={'beichen_spear','chengying_sword','fengling_bow','leifu_staff'}
 mechanisms={'entity':'SecondarySpawnHooks placement; SecondaryMob AI/contactAttack/dropCustomDeathLoot; no quest hook unless listed','effect':'ExpansionEffects.apply and effect tick; EffectPresentation.added/removed/expired; no independent quest','armor':'EquipmentBehaviors.equipment/refresh/hurt/block/tick; DynastySetBonus; actual set-count EQUIP is intrinsic','accessory':'DynastyTrinkets.activeIds/tick/apply and EquipmentBehaviors.refresh/hurt; actual Curios EQUIP is intrinsic','interaction':'SmallInteractions.Site.use -> persisted site_<ID>_start/next/count/done -> DynastyAdvancements.award(cod4_<ID>)','weapon':'FTB native item-task detection; original weapon combat; no invented use restriction'}
-gaps={'sword_scar_wall':'Moonlight sword dance and existing secret 28 still pending','battlefield_remnant':'Three unique coordinates only advance existing optional cod4 node; broader original main/side objective link remains pending','ghost_market_boat':'Original incense reward retained; TALK/DELIVER/merchant and existing secret 17 remain pending','wayside_tea_stall':'Original milk cleanse retained; poison-tea choice/clue/result and existing secret 19 still pending'}
+gaps={'sword_scar_wall':'Moonlight sword dance and existing secret 28 still pending','ghost_market_boat':'Original incense reward retained; TALK/DELIVER/merchant and existing secret 17 remain pending','wayside_tea_stall':'Original milk cleanse retained; poison-tea choice/clue/result and existing secret 19 still pending'}
 for row in rows:
     ident,kind=row['CONTENT_ID'],row['TYPE'];found=list(links.get(ident,[]))
     if kind=='armor':
@@ -79,6 +79,7 @@ for row in rows:
     if kind in mechanisms:hooks.append(mechanisms[kind])
     if ident in school:hooks.append('DynastySchoolProgression.onKill -> canonical path rank; reconcile -> original attained milestones and recipe book; DynastyWeaponProgression.reward -> per-stack investment')
     row['PROGRESS_HOOK']='; '.join(hooks) or 'Vanilla registered recipe/crafting and item pickup; no custom task hook'
+    if ident=='battlefield_remnant':row['PROGRESS_HOOK']='SmallInteractions.Site.use -> existing dimension/coordinate visited ledger -> original cod4_battlefield_remnant advancement after three distinct physical surveys; native FTB AdvancementTask.canSubmit/submitTask completes existing story_03 side quest 1000000000c40021/task 2000000000c40021, actual TeamData NBT reload verified; no new quest or false mainline award'
     if ident=='mortuary_room':row['PROGRESS_HOOK']='Site.use preserves original milk path; useMortuary -> original persisted Site timer/completion; native existing a_ji patient UUID/owner/site saved in entity NBT -> actual healing-potion effect -> SecretTracker original 29 payment/bottle/longyuan_sword/player-dimension claim; original cod4_mortuary_room advancement; no new NPC/task/claim engine'
     if ident=='puzzle_box':row['PROGRESS_HOOK']='Site.use -> usePuzzle -> original persisted Site start/next/count/done; SecretTracker.pressPuzzle -> original cod3_progress_30 north/east/south/west sequence with retained stand/sneak alternation -> original dimension/player secret_30 claim; cod4_puzzle_box advancement; discrete native progress deep-copied on death; no new quest engine'
     if ident=='ancient_well':row['PROGRESS_HOOK']='Site.use -> useWell -> original persisted Site start/next/completion; SecretTracker.deliverWellWater -> original cod3_progress_8 seven real water deliveries -> original dimension/player secret_8 claim; cod4_ancient_well advancement bridges existing node; no separate quest/claim engine'
@@ -126,6 +127,10 @@ for row in rows:
     row['OLD_SAVE_COMPAT']=compat
     notes=row['NOTES']
     if ident in ('fox_pelt','kappa_scale'):notes=re.sub(r'; Remaining material functions belong to existing Stage [^;]*; native workshop/NPC integration pending, not an invented new mainline','',notes)
+    if ident=='battlefield_remnant':
+        notes=re.sub(r'; Three unique coordinates only advance existing optional cod4 node; broader original main/side objective link remains pending','',notes)
+        notes=re.sub(r'; Remaining Site/secret closure must reuse existing Stage [^;]*; no separate exported secret task node is present','',notes)
+        if 'Native FTB side Objective verified' not in notes:notes+='; Native FTB side Objective verified: three distinct physical surveys -> actual existing story_03 advancement task/quest, repeat coordinate rejected, original Site two coins and native TeamData reload retained; actual client/natural survival/real multiplayer pending'
     if ident=='mortuary_room':
         notes=re.sub(r'; Original milk cleanse retained; living victim/healing-potion delivery and existing secret 29 still pending','',notes)
         notes=re.sub(r'; Remaining Site/secret closure must reuse existing Stage [^;]*; no separate exported secret task node is present','',notes)

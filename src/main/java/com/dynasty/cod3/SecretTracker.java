@@ -105,7 +105,7 @@ public final class SecretTracker extends SavedData {
                 ||victim.distanceToSqr(Vec3.atCenterOf(pos))>16||!victim.getPersistentData().hasUUID("cod4_mortuary_owner")||!victim.getPersistentData().getUUID("cod4_mortuary_owner").equals(p.getUUID())
                 ||victim.getPersistentData().getLong("cod4_mortuary_anchor")!=pos.asLong()||!victim.getPersistentData().getBoolean("cod4_mortuary_waiting"))return false;
         var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);long now=p.level().getGameTime();
-        if(!site.contains("site_mortuary_room_start")||now<site.getLong("site_mortuary_room_next")||now-site.getLong("site_mortuary_room_start")<2400||!conditions(p,29,pos,SecretDefinition.Trigger.USE_ITEM_AT_POS))return false;
+        if(!site.contains("site_mortuary_room_start")||(!site.getBoolean("site_mortuary_room_done")&&now<site.getLong("site_mortuary_room_next"))||now-site.getLong("site_mortuary_room_start")<2400||!conditions(p,29,pos,SecretDefinition.Trigger.USE_ITEM_AT_POS))return false;
         float before=victim.getHealth();net.minecraft.world.effect.MobEffects.HEAL.applyInstantenousEffect(p,p,victim,0,1);
         if(victim.getHealth()<=before)return false;
         var state=progress(p,29);state.putUUID("Victim",victim.getUUID());state.putFloat("HealthBefore",before);state.putLong("SiteReady",pos.asLong());state.putString("SiteDimension",p.level().dimension().location().toString());

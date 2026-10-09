@@ -62,7 +62,7 @@ public final class MortuarySecretGameTests {
     public static void originalMilkCleanseAndLegacyCompletionRemainWhileMissingSecretIsEarned(GameTestHelper h){
         var at=room(h);var p=player(h,at);p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(Items.MILK_BUCKET));use(h,p,at);ready(p);p.addEffect(new MobEffectInstance(ExpansionEffects.YIN.get(),1000));use(h,p,at);
         h.assertTrue(EquipmentBehaviors.saved(p).getBoolean("site_mortuary_room_done")&&!p.hasEffect(ExpansionEffects.YIN.get())&&p.getMainHandItem().is(Items.MILK_BUCKET)&&!SecretTracker.mortuaryClaimed(p),"Original completed milk use/cleanse/payment semantics remain and do not fake an actual rescue");
-        p.addEffect(new MobEffectInstance(ExpansionEffects.YIN.get(),1000));p.setItemInHand(InteractionHand.MAIN_HAND,potion(Potions.HEALING));use(h,p,at);var v=victim(h,p,at);ready(p);use(h,p,at);
+        p.addEffect(new MobEffectInstance(ExpansionEffects.YIN.get(),1000));p.setItemInHand(InteractionHand.MAIN_HAND,potion(Potions.HEALING));use(h,p,at);var v=victim(h,p,at);
         h.assertTrue(SecretTracker.mortuaryClaimed(p)&&p.getInventory().countItem(ExpansionContent.item("longyuan_sword"))==1&&p.hasEffect(ExpansionEffects.YIN.get()),"Legacy completed Site earns only its genuinely missing native rescue reward; old cleanse is never replayed");
         var other=player(h,at);use(h,other,at);var second=victim(h,other,at);h.assertTrue(second!=null&&second!=v&&!second.getUUID().equals(v.getUUID())&&!SecretTracker.mortuaryClaimed(other),"Detached second character uses its own persisted patient and player-scope claim; real multiplayer remains pending");v.discard();second.discard();h.succeed();
     }

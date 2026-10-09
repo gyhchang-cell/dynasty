@@ -46,7 +46,39 @@ public final class FtbRewardGameTests {
     }
     @GameTestGenerator public static Collection<TestFunction> nativeRewards(){
         if(!Boolean.getBoolean("dynasty.ftbRewardQa"))return List.of();
-        return List.of(new TestFunction("ftb_native_rewards","dynasty_ftb_qa.native_rewards","dynasty_ftb_qa:bow_ritual_test",100,20,true,FtbRewardGameTests::run));
+        return List.of(new TestFunction("ftb_native_rewards","dynasty_ftb_qa.native_rewards","dynasty_ftb_qa:bow_ritual_test",100,20,true,FtbRewardGameTests::run),
+                new TestFunction("ftb_native_objectives","dynasty_ftb_qa.native_battlefield_objective","dynasty_ftb_qa:bow_ritual_test",100,20,true,FtbRewardGameTests::battlefield));
+    }
+    private static void battlefield(GameTestHelper h){
+        try{
+            var p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),new GameProfile(UUID.randomUUID(),"ftb-survey-qa"));
+            p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);FixtureTeams.ensure(p);
+            Class<?> fileType=Class.forName("dev.ftb.mods.ftbquests.quest.ServerQuestFile"),taskType=Class.forName("dev.ftb.mods.ftbquests.quest.task.Task"),teamType=Class.forName("dev.ftb.mods.ftbquests.quest.TeamData"),objectType=Class.forName("dev.ftb.mods.ftbquests.quest.QuestObject");
+            Object file=fileType.getField("INSTANCE").get(null),quest=fileType.getMethod("getQuest",long.class).invoke(file,0x1000000000c40021L),task=fileType.getMethod("getTask",long.class).invoke(file,0x2000000000c40021L);
+            Object team=fileType.getMethod("getOrCreateTeamData",net.minecraft.world.entity.Entity.class).invoke(file,p);
+            h.assertTrue(quest!=null&&task!=null&&taskType.getMethod("getQuest").invoke(task)==quest,"Exact existing story-03 side quest and native advancement Objective are loaded; no new node");
+            var read=teamType.getMethod("getProgress",taskType);var detect=task.getClass().getMethod("canSubmit",teamType,ServerPlayer.class);var submit=taskType.getMethod("submitTask",teamType,ServerPlayer.class);
+            h.assertTrue((Long)read.invoke(team,task)==0&&!(Boolean)detect.invoke(task,team,p),"Actual native detector rejects the unsurveyed Objective");
+            var root=com.dynasty.expansion.EquipmentBehaviors.saved(p);
+            for(int i=0;i<3;i++){
+                var at=h.absolutePos(new net.minecraft.core.BlockPos(3+i*2,2,3));h.getLevel().setBlockAndUpdate(at,com.dynasty.expansion.SmallInteractions.ENTRIES.get("battlefield_remnant").get().defaultBlockState());p.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(at));
+                root.putLong("site_battlefield_remnant_start",h.getLevel().getGameTime()-1200);root.putLong("site_battlefield_remnant_next",h.getLevel().getGameTime());
+                var hit=new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(at),net.minecraft.core.Direction.UP,at,false);
+                h.getLevel().getBlockState(at).use(h.getLevel(),p,net.minecraft.world.InteractionHand.MAIN_HAND,hit);
+                h.assertTrue(root.getInt("site_battlefield_remnant_count")==i+1,"Each different physical coordinate contributes exactly one original survey");
+                if(i<2){
+                    h.assertTrue(!(Boolean)detect.invoke(task,team,p)&&(Long)read.invoke(team,task)==0,"One or two surveys cannot manufacture native FTB Objective completion");
+                    root.putLong("site_battlefield_remnant_next",h.getLevel().getGameTime());h.getLevel().getBlockState(at).use(h.getLevel(),p,net.minecraft.world.InteractionHand.MAIN_HAND,hit);
+                    h.assertTrue(root.getInt("site_battlefield_remnant_count")==i+1,"Revisiting the same dimension/coordinate is not a new survey");
+                }
+            }
+            h.assertTrue((Boolean)detect.invoke(task,team,p),"Third actual survey makes the existing native advancement detector eligible");submit.invoke(task,team,p);
+            h.assertTrue((Long)read.invoke(team,task)==1&&(Boolean)teamType.getMethod("isCompleted",objectType).invoke(team,quest),"Native FTB detector/submission advances the original side Objective and completes its actual quest, not just a private boolean");
+            h.assertTrue(p.getInventory().countItem(com.dynasty.expansion.ExpansionContent.item("copper_coin"))==2,"Only original Site completion gives two coins; original FTB node has no invented reward");
+            Object saved=teamType.getMethod("serializeNBT").invoke(team),restored=teamType.getConstructor(UUID.class,Class.forName("dev.ftb.mods.ftbquests.quest.BaseQuestFile")).newInstance(teamType.getMethod("getTeamId").invoke(team),file);teamType.getMethod("deserializeNBT",saved.getClass()).invoke(restored,saved);
+            h.assertTrue((Long)read.invoke(restored,task)==1&&(Boolean)teamType.getMethod("isCompleted",objectType).invoke(restored,quest),"Native TeamData NBT reload retains original Objective and quest completion");
+            System.out.println("FTB NATIVE SURVEY QA: three unique coordinates -> original story_03 node 1000000000c40021/task 2000000000c40021; native detector/submission complete, persisted reload retained; client/real multiplayer pending");h.succeed();
+        }catch(ReflectiveOperationException e){h.fail("Native battlefield FTB Objective: "+e+(e instanceof InvocationTargetException target?" cause="+target.getCause():""));}
     }
     private static void run(GameTestHelper h){
         try{
