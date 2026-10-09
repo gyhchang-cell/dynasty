@@ -19,6 +19,15 @@ import java.util.*;
 @GameTestHolder("dynasty_cod4")
 @PrefixGameTestTemplate(false)
 public final class ExpansionGameTests {
+    @GameTest(template="bow_ritual_test",batch="cod4")
+    public static void contentMilestonesCannotBypassPersonalRequirementsThroughTeamQuests(GameTestHelper h) {
+        h.assertTrue(DynastySlotProgression.milestoneIds().size()==7,"Retain all seven milestones");
+        for(String id:List.of("cod4_silk","cod4_crown"))
+            h.assertTrue(!DynastySlotProgression.usesQuestReconciliation(id),"Personal inventory/rank owns "+id);
+        for(String id:List.of("emperor","scholar","pacifier","celestial","dragon_king"))
+            h.assertTrue(DynastySlotProgression.usesQuestReconciliation(id),"Legacy quest reconciliation retained: "+id);
+        h.succeed();
+    }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="cod4")
     public static void sharedComboCountsOncePerTickAndAdvancesNextTick(GameTestHelper h) {
         var p=player(h);var target=new Zombie(h.getLevel());

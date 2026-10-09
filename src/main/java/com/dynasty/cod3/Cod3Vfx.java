@@ -18,8 +18,18 @@ public final class Cod3Vfx {
     }
     public static void sequence(net.minecraft.world.entity.Mob boss,String id,int tick,BossSequenceDefinition.Step step){
         if(!(boss.level() instanceof ServerLevel level))return;
-        var p=new Cod3VisualPacket(level.dimension().location().toString(),step.vfx(),boss.getId(),boss.getUUID().getLeastSignificantBits()+step.startTick(),level.getGameTime()-tick+step.startTick(),Math.min(120,step.duration()),step.radius()/3,boss.position(),boss.getLookAngle(),id,tick);
+        var p=new Cod3VisualPacket(level.dimension().location().toString(),step.vfx(),boss.getId(),boss.getUUID().getLeastSignificantBits()+step.startTick(),level.getGameTime()-tick+step.startTick(),step.visualDuration(),step.radius()/3,boss.position(),boss.getLookAngle(),id,tick);
         DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(boss.getX(),boss.getY(),boss.getZ(),32,level.dimension())),p);
+    }
+    /** Shared with client and server tests: only live VFX, preserving original time/seed for deduplication. */
+    public static java.util.List<Cod3VisualPacket> resume(Cod3VisualPacket snapshot, BossSequenceDefinition def) {
+        if (!snapshot.valid() || snapshot.template() != 0 || def == null
+                || !def.id().equals(snapshot.sequence()) || snapshot.tick() >= def.totalTicks()) return java.util.List.of();
+        return def.steps().stream().filter(step -> step.visualActiveAt(snapshot.tick())).map(step ->
+                new Cod3VisualPacket(snapshot.dimension(), step.vfx(), snapshot.entityId(),
+                        snapshot.seed()+step.startTick(), snapshot.start()+step.startTick(), step.visualDuration(),
+                        step.radius()/3, snapshot.origin(), snapshot.direction(), snapshot.sequence(), snapshot.tick(), snapshot.tint())
+        ).toList();
     }
     private Cod3Vfx(){}
 }

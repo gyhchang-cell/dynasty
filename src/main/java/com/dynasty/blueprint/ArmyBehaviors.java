@@ -761,20 +761,25 @@ public final class ArmyBehaviors {
             if(expires<=mob.level().getGameTime()||expires>mob.level().getGameTime()+30)linked=null;}
     }
     private static final class Powder extends Base {
-        int nearTicks;long lastTick=-1,deadExplosionAt=-1;boolean exploded,smallExplosion;
+        int nearTicks;long lastTick=-1,deadExplosionAt=-1;boolean exploded,smallExplosion,fuseLit;
         Powder(TemplateMob mob){super(mob);}
         public boolean allows(int id){return id==ArmySkills.STAB||id==ArmySkills.DETONATE;}
         public int choose(LivingEntity target,long now){return ArmySkills.STAB;}
+        public void started(int id,LivingEntity target){if(id==ArmySkills.DETONATE)fuseLit=true;}
         public void tick(long now){
             var enemy=mob.getTarget();boolean close=mob.validEnemy(enemy)&&mob.distanceToSqr(enemy)<9&&mob.hasLineOfSight(enemy);
-            if(!close||lastTick>=0&&now-lastTick!=1)resetFuse();lastTick=now;
+            boolean stunned=mob.attack().state(now)==AttackState.STUN;
+            // An external interrupt may already have ended (one-tick stun) before this tick.
+            // Track the lit action as well as STUN so its unspent cooldown cannot survive it.
+            if(!close||stunned||fuseLit&&mob.skillId()!=ArmySkills.DETONATE||lastTick>=0&&now-lastTick!=1)resetFuse();lastTick=now;
+            if(stunned)return; // Recovery must precede a fresh, continuous three-second fuse.
             nearTicks=close?Math.min(60,nearTicks+1):0;
             if(nearTicks>=40&&mob.skillId()!=ArmySkills.DETONATE&&mob.attack().ready(ArmySkills.DETONATE,now)){
                 mob.cancelAction();mob.startSkill(ArmySkills.DETONATE,enemy);
             }
         }
         private void resetFuse(){
-            nearTicks=0;
+            nearTicks=0;fuseLit=false;
             // tryStart reserves a cooldown immediately. A broken fuse never spent its blast,
             // so retaining that reservation would suppress the next continuous three seconds.
             mob.attack().resetCooldown(ArmySkills.DETONATE);

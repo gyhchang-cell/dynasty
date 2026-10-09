@@ -32,7 +32,7 @@ public final class DynastySlotProgression {
     private static boolean bridgeInitialized;
     private static boolean warned;
 
-    private record Milestone(String title, long questId) { }
+    private record Milestone(String title, long questId, boolean questReconciliation) { }
 
     private DynastySlotProgression() { }
 
@@ -47,7 +47,8 @@ public final class DynastySlotProgression {
             json.entrySet().forEach(entry -> {
                 JsonObject value = entry.getValue().getAsJsonObject();
                 entries.put(entry.getKey(), new Milestone(value.get("title").getAsString(),
-                        Long.parseLong(value.get("quest_id").getAsString(), 16)));
+                        Long.parseLong(value.get("quest_id").getAsString(), 16),
+                        !value.has("unlock_source") || !"content".equals(value.get("unlock_source").getAsString())));
             });
             return Map.copyOf(entries);
         } catch (java.io.IOException exception) {
@@ -57,6 +58,12 @@ public final class DynastySlotProgression {
 
     public static java.util.Set<String> milestoneIds() {
         return MILESTONES.keySet();
+    }
+
+    /** Personal inventory/rank milestones must not be awarded from a teammate's quest. */
+    public static boolean usesQuestReconciliation(String id) {
+        Milestone milestone = MILESTONES.get(id);
+        return milestone != null && milestone.questReconciliation();
     }
 
     private static CompoundTag progress(Player player) {
@@ -120,7 +127,7 @@ public final class DynastySlotProgression {
             }
             CompoundTag flags = progress(player);
             for (var entry : MILESTONES.entrySet()) {
-                if (flags.getBoolean(entry.getKey())) {
+                if (!entry.getValue().questReconciliation() || flags.getBoolean(entry.getKey())) {
                     continue;
                 }
                 Object quest = questById.invoke(file, entry.getValue().questId());

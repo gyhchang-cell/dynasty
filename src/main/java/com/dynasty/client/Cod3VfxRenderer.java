@@ -24,20 +24,26 @@ public final class Cod3VfxRenderer {
     private static final List<Cod3VisualPacket> ACTIVE=new ArrayList<>();
     private static ClientLevel world;
     private static final BufferBuilder BUFFER=new BufferBuilder(262144);
-    private static void clean(){var current=Minecraft.getInstance().level;if(current!=world){ACTIVE.clear();world=current;}if(world!=null)ACTIVE.removeIf(p->world.getGameTime()-p.start()>=p.duration()||p.start()-world.getGameTime()>40);}
+    private static void clean(){
+        var mc=Minecraft.getInstance();var current=mc.level;
+        if(current!=world){ACTIVE.clear();world=current;}
+        if(world==null)return;
+        ACTIVE.removeIf(p->{
+            if(world.getGameTime()-p.start()>=p.duration()||p.start()-world.getGameTime()>40)return true;
+            if(!p.sequence().startsWith("intro_")&&!p.sequence().startsWith("death_"))return false;
+            var entity=world.getEntity(p.entityId());
+            return mc.player==null||entity==null||mc.player.distanceToSqr(entity)>32*32;
+        });
+    }
     public static void receive(Cod3VisualPacket packet){
-        clean();if(world==null||!packet.dimension().equals(world.dimension().location().toString()))return;
+        clean();if(!packet.valid()||world==null||!packet.dimension().equals(world.dimension().location().toString()))return;
         if(packet.template()==0){
-            // A correction snapshot restores only currently active visual steps, never their sounds.
-            for(var row:Cod3Catalog.entries(packet.sequence().startsWith("death_")?"deaths":"intros")){
-                var def=row.getAsJsonObject();if(!def.get("id").getAsString().equals(packet.sequence()))continue;
-                for(var step:def.getAsJsonArray("steps")){var s=step.getAsJsonObject();int t=s.get("startTick").getAsInt(),length=Math.min(120,s.get("duration").getAsInt());
-                    if(packet.tick()>=t&&packet.tick()<t+length)add(new Cod3VisualPacket(packet.dimension(),s.get("vfx").getAsInt(),packet.entityId(),packet.seed()+t,packet.start()+t,length,s.get("radius").getAsDouble()/3,packet.origin(),packet.direction(),packet.sequence(),packet.tick()));
-                }
-            }
+            // Typed selection excludes sound, WAIT and SET_* steps from the visual queue.
+            Cod3Vfx.resume(packet, Cod3Catalog.sequenceById(packet.sequence())).forEach(Cod3VfxRenderer::add);
         }else add(packet);
     }
     private static void add(Cod3VisualPacket p){
+        if(!p.valid()||p.template()==0)return;
         if(ACTIVE.stream().anyMatch(old->old.entityId()==p.entityId()&&old.start()==p.start()&&old.template()==p.template()&&old.seed()==p.seed()&&old.sequence().equals(p.sequence())))return;
         if(p.scale()>2&&ACTIVE.stream().filter(x->x.scale()>2).count()>=3)return;
         if(ACTIVE.size()>=48)ACTIVE.remove(0);ACTIVE.add(p);

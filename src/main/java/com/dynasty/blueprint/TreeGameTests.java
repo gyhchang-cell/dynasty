@@ -88,6 +88,8 @@ public final class TreeGameTests {
             h.assertTrue(b.getHealth()==20&&!b.hasEffect(BlueprintEntities.ROOT_GRIP.get()),"Other player outside radius remains unaffected");
             h.assertTrue(!root[0].hurt(owner.damageSources().mobAttack(owner),20),"Woodland owner cannot break allied cage");
             a.addEffect(new net.minecraft.world.effect.MobEffectInstance(BlueprintEntities.SOUL_BIND.get(),60));
+            var diagnostic=new CompoundTag();root[0].saveWithoutId(diagnostic);
+            com.mojang.logging.LogUtils.getLogger().info("ROOT_CAGE_DIAGNOSTIC removed={} creative={} ownerAlive={} ownerHp={} data={}",root[0].isRemoved(),a.isCreative(),owner.isAlive(),owner.getHealth(),diagnostic);
             h.assertTrue(root[0].hurt(a.damageSources().playerAttack(a),6)&&!root[0].isRemoved(),"Trapped player can damage physical cage");
             h.assertTrue(b.getAttributeValue(Attributes.ATTACK_DAMAGE)>=6,"Equipped axe attributes have reached native living tick");
             b.moveTo(a.position().add(1.5,0,0));b.attack(root[0]);
