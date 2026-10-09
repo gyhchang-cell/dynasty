@@ -31,8 +31,10 @@ def verify():
     assert not (DATA / "curios/tags/items/dynasty_trinket.json").exists()
 
     milestones = json.loads((DATA / "dynasty/curios_progression.json").read_text())
-    assert len(milestones) == 5
-    assert len({v["quest_id"] for v in milestones.values()}) == 5
+    legacy = {"emperor", "scholar", "pacifier", "celestial", "dragon_king"}
+    personal = {"cod4_silk": "silk_pouch", "cod4_crown": "jade_crown"}
+    assert set(milestones) == legacy | personal.keys()
+    assert len({v["quest_id"] for v in milestones.values()}) == 7
     quests = {}
     reward_ids = set()
     for path in (ROOT / "modpack/config/ftbquests/quests/chapters").glob("*.snbt"):
@@ -45,11 +47,17 @@ def verify():
                 reward_ids.add(reward)
     for key, milestone in milestones.items():
         quest = quests[milestone["quest_id"]]
+        if key in personal:
+            assert milestone["unlock_source"] == "content"
+            assert 'advancement: "dynasty:cod4_obtain_' + personal[key] + '"' in quest
+            assert "rewards: []" in quest
+            assert "dynasty unlock_curio " not in quest
+            continue
         assert quest.count("dynasty unlock_curio " + key + '"') == 1
         assert "team_reward: false, elevate_perms: true" in quest
         assert 'shape: "hexagon"' in quest
         assert "永久 +1 万能饰品槽" in quest
-    print(f"Curios 自检通过：{len(mapping)} 件逐项分类、无通用标签串槽、专属槽移除、5 个个人里程碑奖励一致。")
+    print(f"Curios 自检通过：{len(mapping)} 件逐项分类、无通用标签串槽、5 个旧任务奖励和 2 个个人内容里程碑一致。")
 
 
 if __name__ == "__main__":
