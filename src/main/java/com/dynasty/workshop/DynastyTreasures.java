@@ -59,7 +59,7 @@ public final class DynastyTreasures {
                 case 5 -> player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE,1200));
             }
             if(!changed){player.displayClientMessage(Component.translatable("treasure.dynasty.no_target"),true);return InteractionResultHolder.fail(held);}
-            player.getCooldowns().addCooldown(this,kind==3?600:100);
+            player.getCooldowns().addCooldown(this,com.dynasty.expansion.EquipmentBehaviors.cooldown(player,kind==3?600:100));
             if(!player.getAbilities().instabuild)held.hurtAndBreak(1,player,p->p.broadcastBreakEvent(hand));
             world.sendParticles(kind==5?ParticleTypes.FLAME:kind==0?ParticleTypes.SOUL:ParticleTypes.ENCHANT,player.getX(),player.getY()+1,player.getZ(),16,.6,.5,.6,.01);
             world.playSound(null,player.blockPosition(),SoundEvents.AMETHYST_BLOCK_CHIME,SoundSource.PLAYERS,.7f,.8f+kind*.08f);

@@ -37,6 +37,11 @@ public final class Cod3VfxRenderer {
     }
     public static void receive(Cod3VisualPacket packet){
         clean();if(!packet.valid()||world==null||!packet.dimension().equals(world.dimension().location().toString()))return;
+        if(packet.sequence().startsWith("status_clear_")){
+            String status="status_"+packet.sequence().substring("status_clear_".length());
+            ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(status));return;
+        }
+        if(packet.sequence().matches("status_[1-8]"))ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(packet.sequence()));
         if(packet.template()==0){
             // Typed selection excludes sound, WAIT and SET_* steps from the visual queue.
             Cod3Vfx.resume(packet, Cod3Catalog.sequenceById(packet.sequence())).forEach(Cod3VfxRenderer::add);
@@ -51,13 +56,17 @@ public final class Cod3VfxRenderer {
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent e){
         if(e.phase!=TickEvent.Phase.END)return;clean();if(world==null||Minecraft.getInstance().isPaused()||world.getGameTime()%4!=0)return;
         var mc=Minecraft.getInstance();boolean low=mc.options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL;
+        int remaining=128;
         for(var p:ACTIVE){
+            if(remaining<=0)break;
             var d=Cod3Catalog.vfx(p.template());double age=world.getGameTime()-p.start();if(age<0||age>Math.min(p.duration(),40)||p.scale()>3)continue;
             Vec3 origin=p.origin();if(p.entityId()>=0){var entity=world.getEntity(p.entityId());if(entity==null||p.template()==4&&entity.getDeltaMovement().lengthSqr()<.0025)continue;origin=entity.position();}
             double distance=mc.gameRenderer.getMainCamera().getPosition().distanceTo(origin);if(distance>64)continue;
-            int count=Math.max(1,d.budget(distance,low)/10);Random r=new Random(p.seed()+world.getGameTime());
+            int count=Math.min(remaining,p.sequence().startsWith("status_")?low?1:3:Math.max(1,d.budget(distance,low)/10));remaining-=count;Random r=new Random(p.seed()+world.getGameTime());
             int tint=p.tint()==0?d.color():p.tint();var color=new Vector3f((tint>>16&255)/255f,(tint>>8&255)/255f,(tint&255)/255f);
-            for(int i=0;i<count;i++){double a=r.nextDouble()*Math.PI*2,rad=d.radius()*p.scale();world.addParticle(new DustParticleOptions(color,.6f),origin.x+Math.cos(a)*rad,origin.y+.2,origin.z+Math.sin(a)*rad,0,.01,0);}
+            for(int i=0;i<count;i++){double a=r.nextDouble()*Math.PI*2,rad=p.sequence().startsWith("status_")?.45:d.radius()*p.scale();
+                var particle=p.sequence().equals("status_5")?net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME:new DustParticleOptions(color,.6f);
+                world.addParticle(particle,origin.x+Math.cos(a)*rad,origin.y+(p.sequence().startsWith("status_")?.6:.2),origin.z+Math.sin(a)*rad,0,.01,0);}
         }
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e){
@@ -71,7 +80,7 @@ public final class Cod3VfxRenderer {
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
                 Vec3 origin=p.origin(),direction=p.direction();
                 if(p.entityId()>=0){var entity=world.getEntity(p.entityId());
-                    if(entity==null&&p.template()==4)continue;
+                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")))continue;
                     if(entity!=null){if(p.template()==4){if(!entity.isAlive()||entity.getDeltaMovement().lengthSqr()<.0025)continue;direction=entity.getDeltaMovement().normalize();}origin=entity.getPosition(e.getPartialTick());}}
                 double distance=origin.distanceTo(camera);if(distance>256||distance<.8)continue;
                 if(p.scale()>2){if(distance>96&&farLarge++>=1||distance>32&&distance<=96&&mediumLarge++>=2||distance<=32&&nearLarge++>=3)continue;}
@@ -79,7 +88,8 @@ public final class Cod3VfxRenderer {
                 int segments=distance>96?12:distance>32?20:32;
                 if(Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL)segments=Math.min(12,segments);
                 var geometry=new Geometry(pose.last().pose(),camera,origin,direction,p.scale(),p.tint()==0?d.color():p.tint(),alpha,segments,p.seed());
-                if(p.sequence().matches("scenic_(0[1-9]|1[0-9]|2[0-5])"))geometry.scenic(Integer.parseInt(p.sequence().substring(7)),life);else geometry.draw(p.template(),d,expansion,life,age);
+                if(p.sequence().matches("status_[1-8]"))geometry.status(Integer.parseInt(p.sequence().substring(7)),p.tick()+1,age);
+                else if(p.sequence().matches("scenic_(0[1-9]|1[0-9]|2[0-5])"))geometry.scenic(Integer.parseInt(p.sequence().substring(7)),life);else geometry.draw(p.template(),d,expansion,life,age);
             }
             BufferUploader.drawWithShader(BUFFER.end());drawing=false;
         }finally{if(drawing)BUFFER.discard();pose.popPose();}
@@ -129,6 +139,22 @@ public final class Cod3VfxRenderer {
         }
         void soldier(double x,double z,double time){
             mesh(x,2.4,z,.45);box(x,1,z,.32,1,.2);beam(p(x,.8,z),p(x-.35,0,z+.3*Math.sin(time)),.15);beam(p(x,.8,z),p(x+.35,0,z-.3*Math.sin(time)),.15);beam(p(x-.7,.2,z),p(x-.7,4,z),.05);beam(p(x,1.7,z),p(x-.7,1.3,z),.1);
+        }
+        void status(int code,int layers,double age){
+            double phase=age*.15;
+            switch(code){
+                case 1,3->{for(int strand=0;strand<(code==3?3:layers);strand++){
+                    Vec3 last=p(.5,0,0);for(int i=1;i<=12;i++){double a=i*.65+phase+strand*2.1;Vec3 next=p(Math.cos(a)*.5,i*.12,Math.sin(a)*.5);beam(last,next,code==3?.07:.11);last=next;}}}
+                case 2->{for(int i=0;i<layers;i++)ring(.5+i*.07,.35+i*.4,Math.PI*2);for(int i=0;i<6;i++){double a=i*Math.PI/3+phase;beam(p(Math.sin(a)*.45,.3,Math.cos(a)*.45),p(Math.sin(a)*.55,1.5,Math.cos(a)*.55),.025);}}
+                case 4->{Random random=new Random(seed+(long)age/3);for(int mark=0;mark<layers;mark++){
+                    double a=mark*Math.PI*2/layers+phase;Vec3 last=p(Math.cos(a)*.45,.2,Math.sin(a)*.45);
+                    for(int i=1;i<=5;i++){Vec3 next=p(Math.cos(a)*(.4+random.nextDouble()*.12),.2+i*.25,Math.sin(a)*(.4+random.nextDouble()*.12));beam(last,next,.045);last=next;}}
+                    for(int i=0;i<layers;i++)mesh((i-(layers-1)*.5)*.18,1.7,0,.10);}
+                case 5->{for(int i=0;i<4;i++){double a=i*Math.PI/2+phase;double x=Math.sin(a)*.4,z=Math.cos(a)*.4;triangle(p(x-.08,.5,z),p(x+.08,.5,z),p(x+Math.sin(phase+i)*.08,1.2,z),.9);}}
+                case 6->{for(int i=0;i<5;i++){double a=i*Math.PI*2/5;double x=Math.cos(a)*.4,z=Math.sin(a)*.4;beam(p(x,.3,z),p(x+.15,.65,z),.035);beam(p(x+.15,.65,z),p(x-.12,1.1,z),.035);mesh(x,1.25,z,.14);}}
+                case 7->{for(int side=-1;side<=1;side+=2){Vec3 a=p(side*.2,.3,.32),b=p(side*.06,.7,.32),c=p(side*.28,1,.32);beam(a,b,.045);beam(b,c,.045);beam(b,p(side*.38,.78,.32),.035);}}
+                case 8->{for(int i=0;i<3;i++){double shift=Math.sin(phase+i)*.12;beam(p(-.4+shift,.02,i*.14),p(.4+shift,.02,i*.14),.09);}ring(.5+Math.sin(phase)*.08,.03,Math.PI*1.7);}
+            }
         }
         void ship(double x,double y,double z){
             beam(p(x-4,y,z),p(x+4,y,z),.5);beam(p(x-4,y,z),p(x-3,y-1,z),.12);beam(p(x-3,y-1,z),p(x+3,y-1,z),.2);beam(p(x+3,y-1,z),p(x+4,y,z),.12);beam(p(x,y,z),p(x,y+6,z),.12);beam(p(x-2,y+2,z),p(x+2,y+2,z),.12);beam(p(x-2,y+2,z),p(x,y+5,z),.12);beam(p(x,y+5,z),p(x+2,y+2,z),.12);
