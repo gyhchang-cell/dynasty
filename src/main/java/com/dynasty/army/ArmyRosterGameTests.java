@@ -36,7 +36,11 @@ public final class ArmyRosterGameTests {
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=120,setupTicks=20,batch="cod6_paid_roster")
     public static void threeRolesRecallKeepHealthAndSlots(GameTestHelper h) {
-        floor(h);var p=player(h);
+        // Recall's real quiet-period and collision checks must not borrow nearby
+        // combat/world-build fixtures. Keep native AI and all deployment rules.
+        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=51;y<=58;y++)
+            h.setBlock(x,y,z,y==51||y==58||x==0||x==15||z==0||z==15?Blocks.STONE:Blocks.AIR);
+        var p=player(h);p.moveTo(h.absolutePos(new BlockPos(8,52,2)),0,0);
         for(int i=0;i<3;i++){h.assertTrue(ArmyRoster.recruit(p,i),"Could not buy role "+i);ArmyRoster.soldiers(p).getCompound(i).putInt("Slot",i);}
         h.assertTrue(ArmyRoster.deploy(p,0,3)==3,"Formation deploy failed");
         h.assertTrue(ArmyRoster.deploy(p,0,3)==0,"Tally duplicated active soldiers");
@@ -54,7 +58,8 @@ public final class ArmyRosterGameTests {
                     if(n.hasUUID("Entity")&&h.getLevel().getEntity(n.getUUID("Entity")) instanceof ImperialSoldier remaining)ArmyRoster.completeRecall(p,remaining);
                 }
                 h.assertTrue(r.getFloat("Health")==432,"Recall healed unit");
-                h.assertTrue(ArmyRoster.deploy(p,0,3)==3,"Redeploy failed");
+                for(var row:ArmyRoster.soldiers(p))h.assertTrue(((net.minecraft.nbt.CompoundTag)row).getString("State").equals("RESERVE"),"Native quiet-period recall must finish each role: "+row);
+                h.assertTrue(ArmyRoster.deploy(p,0,3)==3,"Redeploy failed at native collision/support/state gate: owner="+p.position()+", roster="+ArmyRoster.soldiers(p));
                 var returned=(ImperialSoldier)h.getLevel().getEntity(r.getUUID("Entity"));
                 h.assertTrue(returned.getHealth()==432&&returned.getPersistentData().getInt("ArmyAttackCooldown")==17,"Redeploy reset health/cooldown");
                 h.assertTrue(returned.getPersistentData().getInt("ArmySlot")==1,"Stable slot lost");

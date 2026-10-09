@@ -10,6 +10,7 @@ sys.path.insert(0,str(ROOT/'tools/art'))
 from quest_snbt import list_compounds,object_id
 DATA=ROOT/'src/main/resources/data/dynasty'
 MAP=ROOT/'docs/cod4/content-task-map.tsv'
+drop_audit={r['mob']:r for r in json.loads((ROOT/'docs/cod4/secondary-drop-audit.json').read_text())['rows']}
 rows=list(csv.DictReader(MAP.open(),delimiter='\t'));fields=list(rows[0]);assert len(fields)==13
 links=collections.defaultdict(list);quest_count=0
 for file in sorted((ROOT/'modpack/config/ftbquests/quests/chapters').glob('*.snbt')):
@@ -90,6 +91,10 @@ for row in rows:
     rewards=sorted({reward for entry in found for reward in entry['rewards']});mode=['FTB node rewards: '+(','.join(rewards) if rewards else 'none')]
     outputs=recipes.get(ident,[])
     if kind=='armor':outputs=sorted({recipe for suffix in ['helmet','chestplate','leggings','boots'] for recipe in recipes.get(ident+'_'+suffix,[])})
+    if ident in drop_audit:
+        loot=drop_audit[ident]
+        mode.append('Original native entity loot primary55% pool unchanged; native player-kill-only secondary low-rate1unit existing-item aliases: '+','.join(x['alias']+'->'+x['id']+' ('+x['actual_use']+')' for x in loot['added_native_existing_items'])+'; all30/31 native LootDataManager loads, environmental rejection/native real recipe-fuel-brew acceptance and actual native player DamageSource death/nonreplay tested; no new item registry or mythical fox/palace pearl shortcuts; real survival/network multiplayer pending')
+        row['PROGRESS_HOOK']+='; original SecondaryMob native death -> native entity loot table/LootDataManager player-kill conditions/set_name/set_nbt -> original ingredient/fuel/brewing consumers; original theft return kept'
     if outputs:mode.append('registered recipe '+','.join(outputs)+'; craft/use not rank gated; JEI display client pending')
     discovery=sorted({record for recipe in outputs for record in discoveries.get(recipe,[])})
     if discovery:mode.append('recipe-book discovery: '+';'.join(discovery))
@@ -185,7 +190,9 @@ for row in rows:
     if ident in gaps and stages:
         hint='Remaining Site/secret closure must reuse existing Stage '+','.join(stages)+'; no separate exported secret task node is present'
         if hint not in notes:notes+='; '+hint
-    if ident in trade and ident not in ('fox_pelt','kappa_scale','wolf_fang','crab_shell') and stages:
+    if ident in ('python_gall','locust_dust'):
+        notes=re.sub(r'; Remaining material functions belong to existing Stage [^;]*; native workshop/NPC integration pending, not an invented new mainline','',notes)
+    if ident in trade and ident not in ('fox_pelt','kappa_scale','wolf_fang','crab_shell','python_gall','locust_dust') and stages:
         hint='Remaining material functions belong to existing Stage '+','.join(stages)+'; native workshop/NPC integration pending, not an invented new mainline'
         if hint not in notes:notes+='; '+hint
     deps=';'.join(sorted({entry['node']+'<-'+(','.join(entry['deps']) or 'none') for entry in found}))
