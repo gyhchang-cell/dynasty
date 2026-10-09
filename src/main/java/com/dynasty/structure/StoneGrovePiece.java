@@ -106,5 +106,9 @@ public class StoneGrovePiece extends DynastyStructurePiece {
         fill(level, box, 13, 7, 30, 18, 7, 30, brick);
         set(level, box, 15, 6, 30, DynastyBlocks.PLAQUE.get().defaultBlockState());
         set(level, box, 16, 6, 30, DynastyBlocks.PLAQUE.get().defaultBlockState());
+        story(level,box,16,0,9,36);
+        story(level,box,21,0,24,43);
+        story(level,box,8,1,22,0);
+        story(level,box,24,1,22,10);
     }
 }

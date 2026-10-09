@@ -72,17 +72,17 @@ public final class DynastyTiers {
 
     /** 青铜 / Bronze（王朝第一档稀有材质，总攻击 ≈ 34）/ first dynasty tier */
     public static final Tier BRONZE =
-            make(12.0F, 8000, 22.0F, 3, 22, () -> DynastyItems.BRONZE_INGOT.get());
+            make(12.0F, 8000, 22.0F, 3, 22, () -> net.minecraft.world.item.Items.COPPER_INGOT);
 
     /** 官银 / Official Silver */
     public static final Tier OFFICIAL_SILVER =
-            make(16.0F, 20000, 40.0F, 4, 26, () -> DynastyItems.SILVER_INGOT.get());
+            make(16.0F, 20000, 40.0F, 4, 26, () -> net.minecraft.world.item.Items.IRON_INGOT);
 
     /** 玉 / Jade */
     public static final Tier JADE =
-            make(20.0F, 45000, 70.0F, 5, 32, () -> DynastyItems.JADE.get());
+            make(20.0F, 45000, 70.0F, 5, 32, () -> net.minecraft.world.item.Items.DIAMOND);
 
     /** 龙晶 / Dragon Crystal（顶级）/ best tier */
     public static final Tier DRAGON_CRYSTAL =
-            make(28.0F, 120000, 140.0F, 6, 40, () -> DynastyItems.DRAGON_CRYSTAL.get());
+            make(28.0F, 120000, 140.0F, 6, 40, () -> net.minecraft.world.item.Items.NETHERITE_INGOT);
 }

@@ -441,7 +441,7 @@ def build_book():
      'y': -5.8,
      'shape': 'square',
      'subtitle': '可选 · 装备深化',
-     'description': ['获得玉后，使用炼入台。2份材料和3级经验，三处炼入位共4容量；同类特性冲突，可替换或移除。材料原用途不变。']}
+     'description': ['获得玉后，使用炼入台。2份材料和3级经验；三处炼入位，装备容量3至5。点击纹章可替换或移除；移除消耗1级经验。材料不再通用修复耐久。']}
     next(c for c in chapters if c["file"] == "dynasty_home")["quests"].append(infusion)
     from quest_cod6 import apply
     apply(chapters)

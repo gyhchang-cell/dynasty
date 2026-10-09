@@ -16,6 +16,14 @@ public final class DynastyContent {
         DynastyBlocks.BLOCKS.register(modEventBus);
         DynastyBlocks.BLOCK_ITEMS.register(modEventBus);
         com.dynasty.workshop.WorkshopBlockEntity.TYPES.register(modEventBus);
+        com.dynasty.workshop.WorkshopMenu.MENUS.register(modEventBus);
+        com.dynasty.cod3.LootableRemains.BLOCKS.register(modEventBus);
+        com.dynasty.cod3.LootableRemains.ITEMS.register(modEventBus);
+        com.dynasty.cod3.LootableRemains.TYPES.register(modEventBus);
+        com.dynasty.cod3.NpcContent.ENTITIES.register(modEventBus);
+        com.dynasty.cod3.NpcContent.ITEMS.register(modEventBus);
+        com.dynasty.cod3.StoryAnchor.BLOCKS.register(modEventBus);
+        com.dynasty.cod3.StoryAnchor.TYPES.register(modEventBus);
         com.dynasty.workshop.DynastyTreasures.ITEMS.register(modEventBus);
         com.dynasty.puzzle.PuzzleBlocks.BLOCKS.register(modEventBus);
         com.dynasty.puzzle.PuzzleBlocks.ITEMS.register(modEventBus);

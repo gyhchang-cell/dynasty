@@ -88,20 +88,14 @@ public final class RebelGuardGameTests {
         h.runAfterDelay(14,()->{h.assertTrue(guard.skillId()==0&&guard.visualAnimation().equals("idle"),"Failed follow-up cannot leave a permanent attack clip");h.succeed();});
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=25,batch="guard")
-    public static void recoveredPartsUseRealAnvilAndConsumeOnlyOnPickup(GameTestHelper h){
+    public static void recoveredPartsRejectOldGenericAnvilRepair(GameTestHelper h){
         var player=new net.minecraftforge.common.util.FakePlayer(h.getLevel(),new com.mojang.authlib.GameProfile(UUID.randomUUID(),"guard-repair"));
         var tool=new ItemStack(Items.IRON_AXE);tool.setDamageValue(100);tool.setHoverName(net.minecraft.network.chat.Component.literal("Veteran"));
         tool.enchant(net.minecraft.world.item.enchantment.Enchantments.UNBREAKING,2);tool.getOrCreateTag().putString("foreign","preserve");
         var menu=new net.minecraft.world.inventory.AnvilMenu(0,player.getInventory());
         menu.getSlot(0).set(tool);menu.getSlot(1).set(new ItemStack(BlueprintSalvage.KAISHAN_AXE_BLADE.get(),3));menu.createResult();
-        h.assertTrue(!menu.getSlot(2).getItem().isEmpty()&&menu.getSlot(2).getItem().getDamageValue()==0,"Actual anvil accepts recovered axe blades");
-        h.assertTrue(tool.getDamageValue()==100&&menu.getSlot(1).getItem().getCount()==3,"Preview is non-consuming");
-        player.experienceLevel=0;h.assertTrue(!menu.getSlot(2).mayPickup(player),"XP gate applies");player.experienceLevel=20;
-        var result=menu.getSlot(2).remove(1);menu.getSlot(2).onTake(player,result);
-        h.assertTrue(player.experienceLevel==17&&menu.getSlot(1).getItem().getCount()==1&&menu.getSlot(0).getItem().isEmpty(),"Taking spends two blades and three levels once");
-        h.assertTrue(result.isEnchanted()&&result.getHoverName().getString().equals("Veteran")&&result.getTag().getString("foreign").equals("preserve"),"Repair preserves unrelated NBT");
-        var diamond=new ItemStack(Items.DIAMOND_AXE);diamond.setDamageValue(100);menu.getSlot(0).set(diamond);menu.createResult();
-        h.assertTrue(menu.getSlot(2).getItem().isEmpty(),"Ordinary salvage cannot repair unrelated endgame materials");h.succeed();
+        h.assertTrue(menu.getSlot(2).getItem().isEmpty(),"Recovered parts no longer perform generic repair");
+        h.assertTrue(tool.getDamageValue()==100&&tool.isEnchanted()&&tool.getTag().getString("foreign").equals("preserve")&&menu.getSlot(1).getItem().getCount()==3,"Rejected repair preserves inputs");h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=340,batch="guard_world")
     public static void actualDeathsDropRegisteredMaterialsAndReloadCannotDuplicateThem(GameTestHelper h){

@@ -13,6 +13,7 @@ import java.util.function.Supplier;
  * Server -> client: open the Keju screen.
  */
 public class OpenKejuPacket {
+    public static final int WIRE_REVISION = 1;
 
     private final int index;
     private final String question;

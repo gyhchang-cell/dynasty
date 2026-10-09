@@ -133,6 +133,11 @@ public class AcademyPiece extends DynastyStructurePiece {
             }
         }
 
+        story(level,box,5,2,11,38);
+        story(level,box,24,1,27,44);
+        story(level,box,8,2,15,17);
+        story(level,box,25,2,15,13);
+        story(level,box,24,2,17,19);
         // 6) 供品与藏书箱 / offerings and chests
         set(level, box, 16, 1, 20, DynastyBlocks.CHIME_BELL.get().defaultBlockState());
         set(level, box, 17, 1, 20, DynastyBlocks.INCENSE_BURNER.get().defaultBlockState());

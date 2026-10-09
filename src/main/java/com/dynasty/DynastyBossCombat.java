@@ -108,6 +108,8 @@ public final class DynastyBossCombat {
 
     @SubscribeEvent
     public static void onDeath(LivingDeathEvent event) {
+        if(com.dynasty.cod3.BossDeathState.managed(event.getEntity())
+                && !event.getEntity().getPersistentData().getBoolean("dynasty_reward_granted"))return;
         if (event.getEntity().level().isClientSide()) {
             return;
         }

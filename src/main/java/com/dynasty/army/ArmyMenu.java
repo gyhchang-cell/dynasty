@@ -7,6 +7,7 @@ import net.minecraft.world.item.ItemStack;
 
 /** Indexed requests resolve against the server's own roster. A revision rejects repeated/stale button packets. */
 public final class ArmyMenu extends AbstractContainerMenu {
+    public static final int LAYOUT_REVISION = 2;
     public final BlockPos desk;
     private final Player owner;
     private int selected=-1;
