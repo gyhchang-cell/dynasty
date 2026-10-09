@@ -23,6 +23,12 @@ import java.util.UUID;
 @GameTestHolder("dynasty_army")
 @PrefixGameTestTemplate(false)
 public final class ArmyGameTests {
+    private static final java.util.Map<net.minecraft.server.level.ServerLevel,Runnable> WORLD_CLEANUP=new java.util.HashMap<>();
+    @net.minecraft.gametest.framework.AfterBatch(batch="army_world")
+    public static void cleanWorldFixture(net.minecraft.server.level.ServerLevel level){
+        var cleanup=WORLD_CLEANUP.remove(level);if(cleanup!=null)cleanup.run();
+    }
+
     private static void arena(GameTestHelper h){
         for(int x=0;x<16;x++)for(int z=0;z<16;z++){
             h.setBlock(x,1,z,Blocks.STONE);
@@ -337,7 +343,7 @@ public final class ArmyGameTests {
             "One banner supports the authored priest, two scouts and three powder units");
         h.assertTrue(ArmySkills.ALL.size()>=30&&ArmySkills.ALL.stream().map(s->s.id()).distinct().count()==ArmySkills.ALL.size()&&ArmySkills.ALL.stream().allMatch(s->s.impactTicks().stream().allMatch(t->s.phaseAt(t)==AttackState.ACTIVE)),"Every registered action has a unique ID and all contacts lie in ACTIVE");h.succeed();
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=1000,batch="army_world")
+    @GameTest(template="bow_ritual_test",timeoutTicks=2200,batch="army_world")
     public static void battlefieldGeneratesAndOwnsBoundedPersistentEncounter(GameTestHelper h){
         var level=h.getLevel();var registry=level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE);
         var id=new net.minecraft.resources.ResourceLocation("dynasty:ruined_battlefield");var structure=registry.get(id);
@@ -375,11 +381,29 @@ public final class ArmyGameTests {
         long previousDay=level.getDayTime();boolean spawning=level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING);
         level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());level.setDayTime(6000);
         String key=id+"@"+chunk.toLong();
+        WORLD_CLEANUP.put(level,()->{
+            var data=BlueprintSpawnState.get(level);
+            for(String owned:java.util.List.of(key,key+":ghosts")){
+                var marker=data.markers.get(owned);if(marker!=null)for(var uuid:java.util.List.copyOf(marker.members)){
+                    var entity=level.getEntity(uuid);if(entity!=null)entity.discard();
+                }
+            }
+            level.players().remove(player);player.discard();level.setDayTime(previousDay);
+            level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(spawning,level.getServer());
+        });
         h.runAfterDelay(110,()->{
             h.assertTrue(!BlueprintSpawnState.get(level).markers.containsKey(key),"Daylight does not activate the haunted battlefield");
             level.setDayTime(18000);
         });
-        h.runAfterDelay(850,()->{
+        // Native encounters have weighted random attempts and a two-spawn work cap.
+        // Await the exact authored squad and ghost group instead of requiring every
+        // attempt to succeed in exactly seven level ticks. Never call spawn directly.
+        h.startSequence().thenIdle(110).thenWaitUntil(()->{
+            var data=BlueprintSpawnState.get(level);var marker=data.markers.get(key);var ghosts=data.markers.get(key+":ghosts");
+            int wantedGhosts=2+Math.floorMod((key+":ghosts").hashCode(),4);
+            h.assertTrue(marker!=null&&marker.produced==7&&marker.members.size()==7&&ghosts!=null&&ghosts.produced==wantedGhosts&&ghosts.members.size()==wantedGhosts,
+                "Wait for actual weighted encounter attempts; army="+(marker==null?"absent":marker.produced+"/"+marker.members.size())+", ghosts="+(ghosts==null?"absent":ghosts.produced+"/"+ghosts.members.size()));
+        }).thenExecute(()->{
             var data=BlueprintSpawnState.get(level);var marker=data.markers.get(key);
             h.assertTrue(marker!=null&&marker.produced==7&&marker.members.size()==7,"Ordinary server ticks produce exactly seven members");
             var counts=new java.util.HashMap<TemplateMob.Kind,Integer>();
@@ -399,11 +423,9 @@ public final class ArmyGameTests {
             }
             for(var uuid:java.util.List.copyOf(marker.members))level.getEntity(uuid).discard();
             h.assertTrue(marker.members.isEmpty()&&marker.nextSpawn>=level.getGameTime()+12000,"Actual removal releases members and starts the existing ten-minute cooldown");
-        });
-        h.runAfterDelay(960,()->{
+        }).thenIdle(110).thenExecute(()->{
             var marker=BlueprintSpawnState.get(level).markers.get(key);h.assertTrue(marker.members.isEmpty(),"Another encounter tick cannot bypass persisted respawn cooldown");
-            player.discard();level.setDayTime(previousDay);
-            level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(spawning,level.getServer());h.succeed();
+            cleanWorldFixture(level);h.succeed();
         });
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=90,batch="army")

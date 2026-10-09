@@ -63,7 +63,7 @@ assert len(supplies)==8
 school={'zhenyue_blade':'guard','beichen_spear':'guard','liuyun_sword':'sword','chengying_sword':'sword','zhuxing_bow':'archer','fengling_bow':'archer','chiling_brush':'talisman','leifu_staff':'talisman'}
 advanced={'beichen_spear','chengying_sword','fengling_bow','leifu_staff'}
 mechanisms={'entity':'SecondarySpawnHooks placement; SecondaryMob AI/contactAttack/dropCustomDeathLoot; no quest hook unless listed','effect':'ExpansionEffects.apply and effect tick; EffectPresentation.added/removed/expired; no independent quest','armor':'EquipmentBehaviors.equipment/refresh/hurt/block/tick; DynastySetBonus; actual set-count EQUIP is intrinsic','accessory':'DynastyTrinkets.activeIds/tick/apply and EquipmentBehaviors.refresh/hurt; actual Curios EQUIP is intrinsic','interaction':'SmallInteractions.Site.use -> persisted site_<ID>_start/next/count/done -> DynastyAdvancements.award(cod4_<ID>)','weapon':'FTB native item-task detection; original weapon combat; no invented use restriction'}
-gaps={'sword_scar_wall':'Moonlight sword dance and existing secret 28 still pending','puzzle_box':'Original stand/sneak sequence retained; expressed puzzle and existing secret 30 still pending','battlefield_remnant':'Three unique coordinates only advance existing optional cod4 node; broader original main/side objective link remains pending','mortuary_room':'Original milk cleanse retained; living victim/healing-potion delivery and existing secret 29 still pending','ghost_market_boat':'Original incense reward retained; TALK/DELIVER/merchant and existing secret 17 remain pending','wayside_tea_stall':'Original milk cleanse retained; poison-tea choice/clue/result and existing secret 19 still pending','ancient_well':'Original seven counters retained; actual water delivery and existing secret 8 remain pending'}
+gaps={'sword_scar_wall':'Moonlight sword dance and existing secret 28 still pending','puzzle_box':'Original stand/sneak sequence retained; expressed puzzle and existing secret 30 still pending','battlefield_remnant':'Three unique coordinates only advance existing optional cod4 node; broader original main/side objective link remains pending','mortuary_room':'Original milk cleanse retained; living victim/healing-potion delivery and existing secret 29 still pending','ghost_market_boat':'Original incense reward retained; TALK/DELIVER/merchant and existing secret 17 remain pending','wayside_tea_stall':'Original milk cleanse retained; poison-tea choice/clue/result and existing secret 19 still pending'}
 for row in rows:
     ident,kind=row['CONTENT_ID'],row['TYPE'];found=list(links.get(ident,[]))
     if kind=='armor':
@@ -79,6 +79,8 @@ for row in rows:
     if kind in mechanisms:hooks.append(mechanisms[kind])
     if ident in school:hooks.append('DynastySchoolProgression.onKill -> canonical path rank; reconcile -> original attained milestones and recipe book; DynastyWeaponProgression.reward -> per-stack investment')
     row['PROGRESS_HOOK']='; '.join(hooks) or 'Vanilla registered recipe/crafting and item pickup; no custom task hook'
+    if ident=='ancient_well':row['PROGRESS_HOOK']='Site.use -> useWell -> original persisted Site start/next/completion; SecretTracker.deliverWellWater -> original cod3_progress_8 seven real water deliveries -> original dimension/player secret_8 claim; cod4_ancient_well advancement bridges existing node; no separate quest/claim engine'
+
     rewards=sorted({reward for entry in found for reward in entry['rewards']});mode=['FTB node rewards: '+(','.join(rewards) if rewards else 'none')]
     outputs=recipes.get(ident,[])
     if kind=='armor':outputs=sorted({recipe for suffix in ['helmet','chestplate','leggings','boots'] for recipe in recipes.get(ident+'_'+suffix,[])})
@@ -92,6 +94,7 @@ for row in rows:
     if kind=='interaction':
         gain={'wayside_shrine':'LUCK 2400 ticks','nameless_tomb':'LUCK 2400 ticks','old_weapon_rack':'tie_jian with 25% remaining durability','herb_spot':'2 tea','abandoned_armory':'1 qimen_gear','ancient_well':'clear YIN and SOUL','mortuary_room':'clear YIN and SOUL','wayside_tea_stall':'clear POISON','old_bellows':'3 iron nuggets + actual furnace assistance','broken_waterwheel':'2 copper coins + shared world_02 flag'}.get(ident,'2 copper coins')
         mode.append('actual one-time Site.use completion: '+gain+'; personal cod4_'+ident+' advancement; incomplete secret steps noted explicitly')
+        if ident=='ancient_well':mode.append('7 actual water buckets -> 7 retained empty buckets; interval 515 ticks and total >=3600 ticks; original native secret 8 -> 1 jade once per player/dimension; legacy Site completion/counters retained, only missing native reward earned; no old cleanse/payment/reward replay')
     trade={'fox_pelt':'baibao_jin: 2 -> 6 copper','wolf_fang':'ba_tu: 2 -> 5 copper','python_gall':'hei_po: 1 -> 2 healing_salve','locust_dust':'hei_po: 2 -> 1 healing_salve','crab_shell':'huang_laohan: 2 -> 6 copper','kappa_scale':'huang_laohan: 2 -> 8 copper'}
     if ident in trade:
         remaining={'fox_pelt':'none; client/survival acceptance still pending','wolf_fang':'gray wolf fang ornament','crab_shell':'crab general ornament','kappa_scale':'dedicated fisherman trade','python_gall':'Hei Po gu brewing and cold-resistance wine','locust_dust':'poison smoke bomb, gu brewing and crop insect control'}
@@ -116,6 +119,10 @@ for row in rows:
     row['OLD_SAVE_COMPAT']=compat
     notes=row['NOTES']
     if ident=='fox_pelt':notes=re.sub(r'; Remaining material functions belong to existing Stage [^;]*; native workshop/NPC integration pending, not an invented new mainline','',notes)
+    if ident=='ancient_well':
+        notes=re.sub(r'; Original seven counters retained; actual water delivery and existing secret 8 remain pending','',notes)
+        notes=re.sub(r'; Remaining Site/secret closure must reuse existing Stage [^;]*; no separate exported secret task node is present','',notes)
+        if 'Native SecretTracker 8 verified' not in notes:notes+='; Native SecretTracker 8 verified: loaded/proximity and real payment, original one-time persisted claim and clone, original three-minute deadline; actual visual/old-world/network multiplayer acceptance pending'
     if ident in gaps and gaps[ident] not in notes:notes+='; '+gaps[ident]
     if ident in gaps and stages:
         hint='Remaining Site/secret closure must reuse existing Stage '+','.join(stages)+'; no separate exported secret task node is present'

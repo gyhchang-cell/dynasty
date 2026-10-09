@@ -33,6 +33,7 @@ public final class SmallInteractions {
             if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;
             if(!(player instanceof ServerPlayer p))return InteractionResult.SUCCESS;
             var root=EquipmentBehaviors.saved(p);String key="site_"+id;
+            if(id.equals("ancient_well"))return useWell((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("broken_waterwheel")&&state.getValue(REPAIRED)){
                 root.putBoolean(key+"_done",true);
                 com.dynasty.cod3.Cod3WorldState.get((net.minecraft.server.level.ServerLevel)level).unlock((net.minecraft.server.level.ServerLevel)level,"world_02");
@@ -118,6 +119,44 @@ public final class SmallInteractions {
             com.dynasty.DynastyAdvancements.award(p,"cod4_"+id);
             CombatFeedback.send(p,CombatFeedback.HEAL);return InteractionResult.CONSUME;
         }
+    }
+    /** Retain old site timers/completion and use the native secret's real water counter. */
+    private static InteractionResult useWell(net.minecraft.server.level.ServerLevel level,BlockPos pos,ServerPlayer p){
+        var root=EquipmentBehaviors.saved(p);String key="site_ancient_well";long now=level.getGameTime();
+        if(!p.isAlive()||p.isSpectator()||!level.hasChunkAt(pos)||p.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos))>36)return InteractionResult.PASS;
+        if(com.dynasty.cod3.SecretTracker.wellClaimed(p)){
+            root.putBoolean(key+"_done",true);com.dynasty.DynastyAdvancements.award(p,"cod4_ancient_well");
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.site_done"),true);return InteractionResult.CONSUME;
+        }
+        // A legacy completed Site may still lack native secret 8. Keep its paid
+        // completion/reward flag; only the missing secret uses seven real deliveries.
+        if(!p.getMainHandItem().is(Items.WATER_BUCKET)){
+            p.displayClientMessage(Component.translatable("interaction.dynasty.ancient_well"),false);return InteractionResult.CONSUME;
+        }
+        int interval=(3600+6)/7;
+        if(!root.contains(key+"_start")){
+            root.putLong(key+"_start",now);root.putLong(key+"_next",now+interval);
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",(interval+19)/20),true);return InteractionResult.CONSUME;
+        }
+        if(now<root.getLong(key+"_next")){
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",(root.getLong(key+"_next")-now+19)/20),true);return InteractionResult.CONSUME;
+        }
+        var delivery=com.dynasty.cod3.SecretTracker.deliverWellWater(p,pos);
+        if(!delivery.accepted()){
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",Math.max(1,(3600-(now-root.getLong(key+"_start"))+19)/20)),true);return InteractionResult.CONSUME;
+        }
+        root.putInt(key+"_count",Math.max(root.getInt(key+"_count"),delivery.count()));root.putLong(key+"_next",now+interval);
+        level.sendParticles(net.minecraft.core.particles.ParticleTypes.SPLASH,pos.getX()+.5,pos.getY()+.6,pos.getZ()+.5,8,.15,.1,.15,.03);
+        level.playSound(null,pos,net.minecraft.sounds.SoundEvents.BUCKET_EMPTY,net.minecraft.sounds.SoundSource.BLOCKS,.5F,.8F);
+        if(!delivery.claimed()){
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.site_progress",delivery.count(),7),true);return InteractionResult.CONSUME;
+        }
+        boolean oldDone=root.getBoolean(key+"_done");root.putBoolean(key+"_done",true);
+        if(!oldDone){p.removeEffect(ExpansionEffects.YIN.get());p.removeEffect(ExpansionEffects.SOUL.get());}
+        com.dynasty.DynastyAdvancements.award(p,"cod4_ancient_well");
+        p.displayClientMessage(Component.translatable("message.dynasty.cod4.well_released"),false);
+        level.sendParticles(net.minecraft.core.particles.ParticleTypes.SOUL,pos.getX()+.5,pos.getY()+.8,pos.getZ()+.5,12,.3,.4,.3,.02);
+        return InteractionResult.CONSUME;
     }
     /** Consume the site's charcoal through the existing use transaction, never create smelted output. */
     private static boolean assistFurnace(net.minecraft.server.level.ServerLevel level,BlockPos site){

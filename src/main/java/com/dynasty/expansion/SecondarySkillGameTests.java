@@ -25,7 +25,7 @@ public final class SecondarySkillGameTests {
         z.setPos(Vec3.atBottomCenterOf(h.absolutePos(pos)));h.getLevel().addFreshEntity(z);return z;
     }
     private static void corridor(GameTestHelper h){
-        for(int x=1;x<=12;x++)for(int z=1;z<=5;z++)for(int y=1;y<=6;y++)h.setBlock(x,y,z,y==1||y==6?Blocks.STONE:Blocks.AIR);
+        for(int x=0;x<=13;x++)for(int z=0;z<=6;z++)for(int y=1;y<=6;y++)h.setBlock(x,y,z,y==1||y==6||x==0||x==13||z==0||z==6?Blocks.STONE:Blocks.AIR);
     }
     @GameTest(template="bow_ritual_test",batch="cod4_projectile_wall",timeoutTicks=80,setupTicks=20)
     public static void lanternCannotBlindBeforeHitOrThroughWall(GameTestHelper h){

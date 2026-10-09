@@ -15,7 +15,7 @@ import net.minecraftforge.gametest.*;
 @GameTestHolder("dynasty_cod4") @PrefixGameTestTemplate(false)
 public final class SecondaryActionGameTests {
     private static void room(GameTestHelper h){
-        for(int x=1;x<=12;x++)for(int z=1;z<=7;z++)for(int y=1;y<=9;y++)h.setBlock(x,y,z,y==1||y==9?Blocks.STONE:Blocks.AIR);
+        for(int x=0;x<=13;x++)for(int z=0;z<=8;z++)for(int y=1;y<=9;y++)h.setBlock(x,y,z,y==1||y==9||x==0||x==13||z==0||z==8?Blocks.STONE:Blocks.AIR);
     }
     private static SecondaryMob source(GameTestHelper h,String id,int x,int y){
         var m=SecondaryMobs.TYPES.get(id).get().create(h.getLevel());m.goalSelector.removeAllGoals(g->true);m.targetSelector.removeAllGoals(g->true);
@@ -25,11 +25,12 @@ public final class SecondaryActionGameTests {
         var z=new Zombie(h.getLevel());z.setNoAi(true);z.setNoGravity(true);z.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);z.setHealth(1000);
         z.setPos(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(x,2,4))));h.getLevel().addFreshEntity(z);return z;
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_pounce_physics",timeoutTicks=100,setupTicks=20)
+    @GameTest(template="bow_ritual_test",batch="cod4_pounce_physics",timeoutTicks=160,setupTicks=20)
     public static void actualFoxPounceHasWindupAndOnlyOneContact(GameTestHelper h){
-        room(h);var fox=source(h,"red_fox",3,2);var z=target(h,6);h.assertTrue(fox.combatActions.begin(z),"Fox starts its real pounce");float[] hitHealth={1000};
-        h.startSequence().thenIdle(4).thenExecute(()->h.assertTrue(z.getHealth()==1000,"Windup cannot hurt a remote target"))
-            .thenWaitUntil(()->h.assertTrue(z.getHealth()<1000,"Actual vanilla movement reaches one body contact"))
+        room(h);var fox=source(h,"red_fox",3,2);var z=target(h,6);float[] hitHealth={1000};
+        h.startSequence().thenWaitUntil(()->h.assertTrue(fox.tickCount>0&&z.tickCount>0&&h.getLevel().getEntity(fox.getUUID())==fox&&h.getLevel().getEntity(z.getUUID())==z,"Wait for actual entity visibility/ticking before starting contact phases"))
+            .thenExecute(()->h.assertTrue(fox.combatActions.begin(z),"Fox starts its real pounce")).thenIdle(4).thenExecute(()->h.assertTrue(z.getHealth()==1000,"Windup cannot hurt a remote target"))
+            .thenWaitUntil(()->h.assertTrue(z.getHealth()<1000,"Actual vanilla movement reaches one body contact; fox="+fox.position()+", victim="+z.position()+", phase="+fox.combatActions.phase()+", water="+fox.isInWater()))
             .thenExecute(()->hitHealth[0]=z.getHealth()).thenIdle(20).thenExecute(()->{try{
                 h.assertTrue(z.getHealth()==hitHealth[0],"Remaining phase ticks do not repeat the hit");h.assertTrue(!fox.combatActions.active(),"Pounce ends within its finite action window");h.succeed();
             }finally{fox.discard();z.discard();}});
@@ -116,12 +117,12 @@ public final class SecondaryActionGameTests {
             .thenWaitUntil(()->h.assertTrue(!carp.combatActions.active()&&carp.isInWater(),"Finite return phase reaches real water"))
             .thenExecute(()->{try{h.assertTrue(left[0],"This was an exit/jump/contact/return cycle, not a hit while remaining submerged");h.succeed();}finally{carp.discard();z.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_burrow_contact",timeoutTicks=100,setupTicks=20)
+    @GameTest(template="bow_ritual_test",batch="cod4_burrow_contact",timeoutTicks=160,setupTicks=20)
     public static void wormBurrowsBeforeEruptionAndRealContactLaunch(GameTestHelper h){
         room(h);var worm=source(h,"stone_worm",3,2);var z=target(h,9);
-        h.assertTrue(worm.combatActions.begin(z),"Solid ground permits real burrow approach");
-        h.startSequence().thenIdle(12).thenExecute(()->h.assertTrue(worm.animation().equals("burrow")&&z.getHealth()==1000,"Burrow pose and underground approach cannot pre-hit a remote body"))
-            .thenWaitUntil(()->h.assertTrue(z.getHealth()<1000,"Eruption movement must actually meet target body"))
+        h.startSequence().thenWaitUntil(()->h.assertTrue(worm.tickCount>0&&z.tickCount>0&&h.getLevel().getEntity(worm.getUUID())==worm&&h.getLevel().getEntity(z.getUUID())==z,"Wait for actual entity visibility/ticking before burrow phase"))
+            .thenExecute(()->h.assertTrue(worm.combatActions.begin(z),"Solid ground permits real burrow approach")).thenIdle(12).thenExecute(()->h.assertTrue(worm.animation().equals("burrow")&&z.getHealth()==1000,"Burrow pose and underground approach cannot pre-hit a remote body"))
+            .thenWaitUntil(()->h.assertTrue(z.getHealth()<1000,"Eruption movement must actually meet target body; worm="+worm.position()+", victim="+z.position()+", phase="+worm.combatActions.phase()+", water="+worm.isInWater()+", collision="+worm.horizontalCollision))
             .thenExecute(()->{try{h.assertTrue(z.getDeltaMovement().y>0,"Real eruption contact owns the existing upward impulse");h.succeed();}finally{worm.discard();z.discard();}});
     }
     @GameTest(template="bow_ritual_test",batch="cod4_scorpion_contact",timeoutTicks=100,setupTicks=20)
