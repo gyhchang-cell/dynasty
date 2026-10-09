@@ -31,6 +31,9 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
     public final SecondaryMobs.Spec spec;
     private final AnimatableInstanceCache cache=GeckoLibUtil.createInstanceCache(this);
     private int specialCooldown, fleeTicks, shellTicks, animationTicks;
+    private int deceptionStage, hardenTicks, rollingTicks;
+    private java.util.UUID customer;
+    private static final java.util.UUID HARDENING=java.util.UUID.nameUUIDFromBytes("dynasty:stone_sprite_hardening".getBytes(java.nio.charset.StandardCharsets.UTF_8));
     private boolean friendly;
     private ItemStack stolen=ItemStack.EMPTY;
     public SecondaryMob(EntityType<? extends SecondaryMob> type,Level level,SecondaryMobs.Spec spec) {
@@ -38,16 +41,23 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         if(spec.flying()) { moveControl=new FlyingMoveControl(this,20,true);navigation=new FlyingPathNavigation(this,level);setNoGravity(true); }
         if(spec.aquatic()) { moveControl=new SmoothSwimmingMoveControl(this,85,10,.1F,.5F,false);navigation=new WaterBoundPathNavigation(this,level); }
         goalSelector.addGoal(0,new FloatGoal(this));
+        goalSelector.addGoal(1,new Goal(){
+            {setFlags(java.util.EnumSet.of(Flag.MOVE,Flag.LOOK));}
+            @Override public boolean canUse(){return rollingTicks>0;}
+            @Override public void tick(){getNavigation().stop();}
+        });
         goalSelector.addGoal(1,new Goal() {
             { setFlags(java.util.EnumSet.of(Flag.MOVE,Flag.LOOK)); }
             @Override public boolean canUse() { return fleeTicks>0; }
             @Override public void tick() {
                 LivingEntity attacker=getLastHurtByMob();
+                if(attacker==null && customer!=null)attacker=level().getPlayerByUUID(customer);
                 if(attacker!=null) {Vec3 away=position().subtract(attacker.position()).normalize().scale(8);getNavigation().moveTo(getX()+away.x,getY(),getZ()+away.z,1.4);}
             }
         });
         goalSelector.addGoal(2,new MeleeAttackGoal(this,1.1,false) {
-            @Override public boolean canUse() { return !friendly && !spec.id().equals("famished_refugee") && !spec.id().equals("herb_picker") && !spec.id().equals("snail_maiden") && super.canUse(); }
+            @Override public boolean canUse() { return !friendly && rollingTicks==0 && !spec.id().equals("locust_swarm") && !spec.id().equals("swindler") && !spec.id().equals("famished_refugee") && !spec.id().equals("herb_picker") && !spec.id().equals("snail_maiden") && super.canUse(); }
+            @Override public boolean canContinueToUse(){return rollingTicks==0&&!friendly&&super.canContinueToUse();}
         });
         goalSelector.addGoal(5,spec.flying()?new WaterAvoidingRandomFlyingGoal(this,1):new RandomStrollGoal(this,.8));
         goalSelector.addGoal(6,new LookAtPlayerGoal(this,Player.class,8));
@@ -79,10 +89,21 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         if(specialCooldown>0)specialCooldown--;
         if(fleeTicks>0)fleeTicks--;
         if(shellTicks>0)shellTicks--;
+        if(hardenTicks>0 && --hardenTicks==0)getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);
         if(animationTicks>0)animationTicks--;else entityData.set(STATE,fleeTicks>0?3:getTarget()!=null?2:getDeltaMovement().horizontalDistanceSqr()>.001?1:0);
+        if(spec.id().equals("swindler") && deceptionStage<3){setTarget(null);getNavigation().stop();animate(5,2);}
         if(friendly || spec.id().equals("famished_refugee") || spec.id().equals("herb_picker") || spec.id().equals("snail_maiden"))setTarget(null);
         if(getPersistentData().hasUUID("cod4Summoner")) SummonedGuard.tick(this);
         LivingEntity target=getTarget();
+        if(rollingTicks>0){
+            rollingTicks--;animate(5,2);
+            if(horizontalCollision)rollingTicks=0;
+            else if(target!=null && touching(target)){doHurtTarget(target);rollingTicks=0;}
+        }
+        if(spec.id().equals("locust_swarm") && specialCooldown==0){
+            for(var victim:level().getEntitiesOfClass(Player.class,getBoundingBox(),p->p.isAlive()&&!p.isSpectator()&&!p.isCreative()&&!isAlliedTo(p)))
+                if(contactAttack(victim))break;
+        }
         if(spec.family().equals("ghost")) { noPhysics=target!=null;setNoGravity(true);if(target!=null) setDeltaMovement(target.getEyePosition().subtract(position()).normalize().scale(.1)); }
         if(spec.flying() && target!=null && tickCount%10==0) getMoveControl().setWantedPosition(target.getX(),target.getEyeY()+1,target.getZ(),1.2);
         if(spec.id().equals("clockwork_rat") && stolen.isEmpty() && tickCount%20==0) {
@@ -103,10 +124,10 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
                 if(spec.id().equals("lantern_ghost")){target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS,40));ExpansionEffects.apply(target,ExpansionEffects.SOUL,60);}
                 specialCooldown=70;animate(5,16);
             }
-            case "wild_boar","bandit_thug","golden_leopard","gray_falcon","bat_demon","carp_spirit","stone_sprite","stone_worm","corpse_beetle","crab_soldier" -> {
+            case "stone_sprite" -> {beginStoneRoll(target);specialCooldown=60;}
+            case "wild_boar","bandit_thug","golden_leopard","gray_falcon","bat_demon","carp_spirit","stone_worm","corpse_beetle","crab_soldier" -> {
                 if(distance>3) {Vec3 leap=target.position().subtract(position()).normalize().scale(.6);setDeltaMovement(leap.x,spec.aquatic()?.5:spec.flying()?leap.y:.2,leap.z);}
                 specialCooldown=60;animate(5,15);
-                if(spec.id().equals("stone_sprite"))addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE,40));
             }
             case "gray_wolf" -> {
                 int recruited=0;
@@ -115,9 +136,24 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
                 }
                 specialCooldown=80;
             }
-            case "locust_swarm" -> { if(distance<3) {doHurtTarget(target);specialCooldown=20;} }
+            case "locust_swarm" -> { /* Damage is owned by actual body contact above. */ }
             default -> { }
         }
+    }
+    public boolean touching(LivingEntity target){return getBoundingBox().intersects(target.getBoundingBox());}
+    public boolean contactAttack(LivingEntity target){
+        if(!spec.id().equals("locust_swarm")||specialCooldown>0||!touching(target)||isAlliedTo(target))return false;
+        if(!doHurtTarget(target))return false;
+        specialCooldown=20;return true;
+    }
+    public void beginStoneRoll(LivingEntity target){
+        if(!spec.id().equals("stone_sprite"))return;
+        var armor=getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
+        armor.removeModifier(HARDENING);
+        armor.addTransientModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(HARDENING,"stone hardening",12,net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADDITION));
+        hardenTicks=40;rollingTicks=16;getNavigation().stop();
+        Vec3 direction=target.position().subtract(position()).multiply(1,0,1).normalize().scale(.65);
+        setDeltaMovement(direction.x,.08,direction.z);hurtMarked=true;animate(5,16);
     }
     @Override public boolean doHurtTarget(Entity victim) {
         if(isAlliedTo(victim))return false;
@@ -147,27 +183,51 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         if(spec!=null && spec.id().equals("snail_maiden")) {shellTicks=40;animate(5,40);}
         boolean result=super.hurt(source,amount);
         if(result && spec!=null && (spec.neutral() || getHealth()<getMaxHealth()*.25F)) {fleeTicks=80;animate(3,30);}
+        if(result && spec!=null && spec.id().equals("swindler")){deceptionStage=3;fleeTicks=200;animate(3,200);if(source.getEntity() instanceof Player p)customer=p.getUUID();}
         return result;
     }
     @Override protected InteractionResult mobInteract(Player p,InteractionHand hand) {
         ItemStack stack=p.getItemInHand(hand);
+        if(spec.id().equals("swindler"))return swindle(p,hand);
         if(spec.id().equals("famished_refugee") && stack.isEdible() && !friendly) {
             if(!level().isClientSide){friendly=true;fleeTicks=0;setTarget(null);heal(10);if(!p.getAbilities().instabuild)stack.shrink(1);}
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
-        if((spec.id().equals("herb_picker") || spec.id().equals("swindler")) && stack.is(ExpansionContent.item("copper_coin")) && specialCooldown==0) {
-            if(!level().isClientSide){if(!p.getAbilities().instabuild)stack.shrink(1);if(spec.id().equals("herb_picker")) {
+        if(spec.id().equals("herb_picker") && stack.is(ExpansionContent.item("copper_coin")) && specialCooldown==0) {
+            if(!level().isClientSide){if(!p.getAbilities().instabuild)stack.shrink(1);
                     ItemStack herbs=new ItemStack(com.dynasty.DynastyItems.TEA.get(),2);
                     if(!p.getInventory().add(herbs))p.drop(herbs,false);
                     p.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4.herbs"),true);
-                } else spawnAtLocation(Items.DEAD_BUSH);specialCooldown=200;if(spec.id().equals("swindler"))fleeTicks=80;}
+                specialCooldown=200;}
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
         return super.mobInteract(p,hand);
     }
+    private InteractionResult swindle(Player p,InteractionHand hand){
+        if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;
+        if(level().isClientSide)return InteractionResult.SUCCESS;
+        ItemStack held=p.getItemInHand(hand);
+        if(deceptionStage==0){deceptionStage=1;animate(5,2);tell(p,"swindler_injured");return InteractionResult.CONSUME;}
+        if(deceptionStage==1 && held.is(ExpansionContent.item("copper_coin"))){
+            customer=p.getUUID();deceptionStage=2;
+            if(!p.getAbilities().instabuild)stolen=held.split(1);
+            var fake=new ItemStack(Items.DEAD_BUSH);fake.getOrCreateTag().putUUID("cod4Swindler",getUUID());
+            fake.setHoverName(net.minecraft.network.chat.Component.translatable("item.dynasty.cod4.false_medicine"));
+            if(!p.getInventory().add(fake))p.drop(fake,false);
+            tell(p,"swindler_suspect");return InteractionResult.CONSUME;
+        }
+        if(deceptionStage==2 && p.isShiftKeyDown() && p.getUUID().equals(customer) && held.is(Items.DEAD_BUSH)
+                && held.hasTag() && held.getTag().hasUUID("cod4Swindler") && held.getTag().getUUID("cod4Swindler").equals(getUUID())){
+            deceptionStage=3;fleeTicks=200;setTarget(null);getNavigation().stop();animate(3,200);
+            tell(p,"swindler_exposed");return InteractionResult.CONSUME;
+        }
+        tell(p,deceptionStage==1?"swindler_injured":deceptionStage==2?"swindler_suspect":"swindler_exposed");
+        return InteractionResult.CONSUME;
+    }
+    private static void tell(Player p,String key){p.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4."+key),true);}
     @Override protected void dropCustomDeathLoot(DamageSource s,int looting,boolean recentlyHit) {super.dropCustomDeathLoot(s,looting,recentlyHit);if(!stolen.isEmpty()){spawnAtLocation(stolen);stolen=ItemStack.EMPTY;}}
-    @Override public void addAdditionalSaveData(CompoundTag nbt) {super.addAdditionalSaveData(nbt);nbt.putBoolean("Cod4Friendly",friendly);nbt.put("Cod4Stolen",stolen.save(new CompoundTag()));nbt.putInt("Cod4Cooldown",specialCooldown);}
-    @Override public void readAdditionalSaveData(CompoundTag nbt) {super.readAdditionalSaveData(nbt);friendly=nbt.getBoolean("Cod4Friendly");stolen=ItemStack.of(nbt.getCompound("Cod4Stolen"));specialCooldown=Math.max(0,Math.min(200,nbt.getInt("Cod4Cooldown")));}
+    @Override public void addAdditionalSaveData(CompoundTag nbt) {super.addAdditionalSaveData(nbt);nbt.putBoolean("Cod4Friendly",friendly);nbt.put("Cod4Stolen",stolen.save(new CompoundTag()));nbt.putInt("Cod4Cooldown",specialCooldown);nbt.putInt("Cod4Deception",deceptionStage);nbt.putInt("Cod4Flee",fleeTicks);if(customer!=null)nbt.putUUID("Cod4Customer",customer);}
+    @Override public void readAdditionalSaveData(CompoundTag nbt) {super.readAdditionalSaveData(nbt);friendly=nbt.getBoolean("Cod4Friendly");stolen=ItemStack.of(nbt.getCompound("Cod4Stolen"));specialCooldown=Math.max(0,Math.min(200,nbt.getInt("Cod4Cooldown")));deceptionStage=Math.max(0,Math.min(3,nbt.getInt("Cod4Deception")));fleeTicks=Math.max(0,Math.min(200,nbt.getInt("Cod4Flee")));customer=nbt.hasUUID("Cod4Customer")?nbt.getUUID("Cod4Customer"):null;getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);hardenTicks=0;rollingTicks=0;}
     @Override public AnimatableInstanceCache getAnimatableInstanceCache() {return cache;}
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {controllers.add(new AnimationController<>(this,"body",4,state->state.setAndContinue(RawAnimation.begin().thenLoop(animation()))));}
 }
