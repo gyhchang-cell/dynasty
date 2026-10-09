@@ -19,7 +19,8 @@ public class DynastyNetwork {
             new java.util.TreeMap<>(java.util.Map.of(
                     12, "com.dynasty.cod3.Cod3VisualPacket:PLAY_TO_CLIENT:v1",
                     13, "com.dynasty.network.EdictCastPacket:PLAY_TO_SERVER:v1",
-                    14, "com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v1")));
+                    14, "com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v1",
+                    17, "com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1")));
     private static final java.util.Set<Integer> REGISTERED_EXTENSIONS = new java.util.HashSet<>();
     public static String protocolVersion() { return "9/" + EXTENSIONS; }
     public static boolean acceptsProtocol(String remote) { return protocolVersion().equals(remote); }

@@ -17,7 +17,9 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class TreeGameTests {
     private static TemplateMob tree(GameTestHelper h){
-        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=10;y++)h.setBlock(x,y,z,y==1||y==10?Blocks.STONE:Blocks.AIR);
+        // Keep neighbouring GameTest projectiles out; the cage must begin this test at 12HP.
+        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=10;y++)
+            h.setBlock(x,y,z,y==1||y==10||x==0||x==15||z==0||z==15?Blocks.STONE:Blocks.AIR);
         var mob=h.spawn(BlueprintEntities.KUMU_SHUJING.get(),new BlockPos(7,2,5));mob.setNoAi(true);mob.setOnGround(true);return mob;
     }
     private static net.minecraft.world.entity.animal.Cow enemy(GameTestHelper h,int x,int z){

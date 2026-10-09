@@ -17,5 +17,18 @@ allprojects { p -> afterEvaluate {
         args '--username', role == 'peer' ? 'GuandaoPeer' : 'GuandaoHost', '--width', '1600', '--height', '1000'
         mods { dynasty { source qa } }
     }
-    p.tasks.configureEach { task -> if(task.name=='runClient')task.dependsOn qa.classesTaskName }
+    p.tasks.configureEach { task -> if(task.name=='runClient') {
+        task.dependsOn qa.classesTaskName
+        // Like the existing dungeon QA, release Gradle's cache lock before paired JVMs run.
+        if (p.hasProperty('guandaoPrepareOnly')) task.jvmArgumentProviders.add({ ->
+            def target = p.file('build/guandao-world-qa/launch.json')
+            target.parentFile.mkdirs()
+            target.text = groovy.json.JsonOutput.toJson([executable: task.javaLauncher.get().executablePath.asFile.absolutePath,
+                jvmArgs: task.jvmArgs + task.systemProperties.collect { k,v -> "-D${k}=${v}".toString() },
+                classpath: task.classpath.asPath, main: task.mainClass.get(), args: task.args,
+                environment: task.environment.findAll { key, value -> key in ['MOD_CLASSES', 'MCP_MAPPINGS'] },
+                directory: task.workingDir.absolutePath])
+            throw new StopExecutionException('Prepared isolated guandao client launch')
+        } as org.gradle.process.CommandLineArgumentProvider)
+    } }
 } }
