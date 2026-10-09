@@ -45,7 +45,12 @@ public final class DungeonClientQa {
     private static volatile int stage=-1;
     private static int observed=-1,frames;
     private static long reconnectAt;
-    private static CompletableFuture<Void> setup,reload;
+    private static CompletableFuture<Void> setup,reload,waterSetup;
+    private static final boolean WATER=Boolean.getBoolean("dynasty.cod2Qa.water");
+    private static final BlockPos WATER_ORIGIN=new BlockPos(-32,-82,-60);
+    private static final UUID WATER_INSTANCE=UUID.fromString("b09319c5-43d5-4753-b412-096479d77545");
+    private static final String WATER_KEY="chensha@"+WATER_INSTANCE+":mercury_drowners";
+    private static long waterReadyAt;
 
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent event) {
         if(ROLE.isEmpty()||finished||event.phase!=TickEvent.Phase.END)return;
@@ -87,7 +92,7 @@ public final class DungeonClientQa {
                 if(!Files.exists(ROOT.resolve("listening")))Files.writeString(ROOT.resolve("listening"),"127.0.0.1:"+PORT);
                 if(stage<0)publish(0);
                 if(acknowledged(stage)&& (SOLO||Files.exists(ROOT.resolve(stage+"-peer")))) {
-                    if(stage==5) { Files.writeString(ROOT.resolve("complete"),"Observed six stages");finish(mc,null);return; }
+                    if(stage==(WATER?8:5)) { Files.writeString(ROOT.resolve("complete"),"Observed "+(stage+1)+" stages");finish(mc,null);return; }
                     publish(stage+1);
                 }
             } else {
@@ -131,6 +136,23 @@ public final class DungeonClientQa {
                 }
                 if(!open(mc,STELE)||!active(mc,LIFT)||!open(mc,DOOR))return;
                 require(INSTANCE.equals(((DungeonMechanismBlockEntity)mc.level.getBlockEntity(LIFT)).instance()),"Reload/rejoin lost BE binding");
+            } else if(stage==6) {
+                if(HOST&&waterSetup==null){waterSetup=mc.getSingleplayerServer().submit(()->setupWater(mc));return;}
+                if(HOST){if(!waterSetup.isDone())return;waterSetup.join();}
+                if(drownerCount(mc)!=2)return;
+                for(var entity:mc.level.entitiesForRendering())if(entity.getType()==com.dynasty.blueprint.BlueprintEntities.SHASHUI_FUNIGUI.get())
+                    require(mc.getEntityRenderDispatcher().getRenderer(entity)!=null,"Drowner renderer missing");
+                var p=WATER_ORIGIN.offset(ChenshaPiece.middleDrownerOffsets().get(0));
+                if(!mc.level.getFluidState(p).is(net.minecraft.tags.FluidTags.WATER))return;
+                mc.player.setYRot(90);mc.player.setXRot(10);
+                if(!acted){net.minecraft.client.Screenshot.grab(mc.gameDirectory,"chensha-water.png",mc.getMainRenderTarget(),c->{});acted=true;}
+            } else if(stage==7) {
+                if(!HOST&&!acted) {
+                    mc.level.disconnect();mc.clearLevel(new TitleScreen());reconnectAt=System.nanoTime()+1_000_000_000L;acted=true;return;
+                }
+                if(drownerCount(mc)!=2)return;
+            } else if(stage==8) {
+                if(drownerCount(mc)!=0)return;
             }
             if(++frames<5)return;
             Files.writeString(ROOT.resolve(stage+"-"+ROLE),"PASS stage="+stage+" tick="+mc.level.getGameTime()+" player="+mc.player.getUUID()+"\n");
@@ -169,6 +191,48 @@ public final class DungeonClientQa {
         if(level.getGameTime()%20!=0)return;
         var arrow=DungeonContent.TRAP_ARROW.get().create(level);arrow.setPos(0,-56,2);arrow.setNoGravity(true);level.addFreshEntity(arrow);
     }
+    private static int drownerCount(Minecraft mc) {
+        int count=0;for(var e:mc.level.entitiesForRendering())
+            if(e.getType()==com.dynasty.blueprint.BlueprintEntities.SHASHUI_FUNIGUI.get())count++;
+        return count;
+    }
+    private static void setupWater(Minecraft mc) {
+        var level=mc.getSingleplayerServer().overworld();
+        // Test-only bounded fixtures use production cells; no user world is opened.
+        for(int cx:new int[]{12,52})for(int x=cx-8;x<=cx+7;x++)for(int z=52;z<=67;z++)for(int y=20;y<=33;y++)
+            level.setBlockAndUpdate(WATER_ORIGIN.offset(x,y,z),ChenshaPiece.cell(x,y,z));
+        var core=WATER_ORIGIN.offset(ChenshaPiece.core("mercury"));
+        level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());
+        ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(WATER_INSTANCE,"mercury","mercury_core",core,-1,List.of());
+        level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
+        waterReadyAt=level.getGameTime()+40;
+    }
+    @SubscribeEvent public static void waterTick(TickEvent.ServerTickEvent event) {
+        if(!HOST||!WATER||stage<6||waterReadyAt==0||event.phase!=TickEvent.Phase.END)return;
+        try {
+            var level=event.getServer().overworld();if(level.getGameTime()<waterReadyAt)return;
+            var ledger=com.dynasty.blueprint.BlueprintSpawnState.get(level);
+            var marker=ledger.markers.get(WATER_KEY);
+            if(stage==6) {
+                if(marker==null||marker.produced<2) {
+                    if(level.getGameTime()%100==0){
+                        var p=WATER_ORIGIN.offset(ChenshaPiece.middleDrownerOffsets().get(marker==null?0:marker.produced));
+                        Files.writeString(ROOT.resolve("water-spawn.txt"),"pos="+p+" light="+level.getMaxLocalRawBrightness(p)+" fluid="+level.getFluidState(p)+" produced="+(marker==null?0:marker.produced));
+                    }
+                    com.dynasty.blueprint.BlueprintSpawns.spawnChenshaDrowner(level,WATER_ORIGIN,WATER_ORIGIN.offset(32,25,60));
+                    marker=ledger.markers.get(WATER_KEY);
+                    if(marker!=null)for(var id:marker.members)if(level.getEntity(id) instanceof net.minecraft.world.entity.Mob mob){mob.setNoAi(true);mob.setNoGravity(true);}
+                }
+            } else if(stage==8) {
+                require(marker!=null&&marker.produced==2,"Water encounter lost production state");
+                for(var id:List.copyOf(marker.members)){var entity=level.getEntity(id);if(entity!=null)entity.discard();}
+                require(!com.dynasty.blueprint.BlueprintSpawns.spawnChenshaDrowner(level,WATER_ORIGIN,WATER_ORIGIN.offset(32,25,60)),"Cleared encounter refilled");
+                require(marker.cleared&&marker.members.isEmpty(),"Removal failed to clear shared ledger");
+                level.getDataStorage().save();
+                Files.writeString(ROOT.resolve("water-ledger.txt"),"produced=2 members=0 cleared=true; persisted via SavedData\n");
+            }
+        }catch(Throwable failure){Files.exists(ROOT);try{Files.writeString(ROOT.resolve("host-FAIL.txt"),failure.toString());}catch(Exception ignored){}}
+    }
     private static void use(Minecraft mc,BlockPos pos) {
         mc.gameMode.useItemOn(mc.player,InteractionHand.MAIN_HAND,new BlockHitResult(Vec3.atCenterOf(pos),Direction.NORTH,pos,false));
     }
@@ -186,7 +250,7 @@ public final class DungeonClientQa {
     }
     private static void finish(Minecraft mc,String failure) {
         finished=true;
-        try {Files.createDirectories(ROOT);Files.writeString(ROOT.resolve(ROLE+(failure==null?"-PASS.txt":"-FAIL.txt")),failure==null?"All six client stages passed\n":failure+"\n");}
+        try {Files.createDirectories(ROOT);Files.writeString(ROOT.resolve(ROLE+(failure==null?"-PASS.txt":"-FAIL.txt")),failure==null?"All "+(WATER?9:6)+" client stages passed\n":failure+"\n");}
         catch(Exception e){e.printStackTrace();}
         mc.stop();
     }

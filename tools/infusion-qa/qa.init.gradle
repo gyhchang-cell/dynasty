@@ -1,0 +1,31 @@
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def role = p.hasProperty('qaPeer') ? 'peer' : 'host'
+    def qa = p.sourceSets.create('infusionQa') {
+        java.srcDir p.file('tools/infusion-qa/src')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.dependencies.add('runtimeOnly', p.fg.deobf('mezz.jei:jei-1.20.1-forge:15.59.0.210'))
+    p.minecraft.runs.client {
+        workingDirectory p.file('build/infusion-client/' + role)
+        property 'dynasty.infusionQa', role
+        property 'dynasty.infusionQa.resume', p.hasProperty('qaResume') ? 'true' : 'false'
+        property 'dynasty.infusionQa.output', p.file('build/infusion-client/results-final').absolutePath
+        property 'forge.logging.console.level', 'info'
+        jvmArgs '-Xmx1400m'
+        args '--username', role == 'peer' ? 'InfusionPeer' : 'InfusionHost', '--width', '1920', '--height', '1080'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.configureEach { t -> if(t.name=='runClient') {
+        t.dependsOn qa.classesTaskName
+        if(p.hasProperty('qaExport')) t.jvmArgumentProviders.add({ ->
+            def target=p.file('build/infusion-client/launch-host.json');target.parentFile.mkdirs()
+            target.text=groovy.json.JsonOutput.toJson([executable:t.executable,
+                jvmArgs:t.jvmArgs+t.systemProperties.collect { k,v -> "-D${k}=${v}".toString() },
+                classpath:t.classpath.asPath,main:t.mainClass.get(),args:t.args,
+                environment:t.environment.findAll { k,v -> k in ['MOD_CLASSES','MCP_MAPPINGS'] },cwd:t.workingDir.absolutePath])
+            throw new org.gradle.api.tasks.StopExecutionException('Prepared client launch')
+        } as org.gradle.process.CommandLineArgumentProvider)
+    } }
+} }

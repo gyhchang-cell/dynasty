@@ -44,7 +44,7 @@ public final class InfusionCombat {
     private static void effect(LivingEntity e,MobEffect type,int ticks){e.addEffect(new MobEffectInstance(type,ticks,0));}
     private static void slow(LivingEntity e,int ticks){effect(e,MobEffects.MOVEMENT_SLOWDOWN,boss(e)?Math.min(20,ticks):ticks);}
     private static void cue(LivingEntity e,boolean lightning){if(e.level() instanceof net.minecraft.server.level.ServerLevel l)l.sendParticles(lightning?ParticleTypes.ELECTRIC_SPARK:ParticleTypes.ENCHANT,e.getX(),e.getY()+1,e.getZ(),8,.25,.35,.25,.01);}
-    public static Set<String> armor(Player p){var ids=new HashSet<String>();for(var stack:p.getArmorSlots())ids.addAll(InfusionTraits.active(stack));if(p.isBlocking())ids.addAll(InfusionTraits.active(p.getUseItem()));return ids;}
+    public static Set<String> armor(Player p){var ids=new HashSet<String>();for(var stack:p.getArmorSlots())ids.addAll(InfusionTraits.effects(stack));var curios=new ArrayList<ItemStack>();DynastyCuriosSetup.collectStacks(p,curios);for(var stack:curios)ids.addAll(InfusionTraits.effects(stack));if(p.isBlocking())ids.addAll(InfusionTraits.effects(p.getUseItem()));return ids;}
     @SubscribeEvent public static void attack(AttackEntityEvent e){
         Player p=e.getEntity();if(p.level().isClientSide)return;var s=state(p);
         s.attackTick=now(p);s.attackTarget=e.getTarget().getUUID();s.strength=p.getAttackStrengthScale(.5f);s.weapon=p.getMainHandItem().copy();
@@ -78,7 +78,7 @@ public final class InfusionCombat {
             if(s.strength<.9f||!ItemStack.isSameItemSameTags(s.weapon,p.getMainHandItem())||!p.hasLineOfSight(target))return;
             weapon=s.weapon;
         }
-        var traits=InfusionTraits.active(weapon);if(traits.isEmpty())return;
+        var traits=InfusionTraits.effects(weapon);if(traits.isEmpty())return;
         boolean same=target.getUUID().equals(s.comboTarget)&&now(p)-s.comboTick<=80&&sameWeapon(weapon,s.comboWeapon);
         s.combo=same?s.combo%12+1:1;s.comboTarget=target.getUUID();s.comboTick=now(p);s.comboWeapon=weapon.copy();
         double bonus=0;
@@ -92,13 +92,23 @@ public final class InfusionCombat {
             case "jade" -> {if(s.combo%3==0&&ready(p,id,200)){p.getFoodData().eat(1,0);cue(p,false);}}
             case "dragon_crystal" -> {if(s.combo%2==0&&ready(p,id,160)){bonus+=.12;slow(target,20);cue(target,true);}}
             case "cinnabar" -> {if(!target.fireImmune()&&ready(p,id,120)){target.setSecondsOnFire(3);cue(target,false);}}
-            case "refined_steel" -> {if(target.getArmorValue()>0&&ready(p,id,100)){bonus+=.10;cue(target,false);}}
+            case "refined_steel" -> {if(target.getArmorValue()>0&&ready(p,id,100)){bonus+=.10;effect(target,MobEffects.WEAKNESS,20);cue(target,false);}}
             case "qinglong_scale" -> {if(target.getHealth()<target.getMaxHealth()*.5&&ready(p,id,160)){effect(p,MobEffects.MOVEMENT_SPEED,40);effect(p,MobEffects.JUMP,40);cue(p,false);}}
             case "baihu_fang" -> {if(!ranged&&p.fallDistance>0&&!p.onGround()&&!p.isInWater()&&!p.isSprinting()&&!p.hasEffect(MobEffects.BLINDNESS)&&ready(p,id,120)){bonus+=.15;if(!boss(target))target.knockback(.4,p.getX()-target.getX(),p.getZ()-target.getZ());cue(target,false);}}
+            case "heavy_stagger" -> {if(!ranged&&s.combo%3==0&&ready(p,id,120)){slow(target,30);if(!boss(target)){target.stopUsingItem();target.knockback(.5,p.getX()-target.getX(),p.getZ()-target.getZ());}cue(target,false);}}
+            case "venom" -> {if(s.combo%2==0&&target.getMobType()!=MobType.UNDEAD&&ready(p,id,160)){effect(target,MobEffects.POISON,60);cue(target,false);}}
+            case "backstrike" -> {if(!ranged&&target.getLookAngle().dot(p.position().subtract(target.position()).normalize())<-.5&&ready(p,id,120)){effect(target,MobEffects.WEAKNESS,40);slow(target,40);cue(target,false);}}
+            case "night_soul" -> {if(dark(p)&&ready(p,id,160)){effect(target,MobEffects.GLOWING,60);effect(target,MobEffects.WEAKNESS,boss(target)?20:60);cue(target,false);}}
+            case "storm_call" -> {if(p.level().isThundering()&&ready(p,id,160)){effect(target,MobEffects.WEAKNESS,40);slow(target,40);cue(target,true);}}
+            case "sunpurge" -> {if(p.level().isDay()&&target.getMobType()==MobType.UNDEAD&&ready(p,id,160)){if(!target.fireImmune())target.setSecondsOnFire(2);p.removeEffect(MobEffects.POISON);cue(target,false);}}
+            case "hunter_mark" -> {if(ranged&&p.distanceToSqr(target)>=64&&ready(p,id,160)){effect(target,MobEffects.GLOWING,100);effect(p,MobEffects.MOVEMENT_SPEED,40);cue(target,false);}}
+            case "air_step" -> {if(!ranged&&!p.onGround()&&ready(p,id,160)){effect(p,MobEffects.SLOW_FALLING,60);if(!boss(target))target.knockback(.4,p.getX()-target.getX(),p.getZ()-target.getZ());cue(p,false);}}
+            case "soul_siphon" -> {if(dark(p)&&target.getMobType()==MobType.UNDEAD&&ready(p,id,200)){effect(target,MobEffects.WITHER,boss(target)?20:40);cue(target,false);}}
             default -> {}
         }}
         if(bonus>0)e.setAmount((float)Math.min(Float.MAX_VALUE,e.getAmount()*(1+Math.min(.35,bonus))));
     }
+    private static boolean dark(Player p){return p.level().isNight()||p.level().dimension().location().getPath().equals("underworld");}
     private static void defend(Player p,LivingHurtEvent e){
         var traits=armor(p);boolean enemy=e.getSource().getEntity() instanceof LivingEntity attacker&&hostile(p,attacker);
         boolean heavy=e.getAmount()>=p.getMaxHealth()*.08;
@@ -107,11 +117,18 @@ public final class InfusionCombat {
         if(enemy&&e.getSource().getEntity() instanceof LivingEntity a&&a.getMobType()==MobType.UNDEAD&&traits.contains("blackened_bone")&&ready(p,"blackened_bone",200)){p.removeEffect(MobEffects.POISON);effect(p,MobEffects.DAMAGE_RESISTANCE,40);}
         if(enemy&&traits.contains("swift_boot_scrap")&&ready(p,"swift_boot_scrap",160))effect(p,MobEffects.MOVEMENT_SPEED,40);
         if(enemy&&heavy&&traits.contains("dragon_scale")&&ready(p,"dragon_scale",240))effect(p,MobEffects.ABSORPTION,60);
+        if(enemy&&p.isInWater()&&traits.contains("water_ward")&&ready(p,"water_ward",200)){effect(p,MobEffects.WATER_BREATHING,100);effect(p,MobEffects.DOLPHINS_GRACE,100);cue(p,false);}
+        if(enemy&&p.getHealth()<=p.getMaxHealth()*.3&&traits.contains("last_stand")&&ready(p,"last_stand",240)){e.setAmount(e.getAmount()*.75f);effect(p,MobEffects.ABSORPTION,60);cue(p,false);}
+        if(enemy&&heavy&&traits.contains("retaliation")&&ready(p,"retaliation",160)&&e.getSource().getEntity() instanceof LivingEntity a){if(!boss(a))a.knockback(.4,p.getX()-a.getX(),p.getZ()-a.getZ());effect(a,MobEffects.WEAKNESS,20);cue(a,false);}
+        if(enemy&&p.hasEffect(MobEffects.POISON)&&traits.contains("poison_ward")&&ready(p,"poison_ward",200)){p.removeEffect(MobEffects.POISON);p.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);cue(p,false);}
+        if(enemy&&heavy&&traits.contains("lifebloom")&&ready(p,"lifebloom",240)){effect(p,MobEffects.REGENERATION,60);cue(p,false);}
+        if(enemy&&e.getSource().getEntity() instanceof LivingEntity a&&a.getMobType()==MobType.UNDEAD&&traits.contains("wither_ward")&&ready(p,"wither_ward",200)){p.removeEffect(MobEffects.WITHER);p.removeEffect(MobEffects.WEAKNESS);cue(p,false);}
         if(e.getSource().is(DamageTypeTags.IS_FIRE)&&traits.contains("zhuque_feather")&&ready(p,"zhuque_feather",240)){p.clearFire();effect(p,MobEffects.FIRE_RESISTANCE,60);}
     }
     @SubscribeEvent public static void shield(ShieldBlockEvent e){
         if(!(e.getEntity() instanceof Player p)||p.level().isClientSide||e.getBlockedDamage()<=0||!(e.getDamageSource().getEntity() instanceof LivingEntity a)||!hostile(p,a))return;
         var worn=armor(p);
+        if(worn.contains("parry_cleanse")&&p.getTicksUsingItem()<=8&&ready(p,"parry_cleanse",160)){p.removeEffect(MobEffects.POISON);p.removeEffect(MobEffects.WEAKNESS);p.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);cue(p,false);}
         if(worn.contains("heavy_shield_remnant")&&ready(p,"heavy_shield_remnant",120))e.setShieldTakesDamage(false);
         if(worn.contains("xuanwu_shell")&&p.getTicksUsingItem()<=8&&ready(p,"xuanwu_shell",200)){effect(p,MobEffects.DAMAGE_RESISTANCE,60);cue(p,false);}
     }

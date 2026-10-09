@@ -36,6 +36,8 @@ public class DynastyTabs {
                 }
                 // 方块 / blocks
                 output.accept(com.dynasty.infusion.InfusionContent.TABLE_ITEM.get());
+                output.accept(com.dynasty.cod3.LootableRemains.ITEM.get());
+                com.dynasty.cod3.NpcContent.EGGS.forEach(egg->output.accept(egg.get()));
                 output.accept(DynastyBlocks.JADE_ORE.get());
                 output.accept(DynastyBlocks.DEEPSLATE_JADE_ORE.get());
                 output.accept(DynastyBlocks.DRAGON_CRYSTAL_ORE.get());

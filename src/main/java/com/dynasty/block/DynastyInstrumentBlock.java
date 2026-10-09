@@ -45,6 +45,7 @@ public class DynastyInstrumentBlock extends Block {
             return InteractionResult.CONSUME;
         }
         player.getPersistentData().putLong(key, now);
+        if(player instanceof ServerPlayer sp)com.dynasty.cod3.SecretTracker.trigger(sp,pos,com.dynasty.cod3.SecretDefinition.Trigger.PLAY_INSTRUMENT);
 
         double radius = this.bell ? 12.0D : 10.0D;
         for (ServerPlayer target : level.getEntitiesOfClass(ServerPlayer.class, new AABB(pos).inflate(radius))) {
