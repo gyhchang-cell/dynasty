@@ -31,6 +31,16 @@ public final class NpcDialogue {
     public static void open(ServerPlayer player, DynastyNpcEntity npc) {
         if (player.level() != npc.level() || !player.isAlive() || player.isSpectator()
                 || !npc.isAlive() || player.distanceToSqr(npc) > 36) return;
+        if (com.dynasty.expansion.SmallInteractions.isGhostBoat(npc)) {
+            if (!com.dynasty.expansion.SmallInteractions.ghostBoatContext(player, npc)) return;
+            npc.beginConversation(player);
+            var graph = GRAPHS.computeIfAbsent("ghost_boat", ignored -> DialogueGraph.forGhostBoat());
+            var root = com.dynasty.expansion.EquipmentBehaviors.saved(player);
+            String node = SecretTracker.ghostBoatClaimed(player) ? "done" : root.getBoolean("site_ghost_market_boat_talked") ? "asked" : "first";
+            show(player, npc, graph, graph.nodes().get(node), false);
+            return;
+        }
+        npc.beginConversation(player);
         String flag = "cod3_npc_met_" + npc.role;
         var saved = player.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG);
         boolean first = !saved.getBoolean(flag);
@@ -77,7 +87,14 @@ public final class NpcDialogue {
             case TALK -> {
                 var next = session.graph().nodes().get(choice.get().nextNode());
                 if (!next.available(context)) yield false;
+                if (com.dynasty.expansion.SmallInteractions.isGhostBoat(npc))
+                    com.dynasty.expansion.EquipmentBehaviors.saved(player).putBoolean("site_ghost_market_boat_talked", true);
                 show(player, npc, session.graph(), next, session.firstMeeting());
+                yield true;
+            }
+            case DELIVER -> {
+                if (!com.dynasty.expansion.SmallInteractions.deliverGhostBoat(player, npc)) yield false;
+                show(player, npc, session.graph(), session.graph().nodes().get("done"), session.firstMeeting());
                 yield true;
             }
             case TRADE -> {
@@ -93,7 +110,8 @@ public final class NpcDialogue {
         if (!player.isAlive() || player.isSpectator() || session.expires() <= player.level().getGameTime()
                 || !session.dimension().equals(player.level().dimension().location().toString())) return false;
         var entity = player.serverLevel().getEntity(session.npc());
-        return entity instanceof DynastyNpcEntity npc && npc.isAlive() && player.distanceToSqr(npc) <= 36;
+        return entity instanceof DynastyNpcEntity npc && npc.isAlive() && player.distanceToSqr(npc) <= 36
+                && (!com.dynasty.expansion.SmallInteractions.isGhostBoat(npc) || com.dynasty.expansion.SmallInteractions.ghostBoatContext(player, npc));
     }
 
     static Session session(UUID player) { return SESSIONS.get(player); }

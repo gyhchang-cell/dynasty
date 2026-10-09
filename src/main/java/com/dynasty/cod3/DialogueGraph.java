@@ -57,4 +57,18 @@ public record DialogueGraph(Map<String, DialogueNode> nodes, List<String> entrie
         entries.addAll(List.of("changed", "first", "ordinary"));
         return new DialogueGraph(nodes, entries);
     }
+
+    /** The existing nonce/choice engine also owns the boat's paid delivery. */
+    public static DialogueGraph forGhostBoat() {
+        var leave = new DialogueNode.Choice("leave", "cod3.dynasty.dialogue.leave", List.of(), DialogueNode.Action.LEAVE, "");
+        var trade = new DialogueNode.Choice("trade", "cod3.dynasty.dialogue.trade", List.of(), DialogueNode.Action.TRADE, "");
+        var talk = new DialogueNode.Choice("talk", "cod4.dynasty.ghost_boat.talk", List.of(), DialogueNode.Action.TALK, "asked");
+        var deliver = new DialogueNode.Choice("deliver", "cod4.dynasty.ghost_boat.deliver",
+                List.of(new DialogueNode.Condition(DialogueNode.ConditionType.HOLDS_ITEM, "dynasty:cinnabar")), DialogueNode.Action.DELIVER, "");
+        var nodes = new LinkedHashMap<String, DialogueNode>();
+        nodes.put("first", new DialogueNode("first", "cod4.dynasty.ghost_boat.first", List.of(), List.of(talk, leave)));
+        nodes.put("asked", new DialogueNode("asked", "cod4.dynasty.ghost_boat.asked", List.of(), List.of(deliver, trade, leave)));
+        nodes.put("done", new DialogueNode("done", "cod4.dynasty.ghost_boat.done", List.of(), List.of(trade, leave)));
+        return new DialogueGraph(nodes, List.of("first"));
+    }
 }

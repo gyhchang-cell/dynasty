@@ -57,7 +57,8 @@ public final class DynastyNpcEntity extends AbstractVillager implements software
     @Override public void tick(){
         super.tick();if(level().isClientSide)return;
         var customer=getTradingPlayer();
-        if(customer!=null&&(!customer.isAlive()||customer.isSpectator()||customer.level()!=level()||customer.distanceToSqr(this)>36))setTradingPlayer(null);
+        if(customer!=null&&(!customer.isAlive()||customer.isSpectator()||customer.level()!=level()||customer.distanceToSqr(this)>36
+                ||com.dynasty.expansion.SmallInteractions.isGhostBoat(this)&&(!(customer instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.ghostBoatContext(sp,this))))setTradingPlayer(null);
         if(tickCount%20!=0)return;
         ensureContentTrades();
         State next;
@@ -81,14 +82,17 @@ public final class DynastyNpcEntity extends AbstractVillager implements software
     @Override public InteractionResult mobInteract(Player p,InteractionHand hand){
         if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;
         if(p instanceof net.minecraft.server.level.ServerPlayer sp){
-            talkingUntil=level().getGameTime()+80;getNavigation().stop();getLookControl().setLookAt(p,30,30);
+            beginConversation(p);
             if(p.isShiftKeyDown())trade(sp);else NpcDialogue.open(sp,this);
         }
         return InteractionResult.sidedSuccess(level().isClientSide);
     }
+    public void beginConversation(Player p){talkingUntil=level().getGameTime()+80;getNavigation().stop();getLookControl().setLookAt(p,30,30);}
     public boolean trade(net.minecraft.server.level.ServerPlayer p){
         if(p.level()!=level()||!p.isAlive()||p.isSpectator()||!isAlive()||p.distanceToSqr(this)>36
-                ||getTradingPlayer()!=null&&getTradingPlayer()!=p)return false;
+                ||getTradingPlayer()!=null&&getTradingPlayer()!=p
+                ||com.dynasty.expansion.SmallInteractions.isGhostBoat(this)&&(!com.dynasty.expansion.SmallInteractions.ghostBoatContext(p,this)
+                ||!com.dynasty.expansion.EquipmentBehaviors.saved(p).getBoolean("site_ghost_market_boat_talked")))return false;
         ensureContentTrades();
         if(getOffers().isEmpty())return false;
         if(role.equals("huang_laohan")&&level().dimension().equals(com.dynasty.block.DynastyPortalBlock.DRAGON_PALACE))com.dynasty.DynastyAdvancements.award(p,"entered_dragon_palace");

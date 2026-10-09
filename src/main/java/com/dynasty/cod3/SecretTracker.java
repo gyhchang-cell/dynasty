@@ -57,8 +57,16 @@ public final class SecretTracker extends SavedData {
                 &&p.serverLevel().getBlockState(pos).is(com.dynasty.expansion.SmallInteractions.ENTRIES.get(id).get());
     }
     private static boolean verifiedSite(ServerPlayer p,int n,BlockPos pos){
-        if(n!=8&&n!=30&&n!=29)return false;String id=n==8?"ancient_well":n==30?"puzzle_box":"mortuary_room";
+        if(n!=8&&n!=30&&n!=29&&n!=17)return false;String id=n==8?"ancient_well":n==30?"puzzle_box":n==17?"ghost_market_boat":"mortuary_room";
         if(!siteContext(p,pos,id))return false;var state=progress(p,n);var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);
+        if(n==17){
+            if(!state.hasUUID("Boatman"))return false;var entity=p.serverLevel().getEntity(state.getUUID("Boatman"));
+            return entity instanceof DynastyNpcEntity npc&&com.dynasty.expansion.SmallInteractions.ghostBoatContext(p,npc)
+                    &&npc.getPersistentData().getLong("cod4_ghost_boat_anchor")==pos.asLong()&&site.getBoolean("site_ghost_market_boat_talked")
+                    &&state.contains("SiteReady")&&state.getLong("SiteReady")==pos.asLong()&&state.getString("SiteDimension").equals(p.level().dimension().location().toString())
+                    &&site.contains("site_ghost_market_boat_start")&&p.level().getGameTime()-site.getLong("site_ghost_market_boat_start")>=2400
+                    &&held(p,"dynasty:cinnabar");
+        }
         if(n==29){
             if(!state.hasUUID("Victim"))return false;var victim=p.serverLevel().getEntity(state.getUUID("Victim"));
             return victim instanceof com.dynasty.cod3.DynastyNpcEntity npc&&npc.isAlive()&&npc.getPersistentData().hasUUID("cod4_mortuary_owner")&&npc.getPersistentData().getUUID("cod4_mortuary_owner").equals(p.getUUID())
@@ -98,6 +106,16 @@ public final class SecretTracker extends SavedData {
         return new WaterDelivery(true,claimed,delivered);
     }
     public record PuzzleStep(boolean accepted,boolean claimed,int count,boolean reset) {}
+    public static boolean ghostBoatClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,17,SecretDefinition.of(17));}
+    /** Native secret 17 owns cinnabar payment, bamboo slip reward and player/dimension receipt. */
+    public static boolean deliverGhostBoat(ServerPlayer p,BlockPos pos,DynastyNpcEntity npc){
+        if(!siteContext(p,pos,"ghost_market_boat")||ghostBoatClaimed(p)||!com.dynasty.expansion.SmallInteractions.ghostBoatContext(p,npc))return false;
+        var root=com.dynasty.expansion.EquipmentBehaviors.saved(p);
+        if(!root.getBoolean("site_ghost_market_boat_talked")||!root.contains("site_ghost_market_boat_start")||p.level().getGameTime()-root.getLong("site_ghost_market_boat_start")<2400
+                ||npc.getPersistentData().getLong("cod4_ghost_boat_anchor")!=pos.asLong()||!conditions(p,17,pos,SecretDefinition.Trigger.USE_ITEM_AT_POS))return false;
+        var state=progress(p,17);state.putUUID("Boatman",npc.getUUID());state.putLong("SiteReady",pos.asLong());state.putString("SiteDimension",p.level().dimension().location().toString());
+        return get(p.serverLevel()).claim(p,17,pos);
+    }
     public static boolean mortuaryClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,29,SecretDefinition.of(29));}
     /** Native healing effect and original potion payment/claim; no item-only rescue. */
     public static boolean rescueMortuary(ServerPlayer p,BlockPos pos,com.dynasty.cod3.DynastyNpcEntity victim){

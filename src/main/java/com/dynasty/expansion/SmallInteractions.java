@@ -35,6 +35,7 @@ public final class SmallInteractions {
             var root=EquipmentBehaviors.saved(p);String key="site_"+id;
             if(id.equals("ancient_well"))return useWell((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("puzzle_box"))return usePuzzle((net.minecraft.server.level.ServerLevel)level,pos,p);
+            if(id.equals("ghost_market_boat"))return useGhostBoat((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("mortuary_room")&&!p.getMainHandItem().is(Items.MILK_BUCKET))return useMortuary((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("broken_waterwheel")&&state.getValue(REPAIRED)){
                 root.putBoolean(key+"_done",true);
@@ -57,7 +58,7 @@ public final class SmallInteractions {
             ItemStack held=p.getItemInHand(hand);long now=level.getGameTime();
             if(root.contains(key+"_start") && now<root.getLong(key+"_next")){p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",(root.getLong(key+"_next")-now+19)/20),true);return InteractionResult.CONSUME;}
             boolean valid=switch(id) {
-                case "wayside_shrine","ghost_market_boat"->held.is(ExpansionContent.SUPPLIES.get("soul_incense").get());
+                case "wayside_shrine"->held.is(ExpansionContent.SUPPLIES.get("soul_incense").get());
                 case "nameless_tomb"->held.is(net.minecraft.tags.ItemTags.FLOWERS);
                 case "sword_scar_wall"->held.getItem() instanceof SwordItem && !level.isDay();
                 case "broken_stele"->held.is(Items.PAPER);
@@ -119,6 +120,71 @@ public final class SmallInteractions {
             com.dynasty.DynastyAdvancements.award(p,"cod4_"+id);
             CombatFeedback.send(p,CombatFeedback.HEAL);return InteractionResult.CONSUME;
         }
+    }
+    public static boolean isGhostBoat(com.dynasty.cod3.DynastyNpcEntity npc){return npc.getPersistentData().getBoolean("cod4_ghost_boat");}
+    public static java.util.UUID ghostBoatId(net.minecraft.server.level.ServerLevel level,BlockPos pos){
+        return java.util.UUID.nameUUIDFromBytes(("cod4:ghost_boat:"+level.dimension().location()+":"+pos.asLong()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+    /** One native merchant per physical Site; customer and stock remain vanilla. */
+    private static com.dynasty.cod3.DynastyNpcEntity ghostBoat(net.minecraft.server.level.ServerLevel level,BlockPos pos){
+        var uuid=ghostBoatId(level,pos);var existing=level.getEntity(uuid);
+        if(existing!=null)return existing instanceof com.dynasty.cod3.DynastyNpcEntity npc&&isGhostBoat(npc)?npc:null;
+        var npc=com.dynasty.cod3.NpcContent.NPCS.get("huang_laohan").get().create(level);if(npc==null)return null;
+        npc.setUUID(uuid);npc.home(pos);npc.setNoAi(true);
+        npc.getPersistentData().putBoolean("cod4_ghost_boat",true);npc.getPersistentData().putLong("cod4_ghost_boat_anchor",pos.asLong());
+        for(var direction:new net.minecraft.core.Direction[]{net.minecraft.core.Direction.NORTH,net.minecraft.core.Direction.EAST,net.minecraft.core.Direction.SOUTH,net.minecraft.core.Direction.WEST})for(int distance=1;distance<=2;distance++){
+            var at=pos.relative(direction,distance);if(!level.hasChunkAt(at)||!level.getWorldBorder().isWithinBounds(at)||!level.getBlockState(at.below()).isFaceSturdy(level,at.below(),net.minecraft.core.Direction.UP))continue;
+            npc.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(at));
+            if(level.noCollision(npc,npc.getBoundingBox())&&level.addFreshEntity(npc))return npc;
+        }
+        return null;
+    }
+    public static boolean ghostBoatContext(ServerPlayer p,com.dynasty.cod3.DynastyNpcEntity npc){
+        if(!isGhostBoat(npc)||!npc.role.equals("huang_laohan")||!npc.isAlive()||npc.level()!=p.level()||!p.isAlive()||p.isSpectator()||p.distanceToSqr(npc)>36)return false;
+        var at=BlockPos.of(npc.getPersistentData().getLong("cod4_ghost_boat_anchor"));var root=EquipmentBehaviors.saved(p);String key="site_ghost_market_boat";
+        return p.serverLevel().hasChunkAt(at)&&p.serverLevel().getBlockState(at).is(ENTRIES.get("ghost_market_boat").get())
+                &&npc.getUUID().equals(ghostBoatId(p.serverLevel(),at))&&npc.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(at))<=16
+                &&p.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(at))<=36&&root.getBoolean(key+"_incense_lit")
+                &&root.contains(key+"_anchor")&&root.getLong(key+"_anchor")==at.asLong()&&root.getString(key+"_dimension").equals(p.level().dimension().location().toString());
+    }
+    private static InteractionResult useGhostBoat(net.minecraft.server.level.ServerLevel level,BlockPos pos,ServerPlayer p){
+        if(!p.isAlive()||p.isSpectator()||!level.hasChunkAt(pos)||p.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos))>36)return InteractionResult.PASS;
+        var root=EquipmentBehaviors.saved(p);String key="site_ghost_market_boat";String dimension=level.dimension().location().toString();long now=level.getGameTime();
+        boolean lit=root.getBoolean(key+"_incense_lit")||root.getBoolean(key+"_done");
+        if(!lit&&!p.getMainHandItem().is(ExpansionContent.SUPPLIES.get("soul_incense").get())){
+            p.displayClientMessage(Component.translatable("interaction.dynasty.ghost_market_boat"),false);return InteractionResult.CONSUME;
+        }
+        if(root.contains(key+"_anchor")&&(root.getLong(key+"_anchor")!=pos.asLong()||!root.getString(key+"_dimension").equals(dimension))){
+            // Keep the paid history if the former boat is gone; a loaded surviving
+            // boat still owns the payment rather than lighting every boat for free.
+            var former=BlockPos.of(root.getLong(key+"_anchor"));
+            if(!root.getString(key+"_dimension").equals(dimension)||!level.hasChunkAt(former)||level.getBlockState(former).is(ENTRIES.get("ghost_market_boat").get())){
+                p.displayClientMessage(Component.translatable("cod4.dynasty.ghost_boat.return"),false);return InteractionResult.CONSUME;
+            }
+        }
+        var npc=ghostBoat(level,pos);
+        if(npc==null||!npc.isAlive()){p.displayClientMessage(Component.translatable("cod4.dynasty.ghost_boat.space"),false);return InteractionResult.CONSUME;}
+        if(!lit){
+            if(!p.getAbilities().instabuild)p.getMainHandItem().shrink(1);
+            level.sendParticles(net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME,pos.getX()+.5,pos.getY()+.8,pos.getZ()+.5,8,.15,.2,.15,.01);
+            level.playSound(null,pos,net.minecraft.sounds.SoundEvents.FIRECHARGE_USE,net.minecraft.sounds.SoundSource.BLOCKS,.3F,.7F);
+        }
+        root.putBoolean(key+"_incense_lit",true);root.putLong(key+"_anchor",pos.asLong());root.putString(key+"_dimension",dimension);
+        if(!root.contains(key+"_start")){root.putLong(key+"_start",now);root.putLong(key+"_next",now+2400);}
+        level.setBlock(pos,level.getBlockState(pos).setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT,true),3);
+        com.dynasty.cod3.NpcDialogue.open(p,npc);return InteractionResult.CONSUME;
+    }
+    public static boolean deliverGhostBoat(ServerPlayer p,com.dynasty.cod3.DynastyNpcEntity npc){
+        if(!ghostBoatContext(p,npc))return false;var root=EquipmentBehaviors.saved(p);String key="site_ghost_market_boat";long now=p.level().getGameTime();
+        if(!root.getBoolean(key+"_talked"))return false;
+        if(!root.contains(key+"_start")||now-root.getLong(key+"_start")<2400){
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",Math.max(1,(2400-(now-root.getLong(key+"_start"))+19)/20)),true);return false;
+        }
+        var at=BlockPos.of(npc.getPersistentData().getLong("cod4_ghost_boat_anchor"));
+        if(!com.dynasty.cod3.SecretTracker.deliverGhostBoat(p,at,npc))return false;
+        boolean oldDone=root.getBoolean(key+"_done");root.putBoolean(key+"_done",true);root.putInt(key+"_count",Math.max(1,root.getInt(key+"_count")));
+        if(!oldDone)give(p,new ItemStack(ExpansionContent.item("copper_coin"),2));
+        com.dynasty.DynastyAdvancements.award(p,"cod4_ghost_market_boat");return true;
     }
     /** A per-player existing refugee identity; native entity NBT owns the patient. */
     public static java.util.UUID mortuaryVictimId(net.minecraft.server.level.ServerLevel level,BlockPos pos,java.util.UUID owner){
