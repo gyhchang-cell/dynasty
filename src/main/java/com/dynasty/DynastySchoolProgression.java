@@ -142,6 +142,19 @@ public final class DynastySchoolProgression {
         return sword == best ? "sword" : "talisman";
     }
 
+    /** Reuse the canonical accessory school data for lightweight weapon synergies. */
+    public static boolean equippedSynergy(Player player, String school) {
+        Set<String> ids = DynastyTrinkets.activeIds(player);
+        String[] pair = switch (school) {
+            case "guard" -> new String[]{"zhenguan_mirror", "huben_bracer"};
+            case "sword" -> new String[]{"liancheng_tassel", "tayun_pendant"};
+            case "archer" -> new String[]{"guanxing_pendant", "mingxian_ring"};
+            case "talisman" -> new String[]{"sitian_seal", "dingfeng_silk"};
+            default -> new String[]{"", ""};
+        };
+        return DynastySchoolAccessories.count(ids, school) + count(ids, pair[0], pair[1]) >= 2;
+    }
+
     private static int count(Set<String> ids, String first, String second) {
         return (ids.contains(first) ? 1 : 0) + (ids.contains(second) ? 1 : 0);
     }

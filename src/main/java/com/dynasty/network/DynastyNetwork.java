@@ -19,6 +19,7 @@ public class DynastyNetwork {
                     13, "com.dynasty.network.EdictCastPacket:PLAY_TO_SERVER:v1",
                     14, "com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v1",
                     15, "com.dynasty.worldevent.WorldEventStatePacket:PLAY_TO_CLIENT:v1",
+                    16, "com.dynasty.expansion.CombatFeedback:PLAY_TO_CLIENT:v2",
                     17, "com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1")));
     private static final java.util.Set<Integer> REGISTERED_EXTENSIONS = new java.util.HashSet<>();
     public static String protocolVersion() {

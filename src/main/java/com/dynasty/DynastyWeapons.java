@@ -108,7 +108,7 @@ public final class DynastyWeapons {
                         SoundSource.PLAYERS, 1.5F, 1.0F);
                 player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 20 * 8, 0));
             }
-            player.getCooldowns().addCooldown(this, 120);
+            player.getCooldowns().addCooldown(this, com.dynasty.expansion.EquipmentBehaviors.cooldown(player,120));
             player.swing(hand, true);
             return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
         }
@@ -141,7 +141,9 @@ public final class DynastyWeapons {
         @Override
         public void releaseUsing(ItemStack stack, Level level, LivingEntity user, int remainingTicks) {
             int chargedTicks = stack.getUseDuration() - remainingTicks;
-            super.releaseUsing(stack, level, user, remainingTicks);
+            String series = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(this).getPath();
+            boolean rapid = java.util.Set.of("lie_gong","chang_gong","shenbi_bow","luoyan_bow","tianlang_bow").contains(series);
+            super.releaseUsing(stack, level, user, rapid && chargedTicks>=16 ? remainingTicks-4 : remainingTicks);
             if (level instanceof ServerLevel server && user instanceof Player player) {
                 DynastyBowRitual.onRelease(server, player, this, chargedTicks, visualDamageScore());
             }
@@ -150,6 +152,8 @@ public final class DynastyWeapons {
         @Override
         public AbstractArrow customArrow(AbstractArrow arrow) {
             arrow.setBaseDamage(arrow.getBaseDamage() * this.multiplier + this.bonus);
+            String series = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(this).getPath();
+            if(java.util.Set.of("dragon_bow","sunbow").contains(series))arrow.setPierceLevel((byte)Math.min(5,arrow.getPierceLevel()+1));
             DynastyBowRitual.trackArrow(arrow, this, visualDamageScore());
             return super.customArrow(arrow);
         }
