@@ -71,4 +71,14 @@ public record DialogueGraph(Map<String, DialogueNode> nodes, List<String> entrie
         nodes.put("done", new DialogueNode("done", "cod4.dynasty.ghost_boat.done", List.of(), List.of(trade, leave)));
         return new DialogueGraph(nodes, List.of("first"));
     }
+    public static DialogueGraph forPoisonTea() {
+        var leave = new DialogueNode.Choice("leave", "cod3.dynasty.dialogue.leave", List.of(), DialogueNode.Action.LEAVE, "");
+        var inspect = new DialogueNode.Choice("inspect", "cod4.dynasty.poison_tea.inspect", List.of(), DialogueNode.Action.TALK, "inspected");
+        var drink = new DialogueNode.Choice("drink", "cod4.dynasty.poison_tea.drink", List.of(), DialogueNode.Action.DRINK, "");
+        var flip = new DialogueNode.Choice("flip", "cod4.dynasty.poison_tea.flip", List.of(), DialogueNode.Action.DISMANTLE, "");
+        var nodes = new LinkedHashMap<String, DialogueNode>();
+        nodes.put("first", new DialogueNode("first", "cod4.dynasty.poison_tea.first", List.of(), List.of(inspect, drink, leave)));
+        nodes.put("inspected", new DialogueNode("inspected", "cod4.dynasty.poison_tea.inspected", List.of(), List.of(drink, flip, leave)));
+        return new DialogueGraph(nodes, List.of("first"));
+    }
 }

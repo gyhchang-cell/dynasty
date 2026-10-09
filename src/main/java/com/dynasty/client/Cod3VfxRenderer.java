@@ -109,6 +109,7 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("site_waterwheel"))geometry.waterwheel(age);
                 else if(p.sequence().equals("site_puzzle_press"))geometry.puzzle(life,false);
                 else if(p.sequence().equals("site_puzzle_open"))geometry.puzzle(life,true);
+                else if(p.sequence().equals("site_tea_flip"))geometry.teaFlip(life);
                 else if(p.sequence().equals("qinglong_combo_wave"))geometry.dragonWave(life,age);
                 else if(p.sequence().matches("scenic_(0[1-9]|1[0-9]|2[0-5])"))geometry.scenic(Integer.parseInt(p.sequence().substring(7)),life);else geometry.draw(p.template(),d,expansion,life,age);
             }
@@ -220,6 +221,13 @@ public final class Cod3VfxRenderer {
                 }
             }
             if(rescued)mesh(0,1.05+age*.006,0,.055);
+        }
+        void teaFlip(double life){
+            double angle=Math.min(1,life/.65)*Math.PI*.7,cs=Math.cos(angle),sn=Math.sin(angle);
+            Vec3 a=p(-.44,.12-.44*sn,-.44*cs),b=p(.44,.12-.44*sn,-.44*cs),c=p(.44,.12+.44*sn,.44*cs),d=p(-.44,.12+.44*sn,.44*cs);
+            triangle(a,b,c,.9);triangle(a,c,d,.72);
+            for(int x:new int[]{-1,1})for(int z:new int[]{-1,1})beam(p(x*.35,.12+z*.35*sn,z*.35*cs),p(x*.35,.12+z*.35*sn-.45*cs,z*.35*cs+.45*sn),.045);
+            for(int i=0;i<5;i++)mesh((i-2)*.11,.35+life*(.3+i*.03),life*.25,.025);
         }
         void puzzle(double life,boolean open){
             double slide=open?Math.min(1,life/.55)*.7:Math.sin(Math.PI*life)*.12;

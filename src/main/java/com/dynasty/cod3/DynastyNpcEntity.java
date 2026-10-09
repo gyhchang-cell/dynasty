@@ -58,7 +58,8 @@ public final class DynastyNpcEntity extends AbstractVillager implements software
         super.tick();if(level().isClientSide)return;
         var customer=getTradingPlayer();
         if(customer!=null&&(!customer.isAlive()||customer.isSpectator()||customer.level()!=level()||customer.distanceToSqr(this)>36
-                ||com.dynasty.expansion.SmallInteractions.isGhostBoat(this)&&(!(customer instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.ghostBoatContext(sp,this))))setTradingPlayer(null);
+                ||com.dynasty.expansion.SmallInteractions.isGhostBoat(this)&&(!(customer instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.ghostBoatContext(sp,this))
+                ||com.dynasty.expansion.SmallInteractions.isPoisonTea(this)&&(!(customer instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.poisonTeaContext(sp,this))))setTradingPlayer(null);
         if(tickCount%20!=0)return;
         ensureContentTrades();
         State next;
@@ -92,7 +93,8 @@ public final class DynastyNpcEntity extends AbstractVillager implements software
         if(p.level()!=level()||!p.isAlive()||p.isSpectator()||!isAlive()||p.distanceToSqr(this)>36
                 ||getTradingPlayer()!=null&&getTradingPlayer()!=p
                 ||com.dynasty.expansion.SmallInteractions.isGhostBoat(this)&&(!com.dynasty.expansion.SmallInteractions.ghostBoatContext(p,this)
-                ||!com.dynasty.expansion.EquipmentBehaviors.saved(p).getBoolean("site_ghost_market_boat_talked")))return false;
+                ||!com.dynasty.expansion.EquipmentBehaviors.saved(p).getBoolean("site_ghost_market_boat_talked"))
+                ||com.dynasty.expansion.SmallInteractions.isPoisonTea(this)&&!com.dynasty.expansion.SmallInteractions.poisonTeaContext(p,this))return false;
         ensureContentTrades();
         if(getOffers().isEmpty())return false;
         if(role.equals("huang_laohan")&&level().dimension().equals(com.dynasty.block.DynastyPortalBlock.DRAGON_PALACE))com.dynasty.DynastyAdvancements.award(p,"entered_dragon_palace");

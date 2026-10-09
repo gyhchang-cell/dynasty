@@ -41,6 +41,13 @@ public final class NpcDialogue {
             return;
         }
         npc.beginConversation(player);
+        if (com.dynasty.expansion.SmallInteractions.isPoisonTea(npc)) {
+            if (!com.dynasty.expansion.SmallInteractions.poisonTeaContext(player, npc)) return;
+            var graph = GRAPHS.computeIfAbsent("poison_tea", ignored -> DialogueGraph.forPoisonTea());
+            String node = com.dynasty.expansion.EquipmentBehaviors.saved(player).getBoolean("site_wayside_tea_stall_inspected") ? "inspected" : "first";
+            show(player, npc, graph, graph.nodes().get(node), false);
+            return;
+        }
         String flag = "cod3_npc_met_" + npc.role;
         var saved = player.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG);
         boolean first = !saved.getBoolean(flag);
@@ -89,12 +96,24 @@ public final class NpcDialogue {
                 if (!next.available(context)) yield false;
                 if (com.dynasty.expansion.SmallInteractions.isGhostBoat(npc))
                     com.dynasty.expansion.EquipmentBehaviors.saved(player).putBoolean("site_ghost_market_boat_talked", true);
+                if (com.dynasty.expansion.SmallInteractions.isPoisonTea(npc))
+                    com.dynasty.expansion.EquipmentBehaviors.saved(player).putBoolean("site_wayside_tea_stall_inspected", true);
                 show(player, npc, session.graph(), next, session.firstMeeting());
                 yield true;
             }
             case DELIVER -> {
                 if (!com.dynasty.expansion.SmallInteractions.deliverGhostBoat(player, npc)) yield false;
                 show(player, npc, session.graph(), session.graph().nodes().get("done"), session.firstMeeting());
+                yield true;
+            }
+            case DRINK -> {
+                if (!com.dynasty.expansion.SmallInteractions.drinkPoisonTea(player, npc)) yield false;
+                show(player, npc, session.graph(), node, session.firstMeeting());
+                yield true;
+            }
+            case DISMANTLE -> {
+                if (!com.dynasty.expansion.SmallInteractions.flipPoisonTea(player, npc)) yield false;
+                SESSIONS.remove(player.getUUID());
                 yield true;
             }
             case TRADE -> {
@@ -111,7 +130,8 @@ public final class NpcDialogue {
                 || !session.dimension().equals(player.level().dimension().location().toString())) return false;
         var entity = player.serverLevel().getEntity(session.npc());
         return entity instanceof DynastyNpcEntity npc && npc.isAlive() && player.distanceToSqr(npc) <= 36
-                && (!com.dynasty.expansion.SmallInteractions.isGhostBoat(npc) || com.dynasty.expansion.SmallInteractions.ghostBoatContext(player, npc));
+                && (!com.dynasty.expansion.SmallInteractions.isGhostBoat(npc) || com.dynasty.expansion.SmallInteractions.ghostBoatContext(player, npc))
+                && (!com.dynasty.expansion.SmallInteractions.isPoisonTea(npc) || com.dynasty.expansion.SmallInteractions.poisonTeaContext(player, npc));
     }
 
     static Session session(UUID player) { return SESSIONS.get(player); }

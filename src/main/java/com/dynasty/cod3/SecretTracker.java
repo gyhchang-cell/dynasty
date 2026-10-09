@@ -24,6 +24,8 @@ import java.util.*;
 public final class SecretTracker extends SavedData {
     private final CompoundTag worldClaims=new CompoundTag();
     private final Map<Long,Map<BlockPos,Integer>> anchors=new HashMap<>();
+    private static final Map<UUID,BlockPos> TEA_BREAKS=new HashMap<>();
+    public static boolean teaFlipBreak(net.minecraft.world.entity.player.Player p,BlockPos pos){return pos.equals(TEA_BREAKS.get(p.getUUID()));}
     public static SecretTracker get(ServerLevel level){return level.getDataStorage().computeIfAbsent(SecretTracker::load,SecretTracker::new,"dynasty_cod3_secrets");}
     private static SecretTracker load(CompoundTag n){var d=new SecretTracker();d.worldClaims.merge(n.getCompound("Claims"));return d;}
     @Override public CompoundTag save(CompoundTag n){n.put("Claims",worldClaims.copy());return n;}
@@ -57,6 +59,19 @@ public final class SecretTracker extends SavedData {
                 &&p.serverLevel().getBlockState(pos).is(com.dynasty.expansion.SmallInteractions.ENTRIES.get(id).get());
     }
     private static boolean verifiedSite(ServerPlayer p,int n,BlockPos pos){
+        // A successful native table break has already removed the Site. Only its
+        // same-tick, physical vendor-bound proof may reach the original ledger.
+        if(n==19){
+            var state=progress(p,19);var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);
+            if(!p.isAlive()||p.isSpectator()||!p.serverLevel().hasChunkAt(pos)||p.distanceToSqr(Vec3.atCenterOf(pos))>36||!p.serverLevel().getBlockState(pos).isAir()
+                    ||!state.hasUUID("TeaVendor")||!state.getBoolean("NativeFlip")||!state.contains("FlipAt")||state.getLong("FlipAt")!=p.level().getGameTime())return false;
+            var vendor=p.serverLevel().getEntity(state.getUUID("TeaVendor"));
+            return vendor instanceof DynastyNpcEntity npc&&npc.isAlive()&&com.dynasty.expansion.SmallInteractions.isPoisonTea(npc)
+                    &&npc.getUUID().equals(com.dynasty.expansion.SmallInteractions.poisonTeaVendorId(p.serverLevel(),pos))&&npc.distanceToSqr(Vec3.atCenterOf(pos))<=16
+                    &&npc.getPersistentData().getLong("cod4_poison_tea_anchor")==pos.asLong()&&site.getBoolean("site_wayside_tea_stall_inspected")
+                    &&state.contains("SiteReady")&&state.getLong("SiteReady")==pos.asLong()&&state.getString("SiteDimension").equals(p.level().dimension().location().toString())
+                    &&site.contains("site_wayside_tea_stall_start")&&p.level().getGameTime()-site.getLong("site_wayside_tea_stall_start")>=2400;
+        }
         if(n!=8&&n!=30&&n!=29&&n!=17)return false;String id=n==8?"ancient_well":n==30?"puzzle_box":n==17?"ghost_market_boat":"mortuary_room";
         if(!siteContext(p,pos,id))return false;var state=progress(p,n);var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);
         if(n==17){
@@ -106,6 +121,25 @@ public final class SecretTracker extends SavedData {
         return new WaterDelivery(true,claimed,delivered);
     }
     public record PuzzleStep(boolean accepted,boolean claimed,int count,boolean reset) {}
+    public static boolean poisonTeaClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,19,SecretDefinition.of(19));}
+    public static boolean flipPoisonTea(ServerPlayer p,BlockPos pos,DynastyNpcEntity npc){
+        if(!siteContext(p,pos,"wayside_tea_stall")||poisonTeaClaimed(p)||!com.dynasty.expansion.SmallInteractions.poisonTeaContext(p,npc))return false;
+        var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);
+        if(!site.getBoolean("site_wayside_tea_stall_inspected")||!site.contains("site_wayside_tea_stall_start")||p.level().getGameTime()-site.getLong("site_wayside_tea_stall_start")<2400
+                ||npc.getPersistentData().getLong("cod4_poison_tea_anchor")!=pos.asLong()||!conditions(p,19,pos,SecretDefinition.Trigger.BREAK_BLOCK))return false;
+        var original=p.serverLevel().getBlockState(pos);var state=progress(p,19);boolean claimed=false;
+        TEA_BREAKS.put(p.getUUID(),pos.immutable());
+        try{
+            if(!p.gameMode.destroyBlock(pos)||!p.serverLevel().getBlockState(pos).isAir())return false;
+            state.putUUID("TeaVendor",npc.getUUID());state.putBoolean("NativeFlip",true);state.putLong("FlipAt",p.level().getGameTime());state.putLong("SiteReady",pos.asLong());state.putString("SiteDimension",p.level().dimension().location().toString());
+            claimed=get(p.serverLevel()).claim(p,19,pos);return claimed;
+        }finally{
+            state.remove("NativeFlip");TEA_BREAKS.remove(p.getUUID());
+            // Keep the physical overturned table available to other personal
+            // secret owners; the native flip drops no duplicate placeable Site.
+            if(p.serverLevel().getBlockState(pos).isAir())p.serverLevel().setBlock(pos,claimed?original.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT,true):original,3);
+        }
+    }
     public static boolean ghostBoatClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,17,SecretDefinition.of(17));}
     /** Native secret 17 owns cinnabar payment, bamboo slip reward and player/dimension receipt. */
     public static boolean deliverGhostBoat(ServerPlayer p,BlockPos pos,DynastyNpcEntity npc){

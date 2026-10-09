@@ -185,9 +185,16 @@ for id,name,source in [('yin_qi','阴气','internal_injury'),('yang_qi','阳气'
  zh['effect.dynasty.'+id]=name;en['effect.dynasty.'+id]=id.replace('_',' ').title();src=A/'textures/mob_effect'/f'{source}.png';dst=A/'textures/mob_effect'/f'{id}.png'
  if src.exists():shutil.copyfile(src,dst)
 site_ids=['wayside_shrine','nameless_tomb','old_weapon_rack','sword_scar_wall','herb_spot','abandoned_armory','puzzle_box','battlefield_remnant','broken_stele','mortuary_room','ghost_market_boat','wayside_tea_stall','old_bellows','broken_waterwheel','ancient_well']
+# Registered Sites inherit stone harvest rules; preserve ordinary native recovery.
+for tool,ids in [('pickaxe',site_ids),('axe',[site_ids[i] for i in (2,5,6,10,11,12,13)])]:
+ tag=ROOT/'src/main/resources/data/minecraft/tags/blocks/mineable'/f'{tool}.json'
+ data=json.loads(tag.read_text()) if tag.exists() else {'replace':False,'values':[]}
+ for id in ids:
+  if 'dynasty:'+id not in data['values']:data['values'].append('dynasty:'+id)
+ write(tag,data)
 site_names=['小神龛','无名墓','旧兵器架','剑痕石壁','药草点','废弃军械','小机关盒','古战场残迹','破损界碑','义庄停尸','鬼市小舟','古道茶摊','旧风箱','残破水车','古井沉冤']
-hints=['手持安魂香祈福','手持鲜花祭扫','检视兵器架','夜晚手持剑观察剑痕','采集药草','拆解军械','朝北站立、朝东潜行、朝南站立，再朝西潜行按动木销；按锁纹提示等待。','调查三处不同位置的古战场残迹','手持纸张拓印','先辨认微弱气息，两分钟后持治疗药水救助生者；牛奶仍可净化自身。','点一支阴香请船夫，询问后等两分钟，再持朱砂重新点击小舟交付；可进入原生交易。','手持牛奶解毒','手持木炭，30秒后给三格内装有有效配方的熔炉助燃。','手持一条奇门钢索，一分钟后修复水车并恢复机关通路。','七次交付实际清水并保留空桶，按提示等待三分钟；空桶不计数。']
-verified_hint_en={'ghost_market_boat': 'Light Soul Incense, ask the boatman, then reopen holding Cinnabar after two minutes to deliver; native trading is available.', 'ancient_well': 'Deliver seven actual water buckets over at least three minutes; empty buckets do not count.', 'puzzle_box': 'Press north standing, east sneaking, south standing, then west sneaking; follow the lock timing.', 'mortuary_room': 'Identify the faint breath, then offer a healing potion after two minutes; milk still cleanses you.', 'old_bellows': 'After 30 seconds, offer charcoal beside a furnace with a valid recipe and output space.', 'broken_waterwheel': 'Offer one qimen cable after a minute to repair the wheel and restore the mechanism route.'}
+hints=['手持安魂香祈福','手持鲜花祭扫','检视兵器架','夜晚手持剑观察剑痕','采集药草','拆解军械','朝北站立、朝东潜行、朝南站立，再朝西潜行按动木销；按锁纹提示等待。','调查三处不同位置的古战场残迹','手持纸张拓印','先辨认微弱气息，两分钟后持治疗药水救助生者；牛奶仍可净化自身。','点一支阴香请船夫，询问后等两分钟，再持朱砂重新点击小舟交付；可进入原生交易。','察看油膜、无招牌和老汉，等两分钟后选择掀桌；直接喝会中毒，牛奶原解毒保留。','手持木炭，30秒后给三格内装有有效配方的熔炉助燃。','手持一条奇门钢索，一分钟后修复水车并恢复机关通路。','七次交付实际清水并保留空桶，按提示等待三分钟；空桶不计数。']
+verified_hint_en={'wayside_tea_stall': 'Inspect the oily tea and unsigned stall, then overturn after two minutes. Drinking poisons you; original milk cleansing remains.', 'ghost_market_boat': 'Light Soul Incense, ask the boatman, then reopen holding Cinnabar after two minutes to deliver; native trading is available.', 'ancient_well': 'Deliver seven actual water buckets over at least three minutes; empty buckets do not count.', 'puzzle_box': 'Press north standing, east sneaking, south standing, then west sneaking; follow the lock timing.', 'mortuary_room': 'Identify the faint breath, then offer a healing potion after two minutes; milk still cleanses you.', 'old_bellows': 'After 30 seconds, offer charcoal beside a furnace with a valid recipe and output space.', 'broken_waterwheel': 'Offer one qimen cable after a minute to repair the wheel and restore the mechanism route.'}
 for index,(id,name,hint) in enumerate(zip(site_ids,site_names,hints)):
  zh['block.dynasty.'+id]=name;en['block.dynasty.'+id]=id.replace('_',' ').title();zh['interaction.dynasty.'+id]=hint;en['interaction.dynasty.'+id]=verified_hint_en.get(id,'Inspect the site and bring the required offering.')
  wood=index in (2,5,6,10,11,12,13);texture='minecraft:block/oak_planks' if wood else 'minecraft:block/mossy_stone_bricks'
@@ -211,6 +218,10 @@ for index,(id,name,hint) in enumerate(zip(site_ids,site_names,hints)):
  elements=[{'from':list(b[:3]),'to':list(b[3:]),'faces':{d:{'texture':'#all'} for d in ['north','south','east','west','up','down']}} for b in shapes[id]]
  write(A/'models/block'/f'{id}.json',{'textures':{'all':texture,'particle':texture},'elements':elements})
  write(A/'models/item'/f'{id}.json',{'parent':'dynasty:block/'+id});write(A/'blockstates'/f'{id}.json',{'variants':{'':{'model':'dynasty:block/'+id}}})
+ if id=='wayside_tea_stall':
+  overturned=[dict(e,**{'from':[e['from'][0],e['from'][2],16-e['to'][1]],'to':[e['to'][0],e['to'][2],16-e['from'][1]]}) for e in elements]
+  write(A/'models/block'/'wayside_tea_stall_overturned.json',{'textures':{'all':texture,'particle':texture},'elements':overturned})
+  write(A/'blockstates'/f'{id}.json',{'variants':{'lit=false':{'model':'dynasty:block/'+id},'lit=true':{'model':'dynasty:block/wayside_tea_stall_overturned'}}})
  write(D/'loot_tables/blocks'/f'{id}.json',{'type':'minecraft:block','pools':[{'rolls':1,'entries':[{'type':'minecraft:item','name':'dynasty:'+id}],'conditions':[{'condition':'minecraft:survives_explosion'}]}]})
  write(D/'advancements/cod4'/f'{id}.json',{'criteria':{'code':{'trigger':'minecraft:impossible'}}})
 for key,z,e in [('no_ruin','附近未找到遗迹。','No nearby ruin found.'),('site_done','此处调查已完成。','Investigation complete.'),('wait','还需等待 %s 秒。','Wait %s seconds.'),('site_started','开始调查，30秒后继续。','Investigation started; return in 30 seconds.'),('site_progress','调查进度：%s / %s','Investigation: %s / %s')]:zh['message.dynasty.cod4.'+key]=z;en['message.dynasty.cod4.'+key]=e

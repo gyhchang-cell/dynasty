@@ -29,6 +29,12 @@ public final class SmallInteractions {
         Site(String id) {super(Properties.copy(Blocks.STONE).strength(2).noOcclusion());this.id=id;registerDefaultState(stateDefinition.any().setValue(REPAIRED,false));}
         @Override protected void createBlockStateDefinition(net.minecraft.world.level.block.state.StateDefinition.Builder<Block,BlockState> builder){builder.add(REPAIRED);}
         @Override public VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return Block.box(2,0,2,14,id.equals("herb_spot")?5:13,14);}
+        @Override public void playerDestroy(Level level,Player p,BlockPos pos,BlockState state,net.minecraft.world.level.block.entity.BlockEntity entity,ItemStack tool){
+            if(id.equals("wayside_tea_stall")&&com.dynasty.cod3.SecretTracker.teaFlipBreak(p,pos)){
+                p.awardStat(net.minecraft.stats.Stats.BLOCK_MINED.get(this));p.causeFoodExhaustion(.005F);return;
+            }
+            super.playerDestroy(level,p,pos,state,entity,tool);
+        }
         @Override public InteractionResult use(BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit) {
             if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;
             if(!(player instanceof ServerPlayer p))return InteractionResult.SUCCESS;
@@ -36,6 +42,7 @@ public final class SmallInteractions {
             if(id.equals("ancient_well"))return useWell((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("puzzle_box"))return usePuzzle((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("ghost_market_boat"))return useGhostBoat((net.minecraft.server.level.ServerLevel)level,pos,p);
+            if(id.equals("wayside_tea_stall")&&!p.getMainHandItem().is(Items.MILK_BUCKET))return usePoisonTea((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("mortuary_room")&&!p.getMainHandItem().is(Items.MILK_BUCKET))return useMortuary((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("broken_waterwheel")&&state.getValue(REPAIRED)){
                 root.putBoolean(key+"_done",true);
@@ -127,11 +134,17 @@ public final class SmallInteractions {
     }
     /** One native merchant per physical Site; customer and stock remain vanilla. */
     private static com.dynasty.cod3.DynastyNpcEntity ghostBoat(net.minecraft.server.level.ServerLevel level,BlockPos pos){
-        var uuid=ghostBoatId(level,pos);var existing=level.getEntity(uuid);
-        if(existing!=null)return existing instanceof com.dynasty.cod3.DynastyNpcEntity npc&&isGhostBoat(npc)?npc:null;
+        return sceneMerchant(level,pos,ghostBoatId(level,pos),"cod4_ghost_boat");
+    }
+    private static com.dynasty.cod3.DynastyNpcEntity sceneMerchant(net.minecraft.server.level.ServerLevel level,BlockPos pos,java.util.UUID uuid,String marker){
+        var existing=level.getEntity(uuid);
+        if(existing!=null){
+            if(!(existing instanceof com.dynasty.cod3.DynastyNpcEntity npc)||!npc.isAlive()||!npc.role.equals("huang_laohan")||npc.getPersistentData().getLong(marker+"_anchor")!=pos.asLong()||npc.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos))>16||npc.isTrading()&&!npc.getPersistentData().getBoolean(marker))return null;
+            npc.getPersistentData().putBoolean(marker,true);npc.setNoAi(true);return npc;
+        }
         var npc=com.dynasty.cod3.NpcContent.NPCS.get("huang_laohan").get().create(level);if(npc==null)return null;
         npc.setUUID(uuid);npc.home(pos);npc.setNoAi(true);
-        npc.getPersistentData().putBoolean("cod4_ghost_boat",true);npc.getPersistentData().putLong("cod4_ghost_boat_anchor",pos.asLong());
+        npc.getPersistentData().putBoolean(marker,true);npc.getPersistentData().putLong(marker+"_anchor",pos.asLong());
         for(var direction:new net.minecraft.core.Direction[]{net.minecraft.core.Direction.NORTH,net.minecraft.core.Direction.EAST,net.minecraft.core.Direction.SOUTH,net.minecraft.core.Direction.WEST})for(int distance=1;distance<=2;distance++){
             var at=pos.relative(direction,distance);if(!level.hasChunkAt(at)||!level.getWorldBorder().isWithinBounds(at)||!level.getBlockState(at.below()).isFaceSturdy(level,at.below(),net.minecraft.core.Direction.UP))continue;
             npc.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(at));
@@ -185,6 +198,48 @@ public final class SmallInteractions {
         boolean oldDone=root.getBoolean(key+"_done");root.putBoolean(key+"_done",true);root.putInt(key+"_count",Math.max(1,root.getInt(key+"_count")));
         if(!oldDone)give(p,new ItemStack(ExpansionContent.item("copper_coin"),2));
         com.dynasty.DynastyAdvancements.award(p,"cod4_ghost_market_boat");return true;
+    }
+    public static boolean isPoisonTea(com.dynasty.cod3.DynastyNpcEntity npc){return npc.getPersistentData().getBoolean("cod4_poison_tea");}
+    public static java.util.UUID poisonTeaVendorId(net.minecraft.server.level.ServerLevel level,BlockPos pos){
+        return java.util.UUID.nameUUIDFromBytes(("cod4:poison_tea:"+level.dimension().location()+":"+pos.asLong()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+    public static boolean poisonTeaContext(ServerPlayer p,com.dynasty.cod3.DynastyNpcEntity npc){
+        if(!isPoisonTea(npc)||!npc.role.equals("huang_laohan")||!npc.isAlive()||npc.level()!=p.level()||!p.isAlive()||p.isSpectator()||p.distanceToSqr(npc)>36)return false;
+        var at=BlockPos.of(npc.getPersistentData().getLong("cod4_poison_tea_anchor"));var root=EquipmentBehaviors.saved(p);String key="site_wayside_tea_stall";
+        return p.serverLevel().hasChunkAt(at)&&p.serverLevel().getBlockState(at).is(ENTRIES.get("wayside_tea_stall").get())&&npc.getUUID().equals(poisonTeaVendorId(p.serverLevel(),at))
+                &&npc.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(at))<=16&&p.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(at))<=36
+                &&root.contains(key+"_anchor")&&root.getLong(key+"_anchor")==at.asLong()&&root.getString(key+"_dimension").equals(p.level().dimension().location().toString());
+    }
+    private static InteractionResult usePoisonTea(net.minecraft.server.level.ServerLevel level,BlockPos pos,ServerPlayer p){
+        if(!p.isAlive()||p.isSpectator()||!level.hasChunkAt(pos)||p.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos))>36)return InteractionResult.PASS;
+        var root=EquipmentBehaviors.saved(p);String key="site_wayside_tea_stall";long now=level.getGameTime();
+        if(com.dynasty.cod3.SecretTracker.poisonTeaClaimed(p)){root.putBoolean(key+"_done",true);com.dynasty.DynastyAdvancements.award(p,"cod4_wayside_tea_stall");p.displayClientMessage(Component.translatable("message.dynasty.cod4.site_done"),true);return InteractionResult.CONSUME;}
+        var npc=sceneMerchant(level,pos,poisonTeaVendorId(level,pos),"cod4_poison_tea");
+        if(npc==null){p.displayClientMessage(Component.translatable("cod4.dynasty.poison_tea.space"),false);return InteractionResult.CONSUME;}
+        if(root.contains(key+"_anchor")&&(root.getLong(key+"_anchor")!=pos.asLong()||!root.getString(key+"_dimension").equals(level.dimension().location().toString())))root.putBoolean(key+"_inspected",false);
+        root.putLong(key+"_anchor",pos.asLong());root.putString(key+"_dimension",level.dimension().location().toString());
+        if(!root.contains(key+"_start")){root.putLong(key+"_start",now);root.putLong(key+"_next",now+2400);}
+        if(!root.contains(key+"_clue_at")||now-root.getLong(key+"_clue_at")>=20){
+            root.putLong(key+"_clue_at",now);int[] colors={0xcc5577,0xe09048,0xded36b,0x71ae6c,0x59b1bb,0x677aca,0xa56bb9};
+            for(int i=0;i<colors.length;i++){int c=colors[i];var color=new org.joml.Vector3f((c>>16&255)/255f,(c>>8&255)/255f,(c&255)/255f);double a=i*Math.PI*2/7;level.sendParticles(new net.minecraft.core.particles.DustParticleOptions(color,.45F),pos.getX()+.5+Math.cos(a)*.12,pos.getY()+.82,pos.getZ()+.5+Math.sin(a)*.12,1,0,0,0,0);}
+        }
+        com.dynasty.cod3.NpcDialogue.open(p,npc);return InteractionResult.CONSUME;
+    }
+    public static boolean drinkPoisonTea(ServerPlayer p,com.dynasty.cod3.DynastyNpcEntity npc){
+        if(!poisonTeaContext(p,npc))return false;var root=EquipmentBehaviors.saved(p);long now=p.level().getGameTime();String key="site_wayside_tea_stall_drink_at";
+        if(root.contains(key)&&now-root.getLong(key)<400)return false;root.putLong(key,now);
+        p.addEffect(new MobEffectInstance(MobEffects.POISON,400,0,false,true,true));p.displayClientMessage(Component.translatable("cod4.dynasty.poison_tea.poisoned"),false);
+        p.level().playSound(null,npc.blockPosition(),net.minecraft.sounds.SoundEvents.GENERIC_DRINK,net.minecraft.sounds.SoundSource.PLAYERS,.4F,.85F);return true;
+    }
+    public static boolean flipPoisonTea(ServerPlayer p,com.dynasty.cod3.DynastyNpcEntity npc){
+        if(!poisonTeaContext(p,npc))return false;var root=EquipmentBehaviors.saved(p);String key="site_wayside_tea_stall";long now=p.level().getGameTime();
+        if(!root.getBoolean(key+"_inspected"))return false;
+        if(!root.contains(key+"_start")||now-root.getLong(key+"_start")<2400){p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",Math.max(1,(2400-(now-root.getLong(key+"_start"))+19)/20)),true);return false;}
+        var at=BlockPos.of(npc.getPersistentData().getLong("cod4_poison_tea_anchor"));if(!com.dynasty.cod3.SecretTracker.flipPoisonTea(p,at,npc))return false;
+        boolean oldDone=root.getBoolean(key+"_done");root.putBoolean(key+"_done",true);root.putInt(key+"_count",Math.max(1,root.getInt(key+"_count")));if(!oldDone)p.removeEffect(MobEffects.POISON);
+        com.dynasty.DynastyAdvancements.award(p,"cod4_wayside_tea_stall");feedback(p.serverLevel(),at,"site_tea_flip",0xb49b6b);
+        npc.getPersistentData().putBoolean("cod4_poison_tea",false);npc.setNoAi(false);
+        p.displayClientMessage(Component.translatable("cod4.dynasty.poison_tea.revealed"),false);return true;
     }
     /** A per-player existing refugee identity; native entity NBT owns the patient. */
     public static java.util.UUID mortuaryVictimId(net.minecraft.server.level.ServerLevel level,BlockPos pos,java.util.UUID owner){
