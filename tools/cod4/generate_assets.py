@@ -203,6 +203,10 @@ zh['message.dynasty.cod4.magpie_repaired']='钢索已接好，木鹊恢复了20�
 zh['message.dynasty.cod4.trap_gear_fitted']='预警机括已装好：本机关的预警延长，陷阱仍会正常运转。';en['message.dynasty.cod4.trap_gear_fitted']='Warning gear fitted: this trap warns longer and keeps its normal contacts.'
 zh['message.dynasty.cod4.trap_cable_triggered']='拉索已触发机关，留意预警后避开。';en['message.dynasty.cod4.trap_cable_triggered']='Cable triggered the trap. Watch the warning and move clear.'
 zh['message.dynasty.cod4.trap_material_no_change']='机关正运转或已改造，这次没有消耗材料。';en['message.dynasty.cod4.trap_material_no_change']='Trap is busy or already fitted; no material was consumed.'
+zh['message.dynasty.cod4.lift_cargo_sent']='钢索已转运附近的一叠掉落；普通点击仍可乘坐吊篮。';en['message.dynasty.cod4.lift_cargo_sent']='Cable moved one nearby dropped stack. A normal click still rides the lift.'
+zh['message.dynasty.cod4.lift_cargo_unavailable']='没有可转运的掉落，或出口尚不可用；未消耗钢索。';en['message.dynasty.cod4.lift_cargo_unavailable']='No eligible cargo or safe loaded exit; no cable consumed.'
+zh['tooltip.dynasty.qimen_cable']='可维修受损木鹊或拉动陷阱；潜行持索点击已解锁的回程吊篮，可转运附近一叠掉落。';en['tooltip.dynasty.qimen_cable']='Repair an injured magpie or trip a trap; sneak-click an unlocked return lift to move one nearby dropped stack.'
+zh['tooltip.dynasty.qimen_gear']='投在八格内可作为发条鼠诱饵；点击闲置陷阱可安装一次预警机括。';en['tooltip.dynasty.qimen_gear']='Drop within eight blocks to bait a clockwork rat; click an idle trap to fit its warning gear once.'
 # Material-owned variants preserve the canonical accessory IDs, base recipes, slots and saved investment.
 for rid,material,item,cn,english in [('gray_wolf_fang_charm','wolf_fang','tiger_claw','灰狼牙饰','Gray Wolf Fang Charm'),('crab_soldier_shell_charm','crab_shell','scale_plate','蟹将甲饰','Crab Soldier Shell Charm')]:
  zh['item.dynasty.'+rid]=cn;en['item.dynasty.'+rid]=english

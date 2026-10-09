@@ -78,7 +78,9 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
             if(!state.shortcutOpen(mechanismId)){
                 player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.dungeon.lift_locked"),true);return;
             }
-            syncVisual(state);useElevator(player);
+            syncVisual(state);
+            if(player.isShiftKeyDown()&&player.getMainHandItem().is(com.dynasty.expansion.ExpansionContent.item("qimen_cable")))useCargoLift(player);
+            else useElevator(player);
         }else if(kind()==DungeonMechanismBlock.Kind.CORE){player.displayClientMessage(net.minecraft.network.chat.Component.literal(
             "破封 "+Integer.bitCount(state.progress()&7)+"/3，兽眼 "+Integer.bitCount((state.progress()>>3)&7)+"/3"),true);}
     }
@@ -87,9 +89,7 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         boolean cable=held.is(com.dynasty.expansion.ExpansionContent.item("qimen_cable"));
         if(!gear&&!cable)return false;
         // A stale or forged marker cannot manufacture a new remote room or force its core chunk to load.
-        if(!player.isAlive()||!(level instanceof ServerLevel sl)||sl.getChunkSource().getChunkNow(controller.getX()>>4,controller.getZ()>>4)==null
-            ||!(sl.getBlockEntity(controller) instanceof DungeonMechanismBlockEntity core)||core.kind()!=DungeonMechanismBlock.Kind.CORE
-            ||!java.util.Objects.equals(instance,core.instance)||!roomId.equals(core.roomId))return true;
+        if(!player.isAlive()||!loadedCore())return true;
         var clock=clock(state);boolean changed=false;
         if(gear)changed=clock.fitWarningGear();
         else if(clock.phase()==DungeonMechanism.Phase.IDLE){clock.trigger(level.getGameTime());changed=clock.phase()==DungeonMechanism.Phase.WARNING;}
@@ -100,6 +100,36 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         }else player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4.trap_material_no_change"),true);
         return true;
     }
+    private boolean loadedCore(){
+        return level instanceof ServerLevel sl&&sl.getChunkSource().getChunkNow(controller.getX()>>4,controller.getZ()>>4)!=null
+            &&sl.getBlockEntity(controller) instanceof DungeonMechanismBlockEntity core&&core.kind()==DungeonMechanismBlock.Kind.CORE
+            &&java.util.Objects.equals(instance,core.instance)&&roomId.equals(core.roomId);
+    }
+    /** Optional cargo uses the original unlocked lift/destination and the actual dropped entity, never a copied inventory. */
+    private void useCargoLift(Player player){
+        if(!player.isAlive()||!loadedCore()||!(level instanceof ServerLevel sl)||destination==null){cargoUnavailable(player);return;}
+        for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)if(sl.getChunkSource().getChunkNow((destination.getX()+x)>>4,(destination.getZ()+z)>>4)==null){cargoUnavailable(player);return;}
+        var arrival=Vec3.atBottomCenterOf(destination);
+        var candidates=sl.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new AABB(worldPosition).inflate(2),
+            e->e.isAlive()&&!e.getItem().isEmpty()&&e.distanceToSqr(arrival)>1)
+            .stream().sorted(java.util.Comparator.comparingDouble(e->e.distanceToSqr(Vec3.atCenterOf(worldPosition)))).limit(8).toList();
+        for(var cargo:candidates){
+            // Native pickup ownership is in the actual entity save; inspect at most eight candidates.
+            var saved=cargo.saveWithoutId(new CompoundTag());
+            if(saved.hasUUID("Owner")&&!saved.getUUID("Owner").equals(player.getUUID()))continue;
+            AABB landing=cargo.getBoundingBox().move(arrival.subtract(cargo.position()));
+            if(!sl.getWorldBorder().isWithinBounds(landing)||!sl.noCollision(cargo,landing)
+                ||!sl.getBlockState(destination.below()).isFaceSturdy(sl,destination.below(),net.minecraft.core.Direction.UP)
+                ||!sl.getFluidState(destination).isEmpty())continue;
+            cargo.teleportTo(arrival.x,arrival.y,arrival.z);cargo.setDeltaMovement(Vec3.ZERO);cargo.fallDistance=0;
+            if(cargo.isAlive()&&cargo.distanceToSqr(arrival)<.01){
+                if(!player.getAbilities().instabuild)player.getMainHandItem().shrink(1);
+                player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4.lift_cargo_sent"),true);return;
+            }
+        }
+        cargoUnavailable(player);
+    }
+    private static void cargoUnavailable(Player player){player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4.lift_cargo_unavailable"),true);}
     private void useElevator(Player player){
         if(!(level instanceof ServerLevel sl)||destination==null||!sl.hasChunkAt(destination)){
             player.displayClientMessage(net.minecraft.network.chat.Component.literal("吊篮已解锁；出口区块尚未加载。"),true);return;

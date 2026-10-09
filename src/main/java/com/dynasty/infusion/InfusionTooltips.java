@@ -9,6 +9,8 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid="dynasty",value=Dist.CLIENT)
 public final class InfusionTooltips {
     @SubscribeEvent public static void tooltip(ItemTooltipEvent e){
+        if(e.getItemStack().is(com.dynasty.expansion.ExpansionContent.item("qimen_cable")))e.getToolTip().add(Component.translatable("tooltip.dynasty.qimen_cable").withStyle(ChatFormatting.GRAY));
+        if(e.getItemStack().is(com.dynasty.expansion.ExpansionContent.item("qimen_gear")))e.getToolTip().add(Component.translatable("tooltip.dynasty.qimen_gear").withStyle(ChatFormatting.GRAY));
         boolean present=false;
         for(String id:InfusionTraits.slots(e.getItemStack())){var t=InfusionTraits.get(id);if(t!=null){present=true;e.getToolTip().add(Component.translatable("infusion.dynasty.tooltip",t.name()).withStyle(ChatFormatting.DARK_AQUA));if(Screen.hasShiftDown())e.getToolTip().add(t.description().copy().withStyle(ChatFormatting.GRAY));}}
         var material=InfusionTraits.material(e.getItemStack());
