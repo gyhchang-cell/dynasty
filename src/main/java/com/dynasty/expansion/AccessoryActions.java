@@ -26,11 +26,14 @@ public final class AccessoryActions {
             var troops=p.level().getEntitiesOfClass(ImperialSoldier.class,p.getBoundingBox().inflate(32),s->s.getOwner()==p);
             if(!troops.isEmpty())return;
             DynastyArmy.formUp(p,"square",3);
-            for(var soldier:p.level().getEntitiesOfClass(ImperialSoldier.class,p.getBoundingBox().inflate(32),s->s.getOwner()==p))soldier.getPersistentData().putLong("cod4TallyExpires",p.level().getGameTime()+600);
         }
     }
     @SubscribeEvent public static void expire(LivingEvent.LivingTickEvent e) {
-        var entity=e.getEntity();if(!entity.level().isClientSide && entity.getPersistentData().contains("cod4TallyExpires") && entity.level().getGameTime()>=entity.getPersistentData().getLong("cod4TallyExpires"))entity.discard();
+        var entity=e.getEntity();if(entity.level().isClientSide||!entity.getPersistentData().contains("cod4TallyExpires"))return;
+        // The legacy accessory now deploys paid roster members. Its old temporary-summon lease
+        // must never remove a purchased carrier, including leases saved by an earlier build.
+        if(entity.getPersistentData().hasUUID("ArmySoldier")){entity.getPersistentData().remove("cod4TallyExpires");return;}
+        if(entity.level().getGameTime()>=entity.getPersistentData().getLong("cod4TallyExpires"))entity.discard();
     }
     private AccessoryActions() { }
 }

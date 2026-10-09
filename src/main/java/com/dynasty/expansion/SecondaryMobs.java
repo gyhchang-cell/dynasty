@@ -45,6 +45,12 @@ public final class SecondaryMobs {
         new Spec("wooden_magpie","fly",80.0,150.0,0.32,8.0,0.7F,0.6F,false,true,false),
         new Spec("clockwork_rat","beast",60.0,100.0,0.34,6.0,0.6F,0.45F,false,false,false));
     public static final DeferredRegister<EntityType<?>> ENTITIES=DeferredRegister.create(ForgeRegistries.ENTITY_TYPES,Dynasty.MODID);
+    public static final RegistryObject<EntityType<SecondaryProjectile>> PROJECTILE=ENTITIES.register("secondary_skill_projectile",()->
+        EntityType.Builder.<SecondaryProjectile>of(SecondaryProjectile::new,MobCategory.MISC).sized(.3F,.3F).clientTrackingRange(6).updateInterval(1).build("secondary_skill_projectile"));
+    private static final Spec SHRIMP_SPEC=new Spec("shrimp_soldier","water",120,180,.26,12,.65F,1.25F,false,false,true);
+    public static final RegistryObject<EntityType<SecondaryMob>> SHRIMP=ENTITIES.register("shrimp_soldier",()->
+        EntityType.Builder.<SecondaryMob>of((type,level)->new SecondaryMob.Hostile(type,level,SHRIMP_SPEC),MobCategory.MISC)
+            .sized(SHRIMP_SPEC.width(),SHRIMP_SPEC.height()).clientTrackingRange(8).updateInterval(3).build("shrimp_soldier"));
     public static final Map<String,RegistryObject<EntityType<SecondaryMob>>> TYPES=new LinkedHashMap<>();
     static {
         for(var spec:SPECS) {
@@ -56,6 +62,8 @@ public final class SecondaryMobs {
     public static void bootstrap(IEventBus bus) {
         ENTITIES.register(bus);
         bus.addListener((EntityAttributeCreationEvent e)->SPECS.forEach(s->e.put(TYPES.get(s.id()).get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,s.health()).add(Attributes.ATTACK_DAMAGE,s.damage()).add(Attributes.MOVEMENT_SPEED,s.speed()).add(Attributes.ARMOR,s.armor()).add(Attributes.FOLLOW_RANGE,16).add(Attributes.FLYING_SPEED,s.speed()).add(Attributes.KNOCKBACK_RESISTANCE,s.id().equals("paper_cut_child")?1:0).build())));
+        bus.addListener((EntityAttributeCreationEvent e)->e.put(SHRIMP.get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,SHRIMP_SPEC.health())
+            .add(Attributes.ATTACK_DAMAGE,SHRIMP_SPEC.damage()).add(Attributes.MOVEMENT_SPEED,SHRIMP_SPEC.speed()).add(Attributes.ARMOR,SHRIMP_SPEC.armor()).add(Attributes.FOLLOW_RANGE,16).build()));
     }
     private SecondaryMobs() { }
 }

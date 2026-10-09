@@ -7,25 +7,30 @@ import net.minecraftforge.event.entity.living.*;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Bounded, expiring guards reuse the crab entity. Saved leases prevent unloaded-chunk duplication. */
+/** Three pieces lease one shrimp; four lease shrimp plus crab. No paid-roster records are involved. */
 @Mod.EventBusSubscriber(modid="dynasty")
 public final class SummonedGuard {
     public static void maintain(ServerPlayer p,int count) {
-        if(!p.isInWater())return;
+        int pieces=EquipmentBehaviors.pieces(p,"draco_king");count=Math.min(pieces>=4?2:1,Math.max(0,count));
+        if(pieces<3||count==0||!p.isInWater())return;
         var n=EquipmentBehaviors.saved(p);long now=p.level().getGameTime();
         if(now<n.getLong("guardsUntil"))return;
         n.putLong("guardsUntil",now+600);
+        long generation=n.getLong("guardGeneration")+1;n.putLong("guardGeneration",generation);
         for(int i=0;i<count;i++) {
-            var guard=SecondaryMobs.TYPES.get("crab_soldier").get().create(p.level());if(guard==null)continue;
+            var guard=(i==0?SecondaryMobs.SHRIMP.get():SecondaryMobs.TYPES.get("crab_soldier").get()).create(p.level());if(guard==null)continue;
             guard.moveTo(p.getX()+i*2-1,p.getY(),p.getZ()+1,0,0);
             if(!p.level().noCollision(guard))continue;
             guard.getPersistentData().putUUID("cod4Summoner",p.getUUID());guard.getPersistentData().putLong("cod4Expires",now+600);
+            guard.getPersistentData().putLong("cod4GuardGeneration",generation);guard.getPersistentData().putInt("cod4MinPieces",i==0?3:4);
             p.level().addFreshEntity(guard);
         }
     }
     public static void tick(SecondaryMob mob) {
         var n=mob.getPersistentData();var owner=mob.level().getPlayerByUUID(n.getUUID("cod4Summoner"));
-        if(owner==null || !owner.isAlive() || EquipmentBehaviors.pieces(owner,"draco_king")<3 || mob.level().getGameTime()>=n.getLong("cod4Expires")){mob.discard();return;}
+        int minimum=n.contains("cod4MinPieces")?n.getInt("cod4MinPieces"):3;
+        if(owner==null || !owner.isAlive() || EquipmentBehaviors.pieces(owner,"draco_king")<minimum || mob.level().getGameTime()>=n.getLong("cod4Expires")
+                ||n.getLong("cod4GuardGeneration")!=EquipmentBehaviors.saved(owner).getLong("guardGeneration")){mob.discard();return;}
         if(mob.getTarget()==owner || mob.getTarget()!=null && mob.isAlliedTo(mob.getTarget()))mob.setTarget(null);
         if(mob.tickCount%20==0) {
             var targets=mob.level().getEntitiesOfClass(LivingEntity.class,mob.getBoundingBox().inflate(8),e->e instanceof Enemy && e!=mob && !e.isAlliedTo(owner) && !mob.isAlliedTo(e));

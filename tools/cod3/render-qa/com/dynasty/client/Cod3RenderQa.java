@@ -31,15 +31,24 @@ public final class Cod3RenderQa {
     private static int frames;
     private static final Path OUT=Path.of(System.getProperty("dynasty.cod3RenderQa.output","build/cod3-render-qa/results"));
     private static final List<String> RESULTS=new ArrayList<>();
+    private static boolean hidden;
     @SubscribeEvent public static void tick(TickEvent.RenderTickEvent e){
         var mc=Minecraft.getInstance();
         if(!Boolean.getBoolean("dynasty.cod3RenderQa")||done||e.phase!=TickEvent.Phase.END)return;
+        if(Boolean.getBoolean("dynasty.secondarySkillQa")&&!hidden){org.lwjgl.glfw.GLFW.glfwHideWindow(mc.getWindow().getWindow());hidden=true;}
         if(mc.getOverlay()==null&&mc.screen instanceof AccessibilityOnboardingScreen)mc.setScreen(new TitleScreen());
         if(!(mc.screen instanceof TitleScreen)||mc.getOverlay()!=null||++frames<12)return;
         done=true;
         try{
             Files.createDirectories(OUT);Files.deleteIfExists(OUT.resolve("FAIL.txt"));Files.deleteIfExists(OUT.resolve("PASS.txt"));
             RESULTS.add("Minecraft Forge framebuffer QA; no world opened. GL="+GL11.glGetString(GL11.GL_RENDERER));
+            if(Boolean.getBoolean("dynasty.secondarySkillQa")){
+                for(int kind=0;kind<4;kind++){int selected=kind;frame("secondary-projectile-"+kind,1,.1,()->{
+                    var buffers=mc.renderBuffers().bufferSource();com.dynasty.expansion.SecondaryProjectileRenderer.drawSkill(selected,8,0,new PoseStack(),buffers);buffers.endBatch();
+                });}
+                for(String id:List.of("tree_spirit","lantern_ghost","river_imp","drowning_ghost","jingwei_bird","shrimp_soldier"))secondary(id);
+                roots();Files.write(OUT.resolve("PASS.txt"),RESULTS);mc.stop();return;
+            }
             for(int i=1;i<=40;i++){final int id=i;vfx(id,32,"near");vfx(id,12,"low");}
             for(int i=1;i<=25;i++){final int id=i;scenic(id);}
             for(var row:Cod3Catalog.entries("npcs")){var role=row.getAsJsonObject().get("id").getAsString();npc(role,180);npc(role,90);}
@@ -90,6 +99,33 @@ public final class Cod3RenderQa {
         frame("npc-"+role+"-"+angle,3.5,1,()->{
             var pose=new PoseStack();pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(angle));var buffers=Minecraft.getInstance().renderBuffers().bufferSource();
             com.mojang.blaze3d.platform.Lighting.setupFor3DItems();renderer.render(pose,p,buffers,RenderType.entityCutoutNoCull(model.getTextureResource(p)),null,15728880);buffers.endBatch();
+        });
+    }
+    private static void secondary(String id)throws Exception{
+        var model=new GeoModel<Preview>(){
+            public ResourceLocation getModelResource(Preview p){return new ResourceLocation("dynasty","geo/secondary/"+p.role+".geo.json");}
+            public ResourceLocation getTextureResource(Preview p){String texture=switch(p.role){case "lantern_ghost"->"soul_soldier";case "jingwei_bird"->"phoenix";case "tree_spirit"->"nian_beast";default->"merfolk";};return new ResourceLocation("dynasty","textures/entity/"+texture+".png");}
+            public ResourceLocation getAnimationResource(Preview p){return new ResourceLocation("dynasty","animations/secondary/"+p.role+".animation.json");}
+            public void applyMolangQueries(Preview p,double tick){}
+        };
+        var renderer=new GeoObjectRenderer<>(model);var p=new Preview(id);
+        for(int angle:List.of(0,90,180,45))frame("secondary-"+id+"-"+angle,3.5,1,()->{
+            var pose=new PoseStack();pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(angle));var buffers=Minecraft.getInstance().renderBuffers().bufferSource();
+            com.mojang.blaze3d.platform.Lighting.setupFor3DItems();renderer.render(pose,p,buffers,RenderType.entityTranslucent(model.getTextureResource(p)),null,15728880);buffers.endBatch();
+        });
+    }
+    private static void roots()throws Exception{
+        var geometry=Class.forName("com.dynasty.client.Cod3VfxRenderer$Geometry");
+        var ctor=geometry.getDeclaredConstructor(Matrix4f.class,Vec3.class,Vec3.class,Vec3.class,double.class,int.class,double.class,int.class,long.class);ctor.setAccessible(true);
+        var draw=geometry.getDeclaredMethod("roots",double.class);draw.setAccessible(true);
+        var field=Cod3VfxRenderer.class.getDeclaredField("BUFFER");field.setAccessible(true);var buffer=(BufferBuilder)field.get(null);
+        frame("secondary-roots",2,.5,()->{
+            try(ImperialRenderState state=new ImperialRenderState()){
+                RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();RenderSystem.depthMask(false);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
+                buffer.begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);
+                try{draw.invoke(ctor.newInstance(new Matrix4f(),new Vec3(0,.5,4.2),Vec3.ZERO,new Vec3(0,0,1),1d,0x749644,.8d,20,1234L),8d);BufferUploader.drawWithShader(buffer.end());}
+                catch(Exception failure){buffer.discard();throw new RuntimeException(failure);}
+            }
         });
     }
     private static void workshop(com.dynasty.workshop.WorkshopRecipes.Recipe recipe)throws Exception{

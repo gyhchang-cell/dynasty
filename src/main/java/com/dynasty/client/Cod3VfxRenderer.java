@@ -41,7 +41,7 @@ public final class Cod3VfxRenderer {
             String status="status_"+packet.sequence().substring("status_clear_".length());
             ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(status));return;
         }
-        if(packet.sequence().matches("status_[1-8]"))ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(packet.sequence()));
+        if(packet.sequence().matches("status_[1-8]")||packet.sequence().equals("secondary_roots"))ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(packet.sequence()));
         if(packet.template()==0){
             // Typed selection excludes sound, WAIT and SET_* steps from the visual queue.
             Cod3Vfx.resume(packet, Cod3Catalog.sequenceById(packet.sequence())).forEach(Cod3VfxRenderer::add);
@@ -80,7 +80,7 @@ public final class Cod3VfxRenderer {
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
                 Vec3 origin=p.origin(),direction=p.direction();
                 if(p.entityId()>=0){var entity=world.getEntity(p.entityId());
-                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")))continue;
+                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")||p.sequence().equals("secondary_roots")))continue;
                     if(entity!=null){if(p.template()==4){if(!entity.isAlive()||entity.getDeltaMovement().lengthSqr()<.0025)continue;direction=entity.getDeltaMovement().normalize();}origin=entity.getPosition(e.getPartialTick());}}
                 double distance=origin.distanceTo(camera);if(distance>256||distance<.8)continue;
                 if(p.scale()>2){if(distance>96&&farLarge++>=1||distance>32&&distance<=96&&mediumLarge++>=2||distance<=32&&nearLarge++>=3)continue;}
@@ -89,6 +89,8 @@ public final class Cod3VfxRenderer {
                 if(Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL)segments=Math.min(12,segments);
                 var geometry=new Geometry(pose.last().pose(),camera,origin,direction,p.scale(),p.tint()==0?d.color():p.tint(),alpha,segments,p.seed());
                 if(p.sequence().matches("status_[1-8]"))geometry.status(Integer.parseInt(p.sequence().substring(7)),p.tick()+1,age);
+                else if(p.sequence().equals("secondary_roots"))geometry.roots(age);
+                else if(p.sequence().equals("qinglong_combo_wave"))geometry.dragonWave(life,age);
                 else if(p.sequence().matches("scenic_(0[1-9]|1[0-9]|2[0-5])"))geometry.scenic(Integer.parseInt(p.sequence().substring(7)),life);else geometry.draw(p.template(),d,expansion,life,age);
             }
             BufferUploader.drawWithShader(BUFFER.end());drawing=false;
@@ -139,6 +141,33 @@ public final class Cod3VfxRenderer {
         }
         void soldier(double x,double z,double time){
             mesh(x,2.4,z,.45);box(x,1,z,.32,1,.2);beam(p(x,.8,z),p(x-.35,0,z+.3*Math.sin(time)),.15);beam(p(x,.8,z),p(x+.35,0,z-.3*Math.sin(time)),.15);beam(p(x-.7,.2,z),p(x-.7,4,z),.05);beam(p(x,1.7,z),p(x-.7,1.3,z),.1);
+        }
+        void dragonWave(double life,double age){
+            // One tapered, travelling body with a horned head, rather than another water ring.
+            double head=.35+life*1.6;
+            Vec3 last=p(0,.75,head);
+            for(int i=1;i<=16;i++){
+                double t=i/16.,a=t*Math.PI*3-age*.12;
+                Vec3 next=p(Math.sin(a)*(.15+t*.3),.75+Math.cos(a)*.22,head-t*2.3);
+                beam(last,next,.16*(1-t)+.02);
+                if(i%3==0)triangle(next,next.add(u.scale(.14)),next.subtract(f.scale(.12)),.85);
+                last=next;
+            }
+            triangle(p(-.22,.68,head),p(.22,.68,head),p(0,.9,head+.45),.95);
+            beam(p(-.12,.85,head+.08),p(-.28,1.15,head-.12),.05);
+            beam(p(.12,.85,head+.08),p(.28,1.15,head-.12),.05);
+            beam(p(-.12,.7,head+.25),p(-.45,.58,head+.35),.025);
+            beam(p(.12,.7,head+.25),p(.45,.58,head+.35),.025);
+        }
+        void roots(double age){
+            double growth=Math.min(1,age/5);
+            for(int root=0;root<4;root++){
+                double a=root*Math.PI/2;Vec3 last=p(Math.cos(a)*.9,.02,Math.sin(a)*.9);
+                for(int step=1;step<=10;step++){
+                    double t=step/10.,turn=a+t*Math.PI*2,r=.9-(.9-.38)*t;
+                    Vec3 next=p(Math.cos(turn)*r,t*.65*growth,Math.sin(turn)*r);beam(last,next,.045);last=next;
+                }
+            }
         }
         void status(int code,int layers,double age){
             double phase=age*.15;

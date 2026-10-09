@@ -17,6 +17,8 @@ import software.bernie.geckolib.renderer.GeoEntityRenderer;
 public final class ExpansionClient {
     @SubscribeEvent public static void renderers(EntityRenderersEvent.RegisterRenderers event) {
         SecondaryMobs.TYPES.values().forEach(t->event.registerEntityRenderer(t.get(),Renderer::new));
+        event.registerEntityRenderer(SecondaryMobs.PROJECTILE.get(),SecondaryProjectileRenderer::new);
+        event.registerEntityRenderer(SecondaryMobs.SHRIMP.get(),Renderer::new);
     }
     @SubscribeEvent public static void setup(net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent event) {
         event.enqueueWork(()-> {
@@ -37,6 +39,12 @@ public final class ExpansionClient {
     }
     private static final class Renderer extends GeoEntityRenderer<SecondaryMob> {
         Renderer(EntityRendererProvider.Context ctx) {super(ctx,new Model());shadowRadius=.45F;}
+        @Override public net.minecraft.client.renderer.RenderType getRenderType(SecondaryMob mob,ResourceLocation texture,net.minecraft.client.renderer.MultiBufferSource buffers,float partial){
+            return mob.spec.family().equals("ghost")?net.minecraft.client.renderer.RenderType.entityTranslucent(texture):super.getRenderType(mob,texture,buffers,partial);
+        }
+        @Override public software.bernie.geckolib.core.object.Color getRenderColor(SecondaryMob mob,float partial,int light){
+            return mob.spec.id().equals("wandering_spirit")?software.bernie.geckolib.core.object.Color.ofRGBA(190,217,230,155):super.getRenderColor(mob,partial,light);
+        }
     }
     private static long budgetTick=-1;private static int emitted;
     public static void feedback(CombatFeedback p) {

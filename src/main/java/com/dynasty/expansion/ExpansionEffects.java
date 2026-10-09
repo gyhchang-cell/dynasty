@@ -38,8 +38,8 @@ public final class ExpansionEffects {
     public static void apply(LivingEntity target, RegistryObject<MobEffect> type, int duration) {
         if (target.level().isClientSide) return;
         if ((type == SHA || type == STAGGER) && boss(target)) { CombatFeedback.send(target, CombatFeedback.IMMUNE); return; }
-        if (type == YIN && target.hasEffect(YANG.get())) { target.removeEffect(YANG.get()); return; }
-        if (type == YANG && target.hasEffect(YIN.get())) { target.removeEffect(YIN.get()); return; }
+        if (type == YIN && target.hasEffect(YANG.get())) { target.removeEffect(YANG.get());if(target instanceof net.minecraft.world.entity.player.Player p)EquipmentBehaviors.neutralisedQi(p);return; }
+        if (type == YANG && target.hasEffect(YIN.get())) { target.removeEffect(YIN.get());if(target instanceof net.minecraft.world.entity.player.Player p)EquipmentBehaviors.neutralisedQi(p);return; }
         var old = target.getEffect(type.get());
         int amp = (type == YIN || type == YANG || type == THUNDER) && old != null ? Math.min(2, old.getAmplifier()+1) : 0;
         if (type == THUNDER && amp == 2) {

@@ -32,6 +32,12 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
     private final AnimatableInstanceCache cache=GeckoLibUtil.createInstanceCache(this);
     private int specialCooldown, fleeTicks, shellTicks, animationTicks;
     private int deceptionStage, hardenTicks, rollingTicks;
+    private int waterDragTicks;
+    private long waterDragReady;
+    private int projectileWindup;
+    private java.util.UUID pendingProjectile;
+    private java.util.UUID draggedTarget;
+    private net.minecraft.core.BlockPos waterAnchor;
     private java.util.UUID customer;
     private static final java.util.UUID HARDENING=java.util.UUID.nameUUIDFromBytes("dynasty:stone_sprite_hardening".getBytes(java.nio.charset.StandardCharsets.UTF_8));
     private boolean friendly;
@@ -94,6 +100,8 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         if(spec.id().equals("swindler") && deceptionStage<3){setTarget(null);getNavigation().stop();animate(5,2);}
         if(friendly || spec.id().equals("famished_refugee") || spec.id().equals("herb_picker") || spec.id().equals("snail_maiden"))setTarget(null);
         if(getPersistentData().hasUUID("cod4Summoner")) SummonedGuard.tick(this);
+        tickWaterDrag();
+        tickRangedSkill();
         LivingEntity target=getTarget();
         if(rollingTicks>0){
             rollingTicks--;animate(5,2);
@@ -120,8 +128,7 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
                 playSound(SoundEvents.NOTE_BLOCK_HAT.get(),1,.7F);specialCooldown=100;animate(5,20);
             }
             case "tree_spirit","river_imp","lantern_ghost","jingwei_bird" -> {
-                if(distance>4) { var arrow=new net.minecraft.world.entity.projectile.Arrow(level(),this);Vec3 d=target.getEyePosition().subtract(getEyePosition());arrow.shoot(d.x,d.y,d.z,1.2F,5);arrow.setBaseDamage(spec.damage()/6);arrow.pickup=net.minecraft.world.entity.projectile.AbstractArrow.Pickup.DISALLOWED;level().addFreshEntity(arrow); }
-                if(spec.id().equals("lantern_ghost")){target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS,40));ExpansionEffects.apply(target,ExpansionEffects.SOUL,60);}
+                if(distance>4)beginRangedSkill(target);
                 specialCooldown=70;animate(5,16);
             }
             case "stone_sprite" -> {beginStoneRoll(target);specialCooldown=60;}
@@ -139,6 +146,58 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
             case "locust_swarm" -> { /* Damage is owned by actual body contact above. */ }
             default -> { }
         }
+    }
+    public boolean beginRangedSkill(LivingEntity target){
+        if(projectileWindup>0||level().isClientSide||target==null||!target.isAlive()||isAlliedTo(target)||!hasLineOfSight(target))return false;
+        pendingProjectile=target.getUUID();projectileWindup=6;getNavigation().stop();animate(5,16);return true;
+    }
+    public void tickRangedSkill(){
+        if(projectileWindup<=0||!(level() instanceof net.minecraft.server.level.ServerLevel server))return;
+        if(--projectileWindup>0)return;
+        var target=server.getEntity(pendingProjectile);pendingProjectile=null;
+        if(target instanceof LivingEntity living)fireSkillProjectile(living);
+    }
+    public SecondaryProjectile fireSkillProjectile(LivingEntity target){
+        if(level().isClientSide||target==null||!target.isAlive()||isAlliedTo(target)||!hasLineOfSight(target)||distanceToSqr(target)>256)return null;
+        int kind=switch(spec.id()){case "tree_spirit"->SecondaryProjectile.SEED;case "lantern_ghost"->SecondaryProjectile.LIGHT;
+            case "river_imp"->SecondaryProjectile.WATER;case "jingwei_bird"->SecondaryProjectile.STONE;default->-1;};
+        if(kind<0)return null;
+        var projectile=SecondaryMobs.PROJECTILE.get().create(level());if(projectile==null)return null;
+        projectile.kind(kind);projectile.setOwner(this);projectile.setPos(getEyePosition());
+        Vec3 aim=target.getEyePosition().subtract(getEyePosition());
+        if(kind==SecondaryProjectile.STONE)aim=aim.add(0,Math.sqrt(aim.horizontalDistanceSqr())*.035,0);
+        projectile.shoot(aim.x,aim.y,aim.z,1.2F,1);
+        if(!level().addFreshEntity(projectile))return null;
+        animate(5,16);return projectile;
+    }
+    public boolean beginWaterDrag(LivingEntity target){
+        if(level().isClientSide||waterDragTicks>0||level().getGameTime()<waterDragReady||target==null||!target.isAlive()||isAlliedTo(target)||ExpansionEffects.boss(target)
+                ||distanceToSqr(target)>81||!hasLineOfSight(target)
+                ||!java.util.Set.of("river_imp","drowning_ghost").contains(spec.id()))return false;
+        net.minecraft.core.BlockPos nearest=null;double best=Double.MAX_VALUE;
+        for(var pos:net.minecraft.core.BlockPos.betweenClosed(blockPosition().offset(-4,-2,-4),blockPosition().offset(4,2,4))){
+            if(!level().hasChunkAt(pos)||!level().getFluidState(pos).is(net.minecraft.tags.FluidTags.WATER))continue;
+            double d=target.distanceToSqr(Vec3.atCenterOf(pos));
+            if(d<best&&level().clip(new net.minecraft.world.level.ClipContext(target.getEyePosition(),Vec3.atCenterOf(pos).add(0,.5,0),
+                    net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,target)).getType()==net.minecraft.world.phys.HitResult.Type.MISS){best=d;nearest=pos.immutable();}
+        }
+        if(nearest==null)return false;
+        waterAnchor=nearest;draggedTarget=target.getUUID();waterDragTicks=30;waterDragReady=level().getGameTime()+100;animate(5,30);
+        CombatFeedback.tether(this,Vec3.atCenterOf(nearest));return true;
+    }
+    public void tickWaterDrag(){
+        if(waterDragTicks<=0||!(level() instanceof net.minecraft.server.level.ServerLevel server))return;
+        var entity=server.getEntity(draggedTarget);
+        if(!(entity instanceof LivingEntity target)||!target.isAlive()||ExpansionEffects.boss(target)||isAlliedTo(target)
+                ||distanceToSqr(target)>144||!hasLineOfSight(target)||!server.hasChunkAt(waterAnchor)
+                ||!server.getFluidState(waterAnchor).is(net.minecraft.tags.FluidTags.WATER)) {waterDragTicks=0;return;}
+        waterDragTicks--;animate(5,2);
+        Vec3 direction=Vec3.atCenterOf(waterAnchor).subtract(target.position()).multiply(1,0,1);
+        if(direction.lengthSqr()>.04){
+            var old=target.getDeltaMovement();var next=new Vec3(old.x,0,old.z).add(direction.normalize().scale(.065));
+            if(old.horizontalDistanceSqr()<=.0625){if(next.horizontalDistanceSqr()>.0625)next=next.normalize().scale(.25);target.setDeltaMovement(next.x,old.y,next.z);target.hurtMarked=true;}
+        }
+        if(target.isInWater()){if(target.getDeltaMovement().y>-.2)target.push(0,-.025,0);if(waterDragTicks%10==0)CombatFeedback.send(target,CombatFeedback.WATER);}
     }
     public boolean touching(LivingEntity target){return getBoundingBox().intersects(target.getBoundingBox());}
     public boolean contactAttack(LivingEntity target){
@@ -165,7 +224,7 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
                 ExpansionEffects.apply(target,ExpansionEffects.STAGGER,30);
                 if(spec.id().equals("giant_python") && !ExpansionEffects.boss(target)) {target.setAirSupply(Math.max(0,target.getAirSupply()-40));target.hurt(target.damageSources().drown(),2);}
             }
-            case "drowning_ghost","river_imp" -> {ExpansionEffects.apply(target,ExpansionEffects.FROST,80);target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,60,1));if(isInWater()){target.push(0,-.18,0);target.setAirSupply(Math.max(0,target.getAirSupply()-20));}}
+            case "drowning_ghost","river_imp" -> {ExpansionEffects.apply(target,ExpansionEffects.FROST,80);target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,60,1));beginWaterDrag(target);if(isInWater()){target.push(0,-.18,0);target.setAirSupply(Math.max(0,target.getAirSupply()-20));}}
             case "venom_scorpion","corpse_beetle" -> {target.addEffect(new MobEffectInstance(MobEffects.POISON,80,0));if(spec.id().equals("corpse_beetle")){ExpansionEffects.apply(target,ExpansionEffects.BREAK,80);ExpansionEffects.apply(target,ExpansionEffects.SHA,80);}}
             case "wandering_spirit","paper_money_ghost" -> {
                 ExpansionEffects.apply(target,ExpansionEffects.YIN,100);
@@ -227,7 +286,7 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
     private static void tell(Player p,String key){p.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4."+key),true);}
     @Override protected void dropCustomDeathLoot(DamageSource s,int looting,boolean recentlyHit) {super.dropCustomDeathLoot(s,looting,recentlyHit);if(!stolen.isEmpty()){spawnAtLocation(stolen);stolen=ItemStack.EMPTY;}}
     @Override public void addAdditionalSaveData(CompoundTag nbt) {super.addAdditionalSaveData(nbt);nbt.putBoolean("Cod4Friendly",friendly);nbt.put("Cod4Stolen",stolen.save(new CompoundTag()));nbt.putInt("Cod4Cooldown",specialCooldown);nbt.putInt("Cod4Deception",deceptionStage);nbt.putInt("Cod4Flee",fleeTicks);if(customer!=null)nbt.putUUID("Cod4Customer",customer);}
-    @Override public void readAdditionalSaveData(CompoundTag nbt) {super.readAdditionalSaveData(nbt);friendly=nbt.getBoolean("Cod4Friendly");stolen=ItemStack.of(nbt.getCompound("Cod4Stolen"));specialCooldown=Math.max(0,Math.min(200,nbt.getInt("Cod4Cooldown")));deceptionStage=Math.max(0,Math.min(3,nbt.getInt("Cod4Deception")));fleeTicks=Math.max(0,Math.min(200,nbt.getInt("Cod4Flee")));customer=nbt.hasUUID("Cod4Customer")?nbt.getUUID("Cod4Customer"):null;getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);hardenTicks=0;rollingTicks=0;}
+    @Override public void readAdditionalSaveData(CompoundTag nbt) {super.readAdditionalSaveData(nbt);friendly=nbt.getBoolean("Cod4Friendly");stolen=ItemStack.of(nbt.getCompound("Cod4Stolen"));specialCooldown=Math.max(0,Math.min(200,nbt.getInt("Cod4Cooldown")));deceptionStage=Math.max(0,Math.min(3,nbt.getInt("Cod4Deception")));fleeTicks=Math.max(0,Math.min(200,nbt.getInt("Cod4Flee")));customer=nbt.hasUUID("Cod4Customer")?nbt.getUUID("Cod4Customer"):null;getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);hardenTicks=0;rollingTicks=0;waterDragTicks=0;waterDragReady=0;draggedTarget=null;waterAnchor=null;projectileWindup=0;pendingProjectile=null;}
     @Override public AnimatableInstanceCache getAnimatableInstanceCache() {return cache;}
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {controllers.add(new AnimationController<>(this,"body",4,state->state.setAndContinue(RawAnimation.begin().thenLoop(animation()))));}
 }

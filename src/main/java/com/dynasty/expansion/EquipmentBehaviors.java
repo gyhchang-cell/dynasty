@@ -81,6 +81,9 @@ public final class EquipmentBehaviors {
         if(pieces(p,"beidou")<4) {n.remove("cod4StarIFrame");n.remove("cod4ContinuousSteps");}
         if(pieces(p,"xuanwu")<4)n.remove("cod4Shell");
         if(pieces(p,"xuanwu")<2 && !p.getMainHandItem().is(ExpansionContent.DUCK.get()))n.remove("cod4Counter");
+        if(pieces(p,"hunyuan")<3)n.remove("cod4BalanceUntil");
+        if(pieces(p,"hunyuan")<4)n.remove("cod4HunyuanQiUntil");
+        if(pieces(p,"qinglong")<4)n.remove("cod4QinglongQiUntil");
         if(pieces(p,"dark_iron")<3 && pieces(p,"hunyuan")<4 && now(p)>=n.getLong("cod4QiUntil"))n.remove("cod4Rage");
         if(p.getHealth()>p.getMaxHealth())p.setHealth(p.getMaxHealth());
     }
@@ -146,7 +149,7 @@ public final class EquipmentBehaviors {
         if(pieces(p,"xuantian")>=4)for(var mob:p.level().getEntitiesOfClass(Mob.class,p.getBoundingBox().inflate(4),m->m.getTarget()==p && !ExpansionEffects.boss(m)))mob.addEffect(new MobEffectInstance(MobEffects.WEAKNESS,30,0));
         if(pieces(p,"draco_king")>=3) SummonedGuard.maintain(p,pieces(p,"draco_king")>=4?2:1);
         taiyiGlow(p);
-        if(pieces(p,"hunyuan")>=4 && n.getInt("cod4Rage")>=5) {n.putInt("cod4Rage",0);ExpansionEffects.apply(p,ExpansionEffects.YANG,100);}
+        releaseHunyuanQi(p);
         if(has(p,"sea_pearl") && p.isInWater() && p.tickCount%60==0)CombatFeedback.send(p,CombatFeedback.WATER);
     }
     @SubscribeEvent public static void footsteps(net.minecraftforge.event.PlayLevelSoundEvent.AtEntity e) {
@@ -189,6 +192,35 @@ public final class EquipmentBehaviors {
     public static boolean phoenixAttackActive(Player p) {
         return p.isOnFire() || now(p)<p.getPersistentData().getLong("cod4PhoenixAttack");
     }
+    /** Balance is a recent neutralisation of the two existing effects, never merely Yang alone. */
+    public static boolean balanced(Player p){
+        return pieces(p,"hunyuan")>=3&&now(p)<p.getPersistentData().getLong("cod4BalanceUntil")
+                &&!p.hasEffect(ExpansionEffects.YIN.get())&&!p.hasEffect(ExpansionEffects.YANG.get());
+    }
+    public static void neutralisedQi(Player p){
+        if(pieces(p,"hunyuan")>=3)p.getPersistentData().putLong("cod4BalanceUntil",now(p)+100);
+    }
+    /** All three grants feed the original combo resource. Equipment grants require the equipment. */
+    public static boolean qiActive(Player p){
+        var n=p.getPersistentData();long time=now(p);
+        return time<n.getLong("cod4QiUntil")||pieces(p,"qinglong")>=4&&time<n.getLong("cod4QinglongQiUntil")
+                ||pieces(p,"hunyuan")>=4&&time<n.getLong("cod4HunyuanQiUntil");
+    }
+    public static boolean releaseHunyuanQi(Player p){
+        var n=p.getPersistentData();
+        if(pieces(p,"hunyuan")<4||n.getInt("cod4Rage")<5||!ready(p,"hunyuanQi",200))return false;
+        n.putInt("cod4Rage",0);n.putLong("cod4HunyuanQiUntil",now(p)+100);
+        CombatFeedback.send(p,CombatFeedback.PERFECT);return true;
+    }
+    public static boolean comboWave(ServerPlayer p,LivingEntity target,int combo){
+        if(combo<5||!(pieces(p,"qinglong")>=3||has(p,"dragon_pearl"))||!ready(p,"comboWave",60))return false;
+        var packet=new com.dynasty.cod3.Cod3VisualPacket(p.level().dimension().location().toString(),7,target.getId(),
+                p.getRandom().nextLong(),now(p),20,1,target.position(),p.getLookAngle(),"qinglong_combo_wave",0,0x54CCB8);
+        com.dynasty.network.DynastyNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.NEAR.with(()->new net.minecraftforge.network.PacketDistributor.TargetPoint(
+                target.getX(),target.getY(),target.getZ(),32,p.level().dimension())),packet);
+        if(pieces(p,"qinglong")>=4){p.heal(p.getMaxHealth()*.02F);p.getPersistentData().putLong("cod4QinglongQiUntil",now(p)+60);}
+        return true;
+    }
     public static void smallThunder(Player p,LivingEntity target) {
         if(!ExpansionWeapons.enemy(p,target))return;
         // Add to this real hit once, without a lightning entity that can burn terrain or hit bystanders.
@@ -212,12 +244,14 @@ public final class EquipmentBehaviors {
         if(e.getProjectile().level().isClientSide || !(e.getProjectile() instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow) || !(e.getRayTraceResult() instanceof net.minecraft.world.phys.EntityHitResult hit) || !(hit.getEntity() instanceof ServerPlayer p))return;
         if(pieces(p,"bamboo")>=4 && p.getRandom().nextFloat()<.05F) {e.setCanceled(true);arrow.setOwner(p);arrow.setDeltaMovement(arrow.getDeltaMovement().scale(-.8));arrow.pickup=net.minecraft.world.entity.projectile.AbstractArrow.Pickup.DISALLOWED;arrow.hurtMarked=true;CombatFeedback.send(p,CombatFeedback.BLOCK);}
     }
-    @SubscribeEvent public static void block(ShieldBlockEvent e) {
+    @SubscribeEvent(priority=EventPriority.LOWEST) public static void block(ShieldBlockEvent e) {
         if(!(e.getEntity() instanceof ServerPlayer p))return;
         var n=p.getPersistentData();n.putLong("cod4BronzeGuard",now(p)+60);
-        boolean perfect=p.getTicksUsingItem()<=6;
+        boolean perfect=perfectGuard(p);
         if(perfect && pieces(p,"xuanwu")>=2) {
-            e.setBlockedDamage(Math.min(e.getOriginalBlockedDamage(),e.getBlockedDamage()*1.6F));
+            // Run after the school's partial block. Raise a 50% weapon block to 60%
+            // of the original hit; an ordinary shield's full block remains full.
+            e.setBlockedDamage(Math.min(e.getOriginalBlockedDamage(),Math.max(e.getBlockedDamage(),e.getOriginalBlockedDamage()*.6F)));
             p.removeEffect(ExpansionEffects.STAGGER.get());n.putLong("cod4Counter",now(p)+60);
             if(pieces(p,"xuanwu")>=4)n.putBoolean("cod4Shell",true);
         }
@@ -226,6 +260,8 @@ public final class EquipmentBehaviors {
         }
         CombatFeedback.send(p,perfect?CombatFeedback.PERFECT:CombatFeedback.BLOCK);
     }
+    /** Vanilla raises a block after five ticks; the next six active ticks are the 0.3s window. */
+    public static boolean perfectGuard(Player p){return p.isBlocking()&&p.getTicksUsingItem()>=5&&p.getTicksUsingItem()<11;}
     @SubscribeEvent(priority=EventPriority.LOW) public static void attack(LivingAttackEvent e) {
         if(!(e.getEntity() instanceof ServerPlayer p) || e.getAmount()<=0)return;
         if(now(p)<p.getPersistentData().getLong("cod4StarIFrame") && !e.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY))e.setCanceled(true);
@@ -277,7 +313,7 @@ public final class EquipmentBehaviors {
         if(now(p)<n.getLong("cod4Counter")){n.remove("cod4Counter");bonus+=pieces(p,"xuanwu")>=3?.2F:.1F;}
         if(pieces(p,"baihu")>=3 && p.isSprinting() && ready(p,"sprintStrike",60)){bonus+=.4F;if(pieces(p,"baihu")>=4)ExpansionEffects.apply(e.getEntity(),ExpansionEffects.STAGGER,40);}
         if(pieces(p,"baihu")>=2 && !ExpansionEffects.boss(e.getEntity()))e.getEntity().knockback(.5,p.getX()-e.getEntity().getX(),p.getZ()-e.getEntity().getZ());
-        if(pieces(p,"hunyuan")>=3 && p.hasEffect(ExpansionEffects.YANG.get()) && !p.hasEffect(ExpansionEffects.YIN.get()))bonus+=.1F;
+        if(balanced(p))bonus+=.1F;
         if(pieces(p,"ziwei")>=3 && p.getRandom().nextFloat()<.1){bonus+=.5F;n.putLong("cod4Crit",now(p)+60);CombatFeedback.send(e.getEntity(),CombatFeedback.CRITICAL);}
         if(pieces(p,"ziwei")>=4 && now(p)<n.getLong("cod4Crit"))bonus+=.15F;
         if(has(p,"dragon_scale_charm") && net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getKey(e.getEntity().getType()).getPath().contains("dragon"))bonus+=.15F;
@@ -289,7 +325,7 @@ public final class EquipmentBehaviors {
         if(e.getSource().getDirectEntity()==p && p.getAttackStrengthScale(.5F)>.8F) {
             int combo=DynastyTrinketOnHit.advanceCombo(p,e.getEntity());
             if(pieces(p,"qinglong")>=2)bonus+=.06F*Math.min(3,combo);
-            if(combo>=5 && ready(p,"comboWave",60) && (pieces(p,"qinglong")>=3 || has(p,"dragon_pearl"))) {bonus+=.12F;CombatFeedback.send(e.getEntity(),CombatFeedback.WATER);if(pieces(p,"qinglong")>=4)p.heal(p.getMaxHealth()*.02F);}
+            if(comboWave(p,e.getEntity(),combo))bonus+=.12F;
         }
         var used=DynastySchoolCombat.firingWeapon(e.getSource(),p.getMainHandItem());
         if(e.getSource().getDirectEntity() instanceof net.minecraft.world.entity.projectile.AbstractArrow && Set.of("zhuxing_bow","fengling_bow").contains(id(used)) && DynastySchoolProgression.equippedSynergy(p,"archer")){bonus+=.08F;CombatFeedback.send(e.getEntity(),CombatFeedback.STAR);}

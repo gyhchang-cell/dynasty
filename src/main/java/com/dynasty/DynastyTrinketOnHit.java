@@ -241,7 +241,7 @@ public final class DynastyTrinketOnHit {
         int next = 1;
         if (previous != null && previous.target().equals(target.getUUID())
                 && now - previous.at() <= COMBO_WINDOW_MILLIS) {
-            next = Math.min(COMBO_MAX, previous.stacks() + (tick < state.getLong("cod4QiUntil") ? 2 : 1));
+            next = Math.min(COMBO_MAX, previous.stacks() + (com.dynasty.expansion.EquipmentBehaviors.qiActive(attacker) ? 2 : 1));
         }
         COMBO_STATE.put(attacker.getUUID(), new Combo(target.getUUID(), next, now));
         return next;
