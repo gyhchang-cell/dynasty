@@ -13,6 +13,10 @@ class QuestStoryTest(unittest.TestCase):
     def setUpClass(cls):
         cls.book = story.build_book()
         cls.main = [q for c in cls.book if c["main"] for q in c["quests"] if q['role']=='main']
+        cls.cod4_nodes = json.loads((story.ROOT / "docs/cod4/quest-nodes.json").read_text())
+
+    def cod4_ids(self, chapter):
+        return [node["id"] for node in self.cod4_nodes if node["chapter"] == chapter]
 
     def test_frozen_ids_and_rewards(self):
         story.validate(self.book)
@@ -48,7 +52,10 @@ class QuestStoryTest(unittest.TestCase):
     def test_small_main_chapters_and_no_catalog_gate(self):
         self.assertEqual(8, sum(c["main"] for c in self.book))
         # Chapter 03 preserves its 19 nodes and adds six cod1 encounter branches.
-        self.assertEqual([18,23,25,13,12,11,12,11],[len(c['quests']) for c in self.book if c['main']])
+        self.assertEqual([18,23,25,13,12,11,12,11],
+                         [len(c['quests'])-len(self.cod4_ids(c['file'])) for c in self.book if c['main']])
+        self.assertEqual({node['id'] for node in self.cod4_nodes},
+                         {q['id'] for c in self.book for q in c['quests'] if q.get('route') == 'cod4'})
         self.assertEqual(32,sum(q['role']=='chapter_branch' for c in self.book for q in c['quests']))
         self.assertEqual(2,sum(q.get('target') in ('dynasty:tiangong_citadel','dynasty:tiangong_mining_estate') for c in self.book for q in c['quests']))
         self.assertTrue(all(not q["deps"] for c in self.book if not c["main"] for q in c["quests"] if q["role"]!="build"))
@@ -57,6 +64,13 @@ class QuestStoryTest(unittest.TestCase):
         allq = {q["id"]:q for c in self.book for q in c["quests"]}
         for key, v in json.loads((story.DATA / "curios_progression.json").read_text()).items():
             q = allq[v["quest_id"]]
+            if v.get("unlock_source") == "content":
+                item = {"cod4_silk": "silk_pouch", "cod4_crown": "jade_crown"}[key]
+                self.assertEqual("advancement", q["kind"])
+                self.assertEqual("dynasty:cod4_obtain_" + item, q["target"])
+                self.assertEqual("[]", q["rewards"], "Personal server milestones must not also grant team rewards")
+                self.assertFalse(q["deps"])
+                continue
             self.assertEqual("hexagon",q["shape"])
             self.assertIn('dynasty unlock_curio '+key+'"',q["rewards"])
             self.assertIn('team_reward: false',q["rewards"])
@@ -130,8 +144,10 @@ class QuestStoryTest(unittest.TestCase):
         for boss,(number,*_) in GUIDES.items():
             guide = allq[f"1{number:015x}"]
             main = next(q for q in self.main if q["kind"]=="kill" and q["target"]=="dynasty:"+boss)
-            self.assertEqual(guide["id"],json.loads(main["description"][0])["clickEvent"]["value"])
-            self.assertEqual(main["id"],json.loads(guide["description"][0])["clickEvent"]["value"])
+            def targets(quest):
+                return {json.loads(line)["clickEvent"]["value"] for line in quest["description"] if line.startswith('{"')}
+            self.assertIn(guide["id"], targets(main))
+            self.assertIn(main["id"], targets(guide))
             self.assertIn("消耗一个信物", "".join(guide["description"]))
 
     def test_broken_guide_link_rejected(self):
@@ -148,10 +164,12 @@ class QuestStoryTest(unittest.TestCase):
         routes=[c for c in self.book if c.get("route")]
         self.assertEqual(set(ROUTES),{c["route"] for c in routes})
         for c in routes:
-            self.assertEqual(35+len(PATHS[c['route']]),len(c["quests"]))
+            extension_ids = self.cod4_ids(c['file'])
+            self.assertEqual(extension_ids, [q['id'] for q in c['quests'] if q.get('route') == 'cod4'])
+            self.assertEqual(35+len(PATHS[c['route']])+len(extension_ids),len(c["quests"]))
             self.assertEqual(0,len(c["quest_links"]))
-            self.assertEqual(34+len(PATHS[c['route']]),sum(q["kind"]!="checkmark" for q in c["quests"]))
-            self.assertEqual(9,sum(q["kind"]=="advancement" for q in c["quests"]))
+            self.assertEqual(34+len(PATHS[c['route']])+len(extension_ids),sum(q["kind"]!="checkmark" for q in c["quests"]))
+            self.assertEqual(9+len(extension_ids),sum(q["kind"]=="advancement" for q in c["quests"]))
             self.assertNotIn("repeatable:",story.encode(c))
             self.assertIn("can_repeat: false",story.encode(c))
             for q in c["quests"]:
@@ -180,7 +198,8 @@ class QuestStoryTest(unittest.TestCase):
                                  [code(1,base+0x20+i) for i in (1,3,6,10)]+[code(1,base+i) for i in range(0x62,0x68)]+[code(1,base+0x80),code(1,base+0x81)]+[code(1,base+i) for i in range(0x90,0x96)]+[code(1,base+i) for i in range(0xa0,0xa5)],
                                  [q["id"] for q in c["quests"][:35]])
                 self.assertEqual([code(1,base+0xb0+i) for i in range(len(PATHS[c['route']]))],
-                                 [q['id'] for q in c['quests'][35:]])
+                                 [q['id'] for q in c['quests'][35:] if q.get('route') != 'cod4'])
+                self.assertEqual(self.cod4_ids(c['file']), [q['id'] for q in c['quests'] if q.get('route') == 'cod4'])
         reversed_book=list(reversed(copy.deepcopy(self.book)))
         # Reordering optional chapters must not alter any identity; main itself stays ordered.
         optional=[c for c in reversed_book if not c["main"]]
@@ -206,11 +225,12 @@ class QuestStoryTest(unittest.TestCase):
         self.assertTrue(all(not q["deps"] and q["rewards"]=="[]" for q in home["quests"]))
         self.assertEqual(1, sum(q["role"] == "guide" for q in home["quests"]),
                          "Navigation cards must not add fake completion tasks")
-        side = [q for q in home["quests"] if q["role"] != "guide"]
+        side = [q for q in home["quests"] if q["role"] == "side"]
         self.assertEqual(1, len(side))
         self.assertEqual("10000000000F1001", side[0]["id"])
         self.assertEqual("advancement", side[0]["kind"])
         self.assertEqual("dynasty:first_infusion", side[0]["target"])
+        self.assertEqual(self.cod4_ids(home['file']), [q['id'] for q in home['quests'] if q.get('route') == 'cod4'])
         self.assertEqual(8,sum(bool(i.get("click")) for i in home["images"]))
         self.assertEqual(75,len(self.main))
         self.assertEqual(9,len([c for c in self.book if c["group"]==4]))

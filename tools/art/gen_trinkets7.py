@@ -39,7 +39,7 @@ ROWS = [
 LABELS = {'melee':('近战伤害','Melee damage'),'arrow':('箭矢伤害','Arrow damage'), 'edict':('律令兵器伤害','Edict weapon damage')}
 ITEMS = {}
 for ident,zh,en,school,slot,stats,kind,value,recipe,art in ROWS:
-    zh_effect,en_effect = ('','') if kind=='none' else (
+    zh_effect,en_effect = ('无额外伤害加成','No additional damage bonus') if kind=='none' else (
         ('每点护甲韧性转为 +0.6% 近战伤害（最多 +60%）','Each toughness point grants +0.6% melee damage (max +60%)')
         if kind=='toughness' else (f'{LABELS[kind][0]} +{value:.0%}',f'{LABELS[kind][1]} +{value:.0%}'))
     ITEMS[ident] = dict(id=ident,zh=zh,en=en,school=school,slot=slot,kind='accessory',
