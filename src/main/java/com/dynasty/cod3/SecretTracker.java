@@ -72,8 +72,12 @@ public final class SecretTracker extends SavedData {
                     &&state.contains("SiteReady")&&state.getLong("SiteReady")==pos.asLong()&&state.getString("SiteDimension").equals(p.level().dimension().location().toString())
                     &&site.contains("site_wayside_tea_stall_start")&&p.level().getGameTime()-site.getLong("site_wayside_tea_stall_start")>=2400;
         }
-        if(n!=8&&n!=30&&n!=29&&n!=17)return false;String id=n==8?"ancient_well":n==30?"puzzle_box":n==17?"ghost_market_boat":"mortuary_room";
+        if(n!=8&&n!=30&&n!=29&&n!=17&&n!=28)return false;String id=n==8?"ancient_well":n==30?"puzzle_box":n==17?"ghost_market_boat":n==28?"sword_scar_wall":"mortuary_room";
         if(!siteContext(p,pos,id))return false;var state=progress(p,n);var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);
+        if(n==28)return SwordDance.context(p,pos)&&p.onGround()&&p.swinging&&p.swingingArm==net.minecraft.world.InteractionHand.MAIN_HAND
+                &&state.getInt("Count")>=3&&state.contains("Anchor")&&state.getLong("Anchor")==pos.asLong()
+                &&state.getString("DanceDimension").equals(p.level().dimension().location().toString())&&state.contains("DanceReadyAt")&&state.getLong("DanceReadyAt")==p.level().getGameTime()
+                &&site.contains("site_sword_scar_wall_start")&&p.level().getGameTime()-site.getLong("site_sword_scar_wall_start")>=2400;
         if(n==17){
             if(!state.hasUUID("Boatman"))return false;var entity=p.serverLevel().getEntity(state.getUUID("Boatman"));
             return entity instanceof DynastyNpcEntity npc&&com.dynasty.expansion.SmallInteractions.ghostBoatContext(p,npc)
@@ -121,6 +125,10 @@ public final class SecretTracker extends SavedData {
         return new WaterDelivery(true,claimed,delivered);
     }
     public record PuzzleStep(boolean accepted,boolean claimed,int count,boolean reset) {}
+    public static boolean swordDanceClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,28,SecretDefinition.of(28));}
+    public static boolean finishSwordDance(ServerPlayer p,BlockPos at){
+        return !swordDanceClaimed(p)&&verifiedSite(p,28,at)&&conditions(p,28,at,SecretDefinition.Trigger.USE_ITEM_AT_POS)&&get(p.serverLevel()).claim(p,28,at);
+    }
     public static boolean poisonTeaClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,19,SecretDefinition.of(19));}
     public static boolean flipPoisonTea(ServerPlayer p,BlockPos pos,DynastyNpcEntity npc){
         if(!siteContext(p,pos,"wayside_tea_stall")||poisonTeaClaimed(p)||!com.dynasty.expansion.SmallInteractions.poisonTeaContext(p,npc))return false;
@@ -246,7 +254,7 @@ public final class SecretTracker extends SavedData {
     @SubscribeEvent public static void interact(PlayerInteractEvent.RightClickBlock e){if(e.getEntity() instanceof ServerPlayer p&&e.getHand()==net.minecraft.world.InteractionHand.MAIN_HAND){trigger(p,e.getPos(),SecretDefinition.Trigger.USE_ITEM_AT_POS);trigger(p,e.getPos(),SecretDefinition.Trigger.COMBINATION);}}
     @SubscribeEvent public static void breaking(BlockEvent.BreakEvent e){if(e.getPlayer() instanceof ServerPlayer p)trigger(p,e.getPos(),SecretDefinition.Trigger.BREAK_BLOCK);}
     @SubscribeEvent public static void kill(LivingDeathEvent e){if(e.getEntity().getKillCredit() instanceof ServerPlayer p)trigger(p,e.getEntity().blockPosition(),SecretDefinition.Trigger.KILL_ENTITY_AT_REGION);}
-    @SubscribeEvent public static void tick(TickEvent.PlayerTickEvent e){if(e.phase!=TickEvent.Phase.END||!(e.player instanceof ServerPlayer p)||p.tickCount%20!=0)return;trigger(p,p.blockPosition(),SecretDefinition.Trigger.ENTER_REGION);trigger(p,p.blockPosition(),SecretDefinition.Trigger.TIME_WINDOW);trigger(p,p.blockPosition(),SecretDefinition.Trigger.WEATHER_WINDOW);trigger(p,p.blockPosition(),SecretDefinition.Trigger.EQUIPMENT_CHECK);}
+    @SubscribeEvent public static void tick(TickEvent.PlayerTickEvent e){if(e.phase!=TickEvent.Phase.END||!(e.player instanceof ServerPlayer p))return;SwordDance.tick(p);if(p.tickCount%20!=0)return;trigger(p,p.blockPosition(),SecretDefinition.Trigger.ENTER_REGION);trigger(p,p.blockPosition(),SecretDefinition.Trigger.TIME_WINDOW);trigger(p,p.blockPosition(),SecretDefinition.Trigger.WEATHER_WINDOW);trigger(p,p.blockPosition(),SecretDefinition.Trigger.EQUIPMENT_CHECK);}
     @SubscribeEvent public static void projectile(net.minecraftforge.event.entity.ProjectileImpactEvent e){
         if(e.getEntity() instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow&&arrow.getOwner() instanceof ServerPlayer p&&e.getRayTraceResult() instanceof net.minecraft.world.phys.BlockHitResult hit)
             trigger(p,hit.getBlockPos(),SecretDefinition.Trigger.HIT_TARGET);

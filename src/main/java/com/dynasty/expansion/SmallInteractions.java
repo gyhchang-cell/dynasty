@@ -42,6 +42,7 @@ public final class SmallInteractions {
             if(id.equals("ancient_well"))return useWell((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("puzzle_box"))return usePuzzle((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("ghost_market_boat"))return useGhostBoat((net.minecraft.server.level.ServerLevel)level,pos,p);
+            if(id.equals("sword_scar_wall")){com.dynasty.cod3.SwordDance.open(p,pos);return InteractionResult.CONSUME;}
             if(id.equals("wayside_tea_stall")&&!p.getMainHandItem().is(Items.MILK_BUCKET))return usePoisonTea((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("mortuary_room")&&!p.getMainHandItem().is(Items.MILK_BUCKET))return useMortuary((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("broken_waterwheel")&&state.getValue(REPAIRED)){
@@ -67,7 +68,6 @@ public final class SmallInteractions {
             boolean valid=switch(id) {
                 case "wayside_shrine"->held.is(ExpansionContent.SUPPLIES.get("soul_incense").get());
                 case "nameless_tomb"->held.is(net.minecraft.tags.ItemTags.FLOWERS);
-                case "sword_scar_wall"->held.getItem() instanceof SwordItem && !level.isDay();
                 case "broken_stele"->held.is(Items.PAPER);
                 case "mortuary_room","wayside_tea_stall"->held.is(Items.MILK_BUCKET);
                 case "broken_waterwheel"->held.is(ExpansionContent.MATERIALS.get("qimen_cable").get());

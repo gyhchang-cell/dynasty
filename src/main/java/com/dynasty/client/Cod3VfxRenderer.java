@@ -110,6 +110,7 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("site_puzzle_press"))geometry.puzzle(life,false);
                 else if(p.sequence().equals("site_puzzle_open"))geometry.puzzle(life,true);
                 else if(p.sequence().equals("site_tea_flip"))geometry.teaFlip(life);
+                else if(p.sequence().equals("site_sword_shadow"))geometry.swordShadow(p.tick(),life);
                 else if(p.sequence().equals("qinglong_combo_wave"))geometry.dragonWave(life,age);
                 else if(p.sequence().matches("scenic_(0[1-9]|1[0-9]|2[0-5])"))geometry.scenic(Integer.parseInt(p.sequence().substring(7)),life);else geometry.draw(p.template(),d,expansion,life,age);
             }
@@ -221,6 +222,11 @@ public final class Cod3VfxRenderer {
                 }
             }
             if(rescued)mesh(0,1.05+age*.006,0,.055);
+        }
+        void swordShadow(int step,double life){
+            blade(0,1.2,0,.48);beam(p(-.22,.04,-.18),p(.22,.04,.18),.035);beam(p(-.22,.04,.18),p(.22,.04,-.18),.035);
+            if(step==2){beam(p(0,1.1,-.35),p(0,1.1,.65),.035);beam(p(0,1.1,.65),p(-.12,1.1,.4),.035);beam(p(0,1.1,.65),p(.12,1.1,.4),.035);}
+            else for(int i=0;i<10;i++){double a=(i/10.0-.5)*Math.PI,b=((i+1)/10.0-.5)*Math.PI;double tilt=step==0?0:.35;beam(p(Math.sin(a)*.5,1.1+Math.sin(a)*tilt,Math.cos(a)*.35),p(Math.sin(b)*.5,1.1+Math.sin(b)*tilt,Math.cos(b)*.35),.025+.012*Math.sin(life*Math.PI));}
         }
         void teaFlip(double life){
             double angle=Math.min(1,life/.65)*Math.PI*.7,cs=Math.cos(angle),sn=Math.sin(angle);
