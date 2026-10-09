@@ -47,12 +47,18 @@ public record CombatFeedback(int type, double x, double y, double z, double sx, 
     public static void hit(LivingDamageEvent e) {
         if(e.isCanceled() || e.getAmount()<=0 || e.getEntity().level().isClientSide || DynastyTrinketOnHit.isSyntheticDamage()) return;
         if (!(e.getSource().getEntity() instanceof LivingEntity attacker)) return;
-        var key=net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(attacker.getMainHandItem().getItem());
-        if (key==null || !key.getNamespace().equals("dynasty")) return;
-        String id=key.getPath();
-        int type=id.contains("hammer") || id.contains("axe") ? HEAVY : id.equals("seven_star_saber") ? STAR : id.contains("trident") ? WATER : id.contains("spear") ? LAUNCH : NORMAL;
-        if (e.getEntity().hasEffect(ExpansionEffects.BREAK.get())) type=ARMOR;
-        if (attacker.fallDistance>0 && !attacker.onGround()) type=CRITICAL;
+        var weapon=com.dynasty.cod3.EquipmentFeedback.sourceWeapon(e);
+        var key=net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(weapon.getItem());
+        if(weapon.isEmpty()||key==null||!key.getNamespace().equals("dynasty"))return;
+        int type=NORMAL;
+        if(e.getSource().getDirectEntity() instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow)type=arrow.isCritArrow()?CRITICAL:NORMAL;
+        else if(attacker instanceof net.minecraft.world.entity.player.Player p){
+            // High impulse must have been added by this captured primary hit.
+            // Existing break/stagger/immune effect application owns its own cue.
+            if(com.dynasty.DynastySchoolCombat.primaryLift(p,e.getEntity())>=.18)type=LAUNCH;
+            else if(com.dynasty.DynastySchoolCombat.primaryCritical(p,e.getEntity()))type=CRITICAL;
+            else if(com.dynasty.DynastySchoolCombat.primaryCharged(p,e.getEntity())&&e.getAmount()>=Math.max(6,e.getEntity().getMaxHealth()*.08F))type=HEAVY;
+        }else if(e.getAmount()>=Math.max(6,e.getEntity().getMaxHealth()*.08F))type=HEAVY;
         send(e.getEntity(),type);
     }
     public static void encode(CombatFeedback p,FriendlyByteBuf b) { b.writeVarInt(p.type);b.writeDouble(p.x);b.writeDouble(p.y);b.writeDouble(p.z);b.writeDouble(p.sx);b.writeDouble(p.sy);b.writeDouble(p.sz); }

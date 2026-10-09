@@ -50,6 +50,16 @@ public final class EquipmentFeedback {
             default->critical?2:29;
         };
     }
+    private static final String FIRING_SNAPSHOT="cod3_firing_weapon";
+    /** Direct source only: a held replacement or an indirect spell is never the original hit item. */
+    public static ItemStack sourceWeapon(LivingDamageEvent e){
+        if(e.getAmount()<=0||DynastyTrinketOnHit.isSyntheticDamage()||QinglongDescent.isDragonDamage(e.getSource())
+                ||DynastyBowRitual.isSolarDamage(e.getSource())||com.dynasty.EdictSpells.isSpell(e.getSource()))return ItemStack.EMPTY;
+        if(e.getSource().getDirectEntity() instanceof AbstractArrow arrow&&e.getSource().getEntity() instanceof Player p&&arrow.getOwner()==p)return firingWeapon(arrow,p).copy();
+        if(e.getSource().getEntity() instanceof Player p&&e.getSource().getDirectEntity()==p&&e.getSource().is(net.minecraft.world.damagesource.DamageTypes.PLAYER_ATTACK))return DynastySchoolCombat.primaryStack(p,e.getEntity());
+        if(e.getSource().getEntity() instanceof LivingEntity mob&&!(mob instanceof Player)&&e.getSource().getDirectEntity()==mob&&e.getSource().is(net.minecraft.world.damagesource.DamageTypes.MOB_ATTACK))return mob.getMainHandItem().copy();
+        return ItemStack.EMPTY;
+    }
     @SubscribeEvent public static void damage(LivingDamageEvent e){
         if(e.getAmount()>0&&e.getEntity() instanceof ServerPlayer victim){
             var armor=DynastySetBonus.wornArmorIds(victim);
@@ -58,12 +68,19 @@ public final class EquipmentFeedback {
         }
         if(e.getAmount()<=0||!(e.getSource().getEntity() instanceof ServerPlayer p)||!(p.level() instanceof ServerLevel l))return;
         if(DynastyTrinketOnHit.isSyntheticDamage()||QinglongDescent.isDragonDamage(e.getSource())||DynastyBowRitual.isSolarDamage(e.getSource()))return;
-        var stack=p.getMainHandItem();var id=ForgeRegistries.ITEMS.getKey(stack.getItem());if(id==null||!id.getNamespace().equals(Dynasty.MODID)||!(stack.getItem() instanceof SwordItem||stack.getItem() instanceof AxeItem))return;
+        var stack=sourceWeapon(e);var id=ForgeRegistries.ITEMS.getKey(stack.getItem());if(id==null||!id.getNamespace().equals(Dynasty.MODID))return;
+        if(e.getSource().getDirectEntity() instanceof AbstractArrow arrow){
+            if(!ranged(stack))return;var data=e.getEntity().getPersistentData();long now=l.getGameTime();
+            if(data.contains("cod3_arrow_impact_at")&&now-data.getLong("cod3_arrow_impact_at")<3)return;
+            data.putLong("cod3_arrow_impact_at",now);var direction=arrow.getDeltaMovement().lengthSqr()>.0001?arrow.getDeltaMovement().normalize():p.getLookAngle();
+            Cod3Vfx.send(l,arrow.isCritArrow()?12:3,e.getEntity().position().add(0,.6,0),direction,8,.16,tint(id.getPath()));return;
+        }
+        if(!(stack.getItem() instanceof SwordItem||stack.getItem() instanceof AxeItem))return;
         // Imperial weapons already own their mesh/phantom presentation.
         if(id.getPath().equals("qinglong_dao")||id.getPath().equals("houyi_bow"))return;
         var n=p.getPersistentData();long now=l.getGameTime();if(n.getLong("cod3_hit_at")==now)return;
         int combo=now-n.getLong("cod3_hit_at")<=40?n.getInt("cod3_combo")%3+1:1;n.putInt("cod3_combo",combo);n.putLong("cod3_hit_at",now);
-        boolean critical=p.fallDistance>0&&!p.onGround();int vfx=template(id.getPath(),combo,critical);
+        boolean critical=DynastySchoolCombat.primaryCritical(p,e.getEntity());int vfx=template(id.getPath(),combo,critical);
         Cod3Vfx.send(l,vfx,e.getEntity().position(),p.getLookAngle(),Cod3Catalog.vfx(vfx).duration(),.2+combo*.035,tint(id.getPath()));
         if(critical)Cod3Vfx.send(l,12,e.getEntity().position().add(0,.8,0),p.getLookAngle(),8,.15);
     }
@@ -71,9 +88,13 @@ public final class EquipmentFeedback {
         if(!(e.getLevel() instanceof ServerLevel l)||!(e.getEntity() instanceof AbstractArrow arrow)||!(arrow.getOwner() instanceof ServerPlayer p))return;
         ItemStack bow=firingWeapon(arrow,p);
         var id=ForgeRegistries.ITEMS.getKey(bow.getItem());if(id==null||!id.getNamespace().equals(Dynasty.MODID)||!ranged(bow))return;
-        arrow.getPersistentData().putLong("cod3_trail_start",l.getGameTime());arrow.getPersistentData().putLong("cod3_trail_seed",l.random.nextLong());
-        arrow.getPersistentData().putInt("cod3_trail_tint",tint(id.getPath()));
-        arrow.getPersistentData().putString("cod3_trail_weapon",id.toString());
+        arrow.getPersistentData().put(FIRING_SNAPSHOT,bow.copy().save(new net.minecraft.nbt.CompoundTag()));
+        var data=arrow.getPersistentData();
+        if(!data.contains("cod3_trail_start")){
+            data.putLong("cod3_trail_start",l.getGameTime());data.putLong("cod3_trail_seed",l.random.nextLong());
+            data.putInt("cod3_trail_tint",tint(id.getPath()));data.putString("cod3_trail_weapon",id.toString());
+        }
+        if(l.getGameTime()-data.getLong("cod3_trail_start")>=1200)return;
         var packet=arrowPacket(l,arrow);
         com.dynasty.network.DynastyNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.NEAR.with(()->new net.minecraftforge.network.PacketDistributor.TargetPoint(p.getX(),p.getY(),p.getZ(),32,l.dimension())),packet);
     }
@@ -82,6 +103,12 @@ public final class EquipmentFeedback {
         var data=arrow.getPersistentData();
         if(data.contains("cod4FiringWeapon"))return ItemStack.of(data.getCompound("cod4FiringWeapon"));
         if(data.contains(DynastySchoolCombat.FIRING_WEAPON))return ItemStack.of(data.getCompound(DynastySchoolCombat.FIRING_WEAPON));
+        if(data.contains(FIRING_SNAPSHOT))return ItemStack.of(data.getCompound(FIRING_SNAPSHOT));
+        // Already flying old arrows saved only the trail's registry identity.
+        if(data.contains("cod3_trail_weapon")){
+            var id=ResourceLocation.tryParse(data.getString("cod3_trail_weapon"));var item=id==null?null:ForgeRegistries.ITEMS.getValue(id);
+            if(item!=null){var old=new ItemStack(item);if(ranged(old))return old;}
+        }
         if(ranged(p.getUseItem()))return p.getUseItem();
         return ranged(p.getMainHandItem())?p.getMainHandItem():p.getOffhandItem();
     }

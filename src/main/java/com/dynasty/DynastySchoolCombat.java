@@ -52,8 +52,9 @@ public final class DynastySchoolCombat {
         float attackStrength;
         int combo;
         String attackWeapon = "", held = "";
-        Vec3 origin;
-        boolean edictHadTarget;
+        Vec3 origin,primaryMotion=Vec3.ZERO;
+        ItemStack primaryStack=ItemStack.EMPTY;
+        boolean edictHadTarget,primaryCritical;
     }
     static State state(Player player) { return STATES.computeIfAbsent(player.getUUID(), key -> new State()); }
     static long now(Player player) { return player.level().getGameTime(); }
@@ -97,6 +98,7 @@ public final class DynastySchoolCombat {
         s.attackTick = now(player);
         s.attackStrength = player.getAttackStrengthScale(0.5F);
         s.attackWeapon = held;
+        s.primaryStack=player.getMainHandItem().copy();s.primaryMotion=event.getTarget().getDeltaMovement();s.primaryCritical=false;
         if (!held.equals("liuyun_sword") || !SchoolCombatRules.fullAttack(s.attackStrength)
                 || !event.getTarget().getUUID().equals(s.comboTarget)) s.combo = 0;
     }
@@ -106,6 +108,27 @@ public final class DynastySchoolCombat {
         State s=STATES.get(player.getUUID());
         if(s==null || s.attackTick!=now(player))return player.getAttackStrengthScale(.5F)>.8F;
         return target.getUUID().equals(s.primaryTarget) && weapon(player).equals(s.attackWeapon) && s.attackStrength>.8F;
+    }
+
+    /** Existing pre-attack context also supplies immutable, source-correct presentation. */
+    public static boolean observedPrimary(Player p,LivingEntity target){
+        var s=STATES.get(p.getUUID());return s!=null&&s.attackTick==now(p)&&target.getUUID().equals(s.primaryTarget);
+    }
+    public static ItemStack primaryStack(Player p,LivingEntity target){var s=STATES.get(p.getUUID());return observedPrimary(p,target)?s.primaryStack.copy():ItemStack.EMPTY;}
+    public static boolean primaryCritical(Player p,LivingEntity target){var s=STATES.get(p.getUUID());return observedPrimary(p,target)&&s.primaryCritical;}
+    public static double primaryLift(Player p,LivingEntity target){
+        var s=STATES.get(p.getUUID());if(!observedPrimary(p,target))return 0;
+        double added=target.getDeltaMovement().y-s.primaryMotion.y;
+        // A roof/occupied body space must not advertise a launch that collision prevents.
+        return added>=.18&&(target.noPhysics||target.level().noCollision(target,target.getBoundingBox().move(0,.18,0)))?added:0;
+    }
+    public static boolean primaryCharged(Player p,LivingEntity target){var s=STATES.get(p.getUUID());return observedPrimary(p,target)&&s.attackStrength>.8F;}
+    @SubscribeEvent(priority=EventPriority.LOWEST)
+    public static void critical(net.minecraftforge.event.entity.player.CriticalHitEvent e){
+        var p=e.getEntity();var s=STATES.get(p.getUUID());
+        if(p.level().isClientSide||s==null||s.attackTick!=now(p)||!e.getTarget().getUUID().equals(s.primaryTarget))return;
+        var result=e.getResult();s.primaryCritical=e.getDamageModifier()>1&&result!=net.minecraftforge.eventbus.api.Event.Result.DENY
+                &&(result==net.minecraftforge.eventbus.api.Event.Result.ALLOW||e.isVanillaCritical());
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)

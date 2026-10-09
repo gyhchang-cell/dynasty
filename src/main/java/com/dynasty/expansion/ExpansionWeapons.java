@@ -114,7 +114,8 @@ public final class ExpansionWeapons {
         @Override public void releaseUsing(ItemStack stack,Level level,LivingEntity user,int remaining) {
             if(level.isClientSide || !(user instanceof Player p) || getUseDuration(stack)-remaining<20) return;
             for(var target:level.getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(4),t->enemy(p,t)&&p.hasLineOfSight(t))) {
-                target.hurt(p.damageSources().playerAttack(p),(float)p.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)*.6F);
+                boolean accepted=target.hurt(p.damageSources().playerAttack(p),(float)p.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)*.6F);
+                if(accepted)CombatFeedback.send(target,CombatFeedback.HEAVY);
                 if(!ExpansionEffects.boss(target)) target.knockback(.6,p.getX()-target.getX(),p.getZ()-target.getZ());
             }
             CombatFeedback.send(p,CombatFeedback.HEAVY);
