@@ -101,7 +101,10 @@ public final class ChenshaEcologyGameTests {
                     Blocks.STONE.defaultBlockState():Blocks.AIR.defaultBlockState());
             level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());
             ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(instance,"mercury","mercury_core",core,-1,List.of());
-        }).thenIdle(30).thenExecute(()->{
+        }).thenIdle(30).thenWaitUntil(()->{
+            for(var p:positions)h.assertTrue(level.getMaxLocalRawBrightness(p)<=7,
+                "Fixture lighting finishes asynchronous propagation before spawn checks; light="+level.getMaxLocalRawBrightness(p));
+        }).thenExecute(()->{
             try {
                 level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
                 h.assertTrue(!BlueprintSpawns.spawnChenshaMiddleMember(level,origin,origin.offset(32,49,60)),"Upper floor cannot activate middle ecology");
@@ -136,7 +139,7 @@ public final class ChenshaEcologyGameTests {
                 }finally{net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(hold);}
             }catch(RuntimeException|Error e){cleanup.run();throw e;}
         }).thenWaitUntil(()->{
-            h.assertTrue(state.markers.get(key).members.size()==2,"Exactly two UUIDs must remain reserved");
+            h.assertTrue(state.markers.get(key)!=null&&state.markers.get(key).members.size()==2,"Exactly two UUIDs must remain reserved");
             for(var uuid:state.markers.get(key).members){var entity=level.getEntity(uuid);h.assertTrue(entity!=null,"Wait for each asynchronous loaded entity section");if(!entities.contains(entity))entities.add(entity);}
         }).thenExecute(()->{
             try{
@@ -187,7 +190,7 @@ public final class ChenshaEcologyGameTests {
         h.succeed();
     }
 
-    @GameTest(template="bow_ritual_test",batch="cod2_water_ecology",timeoutTicks=140)
+    @GameTest(template="bow_ritual_test",batch="cod2_water_ecology",timeoutTicks=600)
     public static void middleDrownersRespectWaterBindingBudgetAndPersistentDefeat(GameTestHelper h) {
         var level=h.getLevel();var origin=h.absolutePos(new BlockPos(2304,60,2304));
         var core=origin.offset(ChenshaPiece.core("mercury"));
@@ -211,6 +214,7 @@ public final class ChenshaEcologyGameTests {
             for(var chunk:forced){
                 var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
                 h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Drowner fixture waits for loaded entity sections");
+                h.assertTrue(level.areEntitiesLoaded(chunk.toLong()),"Drowner fixture waits for asynchronous entity storage before spawning");
             }
         }).thenExecute(()->{
             // Light-isolated fixture; tickets and terrain edits are test-only.
@@ -219,7 +223,10 @@ public final class ChenshaEcologyGameTests {
                     Blocks.STONE.defaultBlockState():y<=1?Blocks.WATER.defaultBlockState():Blocks.AIR.defaultBlockState());
             level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());
             ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(instance,"mercury","mercury_core",core,-1,List.of());
-        }).thenIdle(30).thenExecute(()->{
+        }).thenIdle(30).thenWaitUntil(()->{
+            for(var p:positions)h.assertTrue(level.getMaxLocalRawBrightness(p)<=7,
+                "Fixture lighting finishes asynchronous propagation before spawn checks; light="+level.getMaxLocalRawBrightness(p));
+        }).thenExecute(()->{
             try {
                 level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
                 h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,origin.offset(32,49,60)),"Upper floor cannot activate middle ecology");
@@ -278,7 +285,7 @@ public final class ChenshaEcologyGameTests {
                 }finally{net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(hold);}
             }catch(RuntimeException|Error e){cleanup.run();throw e;}
         }).thenWaitUntil(()->{
-            h.assertTrue(state.markers.get(key).members.size()==2,"Exactly two UUIDs must remain reserved");
+            h.assertTrue(state.markers.get(key)!=null&&state.markers.get(key).members.size()==2,"Exactly two UUIDs must remain reserved");
             for(var uuid:state.markers.get(key).members){var entity=level.getEntity(uuid);h.assertTrue(entity!=null,"Wait for each asynchronous loaded entity section");if(!entities.contains(entity))entities.add(entity);}
         }).thenExecute(()->{
             try{
