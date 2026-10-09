@@ -30,8 +30,8 @@ public final class ChenshaVaultGameTests {
 
     @GameTest(template="bow_ritual_test",batch="cod2_vault")
     public static void onlyNewMoatSurfacesExposeSurvivalPlayers(GameTestHelper h) {
-        var level=h.getLevel();var origin=h.absolutePos(new BlockPos(-32,1,-27));
-        var surface=origin.offset(32,0,4);var player=h.makeMockSurvivalPlayer();
+        var level=h.getLevel();var surface=h.absolutePos(new BlockPos(2,1,2));
+        var origin=surface.offset(-32,0,-4);var player=h.makeMockSurvivalPlayer();
         try {
             player.setPos(surface.getX()+.5,surface.getY()+1,surface.getZ()+.5);
             level.setBlockAndUpdate(surface,Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState());

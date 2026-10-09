@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+defaults:
+  run:
+    shell: bash
 concurrency:
   group: cod2-vault-${{ github.ref }}
   cancel-in-progress: false
@@ -37,6 +40,15 @@ jobs:
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: xvfb-run -a -s '-screen 0 1280x960x24' python3 tools/blueprint/run_cod2_clients.py build/cod2-client/vault-ci-prepared/launch.json vault-ci-pair
+      - name: Verify acceptance evidence
+        run: |
+          python3 - <<'PYQA'
+          from pathlib import Path
+          for run, roles in [('vault-ci-solo', ['host']), ('vault-ci-pair', ['host', 'peer'])]:
+              for role in roles:
+                  result = Path(f'build/cod2-client/{run}/results/{role}-PASS.txt')
+                  assert result.read_text().strip() == 'All 13 client stages passed', str(result)
+          PYQA
       - name: Retain validation evidence
         if: always()
         uses: actions/upload-artifact@v4
