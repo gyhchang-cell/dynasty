@@ -18,16 +18,10 @@ for path in sorted((D/'recipes/cod4').glob('*.json')):
  for id in sorted(seen):
   if id in materials:uses[id].append(path.stem)
 for id in materials:assert len(uses[id])>=2,(id,uses[id])
-# Capture existing accessory source/quest evidence rather than inventing "GOOD" statuses.
-source=(ROOT/'src/main/java/com/dynasty/DynastyTrinkets.java').read_text();ids=set(re.findall(r'charm\("([^"]+)"\)',source))|set(re.findall(r'\{"([^"]+)",\s*\d',source))
-quest_text={p.stem:p.read_text() for p in (ROOT/'modpack/config/ftbquests/quests/chapters').glob('*.snbt')};recipe_text={str(p.relative_to(D)):p.read_text() for p in (D/'recipes').rglob('*.json')}
-loot_text={str(p.relative_to(D)):p.read_text() for p in (D/'loot_tables').rglob('*.json')}
-output=[]
-for id in sorted(ids):
- recipes=[p for p,s in recipe_text.items() if re.search(r'"result"\s*:\s*\{[^}]*"item"\s*:\s*"dynasty:'+id+'"',s)]
- loot=[p for p,s in loot_text.items() if '"dynasty:'+id+'"' in s]
- quests=[p for p,s in quest_text.items() if 'dynasty:'+id+'"' in s]
- output.append({'id':id,'sources':sorted(recipes)+sorted(loot)+['trinket_box (existing weighted pool)'],'chapters':sorted(quests),'review':'NO_TASK_LINK' if not quests else 'SOURCE_AND_TASK_VERIFIED','visual':'existing renderer + proc feedback; client review pending'})
+# Source, mechanism, duplicate-rule and exact objective audit share one owner.
+import runpy
+runpy.run_path(str(ROOT/'tools/cod4/audit_accessories.py'),run_name='__main__')
+output=json.loads((ROOT/'docs/cod4/accessory-audit.json').read_text())
 report={'secondary_entities':len(rows),'animation_states':sum(len(json.loads((A/'animations/secondary'/f"{row['id']}.animation.json").read_text())['animations']) for row in rows),'new_effects':8,'material_recipe_uses':dict(uses),'accessories_reviewed':len(output),'runtime_evidence':'See verification.md; static coverage does not certify visuals or behavior completeness.'}
-(ROOT/'docs/cod4/content-audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n');(ROOT/'docs/cod4/accessory-audit.json').write_text(json.dumps(output,ensure_ascii=False,indent=2)+'\n')
+(ROOT/'docs/cod4/content-audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps(report,ensure_ascii=False))

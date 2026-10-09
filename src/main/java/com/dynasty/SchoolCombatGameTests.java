@@ -417,7 +417,7 @@ public final class SchoolCombatGameTests {
             var inventory = (IItemHandlerModifiable) stacksApi.getMethod("getStacks").invoke(slots);
             inventory.setStackInSlot(0, stack);
         } catch (ReflectiveOperationException failure) { throw new IllegalStateException("Real Curios equipment fixture failed", failure); }
-        DynastyTrinkets.forget(player); // model the next tick after equipment change, not an old same-tick cache
+        DynastyTrinkets.invalidateScan(player); // a new equipment scan keeps the previous modifier cleanup ledger
     }
 
     @GameTest(template = "bow_ritual_test", timeoutTicks = 30)

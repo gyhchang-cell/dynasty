@@ -406,12 +406,14 @@ public final class DynastyTrinkets {
     private static void applyExtra(Player player, java.util.Set<String> active) {
         for (Object[] row : EXTRA_TABLE) {
             String id = (String) row[0];
-            if (!active.contains(id) || !conditionMet(player, (Integer) row[7])) {
+            if (!active.contains(id)) {
                 continue;
             }
-            applySpecAttr(player, id, 0, (Integer) row[1], (Double) row[2]);
-            applySpecAttr(player, id, 0, (Integer) row[3], (Double) row[4]);
-            applySpecEffect(player, (Integer) row[5], (Integer) row[6]);
+            if (conditionMet(player, (Integer) row[7])) {
+                applySpecAttr(player, id, 0, (Integer) row[1], (Double) row[2]);
+                applySpecAttr(player, id, 0, (Integer) row[3], (Double) row[4]);
+                applySpecEffect(player, (Integer) row[5], (Integer) row[6]);
+            }
             if (row.length > 10 && conditionMet(player, (Integer) row[10])) {
                 applySpecAttr(player, id, 1, (Integer) row[8], (Double) row[9]);
             }
@@ -627,10 +629,14 @@ public final class DynastyTrinkets {
     private static final Map<UUID, Integer> SCAN_STAMP = new HashMap<>();
 
     /** 玩家登出时清掉缓存（由 DynastyWorldEvents 的登出事件调用）*/
+    static void invalidateScan(Player player) {
+        SCAN_CACHE.remove(player.getUUID());
+        SCAN_STAMP.remove(player.getUUID());
+    }
+
     public static void forget(Player player) {
         UUID id = player.getUUID();
-        SCAN_CACHE.remove(id);
-        SCAN_STAMP.remove(id);
+        invalidateScan(player);
         APPLIED.remove(id);
         DynastyTrinketOnHit.forget(player);     // 连击状态也一起清
         DynastyTrinketLink.forget(player);      // 连携提示去重记录
@@ -785,6 +791,10 @@ public final class DynastyTrinkets {
                     instance.removeModifier(uuid(id, key + a));
                 }
             }
+            // Percentage max health is code 9, outside the nine-attribute array.
+            // Keep its original UUID, but clear it in every original slot too.
+            AttributeInstance health = player.getAttribute(Attributes.MAX_HEALTH);
+            if (health != null) health.removeModifier(uuid(id, key + 9));
             // 「距离」用的是 Forge 的触及距离属性，单独清一次 / clear the Forge reach modifier too
             AttributeInstance reach =
                     player.getAttribute(net.minecraftforge.common.ForgeMod.ENTITY_REACH.get());
