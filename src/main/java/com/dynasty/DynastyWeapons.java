@@ -108,7 +108,7 @@ public final class DynastyWeapons {
                         SoundSource.PLAYERS, 1.5F, 1.0F);
                 player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 20 * 8, 0));
             }
-            player.getCooldowns().addCooldown(this, 120);
+            player.getCooldowns().addCooldown(this, com.dynasty.expansion.EquipmentBehaviors.cooldown(player,120));
             player.swing(hand, true);
             return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
         }

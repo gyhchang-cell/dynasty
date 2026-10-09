@@ -57,7 +57,7 @@ public final class DynastySchoolWeapons {
         }
         private void guardCooldown(LivingEntity user) {
             if (!user.level().isClientSide && user instanceof Player player && !player.getCooldowns().isOnCooldown(this))
-                player.getCooldowns().addCooldown(this, SchoolCombatRules.GUARD_COOLDOWN);
+                player.getCooldowns().addCooldown(this, com.dynasty.expansion.EquipmentBehaviors.cooldown(player,SchoolCombatRules.GUARD_COOLDOWN));
         }
     }
 

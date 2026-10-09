@@ -145,7 +145,7 @@ public final class EquipmentBehaviors {
         purifyCinnabar(p);
         if(pieces(p,"xuantian")>=4)for(var mob:p.level().getEntitiesOfClass(Mob.class,p.getBoundingBox().inflate(4),m->m.getTarget()==p && !ExpansionEffects.boss(m)))mob.addEffect(new MobEffectInstance(MobEffects.WEAKNESS,30,0));
         if(pieces(p,"draco_king")>=3) SummonedGuard.maintain(p,pieces(p,"draco_king")>=4?2:1);
-        if(pieces(p,"taiyi")>=4 && p.experienceLevel>=30 && ready(p,"taiyiGlow",6000)) {p.heal(p.getMaxHealth()*.05F);CombatFeedback.send(p,CombatFeedback.HEAL);}
+        taiyiGlow(p);
         if(pieces(p,"hunyuan")>=4 && n.getInt("cod4Rage")>=5) {n.putInt("cod4Rage",0);ExpansionEffects.apply(p,ExpansionEffects.YANG,100);}
         if(has(p,"sea_pearl") && p.isInWater() && p.tickCount%60==0)CombatFeedback.send(p,CombatFeedback.WATER);
     }
@@ -175,6 +175,12 @@ public final class EquipmentBehaviors {
     }
     public static boolean auspiciousGuard(Player p,float roll) {
         return pieces(p,"qilin")>=3 && roll<.15F;
+    }
+    public static boolean taiyiGlow(ServerPlayer p){
+        if(pieces(p,"taiyi")<4||p.experienceLevel<30||!ready(p,"taiyiGlow",6000))return false;
+        p.heal(p.getMaxHealth()*.05F);CombatFeedback.send(p,CombatFeedback.HEAL);
+        com.dynasty.cod3.Cod3Vfx.send(p.serverLevel(),14,p.position(),p.getLookAngle(),20,.1,0xE7C866);
+        return true;
     }
     public static void phoenixIgnited(Player p) {
         p.getPersistentData().putLong("cod4PhoenixAttack",now(p)+60);

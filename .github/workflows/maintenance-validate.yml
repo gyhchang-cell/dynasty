@@ -33,6 +33,7 @@ jobs:
         shell: bash
         run: |
           case "$GITHUB_REF_NAME" in
+            *cod4-continuation*) namespaces=dynasty_cod4,dynasty_cod3,dynasty_network; minimum=52 ;;
             *cod1-3*) namespaces=dynasty_cod2,dynasty_network; minimum=61 ;;
             *cod4*) namespaces=dynasty_cod4,dynasty_network; minimum=32 ;;
             *cod6*) namespaces=dynasty_cod6,dynasty_cod3,dynasty_infusion,dynasty_network; minimum=61 ;;
@@ -54,6 +55,12 @@ jobs:
               raise SystemExit('No successful complete GameTest result; process='+os.environ['TEST_PROCESS_STATUS']+', passed='+str(count))
           print('Verified actual server completion:',count,'required tests passed')
           PY
+      - name: Verify COD4 content and FTB quest references
+        if: contains(github.ref_name, 'cod4-continuation')
+        run: |
+          python3 tools/cod4/audit.py
+          python3 tools/art/verify_ftbquests.py build/libs
+          bash tools/keju/run_keju_tests.sh
       - name: Preserve branch-built JAR and verification evidence
         if: always() && steps.build.outcome == 'success'
         env:

@@ -189,7 +189,7 @@ public final class DynastySchoolCombat {
         s.origin = player.position();
         s.chargeStart = now(player);
         s.edictUntil = -1;
-        player.getCooldowns().addCooldown(DynastyWeapons.CHILING_BRUSH.get(), SchoolCombatRules.EDICT_COOLDOWN);
+        player.getCooldowns().addCooldown(DynastyWeapons.CHILING_BRUSH.get(), com.dynasty.expansion.EquipmentBehaviors.cooldown(player,SchoolCombatRules.EDICT_COOLDOWN));
         boolean seal = has(player, "sitian_seal");
         var targets = player.level().getEntitiesOfClass(LivingEntity.class,
                 player.getBoundingBox().inflate(SchoolCombatRules.EDICT_RADIUS),
