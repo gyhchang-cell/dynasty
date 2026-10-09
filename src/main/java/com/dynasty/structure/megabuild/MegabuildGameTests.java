@@ -27,7 +27,9 @@ public final class MegabuildGameTests {
             h.assertTrue(level.getBlockState(origin.offset(x,1,z)).getValue(net.minecraft.world.level.block.StairBlock.FACING)==direction,"Real-world stair direction wrong at rotation "+rot);
         }h.succeed();
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=600)
+    // Keep the121 native chunk writes and their real light/spawner assertions
+    // out of the default batch's simultaneous combat/structure fixtures.
+    @GameTest(template="bow_ritual_test",batch="megabuild_workshop_native",timeoutTicks=600)
     public static void fullWorkshopPlacement(GameTestHelper h){
         var level=h.getLevel();
         var origin=new BlockPos(2048,100,2048);

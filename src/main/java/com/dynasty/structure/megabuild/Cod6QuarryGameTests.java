@@ -28,7 +28,7 @@ public final class Cod6QuarryGameTests {
             var chest=new SimpleContainer(27);MiningRewards.fillNew(chest,seed);int nonempty=0;
             for(int i=0;i<27;i++)if(!chest.getItem(i).isEmpty()) {
                 var s=chest.getItem(i);nonempty++;items+=s.getCount();
-                h.assertTrue(s.getCount()>=8&&s.getCount()<=12,"Stack outside requested range");
+                h.assertTrue(s.is(com.dynasty.DynastyItems.JADE.get())?s.getCount()==1:s.getCount()>=10&&s.getCount()<=12,"Original core/resource stack outside bounded requested mean");
                 h.assertTrue(!s.is(Items.IRON_INGOT)&&!s.is(Items.GOLD_INGOT)&&!s.is(Items.COPPER_INGOT),"Smelted reward");
             }
             h.assertTrue(nonempty==9,"Final inventory is not one third full");slots+=nonempty;
