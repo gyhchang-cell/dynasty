@@ -55,11 +55,7 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         for(int i=0;i<28;i++) {
             double angle=i*Math.PI*2/28;
             int x=(int)Math.round(31.5+18*Math.cos(angle)),z=(int)Math.round(15.5+9*Math.sin(angle));
-            var star=new BlockPos(x,vaultRoof(x,z),z);
-            // Two authored constellations share two roof cells. Hang the older
-            // lights immediately below those cells so neither pattern is overwritten.
-            if(ChenshaVaultLayout.constellationOffsets().contains(star))star=star.below();
-            points.add(star);
+            points.add(new BlockPos(x,vaultRoof(x,z),z));
         }
         return List.copyOf(points);
     }
@@ -105,8 +101,9 @@ public final class ChenshaPiece extends DynastyStructurePiece {
             int roof=ChenshaVaultLayout.roofHeight(x,z);
             if(d<=1.1&&y<=roof)result=y==0||y==roof||d>1?shell():Blocks.AIR.defaultBlockState();
             if(y==0&&ChenshaVaultLayout.moatCell(x,z))result=DungeonContent.MERCURY_CHANNEL.get().defaultBlockState();
-            int dais=ChenshaVaultLayout.daisHeight(x,z);
-            if(dais>0&&in(y,1,dais))result=Blocks.QUARTZ_BLOCK.defaultBlockState();
+            int dais=x<=31?daisHeight(x,z):Math.max(daisHeight(x,z),ChenshaVaultLayout.daisHeight(x,z));
+            if(dais>0&&in(y,1,dais))result=(x<=31?
+                (y==dais?Blocks.SMOOTH_QUARTZ:Blocks.QUARTZ_BRICKS):Blocks.QUARTZ_BLOCK).defaultBlockState();
             if(y==0&&in(x,30,34)&&in(z,22,27))result=Blocks.QUARTZ_BLOCK.defaultBlockState();
         }
         // Do not let the arena's north wall block the downward stair connector.

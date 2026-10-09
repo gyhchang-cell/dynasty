@@ -37,6 +37,14 @@ public final class ChenshaVaultLayout {
                 double angle=2*Math.PI*(index+.25)/count;
                 int x=(int)Math.round(31.5+rx*Math.cos(angle));
                 int z=(int)Math.round(15.5+rz*Math.sin(angle));
+                // The existing 28-light ring must not be overwritten when both
+                // development batches are installed. Shift only coincident new lamps.
+                for(int old=0;old<28;old++) {
+                    double a=old*Math.PI*2/28;
+                    if(x==(int)Math.round(31.5+18*Math.cos(a))&&z==(int)Math.round(15.5+9*Math.sin(a))) {
+                        x++;break;
+                    }
+                }
                 points.add(new BlockPos(x,roofHeight(x,z),z));
             }
         }
