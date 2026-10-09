@@ -1,0 +1,86 @@
+name: Validate maintenance source
+on:
+  push:
+    branches: ['maintenance/latest-cod6-20261009']
+    paths-ignore: ['modpack/mods/dynasty-1.4.0.jar', 'docs/maintenance/validation/**']
+permissions:
+  contents: read
+concurrency:
+  group: maintenance-validation-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Build this exact source
+        id: build
+        run: |
+          python3 tools/art/make_local_repo.py
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2' build
+      - name: Compile retained dungeon client QA modes
+        run: ./gradlew --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2' -I tools/blueprint/cod2-client.init.gradle -Pcod2PrepareOnly -Pcod2ClientRun=integration-compile compileCod2QaJava
+      - name: Run required Forge GameTests
+        id: gametests
+        continue-on-error: true
+        shell: bash
+        run: |
+          namespaces=dynasty_cod2,dynasty_cod3,dynasty_cod4,dynasty_cod6,dynasty_infusion,dynasty_network; minimum=131
+          export TEST_MINIMUM="$minimum"
+          set +e
+          timeout 900 ./gradlew --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2' -I tools/maintenance/remote-validation.init.gradle -PmaintenanceNamespaces="$namespaces" runGameTestServer 2>&1 | tee maintenance-gametests.log
+          gradle_status=${PIPESTATUS[0]}
+          set -e
+          export TEST_PROCESS_STATUS="$gradle_status"
+          python3 - <<'PY'
+          import os,re,pathlib
+          log=pathlib.Path('maintenance-gametests.log').read_text(errors='replace')
+          matches=re.findall(r'All (\d+) required tests passed',log)
+          count=max(map(int,matches),default=0)
+          if int(os.environ['TEST_PROCESS_STATUS']) or count<int(os.environ['TEST_MINIMUM']):
+              raise SystemExit('No successful complete GameTest result; process='+os.environ['TEST_PROCESS_STATUS']+', passed='+str(count))
+          print('Verified actual server completion:',count,'required tests passed')
+          PY
+      - name: Verify COD4 content and FTB quest references
+        if: steps.build.outcome == 'success'
+        run: |
+          python3 tools/cod4/audit.py
+          python3 tools/art/verify_ftbquests.py build/libs
+          bash tools/keju/run_keju_tests.sh
+      - name: Record built artifact provenance
+        if: always() && steps.build.outcome == 'success'
+        env:
+          TEST_OUTCOME: ${{ steps.gametests.outcome }}
+        run: |
+          python3 - <<'PY'
+          import os,json,hashlib,pathlib
+          jar=pathlib.Path('build/libs/dynasty-1.4.0.jar')
+          result={'source_commit':os.environ['GITHUB_SHA'],'branch':os.environ['GITHUB_REF_NAME'],'sha256':hashlib.sha256(jar.read_bytes()).hexdigest(),'build':'success','gametests':os.environ['TEST_OUTCOME'],'run_id':os.environ['GITHUB_RUN_ID']}
+          pathlib.Path('maintenance-result.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result))
+          PY
+      - name: Preserve validation artifacts without changing Git refs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-cod6-validation
+          retention-days: 7
+          path: |
+            build/libs/dynasty-1.4.0.jar
+            maintenance-gametests.log
+            maintenance-result.json
+      - name: Require passing GameTests
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          TEST_OUTCOME: ${{ steps.gametests.outcome }}
+        run: test "$BUILD_OUTCOME" = success && test "$TEST_OUTCOME" = success

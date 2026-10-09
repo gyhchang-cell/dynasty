@@ -22,7 +22,7 @@ public final class DynastyWeaponProgression {
         var id = ForgeRegistries.ITEMS.getKey(stack.getItem());
         return id != null && id.getNamespace().equals(Dynasty.MODID)
                 && (stack.getItem() instanceof SwordItem || stack.getItem() instanceof AxeItem
-                    || stack.getItem() instanceof BowItem || stack.getItem() instanceof TridentItem);
+                    || stack.getItem() instanceof BowItem || stack.getItem() instanceof CrossbowItem || stack.getItem() instanceof TridentItem);
     }
     public static int level(ItemStack stack) {
         return stack.hasTag() ? Math.max(1, stack.getTag().getCompound(KEY).getInt("level")) : 1;
@@ -46,9 +46,9 @@ public final class DynastyWeaponProgression {
         if (event.getLevel().isClientSide || !(event.getEntity() instanceof AbstractArrow arrow)
                 || !(arrow.getOwner() instanceof Player player) || arrow.getPersistentData().contains(SHOT)) return;
         ItemStack bow = player.getUseItem();
-        if (!(bow.getItem() instanceof BowItem)) bow = player.getMainHandItem();
-        if (!(bow.getItem() instanceof BowItem)) bow = player.getOffhandItem();
-        if (!eligible(bow) || !(bow.getItem() instanceof BowItem)) return;
+        if (!(bow.getItem() instanceof BowItem || bow.getItem() instanceof CrossbowItem)) bow = player.getMainHandItem();
+        if (!(bow.getItem() instanceof BowItem || bow.getItem() instanceof CrossbowItem)) bow = player.getOffhandItem();
+        if (!eligible(bow) || !(bow.getItem() instanceof BowItem || bow.getItem() instanceof CrossbowItem)) return;
         CompoundTag growth = bow.getOrCreateTagElement(KEY);
         if (!growth.hasUUID("identity")) growth.putUUID("identity", UUID.randomUUID());
         arrow.getPersistentData().put(SHOT, bow.save(new CompoundTag()));

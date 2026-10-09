@@ -34,6 +34,12 @@ public final class DynastyBalance {
     static {
         // 名器特攻（原版 ATTACK_DAMAGE 上限 2048，超出的部分走这里，所以在战斗里依然能打得更重）
         // Named weapons deal flat extra damage on hit, past the vanilla 2048 attribute cap.
+        WEAPON_BONUS.put("repeating_crossbow", 20.0D);
+        WEAPON_BONUS.put("siege_crossbow", 90.0D);
+        WEAPON_BONUS.put("rope_dart", 40.0D);
+        WEAPON_BONUS.put("meteor_hammer", 110.0D);
+        WEAPON_BONUS.put("mandarin_duck_axe", 35.0D);
+        WEAPON_BONUS.put("flying_claw", 30.0D);
         WEAPON_BONUS.put("sword_dragon_crystal", 150.0D);
         WEAPON_BONUS.put("yitian_sword", 90.0D);
         WEAPON_BONUS.put("qinggang_sword", 70.0D);
