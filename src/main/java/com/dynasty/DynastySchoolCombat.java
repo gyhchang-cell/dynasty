@@ -47,7 +47,7 @@ public final class DynastySchoolCombat {
 
     private DynastySchoolCombat() { }
     static final class State {
-        UUID attacked, comboTarget, marked;
+        UUID attacked, primaryTarget, comboTarget, marked;
         long attackTick = -1, counterUntil = -1, comboTick = -1, markedTick = -1, chargeStart = -1, edictUntil = -1;
         float attackStrength;
         int combo;
@@ -93,11 +93,19 @@ public final class DynastySchoolCombat {
         if (!held.equals(s.held)) resetOnSwap(player, s, held);
         // Vanilla resets attackStrengthTicker before LivingHurtEvent: capture before Player.attack instead.
         s.attacked = event.getTarget().getUUID();
+        s.primaryTarget = s.attacked;
         s.attackTick = now(player);
         s.attackStrength = player.getAttackStrengthScale(0.5F);
         s.attackWeapon = held;
         if (!held.equals("liuyun_sword") || !SchoolCombatRules.fullAttack(s.attackStrength)
                 || !event.getTarget().getUUID().equals(s.comboTarget)) s.combo = 0;
+    }
+
+    /** Vanilla resets the cooldown before Hurt; reuse the pre-attack capture for armor/accessory combo hooks. */
+    public static boolean chargedPrimary(Player player,LivingEntity target) {
+        State s=STATES.get(player.getUUID());
+        if(s==null || s.attackTick!=now(player))return player.getAttackStrengthScale(.5F)>.8F;
+        return target.getUUID().equals(s.primaryTarget) && weapon(player).equals(s.attackWeapon) && s.attackStrength>.8F;
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -133,7 +141,7 @@ public final class DynastySchoolCombat {
         s.attacked = null; // exactly once, and only the explicit attack target
         String held = weapon(player);
         if (!held.equals(s.attackWeapon) || !SchoolCombatRules.fullAttack(s.attackStrength) || !player.hasLineOfSight(target)) return;
-        if (held.equals("zhenyue_blade") && s.counterUntil >= now(player)) {
+        if ((held.equals("zhenyue_blade") || held.equals("beichen_spear")) && s.counterUntil >= now(player)) {
             s.counterUntil = -1;
             event.setAmount(event.getAmount() * 1.35F);
             if (has(player, "huben_bracer")) {
@@ -181,6 +189,21 @@ public final class DynastySchoolCombat {
         }
     }
 
+    static int edictWindow(Player player) {
+        return SchoolCombatRules.EDICT_WINDOW + (DynastySchoolProgression.equippedSynergy(player,"talisman") ? SchoolCombatRules.EDICT_WINDOW/5 : 0);
+    }
+    static void finishSpellCharge(Player player,boolean hadTarget) {
+        String held=weapon(player);
+        if(!Set.of("chiling_brush","leifu_staff").contains(held))return;
+        State s=state(player);
+        if(!held.equals(s.held))resetOnSwap(player,s,held);
+        s.edictUntil=now(player)+edictWindow(player);s.edictHadTarget=hadTarget;cue(player,"edict_ready");
+    }
+    static float consumeSpellWindow(Player player) {
+        State s=STATES.get(player.getUUID());String held=weapon(player);
+        if(s==null || !held.equals(s.held) || !Set.of("chiling_brush","leifu_staff").contains(held) || s.edictUntil<now(player))return 1;
+        s.edictUntil=-1;if(s.edictHadTarget)trial(player,"talisman");s.edictHadTarget=false;return 1.5F;
+    }
     static int startEdict(Player player) {
         if (player.level().isClientSide || !weapon(player).equals("chiling_brush")
                 || player.getCooldowns().isOnCooldown(DynastyWeapons.CHILING_BRUSH.get())) return 0;
@@ -212,7 +235,7 @@ public final class DynastySchoolCombat {
         if (!charging(player, s)) { endCharge(player); return; }
         silkResistance(player, has(player, "dingfeng_silk"));
         if (now(player) - s.chargeStart >= SchoolCombatRules.EDICT_CHARGE) {
-            s.edictUntil = now(player) + SchoolCombatRules.EDICT_WINDOW + (DynastySchoolProgression.equippedSynergy(player, "talisman") ? SchoolCombatRules.EDICT_WINDOW / 5 : 0);
+            s.edictUntil = now(player) + edictWindow(player);
             endCharge(player);
             player.stopUsingItem();
             cue(player, "edict_ready");

@@ -404,7 +404,7 @@ public final class SchoolCombatGameTests {
     }
 
     /** No Curios class references in the enclosing test class: standalone mod testing still boots. */
-    private static void equip(net.minecraft.world.entity.player.Player player, String slot, ItemStack stack) {
+    static void equip(net.minecraft.world.entity.player.Player player, String slot, ItemStack stack) {
         if (!DynastyCuriosSetup.isLoaded()) player.getInventory().setItem(9, stack);
         else try {
             Class<?> api = Class.forName("top.theillusivec4.curios.api.CuriosApi");

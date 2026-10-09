@@ -20,7 +20,10 @@ public final class DynastySchoolWeapons {
     public static class SchoolBlade extends SwordItem {
         private final String id;
         SchoolBlade(String id, int damage, float speed) {
-            super(DynastyTiers.BRONZE, damage, speed, new Item.Properties());
+            this(id, DynastyTiers.BRONZE, damage, speed);
+        }
+        SchoolBlade(String id, Tier tier, int damage, float speed) {
+            super(tier, damage, speed, new Item.Properties());
             this.id = id;
         }
         @Override public void appendHoverText(ItemStack stack, Level level, List<Component> lines, TooltipFlag flag) {
@@ -30,7 +33,8 @@ public final class DynastySchoolWeapons {
     }
 
     public static final class GuardBlade extends SchoolBlade {
-        public GuardBlade() { super("zhenyue_blade", 157, -2.6F); }
+        public GuardBlade() { this("zhenyue_blade", DynastyTiers.BRONZE, 157, -2.6F); }
+        public GuardBlade(String id, Tier tier, int damage, float speed) { super(id, tier, damage, speed); }
         @Override public UseAnim getUseAnimation(ItemStack stack) { return UseAnim.BLOCK; }
         @Override public int getUseDuration(ItemStack stack) { return 72000; }
         @Override public boolean canPerformAction(ItemStack stack, ToolAction action) {

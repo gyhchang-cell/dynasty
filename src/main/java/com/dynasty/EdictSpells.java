@@ -97,13 +97,15 @@ public final class EdictSpells {
             if(victim!=null)damage(p,victim,kind,origin,point);
             return;
         }
+        boolean hadTarget=false;
         double radius=kind==1?3:kind==5?4:2.5;
         Vec3 center=kind==1?origin.add(point.subtract(origin).normalize().scale(Math.min(7,origin.distanceTo(point)))):point;
         for(var target:p.level().getEntitiesOfClass(LivingEntity.class,new AABB(center,center).inflate(radius),t->hostile(p,t))) {
             if(!visible(p,target)||target.getBoundingBox().distanceToSqr(center)>radius*radius
                     ||!clearRay(p,origin,center)||!clearRay(p,center,target.getBoundingBox().getCenter()))continue;
-            damage(p,target,kind,origin,point);
+            hadTarget|=damage(p,target,kind,origin,point);
         }
+        DynastySchoolCombat.finishSpellCharge(p,hadTarget);
     }
     private static boolean clearRay(ServerPlayer p,Vec3 from,Vec3 to) {
         var direction=to.subtract(from);
@@ -111,20 +113,23 @@ public final class EdictSpells {
         var hit=p.level().clip(new ClipContext(from.add(direction.normalize().scale(.001)),to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
         return hit.getType()==HitResult.Type.MISS||hit.getLocation().distanceToSqr(to)<1.0e-6;
     }
-    private static void damage(ServerPlayer p,LivingEntity target,int kind,Vec3 origin,Vec3 point) {
+    private static boolean damage(ServerPlayer p,LivingEntity target,int kind,Vec3 origin,Vec3 point) {
         var source=new DamageSource(p.level().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(DAMAGE),p,p);
         double base=1;
         for(var modifier:p.getMainHandItem().getAttributeModifiers(net.minecraft.world.entity.EquipmentSlot.MAINHAND).get(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE))
             if(modifier.getOperation()==net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADDITION)base+=modifier.getAmount();
         base+=DynastyBalance.weaponBonus(DynastyTrinkets.idOf(p.getMainHandItem()));
-        if(target.hurt(source,(float)(Math.max(100,base)*POWER[kind]))) {
+        float window=kind==0?DynastySchoolCombat.consumeSpellWindow(p):1;
+        if(target.hurt(source,(float)(Math.max(100,base)*POWER[kind]*window))) {
                 if(kind==1){var push=point.subtract(origin).normalize().scale(.4);target.push(push.x,.12,push.z);}
                 if(kind==3) {
                     boolean boss=target instanceof DynastyBossCombat.BarHolder||target instanceof com.dynasty.ritual.ZhenyuanSovereign||target instanceof com.dynasty.entity.UndeadFirstEmperor;
-                    if(!boss)target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,40,3));
+                    if(!boss)target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,DynastySchoolCombat.has(p,"sitian_seal")?60:40,3));
                     else if(com.dynasty.entity.DynastyBossMechanics.weak(target))target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,10,0));
                 }
+                return true;
         }
+        return false;
     }
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e){var c=ACTIVE.remove(e.getEntity().getUUID());if(c!=null)visual(c,-1);}
     @SubscribeEvent public static void stopped(net.minecraftforge.event.server.ServerStoppedEvent e){ACTIVE.clear();}

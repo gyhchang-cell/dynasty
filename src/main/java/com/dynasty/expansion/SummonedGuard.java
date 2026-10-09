@@ -16,7 +16,7 @@ public final class SummonedGuard {
         var n=EquipmentBehaviors.saved(p);long now=p.level().getGameTime();
         if(now<n.getLong("guardsUntil"))return;
         long generation=n.getLong("guardGeneration")+1;
-        int spawned=0;
+        var prepared=new java.util.ArrayList<SecondaryMob>();
         for(int i=0;i<count;i++) {
             var guard=(i==0?SecondaryMobs.SHRIMP.get():SecondaryMobs.TYPES.get("crab_soldier").get()).create(p.level());if(guard==null)continue;
             boolean placed=false;
@@ -26,14 +26,20 @@ public final class SummonedGuard {
                 var pos=p.blockPosition().offset(x,0,z);
                 if(!p.level().hasChunkAt(pos)||!p.level().getFluidState(pos).is(net.minecraft.tags.FluidTags.WATER))continue;
                 guard.moveTo(pos.getX()+.5,p.getY(),pos.getZ()+.5,0,0);
-                placed=p.level().noCollision(guard);
+                placed=p.level().noCollision(guard) && !guard.getBoundingBox().intersects(p.getBoundingBox())
+                        && prepared.stream().noneMatch(other->other.getBoundingBox().intersects(guard.getBoundingBox()));
             }
             if(!placed)continue;
             guard.getPersistentData().putUUID("cod4Summoner",p.getUUID());guard.getPersistentData().putLong("cod4Expires",now+600);
             guard.getPersistentData().putLong("cod4GuardGeneration",generation);guard.getPersistentData().putInt("cod4MinPieces",i==0?3:4);
-            if(p.level().addFreshEntity(guard))spawned++;
+            prepared.add(guard);
         }
-        if(spawned>0){n.putLong("guardsUntil",now+600);n.putLong("guardGeneration",generation);}
+        // A requested pair is one lease. Never strand one member for thirty seconds on partial placement.
+        if(prepared.size()!=count)return;
+        for(var guard:prepared)if(!p.level().addFreshEntity(guard)){
+            prepared.forEach(net.minecraft.world.entity.Entity::discard);return;
+        }
+        n.putLong("guardsUntil",now+600);n.putLong("guardGeneration",generation);
     }
     public static void tick(SecondaryMob mob) {
         var n=mob.getPersistentData();var owner=mob.level().getPlayerByUUID(n.getUUID("cod4Summoner"));

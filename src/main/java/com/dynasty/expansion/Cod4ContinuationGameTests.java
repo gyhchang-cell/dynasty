@@ -98,7 +98,7 @@ public final class Cod4ContinuationGameTests {
         var q=player(h);q.getPersistentData().merge(p.getPersistentData().copy());DynastyMerit.onFirstObtain(q,"dragon_crystal");
         h.assertTrue(DynastyStats.getMerit(q)==once,"Existing first-pickup flag survives reconstructed player state");h.succeed();
     }
-    private static void equipCharm(ServerPlayer p,ItemStack stack){
+    static void equipCharm(ServerPlayer p,ItemStack stack){
         if(!DynastyCuriosSetup.isLoaded())p.getInventory().setItem(9,stack);
         else try{
             Class<?> api=Class.forName("top.theillusivec4.curios.api.CuriosApi");

@@ -384,7 +384,7 @@ public final class DynastyWeapons {
             () -> new TaiyiWhiskItem(DynastyTiers.DRAGON_CRYSTAL, 3459, -2.2F, new Item.Properties()));
     /** 37. 玄武盾刀 / Xuanwu Blade：4000，特攻 +550 */
     public static final RegistryObject<Item> XUANWU_BLADE =
-            sword("xuanwu_blade", DynastyTiers.DRAGON_CRYSTAL, 3859, -2.6F);
+            ITEMS.register("xuanwu_blade", () -> new DynastySchoolWeapons.GuardBlade("xuanwu_blade", DynastyTiers.DRAGON_CRYSTAL, 3859, -2.6F));
     /** 38. 朱雀羽扇 / Zhuque Fan：4400，特攻 +600 */
     public static final RegistryObject<Item> ZHUQUE_FAN =
             sword("zhuque_fan", DynastyTiers.DRAGON_CRYSTAL, 4259, -2.0F);
@@ -420,7 +420,7 @@ public final class DynastyWeapons {
     public static final RegistryObject<Item> ZHUXING_BOW = ITEMS.register("zhuxing_bow", DynastySchoolWeapons.StarBow::new);
     public static final RegistryObject<Item> CHILING_BRUSH = ITEMS.register("chiling_brush", DynastySchoolWeapons.EdictBrush::new);
     public static final RegistryObject<Item> BEICHEN_SPEAR = ITEMS.register("beichen_spear",
-            () -> new DynastySchoolWeapons.SchoolBlade("beichen_spear", 227, -2.7F));
+            () -> new DynastySchoolWeapons.GuardBlade("beichen_spear", DynastyTiers.BRONZE, 227, -2.7F));
     public static final RegistryObject<Item> CHENGYING_SWORD = ITEMS.register("chengying_sword",
             () -> new DynastySchoolWeapons.SchoolBlade("chengying_sword", 187, -1.8F));
     public static final RegistryObject<Item> FENGLING_BOW = ITEMS.register("fengling_bow", DynastySchoolWeapons.WindBow::new);

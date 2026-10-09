@@ -297,7 +297,7 @@ public final class ExpansionGameTests {
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="cod4")
     public static void stormCharmStrikesOnFirstProcWithoutBuildingMarks(GameTestHelper h) {
-        var p=player(h);p.getInventory().add(new ItemStack(DynastyTrinkets.STORM_CHARM.get()));p.tickCount++;
+        var p=player(h);Cod4ContinuationGameTests.equipCharm(p,new ItemStack(DynastyTrinkets.STORM_CHARM.get()));
         var target=new Zombie(h.getLevel());target.setPos(p.position().add(1,0,0));
         float rain=h.getLevel().getRainLevel(1),thunder=h.getLevel().getThunderLevel(1);
         try {

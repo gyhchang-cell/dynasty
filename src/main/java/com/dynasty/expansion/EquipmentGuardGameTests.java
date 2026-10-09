@@ -135,5 +135,20 @@ public final class EquipmentGuardGameTests {
             n.putBoolean("dynasty_gift_supreme_sword",true);h.assertTrue(EquipmentBehaviors.revengeBonus(p,rebel,"supreme_sword")==.15F,"Canonical court gift counters court enemies");h.succeed();
         }finally{DynastyTrinkets.forget(p);p.discard();}
     }
+    @GameTest(template="bow_ritual_test",batch="cod4_atomic_guard_pair")
+    public static void partlyBlockedPairDoesNotLeaseOneGuardOrOverlapAndCanRetry(GameTestHelper h){
+        for(int x=2;x<=10;x++)for(int z=2;z<=10;z++)for(int y=1;y<=4;y++)h.setBlock(x,y,z,Blocks.STONE);
+        for(int x:new int[]{5,6})for(int y=2;y<=3;y++)h.setBlock(x,y,6,Blocks.WATER);
+        var p=player(h);h.getLevel().addNewPlayer(p);suit(p,"draco_king",4);p.baseTick();
+        try{
+            SummonedGuard.maintain(p,2);
+            var guards=h.getLevel().getEntitiesOfClass(SecondaryMob.class,p.getBoundingBox().inflate(8),m->m.getPersistentData().hasUUID("cod4Summoner")&&m.getPersistentData().getUUID("cod4Summoner").equals(p.getUUID()));
+            h.assertTrue(guards.isEmpty()&&EquipmentBehaviors.saved(p).getLong("guardsUntil")==0,"A single safe tile cannot consume a pair lease or spawn overlapping carriers");
+            for(int y=2;y<=3;y++)h.setBlock(7,y,6,Blocks.WATER);SummonedGuard.maintain(p,2);
+            guards=h.getLevel().getEntitiesOfClass(SecondaryMob.class,p.getBoundingBox().inflate(8),m->m.getPersistentData().hasUUID("cod4Summoner")&&m.getPersistentData().getUUID("cod4Summoner").equals(p.getUUID()));
+            h.assertTrue(guards.size()==2&&!guards.get(0).getBoundingBox().intersects(guards.get(1).getBoundingBox()),"Opening a second tile immediately creates the complete non-overlapping pair");
+            guards.forEach(Entity::discard);h.succeed();
+        }finally{h.getLevel().removePlayerImmediately(p,Entity.RemovalReason.DISCARDED);}
+    }
     private EquipmentGuardGameTests(){}
 }

@@ -213,11 +213,14 @@ public final class EquipmentBehaviors {
         CombatFeedback.send(p,CombatFeedback.PERFECT);return true;
     }
     public static boolean comboWave(ServerPlayer p,LivingEntity target,int combo){
-        if(combo<5||!(pieces(p,"qinglong")>=3||has(p,"dragon_pearl"))||!ready(p,"comboWave",60))return false;
+        if(combo<5||!(pieces(p,"qinglong")>=3||has(p,"dragon_pearl")||strengthenedWave(p))||!ready(p,"comboWave",60))return false;
         var packet=new com.dynasty.cod3.Cod3VisualPacket(p.level().dimension().location().toString(),7,target.getId(),
-                p.getRandom().nextLong(),now(p),20,1,target.position(),p.getLookAngle(),"qinglong_combo_wave",0,0x54CCB8);
+                p.getRandom().nextLong(),now(p),20,strengthenedWave(p)?1.3:1,target.position(),p.getLookAngle(),"qinglong_combo_wave",0,0x54CCB8);
         com.dynasty.network.DynastyNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.NEAR.with(()->new net.minecraftforge.network.PacketDistributor.TargetPoint(
                 target.getX(),target.getY(),target.getZ(),32,p.level().dimension())),packet);
+        if(strengthenedWave(p) && !ExpansionEffects.boss(target))
+            target.knockback(.35,p.getX()-target.getX(),p.getZ()-target.getZ());
+        if(strengthenedWave(p) && id(p.getMainHandItem()).equals("thunder_spear"))ExpansionEffects.apply(target,ExpansionEffects.THUNDER,60);
         if(pieces(p,"qinglong")>=4){p.heal(p.getMaxHealth()*.02F);p.getPersistentData().putLong("cod4QinglongQiUntil",now(p)+60);}
         return true;
     }
@@ -248,6 +251,11 @@ public final class EquipmentBehaviors {
         if(!(e.getEntity() instanceof ServerPlayer p))return;
         var n=p.getPersistentData();n.putLong("cod4BronzeGuard",now(p)+60);
         boolean perfect=perfectGuard(p);
+        String blocking=id(p.getUseItem());
+        if(Set.of("zhenyue_blade","beichen_spear").contains(blocking) && DynastySchoolProgression.equippedSynergy(p,"guard"))
+            e.setBlockedDamage(Math.min(e.getOriginalBlockedDamage(),e.getBlockedDamage()+e.getOriginalBlockedDamage()*.08F));
+        if(blocking.equals("xuanwu_blade") && symbolEquipped(p,"xuanwu"))
+            e.setBlockedDamage(Math.min(e.getOriginalBlockedDamage(),e.getBlockedDamage()+e.getOriginalBlockedDamage()*.1F));
         if(perfect && pieces(p,"xuanwu")>=2) {
             // Run after the school's partial block. Raise a 50% weapon block to 60%
             // of the original hit; an ordinary shield's full block remains full.
@@ -278,7 +286,6 @@ public final class EquipmentBehaviors {
         if(e.getEntity().level().isClientSide || e.getAmount()<=0 || e.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY) || DynastyTrinketOnHit.isSyntheticDamage())return;
         if(e.getEntity() instanceof ServerPlayer p) {
             var n=p.getPersistentData();n.putLong("cod4LastCombat",now(p));
-            if(p.isBlocking() && Set.of("zhenyue_blade","beichen_spear").contains(id(p.getMainHandItem())) && DynastySchoolProgression.equippedSynergy(p,"guard") && !e.getSource().is(DamageTypeTags.BYPASSES_SHIELD))e.setAmount(e.getAmount()*.92F);
             if((pieces(p,"dark_iron")>=3 && n.getInt("cod4Still")>=40) || pieces(p,"hunyuan")>=4)n.putInt("cod4Rage",Math.min(5,n.getInt("cod4Rage")+1));
             if(has(p,"jade_pendant") && !has(p,"heart_mirror") && p.getHealth()<p.getMaxHealth()*.4F)e.setAmount(e.getAmount()*.88F);
             if(auspiciousGuard(p,p.getRandom().nextFloat())) {
@@ -322,21 +329,26 @@ public final class EquipmentBehaviors {
         if(has(p,"storm_charm") && p.level().isThundering() && p.getRandom().nextFloat()<.1F) {
             smallThunder(p,e.getEntity());thunderDamage=4;
         }
-        if(e.getSource().getDirectEntity()==p && p.getAttackStrengthScale(.5F)>.8F) {
+        if(e.getSource().getDirectEntity()==p && e.getSource().is(net.minecraft.world.damagesource.DamageTypes.PLAYER_ATTACK) && DynastySchoolCombat.chargedPrimary(p,e.getEntity())) {
             int combo=DynastyTrinketOnHit.advanceCombo(p,e.getEntity());
             if(pieces(p,"qinglong")>=2)bonus+=.06F*Math.min(3,combo);
-            if(comboWave(p,e.getEntity(),combo))bonus+=.12F;
+            if(comboWave(p,e.getEntity(),combo))bonus+=strengthenedWave(p)?.18F:.12F;
         }
         var used=DynastySchoolCombat.firingWeapon(e.getSource(),p.getMainHandItem());
         if(e.getSource().getDirectEntity() instanceof net.minecraft.world.entity.projectile.AbstractArrow && Set.of("zhuxing_bow","fengling_bow").contains(id(used)) && DynastySchoolProgression.equippedSynergy(p,"archer")){bonus+=.08F;CombatFeedback.send(e.getEntity(),CombatFeedback.STAR);}
         e.setAmount(e.getAmount()*(1+bonus+seriesBonus(p,e.getEntity(),used))+twinBonus(p,used)+thunderDamage);
     }
+    public static boolean symbolEquipped(Player p,String symbol) {
+        return pieces(p,symbol)>0 || DynastyTrinkets.activeIds(p).stream().anyMatch(s->s.startsWith(symbol+"_"));
+    }
+    public static boolean strengthenedWave(Player p) {
+        return Set.of("qinglong_dao","thunder_spear").contains(id(p.getMainHandItem())) && symbolEquipped(p,"qinglong");
+    }
     private static float seriesBonus(Player p,LivingEntity target,ItemStack used) {
-        String main=id(used),off=id(p.getOffhandItem());
-        Set<String> imperial=Set.of("qilin_war_axe","taiyi_sword","baihu_glaive","thunder_spear","ziwei_saber","zhuque_bow");
+        String main=id(used);
         float bonus=0;
         String element=main.startsWith("xuanwu")?"xuanwu":main.startsWith("zhuque")?"zhuque":main.startsWith("qinglong")||main.equals("thunder_spear")?"qinglong":main.startsWith("baihu")?"baihu":"";
-        if(!element.isEmpty() && (pieces(p,element)>0 || DynastyTrinkets.activeIds(p).stream().anyMatch(s->s.startsWith(element))))bonus+=.1F;
+        if(!element.isEmpty() && symbolEquipped(p,element))bonus+=.1F;
         return bonus+revengeBonus(p,target,main);
     }
     /** Canonical drop/gift provenance, with no extra weapon-use gate or second reward flag. */
@@ -376,8 +388,21 @@ public final class EquipmentBehaviors {
     }
     public static int cooldown(Player p,int base) {return pieces(p,"taiyi")>=3?Math.max(1,base*9/10):base;}
     public static String id(ItemStack s) {var id=net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(s.getItem());return id!=null && id.getNamespace().equals("dynasty")?id.getPath():"";}
+    public static void symbolHit(ServerPlayer p,LivingEntity target,ItemStack used) {
+        if(!ExpansionWeapons.enemy(p,target))return;
+        String weapon=id(used);
+        if(Set.of("zhuque_fan","zhuque_bow").contains(weapon) && symbolEquipped(p,"zhuque") && !target.fireImmune() && ready(p,"symbolFire",40)) {
+            target.setSecondsOnFire(4);CombatFeedback.send(target,CombatFeedback.FIRE_RING);
+        }
+        if(weapon.equals("baihu_glaive") && symbolEquipped(p,"baihu") && ready(p,"symbolBreak",80)) {
+            ExpansionEffects.apply(target,ExpansionEffects.BREAK,60);CombatFeedback.send(target,CombatFeedback.ARMOR);
+        }
+    }
     @SubscribeEvent public static void damage(LivingDamageEvent e) {
         if(e.getEntity().level().isClientSide || e.getAmount()<=0)return;
+        if(e.getSource().getEntity() instanceof ServerPlayer attacker && !DynastyTrinketOnHit.isSyntheticDamage()
+                && (e.getSource().getDirectEntity()==attacker || e.getSource().getDirectEntity() instanceof net.minecraft.world.entity.projectile.AbstractArrow))
+            symbolHit(attacker,e.getEntity(),DynastySchoolCombat.firingWeapon(e.getSource(),attacker.getMainHandItem()));
         if(e.getSource().getEntity() instanceof ServerPlayer p && pieces(p,"silver")>=4 && !p.level().isDay() && ExpansionWeapons.enemy(p,e.getEntity()))p.heal(e.getAmount()*.05F);
         if(!(e.getEntity() instanceof ServerPlayer p) || e.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY) || e.getAmount()<p.getHealth())return;
         boolean shell=pieces(p,"xuanwu")>=4 && p.getPersistentData().getBoolean("cod4Shell");
