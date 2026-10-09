@@ -2,6 +2,7 @@ name: Cod2 vault checks
 on:
   push:
     branches: [codex/cod2-chensha-20261009]
+    paths: ['src/**', 'tools/blueprint/**', 'tools/art/make_local_repo.py', 'build.gradle', 'gradle.properties', 'gradle/**', '.github/workflows/cod2-vault-checks.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,7 +11,7 @@ defaults:
     shell: bash
 concurrency:
   group: cod2-vault-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   vault:
     runs-on: ubuntu-24.04
@@ -29,6 +30,12 @@ jobs:
       - name: Build and run all Cod2 server tests
         run: |
           ./gradlew --no-daemon --max-workers=2 -I tools/blueprint/cod2-test.init.gradle -Pcod2TestRun=vault-ci-${GITHUB_RUN_ID} runGameTestServer build 2>&1 | tee build/vault-ci/server.log
+          python3 - <<'PYTEST'
+          from pathlib import Path
+          log = Path('build/vault-ci/server.log').read_text()
+          assert 'All 32 required tests passed' in log, 'Cod2 GameTests did not run to a successful completion'
+          assert 'required tests failed' not in log, 'Cod2 GameTests failed'
+          PYTEST
       - name: Prepare real clients
         run: |
           ./gradlew --no-daemon --max-workers=2 -I tools/blueprint/cod2-client.init.gradle -Pcod2Vault -Pcod2PrepareOnly -Pcod2ClientRun=vault-ci-prepared runClient 2>&1 | tee build/vault-ci/client-prepare.log

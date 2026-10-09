@@ -283,6 +283,7 @@ public final class DungeonClientQa {
     }
     private static void setupVault(Minecraft mc){
         var level=mc.getSingleplayerServer().overworld();
+        level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false,level.getServer());
         for(int x=8;x<=55;x++)for(int z=2;z<=29;z++)for(int y=0;y<=17;y++){
             var state=ChenshaPiece.cell(x,y,z);if(state!=null)level.setBlockAndUpdate(VAULT_ORIGIN.offset(x,y,z),state);
         }
