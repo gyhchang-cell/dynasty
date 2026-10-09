@@ -46,6 +46,10 @@ for row in catalog['npcs']:
         language = json.loads((assets / f'lang/{locale}.json').read_text())
         for suffix in ('first', 'ordinary', 'changed'):
             assert language[f'cod3.dynasty.npc.{role}.{suffix}']
+        for choice in ('talk', 'changed', 'special', 'trade', 'leave'):
+            assert language[f'cod3.dynasty.dialogue.{choice}']
+        if role in ('lao_chen', 'han_chong', 'baibao_jin'):
+            assert language[f'cod3.dynasty.npc.{role}.special']
 variants = json.loads((assets / 'blockstates/story_anchor.json').read_text())['variants']
 assert set(variants) == {f'kind={i}' for i in range(45)}
 for i in range(45):

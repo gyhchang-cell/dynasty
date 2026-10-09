@@ -44,3 +44,7 @@ python3 tools/cod3/verify_assets.py
 ## 2026-10-08 续做
 
 当前源码进度与按原文删减的依据见 [续做记录](../../docs/cod3/continuation-2026-10-08.md)，本轮构建及 19 项专用服回归见 [验证记录](verification/continuation-2026-10-08.md)。后续任务原文为 [remaining-tasks.txt](../../docs/cod3/remaining-tasks.txt)；完整分镜、剧情与真实客户端验收仍需继续。
+
+## 2026-10-09 对话续做
+
+对话节点、条件分支、后继节点与每玩家 nonce 会话的实现，以及启动协议修复见 [续做记录](../../docs/cod3/continuation-2026-10-09.md)。完整打包与 26 项专用服测试见 [验证记录](verification/continuation-2026-10-09.md)。本轮上传原名 `cod3(1).txt` 保持不变，仅删除已完成的 C3-NPC-002 索引行；[剩余原文](../../docs/cod3/remaining-tasks.txt) 仍含十二项任务及未完成的详细规格。
