@@ -20,6 +20,11 @@ public final class StoryAnchor extends BaseEntityBlock {
     public static final DeferredRegister<BlockEntityType<?>> TYPES=DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES,Dynasty.MODID);
     public static final RegistryObject<Block> BLOCK=BLOCKS.register("story_anchor",StoryAnchor::new);
     public static final RegistryObject<BlockEntityType<Anchor>> TYPE=TYPES.register("story_anchor",()->BlockEntityType.Builder.of(Anchor::new,BLOCK.get()).build(null));
+    public static BlockState npcState(String role){
+        var identities=Cod3Catalog.entries("npcs");
+        for(int i=0;i<identities.size();i++)if(identities.get(i).getAsJsonObject().get("id").getAsString().equals(role))return BLOCK.get().defaultBlockState().setValue(KIND,30+i);
+        throw new IllegalArgumentException("Unknown existing NPC role: "+role);
+    }
     private StoryAnchor(){super(Properties.copy(Blocks.STONE).noOcclusion());registerDefaultState(stateDefinition.any().setValue(KIND,0));}
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block,BlockState> b){b.add(KIND);}
     @Override public RenderShape getRenderShape(BlockState s){return RenderShape.MODEL;}

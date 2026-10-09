@@ -55,7 +55,11 @@ public final class DynastyNpcEntity extends AbstractVillager implements software
         boolean hurt=super.hurt(source,amount);if(hurt)getPersistentData().putLong("cod3_react_until",level().getGameTime()+40);return hurt;
     }
     @Override public void tick(){
-        super.tick();if(level().isClientSide||tickCount%20!=0)return;
+        super.tick();if(level().isClientSide)return;
+        var customer=getTradingPlayer();
+        if(customer!=null&&(!customer.isAlive()||customer.isSpectator()||customer.level()!=level()||customer.distanceToSqr(this)>36))setTradingPlayer(null);
+        if(tickCount%20!=0)return;
+        ensureContentTrades();
         State next;
         Player near=level().getNearestPlayer(this,6);
         if(level().getGameTime()<getPersistentData().getLong("cod3_react_until"))next=State.REACT;
@@ -85,8 +89,32 @@ public final class DynastyNpcEntity extends AbstractVillager implements software
     public boolean trade(net.minecraft.server.level.ServerPlayer p){
         if(p.level()!=level()||!p.isAlive()||p.isSpectator()||!isAlive()||p.distanceToSqr(this)>36
                 ||getTradingPlayer()!=null&&getTradingPlayer()!=p)return false;
+        ensureContentTrades();
         if(getOffers().isEmpty())return false;
+        if(role.equals("huang_laohan")&&level().dimension().equals(com.dynasty.block.DynastyPortalBlock.DRAGON_PALACE))com.dynasty.DynastyAdvancements.award(p,"entered_dragon_palace");
         setTradingPlayer(p);openTradingScreen(p,getDisplayName(),1);return true;
+    }
+    /** Upgrade native merchant offers in place, retaining their stock and NBT on old saves. */
+    public void ensureContentTrades(){
+        if(level().isClientSide)return;
+        switch(role){
+            case "baibao_jin"->buy("fox_pelt",2,6);
+            case "ba_tu"->buy("wolf_fang",2,5);
+            case "hei_po"->{
+                exchange("python_gall",1,"healing_salve",2,8);
+                exchange("locust_dust",2,"healing_salve",1,8);
+            }
+            case "huang_laohan"->{
+                buy("crab_shell",2,6);buy("kappa_scale",2,8);
+                if(level().dimension().equals(com.dynasty.block.DynastyPortalBlock.DRAGON_PALACE))exchange("copper_coin",48,"sea_pearl",1,8);
+            }
+        }
+    }
+    private void buy(String material,int count,int coins){exchange(material,count,"copper_coin",coins,16);}
+    private void exchange(String from,int amount,String to,int result,int stock){
+        Item input=item(from),output=item(to);if(input==null||output==null||input==Items.AIR||output==Items.AIR)return;
+        if(getOffers().stream().anyMatch(o->o.getBaseCostA().is(input)&&o.getBaseCostA().getCount()==amount&&o.getResult().is(output)))return;
+        getOffers().add(new MerchantOffer(new ItemStack(input,amount),new ItemStack(output,result),stock,0,0));
     }
     private Item item(String name){return ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty",name));}
     @Override protected void updateTrades(){

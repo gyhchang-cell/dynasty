@@ -298,6 +298,8 @@ public class DynastyBuildings3 {
             }
             chest(level, rand, x - 6, base + 1, z + 3, "dragon_palace");
             chest(level, rand, x + 6, base + 1, z + 3, "dragon_palace");
+            // Existing boat trader; its anchor creates one persisted NPC only after the generated chunk loads.
+            DynastyFeaturePlacement.setBlock(level,new BlockPos(x-6,base,z-3),com.dynasty.cod3.StoryAnchor.npcState("huang_laohan"),2);
             guard(level, rand, x, base + 1, z, DynastyEntities.MERFOLK.get(), 4);
             materials(level, rand, x - 4, base + 1, z - 3, prismarine(), 8);
         }

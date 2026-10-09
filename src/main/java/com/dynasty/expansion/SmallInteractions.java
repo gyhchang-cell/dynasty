@@ -25,12 +25,31 @@ public final class SmallInteractions {
     public static void bootstrap(IEventBus bus) {BLOCKS.register(bus);}
     private static final class Site extends Block {
         private final String id;
-        Site(String id) {super(Properties.copy(Blocks.STONE).strength(2).noOcclusion());this.id=id;}
+        private static final net.minecraft.world.level.block.state.properties.BooleanProperty REPAIRED=net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT;
+        Site(String id) {super(Properties.copy(Blocks.STONE).strength(2).noOcclusion());this.id=id;registerDefaultState(stateDefinition.any().setValue(REPAIRED,false));}
+        @Override protected void createBlockStateDefinition(net.minecraft.world.level.block.state.StateDefinition.Builder<Block,BlockState> builder){builder.add(REPAIRED);}
         @Override public VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return Block.box(2,0,2,14,id.equals("herb_spot")?5:13,14);}
         @Override public InteractionResult use(BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit) {
             if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;
             if(!(player instanceof ServerPlayer p))return InteractionResult.SUCCESS;
             var root=EquipmentBehaviors.saved(p);String key="site_"+id;
+            if(id.equals("broken_waterwheel")&&state.getValue(REPAIRED)){
+                root.putBoolean(key+"_done",true);
+                com.dynasty.cod3.Cod3WorldState.get((net.minecraft.server.level.ServerLevel)level).unlock((net.minecraft.server.level.ServerLevel)level,"world_02");
+                com.dynasty.DynastyAdvancements.award(p,"cod4_"+id);
+                p.displayClientMessage(Component.translatable("message.dynasty.cod4.site_done"),true);return InteractionResult.CONSUME;
+            }
+            // Completed legacy repairs retain their payment/reward history and migrate only missing behavior.
+            if(root.getBoolean(key+"_done")&&id.equals("broken_waterwheel")){
+                level.setBlock(pos,state.setValue(REPAIRED,true),3);
+                com.dynasty.cod3.Cod3WorldState.get((net.minecraft.server.level.ServerLevel)level).unlock((net.minecraft.server.level.ServerLevel)level,"world_02");
+            }
+            if(root.getBoolean(key+"_done")&&id.equals("old_bellows")&&!root.getBoolean(key+"_assisted")){
+                if(!assistFurnace((net.minecraft.server.level.ServerLevel)level,pos)){
+                    p.displayClientMessage(Component.translatable("message.dynasty.cod4.bellows_needs_furnace"),true);return InteractionResult.CONSUME;
+                }
+                root.putBoolean(key+"_assisted",true);feedback((net.minecraft.server.level.ServerLevel)level,pos,"site_bellows",0xe6a04b);
+            }
             if(root.getBoolean(key+"_done")){p.displayClientMessage(Component.translatable("message.dynasty.cod4.site_done"),true);return InteractionResult.CONSUME;}
             ItemStack held=p.getItemInHand(hand);long now=level.getGameTime();
             if(root.contains(key+"_start") && now<root.getLong(key+"_next")){p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",(root.getLong(key+"_next")-now+19)/20),true);return InteractionResult.CONSUME;}
@@ -51,6 +70,9 @@ public final class SmallInteractions {
             int duration=switch(id){case "abandoned_armory","ancient_well"->3600;case "sword_scar_wall","puzzle_box","mortuary_room","ghost_market_boat","wayside_tea_stall"->2400;case "nameless_tomb","herb_spot","battlefield_remnant","broken_waterwheel"->1200;default->600;};
             int interval=(duration+needed-1)/needed;
             if(!root.contains(key+"_start")) {root.putLong(key+"_start",now);root.putLong(key+"_next",now+interval);p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",(interval+19)/20),true);return InteractionResult.CONSUME;}
+            if(id.equals("old_bellows")&&!assistFurnace((net.minecraft.server.level.ServerLevel)level,pos)){
+                p.displayClientMessage(Component.translatable("message.dynasty.cod4.bellows_needs_furnace"),true);return InteractionResult.CONSUME;
+            }
             int count=root.getInt(key+"_count")+1;
             if(id.equals("battlefield_remnant")) {
                 String place=level.dimension().location()+"/"+pos.asLong();var visited=root.getCompound("cod4Battlefields");
@@ -61,6 +83,7 @@ public final class SmallInteractions {
             if(count<needed){p.displayClientMessage(Component.translatable("message.dynasty.cod4.site_progress",count,needed),true);return InteractionResult.CONSUME;}
             if(!p.getAbilities().instabuild && Set.of("wayside_shrine","nameless_tomb","ghost_market_boat","broken_stele","broken_waterwheel","old_bellows").contains(id))held.shrink(1);
             root.putBoolean(key+"_done",true);
+            if(id.equals("old_bellows"))root.putBoolean(key+"_assisted",true);
             switch(id) {
                 case "wayside_shrine","nameless_tomb"->p.addEffect(new MobEffectInstance(MobEffects.LUCK,2400));
                 case "old_weapon_rack"->{
@@ -78,12 +101,50 @@ public final class SmallInteractions {
                 }
                 case "ancient_well","mortuary_room"->{p.removeEffect(ExpansionEffects.YIN.get());p.removeEffect(ExpansionEffects.SOUL.get());}
                 case "wayside_tea_stall"->p.removeEffect(MobEffects.POISON);
-                case "old_bellows"->give(p,new ItemStack(Items.IRON_NUGGET,3));
+                case "old_bellows"->{
+                    give(p,new ItemStack(Items.IRON_NUGGET,3));
+                    feedback((net.minecraft.server.level.ServerLevel)level,pos,"site_bellows",0xe6a04b);
+                    level.playSound(null,pos,net.minecraft.sounds.SoundEvents.FIRE_AMBIENT,net.minecraft.sounds.SoundSource.BLOCKS,.5F,1.3F);
+                }
+                case "broken_waterwheel"->{
+                    level.setBlock(pos,state.setValue(REPAIRED,true),3);
+                    com.dynasty.cod3.Cod3WorldState.get((net.minecraft.server.level.ServerLevel)level).unlock((net.minecraft.server.level.ServerLevel)level,"world_02");
+                    give(p,new ItemStack(ExpansionContent.item("copper_coin"),2));
+                    feedback((net.minecraft.server.level.ServerLevel)level,pos,"site_waterwheel",0x85c3c9);
+                    level.playSound(null,pos,net.minecraft.sounds.SoundEvents.WOOD_PLACE,net.minecraft.sounds.SoundSource.BLOCKS,.8F,.6F);
+                }
                 default->give(p,new ItemStack(ExpansionContent.item("copper_coin"),2));
             }
             com.dynasty.DynastyAdvancements.award(p,"cod4_"+id);
             CombatFeedback.send(p,CombatFeedback.HEAL);return InteractionResult.CONSUME;
         }
+    }
+    /** Consume the site's charcoal through the existing use transaction, never create smelted output. */
+    private static boolean assistFurnace(net.minecraft.server.level.ServerLevel level,BlockPos site){
+        for(BlockPos cursor:BlockPos.betweenClosed(site.offset(-3,-1,-3),site.offset(3,2,3))){
+            if(!level.hasChunkAt(cursor)||!(level.getBlockEntity(cursor) instanceof net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity furnace))continue;
+            var kind=furnace instanceof net.minecraft.world.level.block.entity.SmokerBlockEntity?net.minecraft.world.item.crafting.RecipeType.SMOKING:
+                    furnace instanceof net.minecraft.world.level.block.entity.BlastFurnaceBlockEntity?net.minecraft.world.item.crafting.RecipeType.BLASTING:net.minecraft.world.item.crafting.RecipeType.SMELTING;
+            var recipe=level.getRecipeManager().getRecipeFor(kind,furnace,level).orElse(null);
+            if(recipe==null||furnace.getItem(0).isEmpty())continue;
+            ItemStack result=recipe.getResultItem(level.registryAccess()),output=furnace.getItem(2);
+            if(result.isEmpty()||!output.isEmpty()&&(!ItemStack.isSameItemSameTags(result,output)||output.getCount()+result.getCount()>Math.min(furnace.getMaxStackSize(),output.getMaxStackSize())))continue;
+            var data=furnace.saveWithoutMetadata();int burn=Math.max(0,data.getInt("BurnTime"));
+            if(burn>1600)continue; // A whole charcoal's fuel fits; do not waste it on an already full fire.
+            int total=Math.max(1,recipe.getCookingTime());
+            data.putInt("BurnTime",burn+1600);data.putInt("CookTimeTotal",total);
+            data.putInt("CookTime",Math.min(total-1,Math.max(0,data.getInt("CookTime"))+20));
+            furnace.load(data);furnace.setChanged();
+            BlockState state=level.getBlockState(cursor);
+            if(state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT))level.setBlock(cursor,state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT,true),3);
+            return true;
+        }
+        return false;
+    }
+    private static void feedback(net.minecraft.server.level.ServerLevel level,BlockPos pos,String sequence,int tint){
+        var origin=net.minecraft.world.phys.Vec3.atCenterOf(pos);
+        var packet=new com.dynasty.cod3.Cod3VisualPacket(level.dimension().location().toString(),26,-1,level.random.nextLong(),level.getGameTime(),30,1,origin,new net.minecraft.world.phys.Vec3(0,0,1),sequence,0,tint);
+        com.dynasty.network.DynastyNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.NEAR.with(()->new net.minecraftforge.network.PacketDistributor.TargetPoint(origin.x,origin.y,origin.z,32,level.dimension())),packet);
     }
     private static void give(Player p,ItemStack s) {if(!p.getInventory().add(s))p.drop(s,false);}
     private SmallInteractions() { }

@@ -96,6 +96,8 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("secondary_possession"))geometry.possession(age);
                 else if(p.sequence().equals("secondary_echo"))geometry.echo(life);
                 else if(p.sequence().equals("secondary_alarm"))geometry.alarm(life);
+                else if(p.sequence().equals("site_bellows"))geometry.bellows(life);
+                else if(p.sequence().equals("site_waterwheel"))geometry.waterwheel(age);
                 else if(p.sequence().equals("qinglong_combo_wave"))geometry.dragonWave(life,age);
                 else if(p.sequence().matches("scenic_(0[1-9]|1[0-9]|2[0-5])"))geometry.scenic(Integer.parseInt(p.sequence().substring(7)),life);else geometry.draw(p.template(),d,expansion,life,age);
             }
@@ -179,6 +181,22 @@ public final class Cod3VfxRenderer {
             beam(p(.12,.85,head+.08),p(.28,1.15,head-.12),.05);
             beam(p(-.12,.7,head+.25),p(-.45,.58,head+.35),.025);
             beam(p(.12,.7,head+.25),p(.45,.58,head+.35),.025);
+        }
+        void bellows(double life){
+            double stroke=Math.sin(life*Math.PI*2)*.12;
+            box(0,0,0,.35,.2+stroke,.25);
+            for(int i=0;i<4;i++)beam(p(-.32,i*.05,0),p(.32,i*.05+stroke,0),.025);
+            beam(p(0,.12,0),p(0,.12,.75+life*.4),.07);
+            for(int i=0;i<3;i++)mesh((i-1)*.13,.15+life*.3,.7+life*.4,.06);
+        }
+        void waterwheel(double age){
+            double angle=age*.12;
+            for(int i=0;i<12;i++){
+                double a=angle+i*Math.PI/6,b=a+Math.PI/6;
+                beam(p(Math.cos(a)*.7,.4+Math.sin(a)*.7,0),p(Math.cos(b)*.7,.4+Math.sin(b)*.7,0),.065);
+                if(i%2==0)beam(p(0,.4,0),p(Math.cos(a)*.7,.4+Math.sin(a)*.7,0),.055);
+            }
+            beam(p(0,.4,-.3),p(0,.4,.3),.11);
         }
         void roots(double age){
             double growth=Math.min(1,age/5);

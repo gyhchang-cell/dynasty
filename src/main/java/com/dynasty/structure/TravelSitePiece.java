@@ -83,6 +83,7 @@ public class TravelSitePiece extends DynastyStructurePiece {
             for(int x:new int[]{13,17})fill(l,b,x,2,16,x,4,16,Blocks.OAK_FENCE.defaultBlockState());
             fill(l,b,12,5,14,18,5,18,Blocks.SANDSTONE_SLAB.defaultBlockState());
             set(l,b,5,2,5,Blocks.CARTOGRAPHY_TABLE.defaultBlockState());set(l,b,7,2,5,Blocks.LECTERN.defaultBlockState());
+            set(l,b,17,1,26,Blocks.FURNACE.defaultBlockState());
             set(l,b,5,2,17,Blocks.SMOKER.defaultBlockState());set(l,b,22,2,17,Blocks.STONECUTTER.defaultBlockState());
             loot(l,b,r,25,2,5,"minecraft:chests/village/village_cartographer");
             story(l,b,23,1,22,41);story(l,b,9,1,20,37);story(l,b,5,1,8,33);

@@ -183,4 +183,17 @@ public final class FeaturePlacementGameTests {
         h.assertTrue(region.writeAttempts == 0 && region.permissionChecks == 1, "Denied write reached setBlock");
         h.succeed();
     }
+    @GameTest(template="bow_ritual_test",timeoutTicks=60)
+    public static void generatedDragonHallContainsExistingTraderAnchorWithoutWorldgenEntitySpawn(GameTestHelper h){
+        var region=new Region(h.getLevel());int x=CENTER.getMiddleBlockX(),z=CENTER.getMiddleBlockZ(),ground=90;
+        for(int xx=x-11;xx<=x+11;xx++)for(int zz=z-11;zz<=z+11;zz++)region.setBlock(new BlockPos(xx,ground,zz),Blocks.STONE.defaultBlockState(),2);
+        int placementY=DynastyBuildKit.ground(region,x,z)+1;
+        var feature=new DynastyBuildings3.CityBuilding(net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration.CODEC,DynastyBuildings3.Kind.DRAGON_HALL);
+        var context=new net.minecraft.world.level.levelgen.feature.FeaturePlaceContext<net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration>(java.util.Optional.empty(),region,h.getLevel().getChunkSource().getGenerator(),RandomSource.create(318),new BlockPos(x,ground+1,z),net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration.INSTANCE);
+        h.assertTrue(feature.place(context),"Actual Dragon Hall feature generates through its normal placement entry");
+        var anchorPos=new BlockPos(x-6,placementY+1,z-3);var state=region.getBlockState(anchorPos);
+        h.assertTrue(state.equals(com.dynasty.cod3.StoryAnchor.npcState("huang_laohan")),"Generated hall contains the registered existing boat-trader identity");
+        h.assertTrue(region.getBlockEntity(anchorPos) instanceof com.dynasty.cod3.StoryAnchor.Anchor,"Real structure block entity waits for chunk-load NPC creation");
+        h.assertTrue(region.getBlockState(anchorPos.above()).isAir()&&region.getBlockState(anchorPos.above(2)).isAir(),"Merchant has two-block standing clearance in the hall");h.succeed();
+    }
 }
