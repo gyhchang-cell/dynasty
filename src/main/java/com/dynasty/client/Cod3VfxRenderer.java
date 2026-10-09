@@ -30,6 +30,10 @@ public final class Cod3VfxRenderer {
         if(world==null)return;
         ACTIVE.removeIf(p->{
             if(world.getGameTime()-p.start()>=p.duration()||p.start()-world.getGameTime()>40)return true;
+            if(p.sequence().startsWith("equipment_")){
+                var owner=world.getEntity(p.entityId());
+                return owner==null||!owner.isAlive()||owner.getUUID().getLeastSignificantBits()!=p.seed();
+            }
             if(!p.sequence().startsWith("intro_")&&!p.sequence().startsWith("death_"))return false;
             var entity=world.getEntity(p.entityId());
             return mc.player==null||entity==null||mc.player.distanceToSqr(entity)>32*32;
@@ -80,7 +84,8 @@ public final class Cod3VfxRenderer {
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
                 Vec3 origin=p.origin(),direction=p.direction();
                 if(p.entityId()>=0){var entity=world.getEntity(p.entityId());
-                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")||p.sequence().startsWith("secondary_")))continue;
+                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")||p.sequence().startsWith("secondary_")||p.sequence().startsWith("equipment_")))continue;
+                    if(p.sequence().equals("equipment_beidou_stride")&&entity instanceof net.minecraft.world.entity.player.Player wearer&&com.dynasty.expansion.EquipmentBehaviors.pieces(wearer,"beidou")<4)continue;
                     if(p.sequence().equals("secondary_roots")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(com.dynasty.expansion.ExpansionEffects.STAGGER.get()))continue;
                     if(p.sequence().equals("secondary_coil")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN))continue;
                     if(entity!=null){if(p.template()==4){if(!entity.isAlive()||entity.getDeltaMovement().lengthSqr()<.0025)continue;direction=entity.getDeltaMovement().normalize();}origin=entity.getPosition(e.getPartialTick());}}
@@ -96,6 +101,8 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("secondary_possession"))geometry.possession(age);
                 else if(p.sequence().equals("secondary_echo"))geometry.echo(life);
                 else if(p.sequence().equals("secondary_alarm"))geometry.alarm(life);
+                else if(p.sequence().equals("equipment_beidou_stride"))geometry.starStride(age);
+                else if(p.sequence().equals("equipment_phoenix_embers"))geometry.phoenixEmbers(age,life);
                 else if(p.sequence().equals("site_bellows"))geometry.bellows(life);
                 else if(p.sequence().equals("site_waterwheel"))geometry.waterwheel(age);
                 else if(p.sequence().equals("qinglong_combo_wave"))geometry.dragonWave(life,age);
@@ -181,6 +188,22 @@ public final class Cod3VfxRenderer {
             beam(p(.12,.85,head+.08),p(.28,1.15,head-.12),.05);
             beam(p(-.12,.7,head+.25),p(-.45,.58,head+.35),.025);
             beam(p(.12,.7,head+.25),p(.45,.58,head+.35),.025);
+        }
+        void starStride(double age){
+            double[][] stars={{-.45,-.65},{-.15,-.45},{.10,-.20},{.20,.15},{.45,.30},{.55,.58},{.28,.72}};
+            int visible=Math.min(7,1+(int)age/2);
+            for(int i=0;i<visible;i++){
+                double x=stars[i][0],z=stars[i][1];mesh(x,.08,z,.065);
+                if(i>0)beam(p(stars[i-1][0],.045,stars[i-1][1]),p(x,.045,z),.028);
+            }
+            double step=Math.sin(age*Math.PI/7)*.22;
+            for(int side=-1;side<=1;side+=2){beam(p(side*.18,.03,side*step-.18),p(side*.18,.035,side*step+.12),.045);}
+        }
+        void phoenixEmbers(double age,double life){
+            for(int i=0;i<5;i++){
+                double a=i*Math.PI*2/5+age*.12,x=Math.cos(a)*(.35+life*.3),z=Math.sin(a)*(.35+life*.3),y=.7+life*.5;
+                triangle(p(x-.06,y-.10,z),p(x+.06,y-.10,z),p(x,y+.18,z),.95);mesh(x,y+.18,z,.035);
+            }
         }
         void bellows(double life){
             double stroke=Math.sin(life*Math.PI*2)*.12;

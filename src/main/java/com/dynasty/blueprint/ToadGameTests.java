@@ -27,6 +27,8 @@ public final class ToadGameTests {
     private static net.minecraft.server.level.ServerPlayer player(GameTestHelper h,int x,int z){
         var p=new net.minecraft.server.level.ServerPlayer(h.getLevel().getServer(),h.getLevel(),new com.mojang.authlib.GameProfile(UUID.randomUUID(),"toad-test"));
         p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);
+        // Damage assertions must not race full-food vanilla natural regeneration.
+        p.getFoodData().setFoodLevel(17);p.getFoodData().setSaturation(0);
         p.moveTo(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(x,2,z))));h.getLevel().addNewPlayer(p);h.onEachTick(()->{if(!p.isRemoved())p.doTick();});return p;
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=40,batch="toad")
@@ -91,7 +93,7 @@ public final class ToadGameTests {
             });
         });
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=180,batch="toad_effects")
+    @GameTest(template="bow_ritual_test",timeoutTicks=180,batch="toad_effects",setupTicks=20)
     public static void firePoisonAffectsNearbyEnemyOnlyAndExpiresAcrossUnload(GameTestHelper h){
         var owner=toad(h);
         // This fixture measures poison/fire expiry, not attacks by naturally spawned assassins.
@@ -100,7 +102,7 @@ public final class ToadGameTests {
         var pool=new CorpseMiasma(BlueprintEntities.TOAD_VENOM_POOL.get(),h.getLevel());var saved=new CompoundTag();
         h.runAfterDelay(65,()->{pool.setPos(a.position());pool.setOwner(owner);pool.activateFirePoison(h.getLevel().getGameTime());h.getLevel().addFreshEntity(pool);});
         h.runAfterDelay(93,()->{
-            h.assertTrue(a.getHealth()<20&&a.hasEffect(net.minecraft.world.effect.MobEffects.POISON)&&a.isOnFire(),"Real player receives both timed damage types");
+            h.assertTrue(a.getHealth()<20&&a.hasEffect(net.minecraft.world.effect.MobEffects.POISON)&&a.isOnFire(),"Real player receives both timed damage types: hp="+a.getHealth()+", fire="+a.isOnFire()+", poison="+a.hasEffect(net.minecraft.world.effect.MobEffects.POISON)+", distance="+a.distanceTo(pool)+", tracked="+(h.getLevel().getEntity(pool.getUUID())==pool));
             h.assertTrue(b.getHealth()==20&&!b.isOnFire()&&!b.hasEffect(net.minecraft.world.effect.MobEffects.POISON),"Other player outside radius is safe");
             h.assertTrue(!ally.isOnFire()&&!ally.hasEffect(net.minecraft.world.effect.MobEffects.POISON),"Woodland allies are immune");
             pool.save(saved);pool.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);a.setInvulnerable(true);b.setInvulnerable(true);a.moveTo(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(12,2,12))));

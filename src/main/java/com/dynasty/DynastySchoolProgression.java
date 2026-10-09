@@ -73,6 +73,37 @@ public final class DynastySchoolProgression {
         return false;
     }
 
+    /** Reconcile existing ranks and owned equipment into the original advancements and recipe book. */
+    public static void reconcile(ServerPlayer player){
+        String[] base={"zhenyue_blade","liuyun_sword","zhuxing_bow","chiling_brush"};
+        String[] branch={"beichen_spear","chengying_sword","fengling_bow","leifu_staff"};
+        String[][] ornaments={{"zhenguan_mirror","huben_bracer"},{"liancheng_tassel","tayun_pendant"},{"guanxing_pendant","mingxian_ring"},{"sitian_seal","dingfeng_silk"}};
+        var owned=new java.util.HashSet<String>();
+        for(var stack:player.getInventory().items)owned.add(com.dynasty.expansion.EquipmentBehaviors.id(stack));
+        for(var stack:player.getHandSlots())owned.add(com.dynasty.expansion.EquipmentBehaviors.id(stack));
+        owned.addAll(DynastyTrinkets.activeIds(player));
+        for(int i=0;i<PATHS.length;i++){
+            int current=rank(player,PATHS[i]);
+            for(int milestone:MILESTONES)if(current>=milestone){
+                var advancement=player.server.getAdvancements().getAdvancement(new ResourceLocation(Dynasty.MODID,"school_"+PATHS[i]+"_rank_"+milestone));
+                if(advancement!=null&&!player.getAdvancements().getOrStartProgress(advancement).isDone())player.getAdvancements().award(advancement,"attained");
+            }
+            if(current>=1||owned.contains(base[i])||owned.contains(branch[i])){
+                discover(player,base[i]);for(String id:ornaments[i])discover(player,id);
+            }
+            // Optional discovery reward at the existing third-rank milestone, never a crafting/use gate.
+            if(current>=3||owned.contains(branch[i])){
+                discover(player,"branch_"+branch[i]);discover(player,"branch_"+branch[i]+"_advance");
+            }
+            for(String id:ornaments[i])if(owned.contains(id))discover(player,id);
+        }
+        for(String id:owned)if(DynastyAccessoryData.get(id)!=null)discover(player,id);
+    }
+    private static void discover(ServerPlayer player,String id){
+        var key=new ResourceLocation(Dynasty.MODID,id);
+        if(player.server.getRecipeManager().byKey(key).isPresent()&&!player.getRecipeBook().contains(key))player.awardRecipesByKey(new ResourceLocation[]{key});
+    }
+
     private static void practice(ServerPlayer player, String path, LivingEntity target) {
         CompoundTag root = player.getPersistentData().getCompound(SAVE_KEY);
         CompoundTag state = root.getCompound(path);
@@ -89,6 +120,7 @@ public final class DynastySchoolProgression {
         state.putLong("progress", points);
         root.put(path, state);
         player.getPersistentData().put(SAVE_KEY, root);
+        reconcile(player);
         if (next != previous) {
             player.displayClientMessage(Component.translatable("message.dynasty.school.mastery",
                     Component.translatable("school.dynasty." + path), next), true);

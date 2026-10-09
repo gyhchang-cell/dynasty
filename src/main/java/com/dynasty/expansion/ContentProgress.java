@@ -15,6 +15,7 @@ import java.util.*;
 @Mod.EventBusSubscriber(modid=Dynasty.MODID)
 public final class ContentProgress {
     public static void reconcile(ServerPlayer p) {
+        DynastySchoolProgression.reconcile(p);
         Set<String> obtained=new HashSet<>();
         for(ItemStack stack:p.getInventory().items)obtained.add(EquipmentBehaviors.id(stack));
         for(ItemStack stack:p.getArmorSlots())obtained.add(EquipmentBehaviors.id(stack));

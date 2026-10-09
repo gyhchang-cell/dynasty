@@ -174,6 +174,7 @@ public final class EquipmentBehaviors {
         if(steps==10 && ready(p,"starStep",200)) {
             n.putInt("cod4ContinuousSteps",0);n.putLong("cod4StarIFrame",now(p)+4);
             CombatFeedback.send(p,CombatFeedback.STAR);
+            com.dynasty.cod3.Cod3Vfx.actor(p,"beidou_stride",14,1,0xaacdff);
         }
     }
     public static boolean auspiciousGuard(Player p,float roll) {
@@ -188,6 +189,7 @@ public final class EquipmentBehaviors {
     public static void phoenixIgnited(Player p) {
         p.getPersistentData().putLong("cod4PhoenixAttack",now(p)+60);
         CombatFeedback.send(p,CombatFeedback.FIRE_RING);
+        com.dynasty.cod3.Cod3Vfx.actor(p,"phoenix_embers",16,.6,0xff8050);
     }
     public static boolean phoenixAttackActive(Player p) {
         return p.isOnFire() || now(p)<p.getPersistentData().getLong("cod4PhoenixAttack");
@@ -278,6 +280,7 @@ public final class EquipmentBehaviors {
             e.setCanceled(true);p.clearFire();p.getPersistentData().putLong("cod4PhoenixSpeed",now(p)+60);
             if(pieces(p,"phoenix")>=4 && ready(p,"fireRing",80)) {
                 CombatFeedback.send(p,CombatFeedback.FIRE_RING);
+                com.dynasty.cod3.Cod3Vfx.actor(p,"phoenix_embers",16,.6,0xff8050);
                 for(var mob:p.level().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(3),m->ExpansionWeapons.enemy(p,m) && m.distanceToSqr(p)<=9))mob.setSecondsOnFire(3);
             }
         }

@@ -7,6 +7,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.gametest.*;
 import java.util.UUID;
+// Forced GameTest chunks become entity-visible asynchronously. Allow one second of
+// loading before testing real projectiles, travel or immediate roster lookup.
 @GameTestHolder("dynasty_cod6") @PrefixGameTestTemplate(false)
 public final class ArmyRosterGameTests {
     private static net.minecraftforge.common.util.FakePlayer player(GameTestHelper h) {
@@ -16,7 +18,7 @@ public final class ArmyRosterGameTests {
         p.moveTo(h.absolutePos(new BlockPos(8,2,2)),0,0);h.getLevel().addNewPlayer(p);return p;
     }
     private static void remove(net.minecraftforge.common.util.FakePlayer p){p.serverLevel().players().remove(p);p.discard();}
-    @GameTest(template="bow_ritual_test")
+    @GameTest(template="bow_ritual_test",setupTicks=20)
     public static void paidMenuRejectsReplayAndRemotePurchase(GameTestHelper h) {
         var p=player(h);var pos=h.absolutePos(new BlockPos(3,2,3));h.getLevel().setBlockAndUpdate(pos,ArmyContent.DESK.get().defaultBlockState());
         try {
@@ -31,7 +33,7 @@ public final class ArmyRosterGameTests {
             h.assertTrue(ArmyRoster.find(p,id)!=null,"Player save lost soldier identity");
         } finally {remove(p);}h.succeed();
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=120)
+    @GameTest(template="bow_ritual_test",timeoutTicks=120,setupTicks=20)
     public static void threeRolesRecallKeepHealthAndSlots(GameTestHelper h) {
         floor(h);var p=player(h);
         for(int i=0;i<3;i++){h.assertTrue(ArmyRoster.recruit(p,i),"Could not buy role "+i);ArmyRoster.soldiers(p).getCompound(i).putInt("Slot",i);}
@@ -63,7 +65,7 @@ public final class ArmyRosterGameTests {
     private static void floor(GameTestHelper h) {
         for(int x=0;x<16;x++)for(int z=0;z<16;z++){h.setBlock(x,1,z,Blocks.STONE);for(int y=2;y<7;y++)h.setBlock(x,y,z,Blocks.AIR);}
     }
-    @GameTest(template="bow_ritual_test")
+    @GameTest(template="bow_ritual_test",setupTicks=20)
     public static void directionsAndBlockedDeployAreAtomic(GameTestHelper h) {
         var origin=net.minecraft.world.phys.Vec3.ZERO;
         h.assertTrue(ArmyRoster.slot(origin,0,1,0).z>0&&ArmyRoster.slot(origin,90,1,0).x<0
@@ -77,7 +79,7 @@ public final class ArmyRosterGameTests {
             h.assertTrue(ArmyRoster.soldiers(p).getCompound(0).getString("State").equals("RESERVE"),"Failed deployment consumed asset");
         } finally {remove(p);}h.succeed();
     }
-    @GameTest(template="bow_ritual_test",batch="cod6_recall_damage",timeoutTicks=140)
+    @GameTest(template="bow_ritual_test",batch="cod6_recall_damage",timeoutTicks=140,setupTicks=20)
     public static void environmentalDamageDelaysRecallAndReplayDoesNotResetIt(GameTestHelper h) {
         floor(h);
         // Other combat fixtures can fire beyond their template. Keep this quiet-period test enclosed.
@@ -85,7 +87,9 @@ public final class ArmyRosterGameTests {
             if(x==0||x==15||z==0||z==15||y==7)h.setBlock(x,y,z,Blocks.STONE);
         var p=player(h);ArmyRoster.recruit(p,0);var row=ArmyRoster.soldiers(p).getCompound(0);row.putInt("Slot",1);
         h.assertTrue(ArmyRoster.deploy(p,0,1)==1,"Recall fixture failed");
-        var soldier=(ImperialSoldier)h.getLevel().getEntity(row.getUUID("Entity"));soldier.setNoAi(true);soldier.setNoGravity(true);
+        var soldier=(ImperialSoldier)h.getLevel().getEntity(row.getUUID("Entity"));
+        if(soldier==null){ArmyRoster.recallNow(p,true);remove(p);h.fail("Forced fixture chunk must expose the deployed carrier after loading");return;}
+        soldier.setNoAi(true);soldier.setNoGravity(true);
         ArmyRoster.recall(p);long first=row.getLong("RecallAt");
         h.runAfterDelay(15,()->{
             ArmyRoster.recall(p);h.assertTrue(row.getLong("RecallAt")==first,"Double click restarted recall");
@@ -99,7 +103,7 @@ public final class ArmyRosterGameTests {
             } finally {ArmyRoster.recallNow(p,true);remove(p);}h.succeed();
         });
     }
-    @GameTest(template="bow_ritual_test")
+    @GameTest(template="bow_ritual_test",setupTicks=20)
     public static void malformedPresetAndFormationFailWithoutMutation(GameTestHelper h) {
         floor(h);var p=player(h);
         try {
@@ -120,7 +124,7 @@ public final class ArmyRosterGameTests {
             h.assertTrue(ArmyRoster.deploy(p,0,2)==0,"Non-finite soldier health accepted");
         } finally {ArmyRoster.recallNow(p,true);remove(p);}h.succeed();
     }
-    @GameTest(template="bow_ritual_test")
+    @GameTest(template="bow_ritual_test",setupTicks=20)
     public static void treatmentKeepsEquipmentCooldownAndRejectsStaleCarrier(GameTestHelper h) {
         floor(h);var p=player(h);
         try {
@@ -141,7 +145,7 @@ public final class ArmyRosterGameTests {
             h.assertTrue(!ArmyRoster.valid(stale,p),"Stale generation accepted");
         } finally {ArmyRoster.recallNow(p,true);remove(p);}h.succeed();
     }
-    @GameTest(template="bow_ritual_test")
+    @GameTest(template="bow_ritual_test",setupTicks=20)
     public static void pendingCarrierReloadsAfterOwnerChangesDimension(GameTestHelper h) {
         floor(h);var p=player(h);
         try {

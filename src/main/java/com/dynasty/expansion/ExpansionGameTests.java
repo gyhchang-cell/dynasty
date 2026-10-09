@@ -199,6 +199,8 @@ public final class ExpansionGameTests {
     public static void phoenixWindowSurvivesExtinguishingAndExpires(GameTestHelper h) {
         var p=player(h);p.setSecondsOnFire(2);EquipmentBehaviors.phoenixIgnited(p);p.clearFire();
         h.assertTrue(EquipmentBehaviors.phoenixAttackActive(p),"Extinguishing cannot erase offensive proc");
+        var cue=com.dynasty.cod3.Cod3Vfx.actorPacket(p,"phoenix_embers",16,.6,0xff8050);
+        h.assertTrue(cue.valid()&&cue.entityId()==p.getId()&&cue.sequence().equals("equipment_phoenix_embers")&&cue.duration()==16,"Finite sparks belong to the actual wearer on the existing visual protocol");
         p.getPersistentData().putLong("cod4PhoenixAttack",p.level().getGameTime());
         h.assertTrue(!EquipmentBehaviors.phoenixAttackActive(p),"Expired fire window ends");h.succeed();
     }

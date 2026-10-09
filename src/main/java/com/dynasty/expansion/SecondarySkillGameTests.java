@@ -12,6 +12,8 @@ import net.minecraft.world.phys.*;
 import net.minecraftforge.gametest.*;
 import java.util.UUID;
 
+// Forced GameTest chunks become entity-visible asynchronously. Allow one second of
+// loading before testing real projectiles, travel or immediate roster lookup.
 @GameTestHolder("dynasty_cod4") @PrefixGameTestTemplate(false)
 public final class SecondarySkillGameTests {
     private static SecondaryMob mob(GameTestHelper h,String id,BlockPos pos){
@@ -25,7 +27,7 @@ public final class SecondarySkillGameTests {
     private static void corridor(GameTestHelper h){
         for(int x=1;x<=12;x++)for(int z=1;z<=5;z++)for(int y=1;y<=6;y++)h.setBlock(x,y,z,y==1||y==6?Blocks.STONE:Blocks.AIR);
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_projectile_wall",timeoutTicks=80)
+    @GameTest(template="bow_ritual_test",batch="cod4_projectile_wall",timeoutTicks=80,setupTicks=20)
     public static void lanternCannotBlindBeforeHitOrThroughWall(GameTestHelper h){
         corridor(h);var mob=mob(h,"lantern_ghost",new BlockPos(3,2,3));var z=victim(h,new BlockPos(9,2,3));
         var ball=mob.fireSkillProjectile(z);
@@ -36,7 +38,7 @@ public final class SecondarySkillGameTests {
             h.assertTrue(mob.fireSkillProjectile(z)==null,"Occluded targets cannot initiate another shot");h.succeed();
         }finally{mob.discard();z.discard();ball.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_projectile_hit",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_projectile_hit",timeoutTicks=100,setupTicks=20)
     public static void realLanternProjectileAppliesEffectsOnlyAtContact(GameTestHelper h){
         corridor(h);var mob=mob(h,"lantern_ghost",new BlockPos(3,2,3));var z=victim(h,new BlockPos(9,2,3));var ball=mob.fireSkillProjectile(z);
         h.assertTrue(ball!=null&&!z.hasEffect(MobEffects.BLINDNESS),"No instant ranged status");
@@ -46,7 +48,7 @@ public final class SecondarySkillGameTests {
             h.succeed();
         }finally{mob.discard();z.discard();ball.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_projectile_variants")
+    @GameTest(template="bow_ritual_test",batch="cod4_projectile_variants",setupTicks=20)
     public static void seedWaterAndStoneKeepDistinctKindsAndBoundedLifetime(GameTestHelper h){
         corridor(h);var target=victim(h,new BlockPos(9,2,3));
         String[] names={"tree_spirit","river_imp","jingwei_bird"};int[] kinds={SecondaryProjectile.SEED,SecondaryProjectile.WATER,SecondaryProjectile.STONE};
@@ -60,7 +62,7 @@ public final class SecondarySkillGameTests {
         }
         target.discard();h.succeed();
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_projectile_windup")
+    @GameTest(template="bow_ritual_test",batch="cod4_projectile_windup",setupTicks=20)
     public static void rangedAnimationWindupHasOneLaunchAndCanBeOccluded(GameTestHelper h){
         corridor(h);var source=mob(h,"lantern_ghost",new BlockPos(3,2,3));var target=victim(h,new BlockPos(9,2,3));
         try{
@@ -75,14 +77,14 @@ public final class SecondarySkillGameTests {
             h.assertTrue(h.getLevel().getEntitiesOfClass(SecondaryProjectile.class,source.getBoundingBox().inflate(2),p->p.getOwner()==source).isEmpty(),"A wall placed during windup cancels the launch");h.succeed();
         }finally{source.discard();target.discard();}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_seed_contact",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_seed_contact",timeoutTicks=100,setupTicks=20)
     public static void actualSeedContactRootsInsteadOfUsingAnArrow(GameTestHelper h){
         corridor(h);var source=mob(h,"tree_spirit",new BlockPos(3,2,3));var target=victim(h,new BlockPos(9,2,3));var seed=source.fireSkillProjectile(target);
         h.startSequence().thenWaitUntil(()->h.assertTrue(seed.isRemoved(),"Wait for real seed contact"))
         .thenExecute(()->{try{h.assertTrue(target.hasEffect(ExpansionEffects.STAGGER.get())&&target.getHealth()<500,"Seed hit owns root restriction and real damage");h.succeed();}
             finally{source.discard();target.discard();seed.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_water_drag",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_water_drag",timeoutTicks=100,setupTicks=20)
     public static void shoreDragMovesTowardRealWaterAndStopsAfterFiniteWindow(GameTestHelper h){
         corridor(h);var source=mob(h,"river_imp",new BlockPos(3,2,3));var target=victim(h,new BlockPos(7,2,3));
         h.assertTrue(!source.beginWaterDrag(target),"Dry ground cannot invent a water destination");
@@ -93,7 +95,7 @@ public final class SecondarySkillGameTests {
         target.setDeltaMovement(Vec3.ZERO);source.tickWaterDrag();h.assertTrue(target.getDeltaMovement().lengthSqr()==0,"Expired drag cannot keep controlling movement");
         source.discard();target.discard();h.succeed();
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_guard_asset")
+    @GameTest(template="bow_ritual_test",batch="cod4_guard_asset",setupTicks=20)
     public static void oldAccessoryLeaseCannotDiscardPurchasedCarrier(GameTestHelper h){
         var owner=new net.minecraftforge.common.util.FakePlayer(h.getLevel(),new GameProfile(UUID.randomUUID(),"guard-owner"));
         var soldier=com.dynasty.entity.DynastyEntities.IMPERIAL_SOLDIER.get().create(h.getLevel());soldier.setOwner(owner);
@@ -103,7 +105,7 @@ public final class SecondarySkillGameTests {
         var legacy=com.dynasty.entity.DynastyEntities.IMPERIAL_SOLDIER.get().create(h.getLevel());legacy.getPersistentData().putLong("cod4TallyExpires",h.getLevel().getGameTime()-1);
         AccessoryActions.expire(new net.minecraftforge.event.entity.living.LivingEvent.LivingTickEvent(legacy));h.assertTrue(legacy.isRemoved(),"Genuine old temporary summons still expire");h.succeed();
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_water_entry",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_water_entry",timeoutTicks=100,setupTicks=20)
     public static void realShoreDragEntersWaterAndDoesNotPullBosses(GameTestHelper h){
         corridor(h);var source=mob(h,"drowning_ghost",new BlockPos(3,2,3));var target=victim(h,new BlockPos(6,2,3));
         // NoAI also disables vanilla travel; retain actual physics but remove autonomous goals.

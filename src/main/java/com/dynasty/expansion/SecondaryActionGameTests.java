@@ -10,6 +10,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.*;
 
+// Forced GameTest chunks become entity-visible asynchronously. Allow one second of
+// loading before testing real projectiles, travel or immediate roster lookup.
 @GameTestHolder("dynasty_cod4") @PrefixGameTestTemplate(false)
 public final class SecondaryActionGameTests {
     private static void room(GameTestHelper h){
@@ -23,7 +25,7 @@ public final class SecondaryActionGameTests {
         var z=new Zombie(h.getLevel());z.setNoAi(true);z.setNoGravity(true);z.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);z.setHealth(1000);
         z.setPos(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(x,2,4))));h.getLevel().addFreshEntity(z);return z;
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_pounce_physics",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_pounce_physics",timeoutTicks=100,setupTicks=20)
     public static void actualFoxPounceHasWindupAndOnlyOneContact(GameTestHelper h){
         room(h);var fox=source(h,"red_fox",3,2);var z=target(h,6);h.assertTrue(fox.combatActions.begin(z),"Fox starts its real pounce");float[] hitHealth={1000};
         h.startSequence().thenIdle(4).thenExecute(()->h.assertTrue(z.getHealth()==1000,"Windup cannot hurt a remote target"))
@@ -32,7 +34,7 @@ public final class SecondaryActionGameTests {
                 h.assertTrue(z.getHealth()==hitHealth[0],"Remaining phase ticks do not repeat the hit");h.assertTrue(!fox.combatActions.active(),"Pounce ends within its finite action window");h.succeed();
             }finally{fox.discard();z.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_action_occlusion")
+    @GameTest(template="bow_ritual_test",batch="cod4_action_occlusion",setupTicks=20)
     public static void wallsCancelAmbushBurrowAndDiveWithoutDamage(GameTestHelper h){
         room(h);var z=target(h,9);
         for(String id:new String[]{"golden_leopard","corpse_beetle","stone_worm","gray_falcon"}){
@@ -45,7 +47,7 @@ public final class SecondaryActionGameTests {
         }
         z.discard();h.succeed();
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_python_control")
+    @GameTest(template="bow_ritual_test",batch="cod4_python_control",setupTicks=20)
     public static void coilDrainsAirForFiniteWindowAndCannotBePermanentlyRefreshed(GameTestHelper h){
         room(h);var python=source(h,"giant_python",3,2);python.setNoAi(true);var z=target(h,4);int air=z.getAirSupply();
         try{
@@ -58,14 +60,14 @@ public final class SecondaryActionGameTests {
             h.assertTrue(!boss.hasEffect(MobEffects.MOVEMENT_SLOWDOWN),"Boss rejects coil movement control");h.succeed();
         }finally{python.discard();z.discard();}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_falcon_dive",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_falcon_dive",timeoutTicks=100,setupTicks=20)
     public static void falconCirclesAboveThenDamagesThroughActualDive(GameTestHelper h){
         room(h);var falcon=source(h,"gray_falcon",3,6);var z=target(h,6);h.assertTrue(falcon.combatActions.begin(z),"Flight action starts from a real high position");
         h.startSequence().thenIdle(16).thenExecute(()->h.assertTrue(falcon.getY()>z.getY()+2&&z.getHealth()==1000,"High circling telegraphs before the contact phase"))
             .thenWaitUntil(()->h.assertTrue(z.getHealth()<1000,"Actual dive movement reaches and hurts the target"))
             .thenIdle(25).thenExecute(()->{try{h.assertTrue(!falcon.combatActions.active()&&falcon.getY()>z.getY()+1,"Dive ends in bounded climb rather than permanent contact");h.succeed();}finally{falcon.discard();z.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_fox_evade")
+    @GameTest(template="bow_ritual_test",batch="cod4_fox_evade",setupTicks=20)
     public static void foxEvadeHasActualSafeDisplacementAndReloadDropsAction(GameTestHelper h){
         room(h);var fox=source(h,"red_fox",4,2);var attacker=target(h,6);
         try{
@@ -75,7 +77,7 @@ public final class SecondaryActionGameTests {
             h.assertTrue(!fox.combatActions.active(),"Reload cannot replay a half-finished contact action");h.succeed();
         }finally{fox.discard();attacker.discard();}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_crab_charge",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_crab_charge",timeoutTicks=100,setupTicks=20)
     public static void sidewaysCrabChargeEndsInActualPinch(GameTestHelper h){
         room(h);var crab=source(h,"crab_soldier",3,2);var z=target(h,6);double startZ=crab.getZ();
         h.assertTrue(crab.combatActions.begin(z),"Crab starts sideways rather than generic jump");
@@ -83,7 +85,7 @@ public final class SecondaryActionGameTests {
             .thenWaitUntil(()->h.assertTrue(z.getHealth()<1000,"Claw contact really damages"))
             .thenExecute(()->{try{h.assertTrue(z.hasEffect(MobEffects.MOVEMENT_SLOWDOWN)&&z.getEffect(MobEffects.MOVEMENT_SLOWDOWN).getAmplifier()==4,"Successful claw contact owns finite pinch");h.succeed();}finally{crab.discard();z.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_scorpion_modes")
+    @GameTest(template="bow_ritual_test",batch="cod4_scorpion_modes",setupTicks=20)
     public static void scorpionClawsAndTailKeepDistinctPosesAndBossImmunity(GameTestHelper h){
         room(h);var scorpion=source(h,"venom_scorpion",3,2);var z=target(h,4);
         try{
@@ -93,7 +95,7 @@ public final class SecondaryActionGameTests {
             h.assertTrue(!boss.hasEffect(MobEffects.MOVEMENT_SLOWDOWN),"Boss cannot be pinned by claws");h.succeed();
         }finally{scorpion.discard();z.discard();}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_water_down",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_water_down",timeoutTicks=100,setupTicks=20)
     public static void underwaterDragOwnsDownwardForceAndPurificationStopsCoil(GameTestHelper h){
         room(h);for(int x=2;x<=5;x++)for(int z=3;z<=5;z++)for(int y=2;y<=4;y++)h.setBlock(x,y,z,Blocks.WATER);
         var ghost=source(h,"drowning_ghost",3,2);ghost.setNoAi(true);var z=target(h,4);z.baseTick();
@@ -104,7 +106,7 @@ public final class SecondaryActionGameTests {
             z.setDeltaMovement(.4,0,0);python.combatActions.tick();h.assertTrue(z.getDeltaMovement().x==.4,"Purification stops control rather than leaving an invisible constraint");python.discard();h.succeed();
         }finally{ghost.discard();z.discard();}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_carp_cycle",timeoutTicks=120)
+    @GameTest(template="bow_ritual_test",batch="cod4_carp_cycle",timeoutTicks=120,setupTicks=20)
     public static void carpActuallyLeavesWaterHitsAndReturnsToWater(GameTestHelper h){
         room(h);for(int x=2;x<=4;x++)for(int z=3;z<=5;z++)h.setBlock(x,2,z,Blocks.WATER);
         var carp=source(h,"carp_spirit",3,2);var z=target(h,6);carp.baseTick();boolean[] left={false};
@@ -114,7 +116,7 @@ public final class SecondaryActionGameTests {
             .thenWaitUntil(()->h.assertTrue(!carp.combatActions.active()&&carp.isInWater(),"Finite return phase reaches real water"))
             .thenExecute(()->{try{h.assertTrue(left[0],"This was an exit/jump/contact/return cycle, not a hit while remaining submerged");h.succeed();}finally{carp.discard();z.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_burrow_contact",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_burrow_contact",timeoutTicks=100,setupTicks=20)
     public static void wormBurrowsBeforeEruptionAndRealContactLaunch(GameTestHelper h){
         room(h);var worm=source(h,"stone_worm",3,2);var z=target(h,9);
         h.assertTrue(worm.combatActions.begin(z),"Solid ground permits real burrow approach");
@@ -122,7 +124,7 @@ public final class SecondaryActionGameTests {
             .thenWaitUntil(()->h.assertTrue(z.getHealth()<1000,"Eruption movement must actually meet target body"))
             .thenExecute(()->{try{h.assertTrue(z.getDeltaMovement().y>0,"Real eruption contact owns the existing upward impulse");h.succeed();}finally{worm.discard();z.discard();}});
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_scorpion_contact",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod4_scorpion_contact",timeoutTicks=100,setupTicks=20)
     public static void scorpionClawWindupPrecedesOneRealPoisonContact(GameTestHelper h){
         room(h);var scorpion=source(h,"venom_scorpion",3,2);
         // Undead are immune to vanilla poison; use an actually susceptible live body.

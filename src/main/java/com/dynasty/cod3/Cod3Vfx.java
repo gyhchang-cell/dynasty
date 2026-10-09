@@ -13,6 +13,15 @@ public final class Cod3Vfx {
         var p=new Cod3VisualPacket(level.dimension().location().toString(),template,-1,level.random.nextLong(),level.getGameTime(),duration,scale,origin,direction,"",0,tint);
         DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(origin.x,origin.y,origin.z,32,level.dimension())),p);
     }
+    /** Bounded owner-bound equipment cue on the existing visual wire protocol. */
+    public static Cod3VisualPacket actorPacket(net.minecraft.world.entity.LivingEntity owner,String cue,int duration,double scale,int tint){
+        return new Cod3VisualPacket(owner.level().dimension().location().toString(),14,owner.getId(),owner.getUUID().getLeastSignificantBits(),owner.level().getGameTime(),duration,scale,owner.position(),owner.getLookAngle(),"equipment_"+cue,0,tint);
+    }
+    public static void actor(net.minecraft.world.entity.LivingEntity owner,String cue,int duration,double scale,int tint){
+        if(!(owner.level() instanceof ServerLevel level))return;
+        var packet=actorPacket(owner,cue,duration,scale,tint);if(!packet.valid())throw new IllegalArgumentException("Invalid equipment visual cue");
+        DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(owner.getX(),owner.getY(),owner.getZ(),32,level.dimension())),packet);
+    }
     public static void sync(ServerPlayer p,net.minecraft.world.entity.Mob boss,String sequence,int tick,int total){
         DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->p),new Cod3VisualPacket(boss.level().dimension().location().toString(),0,boss.getId(),boss.getUUID().getLeastSignificantBits(),boss.level().getGameTime()-tick,total,1,boss.position(),boss.getLookAngle(),sequence,tick));
     }
