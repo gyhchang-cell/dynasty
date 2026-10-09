@@ -17,11 +17,14 @@ public final class ClientKeju {
      * 不做静默修补，也不让界面渲染出空按钮。
      */
     public static void open(int index, String question, String[] options) {
+        open(index, question, options, 30000);
+    }
+    public static void open(int index, String question, String[] options, int answerMillis) {
         if (question == null || options == null || options.length != 3) {
             Dynasty.LOGGER.warn("[Dynasty] 科举打开包字段不合法，已忽略（题干={} 选项数={}）",
                     question == null ? "null" : "ok", options == null ? -1 : options.length);
             return;
         }
-        Minecraft.getInstance().setScreen(new KejuScreen(index, question, options));
+        Minecraft.getInstance().setScreen(new KejuScreen(index, question, options, answerMillis));
     }
 }
