@@ -93,7 +93,14 @@ for row in rows:
         gain={'wayside_shrine':'LUCK 2400 ticks','nameless_tomb':'LUCK 2400 ticks','old_weapon_rack':'tie_jian with 25% remaining durability','herb_spot':'2 tea','abandoned_armory':'1 qimen_gear','ancient_well':'clear YIN and SOUL','mortuary_room':'clear YIN and SOUL','wayside_tea_stall':'clear POISON','old_bellows':'3 iron nuggets + actual furnace assistance','broken_waterwheel':'2 copper coins + shared world_02 flag'}.get(ident,'2 copper coins')
         mode.append('actual one-time Site.use completion: '+gain+'; personal cod4_'+ident+' advancement; incomplete secret steps noted explicitly')
     trade={'fox_pelt':'baibao_jin: 2 -> 6 copper','wolf_fang':'ba_tu: 2 -> 5 copper','python_gall':'hei_po: 1 -> 2 healing_salve','locust_dust':'hei_po: 2 -> 1 healing_salve','crab_shell':'huang_laohan: 2 -> 6 copper','kappa_scale':'huang_laohan: 2 -> 8 copper'}
-    if ident in trade:mode.append('actual native material trade '+trade[ident]+'; other specific functional uses remain pending')
+    if ident in trade:
+        remaining={'fox_pelt':'none; client/survival acceptance still pending','wolf_fang':'gray wolf fang ornament','crab_shell':'crab general ornament','kappa_scale':'dedicated fisherman trade','python_gall':'Hei Po gu brewing and cold-resistance wine','locust_dust':'poison smoke bomb, gu brewing and crop insect control'}
+        mode.append('actual native material trade '+trade[ident]+'; remaining specific function: '+remaining[ident])
+    infusions={'fox_pelt':'cold_ward, vanilla/Dynasty leather only: 20% freeze reduction + 8 fewer frozen ticks per second', 'wolf_fang':'existing shanxiao_claw third-hit pursuit on melee weapons; original family/cooldown', 'crab_shell':'existing retaliation on defensive equipment including sea_silk Dragon Palace light armor', 'kappa_scale':'existing water_ward on defensive equipment including original sea_pearl; native water combat trigger'}
+    if ident in infusions:
+        mode.append('existing InfusionMenu paid transaction: 2 materials + 3 XP levels, one capacity; '+infusions[ident]+'; get_jade only existing gate; original 95 traits and foreign/growth/durability NBT retained')
+        row['PROGRESS_HOOK']+='; InfusionMenu.request -> existing first_infusion; InfusionCombat equipped effect; native JEI category reads same traits (client display pending)'
+
     extra={'repeating_crossbow':'ContentProgress archer rank>=6 discovers cod4/repeating_crossbow','siege_crossbow':'ContentProgress archer rank>=10 discovers cod4/siege_crossbow','meteor_hammer':'official OR guard rank>=3 discovers; minister 64 copper, 8/day','mandarin_duck_axe':'official OR guard rank>=3 discovers; minister 64 copper, 8/day','rope_dart':'official OR guard rank>=3 discovery; minister same existing gating','flying_claw':'official OR guard rank>=3 discovery; minister same existing gating','sea_pearl':'entered_dragon_palace -> legacy Minister 48 copper, 8/day; native huang_laohan in Dragon Palace 48 copper, 8/NPC persisted stock'}
     if ident in extra:mode.append(extra[ident])
     if not outputs and not found:mode.append('intrinsic effects/loot only; no claimed recipe, shop or FTB unlock')
@@ -108,11 +115,12 @@ for row in rows:
     elif any(entry['target'].startswith('cod4_obtain_') for entry in found):compat+='; inventory/armor/active Curios regrant missing impossible advancement only'
     row['OLD_SAVE_COMPAT']=compat
     notes=row['NOTES']
+    if ident=='fox_pelt':notes=re.sub(r'; Remaining material functions belong to existing Stage [^;]*; native workshop/NPC integration pending, not an invented new mainline','',notes)
     if ident in gaps and gaps[ident] not in notes:notes+='; '+gaps[ident]
     if ident in gaps and stages:
         hint='Remaining Site/secret closure must reuse existing Stage '+','.join(stages)+'; no separate exported secret task node is present'
         if hint not in notes:notes+='; '+hint
-    if ident in trade and stages:
+    if ident in trade and ident!='fox_pelt' and stages:
         hint='Remaining material functions belong to existing Stage '+','.join(stages)+'; native workshop/NPC integration pending, not an invented new mainline'
         if hint not in notes:notes+='; '+hint
     deps=';'.join(sorted({entry['node']+'<-'+(','.join(entry['deps']) or 'none') for entry in found}))

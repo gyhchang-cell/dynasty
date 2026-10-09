@@ -112,6 +112,7 @@ public final class InfusionCombat {
     private static void defend(Player p,LivingHurtEvent e){
         var traits=armor(p);boolean enemy=e.getSource().getEntity() instanceof LivingEntity attacker&&hostile(p,attacker);
         boolean heavy=e.getAmount()>=p.getMaxHealth()*.08;
+        if(e.getSource().is(DamageTypes.FREEZE)&&traits.contains("cold_ward"))e.setAmount(e.getAmount()*.8f);
         if(enemy&&heavy&&traits.contains("ghost_face_fur")&&ready(p,"ghost_face_fur",240))effect(p,MobEffects.INVISIBILITY,40);
         if((e.getSource().is(DamageTypes.MAGIC)||e.getSource().is(DamageTypes.INDIRECT_MAGIC))&&traits.contains("nether_tatter")&&ready(p,"nether_tatter",160)){e.setAmount(e.getAmount()*.8f);effect(p,MobEffects.SLOW_FALLING,60);}
         if(enemy&&e.getSource().getEntity() instanceof LivingEntity a&&a.getMobType()==MobType.UNDEAD&&traits.contains("blackened_bone")&&ready(p,"blackened_bone",200)){p.removeEffect(MobEffects.POISON);effect(p,MobEffects.DAMAGE_RESISTANCE,40);}
@@ -124,6 +125,11 @@ public final class InfusionCombat {
         if(enemy&&heavy&&traits.contains("lifebloom")&&ready(p,"lifebloom",240)){effect(p,MobEffects.REGENERATION,60);cue(p,false);}
         if(enemy&&e.getSource().getEntity() instanceof LivingEntity a&&a.getMobType()==MobType.UNDEAD&&traits.contains("wither_ward")&&ready(p,"wither_ward",200)){p.removeEffect(MobEffects.WITHER);p.removeEffect(MobEffects.WEAKNESS);cue(p,false);}
         if(e.getSource().is(DamageTypeTags.IS_FIRE)&&traits.contains("zhuque_feather")&&ready(p,"zhuque_feather",240)){p.clearFire();effect(p,MobEffects.FIRE_RESISTANCE,60);}
+    }
+    /** Fox-lined leather slows accumulated cold without granting blanket immunity. */
+    @SubscribeEvent public static void cold(net.minecraftforge.event.TickEvent.PlayerTickEvent e){
+        if(e.phase!=net.minecraftforge.event.TickEvent.Phase.END||e.player.level().isClientSide||e.player.tickCount%20!=0)return;
+        if(e.player.getTicksFrozen()>0&&armor(e.player).contains("cold_ward"))e.player.setTicksFrozen(Math.max(0,e.player.getTicksFrozen()-8));
     }
     @SubscribeEvent public static void shield(ShieldBlockEvent e){
         if(!(e.getEntity() instanceof Player p)||p.level().isClientSide||e.getBlockedDamage()<=0||!(e.getDamageSource().getEntity() instanceof LivingEntity a)||!hostile(p,a))return;

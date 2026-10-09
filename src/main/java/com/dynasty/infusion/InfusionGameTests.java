@@ -25,9 +25,9 @@ public final class InfusionGameTests {
     private static ItemStack gear(String id,Item type){return InfusionTraits.preview(new ItemStack(type),InfusionTraits.get(id),0,false);}
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="infusion")
     public static void all95ExistingMaterialsRoundTripWithoutTouchingForeignNbt(GameTestHelper h){
-        h.assertTrue(InfusionTraits.ALL.size()==95,"95 materials");
+        h.assertTrue(InfusionTraits.ALL.size()==99,"Original 95 materials plus four existing COD4 materials");
         for(var t:InfusionTraits.ALL){h.assertTrue(item(t.material())!=null&&item(t.material())!=Items.AIR,"Registered original material: "+t.material());
-            var base=new ItemStack(t.effect().equals("hunter_mark")?Items.BOW:t.kind()==InfusionTraits.Kind.ARMOR?Items.IRON_CHESTPLATE:Items.IRON_SWORD);base.setDamageValue(11);base.getOrCreateTag().putString("ForeignData","preserve");
+            var base=new ItemStack(t.effect().equals("cold_ward")?Items.LEATHER_CHESTPLATE:t.effect().equals("hunter_mark")?Items.BOW:t.kind()==InfusionTraits.Kind.ARMOR?Items.IRON_CHESTPLATE:Items.IRON_SWORD);base.setDamageValue(11);base.getOrCreateTag().putString("ForeignData","preserve");
             var out=InfusionTraits.preview(base,t,0,false);h.assertTrue(!out.isEmpty()&&InfusionTraits.active(out).contains(t.material()),"Active correct trait: "+t.material());
             var restored=ItemStack.of(out.save(new net.minecraft.nbt.CompoundTag()));
             h.assertTrue(restored.getDamageValue()==11&&restored.getTag().getString("ForeignData").equals("preserve")&&InfusionTraits.active(restored).contains(t.material()),"NBT survives serialization");

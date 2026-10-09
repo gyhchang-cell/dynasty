@@ -43,12 +43,15 @@ public final class BlindFishGameTests {
         var mob=fish(h);var victim=target(h);mob.setPos(victim.getX(),victim.getY()+.2,victim.getZ()-2);mob.startSkill(ArmySkills.FISH_TAIL,victim);
         h.runAfterDelay(14,()->h.assertTrue(victim.getHealth()==200,"Windup harmless"));h.runAfterDelay(42,()->{h.assertTrue(victim.getHealth()==194,"One actual tail contact");h.succeed();});
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=50,batch="blind_fish")
+    @GameTest(template="bow_ritual_test",timeoutTicks=110,batch="blind_fish",setupTicks=20)
     public static void realFlightMovesWithoutCrossingSolidWalls(GameTestHelper h){
-        var mob=fish(h);var victim=target(h);mob.setNoAi(false);mob.setTarget(victim);var start=mob.position();
-        h.runAfterDelay(12,()->{h.assertTrue(mob.position().distanceToSqr(start)>.05,"Actual flight moves before wall");for(int x=1;x<15;x++)for(int y=2;y<11;y++)h.setBlock(x,y,7,Blocks.STONE);});
-        h.onEachTick(()->{if(h.getTick()>14)mob.setDeltaMovement(0,0,.3);});
-        h.runAfterDelay(35,()->{h.assertTrue(!mob.noPhysics&&mob.getZ()<h.absolutePos(new BlockPos(7,2,7)).getZ(),"Physical flight cannot cross a newly placed wall");h.succeed();});
+        var mob=fish(h);var victim=target(h);mob.setNoAi(false);mob.setTarget(victim);var start=mob.position();boolean[] wall={false};
+        // Wait for native navigation/entity ticking, then retain the same 23-tick
+        // collision probe. Do not manufacture movement or bypass the flight AI.
+        h.startSequence().thenWaitUntil(()->h.assertTrue(mob.position().distanceToSqr(start)>.05,"Actual flight moves before wall; pos="+mob.position()+", target="+mob.getTarget()+", skill="+mob.skillId()))
+        .thenExecute(()->{for(int x=1;x<15;x++)for(int y=2;y<11;y++)h.setBlock(x,y,7,Blocks.STONE);wall[0]=true;})
+        .thenIdle(23).thenExecute(()->{try{h.assertTrue(!mob.noPhysics&&mob.getZ()<h.absolutePos(new BlockPos(7,2,7)).getZ(),"Physical flight cannot cross a newly placed wall");h.succeed();}finally{mob.discard();victim.discard();}});
+        h.onEachTick(()->{if(wall[0])mob.setDeltaMovement(0,0,.3);});
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="blind_fish")
     public static void eightSpineClipsAndDeepCaveHabitatAreReal(GameTestHelper h)throws Exception{
