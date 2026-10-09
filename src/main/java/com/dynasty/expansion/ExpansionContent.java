@@ -26,6 +26,7 @@ public final class ExpansionContent {
     public static void register(IEventBus bus) {
         ExpansionEffects.bootstrap();
         SecondaryMobs.bootstrap(bus);
+        bus.addListener(SecondarySpawnHooks::register);
         SmallInteractions.bootstrap(bus);
         ITEMS.register(bus);
     }

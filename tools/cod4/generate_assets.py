@@ -143,7 +143,26 @@ for r in rows:
  if 15<=r['index']<=19:habitats=['#minecraft:is_river','#minecraft:is_ocean','minecraft:swamp']
  if r['index'] in (23,25):habitats=['minecraft:desert','minecraft:badlands','minecraft:savanna']
  if r['index'] in (20,24,26,30):habitats=['minecraft:dripstone_caves','minecraft:lush_caves','minecraft:deep_dark']
+ # Keep original biome coverage and append the originally requested missing habitats.
+ additions={
+  'gray_wolf':['minecraft:snowy_plains','minecraft:snowy_taiga','minecraft:snowy_slopes','minecraft:frozen_peaks','minecraft:jagged_peaks'],
+  'giant_python':['minecraft:swamp','minecraft:mangrove_swamp','#minecraft:is_jungle'],
+  'corpse_beetle':['#minecraft:is_forest','#minecraft:is_mountain','minecraft:plains','minecraft:desert'],
+  'stone_sprite':['minecraft:dripstone_caves','minecraft:lush_caves','minecraft:deep_dark'],
+  'jingwei_bird':['minecraft:beach','minecraft:snowy_beach','minecraft:stony_shore'],
+  'gray_falcon':['minecraft:desert','minecraft:badlands','minecraft:eroded_badlands'],
+  'venom_scorpion':['minecraft:dripstone_caves','minecraft:lush_caves','minecraft:deep_dark'],
+  'famished_refugee':['minecraft:plains','minecraft:sunflower_plains','minecraft:desert'],
+  'swindler':['minecraft:plains','minecraft:sunflower_plains','minecraft:desert'],
+  'night_watchman':['minecraft:plains','minecraft:sunflower_plains','minecraft:desert'],
+  'lantern_ghost':['minecraft:plains','minecraft:sunflower_plains','minecraft:desert'],
+  'paper_cut_child':['minecraft:plains','minecraft:desert'],
+  'paper_money_ghost':['minecraft:plains','minecraft:desert'],
+  'wooden_magpie':['minecraft:plains','minecraft:sunflower_plains','minecraft:meadow'],
+  'clockwork_rat':['#minecraft:is_forest','#minecraft:is_mountain','minecraft:plains','minecraft:sunflower_plains','minecraft:meadow']}
+ habitats=list(dict.fromkeys(habitats+additions.get(id,[])))
  write(D/'tags/worldgen/biome/secondary'/f'{id}.json',{'replace':False,'values':habitats})
+ write(D/'forge/biome_modifier'/f'secondary_{id}.json',{'type':'forge:add_spawns','biomes':'#dynasty:secondary/'+id,'spawners':{'type':'dynasty:'+id,'weight':1,'minCount':1,'maxCount':1}})
 
 materials=['qimen_cable','qimen_gear','fox_pelt','wolf_fang','python_gall','crab_shell','kappa_scale','sprite_jade','lantern_oil','locust_dust']
 recipes={
@@ -234,3 +253,6 @@ for language, clue in {"zh_cn":"持敕令笔点石敢当额心，以朱砂或石
     path=A/"lang"/(language+".json")
     value=json.loads(path.read_text()); value["cod3.dynasty.secret.clue.16"]=clue
     path.write_text(json.dumps(value,ensure_ascii=False,indent=2)+"\n")
+
+# Existing ruins only; do not invent missing ghost-market or village structures.
+write(D/"tags/worldgen/structure/secondary/ruins.json",{"replace":False,"values":["dynasty:ruined_battlefield","dynasty:music_ruin"]})

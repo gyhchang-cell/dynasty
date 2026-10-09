@@ -86,6 +86,11 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         }
         return super.isAlliedTo(other);
     }
+    @Override public boolean checkSpawnObstruction(net.minecraft.world.level.LevelReader world){
+        // Native Mob rejects all liquids by default. Aquatic actors must still
+        // pass real obstruction while allowing their required water habitat.
+        return spec!=null&&spec.aquatic()?world.isUnobstructed(this):super.checkSpawnObstruction(world);
+    }
     @Override public boolean canBreatheUnderwater() { return spec!=null && spec.aquatic() || super.canBreatheUnderwater(); }
     @Override public MobType getMobType() { return spec!=null && (spec.family().equals("ghost") || spec.id().equals("drowning_ghost"))?MobType.UNDEAD:super.getMobType(); }
     @Override public void travel(Vec3 input) {
