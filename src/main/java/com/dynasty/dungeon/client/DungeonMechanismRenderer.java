@@ -24,6 +24,14 @@ public final class DungeonMechanismRenderer implements BlockEntityRenderer<Dunge
         event.registerEntityRenderer(DungeonContent.TRAP_ARROW.get(),net.minecraft.client.renderer.entity.TippableArrowRenderer::new);
     }
     @Override public void render(DungeonMechanismBlockEntity be,float partial,PoseStack pose,MultiBufferSource buffers,int light,int overlay){
+        if(be.kind()==DungeonMechanismBlock.Kind.TRAP&&com.dynasty.dungeon.DungeonTrapProfile.forId(be.mechanismId())==com.dynasty.dungeon.DungeonTrapProfile.CRUSHER){
+            pose.pushPose();try{
+                int phase=be.getBlockState().getValue(DungeonMechanismBlock.STAGE);float progress=be.visualProgress(partial);
+                double y=switch(phase){case 1->2.6+Math.sin(progress*Math.PI*6)*.03;case 2->1.02;case 3->1.02+1.58*progress;default->2.6;};
+                pose.translate(.05,y,.05);pose.scale(.9F,.65F,.9F);
+                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(Blocks.IRON_BLOCK.defaultBlockState(),pose,buffers,light,overlay);
+            }finally{pose.popPose();}return;
+        }
         if(be.kind()!=DungeonMechanismBlock.Kind.DOOR&&be.kind()!=DungeonMechanismBlock.Kind.FLOOR)return;
         pose.pushPose();
         try{

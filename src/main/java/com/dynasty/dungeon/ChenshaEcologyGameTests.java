@@ -68,7 +68,7 @@ public final class ChenshaEcologyGameTests {
         h.succeed();
     }
 
-    @GameTest(template="bow_ritual_test",batch="cod2_middle_ecology",timeoutTicks=140)
+    @GameTest(template="bow_ritual_test",batch="cod2_middle_ecology",timeoutTicks=600)
     public static void middleSkullsRespectBindingBudgetAndPersistentDefeat(GameTestHelper h) {
         var level=h.getLevel();var origin=h.absolutePos(new BlockPos(2048,80,2048));
         var core=origin.offset(ChenshaPiece.core("mercury"));
@@ -92,6 +92,7 @@ public final class ChenshaEcologyGameTests {
             for(var chunk:forced){
                 var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
                 h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Skull fixture waits for loaded entity sections");
+                h.assertTrue(level.areEntitiesLoaded(chunk.toLong()),"Skull fixture waits for asynchronous entity storage before spawning");
             }
         }).thenExecute(()->{
             // Light-isolated fixture; tickets and terrain edits are test-only.

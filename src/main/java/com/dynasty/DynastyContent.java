@@ -11,6 +11,7 @@ public final class DynastyContent {
     }
 
     public static void register(IEventBus modEventBus) {
+        com.dynasty.expansion.ExpansionContent.register(modEventBus);
         com.dynasty.infusion.InfusionContent.register(modEventBus);
         com.dynasty.army.ArmyContent.register(modEventBus);
         DynastyBlocks.BLOCKS.register(modEventBus);
@@ -42,6 +43,8 @@ public final class DynastyContent {
         DynastyTabs.TABS.register(modEventBus);
         com.dynasty.entity.DynastyEntities.ENTITIES.register(modEventBus);
         com.dynasty.blueprint.BlueprintEntities.register(modEventBus);
+        com.dynasty.blueprint.EcologyBiomeModifier.SERIALIZERS.register(modEventBus);
+        com.dynasty.worldevent.WorldEventItems.ITEMS.register(modEventBus);
         modEventBus.addListener(com.dynasty.blueprint.BlueprintSpawns::register);
         com.dynasty.worldgen.DynastyFeatures.FEATURES.register(modEventBus);
         DynastyEnchantments.ENCHANTMENTS.register(modEventBus);

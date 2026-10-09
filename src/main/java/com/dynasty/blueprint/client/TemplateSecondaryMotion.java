@@ -52,7 +52,8 @@ public final class TemplateSecondaryMotion {
         resetProcedural(model,mob.kind());
         var mc=Minecraft.getInstance();
         if(mc.level!=world){STATES.clear();world=mc.level;}
-        if(!mob.isAlive()||mc.level==null||mc.gameRenderer.getMainCamera().getPosition().distanceToSqr(mob.position())>32*32){STATES.remove(mob.getUUID());return;}
+        int distance=mob.animationProfile().secondaryDistance();
+        if(!mob.isAlive()||mc.level==null||mc.gameRenderer.getMainCamera().getPosition().distanceToSqr(mob.position())>distance*distance){STATES.remove(mob.getUUID());return;}
         if(mob.kind()==TemplateMob.Kind.SWORD||mob.kind()==TemplateMob.Kind.POWDER)return;
         Motion s=STATES.computeIfAbsent(mob.getUUID(),id->new Motion());
         while(STATES.size()>64)STATES.remove(STATES.keySet().iterator().next());

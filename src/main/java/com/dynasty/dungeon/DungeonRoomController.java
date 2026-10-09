@@ -22,6 +22,14 @@ public final class DungeonRoomController implements DungeonMechanism {
     private boolean timedTrial, trialRunning, trialFailed;
     private int trialTicks;
     private long trialLastUpdate=-1;
+    private final java.util.Map<UUID,DungeonExposure> exposures=new java.util.HashMap<>();
+
+    public DungeonExposure exposure(UUID player,boolean create) {
+        if(!exposures.containsKey(player)&&create&&exposures.size()<64)exposures.put(player,new DungeonExposure());
+        return exposures.get(player);
+    }
+    public boolean retainExposures(Set<UUID> present) {return exposures.keySet().removeIf(id->!present.contains(id));}
+    public boolean clearExposure(UUID player) {return exposures.remove(player)!=null;}
 
     public void configureTargets(int mask,boolean timed) {
         requiredTargets=mask&63;timedTrial=timed;
@@ -29,8 +37,9 @@ public final class DungeonRoomController implements DungeonMechanism {
     }
     public DungeonHazard hazard(String key,boolean floor) {
         if(hazards.size()>=64&&!hazards.containsKey(key))throw new IllegalStateException("Room hazard budget exceeded");
-        var clock=hazards.computeIfAbsent(key,k->new DungeonHazard(20,floor?40:6,36,floor?0:2));
-        if(!floor){var upgraded=clock.upgradeIdleArrowVolley();if(upgraded!=clock){hazards.put(key,upgraded);clock=upgraded;}}
+        var profile=DungeonTrapProfile.forId(key);
+        var clock=hazards.computeIfAbsent(key,k->profile!=null?profile.clock():new DungeonHazard(20,floor?40:6,36,floor?0:2));
+        if(!floor&&profile==null){var upgraded=clock.upgradeIdleArrowVolley();if(upgraded!=clock){hazards.put(key,upgraded);clock=upgraded;}}
         return clock;
     }
     // Failure releases the trial entrance only. The exit still requires the eyes.
@@ -102,6 +111,7 @@ public final class DungeonRoomController implements DungeonMechanism {
         progress=0;completed=false;phase=Phase.IDLE;phaseTicks=0;contactPending=false;lastUpdate=-1;
         openingTicks=0;trialRunning=false;trialFailed=false;trialTicks=0;trialLastUpdate=-1;
         hazards.values().forEach(DungeonHazard::reset);
+        exposures.clear();
     }
     @Override public void complete(){completed=true;phase=Phase.IDLE;phaseTicks=0;contactPending=false;trialRunning=false;trialFailed=false;}
     @Override public void syncVisual(){/* The owning core updates only loaded marker BEs. */}
@@ -116,6 +126,7 @@ public final class DungeonRoomController implements DungeonMechanism {
         tag.putBoolean("TimedTrial",timedTrial);tag.putBoolean("TrialRunning",trialRunning);tag.putBoolean("TrialFailed",trialFailed);
         tag.putInt("TrialTicks",trialTicks);tag.putLong("TrialLastUpdate",trialLastUpdate);
         var clocks=new CompoundTag();hazards.forEach((key,value)->clocks.put(key,value.save()));tag.put("Hazards",clocks);
+        var contacts=new CompoundTag();exposures.forEach((key,value)->contacts.put(key.toString(),value.save()));tag.put("Exposures",contacts);
         return tag;
     }
     @Override public void load(CompoundTag tag){
@@ -134,5 +145,9 @@ public final class DungeonRoomController implements DungeonMechanism {
         trialLastUpdate=tag.contains("TrialLastUpdate")?tag.getLong("TrialLastUpdate"):-1;
         hazards.clear();var clocks=tag.getCompound("Hazards");
         for(String key:clocks.getAllKeys())if(hazards.size()<64)hazards.put(key,DungeonHazard.restore(clocks.getCompound(key)));
+        exposures.clear();var contacts=tag.getCompound("Exposures");
+        for(String key:contacts.getAllKeys())if(exposures.size()<64)try {
+            exposures.put(UUID.fromString(key),DungeonExposure.load(contacts.getCompound(key)));
+        }catch(IllegalArgumentException ignored){}
     }
 }

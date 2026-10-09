@@ -212,7 +212,7 @@ public final class DynastySchoolCombat {
         if (!charging(player, s)) { endCharge(player); return; }
         silkResistance(player, has(player, "dingfeng_silk"));
         if (now(player) - s.chargeStart >= SchoolCombatRules.EDICT_CHARGE) {
-            s.edictUntil = now(player) + SchoolCombatRules.EDICT_WINDOW;
+            s.edictUntil = now(player) + SchoolCombatRules.EDICT_WINDOW + (DynastySchoolProgression.equippedSynergy(player, "talisman") ? SchoolCombatRules.EDICT_WINDOW / 5 : 0);
             endCharge(player);
             player.stopUsingItem();
             cue(player, "edict_ready");

@@ -14,7 +14,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 public final class ArmyRosterScreen extends AbstractContainerScreen<ArmyMenu> {
     private int page;
     private boolean encounters,formation;
-    private int lastFormation=-1;
+    private int lastFormation=-1,lastRetreat=-1;
     @SubscribeEvent public static void setup(FMLClientSetupEvent e){e.enqueueWork(()->MenuScreens.register(ArmyContent.MENU.get(),ArmyRosterScreen::new));}
     public ArmyRosterScreen(ArmyMenu menu,Inventory inv,Component title){super(menu,inv,title);imageWidth=312;imageHeight=244;}
     private void send(int action){if(minecraft!=null&&minecraft.gameMode!=null)minecraft.gameMode.handleInventoryButtonClick(menu.containerId,(menu.view.get(2)<<8)|action);}
@@ -24,7 +24,7 @@ public final class ArmyRosterScreen extends AbstractContainerScreen<ArmyMenu> {
         addRenderableWidget(Button.builder(Component.literal(formation?"兵册":"阵图"),b->{formation=!formation;encounters=false;rebuildWidgets();}).bounds(leftPos+210,topPos+5,45,16).build());
         if(encounters) {
             for(int i=0;i<6;i++)button(12,45+i*23,288,ArmyEncounters.NAMES[i],130+i);
-            button(12,200,140,"部署后开战",200);button(160,200,140,"撤离战区",201);return;
+            button(12,200,140,"部署后开战",200);button(160,200,140,menu.view.get(115)==1?"再次点击确认认输":"撤离战区",201);return;
         }
         for(int i=0;i<3;i++)button(8+i*99,27,96,ArmyRoster.ROLES[i]+" "+ArmyRoster.PRICE[i]+"银",i);
         for(int i=0;i<9;i++){final int row=i;addRenderableWidget(Button.builder(Component.literal(formation?"选":"编入/移出/修整"),b->send((formation?150:40)+page*9+row)).bounds(leftPos+(formation?174:200),topPos+50+i*15,formation?22:104,14).build());}
@@ -55,6 +55,6 @@ public final class ArmyRosterScreen extends AbstractContainerScreen<ArmyMenu> {
         if(formation){g.drawString(font,"↑ 敌方",220,48,0xe6cf98,false);g.drawString(font,"↓ 主将",220,165,0xe6cf98,false);}
         g.drawString(font,"阵型 "+(menu.view.get(3)+1)+" · "+(page+1)+"/4页 · 在募兵台支付/修整",8,181,0xb9c8d0,false);
     }
-    @Override protected void containerTick(){super.containerTick();if(formation&&lastFormation!=menu.view.get(3)){lastFormation=menu.view.get(3);rebuildWidgets();}}
+    @Override protected void containerTick(){super.containerTick();if((formation&&lastFormation!=menu.view.get(3))||(encounters&&lastRetreat!=menu.view.get(115))){lastFormation=menu.view.get(3);lastRetreat=menu.view.get(115);rebuildWidgets();}}
     @Override public void render(GuiGraphics g,int x,int y,float partial){renderBackground(g);super.render(g,x,y,partial);renderTooltip(g,x,y);}
 }

@@ -81,6 +81,14 @@ public final class ArmyEncounters {
         s.putUUID("Boss",boss.getUUID());s.putString("Phase","ACTIVE");s.putLong("Started",p.server.overworld().getGameTime());
         // Freeze the owner's existing accessory bonuses once for this fight.
         ArmySupport.snapshot(p,troops);
+        var locked=new ListTag();
+        for(var soldier:troops) {
+            var row=new CompoundTag();row.putUUID("Id",soldier.getPersistentData().getUUID("ArmySoldier"));
+            row.putInt("Slot",soldier.getPersistentData().getInt("ArmySlot"));
+            row.putInt("Role",soldier.getPersistentData().getInt("ArmyRole"));
+            row.putLong("Generation",soldier.getPersistentData().getLong("ArmyGeneration"));locked.add(row);
+        }
+        s.put("LockedRoster",locked);ArmyRoster.changed(p);
         String guard=new String[]{"ludun_jiashi","fufa_jijiu","yinbing_guizu","liannu_zhenzu","bishui_xuanjiao_youzi","jade_guard"}[stage];
         var guardType=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",guard));
         if(guardType!=null)for(int side:new int[]{-1,1})if(guardType.create(level) instanceof Mob mob) {
@@ -106,7 +114,8 @@ public final class ArmyEncounters {
         ArmyRoster.recallNow(p,true);
         // On crash recovery, an unconfirmed unloaded carrier is invalidated, never duplicated/refilled.
         for(var value:ArmyRoster.soldiers(p)) {var row=(CompoundTag)value;
-            if(row.getString("State").equals("DEPLOYED")){row.putString("State","WOUNDED");row.putFloat("Health",0);row.remove("Entity");}}
+            if(row.getString("State").equals("DEPLOYED")){row.putString("State","WOUNDED");row.putFloat("Health",0);row.remove("Entity");row.remove("RecallRequested");row.remove("RecallAt");row.remove("RecallForced");}}
+        ArmyRoster.changed(p);
 
         if(victory) {
             String id=BOSSES[s.getInt("Stage")];
@@ -137,7 +146,7 @@ public final class ArmyEncounters {
         if(p.level().dimension()!=DIM||Math.abs(p.getX()-c.x)>24||Math.abs(p.getZ()-c.z)>24||p.getY()<c.y-4){finish(p,false,"离开战区");return;}
         long now=p.server.overworld().getGameTime();
         if(!active(p)){if(now-s.getLong("Created")>2400)finish(p,false,"备战超时");return;}
-        var troops=troops(p);if(troops.isEmpty()){finish(p,false,"全军覆没");return;}
+        var troops=troops(p); // Win/wipe decisions use one server END-tick snapshot below.
         if(now-s.getLong("Started")>18000){finish(p,false,"战斗超时");return;}
         if(p.serverLevel().getEntity(s.getUUID("Boss")) instanceof Mob boss) {
             var nearest=troops.stream().min(Comparator.comparingDouble(boss::distanceToSqr)).orElse(null);
@@ -149,14 +158,37 @@ public final class ArmyEncounters {
             }
         }
     }
-    @SubscribeEvent(priority=EventPriority.LOWEST) public static void death(LivingDeathEvent e) {
-        if(e.getEntity() instanceof ServerPlayer p){if(inside(p))finish(p,false,"主将阵亡");return;}
-        var n=e.getEntity().getPersistentData();if(!n.hasUUID("ArmyCommander")||!(e.getEntity().level() instanceof ServerLevel l))return;
-        var p=commander(l,n.getUUID("ArmyCommander"));
-        if(p!=null&&active(p)&&session(p).hasUUID("Boss")&&session(p).getUUID("Boss").equals(e.getEntity().getUUID()))
-            finish(p,!troops(p).isEmpty(),"首领倒下");
+    /** One outcome after all living entities have ticked, independent of death-event order. */
+    static void settleOutcome(ServerPlayer p) {
+        if(!active(p))return;
+        var s=session(p);
+        if(s.getBoolean("BossDefeated")) {finish(p,true,"首领倒下（保留全部战损）");return;}
+        if(s.getBoolean("CommanderDefeated")||!p.isAlive()) {finish(p,false,"主将阵亡");return;}
+        if(troops(p).isEmpty())finish(p,false,"全军覆没");
     }
-    @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e){if(e.getEntity() instanceof ServerPlayer p&&inside(p))finish(p,false,"主将离线，保留战损");}
+    @SubscribeEvent public static void settle(TickEvent.ServerTickEvent e) {
+        if(e.phase!=TickEvent.Phase.END)return;
+        var server=net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();if(server==null)return;
+        var players=new HashSet<ServerPlayer>();
+        for(var level:server.getAllLevels())players.addAll(level.players());
+        for(var player:players)settleOutcome(player);
+    }
+    @SubscribeEvent(priority=EventPriority.LOWEST) public static void death(LivingDeathEvent e) {
+        if(e.getEntity() instanceof ServerPlayer p) {
+            if(active(p))session(p).putBoolean("CommanderDefeated",true);
+            else if(inside(p))finish(p,false,"主将阵亡");
+            return;
+        }
+        var n=e.getEntity().getPersistentData();
+        if(!n.hasUUID("ArmyCommander")||!n.hasUUID("ArmyEncounter")||!(e.getEntity().level() instanceof ServerLevel l))return;
+        var p=commander(l,n.getUUID("ArmyCommander"));
+        if(p!=null&&active(p)&&session(p).hasUUID("Boss")&&session(p).getUUID("Boss").equals(e.getEntity().getUUID())
+                &&session(p).getUUID("Id").equals(n.getUUID("ArmyEncounter"))) {
+            session(p).putBoolean("BossDefeated",true);
+            session(p).putLong("BossDefeatedTick",p.server.overworld().getGameTime());ArmyRoster.changed(p);
+        }
+    }
+    @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e){if(e.getEntity() instanceof ServerPlayer p&&inside(p)){settleOutcome(p);if(inside(p))finish(p,false,"主将离线，保留战损");}}
     @SubscribeEvent public static void login(PlayerEvent.PlayerLoggedInEvent e){if(e.getEntity() instanceof ServerPlayer p){if(inside(p))finish(p,false,"服务器中断，保留战损安全撤出");else if(session(p).contains("Id")&&!session(p).getBoolean("Returned"))evacuate(p,session(p));}}
     @SubscribeEvent public static void respawn(PlayerEvent.PlayerRespawnEvent e){if(e.getEntity() instanceof ServerPlayer p&&session(p).contains("Id")&&!session(p).getBoolean("Returned"))evacuate(p,session(p));}
     @SubscribeEvent public static void breakBlock(BlockEvent.BreakEvent e){if(e.getPlayer() instanceof ServerPlayer p&&inside(p))e.setCanceled(true);}

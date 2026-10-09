@@ -52,7 +52,18 @@ public class ImperialSoldier extends PathfinderMob {
     }
 
     public Player getOwner() {
-        return this.ownerId == null ? null : this.level().getPlayerByUUID(this.ownerId);
+        if(ownerId==null)return null;
+        var local=level().getPlayerByUUID(ownerId);
+        if(local!=null)return local;
+        // Paid carriers can reload in the old dimension after their owner has left.
+        // Resolve the server owner so their pending recall can finish there.
+        if(isRosterSoldier()&&level().getServer()!=null) {
+            var online=level().getServer().getPlayerList().getPlayer(ownerId);if(online!=null)return online;
+            for(var world:level().getServer().getAllLevels()) {
+                var player=world.getPlayerByUUID(ownerId);if(player!=null)return player;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -139,10 +150,8 @@ public class ImperialSoldier extends PathfinderMob {
             if(!com.dynasty.army.ArmyRoster.valid(self,owner)){discard();return;}
             var tag=getPersistentData();
             var record=com.dynasty.army.ArmyRoster.find(owner,tag.getUUID("ArmySoldier"));
-            if(record.getBoolean("RecallRequested")&&!com.dynasty.army.ArmyEncounters.active(owner)
-                    &&(getLastHurtByMob()==null||tickCount-getLastHurtByMobTimestamp()>=40)) {
-                com.dynasty.army.ArmyRoster.snapshot(record,self);record.putString("State","RESERVE");record.remove("Entity");record.remove("RecallRequested");discard();return;
-            }
+            if(com.dynasty.army.ArmyRoster.completeRecall(owner,self))return;
+            if(owner.level()!=level()){getNavigation().stop();setTarget(null);return;}
             var target=com.dynasty.army.ArmyRoster.slot(owner.position(),tag.getFloat("ArmyYaw"),tag.getInt("ArmySlot"),tag.getInt("ArmyFormation"));
             if(distanceToSqr(owner)>96*96){getNavigation().stop();setTarget(null);return;}
             var p=net.minecraft.core.BlockPos.containing(target);

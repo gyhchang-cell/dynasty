@@ -15,6 +15,11 @@ public final class DungeonCommands {
     @SubscribeEvent public static void register(RegisterCommandsEvent event){
         CommandDispatcher<CommandSourceStack> d=event.getDispatcher();
         d.register(Commands.literal("dynasty").then(Commands.literal("dungeon").requires(s->s.hasPermission(2))
+            .then(Commands.literal("dependencies").executes(c->{
+                var missing=DungeonEncounters.missingChenshaDependencies(c.getSource().getLevel());
+                c.getSource().sendSuccess(()->Component.literal(missing.isEmpty()?"沉沙玄宫 Boss/奖励接入已就绪":"沉沙玄宫尚缺："+String.join(", ",missing)),false);
+                return missing.isEmpty()?1:0;
+            }))
             .then(Commands.literal("room").then(Commands.literal("reset").then(Commands.argument("roomId",com.mojang.brigadier.arguments.StringArgumentType.word()).executes(c->room(c.getSource(),com.mojang.brigadier.arguments.StringArgumentType.getString(c,"roomId"),false))))
                 .then(Commands.literal("complete").then(Commands.argument("roomId",com.mojang.brigadier.arguments.StringArgumentType.word()).executes(c->room(c.getSource(),com.mojang.brigadier.arguments.StringArgumentType.getString(c,"roomId"),true)))))
             .then(Commands.literal("mechanism").then(Commands.literal("set").then(Commands.argument("pos",BlockPosArgument.blockPos())

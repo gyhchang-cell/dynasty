@@ -119,6 +119,7 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
             float fade = Mth.clamp((mob.actionAge(partialTick) - 6F) / 26F, 0F, 1F);
             return Color.ofRGB(1F - .10F * fade, 1F - .26F * fade, 1F - .46F * fade);
         }
+        if(mob.getPersistentData().getBoolean("DynastyEventPhantom"))return Color.ofRGBA(.35F,.85F,1F,.35F);
         return super.getRenderColor(mob, partialTick, light);
     }
 

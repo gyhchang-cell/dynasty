@@ -46,21 +46,30 @@ public final class DungeonFrameworkGameTests {
         h.succeed();
     }
 
-    @GameTest(template="bow_ritual_test",batch="cod2_garrison",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod2_garrison",timeoutTicks=600)
     public static void tombGarrisonUsesExistingLedgerAndCannotRefillAfterUnload(GameTestHelper h) {
-        var level=h.getLevel();var origin=h.absolutePos(new BlockPos(0,80,0));var id=UUID.randomUUID();
+        var level=h.getLevel();var origin=h.absolutePos(new BlockPos(3072,80,2048));var id=UUID.randomUUID();
         var core=origin.offset(27,48,37);var entrant=origin.offset(32,49,64);
         boolean previous=level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING);
         var spawned=new java.util.ArrayList<net.minecraft.world.entity.Entity>();
         var forced=new java.util.HashSet<ChunkPos>();
         for(int x:new int[]{10,27,52})for(int z:new int[]{37,50,78}) {
-            var chunk=new ChunkPos(origin.offset(x,49,z));
-            if(!level.getForcedChunks().contains(chunk.toLong())){level.setChunkForced(chunk.x,chunk.z,true);forced.add(chunk);}
+            var center=new ChunkPos(origin.offset(x,49,z));
+            for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++) {
+                var chunk=new ChunkPos(center.x+dx,center.z+dz);
+                if(!level.getForcedChunks().contains(chunk.toLong())){level.setChunkForced(chunk.x,chunk.z,true);forced.add(chunk);}
+            }
         }
         // Fixture-only tickets: entity sections must become visible before UUID lookup.
         // Production merely visits already-loaded markers near real players.
-        h.runAfterDelay(20,()->{
-        try {
+        var state=com.dynasty.blueprint.BlueprintSpawnState.get(level);String key="chensha@"+id+":shendao";
+        h.startSequence().thenIdle(20).thenWaitUntil(()->{
+            for(var chunk:forced){
+                var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
+                h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Fixture chunks must expose entity sections before spawning");
+                h.assertTrue(level.areEntitiesLoaded(chunk.toLong()),"Fixture entity storage must finish asynchronous loading before spawning");
+            }
+        }).thenExecute(()->{
             level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
             level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());
             ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(id,"shendao","core",core,-1,java.util.List.of());
@@ -69,17 +78,28 @@ public final class DungeonFrameworkGameTests {
                 for(int dy=49;dy<=52;dy++)level.setBlockAndUpdate(origin.offset(x+dx,dy,z+dz),Blocks.AIR.defaultBlockState());
             }
             h.assertTrue(!com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,origin.offset(32,25,64)),"Lower caves cannot trigger the upper gallery garrison");
-            var state=com.dynasty.blueprint.BlueprintSpawnState.get(level);String key="chensha@"+id+":shendao";
+            // Keep this ledger fixture stationary while asynchronous entity sections publish.
+            // Autonomous navigation/falling on the tiny temporary pads belongs to cod1 AI tests.
+            java.util.function.Consumer<net.minecraftforge.event.entity.EntityJoinLevelEvent> hold=e->{
+                if(e.getLevel()==level&&e.getEntity() instanceof com.dynasty.blueprint.TemplateMob mob
+                    &&mob.getY()==origin.getY()+49&&(mob.getBlockX()==origin.getX()+10||mob.getBlockX()==origin.getX()+52)
+                    &&(mob.getBlockZ()==origin.getZ()+50||mob.getBlockZ()==origin.getZ()+78))mob.setNoAi(true);
+            };
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.addListener(hold);
+            try{
             for(int n=0;n<4;n++) {
                 if(n>0)state.markers.get(key).nextSpawn=level.getGameTime();
                 h.assertTrue(com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,entrant),"Authored garrison member "+n+" must actually spawn; origin="+origin+" difficulty="+level.getDifficulty()+" coreLoaded="+level.hasChunkAt(core));
                 var marker=state.markers.get(key);
                 h.assertTrue(!com.dynasty.blueprint.BlueprintSpawns.spawnChenshaMember(level,origin,entrant),"Nearby players cannot bypass the spawn interval");
-                for(var uuid:marker.members) {
-                    var mob=level.getEntity(uuid);
-                    if(mob!=null&&!spawned.contains(mob))spawned.add(mob);
-                }
             }
+            }finally{net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(hold);}
+        }).thenWaitUntil(()->{
+            var marker=state.markers.get(key);
+            h.assertTrue(marker.members.size()==4&&marker.members.stream().allMatch(uuid->level.getEntity(uuid)!=null),"Wait for all four spawned UUIDs to enter the server entity lookup; reserved="+marker.members.size()+", visible="+marker.members.stream().filter(uuid->level.getEntity(uuid)!=null).count());
+        }).thenExecute(()->{
+        try {
+            for(var uuid:state.markers.get(key).members)spawned.add(level.getEntity(uuid));
             h.assertTrue(spawned.size()==4,"Four actual entities, not only a produced counter");
             var first=spawned.get(0);first.remove(net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK);
             h.assertTrue(state.markers.get(key).members.contains(first.getUUID()),"Unloaded membership remains reserved");

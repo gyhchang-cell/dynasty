@@ -35,6 +35,7 @@ public class DynastyTabs {
                     }
                 }
                 // 方块 / blocks
+                for(var item:com.dynasty.worldevent.WorldEventItems.ITEMS.getEntries())output.accept(item.get());
                 output.accept(com.dynasty.infusion.InfusionContent.TABLE_ITEM.get());
                 output.accept(com.dynasty.cod3.LootableRemains.ITEM.get());
                 com.dynasty.cod3.NpcContent.EGGS.forEach(egg->output.accept(egg.get()));
@@ -66,6 +67,7 @@ public class DynastyTabs {
                 // 材料 / materials
                 output.accept(com.dynasty.ritual.ZhenyuanRitualContent.TIANMING_JADE.get());
                 com.dynasty.workshop.DynastyTreasures.ITEMS.getEntries().forEach(item->output.accept(item.get()));
+                com.dynasty.expansion.ExpansionContent.ITEMS.getEntries().forEach(item->output.accept(item.get()));
                 com.dynasty.blueprint.BlueprintEntities.ITEMS.getEntries().forEach(item->output.accept(item.get()));
                 output.accept(DynastyItems.BRONZE_INGOT.get());
                 output.accept(DynastyItems.SILVER_INGOT.get());

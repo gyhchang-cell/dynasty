@@ -35,6 +35,9 @@ public final class DynastyMerit {
             return;
         }
         player.getPersistentData().putBoolean(FLAG + key, true);
+        if (key.equals("minister") && com.dynasty.expansion.EquipmentBehaviors.pieces(player,"brocade")>=2) amount+=5;
+        var ornaments=DynastyTrinkets.activeIds(player);
+        if(ornaments.contains("gold_seal_charm") && !ornaments.contains("merit_badge")) amount=(int)Math.ceil(amount*1.2);
         DynastyStats.addMerit(player, amount);
         player.displayClientMessage(Component.literal("§6[功名] §r+" + amount + "（" + reason(key) + "）"), true);
     }

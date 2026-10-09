@@ -41,6 +41,24 @@ public final class ChenshaPiece extends DynastyStructurePiece {
     private static boolean in(int v,int min,int max){return v>=min&&v<=max;}
     private static boolean rect(int x,int z,int x0,int z0,int x1,int z1){return in(x,x0,x1)&&in(z,z0,z1);}
     private static BlockState shell(){return DungeonContent.MASONRY.get().defaultBlockState();}
+    public static int vaultRoof(int x,int z) {
+        double d=Math.pow((x-31.5)/23.5,2)+Math.pow((z-15.5)/13.5,2);
+        return 8+(int)(9*Math.sqrt(Math.max(0,1-d)));
+    }
+    /** Nine accessible one-block risers, preserving the arena entrance and lift routes. */
+    public static int daisHeight(int x,int z) {
+        if(!rect(x,z,22,6,41,25))return 0;
+        return Math.min(9,1+Math.min(Math.min(x-22,41-x),Math.min(z-6,25-z)));
+    }
+    public static List<BlockPos> vaultStars() {
+        var points=new ArrayList<BlockPos>();
+        for(int i=0;i<28;i++) {
+            double angle=i*Math.PI*2/28;
+            int x=(int)Math.round(31.5+18*Math.cos(angle)),z=(int)Math.round(15.5+9*Math.sin(angle));
+            points.add(new BlockPos(x,vaultRoof(x,z),z));
+        }
+        return List.copyOf(points);
+    }
     /** null leaves the natural terrain untouched. Each column writes only its authored cells. */
     public static BlockState cell(int x,int y,int z){
         BlockState result=null;
@@ -80,24 +98,31 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         // Spherical-ish imperial vault and an annular hazardous moat surrounding the dragon dais.
         if(rect(x,z,8,2,55,29)&&in(y,0,17)){
             double d=Math.pow((x-31.5)/23.5,2)+Math.pow((z-15.5)/13.5,2);
-            int roof=8+(int)(9*Math.sqrt(Math.max(0,1-d)));
+            int roof=vaultRoof(x,z);
             if(d<=1.1&&y<=roof)result=y==0||y==roof||d>1?shell():Blocks.AIR.defaultBlockState();
             if(y==0&&d>.55&&d<.8)result=Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
-            if(rect(x,z,25,10,38,21)&&y==1)result=Blocks.QUARTZ_BLOCK.defaultBlockState();
+            if(y>=1&&y<=daisHeight(x,z))result=(y==daisHeight(x,z)?Blocks.SMOOTH_QUARTZ:Blocks.QUARTZ_BRICKS).defaultBlockState();
         }
         // Do not let the arena's north wall block the downward stair connector.
         if(in(x,30,34)&&in(z,27,29)&&in(y,1,4))result=Blocks.AIR.defaultBlockState();
         // Secret artisans' chamber behind one intentionally breakable wall. Outer shell stays protected.
         if(rect(x,z,49,87,61,94)&&in(y,24,31))result=y==24||y==31||x==49||x==61||z==87||z==94?shell():Blocks.AIR.defaultBlockState();
         if(in(x,51,53)&&z==87&&in(y,25,27))result=Blocks.CRACKED_STONE_BRICKS.defaultBlockState();
+        // Fixed fantasy-mercury trough in front of the breakable wall. Its core
+        // draws the falling ribbon, avoiding any spreading real fluid simulation.
+        if(rect(x,z,50,85,53,86)&&y==24)result=Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
         // One-way permanent lift shaft and landing connect lower arena to the entrance hall.
         if(rect(x,z,40,6,44,10)&&in(y,0,76))result=y==0||x==40||x==44||z==6||z==10?shell():Blocks.AIR.defaultBlockState();
         if(in(x,40,42)&&z==8&&in(y,1,3))result=Blocks.AIR.defaultBlockState();
         if(in(x,37,42)&&z==8&&in(y,73,75))result=Blocks.AIR.defaultBlockState();
         if(in(x,39,43)&&z==8&&y==72)result=shell();
         // Spike basin beneath the grouped resettable panels.
-        if(rect(x,z,30,40,34,42)&&in(y,43,47))result=y==43?shell():Blocks.AIR.defaultBlockState();
-        if(rect(x,z,30,40,34,42)&&y==44)result=Blocks.POINTED_DRIPSTONE.defaultBlockState();
+        if(rect(x,z,30,40,34,42)&&in(y,43,47))result=y==43?Blocks.GREEN_STAINED_GLASS.defaultBlockState():Blocks.AIR.defaultBlockState();
+        if(rect(x,z,30,40,34,42)&&y==44&&(x+z)%2==0)result=Blocks.POINTED_DRIPSTONE.defaultBlockState();
+        // Burial remains and a blood-coloured escape arrow are static geometry.
+        // They do not create live actors or ticking redstone in an inactive room.
+        if(rect(x,z,50,90,53,93)&&y==25)result=Blocks.BONE_BLOCK.defaultBlockState();
+        if(x==5&&(y==52&&in(z,46,50)||y==51&&(z==49||z==51)))result=Blocks.RED_TERRACOTTA.defaultBlockState();
         // A restored trap floor must not seal survivors in the pit. This side
         // ladder leads only back to the upper gallery, never past a progression seal.
         if(x==35&&z==41&&in(y,43,51))result=y==43?shell():Blocks.AIR.defaultBlockState();
@@ -123,6 +148,7 @@ public final class ChenshaPiece extends DynastyStructurePiece {
     public static List<BlockPos> middleSkullOffsets(){
         return List.of(new BlockPos(12,28,60),new BlockPos(52,28,60));
     }
+    public static BlockPos coffinOffset(){return new BlockPos(31,10,17);}
     /** One submerged spawn in each enclosed side channel, outside the timed puzzle. */
     public static List<BlockPos> middleDrownerOffsets(){
         return List.of(new BlockPos(12,23,62),new BlockPos(52,23,62));
@@ -142,6 +168,7 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         for(int x:new int[]{24,39})for(int z=59;z<=60;z++)for(int y=25;y<=28;y++)
             result.add(new Marker(new BlockPos(x,y,z),"mercury","trial_entry_side_"+x,DungeonContent.DOOR.get(),-1));
         result.add(new Marker(new BlockPos(24,0,12),"imperial_vault","vault_core",DungeonContent.CORE.get(),-1));
+        result.add(new Marker(coffinOffset(),"imperial_vault","imperial_coffin",DungeonContent.COFFIN.get(),-1));
         result.add(new Marker(new BlockPos(20,1,9),"imperial_vault","return_lift",DungeonContent.SHORTCUT_STELE.get(),-1));
         result.add(new Marker(new BlockPos(41,1,8),"imperial_vault","return_lift",DungeonContent.ELEVATOR.get(),-1));
         return List.copyOf(result);
@@ -169,11 +196,17 @@ public final class ChenshaPiece extends DynastyStructurePiece {
                 if(marker.block()==DungeonContent.CORE.get()){
                     int required=marker.room().equals("entrance")?7:marker.room().equals("mercury")?56:0;
                     be.configureRoom(required,marker.room().equals("mercury"),origin.offset(25,25,53),origin.offset(38,31,66));
+                    be.configureEnvironment(origin);
                 }
                 if(marker.block()==DungeonContent.ELEVATOR.get())be.setDestination(origin.offset(41,73,8));
+                be.configureEncounter(origin);
             }
         }
         fixture(level,clip,new BlockPos(52,25,91),Blocks.CHEST.defaultBlockState(),new ResourceLocation("dynasty:dungeons/chensha_artisan_supplies"));
+        fixture(level,clip,new BlockPos(12,49,52),Blocks.CHEST.defaultBlockState(),new ResourceLocation("dynasty:dungeons/chensha_expedition_notes"));
+        for(var star:vaultStars())fixture(level,clip,star,Blocks.SEA_LANTERN.defaultBlockState(),null);
+        for(var skull:List.of(new BlockPos(19,29,43),new BlockPos(23,29,46),new BlockPos(50,26,92),new BlockPos(53,26,90)))
+            fixture(level,clip,skull,Blocks.SKELETON_SKULL.defaultBlockState(),null);
         for(BlockPos lamp:List.of(new BlockPos(27,75,7),new BlockPos(37,75,7),new BlockPos(12,53,38),new BlockPos(53,53,83),
                 new BlockPos(26,30,60),new BlockPos(37,30,60),new BlockPos(20,6,10),new BlockPos(44,6,21)))
             fixture(level,clip,lamp,Blocks.SOUL_LANTERN.defaultBlockState(),null);

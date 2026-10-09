@@ -170,7 +170,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             case PALANQUIN -> "yinyang_zhijiao_youhun";
         };
     }
-    @Override public Faction faction() { return (kind==Kind.STONE_GUARD||kind==Kind.CLOCKWORK_DOG||kind==Kind.BRONZE_SNAKE||kind==Kind.MINING_SPIDER||kind==Kind.BIXI)?Faction.CONSTRUCT: (kind == Kind.BEAST || kind == Kind.TOAD || kind == Kind.TREE || kind == Kind.SCORPION || kind == Kind.SERPENT || kind == Kind.LANTERN_BAT || kind == Kind.BLIND_FISH || kind == Kind.CENTIPEDE || kind == Kind.YECHA) ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE || kind == Kind.CHILD || kind == Kind.PAPER || kind == Kind.SKULL || kind == Kind.DROWNER || kind == Kind.PALANQUIN) ? Faction.SPIRITS : Faction.DYNASTY_ARMY; }
+    @Override public Faction faction() { return EcologyManager.faction(this,(kind==Kind.STONE_GUARD||kind==Kind.CLOCKWORK_DOG||kind==Kind.BRONZE_SNAKE||kind==Kind.MINING_SPIDER||kind==Kind.BIXI)?Faction.CONSTRUCT: (kind == Kind.BEAST || kind == Kind.TOAD || kind == Kind.TREE || kind == Kind.SCORPION || kind == Kind.SERPENT || kind == Kind.LANTERN_BAT || kind == Kind.BLIND_FISH || kind == Kind.CENTIPEDE || kind == Kind.YECHA) ? Faction.WOODLAND : kind == Kind.AXE_GUARD ? Faction.REBELS : (kind == Kind.GHOST || kind == Kind.CORPSE || kind == Kind.CHILD || kind == Kind.PAPER || kind == Kind.SKULL || kind == Kind.DROWNER || kind == Kind.PALANQUIN) ? Faction.SPIRITS : Faction.DYNASTY_ARMY); }
     @Override public MobRole role() {
         return switch (kind) { case SWORD,SPEAR,SCOUT,POWDER,AXE_GUARD,GHOST,CORPSE,PAPER,DROWNER,PALANQUIN -> MobRole.MELEE; case SHIELD -> MobRole.SHIELD;
             case PRIEST,FLAG,CHILD -> MobRole.SUPPORT; case CROSSBOW,SKULL,LANTERN_BAT,BLIND_FISH,YECHA -> MobRole.RANGED; case BEAST,TOAD,TREE,SCORPION,SERPENT,STONE_GUARD,CLOCKWORK_DOG,BRONZE_SNAKE,MINING_SPIDER,BIXI,CENTIPEDE -> MobRole.BEAST; };
@@ -216,6 +216,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     }
     @Override protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
+        goalSelector.addGoal(0, new com.dynasty.worldevent.ProcessionGoal(this));
         goalSelector.addGoal(1, new CombatGoal());
         goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, .65));
         goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 12));
@@ -224,11 +225,15 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
     }
     @Override public void setTarget(LivingEntity target) {
-        if (target != null && (target == this || target instanceof Combatant c && c.faction() == faction())) return;
+        if(target instanceof Player player&&com.dynasty.worldevent.WorldEventItems.permitted(this,player))return;
+        if(target instanceof Player&&com.dynasty.worldevent.DynastyWorldEventManager.peacefulToPlayer(this))return;
+        if (target != null && Combatant.allied(this,target)) return;
         super.setTarget(target);
     }
 
     boolean validEnemy(LivingEntity other) {
+        if(other instanceof Player player&&com.dynasty.worldevent.WorldEventItems.permitted(this,player))return false;
+        if(other instanceof Player&&com.dynasty.worldevent.DynastyWorldEventManager.peacefulToPlayer(this))return false;
         return other != null && other.isAlive() && !other.isSpectator() && !Combatant.allied(this, other)
                 && !(other instanceof Player player && (player.isCreative() || player.isSpectator()));
     }
@@ -298,6 +303,10 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     }
     private void tickCombat() {
         if (!isAlive()) return;
+        if(com.dynasty.worldevent.DynastyWorldEventManager.pacified(this)){setTarget(null);cancelAction();return;}
+        if(com.dynasty.worldevent.DynastyWorldEventManager.marching(this)){setTarget(null);cancelAction();return;}
+        if(EcologyManager.pauseCombat(this)){setTarget(null);navigation.stop();cancelAction();return;}
+        EcologyManager.tickIdle(this);
         long now = level().getGameTime();
         if(army!=null)army.tick(now);
         if(!isAlive())return;
@@ -749,17 +758,19 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (getDeltaMovement().horizontalDistanceSqr() > .001) return isSprinting() ? "run" : "walk";
         return "idle";
     }
+    public AnimationProfile animationProfile(){return AnimationProfile.forKind(kind);}
     @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return animationCache; }
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(new AnimationController<TemplateMob>(this, "body", 0, state -> {
             String animation = visualAnimation();
+            state.getController().setAnimationSpeed(animationProfile().playbackRate(animation,getDeltaMovement().horizontalDistance(),getAttributeValue(Attributes.MOVEMENT_SPEED),isSprinting()));
             animationPartial = state.getPartialTick();
             if (lastAnimationStart != skillStartTime()) {
                 lastAnimationStart = skillStartTime(); state.getController().forceAnimationReset();
             }
             RawAnimation sequence = RawAnimation.begin();
             String key = "animation." + blueprintId() + "." + animation;
-            return state.setAndContinue(animation.equals("burrow") || animation.equals("camouflage") || animation.equals("idle") || animation.equals("walk") || animation.equals("run") || animation.equals("climb")
+            return state.setAndContinue(animationProfile().loops(animation)
                     ? sequence.thenLoop(key) : sequence.thenPlayAndHold(key));
         }) {
             @Override protected double adjustTick(double tick) {
