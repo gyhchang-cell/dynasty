@@ -29,6 +29,10 @@ jobs:
           ./gradlew --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2' build
       - name: Compile retained dungeon client QA modes
         run: ./gradlew --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2' -I tools/blueprint/cod2-client.init.gradle -Pcod2PrepareOnly -Pcod2ClientRun=integration-compile compileCod2QaJava
+      - name: Validate merged resources and quest save contracts
+        run: |
+          python3 -B tools/maintenance/check_all.py
+          python3 -B -m unittest discover -s tools/art -p 'test_quest*.py'
       - name: Run required Forge GameTests
         id: gametests
         continue-on-error: true
@@ -47,7 +51,7 @@ jobs:
           esac
           export TEST_MINIMUM="$minimum"
           set +e
-          timeout 900 ./gradlew --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2' -I tools/maintenance/remote-validation.init.gradle -PmaintenanceNamespaces="$namespaces" runGameTestServer 2>&1 | tee maintenance-gametests.log
+          timeout 900 ./gradlew --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2' -I tools/maintenance/remote-validation.init.gradle -PmaintenanceRun="ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" -PmaintenanceNamespaces="$namespaces" runGameTestServer 2>&1 | tee maintenance-gametests.log
           gradle_status=${PIPESTATUS[0]}
           set -e
           export TEST_PROCESS_STATUS="$gradle_status"
