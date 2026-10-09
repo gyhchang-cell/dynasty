@@ -1,0 +1,419 @@
+# Dynasty cod4.txt —— 新增内容（与现有任务/装备/成长体系完整融合）
+
+> 本文件负责**新增内容**，但一切新增都先查重、复用现有 Item/Weapon/Ability/Damage/Animation/Task 体系，不造第二套系统。
+> 原则优先级：现有内容深化 > 重复创造；现有任务联动 > 新造任务系统；真实玩法机制 > 属性堆叠；客户端视觉 + 服务端权威逻辑 > 大量服务器视觉实体；Registry 兼容 > 改 ID；中国神话/王朝 > 泛奇幻。
+>
+> **查重基准（本文件已扫过，勿重复）**：
+> - cod1 基础怪（已在/正在实现）：卒伍刀手、拒马长枪兵、连弩阵卒、橹盾甲士、符法祭酒、铁索斥候、溃军死士、阵亡掌旗官、山精山魈 + 21 只（cod1 第 9~30 号）；cod1 精英 15、Boss 12、神器 25、神影 12。
+> - 已实现实体：terracotta_warrior / imperial_soldier / minister / assassin / archer / royal_guard / rebel_soldier / nian_beast / qilin / phoenix / nine_tailed_fox / jade_guard / soul_soldier / thunder_envoy / merfolk + Boss（dragon_emperor 等 6 + zhenyuan_sovereign）。
+> - 已实现武器 ~50、盔甲 28 套、饰品 ~89、效果 7、药水 6、附魔（BREAKER/BEHEADING/BULWARK 等）、材料（Relics/FineItems/Items）、食物（BasicFoods/FineItems）。
+
+================================================================================
+COD4-1 新增 30 只次级小怪（轻于 cod1 核心怪；只补世界密度/材料/环境）
+================================================================================
+
+## 1.0 定位与通用标准
+
+- 定位比 cod1 核心怪**更轻**：世界密度、小规模战斗、材料来源、环境特色。**不推翻 cod2 生态**，只提供 Spawn Hook。
+- spawn 只提供 Hook（biome/时间/天气/结构 tag），不重写 cod2 生态。
+- 通用骨骼：人形用分段真实骨架（pelvis/waist/chest/neck/head/upper_arm/elbow/forearm/wrist/hand/thigh/knee/shin/ankle/foot）；兽形用「头/颈/躯/尾/四足」5 段；飞行用「头/身/双翼/尾」；水生用「头/身/鳍/尾」。
+- 通用 AI 状态机：`idle / wander / hunt / flee / attack / special / evade`；无寻路负担（次级怪）时用低阶 Goal，不堆复杂战术。
+- 通用性能：次级怪面数 ≤ 基础怪，同屏 ≤ 20 只不卡；掉率低、掉落轻；无 Boss 条。
+- 通用 multiplayer：次级怪为常规敌对/中立，无共享 Credit 问题；掉落由击杀者拾取，不重复。
+
+## 1.1 30 只表
+
+> 属性「血/攻/速/护甲」为推荐初始值（可调范围 ±20%）；「掉落」标注用途（材料需 ≥2 用途，见 COD4-11）。
+
+| # | 中文名 | registryId | 类型 | 定位 | silhouette | 属性(血/攻/速/甲) | 战斗机制 | spawn 建议 | 掉落 | 性能 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 流民饥民 | famished_refugee | 人形 | 中立·被救赎 | 佝偻瘦影 | 40/60/0.22/0 | 不主动攻击；受击逃窜；喂食转中立友好 | 废墟/荒村 | 旧布/破碗 | 低 |
+| 2 | 山贼喽啰 | bandit_thug | 人形 | 小战斗·金钱 | 蒙面持刀 | 80/200/0.28/6 | 直线冲锋 + 挥刀；血低逃 | 山道/官道 | 铜钱/麻绳 | 低 |
+| 3 | 巡夜更夫 | night_watchman | 人形 | 夜间警戒 | 提灯拄梆 | 90/160/0.25/8 | 夜视；敲梆召集同伴 | 城镇外/夜间 | 灯笼油/铜钱 | 低 |
+| 4 | 江湖骗子 | swindler | 人形 | 交互·诈 | 长衫算盘 | 50/80/0.24/0 | 假装受伤骗取钱财；被识破逃跑 | 驿站/市集 | 假货/古钱 | 低 |
+| 5 | 采药客 | herb_picker | 人形 | 中立·交易 | 背篓 | 60/70/0.24/0 | 不攻击；可换药草 | 山地/林缘 | 药草 | 低 |
+| 6 | 赤狐 | red_fox | 妖兽 | 材料·皮 | 尖耳长尾 | 70/150/0.34/4 | 扑咬 + 闪避；偷窃玩家食物 | 森林/夜 | 狐皮/狐尾 | 低 |
+| 7 | 灰狼 | gray_wolf | 妖兽 | 材料·群猎 | 低伏灰影 | 90/180/0.32/6 | 2-3 只协同夹击 | 山地/雪原 | 狼皮/狼牙 | 低 |
+| 8 | 野猪 | wild_boar | 妖兽 | 材料·冲撞 | 獠牙拱背 | 120/220/0.30/8 | 直线冲撞 + 击退 | 森林/山地 | 獠牙/猪肉 | 低 |
+| 9 | 巨蟒 | giant_python | 妖兽 | 材料·绞杀 | 长身盘卷 | 140/240/0.26/10 | 缠绕定身 + 窒息 | 沼泽/丛林 | 蛇皮/蛇胆 | 低 |
+| 10 | 花豹 | golden_leopard | 妖兽 | 材料·突袭 | 斑点潜行 | 110/260/0.40/6 | 伏击暴击 + 撕扯 | 山地/林 | 豹皮/豹牙 | 低 |
+| 11 | 树精 | tree_spirit | 妖怪 | 植物·材料 | 瘤状树影 | 160/260/0.22/14 | 根须缠绕 + 种子弹 | 森林/古树 | 木心/树胶 | 中 |
+| 12 | 石精 | stone_sprite | 妖怪 | 植物·矿石 | 圆石短足 | 180/240/0.20/18 | 滚撞 + 硬化(护甲↑) | 山地/矿洞 | 顽石/玉石粒 | 中 |
+| 13 | 灯笼鬼 | lantern_ghost | 妖怪 | 环境·夜 | 灯笼浮空 | 80/180/0.28/2 | 光球致盲 + 漂浮穿墙 | 废村/夜 | 灯油/阴火 | 低 |
+| 14 | 剪纸童子 | paper_cut_child | 妖怪 | 志怪·薄片 | 薄片人形 | 60/120/0.30/0 | 高速低血；免疫击退 | 荒宅/义庄 | 符纸/朱砂 | 低 |
+| 15 | 河童 | river_imp | 水生 | 材料·水战 | 盘状头顶 | 90/180/0.26/6 | 水炮 + 拉入水 | 河流/湖泊 | 河童鳞/藻 | 低 |
+| 16 | 水鬼 | drowning_ghost | 水生 | 环境·拖拽 | 湿发黑影 | 100/200/0.24/4 | 潜水拖拽 + 溺水减速 | 深水/夜 | 水鬼发/阴气 | 低 |
+| 17 | 鲤鱼精 | carp_spirit | 水生 | 材料·跃 | 鳞光鱼形 | 80/160/0.28/4 | 跃出水面冲撞 | 江河 | 鲤鳞/珠 | 低 |
+| 18 | 螺女 | snail_maiden | 水生 | 中立·采集 | 螺壳人形 | 70/70/0.20/6 | 不攻击；缩壳无敌 | 浅水/滩涂 | 螺壳/珍珠 | 低 |
+| 19 | 蟹将 | crab_soldier | 水生 | 材料·钳 | 巨钳横走 | 130/220/0.24/16 | 钳夹定身 + 横冲 | 龙宫外围/海岸 | 蟹甲/蟹钳 | 中 |
+| 20 | 蝙蝠妖 | bat_demon | 飞行 | 材料·夜 | 蝠翼倒挂 | 70/160/0.34/2 | 俯冲吸血 + 回声致盲 | 洞窟/夜 | 蝠翼/牙 | 低 |
+| 21 | 精卫鸟 | jingwei_bird | 飞行 | 环境·中立 | 衔石小鸟 | 40/60/0.36/0 | 不攻击；衔石投掷(受激) | 海岸/山巅 | 石子/羽 | 低 |
+| 22 | 灰隼 | gray_falcon | 飞行 | 材料·俯冲 | 展翅利爪 | 60/140/0.42/2 | 高空俯冲暴击 | 山地/荒漠 | 隼羽/爪 | 低 |
+| 23 | 飞蝗群 | locust_swarm | 飞行 | 灾害·单实体 | 群虫绿雾 | 50/80/0.30/0 | **单一体积实体**，碰撞伤害，不拆多 AI | 旱地/荒漠 | 蝗粉/薄翅 | 低 |
+| 24 | 尸蟞 | corpse_beetle | 地下 | 材料·群 | 甲壳黑光 | 60/140/0.26/8 | 钻地突袭 + 腐蚀 | 地宫/墓地 | 甲壳/酸液 | 低 |
+| 25 | 毒蝎 | venom_scorpion | 地下 | 材料·毒 | 翘尾螯 | 110/200/0.26/10 | 尾刺中毒 + 钳夹 | 荒漠/洞窟 | 蝎毒/蝎尾 | 低 |
+| 26 | 石蚯龙 | stone_worm | 地下 | 材料·钻地 | 无目长躯 | 160/240/0.20/14 | 钻地突进 + 顶飞 | 深洞/矿脉 | 石鳞/矿粒 | 中 |
+| 27 | 纸钱鬼 | paper_money_ghost | 阴魂 | 环境·阴 | 纸钱漂浮 | 60/120/0.26/0 | 触碰吸钱 + 减速 | 墓地/鬼市/夜 | 纸钱/阴气 | 低 |
+| 28 | 孤魂野鬼 | wandering_spirit | 阴魂 | 环境·阴 | 半透明人形 | 70/140/0.24/0 | 穿墙 + 附身减速 | 荒野/夜 | 魂火/泪滴草 | 低 |
+| 29 | 机关木鹊 | wooden_magpie | 机关 | 材料·侦察 | 木纹鸟形 | 80/150/0.32/8 | 俯冲啄击 + 齿轮声警报 | 机关城外围 | 木件/齿轮 | 中 |
+| 30 | 发条鼠 | clockwork_rat | 机关 | 材料·偷窃 | 发条齿轮鼠 | 60/100/0.34/6 | 高速 + 偷玩家 1 件掉落 | 机关城/矿道 | 齿轮/铜件 | 低 |
+
+## 1.2 类型分布核对（满足分散要求）
+
+人形 5 / 妖兽 5 / 妖怪 4 / 水生 5 / 飞行 4 / 地下 3 / 阴魂 2 / 机关 2 = 30。spawn 只挂 Hook，不推翻 cod2 生态；无 Boss 条、无共享 Credit、无首杀奖励（次级怪不进 `DynastyBossCombat.FIRST_KILL`）。
+
+================================================================================
+COD4-2 新增普通/稀有武器（仅补缺口，不造第二套武器系统）
+================================================================================
+
+> 现有武器链（木矛→天子剑 + 弓系 + 长柄 + 学院 8 把）已覆盖刀/剑/枪/戟/锤/斧/弓/法器。真实缺口：**弩**（现有弓系无弩）与**奇门兵器**（钩/鞭/镖/流星）。只补这 6 把，全部复用现有 `Item/Tier/Weapon/Ability/Damage/Animation`，不重造底层。
+
+| 中文名 | registryId | 类型 | 定位 | 数值(总攻/速) | 机制（复用现有体系） | VFX 引用 |
+|---|---|---|---|---|---|---|
+| 连弩 | repeating_crossbow | 弩 | 中阶速射 | 260 / -2.6 | 复用 `CrossbowItem`，装填 3 发、按住连发；单发伤害低 | VFX#4 箭尾迹 |
+| 重弩 | siege_crossbow | 弩 | 高阶穿甲 | 900 / -3.0 | 复用 `CrossbowItem`，单发穿甲（armorPierce）+ 后坐力位移 | VFX#3 点贯穿 |
+| 绳镖 | rope_dart | 奇门 | 中阶拉拽 | 420 / -2.2 | 复用 `SwordItem`，右键掷镖 + 命中把目标拉近/拉倒 | VFX#13 触手 |
+| 流星锤 | meteor_hammer | 奇门 | 高阶范围 | 1100 / -2.8 | 复用 `AxeItem`，蓄力 360° 横扫（复用 sweep 逻辑） | VFX#26 冲击波 |
+| 鸳鸯钺 | mandarin_duck_axe | 奇门 | 中阶双持格挡 | 380 / -1.8 | 复用 `SwordItem`，格挡成功减伤更高 + 反击 | VFX#29 残影 |
+| 飞爪 | flying_claw | 奇门 | 中阶攀援 | 300 / -2.4 | 复用 `SwordItem`，右键飞爪钩墙位移 + 拉拽目标 | VFX#13 触手 |
+
+- 所有新武器：攻击视觉复用 COD3-3 公共库；特攻数值进 `DynastyBalance.WEAPON_BONUS`；合成走现有 Recipe JSON；材料复用现有 Relics/材料（COD4-11 补 2 种奇门材料）。
+
+================================================================================
+COD4-3 现有武器攻击特效改进表（禁止重做一套，只补缺）
+================================================================================
+
+> 先扫现有武器，标出「无表现/太简单/只换色/定位不符/多人同步有问题」，在原武器上补。格式：ID → 问题 → 保留 → 补法。
+
+| 武器 ID | 现状问题 | 保留 | 补法（引用公共 VFX） |
+|---|---|---|---|
+| mu_mao/shi_ge/tong_dao/tie_jian | 只换贴图，普攻无残影 | 进化链数值 | 普攻残影 VFX#29 + 材质火花 |
+| tang_dao | 加速机制无视觉 | 命中加速 | 加速时青风尾迹 |
+| huan_shou_dao/juque_sword | 击退/浮空无反馈 | 机制 | 目标上扬尘土 + 弧光 |
+| qinggang_sword/gilded_mace/yitian_sword | 无独有表现 | 特攻 | 各配一种命中火花节奏 |
+| seven_star_saber | 只换色 | 七星特攻 | 命中七星连闪（七点） |
+| dragon_slayer | 无龙类反馈 | 屠龙特攻 | 命中龙纹 decal |
+| supreme_sword/tianzi_sword | 无帝王反馈 | 回气/克王朝 | 金辉护体 + 龙纹 decal |
+| pojun_axe/xuantian_axe | 破甲无视觉 | armorPierce | 甲碎裂纹 decal |
+| juling_axe/qilin_war_axe/leiting_hammer | 重击无冲击波 | 特攻 | 砸地冲击波 VFX#26 + 碎块 VFX#27 |
+| halberd_fangtian | 横扫无弧光 | sweep | 360° 月牙 VFX#2 |
+| sea_trident | 水下无水流 | 水下加成 | 水环 VFX#7 |
+| 长柄组（dragon_spear 等 6） | 无挑击视觉 | 距离+轻挑 | 挑击弧光 VFX#3 |
+| yu_di | 无音波视觉 | 范围 debuff | 音波环 VFX#26 |
+| 弓系（12 把） | 普攻无尾迹 | 倍率/穿透 | 流星尾迹 VFX#4 + 满蓄提示 |
+| 学院 8 把 | 无流派纹 | 被动 | 流派纹残影 |
+
+> 多人同步：所有特效走视觉包广播（附近 32 格），不改变他人本地状态（见 cod3 COD3-5/12）。
+
+================================================================================
+COD4-4 现有盔甲套装特效完善（28 套，保留原 ID/身份，加行为型 2/3/4 件）
+================================================================================
+
+> 现有套装只有纯数值（减伤/生命/护甲，`DynastyBalance.SET_BONUS`）。本次**保留原套装与 ID**，在数值之上补 2/3/4 件行为。原则：2 件=小型便利/战斗行为；3 件=改变战斗节奏；4 件=核心行为机制。**至少一半必须涉及行为**（格挡/蓄势/连击/夜战/水战/站桩/空中/特殊资源），不许全写 +X% 属性。
+
+| 套(ID) | 身份 | 2件 | 3件 | 4件 | 行为? |
+|---|---|---|---|---|---|
+| cloth 布衣 | 开局丝衣 | 满饱食时移速 +5% | 睡眠后 60s 攻 +8% | 疾跑不消耗饥饿 | 是 |
+| bamboo 竹甲 | 廉价第一升级 | 免摔伤 1 格 | 竹林里疾跑 +10% | 反弹箭矢（竹甲卸力，5% 概率弹开） | 是 |
+| leather 皮甲 | 轻便 | 潜行移速 +15% | 潜行首击 +30% | 疾跑下蹲进入潜行无脚步声 | 是 |
+| brocade 织锦袍 | 官服轻甲 | 与大臣交谈功名 +5 | 无战意时回血 | 科举答题时间 +20% | 是 |
+| bronze 青铜甲 | 制式甲 | 受击 10% 出铜甲格挡音 | 格挡成功护甲 +6 | 与帝国士兵同袍（友军伤害 -20%） | 是 |
+| general 将军铠 | 重甲 | 击退抵抗 +0.2 | 站桩 2s 后护甲 +12 | 站桩时攻击 +15%（站桩流） | 是 |
+| silver 白银铠 | 亮甲 | 对阴魂伤害 +15% | 夜战攻 +10% | 夜战吸血 5% | 是 |
+| cinnabar 朱砂符甲 | 抗负状态 | 负面状态时间 -25% | 净化时小范围朱砂爆 | 免疫中毒（改为持续清） | 是 |
+| jade 玉甲 | 轻盈附魔 | 附魔消耗经验 -10% | 满血时攻 +8% | 满血时移速 +8% | 是 |
+| phoenix 凤凰羽衣 | 火轻甲 | 抗火 | 着火→自动灭火并加速 | 被点燃时反弹火（火环） | 是 |
+| qilin 麒麟鳞甲 | 祥瑞 | 幸运 +1 | 受击 15% 触发祥瑞免伤 | 残血时祥瑞护盾一次 | 是 |
+| dragon_scale 龙鳞甲 | 高防 | 水下呼吸 + | 水战攻 +12% | 水战护甲 +10 | 是 |
+| sea_silk 鲛绡甲 | 水战轻甲 | 水中移速 +20% | 水中不减速 | 水中回复（海豚恩惠常驻） | 是 |
+| dark_iron 玄铁重铠 | 最硬重甲 | 击退免疫 | 站桩蓄势（受击积怒气） | 怒气满释放重击 +25% | 是 |
+| sky 天将云铠 | 云甲 | 缓降 | 空中攻击 +20% | 落地免摔 + 跳跃提升 II | 是 |
+| draco_king 龙王鳞铠 | 龙宫终极 | 水下呼吸+夜视 | 召唤 1 只虾兵（限 1） | 召唤 2 只虾兵蟹将 | 是 |
+| xuantian 玄天真龙甲 | 终盘 | 全属性 +5% | 对 Boss 伤害 +10% | 龙威（周围敌人威慑） | 是 |
+| xuanwu 玄武甲 | 极致防御 | 完美格挡（0.3s 窗）减伤 60% | 完美格挡反击 +20% | 格挡蓄「玄武甲壳」吸收一次致死 | 是 |
+| zhuque 朱雀羽衣 | 抗火轻甲 | 抗火+夜视 | 火系攻击 +15% | 死亡涅槃一次（CD 300s） | 是 |
+| qinglong 青龙鳞甲 | 攻守兼备 | 连击 3 层内攻 +6% | 连击 5 层触发青龙波 | 连击满层回气 | 是 |
+| baihu 白虎铠 | 攻击击退 | 击退 +0.5 | 冲刺首击 +40% | 冲刺撞破敌人架势（破势） | 是 |
+| beidou 北斗甲 | 机动 | 移速 +8% | 位移后 3s 内攻 +10% | 连续位移触发「星斗步」免伤帧 | 是 |
+| tiangang 天罡甲 | 道门天罡 | 白天攻 +10% | 白天击杀回血 | 正午全属性 +8% | 是 |
+| disha 地煞甲 | 帝骸 | 夜晚攻 +10% | 夜晚击杀回血 | 子时全属性 +8% | 是 |
+| taiyi 太乙甲 | 全属性 | 全属性 +4% | 技能 CD -10% | 满资源（等级里程碑）时一次金辉 | 是 |
+| ziwei 紫微甲 | 帝星幸运 | 幸运 +3 | 暴击率 +10% | 暴击后 3s 攻 +15% | 是 |
+| hunyuan 混元甲 | 毕业 | 阴阳双生：昼夜各一加成 | 阴阳平衡时攻 +10% | 混元一炁：怒气/气合 | 是 |
+| hongmeng 鸿蒙帝铠 | 最终 | 全属性 +6% | 对镇渊帝君伤害 +15% | 鸿蒙真罡：免疫一次致死（长 CD） | 是 |
+
+## 4.1 行为实现约定
+
+- 2/3/4 件判定复用 `DynastySetBonus.wornArmorIds()` 每秒 refresh；摘下立即回退，无幽灵加成。
+- 行为型效果优先走「触发事件」（完美格挡=ShieldBlockEvent 时间窗、连击=DynastyTrinketOnHit 同源连击、站桩=位移阈值计时、夜战=isDay、水战=isUnderWater、空中=fallDistance、怒气=受击计数）。
+- 数值为推荐初始值，可调范围 ±30%；Boss 免伤/免疫效果设长 CD（≥300s），不破坏 Boss 战。
+- **禁止**强迫整套才能用武器；系列联动是加深 Build，不是门槛（见 COD4-5）。
+
+================================================================================
+COD4-5 现有武器系列/套装特性深化（不新建 Weapon Set System）
+================================================================================
+
+> 扫描现有系列身份：①四象武器 ②第三十二轮帝兵 ③Boss 掉落武器 ④学院四流派 ⑤弓两支线。**只强化已有身份**，做轻量联动（加深 Build），不强迫整套才能用。
+
+| 系列 | 现有成员(ID) | 现有联系 | 轻量联动（加深 Build，非门槛） |
+|---|---|---|---|
+| 四象 | xuanwu_blade / zhuque_fan / qinglong_dao / baihu_glaive / zhuque_bow / thunder_spear(青龙雷) | 只有名字/特攻 | 同装对应四象饰品或甲时，该武器特殊机制强化（如玄武刀格挡增、朱雀扇火增、青龙刀青龙波增） |
+| 帝兵(32轮) | qilin_war_axe / taiyi_sword / baihu_glaive / thunder_spear / ziwei_saber / zhuque_bow | 同为龙晶帝兵 | 装备 2 把帝兵（主副手）时特攻 +10% |
+| Boss 掉落 | dragon_spear / yitian_sword / qinggang_sword / dragon_slayer / sunbow / seven_star_saber / supreme_sword | 各绑定 Boss/官阶 | 击败对应 Boss 后，该武器杀对应阵营怪伤害 +15%（复仇/克制） |
+| 学院·剑 | liuyun_sword / chengying_sword | 同流派 | 剑流饰品（pojun_ring 等）数量达标时普攻攻速 +X |
+| 学院·守 | zhenyue_blade / beichen_spear | 同流派 | 守流饰品达标时格挡免伤 +X |
+| 学院·射 | zhuxing_bow / fengling_bow | 同流派 | 射流饰品达标时箭矢 +X 尾迹伤害 |
+| 学院·符 | chiling_brush / leifu_staff | 同流派 | 符流饰品达标时律令蓄力窗口 +X |
+| 弓·速射 | lie_gong→chang_gong→shenbi_bow→luoyan_bow→tianlang_bow | 进化链 | 满蓄射速 +X（速射身份） |
+| 弓·穿透 | chang_gong→dragon_bow→sunbow | 进化链 | 穿透 +1（穿透身份） |
+
+- 实现：同系列联动走「检查已装备集合（复用 `DynastyTrinkets.activeIds` / `wornArmorIds`）」+ 轻量属性/机制微调，**不建新系统**。
+- **禁止**：强迫玩家整套才能正常使用武器。联动只加深 Build，不是基本功能门槛。
+
+================================================================================
+COD4-6 现有饰品完善（不新建 20 个，只改现有）
+================================================================================
+
+## 6.0 判定（对现有 ~89 件抽查，标 GOOD/TOO_SIMPLE/DUPLICATE/NO_SOURCE/NO_TASK_LINK/NO_VISUAL）
+
+| 判定 | 含义 | 处理 |
+|---|---|---|
+| GOOD | 机制/来源/视觉都够 | 保留 |
+| TOO_SIMPLE | 只有 +X% 属性 | 补机制或视觉 |
+| DUPLICATE | 与别件重复 | 差异化或合并用途 |
+| NO_SOURCE | 无掉落/合成来源 | 接任务/掉落/配方 |
+| NO_TASK_LINK | 无任务关联 | 挂现有 FTB 任务 |
+| NO_VISUAL | 无视觉反馈 | 接 COD3-6 视觉 |
+
+## 6.1 需完善的饰品（代表项，逐条）
+
+| 现有 ID | 当前效果 | 保留 | 改成 | trigger/cooldown/passive/stacking/incompat/visual | 获取来源 | 任务关联 |
+|---|---|---|---|---|---|---|
+| jade_pendant 玉佩 | +减伤（事件结算） | 减伤 | 残血护体：<40% 触发减伤 +12%（被动） | trigger 残血 / passive / 不叠层 / 与 heart_mirror 冲突 / 玉光 | 玉石合成 | dynasty_accessory_necklace |
+| jade_bi_disc 玉璧 | 属性 | 属性 | 加「照见」：夜间 +幸运（条件被动） | 条件被动 / 不叠 / 与 moon_pendant 冲突 / 月纹 | 玉+铜镜合成 | 同上 |
+| gold_seal_charm 金印佩 | 属性 | 属性 | 加「封赏」：首次拾取功名 +20% | passive / 不叠 / 与 merit_badge 冲突 / 金印光 | 官阶御赐 | dynasty_story |
+| dragon_scale_charm 龙鳞佩 | 属性 | 属性 | 加「龙威」：对龙系怪伤害 +15% | passive / 不叠 / 龙纹 | 龙鳞合成 | boss_ascent |
+| phoenix_feather_charm 凤凰羽佩 | 属性 | 属性 | 加「涅槃」：抗火 + 濒死回血一次（CD 300s） | trigger 濒死 / CD300s / 不叠 / 火星 | 凤凰羽 | boss_ascent |
+| qilin_horn_charm 麒麟角佩 | 属性 | 属性 | 加「祥瑞」：幸运 +2 | passive / 不叠 / 麒麟纹 | 麒麟角 | story |
+| fox_tail_charm 狐尾佩 | 属性 | 属性 | 加「魅惑」：受击 10% 让敌人混乱 | trigger 受击 / 10% / 不叠 / 狐火 | 狐尾丝 | story |
+| silk_pouch 锦囊 | 无 | — | 加「藏锋」：+1 饰品槽（复用 `DynastyRankPerks` 槽逻辑） | passive / 不叠 / 锦纹 | 丝绸 | dynasty_home |
+| south_pointing_compass 司南 | 无 | — | 加「指路」：地图标最近遗迹（复用算命/指南逻辑） | 使用触发 / CD / 不叠 / 磁针 | 磁石+铜 | story |
+| heart_mirror 护心镜 | +护甲+减伤 | 减伤 | 加「反射」：格挡成功反弹小伤害 | trigger 格挡 / passive / 与 bronze_mirror 同槽 | 铜镜合成 | accessory_charm |
+| jade_crown 玉冠 | +生命 | 生命 | 加「加冕」：官阶福利 +1 饰品槽 | passive / 不叠 | 玉+金 | dynasty_story |
+| jade_cicada 玉蝉 | 残血保命 | 保命 | 加视觉（蝉翅扑闪）+ 残血回血 1 次（CD 180s） | trigger 残血 / CD180s / 不叠 | 玉蝉出土 | secret |
+| dragon_pearl 龙珠 | +攻+抗退 | 攻 | 加「龙珠」：连击满层时龙波 | trigger 连击满 / 不叠 / 龙光 | 龙王掉落 | boss_ascent |
+| phoenix_ring 凤凰指环 | 抗火+灭火 | 抗火 | 加「涅焰」：着火时攻 +15% | 条件被动 / 不叠 / 火星 | 凤凰羽 | boss_ascent |
+| storm_charm 雷纹符 | 雷雨力量 | 雷雨力量 | 加「引雷」：雷雨天命中 10% 落小雷 | trigger 命中 / 雷雨 / 不叠 / 电弧 | 符纸+朱砂 | accessory_charm |
+| moon_pendant 明月佩 | 夜视+幸运+攻 | 保留 | 加视觉（月纹）+ 满月强化 | 条件被动 / 不叠 | 月光采集 | secret |
+| tiger_crest 虎符残片 | 威慑周围敌 | 威慑 | 加「点兵」：虎符列阵（复用 `DynastyArmy`） | 使用触发 / CD / 不叠 | 军功兑换 | army_led |
+| sea_pearl 避水珠 | 水下呼吸+水战 | 保留 | 加视觉（气泡环） | passive / 不叠 | 鲛人/龙宫 | story |
+| 表驱动 50 件 + 学院饰品 | 属性/命中 proc | 保留 proc | 命中 proc 补视觉（吸血红丝/会心金星/雷罚电弧/斩杀裂纹） | trigger 命中 / 概率已有 / 不叠 | 百宝妆匣/流派任务 | dynasty_accessory_* + build_* |
+| TRINKET_BOX 百宝妆匣 | 随机开饰品 | 保留 | 加「必得不重复」（已开过的权重降） | 使用 / 不叠 | 任务奖励 | dynasty_home |
+
+## 6.2 原则
+
+- 不无脑加属性；每个「改成」至少含 trigger 或视觉或来源之一。
+- 不叠层（stacking）：同件/同槽不重复生效；incompatibility 写清互斥。
+- 所有饰品来源：优先复用现有合成/掉落/官阶/任务/秘密，**不新建掉落表**除非确实无来源。
+
+================================================================================
+COD4-7 装备/饰品 ↔ 现有任务系统联动（真实接入，非一句话）
+================================================================================
+
+## 7.0 现有任务系统结构（已扫）
+
+- 载体：FTB Quests `.snbt` 章节（`dynasty_c1..c13` 材料/合成、`dynasty_story_01..08` 主线、`dynasty_accessory_necklace/charm/belt/hands/ring/body/back/bracelet` 按槽位、`dynasty_build_guard/sword/archer/talisman` 流派、`dynasty_boss_ascent`、`dynasty_boss_guides`、`dynasty_home`、`dynasty_legacy`）。
+- 任务类型（实际存在）：`checkmark`（阅读页）、`item`（计数检测，不收取）、`xp`、`command`（如 `dynasty merit 12`）。
+- 奖励类型（实际存在）：`item`、`xp`、`command`。
+- 自动判定：`DynastyAdvancements.award(...)` → Advancement → FTB 自动完成；另有 `DynastyBossCombat` 首杀、`DynastyWeaponGifts` 条件授武、`DynastyWeaponProgression` 击杀成长、`DynastyAccessoryRefining` 淬炼里程碑。
+
+## 7.1 通用规则（所有装备任务联动都遵循）
+
+| 项 | 约定 |
+|---|---|
+| Objective 复用 | 优先复用等价 Objective（item 检测 / advancement / command）；不新建第二套 Task 系统。 |
+| 奖励方式 | 默认**不直接塞背包**；优先「解锁配方 / 解锁 Boss 额外掉落 / 解锁地下城宝箱池 / 解锁 NPC 商店 / 解锁锻造 / 解锁饰品升级」。 |
+| 是否一次性 | 装备类任务默认一次性（重复做不给第二件）。 |
+| 多人 Credit | 击杀类用 `getKillCredit()`（现有首杀逻辑）；采集/合成类各自完成。 |
+| Restart/掉线 | 进度存玩家持久数据（persistentData）/ Advancement；重启不掉。 |
+| 旧存档兼容 | 已获得装备但任务未完成：补发 advancement（`RitualQuestProgress.restore` 模式）；已完成任务旧存档：不动。 |
+
+## 7.2 联动示例（逐条，含 Task/前置/Objective/Hook/奖励方式）
+
+| 装备/饰品 | 对应现有任务(章) | 前置 | Objective | 进度 Hook | 奖励方式 | 一次性 | 旧档兼容 |
+|---|---|---|---|---|---|---|---|
+| jade_pendant | dynasty_accessory_necklace | c1 玉料 | item: jade_pendant ×1 | 拾取检测（onFirstObtain） | 解锁「玉饰」合成页（JEI） | 是 | 已拥有→补 advancement |
+| heart_mirror | dynasty_accessory_charm | 铜镜 | item: heart_mirror ×1 | 合成/拾取 | 解锁「铜镜」商人补货 | 是 | 同上 |
+| jade_crown | dynasty_story_01 | 官阶 rank≥3 | advancement: rank_scholar | checkDerived | 御赐 jade_crown（command 发放） | 是 | 已 3 阶→补发 |
+| silk_pouch | dynasty_home | 丝绸 | item: silk_pouch ×1 | 拾取 | 解锁 +1 饰品槽（复用 RankPerks） | 是 | 同上 |
+| dragon_scale_charm | dynasty_boss_ascent | 击败龙帝 | advancement: slay_dragon_emperor | DynastyBossCombat 首杀 | 解锁「龙鳞佩」配方 | 是 | 已杀→补 |
+| sea_pearl | dynasty_story_02 | 进龙宫 | advancement: entered_dragon_palace | DynastyWorldEvents 维度检测 | 解锁龙宫商人卖 sea_pearl | 是 | 已进→补 |
+| 学院武器（8 把） | dynasty_build_guard/sword/archer/talisman | 对应流派入门 | advancement: school_*_rank_1/3 | DynastySchoolProgression | 解锁流派武器合成 + 流派饰品 | 是 | 已达标→补 |
+| 四象武器（xuanwu_blade 等） | dynasty_boss_ascent | 四象祭坛 | advancement: ritual_qinglong/baihu/zhuque/xuanwu | RitualQuestProgress | 解锁四象武器锻造 | 是 | 已献祭→补 |
+| 新弩（repeating_crossbow/siege_crossbow） | dynasty_build_archer | 弓流 rank≥6 | advancement: school_archer_rank_6 | DynastySchoolProgression | 解锁弩配方 | 是 | 已 6→补 |
+| 新奇门（rope_dart/meteor_hammer 等） | dynasty_build_guard 或 story | 军功 rank | advancement / command merit | DynastyMerit | 解锁奇门商人 | 是 | 已达标→补 |
+
+## 7.3 原则重申
+
+- 任务 = 内容解锁 + 引导层，**不是单纯发奖按钮**。
+- 成长逻辑：任务出现在什么阶段 → 玩家当时有什么装备 → 奖励解决什么 Build 需求 → 多久被替代 → 被替代后有无继续用途（升级/锻造/系列联动/特定场景优势）。
+- 找不到对应现有任务时：写 `NO_CURRENT_TASK_LINK`，并建议在哪个现有任务分支加一个 Stage/Objective，**不因此新建一条主线**（见 COD4-15 大表）。
+
+================================================================================
+COD4-8 新增状态效果（先查重，只补真正需要的）
+================================================================================
+
+> 现有 `DynastyEffects` 7 个全纯属性。新效果只服务：现有武器/套装/饰品、新小怪、Boss。不凑数。
+
+| 效果 | registryId | duration | stack | refresh | cleanse | immunity | visual | sync |
+|---|---|---|---|---|---|---|---|---|
+| 阴气 | yin_qi | 100t | 叠 1-3，每层减速/暗伤 | 再中刷新 | 阳气清除 | 至阳体质免疫 | 暗雾绕身 | 服务端权威+客户端视觉包 |
+| 阳气 | yang_qi | 100t | 叠 1-3，每层攻+对阴魂伤 | 再中刷新 | 阴气清除 | 阴体免疫 | 金辉 | 同上 |
+| 煞气 | sha_qi | 80t | 不叠 | 再中刷新 | 朱砂净化 | Boss 免疫 | 黑紫藤 | 同上 |
+| 雷印 | thunder_mark | 60t | 叠 1-3，满 3 引爆落雷 | 再中叠层 | 无 | 无 | 体表电弧 | 同上 |
+| 灼魂 | soul_burn | 60t | 不叠 | 再中刷新 | 长明烛清 | 火抗减半 | 蓝火 | 同上 |
+| 寒脉 | frost_vein | 80t | 不叠 | 再中刷新 | 温泉/火 | 无 | 冰纹 | 同上 |
+| 裂甲 | armor_break | 80t | 不叠 | 再中刷新 | 玉补炉 | Boss 部分免疫 | 甲碎裂纹 | 同上 |
+| 破势 | stagger | 40t | 不叠 | 再中刷新 | 完美格挡清 | Boss 免疫 | 脚下晃影 | 同上 |
+
+- 数值为推荐初始值；duration/stack 可调 ±30%。
+- 每个新效果必须写 `isBeneficial`、`duration`、`color`、图标（`textures/mob_effect`）。
+
+================================================================================
+COD4-9 消耗品（丹/酒/符/香/食物，服务现有 Build）
+================================================================================
+
+> 复用现有 `DynastyBrewing` / `DynastyPotions` / 食物体系；只为 Build 服务，不凑 15 个垃圾。
+
+| 中文名 | registryId | 类 | 用途（服务哪个 Build/战斗） |
+|---|---|---|---|
+| 回春丹 | regen_pill | 丹 | 战斗中回血，服务站桩/重甲流 |
+| 聚气丹 | qi_pill | 丹 | 临时怒气/连击强化，服务连击流 |
+| 避毒丹 | antidote_pill | 丹 | 清毒+短暂免疫，服务毒沼/毒蝎 |
+| 状元酒 | zhuangyuan_wine | 酒 | 科举答对时间 +，服务文官流 |
+| 壮行酒 | marching_wine | 酒 | 战斗攻 +，负面混乱，服务军功流 |
+| 安魂香 | soul_incense | 香 | 驱阴魂/清阴气，服务夜战 |
+| 引路香 | guide_incense | 香 | 短时标记最近遗迹，服务探索 |
+| 火符/雷符/御风/隐身/金刚/摄魂/归乡 | 已存在 | 符 | 保留，补任务来源与 JEI 用途 |
+| 军粮 | army_ration | 食物 | 长时饱食，服务远征/围猎 |
+
+================================================================================
+COD4-10 弹药（少量特殊箭/弩矢，不全爆炸）
+================================================================================
+
+> 现有远程体系支持弓（`HuntingBowItem`）与新增弩（`CrossbowItem`）；只补少量特殊弹药，查重后无爆炸泛滥。
+
+| 中文名 | registryId | 类 | 机制 | 服务 |
+|---|---|---|---|---|
+| 淬毒矢 | poison_arrow | 箭 | 命中中毒 | 毒 Build |
+| 破甲矢 | pierce_arrow | 箭 | 穿甲 +1 | 穿透弓/重弩 |
+| 引雷矢 | thunder_arrow | 箭 | 命中落小雷（雷印） | 雷 Build |
+| 重钢弩矢 | heavy_bolt | 弩矢 | 重弩专用，高单发穿甲 | 重弩 |
+| 连发弩矢 | repeating_bolt | 弩矢 | 连弩专用，低伤多量 | 连弩 |
+
+================================================================================
+COD4-11 材料体系（每材料 ≥2 用途，不一只怪一个专属牙只做一把刀）
+================================================================================
+
+| 材料 | registryId | 用途1 | 用途2 | 用途3 | 来源 |
+|---|---|---|---|---|---|
+| 奇门钢索 | qimen_cable | 绳镖/飞爪制作 | 机关木鹊维修 | 陷阱/缆车 | 机关城掉落+精钢 |
+| 奇门机括 | qimen_gear | 流星锤/鸳鸯钺制作 | 发条鼠诱饵 | 机关改造 | 机关城掉落 |
+| 狐皮 | fox_pelt | 狐尾佩 | 防寒皮甲升级 | 行商交易 | 赤狐 |
+| 狼牙 | wolf_fang | 灰狼牙饰 | 武器淬炼 | 猎户交易 | 灰狼 |
+| 蟒蛇胆 | python_gall | 解毒丹 | 药蛊妪制蛊 | 御寒酒 | 巨蟒 |
+| 蟹甲 | crab_shell | 蟹将甲饰 | 龙宫轻甲升级 | 摆渡人交易 | 蟹将 |
+| 河童鳞 | kappa_scale | 水战附魔材料 | 避水珠升级 | 渔夫交易 | 河童 |
+| 石精玉粒 | sprite_jade | 玉补炉耗材 | 琢玉台 | 石敢当献祭 | 石精 |
+| 灯油 | lantern_oil | 长明灯燃料 | 香炉燃料 | 夜间照明 | 灯笼鬼/更夫 |
+| 蝗粉 | locust_dust | 毒烟弹 | 药蛊妪制蛊 | 农田驱虫 | 飞蝗群 |
+
+> 原则：材料优先服务「装备制作/升级/功能方块/任务交付/消耗品」多方向；禁止一怪一专属材料只做一件。
+
+================================================================================
+COD4-12 全局战斗反馈（Normal/Heavy/Critical/Block/Perfect Block/Armor Break/Stagger/Knockdown/Launch/Boss Immune）
+================================================================================
+
+| 类型 | VFX | SFX | 动画反馈 | 禁止 |
+|---|---|---|---|---|
+| Normal Hit | 命中火花（材质色） | 短促命中 | 目标轻微后仰 0.1s | 无 |
+| Heavy Hit | 冲击波小环 | 低沉重击 | 目标后仰 0.2s | 不震屏 |
+| Critical | 金星/星纹 + 数字放大 | 脆响 | 目标明显后仰 | 不闪白 |
+| Block | 盾牌/武器火星 + 盾牌纹 | 金属格挡 | 举盾定格 | 无 |
+| Perfect Block | 金环 + 时停感 0.1s | 清脆「铛」 | 完美格挡后反击前摇 | 不锁镜头 |
+| Armor Break | 甲碎裂纹 decal + 碎片 | 碎裂 | 目标踉跄 0.2s | 无 |
+| Stagger | 脚下晃影 + 踉跄 | 闷哼 | 破势后摇 | 不强制转向 |
+| Knockdown | 倒地尘土 + 目标倒地 | 重摔 | 倒地→起身 | 不震屏 |
+| Launch | 上扬尘土 + 目标浮空 | 破空 | 浮空 0.4s 落地 | 不强制抬头 |
+| Boss Immune | 「免疫」灰字 + 弹开微光 | 嗡鸣 | Boss 纹丝不动 | 不嘲讽刷屏 |
+
+- 全局禁止：强制 Camera 转向、大幅持续震屏、全屏纯白。
+- 反馈由服务端决定「类型 + 目标」广播，客户端播放；不改变他人 Camera。
+
+================================================================================
+COD4-13 小型世界互动（15 个，30s~3min，非 cod2 WorldEvent）
+================================================================================
+
+> 让部分互动连接现有任务 Objective（VISIT/INTERACT/KILL/OBTAIN/CRAFT/EQUIP/USE/DISCOVER/TALK/DELIVER），不新建主线。
+
+| # | 互动 | registryId/结构 | 时长 | 触发 | 连接现有 Objective |
+|---|---|---|---|---|---|
+| 1 | 小神龛 | wayside_shrine | 30s | 上香祈福 | INTERACT + USE |
+| 2 | 无名墓 | nameless_tomb | 60s | 献花/祭扫 | INTERACT |
+| 3 | 旧兵器架 | old_weapon_rack | 30s | 检视拔取 | INTERACT + OBTAIN |
+| 4 | 剑痕石壁 | sword_scar_wall | 2min | 月光舞剑（连 28 号秘密） | USE + DISCOVER |
+| 5 | 药草点 | herb_spot | 1min | 采药 | OBTAIN |
+| 6 | 废弃军械 | abandoned_armory | 3min | 翻找/拆解 | INTERACT + OBTAIN |
+| 7 | 小机关盒 | puzzle_box | 2min | 鲁班锁（连 30 号秘密） | USE |
+| 8 | 古战场残迹 | battlefield_remnant | 1min | 调查（连「调查 3 处」Objective） | VISIT + DISCOVER |
+| 9 | 破损界碑 | broken_stele | 30s | 拓印 | INTERACT |
+| 10 | 义庄停尸（连 29 号秘密） | mortuary_room | 2min | 辨认生者 | INTERACT + DELIVER |
+| 11 | 鬼市小舟（连 17 号秘密） | ghost_market_boat | 2min | 点阴香交易 | TALK + DELIVER |
+| 12 | 古道茶摊（连 19 号秘密） | wayside_tea_stall | 2min | 辨别毒茶 | INTERACT |
+| 13 | 旧风箱 | old_bellows | 30s | 拉动助燃 | USE |
+| 14 | 残破水车 | broken_waterwheel | 1min | 修复（连机关城状态） | CRAFT + INTERACT |
+| 15 | 古井沉冤（连 8 号秘密） | ancient_well | 3min | 打水七次 | INTERACT + DELIVER |
+
+> 「调查 3 处古战场残迹」等 = 现有主线/支线加一个 Stage，**不新建一条主线**。
+
+================================================================================
+14 获取/成长分布（避免「做任务给装备→下一分钟被淘汰」）
+================================================================================
+
+| 阶段 | 玩家当时装备 | 任务/来源 | 奖励解决什么 | 多久被替代 | 被替代后用途 |
+|---|---|---|---|---|---|
+| 开局 | 木矛/布衣 | dynasty_c1 材料 | 玉料/竹甲过渡 | 2-3 小时 | 材料合成底 |
+| 早期 | 铜/铁/青铜 | dynasty_c2-c6 | 青铜甲/银剑 | 中期 | 附魔/锻造底 |
+| 中期 | 银/玉/官银 | dynasty_story_01-03 + 科举 | 官银剑/玉甲/饰品槽 | 后期 | 系列联动 |
+| 中后期 | 玉/龙晶前 | dynasty_build_* + boss_guides | 学院武器/流派饰品 | 终盘前 | 流派深化 |
+| 后期 | 龙晶/帝兵 | dynasty_boss_ascent + 首杀 | 四象武器/Boss 掉落 | 终盘 | 克制/复仇加成 |
+| 终盘 | 玄天/四象/星斗甲 | dynasty_legacy + 镇渊前置 | 鸿蒙帝铠/毕业武器 | 毕业 | 后日谈/刷极品 |
+
+- 每条都保证：旧装备有「升级/锻造材料/系列联动/特定场景优势」的延续价值，不直接淘汰。
+
+================================================================================
+15 装备任务联动表（CONTENT_ID → 14 列映射，单独成表）
+================================================================================
+
+| CONTENT_ID | CONTENT_NAME | TYPE | EXISTING_OR_NEW | CURRENT_TASK | TASK_STAGE | OBJECTIVE | PROGRESS_HOOK | REWARD_MODE | MULTIPLAYER_CREDIT | REPEATABLE | OLD_SAVE_COMPAT | NOTES |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| jade_pendant | 玉佩 | accessory | EXISTING | dynasty_accessory_necklace | 玉饰页 | item ×1 | onFirstObtain | 解锁合成 | 各自 | 否 | 补 advancement | — |
+| jade_crown | 玉冠 | accessory | EXISTING | dynasty_story_01 | rank≥3 | rank_scholar | checkDerived | command 御赐 | 各自 | 否 | 补发 | — |
+| silk_pouch | 锦囊 | accessory | EXISTING | dynasty_home | 丝绸页 | item ×1 | 拾取 | 解锁 +1 槽 | 各自 | 否 | 补 advancement | 复用 RankPerks |
+| heart_mirror | 护心镜 | accessory | EXISTING | dynasty_accessory_charm | 铜镜页 | item ×1 | 合成/拾取 | 解锁商人补货 | 各自 | 否 | 补 advancement | — |
+| dragon_scale_charm | 龙鳞佩 | accessory | EXISTING | dynasty_boss_ascent | 龙帝 | slay_dragon_emperor | 首杀 | 解锁配方 | killCredit | 否 | 补 | — |
+| sea_pearl | 避水珠 | accessory | EXISTING | dynasty_story_02 | 龙宫 | entered_dragon_palace | 维度检测 | 解锁商人 | 各自 | 否 | 补 | — |
+| pojun_ring 等 | 学院饰品 | accessory | EXISTING | dynasty_build_sword/guard/archer/talisman | 流派入门 | school_*_rank_1/3 | SchoolProgression | 解锁流派饰品 | 各自 | 否 | 补 | — |
+| zhenyue_blade 等 | 学院武器 | weapon | EXISTING | dynasty_build_guard 等 | 流派进阶 | school_*_rank_10 | SchoolProgression | 解锁合成 | 各自 | 否 | 补 | — |
+| xuanwu_blade 等 | 四象武器 | weapon | EXISTING | dynasty_boss_ascent | 四象祭坛 | ritual_qinglong/baihu/zhuque/xuanwu | RitualQuestProgress | 解锁锻造 | 献祭者 UUID | 否 | 补 | — |
+| repeating_crossbow | 连弩 | weapon | NEW | dynasty_build_archer | 弓 rank≥6 | school_archer_rank_6 | SchoolProgression | 解锁配方 | 各自 | 否 | 补 | 新弩 |
+| siege_crossbow | 重弩 | weapon | NEW | dynasty_build_archer | 弓 rank≥10 | school_archer_rank_10 | SchoolProgression | 解锁配方 | 各自 | 否 | 补 | 新弩 |
+| rope_dart/meteor_hammer 等 | 奇门兵器 | weapon | NEW | NO_CURRENT_TASK_LINK | — | — | — | 建议在 dynasty_build_guard 加 Stage | 各自 | 否 | — | 加 Objective：OBTAIN 奇门图纸 |
+| xuanwu 等 28 套 | 套装行为 | armor | EXISTING | NO_CURRENT_TASK_LINK（纯行为，无需任务） | — | — | DynastySetBonus | 套装行为自带 | 各自 | 否 | — | 不强制任务 |
+| qimen_cable/qimen_gear | 奇门材料 | material | NEW | dynasty_build_guard | 奇门页 | item ×1 | 拾取 | 解锁奇门商人 | 各自 | 否 | 补 | — |
+| regen_pill 等 | 消耗品 | consumable | NEW | dynasty_home | 炼丹页 | craft ×1 | 合成检测 | 解锁配方 | 各自 | 否 | 补 | — |
+| poison_arrow 等 | 弹药 | ammo | NEW | dynasty_build_archer | 弓进阶 | item ×1 | 拾取/合成 | 解锁配方 | 各自 | 否 | 补 | — |
+
+> 找不到对应现有任务的写 `NO_CURRENT_TASK_LINK` + 建议「在哪个现有任务分支加 Stage/Objective」，不因此新建主线。
+
+---（cod4.txt 完）---

@@ -89,5 +89,10 @@ public class TravelSitePiece extends DynastyStructurePiece {
             story(l,b,15,1,16,7);story(l,b,26,2,23,24);story(l,b,21,2,19,14);
             loot(l,b,r,7,2,17,"minecraft:chests/village/village_desert_house");
         }
+        String[][] sites = {{"wayside_shrine","old_weapon_rack","puzzle_box","wayside_tea_stall","broken_stele"},
+                {"herb_spot","nameless_tomb","sword_scar_wall","mortuary_room","broken_waterwheel"},
+                {"abandoned_armory","battlefield_remnant","ghost_market_boat","old_bellows","ancient_well"}};
+        for (int i=0;i<sites[style].length;i++)
+            set(l,b,5+i*4,1,28,com.dynasty.expansion.SmallInteractions.ENTRIES.get(sites[style][i]).get().defaultBlockState());
     }
 }

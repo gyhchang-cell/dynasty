@@ -14,7 +14,14 @@ import java.util.UUID;
  * and the question itself are frozen at open time.
  */
 public record KejuSession(int token, UUID player, String tierId, String tierZh, int merit,
-                          String question, List<String> options, int correct, long createdAt) {
+                          String question, List<String> options, int correct, long createdAt, long expiresAt) {
+
+    public KejuSession(int token, UUID player, String tierId, String tierZh, int merit,
+                       String question, List<String> options, int correct, long createdAt) {
+        this(token, player, tierId, tierZh, merit, question, options, correct, createdAt, Long.MAX_VALUE);
+    }
+
+    public boolean expired(long now) { return now >= expiresAt; }
 
     public KejuSession {
         options = List.copyOf(options);

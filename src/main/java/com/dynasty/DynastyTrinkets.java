@@ -813,6 +813,7 @@ public final class DynastyTrinkets {
         }
         // 凤凰指环：着火即灭火并加速 / phoenix ring
         if (has(player, "phoenix_ring") && player.isOnFire()) {
+            com.dynasty.expansion.EquipmentBehaviors.phoenixIgnited(player);
             player.clearFire();
             player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 200, 1, true, false));
             player.displayClientMessage(net.minecraft.network.chat.Component.literal(
@@ -1050,8 +1051,9 @@ public final class DynastyTrinkets {
                 case "tomb_candle" -> {
                     // 长明烛：夜视 + 每 2 秒清一次凋零（地府生存）
                     player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 400, 0, true, false));
-                    if (player.tickCount % 40 == 0 && player.hasEffect(MobEffects.WITHER)) {
+                    if (player.tickCount % 40 == 0) {
                         player.removeEffect(MobEffects.WITHER);
+                        player.removeEffect(com.dynasty.expansion.ExpansionEffects.SOUL.get());
                     }
                 }
                 case "inkstone" -> {

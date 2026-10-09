@@ -28,7 +28,8 @@ public final class KejuSessionRegistry {
         /** 令牌不对（旧令牌 / 别人的令牌 / 伪造）/ stale or foreign token */
         WRONG_TOKEN,
         /** 选项不在 1..3 / choice outside 1..3 */
-        ILLEGAL_CHOICE
+        ILLEGAL_CHOICE,
+        EXPIRED
     }
 
     public record Submission(Status status, KejuSession session, boolean correct) {
@@ -62,15 +63,25 @@ public final class KejuSessionRegistry {
      * Opening a new exam replaces any previous session for that player.
      */
     public synchronized KejuSession open(UUID player, KejuRules.Tier tier, KejuRules.Question question, long now) {
+        return open(player, tier, question, now, Long.MAX_VALUE);
+    }
+
+    /** Deadline is fixed at opening: changing gear or drinking again cannot extend a pending exam. */
+    public synchronized KejuSession open(UUID player, KejuRules.Tier tier, KejuRules.Question question, long now, long expiresAt) {
+        if (expiresAt <= now) throw new IllegalArgumentException("Exam must expire after opening");
         int token = nextToken++;
         KejuSession session = new KejuSession(token, player, tier.id(), tier.zh(), tier.merit(),
-                question.text(), question.options(), question.correct(), now);
+                question.text(), question.options(), question.correct(), now, expiresAt);
         sessions.put(player, session);
         return session;
     }
 
     /** 先验证再消费。/ validate first, consume only when everything is legal. */
     public synchronized Submission submit(UUID player, int token, int choice) {
+        return submit(player, token, choice, System.currentTimeMillis());
+    }
+
+    public synchronized Submission submit(UUID player, int token, int choice, long now) {
         KejuSession session = sessions.get(player);
         if (session == null) {
             return Submission.rejected(Status.NO_SESSION);
@@ -82,6 +93,7 @@ public final class KejuSessionRegistry {
             return Submission.rejected(Status.ILLEGAL_CHOICE);
         }
         sessions.remove(player);
+        if (session.expired(now)) return Submission.rejected(Status.EXPIRED);
         return new Submission(Status.ACCEPTED, session, session.isCorrect(choice));
     }
 

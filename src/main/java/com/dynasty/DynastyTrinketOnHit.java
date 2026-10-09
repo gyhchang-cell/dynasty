@@ -60,6 +60,12 @@ public final class DynastyTrinketOnHit {
     /** Extra proc damage keeps player kill credit, but is never a fresh attack or another proc trigger. */
     public static boolean isSyntheticDamage() { return Boolean.TRUE.equals(SYNTHETIC_DAMAGE.get()); }
 
+    public static void syntheticDamage(Runnable action) {
+        if (isSyntheticDamage()) return;
+        SYNTHETIC_DAMAGE.set(true);
+        try { action.run(); } finally { SYNTHETIC_DAMAGE.remove(); }
+    }
+
     private static void supplementalDamage(Player attacker, LivingEntity target, float amount) {
         if (isSyntheticDamage()) return;
         SYNTHETIC_DAMAGE.set(true);
@@ -121,6 +127,7 @@ public final class DynastyTrinketOnHit {
                 case CRIT -> {
                     if (roll(attacker, proc.chance())) {
                         bonusRatio += proc.value();
+                        com.dynasty.expansion.CombatFeedback.send(target,com.dynasty.expansion.CombatFeedback.CRITICAL);
                         com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,proc.code());
                     }
                 }
@@ -129,6 +136,7 @@ public final class DynastyTrinketOnHit {
                     if (target.getHealth() >= target.getMaxHealth() - 0.01F
                             && roll(attacker, proc.chance())) {
                         bonusRatio += proc.value();
+                        com.dynasty.expansion.CombatFeedback.send(target,com.dynasty.expansion.CombatFeedback.CRITICAL);
                         com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,proc.code());
                     }
                 }
@@ -170,6 +178,7 @@ public final class DynastyTrinketOnHit {
                 case LIFESTEAL -> {
                     if (dealt > 0.0F && roll(attacker, proc.chance())) {
                         attacker.heal((float) (dealt * proc.value()));
+                        com.dynasty.expansion.CombatFeedback.send(attacker,com.dynasty.expansion.CombatFeedback.HEAL);
                         com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,proc.code());
                     }
                 }
@@ -182,6 +191,7 @@ public final class DynastyTrinketOnHit {
                 case THUNDER -> {
                     if (target.isAlive() && roll(attacker, proc.chance())) {
                         supplementalDamage(attacker, target, (float) proc.value());
+                        com.dynasty.expansion.CombatFeedback.send(target,com.dynasty.expansion.CombatFeedback.THUNDER);
                         com.dynasty.cod3.EquipmentFeedback.proc(attacker,target,proc.code());
                     }
                 }
@@ -217,12 +227,21 @@ public final class DynastyTrinketOnHit {
     }
 
     /** 连击层数：3 秒内连续命中同一目标才叠层，换目标或超时都从 1 重新算。 */
+    public static int comboStacks(Player attacker, LivingEntity target) {
+        Combo combo=COMBO_STATE.get(attacker.getUUID());
+        return combo!=null && combo.target().equals(target.getUUID()) && System.currentTimeMillis()-combo.at()<=COMBO_WINDOW_MILLIS?combo.stacks():0;
+    }
+    public static int advanceCombo(Player attacker, LivingEntity target) {return stacks(attacker,target,System.currentTimeMillis());}
     private static int stacks(Player attacker, LivingEntity target, long now) {
         Combo previous = COMBO_STATE.get(attacker.getUUID());
+        var state=attacker.getPersistentData();
+        long tick=attacker.level().getGameTime();
+        if(previous!=null && previous.target().equals(target.getUUID()) && state.contains("cod4ComboTick") && state.getLong("cod4ComboTick")==tick)return previous.stacks();
+        state.putLong("cod4ComboTick",tick);
         int next = 1;
         if (previous != null && previous.target().equals(target.getUUID())
                 && now - previous.at() <= COMBO_WINDOW_MILLIS) {
-            next = Math.min(COMBO_MAX, previous.stacks() + 1);
+            next = Math.min(COMBO_MAX, previous.stacks() + (tick < state.getLong("cod4QiUntil") ? 2 : 1));
         }
         COMBO_STATE.put(attacker.getUUID(), new Combo(target.getUUID(), next, now));
         return next;

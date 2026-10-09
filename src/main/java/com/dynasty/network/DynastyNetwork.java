@@ -11,18 +11,20 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public class DynastyNetwork {
 
-    // Base wire schema 9; extensions also advertise IDs, payload revision and direction.
-    // A cod3-only peer must never accept a cod6-only peer merely sharing a version.
-    // Forge snapshots the supplier when the channel is constructed. Declare the complete
-    // immutable table first; filling it during common setup makes the channel reject itself.
+    // Freeze the full extension schema before Forge snapshots the channel supplier.
+    // Independent base revisions prevent unrelated menu/payload changes sharing a version.
     private static final java.util.SortedMap<Integer,String> EXTENSIONS = java.util.Collections.unmodifiableSortedMap(
             new java.util.TreeMap<>(java.util.Map.of(
                     12, "com.dynasty.cod3.Cod3VisualPacket:PLAY_TO_CLIENT:v1",
                     13, "com.dynasty.network.EdictCastPacket:PLAY_TO_SERVER:v1",
                     14, "com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v1",
+                    16, "com.dynasty.expansion.CombatFeedback:PLAY_TO_CLIENT:v2",
                     17, "com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1")));
     private static final java.util.Set<Integer> REGISTERED_EXTENSIONS = new java.util.HashSet<>();
-    public static String protocolVersion() { return "9/" + EXTENSIONS; }
+    public static String protocolVersion() {
+        return "11/keju=" + OpenKejuPacket.WIRE_REVISION + "/army="
+                + com.dynasty.army.ArmyMenu.LAYOUT_REVISION + "/" + EXTENSIONS;
+    }
     public static boolean acceptsProtocol(String remote) { return protocolVersion().equals(remote); }
 
     public static <T> void registerExtension(int packetId, Class<T> type,

@@ -40,7 +40,17 @@ jobs:
           mkdir -p docs/maintenance/builds
           checksum="docs/maintenance/builds/${SOURCE_BRANCH}.sha256"
           sha256sum modpack/mods/dynasty-1.4.0.jar > "$checksum"
-          git add modpack/mods/dynasty-1.4.0.jar "$checksum"
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib
+          branch=os.environ['SOURCE_BRANCH']
+          jar=pathlib.Path('modpack/mods/dynasty-1.4.0.jar')
+          pathlib.Path(f'docs/maintenance/builds/{branch}-latest.json').write_text(json.dumps({
+              'source_commit':os.environ['GITHUB_SHA'], 'source_branch':branch,
+              'sha256':hashlib.sha256(jar.read_bytes()).hexdigest(),
+              'build':'success', 'gametests':'not_run_by_this_build_workflow',
+              'run_id':os.environ['GITHUB_RUN_ID']},indent=2)+'\n')
+          PYCODE
+          git add modpack/mods/dynasty-1.4.0.jar "$checksum" "docs/maintenance/builds/${SOURCE_BRANCH}-latest.json"
           if [ "$SOURCE_BRANCH" = cod5 ]; then
             cp "$checksum" docs/infusion/jar.sha256
             git add docs/infusion/jar.sha256
