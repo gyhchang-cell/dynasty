@@ -250,9 +250,10 @@ public final class EquipmentBehaviors {
         if(pieces(p,"bamboo")>=4 && p.getRandom().nextFloat()<.05F) {e.setCanceled(true);arrow.setOwner(p);arrow.setDeltaMovement(arrow.getDeltaMovement().scale(-.8));arrow.pickup=net.minecraft.world.entity.projectile.AbstractArrow.Pickup.DISALLOWED;arrow.hurtMarked=true;CombatFeedback.send(p,CombatFeedback.BLOCK);}
     }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void block(ShieldBlockEvent e) {
-        if(!(e.getEntity() instanceof ServerPlayer p))return;
+        if(e.isCanceled()||e.getBlockedDamage()<=0||!(e.getEntity() instanceof ServerPlayer p))return;
         var n=p.getPersistentData();n.putLong("cod4BronzeGuard",now(p)+60);
         boolean perfect=perfectGuard(p);
+        if(perfect)p.removeEffect(ExpansionEffects.STAGGER.get());
         String blocking=id(p.getUseItem());
         if(Set.of("zhenyue_blade","beichen_spear").contains(blocking) && DynastySchoolProgression.equippedSynergy(p,"guard"))
             e.setBlockedDamage(Math.min(e.getOriginalBlockedDamage(),e.getBlockedDamage()+e.getOriginalBlockedDamage()*.08F));
@@ -262,7 +263,7 @@ public final class EquipmentBehaviors {
             // Run after the school's partial block. Raise a 50% weapon block to 60%
             // of the original hit; an ordinary shield's full block remains full.
             e.setBlockedDamage(Math.min(e.getOriginalBlockedDamage(),Math.max(e.getBlockedDamage(),e.getOriginalBlockedDamage()*.6F)));
-            p.removeEffect(ExpansionEffects.STAGGER.get());n.putLong("cod4Counter",now(p)+60);
+            n.putLong("cod4Counter",now(p)+60);
             if(pieces(p,"xuanwu")>=4)n.putBoolean("cod4Shell",true);
         }
         if(has(p,"heart_mirror") && !has(p,"bronze_mirror") && e.getDamageSource().getEntity() instanceof LivingEntity attacker && ExpansionWeapons.enemy(p,attacker)) {
@@ -271,7 +272,11 @@ public final class EquipmentBehaviors {
         CombatFeedback.send(p,perfect?CombatFeedback.PERFECT:CombatFeedback.BLOCK);
     }
     /** Vanilla raises a block after five ticks; the next six active ticks are the 0.3s window. */
-    public static boolean perfectGuard(Player p){return p.isBlocking()&&p.getTicksUsingItem()>=5&&p.getTicksUsingItem()<11;}
+    public static boolean perfectGuard(Player p){
+        boolean paired=p.isUsingItem()&&p.getUseItem().is(ExpansionContent.DUCK.get())
+                &&p.getMainHandItem().is(ExpansionContent.DUCK.get())&&p.getOffhandItem().is(ExpansionContent.DUCK.get());
+        return (p.isBlocking()||paired)&&p.getTicksUsingItem()>=5&&p.getTicksUsingItem()<11;
+    }
     @SubscribeEvent(priority=EventPriority.LOW) public static void attack(LivingAttackEvent e) {
         if(!(e.getEntity() instanceof ServerPlayer p) || e.getAmount()<=0)return;
         if(now(p)<p.getPersistentData().getLong("cod4StarIFrame") && !e.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY))e.setCanceled(true);
@@ -300,7 +305,7 @@ public final class EquipmentBehaviors {
             if(pieces(p,"bronze")>=4 && e.getSource().getEntity() instanceof com.dynasty.entity.ImperialSoldier)e.setAmount(e.getAmount()*.8F);
             if(has(p,"fox_tail_charm") && p.getRandom().nextFloat()<.1 && e.getSource().getEntity() instanceof Mob mob && !ExpansionEffects.boss(mob)){mob.setTarget(null);mob.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,40,1));}
             if(p.isUsingItem() && p.getUseItem().is(ExpansionContent.DUCK.get()) && p.getOffhandItem().is(ExpansionContent.DUCK.get()) && !e.getSource().is(DamageTypeTags.BYPASSES_SHIELD)) {
-                if(e.getSource().getSourcePosition()!=null && p.getLookAngle().dot(e.getSource().getSourcePosition().subtract(p.position()).normalize())>0) {e.setAmount(e.getAmount()*.35F);n.putLong("cod4Counter",now(p)+60);CombatFeedback.send(p,CombatFeedback.BLOCK);}
+                if(e.getSource().getSourcePosition()!=null && p.getLookAngle().dot(e.getSource().getSourcePosition().subtract(p.position()).normalize())>0) {e.setAmount(e.getAmount()*.35F);n.putLong("cod4Counter",now(p)+60);boolean perfect=perfectGuard(p);if(perfect)p.removeEffect(ExpansionEffects.STAGGER.get());CombatFeedback.send(p,perfect?CombatFeedback.PERFECT:CombatFeedback.BLOCK);}
             }
         }
         if(e.getSource().getEntity() instanceof SecondaryMob mob && (mob.spec.id().equals("golden_leopard") || mob.spec.id().equals("gray_falcon")) && e.getEntity().getHealth()>=e.getEntity().getMaxHealth()*.9F)e.setAmount(e.getAmount()*1.5F);
