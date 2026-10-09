@@ -57,6 +57,8 @@ for id,values in rows.items():
 # Canonical shared visual owners: actual water transitions, combo release, and
 # proc event templates. Inventory models are checked separately, never a cue.
 visual={'sea_pearl':'EquipmentFeedback.equipment water transition; EquipmentBehaviors.tick WATER cue','jade_tortoise':'EquipmentFeedback.equipment water transition','sea_conch':'EquipmentFeedback.equipment water transition','dragon_pearl':'EquipmentBehaviors.combo -> releaseComboWave -> qinglong_combo_wave'}
+for id in ('jade_pendant','jade_bi_disc','gold_seal_charm','dragon_scale_charm','phoenix_feather_charm','qilin_horn_charm','fox_tail_charm','silk_pouch','moon_pendant','jade_cicada'):
+ visual[id]='Existing conditional/native trigger -> EquipmentFeedback.accessory -> owner-bound equipment_accessory_'+id+' -> Cod3VfxRenderer.Geometry.accessory dedicated bounded silhouette; real client/MP inspection pending'
 box=(JAVA/'expansion/ContentProgress.java').read_text();assert 'for(String id:DynastyTrinkets.IDS)' in box and 'opened.getBoolean(id)' in box
 assert recipes['trinket_box'],'Universal gift source must itself have a real survival recipe'
 output=[]

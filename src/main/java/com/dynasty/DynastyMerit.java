@@ -114,7 +114,7 @@ public final class DynastyMerit {
         amount=firstObtainAmount(DynastyTrinkets.activeIds(player),amount);
         DynastyStats.addMerit(player, amount);
         if(DynastyTrinkets.activeIds(player).contains("gold_seal_charm") && !DynastyTrinkets.activeIds(player).contains("merit_badge"))
-            com.dynasty.cod3.Cod3Vfx.send(player.serverLevel(),15,player.position(),player.getLookAngle(),16,.12,0xE7C866);
+            {com.dynasty.cod3.Cod3Vfx.send(player.serverLevel(),15,player.position(),player.getLookAngle(),16,.12,0xE7C866);com.dynasty.cod3.EquipmentFeedback.accessory(player,"gold_seal_charm");}
         player.displayClientMessage(Component.literal(
                 "§6[功名] §r+" + amount + "（初次获得 " + itemPath + "）"), true);
     }

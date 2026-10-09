@@ -101,6 +101,7 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("secondary_possession"))geometry.possession(age);
                 else if(p.sequence().equals("secondary_echo"))geometry.echo(life);
                 else if(p.sequence().equals("secondary_alarm"))geometry.alarm(life);
+                else if(p.sequence().startsWith("equipment_accessory_"))geometry.accessory(p.sequence().substring("equipment_accessory_".length()),age,life);
                 else if(p.sequence().equals("equipment_beidou_stride"))geometry.starStride(age);
                 else if(p.sequence().equals("equipment_phoenix_embers"))geometry.phoenixEmbers(age,life);
                 else if(p.sequence().equals("equipment_mortuary_breath"))geometry.patientBreath(age,false);
@@ -194,6 +195,27 @@ public final class Cod3VfxRenderer {
             beam(p(.12,.85,head+.08),p(.28,1.15,head-.12),.05);
             beam(p(-.12,.7,head+.25),p(-.45,.58,head+.35),.025);
             beam(p(.12,.7,head+.25),p(.45,.58,head+.35),.025);
+        }
+        /** Small item-specific silhouettes, drawn by the same bounded world-space primitives. */
+        void accessory(String id,double age,double life){
+            double pulse=Math.sin(life*Math.PI),y=1.35+.04*Math.sin(age*.3);
+            switch(id){
+                case "jade_pendant"->{mesh(0,y,.4,.17);for(int s:new int[]{-1,1}){beam(p(s*.08,y-.18,.4),p(s*.28,y,.4),.025);beam(p(s*.28,y,.4),p(s*.08,y+.18,.4),.025);}}
+                case "jade_bi_disc","moon_pendant"->{
+                    boolean moon=id.equals("moon_pendant");int count=Math.min(segments,16);double arc=moon?Math.PI*1.6:Math.PI*2;
+                    for(int i=0;i<count;i++){double a=(i/(double)count-.5)*arc,b=((i+1)/(double)count-.5)*arc;
+                        beam(p(.44+Math.sin(a)*.17,y+.30+Math.cos(a)*.17,-.18),p(.44+Math.sin(b)*.17,y+.30+Math.cos(b)*.17,-.18),moon?.045:.025);}
+                    if(moon){mesh(.62,y+.52,-.18,.035);mesh(.30,y+.60,-.18,.025);}else mesh(.44,y+.30,-.18,.045);
+                }
+                case "gold_seal_charm"->{double z=.42;for(int s:new int[]{-1,1}){beam(p(s*.18,y-.16,z),p(s*.18,y+.16,z),.04);beam(p(-.18,y+s*.16,z),p(.18,y+s*.16,z),.04);}beam(p(-.10,y+.07,z),p(.10,y+.07,z),.025);beam(p(0,y+.12,z),p(0,y-.12,z),.025);beam(p(-.10,y-.04,z),p(.10,y-.04,z),.025);}
+                case "dragon_scale_charm"->{for(int i=0;i<3;i++){double x=(i-1)*.18,h=y+.10*Math.abs(i-1);triangle(p(x-.11,h,.40),p(x+.11,h,.40),p(x,h-.20,.43),.72+.08*i);beam(p(x-.11,h,.40),p(x,h-.20,.43),.025);}beam(p(-.24,y+.12,.40),p(0,y+.25,.40),.035);beam(p(0,y+.25,.40),p(.24,y+.12,.40),.035);}
+                case "phoenix_feather_charm"->{for(int i=0;i<5;i++){double x=(i-2)*.16,h=y+.12+life*.35;triangle(p(x-.035,h,-.25),p(x+.035,h,-.25),p(x+.08*Math.sin(age*.25+i),h+.28,-.25),.8);beam(p(x,h,-.25),p(x,h+.22,-.25),.025);}}
+                case "qilin_horn_charm"->{for(int s:new int[]{-1,1}){beam(p(s*.14,1.95,-.22),p(s*.30,2.12,-.22),.04);beam(p(s*.30,2.12,-.22),p(s*.24,2.34,-.22),.03);beam(p(s*.30,2.12,-.22),p(s*.43,2.22,-.22),.025);}mesh(0,2.01,-.22,.06);}
+                case "fox_tail_charm"->{for(int tail=0;tail<3;tail++){Vec3 last=p(0,.85,-.35);for(int i=1;i<=6;i++){double t=i/6.;Vec3 next=p((tail-1)*t*.35+.07*Math.sin(age*.4+i+tail),.85+t*.45,-.35-t*.18);beam(last,next,.065*(1-t)+.02);last=next;}mesh((tail-1)*.35,1.33,-.53,.045*pulse);}}
+                case "silk_pouch"->{for(int i=-1;i<=1;i++){beam(p(-.20,.78+i*.08,.4),p(.20,1.02+i*.08,.4),.018);beam(p(-.20,1.02+i*.08,.4),p(.20,.78+i*.08,.4),.018);}beam(p(-.23,.65,.4),p(.23,.65,.4),.022);beam(p(-.23,1.15,.4),p(.23,1.15,.4),.022);}
+                case "jade_cicada"->{mesh(0,y,-.35,.08);double flap=.15+.12*Math.sin(age*1.2);for(int s:new int[]{-1,1}){triangle(p(s*.04,y,-.35),p(s*.40,y+flap,-.35),p(s*.32,y-.15,-.35),.85);triangle(p(s*.04,y-.06,-.35),p(s*.30,y-.18-flap*.3,-.35),p(s*.16,y-.30,-.35),.65);beam(p(0,y-.1,-.35),p(s*.32,y+flap*.7,-.35),.018);}}
+                default->{} // Unknown sequences never fall back to a large generic healing field.
+            }
         }
         void starStride(double age){
             double[][] stars={{-.45,-.65},{-.15,-.45},{.10,-.20},{.20,.15},{.45,.30},{.55,.58},{.28,.72}};

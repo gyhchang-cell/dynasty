@@ -125,6 +125,7 @@ public final class EquipmentFeedback {
     }
     @SubscribeEvent public static void set(TickEvent.PlayerTickEvent e){
         if(e.phase!=TickEvent.Phase.END||!(e.player instanceof ServerPlayer p)||p.tickCount%20!=0)return;
+        if(p.tickCount%60==0)passiveAccessories(p);
         var worn=DynastySetBonus.wornArmorIds(p);String matched="";for(String armor:worn){String base=armor.replaceFirst("_(helmet|chestplate|leggings|boots)$","");if(worn.stream().filter(x->x.startsWith(base+"_")).count()==4){matched=base;break;}}
         var flags=p.getPersistentData();boolean fire=p.isOnFire(),water=p.isUnderWater(),low=p.getHealth()<p.getMaxHealth()*.4;
         if(!fire&&flags.getBoolean("cod3_was_fire")&&worn.stream().anyMatch(x->x.startsWith("phoenix_")||x.startsWith("zhuque_")))Cod3Vfx.send(p.serverLevel(),19,p.position(),p.getLookAngle(),12,.12);
@@ -135,6 +136,28 @@ public final class EquipmentFeedback {
         if(matched.isEmpty()||matched.equals(last)||java.util.Set.of("cloth","bamboo","leather","brocade").contains(matched))return;
         Cod3Vfx.send(p.serverLevel(),matched.matches(".*(beidou|sky|taiyi|ziwei|hunyuan).*")?21:40,p.position(),p.getLookAngle(),20,.15);
         p.displayClientMessage(net.minecraft.network.chat.Component.translatable("cod3.dynasty.set.complete",p.getItemBySlot(EquipmentSlot.CHEST).getHoverName()),true);
+    }
+    /** Item-specific cue on the original actor wire; this never applies gameplay effects. */
+    public static void accessory(Player p,String id){
+        int tint=switch(id){
+            case "jade_pendant"->0x75DBBF;case "jade_bi_disc"->0xB7E6DC;case "gold_seal_charm"->0xEBC370;
+            case "dragon_scale_charm"->0x63BEB5;case "phoenix_feather_charm"->0xFF8050;case "qilin_horn_charm"->0xE1CB87;
+            case "fox_tail_charm"->0xA6A3F5;case "silk_pouch"->0xC591BD;case "moon_pendant"->0xDDD9FF;case "jade_cicada"->0x99E5C5;
+            default->0;
+        };
+        if(tint==0||!(p.level() instanceof ServerLevel l)||!p.isAlive()||!DynastyTrinkets.activeIds(p).contains(id))return;
+        var n=p.getPersistentData();String key="cod3_accessory_at_"+id;long now=l.getGameTime(),elapsed=now-n.getLong(key);
+        if(n.contains(key)&&elapsed>=0&&elapsed<20)return;n.putLong(key,now);
+        Cod3Vfx.actor(p,"accessory_"+id,16,.8,tint);
+    }
+    private static void passiveAccessories(ServerPlayer p){
+        var ids=DynastyTrinkets.activeIds(p);
+        if(!p.level().isDay()){
+            if(ids.contains("jade_bi_disc")&&!ids.contains("moon_pendant"))accessory(p,"jade_bi_disc");
+            if(ids.contains("moon_pendant"))accessory(p,"moon_pendant");
+        }
+        if(ids.contains("qilin_horn_charm"))accessory(p,"qilin_horn_charm");
+        if(ids.contains("silk_pouch"))accessory(p,"silk_pouch");
     }
     public static void proc(Player attacker,LivingEntity target,int code){
         if(attacker.level() instanceof ServerLevel l){
