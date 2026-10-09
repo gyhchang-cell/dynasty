@@ -1,0 +1,1508 @@
+# Dynasty cod3_new.txt —— cod3.txt 增强版（后续内容 · 视觉 / 演出 / 渲染 / 功能方块 / NPC / 秘密 / 奇观 / 世界状态）
+
+> 本文件是 `cod3.txt` 的深化增强版，**不是重写**。原 cod3 里已经成立的内容全部保留（Boss Intro 的视觉叙事、Boss Death 的意象、VFX 模板的起手→爆发结构、15 NPC、30 秘密、15 奇观、10 世界状态、功能方块 UI 目标、性能平替原则）。
+> 本文件在保留这些之上，补齐**技术规格与工程落地**：tick 时间线、服务器/客户端职责、多人/重启/掉线边界、Renderer 安全、LOD/预算，以及和现有 Registry、现有 Task 系统的绑定。
+>
+> **依据的真实工程状态（已扫描，非猜测）**：
+> - 版本：Minecraft 1.20.1 / Forge 47.4.10 / Java 17 / GeckoLib 4.8.4。
+> - 维度：`dynasty:celestial_dynasty`、`dynasty:underworld`、`dynasty:jiuxiao`、`dynasty:dragon_palace`、`dynasty:zhenyuan_arena`。
+> - 最终 Boss：镇渊帝君 `dynasty:zhenyuan_sovereign`（`ritual/ZhenyuanSovereign`），**不可替换**。
+> - 任务系统：FTB Quests（`.snbt` 章节）+ Minecraft Advancements（`DynastyAdvancements.award()` 自动判定）。
+> - 已实现 Boss：龙帝 `dragon_emperor`、叛将 `rebel_general`、宦官首脑 `eunuch_mastermind`、九霄天将 `nine_heaven_general`、龙王 `dragon_king`、亡故始皇 `undead_first_emperor`（`entity/DynastyBosses`），以及 cod1 正在实现的 12 Boss、cod2 地下城 Boss。
+> - 已实现武器：`DynastyWeapons`（木矛→天子剑 45+ 把 + 弓系 + 8 把学院武器）、`DynastyGear`（青铜/官银/玉/龙晶剑 + 方天画戟 + 分水三叉戟）。
+> - 已实现盔甲：`DynastyGear` + `DynastyArmorMaterials` 共 28 套（cloth/general/jade/dragon_scale/xuantian/sea_silk/dark_iron + bamboo/leather/brocade/bronze/silver/cinnabar/phoenix/qilin/sky/draco_king + xuanwu/zhuque/qinglong/baihu/beidou/tiangang/disha/taiyi/ziwei/hunyuan + hongmeng）。套装目前**只有纯数值**（减伤/生命/护甲，见 `DynastyBalance.SET_BONUS`），无行为型 2/3/4 件效果。
+> - 已实现饰品：`DynastyTrinkets` 约 89 件（表驱动 + 命中触发 + 连携 `DynastyTrinketLink` + 淬炼 `DynastyAccessoryRefining`）。
+> - 已实现效果：`DynastyEffects` 7 个（全部纯属性加成）。
+> - 已实现功能方块：`LivingWorkshopBlock`（化髓槽 `marrow_vat` / 精华冷凝 `essence_condenser` / 玉补炉 `jade_mending_forge` / 生息坛 `vitality_shrine` / 鞣皮架 `hide_stretcher` / 药浴盆 `herbal_basin` / 琢玉台 `lapidary_bench` / 余烬炉 `ember_brazier`）、`RitualAltarBlock`、`DynastyPortalBlock`×4、`DynastyInstrumentBlock`（编钟/太鼓）、`BountyBoardBlock`、`workshop/WorkshopBlockEntity`（数据驱动 Recipe + JEI）。
+>
+> **关于 cod2**：任务要求读 `cod2_updated.txt`，但工程内实际存在的是 `cod2.txt`（10 大型地下城 / 10 生态 / 30 世界事件 / 模型动画规范）。本文件以 `cod2.txt` 为 cod2 参照，只读不碰。
+>
+> **现状判定（直接用于后续设计，不另写审计）**：
+> - 武器系统：COMPLETE（普攻/特攻/弓倍率/长柄距离均有）；攻击**视觉表现**：PARTIAL（多数武器只换材质，无独立 trail/命中/暴击/连击递进）。
+> - 盔甲系统：数值 COMPLETE；**套装行为特效**：NOT_CONNECTED（无 2/3/4 件行为，只有减伤+生命）。
+> - 饰品系统：数值+触发 COMPLETE；**视觉反馈与任务来源**：PARTIAL（多数无专属视觉、无任务绑定）。
+> - VFX 库：PLACEHOLDER（散在 ClientBowEffects/RitualPhaseOneEffects 等，无统一模板）。
+> - 功能方块 UI：`WorkshopBlockEntity` 已有骨架；化髓槽「右键逐次投料」与「GUI」是否同源：PARTIAL（需补同 Inventory/Recipe/Progress/State 的验收）。
+> - Boss Intro/Death：DESIGN_ONLY（cod3 文本，未落地 Sequence 系统）。
+> - 15 NPC / 30 秘密 / 15 奇观 / 10 世界状态：DESIGN_ONLY 或 PARTIAL。
+
+================================================================================
+0. 第二轮补全说明 · 真伪标记图例 · 真实工程绑定清单（全文件统一遵循）
+================================================================================
+
+## 0.0 标记图例（此后全文统一使用）
+
+- `[VERIFIED]` —— 已扫描真实源码确认存在（类名 / Registry ID / 资源路径 / SavedData / Packet 真实）。
+- `[PROPOSED]` —— 建议新增，尚未存在。
+- `[NOT_VERIFIED]` —— 当前工程无法确认，禁止当真实存在；实现前必须先确认或降级。
+
+凡「建议新增」的类一律标注 `[PROPOSED]`，不得写得像已存在。凡无法确认的条件一律 `[NOT_VERIFIED]`，不得当正式触发条件。
+
+## 0.1 真实工程绑定清单（本轮实测扫描结果，供后文直接引用）
+
+**Boss / 实体（[VERIFIED]）**
+- `entity/DynastyBosses` 内 5 个 Boss：`DragonEmperor`(dragon_emperor)、`RebelGeneral`(rebel_general)、`EunuchMastermind`(eunuch_mastermind)、`NineHeavenGeneral`(nine_heaven_general)、`DragonKing`(dragon_king)；另 `UndeadFirstEmperor`(undead_first_emperor)。全部 `extends DynastyHumanoidMob`，部分 `implements DynastyBossCombat.BarHolder`。
+- 最终 Boss：`ritual/ZhenyuanSovereign`(zhenyuan_sovereign，sized 1.8×4.2，fireImmune)，GeckoLib 模型 `assets/dynasty/geo/zhenyuan_sovereign.geo.json` + `animations/zhenyuan_sovereign.animation.json`。
+- cod1 蓝图怪（[VERIFIED]，勿重设计）：`blueprint/BlueprintEntities` 的 `TemplateMob`（Kind：SKULL/PAPER/CHILD/SWORD/SHIELD/PRIEST/BEAST/SPEAR/CROSSBOW/SCOUT/POWDER…）。已注册：zuwu_daoshou / ludun_jiashi / fufa_jijiu / shanjing_shanxiao / juma_changqiangbing / liannu_zhenzu / tiesuo_chihou / kuijun_sishi / zhenwang_zhangqiguan / pijia_panjiang_huwei / yinbing_guizu / shibian_lishi / fuhun_baibu_tongzi / zhiren_jianke / muxue_feilu（+ SkullBloodPool）。
+- 维度小怪：jade_guard / soul_soldier / thunder_envoy / merfolk（`DynastyRealmMobs`）；神兽 qilin / phoenix / nine_tailed_fox（`DynastyBeasts`）；杂兵 minister / assassin / archer / royal_guard / rebel_soldier / nian_beast / imperial_soldier / terracotta_warrior。
+
+**Boss 召唤 / 竞技场（[VERIFIED]）**
+- `block/RitualAltarBlock`：信物→Boss（dragon_emperor_seal→DRAGON_EMPEROR、rebel_head→REBEL_GENERAL、eunuch_token→EUNUCH_MASTERMIND、emperor_bone→UNDEAD_FIRST_EMPEROR、sky_token→NINE_HEAVEN_GENERAL、sea_token→DRAGON_KING）；需四周 4 块玉块；召唤即给 200tick 抗性 + 3 道 visual-only 闪电 + 灵火/附魔粒子 + 音效。**这是当前真实 Boss 登场方式，无 Sequence 系统。**
+- `ritual/ZhenyuanArena`：`dynasty:zhenyuan_arena` 维度内 96×96×40 密封格（FLOOR_Y=64），`center/arrival/interior/forceChunks/build`。最终 Boss 专用竞技场。
+- `ritual/ZhenyuanRitualSavedData`（FILE_ID=`dynasty_zhenyuan_rituals`）：`Session` 含 `phase/mask/arenaIndex/bossIntroTick(0..280,≥280=bossFightStarted)/bossDefeated/rewardIssued/rewardPending/victoryAt/bossSnapshot`。**这是唯一真实存在的「Intro 计数」概念（0-280tick）。**
+**Boss 机制 / 血条（[VERIFIED]）**
+- `entity/DynastyBossMechanics`：`announce()`（标题+血条颜色+低吼）、`shield/hitShield/breakShield`（破盾→破绽 ×2.5）、`telegraphedArea`（1s 预警圈后结算，服务端 `TickTask`）、`drainMinions`、`shockwave`、`delay()`。
+- `entity/DynastyBossBarSubscriptions`：按玩家逐个订阅（`BossBarVisibility.SHOW_DISTANCE/CHECK_INTERVAL/ENGAGE_TICKS/FORGET_TICKS`），`startSeenByPlayer/stopSeenByPlayer/tick/clear`。
+- `entity/DynastyHumanoidMob`：`CHARACTER_ATTACK_START` 攻击钟（RebelGeneral 24 / RoyalGuard 18 / 其他 14 tick）。
+
+**Boss 死亡 / 掉落 / 首杀（[VERIFIED]）**
+- 原版 `die()` + `LivingDeathEvent`（`DynastyWorldEvents.onLivingDeath` 结算功名/忠诚/叛乱）+ `DynastyBossDrops.onDrops`（`LivingDropsEvent` 补掉落）+ `DynastyBossCombat.onDeath`（首杀：`getKillCredit()`→persistentData flag `dynasty_firstkill_<id>`→功名+信物）。**没有统一 DYING 状态机（[PROPOSED]）。**
+
+**武器 / 战斗（[VERIFIED]）**
+- `DynastyWeapons`（45+ 把 + 弓系 + 学院 8 把）、`DynastyCombatEvents`（附魔加伤/名器特攻/破甲/套装减伤/士气减伤）、`DynastySchoolCombat`（四流派循环）、`DynastyBranchWeapons`（侧线被动）、`DynastyWeaponGifts`（条件授武）、`DynastyWeaponProgression`（逐件击杀成长，NBT `dynastyWeaponGrowth`）。
+
+**盔甲 / 饰品（[VERIFIED]）**
+- 盔甲 28 套：`DynastyGear` + `DynastyArmorMaterials` + `DynastyBalance.SET_BONUS`（纯数值）。
+- 饰品 ~89 件：`DynastyTrinkets`（EXTRA_TABLE 表驱动）、`DynastyTrinketOnHit`（命中 proc）、`DynastyTrinketLink`（连携）、`DynastyAccessoryRefining`（淬炼）。
+- 玩家盔甲光层：`client/DivineArmorLightLayer`（xuantian_ 玉珠）、`client/DynastyAuraLayer`（Boss 光环/八卦符印 style 1-4）。
+
+**效果（[VERIFIED]）**
+- `DynastyEffects`（dragon_might/iron_wall/swift_wind/intimidation/loyalty/mandate_of_heaven/internal_injury，纯属性）；`BlueprintEntities` 另注册 bingsha_possession/junhun_aura/spirit_chill/soul_bind/lantern_glare。
+
+**功能方块（[VERIFIED]）**
+- `block/LivingWorkshopBlock`（8 种 Kind：MARROW/ESSENCE/REPAIR/VITALITY/HIDE/HERBAL/LAPIDARY/EMBER，共享 `WorkshopBlockEntity`）。
+- `workshop/WorkshopBlockEntity`：单字段 `deposited`（0..total）+ 有序配方；`accept/ready/collect/refund`；BlockState `LIT + HORIZONTAL_FACING`。**当前无 GUI。**
+- `workshop/WorkshopRecipes.ALL`（8 条真实配方，见 COD3-7 补全）、`workshop/WorkshopJei`（`@JeiPlugin`，RecipeType `dynasty:workshop`，背景 162×62）。
+- `ritual/ZhenyuanNodeBlock/BlockEntity`（献祭台 SLOT 0-4 + ACTIVE）。
+
+**网络（[VERIFIED]）**
+- `network/DynastyNetwork`（SimpleChannel，PROTOCOL "7"）：`DragonDescentPacket/WeaponImpactPacket/BowEffectPacket/OpenKejuPacket/AnswerKejuPacket/StatsRequestPacket/ArmyFormPacket/StatsSyncPacket/BountyBoardPacket/BountyActionPacket/blueprint.BlueprintVisualEvent`。追加 packet 只能 **append**，不得改旧 ordinal。
+
+**结构（[VERIFIED]）**
+- `structure/DynastyStructures`：travel_site / battlefield / palace / imperial_tomb / academy / great_wall_gate / stone_grove / star_altar / star_vault / music_ruin / seal_vault（+ puzzle 遗迹）；另有 `structure/megabuild/*` 与 `NaturalSculptures`。
+
+**渲染器 / 模型（[VERIFIED]）**
+- `client/DynastyHumanoidModel`（人形共用，`decoratedLayer(style)`：1 鹿角/2 冠翅/7 龙首/10 帝冕…）、`client/DynastyBeastModel`（四足）、`client/DynastyWingedModel`、`client/character/DynastyCharacterModel`、`client/ImperialWeaponRenderer`（自定义 mesh+龙降）、`client/ImperialDragonRenderer`、`client/ImperialMaterialShader`、`client/BossRegaliaGeometry`、`client/BowSigilGeometry`。
+
+**世界状态 / 存档（[VERIFIED]）**
+- 真实 SavedData：`ZhenyuanRitualSavedData`、`keju/KejuServerState`、`puzzle/PuzzleSavedData`、`structure/megabuild/SculptureSavedData`、`dungeon/DungeonStateStore`、`bounty/BountyBoardData`、`blueprint/BlueprintSpawnState`。**cod3 的「10 大世界状态」目前无专门 SavedData（[PROPOSED]）。**
+
+**不存在 / 待确认（[NOT_VERIFIED]）**
+- Season（季节）系统：**无**（用 dayTime/moonPhase/raining/thundering 替代）。
+- Fog Weather 系统：**无**（用原版 fog + 区域参数，或标 `REQUIRES_NEW_SYSTEM`）。
+- `BossSequenceDefinition/BossSequenceRunner`：**无**（[PROPOSED]）。
+- `SecretDefinition/SecretTracker`：**无**（[PROPOSED]；参考 `puzzle/PuzzleService`）。
+- `ScenicEventDefinition`：**无**（[PROPOSED]）。
+- `LootableRemains` / `StatueBlock`：**无**（[PROPOSED]）。
+================================================================================
+COD3-1 Boss Intro 深化（保留 20 套，补齐技术规格）
+================================================================================
+
+## 1.0 共用框架：BossSequence（服务器权威 + 客户端播放）
+
+不做「20 个 Boss 各写一段 tick 过场」。建立 `BossSequenceDefinition`（数据）+ `BossSequenceRunner`（执行器）。
+
+- Step 类型（每 Step 含 `startTick`、`duration`、`params`）：
+  `WAIT / PLAY_BOSS_ANIMATION / SET_BOSS_VISIBILITY / SET_BOSS_INVULNERABLE / PLAY_SOUND / SPAWN_CLIENT_VFX / SPAWN_VISUAL_ENTITY / SET_ARENA_STATE / SET_BLOCK_PRESET_STATE / CAMERA_SHAKE_LOCAL / SHOW_BOSSBAR / SET_BOSS_PHASE / SET_MODEL_VARIANT / FOG_LOCAL / LIGHTNING_VISUAL / DIALOGUE / TRIGGER_WORLD_STATE`。
+- 服务器只推进 `Sequence 状态` + 广播必要事件；客户端只播放 VFX/音效/镜头局部震动。
+- **玩家控制永远自由**：禁止锁 WASD、锁跳跃、锁 Camera、强制转头。不取消 InputEvent、不 `setDeltaMovement(0)`、不逐 tick `setPos`、不强制朝向 Boss。
+- Boss 在 INTRO 期间：`SET_BOSS_INVULNERABLE=true`（无敌）、不开 AI（`setNoAi(true)` 或等效）、不显示 BossBar；到指定 tick `SET_BOSS_INVULNERABLE=false` + `SHOW_BOSSBAR` 才进入正常 AI。
+
+## 1.1 通用多人/边界规则（20 套共用）
+
+| 场景 | 规则 |
+|---|---|
+| 多人同时进入 | Sequence 由服务器**实例只运行一次**；后来者收到 `sequenceId + currentTick`，客户端从正确时间点续播，不重头。 |
+| 晚进入 | 不重放已过 Step；只订阅当前 BossBar 与后续 VFX。 |
+| 玩家死亡回来 | 不终止 Intro；复活后按当前 `currentTick` 继续。 |
+| 玩家离开 Arena | Intro 继续（全世界实例级）；离开者客户端清理本地 VFX，返回时按 currentTick 续播。 |
+| Chunk unload | Boss 卸载即停 Sequence；保存 `introState`（当前 Step + tick）。 |
+| Server restart | 恢复 `introState`；若恢复困难，允许安全跳到 COMBAT（解锁 AI + 血条 + 无敌关闭），**绝不卡在永久无敌**。 |
+| 玩家退出 | 不终止全服 Intro。 |
+
+## 1.2 20 套 Intro 技术深化
+
+> 每套：总 tick = 总时长；`无敌窗` = INTRO 期间；`开 AI` = 正常 AI + 血条 tick。多人/晚入/死亡/离场/卸载/重启统一遵循 1.1，不逐条重复。
+
+### 1 玄冰破封（12s = 240tick）
+- 分阶段：0-60tick 冰面龟裂（decals + 碎冰 VisualEntity，非真实替换方块）；60-140tick 破冰冲天（Boss 从潭底 anchor 上升，`SET_BOSS_VISIBILITY=true`）；140-200tick 盘旋回落四足砸地（`PLAY_BOSS_ANIMATION=landing` + 暴风雪 VFX）；200-240tick 仰天长啸 + 血条（`CAMERA_SHAKE_LOCAL=3` + `SHOW_BOSSBAR`）。
+- 无敌 0-240tick；开 AI 240tick。动画 `swim_up → glide → land → roar`；移动由 anchor 垂直上升后沿预设 Bezier 落地。
+- 环境：冰面「完整/破裂」两套预设 state；粒子 300-600 碎冰 + 200 白雾；音效 `block.ice.break` 密集 + 低频吼叫。
+- 性能：冰面裂纹为 decal 叠加，非逐块 setBlock。
+
+### 2 千佛石化（10s = 200tick）
+- 0-60tick 石雕静立（`SET_MODEL_VARIANT=STONE`）；60-120tick 石皮龟裂剥落（按骨骼区域逐步隐藏 stone shell bones + 碎石粒子）；120-160tick 戟/眼眸亮金（variant 切 METAL + 眼部发光 layer）；160-200tick 跨下莲座踏碎 + 血条。
+- 关键：**不生成独立石像再删换 Boss**；同一 Boss 实体走 variant + 骨骼 visibility。无敌 0-200tick；开 AI 200tick；碎石 200-400。
+
+### 3 古画出渊（14s = 280tick）
+- 0-80tick 壁画人物二维移动（客户端 shader/texture 动画，非实体）；80-160tick 水墨手臂撑出、Boss 沿墙法线移出（`SET_BOSS_VISIBILITY=true`）；160-220tick 泼墨 + 墨剑凝固（variant）；220-280tick 太极墨阵 + 血条。
+- 关键：整面墙不做几十个实体；Boss 实体墙后隐藏，8 秒后移出。无敌 0-280tick；开 AI 280tick。
+
+### 4 九重天棺（11s = 220tick）
+- 0-60tick 锁链发红（少量链段 visual）；60-120tick 锁链崩断、棺盖飞出（无碰撞 VisualEntity，**不用高伤 FallingBlock**）；120-180tick 帝王悬空升起（`PLAY_BOSS_ANIMATION=rise`）；180-220tick 睁眼金芒 + 长袖驱雾 + 血条。
+- 无敌 0-220tick；开 AI 220tick。棺盖用视觉碎片，不伤玩家。
+
+### 5 幽潭分水（13s = 260tick）
+- 0-80tick 竖瞳 + 气泡；80-160tick 分水墙（两片半透明动态 mesh/粒子面 + 局部水面 mask，**不真实移动水方块**）；160-220tick 伏波巨神踏浪上升；220-260tick 水墙坍塌 + 血条。
+- 无敌 0-260tick；开 AI 260tick；水墙粒子 400-600。
+
+### 6 万骨聚首（15s = 300tick）
+- 0-80tick 白骨震颤 + 亡魂悲鸣（音频）；80-180tick 白骨风暴汇聚（**只生成少量骨片 visual 实例**，客户端批量渲染成「成千上万」）；180-240tick 三眼骷髅扣合（variant + 眼窝鬼火）；240-300tick 双拳捶胸 + 血条。
+- 关键：Boss 实体自始存在，scale/visibility 按 Sequence 变化，避免大量 ItemEntity/FallingBlock。无敌 0-300tick；开 AI 300tick。
+
+### 7 神兵唤主（10s = 200tick）
+- 0-60tick 巨剑剑鸣 + 空间波纹（Spline/Beam VFX）；60-120tick 万道剑气激射（instanced）；120-160tick 剑灵迈出、巨剑化金芒融入青峰（variant）；160-200tick 剑花斜指 + 万剑共鸣 + 血条。
+- 关键：巨剑是结构 prop，切「巨剑/隐藏」材质，不拆数千方块。无敌 0-200tick；开 AI 200tick。
+
+### 8 天裂异象（16s = 320tick）
+- 0-80tick 天穹紫电裂痕（**客户端世界空间 Sky/World VFX，非全屏黑 Quad**，锚定 Arena 上空，远近视角正确）；80-180tick 神魔巨爪扳开裂缝（visual entity）；180-260tick Boss 挤出坠落砸坑（服务器预先定落点 + 地面预警圈）；260-320tick 抖落碎晶 + 裂缝合拢 + 血条。
+- 无敌 0-320tick；开 AI 320tick；落点预警 decal 圈 3s。
+
+### 9 血祭归一（14s = 280tick）
+- 0-80tick 四术士诵咒割腕（预设 NPC/视觉，不做真实自残血量）；80-160tick 血槽汇聚（贴图/粒子路径）+ 术士倒地 + 血肉巨茧；160-220tick 四爪撕茧 + 祖兽破壳；220-280tick 振翅 + 红莲火 + 血条。
+- 关键：若为混元祖兽且已有四象祭坛剧情，**先查冲突，不覆盖已有最终 Boss 演出**；绑定 cod1 四象祭坛 arena。无敌 0-280tick；开 AI 280tick。
+
+### 10 机关天变（18s = 360tick）
+- 0-100tick 楼阁地砖倾斜 + 铜柱齿轮摩擦（audio + decal）；100-200tick 建筑「变形」（两套预制视觉：真实建筑 + 机关巨偶，演出时核心区切换/隐藏，Boss 巨偶分段骨骼展开）；200-300tick 凌烟阁匾化面甲 + 巨偶成形；300-360tick 迈步踩干护城河 + 蒸汽排气 + 血条。
+- 关键：**不是把三层楼每块方块变形成 Boss**。无敌 0-360tick；开 AI 360tick。
+### 11 万符锁煞（11s = 220tick）
+- 0-60tick 万符镇煞（批量粒子/decals，不生成上万实体）；60-120tick 符自燃 + 铁柱裂纹（破裂 variant）；120-180tick 铁柱爆碎 + 古妖走出；180-220tick 伸展筋骨 + 血光 + 血条。
+- 无敌 0-220tick；开 AI 220tick。
+
+### 12 黄泉倒卷（13s = 260tick）
+- 0-80tick 血水上涨（客户端液面 renderer + Arena hazard 高度参数，**不实时灌满液体方块**）；80-160tick 白骨战船沿 Bezier/样条入场；160-220tick 船身横转 + 彼岸花盛开；220-260tick 灯笼转红 + 丧钟 + 血条。
+- 无敌 0-260tick；开 AI 260tick。
+
+### 13 古树胎动（12s = 240tick）
+- 0-60tick 树瘤搏动 + 绿光 + 落叶；60-140tick 树瘤撕裂（variant）+ 木神踏出；140-200tick 根须编织木甲 + 食人魔花绽放（Boss 模型骨骼显现，不把地面几百根须做实体）；200-240tick 睁眼 + 荆棘铺地 + 血条。
+- 无敌 0-240tick；开 AI 240tick。
+
+### 14 沙海龙卷（10s = 200tick）
+- 0-60tick 沙龙卷（客户端柱状粒子场 + 少量飞砂 visual）；60-140tick 风沙结晶化、砂岩战将成形（透明沙粒 variant → 实体砂岩 variant 渐变）；140-180tick 拔开山斧；180-200tick 踏步 + 沙尘炸 + 血条。
+- 无敌 0-200tick；开 AI 200tick。
+
+### 15 皮囊撕裂（9s = 180tick）
+- 0-60tick 红衣女子转头微笑；60-120tick 撕皮蜕下（人皮为独立短生命周期 visual）；120-160tick 白骨妖物现形（variant + 骨骼 visibility）；160-180tick 尖啸 + 琴弦化刃 + 血条。
+- 关键：红衣女子与妖物**同一个 Boss 实体**不同 variant，避免双实体切换导致 BossBar/目标丢失。无敌 0-180tick；开 AI 180tick。
+
+### 16 熔岩倒灌（15s = 300tick）
+- 0-80tick 地面下陷 + 岩浆喷涌（少量真实熔岩若场地预设，否则液面 VFX）；80-180tick 铁砧台 + 铁链拉出赤红巨兽胚体；180-240tick 极阴泉水淬火（白雾限密度 200-300）；240-300tick 机关战兽破水 + 齿轮 + 血条。
+- 关键：不临时更新数千流体。无敌 0-300tick；开 AI 300tick。
+
+### 17 天火降世（11s = 220tick）
+- 0-60tick 第二颗烈日（SkyVFX，不增世界光源实体）；60-120tick 金乌坠地（落点提前确定，火浪客户端表现 + 服务器环形伤害/击退）；120-180tick 三足金乌跃出火海；180-220tick 高亢长啼 + 热浪晃动 + 血条。
+- 关键：不做核爆式破坏地形。无敌 0-220tick；开 AI 220tick。
+
+### 18 残魂寄剑（8s = 160tick）
+- 0-40tick 古剑悬空 + 十二石剑侍（静态模型/armor stand 替代或纯视觉，**不做 12 个 AI 实体**）；40-100tick 黑煞灌剑 + 剑自挥斩断石雕；100-140tick 石剑魔聚合（骨骼/模型 variant）；140-160tick 横剑 + 出鞘声 + 血条。
+- 无敌 0-160tick；开 AI 160tick。
+
+### 19 深渊巨口（14s = 280tick）
+- 0-80tick 地面肉化（arena overlay/材质 variant，不真实替换整场）；80-160tick 食道旋涡（预设坑结构 + 视觉遮罩）；160-220tick 饕餮巨爪 + 巨怪爬出；220-280tick 吐黑气 + 场地封死骨壁 + 血条。
+- 无敌 0-280tick；开 AI 280tick。
+
+### 20 太虚投影（16s = 320tick）
+- 0-100tick 二十八星宿点亮 + 失重（只在 Arena 范围对玩家应用**有限低重力/缓降**，不修改键位）；100-200tick 星宿光柱 + 星空经纬网 + 星辰胚胎；200-260tick 胚胎碎裂 + 四象铠甲披挂；260-320tick 睁眼 + 浮石砸落 + 重力恢复（服务器统一广播）+ 血条。
+- 无敌 0-320tick；开 AI 320tick。
+
+## 1.3 Intro 落点绑定表（防乱套用）
+
+| Intro | 建议绑定 Boss / 场地（cod1/cod2） | SequenceDefinition 声明 |
+|---|---|---|
+| 玄冰破封 | cod1 极寒/冰系 Boss · 冰谷 arena | `bossId` + `arenaTag` |
+| 千佛石化 | 石窟/古寺 Boss · 佛寺 arena | 同上 |
+| 古画出渊 | 水墨/幻境 Boss · 壁画殿 | 同上 |
+| 九重天棺 | 帝王陵寝 Boss（昭明帝系）· 地宫 | 同上 |
+| 幽潭分水 | 水府/龙宫系 Boss · 深潭 | 同上 |
+| 万骨聚首 | 古战场 Boss · 万人骨坑 | 同上 |
+| 神兵唤主 | 剑煞/剑灵 Boss · 剑峰 | 同上 |
+| 天裂异象 | 九霄/虚空 Boss · 天界 | 同上 |
+| 血祭归一 | 四象祭坛 Boss · 祭坛（查冲突） | 同上 |
+| 机关天变 | 机关城 Boss · 机关城 | 同上 |
+| 万符锁煞 | 封印类 Boss · 封印柱 | 同上 |
+| 黄泉倒卷 | 阴司/冥河 Boss · 忘川 | 同上 |
+| 古树胎动 | 木/妖类 Boss · 神木林 | 同上 |
+| 沙海龙卷 | 沙漠 Boss · 戈壁 | 同上 |
+| 皮囊撕裂 | 画皮妖 Boss · 废村/洞窟 | 同上 |
+| 熔岩倒灌 | 机关战兽/熔岩 Boss · 地下锻造厂 | 同上 |
+| 天火降世 | 金乌/神鸟 Boss · 山峰 | 同上 |
+| 残魂寄剑 | 剑侍 Boss · 大殿 | 同上 |
+| 深渊巨口 | 饕餮 Boss · 大地 | 同上 |
+| 太虚投影 | 星宿/虚空 Boss · 浮空岛 | 同上 |
+
+> SequenceDefinition 必须声明 `bossId` 与 `arenaTag`，**不允许任意 Boss 随机套所有演出**。
+
+## 1.4 第二轮补全：真实绑定 + Step 参数 + INTRO 结束唯一条件
+
+### 1.4.1 INTRO 结束的唯一服务器条件（防永久无敌/无AI/无血条）
+
+> 每套 Intro 必须只由**服务器**判定结束，条件唯一且可证明：
+
+**当且仅当以下全部满足**，服务器在同一 tick 执行 `SET_BOSS_INVULNERABLE=false` + `setNoAi(false)` + `SHOW_BOSSBAR`：
+1. `sequence.currentTick >= sequence.totalTicks`；
+2. 服务器 `SequenceRunner` 状态 == `INTRO`（未进入 COMBAT）；
+3. Boss 实体仍在 `level` 且 `isAlive()`。
+
+**兜底（FAIL-SAFE）**：任一条件在 `totalTicks + 40` tick 后仍未达成（Sequence 报错 / Step 抛异常 / 状态未推进），服务器强制执行上面 3 步并记日志 `[Dynasty][BossIntro] forced-to-combat boss=<id> arena=<tag>`。**绝不卡在永久 invulnerable/noAI/无血条。**
+
+- 判定入口：`BossSequenceRunner.tick()`（`[PROPOSED]`）每 tick 跑一次，`currentTick++` 由服务器时钟驱动，不依赖客户端。
+- 现有可复用：镇渊已用 `ZhenyuanRitualSavedData.Session.bossIntroTick`（0..280）作为参考，但那是**专用**字段；通用 Boss 需新增 `BossIntroState`（`[PROPOSED]`，存 persistentData 或独立 SavedData）。
+
+### 1.4.2 20 套 Intro → 真实 Boss 绑定（[VERIFIED] 为已存在 Boss）
+
+| Intro | 可绑定 Boss（真实） | 场地 | 说明 |
+|---|---|---|---|
+| 9 血祭归一 | 混元祖兽系（cod1 四象） | 四象祭坛 | [NOT_VERIFIED] Boss 未在本轮确认，绑定 cod1 祭坛 |
+| 12 黄泉倒卷 | 阴司系 Boss（cod1） | 忘川 | [NOT_VERIFIED] |
+| 20 太虚投影 | 镇渊帝君 `zhenyuan_sovereign` | `ZhenyuanArena` | [VERIFIED] 唯一可绑最终 Boss |
+| 5 幽潭分水 | 龙王 `dragon_king` | 深潭/龙宫 | [VERIFIED]（信物 sea_token） |
+| 4 九重天棺 | 亡故始皇 `undead_first_emperor` | 帝陵地宫 | [VERIFIED]（信物 emperor_bone） |
+| 1 玄冰破封 / 3 古画出渊 / 6 万骨聚首 / 7 神兵唤主 / 8 天裂异象 / 10 机关天变 / 11 万符锁煞 / 13 古树胎动 / 14 沙海龙卷 / 15 皮囊撕裂 / 16 熔岩倒灌 / 17 天火降世 / 18 残魂寄剑 / 19 深渊巨口 / 2 千佛石化 | cod1 剩余 Boss（12 只） | 各自 arena | [NOT_VERIFIED] 本轮未在源码确认对应 Boss ID，需 cod1 落地后回填 |
+
+> 现有 6 只可召唤 Boss（`RitualAltarBlock` 信物）是「重复挑战」入口；其余 cod1 Boss 落地后再绑定。**禁止为用完 20 套演出强行新造 20 个 Boss。**
+
+### 1.4.3 每套新增字段（统一模板，20 套都填）
+
+| 字段 | 填写要求 |
+|---|---|
+| Boss ID | 真实 registryId，否则 NOT_VERIFIED |
+| Entity class | 真实类名，否则 PROPOSED |
+| Renderer / Model | `DynastyHumanoidModel.decoratedLayer(style)` 或 GeckoLib（仅 zhenyuan_sovereign） |
+| Animation resource | `assets/dynasty/animations/<id>.animation.json`，缺则 PROPOSED |
+| Arena | `RitualAltarBlock` 召唤点 或 `ZhenyuanArena` / cod1 arena |
+| Sequence ID | `dynasty:intro_<序号>`（PROPOSED 命名规范） |
+| Step 逐项参数 | 见 1.2 已给 tick 分段，此处补 `params`（origin/radius/particle/sound/seed） |
+| sound resource | 原版 `SoundEvents.*` 或 dynasty 自定义（缺则 PROPOSED 音效注册） |
+| VFX template 引用 | COD3-3 模板编号 |
+| server packet 内容 | `[PROPOSED] BossIntroStateSync`：`{sequenceId, bossId, currentTick, phase, bossInvulnerable}` |
+| client packet 内容 | 客户端只收 VFX 指令（世界空间），无状态写回 |
+| SavedData 字段 | `bossIntroTick / currentTick / phase / rewardGranted`（复用 `ZhenyuanRitualSavedData.Session` 模式，通用 Boss 另建 `BossIntroState` [PROPOSED]） |
+| restart 恢复 | 读 `bossIntroTick`；若 `>=totalTicks` 直接 COMBAT；否则续播 |
+| skip/fallback | 玩家全离场 10s 后允许跳过到 COMBAT（可配置 `skipWhenNoPlayers=true`） |
+| 需要修改文件 | `RitualAltarBlock`（接 Sequence 触发点）/ `DynastyBosses`（加 `introState`）/ 新增 `BossSequenceRunner` [PROPOSED] |
+| GameTest | 单人进入→等 Intro 结束→Boss 可被打；双人晚入续播；重启在 0<tick<total 恢复；`forced-to-combat` 兜底触发 |
+
+### 1.4.4 需要修改的现有文件（[VERIFIED] 文件 + [PROPOSED] 新文件）
+
+| 文件 | 改动 |
+|---|---|
+| `block/RitualAltarBlock.java` [VERIFIED] | `summonEffects()` 前插入「Intro 启动」钩子；`boss.moveTo` 后调 `BossSequenceRunner.start(boss, arenaTag)` [PROPOSED] |
+| `entity/DynastyBosses.java` [VERIFIED] | 各 Boss 加 `introState`（persistentData 键 `dynasty_intro_*`） |
+| `ritual/ZhenyuanSovereign.java` [VERIFIED] | 复用现有 `bossIntroTick`，不再另起一套 |
+| `BossSequenceRunner.java` [PROPOSED] | 新增：tick/恢复/兜底 |
+| `BossSequenceDefinition.java` [PROPOSED] | 新增：Step 数据 |
+| `network/BossIntroStateSync.java` [PROPOSED] | 新增 packet（append 到 `DynastyNetwork`） |
+
+================================================================================
+COD3-2 Boss Death 深化（统一 DYING 系统，保留 20 套意象）
+================================================================================
+
+
+## 2.0 统一死亡状态机
+
+Boss 生命归 0 **不立即 discard**。进入 DYING：
+
+| 状态 | 语义 | 服务器职责 |
+|---|---|---|
+| `LETHAL_HIT` | 最后一击命中当帧 | 记 `deathTick`、`deathSequenceId`、`rewardGranted=false`；冻结 AI、禁用攻击/受伤。 |
+| `DYING` | 播放死亡演出 | 只推进 Sequence（复用 BossSequenceRunner，仅允许 Death 白名单 Step）。 |
+| `DEATH_SEQUENCE` | 演出主体 | 客户端 VFX；服务器只做状态机。 |
+| `REWARD` | 发奖励 | 服务端**唯一 tick 发放**，置 `rewardGranted`，写 SavedData。 |
+| `CLEANUP` | 清场 | 移除临时 visual/AreaEffect/召唤物，放永久遗留物（Block/Structure），最后 remove 实体。 |
+
+关键防重复规则：
+- 奖励由服务端**唯一 tick** 发放，`rewardGranted` 标记 + 持久化；断线/重启**不重复**发。
+- 掉落生成：`REWARD` 阶段一次生成 Loot/XP；`CLEANUP` 阶段不再二次生成。
+- 死亡演出期间玩家仍自由移动；**不锁镜头、不全屏白屏**。
+
+## 2.1 通用帧表（20 套都遵循，具体帧数见 2.2）
+
+| 帧事件 | 默认值 | 说明 |
+|---|---|---|
+| AI 停止帧 | `LETHAL_HIT` 当帧 | `setNoAi(true)` + 清目标。 |
+| Hitbox 关闭帧 | `LETHAL_HIT` + 1 tick | 不再受击（`invulnerable=true`）。 |
+| 不再受伤时间 | 从 `LETHAL_HIT` 至 remove | 全程免疫。 |
+| Loot 生成时间 | `REWARD` tick | 一次性。 |
+| XP 生成时间 | `REWARD` tick | 一次性。 |
+| VFX 时间 | `DYING`→`DEATH_SEQUENCE` | 客户端。 |
+| 模型移除时间 | `CLEANUP` 起点 | 或先留 Statue。 |
+| Entity 真正 remove | `CLEANUP` 末尾 | 遗留物已转 Block/Structure 后。 |
+
+## 2.2 20 套死亡深化
+
+### 1 玄冰碎玉（10s=200tick）
+- 演出：实体材质 → 冰晶 variant；按身体骨骼区域逐段隐藏 + 碎冰 VFX；最终崩解为碎冰粒。
+- 遗留：`CLEANUP` 末尾在固定 anchor 放「冻泉小坑」preset（`SET_BLOCK_PRESET_STATE`）。
+- 帧：AI 停 0；Hitbox 关 1；REWARD 180；CLEANUP 200。
+
+### 2 千机力竭（11s=220tick）
+- 演出：齿轮/铆钉只做 visual debris；主实体骨骼按 hand→arm→body 逐段停动画。
+- 遗留：散落铜废铁堆 + 半截发条核心（`LootableRemains` BlockEntity，非永不消失 ItemEntity）。
+
+### 3 业火反噬（8s=160tick）
+- 演出：内而外业火（客户端），**不持续点燃附近无关方块**；烧成余烬飞灰。
+- 遗留：焦坑 + 舍利晶石（LootContainer）。
+
+### 4 忠魂解甲（12s=240tick）
+- 演出：煞气褪去、单膝跪地、化青铜雕像。
+- 遗留：**死亡后永久雕像不保留 Boss 实体**；Sequence 结束在 anchor 放 StatueBlock/Structure piece，Boss 再 remove；其插地武器玩家可拔出（LootableRemains）。
+
+### 5 重归壁画（9s=180tick）
+- 演出：Boss 化墨倒流回壁画；壁画 BlockEntity 切「闭眼败亡」texture variant。
+- 遗留：壁画下砚台宝箱（LootContainer）。
+
+### 6 天道封魔（13s=260tick）
+- 演出：金色铁链 + 镇魔石碑；Boss 被压入地底。
+- 遗留：封魔古碑（`SealMonument` block/structure）+ 写 world state；碑前供桌战利品。
+
+### 7 万剑臣服（10s=200tick）
+- 演出：金剑环绕三圈后插入地面（**逻辑飞剑数量少，客户端大量视觉**）。
+- 遗留：环形剑阵（可采核心神剑一次）；奖励只一次。
+
+### 8 金蝉脱蜕（7s=140tick）
+- 演出：背部裂口 + 金魂冲天；皮囊落地。
+- 遗留：可采集妖兽皮蜕 = `LootableRemains` BlockEntity，非永不消失 ItemEntity。
+
+### 9 骨肉化泥（14s=280tick）
+- 演出：腐毒中和、白骨风化、彼岸花/幽兰盛开。
+- 遗留：灵花花海 = 预设局部结构/少量可生长方块，**不在几百格逐 tick 铺花**；拱门结神树果实。
+
+### 10 神龙解体（15s=300tick）
+- 演出：四色光柱 + 四象神兽虚影冲天（客户端视觉）。
+- 遗留：四象太极浮雕阵盘 + 四象核心宝物；四象世界状态服务端写入。
+
+### 11 肉胎暴裂（9s=180tick）
+- 演出：骨骼刺破血肉、肋骨撑天成白骨牢笼。
+- 遗留：白骨遗迹拱顶（Statue/Structure）。
+
+### 12 兵解飞升（11s=220tick）
+- 演出：祥云 + 接引金光 + 化金点升空。
+- 遗留：玉拂尘/仙袍/玉简（LootContainer）。
+
+### 13 帝王瞑目（12s=240tick）
+- 演出：玉玺崩碎、龙袍腐朽、化金粉。
+- 遗留：断玺碎块 + 古剑（LootContainer）。
+
+### 14 巨偶沉沦（10s=200tick）
+- 演出：蒸汽泄压长叹、冷却变黑成门卫雕塑。
+- 遗留：机关偶雕像（Statue），胸炉门开为储物舱（BlockEntity）。
+
+### 15 万魂度化（13s=260tick）
+- 演出：万千怨魂化蓝白冥蝶冲霄（客户端）。
+- 遗留：乌木船头 + 引魂铁篙（LootContainer）。
+
+### 16 水妖枯竭（10s=200tick）
+- 演出：妖丹破裂化喷泉、地面凹陷成海眼。
+- 遗留：灵泉水源 + 潭底三股钢叉。
+
+### 17 雷公陨落（8s=160tick）
+- 演出：高压雷球湮灭、无害电离子环、雷云溃散。
+- 遗留：雷击琉璃坑 + 雷核。
+
+### 18 蛇蜕风化（9s=180tick）
+- 演出：鳞片枯卷、蛇躯化沙吹散。
+- 遗留：金丝嫁衣白骨 + 蛇母逆鳞珠。
+
+### 19 饕餮腹裂（11s=220tick）
+- 演出：百宝喷涌（古铜钱/生铁/玉器/断剑暴雨，客户端 + 服务器一次掉落）。
+- 遗留：海量基础矿物/钱币可捡拾 + 可移动铜鼎。
+
+### 20 虚空塌缩（14s=280tick）
+- 演出：引力奇点内塌、空间裂痕缝合、收缩为悬浮太极球。
+- 遗留：终极材料【四象混元混沌核】+ 回归传送门；虚空世界状态写入。
+
+## 2.3 Death 白名单 Step
+
+`DEATH_SEQUENCE` 只允许：`PLAY_BOSS_ANIMATION / SET_BOSS_VISIBILITY / PLAY_SOUND / SPAWN_CLIENT_VFX / SET_ARENA_STATE / SET_BLOCK_PRESET_STATE / FOG_LOCAL / LIGHTNING_VISUAL / DIALOGUE`。禁止死亡演出里 `SHOW_BOSSBAR / SET_BOSS_PHASE / TRIGGER_WORLD_STATE`（世界状态在 `REWARD` 或 `CLEANUP` 由服务器单独写）。
+
+## 2.4 第二轮补全：真实死亡流程绑定 + 失败恢复
+
+### 2.4.1 谁负责进入 DYING + 在哪拦截 vanilla death
+
+- 现有死亡链（[VERIFIED]）：`LivingEntity.die()`（原版）→ `LivingDeathEvent` → `DynastyWorldEvents.onLivingDeath`（功名/忠诚/叛乱）→ `DynastyBossDrops.onDrops`（`LivingDropsEvent`，补掉落）→ `DynastyBossCombat.onDeath`（首杀 `getKillCredit()`）。
+- 进入 DYING 的责任方：**`LivingDeathEvent`（EventPriority.HIGHEST，服务端）**，在 `DynastyWorldEvents` 之前拦截。拦截条件：`victim instanceof DynastyBossCombat.BarHolder` 或命中 `DynastyBalance.isBossOrBeast` 且带 Boss 条。
+- 拦截动作：`event` 不 cancel 原版死亡，但设置 `deathSequenceId` + `deathTick` + `rewardGranted=false` + 冻结 AI/Hitbox（`setNoAi(true)` + `invulnerable=true`）；原版 `die()` 的**自动掉落与经验**用 `event` 内标志位或 `LivingDropsEvent` 里识别「正在 DYING」跳过。
+- 注意：原版 `die()` 会把 health 置 0 并触发 `LivingDropsEvent`，但**不会立即 remove**（仍可延迟 remove）。DYING 演出复用这个「已死未移除」窗口。
+
+### 2.4.2 loot / XP 防重复（[VERIFIED] 机制扩展）
+
+- **loot 禁止原版自动生成**：在 `DynastyBossDrops.onDrops` 里加判定——若 `victim` 处于 DYING（`deathSequenceId` 非空且 `!rewardGranted`），先 `event.getDrops().clear()` 阻止原版掉落，改由 `REWARD` tick 统一生成（避免「原版掉落 + 演出掉落」双份）。
+- **XP 防重复**：REWARD 只在 `rewardGranted=false` 时发放一次，发放即置 true 并写持久化；原版经验球（ExperienceOrb）在 DYING 期间不生成，统一由 REWARD tick 生成一次。
+- **rewardGranted 存哪里**：BOSS 实体 `persistentData` 键 `dynasty_reward_granted`（布尔）+ 独立 SavedData `BossDeathState`（[PROPOSED]）作为断线/重启兜底；镇渊复用 `ZhenyuanRitualSavedData.Session.rewardIssued`。
+- **Server restart 发生在 DYING 中途**：读 `BossDeathState`，若 `deathTick` 存在且 `rewardGranted=false` → 直接跳到 `REWARD`（补发一次）再 `CLEANUP`；若 `rewardGranted=true` → 只 `CLEANUP`（清场 + 放遗留物），**绝不二次发奖**。
+
+### 2.4.3 LootableRemains / Statue 归属判定
+
+- `Statue`：[NOT_VERIFIED] 当前无专用雕像块。**两种实现选一**：
+  - (a) 复用现有结构 piece（`structure/DynastyStructures` 新增一个无 AI 的雕像 piece，[PROPOSED]）；
+  - (b) 新增 `StatueBlock`（[PROPOSED]，`BaseEntityBlock` + 数据保存朝向/类型）。
+  推荐 (a)：死亡遗留物优先走「结构 piece / 预设 Block state」，不保留死 Boss 实体。
+- **Boss 实体具体在哪一 tick remove**：`CLEANUP` 末尾。顺序：`REWARD`（发奖）→ 放遗留物（Block/Structure）→ 清临时 visual/AreaEffect/召唤物 → 最后 `boss.discard()` / `remove(RemovalReason.KILLED)`。演出中途绝不提前 remove。
+
+### 2.4.4 失败恢复策略（20 套统一，防存档卡死）
+
+即使演出系统（Sequence/VFX/Sound）报错，也必须保证：
+`正常死亡 → 正常奖励 → 正常清场`。
+
+| 故障 | 恢复 |
+|---|---|
+| VFX/Sound 抛异常 | 捕获后跳过该 Step，继续推进死亡状态机，不阻断 REWARD |
+| Sequence 卡死（currentTick 不再前进） | 在 `deathTick + totalTicks + 40` 强制进入 REWARD（记日志） |
+| REWARD 发放异常 | `try/finally` 置 `rewardGranted`，异常后重试一次；仍失败则写 SavedData 待下次登录补发 |
+| CLEANUP 异常（遗留物放置失败） | 掉落改为 `Block.popResource` 直接掉地，不因结构放置失败丢奖励 |
+| Boss 卸载 / Chunk unload | `BossDeathState` 持久化 deathTick/rewardGranted；重载续 CLEANUP |
+
+- 每套 Death 增加字段：`failRecovery`（本表策略）+ `forceRewardTick`（兜底 tick）。
+- GameTest：在 DYING 中抛人工异常→断言 REWARD 仍发一次；重启于 DYING 中途→断言不双发。
+
+================================================================================
+COD3-3 公共 VFX 库（DynastyVfxDefinition，40 个不同机制模板）
+================================================================================
+
+
+## 3.0 架构
+
+- 服务端技能只关心真实伤害形状与时间：`Shape=CIRCLE/ANNULUS/CONE/LINE/RECT/BOX/SPHERE/CHAIN/TARGET_LOCK` + `origin/direction/radius/length/width/windupTicks/activeTicks/damageTick/seed/theme`。
+- 客户端 VFX 读取同一组参数画法阵/裂痕/符箓/剑阵，保证**视觉危险区 == 真实 Hitbox**。
+- 通用渲染组件：`GroundDecalRenderer / RingRenderer / BeamRenderer / SplineRenderer / InstancedMeshRenderer / WorldSpaceBillboard / ParticleEmitter / ScreenEdgeOverlay / FogVolume / AfterImageRenderer`。
+- 每模板统一生命周期：`SPAWN → EXPAND → SUSTAIN → COLLAPSE → END`。
+- 性能：粒子按距离与设置 LOW/MEDIUM/HIGH 缩放；远处只保留主轮廓；飞剑等重复网格优先共用 mesh + 实例化；所有 ScreenEdgeOverlay 必须有 alpha 上限与 cleanup；Renderer 结束恢复 blend/depth/cull/shader 状态。
+
+## 3.1 生命周期约定（40 套通用）
+
+| 阶段 | 默认含义 | 参数 |
+|---|---|---|
+| SPAWN | 出现/锚定 origin | 0~N tick |
+| EXPAND | 铺开/蓄力 | 蓄力时长 |
+| SUSTAIN | 持续伤害/维持 | activeTicks |
+| COLLAPSE | 收缩/爆发收尾 | 收尾时长 |
+| END | 清场 | 立即恢复渲染状态 |
+
+## 3.2 40 模板（每行 = 一个模板；Near/Medium/Far 为粒子预算）
+
+| # | 模板 | 机制 | Near | Medium | Far | 关键参数（初始值，可调） |
+|---|---|---|---|---|---|---|
+| 1 | 刀罡·一线斩 | LINE 刀气 | 60 | 24 | 6 | length 12 / width 0.6 / lifetime 14t / alpha 0.9 |
+| 2 | 剑气·弧形月牙 | CONE 剑气 | 50 | 20 | 5 | radius 8 / arc 70° / lifetime 16t |
+| 3 | 枪芒·点贯穿 | LINE 枪芒 | 40 | 16 | 4 | length 16 / width 0.3 / velocity 快 |
+| 4 | 箭·流星尾迹 | 拖尾 | 30 | 12 | 3 | trail 20t / scale 0.4 |
+| 5 | 火·赤炎柱 | CYLINDER | 80 | 32 | 8 | radius 2.5 / height 6 / lifetime 30t |
+| 6 | 雷·贯天落雷 | BEAM 垂直 | 70 | 28 | 7 | 高 20 / 连续 3 段 |
+| 7 | 水·浪涌环 | ANNULUS 水环 | 60 | 24 | 6 | radius 6 / 高度 1.5 |
+| 8 | 冰·冻霜环 | ANNULUS 冰环 | 60 | 24 | 6 | radius 6 / 冰刺墙高 2 |
+| 9 | 风·龙卷柱 | CYLINDER 粒子场 | 90 | 36 | 9 | radius 3 / 高 12 |
+| 10 | 土·地裂锥 | 地裂 decal | 50 | 20 | 5 | 裂长 10 / 深 1 |
+| 11 | 阴气·暗涌雾 | VOLUME 雾 | 70 | 28 | 7 | radius 5 / 不透明 0.5 |
+| 12 | 阳气·金辉环 | RING 扩散 | 60 | 24 | 6 | radius 8 / 金 |
+| 13 | 煞气·黑紫藤 | SPLINE 触手 | 60 | 24 | 6 | 3 根 / 长 6 |
+| 14 | 灵魂·幽蓝球 | SPHERE 魂火 | 50 | 20 | 5 | radius 1.5 / 飘浮 |
+| 15 | 符箓·朱砂阵 | 多角星阵 decal | 70 | 28 | 7 | 32 符 / 半径 6 |
+| 16 | 阵法·八卦牢笼 | 双法阵合击 | 80 | 32 | 8 | 上下半径 4 / 光柱 8 |
+| 17 | 龙·游龙气 | SPLINE 龙影 | 100 | 40 | 10 | 长 20 / 曲线 |
+| 18 | 虎·扑击残影 | AfterImage | 50 | 20 | 5 | 残影 6 帧 |
+| 19 | 凤·羽翼光 | 扇形羽光 | 70 | 28 | 7 | 半径 9 / 羽 12 |
+| 20 | 玄武·覆地真影 | GROUND 大阵 | 80 | 32 | 8 | 半径 10 |
+| 21 | 星辰·星雨 | 天顶下落点 | 60 | 24 | 6 | 半径 8 / 星点 40 |
+| 22 | 神影·法身 | 大法相 overlay | 40 | 16 | 4 | 高 8 / 半透明 |
+| 23 | 鬼影·幻影步 | AfterImage | 40 | 16 | 4 | 残影 5 帧 |
+| 24 | 空间·折线裂痕 | SPLINE 裂痕 | 70 | 28 | 7 | 长 10 / 宽 0.5→2 |
+| 25 | 重力·陷地圈 | GROUND 凹坑 | 50 | 20 | 5 | radius 5 / 深 0.5 |
+| 26 | 冲击波·环形扩散 | ANNULUS | 80 | 32 | 8 | radius 6→12 |
+| 27 | 地裂·崩碎 | 碎块 visual | 60 | 24 | 6 | 碎块 30 / 不真改方块 |
+| 28 | 光柱·通天 | BEAM 垂直 | 50 | 20 | 5 | 高 24 / 直径 1.5 |
+| 29 | 武器残影 | AfterImage | 40 | 16 | 4 | 挥砍 6 帧 |
+| 30 | 剑气·天顶悬刃 | 剑盘下落 | 70 | 28 | 7 | 72 剑 / 半径 8 |
+| 31 | 雷法·导引丝 | 细光束锁定 | 30 | 12 | 3 | 丝 0.1 宽 |
+| 32 | 毒蛊·烟罗障 | VOLUME 毒雾 | 70 | 28 | 7 | radius 5 / 持续 6s |
+| 33 | 混沌·黑洞核 | 引力透镜 | 90 | 36 | 9 | radius 10 吸力 |
+| 34 | 刀剑·真空刀痕 | LINE 刀痕 | 50 | 20 | 5 | 长 15 / 残留 2s |
+| 35 | 骨·修罗骨牢 | 环形骨刺 | 60 | 24 | 6 | radius 3 / 高 2 |
+| 36 | 镜·镜中虚妄 | 扇形反光 | 50 | 20 | 5 | 扇形 60° |
+| 37 | 血·忘川血潮 | 全屏横推液面 | 70 | 28 | 7 | 高 3 / 速 4格/s |
+| 38 | 风·神掌遮天 | 地面掌形阴影 | 50 | 20 | 5 | 长宽 6 / 压坑 |
+| 39 | 火·金乌坠日 | 火流星 | 80 | 32 | 8 | radius 4 / 拖尾 |
+| 40 | 四象·方位兽纹 | 东青龙西白虎南朱雀北玄武 decal | 90 | 36 | 9 | 半径 12 / 四方位 |
+
+> 以上 40 个是**基础视觉库**（允许新增，因为不是装备）；每件新武器/技能只许「引用模板 + 参数」，不许再各自写一套 Renderer。
+
+## 3.3 第二轮补全：40 模板全字段详表（统一格式，无缩水）
+
+> 每模板 4 行：`用途/视觉` · `生命周期(SPAWN→EXPAND→SUSTAIN→COLLAPSE→END)` · `颜色/Mesh/空间/旋转/跟随/Hitbox/声音` · `LOD/实例/安全`。全部为 [PROPOSED] 公共库模板，服务端只传 Shape+参数，客户端渲染。
+
+### VFX-01 刀罡·一线斩
+用途：刀类普攻/重击｜视觉：世界空间竖直线性刀气面片（两 pass）
+SPAWN 0-2t alpha0→.9｜EXPAND 2-6t 长0→12 宽.6｜SUSTAIN 6-10t 峰值｜COLLAPSE 10-14t alpha→0｜END 14t
+色银白 0xFFFFFF｜1 line mesh + 12 火花粒子｜world｜旋转=朝向前进｜不跟随｜Hitbox LINE 12×1｜SoundEvents.PLAYER_ATTACK_SWEEP
+LOD 60/24/6｜实例≤8｜depthMask(false)+blend 恢复
+
+### VFX-02 剑气·弧形月牙
+用途：剑类横扫｜视觉：弧形月牙面片 + 外缘粒子
+SPAWN 0-2t 从剑尖出现｜EXPAND 2-8t 弧 70° 展开 radius8｜SUSTAIN 8-12t｜COLLAPSE 12-16t｜END 16t
+色青白 0xDDFFFF｜arc mesh + 20 剑气粒｜world｜旋转=武器朝向｜不跟随｜Hitbox CONE radius8 arc70°｜SoundEvents.PLAYER_ATTACK_SWEEP
+LOD 50/20/5｜实例≤6｜blend 恢复
+
+### VFX-03 枪芒·点贯穿
+用途：长枪/重弩点刺｜视觉：细长枪芒线 + 前端亮点
+SPAWN 0-1t 亮点出现｜EXPAND 1-4t 长0→16 宽.3｜SUSTAIN 4-6t｜COLLAPSE 6-8t｜END 8t
+色亮金 0xFFE0A0｜1 beam mesh + 8 点粒｜world｜旋转=朝向前进｜不跟随｜Hitbox LINE 16×0.5｜SoundEvents.ARROW_HIT
+LOD 40/16/4｜实例≤6｜blend 恢复
+
+### VFX-04 箭·流星尾迹
+用途：所有箭矢｜视觉：贴附箭尾的短拖尾
+SPAWN 发射即生｜EXPAND 0-20t 随箭生长｜SUSTAIN 全程｜COLLAPSE 命中即散｜END 命中+6t
+色按弓材质（金/青/红）｜1 trail strip + 6 尾粒｜world｜跟随 Entity（箭）｜Hitbox 无（纯视觉）｜SoundEvents.ARROW_SHOOT
+LOD 30/12/3｜实例≤32（同屏箭）｜depthMask(false)
+
+### VFX-05 火·赤炎柱
+用途：火系技能｜视觉：柱状火柱 + 上升火星
+SPAWN 0-3t 火种点燃｜EXPAND 3-8t radius2.5 height0→6｜SUSTAIN 8-26t 燃烧｜COLLAPSE 26-30t 熄｜END 30t
+色橙红 0xFF6A1A→0xFFB020｜1 cylinder mesh + 40 火星｜world｜不旋转｜不跟随｜Hitbox BOX 2.5×6｜SoundEvents.FIRECHARGE_USE
+LOD 80/32/8｜实例≤4｜blend+无 depthMask 常驻面片恢复
+
+### VFX-06 雷·贯天落雷
+用途：雷法｜视觉：垂直 3 段折线光束 + 电花
+SPAWN 0-1t 导引丝｜EXPAND 1-4t 光束下贯｜SUSTAIN 4-6t 3 段连劈｜COLLAPSE 6-8t｜END 8t
+色蓝白 0xAACCFF｜3 beam 折线 + 20 电花｜world｜不旋转｜锚定目标顶｜Hitbox 目标点 radius1｜SoundEvents.LIGHTNING_BOLT_THUNDER
+LOD 70/28/7｜实例≤3｜blend 恢复
+
+### VFX-07 水·浪涌环
+用途：水系｜视觉：水平扩散水环 + 溅起
+SPAWN 0-2t 中心涌起｜EXPAND 2-8t radius6 外扩｜SUSTAIN 8-10t｜COLLAPSE 10-14t 回落｜END 14t
+色水青 0x66CCFF｜1 annulus mesh + 30 水花｜world(贴地)｜不旋转｜不跟随｜Hitbox ANNULUS r6 h1.5｜SoundEvents.PLAYER_SPLASH
+LOD 60/24/6｜实例≤5｜depthMask(false)
+
+### VFX-08 冰·冻霜环
+用途：冰系｜视觉：地面白霜蔓延 + 冰刺墙
+SPAWN 0-3t 冰晶核心｜EXPAND 3-12t 白霜 radius0→6 + 冰刺墙高2｜SUSTAIN 12-14t 冻结｜COLLAPSE 14-20t 碎裂｜END 20t
+色冰蓝 0xCCF2FF｜1 decal + 24 冰刺粒｜world(贴地)｜不旋转｜不跟随｜Hitbox ANNULUS r6 冰墙｜SoundEvents.GLASS_BREAK
+LOD 60/24/6｜实例≤4｜depthMask(false)
+
+### VFX-09 风·龙卷柱
+用途：风系｜视觉：旋转柱状粒子场 + 飞砂
+SPAWN 0-4t 起风｜EXPAND 4-12t radius3 height0→12｜SUSTAIN 12-30t 旋转｜COLLAPSE 30-36t 散｜END 36t
+色沙黄 0xE8D8A0｜粒子场（无 mesh）+ 40 飞砂｜world｜旋转(绕柱)｜不跟随｜Hitbox CYLINDER r3 h12｜SoundEvents.WIND
+LOD 90/36/9｜实例≤2｜blend 恢复
+
+### VFX-10 土·地裂锥
+用途：土系｜视觉：地面裂纹 decal + 顶起碎块（不真改方块）
+SPAWN 0-2t 裂点｜EXPAND 2-6t 裂长0→10｜SUSTAIN 6-8t｜COLLAPSE 8-12t 碎块回落｜END 12t
+色土褐 0x8A6A4A｜1 decal + 20 碎块 visual｜world(贴地)｜不旋转｜不跟随｜Hitbox LINE 10×1｜SoundEvents.GRAVEL_BREAK
+LOD 50/20/5｜实例≤4｜blend
+
+### VFX-11 阴气·暗涌雾
+用途：阴系｜视觉：低密度暗雾体 + 游丝
+SPAWN 0-4t 渗出｜EXPAND 4-10t radius5 铺开｜SUSTAIN 10-26t｜COLLAPSE 26-32t 散｜END 32t
+色暗紫黑 0x2A2030 alpha.5｜fog volume + 30 游丝｜world｜不旋转｜不跟随｜Hitbox SPHERE r5（持续伤）｜SoundEvents.AMBIENT_SOUL_SAND_VALLEY_MOOD
+LOD 70/28/7｜实例≤3｜fog volume 需近距离才开
+
+### VFX-12 阳气·金辉环
+用途：阳系｜视觉：金色扩散光环 + 光点
+SPAWN 0-2t 核心亮｜EXPAND 2-8t radius0→8｜SUSTAIN 8-10t｜COLLAPSE 10-14t｜END 14t
+色金 0xFFD24A｜1 ring mesh + 30 光点｜world｜不旋转｜不跟随｜Hitbox ANNULUS r8｜SoundEvents.BELL
+LOD 60/24/6｜实例≤4｜blend
+
+### VFX-13 煞气·黑紫藤
+用途：煞系｜视觉：3 根 spline 触手自阴影钻出
+SPAWN 0-2t 影动｜EXPAND 2-8t 触手长0→6｜SUSTAIN 8-14t 绞缠｜COLLAPSE 14-18t 收回｜END 18t
+色黑紫 0x3A1A4A｜3 spline + 18 煞粒｜world(贴地)｜旋转=朝向目标｜不跟随｜Hitbox CHAIN 3 点｜SoundEvents.ENDERMAN_TELEPORT
+LOD 60/24/6｜实例≤4｜blend
+
+### VFX-14 灵魂·幽蓝球
+用途：魂系｜视觉：漂浮幽蓝光球 + 内焰
+SPAWN 0-2t 凝聚｜EXPAND 2-5t radius0→1.5｜SUSTAIN 5-20t 飘浮｜COLLAPSE 20-24t 散｜END 24t
+色幽蓝 0x66BFFF alpha.8｜1 sphere mesh + 16 魂火｜world｜不旋转｜不跟随｜Hitbox SPHERE r1.5｜SoundEvents.AMBIENT_SOUL_SAND_VALLEY_MOOD
+LOD 50/20/5｜实例≤8｜blend
+
+### VFX-15 符箓·朱砂阵
+用途：符法｜视觉：32 张符箓悬浮 + 朱砂光线多角星
+SPAWN 0-4t 符箓浮现｜EXPAND 4-12t 符围成圈 + 光线拉网｜SUSTAIN 12-16t 收缩｜COLLAPSE 16-24t 焦灰四散｜END 24t
+色朱砂红 0xC0301A｜32 符面片 + 36 光线 + 20 焦灰｜world｜不旋转｜不跟随｜Hitbox 多边形 r6｜SoundEvents.FIREWORK_LAUNCH
+LOD 70/28/7｜实例≤3｜blend
+
+### VFX-16 阵法·八卦牢笼
+用途：道法｜视觉：上下双法阵逆向旋转 + 八卦光柱
+SPAWN 0-4t 两法阵显现｜EXPAND 4-16t 光柱首尾相连成牢笼｜SUSTAIN 16-20t 加速｜COLLAPSE 20-28t 合击碎裂｜END 28t
+色黑 0x101018 + 金红 0xC0A020｜2 ring mesh + 8 光柱 + 40 光斑｜world｜逆向旋转｜锚定目标｜Hitbox BOX 4×4｜SoundEvents.ENDER_DRAGON_GROWL
+LOD 80/32/8｜实例≤2｜depthMask(false)
+
+### VFX-17 龙·游龙气
+用途：龙系｜视觉：spline 游龙气影 + 龙鳞反光
+SPAWN 0-4t 首现｜EXPAND 4-12t 长0→20 沿样条｜SUSTAIN 12-30t 游动｜COLLAPSE 30-40t 隐入｜END 40t
+色青 0x6BE0C0 alpha.7｜1 spline mesh + 60 鳞光｜world｜随样条｜不跟随 Entity｜Hitbox 沿样条（可选）｜SoundEvents.ENDER_DRAGON_AMBIENT
+LOD 100/40/10｜实例≤1｜大面片需 depthMask(false)
+
+### VFX-18 虎·扑击残影
+用途：虎系/突进｜视觉：本体后拖 6 帧残影
+SPAWN 突进即生｜EXPAND 0-8t 残影串｜SUSTAIN 8-12t｜COLLAPSE 12-18t 淡出｜END 18t
+色白 0xFFFFFF alpha.35｜6 个 afterimage（共享本体 mesh）｜world｜跟随本体轨迹｜跟随 Entity｜Hitbox 无｜SoundEvents.POLAR_BEAR_WARNING
+LOD 50/20/5｜实例≤4｜复用本体 model 不重复建 mesh
+
+### VFX-19 凤·羽翼光
+用途：凤系｜视觉：扇形羽光 + 火星
+SPAWN 0-2t 羽根亮｜EXPAND 2-8t 羽 12 片展开 r9｜SUSTAIN 8-12t｜COLLAPSE 12-18t 羽散｜END 18t
+色金红 0xFF8A30｜12 羽面片 + 40 火星｜world｜旋转=朝向｜不跟随｜Hitbox CONE r9 arc90°｜SoundEvents.ENDER_DRAGON_FLAP
+LOD 70/28/7｜实例≤3｜blend
+
+### VFX-20 玄武·覆地真影
+用途：玄武/镇压｜视觉：地面巨龟纹大阵 + 蛇影
+SPAWN 0-6t 阵纹浮现｜EXPAND 6-16t r0→10 龟甲纹 + 蛇缠｜SUSTAIN 16-20t｜COLLAPSE 20-30t 下沉｜END 30t
+色玄黑 0x1A2A3A alpha.8｜1 decal 大阵 + 40 水波｜world(贴地)｜不旋转｜不跟随｜Hitbox ANNULUS r10｜SoundEvents.WITHER_SPAWN
+LOD 80/32/8｜实例≤2｜depthMask(false)
+
+### VFX-21 星辰·星雨
+用途：星宿｜视觉：天顶下落星点 + 拖尾
+SPAWN 0-2t 星点亮｜EXPAND 2-10t 星点 r8 下落｜SUSTAIN 10-14t 连坠｜COLLAPSE 14-18t｜END 18t
+色星白 0xEEF2FF｜40 星点 + 8 拖尾｜world｜不旋转｜不跟随｜Hitbox 半径 8 多落点｜SoundEvents.EXPERIENCE_ORB_PICKUP
+LOD 60/24/6｜实例≤4｜blend
+
+### VFX-22 神影·法身
+用途：神影/法相｜视觉：半透明巨大法相 overlay（世界空间）
+SPAWN 0-6t 法相凝形｜EXPAND 6-14t 高 8 展开｜SUSTAIN 14-20t｜COLLAPSE 20-30t 化光｜END 30t
+色金 0xFFE0A0 alpha.4｜1 法相 mesh（低模）｜world｜不旋转｜锚定施法者｜Hitbox 无（纯视觉）｜SoundEvents.TOTEM_USE
+LOD 40/16/4｜实例≤1｜低模 + depthMask(false)
+
+### VFX-23 鬼影·幻影步
+用途：鬼系瞬移｜视觉：原地 5 帧残影 + 消散
+SPAWN 瞬移即生｜EXPAND 0-4t 残影｜SUSTAIN 4-6t｜COLLAPSE 6-10t 淡出｜END 10t
+色灰白 0xCCCCDD alpha.3｜5 afterimage｜world｜不旋转｜不跟随（瞬移后留原地）｜Hitbox 无｜SoundEvents.ENDERMAN_TELEPORT
+LOD 40/16/4｜实例≤4｜blend
+
+### VFX-24 空间·折线裂痕
+用途：空间系｜视觉：锯齿折线裂痕 + 内星空
+SPAWN 0-2t 3 奇点｜EXPAND 2-8t 折线连通长10 宽.5→2｜SUSTAIN 8-12t 暴张｜COLLAPSE 12-16t 缝合｜END 16t
+色紫黑 0x1A0A2A + 星空｜1 spline 裂痕 + 20 碎晶｜world｜不旋转｜锚定区域｜Hitbox LINE 10×2｜SoundEvents.GLASS_BREAK
+LOD 70/28/7｜实例≤2｜depthMask(false)
+
+### VFX-25 重力·陷地圈
+用途：重力系｜视觉：地面凹坑 decal + 吸入风压
+SPAWN 0-3t 圈现｜EXPAND 3-8t r0→5 凹陷｜SUSTAIN 8-14t 吸力｜COLLAPSE 14-20t 回弹｜END 20t
+色灰 0x666666 alpha.7｜1 decal + 30 吸尘｜world(贴地)｜不旋转｜锚定地面｜Hitbox CIRCLE r5 拉拽｜SoundEvents.WIND
+LOD 50/20/5｜实例≤3｜depthMask(false)
+
+### VFX-26 冲击波·环形扩散
+用途：通用范围｜视觉：环形冲击波外扩
+SPAWN 0-1t 爆发点｜EXPAND 1-8t r6→12｜SUSTAIN 8-10t｜COLLAPSE 10-14t｜END 14t
+色白 0xFFFFFF alpha.8→0｜1 annulus + 30 尘｜world(贴地)｜不旋转｜不跟随｜Hitbox ANNULUS 6→12｜SoundEvents.GENERIC_EXPLODE
+LOD 80/32/8｜实例≤5｜depthMask(false)
+
+### VFX-27 地裂·崩碎
+用途：重击砸地｜视觉：碎块 visual 迸溅（不真改方块）
+SPAWN 0-1t 砸点｜EXPAND 1-6t 碎块 30 迸出｜SUSTAIN 6-8t｜COLLAPSE 8-14t 回落消失｜END 14t
+色按地面材质｜30 碎块 visual + 20 尘｜world｜不旋转｜锚定砸点｜Hitbox 无（视觉）｜SoundEvents.GRAVEL_BREAK
+LOD 60/24/6｜实例≤4｜碎块用 visual 非 FallingBlock
+
+### VFX-28 光柱·通天
+用途：传送/降临｜视觉：垂直通天光柱 + 上升光点
+SPAWN 0-2t 地面亮点｜EXPAND 2-6t 高0→24 直径1.5｜SUSTAIN 6-20t｜COLLAPSE 20-26t 收敛｜END 26t
+色金白 0xFFFFE0 alpha.85｜1 beam + 40 光点｜world｜不旋转｜锚定地面｜Hitbox 无（视觉）｜SoundEvents.BEACON_ACTIVATE
+LOD 50/20/5｜实例≤3｜depthMask(false)
+
+### VFX-29 武器残影
+用途：近战挥砍通用｜视觉：武器轨迹 afterimage 6 帧
+SPAWN 挥砍即生｜EXPAND 0-6t 残影｜SUSTAIN 6-8t｜COLLAPSE 8-12t 淡出｜END 12t
+色按武器材质 alpha.35｜6 afterimage（共享武器 mesh）｜world｜跟随挥砍轨迹｜跟随 Entity｜Hitbox 无｜SoundEvents.PLAYER_ATTACK_SWEEP
+LOD 40/16/4｜实例≤6（每人）｜复用武器 model
+
+### VFX-30 剑气·天顶悬刃
+用途：剑阵｜视觉：天顶剑盘 + 72 剑下落
+SPAWN 0-4t 剑盘现｜EXPAND 4-16t 72 剑凝聚｜SUSTAIN 16-20t 剑盘转｜COLLAPSE 20-32t 剑雨下坠｜END 32t
+色纯白 0xFFFFFF｜1 剑盘 + 72 剑（instanced 共用 mesh）｜world｜自转｜锚定天空｜Hitbox 地面圆 r8｜SoundEvents.ARROW_HIT 密集
+LOD 70/28/7｜实例≤2｜instanced 渲染
+
+### VFX-31 雷法·导引丝
+用途：锁定雷｜视觉：极细导引光丝 + 脚底电弧圈
+SPAWN 0-1t 丝连头顶｜EXPAND 1-3t 丝变粗｜SUSTAIN 3-5t 电火花｜COLLAPSE 5-7t 劈下｜END 7t
+色蓝白 0x88BBFF alpha.9｜1 细 beam + 8 电弧｜world｜不旋转｜锚定目标｜Hitbox 目标点 r1｜SoundEvents.AMBIENT_BASALT_DELTAS_MOOD
+LOD 30/12/3｜实例≤3｜blend
+
+### VFX-32 毒蛊·烟罗障
+用途：毒系｜视觉：紫绿浓雾球 + 虫影
+SPAWN 0-3t 陶罐碎｜EXPAND 3-8t r0→5 浓雾｜SUSTAIN 8-44t 遮蔽｜COLLAPSE 44-52t 被风吹散｜END 52t
+色紫绿 0x3A6A2A alpha.7｜fog volume + 40 虫影｜world｜不旋转｜锚定区域｜Hitbox SPHERE r5 持续毒｜SoundEvents.AMBIENT_CAVE
+LOD 70/28/7｜实例≤3｜雾近距离才开
+
+### VFX-33 混沌·黑洞核
+用途：混沌/终局｜视觉：黑球 + 引力透镜 + 事件视界环
+SPAWN 0-4t 黑球凝｜EXPAND 4-16t 吸力 r10｜SUSTAIN 16-20t 内爆｜COLLAPSE 20-28t 紫波｜END 28t
+色黑 0x000000 + 紫 0x8A2AFF｜1 黑球 + 1 事件视界环 + 60 吸入粒｜world｜自转｜锚定中心｜Hitbox SPHERE r10 拉拽｜SoundEvents.WITHER_SPAWN
+LOD 90/36/9｜实例≤1｜depthMask(false)
+
+### VFX-34 刀剑·真空刀痕
+用途：重劈｜视觉：地面长刀痕 + 两侧气浪
+SPAWN 0-1t 刀落｜EXPAND 1-5t 痕长0→15｜SUSTAIN 5-9t 残留｜COLLAPSE 9-15t 淡出｜END 15t
+色白 0xFFFFFF alpha.9｜1 decal 刀痕 + 24 气浪｜world(贴地)｜不旋转｜锚定地面｜Hitbox LINE 15×1｜SoundEvents.PLAYER_ATTACK_SWEEP
+LOD 50/20/5｜实例≤4｜depthMask(false)
+
+### VFX-35 骨·修罗骨牢
+用途：骨系｜视觉：环形骨刺自地下突刺成牢
+SPAWN 0-2t 地面碎骨纹｜EXPAND 2-6t 骨刺长0→2 环形｜SUSTAIN 6-10t 合拢｜COLLAPSE 10-18t 石化碎裂｜END 18t
+色骨白 0xE8E0C8｜24 骨刺 + 16 骨屑｜world(贴地)｜不旋转｜锚定目标｜Hitbox ANNULUS r3 骨牢｜SoundEvents.SKELETON_HURT
+LOD 60/24/6｜实例≤3｜blend
+
+### VFX-36 镜·镜中虚妄
+用途：镜系｜视觉：青铜镜面 + 扇形反光区
+SPAWN 0-2t 镜升起｜EXPAND 2-6t 扇形反光 60°｜SUSTAIN 6-10t 映出镜像｜COLLAPSE 10-16t 镜碎飞片｜END 16t
+色青铜 0x8A6A3A + 反光｜1 镜面片 + 12 飞片｜world｜不旋转｜锚定目标前｜Hitbox 扇形 60°｜SoundEvents.GLASS_BREAK
+LOD 50/20/5｜实例≤3｜blend
+
+### VFX-37 血·忘川血潮
+用途：血系｜视觉：全屏横推血浪液面（客户端液面 renderer）
+SPAWN 0-4t 血光泛起｜EXPAND 4-16t 液面高 3 横推 4格/s｜SUSTAIN 16-20t｜COLLAPSE 20-28t 拍墙退去｜END 28t
+色暗红 0x8A1A1A alpha.85｜液面 renderer + 60 血沫｜world(液面)｜不旋转｜横推｜Hitbox 全屏横推｜SoundEvents.AMBIENT_UNDERWATER_ENTER
+LOD 70/28/7｜实例≤1｜不真实灌液体方块
+
+### VFX-38 风·神掌遮天
+用途：镇压｜视觉：地面掌形阴影 + 下压风压
+SPAWN 0-4t 掌影投下｜EXPAND 4-12t 掌长宽6 下压｜SUSTAIN 12-16t｜COLLAPSE 16-22t 金粉散｜END 22t
+色金 0xFFD24A alpha.5｜1 掌形 decal + 40 风尘｜world(贴地)｜不旋转｜锚定地面｜Hitbox BOX 6×6 击倒｜SoundEvents.WITHER_BREAK_BLOCK
+LOD 50/20/5｜实例≤2｜depthMask(false)
+
+### VFX-39 火·金乌坠日
+用途：火系终段｜视觉：火流星下坠 + 触地火浪
+SPAWN 0-3t 火流星现｜EXPAND 3-12t r0→4 加速下坠｜SUSTAIN 12-14t 触地｜COLLAPSE 14-24t 火浪半球｜END 24t
+色熔金 0xFFB020→0xFF4A1A｜1 火流星 + 40 火星 + 火浪｜world｜下坠｜不跟随｜Hitbox 落点圆 r4｜SoundEvents.FIRECHARGE_USE
+LOD 80/32/8｜实例≤2｜depthMask(false)
+
+### VFX-40 四象·方位兽纹
+用途：四象｜视觉：东青龙西白虎南朱雀北玄武方位 decal
+SPAWN 0-6t 四方纹显｜EXPAND 6-16t 四纹亮 r12｜SUSTAIN 16-20t｜COLLAPSE 20-30t 熄灭｜END 30t
+色四色（青/白/红/玄）｜4 decal + 40 兽纹粒｜world(贴地)｜不旋转｜锚定祭坛｜Hitbox 四方（可选）｜SoundEvents.ENDER_DRAGON_GROWL
+LOD 90/36/9｜实例≤2｜depthMask(false)
+
+================================================================================
+COD3-4 现有武器攻击视觉完善（不重造武器，只补表现）
+================================================================================
+
+
+
+## 4.0 总原则
+
+- 禁止重设计 30 把武器；cod1 正在实现的神器**只识别其已存在接口，不改设计**。
+- 对每把现有武器查：普攻独特视觉 / 重击区别 / 连击递进 / 暴击反馈 / 格挡反馈 / 特殊机制提示 / 第一人称安全 / 第三人称正确 / 其他玩家可见。
+- 缺表现的武器**复用 COD3-3 公共 VFX 库**，不许换色应付。
+- 服务端只处理 damage/hitbox/knockback/state；视觉全部客户端 + 视觉包广播。
+
+## 4.1 现状判定
+
+| 武器类 | 现状 | 处理 |
+|---|---|---|
+| 普通进化链（木矛→环首刀 等） | 普攻无独立视觉，只换贴图 | 加「武器残影 + 命中火花」基础层 |
+| 名器（龙渊/巨灵/青龙/霸王/雷霆/太乙 等） | 特攻有数值，无视觉 | 逐把配专属 VFX |
+| 弓系（猎弓→射日/后羿） | 有弓祭礼法阵，普攻无尾迹 | 加箭尾迹 + 满蓄提示 |
+| 长柄（PolearmItem） | 有距离加成，无挑击视觉 | 加挑击弧光 |
+| 学院武器（镇岳刀等 8 把） | 有被动，无视觉 | 加对应流派纹 |
+
+## 4.2 逐把深化（重点武器）
+
+### 长柄类（PolearmItem：dragon_spear / bawang_spear / taiyi_whisk / hunyuan_staff / baihu_glaive / thunder_spear）
+- 现有 ID：见上；现有机制：攻击距离 +3 + 命中轻挑。
+- 保留：距离加成、轻挑伤害。
+- 新增：普攻 = 横摆残影（VFX#29）；重击 = 竖劈枪芒一线（VFX#3）；暴击 = 枪尖爆点（VFX#12 缩小）；特殊机制「轻挑」= 目标脚下 0.5 格上扬尘土 + 目标短暂离地 0.3 格。
+- 第一人称：残影不出现在近裁剪面内；第三人称：弧线沿武器朝向；多人：视觉包广播，只播给附近 32 格。
+
+### 玉笛 yu_di
+- 现有：右键范围虚弱+缓慢+自身力量。
+- 新增：吹奏时扩散音波环（VFX#26 缩小，青玉色）；受影响敌人头顶音符微粒（8-12 颗）；SFX `NOTE_BLOCK_FLUTE`。
+
+### 龙渊剑 longyuan_sword
+- 现有：特攻 +200（龙渊剑意）。
+- 新增：普攻 = 青黑剑影（VFX#17 缩小龙气）；暴击 = 剑身龙纹一闪 + 命中处龙吟粒子；特殊机制 = 命中后 0.5s 剑尖拖青芒（AfterImage）。
+
+### 巨灵斧 juling_axe / 破军战斧 pojun_axe / 玄天钺 xuantian_axe / 麒麟战斧 qilin_war_axe / 雷霆锤 leiting_hammer
+- 现有：破军/玄天 = 破甲（armorPierce）；其余特攻。
+- 新增：普攻 = 厚重残影（VFX#29 粗）；重击 = 砸地冲击波（VFX#26）+ 碎块（VFX#27，不真改方块）；破甲触发 = 目标身上「甲碎」裂纹 decal 0.4s；雷霆锤 = 落雷导引丝 + 一道小雷（VFX#6 缩小）。
+
+### 方天画戟 halberd_fangtian
+- 现有：横扫（sweep）。
+- 新增：横扫 = 360° 环形月牙（VFX#2 全周）；命中主目标 + 周围 3 格额外伤害已有，补「横扫风压环」视觉。
+
+### 分水三叉戟 sea_trident
+- 现有：水下加成。
+- 新增：普攻 = 水流拖尾；水下 = 叉尖气泡 + 水环（VFX#7）；出水暴击 = 水花溅射。
+
+### 天子剑 tianzi_sword / 尚方宝剑 supreme_sword
+- 现有：天子剑回气 + 对王朝敌人 +20%。
+- 新增：命中回气 = 金色护体光晕一闪（VFX#12）；对王朝敌人 = 目标脚下龙纹 decal 0.3s；SFX 金石。
+
+### 弓系（lie_gong / chang_gong / shenbi_bow / luoyan_bow / tianlang_bow / dragon_bow / sunbow / houyi_bow / zhuque_bow / zhuxing_bow / fengling_bow）
+- 现有：箭矢倍率/穿透 + 弓祭礼法阵（DynastyBowRitual）。
+- 新增：箭 = 流星尾迹（VFX#4）；穿透弓 = 穿透路径金色细线；满蓄 = 弓弦发光 + 拉满提示音；射日/后羿 = 命中点金乌/太阳纹 decal（VFX#39 缩小）。
+
+## 4.3 批量补齐表（其余普通进化链武器）
+
+| ID 范围 | 补齐 | VFX 引用 |
+|---|---|---|
+| mu_mao / shi_ge / tong_dao / tie_jian / tang_dao / huan_shou_dao / zhanma_dao / qinggang_sword / gilded_mace / yitian_sword / seven_star_saber / dragon_slayer / xuanwu_blade / zhuque_fan / taiyi_sword / ziwei_saber / juque_sword / yuchang_dagger | 普攻残影 + 命中火花（火花颜色按材质：木/石/铜/铁/银/玉/龙晶） | VFX#29 + 命中火花 |
+| 学院武器（zhenyue_blade / liuyun_sword / beichen_spear / chengying_sword / leifu_staff / chiling_brush） | 对应流派纹残影（剑/枪/符/笔） | VFX#29 + 流派纹 |
+
+## 4.4 表现规范
+
+- **禁止**仅换粒子颜色。换色 + 形状/节奏必须同时改变，否则判定为重复。
+- 第一人称：所有拖尾/残影在相机 near plane 内自动裁剪，不遮挡视野、不黑屏。
+- 第三人称：残影/弧线严格沿武器本地朝向，不随视角漂移。
+- 多人：视觉走「视觉包广播（附近 32 格）」，不改变他人本地 Camera/Overlay 状态。
+- 性能：每把武器单帧粒子 ≤ 60；暴击瞬间峰值 ≤ 120；全武器不创建独立 Renderer（引用公共库）。
+
+## 4.5 第二轮补全：逐把武器视觉节奏（名器/高阶/流派不得共用同一残影）
+
+> 普通低阶（木矛→环首刀）共享基础模板；名器/高阶/流派逐把区分。字段：普攻/第1·2·3击/重击/暴击/格挡/完美格挡/特殊机制/VFX/SFX/第一人称/第三人称/他人所见。
+
+| 武器(ID) | 视觉节奏（按重量/长度/类型/势力/机制区分） |
+|---|---|
+| mu_mao 木矛 | 轻，直刺；第1-3击同；暴击=木屑；格挡=木响 |
+| shi_ge/tong_dao/tie_jian | 中，横斩；火花颜色按材质（石/铜/铁）；第3击略重 |
+| tang_dao 唐刀 | 快，斜劈；命中加速=青风尾迹（VFX#1 缩小）；暴击=细月牙 |
+| huan_shou_dao 环首刀 | 重，直劈；第3击重劈（VFX#34 缩短）；格挡=环响 |
+| juque_sword 巨阙 | 极重，抬升浮空；重击=目标离地 0.4 格 + 上扬尘；VFX#26 缩小 |
+| qinggang_sword/gilded_mace/yitian_sword | 各自火花节奏（青/金/银），不共享同色 |
+| seven_star_saber 七星宝刀 | 命中七星连闪（7 点按顺序亮）；暴击=北斗纹 |
+| dragon_slayer 屠龙刀 | 对龙怪命中龙纹 decal；重击=龙形残影（VFX#17 缩短） |
+| supreme_sword 尚方宝剑 | 金辉护体（命中回气）；完美格挡=金环；帝王金 |
+| tianzi_sword 天子剑 | 龙纹 decal（克王朝敌人）；回气=金晕；SFX 金石 |
+| pojun_axe 破军战斧 | 破甲=甲碎裂纹；重击=砸地冲击波+碎块（VFX#26+#27） |
+| xuantian_axe 玄天钺 | 破甲+缓慢；暗金残影；重击=玄铁重响 |
+| juling_axe 巨灵斧 | 最重斧；重击=大范围冲击波；残影极粗 |
+| qilin_war_axe 麒麟战斧 | 祥瑞纹残影；暴击=麒麟纹一闪 |
+| leiting_hammer 雷霆锤 | 落雷导引丝+小雷（VFX#31 缩小）；SFX 雷 |
+| halberd_fangtian 方天画戟 | 横扫=360° 月牙（VFX#2 全周）；风压环 |
+| sea_trident 分水三叉戟 | 水下=水流尾迹+水环（VFX#7）；出水暴击=水花 |
+| dragon_spear/bawang_spear/taiyi_whisk/hunyuan_staff/baihu_glaive/thunder_spear | 长柄：挑击弧光（VFX#3）；按材质分金/白/雷色，不共享 |
+| yu_di 玉笛 | 吹奏=音波环（VFX#26 青玉）；无近战残影 |
+| 弓系 12 把 | 箭=流星尾迹（VFX#4 按弓色）；穿透=金细线；满蓄=弓弦发光 |
+| 学院 8 把 | 剑=青剑纹/守=盾纹/射=星纹/符=朱砂纹残影，不共享 |
+
+> 实现：所有特效引用 COD3-3 模板 + 参数；不逐把新建 Renderer。SFX 用原版 `SoundEvents.*`，缺的（如龙吟/麒麟）标 `[PROPOSED]` 音效注册。
+
+================================================================================
+COD3-5 Renderer 安全规范（Dynasty Weapon / Phantom / Equipment Renderer Safety Standard）
+================================================================================
+
+> 直接针对青龙偃月刀黑屏问题。所有渲染器必须遵循，违反即退回。
+
+## 5.1 状态栈与恢复
+
+| 项 | 规范 |
+|---|---|
+| PoseStack | 每次 `pushPose()` 必须成对 `popPose()`；异常路径（提前 return）也要 pop。 |
+| Blend | 开启自定义 blend 前保存原状态，绘制后 `RenderSystem.disableBlend()` 或恢复原 `BlendFunction`。 |
+| Depth Test | 显式 `enableDepthTest()` / `disableDepthTest()` 并用；透明巨面片绘制后必须恢复 depth test。 |
+| Depth Write | 透明片/粒子面片 `depthMask(false)`；结束恢复 `depthMask(true)`。 |
+| Cull | 双面片需要时 `disableCull()`，结束恢复。 |
+| Shader | `RenderSystem.setShader(...)` 每次绑定正确 shader；不用 null shader；结束不残留自定义 shader。 |
+| BufferSource | 使用当前 `MultiBufferSource`；`endBatch()` 后不继续写；不跨 buffer 复用 pose。 |
+| RenderType | 明确用 `RenderType.eyes` / `translucent` / `cutout` / `lines`；不混用不透明与透明渲染造成遮挡。 |
+| 黑屏根因 | 「giant transparent plane」覆盖全屏 + 错误 depth/blend 会吞掉主场景 → **禁用未裁剪的巨型透明片**；若必须，用 `depthMask(false)` + 明确 blend + 立即恢复。 |
+
+## 5.2 相机与裁剪
+
+- **camera near plane**：所有残影/拖尾/法身在 `near plane` 内自动裁剪；禁止在第一人称把拖尾画进相机前 0.1 格。
+- **first-person clipping**：第一人称武器模型与特效必须在视野边缘淡出，不遮挡准星。
+- **giant transparent plane**：天空裂痕/法相用世界空间 Sky/World VFX，**不是全屏黑 Quad**。
+
+## 5.3 玩家专属视觉所有权（多人安全）
+
+- 禁止：玩家 A 触发视觉后，玩家 B 客户端错误进入相同 Camera/Overlay 状态。
+- 实现：Camera/Overlay/Fog/ScreenEdgeOverlay 一律绑定**玩家 UUID**，只对该玩家本地生效；视觉包只携带「世界空间 VFX」给附近 32 格，不携带「相机/覆盖层」状态。
+- 断线/切维度/离开区域后，本地 Camera/Overlay 必须强制恢复默认。
+
+## 5.4 强制验收
+
+1. 青龙偃月刀第一/第三人称挥砍不黑屏。
+2. 双人联机：A 持刀触发神影，B 视角不黑、不进入 A 的 Camera/Overlay。
+3. 切维度、传送、死亡复活后渲染状态恢复。
+4. 低配（LOW 粒子）下无残影遮挡、无透明片吞场景。
+
+================================================================================
+COD3-6 现有装备视觉表现完善（不重造 25 件，只加反馈）
+================================================================================
+
+## 6.0 原则
+
+- 扫描现有盔甲（28 套）、饰品（89 件）与特殊装备，只给**适合**的加视觉。
+- 允许：微弱纹路 / 套装完成提示 / 特殊状态反馈 / 天气反馈 / 低血量反馈 / 满资源反馈 / 脚步反馈 / 环境反馈。
+- **禁止**所有装备永久全身发光；发光只在「触发瞬间」或「状态达成时」短暂亮起。
+
+## 6.1 盔甲视觉（按现有材质 ID，不改 ID）
+
+| 套 | 视觉 |
+|---|---|
+| cloth / bamboo / leather / brocade | 无发光；脚步踏地轻微布/竹/皮沙沙粒子（1-2 颗）。 |
+| bronze / silver / general | 受击瞬间甲片反光一闪（不常亮）；防御成功时 0.3s 铜/银微光。 |
+| jade | 满血时玉佩微光（仅 0.2s 间歇）；低血量（<40%）全身一层极淡青雾（不遮挡）。 |
+| cinnabar | 净化负面状态时朱砂符文在甲面短暂浮现一次。 |
+| phoenix / zhuque | 着火/灭火瞬间羽状火星一圈。 |
+| qilin / qinglong / baihu | 满 4 件套装时胸前兽纹亮一次（1s），之后熄灭，不常亮。 |
+| xuanwu / dark_iron / draco_king / hongmeng | 满 4 件时地面脚下极淡玄武纹/龙纹 decal 一闪；受重击时抗击退反馈（脚下 0.5 格微震，不震屏）。 |
+| sky / beidou / tiangang / disha / taiyi / ziwei / hunyuan | 满 4 件时星空/道纹 faint 光点环绕 1 次；不常驻。 |
+
+## 6.2 饰品视觉（按现有 ID）
+
+| 饰品 | 视觉 |
+|---|---|
+| jade_pendant / jade_bi_disc / jade_crown | 佩戴时无光；夜里极淡玉光（LOW 档关闭）。 |
+| heart_mirror / bronze_mirror | 触发减伤/反射时镜面反光一闪。 |
+| jade_cicada | 残血保命触发时玉蝉翅扑闪一次 + 一声玉鸣。 |
+| dragon_pearl / dragon_bone_ring / dragon_king_scale | 攻击加成生效时龙纹 faint 环绕 1 次。 |
+| phoenix_ring / phoenix_feather_charm | 灭火/抗火触发时火星。 |
+| storm_charm / thunder_token | 雷雨天身周细电弧（LOW 档降为 2 颗）。 |
+| moon_pendant | 夜间头顶极淡月纹 decal（不发光遮挡）。 |
+| war_drum_charm / tiger_crest | 威慑友军/敌人时极淡鼓纹/虎纹。 |
+| tomb_candle | 清凋零时烛光一闪。 |
+| sea_pearl / jade_tortoise / sea_conch / merfolk 相关 | 水下时气泡环。 |
+| 表驱动 50 件 + 学院饰品 | 仅触发命中 proc（吸血/斩杀/会心/突袭/连击/雷罚）时对应极短反馈（吸血=红丝、会心=金星、雷罚=细电弧、斩杀=目标裂纹），不常亮。 |
+
+## 6.3 套装完成提示
+
+- 满 4 件时给一次性「套装达成」提示：音效 + 胸部兽纹/纹章亮 1s + actionbar 一行「XX 套装 · 已成」。
+- 摘下任一件 → 提示消失，无幽灵加成（复用 `DynastySetBonus` 每秒 refresh 逻辑）。
+
+## 6.4 状态/环境反馈（复用现有 Effect 与事件）
+
+| 触发 | 反馈 |
+|---|---|
+| 低血量 <40% | 呼吸急促音 + 视野边缘淡红（alpha ≤ 0.2，非全屏）。 |
+| 满资源（功名/等级里程碑） | 一次性金色完成反馈（非持续发光）。 |
+| 天气（雷雨/雾/沙暴） | 对应饰品极淡反应，不重复铺粒子。 |
+| 脚步 | 材质相关尘土/雪/水花（1-2 颗）。 |
+
+## 6.5 第二轮补全：28 套盔甲视觉分级判定（避免视觉污染）
+
+> 只做**视觉表现**，不碰另一个开发任务负责的套装机制/强化。判定分级：`NO_EXTRA_VISUAL`（不做）/ `TRIGGER_ONLY`（触发瞬间）/ `ENVIRONMENT_REACTION`（环境反应）/ `FULL_SET_FEEDBACK`（整套反馈）。
+
+| 套 | 分级 | 部位/条件/持续/第一人称/第三人称/他人距离/LOW 降级 |
+|---|---|---|
+| cloth/bamboo/leather/brocade | NO_EXTRA_VISUAL | 仅脚步材质粒子（布/竹/皮/锦各 1 颗） |
+| bronze | TRIGGER_ONLY | 受击瞬间胸甲反光 0.3s；LOW 关闭 |
+| silver | TRIGGER_ONLY | 夜战命中银光 0.3s；LOW 关闭 |
+| general | TRIGGER_ONLY | 站桩 2s 起脚底微尘（第三人称）；第一人称无 |
+| cinnabar | TRIGGER_ONLY | 净化负面时甲面朱砂符纹 0.4s；LOW 关 |
+| jade | ENVIRONMENT_REACTION | 满血间歇玉光（0.2s/3s）；第一人称边缘青雾；LOW 关 |
+| phoenix/zhuque | TRIGGER_ONLY | 灭火瞬间羽状火星一圈（第三人称 8 格内可见） |
+| qilin/qinglong/baihu | FULL_SET_FEEDBACK | 满 4 件胸前兽纹亮 1s；第三人称 12 格；LOW 关 |
+| dragon_scale/sea_silk | ENVIRONMENT_REACTION | 水下气泡环（第三/第一人称都见） |
+| dark_iron | TRIGGER_ONLY | 受重击脚下 0.5 格微震（不震屏） |
+| sky | ENVIRONMENT_REACTION | 空中下落缓降光点（第三人称） |
+| draco_king | FULL_SET_FEEDBACK | 满 4 件召唤虾兵时龙纹 decal 一闪 |
+| xuantian | ENVIRONMENT_REACTION | 已有 `DivineArmorLightLayer` 玉珠（[VERIFIED]，pulse 0.7~1.0），LOW 关 |
+| xuanwu | TRIGGER_ONLY | 完美格挡金环（第三人称 8 格） |
+| beidou | TRIGGER_ONLY | 位移后 3s 星点拖尾 |
+| tiangang/disha/taiyi/ziwei/hunyuan/hongmeng | TRIGGER_ONLY | 里程碑/满资源一次金辉，不常驻 |
+
+> 其余未列套装 = NO_EXTRA_VISUAL。发光只在触发瞬间或状态达成时短暂亮起，绝不永久全身发光。
+
+## 6.6 第二轮补全：89 件饰品视觉扫描（真正逐件判定）
+
+> 只挑真正值得的做专属视觉；其余 `NO_EXTRA_VISUAL`。ID 均 [VERIFIED]（`DynastyTrinkets`）。
+
+| ID | 现有机制 | 值得视觉? | 触发/视觉/VFX/SFX | 新增? |
+|---|---|---|---|---|
+| jade_pendant 玉佩 | 减伤(事件) | 是 | 残血<40% 玉光（TRIGGER_ONLY）；LOW 关 | 否 |
+| jade_bi_disc 玉璧 | 属性 | 是 | 夜间月纹 decal（ENV） | 否 |
+| gold_seal_charm 金印佩 | 属性 | 是 | 首次拾取功名金印光一闪 | 否 |
+| dragon_scale_charm 龙鳞佩 | 属性 | 是 | 对龙怪命中龙纹 | 否 |
+| phoenix_feather_charm 凤凰羽佩 | 属性 | 是 | 濒死回血火星一圈 | 否 |
+| qilin_horn_charm 麒麟角佩 | 属性 | 是 | 幸运触发麒麟纹一闪 | 否 |
+| fox_tail_charm 狐尾佩 | 属性 | 是 | 受击魅惑狐火 | 否 |
+| silk_pouch 锦囊 | 无(+1槽) | 是 | 装备时锦纹提示一次 | 否 |
+| south_pointing_compass 司南 | 无(指路) | 是 | 使用磁针摆动 | 否 |
+| heart_mirror 护心镜 | +甲+减伤 | 是 | 格挡反光一闪 | 否 |
+| bronze_mirror 铜镜 | (legacy) | 是 | 触发反射镜面反光 | 否 |
+| jade_crown 玉冠 | +生命 | 是 | 加冕时玉冠光一闪 | 否 |
+| jade_cicada 玉蝉 | 残血保命 | 是 | 蝉翅扑闪+玉鸣 | 否 |
+| dragon_pearl 龙珠 | +攻+抗退 | 是 | 连击满龙波（VFX#17 缩短） | 否 |
+| phoenix_ring 凤凰指环 | 抗火灭火 | 是 | 灭火火星 | 否 |
+| storm_charm 雷纹符 | 雷雨力量 | 是 | 雷雨身周电弧（LOW 2 颗） | 否 |
+| moon_pendant 明月佩 | 夜视+幸运+攻 | 是 | 夜月纹 decal | 否 |
+| tiger_crest 虎符残片 | 威慑 | 是 | 列阵虎纹（复用 Army） | 否 |
+| war_drum_charm 战鼓坠 | 力量+友军 | 是 | 鼓纹环绕 | 否 |
+| cinnabar_pouch 朱砂囊 | 净化 | 是 | 净化朱砂爆 | 否 |
+| dragon_whisker/tiger_token/sun_feather/war_horse_bell/iron_waist_token/auspicious_bell | 属性 | 否 | NO_EXTRA_VISUAL（纯被动，不污染） | 否 |
+| jade_tortoise/sea_pearl/sea_conch | 水下 | 是 | 水下气泡环 | 否 |
+| dragon_bone_ring 龙骨戒 | 属性 | 否 | NO_EXTRA_VISUAL | 否 |
+| cloud_brocade/star_compass/dragon_king_scale/sky_feather/imperial_seal_charm/tomb_candle/inkstone/bamboo_flute/merit_badge | 属性/功能 | 是(挑3) | tomb_candle 烛光/imperial_seal 金印/bamboo_flute 音波；其余 NO_EXTRA_VISUAL | 否 |
+| 表驱动 50 件（EXTRA_TABLE） | 属性+命中 proc | 挑命中 proc 的 | 吸血红丝/会心金星/雷罚电弧/斩杀裂纹；纯属性件 NO_EXTRA_VISUAL | 否 |
+| 学院饰品（pojun_ring 等 24） | 流派加成+淬炼 | 是(挑淬炼) | 淬炼 +1/5/15/30 里程碑一次金辉；其余 NO_EXTRA_VISUAL | 否 |
+| TRINKET_BOX 百宝妆匣 | 随机开 | 是 | 开出时金光+音效 | 否 |
+
+> 结论：真正需要专属视觉的约 30 件（见上「是」）；其余约 59 件标 NO_EXTRA_VISUAL。**不模糊说「表驱动 50 件统一反馈」。**
+
+================================================================================
+COD3-7 功能方块 UI（PROCESSOR / FURNACE-ALCHEMY / FLUID / RITUAL）
+================================================================================
+
+## 7.0 现状与目标
+
+- 现有：`LivingWorkshopBlock` 8 个（marrow_vat 化髓槽 / essence_condenser / jade_mending_forge / vitality_shrine / hide_stretcher / herbal_basin / lapidary_bench / ember_brazier）+ `workshop/WorkshopBlockEntity`（数据驱动 Recipe + JEI）+ `RitualAltarBlock`。
+- 目标：不重造第二套机器体系；给核心方块补齐独立 UI；化髓槽做成第一套完整样板。
+
+## 7.1 视觉语言（原创中式）
+
+| 部件 | 风格 |
+|---|---|
+| 背景 | 深黑漆木 / 玄铁 / 宣纸（按机器类型） |
+| 边框 | 暗青铜 / 古金 |
+| 可操作高亮 | 青玉 / 朱砂 |
+| 完成状态 | 金色印章 / 篆纹亮起 |
+| 危险/过热 | 赤红边缘 |
+| 禁用 | 灰黑 |
+| 槽位轮廓 | 铜框 / 玉框（仍清晰，不用原版灰框裸用） |
+
+字体保持 Minecraft 可读性；篆纹只做图标装饰；正文用标准字体。tooltip 简洁（物品名/用途/数量/温度/液量/剩余时间/错误原因）；详细教程放 JEI/任务书。
+
+## 7.2 四类界面模板
+
+### A. PROCESSOR 简单加工型（化髓槽）
+- 左：输入槽 1-3；中：大号加工图标 + 内部容器剖面 + 进度环；右：输出槽；底：当前配方小图标 + 预计时间。
+- **世界右键投料与 GUI 投入必须同源**：同一个 BlockEntity Inventory、同一个 Recipe、同一个 Progress、同一个 State。
+- 世界模型 state 简化：`EMPTY/STAGE1/STAGE2/STAGE3/READY/PROCESSING/COMPLETE` 只存于 BlockState（少量）；真实数量/recipe 存 BlockEntity。
+
+### B. FURNACE/ALCHEMY 炼制型
+- 左：主材料/辅材/催化槽；中：丹炉/鼎动态示意 + 温度/炼制进度；右：输出+副产物；最右竖条：燃料/火候。
+- 失败/品质机制用「火候区间」视觉，不刷屏文字。
+
+### C. FLUID 液体加工型
+- 左：输入材料；中（最大区）：内部液体 Tank 按真实液量比例填充；右：燃料/温度；容器交互槽（桶/罐）；模式按钮：自动/仅灌入/仅抽出（确有需要才加）。
+- 悬停液体区显示液体名/mB/容量；多液体按层显示，切换输出由服务器验证。无液体机器禁止硬加 Tank。
+
+### D. RITUAL/INFUSION 祭炼/神性灌注型
+- 中：目标物/核心；四周：贡品/催化槽；外圈：四象/神性进度；右：输出/结果预览。危险祭炼加稳定度/失败风险，不做随机无解吞物。
+
+## 7.3 架构（每台机器）
+
+`MachineBlock / MachineBlockEntity / MachineMenu / MachineScreen / MachineRecipe(RecipeType/Serializer) / MachineDefinition` + 需要时 `FluidHandler/ItemHandler`、`ContainerData/DataSlot`、`ServerboundMachineButtonPacket`。
+
+- 右键：服务端确认 BlockEntity → openScreen/MenuProvider → 客户端开 Screen（客户端不自己开假 UI）。
+- BlockEntity 保存：inventory / progress / maxProgress / selectedRecipe / fluid tank / fuel / temperature / state / customName。纯 UI 动画状态不写 NBT。
+- Menu 负责 Slot 布局 / mayPlace / mayPickup / shift-click / stillValid 距离 / 数据同步 / 按钮权限。
+- Screen 只负责背景/图标/进度条/槽位高亮/tooltip/液体温度显示/按钮；不直接改真实库存。
+- 任何按钮点击发服务端包，服务器重新验证玩家仍开此 Menu + 位置正确 + 按钮合法才改 mode。
+
+## 7.4 化髓槽重点（样板验收）
+
+| 项 | 要求 |
+|---|---|
+| 同一 Inventory | 世界右键逐次投入 == GUI 投入，同一 BlockEntity 数组。 |
+| 同一 Recipe | 两者走同一 RecipeType，不各自硬编码。 |
+| 同一 Progress | GUI 关闭后加工继续；区块卸载保存；重启继续。 |
+| 同一 State | 世界模型 stage 与 GUI 进度同步；A 开 GUI 时 B 右键投料，A 界面同步。 |
+| 关 UI 继续 | 加工不依赖 UI 存活。 |
+| 多人 | 两人同时开同一方块 UI，数据一致（ContainerData 同步）。 |
+
+## 7.5 JEI + 自动化
+
+- 每种 MachineRecipe 建独立 RecipeCategory（输入/催化/液体/条件/输出/加工时间/最低温度）。
+- 逐次投入配方 JEI 显示「输入数量 ×N」。支持查看用途/配方；只有标准槽位 GUI 才做 TransferHandler，祭坛不强行自动填充。
+- Shift-click：玩家背包→合法输入槽；燃料→燃料槽；容器→液体容器槽；机器输出→玩家背包；禁止塞催化槽。
+- Capability：输入面只进、输出面只出、燃料面独立；不六面全通。
+
+## 7.6 UI 测试清单
+
+右键打开 / 距离过远关闭 / 方块移除关闭 / 两人同开 / shift-click / 快速连点 / 网络延迟 / 重启 / 配方切换 / 容器填抽液 / JEI view / 资源包缩放 / GUI Scale 2·3·4 / 分辨率 / 中英文 / tooltip 不越界。
+
+## 7.7 第二轮补全：8 个方块逐块 GUI 规格（基于真实机制，不凭空改玩法）
+
+> **先澄清真实机制（[VERIFIED]）**：8 个 `LivingWorkshopBlock` 共享 `WorkshopBlockEntity`，只有一个 `deposited` 计数器 + 有序配方（`accept(held)/ready()/collect()/refund()`），**无燃料/温度/液体系统**。因此：
+> - 这 8 个方块都属于 **PROCESSOR** 型（有序多步投料）；原 7.2 的 FURNACE/FLUID/RITUAL 模板适用于**未来新增**方块，不是这 8 个。
+> - GUI 是「**状态可视化 + 收集**」层，映射同一个 `deposited` 计数器；GUI 投入可选（扩展 `input` 库存 [PROPOSED]），但必须走同一 Recipe/Progress/State。
+
+### 7.7.0 共用规格（8 块一致）
+
+- 界面：`WorkshopScreen`（[PROPOSED]）；Menu：`WorkshopMenu extends AbstractContainerMenu`（[PROPOSED]）。
+- BlockEntity 需新增字段（[PROPOSED]）：`NonNullList<ItemStack> input`（3 槽，可选）+ 保留 `deposited`。`ContainerData` 4 项：`deposited / total / lit / stage`。
+- 保存：`saveAdditional` 存 `Deposited`（已有）+ `Input`（新增）+ `Recipe`（已有）；`load` 兼容旧存档（无 Input 时回退纯右键投料）。
+- shift-click：输入槽只进「当前 next 需要的物品」；输出槽只出不进。hopper：仅输入面进（`CanPlaceItem` 校验 next），输出面抽取（`collect()`）。JEI：复用 `WorkshopJei`（背景 162×62，INPUT→CATALYST→OUTPUT 布局）。
+- 多人：两人同开同一方块，`ContainerData` 同步 `deposited`；A 投料 B 界面进度条同步。世界右键投料 == GUI 投入（同一 `deposited`）。
+
+### 7.7.1 逐块 GUI（GUI 宽高统一 176×166；按身份区分中央视觉）
+
+| 方块(recipe) | 界面名 | 中央视觉（体现机器用途） | 槽位（坐标） | progress 位置 | 特殊 |
+|---|---|---|---|---|---|
+| marrow_vat 化髓槽（emperor_bone×1+cinnabar×4+jade×2→mingyuan_soul_lantern） | 化髓槽 | 容器剖面显示 3 阶段材料堆积（1/4/2 件逐层） | 输入 3 槽(30,22/52,22/74,22)；输出(124,22) | (60,52) 进度环 | 满 3 阶段时容器发光 |
+| essence_condenser 精华冷凝（dragon_crystal×3+dragon_scale×2→longmai_prism） | 精华冷凝 | 冷凝罐：晶体浮起 + 冷凝雾（视觉） | 输入(30,22/52,22)；输出(124,22) | (60,52) 冷凝柱 | 满时棱镜亮 |
+| jade_mending_forge 玉补炉（jade×4+silver_ingot×2→chengque_mending_seal） | 玉补炉 | 玉补纹：材料归位逐格亮 | 输入(30,22/52,22)；输出(124,22) | (60,52) 补纹环 | 满时印成金 |
+| vitality_shrine 生息坛（jade×2+immortal_peach×1→pill_longevity） | 生息坛 | 丹炉：材料入炉 + 丹气 | 输入(30,22/52,22)；输出(124,22) | (60,52) 丹气条 | 满时丹成 |
+| hide_stretcher 鞣皮架（dragon_scale×3+silk×2→zhengwu_oath_tally） | 鞣皮架 | **张力**：皮面拉伸绷紧（visual） | 输入(30,22/52,22)；输出(124,22) | (60,52) 张力条 | 满时绷满 |
+| herbal_basin 药浴盆（cinnabar×2+tea×2→healing_salve×2） | 药浴盆 | 药汤：材料入汤 + 药雾 | 输入(30,22/52,22)；输出(124,22) | (60,52) 药汤高度 | 满时药成×2 |
+| lapidary_bench 琢玉台（bamboo_slip×2+dragon_crystal×1+ink_stick×1→zhouguang_star_leaf） | 琢玉台 | **加工位**：玉料上机 + 雕琢刻痕 | 输入(30,22/52,22/74,22)；输出(124,22) | (60,52) 雕琢进度 | 满时星叶成 |
+| ember_brazier 余烬炉（zhuque_feather×1+cinnabar×3→chixiao_ember） | 余烬炉 | **火候**：炉火明暗随 deposited（视觉） | 输入(30,22/52,22)；输出(124,22) | (60,52) 火候条 | 满时火种成 |
+
+================================================================================
+COD3-8 NPC 表现深化（保留 15 NPC，不重写主线）
+================================================================================
+
+## 8.0 骨架与通用状态
+
+- 人形骨架真实分段（见十一、模型要求）：pelvis/waist/chest/neck/head/upper_arm/elbow/forearm/wrist/hand/thigh/knee/shin/ankle/foot；90°侧面有真实胸厚/背厚/腰/骨盆/甲片层次。
+- 每个 NPC 至少：独立头型/发型/帽子 + 身体比例 + 主要随身物 + Idle。
+- 对话走 DialogueNode（textKey/conditions/choices/actions/nextNode），文本放 lang，**不硬编码中文在 Java**。
+- 状态机（每 NPC 都具备）：`idle / walk / turn / talk / work / react / rain / night / danger / player_near / player_holds_special`。
+- 雨：收伞/护头/加快走；夜：点亮灯笼/回屋；危险：躲/警戒姿态；玩家靠近：转身面向；玩家手持特殊物品（信物/神器）：行礼/献礼/恐惧。
+- 对话保持古风但可直接理解；每句短。
+
+## 8.1 15 NPC 深化表
+
+| NPC | 模型要点 | 服装/配饰 | 独特 idle/work | 特殊物品反应 |
+|---|---|---|---|---|
+| 1 独眼铁匠·老陈 | 粗臂、左眼罩、络腮胡、右肩兽爪疤 | 牛皮围裙、锻造锤 | work=打铁火花；玩家靠近=停下抬头 | 手持神兵残胚→掌眼动作 |
+| 2 折戟校尉·韩冲 | 微跛、风化石面 | 宋式扎甲、护耳铁盔、环首刀 | idle=扶刀远眺；walk=跛行 | 手持名册→立碑祭奠 |
+| 3 竹林隐士·青玄子 | 赤足草鞋、青竹簪 | 青绿道袍、青葫芦、竹简 | idle=饮茶观棋；work=展卷 | 手持四象贡品→指路 |
+| 4 游方行商·百宝金 | 微胖、翡翠扳指 | 锦缎坎肩、多层行囊、铜铃 | idle=拨算盘；walk=牵毛驴 | 手持古钱→热情招呼 |
+| 5 逃军流民·阿吉 | 骨瘦、满脸污泥、不会说话 | 烂铁甲片、麻绳 | idle=发抖躲藏；danger=惊恐摆手 | 拔刀→吓跑 |
+| 6 药蛊妪·黑婆 | 佝偻、银辫、赤蜈蚣盘肩 | 蓝布蜡染绣衣、银项圈 | work=熬药；idle=把玩瓶罐 | 手持赤目朱蛤腺→收徒 |
+| 7 守陵太监·曹承福 | 面白无须、阴柔 | 深紫蟒袍、拂尘 | idle=叠袖侍立；夜=提灯巡 | 持玉玺/天子剑→跪拜献图 |
+| 8 画皮伪人·红菱 | 娇俏村姑、影子是蛇尾 | 碎花布裙、牡丹竹篮 | idle=叫卖；react=撕皮现形 | 照妖镜→尖叫逃窜 |
+| 9 盲眼琴姬·楚弄玉 | 素雪缎带蒙眼 | 素黑广袖裙、七弦古琴 | work=抚琴；idle=静立风中 | 持九霄琴→续弦解封 |
+| 10 采药童·小圆子 | 孩童比例、抓髻插花 | 灰道袍、药篓、铜铲 | idle=蹦跳；work=挖药 | 持虫/草→换药 |
+| 11 墨家叛徒·墨机子 | 左半身机械义体、三叠目镜 | 齿轮义肢、机械钳 | work=改装器械；react=狂笑 | 持刑天齿轮→造木犬 |
+| 12 算命盲人·赛半仙 | 圆黑墨镜、白布幡 | 深灰长衫、算卦铜钱 | work=占卜；idle=摇卦 | 占三凶卦→引天雷 |
+| 13 边塞猎户·巴图 | 壮如熊、雪狼皮袄 | 皮帽、重猎弓、砍刀、黑獒 | work=布置陷阱；idle=烤火 | 持撼山猿信物→围猎 |
+| 14 斩妖游侠·燕赤风 | 破斗笠、咬草茎 | 红布碎披风、双剑 | idle=抱胸靠剑；work=磨剑 | 三村解围→结拜赠剑 |
+| 15 渡船艄公·黄老汉 | 黑红肤、皱纹 | 水靠短裤、老竹篙 | work=撑船；idle=古井无波 | 摆渡遇水怪→竹篙点杀 |
+
+## 8.2 生成与持久
+
+- 固定 NPC 用 Structure marker / WorldState 生成并保存 UUID；随机商人（百宝金/赛半仙）用稀有事件生成。
+- 死亡策略按设计：大臣/铁匠/校尉=不可受伤或延迟重生；商人=可受伤后消失。
+- 不无限刷；每 NPC 有 homeRegion + faction + respawn policy。
+
+## 8.3 第二轮补全：15 NPC 行为规格 + 对白（古风自然，非文言文）
+
+> 行为字段：生成位置/home anchor/白天/夜间/雨天/危险/玩家靠近/玩家离开/工作动画/对话动画/可战斗/死亡重生/多人共享/世界状态变化。对白：初见 3-5、普通 5-8（下表每类给代表句，全文放 lang）。
+
+| NPC | 生成/位置 | 行为要点 | 初见对白(代表) | 普通对白(代表) | 特殊物品 | Boss/世界变化后 |
+|---|---|---|---|---|---|---|
+| 1 老陈 | 山脚铁匠铺（主世界）| 白天打铁/夜关炉/雨收摊/危险躲/靠近抬头 | 「铁要趁热打，人也一样。」 | 「把你的破铜烂铁拿开，别脏了我的炉子。」 | 神器残胚：「这纹路……把老烧刀子拿来！」 | 机关城重启后：「机关城活过来了？那我这铺子也该加个水力锤了。」 |
+| 2 韩冲 | 边塞烽火台 | 白天巡/夜扶刀远眺/雨避烽火台/危险拔刀/靠近转身 | 「风声紧，沙子烈。」 | 「死人堆里，活人别轻易闯。」 | 名册：「随我立碑，让兄弟们回家。」 | 古战场净化后：「阴霾散了，弟兄们能安息了。」 |
+| 3 青玄子 | 竹林茅屋 | 白天观棋饮茶/夜回屋/雨收竹简/靠近点头 | 「万物并作，吾以观复。」 | 「饮一盏清苦竹叶茶，听风吹竹。」 | 四象贡品：「大道归一，卦台在东方。」 | 天路洞开后：「天门已开，去留随心。」 |
+| 4 百宝金 | 遗迹入口/十字路口（随机）| 白天叫卖/夜点灯/雨护货/危险躲/靠近迎 | 「哎哟，英雄气宇轩昂！」 | 「童叟无欺，概不赊账！」 | 古钱：「有缘！这压箱底的货就是你的。」 | 帝王沉眠后：「宫里流出的好东西，要多少有多少。」 |
+| 5 阿吉 | 废村磨坊 | 白天躲/夜更躲/雨发抖/危险摆手/靠近惊恐 | （无话，指向古墓做抹脖动作） | （无话，摆手） | 食物：「……」收下后指密道 | 荒村重建后：随村民回村，不再躲 |
+| 6 黑婆 | 大沼泽吊脚楼 | 白天熬药/夜点灯/雨收蛊/靠近桀笑 | 「桀桀……多么新鲜的血气！」 | 「别碰我的瓶瓶罐罐。」 | 赤目朱蛤腺：「来，婆婆教你淬毒。」 | 黑水泽净化后：「水清了，我那些毒虫都跑了，赔我！」 |
+| 7 曹承福 | 镇岳孤陵神道 | 白天侍立/夜提灯巡/雨撑伞/危险警戒/靠近呵斥 | 「大胆狂徒，此乃万岁安寝龙穴！」 | 「杂家尚可留你全尸。」 | 玉玺/天子剑：跪拜献机关图 | 帝王瞑目后：撞碑殉主 |
+| 8 红菱 | 荒野路口/废村桥头 | 白天叫卖花/夜更媚/雨避/靠近招呼 | 「客官，买朵花带给心上人吧。」 | 「奴家的家就在前面山洞。」 | 照妖镜：尖叫现原形 | （世界净化后消失） |
+| 9 楚弄玉 | 湖心水榭 | 白天抚琴/夜更静/雨收琴/靠近静听 | 「弦断有谁听。」 | 「你的剑气很重。」 | 九霄琴：「待我为它续上第七弦。」 | 剑峰化圣地后：「闻剑气，知有故人来。」 |
+| 10 小圆子 | 高山小径 | 白天采药/夜回观/雨躲/靠近蹦跳 | 「师父在丹炉前睡着啦！」 | 「大哥哥帮我抓那只金甲虫！」 | 杂草树枝：换还魂草 | 观内仙人：「避水仙丹，赠予有缘人。」 |
+| 11 墨机子 | 机关城外围实验室 | 白天改装/夜不停/雨护机/靠近滔滔不绝 | 「血肉苦弱，筋骨易朽！」 | 「给我齿轮，我能造出屠神巨兵！」 | 刑天齿轮：造木犬赠 | 机关城重启后：「天枢活了！我的时代来了！」 |
+| 12 赛半仙 | 茶馆/驿道（随机）| 白天占卜/夜收摊/雨避/靠近招揽 | 「客官印堂发暗，三日内有血光之灾。」 | 「往东走三十里，或可化解。」 | 铜钱：标最近遗迹 | 三次大凶：引天雷劈桌 |
+| 13 巴图 | 大雪山木屋 | 白天猎/夜烤火/雨避/危险拉弓/靠近递酒 | 「干了这碗烧刀子，进山就不冷！」 | 「最怕那绝壁上的铁爪夜叉。」 | 撼山猿信物：同去围猎 | 冻龙谷回春后：「雪山变暖和了，熊瞎子都不出来了。」 |
+| 14 燕赤风 | 荒郊篝火/义庄屋顶 | 白天磨剑/夜守/雨避/靠近切磋邀约 | 「天下大乱，便由我手中剑来管！」 | 「喂，切磋两招？」 | 三村解围：结拜赠剑 | 剑峰化圣地后：「封魔峰……我该去会会。」 |
+| 15 黄老汉 | 大江古渡口 | 白天摆渡/夜泊/雨撑篙/危险镇定/靠近招呼 | 「坐稳喽！别把手伸进水里。」 | 「掉下去，神仙也捞不回你。」 | （遇水怪）：竹篙点杀 | 龙宫开启后：「这水下，越来越不安静了。」 |
+
+> 行为实现：NPC 状态机在 `DynastyNpcEntity`（[PROPOSED]）；对白走 `DialogueNode`（[PROPOSED]）；文本全部 lang 文件，Java 不硬编码中文。死亡策略：铁匠/校尉/隐士不可受伤；商人/算命可消失后重生；流民/采药童随世界状态迁居。
+
+================================================================================
+COD3-9 隐藏秘密深化（保留 30 秘密，统一 Secret 系统）
+================================================================================
+
+## 9.0 SecretDefinition + SecretTracker
+
+- `SecretDefinition`：`id / scope(WORLD|PLAYER) / dimension / structure|biome tag / requiredTime / requiredWeather / requiredItem / requiredWorldState / triggerType / oneTime / cooldown / reward / revealMethod / debugName`。
+- `SecretTracker`：世界级存 SavedData；玩家级存 Player capability/持久数据；每个秘密只由明确 trigger 调用，**不做每 tick 全世界暴力搜索**。
+- TriggerType：`INTERACT_BLOCK / BREAK_BLOCK / HIT_TARGET / USE_ITEM_AT_POS / ENTER_REGION / TIME_WINDOW / WEATHER_WINDOW / KILL_ENTITY_AT_REGION / PLACE_ITEM / PLAY_INSTRUMENT / READ_PATTERN / EQUIPMENT_CHECK / WORLD_STATE / COMBINATION`。
+- 线索不进任务书内部 ID；只给环境线索/NPC 暗示/物品描述；调试命令可看条件，正式玩家不可见。
+
+## 9.1 30 秘密补全（视觉/环境/声音线索 + 假线索 + 真触发 + 多人 + 奖励 + 可重复）
+
+| # | 秘密 | 真·视觉线索 | 环境线索 | 声音线索 | 假线索 | 真触发 | 多人 | 奖励 | 可重复 |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 无字碑下沉睡者 | 雨夜唯一渗黑血碑 | 碑文字迹微异 | 低鸣 | 任意无字碑看似一样 | 雨夜+镇魂箫奏安魂曲 | 世界级 | 挑战隐藏 Boss | 一次 |
+| 2 | 望舒月宫倒影 | 满月天池水面镜化 | 月光角度 | 无声 | 白天水面同样反光 | 月半子时登顶天池 | 玩家级 | 广寒太阴仙玉 | 一次 |
+| 3 | 青龙偃月斩瀑布 | 瀑布后微透光 | 崖壁青苔异 | 水声有回音 | 普通挥刀无效 | 持青龙偃月刀蓄力 | 世界级 | 卧龙秘洞入口 | 一次 |
+| 4 | 壁画暗门 | 佛像胸缺红宝石 | 壁画底色褪 | 石壁空隙风 | 任意血即可 | 壁画前击杀溅血 | 世界级 | 暗门 | 一次 |
+| 5 | 酒肉颠僧 | 破庙房梁微响 | 蒲扇斜放 | 白天无 | 供桌任意摆放 | 子时供烈酒+两只烧鸡 | 玩家级 | 醉八仙轻功 | 一次 |
+| 6 | 太岁肉灵芝 | 肉色泥土微蠕 | 附近无苔 | 挖掘异响 | 普通泥土 | 挖掘特定泥土块 | 玩家级 | 生命上限肉块 | 一次 |
+| 7 | 赤炼火雨 | 火雨星点 | 沙地泛红 | 空气灼响 | 普通雨 | 火雨天冰武器打坐 | 玩家级 | 火麒麟幼兽 | 可重复 |
+| 8 | 古井沉冤 | 井沿锁链痕 | 井水泛黑 | 井下回响 | 打水两三次 | 连续打水七次 | 玩家级 | 专属支线 | 一次 |
+| 9 | 器灵低语 | 锈迹下微光 | 泉水泛灵 | 低语 | 任意锈武器 | 1 耐久锈武器浸灵泉一天 | 玩家级 | 古代名剑 | 一次 |
+| 10 | 四象逆转 | 祭坛刻槽可逆 | 贡品位置 | 无声 | 正常摆放 | 逆向五行摆贡 | 世界级 | 逆乱混沌死境 | 可重复 |
+| 11 | 八卦拼图石灯 | 石灯方位符 | 长明灯微闪 | 灯芯噼啪 | 乱序熄灯 | 先天八卦序熄灯 | 玩家级 | 兵器库 | 一次 |
+| 12 | 衔草白鹿 | 白鹿口中灵芝 | 竹林晨雾 | 铃响 | 击杀/骑乘 | 静步跟随 5 分钟 | 玩家级 | 洞天福地 | 一次 |
+| 13 | 镜中倒影 | 镜中无武器/慢半拍 | 镜框松动 | 无声 | 普通镜 | 击碎特定镜 | 玩家级 | 前朝密室 | 一次 |
+| 14 | 日全食铸剑 | 天空变暗 | 铁砧泛光 | 无声 | 普通锻造 | 日全食 2 分钟内锻造 | 玩家级 | 蚀日破魔词条 | 可重复 |
+| 15 | 失落缆车 | 深渊边缘风 | 齿轮反光 | 齿轮声 | 投任意物 | 投青铜发条 | 玩家级 | 悬空核心房 | 一次 |
+| 16 | 石敢当认主 | 石敢当额心凹 | 石像位置 | 无声 | 任意笔 | 判官笔点朱砂 | 玩家级 | 石傀儡随从 | 一次 |
+| 17 | 鬼市小舟 | 码头磷火 | 血河无波 | 隐约叫卖 | 点普通香 | 点阴香 | 玩家级 | 禁阵法图谱 | 可重复 |
+| 18 | 藏经阁秘籍 | 房梁蛛网 | 房梁积灰 | 风穿 | 普通跳 | 上最高房梁 | 玩家级 | 神行百步真本 | 一次 |
+| 19 | 毒茶辨别 | 茶面七彩油膜 | 茶摊无招牌 | 老汉讪笑 | 直接喝 | 掀翻茶桌 | 玩家级 | 黄鼠狼精百宝袋 | 一次 |
+| 20 | 石窟千佛 | 夜明珠佛眼 | 千佛崖 | 无声 | 乱射佛眼 | 夜射真佛眼 | 玩家级 | 对面山洞 | 一次 |
+| 21 | 古树空心 | 树洞黑深 | 雷击焦痕 | 洞内回音 | 绕树 | 跳入树洞 | 玩家级 | 地底遗迹 | 可重复 |
+| 22 | 荒冢鬼火 | 磷火游荡 | 最大荒坟 | 鬼哭 | 投入一两朵 | 三朵鬼火投祭台 | 玩家级 | 地下义庄 | 一次 |
+| 23 | 孟婆遗汤 | 忘川水泛光 | 彼岸花 | 水声 | 普通水 | 忘川水+彼岸花+泪滴草酿造 | 玩家级 | 忘川迷魂散 | 可重复 |
+| 24 | 悬棺落葬 | 最高黑棺 | 棺下无路 | 风声 | 砍别棺 | 射断黑棺四锁链 | 玩家级 | 炼器炉 | 一次 |
+| 25 | 荒漠胡杨 | 唯一青叶胡杨 | 正午影顶 | 无声 | 乱挖 | 正午影子顶挖五格 | 玩家级 | 避风古佩 | 一次 |
+| 26 | 破损青铜钟 | 钟身五音纹 | 钟楼回音 | 钟鸣 | 乱敲 | 宫商角徵羽节奏 | 玩家级 | 地宫暗阁 | 一次 |
+| 27 | 水下古城 | 城隍庙石门 | 水底微光 | 水声 | 撞门 | 持避水珠近门 | 玩家级 | 无水安全屋 | 一次 |
+| 28 | 残缺剑谱 | 月光石壁剑影 | 石壁刻痕 | 剑风 | 乱舞剑 | 月光下契合剑影 | 玩家级 | 被动剑意 | 一次 |
+| 29 | 义庄停尸 | 一尸胸口微伏 | 尸首神色 | 极弱呼吸 | 全尸 | 对活尸用治疗 | 玩家级 | 传家宝剑 | 一次 |
+| 30 | 天工藏宝 | 青铜立方无锁孔 | 十二榫卯 | 无声 | 乱按 | 鲁班锁顺序按压 | 玩家级 | 顶级图纸 | 一次 |
+
+## 9.2 禁止与约束
+
+- **禁止全部是「隐藏墙后一个箱子」**；上述 30 个触发方式已分散（时间/天气/物品/乐器/组合/区域/击杀）。
+- 隐藏条件只给环境/声音/视觉线索；失败反馈与成功反馈都要有（假线索触发失败要有明确「无效」反馈）。
+- 隐藏 Boss 复用 cod1 现有 Boss/精英系统，不注册重复实体。
+
+## 9.3 第二轮补全：30 秘密工程化（真实维度/物品/奖励绑定）
+
+> 字段：dimension/biome-tag/trigger/server condition/client clue/required item/reward/state 保存/attribution/restart/fail/冲突。**奖励物品必须查 Registry，找不到写 `REWARD_NOT_VERIFIED`**（禁止凭空注册）。
+
+| # | dimension | biome/structure | trigger | required item（真实 ID） | reward | state 保存 | attribution | 冲突 |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 主世界 | 帝陵/镇岳孤陵(imperial_tomb) | 雨夜+镇魂箫奏曲 | [NOT_VERIFIED] 镇魂箫未注册 | 隐藏 Boss（复用 cod1） | SecretTracker world | 世界级 | 与 cod1 帝陵 Boss 冲突→查 |
+| 2 | 主世界 | 雪山天池(高海拔) | 月半子时 | 无 | 广寒太阴仙玉 | [NOT_VERIFIED] 物品未注册 | 玩家级 | 无 |
+| 3 | 主世界 | 大瀑布 | 持青龙偃月刀蓄力 | qinglong_dao [VERIFIED] | 秘洞入口(结构) | SecretTracker world | 世界级 | 无 |
+| 4 | 主世界 | 古寺 | 壁画前击杀溅血 | 无 | 暗门(结构) | world | 世界级 | 无 |
+| 5 | 主世界 | 荒废破庙 | 子时供烈酒+烧鸡 | baijiu [VERIFIED] + 烧鸡[NOT_VERIFIED] | 轻功步法 | player | 玩家级 | 无 |
+| 6 | 主世界 | 地下真菌林 | 挖掘肉色泥土 | 无 | 生命上限肉块 [NOT_VERIFIED] | player | 玩家级 | 无 |
+| 7 | 主世界 | 大沙漠 | 火雨天+冰武器打坐 | 冰武器[NOT_VERIFIED] | 火麒麟幼兽 | player | 玩家级 | 天气(火雨)[NOT_VERIFIED] |
+| 8 | 主世界 | 废村枯井 | 连续打水 7 次 | 水桶(原版) | 支线 | player | 玩家级 | 无 |
+| 9 | 主世界 | 高山灵泉 | 1 耐久锈武器浸一天 | 锈武器 | 古代名剑 [REWARD_NOT_VERIFIED] | player | 玩家级 | 无 |
+| 10 | 主世界 | 四象祭坛 | 逆向五行摆贡 | 四象贡品 | 逆乱混沌死境(维度) | world | 世界级 | 与四象主线冲突→查 |
+| 11 | 主世界 | 古墓回廊 | 先天八卦序熄灯 | 无 | 兵器库(结构) | player | 玩家级 | 无 |
+| 12 | 主世界 | 竹林晨雾 | 静步跟白鹿 5min | 无 | 洞天福地 | player | 玩家级 | 无 |
+| 13 | 主世界 | 废弃大宅 | 击碎特定镜 | 无 | 前朝密室(结构) | player | 玩家级 | 无 |
+| 14 | 主世界 | 铁砧 | 日全食锻造 | 无 | 蚀日破魔词条 | player | 玩家级 | 日全食[NOT_VERIFIED] |
+| 15 | 主世界 | 机关城深渊 | 投青铜发条 | [NOT_VERIFIED] 发条未注册 | 悬空核心房 | player | 玩家级 | 无 |
+| 16 | 主世界 | 路旁石敢当 | 判官笔点朱砂 | [NOT_VERIFIED] 判官笔未注册 | 石傀儡随从 | player | 玩家级 | 无 |
+| 17 | 主世界/阴司 | 血河码头 | 点阴香 | 阴香[NOT_VERIFIED] | 阵法图谱 | player | 玩家级 | 无 |
+| 18 | 主世界 | 破庙藏经阁 | 上最高房梁 | 无 | 神行真本 [REWARD_NOT_VERIFIED] | player | 玩家级 | 无 |
+| 19 | 主世界 | 茶摊 | 掀翻茶桌 | 无 | 百宝袋 | player | 玩家级 | 无 |
+| 20 | 主世界 | 千佛崖 | 夜射真佛眼 | 弓 | 对面山洞(结构) | player | 玩家级 | 无 |
+| 21 | 主世界 | 雷击古木 | 跳入树洞 | 无 | 地底遗迹 | player | 玩家级 | 无 |
+| 22 | 主世界 | 乱葬岗 | 3 朵鬼火投祭台 | 引魂灯[NOT_VERIFIED] | 地下义庄 | player | 玩家级 | 无 |
+| 23 | 阴司 | 忘川渡口 | 忘川水+彼岸花+泪滴草酿造 | 忘川水[NOT_VERIFIED] | 忘川迷魂散 [REWARD_NOT_VERIFIED] | player | 玩家级 | 无 |
+| 24 | 主世界 | 悬崖悬棺 | 射断黑棺四锁链 | 弓 | 炼器炉 | player | 玩家级 | 无 |
+| 25 | 主世界 | 荒漠胡杨 | 正午影子顶挖 5 格 | 无 | 避风古佩 [REWARD_NOT_VERIFIED] | player | 玩家级 | 无 |
+| 26 | 主世界 | 钟楼 | 五音敲钟 | 铁锤 | 地宫暗阁 | player | 玩家级 | 无 |
+| 27 | 主世界/龙宫 | 水下古城 | 持避水珠近门 | sea_pearl [VERIFIED] | 无水安全屋 | player | 玩家级 | 无 |
+| 28 | 主世界 | 月光石壁 | 契合剑影 | 剑 | 被动剑意 | player | 玩家级 | 无 |
+| 29 | 主世界 | 义庄 | 对活尸用治疗 | 治疗药水 | 传家宝剑 [REWARD_NOT_VERIFIED] | player | 玩家级 | 无 |
+| 30 | 主世界 | 机关城 | 鲁班锁顺序按压 | 无 | 顶级图纸 [REWARD_NOT_VERIFIED] | player | 玩家级 | 无 |
+
+> 结论：约 14 处奖励/物品 `REWARD_NOT_VERIFIED`，实现前必须先在 Registry 落地或复用现有物品；约 3 处触发条件（火雨/日全食/季节）[NOT_VERIFIED]，需改 gameTime/dayTime/raining/thundering 或标 `REQUIRES_NEW_SYSTEM`。
+
+================================================================================
+COD3-10 世界奇观（保留 15，扩到 25；纯环境远景，非 cod2 WorldEvent）
+================================================================================
+
+## 10.0 ScenicEventDefinition（NON_COMBAT）
+
+- 字段：`dimension / biome|region / time / weather / rarity / duration / anchorMode / renderDistance / worldStateRequirement / audio / skyEffect / groundEffect`。
+- 复用 `WorldEventManager` 但设 `NON_COMBAT`；远景优先 `DistantVisualEntity` / `WorldRenderer`。
+- 服务器只决定「何时/哪个区域/seed/持续时间」；客户端绘制。**不生成有 AI/碰撞/寻路的巨型 Mob**。
+
+## 10.1 25 奇观（保留 15 个 + 新增 10 个标 ✚）
+
+| # | 奇观 | condition/dimension | biome/time | weather | duration | distance | LOD | sound | particle budget |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 青苍龙影·横贯长空 | 主世界最高峰 | 晴朗黄昏 | 晴 | 40s | 超远 | 远=大轮廓/近=鳞片 | 龙吟 faint | 200 青白云气 |
+| 2 | 万山结界·夜宿古阵 | 主世界开阔平原 | 午夜 | 晴 | 60s | 地平线 | 远=光柱/近=符文 | 诵经 faint | 150 |
+| 3 | 忘川漂流·幽冥古舰 | 阴司/主世界大江 | 雾夜 | 雾 | 60s | 中远 | 远=剪影 | 磷火噼啪 | 120 |
+| 4 | 古战场回光·巡猎大军 | 主世界古战场 | 阴雨 | 雨 | 60s | 中 | 远=白粒阵/近=兵俑 | 无(死寂) | 400 白粒 |
+| 5 | 海市蜃楼·九霄仙山 | 大沙漠/大沼泽 | 暴雨初晴 | 晴 | 120s | 超远 | 单 LOD | 鹤鸣 faint | 100 |
+| 6 | 天门中断·神人开山 | 主世界峡谷 | 清晨第一缕光 | 晴 | 60s | 中远 | 远=神影 | 金石 | 80 |
+| 7 | 百草化萤·大地绿脉 | 主世界大森林 | 春季第一场夜雨 | 雨 | 90s | 全屏 | 远=绿点 | 无声 | 600 绿灵 |
+| 8 | 天河垂落·倒流银瀑 | 主世界世界边缘 | 任意 | 晴 | 60s | 中远 | 单 | 水声 | 300 水雾 |
+| 9 | 地底星汉·水晶穹顶 | 主世界深洞 | 无 | 无 | 常驻 | 近 | 近=星图 | 无声 | 0(方块发光) |
+| 10 | 玄武负岳·巨兽出水 | 主世界大海 | 任意 | 晴 | 90s | 中远 | 远=黑石岛 | 低鸣 | 150 水柱 |
+| 11 | 战鼓擂空·天兵演武 | 主世界长城烽火台 | 正午无云 | 晴 | 60s | 中 | 远=云脚印 | 战鼓 | 0 |
+| 12 | 佛光普照·千佛显圣 | 主世界千佛崖 | 夕阳 | 晴 | 45s | 中 | 远=金光 | 梵钟 | 120 |
+| 13 | 深谷火树·银花不夜 | 主世界熔岩裂谷 | 夜晚 | 晴 | 常驻(夜) | 近中 | 远=火星 | 噼啪 | 500 火星 |
+| 14 | 蜃楼幻市·荒野长街 | 主世界荒漠 | 深夜 | 晴 | 90s | 中 | 单 | 叫卖 faint | 80 |
+| 15 | 极北天幕·极光飞羽 | 主世界极北雪原 | 夜 | 晴 | 90s | 全屏天幕 | 远=极光 | 无声 | 300 |
+| 16 ✚ | 云中楼阁·仙舟过境 | 九霄 | 昼 | 晴 | 45s | 超远 | 远=舟影 | 无 | 60 |
+| 17 ✚ | 水中倒城·龙宫幻影 | 龙宫 | 无 | 无 | 60s | 中 | 单 | 水声 | 150 |
+| 18 ✚ | 雾中军阵·长城残影 | 主世界古战场 | 晨雾 | 雾 | 60s | 中 | 远=旗影 | 号角 faint | 200 |
+| 19 ✚ | 神树落叶·金叶满谷 | 主世界神木林 | 秋 | 晴 | 60s | 近中 | 远=金点 | 叶沙沙 | 500 金叶 |
+| 20 ✚ | 星辰坠落·流星雨 | 主世界平原 | 夜 | 晴 | 45s | 全屏 | 远=流光 | 无 | 200 |
+| 21 ✚ | 白虹贯日·祥云献瑞 | 主世界 | 正午 | 晴 | 30s | 超远 | 单 | 无 | 80 |
+| 22 ✚ | 幽谷鬼市·鬼火长街 | 阴司 | 夜 | 雾 | 90s | 中 | 远=鬼火 | 叫卖 faint | 200 |
+| 23 ✚ | 悬空浮岛·星宿连线 | 九霄 | 夜 | 晴 | 60s | 中远 | 远=星线 | 无 | 100 |
+| 24 ✚ | 玄冰蓝洞·万年冰花 | 主世界极北冰洞 | 无 | 无 | 常驻 | 近 | 单 | 冰裂 faint | 0 |
+| 25 ✚ | 金乌巡天·日照香炉 | 主世界山峰 | 清晨 | 晴 | 40s | 中远 | 远=金影 | 无声 | 100 |
+
+## 10.2 约束
+
+- 奇观不发大量奖励；需引导秘密时只在结束后服务器设一个线索 marker/任务提示。
+- 音效按距离衰减，不全服广播；Sky/Fog 离开区域、切维度、断线后必须恢复。
+- 粒子预算见上表，**不允许一个奇观生成几百个服务器实体**。
+
+## 10.3 第二轮补全：条件核查 + 25 奇观实现字段
+
+### 10.3.1 条件核查（[NOT_VERIFIED] 条件必须替换，不为此新造系统）
+
+- **无 Season 系统**（[NOT_VERIFIED]）。原「春季/秋季」→ 改用 `dayTime`（一天内）或 `worldState`（世界状态）。
+- **无 Fog Weather 系统**（[NOT_VERIFIED]）。原「雾天气」→ 改用 `raining`/`thundering` 或区域 fog 参数；若坚持真雾则标 `REQUIRES_NEW_SYSTEM`。
+- **可真实判断条件**（[VERIFIED]）：`gameTime / dayTime / moonPhase / raining / thundering / biome tag / altitude(Y) / worldState / structure proximity`。
+- 修订：奇观 3/18「雾」→ `raining`；7「春季第一场夜雨」→ `moonPhase==FULL && raining`；19「秋」→ 固定 `dayTime` 黄昏段；13「夜晚」保留（真实 `isNight`）。
+
+### 10.3.2 25 奇观实现字段（统一模板，禁止超远巨型 AI Entity）
+
+| 字段 | 约定 |
+|---|---|
+| visual anchor 算法 | 服务器选 anchor：结构中心 / 玩家视野方向 96-128 格外 / 固定结构 marker；seed 固定可复现 |
+| 最低/最高距离 | 近档 <32 / 中 32-96 / 远 >96；远档只留大轮廓 |
+| despawn 方式 | 到期或玩家离开 64 格且无旁观者 → 客户端淡出；无 AI 实体 |
+| 玩家转身后是否继续 | 继续（世界空间，不跟随视角）；直到 duration 结束或离开区域 |
+| chunk 关系 | 不依赖实体的 chunk 加载；用 `LevelRenderer`/世界空间 VFX，锚定坐标 |
+| server 是否创建实体 | **否**（纯客户端视觉）；服务器只发「区域+seed+duration」 |
+| client renderer 类型 | `DistantVisualEntity`（客户端-only）或 `WorldRenderer` 钩子（[PROPOSED]） |
+| packet payload | `ScenicEventSync`（[PROPOSED]）：`{scenicId, dim, anchorPos, seed, duration, startTick}` |
+| seed | 服务器生成，客户端同 seed 渲染一致 |
+| reconnect | 客户端重连读当前 `startTick/duration`，从正确进度续播 |
+| dimension change cleanup | 离开维度即清本地 VFX，回原维度按当前进度续播 |
+
+- 音效按距离衰减；Sky/Fog 离开区域、切维度、断线后恢复。
+- 粒子预算见 10.1 表；不允许一个奇观生成几百个服务器实体。
+
+================================================================================
+COD3-11 世界状态表现（不重新设计 10 状态，只补反馈）
+================================================================================
+
+## 11.0 原则
+
+- WorldState 只做：写 SavedData → 通知在线玩家 → 更新关键结构 controller → EcologyManager 读新状态 → NPC/任务读新状态 → 新加载区块用新 decorator/variant → 关键已加载结构切预设。
+- **禁止**「击败 Boss 后遍历全世界改百万方块」；大范围永久变化 = 区域状态 + 新加载/关键结构视觉。
+
+## 11.1 10 状态 → 反馈映射（sky/fog/ambience/NPC/particles/decoration/merchants/ambient animals）
+
+| 状态 | sky | fog | ambience | NPC | particles | decoration | merchants | ambient animals |
+|---|---|---|---|---|---|---|---|---|
+| 1 古战场煞气退散 | 晴空 | 无 | 鸟鸣 | 边塞官兵/铁匠入驻 | 草花孢子 | 青草野花 | 边塞集市 | 马/鹿 |
+| 2 机关城动力重启 | 无变 | 无 | 齿轮 | 墨家工匠 | 火星 | 明灯全亮 | 机关商 | 木甲犬转中立 |
+| 3 黑水泽褪去死咒 | 晴 | 毒雾散 | 蛙鸣 | 苗家采药/渔夫 | 水汽 | 荷花灵龟 | 药农 | 灵龟 |
+| 4 荒村义庄重迎炊烟 | 晴 | 无 | 炊烟 | 逃难农夫妇孺 | 炊烟 | 井泉/柳芽 | 村内小贩 | 鸡犬 |
+| 5 焦黑古刹万物生 | 晴 | 硫烟散 | 梵音 | 僧众 | 青苔 | 彩虹石桥 | 香客 | 白鹤飞鸟 |
+| 6 冻龙谷回春 | 雪转暖 | 暴雪弱 | 温泉 | 猎户/旅人 | 蒸汽 | 温泉 | 高山鹿 | 高山鹿 |
+| 7 剑峰化圣地 | 晴 | 剑气停 | 剑鸣 faint | 江湖游侠 | 无 | 磨剑台 | 游侠 | 白鹤 |
+| 8 四象封天枢通途 | 金光柱 | 无 | 钟磬 | 各祭坛守 | 金尘 | 龙嘴光柱 | 传送网络 | 灵兽 |
+| 9 帝王沉眠·水银宫开启 | 无变 | 水银雾散 | 静 | 守陵兵 | 无 | 宝库 | 无 | 无 |
+| 10 终极封印破裂(后日谈) | 星河天幕 | 无 | 钟磬 | 全域 | 星尘 | 混沌裂隙 | 无 | 天道赐福变种 |
+
+## 11.2 反馈实现约束
+
+- sky/fog/ambience 离开区域、切维度、断线后恢复。
+- 生态/商人/动物由 `EcologyManager` / 结构 controller 读 state，不逐块扫描。
+- NPC 变化由「关键结构解锁」驱动，不遍历全图刷 NPC。
+
+================================================================================
+12 Multiplayer 视觉安全
+================================================================================
+
+## 12.1 完整多人测试矩阵（每种写预期结果）
+
+| # | 场景 | 预期结果 |
+|---|---|---|
+| 1 | A 进入 Boss 演出，B 后来进入 | B 收 `sequenceId+currentTick`，客户端续播当前帧；不重头；BossBar 按 B 靠近后单独订阅 |
+| 2 | A 离开 Arena，B 留下 | 演出继续（实例级）；A 客户端清本地 VFX，返回续播；B 不受影响 |
+| 3 | A 死亡 | 演出不终止；A 复活后按 currentTick 继续；不影响 B |
+| 4 | B 死亡 | 同上 |
+| 5 | 两人同时重连 | 各自读 `bossIntroTick` 恢复；都已过 INTRO 则直接 COMBAT |
+| 6 | Host 退出（LAN） | 若 Host 是服主，世界随 Host 关闭（原版行为）；专用服务器不受影响 |
+| 7 | Dedicated Server | 服务器实例只跑一次 Sequence；所有客户端只收状态/VFX 广播 |
+| 8 | Server restart | 读 SavedData 恢复；INTRO 中途重启→续播或安全跳 COMBAT（不永久无敌） |
+| 9 | Chunk unload/reload | Boss 卸载即停 Sequence 并存 state；重载续 CLEANUP/COMBAT |
+| 10 | 两人同时看 NPC | NPC 对话状态按玩家各自（DialogueNode per-player）；无共享互串 |
+| 11 | 两人同时打开功能方块 | `ContainerData` 同步 `deposited`；A 投料 B 进度条同步；输出先到先得 |
+| 12 | 两人同时触发秘密 | 世界级秘密只判一次；玩家级各自；`oneTime` 由 SecretTracker 持久化 |
+| 13 | A 有视觉资格，B 没有 | Camera/Overlay/Fog 绑 UUID，只 A 本地生效；B 不收 |
+| 14 | A 切维度 | A 本地 Camera/Overlay 恢复默认；原维度 B 继续 |
+| 15 | B 继续留在原维度 | B 的视觉/血条/演出不受 A 离开影响 |
+
+- 通用铁律：任何 Camera/Overlay/Fog/ScreenEdgeOverlay 都是**玩家本地**，绝不随视觉包广播；世界空间 VFX 只播附近 32 格。
+
+================================================================================
+13 Performance 预算
+================================================================================
+
+## 13.1 Server
+
+| 项 | 初始值 | 可调范围 |
+|---|---|---|
+| 单个普通 VFX 服务器逻辑最大 tick 成本 | ≤ 0.05ms | 0.02~0.1ms |
+| Boss Sequence 更新频率 | 每 tick 1 次状态推进，Step 回调惰性 | 不变 |
+| 区域扫描最大频率 | 每 20tick（复用 `DynastyTrinkets` 缓存思路） | 10~40tick |
+| 最大查询半径 | 64 格（Boss 播报/奇观 anchor） | 32~128 |
+| 最大逻辑 Projectile 数量 | 同屏 ≤ 64（含召唤物） | 32~128 |
+| BlockEntity tick 规则 | 8 个 Workshop 无逐 tick（事件驱动）；仅 `setChanged` 时同步 | 不变 |
+
+## 13.2 Client
+
+| 项 | Near | Medium | Far | 说明 |
+|---|---|---|---|---|
+| 最大粒子（单 VFX） | 见 COD3-3 各模板 | — | — | 按距离分级 |
+| 同屏大型 VFX 数量 | ≤ 3 | ≤ 2 | ≤ 1 | 大招并发 |
+| 大型 Visual 实例 | ≤ 40 | ≤ 16 | ≤ 4 | 骨片/飞剑等 |
+| NPC 动画更新距离 | 32 格 | 16 格 | 静止 | 超出停止动画 |
+| 奇观 LOD 距离 | >96 单轮廓 | 32-96 中模 | <32 细模 | 三档 |
+| Animation/Renderer 裁剪 | 超出 64 格不渲染 | — | — | 配合 `BossBarVisibility` |
+
+## 13.3 Network
+
+| 项 | 预算 |
+|---|---|
+| VFX packet 发送频率 | 只在 VFX 生命周期 SPAWN 时发 1 次（含 seed/参数），不逐 tick |
+| 禁止逐 tick 发完整 NBT | 只发 `delta`；NBT 仅在登录/区块加载发 |
+| Sequence 只发状态变化/校正 | 状态变化发 1 次；每 5s 发校正帧（`sequenceId,currentTick`） |
+| 晚加入同步最小字段 | `{sequenceId, bossId, currentTick, phase, bossInvulnerable, rewardGranted}` |
+| 世界空间 VFX 范围 | 附近 32 格（可配 24~64） |
+
+## 13.4 仍生效的硬性禁止（保留原规则）
+
+- 无界实体扫描 / 每 tick 遍历全玩家背包 / 每 tick 大规模 setBlock / 视觉粒子做 Entity / 大模型无 LOD / 每 tick 广播大 NBT / 本地 Camera 被他人技能修改 / RenderSystem 状态不恢复。
+
+================================================================================
+16 COD3_IMPLEMENTATION_TASKS（Coding Agent 可直接领取的任务索引）
+================================================================================
+
+> 每个任务控制在 30 分钟～3 小时可完成；`依赖` 标明前置。`[P]`=Priority（P0 最高）。
+
+| TASK ID | 内容 | 依赖 | 涉及现有文件 | 可能新增文件 | P | Scope | Acceptance |
+|---|---|---|---|---|---|---|---|
+| C3-DEATH-001 | `LivingDeathEvent`(HIGHEST) 拦截进入 DYING + `rewardGranted` 持久化 | 无 | DynastyBossCombat.java | BossDeathState.java | P0 | 2h | 死亡进入 DYING，奖励只发一次 |
+| C3-DEATH-002 | `DynastyBossDrops` 加 DYING 判定（clear 原版掉落，改 REWARD 发） | DEATH-001 | DynastyBossDrops.java | 无 | P0 | 1h | 无双份掉落；重启不双发 |
+| C3-VFX-001 | 建 `DynastyVfxDefinition` + `VfxInstance`（服务端 Shape/参数 + 客户端渲染骨架） | 无 | 无 | DynastyVfxDefinition.java | P0 | 3h | Shape→Hitbox 一致；1 个 LINE 模板可渲染 |
+| C3-VFX-003 | 落地 VFX-01~05（刀罡/剑气/枪芒/箭/火） | VFX-002 | 无 | 5 个模板实现 | P1 | 2h | 视觉区 == Hitbox；LOW 降级生效 |
+| C3-VFX-004 | 落地 VFX-06~13（雷/水/冰/风/土/阴/阳/煞） | VFX-002 | 无 | 8 个模板实现 | P1 | 2h | 同上 |
+| C3-VFX-005 | 落地 VFX-14~40（其余 27 个） | VFX-002 | 无 | 27 个模板实现 | P2 | 4h | 分批验收，不缩水 |
+| C3-UI-002 | `WorkshopMenu` + `WorkshopScreen`（176×166，共用骨架 + 8 种中央视觉） | UI-001 | WorkshopJei.java | WorkshopMenu/Screen.java | P0 | 3h | 8 块各自中央视觉；shift-click/hopper 正确 |
+| C3-UI-003 | 化髓槽样板验收（GUI+右键+JEI+多人同步） | UI-002 | LivingWorkshopBlock.java | 无 | P0 | 2h | 关 UI 继续；A 投料 B 同步；重启继续 |
+| C3-NPC-002 | 建 `DialogueNode`（textKey/conditions/choices/actions） | 无 | 无 | DialogueNode.java | P1 | 2h | 文本 lang 化，不硬编码 |
+| C3-NPC-003 | 落地 3 个功能 NPC（铁匠/校尉/行商）作模板 | NPC-001/002 | 无 | 3 个 NPC 类 | P1 | 3h | 生成/对话/功能可用 |
+| C3-SECRET-002 | 落地 3 类秘密模板（物品交互/时间天气/结构区域） | SECRET-001 | 无 | 3 个模板 | P1 | 2h | 触发/失败反馈/多人归属正确 |
+| C3-SCENIC-001 | 建 `ScenicEventDefinition`（NON_COMBAT + 客户端 DistantVisual） | 无 | 参考 WorldEventManager | ScenicEventDefinition.java | P2 | 3h | 无 AI 实体；离开/切维度恢复 |
+| C3-SCENIC-002 | 落地 3 个奇观模板（远景龙影/幽灵军阵/仙山） | SCENIC-001 | 无 | 3 个模板 | P2 | 2h | LOD 三档；reconnect 正确 |
+
+================================================================================
+17 COD3_TEST_MATRIX（统一测试矩阵）
+================================================================================
+
+| 覆盖项 | Setup | Action | Expected | FAIL condition |
+|---|---|---|---|---|
+| Singleplayer | 单机进 Boss Intro | 等 Intro 结束 | Boss 可被打、有血条 | 永久无敌/无血条 |
+| Dedicated Server | 专用服 2 人 | A 进 Intro，B 晚进 | B 续播，不重头 | B 重头/黑屏 |
+| 2 Players | 2 人同打 Boss | 死亡演出 | 奖励只发一次 | 双份掉落/双发 |
+| Restart | Intro 中途重启 | 重进世界 | 续播或安全 COMBAT | 卡死/永久无敌 |
+| Chunk unload | 演出中卸载区块 | 重载 | 状态恢复 | 卡在 DYING |
+| Dimension change | 演出中切维度 | 再切回 | 本地 Camera 恢复 | Overlay 残留 |
+| Death/respawn | 演出中死亡 | 复活 | 演出继续，不终止 | 全服 Intro 终止 |
+| Resource reload | 开 F3+T | 重载资源 | VFX/Renderer 恢复 | 渲染状态不恢复（黑屏） |
+| Low particle | 粒子调 LOW | 触发大招 | 只留主轮廓 | 仍满粒子/卡顿 |
+| First person | 第一人称挥武器 | 残影/拖尾 | 不遮挡准星、不黑屏 | 黑屏/遮挡 |
+| Third person | 第三人称挥武器 | 残影弧线 | 沿武器朝向 | 残影漂移 |
+| GUI Scale 2/3/4 | 开功能方块 GUI | 缩放界面 | tooltip 不越界、布局正确 | 错位/越界 |
+
+---（cod3_new.txt 完）---
+
+
+
+
+
+
+
+
+
+
+
+
+
+

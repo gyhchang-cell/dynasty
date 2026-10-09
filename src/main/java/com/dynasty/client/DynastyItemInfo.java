@@ -46,6 +46,7 @@ public final class DynastyItemInfo {
         if (id == null || !id.getNamespace().equals(com.dynasty.Dynasty.MODID)) {
             return out;
         }
+        if (stack.getItem() instanceof BlockItem || com.dynasty.infusion.InfusionTraits.material(stack) != null) return out;
         boolean zh = chinese();
         String path = id.getPath();
         String[] special = DynastyItemUsage.special(path);
@@ -80,8 +81,7 @@ public final class DynastyItemInfo {
             if (own != null) {
                 return own;
             }
-            return new String[]{"王朝方块：" + path + "（放置装饰用）。",
-                    "Dynasty block: " + path + "."};
+            return null;
         }
         if (path.endsWith("_spawn_egg")) {
             return new String[]{"刷怪蛋：右键地面放出该生物。",
@@ -109,8 +109,7 @@ public final class DynastyItemInfo {
             return new String[]{"工具：挖掘方块，兼顾强力攻击。",
                     "Tool: mines blocks and hits hard."};
         }
-        return new String[]{"王朝物品：可用于合成、交易或收藏（详见王朝图鉴）。",
-                "Dynasty item: used for crafting, trade or collection (see the Codex)."};
+        return null;
     }
 
     /** 是否为本模组物品 / whether the stack belongs to this mod */

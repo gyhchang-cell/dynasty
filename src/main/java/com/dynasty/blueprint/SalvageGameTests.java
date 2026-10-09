@@ -60,7 +60,7 @@ public final class SalvageGameTests {
         h.succeed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=30,batch="salvage")
-    public static void allRepairProfilesAcceptMatchingGearAndPreserveForeignData(GameTestHelper h){
+    public static void specialMaterialsNoLongerProvideGenericAnvilRepair(GameTestHelper h){
         var p=player(h);var menu=new AnvilMenu(0,p.getInventory());
         for(var pair:new String[][]{
             {"tough_toad_hide","minecraft:leather_chestplate"},{"rusted_helmet_spike","minecraft:iron_helmet"},{"tough_bamboo_sliver","minecraft:bow"},{"paper_cutting_knife","minecraft:shears"},{"wronged_shroud","minecraft:leather_helmet"},{"strongman_wrist_weight","minecraft:chainmail_chestplate"},{"broken_iron_blade","minecraft:iron_sword"},{"broken_iron_blade","tie_jian"},{"coarse_linen","minecraft:leather_helmet"},{"heavy_shield_remnant","minecraft:shield"},
@@ -74,7 +74,7 @@ public final class SalvageGameTests {
             base.setDamageValue(Math.min(100,base.getMaxDamage()/2));base.getOrCreateTag().putString("foreign","keep");
             menu.getSlot(0).set(base);menu.getSlot(1).set(new ItemStack(item(pair[0]),4));menu.createResult();
             var output=menu.getSlot(2).getItem();
-            h.assertTrue(!output.isEmpty()&&output.getDamageValue()==0&&output.getTag().getString("foreign").equals("keep"),"Actual anvil recipe for "+pair[0]);
+            h.assertTrue(output.isEmpty()&&base.getTag().getString("foreign").equals("keep"),"No generic anvil repair for "+pair[0]);
         }
         var advancedBow=new ItemStack(item("chang_gong"));advancedBow.setDamageValue(100);
         h.assertTrue(advancedBow.isDamageableItem()&&advancedBow.getItem() instanceof BowItem,"Negative fixture uses actual Dynasty bow");

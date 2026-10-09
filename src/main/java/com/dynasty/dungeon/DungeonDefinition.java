@@ -32,7 +32,7 @@ public record DungeonDefinition(ResourceLocation id, ResourceLocation dimension,
         new ResourceLocation("dynasty:chensha_xuangong"),new ResourceLocation("minecraft:overworld"),
         List.of(new ResourceLocation("dynasty:dungeons/chensha")),"Dry desert/badlands; underground; bounded relief",8192,4096,106101,2500,
         "sealed_mound",List.of("shendao","nine_chambers","imperial_vault","mercury_lock","artisan_secret","lift_shaft"),
-        "zhaoming_di",List.of("pilin_zhijinwu","juchui_jinjia_lishi"),List.of("zuwu_daoshou","juma_changqiangbing","shashui_funigui","muxue_feilu"),
+        "zhaoming_emperor",List.of("pilin_zhijinwu","juchui_jinjia_lishi"),List.of("zuwu_daoshou","juma_changqiangbing","shashui_funigui","muxue_feilu"),
         List.of("poison_arrow","resettable_floor","mercury_lock"),List.of("artisan_supplies","imperial_coffin"),
         List.of("return_lift"),List.of("artisan_secret"),"cod2_chensha_v1",List.of("chensha_first_kill"));
 }

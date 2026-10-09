@@ -11,10 +11,20 @@ import net.minecraftforge.network.simple.SimpleChannel;
  */
 public class DynastyNetwork {
 
-    // Base wire schema 9; extensions also advertise IDs, payload revision and direction.
-    // A cod3-only peer must never accept a cod6-only peer merely sharing a version.
-    private static final java.util.SortedMap<Integer,String> EXTENSIONS = new java.util.TreeMap<>();
-    public static String protocolVersion() { return "9/" + EXTENSIONS; }
+    // Freeze the full extension schema before Forge snapshots the channel supplier.
+    // Independent base revisions prevent unrelated menu/payload changes sharing a version.
+    private static final java.util.SortedMap<Integer,String> EXTENSIONS = java.util.Collections.unmodifiableSortedMap(
+            new java.util.TreeMap<>(java.util.Map.of(
+                    12, "com.dynasty.cod3.Cod3VisualPacket:PLAY_TO_CLIENT:v1",
+                    13, "com.dynasty.network.EdictCastPacket:PLAY_TO_SERVER:v1",
+                    14, "com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v1",
+                    15, "com.dynasty.worldevent.WorldEventStatePacket:PLAY_TO_CLIENT:v1",
+                    17, "com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1")));
+    private static final java.util.Set<Integer> REGISTERED_EXTENSIONS = new java.util.HashSet<>();
+    public static String protocolVersion() {
+        return "11/keju=" + OpenKejuPacket.WIRE_REVISION + "/army="
+                + com.dynasty.army.ArmyMenu.LAYOUT_REVISION + "/" + EXTENSIONS;
+    }
     public static boolean acceptsProtocol(String remote) { return protocolVersion().equals(remote); }
 
     public static <T> void registerExtension(int packetId, Class<T> type,
@@ -22,9 +32,12 @@ public class DynastyNetwork {
             java.util.function.Function<net.minecraft.network.FriendlyByteBuf,T> decoder,
             java.util.function.BiConsumer<T,java.util.function.Supplier<net.minecraftforge.network.NetworkEvent.Context>> handler,
             net.minecraftforge.network.NetworkDirection direction, int wireRevision) {
-        if (packetId < 12 || EXTENSIONS.containsKey(packetId))
+        if (packetId < 12 || REGISTERED_EXTENSIONS.contains(packetId))
             throw new IllegalArgumentException("Reserved or duplicate Dynasty packet ID: " + packetId);
-        EXTENSIONS.put(packetId, type.getName() + ":" + direction + ":v" + wireRevision);
+        String schema = type.getName() + ":" + direction + ":v" + wireRevision;
+        if (!schema.equals(EXTENSIONS.get(packetId)))
+            throw new IllegalArgumentException("Dynasty packet is missing from the frozen wire schema: " + packetId);
+        REGISTERED_EXTENSIONS.add(packetId);
         CHANNEL.registerMessage(packetId, type, encoder, decoder, handler, java.util.Optional.of(direction));
     }
 
@@ -71,5 +84,10 @@ public class DynastyNetwork {
                 com.dynasty.blueprint.BlueprintVisualEvent::decode,
                 com.dynasty.blueprint.BlueprintVisualEvent::handle,
                 java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
+        // IDs 12-16 belong to cod3/edict/world-event/combat-feedback extensions.
+        registerExtension(17, com.dynasty.infusion.InfusionRequest.class,
+                com.dynasty.infusion.InfusionRequest::encode, com.dynasty.infusion.InfusionRequest::decode,
+                com.dynasty.infusion.InfusionRequest::handle,
+                net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER, 1);
     }
 }

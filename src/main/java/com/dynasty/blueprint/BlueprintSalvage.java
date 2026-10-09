@@ -6,12 +6,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.event.AnvilUpdateEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.RegistryObject;
 
-/** Real recovered components: vanilla anvil owns inventory/XP consumption and multiplayer updates. */
+/** Original recovered materials; infusion owns their equipment uses. */
 @Mod.EventBusSubscriber(modid="dynasty")
 public final class BlueprintSalvage {
     public static final RegistryObject<Item> COLD_PALANQUIN_CURTAIN=plain("cold_palanquin_curtain"), WHITE_SILK_STRIP=plain("white_silk_strip"), BROKEN_JADE_HAIRPIN=plain("broken_jade_hairpin"), YIN_CONDENSED_CORE=plain("yin_condensed_core");
@@ -117,27 +115,7 @@ public final class BlueprintSalvage {
     private BlueprintSalvage(){}
     static void bootstrap(){}
     private static final class ComponentItem extends Item {
-        final Use use;
-        ComponentItem(Use use){super(new Properties());this.use=use;}
-        boolean accepts(ItemStack stack){
-            var iron=new ItemStack(Items.IRON_INGOT);
-            boolean tool=stack.getItem() instanceof TieredItem item&&item.getTier().getRepairIngredient().test(iron);
-            boolean armor=stack.getItem() instanceof ArmorItem item&&item.getMaterial().getRepairIngredient().test(iron);
-            return switch(use){case IRON_AXE->tool&&stack.getItem() instanceof AxeItem;case IRON_SWORD->tool&&stack.getItem() instanceof SwordItem;
-                case IRON_GEAR->tool||armor;case IRON_ARMOR->armor;
-                case SHEARS->stack.is(Items.SHEARS);
-                case SHIELD->stack.is(Items.SHIELD);
-                case CHAINMAIL->stack.getItem() instanceof ArmorItem item&&item.getMaterial()==ArmorMaterials.CHAIN;
-                case BOWS->stack.is(Items.BOW)||stack.is(Items.CROSSBOW);
-                case CROSSBOW->stack.is(Items.CROSSBOW);
-                case LEATHER_BOOTS->stack.getItem() instanceof ArmorItem item&&item.getMaterial()==ArmorMaterials.LEATHER&&item.getType()==ArmorItem.Type.BOOTS;
-                case LEATHER_ARMOR->stack.getItem() instanceof ArmorItem item&&item.getMaterial()==ArmorMaterials.LEATHER;
-                case JADE_GEAR->stack.getItem() instanceof TieredItem toolItem&&toolItem.getTier().getRepairIngredient().test(new ItemStack(com.dynasty.DynastyItems.JADE.get()))
-                    ||stack.getItem() instanceof ArmorItem armorItem&&armorItem.getMaterial().getRepairIngredient().test(new ItemStack(com.dynasty.DynastyItems.JADE.get()));};
-        }
-        @Override public void appendHoverText(ItemStack stack,@Nullable Level level,List<Component> lines,TooltipFlag flag){
-            lines.add(Component.translatable("tooltip.dynasty.salvage."+use.name().toLowerCase(java.util.Locale.ROOT)).withStyle(ChatFormatting.GRAY));
-        }
+        ComponentItem(Use ignored){super(new Properties());}
     }
     private static final class Antidote extends Item {
         Antidote(){super(new Properties().food(new net.minecraft.world.food.FoodProperties.Builder().nutrition(0).saturationMod(0).alwaysEat().build()));}
@@ -148,20 +126,5 @@ public final class BlueprintSalvage {
         @Override public void appendHoverText(ItemStack stack,@Nullable Level level,List<Component> lines,TooltipFlag flag){
             lines.add(Component.translatable("tooltip.dynasty.green_beast_gall").withStyle(ChatFormatting.GRAY));
         }
-    }
-    @SubscribeEvent public static void repair(AnvilUpdateEvent event){
-        var base=event.getLeft();var material=event.getRight();
-        if(!(material.getItem() instanceof ComponentItem part)||base.getCount()!=1||!base.isDamaged()||!part.accepts(base))return;
-        int perPart=Math.max(1,base.getMaxDamage()/4);
-        int count=Math.min(material.getCount(),(base.getDamageValue()+perPart-1)/perPart);
-        var output=base.copy();output.setDamageValue(Math.max(0,base.getDamageValue()-count*perPart));
-        if(event.getName()!=null){
-            if(event.getName().isBlank())output.resetHoverName();
-            else if(!event.getName().equals(base.getHoverName().getString()))output.setHoverName(Component.literal(event.getName()));
-        }
-        // Respect accumulated prior work. Clamp arithmetic; never turn a huge NBT value into negative/free cost.
-        long prior=Math.max(0,base.getBaseRepairCost());
-        event.setCost((int)Math.min(Integer.MAX_VALUE,prior+count+1));event.setMaterialCost(count);
-        output.setRepairCost((int)Math.min(Integer.MAX_VALUE,prior*2+1));event.setOutput(output);
     }
 }
