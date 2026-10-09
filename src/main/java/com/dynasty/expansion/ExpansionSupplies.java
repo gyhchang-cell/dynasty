@@ -15,7 +15,14 @@ import net.minecraft.network.chat.Component;
 
 public final class ExpansionSupplies extends Item {
     public static final int GUIDE_TICKS=1200;
-    private static final String GUIDE="cod4Guide";
+    private static final String GUIDE="cod4Guide", WARM="cod4WarmUntil", WARM_DIM="cod4WarmDimension";
+    public static final int WARM_TICKS=1200;
+    public static boolean warmWine(ItemStack stack){return stack.is(ExpansionContent.item("marching_wine"))&&stack.hasTag()&&stack.getTag().getBoolean("cod4WarmWine");}
+    public static boolean warm(Player p){
+        var d=p.getPersistentData();long remaining=d.getLong(WARM)-p.level().getGameTime();
+        return remaining>0&&remaining<=WARM_TICKS&&d.getString(WARM_DIM).equals(p.level().dimension().location().toString());
+    }
+    private static void clearWarm(Player p){p.getPersistentData().remove(WARM);p.getPersistentData().remove(WARM_DIM);}
     private final String kind;
     ExpansionSupplies(String kind) {
         super(new Properties().stacksTo(16).food(new FoodProperties.Builder().nutrition(kind.equals("army_ration")?10:0).saturationMod(kind.equals("army_ration")?1.2F:0).alwaysEat().build()));
@@ -23,7 +30,9 @@ public final class ExpansionSupplies extends Item {
     }
     @Override public UseAnim getUseAnimation(ItemStack s) { return kind.endsWith("wine")?UseAnim.DRINK:UseAnim.EAT; }
     @Override public ItemStack finishUsingItem(ItemStack s,Level level,LivingEntity user) {
+        boolean coldWine=warmWine(s);
         if(!level.isClientSide && user instanceof ServerPlayer p) {
+            if(coldWine){p.getPersistentData().putLong(WARM,level.getGameTime()+WARM_TICKS);p.getPersistentData().putString(WARM_DIM,level.dimension().location().toString());p.removeEffect(ExpansionEffects.FROST.get());}
             switch(kind) {
                 case "regen_pill" -> { p.heal(p.getMaxHealth()*.12F);p.addEffect(new MobEffectInstance(MobEffects.REGENERATION,100,1)); }
                 case "qi_pill" -> {
@@ -47,7 +56,12 @@ public final class ExpansionSupplies extends Item {
             p.getCooldowns().addCooldown(this,kind.equals("guide_incense")?1200:200);
             CombatFeedback.send(p,CombatFeedback.HEAL);
         }
-        return super.finishUsingItem(s,level,user);
+        var result=super.finishUsingItem(s,level,user);
+        if(coldWine&&user instanceof Player p&&!p.getAbilities().instabuild){
+            var bottle=new ItemStack(Items.GLASS_BOTTLE);if(result.isEmpty())return bottle;
+            if(!level.isClientSide&&!p.getInventory().add(bottle))p.drop(bottle,false);
+        }
+        return result;
     }
     public static void locate(ServerPlayer p) {
         var tag=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ritual_sites"));
@@ -77,9 +91,12 @@ public final class ExpansionSupplies extends Item {
     @net.minecraftforge.fml.common.Mod.EventBusSubscriber(modid="dynasty")
     public static final class Guidance {
         @net.minecraftforge.eventbus.api.SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.PlayerTickEvent e){
-            if(e.phase==net.minecraftforge.event.TickEvent.Phase.END && e.player instanceof ServerPlayer p && p.tickCount%20==0)updateGuide(p);
+            if(e.phase==net.minecraftforge.event.TickEvent.Phase.END && e.player instanceof ServerPlayer p && p.tickCount%20==0){updateGuide(p);if(p.getPersistentData().contains(WARM)&&!warm(p))clearWarm(p);}
         }
-        @net.minecraftforge.eventbus.api.SubscribeEvent public static void dimension(net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent e){e.getEntity().getPersistentData().remove(GUIDE);}
-        @net.minecraftforge.eventbus.api.SubscribeEvent public static void clone(net.minecraftforge.event.entity.player.PlayerEvent.Clone e){e.getEntity().getPersistentData().remove(GUIDE);}
+        @net.minecraftforge.eventbus.api.SubscribeEvent public static void dimension(net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent e){e.getEntity().getPersistentData().remove(GUIDE);clearWarm(e.getEntity());}
+        @net.minecraftforge.eventbus.api.SubscribeEvent public static void clone(net.minecraftforge.event.entity.player.PlayerEvent.Clone e){e.getEntity().getPersistentData().remove(GUIDE);clearWarm(e.getEntity());}
+        @net.minecraftforge.eventbus.api.SubscribeEvent public static void frost(net.minecraftforge.event.entity.living.MobEffectEvent.Applicable e){
+            if(e.getEntity() instanceof Player p&&!p.level().isClientSide&&e.getEffectInstance().getEffect()==ExpansionEffects.FROST.get()&&warm(p))e.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
+        }
     }
 }

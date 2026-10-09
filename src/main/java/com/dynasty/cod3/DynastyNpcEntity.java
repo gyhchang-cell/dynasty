@@ -109,6 +109,11 @@ public final class DynastyNpcEntity extends AbstractVillager implements software
             case "hei_po"->{
                 exchange("python_gall",1,"healing_salve",2,8);
                 exchange("locust_dust",2,"healing_salve",1,8);
+                var gu=com.dynasty.expansion.MaterialBrews.gu();
+                var gall=new ItemStack(item("python_gall"));var dust=new ItemStack(item("locust_dust"),2);
+                if(getOffers().stream().noneMatch(o->ItemStack.isSameItemSameTags(o.getBaseCostA(),gall)&&o.getBaseCostA().getCount()==1
+                    &&ItemStack.isSameItemSameTags(o.getCostB(),dust)&&o.getCostB().getCount()==2&&ItemStack.isSameItemSameTags(o.getResult(),gu)))
+                    getOffers().add(new MerchantOffer(gall,dust,gu,8,0,0));
             }
             case "huang_laohan"->{
                 buy("crab_shell",2,6);buy("kappa_scale",2,8);
