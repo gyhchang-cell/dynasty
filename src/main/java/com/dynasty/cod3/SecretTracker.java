@@ -57,8 +57,15 @@ public final class SecretTracker extends SavedData {
                 &&p.serverLevel().getBlockState(pos).is(com.dynasty.expansion.SmallInteractions.ENTRIES.get(id).get());
     }
     private static boolean verifiedSite(ServerPlayer p,int n,BlockPos pos){
-        if(n!=8&&n!=30)return false;String id=n==8?"ancient_well":"puzzle_box";
+        if(n!=8&&n!=30&&n!=29)return false;String id=n==8?"ancient_well":n==30?"puzzle_box":"mortuary_room";
         if(!siteContext(p,pos,id))return false;var state=progress(p,n);var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);
+        if(n==29){
+            if(!state.hasUUID("Victim"))return false;var victim=p.serverLevel().getEntity(state.getUUID("Victim"));
+            return victim instanceof com.dynasty.cod3.DynastyNpcEntity npc&&npc.isAlive()&&npc.getPersistentData().hasUUID("cod4_mortuary_owner")&&npc.getPersistentData().getUUID("cod4_mortuary_owner").equals(p.getUUID())
+                    &&npc.getPersistentData().getLong("cod4_mortuary_anchor")==pos.asLong()&&npc.distanceToSqr(Vec3.atCenterOf(pos))<=16&&npc.getHealth()>state.getFloat("HealthBefore")
+                    &&state.contains("SiteReady")&&state.getLong("SiteReady")==pos.asLong()&&state.getString("SiteDimension").equals(p.level().dimension().location().toString())
+                    &&site.contains("site_mortuary_room_start")&&p.level().getGameTime()-site.getLong("site_mortuary_room_start")>=2400;
+        }
         return state.contains("SiteReady")&&state.getLong("SiteReady")==pos.asLong()&&state.getString("SiteDimension").equals(p.serverLevel().dimension().location().toString())
                 &&state.getInt("Count")>=(n==8?7:4)&&site.contains("site_"+id+"_start")&&p.level().getGameTime()-site.getLong("site_"+id+"_start")>=(n==8?3600:2400);
     }
@@ -91,6 +98,21 @@ public final class SecretTracker extends SavedData {
         return new WaterDelivery(true,claimed,delivered);
     }
     public record PuzzleStep(boolean accepted,boolean claimed,int count,boolean reset) {}
+    public static boolean mortuaryClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,29,SecretDefinition.of(29));}
+    /** Native healing effect and original potion payment/claim; no item-only rescue. */
+    public static boolean rescueMortuary(ServerPlayer p,BlockPos pos,com.dynasty.cod3.DynastyNpcEntity victim){
+        if(!siteContext(p,pos,"mortuary_room")||mortuaryClaimed(p)||victim==null||victim.level()!=p.level()||!victim.isAlive()||victim.getHealth()>=victim.getMaxHealth()
+                ||victim.distanceToSqr(Vec3.atCenterOf(pos))>16||!victim.getPersistentData().hasUUID("cod4_mortuary_owner")||!victim.getPersistentData().getUUID("cod4_mortuary_owner").equals(p.getUUID())
+                ||victim.getPersistentData().getLong("cod4_mortuary_anchor")!=pos.asLong()||!victim.getPersistentData().getBoolean("cod4_mortuary_waiting"))return false;
+        var site=com.dynasty.expansion.EquipmentBehaviors.saved(p);long now=p.level().getGameTime();
+        if(!site.contains("site_mortuary_room_start")||now<site.getLong("site_mortuary_room_next")||now-site.getLong("site_mortuary_room_start")<2400||!conditions(p,29,pos,SecretDefinition.Trigger.USE_ITEM_AT_POS))return false;
+        float before=victim.getHealth();net.minecraft.world.effect.MobEffects.HEAL.applyInstantenousEffect(p,p,victim,0,1);
+        if(victim.getHealth()<=before)return false;
+        var state=progress(p,29);state.putUUID("Victim",victim.getUUID());state.putFloat("HealthBefore",before);state.putLong("SiteReady",pos.asLong());state.putString("SiteDimension",p.level().dimension().location().toString());
+        boolean claimed=get(p.serverLevel()).claim(p,29,pos);
+        if(claimed){victim.getPersistentData().putBoolean("cod4_mortuary_waiting",false);victim.getPersistentData().remove("cod3_react_until");victim.setNoAi(false);victim.setInvulnerable(false);}
+        return claimed;
+    }
     public static boolean puzzleClaimed(ServerPlayer p){return !get(p.serverLevel()).available(p,30,SecretDefinition.of(30));}
     public static int puzzleCount(ServerPlayer p){return Math.min(4,Math.max(0,progress(p,30).getInt("Count")));}
     /** Four cardinal presses reuse secret 30; original stand/sneak alternation is retained. */

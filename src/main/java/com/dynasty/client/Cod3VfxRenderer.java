@@ -103,6 +103,8 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("secondary_alarm"))geometry.alarm(life);
                 else if(p.sequence().equals("equipment_beidou_stride"))geometry.starStride(age);
                 else if(p.sequence().equals("equipment_phoenix_embers"))geometry.phoenixEmbers(age,life);
+                else if(p.sequence().equals("equipment_mortuary_breath"))geometry.patientBreath(age,false);
+                else if(p.sequence().equals("equipment_mortuary_rescued"))geometry.patientBreath(age,true);
                 else if(p.sequence().equals("site_bellows"))geometry.bellows(life);
                 else if(p.sequence().equals("site_waterwheel"))geometry.waterwheel(age);
                 else if(p.sequence().equals("site_puzzle_press"))geometry.puzzle(life,false);
@@ -206,6 +208,18 @@ public final class Cod3VfxRenderer {
                 double a=i*Math.PI*2/5+age*.12,x=Math.cos(a)*(.35+life*.3),z=Math.sin(a)*(.35+life*.3),y=.7+life*.5;
                 triangle(p(x-.06,y-.10,z),p(x+.06,y-.10,z),p(x,y+.18,z),.95);mesh(x,y+.18,z,.035);
             }
+        }
+        void patientBreath(double age,boolean rescued){
+            double breath=Math.sin(age*Math.PI/15)*.045;
+            // Small paired chest strokes breathe; rescue raises the pulse.
+            for(int side=-1;side<=1;side+=2){
+                Vec3 last=p(side*.06,.85,0);
+                for(int step=1;step<=8;step++){
+                    double t=step/8.,y=.85+Math.sin(t*Math.PI)*(.09+breath)+(rescued?t*.2:0);
+                    Vec3 next=p(side*(.06+t*.2),y,0);beam(last,next,.025);last=next;
+                }
+            }
+            if(rescued)mesh(0,1.05+age*.006,0,.055);
         }
         void puzzle(double life,boolean open){
             double slide=open?Math.min(1,life/.55)*.7:Math.sin(Math.PI*life)*.12;

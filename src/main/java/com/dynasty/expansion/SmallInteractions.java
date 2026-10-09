@@ -35,6 +35,7 @@ public final class SmallInteractions {
             var root=EquipmentBehaviors.saved(p);String key="site_"+id;
             if(id.equals("ancient_well"))return useWell((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("puzzle_box"))return usePuzzle((net.minecraft.server.level.ServerLevel)level,pos,p);
+            if(id.equals("mortuary_room")&&!p.getMainHandItem().is(Items.MILK_BUCKET))return useMortuary((net.minecraft.server.level.ServerLevel)level,pos,p);
             if(id.equals("broken_waterwheel")&&state.getValue(REPAIRED)){
                 root.putBoolean(key+"_done",true);
                 com.dynasty.cod3.Cod3WorldState.get((net.minecraft.server.level.ServerLevel)level).unlock((net.minecraft.server.level.ServerLevel)level,"world_02");
@@ -118,6 +119,48 @@ public final class SmallInteractions {
             com.dynasty.DynastyAdvancements.award(p,"cod4_"+id);
             CombatFeedback.send(p,CombatFeedback.HEAL);return InteractionResult.CONSUME;
         }
+    }
+    /** A per-player existing refugee identity; native entity NBT owns the patient. */
+    public static java.util.UUID mortuaryVictimId(net.minecraft.server.level.ServerLevel level,BlockPos pos,java.util.UUID owner){
+        return java.util.UUID.nameUUIDFromBytes(("cod4:mortuary:"+level.dimension().location()+":"+pos.asLong()+":"+owner).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+    private static com.dynasty.cod3.DynastyNpcEntity mortuaryVictim(net.minecraft.server.level.ServerLevel level,BlockPos pos,ServerPlayer p){
+        var uuid=mortuaryVictimId(level,pos,p.getUUID());var existing=level.getEntity(uuid);
+        if(existing!=null)return existing instanceof com.dynasty.cod3.DynastyNpcEntity npc?npc:null;
+        var npc=com.dynasty.cod3.NpcContent.NPCS.get("a_ji").get().create(level);if(npc==null)return null;
+        npc.setUUID(uuid);npc.home(pos);npc.setHealth(4);npc.setNoAi(true);npc.setInvulnerable(true);
+        npc.setCustomName(Component.translatable("message.dynasty.cod4.mortuary_patient"));npc.setCustomNameVisible(false);
+        var n=npc.getPersistentData();n.putUUID("cod4_mortuary_owner",p.getUUID());n.putLong("cod4_mortuary_anchor",pos.asLong());n.putBoolean("cod4_mortuary_waiting",true);n.putLong("cod3_react_until",Long.MAX_VALUE);
+        for(var direction:new net.minecraft.core.Direction[]{net.minecraft.core.Direction.NORTH,net.minecraft.core.Direction.EAST,net.minecraft.core.Direction.SOUTH,net.minecraft.core.Direction.WEST})for(int distance=1;distance<=2;distance++){
+            var at=pos.relative(direction,distance);if(!level.hasChunkAt(at)||!level.getWorldBorder().isWithinBounds(at)||!level.getBlockState(at.below()).isFaceSturdy(level,at.below(),net.minecraft.core.Direction.UP))continue;
+            npc.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(at));
+            if(level.noCollision(npc,npc.getBoundingBox())&&level.addFreshEntity(npc))return npc;
+        }
+        return null;
+    }
+    private static InteractionResult useMortuary(net.minecraft.server.level.ServerLevel level,BlockPos pos,ServerPlayer p){
+        if(!p.isAlive()||p.isSpectator()||!level.hasChunkAt(pos)||p.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos))>36)return InteractionResult.PASS;
+        var root=EquipmentBehaviors.saved(p);String key="site_mortuary_room";long now=level.getGameTime();
+        if(com.dynasty.cod3.SecretTracker.mortuaryClaimed(p)){
+            root.putBoolean(key+"_done",true);com.dynasty.DynastyAdvancements.award(p,"cod4_mortuary_room");
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.site_done"),true);return InteractionResult.CONSUME;
+        }
+        var victim=mortuaryVictim(level,pos,p);
+        if(victim==null||!victim.isAlive()){p.displayClientMessage(Component.translatable("message.dynasty.cod4.mortuary_space"),false);return InteractionResult.CONSUME;}
+        if(!root.contains(key+"_breath_at")||now-root.getLong(key+"_breath_at")>=20){
+            root.putLong(key+"_breath_at",now);com.dynasty.cod3.Cod3Vfx.actor(victim,"mortuary_breath",30,1,0xa4c5c5);
+        }
+        p.displayClientMessage(Component.translatable("message.dynasty.cod4.mortuary_clue"),false);
+        if(!root.contains(key+"_start")){root.putLong(key+"_start",now);root.putLong(key+"_next",now+2400);}
+        if(now<root.getLong(key+"_next")||now-root.getLong(key+"_start")<2400){
+            p.displayClientMessage(Component.translatable("message.dynasty.cod4.wait",Math.max(1,(root.getLong(key+"_next")-now+19)/20)),true);return InteractionResult.CONSUME;
+        }
+        if(!com.dynasty.cod3.SecretTracker.rescueMortuary(p,pos,victim))return InteractionResult.CONSUME;
+        boolean oldDone=root.getBoolean(key+"_done");root.putBoolean(key+"_done",true);root.putInt(key+"_count",Math.max(1,root.getInt(key+"_count")));
+        if(!oldDone){p.removeEffect(ExpansionEffects.YIN.get());p.removeEffect(ExpansionEffects.SOUL.get());}
+        com.dynasty.DynastyAdvancements.award(p,"cod4_mortuary_room");com.dynasty.cod3.Cod3Vfx.actor(victim,"mortuary_rescued",30,1,0xb8daa2);
+        p.displayClientMessage(Component.translatable("message.dynasty.cod4.mortuary_rescued"),false);
+        level.playSound(null,victim.blockPosition(),net.minecraft.sounds.SoundEvents.VILLAGER_YES,net.minecraft.sounds.SoundSource.NEUTRAL,.5F,.8F);return InteractionResult.CONSUME;
     }
     private static void puzzleClue(ServerPlayer p,boolean reset){
         int count=com.dynasty.cod3.SecretTracker.puzzleCount(p);String[] directions={"north","east","south","west"};
