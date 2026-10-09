@@ -21,13 +21,15 @@ public final class InfusionTraits {
         public Component name(){return Component.translatable(nameKey);}
         public Component description(){return Component.translatable(descriptionKey);}
         private boolean meleeOnly(){return Set.of("shanxiao_claw","baihu_fang","heavy_stagger","backstrike","air_step").contains(effect);}
-        public Component applicability(){return Component.translatable("infusion.dynasty."+(effect.equals("cold_ward")?"LEATHER":effect.equals("hunter_mark")?"RANGED":meleeOnly()?"MELEE":kind.name()));}
+        public Component applicability(){return Component.translatable("infusion.dynasty."+(effect.equals("cold_ward")?"LEATHER":effect.equals("hunter_mark")?"RANGED":material.equals("wolf_fang")?"MELEE_OR_FANG":meleeOnly()?"MELEE":kind.name()));}
         public boolean accepts(ItemStack stack){
             if(!eligible(stack))return false;
             if(effect.equals("cold_ward")&&(!(stack.getItem() instanceof ArmorItem armor)
                     ||armor.getMaterial()!=ArmorMaterials.LEATHER&&armor.getMaterial()!=com.dynasty.DynastyArmorMaterials.LEATHER))return false;
             boolean ranged=stack.getItem() instanceof ProjectileWeaponItem;
             if(meleeOnly()&&ranged||effect.equals("hunter_mark")&&!ranged)return false;
+            // Original claw accessory can carry its material-owned melee pursuit; no other weapon trait is broadened.
+            if(material.equals("wolf_fang")&&stack.is(com.dynasty.expansion.ExpansionContent.item("tiger_claw")))return true;
             boolean defense=stack.getItem() instanceof ArmorItem||stack.getItem() instanceof ShieldItem||accessory(stack);
             return kind==Kind.BOTH||(kind==Kind.ARMOR)==defense;
         }

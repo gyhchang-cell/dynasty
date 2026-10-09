@@ -108,12 +108,14 @@ for row in rows:
         if ident=='ancient_well':mode.append('7 actual water buckets -> 7 retained empty buckets; interval 515 ticks and total >=3600 ticks; original native secret 8 -> 1 jade once per player/dimension; legacy Site completion/counters retained, only missing native reward earned; no old cleanse/payment/reward replay')
     trade={'fox_pelt':'baibao_jin: 2 -> 6 copper','wolf_fang':'ba_tu: 2 -> 5 copper','python_gall':'hei_po: 1 -> 2 healing_salve','locust_dust':'hei_po: 2 -> 1 healing_salve','crab_shell':'huang_laohan: 2 -> 6 copper','kappa_scale':'huang_laohan: 2 -> 8 copper'}
     if ident in trade:
-        remaining={'fox_pelt':'none; client/survival acceptance still pending','wolf_fang':'gray wolf fang ornament','crab_shell':'crab general ornament','kappa_scale':'none; actual client/survival acceptance pending','python_gall':'Hei Po gu brewing and cold-resistance wine','locust_dust':'poison smoke bomb, gu brewing and crop insect control'}
+        remaining={'fox_pelt':'none; client/survival acceptance still pending','wolf_fang':'none; native gray-wolf fang recipe -> original tiger_claw with legal wolf_fang slot, recipe discovery on material obtain; actual client/survival pending','crab_shell':'none; native crab-soldier shell recipe -> original scale_plate with legal crab_shell slot, recipe discovery on material obtain; actual client/survival pending','kappa_scale':'none; actual client/survival acceptance pending','python_gall':'Hei Po gu brewing and cold-resistance wine','locust_dust':'poison smoke bomb, gu brewing and crop insect control'}
         mode.append('actual native material trade '+trade[ident]+'; remaining specific function: '+remaining[ident])
     if ident=='sprite_jade':
         mode.append('Existing jade_mending_forge shift-use consumes one stone-sprite jade only when actually clearing BREAK, recipe/deposits untouched; lapidary_bench replaces only its one dragon-crystal ingredient with one actual stone-sprite jade, original costs/output retained and JEI alternatives use the same Recipe.choices; native ordered hand/sided inputs, Paid item/NBT receipts, original Deposited-only save migration and exact native demolition refund; existing stone-idol SecretTracker 16 original Edict Brush gesture consumes carried sprite_jade OR original cinnabar and original player/dimension blueprint receipt, no duplicate reward engine')
         row['PROGRESS_HOOK']+='; LivingWorkshopBlock.use -> original cleanse; WorkshopRecipes.choices -> WorkshopBlockEntity/WorkshopMenu actual ordered payments/refunds; original StoryAnchor and SecretTracker.interact/payment/claim(16)'
-    infusions={'fox_pelt':'cold_ward, vanilla/Dynasty leather only: 20% freeze reduction + 8 fewer frozen ticks per second', 'wolf_fang':'existing shanxiao_claw third-hit pursuit on melee weapons; original family/cooldown', 'crab_shell':'existing retaliation on defensive equipment including sea_silk Dragon Palace light armor', 'kappa_scale':'existing water_ward on defensive equipment including original sea_pearl; native water combat trigger'}
+    infusions={'fox_pelt':'cold_ward, vanilla/Dynasty leather only: 20% freeze reduction + 8 fewer frozen ticks per second', 'wolf_fang':'existing shanxiao_claw third-hit pursuit on melee weapons OR worn original tiger_claw variant, native primary hit only, one shared set/combo/cooldown', 'crab_shell':'existing retaliation on defensive equipment including sea_silk Dragon Palace light armor', 'kappa_scale':'existing water_ward on defensive equipment including original sea_pearl; native water combat trigger'}
+    if ident in ('wolf_fang','crab_shell'):
+        row['PROGRESS_HOOK']+='; ContentProgress actual material obtain -> native variant recipe book; original CraftingMenu/ResultSlot payment and stack-owned DynastyInfusion; actual Curios same original slot -> InfusionCombat shared primary combo/retaliation'
     if ident=='kappa_scale':
         mode.append('Native VillagerProfession.FISHERMAN level>=2: actual 2 scales -> 1 emerald, 12 native stock, 5 villager XP, original restock/prices; native level-two trade pool and loaded/interacted old villager missing-offer append, all saved offers/uses/demand preserved; existing boatman trade retained')
         row['PROGRESS_HOOK']+='; ProgressionMerchant.fishermanTrades/ensureFishermanTrade -> native Villager/MerchantMenu transaction'
@@ -168,7 +170,7 @@ for row in rows:
     if ident in gaps and stages:
         hint='Remaining Site/secret closure must reuse existing Stage '+','.join(stages)+'; no separate exported secret task node is present'
         if hint not in notes:notes+='; '+hint
-    if ident in trade and ident not in ('fox_pelt','kappa_scale') and stages:
+    if ident in trade and ident not in ('fox_pelt','kappa_scale','wolf_fang','crab_shell') and stages:
         hint='Remaining material functions belong to existing Stage '+','.join(stages)+'; native workshop/NPC integration pending, not an invented new mainline'
         if hint not in notes:notes+='; '+hint
     deps=';'.join(sorted({entry['node']+'<-'+(','.join(entry['deps']) or 'none') for entry in found}))

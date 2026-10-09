@@ -44,6 +44,8 @@ public final class ContentProgress {
         for(String id:ExpansionContent.SUPPLIES.keySet())unlock(p,id);
         for(String id:ExpansionContent.AMMO.keySet())unlock(p,id);
         unlock(p,"qimen_cable");unlock(p,"qimen_gear");
+        if(obtained.contains("wolf_fang"))unlock(p,"gray_wolf_fang_charm");
+        if(obtained.contains("crab_shell"))unlock(p,"crab_soldier_shell_charm");
     }
     private static boolean done(ServerPlayer p,String id){var a=p.server.getAdvancements().getAdvancement(new ResourceLocation("dynasty",id));return a!=null&&p.getAdvancements().getOrStartProgress(a).isDone();}
     private static void unlockExisting(ServerPlayer p,String id) {var key=new ResourceLocation("dynasty",id);if(p.server.getRecipeManager().byKey(key).isPresent())p.awardRecipesByKey(new ResourceLocation[]{key});}

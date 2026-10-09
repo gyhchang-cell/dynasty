@@ -78,7 +78,13 @@ public final class InfusionCombat {
             if(s.strength<.9f||!ItemStack.isSameItemSameTags(s.weapon,p.getMainHandItem())||!p.hasLineOfSight(target))return;
             weapon=s.weapon;
         }
-        var traits=InfusionTraits.effects(weapon);if(traits.isEmpty())return;
+        var traits=new HashSet<>(InfusionTraits.effects(weapon));
+        // Reuse this primary-hit combo and effect set: a worn fang is never another damage/proc pipeline.
+        if(!ranged&&(weapon.getItem() instanceof TieredItem||weapon.getItem() instanceof TridentItem)){
+            var worn=new ArrayList<ItemStack>();DynastyCuriosSetup.collectStacks(p,worn);
+            for(var stack:worn)if(stack.is(com.dynasty.expansion.ExpansionContent.item("tiger_claw"))&&InfusionTraits.active(stack).contains("wolf_fang"))traits.add("shanxiao_claw");
+        }
+        if(traits.isEmpty())return;
         boolean same=target.getUUID().equals(s.comboTarget)&&now(p)-s.comboTick<=80&&sameWeapon(weapon,s.comboWeapon);
         s.combo=same?s.combo%12+1:1;s.comboTarget=target.getUUID();s.comboTick=now(p);s.comboWeapon=weapon.copy();
         double bonus=0;

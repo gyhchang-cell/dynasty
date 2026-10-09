@@ -198,6 +198,12 @@ for id,ingredients,result,count in [
  ('kappa_ration',['dynasty:kappa_scale','minecraft:bread','minecraft:kelp'],'dynasty:army_ration',2),
  ('locust_antidote',['dynasty:locust_dust','dynasty:python_gall','minecraft:sugar'],'dynasty:antidote_pill',3),
  ]:write(D/'recipes/cod4'/f'{id}.json',{'type':'minecraft:crafting_shapeless','ingredients':[{'item':i} for i in ingredients],'result':{'item':result,'count':count}})
+zh['infusion.dynasty.MELEE_OR_FANG']='近战武器或灰狼牙饰（原虎爪槽位）';en['infusion.dynasty.MELEE_OR_FANG']='Melee weapons or Gray Wolf Fang Charm (original Tiger Claw slot)'
+# Material-owned variants preserve the canonical accessory IDs, base recipes, slots and saved investment.
+for rid,material,item,cn,english in [('gray_wolf_fang_charm','wolf_fang','tiger_claw','灰狼牙饰','Gray Wolf Fang Charm'),('crab_soldier_shell_charm','crab_shell','scale_plate','蟹将甲饰','Crab Soldier Shell Charm')]:
+ zh['item.dynasty.'+rid]=cn;en['item.dynasty.'+rid]=english
+ nbt={'DynastyInfusion':{'version':1,'slot0':material},'display':{'Name':json.dumps({'translate':'item.dynasty.'+rid},ensure_ascii=False,separators=(',',':'))}}
+ write(D/'recipes/cod4'/f'{rid}.json',{'type':'minecraft:crafting_shapeless','ingredients':[{'item':'dynasty:'+material},{'item':'dynasty:'+material},{'item':'dynasty:refined_steel'},{'item':'minecraft:string'}],'result':{'item':'dynasty:'+item,'count':1,'nbt':nbt}})
 # Effect icons reuse existing, already reviewed native icons unchanged.
 import shutil
 for id,name,source in [('yin_qi','阴气','internal_injury'),('yang_qi','阳气','dragon_might'),('sha_qi','煞气','intimidation'),('thunder_mark','雷印','swift_wind'),('soul_burn','灼魂','intimidation'),('frost_vein','寒脉','internal_injury'),('armor_break','裂甲','iron_wall'),('stagger','破势','internal_injury')]:
