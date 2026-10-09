@@ -77,11 +77,15 @@ public final class ArmyRosterGameTests {
             h.assertTrue(ArmyRoster.soldiers(p).getCompound(0).getString("State").equals("RESERVE"),"Failed deployment consumed asset");
         } finally {remove(p);}h.succeed();
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=140)
+    @GameTest(template="bow_ritual_test",batch="cod6_recall_damage",timeoutTicks=140)
     public static void environmentalDamageDelaysRecallAndReplayDoesNotResetIt(GameTestHelper h) {
-        floor(h);var p=player(h);ArmyRoster.recruit(p,0);var row=ArmyRoster.soldiers(p).getCompound(0);row.putInt("Slot",1);
+        floor(h);
+        // Other combat fixtures can fire beyond their template. Keep this quiet-period test enclosed.
+        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=2;y<=7;y++)
+            if(x==0||x==15||z==0||z==15||y==7)h.setBlock(x,y,z,Blocks.STONE);
+        var p=player(h);ArmyRoster.recruit(p,0);var row=ArmyRoster.soldiers(p).getCompound(0);row.putInt("Slot",1);
         h.assertTrue(ArmyRoster.deploy(p,0,1)==1,"Recall fixture failed");
-        var soldier=(ImperialSoldier)h.getLevel().getEntity(row.getUUID("Entity"));soldier.setNoAi(true);
+        var soldier=(ImperialSoldier)h.getLevel().getEntity(row.getUUID("Entity"));soldier.setNoAi(true);soldier.setNoGravity(true);
         ArmyRoster.recall(p);long first=row.getLong("RecallAt");
         h.runAfterDelay(15,()->{
             ArmyRoster.recall(p);h.assertTrue(row.getLong("RecallAt")==first,"Double click restarted recall");

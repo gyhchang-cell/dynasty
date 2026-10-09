@@ -42,18 +42,36 @@ public final class DungeonTrapGameTests {
             h.assertTrue(copy.phase()!=DungeonMechanism.Phase.WARNING,"Unloaded gap does not restart the tell");
         }h.succeed();
     }
-    @GameTest(template="bow_ritual_test",batch="cod2_trap_runtime",timeoutTicks=100)
+    @GameTest(template="bow_ritual_test",batch="cod2_trap_runtime",timeoutTicks=240)
     public static void actualCrusherCoreAllowsEscapeThenDamagesOnlyAtContact(GameTestHelper h){
         var level=h.getLevel();var trapPos=h.absolutePos(new BlockPos(6,1,6));var corePos=h.absolutePos(new BlockPos(3,1,6));var id=UUID.randomUUID();
-        var trap=marker(h,trapPos,DungeonContent.CRUSHER.get(),"crusher_qa");var core=marker(h,corePos,DungeonContent.CORE.get(),"core");
-        trap.configure(id,"qa","crusher_qa",corePos,-1,List.of());core.configure(id,"qa","core",corePos,-1,List.of(trapPos));core.configureRoom(0,false,trapPos,trapPos.above(3));
-        var p=player(h,trapPos.above());
-        h.runAfterDelay(5,()->{h.assertTrue(p.getHealth()==200,"Visible warning has no damage");p.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(trapPos.offset(2,1,0)));});
-        h.runAfterDelay(25,()->{h.assertTrue(p.getHealth()==200,"Walking out of actual hammer column avoids first strike");p.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(trapPos.above()));});
-        h.runAfterDelay(55,()->{
-            try{h.assertTrue(p.getHealth()<200&&p.getHealth()>=192,"Standing beneath later hammer takes bounded real damage, health="+p.getHealth());
+        var forced=new HashSet<net.minecraft.world.level.ChunkPos>();
+        for(var pos:List.of(corePos,trapPos)){
+            var chunk=new net.minecraft.world.level.ChunkPos(pos);
+            if(!level.getForcedChunks().contains(chunk.toLong())){level.setChunkForced(chunk.x,chunk.z,true);forced.add(chunk);}
+        }
+        var fixture=new FakePlayer[1];
+        var clock=DungeonStateStore.get(level).room(id,"qa").hazard("crusher_qa",false);
+        h.startSequence().thenWaitUntil(()->{
+            for(var pos:List.of(corePos,trapPos)){
+                var chunk=new net.minecraft.world.level.ChunkPos(pos);var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
+                h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING)
+                    &&level.areEntitiesLoaded(chunk.toLong()),"Actual hammer waits for ticking blocks and entity storage");
+            }
+        }).thenExecute(()->{
+            for(int y=1;y<=6;y++)for(int x=0;x<=2;x++)level.setBlockAndUpdate(trapPos.offset(x,y,0),Blocks.AIR.defaultBlockState());
+            var trap=marker(h,trapPos,DungeonContent.CRUSHER.get(),"crusher_qa");var core=marker(h,corePos,DungeonContent.CORE.get(),"core");
+            trap.configure(id,"qa","crusher_qa",corePos,-1,List.of());core.configure(id,"qa","core",corePos,-1,List.of(trapPos));core.configureRoom(0,false,trapPos,trapPos.above(3));
+            fixture[0]=player(h,trapPos.above());
+        }).thenWaitUntil(()->h.assertTrue(clock.phase()==DungeonMechanism.Phase.WARNING,"Actual core starts its visible warning"))
+        .thenExecute(()->{h.assertTrue(fixture[0].getHealth()==200,"Visible warning has no damage");fixture[0].setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(trapPos.offset(2,1,0)));})
+        .thenWaitUntil(()->h.assertTrue(clock.phase()==DungeonMechanism.Phase.RECOVERY,"First real contact completes before returning"))
+        .thenExecute(()->{h.assertTrue(fixture[0].getHealth()==200,"Walking out of actual hammer column avoids first strike");fixture[0].setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(trapPos.above()));})
+        .thenWaitUntil(()->h.assertTrue(fixture[0].getHealth()<200,"Standing beneath later hammer takes real damage"))
+        .thenExecute(()->{
+            try{h.assertTrue(fixture[0].getHealth()>=192,"Hammer damage remains bounded, health="+fixture[0].getHealth());
                 h.assertTrue(level.getBlockState(trapPos).is(DungeonContent.CRUSHER.get()),"Hammer never edits its floor/terrain");h.succeed();
-            }finally{remove(h,p);level.removeBlock(corePos,false);level.removeBlock(trapPos,false);}
+            }finally{remove(h,fixture[0]);level.removeBlock(corePos,false);level.removeBlock(trapPos,false);for(var chunk:forced)level.setChunkForced(chunk.x,chunk.z,false);}
         });
     }
     @GameTest(template="bow_ritual_test",batch="cod2_trap_contacts")

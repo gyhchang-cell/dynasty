@@ -114,7 +114,7 @@ public final class ChenshaEcologyGameTests {
                 h.assertTrue(!BlueprintSpawns.spawnChenshaMiddleMember(level,origin,entrant),"doMobSpawning=false is respected");
                 level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
                 var be=(DungeonMechanismBlockEntity)level.getBlockEntity(core);
-                h.assertTrue(be!=null,"Remote fixture core remains loaded before binding checks");
+                h.assertTrue(be!=null,"Remote fixture core remains loaded before binding checks, block="+level.getBlockState(core));
                 be.configure(instance,"shendao","wrong_room",core,-1,List.of());
                 h.assertTrue(!BlueprintSpawns.spawnChenshaMiddleMember(level,origin,entrant),"Wrong room core cannot fabricate an encounter");
                 be.configure(instance,"mercury","mercury_core",core,-1,List.of());
@@ -221,6 +221,10 @@ public final class ChenshaEcologyGameTests {
             for(var p:positions)for(int x=-3;x<=3;x++)for(int y=-3;y<=4;y++)for(int z=-3;z<=3;z++)
                 level.setBlockAndUpdate(p.offset(x,y,z),(Math.abs(x)==3||Math.abs(z)==3||y==-3||y==4)?
                     Blocks.STONE.defaultBlockState():y<=1?Blocks.WATER.defaultBlockState():Blocks.AIR.defaultBlockState());
+            // The remote test core is outside the authored dungeon masonry; shield it from natural fluids.
+            for(int x=-2;x<=2;x++)for(int y=-2;y<=2;y++)for(int z=-2;z<=2;z++)
+                level.setBlockAndUpdate(core.offset(x,y,z),(Math.abs(x)==2||Math.abs(y)==2||Math.abs(z)==2)?
+                    Blocks.STONE.defaultBlockState():Blocks.AIR.defaultBlockState());
             level.setBlockAndUpdate(core,DungeonContent.CORE.get().defaultBlockState());
             ((DungeonMechanismBlockEntity)level.getBlockEntity(core)).configure(instance,"mercury","mercury_core",core,-1,List.of());
         }).thenIdle(30).thenWaitUntil(()->{
@@ -236,7 +240,7 @@ public final class ChenshaEcologyGameTests {
                 h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"doMobSpawning=false is respected");
                 level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
                 var be=(DungeonMechanismBlockEntity)level.getBlockEntity(core);
-                h.assertTrue(be!=null,"Remote fixture core remains loaded before binding checks");
+                h.assertTrue(be!=null,"Remote fixture core remains loaded before binding checks, block="+level.getBlockState(core));
                 be.configure(instance,"shendao","wrong_room",core,-1,List.of());
                 h.assertTrue(!BlueprintSpawns.spawnChenshaDrowner(level,origin,entrant),"Wrong room core cannot fabricate an encounter");
                 be.configure(instance,"mercury","mercury_core",core,-1,List.of());
