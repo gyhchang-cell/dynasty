@@ -15,6 +15,20 @@ import net.minecraftforge.fml.common.Mod;
 /** Existing minister gains an optional vanilla merchant screen; unlocks remain player advancements. */
 @Mod.EventBusSubscriber(modid="dynasty")
 public final class ProgressionMerchant implements Merchant {
+    private static final net.minecraft.world.entity.npc.VillagerTrades.ItemListing KAPPA_TRADE=(trader,random)->
+            new MerchantOffer(new ItemStack(ExpansionContent.MATERIALS.get("kappa_scale").get(),2),new ItemStack(Items.EMERALD),12,5,.05F);
+    @SubscribeEvent public static void fishermanTrades(net.minecraftforge.event.village.VillagerTradesEvent e){
+        if(e.getType()==net.minecraft.world.entity.npc.VillagerProfession.FISHERMAN&&!e.getTrades().get(2).contains(KAPPA_TRADE))e.getTrades().get(2).add(KAPPA_TRADE);
+    }
+    /** Existing native villagers keep all saved prices/stock; only the missing offer is appended. */
+    public static void ensureFishermanTrade(net.minecraft.world.entity.npc.Villager villager){
+        if(villager.level().isClientSide||villager.getVillagerData().getProfession()!=net.minecraft.world.entity.npc.VillagerProfession.FISHERMAN||villager.getVillagerData().getLevel()<2)return;
+        var offers=villager.getOffers();
+        if(offers.stream().noneMatch(o->o.getBaseCostA().is(ExpansionContent.MATERIALS.get("kappa_scale").get())&&o.getResult().is(Items.EMERALD)))offers.add(KAPPA_TRADE.getOffer(villager,villager.getRandom()));
+    }
+    @SubscribeEvent public static void fishermanLoaded(net.minecraftforge.event.entity.EntityJoinLevelEvent e){
+        if(e.getEntity() instanceof net.minecraft.world.entity.npc.Villager villager)ensureFishermanTrade(villager);
+    }
     private Player customer;
     private MerchantOffers offers=new MerchantOffers();
     private final ServerPlayer owner;
@@ -35,6 +49,7 @@ public final class ProgressionMerchant implements Merchant {
         var offer=new MerchantOffer(new ItemStack(ExpansionContent.item("copper_coin"),coins),ItemStack.EMPTY,output,n.getInt(stockKey(output)),8,0,0);offers.add(offer);
     }
     @SubscribeEvent public static void interact(PlayerInteractEvent.EntityInteract e) {
+        if(e.getTarget() instanceof net.minecraft.world.entity.npc.Villager villager)ensureFishermanTrade(villager);
         if(e.getHand()!=net.minecraft.world.InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer p) || !p.isShiftKeyDown() || !(e.getTarget() instanceof com.dynasty.entity.DynastyMobs.Minister))return;
         var merchant=new ProgressionMerchant(p);if(merchant.offers.isEmpty())return;
         merchant.openTradingScreen(p,Component.translatable("merchant.dynasty.cod4"),1);e.setCanceled(true);e.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);

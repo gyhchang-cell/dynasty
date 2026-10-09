@@ -99,9 +99,12 @@ for row in rows:
         if ident=='ancient_well':mode.append('7 actual water buckets -> 7 retained empty buckets; interval 515 ticks and total >=3600 ticks; original native secret 8 -> 1 jade once per player/dimension; legacy Site completion/counters retained, only missing native reward earned; no old cleanse/payment/reward replay')
     trade={'fox_pelt':'baibao_jin: 2 -> 6 copper','wolf_fang':'ba_tu: 2 -> 5 copper','python_gall':'hei_po: 1 -> 2 healing_salve','locust_dust':'hei_po: 2 -> 1 healing_salve','crab_shell':'huang_laohan: 2 -> 6 copper','kappa_scale':'huang_laohan: 2 -> 8 copper'}
     if ident in trade:
-        remaining={'fox_pelt':'none; client/survival acceptance still pending','wolf_fang':'gray wolf fang ornament','crab_shell':'crab general ornament','kappa_scale':'dedicated fisherman trade','python_gall':'Hei Po gu brewing and cold-resistance wine','locust_dust':'poison smoke bomb, gu brewing and crop insect control'}
+        remaining={'fox_pelt':'none; client/survival acceptance still pending','wolf_fang':'gray wolf fang ornament','crab_shell':'crab general ornament','kappa_scale':'none; actual client/survival acceptance pending','python_gall':'Hei Po gu brewing and cold-resistance wine','locust_dust':'poison smoke bomb, gu brewing and crop insect control'}
         mode.append('actual native material trade '+trade[ident]+'; remaining specific function: '+remaining[ident])
     infusions={'fox_pelt':'cold_ward, vanilla/Dynasty leather only: 20% freeze reduction + 8 fewer frozen ticks per second', 'wolf_fang':'existing shanxiao_claw third-hit pursuit on melee weapons; original family/cooldown', 'crab_shell':'existing retaliation on defensive equipment including sea_silk Dragon Palace light armor', 'kappa_scale':'existing water_ward on defensive equipment including original sea_pearl; native water combat trigger'}
+    if ident=='kappa_scale':
+        mode.append('Native VillagerProfession.FISHERMAN level>=2: actual 2 scales -> 1 emerald, 12 native stock, 5 villager XP, original restock/prices; native level-two trade pool and loaded/interacted old villager missing-offer append, all saved offers/uses/demand preserved; existing boatman trade retained')
+        row['PROGRESS_HOOK']+='; ProgressionMerchant.fishermanTrades/ensureFishermanTrade -> native Villager/MerchantMenu transaction'
     if ident in infusions:
         mode.append('existing InfusionMenu paid transaction: 2 materials + 3 XP levels, one capacity; '+infusions[ident]+'; get_jade only existing gate; original 95 traits and foreign/growth/durability NBT retained')
         row['PROGRESS_HOOK']+='; InfusionMenu.request -> existing first_infusion; InfusionCombat equipped effect; native JEI category reads same traits (client display pending)'
@@ -120,7 +123,7 @@ for row in rows:
     elif any(entry['target'].startswith('cod4_obtain_') for entry in found):compat+='; inventory/armor/active Curios regrant missing impossible advancement only'
     row['OLD_SAVE_COMPAT']=compat
     notes=row['NOTES']
-    if ident=='fox_pelt':notes=re.sub(r'; Remaining material functions belong to existing Stage [^;]*; native workshop/NPC integration pending, not an invented new mainline','',notes)
+    if ident in ('fox_pelt','kappa_scale'):notes=re.sub(r'; Remaining material functions belong to existing Stage [^;]*; native workshop/NPC integration pending, not an invented new mainline','',notes)
     if ident=='puzzle_box':
         notes=re.sub(r'; Original stand/sneak sequence retained; expressed puzzle and existing secret 30 still pending','',notes)
         notes=re.sub(r'; Remaining Site/secret closure must reuse existing Stage [^;]*; no separate exported secret task node is present','',notes)
@@ -133,7 +136,7 @@ for row in rows:
     if ident in gaps and stages:
         hint='Remaining Site/secret closure must reuse existing Stage '+','.join(stages)+'; no separate exported secret task node is present'
         if hint not in notes:notes+='; '+hint
-    if ident in trade and ident!='fox_pelt' and stages:
+    if ident in trade and ident not in ('fox_pelt','kappa_scale') and stages:
         hint='Remaining material functions belong to existing Stage '+','.join(stages)+'; native workshop/NPC integration pending, not an invented new mainline'
         if hint not in notes:notes+='; '+hint
     deps=';'.join(sorted({entry['node']+'<-'+(','.join(entry['deps']) or 'none') for entry in found}))
