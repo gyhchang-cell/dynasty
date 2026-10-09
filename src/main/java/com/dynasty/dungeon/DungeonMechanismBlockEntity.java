@@ -60,6 +60,7 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
     public void interact(Player player){
         if(level==null||level.isClientSide||player.isSpectator()||player.distanceToSqr(Vec3.atCenterOf(worldPosition))>36)return;
         var state=room();if(state==null)return;
+        if(kind()==DungeonMechanismBlock.Kind.TRAP&&useMaterial(player,state))return;
         if(kind()==DungeonMechanismBlock.Kind.COFFIN&&level instanceof ServerLevel sl
                 &&player instanceof net.minecraft.server.level.ServerPlayer serverPlayer&&encounterOrigin!=null){
             var result=DungeonEncounters.claimChensha(sl,instance,encounterOrigin,serverPlayer);
@@ -80,6 +81,24 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
             syncVisual(state);useElevator(player);
         }else if(kind()==DungeonMechanismBlock.Kind.CORE){player.displayClientMessage(net.minecraft.network.chat.Component.literal(
             "破封 "+Integer.bitCount(state.progress()&7)+"/3，兽眼 "+Integer.bitCount((state.progress()>>3)&7)+"/3"),true);}
+    }
+    private boolean useMaterial(Player player,DungeonRoomController state){
+        var held=player.getMainHandItem();boolean gear=held.is(com.dynasty.expansion.ExpansionContent.item("qimen_gear"));
+        boolean cable=held.is(com.dynasty.expansion.ExpansionContent.item("qimen_cable"));
+        if(!gear&&!cable)return false;
+        // A stale or forged marker cannot manufacture a new remote room or force its core chunk to load.
+        if(!player.isAlive()||!(level instanceof ServerLevel sl)||sl.getChunkSource().getChunkNow(controller.getX()>>4,controller.getZ()>>4)==null
+            ||!(sl.getBlockEntity(controller) instanceof DungeonMechanismBlockEntity core)||core.kind()!=DungeonMechanismBlock.Kind.CORE
+            ||!java.util.Objects.equals(instance,core.instance)||!roomId.equals(core.roomId))return true;
+        var clock=clock(state);boolean changed=false;
+        if(gear)changed=clock.fitWarningGear();
+        else if(clock.phase()==DungeonMechanism.Phase.IDLE){clock.trigger(level.getGameTime());changed=clock.phase()==DungeonMechanism.Phase.WARNING;}
+        if(changed){
+            if(!player.getAbilities().instabuild)held.shrink(1);
+            changed();syncVisual(state);
+            player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4."+(gear?"trap_gear_fitted":"trap_cable_triggered")),true);
+        }else player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4.trap_material_no_change"),true);
+        return true;
     }
     private void useElevator(Player player){
         if(!(level instanceof ServerLevel sl)||destination==null||!sl.hasChunkAt(destination)){

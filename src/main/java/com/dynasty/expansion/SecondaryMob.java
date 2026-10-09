@@ -63,6 +63,23 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
                 if(attacker!=null) {Vec3 away=position().subtract(attacker.position()).normalize().scale(8);getNavigation().moveTo(getX()+away.x,getY(),getZ()+away.z,1.4);}
             }
         });
+        if(spec.id().equals("clockwork_rat"))goalSelector.addGoal(1,new Goal(){
+            private ItemEntity bait;private int nextMove,nextScan;
+            {setFlags(java.util.EnumSet.of(Flag.MOVE,Flag.LOOK));}
+            @Override public boolean canUse(){
+                if(!stolen.isEmpty()||fleeTicks>0||tickCount<nextScan)return false;
+                nextScan=tickCount+10;
+                bait=level().getEntitiesOfClass(ItemEntity.class,getBoundingBox().inflate(8),
+                    e->e.isAlive()&&e.getItem().is(ExpansionContent.item("qimen_gear"))&&distanceToSqr(e)<=64&&hasLineOfSight(e))
+                    .stream().min(java.util.Comparator.comparingDouble(SecondaryMob.this::distanceToSqr)).orElse(null);
+                return bait!=null;
+            }
+            @Override public boolean canContinueToUse(){return stolen.isEmpty()&&fleeTicks==0&&bait!=null&&bait.isAlive()
+                &&bait.getItem().is(ExpansionContent.item("qimen_gear"))&&distanceToSqr(bait)<=64&&hasLineOfSight(bait);}
+            @Override public void start(){nextMove=0;}
+            @Override public void tick(){getLookControl().setLookAt(bait,30,30);if(--nextMove<=0){nextMove=10;getNavigation().moveTo(bait,1.3);}}
+            @Override public void stop(){bait=null;getNavigation().stop();}
+        });
         goalSelector.addGoal(2,new MeleeAttackGoal(this,1.1,false) {
             @Override public boolean canUse() { return !friendly && rollingTicks==0 && !combatActions.active() && !spec.id().equals("locust_swarm") && !spec.id().equals("swindler") && !spec.id().equals("famished_refugee") && !spec.id().equals("herb_picker") && !spec.id().equals("snail_maiden") && super.canUse(); }
             @Override public boolean canContinueToUse(){return rollingTicks==0&&!friendly&&!combatActions.active()&&super.canContinueToUse();}
@@ -125,7 +142,12 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         if(spec.flying() && target!=null && !combatActions.active() && tickCount%10==0) getMoveControl().setWantedPosition(target.getX(),target.getEyeY()+1,target.getZ(),1.2);
         if(spec.id().equals("clockwork_rat") && stolen.isEmpty() && tickCount%20==0) {
             var items=level().getEntitiesOfClass(ItemEntity.class,getBoundingBox().inflate(2),e->!e.getItem().isEmpty());
-            if(!items.isEmpty()) { stolen=items.get(0).getItem().split(1);fleeTicks=80; }
+            if(!items.isEmpty()) {
+                // Prefer the actual gear bait, but retain the original one-item theft/return ledger for all drops.
+                var chosen=items.stream().filter(e->e.isAlive()&&e.getItem().is(ExpansionContent.item("qimen_gear"))&&hasLineOfSight(e))
+                    .min(java.util.Comparator.comparingDouble(this::distanceToSqr)).orElse(items.get(0));
+                stolen=chosen.getItem().split(1);if(chosen.getItem().isEmpty())chosen.discard();fleeTicks=80;
+            }
         }
         if(spec.id().equals("night_watchman") && tickCount%40==0)addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION,60));
         if(target==null || !hasLineOfSight(target) || specialCooldown>0 || combatActions.active() || fleeTicks>0) return;
@@ -259,6 +281,12 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
     }
     @Override protected InteractionResult mobInteract(Player p,InteractionHand hand) {
         ItemStack stack=p.getItemInHand(hand);
+        if(spec.id().equals("wooden_magpie")&&stack.is(ExpansionContent.item("qimen_cable"))){
+            if(hand!=InteractionHand.MAIN_HAND||!isAlive()||!p.isAlive()||p.isSpectator()||p.level()!=level()||distanceToSqr(p)>16)return InteractionResult.PASS;
+            if(getHealth()>=getMaxHealth())return InteractionResult.PASS;
+            if(!level().isClientSide){heal(20);if(!p.getAbilities().instabuild)stack.shrink(1);animate(5,12);tell(p,"magpie_repaired");}
+            return InteractionResult.sidedSuccess(level().isClientSide);
+        }
         if(spec.id().equals("swindler"))return swindle(p,hand);
         if(spec.id().equals("famished_refugee") && stack.isEdible() && !friendly) {
             if(!level().isClientSide){friendly=true;fleeTicks=0;setTarget(null);heal(10);if(!p.getAbilities().instabuild)stack.shrink(1);}

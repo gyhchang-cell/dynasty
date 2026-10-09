@@ -199,6 +199,10 @@ for id,ingredients,result,count in [
  ('locust_antidote',['dynasty:locust_dust','dynasty:python_gall','minecraft:sugar'],'dynasty:antidote_pill',3),
  ]:write(D/'recipes/cod4'/f'{id}.json',{'type':'minecraft:crafting_shapeless','ingredients':[{'item':i} for i in ingredients],'result':{'item':result,'count':count}})
 zh['infusion.dynasty.MELEE_OR_FANG']='近战武器或灰狼牙饰（原虎爪槽位）';en['infusion.dynasty.MELEE_OR_FANG']='Melee weapons or Gray Wolf Fang Charm (original Tiger Claw slot)'
+zh['message.dynasty.cod4.magpie_repaired']='钢索已接好，木鹊恢复了20点生命。';en['message.dynasty.cod4.magpie_repaired']='Cable repaired: the magpie recovered 20 health.'
+zh['message.dynasty.cod4.trap_gear_fitted']='预警机括已装好：本机关的预警延长，陷阱仍会正常运转。';en['message.dynasty.cod4.trap_gear_fitted']='Warning gear fitted: this trap warns longer and keeps its normal contacts.'
+zh['message.dynasty.cod4.trap_cable_triggered']='拉索已触发机关，留意预警后避开。';en['message.dynasty.cod4.trap_cable_triggered']='Cable triggered the trap. Watch the warning and move clear.'
+zh['message.dynasty.cod4.trap_material_no_change']='机关正运转或已改造，这次没有消耗材料。';en['message.dynasty.cod4.trap_material_no_change']='Trap is busy or already fitted; no material was consumed.'
 # Material-owned variants preserve the canonical accessory IDs, base recipes, slots and saved investment.
 for rid,material,item,cn,english in [('gray_wolf_fang_charm','wolf_fang','tiger_claw','灰狼牙饰','Gray Wolf Fang Charm'),('crab_soldier_shell_charm','crab_shell','scale_plate','蟹将甲饰','Crab Soldier Shell Charm')]:
  zh['item.dynasty.'+rid]=cn;en['item.dynasty.'+rid]=english

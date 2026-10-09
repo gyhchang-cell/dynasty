@@ -6,7 +6,7 @@ import net.minecraft.nbt.CompoundTag;
 public final class DungeonHazard implements DungeonMechanism {
     private final int warning, active, recovery, pulseTicks;
     private Phase phase = Phase.IDLE;
-    private int ticks;
+    private int ticks, warningGear;
     private long lastUpdate = -1;
     private boolean contact;
 
@@ -21,13 +21,20 @@ public final class DungeonHazard implements DungeonMechanism {
     }
     public Phase phase() { return phase; }
     public int ticks() { return ticks; }
+    /** One native paid fitting, while idle; damage, active contacts and recovery remain original. */
+    public boolean fitWarningGear(){
+        if(phase!=Phase.IDLE||warningGear!=0||warning>=30)return false;
+        warningGear=Math.min(5,30-warning);return true;
+    }
+    public int warningGear(){return warningGear;}
+
     DungeonHazard upgradeIdleArrowVolley() {
         // Old v1 saves contain a single four-tick pulse. Let an in-flight cycle
         // finish unchanged, then adopt the new volley without replaying damage.
         if(pulseTicks!=0||active!=4||phase!=Phase.IDLE)return this;
         var upgraded=new DungeonHazard(warning,6,recovery,2);upgraded.load(save());return upgraded;
     }
-    public int duration() { return switch (phase) { case WARNING -> warning; case ACTIVE -> active; case RECOVERY -> recovery; default -> 1; }; }
+    public int duration() { return switch (phase) { case WARNING -> warning+warningGear; case ACTIVE -> active; case RECOVERY -> recovery; default -> 1; }; }
     @Override public void trigger(long time) {
         if (phase != Phase.IDLE) return;
         phase = Phase.WARNING; ticks = 0; lastUpdate = time; contact = false;
@@ -53,11 +60,12 @@ public final class DungeonHazard implements DungeonMechanism {
     @Override public CompoundTag save() {
         var tag = new CompoundTag();
         tag.putInt("Warning", warning); tag.putInt("Active", active); tag.putInt("Recovery", recovery);
-        tag.putInt("PulseTicks",pulseTicks);
+        tag.putInt("PulseTicks",pulseTicks);tag.putInt("WarningGear",warningGear);
         tag.putString("Phase", phase.name()); tag.putInt("Ticks", ticks); tag.putLong("LastUpdate", lastUpdate);
         return tag;
     }
     @Override public void load(CompoundTag tag) {
+        warningGear=Math.max(0,Math.min(Math.min(5,30-warning),tag.getInt("WarningGear")));
         try { phase = Phase.valueOf(tag.getString("Phase")); } catch (IllegalArgumentException e) { phase = Phase.IDLE; }
         ticks = Math.max(0, Math.min(duration() - 1, tag.getInt("Ticks")));
         lastUpdate = tag.contains("LastUpdate") ? tag.getLong("LastUpdate") : -1;

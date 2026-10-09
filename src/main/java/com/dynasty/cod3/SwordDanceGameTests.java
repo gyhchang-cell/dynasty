@@ -41,7 +41,14 @@ public final class SwordDanceGameTests {
     private static void tick(ServerPlayer p){p.tick();p.doTick();}
     private static void use(GameTestHelper h,ServerPlayer p,BlockPos at){h.getLevel().getBlockState(at).use(h.getLevel(),p,InteractionHand.MAIN_HAND,new BlockHitResult(Vec3.atCenterOf(at),Direction.UP,at,false));}
     private static void ready(ServerPlayer p){var n=EquipmentBehaviors.saved(p);n.putLong(KEY+"_start",p.level().getGameTime()-2400);n.putLong(KEY+"_next",p.level().getGameTime());}
-    private static void cut(ServerPlayer p,int stage){p.setYRot(stage<2?180:-90);p.move(MoverType.SELF,stage==0?new Vec3(.6,0,0):stage==1?new Vec3(-.6,0,0):new Vec3(0,0,-.6));p.swing(InteractionHand.MAIN_HAND);tick(p);}
+    private static void cut(ServerPlayer p,int stage){
+        p.setYRot(stage<2?180:-90);p.move(MoverType.SELF,stage==0?new Vec3(.6,0,0):stage==1?new Vec3(-.6,0,0):new Vec3(0,0,-.6));
+        // Native Entity.move with a zero Y input can clear its ground flag. Let real
+        // gravity/collision finish before the fresh grounded cut; never set onGround.
+        for(int i=0;i<8&&!p.onGround();i++)tick(p);
+        if(!p.onGround())throw new GameTestAssertException("Native dance movement did not settle: pos="+p.position()+", velocity="+p.getDeltaMovement()+", support="+p.level().getBlockState(BlockPos.containing(p.position().add(0,-.1,0))));
+        p.swing(InteractionHand.MAIN_HAND);tick(p);
+    }
     private static void rest(ServerPlayer p){for(int i=0;i<8;i++)tick(p);}
     @AfterBatch(batch="cod4_sword_dance") public static void cleanup(net.minecraft.server.level.ServerLevel l){
         for(var p:PLAYERS){SwordDance.logout(new PlayerEvent.PlayerLoggedOutEvent(p));p.discard();}PLAYERS.clear();for(var id:DUMMIES){var e=l.getEntity(id);if(e!=null)e.discard();}DUMMIES.clear();if(originalDay!=null){l.setDayTime(originalDay);l.setWeatherParameters(10000,originalRain?10000:0,originalRain,originalThunder);l.setRainLevel(originalRainLevel);l.setThunderLevel(originalThunderLevel);l.updateSkyBrightness();originalDay=null;}
