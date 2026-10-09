@@ -88,7 +88,7 @@ public final class ChenshaPiece extends DynastyStructurePiece {
             int roof=ChenshaVaultLayout.roofHeight(x,z);
             if(d<=1.1&&y<=roof)result=y==0||y==roof||d>1?shell():Blocks.AIR.defaultBlockState();
             if(y==0&&ChenshaVaultLayout.moatCell(x,z))result=DungeonContent.MERCURY_CHANNEL.get().defaultBlockState();
-            int dais=x<=31?daisHeight(x,z):ChenshaVaultLayout.daisHeight(x,z);
+            int dais=x<=31?daisHeight(x,z):Math.max(daisHeight(x,z),ChenshaVaultLayout.daisHeight(x,z));
             if(dais>0&&in(y,1,dais))result=(x<=31?
                 (y==dais?Blocks.SMOOTH_QUARTZ:Blocks.QUARTZ_BRICKS):Blocks.QUARTZ_BLOCK).defaultBlockState();
             if(y==0&&in(x,30,34)&&in(z,22,27))result=Blocks.QUARTZ_BLOCK.defaultBlockState();
