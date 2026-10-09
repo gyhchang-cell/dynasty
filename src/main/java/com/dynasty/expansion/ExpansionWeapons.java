@@ -117,7 +117,12 @@ public final class ExpansionWeapons {
                 target.hurt(p.damageSources().playerAttack(p),(float)p.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)*.6F);
                 if(!ExpansionEffects.boss(target)) target.knockback(.6,p.getX()-target.getX(),p.getZ()-target.getZ());
             }
-            CombatFeedback.send(p,CombatFeedback.HEAVY);p.getCooldowns().addCooldown(this,EquipmentBehaviors.cooldown(p,80));stack.hurtAndBreak(3,p,e->e.broadcastBreakEvent(p.getUsedItemHand()));
+            CombatFeedback.send(p,CombatFeedback.HEAVY);
+            if(level instanceof net.minecraft.server.level.ServerLevel server){
+                com.dynasty.cod3.Cod3Vfx.send(server,26,p.position(),p.getLookAngle(),12,.5,com.dynasty.cod3.EquipmentFeedback.tint("meteor_hammer"));
+                com.dynasty.cod3.Cod3Vfx.send(server,27,p.position(),p.getLookAngle(),12,.25);
+            }
+            p.getCooldowns().addCooldown(this,EquipmentBehaviors.cooldown(p,80));stack.hurtAndBreak(3,p,e->e.broadcastBreakEvent(p.getUsedItemHand()));
         }
     }
     @SubscribeEvent public static void ammoHit(LivingHurtEvent e) {

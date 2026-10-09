@@ -53,6 +53,12 @@ public final class DungeonClientQa {
     private static long reconnectAt;
     private static CompletableFuture<Void> setup,reload,waterSetup;
     private static final boolean WATER=Boolean.getBoolean("dynasty.cod2Qa.water");
+    private static final boolean VAULT=Boolean.getBoolean("dynasty.cod2Qa.vault");
+    private static final BlockPos VAULT_ORIGIN=new BlockPos(80,-58,0);
+    private static final UUID VAULT_INSTANCE=UUID.fromString("e8d47a8f-b579-4fe4-91aa-6de622254278");
+    private static final BlockPos VAULT_CORE=VAULT_ORIGIN.offset(24,0,12);
+    private static CompletableFuture<Void> vaultSetup;
+    private static volatile long vaultEnteredAt, vaultClearedAt;
     private static final BlockPos WATER_ORIGIN=new BlockPos(-32,-82,-60);
     private static final UUID WATER_INSTANCE=UUID.fromString("b09319c5-43d5-4753-b412-096479d77545");
     private static final String WATER_KEY="chensha@"+WATER_INSTANCE+":mercury_drowners";
@@ -98,8 +104,8 @@ public final class DungeonClientQa {
                 if(!Files.exists(ROOT.resolve("listening")))Files.writeString(ROOT.resolve("listening"),"127.0.0.1:"+PORT);
                 if(stage<0)publish(0);
                 if(acknowledged(stage)&& (SOLO||Files.exists(ROOT.resolve(stage+"-peer")))) {
-                    if(!WATER&&stage==5&&columns<24)return;
-                    if(stage==(WATER?8:12)) { Files.writeString(ROOT.resolve("complete"),"Observed "+(stage+1)+" stages");finish(mc,null);return; }
+                    if(!WATER&&!VAULT&&stage==5&&columns<24)return;
+                    if(stage==finalStage()) { Files.writeString(ROOT.resolve("complete"),"Observed "+(stage+1)+" stages");finish(mc,null);return; }
                     publish(stage+1);
                 }
             } else {
@@ -107,13 +113,13 @@ public final class DungeonClientQa {
                 if(!Files.exists(ROOT.resolve("stage")))return;
                 stage=Integer.parseInt(Files.readString(ROOT.resolve("stage")).trim());
             }
-            if(observed!=stage) {observed=stage;acted=false;frames=0;}
+            if(observed!=stage) {observed=stage;acted=false;frames=0;if(stage==11)reload=null;}
             if(acknowledged(stage))return;
             var seal=mc.level.getBlockEntity(SEAL);
-            if(stage<6&&(!(seal instanceof DungeonMechanismBlockEntity bound)||!INSTANCE.equals(bound.instance())))return;
+            if(stage<(WATER||VAULT?9:6)&&(!(seal instanceof DungeonMechanismBlockEntity bound)||!INSTANCE.equals(bound.instance())))return;
             if(stage==0) {
                 require(!active(mc,SEAL)&&!open(mc,DOOR)&&!open(mc,STELE),"Initial mechanisms already solved");
-                require(mc.getBlockEntityRenderDispatcher().getRenderer(seal)!=null,"Mechanism renderer missing");
+                require(mc.getBlockEntityRenderDispatcher().getRenderer((DungeonMechanismBlockEntity)mc.level.getBlockEntity(SEAL))!=null,"Mechanism renderer missing");
                 var model=mc.getBlockRenderer().getBlockModel(mc.level.getBlockState(STELE));
                 require(model!=mc.getModelManager().getMissingModel(),"Stele model missing");
             } else if(stage==1) {
@@ -161,38 +167,38 @@ public final class DungeonClientQa {
                 if(drownerCount(mc)!=2)return;
             } else if(WATER&&stage==8) {
                 if(drownerCount(mc)!=0)return;
-            } else if(!WATER&&stage==6) {
+            } else if(!WATER&&!VAULT&&stage==6) {
                 if(mc.player.getY()>CHENSHA.getY()+20||mc.player.getX()<CHENSHA.getX())return;
                 if(mc.player.getHealth()>18)return;
                 require(mc.level.getBlockState(mc.player.blockPosition().below()).is(Blocks.LIGHT_BLUE_STAINED_GLASS),"Real mercury contact surface missing");
                 var pos=CHENSHA.offset(ChenshaPiece.core("mercury"));
                 if(!(mc.level.getBlockEntity(pos) instanceof DungeonMechanismBlockEntity core))return;
                 require(CHENSHA_INSTANCE.equals(core.instance()),"Authored mercury controller binding not synced");
-            } else if(stage==7) {
+            } else if(!WATER&&!VAULT&&stage==7) {
                 if(mc.player.getY()<CHENSHA.getY()+24)return;
                 if(!acted){safeHealth=mc.player.getHealth();acted=true;}
                 require(mc.player.getHealth()>=safeHealth,"Mercury keeps damaging a player standing on the chamber platform");
                 if(frames<40){frames++;return;}
                 require(mc.player.getMainHandItem().is(Items.WRITTEN_BOOK),"Expedition diary not received via inventory packets");
                 require(mc.player.getMainHandItem().getTag().getList("pages",8).size()==3,"Diary pages missing on client");
-            } else if(stage==8) {
+            } else if(!WATER&&!VAULT&&stage==8) {
                 if(!HOST&&!environmentReconnected) {
                     mc.level.disconnect();mc.clearLevel(new TitleScreen());reconnectAt=System.nanoTime()+1_000_000_000L;
                     environmentReconnected=true;return;
                 }
                 if(mc.player.getY()<CHENSHA.getY()+24||mc.player.getX()<CHENSHA.getX())return;
                 require(mc.player.getHealth()>=safeHealth,"Safe platform regained an exposure after reconnect");
-            } else if(stage==9) {
+            } else if(!WATER&&!VAULT&&stage==9) {
                 if(!acted) {reload=mc.reloadResourcePacks();acted=true;return;}
                 if(!reload.isDone())return;reload.join();
                 require(mc.getLanguageManager().getLanguage("zh_cn")!=null,"Chinese language resource missing");
                 require(!net.minecraft.network.chat.Component.translatable("book.dynasty.chensha.diary.1").getString().equals("book.dynasty.chensha.diary.1"),"Diary clue translation missing after reload");
-            } else if(stage==10) {
+            } else if(!WATER&&!VAULT&&stage==10) {
                 if(mc.player.getX()>CHENSHA.getX()+22||mc.player.getY()>CHENSHA.getY()+2)return;
                 for(var star:ChenshaPiece.vaultStars())if(!mc.level.getBlockState(CHENSHA.offset(star)).is(Blocks.SEA_LANTERN))return;
-                require(mc.level.getBlockState(CHENSHA.offset(31,9,15)).is(Blocks.SMOOTH_QUARTZ),"Nine-tier dais not received on client");
+                require(mc.level.getBlockState(CHENSHA.offset(31,9,15)).is(Blocks.QUARTZ_BLOCK),"Nine-tier dais not received on client");
                 if(frames<30){frames++;return;}
-            } else if(stage==11||stage==12) {
+            } else if(!WATER&&!VAULT&&(stage==11||stage==12)) {
                 var coffin=CHENSHA.offset(ChenshaPiece.coffinOffset());
                 if(mc.player.distanceToSqr(Vec3.atCenterOf(coffin))>16)return;
                 if(!(mc.level.getBlockEntity(coffin) instanceof DungeonMechanismBlockEntity bound))return;
@@ -208,6 +214,36 @@ public final class DungeonClientQa {
                     if(!acted){reload=mc.reloadResourcePacks();acted=true;return;}
                     if(!reload.isDone())return;reload.join();
                 }
+            } else if(VAULT&&stage==9) {
+                if(HOST&&vaultSetup==null){vaultSetup=mc.getSingleplayerServer().submit(()->setupVault(mc));return;}
+                if(HOST){if(!vaultSetup.isDone())return;vaultSetup.join();}
+                if(!vaultLoaded(mc))return;
+                for(var pearl:ChenshaVaultLayout.constellationOffsets())
+                    require(mc.level.getBlockState(VAULT_ORIGIN.offset(pearl)).is(Blocks.PEARLESCENT_FROGLIGHT),"Constellation lamp missing on client");
+                for(int z=25;z>=17;z--) {
+                    int tier=ChenshaVaultLayout.daisHeight(32,z);
+                    require(mc.level.getBlockState(VAULT_ORIGIN.offset(32,tier,z)).is(Blocks.QUARTZ_BLOCK),"Dais tier missing on client");
+                }
+                var model=mc.getBlockRenderer().getBlockModel(DungeonContent.MERCURY_CHANNEL.get().defaultBlockState());
+                require(model!=mc.getModelManager().getMissingModel(),"Mercury channel model missing");
+                mc.player.setYRot(180);mc.player.setXRot(-12);
+                if(!acted){net.minecraft.client.Screenshot.grab(mc.gameDirectory,"chensha-vault.png",mc.getMainRenderTarget(),c->{});acted=true;}
+            } else if(VAULT&&stage==10) {
+                if(HOST&&!acted){mc.getSingleplayerServer().submit(()->exposeVaultPlayers(mc,false));acted=true;}
+                if(!vaultLoaded(mc)||mc.player.getHealth()>=20||!Files.exists(ROOT.resolve("vault-warning.txt")))return;
+                require(mc.player.getHealth()>0,"Moat caused an instant death");
+            } else if(VAULT&&stage==11) {
+                if(HOST&&!acted){mc.getSingleplayerServer().submit(()->{
+                    for(var player:mc.getSingleplayerServer().getPlayerList().getPlayers())prepareVaultPlayer(player);
+                });acted=true;}
+                if(!HOST&&!acted){mc.level.disconnect();mc.clearLevel(new TitleScreen());reconnectAt=System.nanoTime()+1_000_000_000L;acted=true;return;}
+                if(reload==null){reload=mc.reloadResourcePacks();return;}
+                if(!reload.isDone())return;reload.join();
+                if(!vaultLoaded(mc))return;
+            } else if(VAULT&&stage==12) {
+                if(HOST&&!acted){mc.getSingleplayerServer().submit(()->exposeVaultPlayers(mc,true));acted=true;}
+                if(!vaultLoaded(mc)||!Files.exists(ROOT.resolve("vault-cleared.txt")))return;
+                require(mc.player.getHealth()==20,"Debug-completed room still damages clients");
             }
             if(++frames<5)return;
             if(stage>=6&&captures!=stage) {
@@ -237,7 +273,9 @@ public final class DungeonClientQa {
         }catch(Exception e){throw new RuntimeException(e);}
     }
     @SubscribeEvent public static void joined(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
-        if(HOST&&event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player)prepare(player);
+        if(HOST&&event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player){
+            if(VAULT&&stage>=9)prepareVaultPlayer(player);else prepare(player);
+        }
     }
     private static void prepare(net.minecraft.server.level.ServerPlayer player) {
         player.setGameMode(stage>=6?GameType.SURVIVAL:GameType.CREATIVE);
@@ -262,7 +300,7 @@ public final class DungeonClientQa {
                 net.minecraft.util.RandomSource.create(57),clip,chunk,CHENSHA);
             columns++;
         }
-        if(!WATER&&stage>=6&&serverStage!=stage) {
+        if(!WATER&&!VAULT&&stage>=6&&serverStage!=stage) {
             serverStage=stage;
             if(stage==6)for(var player:server.getPlayerList().getPlayers()) {
                 player.setGameMode(GameType.SURVIVAL);player.getFoodData().setFoodLevel(10);player.getFoodData().setSaturation(0);
@@ -335,6 +373,57 @@ public final class DungeonClientQa {
     private static void use(Minecraft mc,BlockPos pos) {
         mc.gameMode.useItemOn(mc.player,InteractionHand.MAIN_HAND,new BlockHitResult(Vec3.atCenterOf(pos),Direction.NORTH,pos,false));
     }
+    private static int finalStage(){return VAULT?12:WATER?8:12;}
+    private static boolean vaultLoaded(Minecraft mc){return mc.level.getBlockEntity(VAULT_CORE) instanceof DungeonMechanismBlockEntity be&&VAULT_INSTANCE.equals(be.instance());}
+    private static void prepareVaultPlayer(net.minecraft.server.level.ServerPlayer player){
+        player.setGameMode(GameType.CREATIVE);
+        int x=player.getGameProfile().getName().endsWith("Peer")?34:31;
+        player.teleportTo(VAULT_ORIGIN.getX()+x+.5,VAULT_ORIGIN.getY()+10,VAULT_ORIGIN.getZ()+15.5);player.fallDistance=0;
+    }
+    private static void setupVault(Minecraft mc){
+        var level=mc.getSingleplayerServer().overworld();
+        level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false,level.getServer());
+        for(int x=8;x<=55;x++)for(int z=2;z<=29;z++)for(int y=0;y<=17;y++){
+            var state=ChenshaPiece.cell(x,y,z);if(state!=null)level.setBlockAndUpdate(VAULT_ORIGIN.offset(x,y,z),state);
+        }
+        for(var pearl:ChenshaVaultLayout.constellationOffsets())level.setBlockAndUpdate(VAULT_ORIGIN.offset(pearl),Blocks.PEARLESCENT_FROGLIGHT.defaultBlockState());
+        level.setBlockAndUpdate(VAULT_CORE,DungeonContent.CORE.get().defaultBlockState());
+        var be=(DungeonMechanismBlockEntity)level.getBlockEntity(VAULT_CORE);
+        be.configure(VAULT_INSTANCE,"imperial_vault","vault_core",VAULT_CORE,-1,List.of());
+        be.configureRoom(0,false,VAULT_CORE,VAULT_CORE);
+        for(var player:mc.getSingleplayerServer().getPlayerList().getPlayers())prepareVaultPlayer(player);
+    }
+    private static void exposeVaultPlayers(Minecraft mc,boolean completed){
+        var level=mc.getSingleplayerServer().overworld();
+        if(completed){DungeonStateStore.get(level).room(VAULT_INSTANCE,"imperial_vault").complete();DungeonStateStore.get(level).setDirty();vaultClearedAt=level.getGameTime();}
+        else vaultEnteredAt=level.getGameTime();
+        level.getGameRules().getRule(GameRules.RULE_NATURAL_REGENERATION).set(false,level.getServer());
+        for(var player:mc.getSingleplayerServer().getPlayerList().getPlayers()){
+            player.setGameMode(GameType.SURVIVAL);player.setHealth(20);
+            int x=player.getGameProfile().getName().endsWith("Peer")?30:32;
+            player.teleportTo(VAULT_ORIGIN.getX()+x+.5,VAULT_ORIGIN.getY()+1,VAULT_ORIGIN.getZ()+4.5);player.fallDistance=0;
+        }
+    }
+    @SubscribeEvent public static void vaultTick(TickEvent.ServerTickEvent event){
+        if(!HOST||!VAULT||event.phase!=TickEvent.Phase.END)return;
+        try {
+            var level=event.getServer().overworld();
+            var players=event.getServer().getPlayerList().getPlayers();
+            if(stage==10&&vaultEnteredAt!=0){
+                long age=level.getGameTime()-vaultEnteredAt;
+                var clock=DungeonStateStore.get(level).room(VAULT_INSTANCE,"imperial_vault").mercuryMoat();
+                if(age<20)for(var player:players)require(player.getHealth()==20,"Damage arrived before the full warning");
+                if(clock.phase()==DungeonMechanism.Phase.WARNING&&age>=2)
+                    Files.writeString(ROOT.resolve("vault-warning.txt"),"Observed server warning before damage; age="+age+"\n");
+            }
+            if(stage==12&&vaultClearedAt!=0&&level.getGameTime()-vaultClearedAt>=60){
+                for(var player:players)require(player.getHealth()==20,"Completed debug room still damages a player");
+                require(DungeonStateStore.get(level).room(VAULT_INSTANCE,"imperial_vault").mercuryMoat().phase()==DungeonMechanism.Phase.IDLE,"Completed debug room retains active hazard");
+                level.getDataStorage().save();
+                Files.writeString(ROOT.resolve("vault-cleared.txt"),"Debug-completed room stayed safe for 60 ticks; saved via SavedData. Not a Boss-kill test.\n");
+            }
+        }catch(Throwable failure){try{Files.writeString(ROOT.resolve("host-FAIL.txt"),failure.toString());}catch(Exception ignored){}}
+    }
     private static boolean open(Minecraft mc,BlockPos p){return mc.level.getBlockState(p).getValue(DungeonMechanismBlock.OPEN);}
     private static boolean active(Minecraft mc,BlockPos p){return mc.level.getBlockState(p).getValue(DungeonMechanismBlock.ACTIVE);}
     private static void require(boolean condition,String reason){if(!condition)throw new AssertionError(reason);}
@@ -349,7 +438,7 @@ public final class DungeonClientQa {
     }
     private static void finish(Minecraft mc,String failure) {
         finished=true;
-        try {Files.createDirectories(ROOT);Files.writeString(ROOT.resolve(ROLE+(failure==null?"-PASS.txt":"-FAIL.txt")),failure==null?"All "+(WATER?9:13)+" client stages passed\n":failure+"\n");}
+        try {Files.createDirectories(ROOT);Files.writeString(ROOT.resolve(ROLE+(failure==null?"-PASS.txt":"-FAIL.txt")),failure==null?"All "+(finalStage()+1)+" client stages passed\n":failure+"\n");}
         catch(Exception e){e.printStackTrace();}
         mc.stop();
     }

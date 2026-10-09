@@ -69,12 +69,27 @@ public final class EquipmentFeedback {
     }
     @SubscribeEvent public static void arrow(EntityJoinLevelEvent e){
         if(!(e.getLevel() instanceof ServerLevel l)||!(e.getEntity() instanceof AbstractArrow arrow)||!(arrow.getOwner() instanceof ServerPlayer p))return;
-        ItemStack bow=p.getMainHandItem().getItem() instanceof BowItem?p.getMainHandItem():p.getOffhandItem();
-        var id=ForgeRegistries.ITEMS.getKey(bow.getItem());if(id==null||!id.getNamespace().equals(Dynasty.MODID)||!(bow.getItem() instanceof BowItem))return;
+        ItemStack bow=firingWeapon(arrow,p);
+        var id=ForgeRegistries.ITEMS.getKey(bow.getItem());if(id==null||!id.getNamespace().equals(Dynasty.MODID)||!ranged(bow))return;
         arrow.getPersistentData().putLong("cod3_trail_start",l.getGameTime());arrow.getPersistentData().putLong("cod3_trail_seed",l.random.nextLong());
         arrow.getPersistentData().putInt("cod3_trail_tint",tint(id.getPath()));
+        arrow.getPersistentData().putString("cod3_trail_weapon",id.toString());
         var packet=arrowPacket(l,arrow);
         com.dynasty.network.DynastyNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.NEAR.with(()->new net.minecraftforge.network.PacketDistributor.TargetPoint(p.getX(),p.getY(),p.getZ(),32,l.dimension())),packet);
+    }
+    private static boolean ranged(ItemStack stack){return stack.getItem() instanceof BowItem||stack.getItem() instanceof CrossbowItem;}
+    public static ItemStack firingWeapon(AbstractArrow arrow,Player p){
+        var data=arrow.getPersistentData();
+        if(data.contains("cod4FiringWeapon"))return ItemStack.of(data.getCompound("cod4FiringWeapon"));
+        if(data.contains(DynastySchoolCombat.FIRING_WEAPON))return ItemStack.of(data.getCompound(DynastySchoolCombat.FIRING_WEAPON));
+        if(ranged(p.getUseItem()))return p.getUseItem();
+        return ranged(p.getMainHandItem())?p.getMainHandItem():p.getOffhandItem();
+    }
+    @SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void siegeImpact(net.minecraftforge.event.entity.ProjectileImpactEvent e){
+        if(e.isCanceled()||!(e.getEntity() instanceof AbstractArrow arrow)||!(arrow.level() instanceof ServerLevel level)
+                ||!arrow.getPersistentData().getBoolean("cod4Siege")||e.getRayTraceResult().getType()==net.minecraft.world.phys.HitResult.Type.MISS)return;
+        Cod3Vfx.send(level,3,e.getRayTraceResult().getLocation(),arrow.getDeltaMovement().normalize(),8,.18,tint("siege_crossbow"));
     }
     private static Cod3VisualPacket arrowPacket(ServerLevel l,AbstractArrow arrow){return new Cod3VisualPacket(l.dimension().location().toString(),4,arrow.getId(),arrow.getPersistentData().getLong("cod3_trail_seed"),arrow.getPersistentData().getLong("cod3_trail_start"),1200,1,arrow.position(),arrow.getDeltaMovement().normalize(),"",0,arrow.getPersistentData().getInt("cod3_trail_tint"));}
     @SubscribeEvent public static void tracking(net.minecraftforge.event.entity.player.PlayerEvent.StartTracking e){

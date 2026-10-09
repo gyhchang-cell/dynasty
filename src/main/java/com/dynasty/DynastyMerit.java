@@ -111,8 +111,15 @@ public final class DynastyMerit {
             return;
         }
         player.getPersistentData().putBoolean(SEEN + itemPath, true);
+        amount=firstObtainAmount(DynastyTrinkets.activeIds(player),amount);
         DynastyStats.addMerit(player, amount);
+        if(DynastyTrinkets.activeIds(player).contains("gold_seal_charm") && !DynastyTrinkets.activeIds(player).contains("merit_badge"))
+            com.dynasty.cod3.Cod3Vfx.send(player.serverLevel(),15,player.position(),player.getLookAngle(),16,.12,0xE7C866);
         player.displayClientMessage(Component.literal(
                 "§6[功名] §r+" + amount + "（初次获得 " + itemPath + "）"), true);
+    }
+    /** First-pickup bonus is separate from the pre-existing global merit multiplier. */
+    public static int firstObtainAmount(java.util.Set<String> active,int base){
+        return active.contains("gold_seal_charm")&&!active.contains("merit_badge")?(int)Math.ceil(base*1.2):base;
     }
 }

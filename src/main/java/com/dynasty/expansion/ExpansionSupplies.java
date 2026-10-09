@@ -14,6 +14,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 
 public final class ExpansionSupplies extends Item {
+    public static final int GUIDE_TICKS=1200;
+    private static final String GUIDE="cod4Guide";
     private final String kind;
     ExpansionSupplies(String kind) {
         super(new Properties().stacksTo(16).food(new FoodProperties.Builder().nutrition(kind.equals("army_ration")?10:0).saturationMod(kind.equals("army_ration")?1.2F:0).alwaysEat().build()));
@@ -51,10 +53,33 @@ public final class ExpansionSupplies extends Item {
         var tag=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ritual_sites"));
         var pos=p.serverLevel().findNearestMapStructure(tag,p.blockPosition(),32,false);
         if(pos==null) p.displayClientMessage(Component.translatable("message.dynasty.cod4.no_ruin"),false);
-        else {
-            ItemStack map=MapItem.create(p.serverLevel(),pos.getX(),pos.getZ(),(byte)2,true,true);
-            net.minecraft.world.level.saveddata.maps.MapItemSavedData.addTargetDecoration(map,pos,"+",net.minecraft.world.level.saveddata.maps.MapDecoration.Type.RED_X);
-            if(!p.getInventory().add(map)) p.drop(map,false);
+        else mark(p,pos);
+    }
+    public static void mark(ServerPlayer p,net.minecraft.core.BlockPos pos){
+        var data=new net.minecraft.nbt.CompoundTag();data.putLong("Target",pos.asLong());
+        data.putString("Dimension",p.level().dimension().location().toString());data.putLong("Until",p.level().getGameTime()+GUIDE_TICKS);
+        p.getPersistentData().put(GUIDE,data);updateGuide(p);
+    }
+    public static void updateGuide(ServerPlayer p){
+        if(!p.getPersistentData().contains(GUIDE))return;
+        var data=p.getPersistentData().getCompound(GUIDE);
+        if(!data.getString("Dimension").equals(p.level().dimension().location().toString()) || p.level().getGameTime()>=data.getLong("Until")){
+            p.getPersistentData().remove(GUIDE);p.displayClientMessage(Component.translatable("message.dynasty.cod4.guide_expired"),true);return;
         }
+        var pos=net.minecraft.core.BlockPos.of(data.getLong("Target"));double dx=pos.getX()-p.getX(),dz=pos.getZ()-p.getZ();
+        String[] compass={"south","southwest","west","northwest","north","northeast","east","southeast"};
+        int direction=Math.floorMod((int)Math.round(Math.atan2(-dx,dz)/(Math.PI/4)),8);
+        int seconds=(int)((data.getLong("Until")-p.level().getGameTime()+19)/20);
+        p.displayClientMessage(Component.translatable("message.dynasty.cod4.guide",Component.translatable("direction.dynasty."+compass[direction]),(int)Math.hypot(dx,dz),seconds),true);
+        if(p.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos))<=1024)
+            com.dynasty.cod3.Cod3Vfx.send(p.serverLevel(),15,net.minecraft.world.phys.Vec3.atCenterOf(pos),p.getLookAngle(),20,.15,0xE7C866);
+    }
+    @net.minecraftforge.fml.common.Mod.EventBusSubscriber(modid="dynasty")
+    public static final class Guidance {
+        @net.minecraftforge.eventbus.api.SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.PlayerTickEvent e){
+            if(e.phase==net.minecraftforge.event.TickEvent.Phase.END && e.player instanceof ServerPlayer p && p.tickCount%20==0)updateGuide(p);
+        }
+        @net.minecraftforge.eventbus.api.SubscribeEvent public static void dimension(net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent e){e.getEntity().getPersistentData().remove(GUIDE);}
+        @net.minecraftforge.eventbus.api.SubscribeEvent public static void clone(net.minecraftforge.event.entity.player.PlayerEvent.Clone e){e.getEntity().getPersistentData().remove(GUIDE);}
     }
 }

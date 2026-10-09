@@ -43,7 +43,23 @@ try:
         children.append(subprocess.Popen([java, *jvm, "-cp", launch["classpath"], launch["main"], *game],
                                           cwd=work, env=env, stdout=log, stderr=subprocess.STDOUT))
     for role, process in zip(roles, children):
-        code = process.wait(timeout=660)
+        # Forge can remain on its loading-error screen without exiting the JVM.
+        # Surface that failure immediately instead of waiting eleven minutes.
+        import time
+        deadline = time.monotonic() + 660
+        while True:
+            try:
+                code = process.wait(timeout=1)
+                break
+            except subprocess.TimeoutExpired:
+                with (out / (role + '.log')).open('rb') as current:
+                    current.seek(max(0, current.seek(0, 2) - 16384))
+                    tail = current.read().decode(errors='replace')
+                if any(message in tail for message in ('Failed to create mod instance.',
+                        'Failed to complete lifecycle event', 'LoadingFailedException')):
+                    raise RuntimeError(f'{role} failed during Forge loading; inspect {out / (role + ".log")}')
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(f'{role} timed out; inspect {out / (role + ".log")}')
         passed = out / "results" / (role + "-PASS.txt")
         if code != 0 or not passed.is_file():
             raise RuntimeError(f"{role} did not pass (exit={code}); inspect {out / (role + '.log')}")

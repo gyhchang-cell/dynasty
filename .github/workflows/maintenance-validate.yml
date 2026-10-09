@@ -27,16 +27,19 @@ jobs:
           python3 tools/art/make_local_repo.py
           chmod +x gradlew
           ./gradlew --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2' build
+      - name: Compile retained dungeon client QA modes
+        run: ./gradlew --no-daemon --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2' -I tools/blueprint/cod2-client.init.gradle -Pcod2PrepareOnly -Pcod2ClientRun=integration-compile compileCod2QaJava
       - name: Run required Forge GameTests
         id: gametests
         continue-on-error: true
         shell: bash
         run: |
           case "$GITHUB_REF_NAME" in
+            *cod4-continuation*) namespaces=dynasty_cod4,dynasty_cod3,dynasty_network; minimum=52 ;;
             *cod1-3*) namespaces=dynasty_cod2,dynasty_network; minimum=61 ;;
             *cod4*) namespaces=dynasty_cod4,dynasty_network; minimum=32 ;;
             *cod6*) namespaces=dynasty_cod6,dynasty_cod3,dynasty_infusion,dynasty_network; minimum=61 ;;
-            *integration*) namespaces=dynasty_cod2,dynasty_cod3,dynasty_cod4,dynasty_cod6,dynasty_infusion,dynasty_network; minimum=152 ;;
+            *integration*) namespaces=dynasty_cod2,dynasty_cod3,dynasty_cod4,dynasty_cod6,dynasty_infusion,dynasty_network; minimum=170 ;;
             *) echo 'Unrecognized validation branch'; exit 2 ;;
           esac
           export TEST_MINIMUM="$minimum"
@@ -54,6 +57,12 @@ jobs:
               raise SystemExit('No successful complete GameTest result; process='+os.environ['TEST_PROCESS_STATUS']+', passed='+str(count))
           print('Verified actual server completion:',count,'required tests passed')
           PY
+      - name: Verify COD4 content and FTB quest references
+        if: steps.build.outcome == 'success'
+        run: |
+          python3 tools/cod4/audit.py
+          python3 tools/art/verify_ftbquests.py build/libs
+          bash tools/keju/run_keju_tests.sh
       - name: Record built artifact provenance
         if: always() && steps.build.outcome == 'success'
         env:

@@ -55,7 +55,11 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         for(int i=0;i<28;i++) {
             double angle=i*Math.PI*2/28;
             int x=(int)Math.round(31.5+18*Math.cos(angle)),z=(int)Math.round(15.5+9*Math.sin(angle));
-            points.add(new BlockPos(x,vaultRoof(x,z),z));
+            var star=new BlockPos(x,vaultRoof(x,z),z);
+            // Two authored constellations share two roof cells. Hang the older
+            // lights immediately below those cells so neither pattern is overwritten.
+            if(ChenshaVaultLayout.constellationOffsets().contains(star))star=star.below();
+            points.add(star);
         }
         return List.copyOf(points);
     }
@@ -97,11 +101,13 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         if((x==24||x==39)&&(z==58||z==61)&&in(y,25,28))result=shell();
         // Spherical-ish imperial vault and an annular hazardous moat surrounding the dragon dais.
         if(rect(x,z,8,2,55,29)&&in(y,0,17)){
-            double d=Math.pow((x-31.5)/23.5,2)+Math.pow((z-15.5)/13.5,2);
-            int roof=vaultRoof(x,z);
+            double d=ChenshaVaultLayout.moatRadius(x,z);
+            int roof=ChenshaVaultLayout.roofHeight(x,z);
             if(d<=1.1&&y<=roof)result=y==0||y==roof||d>1?shell():Blocks.AIR.defaultBlockState();
-            if(y==0&&d>.55&&d<.8)result=Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
-            if(y>=1&&y<=daisHeight(x,z))result=(y==daisHeight(x,z)?Blocks.SMOOTH_QUARTZ:Blocks.QUARTZ_BRICKS).defaultBlockState();
+            if(y==0&&ChenshaVaultLayout.moatCell(x,z))result=DungeonContent.MERCURY_CHANNEL.get().defaultBlockState();
+            int dais=ChenshaVaultLayout.daisHeight(x,z);
+            if(dais>0&&in(y,1,dais))result=Blocks.QUARTZ_BLOCK.defaultBlockState();
+            if(y==0&&in(x,30,34)&&in(z,22,27))result=Blocks.QUARTZ_BLOCK.defaultBlockState();
         }
         // Do not let the arena's north wall block the downward stair connector.
         if(in(x,30,34)&&in(z,27,29)&&in(y,1,4))result=Blocks.AIR.defaultBlockState();
@@ -207,6 +213,8 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         for(var star:vaultStars())fixture(level,clip,star,Blocks.SEA_LANTERN.defaultBlockState(),null);
         for(var skull:List.of(new BlockPos(19,29,43),new BlockPos(23,29,46),new BlockPos(50,26,92),new BlockPos(53,26,90)))
             fixture(level,clip,skull,Blocks.SKELETON_SKULL.defaultBlockState(),null);
+        for(BlockPos pearl:ChenshaVaultLayout.constellationOffsets())
+            fixture(level,clip,pearl,Blocks.PEARLESCENT_FROGLIGHT.defaultBlockState(),null);
         for(BlockPos lamp:List.of(new BlockPos(27,75,7),new BlockPos(37,75,7),new BlockPos(12,53,38),new BlockPos(53,53,83),
                 new BlockPos(26,30,60),new BlockPos(37,30,60),new BlockPos(20,6,10),new BlockPos(44,6,21)))
             fixture(level,clip,lamp,Blocks.SOUL_LANTERN.defaultBlockState(),null);

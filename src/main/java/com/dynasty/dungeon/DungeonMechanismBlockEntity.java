@@ -153,6 +153,7 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         if(!nearby){room.pause(time);room.pauseHazards(time);if(changed)be.changed();return;}
         if(be.environmentOrigin!=null)changed|=ChenshaEnvironment.tick(sl,be.environmentOrigin,be.roomId,room,time);
         if(be.encounterOrigin!=null&&time%20==0)DungeonEncounters.tickChensha(sl,be.instance,be.encounterOrigin);
+        changed|=ChenshaMercuryMoat.tick(sl,be,room,time);
         var loaded=new ArrayList<DungeonMechanismBlockEntity>();
         for(BlockPos marker:be.markers)if(sl.hasChunkAt(marker)&&sl.getBlockEntity(marker) instanceof DungeonMechanismBlockEntity part
                 &&be.instance.equals(part.instance)&&be.roomId.equals(part.roomId))loaded.add(part);

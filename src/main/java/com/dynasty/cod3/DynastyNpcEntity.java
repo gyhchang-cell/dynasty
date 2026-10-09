@@ -82,7 +82,12 @@ public final class DynastyNpcEntity extends AbstractVillager implements software
         }
         return InteractionResult.sidedSuccess(level().isClientSide);
     }
-    public void trade(net.minecraft.server.level.ServerPlayer p){if(getTradingPlayer()!=null&&getTradingPlayer()!=p)return;setTradingPlayer(p);openTradingScreen(p,getDisplayName(),1);}
+    public boolean trade(net.minecraft.server.level.ServerPlayer p){
+        if(p.level()!=level()||!p.isAlive()||p.isSpectator()||!isAlive()||p.distanceToSqr(this)>36
+                ||getTradingPlayer()!=null&&getTradingPlayer()!=p)return false;
+        if(getOffers().isEmpty())return false;
+        setTradingPlayer(p);openTradingScreen(p,getDisplayName(),1);return true;
+    }
     private Item item(String name){return ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty",name));}
     @Override protected void updateTrades(){
         String[] goods=switch(role){case "lao_chen"->new String[]{"blueprint","refined_steel"};case "han_chong"->new String[]{"mu_mao","bamboo_slip"};case "baibao_jin"->new String[]{"tea","silk","jade"};case "hei_po","xiaoyuanzi"->new String[]{"healing_salve","tea"};default->new String[]{"tea"};};

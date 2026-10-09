@@ -72,19 +72,6 @@ public final class ExpansionClient {
         for(int i=0;i<count;i++){double a=i*Math.PI*2/count;double r=p.type()==CombatFeedback.HEAVY?1.3:.55;level.addParticle(type,p.x()+Math.cos(a)*r,p.y(),p.z()+Math.sin(a)*r,Math.cos(a)*.03,.025,Math.sin(a)*.03);}
         level.playLocalSound(p.x(),p.y(),p.z(),p.type()==CombatFeedback.BLOCK||p.type()==CombatFeedback.PERFECT?SoundEvents.SHIELD_BLOCK:p.type()==CombatFeedback.HEAVY?SoundEvents.PLAYER_ATTACK_STRONG:SoundEvents.PLAYER_ATTACK_CRIT,SoundSource.PLAYERS,.25F,p.type()==CombatFeedback.PERFECT?1.5F:1F,false);
     }
-    @Mod.EventBusSubscriber(modid="dynasty",value=Dist.CLIENT)
-    public static final class Trails {
-        @SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.ClientTickEvent e) {
-            var level=Minecraft.getInstance().level;var player=Minecraft.getInstance().player;
-            if(e.phase!=net.minecraftforge.event.TickEvent.Phase.END || level==null || player==null || level.getGameTime()%2!=0)return;
-            int count=0;for(var entity:level.entitiesForRendering()) {
-                if(count>=32)break;
-                if(entity instanceof net.minecraft.world.entity.projectile.AbstractArrow arrow && arrow.getOwner() instanceof net.minecraft.world.entity.LivingEntity owner && arrow.distanceToSqr(player)<1024 && arrow.getDeltaMovement().lengthSqr()>.01) {
-                    String id=EquipmentBehaviors.id(owner.getMainHandItem());
-                    if(id.contains("bow") || id.contains("gong")) {level.addParticle(ParticleTypes.END_ROD,arrow.getX(),arrow.getY(),arrow.getZ(),0,0,0);count++;}
-                }
-            }
-        }
-    }
+    // EquipmentFeedback owns entity-bound VFX#4 and late-tracker replay from the firing snapshot.
     private ExpansionClient() { }
 }

@@ -46,6 +46,8 @@ public final class ExpansionEffects {
             target.removeEffect(type.get());
             target.hurt(target.damageSources().magic(), 12);
             CombatFeedback.send(target, CombatFeedback.THUNDER);
+            if(target.level() instanceof net.minecraft.server.level.ServerLevel level)
+                com.dynasty.cod3.Cod3Vfx.send(level,31,target.position(),target.getLookAngle(),12,.45,0x8FE3F3);
             return;
         }
         target.addEffect(new MobEffectInstance(type.get(), type == BREAK && boss(target) ? duration/2 : duration, amp));

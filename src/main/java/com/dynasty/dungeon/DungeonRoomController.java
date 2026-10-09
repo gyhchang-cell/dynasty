@@ -42,6 +42,11 @@ public final class DungeonRoomController implements DungeonMechanism {
         if(!floor&&profile==null){var upgraded=clock.upgradeIdleArrowVolley();if(upgraded!=clock){hazards.put(key,upgraded);clock=upgraded;}}
         return clock;
     }
+    public DungeonHazard mercuryMoat() {
+        String key="mercury_moat";
+        if(hazards.size()>=64&&!hazards.containsKey(key))throw new IllegalStateException("Room hazard budget exceeded");
+        return hazards.computeIfAbsent(key,k->new DungeonHazard(20,20,40,10));
+    }
     // Failure releases the trial entrance only. The exit still requires the eyes.
     public boolean doorOpen(){return completed&&(requiredTargets==63||openingTicks>=12);}
     public int openingTicks(){return openingTicks;}
