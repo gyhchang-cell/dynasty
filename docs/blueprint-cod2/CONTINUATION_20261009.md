@@ -18,6 +18,7 @@
 - 新增GitHub Actions执行构建、全部Cod2服务端GameTest以及真实单端/双端客户端QA并保留证据。结果尚未确认时，统一记为**未实机验证**。
 - 本地完整构建因Forge/Maven依赖不可用而未通过依赖解析；不能据此声称Java编译或实机通过。三项既有资源维护检查问题未在本批顺带修改。
 - 首轮Actions确认Java编译与打包成功，但模组启动时发现主分支的17号InfusionRequest未加入冻结协议表，GameTest没有运行；Forge仍返回成功退出码，不能以Gradle的成功代替测试通过。本批补齐17号表项，扩展实际Forge通道快照断言，并要求日志包含全部32个Cod2必需测试通过；客户端遇到Forge加载失败立即退出。首次失败记录：`https://github.com/gyhchang-cell/dynasty/actions/runs/37923020227`。
+- 协议修复后32个服务端测试真正执行，新护城渠测试与末室布局通过；既有上层驻军测试在同tick添加实体后立即查询UUID，触发实体区块异步可见性问题。将该测试移至隔离坐标，等待ENTITY_TICKING和全部四实体可见后保留原有卸载、保存、席位和永久清除断言；区块票与NoAI仅用于测试场景。该轮失败记录：`https://github.com/gyhchang-cell/dynasty/actions/runs/37924871242`。
 
 ## 剩余任务清单
 
