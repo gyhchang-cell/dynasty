@@ -28,8 +28,8 @@ import java.util.List;
 /** Three authored actions share the existing server clock; target points never follow the camera. */
 public final class HeadlessGeneral extends Monster implements GeoEntity, Combatant {
     public static final String ID="xianzhen_duantoujiang";
-    public static final SkillDefinition ROAR=new SkillDefinition(301,"headless_roar",24,6,20,140,0,10,34,1,.4,false,true,List.of(24));
-    public static final SkillDefinition SPIN=new SkillDefinition(302,"headless_spin",16,30,30,180,0,3.5,360,1.1F,.35,false,true,List.of(16,26,36));
+    public static final SkillDefinition ROAR=new SkillDefinition(301,"headless_roar",24,6,20,140,0,10,17,1,.4,false,true,List.of(24));
+    public static final SkillDefinition SPIN=new SkillDefinition(302,"headless_spin",16,31,30,180,0,3.5,360,1.1F,.35,false,true,List.of(26,36,46));
     public static final SkillDefinition THROW=new SkillDefinition(303,"headless_throw",20,6,24,160,0,2,360,1.2F,.5,true,true,List.of(20));
     private static final EntityDataAccessor<Integer> SKILL=SynchedEntityData.defineId(HeadlessGeneral.class,EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> PHASE=SynchedEntityData.defineId(HeadlessGeneral.class,EntityDataSerializers.INT);
@@ -92,7 +92,7 @@ public final class HeadlessGeneral extends Monster implements GeoEntity, Combata
             var step=attack.direction().scale(2);move(MoverType.SELF,step);origin=position();
             if(horizontalCollision){attack.stun(server.getGameTime(),30);BlueprintVisualEvent.cancel(this);sync();return;}
         }
-        var shape=def.id()==ROAR.id()?CombatGeometry.Shape.CONE:CombatGeometry.Shape.CIRCLE;
+        var shape=def.id()==ROAR.id()?CombatGeometry.Shape.SECTOR:CombatGeometry.Shape.CIRCLE;
         for(var hit:CombatGeometry.query(server,origin,attack.direction(),shape,def.maxRange(),0,def.angleDegrees(),2.5,e->enemy(e)&&hasLineOfSight(e))){
             if(def.id()==ROAR.id()&&hit instanceof Player player&&player.isBlocking())player.disableShield(true);
             hit.invulnerableTime=0;

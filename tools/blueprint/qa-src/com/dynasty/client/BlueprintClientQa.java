@@ -51,7 +51,7 @@ import java.util.concurrent.CompletableFuture;
 /** Opt-in disposable QA source set. Output is observed state, never a substitute for a manual visual review. */
 @Mod.EventBusSubscriber(modid="dynasty", value=Dist.CLIENT)
 public final class BlueprintClientQa {
-    private static final String ROLE = System.getProperty("dynasty.blueprintQa", "");
+    private static final String ROLE = Boolean.getBoolean("dynasty.blueprintQa.elite")?"":System.getProperty("dynasty.blueprintQa", "");
     private static final String RUN = System.getProperty("dynasty.blueprintQa.run", "unset");
     private static final boolean HOST = ROLE.equals("host"), SOLO = Boolean.getBoolean("dynasty.blueprintQa.solo");
     private static final boolean CONNECTION_ONLY = Boolean.getBoolean("dynasty.blueprintQa.connectionOnly");

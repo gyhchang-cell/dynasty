@@ -39,9 +39,9 @@ public final class HeadlessGeneralGameTests {
         h.onEachTick(()->{if(target.isAlive()){target.setPos(m.position().add(0,0,1));target.setDeltaMovement(Vec3.ZERO);}});
         h.assertTrue(m.startSkill(302,target),"Spin starts");
         h.runAfterDelay(14,()->h.assertTrue(target.getHealth()==1000,"Full 0.8-second twist warning"));
-        h.runAfterDelay(18,()->{hp[0]=target.getHealth();h.assertTrue(hp[0]<1000,"First circle contact");});
-        h.runAfterDelay(28,()->{hp[1]=target.getHealth();h.assertTrue(hp[1]<hp[0],"Second circle contact");});
-        h.runAfterDelay(38,()->{hp[2]=target.getHealth();h.assertTrue(hp[2]<hp[1],"Third circle contact");});
+        h.runAfterDelay(28,()->{hp[0]=target.getHealth();h.assertTrue(hp[0]<1000,"First circle contact");});
+        h.runAfterDelay(38,()->{hp[1]=target.getHealth();h.assertTrue(hp[1]<hp[0],"Second circle contact");});
+        h.runAfterDelay(48,()->{hp[2]=target.getHealth();h.assertTrue(hp[2]<hp[1],"Third circle contact");});
         h.runAfterDelay(55,()->h.assertTrue(m.phase()==AttackState.RECOVERY&&target.getHealth()==hp[2],"Recovery leaves a real punish window with no damage"));
         h.runAfterDelay(80,()->{h.assertTrue(target.getHealth()==hp[2]&&m.skillId()==0&&!m.startSkill(302,target),"Exactly three contacts; cooldown remains");h.succeed();});
     }
@@ -72,7 +72,12 @@ public final class HeadlessGeneralGameTests {
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=35,batch="headless_elite")
     public static void structureMembershipSurvivesUnloadAndBlocksSecondEntrant(GameTestHelper h){
-        var dummy=mob(h);dummy.discard();var level=h.getLevel();var feet=h.absolutePos(new BlockPos(7,2,7));var entrant=h.absolutePos(new BlockPos(1,2,1));
+        var level=h.getLevel();var feet=new BlockPos(10000,130,10000);var entrant=feet.offset(-6,0,-6);
+        level.getChunkAt(feet);
+        for(int x=-2;x<=2;x++)for(int z=-2;z<=2;z++){
+            level.setBlockAndUpdate(feet.offset(x,-1,z),Blocks.STONE.defaultBlockState());
+            for(int y=0;y<=5;y++)level.setBlockAndUpdate(feet.offset(x,y,z),Blocks.AIR.defaultBlockState());
+        }
         var rule=level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING);boolean previous=rule.get();rule.set(true,level.getServer());
         String key="headless-gametest@"+feet.asLong();
         try{
