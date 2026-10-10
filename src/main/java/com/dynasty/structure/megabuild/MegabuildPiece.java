@@ -35,6 +35,8 @@ class MegabuildPiece extends DynastyStructurePiece {
     private int rot;
     private Blueprint cached;
     private int layoutVersion=6;
+    private int miningUpgrade;
+    private final java.util.BitSet preservedMiningColumns=new java.util.BitSet(MiningEstate.SIZE*MiningEstate.SIZE);
 
     MegabuildPiece(StructurePieceType type, int depth, BlockPos corner,
                    Function<Long, Blueprint> factory, long seed, int rot, int size, int height) {
@@ -59,6 +61,10 @@ class MegabuildPiece extends DynastyStructurePiece {
         this.height = height;
         this.seed = tag.getLong("MegabuildSeed");
         this.rot = tag.getInt("MegabuildRot");
+        if(size==MiningEstate.SIZE&&layoutVersion>=2&&layoutVersion<=5&&tag.getInt("MiningUpgrade")==6){
+            miningUpgrade=6;
+            for(int column:tag.getIntArray("MiningPreservedColumns"))if(column>=0&&column<size*size)preservedMiningColumns.set(column);
+        }
     }
 
     @Override
@@ -68,13 +74,14 @@ class MegabuildPiece extends DynastyStructurePiece {
         tag.putLong("MegabuildSeed", seed);
         tag.putInt("MegabuildRot", rot);
         tag.putInt("MegabuildLayout", layoutVersion);
+        if(miningUpgrade==6){tag.putInt("MiningUpgrade",6);tag.putIntArray("MiningPreservedColumns",preservedMiningColumns.stream().toArray());}
     }
 
     @Override
     protected void placeBlock(WorldGenLevel level,BlockState state,int x,int y,int z,BoundingBox box){
         // SOUTH keeps additive coordinates but vanilla also mirrors block states.
         // Blueprint already owns rotation: cancel that second transform for v4.
-        if(layoutVersion>=4)state=state.mirror(getMirror());
+        if(layoutVersion>=4||(miningUpgrade==6&&!preservedMiningColumns.get(x*size+z)))state=state.mirror(getMirror());
         super.placeBlock(level,state,x,y,z,box);
     }
 
@@ -88,6 +95,7 @@ class MegabuildPiece extends DynastyStructurePiece {
             for (int y = 0; y < height; y++) {
                 for (int z = z0; z <= z1; z++) {
                     Blueprint.Kind kind = blueprint.at(x, y, z);
+                    if(miningUpgrade==6&&level.getBlockEntity(world(x,y,z))!=null)continue;
                     if(kind==Blueprint.Kind.SPAWNER_ZOMBIE||kind==Blueprint.Kind.SPAWNER_SKELETON){
                         placeBlock(level,Blocks.SPAWNER.defaultBlockState(),x,y,z,box);
                         var p=world(x,y,z);
@@ -116,7 +124,7 @@ class MegabuildPiece extends DynastyStructurePiece {
     }
 
     java.util.List<BlockPos> miningSpiderPositions(){
-        return size==MiningEstate.SIZE && layoutVersion!=5?rotateMechanical(layoutVersion>=6
+        return size==MiningEstate.SIZE && (layoutVersion!=5||miningUpgrade==6)?rotateMechanical(layoutVersion>=6||miningUpgrade==6
             ?new int[][]{{17,4,66},{31,4,66}}:new int[][]{{17,4,44},{31,4,45}}):java.util.List.of();
     }
     java.util.List<BlockPos> bronzeSnakePositions(){return mechanicalPositions(new int[][]{{35,1,52},{66,1,36}});}
@@ -133,8 +141,31 @@ class MegabuildPiece extends DynastyStructurePiece {
         }return java.util.List.copyOf(points);
     }
     private synchronized Blueprint blueprint() {
-        if(cached==null) cached=factory.apply(seed).rotate(rot);
+        if(cached==null){
+            cached=factory.apply(seed).rotate(rot);
+            if(miningUpgrade==6){
+                var legacy=cached;cached=new MiningEstate(seed).blueprint().rotate(rot);
+                for(int column=preservedMiningColumns.nextSetBit(0);column>=0;column=preservedMiningColumns.nextSetBit(column+1))
+                    for(int y=0;y<height;y++)cached.set(column/size,y,column%size,legacy.at(column/size,y,column%size));
+            }
+        }
         return cached;
+    }
+
+    boolean legacyMine(){return getType()==MegabuildStructures.MINING_PIECE.get()&&size==MiningEstate.SIZE&&height==MiningEstate.HEIGHT&&layoutVersion>=2&&layoutVersion<=5&&miningUpgrade==0&&getOrientation()==Direction.SOUTH;}
+    int miningLayout(){return layoutVersion;}
+    long miningSeed(){return seed;}
+    int miningRotation(){return Math.floorMod(rot,4);}
+    Blueprint miningSource(){return blueprint();}
+    BlockPos miningWorld(int x,int y,int z){return world(x,y,z).immutable();}
+    BlockState miningState(Blueprint.Kind kind,boolean current){
+        // Legacy common/rich chests are placed through createChest, outside blockState's switch.
+        var state=(kind==Blueprint.Kind.CHEST||kind==Blueprint.Kind.RICH_CHEST)?Blocks.CHEST.defaultBlockState():blockState(kind);
+        return ((layoutVersion>=4||current)?state:state.mirror(getMirror())).rotate(getRotation());
+    }
+    void upgradeMining(java.util.BitSet columns){
+        if(!legacyMine())throw new IllegalStateException("Mine instance is not an unupgraded legacy layout");
+        preservedMiningColumns.or(columns);miningUpgrade=6;cached=null;
     }
 
     static BlockState blockState(Blueprint.Kind kind) {
