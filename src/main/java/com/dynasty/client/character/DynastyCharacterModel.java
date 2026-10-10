@@ -245,6 +245,7 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
         float drawing=e.isUsingItem()&&e.getUseItem().is(Items.BOW)?Mth.clamp((e.getTicksUsingItem()+partial)/20,0,1):0;
         float attack=e instanceof com.dynasty.entity.DynastyHumanoidMob humanoid&&role!=Role.ARCHER?humanoid.characterAttackProgress(partial):e.getAttackAnim(partial);
         pose(limb,amount,age,yaw,pitch,attack,e.hurtTime,e.deathTime,drawing,variant,e.isAggressive());
+        if(role==Role.GUARD&&e.getMainHandItem().is(Items.CROSSBOW))poseHeldCrossbow();
         n("weapon").visible=role==Role.ARCHER?e.getMainHandItem().is(Items.BOW):e.getMainHandItem().isEmpty();
         if(role==Role.ARCHER&&!n("weapon").visible){n("bow_string_top").visible=false;n("bow_string_bottom").visible=false;n("nocked_arrow").visible=false;}
     }
@@ -326,6 +327,30 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
         var lowerQ=new org.joml.Quaternionf().rotationTo(new Vector3f(0,1,0),lowerDir);
         n(side+"_upper_arm").orientation=upperQ;n(side+"_elbow").orientation=lowerQ;
         n(side+"_wrist").orientation=new org.joml.Quaternionf(shoulderQ).mul(upperQ).mul(lowerQ).invert();
+    }
+    /** Both authored hand grips follow the same crossbow stock, even while the chest/legs move. */
+    public void poseHeldCrossbow() {
+        if(role!=Role.GUARD)return;
+        var gripOrientation=new org.joml.Quaternionf().rotationX(-1.44f);
+        crossbowArm("right",new Vector3f(0,3.8f,-3),gripOrientation);
+        crossbowArm("left",new Vector3f(0,3.8f,-5.8f),gripOrientation);
+    }
+    private void crossbowArm(String side,Vector3f grip,org.joml.Quaternionf gripOrientation) {
+        Joint shoulder=n(side+"_shoulder");shoulder.rx=shoulder.ry=shoulder.rz=0;
+        // Solve the wrist pivot, including the actual forearm/wrist/hand offsets.
+        Vector3f wrist=new Vector3f(grip).sub(gripOrientation.transform(new Vector3f(0,1.1f,-.12f)));
+        Vector3f d=wrist.sub(shoulder.x,shoulder.y,shoulder.z);
+        float upper=4.5f,lower=4.05f,length=Mth.clamp(d.length(),.5f,upper+lower-.06f);
+        d.normalize().mul(length);Vector3f axis=new Vector3f(d).normalize();
+        Vector3f pole=new Vector3f(side.equals("left")?1:-1,.65f,.4f);
+        pole.sub(new Vector3f(axis).mul(pole.dot(axis))).normalize();
+        float along=(upper*upper+length*length-lower*lower)/(2*length);
+        Vector3f elbow=new Vector3f(axis).mul(along).add(pole.mul((float)Math.sqrt(Math.max(0,upper*upper-along*along))));
+        var upperQ=new org.joml.Quaternionf().rotationTo(new Vector3f(0,1,0),new Vector3f(elbow).normalize());
+        Vector3f lowerDir=new org.joml.Quaternionf(upperQ).invert().transform(new Vector3f(d).sub(elbow).normalize());
+        var lowerQ=new org.joml.Quaternionf().rotationTo(new Vector3f(0,1,0),lowerDir);
+        n(side+"_upper_arm").orientation=upperQ;n(side+"_elbow").orientation=lowerQ;
+        n(side+"_wrist").orientation=new org.joml.Quaternionf(upperQ).mul(lowerQ).invert().mul(gripOrientation);
     }
     @Override public void renderToBuffer(PoseStack p,VertexConsumer out,int light,int overlay,float r,float g,float b,float a) {
         render(root,p,out,light,overlay,r,g,b,a);

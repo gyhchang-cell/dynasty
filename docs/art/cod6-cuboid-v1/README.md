@@ -41,3 +41,5 @@ QA新增实际服务器swing(MAIN_HAND)、generic hurt(8)、lethal hurt(1000000)
 最终资源复查为five-ground-resources-02（55阶段），真实事件验收为lifecycle-motion-final-04（35阶段）。后者在同步事件观察至少3tick后抓帧，并检查攻击臂/前爪或受击胸骨与rest旋转之差，避免只有clip名称切换而未显示动作。龙帝大坐标的侧面地面未完整绘制，另外同版本单实体7阶段补拍；最终两组验收同一生产JAR，QA单独编译并校验生产JAR字节未变化。原生记录包含35组实际生命/挥手/受击/死亡状态与全骨当前旋转/位移；verify_lifecycle另验证主体没有被装饰架空，四面主体接地容差低于一个像素。只接受这两次的当前精确资源、Java与类哈希，旧诊断不冒充最终产物。
 
 本轮原文操作仅删除一段亡故帝王造型，备份及精确前后SHA在prompt-edits.json；其余原文逐字节保留。龙帝实际死亡侧面另以dragon-motion-final-05同生产JAR补验，地面可见，最终逐实体映射在lifecycle-validation.json。产物保留旧art-cod6-5，新增art-cod6-5-lifecycle；其他开发者最新主工作区修改仍不包含在隔离产物内。
+
+2026-10-11 05:34续作：禁卫双手持弩修复并通过128组握点检查、12装备原生视角、18人站立/真实跟随AI两次负载；17人移动>1格、18人真实膝关节变化，移动帧中位9.333ms/P95 10.807ms。现有几何和骨骼没有新增。cod6完成的手部/双握点与骨骼预算/同屏负载2段已先备份再删除，其他内容逐字节保留。军籍守位阵型、裙甲碰撞、兵种箭匣、自然射击和真人要求尚未完成。详见[禁卫证据](../guard-art-v1/README.md)与validation.json；新的合并美术JAR仅Manifest和DynastyCharacterModel.class不同于前轮已验收Boss JAR。下一轮继续20只小怪真实AI/粒子负载。
