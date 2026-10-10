@@ -34,7 +34,7 @@ public final class ArmyGameTests {
     private static final java.util.Map<net.minecraft.server.level.ServerLevel,java.util.List<SpearTicket>> SPEAR_TICKETS=new java.util.HashMap<>();
     @net.minecraft.gametest.framework.AfterBatch(batch="army")
     public static void releaseSpearFixtureTickets(net.minecraft.server.level.ServerLevel level){
-        var tickets=SPEAR_TICKETS.remove(level);if(tickets!=null)for(var ticket:tickets)level.getChunkSource().removeRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token());
+        var tickets=SPEAR_TICKETS.remove(level);if(tickets!=null)for(var ticket:tickets)level.getChunkSource().removeRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token(),true);
     }
 
     private static void arena(GameTestHelper h){
@@ -99,7 +99,7 @@ public final class ArmyGameTests {
         // A loaded template is not proof its native entity section is ticking yet. Keep this
         // isolated QA cell active, wait for real actor ticks, then retain every original timing assertion.
         var level=h.getLevel();var ticket=new SpearTicket(mob.chunkPosition(),UUID.randomUUID());
-        level.getChunkSource().addRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token());SPEAR_TICKETS.computeIfAbsent(level,k->new java.util.ArrayList<>()).add(ticket);
+        level.getChunkSource().addRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token(),true);SPEAR_TICKETS.computeIfAbsent(level,k->new java.util.ArrayList<>()).add(ticket);
         long[] started={-1};
         h.onEachTick(()->{
             if(started[0]<0){
