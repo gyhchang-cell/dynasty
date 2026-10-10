@@ -33,6 +33,8 @@ public final class ExpansionClient {
         @Override public ResourceLocation getModelResource(SecondaryMob m) {return new ResourceLocation("dynasty","geo/secondary/"+m.spec.id()+".geo.json");}
         @Override public ResourceLocation getAnimationResource(SecondaryMob m) {return new ResourceLocation("dynasty","animations/secondary/"+m.spec.id()+".animation.json");}
         @Override public ResourceLocation getTextureResource(SecondaryMob m) {
+            if(java.util.Set.of("river_imp","tree_spirit","shrimp_soldier","carp_spirit","snail_maiden","lantern_ghost","stone_sprite","crab_soldier","corpse_beetle","venom_scorpion","clockwork_rat").contains(m.spec.id()))
+                return new ResourceLocation("dynasty","textures/entity/secondary/"+m.spec.id()+".png");
             String atlas=switch(m.spec.family()) {case "human"->m.spec.id().equals("bandit_thug")?"assassin":"minister";case "water"->"merfolk";case "fly"->m.spec.id().equals("wooden_magpie")?"terracotta_warrior":"phoenix";case "ghost"->"soul_soldier";default->m.spec.id().equals("red_fox")?"nine_tailed_fox":"nian_beast";};
             return new ResourceLocation("dynasty","textures/entity/"+atlas+".png");
         }
