@@ -306,7 +306,7 @@ public final class EquipmentBehaviors {
             if(pieces(p,"bronze")>=4 && e.getSource().getEntity() instanceof com.dynasty.entity.ImperialSoldier)e.setAmount(e.getAmount()*.8F);
             if(has(p,"fox_tail_charm") && p.getRandom().nextFloat()<.1 && e.getSource().getEntity() instanceof Mob mob && !ExpansionEffects.boss(mob)){mob.setTarget(null);mob.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,40,1));com.dynasty.cod3.EquipmentFeedback.accessory(p,"fox_tail_charm");}
             if(p.isUsingItem() && p.getUseItem().is(ExpansionContent.DUCK.get()) && p.getOffhandItem().is(ExpansionContent.DUCK.get()) && !e.getSource().is(DamageTypeTags.BYPASSES_SHIELD)) {
-                if(e.getSource().getSourcePosition()!=null && p.getLookAngle().dot(e.getSource().getSourcePosition().subtract(p.position()).normalize())>0) {e.setAmount(e.getAmount()*.35F);n.putLong("cod4Counter",now(p)+60);boolean perfect=perfectGuard(p);if(perfect)p.removeEffect(ExpansionEffects.STAGGER.get());CombatFeedback.send(p,perfect?CombatFeedback.PERFECT:CombatFeedback.BLOCK);}
+                if(e.getSource().getSourcePosition()!=null && p.getLookAngle().dot(e.getSource().getSourcePosition().subtract(p.position()).normalize())>0) {e.setAmount(e.getAmount()*.35F);n.putLong("cod4Counter",now(p)+60);boolean perfect=perfectGuard(p);if(perfect)p.removeEffect(ExpansionEffects.STAGGER.get());CombatFeedback.send(p,perfect?CombatFeedback.PERFECT:CombatFeedback.BLOCK);com.dynasty.cod3.EquipmentFeedback.weapon(p,"duck_guard",null);}
             }
         }
         if(e.getSource().getEntity() instanceof SecondaryMob mob && (mob.spec.id().equals("golden_leopard") || mob.spec.id().equals("gray_falcon")) && e.getEntity().getHealth()>=e.getEntity().getMaxHealth()*.9F)e.setAmount(e.getAmount()*1.5F);
@@ -326,7 +326,7 @@ public final class EquipmentBehaviors {
         if(pieces(p,"beidou")>=3 && now(p)-n.getLong("cod4Moved")<60)bonus+=.1F;
         if(pieces(p,"hongmeng")>=3 && e.getEntity() instanceof com.dynasty.ritual.ZhenyuanSovereign)bonus+=.15F;
         if(pieces(p,"dark_iron")>=4 && n.getInt("cod4Rage")>=5){n.putInt("cod4Rage",0);bonus+=.25F;CombatFeedback.send(e.getEntity(),CombatFeedback.HEAVY);}
-        if(now(p)<n.getLong("cod4Counter")){n.remove("cod4Counter");bonus+=pieces(p,"xuanwu")>=3?.2F:.1F;}
+        if(now(p)<n.getLong("cod4Counter")){n.remove("cod4Counter");bonus+=pieces(p,"xuanwu")>=3?.2F:.1F;if(p.getMainHandItem().is(ExpansionContent.DUCK.get())&&p.getOffhandItem().is(ExpansionContent.DUCK.get()))com.dynasty.cod3.EquipmentFeedback.weapon(p,"duck_counter",null);}
         if(pieces(p,"baihu")>=3 && p.isSprinting() && ready(p,"sprintStrike",60)){bonus+=.4F;if(pieces(p,"baihu")>=4)ExpansionEffects.apply(e.getEntity(),ExpansionEffects.STAGGER,40);}
         if(pieces(p,"baihu")>=2 && !ExpansionEffects.boss(e.getEntity()))e.getEntity().knockback(.5,p.getX()-e.getEntity().getX(),p.getZ()-e.getEntity().getZ());
         if(balanced(p))bonus+=.1F;

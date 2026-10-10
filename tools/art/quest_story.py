@@ -370,6 +370,8 @@ def build_book():
                 desc.append(f"获得{name(q['target'])} ×{q['count']}，放在背包等待检测。")
                 if short in HINTS:
                     desc.append(HINTS[short])
+                if short == "fire_talisman":
+                    desc.append("御风、隐身、金刚、摄魂是可选消耗品：在 JEI 查看符纸用途可找到配方，不需要额外解锁。")
             elif q["kind"]=="kill":
                 desc.extend([f"亲自击败{name(q['target'])} ×{q['count']}；只观察战斗不会计数。",
                              BOSS.get(short,"探索对应世界的自然生成区域。已完成首杀后，重复讨伐仅是可选挑战，不是推进章节的要求。")])

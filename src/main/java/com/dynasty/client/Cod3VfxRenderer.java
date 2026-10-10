@@ -32,7 +32,8 @@ public final class Cod3VfxRenderer {
             if(world.getGameTime()-p.start()>=p.duration()||p.start()-world.getGameTime()>40)return true;
             if(p.sequence().startsWith("equipment_")||p.sequence().matches("accessory_proc_[13456]")){
                 var owner=world.getEntity(p.entityId());
-                return owner==null||!owner.isAlive()||owner.getUUID().getLeastSignificantBits()!=p.seed();
+                if(owner==null||!owner.isAlive()||owner.getUUID().getLeastSignificantBits()!=p.seed())return true;
+                return p.sequence().equals("equipment_weapon_meteor_charge")&&(!(owner instanceof net.minecraft.world.entity.LivingEntity living)||!living.isUsingItem()||!living.getUseItem().is(com.dynasty.expansion.ExpansionContent.HAMMER.get()));
             }
             if(!p.sequence().startsWith("intro_")&&!p.sequence().startsWith("death_"))return false;
             var entity=world.getEntity(p.entityId());
@@ -46,6 +47,7 @@ public final class Cod3VfxRenderer {
             ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(status));return;
         }
         if(packet.sequence().matches("status_[1-8]")||packet.sequence().startsWith("secondary_"))ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(packet.sequence()));
+        if(packet.sequence().equals("equipment_weapon_meteor_charge"))ACTIVE.removeIf(old->old.entityId()==packet.entityId()&&old.sequence().equals(packet.sequence()));
         if(packet.template()==0){
             // Typed selection excludes sound, WAIT and SET_* steps from the visual queue.
             Cod3Vfx.resume(packet, Cod3Catalog.sequenceById(packet.sequence())).forEach(Cod3VfxRenderer::add);
@@ -62,6 +64,7 @@ public final class Cod3VfxRenderer {
         var mc=Minecraft.getInstance();boolean low=mc.options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL;
         int remaining=128;
         for(var p:ACTIVE){
+            if(p.sequence().startsWith("equipment_weapon_"))continue; // Dedicated geometric weapons, no generic healing particles.
             if(remaining<=0)break;
             var d=Cod3Catalog.vfx(p.template());double age=world.getGameTime()-p.start();if(age<0||age>Math.min(p.duration(),40)||p.scale()>3)continue;
             Vec3 origin=p.origin();if(p.entityId()>=0){var entity=world.getEntity(p.entityId());if(entity==null||p.template()==4&&entity.getDeltaMovement().lengthSqr()<.0025)continue;origin=entity.position();}
@@ -102,6 +105,8 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("secondary_echo"))geometry.echo(life);
                 else if(p.sequence().equals("secondary_alarm"))geometry.alarm(life);
                 else if(p.sequence().matches("accessory_proc_[1-6]"))geometry.proc(Integer.parseInt(p.sequence().substring("accessory_proc_".length())),direction,age,life);
+                else if(p.sequence().equals("equipment_weapon_rope_dart")||p.sequence().equals("equipment_weapon_flying_claw"))geometry.weaponTether(p.origin().add(p.direction()),p.sequence().endsWith("flying_claw"),age,life);
+                else if(p.sequence().startsWith("equipment_weapon_"))geometry.weapon(p.sequence().substring("equipment_weapon_".length()),age,life,p.tick());
                 else if(p.sequence().startsWith("equipment_accessory_"))geometry.accessory(p.sequence().substring("equipment_accessory_".length()),age,life);
                 else if(p.sequence().equals("equipment_beidou_stride"))geometry.starStride(age);
                 else if(p.sequence().equals("equipment_phoenix_embers"))geometry.phoenixEmbers(age,life);
@@ -196,6 +201,35 @@ public final class Cod3VfxRenderer {
             beam(p(.12,.85,head+.08),p(.28,1.15,head-.12),.05);
             beam(p(-.12,.7,head+.25),p(-.45,.58,head+.35),.025);
             beam(p(.12,.7,head+.25),p(.45,.58,head+.35),.025);
+        }
+        // Finite geometric weapons; original server ray, movement, damage and actor ownership remain authoritative.
+        void weaponTether(Vec3 endpoint,boolean claw,double age,double life){
+            Vec3 hand=p(.18,1.15,.32);double travel=Math.min(1,age/4),retract=Math.max(0,(age-16)/8);
+            Vec3 head=hand.lerp(endpoint,travel*(1-retract));int links=Math.min(24,Math.max(6,segments));
+            Vec3 last=hand;for(int i=1;i<=links;i++){double t=i/(double)links;Vec3 next=hand.lerp(head,t).add(0,-Math.sin(t*Math.PI)*.22*(1-retract),0);beam(last,next,claw?.025:.017);last=next;}
+            Vec3 axis=endpoint.subtract(hand).normalize();if(axis.lengthSqr()<1e-8)return;
+            Vec3 side=axis.cross(u).normalize();if(side.lengthSqr()<1e-8)side=r;Vec3 up=side.cross(axis).normalize();
+            Vec3 base=head.subtract(axis.scale(claw?.24:.34));double width=claw?.13:.07;
+            Vec3 a=base.add(side.scale(width)),b=base.add(up.scale(width)),c=base.subtract(side.scale(width)),d=base.subtract(up.scale(width));
+            triangle(head,a,b,.95);triangle(head,b,c,.8);triangle(head,c,d,.65);triangle(head,d,a,.9);
+            if(claw)for(int k=0;k<3;k++){double angle=k*Math.PI*2/3;Vec3 finger=side.scale(Math.cos(angle)).add(up.scale(Math.sin(angle)));Vec3 root=base.add(finger.scale(.07)),bend=head.add(finger.scale(.24)).subtract(axis.scale(.09));beam(root,bend,.045);beam(bend,head.add(finger.scale(.12)),.035);}
+        }
+        void weapon(String id,double age,double life,int charge){
+            if(id.equals("meteor_hammer")||id.equals("meteor_charge")){
+                boolean charging=id.equals("meteor_charge");double angle=charging?(age+charge)*.22:life*Math.PI*2,radius=charging?.65+Math.min(20,charge)/40.0:1.5+Math.sin(life*Math.PI)*.7;Vec3 hand=p(.2,1.05,.2),head=p(Math.sin(angle)*radius,.85,Math.cos(angle)*radius);int links=Math.min(16,segments);Vec3 last=hand;
+                for(int i=1;i<=links;i++){double t=i/(double)links;Vec3 next=hand.lerp(head,t).add(0,-Math.sin(t*Math.PI)*.16,0);beam(last,next,.045);last=next;}
+                mesh(Math.sin(angle)*radius,.85,Math.cos(angle)*radius,.24);return;
+            }
+            if(id.equals("duck_guard")||id.equals("duck_counter")){
+                boolean counter=id.equals("duck_counter");for(int k=0;k<(counter?3:1);k++)for(int side:new int[]{-1,1}){
+                    double lag=k*.12,a=(counter?life*Math.PI*1.2:Math.PI*.15)+side*.65-lag;Vec3 center=p(side*(.34+.1*Math.cos(a)),1.15,.65+Math.sin(a)*.22);
+                    beam(center.add(r.scale(-.18)),center.add(r.scale(.18)),.055);beam(center.add(u.scale(-.24)),center.add(u.scale(.24)),.07);
+                    beam(center.add(r.scale(side*.17)),center.add(r.scale(side*.25)).add(f.scale(-.14)),.04);
+                }return;
+            }
+            if(id.equals("repeating_crossbow")||id.equals("siege_crossbow")){
+                double recoil=Math.sin(life*Math.PI)*.12;box(.15,1.08,.35-recoil,.22,.10,.18);beam(p(-.22,1.12,.50-recoil),p(.52,1.12,.50-recoil),.035);beam(p(.15,1.12,.32-recoil),p(.15,1.12,.78-recoil),.03);
+            }
         }
         void proc(int code,Vec3 direction,double age,double life){
             switch(code){

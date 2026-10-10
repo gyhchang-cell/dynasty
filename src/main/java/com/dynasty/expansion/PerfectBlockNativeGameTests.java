@@ -47,8 +47,11 @@ public final class PerfectBlockNativeGameTests {
                 h.assertTrue(!p.hasEffect(ExpansionEffects.STAGGER.get())&&Math.abs(p.getAttributeValue(Attributes.MOVEMENT_SPEED)-speed)<.001,"Actual successful front block removes original stagger effect and modifier for case"+i);
                 h.assertTrue(p.getHealth()<=hp,"Presentation/cleanse never repeats damage or heals blocked hit");
                 if(i==2){
+                    h.assertTrue(p.getPersistentData().contains("cod3_weapon_at_duck_guard"),"Real paired native guard owns its finite weapon pose cue");
                     float frontDamage=hp-p.getHealth();var rear=attacker(h,p,-1);p.invulnerableTime=0;hp=p.getHealth();p.hurt(p.damageSources().mobAttack(rear),40);float rearDamage=hp-p.getHealth();rear.discard();
                     h.assertTrue(frontDamage>0&&rearDamage>0&&Math.abs(frontDamage/rearDamage-.35F)<.02,"Original paired native front mitigation remains exactly65percent, not duplicated: "+frontDamage+"/"+rearDamage);
+                    p.stopUsingItem();for(int tick=0;tick<22;tick++)p.doTick();p.attack(attackers.get(i));
+                    h.assertTrue(attackers.get(i).isDeadOrDying()&&!p.getPersistentData().contains("cod4Counter")&&p.getPersistentData().contains("cod3_weapon_at_duck_counter"),"Actual primary attack consumes original counter once and owns finite paired-weapon afterimage cue");
                 }
                 if(i==0)h.assertTrue(!p.getPersistentData().contains("cod4Counter")&&!p.getPersistentData().contains("cod4Shell"),"Ordinary shield cleanse does not borrow Xuanwu counter/shell grants");
             }h.succeed();

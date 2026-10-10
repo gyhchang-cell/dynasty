@@ -150,6 +150,25 @@ public final class EquipmentFeedback {
         if(n.contains(key)&&elapsed>=0&&elapsed<20)return;n.putLong(key,now);
         Cod3Vfx.actor(p,"accessory_"+id,16,.8,tint);
     }
+    /** Cosmetic cue only, on the original actor packet. Same-tick duplicates cannot fill the queue. */
+    public static Cod3VisualPacket weaponPacket(Player p,String cue,net.minecraft.world.phys.Vec3 end){
+        int duration=switch(cue){case "rope_dart","flying_claw"->24;case "meteor_hammer"->12;case "meteor_charge"->8;case "repeating_crossbow","siege_crossbow","duck_guard","duck_counter"->8;default->0;};
+        if(duration==0)return null;
+        int color=switch(cue){case "meteor_hammer","meteor_charge"->0xD8AE74;case "duck_guard","duck_counter"->0xA6DCE1;default->0xD1DCCB;};
+        if(cue.equals("rope_dart")||cue.equals("flying_claw")){
+            var origin=p.getEyePosition();if(end==null||!Double.isFinite(end.lengthSqr())||end.distanceToSqr(origin)>14*14)return null;
+            return new Cod3VisualPacket(p.level().dimension().location().toString(),14,p.getId(),p.getUUID().getLeastSignificantBits(),p.level().getGameTime(),duration,1,origin,end.subtract(origin),"equipment_weapon_"+cue,0,color);
+        }
+        var packet=Cod3Vfx.actorPacket(p,"weapon_"+cue,duration,1,color);
+        return !cue.equals("meteor_charge")?packet:new Cod3VisualPacket(packet.dimension(),packet.template(),packet.entityId(),packet.seed(),packet.start(),packet.duration(),packet.scale(),packet.origin(),packet.direction(),packet.sequence(),Math.min(72000,Math.max(0,p.getTicksUsingItem())),packet.tint());
+    }
+    public static void weapon(Player p,String cue,net.minecraft.world.phys.Vec3 end){
+        if(!(p.level() instanceof ServerLevel level)||!p.isAlive())return;
+        var packet=weaponPacket(p,cue,end);if(packet==null||!packet.valid())return;
+        var n=p.getPersistentData();String key="cod3_weapon_at_"+cue;long now=level.getGameTime();
+        if(n.contains(key)&&n.getLong(key)==now)return;n.putLong(key,now);
+        com.dynasty.network.DynastyNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.NEAR.with(()->new net.minecraftforge.network.PacketDistributor.TargetPoint(p.getX(),p.getY(),p.getZ(),32,level.dimension())),packet);
+    }
     private static void passiveAccessories(ServerPlayer p){
         var ids=DynastyTrinkets.activeIds(p);
         if(!p.level().isDay()){

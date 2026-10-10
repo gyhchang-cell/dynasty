@@ -38,8 +38,9 @@ public final class QimenMaterialGameTests {
     }
     @GameTest(template="bow_ritual_test",batch="cod4_qimen_bait",setupTicks=20,timeoutTicks=260)
     public static void realRatNavigationFindsVisibleGearConsumesOneAndNativeDeathReturnsExactSavedStack(GameTestHelper h){
-        for(int lane=0;lane<2;lane++)for(int x=1;x<=12;x++)for(int z=6+lane*5;z<=10+lane*5;z++)for(int y=1;y<=4;y++)
-            h.setBlock(x,y,z,y==1||z==6+lane*5||z==10+lane*5||x==1||x==12?Blocks.STONE:Blocks.AIR);
+        for(int lane=0;lane<2;lane++)for(int x=1;x<=12;x++)for(int z=6+lane*5;z<=10+lane*5;z++)for(int y=1;y<=5;y++)
+            // A real ceiling keeps falling gravel from neighboring large templates out of this controlled path.
+            h.setBlock(x,y,z,y==1||y==5||z==6+lane*5||z==10+lane*5||x==1||x==12?Blocks.STONE:Blocks.AIR);
         for(int lane=0;lane<2;lane++)for(int z=7+lane*5;z<=9+lane*5;z++)for(int y=2;y<=4;y++)h.setBlock(7,y,z,Blocks.STONE);
         // Consecutive native IDs exercise both alternating Mob.serverAiStep scheduling phases.
         var rats=new SecondaryMob[]{SecondaryMobs.TYPES.get("clockwork_rat").get().create(h.getLevel()),SecondaryMobs.TYPES.get("clockwork_rat").get().create(h.getLevel())};
