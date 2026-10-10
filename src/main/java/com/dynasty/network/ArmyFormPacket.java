@@ -24,7 +24,7 @@ public class ArmyFormPacket {
     }
 
     public static ArmyFormPacket decode(FriendlyByteBuf buf) {
-        return new ArmyFormPacket(buf.readVarInt(), buf.readVarInt());
+        return NetworkIntent.complete(buf, new ArmyFormPacket(buf.readVarInt(), buf.readVarInt()));
     }
 
     public static void handle(ArmyFormPacket pkt, Supplier<NetworkEvent.Context> ctx) {

@@ -18,7 +18,7 @@ public class StatsRequestPacket {
     }
 
     public static StatsRequestPacket decode(FriendlyByteBuf buf) {
-        return new StatsRequestPacket();
+        return NetworkIntent.complete(buf, new StatsRequestPacket());
     }
 
     public static void handle(StatsRequestPacket pkt, Supplier<NetworkEvent.Context> ctx) {

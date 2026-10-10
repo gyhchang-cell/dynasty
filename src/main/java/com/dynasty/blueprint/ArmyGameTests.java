@@ -29,6 +29,14 @@ public final class ArmyGameTests {
         var cleanup=WORLD_CLEANUP.remove(level);if(cleanup!=null)cleanup.run();
     }
 
+    private static final net.minecraft.server.level.TicketType<UUID> SPEAR_FIXTURE_TICKET=net.minecraft.server.level.TicketType.create("dynasty_spear_fixture",UUID::compareTo);
+    private record SpearTicket(net.minecraft.world.level.ChunkPos chunk,UUID token){}
+    private static final java.util.Map<net.minecraft.server.level.ServerLevel,java.util.List<SpearTicket>> SPEAR_TICKETS=new java.util.HashMap<>();
+    @net.minecraft.gametest.framework.AfterBatch(batch="army")
+    public static void releaseSpearFixtureTickets(net.minecraft.server.level.ServerLevel level){
+        var tickets=SPEAR_TICKETS.remove(level);if(tickets!=null)for(var ticket:tickets)level.getChunkSource().removeRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token());
+    }
+
     private static void arena(GameTestHelper h){
         for(int x=0;x<16;x++)for(int z=0;z<16;z++){
             h.setBlock(x,1,z,Blocks.STONE);
@@ -85,13 +93,26 @@ public final class ArmyGameTests {
         h.succeed();
     }
 
-    @GameTest(template="bow_ritual_test",timeoutTicks=40,batch="army")
+    @GameTest(template="bow_ritual_test",timeoutTicks=100,batch="army")
     public static void spearThrustIsNarrowAndHasOneAuthoredContact(GameTestHelper h){
         arena(h);var mob=actor(h,BlueprintEntities.JUMA_CHANGQIANGBING.get(),6,5);Cow front=target(h,6,8),side=target(h,8,7),rear=target(h,6,3);
-        h.assertTrue(mob.startSkill(ArmySkills.THRUST,front),"Accept 3.5-block thrust");
-        h.runAfterDelay(10,()->equal(h,front.getHealth(),200,"No warning damage"));
-        h.runAfterDelay(15,()->{trace(h,"thrust",mob,front);equal(h,front.getHealth(),195,"Single spear contact");equal(h,side.getHealth(),200,"Outside narrow strip");equal(h,rear.getHealth(),200,"No rear hit");});
-        h.runAfterDelay(32,()->{equal(h,front.getHealth(),195,"Recovery cannot hit again");h.succeed();});
+        // A loaded template is not proof its native entity section is ticking yet. Keep this
+        // isolated QA cell active, wait for real actor ticks, then retain every original timing assertion.
+        var level=h.getLevel();var ticket=new SpearTicket(mob.chunkPosition(),UUID.randomUUID());
+        level.getChunkSource().addRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token());SPEAR_TICKETS.computeIfAbsent(level,k->new java.util.ArrayList<>()).add(ticket);
+        long[] started={-1};
+        h.onEachTick(()->{
+            if(started[0]<0){
+                for(var actor:java.util.List.of(mob,front,side,rear))if(actor.tickCount<2||!level.isPositionEntityTicking(actor.blockPosition()))return;
+                equal(h,front.getHealth(),200,"Native ready fixture starts with original full health");
+                h.assertTrue(mob.startSkill(ArmySkills.THRUST,front),"Accept 3.5-block thrust");started[0]=level.getGameTime();return;
+            }
+            long age=level.getGameTime()-started[0];
+            if(age==10)equal(h,front.getHealth(),200,"No warning damage");
+            if(age==15){trace(h,"thrust",mob,front);equal(h,front.getHealth(),195,"Single spear contact");equal(h,side.getHealth(),200,"Outside narrow strip");equal(h,rear.getHealth(),200,"No rear hit");}
+            if(age==32){equal(h,front.getHealth(),195,"Recovery cannot hit again");h.succeed();}
+        });
+        h.runAfterDelay(60,()->h.assertTrue(started[0]>=0,"Native actor ticking must become ready; mobTicks="+mob.tickCount+" frontTicks="+front.tickCount+" nativeTicking="+level.isPositionEntityTicking(mob.blockPosition())));
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=45,batch="army")
     public static void braceRequiresApproachAndSpendsOnlyOneCollision(GameTestHelper h){

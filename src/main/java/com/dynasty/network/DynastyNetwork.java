@@ -24,14 +24,14 @@ public class DynastyNetwork {
     private static final java.util.Set<Integer> REGISTERED_EXTENSIONS = new java.util.HashSet<>();
     private static final String PROTOCOL_VERSION = fingerprintSchema(protocolSchema());
     public static String protocolSchema() {
-        return "11/keju=" + OpenKejuPacket.WIRE_REVISION + "/army="
-                + com.dynasty.army.ArmyMenu.LAYOUT_REVISION + "/" + EXTENSIONS;
+        return "12/keju=" + OpenKejuPacket.WIRE_REVISION + "/army="
+                + com.dynasty.army.ArmyMenu.LAYOUT_REVISION + "/bounded-intents=1/" + EXTENSIONS;
     }
     // Forge's login ModList encodes each channel version with writeUtf(..., 256).
     // Fingerprint the complete frozen schema; never drop an extension to fit the limit.
     static String fingerprintSchema(String schema) {
         try {
-            return "12/" + java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+            return "13/" + java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
                 .digest(schema.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         } catch (java.security.NoSuchAlgorithmException impossible) {
             throw new AssertionError("Java must provide SHA-256", impossible);
@@ -74,17 +74,23 @@ public class DynastyNetwork {
                 BowEffectPacket::encode, BowEffectPacket::decode, BowEffectPacket::handle,
                 java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(id++, OpenKejuPacket.class,
-                OpenKejuPacket::encode, OpenKejuPacket::decode, OpenKejuPacket::handle);
+                OpenKejuPacket::encode, OpenKejuPacket::decode, OpenKejuPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(id++, AnswerKejuPacket.class,
-                AnswerKejuPacket::encode, AnswerKejuPacket::decode, AnswerKejuPacket::handle);
+                AnswerKejuPacket::encode, AnswerKejuPacket::decode, AnswerKejuPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(id++, StatsRequestPacket.class,
-                StatsRequestPacket::encode, StatsRequestPacket::decode, StatsRequestPacket::handle);
+                StatsRequestPacket::encode, StatsRequestPacket::decode, StatsRequestPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(id++, ArmyFormPacket.class,
-                ArmyFormPacket::encode, ArmyFormPacket::decode, ArmyFormPacket::handle);
+                ArmyFormPacket::encode, ArmyFormPacket::decode, ArmyFormPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(id++, StatsRequestPacket.class,
-                StatsRequestPacket::encode, StatsRequestPacket::decode, StatsRequestPacket::handle);
+                StatsRequestPacket::encode, StatsRequestPacket::decode, StatsRequestPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(id++, StatsSyncPacket.class,
-                StatsSyncPacket::encode, StatsSyncPacket::decode, StatsSyncPacket::handle);
+                StatsSyncPacket::encode, StatsSyncPacket::decode, StatsSyncPacket::handle,
+                java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(id++, BountyBoardPacket.class,
                 BountyBoardPacket::encode, BountyBoardPacket::decode, BountyBoardPacket::handle,
                 java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));

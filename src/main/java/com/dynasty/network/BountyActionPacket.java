@@ -27,7 +27,7 @@ public class BountyActionPacket {
     }
 
     public static BountyActionPacket decode(FriendlyByteBuf buf) {
-        return new BountyActionPacket(buf.readUtf(16), buf.readUtf(96));
+        return NetworkIntent.complete(buf, new BountyActionPacket(buf.readUtf(16), buf.readUtf(96)));
     }
 
     public static void handle(BountyActionPacket pkt, Supplier<NetworkEvent.Context> ctx) {
