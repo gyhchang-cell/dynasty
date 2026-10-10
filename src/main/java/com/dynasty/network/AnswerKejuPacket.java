@@ -28,7 +28,7 @@ public class AnswerKejuPacket {
     }
 
     public static AnswerKejuPacket decode(FriendlyByteBuf buf) {
-        return new AnswerKejuPacket(buf.readInt(), buf.readInt());
+        return NetworkIntent.complete(buf, new AnswerKejuPacket(buf.readInt(), buf.readInt()));
     }
 
     /** 本次令牌。/ the session token. */
