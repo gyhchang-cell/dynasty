@@ -17,7 +17,13 @@ public final class WorkshopJei implements IModPlugin {
     private static final RecipeType<WorkshopRecipes.Recipe> TYPE=RecipeType.create("dynasty","workshop",WorkshopRecipes.Recipe.class);
     @Override public ResourceLocation getPluginUid(){return new ResourceLocation("dynasty","workshop");}
     @Override public void registerCategories(IRecipeCategoryRegistration r){r.addRecipeCategories(new Category(r.getJeiHelpers().getGuiHelper()));}
-    @Override public void registerRecipes(IRecipeRegistration r){r.addRecipes(TYPE,WorkshopRecipes.ALL);}
+    @Override public void registerRecipes(IRecipeRegistration r){
+        r.addRecipes(TYPE,WorkshopRecipes.ALL);
+        for(String id:com.dynasty.TalismanDiscovery.IDS) {
+            var item=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new ResourceLocation("dynasty",id));
+            if(item!=null)r.addIngredientInfo(new net.minecraft.world.item.ItemStack(item),VanillaTypes.ITEM_STACK,com.dynasty.TalismanDiscovery.details(id));
+        }
+    }
     @Override public void registerRecipeCatalysts(IRecipeCatalystRegistration r){for(var recipe:WorkshopRecipes.ALL)r.addRecipeCatalyst(new WorkshopRecipes.Cost("dynasty:"+recipe.station(),1).stack(),TYPE);}
     private static final class Category implements IRecipeCategory<WorkshopRecipes.Recipe>{
         final IDrawable background,icon;

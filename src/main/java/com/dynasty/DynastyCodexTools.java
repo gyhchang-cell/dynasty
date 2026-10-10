@@ -40,7 +40,7 @@ final class DynastyCodexTools {
                 "Craft: paper + 2 gunpowder + gold ingot + cinnabar",
                 "★★ 天雷：三道落雷，5 格内 §b800 + 攻击×4§r 伤害，并给缓慢 II + 虚弱 II。",
                 "★★ Triple lightning: 800 + 4x attack in 5 blocks, plus Slowness II and Weakness II.",
-                "dynasty:talisman_paper", "minecraft:gunpowder", "minecraft:gold_ingot"));
+                "dynasty:talisman_paper", "minecraft:gunpowder", "minecraft:gold_ingot", "dynasty:cinnabar"));
         l.add(new DynastyCodex.Entry("wind_talisman", "合成：符纸 + 羽毛×2 + 丝绸",
                 "Craft: paper + 2 feathers + silk",
                 "★ 罡风：8 格内敌人 §f200 + 攻击×2§r 伤害并全部击飞；自己获得疾风 III + 缓降 45 秒。",
@@ -50,7 +50,7 @@ final class DynastyCodexTools {
                 "Craft: paper + ink stick + coal + silk",
                 "★ 隐身：60 秒隐身 + 速度 II + 夜视，并清除 16 格内怪物对你的仇恨。",
                 "★ Vanish: 60s invisibility with Speed II and night vision, and drops all aggro within 16 blocks.",
-                "dynasty:talisman_paper", "dynasty:ink_stick", "dynasty:silk"));
+                "dynasty:talisman_paper", "dynasty:ink_stick", "minecraft:coal", "dynasty:silk"));
         l.add(new DynastyCodex.Entry("vajra_talisman", "合成：符纸 + 金锭×2 + 朱砂",
                 "Craft: paper + 2 gold ingots + cinnabar",
                 "★ 金刚护体：抗性提升 III + 力量 II（15 秒）+ 抗火 60 秒（不回血，纯硬吃）。",

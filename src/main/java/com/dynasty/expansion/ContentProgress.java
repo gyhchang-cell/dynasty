@@ -41,6 +41,9 @@ public final class ContentProgress {
         if(DynastyStats.getRank(p)>=3 || DynastySchoolProgression.rank(p,"guard")>=3) {
             for(String id:List.of("rope_dart","meteor_hammer","mandarin_duck_axe","flying_claw"))unlock(p,id);
         }
+        // Discovery only: native talismans still use their original unrestricted crafting and item use.
+        if(obtained.contains("talisman_paper"))for(String id:com.dynasty.TalismanDiscovery.IDS)unlockExisting(p,id);
+        for(String id:com.dynasty.TalismanDiscovery.IDS)if(obtained.contains(id))unlockExisting(p,id);
         for(String id:ExpansionContent.SUPPLIES.keySet())unlock(p,id);
         for(String id:ExpansionContent.AMMO.keySet())unlock(p,id);
         unlock(p,"qimen_cable");unlock(p,"qimen_gear");
