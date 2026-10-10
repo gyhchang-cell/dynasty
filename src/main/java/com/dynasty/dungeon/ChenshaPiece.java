@@ -152,6 +152,10 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         return List.of(new BlockPos(12,28,60),new BlockPos(52,28,60));
     }
     public static BlockPos coffinOffset(){return new BlockPos(31,10,17);}
+    /** Four dry corners of the imperial dais; any one unlocks the same return route. */
+    public static List<BlockPos> returnSteleOffsets(){
+        return List.of(new BlockPos(20,1,9),new BlockPos(43,1,9),new BlockPos(20,1,22),new BlockPos(43,1,22));
+    }
     /** One submerged spawn in each enclosed side channel, outside the timed puzzle. */
     public static List<BlockPos> middleDrownerOffsets(){
         return List.of(new BlockPos(12,23,62),new BlockPos(52,23,62));
@@ -172,7 +176,8 @@ public final class ChenshaPiece extends DynastyStructurePiece {
             result.add(new Marker(new BlockPos(x,y,z),"mercury","trial_entry_side_"+x,DungeonContent.DOOR.get(),-1));
         result.add(new Marker(new BlockPos(24,0,12),"imperial_vault","vault_core",DungeonContent.CORE.get(),-1));
         result.add(new Marker(coffinOffset(),"imperial_vault","imperial_coffin",DungeonContent.COFFIN.get(),-1));
-        result.add(new Marker(new BlockPos(20,1,9),"imperial_vault","return_lift",DungeonContent.SHORTCUT_STELE.get(),-1));
+        var steles=returnSteleOffsets();
+        for(int i=0;i<steles.size();i++)result.add(new Marker(steles.get(i),"imperial_vault","return_lift_corner_"+i,DungeonContent.SHORTCUT_STELE.get(),-1));
         result.add(new Marker(new BlockPos(41,1,8),"imperial_vault","return_lift",DungeonContent.ELEVATOR.get(),-1));
         return List.copyOf(result);
     }

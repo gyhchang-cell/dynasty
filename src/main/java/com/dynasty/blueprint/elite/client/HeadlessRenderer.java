@@ -19,4 +19,15 @@ public final class HeadlessRenderer extends GeoEntityRenderer<HeadlessGeneral> {
     });shadowRadius=.7F;}
     @SubscribeEvent public static void register(EntityRenderersEvent.RegisterRenderers event){event.registerEntityRenderer(EliteContent.HEADLESS.get(),HeadlessRenderer::new);}
     @Override protected float getDeathMaxRotation(HeadlessGeneral e){return 0;}
+    @Override public int getPackedOverlay(HeadlessGeneral entity,float u,float partial){
+        return net.minecraft.client.renderer.texture.OverlayTexture.pack(u,entity.hurtTime>0);
+    }
+    @Override public void renderRecursively(com.mojang.blaze3d.vertex.PoseStack pose,HeadlessGeneral entity,
+            software.bernie.geckolib.cache.object.GeoBone bone,net.minecraft.client.renderer.RenderType type,
+            net.minecraft.client.renderer.MultiBufferSource buffers,com.mojang.blaze3d.vertex.VertexConsumer vertices,
+            boolean rerender,float partial,int light,int overlay,float red,float green,float blue,float alpha){
+        boolean seal=bone.getName().equals("seal_flame")||bone.getName().equals("neck_seal");
+        super.renderRecursively(pose,entity,bone,type,buffers,vertices,rerender,partial,seal?15728880:light,overlay,
+            seal?red*.35F:red,seal?green*.9F:green,blue,alpha);
+    }
 }

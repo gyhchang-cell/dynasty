@@ -33,7 +33,7 @@ public final class Cod3VfxRenderer {
         ACTIVE.removeIf(p->{
             if(world.getGameTime()-p.start()>=p.duration()||p.start()-world.getGameTime()>40)return true;
             if(p.template()==4&&!p.sequence().equals("arrow_collapse")&&p.entityId()>=0){var arrow=world.getEntity(p.entityId());if(arrow==null||!arrow.isAlive())return true;}
-            if(p.sequence().startsWith("equipment_")||Cod3AfterImages.supports(p)||p.sequence().matches("accessory_proc_[13456]")){
+            if(p.sequence().startsWith("equipment_")||p.sequence().equals("vfx_follow")||Cod3AfterImages.supports(p)||p.sequence().matches("accessory_proc_[13456]")){
                 var owner=world.getEntity(p.entityId());
                 if(owner==null||!owner.isAlive()||owner.getUUID().getLeastSignificantBits()!=p.seed())return true;
                 return p.sequence().equals("equipment_weapon_meteor_charge")&&(!(owner instanceof net.minecraft.world.entity.LivingEntity living)||!living.isUsingItem()||!living.getUseItem().is(com.dynasty.expansion.ExpansionContent.HAMMER.get()));
@@ -63,7 +63,7 @@ public final class Cod3VfxRenderer {
         if(!p.valid()||p.template()==0)return;
         if(p.sequence().startsWith("combat_")){try{VfxInstance.combat(p);}catch(RuntimeException invalid){return;}}
         if(ACTIVE.stream().anyMatch(old->old.entityId()==p.entityId()&&old.start()==p.start()&&old.template()==p.template()&&old.seed()==p.seed()&&old.sequence().equals(p.sequence())))return;
-        boolean templateCue=p.sequence().isBlank()||p.sequence().startsWith("combat_")||Cod3AfterImages.supports(p);
+        boolean templateCue=p.sequence().isBlank()||p.sequence().equals("vfx_follow")||p.sequence().startsWith("combat_")||Cod3AfterImages.supports(p);
         if(templateCue&&ACTIVE.stream().filter(x->x.template()==p.template()&&(p.template()!=29||x.entityId()==p.entityId())).count()>=VfxTimeline.limit(p.template()))return;
         if(p.scale()>2&&ACTIVE.stream().filter(x->x.scale()>2).count()>=3)return;
         if(ACTIVE.size()>=48)ACTIVE.remove(0);ACTIVE.add(p);Cod3AfterImages.sample(p);
@@ -101,7 +101,7 @@ public final class Cod3VfxRenderer {
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
                 Vec3 origin=p.origin(),direction=p.direction();
                 if(p.entityId()>=0&&!p.sequence().equals("arrow_collapse")){var entity=world.getEntity(p.entityId());
-                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")||p.sequence().startsWith("secondary_")||p.sequence().startsWith("equipment_")||p.sequence().matches("accessory_proc_[13456]")))continue;
+                    if((entity==null||!entity.isAlive())&&(p.template()==4||p.sequence().startsWith("status_")||p.sequence().startsWith("secondary_")||p.sequence().startsWith("equipment_")||p.sequence().equals("vfx_follow")||p.sequence().matches("accessory_proc_[13456]")))continue;
                     if(p.sequence().equals("equipment_beidou_stride")&&entity instanceof net.minecraft.world.entity.player.Player wearer&&com.dynasty.expansion.EquipmentBehaviors.pieces(wearer,"beidou")<4)continue;
                     if(p.sequence().equals("secondary_roots")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(com.dynasty.expansion.ExpansionEffects.STAGGER.get()))continue;
                     if(p.sequence().equals("secondary_coil")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN))continue;
@@ -110,10 +110,10 @@ public final class Cod3VfxRenderer {
                 if(p.scale()>2){if(distance>96&&farLarge++>=1||distance>32&&distance<=96&&mediumLarge++>=2||distance<=32&&nearLarge++>=3)continue;}
                 var d=Cod3Catalog.vfx(p.template());var combat=p.sequence().startsWith("combat_")?VfxInstance.combat(p):null;var timeline=VfxTimeline.timing(d,p.duration());double life=age/p.duration(),expansion=combat==null?timeline.expansion(age):combat.expansion(age),alpha=timeline.alpha(age,p.duration())*.6;
                 if(p.template()==4){expansion=1;alpha=.6*(p.sequence().equals("arrow_collapse")?1-life:1);}
-                if(Cod3AfterImages.supports(p))continue; // Registered models are drawn after the primitive buffer is flushed.
+                if(Cod3AfterImages.supports(p)&&p.template()!=36)continue; // Registered models are drawn after the primitive buffer is flushed.
                 int segments=distance>96?12:distance>32?20:32;
                 if(Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL)segments=Math.min(12,segments);
-                var geometry=new Geometry(pose.last().pose(),camera,origin,direction,p.scale(),p.tint()==0?d.color():p.tint(),alpha,segments,p.seed(),(d.shape()==DynastyVfxDefinition.Shape.LINE&&d.id()!=10&&d.id()!=34&&d.id()!=28)||d.shape()==DynastyVfxDefinition.Shape.CHAIN);
+                var geometry=new Geometry(pose.last().pose(),camera,origin,direction,p.scale(),p.tint()==0?(p.template()==27?terrainColor(origin):d.color()):p.tint(),alpha,segments,p.seed(),(d.shape()==DynastyVfxDefinition.Shape.LINE&&d.id()!=10&&d.id()!=34&&d.id()!=28)||d.shape()==DynastyVfxDefinition.Shape.CHAIN);
                 if(combat!=null){geometry.draw(p.template(),d,expansion,life,age);geometry.volume(combat.volume(age));continue;}
                 if(p.sequence().matches("status_[1-8]"))geometry.status(Integer.parseInt(p.sequence().substring(7)),p.tick()+1,age);
                 else if(p.sequence().equals("secondary_roots"))geometry.roots(age);
@@ -138,7 +138,7 @@ public final class Cod3VfxRenderer {
                 else if(p.sequence().equals("qinglong_combo_wave"))geometry.dragonWave(life,age);
                 else if(p.sequence().matches("scenic_(0[1-9]|1[0-9]|2[0-5])"))geometry.scenic(Integer.parseInt(p.sequence().substring(7)),life);else{
                     geometry.draw(p.template(),d,expansion,life,p.sequence().equals("arrow_collapse")?20:age);
-                    if(p.sequence().isBlank())geometry.volume(VfxVolume.of(d,origin,direction,p.scale(),expansion,age));
+                    if(p.sequence().isBlank())geometry.volume(VfxVolume.of(d,origin,direction,p.scale(),expansion,age,p.duration()));
                 }
             }
             BufferUploader.drawWithShader(BUFFER.end());drawing=false;
@@ -148,6 +148,18 @@ public final class Cod3VfxRenderer {
                 Cod3AfterImages.render(p,pose,camera,e.getPartialTick(),VfxTimeline.timing(Cod3Catalog.vfx(p.template()),p.duration()).alpha(age,p.duration()),distance>32?1:low?2:6);
             }
         }finally{if(drawing)BUFFER.discard();pose.popPose();}
+    }
+    /** Average the actual block sprite and biome tint, without terrain mutations or falling entities. */
+    private static int terrainColor(Vec3 origin){
+        var mc=Minecraft.getInstance();if(mc.level==null)return 0x888888;
+        var pos=net.minecraft.core.BlockPos.containing(origin).below();var block=mc.level.getBlockState(pos);
+        var sprite=mc.getBlockRenderer().getBlockModelShaper().getParticleIcon(block).contents().getOriginalImage();
+        long red=0,green=0,blue=0;int count=0;
+        for(int x=0;x<sprite.getWidth();x+=Math.max(1,sprite.getWidth()/4))for(int y=0;y<sprite.getHeight();y+=Math.max(1,sprite.getHeight()/4)){
+            int rgba=sprite.getPixelRGBA(x,y);if((rgba>>>24)<128)continue;red+=rgba&255;green+=rgba>>8&255;blue+=rgba>>16&255;count++;
+        }
+        if(count==0)return 0x888888;int biome=mc.getBlockColors().getColor(block,mc.level,pos,0);if(biome==-1)biome=0xffffff;
+        return (int)(red/count*(biome>>16&255)/255)<<16|(int)(green/count*(biome>>8&255)/255)<<8|(int)(blue/count*(biome&255)/255);
     }
     private static final class Geometry {
         final Matrix4f matrix;final Vec3 camera,o,f,r,u;final double scale,alpha;final int color,segments;final long seed;
@@ -458,6 +470,26 @@ public final class Cod3VfxRenderer {
                 else beam(p(x,y,z),p(x+Math.cos(a)*.3,y+.18,z+Math.sin(a)*.3),.035);
             }
         }
+        void sparks(int count,double radius,double y,double age,boolean inward){
+            var random=new Random(seed+311);int n=details(count);
+            for(int i=0;i<n;i++){double a=random.nextDouble()*Math.PI*2+age*.04,r=radius*(inward?1-(age*.055+i*.11)%1:.3+.7*random.nextDouble());
+                double h=y+Math.sin(age*.13+i)*.25;mesh(Math.cos(a)*r,h,Math.sin(a)*r,.035+random.nextDouble()*.025);}
+        }
+        void rune(double radius,double y,double rotation){
+            ring(radius,y,Math.PI*2);ring(radius*.75,y,Math.PI*2);
+            for(int i=0;i<8;i++){double a=i*Math.PI/4+rotation,x=Math.sin(a)*radius*.86,z=Math.cos(a)*radius*.86;
+                for(int j=-1;j<=1;j++){double along=j*.1;beam(p(x+Math.cos(a)*.22+Math.sin(a)*along,y,z-Math.sin(a)*.22+Math.cos(a)*along),p(x-Math.cos(a)*.22+Math.sin(a)*along,y,z+Math.sin(a)*.22+Math.cos(a)*along),.035);}
+            }
+            for(int i=0;i<8;i++){double a=i*Math.PI/4+rotation,b=a+3*Math.PI/4;beam(p(Math.sin(a)*radius*.7,y,Math.cos(a)*radius*.7),p(Math.sin(b)*radius*.7,y,Math.cos(b)*radius*.7),.035);}
+        }
+        void hemisphere(double radius,double y){
+            int rings=segments<=12?3:6;
+            for(int j=0;j<rings;j++)for(int i=0;i<segments;i++){
+                double a=i*Math.PI*2/segments,b=(i+1)*Math.PI*2/segments,t=j*Math.PI/(2*rings),v=(j+1)*Math.PI/(2*rings);
+                Vec3 aa=p(Math.cos(t)*Math.cos(a)*radius,y+Math.sin(t)*radius,Math.cos(t)*Math.sin(a)*radius),ab=p(Math.cos(t)*Math.cos(b)*radius,y+Math.sin(t)*radius,Math.cos(t)*Math.sin(b)*radius),ba=p(Math.cos(v)*Math.cos(a)*radius,y+Math.sin(v)*radius,Math.cos(v)*Math.sin(a)*radius),bb=p(Math.cos(v)*Math.cos(b)*radius,y+Math.sin(v)*radius,Math.cos(v)*Math.sin(b)*radius);
+                triangle(aa,ab,ba,.8);triangle(ba,ab,bb,.9);
+            }
+        }
         void draw(int id,DynastyVfxDefinition d,double expand,double life,double age){
             double radius=d.radius()*expand,angle=age*.06;
             double collapse=VfxTimeline.timing(d,d.duration()).collapse(life*d.duration(),d.duration());Random random=new Random(seed);
@@ -486,40 +518,51 @@ public final class Cod3VfxRenderer {
                 case 8 -> {ring(radius,.04,Math.PI*2);for(int i=0;i<details(24);i++){double a=i*Math.PI*2/details(24);mesh(Math.cos(a)*radius,d.length()*expand*.5,Math.sin(a)*radius,d.length()*expand*.5);}}
                 case 9 -> {for(int j=0;j<(segments<=12?1:3);j++){Vec3 last=p(radius,0,0);for(int i=1;i<=segments;i++){double t=i/(double)segments,a=t*Math.PI*6+angle+j*2.1;Vec3 next=p(Math.cos(a)*radius,t*d.length()*expand,Math.sin(a)*radius);beam(last,next,.08);last=next;}}}
                 case 10 -> {for(int i=0;i<10;i++){double z=i*d.length()*expand/10;beam(p((i%2-.5)*d.width(),.04,z),p(((i+1)%2-.5)*d.width(),.04,z+d.length()*expand/10),.06);}for(int i=0;i<details(20);i++)mesh((random.nextDouble()-.5)*d.width(),Math.sin(life*Math.PI)*.6,random.nextDouble()*d.length()*expand,.15);}
-                case 27 -> {for(int i=0;i<details(30);i++){double a=random.nextDouble()*Math.PI*2,r=random.nextDouble()*d.radius()*expand;mesh(Math.cos(a)*r,Math.sin(life*Math.PI)*d.length()*random.nextDouble(),Math.sin(a)*r,.12+random.nextDouble()*.15);}}
+                case 27 -> {for(int i=0;i<details(30);i++){double a=random.nextDouble()*Math.PI*2,r=random.nextDouble()*d.radius()*Math.min(1,age/6);double height=Math.max(0,age*.15-age*age*.011)*(.3+.7*random.nextDouble());box(Math.cos(a)*r,height,Math.sin(a)*r,.07+random.nextDouble()*.1,.12,.09);}colored(color,.4).sparks(20,d.radius(),.15,age,false);}
                 case 11,32 -> fog(radius,id==32,age);
                 case 12 -> {ring(radius,.04,Math.PI*2);for(int i=0;i<details(30);i++){double a=i*Math.PI*2/details(30);mesh(Math.cos(a)*radius,.06+Math.sin(a+age*.1)*.1,Math.sin(a)*radius,.045);}}
                 case 25 -> {ring(radius,.04,Math.PI*2);for(int j=1;j<=4;j++)ring(radius*(1-j*.17),-.5*j/4,Math.PI*2);for(int i=0;i<details(30);i++){double a=i*Math.PI*2/details(30)+angle,r=radius*(1-life);beam(p(Math.sin(a)*r,.1,Math.cos(a)*r),p(Math.sin(a+.25)*r*.8,.06,Math.cos(a+.25)*r*.8),.035);}}
-                case 26 -> {double shock=6+(d.radius()-6)*expand;ring(shock,.04,Math.PI*2);ring(Math.max(0,shock-d.width()),.06,Math.PI*2);}
+                case 26 -> {double shock=6+(d.radius()-6)*expand;ring(shock,.04,Math.PI*2);ring(Math.max(0,shock-d.width()),.06,Math.PI*2);colored(0xD7C7A4,.55).sparks(30,shock,.2,age,false);}
                 case 13,17 -> {
                     var volume=VfxVolume.of(d,o,f,scale,expand,age);
                     for(int branch=0;branch<volume.branches();branch++){Vec3 last=volume.centerline(branch,0);for(int i=1;i<=32;i++){Vec3 next=volume.centerline(branch,i/32.);beam(last,next,d.width());last=next;}}
                     if(id==17){int n=details(60);for(int i=0;i<n;i++){double t=i/(double)n,x=Math.sin(t*Math.PI*4+angle)*d.radius()*.65,y=Math.sin(t*Math.PI*2+angle)*d.radius()*.3;mesh(x,y,t*d.length()*expand,.08);}Vec3 head=volume.centerline(0,1);beam(head,head.add(u.scale(.5*scale)),.07);beam(head,head.add(r.scale(.4*scale)).add(f.scale(.4*scale)),.08);}
                 }
-                case 24 -> {Vec3 last=p(0,0,0);for(int i=1;i<=8;i++){Vec3 next=p((random.nextDouble()-.5)*d.width()*.6,(random.nextDouble()-.5)*d.width()*.6,i*d.length()*expand/8);beam(last,next,.5+expand*1.5);mesh((random.nextDouble()-.5)*d.width(),0,i*d.length()*expand/8,.12);last=next;}}
-                case 14 -> {colored(color,.65).orb(radius,radius);for(int i=0;i<details(16);i++){double a=i*Math.PI*2/details(16)+angle;mesh(Math.cos(a)*radius*.6,radius+Math.sin(a)*radius*.6,Math.sin(a)*radius*.6,.08);}}
-                case 33 -> {colored(0x000000,.9).orb(radius*.3,radius);var horizon=colored(0x8A2AFF,.85);horizon.ring(radius,radius,Math.PI*2);horizon.ring(radius*.85,radius+.15,Math.PI*2);for(int i=0;i<details(60);i++){double a=i*Math.PI*2/details(60)+angle,r=radius*(.3+.7*(1-life));horizon.beam(p(Math.sin(a)*r,radius,Math.cos(a)*r),p(Math.sin(a+.2)*r*.9,radius,Math.cos(a+.2)*r*.9),.035);}}
-                case 15 -> {decal(radius,9,0);int n=details(32);for(int i=0;i<n;i++){double a=i*Math.PI*2/n;paper(Math.sin(a)*radius,.6+.15*Math.sin(angle+i),Math.cos(a)*radius,.14,.28);}}
-                case 16 -> {decal(radius,8,angle);decal(radius,8,-angle);ring(radius,d.length()*expand,Math.PI*2);for(int i=0;i<8;i++){double a=i*Math.PI/4,x=Math.sin(a)*radius,z=Math.cos(a)*radius;beam(p(x,0,z),p(x,d.length()*expand,z),.05);}}
-                case 20 -> {decal(radius,6,0);for(int side:new int[]{-1,1})for(int i=0;i<3;i++){double z=(i-1)*radius*.45;beam(p(-radius*.6,.04,z),p(radius*.6,.04,z),.055);beam(p(side*radius*.3,.04,-radius*.7),p(side*radius*.3,.04,radius*.7),.055);}Vec3 last=p(radius,0,0);for(int i=1;i<=segments;i++){double a=i*Math.PI*2/segments,r=radius*(.75+.12*Math.sin(a*3+angle));Vec3 next=p(Math.cos(a)*r,.08,Math.sin(a)*r);beam(last,next,.12);last=next;}}
+                case 24 -> {
+                    // The jagged core plus its ribbon always fits inside the advertised two-block corridor.
+                    double width=(.5+expand*1.5)*(1-collapse),jag=.12;Vec3 last=p(0,0,0);
+                    for(int i=1;i<=12;i++){double x=(random.nextDouble()-.5)*jag,y=(random.nextDouble()-.5)*jag;Vec3 next=p(x,y,i*d.length()*expand/12);beam(last,next,Math.max(.02,width-2*jag));last=next;}
+                    var stars=colored(0xEEF2FF,.9);for(int i=0;i<details(20);i++)stars.mesh((random.nextDouble()-.5)*Math.max(0,width-2*jag),0,random.nextDouble()*d.length()*expand,.045);
+                    if(collapse>0)for(int i=0;i<details(20);i++)mesh((random.nextDouble()-.5)*width,random.nextDouble()*.6*collapse,random.nextDouble()*d.length(),.08);
+                }
+                case 14 -> {colored(color,.65).orb(radius,radius);var flame=colored(0xBDEAFF,.9);for(int i=0;i<details(16);i++){double a=i*Math.PI*2/details(16)+angle,x=Math.cos(a)*radius*.55,z=Math.sin(a)*radius*.55,y=radius+Math.sin(a*2+age*.15)*radius*.35;flame.triangle(p(x-.06,y,z),p(x+.06,y,z),p(x+.035*Math.sin(age*.3+i),y+.3,z),.9);}}
+                case 33 -> {double core=radius*.3*(1-collapse);colored(0x000000,.9).orb(core,radius);var horizon=colored(0x8A2AFF,.85);double wave=collapse>0?d.radius()*(.3+.7*collapse):radius;horizon.ring(wave,radius,Math.PI*2);horizon.ring(wave*.85,radius+.15,Math.PI*2);horizon.sparks(60,radius,radius,age,true);if(collapse==0)for(int i=0;i<3;i++)horizon.ring(core*(1.3+i*.3),radius+i*.12,Math.PI*2);}
+                case 15 -> {double shrink=life>=.5&&collapse==0?1-(life-.5)*.5:1;radius*=shrink;ring(radius,.04,Math.PI*2);int n=details(32);for(int i=0;i<n;i++){double a=i*Math.PI*2/n;paper(Math.sin(a)*radius,.6+.15*Math.sin(angle+i),Math.cos(a)*radius,.14*(1-collapse),.28*(1-collapse));}for(int i=0;i<details(36);i++){double a=i*Math.PI*2/36,b=a+Math.PI*5/6;beam(p(Math.sin(a)*radius,.05,Math.cos(a)*radius),p(Math.sin(b)*radius,.05,Math.cos(b)*radius),.025);}if(collapse>0)colored(0x302018,.7).sparks(20,radius+collapse*2,.2+collapse,age,false);}
+                case 16 -> {double height=d.length()*expand,lower=height*.5*collapse,upper=height*(1-.5*collapse),spin=angle*(life>16./28?2:1);var ink=colored(0x101018,.8);ink.rune(radius,lower+.04,spin);var gold=colored(0xC0A020,.95);gold.rune(radius,upper+.04,-spin);for(int i=0;i<8;i++){double a=i*Math.PI/4,x=Math.sin(a)*radius,z=Math.cos(a)*radius;gold.beam(p(x,lower,z),p(x,upper,z),.05);}gold.sparks(40,radius,height*.5,age,false);if(collapse>.6)for(int i=0;i<details(16);i++)mesh(Math.sin(i)*radius,lower+(collapse-.6)*2,Math.cos(i)*radius,.09);}
+                case 20 -> {double sink=-.4*collapse;decal(radius,6,0);for(int side:new int[]{-1,1})for(int i=0;i<3;i++){double z=(i-1)*radius*.45;beam(p(-radius*.6,.04+sink,z),p(radius*.6,.04+sink,z),.055);beam(p(side*radius*.3,.04+sink,-radius*.7),p(side*radius*.3,.04+sink,radius*.7),.055);}mesh(0,.12+sink,radius*.85,.3);for(int i=0;i<4;i++){double a=i*Math.PI/2+Math.PI/4;beam(p(Math.cos(a)*radius*.65,.04+sink,Math.sin(a)*radius*.65),p(Math.cos(a)*radius*.9,.04+sink,Math.sin(a)*radius*.9),.14);}Vec3 last=p(radius,0,0);for(int i=1;i<=segments;i++){double a=i*Math.PI*2/segments,r=radius*(.75+.12*Math.sin(a*3+angle));Vec3 next=p(Math.cos(a)*r,.08+sink,Math.sin(a)*r);beam(last,next,.12);last=next;}var water=colored(0x668FA0,.65);for(int i=0;i<details(40);i++){double a=i*Math.PI*2/details(40)+angle,r=radius*(.65+.35*((age*.07+i*.13)%1));Vec3 middle=p(Math.cos(a)*r,.06+sink,Math.sin(a)*r);water.beam(middle.add(this.r.scale(.13*scale)),middle.add(f.scale(.08*scale)),.035);water.beam(middle.add(f.scale(.08*scale)),middle.subtract(this.r.scale(.13*scale)),.035);}}
                 case 40 -> {decal(radius,4,0);for(int i=0;i<4;i++){
                     double a=i*Math.PI/2;Vec3 center=o.add(Math.cos(a)*radius*.6*scale,.08,Math.sin(a)*radius*.6*scale);int tint=new int[]{0x6BE0C0,0xFF8A30,0xE8E0C8,0x1A2A3A}[i];
                     var beast=new Geometry(matrix,camera,center,new Vec3(0,0,1),scale*.35,tint,alpha,Math.min(segments,12),seed+i);
+                    beast.sparks(10,1.5,.08,age,false);
                     switch(i){case 0->beast.spline(5,.6,angle);case 3->{beast.ring(1.6,.04,Math.PI*2);beast.decal(1.2,6,0);}case 2->{beast.box(0,.1,0,.8,.45,1.2);beast.mesh(0,.5,1.3,.4);for(int leg=0;leg<4;leg++)beast.beam(beast.p(leg%2==0?-.8:.8,.1,leg<2?-.8:.8),beast.p(leg%2==0?-1.1:1.1,.04,leg<2?-.9:.9),.12);}case 1->{for(int feather=0;feather<8;feather++){double t=(feather/7.-.5)*Math.PI/2;beast.beam(beast.p(0,.1,0),beast.p(Math.sin(t)*2.4,.1,Math.cos(t)*2.4),.15);}}}
                 }}
                 // World-anchored sequence previews have no equipment snapshot. Actor cues use Cod3AfterImages.
                 case 18 -> {for(int i=0;i<details(6);i++){box(0,.3,-i*.65,.4,.65,.8);mesh(0,.9,1-i*.65,.4);}}
                 case 23 -> {for(int i=0;i<details(5);i++){box((i-2)*.5,.1,-i*.65,.2,1.1,.15);mesh((i-2)*.5,1.5,-i*.65,.3);}}
                 case 29 -> {for(int i=0;i<details(6);i++){double a=life*Math.PI-i*.2;blade(Math.sin(a)*1.3,.8,Math.cos(a)*1.3,.8);}}
-                case 19 -> {int n=details(12);for(int i=0;i<n;i++){double a=(i/(double)Math.max(1,n-1)-.5)*Math.PI/2;Vec3 tip=p(Math.sin(a)*radius,.4,Math.cos(a)*radius);triangle(p(0,.1,0),tip.add(r.scale(.12*scale)),tip.subtract(r.scale(.12*scale)),.9);beam(p(0,.1,0),tip,.055);}}
-                case 21,30 -> {int n=details(id==30?72:40);for(int i=0;i<n;i++){double a=random.nextDouble()*Math.PI*2+(id==30?angle:0),r=Math.sqrt(random.nextDouble())*radius,y=id==30?12*(1-collapse):12*(1-expand);if(id==30)blade(Math.cos(a)*r,y,Math.sin(a)*r,.8);else{mesh(Math.cos(a)*r,y,Math.sin(a)*r,.15);if(i<details(8))beam(p(Math.cos(a)*r,y,Math.sin(a)*r),p(Math.cos(a)*r,y+2,Math.sin(a)*r),.04);}}if(id==30)ring(radius,12*(1-collapse),Math.PI*2);}
+                case 19 -> {int n=details(12);for(int i=0;i<n;i++){double a=(i/(double)Math.max(1,n-1)-.5)*Math.PI/2;Vec3 tip=p(Math.sin(a)*radius,.4,Math.cos(a)*radius);triangle(p(0,.1,0),tip.add(r.scale(.12*scale)),tip.subtract(r.scale(.12*scale)),.9);beam(p(0,.1,0),tip,.055);}var fire=colored(0xFFDA66,.85);for(int i=0;i<details(40);i++){double a=(random.nextDouble()-.5)*Math.PI/2,r=radius*Math.sqrt(random.nextDouble());fire.mesh(Math.sin(a)*r,.35+random.nextDouble()*.2,Math.cos(a)*r,.04);}}
+                case 21,30 -> {int n=details(id==30?72:40);for(int i=0;i<n;i++){double a=id==30?i*Math.PI*2/n+angle:random.nextDouble()*Math.PI*2,r=id==30?radius*(.3+.7*(i%3)/2.):Math.sqrt(random.nextDouble())*radius,y=id==30?12*(1-collapse):12*(1-Math.min(1,(Math.max(0,age-2)+i*.2)%12/8));if(id==30)blade(Math.cos(a)*r,y,Math.sin(a)*r,.8);else{mesh(Math.cos(a)*r,y,Math.sin(a)*r,.15);if(i<details(8))beam(p(Math.cos(a)*r,y,Math.sin(a)*r),p(Math.cos(a)*r,y+2,Math.sin(a)*r),.04);}}if(id==30)ring(radius,12*(1-collapse),Math.PI*2);}
                 case 22 -> {double growth=Math.max(.1,expand);var spirit=new Geometry(matrix,camera,o,f,scale*growth,color,alpha*.65,segments,seed);spirit.box(0,2,0,1.1,3,.6);spirit.mesh(0,7,0,1);spirit.box(-.7,0,0,.5,2,.45);spirit.box(.7,0,0,.5,2,.45);spirit.beam(spirit.p(-1,4.8,0),spirit.p(-2.7,3.5,0),.55);spirit.beam(spirit.p(1,4.8,0),spirit.p(2.7,3.5,0),.55);spirit.ring(1.8,7,Math.PI*2);}
-                case 28 -> {beam(p(0,0,0),p(0,24*expand,0),1.5);ring(.75,.04,Math.PI*2);}
-                case 35 -> {ring(radius,.04,Math.PI*2);int n=details(24);for(int i=0;i<n;i++){double a=i*Math.PI*2/n;beam(p(Math.cos(a)*radius,0,Math.sin(a)*radius),p(Math.cos(a)*(radius-d.width()/2),d.length()*expand,Math.sin(a)*(radius-d.width()/2)),.12);mesh(Math.cos(a)*(radius-d.width()/2),d.length()*expand,Math.sin(a)*(radius-d.width()/2),.15);}}
-                case 36 -> {ring(radius,.04,Math.PI/3);double z=radius*.4;paper(0,1.5,z,1,1.5);if(collapse>0)for(int i=0;i<details(12);i++)mesh((random.nextDouble()-.5)*4*collapse,1+random.nextDouble()*2,z+random.nextDouble()*collapse,.2);}
-                case 37 -> {double z=age*.2;triangle(p(-radius,0,z-d.width()/2),p(radius,0,z-d.width()/2),p(radius,d.length()*expand,z),.8);triangle(p(-radius,0,z-d.width()/2),p(radius,d.length()*expand,z),p(-radius,d.length()*expand,z),.8);for(int i=0;i<details(60);i++)mesh((random.nextDouble()-.5)*radius*2,d.length()*expand+Math.sin(angle+i)*.15,z,.045);}
-                case 38 -> {double y=6*(1-expand);box(0,y+.04,0,1.5,.1,1.2);for(int i=0;i<5;i++){double x=(i-2)*.6;beam(p(x,y+.05,1),p(x,y+.05,2.5-(i%4==0?.6:0)),.38);}ring(radius,.04,Math.PI*2);}
-                case 39 -> {double y=12*(1-expand*expand);if(collapse==0){colored(0xFFB020,1).orb(radius,y+radius);for(int i=0;i<details(40);i++)beam(p(Math.sin(i)*radius*.6,y+radius,Math.cos(i)*radius*.6),p(Math.sin(i)*radius*.6,y+radius+3,Math.cos(i)*radius*.6),.04);}else{colored(0xFF4A1A,.7).orb(d.radius(),0);ring(d.radius(),.04,Math.PI*2);}}
+                case 28 -> {beam(p(0,0,0),p(0,24*expand,0),1.5*(1-collapse));ring(.75,.04,Math.PI*2);for(int i=0;i<details(40);i++){double a=random.nextDouble()*Math.PI*2,y=((age*.5+i*.6)%24)*expand;mesh(Math.cos(a)*.6,y,Math.sin(a)*.6,.055);}}
+                case 35 -> {ring(radius,.04,Math.PI*2);int n=details(24);for(int i=0;i<n;i++){double a=i*Math.PI*2/n,lean=d.width()/2+(collapse==0&&life>1./3?(life-1./3)*.4:0),height=d.length()*expand*(1-collapse);beam(p(Math.cos(a)*radius,0,Math.sin(a)*radius),p(Math.cos(a)*(radius-lean),height,Math.sin(a)*(radius-lean)),.12);mesh(Math.cos(a)*(radius-lean),height,Math.sin(a)*(radius-lean),.15);}if(collapse>0)colored(0xD3C9B5,.8).sparks(16,radius,.1+Math.sin(collapse*Math.PI),age,false);}
+                case 36 -> {
+                    double z=.6;ring(radius,.04,Math.PI/3);var shine=colored(0xD5E5CE,.45);for(int i=0;i<segments;i++){double a=(i/(double)segments-.5)*Math.PI/3,b=((i+1)/(double)segments-.5)*Math.PI/3;shine.triangle(p(0,.045,0),p(Math.sin(a)*radius,.045,Math.cos(a)*radius),p(Math.sin(b)*radius,.045,Math.cos(b)*radius),.7);}
+                    if(collapse==0){for(int i=0;i<segments;i++){double a=i*Math.PI*2/segments,b=(i+1)*Math.PI*2/segments;triangle(p(0,1.5,z),p(Math.sin(a),1.5+Math.cos(a)*1.4,z),p(Math.sin(b),1.5+Math.cos(b)*1.4,z),.8);}}
+                    else for(int i=0;i<details(12);i++){double a=i*Math.PI*2/details(12),x=Math.sin(a)*collapse*2,y=1.5+Math.cos(a)*collapse*2;triangle(p(x-.1,y-.1,z+collapse*.3),p(x+.12,y-.06,z+collapse*.3),p(x,y+.17,z+collapse*.3),.8);}
+                }
+                case 37 -> {double z=VfxTimeline.bloodOffset(life*d.duration(),d.duration());triangle(p(-radius,0,z-d.width()/2),p(radius,0,z-d.width()/2),p(radius,d.length()*expand,z),.8);triangle(p(-radius,0,z-d.width()/2),p(radius,d.length()*expand,z),p(-radius,d.length()*expand,z),.8);for(int i=0;i<details(60);i++)mesh((random.nextDouble()-.5)*radius*2,d.length()*expand+Math.sin(angle+i)*.15,z,.045);}
+                case 38 -> {double y=6*(1-expand);box(0,y+.04,0,1.5,.1,1.2);for(int i=0;i<5;i++){double x=(i-2)*.6;beam(p(x,y+.05,1),p(x,y+.05,2.5-(i%4==0?.6:0)),.38);}colored(0x655426,.45).box(0,.045,0,1.5,.01,1.2);ring(radius,.04,Math.PI*2);sparks(40,radius,.12+collapse,age,false);}
+                case 39 -> {double y=12*(1-expand*expand),mix=Math.min(1,age/14);int tint=((int)(255)<<16)|((int)(176*(1-mix)+74*mix)<<8)|(int)(32*(1-mix)+26*mix);var fire=colored(tint,.85);if(collapse==0){fire.orb(radius,y+radius);for(int i=0;i<details(40);i++)fire.beam(p(Math.sin(i)*radius*.6,y+radius,Math.cos(i)*radius*.6),p(Math.sin(i)*radius*.6,y+radius+3,Math.cos(i)*radius*.6),.04);}else{fire.hemisphere(d.radius()*(.5+.5*collapse),.03);fire.sparks(40,d.radius(),.15+collapse,age,false);ring(d.radius(),.04,Math.PI*2);}}
                 default -> {}
             }
         }

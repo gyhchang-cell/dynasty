@@ -33,7 +33,7 @@ final class Cod3AfterImages {
     private static final Map<Cod3VisualPacket,Deque<Frame>> FRAMES=new HashMap<>();
     private static final Map<UUID,Deque<Frame>> HISTORY=new HashMap<>();
     private static boolean renderingGhost;
-    static boolean supports(Cod3VisualPacket packet){return packet.sequence().equals("mesh_entity")||packet.sequence().equals("mesh_weapon");}
+    static boolean supports(Cod3VisualPacket packet){return packet.sequence().equals("mesh_entity")||packet.sequence().equals("mesh_weapon")||packet.sequence().equals("mesh_mirror");}
     static void clear(){FRAMES.clear();HISTORY.clear();}
     static void retain(List<Cod3VisualPacket> active){FRAMES.keySet().retainAll(active);}
     static void history(){
@@ -54,7 +54,10 @@ final class Cod3AfterImages {
     private static void collect(GeoBone bone,List<GeoBone> result){result.add(bone);for(var child:bone.getChildBones())collect(child,result);}
     @SubscribeEvent public static void capture(GeoRenderEvent.Entity.Post event){
         if(renderingGhost)return;var frames=HISTORY.get(event.getEntity().getUUID());if(frames==null||frames.isEmpty())return;
-        var frame=frames.removeLast();frames.addLast(frame.withBones(bones(event.getModel()).stream().map(Bone::of).toList()));
+        var frame=frames.removeLast();var saved=frame.withBones(bones(event.getModel()).stream().map(Bone::of).toList());frames.addLast(saved);
+        for(var entry:FRAMES.entrySet())if(entry.getKey().entityId()==event.getEntity().getId()&&entry.getKey().template()!=23){
+            var trail=entry.getValue();if(!trail.isEmpty()&&trail.getLast().tick()==saved.tick()){trail.removeLast();trail.addLast(saved);}
+        }
     }
     static void sample(Cod3VisualPacket packet){
         var mc=Minecraft.getInstance();if(mc.level==null||!supports(packet))return;
@@ -70,7 +73,7 @@ final class Cod3AfterImages {
             }return;
         }
         var frame=history.getLast();if(!frames.isEmpty()&&frame.tick()==frames.getLast().tick())return;
-        frames.addLast(frame);while(frames.size()>6)frames.removeFirst();
+        frames.addLast(frame);while(frames.size()>(packet.template()==36?1:6))frames.removeFirst();
     }
     @SuppressWarnings({"rawtypes","unchecked"})
     static void render(Cod3VisualPacket packet,PoseStack pose,Vec3 camera,float partialTick,double fade,int count){
@@ -78,23 +81,45 @@ final class Cod3AfterImages {
         var entity=mc.level.getEntity(packet.entityId());
         if(!(entity instanceof LivingEntity owner)||!owner.isAlive()||owner.getUUID().getLeastSignificantBits()!=packet.seed())return;
         // The local body's ghost is hidden in first person. Weapon samples stay outside the near plane.
-        if(packet.template()!=29&&owner==mc.player&&mc.options.getCameraType().isFirstPerson())return;
+        if(packet.template()!=29&&packet.template()!=36&&owner==mc.player&&mc.options.getCameraType().isFirstPerson())return;
         var renderer=mc.getEntityRenderDispatcher().getRenderer(owner);var buffers=mc.renderBuffers().bufferSource();
         int tint=packet.tint()==0?0xffffff:packet.tint(),index=0,total=frames.size();
         for(var frame:frames){
             if(index++<Math.max(0,total-count)||frame.at().distanceTo(camera)>64||packet.template()!=29&&frame.at().distanceTo(camera)<1.4)continue;
-            float alpha=(float)(fade*.35*index/total);if(alpha<=0)continue;
+            float alpha=(float)(fade*(packet.template()==23?.3:.35)*index/total);if(alpha<=0)continue;
             pose.pushPose();
             try{
-                pose.translate(frame.at().x,frame.at().y,frame.at().z);pose.mulPose(Axis.YP.rotationDegrees(180-frame.yaw()));
+                if(packet.template()==36){
+                    double age=mc.level.getGameTime()-packet.start()+partialTick;
+                    if(age>=com.dynasty.cod3.VfxTimeline.timing(com.dynasty.cod3.Cod3Catalog.vfx(36),packet.duration()).sustainEnd())continue;
+                    pose.translate(packet.origin().x,packet.origin().y+.1,packet.origin().z);pose.mulPose(Axis.YP.rotationDegrees(180-frame.yaw()));
+                    pose.translate(0,0,.57);pose.scale(.8f,.8f,-.015f);
+                }else{pose.translate(frame.at().x,frame.at().y,frame.at().z);pose.mulPose(Axis.YP.rotationDegrees(180-(packet.template()==29&&owner==mc.player&&mc.options.getCameraType().isFirstPerson()?frame.head():frame.yaw())));}
                 if(packet.template()==29){
                     if(owner==mc.player&&mc.options.getCameraType().isFirstPerson()){
                         // Offset in hand space, away from the crosshair and the near plane.
                         pose.translate(.62,owner.getEyeHeight()-.45,-.85);
-                    }else pose.translate(.35,owner.getBbHeight()*.7,-.55);
-                    pose.mulPose(Axis.XP.rotationDegrees(frame.pitch()));
-                    pose.mulPose(Axis.ZP.rotationDegrees(-110*frame.swing()));
-                    weapon(frame.weapon(),pose,buffers,tint,alpha);
+                        pose.mulPose(Axis.XP.rotationDegrees(frame.pitch()));pose.mulPose(Axis.ZP.rotationDegrees(-110*frame.swing()));
+                        weapon(frame.weapon(),pose,buffers,tint,alpha);
+                    }else if(renderer instanceof LivingEntityRenderer living&&living.getModel() instanceof net.minecraft.client.model.ArmedModel armed){
+                        var model=living.getModel();boolean young=model.young,riding=model.riding;float attack=model.attackTime;
+                        try{
+                            model.young=frame.baby();model.riding=frame.riding();model.attackTime=frame.swing();
+                            model.prepareMobModel(owner,frame.walk(),frame.speed(),0);model.setupAnim(owner,frame.walk(),frame.speed(),frame.time(),frame.head()-frame.yaw(),frame.pitch());
+                            pose.scale(-1,-1,1);pose.translate(0,-1.501,0);armed.translateToHand(owner.getMainArm(),pose);
+                            pose.mulPose(Axis.XP.rotationDegrees(-90));pose.mulPose(Axis.YP.rotationDegrees(180));
+                            boolean left=owner.getMainArm()==net.minecraft.world.entity.HumanoidArm.LEFT;
+                            pose.translate(left?-1./16:1./16,.125,-.625);
+                            weapon(frame.weapon(),pose,buffers,tint,alpha,left?ItemDisplayContext.THIRD_PERSON_LEFT_HAND:ItemDisplayContext.THIRD_PERSON_RIGHT_HAND);
+                        }finally{
+                            model.young=young;model.riding=riding;model.attackTime=attack;
+                            model.prepareMobModel(owner,owner.walkAnimation.position(partialTick),owner.walkAnimation.speed(partialTick),partialTick);
+                            model.setupAnim(owner,owner.walkAnimation.position(partialTick),owner.walkAnimation.speed(partialTick),owner.tickCount+partialTick,owner.getYHeadRot()-owner.yBodyRot,owner.getXRot());
+                        }
+                    }else{
+                        pose.translate(.35,owner.getBbHeight()*.7,-.55);pose.mulPose(Axis.XP.rotationDegrees(frame.pitch()));pose.mulPose(Axis.ZP.rotationDegrees(-110*frame.swing()));
+                        weapon(frame.weapon(),pose,buffers,tint,alpha);
+                    }
                 }else if(renderer instanceof LivingEntityRenderer living){
                     var model=living.getModel();boolean young=model.young,riding=model.riding;float attack=model.attackTime;
                     try{
@@ -125,9 +150,12 @@ final class Cod3AfterImages {
     }
     /** QA uses the same baked-item path without creating a world or duplicating a model. */
     static void weapon(ItemStack stack,PoseStack pose,MultiBufferSource buffers,int tint,float alpha){
+        weapon(stack,pose,buffers,tint,alpha,ItemDisplayContext.THIRD_PERSON_RIGHT_HAND);
+    }
+    static void weapon(ItemStack stack,PoseStack pose,MultiBufferSource buffers,int tint,float alpha,ItemDisplayContext context){
         if(stack.isEmpty())return;
         var consumer=new Tint(buffers.getBuffer(Cod3GhostRenderType.of(TextureAtlas.LOCATION_BLOCKS)),tint,alpha);
-        Minecraft.getInstance().getItemRenderer().renderStatic(stack,ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,15728880,OverlayTexture.NO_OVERLAY,pose,type->type.format().equals(DefaultVertexFormat.NEW_ENTITY)?consumer:Discard.INSTANCE,null,0);
+        Minecraft.getInstance().getItemRenderer().renderStatic(stack,context,15728880,OverlayTexture.NO_OVERLAY,pose,type->type.format().equals(DefaultVertexFormat.NEW_ENTITY)?consumer:Discard.INSTANCE,null,0);
     }
     private enum Discard implements VertexConsumer {
         INSTANCE;

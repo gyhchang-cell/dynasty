@@ -60,6 +60,7 @@ public final class HeadlessClientQa {
             if(System.nanoTime()>DEADLINE)throw new AssertionError("Elite QA timed out");
             if(Files.exists(ROOT.resolve(HOST?"peer/FAIL.txt":"host/FAIL.txt")))throw new AssertionError("Other client failed");
             if(mc.getOverlay()!=null)return;
+            if(started&&mc.screen instanceof DisconnectedScreen)throw new AssertionError("Real peer disconnected before acceptance");
             if(mc.screen instanceof AccessibilityOnboardingScreen)mc.setScreen(new TitleScreen());
             if(!started&&mc.screen instanceof TitleScreen){
                 if(!mc.gameDirectory.getCanonicalPath().endsWith("/build/blueprint-client/"+ROLE))throw new AssertionError("Refusing live game directory");
@@ -113,12 +114,17 @@ public final class HeadlessClientQa {
         if(fixture!=null){var old=fixture;world.getEntitiesOfClass(SkullBloodPool.class,old.getBoundingBox().inflate(24),p->p.getOwner()==old).forEach(Entity::discard);old.discard();}
         if(victim!=null)victim.discard();
         fixture=EliteContent.HEADLESS.get().create(world);fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();world.addFreshEntity(fixture);
-        var cow=EntityType.COW.create(world);cow.setNoAi(true);cow.setNoGravity(true);cow.setInvisible(true);cow.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);cow.setHealth(1000);cow.moveTo(0,-60,3,180,0);world.addFreshEntity(cow);victim=cow;
+        var cow=EntityType.COW.create(world);cow.setNoAi(true);cow.setNoGravity(true);cow.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INVISIBILITY,12000,0,false,false,false));cow.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);cow.setHealth(1000);cow.moveTo(0,-60,3,180,0);world.addFreshEntity(cow);victim=cow;
         for(var player:server.getPlayerList().getPlayers()){player.setGameMode(GameType.CREATIVE);player.teleportTo(world,0,-60,16,180,0);player.getAbilities().flying=true;player.onUpdateAbilities();}
         return snapshot(stage,"READY",world.getGameTime());
     }
     private static Stage activate(MinecraftServer server,int stage){
-        if(stage>=13){fixture.hurt(fixture.damageSources().genericKill(),10000);if(!fixture.isDeadOrDying())throw new AssertionError("Death rejected");}
+        if(stage>=13){
+            var player=server.getPlayerList().getPlayers().stream().filter(p->p.getGameProfile().getName().equals("BlueprintHost")).findFirst().orElseThrow();
+            fixture.hurt(fixture.damageSources().playerAttack(player),10000);if(!fixture.isDeadOrDying())throw new AssertionError("Connected-player kill rejected");
+            var hook=server.getAdvancements().getAdvancement(new net.minecraft.resources.ResourceLocation("dynasty","blueprint/kill_xianzhen_duantoujiang"));
+            if(hook==null||!player.getAdvancements().getOrStartProgress(hook).isDone())throw new AssertionError("Connected-player kill did not award the native advancement");
+        }
         else if(stage==12){if(!fixture.hurt(fixture.damageSources().mobAttack(victim),4))throw new AssertionError("Hurt rejected");}
         else if(!fixture.startSkill(SKILLS[stage],victim))throw new AssertionError("Server refused elite action "+stage);
         return snapshot(stage,"ACTIVE",server.overworld().getGameTime());
@@ -141,6 +147,13 @@ public final class HeadlessClientQa {
             String actual=controller==null||controller.getCurrentAnimation()==null?"none":controller.getCurrentAnimation().animation().name();
             String wanted="animation."+HeadlessGeneral.ID+"."+elite.visualAnimation();
             if(!actual.equals(wanted)||controller.getAnimationState().name().equals("STOPPED"))throw new AssertionError("Actual Gecko clip differs "+actual+" expected "+wanted);
+            if(observed>=13){
+                var root=renderer.getGeoModel().getBone("root").orElseThrow();
+                var knee=renderer.getGeoModel().getBone("left_knee").orElseThrow();
+                var head=renderer.getGeoModel().getBone("held_head").orElseThrow();
+                if(root.getPosY()>-4||Math.abs(knee.getRotX())<1||head.getScaleX()>.1F)
+                    throw new AssertionError("Death must lower the armour and bend knees after the head dissolves: rootY="+root.getPosY()+" kneeX="+knee.getRotX()+" headScale="+head.getScaleX());
+            }
             try(NativeImage frame=Screenshot.takeScreenshot(mc.getMainRenderTarget())){
                 if(frame.getWidth()<600||frame.getHeight()<400)throw new AssertionError("Framebuffer too small");
                 frame.writeToFile(OUT.resolve(String.format("%02d-headless-%s.png",observed,NAMES[observed])));

@@ -54,7 +54,7 @@ public final class WorldEventGameTests {
         var store=new WorldEventStore();store.instances.put(i.uuid,i);store.cooldowns.put("group/test",1000L);store.worldStates.add("dynasty:fog");var loaded=WorldEventStore.load(store.save(new CompoundTag()));
         h.assertTrue(loaded.instances.size()==1&&loaded.cooldowns.get("group/test")==1000L&&loaded.worldStates.contains("dynasty:fog"),"SavedData reload preserves cooldown/weather world states");h.succeed();
     }
-    @GameTest(template="bow_ritual_test",batch="cod2_event_battle",timeoutTicks=90)
+    @GameTest(template="bow_ritual_test",batch="cod2_event_battle",timeoutTicks=600)
     public static void realBattleUsesTwoSpawnBudgetAndRewardsOnlyAfterRecordedEnemyDeaths(GameTestHelper h){
         var level=h.getLevel();var center=h.absolutePos(new BlockPos(8,2,8));
         for(int x=-17;x<=17;x++)for(int z=-17;z<=17;z++){
@@ -62,22 +62,31 @@ public final class WorldEventGameTests {
             level.setBlockAndUpdate(floor,Blocks.STONE.defaultBlockState());for(int y=1;y<=4;y++)level.setBlockAndUpdate(floor.above(y),Blocks.AIR.defaultBlockState());
         }
         var p=player(h,center);var i=fixture(h,"juejing_biaoche",center,p);var store=WorldEventStore.get(level);
-        try{
-            DynastyWorldEventManager.tickInstance(level,store,i,2);h.assertTrue(i.spawned<=2&&i.actors.size()<=2,"One batch cannot create more than two actors");
-            for(int n=0;n<30&&i.spawned<13;n++)DynastyWorldEventManager.tickInstance(level,store,i,2);
-            h.assertTrue(i.spawned==13&&i.phase==WorldEventInstance.Phase.ACTIVE,"Authored three guards and ten rebels actually enter world, produced="+i.spawned);
-            for(var a:i.actors.values()){
-                var entity=level.getEntity(a.uuid());h.assertTrue(entity instanceof TemplateMob,"Every reserved UUID points to a real cod1 combatant");var mob=(TemplateMob)entity;mob.setNoAi(true);
-                h.assertTrue(mob.faction()==(a.team().equals("ARMY")?Faction.DYNASTY_ARMY:Faction.REBELS),"Controller installs exact opposing factions");
-                if(a.team().equals("REBELS")){mob.setHealth(1);mob.hurt(mob.damageSources().playerAttack(p),1000);}
-            }
-            h.assertTrue(i.actors.values().stream().filter(a->a.team().equals("REBELS")).allMatch(WorldEventInstance.Actor::dead),"Real uncanceled Forge deaths update encounter ledger");
-            DynastyWorldEventManager.tickInstance(level,store,i,2);
-            h.assertTrue(i.phase==WorldEventInstance.Phase.SUCCESS&&i.rewardGranted,"Living guards plus all defeated rebels are success");
-            int before=p.getInventory().countItem(com.dynasty.DynastyRelics.BLUEPRINT.get());
-            DynastyWorldEventManager.finish(level,store,i,true);DynastyWorldEventManager.deliverPending(level,i);
-            h.assertTrue(before==1&&p.getInventory().countItem(com.dynasty.DynastyRelics.BLUEPRINT.get())==1,"Test fixture reward generates once across repeated completion");h.succeed();
-        }finally{remove(h,p,i);}
+        var finished=new boolean[]{false};
+        h.onEachTick(()->{
+            if(finished[0])return;
+            try{
+                if(h.getTick()%10==0){int before=i.spawned;DynastyWorldEventManager.tickInstance(level,store,i,2);
+                    h.assertTrue(i.spawned-before<=2,"One batch cannot create more than two actors");}
+                for(var actor:i.actors.values())if(level.getEntity(actor.uuid()) instanceof TemplateMob mob)mob.setNoAi(true);
+                // Let native chunks/entities and deterministic spawn retries advance between batches.
+                if(i.spawned<13||i.actors.values().stream().anyMatch(a->level.getEntity(a.uuid())==null))return;
+                h.assertTrue(i.spawned==13&&i.phase==WorldEventInstance.Phase.ACTIVE,"Authored three guards and ten rebels actually enter world, produced="+i.spawned);
+                for(var a:i.actors.values()){
+                    var entity=level.getEntity(a.uuid());h.assertTrue(entity instanceof TemplateMob,"Every reserved UUID points to a real cod1 combatant");var mob=(TemplateMob)entity;mob.setNoAi(true);
+                    h.assertTrue(mob.faction()==(a.team().equals("ARMY")?Faction.DYNASTY_ARMY:Faction.REBELS),"Controller installs exact opposing factions");
+                    if(a.team().equals("REBELS")){mob.setHealth(1);mob.hurt(mob.damageSources().playerAttack(p),1000);}
+                }
+                h.assertTrue(i.actors.values().stream().filter(a->a.team().equals("REBELS")).allMatch(WorldEventInstance.Actor::dead),"Real uncanceled Forge deaths update encounter ledger");
+                DynastyWorldEventManager.tickInstance(level,store,i,2);
+                h.assertTrue(i.phase==WorldEventInstance.Phase.SUCCESS&&i.rewardGranted,"Living guards plus all defeated rebels are success");
+                int before=p.getInventory().countItem(com.dynasty.DynastyRelics.BLUEPRINT.get());
+                DynastyWorldEventManager.finish(level,store,i,true);DynastyWorldEventManager.deliverPending(level,i);
+                h.assertTrue(before==1&&p.getInventory().countItem(com.dynasty.DynastyRelics.BLUEPRINT.get())==1,"Test fixture reward generates once across repeated completion");h.succeed();
+                finished[0]=true;remove(h,p,i);
+            }catch(Throwable failure){finished[0]=true;remove(h,p,i);throw failure;}
+        });
+        h.runAtTickTime(590,()->{if(!finished[0]){finished[0]=true;remove(h,p,i);h.fail("Native battle assembly did not finish: "+i.spawned+"/13");}});
     }
     @GameTest(template="bow_ritual_test",batch="cod2_event_escrow")
     public static void fullInventoryKeepsRewardEscrowAndRestoresOnlyOwnedTerrain(GameTestHelper h){

@@ -50,6 +50,8 @@ public final class Cod3RenderQa {
                 roots();Files.write(OUT.resolve("PASS.txt"),RESULTS);mc.stop();return;
             }
             for(int i=1;i<=40;i++){final int id=i;vfx(id,32,"near");vfx(id,12,"low");}
+            for(int i=14;i<=40;i++){var d=Cod3Catalog.vfx(i);var t=VfxTimeline.timing(d,d.duration());double age=t.sustainEnd()+(d.duration()-t.sustainEnd())*.5;vfx(i,32,"collapse-near",age);vfx(i,12,"collapse-low",age);}
+            riftBounds();
             for(var item:List.of(net.minecraft.world.item.Items.IRON_SWORD,com.dynasty.expansion.ExpansionContent.HAMMER.get(),com.dynasty.expansion.ExpansionContent.CLAW.get(),net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse("dynasty:luminous_fish_glue")),com.dynasty.expansion.ExpansionContent.MATERIALS.get("qimen_gear").get()))for(int count:List.of(2,6)){
                 String id=net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(item).getPath();
                 frame("shared-weapon-afterimage-"+id+"-"+count,3,1,()->{
@@ -73,6 +75,9 @@ public final class Cod3RenderQa {
         mc.stop();
     }
     private static void vfx(int id,int segments,String lod)throws Exception{
+        var d=Cod3Catalog.vfx(id);vfx(id,segments,lod,VfxTimeline.timing(d,d.duration()).expandEnd()+.1);
+    }
+    private static void vfx(int id,int segments,String lod,double age)throws Exception{
         var d=Cod3Catalog.vfx(id);double size=Math.max(4,Math.max(d.radius()*2,d.length()));
         var geometry=Class.forName("com.dynasty.client.Cod3VfxRenderer$Geometry");
         var ctor=geometry.getDeclaredConstructor(Matrix4f.class,Vec3.class,Vec3.class,Vec3.class,double.class,int.class,double.class,int.class,long.class);ctor.setAccessible(true);
@@ -86,10 +91,25 @@ public final class Cod3RenderQa {
                 RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();RenderSystem.depthMask(false);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
                 var matrix=new Matrix4f().rotateY(.65f).rotateX(.2f).translate(0,0,d.shape()==DynastyVfxDefinition.Shape.LINE||d.shape()==DynastyVfxDefinition.Shape.CHAIN?-(float)d.length()/2:0);
                 buffer.begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);
-                try{var mesh=ctor.newInstance(matrix,new Vec3(0,3,size*2.1),Vec3.ZERO,new Vec3(0,0,1),1d,d.color(),.8d,segments,1234L);draw.invoke(mesh,id,d,1d,.5d,20d);volume.invoke(mesh,VfxVolume.of(d,Vec3.ZERO,new Vec3(0,0,1),1,1,20));BufferUploader.drawWithShader(buffer.end());}catch(Exception error){buffer.discard();throw new RuntimeException(error);}
+                try{var mesh=ctor.newInstance(matrix,new Vec3(0,3,size*2.1),Vec3.ZERO,new Vec3(0,0,1),1d,d.color(),.8d,segments,1234L);draw.invoke(mesh,id,d,VfxTimeline.timing(d,d.duration()).expansion(age),age/d.duration(),age);volume.invoke(mesh,VfxVolume.of(d,Vec3.ZERO,new Vec3(0,0,1),1,1,age));BufferUploader.drawWithShader(buffer.end());}catch(Exception error){buffer.discard();throw new RuntimeException(error);}
             }
             if(GL11.glGetInteger(GL11.GL_DEPTH_WRITEMASK)!=depth||GL11.glIsEnabled(GL11.GL_BLEND)!=blend||GL11.glIsEnabled(GL11.GL_DEPTH_TEST)!=test)throw new AssertionError("VFX leaked GL state");
         });
+    }
+    private static void riftBounds()throws Exception{
+        var geometry=Class.forName("com.dynasty.client.Cod3VfxRenderer$Geometry");var ctor=geometry.getDeclaredConstructor(Matrix4f.class,Vec3.class,Vec3.class,Vec3.class,double.class,int.class,double.class,int.class,long.class);ctor.setAccessible(true);
+        var draw=geometry.getDeclaredMethod("draw",int.class,DynastyVfxDefinition.class,double.class,double.class,double.class);draw.setAccessible(true);
+        var field=Cod3VfxRenderer.class.getDeclaredField("BUFFER");field.setAccessible(true);var buffer=(BufferBuilder)field.get(null);var d=Cod3Catalog.vfx(24);
+        for(int age:new int[]{2,5,8,10,13}){
+            buffer.begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);
+            var mesh=ctor.newInstance(new Matrix4f(),new Vec3(0,3,21),Vec3.ZERO,new Vec3(0,0,1),1d,d.color(),.8d,32,1234L);draw.invoke(mesh,24,d,VfxTimeline.timing(d,d.duration()).expansion(age),age/(double)d.duration(),(double)age);
+            var built=buffer.end();try{
+                var data=built.vertexBuffer();int stride=built.drawState().format().getVertexSize();for(int i=0;i<built.drawState().vertexCount();i++){
+                    double x=data.getFloat(i*stride),y=data.getFloat(i*stride+4);
+                    if(Math.hypot(x,y)>d.width()/2+.12)throw new AssertionError("Rift geometry exceeds danger corridor at age "+age+": "+x+","+y);
+                }
+            }finally{built.release();}
+        }RESULTS.add("PASS rift-actual-vertex-bounds (five phases)");
     }
     private static final class Preview implements GeoAnimatable {
         final String role;final AnimatableInstanceCache cache=GeckoLibUtil.createInstanceCache(this);

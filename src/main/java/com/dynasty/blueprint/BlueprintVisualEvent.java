@@ -42,6 +42,15 @@ public record BlueprintVisualEvent(ResourceLocation dimension, int entityId, UUI
         if(mob.level() instanceof ServerLevel) send(mob,deathEvent(mob));
     }
     @SubscribeEvent public static void tracking(PlayerEvent.StartTracking event) {
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.GhostCarriageBird bird
+                &&bird.level() instanceof ServerLevel level&&bird.isAlive()){
+            var action=bird.attack();var skill=action.current();
+            if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());
+                DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),bird.getId(),bird.getUUID(),target==null?-1:target.getId(),
+                    action.started(),seed(bird,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),bird.telegraphOrigin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
         if(event.getEntity() instanceof ServerPlayer player && event.getTarget() instanceof com.dynasty.blueprint.elite.HeadlessGeneral elite
                 && elite.level() instanceof ServerLevel level && elite.isAlive()) {
             var action=elite.attack();var skill=action.current();

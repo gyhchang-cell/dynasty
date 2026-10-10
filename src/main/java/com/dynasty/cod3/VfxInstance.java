@@ -21,7 +21,7 @@ public record VfxInstance(DynastyVfxDefinition definition,Vec3 origin,Vec3 direc
     public enum Phase {SPAWN,EXPAND,SUSTAIN,COLLAPSE,END}
     public Phase phase(double age){return age<0||age>=lifetime?Phase.END:age<spawnTicks?Phase.SPAWN:age<windupTicks?Phase.EXPAND:age<windupTicks+activeTicks?Phase.SUSTAIN:Phase.COLLAPSE;}
     public double expansion(double age){return windupTicks==spawnTicks?1:Math.max(0,Math.min(1,(age-spawnTicks)/(windupTicks-spawnTicks)));}
-    public VfxVolume volume(double age){return VfxVolume.of(definition,origin,direction,scale,expansion(age),age);}
+    public VfxVolume volume(double age){return VfxVolume.of(definition,origin,direction,scale,expansion(age),age,lifetime);}
     public boolean contains(Vec3 point,double age){return phase(age)==Phase.SUSTAIN&&volume(age).contains(point);}
     public static VfxInstance combat(Cod3VisualPacket packet){
         String[] parts=packet.sequence().split("_");

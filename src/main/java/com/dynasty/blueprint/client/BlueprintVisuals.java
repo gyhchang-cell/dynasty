@@ -126,6 +126,18 @@ public final class BlueprintVisuals {
                     mc.level.addParticle(age<p.windup()?dust:ParticleTypes.SOUL_FIRE_FLAME,at.x,at.y,at.z,0,.015,0);
                 }continue;
             }
+            if(p.key().startsWith("bird_")){
+                int count=Math.min(8,budget);budget-=count;
+                var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(forward.z,0,-forward.x);
+                var dust=new DustParticleOptions(new Vector3f(.65F,.1F,.2F),.85F);
+                for(int i=0;i<count;i++){
+                    Vec3 at;
+                    if(p.key().equals("bird_bomb"))at=p.origin().add(forward.scale(3+(i/4)*3)).add(side.scale(-2.25+(i%4)*1.5));
+                    else if(p.key().equals("bird_dive"))at=p.origin().add(forward.scale(p.range()*(i/2)/3.0)).add(side.scale(i%2==0?.75:-.75));
+                    else{double theta=(i/(double)count)*Math.PI*2;at=p.origin().add(Math.cos(theta)*p.range(),0,Math.sin(theta)*p.range());}
+                    mc.level.addParticle(age<p.windup()?dust:ParticleTypes.SMOKE,at.x,at.y+.08,at.z,0,.015,0);
+                }continue;
+            }
             if(p.key().equals("stone_slam")){
                 var d=p.direction().multiply(1,0,1).normalize();
                 var side=new Vec3(-d.z,0,d.x).scale(com.dynasty.blueprint.StoneGuardBehavior.SLAM_WIDTH*.5);

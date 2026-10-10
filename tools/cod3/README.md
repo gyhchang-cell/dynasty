@@ -54,3 +54,9 @@ python3 tools/cod3/verify_assets.py
 死亡重启结算、八工作台实际 Menu、NPC 修复/祭奠/对白/重生、秘密触发、奇景恢复及四十模板时序和范围的变化见 [续做记录](../../docs/cod3/continuation-2026-10-10.md)，38 项专用服与 191 个图形检查见 [验证记录](verification/continuation-2026-10-10.md)。直接删减用户本地 `cod3.txt`，保留未完成原文；[剩余任务](../../docs/cod3/remaining-tasks.txt) 与该文件字节一致。
 
 多人同时在该 checkout 构建时，可追加 `-I tools/cod3/isolated-build.init.gradle -Pcod3IsolatedBuild=build/<自己的独立目录>` 隔离编译输出。同一个输出目录的构建、服务器测试和客户端检查应串行执行。
+
+## 2026-10-10 续做验收
+
+VFX14–40 完成专属几何与残影补齐，190 项专用服回归、246 项图形检查，以及两台原生 Forge 客户端各82场景/140截图通过。见 [续做说明](../../docs/cod3/continuation-2026-10-10-vfx.md)。
+
+真实世界 QA 为可选源集 `tools/cod3/client-qa.init.gradle`。先使用独立 `--project-cache-dir build/cod3-continuation-20261010/gradle-cache` 和 `-I tools/cod3/isolated-build.init.gradle -Pcod3IsolatedBuild=build/cod3-continuation-20261010/stable-compiled`，再加 `-I tools/cod3/client-qa.init.gradle -Pcod3ClientRun=<fresh-id> -Pcod3ClientPrepare runClient` 导出配置。用 `tools/blueprint/freeze_client_classpath.py --launch <launch.json> <fresh-freeze-id>` 固定实际运行字节，再运行 `python3 tools/cod3/run_native_clients.py <frozen-launch.json> <fresh-run-id>`。仅使用 `build/cod3-client` 临时世界和 loopback 25591；QA 类不进入 JAR。两个客户端均生成 PASS 才通过。

@@ -90,4 +90,51 @@ public final class HeadlessGeneralGameTests {
             h.assertTrue(snapshot.markers.get(key).members.contains(id),"Native SavedData retains membership");h.succeed();
         }finally{rule.set(previous,level.getServer());}
     }
+    @GameTest(template="bow_ritual_test",timeoutTicks=240,batch="headless_world")
+    public static void productionBattlefieldTickSpawnsRealEliteAndStartsDeathCooldown(GameTestHelper h){
+        var level=h.getLevel();var registry=level.registryAccess();var structure=registry.registryOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
+            .get(new net.minecraft.resources.ResourceLocation("dynasty","ruined_battlefield"));
+        var settings=net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings.getDefault(registry.lookupOrThrow(net.minecraft.core.registries.Registries.BIOME),
+            registry.lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE_SET),registry.lookupOrThrow(net.minecraft.core.registries.Registries.PLACED_FEATURE));
+        settings.getLayersInfo().clear();settings.getLayersInfo().add(new net.minecraft.world.level.levelgen.flat.FlatLayerInfo(127,Blocks.STONE));
+        settings.getLayersInfo().add(new net.minecraft.world.level.levelgen.flat.FlatLayerInfo(1,Blocks.GRASS_BLOCK));settings.updateLayers();
+        var generator=new net.minecraft.world.level.levelgen.FlatLevelSource(settings);var origin=new net.minecraft.world.level.ChunkPos(640,640);
+        // Remote fixture chunks need a native ticket: a FakePlayer has no client view-distance tickets.
+        level.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.FORCED,origin,3,origin);
+        var start=structure.generate(registry,generator,generator.getBiomeSource(),level.getChunkSource().randomState(),level.getStructureManager(),level.getSeed(),origin,0,level,b->true);
+        h.assertTrue(start.isValid(),"Production battlefield generates from a real levelled terrain context");
+        level.getChunk(origin.x,origin.z).setStartForStructure(structure,start);var bounds=start.getBoundingBox();
+        for(int x=bounds.minX()>>4;x<=bounds.maxX()>>4;x++)for(int z=bounds.minZ()>>4;z<=bounds.maxZ()>>4;z++){
+            var chunk=level.getChunk(x,z);chunk.addReferenceForStructure(structure,origin.toLong());
+            var clip=new net.minecraft.world.level.levelgen.structure.BoundingBox(x*16,bounds.minY(),z*16,x*16+15,bounds.maxY(),z*16+15);
+            for(var piece:start.getPieces())piece.postProcess(level,level.structureManager(),generator,net.minecraft.util.RandomSource.create(3),clip,chunk.getPos(),BlockPos.ZERO);
+        }
+        var player=new net.minecraftforge.common.util.FakePlayer(level,new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(),"headless-entry"));
+        var floor=start.getPieces().get(0).getBoundingBox();
+        player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);player.setPos(floor.minX()+10.5,floor.minY()+4,floor.minZ()+12.5);level.addNewPlayer(player);
+        h.assertTrue(level.getBlockState(player.blockPosition().below()).isFaceSturdy(level,player.blockPosition().below(),net.minecraft.core.Direction.UP),"Entrant stands on the generated battlefield, not the structure's expanded terrain-adaptation bounds");
+        var killHook=level.getServer().getAdvancements().getAdvancement(new net.minecraft.resources.ResourceLocation("dynasty","blueprint/kill_xianzhen_duantoujiang"));
+        h.assertTrue(killHook!=null,"Registered kill advancement loads from runtime resources");
+        var rule=level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING);boolean previous=rule.get();rule.set(true,level.getServer());
+        String key=level.dimension().location()+"/dynasty:ruined_battlefield@"+origin.toLong()+":headless_general";
+        h.onEachTick(()->{
+            var marker=BlueprintSpawnState.get(level).markers.get(key);if(marker==null||marker.members.isEmpty())return;
+            try{
+                h.assertTrue(marker.members.size()==1,"Native structure tick enforces one elite");
+                var entity=level.getEntity(marker.members.iterator().next());if(!(entity instanceof HeadlessGeneral elite))return;
+                h.assertTrue(!elite.isNoAi()&&!elite.isNoGravity()&&elite.encounterSite().equals(key),"Production actor has ordinary AI, gravity and persisted site");
+                elite.hurt(elite.damageSources().playerAttack(player),10000);
+                h.assertTrue(elite.isDeadOrDying()&&marker.members.isEmpty()&&marker.nextSpawn>level.getGameTime(),"Confirmed death releases UUID and starts actual cooldown");
+                // Forge deliberately refuses advancement awards to FakePlayer. Real connected-player
+                // kill awards are verified by HeadlessClientQa, rather than bypassing that guard here.
+                h.assertTrue(!EliteEncounters.spawn(level,key,elite.blockPosition(),player.blockPosition()),"Immediate re-entry cannot refill");
+                h.succeed();
+            }finally{rule.set(previous,level.getServer());player.discard();level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED,origin,3,origin);}
+        });
+        h.runAfterDelay(220,()->{
+            var chunk=level.getChunkSource().getChunkNow(player.chunkPosition().x,player.chunkPosition().z);
+            h.assertTrue(BlueprintSpawnState.get(level).markers.containsKey(key),"Native encounter tick must populate its real structure; player="+player.position()+" alive="+player.isAlive()+" players="+level.players().size()+" gameTime="+level.getGameTime()+" chunkReady="+(chunk!=null)+" starts="+(chunk==null?"missing":chunk.getAllStarts().size())+" floor="+level.getBlockState(player.blockPosition().below()));
+        });
+        h.runAfterDelay(230,()->{rule.set(previous,level.getServer());player.discard();level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED,origin,3,origin);});
+    }
 }

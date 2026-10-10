@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("launch", type=Path)
 parser.add_argument("run_id")
 parser.add_argument("--solo", action="store_true")
+parser.add_argument("--shortcut", action="store_true", help="Include actual Chensha corner-stele and permanent return-lift stages")
 parser.add_argument("--resume-from", type=Path, help="Copy only this runner's disposable artisan QA save into a fresh launch")
 args = parser.parse_args()
 if not args.run_id or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for c in args.run_id) or args.run_id in (".", ".."):
@@ -45,6 +46,7 @@ try:
         jvm = list(launch["jvmArgs"])
         for key, value in {"dynasty.cod2Qa.role": role, "dynasty.cod2Qa.output": str(out / "results"),
                            "dynasty.cod2Qa.solo": str(args.solo).lower(),
+                           "dynasty.cod2Qa.shortcut": str(args.shortcut).lower(),
                            "dynasty.cod2Qa.resume": str(resume_save is not None).lower()}.items():
             jvm = [v for v in jvm if not v.startswith("-D" + key + "=")]
             jvm.append("-D" + key + "=" + value)

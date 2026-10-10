@@ -28,6 +28,11 @@ public final class VfxTimeline {
         int[] t=TIMING[definition.id()-1];double ratio=lifetime/(double)definition.duration();
         return new Timing(t[0]*ratio,t[1]*ratio,t[2]*ratio,t[3]);
     }
+    /** Four blocks per second outbound, then retreat during the authored collapse. */
+    public static double bloodOffset(double age,int lifetime){
+        var d=Cod3Catalog.vfx(37);var t=timing(d,lifetime);
+        return Math.max(0,Math.min(age,t.sustainEnd()))*.2*(1-t.collapse(age,lifetime));
+    }
     public static int limit(int id){return TIMING[id-1][3];}
     public static SoundEvent sound(int id){
         return switch(id){

@@ -250,4 +250,17 @@ public final class Cod3AcceptanceGameTests {
         replacement.discard();h.succeed();
     }
 
+    @GameTest(template="bow_ritual_test")
+    public static void bloodWaveRetreatUsesSameMovingVolume(GameTestHelper h){
+        var d=Cod3Catalog.vfx(37);var origin=new Vec3(2,2,2);var direction=new Vec3(1,0,0);
+        for(int lifetime:new int[]{28,56}){
+            var t=VfxTimeline.timing(d,lifetime);double max=t.sustainEnd()*.2;
+            var crest=VfxVolume.of(d,origin,direction,1,1,t.sustainEnd(),lifetime);
+            var retreat=VfxVolume.of(d,origin,direction,1,1,(t.sustainEnd()+lifetime)/2,lifetime);
+            var end=VfxVolume.of(d,origin,direction,1,1,lifetime,lifetime);
+            h.assertTrue(Math.abs(crest.origin().x-origin.x-max)<1e-6,"Wave advance speed changed");
+            h.assertTrue(Math.abs(retreat.origin().x-origin.x-max/2)<1e-6,"Wave did not retreat during collapse");
+            h.assertTrue(end.origin().distanceTo(origin)<1e-6,"Wave did not return to anchor");
+        }h.succeed();
+    }
 }

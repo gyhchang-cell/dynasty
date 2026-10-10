@@ -8,6 +8,9 @@ public record VfxVolume(DynastyVfxDefinition.Shape shape,Vec3 origin,Vec3 forwar
                         double radius,double length,double halfWidth,double height,double innerRadius,
                         double halfAngle,boolean cylinder,boolean damaging,int template,double age) {
     public static VfxVolume of(DynastyVfxDefinition d,Vec3 at,Vec3 direction,double scale,double expansion,double age){
+        return of(d,at,direction,scale,expansion,age,d.duration());
+    }
+    public static VfxVolume of(DynastyVfxDefinition d,Vec3 at,Vec3 direction,double scale,double expansion,double age,int lifetime){
         boolean pitched=(d.shape()==DynastyVfxDefinition.Shape.LINE&&d.id()!=10&&d.id()!=34)||d.shape()==DynastyVfxDefinition.Shape.CHAIN;
         Vec3 forward=pitched?direction:new Vec3(direction.x,0,direction.z);
         forward=forward.lengthSqr()<1e-10?new Vec3(0,0,1):forward.normalize();
@@ -21,7 +24,7 @@ public record VfxVolume(DynastyVfxDefinition.Shape shape,Vec3 origin,Vec3 forwar
         if(d.id()==26)radius=(6+(d.radius()-6)*expansion)*scale;
         if(d.id()==31){shape=DynastyVfxDefinition.Shape.TARGET_LOCK;radius=d.radius()*scale;}
         if(d.id()==39){shape=DynastyVfxDefinition.Shape.CIRCLE;height=scale;}
-        if(d.id()==37)at=at.add(forward.scale(age*.2*scale));
+        if(d.id()==37)at=at.add(forward.scale(VfxTimeline.bloodOffset(age,lifetime)*scale));
         if(shape==DynastyVfxDefinition.Shape.SPHERE)at=at.add(0,radius,0);
         return new VfxVolume(shape,at,forward,right,radius,length,halfWidth,height,Math.max(0,radius-d.width()*scale),Math.toRadians(d.id()==36?30:d.id()==19?45:35),cylinder,d.damaging(),d.id(),age);
     }
