@@ -206,6 +206,7 @@ public final class ChenshaPiece extends DynastyStructurePiece {
             }
         }
         fixture(level,clip,new BlockPos(52,25,91),Blocks.CHEST.defaultBlockState(),new ResourceLocation("dynasty:dungeons/chensha_artisan_supplies"));
+        fixture(level,clip,new BlockPos(55,25,91),Blocks.CRAFTING_TABLE.defaultBlockState(),null);
         fixture(level,clip,new BlockPos(12,49,52),Blocks.CHEST.defaultBlockState(),new ResourceLocation("dynasty:dungeons/chensha_expedition_notes"));
         for(var star:vaultStars())fixture(level,clip,star,Blocks.SEA_LANTERN.defaultBlockState(),null);
         for(var skull:List.of(new BlockPos(19,29,43),new BlockPos(23,29,46),new BlockPos(50,26,92),new BlockPos(53,26,90)))

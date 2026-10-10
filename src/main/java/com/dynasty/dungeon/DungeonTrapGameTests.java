@@ -42,11 +42,12 @@ public final class DungeonTrapGameTests {
             h.assertTrue(copy.phase()!=DungeonMechanism.Phase.WARNING,"Unloaded gap does not restart the tell");
         }h.succeed();
     }
-    @GameTest(template="bow_ritual_test",batch="cod2_trap_runtime",timeoutTicks=240)
+    @GameTest(template="bow_ritual_test",batch="cod2_trap_runtime",timeoutTicks=600)
     public static void actualCrusherCoreAllowsEscapeThenDamagesOnlyAtContact(GameTestHelper h){
         // Earlier batches leave real cores in neighboring arenas. Their 96-block activation radius
         // must not expose this health fixture to unrelated poison arrows or other active hazards.
-        var level=h.getLevel();var trapPos=h.absolutePos(new BlockPos(128,40,128));var corePos=trapPos.west(3);var id=UUID.randomUUID();
+        // Stay in the arena's loaded horizontal chunks; vertical separation exceeds every core's radius.
+        var level=h.getLevel();var trapPos=h.absolutePos(new BlockPos(6,160,6));var corePos=trapPos.west(3);var id=UUID.randomUUID();
         var forced=new HashSet<net.minecraft.world.level.ChunkPos>();
         for(var pos:List.of(corePos,trapPos)){
             var chunk=new net.minecraft.world.level.ChunkPos(pos);

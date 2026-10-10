@@ -12,12 +12,14 @@ import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.level.*;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.*;
+import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -98,9 +100,10 @@ public final class HeadlessClientQa {
             if(!(mc.level.getEntity(state.entityId) instanceof HeadlessGeneral elite)||!elite.getUUID().toString().equals(state.uuid))return;
             if(!SOLO&&mc.level.players().size()!=2)return;
             if(camera==null){
+                mc.options.hideGui=true;mc.options.setCameraType(CameraType.FIRST_PERSON);
                 camera=new ArmorStand(mc.level,observed==1?8:observed==2?6:0,-59.2,observed==1?0:observed==2?6:8);
                 camera.setNoGravity(true);camera.setYRot(observed==1?90:observed==2?135:180);camera.setXRot(4);
-                camera.yRotO=camera.getYRot();camera.xRotO=camera.getXRot();mc.setCameraEntity(camera);
+                camera.setYHeadRot(camera.getYRot());camera.yHeadRotO=camera.getYRot();camera.setOldPosAndRot();mc.setCameraEntity(camera);
             }
             if(++settled>=20&&!ready){ready=true;Files.writeString(COORD.resolve("ready-"+observed+"-"+ROLE+".txt"),state.uuid);}
         }catch(Throwable e){finish(mc,e);}
@@ -133,7 +136,7 @@ public final class HeadlessClientQa {
                 if(observed>=13&&!elite.isDeadOrDying())throw new AssertionError("Death not synchronized");
             }
             if(!(mc.getEntityRenderDispatcher().getRenderer(elite) instanceof HeadlessRenderer renderer))throw new AssertionError("Wrong renderer");
-            if(renderer.getGeoModel().getBone("head").isPresent()||renderer.getGeoModel().getBone("neck_seal").isEmpty()||renderer.getGeoModel().getBone("held_head").isEmpty())throw new AssertionError("Headless silhouette bones missing");
+            if(renderer.getGeoModel().getBone("head").isPresent()||renderer.getGeoModel().getBone("neck_seal").isEmpty()||renderer.getGeoModel().getBone("held_head").isEmpty())throw new AssertionError("Headless silhouette bones missing: ordinaryHead="+renderer.getGeoModel().getBone("head").isPresent()+" seal="+renderer.getGeoModel().getBone("neck_seal").isPresent()+" held="+renderer.getGeoModel().getBone("held_head").isPresent()+" camera="+mc.gameRenderer.getMainCamera().getPosition());
             var controller=elite.getAnimatableInstanceCache().getManagerForId(elite.getId()).getAnimationControllers().get("body");
             String actual=controller==null||controller.getCurrentAnimation()==null?"none":controller.getCurrentAnimation().animation().name();
             String wanted="animation."+HeadlessGeneral.ID+"."+elite.visualAnimation();
@@ -142,7 +145,7 @@ public final class HeadlessClientQa {
                 if(frame.getWidth()<600||frame.getHeight()<400)throw new AssertionError("Framebuffer too small");
                 frame.writeToFile(OUT.resolve(String.format("%02d-headless-%s.png",observed,NAMES[observed])));
             }
-            var sample=Map.of("run",RUN,"role",ROLE,"stage",observed,"entityUUID",elite.getUUID().toString(),"skill",elite.skillId(),"start",elite.skillStart(),"clientTime",mc.level.getGameTime(),"phase",elite.phase().name(),"clip",actual,"players",mc.level.players().size(),"fps",mc.getFps());
+            var sample=Map.ofEntries(Map.entry("run",RUN),Map.entry("role",ROLE),Map.entry("stage",observed),Map.entry("entityUUID",elite.getUUID().toString()),Map.entry("skill",elite.skillId()),Map.entry("start",elite.skillStart()),Map.entry("clientTime",mc.level.getGameTime()),Map.entry("phase",elite.phase().name()),Map.entry("clip",actual),Map.entry("players",mc.level.players().size()),Map.entry("fps",mc.getFps()));
             Files.writeString(OUT.resolve(String.format("%02d-state.json",observed)),JSON.toJson(sample));LOG.add(sample.toString());
             Files.writeString(COORD.resolve("captured-"+observed+"-"+ROLE+".txt"),elite.getUUID().toString());captured=true;
         }catch(Throwable e){finish(mc,e);}
@@ -150,6 +153,7 @@ public final class HeadlessClientQa {
     private static void finish(Minecraft mc,Throwable error){
         if(done)return;done=true;
         try{Files.createDirectories(OUT);String result=error==null?"PASS: "+(SOLO?"single native client":"two actual loopback TCP clients")+" acknowledged 15 elite pose/action stages with exact entity UUID, server action epoch and rendered Gecko clips. Structure entry, active-combat restart and sustained performance remain separate acceptance.\n":"FAIL: "+error+"\n";
+            if(error!=null&&mc.level!=null)try(var frame=Screenshot.takeScreenshot(mc.getMainRenderTarget())){frame.writeToFile(OUT.resolve("FAILED.png"));}
             Files.writeString(OUT.resolve(error==null?"PASS.txt":"FAIL.txt"),String.join("\n",LOG)+"\n"+result);
             if(error!=null)error.printStackTrace();
         }catch(Exception e){e.printStackTrace();}mc.stop();

@@ -74,7 +74,7 @@ public final class Cod3VfxRenderer {
     }
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent e){
         if(e.phase!=TickEvent.Phase.END)return;clean();if(world==null||Minecraft.getInstance().isPaused())return;
-        ACTIVE.forEach(Cod3AfterImages::sample);if(world.getGameTime()%4!=0)return;
+        Cod3AfterImages.history();ACTIVE.forEach(Cod3AfterImages::sample);if(world.getGameTime()%4!=0)return;
         var mc=Minecraft.getInstance();boolean low=mc.options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL;
         int remaining=128;
         for(var p:ACTIVE){

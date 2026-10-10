@@ -3,6 +3,7 @@ package com.dynasty.dungeon;
 import com.dynasty.Dynasty;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.levelgen.structure.StructureType;
@@ -14,6 +15,8 @@ import net.minecraftforge.registries.RegistryObject;
 
 /** No craftable core or item registration; an administrator places the probe structure. */
 public final class DungeonContent {
+    public static final DeferredRegister<Item> ITEMS=DeferredRegister.create(ForgeRegistries.ITEMS,Dynasty.MODID);
+    public static final RegistryObject<Item> HIGH_GRADE_PLAN=ITEMS.register("high_grade_mechanism_plan",HighGradeMechanismPlanItem::new);
     public static final DeferredRegister<Block> BLOCKS=DeferredRegister.create(ForgeRegistries.BLOCKS,Dynasty.MODID);
     public static final DeferredRegister<BlockEntityType<?>> ENTITIES=DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES,Dynasty.MODID);
     public static final DeferredRegister<StructureType<?>> STRUCTURES=DeferredRegister.create(Registries.STRUCTURE_TYPE,Dynasty.MODID);
@@ -59,6 +62,6 @@ public final class DungeonContent {
     public static final RegistryObject<StructurePieceType> PROBE_PIECE=PIECES.register("dungeon_probe_piece",()->DungeonProbePiece::new);
     public static final RegistryObject<StructureType<ChenshaStructure>> CHENSHA=STRUCTURES.register("chensha_xuangong",()->()->ChenshaStructure.CODEC);
     public static final RegistryObject<StructurePieceType> CHENSHA_PIECE=PIECES.register("chensha_xuangong_piece",()->ChenshaPiece::new);
-    public static void register(IEventBus bus){BLOCKS.register(bus);ENTITIES.register(bus);STRUCTURES.register(bus);PIECES.register(bus);PROJECTILES.register(bus);}
+    public static void register(IEventBus bus){ITEMS.register(bus);BLOCKS.register(bus);ENTITIES.register(bus);STRUCTURES.register(bus);PIECES.register(bus);PROJECTILES.register(bus);}
     private DungeonContent(){}
 }
