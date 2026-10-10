@@ -28,12 +28,19 @@ public final class PaperGameTests {
     public static void finalDamageRescuesOnceAndReloadCannotRepeatIt(GameTestHelper h){
         var mob=paper(h);var cow=enemy(h);var initial=mob.position();
         h.assertTrue(!mob.startSkill(ArmySkills.PAPER_SHED,cow),"Re-form cannot be manually started to bypass substitution gates");
+        // Neighboring native structure tests can already contain dropped items. Compare the
+        // same real region before/after rescue, including entity identities, instead of global emptiness.
+        var region=cow.getBoundingBox().inflate(15);
+        var itemsBefore=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,region).stream().map(Entity::getUUID).collect(java.util.stream.Collectors.toSet());
+        var papersBefore=h.getLevel().getEntitiesOfClass(TemplateMob.class,region).stream().map(Entity::getUUID).collect(java.util.stream.Collectors.toSet());
         mob.interruptAttack(30);
         h.assertTrue(mob.hurt(mob.damageSources().mobAttack(cow),100),"Real fatal attack enters normal damage pipeline");
         h.assertTrue(mob.isAlive()&&mob.getHealth()==1&&mob.skillId()==ArmySkills.PAPER_SHED,"Fatal hit leaves1HP and starts synchronized re-form action");
         h.assertTrue(Math.abs(mob.distanceTo(cow)-5)<.05&&mob.getZ()<cow.getZ(),"Safe real position is five blocks behind attacker's facing");
         h.assertTrue(mob.position().distanceTo(initial)>5&&h.getLevel().noCollision(mob),"Escape moves the same entity into free space");
-        h.assertTrue(h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,mob.getBoundingBox().inflate(10)).isEmpty(),"Rescue awards neither corpse loot nor an attackable decoy entity");
+        var itemsAfter=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,region).stream().map(Entity::getUUID).collect(java.util.stream.Collectors.toSet());
+        var papersAfter=h.getLevel().getEntitiesOfClass(TemplateMob.class,region).stream().map(Entity::getUUID).collect(java.util.stream.Collectors.toSet());
+        h.assertTrue(itemsAfter.equals(itemsBefore)&&papersAfter.equals(papersBefore),"Native rescue creates no corpse loot or attackable decoy entity and preserves neighboring pre-existing identities: before="+itemsBefore+", after="+itemsAfter);
         var tag=new CompoundTag();mob.save(tag);mob.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
         var copy=BlueprintEntities.ZHIREN_JIANKE.get().create(h.getLevel());copy.load(tag);h.getLevel().addFreshEntity(copy);copy.invulnerableTime=0;
         copy.hurt(copy.damageSources().mobAttack(cow),100);

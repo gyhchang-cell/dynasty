@@ -29,6 +29,9 @@ public final class AccessoryCueNativeGameTests {
         // Native calibration fixture: keep the standing volume clear of adjacent tall structure tests.
         for(var cell:BlockPos.betweenClosed(p.blockPosition().offset(-1,0,-1),p.blockPosition().offset(1,3,1)))h.getLevel().setBlock(cell,net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),2);
         h.assertTrue(h.getLevel().noCollision(p,p.getBoundingBox()),"Native stationary player has a real clear standing volume");
+        // Today can be Double Ninth: native world events grant all registered players regeneration.
+        // This calibration player has already received today's festival, rather than muting game effects.
+        var festival=DynastyFestivals.today();if(festival!=null)p.getPersistentData().putString("dynasty_festival_day",festival+":"+java.time.LocalDate.now());
         h.getLevel().addNewPlayer(p);if(tick)h.onEachTick(()->{if(!p.isRemoved())p.doTick();});return p;
     }
     private static Zombie attacker(GameTestHelper h,ServerPlayer p){var z=new Zombie(h.getLevel());z.setPos(p.position().add(1,0,0));z.setNoAi(true);z.setNoGravity(true);h.getLevel().addFreshEntity(z);return z;}
@@ -42,7 +45,7 @@ public final class AccessoryCueNativeGameTests {
         @net.minecraftforge.eventbus.api.SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST)
         public void heal(net.minecraftforge.event.entity.living.LivingHealEvent e){if(e.getEntity().getUUID().equals(owner)){heals++;healed+=e.getAmount();if(e.getAmount()<2)ambientHeals.add("amount="+e.getAmount()+", effects="+e.getEntity().getActiveEffects()+", stack="+java.util.Arrays.toString(Thread.currentThread().getStackTrace()));}}
     }
-    @GameTest(template="bow_ritual_test",batch="cod4_accessory_native_passive",setupTicks=20,timeoutTicks=250)
+    @GameTest(template="bow_ritual_test",batch="cod4_accessory_native_passive",setupTicks=220,timeoutTicks=250)
     public static void actualPlayerTicksGateNightAndWornPassiveCuesAndCicadaHealKeeps180SecondCooldown(GameTestHelper h){
         long day=h.getLevel().getDayTime();var difficulty=h.getLevel().getDifficulty();h.getLevel().getServer().setDifficulty(net.minecraft.world.Difficulty.NORMAL,true);h.getLevel().setDayTime(6000);
         var bi=player(h,"jade_bi_disc","necklace",true);var moon=player(h,"moon_pendant","necklace",true);

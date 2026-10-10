@@ -59,28 +59,57 @@ public final class NaturalSculptures {
             @Override protected void apply(Map<String,Resource> loaded,ResourceManager manager,ProfilerFiller profiler){resources=loaded;datums.clear();}
         });
     }
-    /** Read-only, local roof preview. Requires a saved structure start and its authored roof still in place. */
-    static Map<BlockPos,BlockState> roofPreview(net.minecraft.server.level.ServerPlayer player) {
+    record RoofSurvey(Map<BlockPos,BlockState> cells,int containers,int alteredRoofs,int reserved){}
+    static Map<BlockPos,BlockState> roofPreview(net.minecraft.server.level.ServerPlayer player){return roofSurvey(player).cells();}
+    /** Existing saved starts only; never load a referenced neighboring chunk for an admin preview. */
+    private static StructureStart savedStartAt(ServerLevel level,BlockPos pos,Structure structure){
+        var chunk=level.getChunkSource().getChunkNow(pos.getX()>>4,pos.getZ()>>4);if(chunk==null)return StructureStart.INVALID_START;
+        for(long reference:chunk.getReferencesForStructure(structure)){
+            var key=new ChunkPos(reference);var loaded=level.getChunkSource().getChunkNow(key.x,key.z);if(loaded==null)continue;
+            var start=loaded.getStartForStructure(structure);
+            if(start!=null&&start.isValid()&&start.getBoundingBox().isInside(pos))return start;
+        }
+        return StructureStart.INVALID_START;
+    }
+    private static java.util.List<BoundingBox> otherBounds(ServerLevel level,int x,int z,Tile selected){
+        var chunk=level.getChunkSource().getChunkNow(x,z);if(chunk==null)return java.util.List.of();
+        var bounds=new java.util.ArrayList<BoundingBox>();
+        for(var entry:chunk.getAllReferences().entrySet())for(long reference:entry.getValue()){
+            var key=new ChunkPos(reference);var loaded=level.getChunkSource().getChunkNow(key.x,key.z);if(loaded==null){bounds.add(new BoundingBox(x*16,level.getMinBuildHeight(),z*16,x*16+15,level.getMaxBuildHeight()-1,z*16+15));continue;}
+            var start=loaded.getStartForStructure(entry.getKey());if(start==null||!start.isValid())continue;
+            boolean same=start.getPieces().stream().anyMatch(piece->piece instanceof Tile t&&t.id.equals(selected.id)&&t.origin.equals(selected.origin));
+            if(!same)for(var piece:start.getPieces())bounds.add(piece.getBoundingBox());
+        }
+        return bounds;
+    }
+    /** Read-only local repair survey: edited roofs, containers and other saved pieces are reserved. */
+    static RoofSurvey roofSurvey(net.minecraft.server.level.ServerPlayer player) {
         ServerLevel level=player.serverLevel();var registry=level.registryAccess().registryOrThrow(Registries.STRUCTURE);
         for(String id:SculptureBlueprint.IDS) {
             var structure=registry.get(new net.minecraft.resources.ResourceLocation("dynasty",id));if(structure==null)continue;
-            var start=level.structureManager().getStructureAt(player.blockPosition(),structure);if(!start.isValid())continue;
+            var start=savedStartAt(level,player.blockPosition(),structure);if(!start.isValid())continue;
             Tile selected=null;for(var piece:start.getPieces())if(piece instanceof Tile tile){selected=tile;break;}
             if(selected==null)continue;var r=resources.get(selected.id);if(r==null)continue;
-            var plan=new LinkedHashMap<BlockPos,BlockState>();var b=r.blueprint;
+            var plan=new LinkedHashMap<BlockPos,BlockState>();var b=r.blueprint;int containers=0,altered=0,reserved=0;
+            var neighbors=new HashMap<ChunkPos,java.util.List<BoundingBox>>();
             for(int x=player.getBlockX()-24;x<=player.getBlockX()+24;x++)for(int z=player.getBlockZ()-24;z<=player.getBlockZ()+24;z++) {
                 int lx=x-selected.origin.getX(),lz=z-selected.origin.getZ();if(lx<0||lz<0||lx>=b.width||lz>=b.length)continue;
                 int top=b.columnTop(lx,lz);if(top<4)continue;
                 BlockPos roof=new BlockPos(x,selected.origin.getY()+top,z);
-                if(!level.hasChunkAt(roof)||!level.getBlockState(roof).equals(r.palette[b.at(lx,top,lz)]))continue;
+                if(!level.hasChunkAt(roof))continue;
+                if(!level.getBlockState(roof).equals(r.palette[b.at(lx,top,lz)])){altered++;continue;}
+                var key=new ChunkPos(roof);Tile chosen=selected;
+                var foreign=neighbors.computeIfAbsent(key,k->otherBounds(level,k.x,k.z,chosen));
                 for(int y=top+1;y<=b.clearTop(lx,lz);y++) {
                     var pos=new BlockPos(x,selected.origin.getY()+y,z);var state=level.getBlockState(pos);
-                    if(level.getBlockEntity(pos)==null&&RoofRepair.terrain(state)&&plan.size()<8192)plan.put(pos,state);
+                    if(level.getBlockEntity(pos)!=null){containers++;continue;}
+                    if(foreign.stream().anyMatch(box->box.isInside(pos))){reserved++;continue;}
+                    if(RoofRepair.terrain(state)&&plan.size()<8192)plan.put(pos.immutable(),state);
                 }
             }
-            return plan;
+            return new RoofSurvey(Map.copyOf(plan),containers,altered,reserved);
         }
-        return Map.of();
+        return new RoofSurvey(Map.of(),0,0,0);
     }
 
     public record Site(int x,int z,String id){}
