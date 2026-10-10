@@ -14,7 +14,7 @@ import subprocess
 import time
 
 REPO=Path(__file__).resolve().parents[3]
-p=argparse.ArgumentParser();p.add_argument('launch',type=Path);p.add_argument('run');p.add_argument('--ids',default='river_imp,tree_spirit,shrimp_soldier');p.add_argument('--boss-audit',action='store_true');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('launch',type=Path);p.add_argument('run');p.add_argument('--ids',default='river_imp,tree_spirit,shrimp_soldier');p.add_argument('--boss-audit',action='store_true');p.add_argument('--boss-final',action='store_true');args=p.parse_args()
 assert args.run and all(c.isalnum() or c in '-_' for c in args.run)
 root=REPO/'build/secondary-art-native'/args.run
 root.mkdir(parents=True,exist_ok=False)
@@ -44,6 +44,7 @@ for a in cfg['jvmArgs']:
 jvm+=['-Xmx2G','-XX:ActiveProcessorCount=2','-Ddynasty.secondaryArtQa=true',
       '-Ddynasty.secondaryArtQa.ids='+args.ids,'-Ddynasty.secondaryArtQa.output='+str(output),'-javaagent:'+str(REPO/'build/secondary-art-agent/quiet-window-agent.jar')]
 if args.boss_audit:jvm+=['-Ddynasty.secondaryArtQa.bossAudit=true']
+if args.boss_final:jvm+=['-Ddynasty.secondaryArtQa.bossFinal=true']
 work=root/'host';work.mkdir();(work/'options.txt').write_text('soundCategory_master:0.0\nfullscreen:false\n')
 (work/'config').mkdir();(work/'config/fml.toml').write_text('earlyWindowControl=false\n')
 cfg.update(jvmArgs=jvm,directory=str(work));(root/'launch.json').write_text(json.dumps(cfg,indent=2)+'\n')

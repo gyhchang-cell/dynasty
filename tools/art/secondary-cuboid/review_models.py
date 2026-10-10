@@ -12,6 +12,7 @@ REPO=Path(__file__).resolve().parents[3]
 ASSET=REPO/"src/main/resources/assets/dynasty"
 TEX=None
 TEX_SIZE=64
+CATEGORY='secondary'
 
 OUT=REPO/'docs/art/secondary-cuboid-v1'
 OUT.mkdir(parents=True,exist_ok=True)
@@ -57,17 +58,17 @@ def face_uv(c):
 
 def geometry(id,clip=None,tick=0,source=False):
     global TEX,TEX_SIZE
-    g=json.loads((OUT/'source'/f'{id}.geo.json' if source else ASSET/'geo/secondary'/f'{id}.geo.json').read_text())['minecraft:geometry'][0]
-    a=json.loads((OUT/'source'/f'{id}.animation.json' if source else ASSET/'animations/secondary'/f'{id}.animation.json').read_text())['animations']
+    g=json.loads((OUT/'source'/f'{id}.geo.json' if source else ASSET/f'geo/{CATEGORY}'/f'{id}.geo.json').read_text())['minecraft:geometry'][0]
+    a=json.loads((OUT/'source'/f'{id}.animation.json' if source else ASSET/f'animations/{CATEGORY}'/f'{id}.animation.json').read_text())['animations']
     channels=a.get(clip,{}).get('bones',{}) if clip else {}
     TEX_SIZE=g['description']['texture_width']
-    if source or not (ASSET/f'textures/entity/secondary/{id}.png').exists():
+    if source or not (ASSET/f'textures/entity/{CATEGORY}/{id}.png').exists():
         import re
         specs={i:f for i,f in re.findall(r'new Spec\("([^\"]+)","([^\"]+)"',(REPO/'src/main/java/com/dynasty/expansion/SecondaryMobs.java').read_text())}
         f=specs.get(id,'beast')
         family=({'human':('assassin' if id=='bandit_thug' else 'minister'), 'water':'merfolk', 'fly':('terracotta_warrior' if id=='wooden_magpie' else 'phoenix'), 'ghost':'soul_soldier'}.get(f, 'nine_tailed_fox' if id=='red_fox' else 'nian_beast'))
         TEX=ASSET/f'textures/entity/{family}.png'
-    else:TEX=ASSET/f'textures/entity/secondary/{id}.png'
+    else:TEX=ASSET/f'textures/entity/{CATEGORY}/{id}.png'
     world={};pivots={b['name']:np.array(b['pivot']) for b in g['bones']};quads=[]
     for b in g['bones']:
         ch=channels.get(b['name'],{});pivot=pivots[b['name']]
@@ -143,14 +144,20 @@ def sheet(images,labels,file,title,cols=3):
 
 
 def main():
+    global OUT,CATEGORY
     import argparse
-    p=argparse.ArgumentParser();p.add_argument('--baseline',action='store_true');p.add_argument('ids',nargs='*');args=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--baseline',action='store_true');p.add_argument('--boss',action='store_true');p.add_argument('ids',nargs='*');args=p.parse_args()
+    if args.boss:
+        assert not args.baseline,'Vanilla boss baseline uses real native captures, not nonexistent JSON'
+        OUT=REPO/'docs/art/cod6-cuboid-v1';CATEGORY='boss_cuboid'
     ids=args.ids or list(json.loads((OUT/'model-manifest.json').read_text()))
     images=[];labels=[]
     for id in ids:
         q=geometry(id,source=args.baseline)
-        views=[raster(q,y,6,size=(400,380),silhouette=i==4) for i,y in enumerate([0,45,90,180,0])]
-        sheet(views,['FRONT','45','SIDE','BACK','BLACK'],id+('-baseline' if args.baseline else '-review')+'.png',id+' / '+('BASELINE' if args.baseline else 'CUBOID REBUILD'),cols=5)
+        angles=[0,45,90,-90,180,0] if args.boss else [0,45,90,180,0]
+        view_labels=['FRONT','45','RIGHT','LEFT','BACK','BLACK'] if args.boss else ['FRONT','45','SIDE','BACK','BLACK']
+        views=[raster(q,y,6,size=(400,380),silhouette=i==len(angles)-1) for i,y in enumerate(angles)]
+        sheet(views,view_labels,id+('-baseline' if args.baseline else '-review')+'.png',id+' / '+('BASELINE' if args.baseline else 'CUBOID REBUILD'),cols=len(angles))
         images.append(views[1]);labels.append(id)
     sheet(images,labels,'baseline-candidates.png' if args.baseline else 'rebuilt-candidates.png','DYNASTY / ACTUAL EXPORTED ASSETS / SOFTWARE REVIEW',cols=4)
 

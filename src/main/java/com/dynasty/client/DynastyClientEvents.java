@@ -206,7 +206,7 @@ public class DynastyClientEvents {
         event.registerEntityRenderer(DynastyEntities.IMPERIAL_SOLDIER.get(),
                 ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.GUARD));
         event.registerEntityRenderer(DynastyEntities.UNDEAD_FIRST_EMPEROR.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, EMPEROR_LAYER, TEX_EMPEROR, 0.7F));
+                ctx -> new BossCuboidRenderer<>(ctx,DynastyEntities.UNDEAD_FIRST_EMPEROR.get(),"undead_first_emperor"));
         event.registerEntityRenderer(DynastyEntities.MINISTER.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, MINISTER_LAYER, TEX_MINISTER, 0.5F));
         event.registerEntityRenderer(DynastyEntities.ASSASSIN.get(),
@@ -225,7 +225,7 @@ public class DynastyClientEvents {
         event.registerEntityRenderer(DynastyEntities.REBEL_GENERAL.get(),
                 ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.GENERAL));
         event.registerEntityRenderer(DynastyEntities.EUNUCH_MASTERMIND.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, EUNUCH_MASTERMIND_LAYER, TEX_EUNUCH_MASTERMIND, 0.7F));
+                ctx -> new BossCuboidRenderer<>(ctx,DynastyEntities.EUNUCH_MASTERMIND.get(),"eunuch_mastermind"));
         event.registerEntityRenderer(DynastyEntities.QILIN.get(),
                 ctx -> new DynastyDetailedBeastRenderer<>(ctx, QILIN_LAYER, TEX_QILIN, 0.9F,
                         DetailedBeastModel.Kind.QILIN));
@@ -246,7 +246,7 @@ public class DynastyClientEvents {
         event.registerEntityRenderer(DynastyEntities.NINE_HEAVEN_GENERAL.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, NINE_HEAVEN_GENERAL_LAYER, TEX_NINE_HEAVEN_GENERAL, 0.9F,2));
         event.registerEntityRenderer(DynastyEntities.DRAGON_KING.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, DRAGON_KING_LAYER, TEX_DRAGON_KING, 0.9F));
+                ctx -> new BossCuboidRenderer<>(ctx,DynastyEntities.DRAGON_KING.get(),"dragon_king"));
     }
 
     /** 精细化神兽渲染器（麒麟 / 九尾狐 / 凤凰）/ renderer for the detailed beast models */

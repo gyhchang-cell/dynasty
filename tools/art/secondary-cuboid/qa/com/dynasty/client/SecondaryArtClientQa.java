@@ -27,8 +27,10 @@ import java.util.concurrent.CompletableFuture;
 @Mod.EventBusSubscriber(modid="dynasty",value=Dist.CLIENT)
 public final class SecondaryArtClientQa {
     private static final boolean ENABLED=Boolean.getBoolean("dynasty.secondaryArtQa");
-    private static final boolean BOSS_AUDIT=Boolean.getBoolean("dynasty.secondaryArtQa.bossAudit");
-    private static final int STAGES=BOSS_AUDIT?4:11;
+    private static final boolean BOSS_FINAL=Boolean.getBoolean("dynasty.secondaryArtQa.bossFinal");
+    private static final boolean BOSS_AUDIT=BOSS_FINAL||Boolean.getBoolean("dynasty.secondaryArtQa.bossAudit");
+    private static final int STAGES=BOSS_FINAL?11:BOSS_AUDIT?4:11;
+    private static final String[] BOSS_CLIPS={"idle","walk","attack","cast","hurt","death"};
     private static final Path OUT=Path.of(System.getProperty("dynasty.secondaryArtQa.output","build/secondary-art-native/results"));
     private static final String[] IDS=System.getProperty("dynasty.secondaryArtQa.ids","river_imp,tree_spirit,shrimp_soldier").split(",");
     private static final String[] CLIPS={"idle","wander","hunt","flee","attack","special","evade"};
@@ -54,6 +56,7 @@ public final class SecondaryArtClientQa {
             if(!started&&mc.screen instanceof TitleScreen){
                 if(!mc.gameDirectory.getCanonicalPath().contains("/build/secondary-art-native/"))throw new AssertionError("Refusing normal save directory");
                 Files.createDirectories(OUT);started=true;
+                if(BOSS_AUDIT)LegacyCuboidExport.dragon(OUT);
                 mc.options.pauseOnLostFocus=false;mc.options.renderDistance().set(3);mc.options.fov().set(50);mc.options.hideGui=true;mc.options.bobView().set(false);
                 mc.options.getSoundSourceOptionInstance(net.minecraft.sounds.SoundSource.MASTER).set(0.0);
                 var rules=new GameRules();rules.getRule(GameRules.RULE_DOMOBSPAWNING).set(false,null);rules.getRule(GameRules.RULE_DAYLIGHT).set(false,null);
@@ -68,7 +71,13 @@ public final class SecondaryArtClientQa {
                 if(stage==IDS.length*STAGES-1){finish(mc,null);return;}
                 stage++;pending=mc.getSingleplayerServer().submit(()->{try{return prepare(mc,stage);}catch(Exception e){throw new RuntimeException(e);}});return;
             }
-            if(mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.Mob)settled++;
+            if(mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.Mob mob){
+                settled++;
+                if(BOSS_FINAL&&stage%STAGES>=5&&settled==20){
+                    if(!(mc.getEntityRenderDispatcher().getRenderer(mob) instanceof BossCuboidRenderer<?> renderer))throw new AssertionError("No cuboid boss replacement");
+                    renderer.getAnimatable().getAnimatableInstanceCache().getManagerForId(mob.getId()).tryTriggerAnimation("body","art_check_"+BOSS_CLIPS[stage%STAGES-5]);
+                }
+            }
         }catch(Throwable e){finish(mc,e);}
     }
     private static int prepare(Minecraft mc,int s)throws Exception{
@@ -79,6 +88,10 @@ public final class SecondaryArtClientQa {
         fixture=BOSS_AUDIT?(net.minecraft.world.entity.Mob)net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",id)).create(world):
             (id.equals("shrimp_soldier")?SecondaryMobs.SHRIMP.get():SecondaryMobs.TYPES.get(id).get()).create(world);
         fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();world.addFreshEntity(fixture);
+        if(BOSS_FINAL){
+            fixture.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND,new net.minecraft.world.item.ItemStack(id.equals("dragon_king")?net.minecraft.world.item.Items.TRIDENT:net.minecraft.world.item.Items.STONE_SWORD));
+            fixture.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.SHIELD));
+        }
         // NoAI does not suppress the swindler's existing custom aiStep pose.
         // Use its existing completed-deception fixture flag for this isolated
         // art-state matrix. This is not a swindling/gameplay acceptance test.
@@ -92,6 +105,7 @@ public final class SecondaryArtClientQa {
     }
     private static void setCamera(Minecraft mc){
         int pose=stage%STAGES;double yaw=pose==1?45:pose==2?90:pose==3?180:0;
+        if(BOSS_FINAL)yaw=pose==1?45:pose==2?90:pose==3?-90:pose==4?180:0;
         if(BOSS_AUDIT){
             double angle=Math.toRadians(yaw),distance=fixture.getBbHeight()>3?11:5.8;
             var camera=new ArmorStand(mc.level,Math.sin(angle)*distance,-60,Math.cos(angle)*distance);
@@ -112,8 +126,31 @@ public final class SecondaryArtClientQa {
         if(BOSS_AUDIT){
             if(!(mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.Mob mob))return;
             try{
-                String id=IDS[stage/STAGES],view=new String[]{"front","45","side","back"}[stage%STAGES];
-                Map<String,Object> record=Map.of("entity",id,"stage",stage,"renderer",mc.getEntityRenderDispatcher().getRenderer(mob).getClass().getName(),"width",mob.getBbWidth(),"height",mob.getBbHeight(),"scope","native existing boss art baseline; no gameplay claim");
+                String id=IDS[stage/STAGES];int pose=stage%STAGES;
+                if(!BOSS_FINAL&&id.equals("dragon_emperor"))LegacyCuboidExport.dragon(OUT);
+                String view=BOSS_FINAL?(pose<5?new String[]{"front","45","right","left","back"}[pose]:BOSS_CLIPS[pose-5]):new String[]{"front","45","side","back"}[pose];
+                if(BOSS_FINAL){
+                    if(!(mc.getEntityRenderDispatcher().getRenderer(mob) instanceof BossCuboidRenderer<?> renderer))throw new AssertionError("Missing final boss renderer");
+                    var visual=renderer.getAnimatable();var model=renderer.getGeoModel();model.getBakedModel(model.getModelResource(visual));
+                    for(String clip:BOSS_CLIPS)if(model.getAnimation(visual,clip)==null)throw new AssertionError("Missing boss clip "+clip);
+                    for(String bone:List.of("root","body","chest","neck","head","jaw","left_arm","right_arm","left_grip","right_grip"))if(model.getBone(bone).isEmpty())throw new AssertionError("Missing boss bone "+bone);
+                    for(String side:List.of("left","right"))if(model.getBone(side+"_grip").orElseThrow().getParent()!=model.getBone(side+"_hand").orElseThrow())throw new AssertionError("Detached equipped item anchor");
+                    try(var stream=mc.getResourceManager().open(model.getTextureResource(visual));var image=com.mojang.blaze3d.platform.NativeImage.read(stream)){
+                        if(image.getWidth()!=16||image.getHeight()!=16)throw new AssertionError("Boss texture not 16px");
+                        Set<Integer> colors=new HashSet<>();
+                        for(int y=0;y<16;y++)for(int x=0;x<16;x++){
+                            int rgb=image.getPixelRGBA(x,y);colors.add(rgb);
+                            if((x==0||x==15||y==0||y==15)&&rgb!=-1)throw new AssertionError("Boss texture missing white margin");
+                            if(rgb!=image.getPixelRGBA(x-x%2,y-y%2))throw new AssertionError("Boss texture has sub2px detail");
+                        }
+                        if(colors.size()!=4)throw new AssertionError("Boss color budget");
+                    }
+                    if(pose>=5){
+                        var ctrl=visual.getAnimatableInstanceCache().getManagerForId(mob.getId()).getAnimationControllers().get("body");
+                        if(ctrl.getCurrentAnimation()==null||!ctrl.getCurrentAnimation().animation().name().equals(view))throw new AssertionError("Boss rendered wrong QA resource pose: "+view);
+                    }
+                }
+                Map<String,Object> record=Map.of("entity",id,"stage",stage,"viewOrClip",view,"renderer",mc.getEntityRenderDispatcher().getRenderer(mob).getClass().getName(),"width",mob.getBbWidth(),"height",mob.getBbHeight(),"scope",BOSS_FINAL?"native final resources and automatic clip selection; natural combat remains pending":"native existing boss art baseline; no gameplay claim");
                 Files.writeString(OUT.resolve(String.format("%02d-state.json",stage)),new GsonBuilder().setPrettyPrinting().create().toJson(record));LOG.add(record.toString());
                 try(var shot=net.minecraft.client.Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(OUT.resolve(String.format("%02d-%s-%s.png",stage,id,view)));}
                 captured=true;
@@ -193,7 +230,8 @@ public final class SecondaryArtClientQa {
     }
     private static void finish(Minecraft mc,Throwable error){
         if(done)return;done=true;
-        String success=BOSS_AUDIT?"PASS: "+(IDS.length*STAGES)+" native existing boss baseline views; resource/animation remaster and gameplay acceptance remain pending.\n":
+        String success=BOSS_FINAL?"PASS: "+(IDS.length*STAGES)+" native boss resource stages, 6 baked clips, pixel16 and held-item anchors. Automatic resource poses; natural combat/skill clocks and human acceptance remain pending.\n":
+            BOSS_AUDIT?"PASS: "+(IDS.length*STAGES)+" native existing boss baseline views; resource/animation remaster and gameplay acceptance remain pending.\n":
             "PASS: "+(IDS.length*11)+" native art stages, dedicated atlases and all 19 clips per entity baked. Gameplay, humans and sustained performance are separate.\n";
         try{Files.createDirectories(OUT);Files.writeString(OUT.resolve(error==null?"PASS.txt":"FAIL.txt"),String.join("\n",LOG)+"\n"+(error==null?success:"FAIL: "+error+"\n"));if(error!=null)error.printStackTrace();}catch(Exception e){e.printStackTrace();}mc.stop();
     }
