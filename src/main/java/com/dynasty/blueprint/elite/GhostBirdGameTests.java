@@ -59,4 +59,19 @@ public final class GhostBirdGameTests {
         h.runAfterDelay(15,()->{for(int x=5;x<=9;x++)for(int y=2;y<=13;y++)h.setBlock(x,y,10,Blocks.STONE);});
         h.runAfterDelay(42,()->{h.assertTrue(bird.phase()==AttackState.STUN&&bird.captiveId()==-1&&hit.getHealth()==1000,"Ordinary movement collides with the wall; no remote grab through it");h.succeed();});
     }
+    @GameTest(template="bow_ritual_test",timeoutTicks=130,batch="ghost_bird_death")
+    public static void DeathActuallyFallsAndSavedCorpseExpiresWithoutRepeatingLoot(GameTestHelper h){
+        var bird=bird(h);var origin=bird.position();bird.hurt(bird.damageSources().genericKill(),10000);
+        h.assertTrue(bird.isDeadOrDying()&&!bird.isNoGravity(),"Death enters the authored fall, not an immediate discard");
+        h.runAfterDelay(24,()->{
+            h.assertTrue(bird.onGround()&&bird.getY()<=h.absolutePos(new BlockPos(7,2,7)).getY()+.02,"Flying corpse must reach the actual collision floor");
+            var bounds=new net.minecraft.world.phys.AABB(origin,origin).inflate(10);
+            int count=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,bounds).stream().mapToInt(i->i.getItem().getCount()).sum();
+            h.assertTrue(count>=3,"Native death loot pools emit actual registered material stacks");
+            var state=new CompoundTag();bird.save(state);var uuid=bird.getUUID();bird.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
+            var restored=EliteContent.BIRD.get().create(h.getLevel());restored.load(state);h.getLevel().addFreshEntity(restored);
+            h.runAtTickTime(60,()->h.assertTrue(h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,bounds).stream().mapToInt(i->i.getItem().getCount()).sum()==count,"Loading the dying entity cannot repeat its native loot"));
+            h.runAtTickTime(115,()->{h.assertTrue(h.getLevel().getEntity(uuid)==null,"Absolute death clock removes the saved corpse without extending the fall");h.succeed();});
+        });
+    }
 }

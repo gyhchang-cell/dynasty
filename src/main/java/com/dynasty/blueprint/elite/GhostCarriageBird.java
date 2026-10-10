@@ -172,7 +172,16 @@ public final class GhostCarriageBird extends Monster implements GeoEntity,Combat
         entityData.set(SKILL,0);entityData.set(START,deathStart);entityData.set(PHASE,AttackState.IDLE.ordinal());
     }
     @Override protected void dropAllDeathLoot(DamageSource source){if(!lootDropped){lootDropped=true;super.dropAllDeathLoot(source);}}
-    @Override protected void tickDeath(){deathTime++;if(!level().isClientSide){deathTime=(int)Math.max(deathTime,level().getGameTime()-deathStart);if(deathTime>=100)remove(RemovalReason.KILLED);}}
+    @Override protected void tickDeath(){
+        deathTime++;
+        if(!level().isClientSide){
+            // LivingEntity stops ordinary travel once dead. Continue native collision movement
+            // during the authored fall instead of leaving a NoAI or flying corpse suspended.
+            var motion=getDeltaMovement();var step=new Vec3(motion.x*.8,Math.max(-.8,motion.y-.08),motion.z*.8);
+            move(MoverType.SELF,step);setDeltaMovement(onGround()?Vec3.ZERO:step);
+            deathTime=(int)Math.max(deathTime,level().getGameTime()-deathStart);if(deathTime>=100)remove(RemovalReason.KILLED);
+        }
+    }
     @Override public void addAdditionalSaveData(CompoundTag t){super.addAdditionalSaveData(t);t.put("EliteAttack",attack.save());t.putString("EncounterSite",site);t.putLong("DeathStart",deathStart);t.putBoolean("LootDropped",lootDropped);t.putBoolean("Contacted",contacted);
         t.putDouble("LandX",landing.x);t.putDouble("LandY",landing.y);t.putDouble("LandZ",landing.z);t.putDouble("DX",dive.x);t.putDouble("DY",dive.y);t.putDouble("DZ",dive.z);t.putBoolean("WasHolding",captive!=null);}
     @Override public void readAdditionalSaveData(CompoundTag t){

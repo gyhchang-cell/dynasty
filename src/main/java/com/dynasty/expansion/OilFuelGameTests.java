@@ -22,15 +22,14 @@ import net.minecraftforge.gametest.*;
 public final class OilFuelGameTests {
     private static final List<ServerPlayer> PLAYERS=new ArrayList<>();
     private static long oldDay;
-    private static int fixtureSequence;
     private static final net.minecraft.server.level.TicketType<UUID> FIXTURE_TICKET=net.minecraft.server.level.TicketType.create("dynasty_oil_fixture",UUID::compareTo);
     private record OilTicket(net.minecraft.world.level.ChunkPos chunk,UUID token){}
     private static final Map<net.minecraft.server.level.ServerLevel,List<OilTicket>> TICKETS=new HashMap<>();
     private static BlockPos timedFixture(GameTestHelper h){
-        var level=h.getLevel();var chunk=new net.minecraft.world.level.ChunkPos(8192+(++fixtureSequence)*16,8192);var token=UUID.randomUUID();
-        level.getChunk(chunk.x,chunk.z);level.getChunkSource().addRegionTicket(FIXTURE_TICKET,chunk,2,token,true);TICKETS.computeIfAbsent(level,k->new ArrayList<>()).add(new OilTicket(chunk,token));
-        // Long-running native block schedules must not share cells with later template placement.
-        return new BlockPos(chunk.getMinBlockX()+2,160,chunk.getMinBlockZ()+8);
+        var level=h.getLevel();var at=h.absolutePos(new BlockPos(4,96,4));var chunk=new net.minecraft.world.level.ChunkPos(at);var token=UUID.randomUUID();
+        level.getChunkSource().addRegionTicket(FIXTURE_TICKET,chunk,2,token,true);TICKETS.computeIfAbsent(level,k->new ArrayList<>()).add(new OilTicket(chunk,token));
+        // Keep the native minute-long clock in the existing loaded test column, above template clearing.
+        return at;
     }
     private static void releaseTickets(net.minecraft.server.level.ServerLevel level){var tickets=TICKETS.remove(level);if(tickets!=null)for(var ticket:tickets)level.getChunkSource().removeRegionTicket(FIXTURE_TICKET,ticket.chunk(),2,ticket.token(),true);}
     private static ServerPlayer player(GameTestHelper h,BlockPos at,boolean registered){

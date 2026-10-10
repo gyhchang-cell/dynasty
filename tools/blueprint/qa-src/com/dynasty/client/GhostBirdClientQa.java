@@ -102,7 +102,7 @@ public final class GhostBirdClientQa {
             if(!SOLO&&mc.level.players().size()!=2)return;
             if(camera==null){
                 mc.options.hideGui=true;mc.options.setCameraType(CameraType.FIRST_PERSON);
-                camera=new ArmorStand(mc.level,observed==1?14:observed==2?10:0,-55.5,observed==1?0:observed==2?10:14);
+                camera=new ArmorStand(mc.level,observed==1?14:observed==2?10:0,observed>=11?-59.1:-55.5,observed==1?0:observed==2?10:14);
                 camera.setNoGravity(true);camera.setYRot(observed==1?90:observed==2?135:180);camera.setXRot(4);
                 camera.setYHeadRot(camera.getYRot());camera.yHeadRotO=camera.getYRot();camera.setOldPosAndRot();mc.setCameraEntity(camera);
             }
@@ -140,6 +140,7 @@ public final class GhostBirdClientQa {
                 int last=observed==7?26:observed==10?8:observed>=11?95:AGES[observed]+10;if(age>last)throw new AssertionError("Missed authored pose frame "+observed+" age="+age);
                 if(elite.skillId()!=local.skill||elite.skillStart()!=local.start)throw new AssertionError("Server/client action identity differs");
                 if(observed>=11&&!elite.isDeadOrDying())throw new AssertionError("Death not synchronized");
+                if(observed>=11&&elite.getY()>-59.8)throw new AssertionError("Flying corpse remained suspended above the actual fixture floor: "+elite.getY());
             }
             if(!(mc.getEntityRenderDispatcher().getRenderer(elite) instanceof GhostBirdRenderer renderer))throw new AssertionError("Wrong renderer");
             for(int n=0;n<8;n++)if(renderer.getGeoModel().getBone("face_"+n).isEmpty()||renderer.getGeoModel().getBone("neck_"+n+"_tip").isEmpty())throw new AssertionError("Missing one of the eight articulated faces");

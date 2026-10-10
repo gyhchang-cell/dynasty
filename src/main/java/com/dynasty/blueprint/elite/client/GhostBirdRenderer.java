@@ -20,4 +20,13 @@ public final class GhostBirdRenderer extends GeoEntityRenderer<GhostCarriageBird
     @SubscribeEvent public static void register(EntityRenderersEvent.RegisterRenderers event){event.registerEntityRenderer(EliteContent.BIRD.get(),GhostBirdRenderer::new);}
     @Override protected float getDeathMaxRotation(GhostCarriageBird e){return 0;}
     @Override public int getPackedOverlay(GhostCarriageBird e,float u,float partial){return net.minecraft.client.renderer.texture.OverlayTexture.pack(u,e.hurtTime>0);}
+    @Override public void renderRecursively(com.mojang.blaze3d.vertex.PoseStack pose,GhostCarriageBird entity,
+            software.bernie.geckolib.cache.object.GeoBone bone,net.minecraft.client.renderer.RenderType type,
+            net.minecraft.client.renderer.MultiBufferSource buffers,com.mojang.blaze3d.vertex.VertexConsumer vertices,
+            boolean rerender,float partial,int light,int overlay,float red,float green,float blue,float alpha){
+        String name=bone.getName();boolean face=name.startsWith("neck_")||name.startsWith("face_")||name.startsWith("beak_")||name.startsWith("jaw_");
+        boolean feather=name.equals("body")||name.equals("tail")||name.contains("wing")||name.contains("feather");
+        super.renderRecursively(pose,entity,bone,type,buffers,vertices,rerender,partial,light,overlay,
+            face||feather?1:red,face?1:feather?.58F:green,face?1:feather?.55F:blue,alpha);
+    }
 }

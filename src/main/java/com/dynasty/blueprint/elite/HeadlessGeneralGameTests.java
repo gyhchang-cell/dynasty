@@ -17,6 +17,10 @@ import net.minecraftforge.gametest.*;
 @GameTestHolder("dynasty_army")
 @PrefixGameTestTemplate(false)
 public final class HeadlessGeneralGameTests {
+    private static final java.util.Map<net.minecraft.server.level.ServerLevel,Runnable> WORLD_CLEANUP=new java.util.HashMap<>();
+    @AfterBatch(batch="headless_world") public static void cleanWorldFixture(net.minecraft.server.level.ServerLevel level){
+        var cleanup=WORLD_CLEANUP.remove(level);if(cleanup!=null)cleanup.run();
+    }
     private static HeadlessGeneral mob(GameTestHelper h){
         for(int x=0;x<16;x++)for(int z=0;z<16;z++){
             h.setBlock(x,1,z,Blocks.STONE);for(int y=2;y<=9;y++)h.setBlock(x,y,z,Blocks.AIR);
@@ -106,8 +110,11 @@ public final class HeadlessGeneralGameTests {
         var start=structure.generate(registry,generator,generator.getBiomeSource(),level.getChunkSource().randomState(),level.getStructureManager(),level.getSeed(),origin,0,level,b->true);
         h.assertTrue(start.isValid(),"Production battlefield generates from a real levelled terrain context");
         level.getChunk(origin.x,origin.z).setStartForStructure(structure,start);var bounds=start.getBoundingBox();
+        var tickingChunks=new java.util.ArrayList<net.minecraft.world.level.ChunkPos>();
         for(int x=bounds.minX()>>4;x<=bounds.maxX()>>4;x++)for(int z=bounds.minZ()>>4;z<=bounds.maxZ()>>4;z++){
             var chunk=level.getChunk(x,z);chunk.addReferenceForStructure(structure,origin.toLong());
+            var position=chunk.getPos();tickingChunks.add(position);
+            level.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.FORCED,position,2,position);
             var clip=new net.minecraft.world.level.levelgen.structure.BoundingBox(x*16,bounds.minY(),z*16,x*16+15,bounds.maxY(),z*16+15);
             for(var piece:start.getPieces())piece.postProcess(level,level.structureManager(),generator,net.minecraft.util.RandomSource.create(3),clip,chunk.getPos(),BlockPos.ZERO);
         }
@@ -119,24 +126,26 @@ public final class HeadlessGeneralGameTests {
         h.assertTrue(killHook!=null,"Registered kill advancement loads from runtime resources");
         var rule=level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING);boolean previous=rule.get();rule.set(true,level.getServer());
         String key=level.dimension().location()+"/dynasty:ruined_battlefield@"+origin.toLong()+":headless_general";
-        h.onEachTick(()->{
-            var marker=BlueprintSpawnState.get(level).markers.get(key);if(marker==null||marker.members.isEmpty())return;
-            try{
-                h.assertTrue(marker.members.size()==1,"Native structure tick enforces one elite");
-                var entity=level.getEntity(marker.members.iterator().next());if(!(entity instanceof HeadlessGeneral elite))return;
-                h.assertTrue(!elite.isNoAi()&&!elite.isNoGravity()&&elite.encounterSite().equals(key),"Production actor has ordinary AI, gravity and persisted site");
-                elite.hurt(elite.damageSources().playerAttack(player),10000);
-                h.assertTrue(elite.isDeadOrDying()&&marker.members.isEmpty()&&marker.nextSpawn>level.getGameTime(),"Confirmed death releases UUID and starts actual cooldown");
-                // Forge deliberately refuses advancement awards to FakePlayer. Real connected-player
-                // kill awards are verified by HeadlessClientQa, rather than bypassing that guard here.
-                h.assertTrue(!EliteEncounters.spawn(level,key,elite.blockPosition(),player.blockPosition()),"Immediate re-entry cannot refill");
-                h.succeed();
-            }finally{rule.set(previous,level.getServer());player.discard();level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED,origin,3,origin);}
+        WORLD_CLEANUP.put(level,()->{
+            rule.set(previous,level.getServer());level.players().remove(player);player.discard();
+            level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED,origin,3,origin);
+            for(var chunk:tickingChunks)level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED,chunk,2,chunk);
         });
-        h.runAfterDelay(220,()->{
-            var chunk=level.getChunkSource().getChunkNow(player.chunkPosition().x,player.chunkPosition().z);
-            h.assertTrue(BlueprintSpawnState.get(level).markers.containsKey(key),"Native encounter tick must populate its real structure; player="+player.position()+" alive="+player.isAlive()+" players="+level.players().size()+" gameTime="+level.getGameTime()+" chunkReady="+(chunk!=null)+" starts="+(chunk==null?"missing":chunk.getAllStarts().size())+" floor="+level.getBlockState(player.blockPosition().below()));
-        });
-        h.runAfterDelay(230,()->{rule.set(previous,level.getServer());player.discard();level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED,origin,3,origin);});
+        h.startSequence().thenWaitUntil(()->{
+            var marker=BlueprintSpawnState.get(level).markers.get(key);
+            var entity=marker==null||marker.members.isEmpty()?null:level.getEntity(marker.members.iterator().next());
+            h.assertTrue(entity instanceof HeadlessGeneral,"Wait for a real accessible structure-spawned actor; marker="+
+                (marker==null?"absent":marker.produced+"/"+marker.members+" next="+marker.nextSpawn)+" gameTime="+level.getGameTime()+
+                " entrant="+player.position()+" ticking="+level.isPositionEntityTicking(player.blockPosition()));
+        }).thenExecute(()->{
+            var marker=BlueprintSpawnState.get(level).markers.get(key);
+            h.assertTrue(marker.members.size()==1,"Native structure tick enforces one elite");
+            var elite=(HeadlessGeneral)level.getEntity(marker.members.iterator().next());
+            h.assertTrue(!elite.isNoAi()&&!elite.isNoGravity()&&elite.encounterSite().equals(key),"Production actor has ordinary AI, gravity and persisted site");
+            elite.hurt(elite.damageSources().playerAttack(player),10000);
+            h.assertTrue(elite.isDeadOrDying()&&marker.members.isEmpty()&&marker.nextSpawn>level.getGameTime(),"Confirmed death releases UUID and starts actual cooldown");
+            // Forge refuses advancement awards to FakePlayer; HeadlessClientQa uses a real connected player.
+            h.assertTrue(!EliteEncounters.spawn(level,key,elite.blockPosition(),player.blockPosition()),"Immediate re-entry cannot refill");
+        }).thenSucceed();
     }
 }
