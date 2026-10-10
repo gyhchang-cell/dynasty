@@ -114,6 +114,14 @@ public final class SecondaryArtClientQa {
                 case "corpse_beetle"->new String[]{"left_elytron","right_elytron","left_mandible","foot_5"};
                 case "venom_scorpion"->new String[]{"left_claw","stinger","tail_3","foot_5"};
                 case "clockwork_rat"->new String[]{"key","ears","tail_3","foot_3"};
+                case "gray_wolf"->new String[]{"jaw","ears","chest","shin_3"};
+                case "wild_boar"->new String[]{"tusks","mane","jaw","foot_3"};
+                case "golden_leopard"->new String[]{"jaw","tail_3","chest","shin_3"};
+                case "red_fox"->new String[]{"ears","tail_mid","tail_tip","jaw"};
+                case "gray_falcon"->new String[]{"beak","breast","left_wingtip","right_foot"};
+                case "jingwei_bird"->new String[]{"beak","stone","crest","left_wingtip"};
+                case "wooden_magpie"->new String[]{"beak","gears","tail","left_wingtip"};
+                case "bat_demon"->new String[]{"ears","jaw","left_wingtip","right_wingtip"};
                 default->new String[]{"root","body","head"};};
             for(String anchor:anchors)if(model.getBone(anchor).isEmpty())throw new AssertionError("Missing native bone "+anchor);
             if(id.equals("shrimp_soldier")&&model.getBone("spear").orElseThrow().getParent()!=model.getBone("left_grip").orElseThrow())throw new AssertionError("Weapon detached from grip bone");
