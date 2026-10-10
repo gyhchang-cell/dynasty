@@ -22,6 +22,16 @@ import net.minecraftforge.gametest.*;
 public final class OilFuelGameTests {
     private static final List<ServerPlayer> PLAYERS=new ArrayList<>();
     private static long oldDay;
+    private static final net.minecraft.server.level.TicketType<UUID> FIXTURE_TICKET=net.minecraft.server.level.TicketType.create("dynasty_oil_fixture",UUID::compareTo);
+    private record OilTicket(net.minecraft.world.level.ChunkPos chunk,UUID token){}
+    private static final Map<net.minecraft.server.level.ServerLevel,List<OilTicket>> TICKETS=new HashMap<>();
+    private static BlockPos timedFixture(GameTestHelper h){
+        var level=h.getLevel();var at=h.absolutePos(new BlockPos(4,96,4));var chunk=new net.minecraft.world.level.ChunkPos(at);var token=UUID.randomUUID();
+        level.getChunkSource().addRegionTicket(FIXTURE_TICKET,chunk,2,token,true);TICKETS.computeIfAbsent(level,k->new ArrayList<>()).add(new OilTicket(chunk,token));
+        // Keep the native minute-long clock in the existing loaded test column, above template clearing.
+        return at;
+    }
+    private static void releaseTickets(net.minecraft.server.level.ServerLevel level){var tickets=TICKETS.remove(level);if(tickets!=null)for(var ticket:tickets)level.getChunkSource().removeRegionTicket(FIXTURE_TICKET,ticket.chunk(),2,ticket.token(),true);}
     private static ServerPlayer player(GameTestHelper h,BlockPos at,boolean registered){
         var p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),new GameProfile(UUID.randomUUID(),"oil-native"));
         p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);
@@ -31,8 +41,8 @@ public final class OilFuelGameTests {
         if(registered){h.getLevel().addNewPlayer(p);PLAYERS.add(p);}return p;
     }
     @BeforeBatch(batch="cod4_oil_night") public static void nightSetup(net.minecraft.server.level.ServerLevel level){oldDay=level.getDayTime();level.setDayTime(6000);level.updateSkyBrightness();}
-    @AfterBatch(batch="cod4_oil_night") public static void nightCleanup(net.minecraft.server.level.ServerLevel level){level.setDayTime(oldDay);level.updateSkyBrightness();PLAYERS.forEach(Entity::discard);PLAYERS.clear();}
-    @AfterBatch(batch="cod4_oil_cleanse") public static void cleanseCleanup(net.minecraft.server.level.ServerLevel level){PLAYERS.forEach(Entity::discard);PLAYERS.clear();}
+    @AfterBatch(batch="cod4_oil_night") public static void nightCleanup(net.minecraft.server.level.ServerLevel level){level.setDayTime(oldDay);level.updateSkyBrightness();PLAYERS.forEach(Entity::discard);PLAYERS.clear();releaseTickets(level);}
+    @AfterBatch(batch="cod4_oil_cleanse") public static void cleanseCleanup(net.minecraft.server.level.ServerLevel level){PLAYERS.forEach(Entity::discard);PLAYERS.clear();releaseTickets(level);}
     private static void use(GameTestHelper h,ServerPlayer p,BlockPos at,InteractionHand hand){var s=h.getLevel().getBlockState(at);s.getBlock().use(s,h.getLevel(),at,p,hand,new BlockHitResult(Vec3.atCenterOf(at),Direction.UP,at,false));}
     private static BlockState state(GameTestHelper h,BlockPos at){return h.getLevel().getBlockState(at);}
     @GameTest(template="bow_ritual_test",batch="cod4_oil_input",setupTicks=20)
@@ -53,15 +63,15 @@ public final class OilFuelGameTests {
     }
     @GameTest(template="bow_ritual_test",batch="cod4_oil_cleanse",setupTicks=20,timeoutTicks=1400)
     public static void actualScheduledIncenseTicksCleanseNearNotFarBurnOneMinuteAndRestoreOriginalLight(GameTestHelper h){
-        var at=h.absolutePos(new BlockPos(4,3,4));var block=DynastyBlocks.INCENSE_BURNER.get();h.getLevel().setBlock(at,block.defaultBlockState(),3);
+        var at=timedFixture(h);var block=DynastyBlocks.INCENSE_BURNER.get();h.getLevel().setBlock(at,block.defaultBlockState(),3);
         var near=player(h,at.east(2),true);var far=player(h,at.east(9),true);
-        h.startSequence().thenWaitUntil(()->h.assertTrue(h.getLevel().getEntity(near.getUUID())==near&&h.getLevel().getEntity(far.getUUID())==far,"Actual server players are entity-visible"))
+        h.startSequence().thenWaitUntil(()->h.assertTrue(h.getLevel().getEntity(near.getUUID())==near&&h.getLevel().getEntity(far.getUUID())==far&&h.getLevel().getChunkSource().isPositionTicking(net.minecraft.world.level.ChunkPos.asLong(at))&&h.getLevel().getEntitiesOfClass(ServerPlayer.class,new AABB(at).inflate(12)).containsAll(List.of(near,far)),"Actual server players are entity-visible"))
         .thenExecute(()->{
             h.assertTrue(state(h,at).getLightEmission(h.getLevel(),at)==5,"Original incense light retained before oil");
             for(var p:List.of(near,far)){p.addEffect(new MobEffectInstance(ExpansionEffects.YIN.get(),2400));p.addEffect(new MobEffectInstance(ExpansionEffects.SOUL.get(),2400));}
             use(h,near,at,InteractionHand.MAIN_HAND);h.assertTrue(near.getMainHandItem().getCount()==4&&state(h,at).getLightEmission(h.getLevel(),at)==15,"Native input consumes one oil and activates brighter existing block");
             h.runAfterDelay(25,()->{
-                h.assertTrue(state(h,at).getValue(OilFueledBlock.BURN_STEP)>0&&!near.hasEffect(ExpansionEffects.YIN.get())&&!near.hasEffect(ExpansionEffects.SOUL.get())&&far.hasEffect(ExpansionEffects.YIN.get())&&far.hasEffect(ExpansionEffects.SOUL.get()),"Actual native scheduled world tick burns and cleanses only within real radius");
+                h.assertTrue(state(h,at).getValue(OilFueledBlock.BURN_STEP)>0&&!near.hasEffect(ExpansionEffects.YIN.get())&&!near.hasEffect(ExpansionEffects.SOUL.get())&&far.hasEffect(ExpansionEffects.YIN.get())&&far.hasEffect(ExpansionEffects.SOUL.get()),"Actual native scheduled world tick burns and cleanses only within real radius; state="+state(h,at)+" near="+near.position()+" far="+far.position()+" effects="+near.getActiveEffects()+" / "+far.getActiveEffects());
             });
             h.runAfterDelay(1210,()->{
                 h.assertTrue(state(h,at).getValue(OilFueledBlock.FUEL)==0&&state(h,at).getValue(OilFueledBlock.BURN_STEP)==0&&state(h,at).getLightEmission(h.getLevel(),at)==5,"Actual minute of server scheduled ticks exhausts one unit and restores original light");near.addEffect(new MobEffectInstance(ExpansionEffects.YIN.get(),400));
@@ -71,14 +81,14 @@ public final class OilFuelGameTests {
     }
     @GameTest(template="bow_ritual_test",batch="cod4_oil_night",setupTicks=20,timeoutTicks=1400)
     public static void originalLanternBaseLightDayPauseNightScheduledFieldAndFiniteFuel(GameTestHelper h){
-        var at=h.absolutePos(new BlockPos(4,3,4));var block=DynastyBlocks.IMPERIAL_LANTERN.get();h.getLevel().setBlock(at,block.defaultBlockState(),3);
+        var at=timedFixture(h);var block=DynastyBlocks.IMPERIAL_LANTERN.get();h.getLevel().setBlock(at,block.defaultBlockState(),3);
         var near=player(h,at.east(2),true);var far=player(h,at.east(9),true);
-        h.startSequence().thenWaitUntil(()->h.assertTrue(h.getLevel().getEntity(near.getUUID())==near&&h.getLevel().getEntity(far.getUUID())==far,"Actual server players visible before testing nighttime field"))
+        h.startSequence().thenWaitUntil(()->h.assertTrue(h.getLevel().getEntity(near.getUUID())==near&&h.getLevel().getEntity(far.getUUID())==far&&h.getLevel().getChunkSource().isPositionTicking(net.minecraft.world.level.ChunkPos.asLong(at))&&h.getLevel().getEntitiesOfClass(ServerPlayer.class,new AABB(at).inflate(12)).containsAll(List.of(near,far)),"Actual server players visible before testing nighttime field"))
         .thenExecute(()->{
             h.assertTrue(state(h,at).getLightEmission(h.getLevel(),at)==15,"Original permanent palace lamp lighting retained");use(h,near,at,InteractionHand.MAIN_HAND);
             h.runAfterDelay(25,()->{
                 h.assertTrue(state(h,at).getValue(OilFueledBlock.BURN_STEP)==0&&!near.hasEffect(MobEffects.NIGHT_VISION),"Native daytime schedule pauses fuel and night field");h.getLevel().setDayTime(18000);h.getLevel().updateSkyBrightness();
-                h.runAfterDelay(25,()->h.assertTrue(state(h,at).getValue(OilFueledBlock.BURN_STEP)>0&&near.hasEffect(MobEffects.NIGHT_VISION)&&!far.hasEffect(MobEffects.NIGHT_VISION),"Actual native nighttime schedule powers finite nearby night vision, not distant players"));
+                h.runAfterDelay(25,()->h.assertTrue(state(h,at).getValue(OilFueledBlock.BURN_STEP)>0&&near.hasEffect(MobEffects.NIGHT_VISION)&&!far.hasEffect(MobEffects.NIGHT_VISION),"Actual native nighttime schedule powers finite nearby night vision, not distant players; state="+state(h,at)+" near="+near.position()+" far="+far.position()+" effects="+near.getActiveEffects()+" / "+far.getActiveEffects()));
                 h.runAfterDelay(1210,()->{h.assertTrue(state(h,at).getValue(OilFueledBlock.FUEL)==0&&state(h,at).getLightEmission(h.getLevel(),at)==15,"Oil burns out after real scheduled minute while original base light survives");near.discard();far.discard();h.succeed();});
             });
         });

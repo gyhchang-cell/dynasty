@@ -34,7 +34,7 @@ public final class ArmyGameTests {
     private static final java.util.Map<net.minecraft.server.level.ServerLevel,java.util.List<SpearTicket>> SPEAR_TICKETS=new java.util.HashMap<>();
     @net.minecraft.gametest.framework.AfterBatch(batch="army")
     public static void releaseSpearFixtureTickets(net.minecraft.server.level.ServerLevel level){
-        var tickets=SPEAR_TICKETS.remove(level);if(tickets!=null)for(var ticket:tickets)level.getChunkSource().removeRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token());
+        var tickets=SPEAR_TICKETS.remove(level);if(tickets!=null)for(var ticket:tickets)level.getChunkSource().removeRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token(),true);
     }
 
     private static void arena(GameTestHelper h){
@@ -42,6 +42,14 @@ public final class ArmyGameTests {
             h.setBlock(x,1,z,Blocks.STONE);
             // Normal-world gravel above the template must not fall into combat fixtures.
             for(int y=2;y<14;y++)h.setBlock(x,y,z,y==13||y<8&&(x==0||z==0||x==15||z==15)?Blocks.STONE:Blocks.AIR);
+        }
+        // GameTest templates may span native chunks which are loaded before their entity sections tick.
+        // Keep each combat cell active; action assertions still use the real server clock and contacts.
+        var chunks=new java.util.HashSet<net.minecraft.world.level.ChunkPos>();
+        for(int x:new int[]{0,15})for(int z:new int[]{0,15})chunks.add(new net.minecraft.world.level.ChunkPos(h.absolutePos(new BlockPos(x,2,z))));
+        for(var chunk:chunks){var ticket=new SpearTicket(chunk,UUID.randomUUID());
+            h.getLevel().getChunkSource().addRegionTicket(SPEAR_FIXTURE_TICKET,chunk,2,ticket.token(),true);
+            SPEAR_TICKETS.computeIfAbsent(h.getLevel(),k->new java.util.ArrayList<>()).add(ticket);
         }
     }
     private static TemplateMob actor(GameTestHelper h,EntityType<TemplateMob> type,int x,int z){
@@ -99,7 +107,7 @@ public final class ArmyGameTests {
         // A loaded template is not proof its native entity section is ticking yet. Keep this
         // isolated QA cell active, wait for real actor ticks, then retain every original timing assertion.
         var level=h.getLevel();var ticket=new SpearTicket(mob.chunkPosition(),UUID.randomUUID());
-        level.getChunkSource().addRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token());SPEAR_TICKETS.computeIfAbsent(level,k->new java.util.ArrayList<>()).add(ticket);
+        level.getChunkSource().addRegionTicket(SPEAR_FIXTURE_TICKET,ticket.chunk(),2,ticket.token(),true);SPEAR_TICKETS.computeIfAbsent(level,k->new java.util.ArrayList<>()).add(ticket);
         long[] started={-1};
         h.onEachTick(()->{
             if(started[0]<0){
@@ -275,21 +283,26 @@ public final class ArmyGameTests {
     @GameTest(template="bow_ritual_test",timeoutTicks=140,batch="army")
     public static void stunningLitPowderFuseRequiresFreshThreeSecondsWithoutSpentCooldown(GameTestHelper h){
         arena(h);var mob=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);var enemy=target(h,6,8);mob.setTarget(enemy);
-        h.runAfterDelay(48,()->{
-            h.assertTrue(mob.skillId()==ArmySkills.DETONATE,"Interrupt an actually lit fuse");
-            mob.interruptAttack(10);
-            h.assertTrue(mob.skillPhase()==AttackState.STUN,"The real server interrupt enters hit-stun");
-        });
-        h.runAfterDelay(55,()->{
-            h.assertTrue(mob.skillPhase()==AttackState.STUN&&mob.isAlive(),"Proximity must not erase hit-stun");
-            var saved=new CompoundTag();mob.addAdditionalSaveData(saved);
-            h.assertTrue(saved.getCompound("ArmyActionState").getInt("NearTicks")==0,"Stunned ticks cannot advance the new fuse");
-        });
-        h.runAfterDelay(112,()->h.assertTrue(mob.isAlive(),"A new full three seconds starts after recovery"));
-        h.runAfterDelay(125,()->{
-            trace(h,"stunned-fuse",mob,enemy);
-            h.assertTrue(mob.isDeadOrDying()&&enemy.getHealth()<190,"An interrupted unspent fuse can detonate after fresh continuous proximity");
-            h.succeed();
+        long[] interrupted={-1};
+        h.onEachTick(()->{
+            long now=h.getLevel().getGameTime();
+            if(interrupted[0]<0){
+                if(mob.skillId()!=ArmySkills.DETONATE)return;
+                h.assertTrue(mob.skillPhase()==AttackState.WINDUP,"Interrupt an actually lit fuse before its contact");
+                mob.interruptAttack(10);interrupted[0]=now;
+                h.assertTrue(mob.skillPhase()==AttackState.STUN,"The real server interrupt enters hit-stun");return;
+            }
+            long age=now-interrupted[0];
+            if(age==7){
+                h.assertTrue(mob.skillPhase()==AttackState.STUN&&mob.isAlive(),"Proximity must not erase hit-stun");
+                var saved=new CompoundTag();mob.addAdditionalSaveData(saved);
+                h.assertTrue(saved.getCompound("ArmyActionState").getInt("NearTicks")==0,"Stunned ticks cannot advance the new fuse");
+            }
+            if(age==64)h.assertTrue(mob.isAlive(),"A new full three seconds starts after recovery");
+            if(age==77){
+                trace(h,"stunned-fuse",mob,enemy);
+                h.assertTrue(mob.isDeadOrDying()&&enemy.getHealth()<190,"An interrupted unspent fuse can detonate after fresh continuous proximity");h.succeed();
+            }
         });
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=130,batch="army")
