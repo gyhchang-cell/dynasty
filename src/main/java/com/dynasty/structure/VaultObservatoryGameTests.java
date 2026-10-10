@@ -67,6 +67,7 @@ public final class VaultObservatoryGameTests {
     private static final class TombCapture extends TombPiece {
         final Layout layout = new Layout();
         TombCapture() { super(DynastyStructures.TOMB_PIECE.get(), 0, BlockPos.ZERO); }
+        TombCapture(CompoundTag saved) { super(DynastyStructures.TOMB_PIECE.get(), saved); }
         @Override protected void set(WorldGenLevel w, BoundingBox b, int x, int y, int z, BlockState state) {
             layout.put(x, y, z, state, SIZE, HEIGHT);
         }
@@ -93,7 +94,11 @@ public final class VaultObservatoryGameTests {
 
     @GameTest(template = "bow_ritual_test", timeoutTicks = 40)
     public static void tombRoomsAreConnectedAndInsideSavedBounds(GameTestHelper h) {
-        var p = new TombCapture();
+        // This test verifies the saved version-two dry layout. New starts now use a water basin.
+        var source = new TombPiece(DynastyStructures.TOMB_PIECE.get(), 0, BlockPos.ZERO);
+        var legacy = source.createTag(net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext.fromLevel(h.getLevel()));
+        legacy.putInt("DynastyTombLayout", 2);
+        var p = new TombCapture(legacy);
         p.postProcess(null, null, null, RandomSource.create(1), p.getBoundingBox(), null, BlockPos.ZERO);
         var map = p.layout;
         h.assertTrue(map.chests == 4, "Mausoleum must preserve four original-tier chests");
@@ -109,6 +114,20 @@ public final class VaultObservatoryGameTests {
         var saved = new CompoundTag();
         p.addAdditionalSaveData(null, saved);
         h.assertTrue(saved.getInt("DynastyTombLayout") == 2, "New starts must persist their layout version");
+        h.succeed();
+    }
+
+    @GameTest(template = "bow_ritual_test", timeoutTicks = 40)
+    public static void waterTombPreservesDryRoutesAndAccessibleLoot(GameTestHelper h) {
+        var p = new TombCapture();
+        p.postProcess(null, null, null, RandomSource.create(1), p.getBoundingBox(), null, BlockPos.ZERO);
+        var reached = p.layout.reachable(new BlockPos(19,1,39), false);
+        for (int[] point : new int[][]{{19,20},{19,13},{6,12},{33,12},{6,20},{33,20},{10,30},{32,30},{6,9},{33,9},{7,26},{32,27}})
+            h.assertTrue(reached.contains(new BlockPos(point[0],1,point[1])), "Water tomb blocked dry route/loot approach: "+point[0]+","+point[1]);
+        h.assertTrue(p.layout.chests == 4 && p.layout.writes < 30000, "Water tomb changed loot tier or placement budget");
+        h.assertTrue(p.layout.at(new BlockPos(6,1,30)).is(Blocks.WATER) && p.layout.at(new BlockPos(6,2,30)).is(Blocks.WATER), "Authored basin lost its two water layers");
+        var saved = new CompoundTag();p.addAdditionalSaveData(null,saved);
+        h.assertTrue(saved.getInt("DynastyTombLayout") == 3, "New water tomb lost its saved layout version");
         h.succeed();
     }
 
