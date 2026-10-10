@@ -36,10 +36,20 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
         if(imperialDragon)withScale(1.4f);
         if(id.equals("nine_heaven_general"))addRenderLayer(new GeoRenderLayer<Visual>(this){
             @Override public void render(PoseStack pose,Visual visual,BakedGeoModel model,RenderType type,MultiBufferSource buffers,VertexConsumer vertex,float partial,int light,int overlay){
+                var body=BossCuboidRenderer.this.getGeoModel().getBone("body").orElseThrow();
+                if(getCurrentEntity().isInvisible()||getCurrentEntity().isDeadOrDying()||Math.abs(body.getRotZ())>.0001f)return;
+                // Preserve the already-verified post-render basis for live runes.
+                BossCuboidAura.draw(pose,buffers,getCurrentEntity().tickCount+partial,0);
+            }
+            @Override public void renderForBone(PoseStack pose,Visual visual,GeoBone bone,RenderType type,MultiBufferSource buffers,VertexConsumer vertex,float partial,int light,int overlay){
+                if(!bone.getName().equals("body"))return;
                 if(getCurrentEntity().isInvisible())return;
+                if(!getCurrentEntity().isDeadOrDying()&&Math.abs(bone.getRotZ())<=.0001f)return;
                 // Rings and six thunder blades are now authored Cuboids in the
                 // rig. Preserve the depth-tested rune lines behind it as VFX.
-                BossCuboidAura.draw(pose,buffers,getCurrentEntity().tickCount+partial);
+                float fold=BossCuboidRenderer.this.getGeoModel().getBone("storm_ring_outer").map(GeoBone::getRotY).orElse(0f);
+                BossCuboidAura.draw(pose,buffers,getCurrentEntity().tickCount+partial,fold);
+                buffers.getBuffer(type);
             }
         });
         // Preserve actual main/offhand equipment at articulated grip bones.
@@ -69,8 +79,8 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
         });
     }
     @Override protected float getDeathMaxRotation(Visual visual){
-        // The quadruped's body clip authors its own roll; avoid a second 90° flip.
-        return imperialDragon?0:super.getDeathMaxRotation(visual);
+        // Every species now authors its grounded fall; avoid a second feet-pivot flip.
+        return 0;
     }
 
     public static final class Visual implements GeoReplacedEntity {
@@ -105,6 +115,7 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
         @Override public ResourceLocation getTextureResource(Visual visual){return texture;}
         @Override public ResourceLocation getAnimationResource(Visual visual){return animation;}
         @Override public void setCustomAnimations(Visual visual,long instanceId,AnimationState<Visual> state){
+            if(state.getData(DataTickets.ENTITY) instanceof Mob mob&&mob.isDeadOrDying())return;
             var data=state.getData(DataTickets.ENTITY_MODEL_DATA);
             if(data==null)return;
             getBone("head").ifPresent(head->{

@@ -3,6 +3,7 @@ import json,math
 from pathlib import Path
 from PIL import Image,ImageDraw
 from build_models import ASSET,keys
+from rig_bounds import ground_death
 
 OUT=Path(__file__).resolve().parents[3]/'docs/art/cod6-cuboid-v1'
 SPECS={
@@ -226,6 +227,7 @@ def dragon_animations(r):
   if name=='hurt':rot('chest',2,[0,5,0])
   if name=='death':ch['body']={'rotation':{'0':[0,0,0],'1':[0,0,55]}};ch['jaw']={'rotation':{'0':[3,0,0],'1':[20,0,0]}}
   clips[name]={'loop':name in ['idle','walk'],'animation_length':length,'bones':ch}
+ clips['death']=ground_death(r)
  p=ASSET/f'animations/boss_cuboid/{r.id}.animation.json';p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'format_version':'1.8.0','animations':clips},indent=2)+'\n')
 
 def animations(r):
@@ -269,6 +271,7 @@ def animations(r):
     if name=='walk':rot(side+'_knee',0,[0,8,0])
     if name=='cast':rot('storm_wedge_'+side,0,[0,-10,15,0]);rot(side+'_arm',0,[0,-40,-100,0])
   clips[name]={'loop':name in ['idle','walk'],'animation_length':length,'bones':ch}
+ clips['death']=ground_death(r)
  p=ASSET/f'animations/boss_cuboid/{r.id}.animation.json';p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'format_version':'1.8.0','animations':clips},indent=2)+'\n')
 
 def main():

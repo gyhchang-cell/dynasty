@@ -28,8 +28,9 @@ import java.util.concurrent.CompletableFuture;
 public final class SecondaryArtClientQa {
     private static final boolean ENABLED=Boolean.getBoolean("dynasty.secondaryArtQa");
     private static final boolean BOSS_FINAL=Boolean.getBoolean("dynasty.secondaryArtQa.bossFinal");
-    private static final boolean BOSS_AUDIT=BOSS_FINAL||Boolean.getBoolean("dynasty.secondaryArtQa.bossAudit");
-    private static final int STAGES=BOSS_FINAL?11:BOSS_AUDIT?4:11;
+    private static final boolean BOSS_LIFECYCLE=Boolean.getBoolean("dynasty.secondaryArtQa.bossLifecycle");
+    private static final boolean BOSS_AUDIT=BOSS_FINAL||BOSS_LIFECYCLE||Boolean.getBoolean("dynasty.secondaryArtQa.bossAudit");
+    private static final int STAGES=BOSS_LIFECYCLE?7:BOSS_FINAL?11:BOSS_AUDIT?4:11;
     private static final String[] BOSS_CLIPS={"idle","walk","attack","cast","hurt","death"};
     private static final Path OUT=Path.of(System.getProperty("dynasty.secondaryArtQa.output","build/secondary-art-native/results"));
     private static final String[] IDS=System.getProperty("dynasty.secondaryArtQa.ids","river_imp,tree_spirit,shrimp_soldier").split(",");
@@ -40,6 +41,11 @@ public final class SecondaryArtClientQa {
     private static int stage=-1,settled;
     private static long deadline=System.nanoTime()+600_000_000_000L;
     private static CompletableFuture<Integer> pending;
+    private static CompletableFuture<Map<String,Object>> action;
+    private static Map<String,Object> actionResult=Map.of();
+    private static int idleRendered=-1;
+    private static int eventObserved=-1;
+    private static final List<Map<String,Object>> samples=new ArrayList<>();
     private static int entityId;
     private static net.minecraft.world.entity.Mob fixture;
 
@@ -66,29 +72,50 @@ public final class SecondaryArtClientQa {
             }
             if(mc.level==null||mc.player==null)return;
             if(mc.screen!=null)mc.setScreen(null);
-            if(pending!=null){if(!pending.isDone())return;entityId=pending.join();pending=null;settled=0;captured=false;setCamera(mc);return;}
+            if(pending!=null){if(!pending.isDone())return;entityId=pending.join();pending=null;settled=0;captured=false;action=null;actionResult=Map.of();idleRendered=-1;eventObserved=-1;samples.clear();setCamera(mc);return;}
+            if(action!=null&&action.isDone())actionResult=action.join();
             if(stage<0||captured){
                 if(stage==IDS.length*STAGES-1){finish(mc,null);return;}
                 stage++;pending=mc.getSingleplayerServer().submit(()->{try{return prepare(mc,stage);}catch(Exception e){throw new RuntimeException(e);}});return;
             }
             if(mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.Mob mob){
                 settled++;
+                if(BOSS_LIFECYCLE&&eventObserved<0&&((stage%STAGES==1&&mob.swinging)||(stage%STAGES==2&&mob.hurtTime>0)))eventObserved=mob.tickCount;
+                if(BOSS_LIFECYCLE&&stage%STAGES>0&&action==null){
+                    if(mc.getEntityRenderDispatcher().getRenderer(mob) instanceof BossCuboidRenderer<?> renderer){
+                        var ctrl=renderer.getAnimatable().getAnimatableInstanceCache().getManagerForId(mob.getId()).getAnimationControllers().get("body");
+                        if(ctrl.getCurrentAnimation()!=null&&ctrl.getCurrentAnimation().animation().name().equals("idle")&&idleRendered<0)idleRendered=settled;
+                    }
+                }
+                if(BOSS_LIFECYCLE&&stage%STAGES>0&&action==null&&settled>=20&&idleRendered>=0&&settled>=idleRendered+40){
+                    int pose=stage%STAGES;
+                    action=mc.getSingleplayerServer().submit(()->{
+                        float before=fixture.getHealth();boolean accepted=true;
+                        if(pose==1)fixture.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+                        else accepted=fixture.hurt(fixture.damageSources().generic(),pose==2?8:1_000_000);
+                        return Map.<String,Object>of("event",pose==1?"server swing MAIN_HAND":pose==2?"server generic damage 8":"server lethal generic damage 1000000","accepted",accepted,"healthBefore",before,"healthAfter",fixture.getHealth(),"serverDead",fixture.isDeadOrDying());
+                    });
+                }
                 if(BOSS_FINAL&&stage%STAGES>=5&&settled==20){
                     if(!(mc.getEntityRenderDispatcher().getRenderer(mob) instanceof BossCuboidRenderer<?> renderer))throw new AssertionError("No cuboid boss replacement");
                     renderer.getAnimatable().getAnimatableInstanceCache().getManagerForId(mob.getId()).tryTriggerAnimation("body","art_check_"+BOSS_CLIPS[stage%STAGES-5]);
                 }
             }
+            if(BOSS_LIFECYCLE&&settled>180)throw new AssertionError("Unobserved lifecycle state "+stage+" / "+actionResult);
         }catch(Throwable e){finish(mc,e);}
     }
     private static int prepare(Minecraft mc,int s)throws Exception{
         var server=mc.getSingleplayerServer();var world=server.overworld();world.setDayTime(6000);
         if(fixture!=null)fixture.discard();
-        for(int x=-9;x<=9;x++)for(int z=-9;z<=9;z++)world.setBlockAndUpdate(new BlockPos(x,-61,z),Blocks.STONE.defaultBlockState());
+        int sceneX=BOSS_LIFECYCLE?s*40:0;
+        // Separate actual deaths spatially so their existing loot/death VFX
+        // cannot obstruct later views. No reward or gameplay handler is changed.
+        for(int x=-13;x<=13;x++)for(int z=-13;z<=13;z++)world.setBlockAndUpdate(new BlockPos(sceneX+x,-61,z),Blocks.STONE.defaultBlockState());
         String id=IDS[s/STAGES];
         fixture=BOSS_AUDIT?(net.minecraft.world.entity.Mob)net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",id)).create(world):
             (id.equals("shrimp_soldier")?SecondaryMobs.SHRIMP.get():SecondaryMobs.TYPES.get(id).get()).create(world);
-        fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();world.addFreshEntity(fixture);
-        if(BOSS_FINAL&&!id.equals("dragon_emperor")){
+        fixture.moveTo(sceneX,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();world.addFreshEntity(fixture);
+        if((BOSS_FINAL||BOSS_LIFECYCLE)&&!id.equals("dragon_emperor")){
             fixture.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND,new net.minecraft.world.item.ItemStack(id.equals("dragon_king")?net.minecraft.world.item.Items.TRIDENT:net.minecraft.world.item.Items.STONE_SWORD));
             fixture.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.SHIELD));
         }
@@ -100,15 +127,16 @@ public final class SecondaryArtClientQa {
         // QA only: select existing synchronized art states. This makes no claim
         // that combat, natural spawning or real-player scenarios were exercised.
         if(!BOSS_AUDIT){var method=SecondaryMob.class.getDeclaredMethod("animate",int.class,int.class);method.setAccessible(true);method.invoke(fixture,state,10000);}
-        server.getPlayerList().getPlayers().forEach(p->{p.setGameMode(GameType.CREATIVE);p.teleportTo(world,0,-60,10,180,0);});
+        server.getPlayerList().getPlayers().forEach(p->{p.setGameMode(GameType.CREATIVE);p.teleportTo(world,sceneX,-60,10,180,0);});
         return fixture.getId();
     }
     private static void setCamera(Minecraft mc){
         int pose=stage%STAGES;double yaw=pose==1?45:pose==2?90:pose==3?180:0;
         if(BOSS_FINAL)yaw=pose==1?45:pose==2?90:pose==3?-90:pose==4?180:0;
+        if(BOSS_LIFECYCLE)yaw=pose==4?45:pose==5?90:pose==6?180:0;
         if(BOSS_AUDIT){
             double angle=Math.toRadians(yaw),distance=fixture.getBbHeight()>3?11:5.8;
-            var camera=new ArmorStand(mc.level,Math.sin(angle)*distance,-60,Math.cos(angle)*distance);
+            var camera=new ArmorStand(mc.level,fixture.getX()+Math.sin(angle)*distance,-60,Math.cos(angle)*distance);
             camera.setPos(camera.getX(),-60+fixture.getBbHeight()/2-camera.getEyeHeight(),camera.getZ());
             camera.setNoGravity(true);camera.setYRot((float)(180-yaw));camera.setXRot(0);camera.setYHeadRot(camera.getYRot());camera.yHeadRotO=camera.getYRot();camera.setOldPosAndRot();
             mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(camera);return;
@@ -121,12 +149,42 @@ public final class SecondaryArtClientQa {
         mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(camera);
     }
     @SubscribeEvent public static void render(TickEvent.RenderTickEvent event){
-        if(!ENABLED||done||captured||pending!=null||stage<0||settled<24||event.phase!=TickEvent.Phase.END)return;
+        if(!ENABLED||done||captured||pending!=null||stage<0||settled<(BOSS_LIFECYCLE?20:24)||event.phase!=TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();
         if(BOSS_AUDIT){
             if(!(mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.Mob mob))return;
             try{
                 String id=IDS[stage/STAGES];int pose=stage%STAGES;
+                if(BOSS_LIFECYCLE){
+                    if(!(mc.getEntityRenderDispatcher().getRenderer(mob) instanceof BossCuboidRenderer<?> renderer))throw new AssertionError("Missing lifecycle renderer");
+                    var ctrl=renderer.getAnimatable().getAnimatableInstanceCache().getManagerForId(mob.getId()).getAnimationControllers().get("body");
+                    String clip=ctrl.getCurrentAnimation()==null?"none":ctrl.getCurrentAnimation().animation().name();
+                    var sample=new LinkedHashMap<String,Object>(Map.of("clientTick",mob.tickCount,"settled",settled,"swinging",mob.swinging,"hurtTime",mob.hurtTime,"deathTime",mob.deathTime,"health",mob.getHealth(),"isDeadOrDying",mob.isDeadOrDying(),"clip",clip));
+                    if(samples.isEmpty()||!samples.get(samples.size()-1).get("clientTick").equals(mob.tickCount))samples.add(sample);
+                    boolean movedAfterEvent=eventObserved>=0&&mob.tickCount>=eventObserved+3;
+                    boolean ready=pose==0?settled>=24:pose==1?mob.swinging&&movedAfterEvent:pose==2?mob.hurtTime>0&&movedAfterEvent:mob.isDeadOrDying()&&mob.deathTime>=18;
+                    if(!ready)return;
+                    if(pose>0&&(action==null||!action.isDone()))return;
+                    if(pose>0)actionResult=action.join();
+                    String expected=pose==0?"idle":pose==1?"attack":pose==2?"hurt":"death";
+                    if(!clip.equals(expected))throw new AssertionError("Natural "+expected+" selected "+clip+" / "+sample);
+                    if(pose>0&&!Boolean.TRUE.equals(actionResult.get("accepted")))throw new AssertionError("Actual damage rejected "+actionResult);
+                    String view=pose<3?expected:new String[]{"front","45","side","back"}[pose-3];
+                    var record=new LinkedHashMap<String,Object>(sample);record.put("entity",id);record.put("stage",stage);record.put("viewOrClip",view);record.put("serverAction",actionResult);record.put("samples",new ArrayList<>(samples));record.put("scope","Real replicated swing/hurt/death in a disposable NoAI world; no triggerable animation, no natural skill or human claim");
+                    if(pose==1||pose==2){
+                        String moving=pose==2?"chest":id.equals("dragon_emperor")?"front_right_leg":"right_arm";
+                        var bone=renderer.getGeoModel().getBone(moving).orElseThrow();var rest=bone.getInitialSnapshot();
+                        float change=pose==2?Math.abs(bone.getRotZ()-rest.getRotZ()):Math.abs(bone.getRotX()-rest.getRotX());
+                        if(change<.008f)throw new AssertionError("Actual event selected a clip but did not move "+moving+" / "+change);
+                        record.put("observedMotion",Map.of("bone",moving,"deltaRadians",change,"firstEventClientTick",eventObserved));
+                    }
+                    var bones=new LinkedHashMap<String,Object>();
+                    for(var b:renderer.getGeoModel().getAnimationProcessor().getRegisteredBones())bones.put(b.getName(),Map.of("rotationRadians",List.of(b.getRotX(),b.getRotY(),b.getRotZ()),"positionUnits",List.of(b.getPosX(),b.getPosY(),b.getPosZ())));
+                    record.put("runtimeBones",bones);
+                    Files.writeString(OUT.resolve(String.format("%02d-state.json",stage)),new GsonBuilder().setPrettyPrinting().create().toJson(record));LOG.add(id+" "+view+" "+clip+" deathTime="+mob.deathTime);
+                    try(var shot=net.minecraft.client.Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(OUT.resolve(String.format("%02d-%s-%s.png",stage,id,view)));}
+                    captured=true;return;
+                }
                 if(!BOSS_FINAL&&id.equals("dragon_emperor"))LegacyCuboidExport.dragon(OUT);
                 String view=BOSS_FINAL?(pose<5?new String[]{"front","45","right","left","back"}[pose]:BOSS_CLIPS[pose-5]):new String[]{"front","45","side","back"}[pose];
                 if(BOSS_FINAL){
@@ -237,7 +295,7 @@ public final class SecondaryArtClientQa {
     }
     private static void finish(Minecraft mc,Throwable error){
         if(done)return;done=true;
-        String success=BOSS_FINAL?"PASS: "+(IDS.length*STAGES)+" native boss resource stages, 6 baked clips, pixel16 and held-item anchors. Automatic resource poses; natural combat/skill clocks and human acceptance remain pending.\n":
+        String success=BOSS_LIFECYCLE?"PASS: "+(IDS.length*STAGES)+" actual replicated swing/hurt/death stages without animation triggers. NoAI disposable world; natural skills and humans remain pending.\n":BOSS_FINAL?"PASS: "+(IDS.length*STAGES)+" native boss resource stages, 6 baked clips, pixel16 and held-item anchors. Automatic resource poses; natural combat/skill clocks and human acceptance remain pending.\n":
             BOSS_AUDIT?"PASS: "+(IDS.length*STAGES)+" native existing boss baseline views; resource/animation remaster and gameplay acceptance remain pending.\n":
             "PASS: "+(IDS.length*11)+" native art stages, dedicated atlases and all 19 clips per entity baked. Gameplay, humans and sustained performance are separate.\n";
         try{Files.createDirectories(OUT);Files.writeString(OUT.resolve(error==null?"PASS.txt":"FAIL.txt"),String.join("\n",LOG)+"\n"+(error==null?success:"FAIL: "+error+"\n"));if(error!=null)error.printStackTrace();}catch(Exception e){e.printStackTrace();}mc.stop();

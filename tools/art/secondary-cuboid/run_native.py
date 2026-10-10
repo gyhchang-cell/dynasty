@@ -15,10 +15,10 @@ import time
 import zipfile
 
 REPO=Path(__file__).resolve().parents[3]
-p=argparse.ArgumentParser();p.add_argument('launch',type=Path);p.add_argument('run');p.add_argument('--ids',default='river_imp,tree_spirit,shrimp_soldier');p.add_argument('--boss-audit',action='store_true');p.add_argument('--boss-final',action='store_true');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('launch',type=Path);p.add_argument('run');p.add_argument('--ids',default='river_imp,tree_spirit,shrimp_soldier');p.add_argument('--boss-audit',action='store_true');p.add_argument('--boss-final',action='store_true');p.add_argument('--boss-lifecycle',action='store_true');args=p.parse_args()
 assert args.run and all(c.isalnum() or c in '-_' for c in args.run)
 production={}
-if args.boss_final:
+if args.boss_final or args.boss_lifecycle:
     # Refuse stale build outputs after a source edit or failed compilation.
     jar=REPO/'build/libs/dynasty-1.4.0.jar'
     assert jar.read_bytes()==(REPO/'build/reobfJar/output.jar').read_bytes(),'Production remap mismatch'
@@ -36,6 +36,9 @@ if args.boss_final:
                 assert data==z.read(path)==(REPO/'build/resources/main'/path).read_bytes(),'Boss resource newer than build: '+id
 root=REPO/'build/secondary-art-native'/args.run
 root.mkdir(parents=True,exist_ok=False)
+if production:
+    frozen_jar=root/'production.jar';shutil.copy2(jar,frozen_jar)
+    assert hashlib.sha256(frozen_jar.read_bytes()).hexdigest()==production['jarSha256'],'JAR changed while freezing'
 output=REPO/'docs/art/secondary-cuboid-v1/native'/args.run
 output.mkdir(parents=True,exist_ok=False)
 cfg=json.loads(args.launch.read_text());old_roots=cfg['environment']['MOD_CLASSES'].split(os.pathsep)
@@ -63,6 +66,7 @@ jvm+=['-Xmx2G','-XX:ActiveProcessorCount=2','-Ddynasty.secondaryArtQa=true',
       '-Ddynasty.secondaryArtQa.ids='+args.ids,'-Ddynasty.secondaryArtQa.output='+str(output),'-javaagent:'+str(REPO/'build/secondary-art-agent/quiet-window-agent.jar')]
 if args.boss_audit:jvm+=['-Ddynasty.secondaryArtQa.bossAudit=true']
 if args.boss_final:jvm+=['-Ddynasty.secondaryArtQa.bossFinal=true']
+if args.boss_lifecycle:jvm+=['-Ddynasty.secondaryArtQa.bossLifecycle=true']
 work=root/'host';work.mkdir();(work/'options.txt').write_text('soundCategory_master:0.0\nfullscreen:false\n')
 (work/'config').mkdir();(work/'config/fml.toml').write_text('earlyWindowControl=false\n')
 cfg.update(jvmArgs=jvm,directory=str(work));(root/'launch.json').write_text(json.dumps(cfg,indent=2)+'\n')
