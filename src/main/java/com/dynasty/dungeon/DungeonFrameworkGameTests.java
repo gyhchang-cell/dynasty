@@ -48,7 +48,7 @@ public final class DungeonFrameworkGameTests {
 
     @GameTest(template="bow_ritual_test",batch="cod2_garrison",timeoutTicks=1200)
     public static void tombGarrisonUsesExistingLedgerAndCannotRefillAfterUnload(GameTestHelper h) {
-        var level=h.getLevel();var origin=h.absolutePos(new BlockPos(4096,80,4096));var id=UUID.randomUUID();
+        var level=h.getLevel();var origin=h.absolutePos(new BlockPos(128,80,128));var id=UUID.randomUUID();
         var core=origin.offset(27,48,37);var entrant=origin.offset(32,49,64);
         var positions=java.util.List.of(origin.offset(10,49,50),origin.offset(10,49,78),
             origin.offset(52,49,50),origin.offset(52,49,78));

@@ -30,6 +30,8 @@ try:
     for role in roles:
         work = out / role
         work.mkdir()
+        # Disposable QA worlds start silent; never modify the user's game settings or OS volume.
+        (work / "options.txt").write_text("soundCategory_master:0.0\n", encoding="utf-8")
         jvm = list(launch["jvmArgs"])
         for key, value in {"dynasty.cod2Qa.role": role, "dynasty.cod2Qa.output": str(out / "results"),
                            "dynasty.cod2Qa.solo": str(args.solo).lower()}.items():

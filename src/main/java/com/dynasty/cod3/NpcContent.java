@@ -23,5 +23,17 @@ public final class NpcContent {
         }
     }
     @SubscribeEvent public static void attributes(EntityAttributeCreationEvent e){for(var entity:NPCS.values())e.put(entity.get(),DynastyNpcEntity.attributes().build());}
+    public static boolean wandering(String role){return Set.of("baibao_jin","sai_banxian","hong_ling").contains(role);}
+    @Mod.EventBusSubscriber(modid=Dynasty.MODID)
+    public static final class Lifecycle {
+        @SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+        public static void death(net.minecraftforge.event.entity.living.LivingDeathEvent event){
+            if(event.isCanceled()||!(event.getEntity() instanceof DynastyNpcEntity npc)||!wandering(npc.role)
+                    ||!(npc.level() instanceof net.minecraft.server.level.ServerLevel level))return;
+            var home=npc.getPersistentData().contains("cod3_home_anchor")?net.minecraft.core.BlockPos.of(npc.getPersistentData().getLong("cod3_home_anchor")):npc.home().below();
+            if(level.hasChunkAt(home)&&level.getBlockEntity(home) instanceof StoryAnchor.Anchor anchor&&anchor.getBlockState().getValue(StoryAnchor.KIND)==StoryAnchor.npcState(npc.role).getValue(StoryAnchor.KIND))
+                anchor.scheduleRespawn(level.getGameTime()+24000);
+        }
+    }
     private NpcContent(){}
 }

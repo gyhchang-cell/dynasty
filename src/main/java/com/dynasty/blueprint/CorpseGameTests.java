@@ -141,7 +141,7 @@ public final class CorpseGameTests {
             }
             h.assertTrue(papers.members.isEmpty()&&papers.nextSpawn>=level.getGameTime()+11999,"Final paper death preserves encounter cooldown");
             var childKey=id+"@"+chunk.toLong()+":shroud_child";var childMarker=data.markers.get(childKey);
-            h.assertTrue(childMarker!=null&&childMarker.produced==1&&childMarker.members.size()==1,"Same ordinary tomb entry also produces exactly one shroud child");
+            h.assertTrue(childMarker!=null&&childMarker.produced==1&&childMarker.members.size()==1,"Same ordinary tomb entry also produces exactly one shroud child; light="+level.getMaxLocalRawBrightness(childFloor)+" daytime="+level.isDay()+" child="+childFloor);
             var childSaved=BlueprintSpawnState.load(data.save(new CompoundTag())).markers.get(childKey);
             h.assertTrue(childSaved.members.equals(childMarker.members),"Child uses the same persistent encounter ledger");
             var child=(TemplateMob)level.getEntity(childMarker.members.iterator().next());

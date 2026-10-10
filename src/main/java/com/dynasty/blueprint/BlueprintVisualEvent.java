@@ -42,6 +42,17 @@ public record BlueprintVisualEvent(ResourceLocation dimension, int entityId, UUI
         if(mob.level() instanceof ServerLevel) send(mob,deathEvent(mob));
     }
     @SubscribeEvent public static void tracking(PlayerEvent.StartTracking event) {
+        if(event.getEntity() instanceof ServerPlayer player && event.getTarget() instanceof com.dynasty.blueprint.elite.HeadlessGeneral elite
+                && elite.level() instanceof ServerLevel level && elite.isAlive()) {
+            var action=elite.attack();var skill=action.current();
+            if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());
+                var packet=new BlueprintVisualEvent(level.dimension().location(),elite.getId(),elite.getUUID(),target==null?-1:target.getId(),
+                    action.started(),seed(elite,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),
+                    skill.id()==com.dynasty.blueprint.elite.HeadlessGeneral.THROW.id()?elite.landing():action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false);
+                DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),packet);
+            }return;
+        }
         if (!(event.getEntity() instanceof ServerPlayer player) || !(event.getTarget() instanceof TemplateMob mob)
                 || !(mob.level() instanceof ServerLevel level)) return;
         if(mob.isDeadOrDying()) {

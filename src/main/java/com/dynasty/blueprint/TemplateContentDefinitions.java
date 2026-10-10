@@ -25,9 +25,9 @@ public final class TemplateContentDefinitions {
         new Spawn("juli_bixi_kuilei",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/bixi_sites")),
             -63,300,0,15,"ALL","ANY",1,1,1,1,"STRUCTURE_MARKER",
             "one authored imperial-tomb main-axis guardian; collision and loaded floor required","PERSISTENT_MARKER; statue blocks respawn at occupied site"),
-        new Spawn("shashui_funigui",Level.OVERWORLD,List.of(tag("dynasty:blueprint/drowner_habitat")),List.of(),
+        new Spawn("shashui_funigui",Level.OVERWORLD,List.of(tag("dynasty:blueprint/drowner_habitat")),List.of(tag("dynasty:blueprint/tomb_ambush_sites")),
             -62,220,0,7,"NIGHT_OR_COVER","ANY",3,1,2,2,"NATURAL_ECOLOGY",
-            "two water layers, swamp/river or existing underworld water biome, loaded collision-free body;cap2","VANILLA_DISTANCE_DESPAWN"),
+            "two water layers, swamp/river or existing underworld water biome; one version3 imperial-tomb basin with same-site child/paper coordination;cap2","VANILLA_DISTANCE_DESPAWN; authored tomb actor PERSISTENT_MARKER"),
         new Spawn("xueju_mangguyu",Level.OVERWORLD,List.of(tag("minecraft:is_overworld")),List.of(),
             -61,0,0,7,"ALL; DEEP_CAVE","ANY",2,1,3,3,"NATURAL_ECOLOGY",
             "loaded dry5x5x6 deep cavity, ordinary collision; cap3 within32","VANILLA_DISTANCE_DESPAWN"),
@@ -93,6 +93,12 @@ public final class TemplateContentDefinitions {
         new Spawn("muxue_feilu",Level.OVERWORLD,List.of(),List.of(tag("dynasty:blueprint/flying_skull_sites")),
             -63,64,0,7,"ALL; LOW LIGHT","ANY",1,1,3,3,"STRUCTURE_MARKER","authored imperial tomb airspace; maximum three within32; no solid/wet landing","PERSISTENT_MARKER; 10-minute cooldown after all killed")
     );
+    // An additional location for the same identity; ALL remains one row per registered content.
+    public static final Spawn UNDERWORLD_PALANQUIN = new Spawn("yinyang_zhijiao_youhun",
+        net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,tag("dynasty:underworld")),
+        List.of(),List.of(tag("dynasty:blueprint/palanquin_sites")),-63,300,0,15,"MIDNIGHT17000-19000","ANY",1,1,1,1,
+        "STRUCTURE_MARKER","one procession on the existing stone-grove spirit path between lamps and statues",
+        "PERSISTENT_MARKER; 12000tick cooldown");
     static int maximumWeight(Spawn definition) {
         return switch(definition.id()) {case "zuwu_daoshou"->10;case "fufa_jijiu"->4;default->definition.spawnWeight();};
     }

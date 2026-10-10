@@ -109,6 +109,68 @@ public final class WorldEventGameTests {
             h.assertTrue(!level.addFreshEntity(copy)&&copy.isRemoved(),"Expired instance rejects actor on later chunk reload");h.succeed();
         }finally{remove(h,p,i);mob.discard();}
     }
+    @GameTest(template="bow_ritual_test",batch="cod2_event_lifecycle")
+    public static void deadPlayersCannotJoinOrDrainPendingRewards(GameTestHelper h){
+        var level=h.getLevel();var center=h.absolutePos(new BlockPos(6,2,6));var p=player(h,center);
+        var i=fixture(h,"xuanniao_zhige",center,p);
+        try{
+            i.participants.clear();p.setHealth(0);
+            DynastyWorldEventManager.tickInstance(level,WorldEventStore.get(level),i,2);
+            h.assertTrue(i.participants.isEmpty()&&i.phase==WorldEventInstance.Phase.WARNING&&!p.hasEffect(net.minecraft.world.effect.MobEffects.LUCK),"Death screen cannot join, activate or acquire a blessing");
+            i.phase=WorldEventInstance.Phase.SUCCESS;i.rewardGranted=true;
+            i.pendingRewards.put(p.getUUID(),new ArrayList<>(List.of(new ItemStack(Items.DIAMOND,3))));
+            DynastyWorldEventManager.deliverPending(level,i);
+            h.assertTrue(p.getInventory().countItem(Items.DIAMOND)==0&&i.pendingRewards.get(p.getUUID()).get(0).getCount()==3,"Dead inventory cannot drain persistent escrow");
+            p.setHealth(20);DynastyWorldEventManager.deliverPending(level,i);DynastyWorldEventManager.deliverPending(level,i);
+            h.assertTrue(p.getInventory().countItem(Items.DIAMOND)==3&&i.pendingRewards.isEmpty(),"Living participant receives only the exact remaining reward");h.succeed();
+        }finally{remove(h,p,i);}
+    }
+    @GameTest(template="bow_ritual_test",batch="cod2_event_lifecycle")
+    public static void deathLedgerRejectsCanceledAndWrongTypeEvents(GameTestHelper h){
+        var level=h.getLevel();var center=h.absolutePos(new BlockPos(6,2,6));var p=player(h,center);var i=fixture(h,"yinbing_jiedao",center,p);
+        var actor=BlueprintEntities.YINBING_GUIZU.get().create(level);actor.setNoAi(true);actor.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(center.east(3)));
+        actor.getPersistentData().putUUID(DynastyWorldEventManager.ACTOR_TAG,i.uuid);
+        i.actors.put(actor.getUUID(),new WorldEventInstance.Actor(actor.getUUID(),new ResourceLocation("dynasty:yinbing_guizu"),"SPIRITS",false));level.addFreshEntity(actor);
+        try{
+            var canceled=new net.minecraftforge.event.entity.living.LivingDeathEvent(actor,actor.damageSources().playerAttack(p));canceled.setCanceled(true);
+            DynastyWorldEventManager.died(canceled);
+            h.assertTrue(!i.actors.get(actor.getUUID()).dead()&&!p.getPersistentData().contains("DynastyEventMonsterKills"),"Canceled death changes neither event victory nor monster-kill progression");
+            i.actors.put(actor.getUUID(),new WorldEventInstance.Actor(actor.getUUID(),new ResourceLocation("dynasty:zuwu_daoshou"),"SPIRITS",false));
+            DynastyWorldEventManager.died(new net.minecraftforge.event.entity.living.LivingDeathEvent(actor,actor.damageSources().generic()));
+            h.assertTrue(!i.actors.get(actor.getUUID()).dead(),"A mismatched real entity type cannot complete an actor reservation");h.succeed();
+        }finally{actor.discard();remove(h,p,i);}
+    }
+    @GameTest(template="bow_ritual_test",batch="cod2_event_lifecycle")
+    public static void eventConcurrencyCannotBeBypassedInAnotherDimension(GameTestHelper h){
+        var level=h.getLevel();var other=level.getServer().getLevel(net.minecraft.world.level.Level.NETHER);
+        h.assertTrue(other!=null,"Native server has the existing Nether; test creates no dimension");
+        var store=WorldEventStore.get(other);var added=new ArrayList<UUID>();var d=definition("xuanniao_zhige");
+        try{
+            for(int n=0;n<3;n++){var i=new WorldEventInstance(d,new BlockPos(10000+n*100,70,10000),other.getGameTime(),n,null);store.instances.put(i.uuid,i);added.add(i.uuid);}
+            var tickets=new HashSet<>(level.getForcedChunks());
+            var result=DynastyWorldEventManager.start(level,d,h.absolutePos(new BlockPos(6,2,6)),null,true);
+            h.assertTrue(!result.started()&&result.missing().contains("concurrency/distance/storage cap"),"Three active saved events anywhere on server block a fourth in the Overworld");
+            h.assertTrue(tickets.equals(level.getForcedChunks()),"Cross-dimension accounting does not load event terrain");h.succeed();
+        }finally{added.forEach(store.instances::remove);store.setDirty();}
+    }
+    @GameTest(template="bow_ritual_test",batch="cod2_event_lifecycle")
+    public static void nativeCompressedFileRetainsOfflineRewardAndCleanupReservations(GameTestHelper h){
+        java.nio.file.Path file=null;
+        try{
+            var d=definition("yinbing_jiedao");var owner=UUID.randomUUID();var actor=UUID.randomUUID();var block=h.absolutePos(new BlockPos(6,2,6));
+            var i=new WorldEventInstance(d,block,123,445566L,d.rewardTable());i.phase=WorldEventInstance.Phase.SUCCESS;i.rewardGranted=true;i.spawned=1;i.participate(owner);
+            i.actors.put(actor,new WorldEventInstance.Actor(actor,new ResourceLocation("dynasty:yinbing_guizu"),"SPIRITS",false));
+            i.blocks.put(block,new WorldEventInstance.TemporaryBlock(Blocks.STONE.defaultBlockState(),Blocks.RED_WOOL.defaultBlockState()));
+            i.pendingRewards.put(owner,new ArrayList<>(List.of(new ItemStack(Items.DIAMOND,7))));
+            var saved=new WorldEventStore();saved.instances.put(i.uuid,i);saved.cooldowns.put("group/procession",96000L);saved.setDirty();
+            file=java.nio.file.Files.createTempFile("dynasty-cod2-event-", ".dat");saved.save(file.toFile());
+            var root=net.minecraft.nbt.NbtIo.readCompressed(file.toFile());var loaded=WorldEventStore.load(root.getCompound("data"));var copy=loaded.instances.get(i.uuid);
+            h.assertTrue(copy!=null&&copy.seed==445566L&&copy.phase==WorldEventInstance.Phase.SUCCESS&&copy.spawned==1,"Fresh store reads original phase/seed/production from native compressed file");
+            h.assertTrue(copy.actors.containsKey(actor)&&!copy.actors.get(actor).dead()&&copy.blocks.get(block).original().is(Blocks.STONE),"Unloaded actor and terrain cleanup reservations survive file recovery");
+            h.assertTrue(copy.pendingRewards.get(owner).get(0).getCount()==7&&loaded.cooldowns.get("group/procession")==96000L,"Offline player's exact undelivered reward and cooldown survive file recovery");h.succeed();
+        }catch(java.io.IOException e){throw new IllegalStateException(e);}
+        finally{if(file!=null)try{java.nio.file.Files.deleteIfExists(file);}catch(java.io.IOException e){throw new IllegalStateException(e);}}
+    }
     private WorldEventGameTests(){}
     @GameTest(template="bow_ritual_test",batch="cod2_event_celestial")
     public static void actualCelestialTemplateRepairsWeaponsOnceAndGrantsThirtyMinuteBuffs(GameTestHelper h){
@@ -135,7 +197,7 @@ public final class WorldEventGameTests {
     }
     @GameTest(template="bow_ritual_test",batch="cod2_event_peace",timeoutTicks=800)
     public static void celestialPeaceCancelsAnActualPendingAttackAndCombatReturnsAfterItEnds(GameTestHelper h){
-        var level=h.getLevel();var center=new BlockPos(8192,100,8192);
+        var level=h.getLevel();var center=h.absolutePos(new BlockPos(160,40,160));
         var forced=new HashSet<net.minecraft.world.level.ChunkPos>();var actors=new ArrayList<Entity>();
         var player=new FakePlayer[1];var event=new WorldEventInstance[1];
         // A 48-block area event cannot share the neighboring 16-block GameTest arena.
@@ -143,6 +205,9 @@ public final class WorldEventGameTests {
             var chunk=new net.minecraft.world.level.ChunkPos(center.offset(x*16,0,z*16));
             if(!level.getForcedChunks().contains(chunk.toLong())){level.setChunkForced(chunk.x,chunk.z,true);forced.add(chunk);}
         }
+        // Keep the native level's entity manager ticking while asynchronous remote sections load.
+        // A player-less GameTest level can enter its idle path after earlier batches.
+        player[0]=player(h,center);
         Runnable cleanup=()->{
             actors.forEach(Entity::discard);if(player[0]!=null&&event[0]!=null)remove(h,player[0],event[0]);
             for(var chunk:forced)level.setChunkForced(chunk.x,chunk.z,false);
@@ -150,15 +215,16 @@ public final class WorldEventGameTests {
         float[] health=new float[1];
         h.startSequence().thenIdle(20).thenWaitUntil(()->{
             for(var chunk:forced){var loaded=level.getChunkSource().getChunkNow(chunk.x,chunk.z);
-                h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Remote event fixture waits for loaded entity sections");
-                h.assertTrue(level.areEntitiesLoaded(chunk.toLong()),"Remote event fixture waits for asynchronous entity storage");}
+                h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING),"Remote event fixture waits for loaded entity sections");}
+            // Perimeter tickets provide collision terrain. Only the real actor chunks need entity storage.
+            for(var pos:List.of(center,center.east(2)))h.assertTrue(com.dynasty.blueprint.BlueprintSpawns.entityChunkReady(level,pos),"Actual event actor chunks finish asynchronous entity loading");
         }).thenExecute(()->{
             try{
                 for(int x=-4;x<=4;x++)for(int z=-4;z<=4;z++){
                     level.setBlockAndUpdate(center.offset(x,-1,z),Blocks.STONE.defaultBlockState());
                     for(int y=0;y<=3;y++)level.setBlockAndUpdate(center.offset(x,y,z),Blocks.AIR.defaultBlockState());
                 }
-                player[0]=player(h,center);var attacker=BlueprintEntities.YINBING_GUIZU.get().create(level);var target=BlueprintEntities.TIESUO_CHIHOU.get().create(level);
+                var attacker=BlueprintEntities.YINBING_GUIZU.get().create(level);var target=BlueprintEntities.TIESUO_CHIHOU.get().create(level);
                 for(var mob:List.of(attacker,target)){mob.setNoAi(true);mob.setNoGravity(true);actors.add(mob);}
                 attacker.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(center));target.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(center.east(2)));
                 level.addFreshEntity(attacker);level.addFreshEntity(target);

@@ -44,13 +44,17 @@ public final class DungeonTrapGameTests {
     }
     @GameTest(template="bow_ritual_test",batch="cod2_trap_runtime",timeoutTicks=240)
     public static void actualCrusherCoreAllowsEscapeThenDamagesOnlyAtContact(GameTestHelper h){
-        var level=h.getLevel();var trapPos=h.absolutePos(new BlockPos(6,1,6));var corePos=h.absolutePos(new BlockPos(3,1,6));var id=UUID.randomUUID();
+        // Earlier batches leave real cores in neighboring arenas. Their 96-block activation radius
+        // must not expose this health fixture to unrelated poison arrows or other active hazards.
+        var level=h.getLevel();var trapPos=h.absolutePos(new BlockPos(128,40,128));var corePos=trapPos.west(3);var id=UUID.randomUUID();
         var forced=new HashSet<net.minecraft.world.level.ChunkPos>();
         for(var pos:List.of(corePos,trapPos)){
             var chunk=new net.minecraft.world.level.ChunkPos(pos);
             if(!level.getForcedChunks().contains(chunk.toLong())){level.setChunkForced(chunk.x,chunk.z,true);forced.add(chunk);}
         }
         var fixture=new FakePlayer[1];
+        // Wake the native entity manager before awaiting a remote fixture's sections.
+        fixture[0]=player(h,trapPos.above());
         var clock=DungeonStateStore.get(level).room(id,"qa").hazard("crusher_qa",false);
         h.startSequence().thenWaitUntil(()->{
             for(var pos:List.of(corePos,trapPos)){
@@ -58,16 +62,17 @@ public final class DungeonTrapGameTests {
                 h.assertTrue(loaded!=null&&loaded.getFullStatus().isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING)
                     &&level.areEntitiesLoaded(chunk.toLong()),"Actual hammer waits for ticking blocks and entity storage");
             }
+            h.assertTrue(level.getEntitiesOfClass(FakePlayer.class,new net.minecraft.world.phys.AABB(trapPos.above()).inflate(1)).contains(fixture[0]),
+                "Actual damage fixture is visible to the native entity query");
         }).thenExecute(()->{
             for(int y=1;y<=6;y++)for(int x=0;x<=2;x++)level.setBlockAndUpdate(trapPos.offset(x,y,0),Blocks.AIR.defaultBlockState());
             var trap=marker(h,trapPos,DungeonContent.CRUSHER.get(),"crusher_qa");var core=marker(h,corePos,DungeonContent.CORE.get(),"core");
             trap.configure(id,"qa","crusher_qa",corePos,-1,List.of());core.configure(id,"qa","core",corePos,-1,List.of(trapPos));core.configureRoom(0,false,trapPos,trapPos.above(3));
-            fixture[0]=player(h,trapPos.above());
         }).thenWaitUntil(()->h.assertTrue(clock.phase()==DungeonMechanism.Phase.WARNING,"Actual core starts its visible warning"))
         .thenExecute(()->{h.assertTrue(fixture[0].getHealth()==200,"Visible warning has no damage");fixture[0].setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(trapPos.offset(2,1,0)));})
         .thenWaitUntil(()->h.assertTrue(clock.phase()==DungeonMechanism.Phase.RECOVERY,"First real contact completes before returning"))
         .thenExecute(()->{h.assertTrue(fixture[0].getHealth()==200,"Walking out of actual hammer column avoids first strike");fixture[0].setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(trapPos.above()));})
-        .thenWaitUntil(()->h.assertTrue(fixture[0].getHealth()<200,"Standing beneath later hammer takes real damage"))
+        .thenWaitUntil(()->h.assertTrue(fixture[0].getHealth()<200,"Standing beneath later hammer takes real damage; phase="+clock.phase()+", ticks="+clock.ticks()+", nativeTarget="+level.getEntitiesOfClass(FakePlayer.class,new net.minecraft.world.phys.AABB(trapPos.above()).inflate(1)).contains(fixture[0])))
         .thenExecute(()->{
             try{h.assertTrue(fixture[0].getHealth()>=192,"Hammer damage remains bounded, health="+fixture[0].getHealth());
                 h.assertTrue(level.getBlockState(trapPos).is(DungeonContent.CRUSHER.get()),"Hammer never edits its floor/terrain");h.succeed();

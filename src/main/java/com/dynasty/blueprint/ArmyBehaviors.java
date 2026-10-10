@@ -350,10 +350,13 @@ public final class ArmyBehaviors {
         PaperSwordsman(TemplateMob mob){super(mob);}
         public boolean allows(int id){return id==ArmySkills.PAPER_SLASH||id==ArmySkills.PAPER_SHED;}
         public boolean canStart(int id,LivingEntity target){return id!=ArmySkills.PAPER_SHED||substituting;}
-        public int choose(LivingEntity target,long now){return ArmySkills.PAPER_SLASH;}
+        public int choose(LivingEntity target,long now){
+            return mob.tombSignal.target(mob)==target&&!TombEncounterCoordinator.inFront(mob,target)?0:ArmySkills.PAPER_SLASH;
+        }
         public void tick(long now){if(mob.getTarget()==null||!mob.getTarget().isAlive()||mob.skillId()!=0)mob.setSprinting(false);}
         public void move(LivingEntity target,long now){
             mob.setSprinting(true);
+            if(mob.tombSignal.target(mob)==target){navigate(TombEncounterCoordinator.flank(target,false),1.25);return;}
             Vec3 forward=target.position().subtract(mob.position()).multiply(1,0,1).normalize();
             double side=((now/20+mob.getId())&1)==0?1.5:-1.5;
             Vec3 next=mob.distanceToSqr(target)>16?mob.position().add(forward.scale(3)).add(-forward.z*side,0,forward.x*side):target.position();
@@ -416,6 +419,7 @@ public final class ArmyBehaviors {
         }
         public boolean canStart(int id,LivingEntity target){return id!=ArmySkills.CHILD_CURSE||behindPlayer(target);}
         public int choose(LivingEntity target,long now){
+            if(mob.tombSignal.target(mob)==target&&!behindPlayer(target))return 0;
             return behindPlayer(target)&&mob.attack().ready(ArmySkills.CHILD_CURSE,now)?ArmySkills.CHILD_CURSE:ArmySkills.CHILD_LAUGH;
         }
         public void started(int id,LivingEntity target){mob.playSound(SoundEvents.VEX_CHARGE,.45F,1.7F);}
@@ -449,6 +453,7 @@ public final class ArmyBehaviors {
         }
         public void move(LivingEntity target,long now){
             mob.setSprinting(false);
+            if(mob.tombSignal.target(mob)==target){navigate(TombEncounterCoordinator.flank(target,true),1.1);return;}
             Vec3 away=mob.position().subtract(target.position()).multiply(1,0,1).normalize();
             Vec3 point=mob.distanceToSqr(target)<16?mob.position().add(away.scale(3))
                 :target.position().subtract(target.getLookAngle().multiply(1,0,1).normalize().scale(4));

@@ -67,5 +67,18 @@ public final class EcologyGameTests {
         for(var rule:EcologyRules.ALL)for(var member:rule.members())
             h.assertTrue(missing.contains(member.mobType())==!net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.containsKey(member.mobType()),"Missing dependencies exactly match real registry availability without substitutes");h.succeed();
     }
+    @GameTest(template="bow_ritual_test",batch="cod2_ecology_registry")
+    public static void mergedCod1BiomeSpawnersAreNotRegisteredTwice(GameTestHelper h){
+        var registry=h.getLevel().registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.BIOME);
+        var ids=java.util.Set.of("baimu_mowu","shashui_funigui","youdeng_guimianfu","xueju_mangguyu","tongbi_feitian_yecha");
+        var seen=new java.util.HashSet<String>();
+        for(var biome:registry)for(String id:ids){
+            var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty:"+id));
+            long count=biome.getMobSettings().getMobs(net.minecraft.world.entity.MobCategory.MONSTER).unwrap().stream().filter(row->row.type==type).count();
+            h.assertTrue(count<=1,"Existing cod1 spawner has at most one real biome entry: "+registry.getKey(biome)+" / "+id+" / "+count);
+            if(count==1)seen.add(id);
+        }
+        h.assertTrue(seen.equals(ids),"Every existing species retains at least one actual native biome entry");h.succeed();
+    }
     private EcologyGameTests(){}
 }

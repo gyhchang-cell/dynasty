@@ -35,7 +35,7 @@ public final class Cod3RenderQa {
     @SubscribeEvent public static void tick(TickEvent.RenderTickEvent e){
         var mc=Minecraft.getInstance();
         if(!Boolean.getBoolean("dynasty.cod3RenderQa")||done||e.phase!=TickEvent.Phase.END)return;
-        if(Boolean.getBoolean("dynasty.secondarySkillQa")&&!hidden){org.lwjgl.glfw.GLFW.glfwHideWindow(mc.getWindow().getWindow());hidden=true;}
+        if((Boolean.getBoolean("dynasty.secondarySkillQa")||Boolean.getBoolean("dynasty.cod3HideQa"))&&!hidden){org.lwjgl.glfw.GLFW.glfwHideWindow(mc.getWindow().getWindow());hidden=true;}
         if(mc.getOverlay()==null&&mc.screen instanceof AccessibilityOnboardingScreen)mc.setScreen(new TitleScreen());
         if(!(mc.screen instanceof TitleScreen)||mc.getOverlay()!=null||++frames<12)return;
         done=true;
@@ -50,6 +50,16 @@ public final class Cod3RenderQa {
                 roots();Files.write(OUT.resolve("PASS.txt"),RESULTS);mc.stop();return;
             }
             for(int i=1;i<=40;i++){final int id=i;vfx(id,32,"near");vfx(id,12,"low");}
+            for(var item:List.of(net.minecraft.world.item.Items.IRON_SWORD,com.dynasty.expansion.ExpansionContent.HAMMER.get(),com.dynasty.expansion.ExpansionContent.CLAW.get(),net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse("dynasty:luminous_fish_glue")),com.dynasty.expansion.ExpansionContent.MATERIALS.get("qimen_gear").get()))for(int count:List.of(2,6)){
+                String id=net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(item).getPath();
+                frame("shared-weapon-afterimage-"+id+"-"+count,3,1,()->{
+                    var buffers=mc.renderBuffers().bufferSource();
+                    try(ImperialRenderState state=new ImperialRenderState()){
+                        for(int i=0;i<count;i++){var pose=new PoseStack();pose.translate((i-count/2.)*.18,1,0);pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(i*18));Cod3AfterImages.weapon(new net.minecraft.world.item.ItemStack(item),pose,buffers,0xA6DDE8,.12f+.18f*i/count);}
+                        buffers.endBatch();
+                    }
+                });
+            }
             for(int i=1;i<=25;i++){final int id=i;scenic(id);}
             for(var row:Cod3Catalog.entries("npcs")){var role=row.getAsJsonObject().get("id").getAsString();npc(role,180);npc(role,90);}
             for(var recipe:com.dynasty.workshop.WorkshopRecipes.ALL)workshop(recipe);
@@ -67,14 +77,16 @@ public final class Cod3RenderQa {
         var geometry=Class.forName("com.dynasty.client.Cod3VfxRenderer$Geometry");
         var ctor=geometry.getDeclaredConstructor(Matrix4f.class,Vec3.class,Vec3.class,Vec3.class,double.class,int.class,double.class,int.class,long.class);ctor.setAccessible(true);
         var draw=geometry.getDeclaredMethod("draw",int.class,DynastyVfxDefinition.class,double.class,double.class,double.class);draw.setAccessible(true);
+        var volume=geometry.getDeclaredMethod("volume",VfxVolume.class);volume.setAccessible(true);
         var field=Cod3VfxRenderer.class.getDeclaredField("BUFFER");field.setAccessible(true);var buffer=(BufferBuilder)field.get(null);
-        frame(String.format(Locale.ROOT,"vfx-%02d-%s",id,lod),size,3,()->{
+        double height=switch(id){case 6->10;case 28->12;case 21,30,39->6;case 22->4;default->d.shape()==DynastyVfxDefinition.Shape.SPHERE?d.radius():d.shape()==DynastyVfxDefinition.Shape.BOX||d.shape()==DynastyVfxDefinition.Shape.RECT?d.length()/2:.5;};
+        frame(String.format(Locale.ROOT,"vfx-%02d-%s",id,lod),size,height,()->{
             int depth=GL11.glGetInteger(GL11.GL_DEPTH_WRITEMASK);boolean blend=GL11.glIsEnabled(GL11.GL_BLEND),test=GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
             try(ImperialRenderState state=new ImperialRenderState()){
                 RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();RenderSystem.depthMask(false);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                var matrix=new Matrix4f().rotateY(.65f).rotateX(.2f).translate(0,0,-(float)d.length()/3);
+                var matrix=new Matrix4f().rotateY(.65f).rotateX(.2f).translate(0,0,d.shape()==DynastyVfxDefinition.Shape.LINE||d.shape()==DynastyVfxDefinition.Shape.CHAIN?-(float)d.length()/2:0);
                 buffer.begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);
-                try{draw.invoke(ctor.newInstance(matrix,new Vec3(0,3,size*2.1),Vec3.ZERO,new Vec3(0,0,1),1d,d.color(),.8d,segments,1234L),id,d,1d,.5d,20d);BufferUploader.drawWithShader(buffer.end());}catch(Exception error){buffer.discard();throw new RuntimeException(error);}
+                try{var mesh=ctor.newInstance(matrix,new Vec3(0,3,size*2.1),Vec3.ZERO,new Vec3(0,0,1),1d,d.color(),.8d,segments,1234L);draw.invoke(mesh,id,d,1d,.5d,20d);volume.invoke(mesh,VfxVolume.of(d,Vec3.ZERO,new Vec3(0,0,1),1,1,20));BufferUploader.drawWithShader(buffer.end());}catch(Exception error){buffer.discard();throw new RuntimeException(error);}
             }
             if(GL11.glGetInteger(GL11.GL_DEPTH_WRITEMASK)!=depth||GL11.glIsEnabled(GL11.GL_BLEND)!=blend||GL11.glIsEnabled(GL11.GL_DEPTH_TEST)!=test)throw new AssertionError("VFX leaked GL state");
         });

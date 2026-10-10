@@ -44,7 +44,7 @@ for row in catalog['npcs']:
         assert texture.size == (128, 128)
     for locale in ('zh_cn', 'en_us'):
         language = json.loads((assets / f'lang/{locale}.json').read_text())
-        for suffix in ('first', 'ordinary', 'changed'):
+        for suffix in ('first', 'first_2', 'first_3', 'ordinary', 'ordinary_2', 'ordinary_3', 'ordinary_4', 'ordinary_5', 'changed'):
             assert language[f'cod3.dynasty.npc.{role}.{suffix}']
         for choice in ('talk', 'changed', 'special', 'trade', 'leave'):
             assert language[f'cod3.dynasty.dialogue.{choice}']

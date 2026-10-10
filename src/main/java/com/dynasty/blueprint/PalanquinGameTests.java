@@ -59,4 +59,36 @@ public final class PalanquinGameTests {
             for(int i=0;i<4;i++)h.assertTrue(json.getAsJsonObject("animations").getAsJsonObject("animation.yinyang_zhijiao_youhun.walk").getAsJsonObject("bones").has("bearer_"+i),"Independent bearer phase "+i);
         }h.succeed();
     }
+
+    @GameTest(template="bow_ritual_test",timeoutTicks=45,batch="palanquin_underworld")
+    public static void actualUnderworldStoneGroveHasOneMidnightProcessionAndRetainsMembership(GameTestHelper h){
+        var key=net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,new net.minecraft.resources.ResourceLocation("dynasty","underworld"));
+        var level=h.getLevel().getServer().getLevel(key);h.assertTrue(level!=null,"Existing underworld dimension is available");
+        // Follow the actual surface height, rather than burying a surface piece at a fixed Y.
+        int surface=level.getMinBuildHeight();
+        for(int x=16398;x<=16400;x++)for(int z=16390;z<=16392;z++){
+            level.getChunk(x>>4,z>>4);
+            surface=Math.max(surface,level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,x,z));
+        }
+        var origin=new BlockPos(16384,surface+1,16384);
+        var piece=new com.dynasty.structure.StoneGrovePiece(com.dynasty.structure.DynastyStructures.STONE_GROVE_PIECE.get(),0,origin);var box=piece.getBoundingBox();
+        for(int x=box.minX()>>4;x<=box.maxX()>>4;x++)for(int z=box.minZ()>>4;z<=box.maxZ()>>4;z++){
+            var chunk=level.getChunk(x,z);piece.postProcess(level,level.structureManager(),level.getChunkSource().getGenerator(),net.minecraft.util.RandomSource.create(9),
+                new net.minecraft.world.level.levelgen.structure.BoundingBox(x*16,box.minY(),z*16,x*16+15,box.maxY(),z*16+15),chunk.getPos(),origin);
+        }
+        var at=piece.palanquinPosition();String marker="dynasty:stone_grove@"+java.util.UUID.randomUUID()+":palanquin";
+        var clock=level.getServer().overworld();long day=clock.getDayTime();
+        boolean spawning=level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING);
+        level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(true,level.getServer());
+        try{
+            h.assertTrue(level.getDifficulty()!=net.minecraft.world.Difficulty.PEACEFUL,"Underworld difficulty permits hostiles");
+            h.assertTrue(com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,at,BlueprintEntities.YINYANG_ZHIJIAO_YOUHUN.get().getDimensions().makeBoundingBox(at.getX()+.5,at.getY(),at.getZ()+.5)),"Underworld path must have actual support and standing room at "+at+" floor="+level.getBlockState(at.below())+" body="+level.getBlockState(at)+" ceiling="+level.getBlockState(at.above()));
+            clock.setDayTime(6000);h.assertTrue(!BlueprintSpawns.spawnPalanquin(level,marker,at,at.offset(8,0,0)),"Daytime cannot start procession");
+            clock.setDayTime(18000);h.assertTrue(BlueprintSpawns.spawnPalanquin(level,marker,at,at.offset(8,0,0)),"Authored underworld landing can start procession; time="+level.getDayTime()+" cap="+level.getEntitiesOfClass(TemplateMob.class,new net.minecraft.world.phys.AABB(at).inflate(32),m->m.isAlive()&&m.kind()==TemplateMob.Kind.PALANQUIN).size());
+            h.assertTrue(!BlueprintSpawns.spawnPalanquin(level,marker,at,at.offset(8,0,0)),"Two entrants cannot duplicate main actor or bearers");
+            var state=BlueprintSpawnState.get(level);var saved=BlueprintSpawnState.load(state.save(new CompoundTag()));
+            h.assertTrue(saved.markers.get(marker).produced==1&&saved.markers.get(marker).members.size()==1,"Native marker save retains one actor even if its chunk is unloaded");
+            h.assertTrue(!BlueprintSpawns.spawnGateGuard(level,marker+"-wrong",java.util.List.of(at),at.offset(8,0,0)),"Other authored overworld mobs are not granted underworld spawning");
+        }finally{clock.setDayTime(day);level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING).set(spawning,level.getServer());}h.succeed();
+    }
 }

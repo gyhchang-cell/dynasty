@@ -80,6 +80,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     private final ArmyBehaviors.Behavior army;
     private final TimedAttack attack = new TimedAttack();
     private final TacticalMemory tactics = new TacticalMemory();
+    final TombEncounterCoordinator.Signal tombSignal = new TombEncounterCoordinator.Signal();
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private UUID supportCandidate, possessedAlly, possessor;
     private long possessedUntil, linkUntil, nextTacticalScan, nextMovement, coverUntil, deathStarted = -1;
@@ -310,6 +311,10 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         long now = level().getGameTime();
         if(army!=null)army.tick(now);
         if(!isAlive())return;
+        if (attack.state(now) == AttackState.IDLE) {
+            var controlled = tombSignal.target(this);
+            if (controlled != null) setTarget(controlled);
+        }
         if (now >= nextTacticalScan) { nextTacticalScan = now + 20; updateTactics(now); }
         if (possessedUntil > 0) {
             LivingEntity source = resolve(possessor);
@@ -702,6 +707,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     @Override public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putString("BlueprintEncounterSite",encounterSite);
+        tag.put("TombTacticalSignal", tombSignal.save());
         if(kind==Kind.CLOCKWORK_DOG&&hasRestriction())tag.putLong("ClockworkPatrolHome",getRestrictCenter().asLong());
         tag.putBoolean("Burrowed",burrowed());
         tag.putBoolean("TreeAwake",treeAwake());tag.putFloat("TongueReach",tongueReach()); tag.put("BlueprintAttack", attack.save()); tag.putFloat("BlueprintSpeed", skillSpeed());
@@ -715,6 +721,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     @Override public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         encounterSite=tag.getString("BlueprintEncounterSite");if(encounterSite.length()>256)encounterSite="";
+        tombSignal.load(tag.getCompound("TombTacticalSignal"), level().getGameTime());
         if(kind==Kind.CLOCKWORK_DOG&&tag.contains("ClockworkPatrolHome"))restrictTo(BlockPos.of(tag.getLong("ClockworkPatrolHome")),12);
         setBurrowed(tag.getBoolean("Burrowed"));
         setTreeAwake(tag.getBoolean("TreeAwake"));

@@ -114,6 +114,18 @@ public final class BlueprintVisuals {
                 budget-=deathParticles(mc,p,age,budget);
                 continue;
             }
+            if(p.key().startsWith("headless_")){
+                int count=Math.min(8,budget);budget-=count;
+                var centre=p.key().equals("headless_spin")?caster.position():p.origin();
+                var dust=new DustParticleOptions(new Vector3f(.55F,.12F,.2F),.8F);
+                for(int i=0;i<count;i++){
+                    double u=(i+(age/3)%count)/(double)count;
+                    double theta=Math.atan2(p.direction().z,p.direction().x)+Math.toRadians(p.angle())*(u-.5);
+                    double radius=p.key().equals("headless_roar")?p.range()*(.3+.7*(i%3)/2.0):p.range();
+                    var at=centre.add(Math.cos(theta)*radius,.12,Math.sin(theta)*radius);
+                    mc.level.addParticle(age<p.windup()?dust:ParticleTypes.SOUL_FIRE_FLAME,at.x,at.y,at.z,0,.015,0);
+                }continue;
+            }
             if(p.key().equals("stone_slam")){
                 var d=p.direction().multiply(1,0,1).normalize();
                 var side=new Vec3(-d.z,0,d.x).scale(com.dynasty.blueprint.StoneGuardBehavior.SLAM_WIDTH*.5);
