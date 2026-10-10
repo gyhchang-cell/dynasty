@@ -30,10 +30,16 @@ public final class ExpansionClient {
         });
     }
     private static final class Model extends GeoModel<SecondaryMob> {
+        private static final java.util.Set<String> DEDICATED_ATLASES=java.util.Set.of(
+                "river_imp","tree_spirit","shrimp_soldier","carp_spirit","snail_maiden","lantern_ghost","stone_sprite",
+                "crab_soldier","corpse_beetle","venom_scorpion","clockwork_rat","gray_wolf","wild_boar","golden_leopard","red_fox",
+                "gray_falcon","jingwei_bird","wooden_magpie","bat_demon","giant_python","stone_worm","locust_swarm",
+                "drowning_ghost","paper_money_ghost","wandering_spirit","bandit_thug","night_watchman","herb_picker",
+                "famished_refugee","swindler","paper_cut_child");
         @Override public ResourceLocation getModelResource(SecondaryMob m) {return new ResourceLocation("dynasty","geo/secondary/"+m.spec.id()+".geo.json");}
         @Override public ResourceLocation getAnimationResource(SecondaryMob m) {return new ResourceLocation("dynasty","animations/secondary/"+m.spec.id()+".animation.json");}
         @Override public ResourceLocation getTextureResource(SecondaryMob m) {
-            if(java.util.Set.of("river_imp","tree_spirit","shrimp_soldier","carp_spirit","snail_maiden","lantern_ghost","stone_sprite","crab_soldier","corpse_beetle","venom_scorpion","clockwork_rat","gray_wolf","wild_boar","golden_leopard","red_fox","gray_falcon","jingwei_bird","wooden_magpie","bat_demon").contains(m.spec.id()))
+            if(DEDICATED_ATLASES.contains(m.spec.id()))
                 return new ResourceLocation("dynasty","textures/entity/secondary/"+m.spec.id()+".png");
             String atlas=switch(m.spec.family()) {case "human"->m.spec.id().equals("bandit_thug")?"assassin":"minister";case "water"->"merfolk";case "fly"->m.spec.id().equals("wooden_magpie")?"terracotta_warrior":"phoenix";case "ghost"->"soul_soldier";default->m.spec.id().equals("red_fox")?"nine_tailed_fox":"nian_beast";};
             return new ResourceLocation("dynasty","textures/entity/"+atlas+".png");

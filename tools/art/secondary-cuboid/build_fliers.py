@@ -100,6 +100,8 @@ def main():
     manifest=json.loads((OUT/'model-manifest.json').read_text())
     for r in [bird('gray_falcon'),bird('jingwei_bird',stone=True),bird('wooden_magpie',mechanical=True),bat()]:
         animations(r);manifest[r.id]={'bones':len(r.bones),'cuboids':sum(len(b.get('cubes',[])) for b in r.bones),'palette':PALETTES[r.id],'atlas':[128,128],'geometry':'1.12.0','animations':'1.8.0'}
-    (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n');print('Generated four distinct flying rigs')
+    (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    from pixel16 import export
+    export();print('Generated four distinct flying rigs')
 
 if __name__=='__main__':main()

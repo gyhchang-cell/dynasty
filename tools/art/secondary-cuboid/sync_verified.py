@@ -74,12 +74,14 @@ def main():
     prompt = PROMPTS/'cod4.txt';original = prompt.read_bytes();text = original.decode()
     lines = text.splitlines(keepends=True)
     index = [i for i,l in enumerate(lines) if l.startswith('[ ] 逐只核对原表要求的 silhouette') or l.startswith('[ ] 继续核对并修复其余')]
-    assert len(index)==1
     remaining = sorted(p.name.removesuffix('.geo.json') for p in (OUT/'source').glob('*.geo.json') if p.name.removesuffix('.geo.json') not in accepted)
-    replacement = '[ ] 继续核对并修复其余'+str(len(remaining))+'只（'+', '.join(remaining)+'）的 silhouette、分段骨骼、材质与七态动作；须在真实客户端检查。\n'
-    oldline = lines[index[0]];lines[index[0]] = replacement;updated = ''.join(lines).encode()
+    assert len(index)==1 or (len(index)==0 and not remaining)
+    replacement = '[ ] 继续核对并修复其余'+str(len(remaining))+'只（'+', '.join(remaining)+'）的 silhouette、分段骨骼、材质与七态动作；须在真实客户端检查。\n' if remaining else ''
+    oldline = lines[index[0]] if index else ''
+    if index: lines[index[0]] = replacement
+    updated = ''.join(lines).encode()
     if updated != original:
-        backup = PROMPTS/'美术重做原文备份-20261010'/('cod4-before-'+str(len(accepted))+'-art.txt')
+        backup = PROMPTS/'美术重做原文备份-20261010'/('cod4-before-'+str(len(accepted))+'-art-'+digest(original)[:10]+'.txt')
         backup.parent.mkdir(parents=True,exist_ok=True)
         if backup.exists(): assert backup.read_bytes()==original
         else: backup.write_bytes(original)

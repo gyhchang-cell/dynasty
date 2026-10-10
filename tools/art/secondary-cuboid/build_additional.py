@@ -135,6 +135,8 @@ def main():
         animations(r);manifest[r.id]={'bones':len(r.bones),'cuboids':sum(len(b.get('cubes',[])) for b in r.bones),
                                      'palette':PALETTES[r.id],'atlas':[128,128],'geometry':'1.12.0','animations':'1.8.0'}
     path.write_text(json.dumps(manifest,indent=2)+'\n');print(json.dumps({r.id:manifest[r.id] for r in rigs},indent=2))
+    from pixel16 import export
+    export()
 
 
 if __name__=='__main__':main()

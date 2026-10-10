@@ -238,6 +238,8 @@ def main():
         clips(r);manifest[r.id]={'bones':len(r.bones),'cuboids':sum(len(b.get('cubes',[])) for b in r.bones),
                                  'palette':PALETTES[r.id],'atlas':[128,128],'geometry':'1.12.0','animations':'1.8.0'}
     (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    from pixel16 import export
+    export()
     print(json.dumps(manifest,indent=2))
 
 

@@ -15,6 +15,7 @@ def legs(r,front_z,rear_z,fox=False,boar=False):
     # readable in silhouette rather than copying a four-stick box animal.
     for i,(s,z) in enumerate([(-1,front_z),(1,front_z),(-1,rear_z),(1,rear_z)]):
         x=s*(3 if boar else 2.5)
+        if r.id=='golden_leopard' and i<2:x=s*2.25
         upper=r.bone('leg_'+str(i),(x,7,z),'body')
         if i<2:
             r.cube(upper,(x-1,3,z-.75),(2,4,2),1)
@@ -144,6 +145,8 @@ def main():
     for r in [wolf(),boar(),leopard(),fox()]:
         animations(r);manifest[r.id]={'bones':len(r.bones),'cuboids':sum(len(b.get('cubes',[])) for b in r.bones),'palette':PALETTES[r.id],'atlas':[128,128],'geometry':'1.12.0','animations':'1.8.0'}
     (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    from pixel16 import export
+    export()
     print('Generated four distinct beasts')
 
 if __name__=='__main__':main()

@@ -11,6 +11,12 @@ def main():
         gp=ASSET/f'geo/secondary/{id}.geo.json';ap=ASSET/f'animations/secondary/{id}.animation.json';tp=ASSET/f'textures/entity/secondary/{id}.png'
         g=json.loads(gp.read_text())['minecraft:geometry'][0];a=json.loads(ap.read_text())['animations'];im=Image.open(tp)
         assert len(im.getcolors(1000))==4,(id,'palette')
+        assert im.size==(16,16),(id,'actual 16x16 PNG required')
+        pixels=im.convert('RGB');white=(255,255,255)
+        assert all(pixels.getpixel((x,y))==white for x in range(16) for y in range(16) if x in (0,15) or y in (0,15)),(id,'white margin')
+        for y in range(0,16,2):
+            for x in range(0,16,2):
+                assert len(set(pixels.crop((x,y,x+2,y+2)).getdata()))==1,(id,'color regions must be 2x2 or larger')
         assert im.size==(g['description']['texture_width'],g['description']['texture_height'])
         names={b['name'] for b in g['bones']};assert len(names)==len(g['bones'])
         original=json.loads((OUT/f'source/{id}.geo.json').read_text())['minecraft:geometry'][0]
@@ -24,6 +30,9 @@ def main():
                 assert set(c['uv'])=={'north','south','east','west','up','down'}
                 for uv in c['uv'].values():
                     assert all(0<=uv['uv'][i]<=uv['uv'][i]+uv['uv_size'][i]<=im.size[i] for i in range(2)),(id,'UV bounds')
+                    assert all(float(v).is_integer() for v in uv['uv']+uv['uv_size']),(id,'pixel aligned UV')
+                    x,y=uv['uv'];w,h=uv['uv_size']
+                    assert white not in set(pixels.crop((x,y,x+w,y+h)).getdata()),(id,'background sampled by entity')
         for name,ch in a.items():
             assert set(ch['bones'])<=names,(id,name,'missing animated bone')
             for track in ch['bones'].values():

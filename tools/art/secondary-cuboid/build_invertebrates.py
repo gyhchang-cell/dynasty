@@ -162,6 +162,8 @@ def main():
     for r in [crab(),beetle(),scorpion(),rat()]:
         animations(r);manifest[r.id]={'bones':len(r.bones),'cuboids':sum(len(b.get('cubes',[])) for b in r.bones),'palette':PALETTES[r.id],'atlas':[128,128],'geometry':'1.12.0','animations':'1.8.0'}
     (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    from pixel16 import export
+    export()
     print('Generated four species rigs:',[(i,manifest[i]['cuboids']) for i in ['crab_soldier','corpse_beetle','venom_scorpion','clockwork_rat']])
 
 if __name__=='__main__':main()
