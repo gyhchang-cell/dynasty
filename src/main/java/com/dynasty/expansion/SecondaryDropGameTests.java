@@ -39,19 +39,40 @@ public final class SecondaryDropGameTests {
         }
         h.assertTrue(aliases==31&&com.dynasty.DynastyTrinkets.IDS.size()==201,"All thirty original actors/31 native aliases preserve201 original accessory registry");p.discard();h.succeed();
     }
+    public static final class NativeDeaths {
+        final Set<UUID> actors;final List<ItemEntity> drops=new ArrayList<>();int events;
+        NativeDeaths(List<SecondaryMob> actors){this.actors=actors.stream().map(Entity::getUUID).collect(java.util.stream.Collectors.toSet());}
+        @net.minecraftforge.eventbus.api.SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST,receiveCanceled=true)
+        public void observed(net.minecraftforge.event.entity.living.LivingDropsEvent e){if(actors.contains(e.getEntity().getUUID())){events++;if(!e.isCanceled())drops.addAll(e.getDrops());}}
+    }
     @GameTest(template="bow_ritual_test",batch="cod4_secondary_loot_death",setupTicks=20,timeoutTicks=80)
     public static void actualNativePlayerDamageDeathsUseOriginalLootOnceAndNeverMintMythicalFoxOrPalacePearl(GameTestHelper h){
         var p=player(h);String[] species={"famished_refugee","red_fox","giant_python","paper_cut_child","snail_maiden","clockwork_rat"};var actors=new ArrayList<SecondaryMob>();
-        for(int i=0;i<species.length;i++){var m=SecondaryMobs.TYPES.get(species[i]).get().create(h.getLevel());m.setPos(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(2+i*2,3,8))));m.setNoAi(true);h.getLevel().addFreshEntity(m);actors.add(m);}
+        for(int i=0;i<species.length;i++){
+            var m=SecondaryMobs.TYPES.get(species[i]).get().create(h.getLevel());m.setPos(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(2+i*2,3,8))));m.setNoAi(true);
+            // Original pools are probabilistic: six genuine zero-drop rolls are legal.
+            // Use the native saved loot seed on the SAME original table, so this positive
+            // corpse-payout test observes real drops deterministically. The preceding
+            // 192-seed test still validates the original complete probability pools.
+            var tableId=m.getLootTable();var table=h.getLevel().getServer().getLootData().getLootTable(tableId);long seed=1;
+            while(seed<=192&&table.getRandomItems(context(h,m,p),seed).isEmpty())seed++;
+            h.assertTrue(seed<=192,"Original native loot pool has a reachable positive roll: "+species[i]);var saved=m.saveWithoutId(new net.minecraft.nbt.CompoundTag());saved.putString("DeathLootTable",tableId.toString());saved.putLong("DeathLootTableSeed",seed);m.load(saved);
+            h.assertTrue(m.getLootTable().equals(tableId)&&m.getLootTableSeed()==seed,"Native saved seed selects original table, not a replacement guaranteed-loot fixture");h.getLevel().addFreshEntity(m);actors.add(m);
+        }
         h.startSequence().thenWaitUntil(()->{for(var m:actors)h.assertTrue(m.tickCount>=2&&h.getLevel().getEntity(m.getUUID())==m,"Actual native stationary damage fixture visible before kill");})
         .thenExecute(()->{
+            var observed=new NativeDeaths(actors);var bus=net.minecraftforge.common.MinecraftForge.EVENT_BUS;bus.register(observed);
+            try{
             for(var m:actors){h.assertTrue(m.hurt(p.damageSources().playerAttack(p),100000)&&m.isDeadOrDying(),"Real server player DamageSource drives native hurt/death/loot pipeline");h.assertTrue(!m.hurt(p.damageSources().playerAttack(p),100000),"Already dead native actor cannot pay another loot event");}
             h.runAfterDelay(3,()->{
-                var bounds=new AABB(h.absolutePos(BlockPos.ZERO),h.absolutePos(new BlockPos(16,8,16)));var drops=h.getLevel().getEntitiesOfClass(ItemEntity.class,bounds);
+                try{
+                var drops=observed.drops;h.assertTrue(observed.events==6&&drops.stream().allMatch(e->!e.isRemoved()&&h.getLevel().getEntity(e.getUUID())==e),"Exactly six actual native death events create live world-visible original items, excluding unrelated neighboring fixtures");
                 h.assertTrue(drops.stream().noneMatch(e->e.getItem().is(ExpansionContent.item("fox_tail"))||e.getItem().is(ExpansionContent.item("sea_pearl"))||e.getItem().is(ExpansionContent.item("dragon_pearl"))),"Real native deaths do not grant mythical material or palace-only accessory");
-                h.assertTrue(!drops.isEmpty()&&drops.stream().mapToInt(e->e.getItem().getCount()).sum()<=13,"Actual six native deaths have finite light loot, no duplicated corpse payout");var count=drops.stream().mapToInt(e->e.getItem().getCount()).sum();
-                h.runAfterDelay(5,()->{try{h.assertTrue(h.getLevel().getEntitiesOfClass(ItemEntity.class,bounds).stream().mapToInt(e->e.getItem().getCount()).sum()==count,"Further native corpse ticks cannot repeat primary/secondary rewards");h.succeed();}finally{drops.forEach(Entity::discard);actors.forEach(Entity::discard);p.discard();}});
+                h.assertTrue(!drops.isEmpty()&&drops.stream().mapToInt(e->e.getItem().getCount()).sum()<=13,"Actual six native deaths have finite light loot, no duplicated corpse payout: "+drops.stream().map(ItemEntity::getItem).toList());var count=drops.stream().mapToInt(e->e.getItem().getCount()).sum();
+                h.runAfterDelay(5,()->{try{h.assertTrue(observed.events==6&&drops.stream().allMatch(e->!e.isRemoved()&&h.getLevel().getEntity(e.getUUID())==e)&&drops.stream().mapToInt(e->e.getItem().getCount()).sum()==count,"Further native corpse ticks cannot repeat primary/secondary rewards");h.succeed();}finally{bus.unregister(observed);drops.forEach(Entity::discard);actors.forEach(Entity::discard);p.discard();}});
+                }catch(RuntimeException|AssertionError failure){bus.unregister(observed);observed.drops.forEach(Entity::discard);actors.forEach(Entity::discard);p.discard();throw failure;}
             });
+            }catch(RuntimeException|AssertionError failure){bus.unregister(observed);observed.drops.forEach(Entity::discard);actors.forEach(Entity::discard);p.discard();throw failure;}
         });
     }
 }
