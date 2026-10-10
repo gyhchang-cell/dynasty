@@ -84,10 +84,12 @@ public final class HeadlessGeneralGameTests {
             h.assertTrue(EliteEncounters.spawn(level,key,feet,entrant),"One native authored encounter spawns");
             var marker=BlueprintSpawnState.get(level).markers.get(key);var id=marker.members.iterator().next();
             h.assertTrue(!EliteEncounters.spawn(level,key,feet,entrant.offset(1,0,0)),"Second entrant cannot duplicate member");
-            var actor=level.getEntity(id);h.assertTrue(actor instanceof HeadlessGeneral,"Actual registered elite identity");actor.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
+            var actor=level.getEntity(id);h.assertTrue(actor instanceof HeadlessGeneral,"Actual registered elite identity");var actorState=new CompoundTag();actor.save(actorState);actor.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);
             h.assertTrue(!EliteEncounters.spawn(level,key,feet,entrant)&&marker.members.contains(id),"Null UUID lookup is not death");
             var snapshot=BlueprintSpawnState.load(BlueprintSpawnState.get(level).save(new CompoundTag()));
-            h.assertTrue(snapshot.markers.get(key).members.contains(id),"Native SavedData retains membership");h.succeed();
+            h.assertTrue(snapshot.markers.get(key).members.contains(id),"Native SavedData retains membership");
+            var restored=EliteContent.HEADLESS.get().create(level);restored.load(actorState);level.addFreshEntity(restored);restored.discard();
+            h.runAfterDelay(3,()->{h.assertTrue(marker.members.isEmpty()&&marker.nextSpawn>level.getGameTime(),"Confirmed permanent removal releases the same marker, unlike chunk unload");h.succeed();});
         }finally{rule.set(previous,level.getServer());}
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=240,batch="headless_world")

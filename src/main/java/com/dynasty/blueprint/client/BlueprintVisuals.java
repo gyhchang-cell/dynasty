@@ -132,7 +132,10 @@ public final class BlueprintVisuals {
                 var dust=new DustParticleOptions(new Vector3f(.65F,.1F,.2F),.85F);
                 for(int i=0;i<count;i++){
                     Vec3 at;
-                    if(p.key().equals("bird_bomb"))at=p.origin().add(forward.scale(3+(i/4)*3)).add(side.scale(-2.25+(i%4)*1.5));
+                    if(p.key().equals("bird_bomb")){
+                        var centre=com.dynasty.blueprint.elite.GhostCarriageBird.bloodLanding(p.origin(),forward,i);
+                        double theta=age*.45;at=centre.add(Math.cos(theta)*1.2,0,Math.sin(theta)*1.2);
+                    }
                     else if(p.key().equals("bird_dive"))at=p.origin().add(forward.scale(p.range()*(i/2)/3.0)).add(side.scale(i%2==0?.75:-.75));
                     else{double theta=(i/(double)count)*Math.PI*2;at=p.origin().add(Math.cos(theta)*p.range(),0,Math.sin(theta)*p.range());}
                     mc.level.addParticle(age<p.windup()?dust:ParticleTypes.SMOKE,at.x,at.y+.08,at.z,0,.015,0);

@@ -28,9 +28,14 @@ public final class ChenshaShortcutGameTests {
     private static Fixture generate(GameTestHelper h){
         var level=h.getLevel();var origin=h.absolutePos(new BlockPos(-16,80,-16));var id=UUID.randomUUID();
         for(int x=1;x<=2;x++)for(int z=0;z<=1;z++){
-            var chunk=new ChunkPos(origin.offset(x*16,0,z*16));level.getChunk(chunk.x,chunk.z);
-            var clip=new BoundingBox(chunk.getMinBlockX(),level.getMinBuildHeight(),chunk.getMinBlockZ(),chunk.getMaxBlockX(),level.getMaxBuildHeight()-1,chunk.getMaxBlockZ());
-            new ChenshaPiece(origin,x,z,id).postProcess(level,level.structureManager(),level.getChunkSource().getGenerator(),RandomSource.create(59),clip,chunk,origin);
+            var piece=new ChenshaPiece(origin,x,z,id);var bounds=piece.getBoundingBox();
+            // GameTest grid origins need not align with world chunks. A sixteen-block column
+            // may intersect four native chunks; execute the production clipping path for all of them.
+            for(int cx=bounds.minX()>>4;cx<=bounds.maxX()>>4;cx++)for(int cz=bounds.minZ()>>4;cz<=bounds.maxZ()>>4;cz++){
+                var chunk=new ChunkPos(cx,cz);level.getChunk(cx,cz);
+                var clip=new BoundingBox(chunk.getMinBlockX(),level.getMinBuildHeight(),chunk.getMinBlockZ(),chunk.getMaxBlockX(),level.getMaxBuildHeight()-1,chunk.getMaxBlockZ());
+                piece.postProcess(level,level.structureManager(),level.getChunkSource().getGenerator(),RandomSource.create(59),clip,chunk,origin);
+            }
         }
         return new Fixture(origin,id);
     }

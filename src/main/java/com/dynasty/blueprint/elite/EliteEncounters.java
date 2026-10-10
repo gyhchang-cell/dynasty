@@ -13,6 +13,7 @@ import net.minecraft.world.level.*;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import java.util.HashSet;
@@ -24,6 +25,13 @@ public final class EliteEncounters {
     public static final Placement HEADLESS=new Placement("minecraft:overworld","existing ruined battlefield military camp","STRUCTURE_ENCOUNTER","12000 ticks after confirmed death; unloaded UUID retains slot",1,"NONE");
     public static final Placement BIRD=new Placement("minecraft:overworld","night sky over an existing ruined battlefield","RARE_STRUCTURE_FLIGHT_EVENT","12000 ticks after confirmed death; unloaded UUID retains slot",1,"NONE");
     private static final TagKey<Structure> SITES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/battlefields"));
+    public static void memberDied(Entity mob){
+        if(mob.level() instanceof ServerLevel level)BlueprintSpawnState.get(level.getServer().overworld()).memberDied(mob.getUUID(),level.getGameTime());
+    }
+    @SubscribeEvent public static void left(EntityLeaveLevelEvent event){
+        var entity=event.getEntity();
+        if((entity instanceof HeadlessGeneral||entity instanceof GhostCarriageBird)&&entity.getRemovalReason()!=null&&entity.getRemovalReason().shouldDestroy())memberDied(entity);
+    }
     @SubscribeEvent public static void tick(TickEvent.LevelTickEvent event){
         if(event.phase!=TickEvent.Phase.END||!(event.level instanceof ServerLevel level)||level.dimension()!=Level.OVERWORLD
                 ||level.getGameTime()%100!=0||level.getDifficulty()==Difficulty.PEACEFUL||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return;

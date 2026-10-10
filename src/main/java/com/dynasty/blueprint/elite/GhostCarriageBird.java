@@ -60,6 +60,10 @@ public final class GhostCarriageBird extends Monster implements GeoEntity,Combat
     public AttackState phase(){return AttackState.values()[Math.min(4,Math.max(0,entityData.get(PHASE)))];}
     public Vec3 landing(){return landing;}
     public Vec3 telegraphOrigin(){return skillId()==PECK.id()?landing:new Vec3(attack.origin().x,landing.y,attack.origin().z);}
+    public static Vec3 bloodLanding(Vec3 origin,Vec3 forward,int index){
+        var side=new Vec3(forward.z,0,-forward.x);
+        return Vec3.atBottomCenterOf(BlockPos.containing(origin.add(forward.scale(3+(index/4)*3)).add(side.scale(-1.8+(index%4)*1.2)))).add(0,.03,0);
+    }
     public void bindEncounter(String key){site=key.length()<=256?key:"";}
     public String encounterSite(){return site;}
     public static SkillDefinition skill(int id){return switch(id){case 311->PECK;case 312->BOMB;case 313->DIVE;default->null;};}
@@ -112,14 +116,12 @@ public final class GhostCarriageBird extends Monster implements GeoEntity,Combat
             }
         }else if(attack.current()==BOMB){
             // Eight warned landing cells, at most eight clouds belonging to this encounter.
-            var forward=attack.direction();var side=new Vec3(forward.z,0,-forward.x);
+            var forward=attack.direction();
             int alive=server.getEntitiesOfClass(SkullBloodPool.class,getBoundingBox().inflate(24),p->p.ownedBy(this)&&p.isAlive()).size();
             for(int n=0;n<8&&alive<8;n++){
-                var point=attack.origin().add(forward.scale(3+(n/4)*3)).add(side.scale(-2.25+(n%4)*1.5));
-                var feet=BlockPos.containing(point.x,landing.y,point.z);
+                var at=bloodLanding(telegraphOrigin(),forward,n);var feet=BlockPos.containing(at);
                 if(!server.hasChunkAt(feet)||!server.getBlockState(feet.below()).isFaceSturdy(server,feet.below(),Direction.UP)
                         ||!server.getBlockState(feet).getCollisionShape(server,feet).isEmpty())continue;
-                var at=Vec3.atBottomCenterOf(feet).add(0,.03,0);
                 if(server.clip(new ClipContext(position(),at,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,this)).getType()!=HitResult.Type.MISS)continue;
                 var pool=new SkullBloodPool(BlueprintEntities.SKULL_BLOOD_POOL.get(),server);pool.setOwner(this);pool.activate(server.getGameTime());pool.setBirdVenom(true);pool.setPos(at.x,at.y,at.z);
                 if(server.addFreshEntity(pool))alive++;
@@ -165,7 +167,7 @@ public final class GhostCarriageBird extends Monster implements GeoEntity,Combat
     @Override public void die(DamageSource source){
         if(deathStart>=0)return;super.die(source);if(!isDeadOrDying())return;
         deathStart=level().getGameTime();release();attack.cancel();navigation.stop();setNoGravity(false);
-        if(level() instanceof ServerLevel server){BlueprintVisualEvent.cancel(this);BlueprintSpawnState.get(server).memberDied(getUUID(),server.getGameTime());
+        if(level() instanceof ServerLevel server){BlueprintVisualEvent.cancel(this);EliteEncounters.memberDied(this);
             server.getEntitiesOfClass(SkullBloodPool.class,getBoundingBox().inflate(24),p->p.ownedBy(this)).forEach(Entity::discard);}
         entityData.set(SKILL,0);entityData.set(START,deathStart);entityData.set(PHASE,AttackState.IDLE.ordinal());
     }

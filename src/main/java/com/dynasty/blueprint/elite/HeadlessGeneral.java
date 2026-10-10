@@ -126,7 +126,7 @@ public final class HeadlessGeneral extends Monster implements GeoEntity, Combata
     @Override public void die(DamageSource source){
         if(deathStart>=0)return;super.die(source);if(!isDeadOrDying())return;
         deathStart=level().getGameTime();attack.cancel();navigation.stop();setTarget(null);
-        if(!level().isClientSide){BlueprintVisualEvent.cancel(this);BlueprintSpawnState.get((ServerLevel)level()).memberDied(getUUID(),level().getGameTime());}
+        if(!level().isClientSide){BlueprintVisualEvent.cancel(this);EliteEncounters.memberDied(this);}
         entityData.set(SKILL,0);entityData.set(START,deathStart);entityData.set(PHASE,AttackState.IDLE.ordinal());
     }
     @Override protected void dropAllDeathLoot(DamageSource source){if(lootDropped)return;lootDropped=true;super.dropAllDeathLoot(source);}
