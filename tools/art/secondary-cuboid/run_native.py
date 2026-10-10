@@ -12,10 +12,28 @@ from pathlib import Path
 import shutil
 import subprocess
 import time
+import zipfile
 
 REPO=Path(__file__).resolve().parents[3]
 p=argparse.ArgumentParser();p.add_argument('launch',type=Path);p.add_argument('run');p.add_argument('--ids',default='river_imp,tree_spirit,shrimp_soldier');p.add_argument('--boss-audit',action='store_true');p.add_argument('--boss-final',action='store_true');args=p.parse_args()
 assert args.run and all(c.isalnum() or c in '-_' for c in args.run)
+production={}
+if args.boss_final:
+    # Refuse stale build outputs after a source edit or failed compilation.
+    jar=REPO/'build/libs/dynasty-1.4.0.jar'
+    assert jar.read_bytes()==(REPO/'build/reobfJar/output.jar').read_bytes(),'Production remap mismatch'
+    production['jarSha256']=hashlib.sha256(jar.read_bytes()).hexdigest()
+    production['sources']={}
+    for name in ['DynastyClientEvents','BossCuboidRenderer','BossCuboidAura']:
+        src=REPO/f'src/main/java/com/dynasty/client/{name}.java'
+        if not src.exists():continue
+        assert src.stat().st_mtime_ns<=jar.stat().st_mtime_ns,'Java source newer than JAR: '+name
+        production['sources'][str(src.relative_to(REPO))]=hashlib.sha256(src.read_bytes()).hexdigest()
+    with zipfile.ZipFile(jar) as z:
+        for id in args.ids.split(','):
+            for entry in [f'geo/boss_cuboid/{id}.geo.json',f'animations/boss_cuboid/{id}.animation.json',f'textures/entity/boss_cuboid/{id}.png']:
+                path='assets/dynasty/'+entry;data=(REPO/'src/main/resources'/path).read_bytes()
+                assert data==z.read(path)==(REPO/'build/resources/main'/path).read_bytes(),'Boss resource newer than build: '+id
 root=REPO/'build/secondary-art-native'/args.run
 root.mkdir(parents=True,exist_ok=False)
 output=REPO/'docs/art/secondary-cuboid-v1/native'/args.run
@@ -48,7 +66,7 @@ if args.boss_final:jvm+=['-Ddynasty.secondaryArtQa.bossFinal=true']
 work=root/'host';work.mkdir();(work/'options.txt').write_text('soundCategory_master:0.0\nfullscreen:false\n')
 (work/'config').mkdir();(work/'config/fml.toml').write_text('earlyWindowControl=false\n')
 cfg.update(jvmArgs=jvm,directory=str(work));(root/'launch.json').write_text(json.dumps(cfg,indent=2)+'\n')
-(output/'runtime-manifest.json').write_text(json.dumps({'run':args.run,'trees':manifest},indent=2)+'\n')
+(output/'runtime-manifest.json').write_text(json.dumps({'run':args.run,'trees':manifest,'production':production},indent=2)+'\n')
 log=(root/'client.log').open('w');child=subprocess.Popen([cfg['executable'],*jvm,'-cp',cfg['classpath'],cfg['main'],*cfg['args']],
     cwd=work,env=dict(os.environ,**cfg['environment']),stdout=log,stderr=subprocess.STDOUT)
 print('Started native art QA:',child.pid,root,flush=True)

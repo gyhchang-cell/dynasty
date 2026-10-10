@@ -20,13 +20,28 @@ import software.bernie.geckolib.core.object.PlayState;
 import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.renderer.GeoReplacedEntityRenderer;
 import software.bernie.geckolib.renderer.layer.BlockAndItemGeoLayer;
+import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
+import software.bernie.geckolib.cache.object.BakedGeoModel;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.RenderType;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /** Client-only rig replacement; existing mobs, saves, AI, hitboxes and skills stay authoritative. */
 public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRenderer<E,BossCuboidRenderer.Visual> {
+    private final boolean imperialDragon;
     public BossCuboidRenderer(EntityRendererProvider.Context context,EntityType<E> type,String id){
         super(context,new Model(id),new Visual(type));
-        shadowRadius=id.equals("dragon_king")?.7f:.5f;
+        imperialDragon=id.equals("dragon_emperor");
+        shadowRadius=imperialDragon?1.8f:id.equals("dragon_king")?.7f:.5f;
+        if(imperialDragon)withScale(1.4f);
+        if(id.equals("nine_heaven_general"))addRenderLayer(new GeoRenderLayer<Visual>(this){
+            @Override public void render(PoseStack pose,Visual visual,BakedGeoModel model,RenderType type,MultiBufferSource buffers,VertexConsumer vertex,float partial,int light,int overlay){
+                if(getCurrentEntity().isInvisible())return;
+                // Rings and six thunder blades are now authored Cuboids in the
+                // rig. Preserve the depth-tested rune lines behind it as VFX.
+                BossCuboidAura.draw(pose,buffers,getCurrentEntity().tickCount+partial);
+            }
+        });
         // Preserve actual main/offhand equipment at articulated grip bones.
         addRenderLayer(new BlockAndItemGeoLayer<Visual>(this){
             @Override protected ItemStack getStackForBone(GeoBone bone,Visual visual){
@@ -52,6 +67,10 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
                 context.getItemInHandRenderer().renderItem(getCurrentEntity(),item,left?ItemDisplayContext.THIRD_PERSON_LEFT_HAND:ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,left,pose,buffers,light);
             }
         });
+    }
+    @Override protected float getDeathMaxRotation(Visual visual){
+        // The quadruped's body clip authors its own roll; avoid a second 90° flip.
+        return imperialDragon?0:super.getDeathMaxRotation(visual);
     }
 
     public static final class Visual implements GeoReplacedEntity {

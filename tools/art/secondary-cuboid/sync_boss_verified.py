@@ -18,18 +18,20 @@ def main():
  for id,run in accepted.items():
   folder=REPO/'docs/art/secondary-cuboid-v1/native'/run
   assert (folder/'PASS.txt').read_text().splitlines()[-1].startswith('PASS:')
-  tree=json.loads((folder/'runtime-manifest.json').read_text())['trees'];trees.append(tree)
+  runtime=json.loads((folder/'runtime-manifest.json').read_text());tree=runtime['trees'];trees.append(tree)
+  for path,digest in runtime.get('production',{}).get('sources',{}).items():assert sha((REPO/path).read_bytes())==digest,(path,'native source changed')
+  if runtime.get('production',{}).get('jarSha256'):assert sha((REPO/'build/libs/dynasty-1.4.0.jar').read_bytes())==runtime['production']['jarSha256'],'native build changed'
   entries={e['path']:e['sha256'] for e in tree[0]['files']}
   for path,digest in static[id]['resources'].items():
    assert sha((REPO/path).read_bytes())==digest
    assert entries[path.removeprefix('src/main/resources/')]==digest,(id,'current resource not tested')
    files[path]=digest
- for path in ['src/main/java/com/dynasty/client/DynastyClientEvents.java','src/main/java/com/dynasty/client/BossCuboidRenderer.java']:
+ for path in ['src/main/java/com/dynasty/client/DynastyClientEvents.java','src/main/java/com/dynasty/client/BossCuboidRenderer.java','src/main/java/com/dynasty/client/BossCuboidAura.java']:
   files[path]=sha((REPO/path).read_bytes())
  # Runtime freezes Java output as well as assets. Check every changed renderer class.
  for tree in trees:
   entries={e['path']:e['sha256'] for e in tree[1]['files']}
-  for f in (REPO/'build/classes/java/main/com/dynasty/client').glob('BossCuboidRenderer*.class'):
+  for f in (REPO/'build/classes/java/main/com/dynasty/client').glob('BossCuboid*.class'):
    key=str(f.relative_to(REPO/'build/classes/java/main'));assert sha(f.read_bytes())==entries[key],key
   key='com/dynasty/client/DynastyClientEvents.class'
   assert sha((REPO/'build/classes/java/main'/key).read_bytes())==entries[key]

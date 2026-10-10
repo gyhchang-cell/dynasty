@@ -88,7 +88,7 @@ public final class SecondaryArtClientQa {
         fixture=BOSS_AUDIT?(net.minecraft.world.entity.Mob)net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",id)).create(world):
             (id.equals("shrimp_soldier")?SecondaryMobs.SHRIMP.get():SecondaryMobs.TYPES.get(id).get()).create(world);
         fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();world.addFreshEntity(fixture);
-        if(BOSS_FINAL){
+        if(BOSS_FINAL&&!id.equals("dragon_emperor")){
             fixture.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND,new net.minecraft.world.item.ItemStack(id.equals("dragon_king")?net.minecraft.world.item.Items.TRIDENT:net.minecraft.world.item.Items.STONE_SWORD));
             fixture.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.SHIELD));
         }
@@ -133,8 +133,15 @@ public final class SecondaryArtClientQa {
                     if(!(mc.getEntityRenderDispatcher().getRenderer(mob) instanceof BossCuboidRenderer<?> renderer))throw new AssertionError("Missing final boss renderer");
                     var visual=renderer.getAnimatable();var model=renderer.getGeoModel();model.getBakedModel(model.getModelResource(visual));
                     for(String clip:BOSS_CLIPS)if(model.getAnimation(visual,clip)==null)throw new AssertionError("Missing boss clip "+clip);
-                    for(String bone:List.of("root","body","chest","neck","head","jaw","left_arm","right_arm","left_grip","right_grip"))if(model.getBone(bone).isEmpty())throw new AssertionError("Missing boss bone "+bone);
-                    for(String side:List.of("left","right"))if(model.getBone(side+"_grip").orElseThrow().getParent()!=model.getBone(side+"_hand").orElseThrow())throw new AssertionError("Detached equipped item anchor");
+                    for(String bone:List.of("root","body","chest","head","jaw"))if(model.getBone(bone).isEmpty())throw new AssertionError("Missing boss bone "+bone);
+                    if(id.equals("dragon_emperor")){
+                        for(int i=0;i<9;i++)if(model.getBone("tail_"+i).isEmpty())throw new AssertionError("Lost imperial tail joint");
+                        for(int i=0;i<4;i++)if(model.getBone("neck_"+i).isEmpty())throw new AssertionError("Lost imperial neck block");
+                        for(String side:List.of("left","right"))for(String end:List.of("front","hind"))if(model.getBone(end+"_"+side+"_leg_shin").isEmpty())throw new AssertionError("Missing quadruped knee");
+                        if(model.getBone("mouth").orElseThrow().getParent()!=model.getBone("head").orElseThrow())throw new AssertionError("Detached mouth anchor");
+                    }else{
+                        for(String side:List.of("left","right"))if(model.getBone(side+"_grip").orElseThrow().getParent()!=model.getBone(side+"_hand").orElseThrow())throw new AssertionError("Detached equipped item anchor");
+                    }
                     try(var stream=mc.getResourceManager().open(model.getTextureResource(visual));var image=com.mojang.blaze3d.platform.NativeImage.read(stream)){
                         if(image.getWidth()!=16||image.getHeight()!=16)throw new AssertionError("Boss texture not 16px");
                         Set<Integer> colors=new HashSet<>();

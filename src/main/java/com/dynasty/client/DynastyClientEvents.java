@@ -221,7 +221,7 @@ public class DynastyClientEvents {
                 ctx -> new DynastyDetailedBeastRenderer<>(ctx, NIAN_BEAST_LAYER, TEX_NIAN_BEAST, 0.9F,
                         DetailedBeastModel.Kind.NIAN));
         event.registerEntityRenderer(DynastyEntities.DRAGON_EMPEROR.get(),
-                DragonEmperorRenderer::new);
+                ctx -> new BossCuboidRenderer<>(ctx,DynastyEntities.DRAGON_EMPEROR.get(),"dragon_emperor"));
         event.registerEntityRenderer(DynastyEntities.REBEL_GENERAL.get(),
                 ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.GENERAL));
         event.registerEntityRenderer(DynastyEntities.EUNUCH_MASTERMIND.get(),
@@ -244,7 +244,7 @@ public class DynastyClientEvents {
         event.registerEntityRenderer(DynastyEntities.MERFOLK.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, MERFOLK_LAYER, TEX_MERFOLK, 0.5F));
         event.registerEntityRenderer(DynastyEntities.NINE_HEAVEN_GENERAL.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, NINE_HEAVEN_GENERAL_LAYER, TEX_NINE_HEAVEN_GENERAL, 0.9F,2));
+                ctx -> new BossCuboidRenderer<>(ctx,DynastyEntities.NINE_HEAVEN_GENERAL.get(),"nine_heaven_general"));
         event.registerEntityRenderer(DynastyEntities.DRAGON_KING.get(),
                 ctx -> new BossCuboidRenderer<>(ctx,DynastyEntities.DRAGON_KING.get(),"dragon_king"));
     }
