@@ -697,6 +697,17 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (!level().isClientSide && deathStarted >= 0)
             deathTime = (int)Math.min(240, Math.max(deathTime, level().getGameTime() - deathStarted));
         if (kind == Kind.SHIELD) setDeltaMovement(Vec3.ZERO);
+        else if(!level().isClientSide&&!isNoGravity()){
+            // LivingEntity stops ordinary travel once dead. Gravity alone cannot drop a flying
+            // corpse or a ceiling climber; keep the normal block/world-border collision path.
+            var velocity=getDeltaMovement();
+            if(onGround())setDeltaMovement(Vec3.ZERO);
+            else{
+                setDeltaMovement(velocity.x*.8,Math.max(-.8,velocity.y-.08),velocity.z*.8);
+                move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());
+                if(onGround())setDeltaMovement(Vec3.ZERO);
+            }
+        }
         int duration = deathDuration();
         if (deathTime >= duration && !level().isClientSide && !isRemoved()) {
             level().broadcastEntityEvent(this, (byte)60); remove(RemovalReason.KILLED);

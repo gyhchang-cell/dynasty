@@ -30,6 +30,22 @@ public final class SkullGameTests {
         p.moveTo(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(x,2,z))));p.getFoodData().setFoodLevel(10);p.getFoodData().setSaturation(0);h.getLevel().addNewPlayer(p);
         h.onEachTick(()->{if(!p.isRemoved())p.doTick();});return p;
     }
+    @GameTest(template="bow_ritual_test",timeoutTicks=65,batch="skull_death")
+    public static void flyingCorpsesActuallyFallAndLandWithoutBypassingBlocks(GameTestHelper h){
+        skull(h).discard();var level=h.getLevel();var bodies=new java.util.ArrayList<TemplateMob>();
+        var types=java.util.List.of(BlueprintEntities.MUXUE_FEILU.get(),BlueprintEntities.YOUDENG_GUIMIANFU.get(),BlueprintEntities.XUEJU_MANGGUYU.get(),BlueprintEntities.TONGBI_FEITIAN_YECHA.get());
+        for(int i=0;i<types.size();i++){
+            var mob=h.spawn(types.get(i),new BlockPos(3+i*3,6,7));mob.setNoAi(true);mob.setPersistenceRequired();
+            mob.hurt(mob.damageSources().genericKill(),10000);bodies.add(mob);
+            h.assertTrue(mob.isDeadOrDying()&&!mob.isNoGravity(),"Actual death releases flight gravity: "+mob.blueprintId());
+        }
+        double floor=h.absolutePos(new BlockPos(0,2,0)).getY();
+        h.runAfterDelay(30,()->{
+            for(var mob:bodies)h.assertTrue(!mob.isRemoved()&&mob.onGround()&&Math.abs(mob.getY()-floor)<.05,
+                "Native collision movement lands the corpse on the real floor: "+mob.blueprintId()+" y="+mob.getY()+" floor="+floor+" grounded="+mob.onGround());
+        });
+        h.runAfterDelay(48,()->{for(var mob:bodies)h.assertTrue(mob.isRemoved(),"Landing cannot extend the original 44-tick death lifetime");h.succeed();});
+    }
     @GameTest(template="bow_ritual_test",timeoutTicks=65,batch="skull")
     public static void diveWarnsThenMakesOnePhysicalContactAcrossReload(GameTestHelper h){
         var mob=skull(h);mob.setNoAi(false);var cow=enemy(h);h.assertTrue(mob.startSkill(ArmySkills.SKULL_DIVE,cow),"Airborne skull starts actual dive");
