@@ -59,6 +59,27 @@ public final class RoofRepairNativeGameTests {
             h.assertTrue(restored!=null&&restored.dimension().equals(h.getLevel().dimension().location().toString())&&restored.anchor().equals(f.player.blockPosition())&&restored.cells().size()==1&&restored.cells().get(f.terrain).equals(before),"Actual compressed disk/NBT read preserves bounded original position/state/dimension/operator receipt for recovery, not a live old-world claim");h.succeed();
         }finally{close(f);}
     }
+    @GameTest(template="bow_ritual_test",batch="cod6_roof_native_supported_decoration",setupTicks=20,timeoutTicks=100)
+    public static void actualSupportedTorchAndElevatedChestReserveEntireColumnAndPostPreviewChangeCannotPopPlayerDecoration(GameTestHelper h)throws Exception{
+        var f=fixture(h);try{
+            var level=h.getLevel();var ornament=f.terrain.above();level.setBlockAndUpdate(ornament,Blocks.TORCH.defaultBlockState());
+            var survey=NaturalSculptures.roofSurvey(f.player);h.assertTrue(level.getBlockState(ornament).is(Blocks.TORCH)&&survey.cells().isEmpty()&&survey.reserved()>0,"Real supported torch reserves its original supporting stone, not merely the decoration itself");
+            int drops=level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new net.minecraft.world.phys.AABB(f.terrain).inflate(4)).size();
+            h.assertTrue(command(f.player,"preview",2)==0&&command(f.player,"confirm",2)==0&&level.getBlockState(f.terrain).is(Blocks.STONE)&&level.getBlockState(ornament).is(Blocks.TORCH)&&level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new net.minecraft.world.phys.AABB(f.terrain).inflate(4)).size()==drops,"Actual admin no-op preserves supported native decoration and creates no neighbor-update item drops");
+            level.setBlockAndUpdate(ornament,Blocks.AIR.defaultBlockState());h.assertTrue(command(f.player,"preview",2)==1,"Only explicitly empty column becomes an original legal terrain preview");
+            level.setBlockAndUpdate(ornament,Blocks.CHEST.defaultBlockState());var chest=(net.minecraft.world.level.block.entity.ChestBlockEntity)level.getBlockEntity(ornament);chest.setItem(0,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND,17));var saved=chest.saveWithFullMetadata();
+            h.assertTrue(command(f.player,"confirm",2)==0&&level.getBlockState(f.terrain).is(Blocks.STONE)&&chest.saveWithFullMetadata().equals(saved),"Actual elevated player chest after preview invalidates confirmation, preserves its support and exact17diamond native NBT");h.succeed();
+        }finally{close(f);}
+    }
+    @GameTest(template="bow_ritual_test",batch="cod6_roof_native_side_attachment",setupTicks=20,timeoutTicks=100)
+    public static void actualWallTorchAttachedBesideCandidateKeepsItsStoneSupportAndNativeDecorationWithoutNeighborDrops(GameTestHelper h)throws Exception{
+        var f=fixture(h);try{
+            var level=h.getLevel();var side=f.terrain.west();level.setBlockAndUpdate(side,Blocks.WALL_TORCH.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING,Direction.WEST));
+            h.assertTrue(level.getBlockState(side).is(Blocks.WALL_TORCH)&&level.getBlockState(side).canSurvive(level,side),"Actual native side decoration really depends on candidate stone support");
+            int before=level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new net.minecraft.world.phys.AABB(f.terrain).inflate(4)).size();
+            var survey=NaturalSculptures.roofSurvey(f.player);h.assertTrue(survey.cells().isEmpty()&&survey.reserved()>0&&command(f.player,"preview",2)==0&&command(f.player,"confirm",2)==0&&level.getBlockState(f.terrain).is(Blocks.STONE)&&level.getBlockState(side).is(Blocks.WALL_TORCH)&&level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new net.minecraft.world.phys.AABB(f.terrain).inflate(4)).size()==before,"Real readonly preview preserves nearby attached native torch, supporting terrain and item-entity count");h.succeed();
+        }finally{close(f);}
+    }
     @GameTest(template="bow_ritual_test",batch="cod6_roof_native_stale",setupTicks=20,timeoutTicks=100)
     public static void actualEmptyPreviewMovementAndEditedRoofInvalidateOldPlanWithoutDeletingAnyTerrain(GameTestHelper h)throws Exception{
         var f=fixture(h);try{

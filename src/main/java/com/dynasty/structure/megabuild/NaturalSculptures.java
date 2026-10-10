@@ -100,10 +100,23 @@ public final class NaturalSculptures {
                 if(!level.getBlockState(roof).equals(r.palette[b.at(lx,top,lz)])){altered++;continue;}
                 var key=new ChunkPos(roof);Tile chosen=selected;
                 var foreign=neighbors.computeIfAbsent(key,k->otherBounds(level,k.x,k.z,chosen));
+                // Preserve supporting terrain too: changing it can pop a torch or disturb a container.
+                boolean protectedColumn=false;
+                // One protective cell beyond the clearing boundary, never part of the removal plan.
+                for(int y=top+1;y<=b.clearTop(lx,lz)+1;y++) {
+                    var at=new BlockPos(x,selected.origin.getY()+y,z);var state=level.getBlockState(at);
+                    if(level.getBlockEntity(at)!=null||!state.isAir()&&!RoofRepair.terrain(state)||foreign.stream().anyMatch(box->box.isInside(at)))protectedColumn=true;
+                    for(var side:net.minecraft.core.Direction.Plane.HORIZONTAL){
+                        var beside=at.relative(side);if(!level.hasChunkAt(beside)){protectedColumn=true;continue;}
+                        var neighbor=level.getBlockState(beside).getBlock();
+                        if(neighbor instanceof net.minecraft.world.level.block.WallTorchBlock||neighbor instanceof net.minecraft.world.level.block.LadderBlock||neighbor instanceof net.minecraft.world.level.block.WallSignBlock||neighbor instanceof net.minecraft.world.level.block.WallBannerBlock||neighbor instanceof net.minecraft.world.level.block.FaceAttachedHorizontalDirectionalBlock)protectedColumn=true;
+                    }
+                }
                 for(int y=top+1;y<=b.clearTop(lx,lz);y++) {
                     var pos=new BlockPos(x,selected.origin.getY()+y,z);var state=level.getBlockState(pos);
                     if(level.getBlockEntity(pos)!=null){containers++;continue;}
                     if(foreign.stream().anyMatch(box->box.isInside(pos))){reserved++;continue;}
+                    if(protectedColumn){if(!state.isAir())reserved++;continue;}
                     if(RoofRepair.terrain(state)&&plan.size()<8192)plan.put(pos.immutable(),state);
                 }
             }
