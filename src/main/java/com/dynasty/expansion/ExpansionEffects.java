@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /** Effects share the existing registry; all stacking and damage are server-authoritative. */
+@net.minecraftforge.fml.common.Mod.EventBusSubscriber(modid="dynasty")
 public final class ExpansionEffects {
     public static final RegistryObject<MobEffect> YIN = effect("yin_qi", false, 0x556A83, Attributes.MOVEMENT_SPEED, -.06);
     public static final RegistryObject<MobEffect> YANG = effect("yang_qi", true, 0xE7C866, Attributes.ATTACK_DAMAGE, .04);
@@ -20,6 +21,13 @@ public final class ExpansionEffects {
     public static final RegistryObject<MobEffect> BREAK = effect("armor_break", false, 0xB78664, Attributes.ARMOR, -.20);
     public static final RegistryObject<MobEffect> STAGGER = effect("stagger", false, 0xAAA09B, Attributes.MOVEMENT_SPEED, -.65);
     public static void bootstrap() { }
+    /** Existing environmental relief, before native effect-map iteration; no parallel status ledger. */
+    @net.minecraftforge.eventbus.api.SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.HIGHEST)
+    public static void environment(net.minecraftforge.event.entity.living.LivingEvent.LivingTickEvent event){
+        var target=event.getEntity();
+        if(target.level().isClientSide||!target.isAlive()||target.tickCount%20!=0||!target.hasEffect(FROST.get())||!target.isInWater())return;
+        if(GeothermalWater.warm(target.level(),target.blockPosition()))target.removeEffect(FROST.get());
+    }
     private static RegistryObject<MobEffect> effect(String id, boolean good, int color, Attribute attr, double amount) {
         return DynastyEffects.EFFECTS.register(id, () -> new MobEffect(good ? MobEffectCategory.BENEFICIAL : MobEffectCategory.HARMFUL, color) {
             { if (attr != null) addAttributeModifier(attr, UUID.nameUUIDFromBytes(("dynasty:"+id).getBytes(StandardCharsets.UTF_8)).toString(), amount, AttributeModifier.Operation.MULTIPLY_TOTAL); }
