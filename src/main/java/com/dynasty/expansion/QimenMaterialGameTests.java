@@ -64,7 +64,7 @@ public final class QimenMaterialGameTests {
                 for(int i=0;i<2;i++){
                     var rat=rats[i];var saved=new CompoundTag();rat.save(saved);var stolen=ItemStack.of(saved.getCompound("Cod4Stolen"));
                     h.assertTrue(rat.position().distanceToSqr(starts[i])>4&&!rat.isNoAi()&&stolen.is(ExpansionContent.item("qimen_gear"))&&stolen.getCount()==1&&baits[i].getItem().getCount()==1,
-                        "Actual native navigation reaches gear in both AI scheduling phases: phase="+i+", start="+starts[i]+", rat="+rat.position()+", ticks="+rat.tickCount+", id="+rat.getId()+", stolen="+stolen+", bait="+baits[i].getItem());
+                        "Actual native navigation reaches gear in both AI scheduling phases: phase="+i+", start="+starts[i]+", rat="+rat.position()+", ticks="+rat.tickCount+", id="+rat.getId()+", stolen="+stolen+", bait="+baits[i].getItem()+", baitPos="+baits[i].position()+", los="+rat.hasLineOfSight(baits[i])+", collisionFree="+h.getLevel().noCollision(rat)+", navDone="+rat.getNavigation().isDone()+", path="+rat.getNavigation().getPath()+", water="+rat.isInWater()+", target="+rat.getTarget()+", below="+h.getLevel().getBlockState(rat.blockPosition().below())+", barrier="+h.getBlockState(new BlockPos(7,2,8+i*5)));
                     rat.discard();restored[i]=SecondaryMobs.TYPES.get("clockwork_rat").get().create(h.getLevel());restored[i].load(saved);
                 }
                 h.runAfterDelay(3,()->{for(var rat:restored)h.getLevel().addFreshEntity(rat);

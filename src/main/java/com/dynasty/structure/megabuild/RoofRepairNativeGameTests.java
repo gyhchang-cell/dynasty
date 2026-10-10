@@ -16,11 +16,13 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.*;
 @GameTestHolder("dynasty_cod6") @PrefixGameTestTemplate(false)
 public final class RoofRepairNativeGameTests {
+    private static int fixtureSequence;
     private record Fixture(ServerPlayer player,BlockPos roof,BlockPos terrain,BlockPos chest,BlockPos sentinel,BlockState authored){}
     private static Fixture fixture(GameTestHelper h)throws Exception{
         var level=h.getLevel();var b=SculptureBlueprint.load(level.getServer().getResourceManager(),"yunqi_manor");
         int bx=-1,bz=-1;search:for(int x=0;x<b.width-1;x++)for(int z=0;z<b.length;z++)if(b.columnTop(x,z)>=4&&b.columnTop(x+1,z)>=4){bx=x;bz=z;break search;}h.assertTrue(bx>=0,"Existing source has adjacent authored roof columns");
-        var chunk=new ChunkPos(h.absolutePos(new BlockPos(6,2,6)));BlockPos roof=new BlockPos(chunk.getMinBlockX()+8,160,chunk.getMinBlockZ()+8);
+        // Own temporary native chunks, outside adjacent large templates and separate for each fixture.
+        var base=new ChunkPos(h.absolutePos(new BlockPos(6,2,6)));var chunk=new ChunkPos(base.x+64+(++fixtureSequence)*8,base.z+64);BlockPos roof=new BlockPos(chunk.getMinBlockX()+8,160,chunk.getMinBlockZ()+8);
         int top=b.columnTop(bx,bz);var origin=new BlockPos(roof.getX()-bx,roof.getY()-top,roof.getZ()-bz);
         var tag=new CompoundTag();tag.putString("id","dynasty:sculpture_tile");tag.putIntArray("BB",new int[]{chunk.getMinBlockX(),origin.getY(),chunk.getMinBlockZ(),chunk.getMaxBlockX(),Math.max(roof.getY()+6,origin.getY()+b.height+4),chunk.getMaxBlockZ()});tag.putInt("O",-1);tag.putInt("GD",0);tag.putString("Sculpture","yunqi_manor");tag.putLong("Origin",origin.asLong());
         var context=StructurePieceSerializationContext.fromLevel(level);var piece=NaturalSculptures.TILE.get().load(context,tag);
@@ -28,7 +30,11 @@ public final class RoofRepairNativeGameTests {
         var start=new StructureStart(structure,chunk,0,new PiecesContainer(List.of(piece)));
         // Native save/read of an existing authored instance, then the real manager references.
         var reloaded=StructureStart.loadStaticStart(context,start.createTag(context,chunk),level.getSeed());h.assertTrue(reloaded!=null&&reloaded.isValid(),"Native saved selected instance reloads");
-        var nativeChunk=level.getChunk(chunk.x,chunk.z);nativeChunk.setStartForStructure(structure,reloaded);nativeChunk.addReferenceForStructure(structure,chunk.toLong());
+        var nativeChunk=level.getChunk(chunk.x,chunk.z);
+        // A controlled saved-instance fixture. Other-reference safety is authored explicitly below.
+        nativeChunk.setAllReferences(Map.of(structure,new it.unimi.dsi.fastutil.longs.LongOpenHashSet(new long[]{chunk.toLong()})));
+        nativeChunk.setStartForStructure(structure,reloaded);
+        h.assertTrue(level.getChunkSource().getChunkNow(chunk.x,chunk.z)==nativeChunk,"Native selected-instance fixture chunk is genuinely available without a survey load");
         var authored=net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(net.minecraft.core.registries.BuiltInRegistries.BLOCK.asLookup(),b.palette.get(b.at(bx,top,bz)),false).blockState();level.setBlockAndUpdate(roof,authored);
         var otherRoof=origin.offset(bx+1,b.columnTop(bx+1,bz),bz);var otherState=net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(net.minecraft.core.registries.BuiltInRegistries.BLOCK.asLookup(),b.palette.get(b.at(bx+1,b.columnTop(bx+1,bz),bz)),false).blockState();level.setBlockAndUpdate(otherRoof,otherState);
         var terrain=roof.above();level.setBlockAndUpdate(terrain,Blocks.STONE.defaultBlockState());var chest=otherRoof.above();level.setBlockAndUpdate(chest,Blocks.CHEST.defaultBlockState());var container=(net.minecraft.world.level.block.entity.ChestBlockEntity)level.getBlockEntity(chest);container.setItem(0,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND,17));
@@ -43,7 +49,7 @@ public final class RoofRepairNativeGameTests {
         var f=fixture(h);try{
             var before=h.getLevel().getBlockState(f.terrain);var chest=(net.minecraft.world.level.block.entity.ChestBlockEntity)h.getLevel().getBlockEntity(f.chest);var inventory=chest.saveWithFullMetadata();
             h.assertTrue(command(f.player,"preview",0)==0&&command(f.player,"confirm",0)==0,"Real command permission tree rejects non-operator preview and confirmation");
-            var survey=NaturalSculptures.roofSurvey(f.player);h.assertTrue(survey.cells().size()==1&&survey.containers()>=1&&survey.alteredRoofs()>0,"Native saved source survey lists one uncertain terrain cell, protected real chest and unconfirmed/edited roof columns");
+            var survey=NaturalSculptures.roofSurvey(f.player);h.assertTrue(survey.cells().size()==1&&survey.containers()>=1&&survey.alteredRoofs()>0,"Native saved source survey lists one uncertain terrain cell, protected real chest and unconfirmed/edited roof columns: cells="+survey.cells()+", containers="+survey.containers()+", altered="+survey.alteredRoofs()+", reserved="+survey.reserved());
             int entities=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new net.minecraft.world.phys.AABB(f.terrain).inflate(5)).size();
             h.assertTrue(command(f.player,"preview",2)==1&&h.getLevel().getBlockState(f.terrain).equals(before)&&chest.saveWithFullMetadata().equals(inventory),"Actual administrator read-only preview changes neither terrain nor inventory");
             h.assertTrue(command(f.player,"confirm",2)==1&&h.getLevel().isEmptyBlock(f.terrain)&&h.getLevel().getBlockState(f.roof).equals(f.authored)&&h.getLevel().getBlockState(f.sentinel).is(Blocks.DIAMOND_BLOCK)&&chest.saveWithFullMetadata().equals(inventory),"Real explicit confirmation removes only selected terrain, preserves source roof, foreign block and17diamond container NBT");
@@ -56,7 +62,7 @@ public final class RoofRepairNativeGameTests {
     @GameTest(template="bow_ritual_test",batch="cod6_roof_native_stale",setupTicks=20,timeoutTicks=100)
     public static void actualEmptyPreviewMovementAndEditedRoofInvalidateOldPlanWithoutDeletingAnyTerrain(GameTestHelper h)throws Exception{
         var f=fixture(h);try{
-            h.assertTrue(command(f.player,"preview",2)==1,"Real initial preview selects actual stored instance");var feet=f.player.position();f.player.setPos(feet.add(64,0,0));h.assertTrue(command(f.player,"preview",2)==0,"Actual preview outside stored instance invalidates prior plan");f.player.setPos(feet);
+            h.assertTrue(command(f.player,"preview",2)==1,"Real initial preview selects actual stored instance: survey="+NaturalSculptures.roofSurvey(f.player)+", refs="+h.getLevel().getChunkAt(f.roof).getAllReferences());var feet=f.player.position();f.player.setPos(feet.add(64,0,0));h.assertTrue(command(f.player,"preview",2)==0,"Actual preview outside stored instance invalidates prior plan");f.player.setPos(feet);
             h.assertTrue(command(f.player,"confirm",2)==0&&h.getLevel().getBlockState(f.terrain).is(Blocks.STONE),"Returning cannot confirm stale plan left by an empty preview");
             command(f.player,"preview",2);h.getLevel().setBlockAndUpdate(f.roof,Blocks.DIAMOND_BLOCK.defaultBlockState());h.assertTrue(command(f.player,"confirm",2)==0&&h.getLevel().getBlockState(f.terrain).is(Blocks.STONE)&&h.getLevel().getBlockState(f.roof).is(Blocks.DIAMOND_BLOCK),"Roof changed after preview invalidates whole real confirmation instead of clearing above player extension");
             h.getLevel().setBlockAndUpdate(f.roof,f.authored);command(f.player,"preview",2);f.player.setPos(feet.add(12,0,0));h.assertTrue(command(f.player,"confirm",2)==0&&h.getLevel().getBlockState(f.terrain).is(Blocks.STONE),"Actual operator moving beyond eight-block selected range cannot confirm elsewhere");h.succeed();

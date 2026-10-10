@@ -15,7 +15,12 @@ public final class ArmyMenu extends AbstractContainerMenu {
     public final ContainerData view=new SimpleContainerData(6+36*3+2);
     public ArmyMenu(int id,Inventory inventory,BlockPos desk) {
         super(ArmyContent.MENU.get(),id);owner=inventory.player;this.desk=desk;addDataSlots(view);
-        if(!owner.level().isClientSide){view.set(2,1+owner.getRandom().nextInt(30000));refresh();}
+        if(!owner.level().isClientSide){view.set(2,nextRevision(owner));refresh();}
+    }
+    /** Original16-bit UI revision now advances in the same player save as inventory and paid roster. */
+    private static int nextRevision(Player player){
+        var data=ArmyRoster.data(player);int previous=data.getInt("MenuRevision");
+        int next=previous>=1&&previous<32760?previous+1:1;data.putInt("MenuRevision",next);return next;
     }
     public void refresh() {
         if(owner.level().isClientSide)return;
@@ -35,7 +40,7 @@ public final class ArmyMenu extends AbstractContainerMenu {
     @Override public ItemStack quickMoveStack(Player p,int index){return ItemStack.EMPTY;}
     @Override public boolean clickMenuButton(Player player,int code) {
         if(!(player instanceof ServerPlayer p)||!stillValid(p)||(code>>>8)!=view.get(2))return false;
-        int action=code&255;view.set(2,view.get(2)==32760?1:view.get(2)+1);
+        int action=code&255;view.set(2,nextRevision(p));
         boolean ok=false;
         if(ArmyEncounters.active(p)&&action!=12&&action!=201)return false;
         if(action>=130&&action<136)ok=ArmyEncounters.prepare(p,action-130);
