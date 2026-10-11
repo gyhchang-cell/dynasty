@@ -38,12 +38,13 @@ def transform(position=(0,0,0), rotation=(0,0,0), scale=(1,1,1)):
     return m
 
 
-# Four corners in image-UV order; orientation follows Gecko's mirrored X axis.
+# Four corners in image-UV order. GeckoLib 1.20.1 GeoQuad swaps U
+# when mirror=false; the four wall faces must follow that swap too.
 FACES = {
-    'north': [(1,1,0),(0,1,0),(0,0,0),(1,0,0)],
-    'south': [(0,1,1),(1,1,1),(1,0,1),(0,0,1)],
-    'west': [(1,1,1),(1,1,0),(1,0,0),(1,0,1)],
-    'east': [(0,1,0),(0,1,1),(0,0,1),(0,0,0)],
+    'north': [(0,1,0),(1,1,0),(1,0,0),(0,0,0)],
+    'south': [(1,1,1),(0,1,1),(0,0,1),(1,0,1)],
+    'west': [(1,1,0),(1,1,1),(1,0,1),(1,0,0)],
+    'east': [(0,1,1),(0,1,0),(0,0,0),(0,0,1)],
     'up': [(0,1,1),(1,1,1),(1,1,0),(0,1,0)],
     'down': [(0,0,0),(1,0,0),(1,0,1),(0,0,1)],
 }

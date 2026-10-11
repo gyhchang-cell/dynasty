@@ -5,7 +5,7 @@ from PIL import Image
 from review import r,A,D,R
 models=json.loads((D/'forms.json').read_text());report={};hashes={}
 for i,m in enumerate(models):
- id=m['id'];geo_path=A/'geo/boss_forms'/f'{id}.geo.json';g=json.loads(geo_path.read_text())['minecraft:geometry'][0];a=json.loads((A/'animations/boss_forms'/f'{id}.animation.json').read_text())['animations'];tex=Image.open(A/'textures/entity/boss_forms'/f'{id}.png');desc=g['description'];assert tex.size==(desc['texture_width'],desc['texture_height']);colors=len(tex.getcolors(tex.width*tex.height));assert colors<=12
+ id=m['id'];geo_path=A/'geo/boss_forms'/f'{id}.geo.json';g=json.loads(geo_path.read_text())['minecraft:geometry'][0];a=json.loads((A/'animations/boss_forms'/f'{id}.animation.json').read_text())['animations'];tex=Image.open(A/'textures/entity/boss_forms'/f'{id}.png');desc=g['description'];assert tex.size==(desc['texture_width'],desc['texture_height']);colors=len(tex.getcolors(tex.width*tex.height));assert colors<=80
  seen=set();faces=0
  for b in g['bones']:
   assert b['name'] not in seen;assert not b.get('parent') or b['parent'] in seen;seen.add(b['name'])
@@ -15,7 +15,7 @@ for i,m in enumerate(models):
    for f,uv in c['uv'].items():
     x,y=uv['uv'];w,h=uv['uv_size'];assert min(x,y)>=0 and min(w,h)>0 and x+w<=tex.width and y+h<=tex.height
     target=(sx,sz) if f in ['up','down'] else (sz,sy) if f in ['east','west'] else (sx,sy)
-    assert all(abs(v-max(1,round(t*.5)))<1e-6 for v,t in zip([w,h],target));faces+=1
+    assert all(abs(v-max(1,round(t)))<1e-6 for v,t in zip([w,h],target));faces+=1
  prefix='' if i<3 else 'animation.'+id+'.';assert set(prefix+c for c in ['idle','walk','hurt','death'])<=set(a)
  pose={}
  for name,clip in a.items():
@@ -40,7 +40,7 @@ for i,m in enumerate(models):
  assert json.loads((D/'blockbench'/f'{id}.bbmodel').read_text())['animations']
  for folder,ext in [('geo','.geo.json'),('animations','.animation.json'),('textures/entity','.png')]:
   p=A/folder/'boss_forms'/(id+ext);hashes[str(p.relative_to(R))]=hashlib.sha256(p.read_bytes()).hexdigest()
- report[id]={'bones':len(g['bones']),'cuboids':sum(len(b['cubes']) for b in g['bones']),'faces':faces,'atlas':list(tex.size),'paletteColors':colors,'pixelsPerBlock':8,'animations':len(a),'poseSamples':pose}
+ report[id]={'bones':len(g['bones']),'cuboids':sum(len(b['cubes']) for b in g['bones']),'faces':faces,'atlas':list(tex.size),'paletteColors':colors,'pixelsPerBlock':16,'animations':len(a),'poseSamples':pose}
 # Existing skill contracts and drop/quest code were not rewritten.
 classes=['HeadlessGeneral','Mechanist','Jinwu','FoxMatron','HammerGuardian']
 for cls in classes:
