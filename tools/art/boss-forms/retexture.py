@@ -14,8 +14,9 @@ def shape(doc):
   for c in b['cubes']:c.pop('uv',None);c.pop('_material',None)
  return d
 
-def run(ids):
- D.mkdir(parents=True,exist_ok=True)
+def run(ids,output=None):
+ dest=Path(output) if output else D
+ dest.mkdir(parents=True,exist_ok=True)
  for id in ids:
   i=IDS.index(id);path=A/'geo/boss_forms'/(id+'.geo.json');doc=json.loads(path.read_text());before=shape(doc);geo=doc['minecraft:geometry'][0];template=BUILDERS[i]();animate(template,i);meta=template.by
   for b in geo['bones']:
@@ -24,7 +25,7 @@ def run(ids):
   rig=SimpleNamespace(bones=geo['bones']);im=atlas(rig,i);geo['description'].update(texture_width=im.width,texture_height=im.height)
   assert shape(doc)==before,(id,'geometry changed')
   path.write_text(json.dumps(doc,indent=2)+'\n');im.save(A/'textures/entity/boss_forms'/(id+'.png'))
-  out=D/id;out.mkdir(exist_ok=True);im.save(out/'texture.png');im.resize((im.width*4,im.height*4),resample=0).save(out/'texture-4x.png')
+  out=dest/id;out.mkdir(exist_ok=True);im.save(out/'texture.png');im.resize((im.width*4,im.height*4),resample=0).save(out/'texture-4x.png')
   (out/'islands.json').write_text(json.dumps(rig.texture_islands,indent=2)+'\n');print(id,im.size,len(rig.texture_islands),'unique face islands')
  if IDS[7] in ids:
   # Projectile is the same physical hammer. Update only its four UV dictionaries.

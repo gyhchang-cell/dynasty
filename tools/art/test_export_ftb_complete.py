@@ -69,6 +69,23 @@ class CompletePackTest(unittest.TestCase):
             export(self.root)
         self.assertEqual(output.read_bytes(), previous)
 
+    def test_local_mrpack_embeds_every_mod_and_quest_without_downloads(self):
+        output = export(self.root)
+        with zipfile.ZipFile(output) as manual, zipfile.ZipFile(
+                self.root / 'dist/dynasty-1.4.0-complete.mrpack') as complete:
+            index = json.loads(complete.read('modrinth.index.json'))
+            self.assertEqual(1, index['formatVersion'])
+            self.assertEqual('minecraft', index['game'])
+            self.assertEqual({'minecraft': '1.20.1', 'forge': '47.4.10'}, index['dependencies'])
+            self.assertEqual([], index['files'])
+            self.assertEqual(len(complete.namelist()), len(set(complete.namelist())))
+            self.assertEqual({'overrides/' + n for n in manual.namelist()},
+                             set(complete.namelist()) - {'modrinth.index.json'})
+            for name in manual.namelist():
+                self.assertEqual(manual.read(name), complete.read('overrides/' + name))
+            for name in REQUIRED:
+                self.assertIn('overrides/mods/' + name, complete.namelist())
+
     def test_corrupt_dependency_rejected(self):
         (self.root / 'modpack/mods' / REQUIRED[2]).write_bytes(b'not the locked jar')
         with self.assertRaisesRegex(ValueError, 'SHA-1'):

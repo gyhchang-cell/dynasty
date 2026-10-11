@@ -31,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 /** Disposable native art acceptance. Calls production startSkill/swing/hurt/death, not animation triggers. */
 @Mod.EventBusSubscriber(modid="dynasty",value=Dist.CLIENT)
 public final class BossEightClientQa {
+    private static final boolean PRESENCE=Boolean.getBoolean("dynasty.bossPresenceQa");
     private static final boolean ENABLED=Boolean.getBoolean("dynasty.bossEightQa");
     private static final Path OUT=Path.of(System.getProperty("dynasty.bossEightQa.output","build/boss-eight-native/results"));
     private static final String[] IDS={"undead_first_emperor","eunuch_mastermind","rebel_general","xianzhen_duantoujiang","qianji_bailian_yanshi","pilin_zhijinwu","baimian_huxiangu","juchui_jinjia_lishi"};
@@ -47,6 +48,19 @@ public final class BossEightClientQa {
             else for(int j=0;j<3;j++)STAGES.add(new Stage(IDS[i],clips[i-3][j],skill[i-3][j],age[i-3][j]));
             STAGES.add(new Stage(IDS[i],"hurt",-2,2));STAGES.add(new Stage(IDS[i],"death",-3,i<3?17:55));
         }
+        if(PRESENCE){
+            STAGES.clear();
+            for(String id:new String[]{IDS[0],IDS[5],IDS[7]}){
+                for(String v:new String[]{"front","45","side","back","walk"})STAGES.add(new Stage(id,v,0,0));
+                if(id.equals(IDS[0])){
+                    STAGES.add(new Stage(id,"attack-contact",-1,1));STAGES.add(new Stage(id,"attack-recovery",-1,16));
+                } else if(id.equals(IDS[5])){
+                    STAGES.add(new Stage(id,"sweep-tell",341,15));STAGES.add(new Stage(id,"sweep-contact",341,20));STAGES.add(new Stage(id,"sweep-recovery",341,45));
+                } else {
+                    STAGES.add(new Stage(id,"slam-tell",361,24));STAGES.add(new Stage(id,"slam-contact",361,28));STAGES.add(new Stage(id,"slam-pulse2",361,44));STAGES.add(new Stage(id,"slam-pulse3",361,60));STAGES.add(new Stage(id,"slam-recovery",361,75));
+                }
+            }
+        }
     }
     private static boolean started,done,captured,activated;
     private static final int START=Integer.getInteger("dynasty.bossEightQa.start",0);
@@ -55,6 +69,7 @@ public final class BossEightClientQa {
     private static CompletableFuture<Integer> pending;
     private static CompletableFuture<Long> action;
     private static Mob fixture,victim;
+    private static String diagnostic="no render";
     private static net.minecraft.world.phys.Vec3 walkStart;
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent ev){
         if(!ENABLED||done||ev.phase!=TickEvent.Phase.END)return;
@@ -78,7 +93,7 @@ public final class BossEightClientQa {
             settled++;
             if(action!=null&&action.isDone())actionAt=action.join();
             Stage s=STAGES.get(stage);
-            if(settled>200)throw new AssertionError("Pose not reached "+s+" actionAt="+actionAt);
+            if(settled>200)throw new AssertionError("Pose not reached "+s+" actionAt="+actionAt+" "+diagnostic);
             if(s.skill!=0&&!activated&&rendered>=6&&settled>=32){activated=true;action=mc.getSingleplayerServer().submit(()->{try{return activate(mc,s);}catch(Exception e){throw new RuntimeException(e);}});}
             if(s.label.equals("walk")&&rendered>=6&&!activated){activated=true;walkStart=mob.position();action=mc.getSingleplayerServer().submit(()->{fixture.setNoAi(false);fixture.setTarget(null);fixture.getNavigation().moveTo(6,-60,0,1);return mc.getSingleplayerServer().overworld().getGameTime();});}
         }catch(Throwable e){finish(mc,e);}
@@ -95,12 +110,13 @@ public final class BossEightClientQa {
         Stage s=STAGES.get(stage);var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",s.id));
         if(type==null)throw new AssertionError("Unregistered "+s.id);
         fixture=(Mob)type.create(world);fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();world.addFreshEntity(fixture);
-        if(!(fixture instanceof GeoEntity)){fixture.setItemSlot(EquipmentSlot.MAINHAND,new ItemStack(Items.STONE_SWORD));fixture.setItemSlot(EquipmentSlot.OFFHAND,new ItemStack(Items.SHIELD));}
-        victim=EntityType.COW.create(world);victim.setNoAi(true);victim.setNoGravity(true);victim.setSilent(true);victim.moveTo(0,-60,s.skill==342||s.skill==363?6:2,180,0);victim.getAttribute(Attributes.MAX_HEALTH).setBaseValue(10000);victim.setHealth(10000);victim.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INVISIBILITY,12000,0,false,false,false));world.addFreshEntity(victim);
-        for(var p:server.getPlayerList().getPlayers())p.teleportTo(world,0,-60,20,180,0);
+        if(!PRESENCE&&!(fixture instanceof GeoEntity)){fixture.setItemSlot(EquipmentSlot.MAINHAND,new ItemStack(Items.STONE_SWORD));fixture.setItemSlot(EquipmentSlot.OFFHAND,new ItemStack(Items.SHIELD));}
+        victim=EntityType.COW.create(world);victim.setNoAi(true);victim.setNoGravity(true);victim.setSilent(true);victim.moveTo(0,-60,PRESENCE?8:s.skill==342||s.skill==363?6:2,180,0);victim.getAttribute(Attributes.MAX_HEALTH).setBaseValue(10000);victim.setHealth(10000);victim.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INVISIBILITY,12000,0,false,false,false));world.addFreshEntity(victim);
+        for(var p:server.getPlayerList().getPlayers())p.teleportTo(world,PRESENCE?-4:0,-60,PRESENCE?1:20,180,0);
         return fixture.getId();
     }
     private static long activate(Minecraft mc,Stage s)throws Exception{
+        if(PRESENCE)victim.moveTo(0,-60,2,180,0);
         if(s.skill>0){boolean ok=(Boolean)fixture.getClass().getMethod("startSkill",int.class,LivingEntity.class).invoke(fixture,s.skill,victim);if(!ok)throw new AssertionError("Production skill rejected "+s);}
         else if(s.skill==-1)fixture.swing(InteractionHand.MAIN_HAND);
         else if(!fixture.hurt(fixture.damageSources().generic(),s.skill==-3?1000000:8))throw new AssertionError("Damage rejected "+s);
@@ -110,23 +126,27 @@ public final class BossEightClientQa {
         Stage s=STAGES.get(stage);double yaw=s.label.equals("45")?45:s.label.equals("side")?90:s.label.equals("back")?180:0;
         if(s.skill!=0||s.label.equals("walk"))yaw=35;
         double a=Math.toRadians(yaw),distance=s.id.equals("pilin_zhijinwu")?7.5:s.id.equals("juchui_jinjia_lishi")||s.id.equals("xianzhen_duantoujiang")?6.5:5.5;
+        if(PRESENCE)distance=s.id.equals("pilin_zhijinwu")?11:10;
         var cam=new ArmorStand(mc.level,Math.sin(a)*distance,-60,Math.cos(a)*distance);
-        cam.setPos(cam.getX(),-60+(s.id.equals("pilin_zhijinwu")?1.9:1.5)-cam.getEyeHeight(),cam.getZ());cam.setNoGravity(true);cam.setYRot((float)(180-yaw));cam.setXRot(5);cam.setYHeadRot(cam.getYRot());cam.yHeadRotO=cam.getYRot();cam.setOldPosAndRot();mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(cam);
+        cam.setPos(cam.getX(),-60+(PRESENCE?2.5:s.id.equals("pilin_zhijinwu")?1.9:1.5)-cam.getEyeHeight(),cam.getZ());cam.setNoGravity(true);cam.setYRot((float)(180-yaw));cam.setXRot(PRESENCE?3:5);cam.setYHeadRot(cam.getYRot());cam.yHeadRotO=cam.getYRot();cam.setOldPosAndRot();mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(cam);
     }
     @SuppressWarnings({"rawtypes","unchecked"})
     @SubscribeEvent public static void render(TickEvent.RenderTickEvent ev){
+        if(ENABLED&&PRESENCE&&ev.phase==TickEvent.Phase.START)Minecraft.getInstance().particleEngine.setLevel(Minecraft.getInstance().level);
         if(!ENABLED||done||captured||pending!=null||stage<0||ev.phase!=TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();if(mc.level==null||!(mc.level.getEntity(entityId) instanceof Mob mob))return;
         try{
             Object renderer=mc.getEntityRenderDispatcher().getRenderer(mob);GeoModel model;GeoAnimatable visual;
-            if(renderer instanceof BossCuboidRenderer<?> r){model=r.getGeoModel();visual=r.getAnimatable();}
+            if(renderer instanceof BossFormsRenderer.Core<?> r){model=r.getGeoModel();visual=r.getAnimatable();}
+            else if(renderer instanceof BossCuboidRenderer<?> r){model=r.getGeoModel();visual=r.getAnimatable();}
             else if(renderer instanceof GeoEntityRenderer<?> r){model=r.getGeoModel();visual=(GeoEntity)mob;}
             else throw new AssertionError("Wrong renderer "+renderer);
-            if(model.getBone("chest").isEmpty())return;rendered++;
+            diagnostic="renderer="+renderer.getClass().getName()+" bones="+model.getAnimationProcessor().getRegisteredBones().size();
+            if(model.getBone(PRESENCE?"root":"chest").isEmpty())return;rendered++;
             var manager=visual.getAnimatableInstanceCache().getManagerForId(mob.getId());var ctrl=manager.getAnimationControllers().get("body");
             if(ctrl==null||ctrl.getCurrentAnimation()==null)return;
-            String clip=ctrl.getCurrentAnimation().animation().name();Stage s=STAGES.get(stage);
-            String expected=s.skill!=0?s.label:s.label.equals("walk")?"walk":"idle";
+            String clip=ctrl.getCurrentAnimation().animation().name();diagnostic+=" clip="+clip+" velocity="+mob.getDeltaMovement();Stage s=STAGES.get(stage);
+            String expected=s.skill!=0?s.label.split("-")[0]:s.label.equals("walk")?"walk":"idle";
             if(mob instanceof GeoEntity)expected="animation."+s.id+"."+expected;
             long age=actionAt<0?-1:mc.level.getGameTime()-actionAt;
             boolean ready=s.skill!=0?age>=s.age:s.label.equals("walk")?age>=10:settled>=26&&rendered>=8;
@@ -139,13 +159,33 @@ public final class BossEightClientQa {
             if(s.skill>0&&(Integer)mob.getClass().getMethod("skillId").invoke(mob)!=s.skill)throw new AssertionError("Skill not replicated");
             if(s.label.equals("walk")&&walkStart!=null&&walkStart.distanceTo(mob.position())<.1)throw new AssertionError("No actual movement");
             var tex=model.getTextureResource(visual);String folder=s.id.equals("xianzhen_duantoujiang")||s.id.equals("qianji_bailian_yanshi")?"blueprint/cod2_voxel":mob instanceof GeoEntity?"blueprint/elite":"boss_cuboid";
+            if(PRESENCE)folder="boss_forms";
             if(!tex.getPath().equals("textures/entity/"+folder+"/"+s.id+".png"))throw new AssertionError("Texture binding "+tex);
             try(var stream=mc.getResourceManager().open(tex);var image=com.mojang.blaze3d.platform.NativeImage.read(stream)){
+                if(PRESENCE){
+                    int expectedSize=s.id.equals(IDS[0])?256:512;
+                    if(image.getWidth()!=expectedSize||image.getHeight()!=expectedSize)throw new AssertionError("Atlas size");
+                } else {
                 if(image.getWidth()!=16||image.getHeight()!=16)throw new AssertionError("Not 16px");Set<Integer> colors=new HashSet<>();
                 for(int y=0;y<16;y++)for(int x=0;x<16;x++){int pixel=image.getPixelRGBA(x,y);colors.add(pixel);if((x==0||x==15||y==0||y==15)&&pixel!=-1)throw new AssertionError("White margin");if(pixel!=image.getPixelRGBA(x-x%2,y-y%2))throw new AssertionError("Sub2px island");}
                 if(colors.size()!=4)throw new AssertionError("Palette count "+colors.size());
+                }
             }
             var record=new LinkedHashMap<String,Object>();record.put("entity",s.id);record.put("stage",s.label);record.put("clip",clip);record.put("age",age);record.put("renderer",renderer.getClass().getName());record.put("texture",tex.toString());record.put("scope","Actual registered entity, production startSkill/swing/hurt/death, controlled disposable world; not natural combat balance acceptance");
+            if(PRESENCE){
+                var expectedHashes=com.google.gson.JsonParser.parseString(Files.readString(OUT.resolve("runtime-manifest.json"))).getAsJsonObject().getAsJsonObject("resources");
+                Map<String,String> loadedHashes=new LinkedHashMap<>();
+                for(Object resource:new Object[]{tex,model.getModelResource(visual),model.getAnimationResource(visual)}){
+                    var location=(ResourceLocation)resource;
+                    try(var stream=mc.getResourceManager().open(location)){
+                        String hash=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(stream.readAllBytes()));
+                        String path="assets/"+location.getNamespace()+"/"+location.getPath();
+                        if(!hash.equals(expectedHashes.get(path).getAsString()))throw new AssertionError("Stale resource "+location);
+                        loadedHashes.put(path,hash);
+                    }
+                }
+                record.put("loadedResourceSha256",loadedHashes);record.put("particles","cleared in QA only before frame");
+            }
             Map<String,Object> bones=new LinkedHashMap<>();for(Object o:model.getAnimationProcessor().getRegisteredBones()){var b=(software.bernie.geckolib.cache.object.GeoBone)o;bones.put(b.getName(),Map.of("rotation",List.of(b.getRotX(),b.getRotY(),b.getRotZ()),"position",List.of(b.getPosX(),b.getPosY(),b.getPosZ())));}record.put("bones",bones);
             Files.writeString(OUT.resolve(String.format("%02d-state.json",stage)),new GsonBuilder().setPrettyPrinting().create().toJson(record));
             try(var shot=Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(OUT.resolve(String.format("%02d-%s-%s.png",stage,s.id,s.label)));}
@@ -153,6 +193,6 @@ public final class BossEightClientQa {
         }catch(Throwable e){finish(mc,e);}
     }
     private static void finish(Minecraft mc,Throwable error){
-        if(done)return;done=true;try{Files.createDirectories(OUT);Files.writeString(OUT.resolve(error==null?"PASS.txt":"FAIL.txt"),String.join("\n",LOG)+"\n"+(error==null?"PASS: "+(STAGES.size()-START)+" native art stages across eight existing bosses; no animation triggers. Natural encounter/multiplayer acceptance is separate.\n":"FAIL: "+error+"\n"));}catch(Exception e){e.printStackTrace();}if(error!=null)error.printStackTrace();mc.stop();
+        if(done)return;done=true;try{Files.createDirectories(OUT);Files.writeString(OUT.resolve(error==null?"PASS.txt":"FAIL.txt"),String.join("\n",LOG)+"\n"+(error==null?"PASS: "+(STAGES.size()-START)+" native art stages for selected existing bosses; no animation triggers. Natural encounter/multiplayer acceptance is separate.\n":"FAIL: "+error+"\n"));}catch(Exception e){e.printStackTrace();}if(error!=null){error.printStackTrace();try(var shot=Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(OUT.resolve("failure-frame.png"));}catch(Exception ignored){}}mc.stop();
     }
 }

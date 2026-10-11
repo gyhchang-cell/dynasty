@@ -1,9 +1,12 @@
 # 一次导出全部整合包
 
-自己游玩请选择 `dynasty-1.4.0-complete.zip`，直接导入支持 CurseForge 整合包格式的启动器。
+自己游玩请选择 `dynasty-1.4.0-complete.mrpack`，直接导入支持 mrpack 的启动器；
+也可选 `dynasty-1.4.0-complete.zip`，供支持 CurseForge 格式的启动器导入。
 其中内嵌全部发布模组、FTB 四件套及前置、原任务章节和资源包，无需再补装 FTB。
 该完整本地包在后续联网发布校验之前复制到桌面「导出/Dynasty整合包」，避免发布步骤失败时拿不到游玩包。
-原 manual.zip 仍保留。两个完整包使用同一份经过校验的文件快照。
+原 manual.zip 仍保留。三个完整包使用同一份经过校验的文件快照。
+`complete.mrpack` 将模组与配置放入 overrides，无需另行下载 FTB。
+不带 `complete` 的 `dynasty-1.4.0.mrpack` 仍是公开发布包，不能把它当成含 FTB 的完整游玩包。
 
 
 继续使用原来的 `3-打包整合包.command` 或 `打包整合包.command`。

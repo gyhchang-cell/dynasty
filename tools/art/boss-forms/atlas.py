@@ -5,6 +5,7 @@ anatomical colour regions and focal marks are authored below, not randomized.
 """
 import math
 from PIL import Image, ImageDraw
+from focus_paint import paint_focus
 
 PALETTES={
  'iron':['273039','3c4851','55636b','78858b','a0a9a7'],
@@ -308,6 +309,7 @@ def paint(index,n,j,c,face,w,h):
     mark(td,[(x,y),(x,y+2),(x+2,y+4),(x+5,y+4),(x+7,y+2)],p[1]);mark(td,[(x+2,y+1),(x+5,y+1)],p[3])
   im.paste(t.transpose(Image.Transpose.TRANSPOSE) if horizontal else t)
  detail(index,n,j,c,face,im,role,mat)
+ paint_focus(index,n,j,c,face,im,role,mat)
  return im,{'material':mat,'role':role,'grain_axis':'XYZ'[axis]}
 
 

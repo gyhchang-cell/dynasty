@@ -50,9 +50,9 @@ def references(offset):
  for o,size,col in [([-4,21.6,-4],[8,7.2,8],(174,139,112)),([-4,10.8,-2],[8,10.8,4],(49,122,134)),([-7,10.8,-2],[3,10.8,4],(49,122,134)),([4,10.8,-2],[3,10.8,4],(49,122,134)),([-4,0,-2],[4,10.8,4],(56,66,93)),([0,0,-2],[4,10.8,4],(56,66,93))]:q+=cuboid(np.array(o)+offset+[-12,0,0],size,np.full((2,2,3),col,dtype=np.uint8))
  return q
 
-def raster(quads,texture,yaw=45,elevation=7,size=(1000,760),mode='unlit',distance=None):
+def raster(quads,texture,yaw=45,elevation=7,size=(1000,760),mode='unlit',distance=None,frame_points=None):
  w,h=size;yaw,el=map(math.radians,(yaw,elevation));toward=np.array([math.sin(yaw)*math.cos(el),math.sin(el),-math.cos(yaw)*math.cos(el)]);right=np.array([math.cos(yaw),0,math.sin(yaw)]);up=np.cross(toward,right);up=-up if up[1]<0 else up
- basis=np.vstack([right,up,toward]);points=np.concatenate([q[0] for q in quads]);proj=points@basis.T;lo,hi=proj.min(0),proj.max(0);center=(lo+hi)/2
+ basis=np.vstack([right,up,toward]);points=np.concatenate([q[0] for q in quads]) if frame_points is None else frame_points;proj=points@basis.T;lo,hi=proj.min(0),proj.max(0);center=(lo+hi)/2
  if distance:
   # Eye level 1.62m, level horizon, vertical FOV 70 degrees; perspective-correct UV.
   toward=np.array([math.sin(yaw),0,-math.cos(yaw)]);up=np.array([0,1,0]);basis=np.vstack([right,up,toward]);target=np.array([0,25.92,0]);cam=target+toward*(distance*16);focal=h/(2*math.tan(math.radians(35)))
