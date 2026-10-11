@@ -12,6 +12,7 @@ SAMPLES={'pilin_zhijinwu':[('idle',0),('sweep',15),('sweep',20),('sweep',45)],
  'undead_first_emperor':[('idle',0),('idle',32),('attack',0),('attack',16)],
  'juchui_jinjia_lishi':[('idle',0),('slam',24),('slam',28),('slam',75)]}
 ATTACKS={'undead_first_emperor':'attack','pilin_zhijinwu':'sweep','juchui_jinjia_lishi':'slam'}
+LABELS=('BEFORE / 原待机、原PNG','AFTER / 新待机、新PNG · 同相机同比例')
 
 def export():
  retexture(TARGETS,D)
@@ -49,7 +50,7 @@ def validate():
   if id not in TARGETS+['hammer_chain']:assert im.tobytes()==Image.open(D/'before'/(id+'.png')).tobytes()
   report[id]={'geometryUVRigUnchanged':True,'clipNamesAndDurationsUnchanged':True,'sampledMinY':lows,'pngSha256':hashlib.sha256((A/'textures/entity/boss_forms'/(id+'.png')).read_bytes()).hexdigest()}
  (D/'offline-validation.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
- print('PASS: original geometry/UV/rig, clip clocks, loop seams, and five untouched peers. Floor samples:',{i:report[i]['sampledMinY'] for i in TARGETS},flush=True)
+ print('PASS: original geometry/UV/rig, clip clocks, loop seams, and untouched non-target peers. Floor samples:',{i:report[i]['sampledMinY'] for i in TARGETS},flush=True)
 
 def review():
  v.D=D
@@ -65,7 +66,7 @@ def review():
    for mode in ('unlit','lit','gray'):
     v.labelled(v.raster(q,tex,yaw=angle,mode=mode,frame_points=frame),NAMES[i]+' / '+name+' / '+mode).save(out/(name+'-'+mode+'.png'))
   for mode in ('unlit','lit','gray'):
-   ims=[v.labelled(v.raster(qq,tt,size=(900,680),mode=mode,frame_points=frame),label) for qq,tt,label in [(oldq,oldtex,'BEFORE / 原待机、原PNG'),(q,tex,'AFTER / 新待机、新PNG · 同相机同比例')]]
+   ims=[v.labelled(v.raster(qq,tt,size=(900,680),mode=mode,frame_points=frame),label) for qq,tt,label in [(oldq,oldtex,LABELS[0]),(q,tex,LABELS[1])]]
    combined=Image.new('RGB',(1800,760));combined.paste(ims[0],(0,0));combined.paste(ims[1],(900,0));combined.save(out/('comparison-'+mode+'.png'))
   sheet=Image.new('RGB',(1600,1260),(232,233,228))
   for k,((clip,t),qq) in enumerate(zip(SAMPLES[id],samples)):

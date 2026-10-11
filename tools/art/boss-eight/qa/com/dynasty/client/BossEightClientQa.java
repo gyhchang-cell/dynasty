@@ -31,7 +31,8 @@ import java.util.concurrent.CompletableFuture;
 /** Disposable native art acceptance. Calls production startSkill/swing/hurt/death, not animation triggers. */
 @Mod.EventBusSubscriber(modid="dynasty",value=Dist.CLIENT)
 public final class BossEightClientQa {
-    private static final boolean SPIRITS=Boolean.getBoolean("dynasty.bossSpiritQa");
+    private static final boolean MATERIALS=Boolean.getBoolean("dynasty.bossMaterialQa");
+    private static final boolean SPIRITS=MATERIALS||Boolean.getBoolean("dynasty.bossSpiritQa");
     private static final boolean PRESENCE=SPIRITS||Boolean.getBoolean("dynasty.bossPresenceQa");
     private static final boolean ENABLED=Boolean.getBoolean("dynasty.bossEightQa");
     private static final Path OUT=Path.of(System.getProperty("dynasty.bossEightQa.output","build/boss-eight-native/results"));
@@ -76,6 +77,7 @@ public final class BossEightClientQa {
                 }
             }
         }
+        if(MATERIALS)STAGES.removeIf(s -> s.id.equals(IDS[1]));
         int limit=Integer.getInteger("dynasty.bossEightQa.limit",STAGES.size());
         if(limit<STAGES.size())STAGES.subList(limit,STAGES.size()).clear();
     }

@@ -3,6 +3,6 @@
 Geometry redesign is a separate explicitly requested operation (build.py +
 ground.py). Texture work must never silently rebuild the approved geometry.
 """
-from spirits import export,validate
+from materials import export,validate
 export()
 validate()

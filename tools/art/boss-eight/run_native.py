@@ -2,10 +2,11 @@
 import json,os,shutil,subprocess,time,hashlib,zipfile,sys
 from pathlib import Path
 R=Path(__file__).resolve().parents[3]
-spirits=os.environ.get('DYNASTY_SPIRIT_QA')=='1'
+materials=os.environ.get('DYNASTY_MATERIAL_QA')=='1'
+spirits=materials or os.environ.get('DYNASTY_SPIRIT_QA')=='1'
 presence=spirits or os.environ.get('DYNASTY_PRESENCE_QA')=='1'
 name=sys.argv[1] if len(sys.argv)>1 else 'batch-1';root=R/'build/boss-eight-native'/name;root.mkdir(parents=True,exist_ok=False)
-out=R/('docs/art/boss-presence-v5/native' if spirits else 'docs/art/boss-presence-v4/native' if presence else 'docs/art/boss-eight-v1/native')/name;out.mkdir(parents=True,exist_ok=False)
+out=R/('docs/art/boss-materials-v6/native' if materials else 'docs/art/boss-presence-v5/native' if spirits else 'docs/art/boss-presence-v4/native' if presence else 'docs/art/boss-eight-v1/native')/name;out.mkdir(parents=True,exist_ok=False)
 launch=Path(sys.argv[2]) if len(sys.argv)>2 else Path('/Users/a15356015027/Desktop/dynasty/build/guiche-art-native/strict16-final/launch.json')
 cfg=json.loads(launch.read_text());old=cfg['environment']['MOD_CLASSES'].split(os.pathsep)
 paths=[R/'build/resources/main',R/'build/classes/java/main',None,R/'build/classes/java/bossEightQa'];mapping={}
@@ -15,6 +16,7 @@ with zipfile.ZipFile(R/'build/libs/dynasty-1.4.0.jar') as jar:
  targets=json.loads((R/'tools/art/boss-eight/targets.json').read_text())
  if presence:targets={i:{'folder':'boss_forms'} for i in ('undead_first_emperor','pilin_zhijinwu','juchui_jinjia_lishi','hammer_chain')}
  if spirits:targets={i:{'folder':'boss_forms'} for i in ('eunuch_mastermind','rebel_general','xianzhen_duantoujiang')}
+ if materials:targets={i:{'folder':'boss_forms'} for i in ('rebel_general','xianzhen_duantoujiang')}
  for id,m in targets.items():
   for kind,ext in [('geo','.geo.json'),('animations','.animation.json'),('textures/entity','.png')]:
    p=Path('assets/dynasty')/kind/m['folder']/(id+ext);b=(R/'src/main/resources'/p).read_bytes();assert b==jar.read(str(p))==(R/'build/resources/main'/p).read_bytes();manifest['resources'][str(p)]=hashlib.sha256(b).hexdigest()
@@ -35,6 +37,7 @@ for a in cfg['jvmArgs']:
 jvm+=['-Xmx2G','-XX:ActiveProcessorCount=2','-Ddynasty.bossEightQa=true','-Ddynasty.bossEightQa.start='+os.environ.get('DYNASTY_ART_START','0'),'-Ddynasty.bossEightQa.output='+str(out),'-javaagent:'+str(R/'build/boss-eight-agent/quiet-window-agent.jar')]
 if presence:jvm.append('-Ddynasty.bossPresenceQa=true')
 if spirits:jvm.append('-Ddynasty.bossSpiritQa=true')
+if materials:jvm.append('-Ddynasty.bossMaterialQa=true')
 if os.environ.get('DYNASTY_ART_LIMIT'):jvm.append('-Ddynasty.bossEightQa.limit='+os.environ['DYNASTY_ART_LIMIT'])
 work=root/'host';work.mkdir();(work/'options.txt').write_text('soundCategory_master:0.0\nfullscreen:false\n');(work/'config').mkdir();(work/'config/fml.toml').write_text('earlyWindowControl=false\n')
 cfg.update(jvmArgs=jvm,directory=str(work));(root/'launch.json').write_text(json.dumps(cfg,indent=2));(out/'runtime-manifest.json').write_text(json.dumps(manifest,indent=2))
