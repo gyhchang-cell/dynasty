@@ -37,6 +37,7 @@ public final class SecondaryArtClientQa {
     private static final String[] CLIPS={"idle","wander","hunt","flee","attack","special","evade"};
     private static final List<String> LOG=new ArrayList<>();
     private static final Set<String> TEXTURES_CHECKED=new HashSet<>();
+    private static final Map<String,Map<String,Object>> NATIVE_FACES=new HashMap<>();
     private static boolean started,done,captured;
     private static int stage=-1,settled;
     private static long deadline=System.nanoTime()+600_000_000_000L;
@@ -127,7 +128,11 @@ public final class SecondaryArtClientQa {
         // QA only: select existing synchronized art states. This makes no claim
         // that combat, natural spawning or real-player scenarios were exercised.
         if(!BOSS_AUDIT){var method=SecondaryMob.class.getDeclaredMethod("animate",int.class,int.class);method.setAccessible(true);method.invoke(fixture,state,10000);}
-        server.getPlayerList().getPlayers().forEach(p->{p.setGameMode(GameType.CREATIVE);p.teleportTo(world,sceneX,-60,10,180,0);});
+        // Keep the automatic player BEHIND the current art camera. A fixed
+        // diagonal location cleared the rear view but appeared behind the
+        // open swarm in its 45-degree view.
+        double playerAngle=Math.toRadians(!BOSS_AUDIT&&pose<4?new double[]{0,45,90,180}[pose]:0);
+        server.getPlayerList().getPlayers().forEach(p->{p.setGameMode(GameType.CREATIVE);p.teleportTo(world,BOSS_AUDIT?sceneX:sceneX+Math.sin(playerAngle)*20,-60,BOSS_AUDIT?10:Math.cos(playerAngle)*20,180,0);});
         return fixture.getId();
     }
     private static void setCamera(Minecraft mc){
@@ -289,9 +294,17 @@ public final class SecondaryArtClientQa {
             String label=stage%11<4?new String[]{"front","45","side","back"}[stage%11]:expected;
             try(var frame=Screenshot.takeScreenshot(mc.getMainRenderTarget())){frame.writeToFile(OUT.resolve(String.format("%02d-%s-%s.png",stage,id,label)));}
             var state=new LinkedHashMap<String,Object>(Map.of("entity",id,"uuid",mob.getUUID().toString(),"stage",stage,"clip",clip,"width",mob.getBbWidth(),"height",mob.getBbHeight(),"fps",mc.getFps(),"scope","native art state selection; no gameplay/human claim"));
+            int[] counts={0,0,0};for(var bone:baked.topLevelBones())countBaked(bone,counts);
+            state.put("nativeBaked",Map.of("bones",counts[0],"cuboids",counts[1],"nonNullQuads",counts[2]));
+            if(!NATIVE_FACES.containsKey(id))NATIVE_FACES.put(id,NativeCuboidFaces.check(id,baked,OUT));
+            state.put("nativeOcclusionProof",NATIVE_FACES.get(id));
             var rotation=new LinkedHashMap<String,Object>();for(String name:anchors){var bone=model.getBone(name).orElseThrow();rotation.put(name,List.of(bone.getRotX(),bone.getRotY(),bone.getRotZ()));}state.put("boneRotationRadians",rotation);
             Files.writeString(OUT.resolve(String.format("%02d-state.json",stage)),new GsonBuilder().setPrettyPrinting().create().toJson(state));LOG.add(state.toString());captured=true;
         }catch(Throwable e){finish(mc,e);}
+    }
+    private static void countBaked(software.bernie.geckolib.cache.object.GeoBone bone,int[] counts){
+        counts[0]++;counts[1]+=bone.getCubes().size();for(var cube:bone.getCubes())if(cube.quads()!=null)for(var quad:cube.quads())if(quad!=null)counts[2]++;
+        for(var child:bone.getChildBones())countBaked(child,counts);
     }
     private static void finish(Minecraft mc,Throwable error){
         if(done)return;done=true;

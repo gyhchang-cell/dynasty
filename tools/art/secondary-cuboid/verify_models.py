@@ -10,6 +10,12 @@ def main():
     for id in manifest:
         gp=ASSET/f'geo/secondary/{id}.geo.json';ap=ASSET/f'animations/secondary/{id}.animation.json';tp=ASSET/f'textures/entity/secondary/{id}.png'
         g=json.loads(gp.read_text())['minecraft:geometry'][0];a=json.loads(ap.read_text())['animations'];im=Image.open(tp)
+        from cull_internal_faces import IDS, cull
+        if id in IDS:
+            proof=OUT/f'face-cull-v1/before/{id}.geo.json'
+            if proof.exists():
+                original=json.loads(proof.read_text());cull(original)
+                assert original['minecraft:geometry'][0]==g,(id,'unproved missing face or changed geometry')
         assert len(im.getcolors(1000))==4,(id,'palette')
         assert im.size==(16,16),(id,'actual 16x16 PNG required')
         pixels=im.convert('RGB');white=(255,255,255)
@@ -27,7 +33,8 @@ def main():
             visited.add(b['name'])
             for c in b.get('cubes',[]):
                 assert all(v>0 for v in c['size'])
-                assert set(c['uv'])=={'north','south','east','west','up','down'}
+                assert c['uv'] and set(c['uv'])<={'north','south','east','west','up','down'}
+                if id not in IDS:assert len(c['uv'])==6,(id,'unproved missing face')
                 for uv in c['uv'].values():
                     assert all(0<=uv['uv'][i]<=uv['uv'][i]+uv['uv_size'][i]<=im.size[i] for i in range(2)),(id,'UV bounds')
                     assert all(float(v).is_integer() for v in uv['uv']+uv['uv_size']),(id,'pixel aligned UV')
@@ -41,6 +48,7 @@ def main():
                     assert list(value.values())[0]==list(value.values())[-1],(id,name,'loop seam')
         assert {'idle','wander','hunt','flee','attack','special','evade'}<=set(a)
         result[id]={'bones':len(names),'cuboids':sum(len(b.get('cubes',[])) for b in g['bones']),
+                    'renderedFaces':sum(len(c['uv']) for b in g['bones'] for c in b.get('cubes',[])),
                     'preservedOriginalBones':len(original['bones']),'clips':len(a),'pureColors':4,'atlas':im.size,
                     'resources':{str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [gp,ap,tp]}}
     (OUT/'static-validation.json').write_text(json.dumps(result,indent=2)+'\n')

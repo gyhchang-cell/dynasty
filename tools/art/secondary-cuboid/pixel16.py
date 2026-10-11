@@ -83,6 +83,8 @@ def export(ids=None):
         # noise, fifth color, white background or hidden higher-resolution atlas.
         apply_markings(id,g,im)
         g['description'].update(texture_width=16,texture_height=16)
+        from cull_internal_faces import apply_export
+        apply_export(id,geo)
         im.save(ASSET/f'textures/entity/secondary/{id}.png')
         gp.write_text(json.dumps(geo,indent=2)+'\n')
         manifest[id].update(palette=chosen+['#ffffff'],atlas=[16,16],pixelBlock=2,whiteMargin=2)

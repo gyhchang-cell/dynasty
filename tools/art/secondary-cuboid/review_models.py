@@ -42,8 +42,8 @@ def transform(position=(0,0,0), rotation=(0,0,0), scale=(1,1,1)):
 FACES = {
     'north': [(1,1,0),(0,1,0),(0,0,0),(1,0,0)],
     'south': [(0,1,1),(1,1,1),(1,0,1),(0,0,1)],
-    'east': [(1,1,1),(1,1,0),(1,0,0),(1,0,1)],
-    'west': [(0,1,0),(0,1,1),(0,0,1),(0,0,0)],
+    'west': [(1,1,1),(1,1,0),(1,0,0),(1,0,1)],
+    'east': [(0,1,0),(0,1,1),(0,0,1),(0,0,0)],
     'up': [(0,1,1),(1,1,1),(1,1,0),(0,1,0)],
     'down': [(0,0,0),(1,0,0),(1,0,1),(0,0,1)],
 }
@@ -56,9 +56,9 @@ def face_uv(c):
            'south':(u+z+x+z,v+z,x,y),'up':(u+z,v,x,z),'down':(u+z+x,v+z,x,-z)}
     return {k:{'uv':[r[0],r[1]],'uv_size':[r[2],r[3]]} for k,r in rects.items()}
 
-def geometry(id,clip=None,tick=0,source=False):
+def geometry(id,clip=None,tick=0,source=False,geo_path=None):
     global TEX,TEX_SIZE
-    g=json.loads((OUT/'source'/f'{id}.geo.json' if source else ASSET/f'geo/{CATEGORY}'/f'{id}.geo.json').read_text())['minecraft:geometry'][0]
+    g=json.loads((geo_path or (OUT/'source'/f'{id}.geo.json' if source else ASSET/f'geo/{CATEGORY}'/f'{id}.geo.json')).read_text())['minecraft:geometry'][0]
     a=json.loads((OUT/'source'/f'{id}.animation.json' if source else ASSET/f'animations/{CATEGORY}'/f'{id}.animation.json').read_text())['animations']
     channels=a.get(clip,{}).get('bones',{}) if clip else {}
     TEX_SIZE=g['description']['texture_width']
@@ -83,6 +83,7 @@ def geometry(id,clip=None,tick=0,source=False):
             cp=np.array(c.get('pivot',b['pivot']))
             cm=matrix@transform(cp-pivot,c.get('rotation',[0,0,0]))
             for f,corners in FACES.items():
+                if f not in face_uv(c):continue
                 p=np.array(corners)*np.array(c['size'])+np.array(c['origin'])-cp
                 p=p*[-1,1,1]
                 p=(cm@np.column_stack((p,np.ones(4))).T).T[:,:3]
