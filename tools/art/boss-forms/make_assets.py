@@ -1,6 +1,13 @@
-"""Rebuild all eight resources and editable sources; never launches Java or Gradle."""
+"""Default art export preserves approved bodies/rigs/timelines; no Java launched.
+
+Geometry redesign is a separate explicitly requested operation (build.py +
+ground.py). Texture work must never silently rebuild the approved geometry.
+"""
 import runpy
 from pathlib import Path
-folder=Path(__file__).parent
-for script in ['build.py','ground.py','projectile.py','export_bbmodel.py','validate.py']:
- runpy.run_path(str(folder/script),run_name='__main__')
+from retexture import run
+from build import IDS
+run(IDS)
+runpy.run_path(str(Path(__file__).with_name('export_bbmodel.py')),run_name='__main__')
+from texture_validate import run as validate
+validate()
