@@ -6,6 +6,19 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.PacketDistributor;
 
 public final class Cod3Vfx {
+    public static void afterimage(net.minecraft.world.entity.LivingEntity owner,int template,int tint){
+        if(!(owner.level() instanceof ServerLevel level)||!owner.isAlive()||template!=18&&template!=23&&template!=29)return;
+        var packet=new Cod3VisualPacket(level.dimension().location().toString(),template,owner.getId(),owner.getUUID().getLeastSignificantBits(),level.getGameTime(),Cod3Catalog.vfx(template).duration(),1,owner.position(),owner.getLookAngle(),template==29?"mesh_weapon":"mesh_entity",0,tint);
+        DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(owner.getX(),owner.getY(),owner.getZ(),32,level.dimension())),packet);
+    }
+    /** Visual-only attachment; callers keep damage in their ordinary server attack pipeline. */
+    public static void follow(net.minecraft.world.entity.LivingEntity owner,int template,double scale){
+        if(!(owner.level() instanceof ServerLevel level)||!owner.isAlive())return;
+        if(template==18||template==23||template==29){afterimage(owner,template,0);return;}
+        var packet=new Cod3VisualPacket(level.dimension().location().toString(),template,owner.getId(),owner.getUUID().getLeastSignificantBits(),level.getGameTime(),Cod3Catalog.vfx(template).duration(),scale,owner.position(),owner.getLookAngle(),template==36?"mesh_mirror":"vfx_follow",0);
+        if(!packet.valid())throw new IllegalArgumentException("Invalid owner-bound template");
+        DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(owner.getX(),owner.getY(),owner.getZ(),32,level.dimension())),packet);
+    }
     public static void send(ServerLevel level,int template,Vec3 origin,Vec3 direction,int duration,double scale){
         send(level,template,origin,direction,duration,scale,0);
     }

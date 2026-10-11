@@ -20,7 +20,7 @@ public final class DynastyCharacterRenderer<T extends Mob> extends MobRenderer<T
             @Override public void render(PoseStack pose,MultiBufferSource buffers,int light,T mob,float a,float b,float partial,float age,float yaw,float pitch) {
                 for(boolean left:new boolean[]{false,true}) {
                     var item=left?mob.getOffhandItem():mob.getMainHandItem();
-                    if(item.isEmpty()||role==DynastyCharacterModel.Role.ARCHER&&item.is(Items.BOW))continue;
+                    if(item.isEmpty()||role==DynastyCharacterModel.Role.ARCHER&&item.is(Items.BOW)||!left&&getParentModel().rendersGuardSpear())continue;
                     pose.pushPose();getParentModel().handTransform(pose,left);
                     pose.mulPose(Axis.XP.rotationDegrees(-90));pose.mulPose(Axis.YP.rotationDegrees(180));
                     context.getItemInHandRenderer().renderItem(mob,item,left?ItemDisplayContext.THIRD_PERSON_LEFT_HAND:ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,left,pose,buffers,light);

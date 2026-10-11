@@ -350,10 +350,13 @@ public final class ArmyBehaviors {
         PaperSwordsman(TemplateMob mob){super(mob);}
         public boolean allows(int id){return id==ArmySkills.PAPER_SLASH||id==ArmySkills.PAPER_SHED;}
         public boolean canStart(int id,LivingEntity target){return id!=ArmySkills.PAPER_SHED||substituting;}
-        public int choose(LivingEntity target,long now){return ArmySkills.PAPER_SLASH;}
+        public int choose(LivingEntity target,long now){
+            return mob.tombSignal.target(mob)==target&&!TombEncounterCoordinator.inFront(mob,target)?0:ArmySkills.PAPER_SLASH;
+        }
         public void tick(long now){if(mob.getTarget()==null||!mob.getTarget().isAlive()||mob.skillId()!=0)mob.setSprinting(false);}
         public void move(LivingEntity target,long now){
             mob.setSprinting(true);
+            if(mob.tombSignal.target(mob)==target){navigate(TombEncounterCoordinator.flank(target,false),1.25);return;}
             Vec3 forward=target.position().subtract(mob.position()).multiply(1,0,1).normalize();
             double side=((now/20+mob.getId())&1)==0?1.5:-1.5;
             Vec3 next=mob.distanceToSqr(target)>16?mob.position().add(forward.scale(3)).add(-forward.z*side,0,forward.x*side):target.position();
@@ -416,6 +419,7 @@ public final class ArmyBehaviors {
         }
         public boolean canStart(int id,LivingEntity target){return id!=ArmySkills.CHILD_CURSE||behindPlayer(target);}
         public int choose(LivingEntity target,long now){
+            if(mob.tombSignal.target(mob)==target&&!behindPlayer(target))return 0;
             return behindPlayer(target)&&mob.attack().ready(ArmySkills.CHILD_CURSE,now)?ArmySkills.CHILD_CURSE:ArmySkills.CHILD_LAUGH;
         }
         public void started(int id,LivingEntity target){mob.playSound(SoundEvents.VEX_CHARGE,.45F,1.7F);}
@@ -449,6 +453,10 @@ public final class ArmyBehaviors {
         }
         public void move(LivingEntity target,long now){
             mob.setSprinting(false);
+            if(mob.tombSignal.target(mob)==target||!behindPlayer(target)&&TombEncounterCoordinator.waterAmbushNear(mob,target)){
+                var rear=TombEncounterCoordinator.rearRoute(mob,target);
+                if(rear!=null){mob.getNavigation().moveTo(rear,1.1);return;}
+            }
             Vec3 away=mob.position().subtract(target.position()).multiply(1,0,1).normalize();
             Vec3 point=mob.distanceToSqr(target)<16?mob.position().add(away.scale(3))
                 :target.position().subtract(target.getLookAngle().multiply(1,0,1).normalize().scale(4));
@@ -681,18 +689,22 @@ public final class ArmyBehaviors {
         UUID linked, assaultAnchor, cachedPowder;long expires, nextAssaultScan;boolean kneeSpent;
         Scout(TemplateMob mob){super(mob);}
         public boolean allows(int id){return id==ArmySkills.CUT||id==ArmySkills.GRAPPLE||id==ArmySkills.KNEE;}
+        private boolean validAssaultPowder(TemplateMob powder,LivingEntity target){
+            return powder.kind()==TemplateMob.Kind.POWDER&&powder.isAlive()&&powder.isPossessed()
+                &&powder.getTarget()==target&&mob.validEnemy(target)&&mob.sameEncounter(powder)
+                &&Combatant.allied(mob,powder)&&mob.distanceToSqr(powder)<=256&&powder.distanceToSqr(target)<=256
+                &&mob.hasLineOfSight(powder)&&powder.hasLineOfSight(target);
+        }
         private TemplateMob assaultPowder(LivingEntity target,long now){
             if(now>=nextAssaultScan){
                 nextAssaultScan=now+20;
                 cachedPowder=level().getEntitiesOfClass(TemplateMob.class,mob.getBoundingBox().inflate(16),
-                    e->e.kind()==TemplateMob.Kind.POWDER&&e.isAlive()&&e.isPossessed()&&e.getTarget()==target
-                        &&mob.distanceToSqr(e)<=256&&mob.hasLineOfSight(e)&&e.hasLineOfSight(target))
+                    e->validAssaultPowder(e,target))
                     .stream().min(java.util.Comparator.comparingDouble(e->e.distanceToSqr(target)))
                     .map(TemplateMob::getUUID).orElse(null);
             }
             var found=mob.resolve(cachedPowder);
-            return found instanceof TemplateMob powder&&powder.isAlive()&&powder.isPossessed()
-                &&powder.getTarget()==target&&mob.distanceToSqr(powder)<=256?powder:null;
+            return found instanceof TemplateMob powder&&validAssaultPowder(powder,target)?powder:null;
         }
         public int choose(LivingEntity target,long now){
             if(assaultPowder(target,now)!=null)return mob.distanceToSqr(target)>=64?ArmySkills.GRAPPLE:0;
@@ -714,8 +726,7 @@ public final class ArmyBehaviors {
             mob.syncHook(target,expires); // Resolve loaded UUIDs before publishing a current runtime entity ID.
             if(assaultAnchor!=null){
                 var anchor=mob.resolve(assaultAnchor);
-                if(!(anchor instanceof TemplateMob powder)||!powder.isAlive()||!powder.isPossessed()
-                        ||powder.getTarget()!=target||powder.distanceToSqr(target)>256||!powder.hasLineOfSight(target)
+                if(!(anchor instanceof TemplateMob powder)||!validAssaultPowder(powder,target)
                         ||target instanceof com.dynasty.DynastyBossCombat.BarHolder){
                     linked=null;mob.syncHook(null,-1);return;
                 }

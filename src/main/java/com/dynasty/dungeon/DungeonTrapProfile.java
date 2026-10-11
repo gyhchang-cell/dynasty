@@ -4,7 +4,8 @@ package com.dynasty.dungeon;
 public enum DungeonTrapProfile {
     CRUSHER("crusher",15,1,14,4,true),CONVEYOR("conveyor",10,60,10,0,false),
     STEAM("steam",20,4,36,3,true),MINE("mine",16,1,60,6,false),
-    ARROW_RAIN("arrow_rain",30,40,80,2,true),WIND_FIELD("wind_field",20,60,20,0,true);
+    ARROW_RAIN("arrow_rain",30,40,80,2,true),WIND_FIELD("wind_field",20,60,20,0,true),
+    UPDRAFT("updraft",10,60,10,0,true),FLAME("flame",20,4,36,3,true);
     public final String id;public final int warning,active,recovery;public final float damage;public final boolean periodic;
     DungeonTrapProfile(String id,int warning,int active,int recovery,float damage,boolean periodic){
         this.id=id;this.warning=warning;this.active=active;this.recovery=recovery;this.damage=damage;this.periodic=periodic;

@@ -1,5 +1,5 @@
 """Original species/profession-specific cuboid bosses. Actual final 16px assets."""
-import json,math
+import argparse,hashlib,io,json,math,os,tempfile
 from pathlib import Path
 from PIL import Image,ImageDraw
 from build_models import ASSET,keys
@@ -13,6 +13,46 @@ SPECS={
  'nine_heaven_general':(['#34455c','#718ba4','#d8c6a0'],['C....C','.CCCC.','.CAAC.','CBBCBC','.ABBA.','.AAAA.']),
  'dragon_emperor':(['#2b4039','#658573','#c6ae74'],['C....C','.BCCB.','BAAAAB','.CCCC.','.BBBB.','BCBBCB']),
 }
+APPROVED_OUTPUTS={}
+
+def check_outputs():
+ """Check every destination before Rig can write even the first PNG.
+
+ These hashes describe this generator's last verified output, not newer art
+ from another owner. Regeneration must never silently roll that art back.
+ """
+ baseline=json.loads((Path(__file__).with_name('boss-output-baseline.json')).read_text())
+ expected={f'src/main/resources/assets/dynasty/{folder}/{id}{suffix}'
+           for id in SPECS for folder,suffix in [('geo/boss_cuboid','.geo.json'),
+           ('animations/boss_cuboid','.animation.json'),('textures/entity/boss_cuboid','.png')]}
+ if set(baseline['files'])!=expected:
+  raise SystemExit('Boss generator baseline is incomplete; no outputs written')
+ root=ASSET.parents[4];changed=[]
+ for name,digest in baseline['files'].items():
+  p=root/name
+  if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
+   changed.append(name)
+ if changed:
+  raise SystemExit('Boss art changed after this generator was verified. No outputs written. '
+                   'Preserve the current resources; use their current owner/source for further edits.\n'
+                   +'\n'.join(changed))
+ APPROVED_OUTPUTS.clear();APPROVED_OUTPUTS.update(baseline['files'])
+ return len(expected)
+
+def write_asset(path,data):
+ if not APPROVED_OUTPUTS:check_outputs()
+ name=str(path.relative_to(ASSET.parents[4]))
+ expected=APPROVED_OUTPUTS.get(name)
+ if expected is None or not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:
+  raise SystemExit('Concurrent Boss art change; preserve current file: '+name)
+ fd,temp=tempfile.mkstemp(prefix='.boss-art-',dir=path.parent)
+ try:
+  with os.fdopen(fd,'wb') as out:out.write(data)
+  if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:
+   raise SystemExit('Concurrent Boss art change before replace: '+name)
+  os.replace(temp,path)
+ finally:
+  if os.path.exists(temp):os.unlink(temp)
 
 class Rig:
  def __init__(self,id):
@@ -23,7 +63,7 @@ class Rig:
    for x,c in enumerate(row,1):
     if c=='.':continue
     d.rectangle((x*2,y*2,x*2+1,y*2+1),fill=palette['ABC'.index(c)]);self.islands.setdefault(c,[x*2,y*2])
-  p=ASSET/f'textures/entity/boss_cuboid/{id}.png';p.parent.mkdir(parents=True,exist_ok=True);im.save(p)
+  p=ASSET/f'textures/entity/boss_cuboid/{id}.png';buffer=io.BytesIO();im.save(buffer,format='PNG');write_asset(p,buffer.getvalue())
  def bone(self,name,pivot,parent='root',rotation=None):
   b={'name':name,'pivot':list(pivot)}
   if parent:b['parent']=parent
@@ -33,7 +73,7 @@ class Rig:
   self.by[bone].setdefault('cubes',[]).append({'origin':list(origin),'size':list(size),'uv':{f:{'uv':self.islands[color].copy(),'uv_size':[2,2]} for f in ['north','south','east','west','up','down']}})
  def save(self):
   g={'format_version':'1.12.0','minecraft:geometry':[{'description':{'identifier':'geometry.boss_cuboid.'+self.id,'texture_width':16,'texture_height':16,'visible_bounds_width':14 if self.id=='dragon_emperor' else 4,'visible_bounds_height':8 if self.id=='dragon_emperor' else 4,'visible_bounds_offset':[0,2.5 if self.id=='dragon_emperor' else 1.5,0]},'bones':self.bones}]}
-  p=ASSET/f'geo/boss_cuboid/{self.id}.geo.json';p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(g,indent=2)+'\n');return self
+  p=ASSET/f'geo/boss_cuboid/{self.id}.geo.json';write_asset(p,(json.dumps(g,indent=2)+'\n').encode());return self
 
 def face(r,y,z,w=6):
  r.bone('head',(0,y,z),'neck');r.cube('head',(-w/2,y,z-3),(w,6,5),'C')
@@ -228,7 +268,7 @@ def dragon_animations(r):
   if name=='death':ch['body']={'rotation':{'0':[0,0,0],'1':[0,0,55]}};ch['jaw']={'rotation':{'0':[3,0,0],'1':[20,0,0]}}
   clips[name]={'loop':name in ['idle','walk'],'animation_length':length,'bones':ch}
  clips['death']=ground_death(r)
- p=ASSET/f'animations/boss_cuboid/{r.id}.animation.json';p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'format_version':'1.8.0','animations':clips},indent=2)+'\n')
+ p=ASSET/f'animations/boss_cuboid/{r.id}.animation.json';write_asset(p,(json.dumps({'format_version':'1.8.0','animations':clips},indent=2)+'\n').encode())
 
 def animations(r):
  clips={};king=r.id=='dragon_king'
@@ -275,9 +315,15 @@ def animations(r):
  p=ASSET/f'animations/boss_cuboid/{r.id}.animation.json';p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'format_version':'1.8.0','animations':clips},indent=2)+'\n')
 
 def main():
+ check_outputs()
  OUT.mkdir(parents=True,exist_ok=True);manifest={}
  for r in [eunuch(),emperor(),king(),heavenly(),imperial_dragon()]:
   (dragon_animations if r.id=='dragon_emperor' else animations)(r);manifest[r.id]={'bones':len(r.bones),'cuboids':sum(len(b.get('cubes',[])) for b in r.bones),'atlas':[16,16],'palette':SPECS[r.id][0]+['#ffffff'],'animationNames':['idle','walk','attack','cast','hurt','death'],'specialSkillClock':'pending; not adding server/AI sync in art task'}
  (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n');print('Generated original boss resources:',', '.join(manifest))
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+ parser=argparse.ArgumentParser(description=__doc__)
+ parser.add_argument('--check-outputs',action='store_true',help='Read-only ownership check; do not regenerate')
+ args=parser.parse_args()
+ if args.check_outputs:print('Verified unchanged boss generator outputs:',check_outputs())
+ else:main()

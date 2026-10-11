@@ -16,14 +16,15 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.registries.*;
 
 /** Permanent loot container. No dead entity or immortal ItemEntity remains in the world. */
-public final class LootableRemains extends BaseEntityBlock {
+public class LootableRemains extends BaseEntityBlock {
     public static final DeferredRegister<Block> BLOCKS=DeferredRegister.create(ForgeRegistries.BLOCKS,Dynasty.MODID);
     public static final DeferredRegister<Item> ITEMS=DeferredRegister.create(ForgeRegistries.ITEMS,Dynasty.MODID);
     public static final DeferredRegister<BlockEntityType<?>> TYPES=DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES,Dynasty.MODID);
     public static final RegistryObject<Block> BLOCK=BLOCKS.register("lootable_remains",LootableRemains::new);
     public static final RegistryObject<Item> ITEM=ITEMS.register("lootable_remains",()->new BlockItem(BLOCK.get(),new Item.Properties()));
     public static final RegistryObject<BlockEntityType<Remains>> TYPE=TYPES.register("lootable_remains",()->BlockEntityType.Builder.of(Remains::new,BLOCK.get()).build(null));
-    public LootableRemains(){super(Properties.copy(Blocks.BARREL).noOcclusion());}
+    public LootableRemains(){this(Properties.copy(Blocks.BARREL).noOcclusion());}
+    protected LootableRemains(Properties properties){super(properties);}
     @Override public RenderShape getRenderShape(BlockState s){return RenderShape.MODEL;}
     @Override public BlockEntity newBlockEntity(BlockPos p,BlockState s){return new Remains(p,s);}
     @Override public InteractionResult use(BlockState s,Level l,BlockPos p,Player who,InteractionHand hand,BlockHitResult hit){
@@ -31,9 +32,10 @@ public final class LootableRemains extends BaseEntityBlock {
         return InteractionResult.PASS;
     }
     @Override public void onRemove(BlockState s,Level l,BlockPos p,BlockState next,boolean moving){if(!s.is(next.getBlock())&&l.getBlockEntity(p) instanceof Remains r)Containers.dropContents(l,p,r);super.onRemove(s,l,p,next,moving);}
-    public static final class Remains extends RandomizableContainerBlockEntity {
+    public static class Remains extends RandomizableContainerBlockEntity {
         private NonNullList<ItemStack> items=NonNullList.withSize(54,ItemStack.EMPTY);
-        public Remains(BlockPos p,BlockState s){super(TYPE.get(),p,s);}
+        public Remains(BlockPos p,BlockState s){this(TYPE.get(),p,s);}
+        protected Remains(BlockEntityType<?> type,BlockPos p,BlockState s){super(type,p,s);}
         @Override public int getContainerSize(){return 54;}
         @Override protected Component getDefaultName(){return Component.translatable("block.dynasty.lootable_remains");}
         @Override protected AbstractContainerMenu createMenu(int id,Inventory inv){return ChestMenu.sixRows(id,inv,this);}

@@ -128,6 +128,11 @@ class MegabuildPiece extends DynastyStructurePiece {
             ?new int[][]{{17,4,66},{31,4,66}}:new int[][]{{17,4,44},{31,4,45}}):java.util.List.of();
     }
     java.util.List<BlockPos> bronzeSnakePositions(){return mechanicalPositions(new int[][]{{35,1,52},{66,1,36}});}
+    java.util.List<BlockPos> spiderWomanPositions(){return size==MiningEstate.SIZE&&(layoutVersion>=6||miningUpgrade==6)?rotateMechanical(new int[][]{{24,4,66}}):java.util.List.of();}
+    java.util.List<BlockPos> mechanistPositions(){
+        if(size==TiangongCitadel.SIZE&&layoutVersion>=4)return rotateMechanical(new int[][]{{49,1,120}});
+        return size==MiningEstate.SIZE&&(layoutVersion>=6||miningUpgrade==6)?rotateMechanical(new int[][]{{40,1,66}}):java.util.List.of();
+    }
     java.util.List<BlockPos> clockworkPatrols(){return mechanicalPositions(new int[][]{{84,1,20},{91,1,28}});}
     private java.util.List<BlockPos> mechanicalPositions(int[][] authored){
         if(size!=TiangongCitadel.SIZE||layoutVersion<4)return java.util.List.of();

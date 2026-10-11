@@ -19,14 +19,30 @@ public final class TemplateMobModel extends GeoModel<TemplateMob> {
             getBone("tongue_reach").ifPresent(b->b.setScaleZ(mob.skillId()==com.dynasty.blueprint.ArmySkills.TOAD_TONGUE?mob.tongueReach()/5:1));
     }
     @Override public ResourceLocation getModelResource(TemplateMob mob) {
-        return new ResourceLocation("dynasty", "geo/blueprint/" + mob.blueprintId() + ".geo.json");
+        return new ResourceLocation("dynasty", "geo/" + artDirectory(mob) + mob.blueprintId() + ".geo.json");
     }
 
     @Override public ResourceLocation getAnimationResource(TemplateMob mob) {
-        return new ResourceLocation("dynasty", "animations/blueprint/" + mob.blueprintId() + ".animation.json");
+        return new ResourceLocation("dynasty", "animations/" + artDirectory(mob) + mob.blueprintId() + ".animation.json");
+    }
+
+    // Preserve the concurrent legacy UV files; these two rigs have separate authored resources.
+    private static String artDirectory(TemplateMob mob) {
+        return mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER
+            ? "blueprint/cod2_voxel/" : "blueprint/";
     }
 
     @Override public ResourceLocation getTextureResource(TemplateMob mob) {
+        if(mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER)
+            return new ResourceLocation("dynasty", "textures/entity/" + artDirectory(mob) + mob.blueprintId() + ".png");
+        if (switch (mob.kind()) {
+            case STONE_GUARD, BIXI, YECHA, LANTERN_BAT, BLIND_FISH, DROWNER,
+                 BRONZE_SNAKE, CLOCKWORK_DOG, MINING_SPIDER, SCORPION,
+                 CENTIPEDE, SERPENT, TOAD, PRIEST,
+                 SPEAR, POWDER, TREE, CROSSBOW, SHIELD, SKULL, AXE_GUARD, SCOUT,
+                 CORPSE, GHOST, PALANQUIN, FLAG, BEAST, SWORD -> true;
+            default -> false;
+        }) return new ResourceLocation("dynasty", "textures/entity/blueprint/" + mob.blueprintId() + ".png");
         // Continuous opaque native swatches preserve pixel grain without replacing legacy artwork.
         String atlas = switch (mob.blueprintId()) {
             case "juli_bixi_kuilei", "xueju_mangguyu", "jubi_shigandang", "zuwu_daoshou", "ludun_jiashi", "zhenwang_zhangqiguan", "pijia_panjiang_huwei", "yinbing_guizu" -> "royal_guard";

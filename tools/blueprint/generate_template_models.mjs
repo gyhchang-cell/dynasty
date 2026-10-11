@@ -5,6 +5,10 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import zlib from 'node:zlib';
 const base='src/main/resources/assets/dynasty', out='docs/blueprint-cod1/models';
+// User-authorized art rebuilds own their resources; template generation must not undo them.
+const authoredFile='tools/art/cod2-voxel/owned-models.json';
+const authoredConfig=fs.existsSync(authoredFile)?JSON.parse(fs.readFileSync(authoredFile)):{ids:[]};
+const authoredIds=new Set(authoredConfig.ids);
 const palette={skin:0xad896f,leather:0x51402e,iron:0x484c48,edge:0xa4a38f,red:0x74352a,cloth:0x564537,gold:0xa98b4e,black:0x242621,paper:0xc2a963,fur:0x454945,jade:0x617765,bone:0xb3a58a};
 // Read-only PNG decoding locates continuous opaque material swatches; no bitmap is edited.
 function pngPixels(file){
@@ -30,7 +34,10 @@ function add(name,...c){bones.find(b=>b.name===name).cubes.push(...c);}
 function insertBone(name,parent,pivot,before,cubes=[]){bone(name,parent,pivot,cubes);const b=bones.pop();bones.splice(bones.findIndex(b=>b.name===before),0,b);return b;}
 function wrapBone(child,name){const b=bones.find(b=>b.name===child);insertBone(name,b.parent,[...b.pivot],child);b.parent=name;}
 function materialPatch(im,mat,col){
- const target=[col>>16,(col>>8)&255,col&255],n=['edge','gold','bone','paper'].includes(mat)?2:['skin','black','leather','cloth'].includes(mat)?4:8;let best,bestScore=Infinity;
+ // Paper must sample the atlas's neutral pale ink/cloth pixel, rather than its orange face skin.
+ // Restrict this UV correction to paper and white shrouds; legacy atlas bytes and every other rig stay intact.
+ if(['zhiren_jianke','fuhun_baibu_tongzi'].includes(activeId)&&mat==='paper')col=activeId==='zhiren_jianke'?0xeeeade:0xdcdcd0;
+ const target=[col>>16,(col>>8)&255,col&255],n=['zhiren_jianke','fuhun_baibu_tongzi'].includes(activeId)&&mat==='paper'?1:['edge','gold','bone','paper'].includes(mat)?2:['skin','black','leather','cloth'].includes(mat)?4:8;let best,bestScore=Infinity;
  for(let y=0;y<=im.h-n;y++)for(let x=0;x<=im.w-n;x++){
   const sum=[0,0,0],square=[0,0,0];let opaque=true;
   for(let dy=0;dy<n&&opaque;dy++)for(let dx=0;dx<n;dx++){
@@ -1374,6 +1381,14 @@ const armies={juma_changqiangbing:spearman,liannu_zhenzu:crossbowman,tiesuo_chih
 const additions={yinyang_zhijiao_youhun:palanquin,tongbi_feitian_yecha:yecha,baimu_mowu:centipede,juli_bixi_kuilei:bixi,shashui_funigui:drowner,xueju_mangguyu:blindFish,youdeng_guimianfu:lanternBat,bazu_digongzhu:miningSpider,qingtong_shuangtoushekui:bronzeSnake,xunshan_mujiaquan:clockworkDog,jubi_shigandang:stoneWarden,bishui_xuanjiao_youzi:waterSerpent,mingsha_shixie:sandScorpion,kumu_shujing:treeSpirit,chimu_zhuha:redToad,muxue_feilu:flyingSkull,zhiren_jianke:paperSwordsman,fuhun_baibu_tongzi:shroudChild,shibian_lishi:corpseStrongman,pijia_panjiang_huwei:axeGuard,yinbing_guizu:ghostSoldier};
 const selected=process.argv.includes('--palanquin')?{yinyang_zhijiao_youhun:palanquin}:process.argv.includes('--yecha')?{tongbi_feitian_yecha:yecha}:process.argv.includes('--centipede')?{baimu_mowu:centipede}:process.argv.includes('--bixi')?{juli_bixi_kuilei:bixi}:process.argv.includes('--drowner')?{shashui_funigui:drowner}:process.argv.includes('--fish')?{xueju_mangguyu:blindFish}:process.argv.includes('--bat')?{youdeng_guimianfu:lanternBat}:process.argv.includes('--mining-spider')?{bazu_digongzhu:miningSpider}:process.argv.includes('--bronze-snake')?{qingtong_shuangtoushekui:bronzeSnake}:process.argv.includes('--dog')?{xunshan_mujiaquan:clockworkDog}:process.argv.includes('--stone')?{jubi_shigandang:stoneWarden}:process.argv.includes('--serpent')?{bishui_xuanjiao_youzi:waterSerpent}:process.argv.includes('--scorpion')?{mingsha_shixie:sandScorpion}:process.argv.includes('--tree')?{kumu_shujing:treeSpirit}:process.argv.includes('--toad')?{chimu_zhuha:redToad}:process.argv.includes('--skull')?{muxue_feilu:flyingSkull}:process.argv.includes('--paper')?{zhiren_jianke:paperSwordsman}:process.argv.includes('--child')?{fuhun_baibu_tongzi:shroudChild}:process.argv.includes('--corpse')?{shibian_lishi:corpseStrongman}:process.argv.includes('--ghost')?{yinbing_guizu:ghostSoldier}:process.argv.includes('--guard')?{pijia_panjiang_huwei:axeGuard}:process.argv.includes('--army')?armies:{...originals,...armies,...additions};
 for(const [id,build]of Object.entries(selected)){
+ if(authoredIds.has(id)){
+  const directory=authoredConfig.resource_directories?.[id]??'blueprint';
+  const authored=JSON.parse(fs.readFileSync(`${base}/geo/${directory}/${id}.geo.json`))['minecraft:geometry'][0];
+  const authoredAnim=JSON.parse(fs.readFileSync(`${base}/animations/${directory}/${id}.animation.json`));
+  assert(fs.existsSync(`${base}/textures/entity/${directory}/${id}.png`),`Missing authored texture: ${id}`);
+  report.push({id,texture:`textures/entity/${directory}/${id}.png`,bones:authored.bones.length,cubes:authored.bones.reduce((n,b)=>n+(b.cubes?.length||0),0),animations:Object.keys(authoredAnim.animations).length,authored_art_preserved:true,visual_review_file:'../../art/cod2-voxel-v1/README.md',runtime_verified:false});
+  continue;
+ }
  const im=start(id);build();const names=new Set(bones.map(b=>b.name));assert.equal(names.size,bones.length);for(const b of bones){if(b.parent)assert(names.has(b.parent),b.name);for(const c of b.cubes){assert(c.size.every(n=>n>0));for(const f of Object.values(c.uv)){assert(f.uv[0]>=0&&f.uv[1]>=0&&f.uv[0]+f.uv_size[0]<=im.w&&f.uv[1]+f.uv_size[1]<=im.h);for(let y=f.uv[1];y<f.uv[1]+f.uv_size[1];y++)for(let x=f.uv[0];x<f.uv[0]+f.uv_size[0];x++)assert(im.c!==4||im.data[(y*im.w+x)*im.c+3]>=250,'Transparent UV pixel');}}}
  const anim=id==='yinyang_zhijiao_youhun'?palanquinAnimations(id):id==='tongbi_feitian_yecha'?yechaAnimations(id):id==='baimu_mowu'?centipedeAnimations(id):id==='juli_bixi_kuilei'?bixiAnimations(id):id==='shashui_funigui'?drownerAnimations(id):id==='xueju_mangguyu'?fishAnimations(id):id==='youdeng_guimianfu'?batAnimations(id):id==='bazu_digongzhu'?spiderAnimations(id):id==='qingtong_shuangtoushekui'?bronzeAnimations(id):id==='xunshan_mujiaquan'?dogAnimations(id):id==='jubi_shigandang'?stoneAnimations(id):id==='bishui_xuanjiao_youzi'?serpentAnimations(id):id==='mingsha_shixie'?scorpionAnimations(id):id==='kumu_shujing'?treeAnimations(id):id==='chimu_zhuha'?toadAnimations(id):id==='muxue_feilu'?skullAnimations(id):id==='zhiren_jianke'?paperAnimations(id):id==='fuhun_baibu_tongzi'?childAnimations(id):id==='shibian_lishi'?corpseAnimations(id):id==='yinbing_guizu'?ghostAnimations(id):id==='pijia_panjiang_huwei'?guardAnimations(id):Object.hasOwn(armies,id)?armyAnimations(id):animations(id);
  for(const b of bones)names.add(b.name);assert.equal(names.size,bones.length,'Animation surface children must remain unique');

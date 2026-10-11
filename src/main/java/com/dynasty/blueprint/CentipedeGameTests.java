@@ -60,7 +60,9 @@ public final class CentipedeGameTests {
         try(var in=CentipedeGameTests.class.getResourceAsStream("/assets/dynasty/animations/blueprint/baimu_mowu.animation.json")){
             var json=com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(in)).getAsJsonObject();var clips=gson.fromJson(json.get("animations"),software.bernie.geckolib.loading.object.BakedAnimations.class);
             for(var n:java.util.List.of("idle","walk","run","attack","gaze","hurt","death"))h.assertTrue(clips.getAnimation("animation.baimu_mowu."+n).boneAnimations().length>0,"Parses "+n);
-            h.assertTrue(json.getAsJsonObject("animations").getAsJsonObject("animation.baimu_mowu.walk").getAsJsonObject("bones").size()==48,"16body+32legs drive the phase wave");
+            var animated=json.getAsJsonObject("animations").getAsJsonObject("animation.baimu_mowu.walk").getAsJsonObject("bones");
+            for(int n=0;n<16;n++)for(var name:java.util.List.of("segment_"+n,"left_leg_"+n,"right_leg_"+n))
+                h.assertTrue(animated.has(name),"Every authored body segment and both leg roots drive the phase wave: "+name);
         }
     }
 }

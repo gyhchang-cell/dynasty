@@ -41,7 +41,78 @@ public record BlueprintVisualEvent(ResourceLocation dimension, int entityId, UUI
     public static void death(TemplateMob mob) {
         if(mob.level() instanceof ServerLevel) send(mob,deathEvent(mob));
     }
+    private static BlueprintVisualEvent birdDeath(com.dynasty.blueprint.elite.GhostCarriageBird bird) {
+        return new BlueprintVisualEvent(bird.level().dimension().location(),bird.getId(),bird.getUUID(),-1,
+            bird.skillStart(),seed(bird,bird.skillStart()),"death_guiche_jiushouniao",0,100,bird.position(),bird.getLookAngle(),2.5,360,false);
+    }
+    public static void death(com.dynasty.blueprint.elite.GhostCarriageBird bird) {
+        if(bird.level() instanceof ServerLevel)send(bird,birdDeath(bird));
+    }
+    private static BlueprintVisualEvent spiderDeath(com.dynasty.blueprint.elite.SpiderWoman spider){return new BlueprintVisualEvent(spider.level().dimension().location(),spider.getId(),spider.getUUID(),-1,spider.skillStart(),seed(spider,spider.skillStart()),"death_gudu_tianzhunv",0,80,spider.position(),spider.getLookAngle(),2,360,false);}
+    public static void death(com.dynasty.blueprint.elite.SpiderWoman spider){if(spider.level() instanceof ServerLevel)send(spider,spiderDeath(spider));}
     @SubscribeEvent public static void tracking(PlayerEvent.StartTracking event) {
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.SpiderWoman spider&&spider.level() instanceof ServerLevel level){
+            if(spider.isDeadOrDying()){if(spider.skillStart()>=0&&level.getGameTime()-spider.skillStart()<80)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),spiderDeath(spider));return;}
+            var action=spider.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());
+                DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),spider.getId(),spider.getUUID(),target==null?-1:target.getId(),action.started(),seed(spider,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.HammerGuardian hammer
+            &&hammer.level() instanceof ServerLevel level&&hammer.isAlive()){
+            var action=hammer.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());
+                DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),hammer.getId(),hammer.getUUID(),target==null?-1:target.getId(),action.started(),seed(hammer,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.GhostCarriageBird bird
+            &&bird.isDeadOrDying()&&bird.skillStart()>=0&&bird.level().getGameTime()-bird.skillStart()<100){
+            DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),birdDeath(bird));return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.FoxMatron fox
+            &&fox.level() instanceof ServerLevel level&&fox.isAlive()&&!fox.isDecoy()){
+            var action=fox.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());
+                DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),fox.getId(),fox.getUUID(),target==null?-1:target.getId(),action.started(),seed(fox,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.Jinwu jinwu
+            &&jinwu.level() instanceof ServerLevel level&&jinwu.isAlive()){
+            var action=jinwu.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());
+                DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),jinwu.getId(),jinwu.getUUID(),target==null?-1:target.getId(),action.started(),seed(jinwu,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.Mechanist mechanist
+                &&mechanist.level() instanceof ServerLevel level&&mechanist.isAlive()){
+            var action=mechanist.attack();var skill=action.current();
+            if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());
+                DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),mechanist.getId(),mechanist.getUUID(),target==null?-1:target.getId(),
+                    action.started(),seed(mechanist,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.GhostCarriageBird bird
+                &&bird.level() instanceof ServerLevel level&&bird.isAlive()){
+            var action=bird.attack();var skill=action.current();
+            if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());
+                DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),bird.getId(),bird.getUUID(),target==null?-1:target.getId(),
+                    action.started(),seed(bird,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),bird.telegraphOrigin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player && event.getTarget() instanceof com.dynasty.blueprint.elite.HeadlessGeneral elite
+                && elite.level() instanceof ServerLevel level && elite.isAlive()) {
+            var action=elite.attack();var skill=action.current();
+            if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());
+                var packet=new BlueprintVisualEvent(level.dimension().location(),elite.getId(),elite.getUUID(),target==null?-1:target.getId(),
+                    action.started(),seed(elite,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),
+                    skill.id()==com.dynasty.blueprint.elite.HeadlessGeneral.THROW.id()?elite.landing():action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false);
+                DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),packet);
+            }return;
+        }
         if (!(event.getEntity() instanceof ServerPlayer player) || !(event.getTarget() instanceof TemplateMob mob)
                 || !(mob.level() instanceof ServerLevel level)) return;
         if(mob.isDeadOrDying()) {

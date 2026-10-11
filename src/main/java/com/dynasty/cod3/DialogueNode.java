@@ -36,7 +36,7 @@ public record DialogueNode(String id, String textKey, List<Condition> conditions
         }
     }
 
-    public enum Action { TALK, TRADE, LEAVE, DELIVER, DRINK, DISMANTLE }
+    public enum Action { TALK, TRADE, LEAVE, DELIVER, DRINK, DISMANTLE, REPAIR, COMMEMORATE }
 
     public record Choice(String id, String textKey, List<Condition> conditions, Action action, String nextNode) {
         public Choice {

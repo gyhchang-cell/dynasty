@@ -6,6 +6,22 @@ allprojects { p -> afterEvaluate {
         property 'forge.enabledGameTestNamespaces', p.findProperty('repairNamespaces') ?: 'dynasty_cod4'
         jvmArgs '-Xmx'+(p.findProperty('repairHeap') ?: '3G'), '-XX:ActiveProcessorCount=2'
     }
+    if(p.hasProperty('repairPrepareOnly'))p.tasks.matching { it.name=='runGameTestServer' }.configureEach { task ->
+        task.jvmArgumentProviders.add({ ->
+            def launch=p.file('build/pr-repair-tests/launch-'+p.findProperty('repairRun')+'.json')
+            launch.parentFile.mkdirs()
+            launch.text=groovy.json.JsonOutput.toJson([executable:task.javaLauncher.get().executablePath.asFile.absolutePath,
+                jvmArgs:task.jvmArgs+task.systemProperties.collect { k,v -> "-D${k}=${v}".toString() },
+                classpath:task.classpath.asPath,main:task.mainClass.get(),args:task.args,
+                environment:task.environment.findAll { k,v -> k in ['MOD_CLASSES','MCP_MAPPINGS'] },
+                directory:task.workingDir.absolutePath])
+            if(p.hasProperty('repairFreezePrepared'))p.exec {
+                commandLine 'python3',p.file('tools/blueprint/freeze_client_classpath.py').absolutePath,
+                    '--launch',launch.absolutePath,p.findProperty('repairRun').toString()+'-native'
+            }
+            throw new StopExecutionException('Prepared isolated GameTest launch')
+        } as org.gradle.process.CommandLineArgumentProvider)
+    }
 } }
 allprojects { p -> afterEvaluate {
     if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return

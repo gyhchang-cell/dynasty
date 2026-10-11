@@ -58,7 +58,7 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
     private DungeonHazard clock(DungeonRoomController room){return room.hazard(mechanismId,kind()==DungeonMechanismBlock.Kind.FLOOR);}
     private void changed(){if(level instanceof ServerLevel sl)DungeonStateStore.get(sl).setDirty();setChanged();}
     public void interact(Player player){
-        if(level==null||level.isClientSide||player.isSpectator()||player.distanceToSqr(Vec3.atCenterOf(worldPosition))>36)return;
+        if(level==null||level.isClientSide||!player.isAlive()||player.isSpectator()||player.distanceToSqr(Vec3.atCenterOf(worldPosition))>36)return;
         var state=room();if(state==null)return;
         if(kind()==DungeonMechanismBlock.Kind.TRAP&&useMaterial(player,state))return;
         if(kind()==DungeonMechanismBlock.Kind.COFFIN&&level instanceof ServerLevel sl
@@ -71,6 +71,8 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
                 player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.dungeon.stele_pickaxe"),true);return;
             }
             if(state.unlockShortcut(mechanismId)){
+                // Individual broken-stone visuals and a shared permanent route use separate keys.
+                state.unlockShortcut(sharedShortcutKey());
                 changed();level.playSound(null,worldPosition,net.minecraft.sounds.SoundEvents.STONE_BREAK,net.minecraft.sounds.SoundSource.BLOCKS,1,.65F);
             }
             syncVisual(state);
@@ -130,6 +132,12 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         cargoUnavailable(player);
     }
     private static void cargoUnavailable(Player player){player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.dynasty.cod4.lift_cargo_unavailable"),true);}
+    private String sharedShortcutKey(){
+        if(roomId.equals("imperial_vault"))switch(mechanismId){
+            case "return_lift_corner_0","return_lift_corner_1","return_lift_corner_2","return_lift_corner_3":return "return_lift";
+        }
+        return mechanismId;
+    }
     private void useElevator(Player player){
         if(!(level instanceof ServerLevel sl)||destination==null||!sl.hasChunkAt(destination)){
             player.displayClientMessage(net.minecraft.network.chat.Component.literal("吊篮已解锁；出口区块尚未加载。"),true);return;

@@ -20,6 +20,8 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSeriali
 /** Three distinct 31-block courtyard plans: post house, forest pharmacy, desert caravanserai. */
 public class TravelSitePiece extends DynastyStructurePiece {
     final int style;
+    /** Open pharmacy courtyard; the three-tail elite never occupies a room, farm or NPC marker. */
+    public BlockPos foxPosition(){return style==1?getWorldPos(17,1,13).immutable():null;}
     public TravelSitePiece(BlockPos origin,int style){
         super(DynastyStructures.TRAVEL_SITE_PIECE.get(),0,makeBoundingBox(origin.getX(),origin.getY(),origin.getZ(),Direction.NORTH,31,13,31));
         setOrientation(Direction.NORTH);this.style=style;

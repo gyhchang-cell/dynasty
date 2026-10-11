@@ -117,13 +117,24 @@ final class MausoleumVault {
             p.set(w, b, 3, 2, z, DynastyBlocks.SCREEN.get().defaultBlockState());
             p.set(w, b, 36, 1, z, Blocks.SMITHING_TABLE.defaultBlockState());
         }
-        p.set(w, b, 8, 1, 33, DynastyBlocks.TAIKO_DRUM.get().defaultBlockState());
+        p.set(w, b, 8, 1, p.hasWaterAmbush()?34:33, DynastyBlocks.TAIKO_DRUM.get().defaultBlockState());
         p.set(w, b, 31, 1, 33, Blocks.GRINDSTONE.defaultBlockState());
         // Same four original-tier chests: richer exploration, no multiplication of loot.
         p.lootChest(w, b, random, 7, 1, 9, LOOT);
         p.lootChest(w, b, random, 32, 1, 9, LOOT);
-        p.lootChest(w, b, random, 8, 1, 27, LOOT);
+        p.lootChest(w, b, random, 8, 1, p.hasWaterAmbush()?26:27, LOOT);
         p.lootChest(w, b, random, 31, 1, 27, LOOT);
+        if (p.hasWaterAmbush()) {
+            // One sealed basin in the western gallery, clear of the main-axis construct guardian.
+            p.fill(w, b, 3, 1, 27, 9, 2, 33, dark);
+            p.fill(w, b, 4, 1, 28, 8, 2, 32, Blocks.WATER.defaultBlockState());
+            for (int x = 5; x <= 6; x++) {
+                p.set(w, b, x, 1, 26, DynastyBuildKit.facing(Blocks.POLISHED_DEEPSLATE_STAIRS.defaultBlockState(), Direction.SOUTH));
+                p.set(w, b, x, 2, 27, DynastyBuildKit.facing(Blocks.POLISHED_DEEPSLATE_STAIRS.defaultBlockState(), Direction.SOUTH));
+                p.set(w, b, x+1, 1, 34, DynastyBuildKit.facing(Blocks.POLISHED_DEEPSLATE_STAIRS.defaultBlockState(), Direction.NORTH));
+                p.set(w, b, x+1, 2, 33, DynastyBuildKit.facing(Blocks.POLISHED_DEEPSLATE_STAIRS.defaultBlockState(), Direction.NORTH));
+            }
+        }
     }
 
     private static void chamber(TombPiece p, WorldGenLevel w, BoundingBox b,

@@ -1,0 +1,34 @@
+// One disposable client verifies models and server transactions together. QA never enters the jar.
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def run=p.findProperty('cod3RemainsRun')?.toString()
+    if (!run || !(run ==~ /[A-Za-z0-9_.-]+/)) throw new GradleException('Supply -Pcod3RemainsRun=<fresh-id>')
+    def qa=p.sourceSets.create('cod3RemainsQa') {
+        java.srcDir p.file('tools/art/cod3/remains-qa')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.minecraft.runs.client {
+        workingDirectory p.file('build/cod3-remains-20261011/client/'+run)
+        property 'dynasty.cod3RemainsQa','true'
+        property 'dynasty.cod3RemainsQa.output',p.file('build/cod3-remains-20261011/results/'+run).absolutePath
+        property 'forge.logging.console.level','info'
+        property 'mixin.env.remapRefMap','true'
+        property 'mixin.env.refMapRemappingFile',p.file('build/createSrgToMcp/output.srg').absolutePath
+        jvmArgs '-Xmx1400m','-XX:ActiveProcessorCount=2'
+        if(System.getProperty('os.name').toLowerCase().contains('mac'))jvmArgs '-XstartOnFirstThread'
+        args '--username','RemainsQa','--width','1024','--height','768'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.matching { it.name=='runClient' }.configureEach { task ->
+        dependsOn qa.classesTaskName
+        if(p.hasProperty('cod3RemainsPrepare'))task.jvmArgumentProviders.add({ ->
+            def file=p.file('build/cod3-remains-20261011/launch-'+run+'.json');file.parentFile.mkdirs()
+            file.text=groovy.json.JsonOutput.toJson([executable:task.javaLauncher.get().executablePath.asFile.absolutePath,
+                jvmArgs:task.jvmArgs+task.systemProperties.collect { k,v -> "-D${k}=${v}".toString() },
+                classpath:task.classpath.asPath,main:task.mainClass.get(),args:task.args,
+                environment:task.environment.findAll { k,v -> k in ['MOD_CLASSES','MCP_MAPPINGS'] },directory:task.workingDir.absolutePath])
+            throw new StopExecutionException('Prepared single remains QA client')
+        } as org.gradle.process.CommandLineArgumentProvider)
+    }
+} }

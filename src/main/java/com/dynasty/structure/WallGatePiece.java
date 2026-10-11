@@ -44,6 +44,7 @@ public class WallGatePiece extends DynastyStructurePiece {
     }
 
     public BlockPos stoneGuardPosition(){return getWorldPos(10,1,5).immutable();}
+    public BlockPos jinwuPosition(){return getWorldPos(15,1,12).immutable();}
 
     @Override
     public void postProcess(WorldGenLevel level, StructureManager manager, ChunkGenerator generator,

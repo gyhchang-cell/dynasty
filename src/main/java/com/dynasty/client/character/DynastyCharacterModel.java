@@ -67,10 +67,10 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
     private void build() {
         boolean general=role==Role.GENERAL,guard=role==Role.GUARD,archer=role==Role.ARCHER;
         boolean heavy=general||guard;
-        float leg=general?15.6f:archer?14.2f:12.6f, shoulder=general?6.1f:guard?5.0f:archer?3.6f:3.8f;
+        float leg=general?15.6f:archer?14.2f:12.6f, shoulder=general?6.1f:guard?5.25f:archer?3.6f:3.8f;
         int coat=general?RED:guard?TEAL:archer?CLOTH:0x746449;
         Joint pelvis=j(root,"pelvis",0,-leg,0);centered(pelvis,heavy?6.8f:5.5f,2.3f,heavy?4.4f:3.6f,coat);
-        Joint waist=j(pelvis,"waist",0,-1,0);centered(waist,guard?5.05f:heavy?5.3f:archer?4.0f:4.6f,1.2f,3.5f,LEATHER);
+        Joint waist=j(pelvis,"waist",0,-1,0);centered(waist,guard?4.95f:heavy?5.3f:archer?4.0f:4.6f,1.2f,3.5f,LEATHER);
         box(waist,-1,-.15f,-2.05f,2,1.5f,.55f,BRONZE);
         Joint abdomen=j(waist,"abdomen",0,-2.4f,0);centered(abdomen,heavy?5.4f:4.6f,2.5f,heavy?3.7f:3.2f,coat);
         Joint chest=j(abdomen,"chest",0,-4.6f,0);
@@ -153,10 +153,22 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
         // A closed outer skirt first, overlapping plates second. Hips remain wider than waist.
         for(int i=0;i<5;i++) {
             float angle=(float)(i*Math.PI*2/5);
-            Joint skirt=j(pelvis,"skirt"+i,(float)Math.sin(angle)*2.1f,1,(float)-Math.cos(angle)*1.8f,
-                    -(float)Math.cos(angle)*.16f,angle,(float)-Math.sin(angle)*.17f);
-            centered(skirt,heavy?3.7f:2.6f,heavy?(i==0?5.3f:6):archer?3.4f:4.1f,.55f,coat);
-            if(heavy)for(int row=0;row<4;row++)box(skirt,-1.68f,.3f+row*1.2f,-.6f,3.36f,1,.38f,row%2==0?STEEL:DARK);
+            // Guard hinges enclose the thighs; each plate's local -Z points radially out.
+            // Other roles keep their authored geometry and Euler rotations exactly.
+            Joint skirt=j(pelvis,"skirt"+i,(float)Math.sin(angle)*(guard?4.05f:2.1f),guard?.3f:1,(float)-Math.cos(angle)*(guard?2.8f:1.8f),
+                    guard?-.35f:-(float)Math.cos(angle)*.16f,guard?-angle:angle,guard?0:(float)-Math.sin(angle)*.17f);
+            float raised=0; // Keep all original fabric dimensions and all four armor rows.
+            centered(skirt,heavy?3.7f:2.6f,(heavy?(i==0?5.3f:6):archer?3.4f:4.1f)+raised,.55f,coat);
+            if(heavy)for(int row=0;row<4;row++)box(skirt,-1.68f,.3f+raised+row*1.2f,-.6f,3.36f,1,.38f,row%2==0?STEEL:DARK);
+        }
+        if(guard) {
+            // One coarse bolt case identifies the crossbowman at the rear waist.
+            Joint caseJoint=j(pelvis,"guard_bolt_case",-3.2f,-.4f,3.0f,.05f,0,.10f);
+            centered(caseJoint,2.2f,4.2f,1.6f,LEATHER);
+            box(caseJoint,-1.3f,.3f,-.95f,2.6f,.5f,1.9f,BRONZE);
+            box(caseJoint,-1.3f,3.5f,-.95f,2.6f,.5f,1.9f,BRONZE);
+            for(int bolt=0;bolt<3;bolt++)box(caseJoint,-.85f+bolt*.65f,-1.8f,-.2f,.3f,2.4f,.3f,LINEN);
+            box(caseJoint,-1.0f,-1.8f,-.5f,2.0f,.7f,1.0f,INK);
         }
         if(general) {
             detail(chest,"siege_pauldron",-6.7f,-.4f,0,3.8f,3,6.7f,STEEL,0,0,-.2f);
@@ -205,6 +217,16 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
             box(foot,-1.3f,.35f,-2.7f,2.6f,.8f,.5f,heavy?STEEL:LEATHER);
         }
         if(archer)buildBow();else buildSabre(general);
+        if(guard) {
+            // Existing chang_qiang item uses this coarse, hand-anchored guard presentation.
+            Joint spear=j(n("right_hand"),"guard_spear",0,.8f,-.12f,(float)-Math.PI/2,0,-.28f);
+            box(spear,-.28f,-8,-.32f,.56f,26,.64f,LEATHER);
+            box(spear,-.42f,-8.2f,-.42f,.84f,.65f,.84f,BRONZE);
+            box(spear,-.6f,17.4f,-.6f,1.2f,.8f,1.2f,BRONZE);
+            box(spear,-.7f,18,-.5f,1.4f,2.2f,1,STEEL);
+            box(spear,-.45f,20.2f,-.4f,.9f,1.8f,.8f,STEEL);
+            box(spear,-.23f,22,-.28f,.46f,1,.56f,EDGE);
+        }
         if(!archer) {
             Joint scabbard=j(pelvis,"scabbard",3.4f,.8f,1.2f,.05f,0,-.23f);
             centered(scabbard,.95f,11,1.3f,LEATHER);
@@ -246,6 +268,7 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
         float attack=e instanceof com.dynasty.entity.DynastyHumanoidMob humanoid&&role!=Role.ARCHER?humanoid.characterAttackProgress(partial):e.getAttackAnim(partial);
         pose(limb,amount,age,yaw,pitch,attack,e.hurtTime,e.deathTime,drawing,variant,e.isAggressive());
         if(role==Role.GUARD&&e.getMainHandItem().is(Items.CROSSBOW))poseHeldCrossbow();
+        if(role==Role.GUARD)n("guard_spear").visible="dynasty:chang_qiang".equals(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(e.getMainHandItem().getItem()).toString());
         n("weapon").visible=role==Role.ARCHER?e.getMainHandItem().is(Items.BOW):e.getMainHandItem().isEmpty();
         if(role==Role.ARCHER&&!n("weapon").visible){n("bow_string_top").visible=false;n("bow_string_bottom").visible=false;n("nocked_arrow").visible=false;}
     }
@@ -253,7 +276,10 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
     public void pose(float limb,float amount,float age,float yaw,float pitch,float attack,float hurt,float death,float drawing,int ensemble,boolean aggressive) {
         root.reset();variant=ensemble;draw=drawing;
         boolean archer=role==Role.ARCHER,general=role==Role.GENERAL,guard=role==Role.GUARD;
+        if(guard){n("guard_bolt_case").visible=false;n("guard_spear").visible=false;}
         float mass=general?.65f:guard?.8f:1, stride=Math.min(1,amount)*mass,cycle=limb*.64f;
+        // A dying guard settles the gait before folding its knees, rather than kicking through its armor.
+        if(guard)stride*=Math.max(0,1-death/10f);
         n("pelvis").dy=(float)Math.abs(Math.sin(cycle))*stride*.45f;
         n("waist").ry=(float)Math.sin(cycle)*stride*.10f;
         n("abdomen").rx=role==Role.REBEL?.12f:guard?.055f:.025f;
@@ -271,6 +297,12 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
         // Bone-local facial variation, stable across reconnects because entity UUID is saved/synced.
         n("head").rz=(ensemble-1)*.015f;
         n("head").sx=ensemble==2?1.06f:ensemble==1?.95f:1;
+        // Preserve each ensemble's face proportions, then modestly reduce the whole guard head.
+        if(guard){
+            n("head").sx*=.94f;n("head").sy=n("head").sz=.94f;
+            // Scale toward the neck contact plane, keeping the jaw physically attached.
+            n("head").dy=4.15f*(1-.94f);
+        }
         n("topknot").visible=ensemble!=1;
         for(int sign:new int[]{-1,1}) {
             String side=sign<0?"right":"left";
@@ -305,7 +337,14 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
             n("right_wrist").rx+=strike*.5f;
             n("left_upper_arm").rx-=strike*.4f;
         }
-        for(int i=0;i<5;i++)n("skirt"+i).rx+=(float)Math.sin(cycle+i*.5)*stride*.10f;
+        for(int i=0;i<5;i++) {
+            if(guard) {
+                float angle=(float)(i*Math.PI*2/5);
+                // A short release lag follows the cloth without delaying clearance for an approaching leg.
+                float approaching=(float)Math.max(Math.abs(Math.sin(cycle)),Math.abs(Math.sin(cycle-.14f)))*stride;
+                n("skirt"+i).rx-=approaching*.95f*(.4f+.6f*(float)Math.abs(Math.cos(angle)))+Mth.clamp(death/20,0,1)*.20f;
+            } else n("skirt"+i).rx+=(float)Math.sin(cycle+i*.5)*stride*.10f;
+        }
         n("sash").rx+=(float)Math.sin(age*.09f)*.05f+stride*.15f;
         if(general){n("cape").rx+=stride*.16f;n("cape_hem").rx+=(float)Math.sin(age*.075f)*.045f+stride*.12f;}
         if(hurt>0){float f=(float)Math.sin(hurt*.32f);n("abdomen").rx-=f*.18f;n("chest").rz=f*.11f;n("head").rx-=f*.12f;}
@@ -331,6 +370,7 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
     /** Both authored hand grips follow the same crossbow stock, even while the chest/legs move. */
     public void poseHeldCrossbow() {
         if(role!=Role.GUARD)return;
+        n("guard_bolt_case").visible=true;
         var gripOrientation=new org.joml.Quaternionf().rotationX(-1.44f);
         crossbowArm("right",new Vector3f(0,3.8f,-3),gripOrientation);
         crossbowArm("left",new Vector3f(0,3.8f,-5.8f),gripOrientation);
@@ -383,6 +423,7 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
         j.sx=j.sz=width*16;j.sy=d.length()*16;
     }
     public void handTransform(PoseStack p,boolean left){n(left?"left_hand":"right_hand").path(p);p.translate(0,.8/16,-.12/16);}
+    public boolean rendersGuardSpear(){return role==Role.GUARD&&n("guard_spear").visible;}
     public int boxCount(){return joints.values().stream().mapToInt(j->j.boxes.size()).sum();}
     public Set<String> jointNames(){return Collections.unmodifiableSet(joints.keySet());}
 }

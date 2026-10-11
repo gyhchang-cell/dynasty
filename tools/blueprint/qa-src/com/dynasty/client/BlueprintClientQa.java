@@ -51,13 +51,23 @@ import java.util.concurrent.CompletableFuture;
 /** Opt-in disposable QA source set. Output is observed state, never a substitute for a manual visual review. */
 @Mod.EventBusSubscriber(modid="dynasty", value=Dist.CLIENT)
 public final class BlueprintClientQa {
-    private static final String ROLE = System.getProperty("dynasty.blueprintQa", "");
+    private static final String ROLE = Boolean.getBoolean("dynasty.blueprintQa.spiderWoman")||Boolean.getBoolean("dynasty.blueprintQa.spiderWomanCombat")||Boolean.getBoolean("dynasty.blueprintQa.hammer")||Boolean.getBoolean("dynasty.blueprintQa.hammerCombat")||Boolean.getBoolean("dynasty.blueprintQa.foxCombat")||Boolean.getBoolean("dynasty.blueprintQa.foxMatron")||Boolean.getBoolean("dynasty.blueprintQa.headlessCombat")||Boolean.getBoolean("dynasty.blueprintQa.birdCombat")||Boolean.getBoolean("dynasty.blueprintQa.jinwuCombat")||Boolean.getBoolean("dynasty.blueprintQa.jinwu")||Boolean.getBoolean("dynasty.blueprintQa.mechanistCombat")||Boolean.getBoolean("dynasty.blueprintQa.tombCombat")||Boolean.getBoolean("dynasty.blueprintQa.stress")||Boolean.getBoolean("dynasty.blueprintQa.mechanist")||Boolean.getBoolean("dynasty.blueprintQa.elite")||Boolean.getBoolean("dynasty.blueprintQa.bird")||Boolean.getBoolean("dynasty.blueprintQa.rest")?"":System.getProperty("dynasty.blueprintQa", "");
     private static final String RUN = System.getProperty("dynasty.blueprintQa.run", "unset");
     private static final boolean HOST = ROLE.equals("host"), SOLO = Boolean.getBoolean("dynasty.blueprintQa.solo");
     private static final boolean CONNECTION_ONLY = Boolean.getBoolean("dynasty.blueprintQa.connectionOnly");
     private static final boolean DEATH_ONLY = Boolean.getBoolean("dynasty.blueprintQa.deathOnly");
     private static final boolean ARMY = Boolean.getBoolean("dynasty.blueprintQa.army");
     private static final boolean BATTLEFIELD = Boolean.getBoolean("dynasty.blueprintQa.battlefield");
+    private static final boolean BATTLEFIELD_COMBAT=Boolean.getBoolean("dynasty.blueprintQa.battlefieldCombat");
+    private static long battlefieldCombatStarted=-1;
+    private static boolean battlefieldCombatObserved;
+    private static final boolean FUSE_CHECKPOINT=Boolean.getBoolean("dynasty.blueprintQa.fuseCheckpoint");
+    private static volatile boolean fuseCheckpointReady;
+    private static String checkpointPowder="";
+    private static final Map<String,Integer> powderNear=new LinkedHashMap<>();
+    private static final List<Map<String,Object>> powderFuseEvents=new ArrayList<>();
+    private static boolean resumedFuseBlast;
+
     private static final String RESUME_WORLD=System.getProperty("dynasty.blueprintQa.resumeWorld","");
     private static final String PREVIOUS_RUN=System.getProperty("dynasty.blueprintQa.previousRun","");
     private static final boolean LIFECYCLE = Boolean.getBoolean("dynasty.blueprintQa.lifecycle");
@@ -109,6 +119,80 @@ public final class BlueprintClientQa {
     private static List<Expected> beforeRejoin;
     private static List<String> restartMembers=List.of(); // Server thread; prior process evidence, never a spawn list.
     private static int battlefieldTerrainFrames;
+    private static final List<Map<String,Object>> battlefieldDeaths=new ArrayList<>();
+    private static final Map<String,Map<String,Object>> battlefieldReloads=new LinkedHashMap<>();
+    private record PendingBattlefieldLoad(TemplateMob mob,long start,int skill,int ticks,boolean expired){}
+    private static final Map<String,PendingBattlefieldLoad> pendingBattlefieldLoads=new LinkedHashMap<>();
+    private static com.google.gson.JsonObject restartCheckpoint;
+    private static List<String> originalBattlefieldMembers=List.of();
+    private static final java.util.ArrayDeque<Stage> battlefieldWindow=new java.util.ArrayDeque<>();
+
+    @SubscribeEvent public static void battlefieldDeath(net.minecraftforge.event.entity.living.LivingDeathEvent event){
+        if(!HOST||!BATTLEFIELD||!(event.getEntity() instanceof TemplateMob mob)
+                ||!mob.encounterSite().equals("dynasty:ruined_battlefield@0"))return;
+        if(FUSE_CHECKPOINT&&!RESUME_WORLD.isEmpty()&&mob.getUUID().toString().equals(checkpointPowder)
+                &&event.getSource().getMsgId().equals("genericKill")){
+            var state=mob.saveWithoutId(new net.minecraft.nbt.CompoundTag()).getCompound("ArmyActionState");
+            if(state.getInt("NearTicks")<59)encounterFailure="Restored powder exploded without a fresh three-second proximity fuse";
+            else resumedFuseBlast=true;
+        }
+        battlefieldDeaths.add(Map.of("uuid",mob.getUUID().toString(),"id",mob.blueprintId(),
+            "serverTick",mob.level().getGameTime(),"cause",event.getSource().getMsgId()));
+    }
+    @SubscribeEvent public static void battlefieldStopping(net.minecraftforge.event.server.ServerStoppingEvent event){
+        if(!HOST||!BATTLEFIELD)return;
+        var world=event.getServer().overworld();var marker=com.dynasty.blueprint.BlueprintSpawnState.get(world).markers.get("dynasty:ruined_battlefield@0");
+        if(marker==null)return;
+        var actors=new ArrayList<Map<String,Object>>();
+        try{Files.writeString(OUT.resolve("world-fuse-events.json"),JSON.toJson(powderFuseEvents));}
+        catch(Exception e){throw new RuntimeException(e);}
+        for(var uuid:marker.members)if(world.getEntity(uuid) instanceof TemplateMob mob)
+            actors.add(Map.of("uuid",uuid.toString(),"id",mob.blueprintId(),"skill",mob.skillId(),"start",mob.skillStartTime(),
+                "attack",mob.attack().save().toString(),"army",mob.saveWithoutId(new net.minecraft.nbt.CompoundTag()).getCompound("ArmyActionState").toString(),"health",mob.getHealth(),"speed",mob.skillSpeed()));
+        try{Files.createDirectories(OUT);Files.writeString(OUT.resolve("world-final-ledger.json"),JSON.toJson(Map.of(
+            "serverTick",world.getGameTime(),"produced",marker.produced,"nextSpawn",marker.nextSpawn,
+            "members",marker.members.stream().map(UUID::toString).toList(),"actors",actors,"deaths",battlefieldDeaths,
+            "scope",battlefieldCombatObserved?"Actual stopping checkpoint after real connected-player damage and autonomous combat":"Actual stopping checkpoint with ordinary AI/physics; active combat was not certified")));
+        }catch(Exception e){throw new RuntimeException(e);}
+    }
+    @SubscribeEvent public static void battlefieldReloaded(net.minecraftforge.event.entity.EntityJoinLevelEvent event){
+        if(!HOST||!BATTLEFIELD||RESUME_WORLD.isEmpty()||restartCheckpoint==null
+                ||!(event.getLevel() instanceof net.minecraft.server.level.ServerLevel world)||!(event.getEntity() instanceof TemplateMob mob))return;
+        String uuid=mob.getUUID().toString();
+        for(var entry:restartCheckpoint.getAsJsonArray("actors")){
+            var prior=entry.getAsJsonObject();if(!prior.get("uuid").getAsString().equals(uuid))continue;
+            try{
+                var saved=net.minecraft.nbt.TagParser.parseTag(prior.get("attack").getAsString());var loaded=mob.attack().save();
+                var expectedCooldowns=saved.getCompound("Cooldowns").copy();
+                if(mob.kind()==TemplateMob.Kind.POWDER)expectedCooldowns.remove(Integer.toString(ArmySkills.DETONATE));
+                if(!expectedCooldowns.equals(loaded.getCompound("Cooldowns")))throw new AssertionError("Restart reset native combat cooldowns "+uuid);
+                boolean resetFuse=mob.kind()==TemplateMob.Kind.POWDER&&saved.getInt("Skill")==ArmySkills.DETONATE;
+                if(resetFuse){
+                    var army=mob.saveWithoutId(new net.minecraft.nbt.CompoundTag()).getCompound("ArmyActionState");
+                    if(mob.skillId()!=0||army.getInt("NearTicks")!=0||loaded.getCompound("Cooldowns").contains(Integer.toString(ArmySkills.DETONATE)))
+                        throw new AssertionError("Native load retained an interrupted proximity fuse "+uuid);
+                    checkpointPowder=uuid;
+                }
+                int skill=saved.getInt("Skill");var base=TemplateSkills.byId(skill);
+                var definition=base==null?null:TemplateSkills.accelerated(base,prior.get("speed").getAsFloat());
+                boolean unexpired=definition!=null&&world.getGameTime()>=saved.getLong("Started")
+                    &&world.getGameTime()-saved.getLong("Started")<definition.totalTicks();
+                if(!resetFuse&&unexpired&&(mob.skillId()!=skill||mob.skillStartTime()!=saved.getLong("Started")
+                        ||!java.util.Arrays.equals(saved.getIntArray("Fired"),loaded.getIntArray("Fired"))))
+                    throw new AssertionError("Restart reset active attack epoch or consumed contact frames "+uuid);
+                // Entity NBT is decoded before its section joins on a later server tick.
+                // A previously live action can expire during that native load queue.
+                if(!resetFuse&&!unexpired&&mob.skillId()!=0&&(mob.skillId()!=skill||mob.skillStartTime()!=saved.getLong("Started")
+                        ||!java.util.Arrays.equals(saved.getIntArray("Fired"),loaded.getIntArray("Fired"))))
+                    throw new AssertionError("Restart manufactured an expired attack identity "+uuid);
+                battlefieldReloads.put(uuid,Map.of("uuid",uuid,"skill",mob.skillId(),"start",mob.skillStartTime(),
+                    "cooldowns",loaded.getCompound("Cooldowns").toString(),"unexpired",unexpired,
+                    "joinTick",world.getGameTime(),"fuseReset",resetFuse,"status","NATIVE_LOADED_STATE"));
+                pendingBattlefieldLoads.put(uuid,new PendingBattlefieldLoad(mob,saved.getLong("Started"),skill,mob.tickCount,!unexpired));
+                Files.writeString(OUT.resolve("world-combat-reload.json"),JSON.toJson(battlefieldReloads));
+            }catch(Exception e){throw new RuntimeException(e);}
+        }
+    }
 
     @SubscribeEvent public static void joined(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
         connectionEvent(event.getEntity(), "JOIN");
@@ -128,6 +212,47 @@ public final class BlueprintClientQa {
 
     /** Read-only server telemetry. The sole encounter stimulus is setTarget in activate(20). */
     @SubscribeEvent public static void serverTick(TickEvent.ServerTickEvent event) {
+        if(HOST&&BATTLEFIELD&&BATTLEFIELD_COMBAT&&event.phase==TickEvent.Phase.END){
+            try{
+                var server=net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+                if(server!=null){var world=server.overworld();
+                    for(var mob:world.getEntitiesOfClass(TemplateMob.class,new AABB(-40,55,-40,60,90,60),m->m.isAlive()
+                            &&m.kind()==TemplateMob.Kind.POWDER&&m.encounterSite().equals("dynasty:ruined_battlefield@0"))){
+                        var army=mob.saveWithoutId(new net.minecraft.nbt.CompoundTag()).getCompound("ArmyActionState");
+                        int near=army.getInt("NearTicks");String uuid=mob.getUUID().toString();
+                        if(powderNear.getOrDefault(uuid,-1)!=near||mob.skillId()==ArmySkills.DETONATE){
+                            powderFuseEvents.add(Map.of("uuid",uuid,"tick",world.getGameTime(),"nearTicks",near,
+                                "skill",mob.skillId(),"start",mob.skillStartTime(),"possessed",mob.isPossessed()));
+                            if(powderFuseEvents.size()>6000)throw new AssertionError("Fuse observation exceeded its finite sample budget");
+                            powderNear.put(uuid,near);
+                        }
+                        if(FUSE_CHECKPOINT&&RESUME_WORLD.isEmpty()&&battlefieldCombatStarted>=0&&!fuseCheckpointReady
+                                &&mob.skillId()==ArmySkills.DETONATE&&near>=40&&near<=45){
+                            checkpointPowder=uuid;
+                            Files.writeString(OUT.resolve("fuse-checkpoint-request.json"),JSON.toJson(Map.of("uuid",uuid,
+                                "tick",world.getGameTime(),"nearTicks",near,"skill",mob.skillId(),"start",mob.skillStartTime(),
+                                "scope","Ordinary production AI lit the proximity fuse; native server shutdown requested during its windup")));
+                            fuseCheckpointReady=true;server.halt(false);break;
+                        }
+                    }
+                }
+            }catch(Throwable error){encounterFailure="Native fuse observation failed: "+error;}
+        }
+        if(HOST&&BATTLEFIELD&&event.phase==TickEvent.Phase.END&&!pendingBattlefieldLoads.isEmpty()){
+            try{
+                var iterator=pendingBattlefieldLoads.entrySet().iterator();
+                while(iterator.hasNext()){
+                    var entry=iterator.next();var pendingLoad=entry.getValue();var mob=pendingLoad.mob;
+                    if(mob.tickCount<=pendingLoad.ticks)continue;
+                    if(pendingLoad.expired&&pendingLoad.skill!=0&&mob.skillId()==pendingLoad.skill&&mob.skillStartTime()==pendingLoad.start)
+                        throw new AssertionError("Expired restored attack survived its first actual entity tick "+entry.getKey());
+                    var verified=new LinkedHashMap<String,Object>(battlefieldReloads.get(entry.getKey()));
+                    verified.put("firstEntityTick",mob.level().getGameTime());verified.put("status","PASS_NATIVE_LOAD_AND_FIRST_ENTITY_TICK");
+                    battlefieldReloads.put(entry.getKey(),verified);iterator.remove();
+                }
+                Files.writeString(OUT.resolve("world-combat-reload.json"),JSON.toJson(battlefieldReloads));
+            }catch(Throwable error){encounterFailure="Native combat reload verification failed: "+error;}
+        }
         if (!HOST || !encounterActive || event.phase != TickEvent.Phase.END || fixtures.size() != 4) return;
         try {
             TemplateMob beast = fixtures.get(3);
@@ -309,6 +434,7 @@ public final class BlueprintClientQa {
                 ConnectScreen.startConnecting(new TitleScreen(), mc, ServerAddress.parseString(address),
                     new ServerData("Disposable blueprint QA rejoin", address, false), false);
             }
+            if(HOST&&FUSE_CHECKPOINT&&RESUME_WORLD.isEmpty()&&fuseCheckpointReady){finish(mc,null);return;}
             diagnose(mc);
             if (encounterFailure != null) throw new AssertionError(encounterFailure);
             if (System.nanoTime() > DEADLINE) throw new AssertionError("QA timed out waiting for world, peer or acknowledged stage");
@@ -342,6 +468,12 @@ public final class BlueprintClientQa {
                     if(!RESUME_WORLD.isEmpty()){
                         if(!BATTLEFIELD||!RESUME_WORLD.matches("blueprint-[A-Za-z0-9_.-]+")||!PREVIOUS_RUN.matches("[A-Za-z0-9_.-]+"))
                             throw new AssertionError("Restart QA only accepts an existing disposable blueprint world and prior run");
+                        // Native entity sections can join during initial spawn-chunk loading,
+                        // before the first client player tick or prepareBattlefield submission.
+                        restartCheckpoint=JSON.fromJson(Files.readString(ROOT.resolveSibling(PREVIOUS_RUN)
+                            .resolve("host/world-final-ledger.json")),com.google.gson.JsonObject.class);
+                        if(restartCheckpoint==null||restartCheckpoint.get("produced").getAsInt()!=7)
+                            throw new AssertionError("Missing actual stopping checkpoint before native world load");
                         mc.createWorldOpenFlows().loadLevel(new TitleScreen(),RESUME_WORLD);return;
                     }
                     GameRules rules = new GameRules(); rules.getRule(GameRules.RULE_DOMOBSPAWNING).set(false, null);
@@ -363,14 +495,15 @@ public final class BlueprintClientQa {
                     if(!BATTLEFIELD)server.overworld().setDayTime(6000);
                     if (!SOLO) {
                         server.setUsesAuthentication(false);
-                        try { server.getConnection().startTcpServerListener(java.net.InetAddress.getByName("127.0.0.1"), 25587); }
-                        catch (Exception ex) { throw new RuntimeException(ex); }
                     }
                 }); return;
             }
             if (!HOST && CONNECTION_ONLY) { connectionProbe(mc); return; }
             if (HOST) {
                 if (!setup.isDone()) return; setup.join();
+                if(!SOLO&&!mc.getSingleplayerServer().isPublished()
+                        &&!mc.getSingleplayerServer().publishServer(GameType.CREATIVE,false,25587))
+                    throw new AssertionError("Native disposable LAN publication failed");
                 if (!Files.exists(COORD.resolve("listening.txt"))) Files.writeString(COORD.resolve("listening.txt"), RUN + " loopback 127.0.0.1:25587");
                 MinecraftServer server = mc.getSingleplayerServer();
                 if (CONNECTION_ONLY) { connectionProbe(mc); return; }
@@ -384,6 +517,8 @@ public final class BlueprintClientQa {
                 if (BATTLEFIELD && local != null && local.phase.equals("SPAWNING")) {
                     pending = server.submit(() -> pollBattlefield(server)); return;
                 }
+                if(BATTLEFIELD&&BATTLEFIELD_COMBAT&&LIFECYCLE&&local!=null&&local.phase.equals("READY")
+                        &&!captured&&pending==null)pending=server.submit(()->pollBattlefield(server));
                 if (local != null && local.index == hostIndex && local.phase.equals("READY") && hostIndex >= actionFirst() && acknowledged("ready", hostIndex)) {
                     pending = server.submit(() -> activate(server, hostIndex)); return;
                 }
@@ -426,6 +561,7 @@ public final class BlueprintClientQa {
 
     /** Actual F3+T-equivalent resource reload and peer disconnect/reconnect; no server state injection. */
     private static boolean lifecycle(Minecraft mc, Stage state) throws Exception {
+        if(BATTLEFIELD&&BATTLEFIELD_COMBAT)return battlefieldLifecycle(mc,state);
         if (resourceReload == null) {
             resourceReload = mc.reloadResourcePacks();
             return false;
@@ -467,6 +603,56 @@ public final class BlueprintClientQa {
             rejoinRecorded = true;
         }
         return SOLO || Files.exists(ROOT.resolve("peer/rejoin.json"));
+    }
+
+    /** Native actions keep advancing during reload/login; compare against actual recent server epochs. */
+    private static boolean battlefieldLifecycle(Minecraft mc,Stage state)throws Exception{
+        if(resourceReload==null){resourceReload=mc.reloadResourcePacks();return false;}
+        if(!resourceReload.isDone())return false;resourceReload.join();
+        if(!Files.exists(COORD.resolve("battlefield-window.json")))return false;
+        var samples=JSON.fromJson(Files.readString(COORD.resolve("battlefield-window.json")),Stage[].class);
+        Stage matched=null;
+        for(var sample:samples){
+            if(sample.mobs.size()!=state.mobs.size()||Math.abs(mc.level.getGameTime()-sample.published)>40)continue;
+            boolean agrees=true;
+            for(var expected:sample.mobs){
+                if(!(mc.level.getEntity(expected.entityId) instanceof TemplateMob mob)
+                        ||!mob.getUUID().toString().equals(expected.uuid)||!mob.blueprintId().equals(expected.id)
+                        ||mob.skillId()!=expected.skill||mob.skillStartTime()!=expected.start){agrees=false;break;}
+                if(!(mc.getEntityRenderDispatcher().getRenderer(mob) instanceof com.dynasty.blueprint.client.TemplateMobRenderer renderer)
+                        ||renderer.getGeoModel().getBone("root").isEmpty()){agrees=false;break;}
+                var controller=mob.getAnimatableInstanceCache().getManagerForId(mob.getId()).getAnimationControllers().get("body");
+                if(controller==null||controller.getCurrentAnimation()==null
+                        ||!controller.getCurrentAnimation().animation().name().equals("animation."+mob.blueprintId()+"."+mob.visualAnimation())){
+                    agrees=false;break;
+                }
+            }
+            if(agrees)matched=sample;
+        }
+        if(matched==null)return false;
+        if(!reloadRecorded){
+            Files.writeString(OUT.resolve("resource-reload.json"),JSON.toJson(Map.of("run",RUN,"role",ROLE,
+                "status","PASS_ACTUAL_RESOURCE_RELOAD_DURING_AUTONOMOUS_COMBAT","serverSample",matched,
+                "clientTick",mc.level.getGameTime(),"scope","Exact UUIDs, current server action epochs and actually rendered Gecko clips after native pack reload")));
+            reloadRecorded=true;
+        }
+        if(!HOST&&!rejoining){
+            if(matched.mobs.stream().noneMatch(e->e.skill!=0))return false;
+            beforeRejoin=List.copyOf(matched.mobs);
+            Files.writeString(OUT.resolve("rejoin-before.json"),JSON.toJson(Map.of("serverSample",matched,
+                "clientTick",mc.level.getGameTime(),"status","REAL_DISCONNECT_WHILE_NATIVE_ATTACKS_ARE_ACTIVE")));
+            rejoining=true;reconnectAfter=System.nanoTime()+1_000_000_000L;
+            mc.level.disconnect();mc.clearLevel(new TitleScreen());return false;
+        }
+        if(!HOST&&!rejoinRecorded){
+            if(!reconnectStarted||mc.level.players().size()!=2)return false;
+            Files.writeString(OUT.resolve("rejoin.json"),JSON.toJson(Map.of("run",RUN,"role",ROLE,
+                "status","PASS_REAL_TCP_ACTIVE_COMBAT_DISCONNECT_RECONNECT","before",beforeRejoin,"serverSample",matched,
+                "players",mc.level.players().size(),"clientTick",mc.level.getGameTime(),
+                "scope","Original production cohort; natural action changes/deaths certified by host telemetry; matching current server epochs and rendered clips after actual peer login")));
+            rejoinRecorded=true;
+        }
+        return SOLO||Files.exists(ROOT.resolve("peer/rejoin.json"));
     }
 
     private static void diagnose(Minecraft mc) throws Exception {
@@ -552,16 +738,22 @@ public final class BlueprintClientQa {
         if(structure==null)throw new AssertionError("Battlefield is missing from the runtime worldgen registry");
         if(!RESUME_WORLD.isEmpty()){
             try{
-                var prior=JSON.fromJson(Files.readString(ROOT.resolveSibling(PREVIOUS_RUN).resolve("host/world-encounter.json")),com.google.gson.JsonObject.class);
-                var members=prior.getAsJsonArray("mobs");var ids=new ArrayList<String>();
-                for(var member:members)ids.add(member.getAsJsonObject().get("uuid").getAsString());
-                if(ids.size()!=7)throw new AssertionError("Prior process did not record the complete encounter");restartMembers=List.copyOf(ids);
+                var prior=JSON.fromJson(Files.readString(ROOT.resolveSibling(PREVIOUS_RUN).resolve("host/world-final-ledger.json")),com.google.gson.JsonObject.class);
+                restartCheckpoint=prior;
+                var ids=new ArrayList<String>();for(var member:prior.getAsJsonArray("members"))ids.add(member.getAsString());
+                if(prior.get("produced").getAsInt()!=7||ids.isEmpty()||ids.size()>7)throw new AssertionError("Invalid actual stopping checkpoint");
+                restartMembers=List.copyOf(ids);var counts=new java.util.HashMap<String,Integer>();
+                for(var actor:prior.getAsJsonArray("actors"))counts.merge(actor.getAsJsonObject().get("id").getAsString(),1,Integer::sum);
+                if(counts.values().stream().mapToInt(Integer::intValue).sum()!=ids.size())throw new AssertionError("Stopping checkpoint missed loaded survivors");
             }catch(java.io.IOException e){throw new RuntimeException(e);}
             var start=world.getChunk(0,0).getStartForStructure(structure);
             if(start==null||!start.isValid())throw new AssertionError("Restart lost its persisted structure start");
             var box=start.getBoundingBox();
             for(int x=box.minX()>>4;x<=box.maxX()>>4;x++)for(int z=box.minZ()>>4;z<=box.maxZ()>>4;z++)world.getChunk(x,z);
-            for(var player:server.getPlayerList().getPlayers())player.teleportTo(world,8.5,64,-1.5,0,0);
+            for(var player:server.getPlayerList().getPlayers()){
+                if(BATTLEFIELD_COMBAT&&player.getGameProfile().getName().equals("BlueprintHost")){player.setGameMode(GameType.SURVIVAL);player.setInvulnerable(false);}
+                player.teleportTo(world,8.5,64,-1.5,0,0);
+            }
             return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
         }
         var generator=world.getChunkSource().getGenerator();var chunk=new net.minecraft.world.level.ChunkPos(0,0);
@@ -583,8 +775,15 @@ public final class BlueprintClientQa {
     private static Stage pollBattlefield(MinecraftServer server){
         var world=server.overworld();var marker=com.dynasty.blueprint.BlueprintSpawnState.get(world).markers.get("dynasty:ruined_battlefield@0");
         if(marker==null||marker.produced<7)return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
-        if(marker.produced!=7||marker.members.size()!=7)throw new AssertionError("Production spawner exceeded or lost battlefield membership");
-        if(!restartMembers.isEmpty()&&!marker.members.stream().map(UUID::toString).collect(java.util.stream.Collectors.toSet()).equals(new java.util.HashSet<>(restartMembers)))
+        var cohort=RESUME_WORLD.isEmpty()?originalBattlefieldMembers:restartMembers;
+        var expectedMembers=new java.util.HashSet<>(cohort);
+        for(var death:battlefieldDeaths)expectedMembers.remove(death.get("uuid"));
+        int expectedCount=cohort.isEmpty()?7:expectedMembers.size();
+        if(marker.produced!=7||marker.members.size()!=expectedCount)
+            throw new AssertionError("Production spawner exceeded or lost battlefield membership: produced="+marker.produced+" members="+marker.members.size());
+        if(!RESUME_WORLD.isEmpty()&&battlefieldDeaths.isEmpty()&&marker.nextSpawn!=restartCheckpoint.get("nextSpawn").getAsLong())
+            throw new AssertionError("Restart changed the actual death cooldown");
+        if(!cohort.isEmpty()&&!marker.members.stream().map(UUID::toString).collect(java.util.stream.Collectors.toSet()).equals(expectedMembers))
             throw new AssertionError("Server restart replaced or duplicated the saved encounter");
         var visit=server.getAdvancements().getAdvancement(new net.minecraft.resources.ResourceLocation("dynasty:visit_ruined_battlefield"));
         if(visit==null)throw new AssertionError("Battlefield exploration hook is not loaded");
@@ -595,9 +794,54 @@ public final class BlueprintClientQa {
         for(var uuid:marker.members){
             if(world.getEntity(uuid)==null)return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of()); // Entity regions load asynchronously.
             if(!(world.getEntity(uuid) instanceof TemplateMob mob))throw new AssertionError("Encounter UUID is not a template mob");
+            if(mob.faction()!=com.dynasty.blueprint.combat.Faction.REBELS)
+                throw new AssertionError("Authored raid lost its cooperating allegiance "+mob.blueprintId());
             fixtures.add(mob);
         }
-        return snapshot(0,"READY",world.getGameTime());
+        if(!RESUME_WORLD.isEmpty()&&battlefieldReloads.size()!=restartMembers.size())
+            throw new AssertionError("Not all native saved combat states were verified on load");
+        if(!pendingBattlefieldLoads.isEmpty())return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
+        if(BATTLEFIELD_COMBAT&&RESUME_WORLD.isEmpty()&&!battlefieldCombatObserved){
+            var host=server.getPlayerList().getPlayers().stream().filter(p->p.getGameProfile().getName().equals("BlueprintHost")).findFirst().orElseThrow();
+            if(battlefieldCombatStarted<0){
+                host.setGameMode(GameType.SURVIVAL);host.setInvulnerable(false);
+                host.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(1000);host.setHealth(1000);
+                originalBattlefieldMembers=marker.members.stream().map(UUID::toString).toList();
+                try{Files.writeString(OUT.resolve("world-initial-cohort.json"),JSON.toJson(snapshot(0,"INITIAL_SEVEN",world.getGameTime())));}
+                catch(Exception e){throw new RuntimeException(e);}
+                battlefieldCombatStarted=world.getGameTime();
+                return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
+            }
+            if(world.getGameTime()-battlefieldCombatStarted<30||host.getHealth()>=1000||fixtures.stream().noneMatch(m->m.skillId()!=0))
+                return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
+            battlefieldCombatObserved=true;
+            try{Files.writeString(OUT.resolve("world-active-combat.json"),JSON.toJson(Map.of("serverTick",world.getGameTime(),
+                "started",battlefieldCombatStarted,"hostHealth",host.getHealth(),"players",world.players().size(),
+                "actors",fixtures.stream().map(m->Map.of("uuid",m.getUUID().toString(),"id",m.blueprintId(),"skill",m.skillId(),"start",m.skillStartTime())).toList(),
+                "scope","Connected survival player took real damage; production-spawned members chose and advanced their own attacks with ordinary AI/physics")));
+            }catch(Exception e){throw new RuntimeException(e);}
+        }
+        if(FUSE_CHECKPOINT&&!RESUME_WORLD.isEmpty()){
+            try{Files.writeString(OUT.resolve("fuse-resume-live.json"),JSON.toJson(Map.of("tick",world.getGameTime(),
+                "actors",fixtures.stream().map(m->Map.of("uuid",m.getUUID().toString(),"skill",m.skillId(),"army",m.saveWithoutId(new net.minecraft.nbt.CompoundTag()).getCompound("ArmyActionState").toString(),"position",m.position().toString())).toList(),
+                "players",world.players().stream().map(p->Map.of("name",p.getGameProfile().getName(),"creative",p.isCreative(),"health",p.getHealth(),"position",p.position().toString())).toList())));}
+            catch(Exception e){throw new RuntimeException(e);}
+            if(checkpointPowder.isEmpty())throw new AssertionError("Source checkpoint did not preserve an actually lit powder fuse");
+            if(!resumedFuseBlast)return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
+            try{Files.writeString(OUT.resolve("fuse-restart.json"),JSON.toJson(Map.of("uuid",checkpointPowder,
+                "status","PASS_NATIVE_LIT_FUSE_RESTART_RESET_AND_FRESH_THREE_SECONDS","events",powderFuseEvents,
+                "scope","Native load cleared the old lit fuse and only a fresh 59/60 proximity ticks permitted the ordinary AI blast")));}
+            catch(Exception e){throw new RuntimeException(e);}
+        }
+        if(FUSE_CHECKPOINT&&RESUME_WORLD.isEmpty())return new Stage(RUN,0,"SPAWNING",world.getGameTime(),List.of());
+        var state=snapshot(0,"READY",world.getGameTime());
+        if(BATTLEFIELD_COMBAT&&LIFECYCLE){
+            battlefieldWindow.addLast(state);while(battlefieldWindow.size()>16)battlefieldWindow.removeFirst();
+            try{var temporary=COORD.resolve("battlefield-window-next.json");Files.writeString(temporary,JSON.toJson(battlefieldWindow));
+                Files.move(temporary,COORD.resolve("battlefield-window.json"),StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);
+            }catch(Exception e){throw new RuntimeException(e);}
+        }
+        return state;
     }
 
     private static Stage prepare(MinecraftServer server, int index) {
@@ -675,7 +919,7 @@ public final class BlueprintClientQa {
     private static Stage snapshot(int stage, String phase, long now) {
         return new Stage(RUN, stage, phase, now, fixtures.stream().map(m -> new Expected(m.getId(), m.getUUID().toString(), m.blueprintId(), m.skillId(), m.skillStartTime())).toList());
     }
-    private static int prototypeCount(){return BATTLEFIELD?7:ARMY?5:4;}
+    private static int prototypeCount(){return BATTLEFIELD?(!BATTLEFIELD_COMBAT&&RESUME_WORLD.isEmpty()||local==null||local.mobs.isEmpty()?7:local.mobs.size()):ARMY?5:4;}
     private static int actionFirst(){return ARMY?8:7;}
     private static int deathFirst(){return ARMY?18:13;}
     private static int armySubject(int stage){return stage<8?Math.max(0,stage-3):stage<10?0:stage<12?1:stage<15?2:stage<17?3:stage==17?4:stage-18;}
@@ -846,7 +1090,17 @@ public final class BlueprintClientQa {
                     if(mob.isNoAi()||mob.isNoGravity())throw new AssertionError("World encounter disabled ordinary AI/physics");
                     counts.merge(mob.blueprintId(),1,Integer::sum);
                 }
-                if(!counts.equals(Map.of("zhenwang_zhangqiguan",1,"fufa_jijiu",1,"tiesuo_chihou",2,"kuijun_sishi",3)))
+                Map<String,Integer> expectedCounts=Map.of("zhenwang_zhangqiguan",1,"fufa_jijiu",1,"tiesuo_chihou",2,"kuijun_sishi",3);
+                if(BATTLEFIELD_COMBAT){
+                    var expected=new java.util.HashMap<String,Integer>();for(var actor:local.mobs)expected.merge(actor.id,1,Integer::sum);
+                    expectedCounts=Map.copyOf(expected); // Host validates every surviving UUID against the initial cohort and actual deaths.
+                }else if(!RESUME_WORLD.isEmpty()){
+                    var finalLedger=JSON.fromJson(Files.readString(ROOT.resolveSibling(PREVIOUS_RUN).resolve("host/world-final-ledger.json")),com.google.gson.JsonObject.class);
+                    var expected=new java.util.HashMap<String,Integer>();
+                    for(var actor:finalLedger.getAsJsonArray("actors"))expected.merge(actor.getAsJsonObject().get("id").getAsString(),1,Integer::sum);
+                    expectedCounts=Map.copyOf(expected);
+                }
+                if(!counts.equals(expectedCounts))
                     throw new AssertionError("Client received an incorrect or duplicated encounter: "+counts);
                 Files.writeString(OUT.resolve("world-encounter.json"),JSON.toJson(Map.of("run",RUN,"role",ROLE,
                     "counts",counts,"mobs",local.mobs,"players",mc.level.players().size(),"resumedWorld",RESUME_WORLD,"previousRun",PREVIOUS_RUN,
@@ -1069,10 +1323,15 @@ public final class BlueprintClientQa {
     private static void finish(Minecraft mc, Throwable error) {
         if (done) return; done = true;
         if (error != null) { error.printStackTrace(); LOG.add("FAIL: " + error); }
+        else if(FUSE_CHECKPOINT&&RESUME_WORLD.isEmpty())LOG.add("PASS: actual production AI lit a powder fuse; native server shutdown preserved the windup checkpoint. Restart and a fresh three seconds require the separate resume run.");
         else if(BATTLEFIELD) LOG.add("PASS: " + (SOLO ? "single client" : "two real TCP clients")
                 + " tracked seven production-spawned battlefield members with normal AI/physics and the exploration hook."
-                + (RESUME_WORLD.isEmpty() ? "" : " All seven UUIDs survived a separate-process world reload.")
-                + " This does not certify active-combat reconnect, combat restart, final art or performance.");
+                + (RESUME_WORLD.isEmpty() ? "" : " Actual surviving UUIDs, attack epochs, consumed contacts, cooldowns and confirmed-death ledger survived a separate-process world reload.")
+                + (RESUME_WORLD.isEmpty()||restartCheckpoint==null||!restartCheckpoint.get("scope").getAsString().contains("real connected-player damage")
+                    ? " Active-combat server restart was not certified by this run." : " Native active-combat checkpoint restart and first entity ticks were verified.")
+                + (LIFECYCLE&&BATTLEFIELD_COMBAT&&!SOLO?" Actual active-combat resource reload and peer reconnect were verified.":"")
+                + (FUSE_CHECKPOINT&&!RESUME_WORLD.isEmpty()?" Native lit-fuse restart and fresh three seconds were verified.":"")
+                + " Final art and sustained performance remain separate acceptance.");
         else LOG.add(SOLO ? "PASS: isolated single-client " + (lastStage() - firstStage() + 1) + " stages, actual Gecko action/death clips, and screenshot harness. This is NOT a multiplayer or visual-quality pass."
                 : "PASS: real loopback TCP clients acknowledged all " + (lastStage() - firstStage() + 1) + " stages with matching entity identity, action start, phase, actual Gecko action/death clips, possession effect and target. Screenshots still require visual review.");
         try { Files.createDirectories(OUT); Files.write(OUT.resolve(error == null ? "PASS.txt" : "FAIL.txt"), LOG); }
