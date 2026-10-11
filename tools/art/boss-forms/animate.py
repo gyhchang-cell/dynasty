@@ -113,3 +113,5 @@ def animate(g,i):
  # Keep only the authored channels; no common humanoid swing is shared between species.
  prefix='' if i<3 else 'animation.'+g.id+'.'
  g.anim={prefix+k:v for k,v in g.anim.items()}
+ from focus_motion import refine
+ refine(g.anim,g.id)
