@@ -2,7 +2,7 @@
 """Offline, fail-closed export of the playable Dynasty pack, including FTB.
 
 Run ./gradlew build first, then python3 tools/art/export_ftb_complete.py.
-This is a local installation archive, not a Modrinth publication archive.
+These are local installation archives, not Modrinth publication archives.
 """
 import argparse
 import hashlib
@@ -175,6 +175,36 @@ def export(root):
     finally:
         if os.path.exists(pending):
             os.unlink(pending)
+    # Local mrpack imports need the same complete snapshot. The public Modrinth
+    # export intentionally omits FTB, so it cannot serve as the local play pack.
+    mrpack = dist / ('dynasty-' + version + '-complete.mrpack')
+    index = {
+        'formatVersion': 1, 'game': 'minecraft', 'versionId': version,
+        'name': 'Dynasty 王朝 · FTB 完整游玩包',
+        'summary': '本地完整客户端包：包含 FTB 任务、连锁采掘、前置和任务章节。',
+        'files': [],
+        'dependencies': {'minecraft': '1.20.1', 'forge': '47.4.10'},
+    }
+    fd, pending = tempfile.mkstemp(prefix=mrpack.name + '.', suffix='.pending', dir=dist)
+    os.close(fd)
+    try:
+        with zipfile.ZipFile(output) as snapshot, zipfile.ZipFile(
+                pending, 'w', zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr('modrinth.index.json', json.dumps(index, ensure_ascii=False, indent=2))
+            for entry in snapshot.infolist():
+                archive.writestr('overrides/' + entry.filename, snapshot.read(entry.filename))
+        with zipfile.ZipFile(pending) as archive:
+            if archive.testzip():
+                raise ValueError('完整 mrpack CRC 校验失败')
+            for name, metadata in receipt['files'].items():
+                data = archive.read('overrides/' + name)
+                if len(data) != metadata['size'] or hashlib.sha256(data).hexdigest() != metadata['sha256']:
+                    raise ValueError('完整 mrpack 内容校验失败: ' + name)
+        os.replace(pending, mrpack)
+    finally:
+        if os.path.exists(pending):
+            os.unlink(pending)
+    print('完整 mrpack（本地导入，包含 FTB）:', mrpack)
     print('直接导入启动器（包含全部 FTB，无需补装）:', installable)
     print('FTB 完整包已生成:', output)
     print('任务章节:', len(chapters), '；模组:', sum(n.startswith('mods/') for n in sources))

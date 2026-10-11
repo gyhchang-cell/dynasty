@@ -52,8 +52,9 @@ if ./gradlew exportMod exportModpack --offline --console=plain 2>&1 | tee "$LOG"
   ls -lh "$HOME/Desktop/导出/Dynasty模组/" 2>/dev/null | tail -3
   ls -lh "$HOME/Desktop/导出/Dynasty整合包/" 2>/dev/null | tail -4
   echo
-  echo "（这三份包可以直接上传：CF 用 dynasty-modpack-1.4.0.zip，Modrinth 用 .mrpack，"
-  echo "  自己玩请导入 dynasty-1.4.0-complete.zip（含全部 FTB + 任务配置，无需补装）；manual.zip 为手动安装包）"
+  echo "自己玩请导入 dynasty-1.4.0-complete.mrpack 或 complete.zip（含 FTB 任务、连锁与前置）。"
+  echo "manual.zip 为手动安装包。公开发布：CF 用 dynasty-modpack-1.4.0.zip；"
+  echo "Modrinth 用 dynasty-1.4.0.mrpack（此发布包仍需补装 FTB，不要与 complete.mrpack 混淆）。"
   open "$HOME/Desktop/导出" 2>/dev/null || true
 else
   echo "-----------------------------------------------------------------"
