@@ -11,7 +11,6 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.*;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.goal.*;
 import net.minecraft.world.entity.ai.goal.target.*;
 import net.minecraft.world.entity.ai.navigation.*;
@@ -42,8 +41,8 @@ public final class FoxMatron extends Monster implements GeoEntity,Combatant {
     private long expires,nextChoice,deathStart=-1,animationStart=Long.MIN_VALUE;
     private String site="";
     private float partial;
-    public FoxMatron(EntityType<? extends FoxMatron> type,Level level){super(type,level);xpReward=24;setNoGravity(true);moveControl=new FlyingMoveControl(this,12,true);}
-    @Override protected PathNavigation createNavigation(Level level){var n=new FlyingPathNavigation(this,level);n.setCanFloat(true);return n;}
+    public FoxMatron(EntityType<? extends FoxMatron> type,Level level){super(type,level);xpReward=24;}
+    @Override protected PathNavigation createNavigation(Level level){var n=new GroundPathNavigation(this,level);n.setCanFloat(true);return n;}
     @Override protected void defineSynchedData(){super.defineSynchedData();entityData.define(SKILL,0);entityData.define(PHASE,0);entityData.define(START,-1L);entityData.define(DECOY,false);}
     @Override protected void registerGoals(){goalSelector.addGoal(8,new LookAtPlayerGoal(this,Player.class,16));targetSelector.addGoal(1,new HurtByTargetGoal(this));targetSelector.addGoal(2,new NearestAttackableTargetGoal<>(this,Player.class,true));}
     @Override public Faction faction(){return Faction.SPIRITS;}
@@ -71,14 +70,13 @@ public final class FoxMatron extends Monster implements GeoEntity,Combatant {
     private void sync(){entityData.set(SKILL,attack.current()==null?0:attack.current().id());entityData.set(START,attack.started());entityData.set(PHASE,attack.state(level().getGameTime()).ordinal());}
     @Override protected void customServerAiStep(){super.customServerAiStep();combat();}
     @Override public void tick(){super.tick();if(!level().isClientSide&&isNoAi())combat();}
-    @Override public void travel(Vec3 input){if(isAlive()){moveRelative(.04F,input);move(MoverType.SELF,getDeltaMovement());setDeltaMovement(getDeltaMovement().scale(.85));}else super.travel(input);}
     private void combat(){
         if(!isAlive())return;long now=level().getGameTime();
         if(isDecoy()){var parent=owner==null?null:((ServerLevel)level()).getEntity(owner);if(now>=expires||!(parent instanceof FoxMatron real)||!real.isAlive()||real.isDecoy()||distanceToSqr(real)>32*32)discard();return;}
         if(attack.current()!=null){navigation.stop();setDeltaMovement(Vec3.ZERO);var def=attack.current();long age=now-attack.started();if(def==MIRROR&&age>=20&&age<52&&!beamSpent)beam((int)age-20);attack.advance(now,this::impact);sync();}
         if(isNoAi()||attack.state(now)!=AttackState.IDLE)return;var victim=getTarget();if(!enemy(victim)){setTarget(null);return;}
         if(now>=nextChoice){nextChoice=now+12;for(int id:new int[]{352,351})if(startSkill(id,victim))return;}
-        var desired=victim.position().add(0,.5,0);if(level().hasChunkAt(BlockPos.containing(desired))&&level().noCollision(this,getType().getDimensions().makeBoundingBox(desired.x,desired.y,desired.z)))moveControl.setWantedPosition(desired.x,desired.y,desired.z,.6);
+        if(level().hasChunkAt(victim.blockPosition()))navigation.moveTo(victim,.6);
     }
     private void beam(int age){
         var world=(ServerLevel)level();var a=attack.origin().add(attack.direction().scale(age*BEAM_SPEED));var b=a.add(attack.direction().scale(BEAM_SPEED));
@@ -108,7 +106,7 @@ public final class FoxMatron extends Monster implements GeoEntity,Combatant {
     @Override protected void dropAllDeathLoot(DamageSource source){if(isDecoy()||lootDropped)return;lootDropped=true;super.dropAllDeathLoot(source);}
     @Override protected void tickDeath(){deathTime++;if(!level().isClientSide&&Math.max(deathTime,level().getGameTime()-deathStart)>=(isDecoy()?1:70))remove(RemovalReason.KILLED);}
     @Override public void addAdditionalSaveData(CompoundTag t){super.addAdditionalSaveData(t);t.put("EliteAttack",attack.save());t.putString("EncounterSite",site);t.putBoolean("FoxDecoy",isDecoy());if(owner!=null)t.putUUID("FoxOwner",owner);t.putLong("FoxExpires",expires);t.putBoolean("BeamSpent",beamSpent);t.putBoolean("LootDropped",lootDropped);t.putLong("DeathStart",deathStart);}
-    @Override public void readAdditionalSaveData(CompoundTag t){super.readAdditionalSaveData(t);bindEncounter(t.getString("EncounterSite"));entityData.set(DECOY,t.getBoolean("FoxDecoy"));owner=t.hasUUID("FoxOwner")?t.getUUID("FoxOwner"):null;if(isDecoy())xpReward=0;expires=t.getLong("FoxExpires");beamSpent=t.getBoolean("BeamSpent");lootDropped=t.getBoolean("LootDropped");deathStart=t.contains("DeathStart")?t.getLong("DeathStart"):-1;attack.load(t.getCompound("EliteAttack"),FoxMatron::skill,level().getGameTime());if(isDeadOrDying()){attack.cancel();entityData.set(SKILL,0);entityData.set(START,deathStart);entityData.set(PHASE,0);}else sync();}
+    @Override public void readAdditionalSaveData(CompoundTag t){super.readAdditionalSaveData(t);setNoGravity(false);bindEncounter(t.getString("EncounterSite"));entityData.set(DECOY,t.getBoolean("FoxDecoy"));owner=t.hasUUID("FoxOwner")?t.getUUID("FoxOwner"):null;if(isDecoy())xpReward=0;expires=t.getLong("FoxExpires");beamSpent=t.getBoolean("BeamSpent");lootDropped=t.getBoolean("LootDropped");deathStart=t.contains("DeathStart")?t.getLong("DeathStart"):-1;attack.load(t.getCompound("EliteAttack"),FoxMatron::skill,level().getGameTime());if(isDeadOrDying()){attack.cancel();entityData.set(SKILL,0);entityData.set(START,deathStart);entityData.set(PHASE,0);}else sync();}
     public String visualAnimation(){return isDeadOrDying()?"death":switch(skillId()){case 351->"mirror";case 352->"fire";case 353->"split";default->hurtTime>0?"hurt":getDeltaMovement().lengthSqr()>.001?"walk":"idle";};}
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers){controllers.add(new AnimationController<FoxMatron>(this,"body",0,state->{partial=state.getPartialTick();var c=state.getController();if(animationStart!=skillStart()){animationStart=skillStart();c.forceAnimationReset();}String name=visualAnimation();c.setAnimation(name.equals("idle")||name.equals("walk")?RawAnimation.begin().thenLoop("animation."+ID+"."+name):RawAnimation.begin().thenPlayAndHold("animation."+ID+"."+name));return software.bernie.geckolib.core.object.PlayState.CONTINUE;}){@Override protected double adjustTick(double tick){boolean reset=shouldResetTick;double local=super.adjustTick(tick);return !reset&&getAnimationState()==AnimationController.State.RUNNING&&skillStart()>=0&&(skillId()!=0||isDeadOrDying())?Math.max(0,level().getGameTime()-skillStart()+partial):local;}});}
     @Override public AnimatableInstanceCache getAnimatableInstanceCache(){return cache;}

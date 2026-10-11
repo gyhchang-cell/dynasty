@@ -46,7 +46,7 @@ public final class Cod2EliteVoxelRenderer<T extends LivingEntity & GeoEntity> ex
         super.renderRecursively(pose,entity,bone,type,buffers,sink,rerender,partial,seal?15728880:light,
             overlay,seal?red*.35F:red,seal?green*.9F:green,blue,alpha);
     }
-    @SubscribeEvent(priority=EventPriority.LOWEST)
+    @SubscribeEvent(priority=EventPriority.NORMAL)
     public static void register(EntityRenderersEvent.RegisterRenderers event){
         event.registerEntityRenderer(EliteContent.HEADLESS.get(),c->new Cod2EliteVoxelRenderer<>(c,HeadlessGeneral.ID,.7F));
         event.registerEntityRenderer(EliteContent.MECHANIST.get(),c->new Cod2EliteVoxelRenderer<>(c,Mechanist.ID,.45F));
