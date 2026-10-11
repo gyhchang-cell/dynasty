@@ -31,9 +31,10 @@ import java.util.concurrent.CompletableFuture;
 /** Disposable native art acceptance. Calls production startSkill/swing/hurt/death, not animation triggers. */
 @Mod.EventBusSubscriber(modid="dynasty",value=Dist.CLIENT)
 public final class BossEightClientQa {
+    private static final boolean CHECKLIST=Boolean.getBoolean("dynasty.bossChecklistQa");
     private static final boolean MATERIALS=Boolean.getBoolean("dynasty.bossMaterialQa");
     private static final boolean SPIRITS=MATERIALS||Boolean.getBoolean("dynasty.bossSpiritQa");
-    private static final boolean PRESENCE=SPIRITS||Boolean.getBoolean("dynasty.bossPresenceQa");
+    private static final boolean PRESENCE=CHECKLIST||SPIRITS||Boolean.getBoolean("dynasty.bossPresenceQa");
     private static final boolean ENABLED=Boolean.getBoolean("dynasty.bossEightQa");
     private static final Path OUT=Path.of(System.getProperty("dynasty.bossEightQa.output","build/boss-eight-native/results"));
     private static final String[] IDS={"undead_first_emperor","eunuch_mastermind","rebel_general","xianzhen_duantoujiang","qianji_bailian_yanshi","pilin_zhijinwu","baimian_huxiangu","juchui_jinjia_lishi"};
@@ -78,6 +79,17 @@ public final class BossEightClientQa {
             }
         }
         if(MATERIALS)STAGES.removeIf(s -> s.id.equals(IDS[1]));
+        if(CHECKLIST){
+            STAGES.clear();
+            for(String id:new String[]{"nine_heaven_general","dragon_king","dragon_emperor"}){
+                for(String v:new String[]{"front","45","side","back","walk"})STAGES.add(new Stage(id,v,0,0));
+                STAGES.add(new Stage(id,"attack-tell",-1,1));
+                STAGES.add(new Stage(id,"attack-contact",-1,3));
+                STAGES.add(new Stage(id,"attack-recovery",-1,5));
+                STAGES.add(new Stage(id,"hurt",-2,2));
+                STAGES.add(new Stage(id,"death",-3,15));
+            }
+        }
         int limit=Integer.getInteger("dynasty.bossEightQa.limit",STAGES.size());
         if(limit<STAGES.size())STAGES.subList(limit,STAGES.size()).clear();
     }
@@ -114,7 +126,7 @@ public final class BossEightClientQa {
             Stage s=STAGES.get(stage);
             if(settled>300)throw new AssertionError("Pose not reached "+s+" actionAt="+actionAt+" "+diagnostic);
             if(s.skill!=0&&!activated&&rendered>=6&&settled>=32){activated=true;action=mc.getSingleplayerServer().submit(()->{try{return activate(mc,s);}catch(Exception e){throw new RuntimeException(e);}});}
-            if(s.label.equals("walk")&&rendered>=6&&!activated){activated=true;walkStart=mob.position();action=mc.getSingleplayerServer().submit(()->{fixture.setNoAi(false);fixture.setTarget(null);fixture.getNavigation().moveTo(6,-60,0,1);return mc.getSingleplayerServer().overworld().getGameTime();});}
+            if(s.label.equals("walk")&&rendered>=6&&!activated){activated=true;walkStart=mob.position();action=mc.getSingleplayerServer().submit(()->{fixture.setNoAi(CHECKLIST);fixture.setTarget(null);fixture.getNavigation().moveTo(6,-60,0,1);return mc.getSingleplayerServer().overworld().getGameTime();});}
         }catch(Throwable e){finish(mc,e);}
     }
     @SubscribeEvent public static void serverTick(TickEvent.ServerTickEvent ev){
@@ -128,7 +140,7 @@ public final class BossEightClientQa {
         for(int x=-12;x<=12;x++)for(int z=-12;z<=12;z++)world.setBlockAndUpdate(new BlockPos(x,-61,z),((x+z)%7==0?Blocks.STONE_BRICKS:Blocks.GRASS_BLOCK).defaultBlockState());
         Stage s=STAGES.get(stage);var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",s.id));
         if(type==null)throw new AssertionError("Unregistered "+s.id);
-        fixture=(Mob)type.create(world);fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();world.addFreshEntity(fixture);
+        fixture=(Mob)type.create(world);fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();if(CHECKLIST)fixture.setSilent(true);world.addFreshEntity(fixture);
         if(!PRESENCE&&!(fixture instanceof GeoEntity)){fixture.setItemSlot(EquipmentSlot.MAINHAND,new ItemStack(Items.STONE_SWORD));fixture.setItemSlot(EquipmentSlot.OFFHAND,new ItemStack(Items.SHIELD));}
         victim=EntityType.COW.create(world);victim.setNoAi(true);victim.setNoGravity(true);victim.setSilent(true);victim.moveTo(0,-60,PRESENCE?8:s.skill==342||s.skill==363?6:2,180,0);victim.getAttribute(Attributes.MAX_HEALTH).setBaseValue(10000);victim.setHealth(10000);victim.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INVISIBILITY,12000,0,false,false,false));world.addFreshEntity(victim);
         for(var p:server.getPlayerList().getPlayers())p.teleportTo(world,PRESENCE?-4:0,-60,PRESENCE?1:20,180,0);
@@ -149,6 +161,7 @@ public final class BossEightClientQa {
         if(s.skill!=0||s.label.equals("walk"))yaw=35;
         double a=Math.toRadians(yaw),distance=s.id.equals("pilin_zhijinwu")?7.5:s.id.equals("juchui_jinjia_lishi")||s.id.equals("xianzhen_duantoujiang")?6.5:5.5;
         if(PRESENCE)distance=s.id.equals("pilin_zhijinwu")?11:10;
+        if(CHECKLIST)distance=s.id.equals("dragon_emperor")?18:11;
         var cam=new ArmorStand(mc.level,Math.sin(a)*distance,-60,Math.cos(a)*distance);
         cam.setPos(cam.getX(),-60+(PRESENCE?2.5:s.id.equals("pilin_zhijinwu")?1.9:1.5)-cam.getEyeHeight(),cam.getZ());cam.setNoGravity(true);cam.setYRot((float)(180-yaw));cam.setXRot(PRESENCE?3:5);cam.setYHeadRot(cam.getYRot());cam.yHeadRotO=cam.getYRot();cam.setOldPosAndRot();mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(cam);
     }
@@ -182,7 +195,7 @@ public final class BossEightClientQa {
             if(s.skill>0&&(Integer)mob.getClass().getMethod("skillId").invoke(mob)!=s.skill)throw new AssertionError("Skill not replicated");
             if(s.label.equals("walk")&&walkStart!=null&&walkStart.distanceTo(mob.position())<.1)throw new AssertionError("No actual movement");
             var tex=model.getTextureResource(visual);String folder=s.id.equals("xianzhen_duantoujiang")||s.id.equals("qianji_bailian_yanshi")?"blueprint/cod2_voxel":mob instanceof GeoEntity?"blueprint/elite":"boss_cuboid";
-            if(PRESENCE)folder="boss_forms";
+            if(PRESENCE)folder=CHECKLIST?"boss_cuboid":"boss_forms";
             if(!tex.getPath().equals("textures/entity/"+folder+"/"+s.id+".png"))throw new AssertionError("Texture binding "+tex);
             try(var stream=mc.getResourceManager().open(tex);var image=com.mojang.blaze3d.platform.NativeImage.read(stream)){
                 if(PRESENCE){
@@ -198,7 +211,7 @@ public final class BossEightClientQa {
                 if(colors.size()!=4)throw new AssertionError("Palette count "+colors.size());
                 }
             }
-            var record=new LinkedHashMap<String,Object>();record.put("entity",s.id);record.put("stage",s.label);record.put("clip",clip);record.put("age",age);record.put("renderer",renderer.getClass().getName());record.put("texture",tex.toString());record.put("scope","Actual registered entity, production startSkill/swing/hurt/death, controlled disposable world; not natural combat balance acceptance");
+            var record=new LinkedHashMap<String,Object>();record.put("entity",s.id);record.put("stage",s.label);record.put("dimensions",Map.of("width",mob.getBbWidth(),"height",mob.getBbHeight()));record.put("equipment",Map.of("main",mob.getMainHandItem().toString(),"off",mob.getOffhandItem().toString()));record.put("clip",clip);record.put("age",age);record.put("renderer",renderer.getClass().getName());record.put("texture",tex.toString());record.put("scope","Actual registered entity, production startSkill/swing/hurt/death, controlled disposable world; not natural combat balance acceptance");
             if(PRESENCE){
                 var expectedHashes=com.google.gson.JsonParser.parseString(Files.readString(OUT.resolve("runtime-manifest.json"))).getAsJsonObject().getAsJsonObject("resources");
                 Map<String,String> loadedHashes=new LinkedHashMap<>();

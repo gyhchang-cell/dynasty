@@ -105,13 +105,13 @@ public class DynastyEntities {
     public static final RegistryObject<EntityType<DynastyBosses.NineHeavenGeneral>> NINE_HEAVEN_GENERAL =
             ENTITIES.register("nine_heaven_general", () -> EntityType.Builder
                     .of(DynastyBosses.NineHeavenGeneral::new, MobCategory.MONSTER)
-                    .sized(0.7F, 2.3F).clientTrackingRange(16).build("nine_heaven_general"));
+                    .sized(3.8F, 4.25F).clientTrackingRange(16).build("nine_heaven_general"));
 
     /** 东海龙王 / the Dragon King of the East Sea */
     public static final RegistryObject<EntityType<DynastyBosses.DragonKing>> DRAGON_KING =
             ENTITIES.register("dragon_king", () -> EntityType.Builder
                     .of(DynastyBosses.DragonKing::new, MobCategory.MONSTER)
-                    .sized(1.2F, 2.8F).clientTrackingRange(16).build("dragon_king"));
+                    .sized(1.62F, 3.78F).clientTrackingRange(16).build("dragon_king"));
 
     /** 玉甲卫 / Jade Guard */
     public static final RegistryObject<EntityType<DynastyRealmMobs.JadeGuard>> JADE_GUARD =

@@ -32,8 +32,9 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
     public BossCuboidRenderer(EntityRendererProvider.Context context,EntityType<E> type,String id){
         super(context,new Model(id),new Visual(type));
         imperialDragon=id.equals("dragon_emperor");
-        shadowRadius=imperialDragon?1.8f:id.equals("dragon_king")?.7f:.5f;
+        shadowRadius=imperialDragon?1.8f:id.equals("dragon_king")?1.0f:id.equals("nine_heaven_general")?1.8f:.5f;
         if(imperialDragon)withScale(1.4f);
+        else if(id.equals("dragon_king"))withScale(1.35f);
         if(id.equals("nine_heaven_general"))addRenderLayer(new GeoRenderLayer<Visual>(this){
             @Override public void render(PoseStack pose,Visual visual,BakedGeoModel model,RenderType type,MultiBufferSource buffers,VertexConsumer vertex,float partial,int light,int overlay){
                 var body=BossCuboidRenderer.this.getGeoModel().getBone("body").orElseThrow();
