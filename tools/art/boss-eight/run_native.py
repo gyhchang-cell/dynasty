@@ -2,11 +2,12 @@
 import json,os,shutil,subprocess,time,hashlib,zipfile,sys
 from pathlib import Path
 R=Path(__file__).resolve().parents[3]
-materials=os.environ.get('DYNASTY_MATERIAL_QA')=='1'
+proportions=os.environ.get('DYNASTY_PROPORTION_QA')=='1'
+materials=proportions or os.environ.get('DYNASTY_MATERIAL_QA')=='1'
 spirits=materials or os.environ.get('DYNASTY_SPIRIT_QA')=='1'
 presence=spirits or os.environ.get('DYNASTY_PRESENCE_QA')=='1'
 name=sys.argv[1] if len(sys.argv)>1 else 'batch-1';root=R/'build/boss-eight-native'/name;root.mkdir(parents=True,exist_ok=False)
-out=R/('docs/art/boss-materials-v6/native' if materials else 'docs/art/boss-presence-v5/native' if spirits else 'docs/art/boss-presence-v4/native' if presence else 'docs/art/boss-eight-v1/native')/name;out.mkdir(parents=True,exist_ok=False)
+out=R/('docs/art/boss-proportions-v7/native' if proportions else 'docs/art/boss-materials-v6/native' if materials else 'docs/art/boss-presence-v5/native' if spirits else 'docs/art/boss-presence-v4/native' if presence else 'docs/art/boss-eight-v1/native')/name;out.mkdir(parents=True,exist_ok=False)
 launch=Path(sys.argv[2]) if len(sys.argv)>2 else Path('/Users/a15356015027/Desktop/dynasty/build/guiche-art-native/strict16-final/launch.json')
 cfg=json.loads(launch.read_text());old=cfg['environment']['MOD_CLASSES'].split(os.pathsep)
 paths=[R/'build/resources/main',R/'build/classes/java/main',None,R/'build/classes/java/bossEightQa'];mapping={}
@@ -17,6 +18,7 @@ with zipfile.ZipFile(R/'build/libs/dynasty-1.4.0.jar') as jar:
  if presence:targets={i:{'folder':'boss_forms'} for i in ('undead_first_emperor','pilin_zhijinwu','juchui_jinjia_lishi','hammer_chain')}
  if spirits:targets={i:{'folder':'boss_forms'} for i in ('eunuch_mastermind','rebel_general','xianzhen_duantoujiang')}
  if materials:targets={i:{'folder':'boss_forms'} for i in ('rebel_general','xianzhen_duantoujiang')}
+ if proportions:targets={'rebel_general':{'folder':'boss_forms'}}
  for id,m in targets.items():
   for kind,ext in [('geo','.geo.json'),('animations','.animation.json'),('textures/entity','.png')]:
    p=Path('assets/dynasty')/kind/m['folder']/(id+ext);b=(R/'src/main/resources'/p).read_bytes();assert b==jar.read(str(p))==(R/'build/resources/main'/p).read_bytes();manifest['resources'][str(p)]=hashlib.sha256(b).hexdigest()

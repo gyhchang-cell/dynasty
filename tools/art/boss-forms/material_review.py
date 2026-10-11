@@ -23,6 +23,7 @@ def details(id):
 def clips(id):
  out=p.D/id;tex=np.array(Image.open(out/'texture.png'));pre='' if id=='rebel_general' else 'animation.'+id+'.'
  anim=json.loads((p.A/'animations/boss_forms'/(id+'.animation.json')).read_text())['animations'];review={}
+ old=json.loads((p.D/'before'/(id+'.animation.json')).read_text())['animations']
  for name,a in anim.items():
   short=name.split('.')[-1];times=np.linspace(0,a['animation_length']*20,40)
   poses=[v.r.geometry(id,clip=name,tick=float(t)) for t in times]
@@ -41,7 +42,7 @@ def clips(id):
   for i,t in enumerate(sample):
    im=v.labelled(v.raster(v.r.geometry(id,clip=name,tick=t),tex,size=(360,340),frame_points=frame,mode='lit'),f'{short} / {t:.1f}t');sheet.paste(im,(i*360,0))
   sheet.save(out/(short+'-phases.png'))
-  review[short]={'frames':40,'durationSeconds':a['animation_length'],'animationChanged':False,'filmstrip':short+'-filmstrip.png'}
+  review[short]={'frames':40,'durationSeconds':a['animation_length'],'animationChanged':a!=old[name],'filmstrip':short+'-filmstrip.png'}
   print('Complete clip',id,short,flush=True)
  (out/'motion-review.json').write_text(json.dumps(review,indent=2)+'\n')
 if __name__=='__main__':

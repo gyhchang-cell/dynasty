@@ -14,7 +14,7 @@ def shape(doc):
   for c in b['cubes']:c.pop('uv',None);c.pop('_material',None)
  return d
 
-def run(ids,output=None):
+def run(ids,output=None,paint_geometry=None):
  dest=Path(output) if output else D
  dest.mkdir(parents=True,exist_ok=True)
  for id in ids:
@@ -22,7 +22,15 @@ def run(ids,output=None):
   for b in geo['bones']:
    assert len(b['cubes'])==len(meta[b['name']]['cubes'])
    for c,m in zip(b['cubes'],meta[b['name']]['cubes']):c['_material']=m['_material']
-  rig=SimpleNamespace(bones=geo['bones']);im=atlas(rig,i);geo['description'].update(texture_width=im.width,texture_height=im.height)
+  paint_bones=copy.deepcopy(paint_geometry[id]['minecraft:geometry'][0]['bones']) if paint_geometry and id in paint_geometry else geo['bones']
+  if paint_bones is not geo['bones']:
+   for b in paint_bones:
+    for c,m in zip(b['cubes'],meta[b['name']]['cubes']):c['_material']=m['_material']
+  rig=SimpleNamespace(bones=paint_bones);im=atlas(rig,i);geo['description'].update(texture_width=im.width,texture_height=im.height)
+  if paint_bones is not geo['bones']:
+   for actual,painted in zip(geo['bones'],paint_bones):
+    assert actual['name']==painted['name']
+    for c,m in zip(actual['cubes'],painted['cubes']):c['uv']=copy.deepcopy(m['uv']);c.pop('_material',None)
   assert shape(doc)==before,(id,'geometry changed')
   path.write_text(json.dumps(doc,indent=2)+'\n');im.save(A/'textures/entity/boss_forms'/(id+'.png'))
   out=dest/id;out.mkdir(exist_ok=True);im.save(out/'texture.png');im.resize((im.width*4,im.height*4),resample=0).save(out/'texture-4x.png')
