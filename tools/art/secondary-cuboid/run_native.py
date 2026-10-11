@@ -15,24 +15,24 @@ import time
 import zipfile
 
 REPO=Path(__file__).resolve().parents[3]
-p=argparse.ArgumentParser();p.add_argument('launch',type=Path);p.add_argument('run');p.add_argument('--ids',default='river_imp,tree_spirit,shrimp_soldier');p.add_argument('--boss-audit',action='store_true');p.add_argument('--boss-final',action='store_true');p.add_argument('--boss-lifecycle',action='store_true');p.add_argument('--guard-art',action='store_true');p.add_argument('--guard-style',action='store_true');p.add_argument('--guard-style-start',type=int,choices=[0,19],default=0);p.add_argument('--secondary-load',action='store_true');p.add_argument('--secondary-final',action='store_true');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('launch',type=Path);p.add_argument('run');p.add_argument('--ids',default='river_imp,tree_spirit,shrimp_soldier');p.add_argument('--boss-audit',action='store_true');p.add_argument('--boss-final',action='store_true');p.add_argument('--boss-lifecycle',action='store_true');p.add_argument('--guard-art',action='store_true');p.add_argument('--guard-style',action='store_true');p.add_argument('--guard-proportion',action='store_true');p.add_argument('--guard-style-start',type=int,choices=[0,19],default=0);p.add_argument('--secondary-load',action='store_true');p.add_argument('--secondary-final',action='store_true');args=p.parse_args()
 assert args.run and all(c.isalnum() or c in '-_' for c in args.run)
 production={}
-if args.boss_final or args.boss_lifecycle or args.guard_art or args.guard_style or args.secondary_load or args.secondary_final:
+if args.boss_final or args.boss_lifecycle or args.guard_art or args.guard_style or args.guard_proportion or args.secondary_load or args.secondary_final:
     # Refuse stale build outputs after a source edit or failed compilation.
     jar=REPO/'build/libs/dynasty-1.4.0.jar'
     assert jar.read_bytes()==(REPO/'build/reobfJar/output.jar').read_bytes(),'Production remap mismatch'
     production['jarSha256']=hashlib.sha256(jar.read_bytes()).hexdigest()
     production['sources']={}
-    names=['DynastyClientEvents','character/DynastyCharacterModel','character/DynastyCharacterRenderer'] if (args.guard_art or args.guard_style) else ['DynastyClientEvents','BossCuboidRenderer','BossCuboidAura']
+    names=['DynastyClientEvents','character/DynastyCharacterModel','character/DynastyCharacterRenderer'] if (args.guard_art or args.guard_style or args.guard_proportion) else ['DynastyClientEvents','BossCuboidRenderer','BossCuboidAura']
     for name in names:
         src=REPO/f'src/main/java/com/dynasty/client/{name}.java'
         if not src.exists():continue
         assert src.stat().st_mtime_ns<=jar.stat().st_mtime_ns,'Java source newer than JAR: '+name
         production['sources'][str(src.relative_to(REPO))]=hashlib.sha256(src.read_bytes()).hexdigest()
     with zipfile.ZipFile(jar) as z:
-        if args.guard_art or args.guard_style or args.secondary_load or args.secondary_final:
-            assert not any(any(q in n for q in ['GuardArtClientQa','GuardStyleClientQa','GuardStyleProof','LegacyGuardModel']) for n in z.namelist()),'QA leaked into production JAR'
+        if args.guard_art or args.guard_style or args.guard_proportion or args.secondary_load or args.secondary_final:
+            assert not any(any(q in n for q in ['GuardArtClientQa','GuardStyleClientQa','GuardStyleProof','LegacyGuardModel','GuardProportionClientQa','GuardProportionProof','LegacyGuardStyleModel']) for n in z.namelist()),'QA leaked into production JAR'
             assert not any('SecondaryLoadClientQa' in n for n in z.namelist()),'Load QA leaked into production JAR'
             if args.secondary_load or args.secondary_final:
                 for id in args.ids.split(','):
@@ -49,7 +49,7 @@ root.mkdir(parents=True,exist_ok=False)
 if production:
     frozen_jar=root/'production.jar';shutil.copy2(jar,frozen_jar)
     assert hashlib.sha256(frozen_jar.read_bytes()).hexdigest()==production['jarSha256'],'JAR changed while freezing'
-output=REPO/('docs/art/guard-style-v2/native' if args.guard_style else 'docs/art/guard-art-v1/native' if args.guard_art else 'docs/art/secondary-cuboid-v1/native')/args.run
+output=REPO/('docs/art/guard-proportion-v3/native' if args.guard_proportion else 'docs/art/guard-style-v2/native' if args.guard_style else 'docs/art/guard-art-v1/native' if args.guard_art else 'docs/art/secondary-cuboid-v1/native')/args.run
 output.mkdir(parents=True,exist_ok=False)
 cfg=json.loads(args.launch.read_text());old_roots=cfg['environment']['MOD_CLASSES'].split(os.pathsep)
 sources=[REPO/'build/resources/main',REPO/'build/classes/java/main',
@@ -72,12 +72,13 @@ for a in cfg['jvmArgs']:
     if a.startswith('-DlegacyClassPath.file='):
         path=root/'legacy-classpath.txt';path.write_text(remap(Path(a.split('=',1)[1]).read_text()));a='-DlegacyClassPath.file='+str(path)
     jvm.append(remap(a))
-jvm+=['-Xmx2G','-XX:ActiveProcessorCount=2','-Ddynasty.secondaryArtQa='+str(not (args.guard_art or args.guard_style or args.secondary_load)).lower(),
+jvm+=['-Xmx2G','-XX:ActiveProcessorCount=2','-Ddynasty.secondaryArtQa='+str(not (args.guard_art or args.guard_style or args.guard_proportion or args.secondary_load)).lower(),
       '-Ddynasty.secondaryArtQa.ids='+args.ids,'-Ddynasty.secondaryArtQa.output='+str(output),'-javaagent:'+str(REPO/'build/secondary-art-agent/quiet-window-agent.jar')]
 if args.boss_audit:jvm+=['-Ddynasty.secondaryArtQa.bossAudit=true']
 if args.boss_final:jvm+=['-Ddynasty.secondaryArtQa.bossFinal=true']
 if args.boss_lifecycle:jvm+=['-Ddynasty.secondaryArtQa.bossLifecycle=true']
 if args.guard_art:jvm+=['-Ddynasty.guardArtQa=true']
+if args.guard_proportion:jvm+=['-Ddynasty.guardProportionQa=true']
 if args.guard_style:jvm+=['-Ddynasty.guardStyleQa=true','-Ddynasty.guardStyleStartStage='+str(args.guard_style_start)]
 if args.secondary_load:jvm+=['-Ddynasty.secondaryLoadQa=true']
 work=root/'host';work.mkdir();(work/'options.txt').write_text('soundCategory_master:0.0\nfullscreen:false\n')

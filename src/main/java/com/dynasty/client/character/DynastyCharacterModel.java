@@ -67,10 +67,10 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
     private void build() {
         boolean general=role==Role.GENERAL,guard=role==Role.GUARD,archer=role==Role.ARCHER;
         boolean heavy=general||guard;
-        float leg=general?15.6f:archer?14.2f:12.6f, shoulder=general?6.1f:guard?5.0f:archer?3.6f:3.8f;
+        float leg=general?15.6f:archer?14.2f:12.6f, shoulder=general?6.1f:guard?5.25f:archer?3.6f:3.8f;
         int coat=general?RED:guard?TEAL:archer?CLOTH:0x746449;
         Joint pelvis=j(root,"pelvis",0,-leg,0);centered(pelvis,heavy?6.8f:5.5f,2.3f,heavy?4.4f:3.6f,coat);
-        Joint waist=j(pelvis,"waist",0,-1,0);centered(waist,guard?5.05f:heavy?5.3f:archer?4.0f:4.6f,1.2f,3.5f,LEATHER);
+        Joint waist=j(pelvis,"waist",0,-1,0);centered(waist,guard?4.95f:heavy?5.3f:archer?4.0f:4.6f,1.2f,3.5f,LEATHER);
         box(waist,-1,-.15f,-2.05f,2,1.5f,.55f,BRONZE);
         Joint abdomen=j(waist,"abdomen",0,-2.4f,0);centered(abdomen,heavy?5.4f:4.6f,2.5f,heavy?3.7f:3.2f,coat);
         Joint chest=j(abdomen,"chest",0,-4.6f,0);
@@ -297,6 +297,12 @@ public final class DynastyCharacterModel<T extends Mob> extends EntityModel<T> {
         // Bone-local facial variation, stable across reconnects because entity UUID is saved/synced.
         n("head").rz=(ensemble-1)*.015f;
         n("head").sx=ensemble==2?1.06f:ensemble==1?.95f:1;
+        // Preserve each ensemble's face proportions, then modestly reduce the whole guard head.
+        if(guard){
+            n("head").sx*=.94f;n("head").sy=n("head").sz=.94f;
+            // Scale toward the neck contact plane, keeping the jaw physically attached.
+            n("head").dy=4.15f*(1-.94f);
+        }
         n("topknot").visible=ensemble!=1;
         for(int sign:new int[]{-1,1}) {
             String side=sign<0?"right":"left";
