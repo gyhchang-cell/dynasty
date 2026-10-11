@@ -11,6 +11,7 @@ TARGETS=['pilin_zhijinwu','undead_first_emperor','juchui_jinjia_lishi']
 SAMPLES={'pilin_zhijinwu':[('idle',0),('sweep',15),('sweep',20),('sweep',45)],
  'undead_first_emperor':[('idle',0),('idle',32),('attack',0),('attack',16)],
  'juchui_jinjia_lishi':[('idle',0),('slam',24),('slam',28),('slam',75)]}
+ATTACKS={'undead_first_emperor':'attack','pilin_zhijinwu':'sweep','juchui_jinjia_lishi':'slam'}
 
 def export():
  retexture(TARGETS,D)
@@ -57,7 +58,9 @@ def review():
   pre='' if i<3 else 'animation.'+id+'.';idle=pre+'idle'
   q=v.r.geometry(id,clip=idle,tick=0);oldq=v.r.geometry(id,clip=idle,tick=0,geo_path=D/'before'/(id+'.geo.json'),animation_path=D/'before'/(id+'.animation.json'))
   samples=[v.r.geometry(id,clip=pre+c,tick=t) for c,t in SAMPLES[id]]
-  frame=np.concatenate([a[0] for s in samples+[q,oldq] for a in s]);v.checker(id)
+  frame=np.concatenate([a[0] for s in samples+[q,oldq] for a in s]);check=v.checker(id)
+  for angle,name in [(45,'uv-direction'),(90,'uv-direction-side')]:
+   v.labelled(v.raster(q,check,yaw=angle,frame_points=frame),NAMES[i]+' / 编号及方向检查 · 仅预览').save(out/(name+'.png'))
   for name,angle in [('front',0),('side',90),('back',180),('three-quarter',45)]:
    for mode in ('unlit','lit','gray'):
     v.labelled(v.raster(q,tex,yaw=angle,mode=mode,frame_points=frame),NAMES[i]+' / '+name+' / '+mode).save(out/(name+'-'+mode+'.png'))
@@ -67,11 +70,11 @@ def review():
   sheet=Image.new('RGB',(1600,1260),(232,233,228))
   for k,((clip,t),qq) in enumerate(zip(SAMPLES[id],samples)):
    state=['待机','警戒 / 已有动作','接触 / 既有时间点','恢复'][k]
-   if id=='undead_first_emperor' and k==1:state='独立观察 / 待机循环'
+   if clip=='idle' and k==1:state='独立观察 / 待机循环'
    im=v.labelled(v.raster(qq,tex,mode='lit',size=(800,550),frame_points=frame),NAMES[i]+f' / {state} / {clip} · {t}t')
    im.save(out/f'state-{k}.png');sheet.paste(im,(k%2*800,k//2*630))
   sheet.save(out/'states.png')
-  attack='attack' if i==0 else 'sweep' if i==5 else 'slam';a=json.loads((A/'animations/boss_forms'/(id+'.animation.json')).read_text())['animations'][pre+attack];frames=[]
+  attack=ATTACKS[id];a=json.loads((A/'animations/boss_forms'/(id+'.animation.json')).read_text())['animations'][pre+attack];frames=[]
   # Fixed camera/framing across the complete attack, no per-frame autozoom.
   clipqs=[v.r.geometry(id,clip=pre+attack,tick=float(t*20)) for t in np.linspace(0,a['animation_length'],40)]
   aframe=np.concatenate([x[0] for qs in clipqs for x in qs])

@@ -221,3 +221,190 @@ def paint_focus(index,n,j,c,face,im,role,mat):
  if index==5:beast(n,j,c,face,im,role,mat)
  elif index==0:emperor(n,j,c,face,im,role,mat)
  elif index==7:furnace(n,j,c,face,im,role,mat)
+ elif index==1:curtain(n,j,c,face,im,role,mat)
+ elif index==2:war(n,j,c,face,im,role,mat)
+ elif index==3:bound(n,j,c,face,im,role,mat)
+
+# A second, independent pass on the three approved spirit bodies. These palettes
+# deliberately reserve pale pixels for identity and exposed working surfaces.
+CLOTH=palette('282837','383044','4e3d57','634c69','7b607d')
+TRIM=palette('393331','514637','756345','98835c','b7a37a')
+MASK=palette('595c60','909292','bfc0b6','dedbca','eee7d2')
+WAR=palette('2e373c','424e53','5c6b70','7e8d8e','a8b4ae')
+DEAD=palette('353e43','586368','8a9593','b7bcb0','d8d8c3')
+
+def curtain(n,j,c,f,im,role,mat):
+ w,h=im.size
+ if n=='mask':
+  if j in (2,3):
+   d=fill(im,[CLOTH[0]])
+   if f=='north':
+    # One narrow, off-center slit inside each existing socket, not a glowing eye.
+    d.point((1,1),(179,190,171))
+   return
+  if j==1:
+   d=fill(im,[CLOTH[0]])
+   if f=='north':d.line((2,h-1,w-3,h-1),fill=MASK[1])
+   return
+  d=fill(im,MASK,3 if f in ('north','up') else 2)
+  if j==0 and f=='north':
+   # Stepped under-eye hollows taper downward, no smiling red cheek marks.
+   for x in (2,w-5):
+    d.rectangle((x,4,x+2,7),fill=MASK[0]);d.line((x+1,8,x+1,11),fill=MASK[1])
+   d.rectangle((w//2-1,1,w//2+1,2),fill=TRIM[3])
+   d.line((w//2,3,w//2,4),fill=TRIM[2])
+   d.rectangle((4,h-3,w-5,h-2),fill=MASK[2])
+  elif j==4:
+   d=fill(im,MASK,2 if f=='north' else 1)
+   if f=='north':d.line((1,0,1,h-2),fill=MASK[3]);d.point((1,h-1),fill=MASK[0])
+  elif j in (5,6):
+   d=fill(im,MASK,2 if f=='north' else 1)
+   if f=='north':d.line((0,1,0,h-2),fill=MASK[3])
+  return
+ if n.startswith('fingers'):
+  p=palette('555159','787179','a19a92','b8b0a1','d2c8b2')
+  d=fill(im,p,2 if f!='down' else 1)
+  if j>0 and h>6:
+   # Long continuous fingers, dark root and a single knuckle; tips catch light.
+   d.rectangle((0,0,w-1,2),fill=p[1]);d.line((0,h//2,w-1,h//2),fill=p[1])
+   d.rectangle((0,h-3,w-1,h-1),fill=p[3])
+  return
+ if mat=='gold':
+  p=TRIM;d=plate(im,p,f)
+  if n.startswith('curtain_fan') and j==2:
+   # Gold woven only at the joining band. No luminous rectangle at every spoke.
+   d=fill(im,CLOTH,1)
+   if f=='north' and int(n[-1]) in (1,3,5):
+    line(d,[(w//2-2,1),(w//2+2,1),(w//2+2,3),(w//2-1,3)],p[2])
+  return
+ if mat=='purple':
+  d=fill(im,CLOTH,1 if f in ('south','down') else 2)
+  if f in ('north','east','west') and w>3 and h>5:
+   # One fold along each physical member, inner folds stay less bright than mask.
+   x=max(1,w//3);d.rectangle((x,0,min(w-1,x+1),h-1),fill=CLOTH[1])
+   if w>7:d.line((x+3,2,x+3,h-4),fill=CLOTH[3])
+   if n.startswith('hanging_cloth'):
+    d.rectangle((0,h-2,w-1,h-1),fill=CLOTH[1])
+  return
+ # The mask support is an inner structure, never a broad bright horizontal badge.
+ plate(im,palette('282c35','333840','454952','596066','707976'),f)
+
+def war(n,j,c,f,im,role,mat):
+ w,h=im.size
+ if n=='broken_helm':
+  d=plate(im,WAR,f,j==1)
+  if j==0:
+   if f=='north':d.rectangle((1,h-3,w-2,h-1),fill=WAR[0])
+  elif j==1 and f=='north':
+   d.rectangle((0,2,w-1,4),fill=WAR[0]);d.line((w//2,5,w//2,h-1),fill=WAR[1])
+   line(d,[(0,0),(2,1),(w-3,1),(w-1,0)],WAR[3])
+  elif j==2:
+   d=fill(im,[(76,65,43)])
+   if f=='north':d.line((0,0,w-1,0),fill=(219,190,114));d.point((w//2,0),fill=(243,224,158))
+  return
+ if n=='war_core':
+  # Supporting power source stays behind the hollow frame, subordinate to visor.
+  p=palette('39373b','584338','815837','aa7845','d3ab69');d=fill(im,p,1)
+  if f in ('north','east','west'):
+   d.rectangle((w//2-1,2,w//2,h-3),fill=p[2]);d.line((w//2,4,w//2,h-5),fill=p[3])
+  return
+ if n=='war_banner':
+  p=palette('362c32','53363c','77434a','925860','b47b7b');d=fill(im,p,2 if f=='north' else 1)
+  if w>3:d.line((2,1,2,h-3),fill=p[1])
+  return
+ if n=='breach_arm':
+  d=plate(im,WAR,f,j==2)
+  if j==0 and f=='north':
+   # A single old military mark, not the same banner stamped on both arm boxes.
+   line(d,[(5,4),(10,4),(10,9),(5,9)],(100,66,64),2)
+   d.line((7,3,7,12),fill=(128,80,72))
+   # A broken overlap at the outer third, leaving most of the steel clean.
+   line(d,[(w-6,2),(w-6,h-7),(w-9,h-4),(3,h-4)],WAR[1])
+   line(d,[(w-5,3),(w-5,h-7)],WAR[3])
+  if j==0 and f in ('east','west'):
+   d.rectangle((0,h-5,w-1,h-3),fill=WAR[1])
+   line(d,[(w-5,3),(w-5,h-8),(w-7,h-6)],WAR[1])
+  if j==2:
+   if f=='north':
+    d.rectangle((2,h-5,w-3,h-3),fill=WAR[3])
+    line(d,[(3,h-7),(6,h-8),(11,h-8)],WAR[1])
+    # Friction goes across the knuckle zone; it is not repeated on upper armor.
+    line(d,[(4,h-4),(8,h-4),(10,h-5),(15,h-5)],WAR[4])
+    line(d,[(w-5,4),(w-5,8),(w-7,10)],WAR[1])
+   elif f=='down':
+    d=fill(im,WAR,3);line(d,[(3,3),(w//2,4),(w-4,4)],WAR[1],2)
+   elif f in ('east','west'):
+    line(d,[(3,h-4),(w-5,h-4),(w-3,h-6)],WAR[3])
+    line(d,[(w-4,2),(w-4,h-8)],WAR[1])
+  if j>=3:
+   d=fill(im,WAR,1 if f=='down' else 2)
+   if f=='north':d.line((0,h-2,w-1,h-2),fill=WAR[4])
+  return
+ if n=='war_glaive' and j in (1,2):
+  d=fill(im,WAR,2)
+  if f in ('north','south'):
+   d.rectangle((w-2,0,w-1,h-1),fill=WAR[4]);d.line((w-3,1,w-3,h-2),fill=WAR[3])
+   if h>8:line(d,[(2,4),(3,5),(3,7)],WAR[1])
+  return
+ if n=='right_grip':plate(im,WAR,f,True);return
+ # Quiet framing, old blades and support legs. Their silhouette already carries detail.
+ p=WAR if mat=='steel' else IRON
+ d=plate(im,p,f)
+ if n.startswith('support') and j==2 and f=='north' and w>6:
+  line(d,[(2,2),(w-3,2),(w-3,h-3)],p[1])
+ if n=='weapon_arm' and j==1 and f in ('east','west') and min(w,h)>4:
+  line(d,[(2,3),(2,h-3)],p[3])
+ if n=='war_frame' and j<2 and f in ('north','east','west') and w>4:
+  d.line((w-2,2,w-2,h-3),fill=p[1])
+
+def bound(n,j,c,f,im,role,mat):
+ w,h=im.size
+ if n=='bound_head':
+  if j<16:
+   d=plate(im,IRON,f)
+   if f=='up':fill(im,IRON,3)
+  elif j==16:
+   d=fill(im,DEAD,3 if f=='north' else 2)
+   if f=='north':
+    d.rectangle((1,3,5,6),fill=DEAD[0]);d.rectangle((w-6,3,w-2,6),fill=DEAD[0])
+    d.rectangle((w//2-1,6,w//2,8),fill=DEAD[1])
+    # An open, irregular throat mouth reads as a threat, not a cheery square grin.
+    d.polygon([(4,10),(6,9),(10,9),(12,11),(11,14),(5,14),(4,12)],fill=DEAD[0])
+    d.line((6,10,9,10),fill=DEAD[4]);d.line((5,7,4,9),fill=DEAD[1])
+    d.line((w-5,7,w-4,9),fill=DEAD[1])
+   elif f in ('east','west'):
+    d.rectangle((2,h-4,w-3,h-2),fill=DEAD[1])
+  elif j==17:
+   d=plate(im,IRON,f)
+   if f=='north':d.line((2,h-2,w-3,h-2),fill=IRON[3])
+  else:
+   d=fill(im,[DEAD[0]])
+   if f=='north':d.line((1,1,w-2,1),fill=DEAD[4])
+  return
+ if mat=='wood':
+  # Preserve the established long-axis grain; lower its contrast relative to head.
+  old=palette('3a2922','624232','855b3d','a77a50','c39b66')
+  new=palette('3a302c','584136','755440','8b6950','a28666')
+  mapping=dict(zip(old,new));im.putdata([mapping.get(x,x) for x in im.getdata()]);return
+ if n=='blade_mount':
+  d=fill(im,WAR,2 if j==1 else 1)
+  if j==1 and f in ('north','south'):
+   # Continuous cutting edge and a few contact marks on the actual blade plane.
+   d.rectangle((0,0,min(1,w-1),h-1),fill=WAR[4])
+   if w>5:d.line((2,2,2,h-3),fill=WAR[3])
+   if h>15:line(d,[(3,h//3),(5,h//3+1),(6,h//3+1)],WAR[1])
+  return
+ if n.startswith('forearm') and j>=2:
+  d=fill(im,BONE,1 if f=='down' else 2)
+  if f=='north':d.rectangle((0,h-2,w-1,h-1),fill=BONE[3])
+  return
+ p=WAR if mat=='steel' else IRON;d=plate(im,p,f)
+ if n.startswith('forearm') and j==1 and f=='north':
+  d.rectangle((2,h-3,w-3,h-2),fill=p[3])
+  line(d,[(3,h-4),(6,h-4),(8,h-5),(w-4,h-5)],p[4])
+ if n.startswith('giant_arm') and j==1 and f in ('north','east','west'):
+  # Load seam opens toward the elbow, while the upper shoulder stays quiet.
+  line(d,[(3,h-4),(w-4,h-4),(w-3,h-6)],p[1])
+  if f=='north':line(d,[(w-4,3),(w-4,6)],p[3])
+ if n.startswith('drag_runner') and j==0 and f=='north' and min(w,h)>5:
+  line(d,[(2,h-4),(w//2,h-4),(w//2+2,h-5)],p[1])

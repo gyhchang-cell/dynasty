@@ -31,7 +31,8 @@ import java.util.concurrent.CompletableFuture;
 /** Disposable native art acceptance. Calls production startSkill/swing/hurt/death, not animation triggers. */
 @Mod.EventBusSubscriber(modid="dynasty",value=Dist.CLIENT)
 public final class BossEightClientQa {
-    private static final boolean PRESENCE=Boolean.getBoolean("dynasty.bossPresenceQa");
+    private static final boolean SPIRITS=Boolean.getBoolean("dynasty.bossSpiritQa");
+    private static final boolean PRESENCE=SPIRITS||Boolean.getBoolean("dynasty.bossPresenceQa");
     private static final boolean ENABLED=Boolean.getBoolean("dynasty.bossEightQa");
     private static final Path OUT=Path.of(System.getProperty("dynasty.bossEightQa.output","build/boss-eight-native/results"));
     private static final String[] IDS={"undead_first_emperor","eunuch_mastermind","rebel_general","xianzhen_duantoujiang","qianji_bailian_yanshi","pilin_zhijinwu","baimian_huxiangu","juchui_jinjia_lishi"};
@@ -61,6 +62,22 @@ public final class BossEightClientQa {
                 }
             }
         }
+        if(SPIRITS){
+            STAGES.clear();
+            for(String id:new String[]{IDS[1],IDS[2],IDS[3]}){
+                for(String v:new String[]{"front","45","side","back","walk"})STAGES.add(new Stage(id,v,0,0));
+                if(id.equals(IDS[1])){
+                    STAGES.add(new Stage(id,"attack-contact",-1,1));STAGES.add(new Stage(id,"attack-recovery",-1,19));
+                }else if(id.equals(IDS[2])){
+                    STAGES.add(new Stage(id,"attack-tell",-1,9));STAGES.add(new Stage(id,"attack-contact",-1,12));STAGES.add(new Stage(id,"attack-recovery",-1,22));
+                }else{
+                    STAGES.add(new Stage(id,"roar-tell",301,18));STAGES.add(new Stage(id,"roar-contact",301,24));STAGES.add(new Stage(id,"roar-recovery",301,44));
+                    STAGES.add(new Stage(id,"spin-contact",302,26));STAGES.add(new Stage(id,"throw-contact",303,20));
+                }
+            }
+        }
+        int limit=Integer.getInteger("dynasty.bossEightQa.limit",STAGES.size());
+        if(limit<STAGES.size())STAGES.subList(limit,STAGES.size()).clear();
     }
     private static boolean started,done,captured,activated;
     private static final int START=Integer.getInteger("dynasty.bossEightQa.start",0);
@@ -93,7 +110,7 @@ public final class BossEightClientQa {
             settled++;
             if(action!=null&&action.isDone())actionAt=action.join();
             Stage s=STAGES.get(stage);
-            if(settled>200)throw new AssertionError("Pose not reached "+s+" actionAt="+actionAt+" "+diagnostic);
+            if(settled>300)throw new AssertionError("Pose not reached "+s+" actionAt="+actionAt+" "+diagnostic);
             if(s.skill!=0&&!activated&&rendered>=6&&settled>=32){activated=true;action=mc.getSingleplayerServer().submit(()->{try{return activate(mc,s);}catch(Exception e){throw new RuntimeException(e);}});}
             if(s.label.equals("walk")&&rendered>=6&&!activated){activated=true;walkStart=mob.position();action=mc.getSingleplayerServer().submit(()->{fixture.setNoAi(false);fixture.setTarget(null);fixture.getNavigation().moveTo(6,-60,0,1);return mc.getSingleplayerServer().overworld().getGameTime();});}
         }catch(Throwable e){finish(mc,e);}
@@ -118,7 +135,10 @@ public final class BossEightClientQa {
     private static long activate(Minecraft mc,Stage s)throws Exception{
         if(PRESENCE)victim.moveTo(0,-60,2,180,0);
         if(s.skill>0){boolean ok=(Boolean)fixture.getClass().getMethod("startSkill",int.class,LivingEntity.class).invoke(fixture,s.skill,victim);if(!ok)throw new AssertionError("Production skill rejected "+s);}
-        else if(s.skill==-1)fixture.swing(InteractionHand.MAIN_HAND);
+        else if(s.skill==-1){
+            if(SPIRITS&&fixture instanceof com.dynasty.entity.DynastyBosses.RebelGeneral rebel)rebel.beginCharacterAttack();
+            fixture.swing(InteractionHand.MAIN_HAND);
+        }
         else if(!fixture.hurt(fixture.damageSources().generic(),s.skill==-3?1000000:8))throw new AssertionError("Damage rejected "+s);
         return mc.getSingleplayerServer().overworld().getGameTime();
     }
@@ -149,7 +169,8 @@ public final class BossEightClientQa {
             String expected=s.skill!=0?s.label.split("-")[0]:s.label.equals("walk")?"walk":"idle";
             if(mob instanceof GeoEntity)expected="animation."+s.id+"."+expected;
             long age=actionAt<0?-1:mc.level.getGameTime()-actionAt;
-            boolean ready=s.skill!=0?age>=s.age:s.label.equals("walk")?age>=10:settled>=26&&rendered>=8;
+            // The first fixture needs chunk meshes ready, not merely entity replication.
+            boolean ready=s.skill!=0?age>=s.age:s.label.equals("walk")?age>=10:settled>=(stage==START?160:26)&&rendered>=8;
             if(!ready)return;
             if(!clip.equals(expected)){
                 if(age<60)return;
@@ -163,7 +184,11 @@ public final class BossEightClientQa {
             if(!tex.getPath().equals("textures/entity/"+folder+"/"+s.id+".png"))throw new AssertionError("Texture binding "+tex);
             try(var stream=mc.getResourceManager().open(tex);var image=com.mojang.blaze3d.platform.NativeImage.read(stream)){
                 if(PRESENCE){
-                    int expectedSize=s.id.equals(IDS[0])?256:512;
+                    var geo=model.getModelResource(visual);
+                    int expectedSize;
+                    try(var gs=mc.getResourceManager().open(geo)){
+                        expectedSize=com.google.gson.JsonParser.parseString(new String(gs.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonArray("minecraft:geometry").get(0).getAsJsonObject().getAsJsonObject("description").get("texture_width").getAsInt();
+                    }
                     if(image.getWidth()!=expectedSize||image.getHeight()!=expectedSize)throw new AssertionError("Atlas size");
                 } else {
                 if(image.getWidth()!=16||image.getHeight()!=16)throw new AssertionError("Not 16px");Set<Integer> colors=new HashSet<>();
