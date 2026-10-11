@@ -1,4 +1,4 @@
-"""User-approved v7 proportion correction on the original war-spirit rig.
+"""User-approved v7 upper-body and v8 foot correction on the original war-spirit rig.
 No extra parts or bones; main blade dimensions and UV remain unchanged.
 """
 import copy,math
@@ -31,8 +31,8 @@ def refine(bones):
   box(c,center,[width,length,width]);c['pivot']=center;c['rotation']=[-math.degrees(math.asin(v[2]/length)),0,math.degrees(math.atan2(v[0],v[1]))]
  for side in [-1,1]:
   cs=by['support_'+str(side)]['cubes']
-  beam(cs[0],[side*12,25,4],[side*17,13,8],10)
-  box(cs[1],[side*17,12,7],[13,11,12])
-  beam(cs[2],[side*17,12,8],[side*17,4,-3],8)
-  box(cs[3],[side*17,2.5,-3],[12,5,16])
+  beam(cs[0],[side*12,25,4],[side*17,13,8],9)
+  box(cs[1],[side*17,13,7],[11,9,10])
+  beam(cs[2],[side*17,12,6],[side*17,4.5,0],6.5)
+  box(cs[3],[side*17,1.5,-1],[10,3,11])
  return bones

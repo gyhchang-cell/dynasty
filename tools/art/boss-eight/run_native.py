@@ -7,7 +7,7 @@ materials=proportions or os.environ.get('DYNASTY_MATERIAL_QA')=='1'
 spirits=materials or os.environ.get('DYNASTY_SPIRIT_QA')=='1'
 presence=spirits or os.environ.get('DYNASTY_PRESENCE_QA')=='1'
 name=sys.argv[1] if len(sys.argv)>1 else 'batch-1';root=R/'build/boss-eight-native'/name;root.mkdir(parents=True,exist_ok=False)
-out=R/('docs/art/boss-proportions-v7/native' if proportions else 'docs/art/boss-materials-v6/native' if materials else 'docs/art/boss-presence-v5/native' if spirits else 'docs/art/boss-presence-v4/native' if presence else 'docs/art/boss-eight-v1/native')/name;out.mkdir(parents=True,exist_ok=False)
+out=R/('docs/art/boss-proportions-v8/native' if proportions else 'docs/art/boss-materials-v6/native' if materials else 'docs/art/boss-presence-v5/native' if spirits else 'docs/art/boss-presence-v4/native' if presence else 'docs/art/boss-eight-v1/native')/name;out.mkdir(parents=True,exist_ok=False)
 launch=Path(sys.argv[2]) if len(sys.argv)>2 else Path('/Users/a15356015027/Desktop/dynasty/build/guiche-art-native/strict16-final/launch.json')
 cfg=json.loads(launch.read_text());old=cfg['environment']['MOD_CLASSES'].split(os.pathsep)
 paths=[R/'build/resources/main',R/'build/classes/java/main',None,R/'build/classes/java/bossEightQa'];mapping={}
