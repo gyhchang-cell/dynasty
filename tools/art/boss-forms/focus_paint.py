@@ -186,6 +186,14 @@ def furnace(n,j,c,f,im,role,mat):
     d.line((0,0,w-1,0),fill=p[3]);d.line((0,h-1,w-1,h-1),fill=p[1])
     line(d,[(2,h//2+1),(w//2,h//2),(w-2,h//2)],p[1])
     line(d,[(w//3,2),(w//3+1,3),(w//3+4,3)],p[3])
+  elif j==1 and f=='down':
+   # At the slam contact pose this underside meets the ground. Treat the whole
+   # load-bearing sole as forged steel, distinct from the copper side casing.
+   p=palette('414c50','67777a','929f9d','bcc4b7','d5d6c1');d=fill(im,p,2)
+   d.rectangle((0,0,w-1,1),fill=p[1]);d.rectangle((0,h-2,w-1,h-1),fill=p[1])
+   d.polygon([(2,2),(w-3,2),(w-5,5),(5,5),(3,h-5),(1,h-3)],fill=p[3])
+   line(d,[(w//3,h//3),(w//3+2,h//3+1),(w-4,h//3+1)],p[1])
+   line(d,[(4,2*h//3),(w//2,2*h//3),(w//2+2,2*h//3-1)],p[3])
   elif j==2:
    d=plate(im,IRON,f,True)
    if f=='north' and w>8:d.line((2,2,w-3,2),fill=IRON[3])
