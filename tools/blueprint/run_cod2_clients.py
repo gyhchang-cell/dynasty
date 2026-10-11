@@ -14,10 +14,19 @@ parser = argparse.ArgumentParser()
 parser.add_argument("launch", type=Path)
 parser.add_argument("run_id")
 parser.add_argument("--solo", action="store_true")
+parser.add_argument("--shortcut", action="store_true", help="Include actual Chensha corner-stele and permanent return-lift stages")
+parser.add_argument("--resume-from", type=Path, help="Copy only this runner's disposable artisan QA save into a fresh launch")
 args = parser.parse_args()
 if not args.run_id or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for c in args.run_id) or args.run_id in (".", ".."):
     parser.error("Use a fresh alphanumeric run id")
 repo = Path(__file__).resolve().parents[2]
+resume_save = None
+if args.resume_from:
+    resume_root = args.resume_from.resolve()
+    resume_root.relative_to((repo / "build/cod2-client").resolve())
+    resume_save = resume_root / "host/saves/artisan-qa"
+    if not (resume_save / "level.dat").is_file():
+        parser.error("A completed disposable artisan QA world is required for restart verification")
 launch = json.loads(args.launch.read_text())
 out = repo / "build/cod2-client" / args.run_id
 out.mkdir(parents=True, exist_ok=False)
@@ -30,9 +39,15 @@ try:
     for role in roles:
         work = out / role
         work.mkdir()
+        if role == "host" and resume_save:
+            shutil.copytree(resume_save, work / "saves/artisan-qa")
+        # Disposable QA worlds start silent; never modify the user's game settings or OS volume.
+        (work / "options.txt").write_text("soundCategory_master:0.0\n", encoding="utf-8")
         jvm = list(launch["jvmArgs"])
         for key, value in {"dynasty.cod2Qa.role": role, "dynasty.cod2Qa.output": str(out / "results"),
-                           "dynasty.cod2Qa.solo": str(args.solo).lower()}.items():
+                           "dynasty.cod2Qa.solo": str(args.solo).lower(),
+                           "dynasty.cod2Qa.shortcut": str(args.shortcut).lower(),
+                           "dynasty.cod2Qa.resume": str(resume_save is not None).lower()}.items():
             jvm = [v for v in jvm if not v.startswith("-D" + key + "=")]
             jvm.append("-D" + key + "=" + value)
         game = list(launch["args"])

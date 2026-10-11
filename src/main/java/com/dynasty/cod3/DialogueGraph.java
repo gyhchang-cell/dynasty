@@ -42,6 +42,8 @@ public record DialogueGraph(Map<String, DialogueNode> nodes, List<String> entrie
         choices.add(new DialogueNode.Choice("talk", "cod3.dynasty.dialogue.talk", List.of(), DialogueNode.Action.TALK, "ordinary"));
         choices.add(new DialogueNode.Choice("changed", "cod3.dynasty.dialogue.changed", changed, DialogueNode.Action.TALK, "changed"));
         if (!item.isEmpty()) choices.add(new DialogueNode.Choice("special", "cod3.dynasty.dialogue.special", special, DialogueNode.Action.TALK, "special"));
+        if (role.equals("lao_chen")) choices.add(new DialogueNode.Choice("repair", "cod3.dynasty.service.repair", List.of(), DialogueNode.Action.REPAIR, ""));
+        if (role.equals("han_chong")) choices.add(new DialogueNode.Choice("memorial", "cod3.dynasty.service.memorial", special, DialogueNode.Action.COMMEMORATE, ""));
         choices.add(new DialogueNode.Choice("trade", "cod3.dynasty.dialogue.trade", List.of(), DialogueNode.Action.TRADE, ""));
         choices.add(new DialogueNode.Choice("leave", "cod3.dynasty.dialogue.leave", List.of(), DialogueNode.Action.LEAVE, ""));
         var nodes = new LinkedHashMap<String, DialogueNode>();

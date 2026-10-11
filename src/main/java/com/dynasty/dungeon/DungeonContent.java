@@ -3,6 +3,7 @@ package com.dynasty.dungeon;
 import com.dynasty.Dynasty;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.levelgen.structure.StructureType;
@@ -14,6 +15,8 @@ import net.minecraftforge.registries.RegistryObject;
 
 /** No craftable core or item registration; an administrator places the probe structure. */
 public final class DungeonContent {
+    public static final DeferredRegister<Item> ITEMS=DeferredRegister.create(ForgeRegistries.ITEMS,Dynasty.MODID);
+    public static final RegistryObject<Item> HIGH_GRADE_PLAN=ITEMS.register("high_grade_mechanism_plan",HighGradeMechanismPlanItem::new);
     public static final DeferredRegister<Block> BLOCKS=DeferredRegister.create(ForgeRegistries.BLOCKS,Dynasty.MODID);
     public static final DeferredRegister<BlockEntityType<?>> ENTITIES=DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES,Dynasty.MODID);
     public static final DeferredRegister<StructureType<?>> STRUCTURES=DeferredRegister.create(Registries.STRUCTURE_TYPE,Dynasty.MODID);
@@ -39,6 +42,9 @@ public final class DungeonContent {
     public static final RegistryObject<Block> MINE=mechanism("dungeon_buried_mine",DungeonMechanismBlock.Kind.TRAP);
     public static final RegistryObject<Block> ARROW_RAIN=mechanism("dungeon_arrow_rain_controller",DungeonMechanismBlock.Kind.TRAP);
     public static final RegistryObject<Block> WIND_FIELD=mechanism("dungeon_wind_field",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> UPDRAFT=mechanism("updraft_vent",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> CLOUD=mechanism("fading_cloud_tile",DungeonMechanismBlock.Kind.FLOOR);
+    public static final RegistryObject<Block> FLAME=mechanism("flame_vent",DungeonMechanismBlock.Kind.TRAP);
     public static final RegistryObject<Block> ELEVATOR=mechanism("dungeon_elevator_controller",DungeonMechanismBlock.Kind.ELEVATOR);
     public static final RegistryObject<Block> SHORTCUT_STELE=mechanism("dungeon_shortcut_stele",DungeonMechanismBlock.Kind.SHORTCUT);
     public static final RegistryObject<Block> COFFIN=mechanism("dungeon_imperial_coffin",DungeonMechanismBlock.Kind.COFFIN);
@@ -54,11 +60,11 @@ public final class DungeonContent {
     public static final RegistryObject<BlockEntityType<DungeonMechanismBlockEntity>> MECHANISM=ENTITIES.register("dungeon_mechanism",
         ()->BlockEntityType.Builder.of(DungeonMechanismBlockEntity::new,
             CORE.get(),SEAL.get(),EYE.get(),DOOR.get(),FLOOR.get(),TRAP.get(),ELEVATOR.get(),SHORTCUT_STELE.get(),COFFIN.get(),
-            CRUSHER.get(),CONVEYOR.get(),STEAM.get(),MINE.get(),ARROW_RAIN.get(),WIND_FIELD.get()).build(null));
+            CRUSHER.get(),CONVEYOR.get(),STEAM.get(),MINE.get(),ARROW_RAIN.get(),WIND_FIELD.get(),UPDRAFT.get(),FLAME.get(),CLOUD.get()).build(null));
     public static final RegistryObject<StructureType<DungeonProbeStructure>> PROBE=STRUCTURES.register("dungeon_probe",()->()->DungeonProbeStructure.CODEC);
     public static final RegistryObject<StructurePieceType> PROBE_PIECE=PIECES.register("dungeon_probe_piece",()->DungeonProbePiece::new);
     public static final RegistryObject<StructureType<ChenshaStructure>> CHENSHA=STRUCTURES.register("chensha_xuangong",()->()->ChenshaStructure.CODEC);
     public static final RegistryObject<StructurePieceType> CHENSHA_PIECE=PIECES.register("chensha_xuangong_piece",()->ChenshaPiece::new);
-    public static void register(IEventBus bus){BLOCKS.register(bus);ENTITIES.register(bus);STRUCTURES.register(bus);PIECES.register(bus);PROJECTILES.register(bus);}
+    public static void register(IEventBus bus){ITEMS.register(bus);BLOCKS.register(bus);ENTITIES.register(bus);STRUCTURES.register(bus);PIECES.register(bus);PROJECTILES.register(bus);}
     private DungeonContent(){}
 }

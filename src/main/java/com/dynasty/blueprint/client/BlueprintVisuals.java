@@ -35,6 +35,12 @@ public final class BlueprintVisuals {
     @SubscribeEvent public static void glare(net.minecraftforge.client.event.RenderGuiOverlayEvent.Post event) {
         if(!event.getOverlay().id().equals(net.minecraftforge.client.gui.overlay.VanillaGuiOverlay.HOTBAR.id()))return;
         var mc=Minecraft.getInstance();if(mc.player==null||!mc.player.isAlive()||mc.options.hideGui)return;
+        var haze=mc.player.getEffect(com.dynasty.blueprint.elite.EliteContent.FOX_HAZE.get());
+        if(haze!=null){
+            int w=mc.getWindow().getGuiScaledWidth(),h=mc.getWindow().getGuiScaledHeight(),a=Math.min(42,haze.getDuration()*3),pink=0xDE92BB;
+            var g=event.getGuiGraphics();g.fillGradient(0,0,w,h/5,(a<<24)|pink,pink);g.fillGradient(0,h*4/5,w,h,pink,(a<<24)|pink);
+            g.fill(0,h/5,w/16,h*4/5,((a/2)<<24)|pink);g.fill(w*15/16,h/5,w,h*4/5,((a/2)<<24)|pink);
+        }
         var effect=mc.player.getEffect(BlueprintEntities.LANTERN_GLARE.get());if(effect==null)return;
         int width=mc.getWindow().getGuiScaledWidth(),height=mc.getWindow().getGuiScaledHeight();
         int color=effect.getAmplifier()>=2?0xE6C54A:effect.getAmplifier()>0?0x62D994:0xFFF9E6;
@@ -66,6 +72,14 @@ public final class BlueprintVisuals {
         if(mc.isPaused()) return;
         long now=mc.level.getGameTime();
         int budget=mc.options.particles().get()==ParticleStatus.MINIMAL?8:mc.options.particles().get()==ParticleStatus.DECREASED?24:48;
+        // At most eight nearby live birds contribute one central-stump drip every six ticks.
+        if(now%6==0){int birds=0;for(var entity:mc.level.entitiesForRendering()){
+            if(budget<=0||birds>=8)break;
+            if(!(entity instanceof com.dynasty.blueprint.elite.GhostCarriageBird bird)||!bird.isAlive()
+                ||mc.gameRenderer.getMainCamera().getPosition().distanceToSqr(bird.position())>48*48)continue;
+            var at=bird.position().add(bird.getLookAngle().multiply(.3,0,.3)).add(0,1.4,0);
+            mc.level.addParticle(new DustParticleOptions(new Vector3f(.28F,.025F,.045F),.55F),at.x,at.y,at.z,0,-.08,0);birds++;budget--;
+        }}
         // Entity metadata survives tracking/rejoin; the possession beam outlives the brief casting event.
         if(now%10==0) {
             SUPPORTS.clear();SHIELDS.clear();
@@ -113,6 +127,98 @@ public final class BlueprintVisuals {
             if(death) {
                 budget-=deathParticles(mc,p,age,budget);
                 continue;
+            }
+            if(p.key().startsWith("spider_")){
+                int count=Math.min(8,budget);budget-=count;var dust=new DustParticleOptions(new Vector3f(.46F,.71F,.29F),.85F);
+                Vec3 floor=p.origin();for(int y=0;y<=12;y++){var block=net.minecraft.core.BlockPos.containing(p.origin()).below(y);if(!mc.level.hasChunkAt(block))break;if(mc.level.getBlockState(block.below()).isFaceSturdy(mc.level,block.below(),net.minecraft.core.Direction.UP)){floor=new Vec3(p.origin().x,block.getY()+.08,p.origin().z);break;}}
+                for(int i=0;i<count;i++){
+                    double angle=(i/(double)count+age*.015)*Math.PI*2;Vec3 at;
+                    if(p.key().equals("spider_drop")){at=floor.add(Math.cos(angle)*2,0,Math.sin(angle)*2);if(i<2&&age<p.windup())at=floor.lerp(caster.position(),i/2.0);}
+                    else if(p.key().equals("spider_acid")){at=age<p.windup()?caster.position().add(Math.cos(angle)*.7,.4,Math.sin(angle)*.7):floor.add(p.direction().scale(2+i%3*2)).add(new Vec3(-p.direction().z,0,p.direction().x).scale(i%2==0?-1.5:1.5));}
+                    else at=caster.position().add(Math.cos(angle)*1.2,.15,Math.sin(angle)*1.2);
+                    mc.level.addParticle(dust,at.x,at.y,at.z,0,p.key().equals("spider_acid")&&age>=p.windup()?-.025:0,0);
+                }continue;
+            }
+            if(p.key().startsWith("hammer_")){
+                int count=Math.min(8,budget);budget-=count;var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-forward.z,0,forward.x);
+                var dust=new DustParticleOptions(new Vector3f(.77F,.60F,.29F),.9F);
+                for(int i=0;i<count;i++){
+                    Vec3 at;
+                    if(p.key().equals("hammer_slam")){
+                        double radius=age<28?2:age<44?2:age<60?4:6;double angle=(i/(double)count+age*.012)*Math.PI*2;
+                        at=p.origin().add(Math.cos(angle)*radius,.12,Math.sin(angle)*radius);
+                    }else if(p.key().equals("hammer_wheel"))at=(age<p.windup()?p.origin():caster.position()).add(forward.scale(2.1*(i/2)/3.0)).add(side.scale(i%2==0?-com.dynasty.blueprint.elite.HammerGuardian.WHEEL_WIDTH*.5:com.dynasty.blueprint.elite.HammerGuardian.WHEEL_WIDTH*.5)).add(0,.12,0);
+                    else at=p.origin().add(forward.scale(com.dynasty.blueprint.elite.HammerChain.RANGE*i/(double)count)).add(0,.12,0);
+                    mc.level.addParticle(age<p.windup()?dust:new BlockParticleOption(ParticleTypes.BLOCK,Blocks.STONE.defaultBlockState()),at.x,at.y,at.z,0,age<p.windup()?0:.035,0);
+                }continue;
+            }
+            if(p.key().startsWith("fox_")){
+                var dust=new DustParticleOptions(new Vector3f(.86F,.52F,.67F),.9F);
+                if(p.key().equals("fox_fire")){
+                    for(int cell=0;cell<5&&budget>0;cell++){
+                        int impact=20+cell*12;if(age<impact-16||age>impact+4)continue;
+                        var at=p.origin().add(p.direction().multiply(1,0,1).normalize().scale(cell*1.5));int count=Math.min(4,budget);budget-=count;
+                        for(int j=0;j<count;j++){double angle=(j/(double)count+age*.04)*Math.PI*2,r=com.dynasty.blueprint.elite.FoxMatron.FIRE_RADIUS;var pos=at.add(Math.cos(angle)*r,age>=impact?(j+1)*.55:.08,Math.sin(angle)*r);mc.level.addParticle(age<impact?dust:ParticleTypes.SOUL_FIRE_FLAME,pos.x,pos.y,pos.z,0,.02,0);}
+                    }
+                }else{
+                    int count=Math.min(age<p.windup()?3:4,budget);budget-=count;
+                    for(int i=0;i<count;i++){var at=p.key().equals("fox_mirror")&&age>=20?p.origin().add(p.direction().scale((age-20)*com.dynasty.blueprint.elite.FoxMatron.BEAM_SPEED)).add(0,i*.04,0):caster.position().add(Math.cos(age*.1+i*Math.PI*2/3)*1.2,1.2,Math.sin(age*.1+i*Math.PI*2/3)*1.2);mc.level.addParticle(dust,at.x,at.y,at.z,0,.01,0);}
+                }continue;
+            }
+            if(p.key().startsWith("jinwu_")){
+                int count=Math.min(8,budget);budget-=count;var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-forward.z,0,forward.x);
+                var dust=new DustParticleOptions(new Vector3f(.92F,.89F,.74F),.9F);
+                for(int i=0;i<count;i++){
+                    double u=(i+.5)/count;Vec3 at;
+                    if(p.key().equals("jinwu_charge"))at=p.origin().add(forward.scale(p.range()*u)).add(side.scale(i%2==0?-.75:.75));
+                    else{double angle=Math.atan2(forward.z,forward.x)+Math.toRadians(p.angle())*(u-.5);double radius=p.range();
+                        if(p.key().equals("jinwu_sweep")&&i==count-1){angle=Math.atan2(forward.z,forward.x)+Math.PI;radius=com.dynasty.blueprint.elite.Jinwu.REAR_SWEEP;}
+                        at=p.origin().add(Math.cos(angle)*radius,0,Math.sin(angle)*radius);}
+                    mc.level.addParticle(age<p.windup()?dust:ParticleTypes.CLOUD,at.x,at.y+.13,at.z,0,.015,0);
+                }continue;
+            }
+            if(p.key().startsWith("mechanist_")){
+                int count=Math.min(8,budget);budget-=count;
+                var dust=new DustParticleOptions(new Vector3f(.48F,.84F,.87F),.7F);
+                var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-forward.z,0,forward.x);
+                for(int i=0;i<count;i++){
+                    double u=(i+(age/3)%count)/(double)count;Vec3 at;
+                    if(p.key().equals("mechanist_net")){
+                        double theta=Math.atan2(forward.z,forward.x)+Math.toRadians(p.angle())*(u-.5);
+                        at=p.origin().add(Math.cos(theta)*p.range(),.13,Math.sin(theta)*p.range());
+                    }else if(p.key().equals("mechanist_wheels")){
+                        double wave=Math.sin(Math.PI*(i/2+.5)/(count/2.0));
+                        at=p.origin().add(forward.scale(com.dynasty.blueprint.elite.MechanistWheel.RANGE*wave)).add(side.scale((i%2==0?1:-1)*(com.dynasty.blueprint.elite.MechanistWheel.INNER_GAP+com.dynasty.blueprint.elite.MechanistWheel.CURVE_WIDTH*wave))).add(0,.15,0);
+                    }else at=caster.position().add(Math.cos(u*Math.PI*2)*1.5,1.2,Math.sin(u*Math.PI*2)*1.5);
+                    mc.level.addParticle(dust,at.x,at.y,at.z,0,.005,0);
+                }continue;
+            }
+            if(p.key().startsWith("headless_")){
+                int count=Math.min(8,budget);budget-=count;
+                var centre=p.key().equals("headless_spin")?caster.position():p.origin();
+                var dust=new DustParticleOptions(new Vector3f(.55F,.12F,.2F),.8F);
+                for(int i=0;i<count;i++){
+                    double u=(i+(age/3)%count)/(double)count;
+                    double theta=Math.atan2(p.direction().z,p.direction().x)+Math.toRadians(p.angle())*(u-.5);
+                    double radius=p.key().equals("headless_roar")?p.range()*(.3+.7*(i%3)/2.0):p.range();
+                    var at=centre.add(Math.cos(theta)*radius,.12,Math.sin(theta)*radius);
+                    mc.level.addParticle(age<p.windup()?dust:ParticleTypes.SOUL_FIRE_FLAME,at.x,at.y,at.z,0,.015,0);
+                }continue;
+            }
+            if(p.key().startsWith("bird_")){
+                int count=Math.min(8,budget);budget-=count;
+                var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(forward.z,0,-forward.x);
+                var dust=new DustParticleOptions(new Vector3f(.65F,.1F,.2F),.85F);
+                for(int i=0;i<count;i++){
+                    Vec3 at;
+                    if(p.key().equals("bird_bomb")){
+                        var centre=com.dynasty.blueprint.elite.GhostCarriageBird.bloodLanding(p.origin(),forward,i);
+                        double theta=age*.45;at=centre.add(Math.cos(theta)*1.2,0,Math.sin(theta)*1.2);
+                    }
+                    else if(p.key().equals("bird_dive"))at=p.origin().add(forward.scale(p.range()*(i/2)/3.0)).add(side.scale(i%2==0?.75:-.75));
+                    else{double theta=(i/(double)count)*Math.PI*2;at=p.origin().add(Math.cos(theta)*p.range(),0,Math.sin(theta)*p.range());}
+                    mc.level.addParticle(age<p.windup()?dust:ParticleTypes.SMOKE,at.x,at.y+.08,at.z,0,.015,0);
+                }continue;
             }
             if(p.key().equals("stone_slam")){
                 var d=p.direction().multiply(1,0,1).normalize();
@@ -182,6 +288,19 @@ public final class BlueprintVisuals {
         }
     }
     private static int deathParticles(Minecraft mc,BlueprintVisualEvent p,long age,int budget) {
+        if(p.key().equals("death_gudu_tianzhunv")){
+            if(!(mc.level.getEntity(p.entityId()) instanceof com.dynasty.blueprint.elite.SpiderWoman spider)||!spider.onGround())return 0;
+            int count=Math.min(4,budget);for(int i=0;i<count;i++){double angle=(i/(double)count+age*.02)*Math.PI*2;mc.level.addParticle(new DustParticleOptions(new Vector3f(.46F,.71F,.29F),.9F),spider.getX()+Math.cos(angle)*1.2,spider.getY()+.08,spider.getZ()+Math.sin(angle)*1.2,0,.02,0);}return count;
+        }
+        if(p.key().equals("death_guiche_jiushouniao")){
+            var bird=mc.level.getEntity(p.entityId());if(bird==null||!bird.getUUID().equals(p.entityUuid())||!bird.onGround()||age>=96)return 0;
+            int count=Math.min(4,budget);var random=net.minecraft.util.RandomSource.create(p.seed()^age);
+            for(int i=0;i<count;i++){
+                var at=bird.position().add((random.nextDouble()-.5)*3,.12+random.nextDouble()*.3,(random.nextDouble()-.5)*2);
+                if(age<55)mc.level.addParticle(new ItemParticleOption(ParticleTypes.ITEM,new ItemStack(Items.FEATHER)),at.x,at.y,at.z,(at.x-bird.getX())*.05,.025,(at.z-bird.getZ())*.05);
+                else mc.level.addParticle(ParticleTypes.SQUID_INK,at.x,at.y,at.z,0,.025,0);
+            }return count;
+        }
         boolean priest=p.key().endsWith("fufa_jijiu"),shield=p.key().endsWith("ludun_jiashi"),sword=p.key().endsWith("zuwu_daoshou"),
             cross=p.key().endsWith("liannu_zhenzu"),powder=p.key().endsWith("kuijun_sishi"),flag=p.key().endsWith("zhenwang_zhangqiguan");
         boolean child=p.key().endsWith("fuhun_baibu_tongzi"),paper=p.key().endsWith("zhiren_jianke"),skull=p.key().endsWith("muxue_feilu"),toad=p.key().endsWith("chimu_zhuha"),tree=p.key().endsWith("kumu_shujing"),scorpion=p.key().endsWith("mingsha_shixie");

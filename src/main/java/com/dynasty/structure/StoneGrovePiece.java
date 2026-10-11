@@ -36,6 +36,9 @@ public class StoneGrovePiece extends DynastyStructurePiece {
         super(type, tag);
     }
 
+    /** A wide, unobstructed stretch of the existing spirit path, between lamps and statues. */
+    public BlockPos palanquinPosition() { return getWorldPos(15,1,24).immutable(); }
+
     @Override
     public void postProcess(WorldGenLevel level, StructureManager manager, ChunkGenerator generator,
                             RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {

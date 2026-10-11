@@ -55,7 +55,7 @@ public final class DynastyWorldEventManager {
     public static boolean eligible(ServerLevel level,ServerPlayer player,WorldEventDefinition d){
         var pos=player.blockPosition();var store=WorldEventStore.get(level);long time=Math.floorMod(level.getDayTime(),24000L);
         boolean clock=d.startTime()<=d.endTime()?time>=d.startTime()&&time<=d.endTime():time>=d.startTime()||time<=d.endTime();
-        return !(player instanceof net.minecraftforge.common.util.FakePlayer)&&!player.isSpectator()&&!player.isCreative()&&level.hasChunkAt(pos)
+        return player.isAlive()&&!(player instanceof net.minecraftforge.common.util.FakePlayer)&&!player.isSpectator()&&!player.isCreative()&&level.hasChunkAt(pos)
             &&level.dimensionTypeRegistration().is(TagKey.create(Registries.DIMENSION_TYPE,d.dimensionTag()))
             &&pos.getY()>=d.minY()&&pos.getY()<=d.maxY()&&clock
             &&(d.biomeTag()==null||level.getBiome(pos).is(TagKey.create(Registries.BIOME,d.biomeTag())))
@@ -68,18 +68,23 @@ public final class DynastyWorldEventManager {
     }
     public static StartResult start(ServerLevel level,WorldEventDefinition d,BlockPos center,ServerPlayer initiator,boolean manual){
         var dependencies=missing(level,d);if(!dependencies.isEmpty())return new StartResult(null,dependencies);
-        if(!level.hasChunkAt(center)||!level.dimensionTypeRegistration().is(TagKey.create(Registries.DIMENSION_TYPE,d.dimensionTag())))return new StartResult(null,List.of("loaded valid dimension"));
+        if(!level.hasChunkAt(center)||!level.getWorldBorder().isWithinBounds(center)
+            ||center.getY()<level.getMinBuildHeight()||center.getY()>=level.getMaxBuildHeight()
+            ||!level.dimensionTypeRegistration().is(TagKey.create(Registries.DIMENSION_TYPE,d.dimensionTag())))return new StartResult(null,List.of("loaded valid dimension"));
         if(!manual&&(initiator==null||!eligible(level,initiator,d)))return new StartResult(null,List.of("trigger conditions"));
         var store=WorldEventStore.get(level);long now=level.getGameTime();
-        long active=store.instances.values().stream().filter(WorldEventInstance::active).count();
-        long same=store.instances.values().stream().filter(i->i.active()&&i.definition.equals(d.id())).count();
+        long active=0,same=0;
+        // Count saved instances, not entities/chunks. Dimension changes cannot bypass the server cap.
+        for(var dimension:level.getServer().getAllLevels())for(var event:WorldEventStore.get(dimension).instances.values())if(event.active()){
+            active++;if(event.definition.equals(d.id()))same++;
+        }
         if(store.instances.size()>=256||active>=3||same>=d.maxConcurrent()
             ||store.instances.values().stream().anyMatch(i->i.active()&&i.center.distSqr(center)<(double)(d.radius()*2)*(d.radius()*2)))return new StartResult(null,List.of("concurrency/distance/storage cap"));
         String playerKey=initiator==null?null:d.id()+"/"+initiator.getUUID();
         var global=WorldEventStore.get(level.getServer().overworld());long globalNow=level.getServer().overworld().getGameTime();
         if(!manual&&(global.cooldowns.getOrDefault("group/"+d.globalCooldownGroup(),0L)>globalNow||playerKey!=null&&store.cooldowns.getOrDefault(playerKey,0L)>now))return new StartResult(null,List.of("cooldown"));
         var instance=new WorldEventInstance(d,center,now,level.random.nextLong(),d.rewardTable());
-        if(initiator!=null)instance.participate(initiator.getUUID());store.instances.put(instance.uuid,instance);
+        if(initiator!=null&&initiator.isAlive()&&!initiator.isSpectator())instance.participate(initiator.getUUID());store.instances.put(instance.uuid,instance);
         PEACE.remove(level);
         global.cooldowns.put("group/"+d.globalCooldownGroup(),globalNow+d.cooldown());global.setDirty();if(playerKey!=null)store.cooldowns.put(playerKey,now+d.cooldown());store.setDirty();
         return new StartResult(instance.uuid,List.of());
@@ -120,7 +125,7 @@ public final class DynastyWorldEventManager {
         if(d==null||d.controller()==WorldEventDefinition.Controller.UNIMPLEMENTED){finish(level,store,instance,false);return budget;}
         if(level.getGameTime()>=instance.expires){finish(level,store,instance,false);return budget;}
         boolean nearby=false;
-        for(var player:level.players())if(!player.isSpectator()&&(!player.isCreative()||instance.participants.contains(player.getUUID()))&&player.blockPosition().distSqr(instance.center)<(double)d.radius()*d.radius()){
+        for(var player:level.players())if(player.isAlive()&&!player.isSpectator()&&(!player.isCreative()||instance.participants.contains(player.getUUID()))&&player.blockPosition().distSqr(instance.center)<(double)d.radius()*d.radius()){
             nearby=true;instance.participate(player.getUUID());
             if(level.getGameTime()%100==0)sendState(player,instance);
         }
@@ -165,7 +170,7 @@ public final class DynastyWorldEventManager {
             int dx=(request.team().equals("REBELS")?10:-10)+random.nextInt(9)-4,dz=random.nextInt(17)-8;
             var candidate=instance.center.offset(dx,0,dz);if(!level.hasChunkAt(candidate))continue;
             for(int dy=3;dy>=-4;dy--){var p=candidate.above(dy);
-                if(p.getY()<=level.getMinBuildHeight()||p.getY()>=level.getMaxBuildHeight()-3||!level.hasChunkAt(p)
+                if(p.getY()<=level.getMinBuildHeight()||p.getY()>=level.getMaxBuildHeight()-3||!BlueprintSpawns.entityChunkReady(level,p)
                     ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,p,type.getDimensions().makeBoundingBox(p.getX()+.5,p.getY(),p.getZ()+.5)))continue;
                 if(level.players().stream().anyMatch(player->!player.isSpectator()&&player.blockPosition().distSqr(p)<16))continue;
                 found=p;break;
@@ -192,7 +197,9 @@ public final class DynastyWorldEventManager {
     private static WorldEventInstance instance(Entity entity){
         if(!(entity.level() instanceof ServerLevel level)||!entity.getPersistentData().hasUUID(ACTOR_TAG))return null;
         var i=WorldEventStore.get(level).instances.get(entity.getPersistentData().getUUID(ACTOR_TAG));
-        return i!=null&&i.active()&&i.actors.containsKey(entity.getUUID())?i:null;
+        var actor=i==null?null:i.actors.get(entity.getUUID());
+        return i!=null&&i.active()&&actor!=null&&!actor.dead()
+            &&actor.type().equals(ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()))?i:null;
     }
     public static boolean peacefulToPlayer(TemplateMob mob){
         var i=instance(mob);if(i==null)return false;var d=WorldEventDefinitions.ALL.get(i.definition);if(d==null)return false;
@@ -219,6 +226,7 @@ public final class DynastyWorldEventManager {
         i.provoked=true;i.participate(player.getUUID());event.getEntity().getPersistentData().putUUID(PROVOKED,player.getUUID());WorldEventStore.get((ServerLevel)event.getEntity().level()).setDirty();
     }
     @SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST) public static void died(LivingDeathEvent event){
+        if(event.isCanceled())return;
         if(event.getSource().getEntity() instanceof ServerPlayer player&&event.getEntity().getType().getCategory()==MobCategory.MONSTER){
             var data=player.getPersistentData();data.putInt(KILLS,Math.min(10000,data.getInt(KILLS)+1));
         }
@@ -233,7 +241,7 @@ public final class DynastyWorldEventManager {
         }
     }
     private static void blessParticipants(ServerLevel level,WorldEventInstance instance){
-        for(var player:level.players())if(instance.participants.contains(player.getUUID())){
+        for(var player:level.players())if(player.isAlive()&&!player.isSpectator()&&instance.participants.contains(player.getUUID())){
             var data=player.getPersistentData();if(data.hasUUID(BLESSING)&&data.getUUID(BLESSING).equals(instance.uuid))continue;
             for(var stack:player.getInventory().items)if(stack.isDamageableItem()&&stack.getAttributeModifiers(EquipmentSlot.MAINHAND).containsKey(Attributes.ATTACK_DAMAGE))
                 stack.setDamageValue(Math.max(0,stack.getDamageValue()-(int)Math.ceil(stack.getMaxDamage()*.3)));
@@ -271,7 +279,7 @@ public final class DynastyWorldEventManager {
     static void deliverPending(ServerLevel level,WorldEventInstance i){
         if(i.phase==WorldEventInstance.Phase.SUCCESS&&!i.rewardGranted)reserveRewards(level,i);
         var iterator=i.pendingRewards.entrySet().iterator();
-        while(iterator.hasNext()){var entry=iterator.next();var player=level.players().stream().filter(p->p.getUUID().equals(entry.getKey())).findFirst().orElse(null);if(player==null)continue;
+        while(iterator.hasNext()){var entry=iterator.next();var player=level.players().stream().filter(p->p.isAlive()&&!p.isSpectator()&&p.getUUID().equals(entry.getKey())).findFirst().orElse(null);if(player==null)continue;
             for(var stack:entry.getValue())player.getInventory().add(stack);entry.getValue().removeIf(ItemStack::isEmpty);
             player.containerMenu.broadcastChanges();if(entry.getValue().isEmpty())iterator.remove();
         }

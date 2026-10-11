@@ -81,7 +81,9 @@ public final class EquipmentFeedback {
         var n=p.getPersistentData();long now=l.getGameTime();if(n.getLong("cod3_hit_at")==now)return;
         int combo=now-n.getLong("cod3_hit_at")<=40?n.getInt("cod3_combo")%3+1:1;n.putInt("cod3_combo",combo);n.putLong("cod3_hit_at",now);
         boolean critical=DynastySchoolCombat.primaryCritical(p,e.getEntity());int vfx=template(id.getPath(),combo,critical);
-        Cod3Vfx.send(l,vfx,e.getEntity().position(),p.getLookAngle(),Cod3Catalog.vfx(vfx).duration(),.2+combo*.035,tint(id.getPath()));
+        if(vfx==18||vfx==23)Cod3Vfx.afterimage(p,vfx,tint(id.getPath()));
+        else if(vfx!=29)Cod3Vfx.send(l,vfx,e.getEntity().position(),p.getLookAngle(),Cod3Catalog.vfx(vfx).duration(),.2+combo*.035,tint(id.getPath()));
+        Cod3Vfx.afterimage(p,29,tint(id.getPath()));
         if(critical)Cod3Vfx.send(l,12,e.getEntity().position().add(0,.8,0),p.getLookAngle(),8,.15);
     }
     @SubscribeEvent public static void arrow(EntityJoinLevelEvent e){
@@ -111,6 +113,13 @@ public final class EquipmentFeedback {
         }
         if(ranged(p.getUseItem()))return p.getUseItem();
         return ranged(p.getMainHandItem())?p.getMainHandItem():p.getOffhandItem();
+    }
+    @SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void trailImpact(net.minecraftforge.event.entity.ProjectileImpactEvent e){
+        if(e.isCanceled()||!(e.getEntity() instanceof AbstractArrow arrow)||!(arrow.level() instanceof ServerLevel level)||!arrow.getPersistentData().contains("cod3_trail_seed")||e.getRayTraceResult().getType()==net.minecraft.world.phys.HitResult.Type.MISS
+                ||e.getRayTraceResult().getType()==net.minecraft.world.phys.HitResult.Type.ENTITY&&arrow.getPierceLevel()>0)return;
+        var packet=new Cod3VisualPacket(level.dimension().location().toString(),4,arrow.getId(),arrow.getPersistentData().getLong("cod3_trail_seed"),level.getGameTime(),6,1,e.getRayTraceResult().getLocation(),arrow.getDeltaMovement().normalize(),"arrow_collapse",0,arrow.getPersistentData().getInt("cod3_trail_tint"));
+        com.dynasty.network.DynastyNetwork.CHANNEL.send(net.minecraftforge.network.PacketDistributor.NEAR.with(()->new net.minecraftforge.network.PacketDistributor.TargetPoint(packet.origin().x,packet.origin().y,packet.origin().z,32,level.dimension())),packet);
     }
     @SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.LOWEST)
     public static void siegeImpact(net.minecraftforge.event.entity.ProjectileImpactEvent e){

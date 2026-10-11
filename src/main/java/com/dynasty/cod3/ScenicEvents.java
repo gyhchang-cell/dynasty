@@ -17,10 +17,29 @@ public final class ScenicEvents extends SavedData {
     private final List<CompoundTag> active=new ArrayList<>();
     private final Map<Long,Long> cooldown=new HashMap<>();
     public static ScenicEvents get(ServerLevel l){return l.getDataStorage().computeIfAbsent(ScenicEvents::load,ScenicEvents::new,"dynasty_cod3_scenic");}
-    private static ScenicEvents load(CompoundTag n){var d=new ScenicEvents();for(var x:n.getList("Active",10))d.active.add((CompoundTag)x);for(var x:n.getList("Cooldown",10)){var c=(CompoundTag)x;d.cooldown.put(c.getLong("Region"),c.getLong("At"));}return d;}
-    @Override public CompoundTag save(CompoundTag n){var list=new ListTag();active.forEach(list::add);n.put("Active",list);var c=new ListTag();cooldown.forEach((k,v)->{var x=new CompoundTag();x.putLong("Region",k);x.putLong("At",v);c.add(x);});n.put("Cooldown",c);return n;}
+    static ScenicEvents load(CompoundTag n){
+        var data=new ScenicEvents();
+        for(var tag:n.getList("Active",10)){
+            var entry=((CompoundTag)tag).copy();int number=entry.getInt("Number");
+            if(number<1||number>25||data.active.size()>=8||!Double.isFinite(entry.getDouble("X"))||!Double.isFinite(entry.getDouble("Y"))||!Double.isFinite(entry.getDouble("Z")))continue;
+            entry.putInt("Duration",ScenicEventDefinition.of(number).duration());data.active.add(entry);
+        }
+        for(var tag:n.getList("Cooldown",10)){var entry=(CompoundTag)tag;data.cooldown.put(entry.getLong("Region"),entry.getLong("At"));}
+        data.wasRaining=n.getBoolean("WasRaining");data.rainEndedAt=n.contains("RainEndedAt")?n.getLong("RainEndedAt"):Long.MIN_VALUE;return data;
+    }
+    private boolean wasRaining;
+    private long rainEndedAt=Long.MIN_VALUE;
+    public boolean recentlyCleared(ServerLevel level){return rainEndedAt!=Long.MIN_VALUE&&!level.isRaining()&&level.getGameTime()>=rainEndedAt&&level.getGameTime()-rainEndedAt<=2400;}
+    @SubscribeEvent public static void weather(TickEvent.LevelTickEvent e){
+        if(e.phase!=TickEvent.Phase.END||!(e.level instanceof ServerLevel level)||level.getGameTime()%20!=0)return;
+        var data=get(level);boolean rain=level.isRaining();
+        if(data.wasRaining!=rain){if(data.wasRaining)data.rainEndedAt=level.getGameTime();data.wasRaining=rain;data.setDirty();}
+    }
+    @Override public CompoundTag save(CompoundTag n){var list=new ListTag();active.forEach(entry->list.add(entry.copy()));n.put("Active",list);var c=new ListTag();cooldown.forEach((k,v)->{var x=new CompoundTag();x.putLong("Region",k);x.putLong("At",v);c.add(x);});n.put("Cooldown",c);n.putBoolean("WasRaining",wasRaining);if(rainEndedAt!=Long.MIN_VALUE)n.putLong("RainEndedAt",rainEndedAt);return n;}
     public boolean start(ServerLevel l,int number,Vec3 anchor){
-        if(active.size()>=8)return false;var def=ScenicEventDefinition.of(number);var n=new CompoundTag();n.putInt("Number",number);n.putLong("Start",l.getGameTime());n.putLong("Seed",l.random.nextLong());n.putDouble("X",anchor.x);n.putDouble("Y",anchor.y);n.putDouble("Z",anchor.z);n.putInt("Duration",def.duration());active.add(n);setDirty();return true;
+        if(number<1||number>25||anchor==null||!Double.isFinite(anchor.lengthSqr()))return false;
+        expire(l.getGameTime());var def=ScenicEventDefinition.of(number);
+        if(active.size()>=8||!l.dimension().location().toString().equals(def.dimension())||active.stream().anyMatch(entry->entry.getInt("Number")==number&&new Vec3(entry.getDouble("X"),entry.getDouble("Y"),entry.getDouble("Z")).distanceToSqr(anchor)<128*128))return false;var n=new CompoundTag();n.putInt("Number",number);n.putLong("Start",l.getGameTime());n.putLong("Seed",l.random.nextLong());n.putDouble("X",anchor.x);n.putDouble("Y",anchor.y);n.putDouble("Z",anchor.z);n.putInt("Duration",def.duration());active.add(n);setDirty();return true;
     }
     @SubscribeEvent public static void tick(TickEvent.PlayerTickEvent e){
         if(e.phase!=TickEvent.Phase.END||!(e.player instanceof ServerPlayer p)||p.tickCount%100!=0)return;
@@ -33,9 +52,19 @@ public final class ScenicEvents extends SavedData {
                 if(data.start(l,number,anchor)){data.cooldown.put(region,now);data.setDirty();}
             }
         }
-        for(var n:data.active){Vec3 anchor=new Vec3(n.getDouble("X"),n.getDouble("Y"),n.getDouble("Z"));if(p.distanceToSqr(anchor)>256*256)continue;
-            var d=ScenicEventDefinition.of(n.getInt("Number"));var packet=new Cod3VisualPacket(l.dimension().location().toString(),d.template(),-1,n.getLong("Seed"),n.getLong("Start"),n.getInt("Duration"),4,anchor,new Vec3(0,0,1),String.format(java.util.Locale.ROOT,"scenic_%02d",d.number()),(int)(now-n.getLong("Start")));
-            com.dynasty.network.DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->p),packet);
-        }
+        sync(p);
     }
+    private void expire(long now){if(active.removeIf(entry->now<entry.getLong("Start")||now-entry.getLong("Start")>=entry.getInt("Duration")))setDirty();}
+    public List<Cod3VisualPacket> packets(ServerLevel level,Vec3 viewer){
+        long now=level.getGameTime();expire(now);var result=new ArrayList<Cod3VisualPacket>();
+        for(var entry:active){
+            Vec3 anchor=new Vec3(entry.getDouble("X"),entry.getDouble("Y"),entry.getDouble("Z"));if(viewer.distanceToSqr(anchor)>256*256)continue;
+            var def=ScenicEventDefinition.of(entry.getInt("Number"));if(!level.dimension().location().toString().equals(def.dimension()))continue;
+            result.add(new Cod3VisualPacket(level.dimension().location().toString(),def.template(),-1,entry.getLong("Seed"),entry.getLong("Start"),entry.getInt("Duration"),4,anchor,new Vec3(0,0,1),String.format(Locale.ROOT,"scenic_%02d",def.number()),(int)(now-entry.getLong("Start"))));
+        }
+        return List.copyOf(result);
+    }
+    public static void sync(ServerPlayer player){for(var packet:get(player.serverLevel()).packets(player.serverLevel(),player.position()))com.dynasty.network.DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),packet);}
+    @SubscribeEvent public static void login(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event){if(event.getEntity() instanceof ServerPlayer player)sync(player);}
+    @SubscribeEvent public static void dimension(net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent event){if(event.getEntity() instanceof ServerPlayer player)sync(player);}
 }

@@ -14,13 +14,16 @@ public record ScenicEventDefinition(int number,String dimension,int from,int unt
         return switch(number){
             case 1,6,25->biome.is(BiomeTags.IS_MOUNTAIN)&&p.getY()>=90;
             case 4,18->inStructure(p,"ruined_battlefield");
-            case 5->biome.is(net.minecraft.world.level.biome.Biomes.DESERT)||biome.is(net.minecraft.world.level.biome.Biomes.SWAMP)||biome.is(BiomeTags.IS_BADLANDS);
+            case 5->ScenicEvents.get(l).recentlyCleared(l)&&(biome.is(net.minecraft.world.level.biome.Biomes.DESERT)||biome.is(net.minecraft.world.level.biome.Biomes.SWAMP)||biome.is(BiomeTags.IS_BADLANDS));
+            case 2,20->biome.is(net.minecraft.world.level.biome.Biomes.PLAINS)||biome.is(net.minecraft.world.level.biome.Biomes.SUNFLOWER_PLAINS);
+            case 8->l.getWorldBorder().getDistanceToBorder(p)<256;
             case 11->inStructure(p,"great_wall_gate");
             case 12->inStructure(p,"stone_grove");
             case 14->biome.is(net.minecraft.world.level.biome.Biomes.DESERT)||biome.is(BiomeTags.IS_BADLANDS);
             case 19->biome.is(BiomeTags.IS_FOREST);
             case 7->biome.is(BiomeTags.IS_FOREST)&&l.getMoonPhase()==0;
-            case 9,24->p.getY()<0;
+            case 9->p.getY()<0;
+            case 24->p.getY()<0&&biome.value().coldEnoughToSnow(p.blockPosition());
             case 10,17->biome.is(BiomeTags.IS_OCEAN)||dimension.equals("dynasty:dragon_palace");
             case 13->p.getY()<40;
             case 15->p.getZ()<-2000&&biome.value().coldEnoughToSnow(p.blockPosition());

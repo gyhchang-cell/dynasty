@@ -25,24 +25,27 @@ public class TombPiece extends DynastyStructurePiece {
     public static final int HEIGHT = 16;
     private static final ResourceLocation LOOT = new ResourceLocation("dynasty", "chests/imperial_mausoleum");
     private final boolean remastered;
+    private final boolean waterAmbush;
 
     public TombPiece(StructurePieceType type, int genDepth, BlockPos pos) {
         super(type, genDepth,
                 makeBoundingBox(pos.getX(), pos.getY(), pos.getZ(), Direction.NORTH, SIZE, HEIGHT, SIZE));
         this.setOrientation(Direction.NORTH);
         this.remastered = true;
+        this.waterAmbush = true;
     }
 
     public TombPiece(StructurePieceType type, CompoundTag tag) {
         super(type, tag);
         this.remastered = tag.getInt("DynastyTombLayout") >= 2;
+        this.waterAmbush = tag.getInt("DynastyTombLayout") >= 3;
     }
 
     @Override
     protected void addAdditionalSaveData(net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext ctx,
                                          CompoundTag tag) {
         super.addAdditionalSaveData(ctx, tag);
-        tag.putInt("DynastyTombLayout", remastered ? 2 : 1);
+        tag.putInt("DynastyTombLayout", waterAmbush ? 3 : remastered ? 2 : 1);
     }
 
     /** Actual antechamber floor positions, transformed with the persisted piece orientation. */
@@ -55,13 +58,21 @@ public class TombPiece extends DynastyStructurePiece {
     }
 
     public java.util.List<BlockPos> paperSwordsmanPositions() {
-        return remastered ? java.util.List.of(getWorldPos(15,1,12).immutable(),getWorldPos(24,1,12).immutable(),getWorldPos(20,1,14).immutable())
+        return remastered ? java.util.List.of(getWorldPos(15,1,12).immutable(),getWorldPos(24,1,12).immutable(),getWorldPos(waterAmbush?7:20,1,waterAmbush?26:14).immutable())
             : java.util.List.of(getWorldPos(15,1,19).immutable(),getWorldPos(24,1,19).immutable());
     }
 
     public BlockPos bixiPosition(){return getWorldPos(20,1,remastered?20:24).immutable();}
+    public BlockPos jinwuPosition(){return getWorldPos(20,1,13).immutable();}
+    public BlockPos hammerPosition(){return getWorldPos(33,1,24).immutable();}
 
     public BlockPos shroudChildPosition() { return getWorldPos(5,1,remastered?34:24).immutable(); }
+
+    public java.util.List<BlockPos> drownerPositions() {
+        return waterAmbush?java.util.List.of(getWorldPos(6,2,30).immutable()):java.util.List.of();
+    }
+
+    boolean hasWaterAmbush() { return waterAmbush; }
 
     void lootChest(WorldGenLevel level, BoundingBox box, RandomSource random, int x, int y, int z, ResourceLocation table) {
         createChest(level, box, random, x, y, z, table);

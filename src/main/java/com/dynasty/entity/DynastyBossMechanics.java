@@ -183,12 +183,15 @@ public final class DynastyBossMechanics {
         level.sendParticles(particle == null ? ParticleTypes.CRIT : particle,
                 center.x, center.y + 0.3D, center.z, 140, radius * 0.5D, 0.35D, radius * 0.5D, 0.02D);
         boss.playSound(SoundEvents.RAVAGER_ROAR, 2.4F, 0.6F);
+        if (com.dynasty.cod3.Cod3CombatVfx.castDisk(boss,center,boss.getLookAngle(),radius/8,Math.max(1,delay),1,damage,
+                entity -> entity instanceof Player,entity -> { if(effect!=null)entity.addEffect(new MobEffectInstance(effect)); })) return;
         delay(level, delay, () -> {
             if (!boss.isAlive()) {
                 return;
             }
             AABB box = new AABB(center, center).inflate(radius, 3.5D, radius);
-            List<Player> hit = level.getEntitiesOfClass(Player.class, box);
+            List<Player> hit = level.getEntitiesOfClass(Player.class, box,
+                    player -> player.position().subtract(center).horizontalDistanceSqr()<=radius*radius);
             for (Player player : hit) {
                 player.hurt(boss.damageSources().mobAttack(boss), damage);
                 if (effect != null) {

@@ -69,8 +69,16 @@ public final class NpcDialogue {
         SESSIONS.put(player.getUUID(), new Session(npc.getUUID(), player.level().dimension().location().toString(),
                 player.level().getGameTime() + 200, graph, node.id(), first, token,
                 choices.stream().map(DialogueNode.Choice::id).toList()));
+        String speech=node.textKey();
+        if(node.id().equals("ordinary")&&NpcContent.NPCS.containsKey(npc.role)){
+            var saved=player.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG);String key="cod3_npc_speech_"+npc.role;
+            int variant=Math.floorMod(saved.getInt(key),5);saved.putInt(key,(variant+1)%5);player.getPersistentData().put(Player.PERSISTED_NBT_TAG,saved);
+            if(variant>0)speech+="_"+(variant+1);
+        }
         player.sendSystemMessage(npc.getDisplayName().copy().append(Component.literal(": "))
-                .append(Component.translatable(node.textKey())));
+                .append(Component.translatable(speech)));
+        if(node.id().equals("first")&&node.textKey().startsWith("cod3.dynasty.npc."+npc.role+".")&&NpcContent.NPCS.containsKey(npc.role))
+            for(int variant=2;variant<=3;variant++)player.sendSystemMessage(Component.translatable(node.textKey()+"_"+variant));
         for (var choice : choices) player.sendSystemMessage(Component.translatable(choice.textKey()).withStyle(s ->
                 s.withColor(net.minecraft.ChatFormatting.GOLD).withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
                         "/dynasty_dialogue " + token + " " + choice.id()))));
@@ -115,6 +123,11 @@ public final class NpcDialogue {
                 if (!com.dynasty.expansion.SmallInteractions.flipPoisonTea(player, npc)) yield false;
                 SESSIONS.remove(player.getUUID());
                 yield true;
+            }
+            case REPAIR, COMMEMORATE -> {
+                boolean success=choice.get().action()==DialogueNode.Action.REPAIR?NpcServices.repair(player,npc):NpcServices.commemorate(player,npc);
+                if(success)show(player,npc,session.graph(),session.graph().entry(context(player,npc,session.firstMeeting())),session.firstMeeting());
+                yield success;
             }
             case TRADE -> {
                 if (!npc.trade(player)) yield false;

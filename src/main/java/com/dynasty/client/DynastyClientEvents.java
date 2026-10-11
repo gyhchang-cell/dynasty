@@ -201,6 +201,7 @@ public class DynastyClientEvents {
 
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(com.dynasty.cod3.WhiteDeerContent.DEER.get(), WhiteDeerRenderer::new);
         event.registerEntityRenderer(DynastyEntities.TERRACOTTA_WARRIOR.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, WARRIOR_LAYER, TEX_WARRIOR, 0.5F));
         event.registerEntityRenderer(DynastyEntities.IMPERIAL_SOLDIER.get(),

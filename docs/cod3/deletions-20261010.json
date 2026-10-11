@@ -1,0 +1,399 @@
+{
+  "original_sha256": "abc256358e3d1a496d6609dc890364f514bc9bf6ae91b7114cf05af937c8c722",
+  "current_sha256": "859476982f615aa007eaa3da86fc63f709baa696bc65e6f0891dac73b1b9d154",
+  "batches": [
+    {
+      "evidence": "BossSequenceRunner + 26 passing cod3 GameTests; server clock/end tick, NBT checkpoint and watchdog",
+      "removed": [
+        {
+          "line": 237,
+          "text": "### 1.4.1 INTRO 结束的唯一服务器条件（防永久无敌/无AI/无血条）\n"
+        },
+        {
+          "line": 238,
+          "text": "\n"
+        },
+        {
+          "line": 239,
+          "text": "> 每套 Intro 必须只由**服务器**判定结束，条件唯一且可证明：\n"
+        },
+        {
+          "line": 240,
+          "text": "\n"
+        },
+        {
+          "line": 241,
+          "text": "**当且仅当以下全部满足**，服务器在同一 tick 执行 `SET_BOSS_INVULNERABLE=false` + `setNoAi(false)` + `SHOW_BOSSBAR`：\n"
+        },
+        {
+          "line": 242,
+          "text": "1. `sequence.currentTick >= sequence.totalTicks`；\n"
+        },
+        {
+          "line": 243,
+          "text": "2. 服务器 `SequenceRunner` 状态 == `INTRO`（未进入 COMBAT）；\n"
+        },
+        {
+          "line": 244,
+          "text": "3. Boss 实体仍在 `level` 且 `isAlive()`。\n"
+        },
+        {
+          "line": 245,
+          "text": "\n"
+        },
+        {
+          "line": 246,
+          "text": "**兜底（FAIL-SAFE）**：任一条件在 `totalTicks + 40` tick 后仍未达成（Sequence 报错 / Step 抛异常 / 状态未推进），服务器强制执行上面 3 步并记日志 `[Dynasty][BossIntro] forced-to-combat boss=<id> arena=<tag>`。**绝不卡在永久 invulnerable/noAI/无血条。**\n"
+        },
+        {
+          "line": 247,
+          "text": "\n"
+        },
+        {
+          "line": 248,
+          "text": "- 判定入口：`BossSequenceRunner.tick()`（`[PROPOSED]`）每 tick 跑一次，`currentTick++` 由服务器时钟驱动，不依赖客户端。\n"
+        },
+        {
+          "line": 249,
+          "text": "- 现有可复用：镇渊已用 `ZhenyuanRitualSavedData.Session.bossIntroTick`（0..280）作为参考，但那是**专用**字段；通用 Boss 需新增 `BossIntroState`（`[PROPOSED]`，存 persistentData 或独立 SavedData）。\n"
+        },
+        {
+          "line": 250,
+          "text": "\n"
+        }
+      ]
+    },
+    {
+      "tasks": [
+        "C3-DEATH-001",
+        "C3-DEATH-002",
+        "C3-NPC-003",
+        "C3-SCENIC-001",
+        "C3-SCENIC-002",
+        "C3-SECRET-002",
+        "C3-UI-002",
+        "C3-UI-003",
+        "C3-VFX-001"
+      ],
+      "evidence": "37/37 dedicated-server GameTests, 181 GL/FBO checks; 8 workshop menus, restart receipts, 3 native NPC merchants, secret trigger families, scenic resume; complete fine-grained VFX/story/manual specifications are retained",
+      "removed": [
+        {
+          "line_in_previous_version": 1066,
+          "text": "## 7.4 化髓槽重点（样板验收）\n"
+        },
+        {
+          "line_in_previous_version": 1067,
+          "text": "\n"
+        },
+        {
+          "line_in_previous_version": 1068,
+          "text": "| 项 | 要求 |\n"
+        },
+        {
+          "line_in_previous_version": 1069,
+          "text": "|---|---|\n"
+        },
+        {
+          "line_in_previous_version": 1070,
+          "text": "| 同一 Inventory | 世界右键逐次投入 == GUI 投入，同一 BlockEntity 数组。 |\n"
+        },
+        {
+          "line_in_previous_version": 1071,
+          "text": "| 同一 Recipe | 两者走同一 RecipeType，不各自硬编码。 |\n"
+        },
+        {
+          "line_in_previous_version": 1072,
+          "text": "| 同一 Progress | GUI 关闭后加工继续；区块卸载保存；重启继续。 |\n"
+        },
+        {
+          "line_in_previous_version": 1073,
+          "text": "| 同一 State | 世界模型 stage 与 GUI 进度同步；A 开 GUI 时 B 右键投料，A 界面同步。 |\n"
+        },
+        {
+          "line_in_previous_version": 1074,
+          "text": "| 关 UI 继续 | 加工不依赖 UI 存活。 |\n"
+        },
+        {
+          "line_in_previous_version": 1075,
+          "text": "| 多人 | 两人同时开同一方块 UI，数据一致（ContainerData 同步）。 |\n"
+        },
+        {
+          "line_in_previous_version": 1076,
+          "text": "\n"
+        },
+        {
+          "line_in_previous_version": 1094,
+          "text": "### 7.7.0 共用规格（8 块一致）\n"
+        },
+        {
+          "line_in_previous_version": 1095,
+          "text": "\n"
+        },
+        {
+          "line_in_previous_version": 1096,
+          "text": "- 界面：`WorkshopScreen`（[PROPOSED]）；Menu：`WorkshopMenu extends AbstractContainerMenu`（[PROPOSED]）。\n"
+        },
+        {
+          "line_in_previous_version": 1097,
+          "text": "- BlockEntity 需新增字段（[PROPOSED]）：`NonNullList<ItemStack> input`（3 槽，可选）+ 保留 `deposited`。`ContainerData` 4 项：`deposited / total / lit / stage`。\n"
+        },
+        {
+          "line_in_previous_version": 1098,
+          "text": "- 保存：`saveAdditional` 存 `Deposited`（已有）+ `Input`（新增）+ `Recipe`（已有）；`load` 兼容旧存档（无 Input 时回退纯右键投料）。\n"
+        },
+        {
+          "line_in_previous_version": 1099,
+          "text": "- shift-click：输入槽只进「当前 next 需要的物品」；输出槽只出不进。hopper：仅输入面进（`CanPlaceItem` 校验 next），输出面抽取（`collect()`）。JEI：复用 `WorkshopJei`（背景 162×62，INPUT→CATALYST→OUTPUT 布局）。\n"
+        },
+        {
+          "line_in_previous_version": 1100,
+          "text": "- 多人：两人同开同一方块，`ContainerData` 同步 `deposited`；A 投料 B 界面进度条同步。世界右键投料 == GUI 投入（同一 `deposited`）。\n"
+        },
+        {
+          "line_in_previous_version": 1101,
+          "text": "\n"
+        },
+        {
+          "line_in_previous_version": 1123,
+          "text": "- 对话走 DialogueNode（textKey/conditions/choices/actions/nextNode），文本放 lang，**不硬编码中文在 Java**。\n"
+        },
+        {
+          "line_in_previous_version": 1124,
+          "text": "- 状态机（每 NPC 都具备）：`idle / walk / turn / talk / work / react / rain / night / danger / player_near / player_holds_special`。\n"
+        },
+        {
+          "line_in_previous_version": 1447,
+          "text": "| C3-DEATH-001 | `LivingDeathEvent`(HIGHEST) 拦截进入 DYING + `rewardGranted` 持久化 | 无 | DynastyBossCombat.java | BossDeathState.java | P0 | 2h | 死亡进入 DYING，奖励只发一次 |\n"
+        },
+        {
+          "line_in_previous_version": 1448,
+          "text": "| C3-DEATH-002 | `DynastyBossDrops` 加 DYING 判定（clear 原版掉落，改 REWARD 发） | DEATH-001 | DynastyBossDrops.java | 无 | P0 | 1h | 无双份掉落；重启不双发 |\n"
+        },
+        {
+          "line_in_previous_version": 1449,
+          "text": "| C3-VFX-001 | 建 `DynastyVfxDefinition` + `VfxInstance`（服务端 Shape/参数 + 客户端渲染骨架） | 无 | 无 | DynastyVfxDefinition.java | P0 | 3h | Shape→Hitbox 一致；1 个 LINE 模板可渲染 |\n"
+        },
+        {
+          "line_in_previous_version": 1453,
+          "text": "| C3-UI-002 | `WorkshopMenu` + `WorkshopScreen`（176×166，共用骨架 + 8 种中央视觉） | UI-001 | WorkshopJei.java | WorkshopMenu/Screen.java | P0 | 3h | 8 块各自中央视觉；shift-click/hopper 正确 |\n"
+        },
+        {
+          "line_in_previous_version": 1454,
+          "text": "| C3-UI-003 | 化髓槽样板验收（GUI+右键+JEI+多人同步） | UI-002 | LivingWorkshopBlock.java | 无 | P0 | 2h | 关 UI 继续；A 投料 B 同步；重启继续 |\n"
+        },
+        {
+          "line_in_previous_version": 1455,
+          "text": "| C3-NPC-003 | 落地 3 个功能 NPC（铁匠/校尉/行商）作模板 | NPC-001/002 | 无 | 3 个 NPC 类 | P1 | 3h | 生成/对话/功能可用 |\n"
+        },
+        {
+          "line_in_previous_version": 1456,
+          "text": "| C3-SECRET-002 | 落地 3 类秘密模板（物品交互/时间天气/结构区域） | SECRET-001 | 无 | 3 个模板 | P1 | 2h | 触发/失败反馈/多人归属正确 |\n"
+        },
+        {
+          "line_in_previous_version": 1457,
+          "text": "| C3-SCENIC-001 | 建 `ScenicEventDefinition`（NON_COMBAT + 客户端 DistantVisual） | 无 | 参考 WorldEventManager | ScenicEventDefinition.java | P2 | 3h | 无 AI 实体；离开/切维度恢复 |\n"
+        },
+        {
+          "line_in_previous_version": 1458,
+          "text": "| C3-SCENIC-002 | 落地 3 个奇观模板（远景龙影/幽灵军阵/仙山） | SCENIC-001 | 无 | 3 个模板 | P2 | 2h | LOD 三档；reconnect 正确 |\n"
+        }
+      ]
+    },
+    {
+      "tasks": [
+        "C3-VFX-003",
+        "C3-VFX-004",
+        "section-3.1-lifecycle"
+      ],
+      "evidence": "38/38 dedicated server GameTests; 191/191 framebuffer checks including actual baked weapon afterimages, canonical 40 template timelines, shared annulus/cylinder/spline geometry and MINIMAL reduction; detailed story, artist and manual-client specifications retained",
+      "removed": [
+        {
+          "line_in_previous_version": 457,
+          "text": "## 3.1 生命周期约定（40 套通用）\n"
+        },
+        {
+          "line_in_previous_version": 458,
+          "text": "\n"
+        },
+        {
+          "line_in_previous_version": 459,
+          "text": "| 阶段 | 默认含义 | 参数 |\n"
+        },
+        {
+          "line_in_previous_version": 460,
+          "text": "|---|---|---|\n"
+        },
+        {
+          "line_in_previous_version": 461,
+          "text": "| SPAWN | 出现/锚定 origin | 0~N tick |\n"
+        },
+        {
+          "line_in_previous_version": 462,
+          "text": "| EXPAND | 铺开/蓄力 | 蓄力时长 |\n"
+        },
+        {
+          "line_in_previous_version": 463,
+          "text": "| SUSTAIN | 持续伤害/维持 | activeTicks |\n"
+        },
+        {
+          "line_in_previous_version": 464,
+          "text": "| COLLAPSE | 收缩/爆发收尾 | 收尾时长 |\n"
+        },
+        {
+          "line_in_previous_version": 465,
+          "text": "| END | 清场 | 立即恢复渲染状态 |\n"
+        },
+        {
+          "line_in_previous_version": 466,
+          "text": "\n"
+        },
+        {
+          "line_in_previous_version": 1426,
+          "text": "| C3-VFX-003 | 落地 VFX-01~05（刀罡/剑气/枪芒/箭/火） | VFX-002 | 无 | 5 个模板实现 | P1 | 2h | 视觉区 == Hitbox；LOW 降级生效 |\n"
+        },
+        {
+          "line_in_previous_version": 1427,
+          "text": "| C3-VFX-004 | 落地 VFX-06~13（雷/水/冰/风/土/阴/阳/煞） | VFX-002 | 无 | 8 个模板实现 | P1 | 2h | 同上 |\n"
+        }
+      ]
+    },
+    {
+      "evidence": "27 authored production templates, two Forge clients each 82 stages / 140 captures, 190 server tests, 246 framebuffer checks; docs/cod3/evidence/continuation-20261010/verification.json",
+      "line_basis": "before this batch",
+      "before_sha256": "cdd3f9cb7b773444d0a3cdbf202e3e5aa5f2d6abdcd0f2fe7f3301d2927c3968",
+      "removed": [
+        {
+          "line": 1416,
+          "text": "| C3-VFX-005 | 落地 VFX-14~40（其余 27 个） | VFX-002 | 无 | 27 个模板实现 | P2 | 4h | 分批验收，不缩水 |\n"
+        }
+      ],
+      "after_sha256": "12551ba93a38d450aad0bd2e940f0f2d17c8c7e443b7668c8f5d85de76eb001e"
+    },
+    {
+      "evidence": "Both actual clients completed Minecraft.reloadResourcePacks (F3+T resource-reload path) then rendered registered models and continued network effects",
+      "line_basis": "before this batch",
+      "before_sha256": "12551ba93a38d450aad0bd2e940f0f2d17c8c7e443b7668c8f5d85de76eb001e",
+      "removed": [
+        {
+          "line": 1430,
+          "text": "| Resource reload | 开 F3+T | 重载资源 | VFX/Renderer 恢复 | 渲染状态不恢复（黑屏） |\n"
+        }
+      ],
+      "after_sha256": "bc1466f47de00cb8571caae7d1217907ddc5a6e4a24079724df78041f74b15e5"
+    },
+    {
+      "evidence": "All VFX14–40 rendered in MINIMAL on both native clients, with bounded production LOD; near/low and collapse framebuffer checks",
+      "line_basis": "before this batch",
+      "before_sha256": "bc1466f47de00cb8571caae7d1217907ddc5a6e4a24079724df78041f74b15e5",
+      "removed": [
+        {
+          "line": 1430,
+          "text": "| Low particle | 粒子调 LOW | 触发大招 | 只留主轮廓 | 仍满粒子/卡顿 |\n"
+        }
+      ],
+      "after_sha256": "aa98795a7cf5bba43a83068f43235fe2d7e089f12ac0b51cb2efc79096814742"
+    },
+    {
+      "evidence": "Actual Qinglong Guandao swing, distinct player positions, ordinary packet receive and six saved weapon poses; native firstperson images",
+      "line_basis": "before this batch",
+      "before_sha256": "aa98795a7cf5bba43a83068f43235fe2d7e089f12ac0b51cb2efc79096814742",
+      "removed": [
+        {
+          "line": 1430,
+          "text": "| First person | 第一人称挥武器 | 残影/拖尾 | 不遮挡准星、不黑屏 | 黑屏/遮挡 |\n"
+        }
+      ],
+      "after_sha256": "7607d50e409358de0e7673bfa640244acb59b9a5c83cab39a31afccdbab34f01"
+    },
+    {
+      "evidence": "Skeleton ArmedModel hand transforms and captured pose parameters, GeckoLib live entity bone histories, six/five frozen frames; both clients",
+      "line_basis": "before this batch",
+      "before_sha256": "7607d50e409358de0e7673bfa640244acb59b9a5c83cab39a31afccdbab34f01",
+      "removed": [
+        {
+          "line": 1430,
+          "text": "| Third person | 第三人称挥武器 | 残影弧线 | 沿武器朝向 | 残影漂移 |\n"
+        }
+      ],
+      "after_sha256": "c314a8e4cb2ed3044fb1dc1ea2e33ea913fdd4960749f94471ad38875e0523ed"
+    },
+    {
+      "evidence": "Actual server-opened eight WorkshopScreen menus at all three scales on both Forge clients, captured registered viewport layouts",
+      "line_basis": "before this batch",
+      "before_sha256": "c314a8e4cb2ed3044fb1dc1ea2e33ea913fdd4960749f94471ad38875e0523ed",
+      "removed": [
+        {
+          "line": 1430,
+          "text": "| GUI Scale 2/3/4 | 开功能方块 GUI | 缩放界面 | tooltip 不越界、布局正确 | 错位/越界 |\n"
+        }
+      ],
+      "after_sha256": "a2db64e65695cd64c33e47f7b0d27cba4da94560b442212ffffb51d929f4edbb"
+    },
+    {
+      "tasks": [
+        "C3-NPC-ART-SKELETON",
+        "C3-NPC-ART-IDENTITIES"
+      ],
+      "evidence": "docs/art/cod3-npc-v2/verification.json: 15 actual replacement rigs, 75 five-view frames, paired world/animation/grip checks and exact final Jar/resource parity",
+      "before_sha256": "a2db64e65695cd64c33e47f7b0d27cba4da94560b442212ffffb51d929f4edbb",
+      "removed": [
+        {
+          "line": 1092,
+          "text": "- 人形骨架真实分段（见十一、模型要求）：pelvis/waist/chest/neck/head/upper_arm/elbow/forearm/wrist/hand/thigh/knee/shin/ankle/foot；90°侧面有真实胸厚/背厚/腰/骨盆/甲片层次。\n"
+        },
+        {
+          "line": 1093,
+          "text": "- 每个 NPC 至少：独立头型/发型/帽子 + 身体比例 + 主要随身物 + Idle。\n"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-11",
+      "tasks": [
+        "C3-DEATH-REBEL-MEMORIAL",
+        "C3-DEATH-STATUE-BLOCK"
+      ],
+      "evidence": "docs/art/cod3-remains-v1/verification.json; actual block placement/withdrawal/reload/death journal and five-view checks",
+      "before_sha256": "3fe8821e9042f2148543ecf715191219d338edf2b3e1847fc06e023278603a8e",
+      "after_sha256": "1bb975ef2a21abc5e66fb774167935d28aa7c44ab9ae5cd79a58d7731ccd928e",
+      "removed": [
+        {
+          "line": 334,
+          "text": "- 遗留：**死亡后永久雕像不保留 Boss 实体**；Sequence 结束在 anchor 放 StatueBlock/Structure piece，Boss 再 remove；其插地武器玩家可拔出（LootableRemains）。\n"
+        },
+        {
+          "line": 422,
+          "text": "- `Statue`：[NOT_VERIFIED] 当前无专用雕像块。**两种实现选一**：\n"
+        },
+        {
+          "line": 423,
+          "text": "  - (a) 复用现有结构 piece（`structure/DynastyStructures` 新增一个无 AI 的雕像 piece，[PROPOSED]）；\n"
+        },
+        {
+          "line": 424,
+          "text": "  - (b) 新增 `StatueBlock`（[PROPOSED]，`BaseEntityBlock` + 数据保存朝向/类型）。\n"
+        },
+        {
+          "line": 425,
+          "text": "  推荐 (a)：死亡遗留物优先走「结构 piece / 预设 Block state」，不保留死 Boss 实体。\n"
+        }
+      ]
+    },
+    {
+      "tasks": [
+        "C3-SECRET-WHITE-DEER-12"
+      ],
+      "evidence": "docs/art/cod3-white-deer-v1/verification.json",
+      "removed": [
+        {
+          "line_in_previous_version": 1166,
+          "text": "| 12 | 衔草白鹿 | 白鹿口中灵芝 | 竹林晨雾 | 铃响 | 击杀/骑乘 | 静步跟随 5 分钟 | 玩家级 | 洞天福地 | 一次 |\n"
+        },
+        {
+          "line_in_previous_version": 1209,
+          "text": "| 12 | 主世界 | 竹林晨雾 | 静步跟白鹿 5min | 无 | 洞天福地 | player | 玩家级 | 无 |\n"
+        }
+      ]
+    }
+  ]
+}

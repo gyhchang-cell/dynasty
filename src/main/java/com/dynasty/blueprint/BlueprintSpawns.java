@@ -31,6 +31,7 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> GHOSTS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/ghost_sites"));
     private static final TagKey<Structure> CORPSES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/corpse_sites"));
     private static final TagKey<Structure> CHILDREN=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/shroud_child_sites"));
+    private static final TagKey<Structure> DROWNERS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/tomb_ambush_sites"));
     private static final TagKey<Structure> PAPERS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/paper_swordsman_sites"));
     private static final TagKey<Structure> SKULLS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/flying_skull_sites"));
     private static final TagKey<Structure> STONE_GUARDS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/stone_guard_sites"));
@@ -40,6 +41,12 @@ public final class BlueprintSpawns {
     private static final TagKey<Structure> BRONZE_SNAKES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/bronze_snake_sites"));
     private static final TagKey<Structure> SPIDERS=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/mining_spider_sites"));
     private BlueprintSpawns() {}
+    /** Only the fixed seven-member raid; independent army/rebel ecology encounters keep their allegiance. */
+    public static void restoreRaidAllegiance(TemplateMob mob){
+        if(!mob.encounterSite().startsWith("dynasty:ruined_battlefield@"))return;
+        if(switch(mob.kind()){case PRIEST,FLAG,SCOUT,POWDER->true;default->false;})
+            EcologyManager.assignFaction(mob,com.dynasty.blueprint.combat.Faction.REBELS);
+    }
     public static void register(SpawnPlacementRegisterEvent event) {
         event.register(BlueprintEntities.TONGBI_FEITIAN_YECHA.get(),SpawnPlacements.Type.NO_RESTRICTIONS,
             Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,(type,level,reason,pos,random)->
@@ -206,7 +213,8 @@ public final class BlueprintSpawns {
         return false;
     }
     @SubscribeEvent public static void tick(TickEvent.LevelTickEvent event) {
-        if(event.phase!=TickEvent.Phase.END || !(event.level instanceof ServerLevel level) || level.dimension()!=Level.OVERWORLD
+        if(event.phase!=TickEvent.Phase.END || !(event.level instanceof ServerLevel level)
+                || level.dimension()!=Level.OVERWORLD&&!underworld(level)
                 || level.getGameTime()%100!=0 || level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
                 || !level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return;
         var registry=level.registryAccess().registryOrThrow(Registries.STRUCTURE);
@@ -214,8 +222,9 @@ public final class BlueprintSpawns {
         int remaining=2; // Absolute per-level work cap, independent of player count.
         for(var player:level.players()) {
             if(player.isSpectator())continue;
-            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES,CHILDREN,PAPERS,SKULLS,STONE_GUARDS,BIXI,PALANQUINS,DOGS,BRONZE_SNAKES,SPIDERS)) for(var holder:registry.getTagOrEmpty(group)) {
+            for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES,CHILDREN,DROWNERS,PAPERS,SKULLS,STONE_GUARDS,BIXI,PALANQUINS,DOGS,BRONZE_SNAKES,SPIDERS)) for(var holder:registry.getTagOrEmpty(group)) {
                 if(remaining<=0)return;
+                if(underworld(level)&&group!=PALANQUINS)continue;
                 if(group==BATTLEFIELD&&level.isDay())continue;
                 var start=level.structureManager().getStructureAt(player.blockPosition(),holder.value());
                 if(!start.isValid())continue;
@@ -224,8 +233,11 @@ public final class BlueprintSpawns {
                 if(group==GHOSTS)key+=":ghosts";
                 if(group==PALANQUINS){
                     if(!checked.add(key+":palanquin")||!palanquinHour(level))continue;
-                    for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombAccessPiece access
-                        &&spawnPalanquin(level,key+":palanquin",access.palanquinPosition(),player.blockPosition())){remaining--;break;}
+                    for(var piece:start.getPieces()){
+                        BlockPos landing=piece instanceof com.dynasty.structure.TombAccessPiece access?access.palanquinPosition()
+                            :underworld(level)&&piece instanceof com.dynasty.structure.StoneGrovePiece grove?grove.palanquinPosition():null;
+                        if(landing!=null&&spawnPalanquin(level,key+":palanquin",landing,player.blockPosition())){remaining--;break;}
+                    }
                     continue;
                 }
                 if(group==BIXI){
@@ -244,6 +256,12 @@ public final class BlueprintSpawns {
                     if(!checked.add(key+":paper_swordsmen"))continue;
                     for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
                             &&spawnPaperSwordsman(level,key+":paper_swordsmen",tomb.paperSwordsmanPositions(),player.blockPosition())){remaining--;break;}
+                    continue;
+                }
+                if(group==DROWNERS){
+                    if(!checked.add(key+":tomb_drowner"))continue;
+                    for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
+                            &&spawnTombDrowner(level,key+":tomb_drowner",tomb.drownerPositions(),player.blockPosition())){remaining--;break;}
                     continue;
                 }
                 if(group==CHILDREN){
@@ -331,7 +349,9 @@ public final class BlueprintSpawns {
                             >=TemplateContentDefinitions.effectiveWeight(definition,!level.isDay(),light))continue;
                 var mob=type.create(level);if(mob==null)continue;
                 mob.moveTo(found.getX()+.5,found.getY(),found.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);
-                if(group==BATTLEFIELD)EcologyManager.assignBattlefield(mob);
+                if(group==BATTLEFIELD)restoreRaidAllegiance(mob);
+                // This authored priest/banner/scout/powder encounter is one cooperating raid.
+                // Separate battlefield populations retain their own ecology allegiance.
                 mob.finalizeSpawn(level,level.getCurrentDifficultyAt(found),MobSpawnType.STRUCTURE,null,null);
                 if(level.addFreshEntity(mob)) {marker.members.add(mob.getUUID());marker.produced++;state.setDirty();remaining--;}
             }
@@ -355,6 +375,7 @@ public final class BlueprintSpawns {
         return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.MUXUE_FEILU.get(),level.getMinBuildHeight()+1,64);
     }
     static boolean palanquinHour(ServerLevel level){long t=Math.floorMod(level.getDayTime(),24000);return t>=17000&&t<=19000;}
+    private static boolean underworld(ServerLevel level){return level.dimension().location().toString().equals("dynasty:underworld");}
     public static boolean spawnPalanquin(ServerLevel level,String key,BlockPos pos,BlockPos entrant){
         return palanquinHour(level)&&spawnAuthoredGroup(level,key,List.of(pos),entrant,BlueprintEntities.YINYANG_ZHIJIAO_YOUHUN.get(),level.getMinBuildHeight()+1,300);
     }
@@ -375,7 +396,7 @@ public final class BlueprintSpawns {
     }
     private static boolean spawnAuthoredGroup(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant,
             net.minecraft.world.entity.EntityType<TemplateMob> type,int minY,int maxY){
-        if(positions.isEmpty()||positions.size()>3||level.dimension()!=Level.OVERWORLD||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
+        if(positions.isEmpty()||positions.size()>3||level.dimension()!=Level.OVERWORLD&&!(underworld(level)&&type==BlueprintEntities.YINYANG_ZHIJIAO_YOUHUN.get())||level.getDifficulty()==net.minecraft.world.Difficulty.PEACEFUL
                 ||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING))return false;
         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);
         if(marker!=null&&(marker.cleared||marker.nextSpawn>level.getGameTime()||marker.produced>=positions.size()&&!marker.members.isEmpty()))return false;
@@ -395,11 +416,24 @@ public final class BlueprintSpawns {
 
     private static boolean authoredSpace(ServerLevel level,net.minecraft.world.entity.EntityType<TemplateMob> type,BlockPos pos){
         var box=type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5);
+        if(type==BlueprintEntities.SHASHUI_FUNIGUI.get())return DrownerBehavior.deepWater(level,pos)
+            &&level.noCollision(null,box);
         if(type==BlueprintEntities.BAZU_DIGONGZHU.get())return level.noCollision(null,box.move(0,.6,0))
             &&MiningSpiderBehavior.supported(level,new net.minecraft.world.phys.Vec3(pos.getX()+.5,pos.getY()+.6,pos.getZ()+.5),type.getHeight());
         if(type==BlueprintEntities.MUXUE_FEILU.get())return level.getMaxLocalRawBrightness(pos)<=7
             &&level.getFluidState(pos).isEmpty()&&level.noCollision(null,box);
         return com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,box);
+    }
+
+    public static boolean spawnTombDrowner(ServerLevel level,String key,List<BlockPos> positions,BlockPos entrant){
+        return spawnAuthoredGroup(level,key,positions,entrant,BlueprintEntities.SHASHUI_FUNIGUI.get(),level.getMinBuildHeight()+1,64);
+    }
+
+    /** Entity storage can lag behind a FULL chunk. Wait rather than reserving an invisible actor. */
+    public static boolean entityChunkReady(ServerLevel level,BlockPos pos){
+        return level.getChunkSource().getChunkNow(pos.getX()>>4,pos.getZ()>>4)!=null
+            &&level.isPositionEntityTicking(pos)
+            &&level.areEntitiesLoaded(new net.minecraft.world.level.ChunkPos(pos).toLong());
     }
 
     /** Authored upper-gallery garrison, using the existing encounter ledger and death/unload lifecycle. */
@@ -423,7 +457,7 @@ public final class BlueprintSpawns {
         // Fixed authored floor positions: never select ordinary caves within the structure's bounding box.
         var offsets=List.of(new BlockPos(10,49,50),new BlockPos(52,49,50),new BlockPos(10,49,78),new BlockPos(52,49,78));
         var pos=origin.offset(offsets.get(marker.produced));
-        if(!level.hasChunkAt(pos)||pos.distSqr(entrant)<36||pos.distSqr(entrant)>48*48
+        if(!entityChunkReady(level,pos)||pos.distSqr(entrant)<36||pos.distSqr(entrant)>48*48
                 ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,
                     type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5)))return false;
         var mob=type.create(level);if(mob==null)return false;
@@ -456,7 +490,7 @@ public final class BlueprintSpawns {
         var type=BlueprintEntities.SHASHUI_FUNIGUI.get();
         // Existing dry tombs stay untouched. A missing/unloaded channel is not permission
         // to search natural caves, allocate a ledger or force-load neighbouring chunks.
-        if(!level.hasChunkAt(pos)||pos.distSqr(entrant)<36||pos.distSqr(entrant)>48*48
+        if(!entityChunkReady(level,pos)||pos.distSqr(entrant)<36||pos.distSqr(entrant)>48*48
                 ||!DrownerBehavior.deepWater(level,pos)||level.getMaxLocalRawBrightness(pos)>7
                 ||!level.noCollision(null,type.getDimensions().makeBoundingBox(pos.getX()+.5,pos.getY(),pos.getZ()+.5))
                 ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),
@@ -491,7 +525,7 @@ public final class BlueprintSpawns {
         }
         int index=marker==null?0:marker.produced;
         var pos=origin.offset(offsets.get(index));var type=BlueprintEntities.MUXUE_FEILU.get();
-        if(!level.hasChunkAt(pos)||pos.distSqr(entrant)<36||pos.distSqr(entrant)>48*48
+        if(!entityChunkReady(level,pos)||pos.distSqr(entrant)<36||pos.distSqr(entrant)>48*48
                 ||level.getEntitiesOfClass(TemplateMob.class,new AABB(pos).inflate(32),
                     e->e.isAlive()&&e.getType()==type).size()>=offsets.size()
                 ||!authoredSpace(level,type,pos))return false;

@@ -80,6 +80,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     private final ArmyBehaviors.Behavior army;
     private final TimedAttack attack = new TimedAttack();
     private final TacticalMemory tactics = new TacticalMemory();
+    final TombEncounterCoordinator.Signal tombSignal = new TombEncounterCoordinator.Signal();
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private UUID supportCandidate, possessedAlly, possessor;
     private long possessedUntil, linkUntil, nextTacticalScan, nextMovement, coverUntil, deathStarted = -1;
@@ -89,7 +90,26 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     private Vec3 leapDestination = Vec3.ZERO;
     private BlockPos highGround;
     private String encounterSite="";
+    private UUID jinwuCommander;
+    private Vec3 jinwuRally=Vec3.ZERO;
+    private long jinwuRallyUntil;
+    public void rallyUnderJinwu(com.dynasty.blueprint.elite.Jinwu commander,Vec3 point,long until){
+        if(level().isClientSide||!isAlive()||!commander.isAlive()||faction()!=commander.faction()
+            ||encounterSite.isBlank()||!encounterSite.equals(commander.encounterSite())||distanceToSqr(commander)>144
+            ||!Double.isFinite(point.lengthSqr())||point.distanceToSqr(commander.position())>25)return;
+        jinwuCommander=commander.getUUID();jinwuRally=point;jinwuRallyUntil=Math.min(level().getGameTime()+60,until);
+        if(validEnemy(commander.getTarget()))setTarget(commander.getTarget());
+    }
+    private boolean followJinwu(long now){
+        if(now>=jinwuRallyUntil||!(resolve(jinwuCommander) instanceof com.dynasty.blueprint.elite.Jinwu commander)
+            ||!commander.isAlive()||distanceToSqr(commander)>256||!encounterSite.equals(commander.encounterSite())){jinwuRallyUntil=0;return false;}
+        var path=navigation.createPath(jinwuRally.x,jinwuRally.y,jinwuRally.z,0);
+        if(path==null||!path.canReach()){jinwuRallyUntil=0;return false;}
+        if(position().distanceToSqr(jinwuRally)>.5)navigation.moveTo(path,1.2);else navigation.stop();return true;
+    }
     public String encounterSite(){return encounterSite;}
+    /** Empty legacy sites can cooperate; an authored encounter never borrows another site's signals. */
+    boolean sameEncounter(TemplateMob other){return encounterSite.equals(other.encounterSite);}
     public void bindEncounter(String key){
         int at=key.indexOf('@'),suffix=at<0?-1:key.indexOf(':',at);
         encounterSite=(suffix<0?key:key.substring(0,suffix));
@@ -239,7 +259,8 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     }
     private boolean validSupport(LivingEntity ally) {
         return ally != null && ally != this && ally.isAlive() && ally instanceof Combatant c
-                && c.faction() == faction() && c.role() != MobRole.SUPPORT && c.role() != MobRole.BEAST
+                && Combatant.allied(this, ally) && (!(ally instanceof TemplateMob mob) || sameEncounter(mob))
+                && c.role() != MobRole.SUPPORT && c.role() != MobRole.BEAST
                 && distanceToSqr(ally) <= 16 * 16 && hasLineOfSight(ally);
     }
     LivingEntity resolve(UUID id) {
@@ -310,13 +331,18 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         long now = level().getGameTime();
         if(army!=null)army.tick(now);
         if(!isAlive())return;
+        if (attack.state(now) == AttackState.IDLE) {
+            var controlled = tombSignal.target(this);
+            if (controlled != null) setTarget(controlled);
+        }
         if (now >= nextTacticalScan) { nextTacticalScan = now + 20; updateTactics(now); }
         if (possessedUntil > 0) {
             LivingEntity source = resolve(possessor);
             // An unloaded ally could not receive releaseSupport when its priest died or
             // changed links. Reconcile once both are loaded; a missing UUID alone is not death.
             if (now >= possessedUntil || source != null && (!source.isAlive()
-                    || source instanceof TemplateMob priest && !getUUID().equals(priest.possessedAlly)))
+                    || source instanceof TemplateMob priest && (!getUUID().equals(priest.possessedAlly)
+                            || !priest.validSupport(this))))
                 clearPossession();
         }
         entityData.set(POSSESSED, hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()));
@@ -400,7 +426,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (kind == Kind.SWORD) {
             List<TemplateMob> shields = server.getEntitiesOfClass(TemplateMob.class, getBoundingBox().inflate(12),
                     e -> e.isAlive() && e.kind == Kind.SHIELD && distanceToSqr(e) <= 144
-                            && Combatant.allied(this, e) && hasLineOfSight(e));
+                            && Combatant.allied(this, e) && sameEncounter(e) && hasLineOfSight(e));
             formation = !shields.isEmpty();
             AttributeInstance movement = getAttribute(Attributes.MOVEMENT_SPEED);
             if (movement != null) {
@@ -424,9 +450,10 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             // Never redirect an attack already in flight or retain a cross-world player cache.
             server.getEntitiesOfClass(TemplateMob.class, getBoundingBox().inflate(16),
                             e -> e.kind == Kind.PRIEST && e.isAlive() && e.linkUntil > now
+                                    && sameEncounter(e) && Combatant.allied(this, e)
                                     && distanceToSqr(e) <= 256 && hasLineOfSight(e)
                                     && e.resolve(e.possessedAlly) instanceof TemplateMob powder
-                                    && powder.kind == Kind.POWDER && powder.isAlive() && powder.isPossessed()
+                                    && powder.kind == Kind.POWDER && powder.isPossessed() && e.validSupport(powder)
                                     && validEnemy(e.getTarget()) && distanceToSqr(e.getTarget()) <= 28 * 28
                                     && hasLineOfSight(e.getTarget()))
                     .stream().min(Comparator.comparingDouble(this::distanceToSqr))
@@ -450,7 +477,9 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         LivingEntity enemy = getTarget();
         Vec3 towardEnemy = enemy.position().subtract(position()).multiply(1, 0, 1).normalize();
         level().getEntitiesOfClass(LivingEntity.class, getBoundingBox().inflate(12), e -> e != this && e.isAlive() && distanceToSqr(e) <= 144
-                        && e instanceof Combatant c && c.faction() == faction() && (c.role() == MobRole.RANGED || c.role() == MobRole.SUPPORT)
+                        && e instanceof Combatant c && Combatant.allied(this, e)
+                        && (!(e instanceof TemplateMob mob) || sameEncounter(mob))
+                        && (c.role() == MobRole.RANGED || c.role() == MobRole.SUPPORT)
                         && e.position().subtract(position()).dot(towardEnemy) < .5 && hasLineOfSight(e))
                 .stream().min(Comparator.comparingDouble(this::distanceToSqr)).ifPresent(ally -> {
                     Vec3 intercept = ally.position().add(enemy.position().subtract(ally.position()).multiply(1, 0, 1).normalize().scale(1.8));
@@ -692,6 +721,17 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
         if (!level().isClientSide && deathStarted >= 0)
             deathTime = (int)Math.min(240, Math.max(deathTime, level().getGameTime() - deathStarted));
         if (kind == Kind.SHIELD) setDeltaMovement(Vec3.ZERO);
+        else if(!level().isClientSide&&!isNoGravity()){
+            // LivingEntity stops ordinary travel once dead. Gravity alone cannot drop a flying
+            // corpse or a ceiling climber; keep the normal block/world-border collision path.
+            var velocity=getDeltaMovement();
+            if(onGround())setDeltaMovement(Vec3.ZERO);
+            else{
+                setDeltaMovement(velocity.x*.8,Math.max(-.8,velocity.y-.08),velocity.z*.8);
+                move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());
+                if(onGround())setDeltaMovement(Vec3.ZERO);
+            }
+        }
         int duration = deathDuration();
         if (deathTime >= duration && !level().isClientSide && !isRemoved()) {
             level().broadcastEntityEvent(this, (byte)60); remove(RemovalReason.KILLED);
@@ -702,6 +742,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     @Override public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putString("BlueprintEncounterSite",encounterSite);
+        tag.put("TombTacticalSignal", tombSignal.save());
         if(kind==Kind.CLOCKWORK_DOG&&hasRestriction())tag.putLong("ClockworkPatrolHome",getRestrictCenter().asLong());
         tag.putBoolean("Burrowed",burrowed());
         tag.putBoolean("TreeAwake",treeAwake());tag.putFloat("TongueReach",tongueReach()); tag.put("BlueprintAttack", attack.save()); tag.putFloat("BlueprintSpeed", skillSpeed());
@@ -715,6 +756,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
     @Override public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         encounterSite=tag.getString("BlueprintEncounterSite");if(encounterSite.length()>256)encounterSite="";
+        tombSignal.load(tag.getCompound("TombTacticalSignal"), level().getGameTime());
         if(kind==Kind.CLOCKWORK_DOG&&tag.contains("ClockworkPatrolHome"))restrictTo(BlockPos.of(tag.getLong("ClockworkPatrolHome")),12);
         setBurrowed(tag.getBoolean("Burrowed"));
         setTreeAwake(tag.getBoolean("TreeAwake"));
@@ -740,6 +782,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             // Upgrade old structure members once on load, using the existing persisted UUID ledger.
             for(var marker:BlueprintSpawnState.get(server).markers.values())if(marker.members.contains(getUUID())){bindEncounter(marker.key);break;}
         }
+        BlueprintSpawns.restoreRaidAllegiance(this); // Upgrade prior saved raid members that had split ecology allegiance.
         if(army!=null)army.load(tag.getCompound("ArmyActionState"));
     }
 
@@ -811,6 +854,7 @@ public final class TemplateMob extends Monster implements GeoEntity, Combatant {
             if(kind==Kind.TREE&&!treeAwake()){navigation.stop();return;}
             getLookControl().setLookAt(target, 30, 30);
             if (attack.state(now) != AttackState.IDLE) { navigation.stop(); return; }
+            if(followJinwu(now))return;
             // Goal selection precedes customServerAiStep. At a twenty-tick scan boundary
             // the old chase used to overwrite the validated cover path before it could
             // be refreshed; at its endpoint it also chased out of the guarded position.

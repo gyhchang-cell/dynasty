@@ -39,21 +39,32 @@ public final class StoryAnchor extends BaseEntityBlock {
         return net.minecraft.world.InteractionResult.sidedSuccess(level.isClientSide);
     }
     @Override public BlockEntity newBlockEntity(BlockPos p,BlockState s){return new Anchor(p,s);}
+    @Override public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level,BlockState state,BlockEntityType<T> type){
+        return level.isClientSide||type!=TYPE.get()?null:(world,pos,block,entity)->{
+            var anchor=(Anchor)entity;
+            if(block.getValue(KIND)>=30&&anchor.respawnAt>=0&&world.getGameTime()>=anchor.respawnAt&&world.getGameTime()%200==0)anchor.onLoad();
+        };
+    }
     public static final class Anchor extends BlockEntity {
         private boolean npcSpawned;
+        private long respawnAt=-1;
         public Anchor(BlockPos p,BlockState s){super(TYPE.get(),p,s);}
         @Override public void onLoad(){super.onLoad();if(!(level instanceof ServerLevel server))return;
             int kind=getBlockState().getValue(KIND);
             if(kind<30)SecretTracker.attach(server,worldPosition,kind+1);
-            else if(!npcSpawned){String role=Cod3Catalog.entries("npcs").get(kind-30).getAsJsonObject().get("id").getAsString();
+            else if(!npcSpawned||respawnAt>=0&&server.getGameTime()>=respawnAt){String role=Cod3Catalog.entries("npcs").get(kind-30).getAsJsonObject().get("id").getAsString();
                 var npc=NpcContent.NPCS.get(role).get().create(server);if(npc==null)return;
                 npc.setUUID(UUID.nameUUIDFromBytes((server.dimension().location()+":"+worldPosition+":"+role).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                npc.getPersistentData().putLong("cod3_home_anchor",worldPosition.asLong());
                 npc.moveTo(worldPosition.getX()+.5,worldPosition.getY()+1,worldPosition.getZ()+.5,0,0);npc.home(worldPosition.above());
-                if(server.addFreshEntity(npc)){npcSpawned=true;setChanged();}
+                if(server.getEntity(npc.getUUID())!=null){npcSpawned=true;respawnAt=-1;setChanged();return;}
+                if(!server.noCollision(npc))return;
+                if(server.addFreshEntity(npc)){npcSpawned=true;respawnAt=-1;setChanged();}
             }
         }
+        void scheduleRespawn(long at){if(respawnAt<0){respawnAt=at;setChanged();}}
         @Override public void setRemoved(){if(level instanceof ServerLevel server&&getBlockState().getValue(KIND)<30)SecretTracker.detach(server,worldPosition);super.setRemoved();}
-        @Override protected void saveAdditional(CompoundTag n){super.saveAdditional(n);n.putBoolean("NpcSpawned",npcSpawned);}
-        @Override public void load(CompoundTag n){super.load(n);npcSpawned=n.getBoolean("NpcSpawned");}
+        @Override protected void saveAdditional(CompoundTag n){super.saveAdditional(n);n.putBoolean("NpcSpawned",npcSpawned);n.putLong("RespawnAt",respawnAt);}
+        @Override public void load(CompoundTag n){super.load(n);npcSpawned=n.getBoolean("NpcSpawned");respawnAt=n.contains("RespawnAt")?n.getLong("RespawnAt"):-1;}
     }
 }

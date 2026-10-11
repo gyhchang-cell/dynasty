@@ -24,7 +24,7 @@ vfx=[]
 # animation, not a zero-radius definition; do not infer geometry from its first number.
 radii=[.5,8,.25,.2,2.5,1,6,6,3,1,5,8,.6,1.5,6,4,.8,3,9,10,8,1,3,1,5,12,3,.75,2,8,1,5,10,1,3,6,6,3,4,12]
 lengths=[12,8,16,4,6,20,1.5,2,12,10,10,1,6,3,1,8,20,6,1,1,12,8,5,10,.5,1,4,24,6,12,3,10,10,15,2,1,3,6,12,1]
-shapes=['LINE','CONE','LINE','LINE','BOX','TARGET_LOCK','ANNULUS','ANNULUS','BOX','LINE','SPHERE','CIRCLE','CHAIN','SPHERE','CIRCLE','BOX','CHAIN','LINE','CONE','CIRCLE','CIRCLE','BOX','LINE','CHAIN','CIRCLE','ANNULUS','BOX','LINE','CONE','CIRCLE','CHAIN','SPHERE','SPHERE','LINE','ANNULUS','CONE','RECT','RECT','SPHERE','CIRCLE']
+shapes=['LINE','CONE','LINE','LINE','BOX','TARGET_LOCK','ANNULUS','ANNULUS','BOX','LINE','SPHERE','ANNULUS','CHAIN','SPHERE','CIRCLE','BOX','CHAIN','LINE','CONE','CIRCLE','CIRCLE','BOX','LINE','CHAIN','CIRCLE','ANNULUS','BOX','LINE','CONE','CIRCLE','CHAIN','SPHERE','SPHERE','LINE','ANNULUS','CONE','RECT','RECT','SPHERE','CIRCLE']
 for a,title,body in re.findall(r'### VFX-(\d+) ([^\n]+)\n(.*?)(?=\n### |\n=|\Z)',source[source.index('## 3.3'):source.index('COD3-4')],re.S):
  i=int(a);colors=re.findall(r'0x([0-9A-Fa-f]{6})',body);end=re.search(r'END (\d+)t',body);radius=re.search(r'(?:radius|半径|\br)(\d+(?:\.\d+)?)',body);lod=re.search(r'LOD (\d+)/(\d+)/(\d+)',body)
  vfx.append(dict(id=i,name=title,shape=shapes[i-1],duration=int(end.group(1)) if end else 26 if i==4 else 30,radius=radii[i-1],length=lengths[i-1],width={3:.3,24:2,28:.75,31:.1}.get(i,.6),color=int(colors[0],16) if colors else 0xB5E0C9,near=int(lod.group(1)) if lod else 60,medium=int(lod.group(2)) if lod else 24,far=int(lod.group(3)) if lod else 6,details=body.strip()))

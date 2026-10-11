@@ -36,6 +36,8 @@ public class DynastyCombatEvents {
 
     @SubscribeEvent
     public static void onLivingHurt(LivingHurtEvent event) {
+        // Forge may deliver zero after a full native shield block. Do not revive it or apply on-hit bonuses.
+        if (event.getAmount() <= 0) return;
         // The area seal has an explicit max-health percentage, not weapon/enchantment scaling.
         if (DynastyBowRitual.isSolarDamage(event.getSource())) return;
         // Qinglong stores the result of this pipeline at contact; do not apply bonuses twice.

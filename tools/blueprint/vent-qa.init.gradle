@@ -1,0 +1,40 @@
+// A separate output tree; one optional QA client, no QA code packaged in the mod.
+allprojects { p ->
+    p.layout.buildDirectory.set(p.file('build/cod2-vents-build'))
+    p.afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        def qa=p.sourceSets.create('cod2VentQa') {
+            java.srcDir p.file('tools/blueprint/vent-qa')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.minecraft.runs.gameTestServer {
+            workingDirectory p.file('build/cod2-vent-tests/run1')
+            property 'forge.logging.console.level','info'
+            property 'forge.enabledGameTestNamespaces','dynasty_cod2'
+            jvmArgs '-Xmx2G','-XX:ActiveProcessorCount=2'
+        }
+        p.minecraft.runs.client {
+            workingDirectory p.file('build/cod2-vent-client/prepared')
+            property 'dynasty.cod2VentQa','true'
+            property 'dynasty.cod2VentQa.output',p.file('docs/art/cod2-vents-v1/native').absolutePath
+            property 'mixin.env.remapRefMap','true'
+            property 'mixin.env.refMapRemappingFile',p.file('build/cod2-vents-build/createSrgToMcp/output.srg').absolutePath
+            property 'forge.logging.console.level','info'
+            jvmArgs '-Xmx2G','-XX:ActiveProcessorCount=2'
+            args '--username','VentReviewer','--width','1400','--height','900'
+            mods { dynasty { source qa } }
+        }
+        p.tasks.matching { it.name=='runClient' }.configureEach { task ->
+            dependsOn qa.classesTaskName
+            if(p.hasProperty('ventPrepareOnly'))task.jvmArgumentProviders.add({ ->
+                def dest=p.file('build/cod2-vent-client/launch.json');dest.parentFile.mkdirs()
+                dest.text=groovy.json.JsonOutput.toJson([executable:task.javaLauncher.get().executablePath.asFile.absolutePath,
+                    jvmArgs:task.jvmArgs+task.systemProperties.collect { k,v -> "-D${k}=${v}".toString() },
+                    classpath:task.classpath.asPath,main:task.mainClass.get(),args:task.args,
+                    environment:task.environment.findAll { k,v -> k in ['MOD_CLASSES','MCP_MAPPINGS'] },directory:task.workingDir.absolutePath])
+                throw new StopExecutionException('Prepared isolated mechanism launch; client starts only from an immutable snapshot')
+            } as org.gradle.process.CommandLineArgumentProvider)
+        }
+    }
+}

@@ -208,14 +208,54 @@ public final class ArmyGameTests {
         arena(h);var priest=actor(h,BlueprintEntities.FUFA_JIJIU.get(),4,4);
         var powder=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);
         var scout=actor(h,BlueprintEntities.TIESUO_CHIHOU.get(),3,7);
+        var foreign=actor(h,BlueprintEntities.TIESUO_CHIHOU.get(),2,6);
+        var unbound=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),12,7);
+        for(var mob:java.util.List.of(priest,powder,scout))mob.bindEncounter("dynasty:ruined_battlefield@100");
+        foreign.bindEncounter("dynasty:ruined_battlefield@200");
         var chosen=target(h,9,12);var other=target(h,12,3);
         priest.setTarget(chosen);powder.setTarget(other);scout.setTarget(other);
+        foreign.setTarget(other);unbound.setTarget(other);
         h.assertTrue(priest.startSkill(TemplateSkills.POSSESSION,powder),"Existing priest support action starts");
         h.runAfterDelay(65,()->{
             h.assertTrue(powder.isPossessed(),"Actual authored support contact must occur");
             h.assertTrue(powder.getTarget()==chosen&&scout.getTarget()==chosen,"Idle assault units share supported priest's target");
+            h.assertTrue(foreign.getTarget()==other&&unbound.getTarget()==other,
+                "Nearby foreign and unbound units cannot borrow an authored encounter's target");
             h.succeed();
         });
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=90,batch="army")
+    public static void priestCannotSupportAnotherSiteOrKeepAnEnemyLink(GameTestHelper h){
+        arena(h);var priest=actor(h,BlueprintEntities.FUFA_JIJIU.get(),4,4);
+        var powder=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),6,6);
+        priest.bindEncounter("dynasty:ruined_battlefield@100");powder.bindEncounter("dynasty:ruined_battlefield@200");
+        h.assertTrue(!priest.startSkill(TemplateSkills.POSSESSION,powder),"Same faction across different sites cannot receive possession");
+        powder.bindEncounter(priest.encounterSite());
+        h.assertTrue(priest.startSkill(TemplateSkills.POSSESSION,powder),"The real same-site support cast starts");
+        h.startSequence().thenWaitUntil(()->h.assertTrue(powder.isPossessed(),"Wait for the actual support contact"))
+            .thenExecute(()->EcologyManager.assignFaction(powder,com.dynasty.blueprint.combat.Faction.SPIRITS))
+            .thenIdle(2).thenExecute(()->{
+                h.assertTrue(!powder.isPossessed()&&priest.buffTargetId()<0,"Changed allegiance releases the existing link and effect");
+                h.assertTrue(!priest.startSkill(TemplateSkills.POSSESSION,powder),"An enemy cannot be cast on again");
+            }).thenSucceed();
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=90,batch="army")
+    public static void assaultAnchorIsRevalidatedAfterItsSiteChanges(GameTestHelper h){
+        arena(h);var scout=actor(h,BlueprintEntities.TIESUO_CHIHOU.get(),4,3);
+        var powder=actor(h,BlueprintEntities.KUIJUN_SISHI.get(),8,7);var enemy=target(h,4,13);
+        scout.bindEncounter("dynasty:ruined_battlefield@100");powder.bindEncounter(scout.encounterSite());
+        enemy.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(0);
+        powder.setTarget(enemy);powder.addEffect(new MobEffectInstance(BlueprintEntities.BINGSHA_POSSESSION.get(),160));
+        h.runAfterDelay(2,()->h.assertTrue(scout.startSkill(ArmySkills.GRAPPLE,enemy),"Start a physical same-site hook"));
+        h.startSequence().thenWaitUntil(()->h.assertTrue(scout.hookTargetId()==enemy.getId(),"Wait for real hook contact"))
+            .thenExecute(()->{
+                var tag=new CompoundTag();scout.addAdditionalSaveData(tag);
+                h.assertTrue(tag.getCompound("ArmyActionState").hasUUID("AssaultAnchor"),"Actual contact selected a pressure anchor");
+                powder.bindEncounter("dynasty:ruined_battlefield@200");enemy.setDeltaMovement(Vec3.ZERO);
+            }).thenIdle(2).thenExecute(()->{
+                h.assertTrue(scout.hookTargetId()<0,"Changed encounter invalidates cached and active anchor UUIDs immediately");
+                equal(h,enemy.getDeltaMovement().horizontalDistance(),0,"No stale pressure pull after a site change");
+            }).thenSucceed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=90,batch="army")
     public static void powderFuseRequiresThreeSecondsAndNeverChangesTerrainOrAllies(GameTestHelper h){
@@ -444,6 +484,11 @@ public final class ArmyGameTests {
             for(var uuid:marker.members){
                 var entity=level.getEntity(uuid);h.assertTrue(entity instanceof TemplateMob,"Persistent membership resolves to a real mob");
                 var mob=(TemplateMob)entity;h.assertTrue(!mob.isNoAi()&&!mob.isNoGravity(),"Encounter uses normal AI and physics");
+                h.assertTrue(mob.faction()==com.dynasty.blueprint.combat.Faction.REBELS,
+                    "Priest, banner, scouts and powder must cooperate instead of attacking their own authored raid");
+                var nativeSave=new CompoundTag();mob.saveWithoutId(nativeSave);
+                var reloaded=(TemplateMob)mob.getType().create(level);reloaded.load(nativeSave);
+                h.assertTrue(reloaded.faction()==mob.faction(),"Actual raid allegiance survives full entity disk NBT");
                 counts.merge(mob.kind(),1,Integer::sum);
             }
             h.assertTrue(counts.equals(java.util.Map.of(TemplateMob.Kind.FLAG,1,TemplateMob.Kind.PRIEST,1,TemplateMob.Kind.SCOUT,2,TemplateMob.Kind.POWDER,3)),"No duplicated banner or excess powder units");

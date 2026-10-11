@@ -16,6 +16,13 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder("dynasty_army")
 @PrefixGameTestTemplate(false)
 public final class SkullGameTests {
+    private static final net.minecraft.server.level.TicketType<UUID> DEATH_TICKET=net.minecraft.server.level.TicketType.create("dynasty_flight_death_qa",UUID::compareTo);
+    private record DeathTicket(net.minecraft.world.level.ChunkPos chunk,UUID id){}
+    private static final java.util.Map<net.minecraft.server.level.ServerLevel,java.util.List<DeathTicket>> DEATH_TICKETS=new java.util.HashMap<>();
+    @net.minecraft.gametest.framework.AfterBatch(batch="skull_death")
+    public static void releaseDeathTickets(net.minecraft.server.level.ServerLevel level){
+        var tickets=DEATH_TICKETS.remove(level);if(tickets!=null)for(var t:tickets)level.getChunkSource().removeRegionTicket(DEATH_TICKET,t.chunk(),2,t.id(),true);
+    }
     private static TemplateMob skull(GameTestHelper h){
         for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=11;y++)h.setBlock(x,y,z,y==1||y==11||x==0||x==15||z==0||z==15?Blocks.STONE:Blocks.AIR);
         var mob=h.spawn(BlueprintEntities.MUXUE_FEILU.get(),new BlockPos(7,6,5));mob.setNoAi(true);return mob;
@@ -29,6 +36,32 @@ public final class SkullGameTests {
         p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);
         p.moveTo(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(x,2,z))));p.getFoodData().setFoodLevel(10);p.getFoodData().setSaturation(0);h.getLevel().addNewPlayer(p);
         h.onEachTick(()->{if(!p.isRemoved())p.doTick();});return p;
+    }
+    @GameTest(template="bow_ritual_test",timeoutTicks=120,batch="skull_death")
+    public static void flyingCorpsesActuallyFallAndLandWithoutBypassingBlocks(GameTestHelper h){
+        skull(h).discard();var level=h.getLevel();var bodies=new java.util.ArrayList<TemplateMob>();
+        var types=java.util.List.of(BlueprintEntities.MUXUE_FEILU.get(),BlueprintEntities.YOUDENG_GUIMIANFU.get(),BlueprintEntities.XUEJU_MANGGUYU.get(),BlueprintEntities.TONGBI_FEITIAN_YECHA.get());
+        for(int i=0;i<types.size();i++){
+            var mob=h.spawn(types.get(i),new BlockPos(3+i*3,6,7));mob.setNoAi(true);mob.setPersistenceRequired();
+            bodies.add(mob);
+            var ticket=new DeathTicket(mob.chunkPosition(),UUID.randomUUID());level.getChunkSource().addRegionTicket(DEATH_TICKET,ticket.chunk(),2,ticket.id(),true);DEATH_TICKETS.computeIfAbsent(level,k->new java.util.ArrayList<>()).add(ticket);
+        }
+        double floor=h.absolutePos(new BlockPos(0,2,0)).getY();
+        long[] killed={-1};boolean[] landed={false};
+        h.onEachTick(()->{
+            if(killed[0]<0){
+                for(var mob:bodies)if(mob.tickCount<2||!level.isPositionEntityTicking(mob.blockPosition()))return;
+                for(var mob:bodies){mob.hurt(mob.damageSources().genericKill(),10000);h.assertTrue(mob.isDeadOrDying()&&!mob.isNoGravity(),"Actual death releases flight gravity: "+mob.blueprintId());}
+                killed[0]=level.getGameTime();return;
+            }
+            long age=level.getGameTime()-killed[0];
+            if(age>=30&&!landed[0]){
+                for(var mob:bodies)h.assertTrue(!mob.isRemoved()&&mob.onGround()&&Math.abs(mob.getY()-floor)<.05,
+                    "Native collision movement lands the corpse on the real floor: "+mob.blueprintId()+" y="+mob.getY()+" floor="+floor+" grounded="+mob.onGround());
+                landed[0]=true;
+            }
+            if(age>=48){for(var mob:bodies)h.assertTrue(mob.isRemoved(),"Landing cannot extend the original 44-tick death lifetime");h.succeed();}
+        });
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=65,batch="skull")
     public static void diveWarnsThenMakesOnePhysicalContactAcrossReload(GameTestHelper h){

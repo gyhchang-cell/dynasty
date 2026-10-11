@@ -1,0 +1,23 @@
+// Opt-in framebuffer QA, excluded from the published jar. No world or user save is opened.
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def qa = p.sourceSets.create('cod3NpcArtQa') {
+        java.srcDir p.file('tools/art/cod3/qa')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.minecraft.runs.client {
+        workingDirectory p.file((p.findProperty('cod3NpcArtQaRun') ?: 'build/cod3-npc-art-qa') + '/client')
+        property 'dynasty.cod3NpcArtQa', 'true'
+        property 'dynasty.cod3NpcArtQa.output', p.file((p.findProperty('cod3NpcArtQaRun') ?: 'build/cod3-npc-art-qa') + '/results').absolutePath
+        property 'forge.logging.console.level', 'info'
+        property 'dynasty.cod3HideQa', 'true'
+        if (System.getProperty('os.name').toLowerCase().contains('mac')) jvmArgs '-XstartOnFirstThread'
+        if (p.hasProperty('secondarySkillQa')) {
+            property 'dynasty.secondarySkillQa', 'true'
+        }
+        jvmArgs '-Xmx1024m', '-XX:ActiveProcessorCount=2'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.configureEach { task -> if(task.name=='runClient')task.dependsOn qa.classesTaskName }
+} }

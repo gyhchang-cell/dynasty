@@ -29,6 +29,7 @@ final class DrownerBehavior implements ArmyBehaviors.Behavior {
         var level=(ServerLevel)mob.level();var centre=mob.attack().origin();
         for(var target:level.getEntitiesOfClass(LivingEntity.class,new AABB(centre.add(-2,-1,-2),centre.add(2,2,2)),e->mob.validEnemy(e)&&e.isInWater()&&mob.hasLineOfSight(e))){
             target.addEffect(new MobEffectInstance(BlueprintEntities.DROWNING_BIND.get(),6),mob);
+            TombEncounterCoordinator.controlled(mob, target);
             // Reserve air instead of stacking suffocation: escape remains possible by swimming sideways.
             if(target.getAirSupply()>40)target.setAirSupply(Math.max(40,target.getAirSupply()-2));
         }

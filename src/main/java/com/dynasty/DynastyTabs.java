@@ -38,7 +38,10 @@ public class DynastyTabs {
                 for(var item:com.dynasty.worldevent.WorldEventItems.ITEMS.getEntries())output.accept(item.get());
                 output.accept(com.dynasty.infusion.InfusionContent.TABLE_ITEM.get());
                 output.accept(com.dynasty.cod3.LootableRemains.ITEM.get());
+                output.accept(com.dynasty.cod3.RebelStatueBlock.ITEM.get());
                 com.dynasty.cod3.NpcContent.EGGS.forEach(egg->output.accept(egg.get()));
+                output.accept(com.dynasty.cod3.WhiteDeerContent.EGG.get());
+                output.accept(com.dynasty.cod3.WhiteDeerContent.TOKEN.get());
                 output.accept(DynastyBlocks.JADE_ORE.get());
                 output.accept(DynastyBlocks.DEEPSLATE_JADE_ORE.get());
                 output.accept(DynastyBlocks.DRAGON_CRYSTAL_ORE.get());

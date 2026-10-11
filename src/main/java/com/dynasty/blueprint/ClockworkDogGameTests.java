@@ -15,6 +15,11 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder("dynasty_army")
 @PrefixGameTestTemplate(false)
 public final class ClockworkDogGameTests {
+    private static final net.minecraft.server.level.TicketType<java.util.UUID> PATROL_TICKET=net.minecraft.server.level.TicketType.create("dynasty_hound_patrol_qa",java.util.UUID::compareTo);
+    private static final java.util.Map<net.minecraft.server.level.ServerLevel,java.util.List<Runnable>> PATROL_CLEANUP=new java.util.HashMap<>();
+    @net.minecraft.gametest.framework.AfterBatch(batch="clockwork_patrol") public static void releasePatrolFixture(net.minecraft.server.level.ServerLevel level){
+        var cleanup=PATROL_CLEANUP.remove(level);if(cleanup!=null)for(var action:cleanup)action.run();
+    }
     private static TemplateMob dog(GameTestHelper h){
         for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<=7;y++)h.setBlock(x,y,z,y==1?Blocks.STONE:Blocks.AIR);
         var mob=h.spawn(BlueprintEntities.XUNSHAN_MUJIAQUAN.get(),new BlockPos(7,2,5));mob.setNoAi(true);mob.bindEncounter("dynasty:tiangong_citadel@42:dogs");return mob;
@@ -55,11 +60,19 @@ public final class ClockworkDogGameTests {
         var saved=new CompoundTag();mob.save(saved);mob.discard();var copy=BlueprintEntities.XUNSHAN_MUJIAQUAN.get().create(h.getLevel());copy.load(saved);h.getLevel().addFreshEntity(copy);
         h.assertTrue(copy.encounterSite().equals("dynasty:tiangong_citadel@42")&&copy.getRestrictCenter().equals(home)&&copy.hasRestriction(),"Site and patrol origin persist");h.succeed();
     }
-    @GameTest(template="bow_ritual_test",timeoutTicks=150,batch="clockwork_patrol")
+    @GameTest(template="bow_ritual_test",timeoutTicks=1200,batch="clockwork_patrol")
     public static void idleHoundActuallyPatrolsWithoutLeavingHomeRadius(GameTestHelper h){
-        var mob=dog(h);mob.setNoAi(false);var home=mob.position();boolean[] moved={false};
+        var level=h.getLevel();var cleanup=PATROL_CLEANUP.computeIfAbsent(level,k->new java.util.ArrayList<>());var feet=new BlockPos(24000,130,24000);
+        for(int x:new int[]{-8,8})for(int z:new int[]{-8,8}){
+            var chunk=new net.minecraft.world.level.ChunkPos(feet.offset(x,0,z));level.getChunk(chunk.x,chunk.z);var id=java.util.UUID.randomUUID();
+            level.getChunkSource().addRegionTicket(PATROL_TICKET,chunk,2,id,true);cleanup.add(()->level.getChunkSource().removeRegionTicket(PATROL_TICKET,chunk,2,id,true));
+        }
+        for(int x=-8;x<=8;x++)for(int z=-8;z<=8;z++)for(int y=-1;y<=6;y++)level.setBlockAndUpdate(feet.offset(x,y,z),(y==-1?Blocks.STONE:Blocks.AIR).defaultBlockState());
+        var mob=BlueprintEntities.XUNSHAN_MUJIAQUAN.get().create(level);mob.moveTo(feet.getX()+.5,feet.getY(),feet.getZ()+.5);mob.setNoAi(true);mob.setPersistenceRequired();mob.bindEncounter("dynasty:tiangong_citadel@hound-patrol:dogs");level.addFreshEntity(mob);cleanup.add(mob::discard);
+        var home=mob.position();boolean[] moved={false};
         h.onEachTick(()->{if(mob.position().distanceToSqr(home)>1)moved[0]=true;h.assertTrue(mob.position().distanceToSqr(home)<145,"Patrol remains near authored home");});
-        h.runAfterDelay(130,()->{h.assertTrue(moved[0],"Native navigation moves idle hound around home");h.succeed();});
+        h.startSequence().thenWaitUntil(()->h.assertTrue(level.isPositionEntityTicking(feet)&&mob.tickCount>=2,"Patrol section must actually tick before its movement clock starts"))
+        .thenExecute(()->mob.setNoAi(false)).thenIdle(130).thenExecute(()->{h.assertTrue(moved[0]&&mob.getTarget()==null,"Native idle navigation moves the isolated hound around home: "+mob.position()+" ticks="+mob.tickCount);}).thenSucceed();
     }
     @GameTest(template="bow_ritual_test",timeoutTicks=20,batch="clockwork")
     public static void rigAndAlarmClipsLoadThroughActualGeckoParser(GameTestHelper h) throws Exception {

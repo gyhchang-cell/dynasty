@@ -41,10 +41,13 @@ for row in catalog['npcs']:
     for animation in animations.values():
         assert set(animation['bones']) <= names
     with Image.open(assets / f'textures/entity/npc/{role}.png') as texture:
-        assert texture.size == (128, 128)
+        description = rig['description']
+        assert texture.size == (description['texture_width'], description['texture_height'])
+        assert texture.size == (16, 16), (role, 'NPC art v2 uses a 16-pixel atlas')
+        assert len(texture.convert('RGB').getcolors(256)) <= 4, (role, 'palette exceeds four colours')
     for locale in ('zh_cn', 'en_us'):
         language = json.loads((assets / f'lang/{locale}.json').read_text())
-        for suffix in ('first', 'ordinary', 'changed'):
+        for suffix in ('first', 'first_2', 'first_3', 'ordinary', 'ordinary_2', 'ordinary_3', 'ordinary_4', 'ordinary_5', 'changed'):
             assert language[f'cod3.dynasty.npc.{role}.{suffix}']
         for choice in ('talk', 'changed', 'special', 'trade', 'leave'):
             assert language[f'cod3.dynasty.dialogue.{choice}']

@@ -39,6 +39,7 @@ public final class SecretTracker extends SavedData {
         return !claims.contains(k)||!d.oneTime()&&p.level().getGameTime()-claims.getLong(k)>=d.cooldown();
     }
     public boolean claim(ServerPlayer p,int n,BlockPos anchor){
+        if(n==12&&(!WhiteDeerTrail.ready(p,anchor)||!WhiteDeerSanctuary.available(p)))return false;
         boolean indexed=p.serverLevel().getBlockEntity(anchor) instanceof StoryAnchor.Anchor&&Objects.equals(nearby(p.blockPosition()).get(anchor),n);
         if(!indexed&&!verifiedSite(p,n,anchor))return false;
         var def=SecretDefinition.of(n);if(!def.enabled())return false;
@@ -48,7 +49,7 @@ public final class SecretTracker extends SavedData {
         String key=key(p,n);long now=p.level().getGameTime();if(claims.contains(key)&&(def.oneTime()||now-claims.getLong(key)<def.cooldown()))return false;
         var item=ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation(def.rewardItem()));if(item==null||item==Items.AIR)return false;
         if(!payment(p,n))return false;
-        claims.putLong(key,now);setDirty();var reward=new ItemStack(item);if(!p.getInventory().add(reward))p.drop(reward,false);
+        claims.putLong(key,now);setDirty();var reward=n==12?WhiteDeerSanctuary.reward(p):new ItemStack(item);if(!p.getInventory().add(reward))p.drop(reward,false);
         p.displayClientMessage(Component.translatable("cod3.dynasty.secret.success"),true);Cod3Vfx.send(p.serverLevel(),15,Vec3.atCenterOf(anchor),p.getLookAngle(),24,.5);
         return true;
     }
@@ -59,6 +60,7 @@ public final class SecretTracker extends SavedData {
                 &&p.serverLevel().getBlockState(pos).is(com.dynasty.expansion.SmallInteractions.ENTRIES.get(id).get());
     }
     private static boolean verifiedSite(ServerPlayer p,int n,BlockPos pos){
+        if(n==12)return WhiteDeerTrail.ready(p,pos);
         // A successful native table break has already removed the Site. Only its
         // same-tick, physical vendor-bound proof may reach the original ledger.
         if(n==19){
@@ -227,7 +229,7 @@ public final class SecretTracker extends SavedData {
             case 9->{var s=p.getMainHandItem();if(!s.isDamageableItem()||s.getMaxDamage()-s.getDamageValue()!=1||!p.isInWater()){progress.remove("Since");yield false;}long since=progress.getLong("Since");if(!progress.contains("Since")){progress.putLong("Since",l.getGameTime());yield false;}yield l.getGameTime()-since>=24000;}
             case 10->{yield Cod3WorldState.get(l).unlocked("world_08")&&p.getInventory().contains(new ItemStack(ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty:zhuque_feather"))));}
             case 11->{if(trigger!=SecretDefinition.Trigger.COMBINATION)yield false;int c=progress.getInt("Count");int expected=c%2;if((p.isShiftKeyDown()?1:0)!=expected){progress.putInt("Count",0);yield false;}progress.putInt("Count",c+1);yield c>=7;}
-            case 12->{if(!p.isShiftKeyDown()){progress.remove("Since");yield false;}if(!progress.contains("Since"))progress.putLong("Since",l.getGameTime());yield l.getGameTime()-progress.getLong("Since")>=6000;}
+            case 12->false; // Only the live deer trail can provide the same-tick completion proof.
             case 14->l.isThundering()&&day>=11000&&day<=13000&&trigger==SecretDefinition.Trigger.WEATHER_WINDOW;
             case 15,17,23->trigger==SecretDefinition.Trigger.USE_ITEM_AT_POS;
             case 16->trigger==SecretDefinition.Trigger.USE_ITEM_AT_POS&&(count(p,ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty:cinnabar")))>=1||count(p,com.dynasty.expansion.ExpansionContent.MATERIALS.get("sprite_jade").get())>=1);

@@ -33,6 +33,12 @@ public final class BlueprintSalvage {
     public static final RegistryObject<Item> DRY_PEACH_BRANCH=register("dry_peach_branch",Use.BOWS);
     public static final RegistryObject<Item> SHANXIAO_CLAW=register("shanxiao_claw",Use.IRON_AXE);
     public static final RegistryObject<Item> GHOST_FACE_FUR=register("ghost_face_fur",Use.LEATHER_ARMOR);
+    public static final RegistryObject<Item> WHITE_FOX_FUR=register("white_fox_fur",Use.LEATHER_ARMOR);
+    public static final RegistryObject<Item> BONE_FAN_FRAGMENT=register("bone_fan_fragment",Use.BOWS);
+    public static final RegistryObject<Item> FOX_MASK_FLAKE=register("fox_mask_flake",Use.JADE_GEAR);
+    public static final RegistryObject<Item> SPIDER_SILK_BUNDLE=register("spider_silk_bundle",Use.BOWS);
+    public static final RegistryObject<Item> SPIDER_CARAPACE=register("spider_carapace",Use.LEATHER_ARMOR);
+    public static final RegistryObject<Item> SPIDER_VENOM_GLAND=BlueprintEntities.ITEMS.register("spider_venom_gland",Antidote::new);
     public static final RegistryObject<Item> GREEN_BEAST_GALL=BlueprintEntities.ITEMS.register("green_beast_gall",Antidote::new);
     public static final RegistryObject<Item> IRON_SPEARHEAD=register("iron_spearhead",Use.IRON_GEAR);
     public static final RegistryObject<Item> TOUGH_WOOD_SHAFT=register("tough_wood_shaft",Use.BOWS);

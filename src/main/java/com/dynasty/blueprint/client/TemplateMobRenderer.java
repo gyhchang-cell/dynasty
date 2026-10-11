@@ -132,7 +132,7 @@ public final class TemplateMobRenderer extends GeoEntityRenderer<TemplateMob> {
     @Override public int getPackedOverlay(TemplateMob mob, float u, float partialTick) {
         // The shield remnant is usable cover for ten seconds, not a ten-second hurt flash.
         // Keep the initial vanilla impact flash, then restore its authored metal/wood colours.
-        if (mob.isDeadOrDying() && mob.hurtTime <= 0) return OverlayTexture.NO_OVERLAY;
+        if (mob.isDeadOrDying() && (mob.hurtTime <= 0 || mob.kind()==TemplateMob.Kind.PAPER)) return OverlayTexture.NO_OVERLAY;
         return super.getPackedOverlay(mob, u, partialTick);
     }
 }
