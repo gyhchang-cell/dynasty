@@ -174,7 +174,7 @@ public final class SpiderWomanClientQa {
         var entity=world.getEntity(marker.members.iterator().next());
         if(!(entity instanceof SpiderWoman mob))throw new AssertionError("Wrong real workshop actor "+entity);
         fixture=mob;
-        if(mob.isNoAi()||!mob.isNoGravity()||!mob.attachedToCeiling()||!mob.encounterSite().equals(entryKey))throw new AssertionError("Production site or normal simulation lost");
+        if(mob.isNoAi()||!mob.isNoGravity()||!mob.attachedToCeiling()||!mob.encounterSite().equals(entryKey))throw new AssertionError("Production site or normal simulation lost: noAi="+mob.isNoAi()+" noGravity="+mob.isNoGravity()+" attached="+mob.attachedToCeiling()+" supported="+mob.ceilingSupported()+" tickCount="+mob.tickCount+" site="+mob.encounterSite()+" expected="+entryKey);
         try{Files.writeString(OUT.resolve("world-mine-ceiling-entry.json"),JSON.toJson(Map.of("uuid",mob.getUUID().toString(),"site",mob.encounterSite(),"produced",marker.produced,"position",mob.position().toString(),"players",world.players().size(),"scope","Real existing mining-estate generator and authored supported ceiling, then ordinary EliteEncounters ticks; QA never spawns this actor")));}
         catch(Exception e){throw new RuntimeException(e);}
         return snapshot(stage,"READY",world.getGameTime());

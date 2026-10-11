@@ -46,7 +46,7 @@ public final class SpiderWoman extends Monster implements GeoEntity,Combatant {
     public AttackState phase(){return AttackState.values()[Math.max(0,Math.min(4,entityData.get(PHASE)))];}
     public boolean attachedToCeiling(){return entityData.get(CEILING);}
     public String encounterSite(){return site;}
-    public void bindEncounter(String key){site=key.length()<=256?key:"";home=blockPosition();}
+    public void bindEncounter(String key){site=key.length()<=256?key:"";home=blockPosition();if(!level().isClientSide&&isAlive()){entityData.set(CEILING,ceilingSupported());setNoGravity(attachedToCeiling());}}
     public static SkillDefinition skill(int id){return switch(id){case 371->ACID;case 372->DROP;case 373->EGGS;default->null;};}
     @Override public Faction faction(){return Faction.SPIRITS;}
     @Override public MobRole role(){return MobRole.RANGED;}

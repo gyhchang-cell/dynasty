@@ -267,3 +267,23 @@ Java17、Minecraft1.20.1、Forge47.4.10、GeckoLib4.8.4。工作区同时有其�
 - Native48断头将单机/真实双客户端各15姿态及普通AI生命周期、资源重载/真实TCP/原存档重启均PASS；等待新形态资源。Native50狐母修正原生攻击站位后单机真实重击与原存档重启PASS；双客户端初始Forge握手超时，须新ID重试。巨锤普通AI单机/联机通过，联机原存档重启初始登录超时；姿态检查须对应当前双膝跪地而非旧root下沉7像素。
 - 天蛛女Native50前11个姿态实机通过（贴顶根旋转、真实坠落、3虫卵），hurt场景因为普通AI受伤反击改变动作身份而失败，控制展示夹具只对hurt禁AI，实际生命周期继续普通AI。实机查看后腹部改为3层大甲壳、腿根扇形、加2×2眼及发束，42骨62cuboids/16×16四色；运行时52待复验。
 - regression50加入重击中断测试后遭测试框架GameTestInfo fastutil迭代器异常（回调内追加计时任务）；已把虫卵任务改为开场一次安排。相邻批次盾牌/冲击圈夹具不稳定已加真实持久化/隔离场地和本机块tick就绪等待，不放宽伤害/跳跃规避断言；52准备中。
+
+
+2026-10-11 14:08 用户直接要求：正在考试，先不要运行Java测试。本任务已停止自己的原生Java客户端和测试协调器；后续只改本地代码/资源、静态验证，须用户明确恢复Java测试才可启动。原生53天蛛女普通战斗夹具错误地把矿坑gallery底层当localY1；真实Blueprint.hollowBox仅墙面，地板在localY0，已修正readiness为feet.below(4)、玩家地面高度feetY-3。54 prepare已成功且冻结，尚未运行其服务器或客户端，不宣称235通过。
+
+
+## 2026-10-11 考试期间续作：Java测试暂停，炼丹方士8已写入待验收
+
+用户直接要求“我在考试先不要运行java测试”。已停止本任务原生53协调器与其两只Java客户端（停止前逐个验证所属PID/QA运行ID），没有操作别的聊天的Java进程。此后没有启动Gradle、build、Java服务器或游戏窗口；考试期间只进行了源码/资源修改、Python静态资源检查。暂停不因经过一段时间而自动恢复，须用户明确允许。53双人战斗目录保留DO_NOT_RUN，临时原生runner也已拒绝复用PASS/FAIL/DO_NOT_RUN目录。
+
+暂停之前regression52已经实际退出0并全部234 required通过，gzip完整日志在evidence/regression52-native-server.log.gz。53天蛛女单机/双人各14受控动作通过，但第15真实矿坑入口失败；普通战斗单机没有进入ready，双人由用户暂停而中断，不能记PASS。生产bindEncounter已按真实支撑面即时初始化贴顶与重力；战斗QA原矿坑地面已改为markerY-3、地板marker.below(4)。这些修正尚未运行。54准备成功但冻结发生在QA地面修正和本次炼丹方士之前；后续恢复必须使用新编号、最新源码重新prepare并冻结，不能拿54证明当前代码通过。新增顶棚生成测试也尚未运行。
+
+炼丹方士8新增Alchemist、AlchemistOrb、AlchemistZone、独立Geo渲染器，注册实体/刷怪蛋/属性。三技能：381有16tick前摇与两条反相螺旋实体弹道，原生墙碰撞/最近敌人碰撞、半径2伤害/火或缓慢/饱和度消耗，40tick绝对飞行寿命；382有24tick前摇、半径5的160tick原生火海区域，每20tick有限敌人伤害且不改方块；383有22tick前摇，吞服的一枚给200tick反伤外壳，另两枚实际抛物线实体金丹落地后生成半径2.5/120tick汞雾。每个所有者至多两个飞行弹与三个区域，宿主死亡/失效/超过范围清理；missed tick不补飞行接触。重击前摇可打断、保留冷却；反伤只基于已接受敌人伤害，过滤THORNS、每攻击者20tick且最多16记录，UUID/原绝对护壳截止时间/反伤冷却随NBT保存。普通导航保留实体碰撞与32格药棚归巢，不传送追玩家。
+
+入口复用现有herbal_retreat的露天丹棚，TravelSitePiece只加local(25,1,10)落点方法，没有更改建筑；EliteEncounters增加真实tag及SavedData单槽，死亡后12000tick再生，卸载保留UUID，共享每次扫描生成预算仍为2。白天炼丹方士分支先于夜间狐母分支，避免被狐母day检查吞掉。三种原生战利品裂纹丹炉铜片/阴阳火灰/凝汞丹珠接入已有淬炼词条xuanwu_shell/cinnabar/poison_ward；新增既有minecraft:player_killed_entity击杀进度。三词条按现有冲突/冷却/成本执行，没有另造淬炼系统。
+
+实际阅读暮色森林LichModel完整源码：https://raw.githubusercontent.com/TeamTwilight/twilightforest/latest/src/main/java/twilightforest/client/model/entity/LichModel.java 。只借鉴宽领幕扩大施法者轮廓；全部体块/UV/骨架/动作原创。炼丹方士为35骨骼、63长方体、7动画：分片中空袍体与连续后袍摆、非直棍弯肘宽袖、破莲花冠、偏置独立三足中空丹炉、错落拂尘；idle/walk/helix/sea/pells/hurt/death与服务端时间轴绑定。实际16×16PNG、白色加三纯色、一像素白边、6×6色岛/4×4重复面UV；3物品图标同样遵守四色/白边/至少2×2色区。独立法球4骨/5Cuboid/1clip共享四色纹理，不可见分支按synched pill/side隐藏。死亡炉脚飞散/袍体消失、两色火与碎铜有固定80tick有限表现，late-track同步原绝对时间。
+
+已完成Python静态检查：JSON无重复key、父骨存在/无循环、动画骨引用存在、关键帧不越clip时长、逐面UV整像素且不越16、四张实际16×16PNG均≤4色/白边/每个色点隶属至少2×2色区；generator语法通过，git diff --check通过。五视图为近似骨变换静态预览，见evidence/alchemist-static-fiveviews-20261011.png，实际看过后补后袍摆和拂尘朝向/错落流苏，不能代替游戏截图。直接读取本机当前Forge映射source.jar核对接口，发现EntityRenderer.getPackedLightCoords为final，已改为getBlockLightLevel发光覆写；没有运行Java工具。6项AlchemistGameTests及8精英真实武器校准代码已准备，全部尚未编译/执行，不能记通过。
+
+当前1 DONE /37 PARTIAL /56 NOT_STARTED。炼丹方士PARTIAL且明确新源代码未构建。外部cod1原文先备份到build/blueprint-client/prompt-backups/cod1-before-alchemist-partial-20261011.txt，再补进展与考试暂停记录，保留整个第8设计；仓库cod1镜像和README已同步。原有world-placement两行过时的天蛛女/炼丹方士PROPOSED字段已按实际绑定修正。九首鸟已完成提示词删除不回写；其他待验收任务提示词不删除。并行美术的8套大形态编辑权继续保留，没有重跑它们的旧生成器。

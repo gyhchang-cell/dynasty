@@ -35,7 +35,7 @@ public class DynastyEntities {
     public static final RegistryObject<EntityType<UndeadFirstEmperor>> UNDEAD_FIRST_EMPEROR =
             ENTITIES.register("undead_first_emperor", () -> EntityType.Builder
                     .of(UndeadFirstEmperor::new, MobCategory.MONSTER)
-                    .sized(0.7F, 2.3F).clientTrackingRange(12).fireImmune()
+                    .sized(3.5F, 4.4F).clientTrackingRange(12).fireImmune()
                     .build("undead_first_emperor"));
 
     // ---- 新生物 / additional mobs ----
@@ -94,12 +94,12 @@ public class DynastyEntities {
     public static final RegistryObject<EntityType<DynastyBosses.RebelGeneral>> REBEL_GENERAL =
             ENTITIES.register("rebel_general", () -> EntityType.Builder
                     .of(DynastyBosses.RebelGeneral::new, MobCategory.MONSTER)
-                    .sized(0.7F, 2.2F).clientTrackingRange(14).build("rebel_general"));
+                    .sized(4.6F, 4.2F).clientTrackingRange(14).build("rebel_general"));
 
     public static final RegistryObject<EntityType<DynastyBosses.EunuchMastermind>> EUNUCH_MASTERMIND =
             ENTITIES.register("eunuch_mastermind", () -> EntityType.Builder
                     .of(DynastyBosses.EunuchMastermind::new, MobCategory.MONSTER)
-                    .sized(0.7F, 2.1F).clientTrackingRange(14).build("eunuch_mastermind"));
+                    .sized(4.5F, 4.6F).clientTrackingRange(14).build("eunuch_mastermind"));
 
     /** 九霄天将 / the Nine-Heaven General */
     public static final RegistryObject<EntityType<DynastyBosses.NineHeavenGeneral>> NINE_HEAVEN_GENERAL =

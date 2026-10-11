@@ -29,6 +29,8 @@ public final class EliteEncounters {
     public static final Placement FOX=new Placement("minecraft:overworld","night courtyard of existing forest herbal retreat","STRUCTURE_ENCOUNTER","12000 ticks after confirmed death; unloaded UUID retains slot",1,"NONE");
     public static final Placement HAMMER=new Placement("minecraft:overworld","east guard court in existing imperial tomb","FIXED_GUARD","one cleared SavedData slot per structure; unloading retains UUID",1,"NONE");
     public static final Placement SPIDER_WOMAN=new Placement("minecraft:overworld","ceiling of the west ore gallery in existing mining estate","STRUCTURE_ENCOUNTER","12000 ticks after confirmed death; unloaded UUID retains slot",1,"NONE");
+    public static final Placement ALCHEMIST=new Placement("minecraft:overworld","open alchemy shed in existing forest herbal retreat","STRUCTURE_ENCOUNTER","12000 ticks after confirmed death; unloaded UUID retains slot",1,"NONE");
+    private static final TagKey<Structure> ALCHEMIST_SITES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/alchemist_sites"));
     private static final TagKey<Structure> SPIDER_WOMAN_SITES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/spider_woman_sites"));
     private static final TagKey<Structure> SITES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/battlefields"));
     private static final TagKey<Structure> MECHANIST_SITES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/mechanist_sites"));
@@ -44,7 +46,7 @@ public final class EliteEncounters {
     }
     @SubscribeEvent public static void left(EntityLeaveLevelEvent event){
         var entity=event.getEntity();
-        if((entity instanceof HeadlessGeneral||entity instanceof GhostCarriageBird||entity instanceof Mechanist||entity instanceof Jinwu||entity instanceof HammerGuardian||entity instanceof SpiderWoman||entity instanceof FoxMatron fox&&!fox.isDecoy())&&entity.getRemovalReason()!=null&&entity.getRemovalReason().shouldDestroy())memberDied(entity);
+        if((entity instanceof HeadlessGeneral||entity instanceof GhostCarriageBird||entity instanceof Mechanist||entity instanceof Jinwu||entity instanceof HammerGuardian||entity instanceof SpiderWoman||entity instanceof Alchemist||entity instanceof FoxMatron fox&&!fox.isDecoy())&&entity.getRemovalReason()!=null&&entity.getRemovalReason().shouldDestroy())memberDied(entity);
     }
     @SubscribeEvent public static void tick(TickEvent.LevelTickEvent event){
         if(event.phase!=TickEvent.Phase.END||!(event.level instanceof ServerLevel level)||level.dimension()!=Level.OVERWORLD
@@ -55,8 +57,8 @@ public final class EliteEncounters {
             for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++){
                 var chunk=level.getChunkSource().getChunkNow(centre.x+dx,centre.z+dz);if(chunk==null)continue;
                 var candidates=new java.util.ArrayList<net.minecraft.world.level.levelgen.structure.StructureStart>();
-                chunk.getAllStarts().forEach((type,start)->{var holder=registry.wrapAsHolder(type);if(holder.is(SITES)||holder.is(MECHANIST_SITES)||holder.is(JINWU_SITES)||holder.is(FOX_SITES))candidates.add(start);});
-                for(var entry:chunk.getAllReferences().entrySet())if(registry.wrapAsHolder(entry.getKey()).is(SITES)||registry.wrapAsHolder(entry.getKey()).is(MECHANIST_SITES)||registry.wrapAsHolder(entry.getKey()).is(JINWU_SITES)||registry.wrapAsHolder(entry.getKey()).is(FOX_SITES))for(long packed:entry.getValue()){
+                chunk.getAllStarts().forEach((type,start)->{var holder=registry.wrapAsHolder(type);if(holder.is(SITES)||holder.is(MECHANIST_SITES)||holder.is(JINWU_SITES)||holder.is(FOX_SITES)||holder.is(ALCHEMIST_SITES)||holder.is(HAMMER_SITES)||holder.is(SPIDER_WOMAN_SITES))candidates.add(start);});
+                for(var entry:chunk.getAllReferences().entrySet())if(registry.wrapAsHolder(entry.getKey()).is(SITES)||registry.wrapAsHolder(entry.getKey()).is(MECHANIST_SITES)||registry.wrapAsHolder(entry.getKey()).is(JINWU_SITES)||registry.wrapAsHolder(entry.getKey()).is(FOX_SITES)||registry.wrapAsHolder(entry.getKey()).is(ALCHEMIST_SITES)||registry.wrapAsHolder(entry.getKey()).is(HAMMER_SITES)||registry.wrapAsHolder(entry.getKey()).is(SPIDER_WOMAN_SITES))for(long packed:entry.getValue()){
                     if(++refs>64)return;var startChunk=level.getChunkSource().getChunkNow(ChunkPos.getX(packed),ChunkPos.getZ(packed));
                     if(startChunk!=null)candidates.add(startChunk.getStartForStructure(entry.getKey()));
                 }
@@ -67,6 +69,10 @@ public final class EliteEncounters {
                         String key=registry.getKey(start.getStructure())+"@"+start.getChunkPos().toLong()+":hammer_guardian";
                         if(visited.add(key))for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TombPiece tomb
                             &&spawnHammer(level,key,tomb.hammerPosition(),player.blockPosition())&&--budget<=0)return;
+                    }
+                    if(registry.wrapAsHolder(start.getStructure()).is(ALCHEMIST_SITES)){
+                        String key=level.dimension().location()+"/"+registry.getKey(start.getStructure())+"@"+start.getChunkPos().toLong()+":alchemist";
+                        if(visited.add(key))for(var piece:start.getPieces())if(piece instanceof com.dynasty.structure.TravelSitePiece travel){var feet=travel.alchemistPosition();if(feet!=null&&spawnAlchemist(level,key,feet,player.blockPosition())&&--budget<=0)return;}
                     }
                     if(registry.wrapAsHolder(start.getStructure()).is(FOX_SITES)){
                         String key=registry.getKey(start.getStructure())+"@"+start.getChunkPos().toLong()+":fox_matron";
@@ -200,4 +206,12 @@ public final class EliteEncounters {
         if(marker==null){marker=new BlueprintSpawnState.Marker(key,feet);state.markers.put(key,marker);}marker.members.add(actor.getUUID());marker.produced=1;state.setDirty();return true;
     }
     private EliteEncounters(){}
+    public static boolean spawnAlchemist(ServerLevel level,String key,BlockPos feet,BlockPos entrant){
+        if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==Difficulty.PEACEFUL||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)||!level.hasChunkAt(feet)||feet.distSqr(entrant)>48*48||feet.distSqr(entrant)<36)return false;
+        var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;
+        var type=EliteContent.ALCHEMIST.get();var box=type.getDimensions().makeBoundingBox(feet.getX()+.5,feet.getY(),feet.getZ()+.5);
+        if(!level.getBlockState(feet.below()).isFaceSturdy(level,feet.below(),Direction.UP)||!level.getFluidState(feet).isEmpty()||!level.noCollision(null,box)||!level.getEntitiesOfClass(Alchemist.class,new AABB(feet).inflate(32),Entity::isAlive).isEmpty())return false;
+        var actor=type.create(level);if(actor==null)return false;actor.moveTo(feet.getX()+.5,feet.getY(),feet.getZ()+.5,0,0);actor.setPersistenceRequired();actor.bindEncounter(key);actor.finalizeSpawn(level,level.getCurrentDifficultyAt(feet),MobSpawnType.STRUCTURE,null,null);if(!level.addFreshEntity(actor))return false;
+        if(marker==null){marker=new BlueprintSpawnState.Marker(key,feet);state.markers.put(key,marker);}marker.members.add(actor.getUUID());marker.produced=1;state.setDirty();return true;
+    }
 }

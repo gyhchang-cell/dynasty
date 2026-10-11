@@ -28,7 +28,7 @@ public final class HammerChain extends Entity implements GeoEntity {
     private double turnFraction=1;
     private final Set<UUID> outgoing=new HashSet<>(),returning=new HashSet<>();
     public HammerChain(EntityType<? extends HammerChain> type,Level level){super(type,level);}
-    public void launch(HammerGuardian caster,Vec3 direction){owner=caster.getUUID();entityData.set(OWNER,caster.getId());born=level().getGameTime();lastTick=born;epoch=caster.attack().started();origin=caster.position().add(0,1.6,0);forward=direction.multiply(1,0,1).normalize();setPos(point(0));}
+    public void launch(HammerGuardian caster,Vec3 direction){owner=caster.getUUID();entityData.set(OWNER,caster.getId());born=level().getGameTime();lastTick=born;epoch=caster.attack().started();origin=com.dynasty.entity.BossFormSockets.throwOrigin(caster);forward=direction.multiply(1,0,1).normalize();setPos(point(0));}
     public boolean ownedBy(HammerGuardian caster){return caster.getUUID().equals(owner);}
     public UUID ownerId(){return owner;}
     public long born(){return born;}

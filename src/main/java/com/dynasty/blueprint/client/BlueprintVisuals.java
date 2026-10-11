@@ -72,6 +72,11 @@ public final class BlueprintVisuals {
         if(mc.isPaused()) return;
         long now=mc.level.getGameTime();
         int budget=mc.options.particles().get()==ParticleStatus.MINIMAL?8:mc.options.particles().get()==ParticleStatus.DECREASED?24:48;
+        if(now%5==0){int shells=0;for(var entity:mc.level.entitiesForRendering()){
+            if(budget<=0||shells>=8)break;
+            if(!(entity instanceof com.dynasty.blueprint.elite.Alchemist caster)||!caster.shellActive()||mc.gameRenderer.getMainCamera().getPosition().distanceToSqr(caster.position())>48*48)continue;
+            int count=Math.min(3,budget);budget-=count;shells++;for(int i=0;i<count;i++){double angle=now*.12+i*Math.PI*2/3;mc.level.addParticle(new DustParticleOptions(new Vector3f(.9F,.65F,.25F),.8F),caster.getX()+Math.cos(angle)*.8,caster.getY()+.5+i*.4,caster.getZ()+Math.sin(angle)*.8,0,.01,0);}
+        }}
         // At most eight nearby live birds contribute one central-stump drip every six ticks.
         if(now%6==0){int birds=0;for(var entity:mc.level.entitiesForRendering()){
             if(budget<=0||birds>=8)break;
@@ -127,6 +132,15 @@ public final class BlueprintVisuals {
             if(death) {
                 budget-=deathParticles(mc,p,age,budget);
                 continue;
+            }
+            if(p.key().startsWith("alchemist_")){
+                if(age>=p.windup())continue;int count=Math.min(8,budget);budget-=count;
+                for(int i=0;i<count;i++){double angle=(i/(double)count+age*.025)*Math.PI*2;Vec3 at;
+                    if(p.key().equals("alchemist_fire_sea")){double radius=i%3==0?2:5;at=p.origin().add(Math.cos(angle)*radius,.1,Math.sin(angle)*radius);}
+                    else if(p.key().equals("alchemist_helix"))at=caster.position().add(Math.cos(angle)*.9,1.1+Math.sin(angle)*.35,Math.sin(angle)*.9);
+                    else at=caster.position().add(Math.cos(angle)*.7,1.5,Math.sin(angle)*.7);
+                    var dust=new DustParticleOptions(i%2==0?new Vector3f(.95F,.85F,.68F):new Vector3f(.2F,.18F,.22F),.85F);mc.level.addParticle(dust,at.x,at.y,at.z,0,0,0);
+                }continue;
             }
             if(p.key().startsWith("spider_")){
                 int count=Math.min(8,budget);budget-=count;var dust=new DustParticleOptions(new Vector3f(.46F,.71F,.29F),.85F);
@@ -288,6 +302,10 @@ public final class BlueprintVisuals {
         }
     }
     private static int deathParticles(Minecraft mc,BlueprintVisualEvent p,long age,int budget) {
+        if(p.key().equals("death_yinyang_liandan_fangshi")){
+            var caster=mc.level.getEntity(p.entityId());if(caster==null||!caster.getUUID().equals(p.entityUuid())||age>=76)return 0;
+            int count=Math.min(4,budget);for(int i=0;i<count;i++){double angle=i*Math.PI*.5+age*.12;var at=caster.position().add(Math.cos(angle)*.7,.3+(age%24)*.045,Math.sin(angle)*.7);mc.level.addParticle(age<18?new ItemParticleOption(ParticleTypes.ITEM,new ItemStack(Items.RAW_COPPER)):i%2==0?ParticleTypes.FLAME:ParticleTypes.SOUL_FIRE_FLAME,at.x,at.y,at.z,Math.cos(angle)*.02,.04,Math.sin(angle)*.02);}return count;
+        }
         if(p.key().equals("death_gudu_tianzhunv")){
             if(!(mc.level.getEntity(p.entityId()) instanceof com.dynasty.blueprint.elite.SpiderWoman spider)||!spider.onGround())return 0;
             int count=Math.min(4,budget);for(int i=0;i<count;i++){double angle=(i/(double)count+age*.02)*Math.PI*2;mc.level.addParticle(new DustParticleOptions(new Vector3f(.46F,.71F,.29F),.9F),spider.getX()+Math.cos(angle)*1.2,spider.getY()+.08,spider.getZ()+Math.sin(angle)*1.2,0,.02,0);}return count;

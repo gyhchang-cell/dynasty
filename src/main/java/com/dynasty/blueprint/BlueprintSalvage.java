@@ -104,6 +104,9 @@ public final class BlueprintSalvage {
     public static final RegistryObject<Item> REFINED_COAL_BALL=BlueprintEntities.ITEMS.register("refined_coal_ball",()->new Item(new Item.Properties()){
         @Override public int getBurnTime(ItemStack stack,@Nullable net.minecraft.world.item.crafting.RecipeType<?> type){return 2400;}
     });
+    public static final RegistryObject<Item> CRACKED_ALCHEMY_COPPER=register("cracked_alchemy_copper",Use.SHIELD);
+    public static final RegistryObject<Item> ALCHEMIST_FIRE_ASH=register("alchemist_fire_ash",Use.IRON_GEAR);
+    public static final RegistryObject<Item> PURIFIED_MERCURY_BEAD=register("purified_mercury_bead",Use.JADE_GEAR);
     private static final class BreathSac extends Item {
         BreathSac(){super(new Properties().food(new net.minecraft.world.food.FoodProperties.Builder().nutrition(0).saturationMod(0).alwaysEat().build()));}
         @Override public ItemStack finishUsingItem(ItemStack stack,Level level,net.minecraft.world.entity.LivingEntity user){

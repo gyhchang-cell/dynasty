@@ -50,7 +50,15 @@ public record BlueprintVisualEvent(ResourceLocation dimension, int entityId, UUI
     }
     private static BlueprintVisualEvent spiderDeath(com.dynasty.blueprint.elite.SpiderWoman spider){return new BlueprintVisualEvent(spider.level().dimension().location(),spider.getId(),spider.getUUID(),-1,spider.skillStart(),seed(spider,spider.skillStart()),"death_gudu_tianzhunv",0,80,spider.position(),spider.getLookAngle(),2,360,false);}
     public static void death(com.dynasty.blueprint.elite.SpiderWoman spider){if(spider.level() instanceof ServerLevel)send(spider,spiderDeath(spider));}
+    private static BlueprintVisualEvent alchemistDeath(com.dynasty.blueprint.elite.Alchemist caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_yinyang_liandan_fangshi",0,80,caster.position(),caster.getLookAngle(),2,360,false);}
+    public static void death(com.dynasty.blueprint.elite.Alchemist caster){if(caster.level() instanceof ServerLevel)send(caster,alchemistDeath(caster));}
     @SubscribeEvent public static void tracking(PlayerEvent.StartTracking event) {
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.Alchemist caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<80)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),alchemistDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
         if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.SpiderWoman spider&&spider.level() instanceof ServerLevel level){
             if(spider.isDeadOrDying()){if(spider.skillStart()>=0&&level.getGameTime()-spider.skillStart()<80)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),spiderDeath(spider));return;}
             var action=spider.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){

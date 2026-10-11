@@ -53,7 +53,7 @@ public final class SpiderWomanCombatClientQa {
     private static int frames,disconnectPhase;
     private static UUID pendingEgg;
     private static long eggArmed=-1;
-    private static float previousHealth=1000;
+
 
     private static FlatLevelSource terrain(RegistryAccess registry){
         var settings=FlatLevelGeneratorSettings.getDefault(registry.lookupOrThrow(Registries.BIOME),registry.lookupOrThrow(Registries.STRUCTURE_SET),registry.lookupOrThrow(Registries.PLACED_FEATURE));
@@ -98,7 +98,7 @@ public final class SpiderWomanCombatClientQa {
             if(!Files.exists(COORD.resolve("view.json")))return;
             var view=JSON.fromJson(Files.readString(COORD.resolve("view.json")),JsonObject.class);var p=BlockPos.of(view.get("feet").getAsLong());
             if(camera==null){camera=new ArmorStand(mc.level,p.getX()+.5,p.getY()+.4,p.getZ()-6);camera.setYRot(0);camera.setYHeadRot(0);camera.yHeadRotO=0;camera.setXRot(6);camera.setOldPosAndRot();mc.options.hideGui=true;mc.setCameraEntity(camera);}
-            if(!mc.levelRenderer.isChunkCompiled(p)||mc.level.getBlockState(p.below(3)).isAir())return;
+            if(!mc.levelRenderer.isChunkCompiled(p)||mc.level.getBlockState(p.below(4)).isAir())return;
             if(++frames>=40&&!ready){ready=true;Files.writeString(COORD.resolve("ready-"+ROLE+".txt"),"Actual native floor ready");}
             var liveFile=ROOT.resolve("host/combat-live.json");
             if(Files.exists(liveFile)){
@@ -137,7 +137,7 @@ public final class SpiderWomanCombatClientQa {
             }
             world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true,server);
         }else feet=BlockPos.of(checkpoint.get("feet").getAsLong());
-        for(var player:world.players()){player.teleportTo(world,feet.getX()+.5,feet.getY()-2,feet.getZ()-8.5,0,0);player.setGameMode(player.getGameProfile().getName().equals("BlueprintHost")?GameType.SURVIVAL:GameType.CREATIVE);player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);player.setHealth(1000);player.setInvulnerable(false);}
+        for(var player:world.players()){player.teleportTo(world,feet.getX()+.5,feet.getY()-3,feet.getZ()-8.5,0,0);player.setGameMode(player.getGameProfile().getName().equals("BlueprintHost")?GameType.SURVIVAL:GameType.CREATIVE);player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);player.setHealth(1000);player.setInvulnerable(false);}
         try{Files.writeString(COORD.resolve("view.json"),JSON.toJson(Map.of("feet",feet.asLong())));}catch(Exception failure){throw new RuntimeException(failure);}
     }
     @SubscribeEvent public static void joined(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event){
@@ -145,13 +145,13 @@ public final class SpiderWomanCombatClientQa {
             ||!player.getGameProfile().getName().equals("BlueprintPeer"))return;
         // A detached render camera does not change the real server entity-tracking centre.
         // Keep the native observer in range on both initial login and actual reconnection.
-        player.teleportTo(player.server.overworld(),feet.getX()+.5,feet.getY()-2,feet.getZ()-8.5,0,0);
+        player.teleportTo(player.server.overworld(),feet.getX()+.5,feet.getY()-3,feet.getZ()-8.5,0,0);
         player.setGameMode(GameType.CREATIVE);
     }
     private static Map<String,Object> state(SpiderWoman m){return Map.of("uuid",m.getUUID().toString(),"entityId",m.getId(),"site",m.encounterSite(),"position",m.position().toString(),"attack",m.attack().save().toString(),"skill",m.skillId(),"start",m.skillStart(),"phase",m.phase().name());}
     private static java.util.List<Map<String,Object>> summons(net.minecraft.server.level.ServerLevel world,SpiderWoman m){return world.getEntitiesOfClass(Entity.class,m.getBoundingBox().inflate(32),e->e instanceof SpiderBrood b&&b.ownedBy(m)||e instanceof com.dynasty.blueprint.SkullBloodPool p&&p.ownedBy(m)).stream().map(e->Map.<String,Object>of("uuid",e.getUUID().toString(),"id",e.getType().toString(),"nbt",e.saveWithoutId(new CompoundTag()).toString())).toList();}
     private static net.minecraft.world.phys.Vec3 nativeStand(net.minecraft.server.level.ServerLevel world,net.minecraft.server.level.ServerPlayer player,net.minecraft.world.phys.Vec3 centre,double distance){
-        for(int n=0;n<32;n++){double angle=n*Math.PI/16;var point=new net.minecraft.world.phys.Vec3(centre.x+Math.sin(angle)*distance,feet.getY()-2,centre.z+Math.cos(angle)*distance);var floor=BlockPos.containing(point).below();
+        for(int n=0;n<32;n++){double angle=n*Math.PI/16;var point=new net.minecraft.world.phys.Vec3(centre.x+Math.sin(angle)*distance,feet.getY()-3,centre.z+Math.cos(angle)*distance);var floor=BlockPos.containing(point).below();
             if(!world.hasChunkAt(floor)||!world.getBlockState(floor).isFaceSturdy(world,floor,Direction.UP)||!world.noCollision(player,player.getDimensions(player.getPose()).makeBoundingBox(point)))continue;
             if(world.clip(new net.minecraft.world.level.ClipContext(centre.add(0,.3,0),point.add(0,player.getEyeHeight(),0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,mob)).getType()==net.minecraft.world.phys.HitResult.Type.MISS)return point;
         }return null;
@@ -180,10 +180,10 @@ public final class SpiderWomanCombatClientQa {
                 EVENTS.add(Map.of("event","isolated_registered_actor_after_ordinary_structure_spawn","removedOtherActors",others.size(),"tick",world.getGameTime()));
             }
             ceilingSeen|=mob.attachedToCeiling()&&mob.isNoGravity();
-            if(Math.abs(host.distanceTo(mob)-3.2)>1.2||!mob.hasLineOfSight(host)){
-                var safe=nativeStand(world,host,mob.position(),3);if(safe!=null)host.teleportTo(world,safe.x,safe.y,safe.z,180,0);
+            double desired=mob.skillId()==372?1:3;
+            if(Math.abs(host.distanceTo(mob)-desired)>1.2||!mob.hasLineOfSight(host)){
+                var safe=nativeStand(world,host,mob.position(),desired);if(safe!=null)host.teleportTo(world,safe.x,safe.y,safe.z,180,0);
             }
-            if(host.getHealth()<previousHealth&&mob.skillId()==372&&mob.onGround())landingSeen=true;previousHealth=host.getHealth();
             long now=world.getGameTime();var attack=mob.attack().save();if(attack.getIntArray("Fired").length>0)RELEASED.add(mob.skillId());
             if(now!=lastSample&&age%4==0){lastSample=now;SAMPLES.add(Map.of("tick",now,"actor",state(mob),"hostHealth",host.getHealth(),"players",world.players().size()));publishJson(OUT.resolve("combat-live.json"),SAMPLES.get(SAMPLES.size()-1));}
             if(!RESUME.isEmpty()){
@@ -209,6 +209,9 @@ public final class SpiderWomanCombatClientQa {
                 Files.writeString(OUT.resolve("combat.json"),JSON.toJson(Map.of("samples",SAMPLES,"events",EVENTS,"released",RELEASED,"scope","Actual mining-estate generator and ordinary climbing AI, all three autonomous releases, real landing contact and actual charged bronze-player egg destruction, pack reload and actual TCP disconnect/reconnect where applicable; checkpoint during a consumed attack")));Files.writeString(COORD.resolve("complete.txt"),RUN);
             }
         }catch(Throwable failure){try{Files.writeString(OUT.resolve("failed-samples.json"),JSON.toJson(Map.of("samples",SAMPLES,"released",RELEASED,"events",EVENTS)));Files.writeString(OUT.resolve("FAIL.txt"),"Server lifecycle acceptance failed: "+failure);}catch(Exception ignored){}throw new RuntimeException(failure);}
+    }
+    @SubscribeEvent public static void actualLanding(net.minecraftforge.event.entity.living.LivingDamageEvent e){
+        if(ENABLED&&HOST&&mob!=null&&e.getEntity() instanceof net.minecraft.server.level.ServerPlayer player&&player.getGameProfile().getName().equals("BlueprintHost")&&e.getSource().getDirectEntity()==mob&&mob.skillId()==372&&mob.onGround()&&e.getAmount()>0){landingSeen=true;EVENTS.add(Map.of("event","ordinary_drop_native_landing_contact","tick",mob.level().getGameTime(),"acceptedDamage",e.getAmount()));}
     }
     @SubscribeEvent public static void stopping(net.minecraftforge.event.server.ServerStoppingEvent e){
         if(!ENABLED||!HOST||mob==null)return;try{Files.writeString(OUT.resolve("checkpoint.json"),JSON.toJson(Map.of("tick",e.getServer().overworld().getGameTime(),"feet",feet.asLong(),"actor",state(mob),"summons",summons(e.getServer().overworld(),mob))));}catch(Exception failure){throw new RuntimeException(failure);}

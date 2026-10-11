@@ -31,6 +31,15 @@ public final class SpiderWomanGameTests {
         var m=own(h,h.spawn(EliteContent.SPIDER_WOMAN.get(),new BlockPos(7,ceiling?4:2,5)));m.setNoAi(false);m.setPersistenceRequired();m.bindEncounter("spider-woman@"+m.getUUID()+":spider_woman");return m;
     }
     private static Cow target(GameTestHelper h){var c=own(h,h.spawn(EntityType.COW,new BlockPos(7,2,8)));c.setNoAi(true);c.setNoGravity(true);c.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);c.setHealth(1000);return c;}
+    @GameTest(template="bow_ritual_test",timeoutTicks=120,batch="spider_woman")
+    public static void productionCeilingMarkerInitializesAttachmentBeforeTheFirstEntityTick(GameTestHelper h){
+        var template=mob(h,true);var feet=template.blockPosition();template.discard();var world=h.getLevel();var key="native-spider-ceiling@"+feet.asLong()+":spider_woman";
+        h.startSequence().thenWaitUntil(()->h.assertTrue(world.isPositionEntityTicking(feet),"Authored supported surface is loaded and natively ticking"))
+            .thenExecute(()->{var rule=world.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING);boolean old=rule.get();rule.set(true,world.getServer());try{
+                h.assertTrue(EliteEncounters.spawnSpiderWoman(world,key,feet,feet.offset(0,-2,8)),"The production spawner accepts the real supported ceiling");var marker=BlueprintSpawnState.get(world).markers.get(key);var actor=world.getEntity(marker.members.iterator().next());h.assertTrue(actor instanceof SpiderWoman,"Saved native UUID resolves to the registered adult");own(h,actor);var caster=(SpiderWoman)actor;
+                h.assertTrue(!caster.isNoAi()&&caster.attachedToCeiling()&&caster.isNoGravity()&&caster.ceilingSupported(),"Supported ceiling gravity and tracking are initialized before the first ordinary tick");h.assertTrue(!EliteEncounters.spawnSpiderWoman(world,key,feet,feet.offset(0,-2,8)),"Another entrant cannot duplicate the parent owner budget");
+            }finally{rule.set(old,world.getServer());}}).thenSucceed();
+    }
     @GameTest(template="bow_ritual_test",timeoutTicks=80,batch="spider_woman")
     public static void ceilingAdhesionRequiresAnActualSolidFaceAndStopsWhenItIsRemoved(GameTestHelper h){
         var m=mob(h,true);h.runAfterDelay(4,()->h.assertTrue(m.attachedToCeiling()&&m.isNoGravity()&&Math.abs(m.getY()-h.absolutePos(new BlockPos(7,4,5)).getY())<.1,"Actual native support holds the registered body at the ceiling"));
