@@ -32,21 +32,12 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
         super(context,new Model(id),new Visual(type,id));
         // The three human bosses author their real size in Cuboid units, without a species scale.
         shadowRadius=id.equals("dragon_emperor")?.85f:id.equals("dragon_king")?.7f:id.equals("nine_heaven_general")?.8f:.5f;
-        if(id.equals("nine_heaven_general"))addRenderLayer(new GeoRenderLayer<Visual>(this){
+        if(id.equals("nine_heaven_general")||id.equals("dragon_king")||id.equals("dragon_emperor"))addRenderLayer(new GeoRenderLayer<Visual>(this){
             @Override public void render(PoseStack pose,Visual visual,BakedGeoModel model,RenderType type,MultiBufferSource buffers,VertexConsumer vertex,float partial,int light,int overlay){
-                var body=BossCuboidRenderer.this.getGeoModel().getBone("body").orElseThrow();
-                if(getCurrentEntity().isInvisible()||getCurrentEntity().isDeadOrDying()||Math.abs(body.getRotZ())>.0001f)return;
-                // Preserve the already-verified post-render basis for live runes.
-                BossCuboidAura.draw(pose,buffers,getCurrentEntity().tickCount+partial,0);
-            }
-            @Override public void renderForBone(PoseStack pose,Visual visual,GeoBone bone,RenderType type,MultiBufferSource buffers,VertexConsumer vertex,float partial,int light,int overlay){
-                if(!bone.getName().equals("body"))return;
-                if(getCurrentEntity().isInvisible())return;
-                if(!getCurrentEntity().isDeadOrDying()&&Math.abs(bone.getRotZ())<=.0001f)return;
-                // Keep the existing thunder rune behind the articulated human regalia.
-                float fold=BossCuboidRenderer.this.getGeoModel().getBone("storm_ring_outer").map(GeoBone::getRotY).orElse(0f);
-                BossCuboidAura.draw(pose,buffers,getCurrentEntity().tickCount+partial,fold);
-                buffers.getBuffer(type);
+                var mob=getCurrentEntity();
+                var controller=visual.getAnimatableInstanceCache().getManagerForId(mob.getId()).getAnimationControllers().get("body");
+                boolean casting=controller!=null&&controller.getCurrentAnimation()!=null&&controller.getCurrentAnimation().animation().name().equals("cast");
+                BossHumanAura.draw(pose,buffers,mob,id,partial,casting);
             }
         });
         // Preserve actual main/offhand equipment at articulated grip bones.

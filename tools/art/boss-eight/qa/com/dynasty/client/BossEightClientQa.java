@@ -32,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
 @Mod.EventBusSubscriber(modid="dynasty",value=Dist.CLIENT)
 public final class BossEightClientQa {
     private static final boolean CHECKLIST=Boolean.getBoolean("dynasty.bossChecklistQa");
+    private static final boolean HUMAN_PRESENCE=Boolean.getBoolean("dynasty.bossHumanPresenceQa");
     private static final boolean HUMAN=Boolean.getBoolean("dynasty.bossHumanQa");
     private static final boolean MATERIALS=Boolean.getBoolean("dynasty.bossMaterialQa");
     private static final boolean SPIRITS=MATERIALS||Boolean.getBoolean("dynasty.bossSpiritQa");
@@ -91,6 +92,15 @@ public final class BossEightClientQa {
                 STAGES.add(new Stage(id,"death",-3,15));
             }
         }
+        if(HUMAN_PRESENCE){
+            STAGES.clear();
+            for(String id:new String[]{"nine_heaven_general","dragon_king","dragon_emperor"}){
+                for(String v:new String[]{"front","45","side","back"})for(String fx:new String[]{"off","on"})STAGES.add(new Stage(id,v+"-"+fx,0,0));
+                STAGES.add(new Stage(id,"walk",0,0));
+                STAGES.add(new Stage(id,"attack-tell",-1,1));STAGES.add(new Stage(id,"attack-contact",-1,3));STAGES.add(new Stage(id,"attack-recovery",-1,5));
+                STAGES.add(new Stage(id,"hurt",-2,2));STAGES.add(new Stage(id,"death",-3,15));
+            }
+        }
         int limit=Integer.getInteger("dynasty.bossEightQa.limit",STAGES.size());
         if(limit<STAGES.size())STAGES.subList(limit,STAGES.size()).clear();
     }
@@ -113,7 +123,7 @@ public final class BossEightClientQa {
             if(mc.screen instanceof AccessibilityOnboardingScreen)mc.setScreen(new TitleScreen());
             if(!started&&mc.screen instanceof TitleScreen){
                 if(!mc.gameDirectory.getCanonicalPath().contains("/build/boss-eight-native/"))throw new AssertionError("Refusing normal save");
-                Files.createDirectories(OUT);started=true;mc.options.pauseOnLostFocus=false;mc.options.renderDistance().set(3);mc.options.fov().set(48);mc.options.hideGui=true;mc.options.bobView().set(false);
+                Files.createDirectories(OUT);started=true;mc.options.pauseOnLostFocus=false;mc.options.renderDistance().set(3);mc.options.fov().set(HUMAN_PRESENCE?70:48);mc.options.hideGui=true;mc.options.bobView().set(false);
                 mc.options.getSoundSourceOptionInstance(net.minecraft.sounds.SoundSource.MASTER).set(0.0);
                 var rules=new GameRules();rules.getRule(GameRules.RULE_DOMOBSPAWNING).set(false,null);rules.getRule(GameRules.RULE_DAYLIGHT).set(false,null);
                 mc.createWorldOpenFlows().createFreshLevel("boss-eight-"+System.currentTimeMillis(),new LevelSettings("Disposable eight boss art",GameType.CREATIVE,false,Difficulty.NORMAL,true,rules,WorldDataConfiguration.DEFAULT),new WorldOptions(57,false,false),reg->reg.registryOrThrow(Registries.WORLD_PRESET).getOrThrow(WorldPresets.FLAT).createWorldDimensions());return;
@@ -123,6 +133,14 @@ public final class BossEightClientQa {
             if(stage<START||captured){if(stage==STAGES.size()-1){finish(mc,null);return;}stage++;pending=mc.getSingleplayerServer().submit(()->prepare(mc));return;}
             if(!(mc.level.getEntity(entityId) instanceof Mob mob))return;
             settled++;
+            if(HUMAN_PRESENCE&&settled==40)mc.getSingleplayerServer().submit(()->{
+                var w=mc.getSingleplayerServer().overworld();
+                for(int x=-4;x<=4;x++)for(int z=-4;z<=4;z++)for(int y=-60;y<=-55;y++){
+                    var p=new BlockPos(x,y,z);var old=w.getBlockState(p);w.setBlockAndUpdate(p,Blocks.AIR.defaultBlockState());
+                    w.sendBlockUpdated(p,old,Blocks.AIR.defaultBlockState(),3);
+                }
+                return 0;
+            });
             if(action!=null&&action.isDone())actionAt=action.join();
             Stage s=STAGES.get(stage);
             if(settled>300)throw new AssertionError("Pose not reached "+s+" actionAt="+actionAt+" "+diagnostic);
@@ -131,6 +149,15 @@ public final class BossEightClientQa {
         }catch(Throwable e){finish(mc,e);}
     }
     @SubscribeEvent public static void serverTick(TickEvent.ServerTickEvent ev){
+        if(ENABLED&&HUMAN_PRESENCE&&!done&&ev.phase==TickEvent.Phase.END&&fixture!=null){
+            // The real delayed death service may place a lootable corpse after the next
+            // fixture begins. Remove only this test world's remains, never disable that service.
+            var world=fixture.level();
+            for(int x=-4;x<=4;x++)for(int z=-4;z<=4;z++)for(int y=-60;y<=-55;y++){
+                var pos=new BlockPos(x,y,z);var key=net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(world.getBlockState(pos).getBlock());
+                if(key!=null&&key.getNamespace().equals("dynasty")&&(key.getPath().contains("remains")||key.getPath().contains("statue")))world.removeBlock(pos,false);
+            }
+        }
         if(!ENABLED||done||ev.phase!=TickEvent.Phase.END||fixture==null||stage<0||!activated||captured)return;
         if(STAGES.get(stage).label.equals("walk")){fixture.move(MoverType.SELF,new net.minecraft.world.phys.Vec3(.065,0,0));fixture.setDeltaMovement(.065,0,0);fixture.hurtMarked=true;}
     }
@@ -146,7 +173,7 @@ public final class BossEightClientQa {
         fixture=(Mob)type.create(world);fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();if(CHECKLIST)fixture.setSilent(true);world.addFreshEntity(fixture);
         if(!PRESENCE&&!(fixture instanceof GeoEntity)){fixture.setItemSlot(EquipmentSlot.MAINHAND,new ItemStack(Items.STONE_SWORD));fixture.setItemSlot(EquipmentSlot.OFFHAND,new ItemStack(Items.SHIELD));}
         victim=EntityType.COW.create(world);victim.setNoAi(true);victim.setNoGravity(true);victim.setSilent(true);victim.moveTo(0,-60,PRESENCE?8:s.skill==342||s.skill==363?6:2,180,0);victim.getAttribute(Attributes.MAX_HEALTH).setBaseValue(10000);victim.setHealth(10000);victim.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INVISIBILITY,12000,0,false,false,false));world.addFreshEntity(victim);
-        for(var p:server.getPlayerList().getPlayers())p.teleportTo(world,PRESENCE?-4:0,-60,PRESENCE?1:20,180,0);
+        for(var p:server.getPlayerList().getPlayers())p.teleportTo(world,HUMAN_PRESENCE?-2.65:PRESENCE?-4:0,-60,HUMAN_PRESENCE?0:PRESENCE?1:20,180,0);
         return fixture.getId();
     }
     private static long activate(Minecraft mc,Stage s)throws Exception{
@@ -160,19 +187,21 @@ public final class BossEightClientQa {
         return mc.getSingleplayerServer().overworld().getGameTime();
     }
     private static void camera(Minecraft mc){
-        Stage s=STAGES.get(stage);double yaw=s.label.equals("45")?45:s.label.equals("side")?90:s.label.equals("back")?180:0;
+        Stage s=STAGES.get(stage);String view=s.label.replace("-off","").replace("-on","");
+        if(HUMAN_PRESENCE){BossHumanAura.setReviewSuppressed(s.label.endsWith("-off"));mc.particleEngine.setLevel(mc.level);}
+        double yaw=view.equals("45")?45:view.equals("side")?90:view.equals("back")?180:0;
         if(s.skill!=0||s.label.equals("walk"))yaw=35;
         double a=Math.toRadians(yaw),distance=s.id.equals("pilin_zhijinwu")?7.5:s.id.equals("juchui_jinjia_lishi")||s.id.equals("xianzhen_duantoujiang")?6.5:5.5;
         if(PRESENCE)distance=s.id.equals("pilin_zhijinwu")?11:10;
         if(CHECKLIST)distance=s.id.equals("dragon_emperor")?18:11;
-        if(HUMAN)distance=8.5;
-        if(HUMAN&&s.label.startsWith("attack"))distance=11;
+        if(HUMAN)distance=HUMAN_PRESENCE?6:8.5;
+        if(HUMAN&&s.label.startsWith("attack"))distance=HUMAN_PRESENCE?8:11;
         var cam=new ArmorStand(mc.level,Math.sin(a)*distance,-60,Math.cos(a)*distance);
         cam.setPos(cam.getX(),-60+(HUMAN?1.62:PRESENCE?2.5:s.id.equals("pilin_zhijinwu")?1.9:1.5)-cam.getEyeHeight(),cam.getZ());cam.setNoGravity(true);cam.setYRot((float)(180-yaw));cam.setXRot(PRESENCE?3:5);cam.setYHeadRot(cam.getYRot());cam.yHeadRotO=cam.getYRot();cam.setOldPosAndRot();mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(cam);
     }
     @SuppressWarnings({"rawtypes","unchecked"})
     @SubscribeEvent public static void render(TickEvent.RenderTickEvent ev){
-        if(ENABLED&&PRESENCE&&ev.phase==TickEvent.Phase.START)Minecraft.getInstance().particleEngine.setLevel(Minecraft.getInstance().level);
+        if(ENABLED&&PRESENCE&&!HUMAN_PRESENCE&&ev.phase==TickEvent.Phase.START)Minecraft.getInstance().particleEngine.setLevel(Minecraft.getInstance().level);
         if(!ENABLED||done||captured||pending!=null||stage<0||ev.phase!=TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();if(mc.level==null||!(mc.level.getEntity(entityId) instanceof Mob mob))return;
         try{
@@ -190,7 +219,7 @@ public final class BossEightClientQa {
             if(mob instanceof GeoEntity)expected="animation."+s.id+"."+expected;
             long age=actionAt<0?-1:mc.level.getGameTime()-actionAt;
             // The first fixture needs chunk meshes ready, not merely entity replication.
-            boolean ready=s.skill!=0?age>=s.age:s.label.equals("walk")?age>=10:settled>=(stage==START?160:26)&&rendered>=8;
+            boolean ready=s.skill!=0?age>=s.age:s.label.equals("walk")?age>=10:settled>=(stage==START?160:HUMAN_PRESENCE?80:26)&&rendered>=8;
             if(!ready)return;
             if(!clip.equals(expected)){
                 if(age<60)return;
@@ -235,7 +264,11 @@ public final class BossEightClientQa {
                         loadedHashes.put(path,hash);
                     }
                 }
-                record.put("loadedResourceSha256",loadedHashes);record.put("particles","cleared in QA only before frame");
+                record.put("loadedResourceSha256",loadedHashes);record.put("particles",HUMAN_PRESENCE?(s.label.endsWith("-off")?"independent aura and particles disabled":"production aura and particles enabled"):"cleared in QA only before frame");
+                if(HUMAN_PRESENCE){record.put("auraParticleEmissionRequests",BossHumanAura.reviewEmissions());
+                    int obstructions=0;for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=-60;y<=-56;y++)if(!mc.level.getBlockState(new BlockPos(x,y,z)).isAir())obstructions++;
+                    record.put("fixtureAirObstructions",obstructions);if(obstructions!=0){if(settled>240)throw new AssertionError("Fixture obstruction "+s+" count="+obstructions);return;}
+                    if(s.label.endsWith("-on")&&BossHumanAura.reviewEmissions()<10)throw new AssertionError("No production aura emissions "+s);if(s.label.endsWith("-off")&&BossHumanAura.reviewEmissions()!=0)throw new AssertionError("Particles not disabled "+s);}
             }
             Map<String,Object> bones=new LinkedHashMap<>();for(Object o:model.getAnimationProcessor().getRegisteredBones()){var b=(software.bernie.geckolib.cache.object.GeoBone)o;bones.put(b.getName(),Map.of("rotation",List.of(b.getRotX(),b.getRotY(),b.getRotZ()),"position",List.of(b.getPosX(),b.getPosY(),b.getPosZ())));}record.put("bones",bones);
             Files.writeString(OUT.resolve(String.format("%02d-state.json",stage)),new GsonBuilder().setPrettyPrinting().create().toJson(record));

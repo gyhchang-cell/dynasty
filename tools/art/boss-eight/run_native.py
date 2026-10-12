@@ -2,14 +2,15 @@
 import json,os,shutil,subprocess,time,hashlib,zipfile,sys
 from pathlib import Path
 R=Path(__file__).resolve().parents[3]
-human=os.environ.get('DYNASTY_HUMAN_QA')=='1'
+human_presence=os.environ.get('DYNASTY_HUMAN_PRESENCE_QA')=='1'
+human=human_presence or os.environ.get('DYNASTY_HUMAN_QA')=='1'
 checklist=human or os.environ.get('DYNASTY_CHECKLIST_QA')=='1'
 proportions=os.environ.get('DYNASTY_PROPORTION_QA')=='1'
 materials=proportions or os.environ.get('DYNASTY_MATERIAL_QA')=='1'
 spirits=materials or os.environ.get('DYNASTY_SPIRIT_QA')=='1'
 presence=checklist or spirits or os.environ.get('DYNASTY_PRESENCE_QA')=='1'
 name=sys.argv[1] if len(sys.argv)>1 else 'batch-1';root=R/'build/boss-eight-native'/name;root.mkdir(parents=True,exist_ok=False)
-out=R/('docs/art/boss-human-v10/native' if human else 'docs/art/boss-checklist-night-v9/native' if checklist else 'docs/art/boss-proportions-v8/native' if proportions else 'docs/art/boss-materials-v6/native' if materials else 'docs/art/boss-presence-v5/native' if spirits else 'docs/art/boss-presence-v4/native' if presence else 'docs/art/boss-eight-v1/native')/name;out.mkdir(parents=True,exist_ok=False)
+out=R/('docs/art/boss-human-v11/native' if human_presence else 'docs/art/boss-human-v10/native' if human else 'docs/art/boss-checklist-night-v9/native' if checklist else 'docs/art/boss-proportions-v8/native' if proportions else 'docs/art/boss-materials-v6/native' if materials else 'docs/art/boss-presence-v5/native' if spirits else 'docs/art/boss-presence-v4/native' if presence else 'docs/art/boss-eight-v1/native')/name;out.mkdir(parents=True,exist_ok=False)
 launch=Path(sys.argv[2]) if len(sys.argv)>2 else Path('/Users/a15356015027/Desktop/dynasty/build/guiche-art-native/strict16-final/launch.json')
 cfg=json.loads(launch.read_text());old=cfg['environment']['MOD_CLASSES'].split(os.pathsep)
 paths=[R/'build/resources/main',R/'build/classes/java/main',None,R/'build/classes/java/bossEightQa'];mapping={}
@@ -42,6 +43,7 @@ for a in cfg['jvmArgs']:
 jvm+=['-Xmx2G','-XX:ActiveProcessorCount=2','-Ddynasty.bossEightQa=true','-Ddynasty.bossEightQa.start='+os.environ.get('DYNASTY_ART_START','0'),'-Ddynasty.bossEightQa.output='+str(out),'-javaagent:'+str(R/'build/boss-eight-agent/quiet-window-agent.jar')]
 if checklist:jvm.append('-Ddynasty.bossChecklistQa=true')
 if human:jvm.append('-Ddynasty.bossHumanQa=true')
+if human_presence:jvm.append('-Ddynasty.bossHumanPresenceQa=true')
 if presence:jvm.append('-Ddynasty.bossPresenceQa=true')
 if spirits:jvm.append('-Ddynasty.bossSpiritQa=true')
 if materials:jvm.append('-Ddynasty.bossMaterialQa=true')
