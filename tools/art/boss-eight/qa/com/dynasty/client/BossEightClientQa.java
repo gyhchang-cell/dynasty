@@ -32,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
 @Mod.EventBusSubscriber(modid="dynasty",value=Dist.CLIENT)
 public final class BossEightClientQa {
     private static final boolean CHECKLIST=Boolean.getBoolean("dynasty.bossChecklistQa");
+    private static final boolean HUMAN=Boolean.getBoolean("dynasty.bossHumanQa");
     private static final boolean MATERIALS=Boolean.getBoolean("dynasty.bossMaterialQa");
     private static final boolean SPIRITS=MATERIALS||Boolean.getBoolean("dynasty.bossSpiritQa");
     private static final boolean PRESENCE=CHECKLIST||SPIRITS||Boolean.getBoolean("dynasty.bossPresenceQa");
@@ -138,6 +139,8 @@ public final class BossEightClientQa {
         if(fixture!=null)fixture.discard();if(victim!=null)victim.discard();
         var cleanup=new ArrayList<Entity>();for(var e:world.getAllEntities())if(e!=null&&!(e instanceof net.minecraft.server.level.ServerPlayer))cleanup.add(e);cleanup.forEach(Entity::discard);
         for(int x=-12;x<=12;x++)for(int z=-12;z<=12;z++)world.setBlockAndUpdate(new BlockPos(x,-61,z),((x+z)%7==0?Blocks.STONE_BRICKS:Blocks.GRASS_BLOCK).defaultBlockState());
+        // Clear only this disposable fixture's air volume; no user save can enter this harness.
+        if(HUMAN)for(int x=-12;x<=12;x++)for(int z=-12;z<=12;z++)for(int y=-60;y<=-51;y++)world.setBlockAndUpdate(new BlockPos(x,y,z),Blocks.AIR.defaultBlockState());
         Stage s=STAGES.get(stage);var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",s.id));
         if(type==null)throw new AssertionError("Unregistered "+s.id);
         fixture=(Mob)type.create(world);fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setNoGravity(true);fixture.setPersistenceRequired();if(CHECKLIST)fixture.setSilent(true);world.addFreshEntity(fixture);
@@ -162,8 +165,10 @@ public final class BossEightClientQa {
         double a=Math.toRadians(yaw),distance=s.id.equals("pilin_zhijinwu")?7.5:s.id.equals("juchui_jinjia_lishi")||s.id.equals("xianzhen_duantoujiang")?6.5:5.5;
         if(PRESENCE)distance=s.id.equals("pilin_zhijinwu")?11:10;
         if(CHECKLIST)distance=s.id.equals("dragon_emperor")?18:11;
+        if(HUMAN)distance=8.5;
+        if(HUMAN&&s.label.startsWith("attack"))distance=11;
         var cam=new ArmorStand(mc.level,Math.sin(a)*distance,-60,Math.cos(a)*distance);
-        cam.setPos(cam.getX(),-60+(PRESENCE?2.5:s.id.equals("pilin_zhijinwu")?1.9:1.5)-cam.getEyeHeight(),cam.getZ());cam.setNoGravity(true);cam.setYRot((float)(180-yaw));cam.setXRot(PRESENCE?3:5);cam.setYHeadRot(cam.getYRot());cam.yHeadRotO=cam.getYRot();cam.setOldPosAndRot();mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(cam);
+        cam.setPos(cam.getX(),-60+(HUMAN?1.62:PRESENCE?2.5:s.id.equals("pilin_zhijinwu")?1.9:1.5)-cam.getEyeHeight(),cam.getZ());cam.setNoGravity(true);cam.setYRot((float)(180-yaw));cam.setXRot(PRESENCE?3:5);cam.setYHeadRot(cam.getYRot());cam.yHeadRotO=cam.getYRot();cam.setOldPosAndRot();mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(cam);
     }
     @SuppressWarnings({"rawtypes","unchecked"})
     @SubscribeEvent public static void render(TickEvent.RenderTickEvent ev){
@@ -190,6 +195,12 @@ public final class BossEightClientQa {
             if(!clip.equals(expected)){
                 if(age<60)return;
                 throw new AssertionError("Wrong pose "+s+" expected="+expected+" actual="+clip);
+            }
+            if(HUMAN&&s.label.equals("attack-contact")){
+                // Packet age is not animation time: capture the actual forward strike,
+                // never an idle-looking frame labelled "contact" merely because age==3.
+                float extension=((software.bernie.geckolib.cache.object.GeoBone)model.getBone("right_arm").orElseThrow()).getRotX();
+                if(extension<1.05f){if(age>14)throw new AssertionError("Human strike peak not observed "+s);return;}
             }
             if(s.skill==-3&&!mob.isDeadOrDying())throw new AssertionError("Death not replicated");
             if(s.skill>0&&(Integer)mob.getClass().getMethod("skillId").invoke(mob)!=s.skill)throw new AssertionError("Skill not replicated");
