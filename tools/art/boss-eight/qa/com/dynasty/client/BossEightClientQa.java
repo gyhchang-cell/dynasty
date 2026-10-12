@@ -162,7 +162,7 @@ public final class BossEightClientQa {
         if(STAGES.get(stage).label.equals("walk")){fixture.move(MoverType.SELF,new net.minecraft.world.phys.Vec3(.065,0,0));fixture.setDeltaMovement(.065,0,0);fixture.hurtMarked=true;}
     }
     private static int prepare(Minecraft mc){
-        var server=mc.getSingleplayerServer();var world=server.overworld();world.setDayTime(6000);
+        var server=mc.getSingleplayerServer();var world=server.overworld();world.setDayTime(6000);if(HUMAN_PRESENCE)try{BossPowerReferenceQa.suppressAmbientWorld(mc,world);}catch(Exception e){throw new RuntimeException(e);}
         if(fixture!=null)fixture.discard();if(victim!=null)victim.discard();
         var cleanup=new ArrayList<Entity>();for(var e:world.getAllEntities())if(e!=null&&!(e instanceof net.minecraft.server.level.ServerPlayer))cleanup.add(e);cleanup.forEach(Entity::discard);
         for(int x=-12;x<=12;x++)for(int z=-12;z<=12;z++)world.setBlockAndUpdate(new BlockPos(x,-61,z),((x+z)%7==0?Blocks.STONE_BRICKS:Blocks.GRASS_BLOCK).defaultBlockState());
@@ -205,7 +205,7 @@ public final class BossEightClientQa {
         if(!ENABLED||done||captured||pending!=null||stage<0||ev.phase!=TickEvent.Phase.END)return;
         var mc=Minecraft.getInstance();if(mc.level==null||!(mc.level.getEntity(entityId) instanceof Mob mob))return;
         try{
-            Object renderer=mc.getEntityRenderDispatcher().getRenderer(mob);GeoModel model;GeoAnimatable visual;
+            if(HUMAN_PRESENCE)BossPowerReferenceQa.clearScenicVisuals(mc);Object renderer=mc.getEntityRenderDispatcher().getRenderer(mob);GeoModel model;GeoAnimatable visual;
             if(renderer instanceof BossFormsRenderer.Core<?> r){model=r.getGeoModel();visual=r.getAnimatable();}
             else if(renderer instanceof BossCuboidRenderer<?> r){model=r.getGeoModel();visual=r.getAnimatable();}
             else if(renderer instanceof GeoEntityRenderer<?> r){model=r.getGeoModel();visual=(GeoEntity)mob;}

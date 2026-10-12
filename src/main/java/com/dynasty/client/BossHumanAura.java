@@ -53,12 +53,12 @@ public final class BossHumanAura {
     static void draw(PoseStack pose,MultiBufferSource buffers,Mob mob,String id,float partial,boolean casting){
         int k=kind(id);if(k<0||reviewSuppressed||mob.isInvisible()||mob.isDeadOrDying())return;
         float age=mob.tickCount+partial,boost=mob.swinging||casting?1.35f:1;
-        float centre=k==2?2.02f:1.86f,z=-.92f;double radius=k==2?1.04:.92;
+        float centre=k==2?2.02f:1.86f,z=-.92f;double radius=k==0?1.13:k==1?1.18:1.24;
         var sink=buffers.getBuffer(RenderType.debugQuads());var matrix=pose.last().pose();Vector3f col=color(k);
         int alpha=(int)((k==2?145:130)*boost);
         java.util.function.Consumer<double[]> line=segment->{
             double x1=segment[0],y1=segment[1],x2=segment[2],y2=segment[3],dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);
-            if(len<1e-6)return;double width=.009*boost,nx=-dy/len*width,ny=dx/len*width;
+            if(len<1e-6)return;double width=.016*boost,nx=-dy/len*width,ny=dx/len*width;
             vertex(sink,matrix,x1+nx,y1+ny,z,col,alpha);vertex(sink,matrix,x2+nx,y2+ny,z,col,alpha);
             vertex(sink,matrix,x2-nx,y2-ny,z,col,alpha);vertex(sink,matrix,x1-nx,y1-ny,z,col,alpha);
         };
