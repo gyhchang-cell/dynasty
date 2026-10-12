@@ -55,6 +55,8 @@ if presence:jvm.append('-Ddynasty.bossPresenceQa=true')
 if spirits:jvm.append('-Ddynasty.bossSpiritQa=true')
 if materials:jvm.append('-Ddynasty.bossMaterialQa=true')
 if os.environ.get('DYNASTY_ART_LIMIT'):jvm.append('-Ddynasty.bossEightQa.limit='+os.environ['DYNASTY_ART_LIMIT'])
+for env,prop in [('DYNASTY_ART_CAMERA_DISTANCE','cameraDistance'),('DYNASTY_ART_CAMERA_PITCH','cameraPitch')]:
+ if os.environ.get(env):jvm.append('-Ddynasty.bossEightQa.'+prop+'='+os.environ[env])
 work=root/'host';work.mkdir();(work/'options.txt').write_text('soundCategory_master:0.0\nfullscreen:false\n');(work/'config').mkdir();(work/'config/fml.toml').write_text('earlyWindowControl=false\n')
 if reference and not own_reference:
  (work/'mods').mkdir()

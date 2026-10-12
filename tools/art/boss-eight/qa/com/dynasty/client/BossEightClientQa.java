@@ -196,8 +196,12 @@ public final class BossEightClientQa {
         if(CHECKLIST)distance=s.id.equals("dragon_emperor")?18:11;
         if(HUMAN)distance=HUMAN_PRESENCE?6:8.5;
         if(HUMAN&&s.label.startsWith("attack"))distance=HUMAN_PRESENCE?8:11;
+        // Optional art-only camera match to existing reference captures.
+        // Default fixture distances and production rendering stay unchanged.
+        distance=Double.parseDouble(System.getProperty("dynasty.bossEightQa.cameraDistance",Double.toString(distance)));
         var cam=new ArmorStand(mc.level,Math.sin(a)*distance,-60,Math.cos(a)*distance);
         cam.setPos(cam.getX(),-60+(HUMAN?1.62:PRESENCE?2.5:s.id.equals("pilin_zhijinwu")?1.9:1.5)-cam.getEyeHeight(),cam.getZ());cam.setNoGravity(true);cam.setYRot((float)(180-yaw));cam.setXRot(PRESENCE?3:5);cam.setYHeadRot(cam.getYRot());cam.yHeadRotO=cam.getYRot();cam.setOldPosAndRot();mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(cam);
+        if(System.getProperty("dynasty.bossEightQa.cameraPitch")!=null){cam.setXRot(Float.parseFloat(System.getProperty("dynasty.bossEightQa.cameraPitch")));cam.setOldPosAndRot();}
     }
     @SuppressWarnings({"rawtypes","unchecked"})
     @SubscribeEvent public static void render(TickEvent.RenderTickEvent ev){
