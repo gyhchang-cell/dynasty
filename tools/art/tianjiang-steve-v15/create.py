@@ -134,24 +134,7 @@ def animation(g):
  return {'format_version':'1.8.0','animations':out}
 
 def export():
- D.mkdir(parents=True,exist_ok=True);owner=D/'export-owner.json'
- expected=json.loads((owner if owner.exists() else D/'before-hashes.json').read_text())
- assert hashes()==expected,'Concurrent/manual edit; export refused before touching production'
- g=build();tex,islands=atlas(g);an=animation(g)
- for b in g.bones:
-  b['pivot']=[round(x*SCALE,6) for x in b['pivot']]
-  for c in b['cubes']:
-   for k in ['origin','size','pivot']:
-    if k in c:c[k]=[round(x*SCALE,6) for x in c[k]]
-   c.pop('_role',None)
- for a in an['animations'].values():
-  for channels in a['bones'].values():
-   if 'position' in channels:channels['position']={t:[round(x*SCALE,6) for x in v] for t,v in channels['position'].items()}
- desc={'identifier':'geometry.'+ID,'texture_width':tex.width,'texture_height':tex.height,'visible_bounds_width':9,'visible_bounds_height':6,'visible_bounds_offset':[0,2,0]}
- geo={'format_version':'1.12.0','minecraft:geometry':[{'description':desc,'bones':g.bones}]}
- TARGETS[0].write_text(json.dumps(geo,indent=2)+'\n');TARGETS[1].write_text(json.dumps(an,indent=2)+'\n');tex.save(TARGETS[2])
- dst=D/ID;dst.mkdir(exist_ok=True);tex.save(dst/'texture.png');tex.resize((tex.width*4,tex.height*4),Image.Resampling.NEAREST).save(dst/'texture-4x.png')
- (dst/'islands.json').write_text(json.dumps(islands,indent=2)+'\n')
- owner.write_text(json.dumps(hashes(),indent=2)+'\n')
- print('Exported exact six-block Steve proportions x1.35; four small decorations; original large halberd;',tex.size)
+ # V17 owns the accepted helmet; legacy commands must not restore the flat face.
+ import runpy
+ runpy.run_path(str(R/'tools/art/tianjiang-helmet-v17/export.py'),run_name='__main__')
 if __name__=='__main__':export()
