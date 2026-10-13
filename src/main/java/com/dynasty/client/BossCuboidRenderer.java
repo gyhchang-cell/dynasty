@@ -38,6 +38,14 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
                 var controller=visual.getAnimatableInstanceCache().getManagerForId(mob.getId()).getAnimationControllers().get("body");
                 boolean casting=controller!=null&&controller.getCurrentAnimation()!=null&&controller.getCurrentAnimation().animation().name().equals("cast");
                 BossHumanAura.draw(pose,buffers,mob,id,partial,casting);
+                if(id.equals("nine_heaven_general")){
+                    float alpha=TianjiangAura.glowAlpha(mob,partial,casting);
+                    if(alpha>0){
+                        var glow=RenderType.entityTranslucentEmissive(TianjiangAura.GLOW);
+                        BossCuboidRenderer.this.reRender(model,pose,buffers,visual,glow,buffers.getBuffer(glow),partial,
+                                15728880,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,1,1,1,alpha);
+                    }
+                }
             }
         });
         // Preserve actual main/offhand equipment at articulated grip bones.

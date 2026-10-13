@@ -23,6 +23,7 @@ public final class BossHumanAura {
     private static final boolean REVIEW=Boolean.getBoolean("dynasty.bossHumanPresenceQa");
     public static void setReviewSuppressed(boolean suppressed){if(REVIEW){reviewSuppressed=suppressed;reviewEmissions=0;}}
     public static int reviewEmissions(){return reviewEmissions;}
+    static boolean suppressed(){return reviewSuppressed;}
     private static int kind(String id){return switch(id){case "nine_heaven_general"->0;case "dragon_king"->1;case "dragon_emperor"->2;default->-1;};}
     private static Vector3f color(int k){return k==0?new Vector3f(.87f,.85f,.60f):k==1?new Vector3f(.29f,.72f,.80f):new Vector3f(.76f,.43f,.20f);}
 
@@ -34,6 +35,12 @@ public final class BossHumanAura {
             ResourceLocation key=ForgeRegistries.ENTITY_TYPES.getKey(mob.getType());
             if(key==null||!key.getNamespace().equals("dynasty"))continue;
             int k=kind(key.getPath());if(k<0)continue;
+            if(k==0){
+                int emitted=TianjiangAura.emit(mob,budget);budget-=emitted;
+                if(REVIEW)reviewEmissions+=emitted;
+                if(budget<=0)break;
+                continue;
+            }
             double phase=(mob.tickCount+mob.getId()%37)*.023;
             double yaw=Math.toRadians(mob.yBodyRot);double bx=Math.sin(yaw),bz=-Math.cos(yaw),sx=Math.cos(yaw),sz=Math.sin(yaw);
             int count=mob.swinging?3:2;
@@ -52,6 +59,7 @@ public final class BossHumanAura {
 
     static void draw(PoseStack pose,MultiBufferSource buffers,Mob mob,String id,float partial,boolean casting){
         int k=kind(id);if(k<0||reviewSuppressed||mob.isInvisible()||mob.isDeadOrDying())return;
+        if(k==0){TianjiangAura.draw(pose,buffers,mob,partial,casting);return;}
         float age=mob.tickCount+partial,boost=mob.swinging||casting?1.35f:1;
         float centre=k==2?2.02f:1.86f,z=-.92f;double radius=k==0?1.13:k==1?1.18:1.24;
         var sink=buffers.getBuffer(RenderType.debugQuads());var matrix=pose.last().pose();Vector3f col=color(k);

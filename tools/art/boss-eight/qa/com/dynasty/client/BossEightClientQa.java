@@ -112,6 +112,7 @@ public final class BossEightClientQa {
     private static CompletableFuture<Long> action;
     private static Mob fixture,victim;
     private static String diagnostic="no render";
+    private static int auraFrames,lastAuraTick=-1;
     private static net.minecraft.world.phys.Vec3 walkStart;
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent ev){
         if(!ENABLED||done||ev.phase!=TickEvent.Phase.END)return;
@@ -259,7 +260,9 @@ public final class BossEightClientQa {
             if(PRESENCE){
                 var expectedHashes=com.google.gson.JsonParser.parseString(Files.readString(OUT.resolve("runtime-manifest.json"))).getAsJsonObject().getAsJsonObject("resources");
                 Map<String,String> loadedHashes=new LinkedHashMap<>();
-                for(Object resource:new Object[]{tex,model.getModelResource(visual),model.getAnimationResource(visual)}){
+                var resources=new ArrayList<Object>(List.of(tex,model.getModelResource(visual),model.getAnimationResource(visual)));
+                if(HUMAN_PRESENCE&&s.id.equals("nine_heaven_general"))resources.add(TianjiangAura.GLOW);
+                for(Object resource:resources){
                     var location=(ResourceLocation)resource;
                     try(var stream=mc.getResourceManager().open(location)){
                         String hash=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(stream.readAllBytes()));
@@ -269,12 +272,25 @@ public final class BossEightClientQa {
                     }
                 }
                 record.put("loadedResourceSha256",loadedHashes);record.put("particles",HUMAN_PRESENCE?(s.label.endsWith("-off")?"independent aura and particles disabled":"production aura and particles enabled"):"cleared in QA only before frame");
+                if(HUMAN_PRESENCE&&s.id.equals("nine_heaven_general")){
+                    float glow=TianjiangAura.glowAlpha(mob,mc.getFrameTime(),false);
+                    record.put("materialGlowAlpha",glow);record.put("replicatedSwing",mob.getAttackAnim(mc.getFrameTime()));
+                    if((s.label.endsWith("-off")||s.skill==-3)&&glow!=0)throw new AssertionError("Aura failed to stop");
+                    if(glow<0||glow>1)throw new AssertionError("Glow out of range");
+                }
                 if(HUMAN_PRESENCE){record.put("auraParticleEmissionRequests",BossHumanAura.reviewEmissions());
                     int obstructions=0;for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=-60;y<=-56;y++)if(!mc.level.getBlockState(new BlockPos(x,y,z)).isAir())obstructions++;
                     record.put("fixtureAirObstructions",obstructions);if(obstructions!=0){if(settled>240)throw new AssertionError("Fixture obstruction "+s+" count="+obstructions);return;}
                     if(s.label.endsWith("-on")&&BossHumanAura.reviewEmissions()<10)throw new AssertionError("No production aura emissions "+s);if(s.label.endsWith("-off")&&BossHumanAura.reviewEmissions()!=0)throw new AssertionError("Particles not disabled "+s);}
             }
             Map<String,Object> bones=new LinkedHashMap<>();for(Object o:model.getAnimationProcessor().getRegisteredBones()){var b=(software.bernie.geckolib.cache.object.GeoBone)o;bones.put(b.getName(),Map.of("rotation",List.of(b.getRotX(),b.getRotY(),b.getRotZ()),"position",List.of(b.getPosX(),b.getPosY(),b.getPosZ())));}record.put("bones",bones);
+            if(Boolean.getBoolean("dynasty.tianjiangAuraSequence")&&s.id.equals("nine_heaven_general")&&s.label.equals("45-on")&&auraFrames<24){
+                if(lastAuraTick<0||mob.tickCount-lastAuraTick>=4){
+                    lastAuraTick=mob.tickCount;var dir=OUT.resolve("sequence");Files.createDirectories(dir);
+                    try(var shot=Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(dir.resolve(String.format("%02d.png",auraFrames++)));}
+                }
+                if(auraFrames<24)return;
+            }
             Files.writeString(OUT.resolve(String.format("%02d-state.json",stage)),new GsonBuilder().setPrettyPrinting().create().toJson(record));
             try(var shot=Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(OUT.resolve(String.format("%02d-%s-%s.png",stage,s.id,s.label)));}
             LOG.add(s.id+" "+s.label+" "+clip+" age="+age);Files.writeString(OUT.resolve("progress.txt"),String.join("\n",LOG));captured=true;
