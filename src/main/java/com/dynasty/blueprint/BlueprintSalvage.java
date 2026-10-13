@@ -107,6 +107,22 @@ public final class BlueprintSalvage {
     public static final RegistryObject<Item> CRACKED_ALCHEMY_COPPER=register("cracked_alchemy_copper",Use.SHIELD);
     public static final RegistryObject<Item> ALCHEMIST_FIRE_ASH=register("alchemist_fire_ash",Use.IRON_GEAR);
     public static final RegistryObject<Item> PURIFIED_MERCURY_BEAD=register("purified_mercury_bead",Use.JADE_GEAR);
+    public static final RegistryObject<Item> YASHA_TIDAL_PLATE=register("yasha_tidal_plate",Use.SHIELD);
+    public static final RegistryObject<Item> CORRODED_TRIDENT_TINE=plain("corroded_trident_tine");
+    public static final RegistryObject<Item> YASHA_TIDE_ESSENCE=BlueprintEntities.ITEMS.register("yasha_tide_essence",BreathSac::new);
+    public static final RegistryObject<Item> CORPSE_IRON_SHACKLE=plain("corpse_iron_shackle"),BROKEN_BURIAL_BLADE=plain("broken_burial_blade");
+    public static final RegistryObject<Item> OIL_SOAKED_SHROUD=BlueprintEntities.ITEMS.register("oil_soaked_shroud",()->new Item(new Item.Properties()){
+        @Override public int getBurnTime(ItemStack stack,@Nullable net.minecraft.world.item.crafting.RecipeType<?> type){return 1600;}
+    });
+    public static final RegistryObject<Item> INK_CRYSTAL_SHARD=plain("ink_crystal_shard"),WATERPROOF_INK_SILK=plain("waterproof_ink_silk");
+    public static final RegistryObject<Item> HOLLOW_INK_BAMBOO=BlueprintEntities.ITEMS.register("hollow_ink_bamboo",com.dynasty.blueprint.elite.InkBamboo::new);
+    public static final RegistryObject<Item> GORILLA_CAST_PLATE=plain("gorilla_cast_plate"),GORILLA_STONE_CHIP=plain("gorilla_stone_chip");
+    public static final RegistryObject<Item> JUDGE_IRON_PAGE=plain("judge_iron_page"),SEALED_JUDGE_INK=plain("sealed_judge_ink");
+    public static final RegistryObject<Item> EAGLE_HARD_FEATHER=plain("eagle_hard_feather"),EAGLE_RIB_BOW_FRAGMENT=plain("eagle_rib_bow_fragment");
+    public static final RegistryObject<Item> SUANNI_COPPER_GEAR=plain("suanni_copper_gear");
+    public static final RegistryObject<Item> STONE_FIRE_CINDER=BlueprintEntities.ITEMS.register("stone_fire_cinder",()->new Item(new Item.Properties()){
+        @Override public int getBurnTime(ItemStack stack,@Nullable net.minecraft.world.item.crafting.RecipeType<?> type){return 1600;}
+    });
     private static final class BreathSac extends Item {
         BreathSac(){super(new Properties().food(new net.minecraft.world.food.FoodProperties.Builder().nutrition(0).saturationMod(0).alwaysEat().build()));}
         @Override public ItemStack finishUsingItem(ItemStack stack,Level level,net.minecraft.world.entity.LivingEntity user){

@@ -1,0 +1,22 @@
+// Six narrow headless tests, isolated from release sources and concurrent builds.
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def qa=p.sourceSets.create('scenicServerQa') {
+        java.srcDir p.file('tools/art/cod3/scenic-server-qa')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.tasks.named(qa.processResourcesTaskName).configure {
+        from(p.file('src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) {
+            into 'data/dynasty_scenic_qa/structures'
+        }
+    }
+    p.minecraft.runs.gameTestServer {
+        workingDirectory p.file('build/cod3-scenic-20261011/server')
+        property 'forge.logging.console.level','info'
+        property 'forge.enabledGameTestNamespaces','dynasty_scenic_qa'
+        jvmArgs '-Xmx1200m','-XX:ActiveProcessorCount=2','-Djava.awt.headless=true'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.matching { it.name=='runGameTestServer' }.configureEach { dependsOn qa.classesTaskName }
+} }

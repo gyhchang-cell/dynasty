@@ -92,13 +92,14 @@ def geometry(id,clip=None,tick=0,source=False,geo_path=None,animation_path=None)
     return quads
 
 
-def raster(quads,yaw=0,elevation=8,size=(720,560),silhouette=False,baseline=False):
+def raster(quads,yaw=0,elevation=8,size=(720,560),silhouette=False,baseline=False,frame_bounds=None):
     w,h=size;yaw,elevation=map(math.radians,(yaw,elevation))
     toward=np.array([math.sin(yaw)*math.cos(elevation),math.sin(elevation),-math.cos(yaw)*math.cos(elevation)])
     right=np.array([math.cos(yaw),0,math.sin(yaw)])
     up=np.cross(toward,right);up=-up if up[1]<0 else up
     basis=np.vstack((right,up,toward));points=np.concatenate([p for p,_,_ in quads]); projected=points@basis.T
-    lo,hi=projected.min(0),projected.max(0);center=(lo+hi)/2
+    lo,hi=(projected.min(0),projected.max(0)) if frame_bounds is None else frame_bounds
+    center=(lo+hi)/2
     scale=min((w-64)/(hi[0]-lo[0]),(h-70)/(hi[1]-lo[1]))
     bg=(238,235,225) if not silhouette else (248,246,239)
     rgb=np.empty((h,w,3),dtype=np.uint8);rgb[:]=bg;depth=np.full((h,w),-np.inf)

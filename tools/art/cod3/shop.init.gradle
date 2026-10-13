@@ -1,0 +1,36 @@
+// Frozen source and isolated outputs protect other developers' current edits.
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def base=p.file('build/maintenance/npc-trading-v1')
+    p.buildDir=new File(base,'gradle')
+    p.sourceSets.main.java.setSrcDirs([new File(base,'frozen/src/main/java')])
+    p.sourceSets.main.resources.setSrcDirs([new File(base,'frozen/src/main/resources'),new File(base,'frozen/src/generated/resources')])
+    def qa=p.sourceSets.create('npcShopQa') {
+        java.srcDir p.file('tools/art/cod3/shop-qa')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.minecraft.runs.client {
+        workingDirectory new File(base,'client')
+        property 'dynasty.npcShopQa','true'
+        property 'dynasty.npcShopQa.output',new File(base,'results').absolutePath
+        property 'dynasty.cod3HideQa','true'
+        property 'mixin.env.refMapRemappingFile',p.file('build/createSrgToMcp/output.srg').absolutePath
+        property 'forge.logging.console.level','info'
+        jvmArgs '-Xmx1600m','-XX:ActiveProcessorCount=2'
+        if(System.getProperty('os.name').toLowerCase().contains('mac'))jvmArgs '-XstartOnFirstThread'
+        args '--username','NpcShopQa','--width','1024','--height','768'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.matching { it.name=='runClient' }.configureEach { task ->
+        dependsOn qa.classesTaskName
+        if(p.hasProperty('npcShopPrepare'))task.jvmArgumentProviders.add({ ->
+            def file=new File(base,'launch.json');file.parentFile.mkdirs()
+            file.text=groovy.json.JsonOutput.toJson([executable:task.javaLauncher.get().executablePath.asFile.absolutePath,
+                jvmArgs:task.jvmArgs+task.systemProperties.collect { k,v -> "-D${k}=${v}".toString() },
+                classpath:task.classpath.asPath,main:task.mainClass.get(),args:task.args,
+                environment:task.environment.findAll { k,v -> k in ['MOD_CLASSES','MCP_MAPPINGS'] },directory:task.workingDir.absolutePath])
+            throw new StopExecutionException('Prepared one NPC shop QA client')
+        } as org.gradle.process.CommandLineArgumentProvider)
+    }
+} }

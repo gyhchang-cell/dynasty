@@ -1,3 +1,7 @@
+# 当前资源更新（2026-10-11）
+
+机关鼠、木鹊、石精已按用户最新版要求改为64px逐面材质图集，石精进一步重构为低伏四足岩兽，见 [secondary-materials-v2](../secondary-materials-v2/README.md)。山匪、更夫、采药人、饥民、江湖骗子已修正普通人类比例并使用128px逐面原创像素，见 [secondary-humans-v3](../secondary-humans-v3/README.md)。这八只的新构建/原生GeckoLib面烘焙已通过，游戏画面待验。下文它们的旧16px客户端证据仅作历史记录，不能证明新版通过。其他23只的历史资源策略保留。
+
 # Dynasty 次级生物 Cuboid 美术重做
 
 本地任务，2026-10-10 夜间开始。优先完成河童 `river_imp`、树精 `tree_spirit`、虾兵 `shrimp_soldier`，随后继续 cod4/cod6 中经实际轮廓审查判定较差的模型。保留实体 ID、旧骨骼名称与控制器七态，未改战斗、任务、AI、属性和掉落。九首鬼车、cod2 模型与 NPC 正由其他聊天处理，本轮不覆盖。

@@ -14,6 +14,8 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSeriali
 
 /** Scorched muster ground, broken palisades, burial rows and a collapsed command tent. */
 public final class BattlefieldPiece extends DynastyStructurePiece {
+    /** Existing open west muster ground, clear of the central flag, burial rows and tent. */
+    public BlockPos bronzeGorillaPosition(){return getWorldPos(10,4,13).immutable();}
     public BattlefieldPiece(BlockPos origin){
         super(DynastyStructures.BATTLEFIELD_PIECE.get(),0,new BoundingBox(origin.getX(),origin.getY()-3,origin.getZ(),
             origin.getX()+32,origin.getY()+8,origin.getZ()+32));setOrientation(Direction.SOUTH);

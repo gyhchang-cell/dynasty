@@ -48,6 +48,7 @@ STRUCTURES = {"imperial_tomb":"帝陵地宫", "imperial_mausoleum":"帝王陵", 
     "temple":"神庙", "palace_ruin":"宫殿遗迹", "watchtower":"烽火台", "barracks":"兵营",
     "palace":"宫殿", "pagoda":"宝塔", "academy":"书院", "great_wall":"长城", "inn":"驿站"}
 VANILLA.update({"arrow":"箭","target":"标靶","spyglass":"望远镜","leather_boots":"皮革靴子"})
+VANILLA.update(dict(crossbow="弩", tripwire_hook="绊线钩", anvil="铁砧", red_mushroom="红蘑菇", bread="面包", cooked_porkchop="熟猪排", charcoal="木炭", milk_bucket="奶桶", poppy="虞美人"))
 VANILLA.update({'iron_pickaxe':'铁镐','smithing_table':'锻造台','ender_chest':'末影箱'})
 
 
@@ -78,7 +79,7 @@ def ingredient(entry):
 
 def recipe_index():
     result = defaultdict(list)
-    paths = list((DATA / "recipes").glob("*.json"))
+    paths = list((DATA / "recipes").rglob("*.json"))
     for namespace in ("naturescompass", "explorerscompass"):
         paths.extend((DATA.parent / namespace / "recipes").glob("*.json"))
     for path in sorted(paths):
@@ -94,7 +95,8 @@ def recipe_index():
             entries = [data["ingredient"]]
         if data["type"] == "minecraft:smithing_transform":
             entries = [data[part] for part in ("template", "base", "addition")]
-        result[target].append({"id": path.stem, "type": data["type"],
+        recipe_id = path.relative_to(DATA / "recipes").with_suffix("").as_posix() if path.is_relative_to(DATA / "recipes") else path.stem
+        result[target].append({"id": recipe_id, "type": data["type"],
             "ingredients": dict(Counter(ingredient(e) for e in entries)),
             "output": output.get("count", 1) if isinstance(output, dict) else 1})
     return result
@@ -172,7 +174,7 @@ BOSS = {
 }
 
 
-def build_book():
+def build_source_book():
     legacy = json.loads(LEGACY.read_text())
     recipes, loot = recipe_index(), loot_index()
     original = [q for c in legacy for q in c["quests"]]
@@ -453,8 +455,15 @@ def build_book():
     for chapter in chapters:
         for quest in chapter["quests"]:
             quest["rewards"] = normalize_legacy_xp_rewards(quest["rewards"])
+    from quest_presentation import apply_presentation
+    apply_presentation(chapters)
     validate(chapters, original)
     return chapters
+
+
+def build_book():
+    from quest_journey import apply
+    return apply(build_source_book())
 
 
 def validate(chapters, original=None):
@@ -479,8 +488,10 @@ def validate(chapters, original=None):
         assert not (q["kind"]=="kill" and q["target"] in {"dynasty:royal_guard","dynasty:imperial_soldier","dynasty:jade_guard"}), "Friendly kill gate"
     for q in allq:
         assert all(d in byid for d in q["deps"]), "Dangling dependency"
-        if q["role"] not in {"main", "build", "chapter_branch", "exploration_branch"}:
+        if q["role"] not in {"main", "build", "chapter_branch", "exploration_branch", "cod4_branch"}:
             assert not q["deps"], "Optional content is gated"
+        if q["role"] == "cod4_branch":
+            assert all(byid[d]["role"] in {"main", "cod4_branch"} for d in q["deps"]), "Cod4 branch depends on an unrelated catalog"
         if q["role"] == "exploration_branch":
             chapter=next(c for c in chapters if q in c['quests'])
             assert chapter['main'] and all(d in {n['id'] for n in chapter['quests']} for d in q['deps']), "Exploration must stay in its own chapter"
@@ -546,17 +557,20 @@ def validate(chapters, original=None):
 
 
 def encode(chapter):
+    from quest_presentation import icon_stack, task_presentation, reward_presentation
     quote = lambda s: json.dumps(s,ensure_ascii=False)
     blocks = []
     for q in chapter["quests"]:
         lines = ["\t\t{", f'\t\t\tid: "{q["id"]}"', '\t\t\ttitle: '+quote(q.get("display_title",q["title"])),
             '\t\t\tsubtitle: '+quote(q["subtitle"]), f'\t\t\tshape: "{q["shape"]}"',
             f'\t\t\tsize: {q.get("size",1.0):.2f}d',f'\t\t\tx: {q["x"]:.2f}d',f'\t\t\ty: {q["y"]:.2f}d',
-            '\t\t\ticon: '+q["icon"], '\t\t\tdescription: '+quote(q["description"]),
-            '\t\t\tdisable_jei: false', '\t\t\ttasks: '+q["tasks"], '\t\t\trewards: '+q["rewards"]]
+            '\t\t\ticon: '+icon_stack(q["icon"]), '\t\t\tdescription: '+quote(q["description"]),
+            '\t\t\tdisable_jei: false', '\t\t\ttasks: '+task_presentation(q), '\t\t\trewards: '+reward_presentation(q)]
         if q["deps"]:
             lines.append('\t\t\tdependencies: '+quote(q["deps"]))
-        if q["role"]=="build":
+        if q.get('hide_dependency_lines'):
+            lines.append('\t\t\thide_dependency_lines: true')
+        if q["role"] in {"build", "cod4_branch"}:
             lines.extend(['\t\t\tcan_repeat: false', '\t\t\thide_until_deps_complete: false'])
         lines.append('\t\t}')
         blocks.append('\n'.join(lines))
@@ -568,8 +582,9 @@ def encode(chapter):
     images='[\n'+',\n'.join('\t\t{ '+', '.join(k+': '+value(v) for k,v in d.items())+' }' for d in chapter.get("images",[]))+'\n\t]'
     links='[\n'+',\n'.join('\t\t{ '+', '.join(k+': '+value(v) for k,v in d.items() if k in {"id","linked_quest","x","y","shape","size"})+' }' for d in chapter.get("quest_links",[]))+'\n\t]'
     return ('{\n\tdefault_hide_dependency_lines: false\n\tdefault_quest_shape: ""\n'
+        + ('\tautofocus_id: '+quote(chapter['autofocus_id'])+'\n' if chapter.get('autofocus_id') else '') +
         f'\tfilename: "{chapter["file"]}"\n\tgroup: "5{chapter["group"]:015x}"\n'
-        f'\ticon: {chapter["quests"][0]["icon"]}\n\tid: "{chapter["id"]}"\n'
+        f'\ticon: {icon_stack(chapter["icon"])}\n\tid: "{chapter["id"]}"\n'
         f'\torder_index: {chapter["order"]}\n\timages: {images}\n\tquest_links: {links}\n\tquests: [\n'+',\n'.join(blocks)+'\n\t]\n'
         '\tsubtitle: '+quote([chapter["goal"]])+'\n\ttitle: '+quote(chapter["title"])+'\n}\n')
 
@@ -578,12 +593,15 @@ def build(defaults):
     chapters = build_book()
     files = {c["file"]+".snbt":encode(c) for c in chapters}
     previous = {p.name for p in (OUT/"chapters").glob("*.snbt")}
-    # Do not remove somebody else's chapter. All known legacy chapter filenames survive.
+    # The user authorized consolidation. Only remove chapters in the explicit map;
+    # the previous definitions were archived before this migration.
+    from quest_journey import known_removed, GROUPS
     unknown = previous - set(files)
-    assert not unknown, "Unexpected existing chapters; inspect before migration: "+str(unknown)
+    assert not unknown-known_removed(), "Unexpected chapters; inspect before migration: "+str(unknown-known_removed())
+    for filename in unknown:
+        (OUT/"chapters"/filename).unlink()
     for filename,text in files.items():
         (OUT/"chapters"/filename).write_text(text)
-    from quest_routes import GROUPS
     (OUT/"chapter_groups.snbt").write_text('{\n\tchapter_groups: [\n'+ '\n'.join(
         f'\t\t{{ id: "5{i:015x}", title: "{t}" }}' for i,t in GROUPS)+'\n\t]\n}\n')
     (OUT/"data.snbt").write_text(defaults)

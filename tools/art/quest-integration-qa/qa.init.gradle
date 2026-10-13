@@ -1,0 +1,38 @@
+// One isolated client validates native FTB loading, persistence and actual GUI rendering.
+allprojects { p ->
+    p.layout.buildDirectory.set(p.file('build/quest-integration-build'))
+    p.afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        p.repositories.flatDir { dirs p.file('modpack/mods') }
+        ['ftb-quests-forge:2001.4.22','ftb-library-forge:2001.2.13','ftb-teams-forge:2001.3.2','item-filters-forge:2001.1.0-build.59','architectury:9.2.14-forge','NaturesCompass:1.20.1-1.12.0-forge','ExplorersCompass:1.20.1-1.4.0-forge'].each { artifact ->
+            p.dependencies.add('runtimeOnly',p.fg.deobf('dynasty_local_qa:'+artifact))
+        }
+        def qa=p.sourceSets.create('questIntegrationQa') {
+            java.srcDir p.file('tools/art/quest-integration-qa')
+            resources.srcDir p.file('tools/art/quest-integration-qa/resources')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.minecraft.runs.client {
+            workingDirectory p.file('build/quest-journey-client-v3')
+            property 'dynasty.questIntegrationQa','true'
+            property 'dynasty.questIntegrationQa.output',p.file('docs/quests-journey-v3/native').absolutePath
+            property 'mixin.env.refMapRemappingFile',p.file('build/quest-integration-build/createSrgToMcp/output.srg').absolutePath
+            property 'forge.logging.console.level','info'
+            jvmArgs '-Xmx2G','-XX:ActiveProcessorCount=2'
+            args '--username','QuestReviewer','--width','1500','--height','1000','--mixin','dynasty-quest-qa.mixins.json'
+            mods { dynasty { source qa } }
+        }
+        p.tasks.matching { it.name=='runClient' }.configureEach { task ->
+            dependsOn qa.classesTaskName, 'createSrgToMcp'
+            doFirst {
+                def game=p.file('build/quest-journey-client-v3')
+                if (new File(game,'saves').exists()) throw new GradleException('QA directory already used; choose a new isolated directory')
+                game.mkdirs()
+                new File(game,'options.txt').text='soundCategory_master:0.0\nlang:zh_cn\nguiScale:4\ngamma:0.0\nresourcePacks:["vanilla","mod_resources","file/dynasty-quest-guides-v3.zip"]\nmaxFps:30\nrenderDistance:2\ntutorialStep:none\nsimulationDistance:5\n'
+                p.copy { from p.file('modpack/config/ftbquests/quests'); into new File(game,'config/ftbquests/quests') }
+                p.copy { from p.file('modpack/resourcepacks/dynasty-quest-guides-v3.zip'); into new File(game,'resourcepacks') }
+            }
+        }
+    }
+}

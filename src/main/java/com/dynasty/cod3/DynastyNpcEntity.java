@@ -84,21 +84,23 @@ public final class DynastyNpcEntity extends AbstractVillager implements software
         if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;
         if(p instanceof net.minecraft.server.level.ServerPlayer sp){
             beginConversation(p);
-            if(p.isShiftKeyDown())trade(sp);else NpcDialogue.open(sp,this);
+            if(p.isShiftKeyDown()||!trade(sp))NpcDialogue.open(sp,this);
         }
         return InteractionResult.sidedSuccess(level().isClientSide);
     }
     public void beginConversation(Player p){talkingUntil=level().getGameTime()+80;getNavigation().stop();getLookControl().setLookAt(p,30,30);}
     public boolean trade(net.minecraft.server.level.ServerPlayer p){
+        if(!canTrade(p))return false;
+        if(role.equals("huang_laohan")&&level().dimension().equals(com.dynasty.block.DynastyPortalBlock.DRAGON_PALACE))com.dynasty.DynastyAdvancements.award(p,"entered_dragon_palace");
+        return NpcTrading.open(p,this,0);
+    }
+    public boolean canTrade(Player p){
         if(p.level()!=level()||!p.isAlive()||p.isSpectator()||!isAlive()||p.distanceToSqr(this)>36
                 ||getTradingPlayer()!=null&&getTradingPlayer()!=p
-                ||com.dynasty.expansion.SmallInteractions.isGhostBoat(this)&&(!com.dynasty.expansion.SmallInteractions.ghostBoatContext(p,this)
-                ||!com.dynasty.expansion.EquipmentBehaviors.saved(p).getBoolean("site_ghost_market_boat_talked"))
-                ||com.dynasty.expansion.SmallInteractions.isPoisonTea(this)&&!com.dynasty.expansion.SmallInteractions.poisonTeaContext(p,this))return false;
-        ensureContentTrades();
-        if(getOffers().isEmpty())return false;
-        if(role.equals("huang_laohan")&&level().dimension().equals(com.dynasty.block.DynastyPortalBlock.DRAGON_PALACE))com.dynasty.DynastyAdvancements.award(p,"entered_dragon_palace");
-        setTradingPlayer(p);openTradingScreen(p,getDisplayName(),1);return true;
+                ||com.dynasty.expansion.SmallInteractions.isGhostBoat(this)&&(!(p instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.ghostBoatContext(sp,this)
+                ||!com.dynasty.expansion.EquipmentBehaviors.saved(sp).getBoolean("site_ghost_market_boat_talked"))
+                ||com.dynasty.expansion.SmallInteractions.isPoisonTea(this)&&(!(p instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.poisonTeaContext(sp,this)))return false;
+        return true;
     }
     /** Upgrade native merchant offers in place, retaining their stock and NBT on old saves. */
     public void ensureContentTrades(){

@@ -65,6 +65,10 @@ public class TombPiece extends DynastyStructurePiece {
     public BlockPos bixiPosition(){return getWorldPos(20,1,remastered?20:24).immutable();}
     public BlockPos jinwuPosition(){return getWorldPos(20,1,13).immutable();}
     public BlockPos hammerPosition(){return getWorldPos(33,1,24).immutable();}
+    /** Existing open vault flank has space for the four-metre collider and a physical eight-metre leap. */
+    /** Existing western vault flank; no new excavation, legacy tombs keep their old layout. */
+    public BlockPos suanniPosition(){return remastered?getWorldPos(15,1,17).immutable():null;}
+    public BlockPos rageCorpsePosition(){return remastered?getWorldPos(25,1,16).immutable():null;}
 
     public BlockPos shroudChildPosition() { return getWorldPos(5,1,remastered?34:24).immutable(); }
 

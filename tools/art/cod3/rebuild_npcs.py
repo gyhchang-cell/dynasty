@@ -1,4 +1,4 @@
-"""Original Cuboid NPC art, deterministic 16px/four-colour face UVs.
+"""Original Cuboid NPC art with natural, deterministic per-face pixel atlases.
 
 Bedrock runtime coordinates, not Blockbench editor coordinates. This generator
 only writes the fifteen NPC geo/animation/textures and its own authoring report.
@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[3]
 ASSETS = ROOT / 'src/main/resources/assets/dynasty'
-DOC = ROOT / 'docs/art/cod3-npc-v2'
+DOC = ROOT / 'docs/art/cod3-npc-v3'
 STATES = 'idle walk turn talk work react rain night danger player_near player_holds_special'.split()
 # Height is applied to every cube, pivot and locator together. Adult bodies stay
 # close to 1.9m, with intentional silhouette differences and a 1.4m child.
@@ -62,6 +62,7 @@ class Rig:
   self.bones = []
   self.names = {}
   self.props = []
+  self.materials = {}
   self.uv={}
   for y,row in enumerate(PORTRAITS[role]):
    for x,letter in enumerate(row):
@@ -80,6 +81,7 @@ class Rig:
   c = {'origin': list(origin), 'size': list(size), 'uv': faces}
   if rotation: c.update(rotation=rotation, pivot=list(pivot or origin))
   self.names[bone].setdefault('cubes', []).append(c)
+  self.materials.setdefault(bone, []).append(material)
  def prop(self, name, parent, pivot):
   self.props.append(name)
   self.bone(name, parent, pivot)
@@ -99,7 +101,7 @@ class Rig:
   self.box('head',[-hw/2,24,-2.5],[hw,5.5,5],'skin')
   self.box('head',[-1,23.5,-2],[2,1,3.5],'skin')
   self.box('head',[-.5,25.5,-3],[1,1.5,.5],'skin')
-  for x in (-1.8,.8):self.box('head',[x,27,-2.55],[1,1,.08],'dark')
+  # Eyes and age cues are painted on the head UV, avoiding floating black eye cubes.
   self.bone('hair','head',[0,29,0]);self.box('hair',[-hw/2-.25,29,-2.6],[hw+.5,1,5.2],'dark')
   self.box('hair',[-hw/2-.25,25.5,2.25],[hw+.5,4,.75],'dark')
   self.bone('equipment','chest',[0,20,0])
@@ -348,15 +350,11 @@ class Rig:
    for c in b.get('cubes',[]):
     for field in ('origin','size','pivot'):
      if field in c:c[field]=[round(v*self.scale,4) for v in c[field]]
-  geo={'format_version':'1.12.0','minecraft:geometry':[{'description':{'identifier':'geometry.npc_'+self.role,'texture_width':16,'texture_height':16,'visible_bounds_width':4,'visible_bounds_height':5,'visible_bounds_offset':[0,1.4,0]},'bones':bones}]}
+  from natural_pixels import atlas
+  texture,paint_report=atlas(bones,self.materials,self.role,self.colour)
+  geo={'format_version':'1.12.0','minecraft:geometry':[{'description':{'identifier':'geometry.npc_'+self.role,'texture_width':texture.width,'texture_height':texture.height,'visible_bounds_width':4,'visible_bounds_height':5,'visible_bounds_offset':[0,1.4,0]},'bones':bones}]}
   anim={'format_version':'1.8.0','animations':{'animation.npc.'+s:self.animation(s) for s in STATES}}
-  skin='#86533d' if self.role=='huang_laohan' else '#cfa378'
-  palette={'skin':skin,'cloth':self.colour,'dark':'#252a2c','light':'#ffffff'}
-  texture=Image.new('RGB',(16,16),'white');draw=ImageDraw.Draw(texture)
-  for y,row in enumerate(PORTRAITS[self.role]):
-   for x,letter in enumerate(row):
-    if letter in MATERIALS:draw.rectangle((x*2,y*2,x*2+1,y*2+1),fill=palette[MATERIALS[letter]])
-  return geo,anim,texture,{'id':self.role,'design':self.design,'stature':self.scale,'chestWidth':self.width,'chestDepth':self.depth,'bones':len(bones),'cuboids':sum(len(b.get('cubes',[])) for b in bones),'palette':palette,'handProps':self.props}
+  return geo,anim,texture,{'id':self.role,'design':self.design,'stature':self.scale,'chestWidth':self.width,'chestDepth':self.depth,'bones':len(bones),'cuboids':sum(len(b.get('cubes',[])) for b in bones),'pixels':paint_report,'handProps':self.props}
 
 def keys(values, length):return {str(round(i*length/(len(values)-1),3)):v for i,v in enumerate(values)}
 def main():

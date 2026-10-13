@@ -235,24 +235,17 @@ tasks.register('exportMod') {
     }
 }
 
-/** 导出整合包：生成 dist/（CF zip、mrpack、手动包）→ 复制到桌面「导出」→ 同步进 HMCL 实例 */
+/** 导出整合包：仅完整游玩 mrpack、Modrinth mrpack、CurseForge ZIP。 */
 tasks.register('exportModpack') {
     group = 'dynasty'
-    description = '导出 Dynasty 整合包（dist/ + 桌面/导出/Dynasty整合包 + 同步进 HMCL 实例）'
+    description = '仅导出完整游玩 mrpack、Modrinth 上传 mrpack、CurseForge 上传 ZIP'
     dependsOn 'build'
     doLast {
         runPython('tools/art/make_modpack.py')
-        runPython('tools/art/make_manual_and_guide.py')
-        // Deliver the complete local pack before optional online publication checks.
-        def localOut = new File(dynastyExportDir, 'Dynasty整合包')
-        localOut.mkdirs()
-        ['complete.zip', 'complete.mrpack', 'manual.zip'].each { suffix ->
-            def complete = file("dist/dynasty-${project.version}-${suffix}")
-            if (!complete.isFile()) throw new GradleException("缺少完整 FTB 包：${complete}")
-            new File(localOut, complete.name).bytes = complete.bytes
+        exec {
+            commandLine 'python3', file('tools/art/make_uploadable_packs.py').absolutePath,
+                    '--modrinth-filename', "dynasty-${project.version}-modrinth.mrpack", '--bundle-ftb'
         }
-        logger.lifecycle("完整 FTB 游玩包已保存：${localOut}/dynasty-${project.version}-complete.mrpack（另有 complete.zip）；直接导入启动器，无需补装 FTB。")
-        runPython('tools/art/make_uploadable_packs.py')
 
         // 模组解析自检：把「缺前置 / 不兼容」这类会让游戏起不来的问题在导出阶段就报出来
         def verifier = file('tools/art/verify_modpack.py')
@@ -373,22 +366,27 @@ tasks.register('exportModpack') {
 
         def out = new File(dynastyExportDir, 'Dynasty整合包')
         out.mkdirs()
-        def dist = file('dist')
-        int copied = 0
-        if (dist.isDirectory()) {
-            dist.listFiles().each { f ->
-                if (f.isFile()) {
-                    new File(out, f.name).bytes = f.bytes
-                    copied++
-                }
-            }
+        def exportNames = [
+                "dynasty-${project.version}.mrpack",
+                "dynasty-${project.version}-modrinth.mrpack",
+                "dynasty-modpack-${project.version}.zip"
+        ].collect { it.toString() }
+        exportNames.each { name ->
+            if (!file("dist/${name}").isFile()) throw new GradleException("缺少整合包成品：${name}")
         }
-
-        // 同步到 HMCL 实例（版本隔离目录 + 全局 mods 目录 + 整合包实例目录）
-        syncHmcl()
-
-        logger.lifecycle("✅ 已导出整合包：${out}（${copied} 个文件）")
-        logger.lifecycle("   自己玩选 dynasty-*-complete.mrpack 或 complete.zip（含 FTB）；dynasty-modpack-*.zip → CurseForge，dynasty-${project.version}.mrpack → Modrinth 发布（需补装 FTB）")
+        // Preserve old generated archives outside the current three-file export.
+        def history = new File(dynastyExportDir, "Dynasty整合包历史/${System.currentTimeMillis()}")
+        out.listFiles()?.findAll { f ->
+            f.isFile() && !exportNames.contains(f.name) && (
+                    (f.name.startsWith('dynasty-') && (f.name.endsWith('.zip') || f.name.endsWith('.mrpack'))) ||
+                    f.name == 'Modrinth上传说明.txt' || f.name == 'Dynasty-1.20.1-FTB任务与连锁补装.zip')
+        }?.each { f ->
+            history.mkdirs()
+            java.nio.file.Files.move(f.toPath(), new File(history, f.name).toPath())
+        }
+        exportNames.each { name -> new File(out, name).bytes = file("dist/${name}").bytes }
+        logger.lifecycle("✅ 已导出整合包：${out}（仅 3 个成品）")
+        logger.lifecycle("   dynasty-${project.version}.mrpack → 完整游玩；dynasty-${project.version}-modrinth.mrpack → Modrinth 上传；dynasty-modpack-${project.version}.zip → CurseForge 上传")
         openDir(out)
     }
 }

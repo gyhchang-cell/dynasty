@@ -9,7 +9,7 @@ from quest_routes import code
 class WorldMainlineTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.book=story.build_book()
+        cls.book=story.build_source_book()
         cls.rows=[q for c in cls.book for q in c['quests']]
 
     def test_all_six_objectives_are_real_mainline_advancements(self):

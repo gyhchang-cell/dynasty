@@ -28,7 +28,7 @@ public final class Cod3VfxRenderer {
     private static final BufferBuilder BUFFER=new BufferBuilder(262144);
     private static void clean(){
         var mc=Minecraft.getInstance();var current=mc.level;
-        if(current!=world){ACTIVE.clear();Cod3AfterImages.clear();soundTick=Long.MIN_VALUE;world=current;}
+        if(current!=world){ACTIVE.clear();Cod3AfterImages.clear();ScenicModels.clear();soundTick=Long.MIN_VALUE;world=current;}
         if(world==null)return;
         ACTIVE.removeIf(p->{
             if(world.getGameTime()-p.start()>=p.duration()||p.start()-world.getGameTime()>40)return true;
@@ -97,6 +97,7 @@ public final class Cod3VfxRenderer {
             RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();RenderSystem.depthMask(false);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
             pose.translate(-camera.x,-camera.y,-camera.z);BUFFER.begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);drawing=true;
             int nearLarge=0,mediumLarge=0,farLarge=0;
+            List<Cod3VisualPacket> scenicModels=new ArrayList<>();ScenicModels.retain(ACTIVE);
             for(var p:ACTIVE){
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
                 Vec3 origin=p.origin(),direction=p.direction();
@@ -108,6 +109,7 @@ public final class Cod3VfxRenderer {
                     if(entity!=null){if(p.template()==4){if(!entity.isAlive()||entity.getDeltaMovement().lengthSqr()<.0025)continue;direction=entity.getDeltaMovement().normalize();}origin=entity.getPosition(e.getPartialTick());}}
                 double distance=origin.distanceTo(camera);if(distance>256||distance<.8)continue;
                 if(p.scale()>2){if(distance>96&&farLarge++>=1||distance>32&&distance<=96&&mediumLarge++>=2||distance<=32&&nearLarge++>=3)continue;}
+                if(ScenicModels.supports(p)){scenicModels.add(p);continue;}
                 var d=Cod3Catalog.vfx(p.template());var combat=p.sequence().startsWith("combat_")?VfxInstance.combat(p):null;var timeline=VfxTimeline.timing(d,p.duration());double life=age/p.duration(),expansion=combat==null?timeline.expansion(age):combat.expansion(age),alpha=timeline.alpha(age,p.duration())*.6;
                 if(p.template()==4){expansion=1;alpha=.6*(p.sequence().equals("arrow_collapse")?1-life:1);}
                 if(Cod3AfterImages.supports(p)&&p.template()!=36)continue; // Registered models are drawn after the primitive buffer is flushed.
@@ -142,6 +144,7 @@ public final class Cod3VfxRenderer {
                 }
             }
             BufferUploader.drawWithShader(BUFFER.end());drawing=false;
+            ScenicModels.render(scenicModels,pose,camera,e.getPartialTick());
             for(var p:ACTIVE)if(Cod3AfterImages.supports(p)){
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
                 double distance=p.origin().distanceTo(camera);boolean low=Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL;

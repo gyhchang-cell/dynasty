@@ -20,7 +20,8 @@ public class DynastyNetwork {
                     14, "com.dynasty.network.EdictVisualPacket:PLAY_TO_CLIENT:v2",
                     15, "com.dynasty.worldevent.WorldEventStatePacket:PLAY_TO_CLIENT:v1",
                     16, "com.dynasty.expansion.CombatFeedback:PLAY_TO_CLIENT:v2",
-                    17, "com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1")));
+                    17, "com.dynasty.infusion.InfusionRequest:PLAY_TO_SERVER:v1",
+                    18, "com.dynasty.blueprint.artifact.ArtifactSwingRequest:PLAY_TO_SERVER:v1")));
     private static final java.util.Set<Integer> REGISTERED_EXTENSIONS = new java.util.HashSet<>();
     private static final String PROTOCOL_VERSION = fingerprintSchema(protocolSchema());
     public static String protocolSchema() {
@@ -103,6 +104,10 @@ public class DynastyNetwork {
                 com.dynasty.blueprint.BlueprintVisualEvent::decode,
                 com.dynasty.blueprint.BlueprintVisualEvent::handle,
                 java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
+        registerExtension(18, com.dynasty.blueprint.artifact.ArtifactSwingRequest.class,
+                com.dynasty.blueprint.artifact.ArtifactSwingRequest::encode, com.dynasty.blueprint.artifact.ArtifactSwingRequest::decode,
+                com.dynasty.blueprint.artifact.ArtifactSwingRequest::handle,
+                net.minecraftforge.network.NetworkDirection.PLAY_TO_SERVER, 1);
         // IDs 12-16 belong to cod3/edict/world-event/combat-feedback extensions.
         registerExtension(17, com.dynasty.infusion.InfusionRequest.class,
                 com.dynasty.infusion.InfusionRequest::encode, com.dynasty.infusion.InfusionRequest::decode,

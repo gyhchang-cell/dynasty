@@ -56,7 +56,8 @@ public final class SecondaryMobs {
         for(var spec:SPECS) {
             var type=ENTITIES.register(spec.id(),()->EntityType.Builder.<SecondaryMob>of((t,l)->spec.neutral()?new SecondaryMob(t,l,spec):new SecondaryMob.Hostile(t,l,spec),spec.neutral()?MobCategory.CREATURE:MobCategory.MONSTER).sized(spec.width(),spec.height()).clientTrackingRange(8).updateInterval(3).build(spec.id()));
             TYPES.put(spec.id(),type);
-            ExpansionContent.ITEMS.register(spec.id()+"_spawn_egg",()->new ForgeSpawnEggItem(type,0x645D4C,0xB5AB7C,new Item.Properties()));
+            int[] palette=com.dynasty.item.DynastyEggPalette.colors(spec.id());
+            ExpansionContent.ITEMS.register(spec.id()+"_spawn_egg",()->new ForgeSpawnEggItem(type,palette[0],palette[1],new Item.Properties()));
         }
     }
     public static void bootstrap(IEventBus bus) {

@@ -14,44 +14,42 @@ PALETTES.update({
 
 def core(id,thin=False):
     r=Rig(id);r.bone('root',(0,0,0),None);r.bone('body',(0,14,0))
-    w=5 if thin else 6
-    r.bone('pelvis',(0,13,0),'body');r.cube('pelvis',(-w/2,12,-1.5),(w,2,3),1)
-    r.bone('waist',(0,14,0),'pelvis');r.cube('waist',(-2,14,-1),(4,2,2),0)
-    r.bone('chest',(0,16,0),'waist');r.cube('chest',(-w/2,16,-1.5),(w,5,3),1)
+    # Ordinary people: a readable Minecraft face, supported joints, no floating
+    # eye blocks or long puppet nose. Existing animation/held-tool anchors stay.
+    w=6 if thin else (7.5 if id=='bandit_thug' else 7)
+    r.bone('pelvis',(0,13,0),'body');r.cube('pelvis',(-w/2,12,-1.75),(w,2,3.5),1)
+    r.bone('waist',(0,14,0),'pelvis');r.cube('waist',(-2.5,14,-1.5),(5,2,3),0)
+    r.bone('chest',(0,16,0),'waist');r.cube('chest',(-w/2,16,-1.75),(w,5,3.5),1)
     r.bone('neck',(0,21,0),'chest');r.cube('neck',(-1,21,-1),(2,1,2),3)
-    r.bone('head',(0,22,0),'neck');r.cube('head',(-2,22,-2),(4,5,4),3)
-    r.cube('head',(-2,25,-2.5),(4,1,.5),2)
-    r.cube('head',(-1.75,24,-2.25),(1,1,.5),0);r.cube('head',(.75,24,-2.25),(1,1,.5),0)
-    r.cube('head',(-.5,23,-3),(1,2,1),3)
-    r.bone('jaw',(0,22,-1),'head');r.cube('jaw',(-1.5,21.5,-2.5),(3,.5,2),2)
+    r.bone('head',(0,22,0),'neck');r.cube('head',(-3.25,21.5,-3),(6.5,6.5,6),3)
+    r.bone('jaw',(0,22,-1),'head') # Kept for the saved animation contract.
     for side,s in [('left',1),('right',-1)]:
         arm=r.bone(side+'_upper_arm',(s*3.5,20,0),'chest')
-        r.cube(arm,((3 if s>0 else -5),15,-1),(2,5,2),1)
+        r.cube(arm,((3 if s>0 else -5.5),15,-1.25),(2.5,5,2.5),1)
         elbow=r.bone(side+'_elbow',(s*4,15,0),arm)
-        r.cube(elbow,((3 if s>0 else -5),14,-1),(2,1,2),2)
+        r.cube(elbow,((3 if s>0 else -5.5),14,-1.25),(2.5,1,2.5),2)
         fore=r.bone(side+'_forearm',(s*4,14,0),elbow)
-        r.cube(fore,((3.25 if s>0 else -4.75),10,-.75),(1.5,4,1.5),3)
+        r.cube(fore,((3 if s>0 else -5.5),10,-1.25),(2.5,4,2.5),3)
         wrist=r.bone(side+'_wrist',(s*4,10,0),fore)
         hand=r.bone(side+'_hand',(s*4,9,-1),wrist)
-        r.cube(hand,((3 if s>0 else -5),8,-2),(2,2,2),3)
-        r.cube(hand,((2.5 if s>0 else -3.5),8.5,-1.75),(1,1,1),2)
+        r.cube(hand,((2.75 if s>0 else -5.25),8,-2),(2.5,2,2.5),3)
         thigh=r.bone(side+'_thigh',(s*1.75,12,0),'pelvis')
-        r.cube(thigh,(s*1.75-1,7,-1),(2,5,2),1)
+        r.cube(thigh,(s*1.75-1.375,7,-1.25),(2.75,5,2.5),1)
         knee=r.bone(side+'_knee',(s*1.75,7,0),thigh)
         shin=r.bone(side+'_shin',(s*1.75,7,0),knee)
-        r.cube(shin,(s*1.75-.75,2,-.75),(1.5,5,1.5),2)
+        r.cube(shin,(s*1.75-1.125,2,-1.125),(2.25,5,2.25),2)
         ankle=r.bone(side+'_ankle',(s*1.75,2,0),shin)
         foot=r.bone(side+'_foot',(s*1.75,1,-1),ankle)
-        r.cube(foot,(s*1.75-1.25,0,-2),(2.5,2,3),0)
+        r.cube(foot,(s*1.75-1.5,0,-2.5),(3,2,4),0)
     return r
 
 def bandit():
     r=core('bandit_thug')
-    r.bone('helmet',(0,27,0),'head');r.cube('helmet',(-2.5,26.5,-2.5),(5,1.5,5),0)
-    r.cube('helmet',(-2,28,-2),(4,1,4),2)
-    r.cube('helmet',(-3,24,.5),(1,3,2),0)
-    r.bone('mask',(0,23,-2),'head');r.cube('mask',(-2,22.25,-3.25),(4,1.5,.5),1)
-    r.bone('armor',(0,18,0),'chest');r.cube('armor',(-3.5,16.5,-2.25),(7,4,.75),2)
+    r.bone('helmet',(0,28,0),'head');r.cube('helmet',(-3.75,27,-3.5),(7.5,1.5,7),0)
+    r.cube('helmet',(-3,28.5,-2.75),(6,1,5.5),2)
+    r.cube('helmet',(-3.75,24,.5),(1,3,2.5),0)
+    r.bone('mask',(0,23,-2),'head');r.cube('mask',(-3.25,21.75,-3.5),(6.5,2,.5),1)
+    r.bone('armor',(0,18,0),'chest');r.cube('armor',(-4,16.5,-2.5),(8,4,.75),2)
     r.bone('left_pauldron',(3.5,20,0),'left_upper_arm');r.cube('left_pauldron',(3,20,-1.5),(3,2,3),0)
     r.bone('skirt',(0,13,0),'pelvis')
     r.cube('skirt',(-3,10,-2.5),(2.5,3,.75),2);r.cube('skirt',(.5,11,-2.5),(2.5,2,.75),2)
@@ -63,8 +61,8 @@ def bandit():
 
 def watchman():
     r=core('night_watchman')
-    r.bone('cap',(0,27,0),'head');r.cube('cap',(-2.5,26.5,-2.5),(5,1,5),0)
-    r.cube('cap',(-1.5,27.5,-1.5),(3,1,3),1)
+    r.bone('cap',(0,28,0),'head');r.cube('cap',(-3.75,27.5,-3.5),(7.5,1,7),0)
+    r.cube('cap',(-3,28.5,-2.5),(6,1,5),1)
     r.bone('vest',(0,18,0),'chest');r.cube('vest',(-3.5,16,-2.25),(7,5,.75),4)
     r.cube('vest',(-2.5,15,-2.25),(5,1,.75),2)
     r.bone('lantern',(4,9,-1),'left_hand')
@@ -77,8 +75,8 @@ def watchman():
 
 def herb():
     r=core('herb_picker')
-    r.bone('hat',(0,27,0),'head');r.cube('hat',(-4,27,-3.5),(8,1,7),2)
-    r.cube('hat',(-3,28,-2.5),(6,1,5),3)
+    r.bone('hat',(0,28,0),'head');r.cube('hat',(-4.5,28,-4),(9,1,8),2)
+    r.cube('hat',(-3.5,29,-3),(7,1,6),3)
     r.bone('basket',(0,16,1.5),'chest')
     r.cube('basket',(-3.5,12,1.5),(7,7,4),4)
     r.cube('basket',(-4,19,1.5),(8,1,4),2)
@@ -95,8 +93,8 @@ def refugee():
     r.by['chest']['rotation']=[12,0,0]
     r.bone('rags',(0,15,0),'waist')
     r.cube('rags',(-3,11,-2),(2,5,.5),2);r.cube('rags',(1,12,-2),(2,4,.5),0)
-    r.bone('hood',(0,27,0),'head');r.cube('hood',(-2.5,26.5,-1.5),(5,1,4),1)
-    r.cube('hood',(-2.5,24,1.5),(5,2.5,1),1)
+    r.bone('hood',(0,28,0),'head');r.cube('hood',(-3.5,27.5,-2.5),(7,1,6),1)
+    r.cube('hood',(-3.5,24,3),(7,3.5,1),1)
     r.bone('bundle',(0,17,1.5),'chest');r.cube('bundle',(-2.5,16,1.5),(5,4,3),2)
     r.cube('bundle',(-.5,15,4.5),(1,5,.5),0)
     r.bone('staff',(4,9,-1),'left_hand');r.cube('staff',(3.5,0,-1.5),(1,17,1),1)
@@ -108,8 +106,8 @@ def swindler():
     r.bone('robe',(0,14,0),'waist')
     r.cube('robe',(-4,8,-2.25),(3.5,6,.75),1);r.cube('robe',(.5,8,-2.25),(3.5,6,.75),1)
     r.cube('robe',(-4,8,1.5),(8,6,.75),4)
-    r.bone('crown',(0,27,0),'head');r.cube('crown',(-2,27,-2),(4,1,4),0)
-    r.cube('crown',(-1,28,-1.5),(2,2,3),2)
+    r.bone('crown',(0,28,0),'head');r.cube('crown',(-3.5,28,-3.25),(7,1,6.5),0)
+    r.cube('crown',(-1.5,29,-2),(3,2,4),2)
     for side,s in [('left',1),('right',-1)]:
         b=r.bone(side+'_cuff',(s*4,15,0),side+'_elbow')
         r.cube(b,((3 if s>0 else -5.5),13,-1.5),(2.5,2,3),1)

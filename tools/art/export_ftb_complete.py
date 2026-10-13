@@ -37,7 +37,7 @@ def digest(path, algorithm='sha256'):
     return result.hexdigest()
 
 
-def export(root):
+def export(root, mrpack_only=False):
     root = Path(root).resolve()
     properties = (root / 'gradle.properties').read_text(encoding='utf-8')
     match = re.search(r'^mod_version\s*=\s*([\w.+-]+)\s*$', properties, re.M)
@@ -129,6 +129,36 @@ def export(root):
     )
     dist = root / 'dist'
     dist.mkdir(exist_ok=True)
+    if mrpack_only:
+        output = dist / ('dynasty-' + version + '.mrpack')
+        index = {
+            'formatVersion': 1, 'game': 'minecraft', 'versionId': version,
+            'name': 'Dynasty 王朝 · FTB 完整游玩包',
+            'summary': '本地完整客户端包：包含 FTB 任务、连锁采掘、前置和任务章节。',
+            'files': [], 'dependencies': {'minecraft': '1.20.1', 'forge': '47.4.10'},
+        }
+        fd, pending = tempfile.mkstemp(prefix=output.name + '.', suffix='.pending', dir=dist)
+        os.close(fd)
+        try:
+            with zipfile.ZipFile(pending, 'w', zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr('modrinth.index.json', json.dumps(index, ensure_ascii=False, indent=2))
+                for name, path in sources.items():
+                    archive.write(path, 'overrides/' + name)
+                archive.writestr('overrides/安装说明-README.txt', readme)
+                archive.writestr('overrides/dynasty-ftb-complete.json', json.dumps(receipt, ensure_ascii=False, indent=2))
+            with zipfile.ZipFile(pending) as archive:
+                if archive.testzip():
+                    raise ValueError('完整 mrpack CRC 校验失败')
+                for name, metadata in receipt['files'].items():
+                    data = archive.read('overrides/' + name)
+                    if len(data) != metadata['size'] or hashlib.sha256(data).hexdigest() != metadata['sha256']:
+                        raise ValueError('打包期间文件发生变化: ' + name)
+            os.replace(pending, output)
+        finally:
+            if os.path.exists(pending):
+                os.unlink(pending)
+        print('完整 mrpack（本地导入，包含 FTB）:', output)
+        return output
     output = dist / ('dynasty-' + version + '-manual.zip')
     fd, tempname = tempfile.mkstemp(prefix=output.name + '.', suffix='.pending', dir=dist)
     os.close(fd)
@@ -214,9 +244,10 @@ def export(root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[2])
+    parser.add_argument('--mrpack-only', action='store_true', help='只导出完整 mrpack，不生成手动包或完整 ZIP')
     args = parser.parse_args()
     try:
-        export(args.root)
+        export(args.root, mrpack_only=args.mrpack_only)
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as error:
         parser.exit(1, 'FTB 完整包导出失败: ' + str(error) + '\n')
 

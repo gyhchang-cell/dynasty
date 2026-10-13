@@ -91,6 +91,23 @@ class CompletePackTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'SHA-1'):
             export(self.root)
 
+    def test_mrpack_only_keeps_full_content_without_extra_archives(self):
+        output = export(self.root, mrpack_only=True)
+        self.assertEqual(['dynasty-1.4.0.mrpack'],
+                         sorted(p.name for p in (self.root / 'dist').iterdir()))
+        with zipfile.ZipFile(output) as archive:
+            self.assertEqual([], json.loads(archive.read('modrinth.index.json'))['files'])
+            self.assertTrue(all('overrides/mods/' + n in archive.namelist() for n in REQUIRED))
+            self.assertNotIn('overrides/mods/dynasty-1.3.0.jar', archive.namelist())
+            self.assertEqual(self.core.read_bytes(), archive.read('overrides/mods/dynasty-1.4.0.jar'))
+            self.assertEqual(b'{ id: "1234567890ABCDEF" }',
+                             archive.read('overrides/config/ftbquests/quests/chapters/original.snbt'))
+        before = output.read_bytes()
+        (self.root / 'modpack/mods' / REQUIRED[0]).unlink()
+        with self.assertRaisesRegex(ValueError, '缺少任务系统依赖'):
+            export(self.root, mrpack_only=True)
+        self.assertEqual(before, output.read_bytes())
+
     def test_duplicate_ftb_version_rejected(self):
         self.jar(self.root / 'modpack/mods/ftb-quests-forge-old.jar', 'ftbquests')
         with self.assertRaisesRegex(ValueError, '重复/非锁定'):

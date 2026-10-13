@@ -49,6 +49,7 @@ public class DynastyCombatEvents {
 
         // 1) 攻击方：附魔加伤 + 武器独有机制 / attacker: enchantments + weapon gimmicks
         boolean armorPierce = false;
+        String armorPierceVisualWeapon = "";
         if (attacker != null && !EdictSpells.isSpell(event.getSource()) && !DynastyTrinketOnHit.isSyntheticDamage() && !SWEEP.get()) {
             ItemStack weapon = DynastySchoolCombat.firingWeapon(event.getSource(), attacker.getMainHandItem());
             int breaker = weapon.getEnchantmentLevel(DynastyEnchantments.BREAKER.get());
@@ -64,16 +65,21 @@ public class DynastyCombatEvents {
                 // 名器特攻：原版攻击力上限 2048，超出部分在这里补
                 amount += (float) DynastyBalance.weaponBonus(weaponId);
                 switch (weaponId) {
-                    case "tang_dao" -> attacker.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                            net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED, 60, 0, true, false));
+                    case "tang_dao" -> {
+                        boolean refreshedSpeed=com.dynasty.cod3.TangWind.willRefresh(attacker);
+                        if(attacker.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                                net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED, 60, 0, true, false))&&refreshedSpeed)
+                            com.dynasty.cod3.TangWind.applied(attacker);
+                    }
                     case "juque_sword" -> {
                         event.getEntity().addEffect(new net.minecraft.world.effect.MobEffectInstance(
                                 net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
                         event.getEntity().push(0.0D, 0.4D, 0.0D);
                     }
-                    case "pojun_axe", "siege_crossbow" -> armorPierce = true;
+                    case "pojun_axe", "siege_crossbow" -> { armorPierce = true; armorPierceVisualWeapon = weaponId; }
                     case "xuantian_axe" -> {
                         armorPierce = true;
+                        armorPierceVisualWeapon = weaponId;
                         event.getEntity().addEffect(new net.minecraft.world.effect.MobEffectInstance(
                                 net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 80, 1));
                     }
@@ -87,7 +93,7 @@ public class DynastyCombatEvents {
                     case "halberd_fangtian" -> {
                         double yaw = Math.toRadians(attacker.getYRot());
                         event.getEntity().push(-Math.sin(yaw) * 0.8D, 0.25D, Math.cos(yaw) * 0.8D);
-                        sweep(attacker, event.getEntity(), amount * 0.6F);
+                        sweep(attacker, event.getEntity(), amount * 0.6F, event.getSource());
                     }
                     default -> {
                     }
@@ -139,7 +145,9 @@ public class DynastyCombatEvents {
         // 6) 敌方「士气」减伤 / enemy morale reduction
         double toughness = DynastyBalance.mobToughness(victim.getType());
         if (armorPierce) {
+            double beforePierce = toughness;
             toughness *= 0.5D;   // 破军战斧：无视一半士气减伤
+            com.dynasty.cod3.ArmorCrack.reduced(event,attacker,armorPierceVisualWeapon,beforePierce,toughness);
         }
         if (toughness > 0.0D) {
             amount *= (float) (1.0D - toughness);
@@ -182,15 +190,16 @@ public class DynastyCombatEvents {
     }
 
     /** 方天画戟横扫：对主目标周围的敌人造成额外伤害 / Fangtian halberd sweep */
-    private static void sweep(LivingEntity attacker, LivingEntity main, float damage) {
+    private static void sweep(LivingEntity attacker, LivingEntity main, float damage, net.minecraft.world.damagesource.DamageSource visualSource) {
         if(SWEEP.get() || DynastyTrinketOnHit.isSyntheticDamage())return;
         SWEEP.set(true);
+        var sweepVisual=com.dynasty.cod3.FangtianSweep.begin(attacker,main,visualSource);
         try {
         for (LivingEntity nearby : attacker.level().getEntitiesOfClass(LivingEntity.class,
                 main.getBoundingBox().inflate(3.0D),
                 e -> e != attacker && e != main && e.isAlive() && !attacker.isAlliedTo(e) && !e.isAlliedTo(attacker) && attacker.hasLineOfSight(e))) {
             nearby.hurt(attacker.damageSources().mobAttack(attacker), damage);
         }
-        } finally { SWEEP.remove(); }
+        } finally { SWEEP.remove(); com.dynasty.cod3.FangtianSweep.finish(sweepVisual); }
     }
 }

@@ -26,6 +26,7 @@ public final class DynastyContent {
         com.dynasty.cod3.RebelStatueBlock.TYPES.register(modEventBus);
         com.dynasty.cod3.NpcContent.ENTITIES.register(modEventBus);
         com.dynasty.cod3.NpcContent.ITEMS.register(modEventBus);
+        com.dynasty.cod3.NpcTrading.MENUS.register(modEventBus);
         com.dynasty.cod3.WhiteDeerContent.ENTITIES.register(modEventBus);
         com.dynasty.cod3.WhiteDeerContent.ITEMS.register(modEventBus);
         com.dynasty.cod3.StoryAnchor.BLOCKS.register(modEventBus);
@@ -49,6 +50,10 @@ public final class DynastyContent {
         com.dynasty.entity.DynastyEntities.ENTITIES.register(modEventBus);
         com.dynasty.blueprint.BlueprintEntities.register(modEventBus);
         com.dynasty.blueprint.elite.EliteContent.register(modEventBus);
+        com.dynasty.blueprint.boss.CauldronPitContent.register(modEventBus);
+        com.dynasty.blueprint.boss.BlindMarshalContent.register(modEventBus);
+        com.dynasty.blueprint.boss.WoodKiteContent.register(modEventBus);
+        com.dynasty.blueprint.artifact.ArtifactContent.register(modEventBus);
         com.dynasty.blueprint.EcologyBiomeModifier.SERIALIZERS.register(modEventBus);
         com.dynasty.worldevent.WorldEventItems.ITEMS.register(modEventBus);
         modEventBus.addListener(com.dynasty.blueprint.BlueprintSpawns::register);

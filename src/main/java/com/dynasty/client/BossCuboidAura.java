@@ -10,7 +10,7 @@ final class BossCuboidAura {
         // Called in the body bone's space. Fold the rune plane with the actual
         // storm rings during death, keeping every live rune and its depth test.
         pose.pushPose();
-        float yCenter=1.501f*1.28f-.33f*1.28f,z=-.42f*1.28f;
+        float yCenter=2.55f,z=-.42f*1.28f;
         pose.translate(0,yCenter,z);pose.mulPose(com.mojang.math.Axis.YP.rotation(fold));pose.translate(0,-yCenter,-z);
         var sink=buffers.getBuffer(RenderType.debugQuads());var matrix=pose.last().pose();
         new BowSigilGeometry(1,(x1,y1,x2,y2,width)->{

@@ -11,6 +11,7 @@ public final class MechanicalPatrols {
     public static List<BlockPos> snakePositions(StructurePiece piece){return piece instanceof MegabuildPiece city?city.bronzeSnakePositions():List.of();}
     public static List<BlockPos> mechanistPositions(StructurePiece piece){return piece instanceof MegabuildPiece site?site.mechanistPositions():List.of();}
     public static List<BlockPos> spiderWomanPositions(StructurePiece piece){return piece instanceof MegabuildPiece site?site.spiderWomanPositions():List.of();}
+    public static List<BlockPos> inkAssassinPositions(StructurePiece piece){return piece instanceof MegabuildPiece site?site.inkAssassinPositions():List.of();}
     public static List<BlockPos> dogPositions(StructurePiece piece){
         return piece instanceof MegabuildPiece city?city.clockworkPatrols():List.of();
     }

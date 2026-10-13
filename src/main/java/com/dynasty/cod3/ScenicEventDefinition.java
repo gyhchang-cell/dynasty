@@ -22,8 +22,9 @@ public record ScenicEventDefinition(int number,String dimension,int from,int unt
             case 14->biome.is(net.minecraft.world.level.biome.Biomes.DESERT)||biome.is(BiomeTags.IS_BADLANDS);
             case 19->biome.is(BiomeTags.IS_FOREST);
             case 7->biome.is(BiomeTags.IS_FOREST)&&l.getMoonPhase()==0;
-            case 9->p.getY()<0;
-            case 24->p.getY()<0&&biome.value().coldEnoughToSnow(p.blockPosition());
+            // These two permanent displays are ordinary blocks in native cave structures.
+            // Do not spawn the old timed light-field placeholders merely because a player is underground.
+            case 9,24->false;
             case 10,17->biome.is(BiomeTags.IS_OCEAN)||dimension.equals("dynasty:dragon_palace");
             case 13->p.getY()<40;
             case 15->p.getZ()<-2000&&biome.value().coldEnoughToSnow(p.blockPosition());

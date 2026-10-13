@@ -52,7 +52,86 @@ public record BlueprintVisualEvent(ResourceLocation dimension, int entityId, UUI
     public static void death(com.dynasty.blueprint.elite.SpiderWoman spider){if(spider.level() instanceof ServerLevel)send(spider,spiderDeath(spider));}
     private static BlueprintVisualEvent alchemistDeath(com.dynasty.blueprint.elite.Alchemist caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_yinyang_liandan_fangshi",0,80,caster.position(),caster.getLookAngle(),2,360,false);}
     public static void death(com.dynasty.blueprint.elite.Alchemist caster){if(caster.level() instanceof ServerLevel)send(caster,alchemistDeath(caster));}
+    private static BlueprintVisualEvent tideDeath(com.dynasty.blueprint.elite.TideYasha caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_fubo_xunhai_yecha",0,80,caster.position(),caster.getLookAngle(),2,360,false);}
+    public static void death(com.dynasty.blueprint.elite.TideYasha caster){if(caster.level() instanceof ServerLevel)send(caster,tideDeath(caster));}
+    private static BlueprintVisualEvent corpseDeath(com.dynasty.blueprint.elite.RageCorpse caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_banshan_jiazhou_shikuang",0,80,caster.position(),caster.getLookAngle(),3,360,false);}
+    public static void death(com.dynasty.blueprint.elite.RageCorpse caster){if(caster.level() instanceof ServerLevel)send(caster,corpseDeath(caster));}
+    private static BlueprintVisualEvent gorillaDeath(com.dynasty.blueprint.elite.BronzeGorilla caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_hanshan_tongjia_juyuan",0,90,caster.position(),caster.getLookAngle(),3,360,false);}
+    public static void death(com.dynasty.blueprint.elite.BronzeGorilla caster){if(caster.level() instanceof ServerLevel)send(caster,gorillaDeath(caster));}
+    private static BlueprintVisualEvent inkDeath(com.dynasty.blueprint.elite.InkAssassin caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_mojia_jueying_cike",0,60,caster.position(),caster.getLookAngle(),2,360,false);}
+    public static void death(com.dynasty.blueprint.elite.InkAssassin caster){if(caster.level() instanceof ServerLevel)send(caster,inkDeath(caster));}
+    private static BlueprintVisualEvent judgeDeath(com.dynasty.blueprint.elite.LampJudge caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1, caster.skillStart(),seed(caster,caster.skillStart()),"death_qingdeng_panguan_guichai",0,84,caster.position(),caster.getLookAngle(),2,360,false);}
+    public static void death(com.dynasty.blueprint.elite.LampJudge caster){if(caster.level() instanceof ServerLevel)send(caster,judgeDeath(caster));}
+    private static BlueprintVisualEvent eagleDeath(com.dynasty.blueprint.elite.GoldenEagle caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_liefeng_jindiao_yushi",0,90,caster.position(),caster.getLookAngle(),3,360,false);}
+    public static void death(com.dynasty.blueprint.elite.GoldenEagle caster){if(caster.level() instanceof ServerLevel)send(caster,eagleDeath(caster));}
+    private static BlueprintVisualEvent suanniDeath(com.dynasty.blueprint.elite.BronzeSuanni caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_zhenmu_suanni_tonghou",0,90,caster.position(),caster.getLookAngle(),3,360,false);}
+    public static void death(com.dynasty.blueprint.elite.BronzeSuanni caster){if(caster.level() instanceof ServerLevel)send(caster,suanniDeath(caster));}
+    private static BlueprintVisualEvent cauldronDeath(com.dynasty.blueprint.boss.TaoyanCauldron caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_taoyan_zhishi",0,200,caster.position(),caster.getLookAngle(),6,360,false);}
+    public static void death(com.dynasty.blueprint.boss.TaoyanCauldron caster){if(caster.level() instanceof ServerLevel)send(caster,cauldronDeath(caster));}
+    private static BlueprintVisualEvent kiteDeath(com.dynasty.blueprint.boss.WoodKite caster){return new BlueprintVisualEvent(caster.level().dimension().location(),caster.getId(),caster.getUUID(),-1,caster.skillStart(),seed(caster,caster.skillStart()),"death_luban_yisha",0,220,caster.position(),caster.getLookAngle(),4.5,360,false);}
+    public static void death(com.dynasty.blueprint.boss.WoodKite caster){if(caster.level() instanceof ServerLevel)send(caster,kiteDeath(caster));}
     @SubscribeEvent public static void tracking(PlayerEvent.StartTracking event) {
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.boss.WoodKite caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<220)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),kiteDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();long age=level.getGameTime()-action.started();if(skill!=null&&age>=0&&age<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),caster.lockedPoint(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.boss.BlindMarshal caster&&caster.level() instanceof ServerLevel level){
+            var action=caster.attack();var skill=action.current();if(!caster.isDeadOrDying()&&skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),caster.lockedPoint(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.boss.TaoyanCauldron caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<200)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),cauldronDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),skill.id()==505?caster.landing():action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.BronzeSuanni caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<90)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),suanniDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),caster.position(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.GoldenEagle caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<90)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),eagleDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),caster.landing(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.LampJudge caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<84)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),judgeDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),caster.mark(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.InkAssassin caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<60)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),inkDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),caster.mark(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.BronzeGorilla caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<90)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),gorillaDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),skill.id()==423?caster.landing():action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.RageCorpse caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<80)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),corpseDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),skill.id()==402?caster.landing():action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
+        if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.TideYasha caster&&caster.level() instanceof ServerLevel level){
+            if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<80)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),tideDeath(caster));return;}
+            var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){
+                var target=action.target()==null?null:level.getEntity(action.target());DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),new BlueprintVisualEvent(level.dimension().location(),caster.getId(),caster.getUUID(),target==null?-1:target.getId(),action.started(),seed(caster,action.started()),skill.key(),skill.windupTicks(),skill.totalTicks(),action.origin(),action.direction(),skill.maxRange(),skill.angleDegrees(),false));
+            }return;
+        }
         if(event.getEntity() instanceof ServerPlayer player&&event.getTarget() instanceof com.dynasty.blueprint.elite.Alchemist caster&&caster.level() instanceof ServerLevel level){
             if(caster.isDeadOrDying()){if(caster.skillStart()>=0&&level.getGameTime()-caster.skillStart()<80)DynastyNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->player),alchemistDeath(caster));return;}
             var action=caster.attack();var skill=action.current();if(skill!=null&&level.getGameTime()-action.started()<skill.totalTicks()){

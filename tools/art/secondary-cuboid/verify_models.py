@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from PIL import Image
 from build_models import REPO, ASSET, OUT
+from material_atlas import IDS as MATERIAL_IDS
+from human_atlas import IDS as HUMAN_IDS
 
 def main():
     manifest=json.loads((OUT/'model-manifest.json').read_text());result={}
@@ -16,13 +18,25 @@ def main():
             if proof.exists():
                 original=json.loads(proof.read_text());cull(original)
                 assert original['minecraft:geometry'][0]==g,(id,'unproved missing face or changed geometry')
-        assert len(im.getcolors(1000))==4,(id,'palette')
-        assert im.size==(16,16),(id,'actual 16x16 PNG required')
         pixels=im.convert('RGB');white=(255,255,255)
-        assert all(pixels.getpixel((x,y))==white for x in range(16) for y in range(16) if x in (0,15) or y in (0,15)),(id,'white margin')
-        for y in range(0,16,2):
-            for x in range(0,16,2):
-                assert len(set(pixels.crop((x,y,x+2,y+2)).getdata()))==1,(id,'color regions must be 2x2 or larger')
+        if id in HUMAN_IDS:
+            assert im.size==(128,128) and 12<=len(im.getcolors(1000))<=36,(id,'human pixel atlas')
+            from human_atlas import generated
+            exported,png,_=generated()[id]
+            assert exported['minecraft:geometry'][0]==g and png==tp.read_bytes(),(id,'human source/export mismatch')
+        elif id in MATERIAL_IDS:
+            assert im.size in ((64,64),(128,128)),(id,'material atlas')
+            assert 8<=len(im.getcolors(1000))<=22,(id,'finite material palette')
+            from material_atlas import render
+            exported,png,_=render(id,json.loads(gp.read_text()))
+            assert exported['minecraft:geometry'][0]==g and png==tp.read_bytes(),(id,'authoring/export mismatch')
+        else:
+            assert len(im.getcolors(1000))==4,(id,'palette')
+            assert im.size==(16,16),(id,'actual 16x16 PNG required')
+            assert all(pixels.getpixel((x,y))==white for x in range(16) for y in range(16) if x in (0,15) or y in (0,15)),(id,'white margin')
+            for y in range(0,16,2):
+                for x in range(0,16,2):
+                    assert len(set(pixels.crop((x,y,x+2,y+2)).getdata()))==1,(id,'color regions must be 2x2 or larger')
         assert im.size==(g['description']['texture_width'],g['description']['texture_height'])
         names={b['name'] for b in g['bones']};assert len(names)==len(g['bones'])
         original=json.loads((OUT/f'source/{id}.geo.json').read_text())['minecraft:geometry'][0]
@@ -49,7 +63,7 @@ def main():
         assert {'idle','wander','hunt','flee','attack','special','evade'}<=set(a)
         result[id]={'bones':len(names),'cuboids':sum(len(b.get('cubes',[])) for b in g['bones']),
                     'renderedFaces':sum(len(c['uv']) for b in g['bones'] for c in b.get('cubes',[])),
-                    'preservedOriginalBones':len(original['bones']),'clips':len(a),'pureColors':4,'atlas':im.size,
+                    'preservedOriginalBones':len(original['bones']),'clips':len(a),'pureColors':len(im.getcolors(1000)),'atlas':im.size,
                     'resources':{str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [gp,ap,tp]}}
     (OUT/'static-validation.json').write_text(json.dumps(result,indent=2)+'\n')
     print('PASS exported resources:',len(result),'entities;',sum(v['clips'] for v in result.values()),'clips')

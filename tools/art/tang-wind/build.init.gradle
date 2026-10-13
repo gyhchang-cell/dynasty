@@ -1,0 +1,25 @@
+allprojects { p -> afterEvaluate {
+    if(!p.plugins.hasPlugin('net.minecraftforge.gradle'))return
+    def base=p.file('build/maintenance/tang-wind-v1')
+    p.buildDir=new File(base,'gradle')
+    p.sourceSets.main.java.setSrcDirs([new File(base,'frozen/src/main/java')])
+    p.sourceSets.main.resources.setSrcDirs([new File(base,'frozen/src/main/resources'),new File(base,'frozen/src/generated/resources')])
+    if(p.hasProperty('tangServerQa')) {
+        def qa=p.sourceSets.create('tangServerQa') {
+            java.srcDir p.file('tools/art/tang-wind/server-qa')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.tasks.named(qa.processResourcesTaskName).configure {
+            from(new File(base,'frozen/src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) {into 'data/dynasty_tang_qa/structures'}
+        }
+        p.minecraft.runs.gameTestServer {
+            workingDirectory new File(base,'server')
+            property 'forge.enabledGameTestNamespaces','dynasty_tang_qa'
+            property 'forge.logging.console.level','info'
+            jvmArgs '-Xmx1200m','-XX:ActiveProcessorCount=2','-Djava.awt.headless=true'
+            mods { dynasty { source qa } }
+        }
+        p.tasks.matching {it.name=='runGameTestServer'}.configureEach {dependsOn qa.classesTaskName}
+    }
+} }

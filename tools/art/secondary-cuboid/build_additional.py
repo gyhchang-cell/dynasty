@@ -79,18 +79,20 @@ def lantern():
 
 
 def stone():
-    r=Rig('stone_sprite');r.bone('root',(0,0,0),None);r.bone('body',(0,6,0))
-    r.cube('body',(-5,4,-4),(10,6,8),1)
-    r.bone('boulder',(0,10,0),'body');r.cube('boulder',(-4,10,-3),(8,3,6),2)
-    r.cube('boulder',(-1,13,-1),(4,.5,3),1)
-    r.bone('neck',(0,8,-3),'body');r.bone('head',(0,8,-4),'neck')
-    r.cube('head',(-4,6,-5),(8,4,1),2)
-    r.cube('head',(-3,8,-6),(2,1,1),0);r.cube('head',(1,8,-6),(2,1,1),0)
-    r.cube('head',(-3,7,-6),(2,1,1),3);r.cube('head',(1,7,-6),(2,1,1),3)
-    r.bone('tail',(0,6,4),'body');r.cube('tail',(-2,4,4),(4,3,2),1)
-    for i,(x,z) in enumerate([(-3,-2),(3,-2),(-3,2),(3,2)]):
-        b=r.bone('leg_'+str(i),(x,4,z),'body');r.cube(b,(x-1,2,z-1),(2,2,2),0)
-        foot=r.bone('foot_'+str(i),(x,2,z),b);r.cube(foot,(x-2,0,z-2),(4,2,4),2)
+    # Low, broad living crag: four separated supports, not an upright stone doll.
+    # Keep the published bone names and 17-Cuboid budget / existing skill clips.
+    r=Rig('stone_sprite');r.bone('root',(0,0,0),None);r.bone('body',(0,5,0))
+    r.cube('body',(-6,3,-5),(12,4,11),1)
+    r.bone('boulder',(0,7,0),'body');r.cube('boulder',(-4.5,7,-3),(9,2.5,8),2)
+    r.cube('boulder',(-1,9.5,0),(4,1,4),1)
+    r.bone('neck',(0,5,-4),'body');r.bone('head',(0,5,-5),'neck')
+    r.cube('head',(-3,3.5,-8),(6,3,3),2)
+    r.cube('head',(-2.5,5,-8.25),(2,1,.5),0);r.cube('head',(.5,5,-8.25),(2,1,.5),0)
+    r.cube('head',(-2,4,-8.25),(1,1,.5),3);r.cube('head',(1,4,-8.25),(1,1,.5),3)
+    r.bone('tail',(0,4,5),'body');r.cube('tail',(-2,3,6),(4,2,2),1)
+    for i,(x,z) in enumerate([(-4,-3),(4,-3),(-4,4),(4,4)]):
+        b=r.bone('leg_'+str(i),(x,3,z),'body');r.cube(b,(x-1,1.5,z-1),(2,2,2),0)
+        foot=r.bone('foot_'+str(i),(x,1.5,z),b);r.cube(foot,(x-1.5,0,z-1.5),(3,1.5,3),2)
     return r.save()
 
 

@@ -152,7 +152,7 @@ def recipe_logic_check(quest_targets, deps_by_quest, graph):
         problems.append("任务编排契约失败：" + str(error))
 
 
-def layout_check(name, coords, problems):
+def layout_check(name, coords, problems, max_far=MAX_FAR):
     """
     排布自检：一章不能太散、也不能挤成一列 / 一行。
 
@@ -187,9 +187,9 @@ def layout_check(name, coords, problems):
         problems.append("%s: 纵向跨度 %.0f 格，太竖了（该拆成多条链）" % (name, span_y))
     if span_x > 40:
         problems.append("%s: 横向跨度 %.0f 格，太横了（该拆成多条链）" % (name, span_x))
-    if far > MAX_FAR:
+    if far > max_far:
         problems.append("%s: 最远任务离章节中心 %.1f 格（超过 %.0f 格，散得太开 / 支线拉太长）"
-                        % (name, far, MAX_FAR))
+                        % (name, far, max_far))
     return span_x, span_y, (max(gaps) if gaps else 0.0), far
 
 
@@ -221,8 +221,15 @@ def main():
     per_chapter = []
     quest_targets = {}
     deps_by_quest = {}
+    from quest_story import build_book
+    editorial = {c['file']+'.snbt':c for c in build_book()}
     for path in chapters:
         text = open(path, encoding="utf-8").read()
+        # FTB MissingItem.readItem sets Count from the compound; absent Count = empty icon.
+        for icon in re.findall(r'\bicon:\s*(\{[^{}]*\})', text):
+            count = re.search(r'\bCount:\s*(\d+)b?', icon)
+            if not count or int(count[1]) <= 0:
+                problems.append(os.path.basename(path) + ": empty native icon (missing positive Count)")
         blocks = list_compounds(text,"quests")
         ids = [object_id(block) for block in blocks]
         if any(qid is None for qid in ids):
@@ -257,7 +264,24 @@ def main():
             else:
                 coords.append(tuple(m[1] for m in xy))
         unique = len(set(coords))
-        stats = layout_check(os.path.basename(path), coords, problems)
+        name = os.path.basename(path)
+        chapter = editorial.get(name)
+        if chapter:
+            # The consolidated pages contain labeled compact blocks. Lint each
+            # block about its own center, then check total page bounds and overlap.
+            sections = {}
+            for q in chapter['quests']:sections.setdefault(q.get('section',name),[]).append((q['x'],q['y']))
+            for label,points in sections.items():
+                xs,ys=zip(*points);cx=(max(xs)+min(xs))/2;cy=(max(ys)+min(ys))/2
+                layout_check(name+':'+label,[(x-cx,y-cy) for x,y in points],problems,max_far=16)
+            numeric=[(float(x),float(y)) for x,y in coords]
+            xs,ys=zip(*numeric)
+            span_x,span_y=max(xs)-min(xs),max(ys)-min(ys)
+            if span_x>66 or span_y>60:problems.append(name+': consolidated page exceeds labeled block bounds')
+            if len(numeric)!=len(set(numeric)):problems.append(name+': overlapping quest nodes')
+            stats=(span_x,span_y,0,max(max(abs(x),abs(y)) for x,y in numeric))
+        else:
+            stats = layout_check(name, coords, problems)
         per_chapter.append((os.path.basename(path), len(ids), unique, stats))
 
         for qid in ids:

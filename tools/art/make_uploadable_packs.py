@@ -10,7 +10,12 @@ from modrinth_release import prepare_release, manual_guide
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--platform', choices=('both', 'curseforge', 'modrinth'), default='both')
+parser.add_argument('--modrinth-filename', help='Modrinth 成品文件名（仅文件名，扩展名 .mrpack）')
+parser.add_argument('--bundle-ftb', action='store_true', help='完整本地打包 FTB，不生成补装说明；公开发布许可另行确认')
 args = parser.parse_args()
+if args.modrinth_filename and (os.path.basename(args.modrinth_filename) != args.modrinth_filename
+                              or not args.modrinth_filename.endswith('.mrpack')):
+    parser.error('--modrinth-filename 必须为 .mrpack 文件名')
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DIST = os.path.join(ROOT, "dist")
@@ -92,6 +97,13 @@ def add_config_to(zip_file):
             zip_file.writestr("overrides/config/" + rel, open(full, "rb").read())
 
 
+full_snapshot = None
+if args.bundle_ftb:
+    from export_ftb_complete import export
+    # Validates locked FTB jars, transitive dependencies, current core and quests.
+    full_snapshot = export(ROOT, mrpack_only=True)
+
+
 CF_README = """Dynasty 王朝 整合包 1.4.0（平衡重制）
 =============================
 以《Dynasty 王朝》模组为主体，另附：
@@ -146,22 +158,46 @@ if args.platform in ('both', 'curseforge'):
 # ---------------------------------------------------------------- Modrinth
 if args.platform in ('both', 'modrinth'):
     mr_files, manual, embedded = prepare_release(MR_FILES, MODS)
+    bundled_ftb = []
+    if args.bundle_ftb:
+        from export_ftb_complete import REQUIRED
+        # Embed all seven locked FTB/runtime dependencies, not just the five
+        # formerly omitted files. Avoid also downloading a second copy.
+        with zipfile.ZipFile(full_snapshot) as snapshot:
+            for filename in REQUIRED:
+                data = snapshot.read('overrides/mods/' + filename)
+                bundled_ftb.append({'filename': filename, 'path': 'mods/' + filename,
+                                    'fileSize': len(data), 'hashes': {
+                                        a: hashlib.new(a, data).hexdigest() for a in ('sha1', 'sha512')}})
+        paths = {r['path'] for r in bundled_ftb}
+        mr_files = [r for r in mr_files if r['path'] not in paths]
     index = {
         "formatVersion": 1, "game": "minecraft", "versionId": VERSION,
         "name": "Dynasty 王朝",
-        "summary": "中国古代/神话 RPG；本体与任务配置保留。完整任务功能需按随包说明补装 FTB 依赖。",
+        "summary": ("中国古代/神话 RPG；包含 FTB 任务、连锁采掘和全部前置。" if args.bundle_ftb else
+                    "中国古代/神话 RPG；本体与任务配置保留。完整任务功能需按随包说明补装 FTB 依赖。"),
         "files": mr_files,
         "dependencies": {"minecraft": "1.20.1", "forge": "47.4.10"},
     }
-    mr_zip = os.path.join(DIST, "dynasty-%s.mrpack" % VERSION)
+    mr_zip = os.path.join(DIST, args.modrinth_filename or "dynasty-%s.mrpack" % VERSION)
     temporary = mr_zip + '.pending'
-    guide = manual_guide(manual)
+    guide = manual_guide(manual) if not args.bundle_ftb else None
     try:
         with zipfile.ZipFile(temporary, "w", zipfile.ZIP_DEFLATED) as z:
             z.writestr("modrinth.index.json", json.dumps(index, ensure_ascii=False, indent=2))
-            z.writestr("overrides/README.txt", guide)
-            z.writestr("overrides/DYNASTY-INSTALL-FIRST.txt", guide)
-            z.writestr("overrides/dynasty-manual-dependencies.json", json.dumps(manual, ensure_ascii=False, indent=2))
+            if guide is not None:
+                z.writestr("overrides/README.txt", guide)
+                z.writestr("overrides/DYNASTY-INSTALL-FIRST.txt", guide)
+                z.writestr("overrides/dynasty-manual-dependencies.json", json.dumps(manual, ensure_ascii=False, indent=2))
+            else:
+                with zipfile.ZipFile(full_snapshot) as snapshot:
+                    for record in bundled_ftb:
+                        name = "overrides/" + record['path']
+                        data = snapshot.read(name)
+                        if len(data) != record['fileSize'] or any(
+                                hashlib.new(a, data).hexdigest() != h for a, h in record['hashes'].items()):
+                            raise ValueError("完整包依赖快照不一致: " + record['filename'])
+                        z.writestr(name, data)
             z.write(OURS, "overrides/mods/" + OWN_JAR)
             for record in embedded:
                 z.write(os.path.join(MODS, record['filename']), "overrides/mods/" + record['filename'])
@@ -169,15 +205,20 @@ if args.platform in ('both', 'modrinth'):
                         "overrides/" + record['license_file'])
             add_config_to(z)
         report = check_pack(temporary, MODS)
-        if report['errors'] or report['warnings']:
+        blocking_warnings = [w for w in report['warnings'] if not (
+            args.bundle_ftb and w.endswith(': FTB cross-platform distribution needs explicit permission'))]
+        if report['errors'] or blocking_warnings:
             raise ValueError("Modrinth 发布校验失败: " + json.dumps(report, ensure_ascii=False))
+        if report['warnings']:
+            print("完整本地包已包含 FTB；公开上传 Modrinth 的 FTB 许可仍待确认。")
         os.replace(temporary, mr_zip)
     finally:
         if os.path.isfile(temporary):
             os.unlink(temporary)
     outputs.append(mr_zip)
     print("Modrinth 包:", mr_zip, os.path.getsize(mr_zip), "bytes")
-    print("官方哈希核验:", len(mr_files), "文件；合法内嵌:", len(embedded), "；需官方补装:", len(manual))
+    print("官方哈希核验:", len(mr_files), "文件；内嵌:", len(embedded) + len(bundled_ftb),
+          "；需补装:", 0 if args.bundle_ftb else len(manual))
 
 # 目录列表打印
 for name in outputs:

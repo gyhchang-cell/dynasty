@@ -123,17 +123,12 @@ def util():
     cv.px(9, 17, hx("C9A24A"))
     save(cv, "trinket_box")
 
-    # 王朝说明书
-    cv = Cv(S, S)
-    cv.rect(6, 4, 25, 28, hx("6B1F1F"))
-    cv.rect(7, 5, 24, 27, hx("B22A20"))
-    cv.rect(7, 5, 10, 27, hx("8B1A14"))
-    cv.rect(11, 8, 22, 12, GOLD_TRIM)
-    cv.px(13, 10, hx("4E8A6A"))
-    for y in range(15, 26, 3):
-        cv.line(12, y, 21, y, hx("F0E0C0"))
-    cv.rect(23, 6, 25, 27, hx("F5F0E0"))        # 书页 / pages
-    save(cv, "dynasty_manual")
+    # Preserve the authored 64px Dynasty atlas sprite (2026-10-11 user revision).
+    # The generic save() adds an outline and would alter this authored sprite.
+    import shutil
+    from gen_items_b import OUT
+    shutil.copyfile(os.path.join(os.path.dirname(__file__), "manual-icon", "dynasty_manual.png"),
+                    os.path.join(OUT, "dynasty_manual.png"))
 
 
 if __name__ == "__main__":

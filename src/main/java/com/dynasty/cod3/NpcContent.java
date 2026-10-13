@@ -19,7 +19,8 @@ public final class NpcContent {
     static {
         for(var row:Cod3Catalog.entries("npcs")){String role=row.getAsJsonObject().get("id").getAsString();
             var entity=ENTITIES.register("npc_"+role,()->EntityType.Builder.<DynastyNpcEntity>of((type,level)->new DynastyNpcEntity(type,level,role),MobCategory.CREATURE).sized(.65f,role.equals("xiaoyuanzi")?1.4f:1.9f).clientTrackingRange(6).build("npc_"+role));NPCS.put(role,entity);
-            EGGS.add(ITEMS.register("npc_"+role+"_spawn_egg",()->new ForgeSpawnEggItem(entity,0x586b55,0xbb9870,new Item.Properties())));
+            int[] palette=com.dynasty.item.DynastyEggPalette.colors(role);
+            EGGS.add(ITEMS.register("npc_"+role+"_spawn_egg",()->new ForgeSpawnEggItem(entity,palette[0],palette[1],new Item.Properties())));
         }
     }
     @SubscribeEvent public static void attributes(EntityAttributeCreationEvent e){for(var entity:NPCS.values())e.put(entity.get(),DynastyNpcEntity.attributes().build());}

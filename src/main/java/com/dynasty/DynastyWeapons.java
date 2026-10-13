@@ -96,12 +96,17 @@ public final class DynastyWeapons {
             ItemStack stack = player.getItemInHand(hand);
             if (!level.isClientSide()) {
                 int affected = 0;
+                int debuffVisuals = 0;
+                var debuffCast = com.dynasty.cod3.FluteWave.capture(level, player, stack, hand);
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class,
                         player.getBoundingBox().inflate(8.0D), e -> e != player)) {
+                    var debuffBefore = com.dynasty.cod3.FluteWave.snapshot(target);
                     target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 20 * 6, 1));
                     target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 20 * 6, 1));
+                    if (com.dynasty.cod3.FluteWave.changed(target, debuffBefore)) debuffVisuals++;
                     affected++;
                 }
+                com.dynasty.cod3.FluteWave.applied(debuffCast, debuffVisuals);
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                         "§d[玉笛] §r清音绕梁，" + affected + " 名敌人心神失守。"));
                 level.playSound(null, player.blockPosition(), SoundEvents.NOTE_BLOCK_FLUTE.value(),

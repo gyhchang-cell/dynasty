@@ -47,10 +47,12 @@ public final class Alchemist extends Monster implements GeoEntity,Combatant {
     public boolean startSkill(int id,LivingEntity victim){
         var def=skill(id);if(level().isClientSide||!isAlive()||def==null||!enemy(victim)||!hasLineOfSight(victim)||distanceToSqr(victim)>def.maxRange()*def.maxRange()||distanceToSqr(victim)<def.minRange()*def.minRange())return false;
         var dir=victim.getEyePosition().subtract(getEyePosition()).normalize();if(dir.lengthSqr()<.001)dir=new Vec3(0,0,1);
-        Vec3 origin=id==382?position():getEyePosition();
+        Vec3 origin=id==382?position():castOrigin(dir);
         if(!attack.tryStart(def,level().getGameTime(),origin,dir,victim.getUUID()))return false;
         navigation.stop();setDeltaMovement(0,getDeltaMovement().y,0);setYRot((float)Math.toDegrees(Math.atan2(-dir.x,dir.z)));setYHeadRot(getYRot());yBodyRot=getYRot();sync();BlueprintVisualEvent.start(this,def,origin,dir,victim.getId());playSound(SoundEvents.EVOKER_PREPARE_ATTACK,.7F,.6F);return true;
     }
+    /** Visible vessel ports: 1.5m above the feet, just beyond the front wall. */
+    private Vec3 castOrigin(Vec3 direction){return position().add(direction.multiply(1,0,1).normalize().scale(.55)).add(0,1.5,0);}
     private void sync(){entityData.set(SKILL,attack.current()==null?0:attack.current().id());entityData.set(START,attack.started());entityData.set(PHASE,attack.state(level().getGameTime()).ordinal());}
     @Override protected void customServerAiStep(){super.customServerAiStep();combat();}
     @Override public void tick(){super.tick();if(!level().isClientSide&&isNoAi())combat();}
@@ -74,7 +76,7 @@ public final class Alchemist extends Monster implements GeoEntity,Combatant {
             entityData.set(SHELL,world.getGameTime()+200);var victim=world.getEntity(attack.target());
             if(victim instanceof LivingEntity living&&enemy(living)&&world.getEntitiesOfClass(AlchemistOrb.class,getBoundingBox().inflate(32),o->o.ownedBy(this)).isEmpty()){
                 var right=new Vec3(-attack.direction().z,0,attack.direction().x).normalize();
-                for(int side:new int[]{-1,1}){var at=floorAt(living.position().add(right.scale(side*2)));if(at==null)continue;var pill=EliteContent.ALCHEMIST_ORB.get().create(world);if(pill!=null){pill.launchPill(this,getEyePosition(),at,side);world.addFreshEntity(pill);}}
+                for(int side:new int[]{-1,1}){var at=floorAt(living.position().add(right.scale(side*2)));if(at==null)continue;var pill=EliteContent.ALCHEMIST_ORB.get().create(world);if(pill!=null){pill.launchPill(this,attack.origin(),at,side);world.addFreshEntity(pill);}}
             }
         }
     }

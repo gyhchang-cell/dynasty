@@ -11,12 +11,12 @@ from verify_ftbquests import cycle_check, layout_check
 class QuestStoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.book = story.build_book()
+        cls.book = story.build_source_book()
         cls.main = [q for c in cls.book if c["main"] for q in c["quests"] if q['role']=='main']
         cls.cod4_nodes = json.loads((story.ROOT / "docs/cod4/quest-nodes.json").read_text())
 
     def cod4_ids(self, chapter):
-        return [node["id"] for node in self.cod4_nodes if node["chapter"] == chapter]
+        return [q["id"] for c in self.book if c["file"] == chapter for q in c["quests"] if q.get("route") == "cod4"]
 
     def test_frozen_ids_and_rewards(self):
         story.validate(self.book)
@@ -37,7 +37,7 @@ class QuestStoryTest(unittest.TestCase):
             story.validate(broken)
 
     def test_reproducible(self):
-        self.assertEqual(self.book, story.build_book())
+        self.assertEqual(self.book, story.build_source_book())
 
     def test_compass_material_reward_precedes_both_compasses(self):
         supplies, compasses = self.book[1]["quests"][:2]
@@ -51,7 +51,7 @@ class QuestStoryTest(unittest.TestCase):
             self.assertIn(item, story.recipe_index())
 
     def test_export_matches_source(self):
-        for c in self.book:
+        for c in story.build_book():
             self.assertEqual(story.encode(c), (story.OUT / "chapters" / (c["file"]+".snbt")).read_text())
 
     def test_layout_and_cycle(self):
@@ -72,7 +72,7 @@ class QuestStoryTest(unittest.TestCase):
                          {q['id'] for c in self.book for q in c['quests'] if q.get('route') == 'cod4'})
         self.assertEqual(32,sum(q['role']=='chapter_branch' for c in self.book for q in c['quests']))
         self.assertEqual(2,sum(q.get('target') in ('dynasty:tiangong_citadel','dynasty:tiangong_mining_estate') for c in self.book for q in c['quests']))
-        self.assertTrue(all(not q["deps"] for c in self.book if not c["main"] for q in c["quests"] if q["role"]!="build"))
+        self.assertTrue(all(not q["deps"] for c in self.book if not c["main"] for q in c["quests"] if q["role"] not in {"build", "cod4_branch"}))
 
     def test_milestones_still_personal(self):
         allq = {q["id"]:q for c in self.book for q in c["quests"]}
@@ -83,7 +83,8 @@ class QuestStoryTest(unittest.TestCase):
                 self.assertEqual("advancement", q["kind"])
                 self.assertEqual("dynasty:cod4_obtain_" + item, q["target"])
                 self.assertEqual("[]", q["rewards"], "Personal server milestones must not also grant team rewards")
-                self.assertFalse(q["deps"])
+                self.assertTrue(q["deps"])
+                self.assertEqual("cod4_branch", q["role"])
                 continue
             self.assertEqual("hexagon",q["shape"])
             self.assertIn('dynasty unlock_curio '+key+'"',q["rewards"])
@@ -239,7 +240,8 @@ class QuestStoryTest(unittest.TestCase):
         self.assertTrue(all(not q["deps"] and q["rewards"]=="[]" for q in home["quests"]))
         self.assertEqual(1, sum(q["role"] == "guide" for q in home["quests"]),
                          "Navigation cards must not add fake completion tasks")
-        side = [q for q in home["quests"] if q["role"] == "side"]
+        self.assertEqual(1, len(home["quests"]))
+        side = [q for c in self.book if c["file"] == "dynasty_cod4_workshop" for q in c["quests"] if q["id"] == "10000000000F1001"]
         self.assertEqual(1, len(side))
         self.assertEqual("10000000000F1001", side[0]["id"])
         self.assertEqual("advancement", side[0]["kind"])

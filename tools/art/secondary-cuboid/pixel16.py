@@ -2,7 +2,8 @@
 
 The larger material drafts made by the geometry builders are intermediate files.
 This exporter remaps their face materials into original front-facing portraits;
-only these strict 16px resources are eligible for validation and local delivery.
+Other than the material_atlas and human_atlas targets superseded by the user's
+2026-10-11 requirements, final resources retain this strict 16px policy.
 No filtering, image generation, gradients or copied artwork.
 """
 import json
@@ -52,6 +53,18 @@ def export(ids=None):
     for id in ids or manifest:
         gp=ASSET/f'geo/secondary/{id}.geo.json'
         geo=json.loads(gp.read_text());g=geo['minecraft:geometry'][0]
+        from human_atlas import IDS as HUMAN_IDS, export_one as export_human
+        if id in HUMAN_IDS:
+            record=export_human(id,geo,ASSET)
+            manifest[id].update(atlas=record['atlas'],palette=record['palette'],materialPolicy=record['policy'])
+            manifest[id].pop('pixelBlock',None);manifest[id].pop('whiteMargin',None)
+            continue
+        from material_atlas import IDS as MATERIAL_IDS, export_one
+        if id in MATERIAL_IDS:
+            record=export_one(id,geo,ASSET)
+            manifest[id].update(atlas=record['atlas'], palette=record['palette'], materialPolicy=record['policy'])
+            manifest[id].pop('pixelBlock',None);manifest[id].pop('whiteMargin',None)
+            continue
         if g['description']['texture_width']==16:
             continue
         old=Image.open(ASSET/f'textures/entity/secondary/{id}.png').convert('RGB')
@@ -92,8 +105,10 @@ def export(ids=None):
                      'uv':'each face samples one authored 2x2 non-white island; no background on mesh'}
     (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     p=OUT/'pixel16-export.json';previous=json.loads(p.read_text()) if p.exists() else {}
+    for id in MATERIAL_IDS:
+        previous.pop(id,None)
     previous.update(records);p.write_text(json.dumps(previous,indent=2)+'\n')
-    print('Exported strict 16x16 textures/UV:',len(records))
+    print('Exported strict 16x16 textures/UV:',len(records),'; scoped material atlases retain their current UV policy')
 
 def apply_markings(id,g,im):
     for bone in g['bones']:

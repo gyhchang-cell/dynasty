@@ -1,0 +1,26 @@
+allprojects { p -> afterEvaluate {
+    if(!p.plugins.hasPlugin('net.minecraftforge.gradle'))return
+    def base=p.file('build/maintenance/weapon-lift-v1')
+    p.buildDir=new File(base,'gradle')
+    def root=new File(base,p.hasProperty('liftBaselineQa')?'qa-frozen':'frozen')
+    p.sourceSets.main.java.setSrcDirs([new File(root,'src/main/java')])
+    p.sourceSets.main.resources.setSrcDirs([new File(root,'src/main/resources'),new File(root,'src/generated/resources')])
+    if(p.hasProperty('liftServerQa')) {
+        def qa=p.sourceSets.create('liftServerQa') {
+            java.srcDir p.file('tools/art/weapon-lift/server-qa')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.tasks.named(qa.processResourcesTaskName).configure {
+            from(new File(root,'src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) {into 'data/dynasty_lift_qa/structures'}
+        }
+        p.minecraft.runs.gameTestServer {
+            workingDirectory new File(base,'server')
+            property 'forge.enabledGameTestNamespaces','dynasty_lift_qa'
+            property 'forge.logging.console.level','info'
+            jvmArgs '-Xmx1200m','-XX:ActiveProcessorCount=2','-Djava.awt.headless=true'
+            mods { dynasty { source qa } }
+        }
+        p.tasks.matching {it.name=='runGameTestServer'}.configureEach {dependsOn qa.classesTaskName}
+    }
+} }

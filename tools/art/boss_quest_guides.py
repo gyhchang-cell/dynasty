@@ -107,7 +107,7 @@ def validate_links(chapters):
             component = json.loads(line)
             event = component["clickEvent"]
             assert event["action"]=="change_page", "Guide links must stay within FTB"
-            assert event["value"] in quests, "Broken guide jump: "+event["value"]
+            assert event["value"] in quests or event["value"] in {c["id"] for c in chapters}, "Broken guide jump: "+event["value"]
             count += 1
     for number,*_ in GUIDES.values():
         guide = quests[f"1{number:015x}"]

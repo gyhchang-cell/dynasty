@@ -133,6 +133,131 @@ public final class BlueprintVisuals {
                 budget-=deathParticles(mc,p,age,budget);
                 continue;
             }
+            if(p.key().startsWith("kite_")){
+                if(!(caster instanceof com.dynasty.blueprint.boss.WoodKite kite))continue;
+                if(p.key().equals("kite_bombs"))continue;
+                if(p.key().equals("kite_wing_cut")&&age>=56||p.key().equals("kite_claws")&&age>=36||p.key().equals("kite_wind")&&age>=104||p.key().equals("kite_lightning")&&age>=81||p.key().equals("kite_meteor")&&age>=81)continue;
+                int count=Math.min(8,budget);budget-=count;var f=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-f.z,0,f.x);var color=new Vector3f(.58F,.36F,.67F);
+                for(int i=0;i<count;i++){Vec3 at;double a=i*Math.PI*2/count;
+                    if(p.key().equals("kite_claws"))at=kite.lockedPoint().add(Math.cos(a)*2.2,.08,Math.sin(a)*2.2);
+                    else if(p.key().equals("kite_lightning")){int mark=i/2;long impact=32+mark*16;if(age>=impact)continue;at=kite.lightningPoint(mark).add(Math.cos(a)*4,.08,Math.sin(a)*4);}
+                    else if(p.key().equals("kite_meteor")){double radius=age<68?20:1+(age-68)/12D*19;at=kite.centre().add(Math.cos(a)*radius,.08,Math.sin(a)*radius);color=age>=58?new Vector3f(.93F,.55F,.12F):color;}
+                    else if(p.key().equals("kite_wind")){double angle=Math.toRadians(-45+90D*i/Math.max(1,count-1));at=caster.position().add(f.scale(Math.cos(angle)*24)).add(side.scale(Math.sin(angle)*24));at=new Vec3(at.x,kite.centre().y+.08,at.z);}
+                    else if(age<24){double u=i/2D/Math.max(1,(count-2)/2D)*32;at=kite.centre().add(f.scale(-16+u)).add(side.scale(9*Math.sin(Math.PI*u/32)+(i%2==0?2.8:4.5))).add(0,.08,0);}
+                    else {at=kite.wingOrigin(side).add(side.scale(1.7*i/Math.max(1,count-1)));}
+                    mc.level.addParticle(new DustParticleOptions(color,.8F),at.x,at.y,at.z,0,.008,0);
+                }continue;
+            }
+            if(p.key().startsWith("wuwang_")){
+                if(!(caster instanceof com.dynasty.blueprint.boss.BlindMarshal marshal))continue;
+                if(p.key().equals("wuwang_trample")&&age>=68||p.key().equals("wuwang_slash")&&age>=p.windup()+1||p.key().equals("wuwang_listen")&&age>=80||p.key().equals("wuwang_arrows")&&age>=25||p.key().equals("wuwang_onslaught")&&age>=72||p.key().equals("wuwang_storm")&&age>=128)continue;
+                int count=Math.min(8,budget);budget-=count;var f=p.direction().multiply(1,0,1).normalize();var colour=new Vector3f(.55F,.38F,.32F);
+                for(int i=0;i<count;i++){double a=i*Math.PI*2/count;Vec3 at;
+                    if(p.key().equals("wuwang_trample"))at=marshal.lockedPoint().add(Math.cos(a)*3,.1,Math.sin(a)*3);
+                    else if(p.key().equals("wuwang_listen"))at=caster.position().add(Math.cos(a)*2,.4,Math.sin(a)*2);
+                    else if(p.key().equals("wuwang_arrows"))at=marshal.lockedPoint().add(Math.cos(a)*3,.1,Math.sin(a)*3);
+                    else if(p.key().equals("wuwang_storm")){at=caster.position().add(Math.cos(a)*4,1+(i%3)*.5,Math.sin(a)*4);colour=new Vector3f(.45F,.27F,.29F);}
+                    else if(i%2==0){double angle=Math.toRadians(-marshal.meleeAngle()/2+marshal.meleeAngle()*i/Math.max(1,count-2));var side=new Vec3(-f.z,0,f.x);at=marshal.meleeOrigin().add(f.scale(Math.cos(angle)*marshal.meleeRadius())).add(side.scale(Math.sin(angle)*marshal.meleeRadius()));}
+                    else at=marshal.bladeTip().add(f.scale(5D*(i-1)/Math.max(1,count-2)));
+                    mc.level.addParticle(new DustParticleOptions(colour,.8F),at.x,at.y,at.z,0,.01,0);
+                }continue;
+            }
+            if(p.key().startsWith("taoyan_")){
+                if(!(caster instanceof com.dynasty.blueprint.boss.TaoyanCauldron pot))continue;
+                if(p.key().equals("taoyan_ram")&&age>=32||p.key().equals("taoyan_whip")&&age>=48||p.key().equals("taoyan_oil")&&age>=36||p.key().equals("taoyan_bells")&&age>=40||p.key().equals("taoyan_slam")&&age>=36||p.key().equals("taoyan_drink")&&age>=88)continue;
+                int count=Math.min(8,budget);budget-=count;var f=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-f.z,0,f.x);var color=new Vector3f(.5F,.4F,.26F);
+                for(int i=0;i<count;i++){double a=i*Math.PI*2/count;Vec3 at;
+                    if(p.key().equals("taoyan_ram"))at=p.origin().add(f.scale(12D*i/Math.max(1,count-1))).add(side.scale(i%2==0?-2:2)).add(0,.1,0);
+                    else if(p.key().equals("taoyan_whip")){double angle=Math.toRadians(-135+270D*i/Math.max(1,count-1));at=pot.whipOrigin().add(f.scale(Math.cos(angle)*4.5)).add(side.scale(Math.sin(angle)*4.5));}
+                    else if(p.key().equals("taoyan_oil"))at=p.origin().add(f.scale(4)).add(Math.cos(a)*6,.08,Math.sin(a)*6);
+                    else if(p.key().equals("taoyan_slam"))at=pot.landing().add(Math.cos(a)*4,.08,Math.sin(a)*4);
+                    else if(p.key().equals("taoyan_bells"))at=(pot.arenaCentre()==null?caster.position():Vec3.atBottomCenterOf(pot.arenaCentre())).add(Math.cos(a)*20,.15,Math.sin(a)*20);
+                    else {double radius=age<p.windup()?20:2+(age%20)*.9;at=caster.position().add(Math.cos(a)*radius,1.1,Math.sin(a)*radius);}
+                    mc.level.addParticle(new DustParticleOptions(color,.95F),at.x,at.y,at.z,0,.008,0);
+                }continue;
+            }
+            if(p.key().startsWith("suanni_")){
+                if(!(caster instanceof com.dynasty.blueprint.elite.BronzeSuanni lion))continue;
+                if(p.key().equals("suanni_fire")&&age>=84||p.key().equals("suanni_stomp")&&age>=30||p.key().equals("suanni_roar")&&age>=16)continue;
+                int count=Math.min(8,budget);budget-=count;var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-forward.z,0,forward.x);
+                for(int i=0;i<count;i++){Vec3 at;var color=new Vector3f(.7F,.32F,.1F);
+                    if(p.key().equals("suanni_fire")){
+                        if(age<24){double a=Math.toRadians(-45+90D*i/Math.max(1,count-1));at=caster.position().add(forward.scale(.75)).add(forward.scale(Math.cos(a)*9.25)).add(side.scale(Math.sin(a)*9.25)).add(0,.08,0);}
+                        else {double u=(i/2D)/Math.max(1,(count-1)/2D);var d=lion.headDirection(age);var flank=new Vec3(-d.z,0,d.x);at=lion.fireMuzzle(age).add(d.scale(lion.flameLength(age)*u)).add(flank.scale(i%2==0?-2:2));at=new Vec3(at.x,caster.getY()+.08,at.z);}
+                    }else if(p.key().equals("suanni_stomp"))at=lion.stompOrigin().add(forward.scale(5D*i/Math.max(1,count-1))).add(side.scale(i%2==0?-.45:.45)).add(0,.08,0);
+                    else {double a=i*Math.PI*2/count;at=caster.position().add(Math.cos(a)*4,.08,Math.sin(a)*4);}
+                    mc.level.addParticle(new DustParticleOptions(color,.85F),at.x,at.y,at.z,0,.006,0);
+                }continue;
+            }
+            if(p.key().startsWith("eagle_")){
+                if(!(caster instanceof com.dynasty.blueprint.elite.GoldenEagle eagle))continue;
+                if(p.key().equals("eagle_rain")&&age>=80||p.key().equals("eagle_fan")&&age>=20||p.key().equals("eagle_dive")&&age>32)continue;
+                int count=Math.min(8,budget);budget-=count;var color=new Vector3f(.85F,.6F,.22F);var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-forward.z,0,forward.x);
+                for(int i=0;i<count;i++){Vec3 at;
+                    if(p.key().equals("eagle_rain")){int index=(int)((now+p.seed()+i)%24+24)%24;double angle=index%6*Math.PI/3+(index/6%2)*Math.PI/6;double radius=.7+(index/6)*1.05;at=eagle.landing().add(Math.cos(angle)*radius,.08,Math.sin(angle)*radius);}
+                    else if(p.key().equals("eagle_dive")){double a=i/(double)count*Math.PI*2;at=eagle.landing().add(Math.cos(a)*2,.08,Math.sin(a)*2);if(age>=13)color=new Vector3f(.8F,.15F,.1F);}
+                    else {double a=Math.toRadians(-90+i*180D/Math.max(1,count-1));at=new Vec3(eagle.getX(),eagle.landing().y+.08,eagle.getZ()).add(forward.scale(Math.cos(a)*16)).add(side.scale(Math.sin(a)*16));}
+                    mc.level.addParticle(new DustParticleOptions(color,.85F),at.x,at.y,at.z,0,.01,0);
+                }continue;
+            }
+            if(p.key().startsWith("judge_")){
+                if(!(caster instanceof com.dynasty.blueprint.elite.LampJudge judge))continue;
+                if(p.key().equals("judge_name")&&age>=45||p.key().equals("judge_cage")&&age>=176||p.key().equals("judge_strokes")&&age>=50)continue;
+                int count=Math.min(8,budget);budget-=count;
+                for(int i=0;i<count;i++){
+                    double a=i/(double)count*Math.PI*2;Vec3 at;Vector3f color=new Vector3f(.48F,.65F,.6F);
+                    if(p.key().equals("judge_name")){at=judge.mark().add(Math.cos(a)*.45,.08,Math.sin(a)*.45);if(age>=36)color=new Vector3f(.85F,.12F,.1F);}
+                    else if(p.key().equals("judge_cage"))at=judge.mark().add(Math.cos(a)*3,.08,Math.sin(a)*3);
+                    else at=caster.position().add(p.direction().scale(1.5+i*.5)).add(0,1.125,0);
+                    mc.level.addParticle(new DustParticleOptions(color,.8F),at.x,at.y,at.z,0,.005,0);
+                }continue;
+            }
+            if(p.key().startsWith("gorilla_")){
+                if(!(caster instanceof com.dynasty.blueprint.elite.BronzeGorilla ape))continue;
+                if(p.key().equals("gorilla_leap")&&age>38||p.key().equals("gorilla_smash")&&age>=88||p.key().equals("gorilla_throw")&&age>=18)continue;
+                int count=Math.min(8,budget);budget-=count;var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-forward.z,0,forward.x);
+                for(int i=0;i<count;i++){Vec3 at;Vector3f color=new Vector3f(.6F,.45F,.28F);
+                    if(p.key().equals("gorilla_leap")){double a=i/(double)count*Math.PI*2;at=ape.landing().add(Math.cos(a)*4,.08,Math.sin(a)*4);if(age>=30&&age<=35)color=new Vector3f(.8F,.12F,.1F);}
+                    else if(p.key().equals("gorilla_smash")){double distance=.7+8*i/(double)Math.max(1,count-1);at=p.origin().add(forward.scale(distance)).add(side.scale(i%2==0?-1:1)).add(0,.08,0);}
+                    else at=caster.position().add(side.scale((i%2==0?-1:1)*.55)).add(forward.scale(1.4)).add(0,.7+i*.1,0);
+                    mc.level.addParticle(new DustParticleOptions(color,age>=30&&p.key().equals("gorilla_leap")?1.25F:.9F),at.x,at.y,at.z,0,.015,0);
+                }continue;
+            }
+            if(p.key().startsWith("ink_")){
+                if(!(caster instanceof com.dynasty.blueprint.elite.InkAssassin ink))continue;
+                if(p.key().equals("ink_stealth")&&age>=81||p.key().equals("ink_field")&&age>=56||p.key().equals("ink_mist")&&age>=29)continue;
+                int count=Math.min(4,budget);budget-=count;
+                for(int i=0;i<count;i++){Vec3 at;
+                    if(p.key().equals("ink_stealth")){at=age<70?caster.position().add((i%2==0?-.15:.15),.05,(i/2)*.2):ink.mark().add(Math.cos(i*Math.PI*.5)*.9,.06,Math.sin(i*Math.PI*.5)*.9);}
+                    else if(p.key().equals("ink_field")){var a=ink.fieldCorner(i);var b=ink.fieldCorner((i+1)%4);at=a.lerp(b,(age%12)/12D).add(0,.06,0);}
+                    else at=caster.position().add(p.direction().scale(.4+i*.25)).add(0,.12,0);
+                    mc.level.addParticle(new DustParticleOptions(i%2==0?new Vector3f(.12F,.14F,.16F):new Vector3f(.75F,.77F,.75F),.7F),at.x,at.y,at.z,0,.005,0);
+                }continue;
+            }
+            if(p.key().startsWith("corpse_")){
+                if(!(caster instanceof com.dynasty.blueprint.elite.RageCorpse corpse))continue;
+                if(p.key().equals("corpse_leap")&&age>36||p.key().equals("corpse_spin")&&age>102||p.key().equals("corpse_blood")&&age>41)continue;
+                int count=Math.min(8,budget);budget-=count;var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-forward.z,0,forward.x);
+                for(int i=0;i<count;i++){double angle=(i/(double)count+age*.03)*Math.PI*2;Vec3 at;
+                    if(p.key().equals("corpse_leap"))at=corpse.landing().add(Math.cos(angle)*3,.1,Math.sin(angle)*3);
+                    else if(p.key().equals("corpse_spin"))at=caster.position().add(Math.cos(angle)*3,.13,Math.sin(angle)*3);
+                    else{double distance=1.2+8*i/(double)Math.max(1,count-1);at=caster.position().add(forward.scale(distance)).add(side.scale((i%2==0?-1:1)*Math.tan(Math.toRadians(15))*(distance-1.2))).add(0,1.5,0);}
+                    mc.level.addParticle(new DustParticleOptions(age<p.windup()?new Vector3f(.58F,.44F,.32F):new Vector3f(.48F,.15F,.2F),.95F),at.x,at.y,at.z,0,.015,0);
+                }continue;
+            }
+            if(p.key().startsWith("tide_")){
+                if(!(caster instanceof com.dynasty.blueprint.elite.TideYasha yasha))continue;
+                int count=Math.min(8,budget);var forward=p.direction().multiply(1,0,1).normalize();var side=new Vec3(-forward.z,0,forward.x);
+                if(p.key().equals("tide_wave")&&age>=p.windup()||p.key().equals("tide_dive")&&age>36||p.key().equals("tide_combo")&&age>44)continue;
+                budget-=count;
+                for(int i=0;i<count;i++){double angle=(i/(double)count+age*.03)*Math.PI*2;Vec3 at;
+                    if(p.key().equals("tide_dive"))at=yasha.poolPoint().add(Math.cos(angle)*2,age<30?.07:.1+(age-30)*.25,Math.sin(angle)*2);
+                    else if(p.key().equals("tide_wave"))at=caster.position().add(side.scale(i%2==0?-.8:.8)).add(Math.cos(angle)*.3,.15+i%4*.7,Math.sin(angle)*.3);
+                    else at=caster.position().add(forward.scale(2.8*i/(double)count)).add(side.scale(.9)).add(0,.1,0);
+                    var dust=new DustParticleOptions(p.key().equals("tide_dive")&&age<30?new Vector3f(.06F,.1F,.14F):new Vector3f(.4F,.75F,.8F),.9F);mc.level.addParticle(dust,at.x,at.y,at.z,0,age<30?0:.05,0);
+                }
+                if(p.key().equals("tide_dive")&&age<30&&budget>0){budget--;mc.level.addParticle(ParticleTypes.SQUID_INK,caster.getX(),caster.getY()+.1,caster.getZ(),0,.01,0);}continue;
+            }
             if(p.key().startsWith("alchemist_")){
                 if(age>=p.windup())continue;int count=Math.min(8,budget);budget-=count;
                 for(int i=0;i<count;i++){double angle=(i/(double)count+age*.025)*Math.PI*2;Vec3 at;
@@ -302,6 +427,34 @@ public final class BlueprintVisuals {
         }
     }
     private static int deathParticles(Minecraft mc,BlueprintVisualEvent p,long age,int budget) {
+        if(p.key().equals("death_luban_yisha")){
+            var caster=mc.level.getEntity(p.entityId());if(caster==null||!caster.getUUID().equals(p.entityUuid())||age>=218)return 0;
+            int count=Math.min(6,budget);for(int i=0;i<count;i++){double a=i*Math.PI/3+age*.04;var at=caster.position().add(Math.cos(a)*2.5,1.4,Math.sin(a)*2.5);mc.level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK,(i%2==0?Blocks.COPPER_BLOCK:Blocks.DARK_OAK_PLANKS).defaultBlockState()),at.x,at.y,at.z,Math.cos(a)*.04,-.04,Math.sin(a)*.04);}return count;
+        }
+        if(p.key().equals("death_taoyan_zhishi")){
+            var caster=mc.level.getEntity(p.entityId());if(caster==null||!caster.getUUID().equals(p.entityUuid())||age>=194)return 0;
+            int count=Math.min(8,budget);for(int i=0;i<count;i++){double a=i*Math.PI/4+age*.03;var at=caster.position().add(Math.cos(a)*2,Math.max(.1,3-age*.02),Math.sin(a)*2);mc.level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK,(i%2==0?Blocks.COPPER_BLOCK:Blocks.BONE_BLOCK).defaultBlockState()),at.x,at.y,at.z,Math.cos(a)*.035,-.04,Math.sin(a)*.035);}return count;
+        }
+        if(p.key().equals("death_zhenmu_suanni_tonghou")){
+            var caster=mc.level.getEntity(p.entityId());if(caster==null||!caster.getUUID().equals(p.entityUuid())||age>=88)return 0;
+            int count=Math.min(6,budget);for(int i=0;i<count;i++){double a=i*Math.PI/3;var at=caster.position().add(Math.cos(a)*1.1,age<16?1:.2,Math.sin(a)*1.1);mc.level.addParticle(age<16?new DustParticleOptions(new Vector3f(.86F,.36F,.12F),1):new BlockParticleOption(ParticleTypes.BLOCK,Blocks.COPPER_BLOCK.defaultBlockState()),at.x,at.y,at.z,Math.cos(a)*.025,age<16?.03:-.02,Math.sin(a)*.025);}return count;
+        }
+        if(p.key().equals("death_liefeng_jindiao_yushi")){
+            var caster=mc.level.getEntity(p.entityId());if(caster==null||!caster.getUUID().equals(p.entityUuid())||age>=88)return 0;
+            int count=Math.min(6,budget);for(int i=0;i<count;i++){double a=i*Math.PI/3+age*.045;var at=caster.position().add(Math.cos(a)*1.4,.15+age%12*.07,Math.sin(a)*1.4);mc.level.addParticle(age<40?new DustParticleOptions(new Vector3f(.46F,.45F,.41F),.75F):new BlockParticleOption(ParticleTypes.BLOCK,Blocks.SAND.defaultBlockState()),at.x,at.y,at.z,Math.cos(a)*.025,age<40?-.04:.015,Math.sin(a)*.025);}return count;
+        }
+        if(p.key().equals("death_mojia_jueying_cike")){
+            var caster=mc.level.getEntity(p.entityId());if(caster==null||!caster.getUUID().equals(p.entityUuid())||age>=58)return 0;
+            int count=Math.min(4,budget);for(int i=0;i<count;i++){double angle=i*Math.PI*.5+age*.035;var at=caster.position().add(Math.cos(angle)*age*.02,.05,Math.sin(angle)*age*.02);mc.level.addParticle(new DustParticleOptions(i%2==0?new Vector3f(.12F,.14F,.16F):new Vector3f(.8F,.82F,.8F),.8F),at.x,at.y,at.z,Math.cos(angle)*.012,0,Math.sin(angle)*.012);}return count;
+        }
+        if(p.key().equals("death_banshan_jiazhou_shikuang")){
+            var caster=mc.level.getEntity(p.entityId());if(caster==null||!caster.getUUID().equals(p.entityUuid())||age>=76)return 0;
+            int count=Math.min(4,budget);for(int i=0;i<count;i++){double angle=i*Math.PI*.5+age*.08;var at=caster.position().add(Math.cos(angle)*1.2,.15+age%14*.03,Math.sin(angle)*1.2);mc.level.addParticle(age<25?new DustParticleOptions(new Vector3f(.48F,.15F,.2F),1):new BlockParticleOption(ParticleTypes.BLOCK,Blocks.MUD.defaultBlockState()),at.x,at.y,at.z,Math.cos(angle)*.02,age<25?.07:.01,Math.sin(angle)*.02);}return count;
+        }
+        if(p.key().equals("death_fubo_xunhai_yecha")){
+            var caster=mc.level.getEntity(p.entityId());if(caster==null||!caster.getUUID().equals(p.entityUuid())||age>=76)return 0;
+            int count=Math.min(4,budget);for(int i=0;i<count;i++){double angle=i*Math.PI*.5+age*.11;var at=caster.position().add(Math.cos(angle)*1,.15+age%16*.03,Math.sin(angle)*1);mc.level.addParticle(age<32?ParticleTypes.FALLING_WATER:new BlockParticleOption(ParticleTypes.BLOCK,Blocks.PRISMARINE.defaultBlockState()),at.x,at.y,at.z,Math.cos(angle)*.025,.015,Math.sin(angle)*.025);}return count;
+        }
         if(p.key().equals("death_yinyang_liandan_fangshi")){
             var caster=mc.level.getEntity(p.entityId());if(caster==null||!caster.getUUID().equals(p.entityUuid())||age>=76)return 0;
             int count=Math.min(4,budget);for(int i=0;i<count;i++){double angle=i*Math.PI*.5+age*.12;var at=caster.position().add(Math.cos(angle)*.7,.3+(age%24)*.045,Math.sin(angle)*.7);mc.level.addParticle(age<18?new ItemParticleOption(ParticleTypes.ITEM,new ItemStack(Items.RAW_COPPER)):i%2==0?ParticleTypes.FLAME:ParticleTypes.SOUL_FIRE_FLAME,at.x,at.y,at.z,Math.cos(angle)*.02,.04,Math.sin(angle)*.02);}return count;

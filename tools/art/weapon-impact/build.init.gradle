@@ -1,0 +1,30 @@
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def base=p.file('build/maintenance/weapon-impact-v1')
+    p.buildDir=new File(base,p.hasProperty('impactServerQa')?'qa-gradle':'gradle')
+    p.sourceSets.main.java.setSrcDirs([new File(base,'frozen/src/main/java')])
+    p.sourceSets.main.resources.setSrcDirs([new File(base,'frozen/src/main/resources'),new File(base,'frozen/src/generated/resources')])
+    if(p.hasProperty('impactServerQa')) {
+        // QA server only: an unrelated concurrently authored client class has
+        // an unresolved AreaEffectCloudRenderer. Never applies to release build.
+        p.sourceSets.main.java.exclude 'com/dynasty/blueprint/elite/client/InkAssassinRenderer.java'
+        def qa=p.sourceSets.create('impactServerQa') {
+            java.srcDir p.file('tools/art/weapon-impact/server-qa')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.tasks.named(qa.processResourcesTaskName).configure {
+            from(new File(base,'frozen/src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) {
+                into 'data/dynasty_impact_qa/structures'
+            }
+        }
+        p.minecraft.runs.gameTestServer {
+            workingDirectory new File(base,'server')
+            property 'forge.enabledGameTestNamespaces','dynasty_impact_qa'
+            property 'forge.logging.console.level','info'
+            jvmArgs '-Xmx1200m','-XX:ActiveProcessorCount=2','-Djava.awt.headless=true'
+            mods { dynasty { source qa } }
+        }
+        p.tasks.matching { it.name=='runGameTestServer' }.configureEach { dependsOn qa.classesTaskName }
+    }
+} }

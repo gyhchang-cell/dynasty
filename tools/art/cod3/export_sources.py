@@ -32,7 +32,7 @@ def export(role):
   if b.get('parent'):groups[b['parent']]['children'].append(groups[b['name']])
   else:outliner.append(groups[b['name']])
  tex=ASSETS/f'textures/entity/npc/{role}.png'
- bb={'meta':{'format_version':'4.10','model_format':'geckolib_model','box_uv':False},'name':role,'model_identifier':'npc_'+role,'geckolib_modid':'dynasty','resolution':{'width':16,'height':16},'elements':elements,'outliner':outliner,'textures':[{'path':str(tex),'name':tex.name,'id':'0','uuid':uid('texture'),'width':16,'height':16,'uv_width':16,'uv_height':16,'source':'data:image/png;base64,'+base64.b64encode(tex.read_bytes()).decode()}]}
+ bb={'meta':{'format_version':'4.10','model_format':'geckolib_model','box_uv':False},'name':role,'model_identifier':'npc_'+role,'geckolib_modid':'dynasty','resolution':{'width':geo['description']['texture_width'],'height':geo['description']['texture_height']},'elements':elements,'outliner':outliner,'textures':[{'path':str(tex),'name':tex.name,'id':'0','uuid':uid('texture'),'width':geo['description']['texture_width'],'height':geo['description']['texture_height'],'uv_width':geo['description']['texture_width'],'uv_height':geo['description']['texture_height'],'source':'data:image/png;base64,'+base64.b64encode(tex.read_bytes()).decode()}]}
  dest=DOC/'blockbench';dest.mkdir(parents=True,exist_ok=True)
  (dest/f'{role}.bbmodel').write_text(json.dumps(bb,indent=2)+'\n')
  (dest/f'{role}.animation.json').write_bytes((ASSETS/f'animations/npc/{role}.animation.json').read_bytes())

@@ -102,6 +102,8 @@ def war():
  g.bone('war_banner','war_frame',[-14,51,10]);g.decor.append('war_banner');g.cube('war_banner',[-18,19,13],[7,31,2],2);g.cube('war_banner',[8,25,13],[6,26,2],2)
  for s in [-1,1]:
   n=g.bone('support_'+str(s),'root',[s*12,25,4]);g.beam(n,[s*12,25,4],[s*17,13,11],11,1);g.box(n,[s*17,12,10],[16,11,15],0);g.beam(n,[s*17,12,11],[s*18,5,-5],9,1);g.box(n,[s*18,3,-6],[17,6,22],0);g.gait.append(n)
+ from war_proportions import refine
+ refine(g.bones)
  return g
 
 def yoke():

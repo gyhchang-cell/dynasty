@@ -23,8 +23,8 @@ for role in ROLES:
    assert set(c['uv'])=={'north','south','east','west','up','down'}
    for face in c['uv'].values():
     assert all(isinstance(v,int) for v in face['uv']+face['uv_size'])
-    assert all(1<=a and a+s<=15 for a,s in zip(face['uv'],face['uv_size'])),(role,'UV outside white margin')
-    assert all(s>=2 for s in face['uv_size'])
+    assert all(2<=a and a+s<=g['description'][axis]-2 for a,s,axis in zip(face['uv'],face['uv_size'],('texture_width','texture_height'))),(role,'UV outside gutter')
+    assert all(s>=1 for s in face['uv_size'])
  for part,parent in [('pelvis','root'),('waist','pelvis'),('chest','waist'),('neck','chest'),('head','neck')]:assert names[part]['parent']==parent
  props=[]
  for b in names.values():
@@ -41,12 +41,9 @@ for role in ROLES:
      times=sorted(float(t) for t in values);assert times[0]==0 and times[-1]==a['animation_length'],(role,name,bone,'length mismatch')
      assert values[min(values,key=float)]==values[max(values,key=float)],(role,name,'loop seam')
     else:assert len(values)==3
- im=Image.open(tp).convert('RGB');assert im.size==(16,16)
- colours=im.getcolors(256);assert colours and len(colours)<=4
- for p in range(16):assert im.getpixel((0,p))==im.getpixel((15,p))==im.getpixel((p,0))==im.getpixel((p,15))==(255,255,255)
- for y in range(16):
-  for x in range(16):
-   colour=im.getpixel((x,y));assert any(0<=xx<=14 and 0<=yy<=14 and all(im.getpixel((xx+dx,yy+dy))==colour for dx,dy in ((0,0),(1,0),(0,1),(1,1))) for xx in (x-1,x) for yy in (y-1,y)),(role,'one pixel region')
+ im=Image.open(tp).convert('RGB');assert im.size==(g['description']['texture_width'],g['description']['texture_height'])
+ assert im.width in (128,256) and im.height==im.width
+ colours=im.getcolors(im.width*im.height);assert colours and 12<=len(colours)<=32
  bbp=DOC/f'blockbench/{role}.bbmodel';bb=json.loads(bbp.read_text());groups={};parents={}
  def visit(nodes,parent=None):
   for n in nodes:
@@ -66,5 +63,5 @@ for role in ROLES:
  assert base64.b64decode(bb['textures'][0]['source'].split(',',1)[1])==tp.read_bytes()
  assert (DOC/f'blockbench/{role}.animation.json').read_bytes()==ap.read_bytes()
  report.append({'id':role,'bones':len(names),'cuboids':sum(len(b.get('cubes',[])) for b in names.values()),'paletteSize':len(colours),'gripProps':props,'sha256':{str(p.relative_to(ASSETS)):hashlib.sha256(p.read_bytes()).hexdigest() for p in (gp,ap,tp)}})
-(DOC/'resource-validation.json').write_text(json.dumps({'passed':True,'roles':report,'animations':165,'checks':['bone topology','segmented anatomy','integer in-bounds UV','4 colours','16px white margin','2px minimum colour regions','loop endpoints','hand pivots','editable source coordinates','embedded PNG parity']},indent=2)+'\n')
+(DOC/'resource-validation.json').write_text(json.dumps({'passed':True,'roles':report,'animations':165,'checks':['bone topology','segmented anatomy','integer in-bounds UV','finite NPC material palette','2px atlas gutters','integer face UVs','loop endpoints','hand pivots','editable source coordinates','embedded PNG parity']},indent=2)+'\n')
 print('PASS: 15 rigs / 165 animation bindings / 45 runtime files / 30 editable files')

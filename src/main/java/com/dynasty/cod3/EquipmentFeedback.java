@@ -81,8 +81,9 @@ public final class EquipmentFeedback {
         var n=p.getPersistentData();long now=l.getGameTime();if(n.getLong("cod3_hit_at")==now)return;
         int combo=now-n.getLong("cod3_hit_at")<=40?n.getInt("cod3_combo")%3+1:1;n.putInt("cod3_combo",combo);n.putLong("cod3_hit_at",now);
         boolean critical=DynastySchoolCombat.primaryCritical(p,e.getEntity());int vfx=template(id.getPath(),combo,critical);
-        if(vfx==18||vfx==23)Cod3Vfx.afterimage(p,vfx,tint(id.getPath()));
-        else if(vfx!=29)Cod3Vfx.send(l,vfx,e.getEntity().position(),p.getLookAngle(),Cod3Catalog.vfx(vfx).duration(),.2+combo*.035,tint(id.getPath()));
+        if(id.getPath().equals("seven_star_saber"))SevenStarFlash.send(l,e.getEntity().position(),p.getLookAngle());
+        else if(vfx==18||vfx==23)Cod3Vfx.afterimage(p,vfx,tint(id.getPath()));
+        else if(vfx!=29&&!id.getPath().equals("halberd_fangtian")&&!id.getPath().equals("yu_di"))Cod3Vfx.send(l,vfx,e.getEntity().position(),p.getLookAngle(),Cod3Catalog.vfx(vfx).duration(),.2+combo*.035,tint(id.getPath()));
         Cod3Vfx.afterimage(p,29,tint(id.getPath()));
         if(critical)Cod3Vfx.send(l,12,e.getEntity().position().add(0,.8,0),p.getLookAngle(),8,.15);
     }

@@ -1,6 +1,7 @@
 package com.dynasty.blueprint.elite.client;
 
 import com.dynasty.blueprint.elite.*;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
@@ -19,6 +20,10 @@ public final class AlchemistRenderer extends GeoEntityRenderer<Alchemist> {
         @Override public ResourceLocation getAnimationResource(Alchemist e){return resource("animations/blueprint/elite/",Alchemist.ID,".animation.json");}
         @Override public void setCustomAnimations(Alchemist e,long id,software.bernie.geckolib.core.animation.AnimationState<Alchemist> state){super.setCustomAnimations(e,id,state);for(int i=0;i<3;i++)getBone("gold"+i).ifPresent(b->b.setHidden(e.skillId()!=383||e.isDeadOrDying()));}
     });shadowRadius=.75F;}
+    @Override public boolean shouldRender(Alchemist e,Frustum camera,double x,double y,double z){
+        // The hinged lid and whisk exceed the gameplay box during casts and collapse.
+        return super.shouldRender(e,camera,x,y,z)||e.shouldRender(x,y,z)&&camera.isVisible(e.getBoundingBoxForCulling().inflate(1.4D,.5D,1.4D));
+    }
     @Override protected float getDeathMaxRotation(Alchemist e){return 0;}
     public static final class OrbRenderer extends GeoEntityRenderer<AlchemistOrb> {
         public OrbRenderer(EntityRendererProvider.Context context){super(context,new GeoModel<>(){

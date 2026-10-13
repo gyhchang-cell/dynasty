@@ -43,8 +43,19 @@ for row in catalog['npcs']:
     with Image.open(assets / f'textures/entity/npc/{role}.png') as texture:
         description = rig['description']
         assert texture.size == (description['texture_width'], description['texture_height'])
-        assert texture.size == (16, 16), (role, 'NPC art v2 uses a 16-pixel atlas')
-        assert len(texture.convert('RGB').getcolors(256)) <= 4, (role, 'palette exceeds four colours')
+        # Current user rules permit full per-face 128/256 atlases; validate the actual export.
+        width, height = texture.size
+        assert width == height and width in (16, 32, 64, 128, 256), (role, 'unsupported atlas size')
+        if width == 16:
+            colours = texture.convert('RGB').getcolors(256)
+            assert colours is not None and len(colours) <= 4, (role, 'legacy atlas exceeds four colours')
+        for bone in bones:
+            for cube in bone.get('cubes', []):
+                if isinstance(cube['uv'], dict):
+                    for face in cube['uv'].values():
+                        u, v = face['uv']; du, dv = face['uv_size']
+                        assert 0 <= min(u, u+du) <= max(u, u+du) <= width, (role, 'U outside atlas')
+                        assert 0 <= min(v, v+dv) <= max(v, v+dv) <= height, (role, 'V outside atlas')
     for locale in ('zh_cn', 'en_us'):
         language = json.loads((assets / f'lang/{locale}.json').read_text())
         for suffix in ('first', 'first_2', 'first_3', 'ordinary', 'ordinary_2', 'ordinary_3', 'ordinary_4', 'ordinary_5', 'changed'):

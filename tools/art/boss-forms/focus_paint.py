@@ -4,6 +4,7 @@ Draw in face-local pixels; the established atlas controls UV density and padding
 The eyes, corpse, firebed and hammer faces have separate designs, not a shared decal.
 """
 from PIL import ImageDraw
+from iron_spirit_paint import war,bound
 
 def palette(*hexes):
  return [tuple(bytes.fromhex(h)) for h in hexes]
@@ -221,3 +222,70 @@ def paint_focus(index,n,j,c,face,im,role,mat):
  if index==5:beast(n,j,c,face,im,role,mat)
  elif index==0:emperor(n,j,c,face,im,role,mat)
  elif index==7:furnace(n,j,c,face,im,role,mat)
+ elif index==1:curtain(n,j,c,face,im,role,mat)
+ elif index==2:war(n,j,c,face,im,role,mat)
+ elif index==3:bound(n,j,c,face,im,role,mat)
+
+# A second, independent pass on the three approved spirit bodies. These palettes
+# deliberately reserve pale pixels for identity and exposed working surfaces.
+CLOTH=palette('282837','383044','4e3d57','634c69','7b607d')
+TRIM=palette('393331','514637','756345','98835c','b7a37a')
+MASK=palette('595c60','909292','bfc0b6','dedbca','eee7d2')
+WAR=palette('2e373c','424e53','5c6b70','7e8d8e','a8b4ae')
+DEAD=palette('353e43','586368','8a9593','b7bcb0','d8d8c3')
+
+def curtain(n,j,c,f,im,role,mat):
+ w,h=im.size
+ if n=='mask':
+  if j in (2,3):
+   d=fill(im,[CLOTH[0]])
+   if f=='north':
+    # One narrow, off-center slit inside each existing socket, not a glowing eye.
+    d.point((1,1),(179,190,171))
+   return
+  if j==1:
+   d=fill(im,[CLOTH[0]])
+   if f=='north':d.line((2,h-1,w-3,h-1),fill=MASK[1])
+   return
+  d=fill(im,MASK,3 if f in ('north','up') else 2)
+  if j==0 and f=='north':
+   # Stepped under-eye hollows taper downward, no smiling red cheek marks.
+   for x in (2,w-5):
+    d.rectangle((x,4,x+2,7),fill=MASK[0]);d.line((x+1,8,x+1,11),fill=MASK[1])
+   d.rectangle((w//2-1,1,w//2+1,2),fill=TRIM[3])
+   d.line((w//2,3,w//2,4),fill=TRIM[2])
+   d.rectangle((4,h-3,w-5,h-2),fill=MASK[2])
+  elif j==4:
+   d=fill(im,MASK,2 if f=='north' else 1)
+   if f=='north':d.line((1,0,1,h-2),fill=MASK[3]);d.point((1,h-1),fill=MASK[0])
+  elif j in (5,6):
+   d=fill(im,MASK,2 if f=='north' else 1)
+   if f=='north':d.line((0,1,0,h-2),fill=MASK[3])
+  return
+ if n.startswith('fingers'):
+  p=palette('555159','787179','a19a92','b8b0a1','d2c8b2')
+  d=fill(im,p,2 if f!='down' else 1)
+  if j>0 and h>6:
+   # Long continuous fingers, dark root and a single knuckle; tips catch light.
+   d.rectangle((0,0,w-1,2),fill=p[1]);d.line((0,h//2,w-1,h//2),fill=p[1])
+   d.rectangle((0,h-3,w-1,h-1),fill=p[3])
+  return
+ if mat=='gold':
+  p=TRIM;d=plate(im,p,f)
+  if n.startswith('curtain_fan') and j==2:
+   # Gold woven only at the joining band. No luminous rectangle at every spoke.
+   d=fill(im,CLOTH,1)
+   if f=='north' and int(n[-1]) in (1,3,5):
+    line(d,[(w//2-2,1),(w//2+2,1),(w//2+2,3),(w//2-1,3)],p[2])
+  return
+ if mat=='purple':
+  d=fill(im,CLOTH,1 if f in ('south','down') else 2)
+  if f in ('north','east','west') and w>3 and h>5:
+   # One fold along each physical member, inner folds stay less bright than mask.
+   x=max(1,w//3);d.rectangle((x,0,min(w-1,x+1),h-1),fill=CLOTH[1])
+   if w>7:d.line((x+3,2,x+3,h-4),fill=CLOTH[3])
+   if n.startswith('hanging_cloth'):
+    d.rectangle((0,h-2,w-1,h-1),fill=CLOTH[1])
+  return
+ # The mask support is an inner structure, never a broad bright horizontal badge.
+ plate(im,palette('282c35','333840','454952','596066','707976'),f)

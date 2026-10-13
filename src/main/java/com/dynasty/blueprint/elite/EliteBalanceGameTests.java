@@ -20,11 +20,11 @@ import java.util.*;
 public final class EliteBalanceGameTests {
     @GameTest(template="bow_ritual_test",timeoutTicks=100,batch="elite_balance")
     public static void actualEntryWeaponsPreserveEliteDurabilityAndUpgradeProgression(GameTestHelper h){
-        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=1;y<10;y++)h.setBlock(x,y,z,y==1?Blocks.STONE:Blocks.AIR);
-        var types=List.of(EliteContent.HEADLESS.get(),EliteContent.BIRD.get(),EliteContent.MECHANIST.get(),EliteContent.JINWU.get(),EliteContent.FOX.get(),EliteContent.HAMMER.get(),EliteContent.SPIDER_WOMAN.get(),EliteContent.ALCHEMIST.get());
+        for(int x=0;x<28;x++)for(int z=0;z<29;z++)for(int y=1;y<10;y++)h.setBlock(x,y,z,y==1?Blocks.STONE:Blocks.AIR);
+        var types=List.of(EliteContent.HEADLESS.get(),EliteContent.BIRD.get(),EliteContent.MECHANIST.get(),EliteContent.JINWU.get(),EliteContent.FOX.get(),EliteContent.HAMMER.get(),EliteContent.SPIDER_WOMAN.get(),EliteContent.ALCHEMIST.get(),EliteContent.TIDE_YASHA.get(),EliteContent.RAGE_CORPSE.get(),EliteContent.INK_ASSASSIN.get(),EliteContent.BRONZE_GORILLA.get(),EliteContent.LAMP_JUDGE.get(),EliteContent.GOLDEN_EAGLE.get(),EliteContent.BRONZE_SUANNI.get());
         var mobs=new ArrayList<Monster>();
         for(int i=0;i<types.size();i++){
-            var m=(Monster)h.spawn(types.get(i),new BlockPos(3+(i%3)*5,2,3+(i/3)*8));m.setNoAi(true);m.setNoGravity(true);m.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);mobs.add(m);
+            var m=(Monster)h.spawn(types.get(i),new BlockPos(3+(i%4)*7,2,3+(i/4)*7));m.setNoAi(true);m.setNoGravity(true);m.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);mobs.add(m);
         }
         var p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),new com.mojang.authlib.GameProfile(UUID.randomUUID(),"elite-tier-qa"));
         p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);

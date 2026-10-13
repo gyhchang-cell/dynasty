@@ -28,28 +28,16 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 
 /** Client-only rig replacement; existing mobs, saves, AI, hitboxes and skills stay authoritative. */
 public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRenderer<E,BossCuboidRenderer.Visual> {
-    private final boolean imperialDragon;
     public BossCuboidRenderer(EntityRendererProvider.Context context,EntityType<E> type,String id){
-        super(context,new Model(id),new Visual(type));
-        imperialDragon=id.equals("dragon_emperor");
-        shadowRadius=imperialDragon?1.8f:id.equals("dragon_king")?.7f:.5f;
-        if(imperialDragon)withScale(1.4f);
-        if(id.equals("nine_heaven_general"))addRenderLayer(new GeoRenderLayer<Visual>(this){
+        super(context,new Model(id),new Visual(type,id));
+        // The three human bosses author their real size in Cuboid units, without a species scale.
+        shadowRadius=id.equals("dragon_emperor")?.85f:id.equals("dragon_king")?.7f:id.equals("nine_heaven_general")?.8f:.5f;
+        if(id.equals("nine_heaven_general")||id.equals("dragon_king")||id.equals("dragon_emperor"))addRenderLayer(new GeoRenderLayer<Visual>(this){
             @Override public void render(PoseStack pose,Visual visual,BakedGeoModel model,RenderType type,MultiBufferSource buffers,VertexConsumer vertex,float partial,int light,int overlay){
-                var body=BossCuboidRenderer.this.getGeoModel().getBone("body").orElseThrow();
-                if(getCurrentEntity().isInvisible()||getCurrentEntity().isDeadOrDying()||Math.abs(body.getRotZ())>.0001f)return;
-                // Preserve the already-verified post-render basis for live runes.
-                BossCuboidAura.draw(pose,buffers,getCurrentEntity().tickCount+partial,0);
-            }
-            @Override public void renderForBone(PoseStack pose,Visual visual,GeoBone bone,RenderType type,MultiBufferSource buffers,VertexConsumer vertex,float partial,int light,int overlay){
-                if(!bone.getName().equals("body"))return;
-                if(getCurrentEntity().isInvisible())return;
-                if(!getCurrentEntity().isDeadOrDying()&&Math.abs(bone.getRotZ())<=.0001f)return;
-                // Rings and six thunder blades are now authored Cuboids in the
-                // rig. Preserve the depth-tested rune lines behind it as VFX.
-                float fold=BossCuboidRenderer.this.getGeoModel().getBone("storm_ring_outer").map(GeoBone::getRotY).orElse(0f);
-                BossCuboidAura.draw(pose,buffers,getCurrentEntity().tickCount+partial,fold);
-                buffers.getBuffer(type);
+                var mob=getCurrentEntity();
+                var controller=visual.getAnimatableInstanceCache().getManagerForId(mob.getId()).getAnimationControllers().get("body");
+                boolean casting=controller!=null&&controller.getCurrentAnimation()!=null&&controller.getCurrentAnimation().animation().name().equals("cast");
+                BossHumanAura.draw(pose,buffers,mob,id,partial,casting);
             }
         });
         // Preserve actual main/offhand equipment at articulated grip bones.
@@ -85,15 +73,20 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
 
     public static final class Visual implements GeoReplacedEntity {
         private final EntityType<?> type;
+        private final boolean humanBoss;
         private final AnimatableInstanceCache cache=GeckoLibUtil.createInstanceCache(this);
         private static final RawAnimation IDLE=RawAnimation.begin().thenLoop("idle"),WALK=RawAnimation.begin().thenLoop("walk"),
                 ATTACK=RawAnimation.begin().thenPlay("attack"),HURT=RawAnimation.begin().thenPlay("hurt"),DEATH=RawAnimation.begin().thenPlayAndHold("death");
-        Visual(EntityType<?> type){this.type=type;}
+        Visual(EntityType<?> type,String id){this.type=type;this.humanBoss=id.equals("nine_heaven_general")||id.equals("dragon_king")||id.equals("dragon_emperor");}
         @Override public EntityType<?> getReplacingEntityType(){return type;}
         @Override public AnimatableInstanceCache getAnimatableInstanceCache(){return cache;}
         @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers){
             var controller=new AnimationController<Visual>(this,"body",2,state->{
                 if(!(state.getData(DataTickets.ENTITY) instanceof Mob mob))return PlayState.STOP;
+                // A six-tick strike must not spend its first two ticks blending away
+                // its tell/contact. This only changes visual transitions for the three
+                // approved human bosses; server swing and damage timing stay intact.
+                if(humanBoss)state.getController().setTransitionLength(mob.swinging||mob.isDeadOrDying()||mob.hurtTime>0?0:2);
                 if(mob.isDeadOrDying())return state.setAndContinue(DEATH);
                 if(mob.hurtTime>0)return state.setAndContinue(HURT);
                 if(mob.swinging)return state.setAndContinue(ATTACK);
@@ -110,11 +103,16 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
 
     private static final class Model extends GeoModel<Visual>{
         private final ResourceLocation geo,texture,animation;
-        Model(String id){geo=new ResourceLocation("dynasty","geo/boss_cuboid/"+id+".geo.json");texture=new ResourceLocation("dynasty","textures/entity/boss_cuboid/"+id+".png");animation=new ResourceLocation("dynasty","animations/boss_cuboid/"+id+".animation.json");}
+        private final boolean humanBoss;
+        Model(String id){humanBoss=id.equals("nine_heaven_general")||id.equals("dragon_king")||id.equals("dragon_emperor");geo=new ResourceLocation("dynasty","geo/boss_cuboid/"+id+".geo.json");texture=new ResourceLocation("dynasty","textures/entity/boss_cuboid/"+id+".png");animation=new ResourceLocation("dynasty","animations/boss_cuboid/"+id+".animation.json");}
         @Override public ResourceLocation getModelResource(Visual visual){return geo;}
         @Override public ResourceLocation getTextureResource(Visual visual){return texture;}
         @Override public ResourceLocation getAnimationResource(Visual visual){return animation;}
         @Override public void setCustomAnimations(Visual visual,long instanceId,AnimationState<Visual> state){
+            // The authored spear/trident is a visual carrier for existing skills. Actual
+            // equipped main-hand items use the grip layer instead, never two overlapping weapons.
+            if(humanBoss&&state.getData(DataTickets.ENTITY) instanceof Mob equipped)
+                getBone("weapon").ifPresent(weapon->weapon.setHidden(!equipped.getMainHandItem().isEmpty()));
             if(state.getData(DataTickets.ENTITY) instanceof Mob mob&&mob.isDeadOrDying())return;
             var data=state.getData(DataTickets.ENTITY_MODEL_DATA);
             if(data==null)return;

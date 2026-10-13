@@ -64,6 +64,15 @@ public class PuzzleRuinPiece extends DynastyStructurePiece {
         createChest(level,box,random,x,y,z,TREASURE_LOOT);
     }
 
+    /** Outside the current seal-vault foyer, using the same hashed content rotation. */
+    public BlockPos judgePosition() {
+        if(kind!=PuzzleRules.Kind.ELEMENTS||layoutVersion<3)return null;
+        int center=RuinLayout.TREASURY_CENTER;
+        var controller=world(center,RuinLayout.CY,center);
+        int[] offset=RuinLayout.rotate(0,10,RuinLayout.facingFor(controller.getX(),controller.getZ()));
+        return world(center+offset[0],RuinLayout.CY,center+offset[1]);
+    }
+
     /** 外壳方块（三种机关一致，保持基础框架，方便后续美化）。*/
     static BlockState shellState(RuinLayout.Role role) {
         return switch (role) {
