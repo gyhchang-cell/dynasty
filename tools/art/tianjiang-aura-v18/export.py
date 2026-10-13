@@ -6,6 +6,11 @@ R=Path(__file__).resolve().parents[3];D=R/'docs/art/tianjiang-aura-v18'
 A=R/'src/main/resources/assets/dynasty';ID='nine_heaven_general'
 OUT=A/'textures/entity/boss_cuboid'/f'{ID}_aura.png'
 def export():
+ # Preserve the current effect authority when re-exporting older art scripts.
+ import runpy
+ newer=R/"tools/art/tianjiang-aura-v19/export.py"
+ if newer.exists():
+  runpy.run_path(str(newer),run_name="__main__");return
  baseline=json.loads((D/'baseline-hashes.json').read_text())
  for n,h in baseline.items():
   if '/assets/' in n:assert hashlib.sha256((R/n).read_bytes()).hexdigest()==h,'Accepted V17 asset changed'

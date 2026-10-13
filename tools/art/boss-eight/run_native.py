@@ -33,6 +33,10 @@ with zipfile.ZipFile(R/'build/libs/dynasty-1.4.0.jar') as jar:
    p=Path('assets/dynasty/textures/entity/boss_cuboid/nine_heaven_general_aura.png')
    if (R/'src/main/resources'/p).exists():
     b=(R/'src/main/resources'/p).read_bytes();assert b==jar.read(str(p))==(R/'build/resources/main'/p).read_bytes();manifest['resources'][str(p)]=hashlib.sha256(b).hexdigest()
+if power and not reference:
+ p=Path('assets/dynasty/textures/effect/tianjiang_stream.png')
+ with zipfile.ZipFile(R/'build/libs/dynasty-1.4.0.jar') as jar:
+  b=(R/'src/main/resources'/p).read_bytes();assert b==jar.read(str(p))==(R/'build/resources/main'/p).read_bytes();manifest['resources'][str(p)]=hashlib.sha256(b).hexdigest()
 for i,(entry,src) in enumerate(zip(old,paths)):
  dst=root/'runtime'/str(i);dst.parent.mkdir(parents=True,exist_ok=True)
  if src:shutil.copytree(src,dst)
@@ -59,6 +63,7 @@ if presence:jvm.append('-Ddynasty.bossPresenceQa=true')
 if spirits:jvm.append('-Ddynasty.bossSpiritQa=true')
 if materials:jvm.append('-Ddynasty.bossMaterialQa=true')
 if os.environ.get('DYNASTY_ART_LIMIT'):jvm.append('-Ddynasty.bossEightQa.limit='+os.environ['DYNASTY_ART_LIMIT'])
+if os.environ.get('DYNASTY_AURA_ENVIRONMENTS')=='1':jvm.append('-Ddynasty.tianjiangAuraEnvironments=true')
 if os.environ.get('DYNASTY_AURA_SEQUENCE')=='1':jvm.append('-Ddynasty.tianjiangAuraSequence=true')
 for env,prop in [('DYNASTY_ART_CAMERA_DISTANCE','cameraDistance'),('DYNASTY_ART_CAMERA_PITCH','cameraPitch')]:
  if os.environ.get(env):jvm.append('-Ddynasty.bossEightQa.'+prop+'='+os.environ[env])
