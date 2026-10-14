@@ -2,7 +2,8 @@
 
 The larger material drafts made by the geometry builders are intermediate files.
 This exporter remaps their face materials into original front-facing portraits;
-only these strict 16px resources are eligible for validation and local delivery.
+Other than the material_atlas and human_atlas targets superseded by the user's
+2026-10-11 requirements, final resources retain this strict 16px policy.
 No filtering, image generation, gradients or copied artwork.
 """
 import json
@@ -52,6 +53,18 @@ def export(ids=None):
     for id in ids or manifest:
         gp=ASSET/f'geo/secondary/{id}.geo.json'
         geo=json.loads(gp.read_text());g=geo['minecraft:geometry'][0]
+        from human_atlas import IDS as HUMAN_IDS, export_one as export_human
+        if id in HUMAN_IDS:
+            record=export_human(id,geo,ASSET)
+            manifest[id].update(atlas=record['atlas'],palette=record['palette'],materialPolicy=record['policy'])
+            manifest[id].pop('pixelBlock',None);manifest[id].pop('whiteMargin',None)
+            continue
+        from material_atlas import IDS as MATERIAL_IDS, export_one
+        if id in MATERIAL_IDS:
+            record=export_one(id,geo,ASSET)
+            manifest[id].update(atlas=record['atlas'], palette=record['palette'], materialPolicy=record['policy'])
+            manifest[id].pop('pixelBlock',None);manifest[id].pop('whiteMargin',None)
+            continue
         if g['description']['texture_width']==16:
             continue
         old=Image.open(ASSET/f'textures/entity/secondary/{id}.png').convert('RGB')
@@ -92,8 +105,27 @@ def export(ids=None):
                      'uv':'each face samples one authored 2x2 non-white island; no background on mesh'}
     (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     p=OUT/'pixel16-export.json';previous=json.loads(p.read_text()) if p.exists() else {}
+    for id in MATERIAL_IDS:
+        previous.pop(id,None)
     previous.update(records);p.write_text(json.dumps(previous,indent=2)+'\n')
-    print('Exported strict 16x16 textures/UV:',len(records))
+    import importlib.util
+    refine=ASSET.parents[4]/'tools/art/steve-fighters-v25/nonhuman.py'
+    if refine.exists():
+        spec=importlib.util.spec_from_file_location('dynasty_nonhuman_v25',refine);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        selected=[i for i in module.IDS if ids is None or i in ids]
+        if selected:
+            module.export(selected)
+            # The canonical atlas, rather than the transient legacy pass, owns the manifest.
+            manifest=json.loads((OUT/'model-manifest.json').read_text())
+            legacy=json.loads((OUT/'pixel16-export.json').read_text())
+            for target in selected:
+                final=json.loads((ASSET/f'geo/secondary/{target}.geo.json').read_text())['minecraft:geometry'][0]
+                manifest[target].update(atlas=[128,128],bones=len(final['bones']),cuboids=sum(len(b.get('cubes',[])) for b in final['bones']),materialPolicy='original directional anatomy/material atlas; steve-fighters-v25 source')
+                for key in ('pixelBlock','whiteMargin'):manifest[target].pop(key,None)
+                legacy.pop(target,None)
+            (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+            (OUT/'pixel16-export.json').write_text(json.dumps(legacy,indent=2)+'\n')
+    print('Exported strict 16x16 textures/UV:',len(records),'; scoped material atlases retain their current UV policy')
 
 def apply_markings(id,g,im):
     for bone in g['bones']:
