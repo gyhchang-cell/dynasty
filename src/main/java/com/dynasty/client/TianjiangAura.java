@@ -32,7 +32,7 @@ final class TianjiangAura {
     static int emit(Mob mob,int budget){
         var mc=Minecraft.getInstance();if(mc.level==null||budget<=0)return 0;
         var detail=mc.options.particles().get();if(detail==ParticleStatus.MINIMAL)return 0;
-        int count=Math.min(budget,detail==ParticleStatus.DECREASED?2:mob.swinging?10:7),emitted=0;
+        int count=Math.min(budget,detail==ParticleStatus.DECREASED?2:mob.swinging?14:10),emitted=0;
         double yaw=Math.toRadians(mob.yBodyRot),bx=Math.sin(yaw),bz=-Math.cos(yaw),sx=Math.cos(yaw),sz=Math.sin(yaw);
         for(int i=0;i<count;i++){
             double phase=mob.tickCount*.033+i*2.399,side=Math.cos(phase)*(1.3+i*.12),depth=Math.sin(phase)*.95;
@@ -96,18 +96,9 @@ final class TianjiangAura {
             }
             add(strokes,path,.031f,orbit==0?CLOUD:GOLD,.78f*pulse);
         }
-        // Six suspended command seals have a coherent gold spine and a dissolving cyan tail.
-        for(int side:new int[]{-1,1})for(int i=0;i<3;i++){
-            double x=side*(1.28+i*.38),y=2.89-i*.66+Math.sin(age*.028+i+side)*.09,z=-.85-i*.16;
-            add(strokes,new float[][]{p(x-.10,y+.22,z),p(x+.10,y+.22,z)},.020f,GOLD,.92f);
-            add(strokes,new float[][]{p(x,y+.22,z),p(x,y-.23,z)},.020f,GOLD,.92f);
-            add(strokes,new float[][]{p(x-.09,y+.02,z),p(x+.09,y+.02,z)},.018f,GOLD,.90f);
-            add(strokes,new float[][]{p(x,y-.23,z),p(x+side*.10,y-.14,z)},.017f,GOLD,.90f);
-            add(strokes,new float[][]{p(x,y-.26,z),p(x-side*.09,y-.43,z-.07),p(x+side*.03,y-.72,z-.16)},.027f,CLOUD,.70f);
-        }
         // Stable 3-D mote trajectories: bright heads, tapered tails, gentle upward drift.
         // They have no entities, random allocation stream or networking and obey particle LOD.
-        int count=reduced?14:42;
+        int count=mc.options.particles().get()==ParticleStatus.MINIMAL?8:reduced?28:84;
         for(int i=0;i<count;i++){
             double cycle=fract(age*.0035+i*.61803398875),a=i*2.39996+age*.008;
             double r=1.22+(.5+.5*Math.sin(i*4.1))*.95;
@@ -121,6 +112,7 @@ final class TianjiangAura {
             add(strokes,new float[][]{p(side*1.45,.10,-.55),p(side*1.70,.30,-.7),p(side*1.52,.62,-.9),p(side*1.76,.91,-1.0)},.043f,CLOUD,.65f*pulse);
         }
         renderStrokes(pose,buffers,strokes,age);
+        TianjiangRuneField.draw(pose,buffers,age,reduced,mc.options.particles().get()==ParticleStatus.MINIMAL);
     }
     /** Grip-local energy follows the real animated pole; it is not a world-space weapon copy. */
     static void drawWeapon(PoseStack pose,MultiBufferSource buffers,Mob mob,float partial){
