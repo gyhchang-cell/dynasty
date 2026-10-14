@@ -27,23 +27,26 @@ final class TianjiangRuneField {
     private record Sign(double x,double y,double z,double yaw,double roll,float size,int kind,float alpha){}
     private TianjiangRuneField(){}
     static void draw(PoseStack pose,MultiBufferSource buffers,float age,boolean reduced,boolean minimal){
-        int major=reduced?6:12,minor=minimal?0:reduced?6:24,shards=minimal?4:reduced?12:36;
+        int major=reduced?8:18,minor=minimal?0:reduced?12:48,shards=minimal?4:reduced?12:36;
         Sign[] signs=new Sign[major+minor];
         for(int i=0;i<major;i++){
-            double a=(i+.5)*Math.PI*2/major,breath=Math.sin(age*.024+i*.9)*.07;
-            signs[i]=new Sign(Math.cos(a)*(2.05+breath),1.94+Math.sin(a)*1.50,
-                    -.92+Math.sin(a*2+age*.012)*.22,Math.sin(a+age*.014)*.55,
-                    Math.sin(age*.017+i)*.14,.72f+(i%3)*.07f,i%4,.88f);
+            double a=(i+.5)*Math.PI*2/major+Math.sin(i*2.31)*.13;
+            double radius=1.92+Math.sin(i*1.71)*.25+Math.sin(age*.024+i*.9)*.07;
+            signs[i]=new Sign(Math.cos(a)*radius,2.02+Math.sin(a)*1.32+Math.sin(i*2.73)*.16,
+                    -1.02+Math.sin(i*1.97+age*.012)*.46,Math.sin(a+age*.014+i)*.65,
+                    Math.sin(i*1.83)*.38+Math.sin(age*.017+i)*.13,.57f+(i%4)*.065f,i%4,.84f);
         }
         for(int i=0;i<minor;i++){
-            double a=i*2.39996+age*(i%2==0?.006:-.004),r=1.3+(i%4)*.23;
-            // Two waist/shoulder-back bands leave the face and weapon hand clear.
-            double y=i%2==0?.52+.30*Math.sin(a):1.72+.35*Math.sin(a);
-            signs[major+i]=new Sign(Math.cos(a)*r,y,Math.sin(a)*r*.65-.32,
-                    a+Math.PI/2,Math.sin(i+age*.018)*.25,.28f+(i%3)*.04f,(i+1)%4,.64f);
+            double a=i*2.39996+age*(i%2==0?.006:-.004),r=1.25+fract(i*.754877666)*1.0;
+            // Uneven heights and depth, with the face's frontal sightline left open.
+            double y=.42+fract(i*.618033989)*2.85+Math.sin(age*.015+i)*.11;
+            double z=Math.sin(a)*r*.65-.45;
+            if(z>-.25&&y>1.95)y=.72+fract(i*.41421356)*.95;
+            signs[major+i]=new Sign(Math.cos(a)*r,y,z,
+                    a+Math.PI/2,Math.sin(i*1.73+age*.018)*.52,.24f+(i%4)*.035f,(i+1)%4,.62f);
         }
         Matrix4f matrix=pose.last().pose();
-        // Dark side planes and solid warm fronts establish volume before the luminous engraving.
+        // Slim cool faces and dark side planes retain depth beneath the luminous engraving.
         var base=buffers.getBuffer(TianjiangAuraRenderType.VEIL);
         for(Sign sign:signs)glyph(base,matrix,sign,false);
         for(int i=0;i<shards;i++){
@@ -61,13 +64,14 @@ final class TianjiangRuneField {
     private static double fract(double x){return x-Math.floor(x);}
     private static void glyph(VertexConsumer sink,Matrix4f matrix,Sign s,boolean light){
         for(float[][] path:SIGNS[s.kind])for(int i=1;i<path.length;i++){
-            double x=path[i-1][0],y=path[i-1][1],xx=path[i][0],yy=path[i][1];
-            double dx=xx-x,dy=yy-y,length=Math.hypot(dx,dy),w=light?.014:.034;
-            double nx=-dy/length*w,ny=dx/length*w,z=light?.043:.035;
+            double stretch=1.55+s.kind*.10;
+            double x=path[i-1][0]*.82,y=path[i-1][1]*stretch,xx=path[i][0]*.82,yy=path[i][1]*stretch;
+            double dx=xx-x,dy=yy-y,length=Math.hypot(dx,dy),w=light?.008:.018;
+            double nx=-dy/length*w,ny=dx/length*w,z=light?.029:.022;
             Vector3f a=p(s,x+nx,y+ny,z),b=p(s,xx+nx,yy+ny,z),c=p(s,xx-nx,yy-ny,z),d=p(s,x-nx,y-ny,z);
             quad(sink,matrix,a,b,c,d,light?CORE:FACE,s.alpha*(light?.56f:.72f));
             if(!light){
-                Vector3f aa=p(s,x+nx,y+ny,-.04),bb=p(s,xx+nx,yy+ny,-.04),cc=p(s,xx-nx,yy-ny,-.04),dd=p(s,x-nx,y-ny,-.04);
+                Vector3f aa=p(s,x+nx,y+ny,-.026),bb=p(s,xx+nx,yy+ny,-.026),cc=p(s,xx-nx,yy-ny,-.026),dd=p(s,x-nx,y-ny,-.026);
                 quad(sink,matrix,aa,bb,cc,dd,SIDE,s.alpha*.78f);
                 quad(sink,matrix,a,aa,bb,b,SIDE,s.alpha*.88f);
                 quad(sink,matrix,d,c,cc,dd,SIDE,s.alpha*.88f);
