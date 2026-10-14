@@ -63,6 +63,7 @@ if presence:jvm.append('-Ddynasty.bossPresenceQa=true')
 if spirits:jvm.append('-Ddynasty.bossSpiritQa=true')
 if materials:jvm.append('-Ddynasty.bossMaterialQa=true')
 if os.environ.get('DYNASTY_ART_LIMIT'):jvm.append('-Ddynasty.bossEightQa.limit='+os.environ['DYNASTY_ART_LIMIT'])
+if os.environ.get('DYNASTY_ROYAL_QA')=='1':jvm.append('-Ddynasty.royalBossQa=true')
 if os.environ.get('DYNASTY_AURA_ENVIRONMENTS')=='1':jvm.append('-Ddynasty.tianjiangAuraEnvironments=true')
 if os.environ.get('DYNASTY_AURA_SEQUENCE')=='1':jvm.append('-Ddynasty.tianjiangAuraSequence=true')
 for env,prop in [('DYNASTY_ART_CAMERA_DISTANCE','cameraDistance'),('DYNASTY_ART_CAMERA_PITCH','cameraPitch')]:

@@ -105,6 +105,11 @@ public final class BossEightClientQa {
             STAGES.removeIf(s->!s.id.equals("nine_heaven_general"));
             for(String label:new String[]{"night-off","night-on","far-on","minimal-on","decreased-on"})STAGES.add(new Stage("nine_heaven_general",label,0,0));
         }
+        if(HUMAN_PRESENCE&&Boolean.getBoolean("dynasty.royalBossQa")){
+            STAGES.removeIf(s->s.id.equals("nine_heaven_general"));
+            for(String id:new String[]{"dragon_king","dragon_emperor"})
+                for(String label:new String[]{"night-off","night-on","far-on","minimal-on","decreased-on"})STAGES.add(new Stage(id,label,0,0));
+        }
         int limit=Integer.getInteger("dynasty.bossEightQa.limit",STAGES.size());
         if(limit<STAGES.size())STAGES.subList(limit,STAGES.size()).clear();
     }
@@ -195,7 +200,7 @@ public final class BossEightClientQa {
     private static void camera(Minecraft mc){
         Stage s=STAGES.get(stage);String view=s.label.replace("-off","").replace("-on","");
         if(HUMAN_PRESENCE){BossHumanAura.setReviewSuppressed(s.label.endsWith("-off"));mc.particleEngine.setLevel(mc.level);}
-        if(Boolean.getBoolean("dynasty.tianjiangAuraEnvironments"))mc.options.particles().set(s.label.startsWith("minimal")?ParticleStatus.MINIMAL:s.label.startsWith("decreased")?ParticleStatus.DECREASED:ParticleStatus.ALL);
+        if((Boolean.getBoolean("dynasty.tianjiangAuraEnvironments")||Boolean.getBoolean("dynasty.royalBossQa")))mc.options.particles().set(s.label.startsWith("minimal")?ParticleStatus.MINIMAL:s.label.startsWith("decreased")?ParticleStatus.DECREASED:ParticleStatus.ALL);
         double yaw=view.equals("45")?45:view.equals("side")?90:view.equals("back")?180:0;
         if(s.skill!=0||s.label.equals("walk"))yaw=35;
         double a=Math.toRadians(yaw),distance=s.id.equals("pilin_zhijinwu")?7.5:s.id.equals("juchui_jinjia_lishi")||s.id.equals("xianzhen_duantoujiang")?6.5:5.5;
@@ -292,12 +297,13 @@ public final class BossEightClientQa {
                     if(s.label.startsWith("minimal")&&BossHumanAura.reviewEmissions()!=0)throw new AssertionError("Minimal still emits particles");if(s.label.endsWith("-on")&&!s.label.startsWith("minimal")&&BossHumanAura.reviewEmissions()<10)throw new AssertionError("No production aura emissions "+s);if(s.label.endsWith("-off")&&BossHumanAura.reviewEmissions()!=0)throw new AssertionError("Particles not disabled "+s);}
             }
             Map<String,Object> bones=new LinkedHashMap<>();for(Object o:model.getAnimationProcessor().getRegisteredBones()){var b=(software.bernie.geckolib.cache.object.GeoBone)o;bones.put(b.getName(),Map.of("rotation",List.of(b.getRotX(),b.getRotY(),b.getRotZ()),"position",List.of(b.getPosX(),b.getPosY(),b.getPosZ())));}record.put("bones",bones);
-            if(Boolean.getBoolean("dynasty.tianjiangAuraSequence")&&s.id.equals("nine_heaven_general")&&s.label.equals("45-on")&&auraFrames<24){
+            if(Boolean.getBoolean("dynasty.tianjiangAuraSequence")&&(s.id.equals("nine_heaven_general")||Boolean.getBoolean("dynasty.royalBossQa"))&&s.label.equals("45-on")&&auraFrames<24){
                 if(lastAuraTick<0||mob.tickCount-lastAuraTick>=4){
-                    lastAuraTick=mob.tickCount;var dir=OUT.resolve("sequence");Files.createDirectories(dir);
+                    lastAuraTick=mob.tickCount;var dir=OUT.resolve(Boolean.getBoolean("dynasty.royalBossQa")?"sequence-"+s.id:"sequence");Files.createDirectories(dir);
                     try(var shot=Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(dir.resolve(String.format("%02d.png",auraFrames++)));}
                 }
                 if(auraFrames<24)return;
+                auraFrames=0;lastAuraTick=-1;
             }
             Files.writeString(OUT.resolve(String.format("%02d-state.json",stage)),new GsonBuilder().setPrettyPrinting().create().toJson(record));
             try(var shot=Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(OUT.resolve(String.format("%02d-%s-%s.png",stage,s.id,s.label)));}
