@@ -108,6 +108,23 @@ def export(ids=None):
     for id in MATERIAL_IDS:
         previous.pop(id,None)
     previous.update(records);p.write_text(json.dumps(previous,indent=2)+'\n')
+    import importlib.util
+    refine=ASSET.parents[4]/'tools/art/steve-fighters-v25/nonhuman.py'
+    if refine.exists():
+        spec=importlib.util.spec_from_file_location('dynasty_nonhuman_v25',refine);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        selected=[i for i in module.IDS if ids is None or i in ids]
+        if selected:
+            module.export(selected)
+            # The canonical atlas, rather than the transient legacy pass, owns the manifest.
+            manifest=json.loads((OUT/'model-manifest.json').read_text())
+            legacy=json.loads((OUT/'pixel16-export.json').read_text())
+            for target in selected:
+                final=json.loads((ASSET/f'geo/secondary/{target}.geo.json').read_text())['minecraft:geometry'][0]
+                manifest[target].update(atlas=[128,128],bones=len(final['bones']),cuboids=sum(len(b.get('cubes',[])) for b in final['bones']),materialPolicy='original directional anatomy/material atlas; steve-fighters-v25 source')
+                for key in ('pixelBlock','whiteMargin'):manifest[target].pop(key,None)
+                legacy.pop(target,None)
+            (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+            (OUT/'pixel16-export.json').write_text(json.dumps(legacy,indent=2)+'\n')
     print('Exported strict 16x16 textures/UV:',len(records),'; scoped material atlases retain their current UV policy')
 
 def apply_markings(id,g,im):

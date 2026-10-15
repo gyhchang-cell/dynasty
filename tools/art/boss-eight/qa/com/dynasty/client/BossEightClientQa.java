@@ -101,6 +101,15 @@ public final class BossEightClientQa {
                 STAGES.add(new Stage(id,"hurt",-2,2));STAGES.add(new Stage(id,"death",-3,15));
             }
         }
+        if(HUMAN_PRESENCE&&Boolean.getBoolean("dynasty.tianjiangAuraEnvironments")){
+            STAGES.removeIf(s->!s.id.equals("nine_heaven_general"));
+            for(String label:new String[]{"night-off","night-on","far-on","minimal-on","decreased-on"})STAGES.add(new Stage("nine_heaven_general",label,0,0));
+        }
+        if(HUMAN_PRESENCE&&Boolean.getBoolean("dynasty.royalBossQa")){
+            STAGES.removeIf(s->s.id.equals("nine_heaven_general"));
+            for(String id:new String[]{"dragon_king","dragon_emperor"})
+                for(String label:new String[]{"night-off","night-on","far-on","minimal-on","decreased-on"})STAGES.add(new Stage(id,label,0,0));
+        }
         int limit=Integer.getInteger("dynasty.bossEightQa.limit",STAGES.size());
         if(limit<STAGES.size())STAGES.subList(limit,STAGES.size()).clear();
     }
@@ -112,6 +121,7 @@ public final class BossEightClientQa {
     private static CompletableFuture<Long> action;
     private static Mob fixture,victim;
     private static String diagnostic="no render";
+    private static int auraFrames,lastAuraTick=-1;
     private static net.minecraft.world.phys.Vec3 walkStart;
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent ev){
         if(!ENABLED||done||ev.phase!=TickEvent.Phase.END)return;
@@ -153,6 +163,7 @@ public final class BossEightClientQa {
             // The real delayed death service may place a lootable corpse after the next
             // fixture begins. Remove only this test world's remains, never disable that service.
             var world=fixture.level();
+            for(var item:world.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,fixture.getBoundingBox().inflate(12)))item.discard();
             for(int x=-4;x<=4;x++)for(int z=-4;z<=4;z++)for(int y=-60;y<=-55;y++){
                 var pos=new BlockPos(x,y,z);var key=net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(world.getBlockState(pos).getBlock());
                 if(key!=null&&key.getNamespace().equals("dynasty")&&(key.getPath().contains("remains")||key.getPath().contains("statue")))world.removeBlock(pos,false);
@@ -162,7 +173,7 @@ public final class BossEightClientQa {
         if(STAGES.get(stage).label.equals("walk")){fixture.move(MoverType.SELF,new net.minecraft.world.phys.Vec3(.065,0,0));fixture.setDeltaMovement(.065,0,0);fixture.hurtMarked=true;}
     }
     private static int prepare(Minecraft mc){
-        var server=mc.getSingleplayerServer();var world=server.overworld();world.setDayTime(6000);if(HUMAN_PRESENCE)try{BossPowerReferenceQa.suppressAmbientWorld(mc,world);}catch(Exception e){throw new RuntimeException(e);}
+        var server=mc.getSingleplayerServer();var world=server.overworld();world.setDayTime(STAGES.get(stage).label.startsWith("night")?18000:6000);if(HUMAN_PRESENCE)try{BossPowerReferenceQa.suppressAmbientWorld(mc,world);}catch(Exception e){throw new RuntimeException(e);}
         if(fixture!=null)fixture.discard();if(victim!=null)victim.discard();
         var cleanup=new ArrayList<Entity>();for(var e:world.getAllEntities())if(e!=null&&!(e instanceof net.minecraft.server.level.ServerPlayer))cleanup.add(e);cleanup.forEach(Entity::discard);
         for(int x=-12;x<=12;x++)for(int z=-12;z<=12;z++)world.setBlockAndUpdate(new BlockPos(x,-61,z),((x+z)%7==0?Blocks.STONE_BRICKS:Blocks.GRASS_BLOCK).defaultBlockState());
@@ -189,6 +200,7 @@ public final class BossEightClientQa {
     private static void camera(Minecraft mc){
         Stage s=STAGES.get(stage);String view=s.label.replace("-off","").replace("-on","");
         if(HUMAN_PRESENCE){BossHumanAura.setReviewSuppressed(s.label.endsWith("-off"));mc.particleEngine.setLevel(mc.level);}
+        if((Boolean.getBoolean("dynasty.tianjiangAuraEnvironments")||Boolean.getBoolean("dynasty.royalBossQa")))mc.options.particles().set(s.label.startsWith("minimal")?ParticleStatus.MINIMAL:s.label.startsWith("decreased")?ParticleStatus.DECREASED:ParticleStatus.ALL);
         double yaw=view.equals("45")?45:view.equals("side")?90:view.equals("back")?180:0;
         if(s.skill!=0||s.label.equals("walk"))yaw=35;
         double a=Math.toRadians(yaw),distance=s.id.equals("pilin_zhijinwu")?7.5:s.id.equals("juchui_jinjia_lishi")||s.id.equals("xianzhen_duantoujiang")?6.5:5.5;
@@ -199,6 +211,7 @@ public final class BossEightClientQa {
         // Optional art-only camera match to existing reference captures.
         // Default fixture distances and production rendering stay unchanged.
         distance=Double.parseDouble(System.getProperty("dynasty.bossEightQa.cameraDistance",Double.toString(distance)));
+        if(s.label.equals("far-on"))distance=12;
         var cam=new ArmorStand(mc.level,Math.sin(a)*distance,-60,Math.cos(a)*distance);
         cam.setPos(cam.getX(),-60+(HUMAN?1.62:PRESENCE?2.5:s.id.equals("pilin_zhijinwu")?1.9:1.5)-cam.getEyeHeight(),cam.getZ());cam.setNoGravity(true);cam.setYRot((float)(180-yaw));cam.setXRot(PRESENCE?3:5);cam.setYHeadRot(cam.getYRot());cam.yHeadRotO=cam.getYRot();cam.setOldPosAndRot();mc.options.setCameraType(CameraType.FIRST_PERSON);mc.setCameraEntity(cam);
         if(System.getProperty("dynasty.bossEightQa.cameraPitch")!=null){cam.setXRot(Float.parseFloat(System.getProperty("dynasty.bossEightQa.cameraPitch")));cam.setOldPosAndRot();}
@@ -259,7 +272,9 @@ public final class BossEightClientQa {
             if(PRESENCE){
                 var expectedHashes=com.google.gson.JsonParser.parseString(Files.readString(OUT.resolve("runtime-manifest.json"))).getAsJsonObject().getAsJsonObject("resources");
                 Map<String,String> loadedHashes=new LinkedHashMap<>();
-                for(Object resource:new Object[]{tex,model.getModelResource(visual),model.getAnimationResource(visual)}){
+                var resources=new ArrayList<Object>(List.of(tex,model.getModelResource(visual),model.getAnimationResource(visual)));
+                if(HUMAN_PRESENCE&&s.id.equals("nine_heaven_general")){resources.add(TianjiangAura.GLOW);resources.add(TianjiangAura.STREAM);}
+                for(Object resource:resources){
                     var location=(ResourceLocation)resource;
                     try(var stream=mc.getResourceManager().open(location)){
                         String hash=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(stream.readAllBytes()));
@@ -269,12 +284,27 @@ public final class BossEightClientQa {
                     }
                 }
                 record.put("loadedResourceSha256",loadedHashes);record.put("particles",HUMAN_PRESENCE?(s.label.endsWith("-off")?"independent aura and particles disabled":"production aura and particles enabled"):"cleared in QA only before frame");
+                if(HUMAN_PRESENCE&&s.id.equals("nine_heaven_general")){
+                    float glow=TianjiangAura.glowAlpha(mob,mc.getFrameTime(),false);
+                    record.put("environment",Map.of("time",mc.level.getDayTime(),"particleSetting",mc.options.particles().get().name(),"distance",s.label.equals("far-on")?12:Double.parseDouble(System.getProperty("dynasty.bossEightQa.cameraDistance","8"))));
+                    record.put("materialGlowAlpha",glow);record.put("replicatedSwing",mob.getAttackAnim(mc.getFrameTime()));
+                    if((s.label.endsWith("-off")||s.skill==-3)&&glow!=0)throw new AssertionError("Aura failed to stop");
+                    if(glow<0||glow>1)throw new AssertionError("Glow out of range");
+                }
                 if(HUMAN_PRESENCE){record.put("auraParticleEmissionRequests",BossHumanAura.reviewEmissions());
                     int obstructions=0;for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=-60;y<=-56;y++)if(!mc.level.getBlockState(new BlockPos(x,y,z)).isAir())obstructions++;
                     record.put("fixtureAirObstructions",obstructions);if(obstructions!=0){if(settled>240)throw new AssertionError("Fixture obstruction "+s+" count="+obstructions);return;}
-                    if(s.label.endsWith("-on")&&BossHumanAura.reviewEmissions()<10)throw new AssertionError("No production aura emissions "+s);if(s.label.endsWith("-off")&&BossHumanAura.reviewEmissions()!=0)throw new AssertionError("Particles not disabled "+s);}
+                    if(s.label.startsWith("minimal")&&BossHumanAura.reviewEmissions()!=0)throw new AssertionError("Minimal still emits particles");if(s.label.endsWith("-on")&&!s.label.startsWith("minimal")&&BossHumanAura.reviewEmissions()<10)throw new AssertionError("No production aura emissions "+s);if(s.label.endsWith("-off")&&BossHumanAura.reviewEmissions()!=0)throw new AssertionError("Particles not disabled "+s);}
             }
             Map<String,Object> bones=new LinkedHashMap<>();for(Object o:model.getAnimationProcessor().getRegisteredBones()){var b=(software.bernie.geckolib.cache.object.GeoBone)o;bones.put(b.getName(),Map.of("rotation",List.of(b.getRotX(),b.getRotY(),b.getRotZ()),"position",List.of(b.getPosX(),b.getPosY(),b.getPosZ())));}record.put("bones",bones);
+            if(Boolean.getBoolean("dynasty.tianjiangAuraSequence")&&(s.id.equals("nine_heaven_general")||Boolean.getBoolean("dynasty.royalBossQa"))&&s.label.equals("45-on")&&auraFrames<24){
+                if(lastAuraTick<0||mob.tickCount-lastAuraTick>=4){
+                    lastAuraTick=mob.tickCount;var dir=OUT.resolve(Boolean.getBoolean("dynasty.royalBossQa")?"sequence-"+s.id:"sequence");Files.createDirectories(dir);
+                    try(var shot=Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(dir.resolve(String.format("%02d.png",auraFrames++)));}
+                }
+                if(auraFrames<24)return;
+                auraFrames=0;lastAuraTick=-1;
+            }
             Files.writeString(OUT.resolve(String.format("%02d-state.json",stage)),new GsonBuilder().setPrettyPrinting().create().toJson(record));
             try(var shot=Screenshot.takeScreenshot(mc.getMainRenderTarget())){shot.writeToFile(OUT.resolve(String.format("%02d-%s-%s.png",stage,s.id,s.label)));}
             LOG.add(s.id+" "+s.label+" "+clip+" age="+age);Files.writeString(OUT.resolve("progress.txt"),String.join("\n",LOG));captured=true;

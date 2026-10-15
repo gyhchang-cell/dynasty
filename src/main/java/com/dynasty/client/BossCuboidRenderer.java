@@ -28,8 +28,12 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 
 /** Client-only rig replacement; existing mobs, saves, AI, hitboxes and skills stay authoritative. */
 public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRenderer<E,BossCuboidRenderer.Visual> {
+    private final boolean celestialAura;
+    private final boolean royalAura;
     public BossCuboidRenderer(EntityRendererProvider.Context context,EntityType<E> type,String id){
         super(context,new Model(id),new Visual(type,id));
+        celestialAura=id.equals("nine_heaven_general");
+        royalAura=id.equals("dragon_king")||id.equals("dragon_emperor");
         // The three human bosses author their real size in Cuboid units, without a species scale.
         shadowRadius=id.equals("dragon_emperor")?.85f:id.equals("dragon_king")?.7f:id.equals("nine_heaven_general")?.8f:.5f;
         if(id.equals("nine_heaven_general")||id.equals("dragon_king")||id.equals("dragon_emperor"))addRenderLayer(new GeoRenderLayer<Visual>(this){
@@ -38,6 +42,26 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
                 var controller=visual.getAnimatableInstanceCache().getManagerForId(mob.getId()).getAnimationControllers().get("body");
                 boolean casting=controller!=null&&controller.getCurrentAnimation()!=null&&controller.getCurrentAnimation().animation().name().equals("cast");
                 BossHumanAura.draw(pose,buffers,mob,id,partial,casting);
+                if(id.equals("nine_heaven_general")){
+                    float alpha=TianjiangAura.glowAlpha(mob,partial,casting);
+                    if(alpha>0){
+                        var glow=RenderType.entityTranslucentEmissive(TianjiangAura.GLOW);
+                        BossCuboidRenderer.this.reRender(model,pose,buffers,visual,glow,buffers.getBuffer(glow),partial,
+                                15728880,net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,1,1,1,alpha);
+                    }
+                }
+            }
+        });
+        if(celestialAura||royalAura)addRenderLayer(new GeoRenderLayer<Visual>(this){
+            @Override public void renderForBone(PoseStack pose,Visual visual,GeoBone bone,RenderType type,MultiBufferSource buffers,VertexConsumer vertex,float partial,int light,int overlay){
+                if(!bone.getName().equals("weapon")||bone.isHidden())return;
+                pose.pushPose();
+                // The recursive renderer already applied the animated weapon rotation.
+                software.bernie.geckolib.util.RenderUtils.translateToPivotPoint(pose,bone);
+                if(celestialAura)TianjiangAura.drawWeapon(pose,buffers,getCurrentEntity(),partial);
+                else RoyalBossAura.drawWeapon(pose,buffers,getCurrentEntity(),partial,id.equals("dragon_king"));
+                buffers.getBuffer(type);
+                pose.popPose();
             }
         });
         // Preserve actual main/offhand equipment at articulated grip bones.
@@ -65,6 +89,12 @@ public final class BossCuboidRenderer<E extends Mob> extends GeoReplacedEntityRe
                 context.getItemInHandRenderer().renderItem(getCurrentEntity(),item,left?ItemDisplayContext.THIRD_PERSON_LEFT_HAND:ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,left,pose,buffers,light);
             }
         });
+    }
+    @Override public boolean shouldRender(E mob,net.minecraft.client.renderer.culling.Frustum frustum,double x,double y,double z){
+        if(super.shouldRender(mob,frustum,x,y,z))return true;
+        // Expand only visual culling; the accepted collision and damage bounds do not change.
+        return (celestialAura||royalAura)&&!mob.isInvisible()&&!mob.isDeadOrDying()&&mob.shouldRender(x,y,z)
+                &&frustum.isVisible(mob.getBoundingBox().inflate(3,2,3));
     }
     @Override protected float getDeathMaxRotation(Visual visual){
         // Every species now authors its grounded fall; avoid a second feet-pivot flip.

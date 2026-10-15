@@ -155,6 +155,11 @@ def main():
     for id in report:
         report[id]['sha256']={str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in generated if p.stem.startswith(id)}
     (out/'atlases.json').write_text(json.dumps(report,indent=2)+'\n')
+    # Current rat body/UV is owned by the scoped nonhuman source, not this legacy material pass.
+    import importlib.util
+    refine=REPO/'tools/art/steve-fighters-v25/nonhuman.py'
+    if refine.exists():
+        spec=importlib.util.spec_from_file_location('dynasty_nonhuman_v25',refine);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);module.export(['clockwork_rat'])
     print('Exported original material atlases:', ', '.join(sorted(IDS)))
 
 

@@ -15,13 +15,10 @@ from rig_bounds import vertices
 spec=importlib.util.spec_from_file_location('minimal_rig',R/'tools/art/boss-structure-v13/create.py')
 mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
 FACES=['north','south','east','west','up','down']
-PAL={
- 'ink':(24,37,48),'navy':(38,57,72),'cloth':(51,77,91),'cloth_hi':(74,100,111),
- 'iron_dark':(57,77,87),'iron':(94,119,130),'iron_hi':(151,175,181),'edge':(212,226,222),
- 'gold_dark':(119,87,44),'gold':(184,142,65),'gold_hi':(230,200,125),
- 'skin_dark':(137,96,73),'skin':(184,143,112),'skin_hi':(211,177,140),
- 'jade_dark':(37,84,88),'jade':(76,140,143),'jade_hi':(137,203,194),
-}
+# V16 is the authoritative pixel painter; legacy body/UV/animation exporter retained.
+pspec=importlib.util.spec_from_file_location('tianjiang_materials',R/'tools/art/tianjiang-texture-v16/paint.py')
+painter=importlib.util.module_from_spec(pspec);pspec.loader.exec_module(painter)
+PAL=painter.PAL
 TARGETS=[A/f'{f}/{ID}{e}' for f,e in [('geo/boss_cuboid','.geo.json'),('animations/boss_cuboid','.animation.json'),('textures/entity/boss_cuboid','.png')]]
 def hashes():return {str(p.relative_to(R)):hashlib.sha256(p.read_bytes()).hexdigest() for p in TARGETS}
 def build():
@@ -62,97 +59,8 @@ def build():
   for c in b['cubes']:c.pop('_segment',None)
  return g
 
-def paint(role,face,w,h):
- p=PAL;im=Image.new('RGB',(w,h),p['iron']);d=ImageDraw.Draw(im)
- def rect(coords,col):
-  x0,y0,x1,y1=map(int,coords)
-  if x1>=x0 and y1>=y0:d.rectangle((x0,y0,x1,y1),fill=p[col])
- def line(coords,col,width=1):d.line(coords,fill=p[col],width=width)
- front=face=='north';back=face=='south';side=face in ['east','west']
- if role=='head':
-  im=Image.new('RGB',(w,h),p['skin']);d=ImageDraw.Draw(im)
-  if face in ['up','down']:
-   rect((0,0,w-1,h-1),'navy');return im
-  # Helmet upper band and side/back coif are painted onto the unchanged 8px head.
-  rect((0,0,w-1,3),'navy');line((0,3,w-1,3),'gold')
-  if front:
-   rect((0,4,1,h-1),'iron_dark');rect((w-2,4,w-1,h-1),'iron_dark')
-   for cx in [4,w-5]:
-    line([(cx-2,5),(cx+1,6)],'ink');rect((cx-1,7,cx+1,8),'skin_dark')
-    line((cx-1 if cx<w//2 else cx,7,cx if cx<w//2 else cx+1,7),'edge');d.point((cx,7),fill=p['ink'])
-   rect((w//2-1,9,w//2,10),'skin_dark');d.point((w//2-1,9),fill=p['skin_hi'])
-   line((w//2-3,h-5,w//2+2,h-5),'skin_dark')
-   line((w//2-2,h-3,w//2+1,h-3),'ink')
-   line((w//2-2,h-2,w//2+1,h-2),'skin_dark')
-  elif back:
-   rect((0,4,w-1,h-1),'navy');rect((3,5,w-4,h-3),'iron_dark');line((3,5,w-4,5),'iron')
-  else:
-   rect((0,4,w-1,h-1),'iron_dark');rect((w//3,5,w*2//3,9),'iron');rect((w//3,10,w*2//3,h-2),'navy')
- elif role=='torso':
-  rect((0,0,w-1,h-1),'cloth' if side else 'navy')
-  if front or back:
-   # One broad cuirass field; small cloud/command mark, no frame on every Cuboid.
-   d.polygon([(2,4),(w-3,4),(w-3,14),(w//2,17),(2,14)],fill=p['iron'])
-   d.polygon([(2,5),(w//2-1,5),(w//2-1,16),(2,14)],fill=p['iron_dark'])
-   line((3,4,w-4,4),'iron_hi');line([(3,14),(w//2,17),(w-4,14)],'cloth')
-   if front:
-    line([(4,0),(w//2,4),(w-5,0)],'gold',2)
-    d.polygon([(w//2+2,6),(w//2-2,10),(w//2,10),(w//2-2,14),(w//2+3,9),(w//2+1,9)],fill=p['gold_hi'])
-   else:
-    line([(w//2-3,7),(w//2,5),(w//2+3,7)],'iron_hi')
-    line([(w//2-2,10),(w//2+2,10),(w//2+2,12),(w//2-2,12)],'gold_dark')
-  elif side:
-   rect((0,4,1,16),'ink');rect((w-2,4,w-1,16),'cloth_hi')
-  if face not in ['up','down']:
-   rect((0,h-6,w-1,h-4),'gold_dark');line((0,h-6,w-1,h-6),'gold')
-   if front:rect((w//2-1,h-6,w//2+1,h-4),'gold_hi')
-   rect((0,h-3,w-1,h-1),'navy')
- elif role=='arm':
-  rect((0,0,w-1,h-1),'cloth');rect((0,0,w-1,6),'iron_dark')
-  if front or back:
-   rect((1,1,w-2,5),'iron');line((1,1,w-2,1),'iron_hi')
-   rect((1,11,w-2,17),'iron_dark');line((1,11,w-2,11),'iron')
-  if face not in ['up','down']:
-   line((0,7,w-1,7),'gold_dark');line((0,8,w-1,8),'gold')
-   line((0,18,w-1,18),'gold_dark');rect((0,20,w-1,h-1),'skin_dark')
-   if front:rect((1,20,w-2,h-2),'skin');line((1,h-2,w-2,h-2),'skin_hi')
- elif role=='leg':
-  rect((0,0,w-1,h-1),'navy')
-  if front or back:
-   rect((1,2,w-2,10),'cloth');rect((1,13,w-2,h-4),'iron_dark')
-   line((1,13,w-2,13),'iron');line((2,15,2,h-5),'iron')
-  elif side:rect((w//2,2,w-2,11),'cloth')
-  if face not in ['up','down']:
-   line((0,11,w-1,11),'gold_dark');rect((0,h-3,w-1,h-1),'ink')
-   line((1,h-4,w-2,h-4),'iron')
- elif role=='thigh':
-  rect((0,0,w-1,h-1),'iron_dark');rect((1,0,w-2,h-2),'iron');line((1,0,w-2,0),'gold')
- elif role in ['crown','socket','crossbar']:
-  rect((0,0,w-1,h-1),'gold_dark');rect((0,0,w-1,max(0,h//2)),'gold')
-  if front or face=='up':line((0,0,w-1,0),'gold_hi')
-  if role=='socket' and front and w>=4:rect((w//2-1,h//2-1,w//2,h//2),'jade')
- elif role=='crest':
-  rect((0,0,w-1,h-1),'navy');rect((0,0,w-1,max(0,h//3)),'iron');line((0,0,w-1,0),'gold')
- elif role=='shaft':
-  rect((0,0,w-1,h-1),'navy');line((0,0,0,h-1),'iron_dark')
-  for y in [4,h-9]:line((0,y,w-1,y),'gold_dark',2)
- elif role=='grip':
-  rect((0,0,w-1,h-1),'ink')
-  for y in range(1,h,3):line((0,y,w-1,y),'cloth')
- else:
-  # Connected blade field: no bright frame on each tile of the crescent.
-  rect((0,0,w-1,h-1),'iron_dark')
-  if front or back:
-   rect((0,0,w-1,h-1),'iron')
-   if role=='blade_edge':
-    x=0 if front else w-1;line((x,0,x,h-1),'edge');line((1 if front else w-2,0,1 if front else w-2,h-1),'iron_hi')
-   elif role=='blade_body':
-    line((w//2,2,w//2,h-3),'jade_dark');line([(w//2,6),(w//2+1,6),(w//2+1,9)],'gold_dark')
-   elif role=='blade_tip_end':rect((0,0,w-1,1),'edge')
-   elif role=='blade_hook_end':rect((0,h-2,w-1,h-1),'edge')
-   elif role=='rear_tine':line((0,0,0,h-1),'iron_hi')
-  elif face=='up':rect((0,0,w-1,h-1),'iron_hi')
- return im
+def paint(role,face,w,h,context=None):
+ return painter.paint(role,face,w,h,context)
 
 def atlas(g):
  islands=[]
@@ -184,7 +92,7 @@ def atlas(g):
  assert ok
  tex=Image.new('RGB',(size,size),PAL['ink'])
  for i in islands:
-  x,y,w,h=i['rect'];tex.paste(paint(i['role'],i['face'],w,h),(x,y))
+  x,y,w,h=i['rect'];tex.paste(paint(i['role'],i['face'],w,h,g.by[i['bone']]['cubes'][i['cube']]),(x,y))
   g.by[i['bone']]['cubes'][i['cube']]['uv'][i['face']]={'uv':[x,y],'uv_size':[w,h]}
  return tex,islands
 
@@ -226,24 +134,7 @@ def animation(g):
  return {'format_version':'1.8.0','animations':out}
 
 def export():
- D.mkdir(parents=True,exist_ok=True);owner=D/'export-owner.json'
- expected=json.loads((owner if owner.exists() else D/'before-hashes.json').read_text())
- assert hashes()==expected,'Concurrent/manual edit; export refused before touching production'
- g=build();tex,islands=atlas(g);an=animation(g)
- for b in g.bones:
-  b['pivot']=[round(x*SCALE,6) for x in b['pivot']]
-  for c in b['cubes']:
-   for k in ['origin','size','pivot']:
-    if k in c:c[k]=[round(x*SCALE,6) for x in c[k]]
-   c.pop('_role',None)
- for a in an['animations'].values():
-  for channels in a['bones'].values():
-   if 'position' in channels:channels['position']={t:[round(x*SCALE,6) for x in v] for t,v in channels['position'].items()}
- desc={'identifier':'geometry.'+ID,'texture_width':tex.width,'texture_height':tex.height,'visible_bounds_width':9,'visible_bounds_height':6,'visible_bounds_offset':[0,2,0]}
- geo={'format_version':'1.12.0','minecraft:geometry':[{'description':desc,'bones':g.bones}]}
- TARGETS[0].write_text(json.dumps(geo,indent=2)+'\n');TARGETS[1].write_text(json.dumps(an,indent=2)+'\n');tex.save(TARGETS[2])
- dst=D/ID;dst.mkdir(exist_ok=True);tex.save(dst/'texture.png');tex.resize((tex.width*4,tex.height*4),Image.Resampling.NEAREST).save(dst/'texture-4x.png')
- (dst/'islands.json').write_text(json.dumps(islands,indent=2)+'\n')
- owner.write_text(json.dumps(hashes(),indent=2)+'\n')
- print('Exported exact six-block Steve proportions x1.35; four small decorations; original large halberd;',tex.size)
+ # V17 owns the accepted helmet; legacy commands must not restore the flat face.
+ import runpy
+ runpy.run_path(str(R/'tools/art/tianjiang-helmet-v17/export.py'),run_name='__main__')
 if __name__=='__main__':export()
