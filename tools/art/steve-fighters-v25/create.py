@@ -4,6 +4,7 @@ No external assets, server logic, hitboxes or nonhuman resources are read or rep
 from pathlib import Path
 import json,math,hashlib
 from PIL import Image,ImageDraw
+import identity
 R=Path(__file__).resolve().parents[3];A=R/'src/main/resources/assets/dynasty';D=R/'docs/art/steve-fighters-v25'
 # id, name, profession, cloth, metal, trim, scale (ordinary humans remain around player height)
 SPECS=[
@@ -26,6 +27,7 @@ def col(h):return tuple(bytes.fromhex(h))
 def shade(c,m):return tuple(max(0,min(255,round(v*m))) for v in c)
 def make(spec):
  id,name,role,cloth,metal,trim,scale=spec;P={k:col(v) for k,v in dict(cloth=cloth,metal=metal,trim=trim,skin='bc9474',skinhi='d6af87',skinshadow='8c6955',hair='342d2a',ink='252d33',white='ddd5b4',leather='594634',wood='74543a',jade='6c9b8c').items()};parts=[]
+ identity.palette(id,P)
  def box(n,parent,piv,origin,size,material,rot=None):parts.append(dict(name=n,parent=parent,pivot=piv,origin=origin,size=size,material=material,rotation=rot or [0,0,0]))
  for n,p,o,s in CORE:box(n,'root',p,o,s,'face' if n=='head' else 'torso' if n=='body' else 'arm' if 'arm'in n else 'leg')
  heavy=role in ('guard','shield','axe','soldier','spear');masked=role in ('assassin','scout');cap=role in ('watch','rebel','powder','bandit','bow','crossbow')
@@ -70,6 +72,7 @@ def make(spec):
     box('blade','weapon_shaft',[0,-2,0],[-.8,-length,-.35],[1.6,length,.7],'blade')
  if role=='shield':box('shield','left_arm',[1,5,-3.5],[-4,-5,-1],[8,15,2],'shield')
  if role=='scout':box('chain_coil','body',[3.8,8,-2.2],[-.7,0,-.2],[1.4,2,.6],'metal')
+ identity.shape(id,parts,box,P)
  # Native box UVs at 2 texels per model unit, with separate full islands per part.
  image=Image.new('RGBA',(256,256),(0,0,0,0));draw=ImageDraw.Draw(image);x=y=row=0
  for q in parts:
@@ -91,6 +94,8 @@ def make(spec):
  return out
 
 def paint(mat,face,w,h,P,role,id):
+ authored=identity.surface(mat,face,w,h,P,id)
+ if authored is not None:return authored
  base=P.get(mat,P['cloth']);im=Image.new('RGBA',(w,h),(*base,255));d=ImageDraw.Draw(im)
  def xy(x,y):return (round(x*(w-1)/15),round(y*(h-1)/23))
  def rect(a,b,c,e,color):d.rectangle((*xy(a,b),*xy(c,e)),fill=color)
