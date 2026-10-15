@@ -189,22 +189,16 @@ public final class DynastyTitleScreen extends TitleScreen {
         int x = layout.x;
         int y = layout.titleY;
         g.drawString(font, Component.translatable("ui.dynasty.title.eyebrow"), x + 1, y, 0xFF93B6AC, false);
+        Component wordmark = Component.literal("DYNASTY").withStyle(style -> style.withFont(new ResourceLocation(Dynasty.MODID, "title")));
+        float wordScale = Math.min(1.6F, (float) layout.width / Math.max(1, font.width(wordmark)));
         g.pose().pushPose();
-        g.pose().translate(x - 1, y + 15, 0);
-        g.pose().scale(layout.titleScale, layout.titleScale, 1);
-        g.drawString(font, "王朝", 1, 1, 0xFF10242A, false);
-        g.drawString(font, "王朝", 0, 0, GOLD, false);
+        g.pose().translate(x, y + 15, 0);
+        g.pose().scale(wordScale, wordScale, 1);
+        g.drawString(font, wordmark, 0, 0, GOLD, false);
         g.pose().popPose();
-        int englishY = y + 15 + Math.round(9 * layout.titleScale) + 3;
-        int cursor = x + 2;
-        for (char letter : "DYNASTY".toCharArray()) {
-            g.drawString(font, String.valueOf(letter), cursor, englishY, PAPER, false);
-            cursor += font.width(String.valueOf(letter)) + (layout.compact ? 3 : 5);
-        }
-        g.fill(x, englishY + 13, x + layout.width, englishY + 14, 0x996C9587);
-        if (!layout.compact) {
-            g.drawString(font, Component.translatable("ui.dynasty.title.tagline"), x, englishY + 22, 0xFFC9D3C1, false);
-        }
+        int ruleY = layout.menuY - 12;
+        g.fill(x, ruleY, x + 24, ruleY + 1, GOLD);
+        g.fill(x + 29, ruleY, x + layout.width, ruleY + 1, 0x556C9587);
         g.drawString(font, Component.translatable("ui.dynasty.title.vanilla_hint"), x, height - 33, 0xFF95A69A, false);
         String version = "DYNASTY " + ModList.get().getModContainerById(Dynasty.MODID)
                 .map(mod -> mod.getModInfo().getVersion().toString()).orElse("")
@@ -255,17 +249,16 @@ public final class DynastyTitleScreen extends TitleScreen {
                   int smallHeight, int utilityHeight, int gap, boolean compact) {
         static Layout forSize(int width, int height) {
             boolean compact = width < 460 || height < 300;
-            int gap = Mth.clamp(height / 85, 4, 7);
-            int button = Mth.clamp(height / 20, 20, 29);
-            int small = Mth.clamp(button - 3, 18, 25);
-            int utility = 18;
-            int w = Math.min(width - 32, Mth.clamp(Math.round(width * .29F), 166, 246));
+            int gap = compact ? 4 : 6;
+            int button = compact ? 23 : 27;
+            int small = compact ? 19 : 22;
+            int utility = 16;
+            int w = Math.min(width - 40, Mth.clamp(Math.round(width * .30F), 148, 208));
             int x = Mth.clamp(Math.round(width * .075F), 16, 100);
-            float titleScale = compact ? 3.8F : Mth.clamp(height / 70F, 4.3F, 7.8F);
-            int titleHeight = 15 + Math.round(titleScale * 9) + 3 + (compact ? 22 : 44);
             int menuHeight = button * 2 + small * 2 + utility + gap * 4;
-            int titleY = Math.max(12, (height - 37 - titleHeight - menuHeight) / 2);
-            return new Layout(x, w, titleY, titleScale, titleY + titleHeight,
+            int titleHeight = compact ? 62 : 75;
+            int titleY = Math.max(12, (height - 42 - titleHeight - menuHeight) / 2);
+            return new Layout(x, w, titleY, 1, titleY + titleHeight,
                     button, small, utility, gap, compact);
         }
     }
@@ -307,15 +300,12 @@ public final class DynastyTitleScreen extends TitleScreen {
             boolean primary = actionKey.equals("menu.singleplayer") || actionKey.equals("menu.playdemo");
             boolean utility = actionKey.startsWith("narrator.button.");
             int x = getX(), y = getY(), w = getWidth(), h = getHeight();
-            int fill = utility ? (focus ? 0xC02A4547 : 0x7010252B)
-                    : primary ? (focus ? 0xF09F3C31 : 0xE57E302A) : (focus ? 0xE3325155 : 0xCB102C32);
+            int fill = utility ? (focus ? 0x80304C4C : 0x0010252B)
+                    : primary ? (focus ? 0xE56F342D : 0xC14C2825) : (focus ? 0xBE284747 : 0x7020393A);
             g.fill(x, y, x + w, y + h, fill);
-            int line = focus ? 0xFFE1C18C : active ? 0xA49E9875 : 0x80556664;
-            g.fill(x, y, x + w, y + 1, line);
-            g.fill(x, y + h - 1, x + w, y + h, line);
-            g.fill(x, y, x + 1, y + h, line);
-            g.fill(x + w - 1, y, x + w, y + h, line);
-            if (focus) g.fill(x + 3, y + 3, x + 5, y + h - 3, GOLD);
+            int line = focus ? 0xFFE1C18C : active ? 0x566F8B80 : 0x30475853;
+            if (!utility) g.fill(x, y + h - 1, x + w, y + h, line);
+            if (primary || focus) g.fill(x, y + 4, x + 2, y + h - 4, focus ? GOLD : 0xBAAF8B55);
             int color = active ? (focus ? 0xFFFFF6DD : PAPER) : 0xFF7C8C87;
             // Font fitting prevents long translated labels from escaping half-width buttons.
             float scale = Math.min(1, (float) (w - 16) / Math.max(1, font.width(getMessage())));

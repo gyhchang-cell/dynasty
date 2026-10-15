@@ -5,6 +5,7 @@ from pathlib import Path
 import json,math,hashlib
 from PIL import Image,ImageDraw
 import identity
+import weapons
 R=Path(__file__).resolve().parents[3];A=R/'src/main/resources/assets/dynasty';D=R/'docs/art/steve-fighters-v25'
 # id, name, profession, cloth, metal, trim, scale (ordinary humans remain around player height)
 SPECS=[
@@ -76,6 +77,7 @@ def make(spec):
  if role=='shield':box('shield','left_arm',[1,5,-3.5],[-4,-5,-1],[8,15,2],'shield')
  if role=='scout':box('chain_coil','body',[3.8,8,-2.2],[-.7,0,-.2],[1.4,2,.6],'metal')
  identity.shape(id,parts,box,P)
+ weapons.refine(id,parts,box,P)
  # Native box UVs at 2 texels per model unit, with separate full islands per part.
  image=Image.new('RGBA',(256,256),(0,0,0,0));draw=ImageDraw.Draw(image);x=y=row=0
  for q in parts:
@@ -97,6 +99,8 @@ def make(spec):
  return out
 
 def paint(mat,face,w,h,P,role,id):
+ authored=weapons.paint(mat,face,w,h,P,id)
+ if authored is not None:return authored
  authored=identity.surface(mat,face,w,h,P,id)
  if authored is not None:return authored
  base=P.get(mat,P['cloth']);im=Image.new('RGBA',(w,h),(*base,255));d=ImageDraw.Draw(im)
