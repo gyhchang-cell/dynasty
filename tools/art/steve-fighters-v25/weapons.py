@@ -47,6 +47,16 @@ def refine(id,parts,box,P):
   q('sword_guard',-1.5,-2.5,3,.5,'weapon_spine',-.5,1);q('pommel',-.5,3,1,1,'weapon_spine',-.5,1)
  # One small collar unifies tang and guard without changing the palm's grip transform.
  q('blade_collar',-.75,-3,1.5,1,'weapon_gold',-.5,1)
+ # Body is 32 model units high. Service blades now read as swords, not palm-sized knives.
+ reach={'straight':18,'saber':24,'broken':19,'stiletto':12,'cleaver':18,'ring':19,'shield':22,'hook':13,'dagger':12}[kind]
+ factor=reach/L
+ for part in parts:
+  if part.get('parent')!='weapon_shaft':continue
+  n=part['name']
+  if n=='blade_collar' or not (n.startswith(('blade','broken_point','heavy_spine','hook_'))):continue
+  part['origin'][1]=round((-2+(part['origin'][1]+2)*factor)*2)/2
+  part['size'][1]=round(part['size'][1]*factor*2)/2
+
 
 def paint(mat,face,w,h,P,id):
  if id not in DESIGNS or mat not in ('weapon_steel','weapon_spine','weapon_gold','grip'):return None

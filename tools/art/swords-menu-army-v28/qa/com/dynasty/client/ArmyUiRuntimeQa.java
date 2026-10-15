@@ -49,6 +49,11 @@ public final class ArmyUiRuntimeQa{
     click(screen,"›");require(screen.children().stream().anyMatch(c->c instanceof Button b&&b.getMessage().getString().startsWith("#7 ")),"Pagination displays next six soldiers");capture(mc,screen,size,"page2");
     click(screen,"军阵");check(screen);capture(mc,screen,size,"formation");click(screen,"预设 ");require(screen.children().stream().anyMatch(c->c instanceof Button b&&b.getMessage().getString().equals("预设 2 ›")),"Preset selector cycles without sending server action");
     click(screen,"关卡");check(screen);capture(mc,screen,size,"encounters");
+    var desk=new ArmyMenu(100,mc.player.getInventory(),net.minecraft.core.BlockPos.ZERO);desk.view.set(4,1);desk.view.set(1,50);desk.view.set(114,-1);
+    var shop=new ArmyRosterScreen(desk,mc.player.getInventory(),Component.literal("募兵台"));mc.setScreen(shop);shop.resize(mc,size[0],size[1]);check(shop);capture(mc,shop,size,"recruit");
+    require(shop.children().stream().anyMatch(c->c instanceof Button b&&b.active&&b.getMessage().getString().startsWith("确认购买")),"Paid recruitment available at desk with sufficient funds");
+    desk.view.set(1,0);shop.resize(mc,size[0],size[1]);require(shop.children().stream().anyMatch(c->c instanceof Button b&&!b.active&&b.getMessage().getString().startsWith("确认购买")),"Cannot buy without silver");
+
    }
    Files.write(OUT.resolve("PASS.txt"),LOG);mc.stop();
   }catch(Throwable t){fail(mc,t);}

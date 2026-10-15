@@ -63,6 +63,7 @@ public final class DynastyTitleScreen extends TitleScreen {
             }
             String key = key(original.getMessage());
             MenuButton decorated = new MenuButton(original, key);
+            if(key.equals("menu.options")) decorated.customAction=()->minecraft.setScreen(new SettingsHub(this));
             removeWidget(original);
             addRenderableWidget(decorated);
             actions.put(key, decorated);
@@ -89,22 +90,13 @@ public final class DynastyTitleScreen extends TitleScreen {
         int w = layout.width;
         int y = layout.menuY;
         int gap = layout.gap;
-        int half = (w - gap) / 2;
-        // Demo mode uses vanilla's play/reset controls and their original enabled state.
-        place("menu.singleplayer", x, y, w, layout.buttonHeight);
-        place("menu.playdemo", x, y, w, layout.buttonHeight);
-        y += layout.buttonHeight + gap;
-        place("menu.multiplayer", x, y, w, layout.buttonHeight);
-        place("menu.resetdemo", x, y, w, layout.buttonHeight);
-        y += layout.buttonHeight + gap;
-        place("fml.menu.mods", x, y, half, layout.smallHeight);
-        place("menu.options", x + half + gap, y, w - half - gap, layout.smallHeight);
-        y += layout.smallHeight + gap;
-        place("menu.online", x, y, half, layout.smallHeight);
-        place("menu.quit", x + half + gap, y, w - half - gap, layout.smallHeight);
-        y += layout.smallHeight + gap;
-        place("narrator.button.language", x, y, half, layout.utilityHeight);
-        place("narrator.button.accessibility", x + half + gap, y, w - half - gap, layout.utilityHeight);
+        for (MenuButton button : actions.values()) button.visible=false;
+        String[] keys = {minecraft.isDemo()?"menu.playdemo":"menu.singleplayer",minecraft.isDemo()?"menu.resetdemo":"menu.multiplayer","menu.options","menu.quit"};
+        for(int i=0;i<keys.length;i++) {
+            int offset=i<2?0:12;
+            place(keys[i],x+offset,y,w-offset*2,layout.buttonHeight);
+            y+=layout.buttonHeight+gap;
+        }
         if (copyright != null) {
             copyright.setX(Math.max(8, width - copyright.getWidth() - 12));
             copyright.setY(height - 17);
@@ -114,6 +106,7 @@ public final class DynastyTitleScreen extends TitleScreen {
     private void place(String key, int x, int y, int w, int h) {
         MenuButton button = actions.get(key);
         if (button != null) {
+            button.visible = true;
             button.setX(x);
             button.setY(y);
             button.setWidth(w);
@@ -255,7 +248,7 @@ public final class DynastyTitleScreen extends TitleScreen {
             int utility = 16;
             int w = Math.min(width - 40, Mth.clamp(Math.round(width * .30F), 148, 208));
             int x = Mth.clamp(Math.round(width * .075F), 16, 100);
-            int menuHeight = button * 2 + small * 2 + utility + gap * 4;
+            int menuHeight = button * 4 + gap * 3;
             int titleHeight = compact ? 62 : 75;
             int titleY = Math.max(12, (height - 42 - titleHeight - menuHeight) / 2);
             return new Layout(x, w, titleY, 1, titleY + titleHeight,
@@ -263,10 +256,28 @@ public final class DynastyTitleScreen extends TitleScreen {
         }
     }
 
+    private static final class SettingsHub extends net.minecraft.client.gui.screens.Screen {
+        final DynastyTitleScreen parent;
+        SettingsHub(DynastyTitleScreen p){super(Component.literal("设置与更多"));parent=p;}
+        @Override protected void init(){
+            int w=Math.min(220,width-40),x=(width-w)/2,y=Math.max(38,(height-176)/2);
+            for(String key:List.of("menu.options","fml.menu.mods","menu.online","narrator.button.language","narrator.button.accessibility")){
+                MenuButton source=parent.actions.get(key);if(source==null)continue;
+                MenuButton b=new MenuButton(source.original,key);b.setX(x);b.setY(y);b.setWidth(w);b.setHeight(24);addRenderableWidget(b);y+=29;
+            }
+            Button back=Button.builder(Component.literal("返回"),b->onClose()).bounds(x,y,w,20).build();
+            addRenderableWidget(new MenuButton(back,"back"));
+        }
+        @Override public void onClose(){minecraft.setScreen(parent);}
+        @Override public void render(GuiGraphics g,int x,int y,float partial){parent.renderArtwork(g);RoundedUi.fill(g,width/2-126,12,252,height-24,14,0xDA10282E);g.drawCenteredString(font,title,width/2,21,PAPER);super.render(g,x,y,partial);}
+    }
+
     /** The original button remains the authority for actions, including multiplayer gates. */
     static final class MenuButton extends Button {
         final Button original;
         final String actionKey;
+        Runnable customAction;
+        @Override public void onPress(){if(customAction!=null)customAction.run();else super.onPress();}
 
         MenuButton(Button original, String key) {
             super(original.getX(), original.getY(), original.getWidth(), original.getHeight(),
@@ -300,12 +311,10 @@ public final class DynastyTitleScreen extends TitleScreen {
             boolean primary = actionKey.equals("menu.singleplayer") || actionKey.equals("menu.playdemo");
             boolean utility = actionKey.startsWith("narrator.button.");
             int x = getX(), y = getY(), w = getWidth(), h = getHeight();
-            int fill = utility ? (focus ? 0x80304C4C : 0x0010252B)
-                    : primary ? (focus ? 0xE56F342D : 0xC14C2825) : (focus ? 0xBE284747 : 0x7020393A);
-            g.fill(x, y, x + w, y + h, fill);
-            int line = focus ? 0xFFE1C18C : active ? 0x566F8B80 : 0x30475853;
-            if (!utility) g.fill(x, y + h - 1, x + w, y + h, line);
-            if (primary || focus) g.fill(x, y + 4, x + 2, y + h - 4, focus ? GOLD : 0xBAAF8B55);
+
+            RoundedUi.fill(g,x,y+2,w,h,h/2,0x35000000);
+            RoundedUi.fill(g,x,y,w,h,h/2,focus?0xDD476769:primary?0xCF72503C:0xAA18353D);
+            if(focus) RoundedUi.fill(g,x+10,y+3,w-20,1,0,0x7799CBC8);
             int color = active ? (focus ? 0xFFFFF6DD : PAPER) : 0xFF7C8C87;
             // Font fitting prevents long translated labels from escaping half-width buttons.
             float scale = Math.min(1, (float) (w - 16) / Math.max(1, font.width(getMessage())));
