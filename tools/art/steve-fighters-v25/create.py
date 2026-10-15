@@ -64,7 +64,10 @@ def make(spec):
    length=27 if role=='spear' else 12 if role=='axe' else 11 if role in ('guard','shield') else 6 if role in ('powder','assassin','scout') else 8
    # Sword tang is inside the grip only: no wooden shaft overlapping the blade face.
    shaft=length if role in ('spear','axe') else 2
-   box('weapon_shaft','right_arm',[-1,8,-2.8],[-.45,-shaft,-.45],[.9,shaft+4,.9],'grip')
+   # Authored swords use a forward guard, not an upright shaft alongside the forearm.
+   # Rotate the entire weapon at the palm so blade/guard/grip stay rigid during swings.
+   sword=role not in ('spear','axe')
+   box('weapon_shaft','right_arm',[-1,8,-.6] if sword else [-1,8,-2.8],[-.45,-shaft,-.45],[.9,shaft+4,.9],'grip',[65,0,0] if sword else None)
    if role=='spear':box('spear_tip','weapon_shaft',[0,-length,0],[-.7,-5,-.4],[1.4,5,.8],'blade')
    elif role=='axe':box('axe_head','weapon_shaft',[0,-length+1,0],[-4,-3,-.55],[6,5,1.1],'blade')
    else:

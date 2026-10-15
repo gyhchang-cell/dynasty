@@ -50,6 +50,7 @@ if reference:
  jvm+=['-Ddynasty.bossPowerReferenceQa=true','-Ddynasty.bossPowerReferenceQa.output='+str(out),'-Ddynasty.bossPowerReferenceQa.ownOnly='+str(own_reference).lower(),'-Ddynasty.bossPowerReferenceQa.ownEffects='+str(os.environ.get('DYNASTY_REFERENCE_OWN_EFFECTS')=='1').lower(),'-Ddynasty.bossPowerReferenceQa.both='+str(os.environ.get('DYNASTY_REFERENCE_BOTH')=='1').lower()]
  for env,prop in [('DYNASTY_REFERENCE_ENTITY','entity'),('DYNASTY_REFERENCE_DISTANCE','distance')]:
   if os.environ.get(env):jvm.append('-Ddynasty.bossPowerReferenceQa.'+prop+'='+os.environ[env])
+if os.environ.get('DYNASTY_SWORD_GRIP_QA')=='1':jvm.append('-Ddynasty.swordGripQa=true')
 if checklist:jvm.append('-Ddynasty.bossChecklistQa=true')
 if human:jvm.append('-Ddynasty.bossHumanQa=true')
 if human_presence:jvm.append('-Ddynasty.bossHumanPresenceQa=true')
