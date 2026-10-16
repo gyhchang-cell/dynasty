@@ -265,3 +265,8 @@ write(DATA / 'recipes/blueprint/yasha_tidal_shield.json', {'type': 'minecraft:cr
 write(DATA / 'recipes/blueprint/yasha_recovered_trident.json', {'type': 'minecraft:crafting_shaped', 'pattern': ['TTT', ' S ', ' S '],
     'key': {'T': {'item': 'dynasty:corroded_trident_tine'}, 'S': {'item': 'minecraft:stick'}}, 'result': {'item': 'minecraft:trident'}})
 print('Exported original yasha, seven clips, finite vortex and three usable salvage items.')
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('fubo_xunhai_yecha')

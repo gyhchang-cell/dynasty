@@ -98,3 +98,8 @@ brood_animations={
 }
 write_animation('tianzhu_brood',brood_animations)
 print('Original adult: 42 bones, '+str(sum(len(b.get('cubes',[])) for b in json.loads((ASSET/'geo/blueprint/elite'/f'{ID}.geo.json').read_text())['minecraft:geometry'][0]['bones']))+' cuboids; 7 animations; actual 16x16 four-colour PNG')
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('gudu_tianzhunv')

@@ -120,3 +120,8 @@ for p in bones:
   merged['cubes'].append(c)
 geo('judge_chain_cage',[merged],7.4,3.2,[0,1.4,0]);write(A/'animations/blueprint/elite/judge_chain_cage.animation.json',{'format_version':'1.8.0','animations':{'animation.judge_chain_cage.idle':{'loop':True,'animation_length':1,'bones':{}}}})
 print('Exported original judicial ledger:',main_count,'seven clips and three independent spell resources; native pending.')
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('qingdeng_panguan_guichai')

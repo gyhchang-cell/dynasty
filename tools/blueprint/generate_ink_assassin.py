@@ -103,3 +103,8 @@ write(DATA/'loot_tables/entities'/f'{SPIKE}.json',{'type':'minecraft:entity','po
 write(DATA/'advancements/blueprint'/f'kill_{ID}.json',{'criteria':{'kill':{'trigger':'minecraft:player_killed_entity','conditions':{'entity':{'type':'dynasty:'+ID}}}}})
 write(DATA/'recipes/blueprint/ink_crystal_dye.json',{'type':'minecraft:crafting_shapeless','ingredients':[{'item':'dynasty:ink_crystal_shard'}],'result':{'item':'minecraft:black_dye','count':2}})
 write(DATA/'recipes/blueprint/ink_silk_string.json',{'type':'minecraft:crafting_shapeless','ingredients':[{'item':'dynasty:waterproof_ink_silk'}],'result':{'item':'minecraft:string','count':4}})
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('mojia_jueying_cike')

@@ -141,3 +141,8 @@ for name,kind in [('eagle_hard_feather','feather'),('eagle_rib_bow_fragment','bo
  else:
   draw.rectangle((4,2,7,5),fill=COLORS['straw']);draw.rectangle((6,4,9,11),fill=COLORS['gold']);draw.rectangle((8,10,11,13),fill=COLORS['straw']);draw.rectangle((6,8,9,11),fill=COLORS['dark'])
  icon.save(A/'textures/item'/f'{name}.png');write(A/'models/item'/f'{name}.json',{'parent':'minecraft:item/generated','textures':{'layer0':'dynasty:item/'+name}})
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('liefeng_jindiao_yushi')
