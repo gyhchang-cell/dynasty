@@ -205,3 +205,7 @@ print('Exported four-knuckle coffin corpse:',len(bones),'bones',sum(len(b.get('c
 import runpy as _creature_runpy
 from pathlib import Path as _CreaturePath
 _creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('banshan_jiazhou_shikuang')
+
+# Original MC creature shape correction, after the material export.
+import runpy as _creature33_runpy
+_creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v33/refine.py"))["finish"]('banshan_jiazhou_shikuang')

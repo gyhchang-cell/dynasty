@@ -239,3 +239,7 @@ print(f'Possessed ding exported: {count[0]} functional bones, {count[1]} cuboids
 import runpy as _creature_runpy
 from pathlib import Path as _CreaturePath
 _creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('yinyang_liandan_fangshi')
+
+# Original MC creature shape correction, after the material export.
+import runpy as _creature33_runpy
+_creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v33/refine.py"))["finish"]('yinyang_liandan_fangshi')
