@@ -2,13 +2,14 @@
 No external assets, server logic, hitboxes or nonhuman resources are read or replaced.
 """
 from pathlib import Path
-import json,math,hashlib
+import json,math,hashlib,copy
 from PIL import Image,ImageDraw
 import identity
 import weapons
 R=Path(__file__).resolve().parents[3];A=R/'src/main/resources/assets/dynasty';D=R/'docs/art/steve-fighters-v25'
 # id, name, profession, cloth, metal, trim, scale (ordinary humans remain around player height)
 SPECS=[
+('fufa_jijiu','符法祭酒','priest','532d42','617b78','b3a578',1.02),
 ('archer','弓兵','bow','465b46','687e78','b79d67',.95),
 ('imperial_soldier','帝国士兵','soldier','304e60','70828a','bda16c',1),
 ('royal_guard','锦衣卫','guard','662f38','525e68','b7955c',1.03),
@@ -57,7 +58,7 @@ def make(spec):
  elif role in ('assassin','scout'):box('small_pouch','body',[-3.7,7,1],[-.7,0,0],[1.4,2.5,2],'leather')
  elif heavy:box('back_cloth','body',[0,1,2.15],[-3.5,0,0],[7,10,.35],'back_cloth')
  # Equipment is a child of its real arm; the archer uses the actual vanilla bow layer.
- if role not in ('bow','crossbow'):
+ if role not in ('bow','crossbow','priest'):
   if role=='watch':
    box('lantern','left_arm',[1,10,-2.3],[-1.2,0,-1.2],[2.4,3.4,2.4],'lantern')
    box('clapper','right_arm',[-1,8,-2.6],[-.45,-3,-.4],[.9,7,.8],'wood')
@@ -70,7 +71,10 @@ def make(spec):
    sword=role not in ('spear','axe')
    box('weapon_shaft','right_arm',[-1,8,-.6] if sword else [-1,8,-2.8],[-.45,-shaft,-.45],[.9,shaft+4,.9],'grip',[65,0,0] if sword else None)
    if role=='spear':box('spear_tip','weapon_shaft',[0,-length,0],[-.7,-5,-.4],[1.4,5,.8],'blade')
-   elif role=='axe':box('axe_head','weapon_shaft',[0,-length+1,0],[-4,-3,-.55],[6,5,1.1],'blade')
+   elif role=='axe':
+    box('axe_eye','weapon_shaft',[0,-length+1,0],[-.75,-2,-1],[2,3,2],'metal')
+    box('axe_head','weapon_shaft',[0,-length+1,0],[-4,-3,-.5],[3.5,5,1],'axe_steel')
+    box('axe_beard','weapon_shaft',[0,-length+1,0],[-4,2,-.5],[1.5,1.5,1],'axe_steel')
    else:
     box('sword_guard','weapon_shaft',[0,-2,0],[-2,-.4,-.7],[4,.8,1.4],'trim')
     box('blade','weapon_shaft',[0,-2,0],[-.8,-length,-.35],[1.6,length,.7],'blade')
@@ -78,6 +82,14 @@ def make(spec):
  if role=='scout':box('chain_coil','body',[3.8,8,-2.2],[-.7,0,-.2],[1.4,2,.6],'metal')
  identity.shape(id,parts,box,P)
  weapons.refine(id,parts,box,P)
+ if role=='axe':
+  shaft=next(p for p in parts if p['name']=='weapon_shaft');shaft['pivot']=[-1,8,-.6];shaft['rotation']=[35,0,-10]
+  # The existing clamp/counter skills use a pair of short axes, not a sword.
+  for old in [p for p in parts if p['name']in ('weapon_shaft','axe_head','axe_eye','axe_beard')]:
+   q=copy.deepcopy(old);q['name']='offhand_'+old['name']
+   q['parent']='left_arm' if old['name']=='weapon_shaft' else 'offhand_weapon_shaft'
+   if old['name']=='weapon_shaft':q['pivot'][0]=1;q['rotation']=[35,0,10]
+   parts.append(q)
  # Native box UVs at 2 texels per model unit, with separate full islands per part.
  image=Image.new('RGBA',(256,256),(0,0,0,0));draw=ImageDraw.Draw(image);x=y=row=0
  for q in parts:
@@ -149,6 +161,14 @@ def paint(mat,face,w,h,P,role,id):
  elif mat in ('metal','tasset'):
   base=P['metal'];d.rectangle((0,0,w,h),fill=shade(base,.85) if face=='down' else base)
   if front or side:line([(1,2),(10,2)],shade(base,1.26));line([(1,19),(12,19)],shade(base,.65));line([(11,8),(13,6)],shade(base,1.1))
+ elif mat=='axe_steel':
+  base=P['metal'];d.rectangle((0,0,w-1,h-1),fill=base)
+  if front or face=='south':
+   edge=0 if front else w-1
+   d.line([(edge,0),(edge,h-1)],fill=shade(base,1.65))
+   inner=1 if front else max(0,w-2)
+   d.line([(inner,0),(inner,h-1)],fill=shade(base,1.25))
+  elif side:d.rectangle((0,0,w-1,h-1),fill=shade(base,.7))
  elif mat=='blade':
   d.rectangle((0,0,w,h),fill=P['metal']);rect(0,0,3,23,shade(P['metal'],1.55));rect(12,0,15,23,shade(P['metal'],.6));line([(3,4),(5,6)],P['white']);line([(3,18),(4,17)],P['white'])
  elif mat in ('quiver','powder_pack','shield','wood','grip'):

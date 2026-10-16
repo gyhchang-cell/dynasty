@@ -55,6 +55,7 @@ if ui_profile in ('title','army'):
  jvm=[a for a in jvm if a!='-Ddynasty.steveFighterQa=true']
  prop='dynasty.titleQa' if ui_profile=='title' else 'dynasty.armyUiQa'
  jvm+=['-D'+prop+'=true','-D'+prop+'.output='+str(out)]
+if os.environ.get('DYNASTY_PRIEST_QA')=='1':jvm.append('-Ddynasty.priestQa=true')
 if os.environ.get('DYNASTY_SWORD_GRIP_QA')=='1':jvm.append('-Ddynasty.swordGripQa=true')
 if checklist:jvm.append('-Ddynasty.bossChecklistQa=true')
 if human:jvm.append('-Ddynasty.bossHumanQa=true')

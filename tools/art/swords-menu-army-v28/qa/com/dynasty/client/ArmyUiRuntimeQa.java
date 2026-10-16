@@ -42,14 +42,17 @@ public final class ArmyUiRuntimeQa{
   try{
    done=true;Files.createDirectories(OUT);
    for(int[] size:new int[][]{{420,280},{320,240},{640,360}}){
-    var menu=new ArmyMenu(99,mc.player.getInventory(),null);menu.view.set(0,0);menu.view.set(1,125);menu.view.set(2,1);menu.view.set(114,-1);
+    var menu=new ArmyMenu(99,mc.player.getInventory(),null);menu.view.set(0,0);menu.view.set(1,125);menu.view.set(2,1);menu.view.set(114,65535);menu.view.set(121,65535);
     var screen=new ArmyRosterScreen(menu,mc.player.getInventory(),Component.literal("虎符"));mc.setScreen(screen);screen.resize(mc,size[0],size[1]);check(screen);capture(mc,screen,size,"empty");
     for(var child:screen.children())if(child instanceof Button b&&b.getMessage().getString().contains("银"))require(!b.active,"Recruitment disabled away from desk");
-    menu.view.set(0,15);for(int i=0;i<15;i++){menu.view.set(6+i*3,i%3);menu.view.set(7+i*3,20+i);menu.view.set(8+i*3,i<9?i+1:0);}screen.resize(mc,size[0],size[1]);click(screen,"#1 ");check(screen);capture(mc,screen,size,"roster");
+    menu.view.set(0,43);for(int i=0;i<36;i++){menu.view.set(6+i*3,i%3);menu.view.set(7+i*3,20+i);menu.view.set(8+i*3,i<12?1:0);}screen.resize(mc,size[0],size[1]);click(screen,"#1 ");check(screen);capture(mc,screen,size,"roster");
     click(screen,"›");require(screen.children().stream().anyMatch(c->c instanceof Button b&&b.getMessage().getString().startsWith("#7 ")),"Pagination displays next six soldiers");capture(mc,screen,size,"page2");
     click(screen,"军阵");check(screen);capture(mc,screen,size,"formation");click(screen,"预设 ");require(screen.children().stream().anyMatch(c->c instanceof Button b&&b.getMessage().getString().equals("预设 2 ›")),"Preset selector cycles without sending server action");
+    menu.view.set(116,1);menu.view.set(117,4);menu.view.set(114,36);menu.view.set(121,0);screen.tick();screen.resize(mc,size[0],size[1]);check(screen);capture(mc,screen,size,"beyond36");
+    require(screen.children().stream().anyMatch(c->c instanceof Button b&&b.getMessage().getString().startsWith("#37 ")),"Second roster window displays soldier37");
+    require(screen.children().stream().anyMatch(c->c instanceof Button b&&b.getMessage().getString().equals("37")),"Formation slot37 is available");
     click(screen,"关卡");check(screen);capture(mc,screen,size,"encounters");
-    var desk=new ArmyMenu(100,mc.player.getInventory(),net.minecraft.core.BlockPos.ZERO);desk.view.set(4,1);desk.view.set(1,50);desk.view.set(114,-1);
+    var desk=new ArmyMenu(100,mc.player.getInventory(),net.minecraft.core.BlockPos.ZERO);desk.view.set(4,1);desk.view.set(1,50);desk.view.set(114,65535);desk.view.set(121,65535);
     var shop=new ArmyRosterScreen(desk,mc.player.getInventory(),Component.literal("募兵台"));mc.setScreen(shop);shop.resize(mc,size[0],size[1]);check(shop);capture(mc,shop,size,"recruit");
     require(shop.children().stream().anyMatch(c->c instanceof Button b&&b.active&&b.getMessage().getString().startsWith("确认购买")),"Paid recruitment available at desk with sufficient funds");
     desk.view.set(1,0);shop.resize(mc,size[0],size[1]);require(shop.children().stream().anyMatch(c->c instanceof Button b&&!b.active&&b.getMessage().getString().startsWith("确认购买")),"Cannot buy without silver");

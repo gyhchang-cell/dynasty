@@ -14,61 +14,68 @@ def rgb(h):return tuple(bytes.fromhex(h))
 def shade(c,m):return tuple(min(255,max(0,round(x*m)))for x in c)
 def refine(id,parts,box,P):
  if id not in DESIGNS:return
- title,kind,L,*_=DESIGNS[id];parts[:]=[p for p in parts if p['name']not in ('blade','sword_guard')]
- def q(n,x,y,w,h,mat='weapon_steel',z=-.25,depth=.5,rot=None):box(n,'weapon_shaft',[0,0,0],[x,y,z],[w,h,depth],mat,rot or [0,90,0])
- # The primary blade owns most of the silhouette; a few stepped transitions form the point.
- if kind=='straight':
-  q('blade',-1,-2-L+2,2,L-2);q('blade_point',-.5,-2-L,1,2);q('blade_ridge',-.25,-2-L+2,.5,L-2,'weapon_spine',-.5,1)
-  q('sword_guard',-2.25,-2.5,4.5,.5,'weapon_gold',-.75,1.5);q('guard_ends',-2.25,-3,.5,.5,'weapon_gold');q('pommel',-.75,3,1.5,1,'weapon_gold',-.5,1)
- elif kind=='saber':
-  q('blade',-.75,-8,1.5,6);q('blade_curve',-.25,-11,1.5,3);q('blade_point',.25,-13,1,2);q('blade_spine',.5,-8,.5,5,'weapon_spine',-.5,1)
-  q('sword_guard',-2,-2.5,4,.5,'weapon_gold',-.75,1.5);q('cloud_guard',-2.5,-3.5,1,1,'weapon_gold');q('cloud_guard_hook',1.5,-2,1,1,'weapon_gold');q('pommel',-.75,3,1.5,1,'weapon_gold',-.5,1)
- elif kind=='broken':
-  q('blade',-1,-8,2.5,6);q('broken_point',-1,-10,1.5,2);q('blade_back',1,-7,.5,5,'weapon_spine',-.5,1)
-  q('sword_guard',-1.75,-2.5,3.5,.5,'weapon_spine',-.75,1.5);q('guard_brace',-1.75,-3,.5,1,'weapon_gold');q('pommel',-.5,3,1,1,'weapon_spine',-.5,1)
- elif kind=='stiletto':
-  q('blade',-.5,-7,1,5);q('blade_point',-.25,-8,.5,1);q('blade_ridge',-.25,-6,.5,4,'weapon_spine',-.5,1)
-  q('sword_guard',-1.25,-2.5,2.5,.5,'weapon_spine',-.5,1);q('pommel',-.5,3,1,.5,'weapon_spine',-.5,1)
- elif kind=='cleaver':
-  q('blade',-1,-7,2.5,5);q('blade_belly',-1.5,-9,3,2);q('blade_tip',-.5,-10,2,1);q('heavy_spine',1,-8,.5,6,'weapon_spine',-.5,1)
-  q('sword_guard',-1.5,-2.5,3,.5,'weapon_spine',-.75,1.5);q('pommel',-.75,3,1.5,1,'weapon_gold',-.5,1)
- elif kind=='ring':
-  q('blade',-.75,-8,1.5,6);q('blade_tip',-.25,-10,1,2);q('blade_spine',.5,-8,.5,6,'weapon_spine',-.5,1)
-  q('sword_guard',-1.5,-2.5,3,.5,'weapon_gold',-.75,1.5)
-  q('ring_left',-1,3,.5,1.5,'weapon_gold');q('ring_right',.5,3,.5,1.5,'weapon_gold');q('ring_bottom',-1,4.5,2,.5,'weapon_gold')
- elif kind=='shield':
-  q('blade',-1.25,-10,2.5,8);q('blade_tip',-.75,-12,1.5,2);q('blade_point',-.25,-13,.5,1);q('blade_ridge',-.25,-10,.5,8,'weapon_spine',-.5,1)
-  q('sword_guard',-2,-2.5,4,1,'weapon_gold',-.75,1.5);q('guard_lug',-2,-3,.5,1,'weapon_gold');q('pommel',-.75,3,1.5,1,'weapon_gold',-.5,1)
- elif kind=='hook':
-  q('blade',-.75,-6,1.5,4);q('blade_tip',-.25,-8,1,2);q('hook_shoulder',.75,-5,1,1,'weapon_spine');q('hook_return',1.25,-4,.5,1,'weapon_spine')
-  q('sword_guard',-1.5,-2.5,3,.5,'weapon_gold',-.5,1);q('pommel',-.5,3,1,.5,'weapon_gold',-.5,1)
+ title,kind,L,*_=DESIGNS[id]
+ parts[:]=[p for p in parts if p['name'] not in ('blade','sword_guard')]
+ # 0.5-unit grid matches the runtime baker. Broad bevel planes surround a thicker
+ # central web: side views show steel volume without turning the edge into a club.
+ def q(n,x,y,w,h,mat='weapon_steel',depth=1):
+  box(n,'weapon_shaft',[0,0,0],[x,y,-depth/2],[w,h,depth],mat,[0,90,0])
+ reach={'straight':20,'saber':24,'broken':20,'stiletto':15,'cleaver':20,'ring':21,'shield':23,'hook':16,'dagger':15}[kind]
+ width={'straight':3,'saber':3,'broken':3.5,'stiletto':2,'cleaver':4,'ring':3,'shield':4,'hook':2.5,'dagger':2.5}[kind]
+ top=-2-reach
+ single=kind in ('saber','broken','cleaver','ring','hook')
+ # One uninterrupted main blade, with only the terminal 3-5 units tapering.
+ tip=4 if reach>=20 else 3
+ q('blade',-width/2,top+tip,width,reach-tip)
+ if kind=='saber':
+  q('blade_tip',-width/2+.5,top+2,width-.5,2)
+  q('blade_point',.5,top,1,2,depth=.5)
+ elif kind in ('broken','cleaver'):
+  q('blade_tip',-width/2+.5,top+1,width-.5,tip-1)
+  q('blade_point',width/2-1,top,1,1,depth=.5)
+ elif kind in ('ring','hook'):
+  q('blade_tip',-width/2+.5,top+1,width-.5,tip-1)
+  q('blade_point',width/2-1,top,1,1,depth=.5)
  else:
-  q('blade',-.75,-5,1.5,3);q('blade_tip',-.5,-7,1,2);q('blade_point',-.25,-8,.5,1);q('blade_ridge',-.25,-5,.5,3,'weapon_spine',-.5,1)
-  q('sword_guard',-1.5,-2.5,3,.5,'weapon_spine',-.5,1);q('pommel',-.5,3,1,1,'weapon_spine',-.5,1)
- # One small collar unifies tang and guard without changing the palm's grip transform.
- q('blade_collar',-.75,-3,1.5,1,'weapon_gold',-.5,1)
- # Body is 32 model units high. Service blades now read as swords, not palm-sized knives.
- reach={'straight':18,'saber':24,'broken':19,'stiletto':12,'cleaver':18,'ring':19,'shield':22,'hook':13,'dagger':12}[kind]
- factor=reach/L
- for part in parts:
-  if part.get('parent')!='weapon_shaft':continue
-  n=part['name']
-  if n=='blade_collar' or not (n.startswith(('blade','broken_point','heavy_spine','hook_'))):continue
-  part['origin'][1]=round((-2+(part['origin'][1]+2)*factor)*2)/2
-  part['size'][1]=round(part['size'][1]*factor*2)/2
+  q('blade_tip',-(width-1)/2,top+1,width-1,tip-1)
+  q('blade_point',-.25,top,.5,1,depth=.5)
+ # The web is lighter steel, not a black rod laid over a silver blade.
+ ridge_x=width/2-1 if single else -.5
+ q('blade_ridge',ridge_x,top+tip,1,reach-tip,'weapon_ridge',1.5)
+ guard=5.5 if kind in ('straight','shield')else 4.5 if kind in ('saber','ring','broken','cleaver')else 3.5
+ metal='weapon_gold' if kind in ('straight','saber','ring','shield')else 'weapon_spine'
+ q('sword_guard',-guard/2,-2.5,guard,1,metal,2)
+ if kind in ('straight','shield'):
+  for x in (-guard/2,guard/2-.5):q('guard_tip_'+str(x),x,-3.5,.5,1,metal,1.5)
+ elif kind=='saber':
+  q('cloud_guard',-guard/2,-3.5,1,1,metal,1.5)
+ elif kind=='hook':q('hook_shoulder',width/2,top+reach/2,1,1.5,'weapon_spine',1)
+ q('blade_collar',-1,-3.5,2,1,'weapon_gold' if kind in ('saber','ring','shield')else 'weapon_spine',1.5)
+ if kind=='ring':
+  q('ring_left',-1,3,.5,1.5,metal,1)
+  q('ring_right',.5,3,.5,1.5,metal,1)
+  q('ring_bottom',-1,4.5,2,.5,metal,1)
+ else:q('pommel',-.75,3,1.5,1,metal,1.5)
 
 
 def paint(mat,face,w,h,P,id):
- if id not in DESIGNS or mat not in ('weapon_steel','weapon_spine','weapon_gold','grip'):return None
- _,kind,L,steel,spine,gold=DESIGNS[id];steel,spine,gold=map(rgb,(steel,spine,gold));base=steel if mat=='weapon_steel'else spine if mat=='weapon_spine'else gold if mat=='weapon_gold'else P['white']if kind=='dagger'else P['cloth']if kind in ('saber','stiletto')else P['leather']
+ if id not in DESIGNS or mat not in ('weapon_steel','weapon_ridge','weapon_spine','weapon_gold','grip'):return None
+ _,kind,L,steel,spine,gold=DESIGNS[id];steel,spine,gold=map(rgb,(steel,spine,gold));base=steel if mat in ('weapon_steel','weapon_ridge')else spine if mat=='weapon_spine'else gold if mat=='weapon_gold'else P['white']if kind=='dagger'else P['cloth']if kind in ('saber','stiletto')else P['leather']
  im=Image.new('RGBA',(w,h),(*base,255));d=ImageDraw.Draw(im)
- if mat=='weapon_steel':
+ if mat in ('weapon_steel','weapon_ridge'):
   if face in ('north','south'):
-   # Edge and spine are directional and deliberately unequal, not four-sided outlines.
-   d.rectangle((0,0,max(0,w//4-1),h-1),fill=shade(steel,1.25));d.rectangle((min(w-1,max(1,w*3//4)),0,w-1,h-1),fill=spine)
-   if h>8 and w>3:
-    y=h//3 if kind in ('broken','cleaver')else h*2//3;d.line([(1,y),(min(w-1,2),y+1)],fill=shade(steel,1.35))
-  elif face in ('east','down'):d.rectangle((0,0,w,h),fill=spine)
+   single=kind in ('saber','broken','cleaver','ring','hook')
+   # Opposite faces reverse their cutting edge so the highlight follows the geometry.
+   edge=0 if face=='north'else w-1
+   if mat=='weapon_steel':
+    d.line([(edge,0),(edge,h-1)],fill=shade(steel,1.23))
+    other=w-1-edge
+    d.line([(other,0),(other,h-1)],fill=shade(steel,.72 if single else 1.12))
+   else:
+    d.rectangle((0,0,w-1,h-1),fill=shade(steel,.82))
+    d.line([(edge,0),(edge,h-1)],fill=shade(steel,1.08))
+  elif face in ('east','west','down'):
+   d.rectangle((0,0,w-1,h-1),fill=shade(steel,.67))
  elif mat=='weapon_spine':
   if face in ('north','south')and w>=2:d.line([(0,0),(0,h-1)],fill=shade(base,1.3))
  elif mat=='weapon_gold':

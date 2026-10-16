@@ -18,7 +18,7 @@ import java.util.*;
 /** Server-owned roster stored with its owner's inventory, so one player save contains both sides of a purchase. */
 @Mod.EventBusSubscriber(modid=Dynasty.MODID)
 public final class ArmyRoster {
-    public static final int CAPACITY=36, DEPLOY_LIMIT=9, RECALL_TICKS=40;
+    public static final int RECALL_TICKS=40;
     public static final String KEY="DynastyArmyV1";
     public static final String[] ROLES={"刀卫","弩卫","盾卫"};
     public static final int[] PRICE={12,16,20}; // Existing silver_coin currency, not a new token.
@@ -45,7 +45,7 @@ public final class ArmyRoster {
         p.getInventory().setChanged();return true;
     }
     public static boolean recruit(ServerPlayer p,int role) {
-        if(ArmyEncounters.active(p)||role<0||role>=ROLES.length||soldiers(p).size()>=CAPACITY||!pay(p,PRICE[role]))return false;
+        if(ArmyEncounters.active(p)||role<0||role>=ROLES.length||!pay(p,PRICE[role]))return false;
         var n=new CompoundTag();n.putUUID("Id",UUID.randomUUID());n.putInt("Role",role);n.putFloat("Health",HEALTH[role]);
         n.putString("State","RESERVE");n.putInt("Slot",-1);soldiers(p).add(n);changed(p);return true;
     }
@@ -68,11 +68,11 @@ public final class ArmyRoster {
         if(formation==1){x*=1.5;z+=Math.abs(x)*.45;}
         if(formation==2){x*=1.7;z*=1.3;}
         if(formation==3){x=(index-4)*2.3;z=3;}
-        if(formation==4){double a=index*Math.PI*2/9;x=Math.cos(a)*5;z=Math.sin(a)*5;}
+        if(formation==4){double a=(index%9)*Math.PI*2/9,radius=5+(index/9)*2.5;x=Math.cos(a)*radius;z=Math.sin(a)*radius;}
         double a=Math.toRadians(yaw);return center.add(x*Math.cos(a)-z*Math.sin(a),0,x*Math.sin(a)+z*Math.cos(a));
     }
     public static int deploy(ServerPlayer p,int formation,int count) {
-        if(ArmyEncounters.active(p)||!hasTally(p)||formation<0||formation>=5||count<1||count>DEPLOY_LIMIT)return 0;
+        if(ArmyEncounters.active(p)||!hasTally(p)||formation<0||formation>=5||count<1)return 0;
         for(var v:soldiers(p))if(((CompoundTag)v).getString("State").equals("DEPLOYED"))return 0;
         var chosen=new ArrayList<CompoundTag>();
         var usedSlots=new HashSet<Integer>();var usedIds=new HashSet<UUID>();
@@ -80,7 +80,7 @@ public final class ArmyRoster {
             var row=(CompoundTag)v;
             if(!row.getString("State").equals("RESERVE")||row.getInt("Slot")<0)continue;
             int slot=row.getInt("Slot"),role=row.getInt("Role");float hp=row.getFloat("Health");
-            if(slot>=DEPLOY_LIMIT||!row.hasUUID("Id")||!usedSlots.add(slot)||!usedIds.add(row.getUUID("Id"))
+            if(!row.hasUUID("Id")||!usedSlots.add(slot)||!usedIds.add(row.getUUID("Id"))
                     ||role<0||role>=ROLES.length||!Float.isFinite(hp)||hp<=0)return 0;
             chosen.add(row);
         }

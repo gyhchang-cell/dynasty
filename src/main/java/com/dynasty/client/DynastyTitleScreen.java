@@ -18,7 +18,6 @@ import net.minecraft.util.Mth;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.gui.TitleScreenModUpdateIndicator;
 import net.minecraftforge.fml.ModList;
-import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -192,7 +191,6 @@ public final class DynastyTitleScreen extends TitleScreen {
         int ruleY = layout.menuY - 12;
         g.fill(x, ruleY, x + 24, ruleY + 1, GOLD);
         g.fill(x + 29, ruleY, x + layout.width, ruleY + 1, 0x556C9587);
-        g.drawString(font, Component.translatable("ui.dynasty.title.vanilla_hint"), x, height - 33, 0xFF95A69A, false);
         String version = "DYNASTY " + ModList.get().getModContainerById(Dynasty.MODID)
                 .map(mod -> mod.getModInfo().getVersion().toString()).orElse("")
                 + "  /  " + SharedConstants.getCurrentVersion().getName();
@@ -204,15 +202,6 @@ public final class DynastyTitleScreen extends TitleScreen {
             }
             g.drawString(font, version, right - font.width(version), height - 35, 0xFFAEB8AA, true);
         }
-    }
-
-    @Override
-    public boolean keyPressed(int key, int scanCode, int modifiers) {
-        if (key == GLFW.GLFW_KEY_F6) {
-            minecraft.setScreen(new DynastyTitleMenu.VanillaTitleScreen());
-            return true;
-        }
-        return super.keyPressed(key, scanCode, modifiers);
     }
 
     static void invalidateBackground() { backgroundSize = null; }

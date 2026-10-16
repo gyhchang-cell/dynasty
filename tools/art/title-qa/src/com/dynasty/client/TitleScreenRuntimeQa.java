@@ -192,8 +192,7 @@ public final class TitleScreenRuntimeQa {
         }
         title = openTitle(mc, 640, 400);
         title.keyPressed(GLFW.GLFW_KEY_F6, 0, 0);
-        require(mc.screen instanceof DynastyTitleMenu.VanillaTitleScreen, "F6 opens a functional original title screen");
-        require(!(mc.screen instanceof DynastyTitleScreen), "Fallback does not loop into the replacement");
+        require(mc.screen == title, "F6 no longer switches away from the Dynasty title screen");
     }
 
     private static void checkSingleplayer(Minecraft mc) {

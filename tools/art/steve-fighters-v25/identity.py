@@ -1,10 +1,10 @@
 """Original per-identity facial drawing and equipment shapes; no imported character art."""
 from PIL import Image,ImageDraw
-SKINS={'archer':'cea47c','imperial_soldier':'aa7858','royal_guard':'dcc0a0','rebel_soldier':'b48b65','assassin':'a98872','bandit_thug':'996d4f','night_watchman':'b49a7b','zuwu_daoshou':'c39576','ludun_jiashi':'a3866a','juma_changqiangbing':'bca087','liannu_zhenzu':'c3aa8d','tiesuo_chihou':'a97a58','kuijun_sishi':'d0ad8b','pijia_panjiang_huwei':'a77f66'}
-DESCRIPTIONS={'archer':'短发露面、松眉窄眼；绿兜帽、单肩皮护与斜挂箭袋','imperial_soldier':'护鼻铁盔、方颌；青灰整胸甲与横向腰封','royal_guard':'高冠、白面短髭；暗朱交领、窄金绣边与护肩','rebel_soldier':'露额布带、独眼伤面；旧布衣和单侧补甲','assassin':'黑兜头、窄眼裂、整片口鼻蒙布；贴身无亮甲','bandit_thug':'秃额、宽鼻、络腮胡；敞领皮背心与粗肩革','night_watchman':'灰鬓、下垂细眉、两撇灰须；短褂、腰绳和灯具','zuwu_daoshou':'开面皮盔、短胡茬；单侧札甲与绑腕','ludun_jiashi':'闭合铁面、细横眼缝；横叠重甲与橹盾','juma_changqiangbing':'颈帘盔、长脸长髭；纵向札甲与肩颈防护','liannu_zhenzu':'额部镜片、下脸围巾；皮护胸与绗缝弩衣','tiesuo_chihou':'单眼布带、斜裹面巾；非对称短披与铁索腰具','kuijun_sishi':'白色额带、青年无须面；绑带布甲、药包和短刃','pijia_panjiang_huwei':'暗朱铁鬼面、压眼盔；单侧厚肩、残漆胸甲与重斧'}
+SKINS={'fufa_jijiu':'b9a181','archer':'cea47c','imperial_soldier':'aa7858','royal_guard':'dcc0a0','rebel_soldier':'b48b65','assassin':'a98872','bandit_thug':'996d4f','night_watchman':'b49a7b','zuwu_daoshou':'c39576','ludun_jiashi':'a3866a','juma_changqiangbing':'bca087','liannu_zhenzu':'c3aa8d','tiesuo_chihou':'a97a58','kuijun_sishi':'d0ad8b','pijia_panjiang_huwei':'a77f66'}
+DESCRIPTIONS={'fufa_jijiu':'灰眉长须、道冠与额玉；暗紫交领、双条法衣、腰侧符袋，右手朱符。无领域或装饰粒子。','archer':'短发露面、松眉窄眼；绿兜帽、单肩皮护与斜挂箭袋','imperial_soldier':'护鼻铁盔、方颌；青灰整胸甲与横向腰封','royal_guard':'高冠、白面短髭；暗朱交领、窄金绣边与护肩','rebel_soldier':'露额布带、独眼伤面；旧布衣和单侧补甲','assassin':'黑兜头、窄眼裂、整片口鼻蒙布；贴身无亮甲','bandit_thug':'秃额、宽鼻、络腮胡；敞领皮背心与粗肩革','night_watchman':'灰鬓、下垂细眉、两撇灰须；短褂、腰绳和灯具','zuwu_daoshou':'开面皮盔、短胡茬；单侧札甲与绑腕','ludun_jiashi':'闭合铁面、细横眼缝；横叠重甲与橹盾','juma_changqiangbing':'颈帘盔、长脸长髭；纵向札甲与肩颈防护','liannu_zhenzu':'额部镜片、下脸围巾；皮护胸与绗缝弩衣','tiesuo_chihou':'单眼布带、斜裹面巾；非对称短披与铁索腰具','kuijun_sishi':'白色额带、青年无须面；绑带布甲、药包和短刃','pijia_panjiang_huwei':'暗朱铁鬼面、压眼盔；单侧厚肩、残漆胸甲与重斧'}
 def palette(id,P):
  c=tuple(bytes.fromhex(SKINS[id]));P['skin']=c;P['skinhi']=tuple(min(255,v+22)for v in c);P['skinshadow']=tuple(max(0,v-35)for v in c)
- if id=='night_watchman':P['hair']=(100,101,91)
+ if id in ('night_watchman','fufa_jijiu'):P['hair']=(100,101,91)
  if id=='archer':P['hair']=(91,62,40)
  if id=='royal_guard':P['metal']=(69,73,81)
 
@@ -14,7 +14,18 @@ def shape(id,parts,box,P):
  by={p['name']:p for p in parts}
  def remove(*ns):parts[:]=[p for p in parts if p['name']not in ns]
  def b(n,parent,p,o,s,m,rot=None):box(n,parent,p,o,s,m,rot)
- if id=='archer':
+ if id=='fufa_jijiu':
+  remove('hood_lip','shoulder_-1','cuff_-1','cuff_1')
+  b('ritual_crown','head',[0,-8,0],[-3,-1.5,-3],[6,2,6],'cloth')
+  b('crown_jade','head',[0,-7,-4],[-.75,-1,-.5],[1.5,2,.5],'jade')
+  b('beard','head',[0,-1,-4],[-1.5,0,-.5],[3,3,.5],'brow')
+  b('beard_tip','beard',[0,2,0],[-1,0,-.5],[2,2,.5],'brow')
+  for side,x in [('right',-2),('left',2)]:
+   b('stole_'+side,'body',[x,1,-2],[-.75,0,-.5],[1.5,10,.5],'priest_stole')
+   b('robe_'+side,side+'_leg',[0,0,0],[-2,0,-2.5],[4,6,.5],'cloth')
+  b('talisman_bundle','body',[4,7,0],[0,0,-1],[1.5,3,2],'priest_pouch')
+  b('held_talisman','right_arm',[-1,8,-2],[-1,-2,-.5],[2,4,.5],'priest_paper')
+ elif id=='archer':
   remove('cap_knot','cloth_cap');b('hood_crown','head',[0,-8,0],[-4.25,-.5,-3.75],[8.5,1,8],'cloth')
   for x in [-4,3.5]:b('hood_flap'+str(x),'head',[x,-6,0],[0,0,-3.25],[.5,6.5,7.5],'cloth')
   b('short_mantle','body',[0,1,2],[-3.5,0,0],[7,6,.5],'cloth');remove('cuff_1')
@@ -55,7 +66,14 @@ def face(id,P):
  poly=lambda q,c:d.polygon(q,fill=c)
  line=lambda q,c:d.line(q,fill=c)
  # Every branch owns the face silhouette, eye spacing, expression and exposed skin.
- if id=='archer':
+ if id=='fufa_jijiu':
+  poly([(2,4),(13,4),(13,11),(10,15),(5,15),(2,11)],s)
+  r((4,5,11,7),hi);line([(2,7),(5,6),(6,7)],white);line([(9,7),(11,6),(13,7)],white)
+  r((3,8,5,8),ink);r((10,8,12,8),ink);r((7,9,8,11),sh)
+  line([(2,10),(4,11)],sh);line([(13,10),(11,11)],sh)
+  poly([(3,12),(6,11),(8,12),(10,11),(13,12),(10,14),(5,14)],hair)
+  r((0,0,15,3),cloth);r((7,1,8,3),P['jade'])
+ elif id=='archer':
   poly([(2,4),(12,3),(14,7),(12,14),(5,15),(2,11)],s);r((3,5,11,7),hi);r((3,8,5,8),hair);r((10,7,12,7),hair);r((4,9,5,9),ink);r((10,8,11,8),ink);r((7,9,8,11),sh);r((6,13,10,13),sh);poly([(2,1),(8,1),(5,6),(2,7)],hair)
  elif id=='imperial_soldier':
   r((2,4,13,13),s);r((3,5,12,7),hi);r((2,7,5,8),hair);r((10,7,13,8),hair);r((3,9,5,9),ink);r((10,9,12,9),ink);r((6,12,10,12),sh);r((3,14,12,15),hair);r((0,0,15,3),metal)
@@ -86,6 +104,26 @@ def face(id,P):
  return im
 
 def surface(mat,face,w,h,P,id):
+ if mat.startswith('priest_'):
+  base=P['white'] if mat=='priest_paper' else P['leather'] if mat=='priest_pouch' else P['trim']
+  im=Image.new('RGBA',(w,h),base);d=ImageDraw.Draw(im)
+  if face in ('north','south'):
+   ink=P['cloth'];cx=w//2
+   if mat=='priest_paper':
+    d.line([(cx,1),(cx,max(1,h-2))],fill=ink)
+    for y in [h//3,h*2//3]:d.line([(max(0,cx-1),y),(min(w-1,cx+1),y)],fill=ink)
+   elif mat=='priest_stole':
+    d.line([(0,0),(0,h-1)],fill=P['cloth'])
+    for y in [h//3,h*2//3]:d.rectangle((max(0,w-2),y,w-1,min(h-1,y+1)),fill=ink)
+   else:d.line([(0,h//3),(w-1,h//3)],fill=P['trim'])
+  return im
+ if id=='fufa_jijiu' and mat=='torso':
+  im=Image.new('RGBA',(w,h),P['cloth']);d=ImageDraw.Draw(im)
+  if face=='north':
+   d.polygon([(w//4,0),(w//2,h//3),(w*3//4,0),(w*2//3,0),(w//2,h//5),(w//3,0)],fill=P['white'])
+   d.rectangle((0,h*3//4,w-1,h*3//4+1),fill=P['leather'])
+  elif face in ('west','east'):d.line([(w//3,2),(w//3,h-3)],fill=P['ink'])
+  return im
  if mat=='face' and face=='north':return globals()['face'](id,P).resize((w,h),Image.Resampling.NEAREST)
  if mat not in ('torso','cuirass','court','lamellar','patched','watchcoat','crossleather','shieldface','warmask','warplate','goggles'):return None
  if mat=='shieldface':return globals()['face']('ludun_jiashi',P).crop((1,4,15,15)).resize((w,h),Image.Resampling.NEAREST)

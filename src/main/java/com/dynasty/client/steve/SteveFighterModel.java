@@ -64,7 +64,13 @@ public final class SteveFighterModel<T extends Mob> extends HumanoidModel<T> {
                 float p=Mth.clamp(tick/def.totalTicks(),0,1);float peak=contact/def.totalTicks();
                 float pulse=0;
                 for(int hit:def.impactTicks())pulse=Math.max(pulse,Math.max(0,1-Math.abs(tick-hit)/3));
-                if(role.equals("crossbow")){AnimationUtils.animateCrossbowHold(rightArm,leftArm,head,true);rightArm.xRot-=pulse*.16f;}
+                if(role.equals("priest")){
+                    float ready=Mth.clamp(tick/Math.max(1,contact),0,1);
+                    float recover=Mth.clamp((def.totalTicks()-tick)/Math.max(1,def.recoveryTicks()),0,1);
+                    rightArm.xRot=(-1.25f*ready-.2f*pulse)*recover;rightArm.yRot=-.2f*ready*recover;
+                    leftArm.xRot=-.85f*ready*recover;leftArm.yRot=.35f*ready*recover;
+                }
+                else if(role.equals("crossbow")){AnimationUtils.animateCrossbowHold(rightArm,leftArm,head,true);rightArm.xRot-=pulse*.16f;}
                 else if(role.equals("spear")||role.equals("powder")){
                     float ready=Mth.clamp(tick/Math.max(1,contact-3),0,1);
                     float recover=Mth.clamp((def.totalTicks()-tick)/Math.max(1,def.recoveryTicks()),0,1);
@@ -79,12 +85,18 @@ public final class SteveFighterModel<T extends Mob> extends HumanoidModel<T> {
                         previous=end;
                     }
                     if(!posed)rightArm.xRot=0;
+                    if(role.equals("axe")){
+                        leftArm.xRot=rightArm.xRot;leftArm.yRot=-rightArm.yRot;
+                        float clamp=(float)Math.sin(Math.PI*Mth.clamp(tick/Math.max(1,contact),0,1));
+                        rightArm.zRot=-.3f*clamp;leftArm.zRot=.3f*clamp;
+                    }
                     if(role.equals("shield")&&tick<contact+4){leftArm.xRot=-.6f*pulse;leftArm.z=-2*pulse;}
                 }
             }
         }
         // Real inventory takes precedence over authored visual weapons. Never alter inventory/drop state.
         if(pieces.containsKey("weapon_shaft"))pieces.get("weapon_shaft").visible=mob.getMainHandItem().isEmpty();
+        if(pieces.containsKey("offhand_weapon_shaft"))pieces.get("offhand_weapon_shaft").visible=mob.getOffhandItem().isEmpty();
         if(pieces.containsKey("shield"))pieces.get("shield").visible=mob.getOffhandItem().isEmpty();
         if(role.equals("shield")&&mob.isDeadOrDying()){
             // Existing ten-second server cover remains upright; do not roll the shield into the ground.
