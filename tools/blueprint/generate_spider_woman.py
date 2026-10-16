@@ -107,3 +107,7 @@ _creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/c
 # Original MC creature shape correction, after the material export.
 import runpy as _creature33_runpy
 _creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v33/refine.py"))["finish"]('gudu_tianzhunv')
+
+# Connected anatomy correction; final authoritative export (V34).
+import runpy as _creature34_runpy
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v34/refine.py"))["finish"]('gudu_tianzhunv')
