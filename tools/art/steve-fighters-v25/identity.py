@@ -1,7 +1,7 @@
 """Original per-identity facial drawing and equipment shapes; no imported character art."""
 from PIL import Image,ImageDraw
 SKINS={'fufa_jijiu':'b9a181','archer':'cea47c','imperial_soldier':'aa7858','royal_guard':'dcc0a0','rebel_soldier':'b48b65','assassin':'a98872','bandit_thug':'996d4f','night_watchman':'b49a7b','zuwu_daoshou':'c39576','ludun_jiashi':'a3866a','juma_changqiangbing':'bca087','liannu_zhenzu':'c3aa8d','tiesuo_chihou':'a97a58','kuijun_sishi':'d0ad8b','pijia_panjiang_huwei':'a77f66'}
-DESCRIPTIONS={'fufa_jijiu':'灰眉长须、道冠与额玉；暗紫交领、双条法衣、腰侧符袋，右手朱符。无领域或装饰粒子。','archer':'短发露面、松眉窄眼；绿兜帽、单肩皮护与斜挂箭袋','imperial_soldier':'护鼻铁盔、方颌；青灰整胸甲与横向腰封','royal_guard':'高冠、白面短髭；暗朱交领、窄金绣边与护肩','rebel_soldier':'露额布带、独眼伤面；旧布衣和单侧补甲','assassin':'黑兜头、窄眼裂、整片口鼻蒙布；贴身无亮甲','bandit_thug':'秃额、宽鼻、络腮胡；敞领皮背心与粗肩革','night_watchman':'灰鬓、下垂细眉、两撇灰须；短褂、腰绳和灯具','zuwu_daoshou':'开面皮盔、短胡茬；单侧札甲与绑腕','ludun_jiashi':'闭合铁面、细横眼缝；横叠重甲与橹盾','juma_changqiangbing':'颈帘盔、长脸长髭；纵向札甲与肩颈防护','liannu_zhenzu':'额部镜片、下脸围巾；皮护胸与绗缝弩衣','tiesuo_chihou':'单眼布带、斜裹面巾；非对称短披与铁索腰具','kuijun_sishi':'白色额带、青年无须面；绑带布甲、药包和短刃','pijia_panjiang_huwei':'暗朱铁鬼面、压眼盔；单侧厚肩、残漆胸甲与重斧'}
+DESCRIPTIONS={'fufa_jijiu':'灰眉长须、道冠与额玉；暗紫交领、双条法衣、腰侧符袋，右手朱符。无领域或装饰粒子。','archer':'短发露面、松眉窄眼；绿兜帽、单肩皮护与斜挂箭袋','imperial_soldier':'护鼻铁盔、方颌；青灰整胸甲与横向腰封','royal_guard':'高冠、白面短髭；暗朱交领、窄金绣边与护肩','rebel_soldier':'露额布带、独眼伤面；旧布衣和单侧补甲','assassin':'黑兜头、窄眼裂、整片口鼻蒙布；贴身无亮甲','bandit_thug':'秃额、宽鼻、络腮胡；敞领皮背心与粗肩革','night_watchman':'灰鬓、下垂细眉、两撇灰须；短褂、腰绳和灯具','zuwu_daoshou':'开面皮盔、短胡茬；单侧札甲与绑腕','ludun_jiashi':'闭合铁面、细横眼缝；横叠重甲与橹盾','juma_changqiangbing':'颈帘盔、长脸长髭；纵向札甲与肩颈防护','liannu_zhenzu':'额部镜片、下脸围巾；皮护胸与绗缝弩衣','tiesuo_chihou':'单眼布带、斜裹面巾；非对称短披与铁索腰具','kuijun_sishi':'白色额带、青年无须面；绑带布甲、药包和短刃','pijia_panjiang_huwei':'暗朱铁鬼面、压眼盔；兽吞肩甲、阶梯铜镜与叠札重甲'}
 def palette(id,P):
  c=tuple(bytes.fromhex(SKINS[id]));P['skin']=c;P['skinhi']=tuple(min(255,v+22)for v in c);P['skinshadow']=tuple(max(0,v-35)for v in c)
  if id in ('night_watchman','fufa_jijiu'):P['hair']=(100,101,91)
@@ -58,7 +58,22 @@ def shape(id,parts,box,P):
  elif id=='kuijun_sishi':
   remove('cloth_cap','cap_knot','shoulder_-1');b('white_headband','head',[0,-6,-4],[-4.25,0,-.5],[8.5,1.5,.5],'white');b('sash','body',[0,3,-2],[-4,0,-.5],[8,1.5,.5],'white',[0,0,12])
  else:
-  b('war_mask','head',[0,-5.5,-4],[-3.5,0,-.75],[7,5.5,.75],'warmask');by['shoulder_-1']['size']=[5.5,2.5,5.5];by['shoulder_1']['size']=[4.5,1.5,5];b('war_breast','body',[0,1.5,-2],[-4,0,-1],[8,7,1],'warplate')
+  b('war_mask','head',[0,-5.5,-4],[-3.5,0,-.75],[7,5.5,.75],'warmask')
+  # Small relief over the unchanged six Steve blocks; armour carries identity.
+  by['helmet_cap']['material']='guard_iron';by['helmet_rim']['material']='guard_iron'
+  b('helmet_ridge','head',[0,-8.5,0],[-1,-.5,-3.5],[2,1,7],'guard_iron')
+  b('war_breast','body',[0,1.5,-2],[-4,0,-1],[8,7,1],'guard_lamella')
+  # Stepped octagonal mirror, not a sphere or a painted square badge.
+  b('heart_mirror','body',[0,4,-3],[-2,-1.5,-.5],[4,3,.5],'guard_mirror')
+  for y in [-2,1.5]:b('mirror_step'+str(y),'body',[0,4,-3],[-1.5,y,-.5],[3,.5,.5],'guard_mirror')
+  for sign in [-1,1]:
+   arm='right_arm' if sign<0 else 'left_arm';cx=-1 if sign<0 else 1
+   q=by['shoulder_'+str(sign)];q.update(origin=[-2.25,-.5,-2.5],size=[4.5,1.5,5],material='guard_iron')
+   b('beast_pauldron'+str(sign),arm,[cx,-.5,-2.5],[-1.75,0,-.5],[3.5,2.5,.5],'guard_beast')
+   b('beast_muzzle'+str(sign),arm,[cx,1,-3],[-1,0,-.5],[2,1,.5],'guard_bronze')
+   by['tasset_'+str(sign)]['material']='guard_lamella'
+  by['back_cloth']['material']='guard_back'
+
 
 def face(id,P):
  im=Image.new('RGBA',(16,16),P['hair']);d=ImageDraw.Draw(im);s=P['skin'];hi=P['skinhi'];sh=P['skinshadow'];hair=P['hair'];ink=P['ink'];metal=P['metal'];cloth=P['cloth'];white=P['white']
@@ -103,7 +118,42 @@ def face(id,P):
   r((1,3,14,15),metal);poly([(2,4),(7,6),(6,9),(2,8)],P['cloth']);poly([(13,4),(8,6),(9,9),(13,8)],P['cloth']);r((3,7,5,7),ink);r((10,7,12,7),ink);r((7,6,8,11),P['trim']);poly([(3,11),(6,12),(7,14),(5,14)],P['trim']);poly([(12,11),(9,12),(8,14),(10,14)],P['trim'])
  return im
 
+def guard_surface(mat,face,w,h,P):
+ iron=P['metal'];bronze=(151,123,72);dark=(47,55,58);bright=(158,173,175)
+ base=bronze if mat in ('guard_mirror','guard_bronze') else P['cloth'] if mat=='guard_back' else iron
+ im=Image.new('RGBA',(w,h),base);d=ImageDraw.Draw(im)
+ def line(points,c):d.line(points,fill=c)
+ if face in ('west','east','down'):
+  d.rectangle((0,0,w-1,h-1),fill=tuple(int(v*.73)for v in base))
+  return im
+ if mat=='guard_mirror':
+  # One restrained light facet across the copper shield, no bright box outline.
+  if face=='north':
+   d.polygon([(0,0),(w//2,0),(max(0,w//2-1),h-1),(0,h-1)],fill=(182,153,94))
+   if w>4 and h>3:line([(w-2,1),(w-2,h-2)],(112,88,54))
+ elif mat=='guard_beast' and face=='north':
+  for x in [1,max(1,w-3)]:
+   line([(x,1),(min(w-1,x+1),1)],bronze)
+   line([(x,2),(min(w-1,x+1),2)],dark)
+  line([(w//2,2),(w//2,h-1)],bronze)
+ elif mat=='guard_lamella' and face=='north':
+  for y in range(3,h,4):
+   line([(0,y),(w-1,y)],dark)
+   for x in range(1,w,4):
+    line([(x,max(0,y-2)),(x,y-1)],(116,130,134))
+  # Attachment straps on chest edges, leaving copper mirror as the focus.
+  if w>10:
+   for x in [1,w-2]:line([(x,0),(x,h-1)],P['leather'])
+ elif mat=='guard_back':
+  for x in [w//3,w*2//3]:line([(x,1),(x,h-2)],(65,39,43))
+  if h>5:line([(1,h-3),(w-2,h-3)],(125,91,66))
+ elif mat=='guard_iron' and face=='north':
+  line([(1,0),(max(1,w-2),0)],bright)
+  if h>3:line([(0,h-1),(w-1,h-1)],dark)
+ return im
+
 def surface(mat,face,w,h,P,id):
+ if mat.startswith('guard_'):return guard_surface(mat,face,w,h,P)
  if mat.startswith('priest_'):
   base=P['white'] if mat=='priest_paper' else P['leather'] if mat=='priest_pouch' else P['trim']
   im=Image.new('RGBA',(w,h),base);d=ImageDraw.Draw(im)
