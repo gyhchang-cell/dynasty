@@ -133,3 +133,6 @@ _creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art
 # Connected anatomy correction; final authoritative export (V34).
 import runpy as _creature34_runpy
 _creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v34/refine.py"))["finish"]('qingdeng_panguan_guichai')
+
+# Continuous anatomical masses and coherent pigmentation (V35).
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v35/refine.py"))["finish"]('qingdeng_panguan_guichai')
