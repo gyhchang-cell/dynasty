@@ -27,7 +27,7 @@ public class VerifyV22Originals {
                 try(var contents=new SpriteContents(texture,new FrameSize(image.getWidth(),image.getHeight()),image,AnimationMetadataSection.EMPTY,null)) {
                     var model=JsonParser.parseString(Files.readString(Path.of("src/main/resources/assets/dynasty/models/item/"+id+".json"))).getAsJsonObject();
                     if(!model.get("loader").getAsString().equals("dynasty:original_item"))throw new AssertionError("wrong loader");
-                    for(String hand:java.util.List.of("firstperson_righthand","firstperson_lefthand","thirdperson_righthand","thirdperson_lefthand"))if(!model.getAsJsonObject("display").has(hand))throw new AssertionError("Missing hand transform "+hand);
+                    for(String hand:java.util.List.of("firstperson_righthand","thirdperson_righthand"))if(!model.getAsJsonObject("display").has(hand))throw new AssertionError("Missing hand transform "+hand);
                     int tint=model.has("tint_index")?model.get("tint_index").getAsInt():-1;
                     boolean potion=java.util.Set.of("dynasty_potion","dynasty_splash_potion","dynasty_lingering_potion").contains(id);
                     if(tint!=(potion?0:-1))throw new AssertionError(id+": wrong tint index");

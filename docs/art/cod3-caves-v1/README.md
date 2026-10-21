@@ -24,3 +24,7 @@
 复验：`python3 tools/art/cod3/scenic_caves.py` 再导出；带 Pillow/NumPy 的 Python 执行 `tools/art/cod3/review_caves.py` 检查实际 NBT；独立构建使用 `-I tools/art/cod3/scenic-server.init.gradle build runGameTestServer`，追加 JDK17 和隔离构建参数。管理员可通过原版 `/locate structure dynasty:scenic_crystal_canopy` 或 `/locate structure dynasty:scenic_ice_bloom` 查找新区块中的位置，通过 `/place template dynasty:<模板ID>` 检查模板。测试不修改参考存档。
 
 包含三模型和两洞穴的最新本地包为 `build/cod3-scenic-20261011/dynasty-1.4.0-cod3-scenic-caves.jar`。完整视觉提示尚待实机画面验收，因此清单的两条洞穴整行保留；没有宣称所有 cod3 任务完成。
+
+2026-10-18：水晶穹顶已完成第二轮100张参考、洞顶星图可见性修正与自然生成/七视角实机验收，见[第二轮记录](../cod3-crystal-canopy-v2/README.md)。本目录的水晶NBT块清单/manifest已同步正式新版；冰花洞穴的验收仍待后续，不能据此删除冰洞任务。
+
+2026-10-18：玄冰蓝洞scenic_24第二轮100张新参考及自然实机七视图验收通过；新版结构源、NBT和环境声已同步，详见../cod3-ice-bloom-v2/README.md。

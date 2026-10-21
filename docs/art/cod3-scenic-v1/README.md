@@ -30,3 +30,5 @@
 复验软件资源使用带 Pillow/NumPy 的 Python 运行 `tools/art/cod3/review_scenic.py`。四项无界面测试使用 `-I tools/art/cod3/scenic-server.init.gradle runGameTestServer`；构建时追加项目 JDK17、独立 Gradle 缓存和 `tools/cod3/isolated-build.init.gradle`。客户端入口 `scenic.init.gradle runClient` 仅生成 launch.json；显示器可用时冻结该配置再运行 `run_scenic_client.py`。测试只创建 `build/` 下的临时世界，不打开参考存档。
 
 这里只删去了两条已经证明完成的服务端无实体约束。三个奇观的完整提示继续保留，等待实机画面验收。后续水晶穹顶与玄冰蓝洞已接入真实常驻方块结构和世界生成，见 [两洞穴批次](../cod3-caves-v1/README.md)；其余 20 处完整表现、故事与生态状态仍有未完成工作。
+
+2026-10-18：金乌scenic_25第二轮100张新参考及实机验收完成，当前资源/Blockbench源已同步，详见../cod3-sun-crow-v2/README.md。青龙、玄武仍待独立验收。
