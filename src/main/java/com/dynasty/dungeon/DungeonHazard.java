@@ -4,7 +4,7 @@ import net.minecraft.nbt.CompoundTag;
 
 /** A contact clock owned by a room, never by a client animation or an unloaded BE. */
 public final class DungeonHazard implements DungeonMechanism {
-    private final int warning, active, recovery, pulseTicks;
+    private final int warning, active, recovery, pulseTicks, contactDelay;
     private Phase phase = Phase.IDLE;
     private int ticks, warningGear;
     private long lastUpdate = -1;
@@ -14,10 +14,14 @@ public final class DungeonHazard implements DungeonMechanism {
         this(warning,active,recovery,0);
     }
     public DungeonHazard(int warning, int active, int recovery, int pulseTicks) {
-        if (warning < 10 || warning > 30 || active < 1 || recovery < 1)
+        this(warning,active,recovery,pulseTicks,0);
+    }
+    public DungeonHazard(int warning, int active, int recovery, int pulseTicks,int contactDelay) {
+        if (warning < 10 || warning > 30 || active < 1 || recovery < 1||contactDelay<0||contactDelay>=active)
             throw new IllegalArgumentException("Invalid hazard timing");
         this.warning = warning; this.active = active; this.recovery = recovery;
         this.pulseTicks=Math.max(0,pulseTicks);
+        this.contactDelay=contactDelay;
     }
     public Phase phase() { return phase; }
     public int ticks() { return ticks; }
@@ -42,15 +46,24 @@ public final class DungeonHazard implements DungeonMechanism {
     @Override public void tickActive(long time) {
         long delta = lastUpdate < 0 ? 0 : time - lastUpdate;
         lastUpdate = time;
-        if (delta < 0 || delta > 4 || phase == Phase.IDLE) return;
+        if (delta < 0 || delta > 4) {
+            // A delayed mechanical stroke must re-warn after a core unload or
+            // time jump. A newly arriving player never inherits a half-fallen blade.
+            if(contactDelay>0&&phase!=Phase.IDLE){phase=Phase.WARNING;ticks=0;contact=false;}
+            return;
+        }
+        if(phase == Phase.IDLE) return;
         int previous=ticks;ticks += (int)delta;
         if (ticks < duration()) {
-            if(phase==Phase.ACTIVE&&pulseTicks>0&&ticks/pulseTicks>previous/pulseTicks)contact=true;
+            if(phase==Phase.ACTIVE){
+                if(previous<contactDelay&&ticks>=contactDelay)contact=true;
+                else if(pulseTicks>0&&previous>=contactDelay&&(ticks-contactDelay)/pulseTicks>(previous-contactDelay)/pulseTicks)contact=true;
+            }
             return;
         }
         ticks = 0;
         phase = switch (phase) { case WARNING -> Phase.ACTIVE; case ACTIVE -> Phase.RECOVERY; default -> Phase.IDLE; };
-        contact = phase == Phase.ACTIVE;
+        contact = phase == Phase.ACTIVE&&contactDelay==0;
     }
     public void pause(long time) { lastUpdate = time; contact = false; }
     public boolean consumeContact() { boolean hit = contact; contact = false; return hit; }
@@ -61,6 +74,7 @@ public final class DungeonHazard implements DungeonMechanism {
         var tag = new CompoundTag();
         tag.putInt("Warning", warning); tag.putInt("Active", active); tag.putInt("Recovery", recovery);
         tag.putInt("PulseTicks",pulseTicks);tag.putInt("WarningGear",warningGear);
+        tag.putInt("ContactDelay",contactDelay);
         tag.putString("Phase", phase.name()); tag.putInt("Ticks", ticks); tag.putLong("LastUpdate", lastUpdate);
         return tag;
     }
@@ -74,7 +88,8 @@ public final class DungeonHazard implements DungeonMechanism {
     static DungeonHazard restore(CompoundTag tag) {
         var clock = new DungeonHazard(Math.max(10, Math.min(30, tag.getInt("Warning"))),
             Math.max(1, Math.min(1200, tag.getInt("Active"))), Math.max(1, Math.min(1200, tag.getInt("Recovery"))),
-            Math.max(0,Math.min(1200,tag.getInt("PulseTicks"))));
+            Math.max(0,Math.min(1200,tag.getInt("PulseTicks"))),
+            Math.max(0,Math.min(Math.max(1,Math.min(1200,tag.getInt("Active")))-1,tag.getInt("ContactDelay"))));
         clock.load(tag); return clock;
     }
 }

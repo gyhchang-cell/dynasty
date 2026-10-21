@@ -24,9 +24,10 @@ public final class DynastyCompassBridge {
     public record Destination(String id,String label,String dimension,String target,boolean biome) {}
     public static final List<Destination> DESTINATIONS=List.of(
         new Destination("yunqi_manor","云栖庄园","minecraft:overworld","yunqi_manor",false),
-        new Destination("longque_sanctuary","龙阙祭坛","minecraft:overworld","longque_sanctuary",false),
+        new Destination("longque_sanctuary","龙阙镇渊巨像","minecraft:overworld","longque_sanctuary",false),
         new Destination("tiangong_citadel","天工山城","minecraft:overworld","tiangong_citadel",false),
         new Destination("tiangong_mining_estate","山麓采矿庄园","minecraft:overworld","tiangong_mining_estate",false),
+        new Destination("chensha_xuangong","沉沙玄宫","minecraft:overworld","chensha_xuangong",false),
         new Destination("palace","皇家宫殿","celestial_dynasty","palace",false),
         new Destination("academy","国子监","celestial_dynasty","academy",false),
         new Destination("imperial_tomb","帝陵建筑（不保证刷始皇）","celestial_dynasty","imperial_tomb",false),
@@ -35,6 +36,7 @@ public final class DynastyCompassBridge {
         new Destination("star_vault","九霄观星密室（星盘机关）","jiuxiao","star_vault",false),
         new Destination("music_ruin","古乐遗址（编钟机关）","minecraft:overworld","music_ruin",false),
         new Destination("seal_vault","幽冥四象封印室（灯阵机关）","underworld","seal_vault",false),
+        new Destination("yinsi_wangsi_cheng","阴司枉死城","underworld","yinsi_wangsi_cheng",false),
         new Destination("stone_grove","幽冥石林","underworld","stone_grove",false),
         new Destination("dragon_emperor","龙帝栖息区","celestial_dynasty","celestial_plains",true),
         new Destination("eunuch_mastermind","宦官首脑栖息区","celestial_dynasty","celestial_plains",true),
@@ -53,7 +55,7 @@ public final class DynastyCompassBridge {
     private static int menu(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         var player=source.getPlayerOrException();
         player.sendSystemMessage(Component.literal("王朝导航：手持探险者指南针找建筑，手持自然指南针找 Boss 栖息区。先进入目标维度，再点击："));
-        for(var d:DESTINATIONS)player.sendSystemMessage(Component.literal("["+d.label+"] · dynasty:"+d.dimension)
+        for(var d:DESTINATIONS)player.sendSystemMessage(Component.literal("["+d.label+"] · ").append(dimensionName(d.dimension))
             .withStyle(s->s.withColor(ChatFormatting.AQUA).withUnderlined(true)
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,"/dynasty_find "+d.id))));
         return 1;
@@ -63,7 +65,8 @@ public final class DynastyCompassBridge {
         var d=DESTINATIONS.stream().filter(v->v.id.equals(id)).findFirst().orElse(null);
         if(d==null){source.sendFailure(Component.literal("未知王朝目的地；输入 /dynasty_find 查看列表。"));return 0;}
         if(!p.level().dimension().location().equals(dimensionId(d.dimension))) {
-            source.sendFailure(Component.literal("请先进入 "+dimensionId(d.dimension)+"。罗盘不会跨维度传送或搜索。"));return 0;
+            source.sendFailure(Component.literal("请先进入 ").append(dimensionName(d.dimension))
+                .append("。罗盘不会跨维度传送或搜索。"));return 0;
         }
         String mod=d.biome?"naturescompass":"explorerscompass";
         if(!ModList.get().isLoaded(mod)){source.sendFailure(Component.literal("未安装 "+mod+"，王朝本体仍可正常使用。"));return 0;}
@@ -113,5 +116,11 @@ public final class DynastyCompassBridge {
     /** 目的地维度：没有命名空间就默认 dynasty（兼容既有条目）；主世界等原版维度写全名。*/
     private static ResourceLocation dimensionId(String dimension) {
         return dimension.contains(":") ? new ResourceLocation(dimension) : new ResourceLocation("dynasty", dimension);
+    }
+
+    private static Component dimensionName(String dimension) {
+        var id=dimensionId(dimension);
+        // These bilingual dimension keys are maintained by the navigation language generator.
+        return Component.translatable("dimension."+id.getNamespace()+"."+id.getPath().replace('/', '.'));
     }
 }

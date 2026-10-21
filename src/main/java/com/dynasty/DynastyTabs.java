@@ -34,6 +34,7 @@ public class DynastyTabs {
                         output.accept(net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(key));
                     }
                 }
+                output.accept(com.dynasty.navigation.CreatureCompass.ITEM.get());
                 // 方块 / blocks
                 for(var item:com.dynasty.worldevent.WorldEventItems.ITEMS.getEntries())output.accept(item.get());
                 output.accept(com.dynasty.infusion.InfusionContent.TABLE_ITEM.get());

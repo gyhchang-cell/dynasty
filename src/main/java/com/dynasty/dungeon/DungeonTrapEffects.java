@@ -12,6 +12,7 @@ import net.minecraft.world.phys.*;
 /** Contacts use finite loaded-room geometry. No explosion, terrain edit or camera/input mutation. */
 final class DungeonTrapEffects {
     static void contact(ServerLevel level,DungeonMechanismBlockEntity be,DungeonTrapProfile profile){
+        if(profile==DungeonTrapProfile.GUILLOTINE){GuillotineTrap.contact(level,be);return;}
         if(profile.damage<=0)return;var pos=be.getBlockPos();var facing=be.getBlockState().getValue(DungeonMechanismBlock.FACING);
         var box=switch(profile){
             case CRUSHER->DungeonTrapGeometry.hammerContact(pos);

@@ -21,6 +21,10 @@ public final class DynastyStructures {
 
     public static final DeferredRegister<StructurePieceType> PIECE_TYPES =
             DeferredRegister.create(Registries.STRUCTURE_PIECE, Dynasty.MODID);
+    public static final RegistryObject<StructureType<LegacyBuildingStructure>> LEGACY_BUILDING =
+            STRUCTURE_TYPES.register("legacy_building", () -> () -> LegacyBuildingStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> LEGACY_BUILDING_PIECE =
+            PIECE_TYPES.register("legacy_building", () -> LegacyBuildingPiece::new);
     public static final RegistryObject<StructureType<TravelSiteStructure>> TRAVEL_SITE =
             STRUCTURE_TYPES.register("travel_site", () -> () -> TravelSiteStructure.CODEC);
     public static final RegistryObject<StructurePieceType> TRAVEL_SITE_PIECE =
@@ -29,6 +33,10 @@ public final class DynastyStructures {
             STRUCTURE_TYPES.register("battlefield", () -> () -> BattlefieldStructure.CODEC);
     public static final RegistryObject<StructurePieceType> BATTLEFIELD_PIECE =
             PIECE_TYPES.register("battlefield", () -> BattlefieldPiece::new);
+    public static final RegistryObject<StructureType<ScenicFireTreeStructure>> SCENIC_FIRE_TREE =
+            STRUCTURE_TYPES.register("scenic_fire_tree", () -> () -> ScenicFireTreeStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> SCENIC_FIRE_TREE_PIECE =
+            PIECE_TYPES.register("scenic_fire_tree", () -> ScenicFireTreeStructure.Piece::new);
 
     /** 皇家宫殿 / Imperial Palace */
     public static final RegistryObject<StructureType<PalaceStructure>> PALACE =

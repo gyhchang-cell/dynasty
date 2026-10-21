@@ -43,6 +43,7 @@ public final class DungeonProbePiece extends DynastyStructurePiece {
         for(int i=0;i<3;i++)markers.add(new Marker(new BlockPos(2+i*4,3,26),"eye_"+i,DungeonContent.EYE.get(),i+3));
         markers.add(new Marker(new BlockPos(6,0,20),"floor",DungeonContent.FLOOR.get(),-1));
         markers.add(new Marker(new BlockPos(6,0,23),"poison_arrow",DungeonContent.TRAP.get(),-1));
+        markers.add(new Marker(new BlockPos(6,4,37),"guillotine_probe",DungeonContent.GUILLOTINE.get(),-1));
         for(int x=5;x<=7;x++)for(int y=1;y<=3;y++)markers.add(new Marker(new BlockPos(x,y,32),"trial_door",DungeonContent.DOOR.get(),-1));
         return List.copyOf(markers);
     }
@@ -59,6 +60,12 @@ public final class DungeonProbePiece extends DynastyStructurePiece {
         // A few fixtures provide safe path lighting; the probe is not final art.
         set(level,clip,2,4,8,Blocks.SOUL_LANTERN.defaultBlockState());
         set(level,clip,10,4,8,Blocks.SOUL_LANTERN.defaultBlockState());
+        if(part==2){
+            // Three-wide passage, stone abutments and a ceiling beam supporting
+            // the hanging blade; keep the existing treasury chest beyond it.
+            for(int x:new int[]{4,8})fill(level,clip,x,1,3,x,3,7,stone);
+            fill(level,clip,4,4,4,8,4,6,stone);
+        }
         BlockPos core=origin.offset(6,0,7);
         List<BlockPos> positions=markers().stream().map(m->origin.offset(m.offset())).toList();
         for(var marker:markers()){

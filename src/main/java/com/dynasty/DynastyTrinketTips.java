@@ -38,7 +38,7 @@ public final class DynastyTrinketTips {
     private static final Map<String, String[]> LEGACY = Map.ofEntries(
             Map.entry("jade_pendant", new String[]{"§7减伤 §f8%"}),
             Map.entry("jade_bi_disc", new String[]{"§7生命 §f+150"}),
-            Map.entry("gold_seal_charm", new String[]{"§7功名 §f+25%", "§7每 30 秒 §f+2 忠诚度"}),
+            Map.entry("gold_seal_charm", new String[]{"§7功名 §f+25%", "§7每 60 秒 §f+2 忠诚度"}),
             Map.entry("dragon_scale_charm", new String[]{"§7护甲 §f+12 §8· §f抗击退 +0.4"}),
             Map.entry("phoenix_feather_charm", new String[]{"§7移速 §f+10% §8· §f常驻缓降"}),
             Map.entry("qilin_horn_charm", new String[]{"§7攻击 §f+10% §8· §f护甲 +4 §8· §f常驻再生"}),
@@ -47,14 +47,14 @@ public final class DynastyTrinketTips {
             Map.entry("south_pointing_compass", new String[]{"§7常驻抗性提升"}),
             Map.entry("heart_mirror", new String[]{"§7护甲 §f+8 §8· §f额外减伤 4%"}),
             Map.entry("jade_crown", new String[]{"§7生命 §f+220"}),
-            Map.entry("jade_cicada", new String[]{"§7残血（<30%）时 §f抗性 II + 迅捷"}),
+            Map.entry("jade_cicada", new String[]{"§7生命≤30%时 §f抗性 II + 迅捷"}),
             Map.entry("dragon_pearl", new String[]{"§7攻击 §f+25% §8· §f抗击退 +0.3"}),
             Map.entry("phoenix_ring", new String[]{"§7常驻抗火 §8· §f移速 +3%", "§7着火时 §f立刻灭火并加速"}),
-            Map.entry("storm_charm", new String[]{"§7常驻抗性", "§7雷雨天 §f额外力量 II + 迅捷"}),
+            Map.entry("storm_charm", new String[]{"§7常驻抗性", "§7雨天 §f额外力量 II + 迅捷"}),
             Map.entry("moon_pendant", new String[]{"§7夜晚 §f夜视 §8· §f攻击 +10% §8· §f攻速 +10%"}),
             Map.entry("tiger_crest", new String[]{"§7每 40 秒 §f威压 8 格内敌人，让他们放弃锁定你"}),
             Map.entry("jade_tortoise", new String[]{"§7水下呼吸 §8· §f海豚的恩惠 §8· §f抗性"}),
-            Map.entry("war_drum_charm", new String[]{"§7常驻力量 I", "§7每秒 §f给 12 格内友军力量"}),
+            Map.entry("war_drum_charm", new String[]{"§7常驻力量 I", "§7每3秒 §f给12格内己方宠物、傀儡、士兵力量 I"}),
             Map.entry("cinnabar_pouch", new String[]{"§7每 2 秒 §f驱散中毒 / 凋零 / 失明 / 饥饿"}),
             Map.entry("dragon_whisker", new String[]{"§7攻速 §f+15% §8· §f击退 +0.5"}),
             Map.entry("tiger_token", new String[]{"§7移速 §f+8% §8· §f跳跃提升"}),
@@ -245,10 +245,7 @@ public final class DynastyTrinketTips {
 
     /** 带正号的紧凑数字（+240 / -160 / +22%），不带多余小数 */
     private static String number(double value) {
-        String text = String.format(java.util.Locale.ROOT, "%.1f", value);
-        if (text.endsWith(".0")) {
-            text = text.substring(0, text.length() - 2);
-        }
+        String text = java.math.BigDecimal.valueOf(value).setScale(6, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
         return (value > 0 ? "+" : "") + text;
     }
 

@@ -35,4 +35,10 @@ public record DungeonDefinition(ResourceLocation id, ResourceLocation dimension,
         "zhaoming_emperor",List.of("pilin_zhijinwu","juchui_jinjia_lishi"),List.of("zuwu_daoshou","juma_changqiangbing","shashui_funigui","muxue_feilu"),
         List.of("poison_arrow","resettable_floor","mercury_lock"),List.of("artisan_supplies","imperial_coffin"),
         List.of("return_lift"),List.of("artisan_secret"),"cod2_chensha_v1",List.of("chensha_first_kill"));
+    public static final DungeonDefinition WANGSI = new DungeonDefinition(
+        new ResourceLocation("dynasty:yinsi_wangsi_cheng"),new ResourceLocation("dynasty:underworld"),
+        List.of(new ResourceLocation("dynasty:underworld")),"Existing underworld; enclosed city; bounded relief",6144,3072,106105,2500,
+        "yin_yang_gate",List.of("ghost_market","rooftop_routes","forget_river","pump_house","inner_court","river_dock"),
+        "UNBOUND_RIVER_DOCK",List.of(),List.of(),List.of("loop_gate","guillotine_court"),List.of(),
+        List.of("wangsi_sump_drained"),List.of(),"cod2_wangsi_v1",List.of());
 }

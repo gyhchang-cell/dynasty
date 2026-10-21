@@ -279,11 +279,14 @@ public final class DungeonFrameworkGameTests {
             "Every generated return ladder is queued for vanilla postprocessing inside its own chunk");
         var pearls=ChenshaVaultLayout.constellationOffsets();
         var stars=ChenshaPiece.vaultStars();
-        h.assertTrue(stars.size()==28&&new java.util.HashSet<>(stars).size()==28,"All existing vault lights remain distinct");
-        for(var star:stars)h.assertTrue(capture.blocks.get(origin.offset(star)).is(Blocks.SEA_LANTERN),"Existing vault lights survive alongside new constellation fixtures");
+        h.assertTrue(stars.equals(pearls),"Vault uses one canonical constellation, not two overlapping 28-light batches");
         h.assertTrue(pearls.size()==28&&new java.util.HashSet<>(pearls).size()==28,"Exactly 28 distinct constellation lamps");
         for(var pearl:pearls)h.assertTrue(capture.blocks.get(origin.offset(pearl)).is(Blocks.PEARLESCENT_FROGLIGHT),
             "Constellation fixtures survive negative-coordinate cross-chunk clipping: "+pearl);
+        h.assertTrue(capture.blocks.values().stream().filter(s->s.is(Blocks.PEARLESCENT_FROGLIGHT)).count()==28,
+            "The complete generated structure contains exactly 28 pearl lamps");
+        h.assertTrue(capture.blocks.values().stream().noneMatch(s->s.is(Blocks.SEA_LANTERN)),
+            "No obsolete second 28-light ring remains");
         int last=0;
         for(int z=25;z>=17;z--) {
             int tier=ChenshaVaultLayout.daisHeight(32,z);
@@ -298,12 +301,13 @@ public final class DungeonFrameworkGameTests {
         for(int run=0;run<3;run++){
             int start=run==0?10:run==1?59:28,end=run==0?34:run==1?83:52;
             for(int z=start;z<=end;z++){
-                int floor=run==0?82-z:run==1?107-z:z-28;
+                int floor=run==0?ChenshaPiece.entranceFloor(z):run==1?107-z:z-28;
                 for(int x=30;x<=34;x++){
                     h.assertTrue(capture.blocks.get(origin.offset(x,floor,z)).is(DungeonContent.MASONRY.get()),"Missing stair support: "+run+"/"+x+"/"+z);
                     for(int dy=1;dy<=3;dy++){
                         var state=capture.blocks.get(origin.offset(x,floor+dy,z));
-                        h.assertTrue(state.isAir()||state.is(DungeonContent.DOOR.get()),"Blocked stair headroom: "+run+"/"+x+"/"+z+"/"+dy);
+                        boolean entryLadder=run==0&&x==30&&z>=11&&z<=24&&state.is(Blocks.LADDER);
+                        h.assertTrue(state.isAir()||state.is(DungeonContent.DOOR.get())||entryLadder,"Blocked stair headroom: "+run+"/"+x+"/"+z+"/"+dy);
                     }
                 }
             }

@@ -37,7 +37,12 @@ public final class DungeonTrapGameTests {
         for(var profile:DungeonTrapProfile.values()){
             var room=new DungeonRoomController();var clock=room.hazard(profile.id+"_qa",false);clock.trigger(100);
             for(int t=1;t<profile.warning;t++){clock.tickActive(100+t);h.assertTrue(!clock.consumeContact(),"No early damage frame: "+profile);}
-            clock.tickActive(100+profile.warning);h.assertTrue(clock.phase()==DungeonMechanism.Phase.ACTIVE&&clock.consumeContact()&&!clock.consumeContact(),"One authoritative contact after tell: "+profile);
+            clock.tickActive(100+profile.warning);
+            if(profile==DungeonTrapProfile.GUILLOTINE){
+                h.assertTrue(!clock.consumeContact(),"Guillotine is still falling on the first active tick");
+                clock.tickActive(100+profile.warning+GuillotineTrap.CONTACT_TICK);
+            }
+            h.assertTrue(clock.phase()==DungeonMechanism.Phase.ACTIVE&&clock.consumeContact()&&!clock.consumeContact(),"One authoritative contact after tell and stroke: "+profile);
             var restored=new DungeonRoomController();restored.load(room.save());var copy=restored.hazard(profile.id+"_qa",false);
             h.assertTrue(!copy.consumeContact(),"NBT reload never repeats consumed contact");copy.pause(1000);copy.tickActive(1002);
             h.assertTrue(copy.phase()!=DungeonMechanism.Phase.WARNING,"Unloaded gap does not restart the tell");

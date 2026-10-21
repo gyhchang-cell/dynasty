@@ -130,16 +130,25 @@ public final class DynastyUsables {
 
         @Override
         public net.minecraft.world.item.ItemStack finishUsingItem(ItemStack stack, Level level, net.minecraft.world.entity.LivingEntity entity) {
-            ItemStack result = super.finishUsingItem(stack, level, entity);
             if (!level.isClientSide) {
-                entity.addEffect(new MobEffectInstance(this.effect, 20 * this.seconds, this.amplifier));
+                if (this.effect.isInstantenous()) {
+                    this.effect.applyInstantenousEffect(entity, entity, entity, this.amplifier, 1.0D);
+                } else {
+                    entity.addEffect(new MobEffectInstance(this.effect, 20 * this.seconds, this.amplifier));
+                }
+                if (!(entity instanceof Player player) || !player.getAbilities().instabuild) stack.shrink(1);
             }
-            return result;
+            return stack;
         }
 
         @Override
         public int getUseDuration(ItemStack stack) {
             return 24;
+        }
+
+        @Override
+        public net.minecraft.world.item.UseAnim getUseAnimation(ItemStack stack) {
+            return net.minecraft.world.item.UseAnim.EAT;
         }
 
         @Override

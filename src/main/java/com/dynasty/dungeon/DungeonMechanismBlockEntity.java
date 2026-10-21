@@ -25,6 +25,7 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
     private boolean registered;
     private int visualPhase,visualTicks,visualDuration=1,doorTicks=12;
     private long visualTime;
+    private boolean visualPaused;
     public DungeonMechanismBlockEntity(BlockPos pos,BlockState state){super(DungeonContent.MECHANISM.get(),pos,state);}
     public void configure(UUID instance,String room,String mechanism,BlockPos core,int symbol,List<BlockPos> markerPositions){
         this.instance=instance;roomId=room;mechanismId=mechanism;controller=core.immutable();this.symbol=symbol>=0&&symbol<=5?symbol:-1;
@@ -155,11 +156,21 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         var state=room();if(state!=null&&kind()==DungeonMechanismBlock.Kind.TARGET&&state.recordTarget(symbol)){changed();syncVisual(state);}
     }
     public void trigger(){var state=room();if(state!=null&&hazard()){
+        if(DungeonTrapProfile.forId(mechanismId)==DungeonTrapProfile.GUILLOTINE&&state.completed())return;
         var clock=clock(state);if(clock.phase()==DungeonMechanism.Phase.IDLE){clock.trigger(level.getGameTime());changed();syncVisual(state);}
     }}
     public float visualProgress(float partial){
-        long elapsed=level==null?0:Math.max(0,Math.min(10,level.getGameTime()-visualTime));
-        return net.minecraft.util.Mth.clamp((visualTicks+elapsed+partial)/(float)Math.max(1,visualDuration),0,1);
+        long elapsed=level==null||visualPaused?0:Math.max(0,Math.min(10,level.getGameTime()-visualTime));
+        return net.minecraft.util.Mth.clamp((visualTicks+elapsed+(visualPaused?0:partial))/(float)Math.max(1,visualDuration),0,1);
+    }
+    private void pauseGuillotineVisual(DungeonRoomController room,boolean paused){
+        if(level==null||DungeonTrapProfile.forId(mechanismId)!=DungeonTrapProfile.GUILLOTINE||visualPaused==paused)return;
+        // Leaving the room or obstructing the stroke parks it safely. Resume
+        // begins a full new warning rather than inheriting another player's tell.
+        if(paused){clock(room).reset();changed();}
+        visualPaused=paused;visualTicks=clock(room).ticks();visualDuration=clock(room).duration();visualTime=level.getGameTime();
+        syncVisual(room);
+        setChanged();level.sendBlockUpdated(worldPosition,getBlockState(),getBlockState(),3);
     }
     public float doorProgress(float partial){
         if(getBlockState().getValue(DungeonMechanismBlock.OPEN))return 1;
@@ -175,6 +186,8 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
             mechanismId.startsWith("trial_entry")?!room.trialRunning():room.doorOpen():
             kind()==DungeonMechanismBlock.Kind.SHORTCUT?room.shortcutOpen(mechanismId):
             kind()==DungeonMechanismBlock.Kind.FLOOR&&(phase==DungeonMechanism.Phase.ACTIVE||phase==DungeonMechanism.Phase.RECOVERY);
+        if(kind()==DungeonMechanismBlock.Kind.DOOR&&roomId.equals(WangsiSluice.ROOM)&&mechanismId.equals("wangsi_drain_gate"))
+            open=room.shortcutOpen(WangsiSluice.DRAINED);
         // A returning floor or closing seal cannot materialise inside a player/mob.
         if(!open&&old.getValue(DungeonMechanismBlock.OPEN)
                 &&(kind()==DungeonMechanismBlock.Kind.FLOOR||kind()==DungeonMechanismBlock.Kind.DOOR)
@@ -207,21 +220,40 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         long time=level.getGameTime();
         boolean nearby=sl.players().stream().anyMatch(p->!p.isSpectator()&&p.distanceToSqr(Vec3.atCenterOf(pos))<96*96);
         boolean changed=room.tickRoom(time,nearby);
-        if(!nearby){room.pause(time);room.pauseHazards(time);if(changed)be.changed();return;}
+        if(!nearby){
+            room.pause(time);room.pauseHazards(time);
+            for(var marker:be.markers)if(sl.hasChunkAt(marker)&&sl.getBlockEntity(marker) instanceof DungeonMechanismBlockEntity part
+                &&be.instance.equals(part.instance)&&be.roomId.equals(part.roomId))part.pauseGuillotineVisual(room,true);
+            if(changed)be.changed();return;
+        }
         if(be.environmentOrigin!=null)changed|=ChenshaEnvironment.tick(sl,be.environmentOrigin,be.roomId,room,time);
         if(be.encounterOrigin!=null&&time%20==0)DungeonEncounters.tickChensha(sl,be.instance,be.encounterOrigin);
         changed|=ChenshaMercuryMoat.tick(sl,be,room,time);
+        WangsiLoop.tick(sl,be,room,time);
+        changed|=WangsiSluice.tick(sl,be,room);
         var loaded=new ArrayList<DungeonMechanismBlockEntity>();
         for(BlockPos marker:be.markers)if(sl.hasChunkAt(marker)&&sl.getBlockEntity(marker) instanceof DungeonMechanismBlockEntity part
                 &&be.instance.equals(part.instance)&&be.roomId.equals(part.roomId))loaded.add(part);
         var handled=new java.util.HashSet<String>();
         for(var part:loaded)if(part.hazard()&&handled.add(part.mechanismId)){
-            var clock=part.clock(room);boolean local=loaded.stream().filter(p->p.hazard()&&p.mechanismId.equals(part.mechanismId))
-                .anyMatch(p->sl.players().stream().anyMatch(player->!player.isSpectator()&&player.distanceToSqr(Vec3.atCenterOf(p.worldPosition))<24*24));
-            if(!local){clock.pause(time);continue;}
             var profile=DungeonTrapProfile.forId(part.mechanismId);
+            var clock=part.clock(room);boolean local=loaded.stream().filter(p->p.hazard()&&p.mechanismId.equals(part.mechanismId))
+                .anyMatch(p->sl.players().stream().anyMatch(player->!player.isSpectator()&&(profile!=DungeonTrapProfile.GUILLOTINE||player.isAlive())&&player.distanceToSqr(Vec3.atCenterOf(p.worldPosition))<24*24));
+            if(profile==DungeonTrapProfile.GUILLOTINE){
+                if(room.completed()){
+                    changed|=clock.phase()!=DungeonMechanism.Phase.IDLE;clock.complete();
+                    for(var emitter:loaded)if(emitter.mechanismId.equals(part.mechanismId))emitter.pauseGuillotineVisual(room,false);
+                    continue;
+                }
+                local&=loaded.stream().filter(p->p.mechanismId.equals(part.mechanismId)).allMatch(p->
+                    p.getBlockState().is(DungeonContent.GUILLOTINE.get())&&GuillotineTrap.clear(sl,p.worldPosition,p.getBlockState().getValue(DungeonMechanismBlock.FACING)));
+                for(var emitter:loaded)if(emitter.mechanismId.equals(part.mechanismId))emitter.pauseGuillotineVisual(room,!local);
+            }
+            if(!local){clock.pause(time);continue;}
             if(profile!=null&&profile.periodic&&clock.phase()==DungeonMechanism.Phase.IDLE)clock.trigger(time);
             var before=clock.phase();int beforeTicks=clock.ticks();clock.tickActive(time);
+            // No extra idle core tick: a fitted-free guillotine repeats every 40 ticks.
+            if(profile==DungeonTrapProfile.GUILLOTINE&&clock.phase()==DungeonMechanism.Phase.IDLE)clock.trigger(time);
             changed|=before!=clock.phase()||beforeTicks!=clock.ticks();
             boolean contact=clock.consumeContact();
             if(contact)for(var emitter:loaded)if(emitter.kind()==DungeonMechanismBlock.Kind.TRAP&&emitter.mechanismId.equals(part.mechanismId))emitter.damageTrap(sl);
@@ -244,6 +276,12 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
             }
         }
         for(var part:loaded){part.syncVisual(room);
+            if(DungeonTrapProfile.forId(part.mechanismId)==DungeonTrapProfile.GUILLOTINE){
+                var clock=part.clock(room);
+                if(!part.visualPaused&&clock.phase()==DungeonMechanism.Phase.WARNING&&(clock.ticks()==0||time%4==0))
+                    GuillotineTrap.warning(sl,part,clock.ticks()==0);
+                continue;
+            }
             if(part.hazard()&&part.clock(room).phase()==DungeonMechanism.Phase.WARNING&&time%4==0)
                 sl.sendParticles(net.minecraft.core.particles.ParticleTypes.SMOKE,part.worldPosition.getX()+.5,part.worldPosition.getY()+1.1,part.worldPosition.getZ()+.5,3,.5,.05,.5,.01);
         }
@@ -273,6 +311,7 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
         if(encounterOrigin!=null)tag.putLong("EncounterOrigin",encounterOrigin.asLong());
         tag.putInt("VisualPhase",visualPhase);tag.putInt("VisualTicks",visualTicks);tag.putInt("VisualDuration",visualDuration);
         tag.putInt("DoorTicks",doorTicks);tag.putLong("VisualTime",visualTime);
+        tag.putBoolean("VisualPaused",visualPaused);
     }
     @Override public void load(CompoundTag tag){
         super.load(tag);instance=tag.hasUUID("DungeonInstance")?tag.getUUID("DungeonInstance"):null;
@@ -292,8 +331,10 @@ public final class DungeonMechanismBlockEntity extends BlockEntity {
             ||!controller.equals(encounterOrigin.offset(ChenshaPiece.core("imperial_vault")))))encounterOrigin=null;
         visualPhase=Math.max(0,Math.min(3,tag.getInt("VisualPhase")));visualTicks=Math.max(0,tag.getInt("VisualTicks"));
         visualDuration=Math.max(1,tag.getInt("VisualDuration"));doorTicks=Math.max(0,Math.min(12,tag.getInt("DoorTicks")));visualTime=tag.getLong("VisualTime");registered=false;
+        visualPaused=tag.getBoolean("VisualPaused");
     }
     @Override public CompoundTag getUpdateTag(){return saveWithoutMetadata();}
-    @Override public AABB getRenderBoundingBox(){return DungeonTrapProfile.forId(mechanismId)==DungeonTrapProfile.CRUSHER?new AABB(worldPosition).expandTowards(0,4,0):super.getRenderBoundingBox();}
+    @Override public AABB getRenderBoundingBox(){return DungeonTrapProfile.forId(mechanismId)==DungeonTrapProfile.GUILLOTINE?
+        GuillotineTrap.renderBounds(worldPosition):DungeonTrapProfile.forId(mechanismId)==DungeonTrapProfile.CRUSHER?new AABB(worldPosition).expandTowards(0,4,0):super.getRenderBoundingBox();}
     @Override public ClientboundBlockEntityDataPacket getUpdatePacket(){return ClientboundBlockEntityDataPacket.create(this);}
 }

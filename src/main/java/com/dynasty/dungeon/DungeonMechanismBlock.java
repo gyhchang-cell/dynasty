@@ -41,7 +41,13 @@ public final class DungeonMechanismBlock extends BaseEntityBlock {
     @Override public RenderShape getRenderShape(BlockState state){return kind==Kind.CORE?RenderShape.INVISIBLE:
         kind==Kind.DOOR||kind==Kind.FLOOR?RenderShape.ENTITYBLOCK_ANIMATED:RenderShape.MODEL;}
     @Override public VoxelShape getCollisionShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext ctx){
+        if(DungeonContent.SOUL_LANTERN_TARGET.isPresent()&&state.is(DungeonContent.SOUL_LANTERN_TARGET.get()))return state.getValue(OPEN)?Shapes.empty():soulLampShape();
         return kind==Kind.CORE||((kind==Kind.DOOR||kind==Kind.FLOOR||kind==Kind.SHORTCUT)&&state.getValue(OPEN))?Shapes.empty():Shapes.block();
+    }
+    private static VoxelShape soulLampShape(){return Shapes.or(box(5,0,5,11,7,11),box(6,7,6,10,9,10));}
+    @Override public VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext ctx){
+        if(DungeonContent.SOUL_LANTERN_TARGET.isPresent()&&state.is(DungeonContent.SOUL_LANTERN_TARGET.get()))return state.getValue(OPEN)?box(5,0,5,11,2,11):soulLampShape();
+        return super.getShape(state,level,pos,ctx);
     }
     @Override public PushReaction getPistonPushReaction(BlockState state){return PushReaction.BLOCK;}
     @Override public BlockEntity newBlockEntity(BlockPos pos,BlockState state){return new DungeonMechanismBlockEntity(pos,state);}
