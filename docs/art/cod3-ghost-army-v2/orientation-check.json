@@ -1,0 +1,82 @@
+{
+  "contract": {
+    "source_geo_forward": "+Z",
+    "source_geo_ground": "Y=0",
+    "software_preview_coordinate_conversion": "Gecko-style X reflection only; Z unchanged. Front camera yaw180 looks toward -Z, i.e. sees +Z face.",
+    "gecko_object_rendered_forward_without_caller_yaw": "+Z",
+    "extra_Y180_required": false,
+    "caller_yaw_radians": "atan2(forward.x, forward.z)",
+    "world_forward": "normalized packet horizontal direction",
+    "world_velocity_formula": "position = grounded_origin + forward * (age_ticks * 0.01 metres)",
+    "local_velocity_m_per_s": [
+      0,
+      0,
+      0.2
+    ],
+    "cycle_displacement_local_m": [
+      0,
+      0,
+      0.8
+    ],
+    "warning": "Do not translate along local -Z or add an extra Y180. That would reverse the stance-speed agreement. If caller rotates by Y180 for any other convention, rotate velocity with the same matrix too.",
+    "centering_compensation_after_super_preRender": [
+      -0.5,
+      -0.51,
+      -0.5
+    ],
+    "basis_examples": [
+      {
+        "packet_forward": [
+          0,
+          0,
+          1
+        ],
+        "yaw_degrees": 0,
+        "march_world": "+Z"
+      },
+      {
+        "packet_forward": [
+          1,
+          0,
+          0
+        ],
+        "yaw_degrees": 90,
+        "march_world": "+X"
+      },
+      {
+        "packet_forward": [
+          0,
+          0,
+          -1
+        ],
+        "yaw_degrees": 180,
+        "march_world": "-Z"
+      }
+    ],
+    "evidence_scope": "Static code audit of source geo, local ScenicModels wrapper, software foot-contact math and upstream 1.20.1 Forge renderer/factory source. No native bake or game executed; main native orientation check still required."
+  },
+  "inspected_upstream_sources": [
+    {
+      "url": "https://raw.githubusercontent.com/bernie-g/geckolib/1.20.1/Forge/src/main/java/software/bernie/geckolib/renderer/GeoObjectRenderer.java",
+      "sha256": "d466c97aad0d0ceac8245035be8731e3c118ddf2baa710771285dda427cb385f"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/bernie-g/geckolib/1.20.1/Forge/src/main/java/software/bernie/geckolib/loading/object/BakedModelFactory.java",
+      "sha256": "41e604e04c36c4c00e6de799b8c74c553837a951734b6921fd5d0d43c14d8193"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/bernie-g/geckolib/1.20.1/Forge/src/main/java/software/bernie/geckolib/renderer/GeoRenderer.java",
+      "sha256": "72d4d24cd9a3400339160137d31c9bca1be5f11e8ba04999abc6916f0e3512d9"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/bernie-g/geckolib/1.20.1/Forge/src/main/java/software/bernie/geckolib/util/RenderUtils.java",
+      "sha256": "a0cc169417d819d64f81382334962ce737521d2bb0a4b21719a8682e9d2a1982"
+    }
+  ],
+  "findings": [
+    "BakedModelFactory flips X origin and pivot; leaves Z unchanged. Bone/cube rotation signs match local preview.",
+    "GeoObjectRenderer.preRender applies positive .5/.51/.5 centering, no global Y180. GeoRenderer path inspected likewise.",
+    "Local ScenicModels applies only packet yaw atan2(x,z), no global Y180. #4 binding not yet implemented.",
+    "Stance foot local -Z motion is exactly countered by +Z world movement at .01m/tick; validated over 81 sampled poses."
+  ]
+}

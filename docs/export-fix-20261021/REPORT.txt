@@ -1,0 +1,30 @@
+2026-10-21 导出问题排查与修复
+
+原因核对
+截图对应的原始 Gradle 日志 daemon-94989.out.log 记录 9 个警告，最终 BUILD SUCCESSFUL in 46s。
+IDEA 的红色问题树把这些警告显示为“错误”；不是 Java 编译失败，也不是整合包启动崩溃。
+强制重新编译（不使用任务缓存）也成功，确认没有隐藏的编译错误。
+
+修改
+1. 将截图涉及的 6 个 Java 文件中 9 处 ResourceLocation 旧构造器替换为 Forge 47.4.10 支持的 parse / fromNamespaceAndPath，不改变资源 ID。
+2. 修复 FTB 任务自检：保留成就的完整命名空间及子目录。沉沙玄宫两条成就在源文件和 JAR 内均真实存在，无需改变任务逻辑。
+3. 修复装备自检：已获选原图按发布清单的分辨率、SHA256 和 original_item 加载器绑定校验，不再误要求所有饰品为 32×32；仍检查透明空图和未获选贴图尺寸。不改美术。
+4. 修复词条自检：五个明确的 _icon / _mesh 渲染子模型使用真实物品名称，不要求额外注册物品或虚构翻译；实际物品仍检查中英文名称。
+5. 导出时汇总 11 类自检结果；真正失败时阻止更新桌面成品，避免报错后仍显示导出成功。
+
+验证
+JDK 17.0.20，与 IDEA 配置一致；./gradlew --offline --no-daemon exportModpack 成功。
+11 类导出自检全部通过；18 项离线导出回归测试通过（含 8 项新增正反例）。
+故意注入 verify_lang.py 退出码 77：Gradle 正确拒绝导出，桌面三个成品 SHA256 不变；注入已移除。
+移除注入后再次完整导出，BUILD SUCCESSFUL in 38s。
+三个桌面成品与 dist 逐个哈希一致，ZIP CRC 完整，嵌入最新重混淆 Dynasty JAR，没有重复 ZIP 条目。
+
+成品位置
+/Users/a15356015027/Desktop/导出/Dynasty整合包/
+  dynasty-1.4.0.mrpack
+  dynasty-1.4.0-modrinth.mrpack
+  dynasty-modpack-1.4.0.zip
+
+范围
+本轮验证编译、导出和成品完整性；未启动游戏、修改存档、重绘贴图或推送远端。
+Gradle 8.8 仍有关于未来 Gradle 9 的兼容性提示，与这次导出失败无关。

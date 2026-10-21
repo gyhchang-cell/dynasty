@@ -1,0 +1,208 @@
+# 枉死城：新增100个独立建筑项目参照
+
+核验日期：2026-10-18。100个作者项目页、100个规范化唯一URL，与沉沙玄宫上一批100项交集为0。排除了整城项目的拆分房屋、重复组件合集及无法确认独立性的同题住宅。
+
+本表的阅读层级是作者公开页面文字。静态大图在网页/图片工具中受到访问限制；仅实际看到了万安镇页面的建筑封面，未播放视频。不能把100个图片链接描述为100次图片审查，也不能把本次文字研究当成最终视觉验收。未下载地图、模型或贴图。
+
+布局采用：徽式白墙黑瓦与阶梯山墙、交叉街、可进室内、屋脊支路、河岸石桥、厚门额和前后衙院。日式及混合风格项目仅对照空间尺度和通行方法，不移植其文化符号。全部生产几何独立编写。
+
+001. [Tatsuyama - 龍山 - Empire of the Dragon Mountain - v1.1 Complete, Check it out!](https://www.planetminecraft.com/project/wip-tatsuyama--empire-of-the-dragon-mountain/) — Wooraah。分区明确的封建城市；本城把鬼市、泵房、内衙分成相邻街区，保留交叉街。
+
+002. [Jouki-Steampunk Japan](https://www.planetminecraft.com/project/jouki-steampunk-japan/) — Murps。机关与自然并置的题材；泵房采用独立木机座，避免给整座城堆蒸汽管。
+
+003. [Minecraft Dam Recreation (Piston Powered)](https://www.planetminecraft.com/project/minecraft-dam-recreation/) — deerassassin0424。有自动闸门及多出口的大坝；采用封闭支渠及独立维修入口，避免抽空整条主河。
+
+004. [Lijiang, The Ancient Mystic City](https://www.planetminecraft.com/project/lijiang-the-ancient-mystic-city---by-epicwork-2003028/) — EpicWork。古城整体项目；对照城镇尺度，采用八栋有室内的民居而非一排空立面。
+
+005. [World-First 1:1 Scale Forbidden City [Updated to 1.4.7+]](https://www.planetminecraft.com/project/world-first-11-100-accurate-forbidden-city/) — bohtauri。宫城复原；采用内衙中轴及左右柱列，缩减为可战斗和转身的尺度。
+
+006. [Liyue Harbour from Genshin Impact in Minecraft | 1:1 Scale](https://www.planetminecraft.com/project/liyue-harbour-from-genshin-impact-in-minecraft-1-1-scale/) — SkyblockSquad。作者提到城市比例和夜间照明；楼高按玩家净空安排，巷口用有实体支撑的灯。
+
+007. [Mystical Zen House (Floating)](https://www.planetminecraft.com/project/mystical-zen-house-floating/) — camcraft808。浮空宅园作为反例；本城房屋、廊桥和院台都必须有落地支撑。
+
+008. [Lobby in japanese style - floating island](https://www.planetminecraft.com/project/lobby-in-japanese-style-floating-island/) — Danchik1949。浮岛入口中布置NPC功能点；只取入口与活动区分开，不做随机传送洞。
+
+009. [桜の精神の寺院 - Temple of the Spirit of Cherry Blossom](https://www.planetminecraft.com/project/---3293466/) — Infiniteam。小型寺院完成度对照；官署屋顶分层，不以巨型地形遮掩简陋堂屋。
+
+010. [Avatar: Last Airbender World Build](https://www.planetminecraft.com/project/northern-water-tribe-3398311/) — Isothermal。世界由若干可探索地点构成；三街区用可逆路径连起来，不依赖传送菜单。
+
+011. [Odayakana - Oriental Village + Download 1.16.2](https://www.planetminecraft.com/project/odayakana-village-oriental-village-map-download/) — JayLythical。完整村落与室内配套；本城八栋楼各有底层、二层及屋顶入口。
+
+012. [Chinese Octagon Pagoda!](https://www.planetminecraft.com/project/chinese-octagon-pagoda-616789/) — DreamerMikee。八角塔作为屋脊尺度比较；本城主体不用满城高塔压过民居。
+
+013. [Asian Sanctum - [Full Interior | Survival-Friendly]](https://www.planetminecraft.com/project/asian-sanctum-download/) — Boulevardier。可生存并有室内的祠院；内衙需留侧门及后门，不能只做正门截图。
+
+014. [Jade Chamber (Genshin Impact)](https://www.planetminecraft.com/project/jade-chamber-genshin-impact/) — USS-studio。2:1凝光阁项目；作为过大尺度对照，控制本城甬道和门洞的玩家尺度。
+
+015. [Japanese Village](https://www.planetminecraft.com/project/china-village/) — Emrs6。独立日式村落；只比较路网，保留本城徽式墙面和山墙。
+
+016. [Huge Japanese Temple (Asian Style Castle) + Download!](https://www.planetminecraft.com/project/huge-japanese-temple-asian-style-castle-download/) — lJellel。大型日式殿阁；对照屋面层次，不采用日式城郭身份。
+
+017. [Flower Shop - [Full Interior]](https://www.planetminecraft.com/project/flower-house-download/) — Boulevardier。花店的两种材料方案；鬼市家具选现有木石材质，装饰不依赖新贴图。
+
+018. [Oriental House/Temple + Schematic (Chinese/Japanese)](https://www.planetminecraft.com/project/oriental-house-temple-schematic-chinese-japanese/) — JayLythical。单体住宅可组合为村落；房屋模块保留不同招牌，横街连接组合单元。
+
+019. [Asian Temple of the Dragon](https://www.planetminecraft.com/project/asian-temple-of-the-dragon/) — Gottessia。100×100地块寺庙；本城96宽地块内把房屋和院落分出主次。
+
+020. [Asian fantasy monastery](https://www.planetminecraft.com/project/asian-fantasy-build/) — TheAmazingDhyrim。岛屿修道院；采用寺院与院外开敞空间的对照，不把楼阁做成封闭盒子。
+
+021. [Asian Roofs 2](https://www.planetminecraft.com/project/asian-roofs/) — AsianRoofsTeam。亚洲屋顶与生活内容合集；只作材质和屋面题材比较，不计其内各单体为多份参考。
+
+022. [Estructuras asiaticas](https://www.planetminecraft.com/project/estructuras-asiaticas/) — MrCarton_。未完成亚洲城的片段；作为接口反例，所有跨区块通路使用全城同一坐标系。
+
+023. [Oriental Castle + Schematic](https://www.planetminecraft.com/project/oriental-castle-schematic/) — JayLythical。三层城楼；本城民居两层加屋脊路线，每层都做双格净空检查。
+
+024. [Oriental Castle Complex](https://www.planetminecraft.com/project/oriental-castle-complex/) — McBreakdown。城、寺、农田、港屋组成聚落；泵房和码头独立于官署正堂。
+
+025. [〖EpicWork〗LuoYang](https://www.planetminecraft.com/project/epicworkluoyang/) — EpicWork_China。洛阳城轴线与河流关系；桥朝向官署，市场横街把主轴分成停留节点。
+
+026. [🐉 Temple of the Dragon 🐉 Imperial Asian complex](https://www.planetminecraft.com/project/temple-of-the-dragon-4031630/) — HeliopolisCity。带水域与几何中心的寺院群；桥头设置等待空间，不在入口立刻触发落刀。
+
+027. [Chinese Temple - [Download]](https://www.planetminecraft.com/project/chinese-temple-download/) — Boulevardier。中式寺院单体；内衙使用黑瓦深檐配白墙，不照搬参考地图。
+
+028. [Temple - 天外楼 - Tian Wai Lou](https://www.planetminecraft.com/project/temple-----tian-wai-lou-1707142/) — Hankmoody123。山上塔与吊桥连接；高处路线设明确落点，屋脊木桥不接到封闭屋面。
+
+029. [Chinese spawn](https://www.planetminecraft.com/project/smp-survival-spawn/) — Warp159。分微地形的中式出生地；本城进入旧维度，不新建维度或出生系统。
+
+030. [Dragon's Roost: a Japanese survival spawn](https://www.planetminecraft.com/project/dragons-roost-a-japanese-survival-spawn-3702036/) — Nicked。村落含床、工作台与洞穴等功能；建筑室内按用途放置床台、桌台与维修路线。
+
+031. [FORBIDDEN CITY《紫禁城》](https://www.planetminecraft.com/project/forbidden-city-4300446/) — Wicked Jin。大型清代宫城；本城采用前后院秩序，避免无限扩张房间数量。
+
+032. [Fantasy Asian Build: Dragon Isles](https://www.planetminecraft.com/project/fantasy-oriental-islands/) — OwlStudios。岛链上的东方建筑；只对照连接关系，本城连接保持实体石木支撑。
+
+033. [Aki no Shizukesa no Shiro - Castle of Autumn Tranquility - (UPDATED)](https://www.planetminecraft.com/project/aki-no-shizukesa-no-shiro-castle-of-autumn-tranquility/) — Nikooo-。园林、护城水面和主殿并置；河水隔开鬼市与内衙。
+
+034. [SkyWars Map - "Japanese Pagoda" | by Steinerde](https://www.planetminecraft.com/project/skywars-map-japanese-pagoda-by-steinerde/) — Steinerde。中央塔加四门的竞技图；本城用主桥与侧渠两个入口，避免四门完全对称。
+
+035. [Little Chinese House](https://www.planetminecraft.com/project/little-china-house/) — HostX9。小型中式住宅；小屋仍需留出楼梯、入口和家具间通路。
+
+036. [Jiangyuan - China Jiangnan Garden](https://www.planetminecraft.com/project/jiangyuan-china-jiangnan-garden/) — InnovaCreation。广陵园林的小尺度山水；对照收束与开敞，横街进入河岸形成视线变化。
+
+037. [Amida's Shrine](https://www.planetminecraft.com/project/amidas-shrine-with-download/) — Block_Fortress。祠堂题材；不把日式宗教标志混入阴司官署，参考范围限入口与屋面。
+
+038. [Japanese farming village of Harukaze](https://www.planetminecraft.com/project/japanese-farming-village-of-harukaze/) — Nikooo-。市场、城墙和河流组成村落；鬼市沿横街布置，河岸保留出水石阶。
+
+039. [The Great Pagoda](https://www.planetminecraft.com/project/the-great-pagoda/) — Psykoschlumpf。四柱支撑的大塔；官署柱子从台基连续接到檐梁。
+
+040. [The Temple of Four Winds under Heaven](https://www.planetminecraft.com/project/the-temple-of-four-winds-under-heaven/) — twigbang。殿下有大洞窟的项目；本城洞顶高于屋脊，地下城仍留真实内部空间。
+
+041. [Alice Madness Returns [Far East]](https://www.planetminecraft.com/project/alice-madness-returns-far-east/) — Nefashus。跳台及谜题冒险图；本城先提供可走主路，不把主线做成强制跳跃。
+
+042. [Asian Village [BuildPack]](https://www.planetminecraft.com/project/asian-village-3978820/) — IdenPoelchau。22个单体的村落包；整包只算一个参考，构件尺度一致但保留街巷。
+
+043. [Hub - Chinese Kingdom - 300x300](https://www.planetminecraft.com/project/hub-chinese-kingdom-300x300/) — Storm Block。300×300城镇含房屋宫殿与门户；本城压缩装饰体量，先验证功能连通。
+
+044. [Chinese temple 1.21+](https://www.planetminecraft.com/project/chinese-temple-1-21/) — SasakaBone。多层寺庙内有独立房间；二层不做封死阁楼，楼梯口须防屋面覆盖。
+
+045. [Subarashí Kófuku](https://www.planetminecraft.com/project/subarash-k-fuku/) — Vauhwi。日式幻想题材；只用于对照轮廓，不引入不相关人物雕像。
+
+046. [1.12.2 TIANANMEN GATE (part of Forbidden City)](https://www.planetminecraft.com/project/1-12-2-tiananmen-gate-part-of-forbidden-city/) — Erticz。天安门复原；采用厚门额、门洞与城台的层次，匾额有背部支撑。
+
+047. [[FREE] Lobby Oriental Theme](https://www.planetminecraft.com/project/free-lobby-oriental-theme/) — BAC BUILDS。200×200入口场地；本城缩小主街宽度以保持鬼市密度。
+
+048. [Katsugana: Asian Fantasy City & World](https://www.planetminecraft.com/project/katsunaga-asian-fantasy-world/) — PingvoMC。所有房屋有独立设计的幻想城市；本城按实际房间和路线推进，不用装饰图替代可探索建筑。
+
+049. [East Asian themed chest room](https://www.planetminecraft.com/project/east-asian-themed-chest-room/) — Moreylicious。东亚主题储物室；未来黑市奖励需独立账本，此批不以普通箱子冒充唯一奖励。
+
+050. [Small Japanese Town](https://www.planetminecraft.com/project/small-japanese-town/) — TmakeXD。独立小镇；对照低层房屋与街道比例，保留交叉通路。
+
+051. [🏯Todai-ji Temple🏯 | [JAPAN THEME] | Principal LOBBY/HUB| PrismaBuilds](https://www.planetminecraft.com/project/todai-ji-temple-japan-theme-principal-lobby-hub-prismabuilds/) — PrismaBuilds。大尺度日式入口殿；只比较门庭与大堂之间的缓冲空间。
+
+052. [Five-storied pagoda 五重塔](https://www.planetminecraft.com/project/five-storied-pagoda/) — Chousogabe。五重塔不是可攀爬住宅；本城可达屋脊单独设计，不把塔层误当楼层。
+
+053. [House Chinese](https://www.planetminecraft.com/project/house-chinese-4959429/) — Krisuzinho。51×51住宅作品；本城每宅13×13，通过巷道和上下层而不是扩大空地提升体量。
+
+054. [Todai-ji - Realm of Golden Orioles and The House of Dark Lotus Blossom Petals](https://www.planetminecraft.com/project/todai-ji---realm-of-golden-orioles-and-the-house-of-dark-lotus-blossom-petals/) — twigbang。供探索的大型东方园林；支渠与屋脊都要能返回主路。
+
+055. [Siheyuan (四合院) Chinese house](https://www.planetminecraft.com/project/siheyuan-chinese-house/) — MrBaggyPants。作者明确四合院上楼层数有幻想化改动；本城二层是玩法取舍，不宣称历史复原。
+
+056. [HUGE city of traditional Chinese style —— 渝陽城/Yuyang City Project](https://www.planetminecraft.com/project/huge-city-of-traditional-chinese-style-yuyang-city-project/) — GNwork。分内外城的渝阳城；鬼市在外、判官堂在内，用河桥划分边界。
+
+057. [Asian Inspired Village Spawn](https://www.planetminecraft.com/project/asian-inspired-village-spawn/) — TeamParadox。八栋商铺围绕中心建筑；本城也采用八宅街区，但主中心为十字街而非塔。
+
+058. [Tao-Koi](https://www.planetminecraft.com/project/tao-koi/) — heavenly-roads。入口、餐馆、园林等区域功能明确；本城给泵房、渡口和内衙各自安排通路。
+
+059. [Chinese Shrine | Fantasy build | JAVA 1.21](https://www.planetminecraft.com/project/chinese-shrine-fantasy-build-java-1-21-6742463/) — OddTelly。小体量中式祠堂；对照简洁屋面，避免附加无用尖刺和复杂雕塑。
+
+060. [Chinese Shrine | JAVA 1.21](https://www.planetminecraft.com/project/chinese-shrine-java-1-21/) — OddTelly。小型中式祠堂；控制门楣高度，使玩家可辨认进入方向。
+
+061. [Chinese Pagoda | JAVA 1.21](https://www.planetminecraft.com/project/chinese-pagoda-java-1-21/) — OddTelly。中式塔题材；屋面堆叠仅用于内衙主堂，普通民居保持低矮。
+
+062. [Chinese Shrine | Fantasy build | JAVA 1.21](https://www.planetminecraft.com/project/chinese-shrine-fantasy-build-java-1-21/) — OddTelly。幻想式中式建筑；借鉴题材自由度但约束构件连接，不悬浮。
+
+063. [Chinese Castle | JAVA 1.21](https://www.planetminecraft.com/project/chinese-castle-java-1-21/) — OddTelly。大型中式城堡；官署体量大于民居，仍受洞顶和通行净空约束。
+
+064. [A crimson gazebo, nestled by the lake, is backed by mountains and surrounded by a sea of fiery maple leaves](https://www.planetminecraft.com/project/a-crimson-gazebo-nestled-by-the-lake-is-backed-by-mountains-and-surrounded-by-a-sea-of-fiery-maple-leaves/) — samnflounn。湖边红梁亭；河边照明使用木柱承托，渡口视线保持开敞。
+
+065. [Beijing Central Axis](https://www.planetminecraft.com/project/beijing-central-axis/) — Cinerator。北京中轴复原；桥、甬道、大堂在同轴，侧渠只作为维修捷径。
+
+066. [Chinese Palace 🐉🏯 1.21.4 (No interior)](https://www.planetminecraft.com/project/chinese-palace-1-21-4-no-interior/) — Damic。作者明确没有室内的宫殿；作为反例，本城全部重要楼房必须有内部路径。
+
+067. [🌸🍃 Cherry Blossom Waterfall Temple](https://www.planetminecraft.com/project/cherry-blossom-waterfall-temple/) — samnflounn。瀑布寺庙的地形背景；本城只以河岸提供环境，不靠特效遮挡建筑。
+
+068. [Conquest Oriental Theme](https://www.planetminecraft.com/project/conquest-oriental-theme/) — BAC BUILDS。东方主题场景；限于整体区块尺度比较，不复制布局或资源。
+
+069. [Asian Midori Sanctuary](https://www.planetminecraft.com/project/asian-midori-sanctuary/) — RaleDesign。作者标明已完成可生存室内；本城底层和阁楼都进行可达性检查。
+
+070. [Spawn - OrientalVibe 1.12-1.21](https://www.planetminecraft.com/project/spawn-orientalvibe-1-12-1-21/) — Valtury。大城堡加小房屋和交易功能；鬼市与官署的体量差用于辨认方向。
+
+071. [☁️ Floating Silkpunk City [Contest Entry]](https://www.planetminecraft.com/project/floating-silkpunk-city/) — ClassiCube Community。丝绸朋克浮空城；泵房采用有支撑的机关构件，不把全城做成漂浮平台。
+
+072. [Great Wall Gatehouse](https://www.planetminecraft.com/project/great-wall-gatehouse/) — OwlStudios。长城门楼；城门到阶道的实体连接要完整，门牌不能无依附悬空。
+
+073. [Japanese House – Fully Decorated Interior | Download](https://www.planetminecraft.com/project/japanese-house-fully-decorated-interior-download-6709307/) — Raekon。带完整内饰的日式住宅；只作内部空间比较，不使用榻榻米或日式招牌。
+
+074. [Chinese City On The Mountain](https://www.planetminecraft.com/project/chinese-city-on-the-mountain-6705786/) — tempis335。山城有市场和塔；本城通过入口台阶、屋脊和低河床建立高差。
+
+075. [Chinese style black house](https://www.planetminecraft.com/project/chinese-style-black-house/) — tempis335。黑色中式住宅、曲檐与灯笼；本城黑瓦对白墙，灯有链和支座。
+
+076. [Temple of the Serpent](https://www.planetminecraft.com/project/temple-of-the-serpent/) — Matevagyok。中式寺院复合体；判官堂两侧保留出入口，而非单一前门。
+
+077. [Northwest Town - Demon Slayer](https://www.planetminecraft.com/project/northwest-town-demon-slayer/) — GoFeDaKo Team。动漫街镇复原；只比较连续街面的密度，不使用其角色或建筑资产。
+
+078. [Heshan Zhuang](https://www.planetminecraft.com/project/heshan-zhuang/) — misterich。山庄题材；本城用院墙划界并给行走路线留出开口。
+
+079. [🌸 Overlook | East Asian Monastery (NA2 10th Anniversary)](https://www.planetminecraft.com/project/overlook-east-asian-monastery-na2-10th-anniversary/) — ClassiCube Community。中日融合的山寺；仅对照屋顶与支撑关系，中文官署身份保持统一。
+
+080. [( FREE DOWNLOAD ) Asian portal design](https://www.planetminecraft.com/project/free-download-asian-portal-design/) — Haidan1。亚洲传送门外观；本城阴阳界是实际入口，不做无提示的跨维度传送。
+
+081. [Lobby/Spawn Oriental Theme](https://www.planetminecraft.com/project/lobby-spawn-oriental-theme/) — BAC BUILDS。东方出生场景；只作场地功能对照，不把出生系统引入地牢。
+
+082. [Chinese Mansion Palace](https://www.planetminecraft.com/project/chinese-mansion-palace/) — Burtocu。作者说明混合日藏元素；只选可通行尺度，不照搬混合文化装饰。
+
+083. [Chengbaó Castle](https://www.planetminecraft.com/project/rp-stand-alone-shengba-castle-age-of-empires-ii-fareast-castle/) — misterich。从长城式防御构想到城堡；本城墙面保持连续，功能开口明确。
+
+084. [Blacksmith's Shop - Download](https://www.planetminecraft.com/project/blacksmith-shop-download/) — Boulevardier。作者说明中日混合铁匠铺；泵房内部机器与可走区域分开。
+
+085. [Rural Farmstead - Download](https://www.planetminecraft.com/project/rural-farmstead-download/) — Boulevardier。同一风格农舍；以住宅生活家具衬托无人鬼市，不凭空添加人形摆件。
+
+086. [[FREE DOWNLOAD] Asian Wall Pack ║ map + schematics](https://www.planetminecraft.com/project/free-download-asian-wall-pack-map-schematics/) — PingvoMC。墙段以柱作为端点；本城跨区块建筑按统一整数坐标衔接，避免接缝。
+
+087. [Spirited away inspired bathhouse [T4]](https://www.planetminecraft.com/project/spirited-away-inspired-bathhouse-t4/) — Zoron。有完整室内的幻想浴场；对照多层探索，不用空壳楼阁充数。
+
+088. [Wonk Zhái](https://www.planetminecraft.com/project/wonk-zh-i/) — misterich。有背景故事的军事前哨；衙门布局服从庭院、防卫甬道和正堂关系。
+
+089. [Chinese Gate](https://www.planetminecraft.com/project/chinese-gate-6560174/) — urara。中式门题材；阴阳界门柱落地、门额有支撑，标识朝向入口。
+
+090. [Japanese Starter House](https://www.planetminecraft.com/project/japanese-starter-house-6559711/) — BeefBuilds。完整家具的小型起步住宅；室内家具不占中央走道。
+
+091. [Chinese Water Town[Spawn]](https://www.planetminecraft.com/project/chinese-water-town-spawn/) — LuckBuilds。红尘客栈水镇；河岸、民居和步行桥作为整体组织，不做孤立水池。
+
+092. [Wan'an Town, Huizhou （徽州-萬安鎮）](https://www.planetminecraft.com/project/wan-an-town-huizhou/) — GNwork。婺源徽州式虚构镇；采用白墙黑瓦与阶梯山墙，水岸民居保持低层密度。
+
+093. [Chinese style ancient village--Lijiang village](https://www.planetminecraft.com/project/chinese-style-ancient-village--lijiang-village/) — willsonchiung。独立作者的丽江村项目；与EpicWork古城不是同项目，比较小规模聚落组织。
+
+094. [Ancient Chinese Town](https://www.planetminecraft.com/project/ancient-chinese-town/) — Mantoide。商业长街、石桥城门、住宅后巷；本城横街和背巷连接屋内与主桥。
+
+095. [Imaginary Castle Bridge](https://www.planetminecraft.com/project/imaginary-castle-bridge/) — Odawarer。中式桥加日式城楼的原创桥；只取桥面与两岸衔接，去掉日式楼阁身份。
+
+096. [Chinese Village w/ Junks VERY DETAILED](https://www.planetminecraft.com/project/chinese-village-w-junks-very-detailed/) — i1cool。有住宅、码头和船的河港村落；渡口作为城末功能区，船体不冒充首领。
+
+097. [Arch Bridge](https://www.planetminecraft.com/project/arch-bridge-6253999/) — ArppixG06。石拱桥材料表和实体模板；用石材连续起拱，桥下保留净空。
+
+098. [Multi-Arch stone bridge](https://www.planetminecraft.com/project/multi-arch-stone-bridge/) — zytukin。作者给出7格桥宽、3格通道与31格主跨；本城采用5格干桥面和逐格起坡。
+
+099. [Immersion: China](https://www.planetminecraft.com/project/chinese-city-6709060/) — Outfitsoft。含宫城、市场与书院的探索图；中文导航应指向真实生成结构。
+
+100. [Chinese Treasure Ship 1:1](https://www.planetminecraft.com/project/chinese-treasure-ship-1-1/) — Steve_i400。有基本内舱的明代宝船；仅作渡口尺度对照，未作为彼岸冥舟模型。
+
