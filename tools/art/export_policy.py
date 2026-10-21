@@ -1,7 +1,7 @@
 """Building tools are local workshop dependencies, not release-pack content."""
 from pathlib import Path
 
-WORKSHOP_PREFIXES = ('worldedit-', 'prefab-')
+WORKSHOP_PREFIXES = ('worldedit-', 'prefab-', 'dynasty-playtest-helper', 'dynasty-audit-', 'dynasty-quest-qa')
 
 def release_mod(filename):
     return not Path(filename).name.lower().startswith(WORKSHOP_PREFIXES)

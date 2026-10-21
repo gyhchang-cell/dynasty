@@ -27,6 +27,15 @@ public class DynastyTooltips {
     }
 
     static void append(ItemStack stack, String path, List<Component> tip, boolean zh, boolean shift) {
+        if (stack.getItem() instanceof net.minecraft.world.item.PotionItem) {
+            // Vanilla already lists this stack's effects and real attribute modifiers under
+            // “When Applied”. Iron Wall's separate combat multiplier is the only extra stat.
+            if (net.minecraft.world.item.alchemy.PotionUtils.getMobEffects(stack).stream()
+                    .anyMatch(e -> e.getEffect() == DynastyEffects.IRON_WALL.get()))
+                tip.add(Component.literal(zh ? "-30% 承受伤害" : "-30% Damage Taken")
+                        .withStyle(ChatFormatting.BLUE));
+            return;
+        }
         if (stack.getItem() instanceof ArmorItem) {
             double[] bonus = DynastyBalance.setNameBonus(path);
             if (bonus != null) {

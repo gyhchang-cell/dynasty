@@ -103,3 +103,24 @@ write(DATA/'loot_tables/entities'/f'{SPIKE}.json',{'type':'minecraft:entity','po
 write(DATA/'advancements/blueprint'/f'kill_{ID}.json',{'criteria':{'kill':{'trigger':'minecraft:player_killed_entity','conditions':{'entity':{'type':'dynasty:'+ID}}}}})
 write(DATA/'recipes/blueprint/ink_crystal_dye.json',{'type':'minecraft:crafting_shapeless','ingredients':[{'item':'dynasty:ink_crystal_shard'}],'result':{'item':'minecraft:black_dye','count':2}})
 write(DATA/'recipes/blueprint/ink_silk_string.json',{'type':'minecraft:crafting_shapeless','ingredients':[{'item':'dynasty:waterproof_ink_silk'}],'result':{'item':'minecraft:string','count':4}})
+
+# Approved inventory transparency: preserve entity atlases.
+import runpy as _inventory_runpy
+from pathlib import Path as _InventoryPath
+_inventory_runpy.run_path(str(_InventoryPath(__file__).resolve().parents[1]/"art/inventory-refresh/transparent.py"))["cleanup_white"]()
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('mojia_jueying_cike')
+
+# Original MC creature shape correction, after the material export.
+import runpy as _creature33_runpy
+_creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v33/refine.py"))["finish"]('mojia_jueying_cike')
+
+# Connected anatomy correction; final authoritative export (V34).
+import runpy as _creature34_runpy
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v34/refine.py"))["finish"]('mojia_jueying_cike')
+
+# Continuous anatomical masses and coherent pigmentation (V35).
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v35/refine.py"))["finish"]('mojia_jueying_cike')

@@ -28,7 +28,7 @@ public final class DungeonContent {
     private static RegistryObject<Block> mechanism(String name,DungeonMechanismBlock.Kind kind){
         return BLOCKS.register(name,()->new DungeonMechanismBlock(kind,BlockBehaviour.Properties.of()
             .strength(-1F,3600000F).noLootTable().dynamicShape()
-            .lightLevel(s->s.getValue(DungeonMechanismBlock.ACTIVE)?7:0)));
+            .lightLevel(s->name.equals("soul_lantern_target")?(s.getValue(DungeonMechanismBlock.OPEN)?0:10):s.getValue(DungeonMechanismBlock.ACTIVE)?7:0)));
     }
     public static final RegistryObject<Block> CORE=mechanism("dungeon_core",DungeonMechanismBlock.Kind.CORE);
     public static final RegistryObject<Block> SEAL=mechanism("seal_stone",DungeonMechanismBlock.Kind.SEAL);
@@ -45,6 +45,10 @@ public final class DungeonContent {
     public static final RegistryObject<Block> UPDRAFT=mechanism("updraft_vent",DungeonMechanismBlock.Kind.TRAP);
     public static final RegistryObject<Block> CLOUD=mechanism("fading_cloud_tile",DungeonMechanismBlock.Kind.FLOOR);
     public static final RegistryObject<Block> FLAME=mechanism("flame_vent",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> GUILLOTINE=mechanism("guillotine_trap",DungeonMechanismBlock.Kind.TRAP);
+    public static final RegistryObject<Block> LOOP_GATE=mechanism("loop_gate",DungeonMechanismBlock.Kind.CORE);
+    public static final RegistryObject<Block> SOUL_LANTERN_TARGET=mechanism("soul_lantern_target",DungeonMechanismBlock.Kind.SHORTCUT);
+    public static final RegistryObject<Block> SLUICE_CONTROLLER=mechanism("wangsi_sluice_controller",DungeonMechanismBlock.Kind.SEAL);
     public static final RegistryObject<Block> ELEVATOR=mechanism("dungeon_elevator_controller",DungeonMechanismBlock.Kind.ELEVATOR);
     public static final RegistryObject<Block> SHORTCUT_STELE=mechanism("dungeon_shortcut_stele",DungeonMechanismBlock.Kind.SHORTCUT);
     public static final RegistryObject<Block> COFFIN=mechanism("dungeon_imperial_coffin",DungeonMechanismBlock.Kind.COFFIN);
@@ -53,18 +57,18 @@ public final class DungeonContent {
         .strength(-1F,3600000F).noLootTable().lightLevel(s->2)){
             @Override public net.minecraft.world.level.material.PushReaction getPistonPushReaction(net.minecraft.world.level.block.state.BlockState state){return net.minecraft.world.level.material.PushReaction.BLOCK;}
         });
-    public static final RegistryObject<Block> MASONRY=BLOCKS.register("dungeon_masonry",()->new Block(BlockBehaviour.Properties.of()
-        .strength(-1F,3600000F).noLootTable()){
-            @Override public net.minecraft.world.level.material.PushReaction getPistonPushReaction(net.minecraft.world.level.block.state.BlockState state){return net.minecraft.world.level.material.PushReaction.BLOCK;}
-        });
+    public static final RegistryObject<Block> MASONRY=BLOCKS.register("dungeon_masonry",()->new DungeonMasonryBlock(BlockBehaviour.Properties.of()
+        .strength(-1F,3600000F).noLootTable()));
     public static final RegistryObject<BlockEntityType<DungeonMechanismBlockEntity>> MECHANISM=ENTITIES.register("dungeon_mechanism",
         ()->BlockEntityType.Builder.of(DungeonMechanismBlockEntity::new,
             CORE.get(),SEAL.get(),EYE.get(),DOOR.get(),FLOOR.get(),TRAP.get(),ELEVATOR.get(),SHORTCUT_STELE.get(),COFFIN.get(),
-            CRUSHER.get(),CONVEYOR.get(),STEAM.get(),MINE.get(),ARROW_RAIN.get(),WIND_FIELD.get(),UPDRAFT.get(),FLAME.get(),CLOUD.get()).build(null));
+            CRUSHER.get(),CONVEYOR.get(),STEAM.get(),MINE.get(),ARROW_RAIN.get(),WIND_FIELD.get(),UPDRAFT.get(),FLAME.get(),CLOUD.get(),GUILLOTINE.get(),LOOP_GATE.get(),SOUL_LANTERN_TARGET.get(),SLUICE_CONTROLLER.get()).build(null));
     public static final RegistryObject<StructureType<DungeonProbeStructure>> PROBE=STRUCTURES.register("dungeon_probe",()->()->DungeonProbeStructure.CODEC);
     public static final RegistryObject<StructurePieceType> PROBE_PIECE=PIECES.register("dungeon_probe_piece",()->DungeonProbePiece::new);
     public static final RegistryObject<StructureType<ChenshaStructure>> CHENSHA=STRUCTURES.register("chensha_xuangong",()->()->ChenshaStructure.CODEC);
     public static final RegistryObject<StructurePieceType> CHENSHA_PIECE=PIECES.register("chensha_xuangong_piece",()->ChenshaPiece::new);
+    public static final RegistryObject<StructureType<WangsiStructure>> WANGSI=STRUCTURES.register("yinsi_wangsi_cheng",()->()->WangsiStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> WANGSI_PIECE=PIECES.register("yinsi_wangsi_cheng_piece",()->WangsiPiece::new);
     public static void register(IEventBus bus){ITEMS.register(bus);BLOCKS.register(bus);ENTITIES.register(bus);STRUCTURES.register(bus);PIECES.register(bus);PROJECTILES.register(bus);}
     private DungeonContent(){}
 }

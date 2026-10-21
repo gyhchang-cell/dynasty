@@ -174,3 +174,24 @@ for rid,size in (('gorilla_cast_boulder',24),('gorilla_stone_fragment',8)):
  geo(rid,bones,2.4 if size==24 else .9,size/16+.2,[0,size/32,0]);write(A/'animations/blueprint/elite'/f'{rid}.animation.json',{'format_version':'1.8.0','animations':{'animation.'+rid+'.spin':{'loop':True,'animation_length':1,'bones':{'root':{'rotation':keys([(0,[0,0,0]),(1,[0,360,0])])}}}}})
 write(A/'models/item'/f'{ID}_spawn_egg.json',{'parent':'minecraft:item/template_spawn_egg'})
 print('Exported original heavy ape and two physical projectile models; native acceptance pending.')
+
+# Approved inventory transparency: preserve entity atlases.
+import runpy as _inventory_runpy
+from pathlib import Path as _InventoryPath
+_inventory_runpy.run_path(str(_InventoryPath(__file__).resolve().parents[1]/"art/inventory-refresh/transparent.py"))["cleanup_white"]()
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('hanshan_tongjia_juyuan')
+
+# Original MC creature shape correction, after the material export.
+import runpy as _creature33_runpy
+_creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v33/refine.py"))["finish"]('hanshan_tongjia_juyuan')
+
+# Connected anatomy correction; final authoritative export (V34).
+import runpy as _creature34_runpy
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v34/refine.py"))["finish"]('hanshan_tongjia_juyuan')
+
+# Continuous anatomical masses and coherent pigmentation (V35).
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v35/refine.py"))["finish"]('hanshan_tongjia_juyuan')

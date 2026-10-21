@@ -168,3 +168,8 @@ write(A/f'models/item/{ID}_spawn_egg.json',{'parent':'minecraft:item/template_sp
 write(A/'models/block/marshal_oath_socket.json',{'textures':{'all':'dynasty:entity/blueprint/boss/'+ID,'particle':'dynasty:entity/blueprint/boss/'+ID},'elements':[{'from':[0,0,0],'to':[16,16,16],'faces':{f:{'uv':[3,9,7,13],'texture':'#all'} for f in ('north','south','west','east','up','down')}}]})
 write(A/'blockstates/marshal_oath_socket.json',{'variants':{'':{'model':'dynasty:block/marshal_oath_socket'}}})
 write(A/'models/item/marshal_oath_socket.json',{'parent':'dynasty:block/marshal_oath_socket'})
+
+# Approved inventory transparency: preserve entity atlases.
+import runpy as _inventory_runpy
+from pathlib import Path as _InventoryPath
+_inventory_runpy.run_path(str(_InventoryPath(__file__).resolve().parents[1]/"art/inventory-refresh/transparent.py"))["cleanup_white"]()

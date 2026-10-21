@@ -29,6 +29,7 @@ public class DetailedBeastModel<T extends Entity> extends EntityModel<T> {
     private final List<ModelPart> lowerLegs = new ArrayList<>();
     private final List<ModelPart> tails = new ArrayList<>();
     private final List<ModelPart> wings = new ArrayList<>();
+    private ModelPart quadrupedRoot;
     private final ModelPart head;
     private final ModelPart neck;
     private final ModelPart snout;
@@ -51,7 +52,24 @@ public class DetailedBeastModel<T extends Entity> extends EntityModel<T> {
             "tail6", "tail7", "tail8",
     };
 
+    private static ModelPart find(ModelPart part, String name) {
+        if (part.hasChild(name)) return part.getChild(name);
+        for (ModelPart child : part.getAllParts().toList()) {
+            if (child.hasChild(name)) return child.getChild(name);
+        }
+        throw new IllegalArgumentException("Missing bestiary part: " + name);
+    }
+
     public DetailedBeastModel(ModelPart root, Kind kind) {
+        if (kind == Kind.NIAN || kind == Kind.QILIN) {
+            this.quadrupedRoot = root;
+            this.head = find(root, "head"); this.neck = find(root, "neck"); this.snout = find(root, "snout");
+            for (String prefix : new String[]{"leg_front_left", "leg_front_right", "leg_back_left", "leg_back_right"}) {
+                this.upperLegs.add(find(root, prefix + "_upper"));
+                this.lowerLegs.add(find(root, prefix + "_lower"));
+            }
+            this.tails.add(find(root, "tail")); return;
+        }
         this.head = root.getChild("head");
         this.neck = root.hasChild("neck") ? root.getChild("neck") : this.head;
         this.snout = root.hasChild("snout") ? root.getChild("snout") : this.head;
@@ -80,6 +98,7 @@ public class DetailedBeastModel<T extends Entity> extends EntityModel<T> {
     }
 
     public static LayerDefinition createLayer(Kind kind) {
+        if (kind == Kind.NIAN || kind == Kind.QILIN) return BestiaryQuadrupedLayers.build(kind == Kind.NIAN);
         MeshDefinition mesh = new MeshDefinition();
         PartDefinition root = mesh.getRoot();
         switch (kind) {
@@ -161,6 +180,20 @@ public class DetailedBeastModel<T extends Entity> extends EntityModel<T> {
     @Override
     public void setupAnim(T entity, float limbSwing, float limbSwingAmount, float ageInTicks,
                           float netHeadYaw, float headPitch) {
+        if (this.quadrupedRoot != null) {
+            this.quadrupedRoot.getAllParts().forEach(ModelPart::resetPose);
+            this.head.yRot += netHeadYaw * ((float) Math.PI / 180.0F);
+            this.head.xRot += headPitch * ((float) Math.PI / 240.0F);
+            this.neck.xRot += headPitch * ((float) Math.PI / 720.0F);
+            for (int i = 0; i < 4; i++) {
+                float phase = (i == 0 || i == 3) ? 0.0F : (float) Math.PI;
+                float step = Mth.cos(limbSwing * 0.65F + phase) * 0.6F * limbSwingAmount;
+                this.upperLegs.get(i).xRot += step;
+                this.lowerLegs.get(i).xRot += Math.max(0.0F, -step) * 0.5F;
+            }
+            this.tails.get(0).yRot += Mth.sin(ageInTicks * 0.09F) * 0.16F;
+            return;
+        }
         this.head.yRot = netHeadYaw * ((float) Math.PI / 180.0F);
         this.head.xRot = headPitch * ((float) Math.PI / 180.0F);
         if (this.neck != this.head) {
@@ -193,6 +226,9 @@ public class DetailedBeastModel<T extends Entity> extends EntityModel<T> {
     @Override
     public void renderToBuffer(PoseStack pose, VertexConsumer buffer, int packedLight, int packedOverlay,
                                float r, float g, float b, float a) {
+        if (this.quadrupedRoot != null) {
+            this.quadrupedRoot.render(pose, buffer, packedLight, packedOverlay, r, g, b, a); return;
+        }
         for (ModelPart part : this.all) {
             part.render(pose, buffer, packedLight, packedOverlay, r, g, b, a);
         }

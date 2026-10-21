@@ -35,7 +35,7 @@ def shaped(name, pattern, key, result, count=1):
     write(name, {
         "type": "minecraft:crafting_shaped",
         "pattern": pattern,
-        "key": {k: {"item": v} for k, v in key.items()},
+        "key": {k: ({"tag": "minecraft:planks"} if v=="minecraft:oak_planks" else {"item": v}) for k, v in key.items()},
         "result": {"item": result, "count": count},
     })
 
@@ -43,7 +43,7 @@ def shaped(name, pattern, key, result, count=1):
 def shapeless(name, ingredients, result, count=1):
     write(name, {
         "type": "minecraft:crafting_shapeless",
-        "ingredients": [{"item": i} for i in ingredients],
+        "ingredients": [({"tag": "minecraft:planks"} if i=="minecraft:oak_planks" else {"item": i}) for i in ingredients],
         "result": {"item": result, "count": count},
     })
 
@@ -226,6 +226,14 @@ def relic_recipes():
 # this table against every worldgen registry JSON, including structure groups.
 WORLDGEN_NAMES = {
     "structure": {
+        "scenic_fire_tree": ("深谷火树", "Deep Valley Fire Tree"),
+        "yinsi_wangsi_cheng": ("阴司枉死城", "Wangsi Ghost City"),
+        "marshal_courtyard": ("元帅府演武院", "Marshal Courtyard"),
+        "scenic_ice_bloom": ("冰莲奇观", "Ice Bloom"),
+        "taiqing_hidden_temple": ("太清隐观", "Taiqing Hidden Temple"),
+        "stargazer_platform": ("观星台", "Stargazer Platform"),
+        "scenic_crystal_canopy": ("晶穹奇观", "Crystal Canopy"),
+        "cauldron_pit": ("献祭铜坑", "Cauldron Pit"),
         "chensha_xuangong": ("沉沙玄宫", "Sunken Sand Palace"),
         "desert_caravan": ("沙海商旅院", "Desert Caravan"),
         "dungeon_framework_probe": ("地宫机关试验场", "Dungeon Mechanism Test Site"),
@@ -261,6 +269,7 @@ WORLDGEN_NAMES = {
         "dragon_palace_deep": ("深渊", "Abyss"),
     },
     "dimension": {
+        "white_deer_grotto": ("白鹿洞天", "White Deer Grotto"),
         "zhenyuan_arena": ("镇渊帝君祭场", "Zhenyuan Sovereign Arena"),
         "celestial_dynasty": ("天朝·龙庭", "Celestial Dynasty"),
         "underworld": ("地府", "Underworld"),
@@ -270,11 +279,21 @@ WORLDGEN_NAMES = {
 }
 
 
+# Locatable versions of the existing legacy buildings.
+WORLDGEN_NAMES["structure"].update({'legacy_palace_ruin': ('宫殿遗址', 'Palace Ruin'), 'legacy_imperial_tomb': ('小型帝陵', 'Imperial Tomb'), 'legacy_great_wall': ('长城遗段', 'Great Wall'), 'legacy_pagoda': ('古塔', 'Pagoda'), 'legacy_heaven_altar': ('祭天坛', 'Heaven Altar'), 'legacy_post_station': ('驿站', 'Post Station'), 'legacy_paifang': ('牌坊', 'Paifang'), 'legacy_ritual_circle': ('法阵遗迹', 'Ritual Circle'), 'legacy_temple': ('神庙', 'Temple'), 'legacy_watchtower': ('烽火台', 'Watchtower'), 'legacy_cloud_platform': ('云台', 'Cloud Platform'), 'legacy_hall': ('大殿', 'Hall'), 'legacy_observatory': ('观星楼', 'Observatory'), 'legacy_market': ('集市', 'Market'), 'legacy_ghost_gate': ('鬼门关', 'Ghost Gate'), 'legacy_judge_hall': ('判官殿', 'Judge Hall'), 'legacy_bridge': ('古桥', 'Bridge'), 'legacy_sky_stair': ('登天阶', 'Sky Stair'), 'legacy_thunder_pool': ('雷池', 'Thunder Pool'), 'legacy_dragon_hall': ('龙宫大殿', 'Dragon Hall'), 'legacy_pearl_tower': ('明珠楼', 'Pearl Tower')})
+
+
 def worldgen_lang(locale):
     index = {"zh_cn": 0, "en_us": 1}[locale]
-    return {f"{kind}.dynasty.{name.replace('/', '.')}": pair[index]
+    names = {f"{kind}.dynasty.{name.replace('/', '.')}": pair[index]
             for kind, entries in WORLDGEN_NAMES.items()
             for name, pair in entries.items()}
+    names.update({f"dimension.minecraft.{name}": pair[index] for name, pair in {
+        "overworld": ("主世界", "Overworld"),
+        "the_nether": ("下界", "The Nether"),
+        "the_end": ("末地", "The End"),
+    }.items()})
+    return names
 
 
 def merge_worldgen_lang():
@@ -306,7 +325,7 @@ ZH = {
     "item.dynasty.mu_mao": "木矛",
     "item.dynasty.shi_ge": "石戈",
     "item.dynasty.tong_dao": "铜刀",
-    "item.dynasty.tie_jian": "铁剑",
+    "item.dynasty.tie_jian": "锻铁长剑",
     "item.dynasty.lie_gong": "猎弓",
     "item.dynasty.chang_gong": "长弓",
     "item.dynasty.shenbi_bow": "神臂弓",
@@ -398,7 +417,7 @@ EN = {
     "item.dynasty.mu_mao": "Wooden Spear",
     "item.dynasty.shi_ge": "Stone Dagger-Axe",
     "item.dynasty.tong_dao": "Copper Sabre",
-    "item.dynasty.tie_jian": "Iron Sword",
+    "item.dynasty.tie_jian": "Forged Iron Longsword",
     "item.dynasty.lie_gong": "Hunting Bow",
     "item.dynasty.chang_gong": "Longbow",
     "item.dynasty.shenbi_bow": "Shenbi Bow",

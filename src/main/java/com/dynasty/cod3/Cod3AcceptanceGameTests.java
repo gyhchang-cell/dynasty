@@ -177,14 +177,14 @@ public final class Cod3AcceptanceGameTests {
     public static void smithAndCaptainUseActualPaymentsAndPersonalReceipts(GameTestHelper h){
         var pos=new BlockPos(2,2,2);var p=player(h,pos);var q=player(h,pos);
         var smith=NpcContent.NPCS.get("lao_chen").get().create(h.getLevel());smith.setNoAi(true);smith.setPos(p.position());h.getLevel().addFreshEntity(smith);
-        var coin=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty:copper_coin"));
+        var coin=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.parse("dynasty:copper_coin"));
         var sword=new ItemStack(Items.IRON_SWORD);sword.setDamageValue(100);p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,sword);
         h.assertTrue(!NpcServices.repair(p,smith)&&sword.getDamageValue()==100,"Unpaid repair succeeded");
         p.getInventory().setItem(1,new ItemStack(coin,4));NpcDialogue.open(p,smith);var session=NpcDialogue.session(p.getUUID());
         h.assertTrue(NpcDialogue.choose(p,session.token(),"repair")&&sword.getDamageValue()<100&&p.getInventory().countItem(coin)==0,"Smith did not charge actual repair payment");
         h.assertTrue(!NpcDialogue.choose(p,session.token(),"repair"),"Old repair button replayed");
         var captain=NpcContent.NPCS.get("han_chong").get().create(h.getLevel());captain.setNoAi(true);captain.setPos(p.position());h.getLevel().addFreshEntity(captain);
-        var roster=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty:bamboo_slip"));
+        var roster=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.parse("dynasty:bamboo_slip"));
         p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new ItemStack(roster,2));q.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new ItemStack(roster));
         h.assertTrue(NpcServices.commemorate(p,captain)&&p.getMainHandItem().getCount()==1,"Captain did not consume one roster");
         var receipt=p.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG).copy();
@@ -200,7 +200,7 @@ public final class Cod3AcceptanceGameTests {
             level.setBlockAndUpdate(at,StoryAnchor.BLOCK.get().defaultBlockState().setValue(StoryAnchor.KIND,14));SecretTracker.attach(level,at,15);
             SecretTracker.trigger(p,at,SecretDefinition.Trigger.USE_ITEM_AT_POS);
             h.assertTrue(p.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG).isEmpty(),"Wrong offering claimed secret");
-            var bronze=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation("dynasty:bronze_ingot"));p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new ItemStack(bronze,2));
+            var bronze=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.parse("dynasty:bronze_ingot"));p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new ItemStack(bronze,2));
             SecretTracker.trigger(p,at,SecretDefinition.Trigger.USE_ITEM_AT_POS);h.assertTrue(p.getMainHandItem().getCount()==1,"Real item offering not paid");
             SecretTracker.trigger(p,at,SecretDefinition.Trigger.USE_ITEM_AT_POS);h.assertTrue(p.getMainHandItem().getCount()==1,"Repeated secret consumed another item");
             level.setBlockAndUpdate(at,StoryAnchor.BLOCK.get().defaultBlockState().setValue(StoryAnchor.KIND,13));SecretTracker.attach(level,at,14);p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,ItemStack.EMPTY);

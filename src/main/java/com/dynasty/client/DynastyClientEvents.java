@@ -89,11 +89,11 @@ public class DynastyClientEvents {
     private static final ResourceLocation TEX_ARCHER = tex("archer");
     private static final ResourceLocation TEX_ROYAL_GUARD = tex("royal_guard");
     private static final ResourceLocation TEX_REBEL_SOLDIER = tex("rebel_soldier");
-    private static final ResourceLocation TEX_NIAN_BEAST = tex("nian_beast");
+    private static final ResourceLocation TEX_NIAN_BEAST = tex("bestiary/nian_beast");
     private static final ResourceLocation TEX_DRAGON_EMPEROR = tex("dragon_emperor");
     private static final ResourceLocation TEX_REBEL_GENERAL = tex("rebel_general");
     private static final ResourceLocation TEX_EUNUCH_MASTERMIND = tex("eunuch_mastermind");
-    private static final ResourceLocation TEX_QILIN = tex("qilin");
+    private static final ResourceLocation TEX_QILIN = tex("bestiary/qilin");
     private static final ResourceLocation TEX_NINE_TAILED_FOX = tex("nine_tailed_fox");
     private static final ResourceLocation TEX_NINE_HEAVEN_GENERAL = tex("nine_heaven_general");
     private static final ResourceLocation TEX_DRAGON_KING = tex("dragon_king");

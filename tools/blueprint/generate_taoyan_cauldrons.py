@@ -153,3 +153,8 @@ write(A/'models/item'/f'{ID}_spawn_egg.json',{'parent':'minecraft:item/template_
 for name,col in [('cauldron_abyss_oil','dark'),('cauldron_bone_ritual','bronze')]:
  write(A/'models/block'/f'{name}.json',{'textures':{'all':'dynasty:entity/blueprint/boss/'+ID,'particle':'dynasty:entity/blueprint/boss/'+ID},'elements':[{'from':[0,0,0],'to':[16,16,16],'faces':{f:{'uv':UV[col]+[UV[col][0]+4,UV[col][1]+4],'texture':'#all'} for f in ['north','south','west','east','up','down']}}]});write(A/'blockstates'/f'{name}.json',{'variants':{'':{'model':'dynasty:block/'+name}}})
 write(A/'models/item/cauldron_bone_ritual.json',{'parent':'dynasty:block/cauldron_bone_ritual'})
+
+# Approved inventory transparency: preserve entity atlases.
+import runpy as _inventory_runpy
+from pathlib import Path as _InventoryPath
+_inventory_runpy.run_path(str(_InventoryPath(__file__).resolve().parents[1]/"art/inventory-refresh/transparent.py"))["cleanup_white"]()

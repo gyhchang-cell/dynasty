@@ -8,7 +8,7 @@ import re
 from functools import lru_cache
 
 NAMES = {'naturescompass:naturescompass':'自然指南针',
-         'explorerscompass:explorerscompass':'探险者指南针',
+         'explorerscompass:explorerscompass':'结构罗盘',
          'minecraft:compass':'指南针',
          'minecraft:glass':'玻璃','minecraft:scute':'鳞甲',
          'minecraft:brewing_stand':'酿造台','minecraft:nether_wart':'下界疣',
@@ -56,13 +56,13 @@ VANILLA_SOURCES = {
 MATERIAL_SOURCES = {
  'jade':'用铁镐开采主世界地下玉矿，取得玉。',
  'dragon_crystal':'用铁镐在主世界Y=-60至-5开采龙晶矿，取得龙晶。',
- 'cinnabar':'主世界神庙、法阵遗迹或帝陵宝箱有概率出朱砂；没有朱砂矿。',
+ 'cinnabar':'没有朱砂矿。用探险者指南针搜索神庙、法阵遗迹、山麓采矿庄园或天工山城，开宝箱有概率取得朱砂。新加入定位的建筑需前往尚未探索的区域搜索。',
  'bronze_ingot':'铜锭×3＋铁锭×1，无序合成青铜锭×4。',
  'refined_steel':'铁锭×3＋朱砂×1，无序合成精钢×2；也可用蟹甲×1配铁锭×1取得精钢×1。',
  'emperor_bone':'亲自讨伐不死始皇或龙帝取得帝骸骨，普通骷髅不掉。',
  'phoenix_feather':'讨伐凤凰有概率取得凤凰羽。',
  'dragon_scale':'讨伐东海龙王取得龙鳞；先保障水下呼吸。',
- 'sky_token':'讨伐九霄天将取得天将令。',
+ 'sky_token':'进入九霄天界，用自然指南针搜索“九霄仙岛”，探索并击败九霄天将，每次必掉天将令×1；首次不需要令牌召唤。',
  'sea_token':'讨伐东海龙王取得此信物。',
  'dragon_emperor_seal':'讨伐龙帝取得龙帝印，先留一枚作复战信物。',
  'ancient_stele_rubbing':'带纸到官道驿站，按破损界碑的倒计时交互取得拓片。',

@@ -200,7 +200,7 @@ def main():
     keep = {r["filename"] for r in records.values()}
     keep.add("curios-forge-5.14.1+1.20.1.jar")
     keep.add("jei-1.20.1-forge-15.59.0.210.jar")
-    keep.add("OverflowingBars-v8.0.1-1.20.1-Forge.jar")
+    keep.add("armorpointspp-forge-1.20-3.1.1.jar")
     keep.add("PuzzlesLib-v8.1.33-1.20.1-Forge.jar")
     # FTB 系列（由 fetch_ftb_mods.py 下载，登记在 ftb_mods.json）
     ftb_json = os.path.join(os.path.dirname(__file__), "ftb_mods.json")

@@ -77,7 +77,7 @@ class Rig:
             for b in reduced['minecraft:geometry'][0]['bones']:
                 name=b['name'];cubes=b['cubes']
                 if lod=='medium':
-                    b['cubes']=[c for c in cubes if min(c['size'])>=2 and not (name=='shell' and min(c['size'])==3)]
+                    b['cubes']=[c for c in cubes if (min(c['size'])>=2 or self.name=='sun_crow' and name=='head') and not (name=='shell' and min(c['size'])==3)]
                     if self.name=='azure_dragon':
                         if name.startswith('trunk_'):b['cubes']=cubes[:2] if int(name.split('_')[1])%2 else cubes
                         elif 'limb' in name:b['cubes']=cubes[:2]
@@ -87,7 +87,7 @@ class Rig:
                 elif self.name=='mountain_xuanwu':
                     b['cubes']=(cubes[:4]+cubes[10::3]) if name=='shell' else cubes[:2] if name in ('head','snake_head') else cubes[:1]
                 else:
-                    b['cubes']=cubes[:1]+cubes[1::4] if name.endswith('_outer') else cubes[:2]
+                    b['cubes']=cubes[:1]+cubes[1::2] if name.endswith('_outer') else cubes[:2]
             lod_counts[lod]=sum(len(b['cubes']) for b in reduced['minecraft:geometry'][0]['bones'])
             reduced['minecraft:geometry'][0]['description']['identifier']+='_'+lod
             dump(A/f'geo/scenic/{self.name}_{lod}.geo.json',reduced)
@@ -113,34 +113,44 @@ class Rig:
 
 def dragon():
     r=Rig('azure_dragon');r.bone('root',None,[0,0,0])
-    # Tapered linked trunk. The head leads; waves travel down progressively thinner tail segments.
     previous='root'
-    for i in range(9):
-        z=64-i*20; width=18-i*1.45; name=r.bone('trunk_'+str(i),previous,[0,14,z+10])
-        r.by_name[name]['rotation']=[0,round(math.sin(i*.8)*8,3),0]
-        r.box(name,[-width/2,14-width*.35,z-11],[width,width*.7,22],2 if i<5 else 1)
-        r.box(name,[-width*.35,13.5-width*.35,z-8],[width*.7,2,16],4)
-        r.box(name,[-2,14+width*.35,z-6],[4,5 if i<5 else 3,7],3)
-        values=[math.sin(j*math.pi/2-i*.7)*5 for j in range(5)]
-        r.motion(name,'rotation',[[0,round(v,3),0] for v in values]); previous=name
-    r.bone('neck','trunk_0',[0,14,72]);r.box('neck',[-8,9,71],[16,12,14],2)
-    r.bone('head','neck',[0,16,81]);r.box('head',[-11,10,81],[22,16,22],2)
-    r.box('head',[-9,10,103],[18,9,16],3);r.box('head',[-8,15.5,118],[16,4,2],0)
-    r.bone('jaw','head',[0,10,90]);r.box('jaw',[-8,7,94],[16,3,24],4)
+    widths=[20,20,18,16,14,12,10,8,5]
+    pitch=[-5,-10,-8,2,12,12,0,-10,-8]
+    yaw=[0,5,7,4,-4,-7,-5,2,5]
+    for i,width in enumerate(widths):
+        z=64-i*20;name=r.bone('trunk_'+str(i),previous,[0,14,z+10])
+        r.by_name[name]['rotation']=[pitch[i],yaw[i],0]
+        # Six-unit overlaps keep tapered sections connected at every swim phase.
+        r.box(name,[-width/2,14-width*.4,z-13],[width,width*.8,26],2 if i<5 else 1)
+        r.box(name,[-width*.35,13.5-width*.4,z-8],[width*.7,2,16],4)
+        r.box(name,[-2,13.5+width*.4,z-6],[4,5 if i<5 else 3,7],3)
+        r.motion(name,'rotation',[[round(math.sin(j*math.pi/2-i*.65)*2,3),round(math.sin(j*math.pi/2-i*.7)*3,3),0] for j in (0,1,2,3,0)])
+        previous=name
+    r.bone('neck','trunk_0',[0,14,72]);r.box('neck',[-8.5,8,69],[17,15,16],2)
+    r.bone('head','neck',[0,16,81]);r.by_name['head']['rotation']=[-6,0,0]
+    r.box('head',[-11,11,80],[22,18,23],2)
+    r.box('head',[-9,11,100],[18,11,18],3);r.box('head',[-8,16,117],[16,4,3],0)
+    r.bone('jaw','head',[0,11,92]);r.box('jaw',[-8.5,7.5,92],[17,4,25.5],4)
+    # Small head lead and delayed jaw breathing; no attack/AI timeline is introduced.
+    r.motion('head','rotation',[[0,-1,0],[-.6,0,0],[0,1,0],[.6,0,0],[0,-1,0]])
+    r.motion('jaw','rotation',[[0,0,0],[.8,0,0],[1.5,0,0],[.8,0,0],[0,0,0]])
     for s in (-1,1):
-        r.box('head',[s*11-(2 if s<0 else 0),20,95],[2,3,5],4)
-        r.box('head',[s*10-(2 if s<0 else 0),23,94],[3,3,7],0)
-        n=r.bone(('left' if s>0 else 'right')+'_antler','head',[s*7,25,88])
-        r.box(n,[s*7-2,25,85],[4,12,4],4);r.box(n,[s*7-2,35,78],[4,4,10],4)
-        r.box(n,[s*7-2,36,78],[4,5,3],4)
-        n=r.bone(('left' if s>0 else 'right')+'_whisker','head',[s*8,12,111])
-        r.box(n,[min(s*8,s*22),11,110],[14,2,2],4);r.box(n,[s*22-1,7,107],[2,6,3],4)
-        r.motion(n,'rotation',[[0,0,v*s] for v in [-5,0,5,0,-5]])
-        for i,z in enumerate((50,-12)):
-            n=r.bone(f'{"left" if s>0 else "right"}_limb_{i}', 'trunk_'+str(0 if i==0 else 3),[s*7,12,z])
-            r.box(n,[min(s*7,s*16),5,z-3],[9,8,6],2)
-            r.box(n,[s*16-3,2,z-3.5],[6,5,12.5],3)
-            for toe in (-1,1): r.box(n,[s*16-2+toe*2,1,z+6],[2,3,5],4)
+        r.box('head',[s*11-(2 if s<0 else 0),23,94],[2,3,5],4)
+        r.box('head',[s*10-(2 if s<0 else 0),25,93],[3,4,9],0)
+        n=r.bone(('left' if s>0 else 'right')+'_antler','head',[s*7,28,88])
+        r.box(n,[s*7-2,27,85],[4,10,4],4);r.box(n,[s*7-2,35,75],[4,4,14],4)
+        r.box(n,[s*7-1.5,37,74.5],[3,7,3],4)
+        n=r.bone(('left' if s>0 else 'right')+'_whisker','head',[s*8,14,111])
+        r.box(n,[min(s*8,s*22),13,110],[14,2,2],4);r.box(n,[s*22-1,9,107],[2,6,4],4)
+        r.motion(n,'rotation',[[0,0,v*s] for v in [-3,0,3,0,-3]])
+        for i,z in enumerate((54,4)):
+            n=r.bone(f'{"left" if s>0 else "right"}_limb_{i}', 'trunk_'+str(0 if i==0 else 3),[s*5,12,z])
+            r.box(n,[4 if s>0 else -16,8,z-4],[12,10,8],2)
+            r.box(n,[s*16-3,3,z-4],[6,7,12],3)
+            for toe in (-1,1):r.box(n,[s*16-1.5+toe*2,2,z+7],[3,4,5],4)
+            phase=i*math.pi+(0 if s>0 else math.pi/2)
+            values=[round(math.sin(j*math.pi/2-phase)*2.5,3) for j in (0,1,2,3,0)]
+            r.motion(n,'rotation',[[v,0,round(s*v*.3,3)] for v in values])
     return r
 
 def turtle():
@@ -162,20 +172,23 @@ def turtle():
         for front,z in [('fore',27),('hind',-28)]:
             n=r.bone(front+('_left' if s>0 else '_right'),'root',[s*28,15,z])
             r.box(n,[min(s*28,s*48),5,z-8],[20,12,16],2)
-            r.box(n,[s*48-5,0,z-10],[10,7,23],0)
-            for k in (-1,0,1):r.box(n,[s*48-3+k*3,0,z+11],[2,4,6],4)
+            # Broad stepped paddles, with a deep overlap at the shoulder and three blunt claws.
+            r.box(n,[s*48-8,2,z-13],[16,8,28],0)
+            for k in (-1,0,1):r.box(n,[s*48-2+k*4,2,z+12],[4,4,8],4)
             phase=1 if (front=='fore')==(s>0) else -1
-            r.motion(n,'rotation',[[v*phase,0,s*v*.5*phase] for v in [-5,0,5,0,-5]])
+            r.motion(n,'rotation',[[v*phase,s*w*phase,s*v*.4*phase] for v,w in [(-4,-10),(0,-3),(4,10),(1,4),(-4,-10)]])
     previous=r.bone('snake_base','shell',[25,34,-24])
     # Shell-bound serpent, thick root and narrowing neck; an independent second head, no humanoid torso.
-    for i,(x,y,z,w) in enumerate([(29,35,-26,12),(38,44,-14,11),(41,55,1,10),(37,64,17,9)]):
-        n=r.bone('snake_'+str(i),previous,[x,y,z]);r.box(n,[x-w/2,y-3,z-7],[w,13,16],1)
-        r.motion(n,'rotation',[[0,v,0] for v in [-3,2,3,-2,-3]]);previous=n
+    for i,(x,y,z,w) in enumerate([(29,35,-26,14),(38,44,-14,13),(41,55,1,12),(37,64,17,11)]):
+        n=r.bone('snake_'+str(i),previous,[x,y,z]);r.box(n,[x-w/2,y-4,z-9],[w,15,20],1)
+        # Adjacent segments overlap through the entire restrained, lagging sway.
+        r.motion(n,'rotation',[[0,2.2*math.sin(t*math.pi/2-i*.45),0] for t in (0,1,2,3,0)]);previous=n
     r.bone('snake_head',previous,[37,75,26]);r.box('snake_head',[30,70,24],[14,12,20],2)
     r.box('snake_head',[31,69,42],[12,5,8],3);r.box('snake_head',[31.5,68.5,49.5],[11,3,1],0)
     for x in (30,43):r.box('snake_head',[x,78,38],[1,2,4],4)
     r.bone('tail','root',[0,14,-44]);r.box('tail',[-7,9,-65],[14,10,23],2);r.box('tail',[-4,10,-79],[8,6,15],1)
     r.motion('head','rotation',[[0,v,0] for v in [-3,0,3,0,-3]])
+    r.motion('tail','rotation',[[0,v,0] for v in [3,0,-3,0,3]])
     return r
 
 def crow():
@@ -196,17 +209,21 @@ def crow():
             x=s*(40+i*5);z=-8-i*7
             r.box(outer,[x-3,26,z-12],[6,3,26-i*2],1 if i%2 else 0)
             r.box(outer,[x-2,25.5,z-13],[4,2,3],4)
-        r.motion(wing,'rotation',[[0,0,s*v] for v in [-8,4,8,4,-8]])
-        r.motion(outer,'rotation',[[0,0,s*v] for v in [-3,0,3,0,-3]])
+        # Deliberate slow lift, stronger downstroke, then sustained glide; outer wing lags the root.
+        times=('0','0.75','1.25','1.75','2.5','3.5','4')
+        r.tracks[wing]={'rotation':dict(zip(times,[[0,0,s*v] for v in [-10,-28,-4,20,5,-6,-10]]))}
+        r.tracks[outer]={'rotation':dict(zip(times,[[0,0,s*v] for v in [-3,-10,-18,5,8,0,-3]]))}
     r.bone('tail','breast',[0,24,-17])
     for i in (-1,0,1):r.box('tail',[i*7-4,19,-52+abs(i)*5],[8,4,34-abs(i)*4],1 if i==0 else 0)
     r.motion('tail','rotation',[[v,0,0] for v in [-2,0,2,0,-2]])
     # Three distinct leg chains, all attached to the ventral breast. Third foot readable in side/underside view.
-    for i,(x,z) in enumerate([(-6,2),(6,2),(0,-11)]):
-        n=r.bone('leg_'+str(i),'breast',[x,18,z]);r.box(n,[x-2,6,z-2],[4,12,4],0)
-        r.box(n,[x-3,3,z-2],[6,4,10],1)
-        for toe in (-1,1):r.box(n,[x+toe*3-1,2,z+6],[2,3,7],0)
-        r.motion(n,'rotation',[[v,0,0] for v in [-3,0,3,0,-3]])
+    for i,(x,z) in enumerate([(-9,4),(9,4),(0,-13)]):
+        n=r.bone('leg_'+str(i),'breast',[x,18,z]);drop=4 if i==2 else 0
+        r.box(n,[x-2,6-drop,z-2],[4,12+drop,4],0)
+        r.box(n,[x-3,3-drop,z-2],[6,4,10],1)
+        for toe in (-1,1):r.box(n,[x+toe*3-1,2-drop,z+6],[2,3,7],0)
+        values=[-2,0,3,1,-2] if i<2 else [2,4,1,-1,2]
+        r.motion(n,'rotation',[[v,0,0] for v in values])
     return r
 
 def main():

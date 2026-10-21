@@ -49,10 +49,12 @@ STRUCTURES = {"imperial_tomb":"帝陵地宫", "imperial_mausoleum":"帝王陵", 
     "palace":"宫殿", "pagoda":"宝塔", "academy":"书院", "great_wall":"长城", "inn":"驿站"}
 VANILLA.update({"arrow":"箭","target":"标靶","spyglass":"望远镜","leather_boots":"皮革靴子"})
 VANILLA.update(dict(crossbow="弩", tripwire_hook="绊线钩", anvil="铁砧", red_mushroom="红蘑菇", bread="面包", cooked_porkchop="熟猪排", charcoal="木炭", milk_bucket="奶桶", poppy="虞美人"))
+VANILLA.update({'candle':'蜡烛','soul_torch':'灵魂火把','red_dye':'红色染料','fermented_spider_eye':'发酵蛛眼','compass':'指南针'})
 VANILLA.update({'iron_pickaxe':'铁镐','smithing_table':'锻造台','ender_chest':'末影箱'})
 
 
 def name(target):
+    if target == "#minecraft:planks": return "任意木板"
     ns, short = target.lstrip("#").split(":", 1)
     if ns == "minecraft" and short in VANILLA:
         return VANILLA[short]
@@ -123,7 +125,7 @@ def loot_index():
 HINTS = {
  "mu_mao":"两根木棍加一块橡木木板合成；当前配方指定橡木，不是任意木板。夜里先避开王朝精英怪。",
  "jade":"铁镐开采主世界地下玉矿；先留一部分玉做饰品，再把多余的九块玉压成玉石块。",
- "cinnabar":"当前没有可挖的朱砂矿！探索神庙、法阵遗迹、帝陵地宫的宝箱取得，箱子有概率出货，不保证每箱都有。",
+ "cinnabar":"没有朱砂矿。主世界用探险者指南针搜索“山麓采矿庄园”或“天工山城”，开宝箱有概率取得；神庙与法阵遗迹无法直接用指南针搜索。",
  "bamboo_slip":"去丛林找竹子，线可由蜘蛛掉落。竹简用于兵器图纸，不是一次性的任务交付品。",
  "blueprint":"青铜期装备的关键材料。提前备好纸、徽墨和竹简；先做一张，再按选定装备路线补数量。",
  "bronze_ingot":"新增基础冶材配方：铜锭×3 + 铁锭×1 → 青铜锭×4；不需要找不存在的锡矿。",

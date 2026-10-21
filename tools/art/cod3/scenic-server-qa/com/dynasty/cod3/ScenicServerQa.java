@@ -73,8 +73,8 @@ public final class ScenicServerQa {
     @GameTest(template="bow_ritual_test")
     public static void sceneBudgetDuplicatesAndRangeRemainBounded(GameTestHelper h){
         var level=h.getLevel();var anchor=Vec3.atCenterOf(h.absolutePos(new BlockPos(3,2,3)));var scenes=new ScenicEvents();
-        // #3 belongs to the underworld; fill only legal overworld definitions.
-        for(int number:new int[]{1,2,4,5,6,7,8,9})h.assertTrue(scenes.start(level,number,anchor),"Could not fill legal budget: "+number);
+        // Watercourse/valley/battlefield events need dedicated terrain. Fill generic legal overworld definitions here.
+        for(int number:new int[]{1,2,5,7,8,9,11,12})h.assertTrue(scenes.start(level,number,anchor),"Could not fill legal budget: "+number);
         h.assertTrue(!scenes.start(level,10,anchor)&&!scenes.start(level,1,anchor)&&!scenes.start(level,0,anchor)&&!scenes.start(level,25,new Vec3(Double.NaN,0,0)),"Invalid/duplicate/overflow scene accepted");
         h.assertTrue(scenes.packets(level,anchor.add(256,0,0)).size()==8&&scenes.packets(level,anchor.add(256.01,0,0)).isEmpty(),"Scene region boundary changed");
         h.succeed();
@@ -97,16 +97,21 @@ public final class ScenicServerQa {
         for(String id:List.of("scenic_crystal_canopy","scenic_ice_bloom")){
             var template=level.getStructureManager().getOrCreate(new net.minecraft.resources.ResourceLocation("dynasty",id));
             h.assertTrue(template.getSize().equals(new net.minecraft.core.Vec3i(31,19,31)),"Invalid native NBT dimensions: "+id);
-            var origin=h.absolutePos(new BlockPos(0,18,60+index++*40));
-            int before=0;for(var ignored:level.getAllEntities())before++;
+            var origin=h.absolutePos(new BlockPos(1200,18,1200+index++*64));
+            // Isolate the 31m cave from the compact GameTest fixture grid and its inventory chests.
+            // Placement can load new chunks and their pre-existing entities. Establish that baseline first.
+            for(int x=origin.getX()>>4;x<=(origin.getX()+30)>>4;x++)
+                for(int z=origin.getZ()>>4;z<=(origin.getZ()+30)>>4;z++)level.getChunk(x,z);
+            h.assertTrue(template.save(new CompoundTag()).getList("entities",10).isEmpty(),"Template contains entity data: "+id);
+            var beforeEntities=new HashSet<java.util.UUID>();for(var entity:level.getAllEntities())beforeEntities.add(entity.getUUID());
             h.assertTrue(template.placeInWorld(level,origin,origin,new net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings().setIgnoreEntities(false).setKeepLiquids(false).setKnownShape(true),level.random,2),"Template not placed: "+id);
-            int after=0;for(var ignored:level.getAllEntities())after++;
-            h.assertTrue(before==after,"Permanent cave creates an entity");
+            var addedEntities=new ArrayList<String>();for(var entity:level.getAllEntities())if(!beforeEntities.contains(entity.getUUID())&&new net.minecraft.world.phys.AABB(origin,origin.offset(31,19,31)).contains(entity.position()))addedEntities.add(entity.getType()+" at "+entity.position());
+            h.assertTrue(addedEntities.isEmpty(),"Permanent cave creates an entity inside "+origin+": "+id+" "+addedEntities);
             for(int i=0;i<31;i++)for(var floor:List.of(origin.offset(15,0,i),origin.offset(i,0,15))){
                 h.assertTrue(level.getBlockState(floor).isSolid(),"Broken crossing floor: "+id);
                 for(int y=1;y<=4;y++)h.assertTrue(level.isEmptyBlock(floor.above(y)),"Blocked portal/crossing: "+id);
             }
-            var light=origin.offset(id.contains("crystal")?10:7,id.contains("crystal")?15:5,id.contains("crystal")?12:7);
+            var light=origin.offset(id.contains("crystal")?10:8,id.contains("crystal")?16:5,id.contains("crystal")?12:8);
             h.assertTrue(level.getBlockState(light).is(net.minecraft.world.level.block.Blocks.SEA_LANTERN)&&level.getBlockState(light).getLightEmission(level,light)==15,"Cave has no permanent block light");
             h.assertTrue(java.util.Arrays.stream(net.minecraft.core.Direction.values()).anyMatch(d->level.isEmptyBlock(light.relative(d))),"Lamp is sealed inside opaque cubes");
             var roundtrip=new net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate();

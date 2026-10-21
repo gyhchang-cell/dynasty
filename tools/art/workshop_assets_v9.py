@@ -93,7 +93,7 @@ final class WorkshopShapes {
 }
 ''')
     for id,(_,pattern,ingredients) in NEW.items():
-        write(DATA/'recipes'/f'{id}.json',{'type':'minecraft:crafting_shaped','pattern':pattern,'key':{k:{'item':v} for k,v in ingredients.items()},'result':{'item':f'dynasty:{id}'}})
+        write(DATA/'recipes'/f'{id}.json',{'type':'minecraft:crafting_shaped','pattern':pattern,'key':{k:({'tag':'minecraft:planks'} if v=='minecraft:oak_planks' else {'item':v}) for k,v in ingredients.items()},'result':{'item':f'dynasty:{id}'}})
         write(DATA/'loot_tables/blocks'/f'{id}.json',{'type':'minecraft:block','pools':[{'rolls':1,'entries':[{'type':'minecraft:item','name':f'dynasty:{id}'}],'conditions':[{'condition':'minecraft:survives_explosion'}]}]})
     mine=RES/'data/minecraft/tags/blocks/mineable/pickaxe.json'
     content=json.loads(mine.read_text()) if mine.exists() else {'replace':False,'values':[]}

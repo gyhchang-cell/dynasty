@@ -51,25 +51,22 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         return Math.min(9,1+Math.min(Math.min(x-22,41-x),Math.min(z-6,25-z)));
     }
     public static List<BlockPos> vaultStars() {
-        var points=new ArrayList<BlockPos>();
-        for(int i=0;i<28;i++) {
-            double angle=i*Math.PI*2/28;
-            int x=(int)Math.round(31.5+18*Math.cos(angle)),z=(int)Math.round(15.5+9*Math.sin(angle));
-            points.add(new BlockPos(x,vaultRoof(x,z),z));
-        }
-        return List.copyOf(points);
+        return ChenshaVaultLayout.constellationOffsets();
+    }
+    /** A 24-block drop in 14 horizontal blocks: 59.74 degrees at voxel resolution.
+     * The ten-block level run below it opens into the upper ambulatory. */
+    public static int entranceFloor(int z){
+        return in(z,10,34)?72-(int)Math.floor(Math.min(z-10,14)*24.0/14.0):-1;
     }
     /** null leaves the natural terrain untouched. Each column writes only its authored cells. */
     public static BlockState cell(int x,int y,int z){
-        BlockState result=null;
+        BlockState result=ChenshaArchitecture.mound(x,y,z);
         // Entry mound and three-seal hall at the natural surface datum.
         if(rect(x,z,25,0,39,11)&&in(y,72,79))result=y==72||y==79||x==25||x==39||z==0||z==11?shell():Blocks.AIR.defaultBlockState();
         if(rect(x,z,30,0,34,1)&&in(y,73,76))result=Blocks.AIR.defaultBlockState();
         // Upper ambulatory around a 20-block deep horse burial well.
         if(rect(x,z,4,33,59,88)&&in(y,48,57))result=y==48||y==57||x==4||x==59||z==33||z==88?shell():Blocks.AIR.defaultBlockState();
-        if(rect(x,z,17,40,25,48)&&in(y,28,55))result=y==28||x==17||x==25||z==40||z==48?shell():Blocks.AIR.defaultBlockState();
-        if(rect(x,z,18,41,24,47)&&y==28)result=Blocks.BONE_BLOCK.defaultBlockState();
-        // Nine independent vaulted chambers linked by three-block-wide bronze chain bridges.
+        // Nine chambers with four-block decks and two-block clear bridge centres.
         if(rect(x,z,4,32,59,89)&&in(y,18,33)){
             boolean chamber=false,edge=false;
             for(int cx:new int[]{4,24,44})for(int cz:new int[]{32,52,72})if(rect(x,z,cx,cz,cx+15,cz+15)){
@@ -81,7 +78,6 @@ public final class ChenshaPiece extends DynastyStructurePiece {
             else if(chamber)result=y==24||y==33||edge?shell():Blocks.AIR.defaultBlockState();
             else result=y==24&&bridge?Blocks.CUT_COPPER.defaultBlockState():Blocks.AIR.defaultBlockState();
             if(chamber&&edge&&bridge&&in(y,25,28))result=Blocks.AIR.defaultBlockState();
-            if(y==31&&!chamber&&bridge)result=Blocks.CHAIN.defaultBlockState();
         }
         // Small contained water channels for the existing aquatic actor. The central
         // mercury trial remains a visual/area hazard; no new fluid or broad water update.
@@ -108,6 +104,17 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         }
         // Do not let the arena's north wall block the downward stair connector.
         if(in(x,30,34)&&in(z,27,29)&&in(y,1,4))result=Blocks.AIR.defaultBlockState();
+        // Structural dressing precedes functional access: later carving must
+        // keep the hidden room, lift, escape ladder and shared connectors open.
+        BlockState decoration=ChenshaArchitecture.decoration(x,y,z);
+        if(decoration!=null)result=decoration;
+        // This well crosses the middle-room ceiling. Carve it after both storeys
+        // and their dressing so the burial shaft really remains twenty blocks deep.
+        if(rect(x,z,17,40,25,48)&&in(y,28,55)) {
+            boolean rim=x==17||x==25||z==40||z==48;
+            result=y==28||rim&&y<=49?(y>=48?DungeonMasonryBlock.finish(6):shell()):Blocks.AIR.defaultBlockState();
+        }
+        if(rect(x,z,18,41,24,47)&&y==28)result=Blocks.BONE_BLOCK.defaultBlockState();
         // Secret artisans' chamber behind one intentionally breakable wall. Outer shell stays protected.
         if(rect(x,z,49,87,61,94)&&in(y,24,31))result=y==24||y==31||x==49||x==61||z==87||z==94?shell():Blocks.AIR.defaultBlockState();
         if(in(x,51,53)&&z==87&&in(y,25,27))result=Blocks.CRACKED_STONE_BRICKS.defaultBlockState();
@@ -115,7 +122,7 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         // draws the falling ribbon, avoiding any spreading real fluid simulation.
         if(rect(x,z,50,85,53,86)&&y==24)result=Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
         // One-way permanent lift shaft and landing connect lower arena to the entrance hall.
-        if(rect(x,z,40,6,44,10)&&in(y,0,76))result=y==0||x==40||x==44||z==6||z==10?shell():Blocks.AIR.defaultBlockState();
+        if(rect(x,z,40,6,44,10)&&in(y,0,76))result=y==0||y==76||x==40||x==44||z==6||z==10?shell():Blocks.AIR.defaultBlockState();
         if(in(x,40,42)&&z==8&&in(y,1,3))result=Blocks.AIR.defaultBlockState();
         if(in(x,37,42)&&z==8&&in(y,73,75))result=Blocks.AIR.defaultBlockState();
         if(in(x,39,43)&&z==8&&y==72)result=shell();
@@ -126,6 +133,10 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         // They do not create live actors or ticking redstone in an inactive room.
         if(rect(x,z,50,90,53,93)&&y==25)result=Blocks.BONE_BLOCK.defaultBlockState();
         if(x==5&&(y==52&&in(z,46,50)||y==51&&(z==49||z==51)))result=Blocks.RED_TERRACOTTA.defaultBlockState();
+        // A survivor in the burial well can return along its supported west wall;
+        // this service ladder never reaches a later floor or skips a seal.
+        if(x==18&&z==44&&in(y,29,49))result=Blocks.LADDER.defaultBlockState()
+            .setValue(net.minecraft.world.level.block.LadderBlock.FACING,Direction.EAST);
         // A restored trap floor must not seal survivors in the pit. This side
         // ladder leads only back to the upper gallery, never past a progression seal.
         if(x==35&&z==41&&in(y,43,51))result=y==43?shell():Blocks.AIR.defaultBlockState();
@@ -135,9 +146,17 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         // Connectors have final precedence over room floors/ceilings. Otherwise
         // the middle gallery erases the last nine steps of the descending run.
         if(in(x,29,35)){
-            int floor=in(z,10,34)?82-z:-1;
-            if(floor>=0&&in(y,floor,floor+5))
-                result=y==floor||y==floor+5||x==29||x==35?shell():Blocks.AIR.defaultBlockState();
+            int floor=entranceFloor(z);
+            if(floor>=0&&in(y,floor,floor+5)){
+                result=y==floor?shell():y==floor+5?DungeonMasonryBlock.finish(6):
+                    x==29||x==35?DungeonMasonryBlock.finish(z%4==0?3:5):Blocks.AIR.defaultBlockState();
+                // Two-block risers are too tall to jump back up. Every steep
+                // column has an attached west-wall ladder and full headroom,
+                // so retreat is possible before the bottom return lift unlocks.
+                if(x==30&&in(z,11,24)&&in(y,floor+1,floor+4))
+                    result=Blocks.LADDER.defaultBlockState()
+                        .setValue(net.minecraft.world.level.block.LadderBlock.FACING,Direction.EAST);
+            }
             floor=in(z,59,83)?107-z:-1;
             if(floor>=0&&in(y,floor,floor+5))
                 result=y==floor||y==floor+5||x==29||x==35?shell():Blocks.AIR.defaultBlockState();
@@ -213,10 +232,9 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         fixture(level,clip,new BlockPos(52,25,91),Blocks.CHEST.defaultBlockState(),new ResourceLocation("dynasty:dungeons/chensha_artisan_supplies"));
         fixture(level,clip,new BlockPos(55,25,91),Blocks.CRAFTING_TABLE.defaultBlockState(),null);
         fixture(level,clip,new BlockPos(12,49,52),Blocks.CHEST.defaultBlockState(),new ResourceLocation("dynasty:dungeons/chensha_expedition_notes"));
-        for(var star:vaultStars())fixture(level,clip,star,Blocks.SEA_LANTERN.defaultBlockState(),null);
         for(var skull:List.of(new BlockPos(19,29,43),new BlockPos(23,29,46),new BlockPos(50,26,92),new BlockPos(53,26,90)))
             fixture(level,clip,skull,Blocks.SKELETON_SKULL.defaultBlockState(),null);
-        for(BlockPos pearl:ChenshaVaultLayout.constellationOffsets())
+        for(BlockPos pearl:vaultStars())
             fixture(level,clip,pearl,Blocks.PEARLESCENT_FROGLIGHT.defaultBlockState(),null);
         for(BlockPos lamp:List.of(new BlockPos(27,75,7),new BlockPos(37,75,7),new BlockPos(12,53,38),new BlockPos(53,53,83),
                 new BlockPos(26,30,60),new BlockPos(37,30,60),new BlockPos(20,6,10),new BlockPos(44,6,21)))

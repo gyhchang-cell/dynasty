@@ -27,7 +27,7 @@ CURIOS = os.path.join(ROOT, "src/main/resources/data/dynasty/tags/items/accessor
 TRINKETS = {
     # ---- 六、玉器（10）----
     "jade_marrow_charm": ("玉髓佩", "Jade Marrow Charm", "jade_pendant", (0x9E, 0xE0, 0xC0),
-                          ["dynasty:jade", "dynasty:jade", "dynasty:silk"], (0, 180.0, 1, 5.0, 0, 0, 0)),
+                          ['dynasty:jade', 'dynasty:jade', 'dynasty:silk', 'minecraft:amethyst_shard'], (0, 180.0, 1, 5.0, 0, 0, 0)),
     "jade_ruyi": ("玉如意", "Jade Ruyi", "jade_bi_disc", (0xF0, 0xE8, 0xC0),
                   ["dynasty:jade", "dynasty:jade_block", "dynasty:gold_coin"], (11, 2.0, -1, 0.0, 11, 0, 0)),
     "jade_ring": ("玉扳指", "Jade Ring", "jade_cicada", (0xC8, 0xE8, 0xB0),
@@ -35,7 +35,7 @@ TRINKETS = {
     "jade_belt_hook": ("玉带钩", "Jade Belt Hook", "jade_tortoise", (0xB8, 0xD8, 0xC8),
                        ["dynasty:jade", "dynasty:bronze_ingot"], (1, 8.0, 2, 0.3, 0, 0, 0)),
     "jade_flying_apsara": ("玉飞天", "Jade Apsara", "sky_feather", (0xE0, 0xF0, 0xD8),
-                           ["dynasty:jade", "dynasty:silk", "dynasty:gold_coin"], (3, 0.08, -1, 0.0, 8, 0, 0)),
+                           ['dynasty:jade', 'dynasty:silk', 'dynasty:gold_coin', 'minecraft:feather'], (3, 0.08, -1, 0.0, 8, 0, 0)),
     "jade_bixie": ("玉辟邪", "Jade Bixie", "jade_crown", (0xA8, 0xD0, 0xA8),
                    ["dynasty:jade", "dynasty:cinnabar"], (6, 0.4, 4, 0.08, 0, 0, 0)),
     "jade_kylin": ("玉麒麟", "Jade Kylin", "qilin_horn_charm", (0x90, 0xE0, 0xB0),
@@ -45,7 +45,7 @@ TRINKETS = {
     "jade_cong": ("玉琮", "Jade Cong", "heart_mirror", (0x9C, 0xD8, 0xC8),
                   ["dynasty:jade", "dynasty:jade_block", "dynasty:bronze_ingot"], (1, 12.0, 2, 0.4, 0, 0, 0)),
     "jade_zhang": ("玉璋", "Jade Zhang", "star_compass", (0xB0, 0xE8, 0xE0),
-                   ["dynasty:jade", "dynasty:jade_block", "dynasty:gold_coin"], (4, 0.12, 5, 0.08, 0, 0, 0)),
+                   ['dynasty:jade', 'dynasty:jade_block', 'dynasty:gold_coin', 'dynasty:silk'], (4, 0.12, 5, 0.08, 0, 0, 0)),
     # ---- 七、兵器配饰（10）----
     "saber_tassel": ("刀穗", "Saber Tassel", "dragon_whisker", (0xE0, 0x5A, 0x4A),
                      ["dynasty:silk", "dynasty:cinnabar"], (4, 0.07, 5, 0.05, 0, 0, 0)),
@@ -79,7 +79,7 @@ TRINKETS = {
     "snake_gall": ("蛇胆", "Snake Gall", "cinnabar_pouch", (0x70, 0xB0, 0x60),
                    ["dynasty:cinnabar", "dynasty:healing_salve"], (4, 0.10, -1, 0.0, 0, 0, 3)),
     "bear_paw": ("熊掌", "Bear Paw", "dragon_bone_ring", (0xA0, 0x7A, 0x5A),
-                 ["minecraft:leather", "dynasty:refined_steel"], (0, 300.0, 4, 0.08, 0, 0, 0)),
+                 ['minecraft:leather', 'dynasty:refined_steel', 'minecraft:leather'], (0, 300.0, 4, 0.08, 0, 0, 0)),
     "turtle_shell": ("龟甲", "Turtle Shell", "jade_tortoise", (0x80, 0xA8, 0x80),
                      ["minecraft:scute", "dynasty:jade"], (1, 16.0, 2, 0.5, 0, 0, 0)),
     "rhino_horn": ("犀角", "Rhino Horn", "qilin_horn_charm", (0xC0, 0xB0, 0xA0),
@@ -127,7 +127,7 @@ TRINKETS = {
     "tiangang_talisman": ("天罡符", "Tiangang Talisman", "storm_charm", (0x80, 0xC0, 0xE0),
                           ["dynasty:sky_token", "dynasty:talisman_paper", "dynasty:cinnabar"], (4, 0.18, 2, 0.4, 0, 0, 0)),
     "disha_talisman": ("地煞符", "Disha Talisman", "tomb_candle", (0xE0, 0x90, 0x60),
-                       ["dynasty:emperor_bone", "dynasty:talisman_paper", "dynasty:cinnabar"], (1, 18.0, 6, 0.4, 0, 0, 0)),
+                       ['dynasty:emperor_bone', 'dynasty:talisman_paper', 'dynasty:cinnabar', 'minecraft:black_dye'], (1, 18.0, 6, 0.4, 0, 0, 0)),
     "purple_qi_pearl": ("紫气珠", "Purple Qi Pearl", "sea_pearl", (0xA0, 0x70, 0xE0),
                         ["dynasty:sea_pearl", "dynasty:xuantian_jade", "dynasty:dragon_crystal"], (0, 320.0, 4, 0.14, 0, 0, 0)),
 }

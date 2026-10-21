@@ -55,3 +55,8 @@ for p in (A/f'textures/entity/blueprint/artifact/{ID}.png',A/'textures/entity/bl
    if x<2 or x>13 or y<2 or y>13:assert c==(255,255,255)
    assert any(all(im.getpixel((xx,yy))==c for xx in (sx,sx+1) for yy in (sy,sy+1)) for sx in (x-1,x) for sy in (y-1,y) if 0<=sx<15 and 0<=sy<15)
 print('Exported original2.2m blade/3m full polearm:6bones/17cubes; held mesh/world geo/earth crest/16px icons')
+
+# Approved inventory transparency: preserve entity atlases.
+import runpy as _inventory_runpy
+from pathlib import Path as _InventoryPath
+_inventory_runpy.run_path(str(_InventoryPath(__file__).resolve().parents[1]/"art/inventory-refresh/transparent.py"))["cleanup_white"]()

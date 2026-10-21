@@ -19,7 +19,14 @@ class QuestIntegrationTest(unittest.TestCase):
         before={q['id']:q for c in self.before for q in c['quests']}
         self.assertEqual(set(before),set(self.quests))
         for key,old in before.items():
-            self.assertEqual((old['tasks'],old['rewards']),(self.quests[key]['tasks'],self.quests[key]['rewards']),key)
+            expected_tasks=old['tasks']
+            # The already-shipped Wind Plume material migration is also allowed
+            # by quest_journey.validate_forward; preserve every other detector.
+            if key=='1000000000030280':
+                recipe=json.loads((story.ROOT/'src/main/resources/data/dynasty/recipes/branch_fengling_bow.json').read_text())
+                self.assertEqual({'item':'dynasty:sky_feather'},recipe['addition'])
+                expected_tasks=expected_tasks.replace('dynasty:refined_steel','dynasty:sky_feather')
+            self.assertEqual((expected_tasks,old['rewards']),(self.quests[key]['tasks'],self.quests[key]['rewards']),key)
             if old['role']=='main':
                 self.assertEqual(old['deps'],self.quests[key]['deps'])
                 self.assertEqual((old['x'],old['y']),(self.quests[key]['x'],self.quests[key]['y']))

@@ -1,0 +1,54 @@
+// Opt-in dragon-palace QA. Isolated sources are not packaged in the release JAR.
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    def skyRun=p.findProperty('skyRun') ?: 'cod3-aurora-20261018'
+    def skyRoot='build/'+skyRun
+    def qa=p.sourceSets.create('dragonPalaceQa') {
+        java.srcDir p.file('tools/art/cod3/dragon-palace-qa')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    def server=p.sourceSets.create('scenicServerQa') {
+        java.srcDir p.file('tools/art/cod3/scenic-server-qa')
+        java.srcDir p.file('tools/art/cod3/fire-tree-server-qa')
+        java.srcDir p.file('tools/art/cod3/ghost-ship-server-qa')
+        java.srcDir p.file('tools/art/cod3/mirage-street-server-qa')
+        java.srcDir p.file('tools/art/cod3/stone-god-server-qa')
+        java.srcDir p.file('tools/art/cod3/dragon-palace-server-qa')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.tasks.named(server.processResourcesTaskName).configure {
+        from(p.file('src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) { into 'data/dynasty_scenic_qa/structures' }
+    }
+    p.minecraft.runs.gameTestServer {
+        workingDirectory p.file(skyRoot+'/server')
+        property 'forge.logging.console.level','info'
+        property 'forge.enabledGameTestNamespaces','dynasty_scenic_qa'
+        jvmArgs '-Xmx1400m','-XX:ActiveProcessorCount=2','-Djava.awt.headless=true'
+        mods { dynasty { source server } }
+    }
+    p.tasks.matching { it.name=='runGameTestServer' }.configureEach { dependsOn server.classesTaskName }
+    p.minecraft.runs.client {
+        workingDirectory p.file(skyRoot+'/client')
+        property 'dynasty.dragonPalaceQa','true'
+        property 'dynasty.dragonPalaceQa.scenic',(p.findProperty('skyScenic') ?: '15').toString()
+        property 'dynasty.auroraQa.output',p.file(skyRoot+'/native').absolutePath
+        property 'forge.logging.console.level','info'
+        jvmArgs '-Xmx2g','-XX:ActiveProcessorCount=2'
+        if(System.getProperty('os.name').toLowerCase().contains('mac'))jvmArgs '-XstartOnFirstThread'
+        args '--username','AuroraQa','--width','1024','--height','768'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.matching { it.name=='runClient' }.configureEach { task ->
+        dependsOn qa.classesTaskName
+        task.jvmArgumentProviders.add({ ->
+            def file=p.file(skyRoot+'/launch.json');file.parentFile.mkdirs()
+            file.text=groovy.json.JsonOutput.toJson([executable:task.javaLauncher.get().executablePath.asFile.absolutePath,
+                jvmArgs:task.jvmArgs+task.systemProperties.collect { k,v -> "-D${k}=${v}".toString() },
+                classpath:task.classpath.asPath,main:task.mainClass.get(),args:task.args,
+                environment:task.environment.findAll { k,v -> k in ['MOD_CLASSES','MCP_MAPPINGS'] },directory:task.workingDir.absolutePath])
+            throw new StopExecutionException('Prepared aurora client; launch separately from frozen runtime')
+        } as org.gradle.process.CommandLineArgumentProvider)
+    }
+} }

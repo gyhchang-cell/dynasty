@@ -120,7 +120,7 @@ def export(ids=None):
             legacy=json.loads((OUT/'pixel16-export.json').read_text())
             for target in selected:
                 final=json.loads((ASSET/f'geo/secondary/{target}.geo.json').read_text())['minecraft:geometry'][0]
-                manifest[target].update(atlas=[128,128],bones=len(final['bones']),cuboids=sum(len(b.get('cubes',[])) for b in final['bones']),materialPolicy='original directional anatomy/material atlas; steve-fighters-v25 source')
+                manifest[target].update(atlas=[final['description']['texture_width'],final['description']['texture_height']],bones=len(final['bones']),cuboids=sum(len(b.get('cubes',[])) for b in final['bones']),materialPolicy='original directional anatomy/material atlas; steve-fighters-v25 source')
                 for key in ('pixelBlock','whiteMargin'):manifest[target].pop(key,None)
                 legacy.pop(target,None)
             (OUT/'model-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')

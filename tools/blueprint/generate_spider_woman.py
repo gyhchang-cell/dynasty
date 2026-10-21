@@ -98,3 +98,19 @@ brood_animations={
 }
 write_animation('tianzhu_brood',brood_animations)
 print('Original adult: 42 bones, '+str(sum(len(b.get('cubes',[])) for b in json.loads((ASSET/'geo/blueprint/elite'/f'{ID}.geo.json').read_text())['minecraft:geometry'][0]['bones']))+' cuboids; 7 animations; actual 16x16 four-colour PNG')
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('gudu_tianzhunv')
+
+# Original MC creature shape correction, after the material export.
+import runpy as _creature33_runpy
+_creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v33/refine.py"))["finish"]('gudu_tianzhunv')
+
+# Connected anatomy correction; final authoritative export (V34).
+import runpy as _creature34_runpy
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v34/refine.py"))["finish"]('gudu_tianzhunv')
+
+# Continuous anatomical masses and coherent pigmentation (V35).
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v35/refine.py"))["finish"]('gudu_tianzhunv')

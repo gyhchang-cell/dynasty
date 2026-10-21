@@ -65,3 +65,8 @@ for p in (A/f'textures/entity/blueprint/artifact/{ID}.png',A/'textures/entity/bl
    c=im.getpixel((x,y));assert 2<=x<=13 and 2<=y<=13 or c==(255,255,255)
    assert any(all(im.getpixel((xx,yy))==c for xx in (sx,sx+1) for yy in (sy,sy+1)) for sx in (x-1,x) for sy in (y-1,y) if 0<=sx<15 and 0<=sy<15)
 print(f'Exported original1.4m eight-faced sword: {len(elements)} actual held cuboids, rotating80tick ground field, original16px four-color PNGs')
+
+# Approved inventory transparency: preserve entity atlases.
+import runpy as _inventory_runpy
+from pathlib import Path as _InventoryPath
+_inventory_runpy.run_path(str(_InventoryPath(__file__).resolve().parents[1]/"art/inventory-refresh/transparent.py"))["cleanup_white"]()

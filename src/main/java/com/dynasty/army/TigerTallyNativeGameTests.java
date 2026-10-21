@@ -66,7 +66,7 @@ public final class TigerTallyNativeGameTests {
     }
     private TigerTallyNativeGameTests(){}
     @GameTest(template="bow_ritual_test",batch="army_purchase_native_rejections",setupTicks=20,timeoutTicks=160)
-    public static void nativeRecruitmentPacketsRejectInsufficientFundsFullBookWrongContainerReplayAndLostDeskAuthorityWithoutAssetLoss(GameTestHelper h){
+    public static void nativeRecruitmentPacketsRejectInsufficientFundsUnboundedBookWrongContainerReplayAndLostDeskAuthorityWithoutAssetLoss(GameTestHelper h){
         var p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),new GameProfile(UUID.randomUUID(),"purchase-rejections-native"));
         p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(p.server,new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);p.gameMode.changeGameModeForPlayer(GameType.SURVIVAL);
         var desk=h.absolutePos(new BlockPos(6,2,6));var entrance=Vec3.atBottomCenterOf(desk.north(2));p.setPos(entrance);h.getLevel().setBlockAndUpdate(desk,ArmyContent.DESK.get().defaultBlockState());
@@ -78,20 +78,21 @@ public final class TigerTallyNativeGameTests {
             }
             for(int slot=10;slot<=18;slot++){var coins=new ItemStack(DynastyItems.SILVER_COIN.get(),64);coins.getOrCreateTag().putInt("ForeignCoinSlot",slot);p.getInventory().setItem(slot,coins);}
             p.gameMode.useItemOn(p,h.getLevel(),p.getMainHandItem(),InteractionHand.MAIN_HAND,new BlockHitResult(Vec3.atCenterOf(desk),Direction.UP,desk,false));var menu=(ArmyMenu)p.containerMenu;int initial=ArmyRoster.coins(p);
-            for(int n=0;n<ArmyRoster.CAPACITY;n++){
+            for(int n=0;n<40;n++){
                 int code=menu.view.get(2)<<8;int coins=ArmyRoster.coins(p);p.connection.handleContainerButtonClick(new ServerboundContainerButtonClickPacket(menu.containerId,code));
                 h.assertTrue(ArmyRoster.soldiers(p).size()==n+1&&ArmyRoster.coins(p)==coins-ArmyRoster.PRICE[0]&&menu.view.get(0)==n+1&&menu.view.get(1)==coins-ArmyRoster.PRICE[0],"Each actual accepted packet atomically updates original book, balance and native receipt");
                 p.connection.handleContainerButtonClick(new ServerboundContainerButtonClickPacket(menu.containerId,code));h.assertTrue(ArmyRoster.soldiers(p).size()==n+1&&ArmyRoster.coins(p)==coins-ArmyRoster.PRICE[0],"Every double click/repeated native packet is exactly one purchase");
             }
-            var soldiers=ArmyRoster.soldiers(p).copy();var inventory=new net.minecraft.nbt.ListTag();p.getInventory().save(inventory);int balance=initial-ArmyRoster.CAPACITY*ArmyRoster.PRICE[0];
+            var soldiers=ArmyRoster.soldiers(p).copy();var inventory=new net.minecraft.nbt.ListTag();p.getInventory().save(inventory);int balance=initial-40*ArmyRoster.PRICE[0];
             packet(p,menu,0);packet(p,menu,1);packet(p,menu,2);
-            h.assertTrue(ArmyRoster.soldiers(p).equals(soldiers)&&ArmyRoster.coins(p)==balance,"All original role purchases refuse a genuinely purchased full36 book without losing assets");
+            h.assertTrue(ArmyRoster.soldiers(p).size()==43&&ArmyRoster.coins(p)==balance-48,"Purchases continue past the former 36-soldier cap for every role");
+            soldiers=ArmyRoster.soldiers(p).copy();inventory=new net.minecraft.nbt.ListTag();p.getInventory().save(inventory);balance=ArmyRoster.coins(p);
             p.connection.handleContainerButtonClick(new ServerboundContainerButtonClickPacket(menu.containerId+100,menu.view.get(2)<<8));
             p.setPos(entrance.add(100,0,0));packet(p,menu,0);p.setPos(entrance);h.getLevel().setBlockAndUpdate(desk,Blocks.AIR.defaultBlockState());packet(p,menu,0);
             p.closeContainer();p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(DynastyItems.TIGER_TALLY.get()));var tallyMenu=tally(h,p,InteractionHand.MAIN_HAND);p.setItemInHand(InteractionHand.MAIN_HAND,ItemStack.EMPTY);packet(p,tallyMenu,40);
             var afterInventory=new net.minecraft.nbt.ListTag();p.getInventory().save(afterInventory);
             h.assertTrue(!tallyMenu.stillValid(p)&&ArmyRoster.soldiers(p).equals(soldiers)&&ArmyRoster.coins(p)==balance&&afterInventory.equals(inventory),"Wrong container, remote/removed desk and no-tally authority cannot mutate original paid records or exact foreign-tagged coin inventory");
-            h.assertTrue(soldiers.stream().map(n->((net.minecraft.nbt.CompoundTag)n).getUUID("Id")).distinct().count()==ArmyRoster.CAPACITY,"Every native paid original soldier identity is unique");h.succeed();
+            h.assertTrue(soldiers.stream().map(n->((net.minecraft.nbt.CompoundTag)n).getUUID("Id")).distinct().count()==43,"Every native paid original soldier identity is unique");h.succeed();
         }finally{p.closeContainer();net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent(p));DynastyTrinkets.forget(p);p.discard();}
     }
 }

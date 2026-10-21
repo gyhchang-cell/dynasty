@@ -31,6 +31,23 @@ RENDER_VARIANTS = {f"{bow}_pulling_{stage}": bow
 BLOCK_ITEM_NAMES = {"puzzle_star_dial": "star_dial"}
 # Shared display/texture parents, not inventory items. Require actual child references below.
 MODEL_PARENTS = {"solid_handheld", "solid_bow"}
+# Explicit additional models registered by ArtifactItemRenderer / TaiyiWhiskRenderer.
+# They share the real item's name; they are not separately registered inventory entries.
+CUSTOM_RENDER_MODELS = {base + suffix: base
+                       for base in ('longyin_zhanma_duanyue_dao', 'zhanlu_rendao_bamian_jian')
+                       for suffix in ('_icon', '_mesh')}
+CUSTOM_RENDER_MODELS['taiyi_whisk_icon'] = 'taiyi_whisk'
+
+
+def custom_model_errors(item, models, model_dir):
+    base = CUSTOM_RENDER_MODELS[item]
+    if base not in models:
+        return [f'渲染模型 {item} 缺少实际物品模型 {base}']
+    with open(os.path.join(model_dir, base + '.json'), encoding='utf-8') as model_file:
+        data = json.load(model_file)
+    if data.get('parent') != 'builtin/entity':
+        return [f'渲染模型 {item} 的物品 {base} 未使用自定义渲染器']
+    return []
 
 
 def read(path):
@@ -44,6 +61,9 @@ def check():
             for name in ("zh_cn", "en_us")}
 
     for item in sorted(models):
+        if item in CUSTOM_RENDER_MODELS:
+            problems.extend(custom_model_errors(item, models, os.path.join(ASSETS, 'models/item')))
+            continue
         if item in MODEL_PARENTS:
             path = os.path.join(ASSETS, "models/item", item + ".json")
             parent = json.load(open(path, encoding="utf-8"))

@@ -48,7 +48,7 @@ public final class DynastyInfoKeys {
             Map.entry("rebel_head", List.of(TOKEN_ALTAR, TOKEN_GUIDE)),
             Map.entry("eunuch_token", List.of(TOKEN_ALTAR, TOKEN_GUIDE)),
             Map.entry("emperor_bone", List.of(TOKEN_ALTAR, TOKEN_GUIDE)),
-            Map.entry("sky_token", List.of(TOKEN_ALTAR, TOKEN_GUIDE)),
+            Map.entry("sky_token", List.of("dynasty.info.token.sky_source", TOKEN_ALTAR, TOKEN_GUIDE)),
             Map.entry("sea_token", List.of(TOKEN_ALTAR, TOKEN_GUIDE)),
 
             // ---- 四座维度传送门：真实目的地 + 使用方式 + 回程提醒 ----

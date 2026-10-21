@@ -24,13 +24,31 @@ import net.minecraftforge.fml.common.Mod;
 public final class DungeonMechanismRenderer implements BlockEntityRenderer<DungeonMechanismBlockEntity> {
     public static final ResourceLocation HAMMER_MODEL=new ResourceLocation("dynasty","block/cod2_mechanism/crusher_head");
     public static final ResourceLocation CLOUD_MODEL=new ResourceLocation("dynasty","block/cod2_cloud/cloud");
+    public static final ResourceLocation GUILLOTINE_BLADE=new ResourceLocation("dynasty","block/cod2_guillotine/blade");
+    public static final ResourceLocation GUILLOTINE_FRAME=new ResourceLocation("dynasty","block/cod2_guillotine/frame");
+    public static final ResourceLocation GUILLOTINE_ROD=new ResourceLocation("dynasty","block/cod2_guillotine/rod");
     public DungeonMechanismRenderer(BlockEntityRendererProvider.Context ignored){}
-    @SubscribeEvent public static void additional(ModelEvent.RegisterAdditional event){event.register(HAMMER_MODEL);event.register(CLOUD_MODEL);}
+    @SubscribeEvent public static void additional(ModelEvent.RegisterAdditional event){event.register(HAMMER_MODEL);event.register(CLOUD_MODEL);
+        event.register(GUILLOTINE_BLADE);event.register(GUILLOTINE_FRAME);event.register(GUILLOTINE_ROD);}
     @SubscribeEvent public static void register(EntityRenderersEvent.RegisterRenderers event){
         event.registerBlockEntityRenderer(DungeonContent.MECHANISM.get(),DungeonMechanismRenderer::new);
         event.registerEntityRenderer(DungeonContent.TRAP_ARROW.get(),net.minecraft.client.renderer.entity.TippableArrowRenderer::new);
     }
     @Override public void render(DungeonMechanismBlockEntity be,float partial,PoseStack pose,MultiBufferSource buffers,int light,int overlay){
+        if(be.getBlockState().is(DungeonContent.GUILLOTINE.get())){
+            var facing=be.getBlockState().getValue(DungeonMechanismBlock.FACING);
+            int phase=be.getBlockState().getValue(DungeonMechanismBlock.STAGE);
+            double y=com.dynasty.dungeon.GuillotineTrap.bladeY(phase,be.visualProgress(partial));
+            int bladeLight=be.getLevel()==null?light:net.minecraft.client.renderer.LevelRenderer.getLightColor(be.getLevel(),be.getBlockPos().offset(0,(int)Math.floor(y+.375),0));
+            pose.pushPose();try{
+                pose.translate(.5,0,.5);pose.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));pose.translate(-.5,0,-.5);
+                // All models are <= one block; transforms assemble the actual supported frame.
+                part(be,pose,buffers,overlay,light,GUILLOTINE_FRAME,-1,-.125,.125,3,.375,.75);
+                for(double x:new double[]{-.985,1.86})part(be,pose,buffers,overlay,bladeLight,GUILLOTINE_ROD,x,-3,.25,.125,3,.5);
+                for(double x:new double[]{-.5,1.375})part(be,pose,buffers,overlay,bladeLight,GUILLOTINE_ROD,x,y+.7,.4375,.125,-y,.125);
+                part(be,pose,buffers,overlay,bladeLight,GUILLOTINE_BLADE,-.875,y,.3125,2.75,.75,.375);
+            }finally{pose.popPose();}return;
+        }
         if(be.kind()==DungeonMechanismBlock.Kind.TRAP&&com.dynasty.dungeon.DungeonTrapProfile.forId(be.mechanismId())==com.dynasty.dungeon.DungeonTrapProfile.CRUSHER){
             pose.pushPose();try{
                 int phase=be.getBlockState().getValue(DungeonMechanismBlock.STAGE);float progress=be.visualProgress(partial);
@@ -79,4 +97,13 @@ public final class DungeonMechanismRenderer implements BlockEntityRenderer<Dunge
         }finally{pose.popPose();}
     }
     @Override public int getViewDistance(){return 64;}
+    private static void part(DungeonMechanismBlockEntity be,PoseStack pose,MultiBufferSource buffers,int overlay,int light,
+            ResourceLocation model,double x,double y,double z,double width,double height,double depth){
+        pose.pushPose();try{
+            pose.translate(x,y,z);pose.scale((float)width,(float)height,(float)depth);
+            var mc=Minecraft.getInstance();var type=RenderType.cutout();
+            mc.getBlockRenderer().getModelRenderer().renderModel(pose.last(),buffers.getBuffer(type),be.getBlockState(),
+                mc.getModelManager().getModel(model),1,1,1,light,overlay,net.minecraftforge.client.model.data.ModelData.EMPTY,type);
+        }finally{pose.popPose();}
+    }
 }

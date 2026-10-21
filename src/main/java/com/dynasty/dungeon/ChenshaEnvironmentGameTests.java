@@ -128,6 +128,60 @@ public final class ChenshaEnvironmentGameTests {
     }
 
     @GameTest(template="bow_ritual_test",batch="cod2_environment")
+    public static void burialWellCrossesMiddleCeilingWithoutLosingItsDepth(GameTestHelper h) {
+        for(int x=18;x<=24;x++)for(int z=41;z<=47;z++) {
+            h.assertTrue(ChenshaPiece.cell(x,28,z).is(Blocks.BONE_BLOCK),"Burial remains sit at the actual twenty-block-deep floor");
+            for(int y=29;y<=48;y++)h.assertTrue(x==18&&z==44?ChenshaPiece.cell(x,y,z).is(Blocks.LADDER):ChenshaPiece.cell(x,y,z).isAir(),
+                "Middle chamber floor, roof and dressing cannot fill the horse burial shaft");
+        }
+        for(int y=29;y<=49;y++)h.assertTrue(ChenshaPiece.cell(18,y,44).is(Blocks.LADDER)
+            &&ChenshaPiece.cell(18,y,44).getValue(net.minecraft.world.level.block.LadderBlock.FACING)==net.minecraft.core.Direction.EAST
+            &&ChenshaPiece.cell(17,y,44).is(DungeonContent.MASONRY.get()),"Burial-well ladder has a solid support at every rung");
+        for(int y=50;y<=55;y++)h.assertTrue(ChenshaPiece.cell(17,y,44).isAir(),
+            "A one-block parapet keeps the burial well visible from the gallery");
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_environment")
+    public static void chainBridgeAnchorsLeaveAnUnobstructedCentre(GameTestHelper h) {
+        for(int x0:new int[]{20,40})for(int z0:new int[]{38,58,78}) {
+            for(int x=x0;x<=x0+3;x++)for(int z=z0+1;z<=z0+2;z++) {
+                h.assertTrue(ChenshaPiece.cell(x,24,z).is(DungeonContent.MASONRY.get()),"Protected bronze bridge deck");
+                for(int y=25;y<=27;y++)h.assertTrue(ChenshaPiece.cell(x,y,z).isAir(),"Bridge has a two-block clear centre");
+            }
+            for(int z:new int[]{z0,z0+3}) {
+                h.assertTrue(ChenshaPiece.cell(x0-1,27,z).is(DungeonContent.MASONRY.get()),"Chain reaches the west anchor");
+                h.assertTrue(ChenshaPiece.cell(x0+4,27,z).is(DungeonContent.MASONRY.get()),"Chain reaches the east anchor");
+                for(int x=x0;x<=x0+3;x++)h.assertTrue(ChenshaPiece.cell(x,27,z).is(Blocks.CHAIN)
+                    &&ChenshaPiece.cell(x,27,z).getValue(net.minecraft.world.level.block.ChainBlock.AXIS)==net.minecraft.core.Direction.Axis.X,
+                    "Side chain axis follows the bridge span");
+            }
+        }
+        for(int x0:new int[]{8,50})for(int x=x0+1;x<=x0+2;x++)for(int z=47;z<=52;z++) {
+            h.assertTrue(!ChenshaPiece.cell(x,24,z).isAir(),"Northern side bridge and both landings are supported");
+            for(int y=25;y<=27;y++)h.assertTrue(ChenshaPiece.cell(x,y,z).isAir(),
+                "North chambers connect beside the descending vault stair, through real wall openings");
+        }
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_environment")
+    public static void newMasonryRetainsProtectionAndDoesNotSealTheReturnLift(GameTestHelper h) {
+        h.assertTrue(DungeonContent.MASONRY.get().defaultBlockState().getValue(DungeonMasonryBlock.FINISH)==0,
+            "Old unqualified masonry saves retain their original deepslate finish");
+        for(int finish=0;finish<=7;finish++) {
+            var state=DungeonMasonryBlock.finish(finish);
+            h.assertTrue(state.getDestroySpeed(h.getLevel(),h.absolutePos(BlockPos.ZERO))<0,"Every finish remains unbreakable");
+            h.assertTrue(state.getPistonPushReaction()==net.minecraft.world.level.material.PushReaction.BLOCK,"Every finish remains piston-proof");
+        }
+        for(int x=37;x<=42;x++)for(int y=73;y<=75;y++)h.assertTrue(ChenshaPiece.cell(x,y,8).isAir(),
+            "Entry dressing leaves the permanent return lift landing open");
+        for(int x=40;x<=44;x++)for(int z=6;z<=10;z++)h.assertTrue(!ChenshaPiece.cell(x,76,z).isAir(),
+            "Lift cap seals the weather above its landing");
+        h.succeed();
+    }
+
+    @GameTest(template="bow_ritual_test",batch="cod2_environment")
     public static void expeditionDiaryUsesReadablePagesAndDoesNotRefill(GameTestHelper h) {
         var level=h.getLevel();var pos=h.absolutePos(new BlockPos(2,2,2));level.setBlockAndUpdate(pos,Blocks.CHEST.defaultBlockState());
         var chest=(net.minecraft.world.level.block.entity.ChestBlockEntity)level.getBlockEntity(pos);

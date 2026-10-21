@@ -1,7 +1,7 @@
 import unittest
 from collections import Counter
 from quest_growth import refining_costs
-from quest_story import build_book
+from quest_story import build_source_book
 
 class JourneyPolishTests(unittest.TestCase):
     def test_refining_exact_each_step(self):
@@ -16,7 +16,7 @@ class JourneyPolishTests(unittest.TestCase):
         self.assertIn('+15 → +16',high)
 
     def test_each_chapter_two_real_branches(self):
-        for c in build_book():
+        for c in build_source_book():
             if not c['main']:continue
             rows={q['id']:q for q in c['quests']}
             branches=[q for q in rows.values() if q['role']=='chapter_branch']

@@ -77,6 +77,10 @@ public final class TitleScreenRuntimeQa {
                 DynastyTitleScreen title = openTitle(mc, view[0], view[1]);
                 checkButtons(mc, title, view[0], view[1]);
                 capture(mc, title, view[0], view[1], view[2]);
+                button(title,"menu.options").onPress();
+                mc.screen.resize(mc,view[0],view[1]);
+                capture(mc,mc.screen,view[0],view[1],view[2]);
+                mc.screen.onClose();
             }
             checkDelegationAndDisabledButtons();
             checkNavigation(mc);
@@ -122,11 +126,14 @@ public final class TitleScreenRuntimeQa {
             actual.add(button.actionKey);
             require(button.active == button.original.active && button.getTooltip() == button.original.getTooltip(),
                     "Original enabled state/tooltip retained: " + button.actionKey);
+            if(!button.visible)continue;
             require(button.getX() >= 0 && button.getY() >= 0
                             && button.getX() + button.getWidth() <= width && button.getY() + button.getHeight() <= height - 30,
                     width + "x" + height + " button fits: " + button.actionKey);
         }
         require(actual.equals(vanilla), "Every vanilla/Forge action preserved at " + width + "x" + height);
+        require(buttons.stream().filter(b->b.visible).count()==4,"Four main actions visible");
+        buttons=buttons.stream().filter(b->b.visible).toList();
         for (int i = 0; i < buttons.size(); i++) {
             for (int j = i + 1; j < buttons.size(); j++) {
                 var a = buttons.get(i);
@@ -185,8 +192,7 @@ public final class TitleScreenRuntimeQa {
         }
         title = openTitle(mc, 640, 400);
         title.keyPressed(GLFW.GLFW_KEY_F6, 0, 0);
-        require(mc.screen instanceof DynastyTitleMenu.VanillaTitleScreen, "F6 opens a functional original title screen");
-        require(!(mc.screen instanceof DynastyTitleScreen), "Fallback does not loop into the replacement");
+        require(mc.screen == title, "F6 no longer switches away from the Dynasty title screen");
     }
 
     private static void checkSingleplayer(Minecraft mc) {
@@ -205,8 +211,11 @@ public final class TitleScreenRuntimeQa {
 
     private static void checkDestination(Minecraft mc, String key, Class<? extends Screen> expected) {
         var title = openTitle(mc, 640, 400);
-        var button = button(title, key);
-        title.mouseClicked(button.getX() + button.getWidth() / 2D, button.getY() + button.getHeight() / 2D, 0);
+        button(title,"menu.options").onPress();
+        Screen hub=mc.screen;
+        require(hub!=title,"Settings opens secondary hub");
+        var button=hub.children().stream().filter(c->c instanceof DynastyTitleScreen.MenuButton b&&b.actionKey.equals(key)).map(c->(Button)c).findFirst().orElseThrow();
+        hub.mouseClicked(button.getX()+button.getWidth()/2D,button.getY()+button.getHeight()/2D,0);
         require(expected.isInstance(mc.screen), key + " opens " + expected.getSimpleName()
                 + " (actual " + mc.screen.getClass().getSimpleName() + ")");
         mc.screen.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0);
@@ -217,8 +226,8 @@ public final class TitleScreenRuntimeQa {
         return title.menuButtons().stream().filter(button -> button.actionKey.equals(key)).findFirst().orElseThrow();
     }
 
-    private static void capture(Minecraft mc, DynastyTitleScreen title, int width, int height, int scale) throws Exception {
-        String name = "title-" + width + "x" + height + "-scale" + scale;
+    private static void capture(Minecraft mc, Screen title, int width, int height, int scale) throws Exception {
+        String name = (title instanceof DynastyTitleScreen?"title-":"settings-") + width + "x" + height + "-scale" + scale;
         Matrix4f projection = new Matrix4f(RenderSystem.getProjectionMatrix());
         VertexSorting sorting = RenderSystem.getVertexSorting();
         RenderTarget target = new TextureTarget(width * scale, height * scale, true, Minecraft.ON_OSX);

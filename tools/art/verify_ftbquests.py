@@ -25,11 +25,22 @@ MAX_FAR = 11.0          # 任务离章节中心的最大距离（玩家反馈：
 problems = []
 
 
+def advancement_ids(entries):
+    """Resource IDs retain both their namespace and subdirectories."""
+    result = set()
+    for entry in entries:
+        parts = entry.split('/', 3)
+        if (len(parts) == 4 and parts[0] == 'data'
+                and parts[2] == 'advancements' and entry.endswith('.json')):
+            result.add(parts[1] + ':' + parts[3][:-5])
+    return result
+
+
 def jar_path():
     if len(sys.argv) > 1 and sys.argv[1].endswith(".jar"):
         return sys.argv[1]
     jars = [p for p in glob.glob(os.path.join(ROOT, "build/libs/dynasty-*.jar"))
-            if "sources" not in p and "javadoc" not in p]
+            if re.fullmatch(r"dynasty-\d[^/]*\.jar", os.path.basename(p)) and "sources" not in p and "javadoc" not in p]
     return jars[0] if jars else None
 
 
@@ -198,11 +209,10 @@ def main():
     items, advancements = set(), set()
     if jar and os.path.exists(jar):
         with zipfile.ZipFile(jar) as z:
+            advancements = advancement_ids(z.namelist())
             for n in z.namelist():
                 if n.startswith("assets/dynasty/models/item/") and n.endswith(".json"):
                     items.add(n.split("/")[-1][:-5])
-                if n.startswith("data/dynasty/advancements/") and n.endswith(".json"):
-                    advancements.add(n.split("/")[-1][:-5])
     else:
         problems.append("找不到构建出的 jar（先 ./gradlew build）")
 
@@ -297,7 +307,8 @@ def main():
             if ref.split(":")[-1] not in entities:
                 problems.append("%s: 实体 %s 不存在" % (os.path.basename(path), ref))
         for ref in re.findall(r'advancement: "([^"]+)"', text):
-            if ref.split(":")[-1] not in advancements:
+            resource_id = ref if ':' in ref else 'minecraft:' + ref
+            if resource_id not in advancements:
                 problems.append("%s: 成就 %s 不存在" % (os.path.basename(path), ref))
 
     for dep in deps:

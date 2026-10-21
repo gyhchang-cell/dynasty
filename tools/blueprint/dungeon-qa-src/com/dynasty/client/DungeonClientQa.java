@@ -195,7 +195,7 @@ public final class DungeonClientQa {
                 require(!net.minecraft.network.chat.Component.translatable("book.dynasty.chensha.diary.1").getString().equals("book.dynasty.chensha.diary.1"),"Diary clue translation missing after reload");
             } else if(!WATER&&!VAULT&&stage==10) {
                 if(mc.player.getX()>CHENSHA.getX()+22||mc.player.getY()>CHENSHA.getY()+2)return;
-                for(var star:ChenshaPiece.vaultStars())if(!mc.level.getBlockState(CHENSHA.offset(star)).is(Blocks.SEA_LANTERN))return;
+                for(var star:ChenshaPiece.vaultStars())if(!mc.level.getBlockState(CHENSHA.offset(star)).is(Blocks.PEARLESCENT_FROGLIGHT))return;
                 require(mc.level.getBlockState(CHENSHA.offset(31,9,15)).is(Blocks.SMOOTH_QUARTZ),"Nine-tier dais not received on client");
                 if(frames<30){frames++;return;}
             } else if(!WATER&&!VAULT&&(stage==11||stage==12)) {
