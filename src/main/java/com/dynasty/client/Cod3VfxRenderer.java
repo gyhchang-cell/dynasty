@@ -28,7 +28,7 @@ public final class Cod3VfxRenderer {
     private static final BufferBuilder BUFFER=new BufferBuilder(262144);
     private static void clean(){
         var mc=Minecraft.getInstance();var current=mc.level;
-        if(current!=world){ACTIVE.clear();Cod3AfterImages.clear();ScenicModels.clear();soundTick=Long.MIN_VALUE;world=current;}
+        if(current!=world){ACTIVE.clear();Cod3AfterImages.clear();ScenicModels.clear();ScenicArraySound.clear();ScenicDragonSound.clear();ScenicGhostShipSound.clear();ScenicStoneGodSound.clear();ScenicMirageSound.clear();ScenicMirageRenderer.clear();ScenicGreatWallRenderer.clear();ScenicGreatWallSound.clear();ScenicGhostArmyRenderer.clear();ScenicGhostMarketRenderer.clear();ScenicGhostMarketLights.clear();ScenicGhostMarketSound.clear();ScenicDragonPalaceRenderer.clear();ScenicDragonPalaceSound.clear();ScenicFireTreeSound.clear();soundTick=Long.MIN_VALUE;world=current;}
         if(world==null)return;
         ACTIVE.removeIf(p->{
             if(world.getGameTime()-p.start()>=p.duration()||p.start()-world.getGameTime()>40)return true;
@@ -45,6 +45,7 @@ public final class Cod3VfxRenderer {
         });
         Cod3AfterImages.retain(ACTIVE);
     }
+    static List<Cod3VisualPacket> scenicPackets(){clean();return List.copyOf(ACTIVE);}
     public static void receive(Cod3VisualPacket packet){
         clean();if(!packet.valid()||world==null||!packet.dimension().equals(world.dimension().location().toString()))return;
         if(packet.sequence().startsWith("status_clear_")){
@@ -61,6 +62,7 @@ public final class Cod3VfxRenderer {
     }
     private static void add(Cod3VisualPacket p){
         if(!p.valid()||p.template()==0)return;
+        if(p.sequence().equals("scenic_13"))ACTIVE.removeIf(old->old.sequence().equals("scenic_13")&&old.seed()==p.seed()&&old.start()!=p.start());
         if(p.sequence().startsWith("combat_")){try{VfxInstance.combat(p);}catch(RuntimeException invalid){return;}}
         if(ACTIVE.stream().anyMatch(old->old.entityId()==p.entityId()&&old.start()==p.start()&&old.template()==p.template()&&old.seed()==p.seed()&&old.sequence().equals(p.sequence())))return;
         boolean templateCue=p.sequence().isBlank()||p.sequence().equals("vfx_follow")||p.sequence().startsWith("combat_")||Cod3AfterImages.supports(p);
@@ -74,10 +76,34 @@ public final class Cod3VfxRenderer {
     }
     @SubscribeEvent public static void tick(TickEvent.ClientTickEvent e){
         if(e.phase!=TickEvent.Phase.END)return;clean();if(world==null||Minecraft.getInstance().isPaused())return;
+        ScenicArraySound.sync(world,ACTIVE);
+        ScenicDragonSound.sync(world,ACTIVE);
+        ScenicGhostShipSound.sync(world,ACTIVE);
+        ScenicStoneGodSound.sync(world,ACTIVE);
+        ScenicMirageSound.sync(world,ACTIVE);
+        ScenicGreatWallSound.sync(world,ACTIVE);
+        ScenicGhostMarketSound.sync(world,ACTIVE);
+        ScenicDragonPalaceSound.sync(world,ACTIVE);
+        ScenicFireTreeSound.sync(world,ACTIVE);
+        if(world.getGameTime()%240==0&&Minecraft.getInstance().player!=null)for(var p:ACTIVE)if(p.sequence().equals("scenic_10")){
+            var water=ScenicXuanwuWater.surface(world,p);
+            if(water!=null){double volume=ScenicXuanwuWater.soundVolume(world.getGameTime()-p.start(),p.duration(),Minecraft.getInstance().player.position().distanceTo(water));
+                if(volume>0)world.playLocalSound(water.x,water.y,water.z,net.minecraft.sounds.SoundEvents.ELDER_GUARDIAN_AMBIENT,net.minecraft.sounds.SoundSource.AMBIENT,(float)volume,.55f,false);}
+        }
         Cod3AfterImages.history();ACTIVE.forEach(Cod3AfterImages::sample);if(world.getGameTime()%4!=0)return;
         var mc=Minecraft.getInstance();boolean low=mc.options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL;
+        // The leaf sound is local, infrequent and tied to the same visible regional clock.
+        for(var p:ACTIVE)if(p.sequence().equals("scenic_19")&&world.getGameTime()%120==0&&world.getGameTime()>=p.start()
+            &&mc.player!=null&&mc.player.distanceToSqr(p.origin())<16*16&&ScenicGoldenLeaves.visibility(world.getDayTime(),world.getRainLevel(1))>0)
+            world.playLocalSound(p.origin().x,p.origin().y+2,p.origin().z,net.minecraft.sounds.SoundEvents.GRASS_STEP,net.minecraft.sounds.SoundSource.AMBIENT,.18f,.8f,false);
+        if(world.getGameTime()%120==0&&mc.player!=null)for(var p:ACTIVE)if(p.sequence().equals("scenic_08")){
+            double volume=ScenicSilverfall.soundVolume(world.getGameTime()-p.start(),p.duration(),mc.player.position().distanceTo(p.origin()),world.getRainLevel(1));
+            if(volume>0)world.playLocalSound(p.origin().x,p.origin().y+2,p.origin().z,
+                net.minecraft.sounds.SoundEvents.WATER_AMBIENT,net.minecraft.sounds.SoundSource.AMBIENT,(float)volume,.8f,false);
+        }
         int remaining=128;
         for(var p:ACTIVE){
+            if(p.sequence().equals("scenic_17")||p.sequence().equals("scenic_18")||p.sequence().equals("scenic_04")||p.sequence().equals("scenic_22"))continue;
             if(p.sequence().startsWith("equipment_weapon_")||Cod3AfterImages.supports(p))continue;
             if(remaining<=0)break;
             var d=Cod3Catalog.vfx(p.template());double age=world.getGameTime()-p.start();if(age<0||age>=p.duration()||p.sequence().startsWith("scenic_")&&age>40||p.scale()>3)continue;
@@ -91,12 +117,16 @@ public final class Cod3VfxRenderer {
         }
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e){
-        if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_PARTICLES)return;clean();if(world==null||ACTIVE.isEmpty())return;
+        if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_PARTICLES)return;ScenicMirageRenderer.lastDrawnFaces=0;ScenicGreatWallRenderer.lastDrawnFaces=0;ScenicGhostArmyRenderer.lastSoldiers=ScenicGhostArmyRenderer.lastWhiteQuads=0;ScenicGhostMarketRenderer.lastDrawnFaces=ScenicGhostMarketRenderer.lastLightQuads=0;clean();if(world==null||ACTIVE.isEmpty())return;
         var camera=e.getCamera().getPosition();var pose=e.getPoseStack();pose.pushPose();boolean drawing=false;
         try(ImperialRenderState state=new ImperialRenderState()){
             RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();RenderSystem.depthMask(false);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
             pose.translate(-camera.x,-camera.y,-camera.z);BUFFER.begin(VertexFormat.Mode.TRIANGLES,DefaultVertexFormat.POSITION_COLOR);drawing=true;
             int nearLarge=0,mediumLarge=0,farLarge=0;
+            List<Cod3VisualPacket> mirages=new ArrayList<>();
+            List<Cod3VisualPacket> walls=new ArrayList<>();
+            List<Cod3VisualPacket> armies=new ArrayList<>();
+            List<Cod3VisualPacket> ghostMarkets=new ArrayList<>();
             List<Cod3VisualPacket> scenicModels=new ArrayList<>();ScenicModels.retain(ACTIVE);
             for(var p:ACTIVE){
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
@@ -107,9 +137,67 @@ public final class Cod3VfxRenderer {
                     if(p.sequence().equals("secondary_roots")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(com.dynasty.expansion.ExpansionEffects.STAGGER.get()))continue;
                     if(p.sequence().equals("secondary_coil")&&entity instanceof net.minecraft.world.entity.LivingEntity living&&!living.hasEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN))continue;
                     if(entity!=null){if(p.template()==4){if(!entity.isAlive()||entity.getDeltaMovement().lengthSqr()<.0025)continue;direction=entity.getDeltaMovement().normalize();}origin=entity.getPosition(e.getPartialTick());}}
-                double distance=origin.distanceTo(camera);if(distance>256||distance<.8)continue;
+                boolean skyScene=p.sequence().equals("scenic_15")||p.sequence().equals("scenic_20")||p.sequence().equals("scenic_21");
+                boolean leafScene=p.sequence().equals("scenic_19");
+                boolean fireflyScene=p.sequence().equals("scenic_07");
+                boolean silverfallScene=p.sequence().equals("scenic_08");
+                boolean arrayScene=p.sequence().equals("scenic_02");
+                boolean fireTreeScene=p.sequence().equals("scenic_13");
+                double distance=origin.distanceTo(camera);if(distance>256||distance<.8&&!skyScene&&!leafScene&&!fireflyScene&&!silverfallScene&&!arrayScene&&!fireTreeScene)continue;
                 if(p.scale()>2){if(distance>96&&farLarge++>=1||distance>32&&distance<=96&&mediumLarge++>=2||distance<=32&&nearLarge++>=3)continue;}
-                if(ScenicModels.supports(p)){scenicModels.add(p);continue;}
+                if(fireTreeScene){
+                    ScenicFireTreeRenderer.draw(BUFFER,pose.last().pose(),p,camera,
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL,e.getPartialTick());
+                    continue;
+                }
+                if(arrayScene){
+                    ScenicArrayRenderer.draw(BUFFER,pose.last().pose(),world,origin,camera,p.seed(),age,p.duration(),
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL,
+                        ScenicAncientArray.visibility(world.getDayTime(),world.getRainLevel(e.getPartialTick())));
+                    continue;
+                }
+                if(silverfallScene){
+                    ScenicSkyRenderer.drawSilverfall(BUFFER,pose.last().pose(),origin,camera,p.seed(),age,p.duration(),
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL,
+                        ScenicSilverfall.visibility(world.getRainLevel(e.getPartialTick())));
+                    continue;
+                }
+                if(fireflyScene){
+                    ScenicFireflyRenderer.draw(BUFFER,pose.last().pose(),world,origin,camera,p.seed(),age,p.duration(),
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL,
+                        ScenicFireflies.visibility(world.getDayTime(),world.getRainLevel(e.getPartialTick()),world.getMoonPhase()));
+                    continue;
+                }
+                if(leafScene){
+                    ScenicLeafRenderer.draw(BUFFER,pose.last().pose(),world,origin,camera,p.seed(),age,p.duration(),
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL,
+                        ScenicGoldenLeaves.visibility(world.getDayTime(),world.getRainLevel(e.getPartialTick())));
+                    continue;
+                }
+                if(skyScene){
+                    if(p.sequence().equals("scenic_21"))ScenicSkyRenderer.drawSun(BUFFER,pose.last().pose(),origin,camera,p.seed(),age,p.duration(),
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL,
+                        ScenicSunHalo.skyVisibility(world.getDayTime(),world.getRainLevel(e.getPartialTick())),world.getSunAngle(e.getPartialTick()));
+                    else ScenicSkyRenderer.draw(BUFFER,pose.last().pose(),origin,camera,p.sequence().equals("scenic_20")?20:15,p.seed(),age,p.duration(),
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL,
+                        ScenicAurora.skyVisibility(world.getDayTime(),world.getRainLevel(e.getPartialTick())));
+                    continue;
+                }
+                if(p.sequence().equals("scenic_17"))continue; // Inverted palace is drawn before translucent water.
+                if(p.sequence().equals("scenic_14")){mirages.add(p);continue;}
+                if(p.sequence().equals("scenic_18")){walls.add(p);continue;}
+                if(p.sequence().equals("scenic_04")){armies.add(p);continue;}
+                if(p.sequence().equals("scenic_22")){ghostMarkets.add(p);continue;}
+                if(ScenicModels.supports(p)){
+                    if(p.sequence().equals("scenic_03"))ScenicGhostShipWater.draw(BUFFER,pose.last().pose(),world,p,camera,age,
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL);
+                    if(p.sequence().equals("scenic_01"))ScenicDragonFlight.draw(BUFFER,pose.last().pose(),p,camera,age,
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL,
+                        ScenicDragonFlight.visibility(world.getDayTime(),world.getRainLevel(e.getPartialTick())));
+                    if(p.sequence().equals("scenic_10"))ScenicXuanwuWater.draw(BUFFER,pose.last().pose(),world,p,camera,age,
+                        Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL);
+                    scenicModels.add(p);continue;
+                }
                 var d=Cod3Catalog.vfx(p.template());var combat=p.sequence().startsWith("combat_")?VfxInstance.combat(p):null;var timeline=VfxTimeline.timing(d,p.duration());double life=age/p.duration(),expansion=combat==null?timeline.expansion(age):combat.expansion(age),alpha=timeline.alpha(age,p.duration())*.6;
                 if(p.template()==4){expansion=1;alpha=.6*(p.sequence().equals("arrow_collapse")?1-life:1);}
                 if(Cod3AfterImages.supports(p)&&p.template()!=36)continue; // Registered models are drawn after the primitive buffer is flushed.
@@ -144,6 +232,10 @@ public final class Cod3VfxRenderer {
                 }
             }
             BufferUploader.drawWithShader(BUFFER.end());drawing=false;
+            ScenicMirageRenderer.render(mirages,pose,camera,e.getPartialTick());
+            ScenicGreatWallRenderer.render(walls,pose,camera,e.getPartialTick());
+            ScenicGhostArmyRenderer.render(armies,pose,camera,e.getPartialTick());
+            ScenicGhostMarketRenderer.render(ghostMarkets,pose,camera,e.getPartialTick());
             ScenicModels.render(scenicModels,pose,camera,e.getPartialTick());
             for(var p:ACTIVE)if(Cod3AfterImages.supports(p)){
                 double age=world.getGameTime()-p.start()+e.getPartialTick();if(age<0||age>=p.duration())continue;
@@ -436,20 +528,21 @@ public final class Cod3VfxRenderer {
             Random random=new Random(seed);double time=life*Math.PI*2;int count=segments<=12?4:segments<=20?16:40;
             switch(id){
                 case 1->{spline(28,4,time);beam(p(0,4,28),p(-1.5,5,30),.3);beam(p(0,4,28),p(1.5,5,30),.3);for(int i=1;i<6&&segments>12;i++){beam(p(Math.sin(i)*4,i*.65,i*4),p(Math.sin(i)*4+2,i*.65-1,i*4+1),.15);}}
-                case 2->{decal(14,8,time*.1);for(int i=0;i<8;i++){double a=i*Math.PI/4;beam(p(Math.cos(a)*14,0,Math.sin(a)*14),p(Math.cos(a)*14,12,Math.sin(a)*14),.2);}}
-                case 3,16->{ship((life-.5)*20,6,0);if(id==16&&segments>12)for(int i=-2;i<=2;i++)mountain(i*2,5,2,1);}
+                case 2->ScenicArrayRenderer.draw(BUFFER,matrix,world,o,camera,seed,life*1200,1200,segments<=12,1);
+                case 16->{ship((life-.5)*20,6,0);if(id==16&&segments>12)for(int i=-2;i<=2;i++)mountain(i*2,5,2,1);}
                 case 4,11,18->{for(int i=0;i<count;i++){double x=(i%8-3.5)*2,z=(i/8)*3+life*12;soldier(x,z,time+i);if(i%8==0){beam(p(x,0,z),p(x,6,z),.08);beam(p(x,6,z),p(x+2,5,z),.25);}}}
                 case 5,23->{int islands=segments<=12?3:7;for(int i=0;i<islands;i++){double x=(i-islands/2)*5,y=4+Math.sin(i)*2,z=Math.cos(i)*4;mountain(x,y,z,3);if(id==23&&i>0)beam(p(x-5,5,z),p(x,5,z),.07);if(segments>12){beam(p(x-1,y+5,z),p(x+1,y+5,z),.18);beam(p(x,y+5,z),p(x,y+6,z),.12);}}}
                 case 6->{beam(p(-3,0,0),p(-3,16,0),.35);beam(p(3,0,0),p(3,16,0),.35);mesh(0,12,0,2);beam(p(0,10,0),p(-7,7,0),.5);beam(p(0,10,0),p(7,7,0),.5);}
-                case 7,19,20->{for(int i=0;i<count;i++){double x=(random.nextDouble()-.5)*30,z=(random.nextDouble()-.5)*24,y=id==20?20-life*18:3+Math.sin(time+i)*2;mesh(x,y,z,.15);if(id==20)beam(p(x,y,z),p(x-2,y+4,z+1),.06);}}
-                case 8->{for(int i=0;i<5;i++)spline(3,18,time+i);ring(5,0,Math.PI*2);}
+                case 7->ScenicFireflyRenderer.draw(BUFFER,matrix,world,o,camera,seed,life*1800,1800,segments<=12,1);
+                case 19->ScenicLeafRenderer.draw(BUFFER,matrix,world,o,camera,seed,life*1200,1200,segments<=12,1);
+                case 8->ScenicSkyRenderer.drawSilverfall(BUFFER,matrix,o,camera,seed,life*1200,1200,segments<=12,1);
                 case 9,24->{for(int i=0;i<Math.min(count,16);i++){double a=i*Math.PI*2/Math.min(count,16);mesh(Math.sin(a)*10,5+Math.cos(a)*3,Math.cos(a)*10,id==24?1.5:.3);if(id==9&&i>0)beam(p(Math.sin(a)*10,5+Math.cos(a)*3,Math.cos(a)*10),p(Math.sin(a+.3)*10,5+Math.cos(a+.3)*3,Math.cos(a+.3)*10),.06);}}
                 case 10->{ring(10,0,Math.PI*2);for(int i=0;i<5;i++)ring(8-i,i*.8,Math.PI*2);mesh(0,2,11,2);mountain(0,4,0,3);}
                 case 12->{decal(8,12,0);for(int i=0;i<3;i++){beam(p(-4+i*4,0,0),p(-4+i*4,8,0),.8);mesh(-4+i*4,9,0,1.2);}}
-                case 13->{beam(p(0,0,0),p(0,10,0),.5);for(int i=0;i<8;i++){double a=i*Math.PI/4;beam(p(0,5,0),p(Math.sin(a)*6,8+Math.cos(a),Math.cos(a)*6),.25);mesh(Math.sin(a)*6,8+Math.cos(a),Math.cos(a)*6,.8);}}
+                case 13->{} // Permanent NBT tree + site-bound sparks replace the old timed beam tree.
                 case 14,17,22->{for(int i=0;i<(segments<=12?3:9);i++){double x=(i%3-1)*6,z=i/3*6;beam(p(x-2,0,z),p(x-2,4,z),.12);beam(p(x+2,0,z),p(x+2,4,z),.12);beam(p(x-3,4,z),p(x+3,4,z),.25);beam(p(x-3,4,z),p(x,6,z),.1);beam(p(x,6,z),p(x+3,4,z),.1);if(id==22)mesh(x,2,z,.3);}}
-                case 15->{for(int i=0;i<4;i++){Vec3 last=p(-16,14+i,0);for(int j=1;j<=segments;j++){double x=j*32./segments-16;Vec3 next=p(x,14+i+Math.sin(x*.25+time)*2,j*.1);beam(last,next,.3);last=next;}}}
-                case 21->{for(int i=0;i<3;i++){Vec3 last=p(-18,8+i*.5,0);for(int j=1;j<=segments;j++){double x=j*36./segments-18;Vec3 next=p(x,8+i*.5+Math.sin(j*Math.PI/segments)*8,0);beam(last,next,.2);last=next;}}}
+                case 15,20->ScenicSkyRenderer.draw(BUFFER,matrix,o,camera,id,seed,life*(id==15?1800:900),id==15?1800:900,segments<=12,1);
+                case 21->ScenicSkyRenderer.drawSun(BUFFER,matrix,o,camera,seed,life*600,600,segments<=12,1,0);
                 case 25->{mesh(0,12,0,2);for(int i=0;i<6;i++)beam(p(0,12,0),p((i-2.5)*2,10-Math.abs(i-2.5),0),.3);beam(p(0,0,0),p(0,8,0),.1);}
                 default->throw new IllegalArgumentException("Unknown scenic event "+id);
             }

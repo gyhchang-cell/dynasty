@@ -51,6 +51,8 @@ public final class EliteEncounters {
     private static final TagKey<Structure> FOX_SITES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/fox_sites"));
     private static final TagKey<Structure> HAMMER_SITES=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/hammer_sites"));
     public static void memberDied(Entity mob){
+        // The Chensha owner ledger lives in Overworld even after portal travel.
+        com.dynasty.dungeon.ChenshaGarrisons.release(mob);
         if(mob.level() instanceof ServerLevel level){
             var state=BlueprintSpawnState.get(level);
             if(mob instanceof Jinwu||mob instanceof HammerGuardian||mob instanceof BronzeSuanni)for(var marker:state.markers.values())if(marker.members.contains(mob.getUUID())){marker.cleared=true;state.setDirty();break;}

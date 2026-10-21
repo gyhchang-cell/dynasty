@@ -221,7 +221,7 @@ public final class BlueprintSpawns {
         var checked=new java.util.HashSet<String>();
         int remaining=2; // Absolute per-level work cap, independent of player count.
         for(var player:level.players()) {
-            if(player.isSpectator())continue;
+            if(player.isSpectator()||!player.isAlive())continue;
             for(var group:List.of(MILITARY,RITUAL,BATTLEFIELD,TOMBS,GUARDS,GHOSTS,CORPSES,CHILDREN,DROWNERS,PAPERS,SKULLS,STONE_GUARDS,BIXI,PALANQUINS,DOGS,BRONZE_SNAKES,SPIDERS)) for(var holder:registry.getTagOrEmpty(group)) {
                 if(remaining<=0)return;
                 if(underworld(level)&&group!=PALANQUINS)continue;
@@ -307,7 +307,8 @@ public final class BlueprintSpawns {
                 }
                 if(group==TOMBS) {
                     var origin=new BlockPos(box.minX(),box.minY(),box.minZ());
-                    if(!checked.contains(key)&&(spawnChenshaMember(level,origin,player.blockPosition())
+                    if(!checked.contains(key)&&(com.dynasty.dungeon.ChenshaGarrisons.spawnOne(level,origin,player.blockPosition())
+                            ||spawnChenshaMember(level,origin,player.blockPosition())
                             ||spawnChenshaMiddleMember(level,origin,player.blockPosition())
                             ||spawnChenshaDrowner(level,origin,player.blockPosition()))) {
                         checked.add(key);remaining--;

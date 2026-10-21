@@ -12,8 +12,8 @@ public final class DynastyItemUsage {
                     "§6科举试卷§r：右键开始答题，界面中选择 1/2/3，答对得功名。",
                     "§6Exam Paper§r: right-click to sit the exam and answer 1/2/3 in the GUI."};
             case "tiger_tally" -> new String[]{
-                    "§6虎符§r：右键打开调兵界面（阵型+人数）；潜行右键可威慑周围生物。",
-                    "§6Tiger Tally§r: right-click to summon troops; sneak-use to intimidate."};
+                    "右键调兵；潜行右键威慑。",
+                    "Right-click to command troops; sneak-use to intimidate."};
             case "jade_seal" -> new String[]{
                     "§6玉玺§r：右键查看王朝档案；潜行右键获得赐福。",
                     "§6Jade Seal§r: right-click for dynasty records; sneak-use for a blessing."};
@@ -24,22 +24,13 @@ public final class DynastyItemUsage {
                     "§6圣旨§r：右键为周围友军赐下「龙威」。",
                     "§6Imperial Edict§r: right-click to grant Dragon's Might to allies."};
             case "dynasty_guide" -> new String[]{
-                    "§6王朝图鉴§r：右键打开 12 页内置指南（开局、维度、神兽、Boss…）。",
-                    "§6Dynasty Codex§r: right-click for the 12-page built-in guide."};
+                    "§6王朝图鉴§r：右键查看物品、建筑与首领指南。",
+                    "§6Dynasty Codex§r: right-click for items, structures and boss guides."};
             case "festival_lantern" -> new String[]{
                     "§6节令灯§r：右键开启当令节日；非节令期会提示日期。",
                     "§6Festival Lantern§r: right-click to start today's festival."};
-            case "dynasty_potion" -> new String[]{
-                    "王朝药水（饮用）：龙威 攻击 +300 / 铁壁 护甲 +20 且减伤 30% / 疾风 速度 / 民心 生命 +100 / 天命 幸运 +20。",
-                    "Dynasty potion: Dragon's Might +300 damage, Iron Wall +20 armor & -30% damage taken, Loyalty +100 health, Mandate +20 luck."};
-            case "dynasty_splash_potion" -> new String[]{
-                    "喷溅药水：右击投掷，为范围内单位附加王朝增益。",
-                    "Splash potion: right-click to throw and apply the buff in an area."};
-            case "dynasty_lingering_potion" -> new String[]{
-                    "滞留药水：投掷后留下药云，持续时间更长。",
-                    "Lingering potion: leaves a cloud with a longer duration."};
-            case "talisman_paper" -> new String[]{"材料：与朱砂、火药等合成各类符箓（符箓一次性但很强）。",
-                    "Material: craft the talismans with cinnabar and gunpowder (single use but strong)."};
+            case "talisman_paper" -> new String[]{"材料：制作符箓，使用后消耗。",
+                    "Material: craft single-use talismans."};
             case "fire_talisman" -> new String[]{"§c火符§r：右键前方爆炎，4.5 格内 600+攻击×3 火焰伤害并点燃 8 秒。",
                     "§cFire Talisman§r: blazing blast, 600 + 3x attack fire damage in 4.5 blocks, ignites 8s."};
             case "thunder_talisman" -> new String[]{"§b雷符§r：右键三道落雷，5 格内 800+攻击×4 伤害 + 缓慢 II + 虚弱 II。",
@@ -48,7 +39,7 @@ public final class DynastyItemUsage {
                     "§fWind Talisman§r: knocks up everything within 8 blocks for 200 + 2x attack; Speed III and slow falling for you."};
             case "stealth_talisman" -> new String[]{"§7隐身符§r：隐身 60 秒 + 速度 II + 夜视，并清除 16 格内怪物仇恨。",
                     "§7Stealth Talisman§r: 60s invisibility, Speed II, night vision, and drops all aggro within 16 blocks."};
-            case "vajra_talisman" -> new String[]{"§6金刚符§r：抗性 III + 力量 II 15 秒、抗火 60 秒（不回血，纯硬吃）。",
+            case "vajra_talisman" -> new String[]{"§6金刚符§r：抗性 III + 力量 II 15 秒、抗火 60 秒。",
                     "§6Vajra Talisman§r: Resistance III + Strength II for 15s, fire resistance 60s."};
             case "soul_talisman" -> new String[]{"§5摄魂符§r：6 格内 500+攻击×3 伤害，并施加失明 + 虚弱 II 8 秒。",
                     "§5Soul Talisman§r: 500 + 3x attack in 6 blocks with Blindness and Weakness II."};
@@ -62,10 +53,10 @@ public final class DynastyItemUsage {
                     "Material: bronze weapons and general armor."};
             case "silver_ingot" -> new String[]{"材料：官银兵器与礼器。",
                     "Material: silver weapons and regalia."};
-            case "dragon_crystal" -> new String[]{"材料：顶级龙晶兵器与护甲（后期伤害 170 → 2048，名器还带特攻）。",
-                    "Material: top-tier dragon crystal gear (170 -> 2048 damage, plus extra flat damage)."};
-            case "dragon_scale" -> new String[]{"材料：龙鳞甲（减伤 96%）与进阶弓。",
-                    "Material: dragon scale armour (96% reduction) and late bows."};
+            case "dragon_crystal" -> new String[]{"材料：龙晶兵器与护甲。",
+                    "Material: dragon crystal weapons and armour."};
+            case "dragon_scale" -> new String[]{"材料：龙鳞甲与进阶弓。",
+                    "Material: dragon scale armour and advanced bows."};
             case "blueprint" -> new String[]{"§6兵器图纸§r：青铜期以后每把武器/护甲升级都要一张。",
                     "§6Blueprint§r: every weapon and armour upgrade past iron needs one."};
             case "refined_steel" -> new String[]{"材料：铁锭×3 + 朱砂 → 精钢×2，进阶弓与镐要用。",
@@ -84,7 +75,7 @@ public final class DynastyItemUsage {
                     "§dHeart Mirror§r: +8 armour and 4% extra damage reduction."};
             case "jade_crown" -> new String[]{"§d玉冠§r：生命上限 +220。",
                     "§dJade Crown§r: +220 max health."};
-            case "jade_cicada" -> new String[]{"§d玉蝉§r：生命低于 30% 时自动获得抗性 II + 速度（保命，不回血）。",
+            case "jade_cicada" -> new String[]{"§d玉蝉§r：生命低于 30% 时自动获得抗性 II + 速度。",
                     "§dJade Cicada§r: below 30% health you gain Resistance II and Speed."};
             case "dragon_pearl" -> new String[]{"§d龙珠§r：攻击力 +25%、抗击退 +0.3。",
                     "§dDragon Pearl§r: +25% attack damage, +0.3 knockback resistance."};
@@ -122,12 +113,12 @@ public final class DynastyItemUsage {
                     "Material: auspicious horn for high-tier crafting."};
             case "fox_tail" -> new String[]{"材料：魅惑之物，用于符箓与丹药。",
                     "Material: bewitching tail for charms and pills."};
-            case "healing_salve" -> new String[]{"丹药：右键立刻回复大量生命。",
-                    "Pill: right-click to heal a large amount."};
-            case "pill_focus" -> new String[]{"丹药：右键获得专注（挖掘更快、命中更准）。",
+            case "healing_salve" -> new String[]{"金创药：按住右键1.2秒，服用后立即回复8点生命（4颗心），消耗1份。",
+                    "Hold use for 1.2 seconds: restores 8 health (4 hearts), consumes one."};
+            case "pill_focus" -> new String[]{"专注丹：按住右键1.2秒，获得急迫I 45秒，消耗1颗。",
                     "Pill: right-click for Focus."};
-            case "pill_longevity" -> new String[]{"丹药：右键获得长寿（大幅提升最大生命）。",
-                    "Pill: right-click for Longevity (big max health)."};
+            case "pill_longevity" -> new String[]{"长生丹：按住右键1.2秒，获得生命恢复II 30秒，持续回血；不增加生命上限。",
+                    "Hold use for 1.2 seconds: Regeneration II for 30 seconds; does not increase maximum health."};
             case "immortal_peach" -> new String[]{"仙桃：食用回复并提升生命上限；麒麟最爱。",
                     "Immortal Peach: heals and boosts max health; Qilin's favourite."};
             case "mooncake" -> new String[]{"食物：中秋佳品，食用获得夜视与饱腹。",

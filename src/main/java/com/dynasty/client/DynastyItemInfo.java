@@ -46,7 +46,8 @@ public final class DynastyItemInfo {
         if (id == null || !id.getNamespace().equals(com.dynasty.Dynasty.MODID)) {
             return out;
         }
-        if (stack.getItem() instanceof BlockItem || com.dynasty.infusion.InfusionTraits.material(stack) != null) return out;
+        if (stack.getItem() instanceof BlockItem || stack.getItem() instanceof net.minecraft.world.item.PotionItem
+                || com.dynasty.infusion.InfusionTraits.material(stack) != null) return out;
         boolean zh = chinese();
         String path = id.getPath();
         String[] special = DynastyItemUsage.special(path);
@@ -58,7 +59,11 @@ public final class DynastyItemInfo {
             chosen = category(path, stack);
         }
         if (chosen != null) {
-            out.add(zh ? chosen[0] : chosen[1]);
+            String text = zh ? chosen[0] : chosen[1];
+            String bare = text.replaceAll("§.", "");
+            String name = stack.getHoverName().getString();
+            if (bare.startsWith(name + "：") || bare.startsWith(name + ":")) text = bare.substring(name.length() + 1).trim();
+            out.add(text);
         }
         // 追加「翻译键」写的补充说明（料理用途 / 信物用途 / 传送门目的地与回程提醒）；
         // 没有对应键的物品不受影响，重复行由 DynastyInfoKeys 自己过滤。
@@ -134,6 +139,7 @@ public final class DynastyItemInfo {
         if (chosen == null) {
             chosen = category(path, stack);
         }
+        if (chosen == null || stack.getItem() instanceof net.minecraft.world.item.PotionItem) return "";
         String line = strip(zh ? chosen[0] : chosen[1]);
         if (line.length() > 34) {
             line = line.substring(0, 34) + "…";
