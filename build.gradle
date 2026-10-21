@@ -69,8 +69,7 @@ def hmclGameDir = file("${dynastyHome}/Public/.minecraft")
 def copyOwnJar = { File targetDir ->
     targetDir.mkdirs()
     def jars = file('build/libs').listFiles()?.findAll {
-        it.name.startsWith('dynasty-') && it.name.endsWith('.jar')
-                && !it.name.contains('sources') && !it.name.contains('javadoc')
+        it.name == "dynasty-${mod_version}.jar"
     }
     jars?.each { new File(targetDir, it.name).bytes = it.bytes }
     return jars?.collect { it.name } ?: []
@@ -241,6 +240,7 @@ tasks.register('exportModpack') {
     description = '仅导出完整游玩 mrpack、Modrinth 上传 mrpack、CurseForge 上传 ZIP'
     dependsOn 'build'
     doLast {
+        def verificationFailures = []
         runPython('tools/art/make_modpack.py')
         exec {
             commandLine 'python3', file('tools/art/make_uploadable_packs.py').absolutePath,
@@ -256,6 +256,7 @@ tasks.register('exportModpack') {
                             file('modpack/mods').absolutePath
                 }
             } catch (Exception e) {
+                verificationFailures.add("自检脚本执行异常")
                 logger.lifecycle("（自检脚本执行异常：${e.message}）")
             }
         }
@@ -266,6 +267,7 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', questVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("任务书自检发现异常")
                 logger.lifecycle("（任务书自检发现异常：${e.message}）")
             }
         }
@@ -277,6 +279,7 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', worldgenVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("世界生成自检发现异常")
                 logger.lifecycle("（世界生成自检发现异常：${e.message}）")
             }
         }
@@ -287,6 +290,7 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', featureOrderVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("特征顺序自检发现异常")
                 logger.lifecycle("（特征顺序自检发现异常：${e.message}）")
             }
         }
@@ -297,6 +301,7 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', entityVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("实体自检发现异常")
                 logger.lifecycle("（实体自检发现异常：${e.message}）")
             }
         }
@@ -308,6 +313,7 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', gearVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("装备自检发现异常")
                 logger.lifecycle("（装备自检发现异常：${e.message}）")
             }
         }
@@ -318,6 +324,7 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', kejuVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("科举题库自检发现异常")
                 logger.lifecycle("（科举题库自检发现异常：${e.message}）")
             }
         }
@@ -329,6 +336,7 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', langVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("词条自检发现异常")
                 logger.lifecycle("（词条自检发现异常：${e.message}）")
             }
         }
@@ -340,6 +348,7 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', balanceVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("数值审计发现异常")
                 logger.lifecycle("（数值审计发现异常：${e.message}）")
             }
         }
@@ -350,6 +359,7 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', lootVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("战利品表自检发现异常")
                 logger.lifecycle("（战利品表自检发现异常：${e.message}）")
             }
         }
@@ -360,8 +370,13 @@ tasks.register('exportModpack') {
             try {
                 exec { commandLine 'python3', tabVerifier.absolutePath }
             } catch (Exception e) {
+                verificationFailures.add("创造栏自检发现异常")
                 logger.lifecycle("（创造栏自检发现异常：${e.message}）")
             }
+        }
+
+        if (!verificationFailures.isEmpty()) {
+            throw new GradleException("导出自检未通过，未更新桌面成品：${verificationFailures.join('、')}。请查看上方详细信息。")
         }
 
         def out = new File(dynastyExportDir, 'Dynasty整合包')
