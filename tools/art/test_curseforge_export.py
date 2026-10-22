@@ -34,7 +34,10 @@ class CurseForgeExportTests(unittest.TestCase):
             sample.write_bytes(b'original')
             lock = {'own_filename': 'dynasty.jar', 'files': [
                 {'source_filename': 'sample.jar', 'source_hashes': cf.hashes(b'original')}]}
+            retired = mods / 'OverflowingBars-v8.0.1-1.20.1-Forge.jar'
+            retired.write_bytes(b'preserved local HUD backup')
             cf.inventory(root, lock)
+            self.assertEqual(b'preserved local HUD backup', retired.read_bytes())
             sample.write_bytes(b'changed')
             with self.assertRaisesRegex(ValueError, 'hash drift'):
                 cf.inventory(root, lock)

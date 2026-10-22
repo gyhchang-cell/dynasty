@@ -108,6 +108,10 @@ public final class ChenshaPiece extends DynastyStructurePiece {
         // keep the hidden room, lift, escape ladder and shared connectors open.
         BlockState decoration=ChenshaArchitecture.decoration(x,y,z);
         if(decoration!=null)result=decoration;
+        // Reserve both dry bypasses after dressing, including player headroom.
+        // Chamber accents must not force players into the aquatic encounter.
+        if(in(z,54,65)&&in(y,24,26))for(int cx:new int[]{12,52})
+            if(x==cx-6||x==cx+6)result=y==24?shell():Blocks.AIR.defaultBlockState();
         // This well crosses the middle-room ceiling. Carve it after both storeys
         // and their dressing so the burial shaft really remains twenty blocks deep.
         if(rect(x,z,17,40,25,48)&&in(y,28,55)) {
