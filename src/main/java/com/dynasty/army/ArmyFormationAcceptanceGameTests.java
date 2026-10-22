@@ -163,5 +163,69 @@ public final class ArmyFormationAcceptanceGameTests {
             } finally {cleanup.run();}
         });
     }
+    @GameTest(template="bow_ritual_test",batch="cod6_deployment_rollback",setupTicks=20,timeoutTicks=60)
+    public static void rejectedSecondCarrierRollsBackOnlyThisDeploymentWithoutDeathOrAssetLoss(GameTestHelper h) {
+        var level=h.getLevel();
+        for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=109;y<=114;y++)
+            h.setBlock(x,y,z,y==109||y==114?Blocks.STONE:Blocks.AIR);
+        var owner=new FakePlayer(level,new GameProfile(UUID.randomUUID(),"rollback-owner"));
+        var other=new FakePlayer(level,new GameProfile(UUID.randomUUID(),"rollback-other"));
+        var candidates=new ArrayList<ImperialSoldier>();
+        java.util.function.Consumer<net.minecraftforge.event.entity.EntityJoinLevelEvent> reject=e->{
+            if(e.getEntity() instanceof ImperialSoldier s&&s.getOwner()==owner) {
+                candidates.add(s);
+                if(s.getPersistentData().getInt("ArmySlot")==1)e.setCanceled(true);
+            }
+        };
+        var deaths=new java.util.concurrent.atomic.AtomicInteger();
+        java.util.function.Consumer<net.minecraftforge.event.entity.living.LivingDeathEvent> countDeath=e->{
+            if(e.getEntity() instanceof ImperialSoldier s&&s.getOwner()==owner)deaths.incrementAndGet();
+        };
+        var bus=net.minecraftforge.common.MinecraftForge.EVENT_BUS;
+        try {
+            for(var p:List.of(owner,other)) {
+                p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(DynastyItems.TIGER_TALLY.get()));
+                p.getInventory().setItem(2,new ItemStack(DynastyItems.SILVER_COIN.get(),64));
+                var at=Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(p==owner?5:12,110,3)));
+                p.moveTo(at.x,at.y,at.z,0,0);level.addNewPlayer(p);
+            }
+            h.assertTrue(ArmyRoster.recruit(other,0),"Foreign paid fixture purchase failed");
+            ArmyRoster.soldiers(other).getCompound(0).putInt("Slot",1);
+            h.assertTrue(ArmyRoster.deploy(other,0,1)==1,"Foreign paid fixture deployment failed");
+            var foreign=(ImperialSoldier)level.getEntity(ArmyRoster.soldiers(other).getCompound(0).getUUID("Entity"));
+            foreign.setNoAi(true);
+            for(int role=0;role<3;role++) {
+                h.assertTrue(ArmyRoster.recruit(owner,role),"Rollback fixture purchase failed");
+                ArmyRoster.soldiers(owner).getCompound(role).putInt("Slot",role);
+            }
+            var paid=ArmyRoster.data(owner).copy();
+            var foreignPaid=ArmyRoster.data(other).copy();
+            var inventory=owner.getInventory().save(new net.minecraft.nbt.ListTag());
+            var box=foreign.getBoundingBox().inflate(20);
+            int items=level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,box).size();
+            int xp=level.getEntitiesOfClass(net.minecraft.world.entity.ExperienceOrb.class,box).size();
+            bus.addListener(reject);bus.addListener(countDeath);
+            h.assertTrue(ArmyRoster.deploy(owner,0,3)==0&&candidates.size()==2,"The real second-carrier spawn rejection was not reached");
+            h.assertTrue(candidates.stream().allMatch(net.minecraft.world.entity.Entity::isRemoved),"Rejected deployment left a live partial team");
+            h.assertTrue(ArmyRoster.data(owner).equals(paid)&&owner.getInventory().save(new net.minecraft.nbt.ListTag()).equals(inventory),"Rollback changed paid records, generation, revision or inventory");
+            h.assertTrue(foreign.isAlive()&&ArmyRoster.valid(foreign,other)&&ArmyRoster.data(other).equals(foreignPaid),"Rollback affected another owner's paid soldier");
+            h.assertTrue(deaths.get()==0&&level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,box).size()==items
+                &&level.getEntitiesOfClass(net.minecraft.world.entity.ExperienceOrb.class,box).size()==xp,"Rollback used a death/drop path");
+            bus.unregister(reject);
+            h.assertTrue(ArmyRoster.deploy(owner,0,3)==3,"A failed deployment prevented a later legal retry");
+            for(var value:ArmyRoster.soldiers(owner)) {
+                var row=(net.minecraft.nbt.CompoundTag)value;
+                h.assertTrue(row.getLong("Generation")==1&&level.getEntity(row.getUUID("Entity")) instanceof ImperialSoldier,"Retry lost a paid identity or consumed a generation");
+            }
+            h.succeed();
+        } finally {
+            bus.unregister(reject);bus.unregister(countDeath);
+            candidates.forEach(ImperialSoldier::discard);
+            for(var p:List.of(owner,other)) {
+                ArmyRoster.recallNow(p,true);
+                level.players().remove(p);p.discard();
+            }
+        }
+    }
     private ArmyFormationAcceptanceGameTests(){}
 }
