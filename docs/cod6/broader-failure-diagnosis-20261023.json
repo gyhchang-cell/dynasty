@@ -1,0 +1,552 @@
+{
+  "at": "2026-10-22T22:44:13.702460+00:00",
+  "baseline_log": "/Users/a15356015027/Desktop/dynasty-cod6-native-speed-20261022.log",
+  "baseline_required_tests": 533,
+  "baseline_failed_tests": 43,
+  "mode": "READ_ONLY_SOURCE_DIAGNOSIS_NO_RUNTIME_RETEST",
+  "production_changes": 0,
+  "test_changes": 0,
+  "checklist_deletions": 0,
+  "diagnosed_or_narrowed": 11,
+  "still_undetermined": 32,
+  "groups": [
+    {
+      "id": "D01",
+      "finding": "Grounded implementation contradicts a hover-specific test",
+      "confidence": "SOURCE_CONTRACT_CONTRADICTION_CONFIRMED_NOT_RUNTIME_RETESTED",
+      "methods": [
+        "ordinaryidleflyingcontrollerpreservesthehalfblockhover"
+      ],
+      "observation": "FoxMatron constructs no flying MoveControl, creates GroundPathNavigation, and explicitly restores noGravity=false on NBT load. The old test requires noGravity=true and a stable half-block hover. No conclusion here about whether design should be grounded or hovering; do not change current entity design just to satisfy a stale test.",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/FoxMatron.java",
+          "line_start": 43,
+          "line_end": 46,
+          "sha256": "899ffa86254cca6b166ded7869c4b45433f0aa9f0b5a7572dbb5a2ea6ce3ec87",
+          "excerpt": "43:     private float partial;\n44:     public FoxMatron(EntityType<? extends FoxMatron> type,Level level){super(type,level);xpReward=24;}\n45:     @Override protected PathNavigation createNavigation(Level level){var n=new GroundPathNavigation(this,level);n.setCanFloat(true);return n;}\n46:     @Override protected void defineSynchedData(){super.defineSynchedData();entityData.define(SKILL,0);entityData.define(PHASE,0);entityData.define(START,-1L);entityData.define(DECOY,false);}"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/FoxMatron.java",
+          "line_start": 107,
+          "line_end": 109,
+          "sha256": "899ffa86254cca6b166ded7869c4b45433f0aa9f0b5a7572dbb5a2ea6ce3ec87",
+          "excerpt": "107:     @Override protected void tickDeath(){deathTime++;if(!level().isClientSide&&Math.max(deathTime,level().getGameTime()-deathStart)>=(isDecoy()?1:70))remove(RemovalReason.KILLED);}\n108:     @Override public void addAdditionalSaveData(CompoundTag t){super.addAdditionalSaveData(t);t.put(\"EliteAttack\",attack.save());t.putString(\"EncounterSite\",site);t.putBoolean(\"FoxDecoy\",isDecoy());if(owner!=null)t.putUUID(\"FoxOwner\",owner);t.putLong(\"FoxExpires\",expires);t.putBoolean(\"BeamSpent\",beamSpent);t.putBoolean(\"LootDropped\",lootDropped);t.putLong(\"DeathStart\",deathStart);}\n109:     @Override public void readAdditionalSaveData(CompoundTag t){super.readAdditionalSaveData(t);setNoGravity(false);bindEncounter(t.getString(\"EncounterSite\"));entityData.set(DECOY,t.getBoolean(\"FoxDecoy\"));owner=t.hasUUID(\"FoxOwner\")?t.getUUID(\"FoxOwner\"):null;if(isDecoy())xpReward=0;expires=t.getLong(\"FoxExpires\");beamSpent=t.getBoolean(\"BeamSpent\");lootDropped=t.getBoolean(\"LootDropped\");deathStart=t.contains(\"DeathStart\")?t.getLong(\"DeathStart\"):-1;attack.load(t.getCompound(\"EliteAttack\"),FoxMatron::skill,level().getGameTime());if(isDeadOrDying()){attack.cancel();entityData.set(SKILL,0);entityData.set(START,deathStart);entityData.set(PHASE,0);}else sync();}"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/FoxMatronGameTests.java",
+          "line_start": 35,
+          "line_end": 40,
+          "sha256": "e143bc0cd9a10af3c358fa34dedda878785f62ad71ac8e00d6b593ea0840e23a",
+          "excerpt": "35:     @GameTest(template=\"bow_ritual_test\",timeoutTicks=120,batch=\"fox_hover\")\n36:     public static void ordinaryIdleFlyingControllerPreservesTheHalfBlockHover(GameTestHelper h){\n37:         var m=fox(h);m.setPersistenceRequired();m.setPos(m.position().add(0,.5,0));double initial=m.getY();\n38:         h.startSequence().thenWaitUntil(()->h.assertTrue(m.tickCount>=2&&h.getLevel().isPositionEntityTicking(m.blockPosition()),\"Normal controller test starts only in a native ticking section\"))\n39:         .thenExecute(()->m.setNoAi(false)).thenIdle(24).thenExecute(()->{h.assertTrue(m.isAlive()&&!m.isNoAi()&&m.isNoGravity()&&Math.abs(m.getY()-initial)<.05,\"The ordinary flying controller cannot turn gravity back on while idle: y=\"+m.getY()+\" initial=\"+initial+\" noGravity=\"+m.isNoGravity());}).thenSucceed();\n40:     }"
+        }
+      ]
+    },
+    {
+      "id": "D02",
+      "finding": "Simultaneous tests overwrite the shared mobGriefing gamerule",
+      "confidence": "ISOLATION_DEFECT_CONFIRMED_FAILURE_CAUSALITY_REQUIRES_SERIAL_RERUN",
+      "methods": [
+        "leapactuallytravelseightblocksintwentyclippedsteps"
+      ],
+      "observation": "Both methods belong to rage_corpse and start together in one batch. One schedules global mobGriefing=false at tick4 and verifies protected floor at tick39; the destructive case schedules true at tick4 and restores at tick42. Test positions do not isolate a world gamerule. Native crater code already calls ForgeEventFactory.getMobGriefingEvent; deleting that guard or weakening the floor assertion is unjustified.",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/RageCorpseGameTests.java",
+          "line_start": 53,
+          "line_end": 61,
+          "sha256": "164122b7b1e1cc5b4991e5b93594988cf5312c31151903e925d24e9498bb01db",
+          "excerpt": "53:     @GameTest(template=\"bow_ritual_test\",timeoutTicks=85,batch=\"rage_corpse\")\n54:     public static void leapActuallyTravelsEightBlocksInTwentyClippedSteps(GameTestHelper h){\n55:         var m=caster(h);var victim=target(h,7,9);var start=m.position();\n56:         var rule=h.getLevel().getGameRules().getRule(GameRules.RULE_MOBGRIEFING);boolean old=rule.get();GRIEF_RULES.putIfAbsent(h.getLevel(),old);\n57:         h.runAfterDelay(4,()->{rule.set(false,h.getLevel().getServer());m.setNoAi(false);h.assertTrue(m.startSkill(402,victim),\"Loaded eight-block landing is legal\");victim.discard();h.assertTrue(Math.abs(m.landing().subtract(start).horizontalDistance()-8)<.001,\"Fractional landing retains exactly eight blocks\");});\n58:         h.runAfterDelay(17,()->h.assertTrue(m.position().distanceToSqr(start)<.01,\"Full fourteen-tick windup has no flight displacement\"));\n59:         h.runAfterDelay(28,()->{h.assertTrue(m.getY()>start.y+1.5&&m.getZ()>start.z+3&&m.getZ()<start.z+5,\"Mid-flight has actual height and intermediate collision position\");h.assertTrue(!m.noPhysics&&!m.isNoGravity(),\"Flight never enables phasing or persistent no-gravity\");});\n60:         h.runAfterDelay(39,()->{try{h.assertTrue(Math.abs(m.position().subtract(start).horizontalDistance()-8)<.08&&Math.abs(m.getY()-start.y)<.1,\"Native collision reaches the advertised endpoint after twenty steps\");h.assertTrue(h.getBlockState(new BlockPos(7,1,11)).is(Blocks.STONE),\"Mob griefing disabled preserves the landing floor\");h.succeed();}finally{rule.set(old,h.getLevel().getServer());}});\n61:     }"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/RageCorpseGameTests.java",
+          "line_start": 98,
+          "line_end": 103,
+          "sha256": "164122b7b1e1cc5b4991e5b93594988cf5312c31151903e925d24e9498bb01db",
+          "excerpt": "98:     @GameTest(template=\"bow_ritual_test\",timeoutTicks=80,batch=\"rage_corpse\")\n99:     public static void shallowCraterHonorsGriefingAndProtectsContainersAndOres(GameTestHelper h){\n100:         var m=caster(h);var victim=target(h,7,9);var world=h.getLevel();var rule=world.getGameRules().getRule(GameRules.RULE_MOBGRIEFING);boolean old=rule.get();GRIEF_RULES.putIfAbsent(world,old);\n101:         h.setBlock(6,1,11,Blocks.CHEST);h.setBlock(8,1,11,Blocks.DIAMOND_ORE);\n102:         h.runAfterDelay(4,()->{rule.set(true,world.getServer());m.setNoAi(false);h.assertTrue(m.startSkill(402,victim),\"Actual destructive landing starts\");victim.discard();});\n103:         h.runAfterDelay(42,()->{try{h.assertTrue(h.getBlockState(new BlockPos(7,1,11)).isAir()&&h.getBlockState(new BlockPos(7,0,11)).is(Blocks.STONE),\"Actual impact removes only one shallow floor layer\");h.assertTrue(h.getBlockState(new BlockPos(6,1,11)).is(Blocks.CHEST)&&h.getBlockState(new BlockPos(8,1,11)).is(Blocks.DIAMOND_ORE),\"Containers and ores never enter destruction allowlist\");h.assertTrue(h.getBlockState(new BlockPos(7,1,15)).is(Blocks.STONE),\"Terrain outside three-block radius remains intact\");h.succeed();}finally{rule.set(old,world.getServer());}});"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/RageCorpse.java",
+          "line_start": 103,
+          "line_end": 109,
+          "sha256": "c8f082000556fa703626ff773df06bc06e0d0d3439722f71b4dfb3dd6f5c2702",
+          "excerpt": "103:     private void crater(ServerLevel world,BlockPos feet){\n104:         if(!ForgeEventFactory.getMobGriefingEvent(world,this))return;\n105:         // One shallow bounded impact. Containers, ores, custom palace blocks and protected\n106:         // blocks are never part of this allowlist; normal Forge destruction vetoes still apply.\n107:         for(int dx=-3;dx<=3;dx++)for(int dz=-3;dz<=3;dz++)if(dx*dx+dz*dz<=9){var pos=feet.offset(dx,-1,dz);if(!world.hasChunkAt(pos)||world.getBlockEntity(pos)!=null)continue;var state=world.getBlockState(pos);\n108:             if((state.is(Blocks.STONE)||state.is(Blocks.DIRT)||state.is(Blocks.GRASS_BLOCK)||state.is(Blocks.POLISHED_DEEPSLATE)||state.is(Blocks.DEEPSLATE))&&ForgeEventFactory.onEntityDestroyBlock(this,pos,state))world.destroyBlock(pos,false,this);\n109:         }"
+        }
+      ]
+    },
+    {
+      "id": "D03",
+      "finding": "Nearby same-type fixtures can veto encounter spawn tests",
+      "confidence": "SOURCE_ISOLATION_HAZARD_CONFIRMED_ACTUAL_REJECT_BRANCH_NOT_INSTRUMENTED",
+      "methods": [
+        "tombslotretainsunloadeduuidandusesdeathcooldown",
+        "nativestructureslotretainsunloadedownerandconfirmeddeathcooldown",
+        "existingcampslotkeepsunloadeduuidandconfirmeddeathcooldown",
+        "productionceilingmarkerinitializesattachmentbeforethefirstentitytick",
+        "unloadeduuidretainsslotandmissedstealthneverreplays",
+        "realstructureslotdeathcooldowngravityandninetytickremoval",
+        "submergedslotrejectsdryentryretainsunloadandstartsdeathcooldown",
+        "singlesaveduuidconfirmeddeathpermanentlyclearstombslot"
+      ],
+      "observation": "bow_ritual_test is16x14x16. Native batch placement advances width+5 and row depth+6, hence adjacent fixture origins are21 or22blocks apart. Encounter methods veto any live same-type entity inside a32block-inflated box. Several tests in each same-name batch create that same type concurrently. This is an explicit plausible interference path; floor, difficulty, border, fluid, collision and ticking preconditions still require instrumentation before assigning each exact failure.",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/EliteEncounters.java",
+          "line_start": 245,
+          "line_end": 254,
+          "sha256": "31a92fea9edccc67d61a6d83e5ed3fc4dcc8fb9b9895a8d5eefbe3b73ff19cdd",
+          "excerpt": "245:     public static boolean spawnSpiderWoman(ServerLevel level,String key,BlockPos feet,BlockPos entrant){\n246:         if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==Difficulty.PEACEFUL||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)\n247:             ||!level.hasChunkAt(feet)||feet.distSqr(entrant)>48*48||feet.distSqr(entrant)<36)return false;\n248:         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;\n249:         var type=EliteContent.SPIDER_WOMAN.get();var box=type.getDimensions().makeBoundingBox(feet.getX()+.5,feet.getY(),feet.getZ()+.5);var ceiling=BlockPos.containing(feet.getX()+.5,box.maxY+.06,feet.getZ()+.5);\n250:         if(!level.getBlockState(ceiling).isFaceSturdy(level,ceiling,Direction.DOWN)||!level.getFluidState(feet).isEmpty()||!level.noCollision(null,box)\n251:             ||!level.getEntitiesOfClass(SpiderWoman.class,new AABB(feet).inflate(32),Entity::isAlive).isEmpty())return false;\n252:         var actor=type.create(level);if(actor==null)return false;actor.moveTo(feet.getX()+.5,feet.getY(),feet.getZ()+.5,0,0);actor.setPersistenceRequired();actor.bindEncounter(key);\n253:         actor.finalizeSpawn(level,level.getCurrentDifficultyAt(feet),MobSpawnType.STRUCTURE,null,null);if(!level.addFreshEntity(actor))return false;\n254:         if(marker==null){marker=new BlueprintSpawnState.Marker(key,feet);state.markers.put(key,marker);}marker.members.add(actor.getUUID());marker.produced=1;state.setDirty();return true;"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/EliteEncounters.java",
+          "line_start": 282,
+          "line_end": 311,
+          "sha256": "31a92fea9edccc67d61a6d83e5ed3fc4dcc8fb9b9895a8d5eefbe3b73ff19cdd",
+          "excerpt": "282:     public static boolean spawnBronzeSuanni(ServerLevel level,String key,BlockPos feet,BlockPos entrant){\n283:         if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==Difficulty.PEACEFUL||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)||feet.distSqr(entrant)>48*48||feet.distSqr(entrant)<36)return false;\n284:         for(int x:new int[]{-3,3})for(int z:new int[]{-3,3})if(!level.hasChunkAt(feet.offset(x,0,z)))return false;\n285:         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;\n286:         for(int x=-2;x<=2;x++)for(int z=-2;z<=2;z++){var cell=feet.offset(x,0,z);if(!level.getBlockState(cell.below()).isFaceSturdy(level,cell.below(),Direction.UP)||!level.getFluidState(cell).isEmpty())return false;}\n287:         var type=EliteContent.BRONZE_SUANNI.get();var box=type.getDimensions().makeBoundingBox(feet.getX()+.5,feet.getY(),feet.getZ()+.5);var clear=new AABB(feet.getX()-2.5,feet.getY(),feet.getZ()-2.5,feet.getX()+3.5,feet.getY()+4,feet.getZ()+3.5);\n288:         if(!level.getWorldBorder().isWithinBounds(clear)||!level.noCollision(null,clear)||!level.noCollision(null,box)||!level.getEntitiesOfClass(BronzeSuanni.class,new AABB(feet).inflate(32),Entity::isAlive).isEmpty())return false;\n289:         var mob=type.create(level);if(mob==null)return false;mob.moveTo(feet.getX()+.5,feet.getY(),feet.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);mob.finalizeSpawn(level,level.getCurrentDifficultyAt(feet),MobSpawnType.STRUCTURE,null,null);if(!level.addFreshEntity(mob))return false;\n290:         if(marker==null){marker=new BlueprintSpawnState.Marker(key,feet);state.markers.put(key,marker);}marker.members.add(mob.getUUID());marker.produced=1;state.setDirty();return true;\n291:     }\n292:     private static boolean spawnGoldenEagleAtOutpost(ServerLevel level,String key,net.minecraft.world.level.levelgen.structure.BoundingBox bounds,BlockPos entrant){\n293:         if(level.dimension()!=Level.OVERWORLD)return false;var marker=BlueprintSpawnState.get(level).markers.get(key);if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;\n294:         int cx=(bounds.minX()+bounds.maxX())/2,cz=(bounds.minZ()+bounds.maxZ())/2,top=Math.min(bounds.maxY()+1,level.getMaxBuildHeight()-8);\n295:         for(int dx:new int[]{-10,0,10})for(int dz:new int[]{-10,0,10}){if(dx==0&&dz==0)continue;\n296:             for(int y=top;y>=Math.max(100,top-23);y--){var feet=new BlockPos(cx+dx,y,cz+dz);boolean loaded=true;for(int x:new int[]{-3,3})for(int z:new int[]{-3,3})if(!level.hasChunkAt(feet.offset(x,0,z)))loaded=false;if(!loaded)continue;\n297:                 var biome=level.getBiome(feet);if(!(biome.is(net.minecraft.world.level.biome.Biomes.FROZEN_PEAKS)||biome.is(net.minecraft.world.level.biome.Biomes.JAGGED_PEAKS)||biome.is(net.minecraft.world.level.biome.Biomes.STONY_PEAKS)||biome.is(net.minecraft.world.level.biome.Biomes.SNOWY_SLOPES)))continue;\n298:                 if(spawnGoldenEagle(level,key,feet,entrant))return true;\n299:             }\n300:         }return false;\n301:     }\n302:     public static boolean spawnGoldenEagle(ServerLevel level,String key,BlockPos ground,BlockPos entrant){\n303:         if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==Difficulty.PEACEFUL||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)||ground.distSqr(entrant)>48*48||ground.distSqr(entrant)<36)return false;\n304:         for(int x:new int[]{-3,3})for(int z:new int[]{-3,3})if(!level.hasChunkAt(ground.offset(x,0,z)))return false;\n305:         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;\n306:         for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++){var cell=ground.offset(x,0,z);if(!level.getBlockState(cell.below()).isFaceSturdy(level,cell.below(),Direction.UP)||!level.getFluidState(cell).isEmpty())return false;}\n307:         var type=EliteContent.GOLDEN_EAGLE.get();var air=ground.above(4);var box=type.getDimensions().makeBoundingBox(air.getX()+.5,air.getY(),air.getZ()+.5);\n308:         var clearance=new AABB(ground.getX()-2.5,ground.getY(),ground.getZ()-2.5,ground.getX()+3.5,ground.getY()+7,ground.getZ()+3.5);\n309:         if(!level.getWorldBorder().isWithinBounds(clearance)||!level.noCollision(null,clearance)||!level.noCollision(null,box)||!level.getEntitiesOfClass(GoldenEagle.class,new AABB(ground).inflate(32),Entity::isAlive).isEmpty())return false;\n310:         var mob=type.create(level);if(mob==null)return false;mob.moveTo(air.getX()+.5,air.getY(),air.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);mob.finalizeSpawn(level,level.getCurrentDifficultyAt(air),MobSpawnType.STRUCTURE,null,null);if(!level.addFreshEntity(mob))return false;\n311:         if(marker==null){marker=new BlueprintSpawnState.Marker(key,ground);state.markers.put(key,marker);}marker.members.add(mob.getUUID());marker.produced=1;state.setDirty();return true;"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/EliteEncounters.java",
+          "line_start": 325,
+          "line_end": 372,
+          "sha256": "31a92fea9edccc67d61a6d83e5ed3fc4dcc8fb9b9895a8d5eefbe3b73ff19cdd",
+          "excerpt": "325:     public static boolean spawnBronzeGorilla(ServerLevel level,String key,BlockPos feet,BlockPos entrant){\n326:         if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==Difficulty.PEACEFUL||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)||feet.distSqr(entrant)>48*48||feet.distSqr(entrant)<36)return false;\n327:         for(int dx:new int[]{-3,3})for(int dz:new int[]{-3,3})if(!level.hasChunkAt(feet.offset(dx,0,dz)))return false;\n328:         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;\n329:         var type=EliteContent.BRONZE_GORILLA.get();var box=type.getDimensions().makeBoundingBox(feet.getX()+.5,feet.getY(),feet.getZ()+.5);\n330:         if(!level.getBlockState(feet.below()).isFaceSturdy(level,feet.below(),Direction.UP)||!level.getFluidState(feet).isEmpty()||!level.getWorldBorder().isWithinBounds(box)||!level.noCollision(null,box)||!level.getEntitiesOfClass(BronzeGorilla.class,new AABB(feet).inflate(32),Entity::isAlive).isEmpty())return false;\n331:         var mob=type.create(level);if(mob==null)return false;mob.moveTo(feet.getX()+.5,feet.getY(),feet.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);mob.finalizeSpawn(level,level.getCurrentDifficultyAt(feet),MobSpawnType.STRUCTURE,null,null);if(!level.addFreshEntity(mob))return false;\n332:         if(marker==null){marker=new BlueprintSpawnState.Marker(key,feet);state.markers.put(key,marker);}marker.members.add(mob.getUUID());marker.produced=1;state.setDirty();return true;\n333:     }\n334:     public static boolean spawnRageCorpse(ServerLevel level,String key,BlockPos feet,BlockPos entrant){\n335:         if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==Difficulty.PEACEFUL||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)||feet.distSqr(entrant)>48*48||feet.distSqr(entrant)<36)return false;\n336:         for(int dx:new int[]{-3,3})for(int dz:new int[]{-3,3})if(!level.hasChunkAt(feet.offset(dx,0,dz)))return false;\n337:         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;\n338:         var type=EliteContent.RAGE_CORPSE.get();var box=type.getDimensions().makeBoundingBox(feet.getX()+.5,feet.getY(),feet.getZ()+.5);\n339:         if(!level.getBlockState(feet.below()).isFaceSturdy(level,feet.below(),Direction.UP)||!level.getFluidState(feet).isEmpty()||!level.getWorldBorder().isWithinBounds(box)||!level.noCollision(null,box)||!level.getEntitiesOfClass(RageCorpse.class,new AABB(feet).inflate(32),Entity::isAlive).isEmpty())return false;\n340:         var mob=type.create(level);if(mob==null)return false;mob.moveTo(feet.getX()+.5,feet.getY(),feet.getZ()+.5,0,0);mob.setPersistenceRequired();mob.bindEncounter(key);mob.finalizeSpawn(level,level.getCurrentDifficultyAt(feet),MobSpawnType.STRUCTURE,null,null);if(!level.addFreshEntity(mob))return false;\n341:         if(marker==null){marker=new BlueprintSpawnState.Marker(key,feet);state.markers.put(key,marker);}marker.members.add(mob.getUUID());marker.produced=1;state.setDirty();return true;\n342:     }\n343:     private static boolean spawnTideYashaAtRuin(ServerLevel level,String key,net.minecraft.world.level.levelgen.structure.BoundingBox b,BlockPos entrant){\n344:         var marker=BlueprintSpawnState.get(level).markers.get(key);\n345:         if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;\n346:         int cx=(b.minX()+b.maxX())/2,cz=(b.minZ()+b.maxZ())/2,top=Math.min(b.maxY()+1,level.getMaxBuildHeight()-3);\n347:         for(int dx=-6;dx<=6;dx+=3)for(int dz=-6;dz<=6;dz+=3)for(int y=top;y>=Math.max(b.minY()-8,top-14);y--){\n348:             var feet=new BlockPos(cx+dx,y,cz+dz);\n349:             if(feet.getX()<b.minX()-2||feet.getX()>b.maxX()+2||feet.getZ()<b.minZ()-2||feet.getZ()>b.maxZ()+2)continue;\n350:             if(spawnTideYasha(level,key,feet,entrant))return true;\n351:         }return false;\n352:     }\n353:     public static boolean spawnTideYasha(ServerLevel level,String key,BlockPos feet,BlockPos entrant){\n354:         if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==Difficulty.PEACEFUL||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)||feet.distSqr(entrant)>48*48||feet.distSqr(entrant)<36)return false;\n355:         for(int dx:new int[]{-2,2})for(int dz:new int[]{-2,2})if(!level.hasChunkAt(feet.offset(dx,0,dz)))return false;\n356:         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);\n357:         if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;\n358:         for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++){var cell=feet.offset(dx,0,dz);if(!level.getFluidState(cell).is(net.minecraft.tags.FluidTags.WATER)||!level.getFluidState(cell.above()).is(net.minecraft.tags.FluidTags.WATER)||!level.getBlockState(cell.below()).isFaceSturdy(level,cell.below(),Direction.UP))return false;}\n359:         var type=EliteContent.TIDE_YASHA.get();var box=type.getDimensions().makeBoundingBox(feet.getX()+.5,feet.getY(),feet.getZ()+.5);\n360:         if(!level.getWorldBorder().isWithinBounds(box)||!level.noCollision(null,box)||!level.getEntitiesOfClass(TideYasha.class,new AABB(feet).inflate(32),Entity::isAlive).isEmpty())return false;\n361:         var actor=type.create(level);if(actor==null)return false;actor.moveTo(feet.getX()+.5,feet.getY(),feet.getZ()+.5,0,0);actor.setPersistenceRequired();actor.bindEncounter(key);actor.finalizeSpawn(level,level.getCurrentDifficultyAt(feet),MobSpawnType.STRUCTURE,null,null);if(!level.addFreshEntity(actor))return false;\n362:         if(marker==null){marker=new BlueprintSpawnState.Marker(key,feet);state.markers.put(key,marker);}marker.members.add(actor.getUUID());marker.produced=1;state.setDirty();return true;\n363:     }\n364:     public static boolean spawnAlchemist(ServerLevel level,String key,BlockPos feet,BlockPos entrant){\n365:         if(level.dimension()!=Level.OVERWORLD||level.getDifficulty()==Difficulty.PEACEFUL||!level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)||!level.hasChunkAt(feet)||feet.distSqr(entrant)>48*48||feet.distSqr(entrant)<36)return false;\n366:         var state=BlueprintSpawnState.get(level);var marker=state.markers.get(key);if(marker!=null&&(marker.cleared||!marker.members.isEmpty()||marker.nextSpawn>level.getGameTime()))return false;\n367:         var type=EliteContent.ALCHEMIST.get();var box=type.getDimensions().makeBoundingBox(feet.getX()+.5,feet.getY(),feet.getZ()+.5);\n368:         if(!level.getBlockState(feet.below()).isFaceSturdy(level,feet.below(),Direction.UP)||!level.getFluidState(feet).isEmpty()||!level.noCollision(null,box)||!level.getEntitiesOfClass(Alchemist.class,new AABB(feet).inflate(32),Entity::isAlive).isEmpty())return false;\n369:         var actor=type.create(level);if(actor==null)return false;actor.moveTo(feet.getX()+.5,feet.getY(),feet.getZ()+.5,0,0);actor.setPersistenceRequired();actor.bindEncounter(key);actor.finalizeSpawn(level,level.getCurrentDifficultyAt(feet),MobSpawnType.STRUCTURE,null,null);if(!level.addFreshEntity(actor))return false;\n370:         if(marker==null){marker=new BlueprintSpawnState.Marker(key,feet);state.markers.put(key,marker);}marker.members.add(actor.getUUID());marker.produced=1;state.setDirty();return true;\n371:     }\n372: }"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/AlchemistGameTests.java",
+          "line_start": 30,
+          "line_end": 37,
+          "sha256": "0ea3cca1867b61a2ea078f5b544128ede399342e471fe71e01ac7bff2ebd240a",
+          "excerpt": "30:     }\n31:     private static Alchemist caster(GameTestHelper h){\n32:         var chunks=new HashSet<net.minecraft.world.level.ChunkPos>();for(int x:new int[]{0,15})for(int z:new int[]{0,15})chunks.add(new net.minecraft.world.level.ChunkPos(h.absolutePos(new BlockPos(x,2,z))));\n33:         for(var c:chunks){var t=new Ticket(c,UUID.randomUUID());h.getLevel().getChunkSource().addRegionTicket(TICKET,c,2,t.id(),true);TICKETS.computeIfAbsent(h.getLevel(),k->new ArrayList<>()).add(t);}\n34:         for(int x=0;x<16;x++)for(int z=0;z<16;z++){h.setBlock(x,1,z,Blocks.STONE);for(int y=2;y<10;y++)h.setBlock(x,y,z,Blocks.AIR);}\n35:         var m=own(h,h.spawn(EliteContent.ALCHEMIST.get(),new BlockPos(7,2,5)));m.setNoAi(true);m.setPersistenceRequired();return m;\n36:     }\n37:     private static Cow target(GameTestHelper h,int z){var c=own(h,h.spawn(EntityType.COW,new BlockPos(7,2,z)));c.setNoAi(true);c.setNoGravity(true);c.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);c.setHealth(1000);return c;}"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/elite/AlchemistGameTests.java",
+          "line_start": 76,
+          "line_end": 86,
+          "sha256": "0ea3cca1867b61a2ea078f5b544128ede399342e471fe71e01ac7bff2ebd240a",
+          "excerpt": "76:     }\n77:     @GameTest(template=\"bow_ritual_test\",timeoutTicks=110,batch=\"alchemist\")\n78:     public static void nativeStructureSlotRetainsUnloadedOwnerAndConfirmedDeathCooldown(GameTestHelper h){\n79:         var template=caster(h);var feet=template.blockPosition();template.discard();String key=\"alchemy-native@\"+feet.asLong()+\":alchemist\";var world=h.getLevel();\n80:         h.startSequence().thenWaitUntil(()->h.assertTrue(world.isPositionEntityTicking(feet),\"Loaded structure floor is natively entity-ticking\")).thenExecute(()->{\n81:             var rule=world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING);boolean old=rule.get();rule.set(true,world.getServer());try{\n82:                 h.assertTrue(EliteEncounters.spawnAlchemist(world,key,feet,feet.offset(0,0,8)),\"Real loaded native structure spawner accepts the clear authored floor\");var marker=BlueprintSpawnState.get(world).markers.get(key);var actor=(Alchemist)own(h,world.getEntity(marker.members.iterator().next()));h.assertTrue(!actor.isNoAi()&&marker.members.size()==1,\"Ordinary actor owns exactly one SavedData slot\");var tag=new CompoundTag();actor.save(tag);actor.remove(Entity.RemovalReason.UNLOADED_TO_CHUNK);h.assertTrue(!EliteEncounters.spawnAlchemist(world,key,feet,feet.offset(0,0,8)),\"Unloaded UUID retains its slot\");var restored=own(h,EliteContent.ALCHEMIST.get().create(world));restored.load(tag);world.addFreshEntity(restored);restored.hurt(restored.damageSources().genericKill(),10000);h.assertTrue(marker.members.isEmpty()&&marker.nextSpawn==world.getGameTime()+12000,\"Confirmed death clears the owner and starts the original 12000-tick cooldown\");h.assertTrue(!EliteEncounters.spawnAlchemist(world,key,feet,feet.offset(0,0,8)),\"Another entrant cannot skip death cooldown\");\n83:             }finally{rule.set(old,world.getServer());}\n84:         }).thenSucceed();\n85:     }\n86: }"
+        }
+      ]
+    },
+    {
+      "id": "D04",
+      "finding": "Trial damage check occurs during native player spawn immunity",
+      "confidence": "SOURCE_PRECONDITION_MISSING_RUNTIME_HEALTH_AND_IMMUNITY_CHECK_STILL_REQUIRED",
+      "methods": [
+        "realdamageandmovementdiscontinuitycannotgranttemplesword"
+      ],
+      "observation": "Fixture creates a normal new ServerPlayer and uses generic1damage at test tick20 without asserting hurt accepted or health loss. Native1.20.1ServerPlayer starts with60ticks spawnInvulnerableTime and rejects non-bypass damage while positive. Production cancellation listens to positive LivingDamageEvent; if hurt is rejected, absence of cancellation does not establish a trial bug. Other artifact failures occurring after80ticks are not explained by this finding.",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/blueprint/artifact/ArtifactGameTests.java",
+          "line_start": 28,
+          "line_end": 32,
+          "sha256": "ddb0a011a2e1c9e17d175f67e3e7e409c367ecade28e6b14769f763631aafff1",
+          "excerpt": "28:     @AfterBatch(batch=\"longyin_artifact\") public static void release(ServerLevel w){var entities=OWNED.remove(w);var s=MarshalCourtyardState.get(w);if(entities!=null)for(var e:entities){if(e instanceof ServerPlayer p){for(var fx:w.getEntitiesOfClass(ArtifactWave.class,p.getBoundingBox().inflate(32),f->f.ownedBy(p)))fx.discard();s.firstRewarded.remove(p.getUUID());s.bladeClaimed.remove(p.getUUID());ArtifactAbility.forget(p.getUUID());}if(!e.isRemoved())e.discard();}var yards=YARDS.remove(w);if(yards!=null)for(var key:yards){var y=s.yards.remove(key);if(y!=null&&y.memorial!=null){var blade=w.getEntity(y.memorial);if(blade!=null)blade.discard();}}s.setDirty();var tickets=TICKETS.remove(w);if(tickets!=null)for(var t:tickets)w.getChunkSource().removeRegionTicket(TYPE,t.chunk(),2,t.id(),true);}\n29:     static ServerPlayer player(GameTestHelper h){var at=h.absolutePos(new BlockPos(30,2,30));for(int x=(at.getX()-20)>>4;x<=(at.getX()+20)>>4;x++)for(int z=(at.getZ()-20)>>4;z<=(at.getZ()+20)>>4;z++){var t=new Ticket(new ChunkPos(x,z),UUID.randomUUID());h.getLevel().getChunkSource().addRegionTicket(TYPE,t.chunk(),2,t.id(),true);TICKETS.computeIfAbsent(h.getLevel(),k->new ArrayList<>()).add(t);h.getLevel().getChunk(x,z);}for(int x=-18;x<=18;x++)for(int z=-18;z<=18;z++)h.getLevel().setBlock(at.offset(x,-1,z),Blocks.SANDSTONE.defaultBlockState(),3);\n30:         var p=own(h,new ServerPlayer(h.getLevel().getServer(),h.getLevel(),new com.mojang.authlib.GameProfile(UUID.randomUUID(),\"artifact-qa\")));p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);p.setGameMode(GameType.SURVIVAL);p.moveTo(at.getX()+.5,at.getY(),at.getZ()+.5,0,0);p.setNoGravity(true);p.setOnGround(true);p.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);p.setHealth(1000);p.setItemInHand(InteractionHand.MAIN_HAND,new ItemStack(ArtifactContent.LONGYIN.get()));h.getLevel().addNewPlayer(p);h.onEachTick(p::doTick);return p;}\n31:     private static Cow cow(GameTestHelper h,ServerPlayer p,double z){var c=own(h,EntityType.COW.create(h.getLevel()));c.moveTo(p.getX(),p.getY(),p.getZ()+z,0,0);c.setNoAi(true);c.setNoGravity(true);c.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000);c.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);c.setHealth(1000);h.getLevel().addFreshEntity(c);return c;}\n32:     private static void begin(GameTestHelper h,ServerPlayer p){h.assertTrue(ArtifactAbility.begin(p,p.getMainHandItem()),\"Server records exact current stack and its own start clock\");p.startUsingItem(InteractionHand.MAIN_HAND);}"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/artifact/TaiqingGameTests.java",
+          "line_start": 36,
+          "line_end": 42,
+          "sha256": "6cb0d4aad4551fa3b6bda96f6fe2b5df64d33ac92b83f22b860ed430ffbf996b",
+          "excerpt": "36:         });\n37:         h.runAfterDelay(42,()->h.assertTrue(TaiqingTrials.stage(p)==1,\"Thirty-eight stationary ticks cannot finish the40-tick objective\"));\n38:         h.runAfterDelay(49,()->{h.assertTrue(TaiqingTrials.stage(p)==2&&ZhanluTrialRewards.active(p,c)&&!ZhanluTrialRewards.completeStage(p,c,1),\"Only actual continued standing on native floor advances to ordered path stage\");h.succeed();});\n39:     }\n40:     @GameTest(template=\"cauldron_pit_test\",timeoutTicks=95,batch=\"taiqing_trials\")\n41:     public static void realDamageAndMovementDiscontinuityCannotGrantTempleSword(GameTestHelper h){\n42:         var f=temple(h);var p=f.player();var c=f.swordCase();"
+        },
+        {
+          "path": "src/main/java/com/dynasty/blueprint/artifact/TaiqingTrials.java",
+          "line_start": 102,
+          "line_end": 105,
+          "sha256": "104dd3f1b1ad98ed145fbb3794fc2572dbd46d04005ad8e5328453944f7a6c60",
+          "excerpt": "102:     @SubscribeEvent(priority=EventPriority.LOWEST) public static void damage(LivingDamageEvent e){if(e.getAmount()>0&&e.getEntity() instanceof ServerPlayer p)fail(p);}\n103:     @SubscribeEvent(priority=EventPriority.HIGHEST) public static void attack(AttackEntityEvent e){if(e.getEntity() instanceof ServerPlayer p&&SESSIONS.containsKey(p)){e.setCanceled(true);fail(p);}}\n104:     @SubscribeEvent(priority=EventPriority.LOWEST) public static void offensiveDamage(LivingHurtEvent e){if(e.getAmount()>0&&!e.getSource().is(net.minecraft.world.damagesource.DamageTypes.THORNS)&&e.getSource().getEntity() instanceof ServerPlayer p&&SESSIONS.containsKey(p))fail(p);}\n105:     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e){if(e.getEntity() instanceof ServerPlayer p)SESSIONS.remove(p);}"
+        }
+      ]
+    }
+  ],
+  "native_source_evidence": [
+    {
+      "jar": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "path": "net/minecraft/gametest/framework/GameTestBatchRunner.java",
+      "sha256": "f51deafe2724a15817f484dc2ed462ad5b54f2bfd53979eaeccf0db2d7a63c28",
+      "excerpts": [
+        {
+          "start": 90,
+          "end": 108,
+          "text": "90:    private Map<GameTestInfo, BlockPos> createStructuresForBatch(Collection<GameTestInfo> p_177076_) {\n91:       Map<GameTestInfo, BlockPos> map = Maps.newHashMap();\n92:       int i = 0;\n93:       AABB aabb = new AABB(this.nextTestNorthWestCorner);\n94: \n95:       for(GameTestInfo gametestinfo : p_177076_) {\n96:          BlockPos blockpos = new BlockPos(this.nextTestNorthWestCorner);\n97:          StructureBlockEntity structureblockentity = StructureUtils.spawnStructure(gametestinfo.getStructureName(), blockpos, gametestinfo.getRotation(), 2, this.level, true);\n98:          AABB aabb1 = StructureUtils.getStructureBounds(structureblockentity);\n99:          gametestinfo.setStructureBlockPos(structureblockentity.getBlockPos());\n100:          map.put(gametestinfo, new BlockPos(this.nextTestNorthWestCorner));\n101:          aabb = aabb.minmax(aabb1);\n102:          this.nextTestNorthWestCorner.move((int)aabb1.getXsize() + 5, 0, 0);\n103:          if (i++ % this.testsPerRow == this.testsPerRow - 1) {\n104:             this.nextTestNorthWestCorner.move(0, 0, (int)aabb.getZsize() + 6);\n105:             this.nextTestNorthWestCorner.setX(this.firstTestNorthWestCorner.getX());\n106:             aabb = new AABB(this.nextTestNorthWestCorner);\n107:          }\n108:       }"
+        }
+      ]
+    },
+    {
+      "jar": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "path": "net/minecraft/server/level/ServerPlayer.java",
+      "sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "excerpts": [
+        {
+          "start": 171,
+          "end": 174,
+          "text": "171:    private boolean lastFoodSaturationZero = true;\n172:    private int lastSentExp = -99999999;\n173:    private int spawnInvulnerableTime = 60;\n174:    private ChatVisiblity chatVisibility = ChatVisiblity.FULL;"
+        },
+        {
+          "start": 426,
+          "end": 433,
+          "text": "426: \n427:    public void tick() {\n428:       this.gameMode.tick();\n429:       this.wardenSpawnTracker.tick();\n430:       --this.spawnInvulnerableTime;\n431:       if (this.invulnerableTime > 0) {\n432:          --this.invulnerableTime;\n433:       }"
+        },
+        {
+          "start": 668,
+          "end": 675,
+          "text": "668:    public boolean hurt(DamageSource p_9037_, float p_9038_) {\n669:       if (this.isInvulnerableTo(p_9037_)) {\n670:          return false;\n671:       } else {\n672:          boolean flag = this.server.isDedicatedServer() && this.isPvpAllowed() && p_9037_.is(DamageTypeTags.IS_FALL);\n673:          if (!flag && this.spawnInvulnerableTime > 0 && !p_9037_.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {\n674:             return false;\n675:          } else {"
+        }
+      ]
+    }
+  ],
+  "failures": [
+    {
+      "method": "ordinaryidleflyingcontrollerpreservesthehalfblockhover",
+      "failure": "The ordinary flying controller cannot turn gravity back on while idle: y=-58.0 initial=-57.5 noGravity=false",
+      "source": "src/main/java/com/dynasty/blueprint/elite/FoxMatronGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D01",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "tombslotretainsunloadeduuidandusesdeathcooldown",
+      "failure": "Loaded open vault supports one ordinary structure actor",
+      "source": "src/main/java/com/dynasty/blueprint/elite/RageCorpseGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D03",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "leapactuallytravelseightblocksintwentyclippedsteps",
+      "failure": "Mob griefing disabled preserves the landing floor",
+      "source": "src/main/java/com/dynasty/blueprint/elite/RageCorpseGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D02",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "nativestructureslotretainsunloadedownerandconfirmeddeathcooldown",
+      "failure": "Real loaded native structure spawner accepts the clear authored floor",
+      "source": "src/main/java/com/dynasty/blueprint/elite/AlchemistGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D03",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "existingcampslotkeepsunloadeduuidandconfirmeddeathcooldown",
+      "failure": "Actual authored-site spawn helper succeeds",
+      "source": "src/main/java/com/dynasty/blueprint/elite/BronzeGorillaGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D03",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "nativefrontclashthensurroundreductionwithrearexception",
+      "failure": "Three real hostile bodies give exactly25percent front physical mitigation after clash window",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/ArtifactGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "confirmedvictorymemorialallowsoneclaimandpersistsuniqueuuid",
+      "failure": "Eligible first killer claims by actual empty-hand interaction",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/ArtifactGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "productionceilingmarkerinitializesattachmentbeforethefirstentitytick",
+      "failure": "The production spawner accepts the real supported ceiling",
+      "source": "src/main/java/com/dynasty/blueprint/elite/SpiderWomanGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D03",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "latesolidroofstopspenwithoutvictimdamage",
+      "failure": "A native collision roof blocks the pen instead of damaging through it",
+      "source": "src/main/java/com/dynasty/blueprint/elite/LampJudgeGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "twentyfourphysicalwallarrowsandfiniteexpiry",
+      "failure": "24real native arrows, not instant global damage",
+      "source": "src/main/java/com/dynasty/blueprint/boss/BlindMarshalGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "reallowfivemetrebladedoesnothitoverheadordoublehitclosebody",
+      "failure": "Actual down-pressed blade port reaches low near/far bodies, melee IDs excluded from same wave",
+      "source": "src/main/java/com/dynasty/blueprint/boss/BlindMarshalGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "twentytellticksthenrealperimetercurveandfixedinwardtrample",
+      "failure": "Collision-clipped inner cut reaches fixed floor point and tramples once",
+      "source": "src/main/java/com/dynasty/blueprint/boss/BlindMarshalGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "halfhealthmorphsevenactualstepsandsevenfinitefloorcracks",
+      "failure": "Seven real clipped.75m steps and7bounded source cracks",
+      "source": "src/main/java/com/dynasty/blueprint/boss/BlindMarshalGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "unloadeduuidretainsslotandmissedstealthneverreplays",
+      "failure": "One real structure actor spawns",
+      "source": "src/main/java/com/dynasty/blueprint/elite/InkAssassinGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D03",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "threedelayedcloudsareharmlessforonesecondandusablebamboodispersesthem",
+      "failure": "Visible six-block breath cone removes all three clouds",
+      "source": "src/main/java/com/dynasty/blueprint/elite/InkAssassinGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "spinhasthreecontactsandthirtytickrecovery",
+      "failure": "Third circle contact",
+      "source": "src/main/java/com/dynasty/blueprint/elite/HeadlessGeneralGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "realstructureslotdeathcooldowngravityandninetytickremoval",
+      "failure": "Actual encounter endpoint spawns over loaded clear ground",
+      "source": "src/main/java/com/dynasty/blueprint/elite/GoldenEagleGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D03",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "actualupwardplayershieldblocksfallingarrowandspendsdurability",
+      "failure": "Real arrow contact blocks damage and spends exactly one shield durability",
+      "source": "src/main/java/com/dynasty/blueprint/elite/GoldenEagleGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "thirtyticktelloneactuallightarrowthentwentyfourrainarrows",
+      "failure": "One real upward light arrow leaves bow",
+      "source": "src/main/java/com/dynasty/blueprint/elite/GoldenEagleGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "lateheavycountergroundsforonehundredticksandkeepscooldown",
+      "failure": "Full five-second grounded counter window",
+      "source": "src/main/java/com/dynasty/blueprint/elite/GoldenEagleGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "realdamageandmovementdiscontinuitycannotgranttemplesword",
+      "failure": "Actual accepted damage cancels both goal session and reward eligibility",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/TaiqingGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D04",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "realtemplefloorsupportedroofstwometrecaseandfortytickmeditation",
+      "failure": "Only actual continued standing on native floor advances to ordered path stage",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/TaiqingGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "slowwheelcollideswithstoneandgivesthreesecondsofrealstun",
+      "failure": "Native movement collision enters a real stun and cancels further impacts",
+      "source": "src/main/java/com/dynasty/blueprint/elite/HammerGuardianGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "onephysicalhammerreturnsandcannotsurviveownerdeath",
+      "failure": "Actual outgoing/returning sweep intersects the target",
+      "source": "src/main/java/com/dynasty/blueprint/elite/HammerGuardianGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "submergedslotrejectsdryentryretainsunloadandstartsdeathcooldown",
+      "failure": "Clear loaded water floor spawns one ordinary actor",
+      "source": "src/main/java/com/dynasty/blueprint/elite/TideYashaGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D03",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "threenativedashestravelsixblocksandwallcontactinterrupts",
+      "failure": "Third dash uses native gravity and a real jump, rather than a visual-only rise",
+      "source": "src/main/java/com/dynasty/blueprint/elite/TideYashaGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "realarenahastwelvepillarsthreealtarsandeightsecondintro",
+      "failure": "Real authored pit has oil abyss and twelve bone pillars",
+      "source": "src/main/java/com/dynasty/blueprint/boss/TaoyanCauldronGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "fulloiltellonesixmetrepatchandexpiry",
+      "failure": "One actual bounded radius6oil patch",
+      "source": "src/main/java/com/dynasty/blueprint/boss/TaoyanCauldronGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "whipusesactuallowsweepandacceptedhitsapplyfinitebleeding",
+      "failure": "Actual six narrow swept contact frames, low plane and finite accepted-hit bleeding",
+      "source": "src/main/java/com/dynasty/blueprint/boss/TaoyanCauldronGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "sixtypercenttransitionthenphysicalleapandsixgrowingcracks",
+      "failure": "Actual grounded impact makes exactly six finite extending fissures",
+      "source": "src/main/java/com/dynasty/blueprint/boss/TaoyanCauldronGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "twocasterfieldsnevercopyonemobweapon",
+      "failure": "One of two overlapping fields leases a mob",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/ZhanluGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "changedhandcancelsfieldandrestoreswithoutduplicatingequipment",
+      "failure": "Real field owns equipment lease",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/ZhanluGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "twentytickwindupfourseconddisarmandthirtypercentheal",
+      "failure": "A disarmed native mob cannot cause damage through its built-in attack",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/ZhanluGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "trustedtrialhooksrejectwrongorderdamageandduplicateclaims",
+      "failure": "Actual positive native damage invalidates unhurt trial",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/ZhanluGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "casterkillduringfieldforfeitshealevenoutsideradius",
+      "failure": "Actual caster-attributed hostile kill anywhere during field forfeits heal",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/ZhanluGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "fournativecutshavedifferentgeometryandhealthgateddurability",
+      "failure": "Four30point unarmed true hits; only broad draw reaches diagonal victim",
+      "source": "src/main/java/com/dynasty/blueprint/artifact/ZhanluGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "singlesaveduuidconfirmeddeathpermanentlyclearstombslot",
+      "failure": "Real encounter helper spawns in clear solid vault",
+      "source": "src/main/java/com/dynasty/blueprint/elite/BronzeSuanniGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": "D03",
+      "current_status": "SOURCE_FINDING_REQUIRES_ISOLATED_VERIFICATION"
+    },
+    {
+      "method": "tenticktellfiveprogressivecracksandfinitelifetime",
+      "failure": "First .5m cell alone appears",
+      "source": "src/main/java/com/dynasty/blueprint/elite/BronzeSuanniGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "completetwentyfourticktelloneoutletsweepandrecovery",
+      "failure": "One real eight metre flame mesh, no duplicate damage entity",
+      "source": "src/main/java/com/dynasty/blueprint/elite/BronzeSuanniGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "latewallstopsfissurepropagation",
+      "failure": "Only first two cells survive, propagation stops at wall",
+      "source": "src/main/java/com/dynasty/blueprint/elite/BronzeSuanniGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "walladdedafterlocktrimsactualjetandprotectsvictim",
+      "failure": "Actual tube terminates at new wall",
+      "source": "src/main/java/com/dynasty/blueprint/elite/BronzeSuanniGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "genuinehighoctagonoutsideascentandprotectedtensecondentrance",
+      "failure": "Native clipped aircraft lands and keeps real collision",
+      "source": "src/main/java/com/dynasty/blueprint/boss/WoodKiteGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    },
+    {
+      "method": "eightactualslowbombslandbeforefusethenallexpire",
+      "failure": "Eight real entities descend slowly; no instant ground explosions",
+      "source": "src/main/java/com/dynasty/blueprint/boss/WoodKiteGameTests.java",
+      "status": "FAIL_UNDIAGNOSED",
+      "diagnosis_group": null,
+      "current_status": "FAIL_UNDIAGNOSED"
+    }
+  ],
+  "next_verification": [
+    "Run encounter cases independently or separate their batches; preserve the production32block duplicate prevention.",
+    "Run true/false mobGriefing scenarios in distinct sequential batches with restoration.",
+    "Establish whether grounded FoxMatron is current approved design before changing model movement or hover assertion.",
+    "Wait out native spawn immunity and assert actual accepted health loss before checking trial cancellation.",
+    "Diagnose remaining32failures independently; do not mark the533test suite green."
+  ]
+}
