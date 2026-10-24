@@ -1,0 +1,48 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('build/cod4-client-20261022/gradle'))
+ p.afterEvaluate {
+  if(!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def base=p.file('build/cod4-client-20261022')
+  p.sourceSets.main.java.setSrcDirs([p.file('build/cod4-audit-20261022/frozen/src/main/java')])
+  p.sourceSets.main.resources.setSrcDirs([p.file('build/cod4-audit-20261022/frozen/src/main/resources'),p.file('build/cod4-audit-20261022/frozen/src/generated/resources')])
+  def classes=new File(base,'gradle/classes/java/main'), mainResources=new File(base,'gradle/resources/main')
+  p.tasks.named('compileJava').configure { destinationDirectory.set(classes) }
+  p.tasks.named('processResources').configure { destinationDir=mainResources }
+  p.sourceSets.main.output.classesDirs.setFrom(classes);p.sourceSets.main.output.resourcesDir=mainResources
+  p.repositories.flatDir { dirs p.file('modpack/mods') }
+  ['ftb-quests-forge:2001.4.22','ftb-library-forge:2001.2.13','ftb-teams-forge:2001.3.2','item-filters-forge:2001.1.0-build.59','architectury:9.2.14-forge','NaturesCompass:1.20.1-1.12.0-forge','ExplorersCompass:1.20.1-1.4.0-forge'].each { artifact ->p.dependencies.add('runtimeOnly',p.fg.deobf('dynasty_local_qa:'+artifact)) }
+  def qa=p.sourceSets.create('cod4ClientQa') {
+   java.srcDir p.file('tools/cod4/client-acceptance/com')
+   resources.srcDir p.file('tools/cod4/client-acceptance/resources')
+   compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+   runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+  }
+  p.minecraft.runs.client {
+   workingDirectory new File(base,'run-ftb2')
+   property 'dynasty.questIntegrationQa','true'
+   property 'dynasty.questIntegrationQa.output',p.file('docs/cod4/audit-20261022/client-ftb2').absolutePath
+   property 'mixin.env.remapRefMap','true'
+   property 'mixin.env.refMapRemappingFile',new File(base,'gradle/createSrgToMcp/output.srg').absolutePath
+   property 'forge.logging.console.level','info'
+   jvmArgs '-Xmx3G','-XX:ActiveProcessorCount=2'
+   args '--username','Cod4Reviewer','--width','1500','--height','1000','--mixin','dynasty-quest-qa.mixins.json'
+   mods { dynasty { source qa } }
+  }
+  p.tasks.matching {it.name=='runClient'}.configureEach {
+   dependsOn qa.classesTaskName,'createSrgToMcp'
+   doFirst {
+    def game=new File(base,'run-ftb2')
+    if(new File(game,'saves').exists()) throw new GradleException('Choose fresh QA world')
+    game.mkdirs();new File(game,'config').mkdirs()
+    new File(game,'config/fml.toml').text='earlyWindowControl = false\n'
+    new File(game,'options.txt').text='soundCategory_master:0.0\nlang:zh_cn\nguiScale:4\ngamma:0.0\nresourcePacks:["vanilla","mod_resources","file/dynasty-quest-guides-v3.zip"]\nmaxFps:30\nrenderDistance:2\ntutorialStep:none\nsimulationDistance:5\n'
+    p.copy {from p.file('modpack/config/ftbquests/quests');into new File(game,'config/ftbquests/quests')}
+    p.copy {from p.file('modpack/resourcepacks/dynasty-quest-guides-v3.zip');into new File(game,'resourcepacks')}
+   }
+  }
+  p.tasks.matching{it.name=='downloadAssets'||it.name=='downloadMCMeta'}.configureEach{onlyIf{false}}
+  def metadata=new File(gradle.gradleUserHomeDir,'caches/forge_gradle/minecraft_repo/versions/1.20.1/version.json')
+  def target=p.layout.buildDirectory.file('downloadMCMeta/version.json').get().asFile
+  target.parentFile.mkdirs();target.bytes=metadata.bytes
+ }
+}
