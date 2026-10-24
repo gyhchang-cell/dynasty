@@ -1,0 +1,83 @@
+[
+  {
+    "candidate_id": "dfedfc94f344b1cd76b4",
+    "status": "accepted",
+    "family": "native-item-numeric-or-string-id-schema-reader",
+    "trigger": "ItemIdFix.makeRule on ITEM_STACK input/output schema transition",
+    "input": "id typed as Either<Integer, named namespaced String>",
+    "output": "numeric branch converted through getItem into named string pair; existing string branch returned unchanged",
+    "preservation": "Only id optic is updated, other typed stack remainder remains in enclosing item. Whole numeric lookup table not credited per item.",
+    "application_limit": "getItem lookup unknown behavior needs separate trace; do not imitate numeric conversion for Dynasty already namespaced string IDs. Borrow preserve unrelated payload using surgical transform.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "2edb1fa246f7cb28bf0e",
+    "status": "accepted",
+    "family": "native-item-blockentity-tag-removal-with-reparse-guard",
+    "trigger": "ItemRemoveBlockEntityTagFix rule only configured item IDs",
+    "input": "optional item tag and nested BlockEntityTag, schema typed serialization",
+    "output": "writes typed tag or uses remainder; removes BlockEntityTag; reparses modified tag; if parse failure returns original item",
+    "preservation": "Compute transformed candidate first, commit only successful typed read; preserves original object on output-schema failure.",
+    "application_limit": "Intentional BlockEntityTag deletion not universally safe; item allowlist constructor supplied externally. Borrow failure-safe recovery but never delete unrelated Dynasty item tag.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "9dc19ee91dc3e7fe4fdf",
+    "status": "accepted",
+    "family": "native-filled-map-identity-metadata-transfer",
+    "trigger": "ItemStackMapIdFix.makeRule only minecraft:filled_map",
+    "input": "old Damage value on item remainder and optional tag",
+    "output": "creates tag if absent and puts map integer copied from old Damage/default0",
+    "preservation": "Filled map data identity migrated into map tag without rebuilding entire item, keeping Count/other remainder; does not remove old Damage in this body.",
+    "application_limit": "Existing map tag overwritten even if present. Borrow explicit old/current precedence and avoid unconditionally overriding a valid new-format permanent value.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "463ed16fba4442c2a5ff",
+    "status": "accepted",
+    "family": "native-furnace-recipe-receipt-list-upgrade",
+    "trigger": "FurnaceRecipeFix cap dispatches furnace/blast_furnace/smoker to updateFurnaceContents",
+    "input": "RecipesUsedSize plus RecipeLocationN/RecipeAmountN pairs",
+    "output": "for positive amounts and parsable recipe IDs builds typed RecipesUsed compound-list; removes old indexed keys and size",
+    "preservation": "Preserves other dynamic remainder; invalid ID or nonpositive count omitted. Three furnace registrations and loop entries count only one conversion body.",
+    "application_limit": "Old keys removed even when invalid entries skipped, so not lossless for unknown recipes. Borrow retain task progress counts separate from claimed receipts and never assume index maps to new FTB quest ID.",
+    "supporting_candidates": [
+      "b1b14b4e47af06353706"
+    ]
+  },
+  {
+    "candidate_id": "a859ad89a511fc0273b1",
+    "status": "accepted",
+    "family": "native-itemstack-compound-payload-construction",
+    "trigger": "ItemStack private CompoundTag constructor in native Forge mapped1.20.1",
+    "input": "id resource string, Count byte, typed tag compound, optional ForgeCaps",
+    "output": "registry resolves actual item; obtains Forge delegate; restores count, item tag and capability NBT then forgeInit; damage normalized for damageable item",
+    "preservation": "Does not generate replacement stack with count1: Count/tag are read from same saved payload after ID resolution; item verifyTagAfterLoad may modify tag.",
+    "application_limit": "Count signed byte and bad/unresolved IDs can fail/empty in caller; sourceTag assigned by reference, no deep-copy claim. Remap must happen before load; native QA still required for exact target tag behavior.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "6d52a900aa95d9e40706",
+    "status": "accepted",
+    "family": "native-player-disk-inventory-xp-abilities-reader",
+    "trigger": "Player.readAdditionalSaveData on player disk load",
+    "input": "inventory, selected slot, XP fields, sleep/food, abilities, EnderItems, shoulder entities, LastDeathLocation",
+    "output": "loads inventory/XP and scores; zero enchantment seed randomized; speed derives from loaded abilities; optional typed payloads restored",
+    "preservation": "Abilities support shows typed abilities container, speed numeric guard and mayBuild byte guard; disk save restores active invulnerable/flying too, unlike permanent death policy.",
+    "application_limit": "Disk-load policy not death Clone policy. No license to grant items or copy sleep/invulnerability across death. Parent Entity/ForgeData consumer not inferred from super call.",
+    "supporting_candidates": [
+      "8f9e0ad4a56278322995"
+    ]
+  },
+  {
+    "candidate_id": "452e1c1131640c75118c",
+    "status": "accepted",
+    "family": "native-serverplayer-recipe-credit-and-respawn-reader",
+    "trigger": "ServerPlayer.readAdditionalSaveData after base Player read",
+    "input": "optional warden tracker, enteredNetherPosition, seenCredits, recipeBook, SpawnXYZ/Dimension",
+    "output": "codec results logged; recipeBook restores against server recipe manager; sleeping stopped; respawn position requires all3 numeric coordinates; invalid dimension falls back OVERWORLD",
+    "preservation": "Separate server-owned persistent recipe/credits/respawn data from active sleeping state explicitly reset on load.",
+    "application_limit": "Nested recipe decoder not counted here; unknown recipe retention unproven. Borrow source-defined owner boundary; do not duplicate vanilla recipe/inventory copying in new Dynasty handler.",
+    "supporting_candidates": []
+  }
+]

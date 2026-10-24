@@ -1,0 +1,161 @@
+[
+  {
+    "candidate_id": "14f8aa68a56df8332147",
+    "status": "accepted",
+    "family": "forge-item-handler-typed-size-and-bounded-slot-reader",
+    "trigger": "ItemStackHandler.deserializeNBT",
+    "input": "typed int Size optional, Items Slot int and native ItemStack payload",
+    "output": "setSize from valid int else existing capacity; only in-range slots restored; onLoad after all slots",
+    "preservation": "Actual reusable durable loader clears/resizes owner then assigns native full stacks, unlike pure wrapper calls already grouped elsewhere. Missing Size keeps shape but not prior contents.",
+    "application_limit": "Negative/unbounded Size not rejected; unknown item nativeof can becomeEMPTY. Must not hand-rebuild legacy items in a way that loses capabilities.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "860650163cf84691185b",
+    "status": "accepted",
+    "family": "native-mob-gear-drop-receipts-and-spawn-type-reader",
+    "trigger": "Mob.readAdditionalSaveData",
+    "input": "typed loot-pickup byte, persistence, hand/armor item lists, drop chances, leash, optional loot table, forge spawn type",
+    "output": "restores actual equipped stack arrays and probability state; invalid spawn-type enum caught and removes source key",
+    "preservation": "ArmorStand repeats array structure and is grouped, no second species credit. Actual dropped resource ownership may depend on saved equipment and drop chances together.",
+    "application_limit": "Drop chance loop uses input list length without array bound; invalid loot-table ID can throw; input spawn key mutation observed. No inference these fields should survive player Clone.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "9f3e54a1b3124e564157",
+    "status": "accepted",
+    "family": "native-allay-owned-items-and-duplication-cooldown-reader",
+    "trigger": "Allay.readAdditionalSaveData",
+    "input": "inventory, optional listener codec, DuplicationCooldown and CanDuplicate",
+    "output": "restores inventory; codec resultOrPartial retains/updates listener on available result; cooldown read via int then cast long",
+    "preservation": "Paired writer uses putLong for duplicationCooldown while reader uses getInt: concrete precision/narrowing counterexample, not a guarantee arbitrary deadlines roundtrip. Current armor owner separately verified exactdeadline.",
+    "application_limit": "Absent cooldown/canDuplicate default0/false; no death-transfer proof; not reason to rebase saved absolute time.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "52a522f16644b74729fc",
+    "status": "accepted",
+    "family": "native-horse-legacy-owner-and-role-inventory-restore-chain",
+    "trigger": "AbstractHorse and chested/horse/llama readAdditionalSaveData chain",
+    "input": "typed UUID Owner or legacy owner string, Tame/Temper/Bred, SaddleItem; optional chest cargo and armor/decor",
+    "output": "old owner resolves through profile cache/auth lookup/offline UUID fallback; saddle validated; chested inventory initialized before bounded slots>=2; llama strength before superclass capacity",
+    "preservation": "Complete paired writers and OldUsersConverter method read: unavailable authenticated lookup returns null; UUID parse malformed→null; offline name derives deterministic UUID. Whole horse hierarchy credited once, no subclass or per-slot credits.",
+    "application_limit": "Historical owner resolution may require network/server; no offline/auth identity conflation in Dynasty. Cargo outside capacity skipped; no automatic native QA run.",
+    "supporting_candidates": [
+      "6c482c4e8aa006b79e4e",
+      "559a0c00764ff0593fd3",
+      "30319bc797b9883a2975"
+    ]
+  },
+  {
+    "candidate_id": "41556baba6ac632359a3",
+    "status": "accepted",
+    "family": "native-itemframe-owned-stack-replacement-map-cleanup-reader",
+    "trigger": "ItemFrame.readAdditionalSaveData",
+    "input": "nonempty Item compound, ItemRotation and numeric optional ItemDropChance",
+    "output": "loads native stack, warns if failed; existing differing framed-map registration removed before setItem(false); restores chance only if numeric",
+    "preservation": "Paired writer saves full item payload, rotation and drop chance. Reader distinguishes missing item compound from supplied unresolvable stack; replacement cleanup avoids stale map ownership.",
+    "application_limit": "Absent/empty Item does not clear existing item; unresolved supplied item can clear. This is actual item retention, not credit for rotation/visual flags.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "6e3238ecb552b7f6385d",
+    "status": "accepted",
+    "family": "native-itementity-owner-payload-expiry-reader",
+    "trigger": "ItemEntity.readAdditionalSaveData",
+    "input": "Health/Age, optionalPickupDelay/Lifespan, typed Owner/Thrower UUID and Item",
+    "output": "restores ownership and lifetime then actual full stack; empty decode discards entity",
+    "preservation": "Paired writer stores same owner/thrower and Item save compound. Demonstrates unavailable old registry item can cause an entire dropped entity to disappear, making pre-deserialize remapping essential.",
+    "application_limit": "Ages/pickupdelay are short-limited; stored lifetime is transient lease, not earned progression. No new spawned or restored drops in this read-only study.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "fea391d8f8b7ded073b2",
+    "status": "accepted",
+    "family": "native-merchant-paid-use-counter-and-offer-payload-reader",
+    "trigger": "AbstractVillager Offers→MerchantOffers Recipes→MerchantOffer constructor",
+    "input": "buy/buyB/sell complete stacks, uses/maxUses, rewardExp/xp/priceMultiplier/specialPrice/demand",
+    "output": "restores cost/result and exhausted-use count, absent numeric maxUses defaults4, typed optional fields retain initialized defaults",
+    "preservation": "Full MerchantOffers constructor/createTag and MerchantOffer writer/consumer inspected: isOutOfStock uses uses>=maxUses, increaseUses increments on use. Restoring only offers without use count could renew exhausted stock. Outer wrappers/list entries extra0.",
+    "application_limit": "No per-recipe atomic validation; native ItemStack failure can give empty cost/result. Definition+per-offer spent count is one persisted offer, not player claimed reward.",
+    "supporting_candidates": [
+      "c4eeb33a2bc77a176d39"
+    ]
+  },
+  {
+    "candidate_id": "98e7f7a21ada24f57a40",
+    "status": "accepted",
+    "family": "native-brewingstand-purchased-inputs-and-fuel-reader",
+    "trigger": "BrewingStandBlockEntity.load",
+    "input": "fixed inventory, BrewTime short and Fuel byte",
+    "output": "allocates fresh fixed slots, native loadAllItems, restores processing/fuel counters",
+    "preservation": "Inventory and already allocated fuel usage are separate saved values under one machine owner. Load does not craft/consume inputs; no extra credit per bottle slot.",
+    "application_limit": "Numeric widths can narrow oversized values; invalid missing stacks EMPTY; no guarantee modified recipes remain resumable.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "bb639910c0206a63b71f",
+    "status": "accepted",
+    "family": "native-brushable-unopened-loot-versus-resolved-item-reader",
+    "trigger": "BrushableBlockEntity.load",
+    "input": "optional unopened loot table or resolved item, optional hit_direction",
+    "output": "tryLoadLootTable first; only loads resolved item when no loot table; optional direction ordinal",
+    "preservation": "Paired writer uses symmetric trySaveLootTable guard before storing resolved item. Prevents treating unopened random loot definition as already granted concrete reward.",
+    "application_limit": "Direction.values index unchecked; absent item leaves existing state. Not evidence existing advancement receipts can be regenerated from a loot definition.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "96f288b3881aec50d78a",
+    "status": "accepted",
+    "family": "native-campfire-item-and-bounded-process-array-reader",
+    "trigger": "CampfireBlockEntity.load",
+    "input": "item list plus optional typed int[] CookingTimes/CookingTotalTimes",
+    "output": "clears/load slots; copies each saved timing array up to min capacity and source length",
+    "preservation": "Actual bounds protection for historical process-array size changes; all slot/timer pairs count once rather than one implementation per cooking slot.",
+    "application_limit": "Arrays not cleared when source absent/short, so reused owner can retain trailing old progress. Saved input items do not imply completed output rewards.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "c3e508352fd63cda7a95",
+    "status": "accepted",
+    "family": "native-jukebox-owned-record-and-clock-pair-reader",
+    "trigger": "JukeboxBlockEntity.load",
+    "input": "optional typed RecordItem, IsPlaying, RecordStartTick and TickCount longs",
+    "output": "loads actual record into slot0 then restores playing state and pairedlongclocks",
+    "preservation": "Full saveAdditional writes same state and exact long fields; unlike Allay int reader, no narrowing in this method. Two clocks belong to one owner, not separate credit.",
+    "application_limit": "Missing record key does not clear existing record; missing clock primitives0. Do not copy general temporary playback clock state into permanent player whitelist.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "1d9509dfd689a89f99c0",
+    "status": "accepted",
+    "family": "native-lectern-book-resolution-and-derived-page-range-reader",
+    "trigger": "LecternBlockEntity.load",
+    "input": "typed Book compound or absence and Page int",
+    "output": "loads and resolves book, absent→EMPTY; derives pageCount from restored book before clamping page",
+    "preservation": "Paired writer only emits Book/Page when nonempty. Correct order retains carried book metadata and bounds UI state against actual restored payload.",
+    "application_limit": "resolveBook may change unresolved book content; empty pageCount clamp edge not tested. No extra credit for generic ItemStack helper.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "cfea584cc840e0f1bc08",
+    "status": "accepted",
+    "family": "native-map-durable-identity-dimension-and-data-size-reader",
+    "trigger": "MapItemSavedData.load",
+    "input": "legacy dimension codec, center/scale/tracking/locked, color bytes, banner/frame identities",
+    "output": "requires resolvable dimension; scale clamps0..4; absent typed trackingPosition defaults true; exact16384 colors accepted; marker indexes rebuilt",
+    "preservation": "Saved exploration content not reconstructed from registry ID alone; wrong color length preserves new map default rather than partialcopy. Marker child helpers grouped, no per-marker count.",
+    "application_limit": "Bad dimension throws; exact-size guard discards malformed map colors, not lossless; no unrelated raw root copied.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "d19f04995a3a65132746",
+    "status": "duplicate",
+    "reason": "ArmorStand repeats Mob hand/armor array restore structure; pose/visibility cosmetic branches do not add migration credit."
+  },
+  {
+    "candidate_id": "f615e95593b5a922cf24",
+    "status": "duplicate",
+    "reason": "Native furnace reader matches already studied DivineRPG furnace inventory/recipe receipt/burn progress flow; no second credit for upstream versus port."
+  }
+]

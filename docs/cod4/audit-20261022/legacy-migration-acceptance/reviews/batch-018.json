@@ -1,0 +1,123 @@
+[
+  {
+    "candidate_id": "e8e69b6a48ba45e0296b",
+    "status": "accepted",
+    "family": "pnc-drone-upgrades-before-capacity-owned-cargo-reader",
+    "trigger": "DroneEntity.readAdditionalSaveData",
+    "input": "program widgets/variables, upgrade inventory, temporary inventory, fluid payload, ownerUUID halves, enchantments",
+    "output": "restores upgrades then invalidates cache; loads temporary handler and copies stacks; sizes tank/energy from upgrades; optional position uses null fallback",
+    "preservation": "Complete read inspected and copyItemHandler actual helper checked: it copies ItemStacks with copy and resizes destination to source slots, so cannot simply claim usable-slot setting bounds saved capacity. Owner identity retained using saved halves.",
+    "application_limit": "OldUUID guard checks only M, missing L defaults0. Failed enchant/displaced liquid codec defaults empty. No full program consumer/runtime replay proof; upgrade/input order lesson only, no API transplant.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "5518afb443e5b510f624",
+    "status": "accepted",
+    "family": "pnc-amadrone-offer-player-and-tablet-payload-reader",
+    "trigger": "AmadroneEntity.readAdditionalSaveData after Drone base",
+    "input": "optional amadron offerId, offerTimes, buyingPlayer, usedTablet complete saved stack, AmadronAction",
+    "output": "restores pending trade identity/multiplicity/player and actual tablet payload",
+    "preservation": "Paired addAdditionalSaveData emits owned subcompound only when handlingOffer exists; setHandlingOffer initially copies tablet, so saved original tablet metadata matters beyond registry ID.",
+    "application_limit": "Malformed ID or unknown enum can abort; absent subcompound leaves previous state. This is stored ongoing transaction, not generic Drone inventory duplicate; no claim successful delivery/refund.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "8665efc9c36f2b6445a3",
+    "status": "accepted",
+    "family": "pnc-lamp-fuel-derived-state-and-owned-inventory-reader",
+    "trigger": "KeroseneLamp.loadAdditional",
+    "input": "lights position codec, range bytes, inventory and inherited tank",
+    "output": "clears old light positions; valid codec fills; recalculates fuelQuality from actual restored tank fluid; restores slots/rangeSq",
+    "preservation": "Paired writer omits derived fuelQuality/rangeSq and saves actual lights/ranges/items. Derived caches are rebuilt from authoritative state instead of blindly retaining stale values.",
+    "application_limit": "Invalid light codec clears positions; range byte sign/range not validated. Common inventory helper no independent credit; no claim light positions permanent player progress.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "6dc4c479523a9611e7ef",
+    "status": "accepted",
+    "family": "pnc-universal-sensor-player-owner-gps-rebind-reader",
+    "trigger": "UniversalSensor.loadAdditional",
+    "input": "items, sensorSetting/text/speed and optional typed-string playerId",
+    "output": "restores item handler, applies sensor setting, parses owner UUID and setupGPSPositions after cargo",
+    "preservation": "Full writer only emits nonnull playerId. Saved location/config is re-bound after real inventory load; not a pure accessor or inventory call with key renamed.",
+    "application_limit": "UUID.fromString unguarded; missing owner leaves old field, not null. setupGPSPositions consumer not fully evaluated; no blanket identity recovery guarantee.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "778db9d6f4efbc8f5d49",
+    "status": "accepted",
+    "family": "occult-ritual-paid-ingredients-and-sacrifice-receipts-reader",
+    "trigger": "GoldenSacrificialBowl.loadAdditional",
+    "input": "ritual recipeId, castingPlayer UUID, currentTime/active, consumed ingredient payloads and sacrifice/item-use receipts",
+    "output": "resets ingredient list; valid-looking recipe ownership path loads already paid inputs; restoreRemainingAdditionalIngredients derives remaining recipe cost",
+    "preservation": "Complete paired save and restore helper read: absent level defers remaining ingredients null for tick retry, otherwise subtracts consumed ingredients; paid receipts saved only while recipe exists. No consumption/reward triggered in reader itself.",
+    "application_limit": "Condition uses id!=null OR resolvedRecipe!=null; nonnull unresolved ID with live level can dereference null recipe in helper. Missing IDs may leave stale state. This is negative-compatible boundary, not proof all reload paths work.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "eb5fe5114cef53955d7e",
+    "status": "accepted",
+    "family": "occult-held-crafting-matrix-stack-codec-reader",
+    "trigger": "StorageController applyImplicitComponents loads saved CRAFTING_MATRIX copyTag",
+    "input": "matrix list of slot byte and stack compound in carried block component",
+    "output": "fresh map restores each slot via optional ItemStack codec with EMPTY fallback",
+    "preservation": "Paired saveMatrix writes nine nonempty owned craft slots and collectImplicitComponents emits it. Real item persistence bridge proves loadMatrix is not solely client UI deserialization; network copies same helper no extra credit.",
+    "application_limit": "Missing slot defaults0, no reader bounds check, duplicate slot overwrites; failed stack remains EMPTY. Per-slot records not separate credits.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "06cc39baef0eac79fda5",
+    "status": "accepted",
+    "family": "occult-map-storage-resource-count-slot-and-derived-cache-reader",
+    "trigger": "StorageController saved items delegates MapItemResourceHandler.deserializeNBT",
+    "input": "resource→count, resource→slot tables; empty slots/next slot/capacity totals",
+    "output": "reconstructs counts and bidirectional indexes; invalid decoded item skipped; restores counters then clears undo/variant caches",
+    "preservation": "Paired writer persists both associations and totals, with per-entry serialize catches. Outer disk loadAdditional and carried storage component supply same owner; count once, no duplicate generic wrapper.",
+    "application_limit": "Cross-table consistency/slot bounds/count sums not checked; malformed list type casts may throw. Independent missing entries can mismatch saved total count, so no universal lossless claim.",
+    "supporting_candidates": [
+      "81b9c5dbd5b0ab2d4333"
+    ]
+  },
+  {
+    "candidate_id": "e1f56f6b19ced96d237a",
+    "status": "accepted",
+    "family": "occult-greedy-familiar-inventory-and-filter-capacity-restore",
+    "trigger": "GreedyFamiliar.readAdditionalSaveData",
+    "input": "optional inventory and filterItem compounds",
+    "output": "loads inventory under actual level registry; forces filter Size to current FILTER_SIZE then deserializes filter owner",
+    "preservation": "Concrete compatibility step replaces historical filter capacity instead of allocating according to arbitrary saved size. Actual inventory and filter owners same entity chain count once.",
+    "application_limit": "Mutates supplied filter source compound; no tag.copy seen. Delegate validation/capacity loss not established. Borrow validate/import audited fields without mutating original old-world source.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "eae023e4a014fb438155",
+    "status": "accepted",
+    "family": "occult-worker-spirit-job-inventory-and-old-reference-reader",
+    "trigger": "SpiritEntity.readAdditionalSaveData",
+    "input": "optional age/work area, deposit oldowner reference, extract position/faces, inventory, spiritJob/Brain, filterItem",
+    "output": "present-only setters retain defaults; loads real cargo; reconstructs job without activation flag and rebuilds brain from packed data or EMPTY; filter Size1",
+    "preservation": "Distinct work-owner restoration includes typed optional saved state and actual cargo; full method shows old-owner conversion invocation but implementation unresolved in pinned dependencies. Child generic inventory handlers extra0.",
+    "application_limit": "Direction.values index unchecked; source filter mutated; no proof EntityReference helper is lossless or all job state persists. Lifespan and work timers are not earned root progress.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "4bd56b4aa6fade19b3a3",
+    "status": "duplicate",
+    "reason": "Only generic inventory delegation plus reboot timer and derived network validity; no independent migration behavior beyond studied owner readers."
+  },
+  {
+    "candidate_id": "88d43d18549710c1123d",
+    "status": "duplicate",
+    "reason": "Generic inventory restore followed by derived displayed/numeric item IDs; wrapper does not add owned preservation implementation credit."
+  },
+  {
+    "candidate_id": "7fd13de8cf32b2038b1a",
+    "status": "duplicate",
+    "reason": "StorageController network mirror uses already studied matrix helper; disk item ownership handled by selected MapItemResourceHandler chain. No separate credit for visual/client mirror."
+  },
+  {
+    "candidate_id": "41cdd87581929bf1b985",
+    "status": "duplicate",
+    "reason": "StableWormhole largely reuses matrix helper/sort settings and network order mirror; no additional carried-item bridge implementation beyond same matrix owner study."
+  }
+]

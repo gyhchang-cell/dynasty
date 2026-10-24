@@ -1,0 +1,97 @@
+[
+  {
+    "candidate_id": "bd879428ca8b2210f367",
+    "status": "accepted",
+    "family": "botania-alfheim-portal-owned-pending-trade-input-reader",
+    "trigger": "AlfheimPortalBlockEntity.load from disk, saveAdditional separate from packet timers",
+    "input": "stackCount plus portalStack0..n full ItemStacks",
+    "output": "clears stacksIn and reconstructs saved pending trade input stacks",
+    "preservation": "Full writer/addItem/resolveRecipes reviewed. Incoming entity is discarded; validated stack count is split into single copies owned by portal. Recipe consumes matching saved inputs only after mana payment, then spawns output. Persistence preserves already paid inputs rather than replenishing a default inventory.",
+    "application_limit": "Unbounded count and native unknown item EMPTY; no successful spawn check before consumed receipts removed. Timer packet reader does not own paid input persistence; no separate credit for each stack or helper."
+  },
+  {
+    "candidate_id": "418eaa3aa339271101d8",
+    "status": "accepted",
+    "family": "botania-real-mana-burst-resource-source-and-collision-receipt-reader",
+    "trigger": "ManaBurstEntity.readAdditionalSaveData on actual saved burst",
+    "input": "mana/starting mana, lens full stack, source XYZ/dimension, shooter UUID, motion, collision position list",
+    "output": "rebinds source GlobalPos with current dimension fallback when absent/unparseable; restores carried mana/lens and clears/rebuilds collision receipts",
+    "preservation": "Full writer, onReceiverImpact and collision methods reviewed: actual receiver receives saved mana and repeated-position membership is queried. Writer explicitly refuses fake simulation bursts. Optional magnetize position defaults null; corrupt list members skipped via codec result. Whole resource carrier counted once.",
+    "application_limit": "No root permanent progress inferred from projectile state. HasShooter bool is not typed UUID validation; magnetize codec orThrow may fail, collision tuple guards only X, motion deliberately bypasses native velocity clamp. No runtime projectile simulation claimed."
+  },
+  {
+    "candidate_id": "1057bfe804a2c3f81eb2",
+    "status": "accepted",
+    "family": "botania-loonium-earned-loot-override-receipt-owner",
+    "trigger": "LooniumComponent.readFromNbt and actual flower dropLooniumItems consumer",
+    "input": "optional toDrop full item payload; overrideDrop and slowDespawn flags",
+    "output": "absent toDrop resets EMPTY, optional flags retain current values; writer stores payload only when overrideDrop true",
+    "preservation": "Read complete component writer and spawning/drop consumer: generated loot is installed on spawned mob before spawn and consumer emits that exact saved payload only under overrideDrop. A missing payload plus true flag intentionally yields no drop rather than regenerating loot. Distinct owner from Ivy player death inventory.",
+    "application_limit": "Optional flags do not clear on read into reused instance when omitted; slow-despan flag transient, not permanent player progression. Reader alone is not proof Forge capability attachment registration or crash-atomic rewards."
+  },
+  {
+    "candidate_id": "b4fdcbfb95e78c1c99fe",
+    "status": "accepted",
+    "family": "cyclic-potion-beacon-consumed-potion-effect-budget-reader",
+    "trigger": "TilePotionBeacon.loadAdditional followed by TileBlockEntityCyclic base timer reader",
+    "input": "Effects typed compound list, inherited timer, energy, inventory/filter, radius/entityFilter",
+    "output": "reconstructs nonnull effects, restores inherited remaining time and paid energy/inventory",
+    "preservation": "Full writer/base timer read and write/pullFromItem/tick/affectEntities reviewed. Pull consumes one potion into copied effect list and timer budget; restored effects are actually applied while timer remains, so this is paid resource state, not generic inventory wrapper. Same owner counted once.",
+    "application_limit": "Effects absent retains previous list; unbounded entityFilter ordinal can throw before base timer restored; missing radius becomes0. Newer NeoForge component API is research only; timed effects must not enter Dynasty permanent whitelist."
+  },
+  {
+    "candidate_id": "ef0b195237b732963dca",
+    "status": "accepted",
+    "family": "twilight-drying-rack-owned-item-processing-defaults-reader",
+    "trigger": "DryingRackBlockEntity.loadAdditional ValueInput disk reader",
+    "input": "item codec, dry_time, total_dry_time, drying",
+    "output": "codec failure/absence gives EMPTY; missing elapsed0, total defaults6000 ticks, dryingfalse",
+    "preservation": "Complete writer/tick/setTheItem/takeTheItem read. Stored item and elapsed work resume through actual recipe consumer; completed replacement goes through setTheItem and resets timer when changed. Reader assigns stack directly, avoiding fresh insertion reset of saved work.",
+    "application_limit": "New ValueInput API not Forge1.20.1 implementation. Saved item reader does not clamp count like normal insertion; invalid item becomes EMPTY and no extra backup. Loot table fill helper is not an independently counted migration."
+  },
+  {
+    "candidate_id": "fcc013745987ddacd31c",
+    "status": "accepted",
+    "family": "aether-treasure-chest-earned-unlock-default-locked-and-tier-owner",
+    "trigger": "TreasureChestBlockEntity.loadAdditional plus block item component bridge",
+    "input": "Locked optional bool, Kind namespace ID, loot table or resolved Items",
+    "output": "missing Locked means true, missing Kind bronze, resets fixed27 inventory then retains unresolved loot versus actual items",
+    "preservation": "Read complete writer and tryUnlock/canPlaceItem/canTakeItem: restored locked state actually gates inventory access; unlock marks saved change. Component import also defaults locked true. Distinct unlock receipt semantics, no extra generic chest credit.",
+    "application_limit": "Malformed Kind parse may throw; collectImplicitComponents writes bronze regardless of actual kind, concrete tier loss risk in block-item transfer. Existing unlocked state false must stay false; absent old key must not be confused with explicit false."
+  },
+  {
+    "candidate_id": "5148458f86f8644ab985",
+    "status": "accepted",
+    "family": "bloodmagic-dagger-legacy-pickup-permission-format-reader",
+    "trigger": "AbstractEntityThrowingDagger.readAdditionalSaveData",
+    "input": "current numeric pickup or historical numeric player flag, willDrop and willType, potion metadata",
+    "output": "prefer pickup ordinal; only when absent uses legacy player true→ALLOWED false→DISALLOWED",
+    "preservation": "Full save and playerTouch consumer read: writer now writes pickup byte; actual pickup checks permission and only removes entity on allowed collection path. Legacy permission fallback is independent of generic ItemStack constructor and actual read context includes guarded numeric damage.",
+    "application_limit": "ContainedStack save/read lines are commented out, so full carried stack restoration is NOT supported by this source. Current native arrow inheritance may share basic legacy pickup logic; no additional credit for other arrow skins or helpers. Motion/cooldown are not permanent progress."
+  },
+  {
+    "candidate_id": "1022da1d2dd4987bf463",
+    "status": "duplicate",
+    "reason": "KeptItemsComponent is support of already accepted Botania Resolute Ivy death inventory chain, not a new owner."
+  },
+  {
+    "candidate_id": "7b1b1b182277a71919fd",
+    "status": "duplicate",
+    "reason": "Cacophonium packet stack wrapper alone adds no independent progression or migration semantics."
+  },
+  {
+    "candidate_id": "29976d8333a610e17100",
+    "status": "duplicate",
+    "reason": "ChainBlock carried-stack optional codec repeats accepted thrown-item preservation architecture without new ownership handling."
+  },
+  {
+    "candidate_id": "ef0e33bbb939c59eb350",
+    "status": "duplicate",
+    "reason": "CubeOfAnnihilation item codec wrapper repeats same carried stack chain."
+  },
+  {
+    "candidate_id": "d651bbb0717aa293b5a7",
+    "status": "duplicate",
+    "reason": "Aether Incubator furnace body is near clone of previously reviewed furnace processing persistence, no species/machine credit."
+  }
+]

@@ -1,0 +1,18 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('build/cod4-network-20261022/gradle'))
+ p.afterEvaluate {
+  if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def qa=p.sourceSets.create('networkAcceptance') {
+   java.srcDir p.file('tools/cod4/network-acceptance/src')
+   resources.srcDir p.file('tools/cod4/network-acceptance/resources')
+   compileClasspath += p.files('build/cod4-network-20261022/compile-dynasty') + p.sourceSets.main.compileClasspath
+  }
+  p.tasks.register('networkAcceptanceJar',Jar) {
+   dependsOn qa.classesTaskName
+   archiveBaseName='dynasty-network-acceptance'
+   from qa.output
+   manifest.attributes('MixinConfigs':'network-qa.mixins.json')
+  }
+  p.reobf { networkAcceptanceJar {} }
+ }
+}

@@ -1,0 +1,77 @@
+COD4 完整整合包、七符JEI导航、Bow HUD 当前阶段报告
+结论：冷启动与导航通过；弓HUD在下列范围通过；热切语言缓存独立未完成。
+
+可单独完成/收窄的验收范围：
+- 完整 modpack 快照生产启动、进入全新私人 QA 世界，86 jar / 96 native mod；保留 Noisium、OverflowingBars 等。
+- 七原符中英文冷启动名称/信息/配方/用途；英文长文可滚动读完。
+- 七原符原生鼠标与 R 导航到符纸配方，Backspace 返回，Escape 返回背包；U 符纸用途9页遍历覆盖七符。
+- JEI 负例：泥土不获得符箓信息，无匹配搜索为空；只读实际 runtime 查询。
+- 8把弓实际持续使用的16/20 tick边界；副手、换槽取消、松手、GUI/F1、第一/第三前后人称及限定其他HUD共存；原版弓/无箭负例。
+
+8把弓逐把精确边界（同帧 RenderGuiEvent.Post LOWEST 回执 + 原生像素）：
+- dynasty:lie_gong：15tick 蓝504/金0 → 16tick 蓝0/金540。
+  前一帧图：run-04/bow-rapid-lie_gong-t15.png；frame index 44，hudSerial 103
+  满蓄帧图：run-04/bow-rapid-lie_gong-t16.png；frame index 47，hudSerial 106
+- dynasty:chang_gong：15tick 蓝504/金0 → 16tick 蓝0/金540。
+  前一帧图：run-04/bow-rapid-chang_gong-t15.png；frame index 44，hudSerial 347
+  满蓄帧图：run-04/bow-rapid-chang_gong-t16.png；frame index 47，hudSerial 350
+- dynasty:shenbi_bow：15tick 蓝504/金0 → 16tick 蓝0/金540。
+  前一帧图：run-04/bow-rapid-shenbi_bow-t15.png；frame index 44，hudSerial 592
+  满蓄帧图：run-04/bow-rapid-shenbi_bow-t16.png；frame index 47，hudSerial 595
+- dynasty:luoyan_bow：15tick 蓝504/金0 → 16tick 蓝0/金540。
+  前一帧图：run-04/bow-rapid-luoyan_bow-t15.png；frame index 42，hudSerial 833
+  满蓄帧图：run-04/bow-rapid-luoyan_bow-t16.png；frame index 45，hudSerial 836
+- dynasty:tianlang_bow：19tick 蓝522/金0 → 20tick 蓝0/金540。
+  前一帧图：run-04/bow-rapid-tianlang_bow-t19.png；frame index 55，hudSerial 1089
+  满蓄帧图：run-04/bow-rapid-tianlang_bow-t20.png；frame index 57，hudSerial 1091
+- dynasty:dragon_bow：19tick 蓝522/金0 → 20tick 蓝0/金540。
+  前一帧图：run-04/bow-standard-dragon-t19.png；frame index 55，hudSerial 1336
+  满蓄帧图：run-04/bow-standard-dragon-t20.png；frame index 58，hudSerial 1339
+- dynasty:zhuxing_bow：19tick 蓝522/金0 → 20tick 蓝0/金540。
+  前一帧图：run-04/bow-standard-zhuxing-t19.png；frame index 55，hudSerial 1580
+  满蓄帧图：run-04/bow-standard-zhuxing-t20.png；frame index 58，hudSerial 1583
+- dynasty:fengling_bow：19tick 蓝522/金0 → 20tick 蓝0/金540。
+  前一帧图：run-04/bow-standard-fengling-t19.png；frame index 43，hudSerial 1756
+  满蓄帧图：run-04/bow-standard-fengling-t20.png；frame index 46，hudSerial 1759
+
+tianlang_bow 实例走 DragonBowItem 的20tick分支，旧夹具名称 rapid 不代表16tick；测试未更改游戏机制。
+
+GUI实际状态：
+- run04/bow-gui-covered-t28.png：InventoryScreen，using=true，ticks28/required16，蓝/金像素均0。图片实际为背包界面，非只靠文件名。
+- run04 同时存在的 GUI 遮挡持续117帧；直接 setScreen 保留 use，只用于遮挡验收。
+- run05 原生E/Escape：实际背包87帧（frames.json索引60–146），using全部false，条像素全部0；取消后消失。
+- run05 未保存打开GUI阶段PNG，不能伪称t20为GUI截图；该路径有同帧原生JSON，GUI可见PNG见run04。
+- run05/bow-armor-other-huds-t16.png：金条540像素、Full draw；同时可见60生命压缩心、8吸收、钻石甲、防御HUD、饥饿和小地图。
+- 副手、换槽/松手取消、F1、第三人称前/后、原版弓/无箭负例详见125项检查。
+
+JEI具体证据：
+- 七符：fire_talisman、thunder_talisman、wind_talisman、stealth_talisman、vajra_talisman、soul_talisman、return_talisman（均dynasty命名空间）。
+- 中文冷启动：run02/zh_cn-*-input/output/info.png + zh_cn-talismans-audit.json。
+- 英文冷启动：run03/run04 cold-en-*-input/output/info.png；run05 scroll-*-top/bottom.png 补长文滚动。
+- run05/native-navigation.json 保存七符 mouse / R / back 原生RecipesGui布局，独立escape结果保存原生背包。
+- run05/paper-U-native-result.json：从符纸输出槽按U；paper-all-use-pages.json为1/9至9/9，七符皆在实际输出配方。
+- 泥土不误匹配、无结果搜索：run02/run04 checks.txt 中Native JEI negative及Unrelated dirt检查。
+
+仍须完成：
+- 七符信息描述在 zh→en 热重载后仍是旧语言；独立问题未关闭。
+- 针对该问题的1000相关实现研究尚未达到；随后最小 WorkshopJei 修复与真实 zh→en→zh 验收继续。
+
+实用jar SHA256：
+- run-02: bca02da973af7449ab001a5cd8a0655ace32d30820fc790c19132dd994e128ac；退出=own PID terminated for documented QA retry
+- run-03: bca02da973af7449ab001a5cd8a0655ace32d30820fc790c19132dd994e128ac；退出=0
+- run-04: ce92592ecd1e1e6e5584cfb05646fb8e82e3275b4d81b235910a1e996ec2458b；退出=0
+- run-05: ce92592ecd1e1e6e5584cfb05646fb8e82e3275b4d81b235910a1e996ec2458b；退出=0
+
+覆盖边界与旧证据限制：
+- 单个自动化客户端+集成服务器，非真人双人；私人平坦生存QA世界配给物品，非自然获取/流程全通。
+- GUI scale3、2880×1800；测试指定视角/HUD配置，非所有相机模组模式或所有分辨率。
+- run02边界元数据与像素可能错帧；其t16/t20不计精确边界或GUI证明。run03有跳帧，精确阈值采用run04。
+- 125/125为本阶段原生导航+HUD检查数，不包含尚未修复的语言热切故障。
+- 冷中文在旧jar；两jar的WorkshopJei/TalismanDiscovery/zh/en语言及BowChargeOverlay/BowDrawProgress/HuntingBowItem字节一致，见cross-run-feature-hashes.json。不宣称旧run覆盖其他新代码。
+- 日志存在离线Realms、版本检查联网和JER警告；正常进入世界/退出不等于全日志无ERROR。
+
+本线程未改原清单/TODO。主协调可据此收窄已完成验收范围；语言热切保留独立未完成项，不能因该bug挂起全部冷启动导航。
+
+机器可核对索引：stage-acceptance.json（含8把弓逐图状态/hash）、hud-screenshot-pairs.json（全部取样PNG配对）、acceptance-before-language-fix.json（125/125）。
+重跑核对：python3 tools/cod4/pack-acceptance/verify_acceptance.py && python3 tools/cod4/pack-acceptance/stage_report.py
+原始证据均保留，未移除真实故障。

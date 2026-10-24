@@ -1,0 +1,162 @@
+[
+  {
+    "candidate_id": "99dd586b3e92cd057955",
+    "status": "accepted",
+    "family": "forge120-serverplayer-native-clone-restore",
+    "trigger": "native ServerPlayer restoreFrom during player replacement, keepEverything differentiates full transfer and death",
+    "input": "old player inventory,XP,recipeBook,enderChest,selected durable fields and persistent compound",
+    "output": "keepEverything copies health/food/inventory/XP; keepInventory or spectator retains inventory/XP; PlayerPersisted section copied before Forge Clone event with wasDeath=!keepEverything",
+    "preservation": "root persistent keys outside PlayerPersisted are not copied; keepInventory is not root progress retention. RecipeBook and seenCredits carried independently; event exposes remaining migration responsibility",
+    "application_limit": "native puts existing PlayerPersisted Tag directly, not explicit deep copy. Dynasty root selective tag copies must not replace that already-owned container or alter inventory policy"
+  },
+  {
+    "candidate_id": "ed7cc67708c70dc5c64d",
+    "status": "accepted",
+    "family": "forge-missingmapping-registered-target-validation",
+    "trigger": "mod handler calls MissingMappingsEvent.Mapping.remap(target) during missing registry resolution",
+    "input": "a missing entry mapping and candidate registered replacement object",
+    "output": "sets action REMAP and target only after non-null and pool.getKey(target)!=null validation",
+    "preservation": "rejects unregistered target even when object exists; leaves no partially set REMAP before validation. Does not create ItemStack or grant player items Deep-read processMissingEvent: installs target using old numeric ID request, records alias old key→new target key, records actual ID discrepancy. addAlias rejects locked registry/self alias. getValue follows alias chain before defaultValue fallback.",
+    "application_limit": "Same remap chain support methods give no additional credit. ItemStack constructor is independent payload consumer studied separately; aliases alone do not guarantee target verifyTagAfterLoad preserves all old custom fields. Native world QA remains required.",
+    "supporting_candidates": [
+      "26b089b058c3f5a3f8b6",
+      "c281fdfffdf7e935c65b",
+      "3bee735d4140f91a242d"
+    ]
+  },
+  {
+    "candidate_id": "d5b3cf21101827c57774",
+    "supporting_candidates": [
+      "7a1a7c7b294754b6b647"
+    ],
+    "status": "accepted",
+    "family": "mc-item-display-old-name-component-upgrade",
+    "trigger": "DataFixers registers ItemCustomNameToComponentFix; ITEM_STACK typed tag remainder is passed to fixTag for old save version",
+    "input": "item tag display.Name plain string or fallback display.LocName translation key",
+    "output": "Name becomes JSON literal; if Name unavailable but LocName string exists, Name becomes translatable JSON and LocName removed",
+    "preservation": "existing Name takes precedence; missing display returns original; other display and item tag fields retained through set. Display invalid Name can fall back to LocName",
+    "application_limit": "different naming representation, not identity remap; runtime1.20 names already JSON must not be migrated twice outside DFU version guard"
+  },
+  {
+    "candidate_id": "1e52fb13210eea03a5a9",
+    "supporting_candidates": [
+      "526a5f1a32a92508b474",
+      "83a60eec81df64c3a0ed"
+    ],
+    "status": "accepted",
+    "family": "mc-item-lore-list-compatible-component-upgrade",
+    "trigger": "registered ItemLoreFix on ITEM_STACK tag.display.Lore through DFU version transition",
+    "input": "old Lore stream with text string entries and potentially nonstring entries, or malformed nonstream value",
+    "output": "string entries serialized as JSON literal components; nonstring entries retained; list remade only when asStreamOpt succeeds",
+    "preservation": "outer fallback retains original Lore if list parse fails; each entry separately falls back to itself when not string; unrelated display fields retained",
+    "application_limit": "full makeRule/fixLoreList/fixLoreEntry is one implementation; cannot count each line of lore or support helper"
+  },
+  {
+    "candidate_id": "97050d6b1fa476b3f05c",
+    "status": "accepted",
+    "family": "mc-item-legacy-potion-damage-to-potion-tag",
+    "trigger": "DataFixers ItemPotionFix on ITEM_STACK matching minecraft:potion",
+    "input": "old Damage short with potion index bits and splash bit, existing optional tag.Potion",
+    "output": "when tag exists and Potion missing, assigns indexed potion or water fallback; splash bit renames item to splash_potion; nonzero Damage becomes0 when tag branch runs",
+    "preservation": "existing Potion string is not overwritten; nonpotion or absent tag returns original. Retains Count and unrelated typed/remainder fields",
+    "application_limit": "legacy bit semantics cannot be repurposed for healing_talisman; historical explicit replacement remains vajra without healing"
+  },
+  {
+    "candidate_id": "d43f86dece08c1aacb35",
+    "status": "accepted",
+    "family": "mc-item-missing-potion-payload-default",
+    "trigger": "DataFixers ItemWaterPotionFix on saved potion/splash/lingering/tipped_arrow ItemStacks",
+    "input": "recognized item ID with absent/nonstring Potion tag versus existing valid Potion",
+    "output": "creates tag if needed and sets missing Potion to minecraft:water; preserves valid Potion string",
+    "preservation": "all unrelated item data retained through typed field set; unrelated item IDs unchanged",
+    "application_limit": "this supplies valid built-in payload for a recognized item. A missing registry ID fallback needs its own historical semantic justification"
+  },
+  {
+    "candidate_id": "352bddce63f4f77d4f4c",
+    "status": "accepted",
+    "family": "mc-old-spawnegg-damage-to-entity-payload",
+    "trigger": "DataFixers ItemSpawnEggFix on minecraft:spawn_egg old schema",
+    "input": "Damage low byte mapped entity name, optional tag.EntityTag.id",
+    "output": "known indexed type writes EntityTag.id using output entity schema when different/absent; nonzero Damage reset0; output parse failure throws explicit error",
+    "preservation": "keeps existing unrelated EntityTag data by write/readTyped and updates nested ID; unknown low-byte mapping does not invent entity; no separate credits for ID_TO_ENTITY table entries",
+    "application_limit": "if known damage conflicts with old EntityTag.id, indexed type wins. Must not infer quest completion from old stack ID alone"
+  },
+  {
+    "candidate_id": "52a60e5ea3eadca4b08c",
+    "status": "accepted",
+    "family": "mc-spawnegg-entity-payload-to-registered-item",
+    "trigger": "DataFixers registers ItemStackSpawnEggFix for generic spawn_egg and later pig_spawn_egg; same method across registrations counted once",
+    "input": "matching configured egg itemType with tag.EntityTag.id",
+    "output": "known entity maps to specific egg item; unknown entity string defaults minecraft:pig_spawn_egg; absent entity ID leaves input unchanged",
+    "preservation": "only outer item ID changed; existing entity tag and Count retained; whole static MAP is one lookup dependency",
+    "application_limit": "fallback may change unknown modded egg semantics; document such limitations rather than assuming fallback is lossless"
+  },
+  {
+    "candidate_id": "7436e4376101ea07bfc4",
+    "supporting_candidates": [
+      "a50035f1abd893839828"
+    ],
+    "status": "accepted",
+    "family": "mc-item-flatten-variant-and-durability-split",
+    "trigger": "DataFixers ItemStackTheFlatteningFix ITEM_STACK schema transition",
+    "input": "old namespaced ID and root Damage value; optional existing tag",
+    "output": "variant item lookup uses id.damage then id.0 fallback for known flattening IDs; durability-bearing IDs move Damage into tag; root Damage removed",
+    "preservation": "nonmapped item ID remains same; Count and other tag fields retained; damage must be preserved as durability for DAMAGE_IDS rather than discarded globally",
+    "application_limit": "MAP entries not separate implementations; exact damaging item set and ID map remain version-specific"
+  },
+  {
+    "candidate_id": "cc6cc0161bad5c996664",
+    "supporting_candidates": [
+      "ce5c623db98085bc39e9"
+    ],
+    "status": "accepted",
+    "family": "mc-item-legacy-enchantment-list-payload-upgrade",
+    "trigger": "DataFixers ItemStackEnchantmentNamesFix passes ITEM_STACK tag to fixTag",
+    "input": "old ench list with numeric id, StoredEnchantments list and unrelated item tag",
+    "output": "parsed ench list renamed Enchantments and numeric ids resolved to names; StoredEnchantments converted in place; unknown numeric maps literal null string",
+    "preservation": "lvl and other enchantment fields retained; unparseable StoredEnchantments stays original; unparseable ench is not removed or renamed",
+    "application_limit": "literal null fallback is observable lossy behavior, not recommendation; all map entries plus both traversal helpers counted as one conversion chain"
+  },
+  {
+    "candidate_id": "350a915ee0a34abcccb1",
+    "supporting_candidates": [
+      "b5c54b9d5e8959cd9568"
+    ],
+    "status": "accepted",
+    "family": "mc-written-book-pages-lenient-recovery",
+    "trigger": "registered ItemWrittenBookPagesStrictJsonFix through ITEM_STACK tag pages DFU transformation",
+    "input": "pages list of plain text, quoted/JSON text, empty/null strings, malformed strings or nonstrings",
+    "output": "tries nullable Gson component then strict serializer then lenient serializer; otherwise literal original text. null/empty becomes empty component, serializes canonical JSON",
+    "preservation": "nonstring entries retained; unrelated book metadata and Count not touched. Nonstream pages falls back to empty list, explicitly a potential-loss boundary",
+    "application_limit": "preserve raw unrecoverable quest data rather than copy empty-list fallback blindly. Helpers in this chain have no independent credit"
+  },
+  {
+    "candidate_id": "644c27082233dedb448a",
+    "supporting_candidates": [
+      "9741dcd4f77f568cc8da",
+      "2ee31f11465a96793dcc",
+      "b7146e99181518be8d21",
+      "ccefa9198049a2c35a06",
+      "ba525a1e436b1f6eb787",
+      "81837c8207f5d32c0743",
+      "6b5557b303454cc2913d"
+    ],
+    "status": "accepted",
+    "family": "mc-item-uuid-modifiers-and-skull-typed-recovery",
+    "trigger": "DataFixers ItemStackUUIDFix updates ITEM_STACK tag in versioned UUID migration",
+    "input": "AttributeModifiers UUIDMost/UUIDLeast and player_head SkullOwner.Id string",
+    "output": "modifiers receive four-int UUID array if both longs nonzero; skull owner UUID string parsed into same canonical representation",
+    "preservation": "UUID helper invalid/missing string returns Optional.empty; callers retain original entry; successful conversion removes replaced old fields. Non-head item does not rewrite SkullOwner",
+    "application_limit": "createUUIDFromLongs rejects UUID with either half zero even if mathematically valid. One ItemStack chain with helpers; not an extra implementation per attribute or skull owner"
+  },
+  {
+    "candidate_id": "614c8de31b1269a0c8be",
+    "status": "rejected",
+    "reason": "advancement key renamer preserves map values but only renames IDs via supplied table; omitted from research credit under no ID-only mapping inflation rule"
+  },
+  {
+    "candidate_id": "c208aa99f7f547828397",
+    "status": "pending",
+    "reason": "PlayerUUIDFix root vehicle/entity/living migration read, but updateLivingEntity/EntityUUID helper chain needs further context and its own player consumer trace; not credited yet"
+  }
+]

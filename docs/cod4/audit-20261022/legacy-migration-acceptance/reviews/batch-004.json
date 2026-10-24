@@ -1,0 +1,224 @@
+[
+  {
+    "candidate_id": "b1b683049d8046b2505e",
+    "status": "accepted",
+    "family": "ae2-assembler-plan-reconstruction",
+    "trigger": "MolecularAssembler.loadTag persistent machine load",
+    "input": "myPlan optional ItemStack, pushDirection integer and upgrades",
+    "output": "myPlan cache cleared; myPattern decoded or EMPTY; forcePlan reflects presence; direction restored only for nonempty pattern; plan recalculated",
+    "preservation": "Derived plan rebuilt after actual saved item is restored. Missing plan resets force flag rather than keeping stale true.",
+    "application_limit": "Direction.values indexed without bounds check. Borrow restore-source-before-derived-recompute, not treating load success as proof arbitrary IDs survived.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "cd018689a8e23c9fa0a6",
+    "status": "accepted",
+    "family": "ae2-pattern-provider-unlock-and-send-queue-reader",
+    "trigger": "PatternProviderLogic.readFromNBT",
+    "input": "pattern inventory, priority, byte unlock reason, optional result stack, queued generic stacks, send direction, return inventory",
+    "output": "restores actual patterns and return inventory; unknown unlock byte logs and yields null; result stack read only for RESULT; null queued stacks skipped",
+    "preservation": "Clears unlockStack when reason not RESULT; defaults priority0 and sendDirection null. Pending sends rebuilt without executing a craft reward.",
+    "application_limit": "Loop adds queued entries without explicit clear in this method; repeated load idempotence not established. Borrow separate persisted progress from derived/transient state.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "18a8c57112fa5d4eee15",
+    "status": "accepted",
+    "family": "ie-sample-drill-stored-sample-reader",
+    "trigger": "SampleDrill.readCustomNBT",
+    "input": "energy plus dummy/process/running fields and compound sample",
+    "output": "sample parsed only for compound tag; otherwise set EMPTY; process counters restored independently",
+    "preservation": "Typed sample guard prevents interpreting scalar as item payload; energy delegated to already studied helper, no second credit for helper.",
+    "application_limit": "parseOptional may lose invalid item; method does not preserve malformed payload. Borrow type-aware field selection, not blanket root copy.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "2553f5a1ee0516c084ea",
+    "status": "accepted",
+    "family": "ie-crate-loot-versus-inventory-restore",
+    "trigger": "WoodenCrate.loadIEData",
+    "input": "enchantments optional encoded component, loot-table state or concrete items, sealingProgress",
+    "output": "enchantments decoded or EMPTY; stored inventory loaded only if tryLoadLootTable false; sealingProgress read",
+    "preservation": "Mutually exclusive pending-loot and resolved-inventory ownership prevents eagerly materializing both.",
+    "application_limit": "fromNbtOrThrow may throw on corrupt present enchantments; absence fallback is distinct from invalid-data fallback. Preserve receipts separately from reward generation in Dynasty.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "ae9a982399497084e8f7",
+    "status": "accepted",
+    "family": "gtceu-drum-item-fluid-cache-restore",
+    "trigger": "DrumMachine.loadFromItem",
+    "input": "Fluid compound on machine item or absent Fluid key",
+    "output": "stored fluid loaded or EMPTY; backing cache storage0 updated using stored.copy()",
+    "preservation": "Explicit copy transfers payload ownership and synchronizes item-loaded state with runtime tank cache.",
+    "application_limit": "contains lacks type argument, malformed compound not independently guarded. Borrow detached copies when transferring permanent NBT.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "649536ca290b672cb8d8",
+    "status": "accepted",
+    "family": "pnc-reinforced-chest-loot-owner-branch",
+    "trigger": "ReinforcedChest.loadAdditional",
+    "input": "typed loot-table string/seed or saved item inventory",
+    "output": "valid table ResourceKey restored and marked changed; invalid resource location clears table/seed; inventory deserialized only when no string loot key",
+    "preservation": "Malformed present loot identifier does not run inventory fallback: this is an observed failure boundary, not called lossless.",
+    "application_limit": "Borrow distinguishing missing target from invalid target and recording failure; do not silently convert missing legacy registry ID into EMPTY.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "4833ac05d2405519ecfa",
+    "status": "accepted",
+    "family": "tetra-transfer-cell-item-reader",
+    "trigger": "TransferUnit.load",
+    "input": "optional cell compound",
+    "output": "ItemStack.of reconstructs saved cell or resets EMPTY if absent",
+    "preservation": "Actual item holder reconstructed after super.load, avoids stale pre-load cell on missing key.",
+    "application_limit": "contains not typed; ItemStack.of downstream invalid-ID behavior not guaranteed by this body. Separate real holder read from a mere getter.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "d905592bc934abe6f88e",
+    "status": "accepted",
+    "family": "tetra-thrown-item-slot-and-loyalty-restore",
+    "trigger": "ThrownModularItem.readAdditionalSaveData",
+    "input": "typed stack compound, dealtDamage boolean, preferredSlot optional integer",
+    "output": "restores projectile carried stack, damage state and slot default -1; derives loyalty and hit sound from reconstructed item",
+    "preservation": "Item and associated return-slot metadata retained together; missing slot uses invalid sentinel instead of assuming slot0.",
+    "application_limit": "No explicit reset for absent stack; superclass/current initialization matters. Borrow preserving progress metadata with correct type without copying temporary combat state.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "c2b59a8139b89267951f",
+    "status": "accepted",
+    "family": "vampirism-grinder-item-filter-reader",
+    "trigger": "BloodGrinder.loadAdditional",
+    "input": "fluid child, optional input/filter stacks and grind/pull cooldowns",
+    "output": "restores both distinct item roles via OPTIONAL_CODEC or EMPTY; cooldowns default0",
+    "preservation": "Role-specific payloads remain distinct; defaults spelled out using typed ValueInput API rather than explicit if/else.",
+    "application_limit": "Inventory load is not a reason to copy player cooldowns across death. This place qualifies despite defaults supplied by typed API.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "ac8813213e5253bbc0ea",
+    "status": "accepted",
+    "family": "ae2-io-port-upgrades-and-redstone-restore",
+    "trigger": "IOPort.loadTag",
+    "input": "manager state, upgrades, lastRedstoneState integer",
+    "output": "restores manager/upgrades; missing redstone state becomes UNDECIDED ordinal",
+    "preservation": "Same-file getRedstoneState resolves UNDECIDED against world before use; saveAdditional writes upgrades and state.",
+    "application_limit": "Ordinal out of bounds can throw. Borrow restore explicit durable upgrade data while recomputing unknown environment state; no credit for delegated manager body.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "996c66948cb0dae25d2e",
+    "status": "accepted",
+    "family": "ie-toolbox-packet-versus-disk-inventory-read",
+    "trigger": "IE Toolbox.readCustomNBT",
+    "input": "typed optional name, enchantments encoded tag and inventory; descPacket flag",
+    "output": "name restored only if string; enchantments decode; concrete inventory loaded only for non-description packet",
+    "preservation": "Client description update cannot overwrite full item inventory through this method; event/context ownership matters.",
+    "application_limit": "Enchantment decode can throw; missing name leaves existing field unchanged. Analogously distinguish death clone from general sync, without requiring roundtrip in this method.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "c29b79f9bd7e2ee5b7ed",
+    "status": "accepted",
+    "family": "create-toolbox-compartment-cardinality-restore",
+    "trigger": "ToolboxInventory.deserializeNBT invoked by ToolboxBlockEntity.read",
+    "input": "Compartments list plus superclass saved inventory; block wrapper optional UniqueId/CustomName",
+    "output": "filters restored then normalized to exactly8 EMPTY entries if wrong size; superclass inventory restored; wrapper restores typed UUID/name",
+    "preservation": "Filter validity controls insert acceptance; actual saved item inventory is delegated once, not discarded with invalid filter metadata. serializeNBT persists same compartment list.",
+    "application_limit": "Invalid filter size loses all filters, not a lossless correction. Parent wrapper included as support with no extra credit. Borrow independent validation per owned subsystem.",
+    "supporting_candidates": [
+      "e789e65bba042918df6a"
+    ]
+  },
+  {
+    "candidate_id": "5aedc7da38070bf70a87",
+    "status": "accepted",
+    "family": "create-chain-package-id-optional-restore",
+    "trigger": "ChainConveyorPackage.read",
+    "input": "Position float, Item compound and optional NetID",
+    "output": "saved item and position produce package; supplied NetID preserved, absent NetID uses alternate constructor",
+    "preservation": "Deep-read constructors: no-ID constructor allocates fresh atomic sequence ID, explicit-ID constructor stores item/pos/id and clears physics cache.",
+    "application_limit": "Item parse failure can produce empty cargo. Borrow keep durable payload while rebuilding ephemeral runtime identity; network ID is not permanent player progression.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "d3620d26f45db7c68a48",
+    "status": "accepted",
+    "family": "create-crafter-phase-and-grouped-input-restore",
+    "trigger": "MechanicalCrafter.read disk or client update",
+    "input": "Inventory, ConnectedInput, GroupedItems, Phase string, CountDown, Cover",
+    "output": "restores crafting payload; phase first IDLE then known enum name overrides; countdown/cover restored; animation branch only on client packet",
+    "preservation": "Unknown phase has controlled IDLE fallback while item data already retained; server returns before purely visual transitions.",
+    "application_limit": "Group decoder errors not studied here. Borrow treating unknown transient state separately from retained task counters; no rewards emitted by player clone.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "b6a4bc85dbdcb78b2c69",
+    "status": "accepted",
+    "family": "create-crusher-held-entity-and-inventory-read",
+    "trigger": "CrushingWheelController.read",
+    "input": "optional Entity UUID, Speed float and Inventory compound",
+    "output": "unoccupied controller records entityUUID/searchForEntity; speed and inventory restored",
+    "preservation": "Entity reference recovered only when not already occupied, avoiding replacing current ownership; saved items reconstructed regardless of UUID branch.",
+    "application_limit": "UUID conversion may throw; no blanket fallback promised. Borrow context-based ownership guards before permanent-field transfer.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "008751c62ccff8a41080",
+    "status": "accepted",
+    "family": "create-deployer-deferred-fakeplayer-inventory-read",
+    "trigger": "Deployer.read before server fake player initialization",
+    "input": "State/Mode/Timer/Powered, optional Owner UUID, Inventory ListTag, Overflow and HeldItem",
+    "output": "retains deferred inventory list, owner, overflow and held stack; server skips visual Fistbump/Reach/Particle branch",
+    "preservation": "Deep-read initialize: creates fakeplayer, loads deferred list into inventory, clears deferred reference, derives heldItem. write also retains deferred list when player not initialized.",
+    "application_limit": "Not claiming ListTag copied: retained reference ownership differs from copy. Borrow preserve data until target consumer exists, never clear old progression merely because new player initialization is delayed.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "b127f4a6f2368dad2bd8",
+    "status": "accepted",
+    "family": "create-saw-recipe-index-inventory-reader",
+    "trigger": "Saw.read",
+    "input": "Inventory compound, RecipeIndex integer and optional PlayEvent item",
+    "output": "inventory and recipeIndex restored; optional event stack parsed",
+    "preservation": "Restores work payload and continuation index before later processing; actual item deserialization is substantive despite no explicit missing-field branch.",
+    "application_limit": "PlayEvent is animation state, not permanent progress. Borrow classify each co-located field; do not copy whole source NBT because inventory and animation share a reader.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "6fed8b3c1325732efb57",
+    "status": "accepted",
+    "family": "create-depot-output-buffer-and-merge-queue-reader",
+    "trigger": "DepotBehaviour.read",
+    "input": "HeldItem optional transported stack, OutputBuffer inventory, Incoming list plus canMergeItems capability",
+    "output": "resets heldItem null before optional restore; loads output buffer; incoming only restored if merging allowed",
+    "preservation": "Buffer and held cargo are separate ownership roles; incompatible incoming queue does not automatically apply to all depot modes.",
+    "application_limit": "TransportedItemStack helper already studied, not additional credit here. Borrow explicit role/capability filters for permanent fields, not all root state.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "ee2d16bcc4d594a1628a",
+    "status": "accepted",
+    "family": "create-packager-server-queue-and-box-restore",
+    "trigger": "Packager.read",
+    "input": "address fields, HeldBox/InsertedBox stacks, QueuedExitingPackages, optional LastSummary; clientPacket",
+    "output": "restores held/previous boxes and address; server decodes BigItemStack queue and summary; client returns before queue",
+    "preservation": "Server-only durable queue not replaced by client visual packet; explicit Optional decode failure orElseThrow can abort load.",
+    "application_limit": "Borrow isolate actual durable consumer from UI state and preserve Count/component payload by standard stack codec; no promise malformed queued packages recover.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "7b19f562b73f4e7a1613",
+    "status": "accepted",
+    "family": "create-basin-input-output-and-overflow-restore",
+    "trigger": "Basin.read",
+    "input": "InputItems/OutputItems, optional PreferredSpoutput, DisabledSpoutput strings, Overflow stacks and FluidOverflow",
+    "output": "restores both inventories and overflow; preferred output reset null then optional direction; disabled set cleared/rebuilt; client-only visual queues afterward",
+    "preservation": "Distinct persisted buffers restored independently before client-only effects; clears collections that are replaced rather than appending old+new.",
+    "application_limit": "Direction.valueOf may throw on bad disabled name. Borrow idempotent replacement for owned state, not blind merge of all ForgeData.",
+    "supporting_candidates": []
+  }
+]

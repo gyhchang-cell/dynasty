@@ -1,0 +1,42 @@
+--- verified-frozen/WorkshopJei.java
++++ src/main/java/com/dynasty/workshop/WorkshopJei.java
+@@ -2,14 +2,19 @@
+ 
+ import mezz.jei.api.*;
+ import mezz.jei.api.constants.VanillaTypes;
++import mezz.jei.api.constants.RecipeTypes;
++import mezz.jei.api.ingredients.ITypedIngredient;
+ import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+ import mezz.jei.api.gui.drawable.IDrawable;
+ import mezz.jei.api.helpers.IGuiHelper;
+ import mezz.jei.api.recipe.*;
+ import mezz.jei.api.recipe.category.IRecipeCategory;
++import mezz.jei.api.recipe.vanilla.IJeiIngredientInfoRecipe;
+ import mezz.jei.api.registration.*;
+ import net.minecraft.network.chat.Component;
++import net.minecraft.network.chat.FormattedText;
+ import net.minecraft.resources.ResourceLocation;
++import java.util.List;
+ 
+ /** Optional integration: JEI owns loading this annotated class, including on dedicated servers. */
+ @JeiPlugin
+@@ -21,10 +26,18 @@
+         r.addRecipes(TYPE,WorkshopRecipes.ALL);
+         for(String id:com.dynasty.TalismanDiscovery.IDS) {
+             var item=net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new ResourceLocation("dynasty",id));
+-            if(item!=null)r.addIngredientInfo(new net.minecraft.world.item.ItemStack(item),VanillaTypes.ITEM_STACK,com.dynasty.TalismanDiscovery.details(id));
++            if(item!=null)r.getIngredientManager()
++                .createTypedIngredient(VanillaTypes.ITEM_STACK,new net.minecraft.world.item.ItemStack(item))
++                .ifPresent(ingredient->r.addRecipes(RecipeTypes.INFORMATION,List.of(new TalismanInfo(id,ingredient))));
+         }
+     }
+     @Override public void registerRecipeCatalysts(IRecipeCatalystRegistration r){for(var recipe:WorkshopRecipes.ALL)r.addRecipeCatalyst(new WorkshopRecipes.Cost("dynasty:"+recipe.station(),1).stack(),TYPE);}
++    // JEI's addIngredientInfo factory flattens translations at registration time.
++    // Keep the keys until the native information page builds its current-language layout.
++    private record TalismanInfo(String id,ITypedIngredient<?> ingredient) implements IJeiIngredientInfoRecipe {
++        @Override public List<ITypedIngredient<?>> getIngredients(){return List.of(ingredient);}
++        @Override public List<FormattedText> getDescription(){return List.of(com.dynasty.TalismanDiscovery.details(id));}
++    }
+     private static final class Category implements IRecipeCategory<WorkshopRecipes.Recipe>{
+         final IDrawable background,icon;
+         Category(IGuiHelper h){background=h.createBlankDrawable(162,62);icon=h.createDrawableIngredient(VanillaTypes.ITEM_STACK,new WorkshopRecipes.Cost("dynasty:marrow_vat",1).stack());}

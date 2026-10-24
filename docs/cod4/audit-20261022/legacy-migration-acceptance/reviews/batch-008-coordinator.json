@@ -1,0 +1,71 @@
+[
+  {
+    "candidate_id": "8b6acb4673bc45c11840",
+    "status": "rejected",
+    "family": "infection-network-payload",
+    "application_limit": "No research credit toward migration gate.",
+    "review_origin": "main coordinator proposal verified by migration reviewer",
+    "coordinator_evidence_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-reviewed-batch-001.json",
+    "coordinator_observation": "Reads one int from RegistryFriendlyByteBuf into InfectionStatus for LivingEntity and otherwise returns previousValue. This is live network attachment sync for infection ticks, not persistent old-world or permanent progress restoration.",
+    "reason": "Reads one int from RegistryFriendlyByteBuf into InfectionStatus for LivingEntity and otherwise returns previousValue. This is live network attachment sync for infection ticks, not persistent old-world or permanent progress restoration. No research credit toward migration gate."
+  },
+  {
+    "candidate_id": "93994c9b8198c4e13da3",
+    "status": "pending",
+    "family": "werewolf-attachment-owner-wrapper",
+    "application_limit": "No standalone credit; primary agent may already study full chain.",
+    "review_origin": "main coordinator proposal verified by migration reviewer",
+    "coordinator_evidence_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-reviewed-batch-001.json",
+    "coordinator_observation": "Player attachment serializer checks holder instanceof Player, binds a new WerewolfPlayer to that actual player then delegates deserializeNBT; wrong holder throws. Owner-binding observation relevant but wrapper must be merged with full deserialize chain.",
+    "reason": "Player attachment serializer checks holder instanceof Player, binds a new WerewolfPlayer to that actual player then delegates deserializeNBT; wrong holder throws. Owner-binding observation relevant but wrapper must be merged with full deserialize chain. No standalone credit; primary agent may already study full chain."
+  },
+  {
+    "candidate_id": "70fbae3fc4fb0d3ff0d0",
+    "status": "accepted",
+    "family": "quest-ram-color-and-reward-receipt",
+    "application_limit": "Modern ValueInput API differs from Forge1.20.1 CompoundTag; principles only, not direct code copy.",
+    "review_origin": "main coordinator proposal verified by migration reviewer",
+    "coordinator_evidence_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-reviewed-batch-001.json",
+    "coordinator_observation": "Native entity readAdditionalSaveData loads ColorFlags default0 and Rewarded defaultfalse, then home point; server aiStep checks color count>15 AND !Rewarded before reward, then sets Rewarded. Preserving only color progress without its reward receipt would replay completed rewards; preserve pairs and do not invoke reward during migration.",
+    "trigger": "QuestRam.readAdditionalSaveData",
+    "input": "ColorFlags int/default0 and Rewarded boolean/defaultfalse plus home point",
+    "output": "restores quest collection bitmask and reward receipt without calling reward",
+    "preservation": "Same-file customServerAiStep (not generic aiStep) lines114-131 requires countColorsSet>15 AND !Rewarded, calls rewardQuest then sets true. rewardQuest emits loot, triggers advancement and marks structure. Progress and receipt must move together."
+  },
+  {
+    "candidate_id": "82a27a76ddd3a57610f6",
+    "status": "accepted",
+    "family": "wizardry-mana-capability-value-order",
+    "application_limit": "Older Capability.IStorage API; mana and burnout include transient state and are not automatic Dynasty permanent whitelist candidates.",
+    "review_origin": "main coordinator proposal verified by migration reviewer",
+    "coordinator_evidence_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-reviewed-batch-001.json",
+    "coordinator_observation": "IStorage.readNBT reads maxMana/maxBurnout first, then current values, then optional blood type. Paired writer stores exactly the same doubles and optional type. Restoring bounds before bounded current state is meaningful. Unconditional double getters give missing keys0 and unchecked CompoundTag cast, so Dynasty should copy only present typed approved fields instead of forcing defaults over existing progress.",
+    "trigger": "ManaCapabilityStorage.readNBT",
+    "input": "MAX_MANA/MAX_BURNOUT/MANA/BURNOUT doubles and optional BLOOD_TYPE",
+    "output": "sets maxima before current amounts then optional blood type",
+    "preservation": "Paired writer emits those four doubles and type only when nonnull; missing primitives become0, no type assertion before NBTTagCompound cast. Ordering protects bound-sensitive setters conceptually, not proof all these fields survive death."
+  },
+  {
+    "candidate_id": "219ebcb77ac8240888e9",
+    "status": "accepted",
+    "family": "wizardry-optional-fairy-owner-reference",
+    "application_limit": "Selection is a reference preference, not proof a given Dynasty owner UUID should survive death. No death handler demonstrated in this method.",
+    "review_origin": "main coordinator proposal verified by migration reviewer",
+    "coordinator_evidence_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-reviewed-batch-001.json",
+    "coordinator_observation": "MiscCapabilityStorage writer emits fairy_selected UUID only if nonnull. Reader uses hasUniqueId before helper read, else explicitly clears selected fairy. Type/existence guard and correct nullable clearing avoid stale owner reference; distinguish absent optional selection from durable earned progress.",
+    "trigger": "MiscCapabilityStorage.readNBT",
+    "input": "optional fairy_selected UUID",
+    "output": "hasUniqueId path resolves UUID, else explicitly sets selected fairy null",
+    "preservation": "Paired writer writes UUID only if selected UUID nonnull. Reader clears stale optional selection on absent/wrong-shaped UUID; this is different from wiping earned progress on missing source key."
+  },
+  {
+    "candidate_id": "e73c5034852f2a270c87",
+    "status": "pending",
+    "family": "magic-provider-owner-wrapper",
+    "application_limit": "No standalone credit until primary full chain review/dedup.",
+    "review_origin": "main coordinator proposal verified by migration reviewer",
+    "coordinator_evidence_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-reviewed-batch-001.json",
+    "coordinator_observation": "PlayerMagicProvider creates MagicData bound to ServerPlayer or fallback client representation then delegates loadNBTData; write delegates saveNBTData. Relevant owner-role branch but not an independently reviewed full persistent consumer chain.",
+    "reason": "PlayerMagicProvider creates MagicData bound to ServerPlayer or fallback client representation then delegates loadNBTData; write delegates saveNBTData. Relevant owner-role branch but not an independently reviewed full persistent consumer chain. No standalone credit until primary full chain review/dedup."
+  }
+]
