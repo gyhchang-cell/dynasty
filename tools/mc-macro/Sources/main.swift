@@ -16,16 +16,18 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     var sprintKey = NSPopUpButton()
     var targetPicker = NSPopUpButton()
     var policy = MacroPolicy()
+    let hardwareMouse = HardwareMouse()
     var tap: CFMachPort?
     var tapSource: CFRunLoopSource?
-    var clickTimer: Timer?
-    var releaseTimer: Timer?
+    var clickTimers: [MacroMouseButton: Timer] = [:]
+    var releaseTimers: [MacroMouseButton: Timer] = [:]
     var refreshTimer: Timer?
     var watchdog: Timer?
-    var emittedDown = false
+    var emittedDown = Set<MacroMouseButton>()
     var sprintOwned = false
     var ownedSprintCode: CGKeyCode = 59
     var targetPIDs = Set<pid_t>()
+    var detectionCache: [pid_t: Bool] = [:]
     var manualPID: pid_t?
     var boundHotkey: CGKeyCode = 50
     var recordingHotkey = false
@@ -37,10 +39,13 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     let source = CGEventSource(stateID: .privateState)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        source?.localEventsSuppressionInterval = 0
         loadSettings()
         buildWindow()
         buildMenu()
         refreshTargets()
+        hardwareMouse.onChange = { [weak self] button, down in self?.hardwareChanged(button, down: down) }
+        if CGPreflightListenEventAccess() { hardwareMouse.start() }
         _ = installTap()
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(frontChanged),
             name: NSWorkspace.didActivateApplicationNotification, object: nil)
@@ -48,12 +53,15 @@ final class MacroApp: NSObject, NSApplicationDelegate {
             name: NSWorkspace.willSleepNotification, object: nil)
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleeping),
             name: NSWorkspace.sessionDidResignActiveNotification, object: nil)
+        DistributedNotificationCenter.default().addObserver(self, selector: #selector(sleeping),
+            name: NSNotification.Name("com.apple.screenIsLocked"), object: nil)
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             self?.refreshTargets()
             self?.updateUI()
         }
         watchdog = Timer.scheduledTimer(withTimeInterval: 0.025, repeats: true) { [weak self] _ in
             guard let self else { return }
+            self.hardwareMouse.refresh()
             if self.policy.enabled && (!self.isTargetFront() || !AXIsProcessTrusted()) {
                 self.stop("已暂停：离开游戏或权限失效。返回游戏后重新按快捷键开启。")
             }
@@ -82,18 +90,19 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 15
+        stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
         window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 26),
             stack.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor, constant: -26),
-            stack.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 24)
+            stack.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 24),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: window.contentView!.bottomAnchor, constant: -16)
         ])
         let title = NSTextField(labelWithString: "MC 连点助手")
         title.font = .systemFont(ofSize: 25, weight: .bold)
         stack.addArrangedSubview(title)
-        addText("按快捷键启用后，按住鼠标左键连点，松手即停。", to: stack)
+        addText("仅在真实按住鼠标时连点；不按不点，松手即停。", to: stack)
         statusLabel.font = .systemFont(ofSize: 14, weight: .semibold)
         statusLabel.widthAnchor.constraint(equalToConstant: 510).isActive = true
         stack.addArrangedSubview(statusLabel)
@@ -109,7 +118,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         range.addArrangedSubview(maximum)
         range.addArrangedSubview(button("保存设置", #selector(saveSettings)))
         stack.addArrangedSubview(range)
-        addText("可设 1–40 CPS；上下限相同即为固定速度。", to: stack, small: true)
+        addText("左右键各自使用此 CPS 范围；上下限相同即固定速度。", to: stack, small: true)
         hotkeyButton = button(hotkeyTitle(), #selector(recordKey))
         stack.addArrangedSubview(hotkeyButton)
         sprint.target = self
@@ -196,19 +205,29 @@ final class MacroApp: NSObject, NSApplicationDelegate {
                 ($0.bundleIdentifier ?? "").lowercased().contains("minecraft")
         }
         var detected = Set<pid_t>()
+        let livePIDs = Set(apps.map { $0.processIdentifier })
+        detectionCache = detectionCache.filter { livePIDs.contains($0.key) }
         for app in apps {
-            if MacroPolicy.looksLikeMinecraft(name: app.localizedName ?? "", bundle: app.bundleIdentifier ?? "",
-                                              command: commandLine(app.processIdentifier)) {
+            let pid = app.processIdentifier
+            if detectionCache[pid] == nil {
+                detectionCache[pid] = MacroPolicy.looksLikeMinecraft(name: app.localizedName ?? "", bundle: app.bundleIdentifier ?? "",
+                                                                    command: commandLine(pid))
+            }
+            if detectionCache[pid] == true {
                 detected.insert(app.processIdentifier)
             }
         }
         targetPIDs = detected
-        targetPicker.removeAllItems()
-        targetPicker.addItem(withTitle: "自动识别 Minecraft 游戏进程（推荐）")
-        targetPicker.lastItem?.tag = 0
+        var choices: [(String, Int)] = [("自动识别 Minecraft 游戏进程（推荐）", 0)]
         for app in apps.sorted(by: { $0.processIdentifier < $1.processIdentifier }) {
-            targetPicker.addItem(withTitle: "手动绑定：\(app.localizedName ?? "游戏") · PID \(app.processIdentifier)")
-            targetPicker.lastItem?.tag = Int(app.processIdentifier)
+            choices.append(("手动绑定：\(app.localizedName ?? "游戏") · PID \(app.processIdentifier)", Int(app.processIdentifier)))
+        }
+        if targetPicker.itemTitles != choices.map({ $0.0 }) {
+            targetPicker.removeAllItems()
+            for (title, pid) in choices {
+                targetPicker.addItem(withTitle: title)
+                targetPicker.lastItem?.tag = pid
+            }
         }
         if let pid = manualPID {
             if targetPicker.itemArray.contains(where: { $0.tag == Int(pid) }) {
@@ -243,7 +262,9 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     @discardableResult func installTap() -> Bool {
         if tap != nil { return true }
         guard AXIsProcessTrusted() else { return false }
-        let types: [CGEventType] = [.leftMouseDown, .leftMouseUp, .leftMouseDragged, .keyDown, .keyUp, .flagsChanged]
+        let types: [CGEventType] = [.leftMouseDown, .leftMouseUp, .leftMouseDragged,
+                                   .rightMouseDown, .rightMouseUp, .rightMouseDragged,
+                                   .keyDown, .keyUp, .flagsChanged]
         let mask = types.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
         tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
             eventsOfInterest: mask, callback: { _, type, event, info in
@@ -265,6 +286,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
             return Unmanaged.passUnretained(event)
         }
         if event.getIntegerValueField(.eventSourceUserData) == eventMarker { return Unmanaged.passUnretained(event) }
+        if event.getIntegerValueField(.eventSourceUnixProcessID) == Int64(getpid()) { return Unmanaged.passUnretained(event) }
         let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
         if type == .keyUp && suppressedKeys.remove(code) != nil { return nil }
         if type == .keyDown && recordingHotkey && NSApp.isActive {
@@ -297,17 +319,21 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         }
         guard policy.enabled else { return Unmanaged.passUnretained(event) }
         switch type {
-        case .leftMouseDown:
-            policy.physicalLeftHeld = true
-            if clickTimer == nil { click() }
+        case .flagsChanged:
+            if sprintOwned && ownedSprintCode == 59 && !event.flags.contains(.maskControl) {
+                event.flags.insert(.maskControl)
+            }
+        case .leftMouseDown, .rightMouseDown:
+            let button: MacroMouseButton = type == .leftMouseDown ? .left : .right
+            if policy.mayClick(button), hardwareMouse.isDown(button), clickTimers[button] == nil { click(button) }
             return nil
-        case .leftMouseUp:
-            policy.physicalLeftHeld = false
-            cancelClicks()
-            updateUI()
+        case .leftMouseUp, .rightMouseUp:
+            let button: MacroMouseButton = type == .leftMouseUp ? .left : .right
+            // Synthetic up events must not change physical hold state.
+            if !hardwareMouse.isDown(button) { hardwareChanged(button, down: false) }
             return nil
-        case .leftMouseDragged:
-            if policy.physicalLeftHeld {
+        case .leftMouseDragged, .rightMouseDragged:
+            if policy.mayClick(type == .leftMouseDragged ? .left : .right) {
                 event.type = .mouseMoved
                 event.flags.remove(.maskControl)
             }
@@ -320,10 +346,16 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         guard isTargetFront(), AXIsProcessTrusted(), let tap, CGEvent.tapIsEnabled(tap: tap) else {
             notice = "无法开启：请先授权并检查输入监听。"; updateUI(); return
         }
+        hardwareMouse.start()
+        guard hardwareMouse.connected else {
+            notice = "未连接到鼠标硬件。为避免自动连点，保持关闭；请检查输入监控权限并重启。"
+            updateUI(); return
+        }
         policy.physicalLeftHeld = false // A fresh physical press is required after every enable.
+        policy.physicalRightHeld = false
         policy.targetActive = true
         policy.enabled = true
-        notice = "已启用：按住左键连点，松手即停。"
+        notice = "已就绪：不按不点，真实按住哪一键才连点哪一键。"
         if sprint.state == .on { pressSprint() }
         updateUI()
     }
@@ -336,27 +368,43 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         updateUI()
     }
 
-    func click() {
-        clickTimer?.invalidate(); clickTimer = nil
-        guard policy.mayClick, isTargetFront(), AXIsProcessTrusted() else {
-            cancelClicks(); return
+    func click(_ button: MacroMouseButton) {
+        clickTimers.removeValue(forKey: button)?.invalidate()
+        guard policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)), isTargetFront(), AXIsProcessTrusted() else {
+            cancelClicks(button); return
         }
-        postMouse(down: true)
-        emittedDown = true
-        releaseTimer?.invalidate()
-        releaseTimer = Timer(timeInterval: 0.007, repeats: false) { [weak self] _ in
-            self?.releaseMouse()
+        postMouse(button, down: true)
+        emittedDown.insert(button)
+        releaseTimers.removeValue(forKey: button)?.invalidate()
+        let release = Timer(timeInterval: 0.007, repeats: false) { [weak self] _ in
+            self?.releaseMouse(button)
         }
-        RunLoop.main.add(releaseTimer!, forMode: .common)
+        releaseTimers[button] = release
+        RunLoop.main.add(release, forMode: .common)
         let cps = Double.random(in: cpsMin...cpsMax)
-        clickTimer = Timer(timeInterval: MacroPolicy.interval(cps: cps), repeats: false) { [weak self] _ in self?.click() }
-        RunLoop.main.add(clickTimer!, forMode: .common)
+        let next = Timer(timeInterval: MacroPolicy.interval(cps: cps), repeats: false) { [weak self] _ in self?.click(button) }
+        clickTimers[button] = next
+        RunLoop.main.add(next, forMode: .common)
     }
 
-    func postMouse(down: Bool) {
+    func hardwareChanged(_ button: MacroMouseButton, down: Bool) {
+        if !down {
+            if button == .left { policy.physicalLeftHeld = false }
+            else { policy.physicalRightHeld = false }
+            cancelClicks(button)
+            return
+        }
+        guard policy.enabled, isTargetFront() else { return }
+        if button == .left { policy.physicalLeftHeld = true }
+        else { policy.physicalRightHeld = true }
+        if clickTimers[button] == nil { click(button) }
+    }
+
+    func postMouse(_ button: MacroMouseButton, down: Bool) {
         let position = CGEvent(source: nil)?.location ?? .zero
-        guard let event = CGEvent(mouseEventSource: source, mouseType: down ? .leftMouseDown : .leftMouseUp,
-                                  mouseCursorPosition: position, mouseButton: .left) else { return }
+        let type: CGEventType = button == .left ? (down ? .leftMouseDown : .leftMouseUp) : (down ? .rightMouseDown : .rightMouseUp)
+        guard let event = CGEvent(mouseEventSource: source, mouseType: type,
+                                  mouseCursorPosition: position, mouseButton: button == .left ? .left : .right) else { return }
         // Control must not turn these generated attacks into contextual/right clicks.
         event.flags = []
         event.setIntegerValueField(.mouseEventClickState, value: 1)
@@ -364,14 +412,18 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         event.post(tap: .cghidEventTap)
     }
 
-    func releaseMouse() {
-        releaseTimer?.invalidate(); releaseTimer = nil
-        if emittedDown { postMouse(down: false); emittedDown = false }
+    func releaseMouse(_ button: MacroMouseButton) {
+        releaseTimers.removeValue(forKey: button)?.invalidate()
+        if emittedDown.remove(button) != nil { postMouse(button, down: false) }
+    }
+
+    func cancelClicks(_ button: MacroMouseButton) {
+        clickTimers.removeValue(forKey: button)?.invalidate()
+        releaseMouse(button)
     }
 
     func cancelClicks() {
-        clickTimer?.invalidate(); clickTimer = nil
-        releaseMouse()
+        for button in MacroMouseButton.allCases { cancelClicks(button) }
     }
 
     func pressSprint() {
@@ -408,7 +460,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         let ids = targetPIDs.sorted().map(String.init).joined(separator: ", ")
         targetLabel.stringValue = manualPID.map { "已绑定游戏进程 \($0)，进程退出后需重新绑定。" } ??
             (targetPIDs.isEmpty ? "尚未识别到游戏。请先启动 Minecraft；识别失败时可手动选择 Java 游戏进程。" : "已识别游戏进程：\(ids)")
-        permissionsLabel.stringValue = "辅助功能：\(AXIsProcessTrusted() ? "已授权" : "未授权")　输入监控：\(CGPreflightListenEventAccess() ? "已授权" : "未授权")　监听：\(tap != nil ? "已连接" : "未连接")"
+        permissionsLabel.stringValue = "辅助功能：\(AXIsProcessTrusted() ? "已授权" : "未授权")　输入监控：\(CGPreflightListenEventAccess() ? "已授权" : "未授权")　硬件：\(hardwareMouse.connected ? "已连接" : "未连接")"
     }
 
     func hotkeyTitle() -> String {
@@ -442,6 +494,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
         _ = CGRequestListenEventAccess()
+        if CGPreflightListenEventAccess() { hardwareMouse.start() }
         if installTap() { notice = "监听已连接，进入游戏后按快捷键开启。" }
         else { notice = "请在系统设置中授权；若仍无法连接，请完全退出后重新打开。" }
         updateUI()
@@ -458,6 +511,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationWillTerminate(_ notification: Notification) {
         policy.stop(); cancelClicks(); releaseSprint()
+        hardwareMouse.stop()
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
     }
 }

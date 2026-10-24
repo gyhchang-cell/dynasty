@@ -15,8 +15,21 @@ p.targetActive = true
 p.physicalLeftHeld = false
 check(!p.mayClick, "松手不能点击")
 p.physicalLeftHeld = true
+p.physicalRightHeld = true
+check(p.mayClick(.left) && p.mayClick(.right), "双键同时按住应同时连点")
+check(!p.mayClick(.left, hardwareDown: false) && !p.mayClick(.right, hardwareDown: false), "硬件松手时即使旧状态仍为按住，也绝不能继续点击")
+check(p.mayClick(.left, hardwareDown: true) && p.mayClick(.right, hardwareDown: true), "真实按住才允许双键点击")
+p.physicalLeftHeld = false
+check(!p.mayClick(.left) && p.mayClick(.right), "松开左键不应影响右键")
+p.physicalLeftHeld = true
+p.physicalRightHeld = false
+check(p.mayClick(.left) && !p.mayClick(.right), "松开右键不应影响左键")
+p.physicalRightHeld = true
+p.targetActive = false
+check(!p.mayClick(.left) && !p.mayClick(.right), "失焦应停止双键")
+p.targetActive = true
 p.stop()
-check(!p.enabled && !p.physicalLeftHeld && !p.mayClick, "停止必须清除按住状态")
+check(!p.enabled && !p.physicalLeftHeld && !p.physicalRightHeld && !p.mayClick(.left) && !p.mayClick(.right), "停止必须清除双键状态")
 check(MacroPolicy.validRange(15, 20), "默认范围")
 check(MacroPolicy.validRange(18, 18), "固定 CPS")
 check(!MacroPolicy.validRange(20, 15), "拒绝倒置范围")

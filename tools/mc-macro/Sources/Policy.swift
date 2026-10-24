@@ -1,14 +1,24 @@
 import Foundation
 
+enum MacroMouseButton: CaseIterable { case left, right }
+
 struct MacroPolicy {
     var enabled = false
     var physicalLeftHeld = false
+    var physicalRightHeld = false
     var targetActive = false
     var mayClick: Bool { enabled && targetActive && physicalLeftHeld }
+    func mayClick(_ button: MacroMouseButton) -> Bool {
+        enabled && targetActive && (button == .left ? physicalLeftHeld : physicalRightHeld)
+    }
+    func mayClick(_ button: MacroMouseButton, hardwareDown: Bool) -> Bool {
+        hardwareDown && mayClick(button)
+    }
 
     mutating func stop() {
         enabled = false
         physicalLeftHeld = false
+        physicalRightHeld = false
     }
 
     static func validRange(_ minimum: Double, _ maximum: Double) -> Bool {
