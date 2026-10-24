@@ -1,0 +1,132 @@
+{
+  "reviewed": 4,
+  "rows": [
+    {
+      "id": 1559,
+      "repo": "iron431/irons-spells-n-spellbooks",
+      "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+      "path": "src/main/java/io/redspace/ironsspellbooks/particle/FlameStrikeParticle.java",
+      "method": "render",
+      "start": 114,
+      "end": 139,
+      "sourceSha256": "9a20c3010f63edd81fdcf0187de349b3b19befed424f1d8c6d354b8b31962d5d",
+      "semanticHash": "ae8ce8ea66d55cee8866270c062bc350ecc8d2e8326d4950f6b986c169b1535b",
+      "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/particle/FlameStrikeParticle.java",
+      "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/particle/FlameStrikeParticle.java#L114-L139",
+      "operations": {
+        "makeCornerVertex": 8,
+        "getLightColor": 1,
+        "lerp": 3
+      },
+      "source": "@Override\n    public void render(VertexConsumer buffer, Camera camera, float partialTick) {\n        boolean mirrored = !this.mirror; // based on animation, we actually want the default to be mirrored\n        Vec3 vec3 = camera.getPosition();\n        float f = (float) (Mth.lerp(partialTick, this.xo, this.x) - vec3.x());\n        float f1 = (float) (Mth.lerp(partialTick, this.yo, this.y) - vec3.y());\n        float f2 = (float) (Mth.lerp(partialTick, this.zo, this.z) - vec3.z());\n        Vector3f[] vertices = new Vector3f[4];\n        for (int i = 0; i < 4; i++) {\n            var localVertex = localVertices[i];\n            vertices[i] = new Vector3f(localVertex.x, localVertex.y, localVertex.z);\n            vertices[i].mul(this.getQuadSize(partialTick));\n            vertices[i].add(f, f1, f2);\n        }\n        int j = this.getLightColor(partialTick);\n        this.makeCornerVertex(buffer, vertices[0], this.getU1(), mirrored ? this.getV0() : this.getV1(), j);\n        this.makeCornerVertex(buffer, vertices[1], this.getU1(), mirrored ? this.getV1() : this.getV0(), j);\n        this.makeCornerVertex(buffer, vertices[2], this.getU0(), mirrored ? this.getV1() : this.getV0(), j);\n        this.makeCornerVertex(buffer, vertices[3], this.getU0(), mirrored ? this.getV0() : this.getV1(), j);\n        //backface\n        this.makeCornerVertex(buffer, vertices[3], this.getU0(), mirrored ? this.getV0() : this.getV1(), j);\n        this.makeCornerVertex(buffer, vertices[2], this.getU0(), mirrored ? this.getV1() : this.getV0(), j);\n        this.makeCornerVertex(buffer, vertices[1], this.getU1(), mirrored ? this.getV1() : this.getV0(), j);\n        this.makeCornerVertex(buffer, vertices[0], this.getU1(), mirrored ? this.getV0() : this.getV1(), j);\n\n    }",
+      "targetScope": "school_melee",
+      "observation": "使用预先建立的局部顶点而不转向摄像机，mirror状态翻V并反序提交背面，保证斩击方向纹理一致。区别只双面圆盘的点在实际动画镜像UV对应。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 1561,
+      "repo": "iron431/irons-spells-n-spellbooks",
+      "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+      "path": "src/main/java/io/redspace/ironsspellbooks/particle/SoulfireRayParticle.java",
+      "method": "render",
+      "start": 66,
+      "end": 95,
+      "sourceSha256": "788778649963c92b58a06e7390ffee02d9d4973049243f1bb594f46463327a27",
+      "semanticHash": "075b13edf3ae354e1d8277cd6d7249f153c840a4b5f10242cb135d286660b30f",
+      "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/particle/SoulfireRayParticle.java",
+      "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/particle/SoulfireRayParticle.java#L66-L95",
+      "operations": {
+        "translate": 2,
+        "lerp": 5,
+        "scale": 1,
+        "mulPose": 3,
+        "rotationDegrees": 1,
+        "rotation": 2,
+        "rotationFromDirection": 1,
+        "normalize": 1,
+        "getPos": 1
+      },
+      "source": "@Override\n    public void render(VertexConsumer consumer, Camera camera, float partialTick) {\n        Vec3 vec3 = camera.getPosition();\n        float f = (float) (Mth.lerp((double) partialTick, this.xo, this.x) - vec3.x());\n        float f1 = (float) (Mth.lerp((double) partialTick, this.yo, this.y) - vec3.y());\n        float f2 = (float) (Mth.lerp((double) partialTick, this.zo, this.z) - vec3.z());\n        PoseStack poseStack = new PoseStack();\n        poseStack.translate(f, f1, f2);\n        Vec3 rayVector = destination.subtract(this.getPos());\n        float baseWidth = 1f;\n        float hullLength = 3 * baseWidth;\n        double distance = rayVector.length();\n        int hulls = (int) (distance / hullLength);\n        double zmargin = distance / (hulls * hullLength); // make up marginal differences caused by truncation of hull unit length\n        rayVector = rayVector.normalize();\n        Vec2 rotation = Utils.rotationFromDirection(rayVector);\n        poseStack.mulPose(Axis.YP.rotation(rotation.y));\n        poseStack.mulPose(Axis.XP.rotation(-rotation.x));\n        poseStack.mulPose(Axis.ZP.rotationDegrees((age + partialTick) * 360 / lifetime));\n        poseStack.scale(1, 1, (float) zmargin);\n        float t = Math.clamp((age + partialTick) / (float) lifetime, 0, 1);\n        float width = Mth.lerp(t, 0.1f, baseWidth);\n        this.alpha = Mth.lerp(t, 1, 0);\n\n        for (int i = 0; i < hulls; i++) {\n            drawHull(Vec3.ZERO, new Vec3(0, 0, hullLength), width, width, poseStack, consumer);\n            drawHull(Vec3.ZERO, new Vec3(0, 0, hullLength), width * .5f, width * .5f, poseStack, consumer);\n            poseStack.translate(0, 0, hullLength);\n        }\n    }",
+      "targetScope": "school_talisman",
+      "observation": "沿真实destination以定长hull分段，按距离尾差缩放Z填满，外内双壳共同随年龄变宽变淡。distance<3时hulls=0导致除零，作为短距离防护反例记录，不能照搬。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 1588,
+      "repo": "iron431/irons-spells-n-spellbooks",
+      "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+      "path": "src/main/java/io/redspace/ironsspellbooks/render/SpellRenderingHelper.java",
+      "method": "renderRayOfSiphoning",
+      "start": 39,
+      "end": 108,
+      "sourceSha256": "243951f15a110c48f24addefd06790cccac2673f5627a694ce123a1969db4b22",
+      "semanticHash": "409cd83abb723d5518b2ef79e3662b10262c7c2981a8856b3262dd37d494ac79",
+      "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/render/SpellRenderingHelper.java",
+      "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/render/SpellRenderingHelper.java#L39-L108",
+      "operations": {
+        "cos": 1,
+        "sin": 2,
+        "mulPose": 2,
+        "rotation": 2,
+        "atan2": 2,
+        "normalize": 2,
+        "scale": 1,
+        "translate": 1
+      },
+      "source": "public static void renderRayOfSiphoning(LivingEntity entity, PoseStack poseStack, MultiBufferSource bufferSource, float partialTicks) {\n\n        poseStack.pushPose();\n        poseStack.translate(0, entity.getEyeHeight() * .8f, 0);\n\n        var pose = poseStack.last();\n        Vec3 end;\n        Vec3 rayEndPos;\n        if (entity instanceof Mob mob && MagicData.getPlayerMagicData(mob).getAdditionalCastData() instanceof CastingMobAimingData aimingData) {\n            rayEndPos = RaycastBuilder.begin(entity.level, entity)\n                    .start(entity.getEyePosition())\n                    .end(entity.getEyePosition().add(aimingData.getAimPosition(partialTicks).subtract(entity.getEyePosition(partialTicks)).normalize().scale(RayOfSiphoningSpell.getRange(0))))\n                    .checkForBlocks(true)\n                    .build()\n                    .getLocation();\n        } else {\n            rayEndPos = RaycastBuilder.begin(entity.level(), entity)\n                    .range(RayOfSiphoningSpell.getRange(0))\n                    .checkForBlocks(true)\n                    .build()\n                    .getLocation();\n        }\n        float distance = (float) entity.getEyePosition().distanceTo(rayEndPos);\n        float radius = .12f;\n        int r = (int) (255 * .7f);\n        int g = (int) (255 * 0f);\n        int b = (int) (255 * 0f);\n        int a = (int) (255 * 1f);\n\n        float deltaTicks = entity.tickCount + partialTicks;\n        float deltaUV = -deltaTicks % 10;\n        float max = Mth.frac(deltaUV * 0.2F - (float) Mth.floor(deltaUV * 0.1F));\n        float min = -1.0F + max;\n\n        var dir = rayEndPos.subtract(entity.getEyePosition(partialTicks)).normalize();\n\n        //y rotation is a triangle of x and z axis\n        float dx = (float) dir.x;\n        float dz = (float) dir.z;\n        //angle = atan o/a\n        float yRot = (float) Mth.atan2(dz, dx) - 1.5707f; // for some reason, we are rotated 90 degrees the wrong way. subtracting 2 pi here.\n        //IronsSpellbooks.LOGGER.debug(\"yRot: {}\", yRot);\n        //x rotation is a triangle of xz and y axis\n        float dxz = Mth.sqrt(dx * dx + dz * dz);\n        float dy = (float) dir.y;\n        //angle = atan o/a\n        float xRot = (float) Mth.atan2(dy, dxz);\n        //IronsSpellbooks.LOGGER.debug(\"xRot: {}\", xRot);\n        poseStack.mulPose(Axis.YP.rotation(-yRot));\n        poseStack.mulPose(Axis.XP.rotation(-xRot));\n        Vec3 start = Vec3.ZERO;\n        for (float j = 1; j <= distance; j += .5f) {\n            Vec3 wiggle = new Vec3(\n                    Mth.sin(deltaTicks * .8f) * .02f,\n                    Mth.sin(deltaTicks * .8f + 100) * .02f,\n                    Mth.cos(deltaTicks * .8f) * .02f\n            );\n            //end = dir.scale(Math.min(j, distance)).add(wiggle);\n            end = new Vec3(0, 0, Math.min(j, distance)).add(wiggle);\n            VertexConsumer inner = bufferSource.getBuffer(RenderType.entityTranslucent(BEACON, true));\n            drawHull(start, end, radius, radius, pose, inner, r, g, b, a, min, max);\n            //drawHull(start, end, .25f, .25f, pose, outer, r / 2, g / 2, b / 2, a / 2);\n            VertexConsumer outer = bufferSource.getBuffer(RenderType.entityTranslucent(TWISTING_GLOW));\n            drawQuad(start, end, radius * 4f, 0, pose, outer, r, g, b, a, min, max);\n            drawQuad(start, end, 0, radius * 4f, pose, outer, r, g, b, a, min, max);\n            start = end;\n\n        }\n        poseStack.popPose();\n    }",
+      "targetScope": "school_talisman",
+      "observation": "Mob采用实际CastingMobAimingData，玩家用视线，均做方块射线截断；局部束每0.5长度加入微摆，内壳和两个正交外面同端点。半格循环不足1距离无提交，边界需单独覆盖。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 1636,
+      "repo": "lender544/new1.20.1",
+      "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/particle/RingParticle.java",
+      "method": "render",
+      "start": 83,
+      "end": 152,
+      "sourceSha256": "837cacb9f04d2d98190c3aa76e37807ba715c0c906a245e5e3e6c75be97b3531",
+      "semanticHash": "acbcdda8a54aa2b47e82d63903b4011455396d7aff7b1dae6fd56ac50abe9ef5",
+      "local": "build/item-use-references/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/client/particle/RingParticle.java",
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/particle/RingParticle.java#L83-L152",
+      "operations": {
+        "endVertex": 8,
+        "uv2": 8,
+        "color": 8,
+        "uv": 8,
+        "vertex": 8,
+        "getLightColor": 1,
+        "quatFromRotationXYZ": 2,
+        "rotation": 3,
+        "lerp": 4
+      },
+      "source": "@Override\n    public void render(VertexConsumer buffer, Camera renderInfo, float partialTicks) {\n        float var = (age + partialTicks)/lifetime;\n        if (behavior == 0) {\n            quadSize = size * var;\n        }\n        else if (behavior == 1) {\n            quadSize = size * (1 - var);\n        }\n        else if (behavior == 2) {\n            quadSize = (float) (size * (1 - var - Math.pow(2000, -var)));\n        }\n        else {\n            quadSize = size;\n        }\n        alpha = opacity * 0.95f * (1 - (age + partialTicks)/lifetime) + 0.05f;\n        rCol = r;\n        gCol = g;\n        bCol = b;\n\n        Vec3 Vector3d = renderInfo.getPosition();\n        float f = (float)(Mth.lerp(partialTicks, this.xo, this.x) - Vector3d.x());\n        float f1 = (float)(Mth.lerp(partialTicks, this.yo, this.y) - Vector3d.y());\n        float f2 = (float)(Mth.lerp(partialTicks, this.zo, this.z) - Vector3d.z());\n        Quaternionf quaternionf = new Quaternionf(0.0F, 0.0F, 0.0F, 1.0F);\n        if (facesCamera) {\n            if (this.roll == 0.0F) {\n                quaternionf = renderInfo.rotation();\n            } else {\n                quaternionf = new Quaternionf(renderInfo.rotation());\n                float f3 = Mth.lerp(partialTicks, this.oRoll, this.roll);\n                quaternionf.mul(Axis.ZP.rotation(f3));\n            }\n        }\n        else {\n            Quaternionf quatX = CMMathUtil.quatFromRotationXYZ(pitch, 0, 0, false);\n            Quaternionf quatY = CMMathUtil.quatFromRotationXYZ(0, yaw, 0, false);\n            quaternionf.mul(quatY);\n            quaternionf.mul(quatX);\n        }\n\n        Vector3f vector3f1 = new Vector3f(-1.0F, -1.0F, 0.0F);\n        quaternionf.transform(vector3f1);\n        Vector3f[] avector3f = new Vector3f[]{new Vector3f(-1.0F, -1.0F, 0.0F), new Vector3f(-1.0F, 1.0F, 0.0F), new Vector3f(1.0F, 1.0F, 0.0F), new Vector3f(1.0F, -1.0F, 0.0F)};\n        float f4 = this.getQuadSize(partialTicks);\n\n        for(int i = 0; i < 4; ++i) {\n            Vector3f vector3f = avector3f[i];\n            quaternionf.transform(vector3f);\n            vector3f.mul(f4);\n            vector3f.add(f, f1, f2);\n        }\n\n        float f7 = this.getU0();\n        float f8 = this.getU1();\n        float f5 = this.getV0();\n        float f6 = this.getV1();\n        int j = this.getLightColor(partialTicks);\n        buffer.vertex(avector3f[0].x(), avector3f[0].y(), avector3f[0].z()).uv(f8, f6).color(this.rCol/255F, this.gCol/255F, this.bCol/255F, this.alpha).uv2(j).endVertex();\n        buffer.vertex(avector3f[1].x(), avector3f[1].y(), avector3f[1].z()).uv(f8, f5).color(this.rCol/255F, this.gCol/255F, this.bCol/255F, this.alpha).uv2(j).endVertex();\n        buffer.vertex(avector3f[2].x(), avector3f[2].y(), avector3f[2].z()).uv(f7, f5).color(this.rCol/255F, this.gCol/255F, this.bCol/255F, this.alpha).uv2(j).endVertex();\n        buffer.vertex(avector3f[3].x(), avector3f[3].y(), avector3f[3].z()).uv(f7, f6).color(this.rCol/255F, this.gCol/255F, this.bCol/255F, this.alpha).uv2(j).endVertex();\n\n        buffer.vertex(avector3f[3].x(), avector3f[3].y(), avector3f[3].z()).uv(f7, f6).color(this.rCol/255F, this.gCol/255F, this.bCol/255F, this.alpha).uv2(j).endVertex();\n        buffer.vertex(avector3f[2].x(), avector3f[2].y(), avector3f[2].z()).uv(f7, f5).color(this.rCol/255F, this.gCol/255F, this.bCol/255F, this.alpha).uv2(j).endVertex();\n        buffer.vertex(avector3f[1].x(), avector3f[1].y(), avector3f[1].z()).uv(f8, f5).color(this.rCol/255F, this.gCol/255F, this.bCol/255F, this.alpha).uv2(j).endVertex();\n        buffer.vertex(avector3f[0].x(), avector3f[0].y(), avector3f[0].z()).uv(f8, f6).color(this.rCol/255F, this.gCol/255F, this.bCol/255F, this.alpha).uv2(j).endVertex();\n\n\n    }",
+      "targetScope": "school_talisman",
+      "observation": "behavior决定扩张/收缩/弹出曲线，facesCamera选择相机四元数或固定pitch/yaw，双面同UV。纹样方向可与生命周期解耦；不要把三种行为/两个方向计作六个实现。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": [
+    {
+      "id": 1560,
+      "repo": "iron431/irons-spells-n-spellbooks",
+      "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+      "path": "src/main/java/io/redspace/ironsspellbooks/particle/RingSmokeParticle.java",
+      "method": "renderRotatedParticle",
+      "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/particle/RingSmokeParticle.java#L98-L122",
+      "sourceSha256": "52979abf1a2fb036f38ab5bd77af7e9a1e51763f83f7a84c4b5c3ce10526d080",
+      "reason": "通用四元数旋转粒子四面顶点，已有双面定向与相机轴案例，不算独立纹样表现。"
+    },
+    {
+      "id": 1635,
+      "repo": "lender544/new1.20.1",
+      "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/particle/Phantom_Emitter_Particle.java",
+      "method": "render",
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/particle/Phantom_Emitter_Particle.java#L59-L99",
+      "sourceSha256": "cddf694de0542c65558714678d003a0818d7143e891f70186064b2f9e31dddbe",
+      "reason": "仅直立相机yaw基础上加roll，和本轮LightningStorm同算法，不计。"
+    }
+  ]
+}

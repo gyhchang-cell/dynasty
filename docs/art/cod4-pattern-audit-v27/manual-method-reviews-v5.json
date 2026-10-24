@@ -1,0 +1,184 @@
+{
+  "reviewed": 6,
+  "rows": [
+    {
+      "id": 761,
+      "repo": "Shadows-of-Fire/Apotheosis",
+      "revision": "f2e76862ed9f4dcdf19c25400dc3d5478a46dd74",
+      "path": "src/main/java/dev/shadowsoffire/apotheosis/client/BeamRenderer.java",
+      "method": "renderBeaconBeam",
+      "start": 14,
+      "end": 52,
+      "sourceSha256": "a5b42fe10932fdf17cfe29eeba9f4b4f9bdccea7b2bc764723f40c89c8819e3c",
+      "semanticHash": "eeaddb35e71620fc1b29403a91b16a9077c8c664767d91a6640254f2c03ebbf1",
+      "local": "build/item-use-references/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/client/BeamRenderer.java",
+      "url": "https://github.com/Shadows-of-Fire/Apotheosis/blob/f2e76862ed9f4dcdf19c25400dc3d5478a46dd74/src/main/java/dev/shadowsoffire/apotheosis/client/BeamRenderer.java#L14-L52",
+      "operations": {
+        "renderBeaconBeam": 1,
+        "translate": 1,
+        "mulPose": 1,
+        "rotationDegrees": 1,
+        "affixBeam": 2,
+        "renderPart": 2,
+        "alpha": 2
+      },
+      "source": "public static void renderBeaconBeam(\n        PoseStack poseStack, SubmitNodeCollector collector, Identifier beamLocation, Identifier glowLocation, float partialTick, float textureScale,\n        long gameTime, float yOffset, float height, int colorBot, int colorTop, float beamRadius, float glowRadius) {\n\n        if (height < 0) {\n            return;\n        }\n\n        final float maxY = yOffset + height;\n        poseStack.pushPose();\n        poseStack.translate(0.5, 0.0, 0.5);\n        float f = Math.floorMod(gameTime, 40) + partialTick;\n        float f1 = height < 0 ? f : -f;\n        float f2 = Mth.frac(f1 * 0.2F - Mth.floor(f1 * 0.1F));\n        poseStack.pushPose();\n        poseStack.mulPose(Axis.YP.rotationDegrees(f * 2.25F - 45.0F));\n        final float f6 = -beamRadius;\n        final float f9 = -beamRadius;\n        final float f12 = -1.0F + f2;\n        final float f13 = height * textureScale * (0.5F / beamRadius) + f12;\n        collector.submitCustomGeometry(poseStack, ApothRenderTypes.affixBeam(beamLocation, true), (pose, buffer) -> renderPart(\n            pose, buffer, colorBot, colorTop, yOffset, maxY,\n            0.0F, beamRadius, beamRadius, 0.0F, f6, 0.0F, 0.0F, f9,\n            0.0F, 1.0F, f13, f12));\n        poseStack.popPose();\n        final float g3 = -glowRadius;\n        final float g4 = -glowRadius;\n        final float g5 = -glowRadius;\n        final float g6 = -glowRadius;\n        final float g12 = -1.0F + f2;\n        final float g13 = height * textureScale + g12;\n        final int glowBot = ARGB.alpha(colorBot) / 2 << 24 | colorBot & 0x00FFFFFF;\n        final int glowTop = ARGB.alpha(colorTop) / 2 << 24 | colorTop & 0x00FFFFFF;\n        collector.submitCustomGeometry(poseStack, ApothRenderTypes.affixBeam(glowLocation, true), (pose, buffer) -> renderPart(\n            pose, buffer, glowBot, glowTop, yOffset, maxY,\n            g3, g4, glowRadius, g5, g6, glowRadius, glowRadius, glowRadius,\n            0.0F, 1.0F, g13, g12));\n        poseStack.popPose();\n    }",
+      "targetScope": "imperial_guard",
+      "observation": "内束按世界刻滚动UV并单独旋转，外晕在内束矩阵回退后提交；UV重复量随物理高度和束半径变化。可用于护体层的独立纹理密度，不能把两个材质计作两例。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 978,
+      "repo": "baileyholl/Ars-Nouveau",
+      "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+      "path": "src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/SpellBowRenderer.java",
+      "method": "renderByItem",
+      "start": 40,
+      "end": 74,
+      "sourceSha256": "2a980beb495e303096f6e969d68103493d130bbda8a6dbc6ef767c863abbe0ac",
+      "semanticHash": "fd066d23bf3f94a05b2efa198da247599b04fc5f4935b8fe59f0c5148f243785",
+      "local": "build/item-use-references/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/SpellBowRenderer.java",
+      "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/SpellBowRenderer.java#L40-L74",
+      "operations": {
+        "renderByItem": 2,
+        "normalize": 1,
+        "cross": 1,
+        "scale": 4,
+        "getTextColor": 1
+      },
+      "source": "@Override\n    public void renderByItem(ItemStack itemStack, ItemDisplayContext transformType, PoseStack stack, MultiBufferSource bufferIn, int combinedLightIn, int p_239207_6_) {\n        if (transformType == ItemDisplayContext.FIRST_PERSON_RIGHT_HAND) {\n            Player player = Minecraft.getInstance().player;\n            Vec3 playerPos = player.position().add(0, player.getEyeHeight(), 0);\n            Vec3 look = player.getLookAngle(); // or getLook(partialTicks)\n            //The next 3 variables are directions on the screen relative to the players look direction. So right = to the right of the player, regardless of facing direction.\n            Vec3 right = new Vec3(-look.z, 0, look.x).normalize();\n            Vec3 forward = look;\n            Vec3 down = right.cross(forward);\n\n            //These are used to calculate where the particles are going. We want them going into the laser, so we move the destination right, down, and forward a bit.\n            right = right.scale(0.2 - player.attackAnim);\n            forward = forward.scale(0.45f);\n            down = down.scale(-0.1 - player.attackAnim);\n            Vec3 laserPos = playerPos.add(right);\n            laserPos = laserPos.add(forward);\n            laserPos = laserPos.add(down);\n            int timeHeld = 72000 - Minecraft.getInstance().player.getUseItemRemainingTicks();\n            DyeColor color1 = itemStack.getOrDefault(DataComponents.BASE_COLOR, DyeColor.PURPLE);\n            if (timeHeld > 0 && timeHeld != 72000) {\n                float scaleAge = (float) ParticleUtil.inRange(0.05, 0.1);\n                if (player.level.random.nextInt(20) == 0) {\n                    for (int i = 0; i < 1; i++) {\n                        Vec3 particlePos = new Vec3(laserPos.x, laserPos.y, laserPos.z);\n                        particlePos = particlePos.add(ParticleUtil.pointInSphere().scale(0.3f));\n                        player.level.addParticle(ParticleLineData.createData(ParticleColor.fromInt(color1.getTextColor()), scaleAge, 5 + player.level.random.nextInt(20)),\n                                particlePos.x(), particlePos.y(), particlePos.z(),\n                                laserPos.x(), laserPos.y(), laserPos.z());\n                    }\n                }\n            }\n        }\n        super.renderByItem(itemStack, transformType, stack, bufferIn, combinedLightIn, p_239207_6_);\n    }",
+      "targetScope": "school_archery",
+      "observation": "仅第一人称右手：以视线、水平右向及叉乘下向构造粒子汇聚锚点，锚点随attackAnim偏移，实际使用计时控制汇聚。随机发射在render回调，存在帧率依赖，借鉴锚点而不照搬生命周期。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 979,
+      "repo": "baileyholl/Ars-Nouveau",
+      "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+      "path": "src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/SpellCrossbowRenderer.java",
+      "method": "renderByItem",
+      "start": 72,
+      "end": 117,
+      "sourceSha256": "8c3fc42ecc901ebc51fb9e004a0798fb73c5328f06db777d1e3e18d94ef08980",
+      "semanticHash": "f9542c9f7da685e5f97db1497024debd22dddeaa2526fbc4d6f97755780db2cb",
+      "local": "build/item-use-references/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/SpellCrossbowRenderer.java",
+      "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/SpellCrossbowRenderer.java#L72-L117",
+      "operations": {
+        "renderByItem": 2,
+        "normalize": 1,
+        "cross": 1,
+        "scale": 10,
+        "getTextColor": 1
+      },
+      "source": "@Override\n    public void renderByItem(ItemStack itemStack, ItemDisplayContext transformType, PoseStack stack, MultiBufferSource bufferIn, int combinedLightIn, int p_239207_6_) {\n        if (transformType == ItemDisplayContext.FIRST_PERSON_RIGHT_HAND && !Minecraft.getInstance().isPaused()) {\n            Player player = Minecraft.getInstance().player;\n            Vec3 playerPos = player.position().add(0, player.getEyeHeight(), 0);\n            Vec3 look = player.getLookAngle(); // or getLook(partialTicks)\n            //The next 3 variables are directions on the screen relative to the players look direction. So right = to the right of the player, regardless of facing direction.\n            Vec3 right = new Vec3(-look.z, 0, look.x).normalize();\n            Vec3 forward = look;\n            Vec3 down = right.cross(forward);\n            int timeHeld = 72000 - Minecraft.getInstance().player.getUseItemRemainingTicks();\n            //These are used to calculate where the particles are going. We want them going into the laser, so we move the destination right, down, and forward a bit.\n            if (timeHeld > 72000) {\n                right = right.scale(0.1 - player.attackAnim);\n                forward = forward.scale(0.25f);\n                down = down.scale(-0.1 - player.attackAnim);\n            } else if (SpellCrossbow.isCharged(itemStack)) {\n                right = right.scale(-0.05 - player.attackAnim);\n                forward = forward.scale(0.35f);\n                down = down.scale(-0.2 - player.attackAnim);\n            } else {\n                right = right.scale(-player.attackAnim);\n                forward = forward.scale(0.45f);\n                down = down.scale(-0.3 - player.attackAnim);\n            }\n            Vec3 laserPos = playerPos.add(right);\n            laserPos = laserPos.add(forward);\n            laserPos = laserPos.add(down);\n            AbstractCaster<?> tool = SpellCasterRegistry.from(itemStack);\n\n            DyeColor color1 = itemStack.getOrDefault(DataComponents.BASE_COLOR, DyeColor.PURPLE);\n            if (timeHeld > 0 && timeHeld != 72000 || SpellCrossbow.isCharged(itemStack)) {\n                float scaleAge = (float) ParticleUtil.inRange(0.05, 0.1);\n                if (player.level.random.nextInt(20) == 0) {\n                    for (int i = 0; i < 1; i++) {\n                        Vec3 particlePos = new Vec3(laserPos.x, laserPos.y, laserPos.z);\n                        particlePos = particlePos.add(ParticleUtil.pointInSphere().scale(0.3f));\n                        player.level.addParticle(ParticleLineData.createData(ParticleColor.fromInt(color1.getTextColor()), scaleAge, 5 + player.level.random.nextInt(20)),\n                                particlePos.x(), particlePos.y(), particlePos.z(),\n                                laserPos.x(), laserPos.y(), laserPos.z());\n                    }\n                }\n            }\n        }\n        super.renderByItem(itemStack, transformType, stack, bufferIn, combinedLightIn, p_239207_6_);\n    }",
+      "targetScope": "school_archery",
+      "observation": "弩的暂停门控、已上膛状态与使用计时共同选择三组手前锚点；已上膛也保留汇聚效果。相较弓实现新增状态分支而非仅换色；timeHeld>72000分支只记录，不推断其正确性。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 1008,
+      "repo": "baileyholl/Ars-Nouveau",
+      "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+      "path": "src/main/java/com/hollingsworth/arsnouveau/client/renderer/tile/RuneRenderer.java",
+      "method": "actuallyRender",
+      "start": 57,
+      "end": 95,
+      "sourceSha256": "105c51c900154424920e5ba2064f697e7470044009098480eaa8e064cf62b5c5",
+      "semanticHash": "599f5975ea53087c2d86432b73b4e6b38e85fdf6e988c02ffc0eebfea1aa4b0c",
+      "local": "build/item-use-references/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/client/renderer/tile/RuneRenderer.java",
+      "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/client/renderer/tile/RuneRenderer.java#L57-L95",
+      "operations": {
+        "actuallyRender": 2,
+        "translate": 6,
+        "mulPose": 11,
+        "rotationDegrees": 11
+      },
+      "source": "@Override\n    public void actuallyRender(PoseStack poseStack, RuneTile animatable, BakedGeoModel model, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, boolean isReRender, float partialTick, int packedLight, int packedOverlay, int color) {\n        poseStack.pushPose();\n        Direction direction = animatable.getBlockState().getValue(BasicSpellTurret.FACING);\n//        poseStack.translate(0.5, 0.5, 0);\n        switch (direction) {\n            case UP -> {\n                poseStack.translate(0.5, 0, 0.5);\n                poseStack.mulPose(Axis.XP.rotationDegrees(-90));\n            }\n            case DOWN -> {\n                poseStack.translate(0.5, 0.98, 0.5);\n                poseStack.mulPose(Axis.XP.rotationDegrees(90));\n            }\n            case NORTH -> {\n                poseStack.translate(0.5, 0.5, 1);\n                poseStack.mulPose(Axis.XP.rotationDegrees(90));\n                poseStack.mulPose(Axis.ZP.rotationDegrees(180));\n                poseStack.mulPose(Axis.YP.rotationDegrees(180));\n            }\n            case EAST -> {\n                poseStack.translate(0, 0.5, 0.5);\n                poseStack.mulPose(Axis.ZP.rotationDegrees(-90));\n                poseStack.mulPose(Axis.YP.rotationDegrees(180));\n            }\n            case WEST -> {\n                poseStack.translate(1, 0.5, 0.5);\n                poseStack.mulPose(Axis.ZP.rotationDegrees(90));\n            }\n            case SOUTH -> {\n                poseStack.translate(0.5, 0.5, 0);\n                poseStack.mulPose(Axis.XP.rotationDegrees(-90));\n                poseStack.mulPose(Axis.ZP.rotationDegrees(-180));\n                poseStack.mulPose(Axis.YP.rotationDegrees(180));\n            }\n        }\n        super.actuallyRender(poseStack, animatable, model, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, color);\n        poseStack.popPose();\n    }",
+      "targetScope": "imperial_decal",
+      "observation": "从实际方块FACING选择六向贴面矩阵；天花板以0.98位置避共面，四墙各自旋转。可借鉴符面贴附方向，六个方向合计一处实现。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 1021,
+      "repo": "iron431/irons-spells-n-spellbooks",
+      "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+      "path": "src/main/java/io/redspace/ironsspellbooks/render/ChargeSpellLayer.java",
+      "method": "handleRender",
+      "start": 49,
+      "end": 70,
+      "sourceSha256": "a4374f82ceab3e83c08e72623f16b88683404aa6b0df79efaf1e5d7711bc5383",
+      "semanticHash": "3953c0e69a778d11e8923957c4dc521fd6e171243c63e95f716bca318cce9fb7",
+      "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/render/ChargeSpellLayer.java",
+      "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/render/ChargeSpellLayer.java#L49-L70",
+      "operations": {
+        "handleRender": 1,
+        "translate": 4,
+        "mulPose": 7,
+        "rotationDegrees": 7,
+        "renderModel": 4
+      },
+      "source": "private static <T extends LivingEntity> void handleRender(PoseStack poseStack, MultiBufferSource bufferSource, int pPackedLight, T entity, String spellId, boolean offhand) {\n        if (spellId.equals(SpellRegistry.LIGHTNING_LANCE_SPELL.get().getSpellId())) {\n            poseStack.translate((double) ((float) (offhand ? -1 : 1) / 32.0F) - .125, .5, 0);\n            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));\n            LightningLanceRenderer.renderModel(poseStack, bufferSource, entity.tickCount);\n        } else if (spellId.equals(SpellRegistry.MAGIC_ARROW_SPELL.get().getSpellId())) {\n            poseStack.translate(((float) (offhand ? -1 : 1) / 32.0F), .5, 0);\n            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));\n            poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));\n            MagicArrowRenderer.renderModel(poseStack, bufferSource);\n        } else if (spellId.equals(SpellRegistry.POISON_ARROW_SPELL.get().getSpellId())) {\n            poseStack.translate(((float) (offhand ? -1 : 1) / 32.0F), 1, 0);\n            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));\n            poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));\n            PoisonArrowRenderer.renderModel(poseStack, bufferSource, pPackedLight);\n        } else if (spellId.equals(SpellRegistry.FIRE_ARROW_SPELL.get().getSpellId())) {\n            poseStack.translate(((float) (offhand ? -1 : 1) / 32.0F), .5, 0);\n            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));\n            poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));\n            FireArrowRenderer.renderModel(poseStack, bufferSource);\n        }\n    }",
+      "targetScope": "school_talisman",
+      "observation": "蓄力层按真实施法ID分派现有弹体模型，左右手以符号翻转偏移，再逐模型校正局部轴；四个ID只计一次手部附件分派。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 1022,
+      "repo": "iron431/irons-spells-n-spellbooks",
+      "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+      "path": "src/main/java/io/redspace/ironsspellbooks/render/ChargeSpellLayer.java",
+      "method": "renderForBone",
+      "start": 77,
+      "end": 94,
+      "sourceSha256": "a4374f82ceab3e83c08e72623f16b88683404aa6b0df79efaf1e5d7711bc5383",
+      "semanticHash": "8d1edc83a0924aa06262ae2bed1a470685a39f2204879a2005f57e9e3220dbc4",
+      "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/render/ChargeSpellLayer.java",
+      "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/render/ChargeSpellLayer.java#L77-L94",
+      "operations": {
+        "renderForBone": 2,
+        "getScale": 1,
+        "translate": 1,
+        "scale": 1,
+        "mulPose": 1,
+        "rotationDegrees": 1,
+        "handleRender": 1
+      },
+      "source": "@Override\n        public void renderForBone(PoseStack poseStack, AbstractSpellCastingMob animatable, GeoBone bone, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {\n            super.renderForBone(poseStack, animatable, bone, renderType, bufferSource, buffer, partialTick, packedLight, packedOverlay);\n            if (bone.getName().equals(\"right_arm\")) {\n                poseStack.pushPose();\n                var syncedSpellData = ClientMagicData.getSyncedSpellData(animatable);\n                var spellId = syncedSpellData.getCastingSpellId();\n                var scaleinv = 1 / animatable.getScale();\n                poseStack.translate(0,0.5,0);\n                poseStack.scale(scaleinv, scaleinv, scaleinv);\n                if (!spellId.equals(\"irons_spellbooks:lightning_lance\")) {\n                    poseStack.mulPose(Axis.XP.rotationDegrees(180.0F));\n                }\n//                                poseStack.translate(bone.getPivotX() / 16.0F, bone.getPivotY() / 16.0F, bone.getPivotZ() / 16.0F);\n                handleRender(poseStack, bufferSource, packedLight, animatable, spellId, false);\n                poseStack.popPose();\n            }\n        }",
+      "targetScope": "school_talisman",
+      "observation": "GeckoLib骨骼回调只绑定right_arm，实际同步施法ID决定朝向，并以1/getScale抵消实体缩放。骨骼集成与附件模型分派分开记录；不会将普通持物回调算专属纹样完成。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": [
+    {
+      "id": 760,
+      "repo": "Shadows-of-Fire/Apotheosis",
+      "revision": "f2e76862ed9f4dcdf19c25400dc3d5478a46dd74",
+      "path": "src/main/java/dev/shadowsoffire/apotheosis/client/AffixItemEffectRenderer.java",
+      "method": "submitBeams",
+      "url": "https://github.com/Shadows-of-Fire/Apotheosis/blob/f2e76862ed9f4dcdf19c25400dc3d5478a46dd74/src/main/java/dev/shadowsoffire/apotheosis/client/AffixItemEffectRenderer.java#L37-L119",
+      "sourceSha256": "4e5f37d7dc0c2b41cbf0a0f0bf6f4700fdc2459a7049dbffb2e36784b4cc3495",
+      "reason": "落地稀有度拾取光柱，未证明与本任务武器纹样有直接关联；不凑计数。"
+    },
+    {
+      "id": 969,
+      "repo": "baileyholl/Ars-Nouveau",
+      "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+      "path": "src/main/java/com/hollingsworth/arsnouveau/client/renderer/entity/StyledSpellRender.java",
+      "method": "actuallyRender",
+      "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/client/renderer/entity/StyledSpellRender.java#L42-L66",
+      "sourceSha256": "2d43662579f1f6769bf9b034c3e6eef82b89499594a76070cf588cd5f8590356",
+      "reason": "仅投射物插值定向和动态着色，与已审阅居中魔法武器流程重合。"
+    },
+    {
+      "id": 980,
+      "repo": "baileyholl/Ars-Nouveau",
+      "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+      "path": "src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/SpellCrossbowRenderer.java",
+      "method": "getRenderColor",
+      "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/SpellCrossbowRenderer.java#L119-L128",
+      "sourceSha256": "8c3fc42ecc901ebc51fb9e004a0798fb73c5328f06db777d1e3e18d94ef08980",
+      "reason": "仅返回施法颜色属性，不是独立纹样实现。"
+    }
+  ]
+}

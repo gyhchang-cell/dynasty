@@ -1,0 +1,112 @@
+{
+  "reviewed": 3,
+  "rows": [
+    {
+      "id": 972,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/emitter/particle/FacingOrientationMath.java",
+      "method": "computeLookAtDirection",
+      "start": 39,
+      "end": 54,
+      "sourceSha256": "d3237a5fc67f15c5e60e0b20297bf2a1a666fc9f30aa85a4738b39a4eb225216",
+      "semanticHash": "e49b3d3155cdd801ead0f1bc11bf3b64a11f99d1ff2068901d249bf19893128d",
+      "local": "build/item-use-references/Low-Drag-MC__Photon/src/main/java/com/lowdragmc/photon/client/gameobject/emitter/particle/FacingOrientationMath.java",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/emitter/particle/FacingOrientationMath.java#L39-L54",
+      "operations": {
+        "rotationX": 1,
+        "atan2": 1,
+        "rotationTo": 1,
+        "normalizeDirection": 1
+      },
+      "source": "    static Quaternionf computeLookAtDirection(Vector3f direction, Vector3f particlePos, Vector3f cameraPos) {\n        Vector3f dir = normalizeDirection(direction, false);\n        if (dir.lengthSquared() < MIN_THRESHOLD) {\n            return computeLookAtXYZ(particlePos, cameraPos);\n        }\n\n        Quaternionf axisRotation = new Quaternionf().rotationTo(LOCAL_X, dir);\n        Vector3f cameraInAxisSpace = new Vector3f(cameraPos).sub(particlePos);\n        if (cameraInAxisSpace.lengthSquared() < MIN_THRESHOLD) {\n            return axisRotation;\n        }\n        new Quaternionf(axisRotation).conjugate().transform(cameraInAxisSpace);\n\n        float xRotation = (float) Math.atan2(-cameraInAxisSpace.y, cameraInAxisSpace.z);\n        return new Quaternionf(axisRotation).mul(new Quaternionf().rotationX(xRotation));\n    }",
+      "targetScope": "school_talisman",
+      "observation": "先将纹样本地X轴对齐指定朝向，再把相机方向逆变换进该轴空间，只绕本地X旋转保持朝向同时可读；方向或相机距离退化分别有降级返回。不同于速度拉伸，适合符面沿施法轴锁定并有限朝向观察者。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 985,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/particle/TileParticle.java",
+      "method": "setup",
+      "start": 107,
+      "end": 174,
+      "sourceSha256": "59fc9f5ec6455562dea538c2222e5948952c3cbc03bf2a55978c4b1597c0da31",
+      "semanticHash": "b52e5319babf969bb44454212476661dbd34504a9439106ccb0c95ce47fcc126",
+      "local": "build/item-use-references/Low-Drag-MC__Photon/src/main/java/com/lowdragmc/photon/client/gameobject/particle/TileParticle.java",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/particle/TileParticle.java#L107-L174",
+      "operations": {
+        "updateLight": 1,
+        "updateRotation": 1,
+        "updateColor": 1,
+        "setColor": 1,
+        "setRotation": 1,
+        "alpha": 1,
+        "getSimSpaceScale": 1,
+        "scale": 1,
+        "setSimPos": 1,
+        "setLifetime": 2
+      },
+      "source": "    public void setup() {\n        if (emitter instanceof ParticleEmitter particleEmitter) {\n            particleBatchIndex = particleEmitter.nextParticleBatchIndex();\n            particleBatchCount = particleEmitter.getParticleBatchCount();\n        } else {\n            particleBatchIndex = 0;\n            particleBatchCount = 1;\n        }\n        var emitterT = emitter.getT();\n        // start values come from the runtime layer (timeline override if set, else authored config)\n        setDelay(runtime.startDelay.get().get(randomSource, emitterT).intValue());\n        if (runtime.lifetimeByEmitterSpeed.isEnable()) {\n            setLifetime(runtime.lifetimeByEmitterSpeed.getLifetime(this, emitter,\n                    runtime.startLifetime.get().get(randomSource, emitterT).intValue()));\n        } else {\n            setLifetime(runtime.startLifetime.get().get(randomSource, emitterT).intValue());\n        }\n\n        runtime.shape.setupParticle(this, emitter);\n        // the shape wrote emitter-local position/velocity; for non-Local simulation spaces,\n        // re-express them in simulation space using the emitter's spawn-time pose\n        if (config.getSimulationSpace() != ParticleConfig.Space.Local) {\n            var emitterToWorld = emitter.transform().localToWorldMatrix();\n            var worldToSim = emitter.getWorldToSim();\n            var pos = new Vector3f(localX, localY, localZ).mulPosition(emitterToWorld).mulPosition(worldToSim);\n            setSimPos(pos, true);\n            var vel = worldToSim.transformDirection(emitterToWorld.transformDirection(new Vector3f(velocityX, velocityY, velocityZ)));\n            setInternalVelocity(vel);\n            // the frame we are born into, shared with every particle emitted at this emitter pose\n            this.spawnFrame = emitter instanceof ParticleEmitter particleEmitter\n                    ? particleEmitter.currentSpawnFrame()\n                    : new SpawnFrame(emitterToWorld, emitter.transform().worldToLocalMatrix(),\n                            worldToSim, emitter.getSimToWorld());\n        }\n        if (runtime.inheritVelocity.isEnable() && runtime.inheritVelocity.getMode() == InheritVelocitySetting.Mode.INITIAL) {\n            addInternalVelocity(getSpaceTransformInverse().transformDirection(runtime.inheritVelocity.getVelocity(emitter)));\n        }\n        mulInternalVelocity(runtime.startSpeed.get().get(randomSource, emitterT).floatValue());\n        this.initialSize = runtime.startSize.get().get(randomSource, emitterT);\n        // non-Local particles are not rendered through the emitter matrix, so bake the emitter's\n        // spawn-time scale (relative to the simulation space) into the size instead\n        if (config.getSimulationSpace() != ParticleConfig.Space.Local) {\n            this.initialSize.mul(emitter.transform().scale().div(emitter.getSimSpaceScale()));\n        }\n        this.initialRotation = runtime.startRotation.get().get(randomSource, emitterT).mul(Mth.TWO_PI / 360);\n        var color = runtime.startColor.get().get(randomSource, emitterT).intValue();\n        this.initialColor = new Vector4f(ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));\n        setSize(initialSize);\n        setRotation(initialRotation);\n        setColor(initialColor);\n        update(1f);\n        // update() skips the pure visual recomputes during a timeline seek, on the promise that the\n        // seek's last two full ticks redo them. A particle with a START DELAY never reaches them:\n        // updateTick returns early for the whole delay, so the frame it first becomes visible on --\n        // the one right after the delay hits 0 -- still carries the raw birth values, with every\n        // over-lifetime curve unapplied. Redo them here, where it is correct for every path.\n        if (PhotonParticleManager.isFastSimulation()) {\n            updateColor();\n            updateSize();\n            updateRotation();\n            updateLight();\n        }\n        updateOrigin();\n\n        if (runtime.trails.isEnable() && emitter instanceof ParticleEmitter particleEmitter) {\n            runtime.trails.setup(particleEmitter, this);\n        }\n    }",
+      "targetScope": "imperial_guard",
+      "observation": "非Local粒子出生时将位置/方向从发射器局部转世界再转模拟空间，记录共享spawnFrame并烘焙出生缩放；避免护体移动后已散出的纹样跟着整体漂移。延时出生遇时间轴快进时主动刷新色宽旋转光照，避免首可见帧裸初始值。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 986,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/particle/TileParticle.java",
+      "method": "updateTick",
+      "start": 433,
+      "end": 473,
+      "sourceSha256": "59fc9f5ec6455562dea538c2222e5948952c3cbc03bf2a55978c4b1597c0da31",
+      "semanticHash": "c8960ffeb7ed748622c469cd15ad7387919557d8163613236009d41963e4984a",
+      "local": "build/item-use-references/Low-Drag-MC__Photon/src/main/java/com/lowdragmc/photon/client/gameobject/particle/TileParticle.java",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/particle/TileParticle.java#L433-L473",
+      "operations": {
+        "setRemoved": 1,
+        "updateLight": 1,
+        "updateRotation": 1,
+        "updateColor": 1
+      },
+      "source": "    public void updateTick(float dt) {\n        if (delay > 0) {\n            delay -= dt;\n            return;\n        }\n\n        if (this.age == 0 && runtime.subEmitters.isEnable()) {\n            runtime.subEmitters.triggerEvent(this, SubEmittersSetting.Event.Birth);\n        }\n\n        // death: snap t to 1 and apply the final visual state (no motion) so over-lifetime curves\n        // reach their endpoints on the frames the dead particle still renders before removal.\n        // lifetime <= 0 intentionally never age-dies (infinite particles; they die via collision\n        // or emitter removal).\n        if (this.age >= this.lifetime && lifetime > 0) {\n            this.age += dt;\n            this.t = 1;\n            this.updateColor();\n            this.updateSize();\n            this.updateRotation();\n            this.updateLight();\n            setRemoved(true);\n            if (runtime.subEmitters.isEnable()) {\n                runtime.subEmitters.triggerEvent(this, SubEmittersSetting.Event.Death);\n            }\n            return;\n        }\n        this.age += dt;\n        if (lifetime > 0) {\n            // recompute BEFORE update so curves sample this step's t (was one tick late), and clamp:\n            // fractional dt can push age past lifetime here, which previously produced t > 1\n            t = Math.min(age / lifetime, 1f);\n        }\n\n        // update data\n        update(dt);\n\n        if (runtime.subEmitters.isEnable()) {\n            runtime.subEmitters.triggerTickEvent(this, dt);\n        }\n    }",
+      "targetScope": "school_talisman",
+      "observation": "delay阶段不增age；出生事件在age==0触发，死亡时先令t=1并刷新终态但不再运动，然后移除并触发Death子效果。正常dt可能跨寿命时提前clamp曲线T，下一刻死亡；只借鉴明确分阶段，不能把lifetime<=0当自动过期。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": [
+    {
+      "id": 967,
+      "repo": "Lothrazar/Cyclic",
+      "revision": "b2213600474fa088702dec68a783549e44dfa6ae",
+      "path": "src/main/java/com/lothrazar/cyclic/render/beacon/BeamHolder.java",
+      "method": "updateBeam",
+      "url": "https://github.com/Lothrazar/Cyclic/blob/b2213600474fa088702dec68a783549e44dfa6ae/src/main/java/com/lothrazar/cyclic/render/beacon/BeamHolder.java#L60-L114",
+      "sourceSha256": "2ca025accb4b5267fae6dbb9fcac8a5dd2f5d460fdbeaa1de715a441f7e8d0b6",
+      "reason": "完整阅读后排除：复制信标分段颜色、十格扫描与声音逻辑，非武器纹样或护体相关实现。"
+    },
+    {
+      "id": 982,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/emitter/renderpipeline/StackedDistortion.java",
+      "method": "bend",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/emitter/renderpipeline/StackedDistortion.java#L79-L109",
+      "sourceSha256": "eaaa2fd749300d87f279748a1b59331679a1ed6cf1dde116465c361419bd1643",
+      "reason": "完整阅读后排除：全屏扭曲后处理复制帧和采样深度，不是本次局部武器纹样表现；不计相关数。"
+    },
+    {
+      "id": 983,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/forcefield/ForceFieldObject.java",
+      "method": "apply",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/forcefield/ForceFieldObject.java#L153-L235",
+      "sourceSha256": "d2bc8452096d7fb122e372bccb7cefc5fbb234b358683eb12c417c22422a1151",
+      "reason": "完整阅读后排除：场空间形状、引力/涡流和阻尼的通用粒子物理，无专属武器纹样实现；本范围不计。"
+    }
+  ]
+}

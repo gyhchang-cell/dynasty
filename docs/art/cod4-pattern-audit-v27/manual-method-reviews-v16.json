@@ -1,0 +1,159 @@
+{
+  "reviewed": 6,
+  "rows": [
+    {
+      "id": 987,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/particle/TrailParticle.java",
+      "method": "generateSmoothPath",
+      "start": 255,
+      "end": 298,
+      "sourceSha256": "16e8b0e8ffc81ba62bddcc2822692d55c2c793fb5269f6051982f01a78975a2f",
+      "semanticHash": "2532cb443bd5a325cb2f6be183e8a627f35c5f4df2bb4907dfe2ce40c3c58ac2",
+      "local": "build/item-use-references/Low-Drag-MC__Photon/src/main/java/com/lowdragmc/photon/client/gameobject/particle/TrailParticle.java",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/particle/TrailParticle.java#L255-L298",
+      "operations": {
+        "lerp": 3,
+        "getColor": 2,
+        "normalize": 1
+      },
+      "source": "    public TailArray generateSmoothPath(TailArray vertices, TailArray lastSmooth, float distance) {\n        if (vertices.size() <= 2) {\n            return vertices;\n        }\n\n        TailArray smoothPath = new TailArray();\n        float minDistanceSq = Math.max(distance, 0.05f) * Math.max(distance, 0.05f);\n        Vector3f prevDir = null;\n\n        for (int i = 0; i < vertices.size() - 1; i++) {\n            var curr = vertices.getPosition(i);\n            var next = vertices.getPosition(i + 1);\n            var dir = new Vector3f(next).sub(curr).normalize();\n            smoothPath.add(vertices.copyAsTail(i));\n\n            if (prevDir != null && dir.dot(prevDir) > 0.99f) {\n                // skip interpolation if angle is small\n                prevDir = dir;\n                continue;\n            }\n\n            float distSq = curr.distanceSquared(next);\n            if (distSq > minDistanceSq) {\n                int steps = (int) (distSq / minDistanceSq);\n                for (int j = 1; j < steps; j++) {\n                    float t = j / (float) steps;\n                    Vector3f interpPos = catmullRomInterpolate(\n                            vertices.getPosition(Math.max(i - 1, 0)),\n                            curr, next,\n                            vertices.getPosition(Math.min(i + 2, vertices.size() - 1)), t);\n                    // build interpolated tail\n                    smoothPath.add(new Tail(\n                            interpPos,\n                            Mth.lerp(t, vertices.lifeTime[i], vertices.lifeTime[i + 1]),\n                            new Vector4f(vertices.getColor(i)).lerp(vertices.getColor(i + 1), t),\n                            Mth.lerp(t, vertices.width[i], vertices.width[i + 1])\n                    ));\n                }\n            }\n            prevDir = dir;\n        }\n        smoothPath.add(vertices.copyAsTail(vertices.size() - 1));\n        return smoothPath;\n    }",
+      "targetScope": "school_melee",
+      "observation": "拐点按方向dot>0.99跳过细分，Catmull-Rom点同步插值寿命、颜色与宽度；不把曲线造型照搬为MC纹样。细分步数采用距离平方比而非距离比，长段会二次膨胀；零长段normalize无保护。借鉴属性连续、另加采样上限。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 999,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/TileParticleRenderer.java",
+      "method": "computeStretchedFrame",
+      "start": 491,
+      "end": 540,
+      "sourceSha256": "688393965fb961f2c3d9e429e8fe6a9d9864c2239e707af3164d500b3685bfdb",
+      "semanticHash": "f7b0b9e3425bdd84e0a98638c56d8ed48e931434fc7f24646cd57580200c3877",
+      "local": "build/item-use-references/Low-Drag-MC__Photon/src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/TileParticleRenderer.java",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/TileParticleRenderer.java#L491-L540",
+      "operations": {
+        "getVelocityScale": 1,
+        "getLengthScale": 1,
+        "setFromNormalized": 1,
+        "normalize": 5,
+        "cross": 4
+      },
+      "source": "    private StretchedFrame computeStretchedFrame(TileParticle particle, Vector3f worldPos,\n                                                 double camX, double camY, double camZ,\n                                                 Vector3f size, Vector3f spaceScale) {\n        Vector3f vel = particle.getRealVelocity();\n        float speed = vel.length();\n\n        Vector3f right = new Vector3f();\n        if (speed > 1e-5f) {\n            right.set(vel).div(speed);\n        } else {\n            right.set(1, 0, 0);\n        }\n\n        Vector3f dirToCam = new Vector3f((float) (camX - worldPos.x), (float) (camY - worldPos.y), (float) (camZ - worldPos.z));\n        if (dirToCam.lengthSquared() > 1e-5f) {\n            dirToCam.normalize();\n        } else {\n            dirToCam.set(0, 0, 1);\n        }\n\n        Vector3f up = new Vector3f();\n        dirToCam.cross(right, up);\n\n        if (up.lengthSquared() < 1e-5f) {\n            if (Math.abs(right.y) > 0.99f) {\n                up.set(0, 0, 1).cross(right).normalize();\n            } else {\n                up.set(0, 1, 0).cross(right).normalize();\n            }\n        } else {\n            up.normalize();\n        }\n\n        Vector3f forward = new Vector3f();\n        right.cross(up, forward).normalize();\n\n        Matrix3f mat = new Matrix3f(\n                right.x,   right.y,   right.z,\n                up.x,      up.y,      up.z,\n                forward.x, forward.y, forward.z\n        );\n        var quaternion = new Quaternionf().setFromNormalized(mat);\n\n        float stretch = renderer.getLengthScale() + speed * renderer.getVelocityScale();\n        float stretchedSizeX = size.x * stretch;\n\n        float offsetAmount = (stretchedSizeX - size.x) * spaceScale.x;\n        return new StretchedFrame(quaternion, stretchedSizeX,\n                right.x * offsetAmount, right.y * offsetAmount, right.z * offsetAmount);\n    }",
+      "targetScope": "school_archery",
+      "observation": "速度方向作长轴，视线叉积作宽轴；零速、相机重合与轴平行分别用阈值和备用轴处理，再构造正交四元数。拉伸量由基础长度+速度系数并补偿中心偏移；与普通无保护迎面束片有明确边界差异。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 970,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/fx/EntityEffectExecutor.java",
+      "method": "updateFXObjectFrame",
+      "start": 52,
+      "end": 89,
+      "sourceSha256": "d0adf9feb051b22efb1978303e308e06277bafe478d22b793b8ceec464d4dd84",
+      "semanticHash": "9503f9c99081986b7fffa19c0a80ea0af5eaeddcc6dfb259f64c12fc7754d134",
+      "local": "build/item-use-references/Low-Drag-MC__Photon/src/main/java/com/lowdragmc/photon/client/fx/EntityEffectExecutor.java",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/fx/EntityEffectExecutor.java#L52-L89",
+      "operations": {
+        "updateRotation": 3,
+        "rotateXYZ": 3,
+        "getVisualRotationYInDegrees": 1,
+        "atan2": 2,
+        "updatePos": 1
+      },
+      "source": "    @Override\n    public void updateFXObjectFrame(IFXObject fxObject, float partialTicks) {\n        if (runtime != null && fxObject == runtime.root) {\n            if (!entity.isAlive()) return;\n            var position = entity.getEyePosition(partialTicks);\n            runtime.root.updatePos(new Vector3f((float) (position.x + offset.x), (float) (position.y + offset.y), (float) (position.z + offset.z)));\n            if (autoRotate != AutoRotate.NONE) {\n                switch (autoRotate) {\n                    case FORWARD -> {\n                        var forward = entity.getForward();\n                        var newRotation = new Quaternionf(rotation).rotateXYZ(\n                                0,\n                                (float) Math.atan2(-forward.z, forward.x),\n                                (float) forward.y\n                        );\n                        runtime.root.updateRotation(newRotation);\n                    }\n                    case LOOK -> {\n                        var lookAngles = entity.getLookAngle();\n                        var newRotation = new Quaternionf(rotation).rotateXYZ(\n                                0,\n                                (float) Math.atan2(-lookAngles.z, lookAngles.x),\n                                (float) lookAngles.y\n                        );\n                        runtime.root.updateRotation(newRotation);\n                    }\n                    case XROT -> {\n                        var newRotation = new Quaternionf(rotation).rotateXYZ(\n                                0,\n                                Math.toRadians(-90 - entity.getVisualRotationYInDegrees()),\n                                0\n                        );\n                        runtime.root.updateRotation(newRotation);\n                    }\n                }\n            }\n        }\n    }",
+      "targetScope": "imperial_guard",
+      "observation": "仅root逐帧跟随存活实体插值眼位，偏移与初始四元数独立保留。FORWARD/LOOK把方向y分量直接当欧拉z角，不能当正确俯仰公式照搬；护体挂点需区分眼位与躯干，并保留世界刻生命周期。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 977,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/emitter/particle/ParticleEmitter.java",
+      "method": "emitParticle",
+      "start": 518,
+      "end": 576,
+      "sourceSha256": "4098fa5264df08469ef1e5a2bc0d5492e9ef379ee2a95c7c31936a96e4c340e1",
+      "semanticHash": "e00e521c790e169774cdbee2749ce7fbfe13f1daff72e74e9a14e1adf23a1001",
+      "local": "build/item-use-references/Low-Drag-MC__Photon/src/main/java/com/lowdragmc/photon/client/gameobject/emitter/particle/ParticleEmitter.java",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/emitter/particle/ParticleEmitter.java#L518-L576",
+      "operations": {
+        "rebuildLightCache": 1,
+        "remove": 1,
+        "setParallelLightPhase": 2,
+        "removeIf": 1,
+        "getRenderType": 1,
+        "updateLightRegistration": 1
+      },
+      "source": "    public void emitParticle(float dt) {\n        updateLightRegistration();\n        // calculate distance (scaled by this step's dt)\n        accumulatedDistance += getVelocity().length() * dt;\n        // emit new particle (maxParticles may be timeline-overridden; authored value is the fallback)\n        var maxParticles = runtime().maxParticles.get();\n        var particleAmount = getParticleAmount(); // streams all queues — compute once per call\n        if (!removed && particleAmount < maxParticles) {\n            var emissionCount = runtime().emission.getEmissionCount(this, getRandomSource(), dt);\n            var available = Math.min(emissionCount, maxParticles - particleAmount);\n            particleBatchCount = Math.max(1, available);\n            particleBatchCursor = 0;\n            for (int i = 0; i < available; i++) {\n                emitParticle(createNewParticle());\n            }\n        }\n\n        // particles life cycle\n        if (!waitToAdded.isEmpty()) {\n            for (var p : waitToAdded) {\n                // modest initial capacity: maxParticles is timeline-drivable and may be huge\n                particles.computeIfAbsent(p.getRenderType(), type -> new ArrayDeque<>(Math.min(maxParticles, 256))).add(p);\n            }\n            waitToAdded.clear();\n        }\n\n        var parallelAllowed = useParallelUpdate();\n        for (var queue : particles.values()) {\n            if (parallelAllowed && queue.size() >= PARALLEL_UPDATE_MIN_PARTICLES) { // parallel stream for particles tick.\n                queue.removeIf(p -> !p.isAlive());\n                setParallelLightPhase(true);\n                try {\n                    queue.parallelStream().forEach(p -> p.updateTick(dt));\n                } finally {\n                    setParallelLightPhase(false);\n                }\n            } else {\n                var iter = queue.iterator();\n                while (iter.hasNext()) {\n                    var particle = iter.next();\n                    if (!particle.isAlive()) {\n                        iter.remove();\n                    } else {\n                        particle.updateTick(dt);\n                    }\n                }\n            }\n        }\n        if (parallelAllowed) {\n            // refresh every light position requested this tick on the game thread\n            // (parallel reads only consult the cache; misses used the last value)\n            rebuildLightCache();\n        }\n\n        // drain sub-emitter spawns collected during (possibly parallel) particle updates\n        for (Runnable spawn; (spawn = pendingSubEmitterSpawns.poll()) != null; ) {\n            spawn.run();\n        }\n    }",
+      "targetScope": "school_talisman",
+      "observation": "发射量受maxParticles剩余额度约束，先汇入等待队列再更新；并行更新期间灯光缓存只读，finally解除并行阶段，最后主线程排空子发射器请求。用于限制多层符面发射与延后副效果，不能在渲染帧按帧率增殖。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 989,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/AraTrailParticleRenderer.java",
+      "method": "walkSpan",
+      "start": 452,
+      "end": 602,
+      "sourceSha256": "cd0a84122972cf7c1dff94e7cdafcd2cf71b098e24602a29a769a29a610b7c1f",
+      "semanticHash": "28dd8cbf38571a2801b4c7771646ed60ad30be6e67fd3e79ef316c168d398d20",
+      "local": "build/item-use-references/Low-Drag-MC__Photon/src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/AraTrailParticleRenderer.java",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/AraTrailParticleRenderer.java#L452-L602",
+      "operations": {
+        "alpha": 3,
+        "isInfinite": 1,
+        "normalize": 5,
+        "getColorMultiplier": 1,
+        "initializeCurveFrame": 1,
+        "getRenderablePoints": 1
+      },
+      "source": "    private void walkSpan(AraTrailParticle particle, int start, int end, Vector3f localCamPosition, PointSink sink) {\n        var config = particle.config;\n        var runtime = particle.runtime;\n\n        // Get a list of the actual points to render: either the original, unsmoothed points or the smoothed curve.\n        ElasticArray<Point> trail = getRenderablePoints(particle, start, end);\n\n        if (config.sorting == AraTrailConfig.TrailSorting.NewerOnTop)\n            trail.reverse();\n\n        var data = trail.getData();\n\n        if (trail.size() > 1) {\n            float totalLength = 0;\n            for (int i = 0; i < trail.size() - 1; ++i)\n                totalLength += data[i].position.distance(data[i + 1].position); // read-only, no copy needed\n\n            totalLength = Math.max(totalLength, EPSILON);\n            float partialLength = 0;\n            // U runs along the trail length. Anchor U at the head (newest point) and decrease toward the\n            // tail so the direction matches TrailParticle: head -> U=1, tail -> U=0 (WorldTile derives U\n            // from texcoord below and is unaffected).\n            float vCoord = config.textureMode == AraTrailConfig.TextureMode.Stretch ?\n                    config.uvFactor :\n                    config.uvFactor * totalLength * (1 - config.tileAnchor);\n\n            if (config.sorting == AraTrailConfig.TrailSorting.NewerOnTop)\n                vCoord = 1 - vCoord;\n\n            // Initialize curve frame using the first two points to calculate the first tangent vector:\n            CurveFrame frame = initializeCurveFrame(particle, data[trail.size() - 1].position,\n                    data[trail.size() - 2].position);\n\n            flatVa = 1;\n            flatVb = 0;\n\n            // ---- hoisted loop invariants (bit-identical: these were recomputed per point) ----\n            float normalizedLife = Math.clamp(particle.emitter.getT(), 0, 1);\n            float lifeTime = particle.getLifeTime();\n            var colorMultiplier = particle.getColorMultiplier();\n            float thicknessMultiplier = particle.getThicknessMultiplier();\n            float baseThickness = runtime.thickness.get();\n            var colorOverLength = runtime.colorOverLength.get();\n            var colorOverSegmentTime = runtime.colorOverSegmentTime.get();\n            var thicknessOverSegmentTime = runtime.thicknessOverSegmentTime.get();\n            var thicknessOverLength = runtime.thicknessOverLength.get();\n            java.util.function.Supplier<Float> lengthColorRandom = () -> particle.getMemRandom(\"trails-colorOverLength\");\n            java.util.function.Supplier<Float> segmentColorRandom = () -> particle.getMemRandom(\"trails-colorOverSegmentTime\");\n            java.util.function.Supplier<Float> segmentThicknessRandom = () -> particle.getMemRandom(\"trails-thicknessOverSegmentTime\");\n            java.util.function.Supplier<Float> lengthThicknessRandom = () -> particle.getMemRandom(\"trails-thicknessOverLength\");\n            // colorOverTime / thicknessOverTime sample the (per-trail constant) emitter T\n            var timeColor = runtime.colorOverTime.get().get(normalizedLife, () -> particle.getMemRandom(\"trails-colorOverTime\")).intValue();\n            float timeColorR = ColorUtils.red(timeColor);\n            float timeColorG = ColorUtils.green(timeColor);\n            float timeColorB = ColorUtils.blue(timeColor);\n            float timeColorA = ColorUtils.alpha(timeColor);\n            float timeThickness = runtime.thicknessOverTime.get().get(normalizedLife, () -> particle.getMemRandom(\"trails-thicknessOverTime\")).floatValue();\n\n            for (int i = trail.size() - 1; i >= 0; --i)\n            {\n\n                // Calculate next and previous point indices:\n                int nextIndex = Math.max(i - 1, 0);\n                int prevIndex = Math.min(i + 1, trail.size() - 1);\n\n                // Calculate next and previous trail vectors:\n                nextV.x = data[nextIndex].position.x - data[i].position.x;\n                nextV.y = data[nextIndex].position.y - data[i].position.y;\n                nextV.z = data[nextIndex].position.z - data[i].position.z;\n\n                prevV.x = data[i].position.x - data[prevIndex].position.x;\n                prevV.y = data[i].position.y - data[prevIndex].position.y;\n                prevV.z = data[i].position.z - data[prevIndex].position.z;\n\n                float sectionLength = nextIndex == i ? prevV.length() : nextV.length();\n\n                // Guard the trail ends: nextIndex/prevIndex clamp to i there, so one neighbour vector is\n                // (0,0,0), and normalize((0,0,0)) yields NaN which poisons the tangent/bitangent -> NaN\n                // end-cap vertices. Fall back to the available direction so the end cap keeps a valid frame.\n                boolean nextZero = nextV.lengthSquared() < EPSILON;\n                boolean prevZero = prevV.lengthSquared() < EPSILON;\n                if (!nextZero) nextV.normalize();\n                if (!prevZero) prevV.normalize();\n                if (nextZero) nextV.set(prevV);   // tail end: reuse the (normalized) prev direction\n                if (prevZero) prevV.set(nextV);   // head end: reuse the (normalized) next direction\n\n                // Calculate tangent vector:\n                if (config.alignment == AraTrailConfig.TrailAlignment.Local)\n                    tangent = new Vector4f(data[i].tangent.normalize(new Vector3f()), 0);\n                else\n                {\n                    tangent.x = (nextV.x + prevV.x) * 0.5f;\n                    tangent.y = (nextV.y + prevV.y) * 0.5f;\n                    tangent.z = (nextV.z + prevV.z) * 0.5f;\n                }\n\n                // Calculate normal vector:\n                normal = new Vector3f(data[i].normal);\n                if (config.alignment != AraTrailConfig.TrailAlignment.Local)\n                    normal = config.alignment == AraTrailConfig.TrailAlignment.View ?\n                            new Vector3f(localCamPosition).sub(data[i].position) :\n                            frame.transport(new Vector3f(tangent.x, tangent.y, tangent.z), data[i].position);\n                normal.normalize();\n\n                // Calculate bitangent vector:\n                if (config.alignment == AraTrailConfig.TrailAlignment.Velocity)\n                    bitangent = frame.bitangent;\n                else\n                {\n                    // cross(tangent, normal):\n                    bitangent.x = tangent.y * normal.z - tangent.z * normal.y;\n                    bitangent.y = tangent.z * normal.x - tangent.x * normal.z;\n                    bitangent.z = tangent.x * normal.y - tangent.y * normal.x;\n                }\n                bitangent.normalize();\n\n                // Calculate this point's normalized (0,1) lenght and life.\n                walkNormalizedLength = config.sorting == AraTrailConfig.TrailSorting.OlderOnTop ?\n                        partialLength / totalLength :\n                        (totalLength - partialLength) / totalLength;\n                partialLength += sectionLength;\n                walkNormalizedSegmentLife = Float.isInfinite(lifeTime) ? 1 : Mth.clamp(1 - data[i].life / lifeTime, 0, 1);\n\n                // Calculate vertex color:\n                var lengthColor = colorOverLength.get(walkNormalizedLength, lengthColorRandom).intValue();\n                var segmentColor = colorOverSegmentTime.get(walkNormalizedSegmentLife, segmentColorRandom).intValue();\n                color = new Vector4f(data[i].color).mul(colorMultiplier).mul(\n                        timeColorR * ColorUtils.red(lengthColor) * ColorUtils.red(segmentColor),\n                        timeColorG * ColorUtils.green(lengthColor) * ColorUtils.green(segmentColor),\n                        timeColorB * ColorUtils.blue(lengthColor) * ColorUtils.blue(segmentColor),\n                        timeColorA * ColorUtils.alpha(lengthColor) * ColorUtils.alpha(segmentColor)\n                );\n\n                // Calculate final thickness:\n                walkSectionThickness = baseThickness * thicknessMultiplier * data[i].thickness *\n                        timeThickness *\n                        thicknessOverSegmentTime.get(walkNormalizedSegmentLife, segmentThicknessRandom).floatValue() *\n                        thicknessOverLength.get(walkNormalizedLength, lengthThicknessRandom).floatValue();\n\n                // In world tile mode, override texture coordinate with the point's one:\n                if (config.textureMode == AraTrailConfig.TextureMode.WorldTile)\n                    vCoord = config.tileAnchor + data[i].texcoord * config.uvFactor;\n\n                sink.point(particle, data, i, trail.size(), frame, vCoord);\n\n                // Update vcoord:\n                float uvDelta = (config.textureMode == AraTrailConfig.TextureMode.Stretch ? sectionLength / totalLength : sectionLength);\n                vCoord += config.uvFactor * (config.sorting == AraTrailConfig.TrailSorting.NewerOnTop ? uvDelta : -uvDelta);\n            }\n        }\n    }",
+      "targetScope": "school_melee",
+      "observation": "按实际弧长而非点索引推进纹样UV，Stretch/Tile/WorldTile分离；寿命、沿长度与段时间分别控制宽度颜色且随机种子记忆化。端点缺失邻向量复用另一侧，仍需补双零向量/相机平行防护；适用独立剑纹沿真实轨迹保持图案尺度。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 990,
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/AraTrailParticleRenderer.java",
+      "method": "appendFlatTrail",
+      "start": 650,
+      "end": 758,
+      "sourceSha256": "cd0a84122972cf7c1dff94e7cdafcd2cf71b098e24602a29a769a29a610b7c1f",
+      "semanticHash": "218a53b3e955e4bfdcb4d9212987e8687a0e1466b43e225e8b3593d9f5141386",
+      "local": "build/item-use-references/Low-Drag-MC__Photon/src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/AraTrailParticleRenderer.java",
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/AraTrailParticleRenderer.java#L650-L758",
+      "operations": {
+        "acos": 1,
+        "normalize": 2,
+        "cross": 4
+      },
+      "source": "    private int[] appendFlatTrail(AraTrailConfig config, Point[] data, int i, int count, float sectionThickness, float vCoord, int va, int vb) {\n        boolean hqCorners = config.highQualityCorners && config.alignment != AraTrailConfig.TrailAlignment.Local;\n\n        Quaternionf q = new Quaternionf();\n        Vector3f corner = new Vector3f();\n        float curvatureSign = 0;\n        float correctedThickness = sectionThickness;\n        Vector3f prevSectionBitangent = bitangent;\n\n        // High-quality corners:\n        if (hqCorners) {\n\n            Vector3f nextSectionBitangent = i == 0 ? bitangent :\n                    nextV.cross(bitangent.cross(new Vector3f(tangent.x, tangent.y, tangent.z), new Vector3f()), new Vector3f()).normalize();\n\n            // If round corners are enabled:\n            if (config.cornerRoundness > 0) {\n\n                prevSectionBitangent = i == count - 1 ? bitangent.negate(new Vector3f()) :\n                        prevV.cross(bitangent.cross(new Vector3f(tangent.x, tangent.y, tangent.z), new Vector3f()), new Vector3f()).normalize();\n\n                // Calculate \"elbow\" angle:\n                curvatureSign = (i == 0 || i == count - 1) ? 1 : Math.signum(nextV.dot(prevSectionBitangent.negate(new Vector3f())));\n                float angle = (i == 0 || i == count - 1) ? (float) Math.PI :\n                        (float) Math.acos(Math.max(-1, Math.min(1, nextSectionBitangent.dot(prevSectionBitangent))));\n\n                // Prepare a quaternion for incremental rotation of the corner vector:\n                q.fromAxisAngleRad(normal.mul(curvatureSign, new Vector3f()), angle / config.cornerRoundness);\n                corner = prevSectionBitangent.mul(sectionThickness * curvatureSign, new Vector3f());\n            }\n\n            // Calculate correct thickness by projecting corner bitangent onto the next section bitangent. This prevents \"squeezing\"\n            if (nextSectionBitangent.lengthSquared() > 0.1f)\n                correctedThickness = sectionThickness / Math.max(bitangent.dot(nextSectionBitangent), 0.15f);\n\n        }\n\n        // Append straight section mesh data:\n        if (hqCorners && config.cornerRoundness > 0) {\n            // bitangents are slightly asymmetrical in case of high-quality round or sharp corners:\n            if (curvatureSign > 0) {\n                vertices.add(data[i].position.add(prevSectionBitangent.mul(sectionThickness, new Vector3f()), new Vector3f()));\n                vertices.add(data[i].position.sub(bitangent.mul(correctedThickness, new Vector3f()), new Vector3f()));\n            } else {\n                vertices.add(data[i].position.add(bitangent.mul(correctedThickness, new Vector3f()), new Vector3f()));\n                vertices.add(data[i].position.sub(prevSectionBitangent.mul(sectionThickness, new Vector3f()), new Vector3f()));\n            }\n        } else {\n            vertices.add(data[i].position.add(bitangent.mul(correctedThickness, new Vector3f()), new Vector3f()));\n            vertices.add(data[i].position.sub(bitangent.mul(correctedThickness, new Vector3f()), new Vector3f()));\n        }\n\n        var normal = new Vector3f(this.normal);\n        normals.add(normal);\n        normals.add(normal);\n\n        var tangent = new Vector4f(this.tangent);\n        tangents.add(tangent);\n        tangents.add(tangent);\n\n        var color = new Vector4f(this.color);\n        vertColors.add(color);\n        vertColors.add(color);\n\n        uv.set(vCoord, config.sorting == AraTrailConfig.TrailSorting.NewerOnTop ? config.uvWidthFactor : 0);\n        uvs.add(new Vector2f(uv));\n        uv.set(vCoord, config.sorting == AraTrailConfig.TrailSorting.NewerOnTop ? 0 : config.uvWidthFactor);\n        uvs.add(new Vector2f(uv));\n\n        if (i < count - 1) {\n            int vc = vertices.size() - 1;\n            tris.add(vc);\n            tris.add(va);\n            tris.add(vb);\n\n            tris.add(vb);\n            tris.add(vc - 1);\n            tris.add(vc);\n        }\n\n        va = vertices.size() - 1;\n        vb = vertices.size() - 2;\n\n        // Append smooth corner mesh data:\n        if (hqCorners && config.cornerRoundness > 0) {\n            for (int p = 0; p <= config.cornerRoundness; ++p) {\n                vertices.add(data[i].position.add(corner, new Vector3f()));\n                normals.add(normal);\n                tangents.add(tangent);\n                vertColors.add(color);\n                uv.set(vCoord, curvatureSign > 0 ? 0 : 1);\n                uvs.add(new Vector2f(uv));\n\n                int vc = vertices.size() - 1;\n\n                tris.add(vc);\n                tris.add(va);\n                tris.add(vb);\n\n                if (curvatureSign > 0)\n                    vb = vc;\n                else va = vc;\n\n                // rotate corner point:\n                corner = q.transform(corner);\n            }\n        }\n        return new int[]{va, vb};\n    }",
+      "targetScope": "school_melee",
+      "observation": "折角厚度用bitangent投影校正并把分母下限设0.15防尖峰；正负曲率决定外侧角填充及三角连接，逐顶点携带UV/颜色/切线。MC版本借鉴有限锐角接缝，关闭圆角细分，避免把轨迹做成光滑圆带。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": [
+    {
+      "id": 954,
+      "repo": "LodestarMC/Lodestone",
+      "revision": "700fbde9ce1487525a74504b88446d45e07aaf69",
+      "path": "src/main/java/team/lodestar/lodestone/modules/rendering/particle/pooled/visual/types/trail/TrailBatchRenderer.java",
+      "method": "renderBatch",
+      "url": "https://github.com/LodestarMC/Lodestone/blob/700fbde9ce1487525a74504b88446d45e07aaf69/src/main/java/team/lodestar/lodestone/modules/rendering/particle/pooled/visual/types/trail/TrailBatchRenderer.java#L26-L188",
+      "sourceSha256": "eafcc715c2d73bdd019a89ecad3cfd2bbcd3db8584fddf3322188d9968d2d1c6",
+      "reason": "已完整读取：与已有历史位置条带/退化顶点批接同类，未作为独立纹样实现重复计数。注意末端points与points-1两次落入相同预测头位置，平行视线时宽度归零；仅留边界观察。"
+    }
+  ]
+}

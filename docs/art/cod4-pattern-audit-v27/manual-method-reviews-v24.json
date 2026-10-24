@@ -1,0 +1,57 @@
+{
+  "reviewed": 3,
+  "rows": [
+    {
+      "id": "explicit-source-method",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/networked/attack/scythe/AscensionUppercutParticleEffect.java",
+      "method": "act",
+      "start": 23,
+      "end": 50,
+      "sourceSha256": "af37ac3b2f5aea63354a530588cdb699ab94e904e76e747372c2e762bfe9c17b",
+      "semanticHash": "2b8cd812d0efd544cf0996536e4f6a2dc4c8cdfda2e5192f4a3fa0522ae37a76",
+      "local": "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/visual_effects/networked/attack/scythe/AscensionUppercutParticleEffect.java",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/networked/attack/scythe/AscensionUppercutParticleEffect.java#L23-L50",
+      "source": "@OnlyIn(Dist.CLIENT)\n    @Override\n    public void act(Level level, RandomSource random, NetworkedParticleEffectPositionData positionData, MalumNetworkedParticleEffectColorData colorData, WeaponParticleEffectData extraData) {\n        var direction = extraData.getDirection();\n        float yRot = ((float) (Mth.atan2(direction.x, direction.z) * (double) (180F / (float) Math.PI)));\n        float yaw = (float) Math.toRadians(yRot);\n        Vec3 left = new Vec3(-Math.cos(yaw), 0, Math.sin(yaw));\n        Vec3 up = left.cross(direction);\n        for(int i = 0; i < 6; i++) {\n            float upwardsOffset = i*0.4f;\n            float slashOffset = 2 - i*0.6f;\n            for (int j = 0; j < 2; j++) {\n                float spinOffset = extraData.getSlashRotation() + Easing.SINE_IN_OUT.asWeighedRandom(random, -0.25f, 0.25f) + (extraData.isMirrored() ? 3.14f : 0);\n\n                var slashPosition = positionData.getAsVector().add(direction.scale(slashOffset)).add(up.scale(upwardsOffset));\n\n                var slash = WeaponParticleEffects.spawnSlashParticle(level, slashPosition, MalumParticles.SLASH, colorData);\n                slash.getBuilder()\n                        .setSpinData(SpinParticleData.create(0).setSpinOffset(spinOffset).build())\n                        .setScaleData(GenericParticleData.create(Easing.SINE_IN_OUT.asWeighedRandom(random, 2.5f, 3f)).build())\n                        .setMotion(direction.scale(Easing.SINE_IN_OUT.asWeighedRandom(random, 0.2f, 0.4f)).add(0, 0.8f, 0))\n                        .setLifetime(3+i)\n                        .setLifeDelay(i/2)\n                        .setBehavior(PointyDirectionalParticleBehavior.pointyDirectional(direction));\n                slash.spawnParticles();\n            }\n        }\n    }",
+      "targetScope": "school_melee",
+      "observation": "攻击direction和left叉积得到局部up，沿up抬升同时沿direction逐步后移形成上挑路径，延迟随层递增且移动另加世界Y。与径向旋斩有独立空间组织，参考本地上扬和真实动作一致性；避免把世界Y位移误当倾斜方向的up。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": "explicit-source-method",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/networked/attack/sundering_anchor/SunderingAnchorSweepParticleEffect.java",
+      "method": "act",
+      "start": 24,
+      "end": 53,
+      "sourceSha256": "b9fbcd252b9814d682950da77767d097108b0372289afa244583b5aac91f3c5f",
+      "semanticHash": "1021ba9be900b8285dafe74f5cc1c2356503a21ff19af640905d16406b3bc7c1",
+      "local": "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/visual_effects/networked/attack/sundering_anchor/SunderingAnchorSweepParticleEffect.java",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/networked/attack/sundering_anchor/SunderingAnchorSweepParticleEffect.java#L24-L53",
+      "source": "@OnlyIn(Dist.CLIENT)\n    @Override\n    public void act(Level level, RandomSource random, NetworkedParticleEffectPositionData positionData, MalumNetworkedParticleEffectColorData colorData, NetworkedParticleEffectExtraData extraData) {\n        float angle = random.nextFloat() * 6.28f;\n        float x = Mth.sin(angle);\n        float z = Mth.cos(angle);\n        Vec3 direction = new Vec3(x, 0, z);\n\n        ParticleEffectSpawner slash = WeaponParticleEffects.spawnSlashParticle(level, positionData.getAsVector(), random.nextBoolean() ? MalumParticles.THIN_ROUNDABOUT_SLASH : MalumParticles.ROUNDABOUT_SLASH, colorData);\n        int lifetime = Easing.SINE_IN_OUT.asWeighedRandom(random, 8, 12);\n        int directionScalar = random.nextBoolean() ? -1 : 1;\n        slash.getBuilder()\n                .setSpinData(SpinParticleData.create(0).randomSpinOffset(random).build())\n                .setLifetime(lifetime)\n                .setScaleData(GenericParticleData.create(Easing.SINE_IN_OUT.asWeighedRandom(random, 2f, 3f)).build())\n                .setMotion(direction.scale(Easing.SINE_IN_OUT.asWeighedRandom(random, 0.02f, 0.05f)))\n                .setRandomOffset(0.5f)\n                .setBehavior(PointyDirectionalParticleBehavior.pointyDirectional(direction.scale(directionScalar)));\n        slash.spawnParticles();\n        slash.getBuilder()\n                .setTransparencyData(GenericParticleData.create(0.6f, 0.3f).build())\n                .setScaleData(GenericParticleData.create(Easing.SINE_IN_OUT.asWeighedRandom(random, 1.5f, 2f)).build())\n                .setLifeDelay(lifetime);\n        slash.spawnParticles();\n        slash.getBuilder()\n                .setTransparencyData(GenericParticleData.create(0.3f, 0f).build())\n                .setScaleData(GenericParticleData.create(Easing.SINE_IN_OUT.asWeighedRandom(random, 1.2f, 1.6f)).build())\n                .setLifeDelay(lifetime*2);\n        slash.spawnParticles();\n    }",
+      "targetScope": "school_melee",
+      "observation": "同一随机水平朝向/旋向的扫片连续三次spawn，第二次延迟完整lifetime并缩小、第三次2*lifetime更小更透明；借鉴连续余纹生命周期，builder复用必须确认spawn快照而非共享可变引用。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": "explicit-source-method",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/networked/attack/vindictive_brand/VindictiveBrandDashCleaveParticleEffect.java",
+      "method": "act",
+      "start": 23,
+      "end": 67,
+      "sourceSha256": "04fc46a59110e8c564c5eabf34c45704a3c4732fda721d99f0adebe34a029007",
+      "semanticHash": "159a1e0a137baec08c21fa3f07a794101214d5fa850b651d9444549490d7ad1a",
+      "local": "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/visual_effects/networked/attack/vindictive_brand/VindictiveBrandDashCleaveParticleEffect.java",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/networked/attack/vindictive_brand/VindictiveBrandDashCleaveParticleEffect.java#L23-L67",
+      "source": "@OnlyIn(Dist.CLIENT)\n    @Override\n    public void act(Level level, RandomSource random, NetworkedParticleEffectPositionData positionData, MalumNetworkedParticleEffectColorData colorData, WeaponParticleEffectData extraData) {\n        var direction = extraData.getDirection();\n        float yRot = ((float) (Mth.atan2(direction.x, direction.z) * (double) (180F / (float) Math.PI)));\n        float yaw = (float) Math.toRadians(yRot);\n        Vec3 left = new Vec3(-Math.cos(yaw), 0, Math.sin(yaw));\n\n\n\n        var roundaboutSlash = WeaponParticleEffects.spawnSlashParticle(level, positionData.getAsVector(), MalumParticles.ROUNDABOUT_SLASH, colorData);\n        roundaboutSlash.getBuilder()\n                .setSpinData(SpinParticleData.create(0).setSpinOffset(extraData.getSlashRotation() + (extraData.isMirrored() ? 3.14f : 0)).build())\n                .setScaleData(GenericParticleData.create(Easing.SINE_IN_OUT.asWeighedRandom(random, 4f, 6f)).build())\n                .setBehavior(PointyDirectionalParticleBehavior.pointyDirectional(direction));\n\n        for (int i = 0; i < 4; i++) {\n            var transparency = 1f - i * 0.3f;\n            roundaboutSlash.getBuilder().setTransparencyData(GenericParticleData.create(transparency).build()).setLifeDelay(i * 2);\n            roundaboutSlash.spawnParticles();\n        }\n\n        for (int i = 0; i < 6; i++) {\n            float angle = i / 6f * 6.28f;\n            var slashDirection = left.scale(Math.sin(angle))\n                    .add(direction.scale(Math.cos(angle)))\n                    .normalize();\n            var slash = WeaponParticleEffects.spawnSlashParticle(level, positionData.getAsVector(), MalumParticles.SLASH, colorData);\n            slash.getBuilder()\n                    .setSpinData(SpinParticleData.create(0).setSpinOffset(extraData.getSlashRotation() + (extraData.isMirrored() ? 3.14f : 0)).build())\n                    .setScaleData(GenericParticleData.create(Easing.SINE_IN_OUT.asWeighedRandom(random, 4f, 6f)).build())\n                    .setMotion(slashDirection.scale(Easing.SINE_IN_OUT.asWeighedRandom(random, 0.5f, 0.7f)))\n                    .setBehavior(PointyDirectionalParticleBehavior.pointyDirectional(slashDirection));\n\n            for (int j = 0; j < 3; j++) {\n\n                var transparency = 1f - j * 0.4f;\n                slash.getBuilder()\n                        .setTransparencyData(GenericParticleData.create(transparency).build())\n                        .setLifeDelay(j * 2);\n                slash.spawnParticles();\n\n            }\n        }\n    }",
+      "targetScope": "school_melee",
+      "observation": "主回旋片先四次错时淡出，再在攻击平面六向发散各三次延迟余纹；环片与径向片组合区别于单层圆扫，仍只算一个组合实现且不照搬22次发射。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": []
+}

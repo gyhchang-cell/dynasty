@@ -1,0 +1,134 @@
+{
+  "reviewed": 1,
+  "rows": [
+    {
+      "id": "explicit-source-method",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java",
+      "method": "altarBlessTarget",
+      "start": 103,
+      "end": 161,
+      "sourceSha256": "388915520618e84f85e47d9b40788fc39ad1a1a673c01747574f2e21f4c73d35",
+      "semanticHash": "2b8aa0e93da2fa266260e36608a172f383d96a3fd34064b3a6c5e4b327c271c6",
+      "local": "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java#L103-L161",
+      "source": "public static void altarBlessTarget(Level level, NetworkedParticleEffectPositionData positionData, MalumNetworkedParticleEffectColorData colorData, LivingEntity target) {\n        var random = level.random;\n        var position = positionData.getAsVector();\n\n        Function<Vec3, Consumer<LodestoneWorldParticle>> behavior = initialOffset -> p -> {\n            var targetPosition = target.getPosition(p.partialTicksCache);\n            p.setParticlePosition(targetPosition.add(initialOffset).add(p.getInterpolatedTravelledDistance()));\n        };\n        var offset = behavior.apply(position.subtract(target.position()));\n        for (int i = 0; i < 5; i++) {\n            int lifeDelay = i * 2;\n            float upwardsMotion = 0.01f * i;\n            float scale = 2f + i * 0.25f;\n            cultistSigil(level, colorData)\n                    .setSpinData(SpinParticleData.createRandomDirection(random, 0.3f, 0).setEasing(Easing.EXPO_OUT).build())\n                    .modifyScaleData(d -> d.multiplyValue(scale))\n                    .setBehavior(DirectionalParticleBehavior.directional(new Vec3(0, 1, 0)))\n                    .setFriction(0.9f)\n                    .addRenderActor(offset)\n                    .addMotion(0, upwardsMotion, 0f)\n                    .setLifetime(15)\n                    .setLifeDelay(lifeDelay)\n                    .spawn(level, position);\n        }\n        long gameTime = level.getGameTime();\n        float time = 16;\n        for (int i = 0; i < 8; i++) {\n            var offsetPosition = VecHelper.rotatingRadialOffset(position, 0.9f, i, 8, gameTime, time);\n            offsetPosition = offsetPosition.add(0, (Math.cos(((gameTime + i * 480) % time) / time) * 0.25f) + 0.5f, 0);\n            offset = behavior.apply(offsetPosition.subtract(position));\n            float upwardsVelocity = 0.2f;\n            for (int j = 0; j < 3; j++) {\n                var lightSpecs = SparkParticleEffects.spiritMotionSparks(level, offsetPosition, colorData.getColor(), new WorldParticleOptions(MalumParticles.MOTION_LINES));\n                float velocity = Easing.SINE_IN_OUT.asWeighedRandom(random, 0.05f, 0.1f);\n                var motion = offsetPosition.subtract(position).normalize().scale(velocity);\n                int lifeDelay = j * 3;\n                lightSpecs.getBuilder()\n                        .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)\n                        .addRenderActor(offset)\n                        .multiplyLifetime(1.25f)\n                        .setMotion(motion)\n                        .addMotion(0, upwardsVelocity, 0)\n                        .setLifeDelay(lifeDelay)\n                        .setLengthData(GenericParticleData.create(2f, 0.5f).setEasing(Easing.EXPO_OUT).build())\n                        .setTransparencyData(GenericParticleData.create(0.6f, 0.8f, 0f).build())\n                        .modifyScaleData(d -> d.multiplyValue(Easing.SINE_IN_OUT.asWeighedRandom(random, 3f, 4f)));\n                lightSpecs.getBloomBuilder()\n                        .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)\n                        .addRenderActor(offset)\n                        .multiplyLifetime(0.75f)\n                        .setMotion(motion)\n                        .addMotion(0, upwardsVelocity, 0)\n                        .setLifeDelay(lifeDelay)\n                        .setScaleData(GenericParticleData.create(1f, 0.25f).setEasing(Easing.EXPO_OUT).build())\n                        .setTransparencyData(GenericParticleData.create(0.05f, 0.35f, 0f).build());\n                lightSpecs.spawnParticles();\n            }\n        }\n    }",
+      "targetScope": "imperial_guard",
+      "observation": "渲染actor用实体插值位置+出生相对偏移+粒子已行进距离，允许符面随主体移动同时保留自身上升，而非把粒子完全钉死或持续追踪速度；五层符面与外围上升线共同绑定。符面偏移取position-target，外围却取offsetPosition-position，两种参考原点不一致，需防位置跳变；目标失效和跨维度清理未在actor中处理。只借鉴跟随与自身位移分离，不复制图案。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": [
+    {
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java",
+      "method": "altarFireProjectile",
+      "start": 34,
+      "end": 101,
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java#L34-L101",
+      "sourceSha256": "388915520618e84f85e47d9b40788fc39ad1a1a673c01747574f2e21f4c73d35",
+      "reason": "延时符面+径向光和上升线，组合重用已有环层/发射机制，没有新增运动机制，不单独计。"
+    },
+    {
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java",
+      "method": "cardinalFiresDetonationBlast",
+      "start": 193,
+      "end": 270,
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java#L193-L270",
+      "sourceSha256": "388915520618e84f85e47d9b40788fc39ad1a1a673c01747574f2e21f4c73d35",
+      "reason": "同altarBless的目标插值+offset+travelledDistance跟随，改为发射挂点和锥束；整体方向只出生时取值，不等于持续瞄准目标，合并技术基底。"
+    },
+    {
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java",
+      "method": "cardinalFiresRetaliationBlast",
+      "start": 272,
+      "end": 348,
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java#L272-L348",
+      "sourceSha256": "388915520618e84f85e47d9b40788fc39ad1a1a673c01747574f2e21f4c73d35",
+      "reason": "与Detonation基本同形结构，只挂点API/锥spread/层数变化，不重复计。"
+    },
+    {
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java",
+      "method": "cardinalFiresImmolationBlast",
+      "start": 350,
+      "end": 382,
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/CultistParticleEffects.java#L350-L382",
+      "sourceSha256": "388915520618e84f85e47d9b40788fc39ad1a1a673c01747574f2e21f4c73d35",
+      "reason": "相机朝向和水平朝向两片配对+普通爆闪，不为同符面不同朝向/次数增加计数。"
+    },
+    {
+      "repo": "Electroblob77/Wizardry",
+      "revision": "fe5d05a7a134836dd972e3680a900619c7e9c134",
+      "path": "src/main/java/electroblob/wizardry/client/renderer/effect/RenderShield.java",
+      "method": "onRenderPlayerEvent",
+      "start": 98,
+      "end": 166,
+      "url": "https://github.com/Electroblob77/Wizardry/blob/fe5d05a7a134836dd972e3680a900619c7e9c134/src/main/java/electroblob/wizardry/client/renderer/effect/RenderShield.java#L98-L166",
+      "sourceSha256": "3f8c1ddbc53b6ccca3a98f1edb33f4456af75dfca96c713d5b12f6973774e095",
+      "reason": "与已记第一人称Shield同texture中心缩放和shield网格，只第三人称平移朝向适配，不重复计。"
+    },
+    {
+      "repo": "Electroblob77/Wizardry",
+      "revision": "fe5d05a7a134836dd972e3680a900619c7e9c134",
+      "path": "src/main/java/electroblob/wizardry/client/renderer/effect/RenderShadowWard.java",
+      "method": "onRenderPlayerEvent",
+      "start": 91,
+      "end": 143,
+      "url": "https://github.com/Electroblob77/Wizardry/blob/fe5d05a7a134836dd972e3680a900619c7e9c134/src/main/java/electroblob/wizardry/client/renderer/effect/RenderShadowWard.java#L91-L143",
+      "sourceSha256": "5947647797ad21fa527ed6f046a6747d9276534b82862caa8b1602028c7f2d98",
+      "reason": "同已记第一人称旋转双面符盾，只视角适配，不重复计。"
+    },
+    {
+      "repo": "Electroblob77/Wizardry",
+      "revision": "fe5d05a7a134836dd972e3680a900619c7e9c134",
+      "path": "src/main/java/electroblob/wizardry/client/renderer/entity/RenderMagicArrow.java",
+      "method": "doRender",
+      "start": 36,
+      "end": 114,
+      "url": "https://github.com/Electroblob77/Wizardry/blob/fe5d05a7a134836dd972e3680a900619c7e9c134/src/main/java/electroblob/wizardry/client/renderer/entity/RenderMagicArrow.java#L36-L114",
+      "sourceSha256": "9a2bfa9ba35828c230f475f9cedd429eecef2d382d79eebf4ff55908eb54f357",
+      "reason": "原版交叉箭片加可配长宽/UV/端面，不是独立纹样拖尾机制；yaw直接线性相减跨180边界可能倒转，保留观察但不计。"
+    },
+    {
+      "repo": "Electroblob77/Wizardry",
+      "revision": "fe5d05a7a134836dd972e3680a900619c7e9c134",
+      "path": "src/main/java/electroblob/wizardry/client/renderer/entity/RenderLightningDisc.java",
+      "method": "doRender",
+      "start": 25,
+      "end": 74,
+      "url": "https://github.com/Electroblob77/Wizardry/blob/fe5d05a7a134836dd972e3680a900619c7e9c134/src/main/java/electroblob/wizardry/client/renderer/entity/RenderLightningDisc.java#L25-L74",
+      "sourceSha256": "6c3139d9fe2e7a5b186d44da99fca55f6f907c68e47b42ed2c124f593c795d6c",
+      "reason": "普通水平双面旋转片，复用已见符面法线/旋转机制，不新增计数。"
+    },
+    {
+      "repo": "Electroblob77/Wizardry",
+      "revision": "fe5d05a7a134836dd972e3680a900619c7e9c134",
+      "path": "src/main/java/electroblob/wizardry/client/renderer/entity/RenderDecoy.java",
+      "method": "doRender",
+      "start": 28,
+      "end": 90,
+      "url": "https://github.com/Electroblob77/Wizardry/blob/fe5d05a7a134836dd972e3680a900619c7e9c134/src/main/java/electroblob/wizardry/client/renderer/entity/RenderDecoy.java#L28-L90",
+      "sourceSha256": "65bdcc6af0b5d6637825bf98e638223cdd5886e5986a1205b95d6541f2db9a86",
+      "reason": "当前实体动画状态临时赋给caster再渲染并恢复，不是历史快照；缺try/finally且临时dismount会改活实体关系，不作为可移植残影实现。"
+    },
+    {
+      "repo": "Antikythera-Studios/epicfight",
+      "revision": "a78aa24b72e90a9d09f5fd61925e4369d117abaf",
+      "path": "src/main/java/yesman/epicfight/client/particle/ProjectileTrailParticle.java",
+      "method": "createNextCurve",
+      "start": 54,
+      "end": 151,
+      "url": "https://github.com/Antikythera-Studios/epicfight/blob/a78aa24b72e90a9d09f5fd61925e4369d117abaf/src/main/java/yesman/epicfight/client/particle/ProjectileTrailParticle.java#L54-L151",
+      "sourceSha256": "f51e17cf2c222d42b0b6a6d0693a208bd1f78fa7df2f00009996900a5126a0c0",
+      "reason": "与已记AnimationTrail双端点三时刻Bezier同源，只投射物矩阵/rotLerp适配和箭颜色；不按移植平台或输入来源重复计数。"
+    }
+  ]
+}
