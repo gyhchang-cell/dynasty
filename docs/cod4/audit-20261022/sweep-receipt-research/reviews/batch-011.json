@@ -1,0 +1,242 @@
+[
+  {
+    "candidate_index": 1353,
+    "candidate_id": "a8c5f69d2fcb83ed6f7d",
+    "decision": "accepted",
+    "observation": "Enigmatic PacketPlayerMotion把速度参数保存到queued lambda，执行时取Minecraft当前LocalPlayer并覆盖速度，然后网络层先标handled。借鉴网络确认与实际主线程动作分离；没有玩家/世界非空和会话epoch，延后期间重生或换世界可能作用到新LocalPlayer，不能当产生时actor快照。",
+    "snippet_sha256": "6e4154818a1f99333599e888a477f40ef51e440fdc6213fa33d48b06bddc7663",
+    "reviewed_at": "2026-10-23T08:36:50.054251+08:00"
+  },
+  {
+    "candidate_index": 1354,
+    "candidate_id": "fd4a89ec39c4fa8a1872",
+    "decision": "excluded",
+    "observation": "PacketPlayerSetlook与1353同为当前LocalPlayer加三个数值的queued动作模板，仅调用改为lookAt，合并不重复计。",
+    "snippet_sha256": "d6829dda8c303062a6005e290d0993d0d66b5233cb9e690b763c5ceb8e1f413b",
+    "reviewed_at": "2026-10-23T08:36:50.054269+08:00"
+  },
+  {
+    "candidate_index": 1355,
+    "candidate_id": "9b29979b6cc61ab03e0d",
+    "decision": "excluded",
+    "observation": "PacketAnvilField有效body仅getSender，anvilFields写入被注释；没有实际回执行为，排除空操作。",
+    "snippet_sha256": "98ad40c7e5f475da00080b82ab55b74bf7b00ab43efd1ed69fd6e802483a8b44",
+    "reviewed_at": "2026-10-23T08:36:50.054275+08:00"
+  },
+  {
+    "candidate_index": 1356,
+    "candidate_id": "a9346d911035dcc81321",
+    "decision": "pending",
+    "observation": "AE crafting状态包把STARTED状态用于pin，向PendingCraftingJobs传jobId、key和requested/remaining；这是很相关的job回执线索，但真实去重/过期在jobStatus，读主体后同链只计一次，暂不计。",
+    "snippet_sha256": "62063353365c9e268ce9fe711e09ff5ed1339d662826914ee479b75698ce0045",
+    "reviewed_at": "2026-10-23T08:36:50.054278+08:00"
+  },
+  {
+    "candidate_index": 1359,
+    "candidate_id": "36954b9a426bea8589dd",
+    "decision": "excluded",
+    "observation": "MessageContainerUpdate的windowId+IScreenMessageReceive检查与1038会话ID/类型验证代表相同控制流，新增resetLastActionTime不作为独立来源去重实现，合并观察不另计。",
+    "snippet_sha256": "62291fc026be864c4fb9981fe1408d0699c4e141f9f1638d68eda22820fe7085",
+    "reviewed_at": "2026-10-23T08:36:50.054282+08:00"
+  },
+  {
+    "candidate_index": 1360,
+    "candidate_id": "d4a323e4064b5146d0ac",
+    "decision": "accepted",
+    "observation": "IE RevolverRotate捕获context玩家，queued消费时读取主手并要求RevolverItem才rotateCylinder。借鉴消费点按手和类型重新核验；请求未绑定原ItemStack，同型武器之间切换会作用于新枪，没有nonce/TTL，类型满足不等于原来源。",
+    "snippet_sha256": "5225410739432dc938081c62087fea375cd00832626d618d765eab81c8e82111",
+    "reviewed_at": "2026-10-23T08:36:50.054286+08:00"
+  },
+  {
+    "candidate_index": 1361,
+    "candidate_id": "393e717c5f165403e142",
+    "decision": "excluded",
+    "observation": "MessageScrollwheelItem与1360完全相同queued当前主手+instanceof+调用模板，只替换接口/动作名，不重复计。",
+    "snippet_sha256": "390a92fc8604c5fa33cd3cb432e43fe4c3a2c766cbe47bb5976766be9c15d4b9",
+    "reviewed_at": "2026-10-23T08:36:50.054289+08:00"
+  },
+  {
+    "candidate_index": 1379,
+    "candidate_id": "1065c79908cb6121b416",
+    "decision": "excluded",
+    "observation": "PacketPossession是客户端方向检查后scheduled proxy转发，与990/1183同型网络包装，未读消费者不能先计。",
+    "snippet_sha256": "c16240995b478e164fb7aecf3b2fd72e5041c73da7cf79b7c65735002214ad89",
+    "reviewed_at": "2026-10-23T08:36:50.054292+08:00"
+  },
+  {
+    "candidate_index": 1382,
+    "candidate_id": "de149bcf7fe7d1d3ecd7",
+    "decision": "excluded",
+    "observation": "ForceSaveMessage与1189相同queued权限+副作用+确认消息模式，存盘具体完成语义在saveNow未展开，不另计包装。",
+    "snippet_sha256": "05a7da8a83ff59530d1adcc68f4be0c43d667dfdf9e852dadecbf29de3e87102",
+    "reviewed_at": "2026-10-23T08:36:50.054294+08:00"
+  },
+  {
+    "candidate_index": 1383,
+    "candidate_id": "88d4c45bfc05d1640fa5",
+    "decision": "excluded",
+    "observation": "GiveItemToPlayerMessage为1189旧版同一方法族，权限布尔参数及static差异不构成新实现，去重。",
+    "snippet_sha256": "d36b267e913d4c22a89eb1a513934b5ee4534cefb692c48105d0bb607ad934de",
+    "reviewed_at": "2026-10-23T08:36:50.054298+08:00"
+  },
+  {
+    "candidate_index": 1384,
+    "candidate_id": "31c4f491dbc89f4858f1",
+    "decision": "excluded",
+    "observation": "ToggleEditingMode在资格内反转玩家模式并由helper同步，与已读授权toggle模式同族，缺少独立回执序号/窗口实现，不再计。",
+    "snippet_sha256": "4954cab593f1cbda9790434f8ac259d6a24f9ff6a5765a1c77abedc5b6d8762f",
+    "reviewed_at": "2026-10-23T08:36:50.054301+08:00"
+  },
+  {
+    "candidate_index": 1385,
+    "candidate_id": "112b59e888e1ce3a4743",
+    "decision": "accepted",
+    "observation": "FTB TogglePinned按context玩家查实际TeamData，计算该玩家该quest的新值，先setQuestPinned再给本人发带questID和最终newPinned的响应。借鉴回执携带处理后值而非客户端预测toggle，且绑定实际发起者；重复请求仍会反转两次，没有幂等请求ID。",
+    "snippet_sha256": "0a08b41a7c1e6f8f8311a424742d8052d62e4552c5759891ff5af0135a7f4b36",
+    "reviewed_at": "2026-10-23T08:36:50.054305+08:00"
+  },
+  {
+    "candidate_index": 1388,
+    "candidate_id": "f382a3a05ddf896b828c",
+    "decision": "excluded",
+    "observation": "TaskHandler.onTickUpdate是3768 execute同链支持：按level.dimension在锁内remove该维度waitToAddTasks再合入serverTasks后execute。补强3768维度与待加入队列证据，不把一个调度器拆成两个计数。",
+    "snippet_sha256": "1f048aa6f9d05fa86c795d76f8e2251d19884464b55ec487b15a9a844efd3dc6",
+    "reviewed_at": "2026-10-23T08:36:50.054307+08:00"
+  },
+  {
+    "candidate_index": 1389,
+    "candidate_id": "b671b45fcec12b199576",
+    "decision": "accepted",
+    "observation": "PacketFreezeWater按消息命中面计算center，在context玩家当前level调用spreadWater，只有成功才播碎冰声并扣消息hand当前栈耐久。借鉴实际结果判定与反馈/成本绑定；延后取当前hand可能把成本转移到换后的物品，且本段未核手持类型/距离。",
+    "snippet_sha256": "edacb5d545921c0d61e77df6354af2baefac419b339e179b4ec3be7dcb6d70d9",
+    "reviewed_at": "2026-10-23T08:36:50.054310+08:00"
+  },
+  {
+    "candidate_index": 1390,
+    "candidate_id": "24fd650809dddb60d54c",
+    "decision": "excluded",
+    "observation": "PacketChestSack仅在queued当前world按pos查tile并转发gatherTileEntity，权限/成功/归属都在未展开helper，包装不计。",
+    "snippet_sha256": "f4cc6568c045d9a24faf9ceaa89eb5a0511551cc67cb5e22c09c2f602a9ed057",
+    "reviewed_at": "2026-10-23T08:36:50.054313+08:00"
+  },
+  {
+    "candidate_index": 1395,
+    "candidate_id": "1ec8a730fd93e9bc2051",
+    "decision": "excluded",
+    "observation": "Relics客户端post先drain allTasksQueue再removeIf(task.tick)，与1396同模板、3764任务倒计时同链；支持材料不另计。",
+    "snippet_sha256": "318c8928d70eb784cc9c00fcb1489612023caa45b3cd6835f9ffdad0cbc9ab3c",
+    "reviewed_at": "2026-10-23T08:36:50.054322+08:00"
+  },
+  {
+    "candidate_index": 1396,
+    "candidate_id": "0e4613d674ef6ff44cee",
+    "decision": "excluded",
+    "observation": "Relics ServerScheduler.Pre把队列取尽转入active再removeIf(ScheduledTask.tick)，这是3764已接受调度链消费调用者，合读支持不重复计；说明回调新增任务进入queue等待下一Pre。",
+    "snippet_sha256": "cdb9a0a0066e9267f2342a8678103ed6fbebad2fdac0af10abad370073f59fd7",
+    "reviewed_at": "2026-10-23T08:36:50.054327+08:00"
+  },
+  {
+    "candidate_index": 1413,
+    "candidate_id": "2c115d6121fc5c681bae",
+    "decision": "excluded",
+    "observation": "CBoEStrike仅getSender非空后转发BladeOfEnder.strike，真实资格/结算未读，网络wrapper不计。",
+    "snippet_sha256": "386e15476c8394d5e9e565fed44a394d194f4b72bdaacb4a537bc80d4e3560eb",
+    "reviewed_at": "2026-10-23T08:36:50.054330+08:00"
+  },
+  {
+    "candidate_index": 1414,
+    "candidate_id": "21612235da75cd3ed70b",
+    "decision": "excluded",
+    "observation": "CMultiJumpPacket仅getSender非空后转发SEHelper.doubleJump；可与116输入生产证据关联，但本段未给服务端资格，不能因包装再计。",
+    "snippet_sha256": "4c87c44ff939dc23bacfeb131601f26d1b95597bdc838cc88d1313d7cdc8353c",
+    "reviewed_at": "2026-10-23T08:36:50.054332+08:00"
+  },
+  {
+    "candidate_index": 1415,
+    "candidate_id": "e0b88c36dab510dcbc5d",
+    "decision": "excluded",
+    "observation": "CScytheStrike与1413同型getSender+strike，替换武器名的重复模板不计。",
+    "snippet_sha256": "4fd5a9497b10ae9718200263f6c54e5ba61b53bc74b6b070d77a48a8488105e9",
+    "reviewed_at": "2026-10-23T08:36:50.054335+08:00"
+  },
+  {
+    "candidate_index": 1420,
+    "candidate_id": "7dbb712c14db5bc31ad0",
+    "decision": "excluded",
+    "observation": "Conduit过滤菜单检查containerId、菜单类型并拒绝spectator，仍属1038同型会话入口，记录观察而不按菜单类型扩数。",
+    "snippet_sha256": "5ee5615d8306a6e222c330cae644bc968fe4a47800fc65648d13fc5381d16451",
+    "reviewed_at": "2026-10-23T08:36:50.054338+08:00"
+  },
+  {
+    "candidate_index": 1421,
+    "candidate_id": "c36ce7e58309d5b803be",
+    "decision": "excluded",
+    "observation": "ConduitProbe同步是1360同型实时主手资格再更新模板，仅registered item匹配替换instanceof，不计重复。",
+    "snippet_sha256": "939b949d3fefe1677da4c2ae724c6fc63c98cf38d713580f3d6f19d31ddba727",
+    "reviewed_at": "2026-10-23T08:36:50.054340+08:00"
+  },
+  {
+    "candidate_index": 1422,
+    "candidate_id": "9236bed857b9966b3938",
+    "decision": "accepted",
+    "observation": "EnderIO IO配置包消费时按实际context玩家level查消息pos，只有IOConfigurable才cycleIOMode。借鉴实体位置必须在所属world解析，延后目标替换需类型复核；这里没有交互距离/权限/原block身份，也没有幂等序号，cycle会被重复包累加。",
+    "snippet_sha256": "93e28e5be6ca8ac0852e02b2ff0ecd0dd9c17c88b5b7ddc9ac79547740ce8102",
+    "reviewed_at": "2026-10-23T08:36:50.054343+08:00"
+  },
+  {
+    "candidate_index": 1423,
+    "candidate_id": "ae209b45b7f3a4d5a1aa",
+    "decision": "accepted",
+    "observation": "EnderfaceInteract在queued任务先由实际玩家、当前level和payload命中位置调用canPlayerInteractWithBlock，允许后才重新读BlockState执行useWithoutItem。借鉴权限和实时目标复核位于副作用之前；helper的完整判定未展开，不声称伪造HitResult必然被拒绝。",
+    "snippet_sha256": "3a3bac72e689b2d2a24b39c31fa9dde369b0c41df6e8b2d83fb454a2d3dae08e",
+    "reviewed_at": "2026-10-23T08:36:50.054346+08:00"
+  },
+  {
+    "candidate_index": 1426,
+    "candidate_id": "e3b269cf09ba66520551",
+    "decision": "excluded",
+    "observation": "TaskManager.canCompleteTask检查解锁、任务计时和要求，是长周期任务完成资格，非本回执短TTL/消费链，留给任务研究。",
+    "snippet_sha256": "68ec3d80edb7ae821a4a611358cde63d42f6aed988a1cca88547f97d7ab7e5a1",
+    "reviewed_at": "2026-10-23T08:36:50.054348+08:00"
+  },
+  {
+    "candidate_index": 1429,
+    "candidate_id": "ab29aec25f0393760e2c",
+    "decision": "accepted",
+    "observation": "Vampirism双向锁状态消息在queued消费时比menuId且要求PlayerOwnedMenu，设置状态后仅serverbound才reply实际menu.updatePackage。借鉴往返回执避免双方回包循环、绑定当前会话并返回权威状态；menuId复用和权限helper未见不额外保证。",
+    "snippet_sha256": "79e20134ac0b47de7cf9b8aca68cef05d193bfc4f1c4782b30b98b9b8e50a5b3",
+    "reviewed_at": "2026-10-23T08:36:50.054351+08:00"
+  },
+  {
+    "candidate_index": 1461,
+    "candidate_id": "081ce5bdcc5bdae7cf59",
+    "decision": "accepted",
+    "observation": "AoA ParticleEffectPacket在消费时从接收player.level分别解析entityId/senderId，负ID转换null，把目标和来源一起交effectHandler。借鉴反馈可明确编码无来源/无目标，不以当前主手猜来源；未含维度或UUID且未拒绝缺失对象，消费者需处理过期引用。",
+    "snippet_sha256": "80d9eda132b60bad95e53d83039f2ca3f054e2d291e873d0ba28cb3c7d7830e9",
+    "reviewed_at": "2026-10-23T08:36:50.054354+08:00"
+  },
+  {
+    "candidate_index": 1476,
+    "candidate_id": "002b8ddd61f5d5f94d1d",
+    "decision": "accepted",
+    "observation": "FramedBlocks客户端任务入口delay==0用Minecraft.schedule，非零把当前level.gameTime+delay存入ClientTask。借鉴零延后与有期任务路径分开；当前世界空时会失败，任务若世界切换需绑定原world而不能拿新世界gameTime直接比较，消费端未在本段证明。",
+    "snippet_sha256": "246784dd4fb18ddc7bf1e2e048f895b1a5c76e57a15cfb91ea3ce27fd771c706",
+    "reviewed_at": "2026-10-23T08:36:50.054362+08:00"
+  },
+  {
+    "candidate_index": 1478,
+    "candidate_id": "fc483282213353414ceb",
+    "decision": "excluded",
+    "observation": "Ars服务器Post在冻结且非单步时不tick队列，为3773的时钟门控支持，与3757缓存单步状态整链关联，不重复按wrapper计数。",
+    "snippet_sha256": "c5254dc9963bf85d07c0884e9fb2ce4479f0ccbe9563303e9f3d80b78fbfb7c4",
+    "reviewed_at": "2026-10-23T08:36:50.054367+08:00"
+  },
+  {
+    "candidate_index": 1480,
+    "candidate_id": "085dd53138beb0bf4231",
+    "decision": "pending",
+    "observation": "PacketAddFadingLight在可动态光条件下创建捕获minecraft.level、坐标和有限duration的FadeLightTimedEvent入客户端队列，另加入动态光manager。先保留生产端，需读FadeLightTimedEvent消费/过期和双注册是否重复，同链后计。",
+    "snippet_sha256": "4d082a1f63bf56bb6649246d34acbdc8c3a37685a02595fbb7e2d1dd918773b2",
+    "reviewed_at": "2026-10-23T08:36:50.054370+08:00"
+  }
+]

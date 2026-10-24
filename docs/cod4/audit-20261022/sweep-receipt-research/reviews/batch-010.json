@@ -1,0 +1,162 @@
+[
+  {
+    "candidate_index": 3756,
+    "candidate_id": "657c7f28ca6bfe921872",
+    "decision": "excluded",
+    "observation": "ColdSweat schedule仅同时调用scheduleServer和scheduleClient，是111调度器的支持入口，不单独按两侧注册计数。",
+    "snippet_sha256": "16a2af21614e09902d23f24f0fe0ce98e06f0adcc9784f2e1fb7a17098bf33be",
+    "reviewed_at": "2026-10-23T08:34:47.557263+08:00"
+  },
+  {
+    "candidate_index": 3757,
+    "candidate_id": "e881d03f02652a9eda69",
+    "decision": "excluded",
+    "observation": "Ars serverTickPre只缓存tickRateManager.isSteppingForward，未展示调度消费，本身为时钟支持字段，不计。",
+    "snippet_sha256": "93376d5a94fd84a52253ad12c201deb9bf11fb4a6f2d78d040f566fd6b22df1b",
+    "reviewed_at": "2026-10-23T08:34:47.557285+08:00"
+  },
+  {
+    "candidate_index": 3758,
+    "candidate_id": "45be718f0d07107eaf5d",
+    "decision": "accepted",
+    "observation": "Ars EventQueue.clear逐事件调用onServerStopping后替换整个events列表，明确服务端停机要通知待处理任务再丢队列。借鉴生命周期终结清理而非跨会话保留旧回执；若单个停止钩子抛错则后续清理/列表替换不发生，不能宣称异常安全。",
+    "snippet_sha256": "af2ff84474fa2fed99a4c47606b99e6c02ab5b583b8e2057156ef79071cf7d31",
+    "reviewed_at": "2026-10-23T08:34:47.557290+08:00"
+  },
+  {
+    "candidate_index": 3759,
+    "candidate_id": "003c553bb65d42b04377",
+    "decision": "accepted",
+    "observation": "JEI DeduplicatingRunner.run同步锁内cancel旧future(false)再schedule最新runnable，形成尾沿防抖而不是首事件去重。借鉴明确合并语义：最后请求替换之前未执行项；cancel(false)不打断已运行任务，不能保证并发情况下所有请求只执行一次，delay是Duration并非游戏tick。",
+    "snippet_sha256": "e790971a8575bc3399252bd135b29eb5dd84db4bd2f1ec49abbfed4c81ee258d",
+    "reviewed_at": "2026-10-23T08:34:47.557293+08:00"
+  },
+  {
+    "candidate_index": 3760,
+    "candidate_id": "b117075fc6548605a7c5",
+    "decision": "excluded",
+    "observation": "RitualEventQueue.addPosition按dimension string分HashSet只是一条位置索引生产支持；与3775消费者合读，不再单计。",
+    "snippet_sha256": "27dcabf190ed3e7c1dd6cfaec6dca9b42a551fd3e43cba68ae295450545ed61d",
+    "reviewed_at": "2026-10-23T08:34:47.557296+08:00"
+  },
+  {
+    "candidate_index": 3761,
+    "candidate_id": "43dfc882957819dca5a0",
+    "decision": "excluded",
+    "observation": "containsPosition是3760同一维度位置索引的查询包装，未有独立回执消费，排除支持方法。",
+    "snippet_sha256": "e47ca38317a51e009ceff203b1aa308a4c143b8b5dcc8dd9afd236ca86942c77",
+    "reviewed_at": "2026-10-23T08:34:47.557299+08:00"
+  },
+  {
+    "candidate_index": 3762,
+    "candidate_id": "6bded18330892444e5a5",
+    "decision": "excluded",
+    "observation": "Sourcelink addPosition和3760字面同型注册集合模板，作为3774支持，不重复计。",
+    "snippet_sha256": "27dcabf190ed3e7c1dd6cfaec6dca9b42a551fd3e43cba68ae295450545ed61d",
+    "reviewed_at": "2026-10-23T08:34:47.557302+08:00"
+  },
+  {
+    "candidate_index": 3763,
+    "candidate_id": "15c7f69f8729524f9bc7",
+    "decision": "excluded",
+    "observation": "Relics ClientScheduler.Task.tick与3764ServerScheduler是完全相同cancelled/ticks==0/run/--ticks<0模板，仅执行侧文件不同，保留服务器一处。",
+    "snippet_sha256": "96f8e3d5eff62ae346956771371a213186d855fa84255efa048686cd5d6e01d0",
+    "reviewed_at": "2026-10-23T08:34:47.557304+08:00"
+  },
+  {
+    "candidate_index": 3764,
+    "candidate_id": "a41a6d2326a136e2ab39",
+    "decision": "accepted",
+    "observation": "Relics ServerScheduler任务若cancelled立即返回true，ticks==0才run，随后--ticks<0表示退队。借鉴回调返回完成状态与计数推进顺序；负值初始delay会直接退队却不运行，异常会跳过递减且任务可能重试，严格0和<=0不是同义。",
+    "snippet_sha256": "96f8e3d5eff62ae346956771371a213186d855fa84255efa048686cd5d6e01d0",
+    "reviewed_at": "2026-10-23T08:34:47.557307+08:00"
+  },
+  {
+    "candidate_index": 3765,
+    "candidate_id": "aa101947630e538a3596",
+    "decision": "accepted",
+    "observation": "Psi DelayedSpellHandler复制CONTEXTS快照后递减每个context.delay，<=0时先从原集合remove并归零，再safeExecute原context。借鉴先消费再执行、执行期间新增请求不落入本轮快照、保持原施法上下文；不会因当刻数值跳过0而丢任务。",
+    "snippet_sha256": "2a5f8e8d4cb0a47a33cf1804d904d9c7c6285056146af47d108c398e6ae42ee6",
+    "reviewed_at": "2026-10-23T08:34:47.557311+08:00"
+  },
+  {
+    "candidate_index": 3766,
+    "candidate_id": "fabb01ac12104cffad8e",
+    "decision": "excluded",
+    "observation": "DelayedSpellEvent.resolveSpell为3772到期主体的支持：world空/实体已移除则return，再按原命中位置播声并resume(world)。已与3772合读，避免一条施法延期链拆数。",
+    "snippet_sha256": "e30c862f86d7b7914a6f3ebcbe9cf1a454669fc947bd9684448af15e02d96198",
+    "reviewed_at": "2026-10-23T08:34:47.557313+08:00"
+  },
+  {
+    "candidate_index": 3767,
+    "candidate_id": "cb80bd878393878cb521",
+    "decision": "accepted",
+    "observation": "SpellEngine WorldScheduler.schedule区分负delay立即run、零delay加入immediate队列、正delay按独立schedulerTime+ticks放入时间桶。借鉴立即执行和本周期稍后执行要明确区别；时间桶能否容忍错过刻由消费端决定，此入口本身不证明TTL或去重。",
+    "snippet_sha256": "ae101c31ec79fecd2f988203e1de1fac17e065877938cf97d7bae1f7267a96ad",
+    "reviewed_at": "2026-10-23T08:34:47.557316+08:00"
+  },
+  {
+    "candidate_index": 3768,
+    "candidate_id": "f910bebdbdebda2da7f0",
+    "decision": "accepted",
+    "observation": "GregTech TaskHandler.execute对delay<=0执行，catch记录异常后仍remove；未到期则delay--，空队列早退。借鉴失败任务终止可避免阻塞其它回执，与111记录后throw且保留任务的语义不同；本段不证明任务按world分区，需读调用者。",
+    "snippet_sha256": "38a5e39eb5862deb5bc600bb8b15e20ef6f1ef8ba50f38afc11f926e6e26c231",
+    "reviewed_at": "2026-10-23T08:34:47.557321+08:00"
+  },
+  {
+    "candidate_index": 3769,
+    "candidate_id": "c4fbd0679a2bd004a4da",
+    "decision": "excluded",
+    "observation": "JEI spacedOutRuns测试是3759去重器的测试验证设计，不是新的生产实现，不计测试数。",
+    "snippet_sha256": "5a0f23aeb6615af470f0342c6abeba7609a1a9e5ddb6846892e7f0f401a0cb77",
+    "reviewed_at": "2026-10-23T08:34:47.557324+08:00"
+  },
+  {
+    "candidate_index": 3770,
+    "candidate_id": "b6e98723906c62c4973c",
+    "decision": "excluded",
+    "observation": "Ritual getRituals为3775同维度位置扫描模板的列表版；额外发现stalePos只收集不删除，但不把轻微分支变化算第二例。",
+    "snippet_sha256": "0fd027b84423a4db984d18ae61e52a0c35cb12de1dbfc8cffb419ecd7d5ae8a8",
+    "reviewed_at": "2026-10-23T08:34:47.557326+08:00"
+  },
+  {
+    "candidate_index": 3771,
+    "candidate_id": "981fce62131b16327eb2",
+    "decision": "excluded",
+    "observation": "JEI重复100次调用最终执行一次的模拟时间测试，作为3759观察支持，不把100次调用或一个测试计额外实现。",
+    "snippet_sha256": "b167fc24e8b97713990dce726775703a2cce9de1bdaec8dd1d660a5a2fda91bd",
+    "reviewed_at": "2026-10-23T08:34:47.557329+08:00"
+  },
+  {
+    "candidate_index": 3772,
+    "candidate_id": "dc2d3f0f637fa04b99a6",
+    "decision": "accepted",
+    "observation": "Ars DelayedSpellEvent每tick先duration--，服务端<=0调用resolveSpell，客户端按同一倒计时播等待/完成效果；helper3766拒绝空world和removed目标并以保存命中点resume原resolver。借鉴跨刻到期使用区间、保存来源上下文并在实际消费点查目标有效；是否只resolve一次依赖EventQueue过期协议，不能仅此方法保证。",
+    "snippet_sha256": "2496e4b0c45a3dda69d96875bf85eb56d5836b964563b6420374640cdaa45929",
+    "reviewed_at": "2026-10-23T08:34:47.557332+08:00"
+  },
+  {
+    "candidate_index": 3773,
+    "candidate_id": "3fd2873c713f9aa00100",
+    "decision": "accepted",
+    "observation": "Ars EventQueue.tick先判isExpired收集stale，否则按是否ServerTick.Post调用服务端或客户端tick，末尾removeAll；用索引循环允许回调期间事件表变化。借鉴过期筛选和执行顺序明确，执行中刚到期会留到下次检查；动态size意味着新加入项可能同周期消费，不能误称固定快照。",
+    "snippet_sha256": "b171ed1e4adaa05502ee11c2110f6c17798d65ea4f2ac2cd6e56c27fcec83f30",
+    "reviewed_at": "2026-10-23T08:34:47.557336+08:00"
+  },
+  {
+    "candidate_index": 3774,
+    "candidate_id": "1f6ca424e0395c4a495e",
+    "decision": "accepted",
+    "observation": "SourcelinkEventQueue.addManaEvent按world.dimension取位置集合，只检查已加载块，剔除失效tile，要求具体类型、事件来源在范围内且能接收才调用getManaEvent并break。借鉴同一事件最多一个合格消费者、来源范围与维度约束；不是靠packet到达即认可，空/卸载位置保留重试有明确差别。",
+    "snippet_sha256": "d813ae3d867c2ca684d937a2927e93c6314215d762d17428c30e27d392b55db6",
+    "reviewed_at": "2026-10-23T08:34:47.557340+08:00"
+  },
+  {
+    "candidate_index": 3775,
+    "candidate_id": "dbc5448526379107777c",
+    "decision": "accepted",
+    "observation": "RitualEventQueue.getRitual按维度位置表只读已加载tile，要求ritual准确类型及isMatch谓词才返回，完整扫描失败后才移除stale。借鉴延后引用重新解析类型和资格；成功早return时此前收集stale不清理，是清理时序限制，3760/3761注册查询不另计。",
+    "snippet_sha256": "661d847b61d2b80cf4dd5c394264399ee11db1eab5b197f4155d1fc7ba5d0ef0",
+    "reviewed_at": "2026-10-23T08:34:47.557343+08:00"
+  }
+]

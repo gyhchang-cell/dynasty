@@ -1,0 +1,82 @@
+[
+  {
+    "candidate_index": 110,
+    "candidate_id": "d5a039b904b77660bbae",
+    "decision": "accepted",
+    "observation": "Possession把附身实体位置/速度与onUpdate放在PlayerTick.START，却在END重设玩家体型，因为原生EntityPlayer.updateSize会在后半周期重置。借鉴phase必须依据真实调用顺序选取，同一tick的不同阶段可有先后覆盖，不可以world时间相等代替阶段语义；死亡时主动endPossession。",
+    "snippet_sha256": "49af85fe19680011e7faa7fa467e5186f22e9b5bbc34b1f234ad168e6a81b6b3",
+    "reviewed_at": "2026-10-23T08:30:13.106157+08:00"
+  },
+  {
+    "candidate_index": 111,
+    "candidate_id": "d8ca8449835a2fa49ba3",
+    "decision": "accepted",
+    "observation": "ColdSweat TaskScheduler同步方法按Client/Server选独立schedule，仅START推进；time<=0执行后remove并i--，否则减1。借鉴执行侧分队列、到期区间和删除后索引修正；异常被记录后重新throw，任务未remove且后续任务本轮停止，是重试/阻塞风险反例。",
+    "snippet_sha256": "c9747eb66ed43d2c6c2b888368d7223ddf9f032928ab6fe0274a9ddf797865b3",
+    "reviewed_at": "2026-10-23T08:30:13.106175+08:00"
+  },
+  {
+    "candidate_index": 112,
+    "candidate_id": "779f11f33948be8b6398",
+    "decision": "accepted",
+    "observation": "BounceHandler只在绑定entityLiving的END且非鞘翅时应用bounceTick精确相等的速度，随后清bounceTick；落地持续超过5实体tick才注销自身listener并从bouncingEntities删除。借鉴原生落地会清motionY所以后置结算，也看到严格同刻依赖若错过会丢失，实体时钟与world/server时钟不能混用。",
+    "snippet_sha256": "e7c3110edb923b2a1bc94b3c9d2aa2c4fa67b29122f0cc467c6ac332837edb1e",
+    "reviewed_at": "2026-10-23T08:30:13.106180+08:00"
+  },
+  {
+    "candidate_index": 113,
+    "candidate_id": "95d21409dc41f4995812",
+    "decision": "excluded",
+    "observation": "GT玩家地块速度按当前状态撤销重加modifier，是通用状态一致性，非事件回执延期结算，排除。",
+    "snippet_sha256": "bd2cf21f938315eb1b436812001ae3fd1f80b775922d938f3e24be7455426f8d",
+    "reviewed_at": "2026-10-23T08:30:13.106185+08:00"
+  },
+  {
+    "candidate_index": 114,
+    "candidate_id": "816a1c08466c27898f87",
+    "decision": "excluded",
+    "observation": "Goety handleKeys只检测按键上升沿打开两个GUI菜单，属于界面输入而非已确认操作回执，不以consumeClick计入。",
+    "snippet_sha256": "4f2e0d151946957dd67c23bdafefc77248836027233e0b4e8adb78e52d52a88a",
+    "reviewed_at": "2026-10-23T08:30:13.106188+08:00"
+  },
+  {
+    "candidate_index": 115,
+    "candidate_id": "03d4409f159773ef4651",
+    "decision": "excluded",
+    "observation": "ColdSweat雨水/冻结温度状态每5tick刷新，与本次回执无直接关系，排除宽泛状态语料。",
+    "snippet_sha256": "5ed477b915af2a2a628ff1ffdf153c6348c733b859c9bf6b4dc00ae2273a0bbd",
+    "reviewed_at": "2026-10-23T08:30:13.106191+08:00"
+  },
+  {
+    "candidate_index": 116,
+    "candidate_id": "dd5636ca7c4bb010086a",
+    "decision": "accepted",
+    "observation": "Goety TickEvents在END对Wight注视累计达到阈值后按20刻节流发目标包并重置计时；双跳以prevJumpBindState上升沿且空中/模式/乘骑条件限制，只发一次CMultiJumpPacket并本地预测。借鉴输入侧去重与服务器确认须区分；本段未验服务端授权，不能当收到包就成功的依据。",
+    "snippet_sha256": "a2453214e3d6d029d36b79de12ccafd26e13f68747ad22f708731fb737524f37",
+    "reviewed_at": "2026-10-23T08:30:13.106194+08:00"
+  },
+  {
+    "candidate_index": 117,
+    "candidate_id": "40f5286ff10f8ff20f8f",
+    "decision": "accepted",
+    "observation": "Waterskin临时LevelTick listener推进捕获world中的下落AABB，每玩家affectedPlayers只应用一次，碰地或tick>100注销listener。借鉴有限寿命及目标身份去重；只比客户端/服务端side而未比event.level对象，多维度可能让同一临时任务加速，捕获chunk也需边界复核。",
+    "snippet_sha256": "ce6dbec449dc96317a7185cf5a3719dc686bcde281a901f3aeca220f93d26923",
+    "reviewed_at": "2026-10-23T08:30:13.106197+08:00"
+  },
+  {
+    "candidate_index": 118,
+    "candidate_id": "36e978a54c668070787e",
+    "decision": "excluded",
+    "observation": "UnicornTrailRenderer主要生成和裁剪历史拖尾点，虽然有1000容量和世界时间戳，但属于几何外观缓存，不拿拖尾资产算法充回执数。",
+    "snippet_sha256": "f2952a6ec25c3b5a43043f930995057ba8a57cf306fed76a328630de904b8c10",
+    "reviewed_at": "2026-10-23T08:30:13.106200+08:00"
+  },
+  {
+    "candidate_index": 119,
+    "candidate_id": "09f6d8e027059f564b54",
+    "decision": "excluded",
+    "observation": "FairyBindingRenderer按钟表定期生成粒子线路，是绑定预览外观，未有延后确认与队列生命周期，排除。",
+    "snippet_sha256": "e0dc1b43dcfb1dece1287f9ba2b8e891e84ddc05282b5b17781ec67a1c501697",
+    "reviewed_at": "2026-10-23T08:30:13.106202+08:00"
+  }
+]

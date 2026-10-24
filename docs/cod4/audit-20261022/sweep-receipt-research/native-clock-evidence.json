@@ -1,0 +1,56 @@
+{
+  "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+  "archive": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "external_quota_credit": 0,
+  "read_only": true,
+  "findings": [
+    "TickTask.run只转发Runnable，tick字段不在run里检查。",
+    "MinecraftServer.shouldRun为task.tick+3<server.tickCount OR haveTime；在1.20.1不能把new TickTask(now+delay)视为严格延迟定时器。",
+    "ServerTick.Pre在server.tickCount++之前，Post在tickChildren之后；ServerLevel.tickTime另把level.gameTime加1再推进scheduled events。",
+    "上述是当前依赖源码机制核查，不是外部1000参考、不是重跑原生C2S，也不是提前正式修复。"
+  ],
+  "evidence": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/TickTask.java",
+      "sha256": "7c98183c008b2a81a4ffe71f1d1c0c31b5a5301195d496296d818dca5ba9f6d0",
+      "jar_entry_matches": true,
+      "ranges": [
+        {
+          "line": 1,
+          "end_line": 19,
+          "excerpt": "package net.minecraft.server;\n\npublic class TickTask implements Runnable {\n   private final int tick;\n   private final Runnable runnable;\n\n   public TickTask(int p_136252_, Runnable p_136253_) {\n      this.tick = p_136252_;\n      this.runnable = p_136253_;\n   }\n\n   public int getTick() {\n      return this.tick;\n   }\n\n   public void run() {\n      this.runnable.run();\n   }\n}"
+        }
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/MinecraftServer.java",
+      "sha256": "2eda23dd693039b22af48e5a793a551530b8e5cfcfa6cb6c9f1f371e2f55d4fe",
+      "jar_entry_matches": true,
+      "ranges": [
+        {
+          "line": 728,
+          "end_line": 744,
+          "excerpt": "      return this.runningTask() || Util.getMillis() < (this.mayHaveDelayedTasks ? this.delayedTasksMaxNextTickTime : this.nextTickTime);\n   }\n\n   protected void waitUntilNextTick() {\n      this.runAllTasks();\n      this.managedBlock(() -> {\n         return !this.haveTime();\n      });\n   }\n\n   protected TickTask wrapRunnable(Runnable p_129852_) {\n      return new TickTask(this.tickCount, p_129852_);\n   }\n\n   protected boolean shouldRun(TickTask p_129883_) {\n      return p_129883_.getTick() + 3 < this.tickCount || this.haveTime();\n   }"
+        },
+        {
+          "line": 809,
+          "end_line": 836,
+          "excerpt": "\n   public void tickServer(BooleanSupplier p_129871_) {\n      long i = Util.getNanos();\n      net.minecraftforge.event.ForgeEventFactory.onPreServerTick(p_129871_, this);\n      ++this.tickCount;\n      this.tickChildren(p_129871_);\n      if (i - this.lastServerStatus >= 5000000000L) {\n         this.lastServerStatus = i;\n         this.status = this.buildServerStatus();\n         resetStatusCache(status);\n      }\n\n      if (this.tickCount % 6000 == 0) {\n         LOGGER.debug(\"Autosave started\");\n         this.profiler.push(\"save\");\n         this.saveEverything(true, false, false);\n         this.profiler.pop();\n         LOGGER.debug(\"Autosave finished\");\n      }\n\n      this.profiler.push(\"tallying\");\n      long j = this.tickTimes[this.tickCount % 100] = Util.getNanos() - i;\n      this.averageTickTime = this.averageTickTime * 0.8F + (float)j / 1000000.0F * 0.19999999F;\n      long k = Util.getNanos();\n      this.frameTimer.logFrameDuration(k - i);\n      this.profiler.pop();\n      net.minecraftforge.event.ForgeEventFactory.onPostServerTick(p_129871_, this);\n   }"
+        }
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/level/ServerLevel.java",
+      "sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "jar_entry_matches": true,
+      "ranges": [
+        {
+          "line": 363,
+          "end_line": 373,
+          "excerpt": "   protected void tickTime() {\n      if (this.tickTime) {\n         long i = this.levelData.getGameTime() + 1L;\n         this.serverLevelData.setGameTime(i);\n         this.serverLevelData.getScheduledEvents().tick(this.server, i);\n         if (this.levelData.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)) {\n            this.setDayTime(this.levelData.getDayTime() + 1L);\n         }\n\n      }\n   }"
+        }
+      ]
+    }
+  ]
+}

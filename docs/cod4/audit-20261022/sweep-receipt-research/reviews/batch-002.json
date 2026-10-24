@@ -1,0 +1,162 @@
+[
+  {
+    "candidate_index": 30,
+    "candidate_id": "992ceacb5a618f8a4311",
+    "decision": "accepted",
+    "observation": "SummonedEntity.tick服务端先将pendingSpawnSound清false，再在behaviour存在时播出生声效和FX；这完成候选18所述setPos/spawnEntity之后首tick消费链。age>=timeToLive销毁、阶段按区间判断。借鉴先消费一次性标志再发效果、用区间接受延后tick；18生产者不另加分。",
+    "snippet_sha256": "a3c89650c1f9bdc72734e911bee4d624836d5d0a3cb1eda98484a489caa112d2",
+    "reviewed_at": "2026-10-23T08:26:57.729331+08:00"
+  },
+  {
+    "candidate_index": 31,
+    "candidate_id": "329212cf5ada411b3e80",
+    "decision": "accepted",
+    "observation": "Ars资源reload的apply把配方重建与玩家文档同步放进ITimedEvent，server tick完成后置expired=true，由isExpired暴露完成状态。借鉴资源准备与游戏线程消费分离，成功后明确终止；异常先于expired可能重试，不能把生命周期包装注册再算一处。",
+    "snippet_sha256": "97346bd92f3641f9ca1fb9bab9bc42e5a10a7cdd9a2e21ec6d9f730dcf6599db",
+    "reviewed_at": "2026-10-23T08:26:57.729358+08:00"
+  },
+  {
+    "candidate_index": 32,
+    "candidate_id": "35e9458af185aabaf582",
+    "decision": "accepted",
+    "observation": "BloodMagic WillHandler仅服务端LevelTick.END运行，按dimension ResourceLocation分别保存SERVER_TICKS和dirtyChunks；每20本维度tick处理已有FULL且不强载的chunk，再清队列。借鉴时钟和任务按维度分区、未加载目标显式跳过；遍历后clear在并发追加时可能丢新请求，保留观察。",
+    "snippet_sha256": "aa587f9e461707e7bb896a7122dd2cfa6bf4911827388ebc299debc7c4659fef",
+    "reviewed_at": "2026-10-23T08:26:57.729365+08:00"
+  },
+  {
+    "candidate_index": 33,
+    "candidate_id": "b2dc7ce5cd5846f7ddda",
+    "decision": "excluded",
+    "observation": "Planarium.render主要做结构预览缓存及渲染，deferredRenders只是渲染引用列表，此段没有服务端回执确认或消费寿命，排除外观代码。",
+    "snippet_sha256": "f421817eac36db4974033eed672cf6e20363959bd16af55f0be71085f6f45edc",
+    "reviewed_at": "2026-10-23T08:26:57.729369+08:00"
+  },
+  {
+    "candidate_index": 34,
+    "candidate_id": "e342a7da74676be4ee15",
+    "decision": "excluded",
+    "observation": "resourceLoadEvent包含候选31的匿名apply完整方法，属于外层注册包装且范围重叠；只计31真实延后处理链。",
+    "snippet_sha256": "8395fc5d2e247f5e90ba21c3fcc4c943cf48ad817fc10aa169942075547f2027",
+    "reviewed_at": "2026-10-23T08:26:57.729373+08:00"
+  },
+  {
+    "candidate_index": 35,
+    "candidate_id": "f1519ab23378d6cc9dea",
+    "decision": "excluded",
+    "observation": "ChargingStation红石分支与候选28同为lastUpdate间隔阈值、保留最新pending、过期刷新模板；其余充气逻辑无关，本次不因换block或字段再计。",
+    "snippet_sha256": "311311998108aef89f6b0dcd2e201e850d9ed338f4f9e2faaf322f7afe09db84",
+    "reviewed_at": "2026-10-23T08:26:57.729379+08:00"
+  },
+  {
+    "candidate_index": 36,
+    "candidate_id": "f9470d3a79fef89111ae",
+    "decision": "accepted",
+    "observation": "DraculaFightData每tick先注册pendingChalices后clear；死亡阶段warningsSend游标配合deathTicks>=阈值循环追补未发警告，倒计时与20刻同步只发该level玩家，达到COLLAPSE_DURATION销毁维度。借鉴延后反馈可用游标做到每个阶段一次且容忍跨过阈值，按持有level控制接收者；清队列异常风险仍在。",
+    "snippet_sha256": "6060f09d5910123bed4b7370ad82543ff3a3ea369df3ff1db1ee9812fc34cf29",
+    "reviewed_at": "2026-10-23T08:26:57.729383+08:00"
+  },
+  {
+    "candidate_index": 37,
+    "candidate_id": "60f934bb23ef4818e70a",
+    "decision": "accepted",
+    "observation": "MachineAirHandler把恢复的pendingAir延后至首服务端tick，待容量升级已经计算才addAir，再清零并限压；前20server ticks延后超压检查。借鉴依赖初始化完成后消费数据及明确清标志，而非要求载入tick仍相同；充气业务不移植到横扫。",
+    "snippet_sha256": "3aba9ff4556b8c331464ae2065f82142a8644dc77cebdf6d9e516930f8949766",
+    "reviewed_at": "2026-10-23T08:26:57.729387+08:00"
+  },
+  {
+    "candidate_index": 38,
+    "candidate_id": "7eed00b49010a4d1c665",
+    "decision": "accepted",
+    "observation": "Create Ejector tick先清launch布尔再activateDeferred；每个launchedItem保存自己的累计时间与栈身份，到碰撞或超过maxTime时放置并iterator.remove，再处理发射/回缩状态。借鉴请求一次消费、延后完成按超时区间和身份，画面状态改变才notifyUpdate；放置异常路径仍无finally。",
+    "snippet_sha256": "124b4aa9cfc93cf086a8b81ab0f14fc6297295047b7a2b230411f78cf312f4d4",
+    "reviewed_at": "2026-10-23T08:26:57.729390+08:00"
+  },
+  {
+    "candidate_index": 39,
+    "candidate_id": "084dff60a1940aa82f3a",
+    "decision": "excluded",
+    "observation": "FramedBlocks ModelBenchmarkCube是生成测试场景的命令，虽有延后红石写入，但主要测试建筑创建且非独立回执实现，不纳入专属研究。",
+    "snippet_sha256": "a673e40c4cb2d6928730417c6e200f2a3bf36d68a1720f182d902c451aec15d5",
+    "reviewed_at": "2026-10-23T08:26:57.729394+08:00"
+  },
+  {
+    "candidate_index": 40,
+    "candidate_id": "8a20accfd59b7fbfec17",
+    "decision": "excluded",
+    "observation": "Botania客户端初始化主要菜单/渲染事件注册，enqueueWork用于注册生命周期；不是运行时伤害确认与延后回执消费，排除。",
+    "snippet_sha256": "08350b8721eb7111d51de2c3ed322ac121277b3e9366c377fdae6620be052bf9",
+    "reviewed_at": "2026-10-23T08:26:57.729399+08:00"
+  },
+  {
+    "candidate_index": 41,
+    "candidate_id": "457c2afa49149a854a51",
+    "decision": "accepted",
+    "observation": "Apostle.tickDeath在deathTime==1取消pendingTeleportSearch并清引用、待传送位置和时间，避免异步结果在死亡后继续生效；后续终结动画按>=200与着地条件完成并remove。借鉴主人生命周期结束主动撤销待处理任务，不让旧任务污染新生命周期；此段不证明Future完成端是否也复核。",
+    "snippet_sha256": "59be21a39772dd92ff0d6c9b85aa3dfc6e2c17ae4095553c936d831a15a91ae8",
+    "reviewed_at": "2026-10-23T08:26:57.729403+08:00"
+  },
+  {
+    "candidate_index": 42,
+    "candidate_id": "b67d067c945b2e087135",
+    "decision": "excluded",
+    "observation": "Photon.prepare为GPU灯光/体积雾排序、预算、缓存准备，虽有pending和lastLitTick但与服务端事件回执无关，不以渲染计时凑数。",
+    "snippet_sha256": "3571853283b61e691841181c230e7c9774d3dcd5099a9d441989bca8cf3dc083",
+    "reviewed_at": "2026-10-23T08:26:57.729407+08:00"
+  },
+  {
+    "candidate_index": 43,
+    "candidate_id": "91c20b9702264c450084",
+    "decision": "excluded",
+    "observation": "ConstellationStar.tick的queue是本次调用内BFS图遍历，visited用于星间邻接，gameTime用于粒子相位；不是跨回调延后事件队列，排除。",
+    "snippet_sha256": "93e5aced2dbbddb7c7ad75e97ffbaf25313fb47fa9c9edfbc04ac3963b038597",
+    "reviewed_at": "2026-10-23T08:26:57.729410+08:00"
+  },
+  {
+    "candidate_index": 44,
+    "candidate_id": "289175ec0c5465b099c9",
+    "decision": "excluded",
+    "observation": "PotionSlowTime.tick只在END转发cleanUpEntities；完整清理实现尚未在该段出现，纯包装不计。",
+    "snippet_sha256": "f0a69174189afbaa6c5c4ef4d86da2a55a5986303191800e37147a09b18dd767",
+    "reviewed_at": "2026-10-23T08:26:57.729413+08:00"
+  },
+  {
+    "candidate_index": 45,
+    "candidate_id": "4be0862568dd41f2ed9a",
+    "decision": "excluded",
+    "observation": "AlexsMobs clientTick仅START增加模型渲染计数器，没有事件回执或来源维度校验，排除。",
+    "snippet_sha256": "08538f0e23d866eaff3e3ac890237b66f006d532629dcce15a974b93a8f9f1ea",
+    "reviewed_at": "2026-10-23T08:26:57.729417+08:00"
+  },
+  {
+    "candidate_index": 46,
+    "candidate_id": "2746367e08a8ab967693",
+    "decision": "excluded",
+    "observation": "SpellEmitterData.tick只在服务端END调用update(world)，应研究主体而不按事件转发包装算一处。",
+    "snippet_sha256": "6e59d1470f9e24898982c133153d6d8142f9b2cc6f7a7d9da23fdaaf84ecc4bf",
+    "reviewed_at": "2026-10-23T08:26:57.729420+08:00"
+  },
+  {
+    "candidate_index": 47,
+    "candidate_id": "0d46dcf40425bec44d14",
+    "decision": "excluded",
+    "observation": "Wizardry tickEvent仅服务端END转发FluidTracker.tick(world)，没有独立消费逻辑，等待主体不计。",
+    "snippet_sha256": "738e5d5fbe2c01576a59027c552ad53a175ce47416d5ab93275f8d9406e293af",
+    "reviewed_at": "2026-10-23T08:26:57.729426+08:00"
+  },
+  {
+    "candidate_index": 48,
+    "candidate_id": "f0ca3f8c334b5ff31600",
+    "decision": "excluded",
+    "observation": "Tetra onPlayerTick仅START转发Lunge和Focus更新，不能由事件phase字段推定相关回执机制，排除包装。",
+    "snippet_sha256": "2f7cef15402ae2c016147210d083b50347e60c9ef74686c8beaab05c45a7bebf",
+    "reviewed_at": "2026-10-23T08:26:57.729431+08:00"
+  },
+  {
+    "candidate_index": 49,
+    "candidate_id": "eae07989abf09b0529ef",
+    "decision": "excluded",
+    "observation": "SecondaryInteractionOverlay每10刻轮询鼠标目标更新HUD，是界面刷新而非已确认操作回执，排除。",
+    "snippet_sha256": "3f6c8593265772dd12553f63e577bc35318118d7dae8cab40fd8d505647cbdc2",
+    "reviewed_at": "2026-10-23T08:26:57.729435+08:00"
+  }
+]
