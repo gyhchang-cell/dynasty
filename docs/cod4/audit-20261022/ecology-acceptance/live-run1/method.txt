@@ -1,0 +1,25 @@
+自然生态后续：保留normal-run2（19种有效位置、古战场与驿站两自然结构）的既有结果，只追加证据。
+
+live-run1是本代理normal-run2世界的APFS独立副本，固定种子20261023、NoiseBasedChunkGenerator。正式来源沿用本代理独立frozen来源，客户端另有独立APFS来源克隆、GradleHome、输出与项目缓存。未共享其他代理privatebuild。
+
+实际普通Forge DedicatedServer按原生50ms tick正常运行到夜间；从未setDayTime、改天气或gamerule。为调整QA采样器分phase保存退出及恢复，世界时间来自真实存档，未编辑level.dat；各start事件与服务器日志记录恢复点。phase1为QA定向细化发送SIGTERM，由Minecraft shutdown hook保存（Gradle报告非0，保留）；phase2为QA停止文件触发正常保存退出。所有旧失败/空掉落记录保留。
+
+真实自动客户端EcologyQA通过127.0.0.1:25587连接，实际Player UUID、native connection、客户端tick/攻击包及服务端死亡/掉落/拾取事件均归档。仅观察夹具提供飞行/无敌/补饱食度/未附魔现有武器，并传送到观察点、自然生物附近或死亡物品处。这不是完整生存路线。phase1/2使用下界合金剑；phase3使用项目原有鸳鸯钺（无抢夺附魔），不改任何正式物品/实体属性、概率或上限。
+
+自然来源必须先有Forge FinalizeSpawn的NATURAL原因，再有非磁盘加载的EntityJoinLevel事件。之后才允许实际客户端攻击。phase3对次级怪额外记录原生NaturalSpawner/ForgeEventFactory调用栈；旧世界恢复的个体必须在同一归档之前已有上述自然来源UUID记录，不能仅凭磁盘加载冒称新自然出现。
+
+真实物理攻击由客户端gameMode.attack发送原生网络包，服务端原有距离、碰撞、伤害及死亡结算照常运行。材料掉落必须由这些自然个体的原生LivingDropsEvent产生；环境死亡、空掉落及未掉目标材料的尝试均保留，不人工补材料，不调整随机概率、不使用蛋/命令/构造器生成生物。
+
+拾取采用实际PlayerEvent.ItemPickupEvent；phase3同时记录原ItemEntity UUID，可精确链接死亡掉落实体与拾取。phase1/2尚未记录拾取UUID的旧记录只可作同物品/同玩家/时间窗对照，不能称精确UUID闭环。
+
+当材料物种暂时不存在时，可由实际客户端攻击自然出现的原版普通怪物来释放正常刷怪竞争；不删除实体、不改AI、不改mob cap、不添加自定义定时刷怪。生成权重和掉率保持原值。
+
+位置采样为真实正常生成biome/地形/水体/结构的NATURAL回调判定，与真正自然出现及击杀掉落分别计数。额外选点依实际缺项使用自然savanna/desert、dripstone/lush caves和原生locate的tiangong_citadel，时间/光照不满足的7种等待原生日夜时钟。
+
+Phase5: native getHeight returns minimum build height for an unloaded chunk. Phase4 scan-before-observe was insufficient because chunk could unload between events. QA now requests the exact FULL chunk immediately before each observer height query, same server tick. No world/time/biome/block/actor creation. Phase4 underground fixture observations kept; positive natural provenance/drop/pickup evidence remains genuine.
+
+Phase6: competitive native combat now includes all NATURAL-provenance MobCategory.MONSTER actors, including mod monsters which occupy the same unchanged cap. Previously only vanilla Monster class was selected. All damage still actual gameMode.attack via connected client; no actor discard/despawn or cap changes.
+
+Phase7: Default fixture observer100 blocks above genuine native ground; configurable25..112, no block/biome or cap edits. A naturally born wolf in a low cave could not be attacked by the existing full-height player/LOS fixture; timeout retained, not called a kill or code defect. Higher normal observer point naturally restricts native spawn/despawn radius to ground habitat, an AFK observation fixture rather than survival route. Added readonly live isRaining/rainTime/isNight and NaturalSpawner category count/spawnable chunk count diagnostics.
+
+Phase8: native saved Inventory was full36/36. QA real client now uses native inventory ClickType.THROW for listed vanilla junk only when fewer than8 slots are empty; this creates ordinary dropped items in the private QA world, never deletes user assets/content or provides materials. Main weapon, all10 materials and Dynasty items are kept. Server QA restores pending exact natural ItemEntity UUIDs from original actual-player death events, recovers only existing alive ItemEntities via fixture teleport and native pickup, never recreates items. QA targeting now stops after actual pickup rather than death drop. Exact UUID recovery can occur after200 ticks; summary identity match requires same original ItemEntity UUID/owner/item after death, while pre-UUID phase1/2 fallback remains limited200 ticks.

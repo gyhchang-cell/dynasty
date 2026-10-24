@@ -1,0 +1,7 @@
+# 根级永久进度修复与已有盔甲Clone的职责边界
+
+已只读核验两份主协调提供的原生证据及源码：两个UUID、三次真实Forge死亡Clone事件，host/peer均原生C2S重生；已有键lastStand、cicada、guardsUntil、guardGeneration在对应事件前后数值完全一致。不存在的键不当作实际写入0。原deadline前保命不再次proc、守卫租约与generation不刷新，均有通过回执。
+
+EquipmentBehaviors.saved访问PlayerPersisted.dynastyCod4；ContentProgress.clone现已复制PlayerPersisted。新根级修复不得put/覆盖/合并这两个容器，也不得reset/rebase其deadline。只有来源已审定的永久root字段和历史任务键可用准确类型逐项Tag.copy。merit保留不能成为泛拷root临时免疫、反击、蓄势及计时状态的依据。
+
+证据范围为ce9259、四模组、全新QA世界与供给装备环境；不是真实旧档导入，也未证明所有root永久进度已保留。本次未重跑QA、未写生产代码；本地证据核验不计外部1000研究数。完整artifact/source哈希及精确事件数值见armor-clone-boundary.json。

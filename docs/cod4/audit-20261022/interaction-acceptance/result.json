@@ -1,0 +1,138 @@
+{
+  "status": "NATIVE_ACCEPTANCE_COMPLETED_WITH_TWO_UNRESOLVED_REQUIRED_FAILURES",
+  "date_client": "2026-10-23",
+  "minecraft": "1.20.1",
+  "forge": "47.4.10",
+  "java": "17.0.20",
+  "registered_distinct_interactions": [
+    "abandoned_armory",
+    "ancient_well",
+    "battlefield_remnant",
+    "broken_stele",
+    "broken_waterwheel",
+    "ghost_market_boat",
+    "herb_spot",
+    "mortuary_room",
+    "nameless_tomb",
+    "old_bellows",
+    "old_weapon_rack",
+    "puzzle_box",
+    "sword_scar_wall",
+    "wayside_shrine",
+    "wayside_tea_stall"
+  ],
+  "main_suite": {
+    "receipt": "run6-receipt.json",
+    "required_total": 39,
+    "required_failed": 2,
+    "failures": [
+      {
+        "test": "actualgroundednativeairswingsmatchthreestepsandoriginalrewards",
+        "reason": "Actual native MoverType.SELF + main-hand swing after native grounded physics advances one step: stage=0, onGround=true, pos=(304.1, -58.0, 5.5), native={Anchor:83288005820358L,DanceBaseX:303.5d,DanceBaseY:-58.0d,DanceBaseZ:5.5d,DanceCueAt:1100L,DanceDimension:\"minecraft:overworld\",DanceFocused:0b,DanceSwinging:0b}"
+      },
+      {
+        "test": "internalblockusefardistanceauditreportsanymissingdefenseindepth",
+        "reason": "Missing direct-use range defense (network independently tested): [wayside_shrine, nameless_tomb, old_weapon_rack, herb_spot, abandoned_armory, battlefield_remnant, broken_stele, old_bellows, broken_waterwheel]"
+      }
+    ]
+  },
+  "additional_suite": {
+    "receipt": "run8-receipt.json",
+    "required_passed": 4,
+    "required_failed": 0
+  },
+  "combined_required_total": 43,
+  "combined_passed": 41,
+  "combined_failed": 2,
+  "coverage": {
+    "production_piece_placement_shape_collision_cases": 120,
+    "entrance_continuous_native_walk_paths": 60,
+    "scene_two_owner_spawn_cases": 12,
+    "remote_native_packet_sites": 15,
+    "near_native_packet_positive_sites": 14,
+    "near_sword_wall": "positive tested via production moonlight context and native block use; no packet-positive assertion for this time-gated case",
+    "eye_distance_boundary_packet_cases": 30,
+    "forged_hit_packet_rejections": 15,
+    "real_clock_completion_ticks": {
+      "old_bellows": 600,
+      "broken_stele": 600,
+      "wayside_shrine": 600,
+      "old_weapon_rack": 600,
+      "broken_waterwheel": 1200,
+      "battlefield_remnant": 1200,
+      "herb_spot": 1200,
+      "nameless_tomb": 1200,
+      "abandoned_armory": 3600,
+      "ancient_well": 3605,
+      "puzzle_box": 2410,
+      "wayside_tea_stall": 2400,
+      "ghost_market_boat": 2400,
+      "mortuary_room": 2400,
+      "sword_scar_wall": 2400
+    },
+    "furnace_edges": [
+      "empty",
+      "full_output",
+      "burn_time_1601",
+      "outside_search_range_4",
+      "valid_payment_burn_time_1600"
+    ],
+    "physical_waterwheel_shared_personal_rewards_isolated": true
+  },
+  "findings": [
+    {
+      "id": "INTERNAL_DIRECT_USE_RANGE",
+      "status": "REPRODUCED_REQUIRED_FAILURE",
+      "affected_ids": [
+        "wayside_shrine",
+        "nameless_tomb",
+        "old_weapon_rack",
+        "herb_spot",
+        "abandoned_armory",
+        "battlefield_remnant",
+        "broken_stele",
+        "old_bellows",
+        "broken_waterwheel"
+      ],
+      "detail_zh": "9种通用互动的内部BlockState.use调用可在30格外启动进度。15种远程ServerboundUseItemOnPacket均被拒绝，另有近距正对照与6.01/5.99格眼部距离边界；不是已证实的网络远程利用。",
+      "evidence": [
+        "run6.log",
+        "run6-observations.json"
+      ]
+    },
+    {
+      "id": "LEGACY_SWORD_FIXTURE_FOCUS_LOST",
+      "status": "UNRESOLVED_REQUIRED_FAILURE",
+      "detail_zh": "既有复制测试actualGroundedNativeAirSwingsMatchThreeStepsAndOriginalRewards在平面测试夹具中第一式时DanceFocused变false，Count未推进；保留失败，未归因为正式游戏缺陷。现有药庐原生piece的侧方空地流程，真实800/1600/2400 tick三式及双ServerPlayer个人奖励另已通过。",
+      "evidence": [
+        "run6.log",
+        "run8-observations.json"
+      ]
+    },
+    {
+      "id": "DIRECT_FRONT_DANCE_AUTO_STEP",
+      "status": "POSITIONAL_LIMITATION_REPRODUCED_ALTERNATIVE_VERIFIED",
+      "detail_zh": "architecture给出的局部(13,1,27)是可达接近点，不保证可完成剑舞。面前第三次北移会原生自动踏上13/16格石壁碰撞，高度81→81.8125超过动作容差而重置。改从现有空地局部(15,1,27)开始，无改建筑，实际2400 tick三式与一次性奖励通过。",
+      "evidence": [
+        "run7.log",
+        "run7-observations.json",
+        "run8.log",
+        "run8-observations.json"
+      ]
+    }
+  ],
+  "limits": [
+    "Two constructed native ServerPlayer identities and NBT/clone checks, not human authenticated multiplayer.",
+    "Existing structure piece postProcess and chunk clips are real; biome frequency, terrain selection and full Structure generation are not claimed.",
+    "120 collision observations and60 continuous paths use native physics; no visual screenshots in headless server.",
+    "Real-clock cases use actual accelerated GameTestServer ticks. Historical copies explicitly seed clock fields only for legacy/negative/clone checks.",
+    "Playerless harness keeps production-scene chunks forced and waits80 ticks before NPC use; earlier untracked-NPC fixture failures are preserved in run3/run4/run5 logs.",
+    "No architecture was newly created; no1000-building quota completion claimed.",
+    "Ecology material acquisition in tomb/ruin/cave tags remains outside this interaction placement/collision/ownership run."
+  ],
+  "formal_java_changed": false,
+  "assets_changed": false,
+  "todo_changed": false,
+  "new_buildings_created": 0,
+  "frozen_inputs_manifest": "frozen-source-sha256.json"
+}
