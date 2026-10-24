@@ -1,0 +1,17 @@
+allprojects { p ->
+    p.layout.buildDirectory.set(p.file('tools/cod4/food-client-acceptance/.work/gradle'))
+    p.afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        def qa=p.sourceSets.create('foodClientQa') {
+            java.srcDir p.file('tools/cod4/food-client-acceptance/src')
+            resources.srcDir p.file('tools/cod4/food-client-acceptance/resources')
+            compileClasspath += p.sourceSets.main.compileClasspath
+        }
+        p.tasks.register('foodClientQaJar',Jar) {
+            dependsOn qa.classesTaskName
+            archiveBaseName='dynasty-food-client-qa'
+            from qa.output
+        }
+        p.reobf { foodClientQaJar {} }
+    }
+}

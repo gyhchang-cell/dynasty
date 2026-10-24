@@ -82,6 +82,7 @@ public final class TitleScreenRuntimeQa {
                 capture(mc,mc.screen,view[0],view[1],view[2]);
                 mc.screen.onClose();
             }
+            checkEggTooltips();
             checkDelegationAndDisabledButtons();
             checkNavigation(mc);
             require(mc.level == null, "All menu checks completed without opening a world");
@@ -155,6 +156,19 @@ public final class TitleScreenRuntimeQa {
         baseline.removed();
     }
 
+    private static void checkEggTooltips() {
+        int count = 0;
+        for (var entry : net.minecraftforge.registries.ForgeRegistries.ITEMS.getEntries()) {
+            if (!entry.getKey().location().getNamespace().equals("dynasty")
+                    || !(entry.getValue() instanceof net.minecraft.world.item.SpawnEggItem)) continue;
+            var stack = new net.minecraft.world.item.ItemStack(entry.getValue());
+            require(DynastyItemInfo.lines(stack).isEmpty() && DynastyItemInfo.shortText(stack).isEmpty(),
+                    "No generic spawn-egg tutorial: " + entry.getKey().location());
+            count++;
+        }
+        require(count > 30, "Checked all registered Dynasty spawn eggs: " + count);
+    }
+
     private static void checkDelegationAndDisabledButtons() {
         int[] calls = {0};
         Button original = Button.builder(Component.translatable("menu.multiplayer"), button -> calls[0]++)
@@ -205,6 +219,42 @@ public final class TitleScreenRuntimeQa {
         require(mc.screen instanceof SelectWorldScreen || mc.screen instanceof CreateWorldScreen,
                 "Singleplayer opens its real vanilla route: " + mc.screen.getClass().getSimpleName());
         require(mc.level == null, "World-selection/create UI has not opened a world");
+        if (mc.screen instanceof CreateWorldScreen create) {
+            try {
+                for (int[] size : new int[][]{{640, 400, 3}, {427, 240, 2}, {320, 240, 3}}) {
+                    create.resize(mc, size[0], size[1]);
+                    capture(mc, create, size[0], size[1], size[2]);
+                }
+                create.resize(mc, 640, 400);
+                var bar = create.children().stream()
+                        .filter(c -> c instanceof net.minecraft.client.gui.components.tabs.TabNavigationBar)
+                        .map(c -> (net.minecraft.client.gui.components.tabs.TabNavigationBar)c).findFirst().orElseThrow();
+                for (int tabIndex = 0; tabIndex < 3; tabIndex++) {
+                    var tab = (net.minecraft.client.gui.components.TabButton) bar.children().get(tabIndex);
+                    bar.mouseClicked(tab.getX() + tab.getWidth() / 2D, tab.getY() + tab.getHeight() / 2D, 0);
+                    require(tab.isSelected(), "Create-world tab responds: " + tab.getMessage().getString());
+                    capture(mc, create, 640, 400, 2);
+                }
+                bar.selectTab(0, false);
+                var nameField = create.children().stream().filter(c -> c instanceof net.minecraft.client.gui.components.EditBox)
+                        .map(c -> (net.minecraft.client.gui.components.EditBox)c).findFirst().orElseThrow();
+                require(!nameField.getValue().isBlank(), "Original world name remains populated after rendering all tabs");
+                var fieldBounds = nameField.getRectangle();
+                create.mouseClicked(nameField.getX() + 5, nameField.getY() + 8, 0);
+                require(nameField.isFocused(), "Original name field receives mouse focus");
+                String oldName = nameField.getValue();
+                create.charTyped('A', 0);
+                require(!nameField.getValue().equals(oldName), "Original name field accepts typing");
+                capture(mc, create, 640, 400, 3);
+                require(nameField.getRectangle().equals(fieldBounds), "Input geometry is restored after drawing");
+                var mode = create.children().stream().filter(c -> c instanceof net.minecraft.client.gui.components.CycleButton)
+                        .map(c -> (net.minecraft.client.gui.components.CycleButton<?>)c).findFirst().orElseThrow();
+                Component before = mode.getMessage();
+                create.mouseClicked(mode.getX() + mode.getWidth() / 2D, mode.getY() + mode.getHeight() / 2D, 0);
+                require(!before.equals(mode.getMessage()), "Original game-mode cycle button updates its value");
+            } catch (Exception error) { throw new RuntimeException(error); }
+        }
+
         mc.screen.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0);
         require(mc.screen instanceof DynastyTitleScreen, "Escape from singleplayer returns to the themed menu");
     }
@@ -227,7 +277,14 @@ public final class TitleScreenRuntimeQa {
     }
 
     private static void capture(Minecraft mc, Screen title, int width, int height, int scale) throws Exception {
-        String name = (title instanceof DynastyTitleScreen?"title-":"settings-") + width + "x" + height + "-scale" + scale;
+        int tabIndex = 0;
+        if (title instanceof CreateWorldScreen) {
+            var tabs = title.children().stream().filter(c -> c instanceof net.minecraft.client.gui.components.tabs.TabNavigationBar)
+                    .map(c -> (net.minecraft.client.gui.components.tabs.TabNavigationBar)c).findFirst().orElseThrow();
+            for (int i = 0; i < tabs.children().size(); i++)
+                if (((net.minecraft.client.gui.components.TabButton)tabs.children().get(i)).isSelected()) tabIndex = i;
+        }
+        String name = (title instanceof DynastyTitleScreen ? "title-" : title instanceof CreateWorldScreen ? "create-tab" + tabIndex + "-" : "settings-") + width + "x" + height + "-scale" + scale;
         Matrix4f projection = new Matrix4f(RenderSystem.getProjectionMatrix());
         VertexSorting sorting = RenderSystem.getVertexSorting();
         RenderTarget target = new TextureTarget(width * scale, height * scale, true, Minecraft.ON_OSX);
@@ -247,7 +304,7 @@ public final class TitleScreenRuntimeQa {
             RenderSystem.defaultBlendFunc();
             title.setFocused(null);
             GuiGraphics graphics = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-            title.renderWithTooltip(graphics, -100, -100, 0);
+            net.minecraftforge.client.ForgeHooksClient.drawScreen(title, graphics, -100, -100, 0);
             graphics.flush();
             GL11.glFinish();
             require(GL11.glGetError() == GL11.GL_NO_ERROR, name + " has no OpenGL error");

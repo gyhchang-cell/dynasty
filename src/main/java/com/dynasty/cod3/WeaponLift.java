@@ -25,6 +25,7 @@ import java.util.*;
 public final class WeaponLift {
     public static final String PREFIX="equipment_confirmed_lift_",STAMP="cod3_confirmed_lift_at";
     public static final int DURATION=8;
+    private static final Set<String> LONGARMS=Set.of("mu_mao","chang_qiang","dragon_spear","bawang_spear","thunder_spear","beichen_spear","baihu_glaive");
     private static final List<Candidate> CANDIDATES=new ArrayList<>();
     private static final List<Flight> FLIGHTS=new ArrayList<>();
     public record Ground(Vec3 point,int color) {}
@@ -49,10 +50,12 @@ public final class WeaponLift {
         final Candidate hit;boolean armed;boolean sampled;
         Flight(Candidate c){hit=c;}
     }
-    public static int color(String id){return "juque_sword".equals(id)?0xC9A468:"huan_shou_dao".equals(id)?0x85A9AE:-1;}
+    public static boolean isLongarm(String id){return id!=null&&LONGARMS.contains(id);}
+    public static int color(String id){return "juque_sword".equals(id)?0xC9A468:"huan_shou_dao".equals(id)?0x85A9AE:isLongarm(id)?EquipmentFeedback.tint(id):-1;}
+    private static int template(String weapon){return isLongarm(weapon)?3:34;}
     private static String weapon(net.minecraft.world.item.ItemStack stack) {
         var id=ForgeRegistries.ITEMS.getKey(stack.getItem());
-        return !stack.isEmpty()&&id!=null&&id.getNamespace().equals(Dynasty.MODID)&&color(id.getPath())>=0?id.getPath():null;
+        return !stack.isEmpty()&&id!=null&&id.getNamespace().equals(Dynasty.MODID)?id.getPath():null;
     }
     @SubscribeEvent(priority=EventPriority.LOWEST)
     public static void attack(AttackEntityEvent e) {
@@ -79,6 +82,7 @@ public final class WeaponLift {
         for(int i=CANDIDATES.size()-1;i>=0;i--){var c=CANDIDATES.get(i);if(c.target==e.getEntity()&&c.source==e.getSource()){candidate=CANDIDATES.remove(i);break;}}
         if(candidate==null||e.isCanceled()||!primary(e.getEntity(),e.getSource(),e.getAmount())||candidate.tick!=candidate.level.getGameTime()
                 ||!candidate.weapon.equals(weapon(EquipmentFeedback.sourceWeapon(e))))return;
+        if(color(candidate.weapon)<0&&com.dynasty.DynastySchoolCombat.primaryLift(candidate.player,candidate.target)<.18)return;
         var saved=candidate;FLIGHTS.removeIf(f->f.hit.target==saved.target);if(FLIGHTS.size()>=32)FLIGHTS.remove(0);FLIGHTS.add(new Flight(candidate));
     }
     @SubscribeEvent public static void tick(TickEvent.ServerTickEvent e) {
@@ -98,18 +102,20 @@ public final class WeaponLift {
             it.remove();var data=c.player.getPersistentData();long now=c.level.getGameTime();
             if(data.contains(STAMP)&&data.getLong(STAMP)==now)continue;
             data.putLong(STAMP,now);
+            com.dynasty.expansion.CombatFeedback.send(t,com.dynasty.expansion.CombatFeedback.LAUNCH);
             var p=packet(c.level.dimension().location().toString(),t.getId(),c.weapon,c.level.random.nextLong(),now,
                     Math.max(.45,Math.min(1.2,t.getBbWidth())),c.ground==null?c.feet:c.ground,c.direction,c.groundColor,c.ground!=null);
+            if(p==null)continue; // Other existing native lifts retain their generic cue without borrowing a weapon arc.
             var point=t.position();DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(point.x,point.y,point.z,32,c.level.dimension())),p);
         }
     }
     @SubscribeEvent public static void stopped(net.minecraftforge.event.server.ServerStoppedEvent e){CANDIDATES.clear();FLIGHTS.clear();}
     public static Cod3VisualPacket packet(String dim,int target,String weapon,long seed,long start,double scale,Vec3 ground,Vec3 direction,int groundColor,boolean supported) {
         if(color(weapon)<0)return null;
-        return new Cod3VisualPacket(dim,34,target,seed,start,DURATION,scale,ground,TangWind.horizontal(direction,Vec3.ZERO),PREFIX+weapon,supported?0:1,groundColor);
+        return new Cod3VisualPacket(dim,template(weapon),target,seed,start,DURATION,scale,ground,TangWind.horizontal(direction,Vec3.ZERO),PREFIX+weapon,supported?0:1,groundColor);
     }
     public static boolean accepts(Cod3VisualPacket p) {
-        return p!=null&&p.valid()&&p.sequence().startsWith(PREFIX)&&color(p.sequence().substring(PREFIX.length()))>=0&&p.template()==34
+        return p!=null&&p.valid()&&p.sequence().startsWith(PREFIX)&&color(p.sequence().substring(PREFIX.length()))>=0&&p.template()==template(p.sequence().substring(PREFIX.length()))
                 &&p.entityId()>=0&&p.duration()==DURATION&&p.tick()<=1&&p.scale()>=.45&&p.scale()<=1.2
                 &&Math.abs(p.direction().y)<1e-6&&p.direction().lengthSqr()>.9&&p.direction().lengthSqr()<1.1;
     }

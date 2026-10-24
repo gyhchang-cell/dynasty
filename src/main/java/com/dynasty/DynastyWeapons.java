@@ -121,6 +121,7 @@ public final class DynastyWeapons {
 
     /** 弓：把箭矢伤害按倍率放大 / bows scale arrow damage */
     public static class HuntingBowItem extends BowItem {
+        private static final java.util.Set<String> RAPID_BOWS = java.util.Set.of("lie_gong","chang_gong","shenbi_bow","luoyan_bow","tianlang_bow");
         private final double multiplier;
         private final double bonus;
 
@@ -143,12 +144,17 @@ public final class DynastyWeapons {
             }
         }
 
+        /** Shared with the local draw hint; preserves the existing rapid-bow release threshold. */
+        public int fullDrawTicks() {
+            String series = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(this).getPath();
+            return RAPID_BOWS.contains(series) ? 16 : 20;
+        }
+
         @Override
         public void releaseUsing(ItemStack stack, Level level, LivingEntity user, int remainingTicks) {
             int chargedTicks = stack.getUseDuration() - remainingTicks;
-            String series = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(this).getPath();
-            boolean rapid = java.util.Set.of("lie_gong","chang_gong","shenbi_bow","luoyan_bow","tianlang_bow").contains(series);
-            super.releaseUsing(stack, level, user, rapid && chargedTicks>=16 ? remainingTicks-4 : remainingTicks);
+            int fullDraw = fullDrawTicks();
+            super.releaseUsing(stack, level, user, chargedTicks>=fullDraw ? remainingTicks-(20-fullDraw) : remainingTicks);
             if (level instanceof ServerLevel server && user instanceof Player player) {
                 DynastyBowRitual.onRelease(server, player, this, chargedTicks, visualDamageScore());
             }

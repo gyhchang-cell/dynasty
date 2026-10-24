@@ -30,7 +30,8 @@ public final class EquipmentFeedback {
     }
     public static int template(String id,int combo,boolean critical){
         return switch(id){
-            case "mu_mao","dragon_spear","bawang_spear","thunder_spear","beichen_spear"->critical?12:3;
+            // Actual longarm ascent owns VFX#3 through WeaponLift; ordinary hits keep their afterimage.
+            case "mu_mao","dragon_spear","bawang_spear","thunder_spear","beichen_spear"->29;
             case "longyuan_sword","dragon_slayer"->17;
             case "seven_star_saber","ziwei_saber","zhuxing_bow"->21;
             case "halberd_fangtian"->2;

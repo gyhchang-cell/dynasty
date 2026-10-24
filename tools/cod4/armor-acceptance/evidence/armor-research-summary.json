@@ -1,0 +1,186 @@
+{
+  "generated_at": "2026-10-23T08:18:03.801322+08:00",
+  "summary": {
+    "required": 1000,
+    "accepted_implementation_sites": 1000,
+    "shortfall": 0,
+    "gate_met": true,
+    "status": "事后专属研究已补足；不追溯制作前完成，不追加正式改动",
+    "source_files_scanned": 29035,
+    "candidate_methods": 4085,
+    "review_decisions": {
+      "excluded": 845,
+      "accepted": 1000,
+      "not_accepted_unreviewed": 2240
+    },
+    "original_340_unreviewed_now_resolved": true,
+    "distinct_repositories": 47,
+    "distinct_pinned_files": 646,
+    "original_status_1000_counted_toward_gate": 0,
+    "initial_five_ranges_added_as_five": false
+  },
+  "ledger": "tools/cod4/armor-acceptance/evidence/armor-references.json",
+  "ledger_sha256": "370174d37f3b29047a957aa5dec503dbe6e9a814319bad91ac2a285198df9653",
+  "count_unit": "逐段阅读的完整方法或独立实现；同方法分支不拆数，模板/改名克隆排除，候选不计数",
+  "themes": [
+    {
+      "theme": "装备资格是持续条件，不是一次开窗即永久授权",
+      "conclusion": "卸装、槽位缩减和同栈变化都需要撤销自身授权与属性；保留不属于该装备的外部效果。",
+      "evidence": [
+        {
+          "candidate_index": 2834,
+          "url": "https://github.com/wisp-forest/accessories/blob/e0734a699db4195838e74ed8741373ee28740b91/common/src/main/java/io/wispforest/accessories/impl/event/AccessoriesEventHandler.java#L217-L414",
+          "snippet_sha256": "7e4a7128d5e231459fb006d28fcfbfb735cb4a29e088bfeab129c8bf20885262",
+          "observation": "饰品总tick对比槽前后栈及flag，在服务端非死亡才撤旧属性/位置附魔/嵌套效果再授新，区分replacement与mutation后同步脏槽副本；缩容失效物品归还或掉落而清队列，完整方法一处。"
+        },
+        {
+          "candidate_index": 2825,
+          "url": "https://github.com/wisp-forest/accessories/blob/e0734a699db4195838e74ed8741373ee28740b91/common/src/main/java/io/wispforest/accessories/impl/core/AccessoriesContainerImpl.java#L128-L252",
+          "snippet_sha256": "e348fa1245c6637ba85f9e3168dada9a4710f51d2ec00482ce0e1e743d7e8dfd",
+          "observation": "饰品容器缩容复制可容纳槽，溢出功能装备逐个按原slotReference撤瞬时属性并onUnequip，物品交invalidStacks回收而不丢失；更新锁防递归通知、最后清容器查找缓存。"
+        },
+        {
+          "candidate_index": 3441,
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/handler/EquipmentHandler.java#L70-L103",
+          "snippet_sha256": "7498c6d6a1e92ac2709898a98d7568f614755e3a94f0648f7261f0430c1e0c3f",
+          "observation": "Botania热栏饰品兼容逐槽比较旧栈副本与当前栈，变化时先移旧属性和onUnequipped，再核canEquip授新属性；必须copy缓存防shift-click原地变空漏卸装。"
+        },
+        {
+          "candidate_index": 3396,
+          "url": "https://github.com/TeamLapen/Vampirism/blob/83c220f47cd030eed4c779c90f5786b261075869/projects/faction/src/main/java/de/teamlapen/faction/common/factions/skills/RefinementHandler.java#L153-L163",
+          "snippet_sha256": "5ab32417cad85927713fe0fae8c3a521111ee2594a9f8d0798d5010b0c43e6cf",
+          "observation": "精炼装备变更先删除所有旧槽对应refinement属性与缓存集合，再按新装备applyAttributes并sync；明确先撤旧再授新，避免卸装残留。"
+        }
+      ]
+    },
+    {
+      "theme": "反击和远程能力必须保持来源身份",
+      "conclusion": "绑定持有者、原槽与来源栈；换手/换装后重新核验，成功结算一次后清理，失败与异常路径也需考虑回滚。",
+      "evidence": [
+        {
+          "candidate_index": 2824,
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java#L758-L867",
+          "snippet_sha256": "6d97a23029040edd8af1cfdc6e6ffbab8135553effa928801aa986a694f363de",
+          "observation": "反击盾先消费弹射物一次性反射增伤标记，再要求活跃ticks、isParryStack和可格挡伤害；非guard成功后立刻清窗口并锁释放/起冷却，miss惩罚也先清标记且限制有限浮点，来源与一次消费明确。"
+        },
+        {
+          "candidate_index": 2819,
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java#L557-L643",
+          "snippet_sha256": "bde8352fe124d8137f72a730a398087ea5912d02995cf4f3aa44b9f995c81c17",
+          "observation": "反击盾释放按已捕获UUID查当前服务端弹射物，重设owner为反击玩家、恢复重力并写反射伤害标记，完成后清捕获列表；实际释放数控制统计与反馈，重复释放空列表无收益。"
+        },
+        {
+          "candidate_index": 2816,
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/items/relics/ClotOfTimeItem.java#L471-L553",
+          "snippet_sha256": "93ec197fca79c1c9191cea748f4afd98d979dbbea71ade6e3f09fe48d089973c",
+          "observation": "时间团块服务端按真正使用的主手索引或副手槽标记唯一栈，使用中更新该栈冷却，换手立即清rewindCursor且至少1冷却，跨维度路径特殊清冷却；其他栈继续各自记录与倒计时。"
+        },
+        {
+          "candidate_index": 2424,
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/item/ranged/ModifiableBowItem.java#L158-L312",
+          "snippet_sha256": "7e6814227f87fb481200bbf885fbb3295596c9ab4595bc180619d8d507977302",
+          "observation": "ModifiableBowItem.releaseUsing先验弹药与蓄力并允许取消，服务端按对象身份找出投掷工具原槽，确认有效才消耗弹药；弹射物记录原槽与弓的modifier，释放钩子按实际使用手结算。可借鉴来源栈/手与延迟消费绑定，避免换手借用已开窗口；整段方法计一处。"
+        },
+        {
+          "candidate_index": 2444,
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/item/MagneticWeaponEntity.java#L94-L266",
+          "snippet_sha256": "cbff57eabfb862505a36328981ea72c081d28c5edb6540ae8148f74e3149178b",
+          "observation": "MagneticWeaponEntity.tick将控制权绑定controller，失去磁力手套立即进入返回流程并清理挖掘裂纹；仅playerUseCooldown为零才能打击，命中后设冷却；归还物品使用isRemoved/spawnedItem和hadPlayer防止重复生成。可借鉴卸装撤销远程控制而保留实体自身冷却和一次归还。"
+        },
+        {
+          "candidate_index": 2835,
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/helper/ToolAttackUtil.java#L167-L367",
+          "snippet_sha256": "d9cb43fa0c4a7da40fa65401add0d2525674c3e147d9418e4920cdebebd4f4f2",
+          "observation": "ToolAttackUtil.performAttack从攻击context取sourceSlot，伤害调用前暂设looting来源，调用后复位；失败执行failedMeleeHit回滚，成功才按实际伤害触发afterMeleeHit与耐久。isExtraAttack防止额外攻击重复消耗。可借鉴反击来源手和成功一次结算，同时注意临时全局来源清理未用finally的异常路径风险；完整方法计一处。"
+        }
+      ]
+    },
+    {
+      "theme": "短时授权与持久冷却分开",
+      "conclusion": "绝对到期tick、物品NBT和玩家冷却各有不同寿命；卸装撤销授权不应自动清除防滥用冷却。跨死亡是否复制需独立研究并按本项目语义审定。",
+      "evidence": [
+        {
+          "candidate_index": 2801,
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/modules/OverburnModule.java#L85-L151",
+          "snippet_sha256": "ba78b88b57d0f9f19171e987bfb1381ecb7ecbf07cb7156d4cded1a391ab5c77",
+          "observation": "Overburn燃料有效期用全局gameTime写工具持久NBT，过期按实际液体余量比例续期，存不满下次间隔则删旧键；当前使用栈暂停更新避免蓄力动画丢失，换槽不重置绝对期限。"
+        },
+        {
+          "candidate_index": 2158,
+          "url": "https://github.com/Vazkii/Psi/blob/0f21fab9ec0afe48c2bf4e45f2360547a7c322b3/Xplat/src/main/java/vazkii/psi/common/core/handler/PlayerData.java#L445-L496",
+          "snippet_sha256": "8b207ece867008a94e2bdc6d2068caab6059106e07b61eaeb231c81232c72fb2",
+          "observation": "Psi扣费先检查当前CAD无限储量，玩家恢复冷却取max避免短技能缩短长CD，余额不足依次扣CAD储量再反噬并同步，最后save持久化玩家余额和冷却。"
+        },
+        {
+          "candidate_index": 3892,
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/MagicManager.java#L94-L108",
+          "snippet_sha256": "4fa8f949d1e09d1be20ef1b161a320cd9f6912a369fdb8d999ed5ffe5d498daf",
+          "observation": "添加法术冷却先发布带castSource事件，卷轴或事件取消直接不加；实际玩家capability按spell存冷却后同步本人并发Post，换物品不能仅靠换栈绕开玩家冷却。"
+        },
+        {
+          "candidate_index": 2352,
+          "url": "https://github.com/Electroblob77/Wizardry/blob/fe5d05a7a134836dd972e3680a900619c7e9c134/src/main/java/electroblob/wizardry/item/ItemWand.java#L696-L794",
+          "snippet_sha256": "455dbad883cd8265b0267469c134cc29a16855302626c2a409c33ce407a3e87c",
+          "observation": "法杖升级先拷原NBT再用新物品容量恢复原法力，扩法术槽同时复制原冷却数组，保留超额进度；升级换物品不能填满法力或清既有技能CD，是物品状态承接实际实现。"
+        },
+        {
+          "candidate_index": 2830,
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/items/relics/necklace/JellyfishNecklaceItem.java#L281-L439",
+          "snippet_sha256": "0065725f568141f20f3a7c776d823983d1e89b5f5ad9876b23c10df870fba1bd",
+          "observation": "水母项链多栈选唯一controller汇总能力，入水授生命/离水撤并可转吸收，戒环恢复与触碰目标UUID去重均由controller推进，最终复制冷却/层数/目标列表到其余活跃栈防换控制栈刷新。"
+        },
+        {
+          "candidate_index": 3369,
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java#L1017-L1266",
+          "snippet_sha256": "5cceff90b126c35bb4a4eadf153e35d7742da7a5c19765c1c9419eb0ed11a04f",
+          "observation": "全局tick始终递减玩家共享法石冷却而不要求继续佩戴，失去荒芜戒即移除区域，主手锅离手清持续计时并撤两种无限效果；只按实际有锅增长且区分不能饥饿者，完整250行计一处。"
+        }
+      ]
+    },
+    {
+      "theme": "研究也记录失败反例",
+      "conclusion": "先确认实际命中再支付/授予，防递归冷却需在再入前写入；缺少能量失败清理、无效判断和多余分号说明外部实现不是正确性证明。",
+      "evidence": [
+        {
+          "candidate_index": 1971,
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/items/modular/ItemModularHandheld.java#L439-L476",
+          "snippet_sha256": "0a37e947881900c8bd995c5c553ded9a6bc9a6f6eab03d394625b20fa3aa2eee",
+          "observation": "模块武器统一命中先算本次栈属性并原生hurt，只有返回成功才双方附魔、物品状态和击退/暴击反馈，失败直接fail；为后续条件效果提供实际伤害边界。"
+        },
+        {
+          "candidate_index": 2798,
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/modules/interaction/SplashingModule.java#L146-L208",
+          "snippet_sha256": "22b49c081e46944317a2520a44cac35cc3eb44ea670f6392a3befbe39cd84a9c",
+          "observation": "喷洒方块交互在实际效果前先给玩家物品冷却以阻止末影递归触发，服务端每目标按成功消耗扣液体，资源写回与破损广播使用本次手/交互源。"
+        },
+        {
+          "candidate_index": 3717,
+          "url": "https://github.com/lehjr/ModularPowerArmor/blob/97db23a1551bea409b7d0c9bfd2e3cf61a9d521e/src/main/java/com/github/lehjr/modularpowerarmor/event/MovementManager.java#L63-L108",
+          "snippet_sha256": "ebb07ff0add9e9c84806ca84a1dff471aa27602e5c21a309ea148a3a51d8d5ae",
+          "observation": "移动修正写具体腿甲栈AttributeModifiers，已有同名条目更新、零值意图删；但hasAttribute与remove互斥导致删除条件永不满足，明确记录撤销遗漏反例。"
+        },
+        {
+          "candidate_index": 3703,
+          "url": "https://github.com/lehjr/ModularPowerArmor/blob/97db23a1551bea409b7d0c9bfd2e3cf61a9d521e/src/main/java/com/github/lehjr/modularpowerarmor/item/module/energy_generation/KineticGeneratorModule.java#L68-L90",
+          "snippet_sha256": "1497daa5e49308b0e86e35ad74ce461723b389222393ed522b453c758ff97914",
+          "observation": "动能发电活跃期按地面步距定时给能量，飞行/乘坐先调用停用；但无return且isModuleOnline后多余分号使撤销无条件，留下条件清理失效反例。"
+        },
+        {
+          "candidate_index": 3708,
+          "url": "https://github.com/lehjr/ModularPowerArmor/blob/97db23a1551bea409b7d0c9bfd2e3cf61a9d521e/src/main/java/com/github/lehjr/modularpowerarmor/item/module/movement/SprintAssistModule.java#L78-L106",
+          "snippet_sha256": "5e13fc97854504acfc4b7351d52b78c2c62f16f04842810a2c177b7cdf96ec6d",
+          "observation": "冲刺辅助按行走/冲刺分支扣费改移动属性，飞行先停用但未return且缺能分支未撤销，说明状态式加速应覆盖所有失效路径。"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    "原status1000计入本门槛为0；最初五段不直接加5。",
+    "当前1000为事后补足，不能追溯称制作前已完成。",
+    "研究没有执行上游模组；包含风险反例，不称1000次实机测试。",
+    "原有63项已真实完成且冻结输入哈希匹配，本次研究不重跑。",
+    "28套属性穿脱矩阵不能替代84项条件行为；FakePlayer及离线ServerPlayer不是真人双客户端。",
+    "Herschel继续真实客户端与长冷却/死亡绕过核查；本分工正式代码冻结。",
+    "迁移研究独立分账，不能将盔甲1000或宽泛状态语料自动搬入迁移1000。"
+  ]
+}

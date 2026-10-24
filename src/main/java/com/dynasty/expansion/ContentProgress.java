@@ -18,6 +18,8 @@ public final class ContentProgress {
         DynastySchoolProgression.reconcile(p);
         Set<String> obtained=new HashSet<>();
         for(ItemStack stack:p.getInventory().items)obtained.add(EquipmentBehaviors.id(stack));
+        // Native offhand stacks are outside Inventory.items, including on old-save login.
+        for(ItemStack stack:p.getHandSlots())obtained.add(EquipmentBehaviors.id(stack));
         for(ItemStack stack:p.getArmorSlots())obtained.add(EquipmentBehaviors.id(stack));
         obtained.addAll(DynastyTrinkets.activeIds(p));
         for(String id:obtained) {

@@ -19,7 +19,7 @@ def publish(ids=None):
  DOC.mkdir(parents=True,exist_ok=True)
  backup(MAN)
  m=read(MAN)
- for batch,filename in [('inventory-mc-v5','selected.json'),('mechanical-mc-v6','selection.json'),('accessories-mc-v8','selection.json'),('accessories-mc-v9','selection.json'),('accessories-mc-v10','selection.json'),('accessories-mc-v11','selection.json'),('supplies-mc-v12','selection.json'),('talismans-mc-v13','selection.json'),('items-mc-v14','selection.json'),('ammunition-mc-v15','selection.json'),('qimen-items-mc-v16','selection.json'),('accessory-finish-mc-v17','selection.json'),('weapons-mc-v19','selection.json'),('weapons-mc-v20','selection.json'),('mixed-items-mc-v21','selection.json'),('armor-curios-mc-v22','selection.json')]:
+ for batch,filename in [('inventory-mc-v5','selected.json'),('mechanical-mc-v6','selection.json'),('accessories-mc-v8','selection.json'),('accessories-mc-v9','selection.json'),('accessories-mc-v10','selection.json'),('accessories-mc-v11','selection.json'),('supplies-mc-v12','selection.json'),('talismans-mc-v13','selection.json'),('items-mc-v14','selection.json'),('ammunition-mc-v15','selection.json'),('qimen-items-mc-v16','selection.json'),('accessory-finish-mc-v17','selection.json'),('weapons-mc-v19','selection.json'),('weapons-mc-v20','selection.json'),('mixed-items-mc-v21','selection.json'),('armor-curios-mc-v22','selection.json'),('armor-vanilla-v23','selection.json'),('armor-imperial-v24','selection.json'),('armor-sacred-v25','selection.json'),('armor-expansion-v26','selection.json')]:
   d=ROOT/'docs/art'/batch; rows=read(d/filename)
   if batch=='inventory-mc-v5':rows+= [{'id':x,'group':'materials'} for x in ['raw_silk','silk','roof_tile','brocade']]
   for row in rows:
@@ -36,6 +36,10 @@ def publish(ids=None):
  report=[]
  for row in rows:
   ident=row['id'];target=allpng/f'{ident}.png';model=A/'models/item'/f'{ident}.json'
+  if ids is not None and ident not in ids:
+   with Image.open(target) as existing: size=list(existing.size)
+   report.append({'id':ident,'source':row['source'],'size':size,'sha256':hashlib.sha256(target.read_bytes()).hexdigest()})
+   continue
   backup(target);backup(model)
   with Image.open(ROOT/row['source']) as original:
    original=original.convert('RGBA');bounds=row.get('crop_bounds',original.getbbox())

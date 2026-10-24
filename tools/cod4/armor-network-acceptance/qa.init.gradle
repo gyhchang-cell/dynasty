@@ -1,0 +1,17 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('tools/cod4/armor-network-acceptance/.work/gradle'))
+ p.afterEvaluate {
+  if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def qa=p.sourceSets.create('armorNetworkAcceptance') {
+   java.srcDir p.file('tools/cod4/armor-network-acceptance/src')
+   resources.srcDir p.file('tools/cod4/armor-network-acceptance/resources')
+   compileClasspath += p.files('build/cod4-network-20261022/compile-dynasty') + p.sourceSets.main.compileClasspath
+  }
+  p.tasks.register('armorNetworkAcceptanceJar',Jar) {
+   dependsOn qa.classesTaskName
+   archiveBaseName='dynasty-armor-network-acceptance'
+   from qa.output
+  }
+  p.reobf { armorNetworkAcceptanceJar {} }
+ }
+}

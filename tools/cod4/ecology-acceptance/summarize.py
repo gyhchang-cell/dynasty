@@ -1,0 +1,31 @@
+from pathlib import Path
+import json,collections
+R=Path(__file__).resolve().parents[3];D=R/'docs/cod4/audit-20261022/ecology-acceptance'
+d=json.loads((D/'normal-run2-observations.json').read_text());source=json.loads((D/'source-audit.json').read_text());receipt=json.loads((D/'normal-run2-receipt.json').read_text())
+rows=d['observations'];positions=[x for x in rows if x['kind']=='normal_world_position'];species=[x for x in rows if x['kind']=='registered_species'];starts=[x for x in rows if x['kind']=='naturally_generated_start'];locates=[x for x in rows if x['kind']=='native_locate']
+counts=collections.Counter(s for x in positions for s in x['native_placement_callback_pass']);registered=sum(bool(s['biomes']) and all(b['native_spawn_entries'] for b in s['biomes']) for s in species)
+result={'scope':'bounded normal Overworld native conditions; NOT complete natural spawn/drop acceptance','seed':d['seed'],'generator':d['generator'],'native_execution_completed':receipt['native_finished'],'source_unchanged':receipt['inputs_unchanged'] and receipt['frozen_source_verified'],'live_biome_registration':{'pass':registered,'denominator':30},'sample':{'full_chunks_explicitly_requested':d['distinct_full_chunks_requested'],'not_total_world_generated_chunks':True,'recorded_positions':len(positions),'unique_positions':len({p['pos'] for p in positions}),'native_placement_checks':len(positions)*30,'species_with_positive_callback':len(counts),'species_denominator':30,'species_no_positive_sample':[s['id'] for s in species if not counts[s['id']]]},'natural_structure_starts':starts,'locate':locates,'natural_spawn_events_verified':0,'naturally_spawned_mob_deaths_verified':0,'material_natural_drop':{'verified':0,'denominator':10,'status':'PENDING'},'material_loot_configuration':{'with_entity_source':sum(bool(x['existing_entity_loot_sources']) for x in source['materials']),'denominator':10},'known_scene_gap':'ruined_villages tag empty; ghost_sites resolves to battlefield, not dedicated abandoned village/mortuary/graveyard/ghost market','all_items_complete':False}
+(D/'result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+(D/'species-native-results.tsv').write_text('id\tlive_biome_spawn_lists\tpositions_checked\tpositive_native_callbacks\tnatural_spawn_verified\tnatural_drop_verified\n'+''.join(f"{s['id']}\tPASS\t{len(positions)}\t{counts[s['id']]}\tPENDING\tPENDING\n" for s in species))
+(D/'material-natural-results.tsv').write_text('id\trequested_source\tconfigured_entity_sources\tnatural_kill_drop\n'+''.join(f"{m['id']}\t{m['requested_source']}\t{','.join(x['species'] for x in m['existing_entity_loot_sources'])}\tPENDING\n" for m in source['materials']))
+(D/'report.txt').write_text(f'''COD4-1 / COD4-11 自然生态只读验收（有限样本）
+
+结果：正常DedicatedServer原生检查完整执行并保存退出；整体自然生态/材料来源验收仍未完成，不删除待办。
+固定种子20261023；实际NoiseBasedChunkGenerator，非GameTest平面世界；未手放piece、改biome、方块、昼夜天气或游戏规则；未生成测试生物。
+独立来源快照、APFS克隆GradleHome、项目缓存、编译输出和世界；normal-run2-receipt.json验证输入与全部冻结来源哈希不变。
+
+运行时分母：30/30物种标签非空且进入实际biome刷怪表；54个显式请求FULL的区块（不是世界总生成区块），270个不同位置，8100次SpawnPlacements NATURAL检查；19/30种至少有一个原生回调合格位置。回调通过不等于已由NaturalSpawner刷出。全部原生记录见normal-run2-observations.json。
+19种的阳性次数及其余11种见species-native-results.tsv，阴性仅指本样本没有阳性，不据此判实现错误。当前day_time=0，没有伪造夜间条件，夜间类仍待夜间实测。
+
+真实生成结构：
+古战场 dynasty:ruined_battlefield，start chunk[-167,-84]，原生locate(-2672,0,-1344)，bbox X[-2692,-2636] Y[50,85] Z[-1364,-1308]；地表实际plains，流民/剪纸童子回调通过。
+驿站 dynasty:post_house，start chunk[47,-40]，原生locate(752,0,-640)，bbox X[733,787] Y[91,127] Z[-659,-605]；实际plains/sunflower_plains，骗子回调通过。
+locate返回Y=0是定位输出，实际地面高度及真实结构bbox另记；不拿Y=0作建筑地面。观察为正常区块生成后的有效StructureStart及其自然地形，不是调用piece生产入口的人工建筑。
+四个tag搜索半径4个placement-region环，2个找到、2个未找到：墓葬与机关城在有限范围未找到，不称全世界缺失。
+
+场景明确缺口：ecology/ruined_villages为空；blueprint/ghost_sites仅古战场；没有用古战场代替原要求独立荒村/义庄/墓地/鬼市通过。tombs含imperial_tomb与chensha_xuangong，其中帝陵biome配置为celestial标签，须继续核对正常Overworld的实际biome交集，不能凭旧手放帝陵测试宣称主世界自然可达。未制作建筑。
+
+10/10材料有现存实体掉落表入口，见source-audit.json与material-natural-results.tsv；自然出现实体的玩家击杀及拾取证据0/10，保持PENDING。真实运行没有玩家，未把注册配置、随机掉落表抽样、人工生物死亡或既有journey测试称为自然来源闭环。
+未确认的后续：夜间正常刷怪、生态随机选择/玩家距离/全局与区域mob cap、真实自然实体击杀掉落、荒村/义庄/墓地/鬼市及墓葬/机关城的自然可达现场。复现及分母限制见test-plan.txt。
+''')
+print(json.dumps(result['sample'],ensure_ascii=False))

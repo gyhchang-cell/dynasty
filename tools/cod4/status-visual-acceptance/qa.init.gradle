@@ -1,0 +1,18 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('build/cod4-status-visual-20261023/gradle'))
+ p.afterEvaluate {
+  if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def qa=p.sourceSets.create('statusVisualAcceptance') {
+   java.srcDir p.file('tools/cod4/status-visual-acceptance/src')
+   resources.srcDir p.file('tools/cod4/status-visual-acceptance/resources')
+   compileClasspath += p.files('build/cod4-pack-20261022/compile-dynasty') + p.sourceSets.main.compileClasspath
+  }
+  p.tasks.register('statusVisualAcceptanceJar',Jar) {
+   dependsOn qa.classesTaskName
+   archiveBaseName='dynasty-status-visual-acceptance'
+   from qa.output
+   manifest.attributes('MixinConfigs':'status-visual-qa.mixins.json')
+  }
+  p.reobf { statusVisualAcceptanceJar {} }
+ }
+}

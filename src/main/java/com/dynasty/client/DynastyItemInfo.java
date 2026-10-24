@@ -46,7 +46,8 @@ public final class DynastyItemInfo {
         if (id == null || !id.getNamespace().equals(com.dynasty.Dynasty.MODID)) {
             return out;
         }
-        if (stack.getItem() instanceof BlockItem || stack.getItem() instanceof net.minecraft.world.item.PotionItem
+        if (stack.getItem() instanceof net.minecraft.world.item.SpawnEggItem
+                || stack.getItem() instanceof BlockItem || stack.getItem() instanceof net.minecraft.world.item.PotionItem
                 || com.dynasty.infusion.InfusionTraits.material(stack) != null) return out;
         boolean zh = chinese();
         String path = id.getPath();
@@ -88,31 +89,9 @@ public final class DynastyItemInfo {
             }
             return null;
         }
-        if (path.endsWith("_spawn_egg")) {
-            return new String[]{"刷怪蛋：右键地面放出该生物。",
-                    "Spawn egg: right-click the ground to spawn."};
-        }
         if (path.endsWith("_coin")) {
             return new String[]{"货币：用于科举、节庆与交易。",
                     "Currency: used for exams, festivals and trade."};
-        }
-        if (path.startsWith("dynasty_potion") || path.startsWith("dynasty_splash_potion")
-                || path.startsWith("dynasty_lingering_potion")) {
-            return new String[]{"药水：饮用或投掷获得对应的王朝增益。",
-                    "Potion: drink or throw for a dynasty buff."};
-        }
-        if (path.endsWith("_helmet") || path.endsWith("_chestplate")
-                || path.endsWith("_leggings") || path.endsWith("_boots")) {
-            return new String[]{"护甲：穿戴提升防御，并计入王朝套装减伤。",
-                    "Armor: raises defense and counts towards the dynasty set bonus."};
-        }
-        if (path.startsWith("sword_") || path.equals("halberd_fangtian")) {
-            return new String[]{"武器：左键攻击造成大量伤害。",
-                    "Weapon: left-click to deal heavy damage."};
-        }
-        if (path.startsWith("pickaxe_")) {
-            return new String[]{"工具：挖掘方块，兼顾强力攻击。",
-                    "Tool: mines blocks and hits hard."};
         }
         return null;
     }
@@ -132,6 +111,7 @@ public final class DynastyItemInfo {
         if (id == null || !id.getNamespace().equals(com.dynasty.Dynasty.MODID)) {
             return "";
         }
+        if (stack.getItem() instanceof net.minecraft.world.item.SpawnEggItem) return "";
         boolean zh = chinese();
         String path = id.getPath();
         String[] special = DynastyItemUsage.special(path);

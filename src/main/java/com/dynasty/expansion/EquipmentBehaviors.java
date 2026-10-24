@@ -80,7 +80,13 @@ public final class EquipmentBehaviors {
         skyJump(p);
         if(pieces(p,"beidou")<4) {n.remove("cod4StarIFrame");n.remove("cod4ContinuousSteps");}
         if(pieces(p,"xuanwu")<4)n.remove("cod4Shell");
-        if(pieces(p,"xuanwu")<2 && !p.getMainHandItem().is(ExpansionContent.DUCK.get()))n.remove("cod4Counter");
+        if(!counterActive(p))clearCounter(p);
+        // These are equipment grants, not cooldowns. Losing their threshold revokes
+        // the window so putting the set back on cannot revive an earlier proc.
+        if(pieces(p,"cloth")<3)n.remove("cod4Rested");
+        if(pieces(p,"bronze")<3)n.remove("cod4BronzeGuard");
+        if(pieces(p,"phoenix")<3)n.remove("cod4PhoenixSpeed");
+        if(pieces(p,"ziwei")<3)n.remove("cod4Crit");
         if(pieces(p,"hunyuan")<3)n.remove("cod4BalanceUntil");
         if(pieces(p,"hunyuan")<4)n.remove("cod4HunyuanQiUntil");
         if(pieces(p,"qinglong")<4)n.remove("cod4QinglongQiUntil");
@@ -251,7 +257,7 @@ public final class EquipmentBehaviors {
     }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void block(ShieldBlockEvent e) {
         if(e.isCanceled()||e.getBlockedDamage()<=0||!(e.getEntity() instanceof ServerPlayer p))return;
-        var n=p.getPersistentData();n.putLong("cod4BronzeGuard",now(p)+60);
+        var n=p.getPersistentData();if(pieces(p,"bronze")>=3)n.putLong("cod4BronzeGuard",now(p)+60);
         boolean perfect=perfectGuard(p);
         if(perfect)p.removeEffect(ExpansionEffects.STAGGER.get());
         String blocking=id(p.getUseItem());
@@ -263,7 +269,7 @@ public final class EquipmentBehaviors {
             // Run after the school's partial block. Raise a 50% weapon block to 60%
             // of the original hit; an ordinary shield's full block remains full.
             e.setBlockedDamage(Math.min(e.getOriginalBlockedDamage(),Math.max(e.getBlockedDamage(),e.getOriginalBlockedDamage()*.6F)));
-            n.putLong("cod4Counter",now(p)+60);
+            openCounter(p,"xuanwu");
             if(pieces(p,"xuanwu")>=4)n.putBoolean("cod4Shell",true);
         }
         if(has(p,"heart_mirror") && !has(p,"bronze_mirror") && e.getDamageSource().getEntity() instanceof LivingEntity attacker && ExpansionWeapons.enemy(p,attacker)) {
@@ -273,17 +279,35 @@ public final class EquipmentBehaviors {
     }
     /** Vanilla raises a block after five ticks; the next six active ticks are the 0.3s window. */
     public static boolean perfectGuard(Player p){
-        boolean paired=p.isUsingItem()&&p.getUseItem().is(ExpansionContent.DUCK.get())
-                &&p.getMainHandItem().is(ExpansionContent.DUCK.get())&&p.getOffhandItem().is(ExpansionContent.DUCK.get());
+        boolean paired=p.isUsingItem()&&p.getUseItem().is(ExpansionContent.DUCK.get())&&pairedAxes(p);
         return (p.isBlocking()||paired)&&p.getTicksUsingItem()>=5&&p.getTicksUsingItem()<11;
+    }
+    private static boolean pairedAxes(Player p){
+        return p.getMainHandItem().is(ExpansionContent.DUCK.get())&&p.getOffhandItem().is(ExpansionContent.DUCK.get());
+    }
+    private static void openCounter(Player p,String source){
+        p.getPersistentData().putLong("cod4Counter",now(p)+60);
+        p.getPersistentData().putString("cod4CounterSource",source);
+    }
+    private static boolean counterActive(Player p){
+        var n=p.getPersistentData();
+        if(now(p)>=n.getLong("cod4Counter"))return false;
+        return switch(n.getString("cod4CounterSource")){
+            case "xuanwu"->pieces(p,"xuanwu")>=2;
+            case "duck"->pairedAxes(p);
+            default->false; // An old unowned three-second window cannot acquire a new source.
+        };
+    }
+    private static void clearCounter(Player p){
+        p.getPersistentData().remove("cod4Counter");p.getPersistentData().remove("cod4CounterSource");
     }
     @SubscribeEvent(priority=EventPriority.LOW) public static void attack(LivingAttackEvent e) {
         if(!(e.getEntity() instanceof ServerPlayer p) || e.getAmount()<=0)return;
-        if(now(p)<p.getPersistentData().getLong("cod4StarIFrame") && !e.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY))e.setCanceled(true);
+        if(pieces(p,"beidou")>=4 && now(p)<p.getPersistentData().getLong("cod4StarIFrame") && !e.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY))e.setCanceled(true);
         if(e.getSource().is(DamageTypeTags.IS_FIRE) && (pieces(p,"phoenix")>=2 || pieces(p,"zhuque")>=2 || has(p,"phoenix_feather_charm"))) {
             if(has(p,"phoenix_ring"))phoenixIgnited(p);
             if(has(p,"phoenix_feather_charm"))com.dynasty.cod3.EquipmentFeedback.accessory(p,"phoenix_feather_charm");
-            e.setCanceled(true);p.clearFire();p.getPersistentData().putLong("cod4PhoenixSpeed",now(p)+60);
+            e.setCanceled(true);p.clearFire();if(pieces(p,"phoenix")>=3)p.getPersistentData().putLong("cod4PhoenixSpeed",now(p)+60);
             if(pieces(p,"phoenix")>=4 && ready(p,"fireRing",80)) {
                 CombatFeedback.send(p,CombatFeedback.FIRE_RING);
                 com.dynasty.cod3.Cod3Vfx.actor(p,"phoenix_embers",16,.6,0xff8050);
@@ -305,8 +329,8 @@ public final class EquipmentBehaviors {
             if(e.getAmount()>0 && pieces(p,"qilin")>=4 && p.getHealth()<p.getMaxHealth()*.25 && ready(p,"qilinShield",6000)){e.setAmount(0);CombatFeedback.send(p,CombatFeedback.PERFECT);}
             if(pieces(p,"bronze")>=4 && e.getSource().getEntity() instanceof com.dynasty.entity.ImperialSoldier)e.setAmount(e.getAmount()*.8F);
             if(has(p,"fox_tail_charm") && p.getRandom().nextFloat()<.1 && e.getSource().getEntity() instanceof Mob mob && !ExpansionEffects.boss(mob)){mob.setTarget(null);mob.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN,40,1));com.dynasty.cod3.EquipmentFeedback.accessory(p,"fox_tail_charm");}
-            if(p.isUsingItem() && p.getUseItem().is(ExpansionContent.DUCK.get()) && p.getOffhandItem().is(ExpansionContent.DUCK.get()) && !e.getSource().is(DamageTypeTags.BYPASSES_SHIELD)) {
-                if(e.getSource().getSourcePosition()!=null && p.getLookAngle().dot(e.getSource().getSourcePosition().subtract(p.position()).normalize())>0) {e.setAmount(e.getAmount()*.35F);n.putLong("cod4Counter",now(p)+60);boolean perfect=perfectGuard(p);if(perfect)p.removeEffect(ExpansionEffects.STAGGER.get());CombatFeedback.send(p,perfect?CombatFeedback.PERFECT:CombatFeedback.BLOCK);com.dynasty.cod3.EquipmentFeedback.weapon(p,"duck_guard",null);}
+            if(p.isUsingItem() && p.getUseItem().is(ExpansionContent.DUCK.get()) && pairedAxes(p) && !e.getSource().is(DamageTypeTags.BYPASSES_SHIELD)) {
+                if(e.getSource().getSourcePosition()!=null && p.getLookAngle().dot(e.getSource().getSourcePosition().subtract(p.position()).normalize())>0) {e.setAmount(e.getAmount()*.35F);openCounter(p,"duck");boolean perfect=perfectGuard(p);if(perfect)p.removeEffect(ExpansionEffects.STAGGER.get());CombatFeedback.send(p,perfect?CombatFeedback.PERFECT:CombatFeedback.BLOCK);com.dynasty.cod3.EquipmentFeedback.weapon(p,"duck_guard",null);}
             }
         }
         if(e.getSource().getEntity() instanceof SecondaryMob mob && (mob.spec.id().equals("golden_leopard") || mob.spec.id().equals("gray_falcon")) && e.getEntity().getHealth()>=e.getEntity().getMaxHealth()*.9F)e.setAmount(e.getAmount()*1.5F);
@@ -326,7 +350,7 @@ public final class EquipmentBehaviors {
         if(pieces(p,"beidou")>=3 && now(p)-n.getLong("cod4Moved")<60)bonus+=.1F;
         if(pieces(p,"hongmeng")>=3 && e.getEntity() instanceof com.dynasty.ritual.ZhenyuanSovereign)bonus+=.15F;
         if(pieces(p,"dark_iron")>=4 && n.getInt("cod4Rage")>=5){n.putInt("cod4Rage",0);bonus+=.25F;CombatFeedback.send(e.getEntity(),CombatFeedback.HEAVY);}
-        if(now(p)<n.getLong("cod4Counter")){n.remove("cod4Counter");bonus+=pieces(p,"xuanwu")>=3?.2F:.1F;if(p.getMainHandItem().is(ExpansionContent.DUCK.get())&&p.getOffhandItem().is(ExpansionContent.DUCK.get()))com.dynasty.cod3.EquipmentFeedback.weapon(p,"duck_counter",null);}
+        if(counterActive(p)){boolean duck=n.getString("cod4CounterSource").equals("duck");clearCounter(p);bonus+=pieces(p,"xuanwu")>=3?.2F:.1F;if(duck)com.dynasty.cod3.EquipmentFeedback.weapon(p,"duck_counter",null);}
         if(pieces(p,"baihu")>=3 && p.isSprinting() && ready(p,"sprintStrike",60)){bonus+=.4F;if(pieces(p,"baihu")>=4)ExpansionEffects.apply(e.getEntity(),ExpansionEffects.STAGGER,40);}
         if(pieces(p,"baihu")>=2 && !ExpansionEffects.boss(e.getEntity()))e.getEntity().knockback(.5,p.getX()-e.getEntity().getX(),p.getZ()-e.getEntity().getZ());
         if(balanced(p))bonus+=.1F;

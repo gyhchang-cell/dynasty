@@ -55,8 +55,8 @@ public record CombatFeedback(int type, double x, double y, double z, double sx, 
         else if(attacker instanceof net.minecraft.world.entity.player.Player p){
             // High impulse must have been added by this captured primary hit.
             // Existing break/stagger/immune effect application owns its own cue.
-            if(com.dynasty.DynastySchoolCombat.primaryLift(p,e.getEntity())>=.18)type=LAUNCH;
-            else if(com.dynasty.DynastySchoolCombat.primaryCritical(p,e.getEntity()))type=CRITICAL;
+            // WeaponLift confirms actual displacement before sending LAUNCH, including other native lift weapons.
+            if(com.dynasty.DynastySchoolCombat.primaryCritical(p,e.getEntity()))type=CRITICAL;
             else if(com.dynasty.DynastySchoolCombat.primaryCharged(p,e.getEntity())&&e.getAmount()>=Math.max(6,e.getEntity().getMaxHealth()*.08F))type=HEAVY;
         }else if(e.getAmount()>=Math.max(6,e.getEntity().getMaxHealth()*.08F))type=HEAVY;
         send(e.getEntity(),type);

@@ -1,0 +1,22 @@
+import json,pathlib
+R=[]
+def add(file,method,observation,application,limits,start=None):
+ d=dict(repo='klikli-dev/occultism',file='/'+file+'.java',method=method,observation=observation,application=application,limits=limits)
+ if start:d['start']=start
+ R.append(d)
+add('OwnerHurtByTargetGoal','canUse','owner存在且魔宠未坐下才取主人最近受伤来源；新timestamp、TargetGoal.canAttack及wantsToAttack共同决定是否触发。','命令状态也是选敌前置条件；本项目租约有效和Enemy白名单都应在来源入口生效。','相较Ars同类新增坐下门控，不能移植其允许报复玩家的宽策略。')
+add('OwnerHurtTargetGoal','canUse','主人主动伤害对象路径同样先禁止坐下状态，并对新事件目标用canAttack和wantsToAttack双过滤。','主动攻击复制也必须受租约策略限制，不能只有被动反击受控。','仅对新事件启动过滤，持续攻击阶段是否失效退出仍要另外确认。')
+add('FamiliarEntity','getFamiliarEffects','无效果定义或无owner返回空；按owner的FamiliarSettings限制每个效果等级，非负才创建300tick隐藏粒子效果。','持续增益归属读取owner设置，不应把附近别人的护卫配置共享；卸装残留时长要可解释。','本项目只需修攻击归属，不增加这套魔宠增益机制；新版本API不同。')
+add('FamiliarEntity','dropFromLootTable','死亡时获取owner，将生命临时设满、清效果和自定义状态后保存实体到SOUL_SHARD；恢复当前死亡血量，玩家owner拿碎片，否则世界掉落。','死亡快照必须区分永久归属与瞬态状态，避免复生带过期战斗窗口。','这是完整宠物复生物品机制，不为本项目引入碎片或改变死亡玩法。')
+add('FamiliarEntity','aiStep','每1024tick回血；清无效唱片位置；仅服务端每10tick且owner存在并在8格内，将魔宠定义效果施给owner，随后super.aiStep。','周期效果正确按owner而非最近玩家分配；周期业务不能取代即时攻击过滤。','effects实际持续300tick，离开范围并非即时撤销；不能宣称与租约卸装语义相同。')
+add('FamiliarEntity','mobInteract','owner解析为空时先认交互者为主人；主手才后续处理。Curio转物品交互，debug杖可改owner或升级，空手且当前owner才能切坐下。','要分清ownerUUID未设与owner暂未加载；不能通过旁观玩家交互夺走现有租约。','这里空解析即认领可能包含离线owner情况，是风险观察，不建议照搬。')
+add('FamiliarEntity','setFamiliarOwner','若稀有变体先给新owner触发成就，再将其UUID写同步owner字段。','所有权设置入口需绑定服务器授权和稳定UUID，不能仅依赖UI选择。','此方法自身未检原owner或调用方，权限来自上层，不能单独视为安全setter。')
+add('FamiliarEntity','readAdditionalSaveData','通过EntityReference.read恢复owner，另恢复坐下、两种升级和变体，均有明确缺字段默认值。','重载后的归属与行为模式需同时恢复，不能只存owner而丢守卫状态。','ValueInput和EntityReference来自较新MC；用于语义参考，不直接用于本项目1.20.1。')
+add('FamiliarEntity','addAdditionalSaveData','父类保存后用EntityReference.store保存可空owner引用，并写坐下、升级和变体。','保存和加载同一owner键与模式，检查召唤物跨载入保留许可而非变野生。','永久宠物保存与短租约deadline不同，本项目仍应按原租约机制处理。')
+add('FamiliarEntity','wantsToAttack','先拒owner、苦力怕、恶魂、盔甲架；狼只允许未驯服或不同owner；玩家受canHarmPlayer限制，驯马和驯服Tamable也拒绝。','显式类型拒绝、owner与队伍判定应在一个一致谓词集中表达，供所有入口复用。','该方法仍允许合法PVP玩家与许多非Enemy生物，本项目Enemy-only须更窄，不能照抄黑名单。')
+add('FamiliarEntity','canUse','FollowOwnerGoal每次启动重新从entity.getFamiliarOwner缓存owner，然后shouldFollow(minDist)判断。','owner可能更换，行为重新启动应刷新缓存，不能永远沿用召唤瞬间指针。','该canUse是跟随而非选敌；持续条件仍基于缓存owner。',447)
+add('FamiliarEntity','canContinueToUse','持续跟随仅调用shouldFollow(maxDist)，因此沿用启动时缓存owner和另一距离阈值。','检查目标/owner持续有效性时不能误以为每tick都重解析UUID。','与启动不同的阈值减少抖动，但缓存owner变化不会由此方法自动刷新。',453)
+add('FamiliarEntity','stop','FollowOwnerGoal结束将缓存owner置空，并停止entity导航。','清指针和停导航配对，撤销权限时应同时停止旧行为。','只退出跟随，未清战斗target；不能代替护卫战斗撤销。',463)
+add('FamiliarEntity','tick','跟随tick看owner，每10tick且未拴绳或骑乘才移动；距离平方至少150或特定shouldTeleport触发传送，否则导航跟随。','当动作被外部状态阻断时不能误判为目标过滤有效；测试应显式记录坐骑/绳索。','这里不检查坐下，坐下是否阻止依赖Goal flags和调度；不臆测额外保护。',469)
+add('FamiliarEntity','canUse','SitGoal仅在不在水中、有owner且isSitting时运行，拥有JUMP和MOVE控制flags。','多个goal竞争时要核对flags，目标修复不应误破移动控制。','此方法不是攻击禁用开关；不能仅凭坐下goal存在证明目标不会被设置。',539)
+pathlib.Path(__file__).with_name('batch02.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

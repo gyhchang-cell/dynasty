@@ -60,7 +60,7 @@ public final class FeedbackSourceGameTests {
         h.assertTrue(t.getPersistentData().getInt("cod4FeedbackType")==CombatFeedback.NORMAL,"Spear name, falling attacker and pre-existing upward velocity cannot fake launch/crit");
         var denied=new CriticalHitEvent(p,t,1.5f,true);denied.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);DynastySchoolCombat.critical(denied);clear(t);CombatFeedback.hit(hit);h.assertTrue(t.getPersistentData().getInt("cod4FeedbackType")==CombatFeedback.NORMAL,"Native denied critical result is respected");
         var forced=new CriticalHitEvent(p,t,1.5f,false);forced.setResult(net.minecraftforge.eventbus.api.Event.Result.ALLOW);DynastySchoolCombat.critical(forced);clear(t);CombatFeedback.hit(hit);h.assertTrue(t.getPersistentData().getInt("cod4FeedbackType")==CombatFeedback.CRITICAL,"Actual Forge-forced critical result is respected");
-        t.setDeltaMovement(0,.8,0);clear(t);CombatFeedback.hit(hit);h.assertTrue(t.getPersistentData().getInt("cod4FeedbackType")==CombatFeedback.LAUNCH,"Only new captured-hit vertical impulse qualifies as launch");
+        t.setDeltaMovement(0,.8,0);clear(t);CombatFeedback.hit(hit);h.assertTrue(t.getPersistentData().getInt("cod4FeedbackType")==CombatFeedback.CRITICAL,"Velocity alone cannot advertise an ascent before actual displacement");
         var roof=h.absolutePos(new BlockPos(4,4,4));h.getLevel().setBlockAndUpdate(roof,net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
         t.setPos(t.getX(),roof.getY()-t.getBbHeight(),t.getZ());t.setDeltaMovement(Vec3.ZERO);DynastySchoolCombat.attack(new AttackEntityEvent(p,t));t.setDeltaMovement(0,.4,0);clear(t);CombatFeedback.hit(hit);
         h.assertTrue(t.getPersistentData().getInt("cod4FeedbackType")==CombatFeedback.NORMAL,"A solid roof blocks a false launch even when this hit added upward speed");h.getLevel().setBlockAndUpdate(roof,net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
@@ -70,7 +70,11 @@ public final class FeedbackSourceGameTests {
     public static void realPlayerAttackJuqueLiftProducesLaunchAndZeroDamageProducesNothing(GameTestHelper h){
         var p=new FakePlayer(h.getLevel(),new GameProfile(UUID.randomUUID(),"feedback-native")){@Override public float getAttackStrengthScale(float partial){return 1;}};
         var t=target(h);p.setPos(t.getX()-1,t.getY(),t.getZ());p.setOnGround(true);p.setItemSlot(EquipmentSlot.MAINHAND,new ItemStack(ExpansionContent.item("juque_sword")));t.setDeltaMovement(Vec3.ZERO);
-        p.attack(t);h.assertTrue(t.getHealth()<1000&&t.getDeltaMovement().y>=.39&&t.getPersistentData().getInt("cod4FeedbackType")==CombatFeedback.LAUNCH,"Real vanilla Player.attack uses native juque hurt impulse and captured primary context");
-        clear(t);var zero=new LivingDamageEvent(t,p.damageSources().playerAttack(p),0);EquipmentFeedback.damage(zero);CombatFeedback.hit(zero);h.assertTrue(!t.getPersistentData().contains("cod4FeedbackTick"),"Zero/cancelled gameplay has no fabricated feedback");t.discard();h.succeed();
+        t.setNoAi(false);t.setNoGravity(false);t.setOnGround(true);h.setBlock(new BlockPos(4,1,4),net.minecraft.world.level.block.Blocks.STONE);double start=t.getY();
+        p.attack(t);h.assertTrue(t.getHealth()<1000&&t.getDeltaMovement().y>=.39&&t.getPersistentData().getInt("cod4FeedbackType")!=CombatFeedback.LAUNCH,"Native impulse waits for real ascent before generic launch feedback");
+        h.runAfterDelay(3,()->{
+            h.assertTrue(t.getY()>start+.02&&t.getPersistentData().getInt("cod4FeedbackType")==CombatFeedback.LAUNCH,"Actual ascent owns the generic launch cue");
+            clear(t);var zero=new LivingDamageEvent(t,p.damageSources().playerAttack(p),0);EquipmentFeedback.damage(zero);CombatFeedback.hit(zero);h.assertTrue(!t.getPersistentData().contains("cod4FeedbackTick"),"Zero/cancelled gameplay has no fabricated feedback");t.discard();p.discard();h.succeed();
+        });
     }
 }

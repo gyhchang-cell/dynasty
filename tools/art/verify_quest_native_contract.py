@@ -58,11 +58,17 @@ def make_plan(book):
                     image=re.search(r'^\{image:([^ ]+) width:220 height:110 align:center fit:true\}$',line)
                     assert image,line
                     plan['inline'].append({'quest':q['id'],'line':i,'image':image[1]})
+    # Oct18 removed the old shared preparation node. Probe the current guard
+    # preparation's same real hidden prerequisite, never resurrect the old ID.
+    steel=[q for q in quests.values() if q.get('target')=='dynasty:refined_steel'
+           and q.get('for_quest')=='1000000000030002' and q.get('hide_dependency_lines')]
+    assert len(steel)==1, 'Expected exactly one current guard steel-preparation hover sample'
+    steel_id=steel[0]['id']
     pairs=[('1000000000041002','1000000000030000'),
            ('1000000000010026','10d3ed95df54c36f'),
            ('10d379d49ab6889c','10000000000000bc'),
            ('10d379d49ab6889c','1000000000030303'),
-           ('10d36abe86ae6899','1000000000030001'),
+           (steel_id,'1000000000030001'),
            ('100000000003030b','1000000000030300')]
     healing=next(q for q in quests.values() if q.get('journey_potion')=='minecraft:healing')
     pairs.extend([('1000000000c40029',healing['id']),(healing['id'],'1000000000c40029')])
@@ -80,7 +86,7 @@ def make_plan(book):
                 target=image['click'].removeprefix('#')
                 plan['cards'].append({'chapter':c['id'],'image':image['image'],'x':image['x'],'y':image['y'],
                                       'target':target,'target_type':'quest' if target in quests else 'chapter'})
-    for key in ['10d36abe86ae6899','100000000003030b','1000000000090020']:
+    for key in [steel_id,'100000000003030b','1000000000090020']:
         q=quests[key];assert q['hide_dependency_lines']
         plan['hover'].append({'quest':key,'deps':q['deps']})
     assert len(plan['inline'])==67 and len({x['image'] for x in plan['inline']})==26

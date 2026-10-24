@@ -1,0 +1,49 @@
+// Private frozen source, project cache, Gradle home, compiler output and headless server.
+allprojects { p ->
+    def base = p.file('tools/cod4/ecology-acceptance/.work/cross-build')
+    p.layout.buildDirectory.set(new File(base, 'gradle-output'))
+    p.afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        p.sourceSets.main.java.setSrcDirs([new File(base, 'frozen/src/main/java')])
+        p.sourceSets.main.resources.setSrcDirs([new File(base, 'frozen/src/main/resources'), new File(base, 'frozen/src/generated/resources')])
+        def classes = new File(base, 'gradle-output/classes/java/main')
+        def resources = new File(base, 'gradle-output/resources/main')
+        p.tasks.named('compileJava').configure { destinationDirectory.set(classes) }
+        p.tasks.named('processResources').configure { destinationDir = resources }
+        p.sourceSets.main.output.classesDirs.setFrom(classes)
+        p.sourceSets.main.output.resourcesDir = resources
+        def qa = p.sourceSets.create('ecologyAcceptance') {
+            java.srcDir p.file('tools/cod4/ecology-acceptance/cross-src')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.minecraft.runs.server {
+            workingDirectory new File(base, p.findProperty('ecologyRun') ?: 'normal-run1')
+            property 'forge.enabledGameTestNamespaces', 'dynasty_ecology_disabled_qa'
+            property 'forge.logging.console.level', 'info'
+            property 'ecology.live', p.findProperty('ecologyLive') ?: 'false'
+            property 'ecology.liveOutput', p.file('docs/cod4/audit-20261022/ecology-acceptance/live-run1').absolutePath
+            property 'ecology.crossOutput', p.file('docs/cod4/audit-20261022/ecology-acceptance/cross-dimension-run7/observations.json').absolutePath
+            property 'mixin.env.refMapRemappingFile', new File(base, 'gradle-output/createSrgToMcp/output.srg').absolutePath
+            jvmArgs '-Xmx2G', '-XX:ActiveProcessorCount=2', '-Djava.awt.headless=true'
+            mods { dynasty { source qa } }
+        }
+        p.minecraft.runs.client {
+            workingDirectory new File(base, 'client-live-run1')
+            property 'forge.enabledGameTestNamespaces', 'dynasty_ecology_disabled_qa'
+            property 'forge.logging.console.level', 'info'
+            property 'ecology.client', 'true'
+            property 'ecology.liveOutput', p.file('docs/cod4/audit-20261022/ecology-acceptance/live-run1').absolutePath
+            property 'mixin.env.refMapRemappingFile', new File(base, 'gradle-output/createSrgToMcp/output.srg').absolutePath
+            jvmArgs '-Xmx2G', '-XX:ActiveProcessorCount=2', '-XstartOnFirstThread'
+            args '--username', 'EcologyQA', '--width', '960', '--height', '600'
+            mods { dynasty { source qa } }
+        }
+        p.tasks.matching { it.name == 'runClient' }.configureEach { dependsOn qa.classesTaskName, 'createSrgToMcp' }
+        p.tasks.matching { it.name == 'runServer' }.configureEach { dependsOn qa.classesTaskName, 'createSrgToMcp' }
+        p.tasks.matching { it.name == 'downloadAssets' || it.name == 'downloadMCMeta' }.configureEach { onlyIf { false } }
+        def metadata = new File(gradle.gradleUserHomeDir, 'caches/forge_gradle/minecraft_repo/versions/1.20.1/version.json')
+        def target = p.layout.buildDirectory.file('downloadMCMeta/version.json').get().asFile
+        target.parentFile.mkdirs(); target.bytes = metadata.bytes
+    }
+}

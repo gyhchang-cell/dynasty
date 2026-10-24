@@ -1,0 +1,43 @@
+allprojects { p ->
+ def base=p.file('tools/cod4/mob-load-acceptance/.work')
+ def runName=p.findProperty('mobRun') ?: 'run-02'
+ p.layout.buildDirectory.set(new File(base,'gradle-output'))
+ p.afterEvaluate {
+  if(!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  p.sourceSets.main.java.setSrcDirs([new File(base,'frozen/src/main/java')])
+  p.sourceSets.main.resources.setSrcDirs([new File(base,'frozen/src/main/resources'),new File(base,'frozen/src/generated/resources')])
+  def classes=new File(base,'gradle-output/classes/java/main'), res=new File(base,'gradle-output/resources/main')
+  p.tasks.named('compileJava').configure {destinationDirectory.set(classes)}
+  p.tasks.named('processResources').configure {destinationDir=res}
+  p.sourceSets.main.output.classesDirs.setFrom(classes);p.sourceSets.main.output.resourcesDir=res
+  def qa=p.sourceSets.create('mobLoadQa') {
+   java.srcDir p.file('tools/cod4/mob-load-acceptance/src')
+   compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+   runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+  }
+  p.minecraft.runs.client {
+   workingDirectory new File(base,runName)
+   property 'dynasty.mobqa.output',p.file('docs/cod4/audit-20261022/mob-load-acceptance/'+runName).absolutePath
+   property 'mixin.env.refMapRemappingFile',new File(base,'gradle-output/createSrgToMcp/output.srg').absolutePath
+   property 'forge.logging.console.level','info'
+   if(p.hasProperty('mobRemaining')) property 'dynasty.mobqa.remaining','true'
+   if(p.hasProperty('mobGeometryOnly')) property 'dynasty.mobqa.geometryOnly','true'
+   jvmArgs '-Xmx3G','-XX:ActiveProcessorCount=2'
+   args '--username','Cod4MobQA','--width','1280','--height','800'
+   mods { dynasty {source qa} }
+  }
+  p.tasks.matching {it.name=='runClient'}.configureEach {
+   dependsOn qa.classesTaskName,'createSrgToMcp'
+   doFirst {
+    def game=new File(base,runName);if(new File(game,'saves').exists())throw new GradleException('Fresh private profile required')
+    new File(game,'config').mkdirs()
+    new File(game,'config/fml.toml').text='earlyWindowControl = false\n'
+    new File(game,'options.txt').text='soundCategory_master:0.0\npauseOnLostFocus:false\nlang:zh_cn\nguiScale:3\nmaxFps:120\nenableVsync:false\nrenderDistance:3\nsimulationDistance:5\nparticles:0\nfov:1.0\ntutorialStep:none\n'
+   }
+  }
+  p.tasks.matching {it.name=='downloadAssets'||it.name=='downloadMCMeta'}.configureEach{onlyIf{false}}
+  def metadata=new File(gradle.gradleUserHomeDir,'caches/forge_gradle/minecraft_repo/versions/1.20.1/version.json')
+  def target=p.layout.buildDirectory.file('downloadMCMeta/version.json').get().asFile
+  target.parentFile.mkdirs();target.bytes=metadata.bytes
+ }
+}

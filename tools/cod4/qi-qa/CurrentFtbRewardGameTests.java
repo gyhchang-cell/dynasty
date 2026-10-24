@@ -1,0 +1,134 @@
+// QA copy of the existing native FTB reward/survey regressions against the current 1259-node tree.
+package com.dynasty;
+
+import java.util.*;
+import java.lang.reflect.*;
+import com.mojang.authlib.GameProfile;
+import net.minecraft.gametest.framework.*;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.gametest.*;
+
+/** Opt-in QA against the exact installed FTB jars and a copied quest tree in a fresh world. */
+@GameTestHolder("dynasty_qi_qa") @PrefixGameTestTemplate(false)
+public final class CurrentFtbRewardGameTests {
+    /** Detached vanilla ServerPlayer fixtures bypass the normal FTB Teams login hook. */
+    @net.minecraftforge.fml.common.Mod.EventBusSubscriber(modid=Dynasty.MODID)
+    public static final class FixtureTeams {
+        private static final Set<UUID> registered=new HashSet<>();
+        @net.minecraftforge.eventbus.api.SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.HIGHEST)
+        public static void tick(net.minecraftforge.event.TickEvent.PlayerTickEvent e){ensure(e.player);}
+        @net.minecraftforge.eventbus.api.SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.HIGHEST)
+        public static void player(net.minecraftforge.event.entity.player.PlayerEvent e){ensure(e.getEntity());}
+        @net.minecraftforge.eventbus.api.SubscribeEvent(priority=net.minecraftforge.eventbus.api.EventPriority.HIGHEST)
+        public static void death(net.minecraftforge.event.entity.living.LivingDeathEvent e){
+            if(e.getSource().getEntity() instanceof net.minecraft.world.entity.player.Player p)ensure(p);
+        }
+        private static void ensure(net.minecraft.world.entity.player.Player player){
+            if(!Boolean.getBoolean("dynasty.ftbRewardQa")||!net.minecraftforge.gametest.ForgeGameTestHooks.isGametestServer()
+                    ||!(player instanceof ServerPlayer p)
+                    ||p instanceof net.minecraftforge.common.util.FakePlayer||registered.contains(p.getUUID()))return;
+            try{
+                Object api=Class.forName("dev.ftb.mods.ftbteams.api.FTBTeamsAPI").getMethod("api").invoke(null);
+                Object manager=Class.forName("dev.ftb.mods.ftbteams.api.FTBTeamsAPI$API").getMethod("getManager").invoke(api);
+                var managerType=Class.forName("dev.ftb.mods.ftbteams.api.TeamManager");
+                if(((Optional<?>)managerType.getMethod("getTeamForPlayerID",UUID.class).invoke(manager,p.getUUID())).isEmpty()){
+                    // Native offline registration supports a null player. Avoid replaying login
+                    // rewards or pretending these detached QA fixtures are real network clients.
+                    Class.forName("dev.ftb.mods.ftbteams.data.TeamManagerImpl").getMethod("playerLoggedIn",ServerPlayer.class,UUID.class,String.class)
+                            .invoke(manager,null,p.getUUID(),p.getGameProfile().getName());
+                }
+                Object file=Class.forName("dev.ftb.mods.ftbquests.quest.ServerQuestFile").getField("INSTANCE").get(null);
+                Object data=file.getClass().getMethod("getOrCreateTeamData",net.minecraft.world.entity.Entity.class).invoke(file,p);
+                if(data==null)throw new IllegalStateException("Native QA team data missing after registration");registered.add(p.getUUID());
+            }catch(ReflectiveOperationException ex){throw new IllegalStateException("Native FTB fixture team setup",ex);}
+        }
+        @net.minecraftforge.eventbus.api.SubscribeEvent public static void stop(net.minecraftforge.event.server.ServerStoppedEvent e){registered.clear();}
+    }
+    @GameTestGenerator public static Collection<TestFunction> nativeRewards(){
+        if(!Boolean.getBoolean("dynasty.ftbRewardQa"))return List.of();
+        return List.of(new TestFunction("ftb_native_rewards","dynasty_qi_qa.native_rewards","dynasty_qi_qa:bow_ritual_test",100,20,true,CurrentFtbRewardGameTests::run),
+                new TestFunction("ftb_native_objectives","dynasty_qi_qa.native_battlefield_objective","dynasty_qi_qa:bow_ritual_test",100,20,true,CurrentFtbRewardGameTests::battlefield));
+    }
+    private static void battlefield(GameTestHelper h){
+        try{
+            var p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),new GameProfile(UUID.randomUUID(),"ftb-survey-qa"));
+            p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);FixtureTeams.ensure(p);
+            Class<?> fileType=Class.forName("dev.ftb.mods.ftbquests.quest.ServerQuestFile"),taskType=Class.forName("dev.ftb.mods.ftbquests.quest.task.Task"),teamType=Class.forName("dev.ftb.mods.ftbquests.quest.TeamData"),objectType=Class.forName("dev.ftb.mods.ftbquests.quest.QuestObject");
+            Object file=fileType.getField("INSTANCE").get(null),quest=fileType.getMethod("getQuest",long.class).invoke(file,0x1000000000c40021L),task=fileType.getMethod("getTask",long.class).invoke(file,0x2000000000c40021L);
+            Object team=fileType.getMethod("getOrCreateTeamData",net.minecraft.world.entity.Entity.class).invoke(file,p);
+            h.assertTrue(quest!=null&&task!=null&&taskType.getMethod("getQuest").invoke(task)==quest,"Exact existing story-03 side quest and native advancement Objective are loaded; no new node");
+            var read=teamType.getMethod("getProgress",taskType);var detect=task.getClass().getMethod("canSubmit",teamType,ServerPlayer.class);var submit=taskType.getMethod("submitTask",teamType,ServerPlayer.class);
+            h.assertTrue((Long)read.invoke(team,task)==0&&!(Boolean)detect.invoke(task,team,p),"Actual native detector rejects the unsurveyed Objective");
+            var root=com.dynasty.expansion.EquipmentBehaviors.saved(p);
+            for(int i=0;i<3;i++){
+                var at=h.absolutePos(new net.minecraft.core.BlockPos(3+i*2,2,3));h.getLevel().setBlockAndUpdate(at,com.dynasty.expansion.SmallInteractions.ENTRIES.get("battlefield_remnant").get().defaultBlockState());p.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(at));
+                root.putLong("site_battlefield_remnant_start",h.getLevel().getGameTime()-1200);root.putLong("site_battlefield_remnant_next",h.getLevel().getGameTime());
+                var hit=new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(at),net.minecraft.core.Direction.UP,at,false);
+                h.getLevel().getBlockState(at).use(h.getLevel(),p,net.minecraft.world.InteractionHand.MAIN_HAND,hit);
+                h.assertTrue(root.getInt("site_battlefield_remnant_count")==i+1,"Each different physical coordinate contributes exactly one original survey");
+                if(i<2){
+                    h.assertTrue(!(Boolean)detect.invoke(task,team,p)&&(Long)read.invoke(team,task)==0,"One or two surveys cannot manufacture native FTB Objective completion");
+                    root.putLong("site_battlefield_remnant_next",h.getLevel().getGameTime());h.getLevel().getBlockState(at).use(h.getLevel(),p,net.minecraft.world.InteractionHand.MAIN_HAND,hit);
+                    h.assertTrue(root.getInt("site_battlefield_remnant_count")==i+1,"Revisiting the same dimension/coordinate is not a new survey");
+                }
+            }
+            h.assertTrue((Boolean)detect.invoke(task,team,p),"Third actual survey makes the existing native advancement detector eligible");
+            com.dynasty.expansion.OffhandProgressGameTests.preparePrerequisites(quest,team); // QA-only prior-journey fixture; survey Objective remains native.
+            submit.invoke(task,team,p);
+            h.assertTrue((Long)read.invoke(team,task)==1&&(Boolean)teamType.getMethod("isCompleted",objectType).invoke(team,quest),"Native FTB detector/submission advances the original side Objective and completes its actual quest, not just a private boolean");
+            h.assertTrue(p.getInventory().countItem(com.dynasty.expansion.ExpansionContent.item("copper_coin"))==2,"Only original Site completion gives two coins; original FTB node has no invented reward");
+            Object saved=teamType.getMethod("serializeNBT").invoke(team),restored=teamType.getConstructor(UUID.class,Class.forName("dev.ftb.mods.ftbquests.quest.BaseQuestFile")).newInstance(teamType.getMethod("getTeamId").invoke(team),file);teamType.getMethod("deserializeNBT",saved.getClass()).invoke(restored,saved);
+            h.assertTrue((Long)read.invoke(restored,task)==1&&(Boolean)teamType.getMethod("isCompleted",objectType).invoke(restored,quest),"Native TeamData NBT reload retains original Objective and quest completion");
+            System.out.println("FTB NATIVE SURVEY QA: three unique coordinates -> original story_03 node 1000000000c40021/task 2000000000c40021; native detector/submission complete, persisted reload retained; client/real multiplayer pending");h.succeed();
+        }catch(ReflectiveOperationException e){h.fail("Native battlefield FTB Objective: "+e+(e instanceof InvocationTargetException target?" cause="+target.getCause():""));}
+    }
+    private static void run(GameTestHelper h){
+        try{
+            Class<?> sidebarType=Class.forName("dev.ftb.mods.ftblibrary.sidebar.SidebarButtonCreatedEvent");
+            Field sidebarField=sidebarType.getField("EVENT");Object sidebar=sidebarField.get(null);
+            h.assertTrue((Boolean)sidebarField.getType().getMethod("isRegistered",Object.class).invoke(sidebar,DynastyFtbSetup.SIDEBAR_HANDLER),"Existing native sidebar handler attaches through the public Architectury Event interface");
+            Class<?> fileType=Class.forName("dev.ftb.mods.ftbquests.quest.ServerQuestFile"),questType=Class.forName("dev.ftb.mods.ftbquests.quest.Quest"),xpType=Class.forName("dev.ftb.mods.ftbquests.quest.reward.XPReward");
+            Object file=fileType.getField("INSTANCE").get(null);h.assertTrue(file!=null,"Native server quest file is actually loaded");
+            Collection<?> objects=(Collection<?>)fileType.getMethod("getAllObjects").invoke(file);
+            long quests=objects.stream().filter(questType::isInstance).count();h.assertTrue(quests==1259,"Copied existing quest tree loads all 1259 current nodes: "+quests);
+            var rewardData=xpType.getMethod("writeData",CompoundTag.class);int rewards=0;
+            for(Object object:objects)if(xpType.isInstance(object)){
+                var data=new CompoundTag();rewardData.invoke(object,data);
+                h.assertTrue(data.getInt("xp")>0,"Every original positive XP reward remains nonzero in the actual FTB loader: "+object);rewards++;
+            }
+            h.assertTrue(rewards==693,"All original 693 XP reward objects retain their IDs and definitions: "+rewards);
+            // Verify native read/payout on a detached QA object, without mutating real claim flags.
+            Object quest=fileType.getMethod("getQuest",long.class).invoke(file,Long.parseUnsignedLong("1000000000010005",16));
+            h.assertTrue(quest!=null,"Original early-game quest identity remains available");
+            Object sample=xpType.getConstructor(long.class,questType).newInstance(0x7F1234567890ABCDL,quest);
+            var old=new CompoundTag();old.putInt("value",6);xpType.getMethod("readData",CompoundTag.class).invoke(sample,old);
+            var written=new CompoundTag();rewardData.invoke(sample,written);h.assertTrue(written.getInt("xp")==0,"Installed native reader reproduces the legacy value-field bug");
+            var fixed=new CompoundTag();fixed.putInt("xp",6);xpType.getMethod("readData",CompoundTag.class).invoke(sample,fixed);
+            var p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),new GameProfile(UUID.randomUUID(),"ftb-xp-qa"));
+            p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),p);
+            xpType.getMethod("claim",ServerPlayer.class,boolean.class).invoke(sample,p,false);
+            h.assertTrue(p.totalExperience==6,"Actual native reward pays the original six experience points");
+            Class<?> teamType=Class.forName("dev.ftb.mods.ftbquests.quest.TeamData"),baseFileType=Class.forName("dev.ftb.mods.ftbquests.quest.BaseQuestFile"),rewardType=Class.forName("dev.ftb.mods.ftbquests.quest.reward.Reward");
+            Object loaded=objects.stream().filter(xpType::isInstance).findFirst().orElseThrow();
+            var original=new CompoundTag();rewardData.invoke(loaded,original);int expected=original.getInt("xp");
+            UUID teamId=UUID.randomUUID();Object team=teamType.getConstructor(UUID.class,baseFileType).newInstance(teamId,file);
+            var claim=teamType.getMethod("claimReward",ServerPlayer.class,rewardType,boolean.class);
+            var legacy=original.copy();legacy.remove("xp");legacy.putInt("value",expected);
+            int before=p.totalExperience;
+            try{
+                xpType.getMethod("readData",CompoundTag.class).invoke(loaded,legacy);claim.invoke(team,p,loaded,false);
+                h.assertTrue(p.totalExperience==before,"Legacy zero reward can be claimed without paying XP, reproducing old completion flags");
+            }finally{xpType.getMethod("readData",CompoundTag.class).invoke(loaded,original);}
+            Object saved=teamType.getMethod("serializeNBT").invoke(team),restored=teamType.getConstructor(UUID.class,baseFileType).newInstance(teamId,file);
+            teamType.getMethod("deserializeNBT",saved.getClass()).invoke(restored,saved);
+            h.assertTrue((Boolean)teamType.getMethod("isRewardClaimed",UUID.class,rewardType).invoke(restored,p.getUUID(),loaded),"Native persisted claim identity survives corrected reward definition");
+            claim.invoke(restored,p,loaded,false);h.assertTrue(p.totalExperience==before,"Corrected reward does not repay the old claimant after native claim-state reload");
+            var other=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),new GameProfile(UUID.randomUUID(),"ftb-other-qa"));
+            other.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND),other);
+            claim.invoke(restored,other,loaded,false);h.assertTrue(other.totalExperience==expected,"Existing personal XP reward still pays a different player exactly once");
+            claim.invoke(restored,other,loaded,false);h.assertTrue(other.totalExperience==expected,"Native duplicate reward claim is rejected");
+            System.out.println("FTB NATIVE QA: nodes="+quests+", XP rewards="+rewards+", legacy value=0, corrected native claim=6; native persisted old-claim replay rejected; distinct QA-player claim once; real multiplayer/client acceptance pending");h.succeed();
+        }catch(ReflectiveOperationException e){h.fail("Native FTB QA reflection: "+e+(e instanceof InvocationTargetException target?" cause="+target.getCause():""));}
+    }
+}

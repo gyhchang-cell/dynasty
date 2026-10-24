@@ -105,10 +105,10 @@ public class DynastyClientEvents {
 
     @SubscribeEvent
     public static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
-        event.registerLayerDefinition(WARRIOR_LAYER, DynastyHumanoidModel::createBodyLayer);
+        event.registerLayerDefinition(WARRIOR_LAYER, RealmCreatureLayers::terracotta_warrior);
         event.registerLayerDefinition(SOLDIER_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
         event.registerLayerDefinition(EMPEROR_LAYER, () -> DynastyHumanoidModel.decoratedLayer(10));
-        event.registerLayerDefinition(MINISTER_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
+        event.registerLayerDefinition(MINISTER_LAYER, RealmCreatureLayers::minister);
         event.registerLayerDefinition(ASSASSIN_LAYER, () -> DynastyHumanoidModel.createBodyLayer(-0.05F));
         event.registerLayerDefinition(ARCHER_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.0F));
         event.registerLayerDefinition(ROYAL_GUARD_LAYER, () -> DynastyHumanoidModel.createBodyLayer(0.1F));
@@ -120,16 +120,16 @@ public class DynastyClientEvents {
         event.registerLayerDefinition(EUNUCH_MASTERMIND_LAYER, () -> DynastyHumanoidModel.decoratedLayer(6));
         event.registerLayerDefinition(NINE_HEAVEN_GENERAL_LAYER, () -> DynastyHumanoidModel.decoratedLayer(2));
         event.registerLayerDefinition(DRAGON_KING_LAYER, () -> DynastyHumanoidModel.decoratedLayer(7));
-        event.registerLayerDefinition(JADE_GUARD_LAYER, () -> DynastyHumanoidModel.decoratedLayer(3));
-        event.registerLayerDefinition(SOUL_SOLDIER_LAYER, () -> DynastyHumanoidModel.decoratedLayer(4));
-        event.registerLayerDefinition(THUNDER_ENVOY_LAYER, () -> DynastyHumanoidModel.decoratedLayer(8));
-        event.registerLayerDefinition(MERFOLK_LAYER, () -> DynastyHumanoidModel.decoratedLayer(9));
+        event.registerLayerDefinition(JADE_GUARD_LAYER, RealmCreatureLayers::jade_guard);
+        event.registerLayerDefinition(SOUL_SOLDIER_LAYER, RealmCreatureLayers::soul_soldier);
+        event.registerLayerDefinition(THUNDER_ENVOY_LAYER, RealmCreatureLayers::thunder_envoy);
+        event.registerLayerDefinition(MERFOLK_LAYER, RealmCreatureLayers::merfolk);
         event.registerLayerDefinition(QILIN_LAYER,
                 () -> DetailedBeastModel.createLayer(DetailedBeastModel.Kind.QILIN));
         event.registerLayerDefinition(NINE_TAILED_FOX_LAYER,
-                () -> DetailedBeastModel.createLayer(DetailedBeastModel.Kind.FOX));
+                BestiarySpiritLayers::fox);
         event.registerLayerDefinition(PHOENIX_LAYER,
-                () -> DetailedBeastModel.createLayer(DetailedBeastModel.Kind.PHOENIX));
+                BestiarySpiritLayers::phoenix);
     }
 
     @SubscribeEvent
@@ -203,13 +203,13 @@ public class DynastyClientEvents {
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(com.dynasty.cod3.WhiteDeerContent.DEER.get(), WhiteDeerRenderer::new);
         event.registerEntityRenderer(DynastyEntities.TERRACOTTA_WARRIOR.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, WARRIOR_LAYER, TEX_WARRIOR, 0.5F));
+                ctx -> new RealmCreatureRenderer<>(ctx, WARRIOR_LAYER, "terracotta_warrior", 1.0F));
         event.registerEntityRenderer(DynastyEntities.IMPERIAL_SOLDIER.get(),
                 ctx -> new com.dynasty.client.character.DynastyCharacterRenderer<>(ctx, com.dynasty.client.character.DynastyCharacterModel.Role.GUARD));
         event.registerEntityRenderer(DynastyEntities.UNDEAD_FIRST_EMPEROR.get(),
                 ctx -> new BossCuboidRenderer<>(ctx,DynastyEntities.UNDEAD_FIRST_EMPEROR.get(),"undead_first_emperor"));
         event.registerEntityRenderer(DynastyEntities.MINISTER.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, MINISTER_LAYER, TEX_MINISTER, 0.5F));
+                ctx -> new RealmCreatureRenderer<>(ctx, MINISTER_LAYER, "minister", 1.0F));
         event.registerEntityRenderer(DynastyEntities.ASSASSIN.get(),
                 ctx -> new DynastyHumanoidRenderer<>(ctx, ASSASSIN_LAYER, TEX_ASSASSIN, 0.5F));
         event.registerEntityRenderer(DynastyEntities.ARCHER.get(),
@@ -231,19 +231,17 @@ public class DynastyClientEvents {
                 ctx -> new DynastyDetailedBeastRenderer<>(ctx, QILIN_LAYER, TEX_QILIN, 0.9F,
                         DetailedBeastModel.Kind.QILIN));
         event.registerEntityRenderer(DynastyEntities.NINE_TAILED_FOX.get(),
-                ctx -> new DynastyDetailedBeastRenderer<>(ctx, NINE_TAILED_FOX_LAYER, TEX_NINE_TAILED_FOX, 0.7F,
-                        DetailedBeastModel.Kind.FOX));
+                ctx -> new BestiarySpiritRenderer<>(ctx, NINE_TAILED_FOX_LAYER, false));
         event.registerEntityRenderer(DynastyEntities.PHOENIX.get(),
-                ctx -> new DynastyDetailedBeastRenderer<>(ctx, PHOENIX_LAYER, TEX_PHOENIX, 0.7F,
-                        DetailedBeastModel.Kind.PHOENIX));
+                ctx -> new BestiarySpiritRenderer<>(ctx, PHOENIX_LAYER, true));
         event.registerEntityRenderer(DynastyEntities.JADE_GUARD.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, JADE_GUARD_LAYER, TEX_JADE_GUARD, 0.5F,3));
+                ctx -> new RealmCreatureRenderer<>(ctx, JADE_GUARD_LAYER, "jade_guard", 1.08F));
         event.registerEntityRenderer(DynastyEntities.SOUL_SOLDIER.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, SOUL_SOLDIER_LAYER, TEX_SOUL_SOLDIER, 0.5F,4));
+                ctx -> new RealmCreatureRenderer<>(ctx, SOUL_SOLDIER_LAYER, "soul_soldier", 1.05F));
         event.registerEntityRenderer(DynastyEntities.THUNDER_ENVOY.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, THUNDER_ENVOY_LAYER, TEX_THUNDER_ENVOY, 0.5F));
+                ctx -> new RealmCreatureRenderer<>(ctx, THUNDER_ENVOY_LAYER, "thunder_envoy", 1.0F));
         event.registerEntityRenderer(DynastyEntities.MERFOLK.get(),
-                ctx -> new DynastyHumanoidRenderer<>(ctx, MERFOLK_LAYER, TEX_MERFOLK, 0.5F));
+                ctx -> new RealmCreatureRenderer<>(ctx, MERFOLK_LAYER, "merfolk", 1.0F));
         event.registerEntityRenderer(DynastyEntities.NINE_HEAVEN_GENERAL.get(),
                 ctx -> new BossCuboidRenderer<>(ctx,DynastyEntities.NINE_HEAVEN_GENERAL.get(),"nine_heaven_general"));
         event.registerEntityRenderer(DynastyEntities.DRAGON_KING.get(),

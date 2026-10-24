@@ -1,0 +1,49 @@
+// Private frozen source, project cache, Gradle home, compiler output and headless server.
+allprojects { p ->
+    def base = p.file('tools/cod4/interaction-acceptance/.work')
+    p.layout.buildDirectory.set(new File(base, 'gradle-output'))
+    p.afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        p.sourceSets.main.java.setSrcDirs([new File(base, 'frozen/src/main/java')])
+        p.sourceSets.main.resources.setSrcDirs([new File(base, 'frozen/src/main/resources'), new File(base, 'frozen/src/generated/resources')])
+        def classes = new File(base, 'gradle-output/classes/java/main')
+        def resources = new File(base, 'gradle-output/resources/main')
+        p.tasks.named('compileJava').configure { destinationDirectory.set(classes) }
+        p.tasks.named('processResources').configure { destinationDir = resources }
+        p.sourceSets.main.output.classesDirs.setFrom(classes)
+        p.sourceSets.main.output.resourcesDir = resources
+        def qa = p.sourceSets.create('interactionAcceptance') {
+            java.srcDir p.file('tools/cod4/interaction-acceptance/src')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.tasks.named(qa.processResourcesTaskName).configure {
+            from(new File(base, 'frozen/src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) { into 'data/dynasty_interaction_qa/structures' }
+        }
+        p.tasks.named(qa.processResourcesTaskName).configure {
+            from(new File(base, 'frozen/src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) { into 'data/dynasty_interaction_extra_qa/structures' }
+        }
+        p.tasks.named(qa.processResourcesTaskName).configure {
+            from(new File(base, 'frozen/src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) { into 'data/dynasty_interaction_sword_probe_qa/structures' }
+        }
+        ['dynasty_sword_boundarybefore_qa','dynasty_sword_boundaryready_qa','dynasty_sword_oldcoordinate_qa'].each { ns ->
+            p.tasks.named(qa.processResourcesTaskName).configure {
+                from(new File(base, 'frozen/src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) { into "data/${ns}/structures" }
+            }
+        }
+        p.minecraft.runs.gameTestServer {
+            workingDirectory new File(base, p.findProperty('interactionRun') ?: 'server')
+            property 'forge.enabledGameTestNamespaces', p.findProperty('interactionNamespace') ?: 'dynasty_interaction_qa'
+            property 'forge.logging.console.level', 'info'
+            property 'interaction.evidence', p.file('docs/cod4/audit-20261022/interaction-acceptance/observations.json').absolutePath
+            property 'mixin.env.refMapRemappingFile', new File(base, 'gradle-output/createSrgToMcp/output.srg').absolutePath
+            jvmArgs '-Xmx2G', '-XX:ActiveProcessorCount=2', '-Djava.awt.headless=true'
+            mods { dynasty { source qa } }
+        }
+        p.tasks.matching { it.name == 'runGameTestServer' }.configureEach { dependsOn qa.classesTaskName, 'createSrgToMcp' }
+        p.tasks.matching { it.name == 'downloadAssets' || it.name == 'downloadMCMeta' }.configureEach { onlyIf { false } }
+        def metadata = new File(gradle.gradleUserHomeDir, 'caches/forge_gradle/minecraft_repo/versions/1.20.1/version.json')
+        def target = p.layout.buildDirectory.file('downloadMCMeta/version.json').get().asFile
+        target.parentFile.mkdirs(); target.bytes = metadata.bytes
+    }
+}
