@@ -1,0 +1,62 @@
+
+690: 
+691:    public boolean wantsToPickUp(ItemStack p_21546_) {
+692:       return this.canHoldItem(p_21546_);
+693:    }
+694: 
+695:    public boolean removeWhenFarAway(double p_21542_) {
+696:       return true;
+697:    }
+698: 
+699:    public boolean requiresCustomPersistence() {
+700:       return this.isPassenger();
+701:    }
+702: 
+703:    protected boolean shouldDespawnInPeaceful() {
+704:       return false;
+705:    }
+706: 
+707:    public void checkDespawn() {
+708:       if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) {
+709:          this.discard();
+710:       } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
+711:          Entity entity = this.level().getNearestPlayer(this, -1.0D);
+712:          net.minecraftforge.eventbus.api.Event.Result result = net.minecraftforge.event.ForgeEventFactory.canEntityDespawn(this, (ServerLevel) this.level());
+713:          if (result == net.minecraftforge.eventbus.api.Event.Result.DENY) {
+714:             noActionTime = 0;
+715:             entity = null;
+716:          } else if (result == net.minecraftforge.eventbus.api.Event.Result.ALLOW) {
+717:             this.discard();
+718:             entity = null;
+719:          }
+720:          if (entity != null) {
+721:             double d0 = entity.distanceToSqr(this);
+722:             int i = this.getType().getCategory().getDespawnDistance();
+723:             int j = i * i;
+724:             if (d0 > (double)j && this.removeWhenFarAway(d0)) {
+725:                this.discard();
+726:             }
+727: 
+728:             int k = this.getType().getCategory().getNoDespawnDistance();
+729:             int l = k * k;
+730:             if (this.noActionTime > 600 && this.random.nextInt(800) == 0 && d0 > (double)l && this.removeWhenFarAway(d0)) {
+731:                this.discard();
+732:             } else if (d0 < (double)l) {
+733:                this.noActionTime = 0;
+734:             }
+735:          }
+736: 
+
+830: 
+831:    public static boolean checkMobSpawnRules(EntityType<? extends Mob> p_217058_, LevelAccessor p_217059_, MobSpawnType p_217060_, BlockPos p_217061_, RandomSource p_217062_) {
+832:       BlockPos blockpos = p_217061_.below();
+833:       return p_217060_ == MobSpawnType.SPAWNER || p_217059_.getBlockState(blockpos).isValidSpawn(p_217059_, blockpos, p_217058_);
+834:    }
+835: 
+836:    public boolean checkSpawnRules(LevelAccessor p_21431_, MobSpawnType p_21432_) {
+837:       return true;
+838:    }
+839: 
+840:    public boolean checkSpawnObstruction(LevelReader p_21433_) {
+841:       return !p_21433_.containsAnyLiquid(this.getBoundingBox()) && p_21433_.isUnobstructed(this);
+842:    }

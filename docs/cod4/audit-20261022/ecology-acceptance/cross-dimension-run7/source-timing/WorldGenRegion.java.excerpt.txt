@@ -1,0 +1,38 @@
+202:    @Nullable
+203:    public BlockEntity getBlockEntity(BlockPos p_9582_) {
+204:       ChunkAccess chunkaccess = this.getChunk(p_9582_);
+205:       BlockEntity blockentity = chunkaccess.getBlockEntity(p_9582_);
+206:       if (blockentity != null) {
+207:          return blockentity;
+208:       } else {
+209:          CompoundTag compoundtag = chunkaccess.getBlockEntityNbt(p_9582_);
+210:          BlockState blockstate = chunkaccess.getBlockState(p_9582_);
+211:          if (compoundtag != null) {
+212:             if ("DUMMY".equals(compoundtag.getString("id"))) {
+213:                if (!blockstate.hasBlockEntity()) {
+214:                   return null;
+215:                }
+216: 
+217:                blockentity = ((EntityBlock)blockstate.getBlock()).newBlockEntity(p_9582_, blockstate);
+218:             } else {
+219:                blockentity = BlockEntity.loadStatic(p_9582_, blockstate, compoundtag);
+220:             }
+221: 
+222:             if (blockentity != null) {
+223:                chunkaccess.setBlockEntity(blockentity);
+224:                return blockentity;
+225:             }
+226:          }
+227: 
+228:          if (blockstate.hasBlockEntity()) {
+229:             LOGGER.warn("Tried to access a block entity before it was created. {}", (Object)p_9582_);
+230:          }
+231: 
+232:          return null;
+233:       }
+234:    }
+235: 
+236:    public boolean ensureCanWrite(BlockPos p_181031_) {
+237:       int i = SectionPos.blockToSectionCoord(p_181031_.getX());
+238:       int j = SectionPos.blockToSectionCoord(p_181031_.getZ());
+239:       ChunkPos chunkpos = this.getCenter();

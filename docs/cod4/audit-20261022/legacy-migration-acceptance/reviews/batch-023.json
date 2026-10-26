@@ -1,0 +1,74 @@
+[
+  {
+    "candidate_id": "803ff2d857df896d4d0d",
+    "status": "accepted",
+    "family": "ae2-cpu-inflight-job-inventory-and-authority-restoration",
+    "trigger": "CraftingCpuLogic.readFromNBT via deferred core block/cluster load",
+    "input": "reserved inventory, optional job: craftId, req ownership flag, finalOutput, remainingAmount, waitingFor/tasks/timeTracker/playerId/suspended",
+    "output": "restores reserved inventory, constructs matching CPU CraftingLink, registers link with grid, decodes job/pattern work; invalid finalOutput cancels job and stores remainder",
+    "preservation": "Full ExecutingCraftingJob reader/writer, CraftingLink ownership constructors/writer, ListCraftingInventory read/write, finishJob/storeItems reviewed. Link rejects requester payload used as CPU and vice versa. Job cancel clears future work but actual reserved items remain and network insertion subtracts only accepted amount. All nested helpers counted0.",
+    "application_limit": "UUID codec orElseThrow can abort before cancel fallback; bad patterns skipped, absent amounts default0. Reusing CPU read with no job only clears displayed output, not explicitly old job field. New ValueInput APIs not1.20.1 transplant. No extra CPU wrapper or task counter credits.",
+    "supporting_candidates": [
+      "19f8c08716e3f0539443"
+    ]
+  },
+  {
+    "candidate_id": "a3b4b59112c0caabf440",
+    "status": "accepted",
+    "family": "ie-multifluid-owned-ordered-resource-list-reader",
+    "trigger": "MultiFluidTank.readFromNBT",
+    "input": "typed fluids compound list, each registry-backed FluidStack payload",
+    "output": "when list present clears current fluids, restores valid nonempty fluids in original order",
+    "preservation": "Complete writer/fill/fillRecipe/drain/getFluid reviewed: output selects last fluid, ordinary fill inserts new kind at front but recipe fill appends. Reader preserves this meaningful resource ordering rather than merging same types or resetting to default tank.",
+    "application_limit": "Missing/wrong list keeps current state; bad entries skipped; no capacity clamp on persisted sum, unlike fill. One owner only, no credits for each fluid type/slot or generic native parser.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "765075e003025576f37f",
+    "status": "accepted",
+    "family": "ie-metalpress-paid-process-recipe-restoration-and-energy-direction-negative",
+    "trigger": "MetalPress State disk read/write→processor.fromNBT→loadProcess",
+    "input": "mold stack, process queue recipe/tick/inputItems/transformationPoint, optional baseRecipe discriminator, energy",
+    "output": "typed baseRecipe reconstructs special recipe delegate, otherwise normal process; input cargo/time restored; missing recipe consumer clears process",
+    "preservation": "Full State writer/reader, SpecialMetalPressProcess constructor/writer, MultiblockProcessor queue read/write and MultiblockProcess lifecycle reviewed. Base recipe ID persists delegate identity rather than only generated recipe name. Queue and child constructors count once.",
+    "application_limit": "Explicit negative in same owner: writeSaveNBT calls energy.deserializeNBT while readSaveNBT writes energy.serializeNBT into input, reversing disk energy direction. Missing recipe sets clearProcess without refunding saved inputs. This is studied failure evidence, NOT usable restoration. Negative numInputs/invalid IDs may throw.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "7d21841934fb5cadda8d",
+    "status": "accepted",
+    "family": "ie-sorter-persisted-item-filter-owner-and-selected-tag-validation",
+    "trigger": "Sorter disk readCustomNBT→new SorterInventory→readFromNBT→FilterTag.readFromNbt",
+    "input": "filter ghost-item payload/unsigned Slot, selectedMod or selectedTag union, side filter policy",
+    "output": "replaces filter owner only for disk read; bounds slot; decodes item then validates saved tag is among that item actual tags; absent/removed tag becomes null",
+    "preservation": "Read complete writer, FilterTag predicate and route/compare consumers. selectedMod has precedence, saved namespace selection drives real item routing; tag invalidation loses only tag selection rather than ghost stack payload. Packet updates cannot replace disk filter inventory. Child FilterTag reviewed as part whole owner, not standalone additional helper.",
+    "application_limit": "Malformed selectedTag ID can throw; helper itself does not clear unseen slots (outer creates fresh owner). This is persisted item behavior configuration, not player unlock proof; no additional credit per direction/filter.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "82a12a106e49541316ea",
+    "status": "accepted",
+    "family": "ie-turret-saved-owner-rights-and-deferred-target-binding",
+    "trigger": "TurretBlockEntity.readCustomNBT",
+    "input": "owner name, config codec, energy, optional target UUID string",
+    "output": "owner absent resets null; target reference clears and valid saved ID is resolved in later tick only if in range and valid target",
+    "preservation": "Complete writer/hasOwnerRights/tickCommon read: ownership gates GUI and actions; name matching case insensitive; missing owner grants default rights. Runtime target binding separately rebuilt from saved identity instead of copying entity reference. All owner/config/target one chain.",
+    "application_limit": "Config decode getOrThrow and UUID.fromString may abort load; name authority weaker than stable UUID. targetId omitted on reused object can retain prior pending value; temporary target is not permanent progress. No adoption of external ownership/death policy.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "2d71cabf3d4d1147d5e9",
+    "status": "duplicate",
+    "reason": "PatternProviderBlockEntity pure wrapper of already accepted PatternProviderLogic chain."
+  },
+  {
+    "candidate_id": "314adb1d42d7635d0e14",
+    "status": "duplicate",
+    "reason": "RailgunShot only delegates full ammo stack parser, no distinct legacy/ownership semantics beyond reviewed projectile owners."
+  },
+  {
+    "candidate_id": "39eb6c12b3d6c9cea23b",
+    "status": "duplicate",
+    "reason": "Sawblade ammo reader identical railgun wrapper; cannot count another species."
+  }
+]

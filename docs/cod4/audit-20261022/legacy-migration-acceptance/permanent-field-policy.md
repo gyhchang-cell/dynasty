@@ -18,7 +18,7 @@
 
 明确排除：`dynasty_merit_kill_window/earned` 是10分钟收益窗；`dynasty_rank_notice` 是派生提示；`DynastyArmyPermitUntil` 是12000tick通行有效期；`DynastyCompassNext` 是5秒请求冷却。伤势及最近受击时间属于原有伤势规则，另行负责。反击、蓄势、短时免疫、姿态/位置/临时挑战等不因“字段写进NBT”就变成永久进度。
 
-已有PlayerPersisted、School、Army、Slot及SecretTracker的克隆职责不重复覆盖；`EquipmentBehaviors.saved`实际取PlayerPersisted.dynastyCod4，其内部皇冠、饰品抽取历史、站点标记由现有容器保留，不应再次泛拷根数据。
+已有PlayerPersisted、School、Army、Slot及SecretTracker的克隆职责不重复覆盖；`EquipmentBehaviors.saved`实际取PlayerPersisted.dynastyCod4。盔甲联机原生死亡证据（receipt-death.json及run-04/result-death.json）已证明其中保命/玉蝉冷却、守卫租约deadline/generation由现有克隆职责保留，原冷却前不能再次触发。这些有期限状态虽需保留，仍不是本次根级永久字段白名单：新修复不得复制、覆盖或合并PlayerPersisted/dynastyCod4，也不得重置冷却。皇冠、饰品抽取历史、站点标记同由现有容器负责。此证据不能外推所有根字段或旧档完整覆盖；独立来源与精确所有权见armor-clone-boundary.json。
 
 扫描找到76个非GameTest、直接调用getPersistentData的源码文件，这是候选文件数量，**不是76个都已完整审阅**；别名、包装函数及世界SavedData不能仅凭文本扫描宣称已覆盖。偏好/模式、其他NPC与挑战状态、Bounty/Dungeon/世界事件完整账本等未核实体系继续列限制，不提前纳入复制白名单。
 

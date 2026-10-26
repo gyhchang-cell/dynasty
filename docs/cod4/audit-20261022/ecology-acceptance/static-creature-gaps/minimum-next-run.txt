@@ -1,0 +1,29 @@
+最小必要运行方案（仅方案；本次不执行）
+
+目标：一次有界诊断区分六种“原生类别未获机会/未被选中/条件拒绝/出生成功”，并仅在真实自然灯油出现时验同实体拾取；不承诺一次随机窗口必凑齐六种。无需复跑Wangsi、全客户端套件或Hegel的C2S。
+
+运行前静态准备：
+1 使用已保存自己QA世界的全新APFS副本和独立编译/缓存，保留当前checkpoint不变；不读写用户原档，不新增建筑、setBiome、调时间/天气、cap、概率、spawn蛋/创建实体。冻结相关源码并核对版本；一份headless Forge服务器，只有需要真实原生玩家距离/拾取的同一次运行才启动一个自动化真实客户端，关闭计划外自动重连/无限重试。若提供既有武器、无敌/飞行和观察/拾取传送，须继续明示为QA夹具，不称完整生存路线或真人双人。
+2 已保存世界Time1579880，DayTime余数19880（自然夜间），可优先更夫+灯油两个夜间点，避免新世界再等一夜。不改时钟；若载入后真实isNight不满足，就记录窗口不满足并跳过夜间项，不挂机等下一夜。
+3 先核对本分析的原UUID实体扫描结果（现均不在已保存实体中）；不得补发旧灯油。若未来快照仍有可验证同源的存活实体才先做原UUID拾取；若没有，唯一自然闭环路线是本次原生自然刷出的灯笼鬼/更夫真实玩家击杀后原概率掉落，未出现就保持PENDING。
+4 夹具准备日志方案，不修改正式Java：每个原生400tick机会记录真实spawnableChunkCount、global CREATURE count/计算上限、实际native global/local gate、玩家在线/非旁观/active chunk、全部本地参与计数实体及persistence排除理由。读取原生判定，不调用公开debug spawnCategoryForPosition（它可绕过cap），不自选种、不多抽RNG。
+5 对真正自然选中的目标，记录species、biome实际spawn list、source type=NATURAL、支撑/水体/碰撞、loaded footprint、结构start/ref/实际bbox、time/light、与玩家/出生点距离、placement/native/Forge PositionCheck默认或取消结果、FinalizeSpawn及EntityJoinLevel UUID。从入选前到入世的阶段计数不得用纯回调冒充实际尝试。
+
+先决条件与有界预算：
+A 初始最多200正常ticks核对native global/local gate与背包。若CREATURE被cap关闭，停止计入六种机会；不继续清MONSTER来“解决”被动cap。若允许准备，只在该QA副本以真实客户端正常攻击已存在、确实计入CREATURE的原生动物，排除六目标及命名/驯养等不计数实体，不用kill/discard/改cap。上限64个计数竞争实体或1200ticks，先到即止；仍无法native gate打开就结束该项并交付实体/cap快照，不重复开游戏或无限清怪。准备击杀不算六目标验收。
+B 只有global count<实际cap且相关player local count<10才进入场景采样；无玩家/chunks0立刻停止计时。四个已有场景，原则每个最多800正常ticks（2个400tick周期）；总自然窗口<=3200ticks，另准备<=1400ticks。若cap被竞争出生填满，当前窗口记cap关闭并停止该项，不加时碰运气。墙钟上限约5分钟（启动/加载另设60秒超时），仅一次服务器/客户端会话。
+
+场景顺序（用已生成区块，不造夹具地面，先运行时验证真实FULL/biome/结构条件）：
+1 驿站(752,101,-640)附近已有草方块合格点(728,118,-664)：更夫+骗子；先保持自然夜间。观察位置以合格自然点30~64格为准，不塞入房间、不在出生排除圈；先实际查询bbox/ref和native ON_GROUND，而非直接沿用Y101作地面。
+2 古战场(-2672,66,-1344)附近草点(-2696,63,-1360)：流民；仍为自然夜间时顺带观察灯笼鬼/灯油（MONSTER分母单独记）。不把流民当荒村现场，不跑地府坏城。
+3 已有森林(-64,93,-80)，如(-88,103,-104)支撑stone：采药人+精卫。避共享出生点(-64,93,-80)24格排除；用实际地形决定玩家距离，不以“山地”文字新建高台/草皮，精卫无需最低飞行高度。
+4 已有cold_ocean(512,62,512)附近原水点(488,50,488)：田螺姑娘。水体连通和全body margin4的FULL区块先查；普通水生Mob入口cap不替代CREATURE cap。观察点与水点距离30~64，确保水点在实际自然活动区。
+
+灯油拾取验证（同一场景同一客户端，不另开一次）：
+- 以真实客户端把非目标杂物放入QA箱/正常丢出，必须服务器回读Inventory确认>=8个空主背包槽且有接纳一叠灯油的容量；保留10目标材料、武器、书。最终旧36格满不是这里通过的证据。
+- 若自然玩家死亡原概率产出灯油，立即记录真实ItemEntity UUID、pos、stack/count、Owner、PickupDelay、age、无碰撞/可达位置及背包容量；短时每tick或每5tick记录pickup尝试，原生PlayerEvent.ItemPickupEvent同UUID/同玩家/同物品才PASS。记录ItemExpire、remove原因和merge/目标UUID更替，不因合并偷换成另一实体身份。
+- 同一UUID最多200正常ticks拾取窗口，死亡后停止竞争怪清理，防背包再次填满；未拾取即交付原因快照并结束，不反复传送约6000ticks等自然消失。未自然产出则PENDING_NO_NATURAL_DROP_IN_BOUND，不调seed或概率。
+
+完成/停止标准：
+逐物种四类：CAP_OR_TIME_NOT_OPEN、NO_NATIVE_WEIGHTED_SELECTION_WITHIN_BOUND、NATIVE_ATTEMPT_REJECTED_WITH_REASON、FRESH_NATURAL_BIRTH_UUID_PASS。只有最后一类增加24/30。每种给出实际400机会、gate开放次数、自然选中次数及最终入世次数；分母为0就写0，不把总世界tick/总生物数当机会。
+灯油只有同一原ItemEntity UUID拾取才能由9/10提升。所有场景完或任一故障/壁钟预算耗尽即保存QA副本游标、native world save tick与日志，正常关闭自己的进程，保留所有阴性。一次没选中不证明全局无自然入口，也不授权无限挂机/再次启动。

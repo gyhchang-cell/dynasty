@@ -1,0 +1,20 @@
+
+208: 
+209:     /**
+210:      * Checks if the current position of the passed mob is valid for spawning, by firing {@link PositionCheck}.<br>
+211:      * The default check is to perform the logical and of {@link Mob#checkSpawnRules} and {@link Mob#checkSpawnObstruction}.<br>
+212:      * @param mob The mob being spawned.
+213:      * @param level The level the mob will be added to, if successful.
+214:      * @param spawnType The spawn type of the spawn.
+215:      * @return True, if the position is valid, as determined by the contract of {@link PositionCheck}.
+216:      * @see PositionCheck
+217:      */
+218:     public static boolean checkSpawnPosition(Mob mob, ServerLevelAccessor level, MobSpawnType spawnType)
+219:     {
+220:         var event = new PositionCheck(mob, level, spawnType, null);
+221:         MinecraftForge.EVENT_BUS.post(event);
+222:         if (event.getResult() == Result.DEFAULT)
+223:         {
+224:             return mob.checkSpawnRules(level, spawnType) && mob.checkSpawnObstruction(level);
+225:         }
+226:         return event.getResult() == Result.ALLOW;
