@@ -26,7 +26,7 @@ for repo in sorted(list(BASE.iterdir())+list((OUT/'sources').iterdir())):
         if source_key in source_keys:continue
         source_keys.add(source_key)
         b=f.read_bytes(); txt=b.decode('utf8',errors='replace')
-        if not re.search(r'(Summon|Tame|Familiar|OwnerHurt|FollowOwner|Guard|Pet|Minion|Servant|isAlliedTo|wantsToAttack|getOwnerUUID)',txt):continue
+        if not re.search(r'(Summon|Tame|Familiar|OwnerHurt|FollowOwner|Guard|Pet|Minion|Servant|isAlliedTo|wantsToAttack|getOwnerUUID)',txt) and f.stem not in {'ModMeleeAttackGoal','ModRangedAttackGoal','HurtAlertOtherGoal'}:continue
         tree=parser.parse(b)
         for n in walk(tree.root_node):
             if n.type not in ('method_declaration','constructor_declaration'):continue
@@ -41,8 +41,8 @@ for repo in sorted(list(BASE.iterdir())+list((OUT/'sources').iterdir())):
             if body is None or name is None:continue
             text=b[n.start_byte:n.end_byte].decode('utf8')
             # Filter to behavior, not attributes, recipes, animation, or accessors.
-            if not re.search(r'(target|owner|summon|tame|familiar|ally|allied|canAttack|hurt|attack|follow|servant|minion|guard|expire|lifespan)',text,re.I):continue
-            if len(text)<110:continue
+            if not re.search(r'(target|owner|owned|summon|tame|familiar|ally|allied|canAttack|hurt|attack|follow|servant|minion|guard|expire|lifespan|pacif|hostile|natural)',text,re.I) and not (info['repo']=='Polarice3/Goety-2' and f.stem=='Wartling' and b[name.start_byte:name.end_byte]==b'die'):continue
+            if len(text)<85:continue
             norm=re.sub(r'/\*.*?\*/|//[^\n]*','',text,flags=re.S)
             norm=re.sub(r'\s+','',norm)
             key=f"{info['repo']}@{info['sha']}:{rel}:{n.start_point.row+1}:{n.end_point.row+1}"

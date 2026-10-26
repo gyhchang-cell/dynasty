@@ -1,0 +1,351 @@
+[
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantHurtByTargetGoal.java",
+    "method": "canUse",
+    "observation": "仅当自身及袭击者都实现IOwned时，依次按ownerStack、isAllyWith、相同非空ownerId拒反击；其他来源交父HurtByTargetGoal。",
+    "application": "所有反击入口应共用最终许可；只过滤同owner宠物无法保护普通旁观玩家。",
+    "limits": "非IOwned玩家不进入这些额外过滤，本项目需要更窄Enemy-only，不把此实现当完整修复。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/SummonTargetGoal.java",
+    "method": "canUse",
+    "observation": "先执行父类寻找目标；若目标就是已解析owner则拒绝；若自身hostile，仅准非Enemy目标并且父类通过，其余沿用父结果。",
+    "application": "目标查找后的后置检查仍必要，且召唤和野生/敌方模式须分别定义。",
+    "limits": "这里hostile逻辑与本项目租约政策方向不同；不引入敌方召唤模式。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/TargetHostileOwnedGoal.java",
+    "method": "TargetHostileOwnedGoal",
+    "observation": "默认最近目标附predicate；VILLAGE_GUARDS标签实体改成战斗条件和villageGuardPredicate，保留followDistance。",
+    "application": "按实体身份切换目标策略应显式受范围约束，避免全局改变普通野生蟹兵。",
+    "limits": "这是村庄守卫分类，不作为本项目新增标签或AI系统需求。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/TargetHostileOwnedGoal.java",
+    "method": "villageGuardPredicate",
+    "observation": "只选IOwned且排除Prisoner；hostile直接可选，或非玩家造铁傀儡面对正在袭击的RaiderServant时可选。",
+    "application": "白名单可同时表达实体类别与状态，不应把未结盟者全部纳入。",
+    "limits": "此策略含袭击语义，本项目保持原Enemy筛选，不新增Raider条件。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantNaturalAttackGoal.java",
+    "method": "canUse",
+    "observation": "父类能启动且isNatural为真、getTrueOwner为空、target非空才启动自然攻击goal。",
+    "application": "同一实体类区分自然生成与玩家召唤，可在窄范围切断原生野生目标入口。",
+    "limits": "依赖natural标记可靠恢复；owner暂离线为空不能单独被当自然生成。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Summoned.java",
+    "method": "registerGoals",
+    "observation": "先调用Owned父注册，再挂受伤反击、巡逻、跟随和普通选敌四个钩子。",
+    "application": "清点全部继承与新增目标入口；子类重选不等于替换父类owner反击。",
+    "limits": "不把每个单行委托钩子重复计数；最终保护还取决于setter和伤害路径。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Summoned.java",
+    "method": "updateControlFlags",
+    "observation": "当控制乘客是Mob时关闭MOVE/LOOK/TARGET，乘船另限制JUMP；通过goalSelector统一设flag。",
+    "application": "骑乘/控制权可以改变AI调度，但不能代替目标授权与最终伤害检查。",
+    "limits": "这里目标控制flag位于goalSelector；是否影响targetSelector需原生调度上下文，不能凭名字断言。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Summoned.java",
+    "method": "setTarget",
+    "observation": "pacify期间强制清目标；守区且非优先模式仅接受在boundPos范围内的非空目标；其他直接overrideSetTarget。",
+    "application": "目标setter能统一管住多种写入源，但被拒的新目标是否清旧目标必须审查。",
+    "limits": "越界非空分支没有清旧target；优先模式绕过范围。此处仍不检查Enemy许可。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Summoned.java",
+    "method": "setPriorityTarget",
+    "observation": "先overrideSetTarget绕过普通setter，再保存priorityTarget；非空时设100tick优先期并记录位置。",
+    "application": "命令/优先目标也是绕过普通setter的入口，不能只修一般setTarget。",
+    "limits": "本项目没有要求新增优先指令；仅以此识别旁路审计原则。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Summoned.java",
+    "method": "finalizeSpawn",
+    "observation": "父生成后播召唤粒子，有owner时升级；按owner是否存在决定wandering，并清staying与boundPos。",
+    "application": "检查召唤时序必须在owner赋值后初始化模式，否则会保留野生移动/选敌状态。",
+    "limits": "这里只影响模式和升级，不能代替持久化身份或证明所有生成路径都设置owner。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Summoned.java",
+    "method": "hurt",
+    "observation": "开启ServantsMasterImmune且双方Summoned均非hostile、共同非空owner时拒伤；其他交父类，受伤成功后设noHealTime。",
+    "application": "同owner友伤限制要独立于再生窗口；拒伤和拒绝主动选敌分别验。",
+    "limits": "任意非同owner旁观者不受该分支保护，且受配置开关控制，不照搬为Enemy许可。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Summoned.java",
+    "method": "doHurtTarget",
+    "observation": "先调用Owned伤害；成功后可让燃烧空手亡灵点燃目标，并使可损主手武器掉1耐久。",
+    "application": "最终攻击拒绝必须早于伤害和附带效果；否则即使后续取消仍可能点燃或耗耐久。",
+    "limits": "此方法自身不判owner或Enemy；下层Owned与目标入口才决定安全。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "ownerHurtGoals",
+    "observation": "给targetSelector优先级1挂主人被伤害反击，优先级2挂主人主动攻击复制。",
+    "application": "修复应覆盖两条独立事件来源，不能只删最近玩家目标goal。",
+    "limits": "只记录注册层次，不将两个构造器的字段赋值各凑成参考。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "doHurtTarget",
+    "observation": "有owner时重建伤害、附魔与击退；火焰附加在实际hurt结果前执行；成功再击退/破盾/附魔后效/LastHurtMob；无owner回原生伤害。",
+    "application": "保护应在最终输出入口最早拒绝非法目标，连附魔点燃也不能先发生。",
+    "limits": "owner解析失败会走原生战斗，需保留租约身份独立判断；此方法没有目标白名单。",
+    "start": 107
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "doHurtTarget",
+    "observation": "float重载直接以summonAttack(this,getTrueOwner)构造伤害并调用target.hurt。",
+    "application": "伤害归属与目标授权是不同问题：标注owner不意味着目标允许被打。",
+    "limits": "与Entity版攻击重载是独立最终伤害位点；不声称mod伤害类型已完整研究。",
+    "start": 142
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "getTeam",
+    "observation": "owner可解析、不是自身、未互相持有且owner有team时返回其team，否则回父类team。",
+    "application": "避免owner循环导致递归队伍解析；继承team只是盟友信息，非完整攻击许可。",
+    "limits": "必须同时研究areOwnedByEachOther；此实现不处理更长链的所有情况。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "areOwnedByEachOther",
+    "observation": "仅在对方IOwned时检测对方owner是自己且自己owner是对方的二元循环。",
+    "application": "二元所有权环应被防住；更多层循环仍需visited集合或明确禁止。",
+    "limits": "不是完整图环检测；不扩展本项目仅玩家UUID租约为多级ownership系统。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "isAlliedTo",
+    "observation": "有owner时检查双方联盟、owner本人、IOwned共同master、其他Ownable同owner及自定义ally；无owner仍检查父联盟和自定义ally。",
+    "application": "保护owner及其召唤链需要多个关系源，但非盟友仍不自动成为Enemy。",
+    "limits": "联盟可双向不对称，递归/ownerStack需结合上下文；本项目不新增这套盟友配置。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "finalizeSpawn",
+    "observation": "父生成后checkHostility；非MOB_SUMMONED且无owner标natural，否则清既有natural；玩家owner设置持久实体。",
+    "application": "召唤标记与真实owner在生成阶段共同决定自然/召唤分支，不能只用owner当前是否在线。",
+    "limits": "无owner的召唤保留旧natural状态的细节需注意；不为本项目增加自然生成规则。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "getTrueOwner",
+    "observation": "WILD_RAGE存在直接返回null；服务端用ownerUUID经EntityFinder解析，客户端用同步entityId并拒绝自身引用。",
+    "application": "服务端稳定UUID和客户端临时entityId分工明确；保护不能仅依赖某一帧owner实体存在。",
+    "limits": "暴怒刻意隐藏owner属于该模组玩法，本项目不能因此允许租约护卫变野生。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "setHostile",
+    "observation": "写HOSTILE同步字段后无条件调用addTargetGoal，后者加入最近Player目标实例。",
+    "application": "切换标志与挂AI是两个动作；反向切换必须核对是否拆除旧目标入口。",
+    "limits": "本方法无移除分支，但checkHostility及子类可改变调用条件；只记录潜在旁路，不妄判其完整玩法bug。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "remove",
+    "observation": "仅KILLED/DISCARDED且hasSummons时遍历当前ServerLevel实体；直接子召唤物owner是自己则转交自己的owner，否则清owner，最后父移除。",
+    "application": "父护卫消失后的子实体归属不能遗留旧指针；移除原因和维度范围都影响清理。",
+    "limits": "本项目无需新增链式召唤；转交或清owner的策略不能照搬短租约。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "canUse",
+    "observation": "OwnerHurtTargetGoal读取主人最近主动攻击目标和新timestamp，并要求TargetGoal.canAttack且目标非owner。",
+    "application": "主人指令/战斗事件不能绕过租约Enemy白名单；仅排owner仍会允许旁观玩家。",
+    "limits": "相比Ars缺少wantsToAttack二次策略，保留此语义差异；不再重复其构造器。",
+    "start": 458
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/Owned.java",
+    "method": "start",
+    "observation": "OwnerHurtTargetGoal仅缓存attacker非空才通过owned.setTarget写入并更新owner攻击timestamp，再super.start。",
+    "application": "缓存目标应在启动时重新授权；使用虚拟setTarget能让统一策略覆盖这条入口。",
+    "limits": "空检查避免崩溃，不保证目标仍允许；被拒后timestamp仍可能被消费。",
+    "start": 469
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "setTrueOwner",
+    "observation": "非空LivingEntity同时写稳定ownerUUID及客户端entityId；null输入不清除任何字段。",
+    "application": "明确设置null和清owner是不同接口，避免卸装时误以为null setter已撤销。",
+    "limits": "此方法自身不验证调用者，必须配合removeTrueOwner；不统计单字段setter。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "copyTrueOwner",
+    "observation": "IOwned来源ownerId非空才成对复制UUID和ownerClientId，空来源保留原值。",
+    "application": "拷贝归属时空值策略必须明确；复制不能遗留上任owner。",
+    "limits": "IOwnedBlock重载近似端口，不重复计数；客户端ID是临时值不可替代UUID。",
+    "start": 70
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "removeTrueOwner",
+    "observation": "主动将UUID清空且clientId设-1，双通道同时撤销owner。",
+    "application": "清理客户端显示归属和服务端权威归属要一致，但租约标记仍须独立控制野生AI。",
+    "limits": "这是清归属操作本身，不代表清目标、Brain仇恨和伤害许可已完成。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "getMasterOwner",
+    "observation": "从直接owner沿IOwned或原生Ownable链上溯；visited UUID集合检测环并break，末尾回退直接owner。",
+    "application": "链式关系判定必须有循环终止，避免isAlliedTo递归卡死。",
+    "limits": "环出现时返回当前环节点，未必是唯一主owner；本项目不增加多层链。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "checkHostility",
+    "observation": "仅服务端；owner是Enemy、owner为hostile IOwned、或自身Enemy时分别setHostile(true)，没有清false的分支。",
+    "application": "区分一次判定与双向状态同步；owner关系改变后旧目标模式可能仍在。",
+    "limits": "该模组允许敌方召唤，本项目租约固定Enemy目标策略，不引入hostile模式。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "ownedTick",
+    "observation": "服务端先处理多级owner死亡转交/杀死，再ownerCheck、targetingTick、特定Boss随从规则、mobSense，末尾寿命/复生/停火倒计时。",
+    "application": "审查同tick顺序：清/重选目标、战斗与到期撤销应共同考虑，不能只看20tick逻辑。",
+    "limits": "这是一个完整编排方法，不把其片段单独重复计数；下列子方法各有独立实现才另计。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "ownerCheck",
+    "observation": "仅服务端且owner存在并tickCount<20时，检查同步entityId是否指向同owner；缺失或错误时更新ID。",
+    "application": "重生实体ID改变而UUID不变，需要刷新客户端临时引用。",
+    "limits": "只在owner早期20tick窗口更新，不保证任意时间的ID变化均处理；不能直接照搬。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "targetingTick",
+    "observation": "停火直接返回；未眩晕时先清无效/死亡target，随后可能复制Mob主人目标，再在followRange遍历Mob，依据自定义ally受伤或攻击owner关系重新setTarget。",
+    "application": "无效目标清理后仍有多个同tick写入源；每个来源都要经过同一最终许可。",
+    "limits": "其Goodwill/复仇能扩张到非Enemy对象，本项目不用该宽策略；nullifyTarget依赖需继续核对。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "mobSense",
+    "observation": "让被攻击Mob反应：Animal写LastHurtBy；无目标普通Mob指向随从或IGNORE_SERVANTS时主人；Guardian另检视线/距离；非战斗Brain写600tick怒气与攻击记忆。",
+    "application": "战斗关系不只Mob.target；AI/Brain记忆和受伤来源也能造成后续重选。",
+    "limits": "此方法改变其他Mob行为，不适合修本项目普通野生蟹兵；只读分析其隐式目标来源。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "pacify",
+    "observation": "仅当前target非空时清target/LastHurtBy，擦Brain攻击/怒气/HURT_BY；NeutralMob清持久怒气，最后setAggressive(false)。",
+    "application": "暂停/撤权应覆盖目标、记忆和怒气；只设setTarget(null)可能被旧记忆重选。",
+    "limits": "target本来为空时整段不执行，潜在残存Brain记忆不被处理；此限制需明确。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "lifeSpanDamage",
+    "observation": "到期处理先将寿命设20，再对实体施starve1伤害。",
+    "application": "伤害式到期不同于直接移除，可能受无敌或伤害拒绝影响；租约应维持已有移除语义。",
+    "limits": "与Ars Skeleton的20伤害同属倒计时伤害思路，但此处接口并由ownedTick调用，未按多实体变种重复计数。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "pacifySurroundingMobs",
+    "observation": "范围内非盟友Mob先无条件清target和LastHurtBy；Brain记忆只在指向owned时清，UUID比较使用对象==。",
+    "application": "撤销指向某护卫的仇恨应限制目标关系并用值相等判断UUID。",
+    "limits": "这里先清所有非盟友目标范围过宽，UUID对象比较也有边界；不照搬影响其他玩家战斗。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "isAllyWith",
+    "observation": "在线Player owner用SEHelper.isAlly；否则只要ownerUUID尚存且ServerLevel存在，按保存的ownerUUID查离线ally关系。",
+    "application": "owner离线不应丢关系政策；稳定UUID可保持保护而不退回野生规则。",
+    "limits": "与type/tag版本仅参数类别相近，当前只计完整实体关系一处；具体SEHelper数据语义另审。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "isGrudgedTowards",
+    "observation": "在线Player用SEHelper.isGrudged；owner不在线但有UUID时按目标ServerLevel保存关系判断。",
+    "application": "记录owner无法解析时仍有关系数据分支；本项目策略仍需固定Enemy，不能自行加复仇。",
+    "limits": "不把Tag/Type近似实现一并凑数；这是边界参考，非建议新增仇敌系统。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "readOwnedData",
+    "observation": "有OwnerUUID才设owner，OwnerClient存在才设ID；显式hostile字段优先否则checkHostility；natural、寿命及复生坐标/维度有条件恢复。",
+    "application": "旧档缺字段和false值语义应区别，读取过程可能触发AI注册副作用。",
+    "limits": "调用setHostile会addTargetGoal；保存只写真值可能导致缺字段后重新判定，不假定读写完全对称。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "saveOwnedData",
+    "observation": "owner非空存UUID，clientId有效才存；hostile/natural只为真写；仅isLimitedLife存LifeTicks，复生位置存在才写维度。",
+    "application": "只写true与总写布尔值会影响重载默认行为，归属/模式回退需与read一起分析。",
+    "limits": "不是本项目短租约保存格式；不建议把客户端entityId当永久归属依据。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MobUtil.java",
+    "method": "areAllies",
+    "observation": "任一null即false；玩家双方需双向自定义关系或双向原生联盟；Mob亲属且互不以对方为target可视为盟友，其他情况混合双向队伍和单向玩家自定义关系。",
+    "application": "联盟判定有方向与当前目标依赖；不能把其否定直接当攻击白名单。",
+    "limits": "自定义SEHelper关系尚须核上下文，且本项目不用这些更宽玩法，只保持Enemy限制。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MobUtil.java",
+    "method": "ownerStack",
+    "observation": "分别求两IOwned的master；双方非空且对象相同或UUID值相等才算同一归属链。",
+    "application": "稳定UUID值相等可以覆盖重建实体指针不同，不应只用引用相等。",
+    "limits": "基于getMasterOwner环终止语义，不能保证异常环拥有唯一master；空双方不算同owner。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MobUtil.java",
+    "method": "isOwnedTargetable",
+    "observation": "优先解析直接owner或投射物主人；敌方模式仅选生存玩家。NeutralMob走复仇或正在攻击owner/attacker；其他以Enemy/hostile为主，连续排除友好套装/同owner等，末尾OR复仇可放宽。",
+    "application": "集中谓词利于多入口复用，但所有OR分支都必须受本项目Enemy白名单约束。",
+    "limits": "复杂AND/OR优先级使复仇可绕主白名单；不将这些套装/阵营/PVP机制导入本项目。"
+  }
+]

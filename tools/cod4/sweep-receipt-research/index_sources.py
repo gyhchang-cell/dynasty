@@ -24,6 +24,10 @@ def structural(n,raw):
  return sha(' '.join(out).encode())
 groups={
  'deferred_queue':re.compile(r'enqueueWork|queueTask|queueServer|enqueueTask|addScheduledTask|scheduleTask|scheduleTick|TickTask|delayedTask|delayedAction|[Pp]ending[A-Z]|[Qq]ueue\b|[Dd]eferred'),
+ 'gameplay_delayed_producer':re.compile(r'ServerScheduler\.|TaskScheduler\.|WorldScheduler|TaskHandler\.enqueue|\.schedule\s*\('),
+ # Animation phase/cooldown consumers can settle real attacks without world-clock APIs.
+ # Discovery only: these matches remain unreviewed until full usage-chain review.
+ 'combat_window_candidate':re.compile(r'getAnimationTick\s*\(|getTicksInUse\s*\(|getElapsedTime\s*\(|prevElapsedTime|parryCooldown|attackCooldown|getPhaseByTime\s*\('),
  'tick_phase':re.compile(r'TickEvent\.(?:Phase|ServerTick|WorldTick|LevelTick)|ServerTickEvents|END_SERVER_TICK|END_WORLD_TICK|TickPhase'),
  'expiry_window':re.compile(r'expir|timeToLive|TTL\b|last[A-Z]\w*(?:Tick|Time)|(?:getGameTime|getTotalWorldTime|getTickCount)\s*\('),
  'identity_receipt':re.compile(r'acknowledge|sequenceId|lastSequence|[Rr]eceipt|alreadyProcessed|processedEntities|hitEntities|alreadyHit|seenEntities|[Pp]ending[A-Z]'),

@@ -9,6 +9,8 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var statusLabel = NSTextField(wrappingLabelWithString: "")
     var targetLabel = NSTextField(wrappingLabelWithString: "")
+    var permissionControls: NSStackView?
+    var bridgePermissionControls: NSStackView?
     var permissionsLabel = NSTextField(wrappingLabelWithString: "")
     var minimum = NSTextField(string: "15")
     var maximum = NSTextField(string: "20")
@@ -24,10 +26,16 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     var refreshTimer: Timer?
     var watchdog: Timer?
     var emittedDown = Set<MacroMouseButton>()
+    var rhythms: [MacroMouseButton: ClickRhythm] = [:]
+    var rhythmRandom = SystemRandomNumberGenerator()
     var sprintOwned = false
     var ownedSprintCode: CGKeyCode = 59
+    var sprintRenewal = SprintRenewal()
+    var sessionSuspended = false
+    var terminationSignal: DispatchSourceSignal?
     var targetPIDs = Set<pid_t>()
     var detectionCache: [pid_t: Bool] = [:]
+    var detectionPending = Set<pid_t>()
     var manualPID: pid_t?
     var boundHotkey: CGKeyCode = 50
     var recordingHotkey = false
@@ -37,12 +45,78 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     var notice = "已关闭。进入游戏后按 ` 开启。"
     var suppressedKeys = Set<CGKeyCode>()
     let source = CGEventSource(stateID: .privateState)
+    let f3Capture = F3Capture()
+    let telly = TellyController()
+    let gameTelemetry = GameTelemetry()
+    var bridgeRuntime:GameTelemetry.Runtime?
+    var bridgeRuntimeChecked=false
+    var bridgeWorldPreview:BridgeWorldState?
+    var bridgeUIAt=0.0
+    let bridgeInputQueue = DispatchQueue(label:"local.mc-macro.bridge-input",qos:.userInteractive)
+    let bridgeInputEpoch = BridgeInputEpoch()
+    var bridgeModifiers = BridgeModifiers()
+    var bridgeChatOpen=false
+    var bridgeMode = BridgeMode.level
+    var bridgeModePicker = NSPopUpButton()
+    var bridgeTimer: Timer?
+    var bridgeAccessCheckedAt = -Double.infinity
+    var bridgeAccessAllowed = false
+    var bridgeWindow: NSWindow?
+    var bridgeEnabled = NSButton(checkboxWithTitle: "启用按住 R 搭路（实验版）", target: nil, action: nil)
+    var bridgeStatus = NSTextField(wrappingLabelWithString: "")
+    var bridgeConfigPending = false
+    var bridgeConfigPID: pid_t?
+    var bridgeConfigAt = 0.0
+    var bridgeDiagnosticUntil = 0.0
+    var bridgePreview: F3Pose?
+    let bridgeTraceEnabled = ProcessInfo.processInfo.environment["MC_MACRO_TRACE"] == "1"
+    var bridgeTraceTick = -1
+    var bridgeTraceMessage = ""
+
+    func traceBridge(_ line: String) {
+        guard bridgeTraceEnabled, let data=(String(format:"%.3f ",ProcessInfo.processInfo.systemUptime)+line+"\n").data(using:.utf8) else{return}
+        FileHandle.standardOutput.write(data)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Future local updates can stop the running app while releasing owned input.
+        signal(SIGTERM, SIG_IGN)
+        let termination = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        termination.setEventHandler { [weak self] in self?.quit() }
+        termination.resume()
+        terminationSignal = termination
         source?.localEventsSuppressionInterval = 0
         loadSettings()
         buildWindow()
         buildMenu()
+        bridgeMode=BridgeMode(rawValue:UserDefaults.standard.string(forKey:"bridgeMode") ?? "level") ?? .level
+        telly.forwardPitch=45;telly.risePerJump=bridgeMode.rise;telly.coordinateMovement=true
+        gameTelemetry.onState = { [weak self] state,error in
+            guard let self else{return}
+            self.bridgeWorldPreview=state
+            if self.bridgeDiagnosticUntil>0,let state {
+                self.bridgePreview=state.pose;self.bridgeDiagnosticUntil=0
+                self.telly.stop("游戏状态读取成功；本次没有移动或点击。")
+                self.gameTelemetry.stop();self.updateBridgeUI()
+            } else if self.telly.active,self.telly.phase != .idle {
+                self.telly.observeWorld(state,error:error,now:ProcessInfo.processInfo.systemUptime)
+                if let state,state.tick != self.bridgeTraceTick {
+                    self.bridgeTraceTick=state.tick
+                    self.traceBridge(String(format:"POSE %.4f %.4f %.4f yaw %.2f pitch %.2f ground %@ ",state.pose.x,state.pose.y,state.pose.z,state.pose.yaw,state.pose.pitch,String(state.onGround))+self.telly.diagnostic)
+                }
+            }
+        }
+        telly.key = { [weak self] code, down in self?.postBridgeKey(code, down: down) }
+        telly.mouse = { [weak self] down in
+            guard let self, !down || self.isTargetFront() else { return }
+            self.postBridgeMouse(down: down)
+        }
+        telly.move = { [weak self] x,y in self?.postBridgeMove(x: x, y: y) }
+        telly.trace = { [weak self] line in self?.traceBridge(line) }
+        telly.cancelPendingInput = { [weak self] in self?.bridgeInputEpoch.invalidate() }
+        bridgeEnabled.state = UserDefaults.standard.object(forKey: "bridgeEnabled") as? Bool == false ? .off : .on
+        bridgeEnabled.target = self
+        bridgeEnabled.action = #selector(bridgeChanged)
         refreshTargets()
         hardwareMouse.onChange = { [weak self] button, down in self?.hardwareChanged(button, down: down) }
         if CGPreflightListenEventAccess() { hardwareMouse.start() }
@@ -55,20 +129,33 @@ final class MacroApp: NSObject, NSApplicationDelegate {
             name: NSWorkspace.sessionDidResignActiveNotification, object: nil)
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(sleeping),
             name: NSNotification.Name("com.apple.screenIsLocked"), object: nil)
+        DistributedNotificationCenter.default().addObserver(self, selector: #selector(awake),
+            name: NSNotification.Name("com.apple.screenIsUnlocked"), object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(awake),
+            name: NSWorkspace.didWakeNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(awake),
+            name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            if let self, AXIsProcessTrusted(), CGPreflightListenEventAccess() {
+                self.hardwareMouse.start()
+                _ = self.installTap()
+            }
             self?.refreshTargets()
             self?.updateUI()
         }
         watchdog = Timer.scheduledTimer(withTimeInterval: 0.025, repeats: true) { [weak self] _ in
             guard let self else { return }
             self.hardwareMouse.refresh()
-            if self.policy.enabled && (!self.isTargetFront() || !AXIsProcessTrusted()) {
-                self.stop("已暂停：离开游戏或权限失效。返回游戏后重新按快捷键开启。")
-            }
+            self.serviceEnabledMode()
         }
+        bridgeTimer = Timer(timeInterval: 0.008, repeats: true) { [weak self] _ in self?.serviceBridge() }
+        RunLoop.main.add(bridgeTimer!, forMode: .common)
         updateUI()
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        traceBridge("START version=1.8.9 AX=\(AXIsProcessTrusted()) input=\(CGPreflightListenEventAccess())")
+        if ProcessInfo.processInfo.environment["MC_MACRO_BACKGROUND"] != "1" {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     func loadSettings() {
@@ -82,7 +169,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     }
 
     func buildWindow() {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 570, height: 650),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 570, height: 700),
                           styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
         window.title = "MC 连点助手"
         window.center()
@@ -121,6 +208,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         addText("左右键各自使用此 CPS 范围；上下限相同即固定速度。", to: stack, small: true)
         hotkeyButton = button(hotkeyTitle(), #selector(recordKey))
         stack.addArrangedSubview(hotkeyButton)
+        stack.addArrangedSubview(button("Speed Telly 1.8.9：按住 R 搭路", #selector(showBridgeSettings)))
         sprint.target = self
         sprint.action = #selector(sprintChanged)
         sprint.state = UserDefaults.standard.object(forKey: "sprint") as? Bool == false ? .off : .on
@@ -138,7 +226,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         targetLabel.font = .systemFont(ofSize: 12)
         targetLabel.widthAnchor.constraint(equalToConstant: 510).isActive = true
         stack.addArrangedSubview(targetLabel)
-        addText("Esc 紧急停止；T、/、E 暂停。退出聊天或背包后，重新按快捷键开启。切出游戏、锁屏或睡眠后也需重新开启。", to: stack, small: true)
+        addText("仅开关键或“立即停止”关闭功能。Esc、切换世界、死亡重生均保留状态；鼠标按住才连点。", to: stack, small: true)
         permissionsLabel.font = .systemFont(ofSize: 12)
         stack.addArrangedSubview(permissionsLabel)
         let permissions = NSStackView()
@@ -146,6 +234,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         permissions.addArrangedSubview(button("检查并申请权限", #selector(requestPermissions)))
         permissions.addArrangedSubview(button("打开辅助功能", #selector(openAccessibility)))
         permissions.addArrangedSubview(button("打开输入监控", #selector(openInputMonitoring)))
+        permissionControls = permissions
         stack.addArrangedSubview(permissions)
         let actions = NSStackView()
         actions.spacing = 10
@@ -209,9 +298,22 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         detectionCache = detectionCache.filter { livePIDs.contains($0.key) }
         for app in apps {
             let pid = app.processIdentifier
-            if detectionCache[pid] == nil {
-                detectionCache[pid] = MacroPolicy.looksLikeMinecraft(name: app.localizedName ?? "", bundle: app.bundleIdentifier ?? "",
-                                                                    command: commandLine(pid))
+            // Retry transient negatives off the input thread. Waiting for ps
+            // on the main run loop can delay a placement by an entire tick.
+            if detectionCache[pid] != true,!detectionPending.contains(pid) {
+                detectionPending.insert(pid)
+                let name=app.localizedName ?? "",bundle=app.bundleIdentifier ?? ""
+                DispatchQueue.global(qos:.utility).async { [weak self] in
+                    guard let self else{return}
+                    let matched=MacroPolicy.looksLikeMinecraft(name:name,bundle:bundle,command:self.commandLine(pid))
+                    DispatchQueue.main.async {
+                        self.detectionPending.remove(pid)
+                        guard NSRunningApplication(processIdentifier:pid) != nil else{return}
+                        self.detectionCache[pid]=matched
+                        if matched {self.targetPIDs.insert(pid)}
+                        self.updateUI()
+                    }
+                }
             }
             if detectionCache[pid] == true {
                 detected.insert(app.processIdentifier)
@@ -253,16 +355,22 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     }
 
     @objc func frontChanged() {
-        policy.targetActive = isTargetFront()
-        if policy.enabled && !policy.targetActive { stop("已暂停：已切出游戏。返回后按快捷键开启。") }
+        let active = isTargetFront()
+        if !active { telly.stop("已切出游戏，搭路停止。松开 R 后重新开始。"); f3Capture.reset() }
+        if policy.enabled && active { policy.targetActive = false; serviceEnabledMode() }
+        else {
+            policy.targetActive = active
+            if policy.enabled { suspend("已暂停：已切出游戏，总开关仍开启，返回后自动就绪。") }
+        }
     }
 
-    @objc func sleeping() { stop("已暂停：锁屏或睡眠。返回游戏后按快捷键开启。") }
+    @objc func sleeping() { sessionSuspended = true; telly.stop("锁屏或睡眠，搭路已停止。"); suspend("已暂停：锁屏或睡眠，总开关保留。") }
+    @objc func awake() { sessionSuspended = false; serviceEnabledMode() }
 
     @discardableResult func installTap() -> Bool {
         if tap != nil { return true }
         guard AXIsProcessTrusted() else { return false }
-        let types: [CGEventType] = [.leftMouseDown, .leftMouseUp, .leftMouseDragged,
+        let types: [CGEventType] = [.mouseMoved, .leftMouseDown, .leftMouseUp, .leftMouseDragged,
                                    .rightMouseDown, .rightMouseUp, .rightMouseDragged,
                                    .keyDown, .keyUp, .flagsChanged]
         let mask = types.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
@@ -281,17 +389,21 @@ final class MacroApp: NSObject, NSApplicationDelegate {
 
     func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            stop("输入监听中断，已停止。请重新开启。")
+            suspend("输入监听中断，正在恢复，总开关保留。")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return Unmanaged.passUnretained(event)
         }
         if event.getIntegerValueField(.eventSourceUserData) == eventMarker { return Unmanaged.passUnretained(event) }
         if event.getIntegerValueField(.eventSourceUnixProcessID) == Int64(getpid()) { return Unmanaged.passUnretained(event) }
         let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+        if type == .keyUp && code == 15 && telly.held {
+            traceBridge("R up")
+            telly.release(); f3Capture.reset(); return nil
+        }
         if type == .keyUp && suppressedKeys.remove(code) != nil { return nil }
         if type == .keyDown && recordingHotkey && NSApp.isActive {
             if code == 53 { recordingHotkey = false; hotkeyButton.title = hotkeyTitle(); return nil }
-            if [12, 14, 17, 44].contains(code) { notice = "请选其他键，T、E、/、Q 已保留。"; updateUI(); return nil }
+            if [12, 14, 17, 44, 15].contains(code) { notice = "请选其他键，T、E、/、Q、R 已保留。"; updateUI(); return nil }
             boundHotkey = code
             UserDefaults.standard.set(Int(code), forKey: "hotkey")
             recordingHotkey = false
@@ -301,8 +413,45 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         }
         let active = isTargetFront()
         policy.targetActive = active
-        if policy.enabled && !active { stop("已切出游戏，已停止。") }
+        if policy.enabled && !active { suspend("已切出游戏，暂停输入，总开关保留。") }
         guard active else { return Unmanaged.passUnretained(event) }
+        if type == .keyDown && bridgeEnabled.state == .on {
+            if bridgeChatOpen {
+                if code==36 || code==53 {bridgeChatOpen=false}
+                return Unmanaged.passUnretained(event)
+            }
+            if code==44 {
+                bridgeChatOpen=true
+                if telly.active {telly.stop("已打开聊天，搭路已停止。")}
+                return Unmanaged.passUnretained(event)
+            }
+        }
+        if type == .keyDown && code == 17 && bridgeEnabled.state == .on && !event.flags.contains(.maskCommand) {
+            if event.getIntegerValueField(.keyboardEventAutorepeat)==0 {setBridgeMode(bridgeMode.next)}
+            suppressedKeys.insert(code)
+            return nil
+        }
+        if type == .keyDown && code == 15 && bridgeEnabled.state == .on {
+            traceBridge("R down repeat=\(event.getIntegerValueField(.keyboardEventAutorepeat))")
+            if event.flags.contains(.maskCommand) { return Unmanaged.passUnretained(event) }
+            if event.getIntegerValueField(.keyboardEventAutorepeat) == 0 {
+                cancelClicks(); releaseSprint()
+                if sprintKey.indexOfSelectedItem == 1 {
+                    telly.stop("R 已用作疾跑键，请先改用左 Control 再搭路。")
+                } else {
+                    bridgeDiagnosticUntil = 0; bridgePreview = nil
+                    telly.press(now: ProcessInfo.processInfo.systemUptime)
+                }
+            }
+            return nil
+        }
+        if telly.active {
+            if type == .keyDown && code != 15 { telly.stop("检测到手动按键，搭路已停止。松开 R 后重新开始。") }
+            if type == .flagsChanged { telly.stop("检测到手动修饰键，搭路已停止。松开 R 后重新开始。") }
+            if type == .mouseMoved && event.getIntegerValueField(.eventSourceUnixProcessID) == 0 {
+                telly.stop("检测到手动移动鼠标，搭路已停止。松开 R 后重新开始。")
+            }
+        }
         if type == .keyDown {
             if code == boundHotkey {
                 if event.getIntegerValueField(.keyboardEventAutorepeat) == 0 {
@@ -311,17 +460,14 @@ final class MacroApp: NSObject, NSApplicationDelegate {
                 suppressedKeys.insert(code)
                 return nil
             }
-            if policy.enabled && [53, 17, 14, 44].contains(code) {
-                stop(code == 53 ? "Esc 紧急停止。" : "已暂停聊天／背包操作，完成后按快捷键重新开启。")
-            }
             // Release before Cmd-Tab / Cmd-Q / other system shortcuts leave the game.
-            if policy.enabled && event.flags.contains(.maskCommand) { stop("系统快捷键触发，已停止。") }
+            if policy.enabled && event.flags.contains(.maskCommand) { suspend("系统快捷键期间暂停，总开关保留。") }
         }
         guard policy.enabled else { return Unmanaged.passUnretained(event) }
         switch type {
         case .flagsChanged:
-            if sprintOwned && ownedSprintCode == 59 && !event.flags.contains(.maskControl) {
-                event.flags.insert(.maskControl)
+            if sprintOwned && sprintRenewal.isDown && ownedSprintCode == 59 {
+                event.flags = CGEventFlags(rawValue: SprintModifier.flags(event.flags.rawValue, down: true))
             }
         case .leftMouseDown, .rightMouseDown:
             let button: MacroMouseButton = type == .leftMouseDown ? .left : .right
@@ -347,20 +493,18 @@ final class MacroApp: NSObject, NSApplicationDelegate {
             notice = "无法开启：请先授权并检查输入监听。"; updateUI(); return
         }
         hardwareMouse.start()
-        guard hardwareMouse.connected else {
-            notice = "未连接到鼠标硬件。为避免自动连点，保持关闭；请检查输入监控权限并重启。"
-            updateUI(); return
-        }
         policy.physicalLeftHeld = false // A fresh physical press is required after every enable.
         policy.physicalRightHeld = false
         policy.targetActive = true
+        policy.menuPaused = false
         policy.enabled = true
-        notice = "已就绪：不按不点，真实按住哪一键才连点哪一键。"
+        notice = hardwareMouse.connected ? "已就绪：按住才连点，总开关持续开启。" : "已启用疾跑；鼠标硬件未连接，连点暂停。"
         if sprint.state == .on { pressSprint() }
         updateUI()
     }
 
     func stop(_ reason: String) {
+        telly.stop("搭路已停止。松开 R 后可重新开始。")
         policy.stop()
         cancelClicks()
         releaseSprint()
@@ -368,21 +512,63 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         updateUI()
     }
 
+    func suspend(_ reason: String) {
+        telly.stop("搭路已暂停。松开 R 后可重新开始。")
+        policy.suspend()
+        cancelClicks()
+        releaseSprint()
+        if policy.enabled { notice = reason; updateUI() }
+    }
+
+    func serviceEnabledMode() {
+        guard !telly.active else { return }
+        guard policy.enabled else { return }
+        let active = isTargetFront()
+        let wasActive = policy.targetActive
+        policy.targetActive = active
+        guard active, !sessionSuspended, AXIsProcessTrusted(), !CGEventSource.flagsState(.combinedSessionState).contains(.maskCommand) else {
+            if wasActive || sprintOwned || !clickTimers.isEmpty { suspend("暂时暂停输入，总开关保留。") }
+            return
+        }
+        policy.menuPaused = false
+        if let tap, !CGEvent.tapIsEnabled(tap: tap) { CGEvent.tapEnable(tap: tap, enable: true) }
+        if sprint.state == .on {
+            if !sprintOwned { pressSprint() }
+            else if let down = sprintRenewal.advance(now: ProcessInfo.processInfo.systemUptime) { postSprint(down: down) }
+        }
+        // Reconcile with hardware after loading/respawn or a transient listener reset.
+        // Keeping the mode enabled never permits clicks when the hardware is up.
+        policy.reconcileHardware(left: hardwareMouse.isDown(.left), right: hardwareMouse.isDown(.right))
+        for button in MacroMouseButton.allCases {
+            if policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)) {
+                if clickTimers[button] == nil { click(button) }
+            } else { cancelClicks(button) }
+        }
+        if !wasActive { notice = "已自动恢复就绪：按住鼠标才连点。"; updateUI() }
+    }
+
     func click(_ button: MacroMouseButton) {
         clickTimers.removeValue(forKey: button)?.invalidate()
         guard policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)), isTargetFront(), AXIsProcessTrusted() else {
             cancelClicks(button); return
         }
+        let started = ProcessInfo.processInfo.systemUptime
+        var rhythm = rhythms[button] ?? ClickRhythm()
+        let beat = rhythm.next(minimum: cpsMin, maximum: cpsMax, using: &rhythmRandom)
+        rhythms[button] = rhythm
+        releaseMouse(button)
         postMouse(button, down: true)
         emittedDown.insert(button)
         releaseTimers.removeValue(forKey: button)?.invalidate()
-        let release = Timer(timeInterval: 0.007, repeats: false) { [weak self] _ in
+        let release = Timer(timeInterval: beat.held, repeats: false) { [weak self] _ in
             self?.releaseMouse(button)
         }
         releaseTimers[button] = release
         RunLoop.main.add(release, forMode: .common)
-        let cps = Double.random(in: cpsMin...cpsMax)
-        let next = Timer(timeInterval: MacroPolicy.interval(cps: cps), repeats: false) { [weak self] _ in self?.click(button) }
+        // Account for time spent posting events so it is not added to every interval.
+        // Never send a burst of overdue clicks after a stalled run loop.
+        let delay = max(0.001, beat.interval - (ProcessInfo.processInfo.systemUptime - started))
+        let next = Timer(timeInterval: delay, repeats: false) { [weak self] _ in self?.click(button) }
         clickTimers[button] = next
         RunLoop.main.add(next, forMode: .common)
     }
@@ -394,7 +580,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
             cancelClicks(button)
             return
         }
-        guard policy.enabled, isTargetFront() else { return }
+        guard !telly.active, policy.enabled, !sessionSuspended, !policy.menuPaused, isTargetFront() else { return }
         if button == .left { policy.physicalLeftHeld = true }
         else { policy.physicalRightHeld = true }
         if clickTimers[button] == nil { click(button) }
@@ -407,7 +593,10 @@ final class MacroApp: NSObject, NSApplicationDelegate {
                                   mouseCursorPosition: position, mouseButton: button == .left ? .left : .right) else { return }
         // Control must not turn these generated attacks into contextual/right clicks.
         event.flags = []
+        event.setIntegerValueField(.mouseEventDeltaX, value: 0)
+        event.setIntegerValueField(.mouseEventDeltaY, value: 0)
         event.setIntegerValueField(.mouseEventClickState, value: 1)
+        event.setDoubleValueField(.mouseEventPressure, value: down ? 1 : 0)
         event.setIntegerValueField(.eventSourceUserData, value: eventMarker)
         event.post(tap: .cghidEventTap)
     }
@@ -418,6 +607,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     }
 
     func cancelClicks(_ button: MacroMouseButton) {
+        rhythms.removeValue(forKey: button)
         clickTimers.removeValue(forKey: button)?.invalidate()
         releaseMouse(button)
     }
@@ -427,12 +617,13 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     }
 
     func pressSprint() {
-        guard !sprintOwned, policy.enabled, isTargetFront() else { return }
+        guard !sprintOwned, policy.enabled, !policy.menuPaused, isTargetFront() else { return }
         let code: CGKeyCode = sprintKey.indexOfSelectedItem == 0 ? 59 : 15
         // Do not take ownership of a sprint key the user is already holding.
         guard !CGEventSource.keyState(.hidSystemState, key: code) else { return }
         ownedSprintCode = code
         sprintOwned = true
+        sprintRenewal.begin(now: ProcessInfo.processInfo.systemUptime)
         postSprint(down: true)
     }
 
@@ -440,9 +631,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         guard let event = CGEvent(keyboardEventSource: source, virtualKey: ownedSprintCode, keyDown: down) else { return }
         if ownedSprintCode == 59 {
             event.type = .flagsChanged
-            var flags = CGEventSource.flagsState(.combinedSessionState)
-            if down { flags.insert(.maskControl) } else { flags.remove(.maskControl) }
-            event.flags = flags
+            event.flags = CGEventFlags(rawValue: SprintModifier.flags(CGEventSource.flagsState(.combinedSessionState).rawValue, down: down))
         }
         event.setIntegerValueField(.eventSourceUserData, value: eventMarker)
         event.post(tap: .cghidEventTap)
@@ -450,6 +639,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
 
     func releaseSprint() {
         if sprintOwned { postSprint(down: false); sprintOwned = false }
+        sprintRenewal = SprintRenewal()
     }
 
     func updateUI() {
@@ -460,7 +650,9 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         let ids = targetPIDs.sorted().map(String.init).joined(separator: ", ")
         targetLabel.stringValue = manualPID.map { "已绑定游戏进程 \($0)，进程退出后需重新绑定。" } ??
             (targetPIDs.isEmpty ? "尚未识别到游戏。请先启动 Minecraft；识别失败时可手动选择 Java 游戏进程。" : "已识别游戏进程：\(ids)")
+        permissionControls?.isHidden = AXIsProcessTrusted() && CGPreflightListenEventAccess()
         permissionsLabel.stringValue = "辅助功能：\(AXIsProcessTrusted() ? "已授权" : "未授权")　输入监控：\(CGPreflightListenEventAccess() ? "已授权" : "未授权")　硬件：\(hardwareMouse.connected ? "已连接" : "未连接")"
+        updateBridgeUI()
     }
 
     func hotkeyTitle() -> String {
@@ -510,6 +702,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     @objc func quit() { stop("已退出。"); NSApp.terminate(nil) }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationWillTerminate(_ notification: Notification) {
+        telly.stop("已退出。"); gameTelemetry.stop(); f3Capture.reset()
         policy.stop(); cancelClicks(); releaseSprint()
         hardwareMouse.stop()
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }

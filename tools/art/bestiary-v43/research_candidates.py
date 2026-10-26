@@ -22,6 +22,8 @@ PICKS={
 'iron431/Irons-Spells-n-Spellbooks':'''Apothecarist Archevoker Cryomancer Cultist DeadKing FireBoss Keeper Necromancer Priest Pyromancer SummonedSkeleton SummonedZombie'''.split(),
 'Infamous-Misadventures/Dungeons-Mobs':'''DungeonsIllusioner Enchanter Geomancer Iceologer Mage Mountaineer RoyalGuard Windcaller DrownedNecromancer Necromancer SkeletonVanguard SunkenSkeleton Wraith'''.split(),
 'Fuzss/illager-invasion':None,
+'AlexModGuy/AlexsCaves': 'DeepOne DeepOneKnight Underzealot Licowitch'.split(),
+'lender544/new1.20.1': 'Deepling DeeplingAngler DeeplingPriest DeeplingWarlock'.split(),
 'Tslat/Advent-Of-Ascension': 'VineWizard Silencer LelyetianCaster LelyetianWarrior Goblin Hag Paladin RuneTemplar RunicGuardian SpectralWizard ArcWizard ShyreKnight'.split(),
 }
 
@@ -55,7 +57,7 @@ def java_parts(path,models,seen=None):
     return parts,warnings,sources
 
 def main():
-    directories=[LIB/'Polarice3__Goety-2',LIB/'DivineRPG__DivineRPG',LIB/'TeamTwilight__twilightforest',LIB/'Tslat__Advent-Of-Ascension-1.16.5']
+    directories=[LIB/'Polarice3__Goety-2',LIB/'DivineRPG__DivineRPG',LIB/'TeamTwilight__twilightforest',LIB/'Tslat__Advent-Of-Ascension-1.16.5',LIB/'AlexModGuy__AlexsCaves',LIB/'lender544__new1.20.1']
     additions=ROOT/'build/bestiary-v43/references'
     directories += [p for p in additions.iterdir() if (p/'source.json').exists() and (p.name.endswith('__1.20.1') or p.name.endswith('__1.20.1-legacy') or p.name.startswith(('Infamous-','TheDarkPeasant')))]
     rows=[];excluded=[];seen=set()
@@ -71,7 +73,7 @@ def main():
                 linked=re.findall(r'new ([A-Za-z0-9_]+)<>',renderer.read_text())
                 if linked and linked[0] in models:jobs.append((models[linked[0]],entity,renderer))
         for p,short,explicit_renderer in jobs:
-            if pick is not None and short not in pick:continue
+            if pick is not None and normalized(short) not in {normalized(x) for x in pick}:continue
             if any(w in str(p).lower() for w in ['/armor/','/item/','/block/']):continue
             texts=[(p,p.read_text())]+[(q,q.read_text()) for q in renderers if (q==explicit_renderer or normalized(short) in normalized(q.stem) or q.name=='EntityRenders.java')]
             texture_pairs=[]
@@ -91,7 +93,11 @@ def main():
             if repo=='Polarice3/Goety-2' and short=='Prisoner':texture_pairs=[]
             if not texture_pairs:
                 excluded.append(dict(repo=repo,model=str(p.relative_to(base)),reason='No literal model/renderer texture binding'));continue
-            texture,binding=texture_pairs[0]
+            # A base model can mention its parent's atlas; prefer the exact
+            # entity renderer over a substring match or inherited declaration.
+            exact_renderers=[pair for pair in texture_pairs if normalized(pair[1].stem) in
+                             {normalized(short+'Renderer'),normalized(short+'Render')}]
+            texture,binding=(exact_renderers or texture_pairs)[0]
             try:
                 content=p.read_text();parts,warnings,sources=java_parts(p,models)
                 geo=re.findall(r'"(geo/[^"\s]+\.geo\.json)"',content)

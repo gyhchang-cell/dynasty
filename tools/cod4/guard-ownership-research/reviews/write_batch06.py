@@ -1,0 +1,27 @@
+import json,pathlib
+R=[]
+def add(file,method,observation,application,limits):
+ R.append(dict(repo='Polarice3/Goety-2',file='/'+file+'.java',method=method,observation=observation,application=application,limits=limits))
+add('WarlockServant','registerGoals','父注册后增加交易goal和远程goal；匿名canUse从独立shootTarget读取活目标并缓存到goal.target，不读取Mob.getTarget。','审核不能只检查普通target字段；继承goal及独立施法目标都可能驱动攻击。','匿名canUse已包含在整段注册方法，不另计；WitchServant近似注册不重复收录。')
+add('WarlockServant','aiStep','父aiStep先执行；服务端随机每200tick重新搜索辅助目标，只有shootTarget为空才回退普通活目标，再据盟友关系/距离切手持物或无目标自疗生成Wartling。','周期重选存在时间窗口；普通target已清空不保证射击目标或父AI当帧没有攻击。','不将持物和粒子当独立参考；目标缓存清理还需结合远程goal和命中实现。')
+add('WarlockServant','isAlliedTarget','owner可解析时仅承认owner本人及MobUtil.getOwner返回同一owner的实体；否则使用MobUtil.areAllies。','辅助目标策略和普通攻击目标策略应区分；owner解析失败时的回退语义必须审核。','对象身份比较只适用于当前已加载世界，不能代替保存的UUID归属。')
+add('WarlockServant','findTarget','从跟随范围横向及上下4格范围中，以forNonCombat寻找盟友Mob，要求其有战斗target且不是Wartling，结果直接覆盖shootTarget。','AI可以主动选择盟友作为增益投射对象；不能把所有射击目标一律视为敌人。','本项目租约蟹兵只有现有Enemy攻击规则，不能因该辅助例子新增盟友增益机制。')
+add('WarlockServant','performRangedAttack','近6格且冷却完/头顶空且普通target非Raider时先扔多枚SnapFungus；否则服务端对非普通敌对目标的盟友投BerserkFungus，对其他目标生成已setTarget的Wartling。','最终动作入口有多条派生输出；只过滤单一投射分支或只给伤害归属并不足够。','近距分支优先于盟友辅助分支；是否构成伤害需进一步读投射实现，不能直接宣称外国模组缺陷。')
+add('WarlockServant','summonWartlings','仅服务器创建子召唤，将直接owner设为Warlock自身、寿命9秒，取首个可治愈有害效果转存并从父实体移除，finalizeSpawn后入世界。','子实体直接owner可能是另一召唤物，最终玩家归属需沿链解析；须在入世界前赋值。','清除父debuff的行为不是本项目需求；不得复制为新机制或把9秒当本项目租约。')
+add('WarlockServant','mobInteract','持主手货币且自身空手非aggressive时允许owner或具友善饰品的盟友交易并记录trader；仅owner进入装备服务，其余委托父类。','可交易玩家集合不等于可控制装备集合，也不等于允许攻击的目标集合。','WitchServant同结构交互不重复计数；此处交易权限来自该模组规则，不导入本项目。')
+add('WitchServant','aiStep','服务端活体阶段先更新独立shootTarget，再处理喝药，结束时清手并移饮用减速；起饮前先移同UUID再加临时modifier，最后才调用父aiStep。','AI的维护顺序与临时属性撤销影响攻击窗口；独立辅助目标不能只靠普通target维护。','与Warlock的父调用在前和子召唤自疗不同，整体方法独立；不按每种药水拆条。')
+add('WitchServant','isAlliedTarget','有owner时除了本人/同owner实体，还允许与owner结盟且notTargetingAlly的对象；无owner才回退通用areAllies。','团队盟友过滤还可要求其没有反向攻击己方；应核查关系判断方向。','相比Warlock增加实际反向目标谓词故单独收录；不新增本项目PVP或团队系统。')
+add('WitchServant','findTarget','forNonCombat范围检索受伤盟友并排除Minion，最近者写入shootTarget；没有要求该盟友正战斗。','同是辅助重选，治疗目标和增伤目标条件不同；目标许可须和动作类型匹配。','与Warlock找有target的Mob不同，非简单换类名重复；不把范围常量变体算独立机制。')
+add('WitchServant','performRangedAttack','非喝药时按亡灵反转选择伤害药；盟友且不是普通敌对target则改治疗/再生并清shootTarget，否则按距离/血量/已有状态选择减速毒虚弱，最后生成ThrownPotion。','辅助射击也能产生范围投射，最终命中者可能与选定者不同；清缓存发生在哪条分支须明确。','这里未读取ThrownPotion范围友伤规则，不能推定周边盟友免疫；不是本项目新增药水玩法。')
+add('Wartling','doHurtTarget','Mega时在调用父伤害前先给目标施存储的非增益效果，或抽走首个可治愈增益转为自身储存并播声，然后才super.doHurtTarget。','最终攻击许可应在全部前置副作用前检查，父hurt返回false也可能已经剥离增益。','只由源码确认先后顺序；需实际上下文才能判定外国模组是否允许该互动。')
+add('Wartling','die','父死亡后，服务端若有储存效果则生成半径1、无等待、持续2秒的AreaEffectCloud并附效果；此处未setOwner。','归属审核应追踪死亡生成的范围实体，宠物自身不攻击旁观者不代表残留效果也受保护。','本方法未设置云owner是局部观察；未研究原生云命中全部规则，不直接断言实际友伤。')
+add('Wartling','lifeSpanDamage','主人活着且存效为空或增益时，清target并导航回主人，碰撞后回血转增益discard；5秒未抵达以饥饿伤害结束，否则重设20tick后饥饿伤害。','到期回收可能仍执行导航、状态转移或死亡副产物；到期不一定等同无副作用discard。','这是独立返还型生命周期，与通用IOwned.lifeSpanDamage不同；本项目保持既有租约语义。')
+add('Wartling','canUse','AvoidOwnerGoal要求owner存在且非濒死，随机寻远离owner且更远的位置并建路；还要求存储有非增益效果和没有攻击target。','远离主人的移动是避免有害载荷接近，不应误判失去归属；导航条件与目标选择须分别记录。','不把普通owner getter计数；此处只审核完整避让启动控制流。')
+add('Wartling','canContinueToUse','AvoidOwnerGoal继续条件只看路径未完成和owner存在且活着，不再检查起始的有害储存效果或target为空。','启动与持续条件可能不对称，状态改变后旧goal仍可运行；验收应覆盖持续阶段。','该持续谓词语义以避让路径为主，不与战斗goal持续条件直接等同。')
+add('Wartling','tick','AvoidOwnerGoal在owner存在时以距离平方49为界切导航步行/冲刺速度；没有重新设置逃跑路径或清攻击target。','持续导航tick可以继续使用旧路径；仅看当前target不代表没有旧移动计划。','需按方法起点区分同文件外层粒子tick；外层纯表现tick不计入本批。')
+add('WitchServantBarterGoal','tick','交易每tick清普通target并停导航注视trader，100tick结束按职业掉落后清交易；受伤且手持货币则退货清交易。','和平交互状态主动清target还须确认独立shootTarget/远程goal缓存是否一并停用。','此方法本身未清shootTarget，不据此宣称交易中必然攻击；还要结合goal flags调度。')
+add('MobUtil','getOwner','先判空；IOwned取trueOwner，OwnableEntity取owner；投射物仅在直接owner是LivingEntity时再展开一次其IOwned/Ownable归属，否则返回该生物。','统一归属辅助函数可能只展开有限层，不能假定任意嵌套子召唤/投射物均返回最终玩家。','与已读递归ownerStack不同，这是有限层解析；未解析成功不应自动视为野生或无须保护。')
+add('MobUtil','notTargetingAlly','若attacker目标正是defender或defender的owner即false，否则返回defender与attacker当前目标不是盟友。','盟友辅助资格会依赖被辅助者正在攻击谁，方向与普通isAlliedTo不同。','当前目标为空时的结果依赖areAllies空值规则；本项目既有Enemy筛选不需要引入此额外关系系统。')
+for row in R:
+ if row['file']=='/Wartling.java' and row['method']=='tick': row['start']=344
+pathlib.Path(__file__).with_name('batch06.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

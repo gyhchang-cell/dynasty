@@ -4,7 +4,7 @@ import concurrent.futures,hashlib,json,pathlib,re,ssl,urllib.request
 ROOT=pathlib.Path(__file__).resolve().parent
 shared=ROOT.parents[2]/'build/item-use-references/Polarice3__Goety-2'
 meta=json.loads((shared/'source.json').read_text());tree=json.loads((shared/'tree.json').read_text())
-paths=[x['path'] for x in tree['tree'] if x['path'].endswith('.java') and re.search(r'/common/entities/(ai|ally|neutral)/',x['path'])]
+paths=[x['path'] for x in tree['tree'] if x['path'].endswith('.java') and (re.search(r'/common/entities/(ai|ally|neutral)/',x['path']) or x['path'].endswith(('/api/entities/IOwned.java','/api/entities/ally/IServant.java','/utils/MobUtil.java','/utils/EntityFinder.java','/utils/ModDamageSource.java','/utils/ServantUtil.java','/utils/SEHelper.java')))]
 dest=ROOT/'.work/sources/Polarice3__Goety-2';dest.mkdir(parents=True,exist_ok=True)
 (dest/'source.json').write_text(json.dumps(meta,indent=2)+'\n')
 context=ssl.create_default_context(cafile='/etc/ssl/cert.pem')

@@ -2,6 +2,8 @@
 from pathlib import Path
 import json,collections,datetime
 R=Path(__file__).resolve().parents[3]; D=R/'docs/cod4/audit-20261022/ecology-acceptance'; L=D/'live-run1'
+if (D/'static-handoff.json').exists():
+ print('Static handoff preserved; report_live will not restore stale RUNNING status.');raise SystemExit(0)
 s=json.loads((L/'summary.json').read_text());events=[]
 for n,line in enumerate((L/'events.jsonl').read_text().splitlines(),1):
  try:e=json.loads(line)

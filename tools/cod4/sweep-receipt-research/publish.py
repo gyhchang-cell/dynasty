@@ -7,20 +7,51 @@ ap=argparse.ArgumentParser();ap.add_argument('--verify-remote',action='store_tru
 sha=lambda b:hashlib.sha256(b).hexdigest()
 cs=[json.loads(x) for x in (O/'candidates.jsonl').read_text().splitlines()];by={c['candidate_id']:c for c in cs}
 notes=[r for p in sorted((O/'reviews').glob('*.json')) for r in json.loads(p.read_text())]
+scope_path=O/'scope-reclassifications.json'
+scope=json.loads(scope_path.read_text()) if scope_path.exists() else {'entries':[]}
+overrides={r['candidate_id']:r for r in scope['entries']}
+assert len(overrides)==len(scope['entries'])
+resolution_path=O/'review-resolutions.json'
+resolutions=json.loads(resolution_path.read_text()) if resolution_path.exists() else {'entries':[]}
+followups={r['candidate_id']:r for r in resolutions['entries']}
+assert len(followups)==len(resolutions['entries'])
+errata_path=O/'observation-errata.json'
+errata=json.loads(errata_path.read_text()) if errata_path.exists() else {'entries':[]}
+corrections={r['candidate_id']:r for r in errata['entries']}
+assert len(corrections)==len(errata['entries'])
+assert not (set(overrides)&set(followups)), 'Scope removals cannot be silently restored by followups'
 seen=set();structs=set();ranges=collections.defaultdict(list);rows=[];trees={};needed={}
 remote_path=O/'remote-pins.json';remote=json.loads(remote_path.read_text()) if remote_path.exists() else {}
 old=R/'tools/cod4/armor-acceptance/evidence/armor-remote-pin-verification.json'
 existing=json.loads(old.read_text()) if old.exists() else {}
 for n in notes:
  c=by[n['candidate_id']];assert c['candidate_id'] not in seen;seen.add(c['candidate_id'])
- assert n['snippet_sha256']==c['snippet_sha256'];assert n['decision'] in ('accepted','excluded','pending')
- row={**c,**n,'credit':int(n['decision']=='accepted'),'external_runtime_tested':False}
- if n['decision']=='accepted':
+ assert n['snippet_sha256']==c['snippet_sha256'];assert n['decision'] in ('accepted','excluded','pending','auxiliary')
+ followup=followups.get(c['candidate_id'])
+ if followup:assert n['decision']=='pending', 'Only an authored pending review may be resolved'
+ effective=overrides.get(c['candidate_id']) or followup
+ decision=effective['decision'] if effective else n['decision']
+ assert decision in ('accepted','excluded','pending','auxiliary')
+ row={**c,**n,'original_decision':n['decision'],'decision':decision,'credit':int(decision=='accepted'),'external_runtime_tested':False}
+ if effective:row['followup_review' if followup else 'scope_review']=effective
+ if followup:
+  row['original_observation']=n['observation']
+  row['observation']=followup['observation']
+ correction=corrections.get(c['candidate_id'])
+ if correction:
+  assert row['observation']==correction['original_observation']
+  row['observation_before_erratum']=row['observation']
+  row['observation']=correction['corrected_observation']
+  row['observation_erratum']=correction
+ if n['decision'] in ('accepted','auxiliary') or decision=='accepted':
   raw=(R/c['source_local']).read_bytes();assert sha(raw)==c['source_sha256']
   excerpt=c['excerpt'];assert sha(excerpt.encode())==c['snippet_sha256'];text=raw.decode(errors='replace');start=text.find(excerpt);assert start>=0
   assert text[:start].count('\n')+1==c['line'];assert text[:start+len(excerpt)].count('\n')+1==c['end_line']
-  assert not c['parse_error'];assert c['structural_fingerprint'] not in structs,('same AST clone family',c['candidate_index'] if 'candidate_index' in c else n['candidate_index'])
-  structs.add(c['structural_fingerprint']);filekey=(c['repo'],c['revision'],c['path'])
+  assert not c['parse_error']
+  if decision=='accepted':
+   assert c['structural_fingerprint'] not in structs,('same AST clone family',n['candidate_index'])
+   structs.add(c['structural_fingerprint'])
+  filekey=(c['repo'],c['revision'],c['path'])
   for lo,hi in ranges[filekey]:assert c['end_line']<lo or c['line']>hi,('overlap',c['candidate_id'])
   ranges[filekey].append((c['line'],c['end_line']))
   root=R/c['source_root'];treefile=root/'tree.json';key=f"{c['repo']}@{c['revision']}:{c['path']}"
@@ -43,8 +74,12 @@ if a.verify_remote:
   for k,v in pool.map(fetch,[(k,c) for k,c in needed.items() if not (remote.get(k,{}).get('matches') and remote[k].get('retrieved_sha256')==c['source_sha256'])]):remote[k]=v
  remote_path.write_text(json.dumps(remote,ensure_ascii=False,indent=2)+'\n')
 for k,c in needed.items():assert remote.get(k,{}).get('matches') and remote[k].get('retrieved_sha256')==c['source_sha256'],('unverified pin',k)
+assert set(overrides)<=seen, 'Scope override must reference an existing authored review'
+assert set(followups)<=seen, 'Followup must reference an existing authored review'
+assert set(corrections)<=seen, 'Erratum must preserve an existing authored observation'
 accepted=[r for r in rows if r['credit']];count=len(accepted)
 (O/'reviewed.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in rows))
 (O/'accepted.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in accepted))
-summary={'required':1000,'accepted':count,'gap':max(0,1000-count),'gate_met':count>=1000,'candidates':len(cs),'decisions':dict(collections.Counter(r['decision'] for r in rows)),'unreviewed':len(cs)-len(rows),'repositories':len({c['repo'] for c in accepted}),'pinned_files':len(ranges),'prior_corpus_credit':0,'accepted_ledger_sha256':sha((O/'accepted.jsonl').read_bytes()),'production_changed':False,'upstream_code_executed':False,'candidate_count_is_not_review_count':True,'updated_at':datetime.datetime.now().astimezone().isoformat()}
+(O/'auxiliary.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in rows if r['decision']=='auxiliary'))
+summary={'required':1000,'accepted':count,'gap':max(0,1000-count),'gate_met':count>=1000,'candidates':len(cs),'decisions':dict(collections.Counter(r['decision'] for r in rows)),'unreviewed':len(cs)-len(rows),'repositories':len({c['repo'] for c in accepted}),'pinned_files':len({(r['repo'],r['revision'],r['path']) for r in accepted}),'verified_files_including_auxiliary':len(ranges),'prior_corpus_credit':0,'accepted_ledger_sha256':sha((O/'accepted.jsonl').read_bytes()),'production_changed':False,'upstream_code_executed':False,'candidate_count_is_not_review_count':True,'updated_at':datetime.datetime.now().astimezone().isoformat()}
 (O/'progress.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n');print(json.dumps(summary,ensure_ascii=False))
