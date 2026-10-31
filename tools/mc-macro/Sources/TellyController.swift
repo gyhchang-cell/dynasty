@@ -7,6 +7,8 @@ final class TellyController {
     private var blockedReason = ""
     private(set) var held = false
     private(set) var finishing = false
+    private(set) var manualFinishRequested = false
+    private(set) var restartRequiresRelease = false
     var active: Bool {held || finishing}
     private var finishAt = 0.0
     private(set) var phase = Phase.idle
@@ -16,6 +18,8 @@ final class TellyController {
     var mouse: (Bool) -> Void = { _ in }
     var move: (Int64, Int64) -> Void = { _,_ in }
     var cancelPendingInput: () -> Void = {}
+    var supplyReady: (BridgeWorldState) -> Bool = { _ in true }
+    var placementSupplyReady: () -> Bool = {true}
     var trace:(String)->Void = {_ in}
     var config: TellyGameConfig?
     private var ownedKeys = Set<UInt16>()
@@ -24,7 +28,7 @@ final class TellyController {
     private var releaseTimer: Timer?
     private var placing = false
     private var minimumCPS = 15.0
-    private var maximumCPS = 20.0
+    private var maximumCPS = 18.0
     private var rhythm = ClickRhythm()
     private var random = SystemRandomNumberGenerator()
     private var startedAt = 0.0
@@ -63,6 +67,7 @@ final class TellyController {
     private var launchAt = 0.0
     private var lastGateTick = -1
     private var lastClickTick = -1
+    private var pendingClickConsumed=false
     private var jumpPlacements = 0
     private var activeRise=0
     private var plannedRise=0
@@ -105,14 +110,21 @@ final class TellyController {
             // During ascent the integrated server may still have the previous
             // tick's lower body position. Do not click a new top block at the
             // first 1.001-height frame, where placement is still obstructed.
-            if target.axis==1,state.velocity.1>0,pose.y<Double(b.y)+1.12 {return false}
+            let topMargin=abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? 0.001:0.12
+            if target.axis==1,state.velocity.1>0,pose.y<Double(b.y)+1+topMargin {return false}
             let turning=turn != nil || pendingAimPose != nil
             let commanded=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:turning ? issuedTurnYaw : follower?.yaw ?? pose.yaw,pitch:turning ? issuedTurnPitch : follower?.pitch ?? pose.pitch,time:pose.time)
             let face=target.axis==1 ? "up" : target.axis==0 ? (target.sign>0 ? "east":"west") : (target.sign>0 ? "south":"north")
             let next=F3Pose(x:pose.x+state.velocity.0,y:pose.y+(state.onGround ? 0:state.velocity.1),z:pose.z+state.velocity.2,yaw:commanded.yaw,pitch:commanded.pitch,time:pose.time+0.05)
             let observedHit=state.useHit==target.support && state.useFace?.lowercased()==face
-            let currentHit=target.isVisibleFace(from:pose,eyeHeight:state.eyeHeight)
-            let commandHit=target.isVisibleFace(from:commanded,eyeHeight:state.eyeHeight)
+            // EntityLivingBase.getLook(1) uses rotationYawHead. Mouse
+            // camera yaw can be ahead until the next player update; keep the
+            // camera trajectory separate from the ray used by rightClickMouse.
+            let nativeYaw=abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? (state.headYaw ?? pose.yaw):pose.yaw
+            let nativePose=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:nativeYaw,pitch:pose.pitch,time:pose.time)
+            let nativeCommand=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? nativeYaw:commanded.yaw,pitch:commanded.pitch,time:pose.time)
+            let currentHit=target.isVisibleFace(from:nativePose,eyeHeight:state.eyeHeight)
+            let commandHit=target.isVisibleFace(from:nativeCommand,eyeHeight:state.eyeHeight)
             let nextHit=target.axis != 1 || target.isVisibleFace(from:next,eyeHeight:state.eyeHeight)
             if ProcessInfo.processInfo.environment["MC_MACRO_GATE_TRACE"]=="1",lastGateTick != state.tick {
                 lastGateTick=state.tick
@@ -124,8 +136,13 @@ final class TellyController {
     }
 
     func press(now: TimeInterval) {
+        guard !restartRequiresRelease else { return }
+        // Manual takeover commits this stop. A quick R release/re-press
+        // must not turn the landing into another jump or queue a restart.
+        if finishing && manualFinishRequested {restartRequiresRelease=true;return}
         guard !held else { return }
         if finishing {held=true;finishing=false;message="R 搭路中；松开后完成本跳并回正。";return}
+        manualFinishRequested=false
         held = true; phase = .preparing; startedAt = now; phaseAt = now;plannedRise=0
         track = F3Track(); worldState=nil;lastClickTick = -1;jumpIndex=0;centered=false;centerSettling=false; anchor = nil; lastUsedPose = -1; launched=false
         support = nil; route = nil; placement = nil; pendingPlacements.removeAll(); observed.removeAll(); pendingAimPose = nil; poseHistory.removeAll(); vx = 0; vy = 0; vz = 0
@@ -133,6 +150,7 @@ final class TellyController {
     }
 
     func release(now:TimeInterval=ProcessInfo.processInfo.systemUptime) {
+        restartRequiresRelease=false
         guard held else{return}
         held=false
         if phase == .idle {return}
@@ -151,7 +169,46 @@ final class TellyController {
         } else {stop("已停止搭路：R 已松开。")}
     }
 
+    func requestManualFinish(now:TimeInterval=ProcessInfo.processInfo.systemUptime) {
+        guard phase != .idle, !manualFinishRequested else {return}
+        manualFinishRequested=true
+        // Reuse the proven R-up landing path, without treating the physical
+        // R key as released. Repeated input cannot extend its deadline.
+        release(now:now)
+        restartRequiresRelease=true
+        message=finishing ? "检测到手动操作，完成本跳并回正后停止；松开 R 再按可重新开始。"
+                          : "已取消起步；松开 R 再按可重新开始。"
+        trace("MANUAL_FINISH phase=\(phase) finishing=\(finishing) wait_r_up=true")
+    }
+
+    func requestSupplyFinish() {
+        guard phase != .idle, !manualFinishRequested else { return }
+        if let state=worldState,state.onGround,let config,
+           [.preparing,.calibrating,.centering,.backing,.runup,.aligning].contains(phase) {
+            // Even the very first approach can carry momentum at the edge.
+            // Keep grounded sneak until stopped instead of releasing W into drift.
+            manualFinishRequested=true;restartRequiresRelease=true;held=false
+            finishing=true;finishAt=ProcessInfo.processInfo.systemUptime
+            blockJump(config:config,now:finishAt)
+            blockedReason="同种方块不足，已在支撑处停稳。"
+            message=blockedReason
+            return
+        }
+        requestManualFinish()
+        message=finishing ? "同种方块不足，完成本跳并回正后停止。" : "同种方块不足，未开始下一跳。"
+    }
+
+    private func checkSupply(config:TellyGameConfig) -> Bool {
+        guard let state=worldState else { return true }
+        guard supplyReady(state) else {
+            if phase != .idle, state.onGround {setPlacing(false);keys([config.sneak])}
+            return false
+        }
+        return true
+    }
+
     func stop(_ reason: String) {
+        let wasRunning=phase != .idle
         finishing=false
         phase = .idle
         turn=nil; follower=nil; pendingAimPose=nil; cancelPendingInput()
@@ -161,6 +218,15 @@ final class TellyController {
         releaseTimer?.invalidate(); releaseTimer=nil
         if mouseDown { mouse(false); mouseDown=false }
         message = reason
+        if wasRunning,let state=worldState {
+            let age=ProcessInfo.processInfo.systemUptime-state.pose.time
+            let yawError=abs(F3Pose.angle(state.pose.yaw-heading)),pitchError=abs(state.pose.pitch-forwardPitch)
+            let audit:[String:Any] = ["grounded":state.onGround,"yaw_error_degrees":yawError,
+                "pitch_error_degrees":pitchError,"keys_released":ownedKeys.isEmpty,"right_released":!mouseDown,
+                "safe_aligned_finish":age<0.25 && !state.flying && state.onGround && yawError<1 && pitchError<1 && ownedKeys.isEmpty && !mouseDown,
+                "pose_age_ms":(ProcessInfo.processInfo.systemUptime-state.pose.time)*1000,"reason":reason]
+            if let data=try? JSONSerialization.data(withJSONObject:audit,options:[.sortedKeys]),let json=String(data:data,encoding:.utf8) {trace("FINISH "+json)}
+        }
     }
 
     func observe(_ pose: F3Pose?, error: String, now: TimeInterval) {
@@ -183,6 +249,11 @@ final class TellyController {
     }
 
     private func keys(_ desired: Set<UInt16>) {
+        var desired=desired
+        if let config,launched,!finishing,!desired.contains(config.sneak),
+           [.takeoff,.flight,.landing,.runup].contains(phase) {
+            desired.insert(config.sprint)
+        }
         for code in ownedKeys.subtracting(desired) { key(code, false) }
         // Establish modifiers before movement, and jump after both.
         let additions=desired.subtracting(ownedKeys).sorted {
@@ -228,8 +299,12 @@ final class TellyController {
         if x != 0 || y != 0 {
             follower=nil
             let span=max(abs(dyaw),abs(dpitch))
-            let duration=RelativeMouseTurn.duration(for:span)
-            turn=RelativeMouseTurn(x:x,y:y,start:now,duration:duration)
+            let diagonalRise=activeRise>0 && abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 && phase == .flight
+            let duration=diagonalRise ? min(0.072,RelativeMouseTurn.duration(for:span)):RelativeMouseTurn.duration(for:span)
+            // Keep the same total time and angle, with a longer even-speed
+            // middle on diagonal returns; no extra ground wait or faster peak.
+            let returnRamp=phase == .landing && abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? 0.10:0.18
+            turn=RelativeMouseTurn(x:x,y:y,start:now,duration:duration,ramp:returnRamp)
             issuedTurnYaw=baseYaw;issuedTurnPitch=basePitch
             turnOriginYaw=baseYaw;turnOriginPitch=basePitch
             pendingAimPose=pose;pendingAimSince=now;lastAimAt=now;lastUsedPose=pose.time
@@ -239,6 +314,7 @@ final class TellyController {
         return false
     }
     private func followFace(yaw:Double,pitch:Double,pose:F3Pose,now:Double) {
+        if ProcessInfo.processInfo.environment["MC_MACRO_FRAME_TRACE"]=="1" { trace("VIEW target=\(placement.map{String(describing:$0.result)} ?? "nil") desired=\(yaw),\(pitch) issued=\(follower?.yaw ?? issuedTurnYaw),\(follower?.pitch ?? issuedTurnPitch) turn=\(turn != nil)") }
         guard worldState != nil else {_ = aim(yaw:yaw,pitch:pitch,pose:pose,now:now);return}
         if var active=turn {
             // The player travels during a 112-ms turn. Update its destination
@@ -276,10 +352,11 @@ final class TellyController {
     private func forwardKeys(pose: F3Pose, config: TellyGameConfig) -> Set<UInt16> {
         if coordinateMovement, let route {
             let correction=max(-35,min(35,route.cross(pose.x,pose.z)*65+(vx*route.uz-vz*route.ux)*8))
-            // Relative motion and these keys share one ordered input queue.
-            // Use the angle already issued, not the eventual turn target or
-            // an older observed angle. A longer turn must not drain momentum.
-            let yaw=(turn != nil || pendingAimPose != nil) ? issuedTurnYaw : follower?.yaw ?? pose.yaw
+            // Diagonal keyboard acceleration uses the sampled native camera.
+            // The renderer applies queued mouse deltas after physics, so
+            // an issued future angle may not be the angle used by movement.
+            // Cardinal coordination retains its prior input model.
+            let yaw=worldState != nil && abs(route.ux*route.uz)>0.2 ? pose.yaw : ((turn != nil || pendingAimPose != nil) ? issuedTurnYaw : follower?.yaw ?? pose.yaw)
             return Self.directionKeys(yaw:yaw,heading:heading,correction:correction,config:config)
         }
         guard turn==nil, pendingAimPose==nil else { return [] }
@@ -306,7 +383,7 @@ final class TellyController {
         guard self.active, phase != .idle else { return }
         guard active else { stop("游戏失去前台或权限不可用，已停止搭路。"); return }
         if finishing,now-finishAt>1.5 {stop("未能及时确认安全落地，已释放输入。");return}
-        minimumCPS = minimum; maximumCPS = maximum
+        maximumCPS = max(1,min(18,maximum)); minimumCPS = min(maximumCPS,max(1,minimum))
         guard let config else {
             if phase != .preparing { stop("游戏配置已失效，已停止输入。"); return }
             if now - startedAt > 5 { stop("无法读取当前游戏的灵敏度／键位配置，已停止。") }
@@ -337,6 +414,7 @@ final class TellyController {
         case .preparing:
             guard track.stable >= 2 else { return }
             if let state=worldState, !state.onGround {message="等待人物实际落地；尚未开始移动。";return}
+            guard checkSupply(config:config) else {return}
             guard abs(pose.y - pose.y.rounded()) < 0.04 else { stop("起点不是完整方块高度，已停止。"); return }
             if let state=worldState,BridgeClearance.jumpBlocked(state,yaw:pose.yaw,rise:0) {
                 blockJump(config:config,now:now);return
@@ -377,7 +455,13 @@ final class TellyController {
             }
             probeCandidates.sort { hypot(Double($0.x)+0.5-pose.x,Double($0.z)+0.5-pose.z) < hypot(Double($1.x)+0.5-pose.x,Double($1.z)+0.5-pose.z) }
             probeIndex=0; probeAt=now
-            if let state=worldState, let under=probeCandidates.first(where:{state.solid.contains($0)}) {
+            // A sneak finish can leave <0.01 blocks of the real 0.30-wide
+            // half-body on the bridge corner. The F3 probing margin (0.29)
+            // excludes that valid native contact. Reuse the strict, current
+            // collision support check; never infer support from onGround alone.
+            if let state=worldState, let under=BridgeLandingForecast.standingSupport(state,floor:Int(groundY.rounded())-1).min(by:{
+                hypot(Double($0.x)+0.5-pose.x,Double($0.z)+0.5-pose.z) < hypot(Double($1.x)+0.5-pose.x,Double($1.z)+0.5-pose.z)
+            }) {
                 support=under;observed.insert(under);phase = .aligning;phaseAt=now
             } else {phase = .probing; phaseAt = now}
             message = "转头校准完成；正在读取起点方块。"
@@ -409,7 +493,7 @@ final class TellyController {
                     // Corner crossings require two face-connected cells. Begin
                     // the first jump earlier so the launch tick does not carry
                     // both coordinates beyond the starting block's corner.
-                    runwayEnd=runway.upperBound+0.23-0.55*2*abs(route.ux*route.uz)
+                    runwayEnd=runway.upperBound+0.23-0.50*2*abs(route.ux*route.uz)
                     let at=route.along(pose.x,pose.z)
                     backingSign=runwayStart>at ? 1:-1
                     key(config.sprint,false)
@@ -461,7 +545,7 @@ final class TellyController {
                 let front=route.frontSupport(from:support,solid:state.solid)
                 if let runway=route.runway(on:front) {
                     self.support=front
-                    runwayEnd=runway.upperBound+0.23-0.55*2*abs(route.ux*route.uz)
+                    runwayEnd=runway.upperBound+0.23-0.50*2*abs(route.ux*route.uz)
                 }
             }
             advanceRunup(config:config,pose:pose,now:now)
@@ -473,18 +557,43 @@ final class TellyController {
             keys(movement)
             if pose.y > groundY + 0.15 { airborne = true }
             if (worldState != nil || dt >= 0.045) && airborne {
+                if activeRise>0,let state=worldState,let support,let route,abs(route.ux*route.uz)>0.2,
+                   let coast=BridgeLandingForecast.predict(state,height:groundY+Double(activeRise),yaw:heading,acceleration:0) {
+                    let xs=Int(floor(coast.x-0.22))...Int(floor(coast.x+0.22))
+                    let zs=Int(floor(coast.z-0.22))...Int(floor(coast.z+0.22))
+                    let cells=xs.flatMap{x in zs.map{z in abs(x-support.x)+abs(z-support.z)+activeRise}}.min() ?? 99
+                    // Head-yaw refresh and native button consumption leave
+                    // three confirmed cells in the raised landing window.
+                    // Four-cell overhang routes use a moving level connector.
+                    if cells>3 {
+                        // Choose from the observed sprint-jump velocity. A
+                        // level adjustment removes the top click and adds
+                        // flight time without backing or interrupting motion.
+                        activeRise=0;flightFloor=support.y
+                        trace("FLIGHT_BUDGET level_adjustment=true raised_cells=\(cells) tick=\(state.tick)")
+                    }
+                }
                 keys([]); phase = .flight; phaseAt = now
+                if let route,abs(route.ux*route.uz)>0.2 {
+                    // Commit the turnaround side once the sprint jump was
+                    // observed. Face tracking retargets this same curve.
+                    _ = aim(yaw:heading+180,pitch:75,pose:pose,now:now,preferredYawSign:-1)
+                }
             } else {
                 if dt>0.35 {stop("没有识别到实际起跳，已停止。")}
                 return
             }
             fallthrough
         case .flight:
-            keys(finishing ? [config.sneak] : flightCoast ? []:forwardKeys(pose:pose,config:config))
+            // R-up requests a finish at the confirmed landing. Preserve
+            // this flight's eye height and motion until its support exists;
+            // entering sneak mid-turn changes the very face being targeted.
+            var flightKeys=flightCoast ? Set<UInt16>():forwardKeys(pose:pose,config:config)
             if let state=worldState {
                 while let first=pendingPlacements.first, state.solid.contains(first.0.result) {observed.insert(first.0.result);support=first.0.result;jumpPlacements+=1;pendingPlacements.removeFirst()}
+                if !pendingPlacements.isEmpty,state.tick>lastClickTick,state.clickDelay==4 {pendingClickConsumed=true}
                 if let first=pendingPlacements.first,state.tick>lastClickTick,!state.solid.contains(first.0.result),
-                   (state.clickDelay==4 && now-first.1>0.08) || (state.clickDelay<3 && now-first.1>=1/maximumCPS) {
+                   (abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? (pendingClickConsumed && now-first.1>=1/maximumCPS && !state.useDown) : ((state.clickDelay==4 && now-first.1>0.08) || (state.clickDelay<3 && now-first.1>=1/maximumCPS))) {
                     // Vanilla consumed this right press, but no block appeared.
                     // Re-aim now; holding the stale angle for 160 ms loses the
                     // remaining placement window on a diagonal jump.
@@ -531,7 +640,17 @@ final class TellyController {
                 // budget as every later span. Its old 25-ms exception let the
                 // player pass the third block before a fourth was confirmed.
                 // Release acceleration in time; never reverse ordinary jumps.
-                if forecast.needsCoast(remainingCells:cells,cps:maximumCPS,returnTime:RelativeMouseTurn.maximumDuration) {flightCoast=true;keys(finishing ? [config.sneak]:[])}
+                let cornerConfirmation=abs(route.ux*route.uz)>0.2 ? 0.10:0.0
+                if forecast.needsCoast(remainingCells:cells,cps:maximumCPS,returnTime:RelativeMouseTurn.maximumDuration+cornerConfirmation) {flightCoast=true;flightKeys=[]}
+            }
+            if flightCoast,abs(route.ux*route.uz)>0.2,let state=worldState {
+                var targets=state.solid
+                targets.formUnion(pendingPlacements.map{$0.0.result})
+                if let planned=placement,state.solid.contains(planned.support) {targets.insert(planned.result)}
+                if let lateral=BridgeLateralLanding.direction(state,floor:flightFloor,heading:heading,targets:targets) {
+                    let camera=pose.yaw
+                    flightKeys=Self.directionKeys(yaw:camera,heading:lateral,config:config)
+                }
             }
             let confirmedLanding=worldState.map{$0.onGround && abs(pose.y-Double(flightFloor+1))<0.03} ?? false
             let groundedSupport=worldState.flatMap {state in
@@ -543,8 +662,20 @@ final class TellyController {
             // Only an actual support still under the post-movement body may
             // interrupt placement; an imminent Y collision is insufficient.
             let contactSupport=groundedSupport
-            let recovery=jumpPlacements>=(jumpIndex==1 ? 4:activeRise==0 ? 3:2) && (forecast?.seconds ?? 1)<=0.12
-            if (contactSupport != nil || jumpPlacements>=4 || recovery || confirmedLanding) && now-lastPlacementAt>(worldState == nil ? 0.055:0),
+            let incompleteCorner = abs(route.ux*route.uz)>0.2 && contactSupport.map{route.landingRunway(on:$0,from:pose)==nil} == true && jumpPlacements<4
+            if incompleteCorner {
+                // A side cell may catch the feet without intersecting the
+                // next runway. Finish its diagonal neighbour while protected
+                // instead of launching directly from a corner overhang.
+                flightKeys=[config.sneak]
+            }
+            // Once an ascending diagonal already has a confirmed coasting
+            // landing, start returning before touchdown. Waiting until only
+            // 120 ms remain consumes the full return and a telemetry tick,
+            // leaving the next takeoff on an extreme corner overhang.
+            let returnWindow=abs(route.ux*route.uz)>0.2 && activeRise>0 && jumpPlacements>=3 && coastLanding != nil && (coastForecast?.seconds ?? 1)<=0.22
+            let recovery=returnWindow || (jumpPlacements>=(jumpIndex==1 ? 4:activeRise==0 ? 3:2) && (forecast?.seconds ?? 1)<=0.12)
+            if !incompleteCorner && (contactSupport != nil || jumpPlacements>=4 || recovery || confirmedLanding) && now-lastPlacementAt>(worldState == nil ? 0.055:0),
                let landing=contactSupport ?? drivenLanding ?? coastLanding {
                 landingCoast=finishing || flightCoast || drivenLanding==nil
                 self.support=landing
@@ -555,6 +686,7 @@ final class TellyController {
                 _ = aim(yaw:heading,pitch:forwardPitch,pose:pose,now:now,preferredYawSign:1)
                 return
             }
+            keys(flightKeys)
             let target: TellyPlacement
             if let state=worldState,let pending=pendingPlacements.first {
                 if activeRise>0,state.tick>lastClickTick,state.clickDelay==4,now-pending.1>0.024 {
@@ -572,10 +704,21 @@ final class TellyController {
                 func cost(_ choice:TellyPlacement)->Double {
                     if canPlace(choice,pose:pose){return -1000}
                     if choice.isVisibleFace(from:pose,eyeHeight:worldState?.eyeHeight ?? 1.62){return -500}
-                    let point=choice.horizontalPoint(from:pose)
-                    return abs(F3Pose.angle(atan2(pose.x-point.x,point.z-pose.z)*180 / .pi-pose.yaw))
+                    // At takeoff the camera still faces forward. Picking the
+                    // nearest face to that temporary view can commit to the
+                    // wrong side of a diagonal corner and require a second
+                    // large correction for the very next block. Plan from
+                    // the bridge-facing view used throughout placement.
+                    let view=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:heading+180,pitch:pose.pitch,time:pose.time)
+                    let point=choice.horizontalPoint(from:view)
+                    return abs(F3Pose.angle(atan2(pose.x-point.x,point.z-pose.z)*180 / .pi-(heading+180)))
                 }
-                target=choices.min(by:{cost($0)<cost($1)})!
+                if abs(route.ux*route.uz)>0.2, let previous=placement,
+                   previous.support==support, previous.axis != 1,
+                   choices.contains(where:{$0.result==previous.result}),
+                   !(worldState?.solid.contains(previous.result) ?? false) {
+                    target=previous
+                } else {target=choices.min(by:{cost($0)<cost($1)})!}
             }
             placement = target
             // Aim through the centre of the moving placement window rather
@@ -601,15 +744,31 @@ final class TellyController {
             let faceX=worldState != nil ? (target.axis==1 ? topX:sidePoint.x):target.x
             let faceZ=worldState != nil ? (target.axis==1 ? topZ:sidePoint.z):target.z
             let dx=faceX-predicted.x, dz=faceZ-predicted.z
-            let aimYaw=atan2(-dx,dz)*180 / .pi
+            var aimYaw=atan2(-dx,dz)*180 / .pi
             let eyeHeight=worldState?.eyeHeight ?? 1.62
             var aimPitch=atan2(predicted.y+eyeHeight-target.y,hypot(dx,dz))*180 / .pi
             if worldState != nil,target.axis != 1 {
                 let currentPoint=target.horizontalPoint(from:pose)
-                let distance=hypot(currentPoint.x-pose.x,currentPoint.z-pose.z)
+                var distance=hypot(currentPoint.x-pose.x,currentPoint.z-pose.z)
+                if abs(route.ux*route.uz)>0.2,let nativeYaw=worldState?.headYaw {
+                    let angle=nativeYaw * .pi/180,dx = -sin(angle),dz=cos(angle)
+                    let component=target.axis==0 ? dx:dz
+                    let crossing=abs(component)>1e-6 ? ((target.axis==0 ? target.x-pose.x:target.z-pose.z)/component):(-1)
+                    let other=target.axis==0 ? pose.z+dz*crossing:pose.x+dx*crossing
+                    let edge=Double(target.axis==0 ? target.support.z:target.support.x)
+                    // The native ray uses head yaw throughout this game tick.
+                    // Do not calculate its pitch window from camera yaw.
+                    if crossing>0,other>edge+0.01,other<edge+0.99 {distance=crossing}
+                }
                 let low=atan2(pose.y+eyeHeight-Double(target.support.y)-0.80,distance)*180 / .pi
                 let high=atan2(pose.y+eyeHeight-Double(target.support.y)-0.20,distance)*180 / .pi
                 aimPitch=max(low,min(high,aimPitch))
+            }
+            if target.axis==1,abs(route.ux*route.uz)>0.2,let state=worldState {
+                let next=F3Pose(x:pose.x+state.velocity.0,y:pose.y+(state.onGround ? 0:state.velocity.1),z:pose.z+state.velocity.2,yaw:pose.yaw,pitch:pose.pitch,time:pose.time+0.05)
+                if let safe=TopFaceCone.aim(target:target,eyes:[pose,next],eyeHeight:state.eyeHeight,desiredYaw:aimYaw,desiredPitch:aimPitch) {
+                    aimYaw=safe.yaw;aimPitch=safe.pitch
+                }
             }
             let awaitingPlacement=worldState != nil && !pendingPlacements.isEmpty
             let ready=canPlace(target,pose:pose)
@@ -631,7 +790,7 @@ final class TellyController {
                 setPlacing(false); keys([]); groundY=landingY
                 if observed.contains(under) { self.support=under }
                 phase = .aligning; phaseAt=now
-            } else if now-phaseAt>0.85 { stop("没有及时识别到落地，已停止。") }
+            } else if now-phaseAt>(incompleteCorner ? 1.2:0.85) { stop("没有及时识别到落地，已停止。") }
         case .landing:
             setPlacing(false)
             let facingForward=aim(yaw:heading,pitch:forwardPitch,pose:pose,now:now,preferredYawSign:1)
@@ -649,21 +808,31 @@ final class TellyController {
                 if activeRise != risePerJump && !state.onGround {return}
                 let forecast=BridgeLandingForecast.predict(state,height:landingY,yaw:heading,acceleration:landingCoast ? 0:0.02)
                 let near=state.onGround || (forecast?.seconds ?? 1)<=0.05
-                if facingForward,near, let landed=state.solid.filter({
-                    $0.y==flightFloor && (state.onGround ? pose.x : forecast?.supportX ?? pose.x)+0.299>Double($0.x) && (state.onGround ? pose.x : forecast?.supportX ?? pose.x)-0.299<Double($0.x)+1 &&
-                    (state.onGround ? pose.z : forecast?.supportZ ?? pose.z)+0.299>Double($0.z) && (state.onGround ? pose.z : forecast?.supportZ ?? pose.z)-0.299<Double($0.z)+1
-                }).max(by:{route!.along(Double($0.x)+0.5,Double($0.z)+0.5)<route!.along(Double($1.x)+0.5,Double($1.z)+0.5)}) {
+                let nativeSupports=state.onGround ? BridgeLandingForecast.standingSupport(state,floor:flightFloor) : (forecast?.imminentSupport(state,floor:flightFloor) ?? [])
+                // A held-R rising continuation may prepare the next jump while the
+                // final few degrees of the same return curve are still running.
+                // Require actual grounded support; finishing still waits for exact alignment.
+                // Level spans retain the proven exact-alignment handoff: their
+                // longer flight made the earlier launch outrun the fourth face.
+                let launchAligned=facingForward || (!finishing && held && activeRise>0 && risePerJump>0 && state.onGround && abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 && abs(F3Pose.angle(pose.yaw-heading))<=8 && abs(pose.pitch-forwardPitch)<=3)
+                if launchAligned,near, let landed=nativeSupports.max(by:{route!.along(Double($0.x)+0.5,Double($0.z)+0.5)<route!.along(Double($1.x)+0.5,Double($1.z)+0.5)}) {
+                    guard checkSupply(config:config) else {return}
                     support=landed;groundY=landingY;pendingPlacements.removeAll()
                     // Commit the next mode together with its runway. A T
                     // press after approach begins is for the following cycle;
                     // changing height alone here leaves the wrong launch edge.
                     plannedRise=risePerJump
-                    if let runway=route?.runway(on:landed) {
+                    if let runway=route?.landingRunway(on:landed,from:pose) {
                         // Use the confirmed front edge for each takeoff. An
                         // immediate jump from the middle wastes half a block
                         // and repeats progressively shorter spans.
-                        runwayEnd=runway.upperBound+(plannedRise>0 ? 0.05:0.23)-0.55*2*abs(route!.ux*route!.uz)
-                        if activeRise>0 && plannedRise==0 {
+                        runwayEnd=runway.upperBound+(plannedRise>0 ? 0.05:0.23)-0.80*2*abs(route!.ux*route!.uz)
+                        let overrunDiagonal = abs(route!.ux*route!.uz)>0.2 && route!.along(pose.x,pose.z)>runway.upperBound+0.08
+                        // A real grounded collision still permits a jump from
+                        // the body overhang. Do not retreat an entire block
+                        // merely because the centre crossed its top face.
+                        let supportedDiagonal = abs(route!.ux*route!.uz)>0.2 && !nativeSupports.isEmpty
+                        if !supportedDiagonal && ((activeRise>0 && plannedRise==0) || overrunDiagonal) {
                             // Rising landings can already overhang the edge
                             // with little speed. Rebuild a full runway before
                             // the first level span after a mode change.
@@ -699,12 +868,14 @@ final class TellyController {
     }
     private func advanceRunup(config:TellyGameConfig,pose:F3Pose,now:Double) {
         guard let route else{return}
+        guard checkSupply(config:config) else{return}
         let speed=max(0,vx*route.ux+vz*route.uz)
         if route.along(pose.x,pose.z)+speed*0.07>=runwayEnd {
             beginJump(config:config,pose:pose,now:now)
         } else {keys([config.forward,config.sprint])}
     }
     private func beginJump(config:TellyGameConfig,pose:F3Pose,now:Double) {
+        guard checkSupply(config:config) else{return}
         if let state=worldState,state.onGround,BridgeClearance.jumpBlocked(state,yaw:heading,rise:jumpIndex==0 ? 0:plannedRise) {
             blockJump(config:config,now:now);return
         }
@@ -749,13 +920,13 @@ final class TellyController {
            pendingPlacements.count < 3,
            (worldState == nil || (worldState!.tick != lastClickTick && pendingPlacements.isEmpty)),
            (worldState != nil || (turn==nil && pendingAimPose==nil)),
-           canPlace(placement,pose:pose) {
+           canPlace(placement,pose:pose),placementSupplyReady() {
             if mouseDown { mouse(false) }
             trace("PLACE tick=\(worldState?.tick ?? -1) xyz=\(pose.x),\(pose.y),\(pose.z) view=\(pose.yaw),\(pose.pitch) command=\(follower?.yaw ?? issuedTurnYaw),\(follower?.pitch ?? issuedTurnPitch) target=\(placement.result) face=\(placement.axis),\(placement.sign)")
             mouse(true); mouseDown = true
             if !pendingPlacements.contains(where:{$0.0.result==placement.result}) {pendingPlacements.append((placement,now))}
             if worldState==nil {support=placement.result;jumpPlacements+=1}
-            lastPlacementAt=now;lastClickTick=worldState?.tick ?? -1
+            lastPlacementAt=now;lastClickTick=worldState?.tick ?? -1;pendingClickConsumed=false
             emitted=true
         }
         if emitted {
@@ -796,11 +967,12 @@ struct RelativeMouseTurn {
     }
     private(set) var x:Int64,y:Int64
     let start: Double,duration:Double
+    private let ramp:Double
     private var emittedX:Int64=0,emittedY:Int64=0
     private var sampledAt:Double
     private var segment: (start:Double,x:Double,y:Double,vx:Double,vy:Double)?
-    init(x: Int64,y: Int64,start: Double,duration: Double) {
-        self.x=x;self.y=y;self.start=start;self.duration=max(0.001,duration);sampledAt=start
+    init(x: Int64,y: Int64,start: Double,duration: Double,ramp:Double=0.18) {
+        self.x=x;self.y=y;self.start=start;self.duration=max(0.001,duration);self.ramp=max(0.05,min(0.45,ramp));sampledAt=start
     }
     mutating func retarget(x:Int64,y:Int64) {
         guard x != self.x || y != self.y else{return}
@@ -836,7 +1008,7 @@ struct RelativeMouseTurn {
             let sx=hermite(segment.x,segment.vx,Double(x)),sy=hermite(segment.y,segment.vy,Double(y))
             return (sx.0,sy.0,sx.1,sy.1)
         }
-        let t=max(0,min(1,(now-start)/duration)),ramp=0.18
+        let t=max(0,min(1,(now-start)/duration))
         func rampStart(_ u:Double)->Double {(u-ramp / .pi*sin(.pi*u/ramp))/(2*(1-ramp))}
         let f=t<ramp ? rampStart(t) : t>1-ramp ? 1-rampStart(1-t) : (t-ramp/2)/(1-ramp)
         let speed=(t<ramp ? (1-cos(.pi*t/ramp))/2 : t>1-ramp ? (1-cos(.pi*(1-t)/ramp))/2 : 1)/(1-ramp)/duration

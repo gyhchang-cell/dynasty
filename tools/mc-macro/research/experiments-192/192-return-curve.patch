@@ -1,0 +1,639 @@
+--- 191-top-window/Sources/BridgeIntegration.swift
++++ 192-return-curve/Sources/BridgeIntegration.swift
+@@ -86,7 +86,12 @@
+             if f3Capture.running {f3Capture.reset()}
+             return
+         }
+-        if now-bridgeAccessCheckedAt>0.5 {bridgeAccessAllowed=AXIsProcessTrusted();bridgeAccessCheckedAt=now}
++        if now-bridgeAccessCheckedAt>0.5 {
++            let began=ProcessInfo.processInfo.systemUptime
++            bridgeAccessAllowed=AXIsProcessTrusted();bridgeAccessCheckedAt=now
++            let elapsed=ProcessInfo.processInfo.systemUptime-began
++            if elapsed>0.003 {traceBridge("LOOP ax_ms=\(elapsed*1000)")}
++        }
+         let active=isTargetFront() && !sessionSuspended && bridgeAccessAllowed
+             && !CGEventSource.flagsState(.combinedSessionState).contains(.maskCommand)
+             && (tap.map{CGEvent.tapIsEnabled(tap:$0)} ?? false)
+@@ -155,9 +160,11 @@
+         event.setIntegerValueField(.eventSourceUserData,value:eventMarker)
+         guard let pid=bridgeConfigPID else { return }
+         let gate=bridgeInputEpoch, token=gate.snapshot()
+-        bridgeInputQueue.async {
++        let requested=ProcessInfo.processInfo.systemUptime
++        bridgeInputQueue.async { [weak self] in
+             guard !down || (gate.accepts(token) && NSWorkspace.shared.frontmostApplication?.processIdentifier == pid) else { return }
+             event.post(tap:.cgSessionEventTap)
++            self?.traceBridge("POST mouse=\(down) queued_ms=\((ProcessInfo.processInfo.systemUptime-requested)*1000)")
+         }
+     }
+ 
+--- 191-top-window/Sources/F3Model.swift
++++ 192-return-curve/Sources/F3Model.swift
+@@ -124,7 +124,7 @@
+     var uz: Double { cos(yaw * .pi/180) }
+     func along(_ bx: Double, _ bz: Double) -> Double { (bx-x)*ux+(bz-z)*uz }
+     func cross(_ bx: Double, _ bz: Double) -> Double { (bx-x)*uz-(bz-z)*ux }
+-    func runway(on block:F3Block) -> ClosedRange<Double>? {
++    func runway(on block:F3Block,minimumLength:Double=0.45) -> ClosedRange<Double>? {
+         var entry = -Double.infinity, exit = Double.infinity
+         for (origin,direction,lower) in [(x,ux,Double(block.x)),(z,uz,Double(block.z))] {
+             if abs(direction)<1e-8 {
+@@ -134,7 +134,7 @@
+                 entry=max(entry,min(a,b));exit=min(exit,max(a,b))
+             }
+         }
+-        guard entry.isFinite,exit.isFinite,exit-entry>0.45 else {return nil}
++        guard entry.isFinite,exit.isFinite,exit-entry>minimumLength else {return nil}
+         return entry...exit
+     }
+     func next(after block: F3Block) -> TellyPlacement {
+@@ -197,8 +197,8 @@
+         return (axis==0 ? x:max(Double(support.x)+inset,min(Double(support.x)+1-inset,px)),
+                 axis==2 ? z:max(Double(support.z)+inset,min(Double(support.z)+1-inset,pz)))
+     }
+-    // A use-item click recalculates the ray at logical position (partial=1).
+-    // Rendering uses an interpolated eye position; those rays need not agree.
++    // Vanilla runTick refreshes objectMouseOver with partial=1 before
++    // handling Mouse.next and rightClickMouse. A prior rendered ray may differ.
+     func isVisibleFace(from pose: F3Pose, eyeHeight:Double=1.62) -> Bool {
+         guard let hit=BridgeRay.intersection(block:support,pose:pose,eyeHeight:eyeHeight) else{return false}
+         return hit.axis==axis && hit.sign==sign
+@@ -229,3 +229,52 @@
+         blocks.compactMap{intersection(block:$0,pose:pose)}.min{$0.distance<$1.distance}
+     }
+ }
++
++// Test the player's actual parallel path, without changing bridge heading or
++// the movement correction line. No expansion of the solid top face is used.
++extension TellyRoute {
++    func landingRunway(on block:F3Block,from pose:F3Pose)->ClosedRange<Double>? {
++        guard abs(ux*uz)>0.2 else{return runway(on:block)}
++        let local=TellyRoute(x:pose.x,z:pose.z,yaw:yaw)
++        guard let span=local.runway(on:block,minimumLength:0.01) else{return nil}
++        let origin=along(pose.x,pose.z)
++        return (span.lowerBound+origin)...(span.upperBound+origin)
++    }
++}
++
++// The click is consumed at a later game tick. Find a top-face direction
++// inside the common visible rectangle at the current and next logical eyes.
++// Retain a geometric margin; never randomize or write game angles directly.
++enum TopFaceCone {
++    static func aim(target:TellyPlacement,eyes:[F3Pose],eyeHeight:Double,desiredYaw:Double,desiredPitch:Double)->(yaw:Double,pitch:Double)? {
++        guard target.axis==1,!eyes.isEmpty else{return nil}
++        var best:(yaw:Double,pitch:Double,cost:Double)?
++        for step in -40...40 {
++            let yaw=desiredYaw+Double(step)*0.5,angle=yaw * .pi/180
++            let dx = -sin(angle),dz=cos(angle)
++            var lower=0.0,upper=88.0
++            for eye in eyes {
++                let height=eye.y+eyeHeight-target.y
++                if height<=0 {lower=100;break}
++                var near=0.0,far=Double.infinity
++                for (p,d,b) in [(eye.x,dx,Double(target.support.x)),(eye.z,dz,Double(target.support.z))] {
++                    if abs(d)<1e-9 {
++                        if p<b+0.10 || p>b+0.90 {near=1;far=0;break}
++                    } else {
++                        let a=(b+0.10-p)/d,c=(b+0.90-p)/d
++                        near=max(near,min(a,c));far=min(far,max(a,c))
++                    }
++                }
++                if far<=max(0,near) {lower=100;break}
++                lower=max(lower,atan2(height,far)*180 / .pi)
++                upper=min(upper,atan2(height,max(0,near))*180 / .pi)
++            }
++            guard upper-lower>0.25 else {continue}
++            let margin=min(1.0,(upper-lower)*0.25)
++            let pitch=max(lower+margin,min(upper-margin,desiredPitch))
++            let cost=pow(Double(step)*0.5,2)+pow(pitch-desiredPitch,2)
++            if best==nil || cost<best!.cost {best=(yaw,pitch,cost)}
++        }
++        return best.map{($0.yaw,$0.pitch)}
++    }
++}
+--- 191-top-window/Sources/GameTelemetry.swift
++++ 192-return-curve/Sources/GameTelemetry.swift
+@@ -18,6 +18,8 @@
+     let useDown:Bool
+     let clickDelay:Int
+     let eyeHeight:Double
++    var ticksDue:Int?=nil
++    var headYaw:Double?=nil
+     var sprinting:Bool?=nil
+     var controlDown:Bool?=nil
+     var collisionBoxes:[BridgeCollisionBox]?=nil
+@@ -82,6 +84,8 @@
+     let useDown:Bool?
+     let clickDelay:Int?
+     let eyeHeight:Double?
++    let ticksDue:Int?
++    let headYaw:Double?
+     let sprinting:Bool?
+     let controlDown:Bool?
+     let collisions:[[Double]]?
+@@ -98,7 +102,7 @@
+             previousPose:F3Pose(x:v[8],y:v[9],z:v[10],yaw:F3Pose.angle(v[6]),pitch:v[7],time:received-age,looking:target),
+             velocity:(v[3],v[4],v[5]),onGround:ground,flying:flying,hasBlocks:blocks,world:world,tick:tick,face:face,
+             solid:Set(solid.map{F3Block(x:$0[0],y:$0[1],z:$0[2])}),
+-            useHit:useHit.flatMap{$0.count==3 ? F3Block(x:$0[0],y:$0[1],z:$0[2]):nil},useFace:useFace,useDown:useDown ?? false,clickDelay:clickDelay ?? 0,eyeHeight:eyeHeight ?? 1.62,sprinting:sprinting,controlDown:controlDown,
++            useHit:useHit.flatMap{$0.count==3 ? F3Block(x:$0[0],y:$0[1],z:$0[2]):nil},useFace:useFace,useDown:useDown ?? false,clickDelay:clickDelay ?? 0,eyeHeight:eyeHeight ?? 1.62,ticksDue:ticksDue,headYaw:headYaw.map(F3Pose.angle),sprinting:sprinting,controlDown:controlDown,
+             collisionBoxes:collisions.map{BridgeCollisionBox(minX:$0[0],minY:$0[1],minZ:$0[2],maxX:$0[3],maxY:$0[4],maxZ:$0[5])})
+     }
+ }
+@@ -249,3 +253,27 @@
+         return nil
+     }
+ }
++
++// Correct only the cross-track component of a short coasting landing.
++// Candidate blocks may include an in-flight placement plan; the controller
++// still requires observed solid support before declaring a landing or return.
++enum BridgeLateralLanding {
++    static func direction(_ state:BridgeWorldState,floor:Int,heading:Double,targets:Set<F3Block>)->Double? {
++        guard !state.onGround,let coast=BridgeLandingForecast.predict(state,height:Double(floor+1),yaw:heading,acceleration:0),coast.seconds>0,coast.seconds<=0.201 else{return nil}
++        func margin(_ forecast:BridgeLandingForecast,_ b:F3Block)->Double {
++            min(forecast.x-Double(b.x)+0.28,Double(b.x+1)+0.28-forecast.x,
++                forecast.z-Double(b.z)+0.28,Double(b.z+1)+0.28-forecast.z)
++        }
++        let targets=targets.filter{$0.y==floor}
++        guard !targets.contains(where:{margin(coast,$0)>=0}) else{return nil}
++        var best:(yaw:Double,margin:Double)?
++        for yaw in [heading-90,heading+90] {
++            guard let forecast=BridgeLandingForecast.predict(state,height:Double(floor+1),yaw:yaw,acceleration:0.02) else{continue}
++            for b in targets where margin(forecast,b)>=0.005 {
++                let m=margin(forecast,b)
++                if best==nil || m>best!.margin {best=(yaw,m)}
++            }
++        }
++        return best?.yaw
++    }
++}
+--- 191-top-window/Sources/TellyController.swift
++++ 192-return-curve/Sources/TellyController.swift
+@@ -61,9 +61,9 @@
+     private var probeAt = 0.0
+     private var lastPlacementAt = 0.0
+     private var launchAt = 0.0
+-    private var lastPlanTick = -1
+     private var lastGateTick = -1
+     private var lastClickTick = -1
++    private var pendingClickConsumed=false
+     private var jumpPlacements = 0
+     private var activeRise=0
+     private var plannedRise=0
+@@ -106,15 +106,21 @@
+             // During ascent the integrated server may still have the previous
+             // tick's lower body position. Do not click a new top block at the
+             // first 1.001-height frame, where placement is still obstructed.
+-            let margin=abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? 0.001:0.12
+-            if target.axis==1,state.velocity.1>0,pose.y<Double(b.y)+1+margin {return false}
++            let topMargin=abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? 0.001:0.12
++            if target.axis==1,state.velocity.1>0,pose.y<Double(b.y)+1+topMargin {return false}
+             let turning=turn != nil || pendingAimPose != nil
+             let commanded=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:turning ? issuedTurnYaw : follower?.yaw ?? pose.yaw,pitch:turning ? issuedTurnPitch : follower?.pitch ?? pose.pitch,time:pose.time)
+             let face=target.axis==1 ? "up" : target.axis==0 ? (target.sign>0 ? "east":"west") : (target.sign>0 ? "south":"north")
+             let next=F3Pose(x:pose.x+state.velocity.0,y:pose.y+(state.onGround ? 0:state.velocity.1),z:pose.z+state.velocity.2,yaw:commanded.yaw,pitch:commanded.pitch,time:pose.time+0.05)
+             let observedHit=state.useHit==target.support && state.useFace?.lowercased()==face
+-            let currentHit=target.isVisibleFace(from:pose,eyeHeight:state.eyeHeight)
+-            let commandHit=target.isVisibleFace(from:commanded,eyeHeight:state.eyeHeight)
++            // EntityLivingBase.getLook(1) uses rotationYawHead. Mouse
++            // camera yaw can be ahead until the next player update; keep the
++            // camera trajectory separate from the ray used by rightClickMouse.
++            let nativeYaw=abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? (state.headYaw ?? pose.yaw):pose.yaw
++            let nativePose=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:nativeYaw,pitch:pose.pitch,time:pose.time)
++            let nativeCommand=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? nativeYaw:commanded.yaw,pitch:commanded.pitch,time:pose.time)
++            let currentHit=target.isVisibleFace(from:nativePose,eyeHeight:state.eyeHeight)
++            let commandHit=target.isVisibleFace(from:nativeCommand,eyeHeight:state.eyeHeight)
+             let nextHit=target.axis != 1 || target.isVisibleFace(from:next,eyeHeight:state.eyeHeight)
+             if ProcessInfo.processInfo.environment["MC_MACRO_GATE_TRACE"]=="1",lastGateTick != state.tick {
+                 lastGateTick=state.tick
+@@ -154,6 +160,7 @@
+     }
+ 
+     func stop(_ reason: String) {
++        let wasRunning=phase != .idle
+         finishing=false
+         phase = .idle
+         turn=nil; follower=nil; pendingAimPose=nil; cancelPendingInput()
+@@ -163,6 +170,15 @@
+         releaseTimer?.invalidate(); releaseTimer=nil
+         if mouseDown { mouse(false); mouseDown=false }
+         message = reason
++        if wasRunning,let state=worldState {
++            let age=ProcessInfo.processInfo.systemUptime-state.pose.time
++            let yawError=abs(F3Pose.angle(state.pose.yaw-heading)),pitchError=abs(state.pose.pitch-forwardPitch)
++            let audit:[String:Any] = ["grounded":state.onGround,"yaw_error_degrees":yawError,
++                "pitch_error_degrees":pitchError,"keys_released":ownedKeys.isEmpty,"right_released":!mouseDown,
++                "safe_aligned_finish":age<0.25 && !state.flying && state.onGround && yawError<1 && pitchError<1 && ownedKeys.isEmpty && !mouseDown,
++                "pose_age_ms":(ProcessInfo.processInfo.systemUptime-state.pose.time)*1000,"reason":reason]
++            if let data=try? JSONSerialization.data(withJSONObject:audit,options:[.sortedKeys]),let json=String(data:data,encoding:.utf8) {trace("FINISH "+json)}
++        }
+     }
+ 
+     func observe(_ pose: F3Pose?, error: String, now: TimeInterval) {
+@@ -185,6 +201,11 @@
+     }
+ 
+     private func keys(_ desired: Set<UInt16>) {
++        var desired=desired
++        if let config,launched,!finishing,!desired.contains(config.sneak),
++           [.takeoff,.flight,.landing,.runup].contains(phase) {
++            desired.insert(config.sprint)
++        }
+         for code in ownedKeys.subtracting(desired) { key(code, false) }
+         // Establish modifiers before movement, and jump after both.
+         let additions=desired.subtracting(ownedKeys).sorted {
+@@ -230,10 +251,9 @@
+         if x != 0 || y != 0 {
+             follower=nil
+             let span=max(abs(dyaw),abs(dpitch))
+-            // A one-block rise leaves roughly 0.4 s after observed takeoff.
+-            // Complete its back turn before the first legal top-face window.
+-            let diagonalRise=phase == .flight && activeRise>0 && abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2
+-            let duration=diagonalRise ? min(0.072,RelativeMouseTurn.duration(for:span)):RelativeMouseTurn.duration(for:span)
++            let diagonalRise=activeRise>0 && abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 && phase == .flight
++            let diagonalReturn=phase == .landing && abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2
++            let duration=diagonalReturn ? RelativeMouseTurn.duration(for:span,maximum:0.144) : (diagonalRise ? min(0.072,RelativeMouseTurn.duration(for:span)):RelativeMouseTurn.duration(for:span))
+             turn=RelativeMouseTurn(x:x,y:y,start:now,duration:duration)
+             issuedTurnYaw=baseYaw;issuedTurnPitch=basePitch
+             turnOriginYaw=baseYaw;turnOriginPitch=basePitch
+@@ -244,6 +264,7 @@
+         return false
+     }
+     private func followFace(yaw:Double,pitch:Double,pose:F3Pose,now:Double) {
++        if ProcessInfo.processInfo.environment["MC_MACRO_FRAME_TRACE"]=="1" { trace("VIEW target=\(placement.map{String(describing:$0.result)} ?? "nil") desired=\(yaw),\(pitch) issued=\(follower?.yaw ?? issuedTurnYaw),\(follower?.pitch ?? issuedTurnPitch) turn=\(turn != nil)") }
+         guard worldState != nil else {_ = aim(yaw:yaw,pitch:pitch,pose:pose,now:now);return}
+         if var active=turn {
+             // The player travels during a 112-ms turn. Update its destination
+@@ -281,10 +302,11 @@
+     private func forwardKeys(pose: F3Pose, config: TellyGameConfig) -> Set<UInt16> {
+         if coordinateMovement, let route {
+             let correction=max(-35,min(35,route.cross(pose.x,pose.z)*65+(vx*route.uz-vz*route.ux)*8))
+-            // Relative motion and these keys share one ordered input queue.
+-            // Use the angle already issued, not the eventual turn target or
+-            // an older observed angle. A longer turn must not drain momentum.
+-            let yaw=(turn != nil || pendingAimPose != nil) ? issuedTurnYaw : follower?.yaw ?? pose.yaw
++            // Diagonal keyboard acceleration uses the sampled native camera.
++            // The renderer applies queued mouse deltas after physics, so
++            // an issued future angle may not be the angle used by movement.
++            // Cardinal coordination retains its prior input model.
++            let yaw=worldState != nil && abs(route.ux*route.uz)>0.2 ? pose.yaw : ((turn != nil || pendingAimPose != nil) ? issuedTurnYaw : follower?.yaw ?? pose.yaw)
+             return Self.directionKeys(yaw:yaw,heading:heading,correction:correction,config:config)
+         }
+         guard turn==nil, pendingAimPose==nil else { return [] }
+@@ -311,7 +333,7 @@
+         guard self.active, phase != .idle else { return }
+         guard active else { stop("游戏失去前台或权限不可用，已停止搭路。"); return }
+         if finishing,now-finishAt>1.5 {stop("未能及时确认安全落地，已释放输入。");return}
+-        minimumCPS = minimum; maximumCPS = maximum
++        maximumCPS = max(1,min(18,maximum)); minimumCPS = min(maximumCPS,max(1,minimum))
+         guard let config else {
+             if phase != .preparing { stop("游戏配置已失效，已停止输入。"); return }
+             if now - startedAt > 5 { stop("无法读取当前游戏的灵敏度／键位配置，已停止。") }
+@@ -414,7 +436,7 @@
+                     // Corner crossings require two face-connected cells. Begin
+                     // the first jump earlier so the launch tick does not carry
+                     // both coordinates beyond the starting block's corner.
+-                    runwayEnd=runway.upperBound+0.23-0.55*2*abs(route.ux*route.uz)
++                    runwayEnd=runway.upperBound+0.23-0.50*2*abs(route.ux*route.uz)
+                     let at=route.along(pose.x,pose.z)
+                     backingSign=runwayStart>at ? 1:-1
+                     key(config.sprint,false)
+@@ -466,7 +488,7 @@
+                 let front=route.frontSupport(from:support,solid:state.solid)
+                 if let runway=route.runway(on:front) {
+                     self.support=front
+-                    runwayEnd=runway.upperBound+0.23-0.55*2*abs(route.ux*route.uz)
++                    runwayEnd=runway.upperBound+0.23-0.50*2*abs(route.ux*route.uz)
+                 }
+             }
+             advanceRunup(config:config,pose:pose,now:now)
+@@ -478,18 +500,43 @@
+             keys(movement)
+             if pose.y > groundY + 0.15 { airborne = true }
+             if (worldState != nil || dt >= 0.045) && airborne {
++                if activeRise>0,let state=worldState,let support,let route,abs(route.ux*route.uz)>0.2,
++                   let coast=BridgeLandingForecast.predict(state,height:groundY+Double(activeRise),yaw:heading,acceleration:0) {
++                    let xs=Int(floor(coast.x-0.22))...Int(floor(coast.x+0.22))
++                    let zs=Int(floor(coast.z-0.22))...Int(floor(coast.z+0.22))
++                    let cells=xs.flatMap{x in zs.map{z in abs(x-support.x)+abs(z-support.z)+activeRise}}.min() ?? 99
++                    // Head-yaw refresh and native button consumption leave
++                    // three confirmed cells in the raised landing window.
++                    // Four-cell overhang routes use a moving level connector.
++                    if cells>3 {
++                        // Choose from the observed sprint-jump velocity. A
++                        // level adjustment removes the top click and adds
++                        // flight time without backing or interrupting motion.
++                        activeRise=0;flightFloor=support.y
++                        trace("FLIGHT_BUDGET level_adjustment=true raised_cells=\(cells) tick=\(state.tick)")
++                    }
++                }
+                 keys([]); phase = .flight; phaseAt = now
++                if let route,abs(route.ux*route.uz)>0.2 {
++                    // Commit the turnaround side once the sprint jump was
++                    // observed. Face tracking retargets this same curve.
++                    _ = aim(yaw:heading+180,pitch:75,pose:pose,now:now,preferredYawSign:-1)
++                }
+             } else {
+                 if dt>0.35 {stop("没有识别到实际起跳，已停止。")}
+                 return
+             }
+             fallthrough
+         case .flight:
+-            keys(finishing ? [config.sneak] : flightCoast ? []:forwardKeys(pose:pose,config:config))
++            // R-up requests a finish at the confirmed landing. Preserve
++            // this flight's eye height and motion until its support exists;
++            // entering sneak mid-turn changes the very face being targeted.
++            var flightKeys=flightCoast ? Set<UInt16>():forwardKeys(pose:pose,config:config)
+             if let state=worldState {
+                 while let first=pendingPlacements.first, state.solid.contains(first.0.result) {observed.insert(first.0.result);support=first.0.result;jumpPlacements+=1;pendingPlacements.removeFirst()}
++                if !pendingPlacements.isEmpty,state.tick>lastClickTick,state.clickDelay==4 {pendingClickConsumed=true}
+                 if let first=pendingPlacements.first,state.tick>lastClickTick,!state.solid.contains(first.0.result),
+-                   (state.clickDelay==4 && now-first.1>0.08) || (state.clickDelay<3 && now-first.1>=1/maximumCPS) {
++                   (abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? (pendingClickConsumed && now-first.1>=1/maximumCPS && !state.useDown) : ((state.clickDelay==4 && now-first.1>0.08) || (state.clickDelay<3 && now-first.1>=1/maximumCPS))) {
+                     // Vanilla consumed this right press, but no block appeared.
+                     // Re-aim now; holding the stale angle for 160 ms loses the
+                     // remaining placement window on a diagonal jump.
+@@ -536,7 +583,17 @@
+                 // budget as every later span. Its old 25-ms exception let the
+                 // player pass the third block before a fourth was confirmed.
+                 // Release acceleration in time; never reverse ordinary jumps.
+-                if forecast.needsCoast(remainingCells:cells,cps:maximumCPS,returnTime:RelativeMouseTurn.maximumDuration) {flightCoast=true;keys(finishing ? [config.sneak]:[])}
++                let cornerConfirmation=abs(route.ux*route.uz)>0.2 ? 0.10:0.0
++                if forecast.needsCoast(remainingCells:cells,cps:maximumCPS,returnTime:(abs(route.ux*route.uz)>0.2 ? 0.144:RelativeMouseTurn.maximumDuration)+cornerConfirmation) {flightCoast=true;flightKeys=[]}
++            }
++            if flightCoast,abs(route.ux*route.uz)>0.2,let state=worldState {
++                var targets=state.solid
++                targets.formUnion(pendingPlacements.map{$0.0.result})
++                if let planned=placement,state.solid.contains(planned.support) {targets.insert(planned.result)}
++                if let lateral=BridgeLateralLanding.direction(state,floor:flightFloor,heading:heading,targets:targets) {
++                    let camera=pose.yaw
++                    flightKeys=Self.directionKeys(yaw:camera,heading:lateral,config:config)
++                }
+             }
+             let confirmedLanding=worldState.map{$0.onGround && abs(pose.y-Double(flightFloor+1))<0.03} ?? false
+             let groundedSupport=worldState.flatMap {state in
+@@ -548,8 +605,20 @@
+             // Only an actual support still under the post-movement body may
+             // interrupt placement; an imminent Y collision is insufficient.
+             let contactSupport=groundedSupport
+-            let recovery=jumpPlacements>=(jumpIndex==1 ? 4:activeRise==0 ? 3:2) && (forecast?.seconds ?? 1)<=0.12
+-            if (contactSupport != nil || jumpPlacements>=4 || recovery || confirmedLanding) && now-lastPlacementAt>(worldState == nil ? 0.055:0),
++            let incompleteCorner = abs(route.ux*route.uz)>0.2 && contactSupport.map{route.landingRunway(on:$0,from:pose)==nil} == true && jumpPlacements<4
++            if incompleteCorner {
++                // A side cell may catch the feet without intersecting the
++                // next runway. Finish its diagonal neighbour while protected
++                // instead of launching directly from a corner overhang.
++                flightKeys=[config.sneak]
++            }
++            // Once an ascending diagonal already has a confirmed coasting
++            // landing, start returning before touchdown. Waiting until only
++            // 120 ms remain consumes the full return and a telemetry tick,
++            // leaving the next takeoff on an extreme corner overhang.
++            let returnWindow=abs(route.ux*route.uz)>0.2 && activeRise>0 && jumpPlacements>=3 && coastLanding != nil && (coastForecast?.seconds ?? 1)<=0.22
++            let recovery=returnWindow || (jumpPlacements>=(jumpIndex==1 ? 4:activeRise==0 ? 3:2) && (forecast?.seconds ?? 1)<=0.12)
++            if !incompleteCorner && (contactSupport != nil || jumpPlacements>=4 || recovery || confirmedLanding) && now-lastPlacementAt>(worldState == nil ? 0.055:0),
+                let landing=contactSupport ?? drivenLanding ?? coastLanding {
+                 landingCoast=finishing || flightCoast || drivenLanding==nil
+                 self.support=landing
+@@ -560,6 +629,7 @@
+                 _ = aim(yaw:heading,pitch:forwardPitch,pose:pose,now:now,preferredYawSign:1)
+                 return
+             }
++            keys(flightKeys)
+             let target: TellyPlacement
+             if let state=worldState,let pending=pendingPlacements.first {
+                 if activeRise>0,state.tick>lastClickTick,state.clickDelay==4,now-pending.1>0.024 {
+@@ -571,23 +641,27 @@
+             } else if support.y < flightFloor {
+                 target = TellyPlacement(support:support,result:F3Block(x:support.x,y:support.y+1,z:support.z),axis:1,sign:1,
+                     x:Double(support.x)+0.5,y:Double(support.y)+1,z:Double(support.z)+0.5)
+-            } else if abs(route.ux*route.uz)>0.2, let previous=placement,
+-                      previous.support==support, previous.axis != 1,
+-                      !(worldState?.solid.contains(previous.result) ?? observed.contains(previous.result)) {
+-                // A diagonal exposes two faces during the same half-turn.
+-                // Complete the chosen face before changing to its neighbour;
+-                // otherwise every newly exposed side retargets the moving aim.
+-                target=previous
+             } else {
+                 let exposed=route.exposedCandidates(after:support,from:pose)
+                 let choices=exposed.isEmpty ? [route.next(after:support)]:exposed
+                 func cost(_ choice:TellyPlacement)->Double {
+                     if canPlace(choice,pose:pose){return -1000}
+                     if choice.isVisibleFace(from:pose,eyeHeight:worldState?.eyeHeight ?? 1.62){return -500}
+-                    let point=choice.horizontalPoint(from:pose)
+-                    return abs(F3Pose.angle(atan2(pose.x-point.x,point.z-pose.z)*180 / .pi-pose.yaw))
+-                }
+-                target=choices.min(by:{cost($0)<cost($1)})!
++                    // At takeoff the camera still faces forward. Picking the
++                    // nearest face to that temporary view can commit to the
++                    // wrong side of a diagonal corner and require a second
++                    // large correction for the very next block. Plan from
++                    // the bridge-facing view used throughout placement.
++                    let view=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:heading+180,pitch:pose.pitch,time:pose.time)
++                    let point=choice.horizontalPoint(from:view)
++                    return abs(F3Pose.angle(atan2(pose.x-point.x,point.z-pose.z)*180 / .pi-(heading+180)))
++                }
++                if abs(route.ux*route.uz)>0.2, let previous=placement,
++                   previous.support==support, previous.axis != 1,
++                   choices.contains(where:{$0.result==previous.result}),
++                   !(worldState?.solid.contains(previous.result) ?? false) {
++                    target=previous
++                } else {target=choices.min(by:{cost($0)<cost($1)})!}
+             }
+             placement = target
+             // Aim through the centre of the moving placement window rather
+@@ -613,19 +687,31 @@
+             let faceX=worldState != nil ? (target.axis==1 ? topX:sidePoint.x):target.x
+             let faceZ=worldState != nil ? (target.axis==1 ? topZ:sidePoint.z):target.z
+             let dx=faceX-predicted.x, dz=faceZ-predicted.z
+-            let aimYaw=atan2(-dx,dz)*180 / .pi
++            var aimYaw=atan2(-dx,dz)*180 / .pi
+             let eyeHeight=worldState?.eyeHeight ?? 1.62
+             var aimPitch=atan2(predicted.y+eyeHeight-target.y,hypot(dx,dz))*180 / .pi
+             if worldState != nil,target.axis != 1 {
+                 let currentPoint=target.horizontalPoint(from:pose)
+-                let distance=hypot(currentPoint.x-pose.x,currentPoint.z-pose.z)
++                var distance=hypot(currentPoint.x-pose.x,currentPoint.z-pose.z)
++                if abs(route.ux*route.uz)>0.2,let nativeYaw=worldState?.headYaw {
++                    let angle=nativeYaw * .pi/180,dx = -sin(angle),dz=cos(angle)
++                    let component=target.axis==0 ? dx:dz
++                    let crossing=abs(component)>1e-6 ? ((target.axis==0 ? target.x-pose.x:target.z-pose.z)/component):(-1)
++                    let other=target.axis==0 ? pose.z+dz*crossing:pose.x+dx*crossing
++                    let edge=Double(target.axis==0 ? target.support.z:target.support.x)
++                    // The native ray uses head yaw throughout this game tick.
++                    // Do not calculate its pitch window from camera yaw.
++                    if crossing>0,other>edge+0.01,other<edge+0.99 {distance=crossing}
++                }
+                 let low=atan2(pose.y+eyeHeight-Double(target.support.y)-0.80,distance)*180 / .pi
+                 let high=atan2(pose.y+eyeHeight-Double(target.support.y)-0.20,distance)*180 / .pi
+                 aimPitch=max(low,min(high,aimPitch))
+             }
+-            if let state=worldState,lastPlanTick != state.tick {
+-                lastPlanTick=state.tick
+-                trace("PLAN tick=\(state.tick) target=\(target.result) from=\(target.support) aim=\(aimYaw),\(aimPitch) expected=\(expectedYaw),\(expectedPitch) follower=\(String(describing:follower)) turn=\(turn != nil) pendingAim=\(pendingAimPose != nil) use=\(String(describing:state.useHit)),\(state.useFace ?? "nil") render=\(String(describing:state.pose.looking)),\(state.face ?? "nil") velocity=\(state.velocity) coast=\(flightCoast)")
++            if target.axis==1,abs(route.ux*route.uz)>0.2,let state=worldState {
++                let next=F3Pose(x:pose.x+state.velocity.0,y:pose.y+(state.onGround ? 0:state.velocity.1),z:pose.z+state.velocity.2,yaw:pose.yaw,pitch:pose.pitch,time:pose.time+0.05)
++                if let safe=TopFaceCone.aim(target:target,eyes:[pose,next],eyeHeight:state.eyeHeight,desiredYaw:aimYaw,desiredPitch:aimPitch) {
++                    aimYaw=safe.yaw;aimPitch=safe.pitch
++                }
+             }
+             let awaitingPlacement=worldState != nil && !pendingPlacements.isEmpty
+             let ready=canPlace(target,pose:pose)
+@@ -647,7 +733,7 @@
+                 setPlacing(false); keys([]); groundY=landingY
+                 if observed.contains(under) { self.support=under }
+                 phase = .aligning; phaseAt=now
+-            } else if now-phaseAt>0.85 { stop("没有及时识别到落地，已停止。") }
++            } else if now-phaseAt>(incompleteCorner ? 1.2:0.85) { stop("没有及时识别到落地，已停止。") }
+         case .landing:
+             setPlacing(false)
+             let facingForward=aim(yaw:heading,pitch:forwardPitch,pose:pose,now:now,preferredYawSign:1)
+@@ -665,21 +751,24 @@
+                 if activeRise != risePerJump && !state.onGround {return}
+                 let forecast=BridgeLandingForecast.predict(state,height:landingY,yaw:heading,acceleration:landingCoast ? 0:0.02)
+                 let near=state.onGround || (forecast?.seconds ?? 1)<=0.05
+-                if facingForward,near, let landed=state.solid.filter({
+-                    $0.y==flightFloor && (state.onGround ? pose.x : forecast?.supportX ?? pose.x)+0.299>Double($0.x) && (state.onGround ? pose.x : forecast?.supportX ?? pose.x)-0.299<Double($0.x)+1 &&
+-                    (state.onGround ? pose.z : forecast?.supportZ ?? pose.z)+0.299>Double($0.z) && (state.onGround ? pose.z : forecast?.supportZ ?? pose.z)-0.299<Double($0.z)+1
+-                }).max(by:{route!.along(Double($0.x)+0.5,Double($0.z)+0.5)<route!.along(Double($1.x)+0.5,Double($1.z)+0.5)}) {
++                let nativeSupports=state.onGround ? BridgeLandingForecast.standingSupport(state,floor:flightFloor) : (forecast?.imminentSupport(state,floor:flightFloor) ?? [])
++                if facingForward,near, let landed=nativeSupports.max(by:{route!.along(Double($0.x)+0.5,Double($0.z)+0.5)<route!.along(Double($1.x)+0.5,Double($1.z)+0.5)}) {
+                     support=landed;groundY=landingY;pendingPlacements.removeAll()
+                     // Commit the next mode together with its runway. A T
+                     // press after approach begins is for the following cycle;
+                     // changing height alone here leaves the wrong launch edge.
+                     plannedRise=risePerJump
+-                    if let runway=route?.runway(on:landed) {
++                    if let runway=route?.landingRunway(on:landed,from:pose) {
+                         // Use the confirmed front edge for each takeoff. An
+                         // immediate jump from the middle wastes half a block
+                         // and repeats progressively shorter spans.
+-                        runwayEnd=runway.upperBound+(plannedRise>0 ? 0.05:0.23)-0.55*2*abs(route!.ux*route!.uz)
+-                        if activeRise>0 && plannedRise==0 {
++                        runwayEnd=runway.upperBound+(plannedRise>0 ? 0.05:0.23)-0.80*2*abs(route!.ux*route!.uz)
++                        let overrunDiagonal = abs(route!.ux*route!.uz)>0.2 && route!.along(pose.x,pose.z)>runway.upperBound+0.08
++                        // A real grounded collision still permits a jump from
++                        // the body overhang. Do not retreat an entire block
++                        // merely because the centre crossed its top face.
++                        let supportedDiagonal = abs(route!.ux*route!.uz)>0.2 && !nativeSupports.isEmpty
++                        if !supportedDiagonal && ((activeRise>0 && plannedRise==0) || overrunDiagonal) {
+                             // Rising landings can already overhang the edge
+                             // with little speed. Rebuild a full runway before
+                             // the first level span after a mode change.
+@@ -771,7 +860,7 @@
+             mouse(true); mouseDown = true
+             if !pendingPlacements.contains(where:{$0.0.result==placement.result}) {pendingPlacements.append((placement,now))}
+             if worldState==nil {support=placement.result;jumpPlacements+=1}
+-            lastPlacementAt=now;lastClickTick=worldState?.tick ?? -1
++            lastPlacementAt=now;lastClickTick=worldState?.tick ?? -1;pendingClickConsumed=false
+             emitted=true
+         }
+         if emitted {
+@@ -801,7 +890,7 @@
+ // Cancellation drops all unissued counts immediately.
+ struct RelativeMouseTurn {
+     static let maximumDuration=0.112
+-    static func duration(for span:Double)->Double {max(0.032,min(maximumDuration,0.032+abs(span)/180*0.080))}
++    static func duration(for span:Double,maximum:Double=RelativeMouseTurn.maximumDuration)->Double {max(0.032,min(maximum,0.032+abs(span)/180*(maximum-0.032)))}
+     // Near a half turn, tiny aim errors must not randomly choose the other
+     // side. Placement sweeps left, returning sweeps right. Small face tracking
+     // corrections still take the shortest path; never turn a full circle.
+--- 191-top-window/Sources/main.swift
++++ 192-return-curve/Sources/main.swift
+@@ -100,8 +100,14 @@
+                 self.gameTelemetry.stop();self.updateBridgeUI()
+             } else if self.telly.active,self.telly.phase != .idle {
+                 self.telly.observeWorld(state,error:error,now:ProcessInfo.processInfo.systemUptime)
++                if let state, ProcessInfo.processInfo.environment["MC_MACRO_FRAME_TRACE"]=="1" {
++                    func block(_ b:F3Block?)->Any {b.map{[$0.x,$0.y,$0.z]} ?? NSNull()}
++                    let record:[String:Any] = ["tick":state.tick,"ticksDue":state.ticksDue ?? -1,"headYaw":state.headYaw ?? state.pose.yaw,"eyeHeight":state.eyeHeight,"p":[state.pose.x,state.pose.y,state.pose.z],"r":[state.renderPose.x,state.renderPose.y,state.renderPose.z],"angle":[state.pose.yaw,state.pose.pitch],"v":[state.velocity.0,state.velocity.1,state.velocity.2],"cache":block(state.pose.looking),"face":state.face ?? "", "logical":block(state.useHit),"logical_face":state.useFace ?? "", "delay":state.clickDelay,"down":state.useDown,"ground":state.onGround,"sprint":state.sprinting ?? false,"solid":state.solid.map{[$0.x,$0.y,$0.z]}]
++                    if let data=try? JSONSerialization.data(withJSONObject:record,options:[.sortedKeys]),let text=String(data:data,encoding:.utf8) {self.traceBridge("FRAME "+text)}
++                }
+                 if let state,state.tick != self.bridgeTraceTick {
+                     self.bridgeTraceTick=state.tick
++                    self.traceBridge("TELE tick=\(state.tick) delay=\(state.clickDelay) useDown=\(state.useDown) cache=\(String(describing:state.pose.looking)),\(state.face ?? "nil") logical=\(String(describing:state.useHit)),\(state.useFace ?? "nil") velocity=\(state.velocity) sprint=\(String(describing:state.sprinting))")
+                     self.traceBridge(String(format:"POSE %.4f %.4f %.4f yaw %.2f pitch %.2f ground %@ ",state.pose.x,state.pose.y,state.pose.z,state.pose.yaw,state.pose.pitch,String(state.onGround))+self.telly.diagnostic)
+                 }
+             }
+@@ -136,12 +142,21 @@
+         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(awake),
+             name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
+         refreshTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
++            // Discovery and permission-label refresh take a whole game tick
++            // on this host. The active bridge already has a bound PID and
++            // independently checks focus, tap health and AX every 500 ms.
++            // Resume maintenance after R finishes; never stall a live turn.
++            guard self?.telly.active != true else {return}
++            let auditStart=ProcessInfo.processInfo.systemUptime
+             if let self, AXIsProcessTrusted(), CGPreflightListenEventAccess() {
+                 self.hardwareMouse.start()
+                 _ = self.installTap()
+             }
++            let permissionEnd=ProcessInfo.processInfo.systemUptime
+             self?.refreshTargets()
++            let targetsEnd=ProcessInfo.processInfo.systemUptime
+             self?.updateUI()
++            self?.traceBridge("LOOP refresh permissions_ms=\((permissionEnd-auditStart)*1000) targets_ms=\((targetsEnd-permissionEnd)*1000) ui_ms=\((ProcessInfo.processInfo.systemUptime-targetsEnd)*1000)")
+         }
+         watchdog = Timer.scheduledTimer(withTimeInterval: 0.025, repeats: true) { [weak self] _ in
+             guard let self else { return }
+--- 191-top-window/Tests/main.swift
++++ 192-return-curve/Tests/main.swift
+@@ -384,6 +384,24 @@
+ timeoutEngine.tick(now:timeoutTime+1.51,active:true,minimum:18,maximum:18)
+ check(timeoutEngine.phase == .idle && timeoutEngine.message.contains("及时确认"),"重复松手不能延长收尾的有限超时")
+ print("通过：起跳后松手收尾、收尾重按续接、重复释放不续期、失焦立即中断收尾。")
++// R-up during an unconfirmed flight must not lower the eye by sneaking.
++// Recorded SW trial460952: the old branch changed eye height while aiming.
++let (releaseFlight,releaseFlightTime)=airborneController()
++var releaseFlightKeys=Set<UInt16>()
++releaseFlight.key={code,down in if down {releaseFlightKeys.insert(code)} else {releaseFlightKeys.remove(code)}}
++func releaseAirState(_ time:Double,_ tick:Int)->BridgeWorldState {
++    let p=F3Pose(x:0.5,y:64.42,z:0.8,yaw:0,pitch:0,time:time)
++    return BridgeWorldState(pose:p,renderPose:p,previousPose:p,velocity:(0,0.3332,0.15),onGround:false,flying:false,hasBlocks:true,world:1,tick:tick,face:nil,solid:[F3Block(x:0,y:63,z:0)],useHit:nil,useFace:nil,useDown:false,clickDelay:0,eyeHeight:1.62)
++}
++releaseFlight.observeWorld(releaseAirState(releaseFlightTime+0.05,300),error:"",now:releaseFlightTime+0.05)
++releaseFlight.tick(now:releaseFlightTime+0.05,active:true,minimum:18,maximum:18)
++releaseFlight.release(now:releaseFlightTime+0.051)
++releaseFlight.observeWorld(releaseAirState(releaseFlightTime+0.06,300),error:"",now:releaseFlightTime+0.06)
++releaseFlight.tick(now:releaseFlightTime+0.06,active:true,minimum:18,maximum:18)
++check(releaseFlight.phase == .flight && releaseFlight.finishing && !releaseFlightKeys.contains(gameConfig.sneak),"松R不能在未确认落点的空中提前潜行改变眼高")
++releaseFlight.stop("test cleanup")
++print("通过：松R保留当前空中放块姿态，落点确认前不提前潜行。")
++
+ let eyeBoundary=F3Pose(x:0.5,y:81.249,z:2,yaw:180,pitch:70.5,time:0)
+ check(BridgeRay.intersection(block:rayBlock,pose:eyeBoundary,eyeHeight:1.62)?.axis==1,"站立眼高的边界射线应命中顶面")
+ check(BridgeRay.intersection(block:rayBlock,pose:eyeBoundary,eyeHeight:1.54)?.axis==2,"潜行收尾眼高下降后应使用新的侧面射线，不能沿用站立眼高")
+--- 191-top-window/telemetry/src/local/mcmacro/StateAgent.java
++++ 192-return-curve/telemetry/src/local/mcmacro/StateAgent.java
+@@ -29,7 +29,7 @@
+         final String token;
+         final Object minecraft;
+         final Method schedule, getState, getBlock, fullCube, getHeld, getItem, heldBlock, getHitPos, posX,posY,posZ,rayTrace,mouseButton,eyeHeight,sprinting,keyboardDown;
+-        final Field player,world,screen,focus,hit,dead,ground,ticks,flying,capabilities,itemCount,hitType,hitFace,timer,partial,clickDelay;
++        final Field player,world,screen,focus,hit,dead,ground,ticks,flying,capabilities,itemCount,hitType,hitFace,timer,partial,clickDelay,headYaw,ticksDue;
+         final Field[] vectors=new Field[11];
+         final Constructor<?> blockPos, collisionBox;
+         final Method collisions;
+@@ -54,7 +54,7 @@
+             minecraft=mc.getMethod("A").invoke(null);schedule=mc.getMethod("a",Runnable.class);
+             player=field(mc,"h");world=field(mc,"f");screen=field(mc,"m");focus=field(mc,"w");hit=field(mc,"s");
+             timer=field(mc,"Y");partial=field(Class.forName("avl",false,loader),"c");
+-            clickDelay=field(mc,"ap");rayTrace=entity.getMethod("a",double.class,float.class);eyeHeight=entity.getMethod("aS");
++            ticksDue=field(timer.getType(),"b");headYaw=field(living,"aK");clickDelay=field(mc,"ap");rayTrace=entity.getMethod("a",double.class,float.class);eyeHeight=entity.getMethod("aS");
+             mouseButton=Class.forName("org.lwjgl.input.Mouse",false,loader).getMethod("isButtonDown",int.class);
+             sprinting=entity.getMethod("aw");
+             keyboardDown=Class.forName("org.lwjgl.input.Keyboard",false,loader).getMethod("isKeyDown",int.class);
+@@ -103,9 +103,11 @@
+                 out.append(",\"world\":").append(System.identityHashCode(w));
+                 out.append(",\"tick\":").append(ticks.getInt(p));
+                 out.append(",\"partial\":").append(partial.getFloat(timer.get(minecraft)));
++                out.append(",\"ticksDue\":").append(ticksDue.getInt(timer.get(minecraft)));
+                 out.append(",\"clickDelay\":").append(clickDelay.getInt(minecraft));
+                 out.append(",\"useDown\":").append(mouseButton.invoke(null,1));
+                 out.append(",\"eyeHeight\":").append(eyeHeight.invoke(p));
++                out.append(",\"headYaw\":").append(headYaw.getFloat(p));
+                 out.append(",\"ground\":").append(ground.getBoolean(p));
+                 out.append(",\"sprinting\":").append(sprinting.invoke(p));
+                 out.append(",\"controlDown\":").append(keyboardDown.invoke(null,29));

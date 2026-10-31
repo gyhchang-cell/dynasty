@@ -1,0 +1,100 @@
+--- 191-top-window/Sources/BridgeIntegration.swift
++++ 192-placement-route/Sources/BridgeIntegration.swift
+@@ -155,9 +155,11 @@
+         event.setIntegerValueField(.eventSourceUserData,value:eventMarker)
+         guard let pid=bridgeConfigPID else { return }
+         let gate=bridgeInputEpoch, token=gate.snapshot()
+-        bridgeInputQueue.async {
++        let requested=ProcessInfo.processInfo.systemUptime
++        bridgeInputQueue.async { [weak self] in
+             guard !down || (gate.accepts(token) && NSWorkspace.shared.frontmostApplication?.processIdentifier == pid) else { return }
+             event.post(tap:.cgSessionEventTap)
++            self?.traceBridge("POST mouse=\(down) queued_ms=\((ProcessInfo.processInfo.systemUptime-requested)*1000)")
+         }
+     }
+ 
+--- 191-top-window/Sources/TellyController.swift
++++ 192-placement-route/Sources/TellyController.swift
+@@ -29,6 +29,7 @@
+     private var random = SystemRandomNumberGenerator()
+     private var startedAt = 0.0
+     private var phaseAt = 0.0
++    private var placementRoute: TellyRoute?
+     private var anchor: F3Pose?
+     private var heading = 0.0
+     private var gainX = 0.0
+@@ -130,7 +131,7 @@
+         if finishing {held=true;finishing=false;message="R 搭路中；松开后完成本跳并回正。";return}
+         held = true; phase = .preparing; startedAt = now; phaseAt = now;plannedRise=0
+         track = F3Track(); worldState=nil;lastClickTick = -1;jumpIndex=0;centered=false;centerSettling=false; anchor = nil; lastUsedPose = -1; launched=false
+-        support = nil; route = nil; placement = nil; pendingPlacements.removeAll(); observed.removeAll(); pendingAimPose = nil; poseHistory.removeAll(); vx = 0; vy = 0; vz = 0
++        support = nil; route = nil; placementRoute=nil; placement = nil; pendingPlacements.removeAll(); observed.removeAll(); pendingAimPose = nil; poseHistory.removeAll(); vx = 0; vy = 0; vz = 0
+         message = "正在读取角色状态；站在完整方块上，朝搭桥方向，保持 R。"
+     }
+ 
+@@ -154,6 +155,7 @@
+     }
+ 
+     func stop(_ reason: String) {
++        let wasRunning=phase != .idle
+         finishing=false
+         phase = .idle
+         turn=nil; follower=nil; pendingAimPose=nil; cancelPendingInput()
+@@ -163,6 +165,15 @@
+         releaseTimer?.invalidate(); releaseTimer=nil
+         if mouseDown { mouse(false); mouseDown=false }
+         message = reason
++        if wasRunning,let state=worldState {
++            let age=ProcessInfo.processInfo.systemUptime-state.pose.time
++            let yawError=abs(F3Pose.angle(state.pose.yaw-heading)),pitchError=abs(state.pose.pitch-forwardPitch)
++            let audit:[String:Any] = ["grounded":state.onGround,"yaw_error_degrees":yawError,
++                "pitch_error_degrees":pitchError,"keys_released":ownedKeys.isEmpty,"right_released":!mouseDown,
++                "safe_aligned_finish":age<0.25 && !state.flying && state.onGround && yawError<1 && pitchError<1 && ownedKeys.isEmpty && !mouseDown,
++                "pose_age_ms":(ProcessInfo.processInfo.systemUptime-state.pose.time)*1000,"reason":reason]
++            if let data=try? JSONSerialization.data(withJSONObject:audit,options:[.sortedKeys]),let json=String(data:data,encoding:.utf8) {trace("FINISH "+json)}
++        }
+     }
+ 
+     func observe(_ pose: F3Pose?, error: String, now: TimeInterval) {
+@@ -487,7 +498,7 @@
+         case .flight:
+             keys(finishing ? [config.sneak] : flightCoast ? []:forwardKeys(pose:pose,config:config))
+             if let state=worldState {
+-                while let first=pendingPlacements.first, state.solid.contains(first.0.result) {observed.insert(first.0.result);support=first.0.result;jumpPlacements+=1;pendingPlacements.removeFirst()}
++                while let first=pendingPlacements.first, state.solid.contains(first.0.result) {trace("CONFIRM tick=\(state.tick) target=\(first.0.result) elapsed_ms=\((now-first.1)*1000)");observed.insert(first.0.result);support=first.0.result;jumpPlacements+=1;pendingPlacements.removeFirst()}
+                 if let first=pendingPlacements.first,state.tick>lastClickTick,!state.solid.contains(first.0.result),
+                    (state.clickDelay==4 && now-first.1>0.08) || (state.clickDelay<3 && now-first.1>=1/maximumCPS) {
+                     // Vanilla consumed this right press, but no block appeared.
+@@ -503,7 +514,7 @@
+             if let first=pendingPlacements.first, now-first.1>0.16 {
+                 self.support=first.0.support; pendingPlacements.removeAll()
+             }
+-            guard var support, let route else { stop("缺少已观测的支撑方块，已停止。"); return }
++            guard var support, let route=placementRoute ?? route else { stop("缺少已观测的支撑方块，已停止。"); return }
+             if let target=pose.looking, (support.y...flightFloor).contains(target.y),
+                abs(target.x-support.x)+abs(target.z-support.z)<=2,
+                route.along(Double(target.x)+0.5,Double(target.z)+0.5) >= route.along(Double(support.x)+0.5,Double(support.z)+0.5)-0.02,
+@@ -724,6 +735,13 @@
+         if let state=worldState,state.onGround,BridgeClearance.jumpBlocked(state,yaw:heading,rise:jumpIndex==0 ? 0:plannedRise) {
+             blockJump(config:config,now:now);return
+         }
++        // Placement follows the launch position; movement still corrects
++        // against the original bridge line, preventing cumulative drift.
++        if jumpIndex>0, let route, abs(route.ux*route.uz)>0.2 {
++            placementRoute=TellyRoute(x:pose.x,z:pose.z,yaw:heading)
++            placement=nil
++        } else { placementRoute=nil }
++        trace("LAUNCH index=\(jumpIndex+1) sprint=\(String(describing:worldState?.sprinting)) velocity=\(String(describing:worldState?.velocity))")
+         phase = .takeoff;phaseAt=now;launchAt=now;jumpPlacements=0;airborne=false;launched=true;flightCoast=false
+         // The opening span stays level to use the full flight window; later
+         // cycles rise one block. A raised first landing cuts ~200 ms of air.
+--- 191-top-window/Sources/main.swift
++++ 192-placement-route/Sources/main.swift
+@@ -102,6 +102,7 @@
+                 self.telly.observeWorld(state,error:error,now:ProcessInfo.processInfo.systemUptime)
+                 if let state,state.tick != self.bridgeTraceTick {
+                     self.bridgeTraceTick=state.tick
++                    self.traceBridge("TELE tick=\(state.tick) delay=\(state.clickDelay) useDown=\(state.useDown) cache=\(String(describing:state.pose.looking)),\(state.face ?? "nil") logical=\(String(describing:state.useHit)),\(state.useFace ?? "nil") velocity=\(state.velocity) sprint=\(String(describing:state.sprinting))")
+                     self.traceBridge(String(format:"POSE %.4f %.4f %.4f yaw %.2f pitch %.2f ground %@ ",state.pose.x,state.pose.y,state.pose.z,state.pose.yaw,state.pose.pitch,String(state.onGround))+self.telly.diagnostic)
+                 }
+             }

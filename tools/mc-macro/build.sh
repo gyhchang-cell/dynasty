@@ -1,7 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")"
-APP="$PWD/dist/mcPvPmax.app"
+MACRO_OUTPUT="${MC_MACRO_OUTPUT_DIR:-$PWD/dist}"
+APP="$MACRO_OUTPUT/mcPvPmax.app"
+MACRO_CONTROLLER="${MC_MACRO_CONTROLLER_SOURCE:-Sources/TellyController.swift}"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 MACRO_SDK="${MC_MACRO_SDK:-$(xcrun --show-sdk-path)}"
 # This host has a newer SDK alongside its Swift 6.1 toolchain.
@@ -31,23 +33,23 @@ mkdir -p "$APP/Contents/Resources/telemetry/attach/local/mcmacro"
 cp .build/telemetry/state-agent.jar "$APP/Contents/Resources/telemetry/state-agent-$MACRO_AGENT_VERSION.jar"
 cp .build/telemetry/attach/local/mcmacro/Attach.class "$APP/Contents/Resources/telemetry/attach/local/mcmacro/Attach.class"
 printf '{"agentJar":"state-agent-%s.jar"}\n' "$MACRO_AGENT_VERSION" > "$APP/Contents/Resources/telemetry/runtime.json"
-swiftc -sdk "$MACRO_SDK" "${MACRO_EXTRA[@]}" -O -swift-version 5 -target arm64-apple-macosx13.0 Sources/Policy.swift Sources/HardwareMouse.swift Sources/F3Model.swift Sources/GameTelemetry.swift Sources/F3PixelReader.swift Sources/F3Capture.swift Sources/TellyController.swift Sources/BridgeIntegration.swift Sources/main.swift -o "$APP/Contents/MacOS/MCMacro" -framework AppKit -framework ApplicationServices -framework Carbon -framework IOKit -framework Vision -framework ScreenCaptureKit
+swiftc -sdk "$MACRO_SDK" "${MACRO_EXTRA[@]}" -O -swift-version 5 -target arm64-apple-macosx13.0 Sources/Policy.swift Sources/HardwareMouse.swift Sources/F3Model.swift Sources/InventoryPolicy.swift Sources/GameTelemetry.swift Sources/F3PixelReader.swift Sources/F3Capture.swift "$MACRO_CONTROLLER" Sources/BridgeIntegration.swift Sources/InventoryIntegration.swift Sources/GlassMotion.swift Sources/BridgeArtwork.swift Sources/Interface.swift Sources/main.swift -o "$APP/Contents/MacOS/MCMacro" -framework AppKit -framework ApplicationServices -framework Carbon -framework IOKit -framework Vision -framework ScreenCaptureKit
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleExecutable</key><string>MCMacro</string>
 <key>CFBundleIdentifier</key><string>local.mc-macro.assistant</string>
-<key>CFBundleName</key><string>MC连点助手</string>
-<key>CFBundleDisplayName</key><string>MC连点助手</string>
+<key>CFBundleName</key><string>mcPvPmax</string>
+<key>CFBundleDisplayName</key><string>mcPvPmax</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.8.9</string>
-<key>CFBundleVersion</key><string>19</string>
+<key>CFBundleShortVersionString</key><string>1.9.3</string>
+<key>CFBundleVersion</key><string>23</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSHumanReadableCopyright</key><string>本地构建的 Minecraft 输入助手</string>
 </dict></plist>
 PLIST
 codesign --force --sign - "$APP"
-ditto -c -k --keepParent "$APP" "$PWD/dist/mcPvPmax-macOS-arm64.zip"
+ditto -c -k --keepParent "$APP" "$MACRO_OUTPUT/mcPvPmax-macOS-arm64.zip"
 printf '已生成：%s\n' "$APP"

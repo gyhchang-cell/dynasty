@@ -2,11 +2,21 @@ import Foundation
 
 // Invalidates queued input without delaying key/button releases.
 final class BridgeInputEpoch {
+    enum Decision {case send, cancelled, expired}
     private let lock = NSLock()
     private var value: UInt64 = 0
     func snapshot() -> UInt64 { lock.lock(); defer { lock.unlock() }; return value }
     func invalidate() { lock.lock(); value &+= 1; lock.unlock() }
     func accepts(_ token: UInt64) -> Bool { lock.lock(); defer { lock.unlock() }; return value == token }
+    func authorize(_ token:UInt64,queuedAt:Double,now:Double)->Decision {
+        lock.lock();defer{lock.unlock()}
+        guard value==token else{return .cancelled}
+        guard now>=queuedAt,now-queuedAt<=0.080 else {
+            value &+= 1
+            return .expired
+        }
+        return .send
+    }
 }
 
 // Every event in a bridge sequence carries its held modifier state. LWJGL
@@ -16,6 +26,35 @@ enum BridgeMode:String,CaseIterable {
     var title:String {self == .level ? "平桥（保持高度）":"Speed Telly（逐跳升高）"}
     var rise:Int {self == .level ? 0:1}
     var next:BridgeMode {self == .level ? .rising:.level}
+}
+
+// Consume conflicting manual input only while a committed jump is finishing.
+// Remember swallowed downs so their repeats/ups cannot leak after landing.
+// Inputs are never replayed: a fresh press is required after the handoff.
+struct BridgeManualInputGate {
+    enum Input {
+        case key(UInt16, Bool), modifier, motion(Int64, Int64)
+        case button(Int64, Bool), drag(Int64), scroll
+        var hasIntent:Bool {
+            if case let .motion(x,y)=self {return x != 0 || y != 0}
+            return true
+        }
+    }
+    private var keys=Set<UInt16>()
+    private var buttons=Set<Int64>()
+    func suppressesButton(_ number:Int64)->Bool {buttons.contains(number)}
+    mutating func consume(_ input:Input,duringFinish:Bool)->Bool {
+        switch input {
+        case let .key(code,down):
+            if down {if duringFinish {keys.insert(code)};return duringFinish || keys.contains(code)}
+            return keys.remove(code) != nil || duringFinish
+        case let .button(number,down):
+            if down {if duringFinish {buttons.insert(number)};return duringFinish || buttons.contains(number)}
+            return buttons.remove(number) != nil || duringFinish
+        case let .drag(number):return duringFinish || buttons.contains(number)
+        default:return duringFinish
+        }
+    }
 }
 
 struct BridgeModifiers {

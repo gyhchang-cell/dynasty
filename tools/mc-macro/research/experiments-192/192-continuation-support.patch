@@ -1,0 +1,68 @@
+--- 191-top-window/Sources/BridgeIntegration.swift
++++ 192-continuation-support/Sources/BridgeIntegration.swift
+@@ -155,9 +155,11 @@
+         event.setIntegerValueField(.eventSourceUserData,value:eventMarker)
+         guard let pid=bridgeConfigPID else { return }
+         let gate=bridgeInputEpoch, token=gate.snapshot()
+-        bridgeInputQueue.async {
++        let requested=ProcessInfo.processInfo.systemUptime
++        bridgeInputQueue.async { [weak self] in
+             guard !down || (gate.accepts(token) && NSWorkspace.shared.frontmostApplication?.processIdentifier == pid) else { return }
+             event.post(tap:.cgSessionEventTap)
++            self?.traceBridge("POST mouse=\(down) queued_ms=\((ProcessInfo.processInfo.systemUptime-requested)*1000)")
+         }
+     }
+ 
+--- 191-top-window/Sources/TellyController.swift
++++ 192-continuation-support/Sources/TellyController.swift
+@@ -487,7 +487,7 @@
+         case .flight:
+             keys(finishing ? [config.sneak] : flightCoast ? []:forwardKeys(pose:pose,config:config))
+             if let state=worldState {
+-                while let first=pendingPlacements.first, state.solid.contains(first.0.result) {observed.insert(first.0.result);support=first.0.result;jumpPlacements+=1;pendingPlacements.removeFirst()}
++                while let first=pendingPlacements.first, state.solid.contains(first.0.result) {trace("CONFIRM tick=\(state.tick) target=\(first.0.result) elapsed_ms=\((now-first.1)*1000)");observed.insert(first.0.result);support=first.0.result;jumpPlacements+=1;pendingPlacements.removeFirst()}
+                 if let first=pendingPlacements.first,state.tick>lastClickTick,!state.solid.contains(first.0.result),
+                    (state.clickDelay==4 && now-first.1>0.08) || (state.clickDelay<3 && now-first.1>=1/maximumCPS) {
+                     // Vanilla consumed this right press, but no block appeared.
+@@ -549,8 +549,21 @@
+             // interrupt placement; an imminent Y collision is insufficient.
+             let contactSupport=groundedSupport
+             let recovery=jumpPlacements>=(jumpIndex==1 ? 4:activeRise==0 ? 3:2) && (forecast?.seconds ?? 1)<=0.12
++            var nextLaunchSupport=contactSupport ?? drivenLanding ?? coastLanding
++            if activeRise>0,abs(route.ux*route.uz)>0.2,!finishing {
++                // A corner catch can stop this fall yet leave the next top
++                // placement more than a block behind the sprint-jump. Keep the
++                // current face sweep until the landing centre has a runway.
++                let lx=(coastForecast?.x ?? pose.x)+route.ux*0.10
++                let lz=(coastForecast?.z ?? pose.z)+route.uz*0.10
++                nextLaunchSupport=(worldState?.solid ?? observed).filter {
++                    $0.y==flightFloor && lx>=Double($0.x)-0.15 && lx<=Double($0.x)+1.15 &&
++                    lz>=Double($0.z)-0.15 && lz<=Double($0.z)+1.15
++                }.max {route.along(Double($0.x)+0.5,Double($0.z)+0.5)<route.along(Double($1.x)+0.5,Double($1.z)+0.5)}
++                if contactSupport != nil && nextLaunchSupport==nil {keys([config.sneak])}
++            }
+             if (contactSupport != nil || jumpPlacements>=4 || recovery || confirmedLanding) && now-lastPlacementAt>(worldState == nil ? 0.055:0),
+-               let landing=contactSupport ?? drivenLanding ?? coastLanding {
++               let landing=nextLaunchSupport {
+                 landingCoast=finishing || flightCoast || drivenLanding==nil
+                 self.support=landing
+                 // An actual edge contact overrides the wider airborne safety
+@@ -572,7 +585,7 @@
+                 target = TellyPlacement(support:support,result:F3Block(x:support.x,y:support.y+1,z:support.z),axis:1,sign:1,
+                     x:Double(support.x)+0.5,y:Double(support.y)+1,z:Double(support.z)+0.5)
+             } else if abs(route.ux*route.uz)>0.2, let previous=placement,
+-                      previous.support==support, previous.axis != 1,
++                      previous.support==support, previous.axis != 1, previous.isExposed(from:pose),
+                       !(worldState?.solid.contains(previous.result) ?? observed.contains(previous.result)) {
+                 // A diagonal exposes two faces during the same half-turn.
+                 // Complete the chosen face before changing to its neighbour;
+--- 191-top-window/Sources/main.swift
++++ 192-continuation-support/Sources/main.swift
+@@ -102,6 +102,7 @@
+                 self.telly.observeWorld(state,error:error,now:ProcessInfo.processInfo.systemUptime)
+                 if let state,state.tick != self.bridgeTraceTick {
+                     self.bridgeTraceTick=state.tick
++                    self.traceBridge("TELE tick=\(state.tick) delay=\(state.clickDelay) useDown=\(state.useDown) cache=\(String(describing:state.pose.looking)),\(state.face ?? "nil") logical=\(String(describing:state.useHit)),\(state.useFace ?? "nil") velocity=\(state.velocity) sprint=\(String(describing:state.sprinting))")
+                     self.traceBridge(String(format:"POSE %.4f %.4f %.4f yaw %.2f pitch %.2f ground %@ ",state.pose.x,state.pose.y,state.pose.z,state.pose.yaw,state.pose.pitch,String(state.onGround))+self.telly.diagnostic)
+                 }
+             }

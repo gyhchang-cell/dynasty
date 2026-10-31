@@ -124,7 +124,7 @@ struct TellyRoute {
     var uz: Double { cos(yaw * .pi/180) }
     func along(_ bx: Double, _ bz: Double) -> Double { (bx-x)*ux+(bz-z)*uz }
     func cross(_ bx: Double, _ bz: Double) -> Double { (bx-x)*uz-(bz-z)*ux }
-    func runway(on block:F3Block) -> ClosedRange<Double>? {
+    func runway(on block:F3Block,minimumLength:Double=0.45) -> ClosedRange<Double>? {
         var entry = -Double.infinity, exit = Double.infinity
         for (origin,direction,lower) in [(x,ux,Double(block.x)),(z,uz,Double(block.z))] {
             if abs(direction)<1e-8 {
@@ -134,7 +134,7 @@ struct TellyRoute {
                 entry=max(entry,min(a,b));exit=min(exit,max(a,b))
             }
         }
-        guard entry.isFinite,exit.isFinite,exit-entry>0.45 else {return nil}
+        guard entry.isFinite,exit.isFinite,exit-entry>minimumLength else {return nil}
         return entry...exit
     }
     func next(after block: F3Block) -> TellyPlacement {
@@ -197,8 +197,8 @@ struct TellyPlacement {
         return (axis==0 ? x:max(Double(support.x)+inset,min(Double(support.x)+1-inset,px)),
                 axis==2 ? z:max(Double(support.z)+inset,min(Double(support.z)+1-inset,pz)))
     }
-    // A use-item click recalculates the ray at logical position (partial=1).
-    // Rendering uses an interpolated eye position; those rays need not agree.
+    // Vanilla runTick refreshes objectMouseOver with partial=1 before
+    // handling Mouse.next and rightClickMouse. A prior rendered ray may differ.
     func isVisibleFace(from pose: F3Pose, eyeHeight:Double=1.62) -> Bool {
         guard let hit=BridgeRay.intersection(block:support,pose:pose,eyeHeight:eyeHeight) else{return false}
         return hit.axis==axis && hit.sign==sign
@@ -227,5 +227,54 @@ struct BridgeRay {
     }
     static func first(in blocks:Set<F3Block>,pose:F3Pose)->Hit? {
         blocks.compactMap{intersection(block:$0,pose:pose)}.min{$0.distance<$1.distance}
+    }
+}
+
+// Test the player's actual parallel path, without changing bridge heading or
+// the movement correction line. No expansion of the solid top face is used.
+extension TellyRoute {
+    func landingRunway(on block:F3Block,from pose:F3Pose)->ClosedRange<Double>? {
+        guard abs(ux*uz)>0.2 else{return runway(on:block)}
+        let local=TellyRoute(x:pose.x,z:pose.z,yaw:yaw)
+        guard let span=local.runway(on:block,minimumLength:0.01) else{return nil}
+        let origin=along(pose.x,pose.z)
+        return (span.lowerBound+origin)...(span.upperBound+origin)
+    }
+}
+
+// The click is consumed at a later game tick. Find a top-face direction
+// inside the common visible rectangle at the current and next logical eyes.
+// Retain a geometric margin; never randomize or write game angles directly.
+enum TopFaceCone {
+    static func aim(target:TellyPlacement,eyes:[F3Pose],eyeHeight:Double,desiredYaw:Double,desiredPitch:Double)->(yaw:Double,pitch:Double)? {
+        guard target.axis==1,!eyes.isEmpty else{return nil}
+        var best:(yaw:Double,pitch:Double,cost:Double)?
+        for step in -40...40 {
+            let yaw=desiredYaw+Double(step)*0.5,angle=yaw * .pi/180
+            let dx = -sin(angle),dz=cos(angle)
+            var lower=0.0,upper=88.0
+            for eye in eyes {
+                let height=eye.y+eyeHeight-target.y
+                if height<=0 {lower=100;break}
+                var near=0.0,far=Double.infinity
+                for (p,d,b) in [(eye.x,dx,Double(target.support.x)),(eye.z,dz,Double(target.support.z))] {
+                    if abs(d)<1e-9 {
+                        if p<b+0.10 || p>b+0.90 {near=1;far=0;break}
+                    } else {
+                        let a=(b+0.10-p)/d,c=(b+0.90-p)/d
+                        near=max(near,min(a,c));far=min(far,max(a,c))
+                    }
+                }
+                if far<=max(0,near) {lower=100;break}
+                lower=max(lower,atan2(height,far)*180 / .pi)
+                upper=min(upper,atan2(height,max(0,near))*180 / .pi)
+            }
+            guard upper-lower>0.25 else {continue}
+            let margin=min(1.0,(upper-lower)*0.25)
+            let pitch=max(lower+margin,min(upper-margin,desiredPitch))
+            let cost=pow(Double(step)*0.5,2)+pow(pitch-desiredPitch,2)
+            if best==nil || cost<best!.cost {best=(yaw,pitch,cost)}
+        }
+        return best.map{($0.yaw,$0.pitch)}
     }
 }

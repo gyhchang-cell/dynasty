@@ -18,9 +18,13 @@ struct BridgeWorldState {
     let useDown:Bool
     let clickDelay:Int
     let eyeHeight:Double
+    var ticksDue:Int?=nil
+    var headYaw:Double?=nil
     var sprinting:Bool?=nil
     var controlDown:Bool?=nil
     var collisionBoxes:[BridgeCollisionBox]?=nil
+    var inventory:HotbarSnapshot?=nil
+    var hasGeometry:Bool=true
     var obstacles:[BridgeCollisionBox] {collisionBoxes ?? solid.map{BridgeCollisionBox(minX:Double($0.x),minY:Double($0.y),minZ:Double($0.z),maxX:Double($0.x+1),maxY:Double($0.y+1),maxZ:Double($0.z+1))}}
 }
 
@@ -31,6 +35,25 @@ struct BridgeCollisionBox {
         return max(a.x,b.x)+0.30>minX+e && min(a.x,b.x)-0.30<maxX-e &&
             max(a.z,b.z)+0.30>minZ+e && min(a.z,b.z)-0.30<maxZ-e &&
             max(a.y,b.y)+1.80>minY+e && min(a.y,b.y)<maxY-e
+    }
+}
+
+// Diagnostic samples only. Do not deny the established bridge controller
+// on an FPS threshold; the separately tested low-FPS strategy is not shipped.
+struct BridgeTiming {
+    private var samples:[(time:Double,interval:Double)]=[]
+    private var lastTime:Double?
+    mutating func observe(_ state:BridgeWorldState) {
+        let t=state.pose.time
+        if let previous=lastTime,t>previous {
+            samples.append((t,t-previous));samples.removeAll{$0.time<t-0.5}
+        }
+        lastTime=t
+    }
+    var frameInterval:Double {
+        let values=samples.map(\.interval).sorted()
+        guard !values.isEmpty else{return 1.0/60}
+        return values[min(values.count-1,Int(Double(values.count)*0.9))]
     }
 }
 
@@ -82,9 +105,13 @@ private struct TelemetryPacket: Decodable {
     let useDown:Bool?
     let clickDelay:Int?
     let eyeHeight:Double?
+    let ticksDue:Int?
+    let headYaw:Double?
     let sprinting:Bool?
     let controlDown:Bool?
     let collisions:[[Double]]?
+    let inventory:OptionalObservation<HotbarSnapshot>?
+    let geometry:Bool?
     func state(received: Double) -> BridgeWorldState? {
         guard active, age.isFinite, (0...0.10).contains(age), let v, v.count==11, v.allSatisfy(\.isFinite),
               abs(v[0])<=30_000_000, abs(v[2])<=30_000_000, (-128...4096).contains(v[1]),
@@ -98,8 +125,9 @@ private struct TelemetryPacket: Decodable {
             previousPose:F3Pose(x:v[8],y:v[9],z:v[10],yaw:F3Pose.angle(v[6]),pitch:v[7],time:received-age,looking:target),
             velocity:(v[3],v[4],v[5]),onGround:ground,flying:flying,hasBlocks:blocks,world:world,tick:tick,face:face,
             solid:Set(solid.map{F3Block(x:$0[0],y:$0[1],z:$0[2])}),
-            useHit:useHit.flatMap{$0.count==3 ? F3Block(x:$0[0],y:$0[1],z:$0[2]):nil},useFace:useFace,useDown:useDown ?? false,clickDelay:clickDelay ?? 0,eyeHeight:eyeHeight ?? 1.62,sprinting:sprinting,controlDown:controlDown,
-            collisionBoxes:collisions.map{BridgeCollisionBox(minX:$0[0],minY:$0[1],minZ:$0[2],maxX:$0[3],maxY:$0[4],maxZ:$0[5])})
+            useHit:useHit.flatMap{$0.count==3 ? F3Block(x:$0[0],y:$0[1],z:$0[2]):nil},useFace:useFace,useDown:useDown ?? false,clickDelay:clickDelay ?? 0,eyeHeight:eyeHeight ?? 1.62,ticksDue:ticksDue,headYaw:headYaw.map(F3Pose.angle),sprinting:sprinting,controlDown:controlDown,
+            collisionBoxes:collisions.map{BridgeCollisionBox(minX:$0[0],minY:$0[1],minZ:$0[2],maxX:$0[3],maxY:$0[4],maxZ:$0[5])},
+            inventory:inventory?.value.flatMap{$0.valid ? $0:nil},hasGeometry:geometry ?? true)
     }
 }
 
@@ -137,7 +165,9 @@ final class GameTelemetry {
     private var token=""
     private var sequence=0
     private var generation=0
+    var sessionID:Int {generation}
     private(set) var pid:pid_t?
+    var needsGeometry=true
     var onState: (BridgeWorldState?,String)->Void = {_,_ in}
 
     func start(pid:pid_t,java:String,classes:String,jar:String) throws {
@@ -168,14 +198,14 @@ final class GameTelemetry {
             }
             guard let packet=newest else {return}
             let received=ProcessInfo.processInfo.systemUptime
-            var destination=newestPeer
             let authenticatedPeer=newestPeer
-            sessionToken.withCString { bytes in
-                _=withUnsafePointer(to:&destination){$0.withMemoryRebound(to:sockaddr.self,capacity:1){sendto(fd,bytes,strlen(bytes),0,$0,socklen_t(MemoryLayout<sockaddr_in>.size))}}
-            }
             DispatchQueue.main.async {
                 guard let self,self.generation==epoch,packet.seq>self.sequence else {return}
                 self.sequence=packet.seq;self.peer=authenticatedPeer
+                var peer=authenticatedPeer
+                (sessionToken+(self.needsGeometry ? " FULL":" LIGHT")).withCString {bytes in
+                    _=withUnsafePointer(to:&peer){$0.withMemoryRebound(to:sockaddr.self,capacity:1){sendto(fd,bytes,strlen(bytes),0,$0,socklen_t(MemoryLayout<sockaddr_in>.size))}}
+                }
                 let state=packet.state(received:received)
                 self.onState(state,state==nil ? "游戏菜单、角色状态或读数不可用。":"")
             }
@@ -185,7 +215,7 @@ final class GameTelemetry {
         attachQueue.async { [weak self] in
             guard DispatchQueue.main.sync(execute:{self?.generation==epoch}) else{return}
             let command=Process();command.executableURL=URL(fileURLWithPath:java)
-            command.arguments=["--add-modules","jdk.attach","-cp",classes,"local.mcmacro.Attach",String(pid),jar,"\(port),\(sessionToken)"]
+            command.arguments=["-Djava.awt.headless=true","--add-modules","jdk.attach","-cp",classes,"local.mcmacro.Attach",String(pid),jar,"\(port),\(sessionToken)"]
             command.standardOutput=FileHandle.nullDevice;command.standardError=FileHandle.nullDevice
             do {try command.run();command.waitUntilExit()}
             catch {DispatchQueue.main.async {guard let self,self.generation==epoch else{return};self.onState(nil,"本地读数组件未启动。")}}
@@ -247,5 +277,29 @@ struct BridgeLandingForecast {
             y=nextY;dx*=0.91;dz*=0.91;dy=(dy-0.08)*0.98
         }
         return nil
+    }
+}
+
+// Correct only the cross-track component of a short coasting landing.
+// Candidate blocks may include an in-flight placement plan; the controller
+// still requires observed solid support before declaring a landing or return.
+enum BridgeLateralLanding {
+    static func direction(_ state:BridgeWorldState,floor:Int,heading:Double,targets:Set<F3Block>)->Double? {
+        guard !state.onGround,let coast=BridgeLandingForecast.predict(state,height:Double(floor+1),yaw:heading,acceleration:0),coast.seconds>0,coast.seconds<=0.201 else{return nil}
+        func margin(_ forecast:BridgeLandingForecast,_ b:F3Block)->Double {
+            min(forecast.x-Double(b.x)+0.28,Double(b.x+1)+0.28-forecast.x,
+                forecast.z-Double(b.z)+0.28,Double(b.z+1)+0.28-forecast.z)
+        }
+        let targets=targets.filter{$0.y==floor}
+        guard !targets.contains(where:{margin(coast,$0)>=0}) else{return nil}
+        var best:(yaw:Double,margin:Double)?
+        for yaw in [heading-90,heading+90] {
+            guard let forecast=BridgeLandingForecast.predict(state,height:Double(floor+1),yaw:yaw,acceleration:0.02) else{continue}
+            for b in targets where margin(forecast,b)>=0.005 {
+                let m=margin(forecast,b)
+                if best==nil || m>best!.margin {best=(yaw,m)}
+            }
+        }
+        return best?.yaw
     }
 }

@@ -1,0 +1,9 @@
+"""Review one final-stage delayed payload chain; prior slam/sack work stays zero."""
+import json,datetime
+from pathlib import Path
+R=Path(__file__).resolve().parents[3];O=R/'docs/cod4/audit-20261022/sweep-receipt-research';cs=[json.loads(l) for l in (O/'candidates.jsonl').read_text().splitlines()];i=7141;G=cs[i]['source_local'];D=str(Path(G).parents[2]);P=D+'/BroodEetle.java';E=D+'/EetleEgg.java';A=D+'/AbstractEetle.java'
+note='全文LastStageGoal、实际注册/阶段/开口/事件60、EetleEgg全类和AbstractEetle实际倒数：最后HealthStage FIVE且存活非飞行start开炮/SLAM，cannonTicks仅firing时++且stop不归0。slam14消费沿用已计4009无新增；其余开口每20本地tick按当前周围同类甲虫数量决定抛蛋或heal5+事件60，前75tick可无视密度生成，spawn bool不检查；恢复阶段后restart沿用旧相位。蛋只存fromBrood布尔无母UUID，落地先discard，再依当前块可替换/支撑及setBlock成功决定放eggBE(5..10 hatch delay)或burst；setBlock失败分支没有burst补偿，先消费载体不代表后续产出成功。未落地而fallTime>600或>100且Y超1..256时burstOpenEgg，却没有discard/清过期标志，下一tick仍可继续重复burst，不能当一次TTL范本。burst声/颗粒不依addFresh成功；生成幼体先赋600..700despawn，但只有长大后才减，最后100tick逢10且有当前近活目标LOS会续105..115，可跨原期限。FallTime/fromBrood/size保存，但无攻击/母体代次。整条定时投放→落地或超期后续生成及寿命1；与3797卵囊弱点/4009slam来源不同，所有已审slam和shared时钟仅0支持；未读BE最终孵化内部不声称完整孵化验收。'
+sp=[[G,n] for n in ['canUse','start','stop','canContinueToUse','requiresUpdateEveryTick']]+[[P,n] for n in ['registerGoals','isOnLastHealthStage','isEggMouthOpen','isFiringCannon','setFiringCannon','handleEntityEvent']]+[[str(Path(G).parent/'BroodEetleLaunchEggsGoal.java'),'getNearbyEetleCount']]+[[str(Path(G).parent/'BroodEetleSlamGoal.java'),'slam']]+[[E,n] for n in ['tick','burstOpenEgg','assignRandomDirection','addAdditionalSaveData','readAdditionalSaveData']]+[[A,'tick',92],[A,'applyDespawnTimer']]
+(O/'manual-chain-spec-087.json').write_text(json.dumps([dict(candidate_indices=[i],observation=note,supporting_methods=sp)],ensure_ascii=False,indent=2)+'\n')
+import subprocess
+subprocess.run(['python3',str(R/'tools/cod4/sweep-receipt-research/review.py'),'--batch','batch-181'],input=str(i)+'|a|'+note+'\n',text=True,check=True)

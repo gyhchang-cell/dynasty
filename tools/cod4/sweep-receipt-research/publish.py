@@ -57,7 +57,10 @@ for n in notes:
   root=R/c['source_root'];treefile=root/'tree.json';key=f"{c['repo']}@{c['revision']}:{c['path']}"
   if treefile.exists():
    if root not in trees:
-    t=json.loads(treefile.read_text());assert t['sha']==c['revision'];trees[root]={v['path']:v['sha'] for v in t['tree'] if v['type']=='blob'}
+    t=json.loads(treefile.read_text())
+    if t['sha']!=c['revision']:
+     commit=json.loads((root/'commit.json').read_text());assert commit['sha']==c['revision'] and commit['commit']['tree']['sha']==t['sha'], 'Tree must be bound to exact commit'
+    trees[root]={v['path']:v['sha'] for v in t['tree'] if v['type']=='blob'}
    blob=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest();assert trees[root][c['path']]==blob
    row['pin_verification']={'kind':'pinned_tree_blob','tree':str(treefile.relative_to(R)),'tree_sha256':sha(treefile.read_bytes()),'blob_sha1':blob}
   else:
@@ -67,7 +70,7 @@ for n in notes:
  rows.append(row)
 def fetch(item):
  key,c=item;url=f"https://raw.githubusercontent.com/{c['repo']}/{c['revision']}/{c['path']}"
- r=subprocess.run(['curl','--fail','--location','--silent','--show-error','--max-time','25','--retry','1',url],capture_output=True)
+ r=subprocess.run(['curl','--fail','--location','--silent','--show-error','--max-time','25',url],capture_output=True)
  actual=sha(r.stdout);return key,dict(url=url,expected_sha256=c['source_sha256'],retrieved_sha256=actual,matches=r.returncode==0 and actual==c['source_sha256'],exit_code=r.returncode,retrieved_at=datetime.datetime.now().astimezone().isoformat())
 if a.verify_remote:
  with ThreadPoolExecutor(max_workers=6) as pool:
@@ -81,5 +84,5 @@ accepted=[r for r in rows if r['credit']];count=len(accepted)
 (O/'reviewed.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in rows))
 (O/'accepted.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in accepted))
 (O/'auxiliary.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in rows if r['decision']=='auxiliary'))
-summary={'required':1000,'accepted':count,'gap':max(0,1000-count),'gate_met':count>=1000,'candidates':len(cs),'decisions':dict(collections.Counter(r['decision'] for r in rows)),'unreviewed':len(cs)-len(rows),'repositories':len({c['repo'] for c in accepted}),'pinned_files':len({(r['repo'],r['revision'],r['path']) for r in accepted}),'verified_files_including_auxiliary':len(ranges),'prior_corpus_credit':0,'accepted_ledger_sha256':sha((O/'accepted.jsonl').read_bytes()),'production_changed':False,'upstream_code_executed':False,'candidate_count_is_not_review_count':True,'updated_at':datetime.datetime.now().astimezone().isoformat()}
+summary={'required':1000,'accepted':count,'gap':max(0,1000-count),'gate_met':count>=1000,'candidates':len(cs),'decisions':dict(collections.Counter(r['decision'] for r in rows)),'unreviewed':len(cs)-len(rows),'repositories':len({c['repo'] for c in accepted}),'pinned_files':len({(r['repo'],r['revision'],r['path']) for r in accepted}),'verified_files_including_auxiliary':len(ranges),'prior_corpus_credit':0,'accepted_ledger_sha256':sha((O/'accepted.jsonl').read_bytes()),'production_changed':((O/'fix-baseline.json').exists() and sha((R/'src/main/java/com/dynasty/cod3/FangtianSweep.java').read_bytes())!=json.loads((O/'fix-baseline.json').read_text())['source_sha256']),'upstream_code_executed':False,'candidate_count_is_not_review_count':True,'updated_at':datetime.datetime.now().astimezone().isoformat()}
 (O/'progress.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n');print(json.dumps(summary,ensure_ascii=False))

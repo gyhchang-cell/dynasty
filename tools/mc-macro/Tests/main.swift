@@ -384,6 +384,86 @@ timeoutEngine.release(now:timeoutTime+1)
 timeoutEngine.tick(now:timeoutTime+1.51,active:true,minimum:18,maximum:18)
 check(timeoutEngine.phase == .idle && timeoutEngine.message.contains("及时确认"),"重复松手不能延长收尾的有限超时")
 print("通过：起跳后松手收尾、收尾重按续接、重复释放不续期、失焦立即中断收尾。")
+// R-up during an unconfirmed flight must not lower the eye by sneaking.
+// Recorded SW trial460952: the old branch changed eye height while aiming.
+let (releaseFlight,releaseFlightTime)=airborneController()
+var releaseFlightKeys=Set<UInt16>()
+releaseFlight.key={code,down in if down {releaseFlightKeys.insert(code)} else {releaseFlightKeys.remove(code)}}
+func releaseAirState(_ time:Double,_ tick:Int)->BridgeWorldState {
+    let p=F3Pose(x:0.5,y:64.42,z:0.8,yaw:0,pitch:0,time:time)
+    return BridgeWorldState(pose:p,renderPose:p,previousPose:p,velocity:(0,0.3332,0.15),onGround:false,flying:false,hasBlocks:true,world:1,tick:tick,face:nil,solid:[F3Block(x:0,y:63,z:0)],useHit:nil,useFace:nil,useDown:false,clickDelay:0,eyeHeight:1.62)
+}
+releaseFlight.observeWorld(releaseAirState(releaseFlightTime+0.05,300),error:"",now:releaseFlightTime+0.05)
+releaseFlight.tick(now:releaseFlightTime+0.05,active:true,minimum:18,maximum:18)
+releaseFlight.release(now:releaseFlightTime+0.051)
+releaseFlight.observeWorld(releaseAirState(releaseFlightTime+0.06,300),error:"",now:releaseFlightTime+0.06)
+releaseFlight.tick(now:releaseFlightTime+0.06,active:true,minimum:18,maximum:18)
+check(releaseFlight.phase == .flight && releaseFlight.finishing && !releaseFlightKeys.contains(gameConfig.sneak),"松R不能在未确认落点的空中提前潜行改变眼高")
+releaseFlight.stop("test cleanup")
+print("通过：松R保留当前空中放块姿态，落点确认前不提前潜行。")
+
+// Manual takeover commits the existing landing path, even if R remains
+// physically held or is quickly pressed again before that landing completes.
+let (manualEngine,manualTime)=airborneController()
+manualEngine.requestManualFinish(now:manualTime+0.01)
+check(manualEngine.finishing && manualEngine.phase == .takeoff && !manualEngine.held && manualEngine.restartRequiresRelease,"手动操作必须收尾当前跳并锁住仍按着的R")
+manualEngine.press(now:manualTime+0.02)
+check(manualEngine.finishing && !manualEngine.held,"R重复按下不得取消手动收尾")
+manualEngine.release(now:manualTime+0.03)
+manualEngine.press(now:manualTime+0.04)
+check(manualEngine.finishing && !manualEngine.held && manualEngine.restartRequiresRelease,"收尾期间快速松R再按不能续跳或排队重启")
+manualEngine.requestManualFinish(now:manualTime+1.0)
+manualEngine.tick(now:manualTime+1.52,active:true,minimum:15,maximum:18)
+check(manualEngine.phase == .idle && manualEngine.message.contains("及时确认"),"重复手动输入不能延长收尾超时")
+manualEngine.press(now:manualTime+1.6)
+check(manualEngine.phase == .idle,"结束后仍按住R不能自动重新开始")
+manualEngine.release(now:manualTime+1.7)
+manualEngine.press(now:manualTime+1.8)
+check(manualEngine.phase == .preparing && manualEngine.held && !manualEngine.manualFinishRequested,"结束后松开再按R可启动一个新任务")
+manualEngine.stop("test cleanup")
+let (manualFocus,manualFocusTime)=airborneController()
+manualFocus.requestManualFinish(now:manualFocusTime+0.01)
+manualFocus.tick(now:manualFocusTime+0.02,active:false,minimum:15,maximum:18)
+check(manualFocus.phase == .idle && !manualFocus.finishing,"手动收尾仍必须在失焦时立即释放输入")
+let manualPreparing=TellyController();manualPreparing.press(now:0)
+manualPreparing.requestManualFinish(now:0.01)
+check(manualPreparing.phase == .idle && !manualPreparing.finishing && manualPreparing.restartRequiresRelease,"尚未起跳时手动操作取消准备，不多启动一跳")
+var manualGate=BridgeManualInputGate()
+check(!BridgeManualInputGate.Input.motion(0,0).hasIntent && BridgeManualInputGate.Input.motion(1,0).hasIntent,"鼠标回中产生的零位移不能被当作手动接管")
+check(manualGate.consume(.key(13,true),duringFinish:true),"收尾阻止W干扰当前落点")
+check(manualGate.consume(.key(13,true),duringFinish:false),"被吞按键在落地后的长按重复仍不泄漏")
+check(manualGate.consume(.key(13,false),duringFinish:false),"被吞按下对应的松开不能释放其他持有者的按键")
+check(!manualGate.consume(.key(13,true),duringFinish:false),"落稳后的新手动按键正常交回玩家")
+check(manualGate.consume(.button(1,true),duringFinish:true) && manualGate.suppressesButton(1),"收尾时手动右键不能额外放块或触发原连点器")
+check(manualGate.consume(.drag(1),duringFinish:false),"落地后仍按着被吞右键的拖动不泄漏")
+check(manualGate.consume(.button(1,false),duringFinish:false) && !manualGate.suppressesButton(1),"松开右键恢复新点击入口")
+check(!manualGate.consume(.button(1,true),duringFinish:false),"落地后的新右键点击正常放行")
+check(manualGate.consume(.scroll,duringFinish:true) && manualGate.consume(.modifier,duringFinish:true),"收尾期间滚轮和修饰键不改变手持物或运动")
+check(!manualGate.consume(.motion(10,4),duringFinish:false),"收尾结束立即归还鼠标移动")
+print("通过：手动接管收尾、R重新按下门槛、输入成对隔离、零位移忽略与失焦立即停止。")
+
+// Recorded NW manual-button restart: body still overlaps the corner by
+// 0.00168/0.00206 blocks; old 0.29 F3 probing missed the native support.
+func openingSupportPhase(x:Double,z:Double,solid:Set<F3Block>)->TellyController.Phase {
+    let engine=TellyController();engine.config=gameConfig
+    var yaw=135.0,pitch=45.0
+    engine.move={dx,dy in yaw=F3Pose.angle(yaw+Double(dx)*gameConfig.degreesPerCount);pitch+=Double(dy)*gameConfig.degreesPerCount}
+    engine.press(now:0)
+    for i in 1...60 {
+        let now=Double(i)*0.01,p=F3Pose(x:x,y:80,z:z,yaw:yaw,pitch:pitch,time:Double(i)*0.01)
+        let s=BridgeWorldState(pose:p,renderPose:p,previousPose:p,velocity:(0,0,0),onGround:true,flying:false,hasBlocks:true,world:1,tick:i,face:nil,solid:solid,useHit:nil,useFace:nil,useDown:false,clickDelay:0,eyeHeight:1.62)
+        engine.observeWorld(s,error:"",now:now);engine.tick(now:now,active:true,minimum:15,maximum:18)
+        if engine.phase == .aligning || engine.phase == .probing {let result=engine.phase;engine.stop("test cleanup");return result}
+    }
+    fatalError("Opening calibration did not finish")
+}
+let restartCorner:Set<F3Block>=[F3Block(x:0,y:79,z:0)]
+check(openingSupportPhase(x:-0.29831930983,z:-0.29793542357,solid:restartCorner) == .aligning,"落地收尾后的实际角落接触必须允许重新按R起步")
+check(openingSupportPhase(x:0.5,z:0.5,solid:restartCorner) == .aligning,"方块中心的原有起点识别保持")
+check(openingSupportPhase(x:-0.301,z:-0.2979,solid:restartCorner) == .probing,"完全离开一条边时不能仅信onGround捏造支撑")
+check(openingSupportPhase(x:-0.2983,z:-0.2979,solid:[]) == .probing,"支撑撤回后不得使用上次落地的缓存方块")
+print("通过：角落收尾后重新起步、正常中心、完全悬空和当前支撑撤回回归。")
+
 let eyeBoundary=F3Pose(x:0.5,y:81.249,z:2,yaw:180,pitch:70.5,time:0)
 check(BridgeRay.intersection(block:rayBlock,pose:eyeBoundary,eyeHeight:1.62)?.axis==1,"站立眼高的边界射线应命中顶面")
 check(BridgeRay.intersection(block:rayBlock,pose:eyeBoundary,eyeHeight:1.54)?.axis==2,"潜行收尾眼高下降后应使用新的侧面射线，不能沿用站立眼高")
@@ -408,6 +488,22 @@ check(cruise.max()!-cruise.min()!<=1,"转向中段保持均匀，差异仅允许
 check(turnSteps[1]<turnSteps[10] && turnSteps[102]>turnSteps[112],"起止仍平滑加减速，不能恒速硬启停")
 check(RelativeMouseTurn.duration(for:180)>=0.10,"180度大转向应至少跨越100毫秒")
 print("通过：较慢的大角度转向、均匀巡航段、连续起止及峰值速度约束。")
+var cruiseReturn=RelativeMouseTurn(x:36000,y:-9000,start:0,duration:0.112,ramp:0.10)
+var cruiseSteps=[Int64](),cruiseX:Int64=0,cruiseY:Int64=0
+for i in 0...112 {
+    let step=cruiseReturn.advance(now:Double(i)/1000)
+    check(step.x>=0 && step.y<=0,"回正曲线不能反转或抖动")
+    cruiseSteps.append(step.x);cruiseX+=step.x;cruiseY+=step.y
+}
+check(cruiseX==36000 && cruiseY == -9000,"均匀回正必须在原112毫秒内完成原角度")
+check(Double(cruiseSteps.max()!)<Double(turnSteps.max()!)*0.93,"均匀回正必须降低峰值而非延长动作")
+var delayedReturn=RelativeMouseTurn(x:-1200,y:300,start:0,duration:0.112,ramp:0.10)
+var delayedX:Int64=0,delayedY:Int64=0
+for time in [0.0,0.007,0.026,0.047,0.063,0.089,0.112] {
+    let step=delayedReturn.advance(now:time);delayedX+=step.x;delayedY+=step.y
+}
+check(delayedX == -1200 && delayedY==300,"不规则回调仍须准确回正，不补出额外角度")
+print("通过：均匀回正降低峰值，保持时长、角度与不规则回调收敛。")
 
 for yaw in stride(from:-180.0,to:180.0,by:5) {
     let held=TellyController.directionKeys(yaw:yaw,heading:0,config:gameConfig)
@@ -565,6 +661,7 @@ let openingState=BridgeWorldState(pose:openingPose,renderPose:openingPose,previo
 openingEngine.observeWorld(openingState,error:"",now:openingPose.time)
 openingEngine.tick(now:openingPose.time,active:true,minimum:18,maximum:18)
 check(openingEngine.phase == .flight,"首跳保留放块过程，不能把收速度当作结束搭路")
+check(openingKeys.contains(gameConfig.sprint),"停止方向加速时仍持有疾跑键")
 check(!openingKeys.contains(gameConfig.forward) && !openingKeys.contains(gameConfig.back),"首跳缺少支撑且仅余250毫秒时应松开加速，不继续冲出桥边也不反向制动")
 openingEngine.stop("test finished")
 check(openingKeys.isEmpty,"首跳保护停止后释放所有持有按键")
@@ -640,3 +737,10 @@ check(edgeHandoff.phase == .takeoff && handoffKeys.contains(gameConfig.jump),"�
 edgeHandoff.stop("test finished")
 check(handoffKeys.isEmpty,"回归场景结束须释放全部按键")
 print("通过：桌面入口落地回正与下一跳原子衔接，防止边缘多走一拍。")
+
+let queuedGuard=BridgeInputEpoch(),queuedToken=queuedGuard.snapshot()
+check(queuedGuard.authorize(queuedToken,queuedAt:1,now:1.04) == .send,"正常输入队列延迟可发送")
+check(queuedGuard.authorize(queuedToken,queuedAt:1,now:1.09) == .expired,"超过80ms的动作不能在恢复后集中补发")
+check(queuedGuard.authorize(queuedToken,queuedAt:1.1,now:1.11) == .cancelled,"过期动作取消同批后续动作")
+check(queuedGuard.authorize(queuedGuard.snapshot(),queuedAt:2,now:2.01) == .send,"恢复后新任务仍可发送")
+print("通过：搭路惯性阶段保留疾跑；输入队列超时取消和新任务恢复。")
