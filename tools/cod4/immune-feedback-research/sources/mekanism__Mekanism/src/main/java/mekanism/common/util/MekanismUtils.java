@@ -1,0 +1,699 @@
+package mekanism.common.util;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.longs.Long2DoubleArrayMap;
+import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMaps;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import mekanism.api.MekanismAPITags;
+import mekanism.api.MekanismItemAbilities;
+import mekanism.api.energy.IEnergyContainer;
+import mekanism.api.inventory.IInventorySlot;
+import mekanism.api.math.MathUtils;
+import mekanism.api.resource.IResourceContainer;
+import mekanism.api.text.EnumColor;
+import mekanism.client.MekanismClient;
+import mekanism.common.Mekanism;
+import mekanism.common.MekanismLang;
+import mekanism.common.block.attribute.Attribute;
+import mekanism.common.block.attribute.AttributeFactoryType;
+import mekanism.common.config.MekanismConfig;
+import mekanism.common.inventory.slot.VanillaSlotAccess;
+import mekanism.common.tags.MekanismTags;
+import mekanism.common.tile.base.TileEntityMekanism;
+import mekanism.common.util.UnitDisplayUtils.TemperatureUnit;
+import net.minecraft.SharedConstants;
+import net.minecraft.advancements.triggers.CriteriaTriggers;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.stats.Stat;
+import net.minecraft.stats.Stats;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.SlotAccess;
+import net.minecraft.world.entity.SlotProvider;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CookingFuel;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
+import net.minecraft.world.item.slot.SlotCollection;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.BubbleColumnBlock;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.redstone.Redstone;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.util.thread.EffectiveSide;
+import net.neoforged.neoforge.common.CommonHooks;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.UsernameCache;
+import net.neoforged.neoforge.common.loot.NeoForgeLootContextParams;
+import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
+import net.neoforged.neoforge.fluids.FluidType;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.resource.Resource;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import org.jspecify.annotations.Nullable;
+
+/// Utilities used by Mekanism. All miscellaneous methods are located here.
+public final class MekanismUtils {
+
+    public static final float ONE_OVER_ROOT_TWO = 1 / Mth.SQRT_OF_TWO;
+    //TODO - 1.21: Re-evaluate uses of this and the shared constants constant as some potentially should be switched to use the level's tickrate
+    // and in fact the first pass was spent just trying to convert use cases to referencing constants rather than also figuring out if they should
+    // be transitioned over to the level's tickrate
+    public static final int TICKS_PER_HALF_SECOND = SharedConstants.TICKS_PER_SECOND / 2;
+    public static final LongSupplier GAME_TIME_SUPPLIER = () -> {
+        //TODO - 26.3: Re-evaluate If this is a reasonable enough implementation for rate limits on items, or if there is some other way we want to do it.
+        // We could theoretically reset the limit when the root transaction is committed, and then just not care about the game time at all
+        // Yes it wouldn't stop multiple calls from different transactions from being limitted, but in general if multiple calls do happen,
+        // odds are they will be within a single overall transaction (except? maybe for cases like multiple mods wireless charging a player's inventory)
+        Level level;
+        if (FMLEnvironment.getDist().isClient()) {
+            level = MekanismClient.tryGetClientWorld();
+        } else {
+            MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+            level = server == null ? null : server.overworld();
+        }
+        return level == null ? 0 : level.getGameTime();
+    };
+    private static final SlotProvider EMPTY_SLOT_PROVIDER = new SlotProvider() {
+
+        @Override
+        public @Nullable SlotAccess getSlot(int slot) {
+            return null;
+        }
+
+        @Override
+        public SlotCollection getSlotsFromRange(IntList slots) {
+            //Short circuit to empty slot collection
+            return SlotCollection.EMPTY;
+        }
+    };
+
+    private static final Set<UUID> warnedFails = new HashSet<>();
+
+    public static Component logFormat(Object message) {
+        return logFormat(EnumColor.GRAY, message);
+    }
+
+    public static Component logFormat(EnumColor messageColor, Object message) {
+        return MekanismLang.LOG_FORMAT.translateColored(EnumColor.DARK_BLUE, MekanismLang.MEKANISM, messageColor, message);
+    }
+
+    public static boolean isTickingNormally(@Nullable Level level) {
+        //Same as Minecraft#isLevelRunningNormally
+        return level == null || level.tickRateManager().runsNormally();
+    }
+
+    @Nullable
+    public static Player tryGetClientPlayer() {
+        if (FMLEnvironment.getDist().isClient()) {
+            return MekanismClient.tryGetClientPlayer();
+        }
+        //Note: Ideally we would have some way to get which player is in question on the server
+        // as this is mostly used in tooltips, but odds are it won't end up being called
+        return null;
+    }
+
+    public static Supplier<@Nullable RegistryAccess> registryAccess(Supplier<? extends @Nullable LevelReader> levelSupplier) {
+        return () -> {
+            LevelReader level = levelSupplier.get();
+            return level == null ? null : level.registryAccess();
+        };
+    }
+
+    /// Gets the creator's modid if it exists, or falls back to the registry name.
+    ///
+    /// @implNote While the default implementation of getCreatorModId falls back to the registry name, it is possible someone is overriding this and not falling back.
+    public static String getModId(HolderLookup.Provider registries, ItemStack stack) {
+        Item item = stack.getItem();
+        String modid = item.getCreatorModId(registries, stack);
+        if (modid == null) {
+            Mekanism.logger.error("Unexpected null registry name for item of class type: {}", item.getClass().getSimpleName());
+            return "";
+        }
+        return modid;
+    }
+
+    /// Gets the creator's modid if it exists, or falls back to the registry name.
+    ///
+    /// @implNote While the default implementation of getCreatorModId falls back to the registry name, it is possible someone is overriding this and not falling back.
+    public static String getModId(HolderLookup.Provider registries, Holder<Item> item) {
+        return getModId(registries, new ItemStack(item));
+    }
+
+    public static String getModId(HolderLookup.Provider registries, ItemResource item) {
+        return getModId(registries, item.toStack());
+    }
+
+    public static SlotDisplay compactDisplay(List<SlotDisplay> slotDisplays) {
+        if (slotDisplays.isEmpty()) {
+            return SlotDisplay.Empty.INSTANCE;
+        } else if (slotDisplays.size() == 1) {
+            return slotDisplays.getFirst();
+        }
+        return new SlotDisplay.Composite(slotDisplays);
+    }
+
+    public static boolean isRightArm(LivingEntity entity, InteractionHand hand) {
+        return (entity.getMainArm() == HumanoidArm.RIGHT) == (hand == InteractionHand.MAIN_HAND);
+    }
+
+    /// Gets the left side of a certain orientation.
+    ///
+    /// @param orientation Current orientation of the machine
+    ///
+    /// @return left side
+    public static Direction getLeft(Direction orientation) {
+        return orientation.getClockWise();
+    }
+
+    /// Gets the right side of a certain orientation.
+    ///
+    /// @param orientation Current orientation of the machine
+    ///
+    /// @return right side
+    public static Direction getRight(Direction orientation) {
+        return orientation.getCounterClockWise();
+    }
+
+    public static Direction rotate(Direction orientation, boolean supportY) {
+        if (supportY) {
+            return switch (orientation) {
+                case UP -> Direction.NORTH;
+                case DOWN -> Direction.SOUTH;
+                case NORTH -> Direction.EAST;
+                case SOUTH -> Direction.WEST;
+                case WEST -> Direction.UP;
+                case EAST -> Direction.DOWN;
+            };
+        }
+        return orientation.getClockWise();
+    }
+
+    public static <RESOURCE extends Resource> float getScale(float prevScale, IResourceContainer<RESOURCE> container) {
+        return getScale(prevScale, container.amountAsLong(), container.capacityAsLong(container.resource()), container.isEmpty());
+    }
+
+    public static float getScale(float prevScale, long stored, long capacity, boolean empty) {
+        return getScale(prevScale, capacity == 0 ? 0 : (float) (stored / (double) capacity), empty, stored == capacity);
+    }
+
+    public static float getScale(float prevScale, IEnergyContainer container) {
+        float targetScale;
+        long stored = container.getAmountAsLong();
+        long capacity = container.getCapacityAsLong();
+        if (capacity == 0L) {
+            targetScale = 0;
+        } else {
+            targetScale = (float) ((double) stored / capacity);
+        }
+        return getScale(prevScale, targetScale, container.isEmpty(), stored == capacity);
+    }
+
+    public static float getScale(float prevScale, float targetScale, boolean empty, boolean full) {
+        float difference = Math.abs(prevScale - targetScale);
+        if (difference > 0.01) {
+            return (9 * prevScale + targetScale) / 10;
+        } else if (!empty && full && difference > 0) {
+            //If we are full but our difference is less than 0.01, but we want to get our scale all the way up to the target
+            // instead of leaving it at a value just under. Note: We also check that we are not empty as we technically may
+            // be both empty and full if the current capacity is zero
+            return targetScale;
+        } else if (!empty && prevScale == 0) {
+            //If we have any contents make sure we end up rendering it
+            return targetScale;
+        }
+        if (empty && prevScale < 0.01) {
+            //If we are empty and have a very small amount just round it down to empty
+            return 0;
+        }
+        return prevScale;
+    }
+
+    public static boolean scaleChanged(float scale, float prevScale) {
+        if (Mth.equal(scale, prevScale)) {
+            //noinspection FloatingPointEquality - Identical, nothing to do/ignore the epsilon for
+            if (scale == prevScale) {
+                return false;
+            }
+            //If we max out our scale bounds, force an update regardless
+            return scale == 0 || scale == 1 || prevScale == 1 || prevScale == 0;
+        }
+        return true;
+    }
+
+    public static boolean lighterThanAirGas(FluidResource resource) {
+        return resource.is(Tags.Fluids.GASEOUS) && resource.getFluidType().isLighterThanAir();
+    }
+
+    public static boolean isLiquidBlock(Block block) {
+        //Treat bubble columns as liquids
+        return block instanceof LiquidBlock || block instanceof BubbleColumnBlock;
+    }
+
+    /// Ray-traces what block a player is looking at.
+    ///
+    /// @param player player to raytrace
+    ///
+    /// @return raytraced value
+    public static BlockHitResult rayTrace(Player player) {
+        return rayTrace(player, ClipContext.Fluid.NONE);
+    }
+
+    public static BlockHitResult rayTrace(Player player, ClipContext.Fluid fluidMode) {
+        return rayTrace(player, player.blockInteractionRange(), fluidMode);
+    }
+
+    public static BlockHitResult rayTrace(Player player, double reach) {
+        return rayTrace(player, reach, ClipContext.Fluid.NONE);
+    }
+
+    public static BlockHitResult rayTrace(Player player, double reach, ClipContext.Fluid fluidMode) {
+        Vec3 headVec = getHeadVec(player);
+        Vec3 lookVec = player.getViewVector(1);
+        Vec3 endVec = headVec.add(lookVec.x * reach, lookVec.y * reach, lookVec.z * reach);
+        return player.level().clip(new ClipContext(headVec, endVec, ClipContext.Block.OUTLINE, fluidMode, player));
+    }
+
+    /// Gets the head vector of a player for a ray trace.
+    ///
+    /// @param player player to check
+    ///
+    /// @return head location
+    private static Vec3 getHeadVec(Player player) {
+        double posY = player.getY() + player.getEyeHeight();
+        if (player.isCrouching()) {
+            posY -= 0.08;
+        }
+        return new Vec3(player.getX(), posY, player.getZ());
+    }
+
+    public static int calculateUsage(long capacity) {
+        return Math.max(1, MathUtils.clampToInt(0.005 * capacity));
+    }
+
+    /// Gets a rounded energy display of a defined amount of energy.
+    ///
+    /// @param temp temperature to display
+    ///
+    /// @return rounded energy display
+    public static Component getTemperatureDisplay(double temp, TemperatureUnit unit, boolean shift) {
+        double tempKelvin = unit.convertToK(temp, true);
+        return UnitDisplayUtils.getDisplayShort(tempKelvin, MekanismConfig.local.tempUnit.get(), shift);
+    }
+
+    /// Converts a list of slots into a simple crafting input.
+    public static CraftingInput.Positioned getCraftingInput(int width, int height, List<ItemResource> slots) {
+        if (width * height != slots.size()) {
+            throw new IllegalStateException("Expected there to be a slot for every index in a " + width + " by " + height + " grid.");
+        }
+        List<ItemStack> stacks = new ArrayList<>(slots.size());
+        for (ItemResource slot : slots) {
+            stacks.add(slot.toStack());
+        }
+        return CraftingInput.ofPositioned(width, height, stacks);
+    }
+
+    /// Converts a list of slots into a simple crafting input.
+    ///
+    /// @param resize True to clamp the stacks to a size of one.
+    public static CraftingInput.Positioned getCraftingInputSlots(int width, int height, List<IInventorySlot> slots, boolean resize) {
+        if (width * height != slots.size()) {
+            throw new IllegalStateException("Expected there to be a slot for every index in a " + width + " by " + height + " grid.");
+        }
+        List<ItemStack> stacks = new ArrayList<>(slots.size());
+        for (IInventorySlot slot : slots) {
+            //Note: copyWithCount which is used by ItemResource#toStack returns EMPTY if the stack is empty, so we can skip checking
+            stacks.add(slot.resource().toStack(resize ? 1 : slot.amountAsInt()));
+        }
+        return CraftingInput.ofPositioned(width, height, stacks);
+    }
+
+    /// Checks if the stack can be used as a wrench for dismantling purposes
+    public static boolean canUseAsWrench(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        } else if (stack.canPerformAction(MekanismItemAbilities.WRENCH_DISMANTLE)) {
+            return true;
+        } else if (stack.is(MekanismTags.Items.CONFIGURATORS)) {
+            //If it is in the tag, validate it isn't exposing one of the other wrench action types, as then it probably wants to act
+            // as only that type instead of as any type
+            return !stack.canPerformAction(MekanismItemAbilities.WRENCH_ROTATE) &&
+                   !stack.canPerformAction(MekanismItemAbilities.WRENCH_EMPTY) &&
+                   !stack.canPerformAction(MekanismItemAbilities.WRENCH_CONFIGURE);
+        }
+        return false;
+    }
+
+    public static String getLastKnownUsername(@Nullable UUID uuid) {
+        if (uuid == null) {
+            return "<???>";
+        }
+        String ret = UsernameCache.getLastKnownUsername(uuid);
+        if (ret == null && EffectiveSide.get().isServer() && !warnedFails.contains(uuid)) { // see if MC/Yggdrasil knows about it?!
+            MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+            if (server != null) {
+                Optional<NameAndId> nameToIdCache = server.services().nameToIdCache().get(uuid);
+                if (nameToIdCache.isPresent()) {
+                    ret = nameToIdCache.get().name();
+                }
+            }
+        }
+        if (ret == null && warnedFails.add(uuid)) {
+            Mekanism.logger.warn("Failed to retrieve username for UUID {}, you might want to add it to the JSON cache", uuid);
+        }
+        return ret == null ? "<" + uuid + ">" : ret;
+    }
+
+    /// Copy of [MobEffectInstance#tick(LivingEntity, Runnable)], but modified to not apply the effect to avoid extra damage and the like.
+    public static void speedUpEffectSafely(LivingEntity entity, MobEffectInstance effectInstance) {
+        if (effectInstance.getDuration() > 0) {
+            effectInstance.tickDownDuration();
+            int remainingDuration = effectInstance.getDuration();
+            if (remainingDuration == 0 && effectInstance.hiddenEffect != null) {
+                effectInstance.setDetailsFrom(effectInstance.hiddenEffect);
+                effectInstance.hiddenEffect = effectInstance.hiddenEffect.hiddenEffect;
+                onChangedPotionEffect(entity, effectInstance, true);
+            }
+        }
+    }
+
+    public static boolean shouldSpeedUpEffect(MobEffectInstance effectInstance) {
+        //Validate it isn't blacklisted by the modpack
+        return !effectInstance.getEffect().is(MekanismAPITags.MobEffects.SPEED_UP_BLACKLIST);
+    }
+
+    /// Copy of [LivingEntity#onEffectUpdated(MobEffectInstance, boolean, Entity)] due to not being able to AT the method as it is protected.
+    @SuppressWarnings("JavadocReference")
+    private static void onChangedPotionEffect(LivingEntity entity, MobEffectInstance effectInstance, boolean reapply) {
+        entity.effectsDirty = true;
+        if (reapply && !entity.level().isClientSide()) {
+            MobEffect effect = effectInstance.getEffect().value();
+            effect.removeAttributeModifiers(entity.getAttributes());
+            effect.addAttributeModifiers(entity.getAttributes(), effectInstance.getAmplifier());
+            entity.refreshDirtyAttributes();
+        }
+        if (!entity.level().isClientSide()) {
+            entity.sendEffectToPassengers(effectInstance);
+        }
+        if (entity instanceof ServerPlayer player) {
+            player.connection.send(new ClientboundUpdateMobEffectPacket(entity.getId(), effectInstance, false));
+            CriteriaTriggers.EFFECTS_CHANGED.trigger(player, null);
+        }
+    }
+
+    public static boolean isSameTypeFactory(Holder<Block> block, Block factoryBlockType) {
+        AttributeFactoryType attribute = Attribute.get(block, AttributeFactoryType.class);
+        if (attribute != null) {
+            AttributeFactoryType otherType = Attribute.get(factoryBlockType, AttributeFactoryType.class);
+            return otherType != null && attribute.getFactoryType() == otherType.getFactoryType();
+        }
+        return false;
+    }
+
+    public static int getBurnTime(ServerLevel level, BlockEntity blockEntity, ItemResource fuelType) {
+        return getBurnTime(level, blockEntity, fuelType.toStack());
+    }
+
+    public static int getBurnTime(ServerLevel level, BlockEntity blockEntity, ItemStack fuelItem) {
+        //TODO: How important is this context for cooking fuel time in terms of actually returning a container that has similar slot indices to a furnace
+        // and potentially even provides the fuel item as a stack that is stored in that slot provider
+        LootContext lootContext = getLootContext(level, blockEntity, fuelItem, getSlotProvider(blockEntity));
+        return ResolvableInt.getFromItem(fuelItem, DataComponents.COOKING_FUEL, CookingFuel::burnTime, lootContext, 0);
+    }
+
+    /// Copy of [BaseContainerBlockEntity#getLootContext(ServerLevel, ItemStack)]
+    private static LootContext getLootContext(ServerLevel level, BlockEntity blockEntity, ItemStack queriedStack, SlotProvider slotProvider) {
+        return new LootContext.Builder(new LootParams.Builder(level)
+              .withParameter(LootContextParams.BLOCK_STATE, blockEntity.getBlockState())
+              .withParameter(LootContextParams.BLOCK_ENTITY, blockEntity)
+              .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(blockEntity.getBlockPos()))
+              .withParameter(LootContextParams.CONTAINER, slotProvider)
+              .withOptionalParameter(NeoForgeLootContextParams.QUERIED_STACK, queriedStack.isEmpty() ? null : queriedStack)
+              .create(LootContextParamSets.CONTAINER_PROCESS)
+        ).create(Optional.empty());
+    }
+
+    private static SlotProvider getSlotProvider(BlockEntity blockEntity) {
+        if (blockEntity instanceof TileEntityMekanism tile && tile.hasInventory()) {
+            List<IInventorySlot> slots = tile.getInventorySlots();
+            return new SlotProvider() {
+                @Override
+                public @Nullable SlotAccess getSlot(int slot) {
+                    if (slot < 0 || slot >= slots.size()) {
+                        return null;
+                    }
+                    //TODO: This probably shouldn't be read-only, but for now until we have a better sense of how people are trying to use things
+                    // I think this is the best way to go about it
+                    return new VanillaSlotAccess(slots.get(slot), true);
+                }
+            };
+        }
+        return EMPTY_SLOT_PROVIDER;
+    }
+
+    /// @param amount   Amount currently stored
+    /// @param capacity Total amount that can be stored.
+    ///
+    /// @return A redstone level based on the percentage of the amount stored.
+    public static int redstoneLevelFromContents(long amount, long capacity) {
+        double fractionFull = capacity == 0 ? 0 : ((double) amount / capacity);
+        return Mth.lerpDiscrete((float) fractionFull, Redstone.SIGNAL_NONE, Redstone.SIGNAL_MAX);
+    }
+
+    /// Checks whether the player is in creative or spectator mode.
+    ///
+    /// @param player the player to check.
+    ///
+    /// @return true if the player is neither in creative mode, nor in spectator mode.
+    public static boolean isPlayingMode(Player player) {
+        GameType gameType = player.gameMode();
+        return gameType != null && gameType.isSurvival();
+    }
+
+    /// {@return the game type of the given player, or [GameType#SURVIVAL] if the player doesn't have a game type set}
+    public static GameType getGameType(Player player) {
+        GameType gameType = player.gameMode();
+        if (gameType == null) {
+            return GameType.SURVIVAL;
+        }
+        return gameType;
+    }
+
+    public static <TYPE> void appendAllButFirst(List<TYPE> list, List<TYPE> toAdd) {
+        for (int i = 1, size = toAdd.size(); i < size; i++) {
+            list.add(toAdd.get(i));
+        }
+    }
+
+    /// Helper to read the parameter names from the format saved by our annotation processor param name mapper.
+    public static List<String> getParameterNames(@Nullable JsonObject classMethods, String method, String signature) {
+        if (classMethods != null) {
+            JsonObject signatures = classMethods.getAsJsonObject(method);
+            if (signatures != null) {
+                JsonElement params = signatures.get(signature);
+                if (params != null) {
+                    if (params.isJsonArray()) {
+                        JsonArray paramArray = params.getAsJsonArray();
+                        List<String> paramNames = new ArrayList<>(paramArray.size());
+                        for (JsonElement param : paramArray) {
+                            paramNames.add(param.getAsString());
+                        }
+                        return Collections.unmodifiableList(paramNames);
+                    }
+                    return Collections.singletonList(params.getAsString());
+                }
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    @FunctionalInterface
+    public interface ModifyPlayerBounding {
+
+        AABB modify(AABB bounding, double data);
+    }
+
+    /// Similar in concept to [net.minecraft.world.entity.Entity#updateFluidHeightAndDoFluidPushing()] except calculates if a given portion of the player is in the
+    /// fluids.
+    public static Map<FluidType, FluidInDetails> getFluidsIn(Player player, double data, ModifyPlayerBounding modifyBoundingBox) {
+        AABB bb = modifyBoundingBox.modify(player.getBoundingBox().deflate(0.001), data);
+        int xMin = Mth.floor(bb.minX);
+        int xMax = Mth.ceil(bb.maxX);
+        int yMin = Mth.floor(bb.minY);
+        int yMax = Mth.ceil(bb.maxY);
+        int zMin = Mth.floor(bb.minZ);
+        int zMax = Mth.ceil(bb.maxZ);
+        if (!player.level().hasChunksAt(xMin, yMin, zMin, xMax, yMax, zMax)) {
+            //If the position isn't actually loaded, just return there isn't any fluids
+            return Collections.emptyMap();
+        }
+        Map<FluidType, FluidInDetails> fluidsIn = new IdentityHashMap<>();
+        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
+        for (int x = xMin; x < xMax; ++x) {
+            for (int y = yMin; y < yMax; ++y) {
+                for (int z = zMin; z < zMax; ++z) {
+                    mutablePos.set(x, y, z);
+                    FluidState fluidState = player.level().getFluidState(mutablePos);
+                    if (!fluidState.isEmpty()) {
+                        double fluidY = y + fluidState.getHeight(player.level(), mutablePos);
+                        if (bb.minY <= fluidY) {
+                            //The fluid intersects the bounding box
+                            FluidInDetails details = fluidsIn.computeIfAbsent(fluidState.getFluidType(), f -> new FluidInDetails());
+                            details.positions.put(mutablePos.immutable(), fluidState);
+                            double actualFluidHeight;
+                            if (fluidY > bb.maxY) {
+                                //Fluid goes past the top of the bounding box, limit it to the top
+                                // We do the max of the bottom of the bounding box and our current block so that
+                                // if we are floating above the bottom we don't take the area below us into account
+                                actualFluidHeight = bb.maxY - Math.max(bb.minY, y);
+                            } else {
+                                // We do the max of the bottom of the bounding box and our current block so that
+                                // if we are floating above the bottom we don't take the area below us into account
+                                actualFluidHeight = fluidY - Math.max(bb.minY, y);
+                            }
+                            details.heights.merge(ChunkPos.pack(x, z), actualFluidHeight, Double::sum);
+                        }
+                    }
+                }
+            }
+        }
+        return fluidsIn;
+    }
+
+    public static void veinMineArea(EnergyHandler energyHandler, int baseBlastEnergy, int baseVeinEnergy, ServerLevel world, BlockPos pos, ServerPlayer player,
+          ItemStack stack, Item usedTool, Object2IntMap<BlockPos> found, TransactionContext transaction, BlastEnergyFunction blastEnergy, VeinEnergyFunction veinEnergy) {
+        Stat<Item> itemStat = Stats.ITEM_USED.get(usedTool);
+        for (ObjectIterator<Object2IntMap.Entry<BlockPos>> iterator = Object2IntMaps.fastIterator(found); iterator.hasNext(); ) {
+            Object2IntMap.Entry<BlockPos> foundEntry = iterator.next();
+            BlockPos foundPos = foundEntry.getKey();
+            if (pos.equals(foundPos)) {
+                continue;
+            }
+            BlockState targetState = world.getBlockState(foundPos);
+            if (targetState.isAir()) {
+                continue;
+            }
+            float hardness = targetState.getDestroySpeed(world, foundPos);
+            if (hardness == Block.INDESTRUCTIBLE) {
+                continue;
+            }
+            int distance = foundEntry.getIntValue();
+            int destroyEnergy = distance == 0 ? blastEnergy.calc(baseBlastEnergy, hardness) : veinEnergy.calc(baseVeinEnergy, hardness, distance, targetState);
+            try (Transaction subTransaction = Transaction.open(transaction)) {
+                if (energyHandler.extract(destroyEnergy, subTransaction) < destroyEnergy) {
+                    //If we don't have energy to break the block continue
+                    //Note: We do not break as given the energy scales with hardness, so it is possible we still have energy to break another block
+                    // Given we validate the blocks are the same but their block states may be different thus making them have different
+                    // block hardness values in a modded context
+                    continue;
+                }
+                //Note: This only gets fired on the server, so technically it may redundantly sync the cancellation to the client
+                // but it doesn't really matter if the client just thinks the block is what it already was
+                BreakBlockEvent event = CommonHooks.fireBlockBreak(world, player.gameMode(), player, foundPos, targetState);
+                if (event.isCanceled()) {
+                    //If we can't actually break the block continue (this allows mods to stop us from vein mining into protected land)
+                    continue;
+                }
+                //Otherwise, break the block
+                FluidState fluidState = targetState.getFluidState();
+                //Get the tile now so that we have it for when we try to harvest the block
+                BlockEntity tileEntity = WorldUtils.getTileEntity(world, foundPos);
+                //Update what the state will be if the player is destroying it, so that things like angering piglins, and firing block destroy game events occur
+                // This also ensures that things like decorated pots are able to properly update to cracked and drop sherds rather than the pot block itself
+                targetState = targetState.getBlock().playerWillDestroy(world, foundPos, targetState, player);
+                Block block = targetState.getBlock();
+                //Remove the block
+                if (targetState.onDestroyedByPlayer(world, foundPos, player, stack, true, fluidState)) {
+                    block.destroy(world, foundPos, targetState);
+                    //Harvest the block allowing it to handle block drops, incrementing block mined count, and adding exhaustion
+                    block.playerDestroy(world, player, foundPos, targetState, tileEntity, stack);
+                    player.awardStat(itemStat);
+                    //Mark that we used that portion of the energy
+                    subTransaction.commit();
+                }
+            }
+        }
+    }
+
+    public static class FluidInDetails {
+
+        private final Map<BlockPos, FluidState> positions = new HashMap<>();
+        private final Long2DoubleMap heights = new Long2DoubleArrayMap();
+
+        public Map<BlockPos, FluidState> getPositions() {
+            return positions;
+        }
+
+        public double getMaxHeight() {
+            return heights.values().doubleStream().max().orElse(0);
+        }
+    }
+
+    @FunctionalInterface
+    public interface BlastEnergyFunction {
+
+        int calc(int baseBlastEnergy, float hardness);
+    }
+
+    @FunctionalInterface
+    public interface VeinEnergyFunction {
+
+        int calc(int baseVeinEnergy, float hardness, int distance, BlockState state);
+    }
+}

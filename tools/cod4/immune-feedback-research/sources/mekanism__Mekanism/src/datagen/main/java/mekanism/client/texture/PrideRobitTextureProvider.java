@@ -1,0 +1,169 @@
+package mekanism.client.texture;
+
+import com.google.common.hash.Hashing;
+import com.google.common.hash.HashingOutputStream;
+import com.mojang.blaze3d.platform.NativeImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import mekanism.common.Mekanism;
+import mekanism.common.entity.RobitPrideSkinData;
+import mekanism.common.registries.MekanismRobitSkins;
+import net.minecraft.data.CachedOutput;
+import net.minecraft.data.DataProvider;
+import net.minecraft.data.PackOutput;
+import net.minecraft.data.PackOutput.PathProvider;
+import net.minecraft.data.PackOutput.Target;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.Util;
+import org.jspecify.annotations.Nullable;
+import org.lwjgl.stb.STBIWriteCallback;
+import org.lwjgl.stb.STBImageWrite;
+
+public class PrideRobitTextureProvider implements DataProvider {
+
+    private final PackOutput output;
+    private final ResourceManager resourceManager;
+
+    private static final String ROBIT_SKIN_PATH = "textures/entity/robit";
+
+    public PrideRobitTextureProvider(PackOutput output, ResourceManager resourceManager) {
+        this.output = output;
+        this.resourceManager = resourceManager;
+    }
+
+    @Override
+    @SuppressWarnings("UnstableApiUsage")
+    public CompletableFuture<?> run(CachedOutput cache) {
+        return CompletableFuture.runAsync(() -> {
+            PathProvider pathProvider = output.createPathProvider(Target.RESOURCE_PACK, ROBIT_SKIN_PATH);
+            try {
+                Resource resource = resourceManager.getResourceOrThrow(MekanismRobitSkins.BASE.identifier().withSuffix(".png").withPrefix(ROBIT_SKIN_PATH + "/"));
+                try (InputStream inputStream = resource.open();
+                     NativeImage sourceImage = NativeImage.read(inputStream);
+                     NativeImage writableImage = new NativeImage(sourceImage.format(), sourceImage.getWidth(), sourceImage.getHeight(), false)) {
+                    //Set initial image data, we can just use one writable version as we always edit the same pixels,
+                    // so we will overwrite any changes we make. In theory, we could just edit the loaded source directly,
+                    // but it is a bit safer to just copy it into its own spot in memory
+                    writableImage.copyFrom(sourceImage);
+                    for (RobitPrideSkinData skinData : RobitPrideSkinData.VALUES) {
+                        String baseFileName = skinData.lowerCaseName();
+                        //generate all textures
+                        for (int rotationIndex = 0; rotationIndex < skinData.getColor().length; rotationIndex++) {
+                            for (int chainIndex = 0; chainIndex < 4; chainIndex++) {
+                                int maxStripeIndex = chainIndex == 1 || chainIndex == 3 ? 3 : 9;
+                                int y = switch (chainIndex) {
+                                    case 0 -> 4;
+                                    case 2 -> 0;
+                                    default -> 2;
+                                };
+                                for (int stripeIndex = 0; stripeIndex < maxStripeIndex; stripeIndex++) {
+                                    int x = 15 + switch (chainIndex) {
+                                        case 0 -> 8 - stripeIndex;
+                                        case 1 -> 2 - stripeIndex;
+                                        default -> stripeIndex;
+                                        case 3 -> stripeIndex + 6;
+                                    };
+                                    int abgr = argb(stripeIndex, chainIndex, rotationIndex, skinData);
+                                    writableImage.setPixel(x, y, abgr);
+                                    writableImage.setPixel(x, y + 1, abgr);
+                                }
+                            }
+                            //Save the image
+                            String fileName = baseFileName;
+                            if (rotationIndex != 0) {
+                                fileName += rotationIndex + 1;
+                            }
+                            Path path = pathProvider.file(Mekanism.rl(fileName), "png");
+                            try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                                 HashingOutputStream hashedBytes = new HashingOutputStream(Hashing.sha1(), bytes)) {
+                                nativeImageToStream(writableImage, hashedBytes);
+                                cache.writeIfNeeded(path, bytes.toByteArray(), hashedBytes.hash());
+                            } catch (IOException ioexception) {
+                                Mekanism.logger.error("Failed to save file to {}", path, ioexception);
+                            }
+                        }
+                    }
+                }
+            } catch (IOException exception) {
+                Mekanism.logger.error("Couldn't create robit textures", exception);
+            }
+        }, Util.backgroundExecutor());
+    }
+
+    /// @param stripeIndex Stripe Index on the chain.
+    /// @param chainIndex  The chain index (bottom, front(left), top, back(right)). It starts on the bottom to hide a potential seam on the bottom/back connection
+    ///
+    /// @return Color at that position
+    private int argb(int stripeIndex, int chainIndex, int rotationIndex, RobitPrideSkinData data) {
+        //offset it by 12, so the pride flag always starts at the top by default
+        int index = stripeIndex + rotationIndex + 12;
+        if (chainIndex > 2) {
+            index += 9;
+        }
+        if (chainIndex > 1) {
+            index += 3;
+        }
+        if (chainIndex > 0) {
+            index += 9;
+        }
+        int[] colors = data.getColor();
+        return data.getColor()[index % colors.length];
+    }
+
+    @Override
+    public String getName() {
+        return "Robit Texture Provider";
+    }
+
+    private static void nativeImageToStream(NativeImage image, OutputStream stream) throws IOException {
+        WriteCallback writer = new WriteCallback(stream);
+
+        try {
+            int height = Math.min(image.getHeight(), Integer.MAX_VALUE / image.getWidth() / image.format().components());
+            if (height < image.getHeight()) {
+                LOGGER.warn("Dropping image height from {} to {} to fit the size into 32-bit signed int", image.getHeight(), height);
+            }
+
+            if (STBImageWrite.nstbi_write_png_to_func(writer.address(), 0L, image.getWidth(), height, image.format().components(), image.getPointer(), 0) != 0) {
+                writer.throwIfException();
+            }
+
+        } finally {
+            writer.free();
+        }
+    }
+
+    private static class WriteCallback extends STBIWriteCallback {
+
+        private final OutputStream output;
+        private @Nullable IOException exception;
+
+        private WriteCallback(OutputStream output) {
+            this.output = output;
+        }
+
+        @Override
+        public void invoke(long context, long data, int size) {
+            ByteBuffer dataBuf = getData(data, size);
+            byte[] tmp = new byte[size];
+            try {
+                dataBuf.get(tmp);
+                this.output.write(tmp);
+            } catch (IOException var8) {
+                this.exception = var8;
+            }
+        }
+
+        public void throwIfException() throws IOException {
+            if (this.exception != null) {
+                throw this.exception;
+            }
+        }
+    }
+}

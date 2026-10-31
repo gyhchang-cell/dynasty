@@ -1,0 +1,83 @@
+package mekanism.api.recipes;
+
+import java.util.List;
+import mekanism.api.MekanismAPI;
+import mekanism.api.recipes.SingleInputRecipe.ChemicalInputRecipe;
+import mekanism.api.recipes.book.CrystallizingBookCategory;
+import mekanism.api.recipes.book.CrystallizingBookCategory.CrystallizingBookInfo;
+import mekanism.api.recipes.display.CrystallizerRecipeDisplay;
+import mekanism.api.recipes.ingredients.ChemicalStackIngredient;
+import mekanism.api.recipes.vanilla_input.SingleChemicalRecipeInput;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
+import net.neoforged.neoforge.registries.DeferredHolder;
+
+/// Input: Chemical
+///
+/// Output: ItemStack
+///
+/// @apiNote Chemical Crystallizers can process this recipe type.
+public abstract class ChemicalCrystallizerRecipe extends ChemicalInputRecipe<ItemStackTemplate, CrystallizingBookCategory, CrystallizingBookInfo> {
+
+    private static final Holder<Item> CHEMICAL_CRYSTALLIZER = DeferredHolder.create(Registries.ITEM, Identifier.fromNamespaceAndPath(MekanismAPI.MEKANISM_MODID, "chemical_crystallizer"));
+
+    /// @param commonInfo Common recipe info.
+    /// @param bookInfo   Recipe book info.
+    ///
+    /// @since 10.8.0
+    protected ChemicalCrystallizerRecipe(Recipe.CommonInfo commonInfo, CrystallizingBookInfo bookInfo) {
+        super(commonInfo, bookInfo);
+    }
+
+    @Override
+    public ItemStack assemble(SingleChemicalRecipeInput input) {
+        if (!isIncomplete() && test(input.chemical())) {
+            return getOutput(input.chemical()).create();
+        }
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public final RecipeType<ChemicalCrystallizerRecipe> getType() {
+        return MekanismRecipeTypes.TYPE_CRYSTALLIZING.value();
+    }
+
+    @Override
+    public List<RecipeDisplay> display() {
+        return List.of(new CrystallizerRecipeDisplay(
+              getInput().display(),
+              getTypeDisplay(),
+              getOutputDisplay(),
+              new SlotDisplay.ItemSlotDisplay(CHEMICAL_CRYSTALLIZER)
+        ));
+    }
+
+    /// {@return any extra items that should be displayed in the UI to represent type. For example the type of ore a slurry is for}
+    ///
+    /// @since 10.8.0
+    public SlotDisplay getTypeDisplay() {
+        return SlotDisplay.Empty.INSTANCE;
+    }
+
+    /// Helper interface for constructing [ChemicalCrystallizerRecipes][ChemicalCrystallizerRecipe]
+    ///
+    /// @since 10.8.0
+    @FunctionalInterface
+    public interface Factory<RECIPE extends ChemicalCrystallizerRecipe> {
+
+        /// @param commonInfo  Common recipe info.
+        /// @param bookInfo    Recipe book info.
+        /// @param input       Input ingredient.
+        /// @param typeDisplay Type display.
+        /// @param output      Output item.
+        RECIPE create(CommonInfo commonInfo, CrystallizingBookInfo bookInfo, ChemicalStackIngredient input, SlotDisplay typeDisplay, ItemStackTemplate output);
+    }
+}

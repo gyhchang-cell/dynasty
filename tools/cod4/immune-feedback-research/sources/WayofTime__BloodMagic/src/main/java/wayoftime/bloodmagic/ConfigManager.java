@@ -1,0 +1,209 @@
+package wayoftime.bloodmagic;
+
+import java.util.List;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.common.collect.ImmutableList;
+
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
+import wayoftime.bloodmagic.client.hud.ElementRegistry;
+import wayoftime.bloodmagic.impl.BloodMagicAPI;
+
+@EventBusSubscriber(modid = BloodMagic.MODID, bus = Bus.MOD)
+public class ConfigManager
+{
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	public static final CommonConfig COMMON;
+	public static final ForgeConfigSpec COMMON_SPEC;
+
+	static
+	{
+		final Pair<CommonConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(CommonConfig::new);
+		COMMON_SPEC = specPair.getRight();
+		COMMON = specPair.getLeft();
+	}
+
+	public static class CommonConfig
+	{
+		public final ConfigValue<List<? extends String>> wellOfSuffering;
+		public final ForgeConfigSpec.IntValue sacrificialDaggerConversion;
+		public final ConfigValue<List<? extends String>> sacrificialValues;
+		public final ForgeConfigSpec.BooleanValue makeDungeonRitualCreativeOnly;
+        public final ForgeConfigSpec.IntValue entitySacrificeDefault;
+
+        public final ForgeConfigSpec.IntValue defaultUpgradePoints;
+        public final ForgeConfigSpec.IntValue evolvedUpgradePoints;
+
+		// Sigil LP Costs
+		public final ForgeConfigSpec.IntValue sigilAirCost;
+		public final ForgeConfigSpec.IntValue sigilBloodLightCost;
+		public final ForgeConfigSpec.IntValue sigilWaterCost;
+		public final ForgeConfigSpec.IntValue sigilLavaCost;
+		public final ForgeConfigSpec.IntValue sigilVoidCost;
+		public final ForgeConfigSpec.IntValue sigilTelepositionCost;
+		public final ForgeConfigSpec.IntValue sigilFastMinerCost;
+		public final ForgeConfigSpec.IntValue sigilGreenGroveCost;
+		public final ForgeConfigSpec.IntValue sigilFrostCost;
+		public final ForgeConfigSpec.IntValue sigilMagnetismCost;
+		public final ForgeConfigSpec.IntValue sigilSuppressionCost;
+
+		public final ConfigValue<Integer> activation_cost;
+		public final ConfigValue<Integer> refresh_cost;
+		public final ConfigValue<Double> min_raw_will;
+		public final ConfigValue<Double> min_corrosive_will;
+		public final ConfigValue<Double> min_destructive_will;
+		public final ConfigValue<Double> min_steadfast_will;
+		public final ConfigValue<Double> min_vengeful_will;
+		public final ConfigValue<Double> store_cost;
+		public final ConfigValue<Double> harm_cost;
+		public final ConfigValue<Double> fortune_cost;
+		public final ConfigValue<Double> silk_touch_cost;
+		public final ConfigValue<Double> growth_cost;
+		public final ConfigValue<Integer> hurt_damage;
+		public final ConfigValue<Integer> max_budding_blocks;
+		public final ConfigValue<Integer> max_mobs_harmed;
+
+		CommonConfig(ForgeConfigSpec.Builder builder)
+		{
+			builder.comment("Amount of LP the Sacrificial Dagger should provide for each damage dealt. Default value 100");
+			sacrificialDaggerConversion = builder.defineInRange("sacrificialDaggerConversion", 100, 0, 10000);
+
+			builder.comment("Declares the amount of LP gained per HP sacrificed for the given entity.", "Setting the value to 0 will blacklist it.", "Use the registry name of the entity followed by a ';' and then the value you want.", "Vanilla entities do not require the modid.");
+			sacrificialValues = builder.defineList("sacrificialValues", ImmutableList.of("villager;100", "slime;15", "enderman;10", "cow;100", "chicken;100", "horse;100", "sheep;100", "wolf;100", "ocelot;100", "pig;100", "rabbit;100", "dummmmmmy:target_dummy;0"), obj -> true);
+
+            builder.comment("Stops the listed entities from being used in the Well of Suffering.", "Use the registry name of the entity. Vanilla entities do not require the modid.");
+            wellOfSuffering = builder.defineList("wellOfSuffering", ImmutableList.of("dummmmmmy:target_dummy"), obj -> true);
+
+            builder.comment("Declares the amount of LP gained per HP sacrificed for any entity not defined specifically. Default value 25");
+            entitySacrificeDefault = builder.defineInRange("defaultSacrificeValue", 25, 0, 10000);
+
+            builder.comment("Amount of upgrade points the living armour has by default. Default value 100");
+            defaultUpgradePoints = builder.defineInRange("default_upgrade_points", 100, 0, 2_000_000_000);
+
+            builder.comment("Amount of upgrade points the living armour has when evolved. Default value 300");
+            evolvedUpgradePoints = builder.defineInRange("evolved_upgrade_points", 300, 0, 2_000_000_000);
+
+			builder.comment("State that the dungeon spawning ritual can only be activated when using a Creative Activation Crystal.", "Used on servers for if you do not trust your players to not destroy other people's bases.");
+			makeDungeonRitualCreativeOnly = builder.define("makeDungeonRitualCreativeOnly", false);
+
+			builder.comment("LP costs for sigils. For toggleable sigils, this is the upkeep cost drained every 5 seconds while active.").push("sigil_cost");
+			sigilAirCost = builder.comment("LP cost per use").defineInRange("air", 50, 0, 10000000);
+			sigilBloodLightCost = builder.comment("LP cost per use").defineInRange("blood_light", 10, 0, 10000000);
+			sigilWaterCost = builder.comment("LP cost per use").defineInRange("water", 100, 0, 10000000);
+			sigilLavaCost = builder.comment("LP cost per use").defineInRange("lava", 1000, 0, 10000000);
+			sigilVoidCost = builder.comment("LP cost per use").defineInRange("void", 50, 0, 10000000);
+			sigilTelepositionCost = builder.comment("LP cost per use").defineInRange("teleposition", 1000, 0, 10000000);
+			sigilFastMinerCost = builder.comment("LP upkeep cost (drained every 5 seconds while active)").defineInRange("fast_miner", 100, 0, 10000000);
+			sigilGreenGroveCost = builder.comment("LP upkeep cost (drained every 5 seconds while active)").defineInRange("green_grove", 150, 0, 10000000);
+			sigilFrostCost = builder.comment("LP upkeep cost (drained every 5 seconds while active)").defineInRange("frost", 100, 0, 10000000);
+			sigilMagnetismCost = builder.comment("LP upkeep cost (drained every 5 seconds while active)").defineInRange("magnetism", 50, 0, 10000000);
+			sigilSuppressionCost = builder.comment("LP upkeep cost (drained every 5 seconds while active)").defineInRange("suppression", 400, 0, 10000000);
+			builder.pop();
+
+			builder.push("Geode Ritual");
+			activation_cost = builder.define("activation_cost", 50_000);
+			refresh_cost = builder.define("refresh_cost", 50);
+			min_raw_will = builder.define("min_raw_will", 50D);
+			min_corrosive_will = builder.define("min_corrosive_will", 50D);
+			min_destructive_will = builder.define("min_destructive_will", 50D);
+			min_steadfast_will = builder.define("min_steadfast_will", 50D);
+			min_vengeful_will = builder.define("min_vengeful_will", 50D);
+			store_cost = builder.define("store_cost", 1D);
+			harm_cost = builder.define("harm_cost", 0.125D);
+			fortune_cost = builder.define("fortune_cost", 1D);
+			silk_touch_cost = builder.define("silk_touch_cost", 1D);
+			growth_cost = builder.define("growth_cost", 0.5D);
+			hurt_damage = builder.define("hurt_damage", 2);
+			max_budding_blocks = builder.defineInRange("max_budding_blocks", 7, 1, 15);
+			max_mobs_harmed = builder.define("max_harmed", 8);
+		}
+	}
+
+	@SubscribeEvent
+	public static void onCommonReload(ModConfigEvent ev)
+	{
+		if (ev.getConfig().getSpec().equals(COMMON_SPEC))
+		{
+			BloodMagic.handleConfigValues(BloodMagicAPI.INSTANCE);
+		}
+	}
+
+	public static final ClientConfig CLIENT;
+	public static final ForgeConfigSpec CLIENT_SPEC;
+
+	static
+	{
+		final Pair<ClientConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(ClientConfig::new);
+		CLIENT_SPEC = specPair.getRight();
+		CLIENT = specPair.getLeft();
+	}
+
+	public static class ClientConfig
+	{
+//		public final ForgeConfigSpec.DoubleValue demonWillGaugeX;
+//		public final ForgeConfigSpec.DoubleValue demonWillGaugeY;
+//		public final ForgeConfigSpec.DoubleValue bloodAltarGaugeX;
+//		public final ForgeConfigSpec.DoubleValue bloodAltarGaugeY;
+//		public final ForgeConfigSpec.DoubleValue bloodAltarAdvGaugeX;
+//		public final ForgeConfigSpec.DoubleValue bloodAltarAdvGaugeY;
+//		public final ForgeConfigSpec.DoubleValue incenseGaugeX;
+//		public final ForgeConfigSpec.DoubleValue incenseGaugeY;
+//		public final ForgeConfigSpec.DoubleValue holdingX;
+//		public final ForgeConfigSpec.DoubleValue holdingY;
+
+		public final ForgeConfigSpec.BooleanValue alwaysRenderRoutingLines;
+		public final ForgeConfigSpec.BooleanValue sigilHoldingSkipsEmptySlots;
+
+		ClientConfig(ForgeConfigSpec.Builder builder)
+		{
+			builder.comment("Always render the beams between routing nodes.", "If disabled, the beams will only render while the Node Router is held.").push("client");
+			alwaysRenderRoutingLines = builder.define("alwaysRenderRoutingLines", false);
+
+			builder.comment("When cycling through slots, the Sigil of Holding will skip over empty slots and move to the next occupied one.", "If disabled, it will behave identically to the default hotbar.");
+			sigilHoldingSkipsEmptySlots = builder.define("sigilHoldingSkipsEmptySlots", false);
+			builder.pop();
+
+//			builder.comment("Settings for the position of the Demon Will Gauge HUD element.").push("hud");
+//			demonWillGaugeX = builder.defineInRange("DemonWillGaugePosX", 0.01, 0, 1);
+//			demonWillGaugeY = builder.defineInRange("DemonWillGaugePosY", 0.01, 0, 1);
+//
+//			builder.comment("Settings for the position of the basic Blood Altar info HUD element.");
+//			bloodAltarGaugeX = builder.defineInRange("bloodAltarGaugeX", 0.01, 0, 1);
+//			bloodAltarGaugeY = builder.defineInRange("bloodAltarGaugeY", 0.01, 0, 1);
+//
+//			builder.comment("Settings for the position of the advanced Blood Altar info HUD element.");
+//			bloodAltarAdvGaugeX = builder.defineInRange("bloodAltarAdvGaugeX", 0.01, 0, 1);
+//			bloodAltarAdvGaugeY = builder.defineInRange("bloodAltarAdvGaugeY", 0.01, 0, 1);
+//
+//			builder.comment("Settings for the position of the Incense Altar info HUD element.");
+//			incenseGaugeX = builder.defineInRange("incenseGaugeX", 0.01, 0, 1);
+//			incenseGaugeY = builder.defineInRange("incenseGaugeY", 0.01, 0, 1);
+//
+//			builder.comment("Settings for the position of the Sigil of Holding info HUD element.");
+//			holdingX = builder.defineInRange("holdingX", 0.72f, 0, 1);
+//			holdingY = builder.defineInRange("holdingY", 1f, 0, 1);
+
+//			builder.pop();
+		}
+
+	}
+
+	@SubscribeEvent
+	public static void onClientReload(ModConfigEvent ev)
+	{
+		if (ev.getConfig().getSpec().equals(CLIENT_SPEC))
+		{
+			System.out.println("Reloading...?");
+			ElementRegistry.readConfig();
+		}
+	}
+}

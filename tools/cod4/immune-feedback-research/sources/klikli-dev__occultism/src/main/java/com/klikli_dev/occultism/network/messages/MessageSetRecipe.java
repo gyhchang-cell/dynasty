@@ -1,0 +1,152 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev, MrRiegel, Sam Bassett
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+package com.klikli_dev.occultism.network.messages;
+
+import com.klikli_dev.occultism.Occultism;
+import com.klikli_dev.occultism.api.common.blockentity.IStorageController;
+import com.klikli_dev.occultism.api.common.container.IStorageControllerContainer;
+import com.klikli_dev.occultism.common.misc.ItemStackComparator;
+import com.klikli_dev.occultism.network.IMessage;
+import com.klikli_dev.occultism.network.Networking;
+import com.klikli_dev.occultism.util.StorageUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.transfer.item.PlayerInventoryWrapper;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Based on https://github.com/Lothrazar/Storage-Network
+ */
+public class MessageSetRecipe implements IMessage {
+
+    public static final Identifier ID = Identifier.fromNamespaceAndPath(Occultism.MODID, "set_recipe");
+    public static final Type<MessageSetRecipe> TYPE = new Type<>(ID);
+    public static final StreamCodec<RegistryFriendlyByteBuf, MessageSetRecipe> STREAM_CODEC = CustomPacketPayload.codec(MessageSetRecipe::encode, MessageSetRecipe::new);
+    private CompoundTag nbt;
+    private int index = 0;
+
+    public MessageSetRecipe(RegistryFriendlyByteBuf buf) {
+        this.decode(buf);
+    }
+
+    public MessageSetRecipe(CompoundTag nbt) {
+        this.nbt = nbt;
+    }
+
+    @Override
+    public void onServerReceived(MinecraftServer minecraftServer, ServerPlayer player) {
+        if (!(player.containerMenu instanceof IStorageControllerContainer container)) {
+            return;
+        }
+        IStorageController storageController = container.getStorageController();
+        if (storageController == null) {
+            return;
+        }
+        //clear the current crafting matrix
+        StorageUtil.clearOpenCraftingMatrix(player, false);
+
+        CraftingContainer craftMatrix = container.getCraftMatrix();
+
+        for (int slot = 0; slot < 9; slot++) {
+            Map<Integer, ItemStack> map = new HashMap<Integer, ItemStack>();
+
+            //parse the slots
+            ListTag invList = this.nbt.getListOrEmpty("s" + slot);
+            for (int i = 0; i < invList.size(); i++) {
+                // In 26.1 ListTag#getCompound returns an Optional<CompoundTag>.
+                // Older codec-based parsing was removed; use ItemStack.of(CompoundTag) instead.
+                Optional<CompoundTag> compoundOpt = invList.getCompound(i);
+                ItemStack s = ItemStack.EMPTY;
+                if (compoundOpt.isPresent()) {
+                    CompoundTag compoundTag = compoundOpt.get();
+                    // ItemStack.of(CompoundTag) was removed in 26.1; use codec parsing via NbtOps
+                    s = ItemStack.CODEC.parse(NbtOps.INSTANCE, compoundTag).result().orElse(ItemStack.EMPTY);
+                }
+                map.put(i, s);
+            }
+
+            //region fill in recipe
+            for (int i = 0; i < map.size(); i++) {
+
+                ItemStack stack = map.get(i);
+                if (stack == null || stack.isEmpty()) {
+                    continue;
+                }
+
+                ItemStackComparator comparator = new ItemStackComparator(stack, true);
+
+                //attempt to get the desired stack from the player inventory
+                ItemStack extractedStack = StorageUtil
+                        .extractItem(PlayerInventoryWrapper.of(player).getMainSlots(), comparator,
+                                1, true);
+                if (extractedStack != null && !extractedStack.isEmpty() && craftMatrix.getItem(slot).isEmpty()) {
+                    //if we found the desired stack, extract it for real and place it in the matrix
+                    StorageUtil.extractItem(PlayerInventoryWrapper.of(player).getMainSlots(), comparator, 1, false);
+                    craftMatrix.setItem(slot, extractedStack);
+                    break;
+                }
+
+                //if we did not find anything in the player inventory, get it from the network now
+                stack = storageController.getItemStack(!stack.isEmpty() ? comparator : null, 1, false);
+                if (!stack.isEmpty() && craftMatrix.getItem(slot).isEmpty()) {
+                    //if extraction was successful, place it in the matrix
+                    craftMatrix.setItem(slot, stack);
+                    break;
+                }
+            }
+            //endregion fill in recipe
+        }
+        //sync to client
+        container.updateCraftingSlots(true);
+        //finally update controller content for client
+        Networking.sendTo(player, storageController.getMessageUpdateStacks());
+    }
+
+    @Override
+    public void encode(RegistryFriendlyByteBuf buf) {
+        buf.writeNbt(this.nbt);
+        buf.writeInt(this.index);
+    }
+
+    @Override
+    public void decode(RegistryFriendlyByteBuf buf) {
+        this.nbt = buf.readNbt();
+        this.index = buf.readInt();
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
+}

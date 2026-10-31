@@ -1,0 +1,55 @@
+package mekanism.client.recipe_viewer.jei.machine;
+
+import mekanism.api.recipes.ItemStackChemicalToItemStackRecipe;
+import mekanism.api.recipes.book.MekanismBookCategory;
+import mekanism.api.recipes.display.slot.WithAmountSlotDisplay;
+import mekanism.client.gui.element.bar.GuiBar;
+import mekanism.client.gui.element.bar.GuiEmptyBar;
+import mekanism.client.gui.element.bar.GuiVerticalPowerBar;
+import mekanism.client.gui.element.progress.ProgressType;
+import mekanism.client.gui.element.slot.GuiSlot;
+import mekanism.client.gui.element.slot.SlotType;
+import mekanism.client.recipe_viewer.RecipeViewerUtils;
+import mekanism.client.recipe_viewer.jei.HolderRecipeCategory;
+import mekanism.client.recipe_viewer.type.IRecipeViewerRecipeType;
+import mekanism.common.inventory.container.slot.SlotOverlay;
+import mekanism.common.tile.prefab.TileEntityAdvancedElectricMachine;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.helpers.IGuiHelper;
+import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import net.minecraft.world.item.crafting.Recipe.BookInfo;
+import net.minecraft.world.item.crafting.RecipeHolder;
+
+public class ItemStackChemicalToItemStackRecipeCategory<BOOK_CATEGORY extends MekanismBookCategory, BOOK_INFO extends BookInfo<BOOK_CATEGORY>>
+      extends HolderRecipeCategory<ItemStackChemicalToItemStackRecipe<BOOK_CATEGORY, BOOK_INFO>> {
+
+    private final GuiBar<?> inputChemical;
+    private final GuiSlot input;
+    private final GuiSlot extra;
+    private final GuiSlot output;
+
+    public ItemStackChemicalToItemStackRecipeCategory(IGuiHelper helper, IRecipeViewerRecipeType<ItemStackChemicalToItemStackRecipe<BOOK_CATEGORY, BOOK_INFO>> recipeType) {
+        super(helper, recipeType);
+        input = addSlot(SlotType.INPUT, 64, 17);
+        extra = addSlot(SlotType.EXTRA, 64, 53);
+        output = addSlot(SlotType.OUTPUT, 116, 35);
+        addSlot(SlotType.POWER, 39, 35).with(SlotOverlay.POWER);
+        addElement(new GuiVerticalPowerBar(this, RecipeViewerUtils.FULL_BAR, 164, 16));
+        inputChemical = addElement(new GuiEmptyBar(this, 68, 36, 6, 12));
+        addSimpleProgress(ProgressType.BAR, 86, 38);
+    }
+
+    @Override
+    public void setRecipe(IRecipeLayoutBuilder builder, RecipeHolder<ItemStackChemicalToItemStackRecipe<BOOK_CATEGORY, BOOK_INFO>> recipeHolder, IFocusGroup focusGroup) {
+        ItemStackChemicalToItemStackRecipe<BOOK_CATEGORY, BOOK_INFO> recipe = recipeHolder.value();
+        initItem(builder, RecipeIngredientRole.INPUT, input, recipe.getItemInput().display());
+        WithAmountSlotDisplay chemicalInput = recipe.getChemicalInput().display();
+        if (recipe.perTickUsage()) {
+            chemicalInput = chemicalInput.scale(TileEntityAdvancedElectricMachine.BASE_TICKS_REQUIRED);
+        }
+        initChemical(builder, RecipeIngredientRole.INPUT, inputChemical, chemicalInput);
+        initItem(builder, RecipeIngredientRole.OUTPUT, output, recipe.getOutputDisplay());
+        initItem(builder, RecipeIngredientRole.CRAFTING_STATION, extra, RecipeViewerUtils.getStacksFor(recipe.getChemicalInput(), true));
+    }
+}

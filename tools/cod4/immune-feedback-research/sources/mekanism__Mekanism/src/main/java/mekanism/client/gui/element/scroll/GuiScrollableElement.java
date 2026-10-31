@@ -1,0 +1,148 @@
+package mekanism.client.gui.element.scroll;
+
+import mekanism.client.gui.IGuiWrapper;
+import mekanism.client.gui.element.GuiElement;
+import mekanism.common.Mekanism;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+
+public abstract class GuiScrollableElement extends GuiElement {
+
+    private static final Identifier BORDER_TEXTURE = Mekanism.rl("scroll/list_border");
+    private static final Identifier BAR_TEXTURE = Mekanism.rl("scroll/list_bar");
+
+    protected final int maxBarHeight;
+    protected final int barWidth;
+    protected final int barHeight;
+    protected final int barXShift;
+    protected double scroll;
+    private int dragOffset;
+    protected int barX;
+    protected int barY;
+
+    protected GuiScrollableElement(IGuiWrapper gui, int x, int y, int width, int height, int barXShift, int barYShift, int barWidth, int barHeight, int maxBarHeight) {
+        super(gui, x, y, width, height);
+        this.barXShift = barXShift;
+        this.barX = relativeX + barXShift;
+        this.barY = relativeY + barYShift;
+        this.barWidth = barWidth;
+        this.barHeight = barHeight;
+        this.maxBarHeight = maxBarHeight;
+    }
+
+    @Override
+    public void move(int changeX, int changeY) {
+        super.move(changeX, changeY);
+        //Note: When moving we need to adjust our relative position but when resizing, we don't as we are relative to the
+        // positions changing when resizing, instead of moving where we are in relation to
+        barX += changeX;
+        barY += changeY;
+    }
+
+    protected abstract int getMaxElements();
+
+    protected abstract int getFocusedElements();
+
+    @Override
+    public void onClick(MouseButtonEvent event, boolean isDoubleClick) {
+        super.onClick(event, isDoubleClick);
+        int scroll = getScroll();
+        int x = getGuiLeft() + barX;
+        int y = getGuiTop() + barY;
+        if (event.x() >= x && event.x() <= x + barWidth && event.y() >= y + scroll && event.y() <= y + scroll + barHeight) {
+            if (needsScrollBars()) {
+                double yAxis = event.y() - getGuiTop();
+                dragOffset = (int) (yAxis - (scroll + barY));
+                //Mark that we are dragging so that we can continue to "drag" even if our mouse goes off of being over the element
+                setDragging(true);
+            } else {
+                this.scroll = 0;
+            }
+        }
+    }
+
+    @Override
+    protected void onDrag(MouseButtonEvent event, double deltaX, double deltaY) {
+        super.onDrag(event, deltaX, deltaY);
+        if (isDragging() && needsScrollBars()) {
+            double yAxis = event.y() - getGuiTop();
+            this.scroll = Math.clamp((yAxis - barY - dragOffset) / getMax(), 0, 1);
+        }
+    }
+
+    @Override
+    public void onRelease(MouseButtonEvent event) {
+        super.onRelease(event);
+        dragOffset = 0;
+    }
+
+    protected boolean needsScrollBars() {
+        return getMaxElements() > getFocusedElements();
+    }
+
+    protected final int getElements() {
+        return getMaxElements() - getFocusedElements();
+    }
+
+    protected int getScrollElementScaler() {
+        return 1;
+    }
+
+    private int getMax() {
+        return maxBarHeight - barHeight;
+    }
+
+    protected int getScroll() {
+        //Calculate thumb position along scrollbar
+        int max = getMax();
+        return Math.clamp((int) (scroll * max), 0, max);
+    }
+
+    public int getCurrentSelection() {
+        return needsScrollBars() ? (int) ((getElements() + 0.5) * scroll) : 0;
+    }
+
+    public boolean adjustScroll(double delta) {
+        if (delta != 0 && needsScrollBars()) {
+            int elements = Mth.ceil(getElements() / (double) getScrollElementScaler());
+            if (elements > 0) {
+                //TODO - 1.19: Should this make use of ScrollIncrementer
+                if (delta > 0) {
+                    delta = 1;
+                } else {
+                    delta = -1;
+                }
+                scroll = Math.clamp((float) (scroll - delta / elements), 0, 1);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected void drawScrollBar(GuiGraphicsExtractor guiGraphics) {
+        guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, BORDER_TEXTURE, barX - 1, barY - 1, 6, maxBarHeight + 2);
+        //Scroll bar
+        guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, BAR_TEXTURE, barX, barY + getScroll(), barWidth, barHeight);
+    }
+
+    @Override
+    public boolean hasPersistentData() {
+        return true;
+    }
+
+    @Override
+    public void syncFrom(GuiElement element) {
+        super.syncFrom(element);
+        GuiScrollableElement old = (GuiScrollableElement) element;
+        if (needsScrollBars() && old.needsScrollBars()) {
+            //Only copy scrolling if we need scroll bars and used to also need scroll bars
+            scroll = old.scroll;
+        }
+        //Note: We don't care about dragging as there is no way for the user while continuing to have MC focussed can change the window size
+        // switching into full screen makes MC lose focus briefly anyway so dragging events don't continue to fire so that is not a case
+        // that we need to worry about
+    }
+}

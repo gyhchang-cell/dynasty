@@ -1,0 +1,39 @@
+package mekanism.common.tile.machine;
+
+import mekanism.api.recipes.ItemStackChemicalToItemStackRecipe;
+import mekanism.api.recipes.book.InjectingBookCategory;
+import mekanism.api.recipes.book.InjectingBookCategory.InjectingBookInfo;
+import mekanism.api.recipes.vanilla_input.SingleItemChemicalRecipeInput;
+import mekanism.client.recipe_viewer.type.IRecipeViewerRecipeType;
+import mekanism.client.recipe_viewer.type.RecipeViewerRecipeType;
+import mekanism.common.config.MekanismConfig;
+import mekanism.common.recipe.IMekanismRecipeTypeProvider;
+import mekanism.common.recipe.MekanismRecipeType;
+import mekanism.common.recipe.lookup.cache.InputRecipeCache.ItemChemical;
+import mekanism.common.registries.MekanismBlocks;
+import mekanism.common.tile.prefab.TileEntityAdvancedElectricMachine;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
+
+public class TileEntityChemicalInjectionChamber extends TileEntityAdvancedElectricMachine<InjectingBookCategory, InjectingBookInfo> {
+
+    public TileEntityChemicalInjectionChamber(BlockPos pos, BlockState state) {
+        super(MekanismBlocks.CHEMICAL_INJECTION_CHAMBER, pos, state, BASE_TICKS_REQUIRED);
+    }
+
+    @Override
+    public IMekanismRecipeTypeProvider<SingleItemChemicalRecipeInput, InjectingBookCategory, InjectingBookInfo, ItemStackChemicalToItemStackRecipe<InjectingBookCategory, InjectingBookInfo>,
+          ItemChemical<ItemStackChemicalToItemStackRecipe<InjectingBookCategory, InjectingBookInfo>>> getRecipeType() {
+        return MekanismRecipeType.INJECTING;
+    }
+
+    @Override
+    public IRecipeViewerRecipeType<ItemStackChemicalToItemStackRecipe<InjectingBookCategory, InjectingBookInfo>> recipeViewerType() {
+        return RecipeViewerRecipeType.INJECTING;
+    }
+
+    @Override
+    protected boolean useStatisticalMechanics() {
+        return MekanismConfig.usage.randomizedConsumption.get();
+    }
+}

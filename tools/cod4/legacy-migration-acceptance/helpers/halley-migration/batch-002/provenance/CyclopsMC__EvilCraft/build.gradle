@@ -1,0 +1,353 @@
+plugins {
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'net.darkhax.curseforgegradle' version '1.1.15'
+	id 'com.github.kt3k.coveralls' version '2.10.2'
+    id 'com.diffplug.spotless' version '5.14.3'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+	id 'com.modrinth.minotaur' version '2.+'
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'idea'
+apply plugin: 'maven-publish'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'jacoco'
+
+import net.minecraftforge.gradle.common.tasks.SignJar
+import net.darkhax.curseforgegradle.Constants
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
+// Determine build number
+String build_number = "DEV" // this will be referenced as simply build_number from now on.
+if (System.getenv().BUILD_NUMBER)
+    build_number = System.getenv().BUILD_NUMBER
+if (System.getenv().TRAVIS_BUILD_NUMBER)
+    build_number = System.getenv().TRAVIS_BUILD_NUMBER
+if (System.getenv().GITHUB_RUN_ID)
+    build_number = System.getenv().GITHUB_RUN_NUMBER
+if (System.getenv().RELEASE || System.getenv().TRAVIS_TAG)
+    build_number = "RELEASE"
+logger.lifecycle "BUILDING VERSION: " + build_number
+
+// Set mod details
+version = project.mod_version
+group = "org.cyclops.evilcraft"
+archivesBaseName = "EvilCraft"
+
+// Set Java details
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+compileJava.options.compilerArgs << "-Xmaxerrs" << "9999"
+println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
+
+// Load secrets
+def getSecrets() {
+    Properties props = new Properties()
+    if (file('./secrets.properties').exists()) {
+        props.load(new FileInputStream(file('./secrets.properties')))
+    }
+    return props
+}
+Properties secrets = getSecrets();
+
+sourceSets {
+    main
+    test
+}
+
+configurations {
+    shadow.setTransitive(true);
+}
+
+test {
+    testLogging {
+        exceptionFormat = 'full'
+    }
+}
+
+repositories {
+    mavenCentral()
+	mavenLocal()
+    maven {
+        name "Cyclops Repo"
+        url "https://maven.pkg.github.com/CyclopsMC/packages"
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("MAVEN_USERNAME")
+            password = project.findProperty("gpr.key") ?: System.getenv("MAVEN_KEY")
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}"
+
+    // Add something like 'cyclopscore_version_local=0.1.0-DEV' to your secrets.properties if you want to use a custom local CyclopsCore version.
+    if(secrets.cyclopscore_version_local) {
+        implementation "org.cyclops.cyclopscore:cyclopscore:${project.minecraft_version}-${secrets.cyclopscore_version_local}:deobf"
+    } else {
+        implementation "org.cyclops.cyclopscore:cyclopscore:${project.minecraft_version}-${project.cyclopscore_version}:deobf"
+    }
+
+    // Add something like 'evilcraftcompat_version_local=0.1.0-DEV' to your secrets.properties if you want to use a custom local EvilCraft Compat version.
+    if(secrets.evilcraftcompat_version_local) {
+        shadow("org.cyclops.evilcraftcompat:evilcraftcompat:${secrets.evilcraftcompat_version_local}") {
+            transitive = false
+        }
+    } else {
+        shadow("org.cyclops.evilcraftcompat:evilcraftcompat:${project.evilcraftcompat_version}") {
+            transitive = false
+        }
+    }
+
+    // Project lombok
+	compileOnly 'org.projectlombok:lombok:1.18.22'
+	annotationProcessor 'org.projectlombok:lombok:1.18.22'
+	testCompileOnly 'org.projectlombok:lombok:1.18.22'
+	testAnnotationProcessor 'org.projectlombok:lombok:1.18.22'
+	
+	testImplementation "junit:junit:4.12"
+}
+
+minecraft {
+    mappings channel: "official", version: "${project.minecraft_version}"
+
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            //property 'forge.logging.markers', 'REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                evilcraft {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                evilcraft {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'debug'
+            args '--mod', 'evilcraft', '--all', '--output', file('src/generated/resources/')
+            mods {
+                evilcraft {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+if (build_number.equals("RELEASE"))
+    version = "${project.minecraft_version}-${project.mod_version}"
+else
+    version = "${project.minecraft_version}-${project.mod_version}-${build_number}"
+
+jar {
+    archiveClassifier.set('slim')
+    manifest {
+        attributes([
+                "FMLAT": "accesstransformer.cfg",
+                "Specification-Title": "${project.name}",
+                "Specification-Vendor": "rubensworks",
+                "Specification-Version": "${project.mod_version}",
+                "Implementation-Title": "${project.name}",
+                "Implementation-Version": "${project.mod_version}",
+                "Implementation-Vendor" :"rubensworks",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+javadoc {
+    source = [sourceSets.main.allJava]
+    // prevent java 8's strict doclint for javadocs from failing builds
+    options.addStringOption('Xdoclint:accessibility,html,reference,syntax', '-quiet')
+}
+
+task signJar(type: SignJar, dependsOn: jar) {
+    onlyIf {
+        System.getenv().SIGN_KEYSTORE
+    }
+
+    keyStore = System.getenv().SIGN_KEYSTORE
+    alias = System.getenv().SIGN_ALIAS
+    storePass = System.getenv().SIGN_STOREPASS
+    keyPass = System.getenv().SIGN_KEYPASS
+    inputFile = jar.archivePath
+    outputFile = jar.archivePath
+}
+build.dependsOn signJar
+
+task deobfJar(type: Jar) {
+    from sourceSets.main.output
+    archiveClassifier.set('deobf')
+    manifest {
+        attributes([
+                "FMLAT": "accesstransformer.cfg",
+                "Specification-Title": "${project.name}",
+                "Specification-Vendor": "rubensworks",
+                "Specification-Version": "${project.mod_version}",
+                "Implementation-Title": "${project.name}",
+                "Implementation-Version": "${project.mod_version}",
+                "Implementation-Vendor" :"rubensworks",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+task sourcesJar(type: Jar) {
+    duplicatesStrategy(DuplicatesStrategy.FAIL)
+    archiveClassifier.set('sources')
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    duplicatesStrategy(DuplicatesStrategy.FAIL)
+    archiveClassifier.set('javadoc')
+    from javadoc.destinationDir
+}
+
+shadowJar {
+    configurations = [project.configurations.shadow]
+    archiveClassifier.set(''); // Replace the default JAR
+    append 'META-INF/mods.toml'
+    append 'META-INF/accesstransformer.cfg'
+	finalizedBy 'reobfShadowJar'
+}
+
+assemble.dependsOn shadowJar
+reobf {
+    shadowJar {} // Reobfuscate the shadowed JAR
+}
+
+artifacts {
+	archives shadowJar
+    archives deobfJar
+    archives sourcesJar
+    archives javadocJar
+}
+
+task publishCurseForge(type: TaskPublishCurseForge) {
+    dependsOn(tasks.jar)
+    if(secrets.curseforge_key) {
+        apiToken = secrets.curseforge_key
+    } else if(System.getenv().GITHUB_ACTIONS && System.getenv().CURSEFORGE_KEY_SECRET) {
+        apiToken = System.getenv().CURSEFORGE_KEY_SECRET
+    }
+    def mainFile = upload("74610", shadowJar)
+    mainFile.releaseType = Constants.RELEASE_TYPE_RELEASE
+    mainFile.changelogType = "markdown"
+    mainFile.changelog = ""
+    if (new File("resources/changelog/${project.version}.txt").exists()) {
+        mainFile.changelog = new File("resources/changelog/${project.version}.txt").text
+    }
+    mainFile.addGameVersion(project.minecraft_version, 'Client', 'Server')
+    mainFile.addModLoader("NeoForge")
+
+    mainFile.addRequirement("cyclops-core")
+
+    def deobfFile = mainFile.withAdditionalFile(deobfJar)
+    deobfFile.releaseType = mainFile.releaseType
+    def sourcesFile = mainFile.withAdditionalFile(sourcesJar)
+    sourcesFile.releaseType = mainFile.releaseType
+    def javadocFile = mainFile.withAdditionalFile(javadocJar)
+    javadocFile.releaseType = mainFile.releaseType
+}
+
+modrinth {
+    if(secrets.modrinth_key) {
+        token = secrets.modrinth_key
+    } else if(System.getenv().GITHUB_ACTIONS && System.getenv().MODRINTH_KEY_SECRET) {
+        token = System.getenv().MODRINTH_KEY_SECRET
+    } else {
+        token = "DUMMY"
+    }
+    projectId = "3ANq2btA"
+    versionNumber = project.minecraft_version + '-' + project.mod_version
+    versionType = project.release_type
+    uploadFile = shadowJar
+    gameVersions = [ project.minecraft_version ]
+    changelog = ""
+    if (new File("resources/changelog/${project.version}.txt").exists()) {
+        changelog = new File("resources/changelog/${project.version}.txt").text
+    }
+    dependencies { // A special DSL for creating dependencies
+      required.project "Z9DM0LJ4" // Cyclops Core
+    }
+}
+
+publishing {
+    repositories {
+        if (project.hasProperty("filesmaven_url")) {
+            logger.info('Publishing to files server')
+            maven {
+                url project.filesmaven_url
+                credentials {
+                    username = project.filesmaven_username
+                    password = project.filesmaven_key
+                }
+            }
+        } else if (System.getenv("MAVEN_URL")) {
+            logger.info('Publishing to files server')
+            maven {
+                url System.getenv("MAVEN_URL")
+                credentials {
+                    username = System.getenv("MAVEN_USERNAME")
+                    password = System.getenv("MAVEN_KEY")
+                }
+            }
+        } else {
+            logger.error('No maven repo was set!')
+        }
+    }
+
+    publications { PublicationContainer publicationContainer ->
+        publicationContainer.register("maven", MavenPublication) { MavenPublication publication ->
+            publication.artifacts = [shadowJar, javadocJar, deobfJar, sourcesJar]
+            publication.artifactId = project.archivesBaseName.toLowerCase() // GH can't handle uppercase...
+        }
+    }
+}
+
+idea {
+    module {
+        for (String excludeDirName in ["run", "out", "logs", "gradle"]) {
+            File excludeDir = new File(projectDir, excludeDirName)
+            excludeDirs.add(excludeDir)
+        }
+    }
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+spotless {
+    java {
+        target 'src/*/java/org/cyclops/**/*.java'
+
+        endWithNewline()
+        trimTrailingWhitespace()
+        removeUnusedImports()
+        indentWithSpaces()
+    }
+}
+
+tasks.register('updateGitHooks', Copy) {
+    from './scripts/pre-commit'
+    into './.git/hooks'
+}
+compileJava.dependsOn updateGitHooks

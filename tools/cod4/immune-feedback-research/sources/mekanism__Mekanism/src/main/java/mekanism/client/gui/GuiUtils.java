@@ -1,0 +1,197 @@
+package mekanism.client.gui;
+
+import java.util.List;
+import java.util.function.Predicate;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.SpriteContents;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.util.ARGB;
+import org.jspecify.annotations.Nullable;
+
+public class GuiUtils {
+
+    private GuiUtils() {
+    }
+
+    public static void fill(GuiGraphicsExtractor guiGraphics, int x, int y, int width, int height, int color) {
+        if (width != 0 && height != 0) {
+            guiGraphics.fill(x, y, x + width, y + height, color);
+        }
+    }
+
+    public static void drawBackdrop(GuiGraphicsExtractor guiGraphics, Minecraft minecraft, int x, int y, int width, float alphaMultiplier) {
+        drawBackdrop(guiGraphics, minecraft, x, y, width, minecraft.font.lineHeight, alphaMultiplier);
+    }
+
+    public static void drawBackdrop(GuiGraphicsExtractor guiGraphics, Minecraft minecraft, int x, int y, int width, int height, float alphaMultiplier) {
+        //Slightly modified copy of Gui#drawBackdrop so that we can support it in places that can't directly call it
+        int backgroundColor = minecraft.options.getBackgroundColor(0.0F);
+        if (backgroundColor != 0) {
+            guiGraphics.fill(x - 2, y - 2, x + width + 2, y + height + 2, ARGB.multiplyAlpha(backgroundColor, alphaMultiplier));
+        }
+    }
+
+    public static void drawTiledSprite(GuiGraphicsExtractor guiGraphics, int xPosition, int yPosition, int yOffset, int desiredWidth, int desiredHeight,
+          TextureAtlasSprite sprite, TilingDirection tilingDirection, int color) {
+        drawTiledSprite(guiGraphics, xPosition, yPosition + yOffset - desiredHeight, desiredWidth, desiredHeight, sprite, tilingDirection, color);
+    }
+
+    public static void drawTiledSprite(GuiGraphicsExtractor guiGraphics, int xPosition, int yPosition, int desiredWidth, int desiredHeight, TextureAtlasSprite sprite,
+          TilingDirection tilingDirection, int color) {
+        if (desiredWidth == 0 || desiredHeight == 0) {
+            return;
+        }
+        SpriteContents spriteContents = sprite.contents();
+        guiGraphics.enableScissor(xPosition, yPosition, xPosition + desiredWidth, yPosition + desiredHeight);
+        {
+            int xShift = tilingDirection.getXShift(desiredWidth, spriteContents.width());
+            int yShift = tilingDirection.getYShift(desiredHeight, spriteContents.height());
+            guiGraphics.blitTiledSprite(
+                  RenderPipelines.GUI_TEXTURED,
+                  sprite,
+                  xPosition - xShift,
+                  yPosition - yShift,
+                  desiredWidth + xShift,
+                  desiredHeight + yShift,
+                  0,
+                  0,
+                  spriteContents.width(),
+                  spriteContents.height(),
+                  spriteContents.width(),
+                  spriteContents.height(),
+                  color
+            );
+        }
+        guiGraphics.disableScissor();
+    }
+
+    // reverse-order iteration over children w/ built-in GuiElement check, runs a basic anyMatch with checker
+    public static <CHILD extends GuiEventListener> boolean checkChildren(List<? extends CHILD> children, Predicate<CHILD> checker) {
+        return findChild(children, checker) != null;
+    }
+
+    // reverse-order iteration over children w/ built-in GuiElement check, runs a basic anyMatch with checker
+    @Nullable
+    public static <CHILD extends GuiEventListener> CHILD findChild(List<? extends CHILD> children, Predicate<CHILD> checker) {
+        for (int i = children.size() - 1; i >= 0; i--) {
+            CHILD child = children.get(i);
+            if (checker.test(child)) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    // reverse-order iteration over children w/ built-in GuiElement check, runs a basic anyMatch with checker
+    public static <CHILD extends GuiEventListener> boolean checkChildren(List<? extends CHILD> children, double mouseX, double mouseY, MouseOverPredicate<CHILD> checker) {
+        return findChild(children, mouseX, mouseY, checker) != null;
+    }
+
+    @Nullable
+    public static <CHILD extends GuiEventListener> CHILD findChild(List<? extends CHILD> children, double mouseX, double mouseY, MouseOverPredicate<CHILD> checker) {
+        for (int i = children.size() - 1; i >= 0; i--) {
+            CHILD child = children.get(i);
+            if (checker.test(child, mouseX, mouseY)) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public static <CHILD extends GuiEventListener> CHILD findChild(List<? extends CHILD> children, MouseButtonEvent event, boolean isDoubleClick, MouseClickedPredicate<CHILD> checker) {
+        for (int i = children.size() - 1; i >= 0; i--) {
+            CHILD child = children.get(i);
+            if (checker.test(child, event, isDoubleClick)) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    public static <CHILD extends GuiEventListener> boolean checkChildren(List<? extends CHILD> children, KeyEvent event, KeyPressedPredicate<CHILD> checker) {
+        for (int i = children.size() - 1; i >= 0; i--) {
+            CHILD child = children.get(i);
+            if (checker.test(child, event)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static <CHILD extends GuiEventListener> boolean checkChildrenChar(List<? extends CHILD> children, CharacterEvent event, CharTypedPredicate<CHILD> checker) {
+        for (int i = children.size() - 1; i >= 0; i--) {
+            CHILD child = children.get(i);
+            if (checker.test(child, event)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @FunctionalInterface
+    public interface MouseOverPredicate<ELEMENT> {
+
+        boolean test(ELEMENT element, double mouseX, double mouseY);
+    }
+
+    @FunctionalInterface
+    public interface MouseClickedPredicate<ELEMENT> {
+
+        boolean test(ELEMENT element, MouseButtonEvent event, boolean isDoubleClick);
+    }
+
+    @FunctionalInterface
+    public interface KeyPressedPredicate<ELEMENT> {
+
+        boolean test(ELEMENT element, KeyEvent event);
+    }
+
+    @FunctionalInterface
+    public interface CharTypedPredicate<ELEMENT> {
+
+        boolean test(ELEMENT element, CharacterEvent event);
+    }
+
+    /// Represents which direction our tiling is done when extending past the max size.
+    public enum TilingDirection {
+        /// Textures are being tiled/filled from top left to bottom right.
+        DOWN_RIGHT(true, true),
+        /// Textures are being tiled/filled from top right to bottom left.
+        DOWN_LEFT(true, false),
+        /// Textures are being tiled/filled from bottom left to top right.
+        UP_RIGHT(false, true),
+        /// Textures are being tiled/filled from bottom right to top left.
+        UP_LEFT(false, false);
+
+        private final boolean down;
+        private final boolean right;
+
+        TilingDirection(boolean down, boolean right) {
+            this.down = down;
+            this.right = right;
+        }
+
+        public int getXShift(int desiredWidth, int spriteWidth) {
+            return right ? 0 : getShift(desiredWidth, spriteWidth);
+        }
+
+        public int getYShift(int desiredHeight, int spriteHeight) {
+            return down ? 0 : getShift(desiredHeight, spriteHeight);
+        }
+
+        private int getShift(int desired, int sprite) {
+            int remainder = desired % sprite;
+            if (remainder == 0) {
+                return 0;
+            }
+            return sprite - remainder;
+        }
+    }
+}

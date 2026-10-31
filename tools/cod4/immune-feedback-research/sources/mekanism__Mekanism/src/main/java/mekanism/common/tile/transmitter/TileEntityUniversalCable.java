@@ -1,0 +1,154 @@
+package mekanism.common.tile.transmitter;
+
+import mekanism.api.SerializationConstants;
+import mekanism.api.energy.IEnergyContainer;
+import mekanism.api.math.MathUtils;
+import mekanism.api.tier.BaseTier;
+import mekanism.common.block.states.BlockStateHelper;
+import mekanism.common.block.states.TransmitterType;
+import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.holder.single.ISingleContainerHolder;
+import mekanism.common.capabilities.resolver.manager.EnergyHandlerManager;
+import mekanism.common.content.network.EnergyNetwork;
+import mekanism.common.content.network.transmitter.UniversalCable;
+import mekanism.common.integration.computer.IComputerTile;
+import mekanism.common.integration.computer.annotation.ComputerMethod;
+import mekanism.common.lib.transmitter.ConnectionType;
+import mekanism.common.registries.MekanismBlocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.Nullable;
+
+public class TileEntityUniversalCable extends TileEntityTransmitter implements IComputerTile {
+
+    public TileEntityUniversalCable(Holder<Block> blockProvider, BlockPos pos, BlockState state) {
+        super(blockProvider, pos, state);
+        addCapabilityResolver(new EnergyHandlerManager(new ISingleContainerHolder<>() {
+            @Nullable
+            @Override
+            public IEnergyContainer getContainer(@Nullable Direction direction) {
+                UniversalCable cable = TileEntityUniversalCable.this.getTransmitter();
+                if (direction != null && (cable.getConnectionTypeRaw(direction) == ConnectionType.NONE) || cable.isRedstoneActivated()) {
+                    //If we actually have a side, and our connection type on that side is none, or we are currently activated by redstone,
+                    // then return that we have no containers
+                    return null;
+                }
+                return cable.getContainer();
+            }
+
+            @Override
+            public boolean canInsert(@Nullable Direction direction) {
+                return TileEntityUniversalCable.this.canInsert(direction);
+            }
+
+            @Override
+            public boolean canExtract(@Nullable Direction direction) {
+                return TileEntityUniversalCable.this.canExtract(direction);
+            }
+        }, this::getGameTime));
+    }
+
+    @Override
+    protected UniversalCable createTransmitter(Holder<Block> blockProvider) {
+        return new UniversalCable(blockProvider, this);
+    }
+
+    @Override
+    public UniversalCable getTransmitter() {
+        return (UniversalCable) super.getTransmitter();
+    }
+
+    @Override
+    protected void onUpdateServer(ServerLevel level) {
+        getTransmitter().pullFromAcceptors(level);
+        super.onUpdateServer(level);
+    }
+
+    @Override
+    public TransmitterType getTransmitterType() {
+        return TransmitterType.UNIVERSAL_CABLE;
+    }
+
+    @Override
+    protected BlockState upgradeResult(BlockState current, BaseTier tier) {
+        return BlockStateHelper.copyStateData(current, switch (tier) {
+            case BASIC -> MekanismBlocks.BASIC_UNIVERSAL_CABLE;
+            case ADVANCED -> MekanismBlocks.ADVANCED_UNIVERSAL_CABLE;
+            case ELITE -> MekanismBlocks.ELITE_UNIVERSAL_CABLE;
+            case ULTIMATE -> MekanismBlocks.ULTIMATE_UNIVERSAL_CABLE;
+            default -> null;
+        });
+    }
+
+    @Override
+    protected void writeUpdatedTag(ValueOutput output) {
+        //Note: We add the stored information to the initial update tag and not to the one we sync on side changes which uses getReducedUpdateTag
+        super.writeUpdatedTag(output);
+        if (getTransmitter().hasTransmitterNetwork()) {
+            EnergyNetwork network = getTransmitter().getTransmitterNetworkNN();
+            output.putLong(SerializationConstants.ENERGY, network.energyContainer.getAmountAsLong());
+            output.putFloat(SerializationConstants.SCALE, network.currentScale);
+        }
+    }
+
+    @Override
+    public void sideChanged(Direction side, ConnectionType old, ConnectionType type) {
+        super.sideChanged(side, old, type);
+        if (type == ConnectionType.NONE) {
+            //We no longer have a capability, invalidate it, which will also notify the level
+            invalidateCapability(Capabilities.ENERGY.block(), side);
+        } else if (old == ConnectionType.NONE) {
+            //Notify any listeners to our position that we now do have a capability
+            //Note: We don't invalidate our impls because we know they are already invalid, so we can short circuit setting them to null from null
+            invalidateCapabilities();
+        }
+    }
+
+    @Override
+    public void redstoneChanged(boolean powered) {
+        super.redstoneChanged(powered);
+        if (powered) {
+            //The transmitter now is powered by redstone and previously was not
+            //Note: While at first glance the below invalidation may seem over aggressive, it is not actually that aggressive as
+            // if a cap has not been initialized yet on a side then invalidating it will just NO-OP
+            invalidateCapabilityAll(Capabilities.ENERGY.block());
+        } else {
+            //Notify any listeners to our position that we now do have a capability
+            //Note: We don't invalidate our impls because we know they are already invalid, so we can short circuit setting them to null from null
+            invalidateCapabilities();
+        }
+    }
+
+    //Methods relating to IComputerTile
+    @Override
+    public String getComputerName() {
+        return getTransmitter().getTier().getBaseTier().getLowerName() + "UniversalCable";
+    }
+
+    @ComputerMethod
+    long getBuffer() {
+        return getTransmitter().getBufferWithFallback();
+    }
+
+    @ComputerMethod
+    long getCapacity() {
+        UniversalCable cable = getTransmitter();
+        return cable.hasTransmitterNetwork() ? cable.getTransmitterNetworkNN().getCapacity() : cable.getCapacity();
+    }
+
+    @ComputerMethod
+    long getNeeded() {
+        return getCapacity() - getBuffer();
+    }
+
+    @ComputerMethod
+    double getFilledPercentage() {
+        return MathUtils.divideToLevel(getBuffer(), getCapacity());
+    }
+    //End methods IComputerTile
+}

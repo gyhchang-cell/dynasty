@@ -1,0 +1,309 @@
+package mekanism.common.content.entangloporter;
+
+import com.google.common.collect.Table;
+import com.google.common.collect.Tables;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.function.Function;
+import mekanism.api.AutomationType;
+import mekanism.api.IContentsListener;
+import mekanism.api.RelativeSide;
+import mekanism.api.SerializationConstants;
+import mekanism.api.chemical.BasicChemicalTank;
+import mekanism.api.chemical.IChemicalTank;
+import mekanism.api.energy.IEnergyContainer;
+import mekanism.api.fluid.IFluidTank;
+import mekanism.api.heat.HeatAPI;
+import mekanism.api.inventory.IInventorySlot;
+import mekanism.api.resource.IResourceContainer;
+import mekanism.api.resource.LargeResourceStack;
+import mekanism.api.security.SecurityMode;
+import mekanism.common.capabilities.energy.BasicEnergyContainer;
+import mekanism.common.capabilities.fluid.BasicFluidTank;
+import mekanism.common.capabilities.heat.BasicHeatCapacitor;
+import mekanism.common.config.MekanismConfig;
+import mekanism.common.content.network.EnergyNetwork;
+import mekanism.common.content.network.distribution.EnergyHandlerTarget;
+import mekanism.common.content.network.distribution.ResourceHandlerTarget;
+import mekanism.common.inventory.slot.BasicInventorySlot;
+import mekanism.common.inventory.slot.EntangloporterInventorySlot;
+import mekanism.common.lib.distribution.Target;
+import mekanism.common.lib.frequency.Frequency;
+import mekanism.common.lib.frequency.FrequencyTypes;
+import mekanism.common.lib.transmitter.TransmissionType;
+import mekanism.common.tile.TileEntityQuantumEntangloporter;
+import mekanism.common.tile.component.config.ConfigInfo;
+import mekanism.common.tile.component.config.DataType;
+import mekanism.common.util.EmitUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.transfer.resource.Resource;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import org.jspecify.annotations.Nullable;
+
+public class InventoryFrequency extends Frequency implements IContentsListener {
+
+    public static final Codec<InventoryFrequency> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+          ExtraCodecs.NON_EMPTY_STRING.fieldOf(SerializationConstants.NAME).forGetter(Frequency::getName),
+          UUIDUtil.CODEC.optionalFieldOf(SerializationConstants.OWNER_UUID).forGetter(freq -> Optional.ofNullable(freq.getOwner())),
+          SecurityMode.CODEC.fieldOf(SerializationConstants.SECURITY_MODE).forGetter(Frequency::getSecurity),
+          ExtraCodecs.NON_NEGATIVE_LONG.fieldOf(SerializationConstants.ENERGY).forGetter(freq -> freq.storedEnergy.getAmountAsLong()),
+          LargeResourceStack.FLUID_HELPER.orEmptyCodec().fieldOf(SerializationConstants.FLUID).forGetter(freq -> freq.storedFluid.asStack()),
+          LargeResourceStack.CHEMICAL_HELPER.orEmptyCodec().fieldOf(SerializationConstants.CHEMICAL).forGetter(freq -> freq.storedChemical.asStack()),
+          LargeResourceStack.ITEM_HELPER.orEmptyCodec().fieldOf(SerializationConstants.ITEM).forGetter(freq -> freq.storedItem.asStack()),
+          Codec.DOUBLE.fieldOf(SerializationConstants.HEAT_STORED).forGetter(freq -> freq.storedHeat.getHeat()),
+          Codec.DOUBLE.fieldOf(SerializationConstants.HEAT_CAPACITY).forGetter(freq -> freq.storedHeat.getHeatCapacity())
+    ).apply(instance, (name, owner, securityMode, energy, fluid, chemical, item, heat, heatCapacity) -> {
+        InventoryFrequency frequency = new InventoryFrequency(name, owner.orElse(null), securityMode);
+        frequency.storedEnergy.setEnergy(energy, null);
+        frequency.storedFluid.setContents(fluid, null);
+        frequency.storedChemical.setContents(chemical, null);
+        frequency.storedItem.setContents(item, null);
+        frequency.storedHeat.setHeatAndCapacity(heat, heatCapacity, null);
+        return frequency;
+    }));
+    public static final StreamCodec<RegistryFriendlyByteBuf, InventoryFrequency> STREAM_CODEC = StreamCodec.composite(
+          baseStreamCodec(InventoryFrequency::new), Function.identity(),
+          ByteBufCodecs.VAR_LONG, freq -> freq.storedEnergy.getAmountAsLong(),
+          LargeResourceStack.FLUID_HELPER.streamCodec(), freq -> freq.storedFluid.asStack(),
+          LargeResourceStack.CHEMICAL_HELPER.streamCodec(), freq -> freq.storedChemical.asStack(),
+          LargeResourceStack.ITEM_HELPER.streamCodec(), freq -> freq.storedItem.asStack(),
+          ByteBufCodecs.DOUBLE, freq -> freq.storedHeat.getHeat(),
+          (frequency, energy, fluid, chemical, item, heat) -> {
+              frequency.storedEnergy.setEnergy(energy, null);
+              frequency.storedFluid.setContents(fluid, null);
+              frequency.storedChemical.setContents(chemical, null);
+              frequency.storedItem.setContents(item, null);
+              frequency.storedHeat.setHeat(heat, null);
+              return frequency;
+          }
+    );
+
+    //nb: we don't need to store these BLockPos as longs because they already exist on the Tiles as a field
+    private final Table<ResourceKey<Level>, BlockPos, TileEntityQuantumEntangloporter> activeQEs = Tables.newCustomTable(new IdentityHashMap<>(), TreeMap::new);
+    private long lastEject = -1;
+
+    private BasicFluidTank storedFluid;
+    private IChemicalTank storedChemical;
+    private BasicInventorySlot storedItem;
+    public IEnergyContainer storedEnergy;
+    private BasicHeatCapacitor storedHeat;
+
+    private List<IInventorySlot> inventorySlots;
+    private List<IChemicalTank> chemicalTanks;
+    private List<IFluidTank> fluidTanks;
+
+    /// @param uuid Should only be null if we have incomplete data that we are loading
+    public InventoryFrequency(String n, @Nullable UUID uuid, SecurityMode securityMode) {
+        super(FrequencyTypes.INVENTORY, n, uuid, securityMode);
+        presetVariables();
+    }
+
+    private InventoryFrequency(String name, @Nullable UUID owner, String ownerName, SecurityMode securityMode) {
+        super(FrequencyTypes.INVENTORY, name, owner, ownerName, securityMode);
+        presetVariables();
+    }
+
+    private void presetVariables() {
+        fluidTanks = Collections.singletonList(storedFluid = BasicFluidTank.create(MekanismConfig.general.entangloporterFluidBuffer.get(), this));
+        chemicalTanks = Collections.singletonList(storedChemical = BasicChemicalTank.create(MekanismConfig.general.entangloporterChemicalBuffer.get(), this));
+        inventorySlots = Collections.singletonList(storedItem = EntangloporterInventorySlot.create(this));
+        storedEnergy = BasicEnergyContainer.create(MekanismConfig.general.entangloporterEnergyBuffer.getAsLong(), this);
+        storedHeat = BasicHeatCapacitor.create(HeatAPI.DEFAULT_HEAT_CAPACITY, HeatAPI.DEFAULT_INVERSE_CONDUCTION, 1_000, null, this);
+    }
+
+    public List<IInventorySlot> getInventorySlots() {
+        return inventorySlots;
+    }
+
+    public List<IChemicalTank> getChemicalTanks() {
+        return chemicalTanks;
+    }
+
+    public List<IFluidTank> getFluidTanks() {
+        return fluidTanks;
+    }
+
+    public IEnergyContainer getEnergyContainer() {
+        return storedEnergy;
+    }
+
+    public BasicHeatCapacitor getHeatCapacitor() {
+        return storedHeat;
+    }
+
+    @Override
+    public void onContentsChanged() {
+        dirty = true;
+    }
+
+    @Override
+    public boolean update(Level level, BlockEntity tile) {
+        boolean changedData = super.update(level, tile);
+        if (tile instanceof TileEntityQuantumEntangloporter entangloporter) {
+            //This should always be the case, but validate it and remove if it isn't
+            activeQEs.put(level.dimension(), entangloporter.getBlockPos(), entangloporter);
+        } else {
+            activeQEs.remove(level.dimension(), tile.getBlockPos());
+        }
+        return changedData;
+    }
+
+    @Override
+    public boolean onDeactivate(Level level, BlockEntity tile) {
+        boolean changedData = super.onDeactivate(level, tile);
+        activeQEs.remove(level.dimension(), tile.getBlockPos());
+        return changedData;
+    }
+
+    public void handleEject(long gameTime, TransactionContext transaction) {
+        if (isValid() && !activeQEs.isEmpty() && lastEject != gameTime) {
+            lastEject = gameTime;
+            Map<TransmissionType, Target<?, ?>> typesToEject = new EnumMap<>(TransmissionType.class);
+            //All but heat and item
+            List<TargetExecution> transferHandlers = new ArrayList<>(TransmissionType.VALUES.size() - 2);
+            int expected = 6 * activeQEs.size();
+            try (Transaction simulation = Transaction.open(transaction)) {
+                addEnergyTransferHandler(typesToEject, transferHandlers, expected, simulation);
+                addResourceTransferHandler(typesToEject, transferHandlers, expected, TransmissionType.FLUID, storedFluid, simulation);
+                addResourceTransferHandler(typesToEject, transferHandlers, expected, TransmissionType.CHEMICAL, storedChemical, simulation);
+            }
+            if (!typesToEject.isEmpty()) {
+                //If we have at least one type to eject (we are not entirely empty)
+                // then go through all the QEs and build up the target locations
+                for (TileEntityQuantumEntangloporter qe : activeQEs.values()) {
+                    if (!qe.canFunction()) {
+                        //Skip trying to eject for this QE if it can't function
+                        continue;
+                    }
+                    ServerLevel level = (ServerLevel) qe.getLevel();
+                    if (level == null || !level.shouldTickBlocksAt(ChunkPos.pack(qe.getBlockPos()))) {
+                        //Skip QEs that aren't supposed to be ticking
+                        continue;
+                    }
+                    Direction facing = qe.getDirection();
+                    for (Map.Entry<TransmissionType, Target<?, ?>> entry : typesToEject.entrySet()) {
+                        TransmissionType transmissionType = entry.getKey();
+                        ConfigInfo config = qe.getConfig().getConfig(transmissionType);
+                        //Validate the ejector for the config allows ejecting this transmission type. In theory, we already check all
+                        // of this except config#isEjecting before we get here, but we do so anyway for consistency
+                        if (config != null && qe.getEjector().isEjecting(config, transmissionType)) {
+                            for (Map.Entry<RelativeSide, DataType> sideEntry : config.getSideConfig()) {
+                                if (sideEntry.getValue().canOutput()) {
+                                    Direction side = sideEntry.getKey().getDirection(facing);
+                                    accept(entry.getValue(), qe, level, side, transmissionType);
+                                }
+                            }
+                        }
+                    }
+                }
+                //Run all our transfer handlers that we have
+                for (TargetExecution transferHandler : transferHandlers) {
+                    if (transferHandler.getHandlerCount() > 0) {
+                        try (Transaction subTransaction = Transaction.open(transaction)) {
+                            if (transferHandler.extract(subTransaction)) {
+                                //If we were able to extract everything we thought we would be able to and had tried to send
+                                // then commit all the changes
+                                subTransaction.commit();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static <TYPE> void accept(Target<TYPE, ?> target, TileEntityQuantumEntangloporter qe, ServerLevel level, Direction side, TransmissionType transmissionType) {
+        TYPE cachedCapability = qe.getCachedCapability(level, side, transmissionType);
+        if (cachedCapability != null) {
+            target.addHandler(cachedCapability);
+        }
+    }
+
+    private void addEnergyTransferHandler(Map<TransmissionType, Target<?, ?>> typesToEject, List<TargetExecution> transferHandlers, int expected, TransactionContext simulation) {
+        int toSend = storedEnergy.extract(storedEnergy.getAmountAsInt(), simulation, AutomationType.INTERNAL);
+        if (toSend > 0) {
+            SendingEnergyHandlerTarget target = new SendingEnergyHandlerTarget(expected, storedEnergy, toSend);
+            typesToEject.put(TransmissionType.ENERGY, target);
+            transferHandlers.add(target);
+        }
+    }
+
+    private <RESOURCE extends Resource> void addResourceTransferHandler(Map<TransmissionType, Target<?, ?>> typesToEject, List<TargetExecution> transferHandlers,
+          int expected, TransmissionType transmissionType, IResourceContainer<RESOURCE> container, TransactionContext simulation) {
+        RESOURCE type = container.resource();
+        if (!type.isEmpty()) {
+            int amountToSend = container.extract(type, container.amountAsInt(), simulation, AutomationType.INTERNAL);
+            if (amountToSend > 0) {
+                SendingResourceHandlerTarget<RESOURCE> target = new SendingResourceHandlerTarget<>(type, amountToSend, expected, container);
+                typesToEject.put(transmissionType, target);
+                transferHandlers.add(target);
+            }
+        }
+    }
+
+    private interface TargetExecution {
+
+        int getHandlerCount();
+
+        boolean extract(TransactionContext subTransaction);
+    }
+
+    private static class SendingEnergyHandlerTarget extends EnergyHandlerTarget implements TargetExecution {
+
+        private final IEnergyContainer container;
+        private final int toSend;
+
+        public SendingEnergyHandlerTarget(int expectedSize, IEnergyContainer container, int toSend) {
+            super(expectedSize);
+            this.container = container;
+            this.toSend = toSend;
+        }
+
+        @Override
+        public boolean extract(TransactionContext subTransaction) {
+            int sent = EmitUtils.sendToAcceptors(this, toSend, EnergyNetwork.ENERGY, subTransaction);
+            return sent > 0 && container.extract(sent, subTransaction, AutomationType.INTERNAL) == sent;
+        }
+    }
+
+    private static class SendingResourceHandlerTarget<RESOURCE extends Resource> extends ResourceHandlerTarget<RESOURCE> implements TargetExecution {
+
+        private final RESOURCE type;
+        private final int toSend;
+        private final IResourceContainer<RESOURCE> container;
+
+        public SendingResourceHandlerTarget(RESOURCE type, int toSend, int expectedSize, IResourceContainer<RESOURCE> container) {
+            super(expectedSize);
+            this.type = type;
+            this.toSend = toSend;
+            this.container = container;
+        }
+
+        @Override
+        public boolean extract(TransactionContext subTransaction) {
+            int sent = EmitUtils.sendToAcceptors(this, toSend, type, subTransaction);
+            return sent > 0 && container.extract(type, sent, subTransaction, AutomationType.INTERNAL) == sent;
+        }
+    }
+}

@@ -1,0 +1,173 @@
+version = "${rootProject.property("mod_version")}+mc${minecraftVersion}"
+group = rootProject.property("maven_group")
+
+base {
+    archivesName = "damage-numbers"
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "damage-numbers" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+sourceSets {
+    main {
+        String mainNetworkSource = minecraftVersion == "1.20.1"
+                ? "src/main-network-legacy/java"
+                : "src/main-network-modern/java"
+        java.setSrcDirs([
+                rootProject.file("src/main/java"),
+                rootProject.file(mainNetworkSource)
+        ])
+        resources.setSrcDirs([rootProject.file("src/main/resources")])
+    }
+    client {
+        String worldRenderSource
+        if (minecraftVersion == "1.21.9") {
+            worldRenderSource = "src/client-world-gap/java"
+        } else if (minecraftVersion == "26.2") {
+            worldRenderSource = "src/client-world-submit/java"
+        } else if (["26.1", "26.1.1", "26.1.2"].contains(minecraftVersion)) {
+            worldRenderSource = "src/client-world-26/java"
+        } else if (["1.21.10", "1.21.11"].contains(minecraftVersion)) {
+            worldRenderSource = "src/client-world-modern/java"
+        } else {
+            worldRenderSource = "src/client-world-legacy/java"
+        }
+        String guiSource
+        String buttonSource = null
+        String fontRenderSource = ["1.21.11", "26.1", "26.1.1", "26.1.2", "26.2"].contains(minecraftVersion)
+                ? "src/client-font-modern/java"
+                : "src/client-font-legacy/java"
+        String scrollSource
+        if (minecraftVersion == "1.20.1") {
+            scrollSource = "src/client-gui-scroll-1_20/java"
+        } else if (["1.21.9", "1.21.10", "1.21.11", "26.1", "26.1.1", "26.1.2", "26.2"].contains(minecraftVersion)) {
+            scrollSource = "src/client-gui-scroll-new/java"
+        } else {
+            scrollSource = "src/client-gui-scroll-modern/java"
+        }
+        if (["26.1", "26.1.1", "26.1.2", "26.2"].contains(minecraftVersion)) {
+            guiSource = "src/client-gui-26/java"
+        } else if (["1.21.6", "1.21.7", "1.21.8", "1.21.9", "1.21.10", "1.21.11"]
+                .contains(minecraftVersion)) {
+            guiSource = "src/client-gui-matrix/java"
+            buttonSource = minecraftVersion == "1.21.11"
+                    ? "src/client-gui-button-1_21_11/java"
+                    : "src/client-gui-button-legacy/java"
+        } else {
+            guiSource = "src/client-gui-legacy/java"
+        }
+        List clientJavaSources = [
+                rootProject.file("src/client/java"),
+                rootProject.file(minecraftVersion == "26.2"
+                        ? "src/client-render-submit/java"
+                        : "src/client-render-buffered/java"),
+                rootProject.file(minecraftVersion == "1.20.1"
+                        ? "src/client-network-legacy/java"
+                        : "src/client-network-modern/java"),
+                rootProject.file(worldRenderSource),
+                rootProject.file(guiSource),
+                rootProject.file(fontRenderSource),
+                rootProject.file(scrollSource)
+        ]
+        if (buttonSource != null) {
+            clientJavaSources.add(rootProject.file(buttonSource))
+        }
+        if (["26.1", "26.1.1", "26.1.2", "26.2"].contains(minecraftVersion)) {
+            clientJavaSources.add(rootProject.file(minecraftVersion == "26.2"
+                    ? "src/client-gui-navigation-26_2/java"
+                    : "src/client-gui-navigation-26_1/java"))
+        }
+        java.setSrcDirs(clientJavaSources)
+        resources.setSrcDirs([rootProject.file("src/client/resources")])
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "TerraformersMC"
+        url = "https://maven.terraformersmc.com/releases/"
+    }
+}
+
+dependencies {
+    add("minecraft", "com.mojang:minecraft:${minecraftVersion}")
+
+    if (!usesOfficialNames) {
+        add("mappings", loom.officialMojangMappings())
+    }
+
+    String modConfiguration = usesOfficialNames ? "implementation" : "modImplementation"
+    add(modConfiguration, "net.fabricmc:fabric-loader:${rootProject.property("loader_version")}")
+    add(modConfiguration, "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}")
+
+    Map<String, String> modMenuVersions = [
+            "1.20.1" : "7.2.2",
+            "1.21.1" : "11.0.4",
+            "1.21.2" : "12.0.1",
+            "1.21.3" : "12.0.1",
+            "1.21.4" : "13.0.4",
+            "1.21.5" : "14.0.2",
+            "1.21.6" : "15.0.2",
+            "1.21.7" : "15.0.2",
+            "1.21.8" : "15.0.2",
+            "1.21.9" : "16.0.1",
+            "1.21.10": "16.0.1",
+            "1.21.11": "17.0.1-beta.1",
+            "26.1"    : "18.0.0",
+            "26.1.1"  : "18.0.0",
+            "26.1.2"  : "18.0.0",
+            "26.2"    : "20.0.1"
+    ]
+    String modMenuCompileConfiguration = usesOfficialNames ? "compileOnly" : "modCompileOnly"
+    add(modMenuCompileConfiguration, "com.terraformersmc:modmenu:${modMenuVersions[minecraftVersion]}")
+    String localRuntimeConfiguration = usesOfficialNames ? "localRuntime" : "modLocalRuntime"
+    add(localRuntimeConfiguration, "com.terraformersmc:modmenu:${modMenuVersions[minecraftVersion]}")
+}
+
+processResources {
+    inputs.property("version", project.version)
+    inputs.property("minecraft_dependency", minecraftDependency)
+    inputs.property("loader_version", rootProject.property("loader_version"))
+    inputs.property("java_dependency", javaRelease)
+
+    filesMatching("fabric.mod.json") {
+        expand(
+                "version": project.version,
+                "minecraft_dependency": minecraftDependency,
+                "loader_version": rootProject.property("loader_version"),
+                "java_dependency": javaRelease
+        )
+    }
+
+    from(rootProject.file("icon.png")) {
+        into("assets/damage-numbers")
+    }
+    from(rootProject.file("LICENSE")) {
+        into("META-INF")
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = javaRelease
+}
+
+java {
+    if (javaRelease >= 25) {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(javaRelease)
+        }
+    }
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.toVersion(javaRelease)
+    targetCompatibility = JavaVersion.toVersion(javaRelease)
+}

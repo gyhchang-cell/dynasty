@@ -1,0 +1,26 @@
+package mekanism.common.integration.lookingat.jade;
+
+import mekanism.common.integration.lookingat.LookingAtConstants;
+import mekanism.common.integration.lookingat.LookingAtUtils;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.Identifier;
+import snownee.jade.api.BlockAccessor;
+import snownee.jade.api.IServerDataProvider;
+
+public class JadeDataProvider implements IServerDataProvider<BlockAccessor> {
+
+    static final JadeDataProvider INSTANCE = new JadeDataProvider();
+
+    @Override
+    public Identifier getUid() {
+        return LookingAtConstants.Jade.BLOCK_DATA;
+    }
+
+    @Override
+    public void appendServerData(CompoundTag data, BlockAccessor blockAccessor) {
+        JadeLookingAtHelper helper = new JadeLookingAtHelper();
+        LookingAtUtils.addInfoOrRedirect(helper, blockAccessor.getLevel(), blockAccessor.getPosition(), blockAccessor.getBlockState(), blockAccessor.getBlockEntity(), true, true);
+        //Add our data if we have any
+        helper.finalizeData(data, blockAccessor);
+    }
+}

@@ -1,0 +1,22 @@
+package com.klikli_dev.occultism.datagen.tags;
+
+import com.klikli_dev.occultism.Occultism;
+import com.klikli_dev.occultism.registry.OccultismEnchantments;
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.data.PackOutput;
+import net.minecraft.data.tags.EnchantmentTagsProvider;
+import net.minecraft.tags.EnchantmentTags;
+
+import java.util.concurrent.CompletableFuture;
+
+public class OccultismEnchantmentTagProvider extends EnchantmentTagsProvider {
+    public OccultismEnchantmentTagProvider(PackOutput output, CompletableFuture<Provider> lookupProvider) {
+        super(output, lookupProvider, Occultism.MODID);
+    }
+
+    @Override
+    protected void addTags(Provider pProvider) {
+        this.tag(EnchantmentTags.TREASURE).add(OccultismEnchantments.FRACTURE_SOUL);
+        this.tag(EnchantmentTags.IN_ENCHANTING_TABLE).add(OccultismEnchantments.FRACTURE_SOUL);
+    }
+}

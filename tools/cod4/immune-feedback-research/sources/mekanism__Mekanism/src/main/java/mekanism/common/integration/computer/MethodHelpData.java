@@ -1,0 +1,184 @@
+package mekanism.common.integration.computer;
+
+import com.mojang.datafixers.util.Either;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import mekanism.api.SerializationConstants;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.api.resource.LargeResourceStack;
+import mekanism.common.content.filter.IFilter;
+import mekanism.common.lib.frequency.Frequency;
+import mekanism.common.util.MekCodecs;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Vec3i;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.transfer.resource.Resource;
+import org.apache.commons.lang3.ClassUtils;
+import org.jspecify.annotations.Nullable;
+
+public record MethodHelpData(String methodName, @Nullable List<Param> params, Returns returns, @Nullable String description, MethodRestriction restriction,
+                             boolean requiresPublicSecurity) {
+
+    public MethodHelpData {
+        if (params != null && params.isEmpty()) {
+            params = null;
+        }
+    }
+
+    private static final Class<?>[] NO_CLASSES = ComputerMethodFactory.NO_CLASSES;
+
+    public static MethodHelpData from(BoundMethodHolder.BoundMethodData<?> data) {
+        return from(data.method());
+    }
+
+    public static MethodHelpData from(MethodData<?> data) {
+        List<Param> params = new ArrayList<>();
+        for (int i = 0; i < data.argumentNames().length; i++) {
+            params.add(Param.from(data.argClasses()[i], data.argumentNames()[i]));
+        }
+
+        return new MethodHelpData(data.name(), params, Returns.from(data), data.methodDescription(), data.restriction(), data.requiresPublicSecurity());
+    }
+
+    private static String getHumanType(Class<?> clazz) {
+        return getHumanType(clazz, NO_CLASSES);
+    }
+
+    public static String getHumanType(Class<?> clazz, Class<?>[] extraTypes) {
+        if (clazz == UUID.class || clazz == Identifier.class || clazz == ResourceKey.class || clazz == Item.class || clazz.isEnum() || Holder.class.isAssignableFrom(clazz)) {
+            return "String (" + clazz.getSimpleName() + ")";
+        } else if (Frequency.class.isAssignableFrom(clazz) || clazz == GlobalPos.class || Vec3i.class.isAssignableFrom(clazz) || clazz == FluidStack.class ||
+            clazz == ItemStack.class || clazz == BlockState.class || clazz == ChemicalStack.class || clazz == LargeResourceStack.class || Resource.class.isAssignableFrom(clazz) ||
+            IFilter.class.isAssignableFrom(clazz)) {
+            return "Table (" + clazz.getSimpleName() + ")";
+        } else if (clazz == Byte.TYPE || clazz == Short.TYPE || clazz == Integer.TYPE || clazz == Long.TYPE || clazz == Float.TYPE || clazz == Double.TYPE || Number.class.isAssignableFrom(clazz)) {
+            if (ClassUtils.isPrimitiveWrapper(clazz)) {
+                clazz = Objects.requireNonNull(ClassUtils.wrapperToPrimitive(clazz), clazz::getName);
+            }
+            return "Number (" + clazz.getSimpleName() + ")";
+        } else if (Collection.class.isAssignableFrom(clazz)) {
+            if (extraTypes.length > 0) {
+                return "List (" + getHumanType(extraTypes[0]) + ")";
+            }
+            return "List";
+        } else if (clazz == Convertable.class || clazz == Either.class) {
+            if (extraTypes.length > 0) {
+                return Arrays.stream(extraTypes).map(MethodHelpData::getHumanType).collect(Collectors.joining(" or "));
+            }
+            return "Varies";
+        } else if (Map.class.isAssignableFrom(clazz)) {
+            if (extraTypes.length == 1) {
+                if (Object2IntMap.class.isAssignableFrom(clazz)) {
+                    return getMapHumanType(extraTypes[0], Integer.TYPE);
+                }
+            } else if (extraTypes.length == 2) {
+                return getMapHumanType(extraTypes[0], extraTypes[1]);
+            }
+            return "Table";
+        }
+        return clazz.getSimpleName();
+    }
+
+    private static String getMapHumanType(Class<?> keyType, Class<?> valueType) {
+        return "Table (" + getHumanType(keyType) + " => " + getHumanType(valueType) + ")";
+    }
+
+    @SuppressWarnings("unchecked")
+    @Nullable
+    public static List<String> getEnumConstantNames(Class<?> argClass) {
+        if (!argClass.isEnum()) {
+            return null;
+        }
+        Enum<?>[] enumConstants = ((Class<? extends Enum<?>>) argClass).getEnumConstants();
+        return Arrays.stream(enumConstants).map(Enum::name).toList();
+    }
+
+    public static final Codec<MethodHelpData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+          Codec.STRING.fieldOf(SerializationConstants.METHOD_NAME).forGetter(MethodHelpData::methodName),
+          Param.CODEC.listOf().optionalFieldOf(SerializationConstants.PARAMETERS, null).forGetter(MethodHelpData::params),
+          Returns.CODEC.optionalFieldOf(SerializationConstants.RETURNS, Returns.NOTHING).forGetter(MethodHelpData::returns),
+          Codec.STRING.optionalFieldOf(SerializationConstants.DESCRIPTION, null).forGetter(MethodHelpData::description),
+          MekCodecs.METHOD_RESTRICTION_CODEC.optionalFieldOf(SerializationConstants.RESTRICTION, MethodRestriction.NONE).forGetter(MethodHelpData::restriction),
+          Codec.BOOL.optionalFieldOf(SerializationConstants.REQUIRES_PUBLIC_SECURITY, false).forGetter(MethodHelpData::requiresPublicSecurity)
+    ).apply(instance, MethodHelpData::new));
+
+    public record Param(String name, String type, Class<?> javaType, @Nullable List<String> values) {
+
+        public Param(String name, String type, Class<?> javaType) {
+            this(name, type, javaType, null);
+        }
+
+        public static final Codec<Param> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+              Codec.STRING.fieldOf(SerializationConstants.NAME).forGetter(Param::name),
+              Codec.STRING.fieldOf(SerializationConstants.TYPE).forGetter(Param::type),
+              MekCodecs.CLASS_TO_STRING_CODEC.fieldOf(SerializationConstants.JAVA_TYPE).forGetter(Param::javaType)/*,
+              Codec.STRING.listOf().optionalFieldOf(SerializationConstants.VALUES, null).forGetter(Param::values)*/
+        ).apply(instance, Param::new));
+
+        private static Param from(Class<?> argClass, String paramName) {
+            return new Param(paramName, getHumanType(argClass), argClass, getEnumConstantNames(argClass));
+        }
+    }
+
+    public record Returns(String type, Class<?> javaType, Class<?>[] javaExtra, @Nullable List<String> values) {
+
+        public Returns(String type, Class<?> javaType, Class<?>[] javaExtra) {
+            this(type, javaType, javaExtra, null);
+        }
+
+        public static final Returns NOTHING = new Returns("Nothing", void.class, NO_CLASSES, null);
+        public static final Codec<Returns> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+              Codec.STRING.fieldOf(SerializationConstants.TYPE).forGetter(Returns::type),
+              MekCodecs.CLASS_TO_STRING_CODEC.fieldOf(SerializationConstants.JAVA_TYPE).forGetter(Returns::javaType),
+              MekCodecs.optionalClassArrayCodec(SerializationConstants.JAVA_EXTRA).forGetter(Returns::javaExtra)/*,
+              Codec.STRING.listOf().optionalFieldOf(SerializationConstants.VALUES, null).forGetter(Returns::values)*/
+        ).apply(instance, Returns::new));
+
+        public static Returns from(MethodData<?> data) {
+            if (data.returnType() != void.class) {
+                List<String> enumConstantNames = getEnumConstantNames(data.returnType());
+                for (int i = 0; i < data.returnExtra().length && enumConstantNames == null; i++) {
+                    enumConstantNames = getEnumConstantNames(data.returnExtra()[i]);
+                }
+                return new Returns(getHumanType(data.returnType(), data.returnExtra()), data.returnType(), data.returnExtra(), enumConstantNames);
+            }
+            return NOTHING;
+        }
+
+        @Override
+        public boolean equals(@Nullable Object o) {
+            if (this == o) {
+                return true;
+            } else if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Returns other = (Returns) o;
+            return javaType == other.javaType && type.equals(other.type) && Objects.equals(values, other.values) && Arrays.equals(javaExtra, other.javaExtra);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = javaType.hashCode();
+            result = 31 * result + type.hashCode();
+            result = 31 * result + Arrays.hashCode(javaExtra);
+            result = 31 * result + Objects.hashCode(values);
+            return result;
+        }
+    }
+
+}

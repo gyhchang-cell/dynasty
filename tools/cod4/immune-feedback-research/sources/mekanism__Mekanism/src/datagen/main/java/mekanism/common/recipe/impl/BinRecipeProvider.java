@@ -1,0 +1,80 @@
+package mekanism.common.recipe.impl;
+
+import mekanism.api.chemical.Chemical;
+import mekanism.common.Mekanism;
+import mekanism.common.block.attribute.Attribute;
+import mekanism.common.recipe.RecipeProviderUtil;
+import mekanism.common.recipe.bin.BinExtractRecipe;
+import mekanism.common.recipe.bin.BinInsertRecipe;
+import mekanism.common.recipe.builder.ExtendedShapedRecipeBuilder;
+import mekanism.common.recipe.builder.MekDataShapedRecipeBuilder;
+import mekanism.common.recipe.pattern.Pattern;
+import mekanism.common.recipe.pattern.RecipePattern;
+import mekanism.common.recipe.pattern.RecipePattern.TripleLine;
+import mekanism.common.registration.impl.BlockRegistryObject;
+import mekanism.common.registries.MekanismBlocks;
+import mekanism.common.registries.MekanismRecipeSerializersInternal;
+import mekanism.common.tags.MekanismTags;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.RecipeOutput;
+import net.minecraft.data.recipes.SpecialRecipeBuilder;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.material.Fluid;
+
+class BinRecipeProvider extends BaseSubRecipeProvider {
+
+    private static final RecipePattern BIN_PATTERN = RecipePattern.createPattern(
+          TripleLine.of(Pattern.COBBLESTONE, Pattern.CIRCUIT, Pattern.COBBLESTONE),
+          TripleLine.of(Pattern.ALLOY, Pattern.PREVIOUS, Pattern.ALLOY),
+          TripleLine.of(Pattern.COBBLESTONE, Pattern.COBBLESTONE, Pattern.COBBLESTONE));
+
+    BinRecipeProvider(HolderGetter<Item> items, HolderGetter<Fluid> fluids, HolderGetter<Chemical> chemicals) {
+        super(items, fluids, chemicals);
+    }
+
+    @Override
+    public void addRecipes(RecipeOutput consumer) {
+        //Special recipes (bins)
+        SpecialRecipeBuilder.special(BinInsertRecipe::new).save(consumer, ResourceKey.create(Registries.RECIPE, MekanismRecipeSerializersInternal.BIN_INSERT.getId()));
+        SpecialRecipeBuilder.special(BinExtractRecipe::new).save(consumer, ResourceKey.create(Registries.RECIPE, MekanismRecipeSerializersInternal.BIN_EXTRACT.getId()));
+        //Recipes for making bins
+        String basePath = "bin/";
+        //Note: For the basic bin, we have to handle the empty slot differently than batching it against our bin pattern
+        ExtendedShapedRecipeBuilder.shaped(MekanismBlocks.BASIC_BIN)
+              .pattern(RecipePattern.createPattern(
+                    TripleLine.of(Pattern.COBBLESTONE, Pattern.CIRCUIT, Pattern.COBBLESTONE),
+                    TripleLine.of(Pattern.ALLOY, Pattern.EMPTY, Pattern.ALLOY),
+                    TripleLine.of(Pattern.COBBLESTONE, Pattern.COBBLESTONE, Pattern.COBBLESTONE))
+              ).define(Pattern.COBBLESTONE, this.items, MekanismTags.Items.STONE_CRAFTING_MATERIALS)
+              .define(Pattern.CIRCUIT, this.items, MekanismTags.Items.CIRCUITS_BASIC)
+              .define(Pattern.ALLOY, this.items, MekanismTags.Items.ALLOYS_BASIC)
+              .category(RecipeCategory.DECORATIONS)//Mirror what vanilla does for chests
+              .group(Mekanism.rl("bin"))
+              //Require having multiple full stacks of items in addition to having items in the inventory
+              .unlockedBy(RecipeProviderUtil.lotsOfItems(10, 5))
+              .unlockedBy("has_circuit", has(MekanismTags.Items.CIRCUITS_BASIC))
+              .save(consumer, Mekanism.rl(basePath + "basic"));
+        addTieredBin(consumer, basePath, MekanismBlocks.ADVANCED_BIN, MekanismBlocks.BASIC_BIN, MekanismTags.Items.CIRCUITS_ADVANCED, MekanismTags.Items.ALLOYS_INFUSED);
+        addTieredBin(consumer, basePath, MekanismBlocks.ELITE_BIN, MekanismBlocks.ADVANCED_BIN, MekanismTags.Items.CIRCUITS_ELITE, MekanismTags.Items.ALLOYS_REINFORCED);
+        addTieredBin(consumer, basePath, MekanismBlocks.ULTIMATE_BIN, MekanismBlocks.ELITE_BIN, MekanismTags.Items.CIRCUITS_ULTIMATE, MekanismTags.Items.ALLOYS_ATOMIC);
+    }
+
+    private void addTieredBin(RecipeOutput consumer, String basePath, BlockRegistryObject<?, ?> bin, BlockRegistryObject<?, ?> previousBin, TagKey<Item> circuitTag,
+          TagKey<Item> alloyTag) {
+        String tierName = Attribute.getBaseTierNN(bin).getLowerName();
+        MekDataShapedRecipeBuilder.shaped(bin)
+              .pattern(BIN_PATTERN)
+              .define(Pattern.PREVIOUS, previousBin)
+              .define(Pattern.COBBLESTONE, this.items, MekanismTags.Items.STONE_CRAFTING_MATERIALS)
+              .define(Pattern.CIRCUIT, this.items, circuitTag)
+              .define(Pattern.ALLOY, this.items, alloyTag)
+              .category(RecipeCategory.DECORATIONS)//Mirror what vanilla does for chests
+              .group(Mekanism.rl("bin"))
+              .unlockedBy("has_circuit", has(circuitTag))
+              .save(consumer, Mekanism.rl(basePath + tierName));
+    }
+}

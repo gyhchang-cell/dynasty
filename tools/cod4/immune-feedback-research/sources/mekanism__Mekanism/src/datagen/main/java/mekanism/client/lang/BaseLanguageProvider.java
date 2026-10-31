@@ -1,0 +1,224 @@
+package mekanism.client.lang;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import mekanism.api.chemical.Chemical;
+import mekanism.api.gear.ModuleData;
+import mekanism.api.robit.RobitSkin;
+import mekanism.api.text.EnumColorCollection;
+import mekanism.api.text.IHasTranslationKey;
+import mekanism.api.upgrade.Upgrade;
+import mekanism.client.lang.FormatSplitter.Component;
+import mekanism.client.recipe_viewer.alias.IAliasedTranslation;
+import mekanism.common.Mekanism;
+import mekanism.common.advancements.MekanismAdvancement;
+import mekanism.common.base.IModModule;
+import mekanism.common.block.attribute.Attribute;
+import mekanism.common.block.attribute.AttributeGui;
+import mekanism.common.config.IConfigTranslation;
+import mekanism.common.config.IMekanismConfig;
+import mekanism.common.registration.impl.BlockRegistryObject;
+import mekanism.common.registration.impl.FluidRegistryObject;
+import mekanism.common.registration.impl.MekanismDamageType;
+import mekanism.common.registries.MekanismTrimMaterials;
+import net.minecraft.core.Holder;
+import net.minecraft.data.CachedOutput;
+import net.minecraft.data.PackOutput;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.BlockItemTagId;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.equipment.trim.TrimMaterial;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.data.LanguageProvider;
+import org.jspecify.annotations.Nullable;
+
+public abstract class BaseLanguageProvider extends LanguageProvider {
+
+    private final ConvertibleLanguageProvider[] altProviders;
+    protected final String modName;
+    protected final String basicModName;
+    private final String modid;
+
+    protected BaseLanguageProvider(PackOutput output, String modid) {
+        this(output, modid, Mekanism.MOD_NAME);
+    }
+
+    protected BaseLanguageProvider(PackOutput output, String modid, IModModule module) {
+        this(output, modid, Mekanism.MOD_NAME + ": " + module.getName());
+    }
+
+    private BaseLanguageProvider(PackOutput output, String modid, String modName) {
+        super(output, modid, "en_us");
+        this.modid = modid;
+        this.modName = modName;
+        this.basicModName = modName.replaceAll(":", "");
+        altProviders = new ConvertibleLanguageProvider[]{
+              new UpsideDownLanguageProvider(output, modid),
+              new NonAmericanLanguageProvider(output, modid, "en_au"),
+              new NonAmericanLanguageProvider(output, modid, "en_gb"),
+              new NonAmericanLanguageProvider(output, modid, "en_ca")
+        };
+    }
+
+    protected void addPackData(IHasTranslationKey name, IHasTranslationKey packDescription) {
+        add(name, modName);
+        add(packDescription, "Resources used for " + modName);
+    }
+
+    protected void addModInfo(String description) {
+        add("neoforge.screen.mods.info.description." + modid, description);
+    }
+
+    protected void addEntity(Holder<EntityType<?>> key, String value) {
+        add(key.value().getDescriptionId(), value);
+    }
+
+    protected void addModuleConfig(Identifier configKey, String value) {
+        add(configKey.toLanguageKey("module"), value);
+    }
+
+    public void add(BlockItemTagId tagKey, String name) {
+        add(tagKey.item(), name);
+        add(tagKey.block(), name);
+    }
+
+    protected void addChemicals(EnumColorCollection<ResourceKey<Chemical>> chemicals, String suffix) {
+        EnumColorCollection.zipApply(EnumColorCollection.VALUES, chemicals, (color, chemical) -> addChemical(chemical, color.getEnglishName() + " " + suffix));
+    }
+
+    protected void add(EnumColorCollection<? extends IHasTranslationKey> keys, String suffix) {
+        EnumColorCollection.zipApply(EnumColorCollection.VALUES, keys, (color, key) -> add(key, color.getEnglishName() + " " + suffix));
+    }
+
+    protected void add(IHasTranslationKey key, String value) {
+        if (key instanceof BlockRegistryObject<?, ?> blockHolder) {
+            if (Attribute.matches(blockHolder, AttributeGui.class, attribute -> !attribute.hasCustomName())) {
+                add(blockHolder.getId().toLanguageKey("container"), value);
+            }
+        }
+        add(key.getTranslationKey(), value);
+    }
+
+    protected void add(BlockRegistryObject<?, ?> blockRO, String value, String containerName) {
+        if (Attribute.matches(blockRO, AttributeGui.class, attribute -> !attribute.hasCustomName())) {
+            add(blockRO.getId().toLanguageKey("container"), containerName);
+            add(blockRO.getTranslationKey(), value);
+        } else {
+            throw new IllegalArgumentException(blockRO + " does not have a container name set.");
+        }
+    }
+
+    protected void add(Holder<ModuleData<?>> moduleDataProvider, String name, String description) {
+        ModuleData<?> moduleData = moduleDataProvider.value();
+        add(moduleData.getTranslationKey(), name);
+        add(moduleData.getDescriptionTranslationKey(), description);
+    }
+
+    protected void addFluid(FluidRegistryObject<?, ?, ?, ?, ?> fluidRO, String name) {
+        add(fluidRO.getBlock(), name);
+        add(fluidRO.getBucket(), name + " Bucket");
+        add(ItemTags.create(Tags.Items.BUCKETS.location().withSuffix("/" + fluidRO.getName())), name + " Buckets");
+    }
+
+    protected void addTrim(ResourceKey<TrimMaterial> id, String value) {
+        add(MekanismTrimMaterials.getTranslationKey(id), value);
+    }
+
+    protected void addChemical(ResourceKey<Chemical> id, String value) {
+        add(Chemical.getTranslationKey(id), value);
+    }
+
+    protected void addRobitSkin(ResourceKey<RobitSkin> id, String value) {
+        add(RobitSkin.getTranslationKey(id), value);
+    }
+
+    protected void addUpgrade(ResourceKey<Upgrade> id, String value, String description) {
+        add(Upgrade.getDefaultTranslationKey(id), value);
+        add(Upgrade.getDefaultDescriptionKey(id), description);
+    }
+
+    protected void add(MekanismAdvancement advancement, String title, String description) {
+        add(advancement.title(), title);
+        add(advancement.description(), description);
+    }
+
+    protected void add(MekanismDamageType damageType, String value, String valueEscaping) {
+        add(damageType, value, valueEscaping, null);
+    }
+
+    protected void add(MekanismDamageType damageType, String value, String valueEscaping, @Nullable String valueItem) {
+        add(damageType, value);
+        add(damageType.getTranslationKey() + ".player", valueEscaping);
+        if (valueItem != null) {
+            add(damageType.getTranslationKey() + ".item", valueItem);
+        }
+    }
+
+    private String getConfigSectionTranslationPath(IMekanismConfig config) {
+        String baseConfigFolder = Mekanism.MOD_NAME.toLowerCase(Locale.ROOT);
+        String fileName = config.getFileName().replaceAll("[^a-zA-Z0-9]+", ".").toLowerCase(Locale.ROOT);
+        return modid + ".configuration.section." + baseConfigFolder + "." + fileName + ".toml";
+    }
+
+    protected void addConfigs(Collection<IMekanismConfig> configs) {
+        add(modid + ".configuration.title", modName + " Config");
+        for (IMekanismConfig config : configs) {
+            String key = getConfigSectionTranslationPath(config);
+            add(key, config.getTranslation());
+            add(key + ".title", modName + " - " + config.getTranslation());
+        }
+    }
+
+    protected void addConfigs(IConfigTranslation... translations) {
+        for (IConfigTranslation translation : translations) {
+            add(translation, translation.title());
+            add(translation.getTranslationKey() + ".tooltip", translation.tooltip());
+            String button = translation.button();
+            if (button != null) {
+                add(translation.getTranslationKey() + ".button", button);
+            }
+        }
+    }
+
+    protected void addAliases(IAliasedTranslation... translations) {
+        for (IAliasedTranslation translation : translations) {
+            add(translation, translation.getAlias());
+        }
+    }
+
+    protected void addAlias(String path, String translation) {
+        add(Identifier.fromNamespaceAndPath(modid, path).toLanguageKey("alias"), translation);
+    }
+
+    @Override
+    public void add(String key, String value) {
+        if (value.contains("%s")) {
+            throw new IllegalArgumentException("Values containing substitutions should use explicit numbered indices: " + key + " - " + value);
+        }
+        super.add(key, value);
+        if (altProviders.length > 0) {
+            List<Component> splitEnglish = FormatSplitter.split(value);
+            for (ConvertibleLanguageProvider provider : altProviders) {
+                provider.convert(key, value, splitEnglish);
+            }
+        }
+    }
+
+    @Override
+    public CompletableFuture<?> run(CachedOutput cache) {
+        CompletableFuture<?> future = super.run(cache);
+        if (altProviders.length > 0) {
+            CompletableFuture<?>[] futures = new CompletableFuture[altProviders.length + 1];
+            futures[0] = future;
+            for (int i = 0; i < altProviders.length; i++) {
+                futures[i + 1] = altProviders[i].run(cache);
+            }
+            return CompletableFuture.allOf(futures);
+        }
+        return future;
+    }
+}

@@ -1,0 +1,151 @@
+package mekanism.common.content.matrix;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import mekanism.common.integration.computer.SpecialComputerMethodWrapper.ComputerIInventorySlotWrapper;
+import mekanism.common.integration.computer.annotation.ComputerMethod;
+import mekanism.common.integration.computer.annotation.WrappingComputerMethod;
+import mekanism.common.inventory.container.slot.SlotOverlay;
+import mekanism.common.inventory.container.sync.dynamic.ContainerSync;
+import mekanism.common.inventory.slot.EnergyInventorySlot;
+import mekanism.common.lib.multiblock.IValveHandler.ValveData;
+import mekanism.common.lib.multiblock.MultiblockCache;
+import mekanism.common.lib.multiblock.MultiblockCache.CacheSubstance;
+import mekanism.common.lib.multiblock.MultiblockData;
+import mekanism.common.lib.multiblock.Structure;
+import mekanism.common.tile.multiblock.TileEntityInductionCasing;
+import mekanism.common.tile.multiblock.TileEntityInductionCell;
+import mekanism.common.tile.multiblock.TileEntityInductionPort;
+import mekanism.common.tile.multiblock.TileEntityInductionProvider;
+import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.WorldUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+
+public class MatrixMultiblockData extends MultiblockData {
+
+    public static final String STATS_TAB = "stats";
+
+    private final List<CapabilityOutputTarget<EnergyHandler>> energyOutputTargets = new ArrayList<>();
+    private final MatrixEnergyContainer energyContainer;
+
+    @ContainerSync(getter = "getLastOutput")
+    private long clientLastOutput = 0L;
+    @ContainerSync(getter = "getLastInput")
+    private long clientLastInput = 0L;
+
+    @ContainerSync(getter = "getEnergy")
+    private long clientEnergy = 0L;
+
+    @ContainerSync(tags = STATS_TAB, getter = "getTransferCap")
+    private long clientMaxTransfer = 0L;
+
+    @ContainerSync(getter = "getStorageCap")
+    private long clientMaxEnergy = 0L;
+
+    @ContainerSync(tags = STATS_TAB, getter = "getProviderCount")
+    private int clientProviders;
+    @ContainerSync(tags = STATS_TAB, getter = "getCellCount")
+    private int clientCells;
+
+    @WrappingComputerMethod(wrapper = ComputerIInventorySlotWrapper.class, methodNames = "getInputItem", docPlaceholder = "input slot")
+    final EnergyInventorySlot energyInputSlot;
+    @WrappingComputerMethod(wrapper = ComputerIInventorySlotWrapper.class, methodNames = "getOutputItem", docPlaceholder = "output slot")
+    final EnergyInventorySlot energyOutputSlot;
+
+    public MatrixMultiblockData(TileEntityInductionCasing tile) {
+        super(tile);
+        energyContainer = new MatrixEnergyContainer(this);
+        inventorySlots.add(energyInputSlot = EnergyInventorySlot.drain(energyContainer, this, 146, 21));
+        inventorySlots.add(energyOutputSlot = EnergyInventorySlot.fillOrConvert(energyContainer, tile::getLevel, this, 146, 51));
+        energyInputSlot.setSlotOverlay(SlotOverlay.PLUS);
+        energyOutputSlot.setSlotOverlay(SlotOverlay.MINUS);
+    }
+
+    @Override
+    protected int getMultiblockRedstoneLevel() {
+        return MekanismUtils.redstoneLevelFromContents(getEnergy(), getStorageCap());
+    }
+
+    @Override
+    protected boolean shouldCache(CacheSubstance<?> type) {
+        return type != MultiblockCache.ENERGY;
+    }
+
+    public void addCell(TileEntityInductionCell cell) {
+        energyContainer.addCell(cell.getBlockPos(), cell);
+    }
+
+    public void addProvider(TileEntityInductionProvider provider) {
+        energyContainer.addProvider(provider.getBlockPos(), provider);
+    }
+
+    @Override
+    public MatrixEnergyContainer energyContainer() {
+        return energyContainer;
+    }
+
+    public long getEnergy() {
+        return isClientSide() ? clientEnergy : energyContainer.getAmountAsLong();
+    }
+
+    @Override
+    public boolean tick(ServerLevel world) {
+        boolean ret = super.tick(world);
+        if (energyContainer.tick(getActiveOutputs(energyOutputTargets), energyInputSlot, energyOutputSlot, null)) {
+            // If the stored energy changed, update the comparator
+            markDirtyComparator(world);
+        }
+        return ret;
+    }
+
+    @Override
+    public void remove(LevelReader world, Structure oldStructure) {
+        energyContainer.invalidate();
+        super.remove(world, oldStructure);
+    }
+
+    @Override
+    protected void updateEjectors(Level world) {
+        energyOutputTargets.clear();
+        for (Map.Entry<BlockPos, ValveData> entry : valves.entrySet()) {
+            TileEntityInductionPort tile = WorldUtils.getTileEntity(TileEntityInductionPort.class, world, entry.getKey());
+            if (tile != null) {
+                tile.addEnergyTargetCapability(energyOutputTargets, entry.getValue().side);
+            }
+        }
+    }
+
+    public long getStorageCap() {
+        return isClientSide() ? clientMaxEnergy : energyContainer.getCapacityAsLong();
+    }
+
+    @ComputerMethod
+    public long getTransferCap() {
+        return isClientSide() ? clientMaxTransfer : energyContainer.getMaxTransfer();
+    }
+
+    @ComputerMethod
+    public long getLastInput() {
+        return isClientSide() ? clientLastInput : energyContainer.getLastInput();
+    }
+
+    @ComputerMethod
+    public long getLastOutput() {
+        return isClientSide() ? clientLastOutput : energyContainer.getLastOutput();
+    }
+
+    @ComputerMethod(nameOverride = "getInstalledCells")
+    public int getCellCount() {
+        return isClientSide() ? clientCells : energyContainer.getCells();
+    }
+
+    @ComputerMethod(nameOverride = "getInstalledProviders")
+    public int getProviderCount() {
+        return isClientSide() ? clientProviders : energyContainer.getProviders();
+    }
+}

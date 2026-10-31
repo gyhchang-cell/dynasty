@@ -1,0 +1,788 @@
+package mekanism.common.entity;
+
+import com.mojang.serialization.Codec;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
+import mekanism.api.AutomationType;
+import mekanism.api.IContentsListener;
+import mekanism.api.MekanismRegistries;
+import mekanism.api.SerializationConstants;
+import mekanism.api.energy.IEnergyContainer;
+import mekanism.api.event.MekanismTeleportEvent;
+import mekanism.api.functions.ConstantPredicates;
+import mekanism.api.inventory.IInventorySlot;
+import mekanism.api.math.MathUtils;
+import mekanism.api.recipes.ItemStackToItemStackRecipe;
+import mekanism.api.recipes.cache.CachedRecipe;
+import mekanism.api.recipes.cache.CachedRecipe.OperationTracker.RecipeError;
+import mekanism.api.recipes.cache.OneInputCachedRecipe;
+import mekanism.api.recipes.inputs.IInputHandler;
+import mekanism.api.recipes.inputs.InputHelper;
+import mekanism.api.recipes.outputs.IOutputHandler;
+import mekanism.api.recipes.outputs.OutputHelper;
+import mekanism.api.resource.IMekanismResourceHandler;
+import mekanism.api.robit.IRobit;
+import mekanism.api.robit.RobitSkin;
+import mekanism.api.security.IEntitySecurityUtils;
+import mekanism.api.security.IItemSecurityUtils;
+import mekanism.api.security.ISecurityObject;
+import mekanism.api.security.SecurityMode;
+import mekanism.client.recipe_viewer.type.IRecipeViewerRecipeType;
+import mekanism.client.recipe_viewer.type.RecipeViewerRecipeType;
+import mekanism.common.Mekanism;
+import mekanism.common.MekanismLang;
+import mekanism.common.advancements.MekanismCriteriaTriggers;
+import mekanism.common.base.holiday.HolidayManager;
+import mekanism.common.capabilities.energy.BasicEnergyContainer;
+import mekanism.common.component.containers.type.ContainerType;
+import mekanism.common.config.MekanismConfig;
+import mekanism.common.entity.ai.RobitAIFollow;
+import mekanism.common.entity.ai.RobitAIPickup;
+import mekanism.common.inventory.container.MekanismContainer;
+import mekanism.common.inventory.container.sync.SyncableInt;
+import mekanism.common.inventory.container.sync.SyncableLong;
+import mekanism.common.inventory.slot.BasicInventorySlot;
+import mekanism.common.inventory.slot.EnergyInventorySlot;
+import mekanism.common.inventory.slot.InputInventorySlot;
+import mekanism.common.inventory.slot.OutputInventorySlot;
+import mekanism.common.inventory.warning.WarningTracker.WarningType;
+import mekanism.common.item.ItemConfigurator;
+import mekanism.common.item.ItemRobit;
+import mekanism.common.lib.security.EntitySecurityUtils;
+import mekanism.common.lib.transaction.TransactionHelper;
+import mekanism.common.recipe.IMekanismRecipeTypeProvider;
+import mekanism.common.recipe.MekanismRecipeType;
+import mekanism.common.recipe.lookup.ISingleRecipeLookupHandler.ItemRecipeLookupHandler;
+import mekanism.common.recipe.lookup.cache.InputRecipeCache.SingleItem;
+import mekanism.common.recipe.lookup.monitor.RecipeCacheLookupMonitor;
+import mekanism.common.registries.MekanismContainerTypes;
+import mekanism.common.registries.MekanismDataComponents;
+import mekanism.common.registries.MekanismDataSerializers;
+import mekanism.common.registries.MekanismItems;
+import mekanism.common.registries.MekanismRobitSkins;
+import mekanism.common.registries.MekanismRobitSkins.SkinLookup;
+import mekanism.common.registries.MekanismTicketTypes;
+import mekanism.common.tile.TileEntityChargepad;
+import mekanism.common.tile.prefab.TileEntityRecipeMachine;
+import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.WorldUtils;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializer;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.crafting.AbstractCookingRecipe.CookingBookInfo;
+import net.minecraft.world.item.crafting.CookingBookCategory;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.pathfinder.PathType;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.damagesource.DamageContainer;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import org.jspecify.annotations.Nullable;
+
+//TODO: When Galacticraft gets ported make it so the robit can "breath" without a mask
+public class EntityRobit extends PathfinderMob implements IRobit, ItemRecipeLookupHandler<ItemStackToItemStackRecipe<CookingBookCategory, CookingBookInfo>> {
+
+    private static final boolean DEFAULT_FOLLOW = false;
+    private static final boolean DEFAULT_DROP_PICKUP = false;
+
+    public static AttributeSupplier.Builder getDefaultAttributes() {
+        return createMobAttributes().add(Attributes.MAX_HEALTH, 1.0D).add(Attributes.MOVEMENT_SPEED, 0.3F);
+    }
+
+    private static final Codec<ResourceKey<RobitSkin>> SKIN_KEY_CODEC = ResourceKey.codec(MekanismRegistries.Keys.ROBIT_SKINS);
+
+    private static <T> EntityDataAccessor<T> define(EntityDataSerializer<T> dataSerializer) {
+        return SynchedEntityData.defineId(EntityRobit.class, dataSerializer);
+    }
+
+    private static final EntityDataAccessor<UUID> OWNER_UUID = define(MekanismDataSerializers.UUID.value());
+    //TODO: Ensure this properly updates if the user's name changes but uuid is the same
+    private static final EntityDataAccessor<String> OWNER_NAME = define(EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<SecurityMode> SECURITY = define(MekanismDataSerializers.SECURITY.value());
+    private static final EntityDataAccessor<Boolean> FOLLOW = define(EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DROP_PICKUP = define(EntityDataSerializers.BOOLEAN);
+    //Note: We sync the default skin part, so that pick item on the robit will properly persist this
+    private static final EntityDataAccessor<Boolean> DEFAULT_SKIN_MANUALLY_SELECTED = define(EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<ResourceKey<RobitSkin>> SKIN = define(MekanismDataSerializers.ROBIT_SKIN.value());
+
+    private static final List<RecipeError> TRACKED_ERROR_TYPES = List.of(
+          RecipeError.NOT_ENOUGH_ENERGY,
+          RecipeError.NOT_ENOUGH_INPUT,
+          RecipeError.NOT_ENOUGH_OUTPUT_SPACE,
+          RecipeError.INPUT_DOESNT_PRODUCE_OUTPUT
+    );
+
+    public static final long MAX_ENERGY = 100_000L;
+    private static final double DISTANCE_MULTIPLIER = 1.5D;
+    //TODO: Note the robit smelts at double normal speed, we may want to make this configurable
+    //TODO: Allow for upgrades in the robit?
+    private static final int ticksRequired = 5 * SharedConstants.TICKS_PER_SECOND;
+
+    @Nullable
+    private GlobalPos homeLocation;
+    private int lastTextureUpdate;
+    private int textureIndex;
+    private int progress;
+
+    /// The players currently using this robit.
+    private final Set<Player> playersUsing = new ObjectOpenHashSet<>();
+
+    private final RecipeCacheLookupMonitor<ItemStackToItemStackRecipe<CookingBookCategory, CookingBookInfo>> recipeCacheLookupMonitor;
+    private final BooleanSupplier recheckAllRecipeErrors;
+    private final boolean[] trackedErrors = new boolean[TRACKED_ERROR_TYPES.size()];
+
+    private final IInputHandler<Item, ItemStack> inputHandler;
+    private final IOutputHandler<ItemStackTemplate> outputHandler;
+
+    private final List<IInventorySlot> inventorySlots;
+    private final List<IInventorySlot> mainContainerSlots;
+    private final List<IInventorySlot> smeltingContainerSlots;
+    private final List<IInventorySlot> inventoryContainerSlots;
+    private final IMekanismResourceHandler<ItemResource, IInventorySlot> directInventoryHandler;
+    private final EnergyInventorySlot energySlot;
+    private final BasicEnergyContainer energyContainer;
+
+    public EntityRobit(EntityType<EntityRobit> type, Level world) {
+        super(type, world);
+        getNavigation().setCanFloat(false);
+        setPathfindingMalus(PathType.UNPASSABLE_RAIL, 0.0F);
+        setCustomNameVisible(true);
+        recipeCacheLookupMonitor = new RecipeCacheLookupMonitor<>(this);
+        // Choose a random offset to check for all errors. We do this to ensure that not every tile tries to recheck errors for every
+        // recipe the same tick and thus create uneven spikes of CPU usage
+        int checkOffset = level().getRandom().nextInt(TileEntityRecipeMachine.RECIPE_CHECK_FREQUENCY);
+        recheckAllRecipeErrors = () -> !playersUsing.isEmpty() && level().getGameTime() % TileEntityRecipeMachine.RECIPE_CHECK_FREQUENCY == checkOffset;
+        IContentsListener recipeCacheUnpauseListener = () -> {
+            onContentsChanged();
+            recipeCacheLookupMonitor.unpause();
+        };
+        energyContainer = BasicEnergyContainer.input(MAX_ENERGY, recipeCacheUnpauseListener);
+
+        inventorySlots = new ArrayList<>();
+        inventoryContainerSlots = new ArrayList<>();
+        for (int slotY = 0; slotY < 3; slotY++) {
+            for (int slotX = 0; slotX < 9; slotX++) {
+                IInventorySlot slot = BasicInventorySlot.at(this, 8 + slotX * 18, 18 + slotY * 18);
+                inventorySlots.add(slot);
+                inventoryContainerSlots.add(slot);
+            }
+        }
+        inventorySlots.add(energySlot = EnergyInventorySlot.fillOrConvert(energyContainer, this::level, this, 153, 17));
+        InputInventorySlot smeltingInputSlot = InputInventorySlot.at(this::containsRecipe, recipeCacheLookupMonitor, 51, 35);
+        inventorySlots.add(smeltingInputSlot);
+        //TODO: Previously used FurnaceResultSlot, check if we need to replicate any special logic it had (like if it had xp logic or something)
+        // Yes we probably do want this to allow for experience. Though maybe we should allow for experience for all our recipes/smelting recipes? V10
+        OutputInventorySlot smeltingOutputSlot = OutputInventorySlot.at(recipeCacheUnpauseListener, 116, 35);
+        inventorySlots.add(smeltingOutputSlot);
+        smeltingInputSlot.tracksWarnings(slot -> slot.warning(WarningType.NO_MATCHING_RECIPE, getWarningCheck(RecipeError.NOT_ENOUGH_INPUT)));
+        smeltingOutputSlot.tracksWarnings(slot -> slot.warning(WarningType.NO_SPACE_IN_OUTPUT, getWarningCheck(RecipeError.NOT_ENOUGH_OUTPUT_SPACE)));
+
+        mainContainerSlots = Collections.singletonList(energySlot);
+        smeltingContainerSlots = List.of(smeltingInputSlot, smeltingOutputSlot);
+        directInventoryHandler = () -> inventorySlots;
+
+        inputHandler = InputHelper.getInputHandler(smeltingInputSlot, RecipeError.NOT_ENOUGH_INPUT);
+        outputHandler = OutputHelper.getOutputHandler(smeltingOutputSlot, RecipeError.NOT_ENOUGH_OUTPUT_SPACE);
+    }
+
+    @Override
+    protected void registerGoals() {
+        super.registerGoals();
+        goalSelector.addGoal(1, new RobitAIPickup(this, 1));
+        goalSelector.addGoal(2, new RobitAIFollow(this, 1, 4, 2));
+        goalSelector.addGoal(3, new LookAtPlayerGoal(this, Player.class, 8));
+        goalSelector.addGoal(3, new RandomLookAroundGoal(this));
+        goalSelector.addGoal(4, new FloatGoal(this));
+    }
+
+    @Override
+    public Level getLevel() {
+        return level();
+    }
+
+    @Override
+    public boolean removeWhenFarAway(double distanceToClosestPlayer) {
+        return false;
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        //Default before it has a brief chance to get set the owner to mekanism's fake player
+        builder.define(OWNER_UUID, Mekanism.gameProfile.id());
+        builder.define(OWNER_NAME, "");
+        builder.define(SECURITY, SecurityMode.PUBLIC);
+        builder.define(FOLLOW, DEFAULT_FOLLOW);
+        builder.define(DROP_PICKUP, DEFAULT_DROP_PICKUP);
+        builder.define(DEFAULT_SKIN_MANUALLY_SELECTED, false);
+        builder.define(SKIN, MekanismRobitSkins.BASE);
+    }
+
+    private int getRoundedTravelEnergy() {
+        return Mth.ceil(DISTANCE_MULTIPLIER * Math.sqrt(distanceToSqr(xo, yo, zo)));
+    }
+
+    @Override
+    public void onRemovedFromLevel() {
+        if (!level().isClientSide() && getFollowing() && getOwner() != null) {
+            //If this robit is currently following its owner and is being removed from the world (due to chunk unloading)
+            // register a ticket that loads the chunk for a second, so that it has time to have its following check run again
+            // (as it runs every 10 ticks, half a second), and then teleport to the owner.
+            ((ServerLevel) level()).getChunkSource().addTicketWithRadius(MekanismTicketTypes.ROBIT_CHUNK_UNLOAD.value(), ChunkPos.containing(blockPosition()), 2);
+        }
+        super.onRemovedFromLevel();
+    }
+
+    @Override
+    public void tick() {
+        Level level = level();
+        if (!level.isClientSide()) {
+            if (homeLocation == null) {
+                discard();
+                return;
+            }
+            if (tickCount % SharedConstants.TICKS_PER_SECOND == 0) {
+                Level serverWorld;
+                if (level.dimension() == homeLocation.dimension()) {
+                    serverWorld = level;
+                } else {
+                    MinecraftServer server = level.getServer();
+                    serverWorld = server == null ? null : server.getLevel(homeLocation.dimension());
+                }
+                BlockPos homePos = homeLocation.pos();
+                if (WorldUtils.isBlockLoaded(serverWorld, homePos) && WorldUtils.getTileEntity(TileEntityChargepad.class, serverWorld, homePos) == null) {
+                    drop();
+                    discard();
+                    return;
+                }
+            }
+        }
+        super.tick();
+    }
+
+    @Override
+    public void baseTick() {
+        if (!level().isClientSide()) {
+            if (getFollowing()) {
+                Player owner = getOwner();
+                if (owner != null && distanceToSqr(owner) > 4 && !getNavigation().isDone() && !energyContainer.isEmpty()) {
+                    try (Transaction transaction = Transaction.openRoot()) {
+                        energyContainer.extract(getRoundedTravelEnergy(), transaction, AutomationType.INTERNAL);
+                        transaction.commit();
+                    }
+                }
+            }
+        }
+
+        super.baseTick();
+
+        if (!level().isClientSide()) {
+            if (getDropPickup()) {
+                try (Transaction transaction = Transaction.openRoot()) {
+                    if (collectItems(transaction)) {
+                        transaction.commit();
+                    }
+                }
+            }
+
+            if (energyContainer.isEmpty() && !isOnChargepad()) {
+                goHome();
+            }
+
+            energySlot.fillContainerOrConvert(null);
+            recipeCacheLookupMonitor.updateAndProcess(registryAccess());
+
+            if (!isDefaultSkinManuallySelected() && HolidayManager.hasRobitSkinsToday() && getSkinId() == MekanismRobitSkins.BASE) {
+                //Randomize the robit's skin
+                setSkin(HolidayManager.getRandomBaseSkin(level().getRandom()), null);
+            }
+        }
+    }
+
+    public static boolean isItemValid(ItemEntity item) {
+        return item.isAlive() && !item.hasPickUpDelay() && !(item.getItem().getItem() instanceof ItemRobit);
+    }
+
+    private boolean collectItems(TransactionContext transaction) {
+        for (ItemEntity item : level().getEntitiesOfClass(ItemEntity.class, getBoundingBox().inflate(1.5, 1.5, 1.5), RobitAIPickup.ITEM_PREDICATE)) {
+            ItemStack stack = item.getItem();
+            int toPickUp = stack.count();
+            int inserted = directInventoryHandler.insert(ItemResource.of(stack), toPickUp, transaction, AutomationType.INTERNAL);
+            if (inserted > 0) {
+                take(item, inserted);
+                stack.shrink(inserted);
+                if (stack.isEmpty()) {
+                    item.discard();
+                }
+                playSound(SoundEvents.ITEM_PICKUP, 1, ((random.nextFloat() - random.nextFloat()) * 0.7F + 1.0F) * 2.0F);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void goHome() {
+        if (level().isClientSide() || homeLocation == null) {
+            return;
+        }
+        MekanismTeleportEvent.Robit event = new MekanismTeleportEvent.Robit(this);
+        if (NeoForge.EVENT_BUS.post(event).isCanceled()) {
+            //Fail if the event was cancelled
+            return;
+        }
+        setFollowing(false);
+        if (!event.isTransDimensional()) {
+            setDeltaMovement(0, 0, 0);
+            teleportTo(event.getTargetX(), event.getTargetY(), event.getTargetZ());
+        } else {
+            ServerLevel newWorld = ((ServerLevel) this.level()).getServer().getLevel(event.getTargetDimension());
+            if (newWorld != null) {
+                Vec3 destination = event.getTarget();
+                teleport(new TeleportTransition(newWorld, destination, Vec3.ZERO, getYRot(), getXRot(), TeleportTransition.DO_NOTHING));
+            }
+        }
+    }
+
+    private boolean isOnChargepad() {
+        return WorldUtils.getTileEntity(TileEntityChargepad.class, level(), blockPosition()) != null;
+    }
+
+    @Override
+    protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+        if (!IEntitySecurityUtils.INSTANCE.canAccessOrDisplayError(player, this)) {
+            return InteractionResult.FAIL;
+        } else if (player.isShiftKeyDown()) {
+            ItemStack stack = player.getItemInHand(hand);
+            if (!stack.isEmpty() && stack.getItem() instanceof ItemConfigurator) {
+                if (!level().isClientSide()) {
+                    drop();
+                }
+                discard();
+                player.swing(hand, stack.getInteractAnimation(), false);
+                return InteractionResult.SUCCESS;
+            }
+            return InteractionResult.PASS;
+        } else if (!level().isClientSide()) {
+            gameEvent(GameEvent.ENTITY_INTERACT, player);
+            player.openMenu(MekanismContainerTypes.MAIN_ROBIT.getProvider(MekanismLang.ROBIT, this, true));
+        }
+        return InteractionResult.SUCCESS;
+    }
+
+    private ItemStack getItemVariant() {
+        ItemStack stack = MekanismItems.ROBIT.asStack();
+        ContainerType.ENERGY.attachCopyToStack(energyContainer, stack);
+        ContainerType.ITEM.attachCopyToStack(inventorySlots, stack);
+        if (hasCustomName()) {
+            stack.set(MekanismDataComponents.ROBIT_NAME, getName());
+        }
+        stack.set(MekanismDataComponents.DEFAULT_MANUALLY_SELECTED, isDefaultSkinManuallySelected());
+        stack.set(MekanismDataComponents.ROBIT_SKIN, getSkinId());
+        ISecurityObject security = IItemSecurityUtils.INSTANCE.securityCapability(ItemAccess.forStack(stack));
+        if (security != null) {
+            security.setOwnerUUID(getOwnerUUID(), null);
+            security.setSecurityMode(getSecurityMode(), null);
+        }
+        return stack;
+    }
+
+    public void drop() {
+        //TODO: Move this to loot table?
+        ItemEntity entityItem = new ItemEntity(level(), getX(), getY() + 0.3, getZ(), getItemVariant());
+        entityItem.setDeltaMovement(0, random.nextGaussian() * 0.05F + 0.2F, 0);
+        level().addFreshEntity(entityItem);
+    }
+
+    public float getScaledProgress() {
+        return getOperatingTicks() / (float) ticksRequired;
+    }
+
+    public int getOperatingTicks() {
+        return progress;
+    }
+
+    @Override
+    public int getSavedOperatingTicks(int cacheIndex) {
+        return getOperatingTicks();
+    }
+
+    @Override
+    public void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
+        output.store(SerializationConstants.OWNER_UUID, UUIDUtil.CODEC, getOwnerUUID());
+        output.store(SerializationConstants.SECURITY_MODE, SecurityMode.CODEC, getSecurityMode());
+        output.putBoolean(SerializationConstants.FOLLOW, getFollowing());
+        output.putBoolean(SerializationConstants.PICKUP_DROPS, getDropPickup());
+        output.storeNullable(SerializationConstants.HOME_LOCATION, GlobalPos.CODEC, homeLocation);
+        ContainerType.ITEM.saveTo(output, inventorySlots);
+        ContainerType.ENERGY.saveTo(output, energyContainer);
+        output.putInt(SerializationConstants.PROGRESS, getOperatingTicks());
+        output.store(SerializationConstants.SKIN, SKIN_KEY_CODEC, getSkinId());
+    }
+
+    @Override
+    public void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+        input.read(SerializationConstants.OWNER_UUID, UUIDUtil.CODEC).ifPresent(ownerUUID -> setOwnerUUID(ownerUUID, null));
+        setSecurityMode(input.read(SerializationConstants.SECURITY_MODE, SecurityMode.CODEC).orElse(SecurityMode.PUBLIC), null);
+        setFollowing(input.getBooleanOr(SerializationConstants.FOLLOW, DEFAULT_FOLLOW));
+        setDropPickup(input.getBooleanOr(SerializationConstants.PICKUP_DROPS, DEFAULT_DROP_PICKUP));
+        homeLocation = input.read(SerializationConstants.HOME_LOCATION, GlobalPos.CODEC).orElse(null);
+        ContainerType.ITEM.readFrom(input, inventorySlots);
+        ContainerType.ENERGY.readFrom(input, energyContainer);
+        progress = input.getIntOr(SerializationConstants.PROGRESS, 0);
+        setSkin(input.read(SerializationConstants.SKIN, SKIN_KEY_CODEC).orElse(MekanismRobitSkins.BASE), null);
+    }
+
+    @Override
+    protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
+        super.actuallyHurt(level, source, dmg);
+        if (!source.is(DamageTypes.GENERIC_KILL)) {
+            //If the damage type is not from the kill command, reset the robit's health back to maximum
+            setHealth(getMaxHealth());
+        }
+    }
+
+    @Override
+    public void onDamageTaken(DamageContainer damageContainer) {
+        //Protect against any mods that might be doing transactional logic, such as if an auto clicker validates it has enough energy before hitting a robit
+        try (Transaction transaction = TransactionHelper.openTransactionSafe()) {
+            energyContainer.extract(MathUtils.clampToInt(1_000 * damageContainer.getNewDamage()), transaction, AutomationType.INTERNAL);
+            transaction.commit();
+        }
+    }
+
+    public void setHome(GlobalPos home) {
+        homeLocation = home;
+        //TODO - 26.3: Add support for getHomePosition (new as of 1.21.6)? It might limit pathfinding so maybe we shouldn't,
+        // though we could have it for pickup items allow setting a home radius around the chargepad?
+        // setHomeTo(home.pos(), 1);
+    }
+
+    @Nullable
+    @Override
+    public GlobalPos getHome() {
+        return homeLocation;
+    }
+
+    @Override
+    public boolean isPushable() {
+        return !energyContainer.isEmpty();
+    }
+
+    @Nullable
+    public Player getOwner() {
+        return level().getPlayerByUUID(getOwnerUUID());
+    }
+
+    @Override
+    public String getOwnerName() {
+        return entityData.get(OWNER_NAME);
+    }
+
+    @Override
+    public UUID getOwnerUUID() {
+        return entityData.get(OWNER_UUID);
+    }
+
+    @Override
+    public SecurityMode getSecurityMode() {
+        return entityData.get(SECURITY);
+    }
+
+    @Override
+    public void setSecurityMode(SecurityMode mode, @Nullable TransactionContext transaction) {
+        SecurityMode current = getSecurityMode();
+        if (current != mode) {
+            entityData.set(SECURITY, mode);
+            if (!level().isClientSide()) {
+                EntitySecurityUtils.get().securityChanged(playersUsing, this, current, mode);
+            }
+        }
+    }
+
+    public void open(Player player) {
+        playersUsing.add(player);
+    }
+
+    public void close(Player player) {
+        playersUsing.remove(player);
+    }
+
+    @Override
+    public void setOwnerUUID(@Nullable UUID uuid, @Nullable TransactionContext transaction) {
+        if (uuid == null) {
+            //If for some reason this is called with a null uuid, default it back to the values the data is initialized with
+            entityData.set(OWNER_UUID, Mekanism.gameProfile.id());
+            entityData.set(OWNER_NAME, "");
+        } else {
+            entityData.set(OWNER_UUID, uuid);
+            entityData.set(OWNER_NAME, MekanismUtils.getLastKnownUsername(uuid));
+        }
+    }
+
+    public boolean getFollowing() {
+        return entityData.get(FOLLOW);
+    }
+
+    public void setFollowing(boolean follow) {
+        entityData.set(FOLLOW, follow);
+    }
+
+    public boolean getDropPickup() {
+        return entityData.get(DROP_PICKUP);
+    }
+
+    public void setDropPickup(boolean pickup) {
+        entityData.set(DROP_PICKUP, pickup);
+    }
+
+    public List<IInventorySlot> getInventorySlots() {
+        return inventorySlots;
+    }
+
+    @Override
+    public void onContentsChanged() {
+        //TODO: Do we need to save the things? Probably, if not remove the call to here from createNewCachedRecipe
+    }
+
+    public List<IInventorySlot> getContainerInventorySlots(MenuType<?> containerType) {
+        if (containerType == MekanismContainerTypes.INVENTORY_ROBIT.get()) {
+            return inventoryContainerSlots;
+        } else if (containerType == MekanismContainerTypes.MAIN_ROBIT.get()) {
+            return mainContainerSlots;
+        } else if (containerType == MekanismContainerTypes.SMELTING_ROBIT.get()) {
+            return smeltingContainerSlots;
+        }
+        return Collections.emptyList();
+    }
+
+    @Override
+    public IMekanismRecipeTypeProvider<SingleRecipeInput, CookingBookCategory, CookingBookInfo, ItemStackToItemStackRecipe<CookingBookCategory, CookingBookInfo>,
+          SingleItem<ItemStackToItemStackRecipe<CookingBookCategory, CookingBookInfo>>> getRecipeType() {
+        return MekanismRecipeType.SMELTING;
+    }
+
+    @Override
+    public IRecipeViewerRecipeType<ItemStackToItemStackRecipe<CookingBookCategory, CookingBookInfo>> recipeViewerType() {
+        return RecipeViewerRecipeType.SMELTING;
+    }
+
+    @Nullable
+    @Override
+    public ItemStackToItemStackRecipe<CookingBookCategory, CookingBookInfo> getRecipe(int cacheIndex) {
+        return findFirstRecipe(inputHandler);
+    }
+
+    public IEnergyContainer getEnergyContainer() {
+        return energyContainer;
+    }
+
+    @Override
+    public ItemStack getPickResult() {
+        return getItemVariant();
+    }
+
+    @Override
+    public void clearRecipeErrors(int cacheIndex) {
+        Arrays.fill(trackedErrors, false);
+    }
+
+    @Override
+    public CachedRecipe<ItemStackToItemStackRecipe<CookingBookCategory, CookingBookInfo>> createNewCachedRecipe(ItemStackToItemStackRecipe<CookingBookCategory, CookingBookInfo> recipe, int cacheIndex) {
+        //TODO: Make a robit specific smelting energy usage config
+        return new OneInputCachedRecipe<>(recipe, recheckAllRecipeErrors, inputHandler, outputHandler)
+              .setErrorsChanged(errors -> {
+                  for (int i = 0; i < trackedErrors.length; i++) {
+                      trackedErrors[i] = errors.contains(TRACKED_ERROR_TYPES.get(i));
+                  }
+              })
+              .setEnergyRequirements(MekanismConfig.usage.energizedSmelter, energyContainer)
+              .setRequiredTicks(() -> ticksRequired)
+              .setOnFinish(this::onContentsChanged)
+              .setOperatingTicksChanged(operatingTicks -> progress = operatingTicks);
+    }
+
+    public BooleanSupplier getWarningCheck(RecipeError error) {
+        int errorIndex = TRACKED_ERROR_TYPES.indexOf(error);
+        if (errorIndex == -1) {
+            //Something went wrong
+            return ConstantPredicates.ALWAYS_FALSE;
+        }
+        return () -> trackedErrors[errorIndex];
+    }
+
+    public void addContainerTrackers(MekanismContainer container) {
+        MenuType<?> containerType = container.getType();
+        if (containerType == MekanismContainerTypes.MAIN_ROBIT.get()) {
+            container.track(SyncableLong.create(energyContainer));
+        } else if (containerType == MekanismContainerTypes.SMELTING_ROBIT.get()) {
+            container.track(SyncableInt.create(() -> progress, value -> progress = value));
+            container.trackArray(trackedErrors);
+        }
+    }
+
+    public ContainerLevelAccess getWorldPosCallable() {
+        if (level().isClientSide()) {
+            //Note: Mojang just uses a null level access for containers on the client side. We mirror this here so that
+            // we don't play multiple sounds when taking items out of the robit's repair screen
+            return ContainerLevelAccess.NULL;
+        }
+        return new ContainerLevelAccess() {
+            @Override
+            public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, @Nullable T> worldBlockPosTBiFunction) {
+                //Note: We use an anonymous class implementation rather than using IWorldPosCallable.of, so that if the robit moves
+                // this uses the proper updated position
+                return Optional.ofNullable(worldBlockPosTBiFunction.apply(level(), blockPosition()));
+            }
+        };
+    }
+
+    public boolean isDefaultSkinManuallySelected() {
+        return entityData.get(DEFAULT_SKIN_MANUALLY_SELECTED);
+    }
+
+    public void setDefaultSkinManuallySelected(boolean value) {
+        entityData.set(DEFAULT_SKIN_MANUALLY_SELECTED, value);
+    }
+
+    @Override
+    public ResourceKey<RobitSkin> getSkinId() {
+        return entityData.get(SKIN);
+    }
+
+    public RobitSkin getSkin() {
+        return MekanismRobitSkins.get(registryAccess(), getSkinId());
+    }
+
+    //TODO - 26.3: cache the skin instance and index
+
+    @Override
+    public boolean setSkin(ResourceKey<RobitSkin> skinKey, @Nullable Player player) {
+        Objects.requireNonNull(skinKey, "Robit skin cannot be null.");
+        if (getSkinId() == skinKey) {
+            //Don't do anything if the robit already has that skin selected
+            return true;
+        }
+        if (player != null) {
+            if (!IEntitySecurityUtils.INSTANCE.canAccess(player, this)) {
+                return false;
+            }
+            SkinLookup skinLookup = MekanismRobitSkins.lookup(registryAccess(), skinKey);
+            skinKey = skinLookup.name();
+            if (getSkinId() == skinKey) {
+                //Don't do anything if the robit already has that skin selected
+                //Note: We double-check this in case we ended up being changed to the default skin due to it not existing
+                return true;
+            } else if (!skinLookup.skin().isUnlocked(player)) {
+                return false;
+            } else if (player instanceof ServerPlayer serverPlayer) {
+                MekanismCriteriaTriggers.CHANGE_ROBIT_SKIN.value().trigger(serverPlayer, skinKey);
+            }
+        }
+        entityData.set(SKIN, skinKey);
+        if (skinKey == MekanismRobitSkins.BASE) {
+            setDefaultSkinManuallySelected(true);
+        }
+        return true;
+    }
+
+    /// @apiNote Only call on the client.
+    public Identifier getModelTexture() {
+        Registry<RobitSkin> robitSkins = registryAccess().lookupOrThrow(MekanismRegistries.Keys.ROBIT_SKINS);
+        ResourceKey<RobitSkin> skinKey = getSkinId();
+        Optional<Holder.Reference<RobitSkin>> optionalSkin = robitSkins.get(skinKey);
+        Holder.Reference<RobitSkin> skin;
+        if (optionalSkin.isPresent()) {
+            skin = optionalSkin.get();
+        } else {
+            Mekanism.logger.error("Unknown Robit Skin: {}; resetting skin to base.", skinKey.identifier());
+            setSkin(skinKey = MekanismRobitSkins.BASE, null);
+            skin = robitSkins.getOrThrow(skinKey);
+        }
+        List<Identifier> textures = skin.value().textures();
+        if (textures.isEmpty()) {
+            //Note: Should not really happen but in case a custom impl has no textures handle it
+            textureIndex = 0;
+            if (skinKey != MekanismRobitSkins.BASE) {
+                Mekanism.logger.error("Robit Skin: {}, has no textures; resetting skin to base.", skinKey.identifier());
+                setSkin(skinKey = MekanismRobitSkins.BASE, null);
+                skin = robitSkins.getOrThrow(skinKey);
+            }
+            if (skin.value().textures().isEmpty()) {
+                //This should not happen but if it does throw a cleaner error than a stack overflow
+                throw new IllegalStateException("Base robit skin has no textures defined.");
+            }
+            return getModelTexture();
+        }
+        int textureCount = textures.size();
+        if (textureCount == 1) {
+            textureIndex = 0;
+        } else {
+            if (lastTextureUpdate < tickCount) {
+                //Only check for movement and if the texture index needs to update if we haven't already done so this tick
+                lastTextureUpdate = tickCount;
+                if (Math.abs(getX() - xo) + Math.abs(getZ() - zo) > 0.001) {
+                    //If the robit moved and the ticks are such that it should update, update the index
+                    if (tickCount % 3 == 0) {
+                        textureIndex++;
+                    }
+                }
+            }
+            if (textureIndex >= textureCount) {
+                textureIndex = textureIndex % textureCount;
+            }
+        }
+        return textures.get(textureIndex);
+    }
+}

@@ -1,0 +1,165 @@
+/*
+ * MIT License
+ *
+ * Copyright 2021 vemerion
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.entity.familiar;
+
+import com.klikli_dev.occultism.common.entity.familiar.GreedyFamiliarEntity.RideFamiliarGoal;
+import com.klikli_dev.occultism.registry.OccultismEntities;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.FollowMobGoal;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3d;
+
+import javax.annotation.Nonnull;
+
+public class ShubNiggurathFamiliarEntity extends FamiliarEntity {
+    private static final int MAX_SPAWN_TIMER = 20 * 10;
+    private static final int SPAWN_TIMER = 20 * 5;
+    private static final int MIN_SPAWN_TIMER = 20;
+
+    private int spawnTimer;
+
+    public ShubNiggurathFamiliarEntity(EntityType<? extends ShubNiggurathFamiliarEntity> type, Level level) {
+        super(type, level);
+        this.spawnTimer = MAX_SPAWN_TIMER;
+    }
+
+    public ShubNiggurathFamiliarEntity(Level level, @Nonnull GoatFamiliarEntity goat) {
+        this(OccultismEntities.SHUB_NIGGURATH_FAMILIAR.get(), level);
+        this.setRing(goat.hasRing());
+        this.setBeard(goat.hasBeard());
+        if (goat.getFamiliarOwner() != null)
+            this.setFamiliarOwner(goat.getFamiliarOwner());
+        this.setPos(goat.getX(), goat.getY(), goat.getZ());
+    }
+
+    @Override
+    protected void registerGoals() {
+        super.registerGoals();
+        this.goalSelector.addGoal(0, new FloatGoal(this));
+        this.goalSelector.addGoal(1, new SitGoal(this));
+        this.goalSelector.addGoal(1, new LookAtPlayerGoal(this, Player.class, 8));
+        this.goalSelector.addGoal(2, new LookAtPlayerGoal(this, LivingEntity.class, 8));
+        this.goalSelector.addGoal(3,
+                new RideFamiliarGoal<>(this, OccultismEntities.CTHULHU_FAMILIAR.get()));
+        this.goalSelector.addGoal(6, new FollowOwnerGoal(this, 1, 3, 1));
+        this.goalSelector.addGoal(8, new RandomStrollGoal(this, 1));
+        this.goalSelector.addGoal(9, new FollowMobGoal(this, 1, 3, 7));
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (!this.level().isClientSide()) {
+            this.rotateTowardsFriend();
+
+            if (!this.isSitting() && this.spawnTimer-- < 0) {
+                this.spawnTimer = this.hasIesniumUpgrade() ? MIN_SPAWN_TIMER :
+                        this.hasBlacksmithUpgrade() ? SPAWN_TIMER : MAX_SPAWN_TIMER;
+                this.createSpawn(this, new Vector3d(this.getRandomX(2), this.getRandomY(), this.getRandomZ(2)));
+            }
+        }
+    }
+
+    @Override
+    public void curioTick(LivingEntity wearer) {
+        if (this.isAbilityEnabled(wearer)) {
+            int time = this.hasIesniumUpgrade() ? MIN_SPAWN_TIMER :
+                    this.hasBlacksmithUpgrade() ? SPAWN_TIMER : MAX_SPAWN_TIMER;
+            if (wearer.level() instanceof ServerLevel serverLevel && serverLevel.getGameTime() % time == 0) {
+                this.createSpawn(wearer, new Vector3d(wearer.getRandomX(2), wearer.getRandomY(), wearer.getRandomZ(2)));
+            }
+        }
+    }
+
+    protected float tickHeadTurn(float p_110146_1_, float distance) {
+        if (distance > 0.1) {
+            this.yBodyRot = this.yRotO;
+            this.yHeadRot = Mth.rotateIfNecessary(this.yHeadRot, this.yBodyRot, this.getMaxHeadYRot());
+        }
+        return distance;
+    }
+
+    public CthulhuFamiliarEntity getCthulhuFriend() {
+        if (this.getVehicle() instanceof CthulhuFamiliarEntity)
+            return (CthulhuFamiliarEntity) this.getVehicle();
+        return null;
+    }
+
+    private void createSpawn(LivingEntity creator, Vector3d pos) {
+        ShubNiggurathSpawnEntity spawn = new ShubNiggurathSpawnEntity(creator.level(), creator);
+        spawn.setPos(pos.x, pos.y, pos.z);
+        creator.level().addFreshEntity(spawn);
+    }
+
+    private void rotateTowardsFriend() {
+        CthulhuFamiliarEntity friend = this.getCthulhuFriend();
+        if (friend != null) {
+            Vec3 direction = this.position().vectorTo(friend.position());
+            float rot = (float) Math.toDegrees(Mth.atan2(direction.z, direction.x)) - 50;
+            this.yRotO = rot;
+            this.yBodyRot = this.yRotO;
+            this.yBodyRotO = this.yRotO;
+        }
+    }
+
+    @Override
+    public void actuallyHurt(ServerLevel serverLevel, DamageSource pSource, float pAmount) {
+        if (this.getVehicle() != null && this.immuneWhileHoldingHand(pSource))
+            return;
+
+        super.actuallyHurt(serverLevel, pSource, pAmount);
+        if (pSource.getEntity() != null) {
+            GoatFamiliarEntity.ringBell(this);
+        }
+    }
+
+    private boolean immuneWhileHoldingHand(DamageSource s) {
+        return s.is(DamageTypeTags.BYPASSES_ARMOR);
+    }
+
+    public boolean hasRing() {
+        return this.hasVariant(0);
+    }
+
+    private void setRing(boolean b) {
+        this.setVariant(0, b);
+    }
+
+    public boolean hasBeard() {
+        return this.hasVariant(1);
+    }
+
+    private void setBeard(boolean b) {
+        this.setVariant(1, b);
+    }
+}

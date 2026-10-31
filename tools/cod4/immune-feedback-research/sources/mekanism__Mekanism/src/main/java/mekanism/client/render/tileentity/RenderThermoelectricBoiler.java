@@ -1,0 +1,118 @@
+package mekanism.client.render.tileentity;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import mekanism.api.MekanismAPITags;
+import mekanism.api.chemical.ChemicalResource;
+import mekanism.client.render.MekanismRenderer;
+import mekanism.client.render.ModelRenderer;
+import mekanism.client.render.MultiblockContentsRenderState;
+import mekanism.client.render.RenderResizableCuboid;
+import mekanism.client.render.data.ValveRenderData;
+import mekanism.client.render.tileentity.RenderThermoelectricBoiler.BoilerRenderState;
+import mekanism.common.content.boiler.BoilerMultiblockData;
+import mekanism.common.lib.multiblock.IValveHandler;
+import mekanism.common.tile.multiblock.TileEntityBoilerCasing;
+import mekanism.common.util.MekanismUtils;
+import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.LightCoordsUtil;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import org.jspecify.annotations.Nullable;
+
+public class RenderThermoelectricBoiler extends MultiblockTileEntityRenderer<BoilerMultiblockData, TileEntityBoilerCasing, BoilerRenderState> {
+
+    @Override
+    public BoilerRenderState createRenderState() {
+        return new BoilerRenderState();
+    }
+
+    @Override
+    public void extractRenderState(TileEntityBoilerCasing boiler, BoilerMultiblockData multiblock, BoilerRenderState state, float partialTick, Vec3 cameraPosition,
+          ModelFeatureRenderer.@Nullable CrumblingOverlay breakProgress) {
+        FluidResource water = multiblock.waterTank.resource();
+        ChemicalResource steam = multiblock.steamTank.resource();
+        if (water.isEmpty() && steam.isEmpty() || multiblock.upperRenderLocation == null) {
+            //Should not be empty due to the checks for shouldRender
+            return;
+        }
+        state.calculateLightCoords(boiler.getLevel(), multiblock);
+
+        state.steamHeight = state.renderLocation.getY() + state.height - multiblock.upperRenderLocation.getY();
+        state.height = multiblock.upperRenderLocation.getY() - 1 - state.renderLocation.getY();
+        if (state.height > 0 && !water.isEmpty()) {
+            state.waterTexture = MekanismRenderer.getSinglePicker(MekanismRenderer.getFluidTexture(water, MekanismRenderer.FluidTextureType.STILL));
+            state.valveTexture = MekanismRenderer.getValveTexture(water);
+            state.waterGlow = LightCoordsUtil.lightCoordsWithEmission(state.lightCoords, water.getFluidType().getLightLevel());
+            state.waterColor = MekanismRenderer.getColorARGB(water, multiblock.prevWaterScale);
+            state.waterMaxY = ModelRenderer.getMaxY(state.height, multiblock.prevWaterScale, MekanismUtils.lighterThanAirGas(water));
+            state.valves.clear();
+            if (multiblock.prevWaterScale > 0) {
+                for (Map.Entry<BlockPos, IValveHandler.ValveData> entry : multiblock.valves.entrySet()) {
+                    state.valves.add(ValveRenderData.get(entry.getValue(), entry.getKey(), state.waterMaxY - 0.01F, state.renderLocation, state.height));
+                }
+            }
+        }
+        if (state.steamHeight > 0 && !steam.isEmpty()) {
+            state.upperRenderLocation = multiblock.upperRenderLocation.offset(1, 0, 1);
+            state.steamTexture = MekanismRenderer.getSinglePicker(MekanismRenderer.getChemicalTexture(steam));
+            state.steamGlow = LightCoordsUtil.lightCoordsWithEmission(state.lightCoords, steam.value().lightLevel());
+            state.steamColor = MekanismRenderer.getColorARGB(steam, multiblock.prevSteamScale);
+            state.steamMaxY = ModelRenderer.getMaxY(state.steamHeight, multiblock.prevSteamScale, steam.is(MekanismAPITags.Chemicals.GASEOUS));
+        }
+    }
+
+    @Override
+    public void submit(BoilerRenderState state, PoseStack poseStack, SubmitNodeCollector nodeCollector, CameraRenderState camera) {
+        RenderType renderType = Sheets.translucentBlockItemSheet();
+        if (state.waterTexture != null) {
+            RenderResizableCuboid.renderObject(camera.pos, poseStack, renderType, nodeCollector, RenderResizableCuboid.SideRender.ALL_FACES,
+                  0.01F, 0.01F, 0.01F, state.length - 0.02F, state.waterMaxY, state.width - 0.02F, state.waterTexture,
+                  OverlayTexture.NO_OVERLAY, state.waterGlow, state.waterColor, state.blockPos, state.renderLocation, state.length, state.width);
+            if (state.valveTexture != null) {
+                RenderResizableCuboid.renderValves(camera.pos, poseStack, renderType, nodeCollector, state.valves, OverlayTexture.NO_OVERLAY, state.valveTexture,
+                      state.blockPos, state.renderLocation, state.length, state.width, state.height, state.waterColor, state.waterGlow, state.waterMaxY - 0.01F);
+            }
+        }
+        if (state.steamTexture != null) {
+            RenderResizableCuboid.renderObject(camera.pos, poseStack, renderType, nodeCollector, RenderResizableCuboid.SideRender.ALL_FACES,
+                  0.01F, 0.01F, 0.01F, state.length - 0.02F, state.steamMaxY, state.width - 0.02F, state.steamTexture,
+                  OverlayTexture.NO_OVERLAY, state.steamGlow, state.steamColor, state.blockPos, state.upperRenderLocation, state.length, state.width);
+        }
+    }
+
+    @Override
+    protected boolean shouldRender(TileEntityBoilerCasing tile, BoilerMultiblockData multiblock, Vec3 camera) {
+        if (super.shouldRender(tile, multiblock, camera) && multiblock.upperRenderLocation != null) {
+            return !multiblock.waterTank.isEmpty() || !multiblock.steamTank.isEmpty();
+        }
+        return false;
+    }
+
+    public static class BoilerRenderState extends MultiblockContentsRenderState {
+
+        public BlockPos upperRenderLocation = BlockPos.ZERO;
+
+        public RenderResizableCuboid.@Nullable TexturePicker waterTexture;
+        public int waterColor;
+        public int waterGlow;
+        public float waterMaxY;
+
+        public RenderResizableCuboid.@Nullable TexturePicker steamTexture;
+        public float steamMaxY;
+        public int steamColor;
+        public int steamGlow;
+        public int steamHeight;
+
+        public List<ValveRenderData> valves = new ArrayList<>();
+        public MekanismRenderer.@Nullable ValveTextureGetter valveTexture;
+    }
+}

@@ -1,0 +1,106 @@
+package mekanism.client.render;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.PoseStack.Pose;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import mekanism.common.lib.transmitter.TransmissionType;
+import net.minecraft.client.renderer.FaceInfo;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.feature.CustomFeatureRenderer;
+import net.minecraft.client.renderer.feature.submit.SubmitNode;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.level.BlockOutlineRenderState;
+import net.minecraft.client.renderer.state.level.LevelRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.LightCoordsUtil;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.client.CustomBlockOutlineRenderer;
+import net.neoforged.neoforge.client.submit.RenderPhaseKey;
+import net.neoforged.neoforge.client.submit.RenderPhaseKeys;
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+
+class ConfiguratorOverlayHandler implements CustomBlockOutlineRenderer, SubmitNodeCollector.CustomGeometryRenderer {
+
+    private final BlockPos pos;
+    private final TextureAtlasSprite sprite;
+    private final Direction face;
+    private final int transmissionColor;
+    private boolean isDiversion;
+    //Must be in same order as Direction
+    private static final Quaternionf[] V_ROT = {
+          new Quaternionf().setAngleAxis(180 * Mth.DEG_TO_RAD, 0, 1, 0),//south
+          new Quaternionf().setAngleAxis(90 * Mth.DEG_TO_RAD, 0, 1, 0),//west
+          new Quaternionf().setAngleAxis(270 * Mth.DEG_TO_RAD, 0, 1, 0)//east
+    };
+    private static final int V_ROT_OFFSET = Direction.SOUTH.ordinal();
+    private static final int DIVERSION_OVERLAY_ARGB = ARGB.white(0.8F);
+
+    public ConfiguratorOverlayHandler(BlockPos pos, TransmissionType type, Direction face, int transmissionColor) {
+        this(pos, MekanismRenderer.overlays.get(type), face, transmissionColor, false);
+    }
+
+    public ConfiguratorOverlayHandler(BlockPos pos, TextureAtlasSprite sprite, Direction face) {
+        this(pos, sprite, face, DIVERSION_OVERLAY_ARGB, true);
+    }
+
+    private ConfiguratorOverlayHandler(BlockPos pos, TextureAtlasSprite sprite, Direction face, int transmissionColor, boolean isDiversion) {
+        this.pos = pos;
+        this.sprite = sprite;
+        this.face = face;
+        this.transmissionColor = transmissionColor;
+        this.isDiversion = isDiversion;
+    }
+
+    @Override
+    public boolean render(BlockOutlineRenderState state, SubmitNodeCollector nodeCollector, PoseStack poseStack, LevelRenderState levelRenderState) {
+        poseStack.pushPose();
+        Vec3 viewPosition = levelRenderState.cameraRenderState.pos;
+        poseStack.translate(pos.getX() - viewPosition.x, pos.getY() - viewPosition.y, pos.getZ() - viewPosition.z);
+
+        //if top/bottom face, try to rotate so the bottom is as close to screen bottom as we can get
+        if (face == Direction.UP || face == Direction.DOWN) {
+            Direction cameraFacing = Direction.fromYRot(levelRenderState.cameraRenderState.yRot);
+            if (cameraFacing != Direction.NORTH) {
+                poseStack.rotateAround(V_ROT[cameraFacing.ordinal() - V_ROT_OFFSET], 0.5F, 1, 0.5F);
+            }
+        }
+
+        if (isDiversion) {
+            poseStack.scale(0.5F, 0.5F, 0.5F);
+            poseStack.translate(0.5, 0.5, 0.5);
+        }
+        RenderPhaseKey<SubmitNode> phase = state.isTranslucent() ? RenderPhaseKeys.AFTER_TERRAIN : RenderPhaseKeys.SHAPE_OUTLINES;
+        nodeCollector.submitSpecial(phase, new CustomFeatureRenderer.Submit(poseStack.last().copy(), RenderTypes.eyes(sprite.atlasLocation()), this));
+        poseStack.popPose();
+        return !isDiversion;
+    }
+
+    @Override
+    public void render(Pose pose, VertexConsumer buffer) {
+        Vector3f normal = pose.transformNormal(face.getUnitVec3f(), new Vector3f());
+        Matrix4f matrix = pose.pose();
+        //face draw code donated by XFactHD
+        FaceInfo faceInfo = FaceInfo.fromFacing(face);
+        for (int vertex = 0; vertex < 4; vertex++) {
+            FaceInfo.VertexInfo vertInfo = faceInfo.getVertexInfo(vertex);
+            float x = vertInfo.xFace().select(0, 0, 0, 1, 1, 1) + face.getStepX() * 0.01F;
+            float y = vertInfo.yFace().select(0, 0, 0, 1, 1, 1) + face.getStepY() * 0.01F;
+            float z = vertInfo.zFace().select(0, 0, 0, 1, 1, 1) + face.getStepZ() * 0.01F;
+            float u = vertex < 2 ? 0 : 1;
+            float v = vertex == 0 || vertex == 3 ? 0 : 1;
+            buffer.addVertex(matrix, x, y, z)
+                  .setColor(transmissionColor)
+                  .setUv(sprite.getU(u), sprite.getV(v))
+                  .setOverlay(OverlayTexture.NO_OVERLAY)
+                  .setLight(LightCoordsUtil.FULL_BRIGHT)
+                  .setNormal(normal.x, normal.y, normal.z);
+        }
+    }
+}

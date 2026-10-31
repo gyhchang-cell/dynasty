@@ -1,0 +1,137 @@
+package mekanism.generators.client.render;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import mekanism.api.MekanismAPITags;
+import mekanism.api.chemical.ChemicalResource;
+import mekanism.client.render.MekanismRenderer;
+import mekanism.client.render.ModelRenderer;
+import mekanism.client.render.MultiblockContentsRenderState;
+import mekanism.client.render.RenderResizableCuboid;
+import mekanism.client.render.data.ValveRenderData;
+import mekanism.client.render.tileentity.MultiblockTileEntityRenderer;
+import mekanism.common.capabilities.merged.MergedTank.CurrentType;
+import mekanism.common.lib.multiblock.IValveHandler;
+import mekanism.common.util.MekanismUtils;
+import mekanism.generators.client.render.RenderFissionReactor.FissionRenderState;
+import mekanism.generators.common.content.fission.FissionReactorMultiblockData;
+import mekanism.generators.common.content.fission.FissionReactorValidator.FormedAssembly;
+import mekanism.generators.common.tile.fission.TileEntityFissionReactorCasing;
+import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.LightCoordsUtil;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import org.jspecify.annotations.Nullable;
+
+public class RenderFissionReactor extends MultiblockTileEntityRenderer<FissionReactorMultiblockData, TileEntityFissionReactorCasing, FissionRenderState> {
+
+    private static final int GLOW_ARGB = ARGB.color(0.6F, 0x76E0EC);
+    //TODO: Replace using a model for glow with using FuelAssemblyBakedModel as it should provide a performance boost
+    // The issue and reason it doesn't use it yet is because rendering the coolant hides the FuelAssemblyBakedModel due to
+    // transparency sort ordering
+
+    @Override
+    public FissionRenderState createRenderState() {
+        return new FissionRenderState();
+    }
+
+    @Override
+    public void extractRenderState(TileEntityFissionReactorCasing reactor, FissionReactorMultiblockData multiblock, FissionRenderState state, float partialTick,
+          Vec3 cameraPosition, ModelFeatureRenderer.@Nullable CrumblingOverlay breakProgress) {
+        state.calculateLightCoords(reactor.getLevel(), multiblock);
+        float heatedCoolantScale = multiblock.prevHeatedCoolantScale;
+        float coolantScale = multiblock.prevCoolantScale;
+        if (multiblock.coolantTank.getCurrentType() == CurrentType.FLUID) {
+            FluidResource coolant = multiblock.coolantTank.getFluidTank().resource();
+            state.coolantTexture = MekanismRenderer.getSinglePicker(MekanismRenderer.getFluidTexture(coolant, MekanismRenderer.FluidTextureType.STILL));
+            boolean isGaseous = MekanismUtils.lighterThanAirGas(coolant);
+            state.coolantGlow = LightCoordsUtil.lightCoordsWithEmission(state.lightCoords, coolant.getFluidType().getLightLevel());
+            state.coolantColor = MekanismRenderer.getColorARGB(coolant, coolantScale);
+            state.coolantMaxY = ModelRenderer.getMaxY(state.height, coolantScale, isGaseous);
+            state.valveTexture = MekanismRenderer.getValveTexture(coolant);
+            for (Map.Entry<BlockPos, IValveHandler.ValveData> entry : multiblock.valves.entrySet()) {
+                state.valves.add(ValveRenderData.get(entry.getValue(), entry.getKey(), state.coolantMaxY - 0.01F, state.renderLocation, state.height));
+            }
+        } else if (multiblock.coolantTank.getCurrentType() == CurrentType.CHEMICAL) {
+            ChemicalResource coolant = multiblock.coolantTank.getChemicalTank().resource();
+            state.coolantTexture = MekanismRenderer.getSinglePicker(MekanismRenderer.getChemicalTexture(coolant));
+            boolean isGaseous = coolant.is(MekanismAPITags.Chemicals.GASEOUS);
+            state.coolantGlow = LightCoordsUtil.lightCoordsWithEmission(state.lightCoords, coolant.value().lightLevel());
+            state.coolantColor = MekanismRenderer.getColorARGB(coolant, coolantScale);
+            state.coolantMaxY = ModelRenderer.getMaxY(state.height, coolantScale, isGaseous);
+        }
+        if (!multiblock.heatedCoolantTank.isEmpty()) {
+            ChemicalResource heatedCoolant = multiblock.heatedCoolantTank.resource();
+            state.heatedCoolantTexture = MekanismRenderer.getSinglePicker(MekanismRenderer.getChemicalTexture(heatedCoolant));
+            state.heatedCoolantMaxY = ModelRenderer.getMaxY(state.height, heatedCoolantScale, heatedCoolant.is(MekanismAPITags.Chemicals.GASEOUS));
+            state.heatedCoolantColor = MekanismRenderer.getColorARGB(heatedCoolant, heatedCoolantScale);
+            state.heatedCoolantGlow = LightCoordsUtil.lightCoordsWithEmission(state.lightCoords, heatedCoolant.value().lightLevel());
+        }
+
+        if (multiblock.isBurning()) {
+            //TODO - 26.3: Do we need to copy this like this?
+            state.assemblies.addAll(multiblock.assemblies);
+        }
+    }
+
+    @Override
+    public void submit(FissionRenderState state, PoseStack poseStack, SubmitNodeCollector nodeCollector, CameraRenderState camera) {
+        BlockPos pos = state.blockPos;
+        if (!state.assemblies.isEmpty()) {
+            for (FormedAssembly assembly : state.assemblies) {
+                BlockPos assemblyPos = assembly.pos();
+                poseStack.pushPose();
+                poseStack.translate(assemblyPos.getX() - pos.getX(), assemblyPos.getY() - pos.getY(), assemblyPos.getZ() - pos.getZ());
+                //Add a bit of extra distance so that it includes the lower part of the control rod
+                poseStack.scale(1, assembly.height() + 0.625F, 1);
+                RenderResizableCuboid.renderCube(RenderResizableCuboid.SideRender.HORIZONTAL, 0.05F, 0.01F, 0.05F, 0.95F, 0.99F, 0.95F,
+                      poseStack, Sheets.translucentBlockItemSheet(), nodeCollector, GLOW_ARGB, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY,
+                      RenderResizableCuboid.FaceDisplay.FRONT, camera.pos, Vec3.atLowerCornerOf(assemblyPos), MekanismRenderer.WHITE_ICON_GETTER);
+                poseStack.popPose();
+            }
+        }
+        if (state.coolantTexture != null) {
+            RenderType renderType = Sheets.translucentBlockItemSheet();
+            RenderResizableCuboid.renderObject(camera.pos, poseStack, renderType, nodeCollector, RenderResizableCuboid.SideRender.ALL_FACES,
+                  0.01F, 0.01F, 0.01F, state.length - 0.02F, state.coolantMaxY, state.width - 0.02F, state.coolantTexture,
+                  OverlayTexture.NO_OVERLAY, state.coolantGlow, state.coolantColor, state.blockPos, state.renderLocation, state.length, state.width);
+            if (state.valveTexture != null) {
+                RenderResizableCuboid.renderValves(camera.pos, poseStack, renderType, nodeCollector, state.valves, OverlayTexture.NO_OVERLAY, state.valveTexture,
+                      state.blockPos, state.renderLocation, state.length, state.width, state.height, state.coolantColor, state.coolantGlow, state.coolantMaxY - 0.01F);
+            }
+        }
+        if (state.heatedCoolantTexture != null) {
+            //uses a slightly shrunken version of the model to prevent z-fighting
+            RenderResizableCuboid.renderObject(camera.pos, poseStack, Sheets.translucentBlockItemSheet(), nodeCollector, RenderResizableCuboid.SideRender.ALL_FACES,
+                  0.02F, 0.02F, 0.02F, state.length - 0.03F, state.heatedCoolantMaxY, state.width - 0.03F, state.heatedCoolantTexture,
+                  OverlayTexture.NO_OVERLAY, state.heatedCoolantGlow, state.heatedCoolantColor, state.blockPos, state.renderLocation, state.length, state.width);
+        }
+    }
+
+    public static class FissionRenderState extends MultiblockContentsRenderState {
+
+        public List<FormedAssembly> assemblies = new ArrayList<>();
+
+        public RenderResizableCuboid.@Nullable TexturePicker coolantTexture;
+        public float coolantMaxY;
+        public int coolantGlow;
+        public int coolantColor;
+
+        public RenderResizableCuboid.@Nullable TexturePicker heatedCoolantTexture;
+        public float heatedCoolantMaxY;
+        public int heatedCoolantGlow;
+        public int heatedCoolantColor;
+
+        public List<ValveRenderData> valves = new ArrayList<>();
+        public MekanismRenderer.@Nullable ValveTextureGetter valveTexture;
+    }
+}

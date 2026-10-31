@@ -1,0 +1,146 @@
+package mekanism.common.recipe;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import mekanism.api.MekanismRegistries;
+import mekanism.api.chemical.Chemical;
+import mekanism.api.chemical.ChemicalStackTemplate;
+import mekanism.api.datagen.recipe.RecipeCriterion;
+import mekanism.common.registration.impl.BlockRegistryObject;
+import mekanism.common.registration.impl.ItemRegistryObject;
+import mekanism.common.resource.PrimaryResource;
+import mekanism.common.resource.ResourceType;
+import mekanism.common.tags.MekanismTags;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.triggers.Criterion;
+import net.minecraft.advancements.triggers.InventoryChangeTrigger.TriggerInstance;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.data.worldgen.BootstrapContext;
+import net.minecraft.references.BlockItemId;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.material.Fluid;
+import net.neoforged.neoforge.common.crafting.DifferenceIngredient;
+import net.neoforged.neoforge.fluids.FluidStackTemplate;
+import net.neoforged.neoforge.registries.holdersets.OrHolderSet;
+
+public abstract class BaseRecipeProvider extends RecipeProvider {
+
+    protected final HolderGetter<Fluid> fluids;
+    protected final HolderGetter<Chemical> chemicals;
+
+    protected BaseRecipeProvider(BootstrapContext<Recipe<?>> recipeOutput, BootstrapContext<Advancement> advancementOutput) {
+        super(recipeOutput, advancementOutput);
+        this.fluids = this.output.lookup(Registries.FLUID);
+        this.chemicals = this.output.lookup(MekanismRegistries.Keys.CHEMICAL);
+    }
+
+    @Override
+    protected final void buildRecipes() {
+        addRecipes();
+        for (ISubRecipeProvider subRecipeProvider : getSubRecipeProviders()) {
+            subRecipeProvider.addRecipes(output);
+        }
+    }
+
+    protected abstract void addRecipes();
+
+    /// Gets all the sub/offloaded recipe providers that this recipe provider has.
+    ///
+    /// @implNote This is only called once per provider so there is no need to bother caching the list that this returns
+    protected List<ISubRecipeProvider> getSubRecipeProviders() {
+        return Collections.emptyList();
+    }
+
+    @SafeVarargs
+    public static Ingredient ingredient(HolderGetter<Item> lookup, TagKey<Item> itemTag, ResourceKey<Item>... items) {
+        return Ingredient.of(new OrHolderSet<>(lookup.getOrThrow(itemTag), HolderSet.direct(Arrays.stream(items).map(lookup::getOrThrow).toList())));
+    }
+
+    @SafeVarargs
+    public static Ingredient ingredient(Holder<Item>... items) {
+        return Ingredient.of(HolderSet.direct(Arrays.stream(items).toList()));
+    }
+
+    public static Ingredient difference(HolderSet<Item> base, Holder<Item> subtracted) {
+        return DifferenceIngredient.of(Ingredient.of(base), ingredient(subtracted));
+    }
+
+    public static HolderSet<Item> osmiumIngot(HolderGetter<Item> lookup) {
+        return lookup.getOrThrow(MekanismTags.Items.getProcessedResource(ResourceType.INGOT, PrimaryResource.OSMIUM));
+    }
+
+    public static HolderSet<Item> leadIngot(HolderGetter<Item> lookup) {
+        return lookup.getOrThrow(MekanismTags.Items.getProcessedResource(ResourceType.INGOT, PrimaryResource.LEAD));
+    }
+
+    public static HolderSet<Item> tinIngot(HolderGetter<Item> lookup) {
+        return lookup.getOrThrow(MekanismTags.Items.getProcessedResource(ResourceType.INGOT, PrimaryResource.TIN));
+    }
+
+    protected RecipeCriterion hasCriterion(Holder<? extends ItemLike> item) {
+        return new RecipeCriterion(getHasName(item.value()), has(item));
+    }
+
+    protected RecipeCriterion hasCriterion(BlockItemId item) {
+        return hasCriterion(item.item());
+    }
+
+    protected RecipeCriterion hasCriterion(ResourceKey<Item> item) {
+        return hasCriterion(items.getOrThrow(item));
+    }
+
+    protected Criterion<TriggerInstance> has(ItemRegistryObject<?> item) {
+        return has(item.value());
+    }
+
+    protected Criterion<TriggerInstance> has(BlockRegistryObject<?, ?> item) {
+        return has(item.getItemHolder());
+    }
+
+    protected Criterion<TriggerInstance> has(Holder<? extends ItemLike> item) {
+        return has(item.value());
+    }
+
+    protected Criterion<TriggerInstance> has(BlockItemId item) {
+        return has(item.item());
+    }
+
+    protected Criterion<TriggerInstance> has(ResourceKey<Item> item) {
+        return has(items.getOrThrow(item));
+    }
+
+    public ItemStackTemplate template(ResourceKey<Item> item) {
+        return RecipeProviderUtil.template(items, item);
+    }
+
+    public ItemStackTemplate template(ResourceKey<Item> item, int amount) {
+        return RecipeProviderUtil.template(items, item, amount);
+    }
+
+    public ItemStackTemplate template(BlockItemId item) {
+        return RecipeProviderUtil.template(items, item);
+    }
+
+    public ItemStackTemplate template(BlockItemId item, int amount) {
+        return RecipeProviderUtil.template(items, item, amount);
+    }
+
+    public ChemicalStackTemplate chemicalTemplate(ResourceKey<Chemical> chemical, int amount) {
+        return RecipeProviderUtil.chemicalTemplate(chemicals, chemical, amount);
+    }
+
+    public FluidStackTemplate fluidTemplate(ResourceKey<Fluid> fluid, int amount) {
+        return RecipeProviderUtil.fluidTemplate(fluids, fluid, amount);
+    }
+}

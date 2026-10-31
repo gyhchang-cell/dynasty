@@ -1,0 +1,42 @@
+package mekanism.api.recipes.ingredients;
+
+import java.util.function.Predicate;
+import mekanism.api.recipes.display.slot.WithAmountSlotDisplay;
+import net.minecraft.core.TypedInstance;
+
+/// Interface describing the base methods common to all inputs of our recipes.
+public interface InputIngredient<HOLDER_TYPE, STACK extends TypedInstance<HOLDER_TYPE>> extends Predicate<STACK> {
+
+    /// Evaluates this predicate on the given argument, ignoring any size data.
+    ///
+    /// @param type Input argument.
+    ///
+    /// @return `true` if the input argument matches the predicate, otherwise `false`
+    boolean testType(TypedInstance<HOLDER_TYPE> type);
+
+    /// Gets a copy of the internal instance that matches the given argument.
+    ///
+    /// @param type Input argument.
+    ///
+    /// @return Matching instance. The returned value can be safely modified after.
+    STACK getMatchingInstance(STACK type);
+
+    /// Gets the amount of the given argument that is needed, or zero if the given argument doesn't match.
+    ///
+    /// @param type Input argument.
+    ///
+    /// @return Amount of the given argument that is needed.
+    int getNeededAmount(TypedInstance<HOLDER_TYPE> type);
+
+    /// Checks if this ingredient has any matching instances, in most cases this should be `false`, but for cases like tags this may not always be the case.
+    ///
+    /// @return `true` for no matching instances, `false` if there are any matching instances.
+    boolean hasNoMatchingInstances();
+
+    void logMissingTags();
+
+    /// {@return the slot display for this ingredient}
+    ///
+    /// @since 10.8.0
+    WithAmountSlotDisplay display();
+}

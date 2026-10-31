@@ -1,0 +1,69 @@
+package mekanism.common.network.to_server.button;
+
+import io.netty.buffer.ByteBuf;
+import java.util.function.Function;
+import java.util.function.IntFunction;
+import mekanism.common.Mekanism;
+import mekanism.common.MekanismLang;
+import mekanism.common.network.IMekanismPacket;
+import mekanism.common.registries.MekanismContainerTypes;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.util.ByIdMap;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.jspecify.annotations.Nullable;
+
+/// Used for informing the server that a click happened in a GUI and the gui window needs to change
+public record PacketEntityButtonPress(ClickedEntityButton buttonClicked, int entityID) implements IMekanismPacket {
+
+    public static final CustomPacketPayload.Type<PacketEntityButtonPress> TYPE = new CustomPacketPayload.Type<>(Mekanism.rl("entity_button"));
+    public static final StreamCodec<ByteBuf, PacketEntityButtonPress> STREAM_CODEC = StreamCodec.composite(
+          ClickedEntityButton.STREAM_CODEC, PacketEntityButtonPress::buttonClicked,
+          ByteBufCodecs.VAR_INT, PacketEntityButtonPress::entityID,
+          PacketEntityButtonPress::new
+    );
+
+    public PacketEntityButtonPress(ClickedEntityButton buttonClicked, Entity entity) {
+        this(buttonClicked, entity.getId());
+    }
+
+    @Override
+    public CustomPacketPayload.Type<PacketEntityButtonPress> type() {
+        return TYPE;
+    }
+
+    @Override
+    public void handle(IPayloadContext context) {
+        Player player = context.player();
+        Entity entity = player.level().getEntity(entityID);
+        if (entity != null) {
+            player.openMenu(buttonClicked.getProvider(entity));
+        }
+    }
+
+    public enum ClickedEntityButton {
+        ROBIT_CRAFTING(entity -> MekanismContainerTypes.CRAFTING_ROBIT.getProvider(MekanismLang.ROBIT_CRAFTING, entity)),
+        ROBIT_INVENTORY(entity -> MekanismContainerTypes.INVENTORY_ROBIT.getProvider(MekanismLang.ROBIT_INVENTORY, entity)),
+        ROBIT_MAIN(entity -> MekanismContainerTypes.MAIN_ROBIT.getProvider(MekanismLang.ROBIT, entity)),
+        ROBIT_REPAIR(entity -> MekanismContainerTypes.REPAIR_ROBIT.getProvider(MekanismLang.ROBIT_REPAIR, entity)),
+        ROBIT_SMELTING(entity -> MekanismContainerTypes.SMELTING_ROBIT.getProvider(MekanismLang.ROBIT_SMELTING, entity));
+
+        public static final IntFunction<ClickedEntityButton> BY_ID = ByIdMap.continuous(ClickedEntityButton::ordinal, values(), ByIdMap.OutOfBoundsStrategy.WRAP);
+        public static final StreamCodec<ByteBuf, ClickedEntityButton> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, ClickedEntityButton::ordinal);
+
+        private final Function<Entity, @Nullable MenuProvider> providerFromEntity;
+
+        ClickedEntityButton(Function<Entity, @Nullable MenuProvider> providerFromEntity) {
+            this.providerFromEntity = providerFromEntity;
+        }
+
+        @Nullable
+        public MenuProvider getProvider(Entity entity) {
+            return providerFromEntity.apply(entity);
+        }
+    }
+}

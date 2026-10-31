@@ -1,0 +1,63 @@
+
+package mekanism.common.tests.recipe;
+
+import java.util.Set;
+import mekanism.api.recipes.ItemStackToItemStackRecipe;
+import mekanism.api.recipes.basic.BasicItemStackToItemStackRecipe;
+import mekanism.api.recipes.book.CrushingBookCategory;
+import mekanism.api.recipes.book.CrushingBookCategory.CrushingBookInfo;
+import mekanism.common.recipe.MekanismRecipeType;
+import mekanism.common.tags.MekanismTags;
+import mekanism.common.tests.helpers.RecipeTestHelper;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.neoforged.neoforge.common.data.ItemTagsProvider;
+import net.neoforged.testframework.DynamicTest;
+import net.neoforged.testframework.annotation.ForEachTest;
+import net.neoforged.testframework.annotation.TestHolder;
+import net.neoforged.testframework.gametest.EmptyTemplate;
+import net.neoforged.testframework.gametest.GameTest;
+import net.neoforged.testframework.registration.RegistrationHelper;
+
+@ForEachTest(groups = "recipe.bio_fuel")
+public class MissingBioFuelRecipeTest {
+
+    @GameTest
+    @EmptyTemplate
+    @TestHolder(description = "Tests to make sure that there are no unknown composter recipes missing corresponding bio fuel recipes.")
+    public static void testMissingComposterRecipes(final DynamicTest test, final RegistrationHelper reg) {
+        final TagKey<Item> KNOWN_MISSING = ItemTags.create(Identifier.fromNamespaceAndPath(reg.modId(), "known_missing"));
+        final TagKey<Item> VALID_OUTPUT = ItemTags.create(Identifier.fromNamespaceAndPath(reg.modId(), "valid_output"));
+
+        //TODO: Decide if we want to have things like the biome mods load during game tests as well for purposes of checking if we want to add
+        // compat with any of their organic items for making bio-fuel
+        reg.addClientProvider(event -> event.createProvider((output, lookup) -> new ItemTagsProvider(output, lookup, reg.modId()) {
+            @Override
+            @SuppressWarnings("unchecked")
+            protected void addTags(HolderLookup.Provider provider) {
+                tag(VALID_OUTPUT).addTags(
+                      MekanismTags.Items.FUELS_BIO,
+                      MekanismTags.Items.FUELS_BLOCK_BIO
+                );
+                tag(KNOWN_MISSING);
+            }
+        }));
+
+        test.onGameTest(RecipeTestHelper.class, helper -> helper.succeedIf(() -> {
+            Set<ResourceKey<Item>> bioFuelRecipeInputs = helper.collectKnownMissing(BuiltInRegistries.ITEM, KNOWN_MISSING);
+            for (RecipeHolder<ItemStackToItemStackRecipe<CrushingBookCategory, CrushingBookInfo>> crushingRecipe : helper.getRecipes(MekanismRecipeType.CRUSHING)) {
+                if (crushingRecipe.value() instanceof BasicItemStackToItemStackRecipe<CrushingBookCategory, CrushingBookInfo> basicRecipe && basicRecipe.getOutputRaw().is(VALID_OUTPUT)) {
+                    helper.collectInputs(bioFuelRecipeInputs, basicRecipe.getInput(), KNOWN_MISSING, "bio fuel");
+                }
+            }
+            helper.checkForMissing("recipes", helper.collectMissingRecipes(DataComponents.COMPOSTABLE, bioFuelRecipeInputs));
+        }));
+    }
+}

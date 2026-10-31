@@ -1,0 +1,218 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.handlers;
+
+import com.klikli_dev.occultism.Occultism;
+import com.klikli_dev.occultism.client.gui.satchel.SatchelScreen;
+import com.klikli_dev.occultism.client.gui.storage.StorageControllerGui;
+import com.klikli_dev.occultism.client.gui.storage.StorageRemoteGui;
+import com.klikli_dev.occultism.network.Networking;
+import com.klikli_dev.occultism.network.messages.*;
+import com.klikli_dev.occultism.registry.OccultismBlocks;
+import com.klikli_dev.occultism.registry.OccultismItems;
+import com.klikli_dev.occultism.registry.OccultismSounds;
+import com.klikli_dev.occultism.util.CuriosUtil;
+import com.klikli_dev.occultism.util.MovementUtil;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemContainerContents;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.InputEvent.Key;
+import net.neoforged.neoforge.client.event.InputEvent.MouseButton;
+import net.neoforged.neoforge.client.event.ScreenEvent.KeyPressed.Post;
+import net.neoforged.neoforge.event.PlayLevelSoundEvent.AtPosition;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
+
+@EventBusSubscriber(modid = Occultism.MODID, value = Dist.CLIENT)
+public class ClientPlayerEventHandler {
+    //region Static Methods
+
+    @SubscribeEvent
+    public static void onPlaySoundAt(AtPosition event) {
+        //handle spirit fire sound disable config
+        if (event.getLevel().isClientSide() &&
+                Occultism.CLIENT_CONFIG.misc.disableSpiritFireSuccessSound.get() &&
+                event.getSound() != null &&
+                event.getSound().value() == OccultismSounds.SPIRIT_FIRE.get() &&
+                event.getLevel().getBlockState(BlockPos.containing(event.getPosition())).getBlock() == OccultismBlocks.SPIRIT_FIRE.get()) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onKeyInput(final Key event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        checkBackpackKey();
+        checkEnderBagKey();
+        checkStorageRemoteKey();
+        checkFamiliarSettingsKeys();
+        if (event.getAction() == GLFW_PRESS && minecraft.options.keyJump.isDown()) {
+            if (minecraft.player != null && MovementUtil.doubleJump(minecraft.player)) {
+                Networking.sendToServer(new MessageDoubleJump());
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMouseInput(final MouseButton.Key event) {
+        //handle mouse button bindings for storage keys
+        checkBackpackKey();
+        checkEnderBagKey();
+        checkStorageRemoteKey();
+        checkFamiliarSettingsKeys();
+    }
+
+    public static void checkBackpackKey() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null & minecraft.screen == null && ClientSetupEventHandler.KEY_BACKPACK.consumeClick()
+                && (!CuriosUtil.getBackpack(minecraft.player).isEmpty() || CuriosUtil.getFirstBackpackSlot(minecraft.player) >= 0)) {
+            Networking.sendToServer(new MessageOpenSatchel());
+            minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.ARMOR_EQUIP_LEATHER.value(), 0.75F, 1.0F));
+        }
+    }
+
+    public static void checkEnderBagKey() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null & minecraft.screen == null && ClientSetupEventHandler.KEY_ENDER_BAG.consumeClick()
+                && (!CuriosUtil.getEnderSatchel(minecraft.player).isEmpty() || CuriosUtil.getFirstEnderSatchelSlot(minecraft.player) >= 0)) {
+            Networking.sendToServer(new MessageOpenEnderSatchel());
+            minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.ENDER_CHEST_OPEN, 0.75F, 1.0F));
+        }
+    }
+
+    public static void checkStorageRemoteKey() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null & minecraft.screen == null && ClientSetupEventHandler.KEY_STORAGE_REMOTE.consumeClick()
+                && (!CuriosUtil.getStorageRemoteCurio(minecraft.player).isEmpty() || CuriosUtil.getFirstStorageRemoteSlot(minecraft.player) >= 0)) {
+            Networking.sendToServer(new MessageOpenStorageRemote());
+            minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.ARMOR_EQUIP_DIAMOND.value(), 0.75F, 1.0F));
+        }
+    }
+
+    public static void checkFamiliarSettingsKeys() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null & minecraft.screen == null) {
+            boolean familiarKeyPressed = false;
+            Map<EntityType<?>, Boolean> familiarsPressed = new HashMap<>();
+
+            for (Entry<EntityType<?>, KeyMapping> entry : ClientSetupEventHandler.keysFamiliars.entrySet()) {
+                boolean isPressed = entry.getValue().consumeClick();
+                if (isPressed)
+                    familiarKeyPressed = true;
+                familiarsPressed.put(entry.getKey(), isPressed);
+            }
+            if (familiarKeyPressed) {
+                Networking.sendToServer(new MessageToggleFamiliarSettings(familiarsPressed));
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onScreenKey(Post event) {
+        Screen screen = event.getScreen();
+        if (screen instanceof ChatScreen)
+            return;
+
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null)
+            return;
+
+        if (event.getKeyCode() == ClientSetupEventHandler.KEY_ENDER_BAG.getKey().getValue()
+                && screen instanceof AbstractContainerScreen<?> containerScreen
+                && containerScreen.getMenu() instanceof ChestMenu
+                && screen.getTitle().getString().contains(Component.translatable("block.minecraft.ender_chest").getString())) {
+
+            minecraft.player.closeContainer();
+            minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.ENDER_CHEST_CLOSE, 0.75F, 1.0F));
+            event.setCanceled(true);
+        }
+
+        if (event.getKeyCode() == ClientSetupEventHandler.KEY_BACKPACK.getKey().getValue()
+                && minecraft.screen instanceof SatchelScreen) {
+            minecraft.player.closeContainer();
+            event.setCanceled(true);
+        }
+
+        if (event.getKeyCode() == ClientSetupEventHandler.KEY_STORAGE_REMOTE.getKey().getValue()
+                && (minecraft.screen instanceof StorageRemoteGui || minecraft.screen instanceof StorageControllerGui)) {
+            minecraft.player.closeContainer();
+            event.setCanceled(true);
+        }
+    }
+
+
+    @SubscribeEvent
+    public static void onScrollTablet(InputEvent.MouseScrollingEvent event){
+        Player player = Minecraft.getInstance().player;
+        if (player != null && player.isShiftKeyDown()) {
+            InteractionHand hand = InteractionHand.MAIN_HAND;
+            ItemStack stack = player.getItemInHand(hand);
+            if (!stack.is(OccultismItems.WORMHOLE_TABLET)) {
+                hand = InteractionHand.OFF_HAND;
+                stack = player.getItemInHand(hand);
+            }
+            if (!stack.is(OccultismItems.WORMHOLE_TABLET) || !stack.has(DataComponents.CONTAINER))
+                return;
+
+            ItemContainerContents contents = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+            if (contents == ItemContainerContents.EMPTY)
+                return;
+
+            NonNullList<ItemStack> items = NonNullList.create();
+            for (int i = 0; i < contents.getSlots(); i++) {
+                if (!contents.getStackInSlot(i).isEmpty())
+                    items.add(contents.getStackInSlot(i).copy());
+            }
+            int i = event.getScrollDeltaY() > 0 ? 1 : -1;
+            Collections.rotate(items, i);
+            ItemContainerContents rotated = ItemContainerContents.fromItems(items);
+
+            Networking.sendToServer(new MessageSetContents(rotated, hand));
+            event.setCanceled(true);
+        }
+    }
+    //endregion Static Methods
+}

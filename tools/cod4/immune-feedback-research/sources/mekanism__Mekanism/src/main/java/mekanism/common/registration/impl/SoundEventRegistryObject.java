@@ -1,0 +1,21 @@
+package mekanism.common.registration.impl;
+
+import mekanism.api.text.IHasTranslationKey;
+import mekanism.common.registration.MekanismDeferredHolder;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvent;
+
+public class SoundEventRegistryObject<SOUND extends SoundEvent> extends MekanismDeferredHolder<SoundEvent, SOUND> implements IHasTranslationKey {
+
+    private final String translationKey;
+
+    public SoundEventRegistryObject(ResourceKey<SoundEvent> key) {
+        super(key);
+        translationKey = getId().toLanguageKey("sound_event");
+    }
+
+    @Override
+    public String getTranslationKey() {
+        return translationKey;
+    }
+}

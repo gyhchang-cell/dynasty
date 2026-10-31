@@ -1,0 +1,162 @@
+package mekanism.client.gui.element.gauge;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.BooleanSupplier;
+import mekanism.api.text.EnumColor;
+import mekanism.client.gui.GuiMekanismTile;
+import mekanism.client.gui.GuiUtils;
+import mekanism.client.gui.GuiUtils.TilingDirection;
+import mekanism.client.gui.IGuiWrapper;
+import mekanism.client.gui.element.GuiElement;
+import mekanism.client.gui.tooltip.TooltipUtils;
+import mekanism.common.MekanismLang;
+import mekanism.common.inventory.warning.ISupportsWarning;
+import mekanism.common.inventory.warning.WarningTracker.WarningType;
+import mekanism.common.item.ItemConfigurator;
+import mekanism.common.lib.transmitter.TransmissionType;
+import mekanism.common.tile.component.config.ConfigInfo;
+import mekanism.common.tile.component.config.DataType;
+import mekanism.common.tile.interfaces.ISideConfiguration;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.CommonColors;
+import net.minecraft.world.item.ItemStack;
+import org.jspecify.annotations.Nullable;
+
+public abstract class GuiGauge<T extends @Nullable Object> extends GuiElement implements ISupportsWarning<GuiGauge<T>> {
+
+    private final GaugeType gaugeType;
+    protected boolean dummy;
+    protected T dummyType;
+    @Nullable
+    private BooleanSupplier warningSupplier;
+
+    private List<Component> lastInfo = Collections.emptyList();
+    @Nullable
+    private Tooltip lastTooltip;
+
+    public GuiGauge(GaugeType gaugeType, IGuiWrapper gui, int x, int y) {
+        this(gaugeType, gui, x, y, gaugeType.getGaugeOverlay().getWidth() + 2, gaugeType.getGaugeOverlay().getHeight() + 2);
+    }
+
+    public GuiGauge(GaugeType gaugeType, IGuiWrapper gui, int x, int y, int sizeX, int sizeY) {
+        super(gui, x, y, sizeX, sizeY);
+        this.gaugeType = gaugeType;
+    }
+
+    @Override
+    public GuiGauge<T> warning(WarningType type, BooleanSupplier warningSupplier) {
+        this.warningSupplier = ISupportsWarning.compound(this.warningSupplier, gui().trackWarning(type, warningSupplier));
+        return this;
+    }
+
+    public abstract int getScaledLevel();
+
+    @Nullable
+    public abstract TextureAtlasSprite getIcon();
+
+    @Nullable
+    public abstract Component getLabel();
+
+    public abstract List<Component> getTooltipText();
+
+    public GaugeOverlay getGaugeOverlay() {
+        return gaugeType.getGaugeOverlay();
+    }
+
+    protected GaugeInfo getGaugeColor() {
+        return gaugeType.getGaugeInfo();
+    }
+
+    protected int getRenderColor() {
+        return CommonColors.WHITE;
+    }
+
+    @Override
+    public void drawBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        super.drawBackground(guiGraphics, mouseX, mouseY, partialTicks);
+        guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, getGaugeColor().getResourceLocation(), getButtonX(), getButtonY(), getButtonWidth(), getButtonHeight());
+        if (!dummy) {
+            renderContents(guiGraphics);
+        }
+    }
+
+    public void renderContents(GuiGraphicsExtractor guiGraphics) {
+        boolean warning = warningSupplier != null && warningSupplier.getAsBoolean();
+        if (warning) {
+            //Draw background (we do it regardless of if we are full or not as if the thing being drawn has transparency we may as well show the background)
+            guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, WARNING_BACKGROUND_TEXTURE, relativeX + 1, relativeY + 1, width - 2, height - 2);
+        }
+        int scale = getScaledLevel();
+        TextureAtlasSprite icon = getIcon();
+        if (scale > 0 && icon != null) {
+            GuiUtils.drawTiledSprite(guiGraphics, relativeX + 1, relativeY + 1, height - 2, width - 2, scale, icon, TilingDirection.UP_RIGHT, getRenderColor());
+            if (warning && (scale / (double) (height - 2)) > 0.98) {
+                //If we have a warning and the gauge is entirely filled (or almost completely filled, > 95%), draw a warning vertically next to it
+                int halfWidth = (width - 2) / 2;
+                int x0 = relativeX + 1 + halfWidth;
+                int y0 = relativeY + 1;
+                //Note: We also scissor the drawing to start after half the dimension so that we are sure it will properly line up with the background
+                guiGraphics.enableScissor(x0, y0, x0 + halfWidth, y0 + height - 2);
+                guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, WARNING_TEXTURE, relativeX + 1, relativeY + 1, width - 2, height - 2);
+                guiGraphics.disableScissor();
+            }
+        }
+        //Draw the bar overlay
+        drawBarOverlay(guiGraphics);
+    }
+
+    public void drawBarOverlay(GuiGraphicsExtractor guiGraphics) {
+        guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, gaugeType.getGaugeOverlay().getBarOverlay(), relativeX + 1, relativeY + 1, getButtonWidth() - 2, getButtonHeight() - 2);
+    }
+
+    @Override
+    public void updateTooltip(int mouseX, int mouseY) {
+        if (dummy) {
+            return;
+        }
+        ItemStack stack = gui().getCarriedItem();
+        EnumColor color = getGaugeColor().getColor();
+        List<Component> list;
+        if (!stack.isEmpty() && stack.getItem() instanceof ItemConfigurator && color != null) {
+            if (gui() instanceof GuiMekanismTile<?, ?> gui && gui.getTileEntity() instanceof ISideConfiguration sideConfig && getTransmission() != null) {
+                DataType dataType = null;
+                ConfigInfo config = sideConfig.getConfig().getConfig(getTransmission());
+                if (config != null) {
+                    for (DataType type : config.getSupportedDataTypes()) {
+                        if (type.getColor() == color) {
+                            dataType = type;
+                            break;
+                        }
+                    }
+                }
+                if (dataType == null) {
+                    list = List.of(MekanismLang.GENERIC_PARENTHESIS.translateColored(color, color.getName()));
+                } else {
+                    list = List.of(MekanismLang.GENERIC_WITH_PARENTHESIS.translateColored(color, dataType, color.getName()));
+                }
+            } else {
+                list = Collections.emptyList();
+            }
+        } else {
+            list = new ArrayList<>(getTooltipText());
+            Component label = getLabel();
+            if (label != null) {
+                list.addFirst(label);
+            }
+        }
+        if (!list.equals(lastInfo)) {
+            lastInfo = list;
+            lastTooltip = TooltipUtils.create(list);
+        }
+        setTooltip(lastTooltip);
+    }
+
+    @Nullable
+    public abstract TransmissionType getTransmission();
+}

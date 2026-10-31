@@ -1,0 +1,22 @@
+package mekanism.api.chemical;
+
+import mekanism.api.resource.IResourceContainer;
+import mekanism.api.resource.LargeResourceStack;
+import org.jetbrains.annotations.ApiStatus.NonExtendable;
+
+/// Represents a [`resource container`][IResourceContainer] that contains [`chemicals`][ChemicalResource].
+public interface IChemicalTank extends IResourceContainer<ChemicalResource> {
+
+    /// {@return the attribute validator used by this tank}
+    ///
+    /// @implNote By default, this tank will not allow any chemicals that require validation.
+    default ChemicalAttributeValidator getAttributeValidator() {
+        return ChemicalAttributeValidator.DEFAULT;
+    }
+
+    @Override
+    @NonExtendable
+    default LargeResourceStack.StackHelper<ChemicalResource> stackHelper() {
+        return LargeResourceStack.CHEMICAL_HELPER;
+    }
+}

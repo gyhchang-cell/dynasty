@@ -1,0 +1,325 @@
+package mekanism.common.tests.helpers;
+
+import com.mojang.serialization.Codec;
+import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntSortedMap;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
+import mekanism.api.MekanismRegistries;
+import mekanism.api.chemical.Chemical;
+import mekanism.api.chemical.ChemicalIds;
+import mekanism.api.chemical.ChemicalResource;
+import mekanism.api.resource.LargeResourceStack;
+import mekanism.api.text.EnumColor;
+import mekanism.api.upgrade.IUpgradeHelper;
+import mekanism.api.upgrade.Upgrade;
+import mekanism.api.upgrade.UpgradeIds;
+import mekanism.common.component.FilterAware;
+import mekanism.common.component.FormulaComponent;
+import mekanism.common.component.OverflowAware;
+import mekanism.common.component.component.UpgradeAware;
+import mekanism.common.component.containers.resource.AttachedResources;
+import mekanism.common.component.qio.PortableDashboardContents;
+import mekanism.common.content.filter.BaseFilter;
+import mekanism.common.content.filter.IFilter;
+import mekanism.common.content.filter.IItemStackFilter;
+import mekanism.common.content.miner.MinerItemStackFilter;
+import mekanism.common.content.qio.filter.QIOItemStackFilter;
+import mekanism.common.content.transporter.SorterItemStackFilter;
+import mekanism.common.registries.MekanismBlocks;
+import mekanism.common.registries.MekanismDataComponents;
+import mekanism.common.registries.MekanismFluids;
+import mekanism.common.registries.MekanismItems;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.gametest.framework.GameTestInfo;
+import net.minecraft.references.BlockItemIds;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.material.Fluid;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.resource.RegisteredResource;
+
+public class MissingObjectTestHelper extends MekGameTestHelper {
+
+    private static final Holder<Item> ITEM_TO_REPLACE = MekanismItems.INFUSED_ALLOY;
+    private static final Holder<Fluid> FLUID_TO_REPLACE = MekanismFluids.HYDROGEN;
+    private static final ResourceKey<Chemical> CHEMICAL_TO_REPLACE = ChemicalIds.HYDROGEN;
+    public static final UnaryOperator<String> REPLACE_TO_INVALID_ITEM = replaceInvalid(ITEM_TO_REPLACE);
+    public static final UnaryOperator<String> REPLACE_TO_INVALID_FLUID = replaceInvalid(FLUID_TO_REPLACE);
+    public static final UnaryOperator<String> REPLACE_TO_INVALID_CHEMICAL = replaceInvalid(CHEMICAL_TO_REPLACE);
+
+    private static UnaryOperator<String> replaceInvalid(Holder<?> providerToReplace) {
+        return rawJson -> rawJson.replaceAll(providerToReplace.getRegisteredName(), "mekanism:invalid");
+    }
+
+    private static UnaryOperator<String> replaceInvalid(ResourceKey<?> keyToReplace) {
+        return rawJson -> rawJson.replaceAll(keyToReplace.identifier().toString(), "mekanism:invalid");
+    }
+
+    public MissingObjectTestHelper(GameTestInfo info) {
+        super(info);
+    }
+
+    public ItemResource failureItemType() {
+        return ItemResource.of(ITEM_TO_REPLACE);
+    }
+
+    public FluidResource failureFluidType() {
+        return FluidResource.of(FLUID_TO_REPLACE);
+    }
+
+    public ChemicalResource failureChemicalType() {
+        return ChemicalResource.of(getLevel().registryAccess().getOrThrow(CHEMICAL_TO_REPLACE));
+    }
+
+    public <TYPE, RESOURCE extends RegisteredResource<TYPE>> void succeedIfAttachedCycle(DataComponentType<AttachedResources<RESOURCE>> dataComponentType,
+          LargeResourceStack.StackHelper<RESOURCE> stackHelper, RESOURCE failureType, ResourceKey<TYPE> a, ResourceKey<TYPE> b, Function<Holder<TYPE>, RESOURCE> resourceCreator) {
+        RegistryAccess registryAccess = getLevel().registryAccess();
+        succeedIfAttachedCycle(dataComponentType, stackHelper, failureType, resourceCreator.apply(registryAccess.getOrThrow(a)), resourceCreator.apply(registryAccess.getOrThrow(b)));
+    }
+
+    public <RESOURCE extends RegisteredResource<?>> void succeedIfAttachedCycle(DataComponentType<AttachedResources<RESOURCE>> dataComponentType,
+          LargeResourceStack.StackHelper<RESOURCE> stackHelper, RESOURCE failureType, RESOURCE a, RESOURCE b) {
+        LargeResourceStack<RESOURCE> initialA = stackHelper.createStack(a, 10);
+        LargeResourceStack<RESOURCE> initialB = stackHelper.createStack(b, 5);
+        succeedIfSerializationCycle(dataComponentType.codecOrThrow(), _ -> new AttachedResources<>(NonNullList.of(stackHelper.empty(),
+                    stackHelper.empty(),
+                    initialA,
+                    stackHelper.createStack(failureType, 3),
+                    initialB
+              )), attached -> attached.size() == 4 &&
+                              attached.get(0).isEmpty() &&
+                              attached.get(1).equals(initialA) &&
+                              attached.get(2).isEmpty() &&
+                              attached.get(3).equals(initialB),
+              replaceInvalid(failureType.typeHolder())
+        );
+    }
+
+    public <TYPE> void succeedIfInvalidItemSerializationCycle(Codec<TYPE> codec, Function<MissingObjectTestHelper, TYPE> sourceSupplier, Predicate<TYPE> resultValidator) {
+        succeedIfSerializationCycle(codec, sourceSupplier, resultValidator, REPLACE_TO_INVALID_ITEM);
+    }
+
+    public <TYPE> void succeedIfInvalidFluidSerializationCycle(Codec<TYPE> codec, Function<MissingObjectTestHelper, TYPE> sourceSupplier, Predicate<TYPE> resultValidator) {
+        succeedIfSerializationCycle(codec, sourceSupplier, resultValidator, REPLACE_TO_INVALID_FLUID);
+    }
+
+    public <TYPE> void succeedIfInvalidChemicalSerializationCycle(Codec<TYPE> codec, Function<MissingObjectTestHelper, TYPE> sourceSupplier, Predicate<TYPE> resultValidator) {
+        succeedIfSerializationCycle(codec, sourceSupplier, resultValidator, REPLACE_TO_INVALID_CHEMICAL);
+    }
+
+    public <TYPE> void succeedIfSerializationCycle(Codec<TYPE> codec, Function<MissingObjectTestHelper, TYPE> sourceSupplier, Predicate<TYPE> resultValidator,
+          Function<String, String> rawJsonReplacer) {
+        succeedIf(() -> {
+            TYPE val = cycleSerialization(codec, sourceSupplier.apply(this), rawJsonReplacer);
+            if (!resultValidator.test(val)) {//TODO: Allow for custom messages?
+                throw assertionException("Resulting value after cycling serialization was not what was expected");
+            }
+        });
+    }
+
+    public <TYPE> void succeedIfSerializationCycle(Codec<TYPE> codec, Function<MissingObjectTestHelper, TYPE> sourceSupplier, Function<String, String> rawJsonReplacer) {
+        succeedIf(() -> {
+            TYPE sourceObject = sourceSupplier.apply(this);
+            TYPE val = cycleSerialization(codec, sourceObject, rawJsonReplacer);
+            if (!sourceObject.equals(val)) {
+                throw assertionException("Resulting value after cycling serialization was not what was expected");
+            }
+        });
+    }
+
+    public FormulaComponent makeFormula() {
+        List<ItemResource> stacks = NonNullList.withSize(9, ItemResource.EMPTY);
+        ItemResource planks = ItemResource.of(Items.OAK_PLANKS);
+        stacks.set(0, planks);
+        stacks.set(2, planks);
+        stacks.set(3, planks);
+        stacks.set(4, failureItemType());
+        stacks.set(5, planks);
+        return new FormulaComponent(stacks, false);
+    }
+
+    public OverflowAware makeOverflow() {
+        Object2IntSortedMap<ItemResource> overflow = new Object2IntLinkedOpenHashMap<>();
+        overflow.put(ItemResource.of(Items.DIAMOND), 10);
+        overflow.put(ItemResource.of(Items.STICK), 4);
+        overflow.put(failureItemType(), 7);
+        overflow.put(ItemResource.of(Items.STONE), 2);
+        return new OverflowAware(overflow);
+    }
+
+    public boolean validateOverflow(OverflowAware overflowAware) {
+        Object2IntSortedMap<ItemResource> overflow = overflowAware.overflow();
+        return overflow.size() == 3 &&
+               overflow.getInt(ItemResource.of(Items.DIAMOND)) == 10 &&
+               overflow.getInt(ItemResource.of(Items.STICK)) == 4 &&
+               overflow.getInt(ItemResource.of(Items.STONE)) == 2;
+    }
+
+    public PortableDashboardContents makeDashboard() {
+        return PortableDashboardContents.EMPTY
+              //First crafting window has a recipe for sticks stored
+              .with(0, 1, ItemResource.of(Items.OAK_PLANKS), 4)
+              .with(0, 4, ItemResource.of(Items.OAK_PLANKS), 5)
+              //Second has some contents, recipe doesn't matter as one of the things will be invalid
+              .with(1, 0, ItemResource.of(Items.STONE), 1)
+              .with(1, 4, failureItemType(), 1)
+              //Third window has a recipe for planks
+              .with(2, 8, ItemResource.of(Items.OAK_LOG), 64);
+    }
+
+    public boolean validateDashboard(PortableDashboardContents contents) {
+        return contents.contents().size() == PortableDashboardContents.TOTAL_SLOTS &&
+               //First window
+               matches(contents.getSlotContents(0, 1), BlockItemIds.OAK_PLANKS.item(), 4) &&
+               matches(contents.getSlotContents(0, 4), BlockItemIds.OAK_PLANKS.item(), 5) &&
+               //Second window
+               matches(contents.getSlotContents(1, 0), BlockItemIds.STONE.item(), 1) &&
+               //Third window
+               matches(contents.getSlotContents(2, 8), BlockItemIds.OAK_LOG.item(), 64);
+    }
+
+    private static boolean matches(LargeResourceStack<ItemResource> stack, ResourceKey<Item> item, long amount) {
+        return stack.amount() == amount && stack.resource().is(item);
+    }
+
+    private Object2IntMap<Holder<Upgrade>> getUpgrades() {
+        Object2IntMap<Holder<Upgrade>> upgrades = new Object2IntOpenHashMap<>();
+        HolderGetter<Upgrade> upgradeLookup = getLevel().registryAccess().lookupOrThrow(MekanismRegistries.Keys.UPGRADES);
+        upgrades.put(upgradeLookup.getOrThrow(UpgradeIds.SPEED), 5);
+        upgrades.put(upgradeLookup.getOrThrow(UpgradeIds.ENERGY), 3);
+        return upgrades;
+    }
+
+    private UpgradeAware makeUpgrades(boolean validFirstSlot, boolean validSecondSlot) {
+        HolderGetter<Upgrade> upgrades = getLevel().registryAccess().lookupOrThrow(MekanismRegistries.Keys.UPGRADES);
+        return new UpgradeAware(getUpgrades(),
+              LargeResourceStack.ITEM_HELPER.createStack(validFirstSlot ? IUpgradeHelper.INSTANCE.asResource(upgrades.getOrThrow(UpgradeIds.SPEED)) : failureItemType(), 3),
+              LargeResourceStack.ITEM_HELPER.createStack(validSecondSlot ? IUpgradeHelper.INSTANCE.asResource(upgrades.getOrThrow(UpgradeIds.ENERGY)) : failureItemType(), 5)
+        );
+    }
+
+    private boolean upgradeMatches(ItemResource resource, ResourceKey<Upgrade> upgrade) {
+        if (MekanismItems.UPGRADE.is(resource)) {
+            Holder<Upgrade> upgradeType = resource.get(IUpgradeHelper.INSTANCE.dataComponent());
+            return upgradeType != null && upgradeType.is(upgrade);
+        }
+        return false;
+    }
+
+    private boolean validateUpgrades(UpgradeAware upgradeAware, boolean validFirstSlot, boolean validSecondSlot) {
+        if (upgradeAware.upgrades().equals(getUpgrades())) {
+            boolean firstSlot = validFirstSlot ? upgradeMatches(upgradeAware.inputSlot().resource(), UpgradeIds.SPEED) && upgradeAware.inputSlot().amount() == 3 : upgradeAware.inputSlot().isEmpty();
+            boolean secondSlot = validSecondSlot ? upgradeMatches(upgradeAware.outputSlot().resource(), UpgradeIds.ENERGY) && upgradeAware.outputSlot().amount() == 5 : upgradeAware.outputSlot().isEmpty();
+            return firstSlot && secondSlot;
+        }
+        return false;
+    }
+
+    public void testUpgradeAware(boolean validFirstSlot, boolean validSecondSlot) {
+        succeedIfInvalidItemSerializationCycle(UpgradeAware.CODEC, help -> help.makeUpgrades(validFirstSlot, validSecondSlot),
+              upgradeAware -> validateUpgrades(upgradeAware, validFirstSlot, validSecondSlot));
+    }
+
+    public void testUpgradeAwareOnItem(boolean validFirstSlot, boolean validSecondSlot) {
+        succeedIfInvalidItemSerializationCycle(ItemStack.CODEC, help -> {
+            ItemStack smelterItem = new ItemStack(MekanismBlocks.ENERGIZED_SMELTER);
+            smelterItem.set(MekanismDataComponents.UPGRADES, help.makeUpgrades(validFirstSlot, validSecondSlot));
+            return smelterItem;
+        }, smelterItem -> smelterItem.is(MekanismBlocks.ENERGIZED_SMELTER.getItemHolder()) &&
+                          validateUpgrades(smelterItem.getOrDefault(MekanismDataComponents.UPGRADES, UpgradeAware.EMPTY), validFirstSlot, validSecondSlot));
+    }
+
+    public MinerItemStackFilter makeMinerFilter(Item item) {
+        MinerItemStackFilter filter = new MinerItemStackFilter();
+        filter.setItem(item);
+        filter.replaceTarget = Items.COBBLESTONE;
+        if (item == Items.STONE) {
+            filter.requiresReplacement = true;
+        }
+        return filter;
+    }
+
+    public boolean testFilter(MinerItemStackFilter filter) {
+        return filter.replaceTargetMatches(Items.COBBLESTONE) && isStone(filter) == filter.requiresReplacement;
+    }
+
+    public SorterItemStackFilter makeSorterFilter(Item item) {
+        SorterItemStackFilter filter = new SorterItemStackFilter();
+        filter.setItem(item);
+        filter.min = 2;
+        filter.max = 3;
+        filter.color = EnumColor.AQUA;
+        filter.sizeMode = true;
+        if (item == Items.STONE) {
+            filter.fuzzyMode = true;
+        }
+        return filter;
+    }
+
+    public boolean testFilter(SorterItemStackFilter filter) {
+        return filter.min == 2 && filter.max == 3 && filter.color == EnumColor.AQUA && filter.sizeMode && !filter.allowDefault && isStone(filter) == filter.fuzzyMode;
+    }
+
+    public QIOItemStackFilter makeQIOFilter(Item item) {
+        QIOItemStackFilter filter = new QIOItemStackFilter();
+        filter.setItem(item);
+        if (item == Items.STONE) {
+            filter.fuzzyMode = true;
+        }
+        return filter;
+    }
+
+    private boolean isStone(IItemStackFilter<?> filter) {
+        return filter.getItemType().is(BlockItemIds.STONE.item());
+    }
+
+    public boolean testFilter(QIOItemStackFilter filter) {
+        return isStone(filter) == filter.fuzzyMode;
+    }
+
+    private <FILTER extends BaseFilter<FILTER> & IItemStackFilter<FILTER>> FilterAware makeFilters(Function<Item, FILTER> filterCreator) {
+        return new FilterAware(List.of(
+              filterCreator.apply(Items.STICK),
+              filterCreator.apply(ITEM_TO_REPLACE.value()),
+              filterCreator.apply(Items.STONE)
+        ));
+    }
+
+    @SuppressWarnings("unchecked")
+    private <FILTER extends BaseFilter<FILTER> & IItemStackFilter<FILTER>> boolean validateFilters(FilterAware filterAware, Predicate<FILTER> filterTester) {
+        List<IFilter<?>> filters = filterAware.filters();
+        if (filters.size() == 2) {
+            FILTER stickFilter = (FILTER) filters.getFirst();
+            FILTER stoneFilter = (FILTER) filters.getLast();
+            return stickFilter.getItemType().is(Items.STICK) && filterTester.test(stickFilter) &&
+                   isStone(stoneFilter) && filterTester.test(stoneFilter);
+        }
+        return false;
+    }
+
+    public <FILTER extends BaseFilter<FILTER> & IItemStackFilter<FILTER>> void testFilterAware(Function<Item, FILTER> filterCreator, Predicate<FILTER> filterTester) {
+        succeedIfInvalidItemSerializationCycle(FilterAware.CODEC, help -> help.makeFilters(filterCreator),
+              filterAware -> validateFilters(filterAware, filterTester));
+    }
+
+    public <FILTER extends BaseFilter<FILTER> & IItemStackFilter<FILTER>> void testFilterAwareOnItem(Holder<Item> item, Function<Item, FILTER> filterCreator,
+          Predicate<FILTER> filterTester) {
+        succeedIfInvalidItemSerializationCycle(ItemStack.CODEC, help -> {
+            ItemStack stack = new ItemStack(item);
+            stack.set(MekanismDataComponents.FILTER_AWARE, help.makeFilters(filterCreator));
+            return stack;
+        }, stack -> stack.is(item) && validateFilters(stack.getOrDefault(MekanismDataComponents.FILTER_AWARE, FilterAware.EMPTY), filterTester));
+    }
+}

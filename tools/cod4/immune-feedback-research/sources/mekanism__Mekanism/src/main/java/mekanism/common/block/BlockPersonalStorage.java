@@ -1,0 +1,44 @@
+package mekanism.common.block;
+
+import mekanism.common.block.attribute.Attribute;
+import mekanism.common.block.attribute.Attributes.AttributeInventory;
+import mekanism.common.block.prefab.BlockTile;
+import mekanism.common.content.blocktype.BlockTypeTile;
+import mekanism.common.item.loot.PersonalStorageContentsLootFunction;
+import mekanism.common.lib.inventory.personalstorage.PersonalStorageManager;
+import mekanism.common.lib.transaction.TransactionHelper;
+import mekanism.common.tile.TileEntityPersonalStorage;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import org.jspecify.annotations.Nullable;
+
+public abstract class BlockPersonalStorage<TILE extends TileEntityPersonalStorage, BLOCK extends BlockTypeTile<TILE>> extends BlockTile<TILE, BLOCK> {
+
+    public static final Attribute PERSONAL_STORAGE_INVENTORY = new AttributeInventory<>(lootBuilder -> {
+        lootBuilder.apply(PersonalStorageContentsLootFunction.builder());
+        return true;
+    });
+
+    public BlockPersonalStorage(BLOCK type, BlockBehaviour.Properties properties) {
+        super(type, properties);
+    }
+
+    @Override
+    public void setPlacedBy(Level world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(world, pos, state, placer, stack);
+        if (!world.isClientSide() && stack.count() == 1 && (!(placer instanceof Player player) || !player.hasInfiniteMaterials())) {
+            //itemstack will be deleted, remove the stored inventory
+            try (Transaction transaction = TransactionHelper.openTransactionSafe()) {
+                PersonalStorageManager.deleteInventory(ItemAccess.forStack(stack), transaction);
+                transaction.commit();
+            }
+        }
+    }
+}

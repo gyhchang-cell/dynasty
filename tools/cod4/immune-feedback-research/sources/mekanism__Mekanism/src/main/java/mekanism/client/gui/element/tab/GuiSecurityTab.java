@@ -1,0 +1,178 @@
+package mekanism.client.gui.element.tab;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import mekanism.api.security.IBlockSecurityUtils;
+import mekanism.api.security.IEntitySecurityUtils;
+import mekanism.api.security.IItemSecurityUtils;
+import mekanism.api.security.IOwnerObject;
+import mekanism.api.security.ISecurityObject;
+import mekanism.api.security.ISecurityUtils;
+import mekanism.api.security.ITypedSecurityUtils;
+import mekanism.api.security.SecurityMode;
+import mekanism.api.text.EnumColor;
+import mekanism.client.SpecialColors;
+import mekanism.client.gui.IGuiWrapper;
+import mekanism.client.gui.element.GuiInsetElement;
+import mekanism.client.gui.element.tab.GuiSecurityTab.SecurityInfoProvider;
+import mekanism.client.gui.tooltip.TooltipUtils;
+import mekanism.common.Mekanism;
+import mekanism.common.MekanismLang;
+import mekanism.common.lib.security.SecurityData;
+import mekanism.common.lib.security.SecurityUtils;
+import mekanism.common.network.PacketUtils;
+import mekanism.common.network.to_server.PacketEntityGuiInteract;
+import mekanism.common.network.to_server.PacketEntityGuiInteract.GuiInteractionEntity;
+import mekanism.common.network.to_server.PacketGuiInteract;
+import mekanism.common.network.to_server.PacketGuiInteract.GuiInteraction;
+import mekanism.common.network.to_server.PacketItemGuiInteract;
+import mekanism.common.network.to_server.PacketItemGuiInteract.ItemGuiInteraction;
+import mekanism.common.util.ItemAccessUtils;
+import mekanism.common.util.text.OwnerDisplay;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import org.jspecify.annotations.Nullable;
+
+public class GuiSecurityTab extends GuiInsetElement<SecurityInfoProvider<?>> {
+
+    private static final Identifier PUBLIC = Mekanism.rl("security/public");
+    private static final Identifier PRIVATE = Mekanism.rl("security/private");
+    private static final Identifier PROTECTED = Mekanism.rl("security/protected");
+
+    @Nullable
+    private final InteractionHand currentHand;
+    private List<Component> lastInfo = Collections.emptyList();
+    @Nullable
+    private Tooltip lastTooltip;
+
+    public GuiSecurityTab(IGuiWrapper gui, BlockEntity tile) {
+        this(gui, tile, 34);
+    }
+
+    public GuiSecurityTab(IGuiWrapper gui, BlockEntity tile, int y) {
+        this(gui, SecurityInfoProvider.create(tile), y, null);
+    }
+
+    public GuiSecurityTab(IGuiWrapper gui, Entity entity, int y) {
+        this(gui, new SecurityInfoProvider<>(IEntitySecurityUtils.INSTANCE, () -> entity), y);
+    }
+
+    public GuiSecurityTab(IGuiWrapper gui, SecurityInfoProvider<?> provider, int y) {
+        this(gui, provider, y, null);
+    }
+
+    public GuiSecurityTab(IGuiWrapper gui, InteractionHand hand) {
+        this(gui, new SecurityInfoProvider<>(IItemSecurityUtils.INSTANCE, () -> ItemAccessUtils.playerHandAccess(minecraft.player, hand)), 34, hand);
+    }
+
+    private GuiSecurityTab(IGuiWrapper gui, SecurityInfoProvider<?> provider, int y, @Nullable InteractionHand hand) {
+        super(PUBLIC, gui, provider, gui.getImageWidth(), y, 26, 18, false);
+        this.currentHand = hand;
+    }
+
+    @Override
+    protected int getTabColor() {
+        return SpecialColors.TAB_SECURITY.argb();
+    }
+
+    @Override
+    protected Identifier getOverlay() {
+        return switch (dataSource.securityMode()) {
+            case PUBLIC -> super.getOverlay();
+            case PRIVATE -> PRIVATE;
+            case TRUSTED -> PROTECTED;
+        };
+    }
+
+    @Override
+    public void updateTooltip(int mouseX, int mouseY) {
+        ISecurityObject security = dataSource.securityObject();
+        if (security != null) {
+            SecurityData data = SecurityUtils.get().getFinalData(security, true);
+            List<Component> info = new ArrayList<>(3);
+            info.add(MekanismLang.SECURITY.translateColored(EnumColor.GRAY, data.mode()));
+            info.add(OwnerDisplay.of(minecraft.player, security.getOwnerUUID(), security.getOwnerName()).getTextComponent());
+            if (data.override()) {
+                info.add(MekanismLang.SECURITY_OVERRIDDEN.translateColored(EnumColor.RED));
+            }
+            if (!info.equals(lastInfo)) {
+                lastInfo = info;
+                lastTooltip = TooltipUtils.create(info);
+            }
+        } else {
+            lastTooltip = null;
+            lastInfo = Collections.emptyList();
+        }
+        setTooltip(lastTooltip);
+    }
+
+    @Override
+    public void onClick(MouseButtonEvent event, boolean isDoubleClick) {
+        ISecurityObject security = dataSource.securityObject();
+        if (security != null && minecraft.player != null && security.ownerMatches(minecraft.player)) {
+            int button = event.button();
+            if (currentHand != null) {
+                PacketUtils.sendToServer(new PacketItemGuiInteract(button == InputConstants.MOUSE_BUTTON_LEFT ? ItemGuiInteraction.NEXT_SECURITY_MODE
+                                                                                                              : ItemGuiInteraction.PREVIOUS_SECURITY_MODE, currentHand));
+            } else {
+                Object provider = dataSource.objectSupplier.get();
+                if (provider instanceof BlockEntity tile) {
+                    PacketUtils.sendToServer(new PacketGuiInteract(button == InputConstants.MOUSE_BUTTON_LEFT ? GuiInteraction.NEXT_SECURITY_MODE
+                                                                                                              : GuiInteraction.PREVIOUS_SECURITY_MODE, tile));
+                } else if (provider instanceof Entity entity) {
+                    PacketUtils.sendToServer(new PacketEntityGuiInteract(button == InputConstants.MOUSE_BUTTON_LEFT ? GuiInteractionEntity.NEXT_SECURITY_MODE
+                                                                                                                    : GuiInteractionEntity.PREVIOUS_SECURITY_MODE, entity));
+                }
+            }
+        }
+    }
+
+    @Override
+    public boolean isValidClickButton(MouseButtonInfo buttonInfo) {
+        return buttonInfo.button() == InputConstants.MOUSE_BUTTON_LEFT || buttonInfo.button() == InputConstants.MOUSE_BUTTON_RIGHT;
+    }
+
+    public record SecurityInfoProvider<OBJECT>(Supplier<OBJECT> objectSupplier, Function<OBJECT, @Nullable ISecurityObject> securityProvider,
+                                               Function<OBJECT, @Nullable IOwnerObject> ownerProvider) {
+
+        public SecurityInfoProvider(ITypedSecurityUtils<OBJECT> securityUtils, Supplier<OBJECT> objectSupplier) {
+            this(objectSupplier, securityUtils::securityCapability, securityUtils::ownerCapability);
+        }
+
+        @SuppressWarnings("Convert2Diamond")//Makes the null result provide warnings
+        public static SecurityInfoProvider<BlockEntity> create(BlockEntity tile) {
+            return new SecurityInfoProvider<BlockEntity>(() -> tile, t -> {
+                if (t.getLevel() == null) {
+                    return null;
+                }
+                return IBlockSecurityUtils.INSTANCE.securityCapability(t.getLevel(), t.getBlockPos(), t);
+            }, t -> {
+                if (t.getLevel() == null) {
+                    return null;
+                }
+                return IBlockSecurityUtils.INSTANCE.ownerCapability(t.getLevel(), t.getBlockPos(), t);
+            }
+            );
+        }
+
+        @Nullable
+        public ISecurityObject securityObject() {
+            return securityProvider.apply(objectSupplier.get());
+        }
+
+        SecurityMode securityMode() {
+            OBJECT object = objectSupplier.get();
+            return ISecurityUtils.INSTANCE.getSecurityMode(object, securityProvider, ownerProvider, true);
+        }
+    }
+}

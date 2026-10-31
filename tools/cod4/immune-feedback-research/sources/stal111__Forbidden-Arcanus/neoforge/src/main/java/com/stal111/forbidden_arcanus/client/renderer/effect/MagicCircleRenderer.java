@@ -1,0 +1,65 @@
+package com.stal111.forbidden_arcanus.client.renderer.effect;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import com.stal111.forbidden_arcanus.client.renderer.effect.state.MagicCircleRenderState;
+import net.minecraft.client.model.Model;
+import net.minecraft.client.model.geom.ModelLayerLocation;
+import net.minecraft.client.renderer.SpriteMapper;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
+import net.minecraft.client.resources.model.sprite.SpriteId;
+import net.minecraft.util.Unit;
+
+public class MagicCircleRenderer {
+
+    public static final SpriteMapper MAPPER = new SpriteMapper(TextureAtlas.LOCATION_BLOCKS, "entity/magic_circle");
+
+    private final SpriteGetter sprites;
+    private final Model.Simple outerRing;
+    private final Model.Simple innerRing;
+
+    public MagicCircleRenderer(BlockEntityRendererProvider.Context context, ModelLayerLocation outerRingLayer, ModelLayerLocation innerRingLayer) {
+        this.sprites = context.sprites();
+        this.outerRing = new Model.Simple(context.bakeLayer(outerRingLayer), RenderTypes::entityTranslucentEmissive);
+        this.innerRing = new Model.Simple(context.bakeLayer(innerRingLayer), RenderTypes::entityTranslucentEmissive);
+    }
+
+    public void submit(MagicCircleRenderState renderState, PoseStack poseStack, SubmitNodeCollector nodeCollector) {
+        float progress = renderState.ageInTicks / renderState.duration;
+        SpriteId outerTexture = MAPPER.apply(renderState.magicCircleType.outerTexture());
+        SpriteId innerTexture = MAPPER.apply(renderState.magicCircleType.innerTexture());
+
+        poseStack.pushPose();
+
+        float size = this.easeSineOut(progress, 0.15D, 0.5D, 0.32D);
+
+        poseStack.scale(size, 1.0F, size);
+
+        poseStack.mulPose(Axis.YN.rotationDegrees(renderState.ageInTicks));
+
+        nodeCollector.submitModel(this.outerRing, Unit.INSTANCE, poseStack, outerTexture.renderType(this.outerRing::renderType), renderState.lightCoords, OverlayTexture.NO_OVERLAY, -1, this.sprites.get(outerTexture), 0, null);
+
+        poseStack.mulPose(Axis.YN.rotationDegrees(-renderState.ageInTicks * 2));
+
+        nodeCollector.submitModel(this.innerRing, Unit.INSTANCE, poseStack, innerTexture.renderType(this.innerRing::renderType), renderState.lightCoords, OverlayTexture.NO_OVERLAY, -1, this.sprites.get(innerTexture), 0, null);
+
+        poseStack.popPose();
+    }
+
+    public float easeSineIn(double progress, double start, double change, double duration) {
+        double clampedProgress = Math.min(progress, duration);
+
+        return (float) (-change * Math.cos(clampedProgress / duration * (Math.PI / 2)) + change + start);
+    }
+
+    public float easeSineOut(double progress, double start, double change, double duration) {
+        double clampedProgress = Math.min(progress, duration);
+
+        return (float) (change * Math.sin(clampedProgress / duration * (Math.PI / 2)) + start);
+    }
+}

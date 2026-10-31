@@ -1,0 +1,34 @@
+package mekanism.common.capabilities.resolver;
+
+import java.util.List;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import org.jspecify.annotations.Nullable;
+
+public interface ICapabilityResolver<CONTEXT extends @Nullable Object> {
+
+    /// Gets the list of capabilities this resolver is able to resolve.
+    ///
+    /// @return List of capabilities this resolver can resolve.
+    List<BlockCapability<?, CONTEXT>> getSupportedCapabilities();
+
+    /// Resolves a given capability from a given side. This value should be cached for later invalidation, as well as quicker re-lookup.
+    ///
+    /// @param capability Capability
+    /// @param side       Side
+    ///
+    /// @return LazyOptional for the given capability
+    ///
+    /// @apiNote This method should only be called with capabilities that are in [#getSupportedCapabilities()]
+    /// @implNote The result should be cached
+    @Nullable
+    <T> T resolve(BlockCapability<T, CONTEXT> capability, CONTEXT side);
+
+    /// Invalidates the given capability on the given side.
+    ///
+    /// @param capability Capability
+    /// @param context    Context
+    void invalidate(BlockCapability<?, CONTEXT> capability, CONTEXT context);
+
+    /// Invalidates all cached capabilities.
+    void invalidateAll();
+}

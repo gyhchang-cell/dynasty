@@ -1,0 +1,150 @@
+package mekanism.client.render.item.block;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import com.mojang.serialization.MapCodec;
+import java.util.List;
+import java.util.function.Consumer;
+import mekanism.api.RelativeSide;
+import mekanism.client.ModelUtil;
+import mekanism.client.model.MekanismModelCache;
+import mekanism.client.model.blockstate.EnergyCubeModel;
+import mekanism.client.render.MekanismRenderer;
+import mekanism.client.render.tileentity.RenderEnergyCube;
+import mekanism.common.component.component.AttachedSideConfig;
+import mekanism.common.component.containers.type.ContainerType;
+import mekanism.common.item.block.ItemBlockEnergyCube;
+import mekanism.common.lib.transmitter.TransmissionType;
+import mekanism.common.registries.MekanismBlocks;
+import mekanism.common.registries.MekanismDataComponents;
+import mekanism.common.tier.EnergyCubeTier;
+import mekanism.common.tile.TileEntityEnergyCube.CubeSideState;
+import mekanism.common.tile.component.config.DataType;
+import mekanism.common.tile.component.config.IPersistentConfigInfo;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.special.SpecialModelRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.ModelManager;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.LightCoordsUtil;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.util.Lazy;
+import org.joml.Vector3fc;
+import org.jspecify.annotations.Nullable;
+
+public class RenderEnergyCubeItem implements SpecialModelRenderer<RenderEnergyCubeItem.CubeState> {
+
+    private final Lazy<Vector3fc[]> extents = Lazy.of(() -> ModelUtil.computeExtents(MekanismBlocks.CREATIVE_ENERGY_CUBE));
+
+    private RenderEnergyCubeItem() {
+    }
+
+    @Override
+    public void submit(@Nullable CubeState state, PoseStack poseStack, SubmitNodeCollector nodeCollector, int lightCoords, int overlayCoords, boolean hasFoil, int outlineColor) {
+        if (state == null) {
+            return;
+        }
+        if (hasFoil) {
+            state.blockRenderState.submit(poseStack, nodeCollector, lightCoords, overlayCoords, outlineColor, true);
+        } else {
+            //Use vanilla's normal rendering submit chain so that if something breaks when updating, we only have things break when using glint
+            state.blockRenderState.submit(poseStack, nodeCollector, lightCoords, overlayCoords, outlineColor);
+        }
+        if (state.coreTint != null) {
+            float scaledTicks = 4 * state.ticks();
+            poseStack.pushPose();
+            poseStack.translate(0.5, 0.5, 0.5);
+            poseStack.scale(0.4F, 0.4F, 0.4F);
+            poseStack.translate(0, Math.sin(Math.toRadians(3 * state.ticks())) / 7, 0);
+            poseStack.rotateDegrees(Axis.YP, scaledTicks);
+            poseStack.rotateDegrees(RenderEnergyCube.coreVec, 36F + scaledTicks);
+            nodeCollector.submitBlockModel(poseStack, Sheets.translucentBlockItemSheet(), MekanismModelCache.INSTANCE.ENERGY_CORE.getBakedModel(),
+              new int[]{state.coreTint}, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, EntityRenderState.NO_OUTLINE);
+            poseStack.popPose();
+        }
+    }
+
+    @Override
+    public void getExtents(Consumer<Vector3fc> output) {
+        for (Vector3fc vector3fc : extents.get()) {
+            output.accept(vector3fc);
+        }
+    }
+
+    @Nullable
+    @Override
+    public CubeState extractArgument(ItemStack stack) {
+        EnergyCubeTier tier = stack.get(MekanismDataComponents.ENERGY_CUBE_TIER);
+        if (tier == null) {
+            return null;
+        }
+        CubeSideState[] sideStates = new CubeSideState[RelativeSide.VALUES.size()];
+        AttachedSideConfig fallback = tier.isCreative() ? ItemBlockEnergyCube.ALL_OUTPUT : ItemBlockEnergyCube.SIDE_CONFIG;
+        IPersistentConfigInfo sideConfig = AttachedSideConfig.getStoredConfigInfo(stack, fallback, TransmissionType.ENERGY);
+        for (RelativeSide side : RelativeSide.VALUES) {
+            DataType dataType = sideConfig.getDataType(side);
+            CubeSideState state = CubeSideState.INACTIVE;
+            if (dataType != DataType.NONE) {
+                state = dataType.canOutput() ? CubeSideState.ACTIVE_LIT : CubeSideState.ACTIVE_UNLIT;
+            }
+            sideStates[side.ordinal()] = state;
+        }
+
+        FoilableBlockModelRenderState modelRenderState = new FoilableBlockModelRenderState();
+        BlockItem itemBlock = (BlockItem) stack.getItem();
+        BlockState blockState = itemBlock.getBlock().defaultBlockState();
+        BlockStateModel blockStateModel = models().getBlockStateModelSet().get(blockState);
+        if (blockStateModel instanceof EnergyCubeModel energyCubeModel) {
+            List<BlockStateModelPart> partList = modelRenderState.setupModel(ModelUtil.IDENTITY, (energyCubeModel.materialFlags() & BakedQuad.FLAG_TRANSLUCENT) != 0);
+            energyCubeModel.collectParts(partList, sideStates);
+            modelRenderState.tintLayers().add(tier.getBaseTier().getPackedColor());
+        } else {
+            //weird, but ok, try to render something
+            mc().getBlockModelResolver().update(modelRenderState, blockState, ModelUtil.BLOCK_DISPLAY_NO_CONTEXT);
+        }
+
+        float ticks = mc().gameRenderer.gameRenderState().levelRenderState.gameTime + MekanismRenderer.getPartialTick();
+        float energyRatio = (float) ContainerType.ENERGY.getRatio(stack);
+
+        return new CubeState(
+              energyRatio > 0 ? tier.getBaseTier().getPackedColor(ARGB.as8BitChannel(energyRatio)) : null,
+              ticks,
+              modelRenderState
+        );
+    }
+
+    private static ModelManager models() {
+        return mc().getModelManager();
+    }
+
+    private static Minecraft mc() {
+        return Minecraft.getInstance();
+    }
+
+    public record CubeState(@Nullable Integer coreTint, float ticks, FoilableBlockModelRenderState blockRenderState) {}
+
+    public static class Unbaked implements SpecialModelRenderer.Unbaked<CubeState> {
+
+        public static final Unbaked INSTANCE = new Unbaked();
+        public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(INSTANCE);
+
+        @Override
+        @Nullable
+        public SpecialModelRenderer<CubeState> bake(BakingContext context) {
+            return new RenderEnergyCubeItem();
+        }
+
+        @Override
+        public MapCodec<? extends SpecialModelRenderer.Unbaked<CubeState>> type() {
+            return MAP_CODEC;
+        }
+    }
+}

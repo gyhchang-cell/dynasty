@@ -1,0 +1,167 @@
+package mekanism.client.gui.element.button;
+
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
+import java.util.function.ObjIntConsumer;
+import java.util.function.Predicate;
+import mekanism.api.text.EnumColor;
+import mekanism.api.text.TextComponentUtil;
+import mekanism.client.MekanismClient;
+import mekanism.client.gui.IGuiWrapper;
+import mekanism.client.gui.element.slot.GuiSequencedSlotDisplay;
+import mekanism.client.gui.element.slot.GuiSlot;
+import mekanism.client.gui.element.slot.SlotType;
+import mekanism.common.Mekanism;
+import mekanism.common.MekanismLang;
+import mekanism.common.content.filter.FilterManager;
+import mekanism.common.content.filter.IFilter;
+import mekanism.common.content.filter.IItemStackFilter;
+import mekanism.common.content.filter.IModIDFilter;
+import mekanism.common.content.filter.ITagFilter;
+import mekanism.common.content.oredictionificator.OredictionificatorFilter;
+import mekanism.common.content.oredictionificator.OredictionificatorItemFilter;
+import mekanism.common.content.qio.filter.QIOItemStackFilter;
+import mekanism.common.content.transporter.SorterFilter;
+import mekanism.common.inventory.warning.WarningTracker.WarningType;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import org.jspecify.annotations.Nullable;
+
+public class FilterButton extends MekanismButton {
+
+    private static final Identifier BASE = Mekanism.rl("list/filter/base");
+    private static final Identifier HOVERED = Mekanism.rl("list/filter/hovered");
+
+    protected final FilterManager<?> filterManager;
+    private final GuiSequencedSlotDisplay slotDisplay;
+    private final ObjIntConsumer<@Nullable IFilter<?>> onPress;
+    private final IntSupplier filterIndex;
+    private final RadioButton toggleButton;
+    private final GuiSlot slot;
+    private final int index;
+    @Nullable
+    private IFilter<?> prevFilter;
+
+    @Nullable
+    private static IFilter<?> getFilter(FilterManager<?> filterManager, int index) {
+        if (index >= 0 && index < filterManager.count()) {
+            return filterManager.getFilters().get(index);
+        }
+        return null;
+    }
+
+    public FilterButton(IGuiWrapper gui, int x, int y, int width, int height, int index, IntSupplier filterIndex, FilterManager<?> filterManager,
+          ObjIntConsumer<@Nullable IFilter<?>> onPress, IntConsumer toggleButtonPress) {
+        super(gui, x, y, width, height, CommonComponents.EMPTY, (element, _, _) -> {
+            FilterButton button = (FilterButton) element;
+            int actualIndex = button.filterIndex.getAsInt() + button.index;
+            button.onPress.accept(getFilter(button.filterManager, actualIndex), actualIndex);
+            return true;
+        });
+        this.index = index;
+        this.filterIndex = filterIndex;
+        this.filterManager = filterManager;
+        this.onPress = onPress;
+        slot = addChild(new GuiSlot(SlotType.NORMAL, gui, relativeX + 2, relativeY + 2));
+        slotDisplay = addChild(new GuiSequencedSlotDisplay(gui, relativeX + 3, relativeY + 3, () -> {
+            IFilter<?> filter = getFilter();
+            return filter == null ? SlotDisplay.Empty.INSTANCE : filter.asSlotDisplay(gui.registryAccess());
+        }));
+        toggleButton = addChild(new RadioButton(gui, relativeX + this.width - RadioButton.RADIO_SIZE - getToggleXShift(), relativeY + (this.height / 2) - (RadioButton.RADIO_SIZE / 2),
+              this::isEnabled, (_, _, _) -> {
+            toggleButtonPress.accept(getActualIndex());
+            return true;
+        }, MekanismLang.FILTER_STATE.translate(EnumColor.BRIGHT_GREEN, MekanismLang.MODULE_ENABLED_LOWER), MekanismLang.FILTER_STATE.translate(EnumColor.RED, MekanismLang.MODULE_DISABLED_LOWER)));
+        setButtonBackground(ButtonBackground.NONE);
+    }
+
+    private boolean isEnabled() {
+        IFilter<?> filter = getFilter();
+        return filter != null && filter.isEnabled();
+    }
+
+    protected int getToggleXShift() {
+        return 4;
+    }
+
+    protected int getActualIndex() {
+        return filterIndex.getAsInt() + index;
+    }
+
+    @Nullable
+    protected IFilter<?> getFilter() {
+        return getFilter(filterManager, getActualIndex());
+    }
+
+    public FilterButton warning(WarningType type, Predicate<@Nullable IFilter<?>> hasWarning) {
+        //Proxy applying the warning to the slot
+        slot.warning(type, () -> hasWarning.test(getFilter()));
+        return this;
+    }
+
+    protected void setVisibility(boolean visible) {
+        //TODO: Should we check visibility before passing things like tooltip to children? That way we don't have to manually hide the children as well
+        this.visible = visible;
+        this.slot.visible = visible;
+        this.slotDisplay.visible = visible;
+        this.toggleButton.visible = visible;
+    }
+
+    @Override
+    public void updateBeforeExtract() {
+        setVisibility(getFilter() != null);
+    }
+
+    @Override
+    public void drawBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        super.drawBackground(guiGraphics, mouseX, mouseY, partialTicks);
+        Identifier texture = isMouseOverCheckWindows(mouseX, mouseY) ? HOVERED : BASE;
+        guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, texture, getButtonX(), getButtonY(), getButtonWidth(), getButtonHeight());
+    }
+
+    @Override
+    public void renderForeground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        super.renderForeground(guiGraphics, mouseX, mouseY, partialTicks);
+        IFilter<?> filter = getFilter();
+        if (filter != prevFilter) {
+            slotDisplay.updateStackList();
+            prevFilter = filter;
+        }
+        Component filterDescriptor = switch (filter) {
+            case IItemStackFilter<?> item -> item.getItemType().getHoverName();
+            case ITagFilter<?> tag -> TextComponentUtil.getString(tag.getTagName());
+            case IModIDFilter<?> modId -> TextComponentUtil.getString(modId.getModID());
+            case OredictionificatorFilter<?, ?, ?> oredictionificatorFilter -> TextComponentUtil.getString(oredictionificatorFilter.getFilterText());
+            case null, default -> null;
+        };
+        int textWidth = toggleButton.getRelativeX() - relativeX - 20;
+        if (filterDescriptor != null) {
+            drawScrollingString(guiGraphics, filterDescriptor, 19, 3, TextAlignment.LEFT, titleTextColor(), textWidth, 3, false);
+        }
+
+        if (filter instanceof SorterFilter<?> sorterFilter) {
+            int colorX = relativeX + 22;
+            int colorY = relativeY + 13;
+            guiGraphics.outline(colorX, colorY, 6, 6, 0xFF393939);
+            if (sorterFilter.color != null) {
+                guiGraphics.fill(colorX + 1, colorY + 1, colorX + 5, colorY + 5, sorterFilter.color.getPackedColor());
+            }
+
+            Component color = sorterFilter.color == null ? MekanismLang.NO_COLOR.translate() : sorterFilter.color.getName();
+            drawScaledScrollingString(guiGraphics, color, 27, 12, TextAlignment.LEFT, titleTextColor(), textWidth - 8, 3, false, 0.7F);
+        } else if (filter instanceof OredictionificatorItemFilter oreDictFilter) {
+            ItemResource result = oreDictFilter.getResult();
+            Component text = TextComponentUtil.build(result, " (", MekanismClient.getModId(result), ")");
+            drawScaledScrollingString(guiGraphics, text, 19, 12, TextAlignment.LEFT, titleTextColor(), textWidth, 3, false, 0.7F);
+        } else if (filter instanceof QIOItemStackFilter itemFilter) {
+            if (itemFilter.fuzzyMode) {
+                drawScaledScrollingString(guiGraphics, MekanismLang.FUZZY_MODE.translate(), 19, 12, TextAlignment.LEFT, titleTextColor(), textWidth, 3, false, 0.7F);
+            }
+        }
+    }
+}

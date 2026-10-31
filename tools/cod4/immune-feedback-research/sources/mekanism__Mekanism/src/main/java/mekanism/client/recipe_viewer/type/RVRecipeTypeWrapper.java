@@ -1,0 +1,64 @@
+package mekanism.client.recipe_viewer.type;
+
+import java.util.List;
+import java.util.stream.Stream;
+import mekanism.api.recipes.MekanismRecipe;
+import mekanism.api.text.TextComponentUtil;
+import mekanism.common.recipe.IMekanismRecipeTypeProvider;
+import mekanism.common.recipe.MekanismRecipeType;
+import mekanism.common.recipe.lookup.cache.IInputRecipeCache;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeInput;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
+import net.minecraft.world.level.ItemLike;
+import org.jspecify.annotations.Nullable;
+
+public record RVRecipeTypeWrapper<VANILLA_INPUT extends RecipeInput, BOOK_CATEGORY, BOOK_INFO extends Recipe.BookInfo<BOOK_CATEGORY>,
+      RECIPE extends MekanismRecipe<VANILLA_INPUT, BOOK_CATEGORY, BOOK_INFO>, INPUT_CACHE extends IInputRecipeCache>(
+      Identifier id, ItemLike item, Class<? extends RECIPE> recipeClass, IMekanismRecipeTypeProvider<VANILLA_INPUT, BOOK_CATEGORY, BOOK_INFO, RECIPE, INPUT_CACHE> vanillaProvider,
+      int xOffset, int yOffset, int width, int height, List<SlotDisplay> workstations
+) implements IRecipeViewerRecipeType<RECIPE>, IMekanismRecipeTypeProvider<VANILLA_INPUT, BOOK_CATEGORY, BOOK_INFO, RECIPE, INPUT_CACHE> {
+
+    public RVRecipeTypeWrapper(IMekanismRecipeTypeProvider<VANILLA_INPUT, BOOK_CATEGORY, BOOK_INFO, RECIPE, INPUT_CACHE> vanillaProvider, Class<? extends RECIPE> recipeClass,
+          int xOffset, int yOffset, int width, int height, ItemLike icon, ItemLike... altWorkstations) {
+        this(vanillaProvider.getRegistryName(), icon, recipeClass, vanillaProvider, xOffset, yOffset, width, height, IRecipeViewerRecipeType.asWorkStations(altWorkstations));
+    }
+
+    public RVRecipeTypeWrapper {
+        if (workstations.isEmpty()) {
+            workstations = IRecipeViewerRecipeType.asWorkStations(item);
+        } else {
+            workstations = Stream.concat(IRecipeViewerRecipeType.asWorkStations(item).stream(), workstations.stream()).toList();
+        }
+    }
+
+    @Override
+    public Component getTextComponent() {
+        return TextComponentUtil.build(item);
+    }
+
+    @Override
+    public boolean requiresHolder() {
+        return true;
+    }
+
+    @Override
+    public ItemStack iconStack() {
+        return new ItemStack(item);
+    }
+
+    @Nullable
+    @Override
+    public Identifier icon() {
+        //Handled by the icon stack
+        return null;
+    }
+
+    @Override
+    public MekanismRecipeType<VANILLA_INPUT, BOOK_CATEGORY, BOOK_INFO, RECIPE, INPUT_CACHE> getRecipeType() {
+        return vanillaProvider.getRecipeType();
+    }
+}

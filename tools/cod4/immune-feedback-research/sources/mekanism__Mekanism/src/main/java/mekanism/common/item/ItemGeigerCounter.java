@@ -1,0 +1,47 @@
+package mekanism.common.item;
+
+import mekanism.api.radiation.IRadiationManager;
+import mekanism.api.text.EnumColor;
+import mekanism.common.MekanismLang;
+import mekanism.common.config.MekanismConfig;
+import mekanism.common.lib.radiation.LevelAndMaxMagnitude;
+import mekanism.common.lib.radiation.RadiationManager;
+import mekanism.common.lib.radiation.RadiationScale;
+import mekanism.common.lib.radiation.RadiationUtil;
+import mekanism.common.util.UnitDisplayUtils;
+import mekanism.common.util.UnitDisplayUtils.RadiationUnit;
+import mekanism.common.util.text.TextUtils;
+import net.minecraft.advancements.triggers.CriteriaTriggers;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.Level;
+
+public class ItemGeigerCounter extends Item {
+
+    public ItemGeigerCounter(Properties props) {
+        super(props.stacksTo(1).rarity(Rarity.UNCOMMON).useCooldown(0.5F));
+    }
+
+    @Override
+    public InteractionResult use(Level world, Player player, InteractionHand hand) {
+        if (player.isShiftKeyDown()) {
+            return InteractionResult.PASS;
+        } else if (!world.isClientSide()) {
+            LevelAndMaxMagnitude levelAndMaxMagnitude = RadiationManager.get().getRadiationLevelAndMaxMagnitude(player);
+            double magnitude = levelAndMaxMagnitude.level();
+            EnumColor severityColor = RadiationScale.getSeverityColor(magnitude);
+            player.sendSystemMessage(MekanismLang.RADIATION_EXPOSURE.translateColored(EnumColor.GRAY, severityColor,
+                  UnitDisplayUtils.getDisplayShort(magnitude, RadiationUnit.SVH, 3)));
+            if (MekanismConfig.local.enableDecayTimers.get() && magnitude > IRadiationManager.INSTANCE.baselineRadiation()) {
+                player.sendSystemMessage(MekanismLang.RADIATION_DECAY_TIME.translateColored(EnumColor.GRAY,
+                      severityColor, TextUtils.getHoursMinutes(world, RadiationUtil.getDecayTime(levelAndMaxMagnitude.maxMagnitude(), true))));
+            }
+            CriteriaTriggers.USING_ITEM.trigger((ServerPlayer) player, player.getItemInHand(hand));
+        }
+        return InteractionResult.SUCCESS_SERVER;
+    }
+}

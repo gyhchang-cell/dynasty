@@ -1,0 +1,61 @@
+package mekanism.common.registration;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import mekanism.api.MekanismRegistries;
+import mekanism.api.robit.RobitSkin;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.common.world.BiomeModifier;
+import net.neoforged.neoforge.common.world.StructureModifier;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.neoforged.neoforge.registries.NewDatapackRegistryEvent;
+import net.neoforged.neoforge.registries.RegistryBuilder;
+
+public class DatapackDeferredRegister<T> extends DeferredMapCodecRegister<T> {
+
+    public static DatapackDeferredRegister<RobitSkin> robitSkins(String modid) {
+        return new DatapackDeferredRegister<>(modid, MekanismRegistries.Keys.ROBIT_SKIN_SERIALIZERS, MekanismRegistries.Keys.ROBIT_SKINS);
+    }
+
+    public static DatapackDeferredRegister<BiomeModifier> biomeModifiers(String modid) {
+        return new DatapackDeferredRegister<>(modid, NeoForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, NeoForgeRegistries.Keys.BIOME_MODIFIERS);
+    }
+
+    public static DatapackDeferredRegister<StructureModifier> structureModifiers(String modid) {
+        return new DatapackDeferredRegister<>(modid, NeoForgeRegistries.Keys.STRUCTURE_MODIFIER_SERIALIZERS, NeoForgeRegistries.Keys.STRUCTURE_MODIFIERS);
+    }
+
+    private final ResourceKey<Registry<T>> datapackRegistryName;
+
+    public DatapackDeferredRegister(String modid, ResourceKey<? extends Registry<MapCodec<? extends T>>> serializerRegistryName,
+          ResourceKey<Registry<T>> datapackRegistryName) {
+        this(modid, serializerRegistryName, datapackRegistryName, DeferredMapCodecHolder::new);
+    }
+
+    public DatapackDeferredRegister(String modid, ResourceKey<? extends Registry<MapCodec<? extends T>>> serializerRegistryName,
+          ResourceKey<Registry<T>> datapackRegistryName, Function<ResourceKey<MapCodec<? extends T>>, ? extends DeferredMapCodecHolder<T, ? extends T>> holderCreator) {
+        super(serializerRegistryName, modid, holderCreator);
+        this.datapackRegistryName = datapackRegistryName;
+    }
+
+    /// Only call this from mekanism and for custom datapack registries
+    public void createAndRegisterWorldRegistry(IEventBus bus, Codec<T> directCodec, Codec<T> networkCodec, Consumer<RegistryBuilder<T>> consumer) {
+        register(bus);
+        //Create a new datapack registry using the direct codec that is created based on the serializer's codec
+        bus.addListener(NewDatapackRegistryEvent.class, event -> event.<T>worldRegistry(builder -> builder
+              .key(datapackRegistryName)
+              .codec(directCodec)
+              .networkCodec(networkCodec)
+              .configurator(consumer)
+        ));
+    }
+
+    public ResourceKey<T> dataKey(String name) {
+        return ResourceKey.create(datapackRegistryName, Identifier.fromNamespaceAndPath(getNamespace(), name));
+    }
+}

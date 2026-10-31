@@ -1,0 +1,49 @@
+package mekanism.additions.common.entity.baby;
+
+import mekanism.additions.common.registries.AdditionsEntityTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.level.Level;
+
+public class EntityBabyCreeper extends Creeper {
+
+    public EntityBabyCreeper(EntityType<EntityBabyCreeper> type, Level world) {
+        super(type, world);
+        this.xpReward = (int) (this.xpReward * 2.5);
+        AdditionsEntityTypes.setupBabyModifiers(this);
+    }
+
+    @Override
+    public boolean isBaby() {
+        return true;
+    }
+
+    @Override
+    public EntityDimensions getDefaultDimensions(Pose pose) {
+        //Note: We already have the age scale factored into the dimensions
+        return getType().getDimensions();
+    }
+
+    /// Modify vanilla's explode method to half the explosion strength of baby creepers, and charged baby creepers
+    @Override
+    protected void explodeCreeper() {
+        if (level() instanceof ServerLevel serverLevel) {
+            float f = isPowered() ? 1 : 0.5F;
+            dead = true;
+            serverLevel.explode(this, getX(), getY(), getZ(), explosionRadius * f, Level.ExplosionInteraction.MOB);
+            spawnLingeringCloud();
+            triggerOnDeathMobEffects(serverLevel, Entity.RemovalReason.KILLED);
+            discard();
+        }
+    }
+
+    @Override
+    public boolean is(EntityType<?> type) {
+        return type == EntityTypes.CREEPER || super.is(type);
+    }
+}

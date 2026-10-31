@@ -1,0 +1,546 @@
+/*
+ * MIT License
+ *
+ * Copyright 2021 vemerion
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.entity.familiar;
+
+import com.klikli_dev.occultism.Occultism;
+import com.klikli_dev.occultism.common.advancement.FamiliarTrigger.Type;
+import com.klikli_dev.occultism.common.container.spirit.FilterableSpiritContainer;
+import com.klikli_dev.occultism.common.container.spirit.SpiritTransporterContainer;
+import com.klikli_dev.occultism.common.entity.IFilterConfigurable;
+import com.klikli_dev.occultism.common.item.filter.EntityItemFilter;
+import com.klikli_dev.occultism.registry.OccultismAdvancements;
+import com.klikli_dev.occultism.registry.OccultismEntities;
+import com.klikli_dev.occultism.util.ItemTransferUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.TagParser;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.network.syncher.SynchedEntityData.Builder;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.goal.*;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
+import net.neoforged.neoforge.transfer.item.PlayerInventoryWrapper;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
+
+public class GreedyFamiliarEntity extends FamiliarEntity implements IFilterConfigurable, MenuProvider {
+
+    private static final EntityDataAccessor<Optional<BlockPos>> TARGET_BLOCK = SynchedEntityData
+            .defineId(GreedyFamiliarEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);
+    private static final EntityDataAccessor<String> FILTER_ITEM = SynchedEntityData
+            .defineId(GreedyFamiliarEntity.class, EntityDataSerializers.STRING);
+
+    public ItemStacksResourceHandler inventory = new ItemStacksResourceHandler(1) {
+        @Override
+        protected void onContentsChanged(int slot, ItemStack previousContents) {
+            super.onContentsChanged(slot, previousContents);
+            GreedyFamiliarEntity.this.setItemInHand(InteractionHand.OFF_HAND, this.getResource(0).toStack());
+        }
+    };
+
+    public ItemStacksResourceHandler filterItemStackHandler = new ItemStacksResourceHandler(FilterableSpiritContainer.FILTER_SIZE) {
+        @Override
+        protected void onContentsChanged(int slot, ItemStack previousContents) {
+            super.onContentsChanged(slot, previousContents);
+            TagValueOutput tagOutput = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, GreedyFamiliarEntity.this.level().registryAccess());
+            this.serialize(tagOutput);
+            GreedyFamiliarEntity.this.entityData.set(FILTER_ITEM, tagOutput.buildResult().toString());
+        }
+    };
+
+    private float earRotZ, earRotZ0, earRotX, earRotX0, peekRot, peekRot0, monsterRot, monsterRot0;
+    private int monsterAnimTimer;
+
+    public GreedyFamiliarEntity(EntityType<? extends GreedyFamiliarEntity> type, Level worldIn) {
+        super(type, worldIn);
+        this.monsterAnimTimer = this.getRandom().nextInt(100);
+    }
+
+    @Override
+    protected void registerGoals() {
+        this.goalSelector.addGoal(0, new FamiliarPanicGoal(this, 1.25));
+        this.goalSelector.addGoal(0, new FloatGoal(this));
+        this.goalSelector.addGoal(1, new SitGoal(this));
+        this.goalSelector.addGoal(2, new FindBlockGoal(this));
+        this.goalSelector.addGoal(3, new RideFamiliarGoal<>(this, OccultismEntities.DRAGON_FAMILIAR.get()));
+        this.goalSelector.addGoal(4, new FindItemGoal(this));
+        this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8));
+        this.goalSelector.addGoal(5, new FollowOwnerGoal(this, 1, 3, 1));
+        this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0D));
+        this.goalSelector.addGoal(7, new FollowMobGoal(this, 1, 3, 7));
+    }
+
+    @Override
+    protected void defineSynchedData(Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(TARGET_BLOCK, Optional.empty());
+        builder.define(FILTER_ITEM, "");
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+
+        if (key == FILTER_ITEM && this.level().isClientSide()) {
+            String compoundStr = this.entityData.get(FILTER_ITEM);
+            try {
+                var compound = compoundStr.isEmpty() ? new CompoundTag() : TagParser.parseCompoundFully(compoundStr);
+                compound.putInt("Size", FilterableSpiritContainer.FILTER_SIZE);
+                ValueInput valueInput = TagValueInput.create(ProblemReporter.DISCARDING, this.level().registryAccess(), compound);
+                this.filterItemStackHandler.deserialize(valueInput);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    @Override
+    public ItemStacksResourceHandler getFilterItems() {
+        return this.filterItemStackHandler;
+    }
+
+    private void setFilterItem(ItemStack stack) {
+        try (var tx = Transaction.openRoot()) {
+            if (stack.isEmpty()) {
+                this.filterItemStackHandler.set(0, ItemResource.EMPTY, 0);
+            } else {
+                this.filterItemStackHandler.set(0, ItemResource.of(stack.copyWithCount(1)), 1);
+            }
+            tx.commit();
+        }
+    }
+
+    @Override
+    public ItemStacksResourceHandler getInventory() {
+        return this.inventory;
+    }
+
+    @Override
+    public LivingEntity getEntity() {
+        return this;
+    }
+
+    @Override
+    public boolean canPlaceInInventory(ItemStack stack) {
+        return this.hasBlacksmithUpgrade() && stack.getItem() instanceof BlockItem;
+    }
+
+    @Override
+    public boolean isInventorySlotActive() {
+        return this.hasBlacksmithUpgrade();
+    }
+
+    public Optional<BlockPos> getTargetBlock() {
+        return this.entityData.get(TARGET_BLOCK);
+    }
+
+    private void setTargetBlock(Optional<BlockPos> pos) {
+        this.entityData.set(TARGET_BLOCK, pos);
+    }
+
+    @Override
+    public void curioTick(LivingEntity wearer) {
+        if (!(wearer instanceof Player))
+            return;
+
+        if (this.isAbilityEnabled(wearer))
+            for (ItemEntity e : wearer.level().getEntitiesOfClass(ItemEntity.class, wearer.getBoundingBox().inflate(5), Entity::isAlive)) {
+                ItemStack stack = e.getItem();
+
+                boolean isStackDemagnetized = false;//TODO: Find what the updated convention is for stack.hasTag() && stack.getTag().getBoolean("PreventRemoteMovement");
+                boolean isEntityDemagnetized = e.getPersistentData().getBoolean("PreventRemoteMovement").orElse(false);
+
+                if (!isStackDemagnetized && !isEntityDemagnetized && this.canPickupItem(e)) {
+                    e.playerTouch((Player) wearer);
+                }
+            }
+    }
+
+    public boolean canPickupItem(ItemEntity entity) {
+        return EntityItemFilter.matches(this.level(), this, entity.getItem());
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+
+        // Ears point to target block pos
+        this.earRotX0 = this.earRotX;
+        this.earRotZ0 = this.earRotZ;
+        if (this.level().isClientSide()) {
+            Optional<BlockPos> targetBlock = this.getTargetBlock();
+            if (targetBlock.isPresent()) {
+                Vec3 p = Vec3.atCenterOf(targetBlock.get());
+
+                float endZRot = -0.5f;
+                if (Math.abs(p.y - this.getEyeY()) > 1)
+                    endZRot = p.y > this.getEyeY() ? 0 : -2f;
+                this.earRotZ = Mth.lerp(0.1f, this.earRotZ, endZRot);
+
+                Vec3 look = this.getViewVector(1.0F);
+                Vec3 toTarget = p.vectorTo(this.position()).normalize();
+                toTarget = new Vec3(toTarget.x, 0.0D, toTarget.z);
+                float endXRot = toTarget.dot(look) < 0 ? 1 : -1;
+                this.earRotX = Mth.lerp(0.1f, this.earRotX, endXRot);
+            } else {
+                this.earRotX = Mth.lerp(0.1f, this.earRotX, 0);
+                this.earRotZ = Mth.lerp(0.1f, this.earRotZ, -0.5f);
+            }
+
+            this.monsterAnimTimer++;
+            this.peekRot0 = this.peekRot;
+            this.monsterRot0 = this.monsterRot;
+            if (this.monsterAnimTimer % 300 < 200) {
+                float peekTimer = this.monsterAnimTimer % 300 % 200;
+                if (peekTimer > 30 && peekTimer < 50)
+                    this.monsterRot = Mth.lerp(0.3f, this.monsterRot, this.toRad(37));
+                else if (peekTimer > 50 && peekTimer < 70)
+                    this.monsterRot = Mth.lerp(0.3f, this.monsterRot, this.toRad(-37));
+                else if (peekTimer > 70)
+                    this.monsterRot = Mth.lerp(0.3f, this.monsterRot, 0);
+
+                if (peekTimer < 100)
+                    this.peekRot = Mth.lerp(0.1f, this.peekRot, this.toRad(46));
+                else
+                    this.peekRot = Mth.lerp(0.1f, this.peekRot, 0);
+            } else {
+                this.peekRot = 0;
+                this.monsterRot = 0;
+            }
+        }
+    }
+
+    private float toRad(float deg) {
+        return (float) Math.toRadians(deg);
+    }
+
+    public float getLidRot(float partialTicks) {
+        return Mth.lerp(partialTicks, this.peekRot0, this.peekRot);
+    }
+
+    public float getMonsterRot(float partialTicks) {
+        return Mth.lerp(partialTicks, this.monsterRot0, this.monsterRot);
+    }
+
+    public float getEarRotZ(float partialTicks) {
+        return Mth.lerp(partialTicks, this.earRotZ0, this.earRotZ);
+    }
+
+    public float getEarRotX(float partialTicks) {
+        return Mth.lerp(partialTicks, this.earRotX0, this.earRotX);
+    }
+
+    @Override
+    protected InteractionResult mobInteract(Player playerIn, InteractionHand hand) {
+        ItemStack stack = playerIn.getItemInHand(hand);
+        if (playerIn.isShiftKeyDown() && stack.isEmpty() && this.getFamiliarOwner() == playerIn) {
+            this.openScreen(playerIn);
+            return this.level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        }
+
+        if (this.hasBlacksmithUpgrade() && !this.getOffhandItem().isEmpty()) {
+            ItemTransferUtil.giveItemToPlayer(playerIn, this.getOffhandItem());
+            try (var tx = Transaction.openRoot()) {
+                this.inventory.extract(0, this.inventory.getResource(0), 1, tx);
+                tx.commit();
+            }
+            return this.level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        } else if (this.hasBlacksmithUpgrade() && stack.getItem() instanceof BlockItem) {
+            try (var tx = Transaction.openRoot()) {
+                this.inventory.set(0, ItemResource.of(new ItemStack(stack.getItem())), 1);
+                tx.commit();
+            }
+            stack.shrink(1);
+            return this.level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        }
+
+        return super.mobInteract(playerIn, hand);
+    }
+
+    public void openScreen(Player playerEntity) {
+        if (!this.level().isClientSide() && playerEntity instanceof ServerPlayer serverPlayer) {
+            serverPlayer.openMenu(this, buf -> buf.writeInt(this.getId()));
+        }
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return super.getDisplayName();
+    }
+
+    @Override
+    public AbstractContainerMenu createMenu(int id, Inventory playerInventory, Player player) {
+        return new SpiritTransporterContainer(id, playerInventory, this);
+    }
+
+    @Override
+    public void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+
+        input.read("inventory", CompoundTag.CODEC).ifPresent(tag -> {
+            ValueInput inventoryInput = TagValueInput.create(ProblemReporter.DISCARDING, this.level().registryAccess(), tag);
+            this.inventory.deserialize(inventoryInput);
+        });
+
+        input.read("filterItem", CompoundTag.CODEC).ifPresent(tag -> {
+            tag.putInt("Size", FilterableSpiritContainer.FILTER_SIZE);
+            ValueInput filterInput = TagValueInput.create(ProblemReporter.DISCARDING, this.level().registryAccess(), tag);
+            this.filterItemStackHandler.deserialize(filterInput);
+        });
+
+    }
+
+    @Override
+    public void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
+
+        {
+            TagValueOutput inv = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, this.level().registryAccess());
+            this.inventory.serialize(inv);
+            output.store("inventory", CompoundTag.CODEC, inv.buildResult());
+        }
+
+        {
+            TagValueOutput filterOut = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, this.level().registryAccess());
+            this.filterItemStackHandler.serialize(filterOut);
+            output.store("filterItem", CompoundTag.CODEC, filterOut.buildResult());
+        }
+    }
+
+    @Override
+    public boolean matchesWhenFilterEmpty() {
+        return true;
+    }
+
+
+    public static class FindItemGoal extends Goal {
+
+        private static final double RANGE = 12;
+
+        private final FamiliarEntity entity;
+
+        public FindItemGoal(FamiliarEntity entity) {
+            this.entity = entity;
+            this.setFlags(EnumSet.of(Flag.MOVE));
+        }
+
+        @Override
+        public boolean canUse() {
+            return this.getNearbyItem() != null && this.entity.getFamiliarOwner() instanceof Player;
+        }
+
+        @Override
+        public void start() {
+            ItemEntity item = this.getNearbyItem();
+            if (item != null)
+                this.entity.getNavigation().moveTo(item, 1.2);
+        }
+
+        @Override
+        public void tick() {
+            ItemEntity item = this.getNearbyItem();
+            if (item != null) {
+                this.entity.getNavigation().moveTo(item, 1.2);
+                LivingEntity owner = this.entity.getFamiliarOwner();
+                if (item.distanceToSqr(this.entity) < 4 && owner instanceof Player player) {
+                    item.playerTouch(player);
+                    OccultismAdvancements.FAMILIAR.get().trigger(owner, Type.GREEDY_ITEM);
+                }
+            }
+        }
+
+        private ItemEntity getNearbyItem() {
+            LivingEntity owner = this.entity.getFamiliarOwner();
+            if (!(owner instanceof Player player))
+                return null;
+
+            var inv = PlayerInventoryWrapper.of(player).getMainSlots();
+            GreedyFamiliarEntity greedy = this.getGreedyFamiliar();
+            if (greedy == null)
+                return null;
+
+            for (ItemEntity item : this.entity.level().getEntitiesOfClass(ItemEntity.class,
+                    this.entity.getBoundingBox().inflate(RANGE), e -> e.isAlive())) {
+                ItemStack stack = item.getItem();
+
+                boolean isStackDemagnetized = false;//TODO: Find what the updated convention is for stack.hasTag() && stack.getTag().getBoolean("PreventRemoteMovement");
+                boolean isEntityDemagnetized = item.getPersistentData().getBoolean("PreventRemoteMovement").orElse(false);
+
+                if ((!isStackDemagnetized && !isEntityDemagnetized)
+                        && greedy.canPickupItem(item)
+                        && ItemTransferUtil.insertItemStacked(inv, stack, true).getCount() != stack.getCount())
+                    return item;
+            }
+            return null;
+        }
+
+        private GreedyFamiliarEntity getGreedyFamiliar() {
+            if (this.entity instanceof GreedyFamiliarEntity greedy)
+                return greedy;
+
+            for (Entity passenger : this.entity.getPassengers()) {
+                if (passenger instanceof GreedyFamiliarEntity greedy)
+                    return greedy;
+            }
+
+            return null;
+        }
+
+    }
+
+    public static class RideFamiliarGoal<T extends FamiliarEntity> extends Goal {
+
+        private final FamiliarEntity rider;
+        private final EntityType<T> type;
+        private FamiliarEntity mount;
+
+        public RideFamiliarGoal(FamiliarEntity rider, EntityType<T> type) {
+            this.rider = rider;
+            this.type = type;
+            this.setFlags(EnumSet.of(Flag.MOVE, Flag.JUMP));
+        }
+
+        @Override
+        public boolean canUse() {
+            if (this.rider.getVehicle() != null && this.rider.getVehicle().getType() == this.type)
+                return true;
+
+            FamiliarEntity mount = this.findMount();
+            if (mount != null) {
+                this.mount = mount;
+                this.rider.getNavigation().moveTo(mount, 1);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean canContinueToUse() {
+            return (this.rider.getVehicle() != null && this.rider.getVehicle().getType() == this.type)
+                    || (this.rider.isPathFinding() && this.mount != null);
+        }
+
+        @Override
+        public void stop() {
+            this.rider.stopRiding();
+            this.mount = null;
+        }
+
+        @Override
+        public void tick() {
+            if (this.mount != null && this.rider.distanceToSqr(this.mount) < 5 && !this.mount.hasPassenger(this.rider)) {
+                this.rider.startRiding(this.mount);
+                this.mount.getNavigation().stop();
+
+                if (this.rider.getType() == OccultismEntities.SHUB_NIGGURATH_FAMILIAR.get() && this.type == OccultismEntities.CTHULHU_FAMILIAR.get())
+                    OccultismAdvancements.FAMILIAR.get().trigger(this.rider.getFamiliarOwner(), Type.SHUB_CTHULHU_FRIENDS);
+            }
+        }
+
+        private FamiliarEntity findMount() {
+            LivingEntity owner = this.rider.getOwner();
+            if (owner == null)
+                return null;
+
+            List<T> mounts = this.rider.level().getEntities(this.type, this.rider.getBoundingBox().inflate(5),
+                    e -> e.getFamiliarOwner() == owner && !e.isVehicle() && !e.isSitting());
+            if (mounts.isEmpty())
+                return null;
+            return mounts.get(0);
+        }
+    }
+
+    private static class FindBlockGoal extends MoveToBlockGoal {
+
+        GreedyFamiliarEntity greedy;
+
+        public FindBlockGoal(GreedyFamiliarEntity greedy) {
+            super(greedy, 1, Occultism.SERVER_CONFIG.familiar.greedySearchRange.getAsInt(), Occultism.SERVER_CONFIG.familiar.greedyVerticalSearchRange.getAsInt());
+            this.greedy = greedy;
+        }
+
+        @Override
+        public boolean canUse() {
+            return super.canUse() && !this.mob.getOffhandItem().isEmpty();
+        }
+
+        @Override
+        public boolean canContinueToUse() {
+            return super.canContinueToUse() && !this.mob.getOffhandItem().isEmpty();
+        }
+
+        @Override
+        protected boolean isValidTarget(LevelReader pLevel, BlockPos pPos) {
+            ItemStack offhand = this.mob.getOffhandItem();
+            return pLevel.getBlockState(pPos).getBlock() == Block.byItem(offhand.getItem());
+        }
+
+        @Override
+        public void start() {
+            super.start();
+            this.greedy.setTargetBlock(Optional.of(this.blockPos));
+        }
+
+        @Override
+        public void stop() {
+            super.stop();
+            this.greedy.setTargetBlock(Optional.empty());
+        }
+
+        @Override
+        protected BlockPos getMoveToTarget() {
+            return this.blockPos;
+        }
+
+    }
+
+}
+

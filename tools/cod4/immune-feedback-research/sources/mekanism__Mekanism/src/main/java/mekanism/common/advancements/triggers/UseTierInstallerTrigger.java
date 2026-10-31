@@ -1,0 +1,61 @@
+package mekanism.common.advancements.triggers;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import java.util.Locale;
+import java.util.Optional;
+import mekanism.api.SerializationConstants;
+import mekanism.api.tier.BaseTier;
+import mekanism.common.advancements.MekanismCriteriaTriggers;
+import mekanism.common.advancements.triggers.UseTierInstallerTrigger.TriggerInstance;
+import net.minecraft.advancements.triggers.Criterion;
+import net.minecraft.advancements.triggers.SimpleCriterionTrigger;
+import net.minecraft.core.Holder;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import org.jspecify.annotations.Nullable;
+
+public class UseTierInstallerTrigger extends SimpleCriterionTrigger<TriggerInstance> {
+
+    @Override
+    public Codec<TriggerInstance> codec() {
+        return TriggerInstance.CODEC;
+    }
+
+    public void trigger(ServerPlayer player, BaseTier tier) {
+        this.trigger(player, instance -> instance.action == TierUsed.ANY || instance.action.baseTier == tier);
+    }
+
+    public enum TierUsed implements StringRepresentable {
+        ANY(null),
+        BASIC(BaseTier.BASIC),
+        ADVANCED(BaseTier.ADVANCED),
+        ELITE(BaseTier.ELITE),
+        ULTIMATE(BaseTier.ULTIMATE);
+
+        public static final Codec<TierUsed> CODEC = StringRepresentable.fromEnum(TierUsed::values);
+        final @Nullable BaseTier baseTier;
+
+        TierUsed(@Nullable BaseTier baseTier) {
+            this.baseTier = baseTier;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    public record TriggerInstance(Optional<Holder<LootItemCondition>> player, TierUsed action) implements SimpleCriterionTrigger.SimpleInstance {
+
+        public static final Codec<TriggerInstance> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+              LootItemCondition.CODEC.optionalFieldOf(SerializationConstants.PLAYER).forGetter(TriggerInstance::player),
+              TierUsed.CODEC.fieldOf(SerializationConstants.ACTION).forGetter(TriggerInstance::action)
+        ).apply(instance, TriggerInstance::new));
+
+        public static Criterion<TriggerInstance> any() {
+            return MekanismCriteriaTriggers.USE_TIER_INSTALLER.createCriterion(new TriggerInstance(Optional.empty(), TierUsed.ANY));
+        }
+    }
+}

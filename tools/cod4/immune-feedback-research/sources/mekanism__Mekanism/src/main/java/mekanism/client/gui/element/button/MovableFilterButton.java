@@ -1,0 +1,93 @@
+package mekanism.client.gui.element.button;
+
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
+import java.util.function.ObjIntConsumer;
+import mekanism.api.text.EnumColor;
+import mekanism.client.gui.GuiUtils;
+import mekanism.client.gui.IGuiWrapper;
+import mekanism.client.gui.tooltip.TooltipUtils;
+import mekanism.client.render.MekanismRenderer;
+import mekanism.common.MekanismLang;
+import mekanism.common.content.filter.FilterManager;
+import mekanism.common.content.filter.IFilter;
+import mekanism.common.content.filter.IItemStackFilter;
+import mekanism.common.content.filter.IModIDFilter;
+import mekanism.common.content.filter.ITagFilter;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.input.MouseButtonEvent;
+import org.jspecify.annotations.Nullable;
+
+public class MovableFilterButton extends FilterButton {
+
+    @Nullable
+    private static final Tooltip MOVE_UP = TooltipUtils.create(MekanismLang.MOVE_UP, MekanismLang.MOVE_TO_TOP);
+    @Nullable
+    private static final Tooltip MOVE_DOWN = TooltipUtils.create(MekanismLang.MOVE_DOWN, MekanismLang.MOVE_TO_BOTTOM);
+
+    private final FilterSelectButton upButton;
+    private final FilterSelectButton downButton;
+
+    public MovableFilterButton(IGuiWrapper gui, int x, int y, int index, IntSupplier filterIndex, FilterManager<?> filterManager, ObjIntConsumer<MouseButtonEvent> upButtonPress,
+          ObjIntConsumer<MouseButtonEvent> downButtonPress, ObjIntConsumer<@Nullable IFilter<?>> onPress, IntConsumer toggleButtonPress) {
+        this(gui, x, y, 156, 29, index, filterIndex, filterManager, upButtonPress, downButtonPress, onPress, toggleButtonPress);
+    }
+
+    public MovableFilterButton(IGuiWrapper gui, int x, int y, int width, int height, int index, IntSupplier filterIndex, FilterManager<?> filterManager,
+          ObjIntConsumer<MouseButtonEvent> upButtonPress, ObjIntConsumer<MouseButtonEvent> downButtonPress, ObjIntConsumer<@Nullable IFilter<?>> onPress,
+          IntConsumer toggleButtonPress) {
+        super(gui, x, y, width, height, index, filterIndex, filterManager, onPress, toggleButtonPress);
+        int arrowX = relativeX + this.width - 14;
+        int halfHeight = this.height / 2;
+        upButton = addChild(new FilterSelectButton(gui, arrowX, relativeY + halfHeight - 8, false, (_, event, _) -> {
+            upButtonPress.accept(event, getActualIndex());
+            return true;
+        }));
+        upButton.setTooltip(MOVE_UP);
+        downButton = addChild(new FilterSelectButton(gui, arrowX, relativeY + halfHeight + 1, true, (_, event, _) -> {
+            downButtonPress.accept(event, getActualIndex());
+            return true;
+        }));
+        downButton.setTooltip(MOVE_DOWN);
+    }
+
+    @Override
+    protected int getToggleXShift() {
+        return 17;
+    }
+
+    @Override
+    protected void setVisibility(boolean visible) {
+        super.setVisibility(visible);
+        if (visible) {
+            updateButtonVisibility(getFilter());
+        } else {
+            //Ensure the subcomponents are not marked as visible
+            upButton.visible = false;
+            downButton.visible = false;
+        }
+    }
+
+    private void updateButtonVisibility(@Nullable IFilter<?> filter) {
+        int index = getActualIndex();
+        upButton.visible = filter != null && index > 0;
+        downButton.visible = filter != null && index < filterManager.count() - 1;
+    }
+
+    @Override
+    public void drawBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        super.drawBackground(guiGraphics, mouseX, mouseY, partialTicks);
+        IFilter<?> filter = getFilter();
+        EnumColor color = switch (filter) {
+            case IItemStackFilter<?> _ -> EnumColor.INDIGO;
+            case ITagFilter<?> _ -> EnumColor.BRIGHT_GREEN;
+            case IModIDFilter<?> _ -> EnumColor.RED;
+            case null, default -> null;
+        };
+        if (color != null) {
+            GuiUtils.fill(guiGraphics, getButtonX(), getButtonY(), getButtonWidth(), getButtonHeight(), MekanismRenderer.getColorARGB(color, 0.3F));
+        }
+        updateButtonVisibility(filter);
+    }
+}

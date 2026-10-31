@@ -1,0 +1,95 @@
+package mekanism.client.recipe_viewer.jei;
+
+import com.google.common.base.Preconditions;
+import java.util.ArrayList;
+import java.util.List;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.api.math.MathUtils;
+import mekanism.api.text.EnumColor;
+import mekanism.client.gui.GuiUtils;
+import mekanism.client.render.MekanismRenderer;
+import mekanism.common.MekanismLang;
+import mekanism.common.util.text.TextUtils;
+import mezz.jei.api.ingredients.IIngredientRenderer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Item.TooltipContext;
+import net.minecraft.world.item.TooltipFlag;
+import net.neoforged.neoforge.fluids.FluidType;
+import org.jspecify.annotations.Nullable;
+
+public class ChemicalStackRenderer implements IIngredientRenderer<ChemicalStack> {
+
+    private static final int TEXTURE_SIZE = 16;
+    private static final int MIN_CHEMICAL_HEIGHT = 1; // ensure tiny amounts of chemical are still visible
+
+    private final int capacityMb;
+    private final TooltipMode tooltipMode;
+    private final int width;
+    private final int height;
+
+    public ChemicalStackRenderer() {
+        this(FluidType.BUCKET_VOLUME, TooltipMode.ITEM_LIST, TEXTURE_SIZE, TEXTURE_SIZE);
+    }
+
+    public ChemicalStackRenderer(int capacityMb, int width, int height) {
+        this(capacityMb, TooltipMode.SHOW_AMOUNT, width, height);
+    }
+
+    private ChemicalStackRenderer(int capacityMb, TooltipMode tooltipMode, int width, int height) {
+        Preconditions.checkArgument(capacityMb > 0, "capacity must be > 0");
+        this.capacityMb = capacityMb;
+        this.tooltipMode = tooltipMode;
+        this.width = width;
+        this.height = height;
+    }
+
+    @Override
+    public void render(GuiGraphicsExtractor guiGraphics, ChemicalStack stack) {
+        if (!stack.isEmpty()) {
+            int desiredHeight = MathUtils.clampToInt(height * (double) stack.amount() / capacityMb);
+            desiredHeight = Math.clamp(desiredHeight, MIN_CHEMICAL_HEIGHT, height);
+            //Tile upwards and to the right as the majority of things we render are gauges which look better when tiling upwards
+            GuiUtils.drawTiledSprite(guiGraphics, 0, height - desiredHeight, width, desiredHeight, MekanismRenderer.getChemicalTexture(stack),
+                  GuiUtils.TilingDirection.UP_RIGHT, MekanismRenderer.color(stack));
+        }
+    }
+
+    @Override
+    @Deprecated(since = "JEI 30.26.0", forRemoval = true)
+    public List<Component> getTooltip(ChemicalStack stack, TooltipFlag tooltipFlag) {
+        return getTooltip(stack, TooltipContext.EMPTY, null, tooltipFlag);
+    }
+
+    @Override
+    public List<Component> getTooltip(ChemicalStack stack, Item.TooltipContext tooltipContext, @Nullable Player player, TooltipFlag tooltipFlag) {
+        if (stack.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<Component> tooltips = new ArrayList<>(stack.getTooltipLines(tooltipContext, player, tooltipFlag));
+        if (tooltipMode == TooltipMode.SHOW_AMOUNT_AND_CAPACITY) {
+            tooltips.add(MekanismLang.JEI_AMOUNT_WITH_CAPACITY.translateColored(EnumColor.GRAY, TextUtils.format(stack.amount()), TextUtils.format(capacityMb)));
+        } else if (tooltipMode == TooltipMode.SHOW_AMOUNT) {
+            tooltips.add(MekanismLang.GENERIC_MB.translateColored(EnumColor.GRAY, TextUtils.format(stack.amount())));
+        }
+        return tooltips;
+    }
+
+    @Override
+    public int getWidth() {
+        return width;
+    }
+
+    @Override
+    public int getHeight() {
+        return height;
+    }
+
+    enum TooltipMode {
+        SHOW_AMOUNT,
+        SHOW_AMOUNT_AND_CAPACITY,
+        ITEM_LIST
+    }
+}

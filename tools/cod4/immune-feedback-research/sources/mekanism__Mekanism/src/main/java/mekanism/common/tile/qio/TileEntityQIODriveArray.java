@@ -1,0 +1,250 @@
+package mekanism.common.tile.qio;
+
+import io.netty.buffer.ByteBuf;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.IntFunction;
+import mekanism.api.IContentsListener;
+import mekanism.api.SerializationConstants;
+import mekanism.api.inventory.IInventorySlot;
+import mekanism.common.Mekanism;
+import mekanism.common.capabilities.holder.container.IContainerHolder;
+import mekanism.common.capabilities.holder.container.MekContainerHelper;
+import mekanism.common.content.qio.IQIODriveHolder;
+import mekanism.common.content.qio.QIODriveData;
+import mekanism.common.content.qio.QIOFrequency;
+import mekanism.common.integration.computer.ComputerException;
+import mekanism.common.integration.computer.SpecialComputerMethodWrapper.ComputerIInventorySlotWrapper;
+import mekanism.common.integration.computer.annotation.ComputerMethod;
+import mekanism.common.integration.computer.annotation.WrappingComputerMethod;
+import mekanism.common.inventory.slot.QIODriveSlot;
+import mekanism.common.registries.MekanismBlocks;
+import mekanism.common.util.MekanismUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.ByIdMap;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.model.data.ModelData;
+import net.neoforged.neoforge.model.data.ModelProperty;
+import org.jetbrains.annotations.Unmodifiable;
+import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+
+public class TileEntityQIODriveArray extends TileEntityQIOComponent implements IQIODriveHolder {
+
+    public static final ModelProperty<Long> DRIVE_STATUS_PROPERTY = new ModelProperty<>();
+    public static final int DRIVE_SLOTS = 12;
+    private static final int BITS_PER_DRIVE_STATUS = 4;//max 15 ordinals
+    private static final int DRIVE_STATUS_MASK = 0xF;
+
+    private final List<QIODriveSlot> driveSlots;
+    private long driveStatus = 0;
+    private long prevDriveStatus = Long.MAX_VALUE;
+
+    public TileEntityQIODriveArray(BlockPos pos, BlockState state) {
+        driveSlots = new ArrayList<>();
+        super(MekanismBlocks.QIO_DRIVE_ARRAY, pos, state);
+    }
+
+    @Override
+    protected IContainerHolder<IInventorySlot> getInitialInventory(IContentsListener listener) {
+        MekContainerHelper<IInventorySlot> builder = MekContainerHelper.forSide(facingSupplier);
+        final int xSize = 176;
+        for (int y = 0; y < 2; y++) {
+            for (int x = 0; x < 6; x++) {
+                QIODriveSlot slot = new QIODriveSlot(this, y * 6 + x, this::getLevel, listener, xSize / 2 - (6 * 18 / 2) + x * 18, 70 + y * 18);
+                driveSlots.add(slot);
+                builder.addContainer(slot);
+            }
+        }
+        return builder.build();
+    }
+
+    @Override
+    protected boolean onUpdateServer(ServerLevel level, @Nullable QIOFrequency frequency) {
+        boolean needsUpdate = super.onUpdateServer(level, frequency);
+        if (level.getGameTime() % MekanismUtils.TICKS_PER_HALF_SECOND == 0) {
+            for (int i = 0; i < DRIVE_SLOTS; i++) {
+                QIODriveSlot slot = driveSlots.get(i);
+                QIODriveData data = frequency == null ? null : frequency.getDriveData(slot.getKey());
+                if (frequency == null || data == null) {
+                    setDriveStatus(i, slot.isEmpty() ? DriveStatus.NONE : DriveStatus.OFFLINE);
+                    continue;
+                }
+                if (data.getTotalCount() == data.getCountCapacity()) {
+                    //If we are at max item capacity: Full
+                    setDriveStatus(i, DriveStatus.FULL);
+                } else if (data.getTotalTypes() == data.getTypeCapacity() || data.getTotalCount() >= data.getCountCapacity() * 0.75) {
+                    //If we are at max type capacity OR we are at 75% or more capacity: Near full
+                    setDriveStatus(i, DriveStatus.NEAR_FULL);
+                } else {
+                    //Otherwise: Ready
+                    setDriveStatus(i, DriveStatus.READY);
+                }
+            }
+
+            if (driveStatus != prevDriveStatus) {
+                needsUpdate = true;
+                prevDriveStatus = driveStatus;
+            }
+        }
+        return needsUpdate;
+    }
+
+    private void setDriveStatus(int slot, DriveStatus status) {
+        driveStatus = updateStatus(slot, status, driveStatus);
+    }
+    
+    public static long updateStatus(int slot, DriveStatus status, long currentStatus) {
+        int slotShift = slot * BITS_PER_DRIVE_STATUS;
+        //remove existing value
+        long newStatus = currentStatus & (currentStatus ^ (((long) DRIVE_STATUS_MASK) << slotShift));
+        //add the new one
+        newStatus |= ((long) status.status()) << slotShift;
+        return newStatus;
+    }
+
+    @VisibleForTesting
+    static DriveStatus getStatus(int slot, long status) {
+        int statusOrdinal = getStatusOrdinal(slot, status);
+        return DriveStatus.BY_ID.apply(statusOrdinal);
+    }
+
+    public static int getStatusOrdinal(int slot, long status) {
+        int shiftAmount = slot * BITS_PER_DRIVE_STATUS;
+        return (int) ((status >> shiftAmount) & DRIVE_STATUS_MASK);
+    }
+
+    @Override
+    public void saveAdditional(ValueOutput output) {
+        QIOFrequency freq = getQIOFrequency();
+        if (freq != null) {
+            // save all item data before we save
+            freq.saveAll();
+        }
+        super.saveAdditional(output);
+    }
+
+    @Override
+    public ModelData getModelData() {
+        return ModelData.of(DRIVE_STATUS_PROPERTY, driveStatus);
+    }
+
+    @Override
+    public void writeReducedUpdatedTag(ValueOutput output) {
+        super.writeReducedUpdatedTag(output);
+        output.putLong(SerializationConstants.DRIVES, driveStatus);
+    }
+
+    @Override
+    public void handleUpdateTag(ValueInput input) {
+        super.handleUpdateTag(input);
+        long status = input.getLongOr(SerializationConstants.DRIVES, 0);
+        if (status != driveStatus) {
+            driveStatus = status;
+            updateModelData();
+        }
+    }
+
+    @Override
+    public List<QIODriveSlot> getDriveSlots() {
+        return driveSlots;
+    }
+
+    //Methods relating to IComputerTile
+    @ComputerMethod
+    int getSlotCount() {
+        return DRIVE_SLOTS;
+    }
+
+    private void validateSlot(int slot) throws ComputerException {
+        int slots = getSlotCount();
+        if (slot < 0 || slot >= slots) {
+            throw new ComputerException("Slot: '%d' is out of bounds, as this QIO drive array only has '%d' drive slots (zero indexed).", slot, slots);
+        }
+    }
+
+    @WrappingComputerMethod(wrapper = ComputerIInventorySlotWrapper.class, methodNames = "getDrive", docPlaceholder = "drive slot")
+    IInventorySlot getDriveSlot(int slot) throws ComputerException {
+        validateSlot(slot);
+        return driveSlots.get(slot);
+    }
+
+    @ComputerMethod
+    DriveStatus getDriveStatus(int slot) throws ComputerException {
+        validateSlot(slot);
+        return getStatus(slot, driveStatus);
+    }
+
+    @ComputerMethod(methodDescription = "Requires a frequency to be selected")
+    long getFrequencyItemCount() throws ComputerException {
+        return computerGetFrequency().getTotalItemCount();
+    }
+
+    @ComputerMethod(methodDescription = "Requires a frequency to be selected")
+    long getFrequencyItemCapacity() throws ComputerException {
+        return computerGetFrequency().getTotalItemCountCapacity();
+    }
+
+    @ComputerMethod(methodDescription = "Requires a frequency to be selected")
+    double getFrequencyItemPercentage() throws ComputerException {
+        QIOFrequency frequency = computerGetFrequency();
+        return frequency.getTotalItemCount() / (double) frequency.getTotalItemCountCapacity();
+    }
+
+    @ComputerMethod(methodDescription = "Requires a frequency to be selected")
+    long getFrequencyItemTypeCount() throws ComputerException {
+        return computerGetFrequency().getTotalItemTypes(false);
+    }
+
+    @ComputerMethod(methodDescription = "Requires a frequency to be selected")
+    long getFrequencyItemTypeCapacity() throws ComputerException {
+        return computerGetFrequency().getTotalItemTypeCapacity();
+    }
+
+    @ComputerMethod(methodDescription = "Requires a frequency to be selected")
+    double getFrequencyItemTypePercentage() throws ComputerException {
+        QIOFrequency frequency = computerGetFrequency();
+        return frequency.getTotalItemTypes(false) / (double) frequency.getTotalItemTypeCapacity();
+    }
+    //End methods IComputerTile
+
+    public enum DriveStatus {
+        NONE(null),
+        OFFLINE(Mekanism.rl("block/qio_drive/qio_drive_offline")),
+        READY(Mekanism.rl("block/qio_drive/qio_drive_empty")),
+        NEAR_FULL(Mekanism.rl("block/qio_drive/qio_drive_partial")),
+        FULL(Mekanism.rl("block/qio_drive/qio_drive_full"));
+
+        /// Cached value of [DriveStatus#values()].
+        @Unmodifiable
+        public static final List<DriveStatus> VALUES = List.of(values());
+        public static final IntFunction<DriveStatus> BY_ID = ByIdMap.continuous(DriveStatus::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+        public static final StreamCodec<ByteBuf, DriveStatus> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, DriveStatus::ordinal);
+
+        @Nullable
+        private final Identifier model;
+
+        DriveStatus(@Nullable Identifier model) {
+            this.model = model;
+        }
+
+        public int ledIndex() {
+            return ordinal() - READY.ordinal();
+        }
+
+        @Nullable
+        public Identifier getModel() {
+            return model;
+        }
+
+        public byte status() {
+            return (byte) ordinal();
+        }
+    }
+}

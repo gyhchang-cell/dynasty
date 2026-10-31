@@ -1,0 +1,84 @@
+package mekanism.additions.common;
+
+import mekanism.additions.common.advancements.AdditionsAdvancements;
+import mekanism.additions.common.registries.AdditionsBlocks;
+import mekanism.additions.common.registries.AdditionsEntityTypes;
+import mekanism.additions.common.registries.AdditionsItems;
+import mekanism.api.datagen.recipe.RecipeCriterion;
+import mekanism.common.advancements.BaseAdvancementProvider;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementType;
+import net.minecraft.advancements.predicates.DamagePredicate;
+import net.minecraft.advancements.predicates.entity.EntityPredicate;
+import net.minecraft.advancements.triggers.Criterion;
+import net.minecraft.advancements.triggers.EntityHurtPlayerTrigger;
+import net.minecraft.advancements.triggers.KilledTrigger;
+import net.minecraft.advancements.triggers.KilledTrigger.TriggerInstance;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.worldgen.BootstrapContext;
+import net.minecraft.references.BlockItemIds;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Item;
+
+public class AdditionsAdvancementProvider extends BaseAdvancementProvider {
+
+    protected AdditionsAdvancementProvider(BootstrapContext<Advancement> output) {
+        super(output);
+    }
+
+    @Override
+    public void generate() {
+        HolderGetter<Item> items = output.lookup(Registries.ITEM);
+        HolderGetter<EntityType<?>> entityTypeLookup = output.lookup(Registries.ENTITY_TYPE);
+        advancement(AdditionsAdvancements.BALLOON)
+              .display(AdditionsItems.BALLOONS.aqua(), AdvancementType.TASK, false)
+              .addCriterion("balloon", hasItems(items, AdditionsTags.Items.BALLOONS))
+              .save(output);
+        advancement(AdditionsAdvancements.POP_POP)
+              .display(AdditionsItems.BALLOONS.red(), null, AdvancementType.GOAL, true, false, true)
+              .addCriterion("pop", kill(entityTypeLookup, AdditionsEntityTypes.BALLOON))
+              .save(output);
+        advancement(AdditionsAdvancements.GLOW_IN_THE_DARK)
+              .display(AdditionsBlocks.GLOW_PANELS.orange().getItemHolder(), AdvancementType.TASK, false)
+              .addCriterion("glow_panel", hasItems(items, AdditionsTags.BlockItems.GLOW_PANELS.item()))
+              .save(output);
+        advancement(AdditionsAdvancements.HURT_BY_BABIES)
+              .display(items, BlockItemIds.CREEPER_HEAD.item(), null, AdvancementType.GOAL, true, true, true)
+              .andCriteria(AdditionsEntityTypes.BABIES.values().stream()
+                    .map(baby -> damagedCriterion(entityTypeLookup, baby))
+                    .toArray(RecipeCriterion[]::new)
+              ).save(output);
+        advancement(AdditionsAdvancements.NOT_THE_BABIES)
+              .display(items, BlockItemIds.WITHER_SKELETON_SKULL.item(), AdvancementType.GOAL, false)
+              .orCriteria(AdditionsEntityTypes.BABIES.values().stream()
+                    .map(baby -> killCriterion(entityTypeLookup, baby))
+                    .toArray(RecipeCriterion[]::new)
+              ).save(output);
+    }
+
+    private RecipeCriterion killCriterion(HolderGetter<EntityType<?>> entityTypeLookup, Holder<EntityType<?>> type) {
+        return new RecipeCriterion(getName(type), kill(entityTypeLookup, type));
+    }
+
+    private Criterion<TriggerInstance> kill(HolderGetter<EntityType<?>> entityTypeLookup, Holder<EntityType<?>> type) {
+        return KilledTrigger.TriggerInstance.playerKilledEntity(EntityPredicate.Builder.entity().of(entityTypeLookup, type.value()));
+    }
+
+    private RecipeCriterion damagedCriterion(HolderGetter<EntityType<?>> entityTypeLookup, Holder<EntityType<?>> type) {
+        return new RecipeCriterion(getName(type), damaged(entityTypeLookup, type));
+    }
+
+    private String getName(Holder<?> holder) {
+        return holder.key().identifier().getPath();
+    }
+
+    private Criterion<EntityHurtPlayerTrigger.TriggerInstance> damaged(HolderGetter<EntityType<?>> entityTypeLookup, Holder<EntityType<?>> type) {
+        //Damaged by entity and not blocked
+        return EntityHurtPlayerTrigger.TriggerInstance.entityHurtPlayer(DamagePredicate.Builder.damageInstance()
+              .sourceEntity(EntityPredicate.Builder.entity().of(entityTypeLookup, type.value()).build())
+              .blocked(false)
+        );
+    }
+}

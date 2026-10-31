@@ -1,0 +1,24 @@
+package mekanism.common.inventory.container.slot;
+
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.ItemStack;
+
+public class OffhandSlot extends TransactionalSlot {
+
+    private final Player owner;
+
+    public OffhandSlot(Container inventory, int index, int x, int y, Player owner) {
+        super(inventory, index, x, y);
+        this.owner = owner;
+        setBackground(InventoryMenu.EMPTY_ARMOR_SLOT_SHIELD);
+    }
+
+    @Override
+    public void setByPlayer(ItemStack newStack, ItemStack oldStack) {
+        this.owner.onEquipItem(EquipmentSlot.OFFHAND, oldStack, newStack);
+        super.setByPlayer(newStack, oldStack);
+    }
+}

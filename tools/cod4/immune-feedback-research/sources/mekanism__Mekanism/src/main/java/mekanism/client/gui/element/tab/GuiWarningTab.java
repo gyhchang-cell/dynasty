@@ -1,0 +1,57 @@
+package mekanism.client.gui.element.tab;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import mekanism.api.text.EnumColor;
+import mekanism.client.gui.IGuiWrapper;
+import mekanism.client.gui.element.GuiTexturedElement;
+import mekanism.client.gui.tooltip.TooltipUtils;
+import mekanism.common.Mekanism;
+import mekanism.common.MekanismLang;
+import mekanism.common.inventory.warning.IWarningTracker;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.Nullable;
+
+public class GuiWarningTab extends GuiTexturedElement {
+
+    private static final Identifier WARNING_LEFT = Mekanism.rl("tab/warning_info_left");
+    private static final Identifier WARNING_RIGHT = Mekanism.rl("tab/warning_info_right");
+
+    private final IWarningTracker warningTracker;
+    private List<Component> lastInfo = Collections.emptyList();
+    @Nullable
+    private Tooltip lastTooltip;
+
+    public GuiWarningTab(IGuiWrapper gui, IWarningTracker warningTracker, boolean left) {
+        super(left ? WARNING_LEFT : WARNING_RIGHT, gui, left ? -26 : gui.getImageWidth(), 109, 26, 26);
+        this.warningTracker = warningTracker;
+        updateVisibility();
+    }
+
+    private void updateVisibility() {
+        visible = warningTracker.hasWarning();
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        //Ensure the visibility of the warning tab is correct based on if we have any warnings to display
+        updateVisibility();
+    }
+
+    @Override
+    public void updateTooltip(int mouseX, int mouseY) {
+        //Note: We don't need to check if there are any warnings or not as if there aren't the warning tab goes away
+        List<Component> info = new ArrayList<>();
+        info.add(MekanismLang.ISSUES.translateColored(EnumColor.YELLOW));
+        info.addAll(warningTracker.getWarnings());
+        if (!info.equals(lastInfo)) {
+            lastInfo = info;
+            lastTooltip = TooltipUtils.create(info);
+        }
+        setTooltip(lastTooltip);
+    }
+}

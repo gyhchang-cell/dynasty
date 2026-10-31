@@ -1,0 +1,178 @@
+package mekanism.common.registration.impl;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import mekanism.api.text.EnumColor;
+import mekanism.api.text.IHasTextComponent;
+import mekanism.api.text.IHasTranslationKey;
+import mekanism.api.tier.BaseTier;
+import mekanism.common.block.attribute.Attribute;
+import mekanism.common.block.interfaces.IColoredBlock;
+import mekanism.common.capabilities.ICapabilityAware;
+import mekanism.common.component.IComponentAware;
+import mekanism.common.component.containers.creator.IContainerCreator;
+import mekanism.common.component.containers.type.CapableContainerType;
+import mekanism.common.component.containers.type.IContainerType;
+import mekanism.common.config.IMekanismConfig;
+import mekanism.common.registration.MekanismDeferredHolder;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.block.Block;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import org.jetbrains.annotations.ApiStatus.Internal;
+import org.jspecify.annotations.Nullable;
+
+public class ItemRegistryObject<ITEM extends Item> extends MekanismDeferredHolder<Item, ITEM> implements ItemLike, IHasTextComponent, IHasTranslationKey {
+
+    @Nullable
+    private Map<IContainerType<?, ?>, Supplier<? extends IContainerCreator<?, ?>>> defaultCreators;
+    @Nullable
+    private List<Consumer<RegisterCapabilitiesEvent>> containerCapabilities;
+    @Nullable
+    private TextColor nameColor;
+
+    public ItemRegistryObject(ResourceKey<Item> key) {
+        super(key);
+    }
+
+    @Override
+    public ITEM asItem() {
+        return value();
+    }
+
+    public ItemStackTemplate asTemplate() {
+        return asTemplate(1);
+    }
+
+    public ItemStackTemplate asTemplate(int count) {
+        return new ItemStackTemplate(this, count);
+    }
+
+    public ItemStack asStack() {
+        return asStack(1);
+    }
+
+    public ItemStack asStack(int count) {
+        return new ItemStack(value(), count);
+    }
+
+    public ItemResource asResource() {
+        return ItemResource.of((Holder<Item>) this);
+    }
+
+    public boolean is(ItemResource resource) {
+        return resource.is(get());
+    }
+
+    @Override
+    public String getTranslationKey() {
+        return value().getDescriptionId();
+    }
+
+    @Override
+    public Component getTextComponent() {
+        return value().getName(asStack());
+    }
+
+    @Nullable
+    public TextColor getNameColor() {
+        if (nameColor == null && value() instanceof BlockItem blockItem) {
+            Block block = blockItem.getBlock();
+            if (block instanceof IColoredBlock coloredBlock) {
+                nameColor = coloredBlock.getColor().getTextColor();
+            } else {
+                BaseTier tier = Attribute.getBaseTier(block);
+                if (tier != null) {
+                    nameColor = tier.getTextColor();
+                }
+            }
+        }
+        return nameColor;
+    }
+
+    @Internal
+    public ItemRegistryObject<ITEM> setNameColor(EnumColor color) {
+        return setNameColor(color.getTextColor());
+    }
+
+    @Internal
+    public ItemRegistryObject<ITEM> setNameColor(TextColor color) {
+        this.nameColor = color;
+        return this;
+    }
+
+    @Internal
+    public <CONTAINER extends ValueIOSerializable> ItemRegistryObject<ITEM> addAttachmentOnlyContainers(IContainerType<CONTAINER, ?> containerType,
+          Supplier<IContainerCreator<CONTAINER, ?>> defaultCreator) {
+        if (defaultCreators == null) {
+            //In case any containers have deps on others make this linked even though it really shouldn't matter
+            // as nothing should be trying to construct the containers between register calls
+            defaultCreators = new LinkedHashMap<>();
+        }
+        if (defaultCreators.put(containerType, defaultCreator) != null) {
+            throw new IllegalStateException("Duplicate attachments added for container type: " + containerType.getComponentName());
+        }
+        return this;
+    }
+
+    @Internal
+    public <CONTAINER extends ValueIOSerializable> ItemRegistryObject<ITEM> addAttachedContainerCapabilities(CapableContainerType<CONTAINER, ?, ?> containerType,
+          Supplier<IContainerCreator<CONTAINER, ?>> defaultCreator, IMekanismConfig... requiredConfigs) {
+        addAttachmentOnlyContainers(containerType, defaultCreator);
+        return addContainerCapability(containerType, requiredConfigs);
+    }
+
+    @Internal
+    private ItemRegistryObject<ITEM> addContainerCapability(CapableContainerType<?, ?, ?> containerType, IMekanismConfig... requiredConfigs) {
+        if (containerCapabilities == null) {
+            containerCapabilities = new ArrayList<>();
+        }
+        containerCapabilities.add(event -> containerType.registerItemCapabilities(event, get(), requiredConfigs));
+        return this;
+    }
+
+    @Internal
+    void registerCapabilities(RegisterCapabilitiesEvent event) {
+        if (get() instanceof ICapabilityAware capabilityAware) {
+            capabilityAware.attachCapabilities(event);
+        }
+        if (containerCapabilities != null) {
+            for (Consumer<RegisterCapabilitiesEvent> consumer : containerCapabilities) {
+                consumer.accept(event);
+            }
+            //We only allow registering once, and then we allow the memory to be freed up
+            containerCapabilities = null;
+        }
+    }
+
+    @Internal
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void attachDefaultContainers(IEventBus eventBus) {
+        ITEM item = get();
+        if (item instanceof IComponentAware attachmentAware) {
+            attachmentAware.addComponents(eventBus);
+        }
+        if (defaultCreators != null) {
+            for (Map.Entry<IContainerType<?, ?>, Supplier<? extends IContainerCreator<?, ?>>> entry : defaultCreators.entrySet()) {
+                //Note: We pass null for the event bus to not expose this attachment as a capability
+                entry.getKey().addDefaultCreators(null, item, (Supplier) entry.getValue());
+            }
+            //We only allow them being attached once
+            defaultCreators = null;
+        }
+    }
+}

@@ -1,0 +1,67 @@
+package mekanism.common.integration.crafttweaker.chemical;
+
+import java.util.function.Function;
+import mekanism.api.chemical.ChemicalIds;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.common.integration.crafttweaker.CrTConstants;
+import org.jspecify.annotations.Nullable;
+
+public abstract class BaseCrTChemicalStack implements ICrTChemicalStack {
+
+    protected final ChemicalStack stack;
+    protected final Function<ChemicalStack, ICrTChemicalStack> stackConverter;
+
+    public BaseCrTChemicalStack(ChemicalStack stack, Function<ChemicalStack, ICrTChemicalStack> stackConverter) {
+        this.stack = stack;
+        this.stackConverter = stackConverter;
+    }
+
+    protected StringBuilder getBracket() {
+        return new StringBuilder().append('<')
+              .append(CrTConstants.BRACKET_CHEMICAL)
+              .append(':')
+              .append(stack.typeHolder().unwrapKey().orElse(ChemicalIds.EMPTY).identifier())
+              .append('>');
+    }
+
+    @Override
+    public String getCommandString() {
+        StringBuilder builder = getBracket();
+        if (!stack.isEmpty() && stack.amount() != 1) {
+            builder.append(" * ").append(stack.amount());
+        }
+        return builder.toString();
+    }
+
+    @Override
+    public ICrTChemicalStack copy() {
+        //We have to copy, in case someone calls ".copy().mutable"
+        return stackConverter.apply(stack.copy());
+    }
+
+    @Override
+    public ChemicalStack getInternal() {
+        return stack;
+    }
+
+    @Override
+    public String toString() {
+        return getCommandString();
+    }
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        return stack.equals(((BaseCrTChemicalStack) o).stack);
+    }
+
+    @Override
+    public int hashCode() {
+        return stack.hashCode();
+    }
+}

@@ -1,0 +1,33 @@
+plugins {
+    id "base"
+}
+
+group = providers.gradleProperty("maven_group").get()
+version = providers.gradleProperty("mod_version").get()
+
+tasks.named("build") {
+    dependsOn(subprojects.findAll { it.parent?.path == ":versions" }.collect { "${it.path}:build" })
+}
+
+tasks.register("buildAll") {
+    group = "build"
+    description = "Builds DamageNumbers for every supported Minecraft version."
+    dependsOn(tasks.named("build"), tasks.named("collectReleases"))
+}
+
+tasks.register("collectReleases", Sync) {
+    group = "build"
+    description = "Collects release JARs in the root build/releases directory."
+    dependsOn(subprojects.findAll { it.parent?.path == ":versions" }.collect { "${it.path}:build" })
+    into(layout.buildDirectory.dir("releases"))
+    subprojects.findAll { it.parent?.path == ":versions" }.each { versionProject ->
+        from(versionProject.layout.buildDirectory.dir("libs")) {
+            include("damage-numbers-*.jar")
+            exclude("*-sources.jar")
+        }
+    }
+}
+
+tasks.named("clean") {
+    dependsOn(subprojects.findAll { it.parent?.path == ":versions" }.collect { "${it.path}:clean" })
+}

@@ -1,0 +1,56 @@
+package mekanism.common.block.prefab;
+
+import mekanism.common.content.blocktype.BlockTypeTile;
+import mekanism.common.tile.base.TileEntityMekanism;
+import mekanism.common.tile.prefab.TileEntityMultiblock;
+import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.WorldUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+
+public class BlockBasicMultiblock<TILE extends TileEntityMekanism> extends BlockTile<TILE, BlockTypeTile<TILE>> {
+
+    //TODO - 26.3: Re-evaluate usages of this and maybe decide to inline properties to call sites?
+    public static BlockBehaviour.Properties defaultProperties(BlockBehaviour.Properties properties) {
+        return properties.strength(5, 9).requiresCorrectToolForDrops();
+    }
+
+    public BlockBasicMultiblock(BlockTypeTile<TILE> type, BlockBehaviour.Properties properties) {
+        super(type, properties);
+    }
+
+    @Override
+    protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player,
+          InteractionHand hand, BlockHitResult hit) {
+        TileEntityMultiblock<?> tile = WorldUtils.getTileEntity(TileEntityMultiblock.class, world, pos);
+        if (tile == null) {
+            return InteractionResult.FAIL;
+        } else if (world.isClientSide()) {
+            if (!MekanismUtils.canUseAsWrench(player.getItemInHand(hand))) {
+                if (!tile.hasGui() || !tile.getMultiblock().isFormed()) {
+                    //If the block doesn't have a gui (frames of things like the evaporation plant), or the multiblock is not formed then pass
+                    return InteractionResult.TRY_WITH_EMPTY_HAND;
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
+        InteractionResult wrenchResult = tile.tryWrench(world, state, player, stack).getInteractionResult();
+        if (wrenchResult != InteractionResult.PASS) {
+            return wrenchResult;
+        }
+        return tile.onActivate(world, player, hand);
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
+        //We handle opening the gui via useItemOn
+        return InteractionResult.PASS;
+    }
+}

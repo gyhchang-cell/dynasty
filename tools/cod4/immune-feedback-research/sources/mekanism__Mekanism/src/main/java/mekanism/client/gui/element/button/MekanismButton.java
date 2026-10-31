@@ -1,0 +1,86 @@
+package mekanism.client.gui.element.button;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import java.util.Objects;
+import java.util.function.BooleanSupplier;
+import mekanism.api.text.ILangEntry;
+import mekanism.client.gui.IGuiWrapper;
+import mekanism.client.gui.element.GuiElement;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.Nullable;
+
+/// Extends our "Widget" class (GuiElement) instead of Button so that we can easier utilize common code
+public class MekanismButton extends GuiElement {
+
+    private final IClickable onLeftClick;
+    @Nullable
+    private final IClickable onRightClick;
+    @Nullable
+    private BooleanSupplier checkActive;
+
+    public MekanismButton(IGuiWrapper gui, int x, int y, int width, int height, Component text, IClickable onLeftClick) {
+        this(gui, x, y, width, height, text, onLeftClick, onLeftClick);
+        //TODO: Decide if default implementation for right clicking should be do nothing, or act as left click
+    }
+
+    public MekanismButton(IGuiWrapper gui, int x, int y, int width, int height, Component text, IClickable onLeftClick, @Nullable IClickable onRightClick) {
+        super(gui, x, y, width, height, text);
+        this.onLeftClick = Objects.requireNonNull(onLeftClick, "Buttons must have a left click behavior");
+        this.onRightClick = onRightClick;
+        this.clickSound = BUTTON_CLICK_SOUND;
+        setButtonBackground(ButtonBackground.DEFAULT);
+    }
+
+    public MekanismButton setCheckActive(BooleanSupplier checkActive) {
+        this.checkActive = checkActive;
+        this.active = checkActive.getAsBoolean();
+        return this;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (checkActive != null) {
+            active = checkActive.getAsBoolean();
+        }
+    }
+
+    @Override
+    public MekanismButton setTooltip(ILangEntry langEntry) {
+        super.setTooltip(langEntry);
+        return this;
+    }
+
+    @Override
+    public void onClick(MouseButtonEvent event, boolean isDoubleClick) {
+        int button = event.button();
+        if (button == InputConstants.MOUSE_BUTTON_LEFT) {
+            onLeftClick.onClick(this, event, isDoubleClick);
+        } else if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
+            if (onRightClick != null) {
+                onRightClick.onClick(this, event, isDoubleClick);
+            }
+        }
+    }
+
+    @Override
+    public boolean isValidClickButton(MouseButtonInfo buttonInfo) {
+        //Only allow right-clicking if we have a right click behavior/action
+        return buttonInfo.button() == InputConstants.MOUSE_BUTTON_LEFT || buttonInfo.button() == InputConstants.MOUSE_BUTTON_RIGHT && onRightClick != null;
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        //From AbstractButton with an additional check of validating that it is focused
+        if (this.active && this.visible && this.isFocused() && event.isSelection()) {
+            playDownSound(minecraft.getSoundManager());
+            MouseButtonEvent mouseEvent = new MouseButtonEvent(getButtonX() + getButtonWidth() / 2.0, getButtonY() + getButtonHeight() / 2.0, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, event.modifiers()));
+            return onLeftClick.onClick(this, mouseEvent, false);
+        }
+        return super.keyPressed(event);
+    }
+
+}

@@ -1,0 +1,69 @@
+package com.klikli_dev.occultism.common.entity.spirit.demonicpartner.husband;
+
+import com.geckolib.animatable.GeoAnimatable;
+import com.geckolib.animatable.GeoEntity;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager.ControllerRegistrar;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.RawAnimation;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.state.AnimationTest;
+import com.geckolib.util.GeckoLibUtil;
+import com.klikli_dev.occultism.Occultism;
+import com.klikli_dev.occultism.common.entity.spirit.demonicpartner.DemonicPartner;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityType.Builder;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.common.util.Lazy;
+
+public class DemonicHusband extends DemonicPartner implements GeoEntity {
+
+    public static final Identifier ID = Identifier.fromNamespaceAndPath(Occultism.MODID, "demonic_husband");
+    public static final Lazy<EntityType<DemonicHusband>> ENTITY_TYPE =
+            Lazy.of(() -> Builder.of(DemonicHusband::new, MobCategory.CREATURE)
+                    .sized(0.6F, 1.8f)
+                    .fireImmune()
+                    .clientTrackingRange(8)
+                    .build(ResourceKey.create(Registries.ENTITY_TYPE, ID)));
+    AnimatableInstanceCache animatableInstanceCache = GeckoLibUtil.createInstanceCache(this);
+
+    protected DemonicHusband(EntityType<? extends TamableAnimal> pEntityType, Level pLevel) {
+        super(pEntityType, pLevel);
+    }
+
+    @Override
+    public int getCurrentSwingDuration() {
+        return 11; //to match our attack animation speed + 1 tick
+    }
+
+    @Override
+    public void registerControllers(ControllerRegistrar controllers) {
+        var mainController = new AnimationController<>("mainController", 0, this::animPredicate);
+        controllers.add(mainController);
+    }
+
+    private <T extends GeoAnimatable> PlayState animPredicate(AnimationTest<T> tAnimationState) {
+
+        if (this.swinging) {
+            return tAnimationState.setAndContinue(RawAnimation.begin().thenPlay("attack"));
+        }
+
+        if (this.isInSittingPose())
+            return tAnimationState.setAndContinue(RawAnimation.begin().thenPlay("sitting"));
+
+        if (this.isLying())
+            return tAnimationState.setAndContinue(RawAnimation.begin().thenPlay("lies"));
+
+        return tAnimationState.setAndContinue(tAnimationState.isMoving() ? RawAnimation.begin().thenPlay("walk") : RawAnimation.begin().thenPlay("idle"));
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return this.animatableInstanceCache;
+    }
+}

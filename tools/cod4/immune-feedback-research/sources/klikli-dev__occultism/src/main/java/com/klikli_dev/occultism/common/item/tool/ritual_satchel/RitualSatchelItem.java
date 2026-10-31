@@ -1,0 +1,248 @@
+package com.klikli_dev.occultism.common.item.tool.ritual_satchel;
+
+import com.klikli_dev.modonomicon.api.ModonomiconAPI;
+import com.klikli_dev.modonomicon.api.multiblock.Multiblock.SimulateResult;
+import com.klikli_dev.modonomicon.registry.StateMatcherTypeRegistry;
+import com.klikli_dev.occultism.TranslationKeys;
+import com.klikli_dev.occultism.common.block.ChalkGlyphBlock;
+import com.klikli_dev.occultism.common.container.satchel.RitualSatchelContainer;
+import com.klikli_dev.occultism.common.container.satchel.SatchelInventory;
+import com.klikli_dev.occultism.common.item.tool.ChalkItem;
+import com.klikli_dev.occultism.network.Networking;
+import com.klikli_dev.occultism.network.messages.MessageSendPreviewedPentacle;
+import com.klikli_dev.occultism.registry.OccultismItems;
+import com.klikli_dev.occultism.registry.OccultismTags;
+import com.mojang.datafixers.util.Function4;
+import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Map;
+import java.util.UUID;
+
+public abstract class RitualSatchelItem extends Item {
+    private final Map<UUID, PentacleData> targetPentacles = Object2ObjectMaps.synchronize(new Object2ObjectArrayMap<>());
+
+    public RitualSatchelItem(Properties properties) {
+        super(properties);
+    }
+
+    public Map<UUID, PentacleData> targetPentacles() {
+        return this.targetPentacles;
+    }
+
+    public void setTargetPentacle(UUID player, Identifier multiblock, BlockPos anchor, Rotation facing, BlockPos target, long timeWhenAdded) {
+        this.targetPentacles.put(player, new PentacleData(multiblock, anchor, facing, target, timeWhenAdded));
+    }
+
+    protected void openMenu(ServerPlayer player, ItemStack stack) {
+        int selectedSlot = player.getInventory().getSelectedSlot();
+
+        player.openMenu(
+                new SimpleMenuProvider((id, playerInventory, unused) -> {
+                    return this.containerFactory().apply(id, playerInventory, this.getInventory(player, stack), selectedSlot);
+                }, stack.getDisplayName()), buffer -> {
+                    buffer.writeVarInt(selectedSlot);
+                });
+    }
+
+    public Container getInventory(ServerPlayer player, ItemStack stack) {
+        return new SatchelInventory(stack, RitualSatchelContainer.SATCHEL_SIZE);
+    }
+
+    protected PlacementResult tryPlaceBlockForMatcher(UseOnContext context, SimulateResult targetMatcher) {
+        if (targetMatcher.stateMatcher().type() == StateMatcherTypeRegistry.ANY || targetMatcher.stateMatcher().type() == StateMatcherTypeRegistry.DISPLAY)
+            return PlacementResult.ERROR_INVALID_MATCHER;
+
+        var statePredicate = targetMatcher.stateMatcher().getStatePredicate();
+
+        var inventory = new SatchelInventory(context.getItemInHand(), RitualSatchelContainer.SATCHEL_SIZE);
+
+        if (context.getItemInHand().is(OccultismItems.RITUAL_SATCHEL_T1) && !context.getLevel().getBlockState(context.getClickedPos().above()).canBeReplaced())
+            return PlacementResult.ERROR_BLOCK_ABOVE_NOT_AIR;
+
+        if (context.getItemInHand().is(OccultismItems.RITUAL_SATCHEL_T2) && !context.getLevel().getBlockState(context.getClickedPos()).canBeReplaced())
+            return PlacementResult.ERROR_BLOCK_AT_POSITION_NOT_AIR;
+
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            var stack = inventory.getItem(i);
+            var isGlyph = false;
+
+            BlockState blockStateToPlace = null;
+            if (stack.getItem() instanceof BlockItem blockItem) {
+                var block = blockItem.getBlock();
+                var blockPlaceContext = blockItem.updatePlacementContext(new BlockPlaceContext(context));
+                if (blockPlaceContext == null)
+                    continue;
+
+                blockStateToPlace = block.getStateForPlacement(blockPlaceContext);
+            } else if (stack.getItem() instanceof ChalkItem chalkItem) {
+                var chalkBlock = chalkItem.getGlyphBlock();
+                blockStateToPlace = chalkBlock.getStateForPlacement(new BlockPlaceContext(context));
+                isGlyph = true;
+            }
+
+            if (blockStateToPlace == null)
+                continue;
+
+
+            if (statePredicate.test(context.getLevel(), targetMatcher.worldPosition(), blockStateToPlace)) {
+                if (stack.getMaxDamage() - stack.getDamageValue() == 1) {
+                    if (context.getItemInHand().is(OccultismItems.RITUAL_SATCHEL_T1))
+                        return PlacementResult.ERROR_WILL_BREAK_ITEM;
+                    continue;
+                }
+                if (isGlyph && !blockStateToPlace.canSurvive(context.getLevel(), targetMatcher.worldPosition().above())) {
+                    if (context.getItemInHand().is(OccultismItems.RITUAL_SATCHEL_T1))
+                        return PlacementResult.ERROR_GLYPH_CANNOT_SURVIVE;
+                    continue;
+                }
+                // Simulate item use
+                stack.useOn(new UseOnContext(context.getLevel(), context.getPlayer(), context.getHand(), stack, context.getHitResult()));
+                inventory.setItem(i, stack); // Force an update of the container if the item was used up or stack size reduced.
+                inventory.writeItemStack();
+                return PlacementResult.SUCCESS;
+            }
+        }
+        return PlacementResult.ERROR_NO_MATCHING_BLOCK_FOUND;
+    }
+
+    /**
+     * This identifies the pentacle preview and sends it to the server, where the child classes can handle it.
+     */
+    protected InteractionResult useOnClientSide(UseOnContext context) {
+        Level level = context.getLevel();
+        BlockPos pos = context.getClickedPos();
+        Player player = context.getPlayer();
+        var preview = ModonomiconAPI.get().getCurrentPreviewMultiblock();
+
+        if (level.getBlockState(pos).getBlock() instanceof ChalkGlyphBlock)
+            return InteractionResult.PASS;
+
+        //First, verify if we have a valid preview in the world
+        if (preview == null || !preview.isAnchored()) {
+            player.sendSystemMessage(Component.translatable(TranslationKeys.RITUAL_SATCHEL_NO_PREVIEW_IN_WORLD).withStyle(ChatFormatting.YELLOW));
+            return InteractionResult.PASS;
+        }
+
+        var simulation = preview.multiblock().simulate(level, preview.anchor(), preview.facing(), false, false);
+
+        //Then, check if we are targeting any block of the preview
+        var targetMatcher = simulation.getSecond().stream().filter(p -> p.worldPosition().equals(pos)).findFirst();
+        if (targetMatcher.isEmpty() ||
+                targetMatcher.get().stateMatcher().type() == StateMatcherTypeRegistry.ANY ||
+                targetMatcher.get().stateMatcher().type() == StateMatcherTypeRegistry.DISPLAY) {
+            player.sendSystemMessage(Component.translatable(TranslationKeys.RITUAL_SATCHEL_NO_PREVIEW_BLOCK_TARGETED).withStyle(ChatFormatting.YELLOW));
+            return InteractionResult.PASS;
+        }
+
+        Networking.sendToServer(new MessageSendPreviewedPentacle(
+                preview.multiblock().getId(),
+                preview.anchor(),
+                preview.facing(),
+                pos
+        ));
+
+        return InteractionResult.SUCCESS;
+    }
+
+    protected abstract Function4<Integer, Inventory, Container, Integer, AbstractContainerMenu> containerFactory();
+
+    protected abstract InteractionResult useOnServerSide(UseOnContext context);
+
+    @Override
+    public boolean isFoil(@NotNull ItemStack stack) {
+        var inventory = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+        for (var item : inventory.nonEmptyItemCopyStream().toList()) {
+            if (item.getMaxDamage() - item.getDamageValue() == 1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public @NotNull InteractionResult use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
+        if (hand != InteractionHand.MAIN_HAND)
+            return InteractionResult.PASS;
+
+        if (!player.isShiftKeyDown())
+            return InteractionResult.PASS;
+
+        final ItemStack stack = player.getItemInHand(hand);
+
+        if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
+            this.openMenu(serverPlayer, stack);
+        }
+
+        return InteractionResult.SUCCESS;
+    }
+
+    @Override
+    public @NotNull InteractionResult useOn(UseOnContext context) {
+        if (context.getHand() != InteractionHand.MAIN_HAND)
+            return InteractionResult.PASS;
+
+        if (context.getLevel().isClientSide() && context.getPlayer().isShiftKeyDown()) {
+            //will allow to open satchel serverside
+            return InteractionResult.SUCCESS;
+        }
+
+        if (context.getPlayer() instanceof ServerPlayer serverPlayer && !context.getLevel().isClientSide() && context.getPlayer().isShiftKeyDown()) {
+            this.openMenu(serverPlayer, context.getItemInHand());
+            return InteractionResult.SUCCESS;
+        }
+
+        if (context.getLevel().isClientSide()) {
+            return this.useOnClientSide(context);
+        } else {
+            return this.useOnServerSide(context);
+        }
+    }
+
+    public boolean tryErase(UseOnContext context) {
+        var inventory = new SatchelInventory(context.getItemInHand(), RitualSatchelContainer.SATCHEL_SIZE);
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            var stack = inventory.getItem(i);
+            if (stack.is(OccultismTags.Items.TOOLS_BRUSH)) {
+                // Simulate item use
+                stack.useOn(new UseOnContext(context.getLevel(), context.getPlayer(), context.getHand(), OccultismItems.BRUSH.toStack(), context.getHitResult()));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public enum PlacementResult {
+        SUCCESS,
+        ERROR_INVALID_MATCHER,
+        ERROR_BLOCK_ABOVE_NOT_AIR,
+        ERROR_BLOCK_AT_POSITION_NOT_AIR,
+        ERROR_NO_MATCHING_BLOCK_FOUND,
+        ERROR_GLYPH_CANNOT_SURVIVE,
+        ERROR_WILL_BREAK_ITEM
+    }
+
+}

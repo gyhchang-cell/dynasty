@@ -1,0 +1,52 @@
+package com.stal111.forbidden_arcanus.client.renderer.special;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.serialization.MapCodec;
+import com.stal111.forbidden_arcanus.client.renderer.block.EssenceStorageRenderer;
+import com.stal111.forbidden_arcanus.common.block.entity.EssenceUtremJarBlockEntity;
+import com.stal111.forbidden_arcanus.common.essence.EssenceHelper;
+import com.stal111.forbidden_arcanus.common.essence.storage.EssenceStorage;
+import com.stal111.forbidden_arcanus.common.essence.storage.EssenceStorages;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.special.SpecialModelRenderer;
+import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3fc;
+
+import java.util.Objects;
+import java.util.function.Consumer;
+
+public record EssenceUtremJarSpecialRenderer(
+        EssenceStorageRenderer essenceStorageRenderer
+) implements SpecialModelRenderer<EssenceStorage> {
+
+    @Override
+    public void submit(@Nullable EssenceStorage essenceStorage, PoseStack poseStack, SubmitNodeCollector nodeCollector, int lightCoords, int overlayCoords, boolean hasFoil, int outlineColor) {
+        this.essenceStorageRenderer.submitSpecial(poseStack, nodeCollector, lightCoords, overlayCoords, Objects.requireNonNullElse(essenceStorage, EssenceStorages.UTREM_JAR_FALLBACK), EssenceUtremJarBlockEntity.ESSENCE_RENDER_BOUNDS);
+    }
+
+    @Override
+    public void getExtents(Consumer<Vector3fc> consumer) {
+
+    }
+
+    @Override
+    public @Nullable EssenceStorage extractArgument(ItemStack stack) {
+        return EssenceHelper.getEssenceStorage(stack).orElse(null);
+    }
+
+    public record Unbaked() implements SpecialModelRenderer.Unbaked<EssenceStorage> {
+
+        public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
+
+        @Override
+        public SpecialModelRenderer<EssenceStorage> bake(BakingContext context) {
+            return new EssenceUtremJarSpecialRenderer(new EssenceStorageRenderer());
+        }
+
+        @Override
+        public MapCodec<Unbaked> type() {
+            return MAP_CODEC;
+        }
+    }
+}

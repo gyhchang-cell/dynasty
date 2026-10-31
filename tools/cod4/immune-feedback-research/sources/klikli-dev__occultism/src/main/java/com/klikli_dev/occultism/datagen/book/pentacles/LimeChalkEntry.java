@@ -1,0 +1,87 @@
+package com.klikli_dev.occultism.datagen.book.pentacles;
+
+import com.klikli_dev.modonomicon.api.datagen.CategoryProvider;
+import com.klikli_dev.modonomicon.api.datagen.EntryBackground;
+import com.klikli_dev.modonomicon.api.datagen.EntryProvider;
+import com.klikli_dev.modonomicon.api.datagen.book.BookIconModel;
+import com.klikli_dev.modonomicon.api.datagen.book.page.BookCraftingRecipePageModel;
+import com.klikli_dev.modonomicon.api.datagen.book.page.BookSpotlightPageModel;
+import com.klikli_dev.modonomicon.api.datagen.book.page.BookTextPageModel;
+import com.klikli_dev.modonomicon.client.gui.book.theme.GuiSprite;
+import com.klikli_dev.occultism.integration.modonomicon.pages.BookSpiritFireRecipePageModel;
+import com.klikli_dev.occultism.registry.OccultismItems;
+import net.minecraft.world.item.crafting.Ingredient;
+
+public class LimeChalkEntry extends EntryProvider {
+
+    public static final String ENTRY_ID = "lime_chalk";
+
+
+    public LimeChalkEntry(CategoryProvider parent) {
+        super(parent);
+    }
+
+    @Override
+    protected void generatePages() {
+
+
+        this.page("lore", () -> BookTextPageModel.create()
+                .withTitle(this.context().pageTitle())
+                .withText(this.context().pageText())
+        );
+        this.pageTitle("Getting Experience");
+        this.pageText("""
+                The lime chalk attracts greater spirits than Foliots.
+                 Anyone wishing to elevate the level of their rituals will need this chalk.
+                """
+        );
+
+        this.page("spotlight", () -> BookSpotlightPageModel.create()
+                .withItem(Ingredient.of(OccultismItems.CHALK_LIME.get()))
+                .withText(this.context().pageText()));
+        this.pageText("""
+                Made with valuable gems infused with experiences, lime glyphs become especially
+                 interesting to demonstrate that yours skills have surpassed the basic level.
+                """
+        );
+
+        this.page("recipe_impure", () -> BookCraftingRecipePageModel.create()
+                .withRecipeId1(this.modLoc("crafting/chalk_lime_impure"))
+                .withText(this.context().pageText())
+        );
+        this.pageText("""
+                Check {0} entry.
+                """,
+                this.entryLink("Research Fragment Dust", "crafting_rituals", "craft_research_dust")
+        );
+
+        this.page("recipe", () -> BookSpiritFireRecipePageModel.create()
+                .withRecipeId1(this.modLoc("spirit_fire/chalk_lime"))
+        );
+    }
+
+    @Override
+    protected String entryName() {
+        return "The Knowledge Chalk";
+    }
+
+    @Override
+    protected String entryDescription() {
+        return "Lime Chalk";
+    }
+
+    @Override
+    protected GuiSprite entryBackground() {
+        return EntryBackground.DEFAULT;
+    }
+
+    @Override
+    protected BookIconModel entryIcon() {
+        return BookIconModel.create(OccultismItems.CHALK_LIME.get());
+    }
+
+    @Override
+    protected String entryId() {
+        return ENTRY_ID;
+    }
+}

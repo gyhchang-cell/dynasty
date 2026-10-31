@@ -1,0 +1,631 @@
+package mekanism.client;
+
+import com.google.common.reflect.TypeToken;
+import mekanism.api.gear.IClientModuleHelper;
+import mekanism.api.gear.IModuleHelper;
+import mekanism.api.tier.BaseTier;
+import mekanism.client.gui.GuiBoilerStats;
+import mekanism.client.gui.GuiChemicalTank;
+import mekanism.client.gui.GuiDimensionalStabilizer;
+import mekanism.client.gui.GuiDynamicTank;
+import mekanism.client.gui.GuiEnergyCube;
+import mekanism.client.gui.GuiFluidTank;
+import mekanism.client.gui.GuiInductionMatrix;
+import mekanism.client.gui.GuiLaserAmplifier;
+import mekanism.client.gui.GuiLaserTractorBeam;
+import mekanism.client.gui.GuiLogisticalSorter;
+import mekanism.client.gui.GuiMatrixStats;
+import mekanism.client.gui.GuiModificationStation;
+import mekanism.client.gui.GuiModuleTweaker;
+import mekanism.client.gui.GuiPersonalStorageTile;
+import mekanism.client.gui.GuiQuantumEntangloporter;
+import mekanism.client.gui.GuiSPS;
+import mekanism.client.gui.GuiSecurityDesk;
+import mekanism.client.gui.GuiTeleporter;
+import mekanism.client.gui.GuiThermalEvaporationController;
+import mekanism.client.gui.GuiThermoelectricBoiler;
+import mekanism.client.gui.item.GuiDictionary;
+import mekanism.client.gui.item.GuiPersonalStorageItem;
+import mekanism.client.gui.item.GuiPortableTeleporter;
+import mekanism.client.gui.item.GuiSeismicReader;
+import mekanism.client.gui.machine.GuiAntiprotonicNucleosynthesizer;
+import mekanism.client.gui.machine.GuiChemicalCrystallizer;
+import mekanism.client.gui.machine.GuiChemicalDissolutionChamber;
+import mekanism.client.gui.machine.GuiChemicalInfuser;
+import mekanism.client.gui.machine.GuiChemicalOxidizer;
+import mekanism.client.gui.machine.GuiChemicalWasher;
+import mekanism.client.gui.machine.GuiCombiner;
+import mekanism.client.gui.machine.GuiDigitalMiner;
+import mekanism.client.gui.machine.GuiDigitalMinerConfig;
+import mekanism.client.gui.machine.GuiElectricPump;
+import mekanism.client.gui.machine.GuiElectrolyticSeparator;
+import mekanism.client.gui.machine.GuiFactory;
+import mekanism.client.gui.machine.GuiFluidicPlenisher;
+import mekanism.client.gui.machine.GuiFormulaicAssemblicator;
+import mekanism.client.gui.machine.GuiFuelwoodHeater;
+import mekanism.client.gui.machine.GuiIsotopicCentrifuge;
+import mekanism.client.gui.machine.GuiMetallurgicInfuser;
+import mekanism.client.gui.machine.GuiNutritionalLiquifier;
+import mekanism.client.gui.machine.GuiOredictionificator;
+import mekanism.client.gui.machine.GuiPRC;
+import mekanism.client.gui.machine.GuiPaintingMachine;
+import mekanism.client.gui.machine.GuiPigmentExtractor;
+import mekanism.client.gui.machine.GuiPigmentMixer;
+import mekanism.client.gui.machine.GuiPrecisionSawmill;
+import mekanism.client.gui.machine.GuiResistiveHeater;
+import mekanism.client.gui.machine.GuiRotaryCondensentrator;
+import mekanism.client.gui.machine.GuiSeismicVibrator;
+import mekanism.client.gui.machine.GuiSolarNeutronActivator;
+import mekanism.client.gui.qio.GuiPortableQIODashboard;
+import mekanism.client.gui.qio.GuiQIODashboard;
+import mekanism.client.gui.qio.GuiQIODriveArray;
+import mekanism.client.gui.qio.GuiQIOExporter;
+import mekanism.client.gui.qio.GuiQIOImporter;
+import mekanism.client.gui.qio.GuiQIOItemFrequencySelect;
+import mekanism.client.gui.qio.GuiQIORedstoneAdapter;
+import mekanism.client.gui.qio.GuiQIOTileFrequencySelect;
+import mekanism.client.gui.robit.GuiRobitCrafting;
+import mekanism.client.gui.robit.GuiRobitInventory;
+import mekanism.client.gui.robit.GuiRobitMain;
+import mekanism.client.gui.robit.GuiRobitRepair;
+import mekanism.client.gui.robit.GuiRobitSmelting;
+import mekanism.client.key.MekanismKeyHandler;
+import mekanism.client.model.MekanismModelCache;
+import mekanism.client.model.blockstate.EnergyCubeModel;
+import mekanism.client.model.blockstate.HolidayBasedModelSelector;
+import mekanism.client.model.blockstate.QIODriveArrayBlockStateModel.Unbaked;
+import mekanism.client.model.blockstate.QIORedstoneAdapterModel;
+import mekanism.client.model.blockstate.TransmitterBlockStateModel;
+import mekanism.client.model.energycube.EnergyCubeBaseLoader;
+import mekanism.client.model.item.ComponentItemModel;
+import mekanism.client.model.item.QIODriveArrayItemModel;
+import mekanism.client.model.itemtint.ColorComponent;
+import mekanism.client.model.itemtint.ColorModulationTint;
+import mekanism.client.model.props.ClientRadiationScale;
+import mekanism.client.model.props.ConfigCardEncoded;
+import mekanism.client.model.props.CraftingFormulaStatus;
+import mekanism.client.particle.JetpackFlameParticle;
+import mekanism.client.particle.JetpackSmokeParticle;
+import mekanism.client.particle.LaserParticle;
+import mekanism.client.particle.LaserParticleGroup;
+import mekanism.client.particle.RadiationParticle;
+import mekanism.client.particle.ScubaBubbleParticle;
+import mekanism.client.pip.CompassPiP;
+import mekanism.client.pip.RobitSkinPreviewPiP;
+import mekanism.client.render.RenderPropertiesProvider;
+import mekanism.client.render.RenderPropertiesProvider.MekCustomArmorRenderProperties;
+import mekanism.client.render.RenderTickHandler;
+import mekanism.client.render.armor.ChestArmor;
+import mekanism.client.render.armor.FreeRunnerArmor;
+import mekanism.client.render.armor.MekaSuitArmor;
+import mekanism.client.render.entity.FlameModel;
+import mekanism.client.render.entity.RenderFlame;
+import mekanism.client.render.entity.RenderRobit;
+import mekanism.client.render.hud.MekaSuitEnergyLevel;
+import mekanism.client.render.hud.MekanismHUD;
+import mekanism.client.render.hud.MekanismStatusOverlay;
+import mekanism.client.render.hud.RadiationOverlay;
+import mekanism.client.render.item.MekaSuitBarDecorator;
+import mekanism.client.render.item.RenderRobitItem;
+import mekanism.client.render.item.TransmitterTypeDecorator;
+import mekanism.client.render.item.block.RenderEnergyCubeItem;
+import mekanism.client.render.item.block.RenderFluidTankItem;
+import mekanism.client.render.layer.MekanismArmorLayer;
+import mekanism.client.render.lib.effect.BillboardingEffectFeatureRenderer;
+import mekanism.client.render.lib.effect.BoltFeatureRenderer;
+import mekanism.client.render.lib.effect.LaserFeatureRenderer;
+import mekanism.client.render.outline.MekanismOutlineFeatureRender;
+import mekanism.client.render.tileentity.RenderBin;
+import mekanism.client.render.tileentity.RenderDigitalMiner;
+import mekanism.client.render.tileentity.RenderDimensionalStabilizer;
+import mekanism.client.render.tileentity.RenderDynamicTank;
+import mekanism.client.render.tileentity.RenderEnergyCube;
+import mekanism.client.render.tileentity.RenderFluidTank;
+import mekanism.client.render.tileentity.RenderIndustrialAlarm;
+import mekanism.client.render.tileentity.RenderNutritionalLiquifier;
+import mekanism.client.render.tileentity.RenderPersonalChest;
+import mekanism.client.render.tileentity.RenderPigmentMixer;
+import mekanism.client.render.tileentity.RenderSPS;
+import mekanism.client.render.tileentity.RenderSeismicVibrator;
+import mekanism.client.render.tileentity.RenderTeleporter;
+import mekanism.client.render.tileentity.RenderThermalEvaporationPlant;
+import mekanism.client.render.tileentity.RenderThermoelectricBoiler;
+import mekanism.client.render.transmitter.RenderLogisticalTransporter;
+import mekanism.client.render.transmitter.RenderMechanicalPipe;
+import mekanism.client.render.transmitter.RenderPressurizedTube;
+import mekanism.client.render.transmitter.RenderThermodynamicConductor;
+import mekanism.client.render.transmitter.RenderUniversalCable;
+import mekanism.client.sound.SoundHandler;
+import mekanism.common.Mekanism;
+import mekanism.common.block.attribute.Attribute;
+import mekanism.common.item.gear.ItemJetpack;
+import mekanism.common.item.gear.ItemMekaSuitArmor;
+import mekanism.common.item.gear.ItemScubaTank;
+import mekanism.common.registries.MekanismAttachmentTypes;
+import mekanism.common.registries.MekanismBlocks;
+import mekanism.common.registries.MekanismContainerTypes;
+import mekanism.common.registries.MekanismEntityTypes;
+import mekanism.common.registries.MekanismFluids;
+import mekanism.common.registries.MekanismItems;
+import mekanism.common.registries.MekanismModules;
+import mekanism.common.registries.MekanismParticleTypes;
+import mekanism.common.registries.MekanismTileEntityTypes;
+import mekanism.common.resource.BlockResourceInfo;
+import mekanism.common.resource.PrimaryResource;
+import mekanism.common.tile.qio.QIOBlockTintSource;
+import mekanism.common.tile.transmitter.LogisticalTransporterBlockTintSource;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.model.geom.PartNames;
+import net.minecraft.client.model.object.armorstand.ArmorStandModel;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.client.renderer.entity.state.ArmorStandRenderState;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.util.CommonColors;
+import net.minecraft.util.Mth;
+import net.minecraft.util.Util;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.PlayerModelType;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterConditionalItemModelPropertyEvent;
+import net.neoforged.neoforge.client.event.RegisterFeatureRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
+import net.neoforged.neoforge.client.event.RegisterItemModelsEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.event.RegisterParticleGroupsEvent;
+import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterSelectItemModelPropertyEvent;
+import net.neoforged.neoforge.client.event.RegisterSpecialModelRendererEvent;
+import net.neoforged.neoforge.client.event.sound.PlaySoundEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.neoforged.neoforge.client.renderstate.RegisterRenderStateModifiersEvent;
+import net.neoforged.neoforge.common.NeoForge;
+
+@EventBusSubscriber(modid = Mekanism.MODID, value = Dist.CLIENT)
+public class ClientRegistration {
+
+    @SubscribeEvent
+    public static void init(FMLClientSetupEvent event) {
+        NeoForge.EVENT_BUS.register(new ClientTickHandler());
+        NeoForge.EVENT_BUS.register(new RenderTickHandler());
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, PlaySoundEvent.class, SoundHandler::onTilePlaySound);
+        IClientModuleHelper moduleHelper = IClientModuleHelper.INSTANCE;
+        moduleHelper.addMekaSuitModuleModels(Mekanism.rl("entity/mekasuit_modules"));
+        moduleHelper.addMekaSuitModuleModelSpec("jetpack", MekanismModules.JETPACK_UNIT, EquipmentSlot.CHEST);
+        moduleHelper.addMekaSuitModuleModelSpec("modulator", MekanismModules.GRAVITATIONAL_MODULATING_UNIT, EquipmentSlot.CHEST);
+        moduleHelper.addMekaSuitModuleModelSpec("elytra", MekanismModules.ELYTRA_UNIT, EquipmentSlot.CHEST, state -> state.isFallFlying);
+    }
+
+    @SubscribeEvent
+    public static void itemProps(RegisterSelectItemModelPropertyEvent event) {
+        event.register(Mekanism.rl("crafting_formula"), CraftingFormulaStatus.TYPE);
+        event.register(Mekanism.rl("client_radiation"), ClientRadiationScale.TYPE);
+    }
+
+    @SubscribeEvent
+    public static void onRegisterConditionalItemModelProperties(RegisterConditionalItemModelPropertyEvent event) {
+        event.register(Mekanism.rl("config_card"), ConfigCardEncoded.CODEC);
+    }
+
+    @SubscribeEvent
+    public static void registerFeatures(RegisterFeatureRenderersEvent event) {
+        event.register(BillboardingEffectFeatureRenderer.TYPE, new BillboardingEffectFeatureRenderer());
+        event.register(BoltFeatureRenderer.TYPE, new BoltFeatureRenderer());
+        event.register(LaserFeatureRenderer.TYPE, new LaserFeatureRenderer());
+        event.register(MekanismOutlineFeatureRender.TYPE, new MekanismOutlineFeatureRender());
+    }
+
+    @SubscribeEvent
+    public static void registerParticleGroups(RegisterParticleGroupsEvent event) {
+        event.register(LaserParticleGroup.TYPE, LaserParticleGroup::new);
+    }
+
+    @SubscribeEvent
+    public static void registerKeybindings(RegisterKeyMappingsEvent event) {
+        MekanismKeyHandler.registerKeybindings(event);
+    }
+
+    @SubscribeEvent
+    public static void registerPiPs(RegisterPictureInPictureRenderersEvent event) {
+        event.register(CompassPiP.State.class, CompassPiP::new);
+        event.register(RobitSkinPreviewPiP.State.class, RobitSkinPreviewPiP::new);
+    }
+
+    @SubscribeEvent
+    public static void registerOverlays(RegisterGuiLayersEvent event) {
+        //Note: We don't need to include our modid in the id as the active context is grabbed for making an RL inside the event
+        event.registerBelowAll(Mekanism.rl("radiation_overlay"), RadiationOverlay.INSTANCE);
+        event.registerAbove(VanillaGuiLayers.ARMOR_LEVEL, Mekanism.rl("energy_level"), MekaSuitEnergyLevel.INSTANCE);
+        //Render status overlay after item name rather than action bar (record_overlay) so that things like the sleep fade will render in front of our overlay
+        event.registerAbove(VanillaGuiLayers.SELECTED_ITEM_NAME, Mekanism.rl("status_overlay"), MekanismStatusOverlay.INSTANCE);
+        event.registerAbove(VanillaGuiLayers.SUBTITLE_OVERLAY, Mekanism.rl("hud"), MekanismHUD.INSTANCE);
+    }
+
+    @SubscribeEvent
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        //Register entity rendering handlers
+        event.registerEntityRenderer(MekanismEntityTypes.ROBIT.get(), RenderRobit::new);
+        event.registerEntityRenderer(MekanismEntityTypes.FLAME.get(), RenderFlame::new);
+
+        //Register TileEntityRenderers
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderThermoelectricBoiler(), MekanismTileEntityTypes.BOILER_CASING, MekanismTileEntityTypes.BOILER_VALVE);
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderDynamicTank(), MekanismTileEntityTypes.DYNAMIC_TANK, MekanismTileEntityTypes.DYNAMIC_VALVE);
+        event.registerBlockEntityRenderer(MekanismTileEntityTypes.DIGITAL_MINER.get(), _ -> new RenderDigitalMiner());
+        event.registerBlockEntityRenderer(MekanismTileEntityTypes.DIMENSIONAL_STABILIZER.get(), _ -> new RenderDimensionalStabilizer());
+        event.registerBlockEntityRenderer(MekanismTileEntityTypes.PERSONAL_CHEST.get(), RenderPersonalChest::new);
+        event.registerBlockEntityRenderer(MekanismTileEntityTypes.NUTRITIONAL_LIQUIFIER.get(), RenderNutritionalLiquifier::new);
+        event.registerBlockEntityRenderer(MekanismTileEntityTypes.PIGMENT_MIXER.get(), _ -> new RenderPigmentMixer());
+        event.registerBlockEntityRenderer(MekanismTileEntityTypes.SEISMIC_VIBRATOR.get(), _ -> new RenderSeismicVibrator());
+        event.registerBlockEntityRenderer(MekanismTileEntityTypes.TELEPORTER.get(), _ -> new RenderTeleporter());
+        event.registerBlockEntityRenderer(MekanismTileEntityTypes.THERMAL_EVAPORATION_CONTROLLER.get(), _ -> new RenderThermalEvaporationPlant());
+        event.registerBlockEntityRenderer(MekanismTileEntityTypes.INDUSTRIAL_ALARM.get(), _ -> new RenderIndustrialAlarm());
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderSPS(), MekanismTileEntityTypes.SPS_CASING, MekanismTileEntityTypes.SPS_PORT);
+        ClientRegistrationUtil.bindTileEntityRenderer(event, RenderBin::new, MekanismTileEntityTypes.BASIC_BIN, MekanismTileEntityTypes.ADVANCED_BIN, MekanismTileEntityTypes.ELITE_BIN,
+              MekanismTileEntityTypes.ULTIMATE_BIN, MekanismTileEntityTypes.CREATIVE_BIN);
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderEnergyCube(), MekanismTileEntityTypes.BASIC_ENERGY_CUBE, MekanismTileEntityTypes.ADVANCED_ENERGY_CUBE,
+              MekanismTileEntityTypes.ELITE_ENERGY_CUBE, MekanismTileEntityTypes.ULTIMATE_ENERGY_CUBE, MekanismTileEntityTypes.CREATIVE_ENERGY_CUBE);
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderFluidTank(), MekanismTileEntityTypes.BASIC_FLUID_TANK, MekanismTileEntityTypes.ADVANCED_FLUID_TANK,
+              MekanismTileEntityTypes.ELITE_FLUID_TANK, MekanismTileEntityTypes.ULTIMATE_FLUID_TANK, MekanismTileEntityTypes.CREATIVE_FLUID_TANK);
+        //Transmitters
+        ClientRegistrationUtil.bindTileEntityRenderer(event, RenderLogisticalTransporter::new, MekanismTileEntityTypes.RESTRICTIVE_TRANSPORTER,
+              MekanismTileEntityTypes.DIVERSION_TRANSPORTER, MekanismTileEntityTypes.BASIC_LOGISTICAL_TRANSPORTER, MekanismTileEntityTypes.ADVANCED_LOGISTICAL_TRANSPORTER,
+              MekanismTileEntityTypes.ELITE_LOGISTICAL_TRANSPORTER, MekanismTileEntityTypes.ULTIMATE_LOGISTICAL_TRANSPORTER);
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderMechanicalPipe(), MekanismTileEntityTypes.BASIC_MECHANICAL_PIPE,
+              MekanismTileEntityTypes.ADVANCED_MECHANICAL_PIPE, MekanismTileEntityTypes.ELITE_MECHANICAL_PIPE, MekanismTileEntityTypes.ULTIMATE_MECHANICAL_PIPE);
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderPressurizedTube(), MekanismTileEntityTypes.BASIC_PRESSURIZED_TUBE,
+              MekanismTileEntityTypes.ADVANCED_PRESSURIZED_TUBE, MekanismTileEntityTypes.ELITE_PRESSURIZED_TUBE, MekanismTileEntityTypes.ULTIMATE_PRESSURIZED_TUBE);
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderUniversalCable(), MekanismTileEntityTypes.BASIC_UNIVERSAL_CABLE,
+              MekanismTileEntityTypes.ADVANCED_UNIVERSAL_CABLE, MekanismTileEntityTypes.ELITE_UNIVERSAL_CABLE, MekanismTileEntityTypes.ULTIMATE_UNIVERSAL_CABLE);
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderThermodynamicConductor(), MekanismTileEntityTypes.BASIC_THERMODYNAMIC_CONDUCTOR,
+              MekanismTileEntityTypes.ADVANCED_THERMODYNAMIC_CONDUCTOR, MekanismTileEntityTypes.ELITE_THERMODYNAMIC_CONDUCTOR, MekanismTileEntityTypes.ULTIMATE_THERMODYNAMIC_CONDUCTOR);
+    }
+
+    @SubscribeEvent
+    public static void registerRenderStateModifiers(RegisterRenderStateModifiersEvent event) {
+        event.registerEntityModifier(new TypeToken<LivingEntityRenderer<? extends LivingEntity, LivingEntityRenderState, ?>>() {
+        }, (entity, renderState) -> {
+            if (renderState instanceof HumanoidRenderState state) {
+                renderState.setRenderData(MekaSuitArmor.UUID_CONTEXT, entity.getUUID());
+                if (state.headEquipment.getItem() instanceof ItemMekaSuitArmor) {
+                    //Note: Hiding head also implicitly hides the hat model part as it is a child of head
+                    state.overrideModelPartVisibility(PartNames.HEAD, false);
+                    if (state instanceof AvatarRenderState avatarState) {
+                        avatarState.showHat = false;
+                        avatarState.showExtraEars = false;
+                    }
+                }
+                Item chest = state.chestEquipment.getItem();
+                if (chest instanceof ItemMekaSuitArmor) {
+                    state.overrideModelPartVisibility(PartNames.BODY, false);
+                    if (state instanceof ArmorStandRenderState armorStandState) {
+                        armorStandState.showArms = false;
+                        state.overrideModelPartVisibility(ArmorStandModel.RIGHT_BODY_STICK, false);
+                        state.overrideModelPartVisibility(ArmorStandModel.LEFT_BODY_STICK, false);
+                        state.overrideModelPartVisibility(ArmorStandModel.SHOULDER_STICK, false);
+                    } else {
+                        //Don't adjust arms for armor stands as we already use vanilla's way to define the arms shouldn't be shown
+                        state.overrideModelPartVisibility(PartNames.LEFT_ARM, false);
+                        state.overrideModelPartVisibility(PartNames.RIGHT_ARM, false);
+                        if (state instanceof AvatarRenderState avatarState) {
+                            avatarState.showCape = false;
+                            avatarState.showJacket = false;
+                            avatarState.showLeftSleeve = false;
+                            avatarState.showRightSleeve = false;
+                        }
+                    }
+                    if (IModuleHelper.INSTANCE.isEnabled(state.chestEquipment, MekanismModules.ELYTRA_UNIT)) {
+                        float scale = 0;
+                        //Note: In theory the entity is always "fall flying" for wing rendering given our conditions
+                        // for it rendering, but we validate it just in case.
+                        //If the entity is not dive-bombing the ground (at which point the wings will be folded)
+                        if (state.isFallFlying && state.xRot < 45) {
+                            // then we check if the entity is not pointing steeply into the sky
+                            double deltaY = entity.getDeltaMovement().y;
+                            // if it isn't or if the entity has a lot of movement
+                            if (state.xRot > -45 || deltaY > 1) {
+                                // then we fully expand the wings
+                                scale = 1;
+                            } else if (deltaY > 0) {
+                                // otherwise, if the entity is pointing steeply into the sky, and we have a small amount
+                                // of movement (y movement between zero and one) then we partially expand the wings
+                                scale = (float) deltaY;
+                            }
+                            // if we don't have any upwards momentum, and we are pointing steeply into the sky then we just fold the wings
+                        }
+                        if (entity instanceof Player) {
+                            //If the entity is a player, then transition the wings gradually to their target position
+                            float yRot = scale * MekaSuitArmor.ModelPos.EXPANDED_WING_Y_ROT;
+                            float targetYRot = Mth.lerp(0.01F, entity.getData(MekanismAttachmentTypes.MEKASUIT_WING_YROT), yRot);
+                            entity.setData(MekanismAttachmentTypes.MEKASUIT_WING_YROT, targetYRot);
+                            scale = targetYRot / MekaSuitArmor.ModelPos.EXPANDED_WING_Y_ROT;
+                        }
+                        state.setRenderData(MekaSuitArmor.WING_SCALE, scale);
+                    }
+                } else if (chest instanceof ItemJetpack || chest instanceof ItemScubaTank) {
+                    ItemStackRenderState bodyItem = new ItemStackRenderState();
+                    Minecraft.getInstance().getEntityRenderDispatcher().itemModelResolver.updateForLiving(bodyItem, state.chestEquipment, ItemDisplayContext.NONE, entity);
+                    state.setRenderData(ChestArmor.CHEST_CONTEXT, bodyItem);
+                    if (state instanceof AvatarRenderState avatarState) {
+                        //Hide the player's cape if they have a thick armor piece on that would clip with it
+                        //TODO - 26.3: Look into the translations that CapeLayer does if the chest equipment has the humanoid layer type
+                        // I think we can probably just add a wing layer type to the equipment assets, but then have the list of layers for it be empty?
+                        avatarState.showCape = false;
+                    }
+                }
+                if (state.legsEquipment.getItem() instanceof ItemMekaSuitArmor) {
+                    state.overrideModelPartVisibility(PartNames.LEFT_LEG, false);
+                    state.overrideModelPartVisibility(PartNames.RIGHT_LEG, false);
+                    if (state instanceof AvatarRenderState avatarState) {
+                        avatarState.showLeftPants = false;
+                        avatarState.showRightPants = false;
+                    }
+                }
+            }
+        });
+    }
+
+    @SubscribeEvent
+    public static void registerLayer(EntityRenderersEvent.RegisterLayerDefinitions event) {
+        event.registerLayerDefinition(FlameModel.FLAME_LAYER, FlameModel::createLayerDefinition);
+    }
+
+    @SubscribeEvent
+    public static void registerSpecialRenderer(RegisterSpecialModelRendererEvent event) {
+        event.register(Mekanism.rl("fluid_tank"), RenderFluidTankItem.Unbaked.MAP_CODEC);
+        event.register(Mekanism.rl("energy_cube"), RenderEnergyCubeItem.Unbaked.MAP_CODEC);
+        event.register(Mekanism.rl("robit"), RenderRobitItem.Unbaked.MAP_CODEC);
+    }
+
+    @SubscribeEvent
+    public static void registerItemModels(RegisterItemModelsEvent event) {
+        event.register(Mekanism.rl("qio_drive_item"), QIODriveArrayItemModel.Unbaked.MAP_CODEC);
+        event.register(Mekanism.rl("component_item"), ComponentItemModel.Unbaked.MAP_CODEC);
+    }
+
+    @SubscribeEvent
+    public static void registerScreens(RegisterMenuScreensEvent event) {
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.MODULE_TWEAKER, GuiModuleTweaker::new);
+
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.DICTIONARY, GuiDictionary::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.PORTABLE_TELEPORTER, GuiPortableTeleporter::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.SEISMIC_READER, GuiSeismicReader::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.QIO_FREQUENCY_SELECT_ITEM, GuiQIOItemFrequencySelect::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.PORTABLE_QIO_DASHBOARD, GuiPortableQIODashboard::new);
+
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.MAIN_ROBIT, GuiRobitMain::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.INVENTORY_ROBIT, GuiRobitInventory::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.SMELTING_ROBIT, GuiRobitSmelting::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.CRAFTING_ROBIT, GuiRobitCrafting::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.REPAIR_ROBIT, GuiRobitRepair::new);
+
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.CHEMICAL_CRYSTALLIZER, GuiChemicalCrystallizer::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.CHEMICAL_DISSOLUTION_CHAMBER, GuiChemicalDissolutionChamber::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.CHEMICAL_INFUSER, GuiChemicalInfuser::new);
+        ClientRegistrationUtil.registerAdvancedElectricScreen(event, MekanismContainerTypes.CHEMICAL_INJECTION_CHAMBER);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.CHEMICAL_OXIDIZER, GuiChemicalOxidizer::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.CHEMICAL_WASHER, GuiChemicalWasher::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.COMBINER, GuiCombiner::new);
+        ClientRegistrationUtil.registerElectricScreen(event, MekanismContainerTypes.CRUSHER);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.DIGITAL_MINER, GuiDigitalMiner::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.DYNAMIC_TANK, GuiDynamicTank::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.ELECTRIC_PUMP, GuiElectricPump::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.ELECTROLYTIC_SEPARATOR, GuiElectrolyticSeparator::new);
+        ClientRegistrationUtil.registerElectricScreen(event, MekanismContainerTypes.ENERGIZED_SMELTER);
+        ClientRegistrationUtil.registerElectricScreen(event, MekanismContainerTypes.ENRICHMENT_CHAMBER);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.FLUIDIC_PLENISHER, GuiFluidicPlenisher::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.FORMULAIC_ASSEMBLICATOR, GuiFormulaicAssemblicator::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.FUELWOOD_HEATER, GuiFuelwoodHeater::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.LASER_AMPLIFIER, GuiLaserAmplifier::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.LASER_TRACTOR_BEAM, GuiLaserTractorBeam::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.METALLURGIC_INFUSER, GuiMetallurgicInfuser::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.OREDICTIONIFICATOR, GuiOredictionificator::new);
+        ClientRegistrationUtil.registerAdvancedElectricScreen(event, MekanismContainerTypes.OSMIUM_COMPRESSOR);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.PRECISION_SAWMILL, GuiPrecisionSawmill::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.PRESSURIZED_REACTION_CHAMBER, GuiPRC::new);
+        ClientRegistrationUtil.registerAdvancedElectricScreen(event, MekanismContainerTypes.PURIFICATION_CHAMBER);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.QUANTUM_ENTANGLOPORTER, GuiQuantumEntangloporter::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.RESISTIVE_HEATER, GuiResistiveHeater::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.ROTARY_CONDENSENTRATOR, GuiRotaryCondensentrator::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.SECURITY_DESK, GuiSecurityDesk::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.MODIFICATION_STATION, GuiModificationStation::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.ISOTOPIC_CENTRIFUGE, GuiIsotopicCentrifuge::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.NUTRITIONAL_LIQUIFIER, GuiNutritionalLiquifier::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.ANTIPROTONIC_NUCLEOSYNTHESIZER, GuiAntiprotonicNucleosynthesizer::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.PIGMENT_EXTRACTOR, GuiPigmentExtractor::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.PIGMENT_MIXER, GuiPigmentMixer::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.PAINTING_MACHINE, GuiPaintingMachine::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.SEISMIC_VIBRATOR, GuiSeismicVibrator::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.SOLAR_NEUTRON_ACTIVATOR, GuiSolarNeutronActivator::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.TELEPORTER, GuiTeleporter::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.THERMAL_EVAPORATION_CONTROLLER, GuiThermalEvaporationController::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.QIO_DRIVE_ARRAY, GuiQIODriveArray::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.QIO_DASHBOARD, GuiQIODashboard::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.QIO_IMPORTER, GuiQIOImporter::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.QIO_EXPORTER, GuiQIOExporter::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.QIO_REDSTONE_ADAPTER, GuiQIORedstoneAdapter::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.SPS, GuiSPS::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.DIMENSIONAL_STABILIZER, GuiDimensionalStabilizer::new);
+
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.FACTORY, GuiFactory::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.CHEMICAL_TANK, GuiChemicalTank::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.FLUID_TANK, GuiFluidTank::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.ENERGY_CUBE, GuiEnergyCube::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.INDUCTION_MATRIX, GuiInductionMatrix::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.THERMOELECTRIC_BOILER, GuiThermoelectricBoiler::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.PERSONAL_STORAGE_ITEM, GuiPersonalStorageItem::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.PERSONAL_STORAGE_BLOCK, GuiPersonalStorageTile::new);
+
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.DIGITAL_MINER_CONFIG, GuiDigitalMinerConfig::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.LOGISTICAL_SORTER, GuiLogisticalSorter::new);
+
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.QIO_FREQUENCY_SELECT_TILE, GuiQIOTileFrequencySelect::new);
+
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.BOILER_STATS, GuiBoilerStats::new);
+        ClientRegistrationUtil.registerScreen(event, MekanismContainerTypes.MATRIX_STATS, GuiMatrixStats::new);
+    }
+
+    @SubscribeEvent
+    public static void registerModels(RegisterBlockStateModels event) {
+        event.registerModel(EnergyCubeModel.Unbaked.ID, EnergyCubeModel.Unbaked.MAP_CODEC);
+        event.registerModel(QIORedstoneAdapterModel.Unbaked.ID, QIORedstoneAdapterModel.Unbaked.MAP_CODEC);
+        event.registerModel(TransmitterBlockStateModel.Unbaked.ID, TransmitterBlockStateModel.Unbaked.MAP_CODEC);
+        event.registerModel(Mekanism.rl("qio_drive"), Unbaked.MAP_CODEC);
+        event.registerModel(Mekanism.rl("holiday_selector"), HolidayBasedModelSelector.MAP_CODEC);
+    }
+
+    @SubscribeEvent
+    public static void registerModelLoaders(ModelEvent.RegisterLoaders event) {
+        event.register(EnergyCubeBaseLoader.ID, EnergyCubeBaseLoader.INSTANCE);
+        //event.register(Mekanism.rl("data_based"), DataBasedModelLoader.INSTANCE);
+        //event.register(Mekanism.rl("transmitter"), TransmitterLoader.INSTANCE);
+    }
+
+    @SubscribeEvent
+    public static void registerAdditionalModels(ModelEvent.RegisterStandalone event) {
+        MekanismModelCache.INSTANCE.setup(event);
+    }
+
+    @SubscribeEvent
+    public static void fluidModels(RegisterFluidModelsEvent event) {
+        ClientRegistrationUtil.registerFluidModels(event, MekanismFluids.FLUIDS);
+    }
+
+    @SubscribeEvent
+    public static void onModelBake(ModelEvent.BakingCompleted event) {
+        MekanismModelCache.INSTANCE.onBake(event);
+        //Reset any cached models now that the atlases are built
+        RenderPigmentMixer.resetCached();
+        RenderSeismicVibrator.resetCached();
+    }
+
+    @SubscribeEvent
+    public static void registerParticleFactories(RegisterParticleProvidersEvent event) {
+        event.registerSpriteSet(MekanismParticleTypes.LASER.get(), LaserParticle.Factory::new);
+        event.registerSpriteSet(MekanismParticleTypes.JETPACK_FLAME.get(), JetpackFlameParticle.Factory::new);
+        event.registerSpriteSet(MekanismParticleTypes.JETPACK_SMOKE.get(), JetpackSmokeParticle.Factory::new);
+        event.registerSpriteSet(MekanismParticleTypes.SCUBA_BUBBLE.get(), ScubaBubbleParticle.Factory::new);
+        event.registerSpriteSet(MekanismParticleTypes.RADIATION.get(), RadiationParticle.Factory::new);
+    }
+
+    @SubscribeEvent
+    public static void registerBlockColorHandlers(RegisterColorHandlersEvent.BlockTintSources event) {
+        ClientRegistrationUtil.registerBlockColorHandler(event, state -> {
+                  BaseTier tier = Attribute.getBaseTier(state.getBlock());
+                  if (tier != null) {
+                      return tier.getPackedColor();
+                  }
+                  return CommonColors.WHITE;
+              }, MekanismBlocks.BASIC_FLUID_TANK, MekanismBlocks.ADVANCED_FLUID_TANK, MekanismBlocks.ELITE_FLUID_TANK, MekanismBlocks.ULTIMATE_FLUID_TANK,
+              MekanismBlocks.CREATIVE_FLUID_TANK);
+        ClientRegistrationUtil.registerBlockColorHandler(event, QIOBlockTintSource.INSTANCE, MekanismBlocks.QIO_DRIVE_ARRAY, MekanismBlocks.QIO_DASHBOARD,
+              MekanismBlocks.QIO_IMPORTER, MekanismBlocks.QIO_EXPORTER, MekanismBlocks.QIO_REDSTONE_ADAPTER);
+        ClientRegistrationUtil.registerBlockColorHandler(event, LogisticalTransporterBlockTintSource.INSTANCE, MekanismBlocks.BASIC_LOGISTICAL_TRANSPORTER,
+              MekanismBlocks.ADVANCED_LOGISTICAL_TRANSPORTER, MekanismBlocks.ELITE_LOGISTICAL_TRANSPORTER, MekanismBlocks.ULTIMATE_LOGISTICAL_TRANSPORTER);
+        for (PrimaryResource primaryResource : PrimaryResource.VALUES) {
+            BlockResourceInfo resourceInfo = primaryResource.getResourceBlockInfo();
+            if (resourceInfo != null) {
+                int tint = primaryResource.getTint();
+                ClientRegistrationUtil.registerBlockColorHandler(event, _ -> tint, MekanismBlocks.PROCESSED_RESOURCE_BLOCKS.get(resourceInfo));
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void registerItemColorHandlers(RegisterColorHandlersEvent.ItemTintSources event) {
+        event.register(Mekanism.rl("color_component"), ColorComponent.MAP_CODEC);
+        event.register(Mekanism.rl("color_modulation_unit"), ColorModulationTint.MAP_CODEC);
+    }
+
+    @SubscribeEvent
+    public static void registerItemDecorations(RegisterItemDecorationsEvent event) {
+        event.register(MekanismItems.MEKASUIT_HELMET, MekaSuitBarDecorator.INSTANCE);
+        event.register(MekanismItems.MEKASUIT_BODYARMOR, MekaSuitBarDecorator.INSTANCE);
+        TransmitterTypeDecorator.registerDecorators(event, MekanismBlocks.BASIC_PRESSURIZED_TUBE, MekanismBlocks.ADVANCED_PRESSURIZED_TUBE,
+              MekanismBlocks.ELITE_PRESSURIZED_TUBE, MekanismBlocks.ULTIMATE_PRESSURIZED_TUBE, MekanismBlocks.BASIC_THERMODYNAMIC_CONDUCTOR,
+              MekanismBlocks.ADVANCED_THERMODYNAMIC_CONDUCTOR, MekanismBlocks.ELITE_THERMODYNAMIC_CONDUCTOR, MekanismBlocks.ULTIMATE_THERMODYNAMIC_CONDUCTOR,
+              MekanismBlocks.BASIC_UNIVERSAL_CABLE, MekanismBlocks.ADVANCED_UNIVERSAL_CABLE, MekanismBlocks.ELITE_UNIVERSAL_CABLE, MekanismBlocks.ULTIMATE_UNIVERSAL_CABLE);
+    }
+
+    @SubscribeEvent
+    public static void registerClientExtensions(RegisterClientExtensionsEvent event) {
+        event.registerItem(new MekCustomArmorRenderProperties(FreeRunnerArmor.ARMORED_FREE_RUNNERS), MekanismItems.ARMORED_FREE_RUNNERS);
+        event.registerItem(new MekCustomArmorRenderProperties(FreeRunnerArmor.FREE_RUNNERS), MekanismItems.FREE_RUNNERS);
+        event.registerItem(new MekCustomArmorRenderProperties(ChestArmor.JETPACK), MekanismItems.ARMORED_JETPACK, MekanismItems.JETPACK);
+        event.registerItem(new MekCustomArmorRenderProperties(ChestArmor.SCUBA_TANK), MekanismItems.SCUBA_TANK);
+
+        event.registerItem(MekaSuitArmor.HELMET, MekanismItems.MEKASUIT_HELMET);
+        event.registerItem(MekaSuitArmor.BODYARMOR, MekanismItems.MEKASUIT_BODYARMOR);
+        event.registerItem(MekaSuitArmor.PANTS, MekanismItems.MEKASUIT_PANTS);
+        event.registerItem(MekaSuitArmor.BOOTS, MekanismItems.MEKASUIT_BOOTS);
+
+        event.registerBlock(RenderPropertiesProvider.boundingParticles(), MekanismBlocks.BOUNDING_BLOCK);
+        ClientRegistrationUtil.registerBlockExtensions(event, MekanismBlocks.BLOCKS);
+        ClientRegistrationUtil.registerFluidExtensions(event, MekanismFluids.FLUIDS);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SubscribeEvent
+    public static void addLayers(EntityRenderersEvent.AddLayers event) {
+        //Add our own custom armor and elytra layer to the various player renderers
+        for (PlayerModelType skin : event.getSkins()) {
+            AvatarRenderer<AbstractClientPlayer> playerRenderer = event.getPlayerRenderer(skin);
+            if (playerRenderer != null) {
+                addCustomLayers(EntityTypes.PLAYER, playerRenderer, event.getContext());
+            }
+        }
+        //Add our own custom armor and elytra layer to everything that has an armor layer
+        //Note: This includes any modded mobs that have vanilla's HumanoidArmorLayer or ElytraLayer added to them
+        for (EntityType<?> entityType : event.getEntityTypes()) {
+            if (event.getRenderer(entityType) instanceof LivingEntityRenderer<?, ?, ?> renderer) {
+                addCustomLayers(entityType, (LivingEntityRenderer) renderer, event.getContext());
+            }
+        }
+    }
+
+    private static <STATE extends HumanoidRenderState, MODEL extends EntityModel<STATE>> void addCustomLayers(EntityType<?> type,
+          LivingEntityRenderer<?, STATE, MODEL> renderer, EntityRendererProvider.Context context) {
+        for (RenderLayer<STATE, MODEL> layerRenderer : renderer.layers) {
+            //Validate against the layer render being null, as it seems like some mods do stupid things and add in null layers
+            //noinspection ConstantValue
+            if (layerRenderer != null) {
+                //Only allow an exact class match, so we don't add to modded entities that only have a modded extended armor or elytra layer
+                Class<?> layerClass = layerRenderer.getClass();
+                if (layerClass == HumanoidArmorLayer.class) {
+                    //Note: We know that the MODEL is actually an instance of HumanoidModel, or there wouldn't be a
+                    //noinspection unchecked,rawtypes
+                    renderer.addLayer(new MekanismArmorLayer(renderer, (HumanoidArmorLayer<?, ?, ?>) layerRenderer, context));
+                    Mekanism.logger.debug("Added Mekanism Armor Layer to entity of type: {}", Util.getRegisteredName(BuiltInRegistries.ENTITY_TYPE, type));
+                    break;
+                }
+            }
+        }
+    }
+}

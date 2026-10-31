@@ -1,0 +1,88 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.item.spirit;
+
+import com.klikli_dev.occultism.registry.OccultismDataComponents;
+import com.klikli_dev.occultism.util.ItemNBTUtil;
+import com.klikli_dev.occultism.util.TextUtil;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.enchantment.Enchantable;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+public class MinerSpiritItem extends Item {
+
+    private final Supplier<Integer> maxMiningTime;
+    private final Supplier<Integer> rollsPerOperation;
+    private final Supplier<Integer> outputMultiplier;
+    private final Supplier<Integer> maxDamage;
+
+    public MinerSpiritItem(Properties properties, Supplier<Integer> maxMiningTime, Supplier<Integer> rollsPerOperation, Supplier<Integer> outputMultiplier, Supplier<Integer> maxDamage) {
+        super(properties.component(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY)
+                .component(DataComponents.ENCHANTABLE, new Enchantable(9)));
+        this.maxMiningTime = maxMiningTime;
+        this.rollsPerOperation = rollsPerOperation;
+        this.outputMultiplier = outputMultiplier;
+        this.maxDamage = maxDamage;
+    }
+
+    @Override
+    public void onCraftedBy(ItemStack stack, Player playerIn) {
+        super.onCraftedBy(stack, playerIn);
+        stack.set(OccultismDataComponents.MAX_MINING_TIME, this.maxMiningTime.get());
+        stack.set(OccultismDataComponents.ROLLS_PER_OPERATION, this.rollsPerOperation.get());
+        stack.set(OccultismDataComponents.MINER_OUTPUT_MULTIPLIER, this.outputMultiplier.get());
+    }
+
+    @Override
+    public void appendHoverText(ItemStack pStack, TooltipContext pContext, TooltipDisplay tooltipDisplay, Consumer<Component> tooltipAdder, TooltipFlag pTooltipFlag) {
+        super.appendHoverText(pStack, pContext, tooltipDisplay, tooltipAdder, pTooltipFlag);
+        tooltipAdder.accept(Component.translatable(this.getDescriptionId() + ".tooltip",
+                TextUtil.formatDemonName(ItemNBTUtil.getBoundSpiritName(pStack))));
+    }
+
+    @Override
+    public int getMaxDamage(ItemStack stack) {
+        return this.maxDamage.get();
+    }
+
+    @Override
+    public int getMaxStackSize(ItemStack stack) {
+        //cannot use verifyTagAfterLoad as config is not available at that time
+        if (!stack.has(OccultismDataComponents.MAX_MINING_TIME))
+            stack.set(OccultismDataComponents.MAX_MINING_TIME, this.maxMiningTime.get());
+        if (!stack.has(OccultismDataComponents.ROLLS_PER_OPERATION))
+            stack.set(OccultismDataComponents.ROLLS_PER_OPERATION, this.rollsPerOperation.get());
+        if (!stack.has(OccultismDataComponents.MINER_OUTPUT_MULTIPLIER))
+            stack.set(OccultismDataComponents.MINER_OUTPUT_MULTIPLIER, this.outputMultiplier.get());
+        return super.getMaxStackSize(stack);
+    }
+}
