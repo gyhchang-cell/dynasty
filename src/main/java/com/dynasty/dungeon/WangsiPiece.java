@@ -67,12 +67,23 @@ public final class WangsiPiece extends DynastyStructurePiece {
     }
     private void sign(WorldGenLevel level,BoundingBox clip,BlockPos p,String a,String b,String c,String d){
         if(!owns(p,clip))return;
-        put(level,clip,p,Blocks.DARK_OAK_WALL_SIGN.defaultBlockState().setValue(net.minecraft.world.level.block.WallSignBlock.FACING,Direction.NORTH));
+        // SOUTH pieces mirror Z-facing states; SOUTH input places a north-facing sign.
+        put(level,clip,p,Blocks.DARK_OAK_WALL_SIGN.defaultBlockState().setValue(net.minecraft.world.level.block.WallSignBlock.FACING,Direction.SOUTH));
         if(level.getBlockEntity(origin.offset(p)) instanceof SignBlockEntity sign){
             SignText text=new SignText();String[] rows={a,b,c,d};
             for(int i=0;i<4;i++)text=text.setMessage(i,Component.literal(rows[i]));
             if(a.equals("阴阳界"))text=text.setColor(net.minecraft.world.item.DyeColor.RED);
-            sign.setText(text,true);sign.setWaxed(true);sign.setChanged();
+            if(sign.hasLevel()){
+                sign.setText(text,true);sign.setWaxed(true);sign.setChanged();
+            }else{
+                // FEATURES generation may expose a ProtoChunk entity before it has a Level.
+                CompoundTag initialized=sign.saveWithoutMetadata();
+                initialized.put("front_text",SignText.DIRECT_CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE,text)
+                    .result().orElseThrow(()->new IllegalStateException("Cannot encode Wangsi sign text")));
+                initialized.putBoolean("is_waxed",true);
+                sign.load(initialized);
+                sign.setChanged();
+            }
         }
     }
     private void loop(WorldGenLevel level,BoundingBox clip,BlockPos p,boolean core){

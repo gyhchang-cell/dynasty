@@ -3,6 +3,7 @@ package com.dynasty.expansion;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.entity.living.*;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -41,14 +42,32 @@ public final class SummonedGuard {
         }
         n.putLong("guardsUntil",now+600);n.putLong("guardGeneration",generation);
     }
-    public static void tick(SecondaryMob mob) {
-        var n=mob.getPersistentData();var owner=mob.level().getPlayerByUUID(n.getUUID("cod4Summoner"));
+    private static Player leaseOwner(SecondaryMob mob) {
+        var n=mob.getPersistentData();
+        if(!mob.isAlive() || mob.isRemoved() || !n.hasUUID("cod4Summoner"))return null;
+        var owner=mob.level().getPlayerByUUID(n.getUUID("cod4Summoner"));
         int minimum=n.contains("cod4MinPieces")?n.getInt("cod4MinPieces"):3;
-        if(owner==null || !owner.isAlive() || EquipmentBehaviors.pieces(owner,"draco_king")<minimum || mob.level().getGameTime()>=n.getLong("cod4Expires")
-                ||n.getLong("cod4GuardGeneration")!=EquipmentBehaviors.saved(owner).getLong("guardGeneration")){mob.discard();return;}
-        if(mob.getTarget()==owner || mob.getTarget()!=null && mob.isAlliedTo(mob.getTarget()))mob.setTarget(null);
+        if(owner==null || !owner.isAlive() || owner.isRemoved() || owner.level()!=mob.level()
+                || EquipmentBehaviors.pieces(owner,"draco_king")<minimum || mob.level().getGameTime()>=n.getLong("cod4Expires")
+                ||n.getLong("cod4GuardGeneration")!=EquipmentBehaviors.saved(owner).getLong("guardGeneration"))return null;
+        return owner;
+    }
+    /** Lease permission is rechecked at selection and before any melee side effects. */
+    static boolean canAttack(SecondaryMob mob,LivingEntity target) {
+        var owner=leaseOwner(mob);
+        return owner!=null && target instanceof Enemy && target!=mob && target!=owner
+                && target.isAlive() && !target.isRemoved() && target.level()==mob.level()
+                && !mob.isAlliedTo(target) && !target.isAlliedTo(mob)
+                && !owner.isAlliedTo(target) && !target.isAlliedTo(owner);
+    }
+    public static void tick(SecondaryMob mob) {
+        var owner=leaseOwner(mob);
+        if(owner==null){mob.setTarget(null);mob.getNavigation().stop();mob.discard();return;}
+        if(mob.getTarget()!=null && !mob.canAttack(mob.getTarget())){
+            mob.setTarget(null);mob.getNavigation().stop();
+        }
         if(mob.tickCount%20==0) {
-            var targets=mob.level().getEntitiesOfClass(LivingEntity.class,mob.getBoundingBox().inflate(8),e->e instanceof Enemy && e!=mob && !e.isAlliedTo(owner) && !mob.isAlliedTo(e));
+            var targets=mob.level().getEntitiesOfClass(LivingEntity.class,mob.getBoundingBox().inflate(8),mob::canAttack);
             mob.setTarget(targets.isEmpty()?null:targets.get(0));
             if(mob.getTarget()==null)mob.getNavigation().moveTo(owner,1.1);
         }
