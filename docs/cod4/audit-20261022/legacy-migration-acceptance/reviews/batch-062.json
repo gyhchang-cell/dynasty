@@ -1,0 +1,41 @@
+[
+  {
+    "candidate_id": "170bb646b3d771b6f053",
+    "status": "accepted",
+    "family": "twilight-boss-earned-loot-buffer-through-death-removal",
+    "trigger": "IBossLootBuffer full interface + BaseTFBoss whole class + EnforcedHomePoint whole",
+    "input": "earned boss drops in27slots during death animation; separate home GlobalPos used for structure completion",
+    "output": "death fills physical loot buffer and serializes it; read resumes owned stacks; final KILLED removal deposits chest or searches upward/falls back world drops",
+    "preservation": "Read complete death/removal/animation and all buffer read/write/fill/deposit/tryDeposit. Loot ownership persists while dying instead of rerolling imagined inventory. Old Home double-list migrated to TF GlobalPos; same parent support not second count. All boss subclasses share family, not per boss.",
+    "application_limit": "saveDropsIntoBoss rolls table twice: one array for overflow, fill independently rerolls -> overflow not necessarily same awarded set. tryDeposit may overwrite existing matching chest slots and copies no durable emptied receipt; no atomic world/entity save. Reader list not cleared explicitly on reused owner, modern ContainerHelper semantics boundary. Legacy Home wins over modern HomePos and list length not checked; may choose stale home. No runtime reproduction.",
+    "supporting_candidates": [
+      "b1828a7bd194935c7534"
+    ]
+  },
+  {
+    "candidate_id": "3e360529d304ec30a0eb",
+    "status": "accepted",
+    "family": "twilight-mason-jar-owned-single-stack-block-item-roundtrip",
+    "trigger": "MasonJarBlockEntity full class and MasonJarBlock interaction/drop consumers",
+    "input": "one physical full ItemStack plus lid/rotation; world handler value vs item CONTAINER component",
+    "output": "save/load owned handler; collect implicit components copies full stack, apply copyOne restores, discard serialized value field avoids redundant block payload",
+    "preservation": "Read complete local handler plus actual insert/extract transactions and implicit component bridge. Physical container contents distinct from decorative lid. Loot-fill merges same components only; returned gameplay stack not generated from registry ID. Base Jar full pair optional lid fallback supports0.",
+    "application_limit": "Extraction consumer hands pre-extract full-count preview to player rather than countExtracted, so over-capacity malformed contents can over-deliver. Native modern handler serializer and underlying ItemContainerContents.copyOne not in pinned native1.20 source; no claim full byte-equal runtime. acceptLootTable truncates overflow and ignores different later material; handler setItem raw lacks dirty callback, external callers must notify. No all-skill/world claim.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "e42fbdec9cdbbf329b6e",
+    "status": "duplicate",
+    "reason": "Full lid pair uses registry item or oak fallback; parent cosmetic lid support of actual MasonJar item owner, not extra count per lid material."
+  },
+  {
+    "candidate_id": "59ccb4a21666a61a06c2",
+    "status": "rejected",
+    "reason": "Full pair resets45slotcontents then loot table-or-container native delegate and optional profile; basic chest handler wrapper without separately traced owner-consumer recovery. No count for45slots."
+  },
+  {
+    "candidate_id": "826868365759bb792255",
+    "status": "pending",
+    "reason": "Read full pinned shelf block/entity + BookshelfSpawner and actual registration: spawn success before book decrement; removal return unchecked, state occupancy separate, timer/weighted envelope restore. Exact modern native physical bookshelf parent/engine still unread; existing Forge1.20.1 c5b55ea5a06d44a302fb is comparison only, cannot bridge ValueInput version. Pending0, see coordinator-bookshelf-spawn-custody-boundary-20261031.json."
+  }
+]

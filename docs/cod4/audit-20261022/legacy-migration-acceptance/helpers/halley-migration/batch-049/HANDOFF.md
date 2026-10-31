@@ -1,0 +1,15 @@
+# Halley batch-049 → Kepler（依赖补证，新增建议0）
+
+补充047，records为空，support_records含一条完整支持链。credit0、accepted=false，不进入主账新信用。
+
+Ladysnake/PlayerAbilityLib commit `49d6bf142a8680b73f0d2014c88169ad9a475c94`，tree `5662c8e53a298fe29d184c98a74c3349de754c21`。真实commit/tree/blob对象及源码SHA256见tools对应目录；完整方法及字段lambda行范围、全文和摘录/归一hash见batch-049.json。文档核对0解析/哈希错误。方法数只描述证据规模。
+
+AbilitySource.grantTo/revokeFrom直接调用对应tracker.addSource/removeSource。SimpleAbilityTracker.load逐个注册表lookup来源并addSource，不先clear现有集合；未知来源仅warn，不保留原样。来源registerSource以Identifier驻留同一实例，显式冲突priority抛错；来源不能因NBT中出现而自动创建。addSource即使enable callback拒绝仍保留来源，只有集合首次非空时尝试enable；refresh再按各来源callback求shouldBeEnabled。removeSource只移除指定来源，其他模组来源不清空，但最后来源移除立即updateState(false)/sync。VanillaAbilityTracker把状态写到真实PlayerAbilities，并按gamemode融合；ALLOW_FLYING setter会flying &= allowFlying，因此生存玩家失去最后飞行来源可同时停止飞行。PAL服务端mixin原生writer输出各tracker，reader未知ability只warn；copyAbilitiesAfterRespawn仅alive分支写旧/读新，不能称PAL自身无条件死亡复制。refreshAll排除易变FLYING，并可合并一次原生sendAbilitiesUpdate；Apoli自己的CCA power重建和后续tick授权是另外生命周期，不能误认为与旧source撤销原子完成。
+
+适用：为047旧来源迁移提供完整依赖证据：以source身份精确撤销，永久资格与派生飞行状态分开，刷新应可重入；若需要无缝切换须明确解决先撤销后授权的间隔及未知来源隔离，不直接照搬。
+
+限制：固定tag1.9.0与Apoli声明版本对应，但没有发布jar构建重现、mixin执行顺序或游戏验证。原生gamemode和其他mod callback可改变实际结果，不能保证飞行连续。通用PAL不作为独立玩法迁移候选。PalInternals.loadConfig完整方法仅作上下文，没有运行。
+
+重复风险：严格为047 PlayerAbilityPower候选的外部支持，PAL NBT/注册/Clone/refresh均不得再各计信用；与046共享CCA链也不能包装为新候选。
+
+仅静态源码/证据文档；未执行上游、编译、测试、游戏、GUI；不碰主账、生产、待办、原存档。十小时实际工作量尚未宣称完成，继续独立来源研究。

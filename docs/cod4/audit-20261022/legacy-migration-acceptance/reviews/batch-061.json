@@ -1,0 +1,61 @@
+[
+  {
+    "candidate_id": "15826cb0fa9f459bea96",
+    "status": "accepted",
+    "family": "cyclic-fluid-generator-consumed-fuel-budget-not-saved",
+    "trigger": "TileGeneratorFluid pair/tick/tryConsumeFuel/findMatchingRecipe/indexFluidsFromRecipes",
+    "input": "remaining physical liquid and generated energy; consumed fuel amount represented by in-memory burnTime/currentRecipe",
+    "output": "saves remaining liquid/energy only; on load burnTime0/currentRecipe null, starts a new drain rather than restoring prior paid fuel entitlement",
+    "preservation": "Read full pair and complete production chain. Actual findMatchingRecipe drains recipe.getAmount immediately and converts to future burn ticks, but own burnTime/burnTimeMax/currentRecipe absent in writer. Distinct owned liquid fuel deferred-credit loss from item fuel; negative implementation study not safe recovery example.",
+    "application_limit": "Base timer different field cannot recover own burnTime. If earlier fuel consumed fully, no residual liquid matches; work credit lost on unload by static dataflow. Raw fluid amount execute not verified; not actual runtime reproduction.",
+    "supporting_candidates": [],
+    "structural_collision_review": {
+      "compared_candidate": "96b8d03349de210809f6",
+      "distinct_gameplay_owner_reason": "Reader shares fluid+inventory+energy shape, but full liquid fuel generator consumer drains liquid upfront for future generated energy, omitting paid burn credit. Disenchanter consumes XP fluid per tick for enchantment/book split. Different owned materials, conversion direction and persistent debt; helper serializers count0.",
+      "reviewed_consumers": [
+        "TileGeneratorFluid.tick",
+        "TileGeneratorFluid.findMatchingRecipe",
+        "TileGeneratorFluid.tryConsumeFuel",
+        "TileDisenchant.tick (batch051)"
+      ]
+    }
+  },
+  {
+    "candidate_id": "c74d188775be2a9ac808",
+    "status": "accepted",
+    "family": "cyclic-food-and-solid-fuel-consumed-budget-serialization-omission",
+    "trigger": "TileGeneratorFuel and TileGeneratorFood complete pair/tick/tryConsumeFuel",
+    "input": "paid consumed solid fuel/food converted into burnTime; energy and remaining input physical",
+    "output": "disk stores only inventory/energy, omits both burn counters; loaded object loses deferred production despite original item already consumed",
+    "preservation": "Read both whole named methods. Fuel special last-item crafting remainder retained in input, food nutrition+saturation determines ticks. Same debit→remainingticks→energy architecture grouped1 instead of changed resource/species count; both concrete loss cases retained.",
+    "application_limit": "No game repro; flow/export helper not deeply traced. Missing burnTime defaults initialized0, not base timer. Food zero computed budget can consume1 for no energy; fuel malformed negative irrelevant getBurnTime>0 guard. No compensatory give-item suggested.",
+    "supporting_candidates": [],
+    "structural_collision_review": {
+      "compared_candidate": "48737799af1fc1e458e4",
+      "distinct_gameplay_owner_reason": "Identical energy+inventory reader to AutoAnvil, but full consumer is paid fuel burned upfront into deferred generation entitlement, then own burnTime omitted from writer. Actual physical paid resource owner/negative persistence loss differs from repairing item and moving it after paid work. Food near-clone grouped0, base handlers0.",
+      "reviewed_consumers": [
+        "TileGeneratorFuel.tick",
+        "TileGeneratorFuel.tryConsumeFuel",
+        "TileGeneratorFood.tick",
+        "TileGeneratorFood.tryConsumeFuel",
+        "TileAutoAnvil.tick (batch051)"
+      ]
+    }
+  },
+  {
+    "candidate_id": "301d1e02223640d58f3d",
+    "status": "accepted",
+    "family": "cyclic-item-recipe-generator-independent-paid-rate-and-duration-receipt",
+    "trigger": "TileGeneratorDrops pair/tick/findMatchingRecipe/tryConsumeFuel",
+    "input": "paid recipe item converted to saved burnTime/burnTimeMax/burnPerTick, energy and remaining inventory",
+    "output": "reader restores duration and rate so production resumes even if currentRecipe transient null and original input gone; new recipe only found at remaining duration<=0",
+    "preservation": "Read full pair and actual tick/payment consumers. Contrast solid/food generator omission: concrete independent receipt stores rate+time needed by consumer, not recipe-object dependency. One game owner with explicit payload not just serializer wrapper.",
+    "application_limit": "Near-full energy buffer accepts positive partial amount then decrements full tick, so some paid energy credit lost by design/code path. Numeric fields unbounded/raw; missing burnPerTick0 with saved positive burnTime stops progress. Source fixed only, no game test.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "3ba4d0c48a738a071270",
+    "status": "duplicate",
+    "reason": "Full pair/tick/food debit read; same unpaid future energy budget omission family as solid fuel, not extra credit for changed nutrition/getBurnTime calculation. Concrete type/remainder differences recorded in accepted family."
+  }
+]

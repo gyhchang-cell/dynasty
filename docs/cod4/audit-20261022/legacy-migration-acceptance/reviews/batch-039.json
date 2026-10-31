@@ -1,0 +1,57 @@
+[
+  {
+    "candidate_id": "6aa4c1e09157de9ead2f",
+    "status": "accepted",
+    "family": "native-player-inventory-compartment-slot-restore",
+    "trigger": "Inventory.load/save plus replaceWith/dropAll",
+    "input": "ItemStack compounds with unsigned byte Slot namespaces main0..35/armor100..103/offhand150",
+    "output": "clears existing compartments, native-parses full stacks, places only nonempty valid slot payloads",
+    "preservation": "Read full load/save/replaceWith/dropAll. These are actual player owned item compartments, not generic NBT parser. Remap must occur before ItemStack.of discards unknown ID; same inventory three compartments count1. replaceWith transfers references/current selected slot, not a deep archive.",
+    "application_limit": "Duplicate saved slot entries overwrite prior row; invalid slot silently lost, empty unknown ID skipped. No item count clamp here. dropAll clears after unchecked player.drop. Existing keepInventory/clone behavior not changed by future root whitelist.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "0f7accb8420e38b2f8e2",
+    "status": "accepted",
+    "family": "native-beehive-serialized-inhabitant-resource-release-receipt",
+    "trigger": "BeehiveBlockEntity load/save/writeBees/BeeData/releaseOccupant/tickOccupants",
+    "input": "captured entity compound, ticks/minOccupation, optional flower position",
+    "output": "clears stored list; retains entity biological state but strips explicit temporary movement/UUID fields; only removes stored record when addFreshEntity succeeds",
+    "preservation": "Full reader/writer/helper/constructor and complete release/tick consumer read. Release works on copied compound and rebuilds hive position; nectar delivery changes honey and bee age/cooldowns before world spawn. Whole captured inhabitant chain1, no per bee/species credit.",
+    "application_limit": "Honey block may be incremented before addFreshEntity failure while stored bee remains; retry could replay honey, so successful entity receipt alone not full transaction atomicity. No MAX_OCCUPANTS load bound; constructor strips passed compound in place. Transient exclusion policy is bee-specific, not wholesale player NBT copy.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "279d89476135451258a2",
+    "status": "accepted",
+    "family": "native-falling-block-payload-reconstruction-and-old-defaults",
+    "trigger": "FallingBlockEntity read/write then complete tick landing consumer",
+    "input": "blockState, typed TileEntityData, old missing drop/damage flags and elapsed Time",
+    "output": "missing DropItem retains constructor true; absent HurtEntities uses anvil compatibility; invalid air state substitutes sand",
+    "preservation": "Read full persistence pair and tick. Successful placement merges copies of saved block payload into current blockentity default tag then loads and marks dirty, rather than dropping full NBT stack. Actual moving owned block/tile inventory recovery chain.",
+    "application_limit": "On failed placement/fall timeout spawnAtLocation(block) only, tile payload not attached. Landing discards entity before blockentity.load, which catches errors after placement; no rollback. blockData load is raw reference until landing copies. Substitute sand loses unknown block identity, not acceptable missing-ID preservation model.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "d480fb045a964456bc75",
+    "status": "accepted",
+    "family": "native-thrown-trident-physical-stack-and-loyalty-return-recovery",
+    "trigger": "ThrownTrident read/write/tick/tryPickup/getPickupItem",
+    "input": "full physical Trident ItemStack, DealtDamage and superclass projectile identity",
+    "output": "stored item restored before deriving loyalty; pickup returns copy of original durability/enchantment/tag payload",
+    "preservation": "Full pair and consumers read. Owned loyalty noPhysics return can add recovered original stack to owner inventory; invalid return owner drop uses getPickupItem. DealtDamage preserves already performed attack state separate from remaining weapon payload. Distinct thrown equipment owner, not generic arrow ownership boolean fix.",
+    "application_limit": "Absent Trident leaves new vanilla default stack, invalid current tag can become EMPTY. Owner superclass lifecycle not fully studied in this batch. Invalid-owner drop return ignored before discard; no claim all void/death/drop paths lossless.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "b35db56f4e42c890c7f9",
+    "status": "accepted",
+    "family": "native-mooshroom-paid-flower-next-stew-effect-identity-fallback",
+    "trigger": "MushroomCow read/write and full mobInteract; ForgeHooks effect helpers",
+    "input": "paid flower-derived EffectId+forge:effect_id and EffectDuration, cow variant",
+    "output": "numeric effect fallback overridden by namespaced Forge ID when usable; next bowl consumes stored effect exactly by clearing field",
+    "preservation": "Full pair, full payment/payout method and effect helper bodies read. Flower shrunk only when no effect already stored; next suspicious stew gets effect/duration then clears receipt. This is a paid deferred output, distinct from entity-active buff timer. Namespaced registry encoding supports numeric ID movement.",
+    "application_limit": "Reader gates Forge override on presence numeric EffectId, so namespaced-only record ignored. Missing fields on reused cow leave stale effect/duration. Registry key bad/unresolved fallback behavior limited to helper source; no native old-save test. All effect types one chain.",
+    "supporting_candidates": []
+  }
+]

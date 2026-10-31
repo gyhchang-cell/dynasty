@@ -1,0 +1,50 @@
+[
+  {
+    "candidate_id": "bb33ae4192b16330c761",
+    "status": "accepted",
+    "family": "vampirism-bat-cage-owned-entity-filtered-payload-and-placement",
+    "trigger": "BatCageBlockEntity full class plus full BatCageItem/Block",
+    "input": "captured bat entity data, deliberately omitted UUID/position/motion/leash/runtime metadata",
+    "output": "optional typed CompoundTag disk restore; block drop to HELD_ENTITY component and placement copies payload; release creates mob then clears held receipt",
+    "preservation": "Read full capture/save/sanitize/release/block-drop/place. Item capture gates successful entity.save before discarding; filter is explicit transient identity/physics blacklist and retains other entity data, not safe for full player Clone. Read returns null on bad/missing payload. Single capture chain across item and block0 support.",
+    "application_limit": "BlockEntity.setEntity discards entity even serializeEntity null (item capture has safer gate). Release ignores addFreshEntityWithPassengers outcome and clears receipt for survival, so failed spawn can lose owned bat. Creative intentionally retains receipt. Component codec registration not separately reviewed; modern API not copied to Forge1.20.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "82462121ec7e051a48ca",
+    "status": "accepted",
+    "family": "vampirism-hunter-crossbow-paid-magazine-component-retention",
+    "trigger": "HunterCrossbow load/draw/useAmmo/performShooting/full ResourceHandler with QuarrelPouchContents full",
+    "input": "paid ammo ItemStacks and prior loaded magazine, selected ammo, separate pouch owned count",
+    "output": "append actual paid draw to persisted CHARGED_PROJECTILES component rather than resetting magazine; handler reads component copies and transactionally exchanges updated owner",
+    "preservation": "Read full load/draw, full useAmmo, load source selection, shoot+getShootingProjectiles, complete transfer handler and pouch record/codec/mutable. Pouch removes one from own list then serializes reduced count; crossbow splits one resulting stack; components retained in stack copies. One magazine owner, helper/pouch bridge not extra count.",
+    "application_limit": "Native modern CHARGED_PROJECTILES disk codec source not available in pinned1.20 native source; explicitly only mod persistent-component usage + read consumer proven, not native serializer end-to-end QA. getShootingProjectiles clears paid ammo before unchecked addFreshEntity; exceptions/spawn failure non-atomic. Pouch disk codec validates aggregate<=256 but stream codec omits that gate; not player progression.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "f8f363936cad283702a7",
+    "status": "accepted",
+    "family": "vampirism-soul-orb-unclaimed-material-receipt-and-expiration",
+    "trigger": "SoulOrb full pair/tick/playerTouch/getSoulItemStack/createSoulItemStack",
+    "input": "unclaimed soul variant and age; cached physical reward stack",
+    "output": "load resets stale cache then lazily derives correct material, preserves expiration age; only discard receipt after hunter inventory.add true",
+    "preservation": "Read all pair/consumer methods and variant enum. This actual unclaimed earned-material owner has hunter eligibility, delivery success gate, retained age distinct from generic entity sync/accessors. Not same paid fractional XP upgrade owner in Relics.",
+    "application_limit": "Invalid present variant string valueOf throws; missing maps NONE but createSoulItemStack returns VAMPIRE for both NONE/VAMPIRE, so malformed/missing variant may award material. delayBeforePickup not serialized resets0 on loaded constructor. Partial native inventory.add mutation semantics not re-proven; no atomic save claim.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "4dd779044337d5e5b85b",
+    "status": "rejected",
+    "reason": "Full reader/writer only forwards ControllableFluidTank codec; no distinct blood-container transfer/compatibility consumer researched. Generic wrapper not count."
+  },
+  {
+    "candidate_id": "d6c0cac7b4872d58b47d",
+    "status": "rejected",
+    "reason": "Full reader/writer restores coffin dye and lid animation, no owned progress/legacy item recovery. Missing dye chooses BLACK unlike initialized RED; cosmetic excluded."
+  },
+  {
+    "candidate_id": "4faf775115ac9f42a95d",
+    "status": "duplicate",
+    "reason": "Full item codec pair and onHit read. Typed payload or discard then delegates item impact, generic thrown-stack restore already represented by native arrow/trident/Tcon thrown tool; no concrete separate paid consumer traced."
+  }
+]

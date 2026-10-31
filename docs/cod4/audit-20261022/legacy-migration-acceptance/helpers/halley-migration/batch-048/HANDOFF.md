@@ -1,0 +1,15 @@
+# Halley batch-048 → Kepler（依赖补证，新增建议0）
+
+补充046/047，records为空，support_records含一条完整支持链。credit0、accepted=false，不进入主账新信用。
+
+Ladysnake/Cardinal-Components-API commit `56dbc9c01b98c67c27f981dff60b98a371646845`，tree `4c0514fbfc2511634fdf07f80aacf6bb9d48d7c2`。真实commit/tree/blob对象及源码SHA256见tools对应目录；完整方法及字段lambda行范围、全文和摘录/归一hash见batch-048.json。文档核对0解析/哈希错误。方法数只描述证据规模。
+
+CHARACTER仅检查sameCharacter，不要求lossless；普通死亡未标记切换角色时与ALWAYS_COPY同样复制。回调取original.switchingCharacter的反值，并在原生copyFrom RETURN执行。INVENTORY检查lossless||keepInventory；默认非PlayerComponent为LOSSLESS_ONLY，PlayerComponent委托自身shouldCopyForRespawn。目标为CopyableComponent时走copyFrom，否则新建NBT执行from.writeToNbt/to.readFromNbt。因此只序列化组件writer中的字段，框架本身不提供永久字段白名单。StaticEntityComponentPlugin.after只登记依赖并交给builder，respawnStrategy登记到策略map。AbstractComponentContainer.fromTag先读旧LIST格式componentId，未知key或当前实体缺组件跳过；当前COMPOUND格式仅对本容器已注册key读取，随后remove已消费key，剩余只传logDeserializationWarnings。logger只是警告。toTag重新建立已注册组件的非空map，未发现把未知component payload保存入组件实例的隔离仓。旧list new Identifier未捕获非法ID异常。
+
+适用：补足046/047的外部Clone边界：永久历史应由具体组件writer明确筛选，不能把CHARACTER名称误当作只保留永久字段。读取未知数据应另留原样payload；不可把日志记录等同于保留。
+
+限制：这是匹配声明版本tag5.3.0的固定源码阅读，未运行mixin/native copyFrom或ASM生成顺序；after依赖如何最终排序不在本批完整审查内。没有断言任意模组都不会额外保留未知字段。不会把通用CCA实现作为新的Minecraft玩法迁移信用。
+
+重复风险：046/047已计候选的同链依赖；与038及其他CCA支持家族也重合。所有方法/策略/旧list分支均支持证据，不新增候选，不按策略拆条。
+
+仅静态源码/证据文档；未执行上游、编译、测试、游戏、GUI；不碰主账、生产、待办、原存档。十小时实际工作量尚未宣称完成，继续独立来源研究。

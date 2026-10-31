@@ -1,0 +1,58 @@
+[
+  {
+    "candidate_id": "eaea9618ba24d8e8fece",
+    "status": "accepted",
+    "family": "embers-activator-owned-fuel-work-and-separate-top-energy",
+    "trigger": "ActivatorBottom full pair/update + ActivatorTop pair + DefaultEmberCapability whole",
+    "input": "physical ember fuel stack and progress; separate top saved energy/capacity",
+    "output": "missing progress preserves constructor-1; world load restores fuel before progress; output top capacity checked before fuel extraction",
+    "preservation": "Read full work and source debit/destination credit plus split top ownership. Progress reset before capacity check means blocked output loses elapsed work while retaining fuel. Both multiblock pieces together1, native handler/helper0.",
+    "application_limit": "Update mutates both sides except sounds gated, scheduler not whole audited. Upgrade hooks can cancel/modify output; not all upgrade implementations traced. Empty input keeps prior work, input identity not tied to work. Capability read preserves missing defaults but accepts unbounded/nonfinite doubles; no runtime claim.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "08b556dfc40d2ffdca94",
+    "status": "accepted",
+    "family": "embers-boiler-water-and-physical-fuel-owned-work",
+    "trigger": "BoilerBottom whole + BoilerTop pair + DefaultEmberCapability whole",
+    "input": "paid physical fuel plus water, source work progress, heat-derived multiplier, separate top energy",
+    "output": "restores own inventory/work with inherited tank persistence; actual water-consuming work emits energy and debits fuel+25water after output capacity check",
+    "preservation": "Read complete boiler class and top paired fields; unlike activator this owner requires stored water and world heat multiplier and preserves independent resource stock. Do not infer lost tank just because explicit pair lacks tank: super is TileFluidHandler.",
+    "application_limit": "TileFluidHandler native1.12 source not supplied, inherited tank byte-level behavior unverified. Capacity failure resets work first; loaded progress raw, successful water drain amount unchecked. No client mutation guard around production, world/upgrade internals boundary. Same top energy helper0.",
+    "supporting_candidates": [],
+    "structural_collision_review": {
+      "compared_candidate": "eaea9618ba24d8e8fece",
+      "distinct_gameplay_owner_reason": "Identical inventory+progress reader but full Boiler owner includes inherited water stock and heat multiplier; actual consumer requires and drains25water with fuel then fills independent BoilerTop energy. Activator only converts fuel into ActivatorTop energy. Not key-only changed inventory.",
+      "reviewed_consumers": [
+        "TileEntityBoilerBottom.update",
+        "TileEntityBoilerBottom.activate",
+        "TileEntityBoilerBottom.getMultiplier",
+        "TileEntityActivatorBottom.update"
+      ]
+    }
+  },
+  {
+    "candidate_id": "eb3f9ec57e90b8aafc60",
+    "status": "accepted",
+    "family": "embers-paid-coefficient-fuel-duration-and-multiplier-restoration",
+    "trigger": "Catalyzer and Combustor full pairs/update + Reactor full update coefficient consumers",
+    "input": "consumed coefficient fuel converted into remaining progress and multiplier",
+    "output": "persisted paid duration/multiplier continues decrement without consuming replacement fuel until duration0; reactor computes energy production from live restored multipliers",
+    "preservation": "Read both implementations and actual reactor coefficient consumer. Combustor identical control shape/API role clone grouped1, not two cases; distinct fuel-paid effect duration from activator unconsumed source work. Timer is paid entitlement, not blanket temporary-state discard.",
+    "application_limit": "Missing multiplier resets0 even if saved positive progress; negative progress never decreases to0/newfuel, raw nonfinite multiplier accepted. Duration endpoint expiry clears effect before optional replacement fuel same tick; no absolute deadline/offline decay. No coefficient provider implementations or runtime tested.",
+    "supporting_candidates": [
+      "a651511887341129b739"
+    ]
+  },
+  {
+    "candidate_id": "b6f281ef51918a1770a1",
+    "status": "accepted",
+    "family": "embers-reactor-balanced-paid-fuel-progress-and-owned-energy",
+    "trigger": "Reactor full pair/update + DefaultEmberCapability whole",
+    "input": "physical fuel, accumulated work, generated energy/capacity; adjacent paid catalyzer/combustor multipliers recomputed",
+    "output": "load restores energy and fuel/work, reconstructs neighboring coefficient state rather than saving duplicate copies; conversion gated by balanced ratio and output capacity",
+    "preservation": "Read complete actual update including client rendering branch, writer/read and energy helper. Own production balance combines separate paid effect owner, one reactor object not each adjacent modifier. Distinct output owner from split activator/boiler and coefficient receipts.",
+    "application_limit": "Balance fail lets progress keep increasing beyond work threshold (raw int overflow possible), capacity fail resets progress first. Missing progress retains-1; raw energy capacity overwrites constructor128000 if present. Upgrade callbacks/native handler behavior not whole audited; mutable cross-owner credit and input debit not atomic on disk.",
+    "supporting_candidates": []
+  }
+]

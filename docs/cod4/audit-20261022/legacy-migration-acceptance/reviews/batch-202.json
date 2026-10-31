@@ -1,0 +1,59 @@
+[
+  {
+    "candidate_id": "900b2270754ae3ca822d",
+    "status": "accepted",
+    "family": "twilight-goblin-joint-earned-armor-break-and-shield-loss-retention",
+    "trigger": "全文Lower/UpperGoblinKnight两类，真实定向受击→破甲/盾破→保存→load后重建护甲属性",
+    "input": "hasArmor/hasShield布尔是已打掉装备不可逆状态；shieldHits、shieldDisabledTicks、heavySpearTimer是未保存相对战斗状态",
+    "output": "reader经setter更新bitmask并重建/去除具名transient ARMOR_MODIFIER；hasModifier防重复叠加，永久破甲状态和临时攻击力增益分开",
+    "preservation": "上下骑士联合防具损失族1；Lower背面/正面角度分支可调用上半盾承伤，Upper三次高额伤害盾破，斧只暂时disable100tick。实际Reader缺省false覆盖constructor true，不把没有tag当仍满装；native乘坐关系不是本轮独立信用。",
+    "application_limit": "shieldHits不落盘，未完成的三次破盾进度重启归零；盾disable和重刺倒计时不保留是有明确语义的瞬态边界，不应为修功名泛拷。Upper服务端非passenger即破盾，故持久hasShield=true也不保证脱离坐骑保盾。完整两类已读，HeavySpearAttackGoal/原生骑乘保存未展开，未运行此NeoForge版本或当前Forge。",
+    "supporting_candidates": [
+      "133359a7e2ce0d20eaae",
+      "e4ffb8551c3f3aa7017e",
+      "790953e57e2f8d773eeb",
+      "97f5225738dfc7775666",
+      "1ee4820c16bb0a66d7da",
+      "ce4c7f954496cef95442",
+      "5be90cbeae80c0c28243",
+      "77fd52a1aa6e41e3f17b",
+      "5829820d80362d82fb17",
+      "f848f79f9113347c01ac",
+      "cb20a5fb161be9c05cb9",
+      "776f06281fc0558d6e72",
+      "7d1ee39b9b00637b5060",
+      "bf6cc62b76548a19ef7c"
+    ]
+  },
+  {
+    "candidate_id": "b47aab05d9848102fa0a",
+    "status": "accepted",
+    "family": "twilight-hydra-earned-head-mask-checkpoint-and-incomplete-regrowth-restoration",
+    "trigger": "完整Hydra reader/writer/activateHeadsOnLoad/customServerAiStep/attackEntityFromPart/aiStep；完整HeadContainer constructor/tick/advanceHeadState/advanceRespawnCounter及相关状态消费",
+    "input": "NumHeads Byte是7位位置mask而非数量；HeadNames字符串list。已打断头、额外长头和各头累计受伤/重生计时形成不同持久/瞬态边界",
+    "output": "writer记currentState != DEAD位图；load仅把置位头设下一状态IDLE并endCurrentAction，后续tick推进；头名称恢复，实际已受攻击累计>120触发DYING并给自己/随机死头140tick再生",
+    "preservation": "不同于IceFire 7007dbdc18463f16314e：TF为7个固定多部件状态机、按位掩码，IceFire为不同增长/切断模型，不是fork或同代码换键。独立实际boss受击检查点1，通用BaseTFBoss死亡loot已计170bb646b3d771b6f053不再加。此例不声称完整断头恢复成功：constructor前三头默认IDLE，activate只设1不清0，已断默认头可重新激活。",
+    "application_limit": "damageTaken/respawnCounter/ticksProgress未保存，DYING在isActive为true，死亡/再生中途存档会改为IDLE，待生死头可能失去再生倒计时；NumHeads缺省0也不会禁用constructor前三头。HeadNames长度无MAX_HEADS上限会越界，短列表只改部分但entityData整体改短。只读相关完整方法，未展开所有attack/animation几何表、原生实体hook、运行未验证；只提取durable whitelist/派生状态重建原则，不照搬全部战斗状态。",
+    "supporting_candidates": [
+      "809c11e5c9f0eceb00e2",
+      "2e58a2d60c44430e1fdd",
+      "697ab7ba6d78cf6948d9",
+      "866b77910f054f4e1b71",
+      "c25c8a258b6d9f049a8f",
+      "b6461fee3eb172239096",
+      "8150c43fb443ed7322f7",
+      "1b3a401cada1d36d54fd",
+      "a637ac57449b11d7009b",
+      "22ed97654ed783b0d6ae",
+      "84f03fd4c9ba4cb82aa5",
+      "dea3800fb55212656193",
+      "adefd15466fee932d9de"
+    ]
+  },
+  {
+    "candidate_id": "f848f79f9113347c01ac",
+    "status": "duplicate",
+    "duplicate_of": "900b2270754ae3ca822d",
+    "reason": "两类全文实际交互均读，同一双体骑士破甲/盾破恢复族，Lower hasArmor相同保存架构支持，不因另一半实体/17与20属性值分计。"
+  }
+]

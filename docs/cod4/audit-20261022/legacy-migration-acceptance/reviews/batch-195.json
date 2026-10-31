@@ -1,0 +1,32 @@
+[
+  {
+    "candidate_id": "48ab5f5df566f31fe3c8",
+    "status": "accepted",
+    "family": "goety-witch-robe-world-numbered-portable-brewing-inventory-recovery",
+    "trigger": "完整WitchRobeInventory/ModSaveInventory/RobeItem/开菜单与提取网络消费者；实际server start/stop重置静态world owner入口",
+    "input": "世界GoetySavedData.WITCH_ROBE_BREW列表；物品同名int引用；5槽原ItemStack、BrewTime short/Fuel byte、编号/提速/分数rest",
+    "output": "全局列表读回各库存，最大编号回收再自增；袍子服务器inventoryTick用编号重绑livingEntity并推进酿造；菜单和取药实际消费恢复库存",
+    "preservation": "完整业务所有者1，外层SavedData.read/load及每库存/字段0额外。与玩家Clone/死亡NBT分离的world编号是物品持久句柄。缺项get会新建空库存保留编号，不等于恢复原内容；新建分支没有setLivingEntity，下一次查到才重绑。read不clear列表但正常serverStarting先reset，不能把复用read追加当每次启动重复。物品复制同编号共享库存而非新拥有权。ingredient及lastPotionCount没保存：剩余brewTime读回但ingredient为空，下个非末tick会因当前催化剂不等取消进度，已付fuel不返还。读取short/byte没有范围修正；没有声称完整旧档无损。",
+    "application_limit": "源码注明部分基于Portable-Craft，本库未另计原实现/平台移植。addBottles同对象多槽、addBottlesOrCatalyst复制全count却仅shrink1、extract add/drop后再shrink原引用等静态边界未运行，不宣称复现；不移植静态全服列表给永久玩家字段。",
+    "supporting_candidates": [
+      "bf5ed9aee4247fcdb630",
+      "08fe9f199b54d33658be"
+    ]
+  },
+  {
+    "candidate_id": "d461a9bf1a9c9c11ff4c",
+    "status": "accepted",
+    "family": "goety-mud-golem-owned-farm-stock-reload-to-paid-plant-and-fertilize",
+    "trigger": "完整MudGolem实体与Harvest/Bonemeal真实AI，原生InventoryCarrier读写和SimpleContainer.fromTag/createTag",
+    "input": "独立8槽Inventory列表ItemStack payload；pickup原物品种子库存；手持骨粉展示与runtime工作计时分开",
+    "output": "读回库存用于真实播种扣seed及施肥扣骨粉；目标/导航/工作计时不被当永久进度保存",
+    "preservation": "与墓地傀儡掉落收集/返还及原生shulker搬运不同具体玩法owner；不是仅包装readInventory。读写委托原生通用API本身0信用。缺Inventory键保留原对象库存（fresh为空）；fromTag先clear后ItemStack.of过滤EMPTY再addItem压紧合并，不保存槽位置且忽略溢出返回，非无损任意容量加载。播种先setBlock再shrink未检查setBlock成功；growCrop内部是否已消耗须另外核对，不能凭额外shrink断言精确耗量。runtime导航/计时不会被根永久Clone带走。",
+    "application_limit": "原生codec/存储helper是支持而非额外实现；当前不检查整条Goety死亡库存掉落链，不宣称农作傀儡全部状态/死亡策略已验收。",
+    "supporting_candidates": [],
+    "structural_collision_review": {
+      "compared_candidate": "faead9d43a623669c5dd",
+      "distinct_gameplay_owner_reason": "reader虽同型super+helper，独立实体的8槽种子/肥料库存以拾取和实际作物生产消费；shulker是物品-方块便携储存且无播种/施肥支付消费者，原生通用helper不额外计数。不是同实现换key或容量之差作为依据。",
+      "reviewed_consumers": "MudGolem完整GolemHarvestGoal.tick与GolemBonemealGoal.tick、wantsToPickUp、InventoryCarrier.pickUpItem，已对照shulker已计条目用途。"
+    }
+  }
+]

@@ -1,0 +1,40 @@
+[
+  {
+    "candidate_id": "7c4e4f3c5f0b15d48df7",
+    "status": "duplicate",
+    "reason": "Full Alfheim world load/save + packet pair/commonTick/addItem/resolveRecipes/spawnItem/consumeMana and parent disk bridge read. Paid portal input owner already accepted earlier under world reader; packet timers same chain0 extra. Added observation: all pools checked before debit, invalid incoming items intentionally discarded, spawn result unchecked."
+  },
+  {
+    "candidate_id": "fc96862d8d559d1e5b75",
+    "status": "accepted",
+    "family": "botania-stationary-mana-pool-owned-budget-and-old-policy-defaults",
+    "trigger": "ManaPool full pair/serverTick/receiveMana/initManaCapAndNetwork + whole BotaniaBlockEntity disk bridge",
+    "input": "owned world mana, optional legacy color/cap/policy/keys; temporary animation state separate",
+    "output": "preserves ctor canAccept/canSpare true when absent, mana cap -1 resolved from actual block; old white means uncolored; actual transfer uses min(source,destination space)",
+    "preservation": "Read full actual resource consumer in both directions and clamps on receive, not mere integer storage. Parent readPacketNBT definitely disk reader as well, verified bridge. Stationary pool distinct prior mobile cart budget owner, no credit for common bridge/legacy color alone.",
+    "application_limit": "Reader loads mana raw without cap/clamp; arithmetic current+delta can overflow. Both pool and spreader mistakenly assign outputKey to inputKey, outputKey final empty; current saves may overwrite configured input on reopen. ManaVoid deliberately deletes incoming mana when full. Legacy color application setter internals not deep traced; no full all-recipes claim.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "b2d0fd61caf5399e5d6d",
+    "status": "accepted",
+    "family": "botania-spreader-legacy-uuid-and-inflight-paid-burst-recovery",
+    "trigger": "Spreader full pair/commonTick/tryShootBurst/pingback + parent inventory/disk bridge",
+    "input": "owned mana/lens, legacy uuidMost/uuidLeast or modern UUID, canShootBurst/pingback locator, configured binding policy",
+    "output": "modern typed UUID wins; old halves restore stable source identity, expired pingback searches live burst by shooter UUID then unlocks if absent",
+    "preservation": "Read actual source rebinding and paid shot debit, distinct pool storage: inflight receipt prevents uncontrolled extra shot until live burst match/absence decided. Whole disk bridge and lens inventory reader/writer checked. Same legacy UUID architecture not counted perfield or burst variant.",
+    "application_limit": "Missing uuid retains constructor random, malformed typed modern falls to old halves only if both present; old fields not removed. Debit happens before unchecked entity add, no failed-spawn refund. Wrong output→input assignment same bug as pool, optional mapmaker fields overwrite ctor defaults0. getBurst full simulation/lens implementation not read, so no claim all burst physics/skills or complete cross-save exactly-once.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "17977b5669bccc251689",
+    "status": "accepted",
+    "family": "botania-hourglass-authored-circuit-phase-and-persistent-control",
+    "trigger": "Hourglass full pair/commonTick/onBurstCollision/getTotalTime/createItemHandler/setChanged + whole parent inventory",
+    "input": "real sand stock, saved elapsed phase and move/lock controls, derived visual fractions",
+    "output": "disk parent restores owned material before own phase; tick uses material duration then emits actual scheduled redstone trigger; burst toggles pause or increments dust mode",
+    "preservation": "Read full elapsed/consumer code, not all saved timer fields classified permanent. Inventory listener resets phase on content changes intentionally, same read then own phase load restores original saved phase. One player-authored timer circuit owner, no extra material variants.",
+    "application_limit": "Missing move overwrites ctortrue withfalse, missing phase0. Dust totalTime1 but nonmoving time reaches threshold only via burst; restore high time may trigger immediately. Adjacent callback runs both sides as coded, no complete trigger implementation trace, animation not Dynasty permanent state.",
+    "supporting_candidates": []
+  }
+]
