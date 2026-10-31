@@ -1,0 +1,1067 @@
+package com.momosoftworks.coldsweat.util.math;
+
+import com.google.common.collect.Multimap;
+import com.mojang.datafixers.util.Pair;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3d;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
+import java.util.function.*;
+
+public class CSMath
+{
+    private CSMath() {}
+
+    /**
+     * Runs the given runnable if the given object is not null.
+     */
+    public static <T> void doIfNotNull(T object, Consumer<T> run)
+    {   if (object != null) run.accept(object);
+    }
+
+    /**
+     * Runs the function if the given object is not null, and returns the result. <br>
+     * Otherwise, returns the default value.
+     */
+    public static <T, R> R getIfNotNull(T object, Function<T, R> valueGetter, R defaultValue)
+    {   if (object != null) return valueGetter.apply(object);
+        return defaultValue;
+    }
+
+    public static float toRadians(float input)
+    {   return input * (float) (Math.PI / 180);
+    }
+
+    public static float toRadians(double input)
+    {   return (float) input * (float) (Math.PI / 180);
+    }
+
+    public static float toDegrees(float input)
+    {   return input * (float) (180 / Math.PI);
+    }
+
+    /**
+     * Converts the given Quaternion to a set of pitch-yaw-roll angles.
+     * @return The converted rotation.
+     */
+    public static Vec3 toEulerAngles(Quaternionf quat)
+    {
+        double x = quat.x();
+        double y = quat.y();
+        double z = quat.z();
+        double w = quat.w();
+
+        double sqw = w * w;
+        double sqx = x * x;
+        double sqy = y * y;
+        double sqz = z * z;
+
+        double unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
+        double test = x * y + z * w;
+
+        double heading;
+        double attitude;
+        double bank;
+        if (test > 0.499 * unit)
+        { // singularity at north pole
+            heading = 2 * Math.atan2(x, w);
+            attitude = Math.PI / 2;
+            bank = 0;
+        }
+        else if (test < -0.499 * unit)
+        { // singularity at south pole
+            heading = -2 * Math.atan2(x, w);
+            attitude = -Math.PI / 2;
+            bank = 0;
+        }
+        else
+        {
+            heading = Math.atan2(2 * y * w - 2 * x * z, sqx - sqy - sqz + sqw);
+            attitude = Math.asin(2 * test / unit);
+            bank = Math.atan2(2 * x * w - 2 * y * z, -sqx + sqy - sqz + sqw);
+        }
+
+        return new Vec3(toDegrees((float) bank), toDegrees((float) heading), toDegrees((float) attitude));
+    }
+
+    /**
+     * Converts the given pitch-yaw-roll angles to a quaternion.
+     * @return The converted rotation.
+     */
+    public static Quaternionf toQuaternion(double x, double y, double z)
+    {   return new Quaternionf().rotateXYZ((float) x, (float) y, (float) z);
+    }
+
+    /**
+     * Clamps the given value to be between {@code min} and {@code max}.
+     * @return A value within the given bounds.
+     */
+    public static double clamp(double value, double min, double max)
+    {   if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    /**
+     * Floating-point overload for {@link #clamp(double, double, double)}.
+     */
+    public static float clamp(float value, float min, float max)
+    {   if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    /**
+     * Integer overload for {@link #clamp(double, double, double)}.
+     */
+    public static int clamp(int value, int min, int max)
+    {   if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    /**
+     * An "absolute" floor method that has inverted behavior for negative numbers. <br>
+     * <br>
+     * This is more logical in some cases, when the floor of the number should be the integer farther from 0, rather than the technically larger one. <br>
+     * Ex: {@code Math.ceil(-2.5) = -2}, but {@code CSMath.ceil(-2.5) = -3}
+     * @return The adjusted floor of the given value as an integer.
+     */
+    public static int ceil(double value)
+    {
+        if (value >= 0)
+        {   return (int) Math.ceil(value);
+        }
+        else return (int) Math.floor(value);
+    }
+
+    /**
+     * An "absolute" floor method that has inverted behavior for negative numbers. <br>
+     * <br>
+     * This is more logical in some cases, when the floor of the number should be the integer closer to 0, rather than the technically smaller one. <br>
+     * Ex: {@code Math.floor(-2.5) = -3}, but {@code CSMath.floor(-2.5) = -2}
+     * @return The adjusted floor of the given value as an integer.
+     */
+    public static int floor(double value)
+    {
+        if (value >= 0)
+        {   return (int) Math.floor(value);
+        }
+        else return (int) Math.ceil(value);
+    }
+
+    /**
+     * A generalized min function that works with any set of comparable objects.
+     * @return The smallest value according to the object's {@code compareTo} method.
+     */
+    @SafeVarargs
+    public static <T extends Comparable<T>> T min(T... values)
+    {
+        T min = values[0];
+        for (T value : values)
+        {   if (value.compareTo(min) < 0) min = value;
+        }
+        return min;
+    }
+
+    /**
+     * A generalized max function that works with any set of comparable objects.
+     * @return The largest value according to the object's {@code compareTo} method.
+     */
+    @SafeVarargs
+    public static <T extends Comparable<T>> T max(T... values)
+    {
+        T max = values[0];
+        for (T value : values)
+        {   if (value.compareTo(max) > 0) max = value;
+        }
+        return max;
+    }
+
+    public static double min(double... values)
+    {
+        double min = values[0];
+        for (double value : values)
+        {   if (value < min) min = value;
+        }
+        return min;
+    }
+
+    public static double max(double... values)
+    {
+        double max = values[0];
+        for (double value : values)
+        {   if (value > max) max = value;
+        }
+        return max;
+    }
+
+    /**
+     * Calculates if the given value is between two values (inclusive)
+     */
+    public static boolean betweenInclusive(double value, double min, double max)
+    {
+        if (min > max)
+        {   double temp = min;
+            min = max;
+            max = temp;
+        }
+        return value >= min && value <= max;
+    }
+
+    /**
+     * Calculates if the given value is between two values (exclusive)
+     */
+    public static boolean betweenExclusive(double value, double min, double max)
+    {
+        if (min > max)
+        {   double temp = min;
+            min = max;
+            max = temp;
+        }
+        return value > min && value < max;
+    }
+
+    /**
+     * Returns a number between {@code blendFrom} and {@code blendTo}, proportional to {@code factor} between {@code rangeMin} and {@code rangeMax}.<br>
+     * Example: {@code blend(0, 1, 5, 0, 10)} yields 0.5, because 5 is halfway between 0 and 10, so 0.5 is halfway between 0 and 1.<br>
+     * @param blendFrom The minimum return value.
+     * @param blendTo The maximum return value.
+     * @param factor The input value.
+     * @param rangeMin The minimum of the range of values over which to interpolate.
+     * @param rangeMax The maximum of the range of values over which to interpolate.
+     * @return The interpolated value.
+     */
+    public static double blend(double blendFrom, double blendTo, double factor, double rangeMin, double rangeMax)
+    {
+        if (rangeMin > rangeMax) return blend(blendTo, blendFrom, factor, rangeMax, rangeMin);
+
+        if (factor <= rangeMin) return blendFrom;
+        if (factor >= rangeMax) return blendTo;
+        return (blendTo - blendFrom) / (rangeMax - rangeMin) * (factor - rangeMin) + blendFrom;
+    }
+
+    /**
+     * Floating-point overload for {@link #blend(double, double, double, double, double)}.
+     */
+    public static float blend(float blendFrom, float blendTo, float factor, float rangeMin, float rangeMax)
+    {   return (float) blend((double) blendFrom, blendTo, factor, rangeMin, rangeMax);
+    }
+
+    /**
+     * A blend function with a logarithmic curve (starts fast, then slows down).<br>
+     * @return The interpolated value.
+     */
+    public static double blendLog(double blendFrom, double blendTo, double factor, double rangeMin, double rangeMax, double intensity)
+    {
+        factor = clamp(factor, rangeMin, rangeMax);
+
+        double normalizedFactor = (factor - rangeMin) / (rangeMax - rangeMin);
+        double logFactor = Math.log(intensity * normalizedFactor + 1) / Math.log(intensity + 1);
+
+        return blendFrom + (blendTo - blendFrom) * logFactor;
+    }
+
+    /**
+     * Floating-point overload for {@link #blendLog(double, double, double, double, double, double)}.
+     */
+    public static float blendLog(float blendFrom, float blendTo, float factor, float rangeMin, float rangeMax, double intensity)
+    {   return (float) blendLog((double) blendFrom, blendTo, factor, rangeMin, rangeMax, intensity);
+    }
+
+    public static double blendExp(double blendFrom, double blendTo, double factor, double rangeMin, double rangeMax, double intensity)
+    {
+        factor = clamp(factor, rangeMin, rangeMax);
+
+        double normalizedFactor = (factor - rangeMin) / (rangeMax - rangeMin);
+        double expFactor = (Math.pow(intensity, normalizedFactor) - 1) / (intensity - 1);
+
+        return blendFrom + (blendTo - blendFrom) * expFactor;
+    }
+    public static float blendExp(float blendFrom, float blendTo, float factor, float rangeMin, float rangeMax, double intensity)
+    {   return (float) blendExp((double) blendFrom, blendTo, factor, rangeMin, rangeMax, intensity);
+    }
+    public static double blendExp(double blendFrom, double blendTo, double factor, double rangeMin, double rangeMax)
+    {   return blendExp(blendFrom, blendTo, factor, rangeMin, rangeMax, Math.E);
+    }
+    public static float blendExp(float blendFrom, float blendTo, float factor, float rangeMin, float rangeMax)
+    {   return blendExp(blendFrom, blendTo, factor, rangeMin, rangeMax, Math.E);
+    }
+
+    // Eases in and out, like a combination of blendLog and blendExp
+    public static float blendEase(float blendFrom, float blendTo, float factor, float rangeMin, float rangeMax)
+    {
+        // Ensure factor is within the specified range
+        factor = Math.max(rangeMin, Math.min(factor, rangeMax));
+
+        // Normalize the factor to a 0-1 range
+        float normalizedFactor = (factor - rangeMin) / (rangeMax - rangeMin);
+
+        // Apply ease-in-out curve to the normalized factor
+        float expFactor = (float) (Math.pow(normalizedFactor, 2) / (Math.pow(normalizedFactor, 2) + Math.pow(1 - normalizedFactor, 2)));
+
+        // Perform the blend
+        return blendFrom + (blendTo - blendFrom) * expFactor;
+    }
+
+    /**
+     * Gets the average of two numbers contained within a {@link Pair}.
+     */
+    public static double averagePair(Pair<? extends Number, ? extends Number> pair)
+    {   return (pair.getFirst().doubleValue() + pair.getSecond().doubleValue()) / 2;
+    }
+
+    /**
+     * Adds the values of the given pairs together.
+     * @return A pair containing the sum of all the left values and of all the right values.
+     */
+    @SafeVarargs
+    public static Pair<Double, Double> addPairs(Pair<? extends Number, ? extends Number>... pairs)
+    {
+        double first = 0;
+        double second = 0;
+        for (Pair<? extends Number, ? extends Number> pair : pairs)
+        {   first += pair.getFirst().doubleValue();
+            second += pair.getSecond().doubleValue();
+        }
+        return Pair.of(first, second);
+    }
+
+    /**
+     * Gets the squared distance between two 3D points.
+     * @return The distance, squared.
+     */
+    public static double getDistanceSqr(double x1, double y1, double z1, double x2, double y2, double z2)
+    {
+        double xDistance = Math.abs(x1 - x2);
+        double yDistance = Math.abs(y1 - y2);
+        double zDistance = Math.abs(z1 - z2);
+        return xDistance * xDistance + yDistance * yDistance + zDistance * zDistance;
+    }
+
+    /**
+     * Gets the distance between an entity and a {@link Vec3} 3D point.
+     * @return The distance.
+     */
+    public static double getDistance(Entity entity, Vec3 pos)
+    {   return getDistance(entity, pos.x, pos.y, pos.z);
+    }
+
+    /**
+     * Gets the distance between two 3D points (not squared).
+     * @return The distance.
+     */
+    public static double getDistance(double x1, double y1, double z1, double x2, double y2, double z2)
+    {   return Math.sqrt(getDistanceSqr(x1, y1, z1, x2, y2, z2));
+    }
+
+    /**
+     * Returns the distance between two {@link Vec3} 3D coordinates.
+     * @return The distance.
+     */
+    public static double getDistance(Vec3 pos1, Vec3 pos2)
+    {   return getDistance(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
+    }
+
+    public static double getDistance(Entity entity, double x, double y, double z)
+    {   return getDistance(entity.getX(), entity.getY() + entity.getBbHeight() / 2, entity.getZ(), x, y, z);
+    }
+
+    public static double getDistance(Vec3i pos1, Vec3i pos2)
+    {   return Math.sqrt(pos1.distSqr(pos2));
+    }
+
+    public static double average(Number a, Number b)
+    {   return (a.doubleValue() + b.doubleValue()) / 2;
+    }
+    public static double average(Number... values)
+    {
+        double sum = 0;
+        for (Number value : values)
+        {   sum += value.doubleValue();
+        }
+        return sum / values.length;
+    }
+
+    /**
+     * Takes an average of the two values, with weight<br>
+     * @param val1 The first value.
+     * @param val2 The second value.
+     * @param weight1 The weight of the first value.
+     * @param weight2 The weight of the second value.
+     * @return The weighted average.
+     */
+    public static double weightedAverage(double val1, double val2, double weight1, double weight2)
+    {   return (val1 * weight1 + val2 * weight2) / (weight1 + weight2);
+    }
+
+    /**
+     * Takes an average of all the values in the given list, with weight<br>
+     * <br>
+     * @param values The map of values to average (value, weight).
+     * @return The average of the values in the given array.
+     */
+    public static double weightedAverage(List<? extends Pair<? extends Number, ? extends Number>> values)
+    {
+        double sum = 0;
+        double weightSum = 0;
+        for (Pair<? extends Number, ? extends Number> entry : values)
+        {
+            double weight = entry.getSecond().doubleValue();
+            sum += entry.getFirst().doubleValue() * weight;
+            weightSum += weight;
+        }
+        return sum / Math.max(1, weightSum);
+    }
+
+    public static Vec3 vectorToVec(Vector3d vec)
+    {   return new Vec3(vec.x, vec.y, vec.z);
+    }
+
+    /**
+     * Returns a {@link Direction} from the given vector.
+     * @return The direction.
+     */
+    public static Direction getDirectionFrom(double x, double y, double z)
+    {
+        Direction direction = Direction.NORTH;
+        double f = Float.MIN_VALUE;
+
+        for (Direction direction1 : Direction.values())
+        {
+            double f1 = x * direction1.getStepX() + y * direction1.getStepY() + z * direction1.getStepZ();
+
+            if (f1 > f)
+            {
+                f = f1;
+                direction = direction1;
+            }
+        }
+
+        return direction;
+    }
+
+    public static Direction getDirectionFrom(Vec3 vec3)
+    {   return getDirectionFrom(vec3.x, vec3.y, vec3.z);
+    }
+
+    public static Direction getDirectionFrom(BlockPos from, BlockPos to)
+    {   return getDirectionFrom(to.getX() - from.getX(), to.getY() - from.getY(), to.getZ() - from.getZ());
+    }
+
+    public static <T> void breakableForEach(Collection<T> collection, BiConsumer<T, InterruptibleIterator<T>> consumer)
+    {   new InterruptibleIterator<T>(collection).run(consumer);
+    }
+
+    /**
+     * Simple try/catch block that ignores errors.
+     * @param runnable The code to run upon success.
+     */
+    public static void tryCatch(Runnable runnable)
+    {
+        try
+        {   runnable.run();
+        }
+        catch (Throwable ignored) {}
+    }
+
+    public static <T> T tryCatch(Supplier<T> supplier)
+    {
+        try
+        {   return supplier.get();
+        }
+        catch (Throwable ignored) {}
+        return null;
+    }
+
+    /**
+     * @return 1 if the given value is positive, -1 if it is negative, and 0 if it is 0.
+     */
+    public static int sign(double value)
+    {
+        if (value == 0) return 0;
+        return value < 0 ? -1 : 1;
+    }
+
+    /**
+     * @return 1 if the given value is above the range, -1 if it is below the range, and 0 if it is within the range.
+     */
+    public static int getSignForRange(double value, double min, double max)
+    {
+        return value > max ? 1 : value < min ? -1 : 0;
+    }
+
+    /**
+     * Limits the decimal places of the value to the given amount.
+     * @param value The value to limit.
+     * @param sigFigs The amount of decimal places to limit to.
+     * @return The value with the decimal places limited.
+     */
+    public static double truncate(double value, int sigFigs)
+    {
+        return (int) (value * Math.pow(10.0, sigFigs)) / Math.pow(10.0, sigFigs);
+    }
+
+    public static boolean isInteger(Number value)
+    {   return Math.abs(value.doubleValue() - value.intValue()) < 0.0001;
+    }
+
+    public static double round(double value, int places)
+    {
+        if (places < 0) throw new IllegalArgumentException("Argument \"places\" must be a positive integer.");
+        if (isInteger(value)) return value;
+
+        BigDecimal bd = new BigDecimal(Double.toString(value));
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
+    }
+
+    /**
+     * Rounds the given value to the nearest multiple of the given number.
+     * @return The rounded value.
+     */
+    public static double roundNearest(double value, double multipleOf)
+    {   return Math.round(value / multipleOf) * multipleOf;
+    }
+
+    /**
+     * Rounds down the given value to the nearest multiple of the given number.
+     * @return The rounded value.
+     */
+    public static double roundDownNearest(double value, double multipleOf)
+    {   return Math.floor(value / multipleOf) * multipleOf;
+    }
+
+    /**
+     * Rounds up the given value to the nearest multiple of the given number.
+     * @return The rounded value.
+     */
+    public static double roundUpNearest(double value, double multipleOf)
+    {   return Math.ceil(value / multipleOf) * multipleOf;
+    }
+
+    public static int blendColors(int colorA, int colorB, float ratio)
+    {
+        int aFrom = (colorA >> 24) & 0xff;
+        int rFrom = (colorA >> 16) & 0xff;
+        int gFrom = (colorA >> 8) & 0xff;
+        int bFrom = colorA & 0xff;
+
+        int aTo = (colorB >> 24) & 0xff;
+        int rTo = (colorB >> 16) & 0xff;
+        int gTo = (colorB >> 8) & 0xff;
+        int bTo = colorB & 0xff;
+
+        int a = (int) (aFrom + (aTo - aFrom) * ratio);
+        int r = (int) (rFrom + (rTo - rFrom) * ratio);
+        int g = (int) (gFrom + (gTo - gFrom) * ratio);
+        int b = (int) (bFrom + (bTo - bFrom) * ratio);
+
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Calculates the number that is farthest from zero.
+     * @return The absolute maximum value.
+     */
+    public static double maxAbs(double... values)
+    {
+        double mostExtreme = 0;
+        for (double value : values)
+        {
+            if (Math.abs(value) > Math.abs(mostExtreme))
+            {   mostExtreme = value;
+            }
+        }
+        return mostExtreme;
+    }
+
+    /**
+     * Calculates the number that is closest to zero.
+     * @return The absolute minimum value.
+     */
+    public static double minAbs(double... values)
+    {
+        double smallest = values[0];
+        for (double value : values)
+        {
+            if (Math.abs(value) < Math.abs(smallest))
+            {
+                smallest = value;
+            }
+        }
+        return smallest;
+    }
+
+    public static boolean equalAbs(double value1, double value2)
+    {   return Math.abs(value1) == Math.abs(value2);
+    }
+
+    public static boolean greaterAbs(double value1, double value2)
+    {   return Math.abs(value1) > Math.abs(value2);
+    }
+
+    public static boolean lessAbs(double value1, double value2)
+    {   return Math.abs(value1) < Math.abs(value2);
+    }
+
+    public static boolean greaterEqualAbs(double value1, double value2)
+    {   return Math.abs(value1) >= Math.abs(value2);
+    }
+
+    public static boolean lessEqualAbs(double value1, double value2)
+    {   return Math.abs(value1) <= Math.abs(value2);
+    }
+
+    /**
+     * Returns the number that's closer to zero, regardless of sign.
+     */
+    public static double smallest(double... values)
+    {
+        double smallest = values[0];
+        for (double value : values)
+        {
+            if (Math.abs(value) < Math.abs(smallest))
+            {   smallest = value;
+            }
+        }
+        return smallest;
+    }
+
+    /**
+     * Returns the number that's furthest from zero, regardless of sign.
+     */
+    public static double largest(double... values)
+    {
+        double largest = values[0];
+        for (double value : values)
+        {
+            if (Math.abs(value) > Math.abs(largest))
+            {   largest = value;
+            }
+        }
+        return largest;
+    }
+
+    /**
+     * Lowers the absolute value of the given number by {@code amount}.
+     */
+    public static double shrink(double value, double amount)
+    {   return Math.max(0, Math.abs(value) - amount) * sign(value);
+    }
+
+    /**
+     * Raises the absolute value of the given number by {@code amount}.
+     */
+    public static double grow(double value, double amount)
+    {   return Math.abs(value) + amount * sign(value);
+    }
+
+    /**
+     * Moves {@code value} toward {@code target} by at most {@code maxStep}, without overshooting.
+     */
+    public static double approach(double value, double target, double maxStep)
+    {   return value < target ? Math.min(value + maxStep, target) : Math.max(value - maxStep, target);
+    }
+
+    /**
+     * Integer overload for {@link #shrink(double, double)}
+     */
+    public static int shrink(int value, int amount)
+    {   return value > 0 ? Math.max(0, value - amount) : Math.min(0, value + amount);
+    }
+
+    /**
+     * Integer overload for {@link #grow(double, double)}
+     */
+    public static int grow(int value, int amount)
+    {   return value > 0 ? value + amount : value - amount;
+    }
+
+    /**
+     * @return A Vec3 at the center of the given BlockPos.
+     */
+    public static Vec3 getCenterPos(BlockPos pos)
+    {   return new Vec3(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+    }
+
+    /**
+     * Rotates a VoxelShape to the given direction, assuming it is facing north.
+     * @param to The direction to rotate to.
+     * @param shape The shape to rotate.
+     * @return The rotated shape.
+     */
+    public static VoxelShape rotateShape(Direction to, VoxelShape shape)
+    {
+        // shapeHolder[0] is the old shape, shapeHolder[1] is the new shape
+        VoxelShape[] shapeHolder = new VoxelShape[] {shape, Shapes.empty() };
+
+        int times = (to.get2DDataValue() - Direction.NORTH.get2DDataValue() + 4) % 4;
+        for (int i = 0; i < times; i++)
+        {
+            shapeHolder[0].forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) -> shapeHolder[1] = Shapes.or(shapeHolder[1],
+                Shapes.create(1 - maxZ, minY, minX, 1 - minZ, maxY, maxX)));
+            shapeHolder[0] = shapeHolder[1];
+            shapeHolder[1] = Shapes.empty();
+        }
+
+        return shapeHolder[0];
+    }
+
+    /**
+     * "Flattens" the given VoxelShape into a 2D projection along the given axis.
+     * @param axis The axis to flatten along.
+     * @param shape The shape to flatten.
+     * @return The flattened shape.
+     */
+    public static VoxelShape flattenShape(Direction.Axis axis, VoxelShape shape)
+    {
+        // Flatten the shape into a 2D projection
+        // shapeHolder[0] is the old shape, shapeHolder[1] is the new shape
+        VoxelShape[] shapeHolder = new VoxelShape[] {shape, Shapes.empty()};
+        switch (axis)
+        {
+            case X ->
+            shapeHolder[0].forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
+                    shapeHolder[1] = Shapes.or(shapeHolder[1], Shapes.box(0, minY, minZ, 1, maxY, maxZ)));
+            case Y ->
+            shapeHolder[0].forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
+                    shapeHolder[1] = Shapes.or(shapeHolder[1], Shapes.box(minX, 0, minZ, maxX, 1, maxZ)));
+            case Z ->
+            shapeHolder[0].forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) ->
+                    shapeHolder[1] = Shapes.or(shapeHolder[1], Shapes.box(minX, minY, 0, maxX, maxY, 1)));
+        }
+        return shapeHolder[1];
+    }
+
+    /**
+     * Checks if a cube with size {@code [size * 2]} centered at {@code pos1} contains the position {@code pos2}.
+     * @return Whether the position is contained within the cube.
+     */
+    public static boolean withinCubeDistance(BlockPos pos1, BlockPos pos2, double maxDistance)
+    {
+        return Math.abs(pos1.getX() - pos2.getX()) <= maxDistance
+            && Math.abs(pos1.getY() - pos2.getY()) <= maxDistance
+            && Math.abs(pos1.getZ() - pos2.getZ()) <= maxDistance;
+    }
+
+    /**
+     * Returns an optional containing the value. <br>
+     * If the value is a non-usable (NaN, null, or infinite), the returned optional is empty
+     * @return An Optional containing the value, or empty if the value is invalid.
+     */
+    public static Optional<Double> safeDouble(Double value)
+    {   return value == null || Double.isNaN(value) || Double.isInfinite(value)
+               ? Optional.empty()
+               : Optional.of(value);
+    }
+
+    /**
+     * Returns the exact object used as the key for this map entry.
+     * @return The map's key object.
+     */
+    @Nullable
+    public static <Key> Key getExactKey(Map<Key, ?> map, Key key)
+    {   return map.keySet().stream().filter(key::equals).findFirst().orElse(null);
+    }
+
+    /**
+     * Finds the first non-null value out of the given ones.
+     * @return The first non-null value, or null if all values are null.
+     */
+    @SafeVarargs
+    public static <T> T orElse(T... values)
+    {   for (int i = 0; i < values.length; i++)
+        {   if (values[i] != null) return values[i];
+        }
+        return null;
+    }
+
+    public static <T> List<T> listOrEmpty(Optional<List<T>> list)
+    {   return list.orElseGet(Collections::emptyList);
+    }
+
+    public static <T> void setOrAppend(List<T> list, int index, T entry)
+    {
+        if (index < 0 || index >= list.size())
+        {   list.add(entry);
+        }
+        else list.set(index, entry);
+    }
+
+    /**
+     * Merges the given collections together into a single list.<br>
+     * The collections are appended to each other in the order in which they are provided.
+     */
+    @SafeVarargs
+    public static <T> List<T> append(Collection<T>... lists)
+    {
+        List<T> appended = new ArrayList<>();
+        for (Collection<T> list : lists)
+        {   appended.addAll(list);
+        }
+        return appended;
+    }
+
+    /**
+     * Merges the given collections together into a single (duplicate-safe) set.<br>
+     * The collections are merged in the order in which they are provided.
+     */
+    @SafeVarargs
+    public static <T> Set<T> merge(Collection<T>... lists)
+    {
+        Set<T> appended = new HashSet<>();
+        for (Collection<T> list : lists)
+        {   appended.addAll(list);
+        }
+        return appended;
+    }
+
+    /**
+     * Merges the given multimaps together into a single multimap.<br>
+     * The collections are merged in the order in which they are provided.
+     */
+    @SafeVarargs
+    public static <K, V> Map<K, V> merge(Map<K, V>... maps)
+    {
+        Map<K, V> merged = new HashMap<>();
+        for (Map<K, V> map : maps)
+        {   merged.putAll(map);
+        }
+        return merged;
+    }
+
+    /**
+     * Merges the given multimaps together into a single multimap.<br>
+     * The collections are merged in the order in which they are provided.
+     */
+    @SafeVarargs
+    public static <K, V> Multimap<K, V> merge(Multimap<K, V>... maps)
+    {
+        Multimap<K, V> merged = new RegistryMultiMap<>();
+        for (Multimap<K, V> map : maps)
+        {   merged.putAll(map);
+        }
+        return merged;
+    }
+
+    /**
+     * Makes the given list mutable by converting it to an {@link ArrayList}.
+     */
+    public static <T> List<T> mutable(List<T> list)
+    {   return new ArrayList<>(list);
+    }
+
+    @SafeVarargs
+    public static <T> ArrayList<T> arrayList(T... elements)
+    {   return new ArrayList<>(Arrays.asList(elements));
+    }
+
+    public static <R, T> List<R> mapList(List<T> list, Function<T, R> mapper)
+    {
+        List<R> mapped = new ArrayList<>();
+        for (int i = 0; i < list.size(); i++)
+        {   mapped.add(mapper.apply(list.get(i)));
+        }
+        return mapped;
+    }
+
+    public static Class<?> getCallerClass(int depth)
+    {
+        StackTraceElement[] stElements = Thread.currentThread().getStackTrace();
+        String callerClassName = null;
+        for (int i = 1 + depth; i < stElements.length; i++)
+        {
+            StackTraceElement ste = stElements[i];
+            if (ste.getClassName().indexOf("java.lang.Thread") != 0)
+            {
+                if (callerClassName == null)
+                {   callerClassName = ste.getClassName();
+                }
+                else if (!callerClassName.equals(ste.getClassName()))
+                {   try
+                    {   return Class.forName(ste.getClassName());
+                    }
+                    catch (ClassNotFoundException e)
+                    {   return null;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static Class<?> getClass(String className)
+    {
+        try
+        {   return Class.forName(className);
+        }
+        catch (ClassNotFoundException e)
+        {   return null;
+        }
+    }
+
+    public static <T> int getIndexOf(T o, List<T> list, BiPredicate<T, T> equals)
+    {
+        T[] es = list.toArray((T[]) new Object[0]);
+        int size = list.size();
+        if (o == null)
+        {
+            for (int i = 0; i < size - 1; i++)
+            {
+                if (es[i] == null)
+                {   return i;
+                }
+            }
+        }
+        else for (int i = 0; i < size - 1; i++)
+        {
+            if (equals.test(o, es[i]))
+            {   return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public static <T> int getIndexOf(List<T> list, Predicate<T> equals)
+    {
+        T[] es = list.toArray((T[]) new Object[0]);
+        int size = list.size();
+        for (int i = 0; i < size - 1; i++)
+        {
+            if (equals.test(es[i]))
+            {   return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public static String formatDoubleOrInt(double value)
+    {   return isInteger(value) ? String.valueOf((int) value) : String.valueOf(value);
+    }
+
+    @SafeVarargs
+    public static <T> boolean containsAny(Collection<T> collection, T... values)
+    {
+        for (T value : values)
+        {   if (collection.contains(value)) return true;
+        }
+        return false;
+    }
+
+    public static <T> boolean containsAny(Collection<T> collection, Collection<T> values)
+    {
+        for (T value : values)
+        {   if (collection.contains(value)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if the given string contains any of the provided substrings.
+     */
+    public static boolean containsAny(String string, String... values)
+    {
+        for (String value : values)
+        {   if (string.contains(value)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Optimized anyMatch() method for lists using a basic for loop, because Iterators are slow.
+     */
+    public static <T> boolean anyMatch(List<T> list, Predicate<T> predicate)
+    {
+        for (int i = 0; i < list.size(); i++)
+        {
+            if (predicate.test(list.get(i)))
+            {   return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Generic anyMatch() method for collections using an enhanced for loop.
+     */
+    public static <T> boolean anyMatch(Collection<T> collection, Predicate<T> predicate)
+    {
+        for (T t : collection)
+        {
+            if (predicate.test(t))
+            {   return true;
+            }
+        }
+        return false;
+    }
+
+    public static void fillHorizontalGradient(GuiGraphics graphics, int x1, int y1, int x2, int y2, int colorFrom, int colorTo)
+    {
+        int width = x2 - x1;
+        // Break into multiple thin strips (more strips = smoother gradient)
+        int strips = 50; // Adjust for desired smoothness
+
+        for (int i = 0; i < strips; i++)
+        {
+            int stripX = x1 + (width * i / strips);
+            int nextStripX = x1 + (width * (i + 1) / strips);
+
+            // Calculate interpolated color for this strip
+            float fraction = (float) i / strips;
+            int color = blendColors(colorFrom, colorTo, fraction);
+
+            // Draw the vertical strip
+            graphics.fill(stripX, y1, nextStripX, y2, color);
+        }
+    }
+
+    public static Rotation rotationFromNorth(Direction direction)
+    {
+        switch (direction)
+        {
+            case NORTH -> { return Rotation.NONE; }
+            case EAST -> { return Rotation.CLOCKWISE_90; }
+            case SOUTH -> { return Rotation.CLOCKWISE_180; }
+            case WEST -> { return Rotation.COUNTERCLOCKWISE_90; }
+            default -> { return Rotation.NONE; }
+        }
+    }
+
+    public static Rotation rotationToNorth(Direction direction)
+    {
+        switch (direction)
+        {
+            case NORTH -> { return Rotation.NONE; }
+            case EAST -> { return Rotation.COUNTERCLOCKWISE_90; }
+            case SOUTH -> { return Rotation.CLOCKWISE_180; }
+            case WEST -> { return Rotation.CLOCKWISE_90; }
+            default -> { return Rotation.NONE; }
+        }
+    }
+
+    public static Class<?> classForName(String className)
+    {
+        try
+        {   return Class.forName(className);
+        }
+        catch (ClassNotFoundException e)
+        {   throw new RuntimeException("Class not found: " + className, e);
+        }
+    }
+}

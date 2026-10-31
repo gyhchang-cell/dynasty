@@ -1,0 +1,33 @@
+package mekanism.common.particle;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
+import mekanism.api.SerializationConstants;
+import mekanism.common.registries.MekanismParticleTypes;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+
+public record LaserParticleData(Direction direction, float distance, float energyScale) implements ParticleOptions {
+
+    public static final MapCodec<LaserParticleData> CODEC = RecordCodecBuilder.mapCodec(val -> val.group(
+          Direction.CODEC.fieldOf(SerializationConstants.DIRECTION).forGetter(data -> data.direction),
+          Codec.FLOAT.fieldOf(SerializationConstants.DISTANCE).forGetter(data -> data.distance),
+          Codec.FLOAT.fieldOf(SerializationConstants.ENERGY).forGetter(data -> data.energyScale)
+    ).apply(val, LaserParticleData::new));
+    public static final StreamCodec<ByteBuf, LaserParticleData> STREAM_CODEC = StreamCodec.composite(
+          Direction.STREAM_CODEC, LaserParticleData::direction,
+          ByteBufCodecs.FLOAT, LaserParticleData::distance,
+          ByteBufCodecs.FLOAT, LaserParticleData::energyScale,
+          LaserParticleData::new
+    );
+
+    @Override
+    public ParticleType<?> getType() {
+        return MekanismParticleTypes.LASER.get();
+    }
+}
