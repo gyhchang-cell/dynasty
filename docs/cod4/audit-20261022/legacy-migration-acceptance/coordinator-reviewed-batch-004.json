@@ -1,0 +1,622 @@
+{
+  "date": "2026-10-26",
+  "owner": "coordinator offline review during provider DNS interruption",
+  "status": "PENDING_PRIMARY_SEMANTIC_INTEGRATION",
+  "reviewed_candidate_methods": 14,
+  "all_source_and_full_method_ranges_verified": true,
+  "credited_to_primary_ledger": 0,
+  "max_proposed_new_families_before_dedup": 4,
+  "entries": [
+    {
+      "family": "curios-slot-schema-bounded-restore",
+      "candidate_ids": [
+        "36f46b971e7bdc656e25",
+        "8d95da73a5b70f576cb8"
+      ],
+      "decision": "proposed_for_semantic_dedup_not_credited",
+      "proposed_max_credit": 1,
+      "observation": "loadInventory以Identifier同时解析现存handler和slotType，两者存在才读Stacks/Cosmetics；使用注册上下文解析完整ItemStack，loadStacks把循环限制在当前槽位与已读资源大小的交集。saveInventory(clear)分离序列化与清空行为。",
+      "application": "旧物品映射应先于原生ItemStack解析；既有Curios库存由其原拥有者恢复，不能在永久进度clone中另重放一份库存。跨槽位schema缺失应明确边界。",
+      "limits": "源码为后续版本ValueInput接口，只借鉴语义，不复制到1.20.1。非空目标分支把现有stack交loseInvalidStack，并未显示如何保存loadedStack，不能仅据此宣称无损merge；loadStacks是同一调用链零额外信用。"
+    },
+    {
+      "family": "goety-specific-cooldown-key-and-time-roundtrip",
+      "candidate_ids": [
+        "939a14dfe555c90b5818"
+      ],
+      "decision": "proposed_for_semantic_dedup_not_credited",
+      "proposed_max_credit": 1,
+      "observation": "saveSpecifics只写time>0条目，保留Key字符串、Time与TotalTime；loadSpecifics逐项重建CooldownInstance并以key put入映射。邻近通用save/load使用Item.getId/byId数值，不能把该身份编码当跨注册表版本稳定alias。",
+      "application": "长冷却恢复需要保留原字段的单位和双字段意义，不可把剩余计时与gameTime绝对deadline混用；已有PlayerPersisted冷却owner不应重复复制。",
+      "limits": "loadSpecifics没有清空旧map或严格Tag类型校验；其写/读是一个语义家庭。若主账本通用FocusCooldown链已含此特化，必须合并而非新增信用。"
+    },
+    {
+      "family": "vampirism-owner-lock-coupled-load-default",
+      "candidate_ids": [
+        "6f342c36e63e7f2578ab"
+      ],
+      "decision": "proposed_for_semantic_dedup_not_credited",
+      "proposed_max_credit": 1,
+      "observation": "LockDataHolder仅owner非空才存owner及lock。deserialize通过UUID codec成功分支同时设owner并读lock，lock坏值或缺失回PUBLIC；owner无效也回PUBLIC。canAccess以PUBLIC或UUID相等判断，不把对象引用当归属。",
+      "application": "迁移有关联语义的永久字段应成组验证，不要仅复制单个权限/所有权flag；缺失身份时权限fallback须显式。",
+      "limits": "无owner分支不清旧owner，复用对象有陈旧身份风险；当前default PUBLIC也非本项目应照抄的权限策略。只是读取/权限关联案例，不证明玩家死亡持久化。"
+    },
+    {
+      "family": "werewolves-root-selected-state-and-child-owner-roundtrip",
+      "candidate_ids": [
+        "9463bcb56f85ce50825a",
+        "87d1ee2ee38e76311cb3"
+      ],
+      "decision": "proposed_for_semantic_dedup_not_credited",
+      "proposed_max_credit": 1,
+      "observation": "磁盘读先super再分别交inventory/skill/action/level/customization各自NBTOwner，随后显式读lastFormAction、biteTicks、transformationTime；update分支对部分字段先contains再改，磁盘与网络同步生命周期分开。writer同样逐子owner写，不整包根NBT盲拷。",
+      "application": "保留原子系统clone链，仅补无owner的永久根字段白名单；区分缺失字段fallback与覆盖清空，不能拿网络增量读当磁盘迁移。",
+      "limits": "lastFormAction虽检查字符串，随后直接强转registry action；writer transformationTime为double而reader getFloat，不能照抄类型。该root主要是分发，若此前家庭已覆盖此链，应只作支持证据不另计；更新form分支使用现有form，未证明能从标签恢复。"
+    },
+    {
+      "family": "werewolves-cosmetic-maps",
+      "candidate_ids": [
+        "37a80b90cc60fc1a9429",
+        "50e66798a6595e3640ef"
+      ],
+      "decision": "auxiliary_zero_credit",
+      "proposed_max_credit": 0,
+      "observation": "三个按form命名的外观map在disk读getCompound后迭代key；update先contains才应用。它是上条root的子链且纯外观，不能将三个颜色/类型map或两个同步分支凑成额外永久进度实现。"
+    },
+    {
+      "family": "aoa-temporary-food-restore-receipt",
+      "candidate_ids": [
+        "8dcb739981bff8227e11"
+      ],
+      "decision": "auxiliary_zero_credit",
+      "proposed_max_credit": 0,
+      "observation": "restoreStats仅statsStorage非空时调用原生FoodData读，然后置null一次消费；这是暂态备份恢复支持例，不把它计成新的永久进度迁移。"
+    },
+    {
+      "family": "divinerpg-clone-wrapper",
+      "candidate_ids": [
+        "5a3630459c9291fba7b7"
+      ],
+      "decision": "duplicate_support_zero_credit",
+      "proposed_max_credit": 0,
+      "observation": "Clone事件仅分发给5个AttachmentRegistry条目的clone；已有dimensional inventory链已要求合并此wrapper，无独立新语义信用。"
+    },
+    {
+      "family": "cyclic-livingdeath-prevention-not-clone",
+      "candidate_ids": [
+        "747adc2e023f6165782c"
+      ],
+      "decision": "out_of_scope_zero_credit",
+      "proposed_max_credit": 0,
+      "observation": "Soulstone是在LivingDeath检查护符并取消死亡，既不恢复old→new玩家根字段，也不是旧ItemStack映射；不能为关键词onPlayerDeath计数。"
+    },
+    {
+      "family": "irons-spell-data-empty-wrapper-clone",
+      "candidate_ids": [
+        "89788fc28caab506844f"
+      ],
+      "decision": "out_of_scope_zero_credit",
+      "proposed_max_credit": 0,
+      "observation": "clone只new SyncedSpellData(this.livingEntity)，没有复制字段；不能因为方法叫clone就算玩家永久进度迁移。"
+    },
+    {
+      "family": "forge-player-clone-event-dispatch",
+      "candidate_ids": [
+        "b9570d6b4eb49cdceacc",
+        "9c7f90632cbc958be00f"
+      ],
+      "decision": "native_support_zero_credit",
+      "proposed_max_credit": 0,
+      "observation": "Forge工厂post Clone并在事件对象保留original、new player、wasDeath；原生生命周期定义供解释，不当1000模组实现的新计数，也不把构造器再算一次。"
+    }
+  ],
+  "evidence": [
+    {
+      "candidate_id": "36f46b971e7bdc656e25",
+      "status": "candidate_not_reviewed",
+      "repo": "TheIllusiveC4/Curios",
+      "revision": "d5ecacfd74e17cb25c981bff70aa8326a1d05fb2",
+      "path": "src/main/java/top/theillusivec4/curios/common/capability/CurioInventoryCapability.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TheIllusiveC4__Curios/src/main/java/top/theillusivec4/curios/common/capability/CurioInventoryCapability.java",
+      "method": "loadInventory",
+      "start_line": 504,
+      "end_line": 543,
+      "file_sha256": "9c9beeb24d49023cbe7207727ef8e0292c343bff0ca9f23924bce18a018091cb",
+      "method_sha256": "191816def5ba8fd22ed77f92dc690021405f6d195fc2f3bf18f6d089245baaa6",
+      "structural_fingerprint": "2afdddf2e0701d470a31849537f692a34aa8d165077025e8c0394bf2e127bb93",
+      "source_url_or_coordinate": "https://github.com/TheIllusiveC4/Curios/blob/d5ecacfd74e17cb25c981bff70aa8326a1d05fb2/src/main/java/top/theillusivec4/curios/common/capability/CurioInventoryCapability.java#L504-L543",
+      "ast_calls": [
+        "problemPath",
+        "size",
+        "orElse",
+        "getCompound",
+        "orElse",
+        "getString",
+        "get",
+        "asMap",
+        "getSlotType",
+        "isClientSide",
+        "level",
+        "orElse",
+        "getCompound",
+        "getSize",
+        "getStacks",
+        "isEmpty",
+        "deserialize",
+        "create",
+        "registryAccess",
+        "loadStacks",
+        "orElse",
+        "getCompound",
+        "isEmpty",
+        "deserialize",
+        "create",
+        "registryAccess",
+        "getCosmeticStacks",
+        "loadStacks"
+      ],
+      "ast_guards": [
+        "(data != null && entity != null)",
+        "(slotType != null && stacksHandler != null)",
+        "(!stacksData.isEmpty())",
+        "(!stacksData.isEmpty())"
+      ],
+      "context": "@Override\n  public void loadInventory(ListTag data) {\n    LivingEntity entity = this.livingEntity;\n\n    if (data != null && entity != null) {\n      try (\n          ProblemReporter.ScopedCollector problemreporter$scopedcollector =\n              new ProblemReporter.ScopedCollector(entity.problemPath(), CuriosConstants.LOG)) {\n\n        for (int i = 0; i < data.size(); i++) {\n          CompoundTag tag = data.getCompound(i).orElse(new CompoundTag());\n          String id = tag.getString(\"Identifier\").orElse(\"\");\n          ICurioStacksHandler stacksHandler = this.curioInventory.asMap().get(id);\n          ISlotType slotType = CuriosSlotTypes.getSlotType(id, entity.level().isClientSide());\n\n          if (slotType != null && stacksHandler != null) {\n            CompoundTag stacksData = tag.getCompound(\"Stacks\").orElse(new CompoundTag());\n            ItemStacksResourceHandler loaded = new ItemStacksResourceHandler(slotType.getSize());\n            IDynamicStackHandler stacks = stacksHandler.getStacks();\n\n            if (!stacksData.isEmpty()) {\n              loaded.deserialize(\n                  TagValueInput.create(problemreporter$scopedcollector, entity.registryAccess(),\n                      stacksData));\n              loadStacks(stacksHandler, loaded, stacks);\n            }\n            stacksData = tag.getCompound(\"Cosmetics\").orElse(new CompoundTag());\n\n            if (!stacksData.isEmpty()) {\n              loaded.deserialize(\n                  TagValueInput.create(problemreporter$scopedcollector, entity.registryAccess(),\n                      stacksData));\n              stacks = stacksHandler.getCosmeticStacks();\n              loadStacks(stacksHandler, loaded, stacks);\n            }\n          }\n        }\n      }\n    }\n  }",
+      "class_has_migration_marker": false,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "8d95da73a5b70f576cb8",
+      "status": "candidate_not_reviewed",
+      "repo": "TheIllusiveC4/Curios",
+      "revision": "d5ecacfd74e17cb25c981bff70aa8326a1d05fb2",
+      "path": "src/main/java/top/theillusivec4/curios/common/capability/CurioInventoryCapability.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TheIllusiveC4__Curios/src/main/java/top/theillusivec4/curios/common/capability/CurioInventoryCapability.java",
+      "method": "loadStacks",
+      "start_line": 657,
+      "end_line": 670,
+      "file_sha256": "9c9beeb24d49023cbe7207727ef8e0292c343bff0ca9f23924bce18a018091cb",
+      "method_sha256": "42e70198ae95d6151f6eecea20dba01f6300546b09c5f347b38b79c52981e753",
+      "structural_fingerprint": "7e7fa610de8441e923b6c14d43f2c6293da565b64e3ae9c0db9a64cad3431501",
+      "source_url_or_coordinate": "https://github.com/TheIllusiveC4/Curios/blob/d5ecacfd74e17cb25c981bff70aa8326a1d05fb2/src/main/java/top/theillusivec4/curios/common/capability/CurioInventoryCapability.java#L657-L670",
+      "ast_calls": [
+        "getSlots",
+        "size",
+        "getStackInSlot",
+        "getStack",
+        "isEmpty",
+        "setStackInSlot",
+        "loseInvalidStack"
+      ],
+      "ast_guards": [
+        "(stack.isEmpty())"
+      ],
+      "context": "private void loadStacks(\n      ICurioStacksHandler stacksHandler, ItemStacksResourceHandler loaded, IDynamicStackHandler stacks) {\n\n    for (int j = 0; j < stacksHandler.getSlots() && j < loaded.size(); j++) {\n      ItemStack stack = stacks.getStackInSlot(j);\n      ItemStack loadedStack = ItemUtil.getStack(loaded, j);\n\n      if (stack.isEmpty()) {\n        stacks.setStackInSlot(j, loadedStack);\n      } else {\n        this.loseInvalidStack(stack);\n      }\n    }\n  }",
+      "class_has_migration_marker": false,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "5a3630459c9291fba7b7",
+      "status": "candidate_not_reviewed",
+      "repo": "DivineRPG/DivineRPG",
+      "revision": "3cebbbe867d743c456106971430665ee8e1a1de2",
+      "path": "src/main/java/divinerpg/events/VetheaInventorySwapEvent.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/DivineRPG__DivineRPG/src/main/java/divinerpg/events/VetheaInventorySwapEvent.java",
+      "method": "onClone",
+      "start_line": 15,
+      "end_line": 23,
+      "file_sha256": "a1078dd9f8830564a86fbffc4b4cdd2c9befd353836e4bff59325478f5e71fe4",
+      "method_sha256": "7ee3394dbffabbc8ac0748dfd76ee5575724943d3a684296d2115d0f181735f9",
+      "structural_fingerprint": "3175aca583c7df503cf2957065ae402001810084a0dcc7d608b54834ddd71dea",
+      "source_url_or_coordinate": "https://github.com/DivineRPG/DivineRPG/blob/3cebbbe867d743c456106971430665ee8e1a1de2/src/main/java/divinerpg/events/VetheaInventorySwapEvent.java#L15-L23",
+      "ast_calls": [
+        "getOriginal",
+        "getEntity",
+        "clone",
+        "clone",
+        "clone",
+        "clone",
+        "clone"
+      ],
+      "ast_guards": [],
+      "context": "@SubscribeEvent\n\tpublic void onClone(PlayerEvent.Clone event) {\n\t\tPlayer original = event.getOriginal(), clone = event.getEntity();\n\t\tAttachmentRegistry.GROGLIN_REPUTATION.clone(original, clone);\n\t\tAttachmentRegistry.GRUZZORLUG_REPUTATION.clone(original, clone);\n\t\tAttachmentRegistry.ICEIKA_MERCHANT_REPUTATION.clone(original, clone);\n\t\tAttachmentRegistry.DIMENSIONAL_INVENTORY.clone(original, clone);\n\t\tAttachmentRegistry.MAX_ARCANA.clone(original, clone);\n\t}",
+      "class_has_migration_marker": true,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "747adc2e023f6165782c",
+      "status": "candidate_not_reviewed",
+      "repo": "Lothrazar/Cyclic",
+      "revision": "b2213600474fa088702dec68a783549e44dfa6ae",
+      "path": "src/main/java/com/lothrazar/cyclic/event/ItemEventHandler.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/event/ItemEventHandler.java",
+      "method": "onPlayerDeath",
+      "start_line": 308,
+      "end_line": 316,
+      "file_sha256": "7b66ea39e51785b8c2707c4a7ef83bdd7d2733174ecafbe1fedd94cc7def6776",
+      "method_sha256": "10348a32e8f01179070eb524dfcb837080bbe8352b14d2fe551b021a6095596e",
+      "structural_fingerprint": "cc2a99246f7e8e5d7a33d352ae2acab2baa1fd8a84526fc9dbaa64976c71e3f7",
+      "source_url_or_coordinate": "https://github.com/Lothrazar/Cyclic/blob/b2213600474fa088702dec68a783549e44dfa6ae/src/main/java/com/lothrazar/cyclic/event/ItemEventHandler.java#L308-L316",
+      "ast_calls": [
+        "getEntity",
+        "getIfEnabled",
+        "get",
+        "checkTotemDeathProtection",
+        "getSource",
+        "setCanceled"
+      ],
+      "ast_guards": [
+        "(event.getEntity() instanceof Player player)",
+        "(SoulstoneCharm.checkTotemDeathProtection(event.getSource(), player, charmStack))"
+      ],
+      "context": "@SubscribeEvent\n  public void onPlayerDeath(LivingDeathEvent event) {\n    if (event.getEntity() instanceof Player player) {\n      ItemStack charmStack = CharmUtil.getIfEnabled(player, ItemRegistry.SOULSTONE.get());\n      if (SoulstoneCharm.checkTotemDeathProtection(event.getSource(), player, charmStack)) {\n        event.setCanceled(true);\n      }\n    }\n  }",
+      "class_has_migration_marker": true,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "939a14dfe555c90b5818",
+      "status": "candidate_not_reviewed",
+      "repo": "Polarice3/Goety-2",
+      "revision": "02adbe7491767210f63857fa763a6f1de1262cbd",
+      "path": "src/main/java/com/Polarice3/Goety/common/capabilities/soulenergy/FocusCooldown.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/capabilities/soulenergy/FocusCooldown.java",
+      "method": "loadSpecifics",
+      "start_line": 199,
+      "end_line": 209,
+      "file_sha256": "3a03fea6c19d61691da4b0e15509ce2c81d0ebbcc747a8cd3683155b03cf647f",
+      "method_sha256": "a0104648086b196da0e9ceee586575dabecf5043013ec7d744c323c7b71cd6c2",
+      "structural_fingerprint": "d626af26437dbb994fa531dd59af5c98641e1e64e99bcb6a598a6a3d91988a93",
+      "source_url_or_coordinate": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/capabilities/soulenergy/FocusCooldown.java#L199-L209",
+      "ast_calls": [
+        "forEach",
+        "getString",
+        "getInt",
+        "getInt",
+        "put"
+      ],
+      "ast_guards": [
+        "(listTag != null)"
+      ],
+      "context": "public void loadSpecifics(ListTag listTag){\n        if (listTag != null) {\n            listTag.forEach(tag -> {\n                CompoundTag compoundTag = (CompoundTag) tag;\n                String key = compoundTag.getString(\"Key\");\n                int startTime = compoundTag.getInt(\"Time\");\n                int endTime = compoundTag.getInt(\"TotalTime\");\n                cooldownsSpecific.put(key, new CooldownInstance(startTime, endTime));\n            });\n        }\n    }",
+      "class_has_migration_marker": false,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "6f342c36e63e7f2578ab",
+      "status": "candidate_not_reviewed",
+      "repo": "TeamLapen/Vampirism",
+      "revision": "83c220f47cd030eed4c779c90f5786b261075869",
+      "path": "projects/vampirism/src/main/java/de/teamlapen/vampirism/common/world/blockentity/PlayerOwnedBlockEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamLapen__Vampirism/projects/vampirism/src/main/java/de/teamlapen/vampirism/common/world/blockentity/PlayerOwnedBlockEntity.java",
+      "method": "deserialize",
+      "start_line": 125,
+      "end_line": 131,
+      "file_sha256": "b58e2a19a5c7e113885fe300084f6c3d5923690d9e9f190cdb725fe915046d84",
+      "method_sha256": "08952b2ebf1e153461b577c7069d42f11656deedca2ccadb0bbc8a29fe9c67de",
+      "structural_fingerprint": "1167a1fe939a15a4e3cf00b08ad9a1d7dee2f03bc4780052f983e7191746f4c4",
+      "source_url_or_coordinate": "https://github.com/TeamLapen/Vampirism/blob/83c220f47cd030eed4c779c90f5786b261075869/projects/vampirism/src/main/java/de/teamlapen/vampirism/common/world/blockentity/PlayerOwnedBlockEntity.java#L125-L131",
+      "ast_calls": [
+        "ifPresentOrElse",
+        "read",
+        "orElse",
+        "read"
+      ],
+      "ast_guards": [],
+      "context": "@Override\n        public void deserialize(ValueInput input) {\n            input.read(\"owner\", UUIDUtil.CODEC).ifPresentOrElse(uuid -> {\n                this.owner = uuid;\n                this.lockStatus = input.read(\"lock\", Lock.CODEC).orElse(Lock.PUBLIC);\n            }, () -> this.lockStatus = Lock.PUBLIC);\n        }",
+      "class_has_migration_marker": false,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "9463bcb56f85ce50825a",
+      "status": "candidate_not_reviewed",
+      "repo": "TeamLapen/Werewolves",
+      "revision": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+      "path": "src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+      "method": "deserializeNBT",
+      "start_line": 579,
+      "end_line": 594,
+      "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+      "method_sha256": "cface78298b5666050706632c521a621f17ad9cf78ac36127bf2d105e0bdc6ba",
+      "structural_fingerprint": "0005a664508a894b478fa95500ed87a71224dcc7893208d31f2c46ae6e3014ce",
+      "source_url_or_coordinate": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L579-L594",
+      "ast_calls": [
+        "deserializeNBT",
+        "deserializeNBT",
+        "getCompound",
+        "nbtKey",
+        "deserializeNBT",
+        "getCompound",
+        "nbtKey",
+        "deserializeNBT",
+        "getCompound",
+        "nbtKey",
+        "deserializeNBT",
+        "getCompound",
+        "nbtKey",
+        "deserializeNBT",
+        "getCompound",
+        "nbtKey",
+        "containsString",
+        "getAction",
+        "parse",
+        "getString",
+        "getInt",
+        "contains",
+        "getFloat"
+      ],
+      "ast_guards": [
+        "(NBTHelper.containsString(nbt, \"lastFormAction\"))",
+        "(nbt.contains(\"transformationTime\"))"
+      ],
+      "context": "@Override\n    public void deserializeNBT(HolderLookup.Provider provider, @NotNull CompoundTag nbt) {\n        super.deserializeNBT(provider, nbt);\n        this.inventory.deserializeNBT(provider, nbt.getCompound(this.inventory.nbtKey()));\n        this.skillHandler.deserializeNBT(provider, nbt.getCompound(this.skillHandler.nbtKey()));\n        this.actionHandler.deserializeNBT(provider, nbt.getCompound(this.actionHandler.nbtKey()));\n        this.levelHandler.deserializeNBT(provider, nbt.getCompound(this.levelHandler.nbtKey()));\n        this.customization.deserializeNBT(provider, nbt.getCompound(this.customization.nbtKey()));\n        if (NBTHelper.containsString(nbt, \"lastFormAction\")) {\n            this.lastFormAction = ((WerewolfFormAction) RegUtil.getAction(ResourceLocation.parse(nbt.getString(\"lastFormAction\"))));\n        }\n        this.specialAttributes.biteTicks = nbt.getInt(\"biteTicks\");\n        if (nbt.contains(\"transformationTime\")) {\n            this.specialAttributes.transformationTime = nbt.getFloat(\"transformationTime\");\n        }\n    }",
+      "class_has_migration_marker": false,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "87d1ee2ee38e76311cb3",
+      "status": "candidate_not_reviewed",
+      "repo": "TeamLapen/Werewolves",
+      "revision": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+      "path": "src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+      "method": "deserializeUpdateNBT",
+      "start_line": 596,
+      "end_line": 613,
+      "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+      "method_sha256": "9ca080a7d77b76293cce86ed0fc1daa78102d312c0b2594cf9ac0f99cea9a456",
+      "structural_fingerprint": "5fd350aaa2be0aae135a897614c5742bd292b43dcd81cf650754dcee35df73d5",
+      "source_url_or_coordinate": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L596-L613",
+      "ast_calls": [
+        "deserializeUpdateNBT",
+        "deserializeUpdateNBT",
+        "getCompound",
+        "nbtKey",
+        "deserializeUpdateNBT",
+        "getCompound",
+        "nbtKey",
+        "deserializeUpdateNBT",
+        "getCompound",
+        "nbtKey",
+        "deserializeUpdateNBT",
+        "getCompound",
+        "nbtKey",
+        "deserializeUpdateNBT",
+        "getCompound",
+        "nbtKey",
+        "containsString",
+        "switchForm",
+        "contains",
+        "getInt",
+        "contains",
+        "getFloat"
+      ],
+      "ast_guards": [
+        "(NBTHelper.containsString(nbt, \"form\"))",
+        "(nbt.contains(\"biteTicks\"))",
+        "(nbt.contains(\"transformationTime\"))"
+      ],
+      "context": "@Override\n    public void deserializeUpdateNBT(HolderLookup.Provider provider, @NotNull CompoundTag nbt) {\n        super.deserializeUpdateNBT(provider, nbt);\n        this.inventory.deserializeUpdateNBT(provider, nbt.getCompound(this.inventory.nbtKey()));\n        this.skillHandler.deserializeUpdateNBT(provider, nbt.getCompound(this.skillHandler.nbtKey()));\n        this.actionHandler.deserializeUpdateNBT(provider, nbt.getCompound(this.actionHandler.nbtKey()));\n        this.levelHandler.deserializeUpdateNBT(provider, nbt.getCompound(this.levelHandler.nbtKey()));\n        this.customization.deserializeUpdateNBT(provider, nbt.getCompound(this.customization.nbtKey()));\n        if (NBTHelper.containsString(nbt, \"form\")) {\n            this.switchForm(form);\n        }\n        if (nbt.contains(\"biteTicks\")) {\n            this.specialAttributes.biteTicks = nbt.getInt(\"biteTicks\");\n        }\n        if (nbt.contains(\"transformationTime\")) {\n            this.specialAttributes.transformationTime = nbt.getFloat(\"transformationTime\");\n        }\n    }",
+      "class_has_migration_marker": false,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "37a80b90cc60fc1a9429",
+      "status": "candidate_not_reviewed",
+      "repo": "TeamLapen/Werewolves",
+      "revision": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+      "path": "src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+      "method": "deserializeNBT",
+      "start_line": 731,
+      "end_line": 739,
+      "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+      "method_sha256": "936b733bac77f73ebd0f75e602ec7293be51bff616ca3f7802efa76d630c67b9",
+      "structural_fingerprint": "ac71e19d2ae8e152631d27304626f7621b4664e1d9da36f5f03e4b457aa27e2d",
+      "source_url_or_coordinate": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L731-L739",
+      "ast_calls": [
+        "getCompound",
+        "forEach",
+        "getAllKeys",
+        "put",
+        "getForm",
+        "getInt",
+        "getCompound",
+        "forEach",
+        "getAllKeys",
+        "put",
+        "getForm",
+        "getInt",
+        "getCompound",
+        "forEach",
+        "getAllKeys",
+        "put",
+        "getForm",
+        "getBoolean"
+      ],
+      "ast_guards": [],
+      "context": "@Override\n        public void deserializeNBT(HolderLookup.Provider provider, @NotNull CompoundTag compoundTag) {\n            CompoundTag eye = compoundTag.getCompound(\"eyeTypes\");\n            eye.getAllKeys().forEach(string -> this.eyeType.put(WerewolfForm.getForm(string), eye.getInt(string)));\n            CompoundTag skin = compoundTag.getCompound(\"skinTypes\");\n            skin.getAllKeys().forEach(string -> this.skinType.put(WerewolfForm.getForm(string), skin.getInt(string)));\n            CompoundTag glowingEyes = compoundTag.getCompound(\"glowingEyes\");\n            glowingEyes.getAllKeys().forEach(string -> this.glowingEyes.put(WerewolfForm.getForm(string), glowingEyes.getBoolean(string)));\n        }",
+      "class_has_migration_marker": false,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "50e66798a6595e3640ef",
+      "status": "candidate_not_reviewed",
+      "repo": "TeamLapen/Werewolves",
+      "revision": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+      "path": "src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+      "method": "deserializeUpdateNBT",
+      "start_line": 741,
+      "end_line": 755,
+      "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+      "method_sha256": "014fca56a0fbf9c1a16990ebef0a2e116fc84b5f079ee45f0cec4f983ce85ce4",
+      "structural_fingerprint": "1bc4a8789cfecdf6a2126c42bb3393716ee8e720c2010ff62505bb4b518cf1b2",
+      "source_url_or_coordinate": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L741-L755",
+      "ast_calls": [
+        "contains",
+        "getCompound",
+        "forEach",
+        "getAllKeys",
+        "put",
+        "getForm",
+        "getInt",
+        "contains",
+        "getCompound",
+        "forEach",
+        "getAllKeys",
+        "put",
+        "getForm",
+        "getInt",
+        "contains",
+        "getCompound",
+        "forEach",
+        "getAllKeys",
+        "put",
+        "getForm",
+        "getBoolean"
+      ],
+      "ast_guards": [
+        "(compoundTag.contains(\"eyeTypes\"))",
+        "(compoundTag.contains(\"skinTypes\"))",
+        "(compoundTag.contains(\"glowingEyes\"))"
+      ],
+      "context": "@Override\n        public void deserializeUpdateNBT(HolderLookup.Provider provider, @NotNull CompoundTag compoundTag) {\n            if (compoundTag.contains(\"eyeTypes\")) {\n                CompoundTag eye = compoundTag.getCompound(\"eyeTypes\");\n                eye.getAllKeys().forEach(string -> this.eyeType.put(WerewolfForm.getForm(string), eye.getInt(string)));\n            }\n            if (compoundTag.contains(\"skinTypes\")) {\n                CompoundTag skin = compoundTag.getCompound(\"skinTypes\");\n                skin.getAllKeys().forEach(string -> this.skinType.put(WerewolfForm.getForm(string), skin.getInt(string)));\n            }\n            if (compoundTag.contains(\"glowingEyes\")) {\n                CompoundTag glowingEyes = compoundTag.getCompound(\"glowingEyes\");\n                glowingEyes.getAllKeys().forEach(string -> this.glowingEyes.put(WerewolfForm.getForm(string), glowingEyes.getBoolean(string)));\n            }\n        }",
+      "class_has_migration_marker": false,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "8dcb739981bff8227e11",
+      "status": "candidate_not_reviewed",
+      "repo": "Tslat/Advent-Of-Ascension",
+      "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+      "path": "source/player/ServerPlayerDataManager.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Tslat__Advent-Of-Ascension/source/player/ServerPlayerDataManager.java",
+      "method": "restoreStats",
+      "start_line": 640,
+      "end_line": 647,
+      "file_sha256": "efe2b8cfb6e4c00c9547ece5d84c2d1935ed22d9ff39567ee1753615b9c22ff5",
+      "method_sha256": "ee5cd4e76d0776187c95e7b6fb9b818af7036083ffca69107b72b6b9dd08fd3e",
+      "structural_fingerprint": "907df3dd663f72c139a39f234c672dd762462d151d99fb6fbb49cfad60568c4a",
+      "source_url_or_coordinate": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/player/ServerPlayerDataManager.java#L640-L647",
+      "ast_calls": [
+        "readAdditionalSaveData",
+        "getFoodData",
+        "getPlayer"
+      ],
+      "ast_guards": [
+        "(this.statsStorage == null)"
+      ],
+      "context": "public void restoreStats() {\n\t\t\tif (this.statsStorage == null)\n\t\t\t\treturn;\n\n\t\t\tgetPlayer().getFoodData().readAdditionalSaveData(this.statsStorage);\n\n\t\t\tthis.statsStorage = null;\n\t\t}",
+      "class_has_migration_marker": true,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "89788fc28caab506844f",
+      "status": "candidate_not_reviewed",
+      "repo": "iron431/irons-spells-n-spellbooks",
+      "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+      "path": "src/main/java/io/redspace/ironsspellbooks/capabilities/magic/SyncedSpellData.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/SyncedSpellData.java",
+      "method": "clone",
+      "start_line": 253,
+      "end_line": 256,
+      "file_sha256": "0ec6564db910915b746ebbb3a1e59df291d456f7b672bd0c315c6f37614332e8",
+      "method_sha256": "2de2fd7a90a6352e7fd332c6b84e6c5db25a1285791654b00e1f314ad39f0a98",
+      "structural_fingerprint": "9e7462c29d918ae4ca0a10595d37b07f710bf80f7a08504eb511f4d8e8891d86",
+      "source_url_or_coordinate": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/SyncedSpellData.java#L253-L256",
+      "ast_calls": [],
+      "ast_guards": [],
+      "context": "@Override\n    protected SyncedSpellData clone() {\n        return new SyncedSpellData(this.livingEntity);\n    }",
+      "class_has_migration_marker": false,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "b9570d6b4eb49cdceacc",
+      "status": "candidate_not_reviewed",
+      "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraftforge/event/ForgeEventFactory.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+      "method": "onPlayerClone",
+      "start_line": 538,
+      "end_line": 541,
+      "file_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "method_sha256": "723302d601abea7a1bf0c6044de440ff70a511cab5d8134508a50eb1ff736922",
+      "structural_fingerprint": "4be2c7b34e340b1e1bc06460e309f10e00a0fcf0c7b7cdf90271f2ca5fef2ef1",
+      "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "ast_calls": [
+        "post"
+      ],
+      "ast_guards": [],
+      "context": "public static void onPlayerClone(Player player, Player oldPlayer, boolean wasDeath)\n    {\n        MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerEvent.Clone(player, oldPlayer, wasDeath));\n    }",
+      "class_has_migration_marker": true,
+      "parse_has_error": false
+    },
+    {
+      "candidate_id": "9c7f90632cbc958be00f",
+      "status": "candidate_not_reviewed",
+      "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraftforge/event/entity/player/PlayerEvent.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/player/PlayerEvent.java",
+      "method": "Clone",
+      "start_line": 220,
+      "end_line": 225,
+      "file_sha256": "6c0faf19acb3d8579a5de9fbcdd12f02cf2253ab80b28855f30a2903d88d5198",
+      "method_sha256": "209ef5695a6af292225d7e59bc9098ca1bb65041ed0dc75207ea40e9d56fb1b5",
+      "structural_fingerprint": "fbb6a3058836a87e56561dc37f80187ca94087a29316ab0dc870263c133f2516",
+      "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "ast_calls": [],
+      "ast_guards": [],
+      "context": "public Clone(Player _new, Player oldPlayer, boolean wasDeath)\n        {\n            super(_new);\n            this.original = oldPlayer;\n            this.wasDeath = wasDeath;\n        }",
+      "class_has_migration_marker": true,
+      "parse_has_error": false
+    }
+  ],
+  "supporting_contexts": [
+    {
+      "source": "tools/cod4/legacy-migration-acceptance/.work/sources/TheIllusiveC4__Curios/src/main/java/top/theillusivec4/curios/common/capability/CurioInventoryCapability.java",
+      "source_sha256": "9c9beeb24d49023cbe7207727ef8e0292c343bff0ca9f23924bce18a018091cb",
+      "start_line": 459,
+      "end_line": 543,
+      "context": "  @Override\n  public ListTag saveInventory(boolean clear) {\n    ListTag taglist = new ListTag();\n    LivingEntity entity = this.livingEntity;\n\n    if (entity != null) {\n      try (\n          ProblemReporter.ScopedCollector problemreporter$scopedcollector =\n              new ProblemReporter.ScopedCollector(entity.problemPath(), CuriosConstants.LOG)) {\n\n        for (Map.Entry<String, ICurioStacksHandler> entry : this.curioInventory.asMap()\n            .entrySet()) {\n          CompoundTag tag = new CompoundTag();\n          ICurioStacksHandler stacksHandler = entry.getValue();\n          IDynamicStackHandler stacks = stacksHandler.getStacks();\n          TagValueOutput tagvalueoutput =\n              TagValueOutput.createWithContext(problemreporter$scopedcollector,\n                  entity.registryAccess());\n          stacks.serialize(tagvalueoutput);\n          tag.put(\"Stacks\", tagvalueoutput.buildResult());\n          IDynamicStackHandler cosmetics = stacksHandler.getCosmeticStacks();\n          tagvalueoutput =\n              TagValueOutput.createWithContext(problemreporter$scopedcollector,\n                  entity.registryAccess());\n          cosmetics.serialize(tagvalueoutput);\n          tag.put(\"Cosmetics\", tagvalueoutput.buildResult());\n          tag.putString(\"Identifier\", entry.getKey());\n          taglist.add(tag);\n\n          if (clear) {\n\n            for (int i = 0; i < stacks.getSlots(); i++) {\n              stacks.setStackInSlot(i, ItemStack.EMPTY);\n            }\n\n            for (int i = 0; i < cosmetics.getSlots(); i++) {\n              cosmetics.setStackInSlot(i, ItemStack.EMPTY);\n            }\n          }\n        }\n      }\n    }\n    return taglist;\n  }\n\n  @Override\n  public void loadInventory(ListTag data) {\n    LivingEntity entity = this.livingEntity;\n\n    if (data != null && entity != null) {\n      try (\n          ProblemReporter.ScopedCollector problemreporter$scopedcollector =\n              new ProblemReporter.ScopedCollector(entity.problemPath(), CuriosConstants.LOG)) {\n\n        for (int i = 0; i < data.size(); i++) {\n          CompoundTag tag = data.getCompound(i).orElse(new CompoundTag());\n          String id = tag.getString(\"Identifier\").orElse(\"\");\n          ICurioStacksHandler stacksHandler = this.curioInventory.asMap().get(id);\n          ISlotType slotType = CuriosSlotTypes.getSlotType(id, entity.level().isClientSide());\n\n          if (slotType != null && stacksHandler != null) {\n            CompoundTag stacksData = tag.getCompound(\"Stacks\").orElse(new CompoundTag());\n            ItemStacksResourceHandler loaded = new ItemStacksResourceHandler(slotType.getSize());\n            IDynamicStackHandler stacks = stacksHandler.getStacks();\n\n            if (!stacksData.isEmpty()) {\n              loaded.deserialize(\n                  TagValueInput.create(problemreporter$scopedcollector, entity.registryAccess(),\n                      stacksData));\n              loadStacks(stacksHandler, loaded, stacks);\n            }\n            stacksData = tag.getCompound(\"Cosmetics\").orElse(new CompoundTag());\n\n            if (!stacksData.isEmpty()) {\n              loaded.deserialize(\n                  TagValueInput.create(problemreporter$scopedcollector, entity.registryAccess(),\n                      stacksData));\n              stacks = stacksHandler.getCosmeticStacks();\n              loadStacks(stacksHandler, loaded, stacks);\n            }\n          }\n        }\n      }\n    }\n  }",
+      "context_sha256": "49986bd8414e4920c3656f8ce0952e05a5c7a800c813629c93536e594e58d0c3"
+    },
+    {
+      "source": "tools/cod4/legacy-migration-acceptance/.work/sources/TheIllusiveC4__Curios/src/main/java/top/theillusivec4/curios/common/capability/CurioInventoryCapability.java",
+      "source_sha256": "9c9beeb24d49023cbe7207727ef8e0292c343bff0ca9f23924bce18a018091cb",
+      "start_line": 657,
+      "end_line": 670,
+      "context": "  private void loadStacks(\n      ICurioStacksHandler stacksHandler, ItemStacksResourceHandler loaded, IDynamicStackHandler stacks) {\n\n    for (int j = 0; j < stacksHandler.getSlots() && j < loaded.size(); j++) {\n      ItemStack stack = stacks.getStackInSlot(j);\n      ItemStack loadedStack = ItemUtil.getStack(loaded, j);\n\n      if (stack.isEmpty()) {\n        stacks.setStackInSlot(j, loadedStack);\n      } else {\n        this.loseInvalidStack(stack);\n      }\n    }\n  }",
+      "context_sha256": "e12c802c8ad7e4a8e6f367fb50fa3f011c6e122c23d9993c28d92f3090946f9a"
+    },
+    {
+      "source": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/capabilities/soulenergy/FocusCooldown.java",
+      "source_sha256": "3a03fea6c19d61691da4b0e15509ce2c81d0ebbcc747a8cd3683155b03cf647f",
+      "start_line": 163,
+      "end_line": 209,
+      "context": "    public void save(ListTag listTag) {\n        cooldowns.forEach((item, cooldown) -> {\n            if (isOnCooldown(item)) {\n                CompoundTag compoundTag = new CompoundTag();\n                compoundTag.putInt(\"Item\", Item.getId(item));\n                compoundTag.putInt(\"Time\", cooldown.time);\n                compoundTag.putInt(\"TotalTime\", cooldown.totalTime);\n                listTag.add(compoundTag);\n            }\n        });\n    }\n\n    public void saveSpecifics(ListTag listTag) {\n        cooldownsSpecific.forEach((key, cooldown) -> {\n            if (cooldown.time > 0) {\n                CompoundTag compoundTag = new CompoundTag();\n                compoundTag.putString(\"Key\", key);\n                compoundTag.putInt(\"Time\", cooldown.time);\n                compoundTag.putInt(\"TotalTime\", cooldown.totalTime);\n                listTag.add(compoundTag);\n            }\n        });\n    }\n\n    public void load(ListTag listTag){\n        if (listTag != null) {\n            listTag.forEach(tag -> {\n                CompoundTag compoundTag = (CompoundTag) tag;\n                Item item = Item.byId(compoundTag.getInt(\"Item\"));\n                int startTime = compoundTag.getInt(\"Time\");\n                int endTime = compoundTag.getInt(\"TotalTime\");\n                cooldowns.put(item, new CooldownInstance(startTime, endTime));\n            });\n        }\n    }\n\n    public void loadSpecifics(ListTag listTag){\n        if (listTag != null) {\n            listTag.forEach(tag -> {\n                CompoundTag compoundTag = (CompoundTag) tag;\n                String key = compoundTag.getString(\"Key\");\n                int startTime = compoundTag.getInt(\"Time\");\n                int endTime = compoundTag.getInt(\"TotalTime\");\n                cooldownsSpecific.put(key, new CooldownInstance(startTime, endTime));\n            });\n        }\n    }",
+      "context_sha256": "7a5674e9cd5d6f8cf0ab789682c30077f113cc73ea3efe0f56136a26d2629f62"
+    },
+    {
+      "source": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamLapen__Vampirism/projects/vampirism/src/main/java/de/teamlapen/vampirism/common/world/blockentity/PlayerOwnedBlockEntity.java",
+      "source_sha256": "b58e2a19a5c7e113885fe300084f6c3d5923690d9e9f190cdb725fe915046d84",
+      "start_line": 109,
+      "end_line": 131,
+      "context": "        public boolean canAccess(Player player) {\n            return this.lockStatus == Lock.PUBLIC || this.isOwner(player);\n        }\n\n        public boolean isOwner(Player player) {\n            return this.owner != null && this.owner.equals(player.getUUID());\n        }\n\n        @Override\n        public void serialize(ValueOutput output) {\n            if (this.owner != null) {\n                output.store(\"owner\", UUIDUtil.CODEC, this.owner);\n                output.store(\"lock\", Lock.CODEC, this.lockStatus);\n            }\n        }\n\n        @Override\n        public void deserialize(ValueInput input) {\n            input.read(\"owner\", UUIDUtil.CODEC).ifPresentOrElse(uuid -> {\n                this.owner = uuid;\n                this.lockStatus = input.read(\"lock\", Lock.CODEC).orElse(Lock.PUBLIC);\n            }, () -> this.lockStatus = Lock.PUBLIC);\n        }",
+      "context_sha256": "37c3c3c452a3dd442218383f94ee3052618b805bb773eb174cdc9286d86f395a"
+    },
+    {
+      "source": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+      "source_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+      "start_line": 548,
+      "end_line": 613,
+      "context": "    @Override\n    public @NotNull CompoundTag serializeNBT(HolderLookup.Provider provider) {\n        CompoundTag compound = super.serializeNBT(provider);\n        compound.put(this.inventory.nbtKey(), this.inventory.serializeNBT(provider));\n        compound.put(this.skillHandler.nbtKey(), this.skillHandler.serializeNBT(provider));\n        compound.put(this.actionHandler.nbtKey(), this.actionHandler.serializeNBT(provider));\n        compound.put(this.levelHandler.nbtKey(), this.levelHandler.serializeNBT(provider));\n        compound.put(this.customization.nbtKey(), this.customization.serializeNBT(provider));\n        compound.putString(\"form\", this.form.getName());\n        if (this.lastFormAction != null) {\n            compound.putString(\"lastFormAction\", RegUtil.id(this.lastFormAction).toString());\n        }\n        compound.putInt(\"biteTicks\", this.specialAttributes.biteTicks);\n        compound.putDouble(\"transformationTime\", this.specialAttributes.transformationTime);\n        return compound;\n    }\n\n    @Override\n    public @NotNull CompoundTag serializeUpdateNBT(HolderLookup.Provider provider) {\n        CompoundTag nbt = super.serializeUpdateNBT(provider);\n        nbt.put(this.inventory.nbtKey(), this.inventory.serializeUpdateNBT(provider));\n        nbt.put(this.skillHandler.nbtKey(), this.skillHandler.serializeUpdateNBT(provider));\n        nbt.put(this.actionHandler.nbtKey(), this.actionHandler.serializeUpdateNBT(provider));\n        nbt.put(this.levelHandler.nbtKey(), this.levelHandler.serializeUpdateNBT(provider));\n        nbt.put(this.customization.nbtKey(), this.customization.serializeUpdateNBT(provider));\n        nbt.putString(\"form\", this.form.getName());\n        nbt.putInt(\"biteTicks\", this.specialAttributes.biteTicks);\n        nbt.putDouble(\"transformationTime\", this.specialAttributes.transformationTime);\n        return nbt;\n    }\n\n    @Override\n    public void deserializeNBT(HolderLookup.Provider provider, @NotNull CompoundTag nbt) {\n        super.deserializeNBT(provider, nbt);\n        this.inventory.deserializeNBT(provider, nbt.getCompound(this.inventory.nbtKey()));\n        this.skillHandler.deserializeNBT(provider, nbt.getCompound(this.skillHandler.nbtKey()));\n        this.actionHandler.deserializeNBT(provider, nbt.getCompound(this.actionHandler.nbtKey()));\n        this.levelHandler.deserializeNBT(provider, nbt.getCompound(this.levelHandler.nbtKey()));\n        this.customization.deserializeNBT(provider, nbt.getCompound(this.customization.nbtKey()));\n        if (NBTHelper.containsString(nbt, \"lastFormAction\")) {\n            this.lastFormAction = ((WerewolfFormAction) RegUtil.getAction(ResourceLocation.parse(nbt.getString(\"lastFormAction\"))));\n        }\n        this.specialAttributes.biteTicks = nbt.getInt(\"biteTicks\");\n        if (nbt.contains(\"transformationTime\")) {\n            this.specialAttributes.transformationTime = nbt.getFloat(\"transformationTime\");\n        }\n    }\n\n    @Override\n    public void deserializeUpdateNBT(HolderLookup.Provider provider, @NotNull CompoundTag nbt) {\n        super.deserializeUpdateNBT(provider, nbt);\n        this.inventory.deserializeUpdateNBT(provider, nbt.getCompound(this.inventory.nbtKey()));\n        this.skillHandler.deserializeUpdateNBT(provider, nbt.getCompound(this.skillHandler.nbtKey()));\n        this.actionHandler.deserializeUpdateNBT(provider, nbt.getCompound(this.actionHandler.nbtKey()));\n        this.levelHandler.deserializeUpdateNBT(provider, nbt.getCompound(this.levelHandler.nbtKey()));\n        this.customization.deserializeUpdateNBT(provider, nbt.getCompound(this.customization.nbtKey()));\n        if (NBTHelper.containsString(nbt, \"form\")) {\n            this.switchForm(form);\n        }\n        if (nbt.contains(\"biteTicks\")) {\n            this.specialAttributes.biteTicks = nbt.getInt(\"biteTicks\");\n        }\n        if (nbt.contains(\"transformationTime\")) {\n            this.specialAttributes.transformationTime = nbt.getFloat(\"transformationTime\");\n        }\n    }",
+      "context_sha256": "9acab7f9580402939921b683682f75c185e09604401e223ea7bd07e23ce9cf46"
+    }
+  ],
+  "production_changed": false,
+  "game_started": false,
+  "no1000_gate_claim": true
+}

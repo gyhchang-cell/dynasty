@@ -1,0 +1,444 @@
+{
+  "recorded_at": "2026-10-30T17:02:24.988237+00:00",
+  "candidate_id": "d51cbc9b0b890d315687",
+  "decision": "accepted",
+  "credit": 1,
+  "family": "sophisticated-limited-barrel-fixed-slot-policy-rehydration-and-sort-consumer",
+  "scope": "One whole limited-barrel persistent compartment policy reconstruction plus real sort consumer; not per-file, range, setting, legacy display key or helper credits.",
+  "provenance": [
+    {
+      "repository": "P3pp3rF1y/SophisticatedStorage",
+      "commit": "7d01973c3cb1726a81bdb0c4fa9da85e8187c9eb",
+      "root_tree": "a91d2130c3212283f18b27820be42641dfd0c7ee",
+      "commit_metadata": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/provenance/P3pp3rF1y__SophisticatedStorage/commit.json",
+      "commit_metadata_sha256": "c9949e7e7702a399d0d747ca9ea9fbfd71175b8e763d2629be651efc2a4215a7",
+      "tree_metadata": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/provenance/P3pp3rF1y__SophisticatedStorage/tree.json",
+      "tree_metadata_sha256": "83f61017d903f3d43ccb9ccf123363dcdaec23b85cafb17c05c43e302b7785bd",
+      "network_verification": "official api.github.com normal TLS verification; no insecure fallback"
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "root_tree": "0dcd25b4bcd930cae785c32a3686bd3a96c8ca54",
+      "commit_metadata": "tools/cod4/legacy-migration-acceptance/provenance/P3pp3rF1y__SophisticatedCore/commit-a25986c3.json",
+      "commit_metadata_sha256": "24b7184e1ce09052d6f7146dedc30ac0c14c8e99c48e51fb465abe0b90a5bd66",
+      "tree_metadata": "tools/cod4/legacy-migration-acceptance/provenance/P3pp3rF1y__SophisticatedCore/tree-a25986c3.json",
+      "tree_metadata_sha256": "6f17200456bf0be832f27412ce0d7855e74dae6dd02f58fc9b12e195d9920619",
+      "network_verification": "official api.github.com normal TLS verification; no insecure fallback"
+    }
+  ],
+  "source_evidence": [
+    {
+      "repository": "P3pp3rF1y/SophisticatedStorage",
+      "commit": "7d01973c3cb1726a81bdb0c4fa9da85e8187c9eb",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/LimitedBarrelBlockEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedStorage/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/LimitedBarrelBlockEntity.java",
+      "sha256": "e82190d8e3fcd6b3a73d6c3f040fd20934beb92d29799adbe9c316cf892b240d",
+      "git_blob": "5557f1b962e89d1f6265f031fbad2c5ddde1b27a",
+      "read_ranges": [
+        [
+          1,
+          310
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedStorage/blob/7d01973c3cb1726a81bdb0c4fa9da85e8187c9eb/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/LimitedBarrelBlockEntity.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            310
+          ],
+          "text": "package net.p3pp3rf1y.sophisticatedstorage.block;\n\nimport com.mojang.serialization.Codec;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.IntTag;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.network.codec.ByteBufCodecs;\nimport net.minecraft.network.codec.StreamCodec;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.DyeColor;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;\nimport net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;\nimport net.p3pp3rf1y.sophisticatedcore.settings.SettingsHandler;\nimport net.p3pp3rf1y.sophisticatedcore.settings.itemdisplay.ItemDisplaySettingsCategory;\nimport net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;\nimport net.p3pp3rf1y.sophisticatedcore.settings.nosort.NoSortSettingsCategory;\nimport net.p3pp3rf1y.sophisticatedcore.upgrades.voiding.VoidType;\nimport net.p3pp3rf1y.sophisticatedcore.upgrades.voiding.VoidUpgradeWrapper;\nimport net.p3pp3rf1y.sophisticatedcore.util.*;\nimport net.p3pp3rf1y.sophisticatedstorage.init.ModBlocks;\n\nimport java.util.HashMap;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.Optional;\nimport java.util.concurrent.atomic.AtomicBoolean;\nimport java.util.function.Consumer;\nimport java.util.function.Predicate;\n\npublic class LimitedBarrelBlockEntity extends BarrelBlockEntity implements ICountDisplay, IFillLevelDisplay {\n\tpublic static final Codec<Map<Integer, DyeColor>> SLOT_COLORS_CODEC = Codec.unboundedMap(CodecHelper.STRING_ENCODED_INT, DyeColor.CODEC);\n\n\tpublic static final StreamCodec<FriendlyByteBuf, Map<Integer, DyeColor>> SLOT_COLORS_STREAM_CODEC = StreamCodecHelper.ofMap(ByteBufCodecs.INT,\n\t\t\tDyeColor.STREAM_CODEC, HashMap::new);\n\n\tpublic static final Consumer<VoidUpgradeWrapper> VOID_UPGRADE_VOIDING_OVERFLOW_OF_EVERYTHING_BY_DEFAULT = voidUpgrade -> {\n\t\tvoidUpgrade.getFilterLogic().setAllowByDefault(false);\n\t\tvoidUpgrade.setVoidOverflowDefaultOrLoadFromNbt(VoidType.SLOT_OVERFLOW);\n\t};\n\tpublic static final String STORAGE_TYPE = \"limited_barrel\";\n\tprivate long lastDepositTime = -100;\n\n\tprivate Map<Integer, DyeColor> slotColors = new HashMap<>();\n\tprivate boolean showCounts = true;\n\tprivate boolean showFillLevels = false;\n\n\tpublic LimitedBarrelBlockEntity(BlockPos pos, BlockState state) {\n\t\tsuper(pos, state, ModBlocks.LIMITED_BARREL_BLOCK_ENTITY_TYPE.get());\n\t\tregisterUpgradeDefaults();\n\t}\n\n\tpublic static void setFixedSettings(IStorageWrapper storageWrapper, int numberOfInventorySlots) {\n\t\tSettingsHandler settingsHandler = storageWrapper.getSettingsHandler();\n\t\tItemDisplaySettingsCategory itemDisplaySettingsCategory = settingsHandler.getTypeCategory(ItemDisplaySettingsCategory.class);\n\t\tif (itemDisplaySettingsCategory.getSlots().size() != numberOfInventorySlots) {\n\t\t\titemDisplaySettingsCategory.selectSlots(0, numberOfInventorySlots);\n\t\t}\n\t\tNoSortSettingsCategory noSortSettingsCategory = settingsHandler.getTypeCategory(NoSortSettingsCategory.class);\n\t\tif (noSortSettingsCategory.getNoSortSlots().size() != numberOfInventorySlots) {\n\t\t\tnoSortSettingsCategory.selectSlots(0, numberOfInventorySlots);\n\t\t}\n\t}\n\n\tprivate void registerUpgradeDefaults() {\n\t\tgetStorageWrapper().registerUpgradeDefaultsHandler(VoidUpgradeWrapper.class, VOID_UPGRADE_VOIDING_OVERFLOW_OF_EVERYTHING_BY_DEFAULT);\n\t}\n\n\t@Override\n\tpublic boolean shouldShowCounts() {\n\t\treturn showCounts;\n\t}\n\n\t@Override\n\tpublic boolean memorizesItemsWhenLocked() {\n\t\treturn true;\n\t}\n\n\t@Override\n\tpublic boolean allowsEmptySlotsMatchingItemInsertsWhenLocked() {\n\t\treturn false;\n\t}\n\n\t@Override\n\tpublic void toggleCountVisibility() {\n\t\tshowCounts = !showCounts;\n\t\tsetChanged();\n\t\tWorldHelper.notifyBlockUpdate(this);\n\t}\n\n\t@Override\n\tpublic List<Integer> getSlotCounts() {\n\t\treturn getStorageWrapper().getRenderInfo().getItemDisplayRenderInfo().getSlotCounts();\n\t}\n\n\t@Override\n\tpublic boolean shouldShowFillLevels() {\n\t\treturn showFillLevels;\n\t}\n\n\t@Override\n\tpublic void toggleFillLevelVisibility() {\n\t\tshowFillLevels = !showFillLevels;\n\t\tsetChanged();\n\t\tWorldHelper.notifyBlockUpdate(this);\n\t}\n\n\t@Override\n\tpublic List<Float> getSlotFillLevels() {\n\t\treturn getStorageWrapper().getRenderInfo().getItemDisplayRenderInfo().getSlotFillRatios();\n\t}\n\n\tpublic boolean applyDye(int slot, ItemStack dyeStack, DyeColor dyeColor, boolean applyToAll) {\n\t\tif (slot < 0 || slot >= getStorageWrapper().getInventoryHandler().getSlots()) {\n\t\t\treturn false;\n\t\t}\n\n\t\tStorageWrapper storageWrapper = getStorageWrapper();\n\t\tInventoryHandler invHandler = storageWrapper.getInventoryHandler();\n\t\tif (applyToAll) {\n\t\t\tboolean success = false;\n\t\t\tfor (int i = 0; i < invHandler.getSlots(); i++) {\n\t\t\t\tsuccess |= applyDye(i, dyeColor, invHandler);\n\t\t\t}\n\t\t\tif (!success) {\n\t\t\t\treturn false;\n\t\t\t}\n\t\t} else {\n\t\t\tif (!applyDye(slot, dyeColor, invHandler)) {\n\t\t\t\treturn false;\n\t\t\t}\n\t\t}\n\t\tsetChanged();\n\n\t\tdyeStack.shrink(1);\n\n\t\tWorldHelper.notifyBlockUpdate(this);\n\n\t\treturn true;\n\t}\n\n\tprivate boolean applyDye(int slot, DyeColor dyeColor, InventoryHandler invHandler) {\n\t\tItemStack stackInSlot = invHandler.getStackInSlot(slot);\n\t\tif (stackInSlot.isEmpty() || dyeColor.equals(slotColors.get(slot))) {\n\t\t\treturn false;\n\t\t}\n\n\t\tslotColors.put(slot, dyeColor);\n\t\treturn true;\n\t}\n\n\tpublic int getSlotColor(int slot) {\n\t\treturn slotColors.getOrDefault(slot, DyeColor.WHITE).getTextColor();\n\t}\n\n\tpublic boolean depositItem(Player player, InteractionHand hand, ItemStack stackInHand, int slot) {\n\t\t// noinspection ConstantConditions\n\t\tlong gameTime = getLevel().getGameTime();\n\t\tboolean doubleClick = gameTime - lastDepositTime < 10;\n\t\tlastDepositTime = gameTime;\n\n\t\tStorageWrapper storageWrapper = getStorageWrapper();\n\t\tInventoryHandler invHandler = storageWrapper.getInventoryHandler();\n\t\tItemStack stackInSlot = invHandler.getStackInSlot(slot);\n\n\t\tMemorySettingsCategory memorySettings = getStorageWrapper().getSettingsHandler().getTypeCategory(MemorySettingsCategory.class);\n\n\t\tif (doubleClick) {\n\t\t\treturn depositFromAllOfPlayersInventory(player, slot, invHandler, stackInSlot, memorySettings);\n\t\t}\n\n\t\tif (stackInSlot.isEmpty()) {\n\t\t\tif (invHandler.isItemValid(slot, stackInHand, player)) {\n\t\t\t\tItemStack result = invHandler.insertItemOnlyToSlot(slot, stackInHand, true);\n\t\t\t\tif (result.getCount() != stackInHand.getCount()) {\n\t\t\t\t\tresult = invHandler.insertItemOnlyToSlot(slot, stackInHand, false);\n\t\t\t\t\tif (isLocked()) {\n\t\t\t\t\t\tmemorySettings.selectSlot(slot);\n\t\t\t\t\t\tif (player instanceof ServerPlayer serverPlayer) {\n\t\t\t\t\t\t\tsyncLinkedStorageContentsToPlayer(serverPlayer);\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t\tplayer.setItemInHand(hand, result);\n\t\t\t\t\treturn true;\n\t\t\t\t}\n\t\t\t}\n\t\t} else {\n\t\t\tItemStack result = invHandler.insertItemOnlyToSlot(slot, stackInHand, true);\n\t\t\tif (result.getCount() != stackInHand.getCount()) {\n\t\t\t\tresult = invHandler.insertItemOnlyToSlot(slot, stackInHand, false);\n\t\t\t\tif (isLocked()) {\n\t\t\t\t\tmemorySettings.selectSlot(slot);\n\t\t\t\t\tif (player instanceof ServerPlayer serverPlayer) {\n\t\t\t\t\t\tsyncLinkedStorageContentsToPlayer(serverPlayer);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tplayer.setItemInHand(hand, result);\n\t\t\t\treturn true;\n\t\t\t}\n\t\t}\n\n\t\treturn false;\n\t}\n\n\tprivate boolean depositFromAllOfPlayersInventory(Player player, int slot, InventoryHandler invHandler, ItemStack stackInSlot,\n\t\t\tMemorySettingsCategory memorySettings) {\n\t\tAtomicBoolean success = new AtomicBoolean(false);\n\t\tPredicate<ItemStack> memoryItemMatches = itemStack -> memorySettings.isSlotSelected(slot) && memorySettings.matchesFilter(slot, itemStack);\n\t\tCapabilityHelper.runOnItemHandler(player, playerInventory -> InventoryHelper.iterate(playerInventory, (playerSlot, playerStack) -> {\n\t\t\tif ((stackInSlot.isEmpty() && (memoryItemMatches.test(playerStack) || invHandler.isFilterItem(playerStack.getItem()))\n\t\t\t\t\t|| (!playerStack.isEmpty() && ItemStack.isSameItemSameComponents(stackInSlot, playerStack)))) {\n\n\t\t\t\tItemStack result = invHandler.insertItemOnlyToSlot(slot, playerStack, true);\n\t\t\t\tif (result.getCount() < playerStack.getCount()) {\n\t\t\t\t\tItemStack extracted = playerInventory.extractItem(playerSlot, playerStack.getCount() - result.getCount(), true);\n\t\t\t\t\tif (!extracted.isEmpty()) {\n\t\t\t\t\t\tinvHandler.insertItemOnlyToSlot(slot, playerInventory.extractItem(playerSlot, extracted.getCount(), false), false);\n\t\t\t\t\t\tsuccess.set(true);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}));\n\t\treturn success.get();\n\t}\n\n\tboolean tryToTakeItem(Player player, int slot) {\n\t\tInventoryHandler inventoryHandler = getStorageWrapper().getInventoryHandler();\n\t\tItemStack stackInSlot = inventoryHandler.getStackInSlot(slot);\n\t\tif (stackInSlot.isEmpty()) {\n\t\t\treturn false;\n\t\t}\n\n\t\tint countToTake = player.isShiftKeyDown() ? Math.min(stackInSlot.getMaxStackSize(), stackInSlot.getCount()) : 1;\n\t\tItemStack stackTaken = inventoryHandler.extractItem(slot, countToTake, false);\n\n\t\tif (player.getInventory().add(stackTaken)) {\n\t\t\t// noinspection ConstantConditions\n\t\t\tgetLevel().playSound(null, getBlockPos(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, .2f,\n\t\t\t\t\t(RandHelper.getRandomMinusOneToOne(getLevel().random) * .7f + 1) * 2);\n\t\t} else {\n\t\t\tplayer.drop(stackTaken, false);\n\t\t}\n\t\treturn true;\n\t}\n\n\t@Override\n\tvoid updateOpenBlockState(BlockState state, boolean open) {\n\t\t// noop\n\t}\n\n\t@Override\n\tpublic void onLoad() {\n\t\tsuper.onLoad();\n\n\t\tif (!isLinkedStorage()) {\n\t\t\tSettingsHandler settingsHandler = getStorageWrapper().getSettingsHandler();\n\t\t\tsettingsHandler.getTypeCategory(MemorySettingsCategory.class).setIgnoreNbt(false);\n\t\t\tsetFixedSettings(getStorageWrapper(), getStorageWrapper().getNumberOfInventorySlots());\n\t\t\tsettingsHandler.getTypeCategory(ItemDisplaySettingsCategory.class).itemsChanged();\n\t\t}\n\t}\n\n\t@Override\n\tpublic void loadSynchronizedData(CompoundTag tag, HolderLookup.Provider registries) {\n\t\tsuper.loadSynchronizedData(tag, registries);\n\t\tshowCounts = NBTHelper.getBoolean(tag, \"showCounts\").orElse(true);\n\t\tshowFillLevels = NBTHelper.getBoolean(tag, \"showFillLevels\").orElse(false);\n\t\tslotColors = NBTHelper.getMap(tag, \"slotColors\", Integer::valueOf, (tagName, t) -> Optional.of(DyeColor.byId(((IntTag) t).getAsInt())))\n\t\t\t\t.orElseGet(HashMap::new);\n\t}\n\n\t@Override\n\tpublic void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {\n\t\tsuper.loadAdditional(tag, registries);\n\t\tif (level == null || !level.isClientSide()) {\n\t\t\tsetFixedSettings(getStorageWrapper(), getStorageWrapper().getNumberOfInventorySlots());\n\t\t}\n\t}\n\n\t@Override\n\tprotected void saveSynchronizedData(CompoundTag tag) {\n\t\tsuper.saveSynchronizedData(tag);\n\t\tif (!showCounts) {\n\t\t\ttag.putBoolean(\"showCounts\", showCounts);\n\t\t}\n\t\tif (showFillLevels) {\n\t\t\ttag.putBoolean(\"showFillLevels\", showFillLevels);\n\t\t}\n\t\tif (!slotColors.isEmpty()) {\n\t\t\tNBTHelper.putMap(tag, \"slotColors\", slotColors, String::valueOf, color -> IntTag.valueOf(color.getId()));\n\t\t}\n\t}\n\n\t@Override\n\tprotected String getStorageType() {\n\t\treturn STORAGE_TYPE;\n\t}\n\n\t@Override\n\tpublic float getSlotFillPercentage(int slot) {\n\t\treturn slot < getSlotFillLevels().size() ? getSlotFillLevels().get(slot) : 0;\n\t}\n}"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedStorage",
+      "commit": "7d01973c3cb1726a81bdb0c4fa9da85e8187c9eb",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageWrapper.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedStorage/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageWrapper.java",
+      "sha256": "2dab22b4df96ae7ee0974736c7900624d77150dcff6421c22ff89a3319cc1383",
+      "git_blob": "3413bb9ea47b445de2249a16a7eb2d87562730b4",
+      "read_ranges": [
+        [
+          270,
+          367
+        ],
+        [
+          515,
+          555
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedStorage/blob/7d01973c3cb1726a81bdb0c4fa9da85e8187c9eb/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageWrapper.java",
+      "excerpts": [
+        {
+          "range": [
+            270,
+            367
+          ],
+          "text": "\t\ttag.putInt(NUMBER_OF_INVENTORY_SLOTS_TAG, getNumberOfInventorySlots());\n\t\ttag.putInt(NUMBER_OF_UPGRADE_SLOTS_TAG, getNumberOfUpgradeSlots());\n\t\ttag.putString(SORT_BY_TAG, sortBy.getSerializedName());\n\t\treturn tag;\n\t}\n\n\tpublic void load(CompoundTag tag) {\n\t\tloadContents(tag);\n\t\tloadData(tag);\n\n\t\tif (inventoryHandler != null) {\n\t\t\tinitInventoryHandler();\n\t\t}\n\t\tif (upgradeHandler != null) {\n\t\t\tgetUpgradeHandler().refreshUpgradeWrappers();\n\t\t}\n\t\tif (Thread.currentThread().getThreadGroup() == SidedThreadGroups.SERVER && getRenderInfo().getUpgradeItems().size() != getUpgradeHandler().getSlots()) {\n\t\t\tgetUpgradeHandler().setRenderUpgradeItems();\n\t\t}\n\t}\n\n\tvoid loadEndpointData(CompoundTag tag) {\n\t\trenderInfoNbt = tag.getCompound(RENDER_INFO_TAG);\n\t\trenderInfo.deserializeFrom(renderInfoNbt);\n\t\trenderInfoValidationPending = true;\n\t\topenTabId = NBTHelper.getInt(tag, OPEN_TAB_ID_TAG).orElse(-1);\n\t\tmainColor = NBTHelper.getInt(tag, MAIN_COLOR_TAG).orElse(-1);\n\t\taccentColor = NBTHelper.getInt(tag, ACCENT_COLOR_TAG).orElse(-1);\n\t}\n\n\tvoid loadCanonicalData(CompoundTag tag) {\n\t\tcontentsNbt = tag.contains(CONTENTS_TAG) ? tag.getCompound(CONTENTS_TAG) : new CompoundTag();\n\t\tsettingsNbt = tag.getCompound(SETTINGS_TAG);\n\t\tif (!tag.contains(SETTINGS_TAG)) {\n\t\t\ttag.put(SETTINGS_TAG, settingsNbt);\n\t\t}\n\t\tsettingsHandler.reloadFrom(settingsNbt);\n\t\tnumberOfInventorySlots = tag.getInt(NUMBER_OF_INVENTORY_SLOTS_TAG);\n\t\tnumberOfUpgradeSlots = tag.getInt(NUMBER_OF_UPGRADE_SLOTS_TAG);\n\t\tsortBy = NBTHelper.getString(tag, SORT_BY_TAG).map(SortBy::fromName).orElse(SortBy.NAME);\n\t\tinventoryHandler = null;\n\t\tupgradeHandler = null;\n\t\tinventoryIOHandler = null;\n\t}\n\n\tprivate void loadData(CompoundTag tag) {\n\t\tsettingsNbt = tag.getCompound(SETTINGS_TAG);\n\t\tsettingsHandler.reloadFrom(settingsNbt);\n\t\trenderInfoNbt = tag.getCompound(RENDER_INFO_TAG);\n\t\trenderInfo.deserializeFrom(renderInfoNbt);\n\t\trenderInfoValidationPending = true;\n\t\tcontentsUuid = NBTHelper.getTagValue(tag, UUID_TAG, CompoundTag::get).map(NbtUtils::loadUUID).orElse(null);\n\t\topenTabId = NBTHelper.getInt(tag, OPEN_TAB_ID_TAG).orElse(-1);\n\t\tsortBy = NBTHelper.getString(tag, SORT_BY_TAG).map(SortBy::fromName).orElse(SortBy.NAME);\n\t\tcolumnsTaken = NBTHelper.getInt(tag, \"columnsTaken\").orElse(0);\n\t\tloadSlotNumbers(tag);\n\t\tmainColor = NBTHelper.getInt(tag, MAIN_COLOR_TAG).orElse(-1);\n\t\taccentColor = NBTHelper.getInt(tag, ACCENT_COLOR_TAG).orElse(-1);\n\t}\n\n\tprotected void loadSlotNumbers(CompoundTag tag) {\n\t\tnumberOfInventorySlots = NBTHelper.getInt(tag, NUMBER_OF_INVENTORY_SLOTS_TAG).orElse(0);\n\t\tnumberOfUpgradeSlots = NBTHelper.getInt(tag, NUMBER_OF_UPGRADE_SLOTS_TAG).orElse(-1);\n\t\tif (promoteSlotNumbersToDefaults()) {\n\t\t\tsave();\n\t\t}\n\t}\n\n\tprotected boolean promoteSlotNumbersToDefaults() {\n\t\tboolean changed = false;\n\t\tint defaultNumberOfInventorySlots = getDefaultNumberOfInventorySlots();\n\t\tif (numberOfInventorySlots < defaultNumberOfInventorySlots) {\n\t\t\tnumberOfInventorySlots = defaultNumberOfInventorySlots;\n\t\t\tchanged = true;\n\t\t}\n\n\t\tint defaultNumberOfUpgradeSlots = getDefaultNumberOfUpgradeSlots();\n\t\tif (numberOfUpgradeSlots < defaultNumberOfUpgradeSlots) {\n\t\t\tnumberOfUpgradeSlots = defaultNumberOfUpgradeSlots;\n\t\t\tchanged = true;\n\t\t}\n\t\treturn changed;\n\t}\n\n\tprivate void loadContents(CompoundTag tag) {\n\t\tif (tag.contains(CONTENTS_TAG)) {\n\t\t\tcontentsNbt = tag.getCompound(CONTENTS_TAG);\n\t\t\tonContentsNbtUpdated();\n\t\t}\n\t}\n\n\t@Override\n\tpublic void setContentsChangeHandler(Runnable contentsChangeHandler) {\n\t\t// noop\n\t}\n\n\t@Override\n\tpublic ITrackedContentsItemHandler getInventoryForUpgradeProcessing() {"
+        },
+        {
+          "range": [
+            515,
+            555
+          ],
+          "text": "\t\t\tlinkedStorage.setSortBy(sortBy);\n\t\t\treturn;\n\t\t}\n\t\tthis.sortBy = sortBy;\n\t\tsave();\n\t}\n\n\t@Override\n\tpublic SortBy getSortBy() {\n\t\tif (linkedStorage != null) {\n\t\t\treturn linkedStorage.getSortBy();\n\t\t}\n\t\treturn sortBy;\n\t}\n\n\t@Override\n\tpublic void sort() {\n\t\tif (linkedStorage != null) {\n\t\t\tlinkedStorage.sort();\n\t\t\treturn;\n\t\t}\n\t\tSet<Integer> slotIndexesExcludedFromSort = new HashSet<>();\n\t\tslotIndexesExcludedFromSort.addAll(getSettingsHandler().getTypeCategory(NoSortSettingsCategory.class).getNoSortSlots());\n\t\tslotIndexesExcludedFromSort.addAll(getInventoryHandler().getNoSortSlots());\n\t\tMemorySettingsCategory memorySettings = getSettingsHandler().getTypeCategory(MemorySettingsCategory.class);\n\t\tInventorySorter.sortHandler(getInventoryHandler(), getComparator(), slotIndexesExcludedFromSort, memorySettings.getSlotIndexes(),\n\t\t\t\tmemorySettings::matchesFilter);\n\t}\n\n\tprivate Comparator<Map.Entry<ItemStackKey, Integer>> getComparator() {\n\t\treturn switch (getSortBy()) {\n\t\t\tcase COUNT -> InventorySorter.BY_COUNT;\n\t\t\tcase TAGS -> InventorySorter.BY_TAGS;\n\t\t\tcase NAME -> InventorySorter.BY_NAME;\n\t\t\tcase MOD -> InventorySorter.BY_MOD;\n\t\t};\n\t}\n\n\t@Override\n\tpublic void onContentsNbtUpdated() {\n\t\tif (linkedStorage != null) {"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedStorage",
+      "commit": "7d01973c3cb1726a81bdb0c4fa9da85e8187c9eb",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedStorage/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockEntity.java",
+      "sha256": "8fe9f1465f4f25a0cefa3ffca3437826659990bd0333a603281585b968dc3290",
+      "git_blob": "2aec15994dc1b3020d01a2b4bd9baeb37cdca6b0",
+      "read_ranges": [
+        [
+          245,
+          288
+        ],
+        [
+          340,
+          415
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedStorage/blob/7d01973c3cb1726a81bdb0c4fa9da85e8187c9eb/src/main/java/net/p3pp3rf1y/sophisticatedstorage/block/StorageBlockEntity.java",
+      "excerpts": [
+        {
+          "range": [
+            245,
+            288
+          ],
+          "text": "\t}\n\n\t@Override\n\tpublic Component getCustomName() {\n\t\treturn displayName;\n\t}\n\n\t@Override\n\tpublic void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {\n\t\tsuper.saveAdditional(tag, registries);\n\t\tsaveStorageWrapper(tag);\n\t\tsaveSynchronizedData(tag);\n\t\tif (isLinkedToController) {\n\t\t\ttag.putBoolean(\"isLinkedToController\", isLinkedToController);\n\t\t}\n\t}\n\n\tprivate void saveStorageWrapper(CompoundTag tag) {\n\t\ttag.put(STORAGE_WRAPPER_TAG, storageWrapper.save(new CompoundTag()));\n\t}\n\n\tprivate void saveStorageWrapperClientData(CompoundTag tag) {\n\t\tCompoundTag storageWrapperData = storageWrapper.saveData(new CompoundTag());\n\t\tif (linkedStorageHost != null) {\n\t\t\tstorageWrapper.synchronizeLinkedRenderInfo(linkedStorageHost.getRenderInfo().getNbt());\n\t\t\tstorageWrapperData.put(StorageWrapper.RENDER_INFO_TAG, storageWrapper.getRenderInfoNbt());\n\t\t}\n\t\ttag.put(STORAGE_WRAPPER_TAG, storageWrapperData);\n\t}\n\n\tprotected void saveSynchronizedData(CompoundTag tag) {\n\t\tsaveLinkedStorageData(tag);\n\t\tif (displayName != null) {\n\t\t\ttag.putString(\"displayName\", Component.Serializer.toJson(displayName, level.registryAccess()));\n\t\t}\n\t\tif (updateBlockRender) {\n\t\t\ttag.putBoolean(UPDATE_BLOCK_RENDER_TAG, true);\n\t\t}\n\t\tupdateBlockRender = false;\n\t\tif (locked) {\n\t\t\ttag.putBoolean(\"locked\", locked);\n\t\t}\n\t\tif (!showLock) {\n\t\t\ttag.putBoolean(\"showLock\", showLock);"
+        },
+        {
+          "range": [
+            340,
+            415
+          ],
+          "text": "\t\tdouble d1 = worldPosition.getY() + 0.5D + vec3i.getY() / 2.0D;\n\t\tdouble d2 = worldPosition.getZ() + 0.5D + vec3i.getZ() / 2.0D;\n\t\tlevel.playSound(null, d0, d1, d2, sound, SoundSource.BLOCKS, 0.5F, level.random.nextFloat() * 0.1F + 0.9F);\n\t}\n\n\t@Override\n\tpublic void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {\n\t\tsuper.loadAdditional(tag, registries);\n\t\tloadLinkedStorageData(tag);\n\t\tloadStorageWrapper(tag, registries);\n\t\tloadSynchronizedData(tag, registries);\n\n\t\tisLinkedToController = NBTHelper.getBoolean(tag, \"isLinkedToController\").orElse(false);\n\t}\n\n\tprivate void loadStorageWrapper(CompoundTag tag, HolderLookup.Provider registries) {\n\t\tLegacyStorageBlockDataMigration.normalizeBlockEntityTag(tag);\n\t\tNBTHelper.getCompound(tag, STORAGE_WRAPPER_TAG).ifPresent(wrapperData -> {\n\t\t\tif (linkedStorageEndpoint == null) {\n\t\t\t\tstorageWrapper.load(wrapperData);\n\t\t\t} else {\n\t\t\t\tstorageWrapper.loadEndpointData(wrapperData);\n\t\t\t}\n\t\t});\n\t}\n\n\t@Override\n\tpublic void onLoad() {\n\t\tsuper.onLoad();\n\t\tif (level instanceof ServerLevel serverLevel && linkedStorageEndpoint != null) {\n\t\t\tif (isLinkedStorageEndpointMember(serverLevel, linkedStorageEndpoint)) {\n\t\t\t\tbindLinkedStorage(serverLevel, linkedStorageEndpoint);\n\t\t\t} else {\n\t\t\t\tclearLinkedStorage();\n\t\t\t}\n\t\t}\n\t\tstorageWrapper.onInit(level);\n\t\tregisterWithControllerOnLoad();\n\t}\n\n\tpublic void loadSynchronizedData(CompoundTag tag, HolderLookup.Provider registries) {\n\t\tdisplayName = NBTHelper.getComponent(tag, \"displayName\", registries).orElse(null);\n\t\tlocked = NBTHelper.getBoolean(tag, \"locked\").orElse(false);\n\t\tshowLock = NBTHelper.getBoolean(tag, \"showLock\").orElse(true);\n\t\tshowTier = NBTHelper.getBoolean(tag, \"showTier\").orElse(true);\n\t\tshowUpgrades = NBTHelper.getBoolean(tag, \"showUpgrades\").orElse(false);\n\t\tif (level != null && level.isClientSide) {\n\t\t\tif (tag.getBoolean(UPDATE_BLOCK_RENDER_TAG)) {\n\t\t\t\tWorldHelper.notifyBlockUpdate(this);\n\t\t\t}\n\t\t}\n\t\tloadControllerPos(tag);\n\t}\n\n\t@Override\n\tpublic void onChunkUnloaded() {\n\t\tsuper.onChunkUnloaded();\n\t\tchunkBeingUnloaded = true;\n\t\tif (level != null) {\n\t\t\tunloadFromController();\n\t\t}\n\t\tcloseLinkedStorageSubscription();\n\t}\n\n\t@Override\n\tpublic void setRemoved() {\n\t\tcloseLinkedStorageSubscription();\n\t\tif (!isBeingUpgraded && !chunkBeingUnloaded && level != null) {\n\t\t\tremoveFromController();\n\t\t}\n\n\t\tsuper.setRemoved();\n\t}\n\n\t@Nullable\n\t@Override"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedStorage",
+      "commit": "7d01973c3cb1726a81bdb0c4fa9da85e8187c9eb",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedstorage/settings/StorageSettingsHandler.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedStorage/src/main/java/net/p3pp3rf1y/sophisticatedstorage/settings/StorageSettingsHandler.java",
+      "sha256": "95bbd60cd7f7977ac8e1f894619e02d19ed67e3a9d759818bf32c4759c60c99e",
+      "git_blob": "1fadadeff25e420edbfcfcba5641cb8095029651",
+      "read_ranges": [
+        [
+          1,
+          84
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedStorage/blob/7d01973c3cb1726a81bdb0c4fa9da85e8187c9eb/src/main/java/net/p3pp3rf1y/sophisticatedstorage/settings/StorageSettingsHandler.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            84
+          ],
+          "text": "package net.p3pp3rf1y.sophisticatedstorage.settings;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.neoforged.neoforge.common.NeoForge;\nimport net.neoforged.neoforge.event.entity.player.PlayerEvent;\nimport net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;\nimport net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;\nimport net.p3pp3rf1y.sophisticatedcore.renderdata.RenderInfo;\nimport net.p3pp3rf1y.sophisticatedcore.settings.ISettingsCategory;\nimport net.p3pp3rf1y.sophisticatedcore.settings.SettingsHandler;\nimport net.p3pp3rf1y.sophisticatedcore.settings.itemdisplay.ItemDisplaySettingsCategory;\nimport net.p3pp3rf1y.sophisticatedcore.settings.main.MainSettingsCategory;\nimport net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;\n\nimport java.util.function.Consumer;\nimport java.util.function.Supplier;\n\npublic abstract class StorageSettingsHandler extends SettingsHandler {\n\tpublic static final String SOPHISTICATED_STORAGE_SETTINGS_PLAYER_TAG = \"sophisticatedStorageSettings\";\n\n\tstatic {\n\t\tNeoForge.EVENT_BUS.addListener(StorageSettingsHandler::onPlayerClone);\n\t}\n\n\tprivate static void onPlayerClone(PlayerEvent.Clone event) {\n\t\tCompoundTag oldData = event.getOriginal().getPersistentData();\n\t\tCompoundTag newData = event.getEntity().getPersistentData();\n\n\t\tif (oldData.contains(SOPHISTICATED_STORAGE_SETTINGS_PLAYER_TAG)) {\n\t\t\t// noinspection ConstantConditions\n\t\t\tnewData.put(SOPHISTICATED_STORAGE_SETTINGS_PLAYER_TAG, oldData.get(SOPHISTICATED_STORAGE_SETTINGS_PLAYER_TAG));\n\t\t}\n\t}\n\n\tprotected StorageSettingsHandler(CompoundTag contentsNbt, Runnable markContentsDirty, Supplier<InventoryHandler> inventoryHandlerSupplier,\n\t\t\tSupplier<RenderInfo> renderInfoSupplier) {\n\t\tsuper(contentsNbt, markContentsDirty, inventoryHandlerSupplier, renderInfoSupplier);\n\t}\n\n\tprotected abstract int getNumberOfDisplayItems();\n\n\t@Override\n\tprotected CompoundTag getSettingsNbtFromContentsNbt(CompoundTag contentsNbt) {\n\t\treturn contentsNbt;\n\t}\n\n\t@Override\n\tprotected void addItemDisplayCategory(Supplier<InventoryHandler> inventoryHandlerSupplier, Supplier<RenderInfo> renderInfoSupplier,\n\t\t\tCompoundTag settingsNbt) {\n\t\taddSettingsCategory(settingsNbt, ItemDisplaySettingsCategory.NAME, markContentsDirty,\n\t\t\t\t(categoryNbt, saveNbt) -> new ItemDisplaySettingsCategory(inventoryHandlerSupplier, renderInfoSupplier, categoryNbt, saveNbt,\n\t\t\t\t\t\tgetNumberOfDisplayItems(), canDeselectDisplayItems(), () -> getTypeCategory(MemorySettingsCategory.class)));\n\t}\n\n\tprotected boolean canDeselectDisplayItems() {\n\t\treturn true;\n\t}\n\n\t@Override\n\tpublic String getGlobalSettingsCategoryName() {\n\t\treturn MainSettingsCategory.NAME;\n\t}\n\n\t@Override\n\tpublic ISettingsCategory<?> instantiateGlobalSettingsCategory(CompoundTag categoryNbt, Consumer<CompoundTag> saveNbt) {\n\t\treturn new MainSettingsCategory<>(categoryNbt, saveNbt, SOPHISTICATED_STORAGE_SETTINGS_PLAYER_TAG);\n\t}\n\n\t@Override\n\tprotected void saveCategoryNbt(CompoundTag settingsNbt, String categoryName, CompoundTag tag) {\n\t\tcontentsNbt.put(categoryName, tag);\n\t}\n\n\t@Override\n\tpublic void reloadFrom(CompoundTag contentsNbt) {\n\t\tthis.contentsNbt = contentsNbt;\n\t\tsuper.reloadFrom(contentsNbt);\n\t}\n\n\t@Override\n\tpublic void reloadFromStorageContents(CompoundTag storageContents) {\n\t\treloadFrom(storageContents.getCompound(IStorageWrapper.SETTINGS_TAG));\n\t}\n}"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedcore/settings/nosort/NoSortSettingsCategory.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedCore/src/main/java/net/p3pp3rf1y/sophisticatedcore/settings/nosort/NoSortSettingsCategory.java",
+      "sha256": "3d6904e284363ef45750283e6faeadc2f79153c5cc0402858a112ec48756fd48",
+      "git_blob": "696effe9567ce5dd0647b7ae9b85af5366e3df0b",
+      "read_ranges": [
+        [
+          1,
+          137
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedCore/blob/a25986c3bd745ddbe6a3b031313fb808936f9537/src/main/java/net/p3pp3rf1y/sophisticatedcore/settings/nosort/NoSortSettingsCategory.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            137
+          ],
+          "text": "package net.p3pp3rf1y.sophisticatedcore.settings.nosort;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.item.DyeColor;\nimport net.p3pp3rf1y.sophisticatedcore.settings.ISettingsCategory;\nimport net.p3pp3rf1y.sophisticatedcore.settings.ISlotColorCategory;\nimport net.p3pp3rf1y.sophisticatedcore.util.NBTHelper;\n\nimport java.util.HashSet;\nimport java.util.Optional;\nimport java.util.Set;\nimport java.util.function.Consumer;\n\npublic class NoSortSettingsCategory implements ISettingsCategory<NoSortSettingsCategory>, ISlotColorCategory {\n\tpublic static final String NAME = \"no_sort\";\n\tprivate static final String COLOR_TAG = \"color\";\n\tprivate static final String SELECTED_SLOTS_TAG = \"selectedSlots\";\n\tprivate CompoundTag categoryNbt;\n\tprivate final Consumer<CompoundTag> saveNbt;\n\tprivate final Set<Integer> selectedSlots = new HashSet<>();\n\tprivate DyeColor color = DyeColor.LIME;\n\n\tpublic NoSortSettingsCategory(CompoundTag categoryNbt, Consumer<CompoundTag> saveNbt) {\n\t\tthis.categoryNbt = categoryNbt;\n\t\tthis.saveNbt = saveNbt;\n\n\t\tdeserialize();\n\t}\n\n\tprivate void deserialize() {\n\t\tfor (int slotNumber : categoryNbt.getIntArray(SELECTED_SLOTS_TAG)) {\n\t\t\tselectedSlots.add(slotNumber);\n\t\t}\n\t\tNBTHelper.getInt(categoryNbt, COLOR_TAG).ifPresent(c -> color = DyeColor.byId(c));\n\t}\n\n\tpublic boolean isSlotSelected(int slotNumber) {\n\t\treturn selectedSlots.contains(slotNumber);\n\t}\n\n\tpublic void unselectAllSlots() {\n\t\tselectedSlots.clear();\n\t\tserializeSelectedSlots();\n\t}\n\n\t/**\n\t * Selects slots that shouldn't be sorted\n\t *\n\t * @param minSlot\n\t *            inclusive\n\t * @param maxSlot\n\t *            exclusive\n\t */\n\n\tpublic void selectSlots(int minSlot, int maxSlot) {\n\t\tfor (int slot = minSlot; slot < maxSlot; slot++) {\n\t\t\tselectedSlots.add(slot);\n\t\t}\n\t\tserializeSelectedSlots();\n\t}\n\n\tpublic void selectSlot(int slotNumber) {\n\t\tselectSlots(slotNumber, slotNumber + 1);\n\t}\n\n\tpublic void unselectSlot(int slotNumber) {\n\t\tselectedSlots.remove(slotNumber);\n\t\tserializeSelectedSlots();\n\t}\n\n\tprivate void serializeSelectedSlots() {\n\t\tint[] slots = new int[selectedSlots.size()];\n\t\tint i = 0;\n\t\tfor (int slotNumber : selectedSlots) {\n\t\t\tslots[i++] = slotNumber;\n\t\t}\n\t\tcategoryNbt.putIntArray(SELECTED_SLOTS_TAG, slots);\n\t\tsaveNbt.accept(categoryNbt);\n\t}\n\n\tpublic void setColor(DyeColor color) {\n\t\tthis.color = color;\n\t\tcategoryNbt.putInt(COLOR_TAG, color.getId());\n\t\tsaveNbt.accept(categoryNbt);\n\t}\n\n\tpublic DyeColor getColor() {\n\t\treturn color;\n\t}\n\n\t@Override\n\tpublic Optional<Integer> getSlotColor(int slotNumber) {\n\t\treturn selectedSlots.contains(slotNumber) ? Optional.of(color.getTextureDiffuseColor()) : Optional.empty();\n\t}\n\n\tpublic Set<Integer> getNoSortSlots() {\n\t\treturn selectedSlots;\n\t}\n\n\t@Override\n\tpublic void reloadFrom(CompoundTag categoryNbt) {\n\t\tthis.categoryNbt = categoryNbt;\n\t\tselectedSlots.clear();\n\t\tcolor = DyeColor.LIME;\n\t\tdeserialize();\n\t}\n\n\t@Override\n\tpublic void overwriteWith(NoSortSettingsCategory otherCategory) {\n\t\tselectedSlots.clear();\n\t\tselectedSlots.addAll(otherCategory.getNoSortSlots());\n\t\tserializeSelectedSlots();\n\t\tsetColor(otherCategory.getColor());\n\t}\n\n\t@Override\n\tpublic boolean isLargerThanNumberOfSlots(int slots) {\n\t\treturn selectedSlots.stream().anyMatch(slotIndex -> slotIndex >= slots);\n\t}\n\n\t@Override\n\tpublic void copyTo(NoSortSettingsCategory otherCategory, int startFromSlot, int slotOffset) {\n\t\tselectedSlots.forEach(slotIndex -> {\n\t\t\tif (slotIndex < startFromSlot) {\n\t\t\t\treturn;\n\t\t\t}\n\t\t\totherCategory.selectedSlots.add(slotIndex + slotOffset);\n\t\t});\n\t\totherCategory.serializeSelectedSlots();\n\t}\n\n\t@Override\n\tpublic void deleteSlotSettingsFrom(int slotIndex) {\n\t\tselectedSlots.removeIf(slot -> slot >= slotIndex);\n\t\tserializeSelectedSlots();\n\t}\n}"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedcore/settings/SettingsHandler.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedCore/src/main/java/net/p3pp3rf1y/sophisticatedcore/settings/SettingsHandler.java",
+      "sha256": "04c64ce49c9c05ebac31d9a0ef95c79370996f2ef0d101a220f8da2e8ad6949a",
+      "git_blob": "3515bd8b9e3f31d2dfea832d16e66959c004d5a5",
+      "read_ranges": [
+        [
+          1,
+          105
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedCore/blob/a25986c3bd745ddbe6a3b031313fb808936f9537/src/main/java/net/p3pp3rf1y/sophisticatedcore/settings/SettingsHandler.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            105
+          ],
+          "text": "package net.p3pp3rf1y.sophisticatedcore.settings;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;\nimport net.p3pp3rf1y.sophisticatedcore.renderdata.RenderInfo;\nimport net.p3pp3rf1y.sophisticatedcore.settings.main.MainSettingsCategory;\nimport net.p3pp3rf1y.sophisticatedcore.settings.memory.MemorySettingsCategory;\nimport net.p3pp3rf1y.sophisticatedcore.settings.nosort.NoSortSettingsCategory;\n\nimport java.util.*;\nimport java.util.function.BiFunction;\nimport java.util.function.Consumer;\nimport java.util.function.Supplier;\n\npublic abstract class SettingsHandler {\n\tprotected CompoundTag contentsNbt;\n\tprotected final Runnable markContentsDirty;\n\tprotected final Map<String, ISettingsCategory<?>> settingsCategories = new LinkedHashMap<>();\n\tprivate final Map<Class<?>, List<?>> interfaceCategories = new HashMap<>();\n\tprivate final Map<Class<? extends ISettingsCategory<?>>, ISettingsCategory<?>> typeCategories = new HashMap<>();\n\n\tprotected SettingsHandler(CompoundTag contentsNbt, Runnable markContentsDirty, Supplier<InventoryHandler> inventoryHandlerSupplier,\n\t\t\tSupplier<RenderInfo> renderInfoSupplier) {\n\t\tthis.contentsNbt = contentsNbt;\n\t\tthis.markContentsDirty = markContentsDirty;\n\t\taddSettingsCategories(inventoryHandlerSupplier, renderInfoSupplier, getSettingsNbtFromContentsNbt(contentsNbt));\n\t}\n\n\tprotected abstract CompoundTag getSettingsNbtFromContentsNbt(CompoundTag contentsNbt);\n\n\tprivate void addSettingsCategories(Supplier<InventoryHandler> inventoryHandlerSupplier, Supplier<RenderInfo> renderInfoSupplier, CompoundTag settingsNbt) {\n\t\taddSettingsCategory(settingsNbt, getGlobalSettingsCategoryName(), markContentsDirty, this::instantiateGlobalSettingsCategory);\n\t\taddItemDisplayCategory(inventoryHandlerSupplier, renderInfoSupplier, settingsNbt);\n\t\taddSettingsCategory(settingsNbt, NoSortSettingsCategory.NAME, markContentsDirty, NoSortSettingsCategory::new);\n\t\taddSettingsCategory(settingsNbt, MemorySettingsCategory.NAME, markContentsDirty,\n\t\t\t\t(categoryNbt, saveNbt) -> new MemorySettingsCategory(inventoryHandlerSupplier, categoryNbt, saveNbt));\n\t}\n\n\tprotected abstract void addItemDisplayCategory(Supplier<InventoryHandler> inventoryHandlerSupplier, Supplier<RenderInfo> renderInfoSupplier,\n\t\t\tCompoundTag settingsNbt);\n\n\tpublic abstract String getGlobalSettingsCategoryName();\n\n\tpublic abstract ISettingsCategory<?> instantiateGlobalSettingsCategory(CompoundTag categoryNbt, Consumer<CompoundTag> saveNbt);\n\n\tpublic MainSettingsCategory<?> getGlobalSettingsCategory() {\n\t\treturn getTypeCategory(MainSettingsCategory.class);\n\t}\n\n\tprotected void addSettingsCategory(CompoundTag settingsNbt, String categoryName, Runnable markContentsDirty,\n\t\t\tBiFunction<CompoundTag, Consumer<CompoundTag>, ISettingsCategory<?>> instantiateCategory) {\n\t\tISettingsCategory<?> category = instantiateCategory.apply(settingsNbt.getCompound(categoryName), tag -> {\n\t\t\tsaveCategoryNbt(getSettingsNbtFromContentsNbt(contentsNbt), categoryName, tag);\n\t\t\tmarkContentsDirty.run();\n\t\t});\n\t\tsettingsCategories.put(categoryName, category);\n\t\taddTypeCategory(category);\n\t}\n\n\tprivate <T extends ISettingsCategory<T>> void addTypeCategory(ISettingsCategory<?> category) {\n\t\t// noinspection unchecked\n\t\ttypeCategories.put((Class<T>) category.getClass(), category);\n\t}\n\n\tprotected abstract void saveCategoryNbt(CompoundTag settingsNbt, String categoryName, CompoundTag tag);\n\n\tpublic Map<String, ISettingsCategory<?>> getSettingsCategories() {\n\t\treturn settingsCategories;\n\t}\n\n\tpublic <T> List<T> getCategoriesThatImplement(Class<T> categoryClass) {\n\t\t// noinspection unchecked\n\t\treturn (List<T>) interfaceCategories.computeIfAbsent(categoryClass, this::getListOfWrappersThatImplement);\n\t}\n\n\tpublic <T extends ISettingsCategory<?>> T getTypeCategory(Class<T> categoryClazz) {\n\t\t// noinspection unchecked - only inserted in one place where it's made sure that class is the same as the category instance\n\t\treturn (T) typeCategories.get(categoryClazz);\n\t}\n\n\tprivate <T> List<T> getListOfWrappersThatImplement(Class<T> uc) {\n\t\tList<T> ret = new ArrayList<>();\n\t\tfor (ISettingsCategory<?> category : settingsCategories.values()) {\n\t\t\tif (uc.isInstance(category)) {\n\t\t\t\t// noinspection unchecked\n\t\t\t\tret.add((T) category);\n\t\t\t}\n\t\t}\n\t\treturn ret;\n\t}\n\n\tpublic CompoundTag getNbt() {\n\t\treturn getSettingsNbtFromContentsNbt(contentsNbt);\n\t}\n\n\tpublic void reloadFrom(CompoundTag contentsNbt) {\n\t\tthis.contentsNbt = contentsNbt;\n\t\tCompoundTag settingsNbt = getSettingsNbtFromContentsNbt(contentsNbt);\n\t\tgetSettingsCategories().forEach((categoryName, category) -> category.reloadFrom(settingsNbt.getCompound(categoryName)));\n\t}\n\n\tpublic void reloadFromStorageContents(CompoundTag storageContents) {\n\t\treloadFrom(storageContents);\n\t}\n}"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedcore/settings/itemdisplay/ItemDisplaySettingsCategory.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedCore/src/main/java/net/p3pp3rf1y/sophisticatedcore/settings/itemdisplay/ItemDisplaySettingsCategory.java",
+      "sha256": "1d6202aaffcaadefbbc911d381034259dc259d64bade65992c44963c08dd3e01",
+      "git_blob": "d9b1e220d2b56aaf96034423f4ce66c62216bcf5",
+      "read_ranges": [
+        [
+          200,
+          240
+        ],
+        [
+          315,
+          442
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedCore/blob/a25986c3bd745ddbe6a3b031313fb808936f9537/src/main/java/net/p3pp3rf1y/sophisticatedcore/settings/itemdisplay/ItemDisplaySettingsCategory.java",
+      "excerpts": [
+        {
+          "range": [
+            200,
+            240
+          ],
+          "text": "\tprivate static float calculateSlotFillRatio(ItemStack stack, InventoryHandler inventoryHandler, int slotIndex) {\n\t\treturn stack.isEmpty() ? 0 : (float) stack.getCount() / inventoryHandler.getStackLimit(slotIndex, stack);\n\t}\n\n\tprivate Optional<ItemStack> getSlotItemCopy(int slotIndex) {\n\t\tItemStack slotStack = inventoryHandlerSupplier.get().getStackInSlot(slotIndex);\n\t\tif (slotStack.isEmpty()) {\n\t\t\tItem filterItem = inventoryHandlerSupplier.get().getFilterItem(slotIndex);\n\t\t\tif (filterItem != Items.AIR) {\n\t\t\t\treturn Optional.of(new ItemStack(filterItem));\n\t\t\t}\n\n\t\t\treturn getMemorySettings.get().getSlotFilterStack(slotIndex, true);\n\t\t}\n\t\tItemStack stackCopy = slotStack.copy();\n\t\tstackCopy.setCount(1);\n\t\treturn Optional.of(stackCopy);\n\t}\n\n\tpublic void selectSlot(int slotIndex) {\n\t\tif (slotIndexes.size() + 1 > itemNumberLimit) {\n\t\t\treturn;\n\t\t}\n\t\tslotIndexes.add(slotIndex);\n\t\tserializeSlotIndexes();\n\n\t\tupdateFullRenderInfo();\n\t}\n\n\tprivate void serializeSlotIndexes() {\n\t\tcategoryNbt.putIntArray(SLOTS_TAG, slotIndexes);\n\t\tsaveNbt.accept(categoryNbt);\n\t}\n\n\tpublic List<Integer> getSlots() {\n\t\treturn slotIndexes;\n\t}\n\n\tpublic int getRotation(int slotIndex) {\n\t\treturn slotRotations.getOrDefault(slotIndex, 0);\n\t}"
+        },
+        {
+          "range": [
+            315,
+            442
+          ],
+          "text": "\t\tcategoryNbt.putString(DISPLAY_SIDE_TAG, displaySide.getSerializedName());\n\t\tsaveNbt.accept(categoryNbt);\n\t\tupdateFullRenderInfo();\n\t}\n\n\t@Override\n\tpublic void reloadFrom(CompoundTag categoryNbt) {\n\t\tthis.categoryNbt = categoryNbt;\n\t\tdeserialize();\n\t}\n\n\t@Override\n\tpublic void overwriteWith(ItemDisplaySettingsCategory otherCategory) {\n\t\tslotIndexes.clear();\n\t\tslotIndexes.addAll(otherCategory.getSlots());\n\t\tserializeSlotIndexes();\n\t\tslotRotations.clear();\n\t\tslotRotations.putAll(otherCategory.slotRotations);\n\t\tserializeRotations();\n\t\tslotZOffsets.clear();\n\t\tslotZOffsets.putAll(otherCategory.slotZOffsets);\n\t\tserializeZOffsets();\n\t\tsetColor(otherCategory.getColor());\n\n\t\titemsChanged();\n\t}\n\n\tprivate void deserialize() {\n\t\tslotIndexes.clear();\n\t\tNBTHelper.getIntArray(categoryNbt, SLOTS_TAG).ifPresent(slots -> {\n\t\t\tfor (int slot : slots) {\n\t\t\t\tslotIndexes.add(slot);\n\t\t\t}\n\t\t});\n\t\tslotRotations = NBTHelper.getMap(categoryNbt, ROTATIONS_TAG, Integer::valueOf, (k, v) -> Optional.of(((IntTag) v).getAsInt())).orElseGet(HashMap::new);\n\t\tslotZOffsets = NBTHelper.getMap(categoryNbt, Z_OFFSETS_TAG, Integer::valueOf, (k, v) -> Optional.of(((IntTag) v).getAsInt())).orElseGet(HashMap::new);\n\t\tcolor = NBTHelper.getInt(categoryNbt, COLOR_TAG).map(DyeColor::byId).orElse(DyeColor.RED);\n\n\t\t// legacy nbt support to be removed in the future\n\t\tNBTHelper.getInt(categoryNbt, SLOT_TAG).ifPresent(e -> {\n\t\t\tslotIndexes.add(e);\n\t\t\tcategoryNbt.remove(SLOT_TAG);\n\t\t\tserializeSlotIndexes();\n\t\t});\n\t\tNBTHelper.getInt(categoryNbt, ROTATION_TAG).ifPresent(r -> {\n\t\t\tif (!slotIndexes.isEmpty()) {\n\t\t\t\tslotRotations.put(slotIndexes.iterator().next(), r);\n\t\t\t}\n\t\t\tcategoryNbt.remove(ROTATION_TAG);\n\t\t\tserializeRotations();\n\t\t});\n\t\tNBTHelper.getEnumConstant(categoryNbt, DISPLAY_SIDE_TAG, DisplaySide::fromName).ifPresent(ds -> displaySide = ds);\n\t}\n\n\tpublic void itemChanged(int changedSlotIndex) {\n\t\tif (Thread.currentThread().getThreadGroup() != SidedThreadGroups.SERVER || !slotIndexes.contains(changedSlotIndex)) {\n\t\t\treturn;\n\t\t}\n\n\t\tif (haveRenderedItemsChanged()) {\n\t\t\tupdateDisplayItemsAndInaccessibleSlots();\n\t\t}\n\t\tif (haveCountsOrFillRatiosChanged(inventoryHandlerSupplier.get())) {\n\t\t\tupdateCountsFillRatiosAndInfiniteSlots();\n\t\t}\n\t}\n\n\tpublic void itemsChanged() {\n\t\tif (Thread.currentThread().getThreadGroup() != SidedThreadGroups.SERVER) {\n\t\t\treturn;\n\t\t}\n\n\t\tif (haveRenderedItemsChanged()) {\n\t\t\tupdateDisplayItemsAndInaccessibleSlots();\n\t\t}\n\t\tif (haveCountsOrFillRatiosChanged(inventoryHandlerSupplier.get())) {\n\t\t\tupdateCountsFillRatiosAndInfiniteSlots();\n\t\t}\n\t}\n\n\t@Override\n\tpublic Optional<Integer> getSlotColor(int slotNumber) {\n\t\treturn slotIndexes.contains(slotNumber) ? Optional.of(color.getTextureDiffuseColor()) : Optional.empty();\n\t}\n\n\t/**\n\t * Selects slots that shouldn't be sorted\n\t *\n\t * @param minSlot\n\t *            inclusive\n\t * @param maxSlot\n\t *            exclusive\n\t */\n\n\tpublic void selectSlots(int minSlot, int maxSlot) {\n\t\tfor (int slotIndex = minSlot; slotIndex < maxSlot; slotIndex++) {\n\t\t\tif (slotIndexes.size() + 1 > itemNumberLimit) {\n\t\t\t\treturn;\n\t\t\t}\n\t\t\tslotIndexes.add(slotIndex);\n\t\t}\n\t\tserializeSlotIndexes();\n\t\tupdateFullRenderInfo();\n\t}\n\n\t@Override\n\tpublic boolean isLargerThanNumberOfSlots(int slots) {\n\t\treturn slotIndexes.stream().anyMatch(slotIndex -> slotIndex >= slots);\n\t}\n\n\t@Override\n\tpublic void copyTo(ItemDisplaySettingsCategory otherCategory, int startFromSlot, int slotOffset) {\n\t\t// noop - keep the display item of the other category\n\t}\n\n\t@Override\n\tpublic void deleteSlotSettingsFrom(int slotIndex) {\n\t\tslotIndexes.removeIf(slot -> slot >= slotIndex);\n\t\tslotRotations.keySet().removeIf(slot -> slot >= slotIndex);\n\t\tslotZOffsets.keySet().removeIf(slot -> slot >= slotIndex);\n\t\tserializeSlotIndexes();\n\t\tserializeRotations();\n\t\tserializeZOffsets();\n\t}\n\n\tpublic boolean canDeselectSlots() {\n\t\treturn canDeselectSlots;\n\t}"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedcore/util/InventorySorter.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedCore/src/main/java/net/p3pp3rf1y/sophisticatedcore/util/InventorySorter.java",
+      "sha256": "3a7c94c176c5737560d49157259b85dfa1284412f5f5cec3c2e6974667bb5e8f",
+      "git_blob": "74c6ea79bffc360332209be907ce02d345cd1ad7",
+      "read_ranges": [
+        [
+          1,
+          207
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedCore/blob/a25986c3bd745ddbe6a3b031313fb808936f9537/src/main/java/net/p3pp3rf1y/sophisticatedcore/util/InventorySorter.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            207
+          ],
+          "text": "package net.p3pp3rf1y.sophisticatedcore.util;\n\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.tags.TagKey;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.neoforged.neoforge.items.IItemHandlerModifiable;\nimport net.p3pp3rf1y.sophisticatedcore.inventory.InventoryHandler;\nimport net.p3pp3rf1y.sophisticatedcore.inventory.ItemStackKey;\n\nimport java.util.*;\nimport java.util.function.BiPredicate;\nimport java.util.stream.Collectors;\n\npublic class InventorySorter {\n\tprivate InventorySorter() {\n\t}\n\n\tpublic static final Comparator<Map.Entry<ItemStackKey, Integer>> BY_NAME = Comparator\n\t\t\t.comparing(o -> o.getKey().getStack().getHoverName().getString().toLowerCase());\n\tpublic static final Comparator<Map.Entry<ItemStackKey, Integer>> BY_MOD = Comparator.<Map.Entry<ItemStackKey, Integer>, String>comparing(o -> {\n\t\tResourceLocation registryName = BuiltInRegistries.ITEM.getKey(o.getKey().getStack().getItem());\n\t\treturn registryName.getNamespace();\n\t}).thenComparing(o -> o.getKey().getStack().getHoverName().getString());\n\n\tpublic static final Comparator<Map.Entry<ItemStackKey, Integer>> BY_COUNT = (first, second) -> {\n\t\tint ret = second.getValue().compareTo(first.getValue());\n\t\treturn ret != 0 ? ret : getRegistryName(first.getKey()).compareTo(getRegistryName(second.getKey()));\n\t};\n\n\tpublic static final Comparator<Map.Entry<ItemStackKey, Integer>> BY_TAGS = new Comparator<>() {\n\t\t@Override\n\t\tpublic int compare(Map.Entry<ItemStackKey, Integer> first, Map.Entry<ItemStackKey, Integer> second) {\n\t\t\tItemStack firstStack = first.getKey().getStack();\n\t\t\tItem firstItem = firstStack.getItem();\n\t\t\tItemStack secondStack = second.getKey().getStack();\n\t\t\tItem secondItem = secondStack.getItem();\n\t\t\tif (firstItem == secondItem) {\n\t\t\t\treturn 0;\n\t\t\t}\n\t\t\tint ret = compareTags(firstStack.getTags().collect(Collectors.toSet()), secondStack.getTags().collect(Collectors.toSet()));\n\t\t\treturn ret != 0 ? ret : getRegistryName(first.getKey()).compareTo(getRegistryName(second.getKey()));\n\t\t}\n\n\t\tprivate int compareTags(Set<TagKey<Item>> firstTags, Set<TagKey<Item>> secondTags) {\n\t\t\tint ret = Integer.compare(secondTags.size(), firstTags.size());\n\t\t\tif (ret != 0) {\n\t\t\t\treturn ret;\n\t\t\t}\n\n\t\t\tif (firstTags.size() == 1) {\n\t\t\t\treturn firstTags.iterator().next().location().compareTo(secondTags.iterator().next().location());\n\t\t\t}\n\n\t\t\tArrayList<TagKey<Item>> firstTagsSorted = new ArrayList<>(firstTags);\n\t\t\tArrayList<TagKey<Item>> secondTagsSorted = new ArrayList<>(secondTags);\n\t\t\tfirstTagsSorted.sort(Comparator.comparing(TagKey::location));\n\t\t\tsecondTagsSorted.sort(Comparator.comparing(TagKey::location));\n\n\t\t\tfor (int i = 0; i < firstTagsSorted.size(); i++) {\n\t\t\t\tret = firstTagsSorted.get(i).location().compareTo(secondTagsSorted.get(i).location());\n\t\t\t\tif (ret != 0) {\n\t\t\t\t\treturn ret;\n\t\t\t\t}\n\t\t\t}\n\t\t\treturn 0;\n\t\t}\n\t};\n\n\tprivate static String getRegistryName(ItemStackKey itemStackKey) {\n\t\treturn BuiltInRegistries.ITEM.getKey(itemStackKey.getStack().getItem()).toString();\n\t}\n\n\tpublic static void sortHandler(IItemHandlerModifiable handler, Comparator<? super Map.Entry<ItemStackKey, Integer>> comparator, Set<Integer> noSortSlots) {\n\t\tsortHandler(handler, comparator, noSortSlots, Set.of(), (slot, stack) -> false);\n\t}\n\n\tpublic static void sortHandler(IItemHandlerModifiable handler, Comparator<? super Map.Entry<ItemStackKey, Integer>> comparator, Set<Integer> noSortSlots,\n\t\t\tSet<Integer> ignoredSlots) {\n\t\tSet<Integer> allNoSortSlots = new HashSet<>(noSortSlots);\n\t\tallNoSortSlots.addAll(ignoredSlots);\n\t\tsortHandler(handler, comparator, allNoSortSlots, Set.of(), (slot, stack) -> false);\n\t}\n\n\tpublic static void sortHandler(IItemHandlerModifiable handler, Comparator<? super Map.Entry<ItemStackKey, Integer>> comparator, Set<Integer> noSortSlots,\n\t\t\tSet<Integer> memorizedSlots, BiPredicate<Integer, ItemStack> matchesMemorizedSlot) {\n\t\tSet<Integer> skippedSlots = new HashSet<>(noSortSlots);\n\t\tSet<Integer> accessibleMemorizedSlots = new HashSet<>(memorizedSlots);\n\t\taccessibleMemorizedSlots.removeAll(skippedSlots);\n\t\tif (handler instanceof InventoryHandler inventoryHandler) {\n\t\t\tfor (int slot = 0; slot < inventoryHandler.getSlots(); slot++) {\n\t\t\t\tif (!inventoryHandler.isSlotAccessible(slot)) {\n\t\t\t\t\tskippedSlots.add(slot);\n\t\t\t\t\taccessibleMemorizedSlots.remove(slot);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t\tMap<ItemStackKey, Integer> compactedStacks = InventoryHelper.getCompactedStacks(handler, skippedSlots, false);\n\t\tList<Map.Entry<ItemStackKey, Integer>> sortedList = new ArrayList<>(compactedStacks.entrySet());\n\t\tsortedList.sort(comparator);\n\n\t\tint slots = handler.getSlots();\n\n\t\tsortIntoMemorizedSlots(handler, accessibleMemorizedSlots, matchesMemorizedSlot, sortedList);\n\t\tskippedSlots.addAll(accessibleMemorizedSlots);\n\n\t\tsortIntoOtherSlots(handler, skippedSlots, sortedList, slots);\n\t}\n\n\tprivate static void sortIntoOtherSlots(IItemHandlerModifiable handler, Set<Integer> noSortSlots, List<Map.Entry<ItemStackKey, Integer>> sortedList,\n\t\t\tint slots) {\n\t\tIterator<Map.Entry<ItemStackKey, Integer>> ite = sortedList.iterator();\n\t\tItemStackKey current = null;\n\t\tint count = 0;\n\n\t\tfor (int slot = 0; slot < slots; slot++) {\n\t\t\tif (noSortSlots.contains(slot)) {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\tif ((current == null || count <= 0) && ite.hasNext()) {\n\t\t\t\tMap.Entry<ItemStackKey, Integer> entry = ite.next();\n\t\t\t\tcurrent = entry.getKey();\n\t\t\t\tcount = entry.getValue();\n\t\t\t}\n\t\t\tif (current != null && count > 0) {\n\t\t\t\tcount -= placeStack(handler, current, count, slot, false);\n\t\t\t} else {\n\t\t\t\temptySlot(handler, slot);\n\t\t\t}\n\t\t}\n\t}\n\n\tprivate static void sortIntoMemorizedSlots(IItemHandlerModifiable handler, Set<Integer> memorizedSlots,\n\t\t\tBiPredicate<Integer, ItemStack> matchesMemorizedSlot, List<Map.Entry<ItemStackKey, Integer>> sortedList) {\n\t\tList<Integer> sortedMemorizedSlots = memorizedSlots.stream().sorted().toList();\n\t\tfor (int slot : sortedMemorizedSlots) {\n\t\t\temptySlot(handler, slot);\n\t\t}\n\n\t\tIterator<Map.Entry<ItemStackKey, Integer>> it = sortedList.iterator();\n\t\twhile (it.hasNext()) {\n\t\t\tMap.Entry<ItemStackKey, Integer> entry = it.next();\n\t\t\tItemStackKey current = entry.getKey();\n\t\t\tint count = entry.getValue();\n\t\t\tfor (int slot : sortedMemorizedSlots) {\n\t\t\t\tif (!handler.getStackInSlot(slot).isEmpty() || !matchesMemorizedSlot.test(slot, current.getStack())) {\n\t\t\t\t\tcontinue;\n\t\t\t\t}\n\t\t\t\tcount -= placeStack(handler, current, count, slot, false);\n\t\t\t\tif (count <= 0) {\n\t\t\t\t\tit.remove();\n\t\t\t\t\tbreak;\n\t\t\t\t}\n\t\t\t}\n\t\t\tentry.setValue(count);\n\t\t}\n\t}\n\n\tprivate static void emptySlot(IItemHandlerModifiable handler, int slot) {\n\t\tif (!handler.getStackInSlot(slot).isEmpty()) {\n\t\t\tif (handler instanceof InventoryHandler inventoryHandler) {\n\t\t\t\tinventoryHandler.setSlotStack(slot, ItemStack.EMPTY);\n\t\t\t} else {\n\t\t\t\thandler.setStackInSlot(slot, ItemStack.EMPTY);\n\t\t\t}\n\t\t}\n\t}\n\n\tprivate static int placeStack(IItemHandlerModifiable handler, ItemStackKey current, int count, int slot, boolean countWithCurrentStack) {\n\t\tif (handler instanceof InventoryHandler inventoryHandler) {\n\t\t\treturn placeStack(current, count, slot, countWithCurrentStack, (s, stack) -> inventoryHandler.getBaseStackLimit(stack),\n\t\t\t\t\tinventoryHandler::getSlotStack, inventoryHandler::setSlotStack);\n\t\t} else {\n\t\t\treturn placeStack(current, count, slot, countWithCurrentStack, (s, stack) -> handler.getSlotLimit(s), handler::getStackInSlot,\n\t\t\t\t\thandler::setStackInSlot);\n\t\t}\n\t}\n\n\tprivate static int placeStack(ItemStackKey current, int count, int slot, boolean countWithCurrentStack, IStackLimitGetter stackLimitGetter,\n\t\t\tISlotStackGetter slotStackGetter, ISlotStackSetter slotStackSetter) {\n\t\tItemStack copy = current.getStack().copy();\n\t\tint slotLimit = stackLimitGetter.getStackLimit(slot, copy);\n\t\tint existingCount = slotStackGetter.getSlotStack(slot).getCount();\n\t\tif (countWithCurrentStack) {\n\t\t\tcount += existingCount;\n\t\t}\n\t\tint countPlaced = Math.min(count, slotLimit);\n\t\tcopy.setCount(countPlaced);\n\t\tif (!ItemStack.matches(slotStackGetter.getSlotStack(slot), copy)) {\n\t\t\tslotStackSetter.setSlotStack(slot, copy);\n\t\t}\n\t\treturn countWithCurrentStack ? countPlaced - existingCount : countPlaced;\n\t}\n\n\tprivate interface IStackLimitGetter {\n\t\tint getStackLimit(int slot, ItemStack stack);\n\t}\n\n\tprivate interface ISlotStackGetter {\n\t\tItemStack getSlotStack(int slot);\n\t}\n\n\tprivate interface ISlotStackSetter {\n\t\tvoid setSlotStack(int slot, ItemStack stack);\n\t}\n}"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedcore/util/InventoryHelper.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedCore/src/main/java/net/p3pp3rf1y/sophisticatedcore/util/InventoryHelper.java",
+      "sha256": "eff18f6a529070ed8b1c42ae5d9d2e53e33a61aca9c0dbeb83856f8e2359a037",
+      "git_blob": "16506a3d66ffb645ed96743997e1106e1bc26251",
+      "read_ranges": [
+        [
+          375,
+          398
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedCore/blob/a25986c3bd745ddbe6a3b031313fb808936f9537/src/main/java/net/p3pp3rf1y/sophisticatedcore/util/InventoryHelper.java",
+      "excerpts": [
+        {
+          "range": [
+            375,
+            398
+          ],
+          "text": "\t}\n\n\tstatic Map<ItemStackKey, Integer> getCompactedStacks(IItemHandler handler) {\n\t\treturn getCompactedStacks(handler, new HashSet<>());\n\t}\n\n\tstatic Map<ItemStackKey, Integer> getCompactedStacks(IItemHandler handler, Set<Integer> ignoreSlots) {\n\t\treturn getCompactedStacks(handler, ignoreSlots, true);\n\t}\n\n\tstatic Map<ItemStackKey, Integer> getCompactedStacks(IItemHandler handler, Set<Integer> ignoreSlots, boolean getVirtualCounts) {\n\t\tMap<ItemStackKey, Integer> ret = new HashMap<>();\n\t\titerate(handler, (slot, stack) -> {\n\t\t\tif (stack.isEmpty() || ignoreSlots.contains(slot)) {\n\t\t\t\treturn;\n\t\t\t}\n\t\t\tItemStackKey itemStackKey = ItemStackKey.of(stack);\n\t\t\tret.put(itemStackKey, ret.computeIfAbsent(itemStackKey, fs -> 0) + stack.getCount());\n\t\t}, () -> false, getVirtualCounts);\n\t\treturn ret;\n\t}\n\n\tpublic static List<ItemStack> getCompactedStacksSortedByCount(IItemHandler handler) {\n\t\tMap<ItemStackKey, Integer> compactedStacks = getCompactedStacks(handler, Set.of(), false);"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedcore/common/gui/StorageContainerMenuBase.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedCore/src/main/java/net/p3pp3rf1y/sophisticatedcore/common/gui/StorageContainerMenuBase.java",
+      "sha256": "d6ad115a8c749e5bc8d8eb2b7b169e05db1ef9189789640444cc668c4cbc8463",
+      "git_blob": "772ce14ef4d703cd21736b61bc2a98e2c624e954",
+      "read_ranges": [
+        [
+          692,
+          698
+        ],
+        [
+          735,
+          750
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedCore/blob/a25986c3bd745ddbe6a3b031313fb808936f9537/src/main/java/net/p3pp3rf1y/sophisticatedcore/common/gui/StorageContainerMenuBase.java",
+      "excerpts": [
+        {
+          "range": [
+            692,
+            698
+          ],
+          "text": "\tpublic void sort() {\n\t\tif (isClientSide()) {\n\t\t\tsendToServer(data -> data.putString(ACTION_TAG, \"sort\"));\n\t\t\treturn;\n\t\t}\n\n\t\tstorageWrapper.sort();"
+        },
+        {
+          "range": [
+            735,
+            750
+          ],
+          "text": "\t\t\tsetOpenTabId(data.getInt(OPEN_TAB_ID_TAG));\n\t\t} else if (data.contains(SORT_BY_TAG)) {\n\t\t\tsetSortBy(SortBy.fromName(data.getString(SORT_BY_TAG)));\n\t\t} else if (data.contains(SEARCH_PHRASE_TAG)) {\n\t\t\tsetSearchPhrase(data.getString(SEARCH_PHRASE_TAG));\n\t\t} else if (data.contains(ACTION_TAG)) {\n\t\t\tString actionName = data.getString(ACTION_TAG);\n\t\t\tswitch (actionName) {\n\t\t\t\tcase \"sort\" -> sort();\n\t\t\t\tcase \"openSettings\" -> openSettings();\n\t\t\t\tdefault -> {\n\t\t\t\t\t// noop\n\t\t\t\t}\n\t\t\t}\n\t\t} else if (data.contains(UPGRADE_ENABLED_TAG)) {\n\t\t\tsetUpgradeEnabled(data.getInt(UPGRADE_SLOT_TAG), data.getBoolean(UPGRADE_ENABLED_TAG));"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedcore/inventory/InventoryHandler.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedCore/src/main/java/net/p3pp3rf1y/sophisticatedcore/inventory/InventoryHandler.java",
+      "sha256": "28047e1f1736b7299dec95849bafbeb576fa0ac07fb762c2a8c12ccb506d4984",
+      "git_blob": "8d387ecca3ba26ee482e3412193321e78d113181",
+      "read_ranges": [
+        [
+          517,
+          538
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedCore/blob/a25986c3bd745ddbe6a3b031313fb808936f9537/src/main/java/net/p3pp3rf1y/sophisticatedcore/inventory/InventoryHandler.java",
+      "excerpts": [
+        {
+          "range": [
+            517,
+            538
+          ],
+          "text": "\tpublic boolean isSlotAccessible(int slot) {\n\t\treturn !isSlotBlocked.test(slot) && inventoryPartitioner.getPartBySlot(slot).isSlotAccessible(slot);\n\t}\n\n\tpublic boolean shouldRenderInaccessibleSlotOverlay(int slot) {\n\t\tif (isSlotBlocked.test(slot)) {\n\t\t\treturn shouldRenderBlockedSlotOverlay.test(slot);\n\t\t}\n\t\treturn inventoryPartitioner.shouldRenderInaccessibleSlotOverlay(slot);\n\t}\n\n\tpublic void setSlotBlockedPredicate(IntPredicate isSlotBlocked, IntPredicate shouldRenderBlockedSlotOverlay) {\n\t\tthis.isSlotBlocked = isSlotBlocked;\n\t\tthis.shouldRenderBlockedSlotOverlay = shouldRenderBlockedSlotOverlay;\n\t\tgetSlotTracker().refreshSlotIndexesFrom(this);\n\t\tonFilterItemsChanged();\n\t}\n\n\tpublic Set<Integer> getNoSortSlots() {\n\t\treturn inventoryPartitioner.getNoSortSlots();\n\t}\n"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedcore/inventory/InventoryPartitioner.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedCore/src/main/java/net/p3pp3rf1y/sophisticatedcore/inventory/InventoryPartitioner.java",
+      "sha256": "31da4cc8f1da94a986bf24baf4c13a815bc950a0c9e2d3c515f1a2f5606c2933",
+      "git_blob": "cf71e580ded8af91491916e167ed3df6aef939b7",
+      "read_ranges": [
+        [
+          65,
+          93
+        ],
+        [
+          225,
+          250
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedCore/blob/a25986c3bd745ddbe6a3b031313fb808936f9537/src/main/java/net/p3pp3rf1y/sophisticatedcore/inventory/InventoryPartitioner.java",
+      "excerpts": [
+        {
+          "range": [
+            65,
+            93
+          ],
+          "text": "\t\treturn getPartBySlot(slot).shouldRenderInaccessibleSlotOverlay(slot);\n\t}\n\n\tpublic void onSlotLimitChange() {\n\t\tfor (IInventoryPartHandler inventoryPartHandler : inventoryPartHandlers) {\n\t\t\tinventoryPartHandler.onSlotLimitChange();\n\t\t}\n\t}\n\n\tpublic Set<Integer> getNoSortSlots() {\n\t\tSet<Integer> noSortSlots = new HashSet<>();\n\t\tfor (IInventoryPartHandler inventoryPartHandler : inventoryPartHandlers) {\n\t\t\tnoSortSlots.addAll(inventoryPartHandler.getNoSortSlots());\n\t\t}\n\t\treturn noSortSlots;\n\t}\n\n\tpublic boolean isFilterItem(Item item) {\n\t\tfor (IInventoryPartHandler inventoryPartHandler : inventoryPartHandlers) {\n\t\t\tif (inventoryPartHandler.isFilterItem(item)) {\n\t\t\t\treturn true;\n\t\t\t}\n\t\t}\n\n\t\treturn false;\n\t}\n\n\tpublic Map<Item, Set<Integer>> getFilterItems() {\n\t\tMap<Item, Set<Integer>> filterItems = new HashMap<>();"
+        },
+        {
+          "range": [
+            225,
+            250
+          ],
+          "text": "\t\tret.put(\"inventoryPartNames\", partNames);\n\t\treturn ret;\n\t}\n\n\tprivate void deserializeNBT(CompoundTag tag, Supplier<MemorySettingsCategory> getMemorySettings) {\n\t\tif (!tag.contains(BASE_INDEXES_TAG)) {\n\t\t\tthis.inventoryPartHandlers = new IInventoryPartHandler[]{new IInventoryPartHandler.Default(parent, parent.getSlots())};\n\t\t\tthis.baseIndexes = new int[]{0};\n\t\t\treturn;\n\t\t}\n\n\t\tbaseIndexes = tag.getIntArray(BASE_INDEXES_TAG);\n\t\tinventoryPartHandlers = new IInventoryPartHandler[baseIndexes.length];\n\t\tListTag partNamesTag = tag.getList(\"inventoryPartNames\", Tag.TAG_STRING);\n\t\tint i = 0;\n\t\tfor (Tag t : partNamesTag) {\n\t\t\tSlotRange slotRange = new SlotRange(baseIndexes[i], (i + 1 < baseIndexes.length ? baseIndexes[i + 1] : parent.getSlots()) - baseIndexes[i]);\n\t\t\tinventoryPartHandlers[i] = InventoryPartRegistry.instantiatePart(t.getAsString(), parent, slotRange, getMemorySettings);\n\t\t\ti++;\n\t\t}\n\t}\n\n\tpublic boolean isInfinite(int slot) {\n\t\treturn getPartBySlot(slot).isInfinite(slot);\n\t}\n}"
+        }
+      ]
+    },
+    {
+      "repository": "P3pp3rF1y/SophisticatedCore",
+      "commit": "a25986c3bd745ddbe6a3b031313fb808936f9537",
+      "path": "src/main/java/net/p3pp3rf1y/sophisticatedcore/inventory/IInventoryPartHandler.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/P3pp3rF1y__SophisticatedCore/src/main/java/net/p3pp3rf1y/sophisticatedcore/inventory/IInventoryPartHandler.java",
+      "sha256": "d7b6376fc044319049373dc72f09153c3c211930c6c68d240c97311bbd47b52a",
+      "git_blob": "fa5382d03ddf36bb127e8a86714c2246102d3b2a",
+      "read_ranges": [
+        [
+          70,
+          125
+        ]
+      ],
+      "source_url": "https://github.com/P3pp3rF1y/SophisticatedCore/blob/a25986c3bd745ddbe6a3b031313fb808936f9537/src/main/java/net/p3pp3rf1y/sophisticatedcore/inventory/IInventoryPartHandler.java",
+      "excerpts": [
+        {
+          "range": [
+            70,
+            125
+          ],
+          "text": "\t\treturn 0;\n\t}\n\n\tString getName();\n\n\t@Nullable\n\tdefault Pair<ResourceLocation, ResourceLocation> getNoItemIcon(int slot) {\n\t\treturn null;\n\t}\n\n\tdefault Item getFilterItem(int slot) {\n\t\treturn Items.AIR;\n\t}\n\n\tdefault void onSlotLimitChange() {\n\t\t// noop\n\t}\n\n\tdefault Set<Integer> getNoSortSlots() {\n\t\treturn Set.of();\n\t}\n\n\tdefault void onSlotFilterChanged(int slot) {\n\t\t// noop\n\t}\n\n\tdefault boolean isFilterItem(Item item) {\n\t\treturn false;\n\t}\n\n\tdefault Map<Item, Set<Integer>> getFilterItems() {\n\t\treturn Map.of();\n\t}\n\n\tdefault void onInit() {\n\t\t// noop\n\t}\n\n\tdefault boolean isInfinite(int slot) {\n\t\treturn false;\n\t}\n\n\tclass Default implements IInventoryPartHandler {\n\t\tpublic static final String NAME = \"default\";\n\t\tprivate final InventoryHandler parent;\n\t\tprivate final int slots;\n\n\t\tpublic Default(InventoryHandler parent, int slots) {\n\t\t\tthis.parent = parent;\n\t\t\tthis.slots = slots;\n\t\t}\n\n\t\t@Override\n\t\tpublic int getSlotLimit(int slot) {\n\t\t\treturn parent.getBaseSlotLimit();\n\t\t}"
+        }
+      ]
+    }
+  ],
+  "actual_chain": [
+    "StorageBlockEntity loads owned wrapper; wrapper restores category settings and slot counts. LimitedBarrel loadAdditional calls setFixedSettings on no-level/server context.",
+    "onLoad non-linked owner makes memory matching NBT-sensitive, reinforces display/no-sort slots and refreshes item display.",
+    "setFixedSettings compares each selected collection size with slot count. NoSort selectSlots unions 0..N into existing selected set and serializes through category save callback.",
+    "SettingsHandler registration callbacks persist category and mark owner dirty; StorageSettingsHandler stores category children in owned settings compound.",
+    "StorageContainerMenuBase client sort sends action; server action dispatch reaches wrapper.sort. Wrapper unions category exclusions and partition exclusions; linked wrapper delegates.",
+    "InventorySorter compacts only non-skipped slots, removes skipped slots from memorized work, and leaves skipped slots untouched while writing others. InventoryHelper compaction confirms exclusions before stack merging.",
+    "InventoryHandler forwards partition no-sort set. Partitioner absent baseIndexes defaults one default part; interface default no-sort returns empty. No unconditional extra default-part protection is inferred."
+  ],
+  "findings": [
+    "Cardinality is not exact slot membership: N=4 selected {1,2,3,7} bypasses no-sort reconstruction while missing slot0. This is a static policy counterexample, not a native exploit reproduction.",
+    "Starting {7} with N=4 unions to {0,1,2,3,7}; size remains wrong on later loads. Repair does not remove stale indices.",
+    "Display list raw deserialization allows duplicates/out-of-range entries; selectSlots appends and returns early at itemNumberLimit before serialization/full render update. This is support for the same fixed-policy mechanism, zero separate credit.",
+    "onLoad checks !isLinkedStorage but loadAdditional does not; ownership guard asymmetry observed, no cross-owner runtime claim.",
+    "Other partition exclusions, accessibility and memory filters can mask the observed policy hole; no universal actual item loss/reorder claim."
+  ],
+  "semantic_dedup": [
+    {
+      "compared_candidate": "2e35fb3112e162bcf8ae",
+      "difference": "Existing stack Size/Slot bounds decoder; current mechanism is serialized behavioral slot policy reconstructed for a concrete limited-barrel owner and consumed by sorting."
+    },
+    {
+      "compared_candidate": "6c6a345794bd061b2592",
+      "difference": "Existing missing-layout default partition restore; current category-level per-compartment exclusion survives into sorting; partition helper is support only."
+    },
+    {
+      "compared_candidate": "25b6ffc14faa973b50e1",
+      "difference": "Existing item/stack memory filter decoder; NBT-sensitive memory activation is support, not new credit."
+    },
+    {
+      "compared_candidate": "b116b5fcd392a97492b5",
+      "difference": "Existing canonical owner/cache invalidation; wrapper restoration is supporting entry only, not recounted."
+    }
+  ],
+  "application_to_dynasty": "When later gate permits migration changes, validate exact finite slot/key membership against current owner schema, not collection cardinality, and preserve serialized content separately from derived behavior. Do not put world/container settings into player Clone whitelist or mint quest rewards during migration.",
+  "limits": [
+    "Two separately fixed upstream source snapshots; compatibility of their declared dependency/build/runtime combination not established here.",
+    "Source-chain study only, no Minecraft execution, parser fuzzing, live world/sort/save verification or successful transaction guarantee.",
+    "Display visual renderer full implementation not claimed read; display list behavior bounded to quoted methods.",
+    "No production implementation permitted until relevant semantic gate reaches1000."
+  ],
+  "production_changes": 0,
+  "native_acceptance_credit": 0,
+  "game_starts": 0,
+  "todo_deletions": 0
+}

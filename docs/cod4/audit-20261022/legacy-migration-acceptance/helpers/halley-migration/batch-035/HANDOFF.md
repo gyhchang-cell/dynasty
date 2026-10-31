@@ -1,0 +1,11 @@
+# Halley → Kepler：第035批，credit0
+
+复用官方NaturesAura94a21a6c2c0cd73f581369f72d7190edb960c5ef。1条命名Overworld共享库存→铁砧绑定→crate拆放carrier→实体菜单/远程item实际访问完整对象。
+
+真值在Overworld level_data.storages，载体只有naturesaura:ender_name；旧栈copy后写名不重建Count/tag。无玩家UUID所有权，复制名字引用同份库存。TOKEN_TERROR只阻止铁砧新绑同名目标，不拦现有绑定访问，不能当玩家所有权锁照搬。
+
+世界数据save省略空仓库，isDirty恒true支持无tile handler写保存检查；不承诺即时崩溃一致性。tile缺name不清旧值，空string可通过canOpen!=null；native损坏ItemStack/未知id/Size规则未审查。crate wrapper按实际insert/extract结果扣费，setStack/getStack不收费；item远程打开直接world handler且实际扣费helper用drain>0而非足额，所有边界均静态不称复现。
+
+73完整方法+7字段、13文件仅80支持节点，254复用文件不计。Git/tree/blob/source/完整方法摘录/normalized哈希错误0；主账primary机械匹配0仍需你语义去重。与033共LevelData支持不另计；与010外置EnderStorage、032pouch广义相似已披露。1建议credit0/accepted=false。
+
+036修正选源预期：该矿车搬运灵气而非收纳实体，扩展serializeNBT是否被原生常规实体保存/restoreFrom调用目前未证实，暂记排除/候选0信用，不拿方法数凑参考。继续真正持久对象/Clone来源。十小时尚未完成；无游戏编译测试GUI/屏幕及主账生产待办原档写入。

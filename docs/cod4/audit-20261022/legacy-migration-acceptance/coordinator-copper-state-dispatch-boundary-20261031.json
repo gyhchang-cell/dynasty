@@ -1,0 +1,169 @@
+{
+  "recorded_at": "2026-10-31T00:57:00.592433+00:00",
+  "candidate_id": "56242f9442d6343fddae",
+  "status": "PENDING_NO_NEW_CREDIT",
+  "candidate_revision": "cc6b1f3e71e9b991fcf402e92d8f291a12af84df",
+  "candidate_file_sha_matches": true,
+  "sources": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V4535.java",
+      "sha256": "9772c85ea50b7940b5c05ac418a4e488bbfb123c7cd5fbfb45dc91a0daa218d6",
+      "read_ranges": [
+        [
+          1,
+          40
+        ]
+      ],
+      "excerpts": [
+        {
+          "range": [
+            1,
+            40
+          ],
+          "text": "package ca.spottedleaf.dataconverter.minecraft.versions;\n\nimport ca.spottedleaf.converter.DataConverter;\nimport ca.spottedleaf.dataconverter.minecraft.MCVersions;\nimport ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;\nimport ca.spottedleaf.converter.types.MapType;\n\npublic final class V4535 {\n\n    private static final int VERSION = MCVersions.V25W31A + 1;\n\n    public static void register() {\n        MCTypeRegistry.ENTITY.addConverterForId(\"minecraft:copper_golem\", new DataConverter<>(VERSION) {\n            @Override\n            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {\n                switch (data.getInt(\"weather_state\", 0)) {\n                    case 1: {\n                        data.setString(\"weather_state\", \"exposed\");\n                        break;\n                    }\n                    case 2: {\n                        data.setString(\"weather_state\", \"weathered\");\n                        break;\n                    }\n                    case 3: {\n                        data.setString(\"weather_state\", \"oxidized\");\n                        break;\n                    }\n                    default: {\n                        data.setString(\"weather_state\", \"unaffected\");\n                        break;\n                    }\n                }\n                return null;\n            }\n        });\n    }\n\n    private V4535() {}\n}"
+        }
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/datatypes/IDDataType.java",
+      "sha256": "be548825e1b12710440457f420feaa567d59b6c9e8f56d1d89a898a2b701e2c4",
+      "read_ranges": [
+        [
+          1,
+          168
+        ]
+      ],
+      "excerpts": [
+        {
+          "range": [
+            1,
+            168
+          ],
+          "text": "package ca.spottedleaf.dataconverter.minecraft.datatypes;\n\nimport ca.spottedleaf.common.map.longs.Long2ObjectArraySortedMap;\nimport ca.spottedleaf.converter.DataConverter;\nimport ca.spottedleaf.converter.datatypes.DataHook;\nimport ca.spottedleaf.converter.datatypes.DataWalker;\nimport ca.spottedleaf.converter.types.MapType;\nimport java.util.ArrayList;\nimport java.util.HashMap;\nimport java.util.List;\nimport java.util.Map;\n\npublic class IDDataType extends MCDataType {\n\n    protected final Map<String, Long2ObjectArraySortedMap<List<DataWalker<MapType>>>> walkersById = new HashMap<>();\n\n    public IDDataType(final String name) {\n        super(name);\n    }\n\n    public void addConverterForId(final String id, final DataConverter<MapType, MapType> converter) {\n        this.addStructureConverter(new DataConverter<>(converter.getToVersion(), converter.getVersionStep()) {\n            @Override\n            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {\n                if (!id.equals(data.getString(\"id\"))) {\n                    return null;\n                }\n                return converter.convert(data, sourceVersion, toVersion);\n            }\n        });\n    }\n\n    public boolean hasWalkers(final String id) {\n        return this.walkersById.containsKey(id);\n    }\n\n    public void addWalker(final int minVersion, final String id, final DataWalker<MapType> walker) {\n        this.addWalker(minVersion, 0, id, walker);\n    }\n\n    public void addWalker(final int minVersion, final int versionStep, final String id, final DataWalker<MapType> walker) {\n        this.walkersById.computeIfAbsent(id, (final String keyInMap) -> {\n            return new Long2ObjectArraySortedMap<>();\n        }).computeIfAbsent(DataConverter.encodeVersions(minVersion, versionStep), (final long keyInMap) -> {\n            return new ArrayList<>();\n        }).add(walker);\n    }\n\n    public void copyWalkers(final int minVersion, final String fromId, final String toId) {\n        this.copyWalkers(minVersion, 0, fromId, toId);\n    }\n\n    public void copyWalkers(final int minVersion, final int versionStep, final String fromId, final String toId) {\n        final long version = DataConverter.encodeVersions(minVersion, versionStep);\n        final Long2ObjectArraySortedMap<List<DataWalker<MapType>>> walkersForId = this.walkersById.get(fromId);\n        if (walkersForId == null) {\n            return;\n        }\n\n        final List<DataWalker<MapType>> nearest = walkersForId.getFloor(version);\n\n        if (nearest == null) {\n            return;\n        }\n\n        for (final DataWalker<MapType> walker : nearest) {\n            this.addWalker(minVersion, versionStep, toId, walker);\n        }\n    }\n\n    @Override\n    public MapType convert(MapType data, final long fromVersion, final long toVersion) {\n        MapType ret = null;\n\n        final List<DataConverter<MapType, MapType>> converters = this.structureConverters;\n        for (int i = 0, len = converters.size(); i < len; ++i) {\n            final DataConverter<MapType, MapType> converter = converters.get(i);\n            final long converterVersion = converter.getEncodedVersion();\n\n            if (converterVersion <= fromVersion) {\n                continue;\n            }\n\n            if (converterVersion > toVersion) {\n                break;\n            }\n\n            List<DataHook<MapType, MapType>> hooks = this.structureHooks.getFloor(converterVersion);\n\n            if (hooks != null) {\n                for (int k = 0, klen = hooks.size(); k < klen; ++k) {\n                    final MapType replace = hooks.get(k).preHook(data, fromVersion, toVersion);\n                    if (replace != null) {\n                        ret = data = replace;\n                    }\n                }\n            }\n\n            final MapType replace = converter.convert(data, fromVersion, toVersion);\n            if (replace != null) {\n                ret = data = replace;\n            }\n\n            // possibly new data format, update hooks\n            hooks = this.structureHooks.getFloor(toVersion);\n\n            if (hooks != null) {\n                for (int klen = hooks.size(), k = klen - 1; k >= 0; --k) {\n                    final MapType postReplace = hooks.get(k).postHook(data, fromVersion, toVersion);\n                    if (postReplace != null) {\n                        ret = data = postReplace;\n                    }\n                }\n            }\n        }\n\n        final List<DataHook<MapType, MapType>> hooks = this.structureHooks.getFloor(toVersion);\n\n        // run pre hooks\n\n        if (hooks != null) {\n            for (int k = 0, klen = hooks.size(); k < klen; ++k) {\n                final MapType replace = hooks.get(k).preHook(data, fromVersion, toVersion);\n                if (replace != null) {\n                    ret = data = replace;\n                }\n            }\n        }\n\n        // run all walkers\n\n        final List<DataWalker<MapType>> walkers = this.structureWalkers.getFloor(toVersion);\n        if (walkers != null) {\n            for (int i = 0, len = walkers.size(); i < len; ++i) {\n                final MapType replace = walkers.get(i).walk(data, fromVersion, toVersion);\n                if (replace != null) {\n                    ret = data = replace;\n                }\n            }\n        }\n\n        final Long2ObjectArraySortedMap<List<DataWalker<MapType>>> walkersByVersion = this.walkersById.get(data.getString(\"id\"));\n        if (walkersByVersion != null) {\n            final List<DataWalker<MapType>> walkersForId = walkersByVersion.getFloor(toVersion);\n            if (walkersForId != null) {\n                for (int i = 0, len = walkersForId.size(); i < len; ++i) {\n                    final MapType replace = walkersForId.get(i).walk(data, fromVersion, toVersion);\n                    if (replace != null) {\n                        ret = data = replace;\n                    }\n                }\n            }\n        }\n\n        // run post hooks\n\n        if (hooks != null) {\n            for (int klen = hooks.size(), k = klen - 1; k >= 0; --k) {\n                final MapType postReplace = hooks.get(k).postHook(data, fromVersion, toVersion);\n                if (postReplace != null) {\n                    ret = data = postReplace;\n                }\n            }\n        }\n\n        return ret;\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/datatypes/MCDataType.java",
+      "sha256": "6f7b486a4c9b2388fa31d9f8f3c2243e9bf0d965b389b6354e6455515a1a5692",
+      "read_ranges": [
+        [
+          1,
+          133
+        ]
+      ],
+      "excerpts": [
+        {
+          "range": [
+            1,
+            133
+          ],
+          "text": "package ca.spottedleaf.dataconverter.minecraft.datatypes;\n\nimport ca.spottedleaf.common.map.longs.Long2ObjectArraySortedMap;\nimport ca.spottedleaf.converter.DataConverter;\nimport ca.spottedleaf.converter.datatypes.DataHook;\nimport ca.spottedleaf.converter.datatypes.DataType;\nimport ca.spottedleaf.converter.datatypes.DataWalker;\nimport ca.spottedleaf.dataconverter.minecraft.MCVersionRegistry;\nimport ca.spottedleaf.converter.types.MapType;\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class MCDataType extends DataType<MapType, MapType> {\n\n    public final String name;\n\n    protected final ArrayList<DataConverter<MapType, MapType>> structureConverters = new ArrayList<>();\n    protected final Long2ObjectArraySortedMap<List<DataWalker<MapType>>> structureWalkers = new Long2ObjectArraySortedMap<>();\n    protected final Long2ObjectArraySortedMap<List<DataHook<MapType, MapType>>> structureHooks = new Long2ObjectArraySortedMap<>();\n\n    public MCDataType(final String name) {\n        this.name = name;\n    }\n\n    public void addStructureConverter(final DataConverter<MapType, MapType> converter) {\n        MCVersionRegistry.checkVersion(converter.getEncodedVersion());\n        final boolean sort = !this.structureConverters.isEmpty()\n            && DataConverter.LOWEST_VERSION_COMPARATOR.compare(this.structureConverters.getLast(), converter) > 0;\n        this.structureConverters.add(converter);\n        if (sort) {\n            this.structureConverters.sort(DataConverter.LOWEST_VERSION_COMPARATOR);\n        }\n    }\n\n    public void addStructureWalker(final int minVersion, final DataWalker<MapType> walker) {\n        this.addStructureWalker(minVersion, 0, walker);\n    }\n\n    public void addStructureWalker(final int minVersion, final int versionStep, final DataWalker<MapType> walker) {\n        this.structureWalkers.computeIfAbsent(DataConverter.encodeVersions(minVersion, versionStep), (final long keyInMap) -> {\n            return new ArrayList<>();\n        }).add(walker);\n    }\n\n    public void addStructureHook(final int minVersion, final DataHook<MapType, MapType> hook) {\n        this.addStructureHook(minVersion, 0, hook);\n    }\n\n    public void addStructureHook(final int minVersion, final int versionStep, final DataHook<MapType, MapType> hook) {\n        this.structureHooks.computeIfAbsent(DataConverter.encodeVersions(minVersion, versionStep), (final long keyInMap) -> {\n            return new ArrayList<>();\n        }).add(hook);\n    }\n\n    @Override\n    public MapType convert(MapType data, final long fromVersion, final long toVersion) {\n        MapType ret = null;\n\n        final List<DataConverter<MapType, MapType>> converters = this.structureConverters;\n        for (int i = 0, len = converters.size(); i < len; ++i) {\n            final DataConverter<MapType, MapType> converter = converters.get(i);\n            final long converterVersion = converter.getEncodedVersion();\n\n            if (converterVersion <= fromVersion) {\n                continue;\n            }\n\n            if (converterVersion > toVersion) {\n                break;\n            }\n\n            List<DataHook<MapType, MapType>> hooks = this.structureHooks.getFloor(converterVersion);\n\n            if (hooks != null) {\n                for (int k = 0, klen = hooks.size(); k < klen; ++k) {\n                    final MapType replace = hooks.get(k).preHook(data, fromVersion, toVersion);\n                    if (replace != null) {\n                        ret = data = replace;\n                    }\n                }\n            }\n\n            final MapType replace = converter.convert(data, fromVersion, toVersion);\n            if (replace != null) {\n                ret = data = replace;\n            }\n\n            // possibly new data format, update hooks\n            hooks = this.structureHooks.getFloor(toVersion);\n\n            if (hooks != null) {\n                for (int klen = hooks.size(), k = klen - 1; k >= 0; --k) {\n                    final MapType postReplace = hooks.get(k).postHook(data, fromVersion, toVersion);\n                    if (postReplace != null) {\n                        ret = data = postReplace;\n                    }\n                }\n            }\n        }\n\n        final List<DataHook<MapType, MapType>> hooks = this.structureHooks.getFloor(toVersion);\n\n        if (hooks != null) {\n            for (int k = 0, klen = hooks.size(); k < klen; ++k) {\n                final MapType replace = hooks.get(k).preHook(data, fromVersion, toVersion);\n                if (replace != null) {\n                    ret = data = replace;\n                }\n            }\n        }\n\n        final List<DataWalker<MapType>> walkers = this.structureWalkers.getFloor(toVersion);\n        if (walkers != null) {\n            for (int i = 0, len = walkers.size(); i < len; ++i) {\n                final MapType replace = walkers.get(i).walk(data, fromVersion, toVersion);\n                if (replace != null) {\n                    ret = data = replace;\n                }\n            }\n        }\n\n        if (hooks != null) {\n            for (int klen = hooks.size(), k = klen - 1; k >= 0; --k) {\n                final MapType postReplace = hooks.get(k).postHook(data, fromVersion, toVersion);\n                if (postReplace != null) {\n                    ret = data = postReplace;\n                }\n            }\n        }\n\n        return ret;\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/types/nbt/NBTMapType.java",
+      "sha256": "6a8bba8330d26bf13975d33561bd6fddbd4505a6f967ae606c2660260a22984d",
+      "read_ranges": [
+        [
+          190,
+          212
+        ],
+        [
+          294,
+          324
+        ],
+        [
+          550,
+          565
+        ]
+      ],
+      "excerpts": [
+        {
+          "range": [
+            190,
+            212
+          ],
+          "text": "\n        return tag == null ? dfl : Types.NBT.baseToGeneric(tag);\n    }\n\n    @Override\n    public Number getNumber(final String key) {\n        return this.getNumber(key, null);\n    }\n\n    @Override\n    public Number getNumber(final String key, final Number dfl) {\n        final Tag tag = this.map.get(key);\n        if (tag instanceof NumericTag numTag) {\n            return numTag.box();\n        }\n        return dfl;\n    }\n\n    @Override\n    public BigInteger getBigInteger(final String key) {\n        throw new UnsupportedOperationException();\n    }\n"
+        },
+        {
+          "range": [
+            294,
+            324
+          ],
+          "text": "    @Override\n    public void setShort(final String key, final short val) {\n        this.map.putShort(key, val);\n    }\n\n    @Override\n    public int getInt(final String key) {\n        final Tag tag = this.map.get(key);\n        if (tag instanceof NumericTag numericTag) {\n            return numericTag.intValue();\n        }\n        return 0;\n    }\n\n    @Override\n    public int getInt(final String key, final int dfl) {\n        final Tag tag = this.map.get(key);\n        if (tag instanceof NumericTag numericTag) {\n            return numericTag.intValue();\n        }\n        return dfl;\n    }\n\n    @Override\n    public void setInt(final String key, final int val) {\n        this.map.putInt(key, val);\n    }\n\n    @Override\n    public long getLong(final String key) {\n        final Tag tag = this.map.get(key);"
+        },
+        {
+          "range": [
+            550,
+            565
+          ],
+          "text": "        if (tag instanceof StringTag strTag) {\n            return strTag.value();\n        }\n        return dfl;\n    }\n\n    @Override\n    public void setString(final String key, final String val) {\n        this.map.putString(key, val);\n    }\n\n    @Override\n    public void setGeneric(final String key, final Object value) {\n        this.map.put(key, Types.NBT.genericToBase(Objects.requireNonNull(value)));\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/datatypes/MCTypeRegistry.java",
+      "sha256": "f31f868b4559b21f5b7977b46c4daeabd5cefc71dd11b6e1362b715a6b235de1",
+      "read_ranges": [
+        [
+          1,
+          55
+        ],
+        [
+          364,
+          379
+        ]
+      ],
+      "excerpts": [
+        {
+          "range": [
+            1,
+            55
+          ],
+          "text": "package ca.spottedleaf.dataconverter.minecraft.datatypes;\n\nimport ca.spottedleaf.dataconverter.minecraft.versions.*;\nimport com.mojang.logging.LogUtils;\nimport org.slf4j.Logger;\nimport java.text.DecimalFormat;\n\npublic final class MCTypeRegistry {\n\n    private static final Logger LOGGER = LogUtils.getLogger();\n\n    // Note: LEVEL and LIGHTWEIGHT_LEVEL are not maintained past versions 1.21.11, and they were never tested to begin with.\n    public static final MCDataType LEVEL               = new MCDataType(\"Level\");\n    public static final MCDataType LIGHTWEIGHT_LEVEL   = new MCDataType(\"LightweightLevel\");\n    public static final MCDataType PLAYER              = new MCDataType(\"Player\");\n    public static final MCDataType CHUNK               = new MCDataType(\"Chunk\");\n    public static final MCDataType HOTBAR              = new MCDataType(\"CreativeHotbar\");\n    public static final MCDataType OPTIONS             = new MCDataType(\"Options\");\n    public static final MCDataType STRUCTURE           = new MCDataType(\"Structure\");\n    public static final MCDataType STATS               = new MCDataType(\"Stats\");\n    public static final MCDataType ADVANCEMENTS        = new MCDataType(\"Advancements\");\n    public static final MCDataType POI_CHUNK           = new MCDataType(\"PoiChunk\");\n    public static final MCDataType ENTITY_CHUNK        = new MCDataType(\"EntityChunk\");\n    public static final IDDataType TILE_ENTITY         = new IDDataType(\"TileEntity\");\n    public static final IDDataType ITEM_STACK          = new IDDataType(\"ItemStack\");\n    public static final MCDataType BLOCK_STATE         = new MCDataType(\"BlockState\");\n    public static final MCValueType FLAT_BLOCK_STATE   = new MCValueType(\"FlatBlockState\");\n    public static final MCDataType DATA_COMPONENTS     = new MCDataType(\"DataComponents\");\n    public static final MCDataType VILLAGER_TRADE      = new MCDataType(\"VillagerTrade\");\n    public static final DynamicDataType PARTICLE       = new DynamicDataType(\"Particle\");\n    public static final MCValueType ENTITY_NAME        = new MCValueType(\"EntityName\");\n    public static final IDDataType ENTITY              = new IDDataType(\"Entity\");\n    public static final MCValueType BLOCK_NAME         = new MCValueType(\"BlockName\");\n    public static final MCValueType ITEM_NAME          = new MCValueType(\"ItemName\");\n    public static final MCDataType UNTAGGED_SPAWNER    = new MCDataType(\"Spawner\");\n    public static final MCDataType STRUCTURE_FEATURE   = new MCDataType(\"StructureFeature\");\n    public static final MCDataType OBJECTIVE           = new MCDataType(\"Objective\");\n    public static final MCDataType TEAM                = new MCDataType(\"Team\");\n    public static final MCValueType RECIPE             = new MCValueType(\"RecipeName\");\n    public static final MCValueType BIOME              = new MCValueType(\"Biome\");\n    public static final MCDataType WORLD_GEN_SETTINGS  = new MCDataType(\"WorldGenSettings\");\n    public static final MCValueType GAME_EVENT_NAME    = new MCValueType(\"GameEventName\");\n    // NOTE: Prior to V165, TEXT_COMPONENT _also_ mark plain strings (not components!) to be converted to json format.\n    // So, great care should be taken to ensure that when dealing with versions up to and including V165 that BOTH formats\n    // of JSON and plain text are parsed properly.\n    // As a result, we differ from Vanilla's schemas to ensure that legacy data converts correctly.\n    public static final DynamicDataType TEXT_COMPONENT = new DynamicDataType(\"TextComponent\");\n    public static final MCDataType ENTITY_EQUIPMENT    = new MCDataType(\"EntityEquipment\");\n\n    public static final MCValueType MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST = new MCValueType(\"MultiNoiseBiomeSourceParameterList\");\n\n    public static final MCDataType SAVED_DATA_RANDOM_SEQUENCES          = new MCDataType(\"SavedData/RandomSequences\");\n    public static final MCDataType SAVED_DATA_SCOREBOARD                = new MCDataType(\"SavedData/Scoreboard\");\n    public static final MCDataType SAVED_DATA_STRUCTURE_FEATURE_INDICES = new MCDataType(\"SavedData/StructureFeatureIndices\");\n    public static final MCDataType SAVED_DATA_MAP_DATA                  = new MCDataType(\"SavedData/MapData\");"
+        },
+        {
+          "range": [
+            364,
+            379
+          ],
+          "text": "        // V1.21.6\n        V4420.register();\n        V4421.register();\n        V4424.register();\n        // V1.21.8\n        V4439.register(); // Fix https://github.com/PaperMC/DataConverter/commit/b6675e47ca068f152c3b648b3869fe63ca12b720\n        // V1.21.9\n        // V4531 is simple entity copper_golem\n        // V4532 is simple tile entity copper_golem_statue\n        V4533.register();\n        V4535.register();\n        V4537.register();\n        V4541.register();\n        // V4543 is simple entity mannequin\n        V4544.register();\n        V4548.register();"
+        }
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/MCVersions.java",
+      "sha256": "0423d5a18e37eee318a80322d55ed4ed0d7101e1cee2a8fd96f84eed2b883793",
+      "read_ranges": [
+        [
+          600,
+          600
+        ]
+      ],
+      "excerpts": [
+        {
+          "range": [
+            600,
+            600
+          ],
+          "text": "    public static final int V25W31A               = 4534;"
+        }
+      ]
+    }
+  ],
+  "provenance_limits": "Existing fixed candidate revision/fileSHA matched for V4535. Support source bytes recorded but no matching recursive tree/commit metadata found in searched cache this turn; do not imply6fixedblob verification or independent acceptance.",
+  "observations": [
+    "V4535 registered at4535=V25W31A4534+1 on ENTITY IDDataType. Exact copper_golem id guard surrounds converter; general dispatcher only invokes converters with fromVersion<converterVersion<=toVersion, subject to hooks. Returnnull denotes in-place mutation, not failed migration.",
+    "NBTMapType getInt accepts any NumericTag via intValue; nonnumeric/missing uses0. Cases1/2/3 overwrite same weather_state key as exposed/weathered/oxidized; all other numeric/missing/wrong types become unaffected. Fractions/numeric narrowing can select a different state; no schema/type validation in this converter.",
+    "A modern string field in a wrongly version-marked record is nonnumeric and becomes unaffected; this is a source conditional observation, not ordinary repeat-execution defect because normal dispatcher version gate can skip already-current input. Other payload keys are untouched by this local switch.",
+    "Full actual copper-golem weathering gameplay owner and matching native codec not read; constant mapping/register/dispatcher helpers are not independent mechanisms or multiple reference units."
+  ],
+  "application_to_dynasty": "Use explicit saved schema version and type-aware conversion; do not treat converter returnnull as no mutation or replay mappings indiscriminately. Preserve malformed/unknown payload rather than silently treating state as default. Research only, no production edit.",
+  "accepted_reference_credit_added": 0,
+  "native_acceptance_credit": 0,
+  "production_changes": 0,
+  "game_starts": 0,
+  "todo_deletions": 0
+}
