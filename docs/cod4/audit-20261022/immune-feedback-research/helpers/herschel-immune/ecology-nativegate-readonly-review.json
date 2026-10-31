@@ -1,0 +1,134 @@
+{
+  "kind": "READ_ONLY_DIAGNOSTIC_REVIEW_NOT_RUNTIME_ACCEPTANCE",
+  "source": "tools/cod4/ecology-acceptance/native-gate-src/NativeCreatureGateObserver.java",
+  "source_lines_reviewed": [
+    1,
+    94
+  ],
+  "files": {
+    "tools/cod4/ecology-acceptance/native-gate-src/NativeCreatureGateObserver.java": {
+      "sha256": "884c0903e1887b9366fb9b25ee80dd02929fd004d9da26bd1e45e7565bab3c15",
+      "receipt_sha256": "884c0903e1887b9366fb9b25ee80dd02929fd004d9da26bd1e45e7565bab3c15",
+      "matches_existing_compile_receipt": true
+    },
+    "tools/cod4/ecology-acceptance/native-gate-src/README.txt": {
+      "sha256": "cf7e6ab09f5249305f69b14bab7718a1eaec878141fe4f2a09356389b6d79cd9",
+      "receipt_sha256": "cf7e6ab09f5249305f69b14bab7718a1eaec878141fe4f2a09356389b6d79cd9",
+      "matches_existing_compile_receipt": true
+    },
+    "tools/cod4/ecology-acceptance/native-gate-resources/native-creature-gates.mixins.json": {
+      "sha256": "687703a8e4ccabc1490ab2f1d8cb78a76dab2d2afb8241353d6a5bdc459d3f09",
+      "receipt_sha256": "687703a8e4ccabc1490ab2f1d8cb78a76dab2d2afb8241353d6a5bdc459d3f09",
+      "matches_existing_compile_receipt": true
+    },
+    "tools/cod4/ecology-acceptance/native-gate-compile.init.gradle": {
+      "sha256": "c7d355621f10097378e552763cb0fb40552f14f42b5802a23074586cc86ede4c",
+      "receipt_sha256": "c7d355621f10097378e552763cb0fb40552f14f42b5802a23074586cc86ede4c",
+      "matches_existing_compile_receipt": true
+    }
+  },
+  "existing_verification_sha256": "36d7aeb7e1e72468ce6a031cd9996368e17888e7f924996cab794951f404df34",
+  "mapping_boundary": "Existing coordinator receipt records installed1.20.1 SRG names/descriptors/class hashes. This reviewer read receipt, did not recompile/reobfuscate/run javap or independently execute injection.",
+  "verdict": "No extra cap predicate/spawn/RNG/world-state mutation found in reviewed observer; truthful actual-return observation design. Runtime integration still pending; budget is END-tick soft logging budget and external controller is mandatory.",
+  "confirmed": [
+    {
+      "lines": [
+        59,
+        64
+      ],
+      "observation": "Actual spawnForChunk HEAD receives native friendlies/enemies/persistent flag; restricts exact server overworld and friendlies+native persistent flag. No gameTime modulo inference, no assertion target species selected."
+    },
+    {
+      "lines": [
+        66,
+        73
+      ],
+      "observation": "RETURN injectors consume actual native boolean, no cancel or replacement. Combined callback matches state object identity, CREATURE and chunk; local callback requires CREATURE/chunk under ThreadLocal scope. Unobserved local remains empty/explicitly unobserved, not true."
+    },
+    {
+      "lines": [
+        70,
+        73
+      ],
+      "observation": "Category count and spawnable chunk getters plus vanilla cap arithmetic are context reads, not a second call to canSpawn. Actual return recorded separately, so computed cap is not falsely substituted for native outcome."
+    },
+    {
+      "lines": [
+        24,
+        49
+      ],
+      "observation": "Default static property false; ServerStarted requires output leaf absent and existing parent via createDirectory. No automatic event-bus registration visible. Future bootstrap and mixin installation remain explicit prerequisites."
+    },
+    {
+      "lines": [
+        80,
+        92
+      ],
+      "observation": "Merged callbacks invoke public outer begin/end/combined/local helpers; private Scope/CONTEXT/record are accessed in the outer class only. This avoids the visible private-nest access pattern in copied callbacks, without claiming runtime classloading passed."
+    },
+    {
+      "lines": [
+        51,
+        57
+      ],
+      "observation": "4600 ticks/300 seconds/32000 rows produce budget record then stopped flag and stop-request file only. No server stop/save/process kill or scheduled launch."
+    }
+  ],
+  "findings": [
+    {
+      "id": "ECOLOGY-HERSCHEL-01",
+      "priority": "P2",
+      "lines": [
+        39,
+        56
+      ],
+      "issue": "Row and elapsed budgets are checked only at ServerTick.END. record has no per-row budget admission. One long native tick can exceed32000 plus terminal record and exceed300seconds; synchronous per-record file I/O can delay reaching END.",
+      "required_interpretation": "Document as END-tick soft threshold, never a hard max row/time guarantee. External controller needs independent wall-clock/stop-request monitoring and private process ownership. If strict hard logging budget is later required, coordinator may gate record itself; reviewer does not edit."
+    },
+    {
+      "id": "ECOLOGY-HERSCHEL-02",
+      "priority": "P2",
+      "lines": [
+        59,
+        76
+      ],
+      "issue": "ThreadLocal is one slot, not a nested stack; only native RETURN removes it. Exception before RETURN can leave stale scope until next begin; recursive spawnForChunk discards outer scope, nested same-chunk CREATURE local queries can enter localReturns without LocalMobCapCalculator identity or per-category sub-scope.",
+      "required_interpretation": "Ordinary nonreentrant successful native path correlation is supported; no proof of exception-safe/reentrant or arbitrary-mod-call pairing. Flag missing return or multiple local results as anomalous rather than automatically attributing a one-to-one native call."
+    },
+    {
+      "id": "ECOLOGY-HERSCHEL-03",
+      "priority": "P2",
+      "lines": [
+        39,
+        56
+      ],
+      "issue": "File creation/write failure throws into startup/tick/spawn path and may stop private server; this is deliberate evidence fail-closed behavior but not passive timing transparency. Existing output path and duplicate registration can fail startup.",
+      "required_interpretation": "Future bootstrap register once, fresh leaf directory, writable parent/storage and external controller. Actual fullpack injection and write behavior must be separately validated; no ambient user process/saves."
+    },
+    {
+      "id": "ECOLOGY-HERSCHEL-04",
+      "priority": "P3",
+      "lines": [
+        24,
+        56
+      ],
+      "issue": "Static stopped/ticks/rows/server are not reset for a second ServerStarted in same JVM; no stopped event cleanup.",
+      "required_interpretation": "Treat current observer as single isolated JVM session. Fresh JVM required for next run unless coordinator later implements lifecycle reset."
+    }
+  ],
+  "not_proven": [
+    "Runtime mixin binding/loading or helper remapping",
+    "Actual category/local booleans in fullpack",
+    "Weighted target-species selection or six natural births",
+    "Natural deaths/drop UUID and same-UUID lamp-oil pickup",
+    "No dropped/extra nested local callbacks under all other mods"
+  ],
+  "actions": {
+    "source_edits": 0,
+    "production_edits": 0,
+    "master_todo_edits": 0,
+    "gui_or_game_starts": 0,
+    "compile_test_javap_runs": 0,
+    "research_credit": 0
+  }
+}
