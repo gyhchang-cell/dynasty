@@ -1,0 +1,142 @@
+{
+  "batch": "herschel-immune-037",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 1,
+  "support_only_units": 0,
+  "rows": [
+    {
+      "id": "herschel-037-01",
+      "semantic_dedup_key": "bewitchment-native-volatility-entry-triggered-consumable-retaliation-and-self-tracking-cue",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "Moriyashiine__bewitchment/src/main/java/moriyashiine/bewitchment/mixin/brew/LivingEntityMixin.java",
+          "method": "damage",
+          "lines": [
+            93,
+            121
+          ],
+          "fixed_commit": "842cd9777b7bde2a0208099d5184baf88f24f63a",
+          "file_sha256": "51ae0e5f5d0574ab819197a0775581050c10d300f1785ba37a854020cebc6d95",
+          "url": "https://github.com/Moriyashiine/bewitchment/blob/842cd9777b7bde2a0208099d5184baf88f24f63a/src/main/java/moriyashiine/bewitchment/mixin/brew/LivingEntityMixin.java#L93-L121",
+          "excerpt": "\tprivate void damage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> callbackInfo) {\n\t\tif (!getWorld().isClient) {\n\t\t\tEntity directSource = source.getSource();\n\t\t\tif (hasStatusEffect(BWStatusEffects.DEFLECTION) && directSource != null && directSource.getType().isIn(EntityTypeTags.ARROWS)) {\n\t\t\t\tint amplifier = getStatusEffect(BWStatusEffects.DEFLECTION).getAmplifier() + 1;\n\t\t\t\tVec3d velocity = directSource.getVelocity();\n\t\t\t\tdirectSource.setVelocity(velocity.getX() * 2 * amplifier, velocity.getY() * 2 * amplifier, velocity.getZ() * 2 * amplifier);\n\t\t\t\tcallbackInfo.setReturnValue(false);\n\t\t\t} else if (amount > 0 && hurtTime == 0) {\n\t\t\t\tif (!hasStatusEffect(StatusEffects.STRENGTH) && !hasStatusEffect(StatusEffects.REGENERATION) && !hasStatusEffect(StatusEffects.RESISTANCE) && directSource instanceof LivingEntity livingSource && livingSource.hasStatusEffect(BWStatusEffects.LEECHING)) {\n\t\t\t\t\tlivingSource.heal(amount * (livingSource.getStatusEffect(BWStatusEffects.LEECHING).getAmplifier() + 1) / 8);\n\t\t\t\t}\n\t\t\t\tif (directSource != null && hasStatusEffect(BWStatusEffects.THORNS) && source.isOf(DamageTypes.THORNS)) {\n\t\t\t\t\tdirectSource.damage(getWorld().getDamageSources().thorns(directSource), 2 * (getStatusEffect(BWStatusEffects.THORNS).getAmplifier() + 1));\n\t\t\t\t}\n\t\t\t\tif (hasStatusEffect(BWStatusEffects.VOLATILITY) && !source.isIn(DamageTypeTags.IS_EXPLOSION)) {\n\t\t\t\t\tfor (LivingEntity entity : getWorld().getEntitiesByClass(LivingEntity.class, getBoundingBox().expand(3), foundEntity -> foundEntity.isAlive() && !foundEntity.getUuid().equals(getUuid()))) {\n\t\t\t\t\t\tentity.damage(getWorld().getDamageSources().explosion(((LivingEntity) (Object) this), ((LivingEntity) (Object) this)), 4 * (getStatusEffect(BWStatusEffects.VOLATILITY).getAmplifier() + 1));\n\t\t\t\t\t}\n\t\t\t\t\tgetWorld().playSound(null, getBlockPos(), SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.NEUTRAL, 1, 1);\n\t\t\t\t\tPlayerLookup.tracking(this).forEach(trackingPlayer -> SpawnExplosionParticlesPacket.send(trackingPlayer, this));\n\t\t\t\t\tif (((Object) this) instanceof ServerPlayerEntity player) {\n\t\t\t\t\t\tSpawnExplosionParticlesPacket.send(player, this);\n\t\t\t\t\t}\n\t\t\t\t\tremoveStatusEffect(BWStatusEffects.VOLATILITY);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n",
+          "excerpt_sha256": "713bf1378d065822e7306faad593c31f6129f1602914a72f2a238622606a91ad",
+          "normalized_excerpt_sha256": "f7e9de034f7a225165f0aef29b49234283d5f91fff7edbcae7bf3204c0cccd98",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "Moriyashiine__bewitchment/src/main/java/moriyashiine/bewitchment/client/packet/SpawnExplosionParticlesPacket.java",
+          "method": "send",
+          "lines": [
+            24,
+            28
+          ],
+          "fixed_commit": "842cd9777b7bde2a0208099d5184baf88f24f63a",
+          "file_sha256": "2374b6880aa7e4411af7a1fb195c98dd0abf13a7dff4886af1daf1755971e419",
+          "url": "https://github.com/Moriyashiine/bewitchment/blob/842cd9777b7bde2a0208099d5184baf88f24f63a/src/main/java/moriyashiine/bewitchment/client/packet/SpawnExplosionParticlesPacket.java#L24-L28",
+          "excerpt": "\tpublic static void send(ServerPlayerEntity player, Entity entity) {\n\t\tPacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());\n\t\tbuf.writeInt(entity.getId());\n\t\tServerPlayNetworking.send(player, ID, buf);\n\t}\n",
+          "excerpt_sha256": "7007f8fc381c557f6e165d00129534584023d3e15ed2df4fbd473c4f64939cbc",
+          "normalized_excerpt_sha256": "47a2e193fa7dc625428dd778edda83e379d1cfd0f6408db2191fe041972d09af",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "Moriyashiine__bewitchment/src/main/java/moriyashiine/bewitchment/client/packet/SpawnExplosionParticlesPacket.java",
+          "method": "receive",
+          "lines": [
+            32,
+            45
+          ],
+          "fixed_commit": "842cd9777b7bde2a0208099d5184baf88f24f63a",
+          "file_sha256": "2374b6880aa7e4411af7a1fb195c98dd0abf13a7dff4886af1daf1755971e419",
+          "url": "https://github.com/Moriyashiine/bewitchment/blob/842cd9777b7bde2a0208099d5184baf88f24f63a/src/main/java/moriyashiine/bewitchment/client/packet/SpawnExplosionParticlesPacket.java#L32-L45",
+          "excerpt": "\t\tpublic void receive(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {\n\t\t\tint id = buf.readInt();\n\t\t\tclient.execute(() -> {\n\t\t\t\tClientWorld world = client.world;\n\t\t\t\tif (world != null) {\n\t\t\t\t\tEntity entity = world.getEntityById(id);\n\t\t\t\t\tif (entity != null) {\n\t\t\t\t\t\tfor (int i = 0; i < 8; i++) {\n\t\t\t\t\t\t\tworld.addParticle(ParticleTypes.EXPLOSION, entity.getParticleX(1), entity.getRandomBodyY(), entity.getParticleZ(1), 0, 0, 0);\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t});\n\t\t}\n",
+          "excerpt_sha256": "e47485badb064ac063a7dc543cd3a3b631bab6525f565cdaeb88d8bfd4db5ab2",
+          "normalized_excerpt_sha256": "b60e7d8830650ebcb6d82fb9728039d075a89d24f979ffed02b60032300858f8",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "Moriyashiine__bewitchment/src/main/java/moriyashiine/bewitchment/common/registry/BWStatusEffects.java",
+          "method": null,
+          "lines": [
+            1,
+            59
+          ],
+          "fixed_commit": "842cd9777b7bde2a0208099d5184baf88f24f63a",
+          "file_sha256": "dbd0f8c3482bb9900fc04db3412748cba5250819d0a41f2ecf4ae86fdf6cf8c2",
+          "url": "https://github.com/Moriyashiine/bewitchment/blob/842cd9777b7bde2a0208099d5184baf88f24f63a/src/main/java/moriyashiine/bewitchment/common/registry/BWStatusEffects.java#L1-L59",
+          "excerpt": "/*\n * All Rights Reserved (c) MoriyaShiine\n */\n\npackage moriyashiine.bewitchment.common.registry;\n\nimport moriyashiine.bewitchment.common.Bewitchment;\nimport moriyashiine.bewitchment.common.statuseffect.*;\nimport net.minecraft.entity.attribute.EntityAttributeModifier;\nimport net.minecraft.entity.attribute.EntityAttributes;\nimport net.minecraft.entity.effect.StatusEffect;\nimport net.minecraft.entity.effect.StatusEffectCategory;\nimport net.minecraft.registry.Registries;\nimport net.minecraft.registry.Registry;\nimport net.minecraft.util.Identifier;\n\nimport java.util.LinkedHashMap;\nimport java.util.Map;\n\npublic class BWStatusEffects {\n\tprivate static final Map<StatusEffect, Identifier> STATUS_EFFECTS = new LinkedHashMap<>();\n\n\tpublic static final StatusEffect CLIMBING = create(\"climbing\", new EmptyStatusEffect(StatusEffectCategory.BENEFICIAL, 0x605448));\n\tpublic static final StatusEffect CORROSION = create(\"corrosion\", new EmptyStatusEffect(StatusEffectCategory.HARMFUL, 0x6fc536).addAttributeModifier(EntityAttributes.GENERIC_ARMOR, \"5b5df91d-001a-464f-a773-ab4ccd62e09f\", -3, EntityAttributeModifier.Operation.ADDITION));\n\tpublic static final StatusEffect CORRUPTION = create(\"corruption\", new CorruptionStatusEffect(StatusEffectCategory.HARMFUL, 0x600000));\n\tpublic static final StatusEffect DEAFENED = create(\"deafened\", new EmptyStatusEffect(StatusEffectCategory.HARMFUL, 0x676c77));\n\tpublic static final StatusEffect DEFLECTION = create(\"deflection\", new EmptyStatusEffect(StatusEffectCategory.BENEFICIAL, 0x969696));\n\tpublic static final StatusEffect DISJUNCTION = create(\"disjunction\", new DisjunctionStatusEffect(StatusEffectCategory.NEUTRAL, 0xb154a9));\n\tpublic static final StatusEffect ENCHANTED = create(\"enchanted\", new EmptyStatusEffect(StatusEffectCategory.BENEFICIAL, 0xf5ce8c));\n\tpublic static final StatusEffect ETHEREAL = create(\"ethereal\", new EmptyStatusEffect(StatusEffectCategory.NEUTRAL, 0x9a9ebf));\n\tpublic static final StatusEffect GILLS = create(\"gills\", new GillsStatusEffect(StatusEffectCategory.HARMFUL, 0x2f5e7b));\n\tpublic static final StatusEffect HARDENING = create(\"hardening\", new EmptyStatusEffect(StatusEffectCategory.BENEFICIAL, 0x3fa442).addAttributeModifier(EntityAttributes.GENERIC_ARMOR, \"7f7f1ce3-6383-49a8-a9f1-af0f5c7ab38f\", 3, EntityAttributeModifier.Operation.ADDITION));\n\tpublic static final StatusEffect IGNITION = create(\"ignition\", new IgnitionStatusEffect(StatusEffectCategory.HARMFUL, 0xd68a0c));\n\tpublic static final StatusEffect INHIBITED = create(\"inhibited\", new EmptyStatusEffect(StatusEffectCategory.HARMFUL, 0x383a41));\n\tpublic static final StatusEffect INVIGORATING = create(\"invigorating\", new InvigoratingStatusEffect(StatusEffectCategory.BENEFICIAL, 0xaa64b3));\n\tpublic static final StatusEffect LEECHING = create(\"leeching\", new EmptyStatusEffect(StatusEffectCategory.BENEFICIAL, 0x4a0000));\n\tpublic static final StatusEffect MAGIC_SPONGE = create(\"magic_sponge\", new EmptyStatusEffect(StatusEffectCategory.BENEFICIAL, 0xa264aa));\n\tpublic static final StatusEffect MORTAL_COIL = create(\"mortal_coil\", new MortalCoilStatusEffect(StatusEffectCategory.HARMFUL, 0x2d2d2d));\n\tpublic static final StatusEffect NOURISHING = create(\"nourishing\", new EmptyStatusEffect(StatusEffectCategory.BENEFICIAL, 0x71bc78));\n\tpublic static final StatusEffect PACT = create(\"pact\", new EmptyStatusEffect(StatusEffectCategory.HARMFUL, 0x7d0000).addAttributeModifier(EntityAttributes.GENERIC_MAX_HEALTH, \"be0cf4d3-6e4b-43e6-9831-9e7d14aa14a7\", -1, EntityAttributeModifier.Operation.ADDITION));\n\tpublic static final StatusEffect POLYMORPH = create(\"polymorph\", new PolymorphStatusEffect(StatusEffectCategory.NEUTRAL, 0xb154a9));\n\tpublic static final StatusEffect PURITY = create(\"purity\", new PurityStatusEffect(StatusEffectCategory.BENEFICIAL, 0xded3d5));\n\tpublic static final StatusEffect SINKING = create(\"sinking\", new SinkingStatusEffect(StatusEffectCategory.HARMFUL, 0x6c6c6c));\n\tpublic static final StatusEffect SYNCHRONIZED = create(\"synchronized\", new SynchronizedStatusEffect(StatusEffectCategory.NEUTRAL, 0x990404));\n\tpublic static final StatusEffect THEFT = create(\"theft\", new TheftStatusEffect(StatusEffectCategory.BENEFICIAL, 0x773b89));\n\tpublic static final StatusEffect THORNS = create(\"thorns\", new EmptyStatusEffect(StatusEffectCategory.BENEFICIAL, 0x527d26));\n\tpublic static final StatusEffect VOLATILITY = create(\"volatility\", new EmptyStatusEffect(StatusEffectCategory.HARMFUL, 0xb76b00));\n\tpublic static final StatusEffect WEBBED = create(\"webbed\", new WebbedStatusEffect(StatusEffectCategory.HARMFUL, 0x2d312f));\n\tpublic static final StatusEffect WEDNESDAY = create(\"wednesday\", new WednesdayStatusEffect(StatusEffectCategory.BENEFICIAL, 0x00ff00));\n\n\tprivate static <T extends StatusEffect> T create(String name, T effect) {\n\t\tSTATUS_EFFECTS.put(effect, Bewitchment.id(name));\n\t\treturn effect;\n\t}\n\n\tpublic static void init() {\n\t\tSTATUS_EFFECTS.keySet().forEach(effect -> Registry.register(Registries.STATUS_EFFECT, STATUS_EFFECTS.get(effect), effect));\n\t}\n}\n",
+          "excerpt_sha256": "dbd0f8c3482bb9900fc04db3412748cba5250819d0a41f2ecf4ae86fdf6cf8c2",
+          "normalized_excerpt_sha256": "ec9cf22609d7a4996cdad6cde0ae92d911cacd0bde3121cb6b3b69d0140ac2fd",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "Moriyashiine__bewitchment/src/main/java/moriyashiine/bewitchment/common/statuseffect/EmptyStatusEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            14
+          ],
+          "fixed_commit": "842cd9777b7bde2a0208099d5184baf88f24f63a",
+          "file_sha256": "d679dae5f1c9b505ae3b6a00c55f549ca13fc378587153ebc5191ffd3b0e1324",
+          "url": "https://github.com/Moriyashiine/bewitchment/blob/842cd9777b7bde2a0208099d5184baf88f24f63a/src/main/java/moriyashiine/bewitchment/common/statuseffect/EmptyStatusEffect.java#L1-L14",
+          "excerpt": "/*\n * All Rights Reserved (c) MoriyaShiine\n */\n\npackage moriyashiine.bewitchment.common.statuseffect;\n\nimport net.minecraft.entity.effect.StatusEffect;\nimport net.minecraft.entity.effect.StatusEffectCategory;\n\npublic class EmptyStatusEffect extends StatusEffect {\n\tpublic EmptyStatusEffect(StatusEffectCategory category, int color) {\n\t\tsuper(category, color);\n\t}\n}\n",
+          "excerpt_sha256": "d679dae5f1c9b505ae3b6a00c55f549ca13fc378587153ebc5191ffd3b0e1324",
+          "normalized_excerpt_sha256": "e1effb4116abcd156461837569db90e7634e1d5b51e2dfbf34587a93dd6a8cbb",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "Moriyashiine__bewitchment/src/main/java/moriyashiine/bewitchment/common/BWMixinPlugin.java",
+          "method": "shouldApplyMixin",
+          "lines": [
+            26,
+            31
+          ],
+          "fixed_commit": "842cd9777b7bde2a0208099d5184baf88f24f63a",
+          "file_sha256": "342c3be93c1b9bb1351bbbfcaa241f8be8503698f0c222b77bb7d80ad1303d32",
+          "url": "https://github.com/Moriyashiine/bewitchment/blob/842cd9777b7bde2a0208099d5184baf88f24f63a/src/main/java/moriyashiine/bewitchment/common/BWMixinPlugin.java#L26-L31",
+          "excerpt": "\tpublic boolean shouldApplyMixin(String targetClassName, String mixinClassName) {\n\t\tif (mixinClassName.startsWith(\"moriyashiine.bewitchment.mixin.integration.apoli\")) {\n\t\t\treturn FabricLoader.getInstance().isModLoaded(\"apoli\");\n\t\t}\n\t\treturn true;\n\t}\n",
+          "excerpt_sha256": "c53064da20632c6ba74e36ac7c4ba5b7e24463ae037332d6f56713daf900ff1e",
+          "normalized_excerpt_sha256": "a6c463d630f6cb0b4705db1f9b7e582835bc9243ea80a7f71a150fa75ab3a9b2",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "Moriyashiine__bewitchment/src/main/java/moriyashiine/bewitchment/client/BewitchmentClient.java",
+          "method": null,
+          "lines": [
+            90,
+            98
+          ],
+          "fixed_commit": "842cd9777b7bde2a0208099d5184baf88f24f63a",
+          "file_sha256": "de5717e98ea90688b2811dfdb099bc4b546546ecc94de8a7f3b664d4c59b5806",
+          "url": "https://github.com/Moriyashiine/bewitchment/blob/842cd9777b7bde2a0208099d5184baf88f24f63a/src/main/java/moriyashiine/bewitchment/client/BewitchmentClient.java#L90-L98",
+          "excerpt": "\tpublic void onInitializeClient() {\n\t\tClientPlayNetworking.registerGlobalReceiver(SyncContractsPacket.ID, new SyncContractsPacket.Receiver());\n\t\tClientPlayNetworking.registerGlobalReceiver(SyncDemonTradesPacket.ID, new SyncDemonTradesPacket.Receiver());\n\t\tClientPlayNetworking.registerGlobalReceiver(SyncPoppetShelfPacket.ID, new SyncPoppetShelfPacket.Receiver());\n\t\tClientPlayNetworking.registerGlobalReceiver(SyncHornedSpearPacket.ID, new SyncHornedSpearPacket.Receiver());\n\t\tClientPlayNetworking.registerGlobalReceiver(SpawnSmokeParticlesPacket.ID, new SpawnSmokeParticlesPacket.Receiver());\n\t\tClientPlayNetworking.registerGlobalReceiver(SpawnPortalParticlesPacket.ID, new SpawnPortalParticlesPacket.Receiver());\n\t\tClientPlayNetworking.registerGlobalReceiver(SpawnExplosionParticlesPacket.ID, new SpawnExplosionParticlesPacket.Receiver());\n\t\tClientPlayNetworking.registerGlobalReceiver(SpawnSpecterBangleParticlesPacket.ID, new SpawnSpecterBangleParticlesPacket.Receiver());\n",
+          "excerpt_sha256": "cd3fbbf7381c600393a938cb79a15754ad03fdbe8f691ab24eff75c5b4e45ab8",
+          "normalized_excerpt_sha256": "e52c6b22476f3605c7ab3f7cdf219b27fabd78d65be17ed6a0c9cfa6dbd3c05c",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Server native LivingEntity.damage HEAD callback: DEFLECTION+nonnull arrow directSource returnsfalse first. Otherwise amount>0 && hurtTime==0 enters combat side-effect block. Within that block VOLATILITY and not IS_EXPLOSION source causes expanded bounding box3 query over living/alive/non-self UUID entities, attempts explosion-source damage4*(amplifier+1) on each, plays ENTITY_GENERIC_EXPLODE at current block neutral1/1, sends SpawnExplosionParticles to PlayerLookup.tracking(this), plus explicitly self when ServerPlayer, then removes VOLATILITY. No neighbor owner/team/Enemy exclusion, no check each damage result, no check original incoming damage result. Explosion tag rejects re-trigger along generated explosion damage chain, not universal recursive safety proof. Defensive status is not damage cancellation; own original hit proceeds. Packet writes only entity integerID; receiver reads once and queues client task, checks current world/nonmissing integer entity then emits8 native EXPLOSION particles at randomized entity positions. No UUID/dimension/sequence/TTL; missing entity drops, reused ID protection absent locally. Client entry registers this exact receiver at lines90-98 (registration fragment, not whole giant init read). Registry VOLATILITY is harmful EmptyStatusEffect; constructor has no tick behavior, actual consumer is damage mixin. Plugin only gates apoli namespace; brew plugin path returns true. Fabric metadata names client entry/mixin config containing brew.LivingEntityMixin; fixed resource byte/tree verification supplement retained.",
+      "application_to_boss_immune": "Native feedback must distinguish action attempted at damage HEAD from final accepted damage or final control rejection. Aggregate nearby recipients plus self needs explicit ownership and recipient policy if reused. Consumable state removal, original hit outcome, neighbor hurt results, sound and S2C cue are different receipts; never emit an immune label based solely on this explosion visual. Conceptual reference only, no copied asset or production action.",
+      "semantic_dedup": "One proposed complete gameplay-feedback chain, never separate credits for AOE, consume, sound, self/tracking fanout and packet. Other accepted Bewitchment ethereal/deflection branches share containing damage method; their policy is not re-proposed. Primary master text search found no VOLATILITY/SpawnExplosionParticles key; still must compare semantic equivalents. Unlike arbitrary particle wrapper, full native gameplay trigger and final consumer read. This is an on-attempt retaliation feedback reference, not an immune refusal; if primary relevance rule excludes it retain support0. Helpercredit0.",
+      "limitations": "Native engine damage final execution and cross-mixin ordering not expanded. Exact status brew acquisition, vanilla explosion propagation, target invulnerability and actual network delivery not tested. Expanded AABB is not spherical32range. Fabric PlayerLookup internals not read; explicit self path not exact dedup guarantee. Resource supplement proves registration bytes, not successful runtime mixin application. No final hit-success cue claim, no Boss immunity, no gameplay/client/test/compile/production/TODO changes."
+    }
+  ],
+  "exclusions": [
+    "Previous deflection/ethereal policy0; do not count shared full method as automatically new implementation.",
+    "Potion registry constructor and packet wrappers0; all combined into one candidate awaiting primary semantic review."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

@@ -39,7 +39,8 @@ def main():
             assert sha(data) == row['sourceSha256'], str(path)
             assert re.fullmatch(r'[0-9a-f]{40}', row['revision'])
             actual = '\n'.join(data.decode().splitlines()[row['start']-1:row['end']])
-            assert actual.strip() == row['source'].strip(), (file.name, row['id'])
+            # Keep byte SHA verification above; compare source lines independent of CRLF/LF.
+            assert actual.strip() == '\n'.join(row['source'].splitlines()).strip(), (file.name, row['id'])
             assert row['reviewMode'] == 'MANUALLY_READ_FULL_METHOD'
             assert len(row['observation']) >= 35 and row['targetScope']
             assert f"/{row['revision']}/{row['path']}#L{row['start']}-L{row['end']}" in row['url']

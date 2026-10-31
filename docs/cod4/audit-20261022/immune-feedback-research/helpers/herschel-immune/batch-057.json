@@ -1,0 +1,114 @@
+{
+  "batch": "herschel-immune-057",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 0,
+  "support_only_units": 1,
+  "rows": [
+    {
+      "id": "herschel-057-01",
+      "semantic_dedup_key": "tconstruct-powdered-snow-canfreeze-rejection-overlaps-existing-freeze-eligibility",
+      "status": "support_only_not_independent",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/entity/FreezeFluidEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            65
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "9581ea3843f8d4cc6fc1915a1593785a7e5c0f38f5cc34cadb2186689039ce1e",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/entity/FreezeFluidEffect.java#L1-L65",
+          "excerpt": "package slimeknights.tconstruct.library.modifiers.fluid.entity;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraftforge.fluids.FluidStack;\nimport net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;\nimport slimeknights.mantle.data.loadable.primitive.IntLoadable;\nimport slimeknights.mantle.data.loadable.record.RecordLoadable;\nimport slimeknights.tconstruct.library.modifiers.fluid.EffectLevel;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffect;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext;\nimport slimeknights.tconstruct.library.modifiers.fluid.TimeAction;\n\nimport java.util.Locale;\n\n/**\n * Effect to set an entity freezing\n * @param action  Determines whether to set or add time\n * @param time    Time in ticks\n */\npublic record FreezeFluidEffect(TimeAction action, int time) implements FluidEffect<FluidEffectContext.Entity> {\n  public static final RecordLoadable<FreezeFluidEffect> LOADER = RecordLoadable.create(\n    TimeAction.LOADABLE.requiredField(\"action\", e -> e.action),\n    IntLoadable.FROM_ONE.requiredField(\"time\", e -> e.time),\n    FreezeFluidEffect::new);\n\n  @Override\n  public RecordLoadable<FreezeFluidEffect> getLoader() {\n    return LOADER;\n  }\n\n  @Override\n  public float apply(FluidStack fluid, EffectLevel level, FluidEffectContext.Entity context, FluidAction action) {\n    Entity target = context.getTarget();\n    if (!target.canFreeze()) {\n      return 0;\n    }\n    if (this.action == TimeAction.ADD) {\n      float value = level.value();\n      if (action.execute()) {\n        // ensure we have enough time to freeze after applying this\n        target.setTicksFrozen(Math.max(target.getTicksRequiredToFreeze(), target.getTicksFrozen()) + Math.round(time * value));\n        target.clearFire();\n      }\n      return value;\n    } else {\n      int freezeTicks = target.getTicksRequiredToFreeze();\n      int frozen = target.getTicksFrozen();\n      float existing = frozen < freezeTicks ? 0 : (frozen - freezeTicks) / (float) time;\n      float effective = level.effective(existing);\n      if (action.execute()) {\n        target.setTicksFrozen(freezeTicks + Math.round(time * 2 * effective));\n        target.setRemainingFireTicks(0);\n      }\n      return effective - existing;\n    }\n  }\n\n  @Override\n  public Component getDescription(RegistryAccess registryAccess) {\n    String prefix = FluidEffect.getTranslationKey(getLoader()) + \".\" + action.name().toLowerCase(Locale.ROOT);\n    return Component.translatable(prefix, time / 20);\n  }\n}\n",
+          "excerpt_sha256": "9581ea3843f8d4cc6fc1915a1593785a7e5c0f38f5cc34cadb2186689039ce1e",
+          "normalized_excerpt_sha256": "2032f7d5dc634142fdf3773b97c98dded22e96d231da4bff13c9a847a9e9b7a3",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/EffectLevel.java",
+          "method": null,
+          "lines": [
+            1,
+            51
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "173c7a07743a24cf604fe2121943d1ce94f74a6708582629238bea0d64d9c61a",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/EffectLevel.java#L1-L51",
+          "excerpt": "package slimeknights.tconstruct.library.modifiers.fluid;\n\n/**\n * Represents the level of a fluid effect\n * @param value  Effective level\n * @param max    Max level, used when dealing with conservative effects\n */\npublic record EffectLevel(float value, float max) {\n  /**\n   * Gets the effective amount given the existing amount. Can possibly be up to {@link #max()} by summing with {@link #value()}.\n   * Used level will be {@code effective - existing}. If {@code effective <= existing}, no action need be performed.\n   * @param existing  Existing level on the target, note you will likely want to rescale this from result to level units.\n   * @return Effective effect level\n   */\n  public float effective(float existing) {\n    return Math.min(this.value + existing, max);\n  }\n\n  /**\n   * Gets the level that was used, given the cap exists\n   * @param max  Maximum level that could have been set\n   * @return  Level that was used.\n   */\n  public float computeUsed(float max) {\n    return Math.min(this.value, max);\n  }\n\n  /** Check if the effect level is at least 1, used to limit effects that don't scale */\n  public boolean isFull() {\n    return value >= 1;\n  }\n\n  /** Divides the effect level by the given divisor */\n  public EffectLevel divide(float divisor) {\n    if (divisor == 1) {\n      return this;\n    }\n    if (divisor == 0) {\n      throw new IllegalArgumentException(\"Divisor cannot be zero\");\n    }\n    return new EffectLevel(value / divisor, max / divisor);\n  }\n\n  /** Subtracts the given amount from the effect level */\n  public EffectLevel subtract(float amount) {\n    if (amount == 0) {\n      return this;\n    }\n    return new EffectLevel(value - amount, max);\n  }\n}\n",
+          "excerpt_sha256": "173c7a07743a24cf604fe2121943d1ce94f74a6708582629238bea0d64d9c61a",
+          "normalized_excerpt_sha256": "283a3a2345a2e947b93850b9407e34a6ddadf2269b101b21de9b715b849d0669",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-056-01"
+          ]
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidEffects.java",
+          "method": null,
+          "lines": [
+            1,
+            124
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "a04d84a074670dda919a891fd23f511e301a8835823e1d425a32ea0904c81c90",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidEffects.java#L1-L124",
+          "excerpt": "package slimeknights.tconstruct.library.modifiers.fluid;\n\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.level.material.Fluid;\nimport net.minecraftforge.fluids.FluidStack;\nimport net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;\nimport org.jetbrains.annotations.ApiStatus.Internal;\nimport slimeknights.mantle.data.loadable.Loadables;\nimport slimeknights.mantle.data.loadable.primitive.BooleanLoadable;\nimport slimeknights.mantle.data.loadable.record.RecordLoadable;\nimport slimeknights.mantle.recipe.ingredient.FluidIngredient;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext.Block;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext.Entity;\n\nimport java.util.List;\n\n/** Data class to connect fluids to fluid effects */\npublic record FluidEffects(FluidIngredient ingredient, List<FluidEffect<? super FluidEffectContext.Block>> blockEffects, List<FluidEffect<? super FluidEffectContext.Entity>> entityEffects, boolean hidden) {\n  public static final RecordLoadable<FluidEffects> LOADABLE = RecordLoadable.create(\n    FluidIngredient.LOADABLE.requiredField(\"fluid\", e -> e.ingredient),\n    FluidEffect.BLOCK_EFFECTS.list(0).defaultField(\"block_effects\", List.of(), e -> e.blockEffects),\n    FluidEffect.ENTITY_EFFECTS.list(0).defaultField(\"entity_effects\", List.of(), e -> e.entityEffects),\n    BooleanLoadable.INSTANCE.defaultField(\"hidden\", false, false, e -> e.hidden),\n    FluidEffects::new);\n\n  /** @apiNote This constructor is internal, use either {@link slimeknights.tconstruct.library.data.tinkering.AbstractFluidEffectProvider} or JSON to instantiate. */\n  @Internal\n  public FluidEffects {}\n\n\n  /* Fluid */\n\n  /**\n   * Checks if the recipe matches the given fluid\n   * @param fluid  Fluid to test\n   * @return  True if this recipe handles the given fluid\n   */\n  public boolean matches(Fluid fluid) {\n    return ingredient.test(fluid);\n  }\n\n  /** Gets the amount of fluid needed for a single level */\n  public int getAmount(Fluid fluid) {\n    return ingredient.getAmount(fluid);\n  }\n\n\n  /* Effects present */\n\n  /**\n   * Checks if this fluid has any effects of either type\n   * @see #hasBlockEffects()\n   * @see #hasEntityEffects()\n   */\n  public boolean hasEffects() {\n    return hasBlockEffects() || hasEntityEffects();\n  }\n\n  /** Checks if this fluid has any block effects */\n  public boolean hasBlockEffects() {\n    return !blockEffects.isEmpty();\n  }\n\n  /** Checks if this fluid has any entity effects */\n  public boolean hasEntityEffects() {\n    return !entityEffects.isEmpty();\n  }\n\n\n  /* Running effects */\n\n  /** Runs the effects for a generic context */\n  private <C extends FluidEffectContext> int apply(FluidStack fluid, float level, C context, List<FluidEffect<? super C>> effects, FluidAction action) {\n    int amountPerLevel = getAmount(fluid.getFluid());\n    float scale;\n    if (fluid.getAmount() >= amountPerLevel * level) {\n      scale = level;\n    } else {\n      scale = fluid.getAmount() / (float)amountPerLevel;\n    }\n    EffectLevel effectLevel = new EffectLevel(scale, level);\n    float usedScale = 0;\n    for (FluidEffect<? super C> effect : effects) {\n      float newScale = effect.apply(fluid, effectLevel, context, action);\n      if (newScale > usedScale) {\n        usedScale = newScale;\n      }\n    }\n    return (int)Math.ceil(amountPerLevel * Math.min(scale, usedScale));\n  }\n\n  /**\n   * Applies the effect to a block\n   * @param fluid    Input fluid, will not be modified\n   * @param level    Level of effect to apply\n   * @param context  Entity fluid context\n   * @param action   If {@link FluidAction#SIMULATE}, makes no changes to the context. If {@link FluidAction#EXECUTE}, the context may be modified.\n   * @return  Amount of fluid to consumed from this effect, will return 0 if no effect was performed. Note this may be slightly larger than the input fluid due to rounding.\n   */\n  @SuppressWarnings(\"UnusedReturnValue\")\n  public int applyToBlock(FluidStack fluid, float level, Block context, FluidAction action) {\n    return apply(fluid, level, context, blockEffects, action);\n  }\n\n  /**\n   * Applies the effect to an entity\n   * @param fluid    Input fluid, will not be modified\n   * @param level    Level of effect to apply\n   * @param context  Entity fluid context\n   * @param action   If {@link FluidAction#SIMULATE}, makes no changes to the context. If {@link FluidAction#EXECUTE}, the context may be modified.\n   * @return  Amount of fluid to consumed from this effect, will return 0 if no effect was performed.\n   */\n  public int applyToEntity(FluidStack fluid, float level, Entity context, FluidAction action) {\n    return apply(fluid, level, context, entityEffects, action);\n  }\n\n  /** Entry for storage in the manager */\n  public record Entry(ResourceLocation name, FluidEffects effects) {\n    public static final RecordLoadable<Entry> LOADABLE = RecordLoadable.create(\n      Loadables.RESOURCE_LOCATION.requiredField(\"name\", Entry::name),\n      FluidEffects.LOADABLE.requiredField(\"effects\", Entry::effects),\n      Entry::new);\n  }\n}\n",
+          "excerpt_sha256": "a04d84a074670dda919a891fd23f511e301a8835823e1d425a32ea0904c81c90",
+          "normalized_excerpt_sha256": "7c516af4a3e5246c68b363e105f3affadedfc40dfffa8fa414f20bee63c4e08b",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-056-01"
+          ]
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/data/FluidEffectProvider.java",
+          "method": null,
+          "lines": [
+            96,
+            99
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "ecf4e9175485204f3a1674bc75fde5f8b908567f850d1407da635ad7d61e460e",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/data/FluidEffectProvider.java#L96-L99",
+          "excerpt": "    addFluid(TinkerFluids.powderedSnow, FluidType.BUCKET_VOLUME / 10)\n      .coldDamage(2f)\n      .addEntityEffect(new FreezeFluidEffect(TimeAction.ADD, 80))\n      .addBlockEffect(new PlaceBlockFluidEffect(Blocks.SNOW));\n",
+          "excerpt_sha256": "e92f8c70e9f3e536ac3085838302582d27f6da1d3501c0d497151c218132c6a1",
+          "normalized_excerpt_sha256": "0280e2279251093f81a5dddd4224c920694e1dcc1157c64987c4c4a407a582d3",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/data/tinkering/AbstractFluidEffectProvider.java",
+          "method": "coldDamage",
+          "lines": [
+            320,
+            322
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "d5109997bc2e42224c4734df605fac5aa0b97a46a5aa4e54c47c0b9a7ee76772",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/data/tinkering/AbstractFluidEffectProvider.java#L320-L322",
+          "excerpt": "    public Builder coldDamage(float amount) {\n      return addDamage(LivingEntityPredicate.CAN_FREEZE, amount, TinkerDamageTypes.FLUID_COLD);\n    }\n",
+          "excerpt_sha256": "84b4522ee443da8adb8dd45fdf59da180f97705a8bca655fb8abd0bcb2cf3afc",
+          "normalized_excerpt_sha256": "a40cd47800b21261f76f20d49f12b208758b4122eea0638b47914fb231c81c69",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Actual powderedSnow fluid provider coldDamage2 plus FreezeFluidEffect ADD80 and snowplacement. coldDamage builder uses CAN_FREEZE predicate; separate Freeze.apply checks target.canFreeze and returns0 before mutations. ADD executes ticksFrozen=max(required,current)+round(time*value), clearFire and reportsvalue. SET computes existing excess overthreshold and effectivelevel, executes threshold+round(time*2*effective), sets remainingfireticks0 and reports effective-existing. SIMULATE skipsmutation and reports prospectivevalue, not native actual success. No dedicated immune reason sent. Sequence/toplevel consumption results do not prove all subeffectsaccepted; that settlement already056.",
+      "application_to_boss_immune": "Negative dedup evidence: targetcanFreeze is a real finalnative eligibility, not potion immunity or hurtboolean. Retain threshold/add/set/sourcecall observations to avoid accidentally counting a freeze name/time variant.",
+      "semantic_dedup": "Explicitly rejected as independent candidate: main iron-post-damage-freeze-eligibility and vampirism-native-freeze-eligibility-precedes-status-but-not-cue already cover canFreeze vs other action/cue. Threshold arithmetic/timeaction differences alone insufficient semantic novelty. Existing056 MAX consumption not recredited.",
+      "limitations": "Static actual complete effect and frozen support methods/statements only, no actual native client/server/tests. ColdDamage helper itself not independently closing target hurt pipeline. No claim immobilizes allmovement or disproves native gear immunity. Allcredit0."
+    }
+  ],
+  "exclusions": [
+    "Freeze effect fullclass read and rejected0, not candidate repetition.",
+    "PushEntityFluidEffect and AlternativesFluidEffect read during056/057 exploration; no independent proposals from unclosed/overlapping motion/combinator chains."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

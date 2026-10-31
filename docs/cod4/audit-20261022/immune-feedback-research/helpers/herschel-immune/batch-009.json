@@ -1,0 +1,581 @@
+{
+  "batch": "herschel-immune-009",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 6,
+  "pending_primary_review_units": 1,
+  "support_only_units": 5,
+  "excluded_nonimplementation_files": 1,
+  "method_count_is_not_credit": true,
+  "rows": [
+    {
+      "id": "herschel-009-01",
+      "semantic_dedup_key": "mps-ray-hit-native-result-gates-target-impulse-but-not-shot-feedback-recoil",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/powermodule/weapon/RailgunModule.java",
+          "method": "onItemRightClick",
+          "lines": [
+            92,
+            132
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/powermodule/weapon/RailgunModule.java#L92-L132",
+          "file_sha256": "a304a21a98447f9c1b5d119876aad308a0091be564546893bebd3afba32fb867",
+          "excerpt_sha256": "023767de844bdef1aae62e8fd21790e3e1388c001b1c7cadd6f642568b5d21a2",
+          "normalized_excerpt_sha256": "20e29d5646ac581ff8ade521d7fa03c4ebe5102e1aaed613cb9c3ebed6f999ef",
+          "excerpt": "    public ActionResult onItemRightClick(ItemStack itemStackIn, World worldIn, EntityPlayer playerIn, EnumHand hand) {\n        if (hand == EnumHand.MAIN_HAND) {\n            double range = 64;\n            double timer = MuseItemUtils.getDoubleOrZero(itemStackIn, TIMER);\n            double energyConsumption = ModuleManager.computeModularProperty(itemStackIn, ENERGY);\n            if (ElectricItemUtils.getPlayerEnergy(playerIn) > energyConsumption && timer == 0) {\n                ElectricItemUtils.drainPlayerEnergy(playerIn, energyConsumption);\n                MuseItemUtils.setDoubleOrRemove(itemStackIn, TIMER, 10);\n                MuseHeatUtils.heatPlayer(playerIn, ModuleManager.computeModularProperty(itemStackIn, HEAT));\n                RayTraceResult hitMOP = MusePlayerUtils.doCustomRayTrace(playerIn.worldObj, playerIn, true, range);\n                // TODO: actual railgun sound\n                worldIn.playSound(playerIn, playerIn.getPosition(), SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 0.5F, 0.4F / ((float) Math.random() * 0.4F + 0.8F));\n                double damage = ModuleManager.computeModularProperty(itemStackIn, IMPULSE) / 100.0;\n                double knockback = damage / 20.0;\n                Vec3d lookVec = playerIn.getLookVec();\n                if (hitMOP != null) {\n                    switch (hitMOP.typeOfHit) {\n                        case ENTITY:\n                            drawParticleStreamTo(playerIn, worldIn, hitMOP.hitVec.xCoord, hitMOP.hitVec.yCoord, hitMOP.hitVec.zCoord);\n                            DamageSource damageSource = DamageSource.causePlayerDamage(playerIn);\n                            if (hitMOP.entityHit.attackEntityFrom(damageSource, (int) damage)) {\n                                hitMOP.entityHit.addVelocity(lookVec.xCoord * knockback, Math.abs(lookVec.yCoord + 0.2f) * knockback, lookVec.zCoord\n                                        * knockback);\n                            }\n                            break;\n                        case BLOCK:\n                            drawParticleStreamTo(playerIn, worldIn, hitMOP.hitVec.xCoord, hitMOP.hitVec.yCoord, hitMOP.hitVec.zCoord);\n                            break;\n                        default:\n                            break;\n                    }\n                    playerIn.addVelocity(-lookVec.xCoord * knockback, Math.abs(-lookVec.yCoord + 0.2f) * knockback, -lookVec.zCoord * knockback);\n\n                    worldIn.playSound(playerIn, playerIn.getPosition(), SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 0.5F, 0.4F / ((float) Math.random() * 0.4F + 0.8F));\n                }\n                playerIn.setActiveHand(hand);\n                return new ActionResult(EnumActionResult.SUCCESS, itemStackIn);\n            }\n        }\n        return new ActionResult(EnumActionResult.PASS, itemStackIn);\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/powermodule/weapon/RailgunModule.java",
+          "method": "drawParticleStreamTo",
+          "lines": [
+            66,
+            89
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/powermodule/weapon/RailgunModule.java#L66-L89",
+          "file_sha256": "a304a21a98447f9c1b5d119876aad308a0091be564546893bebd3afba32fb867",
+          "excerpt_sha256": "01b73b0d87dee6624b9609d719df14cd0cadec1771a7dada7c50bbeceb56a72d",
+          "normalized_excerpt_sha256": "2bd55919b9bcbd5df5e895aa0c5dc4089656ff1acfa07dcf1a41970cff4374d7",
+          "excerpt": "    public void drawParticleStreamTo(EntityPlayer source, World world, double x, double y, double z) {\n        Vec3d direction = source.getLookVec().normalize();\n        double scale = 1.0;\n        double xoffset = 1.3f;\n        double yoffset = -.2;\n        double zoffset = 0.3f;\n        Vec3d horzdir = direction.normalize();\n        horzdir = new Vec3d(horzdir.xCoord, 0, horzdir.zCoord);\n        horzdir = horzdir.normalize();\n        double cx = source.posX + direction.xCoord * xoffset - direction.yCoord * horzdir.xCoord * yoffset - horzdir.zCoord * zoffset;\n        double cy = source.posY + source.getEyeHeight() + direction.yCoord * xoffset + (1 - Math.abs(direction.yCoord)) * yoffset;\n        double cz = source.posZ + direction.zCoord * xoffset - direction.yCoord * horzdir.zCoord * yoffset + horzdir.xCoord * zoffset;\n        double dx = x - cx;\n        double dy = y - cy;\n        double dz = z - cz;\n        double ratio = Math.sqrt(dx * dx + dy * dy + dz * dz);\n\n        while (Math.abs(cx - x) > Math.abs(dx / ratio)) {\n            world.spawnParticle(EnumParticleTypes.TOWN_AURA, cx, cy, cz, 0.0D, 0.0D, 0.0D);\n            cx += dx * 0.1 / ratio;\n            cy += dy * 0.1 / ratio;\n            cz += dz * 0.1 / ratio;\n        }\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/powermodule/weapon/RailgunModule.java",
+          "method": "onPlayerTickActive",
+          "lines": [
+            150,
+            153
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/powermodule/weapon/RailgunModule.java#L150-L153",
+          "file_sha256": "a304a21a98447f9c1b5d119876aad308a0091be564546893bebd3afba32fb867",
+          "excerpt_sha256": "43871f01611b03f1f2128adc58711a99220681e2107a730b780a9d21df9c88fb",
+          "normalized_excerpt_sha256": "a284574930717c6ef6a144cb4f8f5b3e339182fb5281e5a67649de3eb6035753",
+          "excerpt": "    public void onPlayerTickActive(EntityPlayer player, ItemStack stack) {\n        double timer = MuseItemUtils.getDoubleOrZero(stack, TIMER);\n        if (timer > 0) MuseItemUtils.setDoubleOrRemove(stack, TIMER, timer - 1 > 0 ? timer - 1 : 0);\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/item/ItemPowerFist.java",
+          "method": "onItemRightClick",
+          "lines": [
+            206,
+            213
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/item/ItemPowerFist.java#L206-L213",
+          "file_sha256": "831076a99b50d4a2f876a6f7f0a1a3c2c6bf91bf431c14ddb8777af6f158e32a",
+          "excerpt_sha256": "0b6aa52e4151e910b857278a34d9cfdc11ba1ac6d651b34dc20ff9f4ccf1566a",
+          "normalized_excerpt_sha256": "a6f6adf1416edc8f549ea8182bbbe7ae084b894c1bf8249a6f1fffccea1744bd",
+          "excerpt": "    public ActionResult<ItemStack> onItemRightClick(ItemStack itemStackIn, World worldIn, EntityPlayer playerIn, EnumHand hand) {\n        // Only one right click module should be active at a time.\n        IPowerModule iPowerModulemodule = ModuleManager.getModule(getActiveMode(itemStackIn));\n        if (iPowerModulemodule instanceof IRightClickModule) {\n            return ((IRightClickModule) iPowerModulemodule).onItemRightClick(itemStackIn, worldIn, playerIn, hand);\n        }\n        return ActionResult.newResult(EnumActionResult.PASS, itemStackIn);\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/utils/MusePlayerUtils.java",
+          "method": "doCustomRayTrace",
+          "lines": [
+            91,
+            136
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/utils/MusePlayerUtils.java#L91-L136",
+          "file_sha256": "aa0965402f7d8d29b4d17f4065bc761345b8e7824ec56b0236e358c55e9de646",
+          "excerpt_sha256": "5b891b5d455ed7cfa99c4fae357c709b0829ffd97ad4deb1091e9771f09a9f94",
+          "normalized_excerpt_sha256": "ca50feb6e1fd488c87d77a8ddbb9e7b0a5a88c0c86165921dd557d7453bb724b",
+          "excerpt": "    public static RayTraceResult doCustomRayTrace(World world, EntityPlayer player, boolean collisionFlag, double reachDistance) {\n        // Somehow this destroys the playerPosition vector -.-\n        RayTraceResult pickedBlock = raytraceBlocks(world, player, collisionFlag, reachDistance);\n        RayTraceResult pickedEntity = raytraceEntities(world, player, collisionFlag, reachDistance);\n\n        if (pickedBlock == null) {\n            return pickedEntity;\n        } else if (pickedEntity == null) {\n            return pickedBlock;\n        } else {\n            Vec3d playerPosition = new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ);\n            double dBlock = pickedBlock.hitVec.distanceTo(playerPosition);\n            double dEntity = pickedEntity.hitVec.distanceTo(playerPosition);\n            if (dEntity < dBlock) {\n                return pickedEntity;\n            } else {\n                return pickedBlock;\n            }\n        }\n\n        // float one = 1.0F;\n        // float pitch = player.prevRotationPitch + (player.rotationPitch -\n        // player.prevRotationPitch) * one;\n        // float yaw = player.prevRotationYaw + (player.rotationYaw -\n        // player.prevRotationYaw) * one;\n        // double posx = player.prevPosX + (player.posX - player.prevPosX) *\n        // (double) one;\n        // double posy = player.prevPosY + (player.posY - player.prevPosY) *\n        // (double) one + 1.62D - (double) player.yOffset;\n        // double posz = player.prevPosZ + (player.posZ - player.prevPosZ) *\n        // (double) one;\n        // Vec3 posVector = World.getWorldVec3Pool().getVecFromPool(posx, posy,\n        // posz);\n        // float yawz = MathHelper.cos(-yaw * 0.017453292F - (float) Math.PI);\n        // float yawx = MathHelper.sin(-yaw * 0.017453292F - (float) Math.PI);\n        // float pitchhorizontal = -MathHelper.cos(-pitch * 0.017453292F);\n        // float pitchvertical = MathHelper.sin(-pitch * 0.017453292F);\n        // float directionx = yawx * pitchhorizontal;\n        // float directionz = yawz * pitchhorizontal;\n        // Vec3 rayToCheck = posVector.addVector((double) directionx *\n        // reachDistance, (double) pitchvertical * reachDistance, (double)\n        // directionz\n        // * reachDistance);\n        // return World.rayTraceBlocks_do_do(posVector, rayToCheck,\n        // collisionFlag, !collisionFlag);\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/utils/MusePlayerUtils.java",
+          "method": "raytraceEntities",
+          "lines": [
+            30,
+            80
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/utils/MusePlayerUtils.java#L30-L80",
+          "file_sha256": "aa0965402f7d8d29b4d17f4065bc761345b8e7824ec56b0236e358c55e9de646",
+          "excerpt_sha256": "b2b76ce914f4ea2f3d967d29a31f167ce26456e520b823a957ca5c17a1ef7746",
+          "normalized_excerpt_sha256": "30a23a1d6530f2418d758cafc038dba8ef70065dd1f25397e02daf92ecee53e7",
+          "excerpt": "    public static RayTraceResult raytraceEntities(World world, EntityPlayer player, boolean collisionFlag, double reachDistance) {\n\n        RayTraceResult pickedEntity = null;\n        Vec3d playerPosition = new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ);\n        Vec3d playerLook = player.getLookVec();\n\n        Vec3d playerViewOffset = new Vec3d(playerPosition.xCoord + playerLook.xCoord * reachDistance, playerPosition.yCoord\n                + playerLook.yCoord * reachDistance, playerPosition.zCoord + playerLook.zCoord * reachDistance);\n\n        double playerBorder = 1.1 * reachDistance;\n        AxisAlignedBB boxToScan = player.getEntityBoundingBox().expand(playerBorder, playerBorder, playerBorder);\n        // AxisAlignedBB boxToScan =\n        // player.boundingBox.addCoord(playerLook.xCoord * reachDistance,\n        // playerLook.yCoord * reachDistance, playerLook.zCoord\n        // * reachDistance);\n\n        List entitiesHit = world.getEntitiesWithinAABBExcludingEntity(player, boxToScan);\n        double closestEntity = reachDistance;\n\n        if (entitiesHit == null || entitiesHit.isEmpty()) {\n            return null;\n        }\n        for (Entity entityHit : (Iterable<Entity>) entitiesHit) {\n            if (entityHit != null && entityHit.canBeCollidedWith() && entityHit.getEntityBoundingBox() != null) {\n                float border = entityHit.getCollisionBorderSize();\n                AxisAlignedBB aabb = entityHit.getEntityBoundingBox().expand((double) border, (double) border, (double) border);\n                RayTraceResult raytraceResult = aabb.calculateIntercept(playerPosition, playerViewOffset);\n\n                if (raytraceResult != null) {\n                    if (aabb.isVecInside(playerPosition)) {\n                        if (0.0D < closestEntity || closestEntity == 0.0D) {\n                            pickedEntity = new RayTraceResult(entityHit);\n                            if (pickedEntity != null) {\n                                pickedEntity.hitVec = raytraceResult.hitVec;\n                                closestEntity = 0.0D;\n                            }\n                        }\n                    } else {\n                        double distance = playerPosition.distanceTo(raytraceResult.hitVec);\n\n                        if (distance < closestEntity || closestEntity == 0.0D) {\n                            pickedEntity = new RayTraceResult(entityHit);\n                            pickedEntity.hitVec = raytraceResult.hitVec;\n                            closestEntity = distance;\n                        }\n                    }\n                }\n            }\n        }\n        return pickedEntity;\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/utils/MusePlayerUtils.java",
+          "method": "raytraceBlocks",
+          "lines": [
+            82,
+            89
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/utils/MusePlayerUtils.java#L82-L89",
+          "file_sha256": "aa0965402f7d8d29b4d17f4065bc761345b8e7824ec56b0236e358c55e9de646",
+          "excerpt_sha256": "08f8dc5dbab0071cad039e7f434523d919091b0eebbb52a4a1ae8a470d9e7d61",
+          "normalized_excerpt_sha256": "6ab097537495303bf1aa78b851d4e7d5ee0b3c5f797f9da2a789704e6ce2708f",
+          "excerpt": "    public static RayTraceResult raytraceBlocks(World world, EntityPlayer player, boolean collisionFlag, double reachDistance) {\n        Vec3d playerPosition = new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ);\n        Vec3d playerLook = player.getLookVec();\n\n        Vec3d playerViewOffset = new Vec3d(playerPosition.xCoord + playerLook.xCoord * reachDistance, playerPosition.yCoord\n                + playerLook.yCoord * reachDistance, playerPosition.zCoord + playerLook.zCoord * reachDistance);\n        return world.rayTraceBlocks(playerPosition, playerViewOffset);\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/common/Config.java",
+          "method": "loadPowerModules",
+          "lines": [
+            248,
+            353
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/common/Config.java#L248-L353",
+          "file_sha256": "76e2d8e222f13b33b7e54a30c4169d25845886493034fc5bc662ba5e0980ec1e",
+          "excerpt_sha256": "ee9237d3f736896c6b68f14cd28efdab2098b67efe0e9144c8b49c574c8ce155",
+          "normalized_excerpt_sha256": "82e0c05ad4205aa754569e28b57c084b8a9f5cd1f9aeb883e042ce3906efede6",
+          "excerpt": "    public static void loadPowerModules() {\n        List<IModularItem> ARMORONLY = Arrays.asList(\n                (IModularItem)MPSItems.powerArmorHead,\n                (IModularItem)MPSItems.powerArmorTorso,\n                (IModularItem)MPSItems.powerArmorLegs,\n                (IModularItem)MPSItems.powerArmorFeet);\n\n        List<IModularItem> ALLITEMS = Arrays.asList(\n                (IModularItem)MPSItems.powerArmorHead,\n                (IModularItem)MPSItems.powerArmorTorso,\n                (IModularItem)MPSItems.powerArmorLegs,\n                (IModularItem)MPSItems.powerArmorFeet,\n                (IModularItem)MPSItems.powerTool);\n\n        List<IModularItem> HEADONLY = Collections.singletonList((IModularItem)MPSItems.powerArmorHead);\n        List<IModularItem> TORSOONLY = Collections.singletonList((IModularItem)MPSItems.powerArmorTorso);\n        List<IModularItem> LEGSONLY = Collections.singletonList((IModularItem)MPSItems.powerArmorLegs);\n        List<IModularItem> FEETONLY = Collections.singletonList((IModularItem)MPSItems.powerArmorFeet);\n        List<IModularItem> TOOLONLY = Collections.singletonList((IModularItem)MPSItems.powerTool);\n\n        // FIXME: these need to be sorted\n        /* Armor -------------------------------- */\n        addModule(new BasicPlatingModule(ARMORONLY));\n        addModule(new DiamondPlatingModule(ARMORONLY));\n        addModule(new EnergyShieldModule(ARMORONLY));\n        addModule(new HeatSinkModule(ARMORONLY));\n\n\n        /* Cosmetic ----------------------------- */\n        addModule(new TransparentArmorModule(ARMORONLY));\n        addModule(new CosmeticGlowModule(ARMORONLY));\n        addModule(new CitizenJoeStyle(ARMORONLY));\n        addModule(new HighPolyArmor(ARMORONLY));\n//        addModule(new TintModule(TOOLONLY));\n        addModule(new TintModule(ALLITEMS));\n\n\n        /* Energy ------------------------------- */\n        addModule(new BasicBatteryModule(ALLITEMS));\n        addModule(new AdvancedBatteryModule(ALLITEMS));\n        addModule(new EliteBatteryModule(ALLITEMS));\n        addModule(new UltimateBatteryModule(ALLITEMS));\n\n\n        /* Power Fist --------------------------- */\n        addModule(new AxeModule(TOOLONLY));\n        addModule(new PickaxeModule(TOOLONLY));\n        addModule(new DiamondPickUpgradeModule(TOOLONLY));\n        addModule(new ShovelModule(TOOLONLY));\n        addModule(new ShearsModule(TOOLONLY));\n        addModule(new HoeModule(TOOLONLY));\n        addModule(new LuxCapacitor(TOOLONLY));\n        addModule(new FieldTinkerModule(TOOLONLY));\n        addModule(new MeleeAssistModule(TOOLONLY));\n        addModule(new PlasmaCannonModule(TOOLONLY));\n        addModule(new RailgunModule(TOOLONLY));\n        addModule(new BladeLauncherModule(TOOLONLY));\n        addModule(new BlinkDriveModule(TOOLONLY));\n        addModule(new AquaAffinityModule(TOOLONLY));\n        addModule(new InPlaceAssemblerModule(TOOLONLY));\n        addModule(new OreScannerModule(TOOLONLY));\n        addModule(new LeafBlowerModule(TOOLONLY));\n        addModule(new FlintAndSteelModule(TOOLONLY));\n        addModule(new LightningModule(TOOLONLY));\n        addModule(new DimensionalRiftModule(TOOLONLY));\n\n\n        /* Helmet ------------------------------- */\n        addModule(new WaterElectrolyzerModule(HEADONLY));\n        addModule(new NightVisionModule(HEADONLY));\n        addModule(new BinocularsModule(HEADONLY));\n        addModule(new FlightControlModule(HEADONLY));\n        addModule(new SolarGeneratorModule(HEADONLY));\n        addModule(new AutoFeederModule(HEADONLY));\n        addModule(new ClockModule(HEADONLY));\n        addModule(new CompassModule(HEADONLY));\n        addModule(new AdvancedSolarGenerator(HEADONLY));\n\n\n        /* Chestplate --------------------------- */\n        addModule(new ParachuteModule(TORSOONLY));\n        addModule(new GliderModule(TORSOONLY));\n        addModule(new JetPackModule(TORSOONLY));\n        addModule(new InvisibilityModule(TORSOONLY));\n        addModule(new CoolingSystemModule(TORSOONLY));\n        addModule(new MagnetModule(TORSOONLY));\n        addModule(new ThermalGeneratorModule(TORSOONLY));\n        addModule(new MobRepulsorModule(TORSOONLY));\n        addModule(new WaterTankModule(TORSOONLY));\n        addModule(new NitrogenCoolingSystem(TORSOONLY));\n        addModule(new MechanicalAssistance(TORSOONLY));\n        //addModule(new CoalGenerator(TORSOONLY)); //doesn't seem to be working\n\n\n        /* Legs --------------------------------- */\n        addModule(new SprintAssistModule(LEGSONLY));\n        addModule(new JumpAssistModule(LEGSONLY));\n        addModule(new SwimAssistModule(LEGSONLY));\n        addModule(new KineticGeneratorModule(LEGSONLY));\n        addModule(new ClimbAssistModule(LEGSONLY)); // OBSOLETE due to changes in Minecraft\n\n\n        /* Feet --------------------------------- */\n        addModule(new JetBootsModule(FEETONLY));\n        addModule(new ShockAbsorberModule(FEETONLY));\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/common/proxy/CommonProxy.java",
+          "method": "init",
+          "lines": [
+            40,
+            72
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/common/proxy/CommonProxy.java#L40-L72",
+          "file_sha256": "6801904a0e140ee9e2d999f617fcad7e68c2ebfed0c1cee256a933b25d2774f5",
+          "excerpt_sha256": "d8cf59f096de16070d388e4b67a82135b4ee0736077071cacbd9474b0cf64612",
+          "normalized_excerpt_sha256": "f1c4f713544850ca43ed4a7005bae7ed8afd967abbedf36fa4117ea0c017e8ab",
+          "excerpt": "    public void init(FMLInitializationEvent event) {\n        Config.loadPowerModules();\n        Config.getMaximumArmorPerPiece();\n        Config.getMaximumFlyingSpeedmps();\n        Config.useMouseWheel();\n        Config.useGraphicalMeters();\n        Config.getSalvageChance();\n        Config.baseMaxHeat();\n        Config.allowConflictingKeybinds();\n        Config.fontAntiAliasing();\n        Config.useCustomFonts();\n        Config.glowMultiplier();\n        Config.useShaders();\n        Config.getWeightCapacity();\n        Config.keybindHUDon();\n        Config.keybindHUDx();\n        Config.keybindHUDy();\n        Config.toggleModuleSpam();\n        Config.useAdvancedOreScannerMessage();\n        Config.useOldAutoFeeder();\n        Config.useCheatyLeatherRecipe();\n        Config.useHUDStuff();\n        Config.use24hClock();\n        Config.fontDetail();\n        Config.fontURI();\n        Config.fontName();\n        EntityRegistry.registerModEntity(EntityPlasmaBolt.class, \"entityPlasmaBolt\", 2477, ModularPowersuits.getInstance(), 64, 20, true);\n        EntityRegistry.registerModEntity(EntitySpinningBlade.class, \"entitySpinningBlade\", 2478, ModularPowersuits.getInstance(), 64, 20, true);\n        EntityRegistry.registerModEntity(EntityLuxCapacitor.class, \"entityLuxCapacitor\", 2479, ModularPowersuits.getInstance(), 64, 20, true);\n        MPSPacketList.registerPackets();\n        NetworkRegistry.INSTANCE.registerGuiHandler(ModularPowersuits.getInstance(), MPSGuiHandler.getInstance());\n        TerminalHandler.registerHandler();\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/common/MPSItems.java",
+          "method": "populateItems",
+          "lines": [
+            25,
+            34
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/common/MPSItems.java#L25-L34",
+          "file_sha256": "b0206f5914b4b5a2fa178cebf9e553014bf4bf48e0b7dceefc687f3086a1a16f",
+          "excerpt_sha256": "31e395264f2e6984882bc421baeba0fb3d59d92a21da20743eac311c93c7b74c",
+          "normalized_excerpt_sha256": "cfc5ffb4b7dafeeb670e36f568cf7a283da0460ec756fa8a7cff073eef8c8026",
+          "excerpt": "    public static void populateItems() {\n        powerArmorHead = MPSRegistry.registerItem(new ItemPowerArmorHelmet(), \"powerArmorHead\", \"powerArmorHelmet\");\n        powerArmorTorso = MPSRegistry.registerItem(new ItemPowerArmorChestplate(), \"powerArmorTorso\", \"powerArmorChestplate\");\n        powerArmorLegs = MPSRegistry.registerItem(new ItemPowerArmorLeggings(), \"powerArmorLegs\", \"powerArmorLeggings\");\n        powerArmorFeet = MPSRegistry.registerItem(new ItemPowerArmorBoots(), \"powerArmorFeet\", \"powerArmorBoots\");\n        powerTool     =  MPSRegistry.registerItem(new ItemPowerFist(), \"powerTool\", \"powerFist\");\n\n        tinkerTable = MPSRegistry.registerBlock(new BlockTinkerTable());\n        luxCapacitor = MPSRegistry.registerBlock(new BlockLuxCapacitor());\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/common/ModularPowersuits.java",
+          "method": "init",
+          "lines": [
+            52,
+            54
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/common/ModularPowersuits.java#L52-L54",
+          "file_sha256": "8838cfbaaa349693d3fb5f4b922ba4fbb887f05e2b2589913202bdf92064941e",
+          "excerpt_sha256": "fb0b3dc1fc47698e5a70cea287d37567a9acb5be1ea74372250e706a909c53f6",
+          "normalized_excerpt_sha256": "21e27385a70c22475db701f9441ea3b85c6795c4a5b5fb6126dd4246bf7d3ac6",
+          "excerpt": "    public void init(FMLInitializationEvent event) {\n        proxy.init(event);\n    }\n"
+        }
+      ],
+      "concrete_observation": "电磁炮MAIN_HAND且energy>cost、timer==0才先扣能/设10tick/加热；实际64格射线比较最近实体和方块。实体分支先绘束流，再调用玩家源attackEntityFrom；只有返回true才给目标addVelocity。非空射线结果（包括方块）都会给射手反冲和第二次箭声；空结果仍有首次声、资源扣除且返回SUCCESS。计时只在active tick递减，不能推成卸下也按墙钟恢复。onItemRightClick本身没有服务端专用门，不声称源码已保证双端不重复。",
+      "application": "区分施放成功、碰撞可见、目标接纳伤害与目标实际位移四种回执；拒伤时不能仅凭束流/声/SUCCESS判目标已受控。",
+      "limits": [
+        "无Boss专用灰字，不提供拒绝原因；true也不等同于已观测位移。",
+        "原生raytrace及物品分发全文已读；未运行该历史Forge版本，未审核全部第三方模块环境。",
+        "须主岗判断与既有SpellEngine直接位移独立性；不得按每种武器另计。"
+      ],
+      "semantic_dedup": "主账reviewed.json本轮未命中MachineMuse/Railgun/PowerFist；与008-12忽略hurt结果后仍位移相反。本条仅一个候选，动力拳同构伤害门并入支持。"
+    },
+    {
+      "id": "herschel-009-02",
+      "semantic_dedup_key": "mps-fist-same-result-gate-with-pre-damage-rotation-side-effect",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/item/ItemPowerFist.java",
+          "method": "hitEntity",
+          "lines": [
+            110,
+            130
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/item/ItemPowerFist.java#L110-L130",
+          "file_sha256": "831076a99b50d4a2f876a6f7f0a1a3c2c6bf91bf431c14ddb8777af6f158e32a",
+          "excerpt_sha256": "531b4e191d7f6848ec35a5bd7b8fcbbfb11c5453ebb7c4b76eb9ee1610b333a9",
+          "normalized_excerpt_sha256": "d1d48d1d8f3fa538fef44377601f6254f14e1667ebe21d2afa2b07fb72f92e43",
+          "excerpt": "    public boolean hitEntity(ItemStack stack, EntityLivingBase entityBeingHit, EntityLivingBase entityDoingHitting) {\n        if (ModuleManager.itemHasActiveModule(stack, OmniWrenchModule.MODULE_OMNI_WRENCH)) {\n            entityBeingHit.rotationYaw += 90.0f;\n            entityBeingHit.rotationYaw %= 360.0f;\n        }\n        if (entityDoingHitting instanceof EntityPlayer && ModuleManager.itemHasActiveModule(stack, MeleeAssistModule.MODULE_MELEE_ASSIST)) {\n            EntityPlayer player = (EntityPlayer) entityDoingHitting;\n            double drain = ModuleManager.computeModularProperty(stack, MeleeAssistModule.PUNCH_ENERGY);\n            if (ElectricItemUtils.getPlayerEnergy(player) > drain) {\n                ElectricItemUtils.drainPlayerEnergy(player, drain);\n                double damage = ModuleManager.computeModularProperty(stack, MeleeAssistModule.PUNCH_DAMAGE);\n                double knockback = ModuleManager.computeModularProperty(stack, MeleeAssistModule.PUNCH_KNOCKBACK);\n                DamageSource damageSource = DamageSource.causePlayerDamage(player);\n                if (entityBeingHit.attackEntityFrom(damageSource, (float) (int) damage)) {\n                    Vec3d lookVec = player.getLookVec();\n                    entityBeingHit.addVelocity(lookVec.xCoord * knockback, Math.abs(lookVec.yCoord + 0.2f) * knockback, lookVec.zCoord * knockback);\n                }\n            }\n        }\n        return true;\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/powermodule/weapon/MeleeAssistModule.java",
+          "method": "MeleeAssistModule",
+          "lines": [
+            20,
+            30
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/powermodule/weapon/MeleeAssistModule.java#L20-L30",
+          "file_sha256": "7d0344ceb73e9ea99bf1194966df1c1aafdb5180458afdfa0a8ef980494e2ddc",
+          "excerpt_sha256": "016f9c7085460a467138205765f2acab143a5e8e08ecf2b6998dc68aa18ee9a2",
+          "normalized_excerpt_sha256": "d44edef9db18e8d7e6a538c34fb0d09f44dc03ef65b563517b8b3d91d19fb47a",
+          "excerpt": "    public MeleeAssistModule(List<IModularItem> validItems) {\n        super(validItems);\n        addBaseProperty(PUNCH_ENERGY, 10, \"J\");\n        addBaseProperty(PUNCH_DAMAGE, 2, \"pt\");\n        addTradeoffProperty(\"Impact\", PUNCH_ENERGY, 100, \"J\");\n        addTradeoffProperty(\"Impact\", PUNCH_DAMAGE, 8, \"pt\");\n        addTradeoffProperty(\"Carry-through\", PUNCH_ENERGY, 20, \"J\");\n        addTradeoffProperty(\"Carry-through\", PUNCH_KNOCKBACK, 1, \"P\");\n        addInstallCost(MuseItemUtils.copyAndResize(ItemComponent.servoMotor, 2));\n        addInstallCost(MuseItemUtils.copyAndResize(ItemComponent.lvcapacitor, 1));\n    }\n"
+        }
+      ],
+      "concrete_observation": "OmniWrench激活先把目标rotationYaw加90取模，与MeleeAssist和hurt结果无关；近战辅助需玩家且energy>drain，扣能在hurt之前，整数截断伤害；仅hurt返回true才目标加速度，外层hitEntity最终总true。",
+      "application": "最终拒控门需要覆盖伤害前的方向副作用；外层物品回调true不是伤害接纳凭据。",
+      "limits": [
+        "不把原生目标yaw字段写入等同于双客户端可见旋转。",
+        "没有移植或修改正式代码；同构伤害门不再计独立信用。"
+      ],
+      "semantic_dedup": "目标速度门并入009-01；伤害前副作用与GuardVillagers旧归属研究原则近似，守卫旧账不转免疫信用。"
+    },
+    {
+      "id": "herschel-009-03",
+      "semantic_dedup_key": "mps-plasma-native-hurt-ignored-explosion-and-expiry-support",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/powermodule/weapon/PlasmaCannonModule.java",
+          "method": "onPlayerStoppedUsing",
+          "lines": [
+            82,
+            103
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/powermodule/weapon/PlasmaCannonModule.java#L82-L103",
+          "file_sha256": "42b539b42250467731a2e6da947e328999ccf2c7db2455b0612a9ce45989fdd8",
+          "excerpt_sha256": "7f61420dec3e0ba4a891e8b7781306a4182c3be12435c4b7b8f76f4b4ba14874",
+          "normalized_excerpt_sha256": "aff6de6ffe7ac446de7c1cd151931a66cab01ce0db59768883c96efdfce76fa2",
+          "excerpt": "    public void onPlayerStoppedUsing(ItemStack itemStack, World worldIn, EntityLivingBase entityLiving, int timeLeft) {\n        int chargeTicks = (int) MuseMathUtils.clampDouble(itemStack.getMaxItemUseDuration() - timeLeft, 10, 50);\n\n        if (!worldIn.isRemote) {\n            double energyConsumption = ModuleManager.computeModularProperty(itemStack, PlasmaCannonModule.PLASMA_CANNON_ENERGY_PER_TICK) * chargeTicks;\n            if (entityLiving instanceof EntityPlayer) {\n                EntityPlayer player = (EntityPlayer) entityLiving;\n                MuseHeatUtils.heatPlayer(player, energyConsumption / 500);\n                if (ElectricItemUtils.getPlayerEnergy(player) > energyConsumption) {\n                    ElectricItemUtils.drainPlayerEnergy(player, energyConsumption);\n                    double explosiveness = ModuleManager.computeModularProperty(itemStack, PlasmaCannonModule.PLASMA_CANNON_EXPLOSIVENESS);\n                    double damagingness = ModuleManager.computeModularProperty(itemStack, PlasmaCannonModule.PLASMA_CANNON_DAMAGE_AT_FULL_CHARGE);\n\n                    EntityPlasmaBolt plasmaBolt = new EntityPlasmaBolt(worldIn, player, explosiveness, damagingness, chargeTicks);\n                    worldIn.spawnEntityInWorld(plasmaBolt);\n                    // switched to IEntityAdditionalSpawnData\n                    //MusePacketPlasmaBolt packet = new MusePacketPlasmaBolt(player, plasmaBolt.getEntityId(), plasmaBolt.size);\n                    //PacketSender.sendToAll(packet);\n                }\n            }\n        }\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/powermodule/weapon/PlasmaCannonModule.java",
+          "method": "onItemRightClick",
+          "lines": [
+            63,
+            69
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/powermodule/weapon/PlasmaCannonModule.java#L63-L69",
+          "file_sha256": "42b539b42250467731a2e6da947e328999ccf2c7db2455b0612a9ce45989fdd8",
+          "excerpt_sha256": "7128ae85771a72273b76807c9be44c385b1955acb9df3bb13f0d9f9c3ee12b31",
+          "normalized_excerpt_sha256": "a3b0524535c1250703e3599f360c22ebec8daea4b50fafb8592facede91a0726",
+          "excerpt": "    public ActionResult onItemRightClick(ItemStack itemStackIn, World worldIn, EntityPlayer playerIn, EnumHand hand) {\n        if (hand == EnumHand.MAIN_HAND && ElectricItemUtils.getPlayerEnergy(playerIn) > 500) {\n            playerIn.setActiveHand(hand);\n            return new ActionResult(EnumActionResult.SUCCESS, itemStackIn);\n        }\n        return ActionResult.newResult(EnumActionResult.PASS, itemStackIn);\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java",
+          "method": "onImpact",
+          "lines": [
+            102,
+            128
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java#L102-L128",
+          "file_sha256": "cb91a7293c45a11bf1998c2fe0d2b94c7b816461058198c95e8336ce64c1f9dd",
+          "excerpt_sha256": "75fbde977b68af4061c46f68b7beda904dfa219af752de1388ef1d867e0def02",
+          "normalized_excerpt_sha256": "2de7594e13e26c92f382a20fe28b809837456fd974d3c38675ae2ab519ccba75",
+          "excerpt": "    protected void onImpact(RayTraceResult result) {\n        double damage = this.size / 50.0 * this.damagingness;\n        switch (result.typeOfHit) {\n            case ENTITY:\n                if (result.entityHit != null && result.entityHit != shootingEntity) {\n                    result.entityHit.attackEntityFrom(DamageSource.causeThrownDamage(this, this.shootingEntity), (int) damage);\n                }\n                break;\n            case BLOCK:\n                break;\n            default:\n                break;\n        }\n        if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {\n            boolean flag = this.worldObj.getGameRules().getBoolean(\"mobGriefing\");\n            this.worldObj.createExplosion(this, this.posX, this.posY, this.posZ, (float) (this.size / 50.0f * 3 * this.explosiveness), flag);\n        }\n        for (int var3 = 0; var3 < 8; ++var3) {\n            this.worldObj.spawnParticle(EnumParticleTypes.FLAME,\n                    this.posX + Math.random() * 0.1, this.posY + Math.random() * 0.1, this.posZ + Math.random() * 0.1,\n                    0.0D, 0.0D, 0.0D);\n        }\n\n        if (FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {\n            this.setDead();\n        }\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java",
+          "method": "onEntityUpdate",
+          "lines": [
+            55,
+            69
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java#L55-L69",
+          "file_sha256": "cb91a7293c45a11bf1998c2fe0d2b94c7b816461058198c95e8336ce64c1f9dd",
+          "excerpt_sha256": "4811ce3e94f6b9ecf8d80452659fd4a4bbc2c5909952ac7221e846fb200c9dcf",
+          "normalized_excerpt_sha256": "c5c2b6f116af668acf75cee49bd0cb07367fe379950f1465af2d9e6f5c162321",
+          "excerpt": "    public void onEntityUpdate() {\n        super.onEntityUpdate();\n        if (this.ticksExisted > this.getMaxLifetime()) {\n            this.setDead();\n        }\n        if (this.isInWater()) {\n            this.setDead();\n            for (int var3 = 0; var3 < this.size; ++var3) {\n                this.worldObj.spawnParticle(EnumParticleTypes.FLAME,\n                        this.posX + Math.random() * 1, this.posY + Math.random() * 1, this.posZ + Math.random()\n                                * 0.1,\n                        0.0D, 0.0D, 0.0D);\n            }\n        }\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java",
+          "method": "readEntityFromNBT",
+          "lines": [
+            85,
+            87
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java#L85-L87",
+          "file_sha256": "cb91a7293c45a11bf1998c2fe0d2b94c7b816461058198c95e8336ce64c1f9dd",
+          "excerpt_sha256": "319c8106e93a511a563c8ab98351e474a2841d298511fabf9d068c7f3bb05945",
+          "normalized_excerpt_sha256": "c21b88bf4286c5f211a554256ff78d74e53eb61fcd26a3c1d0f6ad8a511e1558",
+          "excerpt": "    public void readEntityFromNBT(NBTTagCompound var1) {\n        this.setDead();\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java",
+          "method": "writeSpawnData",
+          "lines": [
+            131,
+            133
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java#L131-L133",
+          "file_sha256": "cb91a7293c45a11bf1998c2fe0d2b94c7b816461058198c95e8336ce64c1f9dd",
+          "excerpt_sha256": "6c0b4e133f7fe610536948395411fd269b2b1a3deebbc17f81ab6b85403bc1eb",
+          "normalized_excerpt_sha256": "91cd0374deee58e6542d9406ce2a7a1a972dd70a77e0a8a39e4d244dc22fb68b",
+          "excerpt": "    public void writeSpawnData(ByteBuf buffer) {\n        buffer.writeDouble(this.size);\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java",
+          "method": "readSpawnData",
+          "lines": [
+            136,
+            138
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/entity/EntityPlasmaBolt.java#L136-L138",
+          "file_sha256": "cb91a7293c45a11bf1998c2fe0d2b94c7b816461058198c95e8336ce64c1f9dd",
+          "excerpt_sha256": "a9cf39f226c49a7423a19525a3a4e43cbeba8ca94fe296eaed5b69aa5cffe52d",
+          "normalized_excerpt_sha256": "a79555528060b585bab956e17821709718f33255da107dedfd07ad6b7a0db34e",
+          "excerpt": "    public void readSpawnData(ByteBuf additionalData) {\n        this.size = additionalData.readDouble();\n    }\n"
+        }
+      ],
+      "concrete_observation": "停止蓄力先clamp10..50，服务端先加热后检查energy>cost，通过才扣能生成弹。onImpact非本人实体伤害忽略bool，随后服务端爆炸/销毁与8火粒子不依赖bool；mobGriefing只作为爆炸flag传入。水中销毁伴随火粒子；ticksExisted>200而非>=200销毁。存档read直接销毁，额外spawn数据只size。",
+      "application": "伤害未接纳仍存在碰撞/爆炸视觉，粒子与资源付费不能证明目标免疫失败。",
+      "limits": [
+        "爆炸伤害最终原生消费及受害者清单未读，不声称绕过目标免疫或伤及本人。",
+        "不拆生命周期、size同步、伤害忽略成多个有效单位。"
+      ],
+      "semantic_dedup": "与008-12忽略原生hurt结果仍反馈同族，且缺原生爆炸消费，保留支持0。"
+    },
+    {
+      "id": "herschel-009-04",
+      "semantic_dedup_key": "mps-fall-distance-energy-strict-boundary-before-client-sound",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/event/MovementManager.java",
+          "method": "handleFallEvent",
+          "lines": [
+            69,
+            89
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/event/MovementManager.java#L69-L89",
+          "file_sha256": "5b839ba8f4643e271594da042abba9228f1ebe0b2ad1fa68e07dd6b5531a1349",
+          "excerpt_sha256": "4523c9c0b8e6a8aefe1bb2841a0fcde94f34a58824285f426570821d28406d46",
+          "normalized_excerpt_sha256": "6d87ef195326d4d87799489d586c4b45f51c31c749c8c9f936eb6ee81136aac1",
+          "excerpt": "    public void handleFallEvent(LivingFallEvent event) {\n        if (event.getEntityLiving() instanceof EntityPlayer) {\n            EntityPlayer player = (EntityPlayer) event.getEntityLiving();\n            ItemStack boots = player.getItemStackFromSlot(EntityEquipmentSlot.FEET);\n            if (boots != null) {\n                if (ModuleManager.itemHasActiveModule(boots, ShockAbsorberModule.MODULE_SHOCK_ABSORBER) && event.getDistance() > 3) {\n                    double distanceAbsorb = event.getDistance() * ModuleManager.computeModularProperty(boots, ShockAbsorberModule.SHOCK_ABSORB_MULTIPLIER);\n                    if ((FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT) && NuminaConfig.useSounds()) {\n                        Musique.playerSound(player, SoundDictionary.SOUND_EVENT_GUI_INSTALL, SoundCategory.PLAYERS, (float) (distanceAbsorb), (float)1, false);\n                    }\n\n                    double drain = distanceAbsorb * ModuleManager.computeModularProperty(boots, ShockAbsorberModule.SHOCK_ABSORB_ENERGY_CONSUMPTION);\n                    double avail = ElectricItemUtils.getPlayerEnergy(player);\n                    if (drain < avail) {\n                        ElectricItemUtils.drainPlayerEnergy(player, drain);\n                        event.setDistance((float) (event.getDistance() - distanceAbsorb));\n                    }\n                }\n            }\n        }\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/powermodule/movement/ShockAbsorberModule.java",
+          "method": "ShockAbsorberModule",
+          "lines": [
+            21,
+            26
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/powermodule/movement/ShockAbsorberModule.java#L21-L26",
+          "file_sha256": "0ccb53604ab24c28a371951a3426641a95c39f242169e016b823b3bb28e59f59",
+          "excerpt_sha256": "d729648a198499a9fe1e1e17eec46f1d6282f717adbd1ac2757382825dba03a0",
+          "normalized_excerpt_sha256": "3560738caf8b8a666c6f4bb7a9a08ec98ecd5175366f6c37e5ea06ca82a3e4e5",
+          "excerpt": "    public ShockAbsorberModule(List<IModularItem> validItems) {\n        super(validItems);\n        addSimpleTradeoff(this, \"Power\", SHOCK_ABSORB_ENERGY_CONSUMPTION, \"J/m\", 0, 10, SHOCK_ABSORB_MULTIPLIER, \"%\", 0, 1);\n        addInstallCost(MuseItemUtils.copyAndResize(ItemComponent.servoMotor, 2));\n        addInstallCost(new ItemStack(Blocks.WOOL, 2));\n        }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/common/proxy/CommonProxy.java",
+          "method": "registerEvents",
+          "lines": [
+            80,
+            83
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/common/proxy/CommonProxy.java#L80-L83",
+          "file_sha256": "6801904a0e140ee9e2d999f617fcad7e68c2ebfed0c1cee256a933b25d2774f5",
+          "excerpt_sha256": "f1409aaf28b1db7ba04f73538ea00556a3f4f27ce9daeec12643288acb9462db",
+          "normalized_excerpt_sha256": "4447f0d61a374e107eaca48a9fba51242b935c28d8f371d2d5922fa86daaeaa5",
+          "excerpt": "    public void registerEvents(){\n        MinecraftForge.EVENT_BUS.register(new HarvestEventHandler());\n        MinecraftForge.EVENT_BUS.register(new MovementManager());\n    }\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/common/ModularPowersuits.java",
+          "method": "preInit",
+          "lines": [
+            45,
+            49
+          ],
+          "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/common/ModularPowersuits.java#L45-L49",
+          "file_sha256": "8838cfbaaa349693d3fb5f4b922ba4fbb887f05e2b2589913202bdf92064941e",
+          "excerpt_sha256": "907832f7eb39c6a142ceb0a523929dd5134efed59897677fe130ed3e40ae5b9b",
+          "normalized_excerpt_sha256": "524cbd1789f164654ed50fb742e5a0cdf5b4ce48bb36c1456949aa4183dc19a6",
+          "excerpt": "    public void preInit(FMLPreInitializationEvent event) {\n        proxy.preInit(event);\n        proxy.registerEvents();\n        proxy.registerRenderers();\n    }\n"
+        }
+      ],
+      "concrete_observation": "玩家脚装备有ShockAbsorber激活且落距>3时，先算distanceAbsorb=原始落距*配置倍率；client声在energy比较前产生。只有drain<avail才扣能并减event距离，能量恰好等于cost拒绝，代码没有显式cancel事件或按1下限clamp倍率。",
+      "application": "声是尝试回执而非减伤成功回执；付费比较边界需明确，不凭声音证明免伤。",
+      "limits": [
+        "仅改落距，原生最终落伤计算未读，不能断言零伤；普通玩家装备不是Boss拒控实现。",
+        "注册链支持已读；不运行客户端。"
+      ],
+      "semantic_dedup": "与008-15普通装备减伤同为辅助，Boss免疫/灰字相关性不足，0信用。"
+    },
+    {
+      "id": "herschel-009-05",
+      "semantic_dedup_key": "arcanus-float-head-hurt-removal-and-nogravity-exit-support",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "CammiesCorner__Arcanus/src/main/java/dev/cammiescorner/arcanus/mixin/common/LivingEntityMixin.java",
+          "method": "onDamage",
+          "lines": [
+            82,
+            125
+          ],
+          "url": "https://github.com/CammiesCorner/Arcanus/blob/6a098ad2c95f3366b14d395e311e353da6bc4c70/src/main/java/dev/cammiescorner/arcanus/mixin/common/LivingEntityMixin.java#L82-L125",
+          "file_sha256": "31536548a8cbe30775ebb2e3e12c58cdb3905856aeebcf2c97b243cb51b79748",
+          "excerpt_sha256": "2b50f0bdfc7af413e6e5ed97570f24aa44f1f20c8dc77cc8645c9eb38c5d440d",
+          "normalized_excerpt_sha256": "16c80b3cdc7091e7d9b7b858dad0942141b97215fbaeab67ea3ad5588f593899",
+          "excerpt": "\tprivate void onDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> info) {\n\t\tif(amount > 0 && !isDamageSourceBlocked(source)) {\n\t\t\tif(hasEffect(ArcanusMobEffects.FLOAT.holder()) && ArcanusConfig.MovementEffects.FloatEffectProperties.removedUponTakingDamage)\n\t\t\t\tremoveEffect(ArcanusMobEffects.FLOAT.holder());\n\n\t\t\tif(hasEffect(ArcanusMobEffects.DANGER_SENSE.holder()) && (source.is(DamageTypeTags.IS_PROJECTILE) || source.is(DamageTypeTags.IS_EXPLOSION))) {\n\t\t\t\tMobEffectInstance dangerSense = getEffect(ArcanusMobEffects.DANGER_SENSE.holder());\n\n\t\t\t\tif(random.nextFloat() < ArcanusConfig.SupportEffects.DangerSenseEffectProperties.baseChanceToActivate * (dangerSense.getAmplifier() + 1)) {\n\t\t\t\t\tif(level() instanceof ServerLevel world) {\n\t\t\t\t\t\tdouble d = getX();\n\t\t\t\t\t\tdouble e = getY();\n\t\t\t\t\t\tdouble f = getZ();\n\n\t\t\t\t\t\tfor(int i = 0; i < 16; ++i) {\n\t\t\t\t\t\t\tdouble g = getX() + (random.nextDouble() - 0.5) * 16.0;\n\t\t\t\t\t\t\tdouble h = Mth.clamp(\n\t\t\t\t\t\t\t\tgetY() + random.nextInt(16) - 8,\n\t\t\t\t\t\t\t\tworld.getMinBuildHeight(),\n\t\t\t\t\t\t\t\tworld.getMinBuildHeight() + world.getLogicalHeight() - 1\n\t\t\t\t\t\t\t);\n\t\t\t\t\t\t\tdouble j = getZ() + (random.nextDouble() - 0.5) * 16.0;\n\n\t\t\t\t\t\t\tif(isPassenger())\n\t\t\t\t\t\t\t\tstopRiding();\n\n\t\t\t\t\t\t\tVec3 vec3d = position();\n\n\t\t\t\t\t\t\tif(randomTeleport(g, h, j, true)) {\n\t\t\t\t\t\t\t\tworld.gameEvent(GameEvent.TELEPORT, vec3d, GameEvent.Context.of(self));\n\t\t\t\t\t\t\t\tSoundEvent soundEvent = self instanceof Fox ? SoundEvents.FOX_TELEPORT : SoundEvents.CHORUS_FRUIT_TELEPORT;\n\t\t\t\t\t\t\t\tworld.playSound(null, d, e, f, soundEvent, SoundSource.PLAYERS, 1f, 1f);\n\t\t\t\t\t\t\t\tplaySound(soundEvent, 1f, 1f);\n\t\t\t\t\t\t\t\tbreak;\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\n\t\t\t\t\tremoveEffect(ArcanusMobEffects.DANGER_SENSE.holder());\n\t\t\t\t\tinfo.setReturnValue(false);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "CammiesCorner__Arcanus/src/main/java/dev/cammiescorner/arcanus/mixin/common/LivingEntityMixin.java",
+          "method": "attemptToRemoveEffect",
+          "lines": [
+            248,
+            256
+          ],
+          "url": "https://github.com/CammiesCorner/Arcanus/blob/6a098ad2c95f3366b14d395e311e353da6bc4c70/src/main/java/dev/cammiescorner/arcanus/mixin/common/LivingEntityMixin.java#L248-L256",
+          "file_sha256": "31536548a8cbe30775ebb2e3e12c58cdb3905856aeebcf2c97b243cb51b79748",
+          "excerpt_sha256": "0f2e19bde41458e8cae2ad824f36050f741a55d381a856995fe79fed0c3e0851",
+          "normalized_excerpt_sha256": "36054d795e67d3ad94aa6649aa00d09350f21a7cc093f81316b67b0b0157aae6",
+          "excerpt": "\tprivate void attemptToRemoveEffect(MobEffectInstance effectInstance, CallbackInfo info) {\n\t\tif(level() instanceof ServerLevel level && effectInstance.getEffect().value() instanceof ArcanusStatusEffect effect) {\n\t\t\tif(effect.shouldSync)\n\t\t\t\tNetwork.getNetworkHandler().sendToAllClients(new ClientboundStatusEffectPacket(getId(), effectInstance.getEffect(), true), level.getServer());\n\n\t\t\tif(effect == ArcanusMobEffects.FLOAT.get())\n\t\t\t\tsetNoGravity(true);\n\t\t}\n\t}\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "CammiesCorner__Arcanus/src/main/java/dev/cammiescorner/arcanus/mixin/common/LivingEntityMixin.java",
+          "method": "floatAround",
+          "lines": [
+            239,
+            245
+          ],
+          "url": "https://github.com/CammiesCorner/Arcanus/blob/6a098ad2c95f3366b14d395e311e353da6bc4c70/src/main/java/dev/cammiescorner/arcanus/mixin/common/LivingEntityMixin.java#L239-L245",
+          "file_sha256": "31536548a8cbe30775ebb2e3e12c58cdb3905856aeebcf2c97b243cb51b79748",
+          "excerpt_sha256": "f767aaae1e73310b4b824b750e705e8029d418d4a5a2314f1629e705a53a3f44",
+          "normalized_excerpt_sha256": "aa018a40f4288df8a84dcf560d225f4e48744ea6671a743d771c2a703ba5d2b6",
+          "excerpt": "\tprivate Vec3 floatAround(LivingEntity livingEntity, Operation<Vec3> original, Vec3 movementInput, float slipperiness) {\n\t\t// FIXME smooth out vertical movement, currently a bit jolting\n\t\tif(hasEffect(ArcanusMobEffects.FLOAT.holder()))\n\t\t\treturn getDeltaMovement().add(0, jumping ? getSpeed() : isShiftKeyDown() ? -getSpeed() : 0, 0);\n\n\t\treturn original.call(livingEntity);\n\t}\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "CammiesCorner__Arcanus/src/main/java/dev/cammiescorner/arcanus/common/effect/ArcanusStatusEffect.java",
+          "method": "onEffectAdded",
+          "lines": [
+            27,
+            37
+          ],
+          "url": "https://github.com/CammiesCorner/Arcanus/blob/6a098ad2c95f3366b14d395e311e353da6bc4c70/src/main/java/dev/cammiescorner/arcanus/common/effect/ArcanusStatusEffect.java#L27-L37",
+          "file_sha256": "aec82bff30dc012198d0cc975d1bdae8b97c91f6c2ecf2d76f83ce0db36bf951",
+          "excerpt_sha256": "8620cb4b0dafcba65a56440801c7f8af4666efd6c6baaee4f015c7f7b23b7854",
+          "normalized_excerpt_sha256": "b8905930cccacef12271bad14a83ea5a9f41ba23500832430a8dd318a4745a70",
+          "excerpt": "\tpublic void onEffectAdded(LivingEntity livingEntity, int amplifier) {\n\t\tsuper.onEffectAdded(livingEntity, amplifier);\n\n\t\tif(livingEntity.level() instanceof ServerLevel level) {\n\t\t\tif(shouldSync)\n\t\t\t\tNetwork.getNetworkHandler().sendToAllClients(new ClientboundStatusEffectPacket(livingEntity.getId(), Holder.direct(this), true), level.getServer());\n\n\t\t\tif(this == ArcanusMobEffects.FLOAT.get())\n\t\t\t\tlivingEntity.setNoGravity(true);\n\t\t}\n\t}\n"
+        }
+      ],
+      "concrete_observation": "hurt HEAD在amount>0且未被盾挡时，若配置removedUponTakingDamage先移除FLOAT，早于DangerSense可能返回false，不能称HP真减少后才解除。onEffectAdded服务端FLOAT设noGravity(true)；onEffectRemoved HEAD再次设true而非false。floatAround在状态仍存在时直接增加Y输入速度。",
+      "application": "解除控制必须区分尝试受伤与实际接纳；退出后恢复重力要审查全部原生链，不能因状态列表消失就宣称恢复。",
+      "limits": [
+        "FloatSpellEffect.java不在固定缓存，不能闭合实际施放入口，因此不申请独立信用。",
+        "静态可疑退出写值，不宣称本项目或外部实机已复现bug。",
+        "共享onDamage完整方法含旧DangerSense已计链，本条不重计。"
+      ],
+      "semantic_dedup": "入口不完整；重力退出与主账其它mod控制清理同族，只作支持。"
+    },
+    {
+      "id": "herschel-009-06",
+      "semantic_dedup_key": "arcanus-effect-sync-removal-true-and-anonymity-only-support",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "CammiesCorner__Arcanus/src/main/java/dev/cammiescorner/arcanus/common/effect/ArcanusStatusEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            43
+          ],
+          "url": "https://github.com/CammiesCorner/Arcanus/blob/6a098ad2c95f3366b14d395e311e353da6bc4c70/src/main/java/dev/cammiescorner/arcanus/common/effect/ArcanusStatusEffect.java#L1-L43",
+          "file_sha256": "aec82bff30dc012198d0cc975d1bdae8b97c91f6c2ecf2d76f83ce0db36bf951",
+          "excerpt_sha256": "aec82bff30dc012198d0cc975d1bdae8b97c91f6c2ecf2d76f83ce0db36bf951",
+          "normalized_excerpt_sha256": "c89a4a64cace2f090049dadf7fb190ff082ee386cca488d31d755faa3c84e1ff",
+          "excerpt": "package dev.cammiescorner.arcanus.common.effect;\n\nimport commonnetwork.api.Network;\nimport dev.cammiescorner.arcanus.common.networking.clientbound.ClientboundStatusEffectPacket;\nimport dev.cammiescorner.arcanus.common.registry.ArcanusMobEffects;\nimport net.minecraft.core.Holder;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectCategory;\nimport net.minecraft.world.entity.LivingEntity;\n\npublic class ArcanusStatusEffect extends MobEffect {\n\tpublic final boolean shouldSync;\n\tpublic final boolean shouldTick;\n\n\tpublic ArcanusStatusEffect(MobEffectCategory type, int color, boolean shouldSync, boolean shouldTick) {\n\t\tsuper(type, color);\n\t\tthis.shouldSync = shouldSync;\n\t\tthis.shouldTick = shouldTick;\n\t}\n\n\tpublic ArcanusStatusEffect(MobEffectCategory type, int color) {\n\t\tthis(type, color, false, false);\n\t}\n\n\t@Override\n\tpublic void onEffectAdded(LivingEntity livingEntity, int amplifier) {\n\t\tsuper.onEffectAdded(livingEntity, amplifier);\n\n\t\tif(livingEntity.level() instanceof ServerLevel level) {\n\t\t\tif(shouldSync)\n\t\t\t\tNetwork.getNetworkHandler().sendToAllClients(new ClientboundStatusEffectPacket(livingEntity.getId(), Holder.direct(this), true), level.getServer());\n\n\t\t\tif(this == ArcanusMobEffects.FLOAT.get())\n\t\t\t\tlivingEntity.setNoGravity(true);\n\t\t}\n\t}\n\n\t@Override\n\tpublic boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {\n\t\treturn shouldTick;\n\t}\n}\n"
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "CammiesCorner__Arcanus/src/main/java/dev/cammiescorner/arcanus/common/registry/ArcanusMobEffects.java",
+          "method": null,
+          "lines": [
+            1,
+            44
+          ],
+          "url": "https://github.com/CammiesCorner/Arcanus/blob/6a098ad2c95f3366b14d395e311e353da6bc4c70/src/main/java/dev/cammiescorner/arcanus/common/registry/ArcanusMobEffects.java#L1-L44",
+          "file_sha256": "e5c42a4ef415cd3ae78a6afcffc7f8a52cc40ec31b6ff0f219f59d47cb1df26a",
+          "excerpt_sha256": "e5c42a4ef415cd3ae78a6afcffc7f8a52cc40ec31b6ff0f219f59d47cb1df26a",
+          "normalized_excerpt_sha256": "8353c6f5eb45817053484cb3f5a6a9fa63e6f07f8776eba2b7953fbe19c98660",
+          "excerpt": "package dev.cammiescorner.arcanus.common.registry;\n\nimport dev.cammiescorner.arcanus.Arcanus;\nimport dev.cammiescorner.arcanus.common.effect.ArcanusStatusEffect;\nimport dev.upcraft.sparkweave.api.registry.RegistryHandler;\nimport dev.upcraft.sparkweave.api.registry.RegistrySupplier;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectCategory;\nimport net.minecraft.world.entity.ai.attributes.AttributeModifier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\n\npublic class ArcanusMobEffects {\n\tpublic static final RegistryHandler<MobEffect> MOB_EFFECTS = RegistryHandler.create(Registries.MOB_EFFECT, Arcanus.MOD_ID);\n\n\tpublic static final RegistrySupplier<MobEffect> MANA_LOCK = MOB_EFFECTS.register(\"arcana_lock\", () -> new ArcanusStatusEffect(MobEffectCategory.HARMFUL, 0xa89d9b).addAttributeModifier(ArcanusAttributes.ARCANA_LOCK.holder(), Arcanus.id(\"arcana_lock_potion\"), 7, AttributeModifier.Operation.ADD_VALUE));\n\tpublic static final RegistrySupplier<MobEffect> VULNERABILITY = MOB_EFFECTS.register(\"vulnerability\", () -> new ArcanusStatusEffect(MobEffectCategory.HARMFUL, 0x3a8e99));\n\tpublic static final RegistrySupplier<MobEffect> FORTIFY = MOB_EFFECTS.register(\"fortify\", () -> new ArcanusStatusEffect(MobEffectCategory.BENEFICIAL, 0xbbbbbb));\n\tpublic static final RegistrySupplier<MobEffect> BOUNCY = MOB_EFFECTS.register(\"bouncy\", () -> new ArcanusStatusEffect(MobEffectCategory.NEUTRAL, 0x77ff88));\n\tpublic static final RegistrySupplier<MobEffect> ANONYMITY = MOB_EFFECTS.register(\"anonymity\", () -> new ArcanusStatusEffect(MobEffectCategory.NEUTRAL, 0x555555, true, false));\n\tpublic static final RegistrySupplier<MobEffect> DISCOMBOBULATE = MOB_EFFECTS.register(\"discombobulate\", () -> new ArcanusStatusEffect(MobEffectCategory.HARMFUL, 0x7b1375));\n\tpublic static final RegistrySupplier<MobEffect> FLOAT = MOB_EFFECTS.register(\"float\", () -> new ArcanusStatusEffect(MobEffectCategory.NEUTRAL, 0xceffff));\n\tpublic static final RegistrySupplier<MobEffect> DANGER_SENSE = MOB_EFFECTS.register(\"danger_sense\", () -> new ArcanusStatusEffect(MobEffectCategory.BENEFICIAL, 0xaeeff2));\n\tpublic static final RegistrySupplier<MobEffect> SHRINK = MOB_EFFECTS.register(\"shrink\", () -> new ArcanusStatusEffect(MobEffectCategory.NEUTRAL, 0x00ffc8, false, true)\n\t\t.addAttributeModifier(Attributes.ENTITY_INTERACTION_RANGE, Arcanus.id(\"shrink_effect\"), -0.15, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.BLOCK_INTERACTION_RANGE, Arcanus.id(\"shrink_effect\"), -0.15, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.SAFE_FALL_DISTANCE, Arcanus.id(\"shrink_effect\"), 0.25, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.MOVEMENT_SPEED, Arcanus.id(\"shrink_effect\"), -0.125, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.WATER_MOVEMENT_EFFICIENCY, Arcanus.id(\"shrink_effect\"), -0.125, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.JUMP_STRENGTH, Arcanus.id(\"shrink_effect\"), -0.075, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.STEP_HEIGHT, Arcanus.id(\"shrink_effect\"), -0.25, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.SCALE, Arcanus.id(\"shrink_effect\"), -0.25, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t);\n\tpublic static final RegistrySupplier<MobEffect> ENLARGE = MOB_EFFECTS.register(\"enlarge\", () -> new ArcanusStatusEffect(MobEffectCategory.NEUTRAL, 0xff9600, false, true)\n\t\t.addAttributeModifier(Attributes.ENTITY_INTERACTION_RANGE, Arcanus.id(\"enlarge_effect\"), 0.3, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.BLOCK_INTERACTION_RANGE, Arcanus.id(\"enlarge_effect\"), 0.3, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.SAFE_FALL_DISTANCE, Arcanus.id(\"enlarge_effect\"), 1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.MOVEMENT_SPEED, Arcanus.id(\"enlarge_effect\"), 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.WATER_MOVEMENT_EFFICIENCY, Arcanus.id(\"enlarge_effect\"), 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.JUMP_STRENGTH, Arcanus.id(\"enlarge_effect\"), 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.STEP_HEIGHT, Arcanus.id(\"enlarge_effect\"), 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t\t.addAttributeModifier(Attributes.SCALE, Arcanus.id(\"enlarge_effect\"), 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE)\n\t);\n}\n"
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "CammiesCorner__Arcanus/src/main/java/dev/cammiescorner/arcanus/mixin/common/LivingEntityMixin.java",
+          "method": "attemptToRemoveEffect",
+          "lines": [
+            248,
+            256
+          ],
+          "url": "https://github.com/CammiesCorner/Arcanus/blob/6a098ad2c95f3366b14d395e311e353da6bc4c70/src/main/java/dev/cammiescorner/arcanus/mixin/common/LivingEntityMixin.java#L248-L256",
+          "file_sha256": "31536548a8cbe30775ebb2e3e12c58cdb3905856aeebcf2c97b243cb51b79748",
+          "excerpt_sha256": "0f2e19bde41458e8cae2ad824f36050f741a55d381a856995fe79fed0c3e0851",
+          "normalized_excerpt_sha256": "36054d795e67d3ad94aa6649aa00d09350f21a7cc093f81316b67b0b0157aae6",
+          "excerpt": "\tprivate void attemptToRemoveEffect(MobEffectInstance effectInstance, CallbackInfo info) {\n\t\tif(level() instanceof ServerLevel level && effectInstance.getEffect().value() instanceof ArcanusStatusEffect effect) {\n\t\t\tif(effect.shouldSync)\n\t\t\t\tNetwork.getNetworkHandler().sendToAllClients(new ClientboundStatusEffectPacket(getId(), effectInstance.getEffect(), true), level.getServer());\n\n\t\t\tif(effect == ArcanusMobEffects.FLOAT.get())\n\t\t\t\tsetNoGravity(true);\n\t\t}\n\t}\n"
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "CammiesCorner__Arcanus/src/main/java/dev/cammiescorner/arcanus/common/networking/clientbound/ClientboundStatusEffectPacket.java",
+          "method": null,
+          "lines": [
+            1,
+            57
+          ],
+          "url": "https://github.com/CammiesCorner/Arcanus/blob/6a098ad2c95f3366b14d395e311e353da6bc4c70/src/main/java/dev/cammiescorner/arcanus/common/networking/clientbound/ClientboundStatusEffectPacket.java#L1-L57",
+          "file_sha256": "91b6256b2c44f8506b8ba611e8fe963a89d75bcd0d10b3081500bd3c87b52475",
+          "excerpt_sha256": "91b6256b2c44f8506b8ba611e8fe963a89d75bcd0d10b3081500bd3c87b52475",
+          "normalized_excerpt_sha256": "1dd0a7d1f6ee304bde3e8909a2d89fd857d18e323113e5823110b04c1f1a56ae",
+          "excerpt": "package dev.cammiescorner.arcanus.common.networking.clientbound;\n\nimport commonnetwork.networking.data.PacketContext;\nimport dev.cammiescorner.arcanus.Arcanus;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.client.multiplayer.ClientLevel;\nimport net.minecraft.core.Holder;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.network.RegistryFriendlyByteBuf;\nimport net.minecraft.network.codec.StreamCodec;\nimport net.minecraft.network.protocol.common.custom.CustomPacketPayload;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.LivingEntity;\n\npublic record ClientboundStatusEffectPacket(int entityId, Holder<MobEffect> effect, boolean hasEffect) implements CustomPacketPayload {\n\tpublic static final CustomPacketPayload.Type<ClientboundStatusEffectPacket> TYPE = new CustomPacketPayload.Type<>(Arcanus.id(\"sync_status_effects\"));\n\tpublic static final StreamCodec<? extends FriendlyByteBuf, ClientboundStatusEffectPacket> CODEC = StreamCodec.of((buffer, packet) -> {\n\t\tif(buffer instanceof RegistryFriendlyByteBuf regBuf) {\n\t\t\tMobEffect.STREAM_CODEC.encode(regBuf, packet.effect);\n\t\t\tregBuf.writeVarInt(packet.entityId);\n\t\t\tregBuf.writeBoolean(packet.hasEffect);\n\t\t}\n\t}, buffer -> {\n\t\tif(buffer instanceof RegistryFriendlyByteBuf regBuf) {\n\t\t\tHolder<MobEffect> effect = MobEffect.STREAM_CODEC.decode(regBuf);\n\t\t\tint entityId = regBuf.readVarInt();\n\t\t\tboolean hasEffect = buffer.readBoolean();\n\n\t\t\treturn new ClientboundStatusEffectPacket(entityId, effect, hasEffect);\n\t\t}\n\n\t\treturn new ClientboundStatusEffectPacket(-1, null, false);\n\t});\n\n\tpublic static void handle(PacketContext<ClientboundStatusEffectPacket> context) {\n\t\tClientLevel level = Minecraft.getInstance().level;\n\n\t\tif(level != null) {\n\t\t\tHolder<MobEffect> effect = context.message().effect();\n\t\t\tint entityId = context.message().entityId();\n\t\t\tboolean hasEffect = context.message().hasEffect();\n\n\t\t\tif(level.getEntity(entityId) instanceof LivingEntity entity) {\n\t\t\t\tif(hasEffect)\n\t\t\t\t\tentity.addEffect(new MobEffectInstance(effect, 100, 0, false, false));\n\t\t\t\telse\n\t\t\t\t\tentity.removeEffect(effect);\n\t\t\t}\n\t\t}\n\t}\n\n\t@Override\n\tpublic Type<? extends CustomPacketPayload> type() {\n\t\treturn TYPE;\n\t}\n}\n"
+        }
+      ],
+      "concrete_observation": "完整状态注册显示只有ANONYMITY传shouldSync=true，FLOAT/DISCOMBOBULATE默认false。添加和移除两生产端均发hasEffect=true；客户端当前level按整数entityId找到Living后添加100tick/amp0，false才移除；不含UUID、维度或不存在实体重试。",
+      "application": "状态移除的布尔方向及接收者定位需要独立核查；不能把通用同步类存在当作每个控制状态已同步。",
+      "limits": [
+        "ANONYMITY施法来源不在固定缓存；不声称FLOAT通过该包错误重加。",
+        "无真实网络/视觉验收；没有改外部代码。"
+      ],
+      "semantic_dedup": "与007 Ars原生整数id有损效果同步同族，且当前实际同步的是中立匿名状态，支持0。"
+    }
+  ],
+  "excluded": [
+    {
+      "id": "herschel-009-excluded-sonic",
+      "research_credit": 0,
+      "reason": "SonicWeaponModule.java全部内容均为行注释，没有生效类或原生实现；完整读取后排除，不计reviewed_units。",
+      "source_ref": {
+        "unit": "complete_file_support_only",
+        "source_key": "MachineMuse__MachineMusePowersuits/src/main/java/net/machinemuse/powersuits/powermodule/weapon/SonicWeaponModule.java",
+        "method": null,
+        "lines": [
+          1,
+          71
+        ],
+        "url": "https://github.com/MachineMuse/MachineMusePowersuits/blob/273d93291b86323a76cf19f9e9c45779da6e25a1/src/main/java/net/machinemuse/powersuits/powermodule/weapon/SonicWeaponModule.java#L1-L71",
+        "file_sha256": "0a3aa2ed033f9ecb8ef5d90ba6c302e88192f4c65b15ed589ccdd9c4d2c55b81",
+        "excerpt_sha256": "0a3aa2ed033f9ecb8ef5d90ba6c302e88192f4c65b15ed589ccdd9c4d2c55b81",
+        "normalized_excerpt_sha256": "75c5c920e90450b3bc89fb7a6695d4e2be8bf758470d49f3e1c76b780a726663",
+        "excerpt": "//package net.machinemuse.powersuits.powermodule.weapon;\n//\n//import net.machinemuse.api.IModularItem;\n//import net.machinemuse.api.moduletrigger.IRightClickModule;\n//import net.machinemuse.general.gui.MuseIcon;\n//import net.machinemuse.powersuits.powermodule.PowerModuleBase;\n//import net.machinemuse.utils.MuseCommonStrings;\n//import net.minecraft.client.renderer.texture.TextureAtlasSprite;\n//import net.minecraft.entity.EntityLivingBase;\n//import net.minecraft.entity.player.EntityPlayer;\n//import net.minecraft.item.ItemStack;\n//import net.minecraft.util.ActionResult;\n//import net.minecraft.util.EnumActionResult;\n//import net.minecraft.util.EnumFacing;\n//import net.minecraft.util.EnumHand;\n//import net.minecraft.util.math.BlockPos;\n//import net.minecraft.world.World;\n//\n//import java.util.List;\n//\n//public class SonicWeaponModule extends PowerModuleBase implements IRightClickModule {\n//\n//    public static final String MODULE_SONIC_WEAPON = \"Sonic Weapon\";\n//\n//    public SonicWeaponModule(List<IModularItem> validItems) {\n//        super(validItems);\n//    }\n//\n//    @Override\n//    public String getCategory() {\n//        return MuseCommonStrings.CATEGORY_WEAPON;\n//    }\n//\n//    @Override\n//    public String getDataName() {\n//        return MODULE_SONIC_WEAPON;\n//    }\n//\n//    @Override\n//    public String getUnlocalizedName() { return \"sonicWeapon\";\n//    }\n//\n//    @Override\n//    public String getDescription() {\n//        return \"A high-amplitude, complex-frequency soundwave generator can have shattering or disorienting effects on foes and blocks alike.\";\n//    }\n//\n//    @Override\n//    public ActionResult<ItemStack> onItemRightClick(ItemStack itemStackIn, World worldIn, EntityPlayer playerIn, EnumHand hand) {\n//        return null;\n//    }\n//\n//    @Override\n//    public EnumActionResult onItemUse(ItemStack stack, EntityPlayer playerIn, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {\n//        return null;\n//    }\n//\n//    @Override\n//    public EnumActionResult onItemUseFirst(ItemStack stack, EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, EnumHand hand) {\n//        return null;\n//    }\n//\n//    @Override\n//    public void onPlayerStoppedUsing(ItemStack stack, World worldIn, EntityLivingBase entityLiving, int timeLeft) {\n//    }\n//\n//    @Override\n//    public TextureAtlasSprite getIcon(ItemStack item) {\n//        return MuseIcon.sonicWeapon;\n//    }\n//}"
+      }
+    }
+  ],
+  "review_boundary": "人工实际阅读后序列化；哈希/原始文件数量只证明证据一致性，不替代Russell最终语义去重。没有1000达标声明。"
+}

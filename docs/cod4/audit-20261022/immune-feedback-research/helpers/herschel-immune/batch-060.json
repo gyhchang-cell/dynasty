@@ -1,0 +1,191 @@
+{
+  "batch": "herschel-immune-060",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 1,
+  "support_only_units": 0,
+  "rows": [
+    {
+      "id": "herschel-060-01",
+      "semantic_dedup_key": "damageengine-client-only-attempt-id-lease-and-health-sampling-debounce-before-feedback-admission",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/client/ClientAttackTracker.java",
+          "method": null,
+          "lines": [
+            1,
+            40
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "5af165672bf589cd7c19549463f43e8ded766e3178e6687d6bb42b50a5918f66",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/client/ClientAttackTracker.java#L1-L40",
+          "excerpt": "package damage.engine.client;\n\nimport java.util.Map;\nimport java.util.concurrent.ConcurrentHashMap;\n\n/**\n * Tracks entities the local player recently attacked (melee or projectile).\n * Used by ClientHealthTracker to filter out damage not caused by the player\n * in client-only mode (server without the mod).\n */\npublic class ClientAttackTracker {\n    private static final ClientAttackTracker INSTANCE = new ClientAttackTracker();\n\n    private final Map<Integer, Long> recentAttacks = new ConcurrentHashMap<>();\n\n    private static final long ATTACK_MEMORY_MS = 2000;\n\n    public static ClientAttackTracker getInstance() {\n        return INSTANCE;\n    }\n\n    public void recordAttack(int entityId) {\n        recentAttacks.put(entityId, System.currentTimeMillis());\n    }\n\n    public boolean wasRecentlyAttacked(int entityId) {\n        Long time = recentAttacks.get(entityId);\n        if (time == null) return false;\n        if (System.currentTimeMillis() - time > ATTACK_MEMORY_MS) {\n            recentAttacks.remove(entityId);\n            return false;\n        }\n        return true;\n    }\n\n    public void cleanup() {\n        long now = System.currentTimeMillis();\n        recentAttacks.entrySet().removeIf(e -> now - e.getValue() > ATTACK_MEMORY_MS);\n    }\n}\n",
+          "excerpt_sha256": "5af165672bf589cd7c19549463f43e8ded766e3178e6687d6bb42b50a5918f66",
+          "normalized_excerpt_sha256": "a1526547d14f2e53af6f980d75dfea0fa61b6cb44036948868b54d190d457843",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/client/ClientHealthTracker.java",
+          "method": null,
+          "lines": [
+            1,
+            132
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "08d227ca2d941a9d5163db86853f0d700821974b4d1f26f0866aec2cd7bec96c",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/client/ClientHealthTracker.java#L1-L132",
+          "excerpt": "package damage.engine.client;\n\nimport damage.engine.DamageEngineClient;\nimport damage.engine.DamageEngineConfig;\nimport damage.engine.hud.indicator.DamageIndicator;\nimport damage.engine.hud.session.DamageSessionManager;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.Vec3;\n\n/**\n * Client-side health tracker that detects damage by monitoring entity health changes.\n * Only active when the server does NOT have Damage Engine installed (client-only mode).\n * \n * Limitations in client-only mode:\n * - Cannot identify attacker (cannot filter for player's own damage)\n * - Cannot detect critical hits\n * - Cannot detect projectile vs. melee attacks\n * - Damage indicator position is approximate (entity position)\n */\npublic class ClientHealthTracker {\n\n    /**\n     * Called by the client mixin when a living entity's health or absorption changes.\n     * Only processes damage when in confirmed client-only mode.\n     */\n    public static void onEntityDamaged(LivingEntity entity, float damageAmount, boolean killed) {\n        if (!DamageEngineClient.serverModChecked || DamageEngineClient.serverHasMod) {\n            return;\n        }\n\n        DamageEngineConfig config = DamageEngineConfig.getInstance();\n        if (!config.showDamage) return;\n\n        // Check if player recently attacked this entity\n        boolean isSelfDamage = ClientAttackTracker.getInstance().wasRecentlyAttacked(entity.getId());\n\n        // Handle global damage indicators (damage caused by others)\n        if (!isSelfDamage && config.showGlobalDamageIndicator) {\n            // Calculate distance for culling\n            Minecraft client = Minecraft.getInstance();\n            if (client.player != null) {\n                // 分项设置:玩家使用玩家显示距离,非玩家实体按实体规则(注册名/All)\n                Float maxDist = config.resolveGlobalIndicatorDistance(entity);\n                if (maxDist == null) {\n                    return; // 该受害实体被屏蔽或未配置显示\n                }\n                double dx = entity.getX() - client.player.getX();\n                double dy = entity.getY() - client.player.getY();\n                double dz = entity.getZ() - client.player.getZ();\n                double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);\n\n                if (maxDist <= 0 || distance <= maxDist) {\n                    Vec3 pos = DamageEngineClient.blendIndicatorPos(\n                        entity.getX(),\n                        entity.getY() + entity.getEyeHeight() * 0.6,\n                        entity.getZ(),\n                        entity.getId()\n                    );\n\n                    if (config.showDamageIndicator && damageAmount > 0) {\n                        DamageIndicator.addIndicator(entity, pos.x, pos.y, pos.z,\n                            damageAmount,\n                            false,  // Cannot detect crit in client-only mode\n                            false\n                        );\n                    }\n\n                    if (config.showKillIndicator && killed) {\n                        DamageIndicator.addIndicator(entity, pos.x, pos.y, pos.z,\n                            damageAmount,\n                            false,\n                            true\n                        );\n                    }\n                }\n            }\n            return; // Don't process further for global damage\n        }\n\n        // Only track damage for entities the player recently attacked (melee or projectile)\n        if (!isSelfDamage) {\n            return;\n        }\n\n        // 准星命中的实体交给会话判断(末影龙需从部件映射到本体),命中时强制切换信息面板目标\n        Minecraft client = Minecraft.getInstance();\n        Entity crosshair = client.hitResult instanceof EntityHitResult ehr ? ehr.getEntity() : null;\n        // 没有准心实体（远程/爆炸等）：直接切换到本次受伤的目标\n        boolean preferSwitchTarget = crosshair == null\n            || DamageSessionManager.isSameVictim(crosshair, entity.getId());\n\n        float distance = client.player != null\n            ? damage.engine.hud.rating.CombatContext.distance(client.player, entity) : 0f;\n        boolean unseen = killed && client.player != null\n            && damage.engine.hud.rating.CombatContext.isHiddenFromPlayer(entity, client.player);\n        DamageSessionManager.getInstance().addDamage(damageAmount, false, entity.getId(),\n            preferSwitchTarget, killed, distance, unseen);\n\n        // Blend indicator position toward crosshair hit point\n        Vec3 pos = DamageEngineClient.blendIndicatorPos(\n            entity.getX(),\n            entity.getY() + entity.getEyeHeight() * 0.6,\n            entity.getZ(),\n            entity.getId()\n        );\n\n        // Add damage indicator using blended position, capped by the configured max distance\n        if (client.player != null) {\n            double maxDist = config.globalIndicatorMaxDistance;\n            if (maxDist <= 0 || pos.distanceToSqr(client.player.position()) <= maxDist * maxDist) {\n                if (config.showDamageIndicator && damageAmount > 0) {\n                    DamageIndicator.addIndicator(entity, pos.x, pos.y, pos.z,\n                        damageAmount,\n                        false,  // Cannot detect crit in client-only mode\n                        false\n                    );\n                }\n\n                if (config.showKillIndicator && killed) {\n                    DamageIndicator.addIndicator(entity, pos.x, pos.y, pos.z,\n                        damageAmount,\n                        false,\n                        true\n                    );\n                }\n            }\n        }\n    }\n}\n",
+          "excerpt_sha256": "08d227ca2d941a9d5163db86853f0d700821974b4d1f26f0866aec2cd7bec96c",
+          "normalized_excerpt_sha256": "b09750304b8154bba1a87843f97981820720eb4bb7761198cdbbfb102174a29b",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/mixin/client/LivingEntityClientMixin.java",
+          "method": null,
+          "lines": [
+            1,
+            98
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "1066f491697bced1da240685cc6508a13f277f00969053b45f21e1e9529d39c3",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/mixin/client/LivingEntityClientMixin.java#L1-L98",
+          "excerpt": "package damage.engine.mixin.client;\n\nimport damage.engine.client.ClientHealthTracker;\nimport damage.engine.DamageEngineClient;\nimport damage.engine.DamageEngineConfig;\nimport damage.engine.hud.indicator.DamageIndicator;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.world.entity.LivingEntity;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.Unique;\nimport org.spongepowered.asm.mixin.injection.At;\nimport org.spongepowered.asm.mixin.injection.Inject;\nimport org.spongepowered.asm.mixin.injection.callback.CallbackInfo;\n\n/**\n * Client-side mixin that monitors LivingEntity health changes.\n * Runs on every tick for living entities in the client world.\n * Only feeds data to ClientHealthTracker when in client-only mode.\n */\n@Mixin(LivingEntity.class)\npublic class LivingEntityClientMixin {\n    @Unique\n    private float tracker$lastHealth = 0;\n    @Unique\n    private float tracker$lastAbsorption = 0;\n    @Unique\n    private boolean tracker$initialized = false;\n    @Unique\n    private long tracker$lastDamageTime = 0;\n\n    @Inject(method = \"tick\", at = @At(\"TAIL\"))\n    private void onTickClientSide(CallbackInfo ci) {\n        LivingEntity self = (LivingEntity) (Object) this;\n        if (!self.level().isClientSide()) return;\n        // Target dummies recharge their health before it reaches the client, so health\n        // diffs are meaningless for them. Their damage numbers come from\n        // DummyDamageCompat via the dummy mod's own message instead.\n        if (self.getClass().getName().startsWith(\"net.mehvahdjukaar.dummmmmmy.\")) return;\n        \n        float h = self.getHealth();\n        float a = self.getAbsorptionAmount();\n        \n        if (!tracker$initialized) {\n            tracker$lastHealth = h;\n            tracker$lastAbsorption = a;\n            tracker$initialized = true;\n            return;\n        }\n        \n        float healthLost = tracker$lastHealth - h;\n        float absorptionLost = tracker$lastAbsorption - a;\n        float actualDamage = healthLost + absorptionLost;\n        \n        boolean killed = !self.isAlive() && (tracker$lastHealth > 0 || tracker$lastAbsorption > 0);\n        \n        // Only process damage when server does NOT have the mod (client-only mode).\n        // When server has the mod, the server sends DamagePayload and we must NOT\n        // also add indicators from the health tracker to avoid double indicators.\n        if ((actualDamage > 0.001f || killed) && !DamageEngineClient.serverHasMod) {\n            // Deduplication: skip if damage was detected within the last 50ms for the same entity.\n            // This prevents duplicate indicators from rapid health syncs.\n            long now = System.currentTimeMillis();\n            if (now - tracker$lastDamageTime > 50) {\n                float reportedDamage = killed ? Math.max(actualDamage, 0) : actualDamage;\n                ClientHealthTracker.onEntityDamaged(self, reportedDamage, killed);\n                tracker$lastDamageTime = now;\n            }\n        }\n        \n        // Detect healing (health increase) - show globally for all entities\n        if (h > tracker$lastHealth + 0.001f) {\n            float healAmount = h - tracker$lastHealth;\n            DamageEngineConfig config = DamageEngineConfig.getInstance();\n            if (config.showDamage && config.showHealIndicator) {\n                // Check distance for culling\n                Minecraft client = Minecraft.getInstance();\n                if (client.player != null && client.level != null) {\n                    double dx = self.getX() - client.player.getX();\n                    double dy = self.getY() - client.player.getY();\n                    double dz = self.getZ() - client.player.getZ();\n                    double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);\n                    \n                    // For heal indicators, use the indicator distance (0 = unlimited)\n                    float maxDistance = config.globalIndicatorMaxDistance;\n                    if (maxDistance <= 0 || distance <= maxDistance) {\n                        double posX = self.getX();\n                        double posY = self.getY() + self.getEyeHeight() * 0.6;\n                        double posZ = self.getZ();\n                        DamageIndicator.addIndicator(self, posX, posY, posZ, healAmount, false, false, true);\n                    }\n                }\n            }\n        }\n        \n        tracker$lastHealth = h;\n        tracker$lastAbsorption = a;\n    }\n}\n",
+          "excerpt_sha256": "1066f491697bced1da240685cc6508a13f277f00969053b45f21e1e9529d39c3",
+          "normalized_excerpt_sha256": "541f824d0984e43bfa826e2c165f3cda3ab973a616efe09522d32490f8c16d3d",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/mixin/client/ClientTickMixin.java",
+          "method": null,
+          "lines": [
+            1,
+            76
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "3cb75dbac8dd18499d13f4242096cbe761fbde920aa968525f8b3deed3807141",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/mixin/client/ClientTickMixin.java#L1-L76",
+          "excerpt": "package damage.engine.mixin.client;\n\nimport damage.engine.ClientKeybindings;\nimport damage.engine.DamageEngineConfig;\nimport damage.engine.DamageEngineClient;\nimport damage.engine.client.ClientAttackTracker;\nimport damage.engine.client.gui.HomeScreen;\nimport damage.engine.hud.session.DamageSessionManager;\nimport damage.engine.hud.indicator.DamageIndicator;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.network.chat.Component;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.injection.At;\nimport org.spongepowered.asm.mixin.injection.Inject;\nimport org.spongepowered.asm.mixin.injection.callback.CallbackInfo;\n\n/**\n * Replaces Fabric API's ClientTickEvents.END_CLIENT_TICK with a direct mixin.\n */\n@Mixin(Minecraft.class)\npublic class ClientTickMixin {\n\n    @Inject(method = \"tick\", at = @At(\"TAIL\"))\n    private void damageEngine$onEndClientTick(CallbackInfo ci) {\n        Minecraft client = (Minecraft) (Object) this;\n        \n        if (client.player != null) {\n            if (DamageEngineClient.joinCheckTicks > 0) {\n                DamageEngineClient.joinCheckTicks--;\n                if (DamageEngineClient.joinCheckTicks == 0) {\n                    if (!DamageEngineClient.serverModChecked) {\n                        if (client.getSingleplayerServer() != null) {\n                            DamageEngineClient.serverHasMod = true;\n                        } else {\n                            DamageEngineClient.serverHasMod = false;\n                        }\n                        DamageEngineClient.serverModChecked = true;\n                    }\n                }\n            }\n            \n            DamageEngineConfig config = DamageEngineConfig.getInstance();\n            if (!config.hasShownWelcomeMessage) {\n                client.player.sendSystemMessage(\n                    Component.translatable(\"text.damage-engine.welcome_message\").withColor(0xB1EAC2)\n                );\n                config.hasShownWelcomeMessage = true;\n                config.save();\n            }\n            \n            if (ClientKeybindings.configKeyBinding != null) {\n                while (ClientKeybindings.configKeyBinding.consumeClick()) {\n                    client.setScreen(new HomeScreen(client.screen));\n                }\n            }\n            if (ClientKeybindings.toggleHudKeyBinding != null) {\n                while (ClientKeybindings.toggleHudKeyBinding.consumeClick()) {\n                    config.showDamage = !config.showDamage;\n                    config.save();\n                }\n            }\n            if (ClientKeybindings.clearDamageKeyBinding != null) {\n                while (ClientKeybindings.clearDamageKeyBinding.consumeClick()) {\n                    DamageSessionManager.getInstance().reset();\n                    DamageIndicator.clearAll();\n                }\n            }\n        }\n\n        if (!client.isPaused()) {\n            DamageSessionManager.getInstance().tick();\n            DamageIndicator.tickAndCleanup();\n            ClientAttackTracker.getInstance().cleanup();\n        }\n    }\n}\n",
+          "excerpt_sha256": "3cb75dbac8dd18499d13f4242096cbe761fbde920aa968525f8b3deed3807141",
+          "normalized_excerpt_sha256": "e6835141313ed6919a0d7ff987358bcc8c10ead29fe06b6ba0eac163402b2257",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/mixin/client/PlayerAttackMixin.java",
+          "method": null,
+          "lines": [
+            1,
+            25
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "c03ef1cfe07da930be5761f5c3362d1f025f47db425cb1bf5458145d947c8947",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/mixin/client/PlayerAttackMixin.java#L1-L25",
+          "excerpt": "package damage.engine.mixin.client;\n\nimport damage.engine.client.ClientAttackTracker;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.player.Player;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.injection.At;\nimport org.spongepowered.asm.mixin.injection.Inject;\nimport org.spongepowered.asm.mixin.injection.callback.CallbackInfo;\n\n/**\n * Tracks the local player's melee attacks so ClientHealthTracker can filter\n * for damage actually caused by the player in client-only mode.\n */\n@Mixin(Player.class)\npublic class PlayerAttackMixin {\n    @Inject(method = \"attack\", at = @At(\"HEAD\"))\n    private void damageEngine$onAttack(Entity target, CallbackInfo ci) {\n        Player self = (Player) (Object) this;\n        if (self == Minecraft.getInstance().player && target != null) {\n            ClientAttackTracker.getInstance().recordAttack(target.getId());\n        }\n    }\n}\n",
+          "excerpt_sha256": "c03ef1cfe07da930be5761f5c3362d1f025f47db425cb1bf5458145d947c8947",
+          "normalized_excerpt_sha256": "116c074d6820e1fe83b5e3540176f91ee12ad2efdc3972620bab0ff19c06512e",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/mixin/client/ProjectileHitMixin.java",
+          "method": null,
+          "lines": [
+            1,
+            28
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "a7ed665df7018c1c8efbba1a89a8ab03c277fb2cba7ceb5ed813c97c94ea67c5",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/mixin/client/ProjectileHitMixin.java#L1-L28",
+          "excerpt": "package damage.engine.mixin.client;\n\nimport damage.engine.client.ClientAttackTracker;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.phys.EntityHitResult;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.injection.At;\nimport org.spongepowered.asm.mixin.injection.Inject;\nimport org.spongepowered.asm.mixin.injection.callback.CallbackInfo;\n\n/**\n * Tracks projectile hits for projectiles owned by the local player,\n * so ClientHealthTracker can filter for damage actually caused by the player.\n */\n@Mixin(Projectile.class)\npublic class ProjectileHitMixin {\n    @Inject(method = \"onHitEntity\", at = @At(\"HEAD\"))\n    private void damageEngine$onHitEntity(EntityHitResult hitResult, CallbackInfo ci) {\n        Projectile self = (Projectile) (Object) this;\n        Entity owner = self.getOwner();\n        Entity target = hitResult.getEntity();\n        if (owner != null && owner == Minecraft.getInstance().player && target != null) {\n            ClientAttackTracker.getInstance().recordAttack(target.getId());\n        }\n    }\n}\n",
+          "excerpt_sha256": "a7ed665df7018c1c8efbba1a89a8ab03c277fb2cba7ceb5ed813c97c94ea67c5",
+          "normalized_excerpt_sha256": "963de0c78bafb5c16bdd26c38810df67779ae48857bfe18aee3e7bc10cdb0832",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/client/IndicatorPos.java",
+          "method": null,
+          "lines": [
+            1,
+            58
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "8c2408d9ae79993167bc38b232c598097680edc6d2724467361bdd50f80a21b4",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/client/IndicatorPos.java#L1-L58",
+          "excerpt": "package damage.engine.client;\n\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.Vec3;\n\n/**\n * Resolves the world position where a floating damage indicator should spawn.\n *\n * <p>For hits caused by the player (e.g. TaCZ gunfire) the indicator should anchor\n * at the exact point the crosshair hit (foot, head, ...), not at the entity center\n * and not at the server-reported projectile position (which is unreliable: TaCZ\n * bullets can report a position at the shooter, and the clamped Y lands around the\n * torso).</p>\n *\n * <p>{@link Minecraft#hitResult} cannot be used because its pick ray is limited to\n * the survival reach (~6 blocks), far shorter than gun range. Instead we cast a long\n * ray from the player's eye along the current view vector and take its entry point\n * into the victim's bounding box.</p>\n */\npublic final class IndicatorPos {\n    /** Ray length used for crosshair hit-point resolution (well beyond gun range). */\n    private static final double RAY_RANGE = 512.0;\n    /** Slight AABB inflation to mimic the projectile's collision box. */\n    private static final double AABB_INFLATE = 0.2;\n\n    private IndicatorPos() {}\n\n    /**\n     * @param baseX baseY baseZ server-reported fallback position (victim-side hit point)\n     * @param entityId id of the damaged entity (client-level lookup for the crosshair ray)\n     * @return the crosshair hit point on the victim, or the fallback position if it\n     *         cannot be resolved\n     */\n    public static Vec3 blend(double baseX, double baseY, double baseZ, int entityId) {\n        Minecraft client = Minecraft.getInstance();\n        if (client.level == null || client.player == null) {\n            return new Vec3(baseX, baseY, baseZ);\n        }\n        Entity target = client.level.getEntity(entityId);\n        if (target != null) {\n            Vec3 hit = crosshairHitPoint(client, target);\n            if (hit != null) {\n                return hit;\n            }\n        }\n        return new Vec3(baseX, baseY, baseZ);\n    }\n\n    private static Vec3 crosshairHitPoint(Minecraft client, Entity target) {\n        Vec3 eye = client.player.getEyePosition(1.0F);\n        Vec3 look = client.player.getViewVector(1.0F);\n        Vec3 end = eye.add(look.scale(RAY_RANGE));\n        AABB box = target.getBoundingBox().inflate(AABB_INFLATE);\n        return box.clip(eye, end).orElse(null);\n    }\n}\n",
+          "excerpt_sha256": "8c2408d9ae79993167bc38b232c598097680edc6d2724467361bdd50f80a21b4",
+          "normalized_excerpt_sha256": "25b671de9a71d45352de23138463854cfa927a6efd8ae9ecd94608b92f4c2b67",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "Ovear-Mitama__Damage-Engine/neoforge/src/main/java/damage/engine/DamageEngineClient.java",
+          "method": "DamageEngineClient",
+          "lines": [
+            37,
+            82
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "9084657551b3a4377257d3f8b987404922606ac15a05b3284d38a9f1acc9950d",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/neoforge/src/main/java/damage/engine/DamageEngineClient.java#L37-L82",
+          "excerpt": "    public DamageEngineClient(IEventBus modEventBus, ModContainer modContainer) {\n        // 1.21.11: KeyMapping uses Category instead of a category string\n        KeyMapping.Category category = KeyMapping.Category.register(net.minecraft.resources.Identifier.fromNamespaceAndPath(\"damage-engine\", \"general\"));\n        configKeyBinding = new KeyMapping(\n            \"key.damage_engine.config\",\n            InputConstants.Type.KEYSYM,\n            GLFW.GLFW_KEY_UNKNOWN,\n            category\n        );\n        toggleHudKeyBinding = new KeyMapping(\n            \"key.damage_engine.toggle_hud\",\n            InputConstants.Type.KEYSYM,\n            GLFW.GLFW_KEY_UNKNOWN,\n            category\n        );\n        clearDamageKeyBinding = new KeyMapping(\n            \"key.damage_engine.clear_damage\",\n            InputConstants.Type.KEYSYM,\n            GLFW.GLFW_KEY_UNKNOWN,\n            category\n        );\n\n        // Sync to ClientKeybindings holder class for config screen access\n        ClientKeybindings.configKeyBinding = configKeyBinding;\n        ClientKeybindings.toggleHudKeyBinding = toggleHudKeyBinding;\n        ClientKeybindings.clearDamageKeyBinding = clearDamageKeyBinding;\n\n        // Register keybindings via NeoForge event\n        modEventBus.addListener(DamageEngineClient::registerKeys);\n\n        // Register config screen\n        modContainer.registerExtensionPoint(\n            IConfigScreenFactory.class,\n            (container, screen) -> new HomeScreen(screen)\n        );\n\n        // 进入服务器/世界时重置服务端 mod 检测状态；单机世界由 ClientTickMixin 直接标记\n        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingIn event) -> {\n            serverHasMod = false;\n            serverModChecked = false;\n            joinCheckTicks = 40;\n        });\n\n        // 伤害跳字交给 Anima 在世界渲染阶段画真 3D 文字（有透视、随距离缩放、会被方块遮挡）\n        anima.api.AnimaApi.onWorldRender(damage.engine.hud.indicator.DamageIndicator::renderWorld);\n    }\n",
+          "excerpt_sha256": "ba27d2457ed1d6f34baf32129b8844d81a01c1511e4860641dbfa6b9ae675872",
+          "normalized_excerpt_sha256": "279a702430b532b533e97e85588023ceef8a4d1dd88262b792d8ece809dbc551",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "Ovear-Mitama__Damage-Engine/neoforge/src/main/java/damage/engine/network/NetworkSetup.java",
+          "method": null,
+          "lines": [
+            25,
+            40
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "444b2473c70b0951297c76506444bae56844209f3d07ec82ccead6c634a6344d",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/neoforge/src/main/java/damage/engine/network/NetworkSetup.java#L25-L40",
+          "excerpt": "        // S2C: Damage payload - client receives damage data from server\n        registrar.optional().playToClient(\n            DamagePayload.TYPE,\n            DamagePayload.STREAM_CODEC,\n            (payload, ctx) -> {\n                // Set flag immediately (on network thread) to block client-side\n                // health tracker before the next entity tick, preventing double counting.\n                if (!DamageEngineClient.serverHasMod) {\n                    DamageEngineClient.serverHasMod = true;\n                    DamageEngineClient.serverModChecked = true;\n                }\n\n                Minecraft mc = Minecraft.getInstance();\n                mc.execute(() -> {\n                    if (mc.level == null || mc.player == null) return;\n\n",
+          "excerpt_sha256": "784af93989b96d3b14436614778992f76a3981f5d71ff775d0a42c5534ac37dd",
+          "normalized_excerpt_sha256": "fc0f7083f9d7551e33971623ade21a0b8e584e9401e6f36b8f5a831a09c90c95",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/hud/indicator/DamageIndicator.java",
+          "method": "addIndicator",
+          "lines": [
+            418,
+            447
+          ],
+          "fixed_commit": "3bcb595a681729c3a9ab18c4e3d052f2a9958a74",
+          "file_sha256": "dd72c3dd4c5746b1ac034bcbdb92195c620763eea4cf2d6d0bbe73267c21f26f",
+          "url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/hud/indicator/DamageIndicator.java#L418-L447",
+          "excerpt": "    public static void addIndicator(Entity victim, double x, double y, double z, float damage, boolean isCrit, boolean isKill, boolean isHeal) {\n        synchronized (indicators) {\n            long now = System.currentTimeMillis();\n\n            // 合并跳字：把「同一目标」短时间内连续命中的数字并成一个（默认关）。\n            // 建议配合追踪实体使用——有实体 id 时按 id 精确识别；没有实体信息时退回按\n            // 出生点相近（~0.35 格）判断。击杀与普通数字、治疗与伤害不会互相合并。\n            if (DamageEngineConfig.getInstance().indicatorMerge) {\n                int vid = victim != null ? victim.getId() : -1;\n                for (Indicator ind : indicators) {\n                    if (!isAlive(ind, now)) continue;           // 已过期的不参与合并\n                    if (ind.isKill != isKill) continue;         // 击杀与普通数字分开\n                    if (!isKill && ind.isHeal != isHeal) continue; // 治疗与伤害分开\n                    if (!sameTarget(ind, vid, victim, x, y, z)) continue;\n                    // 已经进入出场动画的：不再合并（也就不存在\"冻结\"），让它自然淡出，本次伤害另起一个\n                    if (hasStartedExit(ind, now)) continue;\n                    ind.damage += damage;\n                    ind.isCrit |= isCrit;\n                    ind.mergePopStart = now;                 // 合并更新 → 触发跳动动画\n                    // 每次攻击把「到出场」的倒计时整个重置：出场会在「本次攻击 + 出场起点」才开始。\n                    // 只平移出场剪辑，入场等其它剪辑不动 → 不会重播入场动画（入场由玩家自定义）。\n                    ind.exitOffsetMs = (now - ind.spawnTime) + exitStartMs();\n                    ind.adjustedClips = null;\n                    return;\n                }\n            }\n            indicators.add(new Indicator(victim, x, y, z, damage, isCrit, isKill, isHeal));\n            trimToLimit();\n        }\n    }\n",
+          "excerpt_sha256": "097d85d53d03a1bd97c7fa10218bcf58c9ceee4d7ca5f5bcbf10eb251ff70893",
+          "normalized_excerpt_sha256": "deab66eccb20e7637b561483732d1492a02761bdcf0fe5e92b1dca01e03a350e",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Actual client Player.attack HEAD records localplayer target integerID before hurt result; localowned Projectile.onHitEntity HEAD also records ID. Static singleton ConcurrentHashMap<ID,wallclock> lease2000ms updated on eachattempt; lookup removes whenage>2000, cleanup same; noUUID/dimension/player epoch or clear method. LivingEntity.tick TAIL mixin firstbaseline initializes current health/absorption, excludes dummyclassname, then computes delta and kill. If positive>0.001 orkill and !serverHasMod, only now-lastDamageTime>50 calls ClientHealthTracker, then sets lastDamageTime even if downstreamgates reject. ALWAYS advances health+absorption baseline at tail, so suppressed50msdelta not queued/merged/replayed. Healthyzero/immuneunchanged has no event orreason. Per-entity object baseline/debounce differs from staticintegerID attribution lease.",
+      "application_to_boss_immune": "Actual ClientHealthTracker rejects while servercheckpending orserverHasMod, configshowDamagefalse. wasRecentlyAttacked ID=true classifies entire observed change as self; no damage-source/attacker receipt. false optionally globalindicator withconfiguredrange orreturns. Self path addsDamage session then indicator only positive/kill anddistance, no critclaim. NeoForge LoggingIn resets ONLY mod-detection flags and40tick counter, not attackmap. Actual clientTick nonpaused cleans map and atcounter0 marks localintegratedserver modpresent else modabsent; later optionalS2C DamagePayload setsflagsbefore clienttask to suppress fallbackduplicate. This is native-client-observation fallback admission, not a server immune rejection reason: an attempted local hit followed by unrelated HP loss within lease can be classifiedself in source semantics; idreuse/worldtransition remains risknot demonstrated. DamageIndicator/render/512raypoint reusedsupport0, notnewcredit.",
+      "semantic_dedup": "One whole fallback attribution+perentityobservationsampling feedback qualification chain, not two counters or everymixin. Existing damageengine-level-source-merge-and-targeted-worldtext primaryobservations focus actualserver HP+absorption receipts, pendingmerge andworlddraw; this newactualclientonly mode uses pre-result attempts and50ms loss-vs-merge before feedbackcreation. Main reviewer must inspect prior fullrow source coverage and all targetthrottle families, downgrade0 if already represented. This 50msgate is observationdebounce not semantic immune-spam rate limit, and2000ms is attributionmemory not feedback cooldown.",
+      "limitations": "All named completeclasses/constructor/addIndicator body manuallyread, NeoForge network onlyflag-setting registration excerpt, notwhole payloadhandler independentlyclosed. Mixinresource andbuildsourceSets pinned separately as activation context; no new compile/jar/runtime proof or claim genericForge1.20.1 portability. No actual GUI/network/game action. No stronger stableUUID association claimed; no replayproof on rejoin/clienttest. Mainstatistical session internals not freshlyaudited; entrycalled withactualdata only. No production/assets/mainledger/TODO writes."
+    }
+  ],
+  "exclusions": [
+    "Client-only inferreddamage cannot produce truthful immune-control reason from absent HP delta.",
+    "Fullserver packet/render/merge alreadycounted prior, support0 here.",
+    "RawentityID is not stable dimension-qualified identity; report limitation, not proof actual misattribution occurred."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

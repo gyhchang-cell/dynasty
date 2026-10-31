@@ -1,0 +1,448 @@
+{
+  "updated_utc": "2026-10-31T00:27:33.890739+00:00",
+  "status": "STATIC_CONTEXT_REVIEW_NOT_RUNTIME",
+  "evidence": [
+    {
+      "id": "N01",
+      "claim": "原生CrossbowItem已具有Charged/compound弹仓、首枚消耗和多重射击额外复制、0/±10度及发射后清仓。这些共用子步骤不再拆为独立实现。",
+      "kind": "native",
+      "version": "vanilla-mcp-1.20.1",
+      "local": "native/vanilla-mcp-1.20.1/reading-view/net/minecraft/world/item/CrossbowItem.java",
+      "read_ranges": [
+        [
+          45,
+          284
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N02",
+      "claim": "getList要求列表元素类型匹配；非空compound列表用元素类型9读取时返回新的空ListTag。",
+      "kind": "native",
+      "version": "neoforge-47.1.64",
+      "local": "native/neoforge-47.1.64/reading-view/net/minecraft/nbt/CompoundTag.java",
+      "read_ranges": [
+        [
+          394,
+          409
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N03",
+      "claim": "原生clearChargedProjectiles也执行getList(ChargedProjectiles,9)→clear→put。因此Ars同写法会以空列表替换存储；不能将其误报为弹药复制。",
+      "kind": "native",
+      "version": "vanilla-mcp-1.20.1",
+      "local": "native/vanilla-mcp-1.20.1/reading-view/net/minecraft/world/item/CrossbowItem.java",
+      "read_ranges": [
+        [
+          178,
+          186
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N04",
+      "claim": "Ballista调用的Level版getEntityHitResult只在传入线段内挑最近实体，不替调用方再做方块截断。AABB.inflate是候选筛选，不等于额外命中距离。",
+      "kind": "native",
+      "version": "forge-47.3.0",
+      "local": "native/forge-47.3.0/reading-view/net/minecraft/world/entity/projectile/ProjectileUtil.java",
+      "read_ranges": [
+        [
+          89,
+          110
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N05",
+      "claim": "Forge准确版本ServerLevel.addFreshEntity转addEntity：已移除或管理器拒绝均返回false；成功加入后同步onAddedToWorld。",
+      "kind": "native",
+      "version": "forge-47.3.0",
+      "local": "native/forge-47.3.0/reading-view/net/minecraft/server/level/ServerLevel.java",
+      "read_ranges": [
+        [
+          813,
+          815
+        ],
+        [
+          854,
+          866
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N06",
+      "claim": "EntityJoinLevelEvent可取消；UUID重复也可令管理器拒绝添加。事件取消时不进入正常成功路径。",
+      "kind": "native",
+      "version": "forge-47.3.0",
+      "local": "native/forge-47.3.0/reading-view/net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+      "read_ranges": [
+        [
+          55,
+          105
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N07",
+      "claim": "准确Forge事件声明取消后实体不加入Level，两逻辑侧可触发；不能把生成请求当作必定生成成功。",
+      "kind": "framework",
+      "version": "forge-47.3.0",
+      "local": "framework-sources/forge-47.3.0/net/minecraftforge/event/entity/EntityJoinLevelEvent.java",
+      "read_ranges": [
+        [
+          16,
+          64
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N08",
+      "claim": "耐久消费者在服务端/非创造分支伤害、达到阈值调用破损回调并shrink；返回void，不替发射调用方提供生成成功/回滚保证。",
+      "kind": "native",
+      "version": "vanilla-mcp-1.20.1",
+      "local": "native/vanilla-mcp-1.20.1/reading-view/net/minecraft/world/item/ItemStack.java",
+      "read_ranges": [
+        [
+          301,
+          347
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N09",
+      "claim": "Forge47.3.0耐久另经过Item.damageItem钩子；仍是破损消费者，不能以其调用推断addFreshEntity成功。",
+      "kind": "native",
+      "version": "forge-47.3.0",
+      "local": "native/forge-47.3.0/reading-view/net/minecraft/world/item/ItemStack.java",
+      "read_ranges": [
+        [
+          330,
+          377
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N10",
+      "claim": "原生箭的实体命中实际hurt、成功/失败分支和非穿透移除已定位；入地life达到1200会移除。这里只是Fabric实现所依赖的引擎基线，未生成实际Mixin合并结果。",
+      "kind": "native",
+      "version": "vanilla-mcp-1.20.1",
+      "local": "native/vanilla-mcp-1.20.1/reading-view/net/minecraft/world/entity/projectile/AbstractArrow.java",
+      "read_ranges": [
+        [
+          259,
+          386
+        ],
+        [
+          390,
+          488
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N11",
+      "claim": "Neo版原生碰撞循环在ProjectileImpactEvent被取消时break；穿透命中在hurt之前登记实体ID，后续findHitEntity会排除已登记目标。",
+      "kind": "native",
+      "version": "neoforge-47.1.64",
+      "local": "native/neoforge-47.1.64/reading-view/net/minecraft/world/entity/projectile/AbstractArrow.java",
+      "read_ranges": [
+        [
+          174,
+          201
+        ],
+        [
+          286,
+          391
+        ],
+        [
+          422,
+          427
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N12",
+      "claim": "Ars自有tick的取消分支未采用父类break。若监听器持续取消同一可命中目标，忽略集合也未更新，静态上可能反复查询该目标；普通已处理命中则会通过父类登记ID推进。不是无条件死循环或实机复现。",
+      "kind": "native",
+      "version": "neoforge-47.1.64",
+      "local": "native/neoforge-47.1.64/reading-view/net/minecraft/world/entity/projectile/AbstractArrow.java",
+      "read_ranges": [
+        [
+          174,
+          201
+        ],
+        [
+          286,
+          310
+        ],
+        [
+          422,
+          427
+        ]
+      ],
+      "qualification": "须与Ars EntitySpellArrow自有tick联合阅读；有条件风险，未运行复现。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N13",
+      "claim": "准确Neo事件工厂onProjectileImpact返回事件总线取消结果；onArrowLoose被取消返回-1，否则返回charge。",
+      "kind": "framework",
+      "version": "neoforge-47.1.64",
+      "local": "framework-sources/neoforge-47.1.64/net/minecraftforge/event/ForgeEventFactory.java",
+      "read_ranges": [
+        [
+          673,
+          693
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N14",
+      "claim": "ProjectileImpactEvent取消只阻止该次impact处理，后续如何处理由模组负责；不能拿Forge47.3.0新版同名事件替代Neo47.1.64接口。",
+      "kind": "framework",
+      "version": "neoforge-47.1.64",
+      "local": "framework-sources/neoforge-47.1.64/net/minecraftforge/event/entity/ProjectileImpactEvent.java",
+      "read_ranges": [
+        [
+          1,
+          45
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N15",
+      "claim": "原生AbstractArrow持久化life/ground/pickup/damage/PierceLevel/声音/crossbow，父Projectile另存Owner/LeftOwner/HasBeenShot；这些不包含Ars resolver/pierceLeft/lastHit。",
+      "kind": "native",
+      "version": "neoforge-47.1.64",
+      "local": "native/neoforge-47.1.64/reading-view/net/minecraft/world/entity/projectile/AbstractArrow.java",
+      "read_ranges": [
+        [
+          430,
+          468
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N16",
+      "claim": "Projectile持有ownerUUID/缓存并可按ServerLevel查找；tick负责leftOwner过渡。Ars覆写tick且不调用super，不能自动套用父类tick生命周期与TTL。",
+      "kind": "native",
+      "version": "neoforge-47.1.64",
+      "local": "native/neoforge-47.1.64/reading-view/net/minecraft/world/entity/projectile/Projectile.java",
+      "read_ranges": [
+        [
+          27,
+          99
+        ],
+        [
+          170,
+          176
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N17",
+      "claim": "Arrow没有onHitEntity覆写，实体命中落到AbstractArrow；Arrow追加药水和NBT。原版MCP Arrow阅读副本与本Neo副本逐字节相同，仅作同源佐证，不计第二次参考。",
+      "kind": "native",
+      "version": "neoforge-47.1.64",
+      "local": "native/neoforge-47.1.64/reading-view/net/minecraft/world/entity/projectile/Arrow.java",
+      "read_ranges": [
+        [
+          1,
+          226
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N18",
+      "claim": "普通LivingEntity释放通过实际useItem.releaseUsing后停止并清空使用状态；这不证明Fabric网络包排序、其他Mixin或左右手HUD正确。",
+      "kind": "native",
+      "version": "vanilla-mcp-1.20.1",
+      "local": "native/vanilla-mcp-1.20.1/reading-view/net/minecraft/world/entity/LivingEntity.java",
+      "read_ranges": [
+        [
+          2802,
+          2849
+        ],
+        [
+          2940,
+          3001
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N19",
+      "claim": "Neo释放路径可经ForgeEventFactory.onUseItemStop阻止releaseUsing，随后停止使用；Ars自有charged与弹仓的回滚仍须看自身调用。",
+      "kind": "native",
+      "version": "neoforge-47.1.64",
+      "local": "native/neoforge-47.1.64/reading-view/net/minecraft/world/entity/LivingEntity.java",
+      "read_ranges": [
+        [
+          3044,
+          3069
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "N20",
+      "claim": "DamageSource三参构造第一个Entity是directEntity，第二个是causingEntity；getDirectEntity/getEntity各返回对应字段。只闭合字段语义，不证明伤害标签和最终数值。",
+      "kind": "native",
+      "version": "neoforge-47.1.64",
+      "local": "native/neoforge-47.1.64/reading-view/net/minecraft/world/damagesource/DamageSource.java",
+      "read_ranges": [
+        [
+          14,
+          66
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "G01",
+      "claim": "GeoItemRenderer.actualRender先handleAnimations再递归输出模型；GeoRenderer.defaultRender在输出、层与post之后才调用renderFinal。Ars renderFinal改弩臂不会修改已经输出的该帧顶点。",
+      "kind": "gecko",
+      "version": "4.4.4",
+      "local": "geckolib-sources/software/bernie/geckolib/renderer/GeoRenderer.java",
+      "read_ranges": [
+        [
+          120,
+          152
+        ],
+        [
+          172,
+          180
+        ],
+        [
+          237,
+          315
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "G02",
+      "claim": "具体item父类以当前栈提供实例ID和数据，在actuallyRender中处理动画后进入递归；不能仅凭子类名字声称修复持握。",
+      "kind": "gecko",
+      "version": "4.4.4",
+      "local": "geckolib-sources/software/bernie/geckolib/renderer/GeoItemRenderer.java",
+      "read_ranges": [
+        [
+          167,
+          183
+        ],
+        [
+          219,
+          255
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "G03",
+      "claim": "GeoModel缓存baked模型，handleAnimations可能对同实例同时间直接返回；否则经过AnimationProcessor。没有每次renderFinal后自动统一复位的接口保证。",
+      "kind": "gecko",
+      "version": "4.4.4",
+      "local": "geckolib-sources/software/bernie/geckolib/model/GeoModel.java",
+      "read_ranges": [
+        [
+          82,
+          94
+        ],
+        [
+          133,
+          168
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "G04",
+      "claim": "AnimationProcessor仅在rotationChanged为false时插值复位，并在tickAnimation末重置改变标志；setRotY会重新置标志。因此存在后续绘制/多次渲染时序问题需要实机检查，不能断言永久不复位。",
+      "kind": "gecko",
+      "version": "4.4.4",
+      "local": "geckolib-sources/software/bernie/geckolib/core/animation/AnimationProcessor.java",
+      "read_ranges": [
+        [
+          71,
+          107
+        ],
+        [
+          130,
+          209
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    },
+    {
+      "id": "G05",
+      "claim": "GeoBone.setRotX/Y/Z写入值并标记rotationChanged，resetStateChanges清标志；这是G04时序判断的实际消费者。",
+      "kind": "gecko",
+      "version": "4.4.4",
+      "local": "geckolib-sources/software/bernie/geckolib/cache/object/GeoBone.java",
+      "read_ranges": [
+        [
+          133,
+          152
+        ],
+        [
+          254,
+          299
+        ]
+      ],
+      "qualification": "源码静态核查；没有运行验证。",
+      "independent_reference_credit": 0
+    }
+  ],
+  "prior_scope_evidence_records": 102,
+  "prior_scope_evidence_not_semantic_credit": true,
+  "new_source_studies": 0,
+  "new_accepted_gate_credit": 0,
+  "method": "官方准确版本source/userdev归档；复用现有MCP源码基底并精确应用补丁，再保留SRG与阅读映射副本。源代码仅提取阅读，没有执行。",
+  "limitations": [
+    "MCP基底未独立重新生成，不等于完整运行时。",
+    "未标阅读行号的还原文件仍未研究。",
+    "PNG未实际看过，不能计模型+贴图视觉参考。",
+    "多次hurt调用不等于两倍伤害，未穷尽无敌帧/外部事件。"
+  ]
+}

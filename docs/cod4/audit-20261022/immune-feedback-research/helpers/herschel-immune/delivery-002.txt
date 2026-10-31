@@ -1,0 +1,32 @@
+Herschel → Russell，第二批交付（主账与生产均未改）
+
+batch-002.json SHA256:
+8dfcbd7508a83e64a1f03ab5a7654277851b6279c17f6b3d3f8c254611583d41
+
+23个完整审阅单元：19个候选待主岗语义复核，4个降支持；未凑到30，审阅单元差7，候选差11。所有research_credit/suggested_credit=0，effective_promoted=0。不是外部服务受阻；本批交付的是已完整审过的方法与边界，其余未审候选没有入账。
+46源文件；81个本批完整方法引用，加35个首批补证完整方法引用，总116方法引用。34文件逐固定Git tree/blob核验（Ars及补全SpellEngine），12个Iron文件匹配固定archive/source.json字节SHA256。独立integrity-002.json PASS，0错误；23主方法与首批30主方法无精确/去空白重复，当前主账80条无主方法范围重叠。语义去重仍由主岗最终审核，哈希不给信用。
+
+新增/补全重点：
+- SpellEngine原缺Protection、EntityActionsAllowed方法体，在legacy-migration本地缓存找到同commit 42dc472183d8c139e741961eefda05eddc7630f8，已逐tree/blob核对。首批3个支持入口不独立晋级。保护只在Player原生isInvulnerableTo被调用，按来源tag/层数消费选择实际粒子和声音，不能泛称Boss同样受保护。
+- 控制策略AND所有允许位，UI原因取最高ordinal；原生jump/item中断/attack和客户端输入覆盖同策略合并，不拆包装。客户端控制提示不使用castAttemptError的去重标志。
+- HUD单槽覆盖、20tick寿命和松开useKey后重置尝试去重，是三个不同机制。未读到实际绘制器的部分明确不声明视觉通过。
+- Mob.isAiDisabled注入在受控时返回false，保留为反例降支持，不认定AI被禁用。
+- Bubble实际捕获含Boss黑名单/睡眠Player/已下船UUID门；但tick捕获未重复HAS_POPPED门，pop后还有延迟移除窗口。静态事件不是无注解就没注册：已继续读ArsNouveau完整构造器，确认Bubble三方法及Breeze反射均通过方法引用addListener注册。正式交付不再保留早期“注册未证实”的判断。
+- Breeze反射已有SpellResolver.resume发布Pre并检查cancel的完整调用方，取消会在解析各效果前return；之后45tick另造Breeze归属弹，不是原hit成功。
+- Rapier侧闪碰撞无空位时可留原位，但仍拒伤/反馈；不可由“没移动”反推没有闪避。
+- 召唤武器friendlyfire最终hurt与首批01+04归属家族合并，仅支持，未重提信用。
+- VoidTentacle保留bypass-only受伤与反魔法直接移除两种入口；Cleanse受保护效果可能全未移除却仍给粒子。
+- 传送门按portal+目标UUID冷却与loop窗口；声音可能在跨维目标Level有效性判定之前，不能拿声音当成功回执。
+- Bounce分别有摔伤取消/一次延时速度恢复、Player撞墙零伤/反冲两个原生来源边界；Totem是死亡事件取消，不是攻击免疫。Totem holder实际上选最后匹配装备，maxCount计算没用于选择。
+- 纯target stream复制、错误Mob AI返回、已合并owner保护、Windshear相似模板均降支持；不拿基础库/包装/元素改名凑数。
+
+首批要求补的3项均在batch-002.json的support_for_batch001单列，0新增计数：
+06 Heartstop：债务+=与归零都doSync，float写读、Player tracking+self和magic mob tracking包、客户端整数ID查表/实体更新完整方法。NBT保存债务，但getPersistentData跨死复制不带债务，不混称永久。未验证真实S2C。
+21 Blink：PortalTile.getServerLevel/teleportEntityTo、PacketWarpPosition写包/客户端回调、Networking注册/分发/收包及tracking chunk广播完整方法。原地返回原entity不等于传送；客户端包只有整数ID，无UUID/维度epoch/finite校验。只静态，不声称TCP/线程已验。
+26 ColdSnap：两个spawnIce重载及位置过滤、IceShard碎片两种受击/落地链、EnchantedFallingBlock tick/groundBlock/onHit/getDamageSource/canHit、ColoredProjectile.findHitEntity完整方法。空中hurt成功才slow，落地AOE不读hurt结果就尝试slow；shooter字段与Projectile.owner不能混同。
+
+复核命令：
+python3 tools/cod4/immune-feedback-research/helpers/herschel-immune/verify_batch_002.py
+
+第一批文件仍SHA256 23128266d5ce9a8373a4073d0f2d14a751b06f5790430e142b91554ada3c59b2；未改其原始证据或信用。第二批源码隔离在sources-batch002，未覆盖首批SpellEngine metadata。
+没有外部请求/服务重试、游戏/客户端/服务器启动，未写正式Java/资产/总账/TODO，未备份任务清单。

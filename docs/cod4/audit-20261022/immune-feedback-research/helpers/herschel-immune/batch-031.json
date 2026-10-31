@@ -1,0 +1,142 @@
+{
+  "batch": "herschel-immune-031",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 0,
+  "support_only_units": 1,
+  "rows": [
+    {
+      "id": "herschel-031-01",
+      "semantic_dedup_key": "domestication-health-siphon-owner-forwarding-overlap-support",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__DomesticationInnovation/src/main/java/com/github/alexthe668/domesticationinnovation/server/CommonProxy.java",
+          "method": "onLivingHurt",
+          "lines": [
+            561,
+            710
+          ],
+          "fixed_commit": "7b0fd3454a906e35013d70c99d3115501ec1a972",
+          "file_sha256": "450e309dcff493a2e3a063b438b337ef152079ea254f694b236f10ce95dbb2a9",
+          "url": "https://github.com/AlexModGuy/DomesticationInnovation/blob/7b0fd3454a906e35013d70c99d3115501ec1a972/src/main/java/com/github/alexthe668/domesticationinnovation/server/CommonProxy.java#L561-L710",
+          "excerpt": "    public void onLivingHurt(LivingAttackEvent event) {\n        if (TameableUtils.isTamed(event.getEntity()) && !event.getSource().is(DIDamageTypes.SIPHON)) {\n            boolean flag = false;\n            if (TameableUtils.hasEnchant(event.getEntity(), DIEnchantmentRegistry.IMMUNITY_FRAME)) {\n                int level = TameableUtils.getEnchantLevel(event.getEntity(), DIEnchantmentRegistry.IMMUNITY_FRAME);\n                if (TameableUtils.getImmuneTime(event.getEntity()) <= 0) {\n                    TameableUtils.setImmuneTime(event.getEntity(), 20 + level * 20);\n                } else {\n                    flag = true;\n                    event.setCanceled(true);\n                }\n            }\n            if (TameableUtils.hasEnchant(event.getEntity(), DIEnchantmentRegistry.BLAZING_PROTECTION)) {\n                int bars = TameableUtils.getBlazingProtectionBars(event.getEntity());\n                if (bars > 0) {\n                    Entity attacker = event.getSource().getEntity();\n                    if (attacker instanceof LivingEntity livingAttacker && !TameableUtils.hasSameOwnerAs(livingAttacker, event.getEntity())) {\n                        livingAttacker.setSecondsOnFire(5 + event.getEntity().getRandom().nextInt(3));\n                        livingAttacker.knockback(0.4, event.getEntity().getX() - livingAttacker.getX(), event.getEntity().getZ() - livingAttacker.getZ());\n                    }\n                    event.setCanceled(true);\n                    flag = true;\n                    if(attacker != null){\n                        for (int i = 0; i < 3 + event.getEntity().getRandom().nextInt(3); i++) {\n                            attacker.level().addParticle(ParticleTypes.FLAME, event.getEntity().getRandomX(0.8F), event.getEntity().getRandomY(), event.getEntity().getRandomZ(0.8F), 0.0F, 0.0F, 0.0F);\n                        }\n                    }\n                    event.getEntity().playSound(DISoundRegistry.BLAZING_PROTECTION.get(), 1, event.getEntity().getVoicePitch());\n                    TameableUtils.setBlazingProtectionBars(event.getEntity(), bars - 1);\n                    TameableUtils.setBlazingProtectionCooldown(event.getEntity(), 600);\n                }\n            }\n            if ((event.getSource().is(DamageTypes.DROWN) || event.getSource().is(DamageTypes.DRY_OUT)) && TameableUtils.hasEnchant(event.getEntity(), DIEnchantmentRegistry.AMPHIBIOUS)) {\n                event.setCanceled(true);\n                flag = true;\n            }\n            if (!flag && (event.getSource().is(DamageTypes.FALL) || event.getSource().is(DamageTypes.FELL_OUT_OF_WORLD)) && TameableUtils.hasEnchant(event.getEntity(), DIEnchantmentRegistry.VOID_CLOUD)) {\n                event.setCanceled(true);\n                flag = true;\n            }\n            if (!flag && TameableUtils.hasEnchant(event.getEntity(), DIEnchantmentRegistry.HEALTH_SIPHON)) {\n                Entity owner = TameableUtils.getOwnerOf(event.getEntity());\n                if (owner != null && owner.isAlive() && owner.distanceTo(event.getEntity()) < 100 && owner != event.getEntity()) {\n                    owner.hurt(event.getSource(), event.getAmount());\n                    event.setCanceled(true);\n                    flag = true;\n                    event.getEntity().hurt(DIDamageTypes.causeSiphonDamage(owner.level().registryAccess()), 0.0F);\n                }\n            }\n            if (!flag && TameableUtils.hasEnchant(event.getEntity(), DIEnchantmentRegistry.TOTAL_RECALL) && event.getEntity().getHealth() - event.getAmount() <= 2.0D && !TameableUtils.isZombiePet(event.getEntity())) {\n                UUID owner = TameableUtils.getOwnerUUIDOf(event.getEntity());\n                if (owner != null) {\n                    if (event.getEntity() instanceof Mob mob) {\n                        mob.playAmbientSound();\n                    }\n                    event.getEntity().playSound(SoundEvents.ENDER_CHEST_CLOSE, 1.0F, 1.5F);\n                    RecallBallEntity recallBall = DIEntityRegistry.RECALL_BALL.get().create(event.getEntity().level());\n                    recallBall.setOwnerUUID(owner);\n                    CompoundTag tag = new CompoundTag();\n                    event.getEntity().addAdditionalSaveData(tag);\n                    recallBall.setContainedData(tag);\n                    recallBall.setContainedEntityType(ForgeRegistries.ENTITY_TYPES.getKey(event.getEntity().getType()).toString());\n                    recallBall.setPos(event.getEntity().getX(), Math.max(event.getEntity().getY(), event.getEntity().level().getMinBuildHeight() + 1), event.getEntity().getZ());\n                    recallBall.setYRot(event.getEntity().getYRot());\n                    recallBall.setInvulnerable(true);\n                    event.getEntity().stopRiding();\n                    if (event.getEntity().level().addFreshEntity(recallBall)) {\n                        event.getEntity().discard();\n                    }\n                    flag = true;\n                    event.setCanceled(true);\n                }\n            }\n        }\n        if (event.getSource().getEntity() != null && TameableUtils.isTamed(event.getSource().getEntity())) {\n            LivingEntity attacker = (LivingEntity) event.getSource().getEntity();\n            int lightningLevel = TameableUtils.getEnchantLevel(attacker, DIEnchantmentRegistry.CHAIN_LIGHTNING);\n            int bubblingLevel = TameableUtils.getEnchantLevel(attacker, DIEnchantmentRegistry.BUBBLING);\n            int vampireLevel = TameableUtils.getEnchantLevel(attacker, DIEnchantmentRegistry.VAMPIRE);\n\n            if (lightningLevel > 0) {\n                ChainLightningEntity lightning = DIEntityRegistry.CHAIN_LIGHTNING.get().create(event.getEntity().level());\n                lightning.setCreatorEntityID(attacker.getId());\n                lightning.setFromEntityID(attacker.getId());\n                lightning.setToEntityID(event.getEntity().getId());\n                lightning.copyPosition(event.getEntity());\n                lightning.setChainsLeft(3 + lightningLevel * 3);\n                event.getEntity().level().addFreshEntity(lightning);\n                event.getEntity().playSound(DISoundRegistry.CHAIN_LIGHTNING.get(), 1F, 1F);\n            }\n            if (TameableUtils.hasEnchant(attacker, DIEnchantmentRegistry.FROST_FANG)) {\n                event.getEntity().setTicksFrozen(event.getEntity().getTicksRequiredToFreeze() + 200);\n                Vec3 vec3 = event.getEntity().getEyePosition().subtract(attacker.getEyePosition()).normalize().scale(attacker.getBbWidth() + 0.5F);\n                Vec3 vec32 = attacker.getEyePosition().add(vec3);\n                for (int i = 0; i < 3 + attacker.getRandom().nextInt(3); i++) {\n                    float f1 = 0.2F * (attacker.getRandom().nextFloat() - 1.0F);\n                    float f2 = 0.2F * (attacker.getRandom().nextFloat() - 1.0F);\n                    float f3 = 0.2F * (attacker.getRandom().nextFloat() - 1.0F);\n                    attacker.level().addParticle(ParticleTypes.SNOWFLAKE, vec32.x + f1, vec32.y + f2, vec32.z + f3, 0.0F, 0.0F, 0.0F);\n                }\n                TameableUtils.setFrozenTimeTag(event.getEntity(), 60);\n            }\n            if (bubblingLevel > 0) {\n                if (!(event.getEntity().getRootVehicle() instanceof GiantBubbleEntity) && (event.getEntity().onGround() || event.getEntity().isInWaterOrBubble() || event.getEntity().isInLava())) {\n                    GiantBubbleEntity bubble = DIEntityRegistry.GIANT_BUBBLE.get().create(event.getEntity().level());\n                    bubble.copyPosition(event.getEntity());\n                    event.getEntity().startRiding(bubble, true);\n                    bubble.setpopsIn(bubblingLevel * 40 + 40);\n                    event.getEntity().level().addFreshEntity(bubble);\n                    event.getEntity().playSound(DISoundRegistry.GIANT_BUBBLE_INFLATE.get(), 1F, 1F);\n\n                }\n            }\n            if (vampireLevel > 0) {\n                if (attacker.getHealth() < attacker.getMaxHealth()) {\n                    float f = Mth.clamp(event.getAmount() * vampireLevel * 0.5F, 1F, 10F);\n                    attacker.heal(f);\n                    if (event.getEntity().level() instanceof ServerLevel) {\n                        for (int i = 0; i < 5 + event.getEntity().getRandom().nextInt(3); i++) {\n                            double f1 = event.getEntity().getRandomX(0.7F);\n                            double f2 = event.getEntity().getY(0.4F + event.getEntity().getRandom().nextFloat() * 0.2F);\n                            double f3 = event.getEntity().getRandomZ(0.7F);\n                            Vec3 motion = attacker.getEyePosition().subtract(f1, f2, f3).normalize().scale(0.2F);\n                            ((ServerLevel) event.getEntity().level()).sendParticles(DIParticleRegistry.VAMPIRE.get(), f1, f2, f3, 1, motion.x, motion.y, motion.z, 0.2F);\n                        }\n                    }\n                }\n            }\n            if (!event.getEntity().level().isClientSide && TameableUtils.hasEnchant(attacker, DIEnchantmentRegistry.WARPING_BITE)) {\n                for (int i = 0; i < 16; ++i) {\n                    double d3 = event.getEntity().getX() + (attacker.getRandom().nextDouble() - 0.5D) * 16.0D;\n                    double d4 = Mth.clamp(event.getEntity().getY() + (double) (attacker.getRandom().nextInt(16) - 8), event.getEntity().level().getMinBuildHeight(), event.getEntity().level().getMinBuildHeight() + ((ServerLevel) event.getEntity().level()).getLogicalHeight() - 1);\n                    double d5 = event.getEntity().getZ() + (attacker.getRandom().nextDouble() - 0.5D) * 16.0D;\n                    if (event.getEntity().randomTeleport(d3, d4, d5, true)) {\n                        SoundEvent soundevent = event.getEntity() instanceof Fox ? SoundEvents.FOX_TELEPORT : SoundEvents.CHORUS_FRUIT_TELEPORT;\n                        event.getEntity().playSound(soundevent, 1.0F, 1.0F);\n                        break;\n                    }\n                }\n            }\n        }\n        if (!event.isCanceled()) {\n            List<LivingEntity> nearbyHealers = TameableUtils.getNearbyHealers(event.getEntity());\n            if (!nearbyHealers.isEmpty()) {\n                for (LivingEntity healer : nearbyHealers) {\n                    TameableUtils.setHealingAuraImpulse(healer, true);\n                }\n            }\n        }\n    }\n",
+          "excerpt_sha256": "e5820e35aacf7ebdc1505eca8aa0d3dc20f2950ad545e5efebedc0a163103445",
+          "normalized_excerpt_sha256": "58f1c8e928124df1b3152b687483044989c87820ba068031642ef13b692dd160",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__DomesticationInnovation/src/main/java/com/github/alexthe668/domesticationinnovation/server/CommonProxy.java",
+          "method": "onLivingDamage",
+          "lines": [
+            713,
+            723
+          ],
+          "fixed_commit": "7b0fd3454a906e35013d70c99d3115501ec1a972",
+          "file_sha256": "450e309dcff493a2e3a063b438b337ef152079ea254f694b236f10ce95dbb2a9",
+          "url": "https://github.com/AlexModGuy/DomesticationInnovation/blob/7b0fd3454a906e35013d70c99d3115501ec1a972/src/main/java/com/github/alexthe668/domesticationinnovation/server/CommonProxy.java#L713-L723",
+          "excerpt": "    public void onLivingDamage(LivingDamageEvent event) {\n        if(TameableUtils.isTamed(event.getEntity()) && event.getSource().getDirectEntity() instanceof Player player && TameableUtils.isPetOf(player, event.getEntity()) && !player.isShiftKeyDown()){\n            event.setCanceled(true);\n        }\n        if (event.getSource().getEntity() instanceof LivingEntity && TameableUtils.isTamed(event.getSource().getEntity())) {\n            LivingEntity pet = (LivingEntity) event.getSource().getEntity();\n            if (TameableUtils.hasEnchant(pet, DIEnchantmentRegistry.IMMATURITY_CURSE)) {\n                event.setAmount((float) Math.ceil(event.getAmount() * 0.7F));\n            }\n        }\n    }\n",
+          "excerpt_sha256": "2cb0b834cade9298679803bc029ec8f7dd0951fb1995cc117742b0cba60d81f6",
+          "normalized_excerpt_sha256": "f524e190be34b5e060a53f16000e57a49b8ee2c35d0604fcb270abe6c59be611",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__DomesticationInnovation/src/main/java/com/github/alexthe668/domesticationinnovation/server/entity/TameableUtils.java",
+          "method": "isTamed",
+          "lines": [
+            136,
+            151
+          ],
+          "fixed_commit": "7b0fd3454a906e35013d70c99d3115501ec1a972",
+          "file_sha256": "26b246a898dc2095086d519db88e7ea9829158fbe54dddfe17cda289afa9a898",
+          "url": "https://github.com/AlexModGuy/DomesticationInnovation/blob/7b0fd3454a906e35013d70c99d3115501ec1a972/src/main/java/com/github/alexthe668/domesticationinnovation/server/entity/TameableUtils.java#L136-L151",
+          "excerpt": "    public static boolean isTamed(Entity entity) {\n        //sometimes these are not bound on runtime\n        if (entity instanceof Axolotl) {\n            return ((ModifedToBeTameable) entity).isTame() && DomesticationMod.CONFIG.tameableAxolotl.get();\n        }\n        if (entity instanceof Fox) {\n            return ((ModifedToBeTameable) entity).isTame() && DomesticationMod.CONFIG.tameableFox.get();\n        }\n        if (entity instanceof Rabbit) {\n            return ((ModifedToBeTameable) entity).isTame() && DomesticationMod.CONFIG.tameableRabbit.get();\n        }\n        if (entity instanceof Frog) {\n            return ((ModifedToBeTameable) entity).isTame() && DomesticationMod.CONFIG.tameableFrog.get();\n        }\n        return entity instanceof ModifedToBeTameable && ((ModifedToBeTameable) entity).isTame() || entity instanceof TamableAnimal && ((TamableAnimal) entity).isTame();\n    }\n",
+          "excerpt_sha256": "107a36cf7e959c846cba2bd1c7bd2741fc6e0a1e511e23c4d7e2361a5599a8be",
+          "normalized_excerpt_sha256": "c6aba7ed3b2aa81cad743af40df763cc592aec0be2e061b5540d74121c01b755",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__DomesticationInnovation/src/main/java/com/github/alexthe668/domesticationinnovation/server/entity/TameableUtils.java",
+          "method": "getOwnerOf",
+          "lines": [
+            158,
+            166
+          ],
+          "fixed_commit": "7b0fd3454a906e35013d70c99d3115501ec1a972",
+          "file_sha256": "26b246a898dc2095086d519db88e7ea9829158fbe54dddfe17cda289afa9a898",
+          "url": "https://github.com/AlexModGuy/DomesticationInnovation/blob/7b0fd3454a906e35013d70c99d3115501ec1a972/src/main/java/com/github/alexthe668/domesticationinnovation/server/entity/TameableUtils.java#L158-L166",
+          "excerpt": "    public static Entity getOwnerOf(Entity entity) {\n        if (entity instanceof ModifedToBeTameable) {\n            return ((ModifedToBeTameable) entity).getTameOwner();\n        }\n        if (entity instanceof TamableAnimal) {\n            return ((TamableAnimal) entity).getOwner();\n        }\n        return null;\n    }\n",
+          "excerpt_sha256": "530c10861b9691d2a8c7ec23bb253ba181cd368e8deae86ce8eb3b2e89d25302",
+          "normalized_excerpt_sha256": "898672e6b14ab903f5cc9e8b79eb554505f8ab1c70d40c6622fd8cc4a3daa522",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__DomesticationInnovation/src/main/java/com/github/alexthe668/domesticationinnovation/server/entity/TameableUtils.java",
+          "method": "getEnchantLevel",
+          "lines": [
+            260,
+            272
+          ],
+          "fixed_commit": "7b0fd3454a906e35013d70c99d3115501ec1a972",
+          "file_sha256": "26b246a898dc2095086d519db88e7ea9829158fbe54dddfe17cda289afa9a898",
+          "url": "https://github.com/AlexModGuy/DomesticationInnovation/blob/7b0fd3454a906e35013d70c99d3115501ec1a972/src/main/java/com/github/alexthe668/domesticationinnovation/server/entity/TameableUtils.java#L260-L272",
+          "excerpt": "    public static int getEnchantLevel(LivingEntity entity, Enchantment enchantment) {\n        ListTag listtag = getEnchantmentList(entity);\n        if (listtag != null && DomesticationMod.CONFIG.isEnchantEnabled(enchantment)) {\n            for (int i = 0; i < listtag.size(); ++i) {\n                CompoundTag compoundtag = listtag.getCompound(i);\n                ResourceLocation res = EnchantmentHelper.getEnchantmentId(compoundtag);\n                if (res != null && res.equals(ForgeRegistries.ENCHANTMENTS.getKey(enchantment))) {\n                    return EnchantmentHelper.getEnchantmentLevel(compoundtag);\n                }\n            }\n        }\n        return 0;\n    }\n",
+          "excerpt_sha256": "3e3d54c30e2074105470ae254463303c17eec67cd52ea76cee8b7c73dae4921e",
+          "normalized_excerpt_sha256": "a380a59ad2f3f092c80d9e431275a90bccbfcd0865e403305ea9dd10a1cb7554",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__DomesticationInnovation/src/main/java/com/github/alexthe668/domesticationinnovation/server/entity/TameableUtils.java",
+          "method": "hasEnchant",
+          "lines": [
+            274,
+            276
+          ],
+          "fixed_commit": "7b0fd3454a906e35013d70c99d3115501ec1a972",
+          "file_sha256": "26b246a898dc2095086d519db88e7ea9829158fbe54dddfe17cda289afa9a898",
+          "url": "https://github.com/AlexModGuy/DomesticationInnovation/blob/7b0fd3454a906e35013d70c99d3115501ec1a972/src/main/java/com/github/alexthe668/domesticationinnovation/server/entity/TameableUtils.java#L274-L276",
+          "excerpt": "    public static boolean hasEnchant(LivingEntity entity, Enchantment enchantment) {\n        return getEnchantLevel(entity, enchantment) > 0;\n    }\n",
+          "excerpt_sha256": "2e83e993a09285c7c462cc0d8ba6b0ff4d5ebd2930d9be3b4dad0742858e2bf4",
+          "normalized_excerpt_sha256": "a101bc640c43cf5228ed06632fd95c71507b8d7147ef72a1350cc9f6dc4373e2",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__DomesticationInnovation/src/main/java/com/github/alexthe668/domesticationinnovation/server/misc/DIDamageTypes.java",
+          "method": "causeSiphonDamage",
+          "lines": [
+            17,
+            20
+          ],
+          "fixed_commit": "7b0fd3454a906e35013d70c99d3115501ec1a972",
+          "file_sha256": "62c2cb8aa6b428efbcfe2f6d0147063a3e73128c3910012a1fc620aff7c361dd",
+          "url": "https://github.com/AlexModGuy/DomesticationInnovation/blob/7b0fd3454a906e35013d70c99d3115501ec1a972/src/main/java/com/github/alexthe668/domesticationinnovation/server/misc/DIDamageTypes.java#L17-L20",
+          "excerpt": "    public static DamageSource causeSiphonDamage(RegistryAccess registryAccess) {\n        return new DamageSource(registryAccess.registry(Registries.DAMAGE_TYPE).get().getHolderOrThrow(SIPHON));\n\n    }\n",
+          "excerpt_sha256": "55637d25cd8968c99ab1e636fc146e0e5b8f3180e903b97f24faac020c994c55",
+          "normalized_excerpt_sha256": "b4fe65898c435b529e3116b87f1f29cd597bef9cd2f5b1e697dbf6a7b72e03cc",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Full native LivingAttack handler read: outer tamed && source not SIPHON, earlier immunity-frame/blazing/amphibious/void branches may set local flag. Only !flag+HEALTH_SIPHON queries owner; owner nonnull alive distance<100 and not victim receives ORIGINAL DamageSource+event amount. owner.hurt result ignored, pet event canceled, then original victim receives newly constructed SIPHON damage source with0amount. SIPHON factory has type holder only, no attributed owner entity, and outer branch excludes this custom type on reentry. This zero hit is not evidence of real pet health loss or a confirmed owner transfer. Later tamed attacker lightning/freeze/bubble/vampire/warp branches still run after cancellation; final healer impulse alone requires !event.isCanceled. No own refusal receipt here. Separate onLivingDamage cancels when direct entity Player and isPetOf(player,victim) and player not shift; this observation alone does not establish whole ownership/ally chain or independent candidate. Enchant reader checks configured enablement and native stored enchant level; full enchant-list storage/config producer not newly expanded.",
+      "application_to_boss_immune": "Forwarded hurt attempt and local damage denial are distinct from successful owner payment; cancellation cannot be inferred from damage delta or FX alone. A custom source guard can prevent one internal marker from reentering that guarded branch, without proving all owners/other mods recursion safe. Existing earlier refusal and later secondary side effects must be considered separately.",
+      "semantic_dedup": "Support0. Accepted Enigmatic distance-qualified pet redirect already forwards original source to owner without requiring hurt success and protects pet; enchant versus passive item and100 versus24 are insufficient new credit alone. SIPHON zero marker and local flag ordering retained as context, not repackaged another independent policy. Existing Domestication first-attack window/replenishing stock/recall/bubble/wall remain unchanged. Own-player direct-source+shift branch requires full isPetOf/alliance context before any future proposal, so0here.",
+      "limitations": "No new complete gameplay proposal or promotion. No owner dimension guarantee beyond literal method, no proof marker causes zero final damage under every listener, no native owner/allied semantics beyond methods actually read. Missing enchant-list producer/alliance/native engine and runtime not asserted. No production code, tests, game or assets executed/written."
+    }
+  ],
+  "exclusions": [
+    "All observed radius/item/enchant variants and custom-source marker remain support only.",
+    "Do not split already accepted source handler into named branch credits without semantic and native chain closure."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

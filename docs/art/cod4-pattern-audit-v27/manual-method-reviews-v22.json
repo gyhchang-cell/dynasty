@@ -49,8 +49,14 @@
       "url": "https://github.com/Antikythera-Studios/epicfight/blob/a78aa24b72e90a9d09f5fd61925e4369d117abaf/src/main/java/yesman/epicfight/client/particle/EntityAfterimageParticle.java#L54-L70",
       "source": "@Override\n\tpublic void render(VertexConsumer vertexConsumer, Camera camera, float partialTick) {\n\t\tfloat alpha = Mth.lerp(partialTick, this.alphaO, this.alpha);\n\t\tint lightColor = this.getLightColor(partialTick);\n\t\tPoseStack poseStack = new PoseStack();\n\t\tthis.setupPoseStack(poseStack, camera, partialTick);\n\t\tMultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();\n\t\tthis.entitySnapshot.renderTextured(poseStack, buffers, EpicFightRenderTypes::entityAfterimageStencil, Mesh.DrawingFunction.POSITION_TEX, 0, 0.0F, 0.0F, 0.0F, 1.0F);\n\t\tthis.entitySnapshot.renderItems(poseStack, buffers, EpicFightRenderTypes.itemAfterimageStencil(), Mesh.DrawingFunction.POSITION_TEX, lightColor, 1.0F);\n\t\tbuffers.endLastBatch();\n\t\t\n\t\tthis.entitySnapshot.renderTextured(poseStack, buffers, EpicFightRenderTypes::entityAfterimageTranslucent, Mesh.DrawingFunction.NEW_ENTITY, lightColor, this.rCol, this.gCol, this.bCol, alpha);\n\t\tthis.entitySnapshot.renderItems(poseStack, buffers, EpicFightRenderTypes.itemAfterimageTranslucent(), Mesh.DrawingFunction.NEW_ENTITY, lightColor, alpha);\n\t\tbuffers.endLastBatch();\n\t\t\n\t\tthis.revert(poseStack);\n\t}",
       "targetScope": "school_melee",
-      "observation": "捕获实体快照与物品分别先画stencil再画半透明，显式endLastBatch隔开两遍，alpha用上一刻插值。解决重叠残影内部透叠和持物缺失；只借鉴层组织，不替换Dynasty已有历史ItemStack残影。",
-      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+      "observation": "捕获实体快照与物品先做只写深度的预通道，再以EQUAL深度测试只写颜色进行半透明绘制，显式endLastBatch隔开两遍，alpha在上一刻和当前刻间插值。方法虽命名stencil，实际RenderType使用DEPTH_WRITE而非GL模板缓冲。该深度预通道组织有助于限制单个模型内部透叠，但不能据静态源码声称多残影穿插、透明像素或持物均已正确；renderItems跳过custom renderer，手持栈未copy且仍读实时entitypatch。只借鉴层组织，保留Dynasty历史ItemStack残影，未作游戏验收。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD",
+      "observationBefore20261030": "捕获实体快照与物品分别先画stencil再画半透明，显式endLastBatch隔开两遍，alpha用上一刻插值。解决重叠残影内部透叠和持物缺失；只借鉴层组织，不替换Dynasty已有历史ItemStack残影。",
+      "correctionEvidence": {
+        "dateAsiaShanghai": "2026-10-30",
+        "countsAdded": 0,
+        "source": "research-correction-v22-20261030.json"
+      }
     },
     {
       "id": "explicit-source-method",

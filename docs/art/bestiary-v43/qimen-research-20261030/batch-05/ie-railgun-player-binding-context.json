@@ -1,0 +1,437 @@
+{
+  "id": "ie-railgun-player-model-binding-context-extension",
+  "updated_utc": "2026-10-30T18:15:03.112552+00:00",
+  "status": "EXISTING_FAMILY_SELECTED_PLAYER_ITEM_AND_ARM_BINDING_READ_RUNTIME_PENDING",
+  "extends": "../reviewed-chains-20261031.json#ie-railgun-used-hand-muzzle",
+  "repo": "BluSunrize/ImmersiveEngineering",
+  "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+  "minecraft": "1.20.1",
+  "forge": "47.3.0",
+  "new_source_studies": 0,
+  "new_independent_units": 0,
+  "new_accepted_credit": 0,
+  "human_creature_model_texture_reference_credit": 0,
+  "version_boundary": "IE固定源声明Forge47.3.0；本批重建的47.1.0引擎材料仅用于暮色，不冒充IE准确引擎运行证据。",
+  "chain": [
+    {
+      "step": "实际资源绑定",
+      "observation": "Weapons.RAILGUN数据生成声明指向ie_obj、RailgunCallbacks、dynamic与translucent，并把transform输入烘成生成JSON。运行JSON实际指向models/item/railgun.obj.ie；不把原始transform输入的坐标或四元数直接等同最终display数值。"
+    },
+    {
+      "step": "四手持display",
+      "observation": "实际生成JSON：FP左/右约Y=-84.375/+84.375度，scale约.125；TP左右scale约.1875，并各有不同旋转和位移。应保留原JSON完整变换与引擎镜像约定，不把角度单独照搬为握点。"
+    },
+    {
+      "step": "真实玩家手臂",
+      "observation": "build.gradle声明mixins配置→client BipedModelMixin→HumanoidModel.setupAnim RETURN→IEBipedRotations。fancyItemHolding默认true但可禁用；仅Player分支遍历两手，right=(MAIN_HAND)==(mainArm==RIGHT)。Railgun设置持械侧arm.xRot=-.87266弧度约-50度；不是两臂通用支撑，也不检查isUsingItem或蓄能比例。"
+    },
+    {
+      "step": "玩家与NPC区分",
+      "observation": "RailgunCallbacks.extractKey只scope/speed升级布尔；scope/speed/barrel_top控制模型组可见性。handlePerspective的额外变换明确只Fusilier且只TP；玩家依实际display和单独Biped注入，不能拿Fusilier庆祝姿态当玩家实现。"
+    },
+    {
+      "step": "最终绘制消费者",
+      "observation": "IEOBJLoader读实际OBJ/callback→IEOBJModel.bake→General.resolve以stack/holder和shader生成Specific→applyTransform先display再handlePerspective→IEOBJItemRenderer绘可见groups与实际quads。ItemCallback默认无special-group动画/全亮；选定RailgunCallbacks没有充能时钟驱动机件动画。"
+    },
+    {
+      "step": "真实材质和光照边界",
+      "observation": "IEOBJItemRenderer实际使用BLOCK_ATLAS、shader层色与输入light/overlay，按layer选translucent等RenderType。未查看railgun OBJ/MTL/PNG或shader具体注册，不能称外观研究、统一无乘色或完整UV验证。"
+    },
+    {
+      "step": "粒子枪口不是弹道出生点",
+      "observation": "onUseTick shader近似front offset=.4375；发射效果=.75并映射usedHand/mainArm。普通RailgunShotEntity经IEProjectileEntity生于owner eyeY-.1。ammo properties允许getProjectile替换实体；未枚举所有弹药，不能宣称全部从同一枪口出生。"
+    },
+    {
+      "step": "运行与姿态边界",
+      "observation": "只静态闭合玩家持械选定声明/消费者。原版第一人称ItemInHandRenderer、第三人称arm到item矩阵、其他模组动画注入顺序及真实fancy配置未验证；左右主手、双持及远端同步未启动游戏测试。"
+    }
+  ],
+  "dedup": "原B1 railgun家族补读；FP/TP、左右手、升级组、mixin和NPC姿态不拆作独立新案例。",
+  "pending_reads": [
+    "运行时实际资源覆盖/配置；FP/TP vanilla完整arm到item矩阵及其他动画模组覆写。",
+    "实际OBJ/MTL/PNG与shader资产未查看；不计生物模型+贴图参考。",
+    "各ammo replacement实体、自定义shader和左右手/双持/远端游戏效果。",
+    "全局独立语义去重与验收，1000门槛未满足，无生产授权转移。"
+  ],
+  "evidence": [
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/generated/resources/assets/immersiveengineering/models/item/railgun.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/BluSunrize__ImmersiveEngineering/src/generated/resources/assets/immersiveengineering/models/item/railgun.json",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/generated/resources/assets/immersiveengineering/models/item/railgun.json",
+      "read_ranges": [
+        [
+          1,
+          160
+        ]
+      ],
+      "lines": 160,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "实际运行生成JSON：四种手持上下文display、ie_obj/railgun callback、dynamic、translucent、OBJ路径",
+      "sha256": "04dfccba6da029d635449b6acb5b35510c2db22036011a2decd95510a86cb925"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/resources/assets/immersiveengineering/transformations/item/railgun.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/BluSunrize__ImmersiveEngineering/src/main/resources/assets/immersiveengineering/transformations/item/railgun.json",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/resources/assets/immersiveengineering/transformations/item/railgun.json",
+      "read_ranges": [
+        [
+          1,
+          45
+        ]
+      ],
+      "lines": 45,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "数据生成输入，no_corner_offset及四元数/位移/尺度；不能直接拿输入数值当游戏最终display",
+      "sha256": "c42c4a8c805bee601eacb90d3c5161292c6271a35cf98f822a0371b62d998710"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/datagen/java/blusunrize/immersiveengineering/data/ItemModels.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/datagen/java/blusunrize/immersiveengineering/data/ItemModels.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/datagen/java/blusunrize/immersiveengineering/data/ItemModels.java",
+      "read_ranges": [
+        [
+          306,
+          315
+        ]
+      ],
+      "lines": 539,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "实际数据生成Weapons.RAILGUN→dynamic/RailgunCallbacks/translucent/transforms(item/railgun)",
+      "sha256": "3b70f39d51314bcb403e349eeb332ca945d09d3512789cf32064028869c48dbe"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/items/RailgunItem.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/items/RailgunItem.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/items/RailgunItem.java",
+      "read_ranges": [
+        [
+          40,
+          300
+        ]
+      ],
+      "lines": 398,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "实际使用hand、UseAnim.NONE、IEOBJ renderer、蓄能/释放、shader位置与普通投射物生成",
+      "sha256": "22769ee2acdf2b2894275c438b0f04a2386698038c6448c105a6095a1c3a4727"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/callback/item/RailgunCallbacks.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/callback/item/RailgunCallbacks.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/callback/item/RailgunCallbacks.java",
+      "read_ranges": [
+        [
+          1,
+          84
+        ]
+      ],
+      "lines": 84,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "upgrade key只scope/speed；分组可见；handlePerspective只Fusilier第三人称，不是玩家姿态",
+      "sha256": "314ae66dd0cf52fb9cab7178cad2f7ccdb92dc1d970a02b9cb6f62925a5614cc"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/mixin/coremods/client/BipedModelMixin.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/mixin/coremods/client/BipedModelMixin.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/mixin/coremods/client/BipedModelMixin.java",
+      "read_ranges": [
+        [
+          1,
+          32
+        ]
+      ],
+      "lines": 32,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "HumanoidModel.setupAnim RETURN注入玩家手臂消费者",
+      "sha256": "eddd53bd670ab40df92e70c3f00d61f95b4b65474f7262949561e5048f27082c"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/render/IEBipedRotations.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/render/IEBipedRotations.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/render/IEBipedRotations.java",
+      "read_ranges": [
+        [
+          1,
+          86
+        ]
+      ],
+      "lines": 86,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "fancyItemHolding门禁；遍历两hand/映射mainArm；Railgun仅持械侧arm.xRot=-.87266",
+      "sha256": "9d47d2f9b82bbe27b95503e988f52bcae750c1ac03bea928590cdb335b54bec3"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/resources/immersiveengineering.mixins.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/BluSunrize__ImmersiveEngineering/src/main/resources/immersiveengineering.mixins.json",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/resources/immersiveengineering.mixins.json",
+      "read_ranges": [
+        [
+          1,
+          52
+        ]
+      ],
+      "lines": 52,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "client BipedModelMixin声明、plugin、refmap和required；不是运行成功证据",
+      "sha256": "6e76cfc97b03f9014fd40d11221454313fcb95bb7d78df9af48fb689f889b339"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/mixin/IEMixinConfig.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/mixin/IEMixinConfig.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/mixin/IEMixinConfig.java",
+      "read_ranges": [
+        [
+          1,
+          60
+        ]
+      ],
+      "lines": 60,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "shouldApplyMixin返回true，未在plugin额外屏蔽该mixin",
+      "sha256": "ecfec44b6230786a58724903e98e87635efef86237d47fde17eaf8f4034dd581"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/config/IEClientConfig.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/config/IEClientConfig.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/config/IEClientConfig.java",
+      "read_ranges": [
+        [
+          32,
+          43
+        ],
+        [
+          82,
+          95
+        ]
+      ],
+      "lines": 127,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "fancyItemHolding默认true，配置可因动画兼容关闭；本地实例实际配置未读",
+      "sha256": "eda2a56c2ab9692b5455c4d62e70ff207f742838bd6bd77c99a5d29e47929da8"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "build.gradle",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/build.gradle",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/build.gradle",
+      "read_ranges": [
+        [
+          547,
+          555
+        ]
+      ],
+      "lines": 581,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "mixin配置接入构建声明；无编译或类加载执行",
+      "sha256": "44c43a3fd2558b9ab7a3f00e09936adee07af3a925835e66a3a0ccb1870fae1d"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/ClientProxy.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/ClientProxy.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/ClientProxy.java",
+      "read_ranges": [
+        [
+          113,
+          131
+        ],
+        [
+          504,
+          516
+        ]
+      ],
+      "lines": 517,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "railgun callback注册、动态IEOBJItemRenderer实际实例赋值",
+      "sha256": "703683fa04ad74bd3f5050a80483b2a1584863358d5fbc887877822e4e45a0cc"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJLoader.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJLoader.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJLoader.java",
+      "read_ranges": [
+        [
+          34,
+          82
+        ]
+      ],
+      "lines": 99,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "实际model/callback/dynamic/layers JSON读取与OBJ解析入口",
+      "sha256": "22caa56514fee95faa676ce29acc1acc610826e93a5ab207c1197c993f5a1c5b"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJModel.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJModel.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJModel.java",
+      "read_ranges": [
+        [
+          1,
+          71
+        ]
+      ],
+      "lines": 71,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "bake传递context和dynamic/layers至GeneralIEOBJModel",
+      "sha256": "11e7d781a9031dad7ea58cdbecb6866cad1f0be8d06c9535c9a57f85b297e5ad"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/GeneralIEOBJModel.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/GeneralIEOBJModel.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/GeneralIEOBJModel.java",
+      "read_ranges": [
+        [
+          267,
+          301
+        ]
+      ],
+      "lines": 303,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "Overrides.resolve设置holder、提取stack key与shader、缓存specific模型",
+      "sha256": "eeb2eef6cd22e90032bc524493f87b54bcc39434b38ed34de1aaa8e7a3319f7d"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/SpecificIEOBJModel.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/SpecificIEOBJModel.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/SpecificIEOBJModel.java",
+      "read_ranges": [
+        [
+          70,
+          145
+        ],
+        [
+          147,
+          181
+        ]
+      ],
+      "lines": 304,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "custom renderer保存active model；applyTransform先display再callback perspective",
+      "sha256": "956a680596cda6b7a93a5d9570924b3c27843ab6c4c9680c81c8c6ebff3e40ce"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/api/java/blusunrize/immersiveengineering/api/client/ieobj/ItemCallback.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/api/java/blusunrize/immersiveengineering/api/client/ieobj/ItemCallback.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/api/java/blusunrize/immersiveengineering/api/client/ieobj/ItemCallback.java",
+      "read_ranges": [
+        [
+          1,
+          66
+        ]
+      ],
+      "lines": 66,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "USE_IEOBJ_RENDER取动态renderer；默认special groups空、transform恒等、fullbright false",
+      "sha256": "090031d0c9e66a55324e63f312dd323e9555b06848dfb109b722bcc9ead2c86b"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/render/IEOBJItemRenderer.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/render/IEOBJItemRenderer.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/render/IEOBJItemRenderer.java",
+      "read_ranges": [
+        [
+          1,
+          131
+        ]
+      ],
+      "lines": 131,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "实际可见group、layer/color、BLOCK_ATLAS、bulkData与light/overlay消费者",
+      "sha256": "7e867a23eae2faf189d760aebd52caba91bc423d53a68c285c795c129b92cd89"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/ClientEventHandler.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/ClientEventHandler.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/ClientEventHandler.java",
+      "read_ranges": [
+        [
+          1,
+          130
+        ],
+        [
+          269,
+          364
+        ],
+        [
+          464,
+          503
+        ]
+      ],
+      "lines": 851,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "已看命中的railgun仅字幕偏移/overlay，不是手臂pose；全851行未全文读",
+      "sha256": "5505557d3f475a634360d5cd218b6a0e3dd2da45849b75e5321b8ffdcb8dd1c1"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/entities/RailgunShotEntity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/entities/RailgunShotEntity.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/entities/RailgunShotEntity.java",
+      "read_ranges": [
+        [
+          44,
+          79
+        ]
+      ],
+      "lines": 175,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "普通shot构造交给IEProjectileEntity owner+速度构造",
+      "sha256": "b16f9adb21941eed268c8d2016fc31dd6937a3b2ee7dbc1f9656428fe8ca41ab"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/entities/IEProjectileEntity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/entities/IEProjectileEntity.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/entities/IEProjectileEntity.java",
+      "read_ranges": [
+        [
+          60,
+          122
+        ]
+      ],
+      "lines": 313,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "普通shot真实birth是owner eyeY-.1，与shader枪口近似点不同",
+      "sha256": "83ae88b1921e492bdc9b3b75a22c9a0a67fbd764a45c797a232100d6f65637f8"
+    }
+  ],
+  "runtime_verified": false,
+  "production_modified": false
+}

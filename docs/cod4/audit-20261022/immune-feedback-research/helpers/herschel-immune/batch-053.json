@@ -1,0 +1,245 @@
+{
+  "batch": "herschel-immune-053",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 1,
+  "support_only_units": 0,
+  "rows": [
+    {
+      "id": "herschel-053-01",
+      "semantic_dedup_key": "iron-dash-accepted-contact-versus-collision-fallback-and-unconditional-iframe-side-effect",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/VoltStrikeEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            111
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "a63608d945137545935b1a239989d0c380bfc55baeb5bbd7932051c4f2bc9042",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/VoltStrikeEffect.java#L1-L111",
+          "excerpt": "package io.redspace.ironsspellbooks.effect;\n\nimport io.redspace.ironsspellbooks.api.registry.SpellRegistry;\nimport io.redspace.ironsspellbooks.api.util.Utils;\nimport io.redspace.ironsspellbooks.capabilities.magic.MagicManager;\nimport io.redspace.ironsspellbooks.damage.DamageSources;\nimport io.redspace.ironsspellbooks.mixin.LivingEntityAccessor;\nimport io.redspace.ironsspellbooks.particle.BlastwaveParticleOptions;\nimport io.redspace.ironsspellbooks.util.ParticleHelper;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.world.effect.MobEffectCategory;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.level.ClipContext;\nimport net.minecraft.world.phys.Vec3;\nimport org.joml.Vector3f;\n\nimport java.util.List;\nimport java.util.UUID;\n\npublic class VoltStrikeEffect extends MagicMobEffect implements ISyncedMobEffect {\n    public VoltStrikeEffect(MobEffectCategory pCategory, int pColor) {\n        super(pCategory, pColor);\n    }\n\n    @Override\n    public boolean applyEffectTick(LivingEntity livingEntity, int amplifier) {\n        var level = livingEntity.level;\n        if (level.isClientSide) {\n            return true;\n        }\n        List<Entity> list = level.getEntities(livingEntity, livingEntity.getBoundingBox().inflate(.25, .5, .25));\n        boolean hit = false;\n        UUID ignore = null;\n        if (!list.isEmpty()) {\n            for (Entity entity : list) {\n                if (DamageSources.applyDamage(entity, amplifier, SpellRegistry.VOLT_STRIKE_SPELL.get().getDamageSource(livingEntity))) {\n                    //Guarantee that the entity receives i-frames, since we are damaging every tick\n                    entity.invulnerableTime = 20;\n                    hit = true;\n                    ignore = entity.getUUID();\n                }\n            }\n        }\n        if (!hit &&\n                (\n//                        Utils.raycastForBlock(level, livingEntity.position(), livingEntity.position().add(livingEntity.getDeltaMovement()), ClipContext.Fluid.NONE).getType() == HitResult.Type.BLOCK\n                        !level.noCollision(livingEntity.getBoundingBox().move(livingEntity.getDeltaMovement()).move(livingEntity.getDeltaMovement().normalize().scale(0.1)).deflate(0.1))\n                )) {\n            hit = true;\n        }\n        if (hit) {\n            float explosionRadius = 4;\n            var explosionRadiusSqr = explosionRadius * explosionRadius;\n            var entities = level.getEntities(livingEntity, livingEntity.getBoundingBox().inflate(explosionRadius));\n            Vec3 losPoint = Utils.raycastForBlock(level, livingEntity.position(), livingEntity.position().add(0, 1, 0), ClipContext.Fluid.NONE).getLocation();\n            for (Entity entity : entities) {\n                double distanceSqr = entity.distanceToSqr(livingEntity.position());\n                if (ignore != entity.getUUID() && distanceSqr < explosionRadiusSqr && entity.canBeHitByProjectile() && Utils.hasLineOfSight(level, losPoint, entity.getBoundingBox().getCenter(), true)) {\n                    double p = (1 - distanceSqr / explosionRadiusSqr);\n                    float damage = (float) (amplifier * p * 0.5);\n                    DamageSources.applyDamage(entity, damage, SpellRegistry.VOLT_STRIKE_SPELL.get().getDamageSource(livingEntity));\n                }\n            }\n            livingEntity.setDeltaMovement(livingEntity.getDeltaMovement().normalize().scale(-0.5).add(0, 0.5, 0));\n            livingEntity.hurtMarked = true;\n\n            var x = livingEntity.getX();\n            var y = livingEntity.getY() + 1;\n            var z = livingEntity.getZ();\n            MagicManager.spawnParticles(level, ParticleHelper.ELECTRIC_SPARKS, x, y, z, 25, .08, .08, .08, 0.3, false);\n            MagicManager.spawnParticles(level, ParticleHelper.ELECTRICITY, x, y, z, 75, .1, .1, .1, .5, false);\n            MagicManager.spawnParticles(level, new BlastwaveParticleOptions(new Vector3f(.7f, 1f, 1f), explosionRadius * 2), x, y + .15f, z, 1, 0, 0, 0, 0, true);\n            level.playSound(null, x, y, z, SoundEvents.TRIDENT_THUNDER.value(), livingEntity.getSoundSource(), 4, 0.8f);\n            return false;\n        }\n        livingEntity.fallDistance = 0;\n        return true;\n    }\n\n    @Override\n    public void clientTick(LivingEntity entity, MobEffectInstance instance) {\n        var level = entity.level;\n        for (int i = 0; i < 2; i++) {\n            Vec3 random = Utils.getRandomVec3(.2);\n            level.addParticle(ParticleHelper.ELECTRIC_SPARKS, entity.getRandomX(0.75), entity.getY() + Utils.getRandomScaled(0.75), entity.getRandomZ(0.75), random.x, random.y, random.z);\n        }\n        for (int i = 0; i < 4; i++) {\n            Vec3 random = Utils.getRandomVec3(.2);\n            level.addParticle(ParticleHelper.ELECTRICITY, entity.getRandomX(0.75), entity.getY() + Utils.getRandomScaled(0.75), entity.getRandomZ(0.75), random.x, random.y, random.z);\n        }\n    }\n\n    @Override\n    public boolean shouldApplyEffectTickThisTick(int pDuration, int pAmplifier) {\n        return true;\n    }\n\n    @Override\n    public void onEffectAdded(LivingEntity pLivingEntity, int pAmplifier) {\n        super.onEffectAdded(pLivingEntity, pAmplifier);\n        ((LivingEntityAccessor) pLivingEntity).setLivingEntityFlagInvoker(4, true);\n    }\n\n    @Override\n    public void onEffectRemoved(LivingEntity pLivingEntity, int pAmplifier) {\n        super.onEffectRemoved(pLivingEntity, pAmplifier);\n        ((LivingEntityAccessor) pLivingEntity).setLivingEntityFlagInvoker(4, false);\n    }\n}\n",
+          "excerpt_sha256": "a63608d945137545935b1a239989d0c380bfc55baeb5bbd7932051c4f2bc9042",
+          "normalized_excerpt_sha256": "bfd5419748e08b6723f1f6686e8a9d4af06aedf813c1a75f5a9ecccf3dfc0c59",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/BurningDashEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            51
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "9390c90d057c92dbd1ca9c537ea19b1917077651fa5aabc3e16b6d61069beef4",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/BurningDashEffect.java#L1-L51",
+          "excerpt": "package io.redspace.ironsspellbooks.effect;\n\nimport io.redspace.ironsspellbooks.api.registry.SpellRegistry;\nimport io.redspace.ironsspellbooks.damage.DamageSources;\nimport io.redspace.ironsspellbooks.mixin.LivingEntityAccessor;\nimport net.minecraft.world.effect.MobEffectCategory;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\n\nimport java.util.List;\n\npublic class BurningDashEffect extends MagicMobEffect {\n    public BurningDashEffect(MobEffectCategory pCategory, int pColor) {\n        super(pCategory, pColor);\n    }\n\n    @Override\n    public boolean applyEffectTick(LivingEntity livingEntity, int amplifier) {\n        List<Entity> list = livingEntity.level.getEntities(livingEntity, livingEntity.getBoundingBox().inflate(.25, .5, .25));\n        if (!list.isEmpty()) {\n            for (Entity entity : list) {\n                if (entity instanceof LivingEntity) {\n                    DamageSources.applyDamage(entity, amplifier, SpellRegistry.BURNING_DASH_SPELL.get().getDamageSource(livingEntity));\n                    //Guarantee that the entity receives i-frames, since we are damaging every tick\n                    entity.invulnerableTime = 20;\n                }\n            }\n        } else if (livingEntity.horizontalCollision) {\n            return false;\n        }\n        livingEntity.fallDistance = 0;\n        return true;\n    }\n\n    @Override\n    public boolean shouldApplyEffectTickThisTick(int pDuration, int pAmplifier) {\n        return true;\n    }\n\n    @Override\n    public void onEffectAdded(LivingEntity pLivingEntity, int pAmplifier) {\n        super.onEffectAdded(pLivingEntity, pAmplifier);\n        ((LivingEntityAccessor) pLivingEntity).setLivingEntityFlagInvoker(4, true);\n    }\n\n    @Override\n    public void onEffectRemoved(LivingEntity pLivingEntity, int pAmplifier) {\n        super.onEffectRemoved(pLivingEntity, pAmplifier);\n        ((LivingEntityAccessor) pLivingEntity).setLivingEntityFlagInvoker(4, false);\n    }\n}\n",
+          "excerpt_sha256": "9390c90d057c92dbd1ca9c537ea19b1917077651fa5aabc3e16b6d61069beef4",
+          "normalized_excerpt_sha256": "dbbc4bfb23efd0ac5238ff55dd091531c0c5c4a79466cc2b421fd642a9d07e3b",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/spells/lightning/VoltStrikeSpell.java",
+          "method": null,
+          "lines": [
+            1,
+            103
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "2eb12503272570d65f5551cc120fba8b68af21ff1945f96698165e1346a4af30",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/spells/lightning/VoltStrikeSpell.java#L1-L103",
+          "excerpt": "package io.redspace.ironsspellbooks.spells.lightning;\n\nimport io.redspace.ironsspellbooks.IronsSpellbooks;\nimport io.redspace.ironsspellbooks.api.config.DefaultConfig;\nimport io.redspace.ironsspellbooks.api.magic.MagicData;\nimport io.redspace.ironsspellbooks.api.registry.SchoolRegistry;\nimport io.redspace.ironsspellbooks.api.spells.AbstractSpell;\nimport io.redspace.ironsspellbooks.api.spells.CastSource;\nimport io.redspace.ironsspellbooks.api.spells.CastType;\nimport io.redspace.ironsspellbooks.api.spells.SpellRarity;\nimport io.redspace.ironsspellbooks.player.SpinAttackType;\nimport io.redspace.ironsspellbooks.registries.MobEffectRegistry;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.MoverType;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.Vec3;\n\nimport java.util.List;\n\n\npublic class VoltStrikeSpell extends AbstractSpell {\n    private final ResourceLocation spellId = ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"volt_strike\");\n\n    @Override\n    public List<MutableComponent> getUniqueInfo(int spellLevel, LivingEntity caster) {\n        return List.of(Component.translatable(\"ui.irons_spellbooks.damage\", getDamage(spellLevel, caster)));\n    }\n\n    private final DefaultConfig defaultConfig = new DefaultConfig()\n            .setMinRarity(SpellRarity.COMMON)\n            .setSchoolResource(SchoolRegistry.LIGHTNING_RESOURCE)\n            .setMaxLevel(10)\n            .setCooldownSeconds(10)\n            .build();\n\n    public VoltStrikeSpell() {\n        this.manaCostPerLevel = 5;\n        this.baseSpellPower = 1;\n        this.spellPowerPerLevel = 1;\n        this.castTime = 0;\n        this.baseManaCost = 30;\n    }\n\n    @Override\n    public CastType getCastType() {\n        return CastType.INSTANT;\n    }\n\n    @Override\n    public DefaultConfig getDefaultConfig() {\n        return defaultConfig;\n    }\n\n    @Override\n    public ResourceLocation getSpellResource() {\n        return spellId;\n    }\n\n    @Override\n    public void onCast(Level world, int spellLevel, LivingEntity entity, CastSource castSource, MagicData playerMagicData) {\n        entity.hasImpulse = true;\n        float multiplier = (15 + getSpellPower(spellLevel, entity)) / 20f;\n\n        Vec3 forward = entity.getLookAngle();\n\n        //Create Dashing Movement Impulse\n        var upwardness = forward.dot(new Vec3(0, 1, 0));\n        var remap = 1 - (Math.max(0, upwardness) * 0.6f);\n        var impulse = forward.scale(3 * multiplier).multiply(1, remap, 1);\n        //Start Spin Attack\n        if (entity.onGround()) {\n            if (entity instanceof ServerPlayer serverPlayer) {\n                serverPlayer.connection.teleport(serverPlayer.getX(), serverPlayer.getY() + 1, serverPlayer.getZ(), serverPlayer.getYRot(), serverPlayer.getXRot());\n            } else {\n                entity.move(MoverType.SELF, new Vec3(0.0, 1.1999999F, 0.0));\n            }\n            impulse.add(0, 0.5, 0);\n        } else {\n            impulse.add(0, 0.25, 0);\n        }\n        entity.setDeltaMovement(new Vec3(\n                Mth.lerp(.75f, entity.getDeltaMovement().x, impulse.x),\n                Mth.lerp(.75f, entity.getDeltaMovement().y, impulse.y),\n                Mth.lerp(.75f, entity.getDeltaMovement().z, impulse.z)\n        ));\n        entity.hurtMarked = true;\n\n        entity.addEffect(new MobEffectInstance(MobEffectRegistry.VOLT_STRIKE, 10, getDamage(spellLevel, entity), false, false, false));\n        entity.invulnerableTime = 20;\n        playerMagicData.getSyncedData().setSpinAttackType(SpinAttackType.LIGHTNING);\n        super.onCast(world, spellLevel, entity, castSource, playerMagicData);\n    }\n\n    private int getDamage(int spellLevel, LivingEntity caster) {\n        return (int) (5 + getSpellPower(spellLevel, caster));\n    }\n}\n",
+          "excerpt_sha256": "2eb12503272570d65f5551cc120fba8b68af21ff1945f96698165e1346a4af30",
+          "normalized_excerpt_sha256": "bad1b2a6f2813cae548c20d1ab187675854f98e7d0a14dc933549fe69d4ca0f6",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/spells/fire/BurningDashSpell.java",
+          "method": null,
+          "lines": [
+            1,
+            151
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "b419dbb5409e4bafd2d7b8dc634b8b20cb41e4b282643dacb5aae965f8ca7be4",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/spells/fire/BurningDashSpell.java#L1-L151",
+          "excerpt": "package io.redspace.ironsspellbooks.spells.fire;\n\nimport io.redspace.ironsspellbooks.IronsSpellbooks;\nimport io.redspace.ironsspellbooks.api.config.DefaultConfig;\nimport io.redspace.ironsspellbooks.api.magic.MagicData;\nimport io.redspace.ironsspellbooks.api.registry.SchoolRegistry;\nimport io.redspace.ironsspellbooks.api.spells.*;\nimport io.redspace.ironsspellbooks.api.util.Utils;\nimport io.redspace.ironsspellbooks.capabilities.magic.ImpulseCastData;\nimport io.redspace.ironsspellbooks.damage.SpellDamageSource;\nimport io.redspace.ironsspellbooks.player.SpinAttackType;\nimport io.redspace.ironsspellbooks.registries.MobEffectRegistry;\nimport io.redspace.ironsspellbooks.util.ParticleHelper;\nimport net.minecraft.client.multiplayer.ClientLevel;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.Vec3;\nimport org.jetbrains.annotations.Nullable;\n\nimport java.util.List;\n\n\npublic class BurningDashSpell extends AbstractSpell {\n    private final ResourceLocation spellId = ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"burning_dash\");\n\n    @Override\n    public List<MutableComponent> getUniqueInfo(int spellLevel, LivingEntity caster) {\n        return List.of(Component.translatable(\"ui.irons_spellbooks.damage\", getDamage(spellLevel, caster)));\n    }\n\n    private final DefaultConfig defaultConfig = new DefaultConfig()\n            .setMinRarity(SpellRarity.COMMON)\n            .setSchoolResource(SchoolRegistry.FIRE_RESOURCE)\n            .setMaxLevel(10)\n            .setCooldownSeconds(10)\n            .build();\n\n    public BurningDashSpell() {\n        this.manaCostPerLevel = 2;\n        this.baseSpellPower = 1;\n        this.spellPowerPerLevel = 1;\n        this.castTime = 0;\n        this.baseManaCost = 20;\n    }\n\n    @Override\n    public CastType getCastType() {\n        return CastType.INSTANT;\n    }\n\n    @Override\n    public DefaultConfig getDefaultConfig() {\n        return defaultConfig;\n    }\n\n    @Override\n    public ResourceLocation getSpellResource() {\n        return spellId;\n    }\n\n    @Override\n    public void onClientCast(Level level, int spellLevel, LivingEntity entity, ICastData castData) {\n        if (castData instanceof ImpulseCastData bdcd) {\n            entity.hasImpulse = bdcd.hasImpulse;\n            entity.setDeltaMovement(entity.getDeltaMovement().add(bdcd.x, bdcd.y, bdcd.z));\n        }\n\n        super.onClientCast(level, spellLevel, entity, castData);\n    }\n\n    @Override\n    public ICastDataSerializable getEmptyCastData() {\n        return new ImpulseCastData();\n    }\n\n    @Override\n    public void onCast(Level world, int spellLevel, LivingEntity entity, CastSource castSource, MagicData playerMagicData) {\n        entity.hasImpulse = true;\n        float multiplier = (15 + getSpellPower(spellLevel, entity)) / 12f;\n\n        //Direction for Mobs to cast in\n        Vec3 forward = entity.getLookAngle();\n        if (playerMagicData.getAdditionalCastData() instanceof BurningDashDirectionOverrideCastData) {\n            if (Utils.random.nextBoolean())\n                forward = forward.yRot(90);\n            else\n                forward = forward.yRot(-90);\n        }\n\n        //Create Dashing Movement Impulse\n        var vec = forward.multiply(3, 1, 3).normalize().add(0, .25, 0).scale(multiplier);\n        //Start Spin Attack\n        if (entity.onGround()) {\n            entity.setPos(entity.position().add(0, 1.5, 0));\n            vec.add(0, 0.25, 0);\n        }\n        playerMagicData.setAdditionalCastData(new ImpulseCastData((float) vec.x, (float) vec.y, (float) vec.z, true));\n        //entity.setDeltaMovement(entity.getDeltaMovement().add(vec));\n        entity.setDeltaMovement(new Vec3(\n                Mth.lerp(.75f, entity.getDeltaMovement().x, vec.x),\n                Mth.lerp(.75f, entity.getDeltaMovement().y, vec.y),\n                Mth.lerp(.75f, entity.getDeltaMovement().z, vec.z)\n        ));\n\n\n        entity.addEffect(new MobEffectInstance(MobEffectRegistry.BURNING_DASH, 15, getDamage(spellLevel, entity), false, false, false));\n        entity.invulnerableTime = 20;\n        //startSpinAttack(entity, 10);\n        playerMagicData.getSyncedData().setSpinAttackType(SpinAttackType.FIRE);\n        super.onCast(world, spellLevel, entity, castSource, playerMagicData);\n    }\n\n    @Override\n    public SpellDamageSource getDamageSource(@Nullable Entity projectile, Entity attacker) {\n        return super.getDamageSource(projectile, attacker).setFireTicks(80);\n    }\n\n    private int getDamage(int spellLevel, LivingEntity caster) {\n        return (int) (5 + getSpellPower(spellLevel, caster));\n    }\n//\n//    @Override\n//    public AnimationHolder getCastStartAnimation() {\n//        return AnimationHolder.none();\n//    }\n\n    public static void ambientParticles(ClientLevel level, LivingEntity entity) {\n        //Vec3 motion = entity.getDeltaMovement().normalize().scale(-.25);\n        for (int i = 0; i < 2; i++) {\n            Vec3 random = Utils.getRandomVec3(.2);\n            level.addParticle(ParticleHelper.FIRE, entity.getRandomX(0.75), entity.getY() + Utils.getRandomScaled(0.75), entity.getRandomZ(0.75), random.x, random.y, random.z);\n        }\n        for (int i = 0; i < 6; i++) {\n            Vec3 random = Utils.getRandomVec3(.2);\n            level.addParticle(ParticleHelper.EMBERS, entity.getRandomX(0.75), entity.getY() + Utils.getRandomScaled(0.75), entity.getRandomZ(0.75), random.x, random.y, random.z);\n        }\n    }\n\n    public static class BurningDashDirectionOverrideCastData implements ICastData {\n        @Override\n        public void reset() {\n\n        }\n    }\n}\n",
+          "excerpt_sha256": "b419dbb5409e4bafd2d7b8dc634b8b20cb41e4b282643dacb5aae965f8ca7be4",
+          "normalized_excerpt_sha256": "da089be23a60af0bad3127f7c1acef573ec44e4a51f24763fb6f5e6ccc34ab58",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/mixin/LivingEntityAccessor.java",
+          "method": null,
+          "lines": [
+            1,
+            12
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "0877486ec1dbaca30823e3e11903356d25f3758c40f23ba566dd1f1c76baaef2",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/mixin/LivingEntityAccessor.java#L1-L12",
+          "excerpt": "package io.redspace.ironsspellbooks.mixin;\n\nimport net.minecraft.world.entity.LivingEntity;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.gen.Invoker;\n\n@Mixin(LivingEntity.class)\npublic interface LivingEntityAccessor {\n    @Invoker(value = \"setLivingEntityFlag\", remap = false)\n    void setLivingEntityFlagInvoker(int key, boolean value);\n\n}",
+          "excerpt_sha256": "0877486ec1dbaca30823e3e11903356d25f3758c40f23ba566dd1f1c76baaef2",
+          "normalized_excerpt_sha256": "7ac24b8edc855362c8f9366d17dc0db57ec5a98eb00fe820d1f78d2a3fc90962",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/MagicMobEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            48
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "30e07caead6afeb9770017ee62f64340df7729a6e512fc333de748f0bd63c374",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/MagicMobEffect.java#L1-L48",
+          "excerpt": "package io.redspace.ironsspellbooks.effect;\n\nimport net.minecraft.core.particles.ParticleOptions;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectCategory;\nimport net.minecraft.world.entity.LivingEntity;\n\n/**\n * Marker as an effect that is affected by counterspell\n */\npublic class MagicMobEffect extends MobEffect implements IMobEffectEndCallback {\n    public MagicMobEffect(MobEffectCategory pCategory, int pColor) {\n        super(pCategory, pColor);\n    }\n\n    public MagicMobEffect(MobEffectCategory category, int color, ParticleOptions particle) {\n        super(category, color, particle);\n    }\n\n    /**\n     * @return VANILLA ANNOTATION: True if the effect should continue, or false if the effect should end and be removed\n     */\n    @Override\n    public boolean applyEffectTick(LivingEntity pLivingEntity, int pAmplifier) {\n        return super.applyEffectTick(pLivingEntity, pAmplifier);\n    }\n\n    /**\n     * VANILLA ANNOTATION: Called when a mob effect is added or updated (ie: I have poison, I get poisoned again)\n     */\n    @Override\n    public void onEffectStarted(LivingEntity pLivingEntity, int pAmplifier) {\n        super.onEffectStarted(pLivingEntity, pAmplifier);\n    }\n\n    /**\n     * VANILLA ANNOTATION: Called when a mob effect is added for the first time (ie: I did not have poison, I get poisoned)\n     */\n    @Override\n    public void onEffectAdded(LivingEntity pLivingEntity, int pAmplifier) {\n        super.onEffectAdded(pLivingEntity, pAmplifier);\n    }\n\n    @Override\n    public void onEffectRemoved(LivingEntity pLivingEntity, int pAmplifier) {\n\n    }\n}\n",
+          "excerpt_sha256": "30e07caead6afeb9770017ee62f64340df7729a6e512fc333de748f0bd63c374",
+          "normalized_excerpt_sha256": "669f028b56cdc51a1dbcbf1e0ba2d0d78f899136193060099a9f7d06c30bece0",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-003-01",
+            "herschel-051-02",
+            "herschel-052-01"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "applyDamage",
+          "lines": [
+            44,
+            65
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L44-L65",
+          "excerpt": "    public static boolean applyDamage(Entity target, float baseAmount, DamageSource damageSource) {\n        if (target instanceof LivingEntity livingTarget && damageSource instanceof SpellDamageSource spellDamageSource) {\n            var e = new SpellDamageEvent(livingTarget, baseAmount, spellDamageSource);\n            if (NeoForge.EVENT_BUS.post(e).isCanceled()) {\n                return false;\n            }\n            baseAmount = e.getAmount();\n            float adjustedDamage = baseAmount * getResist(livingTarget, spellDamageSource.spell.getSchoolType());\n            if (damageSource.getDirectEntity() instanceof NoKnockbackProjectile) {\n                ignoreNextKnockback(livingTarget);\n            }\n            if (damageSource.getEntity() instanceof LivingEntity livingAttacker) {\n                if (isFriendlyFireBetween(livingAttacker, livingTarget)) {\n                    return false;\n                }\n                livingAttacker.setLastHurtMob(target);\n            }\n            return livingTarget.hurt(damageSource, adjustedDamage);\n        } else {\n            return target.hurt(damageSource, baseAmount);\n        }\n    }\n",
+          "excerpt_sha256": "6257a4123c0945b2393dbc14f63285ca8fd07e6bb1e0e237373acba03c39aaa8",
+          "normalized_excerpt_sha256": "2b556e51fa473305a35bfe35472d6b71079845fd5b1a5f53644d1a3d713c5ed7",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-001-01",
+            "herschel-006-01",
+            "herschel-038-01"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "isFriendlyFireBetween",
+          "lines": [
+            134,
+            163
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L134-L163",
+          "excerpt": "    public static boolean isFriendlyFireBetween(@Nullable Entity attacker, @Nullable Entity target) {\n        if (attacker == null || target == null) {\n            return false;\n        }\n        if (attacker instanceof IMagicSummon summon) {\n            var tmp = summon.getSummoner();\n            if (tmp != null) {\n                attacker = tmp;\n            }\n        }\n        if (target instanceof IMagicSummon summon) {\n            var tmp = summon.getSummoner();\n            if (tmp != null) {\n                target = tmp;\n            }\n        }\n        if (attacker.isPassengerOfSameVehicle(target)) {\n            return true;\n        }\n        if (attacker instanceof Player playerAttacker && target instanceof Player playertarget\n                && !playerAttacker.canHarmPlayer(playertarget)) {\n            return true;\n        }\n        var team = attacker.getTeam();\n        if (team != null) {\n            return team.isAlliedTo(target.getTeam()) && !team.isAllowFriendlyFire();\n        }\n        //We already manually checked for teams, so this will only return true for any overrides (such as summons)\n        return attacker.isAlliedTo(target);\n    }\n",
+          "excerpt_sha256": "77218fda82774cf55ff26a0d4d4ca8a1bf2bfb583bb90dceee5707185bed8dcc",
+          "normalized_excerpt_sha256": "03442118d661e693ec7dbcc42fe070394868fc746fb4c4394d23be57ed9d89a7",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-001-01",
+            "herschel-038-01",
+            "herschel-049-01",
+            "herschel-051-01"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "getResist",
+          "lines": [
+            168,
+            174
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L168-L174",
+          "excerpt": "    public static float getResist(LivingEntity entity, SchoolType damageSchool) {\n        var baseResist = entity.getAttributeValue(AttributeRegistry.SPELL_RESIST);\n        if (damageSchool == null)\n            return 2 - (float) Utils.softCapFormula(baseResist);\n        else\n            return 2 - (float) Utils.softCapFormula(damageSchool.getResistanceFor(entity) * baseResist);\n    }\n",
+          "excerpt_sha256": "d26e02ac41e79a4284287feb63e01a0faba16ca8c831cda7bb8be3092bbe6f0e",
+          "normalized_excerpt_sha256": "8e3ed1900debe26a1e3d7c36b2de8138f8c859c0db4b421892154f7b433cb27b",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-038-01"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/mixin/LivingEntityMixin.java",
+          "method": "irons_spellbooks$onEffectRemoved",
+          "lines": [
+            41,
+            51
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "0353c74a7304e755df6c14971f5adf0eb25331964278a88132243679e38d7468",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/mixin/LivingEntityMixin.java#L41-L51",
+          "excerpt": "    public void irons_spellbooks$onEffectRemoved(MobEffectInstance effectInstance, CallbackInfo ci) {\n        LivingEntity self = (LivingEntity) (Object) this;\n        if (!self.level.isClientSide) {\n            if (effectInstance.getEffect().value() instanceof IMobEffectEndCallback mobEffect) {\n                mobEffect.onEffectRemoved(self, effectInstance.getAmplifier());\n            }\n            if (effectInstance.getEffect().value() instanceof ISyncedMobEffect && self.level.getChunkSource() instanceof ServerChunkCache serverChunk) {\n                serverChunk.broadcast(self, new ClientboundRemoveMobEffectPacket(self.getId(), effectInstance.getEffect()));\n            }\n        }\n    }\n",
+          "excerpt_sha256": "94f7b73eb0f47537b435495344154601b6c2afc5af11e20434b9911267908c54",
+          "normalized_excerpt_sha256": "66d3f11c18138d6b666df849538234246e2a4301b1b224a67b174d616e5f29ab",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-003-01"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ClientPlayerEvents.java",
+          "method": "onPlayerTick",
+          "lines": [
+            135,
+            195
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "6a475fe7e4a48781c0232c1ce507c8819d87ec7bf6c029780188533ccf1e9aaa",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ClientPlayerEvents.java#L135-L195",
+          "excerpt": "    public static void onPlayerTick(PlayerTickEvent.Pre event) {\n        if (event.getEntity() == Minecraft.getInstance().player) {\n            var level = Minecraft.getInstance().level;\n\n            ClientMagicData.getRecasts().tickRecasts();\n            ClientMagicData.getCooldowns().tick(1);\n            if (ClientMagicData.getCastDuration() > 0) {\n                ClientMagicData.handleCastDuration();\n            }\n\n            if (level != null) {\n                List<Entity> spellcasters = level.getEntities((Entity) null, event.getEntity().getBoundingBox().inflate(64), (mob) -> mob instanceof Player || mob instanceof IMagicEntity);\n                spellcasters.forEach((entity) -> {\n                    LivingEntity livingEntity = (LivingEntity) entity;\n                    var spellData = ClientMagicData.getSyncedSpellData(livingEntity);\n                    /*\n                    Status Effect Visuals\n                     */\n                    if (livingEntity.isAutoSpinAttack() && spellData.getSpinAttackType().equals(SpinAttackType.FIRE)) {\n                        BurningDashSpell.ambientParticles(level, livingEntity);\n                    }\n                    /*\n                    Current Casting Spell Visuals\n                     */\n                    //TODO: what is this, shouldnt there be an onClientCastTick?\n                    if (spellData.isCasting()) {\n                        if (spellData.getCastingSpellId().equals(SpellRegistry.RAY_OF_SIPHONING_SPELL.get().getSpellId())) {\n                            HitResult hit;\n                            if (entity instanceof Mob mob && MagicData.getPlayerMagicData(mob).getAdditionalCastData() instanceof CastingMobAimingData aimingData) {\n                                hit = RaycastBuilder.begin(entity.level, entity)\n                                        .start(entity.getEyePosition())\n                                        .end(entity.getEyePosition().add(aimingData.getForward(entity).scale(RayOfSiphoningSpell.getRange(0))))\n                                        .checkForBlocks(true)\n                                        .build();\n                            } else {\n                                hit = RaycastBuilder.begin(entity.level, entity)\n                                        .range(RayOfSiphoningSpell.getRange(0))\n                                        .checkForBlocks(true)\n                                        .build();\n\n                            }\n                            Vec3 impact = hit.getLocation().subtract(0, .25, 0);\n                            for (int i = 0; i < 8; i++) {\n                                Vec3 motion = new Vec3(\n                                        Utils.getRandomScaled(.2f),\n                                        Utils.getRandomScaled(.2f),\n                                        Utils.getRandomScaled(.2f)\n                                );\n                                entity.level.addParticle(ParticleHelper.SIPHON, impact.x + motion.x, impact.y + motion.y, impact.z + motion.z, motion.x, motion.y, motion.z);\n                            }\n                        } else if (spellData.getCastingSpellId().equals(SpellRegistry.RECALL_SPELL.get().getSpellId())) {\n                            RecallSpell.ambientParticles(livingEntity, spellData);\n                        } else if (spellData.getCastingSpellId().equals(SpellRegistry.RAISE_HELL_SPELL.get().getSpellId())) {\n                            RaiseHellSpell.ambientParticles(livingEntity, spellData);\n                        }\n                    }\n                });\n            }\n\n        }\n    }\n",
+          "excerpt_sha256": "b28f652a0832546ea704d0a606d0dfee71f055a30268eb56a773d7ba6e9c13f1",
+          "normalized_excerpt_sha256": "a8b6047953e51f9fd140f8c181a6d5030f4d38f6cd9d5da6926137db88e8e0fc",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ClientPlayerEvents.java",
+          "method": "onClientEntityTick",
+          "lines": [
+            124,
+            132
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "6a475fe7e4a48781c0232c1ce507c8819d87ec7bf6c029780188533ccf1e9aaa",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ClientPlayerEvents.java#L124-L132",
+          "excerpt": "    public static void onClientEntityTick(EntityTickEvent.Pre event) {\n        if (event.getEntity() instanceof LivingEntity livingEntity) {\n            for (MobEffectInstance inst : livingEntity.getActiveEffects()) {\n                if (inst.getEffect().value() instanceof ISyncedMobEffect effect) {\n                    effect.clientTick(livingEntity, inst);\n                }\n            }\n        }\n    }\n",
+          "excerpt_sha256": "05ba142fdec70afe20bde42605e4b77e42886d781ff1da7659378060cbc194c5",
+          "normalized_excerpt_sha256": "ed5f1df46544cf7f436ca88ec7fc32901e94acf5780d8fbce7398f1b2fc6d74b",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-052-01"
+          ]
+        }
+      ],
+      "concrete_observation": "VoltStrike onCast applies ten-tick effect carrying integer damage as amplifier, sets caster invulnerableTime20 and lightning spin data without checking addEffect result; movement/teleport is already performed. Server effect tick collects nearby contacts: only applyDamage true sets target invulnerableTime20, hit=true, and ignore UUID. If every contact rejected, predicted block noCollision=false can still set hit=true. Any hit including wall contact then runs radius4 LOS/projectile-hittable falloff burst, kicks caster backward/upward, marks motion and emits particles/thunder, returnsfalse. Thus detonation feedback is evidence of successful contact OR wall collision, not proof victim took damage. ignore keeps only last successful contact and compares UUID object references (!=), not UUID.equals; no proven erroneous hit runtime. BurningDash comparator uses nonempty nearby list branch regardless whether any Living targets accepted damage; for each Living target calls applyDamage then writes invulnerableTime20 regardless returned false. horizontalCollision only terminates when original nearby list empty. EffectfallDistance reset occurs on continuing ticks, not early-return termination. BurningDash has no explicit client-side guard in effect method; actual client invocation frequency not claimed.",
+      "application_to_boss_immune": "Boss immune feedback must distinguish attempted contact, helper rejection, native hurt return and geometry-driven detonation. A refusal should not silently change target i-frames if design promises no effect; BurningDash is concrete counterexample, VoltStrike gates that one side effect on returned boolean. Do not infer immune success from sound/particles or caster displacement. applyDamage complete method: canceled custom SpellDamageEvent returnsfalse, adjusted school resist computed, summon/friendly gate can returnfalse, otherwise actual Living.hurt boolean; fallback targets use Entity.hurt. Native hurt boolean is not measured positive HP loss. No new mechanism copied.",
+      "semantic_dedup": "One combined contrasting dash/collision/admission lifecycle proposal, not two spell/color variants. BurningDash, VoltStrike, client trail, setter callbacks, damage helper each not separate credit. Existing052 Immmolate is stack/attribution/delayed recursion; this is accepted-contact vs geometry fallback with unconditional i-frame side effect. Primary must compare all main pool proc/impact families; if already represented downgrade0. All reused shared damage/sync/client hooks support0.",
+      "limitations": "Full spell/effect files and containing helper methods read and pinned. Both added/removed hooks set/clear living flag4; actual server onEffectRemoved mixin invokes callback. VoltStrike ISynced clientTick particles follow activeeffect; Burning fire trail actual PlayerTick.Pre gate is autoSpinAttack and FIRE synchronized type, not observed damage result. This batch does not independently close native auto-spin collision routine or full spin-data transport and does not claim a demonstrated runtime side effect. Different NeoForge/MC1.21.1 mod reference from production Forge1.20.1; only conceptual boundary lessons. No game, compile, test, production/assets/TODO/main ledger writes."
+    }
+  ],
+  "exclusions": [
+    "SpiderAspect increaseDamage full class read: generic tag-conditioned multiplier; no independent immunity admission/feedback, excluded0.",
+    "Gluttony finishEating/ratio full class read: nutrition-to-mana+packet, unrelated to immune boundary; excluded0.",
+    "SoulBurn heal multiplier full class read: clamped generic heal scaling, insufficient independent feedback chain; excluded0.",
+    "PlanarSight complete effect class read; fog/outline dependent chain not closed, hold0 not candidate.",
+    "TrueInvisibility reread already006, no new credit.",
+    "Launcher final review completed independently; P1 pre-exec hash ordering reported only to coordinator, no code/run/ready."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

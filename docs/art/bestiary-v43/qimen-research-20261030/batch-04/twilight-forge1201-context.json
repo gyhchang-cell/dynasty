@@ -1,0 +1,548 @@
+{
+  "id": "twilight-chain-forge1201-context-extension",
+  "updated_utc": "2026-10-30T17:45:28.138403+00:00",
+  "status": "EXISTING_FAMILY_MATCHED_VERSION_SELECTED_STATIC_CHAIN_READ_RUNTIME_PENDING",
+  "extends": "../reviewed-chains-20261031.json#twilight-chain-version-bounded",
+  "repo": "TeamTwilight/twilightforest",
+  "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+  "minecraft": "1.20.1",
+  "forge": "47.1.0",
+  "mod_version_declared": "4.3",
+  "new_source_studies": 0,
+  "new_independent_units": 0,
+  "new_accepted_credit": 0,
+  "human_creature_model_texture_reference_credit": 0,
+  "version_resolution": [
+    {
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "result": "前批26.1.2实现只保留语义对照，不充当1.20.1源码"
+    },
+    {
+      "branch": "1.20.x",
+      "commit": "e5d776e3b18258548f7fd618adf65315fbc8d053",
+      "minecraft": "1.20.6",
+      "loader": "NeoForge20.6.116",
+      "result": "版本不匹配；仅部分peek，未宣称全文审阅",
+      "metadata": "twilight-1.20-acquisition.json"
+    },
+    {
+      "branch": "1.20.1",
+      "commit": "1bc3a4c21213bc443967e92125613cb9ef47891e",
+      "minecraft": "1.20.1",
+      "loader": "net.neoforged:forge47.1.70",
+      "result": "准确游戏版本但构建声明不是net.minecraftforge；未拿分支名证明Forge"
+    },
+    {
+      "commit": "21c4121e46dff69923a2c669f17217dc909c0ba2",
+      "result": "迁移NeoForge的提交；官方commit API列出父提交80f4225",
+      "metadata": "twilight-neoforge-migration-commit.json"
+    },
+    {
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "minecraft": "1.20.1",
+      "loader": "net.minecraftforge:forge47.1.0",
+      "result": "迁移提交的直接父版，已读gradle.properties/build.gradle实际坐标；不称最新发布版或已运行兼容"
+    }
+  ],
+  "chain": [
+    {
+      "step": "注册与入口",
+      "observation": "@Mod构造注册TFItems/TFEntities；block_and_chain注册ChainBlockItem，CHAIN_BLOCK factory注册ChainBlock。use读取实际hand栈，已有chainEntity UUID即PASS；server生成并存UUID，随后startUsingItem(hand)。",
+      "evidence": [
+        "TwilightForestMod.java77–114",
+        "TFItems.java126",
+        "TFEntities.java43,122–146",
+        "ChainBlockItem.java52–104"
+      ]
+    },
+    {
+      "step": "栈与状态身份",
+      "observation": "构造器this.stack=stack保存实际引用，不是copy；HAND与IS_FOIL为synched data，附加spawn写owner实体ID与hand。UUID只约束该栈门禁，不是玩家全局单投射物证明。getThrownEntity只检查该ServerLevel找到且类型正确，不比owner。",
+      "evidence": [
+        "ChainBlock.java44–98,314–356",
+        "ChainBlockItem.java63–103"
+      ]
+    },
+    {
+      "step": "真正伤害成立",
+      "observation": "服务端且目标非owner才进入；Living或其PartEntity父体提供伤害。玩家盾禁用先于hurt结果；只有damage>0且hurt返回true才播命中反馈、hitEntity=true、isReturning=true、tickCount+=60并扣栈1耐久。盾操作不能当作已成功伤害证据。",
+      "evidence": [
+        "ChainBlock.java121–152"
+      ]
+    },
+    {
+      "step": "方块与预算",
+      "observation": "非正确采掘工具时进入反弹并返程；带破坏附魔且无挖掘疲劳可尝试AABB破坏。每块仍需tool、canEntityDestroy、BreakEvent未取消和harvest check。计数条件为>12，不是>=12；未把13次或附魔等级拆成独立案例。",
+      "evidence": [
+        "ChainBlock.java73–86,154–247",
+        "ChainBlockItem.java121–142"
+      ]
+    },
+    {
+      "step": "返回和退出",
+      "observation": "server owner为null则discard；距owner>16使返程；返程按tickCount*0.03 capped1将原bounce速度混合到朝owner眼高的2倍方向速度。距owner<2扣已破坏块最多3耐久后discard，但该分支没有立即return，仍继续本tick后续速度计算。remove只在owner当前useItem是本物品时stopUsingItem；UUID后续由inventoryTick查不到实体清理。",
+      "evidence": [
+        "ChainBlock.java249–327",
+        "ChainBlockItem.java52–57"
+      ]
+    },
+    {
+      "step": "不冒充退出覆盖",
+      "observation": "本类tick未检查owner.isAlive、是否仍持原栈或是否仍在使用；ChainBlockItem没有自定义releaseUsing回收。不能把松手、换手、死亡、跨维、卸载全算作已验证的统一退出。canChangeDimensions=false仅表明本实体拒跨维。",
+      "evidence": [
+        "ChainBlock.java101–104,249–327",
+        "ChainBlockItem.java1–143"
+      ]
+    },
+    {
+      "step": "链端与真实绘制",
+      "observation": "客户端tick更新5个Chain辅助对象，按owner.lookAngle加主副手±0.4rad偏移，沿锤头至手端的0.05/0.25/0.45/0.65/0.85插值放置。未读取mainArm、第一人称相机专用手端或当前ItemStack identity。renderer实际绘锤头+5链节，partialTicks插值各自位置与朝向，RGB/alpha为1、使用入参light；不是平均色近似。",
+      "evidence": [
+        "ChainBlock.java253–278",
+        "BlockChainRenderer.java29–88",
+        "Chain.java9–39"
+      ]
+    },
+    {
+      "step": "绑定到消费者",
+      "observation": "客户端MOD总线RegisterRenderers将CHAIN_BLOCK绑定BlockChainRenderer；RegisterLayerDefinitions把CHAIN_BLOCK与CHAIN分别绑定SpikeBlockModel.create和ChainModel.create。两模型分别声明64x48和64x64。renderer使用textures/model/blockgoblin.png。未读该PNG，不能把源码链称作模型+贴图视觉参考。",
+      "evidence": [
+        "TFClientSetup.java116–118,176–178",
+        "TFLayerDefinitions.java21–25,71,116",
+        "SpikeBlockModel.java17–28,170–182",
+        "ChainModel.java16–40",
+        "TwilightForestMod.java62–65,348–350",
+        "BlockChainRenderer.java25–54"
+      ]
+    },
+    {
+      "step": "手持模型状态",
+      "observation": "ModelEvent.ModifyBakingResult调用addItemModelProperties，为block_and_chain注册thrown UUID predicate；真实item JSON在predicate=1时切到thrown模型，二者parent均handheld。UUID是否已正确复制到客户端及reload时序未实测。",
+      "evidence": [
+        "TFClientEvents.java91–108",
+        "TFItems.java363–364",
+        "models/item/block_and_chain.json1–14",
+        "models/item/block_and_chain_thrown.json1–6"
+      ]
+    },
+    {
+      "step": "存档边界",
+      "observation": "本类NBT只另存/读BlockAndChainStack，ItemStack.of产生读档栈；isReturning、blocksSmashed、canSmashBlocks、velXYZ、hitEntity、HAND和IS_FOIL未在本类自定义NBT逐项恢复。继承super的owner保存和外部生命周期未在此批全文阅读，不承诺读档等同继续原飞行，也不推断必然崩溃。",
+      "evidence": [
+        "ChainBlock.java44–53,314–341"
+      ]
+    }
+  ],
+  "dedup": {
+    "decision": "EXISTING_FAMILY_VERSION_CONTEXT_ONLY",
+    "prior_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "prior_candidate": "29976d8333a610e17100",
+    "reason": "补齐前批准确版本缺口；carried-stack、命中、返回、模型属性与分版本不拆作新家族或新验收信用"
+  },
+  "limits": [
+    "仅公开固定源码静态研究，没有执行外部源码、Java、游戏、网络消息或构建。",
+    "选定实体/物品/renderer全文已读；其他大型注册类仅记录实际展示的行段，未声明整个模组读完。",
+    "源代码、模型和纹理引用只留研究目录；未复制到Dynasty生产资产，未对原PNG或实际游戏画面作视觉结论。",
+    "helper Chain继承的MultipartGenericsAreDumb和引擎投射物碰撞/owner存档/跨维/卸载完整实现尚未全文读，不冒充闭合。"
+  ],
+  "pending_reads": [
+    "实际Projectile/ThrowableProjectile基类命中与owner存档/卸载路径，或已有可信固定版本引擎支持证据的准确衔接。",
+    "Chain辅助基类及partsArray实际用途；不能由字段名推断存在完整服务器multipart碰撞注册。",
+    "当前player主副手/左撇子/切栈、加载与卸载的实际时序；未启动游戏。",
+    "若要算生物模型+贴图视觉参考，需另外实际查看相关完整生物模型和PNG；本研究信用仍0。"
+  ],
+  "evidence": [
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "gradle.properties",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/gradle.properties",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/gradle.properties",
+      "sha256": "68930946b5ee8d363462f1d66ff88ee51729ac2afacd6c211f00fa3d3c4a83a6",
+      "git_blob_sha1": "1ba16ce663b0157279a176561a7c58fca6f460c8",
+      "read_ranges": [
+        [
+          1,
+          18
+        ]
+      ],
+      "supports": "Minecraft1.20.1/Forge47.1.0/mod4.3准确声明；minecraft_version=1.20是基础项目字段，实际依赖使用minecraft_sub_version",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "build.gradle",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/build.gradle",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/build.gradle",
+      "sha256": "6f8b264829d9b8d229cc87add0e780b6d85ebd89cea4fa33fcf0b4b457ad0470",
+      "git_blob_sha1": "bc6157cfc930a92bfb74b95cfe6fbc4c2e9139bf",
+      "read_ranges": [
+        [
+          1,
+          195
+        ]
+      ],
+      "supports": "ForgeGradle5.1及net.minecraftforge:forge实际坐标；仅阅读，未构建",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/item/ChainBlockItem.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/item/ChainBlockItem.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/item/ChainBlockItem.java",
+      "sha256": "4af86f616486394ad971e3206ac1e13e0aebeedeedfd2fb7ca760271e45d532b",
+      "git_blob_sha1": "e7923d25f28371c1eaea4da232755591e2fe9956",
+      "read_ranges": [
+        [
+          1,
+          143
+        ]
+      ],
+      "supports": "UUID门禁、实际hand取栈与spawn、inventoryTick失效清理、BLOCK use动画、采掘等级",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/entity/ChainBlock.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/entity/ChainBlock.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/entity/ChainBlock.java",
+      "sha256": "867b7ee836c669c4f2fc7e89fad53921f5ecf8e7a76a08a05e1e19f603a3c4ff",
+      "git_blob_sha1": "9b6009ea9c5ccc2a564f84c7830e94be44033311",
+      "read_ranges": [
+        [
+          1,
+          357
+        ]
+      ],
+      "supports": "完整本类：实际引用栈、HAND同步、成功伤害分支、碰撞破坏/反弹、返回、remove、NBT和附加spawn数据",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/client/renderer/entity/BlockChainRenderer.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/client/renderer/entity/BlockChainRenderer.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/client/renderer/entity/BlockChainRenderer.java",
+      "sha256": "2910ec6752888b3deef453f7e4fb7ecf870cdfb8f412048565a015340daeef3d",
+      "git_blob_sha1": "0276fc67384c6f0b8cbab9e00754c91e9ce523a3",
+      "read_ranges": [
+        [
+          1,
+          89
+        ]
+      ],
+      "supports": "真实锤体与五个链节的renderToBuffer消费；同texture和foil路径",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/entity/Chain.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/entity/Chain.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/entity/Chain.java",
+      "sha256": "90f1e8d970b3b4ae7720accb617506bd99a2c88fb7b428075e11062f08983d31",
+      "git_blob_sha1": "93f727f7ef2e608cb8a6a6dbbacbd83b64c974c0",
+      "read_ranges": [
+        [
+          1,
+          40
+        ]
+      ],
+      "supports": "五链节辅助对象类型，非pickable，无自身额外NBT",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/client/model/entity/ChainModel.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/client/model/entity/ChainModel.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/client/model/entity/ChainModel.java",
+      "sha256": "c65ebdaf2f539f617c719faeb2346ace000a99a65546e065c2a19767c898c3ab",
+      "git_blob_sha1": "8ffdb70ca80545edd7527a925262bb6cdea8d624",
+      "read_ranges": [
+        [
+          1,
+          41
+        ]
+      ],
+      "supports": "链节几何及UV声明64x64，仅源码研究不复制资产",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/client/model/entity/SpikeBlockModel.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/client/model/entity/SpikeBlockModel.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/client/model/entity/SpikeBlockModel.java",
+      "sha256": "278ad49abb777a87fa535194af03bc18e8a35d22aa50d2b9140a87ce27800f7e",
+      "git_blob_sha1": "a128903fc3f7a4110ba5d6744ac57f5481d931dd",
+      "read_ranges": [
+        [
+          1,
+          182
+        ]
+      ],
+      "supports": "实际锤头主块和spikes层定义64x48；同源码消费不算生物视觉参考",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/init/TFItems.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/init/TFItems.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/init/TFItems.java",
+      "sha256": "1aa995c6929771b4f6fa5e59f90ddfe69b657f383edd7bb3aac9a1171eebd89f",
+      "git_blob_sha1": "a79bf91b204d584bc0a41e1bf22f83d0a23bcd53",
+      "read_ranges": [
+        [
+          121,
+          129
+        ],
+        [
+          266,
+          270
+        ],
+        [
+          358,
+          365
+        ]
+      ],
+      "supports": "block_and_chain实际注册及thrown模型predicate",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/init/TFEntities.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/init/TFEntities.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/init/TFEntities.java",
+      "sha256": "62254d106e8e2d1ff9fa0ee826cef4bd3c4157388b5bc835f747c30b7cee821d",
+      "git_blob_sha1": "0b062b74d750a68202121dd02a61bba98b425ca5",
+      "read_ranges": [
+        [
+          40,
+          46
+        ],
+        [
+          114,
+          147
+        ]
+      ],
+      "supports": "CHAIN_BLOCK实际factory/尺寸/更新/跟踪builder",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/TwilightForestMod.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/TwilightForestMod.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/TwilightForestMod.java",
+      "sha256": "d3ae95f74f83ef78dd9e25eb629c5cdd84049db813cc77bbe65b937d707da620",
+      "git_blob_sha1": "bf65968352b3bf4ab062e739e580388a1192dcc0",
+      "read_ranges": [
+        [
+          62,
+          65
+        ],
+        [
+          70,
+          114
+        ],
+        [
+          344,
+          354
+        ]
+      ],
+      "supports": "Mod构造真实deferred注册和客户端初始化；textures/model路径辅助",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/client/ClientInitiator.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/client/ClientInitiator.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/client/ClientInitiator.java",
+      "sha256": "22b444fabda8de0eeba013eea2e6cee9fd7f4dce691729747df3b94893c6e226",
+      "git_blob_sha1": "f374c755cfdf863ac7fd34641eaa4086521af125",
+      "read_ranges": [
+        [
+          1,
+          19
+        ]
+      ],
+      "supports": "实际安全客户端入口",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/client/TFClientSetup.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/client/TFClientSetup.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/client/TFClientSetup.java",
+      "sha256": "f8f3a51307a8d62e3ced2e224018f8b86acc1efc7baeea763440d95507ef64fd",
+      "git_blob_sha1": "1c5900de90c4c52cd97fc25f822bc6c18f51825f",
+      "read_ranges": [
+        [
+          53,
+          114
+        ],
+        [
+          116,
+          118
+        ],
+        [
+          176,
+          178
+        ],
+        [
+          203,
+          203
+        ]
+      ],
+      "supports": "MOD总线订阅、客户端init与准确CHAIN_BLOCK renderer绑定",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/client/TFClientEvents.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/client/TFClientEvents.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/client/TFClientEvents.java",
+      "sha256": "995fc29fe072de4329e9e2a0974f67eb3abeb4809a2df06047cb355dbaf1e682",
+      "git_blob_sha1": "8eef55f5e2d533d1a971cec3cfb3ac81a2923585",
+      "read_ranges": [
+        [
+          88,
+          108
+        ]
+      ],
+      "supports": "ModelEvent.ModifyBakingResult真实调用TFItems.addItemModelProperties",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/client/model/TFLayerDefinitions.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/client/model/TFLayerDefinitions.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/client/model/TFLayerDefinitions.java",
+      "sha256": "a60ad121360a272d0bb91dcb8e49b29bde0f45f200d0173c13bafd011fba5f38",
+      "git_blob_sha1": "d1e34a5b1fa40b33d8e06429be42b79785ebe727",
+      "read_ranges": [
+        [
+          21,
+          27
+        ],
+        [
+          68,
+          74
+        ],
+        [
+          113,
+          119
+        ]
+      ],
+      "supports": "CHAIN与CHAIN_BLOCK实际layer factory绑定",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/client/model/TFModelLayers.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/client/model/TFModelLayers.java",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/client/model/TFModelLayers.java",
+      "sha256": "bea1ec1b1a860ccc6f347ae0b5093f31db81f45259e31bf0b4be191765e59ebb",
+      "git_blob_sha1": "30d8b23f2eb2ed817479301f2e0630cbb21f5e79",
+      "read_ranges": [
+        [
+          48,
+          48
+        ],
+        [
+          120,
+          155
+        ]
+      ],
+      "supports": "chain/chain_block位置标识及register辅助",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/generated/resources/assets/twilightforest/models/item/block_and_chain.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/generated/resources/assets/twilightforest/models/item/block_and_chain.json",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/generated/resources/assets/twilightforest/models/item/block_and_chain.json",
+      "sha256": "eecb4199de8536a61804285422080ebb389c312f909f20f01aecc1480bf556aa",
+      "git_blob_sha1": "33c36a58a69282956d472092f0cc60f10a9c5fe6",
+      "read_ranges": [
+        [
+          1,
+          14
+        ]
+      ],
+      "supports": "真实handheld模型及twilightforest:thrown override",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/generated/resources/assets/twilightforest/models/item/block_and_chain_thrown.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/generated/resources/assets/twilightforest/models/item/block_and_chain_thrown.json",
+      "url": "https://raw.githubusercontent.com/TeamTwilight/twilightforest/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/generated/resources/assets/twilightforest/models/item/block_and_chain_thrown.json",
+      "sha256": "58aed3d541a9e986b23daf6b66eddb283300cf2aa49c5158e5ae4f32d28d17ac",
+      "git_blob_sha1": "518564e9a50d6a40e89143be4b6f64b6478895be",
+      "read_ranges": [
+        [
+          1,
+          6
+        ]
+      ],
+      "supports": "抛出后手持模型的纹理引用；未查看PNG，不冒充视觉验证",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    }
+  ],
+  "acquired_but_not_read": [
+    {
+      "path": "src/main/java/twilightforest/client/model/entity/BlockChainGoblinModel.java",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "reason": "宽松名称选择取得的BlockChainGoblinModel未阅读，不计研究证据"
+    }
+  ],
+  "wrong_version_cache_boundary": {
+    "path": "sources/TeamTwilight__twilightforest-1.20/",
+    "commit": "e5d776e3b18258548f7fd618adf65315fbc8d053",
+    "read_only_peek": {
+      "gradle.properties": [
+        [
+          1,
+          25
+        ]
+      ],
+      "src/main/java/twilightforest/item/ChainBlockItem.java": [
+        [
+          1,
+          105
+        ]
+      ],
+      "src/main/java/twilightforest/entity/projectile/ChainBlock.java": [
+        [
+          1,
+          220
+        ]
+      ]
+    },
+    "unread": [
+      "build.gradle",
+      "BlockChainRenderer.java",
+      "BlockChainGoblin.java",
+      "ChainBlock.java221–326"
+    ],
+    "credit": 0
+  },
+  "later_context": {
+    "report": "../batch-05/twilight-native-lifecycle-context.json",
+    "note": "B5补实际47.1.0引擎owner/退出与TFPart；不代替实机/独立验收。"
+  }
+}

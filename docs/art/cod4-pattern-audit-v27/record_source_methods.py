@@ -6,8 +6,8 @@ sys.path.insert(0,str(R/'build/pattern-research-python'))
 from tree_sitter import Language,Parser
 import tree_sitter_java
 parser=Parser(Language(tree_sitter_java.language()))
-def record(repo,path,name,index,scope,observation):
- root=R/'build/item-use-references'/repo.replace('/','__');meta=json.loads((root/'source.json').read_text());p=root/path;data=p.read_bytes();tree=parser.parse(data);todo=[tree.root_node];found=[]
+def record(repo,path,name,index,scope,observation,cache_root='build/item-use-references'):
+ root=R/cache_root/repo.replace('/','__');meta=json.loads((root/'source.json').read_text());p=root/path;data=p.read_bytes();tree=parser.parse(data);todo=[tree.root_node];found=[]
  while todo:
   n=todo.pop();todo.extend(reversed(n.children))
   if n.type in ('method_declaration','constructor_declaration') and n.child_by_field_name('name').text.decode()==name:found.append(n)

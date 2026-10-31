@@ -1,0 +1,267 @@
+{
+  "batch": "herschel-immune-052",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 1,
+  "support_only_units": 0,
+  "rows": [
+    {
+      "id": "herschel-052-01",
+      "semantic_dedup_key": "iron-immolate-admission-independent-attribution-and-instance-keyed-delayed-recursion-versus-native-sync",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/ImmolateEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            128
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "385a53ee9bcd8ae74a77a11baaf90f77c7170dc48784c3bbecdc3604b23b7f56",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/ImmolateEffect.java#L1-L128",
+          "excerpt": "package io.redspace.ironsspellbooks.effect;\n\nimport io.redspace.ironsspellbooks.api.registry.AttributeRegistry;\nimport io.redspace.ironsspellbooks.api.util.Utils;\nimport io.redspace.ironsspellbooks.damage.DamageSources;\nimport io.redspace.ironsspellbooks.damage.ISSDamageTypes;\nimport io.redspace.ironsspellbooks.network.particles.FieryExplosionParticlesPacket;\nimport io.redspace.ironsspellbooks.registries.MobEffectRegistry;\nimport io.redspace.ironsspellbooks.util.ParticleHelper;\nimport net.minecraft.core.particles.ParticleOptions;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectCategory;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.level.ClipContext;\nimport net.minecraft.world.phys.Vec3;\nimport net.neoforged.neoforge.network.PacketDistributor;\nimport org.jetbrains.annotations.Nullable;\n\nimport java.util.Map;\nimport java.util.WeakHashMap;\n\npublic class ImmolateEffect extends MagicMobEffect implements ISyncedMobEffect {\n\n    public static final int STACKS_REQUIRED = 3;\n    public static final int STACKS_REQUIRED_AMPLIFIER = STACKS_REQUIRED - 1;\n\n    /**\n     * Weak map tracking Afflicted to Afflictor in order to maintain explosion killcredit\n     */\n    private static final Map<LivingEntity, Entity> EFFECT_CREDIT = new WeakHashMap<>();\n    /**\n     * Weak map tracking specific instances of the effect that should explode at a delay. Maps instance to timestamp\n     */\n    private static final Map<MobEffectInstance, Integer> DELAYED_INSTANCES = new WeakHashMap<>();\n\n    public ImmolateEffect(MobEffectCategory mobEffectCategory, int color) {\n        super(mobEffectCategory, color);\n    }\n\n    public static MobEffectInstance addImmolateStack(LivingEntity entity, @Nullable Entity afflicter) {\n        MobEffectInstance previous = entity.getEffect(MobEffectRegistry.IMMOLATE);\n        MobEffectInstance inst;\n        if (previous != null) {\n            inst = new MobEffectInstance(MobEffectRegistry.IMMOLATE, 20 * 15, previous.getAmplifier() + 1, previous.isAmbient(), previous.isVisible(), previous.showIcon());\n        } else {\n            inst = new MobEffectInstance(MobEffectRegistry.IMMOLATE, 20 * 15, 0, false, false, true);\n        }\n        if (afflicter != null) {\n            EFFECT_CREDIT.put(entity, afflicter);\n        }\n        entity.addEffect(inst);\n        return inst;\n    }\n\n    @Override\n    public void clientTick(LivingEntity livingEntity, MobEffectInstance instance) {\n        int amplifier = instance.getAmplifier();\n        ParticleOptions particle = ParticleTypes.SMOKE;\n        if (amplifier >= 1) {\n            particle = ParticleHelper.FIRE;\n        }\n        var random = livingEntity.getRandom();\n        for (int i = 0; i < 2; i++) {\n            Vec3 motion = new Vec3(\n                    random.nextFloat() * 2 - 1,\n                    random.nextFloat() * 2 - 1,\n                    random.nextFloat() * 2 - 1\n            );\n            motion = motion.scale(.04f);\n            livingEntity.level.addParticle(particle, livingEntity.getRandomX(.4f), livingEntity.getRandomY(), livingEntity.getRandomZ(.4f), motion.x, motion.y, motion.z);\n        }\n    }\n\n    @Override\n    public boolean applyEffectTick(LivingEntity livingEntity, int amplifier) {\n        var self = livingEntity.getEffect(MobEffectRegistry.IMMOLATE);\n        if (DELAYED_INSTANCES.containsKey(self) && !(DELAYED_INSTANCES.get(self) - duration > 4)) {\n            return true;\n        }\n        float explosionRadius = 6;\n        var level = livingEntity.level;\n        if (level.isClientSide) {\n            return true;\n        }\n        @Nullable Entity attacker = EFFECT_CREDIT.remove(livingEntity);\n        double baseDamage = damageFor(attacker);\n\n        var source = new DamageSource(level.damageSources().damageTypes.getHolderOrThrow(ISSDamageTypes.FIRE_MAGIC), attacker);\n        var explosionRadiusSqr = explosionRadius * explosionRadius;\n        var entities = level.getEntities(null, livingEntity.getBoundingBox().inflate(explosionRadius));\n        Vec3 losPoint = Utils.raycastForBlock(level, livingEntity.position(), livingEntity.position().add(0, 1, 0), ClipContext.Fluid.NONE).getLocation();\n        for (Entity entity : entities) {\n            double distanceSqr = entity.distanceToSqr(livingEntity.position());\n            if (distanceSqr < explosionRadiusSqr && entity.canBeHitByProjectile() && !DamageSources.isFriendlyFireBetween(attacker, entity) && Utils.hasLineOfSight(level, losPoint, entity.getBoundingBox().getCenter(), true)) {\n                double p = (1 - distanceSqr / explosionRadiusSqr);\n                float damage = (float) (baseDamage * p);\n                entity.invulnerableTime = 0; // ensure explosion can hit after the damage that procs it\n                if (entity.hurt(source, damage) && entity instanceof LivingEntity livingVictim) {\n                    var inst = addImmolateStack(livingVictim, attacker);\n                    DELAYED_INSTANCES.put(inst, inst.getDuration());\n                }\n            }\n        }\n        PacketDistributor.sendToPlayersTrackingEntityAndSelf(livingEntity, new FieryExplosionParticlesPacket(livingEntity.getBoundingBox().getCenter(), 1.5f));\n        level.playSound(null, livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(), SoundEvents.GENERIC_EXPLODE.value(), livingEntity.getSoundSource(), 4.0F, (1.0F + (level.random.nextFloat() - level.random.nextFloat()) * 0.2F) * 0.7F);\n        return false;\n    }\n\n    public static double damageFor(@Nullable Entity entity) {\n        double baseDamage = 10.0;\n        if (entity instanceof LivingEntity livingAttacker) {\n            baseDamage = baseDamage * livingAttacker.getAttributeValue(AttributeRegistry.SPELL_POWER) * livingAttacker.getAttributeValue(AttributeRegistry.FIRE_SPELL_POWER);\n        }\n        return baseDamage;\n    }\n\n    static int duration;\n\n    @Override\n    public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {\n        ImmolateEffect.duration = duration;\n        return amplifier >= STACKS_REQUIRED_AMPLIFIER;\n    }\n}\n",
+          "excerpt_sha256": "385a53ee9bcd8ae74a77a11baaf90f77c7170dc48784c3bbecdc3604b23b7f56",
+          "normalized_excerpt_sha256": "927ce637dbb8590f0aadb48fa5b0b46f48dc79fd2ec128ca9c8ef76ab66b910c",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-050-01"
+          ]
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/MagicMobEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            48
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "30e07caead6afeb9770017ee62f64340df7729a6e512fc333de748f0bd63c374",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/MagicMobEffect.java#L1-L48",
+          "excerpt": "package io.redspace.ironsspellbooks.effect;\n\nimport net.minecraft.core.particles.ParticleOptions;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectCategory;\nimport net.minecraft.world.entity.LivingEntity;\n\n/**\n * Marker as an effect that is affected by counterspell\n */\npublic class MagicMobEffect extends MobEffect implements IMobEffectEndCallback {\n    public MagicMobEffect(MobEffectCategory pCategory, int pColor) {\n        super(pCategory, pColor);\n    }\n\n    public MagicMobEffect(MobEffectCategory category, int color, ParticleOptions particle) {\n        super(category, color, particle);\n    }\n\n    /**\n     * @return VANILLA ANNOTATION: True if the effect should continue, or false if the effect should end and be removed\n     */\n    @Override\n    public boolean applyEffectTick(LivingEntity pLivingEntity, int pAmplifier) {\n        return super.applyEffectTick(pLivingEntity, pAmplifier);\n    }\n\n    /**\n     * VANILLA ANNOTATION: Called when a mob effect is added or updated (ie: I have poison, I get poisoned again)\n     */\n    @Override\n    public void onEffectStarted(LivingEntity pLivingEntity, int pAmplifier) {\n        super.onEffectStarted(pLivingEntity, pAmplifier);\n    }\n\n    /**\n     * VANILLA ANNOTATION: Called when a mob effect is added for the first time (ie: I did not have poison, I get poisoned)\n     */\n    @Override\n    public void onEffectAdded(LivingEntity pLivingEntity, int pAmplifier) {\n        super.onEffectAdded(pLivingEntity, pAmplifier);\n    }\n\n    @Override\n    public void onEffectRemoved(LivingEntity pLivingEntity, int pAmplifier) {\n\n    }\n}\n",
+          "excerpt_sha256": "30e07caead6afeb9770017ee62f64340df7729a6e512fc333de748f0bd63c374",
+          "normalized_excerpt_sha256": "669f028b56cdc51a1dbcbf1e0ba2d0d78f899136193060099a9f7d06c30bece0",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-003-01",
+            "herschel-051-02"
+          ]
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/ISyncedMobEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            15
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "c383fa968f8adccdab1df979f45acb158cdcf0ac3a256082465ae4bc241c25bb",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/ISyncedMobEffect.java#L1-L15",
+          "excerpt": "package io.redspace.ironsspellbooks.effect;\n\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.LivingEntity;\n\n/**\n * Enables mob effect to be synced to all players, not just the affected player.\n * <br>\n * Enables advanced client-specific state tracking and effects\n */\npublic interface ISyncedMobEffect {\n\n    default void clientTick(LivingEntity livingEntity, MobEffectInstance instance) {\n    }\n}\n",
+          "excerpt_sha256": "c383fa968f8adccdab1df979f45acb158cdcf0ac3a256082465ae4bc241c25bb",
+          "normalized_excerpt_sha256": "70580a170433e52ab8201d4083da159a6ce99bfdd214ae3e5b31258f77f0df0a",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-051-02"
+          ]
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/mixin/LivingEntityMixin.java",
+          "method": null,
+          "lines": [
+            1,
+            154
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "0353c74a7304e755df6c14971f5adf0eb25331964278a88132243679e38d7468",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/mixin/LivingEntityMixin.java#L1-L154",
+          "excerpt": "package io.redspace.ironsspellbooks.mixin;\n\nimport com.google.common.collect.HashMultimap;\nimport com.google.common.collect.Multimap;\nimport io.redspace.ironsspellbooks.api.util.Utils;\nimport io.redspace.ironsspellbooks.config.ServerConfigs;\nimport io.redspace.ironsspellbooks.effect.IMobEffectEndCallback;\nimport io.redspace.ironsspellbooks.effect.ISyncedMobEffect;\nimport io.redspace.ironsspellbooks.entity.mobs.IMagicSummon;\nimport io.redspace.ironsspellbooks.registries.ComponentRegistry;\nimport io.redspace.ironsspellbooks.registries.MobEffectRegistry;\nimport net.minecraft.core.Holder;\nimport net.minecraft.network.protocol.game.ClientboundRemoveMobEffectPacket;\nimport net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;\nimport net.minecraft.server.level.ServerChunkCache;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.EquipmentSlotGroup;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.attributes.Attribute;\nimport net.minecraft.world.entity.ai.attributes.AttributeModifier;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.component.ItemAttributeModifiers;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.Shadow;\nimport org.spongepowered.asm.mixin.Unique;\nimport org.spongepowered.asm.mixin.injection.At;\nimport org.spongepowered.asm.mixin.injection.Inject;\nimport org.spongepowered.asm.mixin.injection.callback.CallbackInfo;\nimport org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;\n\nimport java.util.List;\nimport java.util.Map;\n\n@Mixin(LivingEntity.class)\npublic abstract class LivingEntityMixin {\n\n    @Inject(method = \"onEffectRemoved\", at = @At(value = \"HEAD\"))\n    public void irons_spellbooks$onEffectRemoved(MobEffectInstance effectInstance, CallbackInfo ci) {\n        LivingEntity self = (LivingEntity) (Object) this;\n        if (!self.level.isClientSide) {\n            if (effectInstance.getEffect().value() instanceof IMobEffectEndCallback mobEffect) {\n                mobEffect.onEffectRemoved(self, effectInstance.getAmplifier());\n            }\n            if (effectInstance.getEffect().value() instanceof ISyncedMobEffect && self.level.getChunkSource() instanceof ServerChunkCache serverChunk) {\n                serverChunk.broadcast(self, new ClientboundRemoveMobEffectPacket(self.getId(), effectInstance.getEffect()));\n            }\n        }\n    }\n\n    @Inject(method = \"onEffectUpdated\", at = @At(value = \"HEAD\"))\n    public void irons_spellbooks$onEffectUpdated(MobEffectInstance effectInstance, boolean forced, Entity entity, CallbackInfo ci) {\n        LivingEntity self = (LivingEntity) (Object) this;\n        if (!self.level.isClientSide) {\n            if (effectInstance.getEffect().value() instanceof ISyncedMobEffect && self.level.getChunkSource() instanceof ServerChunkCache serverChunk) {\n                serverChunk.broadcast(self, new ClientboundUpdateMobEffectPacket(self.getId(), effectInstance, false));\n            }\n        }\n    }\n\n    @Inject(method = \"onEffectAdded\", at = @At(value = \"HEAD\"))\n    public void irons_spellbooks$onEffectAdded(MobEffectInstance effectInstance, Entity entity, CallbackInfo ci) {\n        LivingEntity self = (LivingEntity) (Object) this;\n        if (!self.level.isClientSide) {\n            if (effectInstance.getEffect().value() instanceof ISyncedMobEffect && self.level.getChunkSource() instanceof ServerChunkCache serverChunk) {\n                serverChunk.broadcast(self, new ClientboundUpdateMobEffectPacket(self.getId(), effectInstance, false));\n            }\n        }\n    }\n\n    @Inject(method = \"updateInvisibilityStatus\", at = @At(value = \"TAIL\"))\n    public void irons_spellbooks$updateInvisibilityStatus(CallbackInfo ci) {\n        LivingEntity self = (LivingEntity) (Object) this;\n        if (self.hasEffect(MobEffectRegistry.TRUE_INVISIBILITY))\n            self.setInvisible(true);\n    }\n\n    @Inject(method = \"isCurrentlyGlowing\", at = @At(value = \"HEAD\"), cancellable = true)\n    public void irons_spellbooks$isCurrentlyGlowing(CallbackInfoReturnable<Boolean> cir) {\n        LivingEntity self = (LivingEntity) (Object) this;\n        if (!self.level.isClientSide() && self.hasEffect(MobEffectRegistry.GUIDING_BOLT)) {\n            cir.setReturnValue(true);\n        }\n    }\n\n    @Inject(method = \"hurt\", at = @At(\"RETURN\"))\n    public void irons_spellbooks$changeSummonHurtCredit(DamageSource damageSource, float amount, CallbackInfoReturnable<Boolean> cir) {\n        IMagicSummon fromSummon = damageSource.getDirectEntity() instanceof IMagicSummon summon ? summon : damageSource.getEntity() instanceof IMagicSummon summon ? summon : null;\n        if (fromSummon instanceof LivingEntity livingSummon) {\n            ((LivingEntity) (Object) this).setLastHurtByMob(livingSummon);\n        }\n    }\n\n    @Shadow\n    abstract ItemStack getLastHandItem(EquipmentSlot pSlot);\n\n    @Unique\n    private static final List<EquipmentSlot> handSlots = List.of(EquipmentSlot.OFFHAND, EquipmentSlot.MAINHAND);\n\n    // The equipment change event fires 5 lines too early for this to have been able to be done via events\n    @Inject(method = \"collectEquipmentChanges\", at = @At(value = \"RETURN\"))\n    public void handleEquipmentChanges(CallbackInfoReturnable<Map<EquipmentSlot, ItemStack>> cir) {\n        // Last hand items are accurate at this point\n        // Mainhand assigning/removing is handled by minecraft. All we are doing is fudging offhand handling\n        // The return of this function is a map of equipmentslots to itemstacks, of itemstacks who have been changed\n        var changedEquipment = cir.getReturnValue();\n        if (changedEquipment == null) {\n            return;\n        }\n        LivingEntity self = (LivingEntity) (Object) this;\n        ItemStack toStack = changedEquipment.get(EquipmentSlot.MAINHAND);\n        if (toStack == null) {\n            // If this stack was not changed, continue\n            return;\n        }\n        ItemStack fromStack = getLastHandItem(EquipmentSlot.MAINHAND);\n        ItemStack offhandStack = self.getOffhandItem();\n        //offhand swap\n        if (fromStack == offhandStack) {\n            return;\n        }\n        //Do we even care\n        if (!offhandStack.isEmpty() && offhandStack.has(ComponentRegistry.MULTIHAND_WEAPON)) {\n            //did we equip a multihand item? (hide offhand)\n            if (toStack.has(ComponentRegistry.MULTIHAND_WEAPON)) {\n                if (!toStack.isEmpty()) {\n                    self.getAttributes().removeAttributeModifiers(filterApplicableAttributes(offhandStack.getAttributeModifiers()));\n                }\n            }\n            //did we unequip a multihand item? (reveal offhand)\n            else if (fromStack.has(ComponentRegistry.MULTIHAND_WEAPON)) {\n                if (!offhandStack.isEmpty()) {\n                    self.getAttributes().addTransientAttributeModifiers(filterApplicableAttributes(offhandStack.getAttributeModifiers()));\n                }\n            }\n        }\n    }\n\n    @Unique\n    private static Multimap<Holder<Attribute>, AttributeModifier> filterApplicableAttributes(ItemAttributeModifiers modifiers) {\n        var list = modifiers.modifiers().stream().filter(entry -> entry.slot() == EquipmentSlotGroup.MAINHAND).toList();\n        Multimap<Holder<Attribute>, AttributeModifier> map = HashMultimap.create();\n        for (ItemAttributeModifiers.Entry entry : list) {\n            var predicate = ServerConfigs.APPLY_ALL_MULTIHAND_ATTRIBUTES.get() ? Utils.NON_BASE_ATTRIBUTES : Utils.ONLY_MAGIC_ATTRIBUTES;\n            if (predicate.test(entry.attribute())) {\n                map.put(entry.attribute(), entry.modifier());\n            }\n        }\n        return map;\n    }\n\n}",
+          "excerpt_sha256": "0353c74a7304e755df6c14971f5adf0eb25331964278a88132243679e38d7468",
+          "normalized_excerpt_sha256": "cc32eef49c9185635897204e8a321a4b287fd1282b2feebb3018f6e304518c09",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/network/particles/FieryExplosionParticlesPacket.java",
+          "method": null,
+          "lines": [
+            1,
+            44
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "5471bd3f0ef912694a02466100298d8cbb2fe3dab49debdabaf5d3fe56b61887",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/network/particles/FieryExplosionParticlesPacket.java#L1-L44",
+          "excerpt": "package io.redspace.ironsspellbooks.network.particles;\n\nimport io.redspace.ironsspellbooks.IronsSpellbooks;\nimport io.redspace.ironsspellbooks.player.ClientSpellCastHelper;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.network.RegistryFriendlyByteBuf;\nimport net.minecraft.network.codec.StreamCodec;\nimport net.minecraft.network.protocol.common.custom.CustomPacketPayload;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.phys.Vec3;\nimport net.neoforged.neoforge.network.handling.IPayloadContext;\n\npublic class FieryExplosionParticlesPacket implements CustomPacketPayload {\n    private final Vec3 pos1;\n    private final float radius;\n    public static final CustomPacketPayload.Type<FieryExplosionParticlesPacket> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"fiery_explosion_particles\"));\n    public static final StreamCodec<RegistryFriendlyByteBuf, FieryExplosionParticlesPacket> STREAM_CODEC = CustomPacketPayload.codec(FieryExplosionParticlesPacket::write, FieryExplosionParticlesPacket::new);\n\n    public FieryExplosionParticlesPacket(Vec3 pos1, float radius) {\n        this.pos1 = pos1;\n        this.radius = radius;\n    }\n\n    public FieryExplosionParticlesPacket(FriendlyByteBuf buf) {\n        pos1 = buf.readVec3();\n        radius = buf.readFloat();\n    }\n\n    public void write(FriendlyByteBuf buf) {\n        buf.writeVec3(pos1);\n        buf.writeFloat(radius);\n    }\n\n    public static void handle(FieryExplosionParticlesPacket packet, IPayloadContext context) {\n        context.enqueueWork(() -> {\n            ClientSpellCastHelper.handleClientboundFieryExplosion(packet.pos1, packet.radius);\n        });\n    }\n\n    @Override\n    public Type<? extends CustomPacketPayload> type() {\n        return TYPE;\n    }\n}\n",
+          "excerpt_sha256": "5471bd3f0ef912694a02466100298d8cbb2fe3dab49debdabaf5d3fe56b61887",
+          "normalized_excerpt_sha256": "08ab17263aa4c7294922b64ff9f626f430901635875a4539405df6951895ca1f",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-051-02"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "method": "onBeforeDamageTaken",
+          "lines": [
+            493,
+            510
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "f982d66f86f51158774d59a72f1d41a49803cdb714ddf45a1e0fd7a6e4bf7608",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java#L493-L510",
+          "excerpt": "    public static void onBeforeDamageTaken(LivingDamageEvent.Pre event) {\n        var livingEntity = event.getEntity();\n        if (livingEntity instanceof IMagicEntity || livingEntity instanceof ServerPlayer) {\n            var playerMagicData = MagicData.getPlayerMagicData(livingEntity);\n            if (livingEntity.hasEffect(MobEffectRegistry.HEARTSTOP)) {\n                playerMagicData.getSyncedData().addHeartstopDamage(event.getOriginalDamage() * .5f);\n                event.setNewDamage(0);\n            }\n        }\n        if (event.getSource().is(ISSDamageTypes.FIRE_MAGIC) && event.getSource().getEntity() instanceof LivingEntity livingAttacker) {\n            if (livingAttacker.getItemBySlot(EquipmentSlot.CHEST).is(ItemRegistry.INFERNAL_SORCERER_CHESTPLATE) && (!(livingAttacker instanceof Player player) || !player.getCooldowns().isOnCooldown(ItemRegistry.INFERNAL_SORCERER_CHESTPLATE.get()))) {\n                ImmolateEffect.addImmolateStack(livingEntity, livingAttacker);\n//                if (livingAttacker instanceof Player player) {\n//                    player.getCooldowns().addCooldown(ItemRegistry.INFERNAL_SORCERER_CHESTPLATE.get(), Utils.applyCooldownReduction(InfernalSorcererArmorItem.COOLDOWN_TICKS, player));\n//                }\n            }\n        }\n    }\n",
+          "excerpt_sha256": "2b37386e4e20d4881de062dfe19a51cb836e7b3298a5b6363d54d12953889886",
+          "normalized_excerpt_sha256": "2ec139583655f98571c555858ec5df6967e64db55f73ee5997bf1968ed46b641",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-001-06",
+            "herschel-051-02"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "method": "onPlayerStartTrackingEntity",
+          "lines": [
+            326,
+            336
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "f982d66f86f51158774d59a72f1d41a49803cdb714ddf45a1e0fd7a6e4bf7608",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java#L326-L336",
+          "excerpt": "    public static void onPlayerStartTrackingEntity(PlayerEvent.StartTracking event) {\n        if (event.getEntity() instanceof ServerPlayer serverPlayerRecipient) {\n            if (event.getTarget() instanceof LivingEntity livingEntity) {\n                for (var inst : livingEntity.getActiveEffects()) {\n                    if (inst.getEffect().value() instanceof ISyncedMobEffect) {\n                        serverPlayerRecipient.connection.send(new ClientboundUpdateMobEffectPacket(livingEntity.getId(), inst, false));\n                    }\n                }\n            }\n        }\n    }\n",
+          "excerpt_sha256": "27af04039052d13d9ac5909bb31f8732a41b6bc5833c573205cc02f04424600c",
+          "normalized_excerpt_sha256": "2574dc7d9afb08486b651ef07baf718b52d50d0e9d84557ccc52fe8cf803f653",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ClientPlayerEvents.java",
+          "method": "onClientEntityTick",
+          "lines": [
+            124,
+            132
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "6a475fe7e4a48781c0232c1ce507c8819d87ec7bf6c029780188533ccf1e9aaa",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ClientPlayerEvents.java#L124-L132",
+          "excerpt": "    public static void onClientEntityTick(EntityTickEvent.Pre event) {\n        if (event.getEntity() instanceof LivingEntity livingEntity) {\n            for (MobEffectInstance inst : livingEntity.getActiveEffects()) {\n                if (inst.getEffect().value() instanceof ISyncedMobEffect effect) {\n                    effect.clientTick(livingEntity, inst);\n                }\n            }\n        }\n    }\n",
+          "excerpt_sha256": "05ba142fdec70afe20bde42605e4b77e42886d781ff1da7659378060cbc194c5",
+          "normalized_excerpt_sha256": "ed5f1df46544cf7f436ca88ec7fc32901e94acf5780d8fbce7398f1b2fc6d74b",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ClientSpellCastHelper.java",
+          "method": "handleClientboundFieryExplosion",
+          "lines": [
+            209,
+            253
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "3adab4f254ac239f2dddb5c529d3254261fcf7d7fc9910f3d282d02841e7e972",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ClientSpellCastHelper.java#L209-L253",
+          "excerpt": "    public static void handleClientboundFieryExplosion(Vec3 pos, float radius) {\n        MinecraftInstanceHelper.ifPlayerPresent(player -> {\n            var level = player.level;\n            var x = pos.x;\n            var y = pos.y;\n            var z = pos.z;\n            //Blastwave\n            level.addParticle(new BlastwaveParticleOptions(new Vector3f(1, .6f, 0.3f), radius + 1), x, y, z, 0, 0, 0);\n            //Billowing wave\n            int c = (int) (6.28 * radius) * 3;\n            float step = 360f / c * Mth.DEG_TO_RAD;\n            float speed = (0.06f + 0.01f * radius) * 4f;\n            for (int i = 0; i < c; i++) {\n                Vec3 vec3 = new Vec3(Mth.cos(step * i), 0, Mth.sin(step * i)).scale(speed);\n                Vec3 posOffset = Utils.getRandomVec3(.5f).add(vec3/*.scale(5)*/);\n                vec3 = vec3.add(Utils.getRandomVec3(0.01));\n                level.addParticle(ParticleHelper.FIERY_SMOKE, x + posOffset.x, y + posOffset.y, z + posOffset.z, vec3.x, vec3.y, vec3.z);\n            }\n            //Smoke Cloud\n            int cloudDensity = 50 + (int) (25 * radius * Math.clamp(radius / 10, 1, 50));\n            for (int i = 0; i < cloudDensity; i++) {\n                Vec3 posOffset = Utils.getRandomVec3(1).scale(radius * .010f);\n                Vec3 motion = posOffset.normalize().scale(speed * .5f);\n                posOffset = posOffset.add(motion.scale(Utils.getRandomScaled(1)).normalize());\n                motion = motion.add(Utils.getRandomVec3(speed * .2f * (i + cloudDensity) / (float) cloudDensity));\n                level.addParticle(ParticleHelper.FIERY_SMOKE, x + posOffset.x, y + posOffset.y, z + posOffset.z, motion.x, motion.y, motion.z);\n            }\n            int fireDensity = 50 + (int) (25 * radius);\n            //Fire Cloud\n            for (int i = 0; i < fireDensity; i += 2) {\n                Vec3 posOffset = Utils.getRandomVec3(1).scale(radius * .4f);\n                Vec3 motion = posOffset.normalize().scale(speed * .5f);\n                motion = motion.add(Utils.getRandomVec3(0.25));\n                level.addParticle(ParticleHelper.EMBERS, true, x + posOffset.x, y + posOffset.y, z + posOffset.z, motion.x, motion.y, motion.z);\n                level.addParticle(ParticleHelper.FIRE, x + posOffset.x * .5f, y + posOffset.y * .5f, z + posOffset.z * .5f, motion.x, motion.y, motion.z);\n            }\n            //Sparks\n            for (int i = 0; i < fireDensity; i += 2) {\n                Vec3 posOffset = Utils.getRandomVec3(radius).scale(.2f);\n                Vec3 motion = posOffset.normalize().scale(0.8);\n                motion = motion.add(Utils.getRandomVec3(0.18));\n                level.addParticle(ParticleHelper.FIERY_SPARKS, x + posOffset.x * .5f, y + posOffset.y * .5f, z + posOffset.z * .5f, motion.x, motion.y, motion.z);\n            }\n        });\n    }\n",
+          "excerpt_sha256": "631bb2a18517421f9d615914fdc5bf4920d126bec8824306bd8eff11b5e9869e",
+          "normalized_excerpt_sha256": "e324a44b1dc62c89279f4515a24f618d829fded4428044dc4ccdb7fc4ba3c2e1",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/setup/PayloadHandler.java",
+          "method": null,
+          "lines": [
+            41,
+            41
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "c8439e0d281f9a8e7a7eab9fa8a8085a852d1795beade0bf7b70836e50a2b8cd",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/setup/PayloadHandler.java#L41-L41",
+          "excerpt": "        payloadRegistrar.playToClient(FieryExplosionParticlesPacket.TYPE, FieryExplosionParticlesPacket.STREAM_CODEC, FieryExplosionParticlesPacket::handle);\n",
+          "excerpt_sha256": "8877cd5cf84b58c8223606a48d56c8adcd05fa64b23d2e53a520cd2094fe9caf",
+          "normalized_excerpt_sha256": "53d1fe6422f6aca0bec2dc35369bb9c417b47c942ee69594b1bd4d8a022f7e91",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/registries/MobEffectRegistry.java",
+          "method": null,
+          "lines": [
+            71,
+            71
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "2cc8632a7bb14cf11d2c4443ea3a25386e7d0d5d688940a11d46e80770c5b6f1",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/registries/MobEffectRegistry.java#L71-L71",
+          "excerpt": "    public static final DeferredHolder<MobEffect, MobEffect> IMMOLATE = MOB_EFFECT_DEFERRED_REGISTER.register(\"immolate\", () -> new ImmolateEffect(MobEffectCategory.HARMFUL, 0xFFAA00));\n",
+          "excerpt_sha256": "07e07143043ee31acc69c3cd1df346bbee05ebdbe51e3ed1b30664bf93212184",
+          "normalized_excerpt_sha256": "8db138f6b8915b33f31a5551a8f9d1a4e89b9c8fd22a14643b98359a02dc1c20",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/fire_orb/OminousFireOrbEntity.java",
+          "method": "tick",
+          "lines": [
+            151,
+            173
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "50232a340e9ea4a95c21753038bbf063578eba66e81339dadc884be900ad0759",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/fire_orb/OminousFireOrbEntity.java#L151-L173",
+          "excerpt": "    public void tick() {\n        super.tick();\n        travel();\n        if (level.isClientSide) {\n            Vec3 motion = Utils.getRandomVec3(0.08);\n            Vec3 movement = getDeltaMovement();\n            level.addParticle(ParticleHelper.SOUL_FIRE, getX() - movement.x, getY() + 2 - movement.y, getZ() - movement.z, motion.x, motion.y, motion.z);\n        }\n        if (getFuse() >= 0) {\n            int fuse = getFuse();\n            int fuseProgress = getFuseProgressTicks();\n            if (isPastChargePhase() && tickCount % 8 == 0) {\n                float pitch = Mth.lerp(fuseProgress / (float) fuse, 0.5f, 2f);\n                this.playSound(SoundRegistry.SCORCH_PREPARE.get(), 2 + pitch, pitch);\n            }\n            if (fuseProgress == fuse - 20) {\n                this.playSound(SoundRegistry.HEAT_SURGE_PREPARE.get(), 4, 1);\n            }\n            if (!level.isClientSide && fuseProgress >= fuse) {\n                doExplosion();\n            }\n        }\n    }\n",
+          "excerpt_sha256": "9e26f6386748eec1d4be8eaa39c9b2f7882bf0730218fba51b79b63088d1847b",
+          "normalized_excerpt_sha256": "b85b1caac1def649ae5bf66e07ee61f0525f3777afc1898380047a9351269e26",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/fire_orb/OminousFireOrbEntity.java",
+          "method": "doExplosion",
+          "lines": [
+            175,
+            196
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "50232a340e9ea4a95c21753038bbf063578eba66e81339dadc884be900ad0759",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/fire_orb/OminousFireOrbEntity.java#L175-L196",
+          "excerpt": "    private void doExplosion() {\n        Entity owner = getOwner();\n        var source = new DamageSource(level.damageSources().damageTypes.getHolderOrThrow(ISSDamageTypes.FIRE_MAGIC), owner);\n        var explosionRadiusSqr = radius * radius;\n        var entities = level.getEntities(this, this.getBoundingBox().inflate(radius));\n        Vec3 losPoint = Utils.raycastForBlock(level, this.position(), this.position().add(0, 1, 0), ClipContext.Fluid.NONE).getLocation();\n        float baseDamage = this.damage;\n        for (Entity entity : entities) {\n            double distanceSqr = entity.distanceToSqr(this.position());\n            if (!(entity instanceof OminousFireOrbEntity) && distanceSqr < explosionRadiusSqr && entity.canBeHitByProjectile() && !DamageSources.isFriendlyFireBetween(owner, entity) && Utils.hasLineOfSight(level, losPoint, entity.getBoundingBox().getCenter(), true)) {\n                double p = (1 - distanceSqr / explosionRadiusSqr);\n                float damage = (float) (baseDamage * p);\n                if (entity.hurt(source, damage) && entity instanceof LivingEntity livingVictim) {\n                    ImmolateEffect.addImmolateStack(livingVictim, owner);\n                }\n            }\n        }\n        PacketDistributor.sendToPlayersTrackingEntity(this, new FieryExplosionParticlesPacket(this.getBoundingBox().getCenter(), radius));\n        CameraShakeManager.addCameraShake(new CameraShakeData(level,20 + (int) radius / 3, this.position(), this.radius + 15));\n        level.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.GENERIC_EXPLODE.value(), this.getSoundSource(), 4.0F, (1.0F + (level.random.nextFloat() - level.random.nextFloat()) * 0.2F) * 0.7F);\n        discard();\n    }\n",
+          "excerpt_sha256": "8dac7c906690d0bfe58575506348e3b92c3a8fbcc73e83feb15f49100e8933db",
+          "normalized_excerpt_sha256": "b10a159424846c74f809977733ec75c285b3a0d94ea71fd2bccbdffdf57f98b5",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/fire_orb/OminousFireOrbEntity.java",
+          "method": "getOwner",
+          "lines": [
+            123,
+            132
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "50232a340e9ea4a95c21753038bbf063578eba66e81339dadc884be900ad0759",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/fire_orb/OminousFireOrbEntity.java#L123-L132",
+          "excerpt": "    public Entity getOwner() {\n        if (this.cachedOwner != null && !this.cachedOwner.isRemoved()) {\n            return this.cachedOwner;\n        } else if (this.ownerUUID != null && this.level() instanceof ServerLevel serverlevel) {\n            this.cachedOwner = serverlevel.getEntity(this.ownerUUID);\n            return this.cachedOwner;\n        } else {\n            return null;\n        }\n    }\n",
+          "excerpt_sha256": "22a901b4fe91419c359f5b08139c58c969ff51996af36337ffd90fd4cc692c20",
+          "normalized_excerpt_sha256": "51766b19775b65f7d815efeed9ada8f32c4e5e3b2ab1691fca63da6ea4e8d024",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Closed actual mod chain after050/051 support. FIRE_MAGIC armor LivingDamageEvent.Pre producer can run after HEARTSTOP setdamage0; separate OminousFireOrb native server fuse calls doExplosion, only hurttrue Living getsstack. Effect addImmolateStack reads currentamp, creates15s newinstance, records nonnull attacker in entity WeakMap BEFORE addEffect, ignores admission, returns constructedinstance. Amplifier>=2 enables effecttick. Server effecttick removes attribution FIRST; radius6 candidates require projectilehittable/friendlyfilter/LOS and actualdistance, invulnerableTime=0 before hurt; only hurttrueLiving getsanotherstack plus DELAYED_INSTANCES entry. WeakHashMap<MobEffectInstance,Integer> is NOT IdentityHashMap and should not be described as identity map. Guard returns early while savedDuration-currentStaticDuration<=4 only if lookup succeeds; duration static sharedsingleton set by shouldApply tick callback. Objectcreation or delayed put is not evidence stored native effect or acceptedstack. Preproducer retainedsource even when addEffect refused can influence later accepted effect unless removed by a futureexplosion/GC; no claim exploit runtime.",
+      "application_to_boss_immune": "Actual LivingEntityMixin listed in mixins resource read: HEAD effectadded/updated broadcasts native ClientboundUpdateMobEffectPacket via ServerChunkCache to trackers; removed broadcasts remove and callback. ServerPlayerEvents.StartTracking sends every existing ISynced effect, so lateobserver is not limited to original add event. Dist.CLIENT ClientPlayerEvents native EntityTickEvent.Pre iterates currentactiveeffects and invokes ISynced.clientTick. Immolate clientTick chooses smoke vsfire byamp, independent offutureblast. ActualPayloadHandler playToClient registration binds FieryExplosion packet; packet contains fixedVec3+radius only, enqueue clienthandler createsblastwave/smoke/fire/sparks in currentplayerlevel, no UUID/dimension/sequence/time. Allblast FX/sound sent after loop irrespective anysuccessfulhurt or newstack. No controlimmune result encoded. Completeclienthandler read, particles not counted separately.",
+      "semantic_dedup": "One whole stack/attribution/delayedrecursion/admission-feedback lifecycle candidate, not armor/orb/effect/packets/mixin/particles eachcredit. Existing Heartstop deferredsettlement and Echoing qualifiedrecursiveproc differ: this finite3stack consumption can write attribution even on refusedapplication, merges effectinstances, and tries4tick-delay by mutable effectkey. 050/051 supportcomponents do NOT get promoted independently. Main complete semantic primaryreview needed; if genericdamageproc/stackfamily alreadycovered, downgrade0.",
+      "limitations": "Actualmod pinnedarchive SHA, nottree. Native cachedForge1.21.1-52.1.20 injectedsource fullmethods read as comparator0, whilemod requiresNeoForge21.1.200: nativeLiving addEffect checkscanApply, neweffectstoresargument but upgrade mutatesoldinstance; MobEffectInstance duration participates equals/hashCode, tick decrementsduration and falseapply requestsremove throughentity; clientnativeupdate constructsandforceadds localinstance, remove removes mapentry. These sourceobservations make delayed-key/returnedinstance risk concrete, not a provenNeoForge runtimebug; exactNeo hooks remainunread. Localnativearchive/entryhash/ranges retained separately, no gamecredit. No test/game/compile/production/mainledger/assets/TODO edits."
+    }
+  ],
+  "exclusions": [
+    "050/051 support remains0;052 onlyonewholeImmolate proposal, no wrapper credit.",
+    "All client/helper nativecontext platformdifferences explicit; no synthetic/native runtime claims.",
+    "Afterbatch052 perform authorized read-only Carson final launcherreview; no ready/launch/compile."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

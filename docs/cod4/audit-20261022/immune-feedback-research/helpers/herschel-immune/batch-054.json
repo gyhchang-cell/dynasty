@@ -1,0 +1,143 @@
+{
+  "batch": "herschel-immune-054",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 0,
+  "support_only_units": 1,
+  "rows": [
+    {
+      "id": "herschel-054-01",
+      "semantic_dedup_key": "iron-planarsight-observer-local-visual-is-not-target-immune-feedback",
+      "status": "support_only_not_independent",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/PlanarSightEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            56
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "f16c44d8931447ff102df60919ea396de62f7b1e2b025e93c6e901d03a750cc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/PlanarSightEffect.java#L1-L56",
+          "excerpt": "package io.redspace.ironsspellbooks.effect;\n\nimport io.redspace.ironsspellbooks.api.util.Utils;\nimport io.redspace.ironsspellbooks.registries.MobEffectRegistry;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.client.renderer.FogRenderer;\nimport net.minecraft.core.Holder;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectCategory;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.phys.Vec3;\nimport net.neoforged.api.distmarker.Dist;\nimport net.neoforged.api.distmarker.OnlyIn;\n\n\npublic class PlanarSightEffect extends MagicMobEffect implements ISyncedMobEffect {\n    public PlanarSightEffect(MobEffectCategory mobEffectCategory, int color) {\n        super(mobEffectCategory, color);\n    }\n\n    public boolean shouldApplyEffectTickThisTick(int pDuration, int pAmplifier) {\n        return true;\n    }\n\n    @Override\n    public boolean applyEffectTick(LivingEntity livingEntity, int pAmplifier) {\n        if (livingEntity.level.isClientSide && livingEntity == Minecraft.getInstance().player) {\n            for (int i = 0; i < 3; i++) {\n                Vec3 pos = new Vec3(Utils.getRandomScaled(16), Utils.getRandomScaled(5f) + 5, Utils.getRandomScaled(16)).add(livingEntity.position());\n                Vec3 random = new Vec3(Utils.getRandomScaled(.08f), Utils.getRandomScaled(.08f), Utils.getRandomScaled(.08f));\n                livingEntity.level.addParticle(ParticleTypes.WHITE_ASH, pos.x, pos.y, pos.z, random.x, random.y, random.z);\n            }\n        }\n        return true;\n    }\n\n    @OnlyIn(Dist.CLIENT)\n    public static class EcholocationBlindnessFogFunction implements FogRenderer.MobEffectFogFunction {\n        public Holder<MobEffect> getMobEffect() {\n            return MobEffectRegistry.PLANAR_SIGHT;\n        }\n\n        public void setupFog(FogRenderer.FogData fogData, LivingEntity entity, MobEffectInstance mobEffectInstance, float p_234184_, float p_234185_) {\n            float f = 160f;\n            if (fogData.mode == FogRenderer.FogMode.FOG_SKY) {\n                fogData.start = 0.0F;\n                fogData.end = f * 0.25F;\n            } else {\n                fogData.start = -f * .5f;\n                fogData.end = f;\n            }\n        }\n    }\n}",
+          "excerpt_sha256": "f16c44d8931447ff102df60919ea396de62f7b1e2b025e93c6e901d03a750cc8",
+          "normalized_excerpt_sha256": "a5a3e02ef51a2e34184199b6f4a66398f6467e4b110fa2afd624b93e0f8d0d48",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/spells/eldritch/PlanarSightSpell.java",
+          "method": null,
+          "lines": [
+            1,
+            83
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "dcbfd48cfc822d87250f100337185d7b2dc9ba381f3df7e8e5f35fc4904b679b",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/spells/eldritch/PlanarSightSpell.java#L1-L83",
+          "excerpt": "package io.redspace.ironsspellbooks.spells.eldritch;\n\nimport io.redspace.ironsspellbooks.IronsSpellbooks;\nimport io.redspace.ironsspellbooks.api.config.DefaultConfig;\nimport io.redspace.ironsspellbooks.api.magic.MagicData;\nimport io.redspace.ironsspellbooks.api.registry.SchoolRegistry;\nimport io.redspace.ironsspellbooks.api.spells.*;\nimport io.redspace.ironsspellbooks.api.util.AnimationHolder;\nimport io.redspace.ironsspellbooks.api.util.Utils;\nimport io.redspace.ironsspellbooks.registries.MobEffectRegistry;\nimport io.redspace.ironsspellbooks.registries.SoundRegistry;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.level.Level;\n\nimport java.util.List;\nimport java.util.Optional;\n\npublic class PlanarSightSpell extends AbstractSpell {\n    private final ResourceLocation spellId = ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"planar_sight\");\n\n    @Override\n    public List<MutableComponent> getUniqueInfo(int spellLevel, LivingEntity caster) {\n        return List.of(\n                Component.translatable(\"ui.irons_spellbooks.effect_length\", Utils.timeFromTicks(getSpellPower(spellLevel, caster) * 20, 1))\n        );\n    }\n\n    private final DefaultConfig defaultConfig = new DefaultConfig()\n            .setMinRarity(SpellRarity.LEGENDARY)\n            .setSchoolResource(SchoolRegistry.ELDRITCH_RESOURCE)\n            .setMaxLevel(3)\n            .setCooldownSeconds(200)\n            .build();\n\n    public PlanarSightSpell() {\n        this.manaCostPerLevel = 50;\n        this.baseSpellPower = 40;\n        this.spellPowerPerLevel = 20;\n        this.castTime = 0;\n        this.baseManaCost = 150;\n    }\n\n    @Override\n    public CastType getCastType() {\n        return CastType.INSTANT;\n    }\n\n    @Override\n    public DefaultConfig getDefaultConfig() {\n        return defaultConfig;\n    }\n\n    @Override\n    public ResourceLocation getSpellResource() {\n        return spellId;\n    }\n\n    @Override\n    public Optional<SoundEvent> getCastStartSound() {\n        return Optional.empty();\n    }\n\n    @Override\n    public Optional<SoundEvent> getCastFinishSound() {\n        return Optional.of(SoundRegistry.PLANAR_SIGHT_CAST.get());\n    }\n\n    @Override\n    public void onCast(Level level, int spellLevel, LivingEntity entity, CastSource castSource, MagicData playerMagicData) {\n        entity.addEffect(new MobEffectInstance(MobEffectRegistry.PLANAR_SIGHT, (int) (getSpellPower(spellLevel, entity) * 20), spellLevel - 1, false, false, true));\n        super.onCast(level, spellLevel, entity, castSource, playerMagicData);\n    }\n\n    @Override\n    public AnimationHolder getCastStartAnimation() {\n        return SpellAnimations.SELF_CAST_ANIMATION;\n    }\n}\n",
+          "excerpt_sha256": "dcbfd48cfc822d87250f100337185d7b2dc9ba381f3df7e8e5f35fc4904b679b",
+          "normalized_excerpt_sha256": "3b42ce053d5d8741422774f1bdbd0e337eabd33cb7a27eb530098ce3778e01d8",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/mixin/MinecraftMixin.java",
+          "method": null,
+          "lines": [
+            1,
+            29
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "b83bb3a18f98220ed04d7c7040d3e1b94af2b77c761abf83604ac3537793a715",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/mixin/MinecraftMixin.java#L1-L29",
+          "excerpt": "package io.redspace.ironsspellbooks.mixin;\n\nimport io.redspace.ironsspellbooks.config.ClientConfigs;\nimport io.redspace.ironsspellbooks.player.ClientMagicData;\nimport io.redspace.ironsspellbooks.registries.MobEffectRegistry;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.injection.At;\nimport org.spongepowered.asm.mixin.injection.Inject;\nimport org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;\n\n@Mixin(Minecraft.class)\npublic class MinecraftMixin {\n\n    @Inject(method = \"shouldEntityAppearGlowing\", at = @At(value = \"RETURN\"), cancellable = true)\n    public void irons_spellbooks$changeGlowOutline(Entity pEntity, CallbackInfoReturnable<Boolean> cir) {\n        if (Minecraft.getInstance().player == null || pEntity == null || cir.getReturnValue()) {\n            return;\n        }\n        if (ClientConfigs.SUMMONS_GLOW.get() && ClientMagicData.getActiveSummons().contains(pEntity.getUUID())) {\n            cir.setReturnValue(true);\n        } else if (Minecraft.getInstance().player.hasEffect(MobEffectRegistry.PLANAR_SIGHT) && pEntity instanceof LivingEntity && Mth.abs((float) (pEntity.getY() - Minecraft.getInstance().player.getY())) < 18) {\n            cir.setReturnValue(true);\n        }\n    }\n}\n",
+          "excerpt_sha256": "b83bb3a18f98220ed04d7c7040d3e1b94af2b77c761abf83604ac3537793a715",
+          "normalized_excerpt_sha256": "6622756c7b4394ff1a2679458a04210b356ae25941aab9eb200cff7fb4fa27e2",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/mixin/ClientEntityMixin.java",
+          "method": null,
+          "lines": [
+            1,
+            37
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "60bf857bffe8d1001cb65b163d664add82861f9dd00c5641702426fb1d39b0d8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/mixin/ClientEntityMixin.java#L1-L37",
+          "excerpt": "package io.redspace.ironsspellbooks.mixin;\n\nimport io.redspace.ironsspellbooks.config.ClientConfigs;\nimport io.redspace.ironsspellbooks.player.ClientMagicData;\nimport io.redspace.ironsspellbooks.registries.ItemRegistry;\nimport io.redspace.ironsspellbooks.registries.MobEffectRegistry;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.injection.At;\nimport org.spongepowered.asm.mixin.injection.Inject;\nimport org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;\n\n@Mixin(Entity.class)\n\npublic class ClientEntityMixin {\n\n    /**\n     * Necessary see color glowing mob outlines while we have the echolocation effect\n     */\n    @Inject(method = \"getTeamColor\", at = @At(value = \"HEAD\"), cancellable = true)\n    public void changeGlowOutline(CallbackInfoReturnable<Integer> cir) {\n        if (ClientMagicData.getActiveSummons().contains(((Entity) (Object) this).getUUID())) {\n            cir.setReturnValue(ClientConfigs.summonGlowColor);\n        } else if (Minecraft.getInstance().player != null && Minecraft.getInstance().player.hasEffect(MobEffectRegistry.PLANAR_SIGHT)) {\n            cir.setReturnValue(0x6c42f5);\n        } else if ((Entity) (Object) this instanceof ItemEntity item) {\n            if (item.getItem().is(ItemRegistry.DRAGONSKIN.get())) {\n                cir.setReturnValue(0xd21cff);\n            }\n            if (item.getItem().is(ItemRegistry.LIGHTNING_ROD_STAFF.get())) {\n                cir.setReturnValue(0x55FFFF);\n            }\n        }\n    }\n}\n",
+          "excerpt_sha256": "60bf857bffe8d1001cb65b163d664add82861f9dd00c5641702426fb1d39b0d8",
+          "normalized_excerpt_sha256": "b1d97a83ed1f5f761d4bd44b143396d2526ff41f6b8144503afdd6f5df89c969",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+          "method": null,
+          "lines": [
+            1,
+            110
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "214d0eb688e1969d546806c61d5ca27a61de931aac16cfb72f85509047403e82",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java#L1-L110",
+          "excerpt": "package io.redspace.ironsspellbooks.render;\n\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport com.mojang.blaze3d.vertex.VertexConsumer;\nimport io.redspace.ironsspellbooks.IronsSpellbooks;\nimport io.redspace.ironsspellbooks.api.util.Utils;\nimport io.redspace.ironsspellbooks.entity.mobs.abstract_spell_casting_mob.AbstractSpellCastingMob;\nimport io.redspace.ironsspellbooks.registries.ItemRegistry;\nimport io.redspace.ironsspellbooks.registries.MobEffectRegistry;\nimport net.minecraft.client.model.HumanoidModel;\nimport net.minecraft.client.renderer.MultiBufferSource;\nimport net.minecraft.client.renderer.RenderType;\nimport net.minecraft.client.renderer.entity.RenderLayerParent;\nimport net.minecraft.client.renderer.entity.layers.EyesLayer;\nimport net.minecraft.client.renderer.texture.OverlayTexture;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.LivingEntity;\nimport org.joml.Vector3f;\nimport software.bernie.geckolib.cache.object.BakedGeoModel;\nimport software.bernie.geckolib.renderer.GeoEntityRenderer;\nimport software.bernie.geckolib.renderer.layer.GeoRenderLayer;\n\npublic class GlowingEyesLayer {\n    public static final ResourceLocation EYE_TEXTURE = ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"textures/entity/purple_eyes.png\");\n    public static final RenderType EYES = RenderType.eyes(EYE_TEXTURE);\n\n    public static class Vanilla<T extends LivingEntity, M extends HumanoidModel<T>> extends EyesLayer<T, M> {\n\n        public Vanilla(RenderLayerParent pRenderer) {\n            super(pRenderer);\n        }\n\n        @Override\n        public RenderType renderType() {\n            return EYES;\n        }\n\n        @Override\n        public void render(PoseStack poseStack, MultiBufferSource multiBufferSource, int pPackedLight, T livingEntity, float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float netHeadYaw, float headPitch) {\n            var eye = getEyeType(livingEntity);\n            if (eye != EyeType.None) {\n                VertexConsumer vertexconsumer = multiBufferSource.getBuffer(this.renderType());\n\n                //pMatrixStack.translate(0, -eye.yOffset, -eye.forwardOffset);\n                float scale = getEyeScale(livingEntity);\n                poseStack.scale(scale, scale, scale);\n                this.getParentModel().renderToBuffer(poseStack, vertexconsumer, 15728640, OverlayTexture.NO_OVERLAY, Utils.packRGB(new Vector3f(eye.r, eye.g, eye.b)));\n            }\n        }\n    }\n\n    public static class Geo extends GeoRenderLayer<AbstractSpellCastingMob> {\n        public Geo(GeoEntityRenderer<AbstractSpellCastingMob> entityRendererIn) {\n            super(entityRendererIn);\n        }\n\n        @Override\n        public void render(PoseStack poseStack, AbstractSpellCastingMob animatable, BakedGeoModel bakedModel, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {\n            var eye = getEyeType(animatable);\n            if (eye != EyeType.None) {\n                bakedModel.getBone(\"head\").ifPresent((headBone) -> {\n                    var scale = getEyeScale(animatable);\n                    headBone.updateScale(scale, scale, scale);\n\n                    this.getRenderer().renderChildBones(poseStack, animatable, headBone, EYES, bufferSource, buffer, true, partialTick, packedLight, packedOverlay, Utils.packRGB(new Vector3f(eye.r, eye.g, eye.b)) | 0xFF000000);\n                });\n            }\n        }\n    }\n\n    public static EyeType getEyeType(LivingEntity entity) {\n        //Sorted by most prioritized color\n        if (entity.hasEffect(MobEffectRegistry.ABYSSAL_SHROUD))\n            return EyeType.Abyssal;\n        if (entity.hasEffect(MobEffectRegistry.PLANAR_SIGHT))\n            return EyeType.Planar_Sight;\n//        else if (entity.getItemBySlot(EquipmentSlot.HEAD).is(ItemRegistry.SHADOWWALKER_HELMET.get()))\n//            return EyeType.Ender_Armor;\n        else return EyeType.None;\n    }\n\n    public static float getEyeScale(LivingEntity entity) {\n        //Sorted by most prioritized scale (highest to lowest)\n        if (entity.getItemBySlot(EquipmentSlot.HEAD).is(ItemRegistry.SHADOWWALKER_HELMET.get()))\n            return EyeType.Ender_Armor.scale;\n        if (entity.hasEffect(MobEffectRegistry.ABYSSAL_SHROUD))\n            return EyeType.Abyssal.scale;\n        if (entity.hasEffect(MobEffectRegistry.PLANAR_SIGHT))\n            return EyeType.Planar_Sight.scale;\n        else return EyeType.None.scale;\n    }\n\n    public enum EyeType {\n        None(0, 0, 0, 0),\n        Abyssal(1f, 1f, 1f, 1f),\n        Planar_Sight(.42f, .258f, .96f, 1f),\n        Ender_Armor(.816f, 0f, 1f, 1.15f);\n\n        public final float r, g, b, scale;\n\n        EyeType(float r, float g, float b, float scale) {\n            this.r = r;\n            this.g = g;\n            this.b = b;\n            this.scale = scale;\n        }\n    }\n}\n\n",
+          "excerpt_sha256": "214d0eb688e1969d546806c61d5ca27a61de931aac16cfb72f85509047403e82",
+          "normalized_excerpt_sha256": "7f3bea4567e7456a3bc6797ab6e8a12e130bc6b734bc8bb57af4f5a8360381f5",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ClientPlayerEvents.java",
+          "method": "changeFogColor",
+          "lines": [
+            432,
+            446
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "6a475fe7e4a48781c0232c1ce507c8819d87ec7bf6c029780188533ccf1e9aaa",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ClientPlayerEvents.java#L432-L446",
+          "excerpt": "    public static void changeFogColor(ViewportEvent.ComputeFogColor event) {\n        if (Minecraft.getInstance().player != null && Minecraft.getInstance().player.hasEffect(MobEffectRegistry.PLANAR_SIGHT)) {\n            var color = MobEffectRegistry.PLANAR_SIGHT.get().getColor();\n            float f = 0.0F;\n            float f1 = 0.0F;\n            float f2 = 0.0F;\n\n            f += (float) ((color >> 16 & 255)) / 255.0F;\n            f1 += (float) ((color >> 8 & 255)) / 255.0F;\n            f2 += (float) ((color >> 0 & 255)) / 255.0F;\n            event.setRed(f * .15f);\n            event.setGreen(f1 * .15f);\n            event.setBlue(f2 * .15f);\n        }\n    }\n",
+          "excerpt_sha256": "35bb1eb08d629694d01369bbe28bf371e20831e11e2f6c11203aef99dbe3fcb0",
+          "normalized_excerpt_sha256": "5471d6fdd80ab6ebb98f8456a116ef80b5ccb503da7178ca72c52c366f138e57",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/setup/ClientSetup.java",
+          "method": null,
+          "lines": [
+            499,
+            500
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "b4ac1a00d7ac569148913dfbe824ebe9b019924d65154ff620df388d41250715",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/setup/ClientSetup.java#L499-L500",
+          "excerpt": "            // Register Fog mob effects\n            FogRenderer.MOB_EFFECT_FOG.add(new PlanarSightEffect.EcholocationBlindnessFogFunction());\n",
+          "excerpt_sha256": "ff7c031185f46a6267b6059b39a87662e4a95681eeec3d8f57c1a777dbe0415d",
+          "normalized_excerpt_sha256": "1ecd62d2f4b5eb3701dd22712003899a105fb7e9a7190539ee63db609ecd218a",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Complete producer onCast adds self beneficial PLANAR_SIGHT duration spellpower20, amplifierlevel-1 and ignores addEffect return. Effect ISynced complete class: only client localplayer adds3 whiteash each applytick, fogfunction sky start0/end40 vs terrain start-80/end160. Actual ClientSetup foglist registration read in enclosing setup excerpt only, not claim whole setup method. ComputeFogColor subscribed method keys localplayer activeeffect, applies effect RGB times.15. Minecraft RETURN outline mixin preserves existing true/null guards; summons condition wins, else localplayer effect and any Living with absolute Ydelta<18 makes outline true. No horizontal radius or enemy/immune test here. Teamcolor HEAD mixin prioritizes tracked summons, then localplayer effect purple, then item cases; not target-owned immunity. GlowingEyesLayer complete class chooses subject owneffect, Abyssal before Planar for color; scale prioritizes headgear then Abyssal then Planar. Actual layering methods read, no claim all renderers attach it.",
+      "application_to_boss_immune": "Useful negative boundary: observer buff outline, own eye color and fog are distinct from server target immunity/admission. Never label purple outline as immune outcome; target ordinary active effect sync alreadycovered052. This can inform feedback separation but supplies no new independent boss resistance/rejection implementation.",
+      "semantic_dedup": "Support0 only after reading real chain; do not count fog shader, RGB, particles, outline, eyes or same registration wrappers as separate implementations. No new candidate submitted for credit. Shared sync chain remains prior support, no repackage.",
+      "limitations": "No actual client/native render run, no source modification. Forge/NeoForge version mismatch remains. Only exact setup registration lines plus context read, not all ClientSetup. Full transport/event attachment not newly closed; cannot infer runtime rendering or immunity. Pin/source checks are integrity only."
+    }
+  ],
+  "exclusions": [
+    "Actual visual-only chain rejected as independent immune unit; zero new proposals, not filler.",
+    "Next research must switch to independent admission/rejection or resistance feedback rather than more visual constant variants.",
+    "Launcher preexec delta closed read-only against800c27cd; no ready/launcher execution/game."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

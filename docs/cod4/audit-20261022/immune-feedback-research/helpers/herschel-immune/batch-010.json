@@ -1,0 +1,674 @@
+{
+  "batch": "herschel-immune-010",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 6,
+  "pending_primary_review_units": 2,
+  "support_only_units": 4,
+  "rows": [
+    {
+      "id": "herschel-010-01",
+      "semantic_dedup_key": "werewolves-transformed-fur-tag-skill-conjunctive-native-incoming-denial",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/ModPlayerEventHandler.java",
+          "method": "onEntityIncomingDamage",
+          "lines": [
+            206,
+            228
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "3be52a47821eac525ff067b6678e279805a672856d0627b2b0f903ca5fbca8aa",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/ModPlayerEventHandler.java#L206-L228",
+          "excerpt": "    public void onEntityIncomingDamage(LivingIncomingDamageEvent event) {\n        if (event.getEntity() instanceof Player player && Helper.isWerewolf(player)) {\n            WerewolfPlayer werewolf = WerewolfPlayer.get(player);\n            ISkillHandler<IWerewolfPlayer> skillHandler = werewolf.getSkillHandler();\n            if (event.getSource().is(ModTags.DamageTypes.WEREWOLF_FUR_IMMUNE) && werewolf.getForm().isTransformed() && skillHandler.isSkillEnabled(ModSkills.WOLF_PAWN.get())) {\n                event.setCanceled(true);\n            }\n\n            if (werewolf.getForm() == WerewolfForm.SURVIVALIST) {\n                if (player.getDeltaMovement().lengthSqr() > 0.01 && skillHandler.isSkillEnabled(ModSkills.ARROW_AWARENESS.get()) && event.getSource().is(DamageTypes.ARROW) && event.getEntity().getRandom().nextFloat() < 0.4) {\n                    event.setCanceled(true);\n                } else if (player.isSprinting() && event.getSource().getEntity() != null && skillHandler.isSkillEnabled(ModSkills.MOVEMENT_TACTICS.get())) {\n                    float limit = WerewolvesConfig.BALANCE.SKILLS.movement_tactics_doge_chance.get().floatValue();\n                    if (skillHandler.isRefinementEquipped(ModRefinements.GREATER_DOGE_CHANCE.get())) {\n                        limit += WerewolvesConfig.BALANCE.REFINEMENTS.greater_doge_chance.get().floatValue();\n                    }\n                    if (player.getRandom().nextFloat() < limit) {\n                        event.setCanceled(true);\n                    }\n                }\n            }\n        }\n    }\n",
+          "excerpt_sha256": "568d5c389d8995a79ec415be3721ccd77dacf540472e277bbfc509941d0f8da9",
+          "normalized_excerpt_sha256": "0a63c4e4787ca23dd47465434c767e56d20aa33029b7653aa6e97256bbc84d4a",
+          "prior_helper_exact_normalized_matches": [],
+          "decision_focus": {
+            "lines": [
+              210,
+              212
+            ],
+            "excerpt": "            if (event.getSource().is(ModTags.DamageTypes.WEREWOLF_FUR_IMMUNE) && werewolf.getForm().isTransformed() && skillHandler.isSkillEnabled(ModSkills.WOLF_PAWN.get())) {\n                event.setCanceled(true);\n            }\n",
+            "excerpt_sha256": "b4fbc333d7bc018151324f632f66a09f6341a136d541a8e9440225f3cc3842b0"
+          }
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java",
+          "method": "WerewolvesMod",
+          "lines": [
+            72,
+            109
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "ad6e26201b1ff0be530913c48a1471e7889e9e092c441a935bcb0d191e280612",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java#L72-L109",
+          "excerpt": "    public WerewolvesMod(IEventBus modEventBus, ModContainer modContainer) {\n        WerewolvesMod.instance = this;\n        registryManager = new RegistryManager(modEventBus);\n        WUtils.init();\n\n        Optional<? extends ModContainer> opt = ModList.get().getModContainerById(REFERENCE.VMODID);\n        if (opt.isPresent()) {\n            REFERENCE.VERSION = opt.get().getModInfo().getVersion();\n        } else {\n            LOGGER.warn(\"Cannot get version from mod info\");\n        }\n\n        modEventBus.addListener(this::setup);\n        modEventBus.addListener(this::loadComplete);\n        modEventBus.addListener(this::processIMC);\n        modEventBus.addListener(this::enqueueIMC);\n        modEventBus.addListener(this::setUpClient);\n        modEventBus.addListener(this::registerCapabilities);\n        modEventBus.addListener(this::blockRegister); // First event after mod init. Faction can only be registered after VampirismMod's constructor\n        modEventBus.register(ModPacketDispatcher.class);\n\n        if (FMLEnvironment.dist == Dist.CLIENT) {\n            modEventBus.register(new WerewolvesModClient(modEventBus, this.registryManager));\n        }\n\n        NeoForge.EVENT_BUS.register(this);\n        NeoForge.EVENT_BUS.register(Permissions.class);\n\n        if (ModList.get().isLoaded(\"guideapi_vp\")) {\n            NeoForge.EVENT_BUS.addListener(WerewolvesGuideBook::onVampirismGuideBookCategoriesEvent);\n        }\n\n        RegistryManager.setupRegistries(modEventBus);\n        WerewolvesBiomeFeatures.register(modEventBus);\n        modEventBus.addListener(ModItems::registerOtherCreativeTabItems);\n\n        WerewolvesConfig.registerConfigs(modEventBus, modContainer);\n    }\n",
+          "excerpt_sha256": "fe4298088d3daa893337af7d67f91b9cd025c504fa045064a8d12cc327340008",
+          "normalized_excerpt_sha256": "a2951163f5f1bbd4251a32e449e13532113a93048ab9cb590d7f38a9499c5183",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java",
+          "method": "setup",
+          "lines": [
+            154,
+            164
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "ad6e26201b1ff0be530913c48a1471e7889e9e092c441a935bcb0d191e280612",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java#L154-L164",
+          "excerpt": "    private void setup(final @NotNull FMLCommonSetupEvent event) {\n        setupAPI();\n\n        registryManager.onInitStep(IInitListener.Step.COMMON_SETUP, event);\n        proxy.onInitStep(IInitListener.Step.COMMON_SETUP, event);\n\n        NeoForge.EVENT_BUS.register(new ModEntityEventHandler());\n        NeoForge.EVENT_BUS.register(new ModPlayerEventHandler());\n        NeoForge.EVENT_BUS.register(new GeneralEventHandler());\n        event.enqueueWork(TerraBlenderCompat::registerBiomeProviderIfPresentUnsafe);\n    }\n",
+          "excerpt_sha256": "d6803179e1a21ee314b02ef0d1189d1d78400b55a3891daf1f7e7e1feed56817",
+          "normalized_excerpt_sha256": "28f1d36d1801a2550c30819064f38bede4f3845ac7d09fde2ba4f95f2b0eb9c8",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+          "method": "get",
+          "lines": [
+            79,
+            81
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L79-L81",
+          "excerpt": "    public static WerewolfPlayer get(@Nonnull Player playerEntity) {\n        return playerEntity.getData(ModAttachments.WEREWOLF_PLAYER);\n    }\n",
+          "excerpt_sha256": "8dab4902ee98e78d160ca02257c071d07d476d6fec35613656be5a73ebba17a1",
+          "normalized_excerpt_sha256": "5da6d1524d07d7e8569e21a4f35f994cf02a2c2f02a28772441455ed82a62ef6",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+          "method": "getForm",
+          "lines": [
+            132,
+            134
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L132-L134",
+          "excerpt": "    public WerewolfForm getForm() {\n        return this.form;\n    }\n",
+          "excerpt_sha256": "2e15780418f8be44bf0a745084b5ab254e7c6046edc486b7f0630f51ccc5bcfe",
+          "normalized_excerpt_sha256": "1a50043d91d5bbb98f772666563ae8761f51677ab4f95698fcaaf443dc70162a",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "原生LivingIncomingDamage的受害者必须Player且Helper.isWerewolf；WEREWOLF_FUR_IMMUNE来源tag、当前form.isTransformed与WOLF_PAWN技能三者同时成立才cancel。没有声音、粒子、文字或按目标冷却。该if后没有return，因此仍继续本方法的SURVIVALIST随机分支；不能把cancel当整条函数立即退出。",
+      "application_to_boss_immune": "对拒伤原因明确标记条件组合；普通体质/技能拒伤不等同Boss免控，也不要求生成Boss灰字。",
+      "semantic_dedup": "同一完整206..228方法内210..212为本条固定焦点；下一条214..226是不同的运动概率决策，不按来源tag成员/技能常量拆。Russell可合并；本助手credit0。",
+      "limitations": [
+        "WEREWOLF_FUR_IMMUNE数据tag成员、Helper.isWerewolf及技能获取实现缺固定缓存，不声称具体火/落伤列表或生存可达性。",
+        "事件注册入口setup完整已读；没有真实运行拒伤验收。"
+      ]
+    },
+    {
+      "id": "herschel-010-02",
+      "semantic_dedup_key": "werewolves-survivalist-motion-conditioned-two-stage-dodge-no-clamp",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/ModPlayerEventHandler.java",
+          "method": "onEntityIncomingDamage",
+          "lines": [
+            206,
+            228
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "3be52a47821eac525ff067b6678e279805a672856d0627b2b0f903ca5fbca8aa",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/ModPlayerEventHandler.java#L206-L228",
+          "excerpt": "    public void onEntityIncomingDamage(LivingIncomingDamageEvent event) {\n        if (event.getEntity() instanceof Player player && Helper.isWerewolf(player)) {\n            WerewolfPlayer werewolf = WerewolfPlayer.get(player);\n            ISkillHandler<IWerewolfPlayer> skillHandler = werewolf.getSkillHandler();\n            if (event.getSource().is(ModTags.DamageTypes.WEREWOLF_FUR_IMMUNE) && werewolf.getForm().isTransformed() && skillHandler.isSkillEnabled(ModSkills.WOLF_PAWN.get())) {\n                event.setCanceled(true);\n            }\n\n            if (werewolf.getForm() == WerewolfForm.SURVIVALIST) {\n                if (player.getDeltaMovement().lengthSqr() > 0.01 && skillHandler.isSkillEnabled(ModSkills.ARROW_AWARENESS.get()) && event.getSource().is(DamageTypes.ARROW) && event.getEntity().getRandom().nextFloat() < 0.4) {\n                    event.setCanceled(true);\n                } else if (player.isSprinting() && event.getSource().getEntity() != null && skillHandler.isSkillEnabled(ModSkills.MOVEMENT_TACTICS.get())) {\n                    float limit = WerewolvesConfig.BALANCE.SKILLS.movement_tactics_doge_chance.get().floatValue();\n                    if (skillHandler.isRefinementEquipped(ModRefinements.GREATER_DOGE_CHANCE.get())) {\n                        limit += WerewolvesConfig.BALANCE.REFINEMENTS.greater_doge_chance.get().floatValue();\n                    }\n                    if (player.getRandom().nextFloat() < limit) {\n                        event.setCanceled(true);\n                    }\n                }\n            }\n        }\n    }\n",
+          "excerpt_sha256": "568d5c389d8995a79ec415be3721ccd77dacf540472e277bbfc509941d0f8da9",
+          "normalized_excerpt_sha256": "0a63c4e4787ca23dd47465434c767e56d20aa33029b7653aa6e97256bbc84d4a",
+          "prior_helper_exact_normalized_matches": [],
+          "decision_focus": {
+            "lines": [
+              214,
+              226
+            ],
+            "excerpt": "            if (werewolf.getForm() == WerewolfForm.SURVIVALIST) {\n                if (player.getDeltaMovement().lengthSqr() > 0.01 && skillHandler.isSkillEnabled(ModSkills.ARROW_AWARENESS.get()) && event.getSource().is(DamageTypes.ARROW) && event.getEntity().getRandom().nextFloat() < 0.4) {\n                    event.setCanceled(true);\n                } else if (player.isSprinting() && event.getSource().getEntity() != null && skillHandler.isSkillEnabled(ModSkills.MOVEMENT_TACTICS.get())) {\n                    float limit = WerewolvesConfig.BALANCE.SKILLS.movement_tactics_doge_chance.get().floatValue();\n                    if (skillHandler.isRefinementEquipped(ModRefinements.GREATER_DOGE_CHANCE.get())) {\n                        limit += WerewolvesConfig.BALANCE.REFINEMENTS.greater_doge_chance.get().floatValue();\n                    }\n                    if (player.getRandom().nextFloat() < limit) {\n                        event.setCanceled(true);\n                    }\n                }\n            }\n",
+            "excerpt_sha256": "a2fa806a811444cd311b8efd7029f2bcf61dbb71c73006bb85977de82b549839"
+          }
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java",
+          "method": "WerewolvesMod",
+          "lines": [
+            72,
+            109
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "ad6e26201b1ff0be530913c48a1471e7889e9e092c441a935bcb0d191e280612",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java#L72-L109",
+          "excerpt": "    public WerewolvesMod(IEventBus modEventBus, ModContainer modContainer) {\n        WerewolvesMod.instance = this;\n        registryManager = new RegistryManager(modEventBus);\n        WUtils.init();\n\n        Optional<? extends ModContainer> opt = ModList.get().getModContainerById(REFERENCE.VMODID);\n        if (opt.isPresent()) {\n            REFERENCE.VERSION = opt.get().getModInfo().getVersion();\n        } else {\n            LOGGER.warn(\"Cannot get version from mod info\");\n        }\n\n        modEventBus.addListener(this::setup);\n        modEventBus.addListener(this::loadComplete);\n        modEventBus.addListener(this::processIMC);\n        modEventBus.addListener(this::enqueueIMC);\n        modEventBus.addListener(this::setUpClient);\n        modEventBus.addListener(this::registerCapabilities);\n        modEventBus.addListener(this::blockRegister); // First event after mod init. Faction can only be registered after VampirismMod's constructor\n        modEventBus.register(ModPacketDispatcher.class);\n\n        if (FMLEnvironment.dist == Dist.CLIENT) {\n            modEventBus.register(new WerewolvesModClient(modEventBus, this.registryManager));\n        }\n\n        NeoForge.EVENT_BUS.register(this);\n        NeoForge.EVENT_BUS.register(Permissions.class);\n\n        if (ModList.get().isLoaded(\"guideapi_vp\")) {\n            NeoForge.EVENT_BUS.addListener(WerewolvesGuideBook::onVampirismGuideBookCategoriesEvent);\n        }\n\n        RegistryManager.setupRegistries(modEventBus);\n        WerewolvesBiomeFeatures.register(modEventBus);\n        modEventBus.addListener(ModItems::registerOtherCreativeTabItems);\n\n        WerewolvesConfig.registerConfigs(modEventBus, modContainer);\n    }\n",
+          "excerpt_sha256": "fe4298088d3daa893337af7d67f91b9cd025c504fa045064a8d12cc327340008",
+          "normalized_excerpt_sha256": "a2951163f5f1bbd4251a32e449e13532113a93048ab9cb590d7f38a9499c5183",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java",
+          "method": "setup",
+          "lines": [
+            154,
+            164
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "ad6e26201b1ff0be530913c48a1471e7889e9e092c441a935bcb0d191e280612",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java#L154-L164",
+          "excerpt": "    private void setup(final @NotNull FMLCommonSetupEvent event) {\n        setupAPI();\n\n        registryManager.onInitStep(IInitListener.Step.COMMON_SETUP, event);\n        proxy.onInitStep(IInitListener.Step.COMMON_SETUP, event);\n\n        NeoForge.EVENT_BUS.register(new ModEntityEventHandler());\n        NeoForge.EVENT_BUS.register(new ModPlayerEventHandler());\n        NeoForge.EVENT_BUS.register(new GeneralEventHandler());\n        event.enqueueWork(TerraBlenderCompat::registerBiomeProviderIfPresentUnsafe);\n    }\n",
+          "excerpt_sha256": "d6803179e1a21ee314b02ef0d1189d1d78400b55a3891daf1f7e7e1feed56817",
+          "normalized_excerpt_sha256": "28f1d36d1801a2550c30819064f38bede4f3845ac7d09fde2ba4f95f2b0eb9c8",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+          "method": "getForm",
+          "lines": [
+            132,
+            134
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L132-L134",
+          "excerpt": "    public WerewolfForm getForm() {\n        return this.form;\n    }\n",
+          "excerpt_sha256": "2e15780418f8be44bf0a745084b5ab254e7c6046edc486b7f0630f51ccc5bcfe",
+          "normalized_excerpt_sha256": "1a50043d91d5bbb98f772666563ae8761f51677ab4f95698fcaaf443dc70162a",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "SURVIVALIST形态：速度向量lengthSqr>0.01、ARROW_AWARENESS技能、精确DamageTypes.ARROW且random<0.4时cancel。else-if绑定整个箭条件（含roll），所以箭roll失败后仍可进入疾跑+有causing entity+MOVEMENT_TACTICS的第二次roll；第二门chance为配置+已装备refinement加值，代码不clamp。非Player、不在形态或其它来源不自动免疫。",
+      "application_to_boss_immune": "多阶段拒绝的原因/反馈必须跟最终实际分支一致，不能把箭40%误写成全部命中最终40%；动作状态和攻击来源要参与权威判定。",
+      "semantic_dedup": "同一containing方法保留固定214..226焦点；箭/疾跑两子roll合并一个运动闪避策略，不拆成2。与上一条稳定tag门不同，是否独立最终由主岗判断。",
+      "limitations": [
+        "配置实际值、获取/同步技能链未缓存，不能给出第二门默认概率或已测合成概率。",
+        "没有源类型标签泛化到所有投射物；没有拒伤声光/灰字实现。"
+      ]
+    },
+    {
+      "id": "herschel-010-03",
+      "semantic_dedup_key": "werewolves-bite-result-qualifies-stun-attempt-and-cooldown-before-effect-acceptance",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+          "method": "bite",
+          "lines": [
+            405,
+            411
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L405-L411",
+          "excerpt": "    public boolean bite(int entityId) {\n        Entity entity = this.player.level().getEntity(entityId);\n        if (entity instanceof LivingEntity) {\n            return bite(((LivingEntity) entity));\n        }\n        return false;\n    }\n",
+          "excerpt_sha256": "4bfd5915c5d84d863833c77789bfe4a71134e71e09ecf0b05a4fe6baa3ea94ac",
+          "normalized_excerpt_sha256": "05c354a8b3aa68ddee7b0fc7d8eafa176d7695f6ce776babf6574b379f5c4cb9",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+          "method": "bite",
+          "lines": [
+            413,
+            443
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L413-L443",
+          "excerpt": "    private boolean bite(LivingEntity entity) {\n        if (this.specialAttributes.biteTicks > 0) return false;\n        if (!this.form.isTransformed()) return false;\n        if (!canBite()) return false;\n        if (!canBiteEntity(entity)) return false;\n        double damage = this.player.getAttribute(ModAttributes.BITE_DAMAGE).getValue();\n        boolean flag = DamageHandler.hurtModded(entity, (ModDamageSources sources) -> sources.bite(this.player), (float) damage);\n        if (flag) {\n            this.getRepresentingPlayer().playSound(ModSounds.ENTITY_WEREWOLF_BITE.get(), 1.0F, 1.0F);\n            this.getRepresentingPlayer().playNotifySound(ModSounds.ENTITY_WEREWOLF_BITE.get(), SoundSource.PLAYERS, 1.0F, 1.0F);\n            this.eatEntity(entity);\n            this.specialAttributes.biteTicks = WerewolvesConfig.BALANCE.PLAYER.bite_cooldown.get();\n            if (!getForm().isHumanLike()) {\n                if (this.skillHandler.isSkillEnabled(ModSkills.STUN_BITE.get())) {\n                    int duration = WerewolvesConfig.BALANCE.SKILLS.stun_bite_duration.get();\n                    if (this.skillHandler.isRefinementEquipped(ModRefinements.STUN_BITE.get())) {\n                        duration += WerewolvesConfig.BALANCE.REFINEMENTS.stun_bite_duration_extend.get();\n                    }\n                    entity.addEffect(new MobEffectInstance(ModEffects.STUN, duration));\n                }\n                if (this.skillHandler.isSkillEnabled(ModSkills.BLEEDING_BITE.get())) {\n                    entity.addEffect(new MobEffectInstance(ModEffects.BLEEDING, WerewolvesConfig.BALANCE.SKILLS.bleeding_bite_duration.get(), this.skillHandler.isRefinementEquipped(ModRefinements.BLEEDING_BITE.get()) ? 3 : 0));\n                }\n            }\n            this.sync(NBTHelper.nbtWith(nbt -> nbt.putInt(\"biteTicks\", this.specialAttributes.biteTicks)), false);\n            if (!(entity instanceof ServerPlayer) || PermissionAPI.getPermission((ServerPlayer) this.getRepresentingPlayer(), Permissions.INFECT_PLAYER)) {\n                LupusSanguinemEffect.infectRandomByPlayer(entity);\n            }\n        }\n        return flag;\n    }\n",
+          "excerpt_sha256": "0ed88d98215660a21e83cea7f6c041ab75f6887aeefc08f8169c7f9a0f96ba56",
+          "normalized_excerpt_sha256": "f3fd38d1a116e228bd680f8b48c731b8e9d7689d89456071b8ee87f9873920f3",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+          "method": "canBite",
+          "lines": [
+            401,
+            403
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L401-L403",
+          "excerpt": "    public boolean canBite() {\n        return this.form.isTransformed() && !this.player.isSpectator() && this.getLevel() > 0 && this.specialAttributes.biteTicks <= 0 && (!(player instanceof ServerPlayer) || PermissionAPI.getPermission((ServerPlayer) this.getRepresentingPlayer(), Permissions.BITE));\n    }\n",
+          "excerpt_sha256": "7e7d41368bdcbbd11cc470f1db7fcddf61d6b35b3f5d12c9fd881b2b19757cf2",
+          "normalized_excerpt_sha256": "a6ff67a2cf6dace660fa48ea23c2e3dbfd96104eaafcc5ba39153c989e2138f8",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+          "method": "canBiteEntity",
+          "lines": [
+            397,
+            399
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L397-L399",
+          "excerpt": "    public boolean canBiteEntity(LivingEntity entity) {\n        return entity.distanceTo(this.player) <= this.player.getAttribute(Attributes.BLOCK_INTERACTION_RANGE).getValue() + 1 && (!(entity instanceof ServerPlayer) || PermissionAPI.getPermission((ServerPlayer) this.getRepresentingPlayer(), Permissions.BITE_PLAYER));\n    }\n",
+          "excerpt_sha256": "8c40ade03a68dfd945991ed56bd7b82d9dd79b93c74c8c59417f51f95d40c89c",
+          "normalized_excerpt_sha256": "f59dadf289069b113c0d2969ea28becb3eb26aefa62f4ca03db82b511b17f86c",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java",
+          "method": "onUpdate",
+          "lines": [
+            195,
+            290
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "fcc3318ee3d1903c4e3b1c4a33fb6fab544f751414ffe44dd52f4233cbad175a",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/WerewolfPlayer.java#L195-L290",
+          "excerpt": "    public void onUpdate() {\n        this.player.getCommandSenderWorld().getProfiler().push(\"werewolves_werewolfplayer\");\n        super.onUpdate();\n        if (getLevel() > 0) {\n            if (!isRemote()) {\n                boolean sync = false;\n                boolean syncToAll = false;\n                CompoundTag syncPacket = new CompoundTag();\n                if (this.actionHandler.updateActions()) {\n                    sync = true;\n                    syncToAll = true;\n                    syncPacket.put(this.actionHandler.nbtKey(), this.actionHandler.serializeUpdateNBT(this.player.registryAccess()));\n                }\n                if (this.skillHandler.isDirty()) {\n                    sync = true;\n                    syncToAll = true;\n                    syncPacket.put(this.skillHandler.nbtKey(), this.skillHandler.serializeUpdateNBT(this.player.registryAccess()));\n                }\n                if (this.player.level().getGameTime() % 10 == 0) {\n                    if (this.specialAttributes.transformationTime > 0 && !FormHelper.isFormActionActive(this)) {\n                        this.specialAttributes.transformationTime = Mth.clamp(this.specialAttributes.transformationTime - player.getAttribute(ModAttributes.TIME_REGAIN).getValue(), 0, 1);\n                        syncPacket.putDouble(\"transformationTime\", this.specialAttributes.transformationTime);\n                    }\n                    if (this.player.level().getGameTime() % 20 == 0) {\n                        if (Helper.isFullMoon(this.getRepresentingPlayer().getCommandSenderWorld())) {\n                            if (!FormHelper.isFormActionActive(this) && !this.skillHandler.isSkillEnabled(ModSkills.FREE_WILL.get())) {\n                                Optional<? extends IAction<IWerewolfPlayer>> action = lastFormAction != null ? Optional.of(lastFormAction) : WerewolfFormAction.getAllAction().stream().filter(this.actionHandler::isActionUnlocked).findAny();\n                                action.ifPresent(a -> this.actionHandler.toggleAction(a, new ActionHandler.ActivationContext()));\n                            }\n                        }\n\n                        if (this.player.isInWater() && this.player.isEyeInFluidType(NeoForgeMod.WATER_TYPE.value()) && !this.skillHandler.isSkillEnabled(ModSkills.WATER_LOVER.get())) {\n                            this.player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 50, 0, true, true));\n                        }\n                    }\n                }\n\n                if (this.skillHandler.isSkillEnabled(ModSkills.HEALTH_REG.get())) {\n                    this.tickFoodStats();\n                }\n\n                if (sync) {\n                    sync(syncPacket, syncToAll);\n                }\n\n                MobEffectInstance effect = this.player.getEffect(MobEffects.NIGHT_VISION);\n                if (this.getForm().isTransformed() && this.specialAttributes.night_vision) {\n                    if (effect == null || !VReference.PERMANENT_INVISIBLE_MOB_EFFECT.equals(((EffectInstanceWithSource) effect).getSource())) {\n                        if (effect != null) {\n                            player.removeEffectNoUpdate(effect.getEffect());\n                        }\n                        player.addEffect(new WerewolfNightVisionEffectInstance(effect));\n                    }\n                } else {\n                    if (effect != null && VReference.PERMANENT_INVISIBLE_MOB_EFFECT.equals(((EffectInstanceWithSource)effect).getSource())) {\n                        this.player.removeEffect(effect.getEffect());\n                        effect = ((EffectInstanceWithSource) effect).getHiddenEffect();\n                        if (effect != null) {\n                            this.player.addEffect(effect);\n                        }\n                    }\n                }\n\n                if (this.player.tickCount % de.teamlapen.vampirism.REFERENCE.REFRESH_GARLIC_TICKS == 0 && this.isAffectedByWolfsbane(this.player.level(), true)) {\n                    this.player.addEffect(WolfsbaneEffect.createWolfsbaneEffect(this.player, de.teamlapen.vampirism.REFERENCE.REFRESH_GARLIC_TICKS + 10, this.wolfsbaneCache));\n                }\n            } else {\n\n                this.actionHandler.updateActions();\n\n                if (this.player.level().getGameTime() % 10 == 0) {\n                    if (this.specialAttributes.transformationTime > 0 && !FormHelper.isFormActionActive(this)) {\n                        this.specialAttributes.transformationTime = Mth.clamp(this.specialAttributes.transformationTime - ((float) player.getAttribute(ModAttributes.TIME_REGAIN).getValue()), 0, 1);\n                    }\n                }\n\n                MobEffectInstance effect = this.player.getEffect(MobEffects.NIGHT_VISION);\n                if (this.getForm().isTransformed() && this.specialAttributes.night_vision && !(effect instanceof WerewolfNightVisionEffectInstance)) {\n                    player.removeEffectNoUpdate(MobEffects.NIGHT_VISION);\n                    player.addEffect(new WerewolfNightVisionEffectInstance());\n                }\n            }\n\n            this.specialAttributes.biteTicks = Math.max(0, this.specialAttributes.biteTicks - 1);\n\n        } else if (!this.isRemote() && this.player.isSleeping() && this.player.hasEffect(ModEffects.LUPUS_SANGUINEM)) {\n            if (this.sleepTimer++ >= 200) {\n                this.player.getEffect(ModEffects.LUPUS_SANGUINEM).tick(this.player, () -> {});\n                this.player.removeEffect(ModEffects.LUPUS_SANGUINEM);\n                this.player.stopSleeping();\n            }\n        } else {\n            this.sleepTimer = 0;\n        }\n        this.player.getCommandSenderWorld().getProfiler().pop();\n    }\n",
+          "excerpt_sha256": "3699a253c2ce0761cba22214dcfb8a5880bff6a0b5b9dbb08fc4c46c43eb0752",
+          "normalized_excerpt_sha256": "ac7cba1a386617ee4829667f32fa9eefa7eadf9447a6257468c3723ce0e49a91",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/effects/StunEffect.java",
+          "method": "applyEffectTick",
+          "lines": [
+            14,
+            17
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "2069a94d813d2f7e8cc736e93b4c642ee5a49f8732871b3a0b84add3d2009d69",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/effects/StunEffect.java#L14-L17",
+          "excerpt": "    public boolean applyEffectTick(LivingEntity pLivingEntity, int pAmplifier) {\n        pLivingEntity.setDeltaMovement(0, Math.min(0, pLivingEntity.getDeltaMovement().y()), 0);\n        return true;\n    }\n",
+          "excerpt_sha256": "a1d3c932499491be962e62c1806acdabb69b0d8879fff4aff9f61ae09d680f3c",
+          "normalized_excerpt_sha256": "bc858db0457e9883e075f1d329a4a6d6581be08fd4a21013a31f37ac82451a0a",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/effects/StunEffect.java",
+          "method": "shouldApplyEffectTickThisTick",
+          "lines": [
+            20,
+            22
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "2069a94d813d2f7e8cc736e93b4c642ee5a49f8732871b3a0b84add3d2009d69",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/effects/StunEffect.java#L20-L22",
+          "excerpt": "    public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {\n        return true;\n    }\n",
+          "excerpt_sha256": "8b1a44419b507cb80d42cfe56d2839a7b61d39c86648e92ad047f884f9cd20f7",
+          "normalized_excerpt_sha256": "9e974584b766bad5995c25f1bb76a64ee0cfd5bb869fd9dca0f6cbcc81fefe03",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/client/core/ModKeys.java",
+          "method": "handleInputEvent",
+          "lines": [
+            58,
+            82
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "c393ae66b467a8cc8523ba5c50fdb386e58738f082b4f94eb46b3d1de29e3bc3",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/client/core/ModKeys.java#L58-L82",
+          "excerpt": "    public void handleInputEvent(InputEvent event) {\n        Optional<KeyMapping> keyOpt = getPressedKeyBinding();\n        keyOpt.ifPresent(key -> {\n            LocalPlayer player = Minecraft.getInstance().player;\n            if (key == LEAP && Minecraft.getInstance().options.keyJump.isDown()) {\n                if (Helper.isWerewolf(player)) {\n                    WerewolfPlayer werewolf = WerewolfPlayer.get(player);\n                    if (!werewolf.getActionHandler().isActionOnCooldown(ModActions.LEAP.get()) && werewolf.getForm().isTransformed()) {\n                        player.connection.send(new ServerboundSimpleInputEventPacket(ServerboundSimpleInputEventPacket.Action.LEAP));\n                        werewolf.getActionHandler().toggleAction(ModActions.LEAP.get(), new ActionHandler.ActivationContext());\n                    }\n                }\n            } else if (key == BITE) {\n                if (Helper.isWerewolf(player)) {\n                    WerewolfPlayer werewolf = WerewolfPlayer.get(player);\n                    HitResult mouseOver = Minecraft.getInstance().hitResult;\n                    Entity entity = mouseOver instanceof EntityHitResult ? ((EntityHitResult) mouseOver).getEntity() : null;\n                    if (entity instanceof LivingEntity && werewolf.canBite() && werewolf.canBiteEntity(((LivingEntity) entity))) {\n                        player.connection.send(new ServerboundBiteEventPackage(((EntityHitResult) mouseOver).getEntity().getId()));\n                        clientEventHandler.onZoomPressed();\n                    }\n                }\n            }\n        });\n    }\n",
+          "excerpt_sha256": "eebee075c287181f166c9a560bc5275321bf6276d8fe9db58c99e9a83cf531cc",
+          "normalized_excerpt_sha256": "e36be1cacbbb83f6370a50e10d4d785eb90c00568a704e12694db403c50de6a5",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/client/core/ClientEventHandler.java",
+          "method": "onZoomPressed",
+          "lines": [
+            97,
+            101
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "7a61772f0a8d2b8659ac5ff4585ddd233c5b93a31364ec60554321365de68e75",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/client/core/ClientEventHandler.java#L97-L101",
+          "excerpt": "    public void onZoomPressed() {\n        this.zoomTime = 20;\n        this.zoomAmount = Minecraft.getInstance().options.fov().get() / 4f / this.zoomTime;\n        this.zoomModifier = Minecraft.getInstance().options.fov().get() - Minecraft.getInstance().options.fov().get() / 4f;\n    }\n",
+          "excerpt_sha256": "1faeb483307c835871f1e4067aeb56b914544899e5816f200739e4b5f4184fbc",
+          "normalized_excerpt_sha256": "8a2f298f6b8372e3d50aa3673f5f8fc98f5fb24b579aa2da58415018eb88e047",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/client/core/ClientEventHandler.java",
+          "method": "onFOVModifier",
+          "lines": [
+            50,
+            56
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "7a61772f0a8d2b8659ac5ff4585ddd233c5b93a31364ec60554321365de68e75",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/client/core/ClientEventHandler.java#L50-L56",
+          "excerpt": "    public void onFOVModifier(ViewportEvent.ComputeFov event) {\n        if (this.zoomTime > 0) {\n            event.setFOV(event.getFOV() - this.zoomModifier);\n            this.zoomModifier -= this.zoomAmount;\n            --this.zoomTime;\n        }\n    }\n",
+          "excerpt_sha256": "bc2153f626e838018890f64becd76ed6a8bdc21ebeb578bd7f1f0412f4c27781",
+          "normalized_excerpt_sha256": "246d01a3bc9234d01ddd26abb55d9b57ba43b15941b748b355f8aaaeca3e1b50",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "同level整数entityId解析Living后，bite检查biteTicks/形态/等级/spectator/玩家权限与距离（BLOCK_INTERACTION_RANGE+1）。DamageHandler.hurtModded返回flag为true才发两类bite声、写biteTicks、尝试STUN/BLEEDING并同步；addEffect返回值忽略。Stun每tick将XZ清0、Y设min(0,Y)，不是全轴冻结。onUpdate仅level>0时两侧biteTicks减1。客户端原生按键发ServerboundBiteEventPackage后立即onZoomPressed；FOV20次回调衰减，与服务端flag无确认关联。",
+      "application_to_boss_immune": "受伤flag、状态接纳、控制生效、声音和客户端预测视野必须分开；付冷却不证明眩晕被Boss接纳。仅静态阅读视野代码，未操作camera。",
+      "semantic_dedup": "MPS009已有原生hurt布尔门控副作用家族；本链因缺原版本DamageHandler/实际C2S handler/效果注册，保留支持0，不将Stun与Bleeding两个常量各算1。",
+      "limitations": [
+        "Vampirism缓存是另版本/包路径，不能桥接冒充此固定提交DamageHandler全文。",
+        "没有C2S网络执行/实际镜头变化证明；不声称flag必然等于原生HP损失。"
+      ]
+    },
+    {
+      "id": "herschel-010-04",
+      "semantic_dedup_key": "werewolves-fear-direct-native-ai-reset-without-status-denial-chain",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/actions/FearAction.java",
+          "method": "activate",
+          "lines": [
+            22,
+            32
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "009e9ff64e161887ba1371e265cda8526f14cd9f4c65bb2b4a4b43835352a3c0",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/actions/FearAction.java#L22-L32",
+          "excerpt": "    protected boolean activate(IWerewolfPlayer iWerewolfPlayer, ActivationContext context) {\n        WerewolfPlayer player = ((WerewolfPlayer) iWerewolfPlayer);\n        List<Mob> entities = player.getRepresentingPlayer().level().getEntitiesOfClass(Mob.class, new AABB(player.getRepresentingEntity().blockPosition()).inflate(10, 3, 10), (entity -> !(Helper.isWerewolf(entity))));\n        for (Mob entity : entities) {\n            entity.setTarget(null);\n            entity.getNavigation().stop();\n            Path path = entity.getNavigation().createPath(entity.blockPosition().offset(Helper.multiplyBlockPos(entity.blockPosition().subtract(player.getRepresentingEntity().blockPosition()), 3)), 0);\n            entity.getNavigation().moveTo(path, 1.7);\n        }\n        return true;\n    }\n",
+          "excerpt_sha256": "2390abf8d0859de712969c0cda08806ccb3a6bd4fa229daa0adc643e404382de",
+          "normalized_excerpt_sha256": "4b9cd0f2c67c43b2dfb7bb2b21207bbbf75de7257c7b674f904db755c418fd6c",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/actions/FearAction.java",
+          "method": "getCooldown",
+          "lines": [
+            35,
+            37
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "009e9ff64e161887ba1371e265cda8526f14cd9f4c65bb2b4a4b43835352a3c0",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/actions/FearAction.java#L35-L37",
+          "excerpt": "    public int getCooldown(IWerewolfPlayer iWerewolfPlayer) {\n        return WerewolvesConfig.BALANCE.SKILLS.fear_action_cooldown.get() * 20;\n    }\n",
+          "excerpt_sha256": "233cfd41e3a2c777630b68614f9b3d3b15d0b80932d4a1f2c1fc6273a7cdc565",
+          "normalized_excerpt_sha256": "e2cc3a7c9347e955e161a0c43e13314c5b755098f39bfbbce3e49405304d2632",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/actions/FearAction.java",
+          "method": "isEnabled",
+          "lines": [
+            17,
+            19
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "009e9ff64e161887ba1371e265cda8526f14cd9f4c65bb2b4a4b43835352a3c0",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/player/werewolf/actions/FearAction.java#L17-L19",
+          "excerpt": "    public boolean isEnabled() {\n        return WerewolvesConfig.BALANCE.SKILLS.fear_action_enabled.get();\n    }\n",
+          "excerpt_sha256": "d7cde5844b2ea382fef20f1d5f74d24351a8f88a8387371a663fb2034ee9de5f",
+          "normalized_excerpt_sha256": "5681f89cf85c15a8098fa0d25a32f44d35ae1fbdf9806471b58a2615cb83faa3",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Fear activate扫描以玩家blockPos构造AABB外扩10,3,10中的Mob，排除Helper.isWerewolf；对每个直接setTarget(null)、navigation.stop，再按离玩家格子向量*3生成逃跑path并moveTo(1.7)。不调用addEffect/hurt，不查Boss标志/LOS/成功path；无目标也return true。getCooldown配置秒*20。",
+      "application_to_boss_immune": "仅否决药水无法阻止直接改AI目标/导航的控制。有效控制成功回执不能从activate true推断。",
+      "semantic_dedup": "属于直接AI控制辅助上下文；本缓存无ModActions/DefaultWerewolfAction完整激活入口，不当完整已闭链有效参考。",
+      "limitations": [
+        "不能证明实际Boss具备可用navigation或会维持逃跑；未运行。",
+        "框架和注册缺失保留0，不按每Mob/向量常量拆数。"
+      ]
+    },
+    {
+      "id": "herschel-010-05",
+      "semantic_dedup_key": "werewolves-sixth-sense-integer-id-alert-suppression-lifetime-support",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/ModEntityEventHandler.java",
+          "method": "onTargetChange",
+          "lines": [
+            87,
+            93
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "32cc699c9e0e9bf3a3aed97e6a8d2c2f3b8011c9d2010018c6e21eb27f131834",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/ModEntityEventHandler.java#L87-L93",
+          "excerpt": "    public void onTargetChange(LivingChangeTargetEvent event) {\n        if (event.getNewAboutToBeSetTarget() instanceof ServerPlayer player && Helper.isWerewolf(player)) {\n            if(WerewolfPlayer.get(player).getSkillHandler().isSkillEnabled(ModSkills.SIXTH_SENSE.get())) {\n                player.connection.send(new ClientboundAttackTargetEventPacket(event.getEntity().getId()));\n            }\n        }\n    }\n",
+          "excerpt_sha256": "f6855f68ee159c1a78bf40d512aa5e244ae56ccb730e66ef78a47ab1d1f66c5a",
+          "normalized_excerpt_sha256": "a7d09effce7c1befd656a31e3f06ccda14fd29e588f22616276799a7c4efd5a3",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/client/ClientPayloadHandler.java",
+          "method": "handleAttackTargetEventPacket",
+          "lines": [
+            9,
+            11
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "13bcd449371dbb6f00bc6227b2940215220fd90b39825b3688fcbe01561ab276",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/client/ClientPayloadHandler.java#L9-L11",
+          "excerpt": "    public static void handleAttackTargetEventPacket(ClientboundAttackTargetEventPacket msg, IPayloadContext context) {\n        context.enqueueWork(() -> WerewolvesModClient.getInstance().getModHUDOverlay().attackTriggered(msg.entityId()));\n    }\n",
+          "excerpt_sha256": "a02ae5a54f68084d8f7b53c050d905325e1e5a973fa380432790e10a174d088b",
+          "normalized_excerpt_sha256": "955dd5b883ee1a135759964da00cf6619480eb8c4331bb4093aa4f22e9b35aa5",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/client/core/ModHUDOverlay.java",
+          "method": "attackTriggered",
+          "lines": [
+            109,
+            118
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "bf8999b39a51d463dd1c8fbbec1266e8f5458f591e45cb4ef4c4bd562511c879",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/client/core/ModHUDOverlay.java#L109-L118",
+          "excerpt": "    public void attackTriggered(int entityId) {\n        if (!entities.contains(entityId)) {\n            this.entities.add(entityId);\n            if (this.waitTicks == 0) {\n                this.screenPercentage = 100;\n                this.waitTicks = 100;\n                this.screenColor = 0xffff6e07;\n            }\n        }\n    }\n",
+          "excerpt_sha256": "de4a3a1592fa2985715f89cd9c9756f07440e7f1ef01cb0316ef9ea38cd6e840",
+          "normalized_excerpt_sha256": "9233e3bf9ec7c68e84f1a61b1bdc0fe145e44528b0b3469c9c64761177fe9708",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/client/core/ModHUDOverlay.java",
+          "method": "handleScreenColorWerewolf",
+          "lines": [
+            120,
+            143
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "bf8999b39a51d463dd1c8fbbec1266e8f5458f591e45cb4ef4c4bd562511c879",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/client/core/ModHUDOverlay.java#L120-L143",
+          "excerpt": "    private void handleScreenColorWerewolf(WerewolfPlayer player) {\n        boolean sixth_sense = player.getSkillHandler().isSkillEnabled(ModSkills.SIXTH_SENSE.get());\n        boolean rage = player.getActionHandler().isActionActive(ModActions.RAGE.get());\n        if (sixth_sense) {\n            if (this.screenPercentage > 0) {\n                this.screenPercentage -= 10;\n            }\n            if (this.waitTicks > 0) {\n                --this.waitTicks;\n            }\n        } else {\n            this.waitTicks = 0;\n            this.entities.clear();\n        }\n\n        if (rage) {\n            this.screenPercentage = 100;\n            this.screenColor = 0xfff00000;\n        }\n\n        if (!(sixth_sense || rage)) {\n            this.screenPercentage = 0;\n        }\n    }\n",
+          "excerpt_sha256": "ebab3946a36b94ebd2002b68063b2a8d605b5053000f02c9459f58a78275f139",
+          "normalized_excerpt_sha256": "5fd3e3f9cc6f303b94b3b9595445d79c4e3c6a664d886cb71d012e23f340e6f6",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/client/core/ModHUDOverlay.java",
+          "method": "onClientTick",
+          "lines": [
+            52,
+            67
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "bf8999b39a51d463dd1c8fbbec1266e8f5458f591e45cb4ef4c4bd562511c879",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/client/core/ModHUDOverlay.java#L52-L67",
+          "excerpt": "    public void onClientTick(ClientTickEvent.Pre event) {\n        if (mc.player == null || !mc.player.isAlive()) {\n            this.screenPercentage = 0;\n            this.attackTargetScreenPercentage = 0;\n            this.entities.clear();\n            this.waitTicks = 0;\n            return;\n        }\n\n        FactionPlayerHandler.getCurrentFactionPlayer(mc.player).filter(WerewolfPlayer.class::isInstance).ifPresentOrElse(player -> this.handleScreenColorWerewolf(((WerewolfPlayer) player)), () -> {\n            this.screenPercentage = 0;\n            this.attackTargetScreenPercentage = 0;\n            this.waitTicks = 0;\n            this.entities.clear();\n        });\n    }\n",
+          "excerpt_sha256": "1e0de22a0af13b94d0cc1e39f35efe0415bb60ab46c21923e2488c4bc03acb45",
+          "normalized_excerpt_sha256": "d52afcfaecc56c5961a3f9e60536a6994f2ab5eb4ac267971cf882d87a625881",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/client/core/ModHUDOverlay.java",
+          "method": "onRenderWorldLast",
+          "lines": [
+            78,
+            107
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "bf8999b39a51d463dd1c8fbbec1266e8f5458f591e45cb4ef4c4bd562511c879",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/client/core/ModHUDOverlay.java#L78-L107",
+          "excerpt": "    public void onRenderWorldLast(RenderGuiEvent.Pre event) {\n        int percentages = 0;\n        int color = 0;\n        if (this.screenPercentage > 0) {\n            percentages = this.screenPercentage;\n            color = this.screenColor;\n        } else if (this.attackTargetScreenPercentage > 0) {\n            percentages = this.attackTargetScreenPercentage;\n            color = 0xffff6e07;\n        }\n\n        if (percentages > 0 && VampirismConfig.CLIENT.renderScreenOverlay.get()) {\n            PoseStack stack = event.getGuiGraphics().pose();\n            stack.pushPose();\n            int w = (this.mc.getWindow().getGuiScaledWidth());\n            int h = (this.mc.getWindow().getGuiScaledHeight());\n\n            int bh = Math.round(h / (float) 4 * percentages / 100);\n            int bw = Math.round(w / (float) 8 * percentages / 100);\n\n            event.getGuiGraphics().fillGradient(0, 0, w, bh, color, 0x000);\n            if (!OptifineHandler.isShaders()) {\n                event.getGuiGraphics().fillGradient(0, h - bh, w, h, 0x00000000, color);\n            }\n//            this.fillGradient2(stack, 0, 0, bw, h, 0x000000, color);\n//            this.fillGradient2(stack, w - bw, 0, w, h, color, 0x00);\n\n            stack.popPose();\n        }\n    }\n",
+          "excerpt_sha256": "3bfb8986b9ed69c2d62e271bb28817ef1290587150638ffdd30f17e25df2c9d3",
+          "normalized_excerpt_sha256": "b65f30b693aa0530cbb58849827768598c121e1744128bd13f4357086a6487c3",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/client/WerewolvesModClient.java",
+          "method": "WerewolvesModClient",
+          "lines": [
+            39,
+            61
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "2a8997f3051d0d6a1408dacf0c219234a22f69644eb21751c3f68906173bec1f",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/client/WerewolvesModClient.java#L39-L61",
+          "excerpt": "    public WerewolvesModClient(IEventBus modbus, RegistryManager registryManager) {\n        INSTANCE = this;\n        this.modEventBus = modbus;\n        this.registryManager = registryManager;\n        this.modHUDOverlay = new ModHUDOverlay();\n        this.clientEventHandler = new ClientEventHandler();\n        this.renderHandler = new RenderHandler(Minecraft.getInstance());\n\n        modbus.addListener(ModKeys::registerKeyMapping);\n        modbus.addListener(ModModelRender::onRegisterRenderers);\n        modbus.addListener(ModModelRender::onRegisterLayers);\n        modbus.addListener(ModBlocksRenderer::registerBlockEntityRenderers);\n        modbus.addListener(ModScreens::registerScreens);\n        modbus.addListener(ModScreens::registerScreenOverlays);\n        modbus.addListener(ModItemRenderer::registerColors);\n        modbus.addListener(this::registerReloadListeners);\n\n        NeoForge.EVENT_BUS.register(this.clientEventHandler);\n        NeoForge.EVENT_BUS.register(this.modHUDOverlay);\n        NeoForge.EVENT_BUS.register(new ModKeys(this.clientEventHandler));\n        NeoForge.EVENT_BUS.register(this.renderHandler);\n\n    }\n",
+          "excerpt_sha256": "759d659038f1266492f67e804ae4f74f0bd39d74e99548e97d18f5f0f79f8d2c",
+          "normalized_excerpt_sha256": "7b1e18f40997f410a55c0fbef57145d2bd5b130752961ea30afad65341b1d294",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java",
+          "method": "WerewolvesMod",
+          "lines": [
+            72,
+            109
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "ad6e26201b1ff0be530913c48a1471e7889e9e092c441a935bcb0d191e280612",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java#L72-L109",
+          "excerpt": "    public WerewolvesMod(IEventBus modEventBus, ModContainer modContainer) {\n        WerewolvesMod.instance = this;\n        registryManager = new RegistryManager(modEventBus);\n        WUtils.init();\n\n        Optional<? extends ModContainer> opt = ModList.get().getModContainerById(REFERENCE.VMODID);\n        if (opt.isPresent()) {\n            REFERENCE.VERSION = opt.get().getModInfo().getVersion();\n        } else {\n            LOGGER.warn(\"Cannot get version from mod info\");\n        }\n\n        modEventBus.addListener(this::setup);\n        modEventBus.addListener(this::loadComplete);\n        modEventBus.addListener(this::processIMC);\n        modEventBus.addListener(this::enqueueIMC);\n        modEventBus.addListener(this::setUpClient);\n        modEventBus.addListener(this::registerCapabilities);\n        modEventBus.addListener(this::blockRegister); // First event after mod init. Faction can only be registered after VampirismMod's constructor\n        modEventBus.register(ModPacketDispatcher.class);\n\n        if (FMLEnvironment.dist == Dist.CLIENT) {\n            modEventBus.register(new WerewolvesModClient(modEventBus, this.registryManager));\n        }\n\n        NeoForge.EVENT_BUS.register(this);\n        NeoForge.EVENT_BUS.register(Permissions.class);\n\n        if (ModList.get().isLoaded(\"guideapi_vp\")) {\n            NeoForge.EVENT_BUS.addListener(WerewolvesGuideBook::onVampirismGuideBookCategoriesEvent);\n        }\n\n        RegistryManager.setupRegistries(modEventBus);\n        WerewolvesBiomeFeatures.register(modEventBus);\n        modEventBus.addListener(ModItems::registerOtherCreativeTabItems);\n\n        WerewolvesConfig.registerConfigs(modEventBus, modContainer);\n    }\n",
+          "excerpt_sha256": "fe4298088d3daa893337af7d67f91b9cd025c504fa045064a8d12cc327340008",
+          "normalized_excerpt_sha256": "a2951163f5f1bbd4251a32e449e13532113a93048ab9cb590d7f38a9499c5183",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java",
+          "method": "setup",
+          "lines": [
+            154,
+            164
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "ad6e26201b1ff0be530913c48a1471e7889e9e092c441a935bcb0d191e280612",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java#L154-L164",
+          "excerpt": "    private void setup(final @NotNull FMLCommonSetupEvent event) {\n        setupAPI();\n\n        registryManager.onInitStep(IInitListener.Step.COMMON_SETUP, event);\n        proxy.onInitStep(IInitListener.Step.COMMON_SETUP, event);\n\n        NeoForge.EVENT_BUS.register(new ModEntityEventHandler());\n        NeoForge.EVENT_BUS.register(new ModPlayerEventHandler());\n        NeoForge.EVENT_BUS.register(new GeneralEventHandler());\n        event.enqueueWork(TerraBlenderCompat::registerBiomeProviderIfPresentUnsafe);\n    }\n",
+          "excerpt_sha256": "d6803179e1a21ee314b02ef0d1189d1d78400b55a3891daf1f7e7e1feed56817",
+          "normalized_excerpt_sha256": "28f1d36d1801a2550c30819064f38bede4f3845ac7d09fde2ba4f95f2b0eb9c8",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "原生newAboutToBeSetTarget是ServerPlayer且狼人有SIXTH_SENSE时，发攻击者整数id。客户端callback enqueueWork→attackTriggered，仅首次id入list；waitTicks==0才screenPercentage100/waitTicks100/橙色。每tick有技能则percentage减10、wait减1，wait归零不清id，因此同id不会再触发；冷却中其它新id也先入list且不闪。技能消失/玩家null或死/不再Werewolf清列表。RAGE可覆盖红色。GUI Pre画上下gradient，非世界目标文字。",
+      "application_to_boss_immune": "提示限流与对象去重寿命要分别设计；整数id复用/旧警告不能误关联新Boss。",
+      "semantic_dedup": "并非免疫回执或战斗文字；且packet codec/注册不在缓存，只作具体战斗反馈生命周期支持0，不计网络包装。",
+      "limitations": [
+        "没有特定世界切换清理hook；若切换经过null player可清，但不能声称始终跨维安全。",
+        "不声称完整S2C实际通路或已观察视觉；attackTargetScreenPercentage不是这里实际触发的字段。"
+      ]
+    },
+    {
+      "id": "herschel-010-06",
+      "semantic_dedup_key": "werewolves-weakening-applicable-source-type-check-unresolved-api-support",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/entities/ModEntityEventHandler.java",
+          "method": "onWerewolfWeakeningEffectApplied",
+          "lines": [
+            167,
+            171
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "32cc699c9e0e9bf3a3aed97e6a8d2c2f3b8011c9d2010018c6e21eb27f131834",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/entities/ModEntityEventHandler.java#L167-L171",
+          "excerpt": "    public void onWerewolfWeakeningEffectApplied(MobEffectEvent.Applicable event) {\n        if (event.getEffectInstance().getEffect() instanceof WerewolfWeakeningEffect && !Helper.isWerewolf(event.getEntity())) {\n            event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);\n        }\n    }\n",
+          "excerpt_sha256": "1aca626140fec5781b6a12981bc304ca61095091869a35a4265aade8fdd899d1",
+          "normalized_excerpt_sha256": "7d3d3778941f47e270ed402a5d31e923cb2448ce17bc1797adbb2a5903e78d31",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java",
+          "method": "WerewolvesMod",
+          "lines": [
+            72,
+            109
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "ad6e26201b1ff0be530913c48a1471e7889e9e092c441a935bcb0d191e280612",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java#L72-L109",
+          "excerpt": "    public WerewolvesMod(IEventBus modEventBus, ModContainer modContainer) {\n        WerewolvesMod.instance = this;\n        registryManager = new RegistryManager(modEventBus);\n        WUtils.init();\n\n        Optional<? extends ModContainer> opt = ModList.get().getModContainerById(REFERENCE.VMODID);\n        if (opt.isPresent()) {\n            REFERENCE.VERSION = opt.get().getModInfo().getVersion();\n        } else {\n            LOGGER.warn(\"Cannot get version from mod info\");\n        }\n\n        modEventBus.addListener(this::setup);\n        modEventBus.addListener(this::loadComplete);\n        modEventBus.addListener(this::processIMC);\n        modEventBus.addListener(this::enqueueIMC);\n        modEventBus.addListener(this::setUpClient);\n        modEventBus.addListener(this::registerCapabilities);\n        modEventBus.addListener(this::blockRegister); // First event after mod init. Faction can only be registered after VampirismMod's constructor\n        modEventBus.register(ModPacketDispatcher.class);\n\n        if (FMLEnvironment.dist == Dist.CLIENT) {\n            modEventBus.register(new WerewolvesModClient(modEventBus, this.registryManager));\n        }\n\n        NeoForge.EVENT_BUS.register(this);\n        NeoForge.EVENT_BUS.register(Permissions.class);\n\n        if (ModList.get().isLoaded(\"guideapi_vp\")) {\n            NeoForge.EVENT_BUS.addListener(WerewolvesGuideBook::onVampirismGuideBookCategoriesEvent);\n        }\n\n        RegistryManager.setupRegistries(modEventBus);\n        WerewolvesBiomeFeatures.register(modEventBus);\n        modEventBus.addListener(ModItems::registerOtherCreativeTabItems);\n\n        WerewolvesConfig.registerConfigs(modEventBus, modContainer);\n    }\n",
+          "excerpt_sha256": "fe4298088d3daa893337af7d67f91b9cd025c504fa045064a8d12cc327340008",
+          "normalized_excerpt_sha256": "a2951163f5f1bbd4251a32e449e13532113a93048ab9cb590d7f38a9499c5183",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "TeamLapen__Werewolves/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java",
+          "method": "setup",
+          "lines": [
+            154,
+            164
+          ],
+          "fixed_commit": "20b3fa0cd4264c9d8855d23c8ab2a80d90adb306",
+          "file_sha256": "ad6e26201b1ff0be530913c48a1471e7889e9e092c441a935bcb0d191e280612",
+          "url": "https://github.com/TeamLapen/Werewolves/blob/20b3fa0cd4264c9d8855d23c8ab2a80d90adb306/src/main/java/de/teamlapen/werewolves/WerewolvesMod.java#L154-L164",
+          "excerpt": "    private void setup(final @NotNull FMLCommonSetupEvent event) {\n        setupAPI();\n\n        registryManager.onInitStep(IInitListener.Step.COMMON_SETUP, event);\n        proxy.onInitStep(IInitListener.Step.COMMON_SETUP, event);\n\n        NeoForge.EVENT_BUS.register(new ModEntityEventHandler());\n        NeoForge.EVENT_BUS.register(new ModPlayerEventHandler());\n        NeoForge.EVENT_BUS.register(new GeneralEventHandler());\n        event.enqueueWork(TerraBlenderCompat::registerBiomeProviderIfPresentUnsafe);\n    }\n",
+          "excerpt_sha256": "d6803179e1a21ee314b02ef0d1189d1d78400b55a3891daf1f7e7e1feed56817",
+          "normalized_excerpt_sha256": "28f1d36d1801a2550c30819064f38bede4f3845ac7d09fde2ba4f95f2b0eb9c8",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "实际Applicable listener写的是event.getEffectInstance().getEffect() instanceof WerewolfWeakeningEffect且!Helper.isWerewolf(target)时DO_NOT_APPLY。仅记录源码字面表达式；没有把getEffect包装类型擅自换成value，也未看到WerewolfWeakeningEffect完整类。",
+      "application_to_boss_immune": "最终效果接纳门要以实际API对象与最终拒绝原因核验；不能仅搜索DO_NOT_APPLY就认定已能运行。",
+      "semantic_dedup": "API/效果类缺失，明确不计真正生效拒控实现；不以名字猜成所有非狼都免疫眩晕。",
+      "limitations": [
+        "未编译该历史模组，不判API兼容性通过/失败；不修改外部代码。"
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "reason": "Halley批001已研究WerewolfTooth感染拒绝，本轮避开，不再次研究申请信用。",
+      "credit": 0
+    }
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

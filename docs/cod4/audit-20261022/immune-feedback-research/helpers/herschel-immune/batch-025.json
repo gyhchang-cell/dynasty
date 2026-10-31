@@ -1,0 +1,271 @@
+{
+  "batch": "herschel-immune-025",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 0,
+  "support_only_units": 1,
+  "rows": [
+    {
+      "id": "herschel-025-01",
+      "semantic_dedup_key": "alexsmobs-rockyroller-no-native-rolling-hurt-denial-and-independent-contact-motion-support",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": null,
+          "lines": [
+            1,
+            465
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L1-L465",
+          "excerpt": "package com.github.alexthe666.alexsmobs.entity;\n\nimport com.github.alexthe666.alexsmobs.config.AMConfig;\nimport com.github.alexthe666.alexsmobs.effect.AMEffectRegistry;\nimport com.github.alexthe666.alexsmobs.entity.ai.AdvancedPathNavigateNoTeleport;\nimport com.github.alexthe666.alexsmobs.entity.ai.GroundPathNavigatorWide;\nimport com.github.alexthe666.alexsmobs.entity.ai.MovementControllerCustomCollisions;\nimport com.github.alexthe666.alexsmobs.entity.util.Maths;\nimport com.github.alexthe666.alexsmobs.misc.AMSoundRegistry;\nimport com.github.alexthe666.alexsmobs.misc.AMTagRegistry;\nimport com.github.alexthe666.citadel.server.entity.collision.ICustomCollisions;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.damagesource.DamageTypes;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.*;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.item.FallingBlockEntity;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.npc.AbstractVillager;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.*;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.Fallable;\nimport net.minecraft.world.level.block.PointedDripstoneBlock;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.level.pathfinder.BlockPathTypes;\nimport net.minecraft.world.level.pathfinder.PathFinder;\nimport net.minecraft.world.level.pathfinder.WalkNodeEvaluator;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraft.world.phys.shapes.VoxelShape;\n\nimport java.util.EnumSet;\nimport java.util.List;\n\npublic class EntityRockyRoller extends Monster implements ICustomCollisions {\n\n    private static final EntityDataAccessor<Boolean> ROLLING = SynchedEntityData.defineId(EntityRockyRoller.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Boolean> ANGRY = SynchedEntityData.defineId(EntityRockyRoller.class, EntityDataSerializers.BOOLEAN);\n    public float rollProgress;\n    public float prevRollProgress;\n    public int rollCounter = 0;\n    public float clientRoll = 0;\n    private int maxRollTime = 50;\n    private Vec3 rollDelta;\n    private float rollYRot;\n    private int rollCooldown = 0;\n    private int earthquakeCooldown = 0;\n\n    protected EntityRockyRoller(EntityType<? extends Monster> monster, Level level) {\n        super(monster, level);\n        this.xpReward = 8;\n        this.moveControl = new MovementControllerCustomCollisions(this);\n    }\n\n    public boolean checkSpawnRules(LevelAccessor worldIn, MobSpawnType spawnReasonIn) {\n        return AMEntityRegistry.rollSpawn(AMConfig.rockyRollerSpawnRolls, this.getRandom(), spawnReasonIn);\n    }\n\n\n    public static boolean checkRockyRollerSpawnRules(EntityType<? extends Monster> animal, ServerLevelAccessor worldIn, MobSpawnType reason, BlockPos pos, RandomSource random) {\n        return worldIn.getDifficulty() != Difficulty.PEACEFUL && isDarkEnoughToSpawn(worldIn, pos, random) && (worldIn.getBlockState(pos.below()).is(AMTagRegistry.ROCKY_ROLLER_SPAWNS) || worldIn.getBlockState(pos.below()).isSolid());\n    }\n\n\n    public static AttributeSupplier.Builder bakeAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 10.0D).add(Attributes.ARMOR, 20.0D).add(Attributes.FOLLOW_RANGE, 20.0D).add(Attributes.KNOCKBACK_RESISTANCE, 0.7F).add(Attributes.ATTACK_DAMAGE, 2.0D).add(Attributes.MOVEMENT_SPEED, 0.25F);\n    }\n\n    protected PathNavigation createNavigation(Level worldIn) {\n        return new Navigator(this, worldIn);\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new AIMelee());\n        this.goalSelector.addGoal(2, new AIRollIdle(this));\n        this.goalSelector.addGoal(3, new WaterAvoidingRandomStrollGoal(this, 0.8D));\n        this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));\n        this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false, true));\n        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, false, true));\n        this.targetSelector.addGoal(3, new HurtByTargetGoal(this));\n    }\n\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(ANGRY, false);\n        this.entityData.define(ROLLING, false);\n    }\n\n    protected SoundEvent getAmbientSound() {\n        return AMSoundRegistry.ROCKY_ROLLER_IDLE.get();\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSourceIn) {\n        return AMSoundRegistry.ROCKY_ROLLER_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return AMSoundRegistry.ROCKY_ROLLER_HURT.get();\n    }\n\n    public void tick() {\n        super.tick();\n        prevRollProgress = rollProgress;\n\n        if (isRolling()) {\n            if (rollProgress < 5F)\n                rollProgress++;\n        } else {\n            if (rollProgress > 0F)\n                rollProgress--;\n        }\n\n        if (!this.level().isClientSide) {\n            this.setAngry(this.getTarget() != null && this.getTarget().isAlive() && this.distanceToSqr(this.getTarget()) < 20 * 20);\n        }\n        if (this.isRolling() && rollCooldown <= 0) {\n            this.handleRoll();\n            if (this.isAngry() && this.isAlive()) {\n                for (Entity entity : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(0.3F))) {\n                    if (!isAlliedTo(entity) && entity != this) {\n                        entity.hurt(this.damageSources().mobAttack(this), (isTarget(entity) ? 5.0F : 2.0F) + random.nextFloat() * 2.0F);\n                        launch(entity, isTarget(entity));\n                        if (isTarget(entity)) {\n                            maxRollTime = rollCounter + 10;\n                        }\n                    }\n                }\n            }\n            if (this.rollCounter > 2 && !this.isMoving() || !this.isAlive()) {\n                this.setRolling(false);\n            }\n            this.setMaxUpStep(1F);\n        } else {\n            this.setMaxUpStep(0.66F);\n            this.rollCounter = 0;\n        }\n        if (rollCooldown > 0) {\n            rollCooldown--;\n        }\n        if (earthquakeCooldown > 0) {\n            earthquakeCooldown--;\n        }\n    }\n\n    private boolean isMoving() {\n        return this.getDeltaMovement().lengthSqr() > 0.02D;\n    }\n\n    private void earthquake() {\n        boolean flag = false;\n        List<LivingEntity> list = this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(6, 8, 6));\n        for (LivingEntity e : list) {\n            if (!(e instanceof EntityRockyRoller) && e.isAlive()) {\n                e.addEffect(new MobEffectInstance(AMEffectRegistry.EARTHQUAKE.get(), 20, 0, false, false, true));\n                flag = true;\n            }\n        }\n        if (!this.level().canSeeSky(this.blockPosition()) && this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {\n            BlockPos ceil = this.blockPosition().offset(0, 2, 0);\n            while ((!level().getBlockState(ceil).isSolid() || level().getBlockState(ceil).getBlock() == Blocks.POINTED_DRIPSTONE) && ceil.getY() < level().getMaxBuildHeight()) {\n                ceil = ceil.above();\n            }\n            final int i = 2 + random.nextInt(2);\n            final int j = 2 + random.nextInt(2);\n            final int k = 2 + random.nextInt(2);\n            final float f = (float) (i + j + k) * 0.333F + 0.5F;\n            final double fTimesF = f * f;\n\n            for (BlockPos blockpos1 : BlockPos.betweenClosed(ceil.offset(-i, -j, -k), ceil.offset(i, j, k))) {\n                if (blockpos1.distSqr(ceil) <= fTimesF && level().getBlockState(blockpos1).getBlock() instanceof Fallable) {\n                    if (isHangingDripstone(blockpos1)) {\n                        while (isHangingDripstone(blockpos1.above()) && blockpos1.getY() < level().getMaxBuildHeight()) {\n                            blockpos1 = blockpos1.above();\n                        }\n                        if (isHangingDripstone(blockpos1)) {\n                            Vec3 vec3 = Vec3.atBottomCenterOf(blockpos1);\n                            FallingBlockEntity fallingblockentity = FallingBlockEntity.fall(level(), new BlockPos((int) vec3.x, (int) vec3.y, (int) vec3.z), level().getBlockState(blockpos1));\n                            this.level().destroyBlock(blockpos1, false);\n                            this.level().addFreshEntity(fallingblockentity);\n                        }\n                    } else {\n                        this.level().scheduleTick(blockpos1, level().getBlockState(blockpos1).getBlock(), 2);\n                    }\n                    flag = true;\n                }\n            }\n        }\n        if(flag){\n            this.gameEvent(GameEvent.ENTITY_ROAR);\n            this.playSound(AMSoundRegistry.ROCKY_ROLLER_EARTHQUAKE.get(), this.getSoundVolume(), this.getVoicePitch());\n        }\n    }\n\n    private boolean isHangingDripstone(BlockPos pos) {\n        return level().getBlockState(pos).getBlock() instanceof PointedDripstoneBlock && level().getBlockState(pos).getValue(PointedDripstoneBlock.TIP_DIRECTION) == Direction.DOWN;\n    }\n\n    private boolean isTarget(Entity entity) {\n        return this.getTarget() != null && this.getTarget().is(entity);\n    }\n\n    public boolean isRolling() {\n        return this.entityData.get(ROLLING);\n    }\n\n    public void setRolling(boolean rolling) {\n        this.entityData.set(ROLLING, Boolean.valueOf(rolling));\n    }\n\n    public boolean isAngry() {\n        return this.entityData.get(ANGRY);\n    }\n\n    public void setAngry(boolean angry) {\n        this.entityData.set(ANGRY, Boolean.valueOf(angry));\n    }\n\n    private void handleRoll() {\n        ++this.rollCounter;\n        if (!this.level().isClientSide) {\n            if (this.horizontalCollision && earthquakeCooldown == 0 & this.isAngry()) {\n                earthquakeCooldown = maxRollTime;\n                this.earthquake();\n            }\n            if (this.rollCounter > maxRollTime) {\n                this.setRolling(false);\n                this.rollCooldown = 10 + random.nextInt(10);\n                this.rollCounter = 0;\n                this.setDeltaMovement(Vec3.ZERO);\n            } else {\n                Vec3 vec3 = this.getDeltaMovement();\n                if (this.rollCounter == 1) {\n                    float f = this.getYRot() * Mth.DEG_TO_RAD;\n                    float f1 = this.isBaby() ? 0.2F : 0.35F;\n                    this.rollYRot = this.getYRot();\n                    this.rollDelta = new Vec3(vec3.x + (double) (-Mth.sin(f) * f1), 0.0D, vec3.z + (double) (Mth.cos(f) * f1));\n                    this.setDeltaMovement(this.rollDelta.add(0.0D, 0.27D, 0.0D));\n                } else {\n                    this.setYRot(rollYRot);\n                    this.setYHeadRot(rollYRot);\n                    this.setYBodyRot(rollYRot);\n                    this.setDeltaMovement(this.rollDelta.x, vec3.y, this.rollDelta.z);\n                }\n            }\n        }\n    }\n\n    private void rollFor(int time) {\n        if (this.rollCooldown == 0) {\n            this.maxRollTime = time;\n            earthquakeCooldown = 0;\n            this.setRolling(true);\n        }\n    }\n\n    private void launch(Entity e, boolean huge) {\n        if (e.onGround()) {\n            final double d0 = e.getX() - this.getX();\n            final double d1 = e.getZ() - this.getZ();\n            final double d2 = Math.max(d0 * d0 + d1 * d1, 0.001D);\n            final float f = huge ? 1.0F : 0.35F;\n            e.push(d0 / d2 * f, huge ? 0.5D : 0.2F, d1 / d2 * f);\n        }\n    }\n\n    @Override\n    public boolean isInvulnerableTo(DamageSource source) {\n        return source.equals(\"fallingStalactite\") || super.isInvulnerableTo(source);\n    }\n\n    public int getMaxFallDistance() {\n        return super.getMaxFallDistance() * 2;\n    }\n\n    public boolean causeFallDamage(float distance, float damageMultiplier) {\n        return false;\n    }\n\n    protected void checkFallDamage(double y, boolean onGroundIn, BlockState state, BlockPos pos) {\n    }\n\n    public boolean canBeCollidedWith() {\n        return this.isAlive();\n    }\n\n    public void push(Entity entity) {\n        entity.setDeltaMovement(entity.getDeltaMovement().add(this.getDeltaMovement()));\n    }\n\n    @Override\n    public boolean canPassThrough(BlockPos blockPos, BlockState blockstate, VoxelShape voxelShape) {\n        return blockstate.getBlock() instanceof PointedDripstoneBlock;\n    }\n\n    public boolean isColliding(BlockPos pos, BlockState blockstate) {\n        return !(blockstate.getBlock() instanceof PointedDripstoneBlock) && super.isColliding(pos, blockstate);\n    }\n\n    public Vec3 collide(Vec3 vec3) {\n        return ICustomCollisions.getAllowedMovementForEntity(this, vec3);\n    }\n\n    public boolean hurt(DamageSource dmg, float amount) {\n        if (!this.isMoving() && !dmg.is(DamageTypes.MAGIC) && dmg.getDirectEntity() instanceof LivingEntity livingentity && !(livingentity instanceof EntityRockyRoller)) {\n            if (!dmg.is(DamageTypes.EXPLOSION) && !livingentity.hurtMarked) {\n                livingentity.hurt(damageSources().thorns(this), 2.0F);\n            }\n        }\n        return super.hurt(dmg, amount);\n    }\n\n    static class RockyRollerNodeEvaluator extends WalkNodeEvaluator {\n        protected BlockPathTypes evaluateBlockPathType(BlockGetter level, BlockPos pos, BlockPathTypes typeIn) {\n            return level.getBlockState(pos).getBlock() instanceof PointedDripstoneBlock ? BlockPathTypes.OPEN : super.evaluateBlockPathType(level, pos, typeIn);\n        }\n    }\n\n    class AIRollIdle extends Goal {\n        EntityRockyRoller rockyRoller;\n\n        public AIRollIdle(EntityRockyRoller p_29328_) {\n            this.rockyRoller = p_29328_;\n            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK, Goal.Flag.JUMP));\n        }\n\n        public boolean canUse() {\n            if (this.rockyRoller.onGround()) {\n                if (rockyRoller.isRolling() || rockyRoller.rollCooldown > 0 || rockyRoller.getTarget() != null && rockyRoller.getTarget().isAlive()) {\n                    return false;\n                } else {\n                    float f = rockyRoller.getYRot() * Mth.DEG_TO_RAD;\n                    int i = 0;\n                    int j = 0;\n                    float f1 = -Mth.sin(f);\n                    float f2 = Mth.cos(f);\n                    if ((double) Math.abs(f1) > 0.5D) {\n                        i = (int) ((float) i + f1 / Math.abs(f1));\n                    }\n\n                    if ((double) Math.abs(f2) > 0.5D) {\n                        j = (int) ((float) j + f2 / Math.abs(f2));\n                    }\n\n                    return rockyRoller.level().getBlockState(rockyRoller.blockPosition().offset(i, -1, j)).isAir();\n                }\n            }\n            return false;\n        }\n\n        public boolean canContinueToUse() {\n            return false;\n        }\n\n        public void start() {\n            this.rockyRoller.rollFor(30 + random.nextInt(30));\n        }\n\n        public boolean isInterruptable() {\n            return false;\n        }\n    }\n\n    private class AIMelee extends Goal {\n\n        private BlockPos rollFromPos = null;\n        private int rollTimeout = 0;\n\n        public AIMelee() {\n            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));\n        }\n\n        @Override\n        public boolean canUse() {\n            return EntityRockyRoller.this.getTarget() != null && EntityRockyRoller.this.getTarget().isAlive() && !EntityRockyRoller.this.isRolling();\n        }\n\n        public void tick() {\n            LivingEntity enemy = EntityRockyRoller.this.getTarget();\n            double d0 = this.validRollDistance(enemy);\n            double distToEnemySqr = EntityRockyRoller.this.distanceTo(enemy);\n            if (rollFromPos == null || enemy.distanceToSqr(rollFromPos.getX() + 0.5F, rollFromPos.getY() + 0.5F, rollFromPos.getZ() + 0.5) > 60 || !canEntitySeePosition(enemy, rollFromPos)) {\n                rollFromPos = getRollAtPosition(enemy);\n            }\n            EntityRockyRoller.this.lookAt(enemy, 100, 5);\n\n            if (rollTimeout < 40 && rollFromPos != null && (distToEnemySqr <= d0 && EntityRockyRoller.this.distanceToSqr(rollFromPos.getX() + 0.5F, rollFromPos.getY() + 0.5F, rollFromPos.getZ() + 0.5) > 2.25F)) {\n                EntityRockyRoller.this.getNavigation().moveTo(rollFromPos.getX() + 0.5F, rollFromPos.getY() + 0.5F, rollFromPos.getZ() + 0.5F, 1.6D);\n                rollTimeout++;\n            } else {\n                double d1 = enemy.getX() - EntityRockyRoller.this.getX();\n                double d2 = enemy.getZ() - EntityRockyRoller.this.getZ();\n                float f = (float) (Mth.atan2(d2, d1) * (double) Mth.RAD_TO_DEG) - 90.0F;\n                EntityRockyRoller.this.setYRot(f);\n                EntityRockyRoller.this.yBodyRot = f;\n                EntityRockyRoller.this.rollFor(30 + random.nextInt(40));\n            }\n        }\n\n        public void stop() {\n            super.stop();\n            rollTimeout = 0;\n        }\n\n        protected double validRollDistance(LivingEntity attackTarget) {\n            return 3.0F + attackTarget.getBbWidth();\n        }\n\n        private boolean canEntitySeePosition(LivingEntity entity, BlockPos destinationBlock) {\n            Vec3 Vector3d = new Vec3(entity.getX(), entity.getY() + 0.5F, entity.getZ());\n            Vec3 blockVec = net.minecraft.world.phys.Vec3.atCenterOf(destinationBlock);\n            BlockHitResult result = entity.level().clip(new ClipContext(Vector3d, blockVec, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity));\n            return result != null && (result.getBlockPos().equals(destinationBlock) || entity.level().getBlockState(result.getBlockPos()).getBlock() == Blocks.POINTED_DRIPSTONE);\n        }\n\n\n        public BlockPos getRollAtPosition(Entity target) {\n            float radius = EntityRockyRoller.this.getRandom().nextInt(2) + 6 + target.getBbWidth();\n            int orbit = EntityRockyRoller.this.getRandom().nextInt(360);\n            float angle = (Maths.STARTING_ANGLE * orbit);\n            double extraX = radius * Mth.sin(Mth.PI + angle);\n            double extraZ = radius * Mth.cos(angle);\n            BlockPos circlePos = new BlockPos((int) (target.getX() + extraX), (int) target.getEyeY(), (int) (target.getZ() + extraZ));\n            while (!EntityRockyRoller.this.level().getBlockState(circlePos).isAir() && circlePos.getY() < EntityRockyRoller.this.level().getMaxBuildHeight()) {\n                circlePos = circlePos.above();\n            }\n            while (!EntityRockyRoller.this.level().getBlockState(circlePos.below()).entityCanStandOn(EntityRockyRoller.this.level(), circlePos.below(), EntityRockyRoller.this) && circlePos.getY() > 1) {\n                circlePos = circlePos.below();\n            }\n            if (EntityRockyRoller.this.getWalkTargetValue(circlePos) > -1) {\n                return circlePos;\n            }\n            return null;\n        }\n    }\n\n    static class Navigator extends AdvancedPathNavigateNoTeleport {\n\n        public Navigator(Mob mob, Level world) {\n            super(mob, world, true);\n        }\n\n        protected PathFinder createPathFinder(int i) {\n            this.nodeEvaluator = new RockyRollerNodeEvaluator();\n            return new PathFinder(this.nodeEvaluator, i);\n        }\n    }\n}\n",
+          "excerpt_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "normalized_excerpt_sha256": "3fcbbd0fa191babe4704a7f07873da88fd5075477653de359aa57c5403c6d2e5",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "registerGoals",
+          "lines": [
+            89,
+            99
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L89-L99",
+          "excerpt": "    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new AIMelee());\n        this.goalSelector.addGoal(2, new AIRollIdle(this));\n        this.goalSelector.addGoal(3, new WaterAvoidingRandomStrollGoal(this, 0.8D));\n        this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));\n        this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false, true));\n        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, false, true));\n        this.targetSelector.addGoal(3, new HurtByTargetGoal(this));\n    }\n",
+          "excerpt_sha256": "2de6ec7fb1e524a2b04b76ee646455928fb57bdaa16bda7808b022019cce8943",
+          "normalized_excerpt_sha256": "9d964485a0c0ec054b69d319552e353ee56d72330879f634048dc653058eea88",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "defineSynchedData",
+          "lines": [
+            101,
+            105
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L101-L105",
+          "excerpt": "    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(ANGRY, false);\n        this.entityData.define(ROLLING, false);\n    }\n",
+          "excerpt_sha256": "1060b14ec5e90141f4187d262b85b89b3d165707ca0942b4adbd4b4f8c9b19c5",
+          "normalized_excerpt_sha256": "df6f8c4fa0412411f6a5ff24e92b2d10d2313f2c472ff3fcee85d7e7bc4f5882",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "isMoving",
+          "lines": [
+            163,
+            165
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L163-L165",
+          "excerpt": "    private boolean isMoving() {\n        return this.getDeltaMovement().lengthSqr() > 0.02D;\n    }\n",
+          "excerpt_sha256": "1ad093054f334beab6edd1ae1bdc769c13673b171ca8ada4ec745ecd05b10b06",
+          "normalized_excerpt_sha256": "5344315ff5e4747719119fb747ee1198d4fddd3bfbc21bf591256116aa258a98",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "earthquake",
+          "lines": [
+            167,
+            210
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L167-L210",
+          "excerpt": "    private void earthquake() {\n        boolean flag = false;\n        List<LivingEntity> list = this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(6, 8, 6));\n        for (LivingEntity e : list) {\n            if (!(e instanceof EntityRockyRoller) && e.isAlive()) {\n                e.addEffect(new MobEffectInstance(AMEffectRegistry.EARTHQUAKE.get(), 20, 0, false, false, true));\n                flag = true;\n            }\n        }\n        if (!this.level().canSeeSky(this.blockPosition()) && this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {\n            BlockPos ceil = this.blockPosition().offset(0, 2, 0);\n            while ((!level().getBlockState(ceil).isSolid() || level().getBlockState(ceil).getBlock() == Blocks.POINTED_DRIPSTONE) && ceil.getY() < level().getMaxBuildHeight()) {\n                ceil = ceil.above();\n            }\n            final int i = 2 + random.nextInt(2);\n            final int j = 2 + random.nextInt(2);\n            final int k = 2 + random.nextInt(2);\n            final float f = (float) (i + j + k) * 0.333F + 0.5F;\n            final double fTimesF = f * f;\n\n            for (BlockPos blockpos1 : BlockPos.betweenClosed(ceil.offset(-i, -j, -k), ceil.offset(i, j, k))) {\n                if (blockpos1.distSqr(ceil) <= fTimesF && level().getBlockState(blockpos1).getBlock() instanceof Fallable) {\n                    if (isHangingDripstone(blockpos1)) {\n                        while (isHangingDripstone(blockpos1.above()) && blockpos1.getY() < level().getMaxBuildHeight()) {\n                            blockpos1 = blockpos1.above();\n                        }\n                        if (isHangingDripstone(blockpos1)) {\n                            Vec3 vec3 = Vec3.atBottomCenterOf(blockpos1);\n                            FallingBlockEntity fallingblockentity = FallingBlockEntity.fall(level(), new BlockPos((int) vec3.x, (int) vec3.y, (int) vec3.z), level().getBlockState(blockpos1));\n                            this.level().destroyBlock(blockpos1, false);\n                            this.level().addFreshEntity(fallingblockentity);\n                        }\n                    } else {\n                        this.level().scheduleTick(blockpos1, level().getBlockState(blockpos1).getBlock(), 2);\n                    }\n                    flag = true;\n                }\n            }\n        }\n        if(flag){\n            this.gameEvent(GameEvent.ENTITY_ROAR);\n            this.playSound(AMSoundRegistry.ROCKY_ROLLER_EARTHQUAKE.get(), this.getSoundVolume(), this.getVoicePitch());\n        }\n    }\n",
+          "excerpt_sha256": "c433f568653d59ad3b2186036cb926a9a182421c5a9bddfe930384a8ff0f6a33",
+          "normalized_excerpt_sha256": "8c84c83a37a5b8a590948050d3872a77f7a0caa56ab81d9c5b23c3488f3b3bde",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "isRolling",
+          "lines": [
+            220,
+            222
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L220-L222",
+          "excerpt": "    public boolean isRolling() {\n        return this.entityData.get(ROLLING);\n    }\n",
+          "excerpt_sha256": "2aed68d36291119a899b8fdf05cd0905faff06a57b97a960c10e4845f636224c",
+          "normalized_excerpt_sha256": "1ddcc651fcb9377dd9f16fb6698f18bc6e3492f2777d7582acd37c354a4b9525",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "setRolling",
+          "lines": [
+            224,
+            226
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L224-L226",
+          "excerpt": "    public void setRolling(boolean rolling) {\n        this.entityData.set(ROLLING, Boolean.valueOf(rolling));\n    }\n",
+          "excerpt_sha256": "cad700487e5533c459c06899c397f642135939a5099bbaa88f2f443f3b6b675a",
+          "normalized_excerpt_sha256": "7215505f21f99609dc9ac8929e5422717ea945d20b1b2ab261c736f114ce8ea9",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "handleRoll",
+          "lines": [
+            236,
+            264
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L236-L264",
+          "excerpt": "    private void handleRoll() {\n        ++this.rollCounter;\n        if (!this.level().isClientSide) {\n            if (this.horizontalCollision && earthquakeCooldown == 0 & this.isAngry()) {\n                earthquakeCooldown = maxRollTime;\n                this.earthquake();\n            }\n            if (this.rollCounter > maxRollTime) {\n                this.setRolling(false);\n                this.rollCooldown = 10 + random.nextInt(10);\n                this.rollCounter = 0;\n                this.setDeltaMovement(Vec3.ZERO);\n            } else {\n                Vec3 vec3 = this.getDeltaMovement();\n                if (this.rollCounter == 1) {\n                    float f = this.getYRot() * Mth.DEG_TO_RAD;\n                    float f1 = this.isBaby() ? 0.2F : 0.35F;\n                    this.rollYRot = this.getYRot();\n                    this.rollDelta = new Vec3(vec3.x + (double) (-Mth.sin(f) * f1), 0.0D, vec3.z + (double) (Mth.cos(f) * f1));\n                    this.setDeltaMovement(this.rollDelta.add(0.0D, 0.27D, 0.0D));\n                } else {\n                    this.setYRot(rollYRot);\n                    this.setYHeadRot(rollYRot);\n                    this.setYBodyRot(rollYRot);\n                    this.setDeltaMovement(this.rollDelta.x, vec3.y, this.rollDelta.z);\n                }\n            }\n        }\n    }\n",
+          "excerpt_sha256": "8716266637a27bfde5b2c2debde5512392d1202a372f7c9b3774e4e394262a7e",
+          "normalized_excerpt_sha256": "64111cde86468714038de7b9b5b2cf34385ab17a70f9029275470f4cb9d342c9",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "rollFor",
+          "lines": [
+            266,
+            272
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L266-L272",
+          "excerpt": "    private void rollFor(int time) {\n        if (this.rollCooldown == 0) {\n            this.maxRollTime = time;\n            earthquakeCooldown = 0;\n            this.setRolling(true);\n        }\n    }\n",
+          "excerpt_sha256": "ad3ec395ab9aa5d5d61559442b122cb6980ea96b789ff59e5e295581c50598a4",
+          "normalized_excerpt_sha256": "d8adea233853f02f6d5d90d52664a77d169bcc342c50a277f077007f27a8ba39",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "launch",
+          "lines": [
+            274,
+            282
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L274-L282",
+          "excerpt": "    private void launch(Entity e, boolean huge) {\n        if (e.onGround()) {\n            final double d0 = e.getX() - this.getX();\n            final double d1 = e.getZ() - this.getZ();\n            final double d2 = Math.max(d0 * d0 + d1 * d1, 0.001D);\n            final float f = huge ? 1.0F : 0.35F;\n            e.push(d0 / d2 * f, huge ? 0.5D : 0.2F, d1 / d2 * f);\n        }\n    }\n",
+          "excerpt_sha256": "18b2feeb4303af3f3be6ac8f7667bf119b06967f0bebdaec0a7319ba73a02028",
+          "normalized_excerpt_sha256": "d0a75bf093ef00de9367d834106e69d5edbbe9e223403bd149b355812452fe9a",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "hurt",
+          "lines": [
+            321,
+            328
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L321-L328",
+          "excerpt": "    public boolean hurt(DamageSource dmg, float amount) {\n        if (!this.isMoving() && !dmg.is(DamageTypes.MAGIC) && dmg.getDirectEntity() instanceof LivingEntity livingentity && !(livingentity instanceof EntityRockyRoller)) {\n            if (!dmg.is(DamageTypes.EXPLOSION) && !livingentity.hurtMarked) {\n                livingentity.hurt(damageSources().thorns(this), 2.0F);\n            }\n        }\n        return super.hurt(dmg, amount);\n    }\n",
+          "excerpt_sha256": "f96f5fb7befd221803009e436ebe05184e7e303064a4d772c6dd3007f33913dd",
+          "normalized_excerpt_sha256": "3b78ec3aaca3027284332fe85436e3958e147915180a94f0df2764d475e091e4",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "isInvulnerableTo",
+          "lines": [
+            285,
+            287
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L285-L287",
+          "excerpt": "    public boolean isInvulnerableTo(DamageSource source) {\n        return source.equals(\"fallingStalactite\") || super.isInvulnerableTo(source);\n    }\n",
+          "excerpt_sha256": "08e88aa14531b7ff946d6f81a07b6b48d96c14859f4fa5c3a6c3b0da3ccecfd0",
+          "normalized_excerpt_sha256": "81aaa3aac1b25bd7cd4eec5153b909a54a1c85fc6a13970e34ce7385b473a85e",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "causeFallDamage",
+          "lines": [
+            293,
+            295
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L293-L295",
+          "excerpt": "    public boolean causeFallDamage(float distance, float damageMultiplier) {\n        return false;\n    }\n",
+          "excerpt_sha256": "245cac559c8f11e99cd43e9c0f401de57bd6affcb4732bd5361f1a46bf6407b3",
+          "normalized_excerpt_sha256": "cfa64bf1b042271e16993cd18cc42a1571f38cf79015f25b9687f4dbda992cc4",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+          "method": "EntityRockyRoller.tick",
+          "lines": [
+            119,
+            161
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java#L119-L161",
+          "excerpt": "    public void tick() {\n        super.tick();\n        prevRollProgress = rollProgress;\n\n        if (isRolling()) {\n            if (rollProgress < 5F)\n                rollProgress++;\n        } else {\n            if (rollProgress > 0F)\n                rollProgress--;\n        }\n\n        if (!this.level().isClientSide) {\n            this.setAngry(this.getTarget() != null && this.getTarget().isAlive() && this.distanceToSqr(this.getTarget()) < 20 * 20);\n        }\n        if (this.isRolling() && rollCooldown <= 0) {\n            this.handleRoll();\n            if (this.isAngry() && this.isAlive()) {\n                for (Entity entity : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(0.3F))) {\n                    if (!isAlliedTo(entity) && entity != this) {\n                        entity.hurt(this.damageSources().mobAttack(this), (isTarget(entity) ? 5.0F : 2.0F) + random.nextFloat() * 2.0F);\n                        launch(entity, isTarget(entity));\n                        if (isTarget(entity)) {\n                            maxRollTime = rollCounter + 10;\n                        }\n                    }\n                }\n            }\n            if (this.rollCounter > 2 && !this.isMoving() || !this.isAlive()) {\n                this.setRolling(false);\n            }\n            this.setMaxUpStep(1F);\n        } else {\n            this.setMaxUpStep(0.66F);\n            this.rollCounter = 0;\n        }\n        if (rollCooldown > 0) {\n            rollCooldown--;\n        }\n        if (earthquakeCooldown > 0) {\n            earthquakeCooldown--;\n        }\n    }\n",
+          "excerpt_sha256": "0497ed2ede3233eb40938c0b1bb54a3ae94b57b49cd9a5b4f3ea98e1af1abe28",
+          "normalized_excerpt_sha256": "e97a7be4e57c6a129bf3a620fe0cbadea2ca1ec45e3e592cdcfebb9b7810b2ab",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "method": null,
+          "lines": [
+            113,
+            113
+          ],
+          "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "file_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L113-L113",
+          "excerpt": "    public static final RegistryObject<EntityType<EntityRockyRoller>> ROCKY_ROLLER = DEF_REG.register(\"rocky_roller\", () -> registerEntity(EntityType.Builder.of(EntityRockyRoller::new, MobCategory.MONSTER).sized(1.2F, 1.45F).setTrackingRange(8), \"rocky_roller\"));\n",
+          "excerpt_sha256": "e9c1ac157d1c2c7d6ff1acc06dbd383431828e07c9e515c5b810b77b75584876",
+          "normalized_excerpt_sha256": "9a3eda9d2e68b24ee409ae1c5b9ee006455b24f8c4af955841a4b38c5ebf07f0",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Read entire pinned EntityRockyRoller including native goals/tick/rolling transitions. Actual hurt has no rolling-state denial: if not moving, source not exact MAGIC, direct entity Living and not same creature class, may thorns2 unless exact EXPLOSION or attacker.hurtMarked; own method always returns super.hurt regardless thorns result. Native tick rolling/angry/alive collision loop calls hurt then launch unconditionally; launch only checks onGround and directly push using squared horizontal distance clamped0.001. No hurt success gate or effect acceptance. isInvulnerableTo compares DamageSource object equals string fallingStalactite before parent, not damage-type key/tag; source-specific behaviour cannot be proven from a string label. Two-argument causeFallDamage returnsfalse but has no Override annotation; no engine signature/caller read, so do not assert actual native fall immunity. Rolling server writes ROLLING synched flag through rollFor/handleRoll, max duration and cooldown; earthquake adds effects ignoring addEffect result, sets local flag for any qualifying candidate or scheduled falling blocks and emits roar/sound from that flag, not effect acceptance.",
+      "application_to_boss_immune": "Separate retaliation, ordinary damage admission, direct collision movement and skill-cue feedback. An armoured or rolled-up model is no proof of immunity. Do not infer acceptance from a sound conditioned on candidate presence, and do not assume a legacy-shaped method is a native override without caller verification.",
+      "semantic_dedup": "Support0: retaliation-before-own-hurt and independent push repeat existing families; source-name constant and broad skill sound do not supply a new immune decision or explicit reason. No rebranding creature name/animation/timer as a new implementation. All goals, sizes, particles/source variants merge; full file reading confers no credit.",
+      "limitations": "Static only. No game/AI/GUI, engine DamageSource.equals or native causeFallDamage dispatch, collision helper from Citadel, renderer or actual sound outcome verified. No claim rolling immunity, effective falling-stalactite immunity, real duplicate retaliation, Boss refusal or actual unpreventable knockback. Native registry statement is support, not separate credit."
+    }
+  ],
+  "exclusions": [
+    "Full source reviewed despite no effective candidate; do not count whole-file/method quantities.",
+    "Do not repeat accepted AlexsMobs Emu/multipart/lasso/stung families.",
+    "BloodMagic brief local scan showed existing cloak and adjacent input/bounce, no new fully closed candidate proposed."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

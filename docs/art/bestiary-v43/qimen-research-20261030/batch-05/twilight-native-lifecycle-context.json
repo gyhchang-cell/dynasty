@@ -1,0 +1,343 @@
+{
+  "id": "twilight-chain-native-lifecycle-context-extension",
+  "updated_utc": "2026-10-30T18:13:31.045054+00:00",
+  "status": "EXISTING_FAMILY_SELECTED_NATIVE_OWNER_EXIT_CHAIN_READ_RUNTIME_PENDING",
+  "extends": "../batch-04/twilight-forge1201-context.json",
+  "repo": "TeamTwilight/twilightforest",
+  "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+  "minecraft": "1.20.1",
+  "forge": "47.1.0",
+  "new_source_studies": 0,
+  "new_independent_units": 0,
+  "new_accepted_credit": 0,
+  "human_creature_model_texture_reference_credit": 0,
+  "native_source_boundary": {
+    "metadata": "native-reconstruction.json",
+    "official_patch_provenance": "forge-47.1.0-patch-provenance.json",
+    "official_mcp_coordinate": "forge-47.1.0-userdev-config.json",
+    "note": "8类补丁精确上下文应用；仅Projectile/ThrowableProjectile全文读，其他按证据范围。未将本机47.4.10充作47.1.0。",
+    "limitations": [
+      "本地MCP基底未重新生成；SRG保留，成员名reading-view仅供阅读。",
+      "补丁应用不等于编译/运行，不证明第三方注入顺序。",
+      "其余六类完整源码及完整补丁未逐行人工审阅。"
+    ]
+  },
+  "chain": [
+    {
+      "step": "owner身份",
+      "observation": "Projectile优先返回未removed的cachedOwner，否则只在当前ServerLevel按UUID重查。没有health/isAlive/当前持握门禁，缓存分支也不比较level。ChainBlock普通构造与附加spawn约束Living owner，不扩大为任意外部改写的安全保证。",
+      "evidence": [
+        "Projectile.java38–85",
+        "ChainBlock.java73–86,350–355"
+      ]
+    },
+    {
+      "step": "alive不是removed",
+      "observation": "LivingEntity.isAlive要求health>0，getOwner只检查removed。基础die可被Forge事件取消，基础tickDeath>=20时服务端移除。ServerPlayer.die覆写没有直接remove；Player基类/重生/断线未补全，不能承诺玩家死亡20tick必清理链锤。",
+      "evidence": [
+        "LivingEntity.java543–550,1299–1332,1502–1504",
+        "ServerPlayer.java571–626"
+      ]
+    },
+    {
+      "step": "真实命中与继续tick",
+      "observation": "ThrowableProjectile由轨迹结果经Forge impact取消检查进入onHit；Projectile向ENTITY/BLOCK覆写分派。随后仍处理阻力、重力和位置，没有通用命中即discard。ChainBlock先super.tick后自身owner/返程；未全文读ProjectileUtil交点筛选。",
+      "evidence": [
+        "Projectile.java88–177",
+        "ThrowableProjectile.java41–90",
+        "ChainBlock.java249–312"
+      ]
+    },
+    {
+      "step": "remove不等于卸载",
+      "observation": "discard/kill经虚调用remove；ChainBlock.remove先super，再仅按owner当前useItem类型stopUsingItem，不比原栈身份。区块processChunkUnload与客户端removeEntity直接setRemoved，不会仅因该调用进入ChainBlock.remove。tracking callback发离场事件；默认onRemovedFromWorld只清added标志，未穷尽外部监听。",
+      "evidence": [
+        "Entity.java326–356,3348–3359,3435–3438",
+        "PersistentEntitySectionManager.java233–248,428–449",
+        "ClientLevel.java342–347",
+        "ServerLevel.java1529–1555",
+        "ChainBlock.java321–327"
+      ]
+    },
+    {
+      "step": "owner查不到",
+      "observation": "ServerLevel.getEntity(UUID)读当前visibleEntityStorage；pending加载和追踪状态影响可见性。ChainBlock只要getOwner为null即discard，不区分尚未入索引、已卸载或不存在。缓存未removed时不查索引。真实加载先后及切维未实测。",
+      "evidence": [
+        "Projectile.java47–56",
+        "PersistentEntitySectionManager.java134–142,256–271",
+        "ServerLevel.java1115–1118",
+        "ChainBlock.java280–310"
+      ]
+    },
+    {
+      "step": "存档恢复范围",
+      "observation": "Entity保存并恢复Pos/Motion/Rotation；Projectile追加Owner/LeftOwner/HasBeenShot，读Owner清cached。ChainBlock追加BlockAndChainStack并用ItemStack.of重建。不能说完全没有速度持久化；但自身bounce备份velX/Y/Z、isReturning、blocksSmashed、hitEntity、canSmashBlocks和HAND/FOIL未在其NBT覆写保存，不证明原持握栈引用或完整飞行快照恢复。",
+      "evidence": [
+        "Entity.java1594–1763",
+        "Projectile.java62–85",
+        "ChainBlock.java44–86,330–341"
+      ]
+    },
+    {
+      "step": "辅助链与multipart区分",
+      "observation": "已全文读BlockChainGoblin和TFPart。邻接怪物显式覆写isMultipartEntity/getParts；ChainBlock自己的partsArray只有构造赋值，类中无同样覆写或公开消费者，客户端逐链tick定位并由B4已读renderer绘制。Forge跟踪要求parent实际isMultipartEntity/getParts；私有数组和isPickable不能证明服务器碰撞注册。默认IForgeEntity/PartEntity及外部注入未读，不断言全局绝无multipart。",
+      "evidence": [
+        "BlockChainGoblin.java68–73,326–343",
+        "TFPart.java17–150",
+        "ChainBlock.java55–84,249–277",
+        "ServerLevel.java1520–1524",
+        "ClientLevel.java960–978"
+      ]
+    }
+  ],
+  "dedup": "既有暮色链锤补读；版本、引擎类、邻接怪物、五链不拆案例，不增加生物视觉参考。",
+  "pending_reads": [
+    "准确Player.tickDeath、PlayerList重生/离线、跨维与外部监听顺序。",
+    "IForgeEntity/PartEntity默认multipart、ProjectileUtil筛选、EntityStorage磁盘编解码。",
+    "原持握栈读档重绑定、左右惯用手与同步晚到、实机。",
+    "本研究没有生物模型+PNG视觉参考信用。"
+  ],
+  "evidence": [
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/native-47.1.0-reading-view/net/minecraft/world/entity/projectile/Projectile.java",
+      "read_ranges": [
+        [
+          1,
+          220
+        ]
+      ],
+      "lines": 220,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "owner UUID/cache/isRemoved、NBT、发射/命中分派/spawn；无owner.isAlive门禁",
+      "sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+      "version": "Minecraft1.20.1/Forge47.1.0",
+      "derivation": "native-reconstruction.json; 本地MCP基底+官方47.1.0精确上下文补丁；reading-view不是发行源码或运行证明"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/native-47.1.0-reading-view/net/minecraft/world/entity/projectile/ThrowableProjectile.java",
+      "read_ranges": [
+        [
+          1,
+          95
+        ]
+      ],
+      "lines": 95,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "super.tick→轨迹→Forge取消检查→onHit→阻力/重力/位置；无通用命中即discard",
+      "sha256": "f1982b097109a0ae8299c36bc5b7769f6a8fb9587e214ebb610e8366fb3d2ea4",
+      "version": "Minecraft1.20.1/Forge47.1.0",
+      "derivation": "native-reconstruction.json; 本地MCP基底+官方47.1.0精确上下文补丁；reading-view不是发行源码或运行证明"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/native-47.1.0-reading-view/net/minecraft/world/entity/Entity.java",
+      "read_ranges": [
+        [
+          326,
+          360
+        ],
+        [
+          1583,
+          1779
+        ],
+        [
+          1826,
+          1840
+        ],
+        [
+          3334,
+          3373
+        ],
+        [
+          3426,
+          3450
+        ],
+        [
+          3517,
+          3551
+        ]
+      ],
+      "lines": 3551,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "remove与setRemoved、Pos/Motion/Rotation持久化、移除枚举、离场默认行为",
+      "sha256": "a0c0e58d6adec7e668b05702d21378257cd5b75f2ed507150d6ae3aba368b09b",
+      "version": "Minecraft1.20.1/Forge47.1.0",
+      "derivation": "native-reconstruction.json; 本地MCP基底+官方47.1.0精确上下文补丁；reading-view不是发行源码或运行证明"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/native-47.1.0-reading-view/net/minecraft/world/entity/LivingEntity.java",
+      "read_ranges": [
+        [
+          402,
+          415
+        ],
+        [
+          539,
+          552
+        ],
+        [
+          653,
+          671
+        ],
+        [
+          1299,
+          1335
+        ],
+        [
+          1498,
+          1514
+        ],
+        [
+          3036,
+          3070
+        ]
+      ],
+      "lines": 3467,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "health与removed差别；die/tickDeath；releaseUsing和stopUsing",
+      "sha256": "c7f67a131d3baac8440867c776ee88412664de0d7cb4af6ee2a1dfae2b8bb7f3",
+      "version": "Minecraft1.20.1/Forge47.1.0",
+      "derivation": "native-reconstruction.json; 本地MCP基底+官方47.1.0精确上下文补丁；reading-view不是发行源码或运行证明"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/native-47.1.0-reading-view/net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+      "read_ranges": [
+        [
+          61,
+          148
+        ],
+        [
+          181,
+          276
+        ],
+        [
+          426,
+          457
+        ]
+      ],
+      "lines": 457,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "可见UUID索引、区块保存/卸载直接setRemoved、pending loads",
+      "sha256": "45b64c31252785cab6462360b1b1f61d256a9cdb76c9bada08878807a0493814",
+      "version": "Minecraft1.20.1/Forge47.1.0",
+      "derivation": "native-reconstruction.json; 本地MCP基底+官方47.1.0精确上下文补丁；reading-view不是发行源码或运行证明"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/native-47.1.0-reading-view/net/minecraft/server/level/ServerLevel.java",
+      "read_ranges": [
+        [
+          685,
+          699
+        ],
+        [
+          882,
+          889
+        ],
+        [
+          1100,
+          1121
+        ],
+        [
+          1486,
+          1566
+        ]
+      ],
+      "lines": 1566,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "当前可见索引、tick/track callbacks、multipart门禁、离场事件",
+      "sha256": "629248a1b5887f981fd2d249ec668f5940631bb1c65546eb786f654d09045d5a",
+      "version": "Minecraft1.20.1/Forge47.1.0",
+      "derivation": "native-reconstruction.json; 本地MCP基底+官方47.1.0精确上下文补丁；reading-view不是发行源码或运行证明"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/native-47.1.0-reading-view/net/minecraft/server/level/ServerPlayer.java",
+      "read_ranges": [
+        [
+          571,
+          650
+        ]
+      ],
+      "lines": 1745,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "die覆写无直接remove；不是完整Player/重生/断线链",
+      "sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "version": "Minecraft1.20.1/Forge47.1.0",
+      "derivation": "native-reconstruction.json; 本地MCP基底+官方47.1.0精确上下文补丁；reading-view不是发行源码或运行证明"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/native-47.1.0-reading-view/net/minecraft/client/multiplayer/ClientLevel.java",
+      "read_ranges": [
+        [
+          328,
+          353
+        ],
+        [
+          951,
+          1002
+        ]
+      ],
+      "lines": 1002,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "客户端直接setRemoved，multipart门禁及离场事件",
+      "sha256": "968686732b75edd2641af5df6e38480927bf11743fdda339cb46c1c01eb68eb9",
+      "version": "Minecraft1.20.1/Forge47.1.0",
+      "derivation": "native-reconstruction.json; 本地MCP基底+官方47.1.0精确上下文补丁；reading-view不是发行源码或运行证明"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/entity/monster/BlockChainGoblin.java",
+      "read_ranges": [
+        [
+          1,
+          344
+        ]
+      ],
+      "lines": 344,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "桥接基类68–73与邻接怪物326–343的显式multipart；不能推定ChainBlock同样注册",
+      "sha256": "3e473ba9d2a6ef1079154d73a36a9a7a18d1de55aa8c5d546454812df08113d2",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/entity/monster/BlockChainGoblin.java",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/entity/monster/BlockChainGoblin.java"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-05/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/entity/TFPart.java",
+      "read_ranges": [
+        [
+          1,
+          150
+        ]
+      ],
+      "lines": 150,
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "supports": "完整尺寸/插值/parent显示属性、isPickable、ID分配；不会凭私有数组自动注册part",
+      "sha256": "5ba6ec53533b7b47e950f1589b7b2364ac98348631de34ecabcdefcd86fdde91",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/entity/TFPart.java",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/entity/TFPart.java"
+    },
+    {
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/TeamTwilight__twilightforest-forge1201/src/main/java/twilightforest/entity/ChainBlock.java",
+      "read_ranges": [
+        [
+          44,
+          122
+        ],
+        [
+          249,
+          357
+        ]
+      ],
+      "lines": 357,
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "supports": "本轮重读构造/字段、五链插值、owner/返程/remove/NBT/spawn；完整类B4已读",
+      "sha256": "867b7ee836c669c4f2fc7e89fad53921f5ecf8e7a76a08a05e1e19f603a3c4ff",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2",
+      "path": "src/main/java/twilightforest/entity/ChainBlock.java",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/80f4225c5c1525e7c9d18ddbfa35b8c22fd988f2/src/main/java/twilightforest/entity/ChainBlock.java"
+    }
+  ],
+  "runtime_verified": false,
+  "production_modified": false
+}
