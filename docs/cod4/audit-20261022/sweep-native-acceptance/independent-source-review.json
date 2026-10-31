@@ -1,0 +1,467 @@
+{
+  "schema_version": 1,
+  "reviewer": "Jason",
+  "reviewed_at": "2026-10-29T00:53:29.128108+08:00",
+  "status": "SOURCE_REVIEW_FINDINGS_REQUIRE_QA_FOLLOWUP_NO_RUNTIME_ACCEPTANCE",
+  "reviewed_scope": {
+    "java_sources": 10,
+    "mixins": 7,
+    "core_classes": 3,
+    "reference_credit_added": 0,
+    "research_gate_already_complete": true,
+    "report_only_write": true,
+    "qa_source_modified": false,
+    "production_or_assets_modified": false,
+    "main_ledger_or_todo_modified": false,
+    "compile_or_test_executed": false,
+    "game_or_server_started": false,
+    "gui_or_screen_operated": false,
+    "active_ecology_runtime02_untouched": true
+  },
+  "findings": [
+    {
+      "id": "QA-01",
+      "priority": "P1",
+      "title": "Remote client cannot advance to a new case after first capture",
+      "blocks": "Sequential first/third plus negative-control plan on separate TCP client or observer JVM",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java",
+          "source_sha256": "8068202faa1ee2d83bcce711d4d9c01d5dcad618d4588b63115a5597510bb46a",
+          "line": 26,
+          "end_line": 36,
+          "excerpt": " static void start(String id,int target,String view,boolean attack){\n  var m=Minecraft.getInstance();if(active||m.player==null||m.level==null||m.gameMode==null)throw new IllegalStateException(\"Client not idle in private world\");\n  if(!SweepQA.real(m.gameDirectory.toPath()).equals(SweepQA.real(Path.of(Objects.requireNonNull(System.getProperty(\"dynasty.sweepqa.instance\"))))))throw new IllegalStateException(\"Wrong private instance\");\n  if(!id.matches(\"[a-zA-Z0-9_-]{1,70}\")||!Set.of(\"first\",\"third\").contains(view))throw new IllegalArgumentException(\"case/view\");\n  var t=m.level.getEntity(target);if(attack&&(!(t instanceof LivingEntity)||!t.isAlive()||m.player.distanceTo(t)>3||!net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(m.player.getMainHandItem().getItem()).toString().equals(\"dynasty:halberd_fangtian\")||m.player.getAttackStrengthScale(0)<.99f))throw new IllegalStateException(\"Target/weapon/range/full native cooldown not ready\");\n  if(!Probe.current.isEmpty()&&!Probe.current.equals(id))throw new IllegalStateException(\"Server/client case mismatch; dump/clear previous case\");\n  if(java.nio.file.Files.exists(SweepQA.OUT.resolve(id+\"-client-frames.json\")))throw new IllegalStateException(\"Case capture already exists\");\n  name=id;Probe.current=id;previous=m.options.getCameraType();m.options.setCameraType(view.equals(\"first\")?CameraType.FIRST_PERSON:CameraType.THIRD_PERSON_BACK);\n  active=true;Probe.renderActive=true;ticks=0;frames.clear();captured.clear();Probe.pixelProbe=true;Probe.savedPairs.clear();Probe.pixelTicks.clear();\n  Probe.event(\"client-capture-start\",Map.of(\"view\",view,\"observerOnly\",!attack,\"player\",SweepQA.entity(m.player),\"cooldown\",m.player.getAttackStrengthScale(0)));\n  if(attack){m.gameMode.attack(m.player,t);m.player.swing(InteractionHand.MAIN_HAND);Probe.event(\"actual-client-gamemode-attack\",Map.of(\"target\",SweepQA.entity(t),\"player\",SweepQA.entity(m.player)));}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java",
+          "source_sha256": "8068202faa1ee2d83bcce711d4d9c01d5dcad618d4588b63115a5597510bb46a",
+          "line": 47,
+          "end_line": 51,
+          "excerpt": " static void finish(String reason){\n  active=false;Probe.renderActive=false;Probe.pixelProbe=false;var m=Minecraft.getInstance();m.options.setCameraType(previous);Probe.event(\"client-capture-end\",Map.of(\"reason\",reason,\"ticks\",ticks));\n  SweepQA.write(name+\"-client-frames.json\",frames);SweepQA.write(name+\"-client-events.json\",List.copyOf(Probe.events));\n  try{for(var entry:images.entrySet())try(var image=entry.getValue()){image.writeToFile(SweepQA.OUT.resolve(entry.getKey()));}}catch(Exception ex){throw new IllegalStateException(ex);}finally{images.clear();}\n  // Keep current case for late native/server observations; coordinator must dump/clear explicitly."
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java",
+          "source_sha256": "d9c74e7234054f15db75455a97e898f82aa177921eb60271836fcf8f97e78d6c",
+          "line": 53,
+          "end_line": 54,
+          "excerpt": "   .then(Commands.literal(\"dump\").executes(c->{if(!Probe.current.isEmpty()){Probe.event(\"server-final-targets\",targets.stream().map(SweepQA::entity).toList());write(Probe.current+\"-server-events.json\",List.copyOf(Probe.events));}return 1;}))\n   .then(Commands.literal(\"clear\").executes(c->{if(!Probe.current.isEmpty()){Probe.event(\"server-final-targets\",targets.stream().map(SweepQA::entity).toList());write(Probe.current+\"-server-events.json\",List.copyOf(Probe.events));}cleanup();Probe.current=\"\";return 1;})));"
+        }
+      ],
+      "observation": "SweepClient.start sets Probe.current=id. finish never clears it and there is no client clear command. The next distinct ID fails line31. /sweepqa dump/clear only changes server-process static state; it cannot clear a remote client/watch JVM. Integrated host may share the static and evade this, so integrated-only success does not validate the intended remote workflow.",
+      "recommendation": "Provide a client-local case lifecycle: preserve/flush late evidence, then explicitly permit a new unique ID and use a fresh per-case event buffer or filter saved records by case. Do not only remove the equality check: Probe.events is not cleared on remote start, so subsequent logs would retain earlier attack/end/wire events and break or pollute analysis.",
+      "verification": "Static call/state trace only; no game or reproduction run performed."
+    },
+    {
+      "id": "QA-02",
+      "priority": "P2",
+      "title": "Missing probe observations can pass negative-control absence checks",
+      "blocks": "Treating a negative analysis exit0 as proof of no dedicated cue or one-time queue consumption",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "source_sha256": "bb49015bcaa975426baa797a3d0a45f13f71bae9dcabdbefd1c1dee8bfcbf9fb",
+          "line": 8,
+          "end_line": 16,
+          "excerpt": "actor=fixture['actor'];events=lambda xs,k:[x['data'] for x in xs if x['kind']==k]\nwire=events(client,'actual-s2c-handle');cues=[x for x in wire if x['sequence']==cue]\nrows=[r for batch in events(server,'receipt-before-exact-consumer') for r in batch if r['actor']['uuid']==actor['uuid']]\nchecks['fixture_mode_matches']=fixture['mode']==a.mode\nchecks['actual_client_attack_logged']=len(events(client,'actual-client-gamemode-attack'))==1\nattacks=events(server,'server-native-attack');checks['actual_server_attack_logged']=len(attacks)==1\nends=events(client,'client-capture-end');checks['full_observation_window']=len(ends)==1 and ends[0]['reason']=='bounded-40-client-ticks' and ends[0]['ticks']>=40 and len(frames)>0\nchecks['no_probe_errors']=not events(server,'probe-error') and not events(client,'probe-error')\nchecks['queue_empty_after_consumer']=all(not b for b in events(server,'receipt-after-exact-consumer'))"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "source_sha256": "bb49015bcaa975426baa797a3d0a45f13f71bae9dcabdbefd1c1dee8bfcbf9fb",
+          "line": 30,
+          "end_line": 37,
+          "excerpt": "else:\n checks['no_dedicated_cue']=not cues\n checks['no_dedicated_geometry']=not any(f['geometry'].get('FangtianSweep') for f in frames)\n checks['no_health_loss']=bool(deltas) and all(d==0 for d in deltas.values())\n if a.mode=='cancel-attack':checks['server_attack_actually_cancelled']=bool(attacks) and all(x['cancelled'] for x in attacks)\n if a.mode=='cancel-damage':checks['damage_event_actually_cancelled']=any(x['cancelled'] for x in events(server,'server-damage-event-not-final-hp'))\nobservations['receipt_ages']=[r['age'] for r in rows];observations['sequences']=sorted({x['sequence'] for x in wire});observations['camera_views']=sorted({f['view'] for f in frames})\nreport=dict(case=a.case,mode=a.mode,mechanical_checks_pass=all(checks.values()),checks=checks,observations=observations,visual_acceptance='PENDING coordinator shape/occlusion/composition review; nonzero pixels are insufficient',overall_acceptance=False)"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/resources/sweep-native-qa.mixins.json",
+          "source_sha256": "0453904ada32a407df560ffd2178c080f0c1ef9ed5d01c713249a16841579914",
+          "line": 1,
+          "end_line": 19,
+          "excerpt": "{\n  \"required\": true,\n  \"minVersion\": \"0.8\",\n  \"package\": \"com.dynasty.sweepqa.mixin\",\n  \"compatibilityLevel\": \"JAVA_17\",\n  \"mixins\": [\n    \"ReceiptProbe\"\n  ],\n  \"client\": [\n    \"FangtianSweepProbe\",\n    \"FangtianSweepPixels\",\n    \"VisualWireProbe\",\n    \"AfterimageProbe\",\n    \"Cod3VfxPixels\",\n    \"PrimitiveProbe\"\n  ],\n  \"injectors\": {\n    \"defaultRequire\": 1\n  }"
+        }
+      ],
+      "observation": "queue_empty_after_consumer uses all(...) without requiring any after-consumer event. For a negative, empty wire/geometry lists also satisfy absence. If Mixin configuration was not loaded, core QA command/event handlers can still record a cancelled attack and unchanged fixture HP while no probe-error is produced; this analyzer path can be mechanically green with no ReceiptProbe/VisualWireProbe/triangle instrumentation. defaultRequire=1 only enforces injections once that config is actually loaded.",
+      "recommendation": "Require recorded instrumentation readiness plus a nonempty before/after END coverage window. For negative visual absence, require the same installed probe/artifact identity and a successful positive calibration from that process/session, or an explicit loaded-hook receipt. Missing instrumentation should be TOOL_FAILURE/INSUFFICIENT_EVIDENCE, never a successful absence result. HANDOFF already requires a positive first case; encode or explicitly link that dependency in each negative record.",
+      "verification": "Static empty-collection control flow, not a synthetic evidence execution."
+    },
+    {
+      "id": "QA-03",
+      "priority": "P2",
+      "title": "Attack logs are not bound to the fixture main target/player by the analyzer",
+      "blocks": "Identity-correct negative-control mechanical acceptance, especially invulnerable",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java",
+          "source_sha256": "d9c74e7234054f15db75455a97e898f82aa177921eb60271836fcf8f97e78d6c",
+          "line": 49,
+          "end_line": 59,
+          "excerpt": "    for(int i=0;i<2;i++){var cow=EntityType.COW.create(p.serverLevel());if(cow==null)throw new IllegalStateException(\"cow\");cow.setNoAi(true);cow.setPersistenceRequired();cow.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000000);cow.setHealth(cow.getMaxHealth());cow.setInvulnerable(which.equals(\"invulnerable\"));cow.setPos(p.position().add(forward.scale(2.1)).add(side.scale(i==0?0:1.1)));if(!p.serverLevel().addFreshEntity(cow))throw new IllegalStateException(\"spawn failed\");targets.add(cow);}\n    var fixture=Map.of(\"case\",name,\"mode\",mode,\"actor\",entity(p),\"targets\",targets.stream().map(SweepQA::entity).toList());write(name+\"-fixture.json\",fixture);Probe.event(\"fixture-ready\",fixture);\n    c.getSource().sendSuccess(()->Component.literal(\"sweepqa target=\"+targets.get(0).getId()+\"; wait for full native cooldown then /sweepqa-client \"+name+\" \"+targets.get(0).getId()+\" first (or third)\"),false);return 1;\n   }))))\n   .then(Commands.literal(\"dump\").executes(c->{if(!Probe.current.isEmpty()){Probe.event(\"server-final-targets\",targets.stream().map(SweepQA::entity).toList());write(Probe.current+\"-server-events.json\",List.copyOf(Probe.events));}return 1;}))\n   .then(Commands.literal(\"clear\").executes(c->{if(!Probe.current.isEmpty()){Probe.event(\"server-final-targets\",targets.stream().map(SweepQA::entity).toList());write(Probe.current+\"-server-events.json\",List.copyOf(Probe.events));}cleanup();Probe.current=\"\";return 1;})));\n }\n @SubscribeEvent(priority=EventPriority.HIGHEST) public static void cancelAttack(AttackEntityEvent e){if(!e.getEntity().level().isClientSide&&Objects.equals(actor,e.getEntity().getUUID())&&scoped(e.getTarget())&&mode.equals(\"cancel-attack\"))e.setCanceled(true);}\n @SubscribeEvent(priority=EventPriority.LOWEST,receiveCanceled=true) public static void attack(AttackEntityEvent e){if(!e.getEntity().level().isClientSide&&Objects.equals(actor,e.getEntity().getUUID()))Probe.event(\"server-native-attack\",Map.of(\"actor\",entity(e.getEntity()),\"target\",entity(e.getTarget()),\"cancelled\",e.isCanceled()));}\n @SubscribeEvent(priority=EventPriority.HIGHEST) public static void cancelDamage(LivingDamageEvent e){if(!e.getEntity().level().isClientSide&&scoped(e.getEntity())&&mode.equals(\"cancel-damage\")&&Objects.equals(actor,e.getSource().getEntity()==null?null:e.getSource().getEntity().getUUID()))e.setCanceled(true);}\n @SubscribeEvent(priority=EventPriority.LOWEST,receiveCanceled=true) public static void damage(LivingDamageEvent e){if(!e.getEntity().level().isClientSide&&scoped(e.getEntity()))Probe.event(\"server-damage-event-not-final-hp\",Map.of(\"target\",entity(e.getEntity()),\"amount\",e.getAmount(),\"source\",e.getSource().getMsgId(),\"direct\",entity(e.getSource().getDirectEntity()),\"owner\",entity(e.getSource().getEntity()),\"cancelled\",e.isCanceled()));}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java",
+          "source_sha256": "8068202faa1ee2d83bcce711d4d9c01d5dcad618d4588b63115a5597510bb46a",
+          "line": 29,
+          "end_line": 36,
+          "excerpt": "  if(!id.matches(\"[a-zA-Z0-9_-]{1,70}\")||!Set.of(\"first\",\"third\").contains(view))throw new IllegalArgumentException(\"case/view\");\n  var t=m.level.getEntity(target);if(attack&&(!(t instanceof LivingEntity)||!t.isAlive()||m.player.distanceTo(t)>3||!net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(m.player.getMainHandItem().getItem()).toString().equals(\"dynasty:halberd_fangtian\")||m.player.getAttackStrengthScale(0)<.99f))throw new IllegalStateException(\"Target/weapon/range/full native cooldown not ready\");\n  if(!Probe.current.isEmpty()&&!Probe.current.equals(id))throw new IllegalStateException(\"Server/client case mismatch; dump/clear previous case\");\n  if(java.nio.file.Files.exists(SweepQA.OUT.resolve(id+\"-client-frames.json\")))throw new IllegalStateException(\"Case capture already exists\");\n  name=id;Probe.current=id;previous=m.options.getCameraType();m.options.setCameraType(view.equals(\"first\")?CameraType.FIRST_PERSON:CameraType.THIRD_PERSON_BACK);\n  active=true;Probe.renderActive=true;ticks=0;frames.clear();captured.clear();Probe.pixelProbe=true;Probe.savedPairs.clear();Probe.pixelTicks.clear();\n  Probe.event(\"client-capture-start\",Map.of(\"view\",view,\"observerOnly\",!attack,\"player\",SweepQA.entity(m.player),\"cooldown\",m.player.getAttackStrengthScale(0)));\n  if(attack){m.gameMode.attack(m.player,t);m.player.swing(InteractionHand.MAIN_HAND);Probe.event(\"actual-client-gamemode-attack\",Map.of(\"target\",SweepQA.entity(t),\"player\",SweepQA.entity(m.player)));}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "source_sha256": "bb49015bcaa975426baa797a3d0a45f13f71bae9dcabdbefd1c1dee8bfcbf9fb",
+          "line": 8,
+          "end_line": 24,
+          "excerpt": "actor=fixture['actor'];events=lambda xs,k:[x['data'] for x in xs if x['kind']==k]\nwire=events(client,'actual-s2c-handle');cues=[x for x in wire if x['sequence']==cue]\nrows=[r for batch in events(server,'receipt-before-exact-consumer') for r in batch if r['actor']['uuid']==actor['uuid']]\nchecks['fixture_mode_matches']=fixture['mode']==a.mode\nchecks['actual_client_attack_logged']=len(events(client,'actual-client-gamemode-attack'))==1\nattacks=events(server,'server-native-attack');checks['actual_server_attack_logged']=len(attacks)==1\nends=events(client,'client-capture-end');checks['full_observation_window']=len(ends)==1 and ends[0]['reason']=='bounded-40-client-ticks' and ends[0]['ticks']>=40 and len(frames)>0\nchecks['no_probe_errors']=not events(server,'probe-error') and not events(client,'probe-error')\nchecks['queue_empty_after_consumer']=all(not b for b in events(server,'receipt-after-exact-consumer'))\nfinals=events(server,'server-final-targets');hp0={x['uuid']:x['health'] for x in fixture['targets']};last=finals[-1] if finals else []\nchecks['final_targets_recorded']=set(hp0)=={x['uuid'] for x in last}\ndeltas={x['uuid']:hp0[x['uuid']]-x['health'] for x in last};observations['health_loss']=deltas\nif a.mode=='success':\n checks['one_dedicated_cue']=len(cues)==1\n checks['genuine_health_loss']=any(d>0 for d in deltas.values())\n checks['real_adjacent_tick_receipt']=any(r['age']==1 for r in rows)\n checks['cue_correlates_adjacent_consumer']=any(r['age']==1 and r['capturedLevelMatchesActor'] and r['capturedLevelMatchesMain'] and (r['secondary'] or r['primaryDamage'] and r['main']['health']<r['health']) and any(c['entity']==r['actor']['id'] and c['dimension']==r['actor']['dimension'] and c['start']==r['consumedNow'] for c in cues) for r in rows)"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "source_sha256": "bb49015bcaa975426baa797a3d0a45f13f71bae9dcabdbefd1c1dee8bfcbf9fb",
+          "line": 30,
+          "end_line": 36,
+          "excerpt": "else:\n checks['no_dedicated_cue']=not cues\n checks['no_dedicated_geometry']=not any(f['geometry'].get('FangtianSweep') for f in frames)\n checks['no_health_loss']=bool(deltas) and all(d==0 for d in deltas.values())\n if a.mode=='cancel-attack':checks['server_attack_actually_cancelled']=bool(attacks) and all(x['cancelled'] for x in attacks)\n if a.mode=='cancel-damage':checks['damage_event_actually_cancelled']=any(x['cancelled'] for x in events(server,'server-damage-event-not-final-hp'))\nobservations['receipt_ages']=[r['age'] for r in rows];observations['sequences']=sorted({x['sequence'] for x in wire});observations['camera_views']=sorted({f['view'] for f in frames})"
+        }
+      ],
+      "observation": "The client accepts any alive LivingEntity ID within3 blocks. Server native-attack logging filters actor but not scoped target. Analyzer only counts one client attack and one server attack and never checks either target UUID against fixture.targets[0], nor checks client player UUID against fixture.actor or each record.case. A concrete static false-positive path is invulnerable mode armed on two QA cows while command attacks another nearby invulnerable entity: fixture HP stays unchanged, no dedicated cue/geometry appears, one attack is logged, and all current negative checks can pass without attacking the fixture.",
+      "recommendation": "Require current case on every consumed record, client actor UUID == server fixture actor, client/server attack target UUID == fixture primary UUID (and matching dimension), and matching mode/capture identity. Bind cancelled damage evidence to the expected source/targets; success receipt main should also match the primary fixture rather than only the actor.",
+      "verification": "Concrete source-level counterexample; no game or analyzer execution."
+    }
+  ],
+  "positive_static_checks": [
+    {
+      "id": "package_reservation",
+      "status": "PASS_STATIC",
+      "observation": "Mixin config reserves only com.dynasty.sweepqa.mixin. All7 entries are actual mixin classes beneath it; Probe/SweepQA/SweepClient are outside it and all injected callbacks call public core APIs. This avoids treating ordinary helpers as directly loaded classes in the mixin package prefix. ReceiptProbe common, six render/network probes client-only in config.",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/resources/sweep-native-qa.mixins.json",
+          "source_sha256": "0453904ada32a407df560ffd2178c080f0c1ef9ed5d01c713249a16841579914",
+          "line": 1,
+          "end_line": 19,
+          "excerpt": "{\n  \"required\": true,\n  \"minVersion\": \"0.8\",\n  \"package\": \"com.dynasty.sweepqa.mixin\",\n  \"compatibilityLevel\": \"JAVA_17\",\n  \"mixins\": [\n    \"ReceiptProbe\"\n  ],\n  \"client\": [\n    \"FangtianSweepProbe\",\n    \"FangtianSweepPixels\",\n    \"VisualWireProbe\",\n    \"AfterimageProbe\",\n    \"Cod3VfxPixels\",\n    \"PrimitiveProbe\"\n  ],\n  \"injectors\": {\n    \"defaultRequire\": 1\n  }"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/Probe.java",
+          "source_sha256": "b7afed847a688682506f5019ef36e70fd265d391a3b222f16c6638dfdb332952",
+          "line": 1,
+          "end_line": 15,
+          "excerpt": "package com.dynasty.sweepqa;\nimport com.dynasty.cod3.Cod3VisualPacket;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraft.world.item.*;\nimport net.minecraftforge.registries.ForgeRegistries;\nimport org.joml.Matrix4f;\nimport org.lwjgl.opengl.GL11;\nimport java.util.*;\nimport java.util.concurrent.CopyOnWriteArrayList;\n\n/** Observational only: never emits, cancels or edits a production packet/renderer. */\npublic final class Probe {\n public static volatile String current=\"\";\n public static volatile boolean renderActive;\n public static final List<Object> events=new CopyOnWriteArrayList<>();"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java",
+          "source_sha256": "d9c74e7234054f15db75455a97e898f82aa177921eb60271836fcf8f97e78d6c",
+          "line": 23,
+          "end_line": 30,
+          "excerpt": "/** Private fixtures only after explicit operator command. No launch, world creation or cue generation. */\n@Mod(\"dynastysweepqa\")\n@Mod.EventBusSubscriber(modid=\"dynastysweepqa\")\npublic final class SweepQA {\n public static final Path OUT=Path.of(System.getProperty(\"dynasty.sweepqa.output\", \".sweepqa-disabled\"));\n static UUID actor; static String mode=\"\"; static long armed;\n static final List<LivingEntity> targets=new ArrayList<>();\n public SweepQA(){if(!OUT.isAbsolute()||System.getProperty(\"dynasty.sweepqa.instance\")==null||!Boolean.getBoolean(\"dynasty.sweepqa.enabled\"))throw new IllegalStateException(\"Private sweep QA requires explicit opt-in\");}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java",
+          "source_sha256": "8068202faa1ee2d83bcce711d4d9c01d5dcad618d4588b63115a5597510bb46a",
+          "line": 15,
+          "end_line": 21,
+          "excerpt": "/** Explicit command only. No focus/window/screen calls, world creation, auto-connect or shutdown. */\n@Mod.EventBusSubscriber(modid=\"dynastysweepqa\",value=Dist.CLIENT)\npublic final class SweepClient {\n public static final Map<String,com.mojang.blaze3d.platform.NativeImage> images=new LinkedHashMap<>();\n static final List<Object> frames=new ArrayList<>();\n static boolean active;static int ticks;static String name;static CameraType previous;\n static final Set<Long> captured=new HashSet<>();"
+        }
+      ]
+    },
+    {
+      "id": "local_srg_target_symbols",
+      "status": "PRESENT_IN_LOCAL_ARTIFACT_NOT_RUNTIME_INJECTION_PROOF",
+      "observation": "Read member tables from local SRG Jar. Custom target method/field names and AfterImages six-argument weapon descriptor match source injections; remap=false is appropriate for these mod-owned names. Java references to Minecraft APIs still require the planned reobf. No SRG QA artifact has been built/loaded by this review. The shared artifact is the recorded old production bundle; Receipt.level requires coordinator integration of the fixed four classes before running this QA.",
+      "artifact": "modpack/mods/dynasty-1.4.0.jar",
+      "artifact_sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "members": [
+        {
+          "entry": "com/dynasty/client/Cod3AfterImages.class",
+          "sha256": "6dfec6117515cdda6381191e9ab4092826796caf83cfdc94386d9d7332dff343",
+          "target_fields": [],
+          "target_methods": [
+            {
+              "name": "render",
+              "descriptor": "(Lcom/dynasty/cod3/Cod3VisualPacket;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;FDI)V",
+              "access_flags": 8
+            },
+            {
+              "name": "weapon",
+              "descriptor": "(Lnet/minecraft/world/item/ItemStack;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V",
+              "access_flags": 8
+            },
+            {
+              "name": "weapon",
+              "descriptor": "(Lnet/minecraft/world/item/ItemStack;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IFLnet/minecraft/world/item/ItemDisplayContext;)V",
+              "access_flags": 8
+            }
+          ]
+        },
+        {
+          "entry": "com/dynasty/client/FangtianSweepRenderer.class",
+          "sha256": "f92142437df5f96ab5530a27acbc82f25587e5fa0a377ce8cf026610f606e780",
+          "target_fields": [
+            {
+              "name": "ACTIVE",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 26
+            }
+          ],
+          "target_methods": [
+            {
+              "name": "tick",
+              "descriptor": "(Lnet/minecraftforge/event/TickEvent$ClientTickEvent;)V",
+              "access_flags": 9
+            },
+            {
+              "name": "render",
+              "descriptor": "(Lnet/minecraftforge/client/event/RenderLevelStageEvent;)V",
+              "access_flags": 9
+            },
+            {
+              "name": "triangle",
+              "descriptor": "(Lorg/joml/Matrix4f;Lcom/dynasty/cod3/WeaponImpactVisual$Triangle;)V",
+              "access_flags": 10
+            }
+          ]
+        },
+        {
+          "entry": "com/dynasty/client/Cod3VfxRenderer.class",
+          "sha256": "9ae43425c9f144e19233c78c9e63015502e22f99347b6ff828ef972db53767ac",
+          "target_fields": [
+            {
+              "name": "ACTIVE",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 26
+            }
+          ],
+          "target_methods": [
+            {
+              "name": "tick",
+              "descriptor": "(Lnet/minecraftforge/event/TickEvent$ClientTickEvent;)V",
+              "access_flags": 9
+            },
+            {
+              "name": "render",
+              "descriptor": "(Lnet/minecraftforge/client/event/RenderLevelStageEvent;)V",
+              "access_flags": 9
+            }
+          ]
+        },
+        {
+          "entry": "com/dynasty/client/Cod3VfxRenderer$Geometry.class",
+          "sha256": "b4f92222a4fee46eb61b99623c51bad8c4d4ead6a3d98f6b0b323246e9a5b0fa",
+          "target_fields": [
+            {
+              "name": "matrix",
+              "descriptor": "Lorg/joml/Matrix4f;",
+              "access_flags": 16
+            },
+            {
+              "name": "camera",
+              "descriptor": "Lnet/minecraft/world/phys/Vec3;",
+              "access_flags": 16
+            },
+            {
+              "name": "alpha",
+              "descriptor": "D",
+              "access_flags": 16
+            },
+            {
+              "name": "color",
+              "descriptor": "I",
+              "access_flags": 16
+            }
+          ],
+          "target_methods": [
+            {
+              "name": "vertex",
+              "descriptor": "(Lnet/minecraft/world/phys/Vec3;)V",
+              "access_flags": 0
+            },
+            {
+              "name": "triangle",
+              "descriptor": "(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;D)V",
+              "access_flags": 0
+            },
+            {
+              "name": "weapon",
+              "descriptor": "(Ljava/lang/String;DDI)V",
+              "access_flags": 0
+            },
+            {
+              "name": "draw",
+              "descriptor": "(ILcom/dynasty/cod3/DynastyVfxDefinition;DDD)V",
+              "access_flags": 0
+            }
+          ]
+        },
+        {
+          "entry": "com/dynasty/cod3/Cod3VisualPacket.class",
+          "sha256": "83c91bbe885581691753ba66b7f57094c3cba22178af3bdf328436253cc53ddd",
+          "target_fields": [],
+          "target_methods": [
+            {
+              "name": "handle",
+              "descriptor": "(Lcom/dynasty/cod3/Cod3VisualPacket;Ljava/util/function/Supplier;)V",
+              "access_flags": 9
+            },
+            {
+              "name": "tick",
+              "descriptor": "()I",
+              "access_flags": 1
+            }
+          ]
+        },
+        {
+          "entry": "com/dynasty/cod3/FangtianSweep.class",
+          "sha256": "fcc7605a2ad8ba02d54c33179f3af23ed7c1ecf9036403b062978b49a586c05a",
+          "target_fields": [
+            {
+              "name": "ACTIVE",
+              "descriptor": "Ljava/lang/ThreadLocal;",
+              "access_flags": 26
+            },
+            {
+              "name": "PENDING",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 26
+            }
+          ],
+          "target_methods": [
+            {
+              "name": "begin",
+              "descriptor": "(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/damagesource/DamageSource;)Lcom/dynasty/cod3/FangtianSweep$Receipt;",
+              "access_flags": 9
+            },
+            {
+              "name": "finish",
+              "descriptor": "(Lcom/dynasty/cod3/FangtianSweep$Receipt;)V",
+              "access_flags": 9
+            },
+            {
+              "name": "tick",
+              "descriptor": "(Lnet/minecraftforge/event/TickEvent$ServerTickEvent;)V",
+              "access_flags": 9
+            }
+          ]
+        }
+      ],
+      "runtime_mixin_validation": false
+    },
+    {
+      "id": "c2s_input_path",
+      "status": "PASS_STATIC",
+      "observation": "Only explicit client command calls real MultiPlayerGameMode.attack followed by MAIN_HAND swing. No hand-built visual packet, FangtianSweep.begin/finish/tick, target.hurt, or setGameTime call appears in QA sources. Server creates noAI private cows and equips the test weapon, with full cooldown/range checks client-side; Native server event records are separate. This proves intended input path in source, not actual runtime packet transport.",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java",
+          "source_sha256": "8068202faa1ee2d83bcce711d4d9c01d5dcad618d4588b63115a5597510bb46a",
+          "line": 26,
+          "end_line": 36,
+          "excerpt": " static void start(String id,int target,String view,boolean attack){\n  var m=Minecraft.getInstance();if(active||m.player==null||m.level==null||m.gameMode==null)throw new IllegalStateException(\"Client not idle in private world\");\n  if(!SweepQA.real(m.gameDirectory.toPath()).equals(SweepQA.real(Path.of(Objects.requireNonNull(System.getProperty(\"dynasty.sweepqa.instance\"))))))throw new IllegalStateException(\"Wrong private instance\");\n  if(!id.matches(\"[a-zA-Z0-9_-]{1,70}\")||!Set.of(\"first\",\"third\").contains(view))throw new IllegalArgumentException(\"case/view\");\n  var t=m.level.getEntity(target);if(attack&&(!(t instanceof LivingEntity)||!t.isAlive()||m.player.distanceTo(t)>3||!net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(m.player.getMainHandItem().getItem()).toString().equals(\"dynasty:halberd_fangtian\")||m.player.getAttackStrengthScale(0)<.99f))throw new IllegalStateException(\"Target/weapon/range/full native cooldown not ready\");\n  if(!Probe.current.isEmpty()&&!Probe.current.equals(id))throw new IllegalStateException(\"Server/client case mismatch; dump/clear previous case\");\n  if(java.nio.file.Files.exists(SweepQA.OUT.resolve(id+\"-client-frames.json\")))throw new IllegalStateException(\"Case capture already exists\");\n  name=id;Probe.current=id;previous=m.options.getCameraType();m.options.setCameraType(view.equals(\"first\")?CameraType.FIRST_PERSON:CameraType.THIRD_PERSON_BACK);\n  active=true;Probe.renderActive=true;ticks=0;frames.clear();captured.clear();Probe.pixelProbe=true;Probe.savedPairs.clear();Probe.pixelTicks.clear();\n  Probe.event(\"client-capture-start\",Map.of(\"view\",view,\"observerOnly\",!attack,\"player\",SweepQA.entity(m.player),\"cooldown\",m.player.getAttackStrengthScale(0)));\n  if(attack){m.gameMode.attack(m.player,t);m.player.swing(InteractionHand.MAIN_HAND);Probe.event(\"actual-client-gamemode-attack\",Map.of(\"target\",SweepQA.entity(t),\"player\",SweepQA.entity(m.player)));}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java",
+          "source_sha256": "d9c74e7234054f15db75455a97e898f82aa177921eb60271836fcf8f97e78d6c",
+          "line": 44,
+          "end_line": 50,
+          "excerpt": "    cleanup();actor=p.getUUID();mode=which;armed=p.level().getGameTime();Probe.events.clear();Probe.current=name;\n    var weapon=Objects.requireNonNull(ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation(\"dynasty:halberd_fangtian\")));\n    p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new ItemStack(weapon));\n    // No player health, armor, skills, cooldown, world time or damage coefficient mutation.\n    Vec3 forward=p.getLookAngle().multiply(1,0,1).normalize(),side=new Vec3(-forward.z,0,forward.x);\n    for(int i=0;i<2;i++){var cow=EntityType.COW.create(p.serverLevel());if(cow==null)throw new IllegalStateException(\"cow\");cow.setNoAi(true);cow.setPersistenceRequired();cow.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1000000);cow.setHealth(cow.getMaxHealth());cow.setInvulnerable(which.equals(\"invulnerable\"));cow.setPos(p.position().add(forward.scale(2.1)).add(side.scale(i==0?0:1.1)));if(!p.serverLevel().addFreshEntity(cow))throw new IllegalStateException(\"spawn failed\");targets.add(cow);}\n    var fixture=Map.of(\"case\",name,\"mode\",mode,\"actor\",entity(p),\"targets\",targets.stream().map(SweepQA::entity).toList());write(name+\"-fixture.json\",fixture);Probe.event(\"fixture-ready\",fixture);"
+        }
+      ]
+    },
+    {
+      "id": "observation_and_negative_control_scope",
+      "status": "PASS_STATIC_WITH_TOOL_OVERHEAD_LIMIT",
+      "observation": "ReceiptProbe reads queue/fields before and after the real consumer and does not alter receipt tick, flags or queue. Renderer probes are noncancelling injects, Shadow fields read-only. cancel-attack and cancel-damage mutate only matching actor/QA target events, invulnerable only QA targets; clear discards only stored QA-created targets. No original damage coefficient/cooldown/world time/health mutation of player. Reflection, list allocation and framebuffer readbacks can add timing overhead, so source nonmutation is not timing-neutrality or Forge-order proof.",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/ReceiptProbe.java",
+          "source_sha256": "60c25e9cc988569c3e22748cefd3418e9a0b22a6bb0b9d728dd6452f2eac195e",
+          "line": 12,
+          "end_line": 20,
+          "excerpt": "/** Reads the actual queue immediately around the production consumer; never mutates it. */\n@Mixin(value=FangtianSweep.class,remap=false)\npublic abstract class ReceiptProbe {\n private static Object field(Object r,String key)throws Exception{var f=r.getClass().getDeclaredField(key);f.setAccessible(true);return f.get(r);}\n private static void snapshot(String stage){if(Probe.current.isEmpty())return;try{var f=FangtianSweep.class.getDeclaredField(\"PENDING\");f.setAccessible(true);var list=(List<?>)f.get(null);var rows=new ArrayList<Object>();for(Object r:list){var p=(net.minecraft.server.level.ServerPlayer)field(r,\"player\");var t=(LivingEntity)field(r,\"main\");long tick=(Long)field(r,\"tick\"),now=p.level().getGameTime();var row=new LinkedHashMap<String,Object>();row.put(\"identity\",System.identityHashCode(r));row.put(\"produced\",tick);row.put(\"consumedNow\",now);row.put(\"age\",now-tick);row.put(\"actor\",SweepQA.entity(p));row.put(\"main\",SweepQA.entity(t));row.put(\"capturedLevelMatchesActor\",field(r,\"level\")==p.serverLevel());row.put(\"capturedLevelMatchesMain\",field(r,\"level\")==t.level());for(String k:List.of(\"health\",\"secondary\",\"primaryDamage\"))row.put(k,field(r,k));row.put(\"stamp\",p.getPersistentData().contains(\"cod3_confirmed_sweep_at\")?p.getPersistentData().getLong(\"cod3_confirmed_sweep_at\"):null);rows.add(row);}Probe.event(stage,rows);}catch(Exception ex){Probe.event(\"probe-error\",ex.toString());}}\n @Inject(method=\"begin\",at=@At(\"RETURN\"),remap=false) private static void begin(LivingEntity a,LivingEntity t,DamageSource s,CallbackInfoReturnable<FangtianSweep.Receipt> ci){Probe.event(\"receipt-begin-result\",Map.of(\"actor\",SweepQA.entity(a),\"main\",SweepQA.entity(t),\"receipt\",ci.getReturnValue()!=null,\"source\",s.getMsgId(),\"owner\",SweepQA.entity(s.getEntity()),\"direct\",SweepQA.entity(s.getDirectEntity())));}\n @Inject(method=\"finish\",at=@At(\"RETURN\"),remap=false) private static void finish(FangtianSweep.Receipt r,CallbackInfo ci){snapshot(\"receipt-finish-queue\");}\n @Inject(method=\"tick\",at=@At(\"HEAD\"),remap=false) private static void before(TickEvent.ServerTickEvent e,CallbackInfo ci){if(e.phase==TickEvent.Phase.END)snapshot(\"receipt-before-exact-consumer\");}\n @Inject(method=\"tick\",at=@At(\"RETURN\"),remap=false) private static void after(TickEvent.ServerTickEvent e,CallbackInfo ci){if(e.phase==TickEvent.Phase.END)snapshot(\"receipt-after-exact-consumer\");}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java",
+          "source_sha256": "d9c74e7234054f15db75455a97e898f82aa177921eb60271836fcf8f97e78d6c",
+          "line": 34,
+          "end_line": 35,
+          "excerpt": " static boolean scoped(Entity e){return actor!=null&&targets.contains(e);}\n static void cleanup(){for(var t:targets)if(!t.isRemoved())t.discard();targets.clear();actor=null;mode=\"\";}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java",
+          "source_sha256": "d9c74e7234054f15db75455a97e898f82aa177921eb60271836fcf8f97e78d6c",
+          "line": 56,
+          "end_line": 60,
+          "excerpt": " @SubscribeEvent(priority=EventPriority.HIGHEST) public static void cancelAttack(AttackEntityEvent e){if(!e.getEntity().level().isClientSide&&Objects.equals(actor,e.getEntity().getUUID())&&scoped(e.getTarget())&&mode.equals(\"cancel-attack\"))e.setCanceled(true);}\n @SubscribeEvent(priority=EventPriority.LOWEST,receiveCanceled=true) public static void attack(AttackEntityEvent e){if(!e.getEntity().level().isClientSide&&Objects.equals(actor,e.getEntity().getUUID()))Probe.event(\"server-native-attack\",Map.of(\"actor\",entity(e.getEntity()),\"target\",entity(e.getTarget()),\"cancelled\",e.isCanceled()));}\n @SubscribeEvent(priority=EventPriority.HIGHEST) public static void cancelDamage(LivingDamageEvent e){if(!e.getEntity().level().isClientSide&&scoped(e.getEntity())&&mode.equals(\"cancel-damage\")&&Objects.equals(actor,e.getSource().getEntity()==null?null:e.getSource().getEntity().getUUID()))e.setCanceled(true);}\n @SubscribeEvent(priority=EventPriority.LOWEST,receiveCanceled=true) public static void damage(LivingDamageEvent e){if(!e.getEntity().level().isClientSide&&scoped(e.getEntity()))Probe.event(\"server-damage-event-not-final-hp\",Map.of(\"target\",entity(e.getEntity()),\"amount\",e.getAmount(),\"source\",e.getSource().getMsgId(),\"direct\",entity(e.getSource().getDirectEntity()),\"owner\",entity(e.getSource().getEntity()),\"cancelled\",e.isCanceled()));}\n @SubscribeEvent public static void timeout(TickEvent.ServerTickEvent e){if(e.phase!=TickEvent.Phase.END||actor==null)return;var s=net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();if(s==null)return;var p=s.getPlayerList().getPlayer(actor);if(p==null||p.level().getGameTime()-armed>600){if(!Probe.current.isEmpty())write(Probe.current+\"-timeout-server-events.json\",List.copyOf(Probe.events));cleanup();Probe.current=\"\";}}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/Probe.java",
+          "source_sha256": "b7afed847a688682506f5019ef36e70fd265d391a3b222f16c6638dfdb332952",
+          "line": 30,
+          "end_line": 45,
+          "excerpt": " public static void pixelBefore(String kind,net.minecraftforge.client.event.RenderLevelStageEvent event,boolean active){\n  var m=net.minecraft.client.Minecraft.getInstance();\n  if(!pixelProbe||current.isEmpty()||!active||event.getStage()!=net.minecraftforge.client.event.RenderLevelStageEvent.Stage.AFTER_PARTICLES||m.level==null)return;\n  long tick=m.level.getGameTime();if(Objects.equals(pixelTicks.get(kind),tick))return;pixelTicks.put(kind,tick);\n  before.put(kind,net.minecraft.client.Screenshot.takeScreenshot(m.getMainRenderTarget()));\n }\n public static void pixelAfter(String kind){\n  var pre=before.remove(kind);if(pre==null)return;var m=net.minecraft.client.Minecraft.getInstance();\n  try(pre;var post=net.minecraft.client.Screenshot.takeScreenshot(m.getMainRenderTarget())){\n   int changed=0,substantial=0;int x0=post.getWidth(),y0=post.getHeight(),x1=-1,y1=-1;long magnitude=0;\n   for(int y=0;y<post.getHeight();y++)for(int x=0;x<post.getWidth();x++){int a=pre.getPixelRGBA(x,y),b=post.getPixelRGBA(x,y);int d=Math.abs((a&255)-(b&255))+Math.abs((a>>8&255)-(b>>8&255))+Math.abs((a>>16&255)-(b>>16&255));if(d>0){changed++;magnitude+=d;x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);if(d>=12)substantial++;}}\n   var report=new LinkedHashMap<String,Object>();report.put(\"changedPixels\",changed);report.put(\"rgbDifferenceAtLeast12\",substantial);report.put(\"summedRgbDifference\",magnitude);report.put(\"bounds\",List.of(x0,y0,x1,y1));\n   int count=savedPairs.getOrDefault(kind,0);if(count<2){String prefix=current+\"-native-\"+kind+\"-f\"+serial;for(var entry:Map.of(\"before\",pre,\"after\",post).entrySet()){var copy=new com.mojang.blaze3d.platform.NativeImage(post.getWidth(),post.getHeight(),false);copy.copyFrom(entry.getValue());SweepClient.images.put(prefix+\"-\"+entry.getKey()+\".png\",copy);}report.put(\"nativeBefore\",prefix+\"-before.png\");report.put(\"nativeAfter\",prefix+\"-after.png\");savedPairs.put(kind,count+1);}\n   pixels.put(kind,report);\n  }\n }"
+        }
+      ]
+    },
+    {
+      "id": "age_one_and_visual_acceptance_boundary",
+      "status": "GOOD_EXPLICIT_PLAN_NOT_COMPLETE_MECHANICAL_ENFORCEMENT",
+      "observation": "HANDOFF explicitly demands separate first/third real age1 positive records, three negative modes per view, finite retries, same-frame crescent+old mesh and manual visual review. Analyzer correlates age1 actor/dimension/start to wire and requires same-frame old item mesh draw; overall_acceptance is always false and nonzero pixels are not acceptance. Missing identity/readiness checks remain the findings above.",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "source_sha256": "bb49015bcaa975426baa797a3d0a45f13f71bae9dcabdbefd1c1dee8bfcbf9fb",
+          "line": 20,
+          "end_line": 38,
+          "excerpt": "if a.mode=='success':\n checks['one_dedicated_cue']=len(cues)==1\n checks['genuine_health_loss']=any(d>0 for d in deltas.values())\n checks['real_adjacent_tick_receipt']=any(r['age']==1 for r in rows)\n checks['cue_correlates_adjacent_consumer']=any(r['age']==1 and r['capturedLevelMatchesActor'] and r['capturedLevelMatchesMain'] and (r['secondary'] or r['primaryDamage'] and r['main']['health']<r['health']) and any(c['entity']==r['actor']['id'] and c['dimension']==r['actor']['dimension'] and c['start']==r['consumedNow'] for c in cues) for r in rows)\n checks['native_mesh_weapon_wire']=any(x['sequence']=='mesh_weapon' and x['entity']==actor['id'] for x in wire)\n checks['crescent_geometry_observed']=any(f['geometry'].get('FangtianSweep') for f in frames)\n checks['old_weapon_mesh_draw_observed']=any(any(g['item']=='dynasty:halberd_fangtian' for g in f['afterimages']) for f in frames)\n checks['same_frame_crescent_and_old_mesh']=any(f['geometry'].get('FangtianSweep') and any(g['item']=='dynasty:halberd_fangtian' for g in f['afterimages']) for f in frames)\n checks['native_crescent_pixel_pair_saved']=any(any('nativeBefore' in v and (a.output/v['nativeBefore']).is_file() and (a.output/v['nativeAfter']).is_file() for k,v in f['nativePixelDelta'].items() if k=='FangtianSweep') for f in frames)\nelse:\n checks['no_dedicated_cue']=not cues\n checks['no_dedicated_geometry']=not any(f['geometry'].get('FangtianSweep') for f in frames)\n checks['no_health_loss']=bool(deltas) and all(d==0 for d in deltas.values())\n if a.mode=='cancel-attack':checks['server_attack_actually_cancelled']=bool(attacks) and all(x['cancelled'] for x in attacks)\n if a.mode=='cancel-damage':checks['damage_event_actually_cancelled']=any(x['cancelled'] for x in events(server,'server-damage-event-not-final-hp'))\nobservations['receipt_ages']=[r['age'] for r in rows];observations['sequences']=sorted({x['sequence'] for x in wire});observations['camera_views']=sorted({f['view'] for f in frames})\nreport=dict(case=a.case,mode=a.mode,mechanical_checks_pass=all(checks.values()),checks=checks,observations=observations,visual_acceptance='PENDING coordinator shape/occlusion/composition review; nonzero pixels are insufficient',overall_acceptance=False)\n(a.output/(a.case+'-analysis.json')).write_text(json.dumps(report,indent=2)+'\\n');print(json.dumps(report,indent=2))"
+        }
+      ]
+    }
+  ],
+  "evidence_boundaries": [
+    {
+      "id": "wire_head_not_renderer_acceptance",
+      "source": "mixin/VisualWireProbe.java:11-12; production Cod3VisualPacket.java:18-22",
+      "observation": "actual-s2c-handle is logged at handle HEAD before valid()/reception-side/enqueued client renderer dispatch. It is a handler-entry observation, not by itself renderer acceptance. Positive geometry/pixel evidence is still required; no receipt record is a wire-send ACK."
+    },
+    {
+      "id": "old_mesh_draw_entry_not_visible_mesh",
+      "source": "mixin/AfterimageProbe.java:11-12; Probe.java:49; analyze.py:25-29",
+      "observation": "Afterimage probe observes the weapon draw method entry and stack/matrix; it contains no actorUUID/packet sequence/start link. Wire mesh is actor-filtered, draw is only item-filtered. Same-frame geometry+draw proves co-occurrence of method calls, not that the original actor mesh is visible, unoccluded or correctly composed. Keep manual raw frames and private-single-attack context; do not infer GPU-visible old mesh solely from these logs."
+    },
+    {
+      "id": "camera_views_not_aggregated",
+      "source": "SweepClient.java:33,43; analyze.py:36-37",
+      "observation": "Client explicitly selects FIRST_PERSON/THIRD_PERSON_BACK and logs actual views. Analyzer lists views but does not assert one requested view, verify both view coverage, or aggregate six controls/two positives. Coordinator must enforce the full plan across unique cases and inspect captures, not count two filenames as distinct views."
+    },
+    {
+      "id": "live_probe_and_mapping_pending",
+      "observation": "javac -proc:none checks Java typing, not Inject/Shadow application; local SRG symbol presence also does not prove load order, runtime transformed target, QA reobf or Mixin manifest loading. Positive preflight must cover server receipt and client wire/render hooks; missing events are tool failure."
+    }
+  ],
+  "offline_compile_evidence": {
+    "status_recorded": "PASS",
+    "scope": "QA source javac only; not native acceptance or deployable SRG validation",
+    "existing_work": "tools/cod4/sweep-native-acceptance/.work/20261029-003829",
+    "all10_current_sources_match_receipt": true,
+    "all10_existing_classes_match_receipt": true,
+    "all_source_plan_delivery_hashes_match": true,
+    "recompiled_or_executed_by_reviewer": false,
+    "mixin_runtime_validated": false,
+    "reobfuscated": false
+  },
+  "source_sha256": {
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/Probe.java": "b7afed847a688682506f5019ef36e70fd265d391a3b222f16c6638dfdb332952",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java": "8068202faa1ee2d83bcce711d4d9c01d5dcad618d4588b63115a5597510bb46a",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java": "d9c74e7234054f15db75455a97e898f82aa177921eb60271836fcf8f97e78d6c",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/AfterimageProbe.java": "3217abad5c778cbe69071d01e7ad9b0bce3e723853f0b1bb9026e439a4bb8a99",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/Cod3VfxPixels.java": "88a8d244c32ab139124223a908a08c433865219c20464eb76da27dfc09e83d9d",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/FangtianSweepPixels.java": "96de08e0cd3bd8cdb01ce98472b6671c250bf8085fbd2881232bf245471a09f0",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/FangtianSweepProbe.java": "6845ac981ceadbfb877908386978a11faa520e47c6f9ea04133c74cb8a763631",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/PrimitiveProbe.java": "9e125c0698aa264a30446b1a0fc4e8373afb86510955a7195292558fafd89034",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/ReceiptProbe.java": "60c25e9cc988569c3e22748cefd3418e9a0b22a6bb0b9d728dd6452f2eac195e",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/VisualWireProbe.java": "4b70100355ebe185707d12b730a50895db2bf217ce54c826f03feb9178d8291f",
+    "tools/cod4/sweep-native-acceptance/HANDOFF.md": "9702b5f398a6eb2db18921dde24716e1833781315789a63b51898b3464fad79f",
+    "tools/cod4/sweep-native-acceptance/analyze.py": "bb49015bcaa975426baa797a3d0a45f13f71bae9dcabdbefd1c1dee8bfcbf9fb",
+    "tools/cod4/sweep-native-acceptance/compile.py": "41a36aeed4d0baebf4d1e0599dffc41059199572731d20fe5d2c396734213626",
+    "tools/cod4/sweep-native-acceptance/qa.init.gradle": "496bf6b3887716b5d843b281c6ef716a2734fc14df53d22bf54a31c610efc76b",
+    "tools/cod4/sweep-native-acceptance/resources/sweep-native-qa.mixins.json": "0453904ada32a407df560ffd2178c080f0c1ef9ed5d01c713249a16841579914",
+    "tools/cod4/sweep-native-acceptance/resources/META-INF/mods.toml": "1df4f990b5c0876b0d62247ab1da563162625b0dfb30d4193710aa1587bec874",
+    "docs/cod4/audit-20261022/sweep-native-acceptance/offline-compile.json": "463298c411393023ada93150a86db17ab0f6ad036a1a4108fb73b08ff7191bb7",
+    "docs/cod4/audit-20261022/sweep-native-acceptance/delivery-receipt.json": "e5cdc8dfc40f95bb9a19c88b0337474c10d530f806f9992d90e3e15042e00882"
+  },
+  "recommended_next_step": "Carson corrects remote per-case lifecycle and makes negative/identity checks fail closed, then coordinator alone packages/reobfs and schedules native acceptance after its current exclusive runtime. This review starts no game and declares no production or visual regression."
+}

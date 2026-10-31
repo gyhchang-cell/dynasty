@@ -1,0 +1,283 @@
+{
+  "schema_version": 1,
+  "reviewer": "Jason",
+  "reviewed_at": "2026-10-29T01:19:17.535046+08:00",
+  "status": "ORIGINAL_QA_01_02_03_CLOSED_AT_SOURCE_NO_NEW_BLOCKER_IN_NARROW_DELTA_NATIVE_PENDING",
+  "scope": "仅原independent-source-review的QA-01/QA-02/QA-03修正及直接支持调用链的窄delta只读复核；不作全部QA新体系验收。",
+  "original_review": {
+    "path": "docs/cod4/audit-20261022/sweep-native-acceptance/independent-source-review.json",
+    "sha256": "de8d1eafb252da2f9d39871113b2603f0abb52529a2e914052c435e2653eca89",
+    "closure_reference_matches": true,
+    "finding_ids": [
+      "QA-01",
+      "QA-02",
+      "QA-03"
+    ]
+  },
+  "reviewed_version": {
+    "build": "sweepqa-02",
+    "java_sources": 11,
+    "official_mapped_classes": 11,
+    "core_role_logs": "Probe.SERVER/Probe.CLIENT",
+    "offline_compile_work": "tools/cod4/sweep-native-acceptance/.work/20261029-011409-242032",
+    "qa02_srg_built_or_runtime_validated_by_reviewer": false,
+    "qa01_jar_proves_qa02": false,
+    "old01_sha256": "e2bdbec6fea55c46da69823e7ea6f9237aa18eb1d6d87a3ae66f8ff627a5af32",
+    "old01_matches_preserved_identity": true,
+    "coordinator_action": "协调单独构建/重混淆02并记录实际装载QA Jar SHA；01保持历史，不替02背书。"
+  },
+  "finding_reviews": [
+    {
+      "id": "QA-01",
+      "original_priority": "P1",
+      "status": "CLOSED_AT_SOURCE_STATIC_RUNTIME_PENDING",
+      "original_issue": "远端client首个case后Probe.current保留，依赖server clear且新case事件混入。",
+      "delta_observation": "Probe.SERVER/CLIENT分别为独立CaseLog；每个role有独立current、used集合、records、capture/binding。begin拒绝活跃/复用case，清自身records并生成新capture；close只清该role current。SweepClient在落盘40tick窗口及图片后finally CLIENT.close，下一唯一case无需远端server清客户端状态；start重置frames、captures、pixel计数和hooks。服务端cleanup只close SERVER。迟到CLIENT.event在无current时直接忽略，不再修改封存快照；新begin清旧records。集成JVM也未再共用role缓冲。",
+      "why_original_counterexample_no_longer_applies": "新case检查的CLIENT.current由本地finish自行释放，旧远端Probe.current相等性阻断已移除；服务端新fixture的字节导入与身份核验取代该错误跨进程同步假设。",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/CaseLog.java",
+          "sha256": "2e208e0311b3026eaa796bb29503468ead41958ef3ea30a15f5c66faf85e8e70",
+          "line": 14,
+          "end_line": 27,
+          "excerpt": " private final String role;\n private final Set<String> used=new HashSet<>();\n private final List<Map<String,Object>> records=new ArrayList<>();\n private String current=\"\",binding=\"\",mode=\"\",capture=\"\";\n public CaseLog(String role){this.role=role;}\n public synchronized void begin(String id,String nonce,String which){\n  if(!current.isEmpty()||used.contains(id)||!id.matches(\"[a-zA-Z0-9_-]{1,70}\")||nonce.isEmpty())throw new IllegalStateException(\"Case active/reused/invalid\");\n  sealed=true;used.add(id);records.clear();current=id;binding=nonce;mode=which;capture=UUID.randomUUID().toString();\n }\n public synchronized String current(){return current;}\n public synchronized Map<String,Object> stamp(){return Map.of(\"case\",current,\"binding\",binding,\"mode\",mode,\"capture\",capture,\"role\",role,\"session\",SESSION,\"artifact\",ARTIFACT,\"build\",BUILD);}\n public synchronized void event(String kind,Object data){if(current.isEmpty())return;var row=new LinkedHashMap<String,Object>(stamp());row.put(\"kind\",kind);row.put(\"nano\",System.nanoTime());row.put(\"thread\",Thread.currentThread().getName());row.put(\"data\",data);records.add(row);}\n public synchronized List<Map<String,Object>> snapshot(){return List.copyOf(records);}\n public synchronized void close(){current=\"\";}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/Probe.java",
+          "sha256": "5c5afad4a8a6cdbd66974a1ebf335f599d5f5e8810d890266273b9b9247e88d8",
+          "line": 11,
+          "end_line": 15,
+          "excerpt": "public final class Probe {\n public static final CaseLog SERVER=new CaseLog(\"server\"), CLIENT=new CaseLog(\"client\");\n static Set<String> frameHooks=new HashSet<>(), seenHooks=new HashSet<>();\n static Cod3VisualPacket meshPacket;\n public static volatile boolean renderActive;"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java",
+          "sha256": "b3781ece2ed1b04da4eaa27358835ec38d73403801bc91543b52abbeb7a5639a",
+          "line": 32,
+          "end_line": 43,
+          "excerpt": "  var fixturePath=SweepQA.OUT.resolve(id+\"-fixture.json\");\n  com.google.gson.JsonObject fixture;try{fixture=JsonParser.parseString(java.nio.file.Files.readString(fixturePath)).getAsJsonObject();}catch(Exception ex){throw new IllegalStateException(\"Copy exact server fixture into this private client output first\",ex);}\n  var identity=fixture.getAsJsonObject(\"identity\");var primary=fixture.getAsJsonArray(\"targets\").get(0).getAsJsonObject();var actor=fixture.getAsJsonObject(\"actor\");\n  if(!id.equals(fixture.get(\"case\").getAsString())||!id.equals(identity.get(\"case\").getAsString())||!identity.get(\"artifact\").getAsString().equals(Probe.CLIENT.stamp().get(\"artifact\")))throw new IllegalStateException(\"Fixture case/QA artifact mismatch\");\n  if(!Probe.SERVER.current().isEmpty()&&(!Probe.SERVER.current().equals(id)||!Probe.SERVER.stamp().get(\"binding\").equals(identity.get(\"binding\").getAsString())))throw new IllegalStateException(\"Integrated server fixture mismatch\");\n  if(attack&&(!actor.get(\"uuid\").getAsString().equals(m.player.getUUID().toString())||primary.get(\"id\").getAsInt()!=target||!primary.get(\"uuid\").getAsString().equals(t.getUUID().toString())||!primary.get(\"dimension\").getAsString().equals(m.level.dimension().location().toString())||!actor.get(\"dimension\").getAsString().equals(m.level.dimension().location().toString())))throw new IllegalStateException(\"Fixture actor/main UUID/id/dimension mismatch\");\n  if(java.nio.file.Files.exists(SweepQA.OUT.resolve(id+\"-client-frames.json\")))throw new IllegalStateException(\"Case capture already exists\");\n  Probe.CLIENT.begin(id,identity.get(\"binding\").getAsString(),fixture.get(\"mode\").getAsString());\n  name=id;previous=m.options.getCameraType();m.options.setCameraType(view.equals(\"first\")?CameraType.FIRST_PERSON:CameraType.THIRD_PERSON_BACK);\n  active=true;Probe.renderActive=true;ticks=0;frames.clear();captured.clear();Probe.pixelProbe=true;Probe.savedPairs.clear();Probe.pixelTicks.clear();Probe.seenHooks.clear();Probe.frameHooks.clear();Probe.meshEnd();\n  Probe.event(\"client-capture-start\",Map.of(\"view\",view,\"observerOnly\",!attack,\"player\",SweepQA.entity(m.player),\"cooldown\",m.player.getAttackStrengthScale(0),\"fixtureSHA256\",CaseLog.sha(fixturePath)));\n  if(attack){m.gameMode.attack(m.player,t);m.player.swing(InteractionHand.MAIN_HAND);Probe.event(\"actual-client-gamemode-attack\",Map.of(\"target\",SweepQA.entity(t),\"player\",SweepQA.entity(m.player)));}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java",
+          "sha256": "b3781ece2ed1b04da4eaa27358835ec38d73403801bc91543b52abbeb7a5639a",
+          "line": 54,
+          "end_line": 58,
+          "excerpt": " static void finish(String reason){\n  active=false;Probe.renderActive=false;Probe.pixelProbe=false;var m=Minecraft.getInstance();m.options.setCameraType(previous);Probe.event(\"client-capture-end\",Map.of(\"reason\",reason,\"ticks\",ticks));\n  try{SweepQA.write(name+\"-client-frames.json\",frames);SweepQA.write(name+\"-client-events.json\",Probe.CLIENT.snapshot());for(var entry:images.entrySet())try(var image=entry.getValue()){image.writeToFile(SweepQA.OUT.resolve(entry.getKey()));}}catch(Exception ex){throw new IllegalStateException(ex);}finally{images.clear();Probe.CLIENT.close();}\n  // The complete 40-tick client window is now immutable on disk; a new unique case is permitted.\n  // Server lifecycle is separate even in an integrated JVM. No server clear is needed to release this client."
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java",
+          "sha256": "02b0ae92a52e8bbb5ec90f2d3facd3a551f6a9fff4fe1e77ef55b160d6e14fa7",
+          "line": 35,
+          "end_line": 47,
+          "excerpt": " public static Object entity(Entity e){if(e==null)return Map.of();var m=new LinkedHashMap<String,Object>();m.put(\"id\",e.getId());m.put(\"uuid\",e.getUUID().toString());m.put(\"dimension\",e.level().dimension().location().toString());m.put(\"tick\",e.level().getGameTime());m.put(\"alive\",e.isAlive());m.put(\"invulnerable\",e.isInvulnerable());m.put(\"removed\",e.isRemoved());m.put(\"pos\",Probe.v(e.position()));if(e instanceof LivingEntity l)m.put(\"health\",l.getHealth());return m;}\n static boolean scoped(Entity e){return actor!=null&&targets.contains(e);}\n static void cleanup(){for(var t:targets)if(!t.isRemoved())t.discard();targets.clear();actor=null;mode=\"\";Probe.SERVER.close();}\n @SubscribeEvent public static void commands(RegisterCommandsEvent e){\n  e.getDispatcher().register(Commands.literal(\"sweepqa\").requires(s->s.hasPermission(2))\n   .then(Commands.literal(\"arm\").then(Commands.argument(\"case\",StringArgumentType.word()).then(Commands.argument(\"mode\",StringArgumentType.word()).executes(c->{\n    var p=c.getSource().getPlayerOrException();String name=StringArgumentType.getString(c,\"case\"),which=StringArgumentType.getString(c,\"mode\");\n    if(!name.matches(\"[a-zA-Z0-9_-]{1,70}\")||!Set.of(\"success\",\"cancel-attack\",\"cancel-damage\",\"invulnerable\").contains(which))throw new IllegalArgumentException(\"case or mode\");\n    var instance=real(Path.of(Objects.requireNonNull(System.getProperty(\"dynasty.sweepqa.instance\"))));\n    if(!real(p.server.getWorldPath(LevelResource.ROOT)).startsWith(instance))throw new IllegalStateException(\"Not the explicitly selected private world\");\n    if(Files.exists(OUT.resolve(name+\"-fixture.json\")))throw new IllegalStateException(\"Case already exists; choose a new case ID\");\n    if(!Probe.SERVER.current().isEmpty())throw new IllegalStateException(\"Dump/clear existing server case first\");\n    cleanup();actor=p.getUUID();mode=which;armed=p.level().getGameTime();Probe.SERVER.begin(name,UUID.randomUUID().toString(),which);"
+        }
+      ],
+      "offline_evidence_scope": "CaseLogCheck源码明确覆盖close后新case、server/client隔离、迟到事件、旧snapshot和拒ID复用；offline-checks02记录两个JDK各18断言。仅只读引用，本岗未执行JDK/Java/Minecraft。",
+      "remaining": "02实际远端连续case仍由协调集中验证；源码闭环不宣称TCP运行通过。"
+    },
+    {
+      "id": "QA-02",
+      "original_priority": "P2",
+      "status": "CLOSED_AT_SOURCE_STATIC_RUNTIME_PENDING",
+      "original_issue": "缺少END/渲染/收包探针时负控空集合可能机械通过。",
+      "delta_observation": "分析器要求before/after均非空，真实server attack cycle之后20个连续周期各恰好一份成对记录，before.nano<after.nano；after非空并所有rows为空。客户端所有帧须包含四个实际HEAD/RETURN hook，loaded-render-hook集合完整且窗口覆盖early至40tick；新增回调在ACTIVE为空也记录hook。每个负控必须递归重新分析同view原始success，而非信旧analysis，要求阳性机械通过、同server/client各自session/artifact/build且分别在同进程nano时钟上先于负控。未提供校准默认False；缺文件/错误结构设置complete_well_formed_evidence=False。Artifact从Forge实际mod文件路径计算，未打包UNPACKAGED不满足64hex。",
+      "why_original_counterexample_no_longer_applies": "无Mixin配置/无consumer回调不能满足非空20周期；无renderer探针不能满足每帧HOOKS。没有wire/triangle的冷启动negative还需一个同装载会话原始成功阳性，所以不能再借空列表冒充有效缺失。",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "sha256": "1fe8cc0889b5c311e5634cd170bcbdc830029960899eee672415374a71fe0504",
+          "line": 23,
+          "end_line": 27,
+          "excerpt": "def valid_stamp(stamp, case, mode, binding, role):\n    return (stamp.get('case') == case and stamp.get('mode') == mode and\n            stamp.get('binding') == binding and stamp.get('role') == role and\n            stamp.get('build') == 'sweepqa-02' and bool(stamp.get('capture')) and\n            bool(stamp.get('session')) and re.fullmatch('[0-9a-f]{64}', stamp.get('artifact', '')) is not None)"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "sha256": "1fe8cc0889b5c311e5634cd170bcbdc830029960899eee672415374a71fe0504",
+          "line": 65,
+          "end_line": 86,
+          "excerpt": "        checks['full_client_observation_window'] = (len(starts) == len(ends) == 1 and\n            ends[0]['data']['reason'] == 'bounded-40-client-ticks' and ends[0]['data']['ticks'] >= 40 and\n            starts[0]['nano'] < ends[0]['nano'] and all(starts[0]['nano'] <= x['nano'] <= ends[0]['nano'] for x in client))\n        checks['actual_requested_camera_only'] = bool(frames) and all(f['view'] == VIEWS[view] for f in frames)\n        loaded = set(events(client, 'loaded-render-hook'))\n        checks['live_render_hooks_whole_capture'] = (HOOKS <= loaded and bool(frames) and\n            all(HOOKS <= set(f.get('hooks', [])) for f in frames) and\n            min(f['ageClientTicks'] for f in frames) <= 6 and max(f['ageClientTicks'] for f in frames) >= 40)\n        checks['no_probe_errors'] = not events(server, 'probe-error') and not events(client, 'probe-error')\n        before, after = full_events(server, 'receipt-before-exact-consumer'), full_events(server, 'receipt-after-exact-consumer')\n        def by_cycle(xs):\n            result = {}\n            for x in xs:\n                result.setdefault(x['data']['cycle'], []).append(x)\n            return result\n        bc, ac = by_cycle(before), by_cycle(after)\n        cycle = attacks[0]['cycle'] if len(attacks) == 1 else -10000\n        # Explicit nonempty, paired, consecutive post-attack consumer coverage; no all([]) green.\n        checks['live_paired_END_coverage_20_cycles'] = bool(before) and bool(after) and all(\n            len(bc.get(t, [])) == len(ac.get(t, [])) == 1 and bc[t][0]['nano'] < ac[t][0]['nano']\n            for t in range(cycle + 1, cycle + 21))\n        checks['queue_empty_after_observed_consumer'] = bool(after) and all(not x['data']['rows'] for x in after)"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "sha256": "1fe8cc0889b5c311e5634cd170bcbdc830029960899eee672415374a71fe0504",
+          "line": 108,
+          "end_line": 148,
+          "excerpt": "        if mode == 'success':\n            checks['one_owner_dimension_cue'] = len(cues) == 1 and own_packet(cues[0]) and cues[0]['duration'] == 6\n            checks['genuine_health_loss'] = bool(deltas) and any(d > 0 for d in deltas.values())\n            checks['real_adjacent_tick_cue'] = any(\n                r['age'] == 1 and r['consumedNow'] - r['produced'] == 1 and\n                r['capturedLevelMatchesActor'] and r['capturedLevelMatchesMain'] and\n                (r['secondary'] or r['primaryDamage'] and r['main']['health'] < r['health']) and\n                any(c['start'] == r['consumedNow'] and own_packet(c) for c in cues) for r in rows)\n            checks['native_mesh_weapon_wire'] = any(x['sequence'] == 'mesh_weapon' and own_packet(x) for x in wire)\n            checks['crescent_geometry_observed'] = any(f['geometry'].get('FangtianSweep') for f in frames)\n            checks['same_frame_owner_crescent_old_mesh'] = any(f['geometry'].get('FangtianSweep') and any(own_ghost(g, f['tick']) for g in f['afterimages']) for f in frames)\n            checks['native_pixel_pair_saved'] = any(\n                'nativeBefore' in d and (output/d['nativeBefore']).is_file() and (output/d['nativeAfter']).is_file()\n                for f in frames for k, d in f['nativePixelDelta'].items() if k == 'FangtianSweep')\n        else:\n            checks['no_dedicated_cue'] = not cues\n            checks['no_dedicated_geometry'] = not any(f['geometry'].get('FangtianSweep') for f in frames)\n            checks['no_health_loss'] = bool(deltas) and all(d == 0 for d in deltas.values())\n            if mode == 'cancel-damage':\n                checks['bound_damage_actually_cancelled'] = bool(damages) and all(bound_damage(d) and d['cancelled'] for d in damages)\n            if mode == 'invulnerable':\n                checks['fixture_and_final_invulnerable'] = all(t.get('invulnerable') is True for t in targets + last)\n            checks['same_session_positive_calibration'] = False\n            if calibration and calibration != case:\n                positive = analyze(output, calibration, 'success', view)\n                observations['calibration'] = dict(case=calibration, mechanical_checks_pass=positive['mechanical_checks_pass'], input_sha256=positive['input_sha256'])\n                pi = positive.get('identity', {})\n                checks['same_session_positive_calibration'] = (positive['mechanical_checks_pass'] and\n                    all(ci.get(k) == pi.get('client', {}).get(k) and fi.get(k) == pi.get('server', {}).get(k)\n                        for k in ('session', 'artifact', 'build')) and\n                    len(starts) == 1 and ci['nano'] > pi.get('end_nano', float('inf')) and\n                    min(x['nano'] for x in server) > pi.get('server_end_nano', float('inf')))\n        observations['receipt_ages'] = [r['age'] for r in rows]\n        observations['sequences'] = sorted({x['sequence'] for x in wire})\n        observations['camera_views'] = sorted({f['view'] for f in frames})\n        report['identity'] = dict(server=fi, client={k: ci.get(k) for k in IDENTITY}, end_nano=ends[0]['nano'] if len(ends) == 1 else None, server_end_nano=max(x['nano'] for x in server))\n    except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError) as ex:\n        checks['complete_well_formed_evidence'] = False\n        report['error'] = f'{type(ex).__name__}: {ex}'\n    report['mechanical_checks_pass'] = bool(checks) and all(checks.values())\n    report['status'] = 'MECHANICAL_PASS_VISUAL_PENDING' if report['mechanical_checks_pass'] else 'INSUFFICIENT_OR_REJECTED_EVIDENCE'"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/ReceiptProbe.java",
+          "sha256": "d7d5f3785373c9c1b48bec5346e7592769045ff8fb90246d95f40fd57fd3e564",
+          "line": 16,
+          "end_line": 20,
+          "excerpt": " private static void snapshot(String stage){if(Probe.SERVER.current().isEmpty())return;try{var f=FangtianSweep.class.getDeclaredField(\"PENDING\");f.setAccessible(true);var list=(List<?>)f.get(null);var rows=new ArrayList<Object>();for(Object r:list){var p=(net.minecraft.server.level.ServerPlayer)field(r,\"player\");var t=(LivingEntity)field(r,\"main\");long tick=(Long)field(r,\"tick\"),now=p.level().getGameTime();var row=new LinkedHashMap<String,Object>();row.put(\"identity\",System.identityHashCode(r));row.put(\"produced\",tick);row.put(\"consumedNow\",now);row.put(\"age\",now-tick);row.put(\"actor\",SweepQA.entity(p));row.put(\"main\",SweepQA.entity(t));row.put(\"capturedLevelMatchesActor\",field(r,\"level\")==p.serverLevel());row.put(\"capturedLevelMatchesMain\",field(r,\"level\")==t.level());for(String k:List.of(\"health\",\"secondary\",\"primaryDamage\"))row.put(k,field(r,k));row.put(\"stamp\",p.getPersistentData().contains(\"cod3_confirmed_sweep_at\")?p.getPersistentData().getLong(\"cod3_confirmed_sweep_at\"):null);rows.add(row);}Probe.SERVER.event(stage,Map.of(\"cycle\",SweepQA.cycle(),\"now\",SweepQA.actorTick(),\"rows\",rows));}catch(Exception ex){Probe.SERVER.event(\"probe-error\",ex.toString());}}\n @Inject(method=\"begin\",at=@At(\"RETURN\"),remap=false) private static void begin(LivingEntity a,LivingEntity t,DamageSource s,CallbackInfoReturnable<FangtianSweep.Receipt> ci){if(!(a instanceof net.minecraft.server.level.ServerPlayer))return;Probe.SERVER.event(\"receipt-begin-result\",Map.of(\"actor\",SweepQA.entity(a),\"main\",SweepQA.entity(t),\"receipt\",ci.getReturnValue()!=null,\"source\",s.getMsgId(),\"owner\",SweepQA.entity(s.getEntity()),\"direct\",SweepQA.entity(s.getDirectEntity())));}\n @Inject(method=\"finish\",at=@At(\"RETURN\"),remap=false) private static void finish(FangtianSweep.Receipt r,CallbackInfo ci){if(r!=null)snapshot(\"receipt-finish-queue\");}\n @Inject(method=\"tick\",at=@At(\"HEAD\"),remap=false) private static void before(TickEvent.ServerTickEvent e,CallbackInfo ci){if(e.phase==TickEvent.Phase.END)snapshot(\"receipt-before-exact-consumer\");}\n @Inject(method=\"tick\",at=@At(\"RETURN\"),remap=false) private static void after(TickEvent.ServerTickEvent e,CallbackInfo ci){if(e.phase==TickEvent.Phase.END)snapshot(\"receipt-after-exact-consumer\");}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/FangtianSweepPixels.java",
+          "sha256": "31b0760f5928fe97ac8c0ca274f94faab7fd24d71002b04e5a93d9f0f26e2b06",
+          "line": 9,
+          "end_line": 11,
+          "excerpt": " @Shadow @Final private static java.util.List<com.dynasty.cod3.Cod3VisualPacket> ACTIVE;\n @Inject(method=\"render\",at=@At(\"HEAD\"),remap=false) private static void qa$before(RenderLevelStageEvent e,CallbackInfo ci){if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_PARTICLES)Probe.hook(\"FangtianSweep.before\");Probe.pixelBefore(\"FangtianSweep\",e,!ACTIVE.isEmpty());}\n @Inject(method=\"render\",at=@At(\"RETURN\"),remap=false) private static void qa$after(RenderLevelStageEvent e,CallbackInfo ci){if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_PARTICLES)Probe.hook(\"FangtianSweep.after\");Probe.pixelAfter(\"FangtianSweep\");}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/Cod3VfxPixels.java",
+          "sha256": "9cea8aa5072ddb5af399736ea3ce7ae4111a3c5d6511ae94b81bcb137bae07c6",
+          "line": 9,
+          "end_line": 11,
+          "excerpt": " @Shadow @Final private static java.util.List<com.dynasty.cod3.Cod3VisualPacket> ACTIVE;\n @Inject(method=\"render\",at=@At(\"HEAD\"),remap=false) private static void qa$before(RenderLevelStageEvent e,CallbackInfo ci){if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_PARTICLES)Probe.hook(\"Cod3Vfx.before\");Probe.pixelBefore(\"Cod3Vfx\",e,!ACTIVE.isEmpty());}\n @Inject(method=\"render\",at=@At(\"RETURN\"),remap=false) private static void qa$after(RenderLevelStageEvent e,CallbackInfo ci){if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_PARTICLES)Probe.hook(\"Cod3Vfx.after\");Probe.pixelAfter(\"Cod3Vfx\");}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/Probe.java",
+          "sha256": "5c5afad4a8a6cdbd66974a1ebf335f599d5f5e8810d890266273b9b9247e88d8",
+          "line": 25,
+          "end_line": 32,
+          "excerpt": " public static List<Double> v(Vec3 p){return List.of(p.x,p.y,p.z);}\n public static void event(String kind,Object data){CLIENT.event(kind,data);}\n public static void hook(String kind){if(!renderActive||CLIENT.current().isEmpty())return;frameHooks.add(kind);if(seenHooks.add(kind))event(\"loaded-render-hook\",kind);}\n public static void meshBegin(Cod3VisualPacket p){meshPacket=p;}\n public static void meshEnd(){meshPacket=null;}\n public static void wire(Cod3VisualPacket p){event(\"actual-s2c-handle\",packet(p));}\n public static Object packet(Cod3VisualPacket p){var m=new LinkedHashMap<String,Object>();m.put(\"dimension\",p.dimension());m.put(\"sequence\",p.sequence());m.put(\"template\",p.template());m.put(\"entity\",p.entityId());m.put(\"start\",p.start());m.put(\"duration\",p.duration());m.put(\"origin\",v(p.origin()));m.put(\"direction\",v(p.direction()));m.put(\"tint\",p.tint());m.put(\"tick\",p.tick());m.put(\"seed\",p.seed());return m;}\n static void begin(){serial++;frameHooks=new HashSet<>();geometry=new LinkedHashMap<>();renderState=new LinkedHashMap<>();ghosts=new ArrayList<>();pixels=new LinkedHashMap<>();}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/CaseLog.java",
+          "sha256": "2e208e0311b3026eaa796bb29503468ead41958ef3ea30a15f5c66faf85e8e70",
+          "line": 9,
+          "end_line": 13,
+          "excerpt": " public static final String BUILD=\"sweepqa-02\";\n private static final String SESSION=UUID.randomUUID().toString();\n private static String ARTIFACT=\"UNPACKAGED-OFFLINE\";\n private static boolean sealed;\n public static synchronized void installArtifact(Path file){if(sealed)throw new IllegalStateException(\"Artifact identity already in use\");ARTIFACT=Files.isRegularFile(file)?sha(file):\"UNPACKAGED-OFFLINE\";}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java",
+          "sha256": "02b0ae92a52e8bbb5ec90f2d3facd3a551f6a9fff4fe1e77ef55b160d6e14fa7",
+          "line": 30,
+          "end_line": 30,
+          "excerpt": " public SweepQA(){if(!OUT.isAbsolute()||System.getProperty(\"dynasty.sweepqa.instance\")==null||!Boolean.getBoolean(\"dynasty.sweepqa.enabled\"))throw new IllegalStateException(\"Private sweep QA requires explicit opt-in\");CaseLog.installArtifact(net.minecraftforge.fml.ModList.get().getModFileById(\"dynastysweepqa\").getFile().getFilePath());}"
+        }
+      ],
+      "offline_evidence_scope": "已读offline-checks02中缺END/单边/断档/无hook/无校准/会话或包不同等拒绝记录，56项全部记录pass_。合成JSON/JDK记录仅支撑工具反例设计，不是原生C2S/像素/注入实证；本岗未重跑analyzer或测试。",
+      "remaining": "必须打02 SRG并验证真实Inject/Shadow、收包/绘制及20服务端周期；defaultRequire仅在配置加载后起作用的边界未改变。"
+    },
+    {
+      "id": "QA-03",
+      "original_priority": "P2",
+      "status": "CLOSED_AT_SOURCE_STATIC_RUNTIME_PENDING",
+      "original_issue": "client/server攻击、case和fixture主靶未严格关联，错打外部无敌实体可能通过负控。",
+      "delta_observation": "客户端出手前读取服务器原fixture，核对case、QA artifact、集成服binding（若有），并核对玩家UUID、主靶UUID/id及双方维度。client记录fixture字节SHA；每条server/client事件及frame须匹配case/binding/mode/capture/role/session/artifact/build。same_entity严格比较UUID/id/dimension，要求实际server/client攻击均是fixture actor与第一靶；所有receipt rows的actor/main也匹配。最终两靶身份和有限血差须一致，cancel-damage的owner/direct/target/source须匹配并实际取消，invulnerable核对fixture及final无敌。旧mesh draw额外带当前packet和actor，分析要求同actor/dim/sequence/start/seed/template且frame在packet生命期。",
+      "why_original_counterexample_no_longer_applies": "错打第三只无敌实体首先会被client fixture主靶核验拒绝；即便已有异常raw日志，分析server_attack_bound_to_main_actor/client_attack_bound_to_main_actor会False。旧case/错误capture或mode记录也不能通过整集合身份检查。",
+      "evidence": [
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java",
+          "sha256": "b3781ece2ed1b04da4eaa27358835ec38d73403801bc91543b52abbeb7a5639a",
+          "line": 32,
+          "end_line": 43,
+          "excerpt": "  var fixturePath=SweepQA.OUT.resolve(id+\"-fixture.json\");\n  com.google.gson.JsonObject fixture;try{fixture=JsonParser.parseString(java.nio.file.Files.readString(fixturePath)).getAsJsonObject();}catch(Exception ex){throw new IllegalStateException(\"Copy exact server fixture into this private client output first\",ex);}\n  var identity=fixture.getAsJsonObject(\"identity\");var primary=fixture.getAsJsonArray(\"targets\").get(0).getAsJsonObject();var actor=fixture.getAsJsonObject(\"actor\");\n  if(!id.equals(fixture.get(\"case\").getAsString())||!id.equals(identity.get(\"case\").getAsString())||!identity.get(\"artifact\").getAsString().equals(Probe.CLIENT.stamp().get(\"artifact\")))throw new IllegalStateException(\"Fixture case/QA artifact mismatch\");\n  if(!Probe.SERVER.current().isEmpty()&&(!Probe.SERVER.current().equals(id)||!Probe.SERVER.stamp().get(\"binding\").equals(identity.get(\"binding\").getAsString())))throw new IllegalStateException(\"Integrated server fixture mismatch\");\n  if(attack&&(!actor.get(\"uuid\").getAsString().equals(m.player.getUUID().toString())||primary.get(\"id\").getAsInt()!=target||!primary.get(\"uuid\").getAsString().equals(t.getUUID().toString())||!primary.get(\"dimension\").getAsString().equals(m.level.dimension().location().toString())||!actor.get(\"dimension\").getAsString().equals(m.level.dimension().location().toString())))throw new IllegalStateException(\"Fixture actor/main UUID/id/dimension mismatch\");\n  if(java.nio.file.Files.exists(SweepQA.OUT.resolve(id+\"-client-frames.json\")))throw new IllegalStateException(\"Case capture already exists\");\n  Probe.CLIENT.begin(id,identity.get(\"binding\").getAsString(),fixture.get(\"mode\").getAsString());\n  name=id;previous=m.options.getCameraType();m.options.setCameraType(view.equals(\"first\")?CameraType.FIRST_PERSON:CameraType.THIRD_PERSON_BACK);\n  active=true;Probe.renderActive=true;ticks=0;frames.clear();captured.clear();Probe.pixelProbe=true;Probe.savedPairs.clear();Probe.pixelTicks.clear();Probe.seenHooks.clear();Probe.frameHooks.clear();Probe.meshEnd();\n  Probe.event(\"client-capture-start\",Map.of(\"view\",view,\"observerOnly\",!attack,\"player\",SweepQA.entity(m.player),\"cooldown\",m.player.getAttackStrengthScale(0),\"fixtureSHA256\",CaseLog.sha(fixturePath)));\n  if(attack){m.gameMode.attack(m.player,t);m.player.swing(InteractionHand.MAIN_HAND);Probe.event(\"actual-client-gamemode-attack\",Map.of(\"target\",SweepQA.entity(t),\"player\",SweepQA.entity(m.player)));}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/CaseLog.java",
+          "sha256": "2e208e0311b3026eaa796bb29503468ead41958ef3ea30a15f5c66faf85e8e70",
+          "line": 19,
+          "end_line": 27,
+          "excerpt": " public synchronized void begin(String id,String nonce,String which){\n  if(!current.isEmpty()||used.contains(id)||!id.matches(\"[a-zA-Z0-9_-]{1,70}\")||nonce.isEmpty())throw new IllegalStateException(\"Case active/reused/invalid\");\n  sealed=true;used.add(id);records.clear();current=id;binding=nonce;mode=which;capture=UUID.randomUUID().toString();\n }\n public synchronized String current(){return current;}\n public synchronized Map<String,Object> stamp(){return Map.of(\"case\",current,\"binding\",binding,\"mode\",mode,\"capture\",capture,\"role\",role,\"session\",SESSION,\"artifact\",ARTIFACT,\"build\",BUILD);}\n public synchronized void event(String kind,Object data){if(current.isEmpty())return;var row=new LinkedHashMap<String,Object>(stamp());row.put(\"kind\",kind);row.put(\"nano\",System.nanoTime());row.put(\"thread\",Thread.currentThread().getName());row.put(\"data\",data);records.add(row);}\n public synchronized List<Map<String,Object>> snapshot(){return List.copyOf(records);}\n public synchronized void close(){current=\"\";}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "sha256": "1fe8cc0889b5c311e5634cd170bcbdc830029960899eee672415374a71fe0504",
+          "line": 19,
+          "end_line": 27,
+          "excerpt": "def same_entity(a, b):\n    return all(a.get(k) == b.get(k) and a.get(k) is not None for k in ('uuid', 'id', 'dimension'))\n\n\ndef valid_stamp(stamp, case, mode, binding, role):\n    return (stamp.get('case') == case and stamp.get('mode') == mode and\n            stamp.get('binding') == binding and stamp.get('role') == role and\n            stamp.get('build') == 'sweepqa-02' and bool(stamp.get('capture')) and\n            bool(stamp.get('session')) and re.fullmatch('[0-9a-f]{64}', stamp.get('artifact', '')) is not None)"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "sha256": "1fe8cc0889b5c311e5634cd170bcbdc830029960899eee672415374a71fe0504",
+          "line": 42,
+          "end_line": 64,
+          "excerpt": "        fixture = load('-fixture.json')\n        server, client, frames = load('-server-events.json'), load('-client-events.json'), load('-client-frames.json')\n        actor, targets, fi = fixture['actor'], fixture['targets'], fixture['identity']\n        primary, binding = targets[0], fi['binding']\n        events = lambda xs, kind: [x['data'] for x in xs if x['kind'] == kind]\n        full_events = lambda xs, kind: [x for x in xs if x['kind'] == kind]\n        starts, ends = full_events(client, 'client-capture-start'), full_events(client, 'client-capture-end')\n        ci = starts[0] if len(starts) == 1 else {}\n        checks['fixture_identity'] = (fixture['case'] == case and fixture['mode'] == mode and\n            valid_stamp(fi, case, mode, binding, 'server') and len(targets) == 2 and\n            len({t['uuid'] for t in targets}) == 2 and all(t['dimension'] == actor['dimension'] for t in targets))\n        checks['all_server_records_bound'] = bool(server) and all(\n            valid_stamp(x, case, mode, binding, 'server') and all(x.get(k) == fi.get(k) for k in IDENTITY) for x in server)\n        checks['all_client_records_and_frames_bound'] = bool(client) and bool(frames) and all(\n            valid_stamp(x, case, mode, binding, 'client') and all(x.get(k) == ci.get(k) for k in IDENTITY) for x in client + frames)\n        checks['same_loaded_QA_artifact'] = ci.get('artifact') == fi['artifact']\n        checks['exact_fixture_bytes_imported'] = len(starts) == 1 and ci['data'].get('fixtureSHA256') == hashes[case+'-fixture.json']\n        checks['capture_actor_and_view'] = (len(starts) == 1 and same_entity(ci['data']['player'], actor) and\n            ci['data']['observerOnly'] is False and ci['data']['view'] == view and ci['data']['cooldown'] >= .99)\n        attacks, c_attacks = events(server, 'server-native-attack'), events(client, 'actual-client-gamemode-attack')\n        checks['server_attack_bound_to_main_actor'] = len(attacks) == 1 and same_entity(attacks[0]['actor'], actor) and same_entity(attacks[0]['target'], primary)\n        checks['client_attack_bound_to_main_actor'] = len(c_attacks) == 1 and same_entity(c_attacks[0]['player'], actor) and same_entity(c_attacks[0]['target'], primary)\n        checks['expected_attack_cancel_state'] = len(attacks) == 1 and attacks[0]['cancelled'] == (mode == 'cancel-attack')"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/analyze.py",
+          "sha256": "1fe8cc0889b5c311e5634cd170bcbdc830029960899eee672415374a71fe0504",
+          "line": 87,
+          "end_line": 129,
+          "excerpt": "        rows = [r for x in before for r in x['data']['rows']]\n        checks['all_receipts_bound_to_main_actor'] = all(same_entity(r['actor'], actor) and same_entity(r['main'], primary) for r in rows)\n        finals = events(server, 'server-final-targets')\n        last = finals[-1] if finals else []\n        hp0 = {t['uuid']: t['health'] for t in targets}\n        checks['final_targets_bound'] = len(last) == len(targets) and all(any(same_entity(t, x) for t in targets) for x in last) and {x['uuid'] for x in last} == set(hp0)\n        deltas = {x['uuid']: hp0[x['uuid']] - x['health'] for x in last if x['uuid'] in hp0}\n        checks['finite_health'] = len(deltas) == len(targets) and all(math.isfinite(d) for d in deltas.values())\n        observations['health_loss'] = deltas\n        damages = events(server, 'server-damage-event-not-final-hp')\n        def bound_damage(d):\n            return same_entity(d['owner'], actor) and same_entity(d['direct'], actor) and any(same_entity(d['target'], t) for t in targets) and d['source'] in ('player', 'mob')\n        checks['damage_sources_bound'] = all(bound_damage(d) for d in damages)\n        wire = events(client, 'actual-s2c-handle')\n        cues = [x for x in wire if x['sequence'] == CUE]\n        def own_packet(p):\n            return p.get('entity') == actor['id'] and p.get('dimension') == actor['dimension']\n        def own_ghost(g, frame_tick):\n            p = g.get('packet', {})\n            return g.get('item') == 'dynasty:halberd_fangtian' and same_entity(g.get('actor', {}), actor) and own_packet(p) and p.get('sequence') == 'mesh_weapon' and -2 <= frame_tick-p.get('start', float('-inf')) < p.get('duration', 0) and any(\n                all(p.get(k) == w.get(k) for k in ('sequence', 'entity', 'dimension', 'start', 'seed', 'template')) for w in wire)\n        if mode == 'success':\n            checks['one_owner_dimension_cue'] = len(cues) == 1 and own_packet(cues[0]) and cues[0]['duration'] == 6\n            checks['genuine_health_loss'] = bool(deltas) and any(d > 0 for d in deltas.values())\n            checks['real_adjacent_tick_cue'] = any(\n                r['age'] == 1 and r['consumedNow'] - r['produced'] == 1 and\n                r['capturedLevelMatchesActor'] and r['capturedLevelMatchesMain'] and\n                (r['secondary'] or r['primaryDamage'] and r['main']['health'] < r['health']) and\n                any(c['start'] == r['consumedNow'] and own_packet(c) for c in cues) for r in rows)\n            checks['native_mesh_weapon_wire'] = any(x['sequence'] == 'mesh_weapon' and own_packet(x) for x in wire)\n            checks['crescent_geometry_observed'] = any(f['geometry'].get('FangtianSweep') for f in frames)\n            checks['same_frame_owner_crescent_old_mesh'] = any(f['geometry'].get('FangtianSweep') and any(own_ghost(g, f['tick']) for g in f['afterimages']) for f in frames)\n            checks['native_pixel_pair_saved'] = any(\n                'nativeBefore' in d and (output/d['nativeBefore']).is_file() and (output/d['nativeAfter']).is_file()\n                for f in frames for k, d in f['nativePixelDelta'].items() if k == 'FangtianSweep')\n        else:\n            checks['no_dedicated_cue'] = not cues\n            checks['no_dedicated_geometry'] = not any(f['geometry'].get('FangtianSweep') for f in frames)\n            checks['no_health_loss'] = bool(deltas) and all(d == 0 for d in deltas.values())\n            if mode == 'cancel-damage':\n                checks['bound_damage_actually_cancelled'] = bool(damages) and all(bound_damage(d) and d['cancelled'] for d in damages)\n            if mode == 'invulnerable':\n                checks['fixture_and_final_invulnerable'] = all(t.get('invulnerable') is True for t in targets + last)"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java",
+          "sha256": "02b0ae92a52e8bbb5ec90f2d3facd3a551f6a9fff4fe1e77ef55b160d6e14fa7",
+          "line": 53,
+          "end_line": 62,
+          "excerpt": "    var fixture=Map.of(\"case\",name,\"mode\",mode,\"actor\",entity(p),\"identity\",Probe.SERVER.stamp(),\"targets\",targets.stream().map(SweepQA::entity).toList());write(name+\"-fixture.json\",fixture);Probe.SERVER.event(\"fixture-ready\",fixture);\n    c.getSource().sendSuccess(()->Component.literal(\"sweepqa target=\"+targets.get(0).getId()+\"; wait for full native cooldown then /sweepqa-client \"+name+\" \"+targets.get(0).getId()+\" first (or third)\"),false);return 1;\n   }))))\n   .then(Commands.literal(\"dump\").executes(c->{if(!Probe.SERVER.current().isEmpty()){Probe.SERVER.event(\"server-final-targets\",targets.stream().map(SweepQA::entity).toList());write(Probe.SERVER.current()+\"-server-events.json\",Probe.SERVER.snapshot());}return 1;}))\n   .then(Commands.literal(\"clear\").executes(c->{if(!Probe.SERVER.current().isEmpty()){Probe.SERVER.event(\"server-final-targets\",targets.stream().map(SweepQA::entity).toList());write(Probe.SERVER.current()+\"-server-events.json\",Probe.SERVER.snapshot());}cleanup();Probe.SERVER.close();return 1;})));\n }\n @SubscribeEvent(priority=EventPriority.HIGHEST) public static void cancelAttack(AttackEntityEvent e){if(!e.getEntity().level().isClientSide&&Objects.equals(actor,e.getEntity().getUUID())&&scoped(e.getTarget())&&mode.equals(\"cancel-attack\"))e.setCanceled(true);}\n @SubscribeEvent(priority=EventPriority.LOWEST,receiveCanceled=true) public static void attack(AttackEntityEvent e){if(!e.getEntity().level().isClientSide&&Objects.equals(actor,e.getEntity().getUUID()))Probe.SERVER.event(\"server-native-attack\",Map.of(\"actor\",entity(e.getEntity()),\"target\",entity(e.getTarget()),\"cancelled\",e.isCanceled(),\"cycle\",e.getEntity().getServer().getTickCount()));}\n @SubscribeEvent(priority=EventPriority.HIGHEST) public static void cancelDamage(LivingDamageEvent e){if(!e.getEntity().level().isClientSide&&scoped(e.getEntity())&&mode.equals(\"cancel-damage\")&&Objects.equals(actor,e.getSource().getEntity()==null?null:e.getSource().getEntity().getUUID()))e.setCanceled(true);}\n @SubscribeEvent(priority=EventPriority.LOWEST,receiveCanceled=true) public static void damage(LivingDamageEvent e){if(!e.getEntity().level().isClientSide&&scoped(e.getEntity()))Probe.SERVER.event(\"server-damage-event-not-final-hp\",Map.of(\"target\",entity(e.getEntity()),\"amount\",e.getAmount(),\"source\",e.getSource().getMsgId(),\"direct\",entity(e.getSource().getDirectEntity()),\"owner\",entity(e.getSource().getEntity()),\"cancelled\",e.isCanceled()));}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/AfterimageProbe.java",
+          "sha256": "551dcb37b53ae83f450d972a8a65a951bb9c8f260bb23c3c5c1bdcc1d3b8d99c",
+          "line": 11,
+          "end_line": 16,
+          "excerpt": " @Inject(method=\"render\",at=@At(\"HEAD\"),remap=false)\n private static void qa$begin(Cod3VisualPacket p,com.mojang.blaze3d.vertex.PoseStack pose,Vec3 camera,float partial,double fade,int count,CallbackInfo ci){Probe.meshBegin(p);}\n @Inject(method=\"render\",at=@At(\"RETURN\"),remap=false)\n private static void qa$end(Cod3VisualPacket p,com.mojang.blaze3d.vertex.PoseStack pose,Vec3 camera,float partial,double fade,int count,CallbackInfo ci){Probe.meshEnd();}\n @Inject(method=\"weapon(Lnet/minecraft/world/item/ItemStack;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IFLnet/minecraft/world/item/ItemDisplayContext;)V\",at=@At(\"HEAD\"),remap=false)\n private static void qa$weapon(net.minecraft.world.item.ItemStack s,com.mojang.blaze3d.vertex.PoseStack p,net.minecraft.client.renderer.MultiBufferSource b,int tint,float alpha,net.minecraft.world.item.ItemDisplayContext c,CallbackInfo ci){Probe.ghost(s,p.last().pose(),tint,alpha,c);}"
+        },
+        {
+          "path": "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/Probe.java",
+          "sha256": "5c5afad4a8a6cdbd66974a1ebf335f599d5f5e8810d890266273b9b9247e88d8",
+          "line": 52,
+          "end_line": 55,
+          "excerpt": " public static void ghost(ItemStack s,Matrix4f m,int color,float alpha,ItemDisplayContext c){\n  if(CLIENT.current().isEmpty()||!renderActive||s.isEmpty())return;\n  var row=new LinkedHashMap<String,Object>();row.put(\"item\",ForgeRegistries.ITEMS.getKey(s.getItem()).toString());row.put(\"matrix\",m.get(new float[16]));row.put(\"alpha\",alpha);row.put(\"color\",color);row.put(\"context\",c.toString());\n  if(meshPacket!=null){row.put(\"packet\",packet(meshPacket));var level=net.minecraft.client.Minecraft.getInstance().level;row.put(\"actor\",SweepQA.entity(level==null?null:level.getEntity(meshPacket.entityId())));}ghosts.add(row);"
+        }
+      ],
+      "offline_evidence_scope": "offline-checks02保留wrong actor/main/dimension/case/capture/source、匹配的外部错误目标、错误ghost等反例拒绝记录；仅引用未重跑。",
+      "remaining": "仍须真实C2S出手与双端现场身份证据；mesh方法入口+packet归属不能自动证明屏幕可见或美术组合正确。"
+    }
+  ],
+  "new_blocking_findings_in_this_delta": [],
+  "integrity": {
+    "closure_all_source_tool_hashes_match": true,
+    "compile02_all11_sources_match": true,
+    "compile02_all11_existing_classes_match": true,
+    "checks02_all_declared_inputs_match": true,
+    "closure_compile_checks_receipt_hashes_match": {
+      "offline_compile": true,
+      "offline_checks": true
+    },
+    "checks02_recorded_results": 56,
+    "checks02_all_recorded_pass": true,
+    "checks02_scope": "OFFLINE TOOLING REGRESSION ONLY; SYNTHETIC JSON + JDK, NOT MINECRAFT/NATIVE/C2S/PIXEL ACCEPTANCE",
+    "checks02_jdk_processes_recorded": 2,
+    "checks02_assertions_per_process_recorded": 18,
+    "existing_evidence_only_not_rerun": true
+  },
+  "preserved_acceptance_boundaries": [
+    "仅源码闭环；未验证02 SRG Jar、Mixin实际装载/注入、TCP或真实Forge调度。",
+    "原生first/third分别age1成功与三负控及完整每视角矩阵仍待协调集中执行；不从离线56项推断原生通过。",
+    "wire HEAD仅handler-entry；packet归属增强仍非GPU可见性证明。保留原帧、几何、深度/遮挡、月牙与旧mesh同帧人工复核。",
+    "overall_acceptance仍固定false；API/反射/截图读取可能增加观测开销，不宣称时序完全无扰动。"
+  ],
+  "actions": {
+    "compiled": false,
+    "tests_or_analyzer_executed": false,
+    "game_client_server_or_gametest_started": false,
+    "source_modified": false,
+    "production_assets_main_qa_modified": false,
+    "main_ledger_or_todo_modified": false,
+    "reference_credit_added": 0,
+    "other_runtime_or_user_instance_operated": false,
+    "only_written": "docs/cod4/audit-20261022/sweep-native-acceptance/independent-delta-review02.json"
+  },
+  "input_sha256": {
+    "tools/cod4/sweep-native-acceptance/HANDOFF.md": "1a2acc040732982350be939b7b65620b7983bde87398b0b3ec6a13c715dcaf9e",
+    "tools/cod4/sweep-native-acceptance/analyze.py": "1fe8cc0889b5c311e5634cd170bcbdc830029960899eee672415374a71fe0504",
+    "tools/cod4/sweep-native-acceptance/checks/CaseLogCheck.java": "f4a7ccd9d13f23958ba6be20845d1712050854e55f641fd56922714e5658da6b",
+    "tools/cod4/sweep-native-acceptance/checks/verify_offline.py": "c6cdec4167ba3ddfd9caae59833565cee2b4fc7992311d581817dfe3403baf65",
+    "tools/cod4/sweep-native-acceptance/compile.py": "c36d848a2e9eb00ca71723d19d05c3e4cf44c8332089b713d8b53b122e11d159",
+    "tools/cod4/sweep-native-acceptance/qa.init.gradle": "238c49ab0434e2726cb011fd02af1d1cc3b37da7a823f76839b358e5d5287d89",
+    "tools/cod4/sweep-native-acceptance/resources/META-INF/mods.toml": "868c1bb07bd5a0de155f63a1c2fa8ea457fd39882ecc1e9614756c7376185804",
+    "tools/cod4/sweep-native-acceptance/resources/sweep-native-qa.mixins.json": "0453904ada32a407df560ffd2178c080f0c1ef9ed5d01c713249a16841579914",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/CaseLog.java": "2e208e0311b3026eaa796bb29503468ead41958ef3ea30a15f5c66faf85e8e70",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/Probe.java": "5c5afad4a8a6cdbd66974a1ebf335f599d5f5e8810d890266273b9b9247e88d8",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepClient.java": "b3781ece2ed1b04da4eaa27358835ec38d73403801bc91543b52abbeb7a5639a",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/SweepQA.java": "02b0ae92a52e8bbb5ec90f2d3facd3a551f6a9fff4fe1e77ef55b160d6e14fa7",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/AfterimageProbe.java": "551dcb37b53ae83f450d972a8a65a951bb9c8f260bb23c3c5c1bdcc1d3b8d99c",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/Cod3VfxPixels.java": "9cea8aa5072ddb5af399736ea3ce7ae4111a3c5d6511ae94b81bcb137bae07c6",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/FangtianSweepPixels.java": "31b0760f5928fe97ac8c0ca274f94faab7fd24d71002b04e5a93d9f0f26e2b06",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/FangtianSweepProbe.java": "6845ac981ceadbfb877908386978a11faa520e47c6f9ea04133c74cb8a763631",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/PrimitiveProbe.java": "9e125c0698aa264a30446b1a0fc4e8373afb86510955a7195292558fafd89034",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/ReceiptProbe.java": "d7d5f3785373c9c1b48bec5346e7592769045ff8fb90246d95f40fd57fd3e564",
+    "tools/cod4/sweep-native-acceptance/src/com/dynasty/sweepqa/mixin/VisualWireProbe.java": "4b70100355ebe185707d12b730a50895db2bf217ce54c826f03feb9178d8291f",
+    "docs/cod4/audit-20261022/sweep-native-acceptance/review-closure02.json": "36faed33870ae63fe3bf542334c7736757fbc20ccdf0d43b38c8ab8f861a5e1a",
+    "docs/cod4/audit-20261022/sweep-native-acceptance/offline-compile02.json": "f89d838f072df5d7cd8a7e5152f75186735a2656a945a7a90916f5048c0befaf",
+    "docs/cod4/audit-20261022/sweep-native-acceptance/offline-checks02.json": "87ccccf24f0b4750df75dff775b8b2b8aa15eacfb162d134e66d13f2ee371b6e",
+    "docs/cod4/audit-20261022/sweep-native-acceptance/independent-source-review.json": "de8d1eafb252da2f9d39871113b2603f0abb52529a2e914052c435e2653eca89"
+  },
+  "conclusion": "原三项finding的具体反例已在02源码中封住，未见此窄delta新的确定阻断。可由协调继续02专属打包与集中运行；不代表原生/视觉验收通过。",
+  "production_source_sha256_read_only": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+  "production_matches_fixed_delivery": true
+}

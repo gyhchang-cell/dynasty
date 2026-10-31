@@ -1,0 +1,18 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('build/cod4-mob-network-20261023/gradle'))
+ p.afterEvaluate {
+  if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def qa=p.sourceSets.create('mobNetworkAcceptance') {
+   java.srcDir p.file('tools/cod4/mob-network-acceptance/src')
+   resources.srcDir p.file('tools/cod4/mob-network-acceptance/resources')
+   compileClasspath += p.files('build/cod4-network-20261022/compile-dynasty') + p.sourceSets.main.compileClasspath
+  }
+  p.tasks.register('mobNetworkAcceptanceJar',Jar) {
+   dependsOn qa.classesTaskName
+   archiveBaseName='dynasty-mob-network-acceptance'
+   from qa.output
+   manifest.attributes('MixinConfigs':'mob-network-qa.mixins.json')
+  }
+  p.reobf { mobNetworkAcceptanceJar { libraries.from(p.files('build/cod4-mob-network-20261023/compile-dynasty.jar')) } }
+ }
+}
