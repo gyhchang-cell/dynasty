@@ -18,7 +18,7 @@ for rel in sys.argv[2:]:
     assert rel.endswith('.java') and not Path(rel).is_absolute() and '..' not in Path(rel).parts
     url = f'https://raw.githubusercontent.com/{repo}/{revision}/{rel}'
     result = subprocess.run(['curl', '--fail', '--silent', '--show-error', '--location',
-                             '--max-time', '30', '--retry', '1', url], capture_output=True)
+                             '--max-time', '30', url], capture_output=True)
     if result.returncode:
         print(json.dumps(dict(path=rel, error=result.stderr.decode(errors='replace')[:300], credit=0)))
         continue

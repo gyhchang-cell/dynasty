@@ -8,7 +8,7 @@ O=R/'docs/cod4/audit-20261022/sweep-receipt-research'
 W=B/'.work/research-sources'
 W.mkdir(parents=True,exist_ok=True)
 def curl(url):
-    result=subprocess.run(['curl','--fail','--silent','--show-error','--location','--max-time','50','--retry','1',url],capture_output=True)
+    result=subprocess.run(['curl','--fail','--silent','--show-error','--location','--max-time','50',url],capture_output=True)
     if result.returncode: raise RuntimeError(result.stderr.decode(errors='replace')[:400])
     return result.stdout
 def fetch(repo):
@@ -17,7 +17,7 @@ def fetch(repo):
     commit=json.loads(curl(f'https://api.github.com/repos/{repo}/commits/HEAD'))
     revision=commit['sha']
     tree=json.loads(curl(f'https://api.github.com/repos/{repo}/git/trees/{revision}?recursive=1'))
-    assert tree['sha']==revision and not tree.get('truncated'),repo
+    assert tree['sha'] in (revision,commit['commit']['tree']['sha']) and not tree.get('truncated'),repo
     archive=curl(f'https://codeload.github.com/{repo}/tar.gz/{revision}')
     tarpath=W/(repo.replace('/','__')+'.tar.gz')
     tarpath.write_bytes(archive)
@@ -33,6 +33,7 @@ def fetch(repo):
             target.parent.mkdir(parents=True,exist_ok=True)
             target.write_bytes(tar.extractfile(member).read())
     (root/'tree.json').write_text(json.dumps(tree))
+    (root/'commit.json').write_text(json.dumps(commit))
     data={'repo':repo,'sha':revision,'private_source':str(root.relative_to(R)),
           'archive_url':f'https://codeload.github.com/{repo}/tar.gz/{revision}',
           'archive_sha256':hashlib.sha256(archive).hexdigest(),

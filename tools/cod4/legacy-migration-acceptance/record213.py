@@ -1,0 +1,6 @@
+import json
+from review_batch import accepted,record,O
+cs=list(map(json.loads,(O/'candidates.jsonl').read_text().splitlines()))
+s=[r['candidate_id'] for r in cs if r['path'].endswith('/Foxhound.java') and r['method'] in {'addAdditionalSaveData','tick','mobInteract','setResting','canRest'}]
+a=accepted('8c0f062fd734ed53fa7a','quark-foxhound-paid-potato-transformation-remaining-work-checkpoint','完整Foxhound类；驯服犬吃实物tiny potato后600tick转化成带IS_ANGRY component的真实产物','OhLawdHeComin int剩余生产工时；IsSlep/IsBlue/睡眠cd同reader辅助，原生驯服归属交Wolf不重计','只有驯服且当前剩余<=0才接收并非创造shrink1，保存剩余并getInt恢复。server tick正工时前减，==0先clear TATERING再spawn新angry土豆并声效，否则令同步TATERING=true；重载以后续tick派生显示而非持久所有缓存','一个真实已支付物品→加工工时→实物产出的进度owner1，不按blue/collar/动作/睡眠拆数；和其他动物孵化及AI架构宏观相似但具体支付/变换输出与剩余工时实现不同，非代码换键克隆。完成回执由remaining归零表示，缺旧键getInt0不重新派发物品，避免为无源输入凭空补发。','来源只存计时不存原投入ItemStack：输入自定义NBT/数量仅消费1、产物由当前静态tiny_potato新建不保原tag；无独立生产UUID/发货收据。先减到0再spawn且不检查回值，不是磁盘原子产出，死亡/中断何时保物未独立保证；负工时不运行且可以再付费，超大值无clamp。mobInteract potato分支未serverguard会双侧赋值，实物权威行为未运行。setResting(false)临时设sleep100后read又用存档值覆盖，辅助恢复有顺序但不是永久进度；TATERING临时派生不应移植进Clone白名单。原生Wolf/睡眠AI等未展开，本条不声称所有归属/死亡/睡姿已验证，无游戏制作/测试。',s)
+record(213,[a])

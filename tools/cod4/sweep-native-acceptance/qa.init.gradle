@@ -1,0 +1,25 @@
+// Packaging recipe only. Coordinator runs inside its private frozen Forge project.
+// No launch task and no dependency on main.classes. Requires explicit isolated paths.
+allprojects { p ->
+ p.afterEvaluate {
+  if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def out=System.getProperty('dynasty.sweepqa.build')
+  def base=System.getProperty('dynasty.sweepqa.baseline')
+  def qaRoot=System.getProperty('dynasty.sweepqa.sources')
+  if (!out || !base || !qaRoot) throw new GradleException('Explicit private build/baseline/sources paths required')
+  p.layout.buildDirectory.set(p.file(out))
+  def qa=p.sourceSets.create('sweepNativeAcceptance') {
+   java.srcDir new File(qaRoot,'src')
+   resources.srcDir new File(qaRoot,'resources')
+   compileClasspath += p.files(base) + p.sourceSets.main.compileClasspath
+  }
+  p.tasks.register('sweepNativeAcceptanceJar',Jar) {
+   dependsOn qa.classesTaskName
+   archiveBaseName='dynasty-sweep-native-acceptance'
+   archiveVersion='2.0'
+   from qa.output
+   manifest.attributes('MixinConfigs':'sweep-native-qa.mixins.json')
+  }
+  p.reobf { sweepNativeAcceptanceJar {} }
+ }
+}

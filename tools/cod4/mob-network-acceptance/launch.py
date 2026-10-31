@@ -7,7 +7,7 @@ RUN=sys.argv[1] if len(sys.argv)>1 else 'run-01'
 ROLE=sys.argv[2] if len(sys.argv)>2 else 'host'
 assert ROLE in ['host','peer']
 SUITE=sys.argv[3] if len(sys.argv)>3 else 'states'
-assert SUITE in ['states','reactions','neutral','fullpack']
+assert SUITE in ['states','reactions','neutral','fullpack','fullpack-explore']
 LANG='zh_cn'
 assert LANG in ['zh_cn','en_us']
 assert re.fullmatch(r'run-\d+',RUN),RUN
@@ -16,19 +16,20 @@ if ROOT.exists():raise SystemExit('Fresh run required; previous evidence/world i
 ROOT.mkdir(parents=True);OUT.mkdir(parents=True,exist_ok=True)
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 manifest={'identity':'offline QA only','installed_version_json':str(PROFILE/'Dynasty.json'),'version_sha256':sha(PROFILE/'Dynasty.json'),'instance':str(ROOT),'source_files':{},'qa_overrides':{}}
-for folder in (['mods','config','defaultconfigs','resourcepacks'] if SUITE=='fullpack' else ['config','defaultconfigs']):
+for folder in (['mods','config','defaultconfigs','resourcepacks'] if SUITE.startswith('fullpack') else ['config','defaultconfigs']):
  source=R/'modpack'/folder
  if source.exists():
   shutil.copytree(source,ROOT/folder)
   for p in sorted(source.rglob('*')):
    if p.is_file():manifest['source_files'][p.relative_to(R/'modpack').as_posix()]=sha(p)
 (ROOT/'mods').mkdir(exist_ok=True)
-main=R/('build/cod4-pack-20261022/language-repair/dynasty-1.4.0.jar' if SUITE=='fullpack' else 'build/cod4-audit-20261022/verified-gradle/libs/dynasty-1.4.0.jar')
+main=R/('tools/cod4/mob-network-acceptance/.work/fullpack-artifact/dynasty-1.4.0.jar' if SUITE.startswith('fullpack') else 'build/cod4-audit-20261022/verified-gradle/libs/dynasty-1.4.0.jar')
 verification=json.loads((R/'docs/cod4/audit-20261022/verification.json').read_text())
-assert sha(main)==('0e1fbac34942714cd90a18ec1b404303b5d4d5bf96ce7c96277e16e561fe5c27' if SUITE=='fullpack' else 'ce92592ecd1e1e6e5584cfb05646fb8e82e3275b4d81b235910a1e996ec2458b'),'Unified artifact changed'
+assert sha(main)==('0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba' if SUITE.startswith('fullpack') else 'ce92592ecd1e1e6e5584cfb05646fb8e82e3275b4d81b235910a1e996ec2458b'),'Unified artifact changed'
 manifest['unified_artifact_sha256']=sha(main)
+if SUITE.startswith('fullpack'):manifest['private_artifact_manifest']=json.loads((main.parent/'manifest.json').read_text())
 helper=R/'build/cod4-mob-network-20261023/gradle/libs/dynasty-mob-network-acceptance-1.4.0.jar'
-for name in ([] if SUITE=='fullpack' else ['geckolib-forge-1.20.1-4.8.4.jar','curios-forge-5.14.1+1.20.1.jar']):
+for name in ([] if SUITE.startswith('fullpack') else ['geckolib-forge-1.20.1-4.8.4.jar','curios-forge-5.14.1+1.20.1.jar']):
  p=R/'modpack/mods'/name;shutil.copy2(p,ROOT/'mods'/name);manifest['source_files']['mods/'+name]=sha(p)
 for p in [main,helper]:
  dest=ROOT/'mods'/p.name
@@ -38,12 +39,20 @@ for p in [main,helper]:
   manifest['qa_overrides'][dest.relative_to(ROOT).as_posix()]={'original_preserved_at':str(preserved),'original_sha256':sha(preserved),'replacement_sha256':sha(p)}
  shutil.copy2(p,dest)
 manifest['added_jars']={p.name:sha(p) for p in [main,helper]}
-if SUITE=='fullpack':
+if SUITE.startswith('fullpack'):
  (ROOT/'config/dynamic_fps.json').write_text(json.dumps({'enabled':False}))
  manifest['qa_overrides']['config/dynamic_fps.json']={'enabled':False,'reason':'keep both native rendering clients active; mod retained'}
 # QA presentation settings only; all original mods/config/resourcepacks remain in the snapshot.
-(ROOT/'options.txt').write_text('soundCategory_master:0.0\npauseOnLostFocus:false\nlang:'+LANG+'\nguiScale:3\nmaxFps:30\nrenderDistance:2\nsimulationDistance:5\ntutorialStep:none\nresourcePacks:["vanilla","mod_resources"'+(',"file/dynasty-quest-guides-v3.zip"' if SUITE=='fullpack' else '')+']\n')
+(ROOT/'options.txt').write_text('soundCategory_master:0.0\npauseOnLostFocus:false\nlang:'+LANG+'\nguiScale:3\nmaxFps:30\nrenderDistance:2\nsimulationDistance:5\ntutorialStep:none\nresourcePacks:["vanilla","mod_resources"'+(',"file/dynasty-quest-guides-v3.zip"' if SUITE.startswith('fullpack') else '')+']\n')
 manifest['qa_overrides']['options.txt']=sha(ROOT/'options.txt')
+# FML reads config/fml.toml; a JVM property alone does not establish this setting.
+fml=ROOT/'config/fml.toml';fml.parent.mkdir(exist_ok=True)
+original=fml.read_text() if fml.exists() else ''
+text=re.sub(r'(?m)^earlyWindowControl\s*=.*$', 'earlyWindowControl=false', original)
+if not re.search(r'(?m)^earlyWindowControl\s*=',text):text+='\nearlyWindowControl=false\n'
+fml.write_text(text)
+manifest['qa_overrides']['config/fml.toml']={'sha256':sha(fml),'earlyWindowControl':False,'reason':'disable early splash in this isolated QA only'}
+
 V=json.loads((PROFILE/'Dynasty.json').read_text());features={'has_custom_resolution':True}
 def allowed(x):
  if 'rules' not in x:return True
@@ -72,9 +81,9 @@ def args(group):
   if isinstance(e,str):out.append(expand(e))
   elif allowed(e):out.extend(expand(x) for x in (e['value'] if isinstance(e['value'],list) else [e['value']]))
  return out
-command=['/Library/Java/JavaVirtualMachines/liberica-jdk-17.jdk/Contents/Home/bin/java',('-Xmx4G' if SUITE=='fullpack' else '-Xmx1800m'),'-XX:ActiveProcessorCount=2','-Ddynasty.networkqa.output='+str(OUT),'-Ddynasty.networkqa.instance='+str(ROOT),'-Ddynasty.networkqa.role='+ROLE,'-Ddynasty.networkqa.suite='+SUITE]+args('jvm')+[V['mainClass']]+args('game')
+command=['/Library/Java/JavaVirtualMachines/liberica-jdk-17.jdk/Contents/Home/bin/java',('-Xmx4G' if SUITE.startswith('fullpack') else '-Xmx1800m'),'-XX:ActiveProcessorCount=2','-Dapple.awt.UIElement=true','-Dfml.earlyWindowControl=false','-Ddynasty.networkqa.output='+str(OUT),'-Ddynasty.networkqa.instance='+str(ROOT),'-Ddynasty.networkqa.role='+ROLE,'-Ddynasty.networkqa.suite='+SUITE]+args('jvm')+[V['mainClass']]+args('game')
 manifest['scope']='Two automated real clients: integrated-host local connection plus remote peer TCP; four jars, not full modpack; all state/equipment fixtures server-side, no human survival claim'
-if SUITE=='fullpack':manifest['scope']='Full modpack 85 production jars + private QA =86; verified 0e1 Dynasty replacement; two automated real clients normal natural terrain, battle fixtures declared; no natural acquisition claim'
+if SUITE.startswith('fullpack'):manifest['scope']='Full modpack 85 production jars + private QA =86; current bundle plus exactly two previously accepted guard classes; private artifact manifest records all unchanged entries; two automated real clients normal natural terrain, battle fixtures declared; no natural acquisition claim'
 manifest['total_mod_jars']=len(list((ROOT/'mods').glob('*.jar')))
 (OUT/(ROLE+'-manifest.json')).write_text(json.dumps(manifest,ensure_ascii=False,indent=2))
 with (OUT/(ROLE+'-client.log')).open('w') as log:

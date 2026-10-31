@@ -1,0 +1,6 @@
+import json
+from review_batch import accepted,record,O
+cs=list(map(json.loads,(O/'candidates.jsonl').read_text().splitlines()));root='e4b897e5a7bb95497819'
+s=[r['candidate_id'] for r in cs if r['repo']=='AlexModGuy/AlexsMobs' and r['path'].endswith(('/EntityAnaconda.java','/EntityAnacondaPart.java')) and r['candidate_id']!=root]
+a=accepted(root,'alexsmobs-anaconda-digestion-earned-feedings-to-shed-skin-continuity','Anaconda612行全文；part完整tick/feedAnaconda/defineSynchedData/add/read/getParent/child与状态方法。awardKillScore将猎物DeathLootTable改EMPTY后首part Swell5，part逐段传递完实际feed主体。','主体Feedings int、ShedTime int、ShedCooldown int写读；part Child/ParentUUID与BodyModel/Index保存，但SWELL float只synched默认0而无NBT读写。PassiveFor实际tick递减/玩家不攻击是临时。','feed heal10并feedings++，>=3且%3==0且冷却<=0才设500–999脱皮进度；tick倒数0实际spawn SHED_SNAKE_SKIN后设1000–2999 cooldown。','真实捕食资源已经消费→消化进度→永久累计喂食→延迟产物收据一链1，非把7parts复制次数当信用。与239吃草毛再生不同owner和阶段：part在途Swell缺失可丢尚未入账资格，主体已完成feedings持久，适合明确耐久/瞬态但有价值的待结算状态边界。','完整part writer/reader不写Swell且默认0，属于具体静态丢进度风险未运行；ChildUUID存在但chunk实体未就绪getChild null会新建7段，spawn返回未核，不声称重载去重安全；原生实体native读写共享不重复计。feedings不重置，门槛到但冷却>0时不会自动补发；脱皮先减到0再spawn未核成功。part其它几何/碰撞方法未全审不声称全451行；多部件支持无额外信用，静态只读无资产修改。',s)
+record(242,[a])

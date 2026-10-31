@@ -1,0 +1,104 @@
+plugins {
+    id 'java'
+    id 'fabric-loom' version '0.12-SNAPSHOT'
+    id 'maven-publish'
+    id "com.github.breadmoirai.github-release" version "2.4.1"
+}
+
+archivesBaseName = "${mod_name}"
+version = "${rootProject.version}+${minecraft_version}-common"
+
+repositories {
+    maven {
+        name = "Ladysnake Libs"
+        url = 'https://maven.ladysnake.org/releases'
+    }
+    maven {
+        name = 'Sponge / Mixin'
+        url = 'https://repo.spongepowered.org/repository/maven-public/'
+    }
+    maven {
+        name = "JitPack"
+        url = 'https://jitpack.io'
+    }
+    maven {
+        name = 'ParchmentMC'
+        url = 'https://maven.parchmentmc.org'
+    }
+    mavenCentral()
+}
+
+loom {
+    shareCaches()
+    mixin {
+        useLegacyMixinAp = false
+    }
+    accessWidenerPath = file("src/main/resources/apugli.common.accesswidener")
+}
+
+dependencies {
+    // Minecraft
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.layered() {
+        officialMojangMappings()
+        parchment("org.parchmentmc.data:parchment-${minecraft_version}:${parchment_version}@zip")
+    }
+    //Apoli
+    modCompileOnly("io.github.apace100:calio:${calio_fabric_version}") { transitive false }
+    modCompileOnly("io.github.apace100:apoli:${apoli_fabric_version}") { transitive false }
+    //MixinExtras
+    annotationProcessor(compileOnly("com.github.llamalad7.mixinextras:mixinextras-common:${mixin_extras_version}"))
+    //Mixin
+    compileOnly group:'org.spongepowered', name:'mixin', version:'0.8.5'
+    compileOnly group: 'org.ow2.asm', name: 'asm-tree', version: '9.4'
+    //JSR305
+    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId project.group
+            artifactId project.archivesBaseName
+            version project.version
+            artifact jar
+            artifact sourcesJar
+        }
+    }
+
+    repositories {
+        maven {
+            name = "greenhouse"
+            url = "https://repo.greenhouse.house/releases"
+            credentials {
+                username System.getenv('MAVEN_USERNAME')
+                password System.getenv('MAVEN_PASSWORD')
+            }
+            authentication {
+                create("basic", BasicAuthentication)
+            }
+        }
+        mavenLocal()
+    }
+}
+
+githubRelease {
+    if (System.getenv("GITHUB_TOKEN") == null) return
+    token = System.getenv("GITHUB_TOKEN")
+    owner = gh_owner
+    repo = gh_repo
+    tagName = "${rootProject.version}+${minecraft_version}"
+    targetCommitish = gh_commitish
+    releaseName = "$project.mod_name v${rootProject.version}+${minecraft_version}"
+    body {
+        new File("$project.rootDir/CHANGELOG.md").getText('UTF-8')
+    }
+}
+
+tasks.remapJar {
+    enabled = false
+}
+
+tasks.remapSourcesJar {
+    enabled = false
+}
