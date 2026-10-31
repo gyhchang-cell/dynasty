@@ -1,0 +1,55 @@
+package com.Polarice3.Goety.common.entities.ai.servant;
+
+import com.Polarice3.Goety.api.entities.ally.IServant;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.Goal;
+
+import java.util.EnumSet;
+
+public class ServantPatrolGoal<T extends PathfinderMob & IServant> extends Goal {
+    public final T mob;
+    private final double speed;
+    private int waitTicks;
+
+    public ServantPatrolGoal(T mob, double speed) {
+        this.mob = mob;
+        this.speed = speed;
+        this.setFlags(EnumSet.of(Flag.MOVE));
+    }
+
+    @Override
+    public boolean canUse() {
+        return this.mob.isPatrolling()
+                && this.mob.getTarget() == null
+                && this.mob.getCurrentWaypoint() != null;
+    }
+
+    @Override
+    public void start() {
+        super.start();
+        this.waitTicks = 40;
+    }
+
+    @Override
+    public void tick() {
+        GlobalPos waypoint = this.mob.getCurrentWaypoint();
+        if (waypoint == null) {
+            return;
+        }
+        if (!waypoint.dimension().equals(this.mob.level.dimension())) {
+            return;
+        }
+
+        BlockPos pos = waypoint.pos();
+        if (this.mob.isInPatrolPoint(pos)) {
+            if (--this.waitTicks <= 0) {
+                this.mob.advancePatrol();
+                this.waitTicks = 40;
+            }
+        } else if (this.mob.getNavigation().isDone()) {
+            this.mob.moveToPatrolPoint(pos, this.speed);
+        }
+    }
+}

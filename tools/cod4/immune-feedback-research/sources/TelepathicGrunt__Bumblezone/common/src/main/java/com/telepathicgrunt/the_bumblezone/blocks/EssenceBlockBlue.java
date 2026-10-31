@@ -1,0 +1,429 @@
+package com.telepathicgrunt.the_bumblezone.blocks;
+
+import com.mojang.serialization.MapCodec;
+import com.telepathicgrunt.the_bumblezone.Bumblezone;
+import com.telepathicgrunt.the_bumblezone.blocks.blockentities.EssenceBlockEntity;
+import com.telepathicgrunt.the_bumblezone.bossbars.ServerEssenceEvent;
+import com.telepathicgrunt.the_bumblezone.configs.BzGeneralConfigs;
+import com.telepathicgrunt.the_bumblezone.items.essence.EssenceOfTheBees;
+import com.telepathicgrunt.the_bumblezone.modinit.BzBlocks;
+import com.telepathicgrunt.the_bumblezone.modinit.BzSounds;
+import com.telepathicgrunt.the_bumblezone.modinit.BzStats;
+import com.telepathicgrunt.the_bumblezone.modinit.BzTags;
+import com.telepathicgrunt.the_bumblezone.packets.MusicPacketFromServer;
+import com.telepathicgrunt.the_bumblezone.utils.EnchantmentUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.BossEvent;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityReference;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.monster.zombie.Drowned;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+
+public class EssenceBlockBlue extends EssenceBlock {
+
+    public static final MapCodec<EssenceBlockBlue> CODEC = Block.simpleCodec(EssenceBlockBlue::new);
+
+    private static final int ENTITIES_TO_KILL = 50;
+
+    public EssenceBlockBlue(Properties properties) {
+        super(properties
+                .mapColor(MapColor.COLOR_BLUE)
+                .strength(-1.0f, 3600000.8f)
+                .lightLevel((_) -> 15)
+                .noLootTable()
+                .forceSolidOn()
+                .isValidSpawn((_, _, _, _) -> false)
+                .isViewBlocking((_, _, _) -> false)
+                .pushReaction(PushReaction.BLOCK));
+    }
+
+    @Override
+    public MapCodec<? extends EssenceBlockBlue> codec() {
+        return CODEC;
+    }
+
+
+    @Override
+    public Identifier getArenaNbt() {
+        return Identifier.fromNamespaceAndPath(Bumblezone.MODID, "essence/blue_arena");
+    }
+
+    @Override
+    public int getEventTimeFrame() {
+        return BzGeneralConfigs.blueArenaTimeFrameInTicks;
+    }
+
+    @Override
+    public ServerEssenceEvent getServerEssenceEvent(RandomSource random) {
+        return (ServerEssenceEvent) new ServerEssenceEvent(
+                Mth.createInsecureUUID(random),
+                "essence.the_bumblezone.blue_essence_event",
+                BossEvent.BossBarColor.BLUE,
+                BossEvent.BossBarOverlay.NOTCHED_20
+        ).setDarkenScreen(true);
+    }
+
+    @Override
+    public Identifier getEssenceItemReward() {
+        return Identifier.fromNamespaceAndPath(Bumblezone.MODID, "gameplay/rewards/blue_arena_victory");
+    }
+
+    @Override
+    public int getEssenceXpReward() {
+        return 3000;
+    }
+
+    @Override
+    public boolean hasMiningFatigue() {
+        return true;
+    }
+
+    @Override
+    public void awardPlayerWinStat(ServerPlayer serverPlayer) {
+        serverPlayer.awardStat(BzStats.CALMING_EVENT_DEFEATED_RL.get());
+    }
+
+    @Override
+    public void performUniqueArenaTick(ServerLevel serverLevel, BlockPos blockPos, BlockState blockState, EssenceBlockEntity essenceBlockEntity) {
+        if (essenceBlockEntity.getPlayerInArena().isEmpty()) return;
+
+        int entitiesKilled = essenceBlockEntity.getExtraEventTrackingProgress();
+        List<EssenceBlockEntity.EventEntities> eventEntitiesInArena = essenceBlockEntity.getEventEntitiesInArena();
+
+        if (entitiesKilled != ENTITIES_TO_KILL && eventEntitiesInArena.size() < Math.min(3 + (essenceBlockEntity.getPlayerInArena().size() * 1.5), ENTITIES_TO_KILL - entitiesKilled)) {
+            // spawn a mob this tick.
+            int currentEntityCount = eventEntitiesInArena.size() + entitiesKilled;
+            SpawnNewEnemy(serverLevel, blockPos, blockState, essenceBlockEntity, currentEntityCount, eventEntitiesInArena);
+        }
+        else {
+            // update how many entities are alive
+            for (int i = eventEntitiesInArena.size() - 1; i >= 0; i--) {
+                UUID entityToCheck = eventEntitiesInArena.get(i).uuid();
+                Entity entity = serverLevel.getEntity(entityToCheck);
+                if (entity == null) {
+                    entitiesKilled++;
+                    eventEntitiesInArena.remove(i);
+                }
+                else {
+                    if (entity instanceof NeutralMob neutralMob && !(neutralMob.getTarget() instanceof Player)) {
+                        UUID playerUUID = essenceBlockEntity.getPlayerInArena().get(serverLevel.getRandom().nextInt(essenceBlockEntity.getPlayerInArena().size()));
+                        Player player = serverLevel.getServer().getPlayerList().getPlayer(playerUUID);
+
+                        neutralMob.setTimeToRemainAngry(Integer.MAX_VALUE);
+                        neutralMob.setPersistentAngerTarget(EntityReference.of(playerUUID));
+                        neutralMob.setTarget(player);
+                    }
+                    else if (entity instanceof Mob mob && !(mob.getTarget() instanceof Player)) {
+                        UUID playerUUID = essenceBlockEntity.getPlayerInArena().get(serverLevel.getRandom().nextInt(essenceBlockEntity.getPlayerInArena().size()));
+                        Player player = serverLevel.getServer().getPlayerList().getPlayer(playerUUID);
+
+                        mob.setTarget(player);
+                    }
+                }
+            }
+        }
+
+        handleGiantBubbles(serverLevel, blockPos);
+
+        float newProgress = (float) entitiesKilled / ENTITIES_TO_KILL;
+        essenceBlockEntity.getEventBar().setProgress(1 - newProgress);
+        essenceBlockEntity.setExtraEventTrackingProgress(entitiesKilled);
+        if (entitiesKilled == ENTITIES_TO_KILL) {
+            EssenceBlockEntity.EndEvent(serverLevel, blockPos, blockState, essenceBlockEntity, true);
+        }
+    }
+
+    private static void SpawnNewEnemy(ServerLevel serverLevel, BlockPos blockPos, BlockState blockState, EssenceBlockEntity essenceBlockEntity, int currentEntityCount, List<EssenceBlockEntity.EventEntities> eventEntitiesInArena) {
+        TagKey<EntityType<?>> enemyTagToUse = BzTags.ESSENCE_CALMING_ARENA_NORMAL_ENEMY;
+        boolean isStrong = false;
+        int entityToSpawnIndex = currentEntityCount + 1;
+        if (entityToSpawnIndex == 28 ||
+            entityToSpawnIndex == 35 ||
+            entityToSpawnIndex == 48 ||
+            entityToSpawnIndex == 49 ||
+            entityToSpawnIndex == 50)
+        {
+            enemyTagToUse = BzTags.ESSENCE_CALMING_ARENA_BOSS_ENEMY; // boss at 28, 35, 48, 49, and 50
+        }
+        else if ((entityToSpawnIndex % 5) == 0) {
+            enemyTagToUse = BzTags.ESSENCE_CALMING_ARENA_STRONG_ENEMY; // strong at every 5 except when boss
+            isStrong = true;
+        }
+        else if (entityToSpawnIndex >= ENTITIES_TO_KILL / 2) {
+            enemyTagToUse = BzTags.ESSENCE_CALMING_ARENA_LATE_NORMAL_ENEMY; // guardians past 25
+        }
+
+        List<? extends EntityType<?>> entityTypeList = BuiltInRegistries.ENTITY_TYPE
+                .get(enemyTagToUse)
+                .map(holders -> holders
+                        .stream()
+                        .map(Holder::value)
+                        .toList()
+                ).orElseGet(ArrayList::new);
+
+        Direction direction = Direction.getRandom(serverLevel.getRandom());
+
+        EntityType<?> entityTypeToSpawn = entityTypeList.isEmpty() ?
+                null : entityTypeList.get(serverLevel.getRandom().nextInt(entityTypeList.size()));
+        if (entityTypeToSpawn == null) {
+            return;
+        }
+
+        Entity entity = entityTypeToSpawn.spawn(
+            serverLevel,
+            blockPos.offset(
+                direction.getStepX() * 3,
+                direction.getStepY() * 3,
+                direction.getStepZ() * 3
+            ),
+            EntitySpawnReason.EVENT);
+        if (entity == null) {
+            return;
+        }
+        entity.addTag("the_bumblezone.blue_essence_arena");
+        eventEntitiesInArena.add(new EssenceBlockEntity.EventEntities(entity.getUUID()));
+
+        UUID playerUUID = essenceBlockEntity.getPlayerInArena().get(serverLevel.getRandom().nextInt(essenceBlockEntity.getPlayerInArena().size()));
+        Player player = serverLevel.getServer().getPlayerList().getPlayer(playerUUID);
+        if (player instanceof ServerPlayer serverPlayer) {
+            float maxHeart = Math.max(serverPlayer.getHealth(), serverPlayer.getMaxHealth());
+            float maxArmor = serverPlayer.getArmorValue();
+            float mobHealthBoost = (maxHeart / 15) + (maxArmor / 20);
+            float mobAttackBoost = (maxHeart / 25) + (maxArmor / 10);
+
+            boolean isEssenced = EssenceOfTheBees.hasEssence(serverPlayer);
+            if (!isEssenced) {
+                mobHealthBoost *= 1.5f;
+                mobAttackBoost *= 1.5f;
+            }
+
+            float timeProgress = 1 - (essenceBlockEntity.getEventTimer() / (float) ((EssenceBlock)blockState.getBlock()).getEventTimeFrame());
+            float enemyProgress = (float) essenceBlockEntity.getExtraEventTrackingProgress() / ENTITIES_TO_KILL;
+            float progressDiff = (float) (Math.pow(enemyProgress - timeProgress + 1, 2) - 1);
+            if (progressDiff > 0.1) {
+                progressDiff = (float) (Math.pow(enemyProgress - timeProgress + 0.95, 5) - 0.95);
+                mobHealthBoost += (int)(progressDiff / 0.025f);
+                mobAttackBoost += (int)(progressDiff / 0.1f);
+            }
+
+            if (entity instanceof LivingEntity livingEntity) {
+                AttributeInstance livingEntityAttributeHealth = livingEntity.getAttribute(Attributes.MAX_HEALTH);
+                if (livingEntityAttributeHealth != null) {
+                    livingEntityAttributeHealth.addPermanentModifier(new AttributeModifier(
+                            Identifier.fromNamespaceAndPath(Bumblezone.MODID, "essence_arena_health_boost"),
+                            mobHealthBoost,
+                            AttributeModifier.Operation.ADD_VALUE));
+                    livingEntity.heal(mobHealthBoost);
+                }
+
+                AttributeInstance livingEntityAttributeAttack = livingEntity.getAttribute(Attributes.ATTACK_DAMAGE);
+                if (livingEntityAttributeAttack != null) {
+                    livingEntityAttributeAttack.addPermanentModifier(new AttributeModifier(
+                            Identifier.fromNamespaceAndPath(Bumblezone.MODID, "essence_arena_damage_boost"),
+                            mobAttackBoost,
+                            AttributeModifier.Operation.ADD_VALUE));
+                }
+
+                AttributeInstance livingEntityAttributeSpeed = livingEntity.getAttribute(Attributes.MOVEMENT_SPEED);
+                if (livingEntityAttributeSpeed != null) {
+                    livingEntityAttributeSpeed.addPermanentModifier(new AttributeModifier(
+                            Identifier.fromNamespaceAndPath(Bumblezone.MODID, "essence_arena_speed_boost"),
+                            isEssenced ? 0.01 : 0.02,
+                            AttributeModifier.Operation.ADD_VALUE));
+                }
+
+                AttributeInstance livingEntityAttributeFlyingSpeed = livingEntity.getAttribute(Attributes.FLYING_SPEED);
+                if (livingEntityAttributeFlyingSpeed != null) {
+                    livingEntityAttributeFlyingSpeed.addPermanentModifier(new AttributeModifier(
+                            Identifier.fromNamespaceAndPath(Bumblezone.MODID, "essence_arena_flying_speed_boost"),
+                            0.02,
+                            AttributeModifier.Operation.ADD_VALUE));
+                }
+
+                AttributeInstance livingEntityAttributeFollowRange = livingEntity.getAttribute(Attributes.FOLLOW_RANGE);
+                if (livingEntityAttributeFollowRange != null) {
+                    livingEntityAttributeFollowRange.addPermanentModifier(new AttributeModifier(
+                            Identifier.fromNamespaceAndPath(Bumblezone.MODID, "essence_arena_sight_boost"),
+                            32,
+                            AttributeModifier.Operation.ADD_VALUE));
+                }
+            }
+
+            if (entity instanceof NeutralMob neutralMob) {
+                neutralMob.setTimeToRemainAngry(Integer.MAX_VALUE);
+                neutralMob.setPersistentAngerTarget(EntityReference.of(playerUUID));
+                neutralMob.setTarget(serverPlayer);
+            }
+            else if (entity instanceof Mob mob) {
+                List<Item> itemList = BuiltInRegistries.ITEM
+                        .get(BzTags.CALMING_ARENA_DROWNED_BONUS_HELD_ITEM)
+                        .map(holders -> holders
+                                .stream()
+                                .map(Holder::value)
+                                .toList()
+                        ).orElseGet(ArrayList::new);
+
+                ItemStack bonusItem = itemList.isEmpty() ?
+                        ItemStack.EMPTY :
+                        itemList.get(serverLevel.getRandom().nextInt(itemList.size())).getDefaultInstance();
+
+                mob.setTarget(serverPlayer);
+                if (mob instanceof Drowned drowned) {
+                    ItemStack swimBoots = Items.LEATHER_BOOTS.getDefaultInstance();
+                    swimBoots.enchant(EnchantmentUtils.getEnchantmentHolder(Enchantments.DEPTH_STRIDER, serverLevel), 3);
+                    drowned.equipItemIfPossible(serverLevel, swimBoots);
+                    drowned.setDropChance(EquipmentSlot.FEET, 0.2f);
+
+                    ItemStack leggings = Items.LEATHER_LEGGINGS.getDefaultInstance();
+                    leggings.enchant(EnchantmentUtils.getEnchantmentHolder(Enchantments.THORNS, serverLevel), 1);
+                    drowned.equipItemIfPossible(serverLevel, leggings);
+                    drowned.setDropChance(EquipmentSlot.LEGS, 0.2f);
+
+                    ItemStack chestplate = Items.LEATHER_CHESTPLATE.getDefaultInstance();
+                    chestplate.enchant(EnchantmentUtils.getEnchantmentHolder(Enchantments.PROJECTILE_PROTECTION, serverLevel), 1);
+                    drowned.equipItemIfPossible(serverLevel, chestplate);
+                    drowned.setDropChance(EquipmentSlot.CHEST, 0.2f);
+
+                    ItemStack helmet = serverLevel.getRandom().nextFloat() < 0.1f ?
+                            Items.TURTLE_HELMET.getDefaultInstance() :
+                            Items.LEATHER_HELMET.getDefaultInstance();
+                    if (serverLevel.getRandom().nextFloat() < 0.75f) {
+                        helmet.enchant(EnchantmentUtils.getEnchantmentHolder(Enchantments.AQUA_AFFINITY, serverLevel), 1);
+                    }
+                    else {
+                        helmet.enchant(EnchantmentUtils.getEnchantmentHolder(Enchantments.RESPIRATION, serverLevel), 3);
+                    }
+                    drowned.equipItemIfPossible(serverLevel, helmet);
+                    drowned.setDropChance(EquipmentSlot.HEAD, 0.15f);
+
+                    if (isStrong) {
+                        ItemStack trident = Items.TRIDENT.getDefaultInstance();
+                        if (serverLevel.getRandom().nextFloat() < 0.25) {
+                            trident.enchant(EnchantmentUtils.getEnchantmentHolder(Enchantments.CHANNELING, serverLevel), 1);
+                        }
+                        else if (serverLevel.getRandom().nextFloat() < 0.25) {
+                            trident.enchant(EnchantmentUtils.getEnchantmentHolder(Enchantments.LOYALTY, serverLevel), 1);
+                        }
+                        else if (serverLevel.getRandom().nextFloat() < 0.25) {
+                            trident.enchant(EnchantmentUtils.getEnchantmentHolder(Enchantments.IMPALING, serverLevel), 1);
+                        }
+                        else {
+                            trident.enchant(EnchantmentUtils.getEnchantmentHolder(Enchantments.RIPTIDE, serverLevel), 1);
+                        }
+                        drowned.setItemSlot(EquipmentSlot.MAINHAND, trident);
+                        drowned.setDropChance(EquipmentSlot.MAINHAND, 0.9f);
+                    }
+                    else {
+                        if (drowned.getMainHandItem().is(Items.TRIDENT)) {
+                            drowned.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+                        }
+                        else if (drowned.getOffhandItem().is(Items.TRIDENT)) {
+                            drowned.setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+                        }
+
+                        drowned.addEffect(new MobEffectInstance(
+                                MobEffects.SPEED,
+                                Integer.MAX_VALUE,
+                                0,
+                                false,
+                                false,
+                                true));
+                    }
+
+                    if (drowned.getMainHandItem().isEmpty() && serverLevel.getRandom().nextFloat() < 0.3f) {
+                        drowned.setItemSlot(EquipmentSlot.MAINHAND, bonusItem);
+                        drowned.setDropChance(EquipmentSlot.MAINHAND, 2.0f);
+                    }
+                    else if (drowned.getOffhandItem().isEmpty() && serverLevel.getRandom().nextFloat() < 0.3f) {
+                        drowned.setItemSlot(EquipmentSlot.OFFHAND, bonusItem);
+                        drowned.setDropChance(EquipmentSlot.OFFHAND, 2.0f);
+                    }
+                }
+            }
+        }
+    }
+
+    public void handleGiantBubbles(ServerLevel serverLevel, BlockPos blockPos) {
+        if (!BzGeneralConfigs.blueArenaBubblesMechanic) {
+            return;
+        }
+
+        long gameTime = serverLevel.getGameTime();
+
+        int bubbleMoveTime = 23;
+        if (gameTime % bubbleMoveTime == 0) {
+            for (Direction direction : Direction.Plane.HORIZONTAL) {
+                int offSetBubble = direction.getAxis() == Direction.Axis.X ? 0 : 8;
+                int currentProgress = (int) (((gameTime / bubbleMoveTime) + offSetBubble) % 16);
+                BlockPos bubbleCenter = blockPos.offset(direction.getStepX() * 10, currentProgress - 8, direction.getStepZ() * 10);
+
+                BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+                for (int y = -2; y <= 1; y++) {
+                    mutableBlockPos.set(bubbleCenter).move(Direction.UP, y);
+                    if (mutableBlockPos.getY() >= blockPos.getY() - 5 && mutableBlockPos.getY() <= blockPos.getY() + 5) {
+                        for (int x = -1; x <= 1; x++) {
+                            mutableBlockPos.move(Direction.EAST, x);
+                            for (int z = -1; z <= 1; z++) {
+                                mutableBlockPos.move(Direction.SOUTH, z);
+                                if (y == -2) {
+                                    serverLevel.setBlock(mutableBlockPos, Blocks.WATER.defaultBlockState(), 2);
+                                }
+                                else {
+                                    serverLevel.setBlock(mutableBlockPos, BzBlocks.DENSE_BUBBLE_BLOCK.get().defaultBlockState(), 2);
+                                }
+                                mutableBlockPos.move(Direction.SOUTH, -z);
+                            }
+                            mutableBlockPos.move(Direction.EAST, -x);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onPlayerEnter(ServerLevel serverLevel, ServerPlayer serverPlayer, EssenceBlockEntity essenceBlockEntity) {
+        MusicPacketFromServer.sendToClient(serverPlayer, BzSounds.CALMING_EVENT.get().location(), true);
+        super.onPlayerEnter(serverLevel, serverPlayer, essenceBlockEntity);
+    }
+
+    @Override
+    public void onPlayerLeave(ServerLevel serverLevel, ServerPlayer serverPlayer, EssenceBlockEntity essenceBlockEntity) {
+        MusicPacketFromServer.sendToClient(serverPlayer, BzSounds.CALMING_EVENT.get().location(), false);
+        super.onPlayerLeave(serverLevel, serverPlayer, essenceBlockEntity);
+    }
+}

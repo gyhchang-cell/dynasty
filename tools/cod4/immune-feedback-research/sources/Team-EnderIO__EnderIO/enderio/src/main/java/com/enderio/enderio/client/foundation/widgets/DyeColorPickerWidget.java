@@ -1,0 +1,40 @@
+package com.enderio.enderio.client.foundation.widgets;
+
+import com.enderio.core.client.gui.widgets.BaseEnumPickerWidget;
+import com.enderio.core.common.util.VanillaLangUtil;
+import com.enderio.enderio.client.foundation.icon.EIOEnumIcons;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.DyeColor;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+public class DyeColorPickerWidget extends BaseEnumPickerWidget<DyeColor> {
+
+    // Reproduces the old ColorControl order for player familiarity.
+    private static final DyeColor[] ORDERED_VALUES = new DyeColor[] { DyeColor.GREEN, DyeColor.BROWN, DyeColor.BLUE,
+            DyeColor.PURPLE, DyeColor.CYAN, DyeColor.LIGHT_GRAY, DyeColor.GRAY, DyeColor.PINK, DyeColor.LIME,
+            DyeColor.YELLOW, DyeColor.LIGHT_BLUE, DyeColor.MAGENTA, DyeColor.ORANGE, DyeColor.WHITE, DyeColor.BLACK,
+            DyeColor.RED, };
+
+    public DyeColorPickerWidget(int x, int y, Supplier<DyeColor> getter, Consumer<DyeColor> setter,
+            Component optionName) {
+        super(x, y, 16, 16, DyeColor.class, getter, setter, true, optionName);
+    }
+
+    @Override
+    public Component getValueTooltip(DyeColor value) {
+        return VanillaLangUtil.getColorComponent(value);
+    }
+
+    @Override
+    public ResourceLocation getValueIcon(DyeColor value) {
+        return EIOEnumIcons.DYE_COLOR.get(value);
+    }
+
+    @Override
+    public DyeColor[] getValues() {
+        return ORDERED_VALUES;
+    }
+}

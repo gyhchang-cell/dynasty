@@ -1,0 +1,1227 @@
+package com.Polarice3.Goety.common.events;
+
+import com.Polarice3.Goety.Goety;
+import com.Polarice3.Goety.api.items.magic.IWand;
+import com.Polarice3.Goety.client.particles.FollowFireParticleOption;
+import com.Polarice3.Goety.client.particles.ModParticleTypes;
+import com.Polarice3.Goety.client.particles.RisingCircleParticleOption;
+import com.Polarice3.Goety.client.particles.ShockwaveParticleOption;
+import com.Polarice3.Goety.common.effects.GoetyEffects;
+import com.Polarice3.Goety.common.effects.brew.BrewEffectInstance;
+import com.Polarice3.Goety.common.entities.ModEntityType;
+import com.Polarice3.Goety.common.entities.ally.illager.PillagerServant;
+import com.Polarice3.Goety.common.entities.ally.illager.VindicatorServant;
+import com.Polarice3.Goety.common.entities.hostile.HostileSkeletonPillager;
+import com.Polarice3.Goety.common.entities.hostile.HostileZombieVindicator;
+import com.Polarice3.Goety.common.entities.util.DragonBreathCloud;
+import com.Polarice3.Goety.common.events.spell.CastMagicEvent;
+import com.Polarice3.Goety.common.events.spell.CastingMagicEvent;
+import com.Polarice3.Goety.common.items.ModItems;
+import com.Polarice3.Goety.common.magic.spells.void_spells.EndWalkSpell;
+import com.Polarice3.Goety.common.network.ModNetwork;
+import com.Polarice3.Goety.common.network.server.SPlayEntitySoundPacket;
+import com.Polarice3.Goety.common.network.server.SPlayWorldSoundPacket;
+import com.Polarice3.Goety.compat.vampirism.VampirismIntegration;
+import com.Polarice3.Goety.compat.vampirism.VampirismLoaded;
+import com.Polarice3.Goety.config.ItemConfig;
+import com.Polarice3.Goety.init.ModSounds;
+import com.Polarice3.Goety.init.ModTags;
+import com.Polarice3.Goety.utils.*;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.stats.Stats;
+import net.minecraft.tags.BiomeTags;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ambient.Bat;
+import net.minecraft.world.entity.animal.Bee;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.monster.*;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.item.BottleItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.trading.Merchant;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.Tags;
+import net.minecraftforge.event.ForgeEventFactory;
+import net.minecraftforge.event.entity.*;
+import net.minecraftforge.event.entity.living.*;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
+
+import static net.minecraftforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET;
+
+@Mod.EventBusSubscriber(modid = Goety.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+public class PotionEvents {
+
+    public static AttributeModifier SOUL_ARMOR_MOD = new AttributeModifier(UUID.fromString("3e4b414b-466c-4b90-8a92-a878e2542bb8"), "Increase Armor", 2.0D, AttributeModifier.Operation.MULTIPLY_TOTAL);
+
+    public static ColorUtil VOID_TOUCHED = new ColorUtil(0x7f0075);
+
+    @SubscribeEvent
+    public static void LivingEffects(LivingEvent.LivingTickEvent event){
+        LivingEntity livingEntity = event.getEntity();
+        if (livingEntity != null){
+            if (livingEntity.level instanceof ServerLevel serverLevel) {
+                if (livingEntity.hasEffect(GoetyEffects.ILLAGUE.get())) {
+                    EffectsUtil.Illague(serverLevel, livingEntity);
+                }
+                if (livingEntity.hasEffect(GoetyEffects.SOUL_BURN.get())) {
+                    if (livingEntity.tickCount % 2 == 0) {
+                        serverLevel.sendParticles(ModParticleTypes.BIG_SOUL_FIRE.get(), livingEntity.getRandomX(1.0D), livingEntity.getY(livingEntity.getRandom().nextDouble() * 0.5F), livingEntity.getRandomZ(1.0D), 1, 0, 0, 0, 0);
+                    }
+                }
+                if (livingEntity.hasEffect(GoetyEffects.VOID_TOUCHED.get())) {
+                    if (livingEntity.tickCount % 10 == 0) {
+                        ColorUtil colorUtil = VOID_TOUCHED;
+                        serverLevel.sendParticles(new FollowFireParticleOption(livingEntity.getId()), livingEntity.getX(), livingEntity.getY() + (livingEntity.getBbHeight() / 2.0F), livingEntity.getZ(), 0, colorUtil.red(), colorUtil.green(), colorUtil.blue(), 1.0F);
+                    }
+                }
+                if (VampirismLoaded.VAMPIRISM.isLoaded()) {
+                    if (VampirismIntegration.hasSunscreen(livingEntity)) {
+                        MiscCapHelper.setSunscreen(livingEntity, 20);
+                    }
+                }
+            }
+            AttributeInstance armor = livingEntity.getAttribute(Attributes.ARMOR);
+            if (armor != null){
+                if (livingEntity.hasEffect(GoetyEffects.SOUL_ARMOR.get())){
+                    if (ItemHelper.noArmor(livingEntity)){
+                        if (!armor.hasModifier(SOUL_ARMOR_MOD)){
+                            armor.addPermanentModifier(SOUL_ARMOR_MOD);
+                        }
+                    } else {
+                        if (armor.hasModifier(SOUL_ARMOR_MOD)){
+                            armor.removeModifier(SOUL_ARMOR_MOD);
+                        }
+                    }
+                } else {
+                    if (armor.hasModifier(SOUL_ARMOR_MOD)){
+                        armor.removeModifier(SOUL_ARMOR_MOD);
+                    }
+                }
+            }
+            if (livingEntity.getTags().contains(ConstantPaths.gassed())){
+                if (livingEntity.tickCount % 20 == 0){
+                    livingEntity.getTags().remove(ConstantPaths.gassed());
+                }
+            }
+            if (livingEntity.hasEffect(GoetyEffects.BURN_HEX.get())){
+                if (livingEntity.hasEffect(MobEffects.FIRE_RESISTANCE)){
+                    livingEntity.removeEffectNoUpdate(MobEffects.FIRE_RESISTANCE);
+                }
+            }
+            if (livingEntity.hasEffect(GoetyEffects.CLIMBING.get())){
+                MobUtil.ClimbAnyWall(livingEntity);
+            }
+            if (livingEntity instanceof Bee bee){
+                if (!bee.level.isClientSide) {
+                    if (bee.getTags().contains(ConstantPaths.conjuredBee())){
+                        if ((bee.getTarget() == null && bee.getPersistentAngerTarget() == null) || bee.hasStung()){
+                            if (bee.tickCount % MathHelper.secondsToTicks(10) == 0){
+                                bee.spawnAnim();
+                                bee.discard();
+                            }
+                        }
+                    }
+                }
+            }
+            if (livingEntity instanceof Bat bat){
+                if (!bat.level.isClientSide){
+                    if (bat.getTags().contains(ConstantPaths.conjuredBat())){
+                        if (bat.tickCount % MathHelper.secondsToTicks(20) == 0){
+                            bat.spawnAnim();
+                            bat.discard();
+                        }
+                    }
+                }
+            }
+            if (livingEntity.hasEffect(GoetyEffects.FREEZING.get())){
+                if (!livingEntity.level.isClientSide){
+                    MobEffectInstance instance = livingEntity.getEffect(GoetyEffects.FREEZING.get());
+                    if (instance != null) {
+                        livingEntity.setIsInPowderSnow(true);
+                        if (livingEntity.canFreeze()) {
+                            int h = instance.getAmplifier() + 1;
+                            MiscCapHelper.setFreezing(livingEntity, h);
+                            if (livingEntity.level instanceof ServerLevel serverLevel) {
+                                float chance = 0.005F * (h * h);
+                                if (serverLevel.getRandom().nextFloat() <= chance) {
+                                    ServerParticleUtil.addParticlesAroundMiddleSelf(serverLevel, ParticleTypes.SNOWFLAKE, livingEntity);
+                                }
+                            }
+                            int i = livingEntity.getTicksFrozen();
+                            int j = h * 4;
+                            livingEntity.setTicksFrozen(Math.min(livingEntity.getTicksRequiredToFreeze() + 5, i + j));
+                        }
+                    }
+                }
+            } else {
+                if (!livingEntity.level.isClientSide){
+                    if (MiscCapHelper.isFreezing(livingEntity)){
+                        MiscCapHelper.setFreezing(livingEntity, 0);
+                    }
+                }
+            }
+            if (livingEntity instanceof Player && livingEntity.hasEffect(GoetyEffects.SENSE_LOSS.get())){
+                MobEffectInstance mobEffectInstance = livingEntity.getEffect(GoetyEffects.SENSE_LOSS.get());
+                if (mobEffectInstance != null) {
+                    if (livingEntity.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, mobEffectInstance.getDuration(), mobEffectInstance.getAmplifier(), mobEffectInstance.isAmbient(), mobEffectInstance.isVisible()))){
+                        livingEntity.removeEffect(GoetyEffects.SENSE_LOSS.get());
+                    }
+                }
+            }
+            if (livingEntity.hasEffect(GoetyEffects.EXPLOSIVE.get())) {
+                MobEffectInstance mobEffectInstance = livingEntity.getEffect(GoetyEffects.EXPLOSIVE.get());
+                if (mobEffectInstance != null){
+                    int a = mobEffectInstance.getAmplifier() + 1;
+                    if (MobUtil.isPushed(livingEntity)) {
+                        int max = Math.max(1, 100 - (a * 10));
+                        if (livingEntity.getRandom().nextInt(max) == 0) {
+                            if (!livingEntity.level.isClientSide) {
+                                livingEntity.level.explode(livingEntity, livingEntity.getX(), livingEntity.getY(), livingEntity.getZ(), 3.0F + (a / 2.0F), Level.ExplosionInteraction.BLOCK);
+                                livingEntity.removeEffect(GoetyEffects.EXPLOSIVE.get());
+                            }
+                        }
+                    }
+                }
+            }
+            if (livingEntity.hasEffect(GoetyEffects.SNOW_SKIN.get())){
+                MobEffectInstance mobEffectInstance = livingEntity.getEffect(GoetyEffects.SNOW_SKIN.get());
+                if(mobEffectInstance != null){
+                    if (!livingEntity.level.isClientSide){
+                        int i = Mth.floor(livingEntity.getX());
+                        int j = Mth.floor(livingEntity.getY());
+                        int k = Mth.floor(livingEntity.getZ());
+                        BlockPos blockpos = new BlockPos(i, j, k);
+                        Holder<Biome> biome = livingEntity.level.getBiome(blockpos);
+                        if (biome.is(BiomeTags.SNOW_GOLEM_MELTS)) {
+                            livingEntity.hurt(livingEntity.damageSources().onFire(), 1.0F);
+                        }
+
+                        livingEntity.setIsInPowderSnow(false);
+                        livingEntity.setTicksFrozen(0);
+
+                        BlockState blockstate = Blocks.SNOW.defaultBlockState();
+
+                        for(int l = 0; l < 4; ++l) {
+                            i = Mth.floor(livingEntity.getX() + (double)((float)(l % 2 * 2 - 1) * 0.25F));
+                            j = Mth.floor(livingEntity.getY());
+                            k = Mth.floor(livingEntity.getZ() + (double)((float)(l / 2 % 2 * 2 - 1) * 0.25F));
+                            BlockPos blockpos1 = new BlockPos(i, j, k);
+                            if (livingEntity.level.isEmptyBlock(blockpos1) && blockstate.canSurvive(livingEntity.level, blockpos1)) {
+                                livingEntity.level.setBlockAndUpdate(blockpos1, blockstate);
+                                livingEntity.level.gameEvent(GameEvent.BLOCK_PLACE, blockpos1, GameEvent.Context.of(livingEntity, blockstate));
+                            }
+                        }
+                    }
+                }
+            }
+            /*if (livingEntity instanceof Mob mob) {
+                if (mob.getTarget() != null) {
+                    if (mob.getTarget().hasEffect(GoetyEffects.ENCHANTED.get())) {
+                        if (MiscCapHelper.getEnchanter(mob.getTarget()) instanceof LivingEntity enchanter && TargetingConditions.forCombat().test(mob, enchanter)) {
+                            mob.setTarget(enchanter);
+                        }
+                    }
+                }
+            }*/
+        }
+    }
+
+    @SubscribeEvent
+    public static void HurtEvent(LivingHurtEvent event){
+        LivingEntity victim = event.getEntity();
+        Entity attacker = event.getSource().getEntity();
+        float finalAmount = event.getAmount();
+        float bonus = 0.0F;
+        if (attacker instanceof LivingEntity living) {
+            if (ModDamageSource.physicalAttacks(event.getSource())) {
+                if (living.hasEffect(GoetyEffects.FLAME_HANDS.get())) {
+                    MobEffectInstance mobEffectInstance = living.getEffect(GoetyEffects.FLAME_HANDS.get());
+                    if (mobEffectInstance != null) {
+                        int a = mobEffectInstance.getAmplifier() + 1;
+                        victim.setSecondsOnFire(a * 4);
+                    }
+                }
+                if (living.hasEffect(GoetyEffects.VENOMOUS_HANDS.get())) {
+                    MobEffect effect = MobEffects.POISON;
+                    if (CuriosFinder.hasWildRobe(living)){
+                        effect = GoetyEffects.ACID_VENOM.get();
+                    }
+                    MobEffectInstance mobEffectInstance = living.getEffect(GoetyEffects.VENOMOUS_HANDS.get());
+                    if (mobEffectInstance != null) {
+                        int a = mobEffectInstance.getAmplifier();
+                        victim.addEffect(new MobEffectInstance(effect, 200, a), living);
+                    }
+                }
+            }
+            if (victim.hasEffect(GoetyEffects.REPULSIVE.get())) {
+                MobEffectInstance mobEffectInstance = victim.getEffect(GoetyEffects.REPULSIVE.get());
+                if (mobEffectInstance != null){
+                    int a = mobEffectInstance.getAmplifier();
+                    living.playSound(SoundEvents.IRON_GOLEM_ATTACK);
+                    if (!living.level.isClientSide){
+                        ModNetwork.sendToALL(new SPlayWorldSoundPacket(living.blockPosition(), SoundEvents.IRON_GOLEM_ATTACK, 1.0F, 1.0F));
+                        MobUtil.knockBack(living, victim, 1.0D + (a / 2.0D), 0.4D + (a * 0.2D), 1.0D + (a / 2.0D));
+                    }
+                }
+            }
+            if (living.hasEffect(GoetyEffects.ENCHANTED.get())) {
+                finalAmount *= 1.25F;
+            }
+        }
+        if (victim.hasEffect(GoetyEffects.SOUL_ARMOR.get())){
+            MobEffectInstance mobEffectInstance = victim.getEffect(GoetyEffects.SOUL_ARMOR.get());
+            if (mobEffectInstance != null){
+                if (mobEffectInstance.getDuration() > MathHelper.secondsToTicks(event.getAmount())){
+                    EffectsUtil.decreaseDuration(victim, GoetyEffects.SOUL_ARMOR.get(), MathHelper.secondsToTicks(event.getAmount()), mobEffectInstance.isAmbient(), mobEffectInstance.isVisible());
+                }
+                if (victim instanceof Player player){
+                    SEHelper.decreaseSouls(player, (int) event.getAmount());
+                }
+            }
+        }
+        if (victim.hasEffect(GoetyEffects.EXPLOSIVE.get())) {
+            MobEffectInstance mobEffectInstance = victim.getEffect(GoetyEffects.EXPLOSIVE.get());
+            if (mobEffectInstance != null){
+                int a = mobEffectInstance.getAmplifier() + 1;
+                int max = Math.max(1, 5 - a);
+                if (victim.getRandom().nextInt(max) == 0) {
+                    if (!victim.level.isClientSide) {
+                        victim.level.explode(victim, victim.getX(), victim.getY(), victim.getZ(), 3.0F + (a / 2.0F), Level.ExplosionInteraction.BLOCK);
+                        victim.removeEffect(GoetyEffects.EXPLOSIVE.get());
+                    }
+                }
+            }
+        }
+        if (victim.hasEffect(GoetyEffects.FLAMMABLE.get())){
+            MobEffectInstance mobEffectInstance = victim.getEffect(GoetyEffects.FLAMMABLE.get());
+            if (mobEffectInstance != null){
+                int a = mobEffectInstance.getAmplifier() + 2;
+                if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
+                    event.setAmount(event.getAmount() * a);
+                }
+            }
+        }
+        if (victim.hasEffect(GoetyEffects.ENDER_FLUX.get())){
+            MobEffectInstance mobEffectInstance = victim.getEffect(GoetyEffects.ENDER_FLUX.get());
+            if (mobEffectInstance != null){
+                int a = mobEffectInstance.getAmplifier();
+                for(int i = 0; i < 64; ++i) {
+                    if (MobUtil.teleport(victim, 16, a)){
+                        if (victim.getRandom().nextFloat() < 0.05F && victim.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
+                            Endermite endermite = EntityType.ENDERMITE.create(victim.level);
+                            if (endermite != null) {
+                                endermite.moveTo(victim.getX(), victim.getY(), victim.getZ(), victim.getYRot(), victim.getXRot());
+                                victim.level.addFreshEntity(endermite);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        if (attacker instanceof LivingEntity attackerL && ModDamageSource.physicalAttacks(event.getSource())) {
+            if (attackerL.hasEffect(GoetyEffects.SMITING.get())) {
+                MobEffectInstance inst = attackerL.getEffect(GoetyEffects.SMITING.get());
+                if (inst != null) {
+                    int amp = inst.getAmplifier() + 1;
+                    ItemStack weapon = attackerL.getMainHandItem();
+                    if (weapon.getEnchantmentLevel(Enchantments.SMITE) < amp) {
+                        bonus += Enchantments.SMITE.getDamageBonus(amp, victim.getMobType(), weapon);
+                    }
+                }
+            }
+
+            if (attackerL.hasEffect(GoetyEffects.INSECT_BANE.get())) {
+                MobEffectInstance inst = attackerL.getEffect(GoetyEffects.INSECT_BANE.get());
+                if (inst != null) {
+                    int amp = inst.getAmplifier() + 1;
+                    ItemStack weapon = attackerL.getMainHandItem();
+                    if (weapon.getEnchantmentLevel(Enchantments.BANE_OF_ARTHROPODS) < amp) {
+                        bonus += Enchantments.BANE_OF_ARTHROPODS.getDamageBonus(amp, victim.getMobType(), weapon);
+                    }
+                }
+            }
+        }
+        if (bonus > 0.0F || finalAmount != event.getAmount()) {
+            event.setAmount(finalAmount + bonus);
+        }
+    }
+
+    @SubscribeEvent
+    public static void DamageEvents(LivingDamageEvent event){
+        LivingEntity target = event.getEntity();
+        Entity attacker = event.getSource().getEntity();
+        float finalDamage = event.getAmount();
+
+        if (!target.level.isClientSide) {
+            if (target.hasEffect(GoetyEffects.SAPPED.get())) {
+                MobEffectInstance effectInstance = target.getEffect(GoetyEffects.SAPPED.get());
+                if (effectInstance != null) {
+                    int i = effectInstance.getAmplifier() + 1;
+                    finalDamage += finalDamage * (0.2F * i);
+                }
+            }
+
+            if (target.hasEffect(GoetyEffects.VOID_TOUCHED.get())) {
+                if (!event.getSource().is(ModDamageSource.VOIDED)) {
+                    MobEffectInstance effectInstance = target.getEffect(GoetyEffects.VOID_TOUCHED.get());
+                    if (effectInstance != null) {
+                        int i = effectInstance.getAmplifier() + 2;
+                        finalDamage *= i;
+                        target.removeEffect(GoetyEffects.VOID_TOUCHED.get());
+                    }
+                }
+            }
+
+            if (target.hasEffect(GoetyEffects.SHIELDING.get()) || target.hasEffect(GoetyEffects.SHIELDED.get())) {
+                if (!event.getSource().is(DamageTypeTags.BYPASSES_EFFECTS) && !event.getSource().is(DamageTypeTags.BYPASSES_RESISTANCE)) {
+                    MobEffectInstance effectInstance = target.getEffect(GoetyEffects.SHIELDING.get());
+                    if (effectInstance == null && target.hasEffect(GoetyEffects.SHIELDED.get())) {
+                        effectInstance = target.getEffect(GoetyEffects.SHIELDED.get());
+                    }
+                    if (effectInstance != null) {
+                        int i = effectInstance.getAmplifier() + 1;
+                        finalDamage -= finalDamage * (0.05F * i);
+                    }
+                }
+            }
+
+            if (attacker instanceof LivingEntity attackerL) {
+                if (attackerL.hasEffect(GoetyEffects.SHADOW_WALK.get())) {
+                    float multiply = 1.25F + (EffectsUtil.getAmplifier(attackerL, GoetyEffects.SHADOW_WALK.get()) / 4.0F);
+                    finalDamage *= multiply;
+                    attackerL.removeEffect(GoetyEffects.SHADOW_WALK.get());
+                }
+                if (target.hasEffect(GoetyEffects.CHILL_HIDE.get()) && ModDamageSource.physicalAttacks(event.getSource())) {
+                    MobEffectInstance effectInstance = target.getEffect(GoetyEffects.CHILL_HIDE.get());
+                    if (effectInstance != null) {
+                        int i = effectInstance.getAmplifier() * 2;
+                        attackerL.addEffect(new MobEffectInstance(GoetyEffects.FREEZING.get(), MathHelper.secondsToTicks(3 + i), 1));
+                    }
+                }
+                if (attackerL.hasEffect(GoetyEffects.RADIANCE.get())) {
+                    MobEffectInstance effectInstance = attackerL.getEffect(GoetyEffects.RADIANCE.get());
+                    if (effectInstance != null) {
+                        int amp = effectInstance.getAmplifier() + 1;
+                        float heal = 6.0F * ((amp / 2.0F) + 1);
+                        if (attackerL.level instanceof ServerLevel serverLevel) {
+                            float chance = event.getSource().is(DamageTypeTags.IS_PROJECTILE) ? 0.5F : 0.2F;
+                            if (attackerL.level.getRandom().nextFloat() <= chance) {
+                                attackerL.level.playSound(null, target, ModSounds.RADIANCE_WAVE.get(), attacker.getSoundSource(), 0.9F, 1.0F);
+                                serverLevel.sendParticles(new ShockwaveParticleOption(4, 1), target.getX(), target.getY() + 0.25F, target.getZ(), 0, 0, 0, 0, 0.5F);
+                                for (LivingEntity living2 : attackerL.level.getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(4.0D), ally -> MobUtil.areAllies(attackerL, ally) || ally == attackerL)) {
+                                    living2.heal(heal);
+                                    for (int i = 0; i < serverLevel.getRandom().nextInt(10) + 10; ++i) {
+                                        serverLevel.sendParticles(ModParticleTypes.HEAL_EFFECT_2.get(), living2.getRandomX(1.5D), living2.getRandomY(), living2.getRandomZ(1.5D), 0, 0.0F, 1.0F, 0.0F, 1.0F);
+                                    }
+                                    ColorUtil colorUtil = new ColorUtil(0xfffcc5);
+                                    serverLevel.sendParticles(new RisingCircleParticleOption(0), living2.getX(), living2.getY(), living2.getZ(), 0, colorUtil.red(), colorUtil.green(), colorUtil.blue(), 1.0F);
+                                    living2.level.playSound(null, living2, ModSounds.HEAL_SPELL.get(), living2.getSoundSource(), 1.0F, 1.0F);
+                                }
+                            }
+                        }
+                    }
+                }
+                if (attackerL.hasEffect(GoetyEffects.LEECHING.get())) {
+                    MobEffectInstance effectInstance = attackerL.getEffect(GoetyEffects.LEECHING.get());
+                    if (effectInstance != null) {
+                        if (ModDamageSource.physicalAttacks(event.getSource())) {
+                            int amp = effectInstance.getAmplifier();
+                            float increase = 0.02F * amp;
+                            float heal = target.getMaxHealth() * (0.05F + increase);
+                            if (heal > 0.0F) {
+                                attackerL.level.playSound(null, attackerL, ModSounds.LEECHING.get(), attackerL.getSoundSource(), 1.0F, 1.0F);
+                                attackerL.heal(heal);
+                            }
+                        }
+                    }
+                }
+                if (attackerL.hasEffect(GoetyEffects.SWIRLING.get())) {
+                    MobEffectInstance effectInstance = attackerL.getEffect(GoetyEffects.SWIRLING.get());
+                    if (effectInstance != null) {
+                        if (ModDamageSource.physicalAttacks(event.getSource()) && !event.getSource().is(ModDamageSource.SWORD)) {
+                            int amp = effectInstance.getAmplifier();
+                            float damage = 5.0F * ((amp / 2.0F) + 1);
+                            if (attackerL.level instanceof ServerLevel serverLevel) {
+                                ServerParticleUtil.windShockwaveParticle(serverLevel, ColorUtil.WHITE, 4.0F, 0, -1, attackerL.position().add(0.0D, 1.0D, 0.0D));
+                                for (LivingEntity livingEntity : attackerL.level.getEntitiesOfClass(LivingEntity.class, attackerL.getBoundingBox().inflate(4.0D, 1.0D, 4.0D))) {
+                                    if (attackerL != livingEntity && livingEntity != target && !MobUtil.areAllies(attackerL, livingEntity)) {
+                                        livingEntity.hurt(ModDamageSource.sword(attackerL, attackerL), damage);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (event.getAmount() > 0.0F) {
+                if (target.hasEffect(GoetyEffects.ALTRUISTIC.get())) {
+                    MobEffectInstance effectInstance = target.getEffect(GoetyEffects.ALTRUISTIC.get());
+                    if (effectInstance != null) {
+                        int amp = effectInstance.getAmplifier() + 1;
+                        float heal = Math.min(0.25F * amp, 1.0F);
+                        for (LivingEntity living : target.level.getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(60.0D), livingEntity -> MobUtil.areAllies(target, livingEntity) && livingEntity != target)) {
+                            living.heal(event.getAmount() * heal);
+                        }
+                    }
+                }
+                if (target.hasEffect(GoetyEffects.MANDATE.get())) {
+                    MobEffectInstance effectInstance = target.getEffect(GoetyEffects.MANDATE.get());
+                    if (effectInstance != null) {
+                        int amp = effectInstance.getAmplifier() + 1;
+                        double radius = 8.0D * amp;
+                        int size = 4 * amp;
+                        List<LivingEntity> allies = target.level.getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(radius), livingEntity -> MobUtil.areAllies(target, livingEntity) && livingEntity != target && !livingEntity.hasEffect(GoetyEffects.MANDATE.get()));
+                        if (target instanceof Mob mob) {
+                            allies.removeIf(livingEntity -> MobUtil.getOwner(livingEntity) != mob);
+                        }
+                        if (!allies.isEmpty()) {
+                            allies.sort(Comparator.comparingDouble(target::distanceToSqr));
+                            if (allies.size() > size) {
+                                allies.subList(size, allies.size()).clear();
+                            }
+                            finalDamage /= (allies.size() + 1);
+                            float distribute = finalDamage;
+                            for (LivingEntity living : allies) {
+                                if (living != target) {
+                                    living.hurt(event.getSource(), distribute);
+                                }
+                            }
+                        }
+                    }
+                }
+                Entity aggressor = null;
+                LivingEntity enchanted = null;
+                if (target.hasEffect(GoetyEffects.ENCHANTED.get())) {
+                    finalDamage *= 0.5F;
+                    aggressor = attacker;
+                    enchanted = target;
+                } else if (attacker instanceof LivingEntity livingEntity && livingEntity.hasEffect(GoetyEffects.ENCHANTED.get())) {
+                    aggressor = target;
+                    enchanted = livingEntity;
+                }
+                if (aggressor instanceof Mob mob && mob.getTarget() == enchanted) {
+                    if (MiscCapHelper.getEnchanter(enchanted) instanceof LivingEntity livingEntity) {
+                        float chance = 0.05F;
+                        if (mob.getHealth() < mob.getMaxHealth() * 0.5F) {
+                            chance += 0.2F;
+                        }
+                        if (mob.getHealth() < mob.getMaxHealth() * 0.25F) {
+                            chance += 0.2F;
+                        }
+                        if (mob.getRandom().nextFloat() <= chance) {
+                            mob.setTarget(livingEntity);
+                        }
+                    }
+                }
+            }
+            if (finalDamage != event.getAmount()) {
+                event.setAmount(finalDamage);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void ExperienceEvents(LivingExperienceDropEvent event){
+        Player player = event.getAttackingPlayer();
+        LivingEntity living = event.getEntity();
+        if (player != null && living != null){
+            if (player.hasEffect(GoetyEffects.INSIGHT.get())){
+                MobEffectInstance mobEffectInstance = player.getEffect(GoetyEffects.INSIGHT.get());
+                if (mobEffectInstance != null){
+                    int a = (mobEffectInstance.getAmplifier() + 1) * 2;
+                    event.setDroppedExperience(event.getOriginalExperience() * a);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void DeathEvents(LivingDeathEvent event){
+        LivingEntity effected = event.getEntity();
+        if (effected instanceof Player player){
+            if (player.hasEffect(GoetyEffects.SAVE_EFFECTS.get())){
+                if (!player.getActiveEffects().isEmpty()){
+                    List<MobEffectInstance> instanceList = new ArrayList<>(player.getActiveEffects());
+                    if (!instanceList.isEmpty()){
+                        ListTag listtag = new ListTag();
+                        CompoundTag playerData = player.getPersistentData();
+                        CompoundTag data;
+
+                        if (!playerData.contains(Player.PERSISTED_NBT_TAG)) {
+                            data = new CompoundTag();
+                        } else {
+                            data = playerData.getCompound(Player.PERSISTED_NBT_TAG);
+                        }
+                        for(MobEffectInstance mobeffectinstance : instanceList) {
+                            listtag.add(mobeffectinstance.save(new CompoundTag()));
+                        }
+                        data.put(ConstantPaths.keepEffects(), listtag);
+                        playerData.put(Player.PERSISTED_NBT_TAG, data);
+                    }
+                }
+            }
+            if (SEHelper.hasEndWalk(player)){
+                SEHelper.removeEndWalk(player);
+            }
+        }
+        if (event.getSource().getEntity() instanceof LivingEntity livingEntity){
+            if (livingEntity.hasEffect(GoetyEffects.CORPSE_EATER.get())){
+                MobEffectInstance mobEffectInstance = livingEntity.getEffect(GoetyEffects.CORPSE_EATER.get());
+                if (mobEffectInstance != null) {
+                    int amp = mobEffectInstance.getAmplifier() + 1;
+                    int amount = Mth.floor(event.getEntity().getMaxHealth() / 5);
+                    amount = (livingEntity.level.getRandom().nextInt(amount + 1) + 2) * amp;
+                    if (amount > 0) {
+                        if (livingEntity instanceof Player player) {
+                            player.getFoodData().eat(amount, 0.1F);
+                        } else {
+                            livingEntity.heal(amount);
+                        }
+                    }
+                }
+            }
+        }
+        if (event.getSource().is(ModDamageSource.DOOM)){
+            if (effected.level instanceof ServerLevel serverLevel){
+                serverLevel.sendParticles(ModParticleTypes.DOOM_DEATH.get(), effected.getX(), effected.getNameTagOffsetY(), effected.getZ(), 0, 0.0D, 0.07D, 0.0D, 0.5D);
+                effected.playSound(ModSounds.DOOM.get(), 1.0F, 1.0F);
+                ModNetwork.sendToALL(new SPlayWorldSoundPacket(effected.blockPosition(), ModSounds.DOOM.get(), 1.0F, 1.0F));
+            }
+        }
+        if (effected instanceof Villager villager) {
+            if (villager.hasEffect(GoetyEffects.ILLAGUE.get()) || villager.hasEffect(GoetyEffects.NECROSIS.get())) {
+                if (villager.level instanceof ServerLevel serverLevel) {
+                    ZombieVillager zombievillager = villager.convertTo(EntityType.ZOMBIE_VILLAGER, false);
+                    if (zombievillager != null) {
+                        zombievillager.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(zombievillager.blockPosition()), MobSpawnType.CONVERSION, new Zombie.ZombieGroupData(false, true), (CompoundTag) null);
+                        zombievillager.setVillagerData(villager.getVillagerData());
+                        zombievillager.setGossips(villager.getGossips().store(NbtOps.INSTANCE));
+                        zombievillager.setTradeOffers(villager.getOffers().createTag());
+                        zombievillager.setVillagerXp(villager.getVillagerXp());
+                        ForgeEventFactory.onLivingConvert(villager, zombievillager);
+                        if (!zombievillager.isSilent()) {
+                            serverLevel.levelEvent((Player) null, 1026, zombievillager.blockPosition(), 0);
+                        }
+                    }
+                }
+            }
+        }
+        if (effected instanceof Mob mob) {
+            if (mob instanceof Vindicator || mob instanceof VindicatorServant) {
+                if (mob.hasEffect(GoetyEffects.NECROSIS.get())) {
+                    if (mob.level instanceof ServerLevel serverLevel) {
+                        HostileZombieVindicator zombieVindicator = mob.convertTo(ModEntityType.ZOMBIE_VINDICATOR.get(), false);
+                        if (zombieVindicator != null) {
+                            zombieVindicator.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(zombieVindicator.blockPosition()), MobSpawnType.CONVERSION, new Zombie.ZombieGroupData(false, true), (CompoundTag) null);
+                            ForgeEventFactory.onLivingConvert(mob, zombieVindicator);
+                            if (!zombieVindicator.isSilent()) {
+                                serverLevel.levelEvent((Player) null, 1026, zombieVindicator.blockPosition(), 0);
+                            }
+                        }
+                    }
+                }
+            } else if (mob instanceof Pillager || mob instanceof PillagerServant) {
+                if (mob.hasEffect(GoetyEffects.NECROSIS.get())) {
+                    if (mob.level instanceof ServerLevel serverLevel) {
+                        HostileSkeletonPillager skeletonPillager = mob.convertTo(ModEntityType.SKELETON_PILLAGER.get(), false);
+                        if (skeletonPillager != null) {
+                            skeletonPillager.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(skeletonPillager.blockPosition()), MobSpawnType.CONVERSION, null, (CompoundTag) null);
+                            ForgeEventFactory.onLivingConvert(mob, skeletonPillager);
+                            if (!skeletonPillager.isSilent()) {
+                                serverLevel.levelEvent((Player) null, 1026, skeletonPillager.blockPosition(), 0);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void RespawnEvents(PlayerEvent.PlayerRespawnEvent event){
+        CompoundTag playerData = event.getEntity().getPersistentData();
+        if (playerData.contains(Player.PERSISTED_NBT_TAG)) {
+            CompoundTag data = playerData.getCompound(Player.PERSISTED_NBT_TAG);
+            if (data.contains(ConstantPaths.keepEffects(), 9)) {
+                ListTag listtag = data.getList(ConstantPaths.keepEffects(), 10);
+
+                for (int i = 0; i < listtag.size(); ++i) {
+                    MobEffectInstance mobeffectinstance = MobEffectInstance.load(listtag.getCompound(i));
+                    if (mobeffectinstance != null
+                            && !event.getEntity().hasEffect(mobeffectinstance.getEffect())
+                            && mobeffectinstance.getEffect() != GoetyEffects.SAVE_EFFECTS.get()) {
+                        event.getEntity().addEffect(mobeffectinstance);
+                    }
+                }
+
+                data.remove(ConstantPaths.keepEffects());
+            }
+        }
+    }
+
+    public static AttributeModifier CHARGE_SPEED_MOD = new AttributeModifier(UUID.fromString("d4818bbc-54ed-4ecf-95a3-a15fbf71b31d"), "Charged Speed I", 0.1, AttributeModifier.Operation.MULTIPLY_TOTAL);
+    public static AttributeModifier CHARGE_ATTACK_MOD = new AttributeModifier(UUID.fromString("4bf0a8e3-a8f8-4bf6-95d2-f0ddbadd793e"), "Charged Attack I", 0.1, AttributeModifier.Operation.MULTIPLY_TOTAL);
+
+    public static AttributeModifier CHARGE_MOAR_SPEED_MOD = new AttributeModifier(UUID.fromString("e8ea9f21-c671-4a61-a297-db8fa50f3d13"), "Charged Speed II", 0.25, AttributeModifier.Operation.MULTIPLY_TOTAL);
+    public static AttributeModifier CHARGE_BAD_ATTACK_MOD = new AttributeModifier(UUID.fromString("a55e53d6-dd6a-41e8-8c1f-8f548887ed30"), "Charged Attack II", -0.15, AttributeModifier.Operation.MULTIPLY_TOTAL);
+
+    @SubscribeEvent
+    public static void ChargeEffect(LivingEvent.LivingTickEvent event){
+        LivingEntity livingEntity = event.getEntity();
+        if (livingEntity != null){
+            AttributeInstance speed = livingEntity.getAttribute(Attributes.MOVEMENT_SPEED);
+            AttributeInstance attack = livingEntity.getAttribute(Attributes.ATTACK_DAMAGE);
+
+            MobEffectInstance chargeInstance = livingEntity.getEffect(GoetyEffects.CHARGED.get());
+            boolean notNull = chargeInstance != null;
+            boolean flag = notNull && chargeInstance.getAmplifier() < 1;
+            boolean flag2 = notNull && chargeInstance.getAmplifier() >= 1;
+            if (attack != null && speed != null) {
+                if (notNull) {
+                    if (flag) {
+                        if (speed.hasModifier(CHARGE_MOAR_SPEED_MOD)){
+                            speed.removeModifier(CHARGE_MOAR_SPEED_MOD);
+                        }
+                        if (attack.hasModifier(CHARGE_BAD_ATTACK_MOD)){
+                            attack.removeModifier(CHARGE_BAD_ATTACK_MOD);
+                        }
+                        if (!speed.hasModifier(CHARGE_SPEED_MOD)) {
+                            speed.addPermanentModifier(CHARGE_SPEED_MOD);
+                        }
+                        if (!attack.hasModifier(CHARGE_ATTACK_MOD)) {
+                            attack.addPermanentModifier(CHARGE_ATTACK_MOD);
+                        }
+                    } else if (flag2) {
+                        if (speed.hasModifier(CHARGE_SPEED_MOD)){
+                            speed.removeModifier(CHARGE_SPEED_MOD);
+                        }
+                        if (attack.hasModifier(CHARGE_ATTACK_MOD)){
+                            attack.removeModifier(CHARGE_ATTACK_MOD);
+                        }
+                        if (!speed.hasModifier(CHARGE_MOAR_SPEED_MOD)) {
+                            speed.addPermanentModifier(CHARGE_MOAR_SPEED_MOD);
+                        }
+                        if (!attack.hasModifier(CHARGE_BAD_ATTACK_MOD)) {
+                            attack.addPermanentModifier(CHARGE_BAD_ATTACK_MOD);
+                        }
+                    }
+                } else {
+                    if (speed.hasModifier(CHARGE_SPEED_MOD)){
+                        speed.removeModifier(CHARGE_SPEED_MOD);
+                    }
+                    if (attack.hasModifier(CHARGE_ATTACK_MOD)){
+                        attack.removeModifier(CHARGE_ATTACK_MOD);
+                    }
+                    if (speed.hasModifier(CHARGE_MOAR_SPEED_MOD)) {
+                        speed.removeModifier(CHARGE_MOAR_SPEED_MOD);
+                    }
+                    if (attack.hasModifier(CHARGE_BAD_ATTACK_MOD)) {
+                        attack.removeModifier(CHARGE_BAD_ATTACK_MOD);
+                    }
+                }
+            }
+            if (notNull){
+                if (chargeInstance.getAmplifier() >= 2 && livingEntity.hurtTime > 0){
+                    livingEntity.removeEffect(chargeInstance.getEffect());
+                } else {
+                    if (livingEntity.tickCount % 20 == 0){
+                        if (livingEntity.level instanceof ServerLevel serverLevel){
+                            ServerParticleUtil.addParticlesAroundSelf(serverLevel, ModParticleTypes.ELECTRIC.get(), livingEntity);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void EffectVisibilityEvents(LivingEvent.LivingVisibilityEvent event){
+        if (event.getLookingEntity() instanceof LivingEntity living){
+            if (living.hasEffect(GoetyEffects.SENSE_LOSS.get())){
+                MobEffectInstance mobEffectInstance = living.getEffect(GoetyEffects.SENSE_LOSS.get());
+                if (mobEffectInstance != null){
+                    int a = mobEffectInstance.getAmplifier();
+                    event.modifyVisibility(0.5D - (a / 10.0D));
+                }
+            }
+            if (event.getEntity().hasEffect(GoetyEffects.SHADOW_WALK.get())){
+                if (event.getLookingEntity().getType().is(Tags.EntityTypes.BOSSES)){
+                    event.modifyVisibility(0.5D);
+                } else {
+                    event.modifyVisibility(0.0D);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void changeTarget(LivingChangeTargetEvent event){
+        LivingEntity target = event.getOriginalTarget();
+        if (target != null) {
+            LivingEntity owner = MobUtil.getOwner(event.getEntity());
+            if (target.hasEffect(GoetyEffects.SHADOW_WALK.get())
+            && !event.getEntity().getType().is(Tags.EntityTypes.BOSSES)
+                    && !(owner != null && owner.getType().is(Tags.EntityTypes.BOSSES))) {
+                if (event.getTargetType() == MOB_TARGET) {
+                    event.setNewTarget(null);
+                } else {
+                    event.setCanceled(true);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void enderTeleport(EntityTeleportEvent event){
+        if (!(event instanceof EntityTeleportEvent.TeleportCommand) && !(event instanceof EntityTeleportEvent.SpreadPlayersCommand)) {
+            if (event.getEntity() instanceof LivingEntity living) {
+                if (living.hasEffect(GoetyEffects.ENDER_GROUND.get())) {
+                    event.setCanceled(true);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void finishItemEvents(LivingEntityUseItemEvent.Finish event){
+        if (event.getItem().getItem() == Items.MILK_BUCKET){
+            if (event.getEntity().hasEffect(GoetyEffects.SOUL_ARMOR.get())){
+                event.getEntity().removeEffect(GoetyEffects.SOUL_ARMOR.get());
+            }
+        }
+        if (event.getItem().is(ModTags.Items.BREWABLE_FOOD)){
+            for(MobEffectInstance mobeffectinstance : PotionUtils.getMobEffects(event.getItem())) {
+                if (mobeffectinstance.getEffect().isInstantenous()) {
+                    mobeffectinstance.getEffect().applyInstantenousEffect(event.getEntity(), event.getEntity(), event.getEntity(), mobeffectinstance.getAmplifier(), 1.0D);
+                } else {
+                    event.getEntity().addEffect(new MobEffectInstance(mobeffectinstance));
+                }
+            }
+            for (BrewEffectInstance brewEffectInstance : BrewUtils.getBrewEffects(event.getItem())){
+                brewEffectInstance.getEffect().drinkBlockEffect(event.getEntity(), event.getEntity(), event.getEntity(), brewEffectInstance.getAmplifier(), BrewUtils.getAreaOfEffect(event.getItem()));
+            }
+        }
+        if (!(event.getItem().getItem() instanceof IWand)) {
+            if (event.getEntity().hasEffect(GoetyEffects.SHADOW_WALK.get())) {
+                event.getEntity().removeEffect(GoetyEffects.SHADOW_WALK.get());
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onCastingSpell(CastingMagicEvent event){
+        if (!(event.getSpell() instanceof EndWalkSpell)){
+            if (event.castingTime() > 20 || event.castingTime() >= event.getSpell().castDuration(event.getEntity(), event.getUseItem())) {
+                if (event.getEntity().hasEffect(GoetyEffects.SHADOW_WALK.get())) {
+                    event.getEntity().removeEffect(GoetyEffects.SHADOW_WALK.get());
+                    event.setCanceled(true);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onCastSpell(CastMagicEvent event){
+        if (!(event.getSpell() instanceof EndWalkSpell)){
+            if (event.getEntity().hasEffect(GoetyEffects.SHADOW_WALK.get())) {
+                event.getEntity().removeEffect(GoetyEffects.SHADOW_WALK.get());
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void ProjectileAddEvents(EntityJoinLevelEvent event){
+        if (!event.getLevel().isClientSide){
+            if (event.getEntity() instanceof Projectile projectile){
+                if (projectile.getOwner() instanceof LivingEntity livingEntity){
+                    if (livingEntity.hasEffect(GoetyEffects.SHADOW_WALK.get())){
+                        livingEntity.removeEffect(GoetyEffects.SHADOW_WALK.get());
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    @SuppressWarnings("removal")
+    public static void onDeflectImpact(ProjectileImpactEvent event) {
+        Entity entity = event.getEntity();
+        if (entity instanceof Projectile arrow) {
+            HitResult rayTraceResult = event.getRayTraceResult();
+            if (rayTraceResult instanceof EntityHitResult result) {
+                if (result.getEntity() instanceof LivingEntity victim && victim != arrow.getOwner()) {
+                    if (victim.hasEffect(GoetyEffects.DEFLECTIVE.get())) {
+                        MobEffectInstance instance = victim.getEffect(GoetyEffects.DEFLECTIVE.get());
+                        if (instance != null) {
+                            int amp = instance.getAmplifier();
+                            float chance = 0.25F + (amp / 10.0F);
+                            if (victim.level.getRandom().nextFloat() <= chance) {
+                                MobUtil.deflectProjectile(arrow, arrow.getOwner(), victim);
+                                event.setCanceled(true);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void PlayerInteractItemEvents(PlayerInteractEvent.RightClickItem event){
+        Player player = event.getEntity();
+        Level level = event.getLevel();
+        if (event.getItemStack().getItem() instanceof BottleItem bottleItem){
+            List<DragonBreathCloud> list = level.getEntitiesOfClass(DragonBreathCloud.class, player.getBoundingBox().inflate(2.0D), (p_289499_) -> {
+                return p_289499_ != null && p_289499_.isAlive() && p_289499_.getOwner() instanceof EnderDragon;
+            });
+            if (!list.isEmpty()) {
+                DragonBreathCloud breathCloud = list.get(0);
+                breathCloud.setRadius(breathCloud.getRadius() - 0.5F);
+                level.playSound((Player)null, player.getX(), player.getY(), player.getZ(), SoundEvents.BOTTLE_FILL_DRAGONBREATH, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                level.gameEvent(player, GameEvent.FLUID_PICKUP, player.position());
+                if (player instanceof ServerPlayer serverplayer) {
+                    CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(serverplayer, event.getItemStack(), breathCloud);
+                }
+                player.awardStat(Stats.ITEM_USED.get(bottleItem));
+                ItemUtils.createFilledResult(event.getItemStack(), player, new ItemStack(Items.DRAGON_BREATH));
+                event.setCancellationResult(InteractionResult.sidedSuccess(level.isClientSide));
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void PlayerInteractEntityEvents(PlayerInteractEvent.EntityInteract event){
+        Player player = event.getEntity();
+        if (player.hasEffect(GoetyEffects.SHADOW_WALK.get())){
+            if (SEHelper.hasEndWalk(player)) {
+                if (event.getTarget() instanceof Merchant merchant) {
+                    merchant.setTradingPlayer(null);
+                }
+            }
+            player.removeEffect(GoetyEffects.SHADOW_WALK.get());
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void PlayerInteractBlockEvents(PlayerInteractEvent.RightClickBlock event){
+        Player player = event.getEntity();
+        Level level = event.getLevel();
+        BlockHitResult blockHitResult = event.getHitVec();
+        BlockPos blockPos = blockHitResult.getBlockPos();
+        BlockState blockState = level.getBlockState(blockPos);
+        if (player.hasEffect(GoetyEffects.SHADOW_WALK.get())){
+            if (blockState.use(level, player, player.getUsedItemHand(), blockHitResult).consumesAction()){
+                player.removeEffect(GoetyEffects.SHADOW_WALK.get());
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void BreakingBlockEvents(BlockEvent.BreakEvent event){
+        Player player = event.getPlayer();
+        if (!event.getState().isAir()) {
+            if (player.hasEffect(GoetyEffects.SHADOW_WALK.get())) {
+                player.removeEffect(GoetyEffects.SHADOW_WALK.get());
+            }
+        }
+        if (!player.isCreative()) {
+            if (player.hasEffect(GoetyEffects.IMPAIRED.get())) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void PlacingBlockEvents(BlockEvent.EntityPlaceEvent event){
+        Entity entity = event.getEntity();
+        if (entity instanceof LivingEntity living) {
+            if (!event.getState().isAir()) {
+                if (living.hasEffect(GoetyEffects.SHADOW_WALK.get())) {
+                    living.removeEffect(GoetyEffects.SHADOW_WALK.get());
+                }
+            }
+        }
+        if (entity instanceof LivingEntity livingEntity) {
+            if (EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(livingEntity)) {
+                if (livingEntity.hasEffect(GoetyEffects.IMPAIRED.get())) {
+                    event.setCanceled(true);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void MobGriefingEvents(EntityMobGriefingEvent event) {
+        if (event.getEntity() instanceof LivingEntity livingEntity) {
+            if (EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(livingEntity)) {
+                if (livingEntity.hasEffect(GoetyEffects.IMPAIRED.get())) {
+                    event.setResult(Event.Result.DENY);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void DimensionChangeEvents(EntityTravelToDimensionEvent event){
+        Entity entity = event.getEntity();
+        if (entity instanceof LivingEntity living){
+            if (living.hasEffect(GoetyEffects.SHADOW_WALK.get())) {
+                if (living instanceof Player player){
+                    if (SEHelper.hasEndWalk(player)){
+                        SEHelper.removeEndWalk(player);
+                    }
+                }
+                living.removeEffect(GoetyEffects.SHADOW_WALK.get());
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void PotionApplicationEvents(MobEffectEvent.Applicable event){
+        if (event.getEffectInstance().getEffect() == MobEffects.FIRE_RESISTANCE){
+            if (event.getEntity().hasEffect(GoetyEffects.BURN_HEX.get())){
+                event.setResult(Event.Result.DENY);
+            }
+        }
+        if (event.getEffectInstance().getEffect() == MobEffects.BLINDNESS){
+            if (event.getEntity() instanceof Player player) {
+                if (ItemConfig.DarkHelmetBlindness.get()) {
+                    if (ItemHelper.findHelmet(player, ModItems.DARK_HELMET.get())) {
+                        event.setResult(Event.Result.DENY);
+                    }
+                }
+            }
+        }
+        if (event.getEffectInstance().getEffect() == MobEffects.DARKNESS){
+            if (event.getEntity() instanceof Player player) {
+                if (ItemConfig.DarkHelmetDarkness.get()) {
+                    if (ItemHelper.findHelmet(player, ModItems.DARK_HELMET.get())){
+                        event.setResult(Event.Result.DENY);
+                    }
+                }
+            }
+        }
+        if (event.getEffectInstance().getEffect() == MobEffects.SLOW_FALLING){
+            if (CuriosFinder.hasWindyRobes(event.getEntity())){
+                event.setResult(Event.Result.DENY);
+            }
+        }
+        if (event.getEffectInstance().getEffect() == MobEffects.POISON){
+            if (event.getEntity().hasEffect(GoetyEffects.ACID_VENOM.get())){
+                event.setResult(Event.Result.DENY);
+            }
+        }
+        if (event.getEffectInstance().getEffect() == GoetyEffects.HYSTERIA.get()){
+            if (event.getEntity().getType().is(Tags.EntityTypes.BOSSES)){
+                event.setResult(Event.Result.DENY);
+            }
+        }
+        if (event.getEffectInstance().getEffect() == GoetyEffects.ILLAGUE.get()){
+            if (event.getEntity().getType().is(EntityTypeTags.RAIDERS) || event.getEntity() instanceof PatrollingMonster){
+                event.setResult(Event.Result.DENY);
+            }
+        }
+        if (event.getEffectInstance().getEffect() == GoetyEffects.FREEZING.get()){
+            if (event.getEntity().hasEffect(GoetyEffects.SNOW_SKIN.get()) || event.getEntity().getType().is(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES)){
+                event.setResult(Event.Result.DENY);
+            }
+        }
+        if (event.getEffectInstance().getEffect() == GoetyEffects.BUSTED.get()){
+            if (event.getEntity().getAttribute(Attributes.ARMOR) == null || event.getEntity().getAttributeValue(Attributes.ARMOR) <= 0.0D){
+                event.setResult(Event.Result.DENY);
+            }
+        }
+        if (event.getEffectInstance().getEffect() == GoetyEffects.VOID_TOUCHED.get()){
+            if (event.getEntity().getType().is(ModTags.EntityTypes.VOID_TOUCHED_IMMUNE)) {
+                event.setResult(Event.Result.DENY);
+            }
+        }
+        if (event.getEffectInstance().getEffect() == GoetyEffects.DOOM.get()){
+            if (!event.getEntity().canChangeDimensions() || event.getEntity().getType().is(Tags.EntityTypes.BOSSES)) {
+                event.setResult(Event.Result.DENY);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void PotionAddedEvents(MobEffectEvent.Added event){
+        LivingEntity effected = event.getEntity();
+        MobEffectInstance instance = event.getEffectInstance();
+        MobEffect effect = instance.getEffect();
+        if (effect == GoetyEffects.BURN_HEX.get()){
+            if (effected.hasEffect(MobEffects.FIRE_RESISTANCE)){
+                effected.removeEffect(MobEffects.FIRE_RESISTANCE);
+            }
+        }
+        if (effect == GoetyEffects.SNOW_SKIN.get()){
+            if (effected.hasEffect(GoetyEffects.FREEZING.get())){
+                effected.removeEffect(GoetyEffects.FREEZING.get());
+            }
+        }
+        if (effect == GoetyEffects.ENDER_GROUND.get()){
+            if (effected.hasEffect(GoetyEffects.SHADOW_WALK.get())){
+                effected.removeEffect(GoetyEffects.SHADOW_WALK.get());
+            }
+        }
+        if (effect == GoetyEffects.VOID_TOUCHED.get()){
+            if (!effected.hasEffect(GoetyEffects.VOID_TOUCHED.get())) {
+                if (effected.level instanceof ServerLevel) {
+                    ModNetwork.sentToTrackingEntityAndPlayer(effected, new SPlayWorldSoundPacket(effected.blockPosition(), ModSounds.VOID_TOUCHED_ACTIVATE.get(), 1.0F, 1.0F));
+                }
+            }
+        }
+        if (effect == GoetyEffects.SENSE_LOSS.get()){
+            if (effected instanceof Mob mob){
+                mob.setTarget(null);
+            }
+        }
+        if (effect == GoetyEffects.ENCHANTED.get()) {
+            if (event.getEffectSource() != null) {
+                MiscCapHelper.setEnchanter(effected, event.getEffectSource());
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void PotionRemoveEvents(MobEffectEvent.Remove event){
+        LivingEntity effected = event.getEntity();
+        if (effected != null) {
+            if (event.getEffect() != null) {
+                if (effected.hasEffect(GoetyEffects.SAVE_EFFECTS.get())) {
+                    event.setCanceled(event.getEffect() != GoetyEffects.SAVE_EFFECTS.get()
+                            && (effected instanceof Player player
+                            && SEHelper.hasEndWalk(player)
+                            && event.getEffect() != GoetyEffects.SHADOW_WALK.get()));
+                }
+                if (event.getEffect() != null) {
+                    if (event.getEffect() == GoetyEffects.SHADOW_WALK.get()) {
+                        if (effected instanceof Player player) {
+                            teleportShadowWalk(player);
+                        }
+                    }
+                }
+                if (event.getEffect() == GoetyEffects.WILD_RAGE.get()){
+                    if (effected instanceof Mob mob) {
+                        mob.setTarget(null);
+                        mob.setLastHurtByMob(null);
+                        mob.getBrain().eraseMemory(MemoryModuleType.ANGRY_AT);
+                        mob.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
+                    }
+                }
+                if (event.getEffect() == GoetyEffects.VOID_TOUCHED.get()){
+                    if (effected.level instanceof ServerLevel) {
+                        ModNetwork.sentToTrackingEntityAndPlayer(effected, new SPlayWorldSoundPacket(effected.blockPosition(), ModSounds.VOID_TOUCHED_DEACTIVATE.get(), 1.0F, 1.0F));
+                    }
+                }
+                if (event.getEffect() == GoetyEffects.ENCHANTED.get()) {
+                    if (effected.level instanceof ServerLevel) {
+                        MiscCapHelper.setEnchanter(effected, null);
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void PotionExpiredEvents(MobEffectEvent.Expired event){
+        LivingEntity effected = event.getEntity();
+        MobEffectInstance mobEffectInstance = event.getEffectInstance();
+        if (mobEffectInstance != null) {
+            if (mobEffectInstance.getEffect() == GoetyEffects.SHADOW_WALK.get()) {
+                if (effected instanceof Player player) {
+                    teleportShadowWalk(player);
+                }
+            }
+
+            if (mobEffectInstance.getEffect() == GoetyEffects.DOOM.get()){
+                if (effected.canChangeDimensions() && !effected.getType().is(Tags.EntityTypes.BOSSES)) {
+                    int a = mobEffectInstance.getAmplifier() + 1;
+                    float doom = 0.05F * a;
+                    if (effected.getHealth() <= effected.getMaxHealth() * doom) {
+                        effected.hurt(ModDamageSource.getDamageSource(effected.level, ModDamageSource.DOOM), effected.getMaxHealth() * 20);
+                    }
+                }
+            }
+
+            if (mobEffectInstance.getEffect() == GoetyEffects.VOID_TOUCHED.get()){
+                if (effected.level instanceof ServerLevel) {
+                    ModNetwork.sentToTrackingEntityAndPlayer(effected, new SPlayWorldSoundPacket(effected.blockPosition(), ModSounds.VOID_TOUCHED_DEACTIVATE.get(), 1.0F, 1.0F));
+                }
+            }
+            if (mobEffectInstance.getEffect() == GoetyEffects.ENCHANTED.get()) {
+                if (effected.level instanceof ServerLevel) {
+                    MiscCapHelper.setEnchanter(effected, null);
+                }
+            }
+        }
+    }
+
+    public static void teleportShadowWalk(Player player){
+        BlockPos blockPos = SEHelper.getEndWalkPos(player);
+        if (blockPos != null) {
+            if (SEHelper.getEndWalkDimension(player) != null
+                    && player.level.dimension() == SEHelper.getEndWalkDimension(player)) {
+                player.closeContainer();
+                player.teleportTo(blockPos.getX() + 0.5D, blockPos.getY(), blockPos.getZ() + 0.5D);
+                if (!player.level.isClientSide) {
+                    player.level.broadcastEntityEvent(player, (byte) 46);
+                    ModNetwork.sendToALL(new SPlayWorldSoundPacket(player.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, 1.0F, 1.0F));
+                    ModNetwork.sendToALL(new SPlayEntitySoundPacket(player.getUUID(), SoundEvents.ENDERMAN_TELEPORT, 1.0F, 1.0F));
+                }
+                Vec3 vec3 = player.position();
+                player.level.gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(player));
+            }
+            SEHelper.removeEndWalk(player);
+        }
+    }
+}

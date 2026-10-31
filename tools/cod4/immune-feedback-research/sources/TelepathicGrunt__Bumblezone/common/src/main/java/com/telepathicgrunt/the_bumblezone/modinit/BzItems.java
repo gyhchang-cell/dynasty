@@ -1,0 +1,238 @@
+package com.telepathicgrunt.the_bumblezone.modinit;
+
+import com.teamresourceful.resourcefullib.common.registry.RegistryEntry;
+import com.teamresourceful.resourcefullib.common.registry.ResourcefulRegistries;
+import com.teamresourceful.resourcefullib.common.registry.ResourcefulRegistry;
+import com.telepathicgrunt.the_bumblezone.Bumblezone;
+import com.telepathicgrunt.the_bumblezone.blocks.CarvableWax;
+import com.telepathicgrunt.the_bumblezone.blocks.PileOfPollen;
+import com.telepathicgrunt.the_bumblezone.configs.BzGeneralConfigs;
+import com.telepathicgrunt.the_bumblezone.items.BeeBread;
+import com.telepathicgrunt.the_bumblezone.items.BeeCannon;
+import com.telepathicgrunt.the_bumblezone.items.BeeSoup;
+import com.telepathicgrunt.the_bumblezone.items.BeeStinger;
+import com.telepathicgrunt.the_bumblezone.items.BumbleBeeChestplate;
+import com.telepathicgrunt.the_bumblezone.items.BuzzingBriefcase;
+import com.telepathicgrunt.the_bumblezone.items.BzBannerPatterns;
+import com.telepathicgrunt.the_bumblezone.items.BzBlockItem;
+import com.telepathicgrunt.the_bumblezone.items.BzCustomBucketItem;
+import com.telepathicgrunt.the_bumblezone.items.BzHoneyCrystalBlockItem;
+import com.telepathicgrunt.the_bumblezone.items.BzMusicDiscs;
+import com.telepathicgrunt.the_bumblezone.items.CarpenterBeeBoots;
+import com.telepathicgrunt.the_bumblezone.items.CrystalCannon;
+import com.telepathicgrunt.the_bumblezone.items.CrystallineFlowerBlockItem;
+import com.telepathicgrunt.the_bumblezone.items.DirtPellet;
+import com.telepathicgrunt.the_bumblezone.items.DispenserAddedSpawnEgg;
+import com.telepathicgrunt.the_bumblezone.items.FlowerHeadwearHelmet;
+import com.telepathicgrunt.the_bumblezone.items.HoneyBeeLeggings;
+import com.telepathicgrunt.the_bumblezone.items.HoneyCocoonBlockItem;
+import com.telepathicgrunt.the_bumblezone.items.HoneyCompass;
+import com.telepathicgrunt.the_bumblezone.items.HoneyCrystalShards;
+import com.telepathicgrunt.the_bumblezone.items.HoneyCrystalShield;
+import com.telepathicgrunt.the_bumblezone.items.PollenPuff;
+import com.telepathicgrunt.the_bumblezone.items.PotionCandleBlockItem;
+import com.telepathicgrunt.the_bumblezone.items.RoyalJellyBottle;
+import com.telepathicgrunt.the_bumblezone.items.SentryWatcherSpawnEgg;
+import com.telepathicgrunt.the_bumblezone.items.StingerSpearItem;
+import com.telepathicgrunt.the_bumblezone.items.StinglessBeeHelmet;
+import com.telepathicgrunt.the_bumblezone.items.SugarWaterBottle;
+import com.telepathicgrunt.the_bumblezone.items.essence.CalmingEssence;
+import com.telepathicgrunt.the_bumblezone.items.essence.ContinuityEssence;
+import com.telepathicgrunt.the_bumblezone.items.essence.EssenceOfTheBees;
+import com.telepathicgrunt.the_bumblezone.items.essence.KnowingEssence;
+import com.telepathicgrunt.the_bumblezone.items.essence.LifeEssence;
+import com.telepathicgrunt.the_bumblezone.items.essence.RadianceEssence;
+import com.telepathicgrunt.the_bumblezone.items.essence.RagingEssence;
+import net.minecraft.core.cauldron.CauldronInteractions;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.block.DispenserBlock;
+
+import java.util.function.Function;
+
+
+public class BzItems {
+
+    public static final ResourcefulRegistry<Item> ITEMS = ResourcefulRegistries.create(BuiltInRegistries.ITEM, Bumblezone.MODID);
+
+    //blocks
+    public static final RegistryEntry<Item> POROUS_HONEYCOMB = register("porous_honeycomb_block", (properties) -> new BlockItem(BzBlocks.POROUS_HONEYCOMB.get(), properties));
+    public static final RegistryEntry<Item> FILLED_POROUS_HONEYCOMB = register("filled_porous_honeycomb_block", (properties) -> new BlockItem(BzBlocks.FILLED_POROUS_HONEYCOMB.get(), properties));
+    public static final RegistryEntry<Item> EMPTY_HONEYCOMB_BROOD = register("empty_honeycomb_brood_block", (properties) -> new BlockItem(BzBlocks.EMPTY_HONEYCOMB_BROOD.get(), properties));
+    public static final RegistryEntry<Item> HONEYCOMB_BROOD = register("honeycomb_brood_block", (properties) -> new BlockItem(BzBlocks.HONEYCOMB_BROOD.get(), properties));
+    public static final RegistryEntry<Item> STICKY_HONEY_RESIDUE = register("sticky_honey_residue", (properties) -> new BlockItem(BzBlocks.STICKY_HONEY_RESIDUE.get(), properties));
+    public static final RegistryEntry<Item> STICKY_HONEY_REDSTONE = register("sticky_honey_redstone", (properties) -> new BlockItem(BzBlocks.STICKY_HONEY_REDSTONE.get(), properties));
+    public static final RegistryEntry<Item> HONEY_WEB = register("honey_web", (properties) -> new BlockItem(BzBlocks.HONEY_WEB.get(), properties));
+    public static final RegistryEntry<Item> REDSTONE_HONEY_WEB = register("redstone_honey_web", (properties) -> new BlockItem(BzBlocks.REDSTONE_HONEY_WEB.get(), properties));
+    public static final RegistryEntry<Item> BEEHIVE_BEESWAX = register("beehive_beeswax", (properties) -> new BlockItem(BzBlocks.BEEHIVE_BEESWAX.get(), properties));
+    public static final RegistryEntry<Item> GLISTERING_HONEY_CRYSTAL = register("glistering_honey_crystal", (properties) -> new BlockItem(BzBlocks.GLISTERING_HONEY_CRYSTAL.get(), properties));
+    public static final RegistryEntry<Item> HONEY_CRYSTAL = register("honey_crystal", (properties) -> new BzHoneyCrystalBlockItem(BzBlocks.HONEY_CRYSTAL.get(), properties));
+    public static final RegistryEntry<Item> CARVABLE_WAX = register("carvable_wax", (properties) -> new BzBlockItem(BzBlocks.CARVABLE_WAX.get().defaultBlockState().setValue(CarvableWax.CARVING, CarvableWax.Carving.UNCARVED), properties));
+    public static final RegistryEntry<Item> CARVABLE_WAX_WAVY = register("carvable_wax_wavy", (properties) -> new BzBlockItem(BzBlocks.CARVABLE_WAX.get().defaultBlockState().setValue(CarvableWax.CARVING, CarvableWax.Carving.WAVY), properties));
+    public static final RegistryEntry<Item> CARVABLE_WAX_FLOWER = register("carvable_wax_flower", (properties) -> new BzBlockItem(BzBlocks.CARVABLE_WAX.get().defaultBlockState().setValue(CarvableWax.CARVING, CarvableWax.Carving.FLOWER), properties));
+    public static final RegistryEntry<Item> CARVABLE_WAX_CHISELED = register("carvable_wax_chiseled", (properties) -> new BzBlockItem(BzBlocks.CARVABLE_WAX.get().defaultBlockState().setValue(CarvableWax.CARVING, CarvableWax.Carving.CHISELED), properties));
+    public static final RegistryEntry<Item> CARVABLE_WAX_DIAMOND = register("carvable_wax_diamond", (properties) -> new BzBlockItem(BzBlocks.CARVABLE_WAX.get().defaultBlockState().setValue(CarvableWax.CARVING, CarvableWax.Carving.DIAMOND), properties));
+    public static final RegistryEntry<Item> CARVABLE_WAX_BRICKS = register("carvable_wax_bricks", (properties) -> new BzBlockItem(BzBlocks.CARVABLE_WAX.get().defaultBlockState().setValue(CarvableWax.CARVING, CarvableWax.Carving.BRICKS), properties));
+    public static final RegistryEntry<Item> CARVABLE_WAX_CHAINS = register("carvable_wax_chains", (properties) -> new BzBlockItem(BzBlocks.CARVABLE_WAX.get().defaultBlockState().setValue(CarvableWax.CARVING, CarvableWax.Carving.CHAINS), properties));
+    public static final RegistryEntry<Item> CARVABLE_WAX_MUSIC = register("carvable_wax_music", (properties) -> new BzBlockItem(BzBlocks.CARVABLE_WAX.get().defaultBlockState().setValue(CarvableWax.CARVING, CarvableWax.Carving.MUSIC), properties));
+    public static final RegistryEntry<Item> CARVABLE_WAX_GRATE = register("carvable_wax_grate", (properties) -> new BzBlockItem(BzBlocks.CARVABLE_WAX.get().defaultBlockState().setValue(CarvableWax.CARVING, CarvableWax.Carving.GRATE), properties));
+    public static final RegistryEntry<Item> ANCIENT_WAX_BRICKS = register("ancient_wax_bricks", (properties) -> new BlockItem(BzBlocks.ANCIENT_WAX_BRICKS.get(), properties));
+    public static final RegistryEntry<Item> ANCIENT_WAX_DIAMOND = register("ancient_wax_diamond", (properties) -> new BlockItem(BzBlocks.ANCIENT_WAX_DIAMOND.get(), properties));
+    public static final RegistryEntry<Item> ANCIENT_WAX_COMPOUND_EYES = register("ancient_wax_compound_eyes", (properties) -> new BlockItem(BzBlocks.ANCIENT_WAX_COMPOUND_EYES.get(), properties));
+    public static final RegistryEntry<Item> ANCIENT_WAX_BRICKS_STAIRS = register("ancient_wax_bricks_stairs", (properties) -> new BlockItem(BzBlocks.ANCIENT_WAX_BRICKS_STAIRS.get(), properties));
+    public static final RegistryEntry<Item> ANCIENT_WAX_DIAMOND_STAIRS = register("ancient_wax_diamond_stairs", (properties) -> new BlockItem(BzBlocks.ANCIENT_WAX_DIAMOND_STAIRS.get(), properties));
+    public static final RegistryEntry<Item> ANCIENT_WAX_COMPOUND_EYES_STAIRS = register("ancient_wax_compound_eyes_stairs", (properties) -> new BlockItem(BzBlocks.ANCIENT_WAX_COMPOUND_EYES_STAIRS.get(), properties));
+    public static final RegistryEntry<Item> ANCIENT_WAX_BRICKS_SLAB = register("ancient_wax_bricks_slab", (properties) -> new BlockItem(BzBlocks.ANCIENT_WAX_BRICKS_SLAB.get(), properties));
+    public static final RegistryEntry<Item> ANCIENT_WAX_DIAMOND_SLAB = register("ancient_wax_diamond_slab", (properties) -> new BlockItem(BzBlocks.ANCIENT_WAX_DIAMOND_SLAB.get(), properties));
+    public static final RegistryEntry<Item> ANCIENT_WAX_COMPOUND_EYES_SLAB = register("ancient_wax_compound_eyes_slab", (properties) -> new BlockItem(BzBlocks.ANCIENT_WAX_COMPOUND_EYES_SLAB.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CHANNEL = register("luminescent_wax_channel", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CHANNEL.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CHANNEL_RED = register("luminescent_wax_channel_red", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CHANNEL_RED.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CHANNEL_PURPLE = register("luminescent_wax_channel_purple", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CHANNEL_PURPLE.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CHANNEL_BLUE = register("luminescent_wax_channel_blue", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CHANNEL_BLUE.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CHANNEL_GREEN = register("luminescent_wax_channel_green", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CHANNEL_GREEN.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CHANNEL_YELLOW = register("luminescent_wax_channel_yellow", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CHANNEL_YELLOW.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CHANNEL_WHITE = register("luminescent_wax_channel_white", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CHANNEL_WHITE.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CORNER = register("luminescent_wax_corner", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CORNER.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CORNER_RED = register("luminescent_wax_corner_red", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CORNER_RED.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CORNER_PURPLE = register("luminescent_wax_corner_purple", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CORNER_PURPLE.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CORNER_BLUE = register("luminescent_wax_corner_blue", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CORNER_BLUE.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CORNER_GREEN = register("luminescent_wax_corner_green", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CORNER_GREEN.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CORNER_YELLOW = register("luminescent_wax_corner_yellow", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CORNER_YELLOW.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_CORNER_WHITE = register("luminescent_wax_corner_white", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_CORNER_WHITE.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_NODE = register("luminescent_wax_node", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_NODE.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_NODE_RED = register("luminescent_wax_node_red", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_NODE_RED.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_NODE_PURPLE = register("luminescent_wax_node_purple", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_NODE_PURPLE.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_NODE_BLUE = register("luminescent_wax_node_blue", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_NODE_BLUE.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_NODE_GREEN = register("luminescent_wax_node_green", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_NODE_GREEN.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_NODE_YELLOW = register("luminescent_wax_node_yellow", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_NODE_YELLOW.get(), properties));
+    public static final RegistryEntry<Item> LUMINESCENT_WAX_NODE_WHITE = register("luminescent_wax_node_white", (properties) -> new BlockItem(BzBlocks.LUMINESCENT_WAX_NODE_WHITE.get(), properties));
+    public static final RegistryEntry<Item> HONEY_COCOON = register("honey_cocoon", (properties) -> new HoneyCocoonBlockItem(BzBlocks.HONEY_COCOON.get(), properties, false));
+    public static final RegistryEntry<Item> CRYSTALLINE_FLOWER = register("crystalline_flower", (properties) -> new CrystallineFlowerBlockItem(BzBlocks.CRYSTALLINE_FLOWER.get(), properties, true));
+    public static final RegistryEntry<Item> PILE_OF_POLLEN = register("pile_of_pollen", (properties) -> new BzBlockItem(BzBlocks.PILE_OF_POLLEN.get().defaultBlockState().setValue(PileOfPollen.LAYERS, 8), properties));
+    public static final RegistryEntry<Item> PILE_OF_POLLEN_SUSPICIOUS = register("pile_of_pollen_suspicious", (properties) -> new BlockItem(BzBlocks.PILE_OF_POLLEN_SUSPICIOUS.get(), properties));
+    public static final RegistryEntry<Item> SUGAR_INFUSED_STONE = register("sugar_infused_stone", (properties) -> new BlockItem(BzBlocks.SUGAR_INFUSED_STONE.get(), properties));
+    public static final RegistryEntry<Item> SUGAR_INFUSED_COBBLESTONE = register("sugar_infused_cobblestone", (properties) -> new BlockItem(BzBlocks.SUGAR_INFUSED_COBBLESTONE.get(), properties));
+    public static final RegistryEntry<Item> POTION_CANDLE = register("potion_candle", (properties) -> new PotionCandleBlockItem(BzBlocks.POTION_BASE_CANDLE.get(), properties));
+    public static final RegistryEntry<Item> SUPER_CANDLE = register("super_candle", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_WHITE = register("super_candle_white", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_WHITE.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_LIGHT_GRAY = register("super_candle_light_gray", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_LIGHT_GRAY.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_GRAY = register("super_candle_gray", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_GRAY.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_BLACK = register("super_candle_black", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_BLACK.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_BROWN = register("super_candle_brown", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_BROWN.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_RED = register("super_candle_red", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_RED.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_ORANGE = register("super_candle_orange", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_ORANGE.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_YELLOW = register("super_candle_yellow", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_YELLOW.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_LIME = register("super_candle_lime", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_LIME.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_GREEN = register("super_candle_green", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_GREEN.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_CYAN = register("super_candle_cyan", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_CYAN.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_LIGHT_BLUE = register("super_candle_light_blue", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_LIGHT_BLUE.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_BLUE = register("super_candle_blue", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_BLUE.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_PURPLE = register("super_candle_purple", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_PURPLE.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_MAGENTA = register("super_candle_magenta", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_MAGENTA.get(), properties, true));
+    public static final RegistryEntry<Item> SUPER_CANDLE_PINK = register("super_candle_pink", (properties) -> new BzBlockItem(BzBlocks.SUPER_CANDLE_BASE_PINK.get(), properties, true));
+    public static final RegistryEntry<Item> STRING_CURTAIN_WHITE = register("string_curtain_white", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_WHITE.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_LIGHT_GRAY = register("string_curtain_light_gray", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_LIGHT_GRAY.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_GRAY = register("string_curtain_gray", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_GRAY.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_BLACK = register("string_curtain_black", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_BLACK.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_BROWN = register("string_curtain_brown", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_BROWN.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_RED = register("string_curtain_red", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_RED.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_ORANGE = register("string_curtain_orange", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_ORANGE.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_YELLOW = register("string_curtain_yellow", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_YELLOW.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_LIME = register("string_curtain_lime", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_LIME.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_GREEN = register("string_curtain_green", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_GREEN.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_CYAN = register("string_curtain_cyan", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_CYAN.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_LIGHT_BLUE = register("string_curtain_light_blue", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_LIGHT_BLUE.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_BLUE = register("string_curtain_blue", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_BLUE.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_PURPLE = register("string_curtain_purple", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_PURPLE.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_MAGENTA = register("string_curtain_magenta", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_MAGENTA.get(), properties));
+    public static final RegistryEntry<Item> STRING_CURTAIN_PINK = register("string_curtain_pink", (properties) -> new BlockItem(BzBlocks.STRING_CURTAIN_PINK.get(), properties));
+    public static final RegistryEntry<Item> ROYAL_JELLY_BLOCK = register("royal_jelly_block", (properties) -> new BlockItem(BzBlocks.ROYAL_JELLY_BLOCK.get(), properties.rarity(Rarity.EPIC)));
+    public static final RegistryEntry<Item> HEAVY_AIR = register("heavy_air", (properties) -> new BlockItem(BzBlocks.HEAVY_AIR.get(), properties.rarity(Rarity.EPIC)));
+    public static final RegistryEntry<Item> WINDY_AIR = register("windy_air", (properties) -> new BlockItem(BzBlocks.WINDY_AIR.get(), properties.rarity(Rarity.EPIC)));
+
+    //items
+    public static final RegistryEntry<Item> ROYAL_JELLY_BUCKET = register("royal_jelly_bucket", (properties) -> new BzCustomBucketItem(BzFluids.ROYAL_JELLY_FLUID_TYPE.get(), properties.rarity(Rarity.EPIC)));
+    public static final RegistryEntry<Item> ROYAL_JELLY_BOTTLE = register("royal_jelly_bottle", RoyalJellyBottle::new);
+    public static final RegistryEntry<Item> HONEY_BUCKET = register("honey_bucket", (properties) -> new BzCustomBucketItem(BzFluids.HONEY_FLUID_TYPE.get(), properties));
+    public static final RegistryEntry<Item> SUGAR_WATER_BUCKET = register("sugar_water_bucket", (properties) -> new BzCustomBucketItem(BzFluids.SUGAR_WATER_FLUID_TYPE.get(), properties));
+    public static final RegistryEntry<Item> SUGAR_WATER_BOTTLE = register("sugar_water_bottle", SugarWaterBottle::new);
+    public static final RegistryEntry<Item> HONEY_COMPASS = register("honey_compass", HoneyCompass::new);
+    public static final RegistryEntry<Item> BEE_BREAD = register("bee_bread", BeeBread::new);
+    public static final RegistryEntry<Item> BEE_SOUP = register("bee_soup", BeeSoup::new);
+    public static final RegistryEntry<Item> BUZZING_BRIEFCASE = register("buzzing_briefcase", BuzzingBriefcase::new);
+    public static final RegistryEntry<Item> POLLEN_PUFF = register("pollen_puff", PollenPuff::new);
+    public static final RegistryEntry<Item> DIRT_PELLET = register("dirt_pellet", DirtPellet::new);
+    public static final RegistryEntry<HoneyCrystalShards> HONEY_CRYSTAL_SHARDS = register("honey_crystal_shards", HoneyCrystalShards::new);
+    public static final RegistryEntry<Item> BEE_STINGER = register("bee_stinger", BeeStinger::new);
+    public static final RegistryEntry<Item> STINGER_SPEAR = register("stinger_spear", StingerSpearItem::new);
+    public static final RegistryEntry<Item> BEE_CANNON = register("bee_cannon", BeeCannon::new);
+    public static final RegistryEntry<Item> CRYSTAL_CANNON = register("crystal_cannon", CrystalCannon::new);
+    public static final RegistryEntry<Item> HONEY_CRYSTAL_SHIELD = register("honey_crystal_shield", HoneyCrystalShield::new);
+    public static final RegistryEntry<Item> FLOWER_HEADWEAR = register("flower_headwear", FlowerHeadwearHelmet::new);
+    public static final RegistryEntry<Item> STINGLESS_BEE_HELMET_1 = register("stingless_bee_helmet_1", (properties) -> new StinglessBeeHelmet(properties, 1));
+    public static final RegistryEntry<Item> STINGLESS_BEE_HELMET_2 = register("stingless_bee_helmet_2", (properties) -> new StinglessBeeHelmet(properties, 2));
+    public static final RegistryEntry<Item> BUMBLE_BEE_CHESTPLATE_1 = register("bumble_bee_chestplate_1", (properties) -> new BumbleBeeChestplate(properties, false, 1));
+    public static final RegistryEntry<Item> BUMBLE_BEE_CHESTPLATE_2 = register("bumble_bee_chestplate_2", (properties) -> new BumbleBeeChestplate(properties, false, 2));
+    public static final RegistryEntry<Item> TRANS_BUMBLE_BEE_CHESTPLATE_1 = register("bumble_bee_chestplate_trans_1", (properties) -> new BumbleBeeChestplate(properties, true, 1));
+    public static final RegistryEntry<Item> TRANS_BUMBLE_BEE_CHESTPLATE_2 = register("bumble_bee_chestplate_trans_2", (properties) -> new BumbleBeeChestplate(properties, true, 2));
+    public static final RegistryEntry<Item> HONEY_BEE_LEGGINGS_1 = register("honey_bee_leggings_1", (properties) -> new HoneyBeeLeggings(properties, 1));
+    public static final RegistryEntry<Item> HONEY_BEE_LEGGINGS_2 = register("honey_bee_leggings_2", (properties) -> new HoneyBeeLeggings(properties, 2));
+    public static final RegistryEntry<Item> CARPENTER_BEE_BOOTS_1 = register("carpenter_bee_boots_1", (properties) -> new CarpenterBeeBoots(properties, 1));
+    public static final RegistryEntry<Item> CARPENTER_BEE_BOOTS_2 = register("carpenter_bee_boots_2", (properties) -> new CarpenterBeeBoots(properties, 2));
+    public static final RegistryEntry<Item> BANNER_PATTERN_BEE = register("banner_pattern_bee", (properties) -> new BzBannerPatterns(properties.delayedComponent(DataComponents.PROVIDES_BANNER_PATTERNS, context -> context.getOrThrow(BzTags.PATTERN_ITEM_BEE))));
+    public static final RegistryEntry<Item> BANNER_PATTERN_HONEYCOMBS = register("banner_pattern_honeycombs", (properties) -> new BzBannerPatterns(properties.delayedComponent(DataComponents.PROVIDES_BANNER_PATTERNS, context -> context.getOrThrow(BzTags.PATTERN_ITEM_HONEYCOMBS))));
+    public static final RegistryEntry<Item> BANNER_PATTERN_SWORDS = register("banner_pattern_swords", (properties) -> new BzBannerPatterns(properties.delayedComponent(DataComponents.PROVIDES_BANNER_PATTERNS, context -> context.getOrThrow(BzTags.PATTERN_ITEM_SWORDS))));
+    public static final RegistryEntry<Item> BANNER_PATTERN_SUN = register("banner_pattern_sun", (properties) -> new BzBannerPatterns(properties.delayedComponent(DataComponents.PROVIDES_BANNER_PATTERNS, context -> context.getOrThrow(BzTags.PATTERN_ITEM_SUN))));
+    public static final RegistryEntry<Item> BANNER_PATTERN_PLUSES = register("banner_pattern_pluses", (properties) -> new BzBannerPatterns(properties.delayedComponent(DataComponents.PROVIDES_BANNER_PATTERNS, context -> context.getOrThrow(BzTags.PATTERN_ITEM_PLUSES))));
+    public static final RegistryEntry<Item> BANNER_PATTERN_EYES = register("banner_pattern_eyes", (properties) -> new BzBannerPatterns(properties.delayedComponent(DataComponents.PROVIDES_BANNER_PATTERNS, context -> context.getOrThrow(BzTags.PATTERN_ITEM_EYES))));
+    public static final RegistryEntry<Item> BANNER_PATTERN_PEACE = register("banner_pattern_peace", (properties) -> new BzBannerPatterns(properties.delayedComponent(DataComponents.PROVIDES_BANNER_PATTERNS, context -> context.getOrThrow(BzTags.PATTERN_ITEM_PEACE))));
+    public static final RegistryEntry<Item> BANNER_PATTERN_ARROWS = register("banner_pattern_arrows", (properties) -> new BzBannerPatterns(properties.delayedComponent(DataComponents.PROVIDES_BANNER_PATTERNS, context -> context.getOrThrow(BzTags.PATTERN_ITEM_ARROWS))));
+    public static final RegistryEntry<Item> MUSIC_DISC_HIVE_SPEED_BEEPOP = register("music_disc_hive_speed_beepop", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.HIVE_SPEED_BEEPOP)));
+    public static final RegistryEntry<Item> MUSIC_DISC_PERZZONA_HIVE = register("music_disc_perzzona_hive", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.PERZZONA_HIVE)));
+    public static final RegistryEntry<Item> MUSIC_DISC_STRING_LIKE_A_BEE = register("music_disc_string_like_a_bee", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.STRING_LIKE_A_BEE)));
+    public static final RegistryEntry<Item> MUSIC_DISC_HONEY_BEE_RAT_FACED_BOY = register("music_disc_honey_bee_rat_faced_boy", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.HONEY_BEE_RAT_FACED_BOY)));
+    public static final RegistryEntry<Item> MUSIC_DISC_RIVERS_OF_HONEY_MOSERAO = register("music_disc_rivers_of_honey_moserao", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.RIVERS_OF_HONEY_MOSERAO)));
+    public static final RegistryEntry<Item> MUSIC_DISC_LA_BEE_DA_LOCA = register("music_disc_la_bee_da_loca", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.LA_BEE_DA_LOCA)));
+    public static final RegistryEntry<Item> MUSIC_DISC_BEE_LAXING_WITH_THE_HOM_BEES = register("music_disc_bee_laxing_with_the_hom_bees", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.BEE_LAXING_WITH_THE_HOM_BEES)));
+    public static final RegistryEntry<Item> MUSIC_DISC_BEE_WARE_OF_THE_TEMPLE = register("music_disc_bee_ware_of_the_temple", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.BEE_WARE_OF_THE_TEMPLE)));
+    public static final RegistryEntry<Item> MUSIC_DISC_KNOWING_RENREN = register("music_disc_knowing_renren", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.KNOWING_RENREN)));
+    public static final RegistryEntry<Item> MUSIC_DISC_RADIANCE_RENREN = register("music_disc_radiance_renren", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.RADIANCE_RENREN)));
+    public static final RegistryEntry<Item> MUSIC_DISC_LIFE_RENREN = register("music_disc_life_renren", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.LIFE_RENREN)));
+    public static final RegistryEntry<Item> MUSIC_DISC_A_LAST_FIRST_LAST = register("music_disc_a_last_first_last", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.A_LAST_FIRST_LAST)));
+    public static final RegistryEntry<Item> MUSIC_DISC_DROWNING_IN_DESPAIR = register("music_disc_drowning_in_despair", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.DROWNING_IN_DESPAIR)));
+    public static final RegistryEntry<Item> MUSIC_DISC_BEENNA_BOX = register("music_disc_beenna_box", (properties) -> new BzMusicDiscs((properties).jukeboxPlayable(BzJukeboxSongs.BEENNA_BOX)));
+    public static final RegistryEntry<Item> HONEY_SLIME_SPAWN_EGG = register("honey_slime_spawn_egg", (properties) -> new DispenserAddedSpawnEgg(BzEntities.HONEY_SLIME.get(), properties));
+    public static final RegistryEntry<Item> VARIANT_BEE_SPAWN_EGG = register("variant_bee_spawn_egg", (properties) -> new DispenserAddedSpawnEgg(BzEntities.VARIANT_BEE.get(), properties));
+    public static final RegistryEntry<Item> BEEHEMOTH_SPAWN_EGG = register("beehemoth_spawn_egg", (properties) -> new DispenserAddedSpawnEgg(BzEntities.BEEHEMOTH.get(), properties));
+    public static final RegistryEntry<Item> BEE_QUEEN_SPAWN_EGG = register("bee_queen_spawn_egg", (properties) -> new DispenserAddedSpawnEgg(BzEntities.BEE_QUEEN.get(), properties.rarity(Rarity.EPIC)));
+    public static final RegistryEntry<Item> ROOTMIN_SPAWN_EGG = register("rootmin_spawn_egg", (properties) -> new DispenserAddedSpawnEgg(BzEntities.ROOTMIN.get(), properties));
+    public static final RegistryEntry<Item> SENTRY_WATCHER_SPAWN_EGG = register("sentry_watcher_spawn_egg", (properties) -> new SentryWatcherSpawnEgg(BzEntities.SENTRY_WATCHER, properties));
+    public static final RegistryEntry<Item> ESSENCE_OF_THE_BEES = register("essence_of_the_bees", EssenceOfTheBees::new);
+    public static final RegistryEntry<Item> ESSENCE_RAGING = register("essence_raging", RagingEssence::new);
+    public static final RegistryEntry<Item> ESSENCE_KNOWING = register("essence_knowing", KnowingEssence::new);
+    public static final RegistryEntry<Item> ESSENCE_CALMING = register("essence_calming", CalmingEssence::new);
+    public static final RegistryEntry<Item> ESSENCE_LIFE = register("essence_life", LifeEssence::new);
+    public static final RegistryEntry<Item> ESSENCE_RADIANCE = register("essence_radiance", RadianceEssence::new);
+    public static final RegistryEntry<Item> ESSENCE_CONTINUITY = register("essence_continuity", ContinuityEssence::new);
+
+    public static void setupCauldronCompat() {
+        CauldronInteractions.WATER.put(BzItems.FLOWER_HEADWEAR.get(), CauldronInteractions::dyedItemIteration);
+    }
+
+    public static void setupDispenserBehaviors() {
+        DispenserBlock.registerProjectileBehavior(BzItems.POLLEN_PUFF.get());
+        DispenserBlock.registerProjectileBehavior(BzItems.DIRT_PELLET.get());
+    }
+    
+    protected static <T extends Item> RegistryEntry<T> register(String id, Function<Item.Properties, T> factory) {
+        return ITEMS.register(
+                id,
+                () -> factory.apply(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(Bumblezone.MODID, id)))));
+    }
+}
