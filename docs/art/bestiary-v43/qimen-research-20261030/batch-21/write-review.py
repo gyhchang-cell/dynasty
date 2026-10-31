@@ -2,15 +2,17 @@ from pathlib import Path
 import json,hashlib,datetime,html,zipfile
 B=Path(__file__).resolve().parent;R=B.parent;now=datetime.datetime.now(datetime.timezone.utc).isoformat()
 def save(p,v):p.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
-m=json.loads((B/'selected-source-manifest.json').read_text());sources=[]
+m=json.loads((B/'selected-source-manifest.json').read_text());m['files']=list({x['path']:x for x in m['files']}.values());sources=[]
 read={'gradle.properties':[[1,22]],'fabric.mod.json':[[1,52]],'grapple_winch.mdx':[[1,79]],'GrappleWinchItem.java':[[1,354]],'GrappleClawEntity.java':[[1,825]],'GrapplingHook.java':[[1,105]],'GrappleClawItem.java':[[1,33]],'GrappleClawComponent.java':[[1,33]],'KlaxonItems.java':[[1,153]],'KlaxonEntityTypes.java':[[1,32]],'GrappleClawBlockDestructionHelper.java':[[1,225]],'GrappleWinchConnection.java':[[1,151]],'ServerGrappleWinchConnection.java':[[1,376]],'GrappleWinchConnectionManager.java':[[1,64]],'ServerGrappleWinchConnectionManager.java':[[1,202]],'CableDetachmentReason.java':[[1,46]],'KlaxonCommon.java':[[1,85]],'KlaxonItemProperties.java':[[1,85]],'KlaxonDataComponentTypes.java':[[75,133]],'KlaxonPackets.java':[[1,55]],'KlaxonServerPlayNetworkHandler.java':[[1,64]],'GrappleWinchCableForceDisconnectC2S.java':[[1,35]],'GrappleWinchCableLengthUpdateC2S.java':[[1,35]]}
 paths={'mixin/minecraft/grapple_winch/grapple_claw/AbstractArrowMixin.java':[[1,45]],'mixin/minecraft/grapple_winch/grapple_claw/EntityMixin.java':[[1,28]],'mixin/minecraft/grapple_winch/connection/ServerLevelMixin.java':[[1,70]],'mixin/minecraft/grapple_winch/grapple_winch/PlayerListMixin.java':[[1,26]]}
 for x in m['files']:
  p=B/x['local'];rr=next((v for k,v in paths.items() if x['path'].endswith(k)),read.get(p.name))
+ if x['path'].startswith('src/gametest/'):
+  x.update(status='EXTRACTED_NOT_REVIEWED',read_ranges=[]);continue
  if rr:
   x.update(status='SELECTED_SOURCE_RANGES_READ',read_ranges=rr);sources.append(dict(id=x['path'],local=x['local'],sha256=x['sha256'],ranges=rr))
 for name in ['klaxon.mixins.json','klaxon.client.mixins.json']:
- p=B/'sources/myriantics__klaxon/src/main/resources'/name;raw=p.read_bytes();x=dict(path='src/main/resources/'+name,local=str(p.relative_to(B)),bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),git_blob_sha1=hashlib.sha1(f'blob {len(raw)}\0'.encode()+raw).hexdigest(),read_ranges=[[1,len(p.read_text().splitlines())]],status='FULL_FILE_READ');m['files'].append(x);sources.append(dict(id=x['path'],local=x['local'],sha256=x['sha256'],ranges=x['read_ranges']))
+ p=next((B/'sources/myriantics__klaxon').rglob(name));raw=p.read_bytes();x=dict(path=str(p.relative_to(B/'sources/myriantics__klaxon')),local=str(p.relative_to(B)),bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),git_blob_sha1=hashlib.sha1(f'blob {len(raw)}\0'.encode()+raw).hexdigest(),read_ranges=[[1,len(p.read_text().splitlines())]],status='FULL_FILE_READ');m['files']=[a for a in m['files'] if a['path']!=x['path']];m['files'].append(x);sources.append(dict(id=x['path'],local=x['local'],sha256=x['sha256'],ranges=x['read_ranges']))
 save(B/'selected-source-manifest.json',m)
 e=[]
 def add(id,f,refs,limit):
