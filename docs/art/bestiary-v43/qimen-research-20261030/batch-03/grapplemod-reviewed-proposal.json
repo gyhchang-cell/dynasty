@@ -1,0 +1,610 @@
+{
+  "id": "yyon-grapplemod-single-hook-versus-controller-exit",
+  "updated_utc": "2026-10-30T17:19:38.320673+00:00",
+  "status": "SELECTED_NORMAL_INPUT_ATTACH_PARTIAL_FULL_EXIT_AND_ROPE_CONSUMER_TRACED_STATIC_WITH_GAPS_PENDING_INDEPENDENT_REVIEW",
+  "source_version": {
+    "repo": "yyon/grapplemod",
+    "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+    "branch_at_discovery": "1.20.x",
+    "minecraft": "1.20.1",
+    "forge": "47.1.0",
+    "mod_version": "1.20.1-v13",
+    "version_warning": "grapplemod.VERSION仍是1.16.5-v12.2；本记录版本来自实际构建属性。"
+  },
+  "selected_scope": "同一玩家一个控制器内左右钩集合：输入→服务器发射/挂接→客户端加入钩→局部移除与全组退出→可见绳消费者。不是完整模组物理、渲染资产、存档或安全审计。",
+  "proposed_independent_units_max": 1,
+  "accepted_credit": 0,
+  "human_model_texture_reference_credit": 0,
+  "runtime_verified": false,
+  "chain": [
+    "@Mod注册实体/物品；CommonSetup.init按明确PLAY_TO_SERVER/CLIENT注册消息。ClientSetup注册按键、manager和ClientEventHandlers。",
+    "客户端tick在未暂停且无GUI时检测输入边沿，主手优先选KeypressItem；发KeypressMessage(key,isDown)。服务器工作队列消费后重新按当前主手→副手取栈，不携带原始栈身份或hand。",
+    "GrapplehookItem按doublehook和key决定单侧或throwBoth；先扣1耐久，破损则返回；createGrapplehookEntity把新钩登记进服务器玩家ID集合；左右活动引用另存Entity键映射。",
+    "钩碰方块serverAttach经规则检查后固定位置、附attached玩家ID；完整AttachMessage只发该玩家，AttachPos另发TRACKING_CHUNK。spawn额外数据携带发射者实体ID、rightHand、isDouble、custom。",
+    "AttachMessage客户端解析折点/方向/custom，给钩clientAttach，再经实际proxy→manager.createControl。双钩且已有相同GrappleController时addHookEntity复用；否则创建并注册控制器。",
+    "detachLeft/Right先清对应映射并removeServer。另一侧存在则发送DetachSingleHookMessage(id,hookid)，客户端只删该ID和该实体引用，不调用unattach；另一侧不存在则发整组GrappleDetachMessage。",
+    "detachBoth清两映射、removeServer两钩、发整组消息。客户端unattach注销控制器，attached=false，对非AIR发GrappleEndMessage并切AIR；服务器消费后删除payload指定钩并再扫玩家集合，清attached和fallDistance。",
+    "真正绘制由注册的RenderGrapplehookEntity执行：拒绘死钩/死owner，以mainArm×rightHand选择侧，分别计算FP/TP手端；绘实际baked item和折点绳顶点。单钩被移除后该实体不再满足绘制门禁；不把consumer源码当实际画面验证。"
+  ],
+  "important_distinctions": [
+    "左右发射/两侧解除是一个机制家族，不能按方法、消息、renderer或版本拆计。doublehook不是两把独立武器共同格挡。",
+    "绳端取发射时rightHand与主臂，不是每帧扫描当前主/副手栈；当前物品custom与钩发射快照分开。",
+    "实际movement来自客户端updatePlayerPos，经PlayerMovementMessage设置服务器位置速度；这一消息有sender id相等检查。GrappleEnd只有sender非空，不具有同样检查，不能泛化成服务器严谨归属校验。",
+    "收回是remove/discard与解除控制器，没有实体沿绳飞回手的回程动画。",
+    "查询到的Betweenlands GrapplingHook条目是不同项目的数据迁移，不足证明本项目已计过，也不足证明全局语义唯一。"
+  ],
+  "known_gaps": [
+    {
+      "issue": "局部解除仍清总标记",
+      "evidence": "GrapplehookItem.java323–367",
+      "finding": "detachLeft/Right即使另一钩仍活着也remove ServerControllerManager.attached中的玩家ID。客户端仍可保留另一钩，不能称服务器总状态完全一致；该集合所有其他用途未全局审计。"
+    },
+    {
+      "issue": "丢弃右钩分支setter不一致",
+      "evidence": "GrapplehookItem.java514–542",
+      "finding": "right映射分支调用setHookEntityLeft(player,null)而非Right；右实体被removeServer，但映射原值留下；getter因isAlive过滤不再返回它，不等同立刻删掉该map entry。未实机复现。"
+    },
+    {
+      "issue": "输入释放门禁",
+      "evidence": "ClientEventHandlers.java39–74,194–225；KeypressMessage.java53–83",
+      "finding": "GUI、暂停、看modifier block、手已无KeypressItem时选定链不发送该次释放。prevKeys更新范围不同；丢弃和死亡有独立路径，不能以普通松手链覆盖所有物品切换/断线情况。"
+    },
+    {
+      "issue": "网络时序与控制器构造",
+      "evidence": "GrappleAttachMessage.java128–144；GrappleController.java59–106；ClientControllerManager.java300–370",
+      "finding": "AttachMessage即使未找到钩也继续createControl。构造器找不到钩时unattach依赖已注册控制器；新建尚未注册时不保证退出成功。实际spawn/attach先后和延迟表现未验证，不声称无缺失实体问题。"
+    },
+    {
+      "issue": "反向退出归属",
+      "evidence": "GrappleEndMessage.java59–69；ServerControllerManager.java33–54",
+      "finding": "ctx sender非空后，payload entityId/hookIDs交给manager，本段未验证与sender/owner相等。不推断真实服务器可利用性，也不将其作为可直接移植的安全范式。"
+    },
+    {
+      "issue": "一般移除不等于集合清理",
+      "evidence": "GrapplehookEntity.java146–159；ServerControllerManager.java14–31；CommonEventHandlers.java55–80",
+      "finding": "removeServer只remove+shootingEntityID=0；不会自行清左右map/全部集合。整组结束和死亡另有清理。不可钩方块/命中实体等提前移除及断线/跨维/卸载是否充分清理未完整闭合。"
+    },
+    {
+      "issue": "存档恢复未知",
+      "evidence": "GrapplehookEntity.java59–149,534–544",
+      "finding": "发射者通过自有临时Entity引用/ID和spawn附加数据；选定类未看到持久化这些状态或重建左右map/controller的自身NBT覆盖。基类/能力/外部事件完整存档链未读，不承诺重载可恢复或必然崩溃。"
+    },
+    {
+      "issue": "物理与资产范围",
+      "evidence": "read_ranges及未读断点",
+      "finding": "GrappleController的updatePlayerPos全文已读，内部SegmentHandler/Vec/Config辅助未全读；AIR其余实现、物品JSON/PNG未读。真实绳顶点消费者已追到，完整手持材质与实机效果未验证。"
+    }
+  ],
+  "dedup": {
+    "presearch": "grapplemod-presearch.json",
+    "status": "EXACT_PROJECT_TERM_PRESEARCH_ONLY_PENDING_GLOBAL_SEMANTIC_REVIEW",
+    "family": "yyon GrappleMod two-hook one-controller partial/full detach; derived ports/versions merged",
+    "not_recounted": [
+      "Hookshot/Tidal Hook既有家族：本轮补入口与持久化是0新单位",
+      "AlexsCaves Boundroid整链已有accepted family 12a9e9ff08c6cc42a86f，不重计Winch文件",
+      "AlexsMobs VineLasso已有family，不因新读renderer而重计"
+    ],
+    "independence_limit": "与其他钩爪/控制器案例的差异只是待审理由，不自行宣布独立验收通过。"
+  },
+  "production_takeaways": [
+    "局部撤销与控制器生命周期分开；剩余钩的状态和总标记应有可验证一致性，而非照搬此实现缺口。",
+    "发射owner、物理钩集合、视觉绳端与当前持物应明确区分；不要让一个bool冒充这些身份。",
+    "所有退出入口都要逐一追到清理消费者；save/load、异步消息和移除不能由正常松手路径推断。"
+  ],
+  "pending_reads": [
+    {
+      "path": "src/main/java/com/yyon/grapplinghook/controllers/GrappleController.java",
+      "ranges": [
+        [
+          536,
+          637
+        ],
+        [
+          657,
+          683
+        ],
+        [
+          729,
+          788
+        ],
+        [
+          811,
+          1046
+        ]
+      ],
+      "reason": "碰撞/步进/跳力/斥力/火箭/墙跑辅助尚未全文阅读；不是已完成物理审计"
+    },
+    {
+      "path": "src/main/java/com/yyon/grapplinghook/controllers/AirfrictionController.java",
+      "ranges": [
+        [
+          60,
+          204
+        ]
+      ],
+      "reason": "AIR退出后的运动细节未读"
+    },
+    {
+      "path": "src/main/java/com/yyon/grapplinghook/entities/grapplehook/SegmentHandler.java",
+      "ranges": "NOT_ACQUIRED",
+      "reason": "折点同步与更新内部不在本轮闭合范围"
+    },
+    {
+      "path": "src/main/java/com/yyon/grapplinghook/utils/Vec.java",
+      "ranges": "NOT_ACQUIRED",
+      "reason": "几何运算及setPos/setMotion包装内部未读"
+    },
+    {
+      "path": "src/main/java/com/yyon/grapplinghook/utils/GrappleCustomization.java",
+      "ranges": "NOT_ACQUIRED",
+      "reason": "custom NBT与buffer具体字段未全文核实"
+    },
+    {
+      "path": "全局reviewed ledger",
+      "ranges": "SEMANTIC_REVIEW_PENDING",
+      "reason": "项目名检索不能代替完整语义去重或独立复核"
+    }
+  ],
+  "evidence": [
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "gradle.properties",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/gradle.properties",
+      "sha256": "21ce6682dd5cb81758ffd546a5fe757a7d5376e0e7b8800acd93b70d395fe108",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/gradle.properties",
+      "read_ranges": [
+        [
+          1,
+          26
+        ]
+      ],
+      "supports": "实际1.20.1-v13/Forge47.1.0构建版本；不是stale VERSION常量"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "build.gradle",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/build.gradle",
+      "sha256": "04345a1b6df249d7ada1acc90002f58243c621240cb3da480cad15ba9229e8d3",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/build.gradle",
+      "read_ranges": [
+        [
+          1,
+          222
+        ]
+      ],
+      "supports": "构建声明只读；未执行Gradle或Java"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/grapplemod.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/grapplemod.java",
+      "sha256": "e917cbcb8e282f185097395ce4aeed5d1c3c64c64f610d2aba72a1b5faf08250",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/grapplemod.java",
+      "read_ranges": [
+        [
+          1,
+          52
+        ]
+      ],
+      "supports": "真实@Mod和注册入口"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/common/CommonSetup.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/common/CommonSetup.java",
+      "sha256": "dac2651544ac13af0864236d06a86840a92f0807f03bad1f69f552a7ce3caf4c",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/common/CommonSetup.java",
+      "read_ranges": [
+        [
+          1,
+          157
+        ]
+      ],
+      "supports": "项目订阅入口、实体注册、消息方向及收发注册"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/client/ClientSetup.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/client/ClientSetup.java",
+      "sha256": "d46169c360911ad269a87cba952acf564e4f81a67dedc30575af5ad5ea552156",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/client/ClientSetup.java",
+      "read_ranges": [
+        [
+          1,
+          97
+        ]
+      ],
+      "supports": "实际按键、controller manager、event handler和renderer注册"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/client/ClientEventHandlers.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/client/ClientEventHandlers.java",
+      "sha256": "15ed6ccb24e726a785ea2a9788709a886a83c18a6adc5a6b79b408975cc0fd8f",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/client/ClientEventHandlers.java",
+      "read_ranges": [
+        [
+          1,
+          228
+        ]
+      ],
+      "supports": "按键边沿；主手优先；GUI/paused门禁；blockbreak和logout范围"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/items/KeypressItem.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/items/KeypressItem.java",
+      "sha256": "3c458b0178df2cf07f8e391b8e9307693d8bc25f0857f6dfd2831b007f15e77f",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/items/KeypressItem.java",
+      "read_ranges": [
+        [
+          1,
+          14
+        ]
+      ],
+      "supports": "输入接口和枚举"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/items/GrapplehookItem.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/items/GrapplehookItem.java",
+      "sha256": "479627d8dc2de9990648653bf1fa4dbfd04c48758822e9be16e801e4133238d0",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/items/GrapplehookItem.java",
+      "read_ranges": [
+        [
+          55,
+          405
+        ],
+        [
+          504,
+          542
+        ]
+      ],
+      "supports": "当前持物、单/双钩发射、部分/全部解除、custom快照及丢弃清理"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/entities/grapplehook/GrapplehookEntity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/entities/grapplehook/GrapplehookEntity.java",
+      "sha256": "8f48c469451688f76f604de143572e8c6570b9bd9bfdfc472804d38bf86fb006",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/entities/grapplehook/GrapplehookEntity.java",
+      "read_ranges": [
+        [
+          59,
+          295
+        ],
+        [
+          297,
+          308
+        ],
+        [
+          310,
+          470
+        ],
+        [
+          473,
+          484
+        ],
+        [
+          534,
+          544
+        ]
+      ],
+      "supports": "spawn手侧/owner临时ID；tick；命中；attach包；removeServer；不宣称磁力辅助函数和继承存档全读"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/BaseMessageServer.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/BaseMessageServer.java",
+      "sha256": "cfe650914239de833d1cf729d92bdefada2c2c6b6686e16e95490bc7fd3974d2",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/BaseMessageServer.java",
+      "read_ranges": [
+        [
+          1,
+          42
+        ]
+      ],
+      "supports": "服务端侧检查及enqueueWork"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/BaseMessageClient.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/BaseMessageClient.java",
+      "sha256": "a51ac3090326a110e7eeabf37e2469f7154bd89b3c0774c11a7d1092fc6484cc",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/BaseMessageClient.java",
+      "read_ranges": [
+        [
+          1,
+          43
+        ]
+      ],
+      "supports": "客户端侧检查、enqueueWork和proxy分派"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/KeypressMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/KeypressMessage.java",
+      "sha256": "e8e26404ce3c063292badb0cfc2353999a91e4977bc2e8790e2dc5f06ea09b48",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/KeypressMessage.java",
+      "read_ranges": [
+        [
+          1,
+          84
+        ]
+      ],
+      "supports": "仅key+isDown；服务端重新选择主/副手"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/GrappleAttachMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/GrappleAttachMessage.java",
+      "sha256": "5f34b84f1cae9e093ed2612175f80137ab02cf2971b950d079c2d6780134d705",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/GrappleAttachMessage.java",
+      "read_ranges": [
+        [
+          1,
+          145
+        ]
+      ],
+      "supports": "位置/折点数据消费、挂接实体及createControl"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/GrappleAttachPosMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/GrappleAttachPosMessage.java",
+      "sha256": "836e16cbe9f08bd07cbedf3c6892276005eabde7e2d060a4eb9e2cf5f28c0855",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/GrappleAttachPosMessage.java",
+      "read_ranges": [
+        [
+          1,
+          70
+        ]
+      ],
+      "supports": "跟踪区块客户端挂接点更新"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/GrappleDetachMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/GrappleDetachMessage.java",
+      "sha256": "bdb6de1ef003649577dc7924244afa8d1285dd60c780dff21d56f074b2fbe351",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/GrappleDetachMessage.java",
+      "read_ranges": [
+        [
+          1,
+          50
+        ]
+      ],
+      "supports": "整组解除客户端消费"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/DetachSingleHookMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/DetachSingleHookMessage.java",
+      "sha256": "c2b2c6a1ec9c32521ea6c58cfaef435b7cdb9bb3b1040dbcda30e06406c19d37",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/DetachSingleHookMessage.java",
+      "read_ranges": [
+        [
+          1,
+          54
+        ]
+      ],
+      "supports": "指定hookid局部解除客户端消费"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/GrappleEndMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/GrappleEndMessage.java",
+      "sha256": "6a7a3b8ac718496683ab3e76acedb963a422a4d440ff39b5321561edc3105c3a",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/GrappleEndMessage.java",
+      "read_ranges": [
+        [
+          1,
+          70
+        ]
+      ],
+      "supports": "客户端整组退出回传；只确认sender非空，不把payload ID当可信归属证明"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/PlayerMovementMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/PlayerMovementMessage.java",
+      "sha256": "5b30264e6775e51f306a1f783a829e45ca5fe2e59fe55da0e8fb150dede8f8f1",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/PlayerMovementMessage.java",
+      "read_ranges": [
+        [
+          1,
+          95
+        ]
+      ],
+      "supports": "客户端算运动后回传；entityId与sender id比较，区别于GrappleEnd"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/server/ServerControllerManager.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/server/ServerControllerManager.java",
+      "sha256": "854856355f64c1c0b5d0fb7a17455148dcdcc8450311a4d10f4efa4b3a25cf9a",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/server/ServerControllerManager.java",
+      "read_ranges": [
+        [
+          1,
+          55
+        ]
+      ],
+      "supports": "所有钩集合、attached集合、退出时全组清理"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/utils/GrapplemodUtils.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/utils/GrapplemodUtils.java",
+      "sha256": "e287c2da12038321a880dc5e80e9426374fd8647dc715bb4888fba197c0d5909",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/utils/GrapplemodUtils.java",
+      "read_ranges": [
+        [
+          1,
+          43
+        ]
+      ],
+      "supports": "具体玩家路由与控制器编号"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/client/ClientProxyInterface.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/client/ClientProxyInterface.java",
+      "sha256": "9aa95e29ce996cf0d512dd61e616734e1a1bf758d61fdd55cc6f00a5cd3ed9f2",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/client/ClientProxyInterface.java",
+      "read_ranges": [
+        [
+          1,
+          93
+        ]
+      ],
+      "supports": "DistExecutor选择与抽象分派"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/client/ClientProxy.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/client/ClientProxy.java",
+      "sha256": "679ffd47ab2a0720bcb03d110d16647b083abef83998e00776239a0d1dd61835",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/client/ClientProxy.java",
+      "read_ranges": [
+        [
+          1,
+          43
+        ],
+        [
+          94,
+          102
+        ],
+        [
+          181,
+          207
+        ]
+      ],
+      "supports": "真正消息消费与create/unregister代理"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/client/ClientControllerManager.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/client/ClientControllerManager.java",
+      "sha256": "5198d3908c15e1af5c709d2a8de9433a3b93032fba3b12d4b3d978d4616555cb",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/client/ClientControllerManager.java",
+      "read_ranges": [
+        [
+          1,
+          100
+        ],
+        [
+          300,
+          405
+        ]
+      ],
+      "supports": "tick消费、复用双钩控制器、注册替换、注销和消息分发"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/controllers/GrappleController.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/controllers/GrappleController.java",
+      "sha256": "161387d7da30038ef183be59f5c67f704be2168487a0b8f1d6bf067ebd11f561",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/controllers/GrappleController.java",
+      "read_ranges": [
+        [
+          1,
+          520
+        ],
+        [
+          638,
+          655
+        ],
+        [
+          684,
+          727
+        ],
+        [
+          789,
+          809
+        ]
+      ],
+      "supports": "完整updatePlayerPos方法和选定创建/单钩移除/整组退出/绳跳；其他物理辅助未全读"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/controllers/AirfrictionController.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/controllers/AirfrictionController.java",
+      "sha256": "7f542a1dea223b843d60843cbc79d186e0c9821254a2f9dbb315c06ba40bb71f",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/controllers/AirfrictionController.java",
+      "read_ranges": [
+        [
+          1,
+          59
+        ]
+      ],
+      "supports": "退出创建AIR控制器的真实构造入口；AIR其余运动不在本轮闭合范围"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/common/CommonEventHandlers.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/common/CommonEventHandlers.java",
+      "sha256": "05de40eca49c3ed5ed7b0ac21418d2d4fadbabddfb8983d14d6329b0ecc952fe",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/common/CommonEventHandlers.java",
+      "read_ranges": [
+        [
+          1,
+          129
+        ]
+      ],
+      "supports": "死亡清除全钩、左右映射和attached；登录只配置信息"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/entities/grapplehook/RenderGrapplehookEntity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/entities/grapplehook/RenderGrapplehookEntity.java",
+      "sha256": "f485fc4a77d31b41bafd1d38499f0ef4dfb26b795c7b021ee343812cbcc8b602",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/entities/grapplehook/RenderGrapplehookEntity.java",
+      "read_ranges": [
+        [
+          1,
+          377
+        ]
+      ],
+      "supports": "实体存活门禁、主臂与发射手侧、FP/TP手端、折点绳和实际顶点输出；未看外观PNG"
+    }
+  ],
+  "later_context_supplement": {
+    "path": "../batch-04/grapplemod-physics-authority.json",
+    "updated_utc": "2026-10-30T17:34:15.976366+00:00",
+    "resolved_read_gaps": [
+      "物理辅助、AIR、SegmentHandler、Vec、custom/Config、准确Forge47.1.0消息分派与sender来源"
+    ],
+    "still_unknown": [
+      "运行/网络时序/完整持久化/全局语义验收"
+    ],
+    "credit_change": 0
+  }
+}

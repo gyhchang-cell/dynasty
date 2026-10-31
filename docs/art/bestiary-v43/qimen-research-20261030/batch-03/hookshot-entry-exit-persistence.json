@@ -1,0 +1,372 @@
+{
+  "id": "hookshot-tidal-family-entry-exit-persistence-context",
+  "updated_utc": "2026-10-30T17:11:51.952720+00:00",
+  "status": "CONTEXT_EXTENSION_NOT_NEW_INDEPENDENT_CASE",
+  "extends_proposal": "../batch-02/hookshot-tidal-reviewed-proposal.json",
+  "accepted_new_gate_credit": 0,
+  "proposed_new_independent_units": 0,
+  "human_model_texture_reference_credit": 0,
+  "source_family": "Hookshot / attributed Tidal Hook port (one family)",
+  "pins": {
+    "package_move": "5072f91dfd3553d09fd7f8f071086f55868211be",
+    "immediate_pre_move": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+    "cataclysm": "819937203e22b4fa72fdeccc6c56ad415d65eeef"
+  },
+  "entry_conclusion": "移包提交未改fabric.mod.json。移包前registry.HookshotComponents入口与实际package匹配；移包后common.registry类与旧入口不匹配。4个选定class去掉package/import后完全相同；入口上下文缺口已定位，不代表运行加载通过。",
+  "ancestry_limit": "灾变明确注Hookshot项目来源，但确切原摘取提交未注明；87ba是入口匹配的历史对照，不宣称是灾变实际摘取版本。",
+  "exit_matrix": [
+    {
+      "trigger": "松手或第二次经典模式使用",
+      "upstream": "clear hasHook；非经典模式加冷却；后续server tick若仍false则discard+return",
+      "port": "release/finish clear hasHook；后续tick kill但无return",
+      "boundary": "两者都用单bool，没有hook UUID或代际号；重发与旧hook tick交错待实机，不宣称唯一实体保证。"
+    },
+    {
+      "trigger": "超距/不再持钩/owner死亡或缺失",
+      "upstream": "shouldStopExisting或非Living owner→discard并return；remove有组件时恢复临时重力/flag",
+      "port": "距离/物品/flag无效→kill但本tick继续；owner不是Player时未走明确移除分支；cap null→kill",
+      "boundary": "owner查找可能变null；CCA maybeGet(null)行为未读，保留未知，不推断NPE。"
+    },
+    {
+      "trigger": "被挂目标移除",
+      "upstream": "setHookedEntity(null)+onClientRemoval；清flag/停用；本tick仍可牵引，后续tick移除",
+      "port": "hookedEntity=null+discard；绕开自定义kill；后续同tick可能继续牵引",
+      "boundary": "上游此分支不是立即完整回收；移植版不由kill恢复重力。"
+    },
+    {
+      "trigger": "不可钩方块",
+      "upstream": "hasHook=false/isPulling=false/discard/onClientRemoval；remove清理",
+      "port": "本类未提供对应禁钩分支",
+      "boundary": "没有该功能不当成已实现；不改Dynasty机制。"
+    },
+    {
+      "trigger": "ENDERIC传送",
+      "upstream": "清hasHook、传送、fallDistance=0、isPulling=false、onClientRemoval；下一tick失效退出",
+      "port": "本类没有该升级",
+      "boundary": "不把升级或分支拆为新案例；传送成功/跨维未验证。"
+    },
+    {
+      "trigger": "AUTOMATIC抵达近处",
+      "upstream": "3格内kill→remove清理；后面的当前持物耐久分支仍可能执行",
+      "port": "没有该分支",
+      "boundary": "是撤销消失，不是显示沿链返手。"
+    },
+    {
+      "trigger": "普通kill/discard/remove",
+      "upstream": "覆写remove统一该调用入口，存活组件存在时清理；之后super.remove",
+      "port": "只覆写kill；discard/remove没有同一自定义恢复",
+      "boundary": "此处统一指虚方法remove入口，不声称所有引擎移除路径。"
+    },
+    {
+      "trigger": "区块卸载",
+      "upstream": "仅类内覆写remove不足证明处理所有卸载",
+      "port": "kill也不足证明覆盖卸载",
+      "boundary": "已读Forge引擎manager直接setRemoved；Fabric实际补丁/CCA unload生命周期未读，不能以Forge比较冒充Fabric实测。"
+    },
+    {
+      "trigger": "客户端移除",
+      "upstream": "onClientRemoval清hook flag，当前useItem属于HOOKSHOTS时stopUsingItem",
+      "port": "无同类覆盖",
+      "boundary": "客户端stop-use不是服务器的统一状态清理证明。"
+    },
+    {
+      "trigger": "实体存档后重载",
+      "upstream": "存snapshot栈/范围/速度/isPulling；不保存hooked目标UUID；owner UUID由基类存；当前held只需tag，不比原snapshot identity",
+      "port": "ItemStack.of重建栈，但tick要求主/副手与this.stack同一对象，选定读档链没有重新绑定",
+      "boundary": "非空of确实new对象；即使NBT等值也不能满足==。保留外部改写/实际load时序未知，不称已实机复现。"
+    },
+    {
+      "trigger": "玩家组件持久化/复制",
+      "upstream": "write/read只hook boolean；isFloating和hadNoGravity不在自身NBT。INVENTORY respawn策略由CCA处理",
+      "port": "自身只hasHook bool；没有旧重力快照",
+      "boundary": "CCA5.2.3 clone/respawn完整实现未读；不推断死亡/重登必然保留或丢弃何状态。"
+    }
+  ],
+  "persistence_conclusion": "上游是投射物升级快照与当前优先持物分离；移植版保存后重建stack却继续用==，在选定源码链里未恢复原栈引用。owner UUID重连与物品对象身份不是同一事。",
+  "unknowns": [
+    "Fabric同版引擎patch和CCA clone/respawn/unload全生命周期尚未全文核实。",
+    "hooked目标UUID不在本类save中；未检查外部事件是否补数据，不能证明重载后重连。",
+    "单bool的快速松手再发代际交错没有实机复现，保持潜在竞态而不夸大成已观察缺陷。",
+    "未测试网络、画面、游戏和第三方模组；没有修复外部模组或Dynasty。"
+  ],
+  "dedup": "版本、入口、退出分支和native支持都是原有家族上下文；0新增信用。Boundroid整链已由12a9e9ff08c6cc42a86f计过，不重复研究为新案例。",
+  "evidence": [
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+      "path": "src/main/resources/fabric.mod.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/CammiesCorner__Hookshot-pre-common/src/main/resources/fabric.mod.json",
+      "sha256": "156cdf402ffba0a6d81ca7369eff4b965d4243da80a4a85866ee2aef515ad7eb",
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a/src/main/resources/fabric.mod.json",
+      "read_ranges": [
+        [
+          50,
+          86
+        ]
+      ],
+      "supports": "组件入口与实际package匹配"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+      "path": "src/main/java/dev/cammiescorner/hookshot/Hookshot.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/CammiesCorner__Hookshot-pre-common/src/main/java/dev/cammiescorner/hookshot/Hookshot.java",
+      "sha256": "93be21e82325787b9628c1e7fd0e9f968d282c016e0e9274d8c4d55403250246",
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a/src/main/java/dev/cammiescorner/hookshot/Hookshot.java",
+      "read_ranges": [
+        [
+          1,
+          62
+        ]
+      ],
+      "supports": "真实main初始化"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+      "path": "src/main/java/dev/cammiescorner/hookshot/registry/HookshotComponents.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/CammiesCorner__Hookshot-pre-common/src/main/java/dev/cammiescorner/hookshot/registry/HookshotComponents.java",
+      "sha256": "96893da2063394b92d6bf3c4cddcbb1e8a9f8b3cc8673332e50d1d8b74f5a757",
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a/src/main/java/dev/cammiescorner/hookshot/registry/HookshotComponents.java",
+      "read_ranges": [
+        [
+          1,
+          24
+        ]
+      ],
+      "supports": "组件附加与INVENTORY复制策略"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+      "path": "src/main/java/dev/cammiescorner/hookshot/entity/HookshotEntity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/CammiesCorner__Hookshot-pre-common/src/main/java/dev/cammiescorner/hookshot/entity/HookshotEntity.java",
+      "sha256": "0c408919573f8a3b61f92fb64e4ab366d49fd6f2d6df8b156e439db69d80abec",
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a/src/main/java/dev/cammiescorner/hookshot/entity/HookshotEntity.java",
+      "read_ranges": [
+        [
+          1,
+          301
+        ]
+      ],
+      "supports": "完整状态/命中/退出/存储；与移包后版本仅package/import不同"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+      "path": "src/main/java/dev/cammiescorner/hookshot/item/HookshotItem.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/CammiesCorner__Hookshot-pre-common/src/main/java/dev/cammiescorner/hookshot/item/HookshotItem.java",
+      "sha256": "b09a1fd2d2cb64d27b4f329f81344f0be9e110a17bf57cfbef184cd986d8fef5",
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a/src/main/java/dev/cammiescorner/hookshot/item/HookshotItem.java",
+      "read_ranges": [
+        [
+          1,
+          144
+        ]
+      ],
+      "supports": "同一族真实hand输入、copy、release与当前held选择"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+      "path": "src/main/java/dev/cammiescorner/hookshot/component/PlayerHookOwnerComponent.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/CammiesCorner__Hookshot-pre-common/src/main/java/dev/cammiescorner/hookshot/component/PlayerHookOwnerComponent.java",
+      "sha256": "406648347c4f7567371da26864a8f3fd3b369382aa82d4aeb51bb820c8de8c6f",
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a/src/main/java/dev/cammiescorner/hookshot/component/PlayerHookOwnerComponent.java",
+      "read_ranges": [
+        [
+          1,
+          61
+        ]
+      ],
+      "supports": "仅hook布尔持久化；临时重力字段不写NBT"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+      "path": "src/main/java/dev/cammiescorner/hookshot/client/HookshotClient.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/CammiesCorner__Hookshot-pre-common/src/main/java/dev/cammiescorner/hookshot/client/HookshotClient.java",
+      "sha256": "1a6adc4a4ccb83a13d49443fd7774fe2ff3f2de755c2a35c9a629011fa25d4a8",
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a/src/main/java/dev/cammiescorner/hookshot/client/HookshotClient.java",
+      "read_ranges": [
+        [
+          1,
+          63
+        ]
+      ],
+      "supports": "当前优先主手栈驱动模型predicate"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+      "path": "src/main/java/dev/cammiescorner/hookshot/util/UpgradesHelper.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/CammiesCorner__Hookshot-pre-common/src/main/java/dev/cammiescorner/hookshot/util/UpgradesHelper.java",
+      "sha256": "761649cf05ca4e5c7e86cb7b6656452b597b4a6aee0c4683a8776dce35a5071d",
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a/src/main/java/dev/cammiescorner/hookshot/util/UpgradesHelper.java",
+      "read_ranges": [
+        [
+          1,
+          92
+        ]
+      ],
+      "supports": "升级从投射物快照栈NBT读取，与当前消耗栈分离"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a",
+      "path": "gradle/libs.versions.toml",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/CammiesCorner__Hookshot-pre-common/gradle/libs.versions.toml",
+      "sha256": "4a0c696f71f8ed9c66d8cf42260c1cec70695786964a9bb1f217c41adf9acbcb",
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/87ba2cde0e45f65b47edeeeb5480c90ad8dcd27a/gradle/libs.versions.toml",
+      "read_ranges": [
+        [
+          1,
+          44
+        ]
+      ],
+      "supports": "MC1.20.1/Fabric0.16.10/CCA5.2.3版本"
+    },
+    {
+      "repo": "local Forge1.20.1/47.4.10 engine comparison; not Fabric runtime proof",
+      "path": "net/minecraft/world/entity/Entity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/native-support/net/minecraft/world/entity/Entity.java",
+      "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "read_ranges": [
+        [
+          326,
+          358
+        ],
+        [
+          1109,
+          1115
+        ],
+        [
+          1614,
+          1643
+        ],
+        [
+          1717,
+          1756
+        ],
+        [
+          3357,
+          3368
+        ],
+        [
+          3543,
+          3565
+        ]
+      ],
+      "supports": "kill/discard→remove；setRemoved独立；NoGravity为同步数据且有NBT；不能把remove当所有卸载",
+      "credit": 0
+    },
+    {
+      "repo": "local Forge1.20.1/47.4.10 engine comparison; not Fabric runtime proof",
+      "path": "net/minecraft/world/item/ItemStack.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/native-support/net/minecraft/world/item/ItemStack.java",
+      "sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "read_ranges": [
+        [
+          163,
+          189
+        ]
+      ],
+      "supports": "of确实new ItemStack，不恢复对象引用",
+      "credit": 0
+    },
+    {
+      "repo": "local Forge1.20.1/47.4.10 engine comparison; not Fabric runtime proof",
+      "path": "net/minecraft/world/entity/projectile/Projectile.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/native-support/net/minecraft/world/entity/projectile/Projectile.java",
+      "sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+      "read_ranges": [
+        [
+          27,
+          85
+        ]
+      ],
+      "supports": "owner UUID持久化，缓存owner缺失时按同世界查询",
+      "credit": 0
+    },
+    {
+      "repo": "local Forge1.20.1/47.4.10 engine comparison; not Fabric runtime proof",
+      "path": "net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/native-support/net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+      "sha256": "45b64c31252785cab6462360b1b1f61d256a9cdb76c9bada08878807a0493814",
+      "read_ranges": [
+        [
+          199,
+          263
+        ]
+      ],
+      "supports": "存储后卸载直接setRemoved(UNLOADED_TO_CHUNK)，不调remove",
+      "credit": 0
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/init/ModCapabilities.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/init/ModCapabilities.java",
+      "sha256": "4b2020c7c69cd7017a40bcdae3655fa8856b503745de8cbedc9db54b539cfdc2",
+      "read_ranges": [
+        [
+          1,
+          52
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/init/ModCapabilities.java",
+      "supports": "能力附加及存活owner条件",
+      "read_note": "使用batch02已读固定版本证据，不重新计读法/文件信用。"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/capabilities/HookCapability.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/capabilities/HookCapability.java",
+      "sha256": "8c160d579b9080d632686fa9b3b37dbb658893a3003c9d65c982939a25f8e38e",
+      "read_ranges": [
+        [
+          1,
+          90
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/capabilities/HookCapability.java",
+      "supports": "bool及fallDistance，setter无发送",
+      "read_note": "使用batch02已读固定版本证据，不重新计读法/文件信用。"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/items/Tidal_Claws.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/items/Tidal_Claws.java",
+      "sha256": "43a755b358c924dcbe22cd38e2732ffa2b5d567667ed99aa433a0e62e92e63c1",
+      "read_ranges": [
+        [
+          1,
+          181
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/items/Tidal_Claws.java",
+      "supports": "左键与右键区分，真实hand入口和释放",
+      "read_note": "使用batch02已读固定版本证据，不重新计读法/文件信用。"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/entity/projectile/Tidal_Hook_Entity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/entity/projectile/Tidal_Hook_Entity.java",
+      "sha256": "385d3e8539ad3cbdd432e14e15f54930ec8ca0805bd095e728fd1fdbd4b1d429",
+      "read_ranges": [
+        [
+          1,
+          206
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/entity/projectile/Tidal_Hook_Entity.java",
+      "supports": "完整状态、命中、清理、上游出处",
+      "read_note": "使用batch02已读固定版本证据，不重新计读法/文件信用。"
+    }
+  ],
+  "production_modified": false,
+  "runtime_verified": false
+}

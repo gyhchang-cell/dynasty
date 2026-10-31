@@ -1,0 +1,204 @@
+plugins {
+    id 'idea'
+    id 'maven-publish'
+    alias libs.plugins.fabric.loom
+}
+
+def ENV = System.getenv()
+def buildTime = ENV.BUILD_TIME ?: new Date().format("yyyyMMddHHmmss")
+
+def javaVersion = 17
+
+group = project.maven_group_id
+
+boolean isPreviewBuild = !ENV.TAG || ENV.TAG.matches(".+-.+")
+def buildNumber = !ENV.TAG ? ("${ENV.BUILD_NUMBER ? "build.${ENV.BUILD_NUMBER}" : buildTime}-${libs.versions.minecraft.get()}") : ""
+version = (ENV.TAG ?: "development") + ((isPreviewBuild && !ENV.TAG) ? "+${buildNumber}" : "")
+
+base {
+    archivesName.set(project.mod_id)
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.terraformersmc.com' }
+    maven { url = 'https://maven.uuid.gg/releases' }
+    maven { url = 'https://maven.ladysnake.org/releases' }
+    maven { url = 'https://nexus.resourcefulbees.com/repository/maven-public' }
+    maven { url = 'https://maven.blamejared.com' }
+    maven {
+        name = 'ParchmentMC'
+        url = 'https://maven.parchmentmc.org'
+        content {
+            includeGroupAndSubgroups('org.parchmentmc')
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven { url = "https://api.modrinth.com/maven" }
+        }
+        filter {
+            includeGroup("maven.modrinth")
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven { url = "https://cursemaven.com" }
+        }
+        filter {
+            includeGroup("curse.maven")
+        }
+    }
+}
+
+dependencies {
+    minecraft libs.minecraft
+    mappings(loom.layered {
+        it.officialMojangMappings()
+        it.parchment("org.parchmentmc.data:parchment-${libs.versions.parchment.minecraft.get()}:${libs.versions.parchment.mappings.get()}@zip")
+    })
+
+    compileOnly libs.jetbrains.annotations
+
+    modImplementation libs.fabric.loader
+    modImplementation libs.fabric.api
+
+    modImplementation libs.sparkweave
+
+    modImplementation libs.bundles.cca
+
+    modCompileOnly libs.modmenu
+    modLocalRuntime libs.modmenu
+
+    modImplementation libs.resourceful.config
+
+    modImplementation libs.datasync.fabric
+    include libs.datasync.fabric
+
+    modCompileOnly variantOf(libs.emi) { classifier 'api' }
+    modLocalRuntime libs.emi
+
+    modCompileOnly libs.jei.api
+    modLocalRuntime libs.jei.full
+}
+
+fabricApi {
+    configureDataGeneration()
+}
+
+loom {
+    mods {
+        "${mod_id}" {
+            // Tell Loom about each source set used by your mod here. This ensures that your mod's classes are properly transformed by Loader.
+            sourceSet("main")
+        }
+    }
+
+    runs {
+        client {
+            ideConfigGenerated(true)
+            runDir("run")
+
+            if (project.hasProperty('mc_uuid')) {
+                programArg("--uuid=${project.findProperty('mc_uuid')}")
+            }
+
+            if (project.hasProperty('mc_username')) {
+                programArg("--username=${project.findProperty('mc_username')}")
+            }
+
+            if (project.hasProperty('mc_java_agent_path')) {
+                vmArg("-javaagent:${project.findProperty('mc_java_agent_path')}")
+            }
+        }
+    }
+}
+
+processResources {
+    filteringCharset = "UTF-8"
+
+    def expandProps = [
+            "version"             : version,
+            "maven_group_id"      : maven_group_id,
+            "mod_id"              : mod_id,
+            "mod_display_name"    : mod_display_name,
+            "mod_description"     : mod_description,
+            "sources_url"         : sources_url,
+            "issues_url"          : issues_url,
+            "license_url"         : license_url,
+            "discord_url"         : discord_url,
+            "homepage_url"        : homepage_url,
+
+            "minecraft_version"   : libs.versions.minecraft.get(),
+            "fabric_loader_version": libs.versions.fabric.loader.get(),
+            "java_version": "${javaVersion}",
+    ]
+
+    filesMatching(['pack.mcmeta', '*.mod.json', '*.mixins.json']) {
+        expand expandProps
+    }
+    inputs.properties(expandProps)
+}
+
+tasks.withType(JavaCompile) {
+    // ensure that the encoding is set to UTF-8, no matter what the system default is
+    // this fixes some edge cases with special characters not displaying correctly
+    // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
+    options.encoding = "UTF-8"
+
+    options.release.set(javaVersion)
+}
+
+java {
+    withSourcesJar()
+
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(javaVersion))
+        // TODO re-enable when switching to java 21
+//        vendor = JvmVendorSpec.MICROSOFT
+    }
+}
+
+jar {
+    from(layout.projectDirectory) {
+        include "LICENSE"
+        rename { "LICENSE_${project.mod_id}" }
+    }
+
+    manifest.mainAttributes(
+            "Implementation-Title": project.mod_id,
+            "Implementation-Version": project.version,
+            "Maven-Artifact": "${project.group}:${rootProject.name}-Fabric:${project.version}",
+            "Built-On-Minecraft": libs.versions.minecraft.get(),
+            "Built-On-Java": "${System.getProperty("java.vm.version")} (${System.getProperty("java.vm.vendor")})"
+    )
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId "${rootProject.name}-Fabric"
+            from components.java
+        }
+    }
+
+    repositories {
+        if (ENV.MAVEN_UPLOAD_URL) {
+            maven {
+                url = ENV.MAVEN_UPLOAD_URL
+                credentials {
+                    username = ENV.MAVEN_UPLOAD_USERNAME
+                    password = ENV.MAVEN_UPLOAD_PASSWORD
+                }
+            }
+        }
+    }
+}
+
+// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

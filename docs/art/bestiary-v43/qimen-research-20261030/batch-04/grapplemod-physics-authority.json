@@ -1,0 +1,721 @@
+{
+  "id": "grapplemod-physics-authority-context-extension",
+  "updated_utc": "2026-10-30T17:34:15.976366+00:00",
+  "status": "EXISTING_FAMILY_SUPPLEMENT_SELECTED_SOURCE_PATHS_READ_RUNTIME_AND_GLOBAL_REVIEW_PENDING",
+  "extends": "../batch-03/grapplemod-reviewed-proposal.json",
+  "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+  "minecraft": "1.20.1",
+  "forge": "47.1.0",
+  "new_independent_units": 0,
+  "new_accepted_credit": 0,
+  "human_creature_model_texture_reference_credit": 0,
+  "new_source_studies": 0,
+  "complete_this_batch": [
+    "补读GrappleController先前未读的碰撞/台阶/地面/跳力/斥力/火箭/墙跑辅助。",
+    "AIR控制器剩余方法、ClientControllerManager与ClientProxy辅助入口。",
+    "SegmentHandler、Vec、GrappleCustomization、Config及规则辅助全文。",
+    "四个实际注册C2S的处理与消费；准确Forge47.1.0的方向校验、sender和enqueueWork链。"
+  ],
+  "physics_findings": [
+    {
+      "topic": "约束与运动责任",
+      "observation": "GrappleController在客户端按折点至玩家的剩余绳长限制径向运动、超buffer则unattach；考虑马达、跳跃和climb。服务器PlayerMovementMessage消费位置/速度，不在该方法重算上述约束。",
+      "evidence": [
+        "GrappleController.java128–520",
+        "PlayerMovementMessage.java75–94"
+      ]
+    },
+    {
+      "topic": "碰撞与承重辅助",
+      "observation": "normalCollisions依现有水平/垂直碰撞标记截断motion；tryStepUp用抬高/前移后的碰撞查询，必要时setPos并改old坐标。normalGround有短暂onGroundTimer；这些是客户端辅助，不是服务器重新碰撞证明。",
+      "evidence": [
+        "GrappleController.java536–617",
+        "Vec.java207–217"
+      ]
+    },
+    {
+      "topic": "跳跃及AIR退出",
+      "observation": "绳跳先改motion，再unattach并updateServerPos；AIR可因乘坐/水/熔岩/着地退出，滑铲和墙跑另有门禁。FallFlying分支unattach后没有立即return，仍能在当前方法后续setMotion/updateServerPos；不等于实测故障。",
+      "evidence": [
+        "GrappleController.java619–683",
+        "AirfrictionController.java42–189"
+      ]
+    },
+    {
+      "topic": "向量数值范围",
+      "observation": "Vec的部分构造/setPos/setMotion检查NaN并归零整向量；normalize_ip和若干原地操作没有统一检查，checkNaN不检测Infinity。changeLen在零向量时返回原对象，mult等非原地API返回新对象。不能把忽略返回值的调用视为已经改值。",
+      "evidence": [
+        "Vec.java13–47,111–172,200–217"
+      ]
+    },
+    {
+      "topic": "折点长度及同步",
+      "observation": "SegmentHandler以三张并行列表存折点和两面朝向；update依前后tick射线求转角，受剩余长度约束，递归深度上限10；服务器增删发SegmentMessage到玩家所在区块的跟踪者。客户端按index直接增删并消费同一列表给绳renderer。",
+      "evidence": [
+        "SegmentHandler.java62–250,282–342",
+        "SegmentMessage.java74–91",
+        "RenderGrapplehookEntity.java227–254 (batch03)"
+      ]
+    },
+    {
+      "topic": "折点可变对象",
+      "observation": "getBendBlock取得segments[index]引用后直接add_ip偏移，两次调用会改变原列表点。只记录实际可变语义；是否在具体玩法引出可见漂移未实测。",
+      "evidence": [
+        "SegmentHandler.java275–280",
+        "Vec.java83–87"
+      ]
+    },
+    {
+      "topic": "自定义参数与CRC",
+      "observation": "NBT和buffer按固定键表读写17个boolean与16个double，CRC32不符重置默认值。setDouble/loadNBT/readFromBuf不通过getMin/getMax钳制；CRC是内容一致性检查，不是sender授权或升级权限校验。UI限制不应自动当作服务端边界。",
+      "evidence": [
+        "GrappleCustomization.java16–17,191–342,388–404",
+        "GrappleConfig.java23–57"
+      ]
+    },
+    {
+      "topic": "配置同步",
+      "observation": "登录服务端发LoggedInMessage，按字段名排序递归编码，客户端setServerOptions，getConf优先serverOptions；客户端注销时清它。此路径同步参数，不同步玩家钩引用或控制器持久化。",
+      "evidence": [
+        "CommonEventHandlers.java121–129",
+        "LoggedInMessage.java41–126",
+        "GrappleConfig.java384–394",
+        "ClientEventHandlers.java89–92"
+      ]
+    }
+  ],
+  "authority_chain": [
+    {
+      "layer": "注册及接收方向",
+      "result": "CommonSetup将4个C2S绑定PLAY_TO_SERVER；SimpleChannel实际addCodecIndex保存方向，IndexedMessageCodec.consume在decode/consumer前调用NetworkHooks.validatePacketDirection；不匹配断开并抛出。",
+      "evidence": [
+        "CommonSetup.java102–118",
+        "SimpleChannel.java71–77",
+        "IndexedMessageCodec.java137–158",
+        "NetworkHooks.java77–96"
+      ]
+    },
+    {
+      "layer": "连接sender与线程",
+      "result": "NetworkInstance以Connection构造Context；Context.getSender从ServerGamePacketListenerImpl返回连接玩家；enqueueWork按接收侧工作队列执行。模组BaseMessageServer做SERVER侧检查并排队；sender null分支只日志，不统一return。",
+      "evidence": [
+        "NetworkInstance.java65–70",
+        "NetworkEvent.java169–230",
+        "BaseMessageServer.java25–40"
+      ]
+    },
+    {
+      "layer": "KeypressMessage",
+      "result": "不接受任意payload owner ID；从ctx sender拿当前主手，若不是KeypressItem再取副手，再进入该物品回调。spawn的shootingEntity由这个LivingEntity实参设置。没有原发射栈唯一token或hand字段。",
+      "evidence": [
+        "KeypressMessage.java53–83",
+        "GrapplehookItem.java118–197,378–401",
+        "GrapplehookEntity.java67–84"
+      ]
+    },
+    {
+      "layer": "PlayerMovementMessage",
+      "result": "必须sender.getId()==payload.entityId才消费。之后直接以Vec.setPos/setMotion改sender并resetPosition；本处理不检查attached、注册钩集合或射线/速度预算。该ID条件不能替代完整运动合法性验证。",
+      "evidence": [
+        "PlayerMovementMessage.java75–94",
+        "Vec.java207–217"
+      ]
+    },
+    {
+      "layer": "GrappleEndMessage",
+      "result": "检查sender非空、取sender.level，随后payload.entityId与hookIDs原样交manager。manager对hookIDs只检查实体存在且是GrapplehookEntity便removeServer；随后按payload.entityId扫集合，不比较shootingEntity/ctx sender。方向认证不补这一归属条件。",
+      "evidence": [
+        "GrappleEndMessage.java59–69",
+        "ServerControllerManager.java21–54",
+        "GrapplehookEntity.java146–149"
+      ]
+    },
+    {
+      "layer": "GrappleModifierMessage辅助分支",
+      "result": "以ctx sender世界查询payload坐标，目标为TileEntityGrappleModifier便setCustomizationServer。该setter直接赋值并setChanged；本选定链未检查距离、解锁种类、手中物品或每参数范围。不将此辅助分支另计案例。",
+      "evidence": [
+        "GrappleModifierMessage.java48–56",
+        "TileEntityGrappleModifier.java32–45",
+        "GrappleCustomization.java330–342"
+      ]
+    },
+    {
+      "layer": "S2C接收者而非实体授权",
+      "result": "GrapplemodUtils的PLAYER发指定ServerPlayer；PacketDistributor真发该连接。TRACKING_CHUNK发区块跟踪玩家。两者决定接收者，不验证GrappleEnd里的实体拥有关系，也不带折点版本号/重放恢复证明。",
+      "evidence": [
+        "GrapplemodUtils.java13–20",
+        "PacketDistributor.java39–81,156–204,238–243"
+      ]
+    }
+  ],
+  "limits": [
+    "这是公开源码的静态阅读；未编译、运行、发网络包或复现漏洞。",
+    "原版连接/区块跟踪底层、其他模组注入和真实消息时序未全读或实测；不声称整个服务器已审计。",
+    "已读辅助源不等于所有物理模型数学稳定，也不等于完整物品/生物模型PNG视觉参考。",
+    "在本类spawn里保存shootingEntity运行时ID不是持久化owner UUID恢复；save/load/跨维/断线全生命周期仍未闭合。",
+    "折点消息按列表索引而无自身版本号，正常传输次序/区块订阅/迟到实体的实际表现待验证。",
+    "本记录未改外部模组与Dynasty；单钩/整组/辅助/Forge支持仍合并同一家族，0新增独立单位。"
+  ],
+  "pending_reads": [
+    {
+      "scope": "GrappleMod entity lifecycle",
+      "detail": "自身临时shootingEntity与继承NBT的完整存取/跨维/断线清理；未得实测结论。"
+    },
+    {
+      "scope": "Minecraft/Forge runtime",
+      "detail": "区块跟踪底层、网络迟到实体与真实时序；不因本轮读过Framework入口而宣称runtime通过。"
+    },
+    {
+      "scope": "global semantic acceptance",
+      "detail": "独立语义去重和验收尚未完成；不得本地自加信用。"
+    }
+  ],
+  "evidence": [
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/entities/grapplehook/SegmentHandler.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/entities/grapplehook/SegmentHandler.java",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/entities/grapplehook/SegmentHandler.java",
+      "sha256": "bfe49c014924ab41d26f5ee40a75a21480fd413a0d23c4344790a88fe6b33022",
+      "read_ranges": [
+        [
+          1,
+          370
+        ]
+      ],
+      "supports": "完整折点增删、回退、递归与长度/包围盒计算",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/utils/Vec.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/utils/Vec.java",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/utils/Vec.java",
+      "sha256": "d1b2a93e438de42609dda80ef598ec3b1ce1090af71e81281e1eabec1207dd50",
+      "read_ranges": [
+        [
+          1,
+          222
+        ]
+      ],
+      "supports": "完整向量可变/不可变操作、NaN范围、setPos与setMotion实际消费",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/utils/GrappleCustomization.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/utils/GrappleCustomization.java",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/utils/GrappleCustomization.java",
+      "sha256": "a7852b12add6770d5dbb02b7d121cd25ec3fa16b37b6d9ea422145f950393e5e",
+      "read_ranges": [
+        [
+          1,
+          421
+        ]
+      ],
+      "supports": "完整默认值、NBT/byte buffer序列化、CRC和范围getter",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/config/GrappleConfig.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/config/GrappleConfig.java",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/config/GrappleConfig.java",
+      "sha256": "0de31058493c57de4c4408fb5d000894d7d507b2bcaf34fa191f8924ea50cc96",
+      "read_ranges": [
+        [
+          1,
+          399
+        ]
+      ],
+      "supports": "完整物理参数默认值与服务端配置选择",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/config/GrappleConfigUtils.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/config/GrappleConfigUtils.java",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/config/GrappleConfigUtils.java",
+      "sha256": "2598fef08a98aeb57a1e9eb9d8e3d4b5681b588e9bca2e018c8c3c102b6bb116",
+      "read_ranges": [
+        [
+          1,
+          110
+        ]
+      ],
+      "supports": "完整可钩/破坏方块规则辅助",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/SegmentMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/SegmentMessage.java",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/SegmentMessage.java",
+      "sha256": "1373710eef12034644779d89beefe0ba0cbd2e3a010ffdb3ab5f138a3b7ca52d",
+      "read_ranges": [
+        [
+          1,
+          92
+        ]
+      ],
+      "supports": "完整客户端折点增删消费",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/GrappleModifierMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/GrappleModifierMessage.java",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/GrappleModifierMessage.java",
+      "sha256": "f4e6a2a9f2f92db415c6b2f9552c5ca99d8c860e4664699585cf7ac940584605",
+      "read_ranges": [
+        [
+          1,
+          57
+        ]
+      ],
+      "supports": "完整C2S修改器消息校验链",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/blocks/modifierblock/TileEntityGrappleModifier.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/blocks/modifierblock/TileEntityGrappleModifier.java",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/blocks/modifierblock/TileEntityGrappleModifier.java",
+      "sha256": "dcd5f11aa16edd85982904da2ec0a9da91ee3a6813000fd40adf054d8dfdf08a",
+      "read_ranges": [
+        [
+          1,
+          121
+        ]
+      ],
+      "supports": "完整参数接收、保存与更新消费",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/LoggedInMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/LoggedInMessage.java",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/LoggedInMessage.java",
+      "sha256": "8c58fdac8e465d46d7f1da0b1342b17c9548fc3407033e2fec02e4d26b5d78b0",
+      "read_ranges": [
+        [
+          1,
+          127
+        ]
+      ],
+      "supports": "完整配置S2C编码解码与serverOptions写入",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/controllers/GrappleController.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/controllers/GrappleController.java",
+      "sha256": "161387d7da30038ef183be59f5c67f704be2168487a0b8f1d6bf067ebd11f561",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/controllers/GrappleController.java",
+      "read_ranges": [
+        [
+          536,
+          637
+        ],
+        [
+          657,
+          683
+        ],
+        [
+          729,
+          788
+        ],
+        [
+          811,
+          1046
+        ]
+      ],
+      "supports": "补足先前物理辅助断点；连同batch03既有范围现已覆盖该class全文",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/controllers/AirfrictionController.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/controllers/AirfrictionController.java",
+      "sha256": "7f542a1dea223b843d60843cbc79d186e0c9821254a2f9dbb315c06ba40bb71f",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/controllers/AirfrictionController.java",
+      "read_ranges": [
+        [
+          60,
+          204
+        ]
+      ],
+      "supports": "补足AIR动作、终止条件与当前tick退出后仍继续的具体分支",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/client/ClientControllerManager.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/client/ClientControllerManager.java",
+      "sha256": "5198d3908c15e1af5c709d2a8de9433a3b93032fba3b12d4b3d978d4616555cb",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/client/ClientControllerManager.java",
+      "read_ranges": [
+        [
+          101,
+          299
+        ],
+        [
+          407,
+          483
+        ]
+      ],
+      "supports": "墙跑/滑铲/二段跳/火箭燃料及辅助入口；连同batch03覆盖全文",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/client/ClientProxy.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/client/ClientProxy.java",
+      "sha256": "679ffd47ab2a0720bcb03d110d16647b083abef83998e00776239a0d1dd61835",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/client/ClientProxy.java",
+      "read_ranges": [
+        [
+          44,
+          93
+        ],
+        [
+          103,
+          180
+        ],
+        [
+          208,
+          264
+        ]
+      ],
+      "supports": "辅助调用真实代理；连同batch03覆盖全文",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/common/CommonSetup.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/common/CommonSetup.java",
+      "sha256": "dac2651544ac13af0864236d06a86840a92f0807f03bad1f69f552a7ce3caf4c",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/common/CommonSetup.java",
+      "read_ranges": [
+        [
+          102,
+          118
+        ]
+      ],
+      "supports": "实际四个C2S/其余S2C消息方向和方法引用注册",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/BaseMessageServer.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/BaseMessageServer.java",
+      "sha256": "cfe650914239de833d1cf729d92bdefada2c2c6b6686e16e95490bc7fd3974d2",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/BaseMessageServer.java",
+      "read_ranges": [
+        [
+          1,
+          42
+        ]
+      ],
+      "supports": "接收侧检查、sender null仅警告、enqueueWork入口",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/KeypressMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/KeypressMessage.java",
+      "sha256": "e8e26404ce3c063292badb0cfc2353999a91e4977bc2e8790e2dc5f06ea09b48",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/KeypressMessage.java",
+      "read_ranges": [
+        [
+          1,
+          84
+        ]
+      ],
+      "supports": "sender→当前主手优先→物品回调，非payload实体ID",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/PlayerMovementMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/PlayerMovementMessage.java",
+      "sha256": "5b30264e6775e51f306a1f783a829e45ca5fe2e59fe55da0e8fb150dede8f8f1",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/PlayerMovementMessage.java",
+      "read_ranges": [
+        [
+          1,
+          95
+        ]
+      ],
+      "supports": "sender id与payload entityId相等才setPos/setMotion/resetPosition",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/network/GrappleEndMessage.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/network/GrappleEndMessage.java",
+      "sha256": "6a7a3b8ac718496683ab3e76acedb963a422a4d440ff39b5321561edc3105c3a",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/network/GrappleEndMessage.java",
+      "read_ranges": [
+        [
+          1,
+          70
+        ]
+      ],
+      "supports": "sender非空后使用sender世界但payload IDs原样传manager",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/server/ServerControllerManager.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/server/ServerControllerManager.java",
+      "sha256": "854856355f64c1c0b5d0fb7a17455148dcdcc8450311a4d10f4efa4b3a25cf9a",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/server/ServerControllerManager.java",
+      "read_ranges": [
+        [
+          1,
+          55
+        ]
+      ],
+      "supports": "移除class与ID查找、玩家集合清空，未比对shootingEntity",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/items/GrapplehookItem.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/items/GrapplehookItem.java",
+      "sha256": "479627d8dc2de9990648653bf1fa4dbfd04c48758822e9be16e801e4133238d0",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/items/GrapplehookItem.java",
+      "read_ranges": [
+        [
+          55,
+          92
+        ],
+        [
+          118,
+          405
+        ],
+        [
+          514,
+          542
+        ]
+      ],
+      "supports": "输入授权/创建登记/局部与整组解除/丢弃，沿用batch03完整阅读证据",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/entities/grapplehook/GrapplehookEntity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/entities/grapplehook/GrapplehookEntity.java",
+      "sha256": "8f48c469451688f76f604de143572e8c6570b9bd9bfdfc472804d38bf86fb006",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/entities/grapplehook/GrapplehookEntity.java",
+      "read_ranges": [
+        [
+          59,
+          149
+        ],
+        [
+          155,
+          295
+        ],
+        [
+          328,
+          454
+        ]
+      ],
+      "supports": "发射者自有字段与spawn数据；tick/命中/挂接服务器生产点",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/utils/GrapplemodUtils.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/utils/GrapplemodUtils.java",
+      "sha256": "e287c2da12038321a880dc5e80e9426374fd8647dc715bb4888fba197c0d5909",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/utils/GrapplemodUtils.java",
+      "read_ranges": [
+        [
+          1,
+          43
+        ]
+      ],
+      "supports": "具体玩家路由和block ray trace",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/common/CommonEventHandlers.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/common/CommonEventHandlers.java",
+      "sha256": "05de40eca49c3ed5ed7b0ac21418d2d4fadbabddfb8983d14d6329b0ecc952fe",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/common/CommonEventHandlers.java",
+      "read_ranges": [
+        [
+          55,
+          80
+        ],
+        [
+          114,
+          129
+        ]
+      ],
+      "supports": "死亡清理与登录配置生产点",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "repo": "yyon/grapplemod",
+      "commit": "40080155cf1160b3ef4c6db9d47d01746925f9f1",
+      "path": "src/main/java/com/yyon/grapplinghook/client/ClientEventHandlers.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-03/sources/yyon__grapplemod/src/main/java/com/yyon/grapplinghook/client/ClientEventHandlers.java",
+      "sha256": "15ed6ccb24e726a785ea2a9788709a886a83c18a6adc5a6b79b408975cc0fd8f",
+      "url": "https://github.com/yyon/grapplemod/blob/40080155cf1160b3ef4c6db9d47d01746925f9f1/src/main/java/com/yyon/grapplinghook/client/ClientEventHandlers.java",
+      "read_ranges": [
+        [
+          39,
+          74
+        ],
+        [
+          89,
+          92
+        ],
+        [
+          117,
+          148
+        ]
+      ],
+      "supports": "client tick与输入辅助入口、注销只清serverOptions",
+      "read_status": "SUPPLEMENT_OR_REUSED_BATCH03_READ"
+    },
+    {
+      "source": "Forge official Maven source artifact",
+      "version": "1.20.1-47.1.0",
+      "artifact": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.1.0/forge-1.20.1-47.1.0-sources.jar",
+      "artifact_sha1": "a1481dc60f93c78f257f8e755385897a3ca85bb1",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/forge-47.1.0-support/net/minecraftforge/network/simple/SimpleChannel.java",
+      "path": "net/minecraftforge/network/simple/SimpleChannel.java",
+      "sha256": "fdfe6e628674392aba1e8f234ac93fd499887d58485448577f60e3cfd2ad228c",
+      "read_ranges": [
+        [
+          1,
+          120
+        ],
+        [
+          157,
+          313
+        ]
+      ],
+      "supports": "准确版本的方向校验/连接sender/工作队列/注册分派/接收者路由；未执行Jar",
+      "native_credit": 0
+    },
+    {
+      "source": "Forge official Maven source artifact",
+      "version": "1.20.1-47.1.0",
+      "artifact": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.1.0/forge-1.20.1-47.1.0-sources.jar",
+      "artifact_sha1": "a1481dc60f93c78f257f8e755385897a3ca85bb1",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/forge-47.1.0-support/net/minecraftforge/network/simple/IndexedMessageCodec.java",
+      "path": "net/minecraftforge/network/simple/IndexedMessageCodec.java",
+      "sha256": "bdc9ada08d370ac36fe0b8e5afe71a6fafe3f8f1fcc7b927052609e4b93a10a4",
+      "read_ranges": [
+        [
+          1,
+          159
+        ]
+      ],
+      "supports": "准确版本的方向校验/连接sender/工作队列/注册分派/接收者路由；未执行Jar",
+      "native_credit": 0
+    },
+    {
+      "source": "Forge official Maven source artifact",
+      "version": "1.20.1-47.1.0",
+      "artifact": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.1.0/forge-1.20.1-47.1.0-sources.jar",
+      "artifact_sha1": "a1481dc60f93c78f257f8e755385897a3ca85bb1",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/forge-47.1.0-support/net/minecraftforge/network/NetworkEvent.java",
+      "path": "net/minecraftforge/network/NetworkEvent.java",
+      "sha256": "fa0451e1c9f155b878d9715e5d5c81f0cdd0ad0c0dbfb0d0b716fd51fb549fde",
+      "read_ranges": [
+        [
+          1,
+          90
+        ],
+        [
+          145,
+          276
+        ]
+      ],
+      "supports": "准确版本的方向校验/连接sender/工作队列/注册分派/接收者路由；未执行Jar",
+      "native_credit": 0
+    },
+    {
+      "source": "Forge official Maven source artifact",
+      "version": "1.20.1-47.1.0",
+      "artifact": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.1.0/forge-1.20.1-47.1.0-sources.jar",
+      "artifact_sha1": "a1481dc60f93c78f257f8e755385897a3ca85bb1",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/forge-47.1.0-support/net/minecraftforge/network/NetworkInstance.java",
+      "path": "net/minecraftforge/network/NetworkInstance.java",
+      "sha256": "22a1601f3790a9b2bb9a56a8c8c45bd66345bdc13b1a25a15614e7ff5e81562f",
+      "read_ranges": [
+        [
+          1,
+          103
+        ]
+      ],
+      "supports": "准确版本的方向校验/连接sender/工作队列/注册分派/接收者路由；未执行Jar",
+      "native_credit": 0
+    },
+    {
+      "source": "Forge official Maven source artifact",
+      "version": "1.20.1-47.1.0",
+      "artifact": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.1.0/forge-1.20.1-47.1.0-sources.jar",
+      "artifact_sha1": "a1481dc60f93c78f257f8e755385897a3ca85bb1",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/forge-47.1.0-support/net/minecraftforge/network/NetworkHooks.java",
+      "path": "net/minecraftforge/network/NetworkHooks.java",
+      "sha256": "7b84018082618cd1c238087434c8a8fba7280ad445ca2366a7821deac790e87c",
+      "read_ranges": [
+        [
+          70,
+          110
+        ]
+      ],
+      "supports": "准确版本的方向校验/连接sender/工作队列/注册分派/接收者路由；未执行Jar",
+      "native_credit": 0
+    },
+    {
+      "source": "Forge official Maven source artifact",
+      "version": "1.20.1-47.1.0",
+      "artifact": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.1.0/forge-1.20.1-47.1.0-sources.jar",
+      "artifact_sha1": "a1481dc60f93c78f257f8e755385897a3ca85bb1",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/forge-47.1.0-support/net/minecraftforge/network/PacketDistributor.java",
+      "path": "net/minecraftforge/network/PacketDistributor.java",
+      "sha256": "f26139ef1cff62348962c934f146ecb53639d44fc4c9f2656539f8488c9cdc17",
+      "read_ranges": [
+        [
+          1,
+          252
+        ]
+      ],
+      "supports": "准确版本的方向校验/连接sender/工作队列/注册分派/接收者路由；未执行Jar",
+      "native_credit": 0
+    }
+  ]
+}
