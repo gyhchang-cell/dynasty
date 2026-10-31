@@ -1,0 +1,1630 @@
+{
+  "schema_version": 1,
+  "status": "OFFLINE_LIFECYCLE_REVIEW_COMPLETE_WITH_CONDITIONAL_RISKS",
+  "recorded_at_utc": "2026-10-31T02:03:56Z",
+  "deadline_utc": "2026-10-31T04:09:23Z",
+  "previous_receipt": "bug-review-by-ui-thread-20261031.json",
+  "previous_receipt_sha256": "cd20ad2b59bab0d8c976a4c45a402f9cac3da5bdea887c869e20b7c8ef5f5b60",
+  "accepted_semantics": "Personal advancement belongs only to the actual maker; ordinary FTB party sharing and distinct-team isolation remain unchanged. No personal-task rewrite.",
+  "scope": "Offline follow-up of pre-prerequisite crafting, later submission, party create/join/leave and normal save/reload; existing Forge and FTB Quests2001.4.22 source plus local jar static references.",
+  "boundaries": {
+    "production_changes": 0,
+    "master_ledger_changes": 0,
+    "original_contract_changes": 0,
+    "previous_receipt_changes": 0,
+    "original_save_reads": 0,
+    "new_rewards": 0,
+    "commit_push_publish": false,
+    "java_game_or_server_started": false,
+    "network_requests_this_batch": 0,
+    "github_downloads": 0,
+    "research_credit_added": 0,
+    "native_acceptance_credit_added": 0,
+    "new_variant_1000_gate_met": false
+  },
+  "state_model": [
+    {
+      "state": "H[player UUID, advancement ID, criterion]",
+      "owner": "Minecraft PlayerAdvancements",
+      "persistence": "world advancements/<player UUID>.json",
+      "notes": "Independent from FTB team selection. Registry advancement and code criterion must still exist."
+    },
+    {
+      "state": "P[team UUID, task ID]; C[team UUID, object ID]",
+      "owner": "FTB TeamData taskProgress/completed",
+      "persistence": "FTBQUESTS_DATA/<team UUID>.snbt",
+      "notes": "Both progression and completion are team state. Completing P/C does not reverse-award H to party members."
+    },
+    {
+      "state": "R[reward key]",
+      "owner": "FTB TeamData claimedRewards",
+      "persistence": "claimed_rewards in the team SNBT",
+      "notes": "Existing keys and ownership retained; proposed four nodes stay rewards:[]. No separate payout ledger."
+    },
+    {
+      "state": "dependency cache and shouldSave",
+      "owner": "FTB TeamData runtime state",
+      "persistence": "Not serialized as progression; caches start empty and shouldSave starts false in a new TeamData object.",
+      "notes": "A change being visible in memory/client synchronization does not alone prove it was marked for disk save."
+    }
+  ],
+  "causal_sequences": [
+    {
+      "id": "LIFE-01",
+      "scenario": "Maker crafts before FTB predecessors are complete",
+      "steps": [
+        "A registered personal code advancement can be awarded directly by the crafting handler without testing FTB prerequisites (current marching-wine bridge is the concrete existing analogue; the four future dedicated receipts are not implemented).",
+        "With the current pack progression_mode:linear, FTB playerTick checks canStartTasks before submitTask; incomplete prerequisites stop P/C updates even if H is already true.",
+        "A retains H after transferring/consuming the item. Inventory discovery is not a substitute for H.",
+        "When a predecessor completes normally through TeamData.setCompleted/setProgress, it clears dependency caches and marks the team dirty.",
+        "For LINEAR dependants, Quest.checkForDependantCompletion does not submit their advancement tasks; the next eligible actor's normal submission path performs that step.",
+        "AdvancementTask polls every5 game ticks via PLAYER_POST. Once prerequisites are met and A is online in that team, canSubmit reads A's H; AbstractBooleanTask sets team progress1; Task.onCompleted records task completion, then Quest.onCompleted records quest completion.",
+        "Quest/chapter iteration is not a topological guarantee. A chain can need a later polling pass; do not require the whole chain to finish in one login callback or assert fixed wall-clock latency."
+      ],
+      "evidence": [
+        "FTBQuestsEventHandler145-175",
+        "AdvancementTask108-128",
+        "AbstractBooleanTask25-29",
+        "TeamData185-207,571-596,663-717",
+        "Task103-115",
+        "Quest569-603",
+        "BaseQuestFile1444-1445",
+        "ContentProgress62-65; DynastyAdvancements21-31"
+      ]
+    },
+    {
+      "id": "LIFE-02",
+      "scenario": "A crafts early, goes offline; B completes the shared prerequisites",
+      "steps": [
+        "A's personal advancement can be saved while the shared child task remains incomplete.",
+        "B can complete team prerequisites, but if B lacks H, B's AdvancementTask.canSubmit is false.",
+        "The examined FTB callback/polling path evaluates the online submitter's PlayerAdvancements; it does not read offline members' advancement JSON files.",
+        "The child can remain incomplete until A returns to this team (or another online member independently has H), after which login submission or the5-tick polling path can submit it.",
+        "This is delayed submission with preserved individual history, not permission to award A's history to B."
+      ],
+      "evidence": [
+        "AdvancementTask114-128",
+        "FTBQuestsEventHandler145-175",
+        "ServerQuestFile166-198",
+        "Forge PlayerList330-341,345-371"
+      ]
+    },
+    {
+      "id": "LIFE-03",
+      "scenario": "Join an existing party",
+      "steps": [
+        "ServerQuestFile.playerChangedTeam selects the previous and current TeamData from the event.",
+        "For personal→party where the joining player is not the party owner, mergeData takes maximum task progress, keeps destination existing started/completed/reward timestamps when IDs overlap, and adds missing entries from the old personal team.",
+        "It then calls checkAutoCompletion for quests in the current player context and sends team metadata/full current-team synchronization.",
+        "This callback does not scan or merge personal Minecraft advancement histories and does not itself call every advancement task's submitTask.",
+        "Subsequent regular player ticks evaluate H against the player's now-current team. Already-completed team tasks skip resubmission.",
+        "See conditional cache/save risks FTB-LIFE-R01/R02 below; normal source-flow predictions must not assume merge itself repairs those states."
+      ],
+      "evidence": [
+        "ServerQuestFile227-245",
+        "TeamData754-763",
+        "BaseQuestFile1014-1029",
+        "FTBQuestsEventHandler157-171"
+      ]
+    },
+    {
+      "id": "LIFE-04",
+      "scenario": "Create a new party",
+      "steps": [
+        "teamCreated creates/gets TeamData, marks newly created data dirty, sets its team name and adds it to the quest file.",
+        "If it is a party team, copyData copies the creator's personal-team progress/completion/rewards/player data/locks into the new party.",
+        "The earlier markDirty covers a newly created team's copied state; unlike the existing-party merge case, this path has an explicit dirty mark.",
+        "Personal Minecraft H stays with the creator UUID. Newly joining teammates see shared FTB completion without receiving that H."
+      ],
+      "evidence": [
+        "ServerQuestFile202-224",
+        "TeamData774-781"
+      ]
+    },
+    {
+      "id": "LIFE-05",
+      "scenario": "Leave a party and return to one's personal team",
+      "steps": [
+        "ServerQuestFile resolves the prior party and existing personal-team records.",
+        "It copies only claimed reward entries matching the destination personal team UUID through mergeClaimedRewards; it does not copy the party's taskProgress or completed map into the personal team.",
+        "The personal team's old P/C therefore returns; its old prerequisites may differ from the party's.",
+        "A genuine maker's H remains true and can resubmit to the personal team's node when its personal prerequisites permit.",
+        "A teammate who never crafted does not acquire H through shared completion. Shared-only progress is not enough to newly submit the personal task after leaving.",
+        "Existing completed personal nodes remain completed. The accepted behavior does not reset them.",
+        "The reviewed callback has explicit personal→party and party→personal branches; no unconditional assertion is made about administrative direct party→party transfers or absent previous-team events."
+      ],
+      "evidence": [
+        "ServerQuestFile227-245",
+        "TeamData765-781",
+        "Forge PlayerList806-818",
+        "AdvancementTask114-128"
+      ]
+    },
+    {
+      "id": "LIFE-06",
+      "scenario": "Normal save and restart/login",
+      "steps": [
+        "Minecraft stores PlayerAdvancements in the player-UUID map. Creating ServerPlayer obtains that object; its constructor loads the UUID JSON. Normal player save/logout calls PlayerAdvancements.save.",
+        "PlayerAdvancements.load resolves each saved advancement against the currently registered definitions and reconciles criteria/requirements. Missing advancement IDs are skipped; renamed/deleted criteria are removed by AdvancementProgress.update.",
+        "FTB server-start loads quest definitions first and then reads each team SNBT into a new TeamData. It restores task progress, started/completed maps, repeatability, claimed rewards and per-player data, not Minecraft H.",
+        "The post-team-login handler resolves the current team, sends definitions/editor state, attaches inventory detection, then visits quests in player context if the team is unlocked.",
+        "It handles eligible FLEXIBLE prefilled tasks (not this pack's default), recognizes raw completed quests, checks existing autoclaim rewards, and submits checkOnLogin tasks whose prerequisites allow it.",
+        "AdvancementTask inherits checkOnLogin:true because Task.canInsertItem is false and thus consumesResources is false. Its current-player H is checked on this login path.",
+        "The normal5-game-tick advancement poll remains the later recovery path when a prerequisite was not yet complete at that quest's position in the login iteration."
+      ],
+      "evidence": [
+        "Forge ServerPlayer254; PlayerList330-341,345-371,806-818; PlayerAdvancements63-90,110-164,306-308; AdvancementProgress34-46",
+        "ServerQuestFile67-98,166-198",
+        "TeamData336-400",
+        "Task204-209,301-303",
+        "FTBQuestsEventHandler49-95,145-175"
+      ]
+    },
+    {
+      "id": "LIFE-07",
+      "scenario": "Durability/recovery asymmetry",
+      "steps": [
+        "FTB world-save/server-stop calls saveNow, which invokes each TeamData.saveIfChanged; only dirty team data is written.",
+        "Minecraft advancement JSON and FTB team SNBT are separate saves; the inspected code is not an atomic cross-file craft transaction.",
+        "If valid H survives but a team completion was not yet saved, online submission can reconstruct P/C once prerequisites allow it; no recraft is required in the ordinary valid-ID path.",
+        "If team C survives but H is missing, team completion does not reconstruct the personal crafting fact. This preserves the agreed maker-only history.",
+        "An ordinary save/reload does not prove crash safety. Missing registry IDs, changed criterion names, changed task IDs and corrupt/missing files are separate migration cases; do not overwrite old IDs or use shared completion as a substitute personal receipt."
+      ],
+      "evidence": [
+        "ServerQuestFile136-149",
+        "TeamData124-129,336-400",
+        "Forge PlayerAdvancements110-164; AdvancementProgress34-46",
+        "AbstractBooleanTask26-29",
+        "BaseQuestFile1137-1159"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "FTB-LIFE-R01",
+      "priority": "P2",
+      "status": "CONFIRMED_STATIC_OMISSION_CONDITIONAL_RUNTIME_IMPACT",
+      "title": "Existing-party merge does not invalidate cached prerequisite results",
+      "cause": "TeamData.mergeData mutates completed/started/taskProgress maps directly but never calls clearCachedProgress. Its playerChangedTeam caller checks autoclaim and sends synchronization, also without an unconditional server cache invalidation.",
+      "concrete_preconditions": [
+        "Destination party has already cached false for child prerequisites.",
+        "Joining personal team supplies those missing completed predecessors.",
+        "The child's eligible maker is online, but no other completion/reward/edit event clears the dependency cache after merge."
+      ],
+      "expected_static_consequence": "canStartTasks can continue using cached false and skip the otherwise-eligible advancement submission until another path clears the cache (or data is reconstructed with empty caches). This is a conditional upstream lifecycle risk, not a native reproduced hang.",
+      "masking_conditions": [
+        "A newly granted reward calls markRewardAsClaimed, which clears caches.",
+        "Other task progress/completion or explicit cache refresh also clears caches.",
+        "A freshly created party starts with fresh caches, so it is not the same setup."
+      ],
+      "evidence": [
+        "TeamData571-596,329-333,754-763",
+        "ServerQuestFile227-245",
+        "local installed TeamData.class mergeData and all its lambda references; ServerQuestFile.class lambda$playerChangedTeam$9"
+      ],
+      "action": "Record for a later authorized two-player acceptance case. No FTB/Dynasty repair or cache clearing performed."
+    },
+    {
+      "id": "FTB-LIFE-R02",
+      "priority": "P2",
+      "status": "CONFIRMED_STATIC_OMISSION_CONDITIONAL_RUNTIME_IMPACT",
+      "title": "Merge-only progress/reward changes are not independently marked for saving",
+      "cause": "mergeData and mergeClaimedRewards do not call markDirty or set shouldSave. saveIfChanged only writes when shouldSave is true. The existing-party join/leave callback and server-side sync message construction do not provide an unconditional dirty mark.",
+      "concrete_preconditions": [
+        "Destination TeamData was clean after its previous save.",
+        "Join adds progress/completion, or leave adds claimed reward keys.",
+        "No later legitimate progress/reward/name/edit change marks the destination team dirty before the save/restart."
+      ],
+      "expected_static_consequence": "The merge can be visible in memory and sent to clients yet be omitted by the next saveIfChanged. Reload can restore the older team snapshot. Maker H may later resubmit progress, but that does not prove every shared completion or merged claimed-reward entry was persisted.",
+      "masking_conditions": [
+        "New-party creation explicitly marks new TeamData dirty before copying.",
+        "Unclaimed auto rewards may mark the destination dirty during join.",
+        "Any later dirtying activity may incidentally save the merge."
+      ],
+      "evidence": [
+        "TeamData78,109-128,754-781",
+        "ServerQuestFile136-144,202-245",
+        "TeamDataUpdate constructors only read UUID/name; SyncTeamDataMessage constructor/write stores and serializes TeamData; TeamData.write434-485 has no dirty/cache mutation"
+      ],
+      "action": "Later acceptance must include clean-destination merge, no unrelated mutations, save/reload, and unchanged existing claimed-reward keys. This batch adds no reward, migration or save workaround."
+    },
+    {
+      "id": "FTB-LIFE-N01",
+      "priority": "info",
+      "status": "CONFIRMED_SOURCE_BOUNDARY",
+      "title": "Offline maker history is not eagerly swept by a teammate's prerequisite completion",
+      "detail": "Normal linear dependants wait for an eligible online submitter's advancement. Requiring immediate completion while only a non-maker teammate is online would contradict the inspected submission mechanism.",
+      "evidence": [
+        "Quest589-603",
+        "AdvancementTask114-128",
+        "FTBQuestsEventHandler145-175"
+      ]
+    },
+    {
+      "id": "FTB-LIFE-N02",
+      "priority": "info",
+      "status": "CONFIRMED_SOURCE_BOUNDARY",
+      "title": "Party leave restores personal quest progress rather than copying all party completions",
+      "detail": "Only matching claimed rewards are merged back. The maker's personal advancement allows later valid resubmission; another member's shared-only completion cannot create personal crafting history.",
+      "evidence": [
+        "ServerQuestFile238-245",
+        "TeamData765-772"
+      ]
+    },
+    {
+      "id": "FTB-LIFE-N03",
+      "priority": "info",
+      "status": "CONFIRMED_SOURCE_BOUNDARY",
+      "title": "Stable advancement ID, code criterion and numeric quest/task IDs are distinct persistence requirements",
+      "detail": "Minecraft reload resolves advancement definitions and removes unknown criteria; FTB restores numeric keyed maps. Keeping one identity does not compensate for renumbering the other. Existing H/C are not bidirectionally reconciled.",
+      "evidence": [
+        "Forge PlayerAdvancements123-130,306-308; AdvancementProgress34-46",
+        "TeamData378-387,410-415",
+        "BaseQuestFile1137-1159"
+      ]
+    }
+  ],
+  "acceptance_cases": [
+    {
+      "scenario": "early craft, same team, then ordinary prerequisite completion",
+      "expected": "A's H remains true; team child submits when A next qualifies; no recraft or item retention required.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "early craft then A offline, B without H completes prerequisites",
+      "expected": "Child may wait until a qualified maker returns; B must not receive H.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "login with valid H and already-complete team prerequisites",
+      "expected": "AdvancementTask is a nonconsuming checkOnLogin task; it can submit during login, with periodic polling as later recovery.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "child visited before its final prerequisite in login traversal",
+      "expected": "Allow a later normal polling pass; do not require one topologically ordered login pass.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "A joins an existing party with true H but no old task C",
+      "expected": "No H copy; normal current-team submission may create C once party prerequisites allow it.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "B joins party where A already completed the child",
+      "expected": "B sees shared C but H[B] remains false.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "A leaves party, personal prerequisites incomplete",
+      "expected": "H[A] survives; personal child waits for personal prerequisites.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "B leaves with only party-shared completion",
+      "expected": "Old personal C returns; shared C alone must not award H[B] or create a personal crafting receipt.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "clean existing party with cached-false prerequisite, import the missing predecessor",
+      "expected": "Exercise R01 without unrelated cache-clearing progress/reward events.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "clean destination, merge only, save/reload without extra progress/rewards",
+      "expected": "Exercise R02; verify imported P/C and existing reward-claim keys survive.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "maker H saved, team C missing",
+      "expected": "Re-submit from H once eligible; do not trigger a second custom payout.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "team C saved, maker H missing",
+      "expected": "Do not infer/regrant H from shared C; investigate persistence/identity separately.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "normal reload with stable IDs; variant item already consumed",
+      "expected": "History is independent of held item; no inventory-based reconstruction needed.",
+      "native_status": "NOT_RUN"
+    },
+    {
+      "scenario": "old completed IDs and claimed rewards across join/leave/reload",
+      "expected": "Preserve existing keys and intended team/per-player semantics; no new rewards added for this audit.",
+      "native_status": "NOT_RUN"
+    }
+  ],
+  "evidence": {
+    "official_common_sources": {
+      "url": "https://maven.ftb.dev/releases/dev/ftb/mods/ftb-quests/2001.4.22/ftb-quests-2001.4.22-sources.jar",
+      "sha256": "d58591ed78ed47c4965b2df141f22fc322ed225e5ddacfc992d74fd7cce57428",
+      "access": "Reused existing in-session source text; no re-download."
+    },
+    "installed_jar": {
+      "path": "modpack/mods/ftb-quests-forge-2001.4.22.jar",
+      "sha256": "9ea9d159a78a2724cfe0457b024680fdb52a2126eff9cfa5280a30578f647a68"
+    },
+    "ftb_source_ranges": {
+      "FTBQuestsEventHandler.java": [
+        [
+          49,
+          116
+        ],
+        [
+          145,
+          175
+        ]
+      ],
+      "AdvancementTask.java": [
+        [
+          108,
+          128
+        ]
+      ],
+      "AbstractBooleanTask.java": [
+        [
+          25,
+          29
+        ]
+      ],
+      "Task.java": [
+        [
+          95,
+          115
+        ],
+        [
+          204,
+          209
+        ],
+        [
+          275,
+          303
+        ]
+      ],
+      "Quest.java": [
+        [
+          535,
+          606
+        ],
+        [
+          990,
+          991
+        ],
+        [
+          1137,
+          1153
+        ]
+      ],
+      "TeamData.java": [
+        [
+          48,
+          95
+        ],
+        [
+          109,
+          129
+        ],
+        [
+          185,
+          213
+        ],
+        [
+          277,
+          301
+        ],
+        [
+          329,
+          415
+        ],
+        [
+          434,
+          485
+        ],
+        [
+          559,
+          596
+        ],
+        [
+          615,
+          640
+        ],
+        [
+          663,
+          717
+        ],
+        [
+          754,
+          781
+        ]
+      ],
+      "ServerQuestFile.java": [
+        [
+          67,
+          98
+        ],
+        [
+          132,
+          149
+        ],
+        [
+          153,
+          245
+        ]
+      ],
+      "BaseQuestFile.java": [
+        [
+          1014,
+          1036
+        ],
+        [
+          1089,
+          1106
+        ],
+        [
+          1137,
+          1159
+        ],
+        [
+          1216,
+          1235
+        ],
+        [
+          1287,
+          1290
+        ],
+        [
+          1444,
+          1445
+        ]
+      ]
+    },
+    "local_source_ranges": {
+      "ContentProgress.java": [
+        [
+          17,
+          70
+        ]
+      ],
+      "DynastyAdvancements.java": [
+        [
+          21,
+          31
+        ]
+      ],
+      "DynastySlotProgression.java": [
+        [
+          104,
+          155
+        ]
+      ]
+    },
+    "forge_source_entries": {
+      "net/minecraft/server/PlayerAdvancements.java": {
+        "sha256": "1bfc3355c67e1059618f59dda4c9cdbe2caa4b27882b89586a8764f318e3bc19",
+        "ranges": [
+          [
+            63,
+            164
+          ],
+          [
+            306,
+            308
+          ]
+        ]
+      },
+      "net/minecraft/server/players/PlayerList.java": {
+        "sha256": "a0411d38e7aa956ee62988607d3e65de282b647bb6611540f7420c4f7fd43ba3",
+        "ranges": [
+          [
+            330,
+            375
+          ],
+          [
+            806,
+            818
+          ]
+        ]
+      },
+      "net/minecraft/server/level/ServerPlayer.java": {
+        "sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+        "ranges": [
+          [
+            254,
+            254
+          ]
+        ]
+      },
+      "net/minecraft/advancements/AdvancementProgress.java": {
+        "sha256": "416f34c347b6c3733eddf4f8a97c53b9eadc1fac99c90b9810c5181b595cdb26",
+        "ranges": [
+          [
+            34,
+            70
+          ]
+        ]
+      }
+    },
+    "bytecode_method_references": [
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "saveIfChanged",
+        "descriptor": "()V",
+        "code_bytes": 67,
+        "references": [
+          {
+            "offset": 1,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.shouldSave.Z"
+          },
+          {
+            "offset": 8,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.file.Ldev/ftb/mods/ftbquests/quest/BaseQuestFile;"
+          },
+          {
+            "offset": 13,
+            "op": "instanceof",
+            "ref": "dev/ftb/mods/ftbquests/quest/ServerQuestFile"
+          },
+          {
+            "offset": 20,
+            "op": "checkcast",
+            "ref": "dev/ftb/mods/ftbquests/quest/ServerQuestFile"
+          },
+          {
+            "offset": 25,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/ServerQuestFile.server.Lnet/minecraft/server/MinecraftServer;"
+          },
+          {
+            "offset": 28,
+            "op": "getstatic",
+            "ref": "dev/ftb/mods/ftbquests/quest/ServerQuestFile.FTBQUESTS_DATA.Lnet/minecraft/world/level/storage/LevelResource;"
+          },
+          {
+            "offset": 31,
+            "op": "invokevirtual",
+            "ref": "net/minecraft/server/MinecraftServer.m_129843_.(Lnet/minecraft/world/level/storage/LevelResource;)Ljava/nio/file/Path;"
+          },
+          {
+            "offset": 37,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.teamId.Ljava/util/UUID;"
+          },
+          {
+            "offset": 40,
+            "op": "invokestatic",
+            "ref": "java/lang/String.valueOf.(Ljava/lang/Object;)Ljava/lang/String;"
+          },
+          {
+            "offset": 43,
+            "op": "invokedynamic",
+            "ref": "bootstrap#0:makeConcatWithConstants.(Ljava/lang/String;)Ljava/lang/String;"
+          },
+          {
+            "offset": 48,
+            "op": "invokeinterface",
+            "ref": "java/nio/file/Path.resolve.(Ljava/lang/String;)Ljava/nio/file/Path;"
+          },
+          {
+            "offset": 54,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.serializeNBT.()Ldev/ftb/mods/ftblibrary/snbt/SNBTCompoundTag;"
+          },
+          {
+            "offset": 57,
+            "op": "invokestatic",
+            "ref": "dev/ftb/mods/ftblibrary/snbt/SNBT.write.(Ljava/nio/file/Path;Lnet/minecraft/nbt/CompoundTag;)Z"
+          },
+          {
+            "offset": 63,
+            "op": "putfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.shouldSave.Z"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "mergeData",
+        "descriptor": "(Ldev/ftb/mods/ftbquests/quest/TeamData;)V",
+        "code_bytes": 76,
+        "references": [
+          {
+            "offset": 1,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.taskProgress.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 5,
+            "op": "invokedynamic",
+            "ref": "bootstrap#9:accept.(Ldev/ftb/mods/ftbquests/quest/TeamData;)Ljava/util/function/BiConsumer;"
+          },
+          {
+            "offset": 10,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/longs/Long2LongMap.forEach.(Ljava/util/function/BiConsumer;)V"
+          },
+          {
+            "offset": 16,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.started.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 20,
+            "op": "invokedynamic",
+            "ref": "bootstrap#10:accept.(Ldev/ftb/mods/ftbquests/quest/TeamData;)Ljava/util/function/BiConsumer;"
+          },
+          {
+            "offset": 25,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/longs/Long2LongMap.forEach.(Ljava/util/function/BiConsumer;)V"
+          },
+          {
+            "offset": 31,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.completed.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 35,
+            "op": "invokedynamic",
+            "ref": "bootstrap#11:accept.(Ldev/ftb/mods/ftbquests/quest/TeamData;)Ljava/util/function/BiConsumer;"
+          },
+          {
+            "offset": 40,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/longs/Long2LongMap.forEach.(Ljava/util/function/BiConsumer;)V"
+          },
+          {
+            "offset": 46,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.claimedRewards.Lit/unimi/dsi/fastutil/objects/Object2LongMap;"
+          },
+          {
+            "offset": 50,
+            "op": "invokedynamic",
+            "ref": "bootstrap#12:accept.(Ldev/ftb/mods/ftbquests/quest/TeamData;)Ljava/util/function/BiConsumer;"
+          },
+          {
+            "offset": 55,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/objects/Object2LongMap.forEach.(Ljava/util/function/BiConsumer;)V"
+          },
+          {
+            "offset": 61,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.perPlayerData.Lit/unimi/dsi/fastutil/objects/Object2ObjectMap;"
+          },
+          {
+            "offset": 65,
+            "op": "invokedynamic",
+            "ref": "bootstrap#13:accept.(Ldev/ftb/mods/ftbquests/quest/TeamData;)Ljava/util/function/BiConsumer;"
+          },
+          {
+            "offset": 70,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/objects/Object2ObjectMap.forEach.(Ljava/util/function/BiConsumer;)V"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "mergeClaimedRewards",
+        "descriptor": "(Ldev/ftb/mods/ftbquests/quest/TeamData;)V",
+        "code_bytes": 16,
+        "references": [
+          {
+            "offset": 1,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.claimedRewards.Lit/unimi/dsi/fastutil/objects/Object2LongMap;"
+          },
+          {
+            "offset": 5,
+            "op": "invokedynamic",
+            "ref": "bootstrap#14:accept.(Ldev/ftb/mods/ftbquests/quest/TeamData;)Ljava/util/function/BiConsumer;"
+          },
+          {
+            "offset": 10,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/objects/Object2LongMap.forEach.(Ljava/util/function/BiConsumer;)V"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "copyData",
+        "descriptor": "(Ldev/ftb/mods/ftbquests/quest/TeamData;)V",
+        "code_bytes": 82,
+        "references": [
+          {
+            "offset": 2,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.locked.Z"
+          },
+          {
+            "offset": 5,
+            "op": "putfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.locked.Z"
+          },
+          {
+            "offset": 9,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.taskProgress.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 13,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.taskProgress.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 16,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/longs/Long2LongMap.putAll.(Ljava/util/Map;)V"
+          },
+          {
+            "offset": 22,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.claimedRewards.Lit/unimi/dsi/fastutil/objects/Object2LongMap;"
+          },
+          {
+            "offset": 26,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.claimedRewards.Lit/unimi/dsi/fastutil/objects/Object2LongMap;"
+          },
+          {
+            "offset": 29,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/objects/Object2LongMap.putAll.(Ljava/util/Map;)V"
+          },
+          {
+            "offset": 35,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.started.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 39,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.started.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 42,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/longs/Long2LongMap.putAll.(Ljava/util/Map;)V"
+          },
+          {
+            "offset": 48,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.completed.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 52,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.completed.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 55,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/longs/Long2LongMap.putAll.(Ljava/util/Map;)V"
+          },
+          {
+            "offset": 61,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.perPlayerData.Lit/unimi/dsi/fastutil/objects/Object2ObjectMap;"
+          },
+          {
+            "offset": 65,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.perPlayerData.Lit/unimi/dsi/fastutil/objects/Object2ObjectMap;"
+          },
+          {
+            "offset": 68,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/objects/Object2ObjectMap.putAll.(Ljava/util/Map;)V"
+          },
+          {
+            "offset": 75,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.rewardsBlocked.Z"
+          },
+          {
+            "offset": 78,
+            "op": "putfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.rewardsBlocked.Z"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeClaimedRewards$15",
+        "descriptor": "(Ldev/ftb/mods/ftbquests/util/QuestKey;Ljava/lang/Long;)V",
+        "code_bytes": 30,
+        "references": [
+          {
+            "offset": 1,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbquests/util/QuestKey.uuid.()Ljava/util/UUID;"
+          },
+          {
+            "offset": 5,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.teamId.Ljava/util/UUID;"
+          },
+          {
+            "offset": 8,
+            "op": "invokevirtual",
+            "ref": "java/util/UUID.equals.(Ljava/lang/Object;)Z"
+          },
+          {
+            "offset": 15,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.claimedRewards.Lit/unimi/dsi/fastutil/objects/Object2LongMap;"
+          },
+          {
+            "offset": 20,
+            "op": "invokevirtual",
+            "ref": "java/lang/Long.longValue.()J"
+          },
+          {
+            "offset": 23,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/objects/Object2LongMap.put.(Ljava/lang/Object;J)J"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeData$14",
+        "descriptor": "(Ljava/util/UUID;Ldev/ftb/mods/ftbquests/quest/TeamData$PerPlayerData;)V",
+        "code_bytes": 18,
+        "references": [
+          {
+            "offset": 1,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.perPlayerData.Lit/unimi/dsi/fastutil/objects/Object2ObjectMap;"
+          },
+          {
+            "offset": 6,
+            "op": "invokedynamic",
+            "ref": "bootstrap#22:apply.()Ljava/util/function/BiFunction;"
+          },
+          {
+            "offset": 11,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/objects/Object2ObjectMap.merge.(Ljava/lang/Object;Ljava/lang/Object;Ljava/util/function/BiFunction;)Ljava/lang/Object;"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeData$13",
+        "descriptor": "(Ldev/ftb/mods/ftbquests/quest/TeamData$PerPlayerData;Ldev/ftb/mods/ftbquests/quest/TeamData$PerPlayerData;)Ldev/ftb/mods/ftbquests/quest/TeamData$PerPlayerData;",
+        "code_bytes": 2,
+        "references": []
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeData$12",
+        "descriptor": "(Ldev/ftb/mods/ftbquests/util/QuestKey;Ljava/lang/Long;)V",
+        "code_bytes": 21,
+        "references": [
+          {
+            "offset": 1,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.claimedRewards.Lit/unimi/dsi/fastutil/objects/Object2LongMap;"
+          },
+          {
+            "offset": 6,
+            "op": "invokevirtual",
+            "ref": "java/lang/Long.longValue.()J"
+          },
+          {
+            "offset": 9,
+            "op": "invokedynamic",
+            "ref": "bootstrap#23:apply.()Lit/unimi/dsi/fastutil/longs/LongBinaryOperator;"
+          },
+          {
+            "offset": 14,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/objects/Object2LongMap.mergeLong.(Ljava/lang/Object;JLit/unimi/dsi/fastutil/longs/LongBinaryOperator;)J"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeData$11",
+        "descriptor": "(JJ)J",
+        "code_bytes": 2,
+        "references": []
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeData$10",
+        "descriptor": "(Ljava/lang/Long;Ljava/lang/Long;)V",
+        "code_bytes": 24,
+        "references": [
+          {
+            "offset": 1,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.completed.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 5,
+            "op": "invokevirtual",
+            "ref": "java/lang/Long.longValue.()J"
+          },
+          {
+            "offset": 9,
+            "op": "invokevirtual",
+            "ref": "java/lang/Long.longValue.()J"
+          },
+          {
+            "offset": 12,
+            "op": "invokedynamic",
+            "ref": "bootstrap#24:apply.()Lit/unimi/dsi/fastutil/longs/LongBinaryOperator;"
+          },
+          {
+            "offset": 17,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/longs/Long2LongMap.mergeLong.(JJLit/unimi/dsi/fastutil/longs/LongBinaryOperator;)J"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeData$9",
+        "descriptor": "(JJ)J",
+        "code_bytes": 2,
+        "references": []
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeData$8",
+        "descriptor": "(Ljava/lang/Long;Ljava/lang/Long;)V",
+        "code_bytes": 24,
+        "references": [
+          {
+            "offset": 1,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.started.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 5,
+            "op": "invokevirtual",
+            "ref": "java/lang/Long.longValue.()J"
+          },
+          {
+            "offset": 9,
+            "op": "invokevirtual",
+            "ref": "java/lang/Long.longValue.()J"
+          },
+          {
+            "offset": 12,
+            "op": "invokedynamic",
+            "ref": "bootstrap#25:apply.()Lit/unimi/dsi/fastutil/longs/LongBinaryOperator;"
+          },
+          {
+            "offset": 17,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/longs/Long2LongMap.mergeLong.(JJLit/unimi/dsi/fastutil/longs/LongBinaryOperator;)J"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeData$7",
+        "descriptor": "(JJ)J",
+        "code_bytes": 2,
+        "references": []
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "name": "lambda$mergeData$6",
+        "descriptor": "(Ljava/lang/Long;Ljava/lang/Long;)V",
+        "code_bytes": 24,
+        "references": [
+          {
+            "offset": 1,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.taskProgress.Lit/unimi/dsi/fastutil/longs/Long2LongMap;"
+          },
+          {
+            "offset": 5,
+            "op": "invokevirtual",
+            "ref": "java/lang/Long.longValue.()J"
+          },
+          {
+            "offset": 9,
+            "op": "invokevirtual",
+            "ref": "java/lang/Long.longValue.()J"
+          },
+          {
+            "offset": 12,
+            "op": "invokedynamic",
+            "ref": "bootstrap#26:apply.()Lit/unimi/dsi/fastutil/longs/LongBinaryOperator;"
+          },
+          {
+            "offset": 17,
+            "op": "invokeinterface",
+            "ref": "it/unimi/dsi/fastutil/longs/Long2LongMap.mergeLong.(JJLit/unimi/dsi/fastutil/longs/LongBinaryOperator;)J"
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/quest/ServerQuestFile.class",
+        "sha256": "ca6fe191766018a52ce29f2dff0510f724ee2c7ac88dc06e08ab83d0e83e8d1b",
+        "name": "lambda$playerChangedTeam$9",
+        "descriptor": "(Ldev/ftb/mods/ftbteams/api/event/PlayerChangedTeamEvent;Ldev/ftb/mods/ftbteams/api/Team;)V",
+        "code_bytes": 156,
+        "references": [
+          {
+            "offset": 1,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbteams/api/event/PlayerChangedTeamEvent.getTeam.()Ldev/ftb/mods/ftbteams/api/Team;"
+          },
+          {
+            "offset": 7,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbquests/quest/ServerQuestFile.getOrCreateTeamData.(Ldev/ftb/mods/ftbteams/api/Team;)Ldev/ftb/mods/ftbquests/quest/TeamData;"
+          },
+          {
+            "offset": 14,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbquests/quest/ServerQuestFile.getOrCreateTeamData.(Ldev/ftb/mods/ftbteams/api/Team;)Ldev/ftb/mods/ftbquests/quest/TeamData;"
+          },
+          {
+            "offset": 20,
+            "op": "invokeinterface",
+            "ref": "dev/ftb/mods/ftbteams/api/Team.isPlayerTeam.()Z"
+          },
+          {
+            "offset": 29,
+            "op": "invokeinterface",
+            "ref": "dev/ftb/mods/ftbteams/api/Team.isPartyTeam.()Z"
+          },
+          {
+            "offset": 38,
+            "op": "invokeinterface",
+            "ref": "dev/ftb/mods/ftbteams/api/Team.getOwner.()Ljava/util/UUID;"
+          },
+          {
+            "offset": 44,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbteams/api/event/PlayerChangedTeamEvent.getPlayerId.()Ljava/util/UUID;"
+          },
+          {
+            "offset": 47,
+            "op": "invokevirtual",
+            "ref": "java/util/UUID.equals.(Ljava/lang/Object;)Z"
+          },
+          {
+            "offset": 57,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.mergeData.(Ldev/ftb/mods/ftbquests/quest/TeamData;)V"
+          },
+          {
+            "offset": 62,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbteams/api/event/PlayerChangedTeamEvent.getPlayer.()Lnet/minecraft/server/level/ServerPlayer;"
+          },
+          {
+            "offset": 68,
+            "op": "invokedynamic",
+            "ref": "bootstrap#10:run.(Ldev/ftb/mods/ftbquests/quest/ServerQuestFile;Ldev/ftb/mods/ftbquests/quest/TeamData;)Ljava/lang/Runnable;"
+          },
+          {
+            "offset": 73,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbquests/quest/ServerQuestFile.withPlayerContext.(Lnet/minecraft/server/level/ServerPlayer;Ljava/lang/Runnable;)V"
+          },
+          {
+            "offset": 80,
+            "op": "invokeinterface",
+            "ref": "dev/ftb/mods/ftbteams/api/Team.isPartyTeam.()Z"
+          },
+          {
+            "offset": 89,
+            "op": "invokeinterface",
+            "ref": "dev/ftb/mods/ftbteams/api/Team.isPlayerTeam.()Z"
+          },
+          {
+            "offset": 101,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbquests/quest/TeamData.mergeClaimedRewards.(Ldev/ftb/mods/ftbquests/quest/TeamData;)V"
+          },
+          {
+            "offset": 104,
+            "op": "new",
+            "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage"
+          },
+          {
+            "offset": 108,
+            "op": "new",
+            "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate"
+          },
+          {
+            "offset": 114,
+            "op": "invokespecial",
+            "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.<init>.(Ldev/ftb/mods/ftbquests/quest/TeamData;)V"
+          },
+          {
+            "offset": 117,
+            "op": "new",
+            "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate"
+          },
+          {
+            "offset": 123,
+            "op": "invokespecial",
+            "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.<init>.(Ldev/ftb/mods/ftbquests/quest/TeamData;)V"
+          },
+          {
+            "offset": 126,
+            "op": "invokespecial",
+            "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.<init>.(Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;)V"
+          },
+          {
+            "offset": 130,
+            "op": "getfield",
+            "ref": "dev/ftb/mods/ftbquests/quest/ServerQuestFile.server.Lnet/minecraft/server/MinecraftServer;"
+          },
+          {
+            "offset": 133,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.sendToAll.(Lnet/minecraft/server/MinecraftServer;)V"
+          },
+          {
+            "offset": 136,
+            "op": "new",
+            "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage"
+          },
+          {
+            "offset": 143,
+            "op": "invokespecial",
+            "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.<init>.(Ldev/ftb/mods/ftbquests/quest/TeamData;Z)V"
+          },
+          {
+            "offset": 147,
+            "op": "invokeinterface",
+            "ref": "dev/ftb/mods/ftbteams/api/Team.getOnlineMembers.()Ljava/util/Collection;"
+          },
+          {
+            "offset": 152,
+            "op": "invokevirtual",
+            "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.sendTo.(Ljava/lang/Iterable;)V"
+          }
+        ]
+      }
+    ],
+    "sync_message_reference_evidence": [
+      {
+        "class": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.class",
+        "sha256": "c47e986eec46c296a1c917a8dfad88188a5d86095496fb625e244c326fbaa883",
+        "methods": [
+          {
+            "name": "<init>",
+            "descriptor": "(Lnet/minecraft/network/FriendlyByteBuf;)V",
+            "code_bytes": 24,
+            "references": [
+              {
+                "offset": 1,
+                "op": "invokespecial",
+                "ref": "java/lang/Object.<init>.()V"
+              },
+              {
+                "offset": 6,
+                "op": "invokevirtual",
+                "ref": "net/minecraft/network/FriendlyByteBuf.m_130259_.()Ljava/util/UUID;"
+              },
+              {
+                "offset": 9,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.uuid.Ljava/util/UUID;"
+              },
+              {
+                "offset": 17,
+                "op": "invokevirtual",
+                "ref": "net/minecraft/network/FriendlyByteBuf.m_130136_.(I)Ljava/lang/String;"
+              },
+              {
+                "offset": 20,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.name.Ljava/lang/String;"
+              }
+            ]
+          },
+          {
+            "name": "<init>",
+            "descriptor": "(Ldev/ftb/mods/ftbquests/quest/TeamData;)V",
+            "code_bytes": 21,
+            "references": [
+              {
+                "offset": 1,
+                "op": "invokespecial",
+                "ref": "java/lang/Object.<init>.()V"
+              },
+              {
+                "offset": 6,
+                "op": "invokevirtual",
+                "ref": "dev/ftb/mods/ftbquests/quest/TeamData.getTeamId.()Ljava/util/UUID;"
+              },
+              {
+                "offset": 9,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.uuid.Ljava/util/UUID;"
+              },
+              {
+                "offset": 14,
+                "op": "invokevirtual",
+                "ref": "dev/ftb/mods/ftbquests/quest/TeamData.getName.()Ljava/lang/String;"
+              },
+              {
+                "offset": 17,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.name.Ljava/lang/String;"
+              }
+            ]
+          },
+          {
+            "name": "write",
+            "descriptor": "(Lnet/minecraft/network/FriendlyByteBuf;)V",
+            "code_bytes": 22,
+            "references": [
+              {
+                "offset": 2,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.uuid.Ljava/util/UUID;"
+              },
+              {
+                "offset": 5,
+                "op": "invokevirtual",
+                "ref": "net/minecraft/network/FriendlyByteBuf.m_130077_.(Ljava/util/UUID;)Lnet/minecraft/network/FriendlyByteBuf;"
+              },
+              {
+                "offset": 11,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.name.Ljava/lang/String;"
+              },
+              {
+                "offset": 17,
+                "op": "invokevirtual",
+                "ref": "net/minecraft/network/FriendlyByteBuf.m_130072_.(Ljava/lang/String;I)Lnet/minecraft/network/FriendlyByteBuf;"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.class",
+        "sha256": "f24355c495a39e4092de2a4c35619d2acba21a7b06611b3915228a11f813c50a",
+        "methods": [
+          {
+            "name": "<init>",
+            "descriptor": "(Lnet/minecraft/network/FriendlyByteBuf;)V",
+            "code_bytes": 29,
+            "references": [
+              {
+                "offset": 1,
+                "op": "invokespecial",
+                "ref": "dev/architectury/networking/simple/BaseS2CMessage.<init>.()V"
+              },
+              {
+                "offset": 5,
+                "op": "new",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate"
+              },
+              {
+                "offset": 10,
+                "op": "invokespecial",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.<init>.(Lnet/minecraft/network/FriendlyByteBuf;)V"
+              },
+              {
+                "offset": 13,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.oldDataUpdate.Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;"
+              },
+              {
+                "offset": 17,
+                "op": "new",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate"
+              },
+              {
+                "offset": 22,
+                "op": "invokespecial",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.<init>.(Lnet/minecraft/network/FriendlyByteBuf;)V"
+              },
+              {
+                "offset": 25,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.newDataUpdate.Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;"
+              }
+            ]
+          },
+          {
+            "name": "<init>",
+            "descriptor": "(Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;)V",
+            "code_bytes": 15,
+            "references": [
+              {
+                "offset": 1,
+                "op": "invokespecial",
+                "ref": "dev/architectury/networking/simple/BaseS2CMessage.<init>.()V"
+              },
+              {
+                "offset": 6,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.oldDataUpdate.Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;"
+              },
+              {
+                "offset": 11,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.newDataUpdate.Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;"
+              }
+            ]
+          },
+          {
+            "name": "getType",
+            "descriptor": "()Ldev/architectury/networking/simple/MessageType;",
+            "code_bytes": 4,
+            "references": [
+              {
+                "offset": 0,
+                "op": "getstatic",
+                "ref": "dev/ftb/mods/ftbquests/net/FTBQuestsNetHandler.TEAM_DATA_CHANGED.Ldev/architectury/networking/simple/MessageType;"
+              }
+            ]
+          },
+          {
+            "name": "write",
+            "descriptor": "(Lnet/minecraft/network/FriendlyByteBuf;)V",
+            "code_bytes": 17,
+            "references": [
+              {
+                "offset": 1,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.oldDataUpdate.Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;"
+              },
+              {
+                "offset": 5,
+                "op": "invokevirtual",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.write.(Lnet/minecraft/network/FriendlyByteBuf;)V"
+              },
+              {
+                "offset": 9,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.newDataUpdate.Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;"
+              },
+              {
+                "offset": 13,
+                "op": "invokevirtual",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataUpdate.write.(Lnet/minecraft/network/FriendlyByteBuf;)V"
+              }
+            ]
+          },
+          {
+            "name": "handle",
+            "descriptor": "(Ldev/architectury/networking/NetworkManager$PacketContext;)V",
+            "code_bytes": 12,
+            "references": [
+              {
+                "offset": 1,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.oldDataUpdate.Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;"
+              },
+              {
+                "offset": 5,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/TeamDataChangedMessage.newDataUpdate.Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;"
+              },
+              {
+                "offset": 8,
+                "op": "invokestatic",
+                "ref": "dev/ftb/mods/ftbquests/client/FTBQuestsNetClient.teamDataChanged.(Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;Ldev/ftb/mods/ftbquests/net/TeamDataUpdate;)V"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "class": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.class",
+        "sha256": "75845f232043093bd037e9a78c15e1ed15416dde1fd603d9c6c2a2f45c27acaa",
+        "methods": [
+          {
+            "name": "<init>",
+            "descriptor": "(Lnet/minecraft/network/FriendlyByteBuf;)V",
+            "code_bytes": 43,
+            "references": [
+              {
+                "offset": 1,
+                "op": "invokespecial",
+                "ref": "dev/architectury/networking/simple/BaseS2CMessage.<init>.()V"
+              },
+              {
+                "offset": 6,
+                "op": "invokevirtual",
+                "ref": "net/minecraft/network/FriendlyByteBuf.readBoolean.()Z"
+              },
+              {
+                "offset": 9,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.self.Z"
+              },
+              {
+                "offset": 13,
+                "op": "new",
+                "ref": "dev/ftb/mods/ftbquests/quest/TeamData"
+              },
+              {
+                "offset": 18,
+                "op": "invokevirtual",
+                "ref": "net/minecraft/network/FriendlyByteBuf.m_130259_.()Ljava/util/UUID;"
+              },
+              {
+                "offset": 21,
+                "op": "getstatic",
+                "ref": "dev/ftb/mods/ftbquests/client/ClientQuestFile.INSTANCE.Ldev/ftb/mods/ftbquests/client/ClientQuestFile;"
+              },
+              {
+                "offset": 24,
+                "op": "invokespecial",
+                "ref": "dev/ftb/mods/ftbquests/quest/TeamData.<init>.(Ljava/util/UUID;Ldev/ftb/mods/ftbquests/quest/BaseQuestFile;)V"
+              },
+              {
+                "offset": 27,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.teamData.Ldev/ftb/mods/ftbquests/quest/TeamData;"
+              },
+              {
+                "offset": 31,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.teamData.Ldev/ftb/mods/ftbquests/quest/TeamData;"
+              },
+              {
+                "offset": 36,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.self.Z"
+              },
+              {
+                "offset": 39,
+                "op": "invokevirtual",
+                "ref": "dev/ftb/mods/ftbquests/quest/TeamData.read.(Lnet/minecraft/network/FriendlyByteBuf;Z)V"
+              }
+            ]
+          },
+          {
+            "name": "<init>",
+            "descriptor": "(Ldev/ftb/mods/ftbquests/quest/TeamData;Z)V",
+            "code_bytes": 15,
+            "references": [
+              {
+                "offset": 1,
+                "op": "invokespecial",
+                "ref": "dev/architectury/networking/simple/BaseS2CMessage.<init>.()V"
+              },
+              {
+                "offset": 6,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.self.Z"
+              },
+              {
+                "offset": 11,
+                "op": "putfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.teamData.Ldev/ftb/mods/ftbquests/quest/TeamData;"
+              }
+            ]
+          },
+          {
+            "name": "getType",
+            "descriptor": "()Ldev/architectury/networking/simple/MessageType;",
+            "code_bytes": 4,
+            "references": [
+              {
+                "offset": 0,
+                "op": "getstatic",
+                "ref": "dev/ftb/mods/ftbquests/net/FTBQuestsNetHandler.SYNC_TEAM_DATA.Ldev/architectury/networking/simple/MessageType;"
+              }
+            ]
+          },
+          {
+            "name": "write",
+            "descriptor": "(Lnet/minecraft/network/FriendlyByteBuf;)V",
+            "code_bytes": 34,
+            "references": [
+              {
+                "offset": 2,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.self.Z"
+              },
+              {
+                "offset": 5,
+                "op": "invokevirtual",
+                "ref": "net/minecraft/network/FriendlyByteBuf.writeBoolean.(Z)Lio/netty/buffer/ByteBuf;"
+              },
+              {
+                "offset": 11,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.teamData.Ldev/ftb/mods/ftbquests/quest/TeamData;"
+              },
+              {
+                "offset": 14,
+                "op": "invokevirtual",
+                "ref": "dev/ftb/mods/ftbquests/quest/TeamData.getTeamId.()Ljava/util/UUID;"
+              },
+              {
+                "offset": 17,
+                "op": "invokevirtual",
+                "ref": "net/minecraft/network/FriendlyByteBuf.m_130077_.(Ljava/util/UUID;)Lnet/minecraft/network/FriendlyByteBuf;"
+              },
+              {
+                "offset": 22,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.teamData.Ldev/ftb/mods/ftbquests/quest/TeamData;"
+              },
+              {
+                "offset": 27,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.self.Z"
+              },
+              {
+                "offset": 30,
+                "op": "invokevirtual",
+                "ref": "dev/ftb/mods/ftbquests/quest/TeamData.write.(Lnet/minecraft/network/FriendlyByteBuf;Z)V"
+              }
+            ]
+          },
+          {
+            "name": "handle",
+            "descriptor": "(Ldev/architectury/networking/NetworkManager$PacketContext;)V",
+            "code_bytes": 12,
+            "references": [
+              {
+                "offset": 1,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.self.Z"
+              },
+              {
+                "offset": 5,
+                "op": "getfield",
+                "ref": "dev/ftb/mods/ftbquests/net/SyncTeamDataMessage.teamData.Ldev/ftb/mods/ftbquests/quest/TeamData;"
+              },
+              {
+                "offset": 8,
+                "op": "invokestatic",
+                "ref": "dev/ftb/mods/ftbquests/client/FTBQuestsNetClient.syncTeamData.(ZLdev/ftb/mods/ftbquests/quest/TeamData;)V"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "method": "Official source causal reading cross-checked with a non-executing Python classfile constant-pool/instruction reference decoder. This is not a JVM run, full control-flow proof or multiplayer reproduction.",
+    "limits": [
+      "No original saves opened and no in-memory server objects created.",
+      "Four future dedicated variant advancement/task implementations still do not exist; lifecycle predictions assume the accepted registered personal-advancement design.",
+      "No complete audit of every third-party event listener or FTB Teams internal membership dispatch. Causal traces start at the inspected FTB Quests callbacks and use their stated event branch conditions.",
+      "Conditional merge risks can be masked by unrelated dirtying/cache-invalidating mutations; no unconditional loss or duplicate-reward exploit claimed.",
+      "Dynamic datapack reload/crash consistency is not accepted by normal save/reload source inspection.",
+      "Bounded source ranges only; no whole-package or1000-reference credit."
+    ]
+  },
+  "validation": {
+    "receipt_json": "PASS: parsed; 7 causal sequences, 14 pending native cases, unique finding IDs, zero-credit boundaries and before-deadline timestamp validated; local jar/class hashes match",
+    "native_runs": 0,
+    "production_changes": 0,
+    "previous_receipt_untouched": "PASS: SHA256 cd20ad2b59bab0d8c976a4c45a402f9cac3da5bdea887c869e20b7c8ef5f5b60 unchanged"
+  },
+  "completion_note": "This bounded offline batch is complete; remaining issues require later explicit acceptance work or research-gated implementation, not idle time until deadline."
+}

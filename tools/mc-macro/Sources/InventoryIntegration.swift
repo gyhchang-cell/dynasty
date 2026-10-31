@@ -60,8 +60,8 @@ extension MacroApp {
         switch bridgeSupply.evaluate(inventory,grounded:true,selectable:selectableSlots(inventory)) {
         case .ready:return true
         case .select(let slot):
-            // No inventory opening, no in-flight stack switch. A predicted
-            // landing with low supply finishes before starting another jump.
+            // This preflight path waits for actual support before selecting.
+            // Airborne emergency replenishment is handled before placement.
             guard state.onGround else {return false}
             guard let identity=bridgeSupply.identity,
                   sendHotbarSelection(slot,inventory:inventory,forBridge:true) else {

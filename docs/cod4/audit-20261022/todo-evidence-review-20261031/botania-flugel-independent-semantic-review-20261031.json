@@ -1,0 +1,319 @@
+{
+  "recorded_at": "2026-10-31T10:36:05.561021+08:00",
+  "decision": "ACCEPT",
+  "acceptance_scope": "ONE static research family: physical-item-owned per-dimension typed destination restoration, selective invalid-key cleanup and real item-use conditional travel consumer. No implementation/runtime/old-save acceptance. Paid implementation read with explicit service-loading limit.",
+  "candidate_id": "7181fec01db6821d1615",
+  "proposed_family": "botania-item-owned-per-dimension-codec-destination-and-paid-teleport-boundary",
+  "proposal_path": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-botania-flugel-proposal-20261031.json",
+  "proposal_sha256": "781205e62572d8e5ae6988ccd68d474549aae52a8bed501b65a8605fad3ba9a5",
+  "candidate_original_verification": {
+    "file_sha256": "0bda0cb2a59763f4c47f53ec9e7eca0419e368ac1488079552bf9175e66139e5",
+    "file_sha_matches_original_candidate": true,
+    "method_range": [
+      159,
+      169
+    ],
+    "normalization": "join inclusive source lines then strip leading/trailing whitespace, matching stored candidate context",
+    "method_sha256": "88c60309fa8aab4617ea7b52699fb806f915030f90569320f78f55f3c3db5bd1",
+    "method_sha_matches_original": true,
+    "structural_fingerprint": "5bc7cad60fa151973833aa17f040713604e310e2d9690dc1e1af8a2ad2aa0ed1",
+    "class_has_migration_marker": false,
+    "interpretation": "Accessor alone earns no credit. Acceptance follows traced write/read/error-policy/real-use action across same owned state, not migration-marker or fingerprint count."
+  },
+  "pin_assessment": {
+    "decision": "sufficient for reusing established fixed-local-source static reference; not fresh upstream verification",
+    "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+    "source_receipt": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/source.json",
+    "source_receipt_sha256": "57c183ae58b6769c3469bd1ce0c315374a8d8b23d6868f3cb19e5cccfd25c6da",
+    "matches_proposal_receipt_and_pin_content": true,
+    "matches_existing_sources_catalog": true,
+    "existing_archive_digest_only": "3defffe83b026e4c2b902dd44f401c4775ae436a51cbcbcc77347d5c80ac4b60",
+    "original_cache_candidate_file_sha256": "0bda0cb2a59763f4c47f53ec9e7eca0419e368ac1488079552bf9175e66139e5",
+    "original_cache_candidate_matches": true,
+    "limits": "Original archive is absent; no archive rehash, network/tree lookup or independent Git blob-to-commit verification. Helper-file hashes bind reviewed local content to receipt, not newly proven upstream blobs. Second local cache match is corroboration only."
+  },
+  "actual_mechanism_observations": [
+    {
+      "source": "EyeOfTheFlugelItem.java:61-85; ItemNBTHelper.java:34-36",
+      "observation": "Secondary-use server branch writes CODEC-encoded BlockPos to target_ + current dimension ID on physical stack; writes one key and preserves unrelated root tags. Client branch emits particles only."
+    },
+    {
+      "source": "EyeOfTheFlugelItem.java:159-169,173-200",
+      "observation": "getBinding decodes only current dimension entry; absent/bad data yields null. Tooltip query does not delete bad location; it is presentation, not the live travel consumer."
+    },
+    {
+      "source": "EyeOfTheFlugelItem.java:107-134",
+      "observation": "Finished use directly rereads same stack key; absent returns stack, codec failure removes only that dimension key. Valid entry computes integer distance*10, checks exact payment for Player then teleports to centre+1.5Y. Valid destination remains reusable; insufficient payment keeps it. Non-player LivingEntity bypasses player mana check."
+    },
+    {
+      "source": "ManaItemHandlerImpl.java:33-69,109-150",
+      "observation": "Reads inventory/offhand plus extensible list and accessories, skips identical requesting ItemStack object, accumulates provider plan. Only exact collected sum enters addMana(-planned) loop. This is not proof of valid untrusted providers, de-duplicated provider accounting or teleport transaction atomicity."
+    },
+    {
+      "source": "RelicItem.java:29-35; RelicImpl.java:42-78",
+      "observation": "Server inventoryTick invokes relic.tickBinding. Malformed soulbindUUID parsing deletes key. If encountered within tickBinding, that same call can immediately bind to current player and fire advancement; it need not wait another tick. A tooltip-triggered invalid-UUID read may instead clear first and leave binding to later server inventoryTick. Generic relic binding is support only."
+    },
+    {
+      "source": "EyeOfTheFlugelItem.java:61-85,101-134; ForgeCommonInitializer.java:493-513",
+      "observation": "Forge capability map registers flugelEye coordinate and relic wrappers. Eye use/useOn/finish paths shown contain no explicit isRightPlayer guard; wrong-owner periodic damage is not a teleport permission gate."
+    },
+    {
+      "source": "ManaItemHandler.java:20-24,65-69; ServiceUtil.java:14-30",
+      "observation": "instance comes from ServiceLoader; no provider gives default requestManaExact=false, multiple providers throw. Reviewed Java cache contains no META-INF/services registration file, so actual runtime selection of ManaItemHandlerImpl is not independently established. Concrete algorithm is source support, not proof it ran."
+    }
+  ],
+  "semantic_dedup": {
+    "compared": [
+      {
+        "accepted_candidate_id": "7a576d501d06c8da46e5",
+        "family": "botania-luminizer-inflight-passenger-destination-recovery",
+        "owner": "Persistent in-flight PlayerMover entity plus world relay route",
+        "consumer": "Mover tick: discard if no passenger; approach saved exit at0.5, follow next valid relay or dismount/discard.",
+        "difference": "Flugel stores repeat-use destinations on physical item per current dimension; invalid typed payload is selectively deleted during finished use. No mounted route checkpoint or passenger recovery.",
+        "decision": "semantically independent at gameplay-owner/persistence-policy/live-consumer level, not merely different path/key/hash"
+      },
+      {
+        "accepted_candidate_id": "5770dcc01f497aff4a05",
+        "family": "cyclic-teleport-pad-saved-route-and-paid-player-transfer",
+        "owner": "Block entity GPS inventory plus its FE balance",
+        "consumer": "Crouched ServerPlayer on BlockTeleport.entityInside; simulate own FE payment then deduct and transfer to GPS dimension/position.",
+        "difference": "Flugel direct physical-stack dimension-indexed codec payload is neither BE GPS-slot reload nor block-owned FE balance; caller is item-use completion, and insufficient payment leaves reusable target key intact.",
+        "decision": "semantically independent at gameplay-owner/persistence-policy/live-consumer level, not merely different path/key/hash"
+      },
+      {
+        "accepted_candidate_id": "a82cd8e852dd5315d577",
+        "family": "waystones-world-directory-legacy-origin-and-physical-uuid-relink",
+        "owner": "Overworld SavedData world UUID directory with physical block/item references",
+        "consumer": "Read legacy origin fields into directory; BE onLoad or UUID-bearing item placement relinks/moves directory object; invalid reference may create new identity.",
+        "difference": "Flugel has no directory UUID relink or old boolean-to-enum migration; it directly decodes local coordinates for the current dimension, selectively removes malformed entry and consumes valid location in use.",
+        "decision": "semantically independent at gameplay-owner/persistence-policy/live-consumer level, not merely different path/key/hash"
+      }
+    ],
+    "exact_fingerprint_accepted_collisions": [],
+    "accepted_ledger_rows_scanned_for_collision": 946,
+    "no_already_accepted_EyeOfTheFlugelItem_or_RelicImpl_evidence_reference_found": true,
+    "limit": "Three named families compared via actual local consumers. Structural/text scans across ledger are only prechecks, not a claim of independent exhaustive semantic rereview of all946 families."
+  },
+  "complete_limits": [
+    "Static upstream reference only; no Dynasty code, no live action/restore test or native disk save/load proof. ItemStack serializer/codec internals and all event/accessory providers not inspected.",
+    "No explicit side guard inside finishUsingItem; callback side contract not traced. Do not call it verified server-only mana payment.",
+    "No target-level switch: current dimension chooses entry; do not claim cross-dimension travel or dimension rename/legacy remap support.",
+    "Malformed current entry selectively removed; no schema version upgrade, backup or recovery of that deleted location; other-dimension entries are not validated in this call.",
+    "No explicit loaded-chunk, collision/safe arrival or teleport-success/refund transaction in shown consumer; payment precedes teleport call.",
+    "Integer distance conversion has no explicit cost bounds here. No proof against negative API costs, malicious providers or duplicate ManaItem map overwrite.",
+    "No explicit wrong-player use guard; malformed soulbind can rebind current carrier, so ownership is not crafting history or original acquisition proof.",
+    "No proof of who crafted a four-NBT variant; tooltip, pickup, item possession, UUID rebind and successful travel are not recipe completion receipts.",
+    "Mana service registration/resources not present in inspected Java snapshot; no claim loaded implementation or runtime service invariant.",
+    "No new official provenance request, archive hash recheck, performance, multiplayer or survival acceptance."
+  ],
+  "counting_recommendation": {
+    "maximum_additional_unique_family": 1,
+    "getter_helper_codec_payment_and_relic_binding_extra_credit": 0,
+    "research_credit_written_by_this_review": 0,
+    "main_ledger_unchanged": true,
+    "baseline_observed": 946,
+    "coordinator_only_may_apply_acceptance": true
+  },
+  "source_reads": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/relic/EyeOfTheFlugelItem.java",
+      "sha256": "0bda0cb2a59763f4c47f53ec9e7eca0419e368ac1488079552bf9175e66139e5",
+      "actually_read_ranges": [
+        [
+          1,
+          207
+        ]
+      ],
+      "role": "proposal source read, not individual research credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/relic/RelicItem.java",
+      "sha256": "5443a9fc30f2d4bde3e09d75f630287de3fe6e6537887427bd95f06b0b3dc0e8",
+      "actually_read_ranges": [
+        [
+          1,
+          42
+        ]
+      ],
+      "role": "proposal source read, not individual research credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/relic/RelicImpl.java",
+      "sha256": "26928fc1fb790380e594b524ac518e295738b7be256d7f4010b062f4220647ad",
+      "actually_read_ranges": [
+        [
+          1,
+          101
+        ]
+      ],
+      "role": "proposal source read, not individual research credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/helper/ItemNBTHelper.java",
+      "sha256": "5ea781235d226986902d8d48c54a21ec1b584925cdc59467228076e9f04e7034",
+      "actually_read_ranges": [
+        [
+          20,
+          115
+        ]
+      ],
+      "role": "proposal source read, not individual research credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/impl/mana/ManaItemHandlerImpl.java",
+      "sha256": "50a1bc48774f9fbfc78ce97d8998b89cda94e493b2d186eecb987382c9f76129",
+      "actually_read_ranges": [
+        [
+          1,
+          180
+        ]
+      ],
+      "role": "proposal source read, not individual research credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/block/block_entity/LuminizerBlockEntity.java",
+      "sha256": "c1d44816103ded8620fb7b4c5c4e22b5d6db310e727d53dd9788c90a8918647b",
+      "actually_read_ranges": [
+        [
+          65,
+          90
+        ],
+        [
+          245,
+          409
+        ],
+        [
+          440,
+          451
+        ]
+      ],
+      "role": "dedup comparison source; no added credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/block/tp/TileTeleport.java",
+      "sha256": "3147fe53f5970f81ba17d668fd2b79306d4d1b7ed1cc308af2843d957aaf485d",
+      "actually_read_ranges": [
+        [
+          1,
+          140
+        ]
+      ],
+      "role": "dedup comparison source; no added credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/block/tp/BlockTeleport.java",
+      "sha256": "53bd1d1274e5559935f4f05cc35cc3cc35c0572f5944907970f4409cd0157ade",
+      "actually_read_ranges": [
+        [
+          1,
+          80
+        ]
+      ],
+      "role": "dedup comparison source; no added credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-007/sources/TwelveIterations__Waystones/common/src/main/java/net/blay09/mods/waystones/core/Waystone.java",
+      "sha256": "d9ad1b3fd9af3adbc869674b6cebdaf40017ca95a57f604cf65c6fdd8027986c",
+      "actually_read_ranges": [
+        [
+          168,
+          211
+        ]
+      ],
+      "role": "dedup comparison source; no added credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-007/sources/TwelveIterations__Waystones/common/src/main/java/net/blay09/mods/waystones/core/WaystoneManager.java",
+      "sha256": "ed59a97f107e1391f27201e2b3f43298e5cdda32188016b0fe5da73f29f97be6",
+      "actually_read_ranges": [
+        [
+          31,
+          59
+        ],
+        [
+          79,
+          111
+        ]
+      ],
+      "role": "dedup comparison source; no added credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-007/sources/TwelveIterations__Waystones/common/src/main/java/net/blay09/mods/waystones/block/entity/WaystoneBlockEntityBase.java",
+      "sha256": "6a0e1638cd934d7a94a5d1dacabb7ac47886ec353599d7da27794c85923a0ff0",
+      "actually_read_ranges": [
+        [
+          43,
+          91
+        ],
+        [
+          107,
+          151
+        ]
+      ],
+      "role": "dedup comparison source; no added credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-007/sources/TwelveIterations__Waystones/common/src/main/java/net/blay09/mods/waystones/block/WaystoneBlockBase.java",
+      "sha256": "34fd7ed20f878aed652c59636644a8d72ca803c2d9c512de17043b8adc392081",
+      "actually_read_ranges": [
+        [
+          309,
+          349
+        ]
+      ],
+      "role": "dedup comparison source; no added credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/api/mana/ManaItemHandler.java",
+      "sha256": "4d0bd2c115f219d54f8ebc10afbb62e7f56fe89ee113adbd27ccba4eae67f23d",
+      "actually_read_ranges": [
+        [
+          10,
+          36
+        ],
+        [
+          65,
+          115
+        ]
+      ],
+      "role": "API/service and capability dispatch support; not additional credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/api/ServiceUtil.java",
+      "sha256": "028eee97a128f13214939cb6a508b29d3d5d831fa17b136fc9e05006d9a50bf4",
+      "actually_read_ranges": [
+        [
+          1,
+          33
+        ]
+      ],
+      "role": "API/service and capability dispatch support; not additional credit"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java",
+      "sha256": "78bf667722fc2f0fb24d818540256b976a74249cc4cdd2e23eefb2e2eb44e5e1",
+      "actually_read_ranges": [
+        [
+          480,
+          516
+        ]
+      ],
+      "role": "API/service and capability dispatch support; not additional credit"
+    }
+  ],
+  "ledger_inputs": {
+    "docs/cod4/audit-20261022/legacy-migration-acceptance/candidates.jsonl": "ee8d8083eea5938b68762f014dd228fb2f6a14e14f08b76337227c23709c5cd7",
+    "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl": "abd4e05a2c8b758142961d8024088c72cfe7af6f1c2a8d35dde2f334d7267cc5",
+    "docs/cod4/audit-20261022/legacy-migration-acceptance/sources.json": "db1406a30c96a8e8d112a569c0fc3517c428a68472c45aca333e7e56825406a7"
+  },
+  "actions": {
+    "only_new_independent_receipt_written": true,
+    "network_used": false,
+    "game_started": false,
+    "production_changed": false,
+    "main_checklist_changed": false,
+    "main_ledger_changed": false,
+    "git_write_or_push": false,
+    "todo_backup_created": false
+  }
+}

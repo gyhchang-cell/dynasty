@@ -1,0 +1,125 @@
+package net.myriantics.klaxon.networking;
+
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
+import net.myriantics.klaxon.block.machines.blast_processor.AbstractBlastProcessorMenu;
+import net.myriantics.klaxon.mechanics.grapple_winch.ClientGrappleWinchConnection;
+import net.myriantics.klaxon.mechanics.grapple_winch.ClientGrappleWinchConnectionManager;
+import net.myriantics.klaxon.mechanics.item_usage_lockout.MinecraftClientUsageLockoutAccess;
+import net.myriantics.klaxon.mixin.minecraft.steel_blast_processor.DragonEggBlockInvoker;
+import net.myriantics.klaxon.networking.s2c.*;
+import net.myriantics.klaxon.registry.misc.KlaxonWorldEvents;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
+
+public abstract class KlaxonClientPlayNetworkHandler {
+    public static void send(CustomPacketPayload customPayload) {
+        ClientPlayNetworking.send(customPayload);
+    }
+
+    public static void processKlaxonWorldEvent(KlaxonWorldEventPacket packet, ClientPlayNetworking.Context context) {
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level == null) return;
+
+        int eventId = packet.eventId();
+        int data = packet.data();
+        Vector3f pos = packet.position();
+        BlockPos blockPos = BlockPos.containing(pos.x, pos.y, pos.z);
+
+        LevelRenderer renderer = Minecraft.getInstance().levelRenderer;
+
+        RandomSource random = level.getRandom();
+
+        switch (eventId) {
+            case KlaxonWorldEvents.DRAGONS_BREATH_EXPLOSIVE_CATALYST_CLOUD_SPAWNS -> {
+                for (int m = 0; m < 200; m++) {
+                    float ab = random.nextFloat() * 4.0F;
+                    float ag = random.nextFloat() * (float) (Math.PI * 2);
+                    double n = Mth.cos(ag) * ab;
+                    double o = 0.01 + random.nextDouble() * 0.5;
+                    double p = Mth.sin(ag) * ab;
+                    renderer.addParticle(ParticleTypes.DRAGON_BREATH, false, pos.x() + n * 0.1, pos.y() + 0.3, pos.z() + p * 0.1, n, o, p);
+                }
+
+                if (data == 1) {
+                    level.playLocalSound(blockPos, SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.HOSTILE, 1.0F, random.nextFloat() * 0.1F + 0.9F, false);
+                }
+            }
+            case KlaxonWorldEvents.SPAWN_BLOCK_BREAK_PARTICLES -> {
+                level.addDestroyBlockEffect(blockPos, level.getBlockState(blockPos));
+            }
+            case KlaxonWorldEvents.DRAGON_EGG_PARTICLES -> {
+                ((DragonEggBlockInvoker) Blocks.DRAGON_EGG).klaxon$invokeTeleport(level.getBlockState(blockPos), level, blockPos);
+            }
+        }
+    }
+
+    public static void blastProcessorScreenSync(BlastProcessorMenuPowerSyncPacket packet, ClientPlayNetworking.Context context) {
+        context.client().execute(() -> {
+            Minecraft client = context.client();
+
+            if (client.player != null && client.player.containerMenu instanceof AbstractBlastProcessorMenu screenHandler) {
+                screenHandler.updatePowerData(packet);
+            }
+        });
+    }
+
+    public static void grappleWinchConnectionSync(GrappleWinchConnectionSyncPacket packet, ClientPlayNetworking.Context context) {
+        Minecraft client = context.client();
+
+        client.execute(() -> {
+            if (client.level != null) {
+                ClientGrappleWinchConnectionManager manager = ClientGrappleWinchConnectionManager.get(client.level);
+                @Nullable ClientGrappleWinchConnection connection = manager.fromConnectionId(packet.connectionId());
+                if (connection == null) {
+                    manager.connect(packet);
+                } else {
+                    connection.sync(packet);
+                }
+                manager.resetTicksSinceUpdated();
+            }
+        });
+    }
+
+    public static void grappleWinchConnectionDiscard(GrappleWinchConnectionDiscardPacket packet, ClientPlayNetworking.Context context) {
+        Minecraft client = context.client();
+
+        client.execute(() -> {
+            if (client.level != null) {
+                ClientGrappleWinchConnectionManager manager = ClientGrappleWinchConnectionManager.get(client.level);
+                manager.disconnect(packet.connectionId(), packet.reason());
+                manager.resetTicksSinceUpdated();
+            }
+        });
+    }
+
+    public static void triggerItemUsageLockout(ItemUsageLockoutTrigger packet, ClientPlayNetworking.Context context) {
+        Minecraft client = context.client();
+
+        client.execute(() -> {
+            ((MinecraftClientUsageLockoutAccess) client).klaxon$setUsageLockout(true);
+            if (client.player != null) {
+                client.player.stopUsingItem();
+            }
+        });
+    }
+
+    public static void applyVelocity(SteelBlastProcessorExhaustLaunchPacket steelBlastProcessorExhaustLaunchPacket, ClientPlayNetworking.Context context) {
+        LocalPlayer localPlayer = context.player();
+        if (localPlayer != null) {
+            localPlayer.addDeltaMovement(new Vec3(steelBlastProcessorExhaustLaunchPacket.launchVelocity()));
+        }
+    }
+}

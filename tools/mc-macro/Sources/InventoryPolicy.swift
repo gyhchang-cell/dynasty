@@ -105,7 +105,8 @@ enum BridgeSupplyDecision: Equatable {
 }
 
 struct BridgeSupplyPolicy {
-    // Reserve a whole jump before leaving support; do not switch stacks in midair.
+    // Prefer replenishing on support; a separate low-stock placement guard
+    // handles unusually long flights without spending the final held block.
     static let reserve = 6
     private(set) var identity: String?
     mutating func reset() { identity = nil }
