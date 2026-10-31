@@ -1,0 +1,164 @@
+package com.lothrazar.cyclic.block.antipotion;
+
+import com.lothrazar.cyclic.ModCyclic;
+import com.lothrazar.cyclic.block.BlockCyclic;
+import com.lothrazar.cyclic.capabilities.livingentity.LivingEntityCapabilityStorage;
+import com.lothrazar.cyclic.registry.AttachmentRegistry;
+import com.lothrazar.cyclic.registry.BlockRegistry;
+import com.lothrazar.cyclic.registry.TileRegistry;
+import com.lothrazar.library.util.EntityUtil;
+import com.lothrazar.library.util.StringParseUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BeaconBeamBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
+import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class BlockAntiBeacon extends BlockCyclic implements BeaconBeamBlock {
+
+  public BlockAntiBeacon(Properties properties) {
+    super(properties.randomTicks().strength(0.7F).noOcclusion());
+  }
+
+  @Override
+  public DyeColor getColor() {
+    return DyeColor.WHITE;
+  }
+
+  @Override
+  public boolean propagatesSkylightDown(BlockState state, BlockGetter reader, BlockPos pos) {
+    return true;
+  }
+
+  @Override
+  public boolean shouldDisplayFluidOverlay(BlockState state, BlockAndTintGetter world, BlockPos pos, FluidState fluidState) {
+    return true;
+  }
+
+  @Override
+  public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+    return new TileAntiBeacon(pos, state);
+  }
+
+  @Override
+  public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockState state, BlockEntityType<T> type) {
+    return createTickerHelper(type, TileRegistry.BEACON_SPONGE.get(), world.isClientSide ? TileAntiBeacon::clientTick : TileAntiBeacon::serverTick);
+  }
+
+  @Override
+  public void onPlace(BlockState bs, Level world, BlockPos pos, BlockState bsIn, boolean p_56815_) {
+    if (!bsIn.is(bs.getBlock())) {
+      absorbPotions(world, pos);
+    }
+  }
+
+  public static void absorbPotions(Level world, BlockPos pos) {
+    List<LivingEntity> all = world.getEntitiesOfClass(LivingEntity.class, EntityUtil.makeBoundingBox(pos, TileAntiBeacon.RADIUS.get(), 3));
+    for (LivingEntity e : all) {
+      cureAllRelevant(e);
+    }
+  }
+
+  public static void markNearbyEntitiesWithAntiBeaconPosition(Level world, BlockPos pos) {
+    int radius = TileAntiBeacon.RADIUS.get();
+    List<LivingEntity> all = world.getEntitiesOfClass(LivingEntity.class, EntityUtil.makeBoundingBox(pos, radius, radius));
+    for (LivingEntity e : all) {
+      LivingEntityCapabilityStorage data = e.getData(AttachmentRegistry.BEACON_SPONGE_TARGET);
+      BlockPos oldPosition = data.getClosestAntiBeaconPosition();
+      if (oldPosition != null && world.getBlockState(oldPosition).is(BlockRegistry.BEACON_SPONGE.get())) {
+        int oldDistance = e.blockPosition().distManhattan(oldPosition);
+        int newDistance = e.blockPosition().distManhattan(pos);
+        if (newDistance < oldDistance) {
+          data.setClosestAntiBeaconPosition(pos);
+        }
+      }
+      else {
+        data.setClosestAntiBeaconPosition(pos);
+      }
+    }
+  }
+
+  public void isPotionApplicable(MobEffectEvent.Applicable event) {
+    if (event.getEffectInstance() == null) {
+      return;
+    }
+    LivingEntity livingEntity = event.getEntity();
+    if (!willCureThis(event.getEffectInstance().getEffect())
+        || !(livingEntity.getCommandSenderWorld() instanceof ServerLevel serverLevel)
+        || !serverLevel.isLoaded(livingEntity.blockPosition())) {
+      return;
+    }
+    LivingEntityCapabilityStorage data = livingEntity.getData(AttachmentRegistry.BEACON_SPONGE_TARGET);
+    BlockPos closestAntiBeacon = data.getClosestAntiBeaconPosition();
+    if (closestAntiBeacon == null) {
+      return;
+    }
+    if (livingEntity.blockPosition().distManhattan(closestAntiBeacon) > TileAntiBeacon.RADIUS.get()) {
+      data.setClosestAntiBeaconPosition(null);
+      return;
+    }
+    if (!serverLevel.getBlockState(closestAntiBeacon).getBlock().equals(this)) {
+      data.setClosestAntiBeaconPosition(null);
+      return;
+    }
+    final boolean isPowered = false;
+    if (serverLevel.hasNeighborSignal(closestAntiBeacon) != isPowered) {
+      return;
+    }
+    ModCyclic.LOGGER.debug("[potion blocked] " + event.getEffectInstance());
+    event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+  }
+
+  private static void cureAllRelevant(LivingEntity e) {
+    List<Holder<MobEffect>> cureMe = new ArrayList<>();
+    for (Holder<MobEffect> mobEffect : e.getActiveEffectsMap().keySet()) {
+      if (willCureThis(mobEffect)) {
+        cureMe.add(mobEffect);
+      }
+    }
+    for (Holder<MobEffect> curedEffect : cureMe) {
+      ModCyclic.LOGGER.debug("[potion cured] " + curedEffect);
+      e.removeEffect(curedEffect);
+    }
+  }
+
+  //any vanilla- or mod-tagged HARMFUL effect is auto-blocked
+  // also any in config
+  @SuppressWarnings("unchecked")
+  private static boolean willCureThis(Holder<MobEffect> mobEffectHolder) {
+    MobEffect mobEffect = mobEffectHolder.value();
+    if (mobEffect.getCategory() == MobEffectCategory.HARMFUL) {
+      return true;
+    }
+    List<String> entries = (List<String>) TileAntiBeacon.POTIONS.get();
+    for (String entry : entries) {
+      if (entry.startsWith("#")) {
+        ResourceLocation tagId = ResourceLocation.tryParse(entry.substring(1));
+        if (tagId != null && mobEffectHolder.is(TagKey.create(Registries.MOB_EFFECT, tagId))) {
+          return true;
+        }
+      }
+    }
+    ResourceLocation potionId = BuiltInRegistries.MOB_EFFECT.getKey(mobEffect);
+    return StringParseUtil.isInList(entries, potionId);
+  }
+}

@@ -1,0 +1,24 @@
+"""Primary whole Immmolate lifecycle review; not native runtime acceptance."""
+from ledger import B,O,R,record,verify
+import json,hashlib,datetime,zipfile
+h=O/'helpers/herschel-immune/batch-052.json';sha=hashlib.sha256(h.read_bytes()).hexdigest();assert sha=='d340165036e3231d1792cca4b2eb034306c4095d4a749431c770318874acbced'
+d=json.loads(h.read_text());checked=[]
+for row in d['rows']:
+ for ref in row['source_refs']:
+  k,rel=ref['source_key'].split('/',1);root=B/'sources'/k;raw=(root/rel).read_bytes();m=json.loads((root/'source.json').read_text());manifest={x['path']:x['sha256'] for x in m['files']};a,z=ref['lines'];assert hashlib.sha256(raw).hexdigest()==manifest[rel]==ref['file_sha256'];assert m['commit']==ref['fixed_commit'];assert 1<=a<=z<=len(raw.decode().splitlines());assert ref['url']==f'https://github.com/{m["repo"]}/blob/{m["commit"]}/{rel}#L{a}-L{z}';checked.append(ref)
+native=B/'helpers/herschel-immune/native-052/manifest.json';nm=json.loads(native.read_text());arc=__import__('pathlib').Path(nm['archive']);assert hashlib.sha256(arc.read_bytes()).hexdigest()==nm['archive_sha256']
+with zipfile.ZipFile(arc) as zf:
+ for f in nm['files']:
+  assert hashlib.sha256(zf.read(f['entry'])).hexdigest()==f['sha256']==hashlib.sha256((R/f['local']).read_bytes()).hexdigest()
+repo='iron431/irons-spells-n-spellbooks';p='src/main/java/io/redspace/ironsspellbooks/';root=B/'sources'/repo.replace('/','__')
+key='iron-native-stack-admission-independent-attribution-mutable-effect-key-delay-and-tracker-consumption'
+refs=[(r['source_key'].split('/',1)[1],*r['lines']) for r in checked]
+refs += [('src/main/resources/irons_spellbooks.mixins.json',1,len((root/'src/main/resources/irons_spellbooks.mixins.json').read_text().splitlines())),(p+'player/ServerPlayerEvents.java',116,117),(p+'player/ClientPlayerEvents.java',87,88)]
+record(key,repo,refs,
+ '全文Immolate128/MagicMobEffect48/ISynced15/LivingMixin154/FieryPacket44；完整StartTracking、clientEntityTick、clientblast handler、nativeorb tick/explosion/owner与armor Pre链已读。盔甲FIRE_MAGIC Pre可在Heartstop置newDamage0之后attempt叠层；orb server引信爆炸仅hurttrue Living才attempt。addStack根据当前amp构造15s新instance，先写非null归因再addEffect而忽略bool并返回新构造对象。amp>=2启用effect tick；DELAYED_INSTANCES是WeakHashMap，按当前effect查询，相对duration差>4才放行。服务端先remove归因再枚举半径/LOS/友伤目标，先清iframe，仅hurttrue Living尝试新stack并以返回instance作delay键。爆炸FX/声音在loop后无成功门，false请求效果结束。实际Mixin effectAdded/Updated发nativeUpdate，Removed发Remove，StartTracking补所有ISynced；客户端native Pre遍历当前effect调用clientTick烟/火。实际playToClient FieryPacket入队，Vec3+radius在当前玩家世界生成blast。',
+ '整体1：拒绝接纳仍可写归因，native合并实例与延迟键/递归再传播、效果追踪生命周期和独立瞬时爆波消费形成不同于Heartstop伤害债务、Echo消费命中数、SpellEngine延迟按type替换的独立实现。WeakHashMap不是身份表；Forge1.21.1 comparator equals/hashCode含可变duration，初加存传入对象、升级合并旧对象，新返回实例不证明就是活跃instance，变化hash与弱key可使delay lookup不成立。只作为固定源码风险，不声称NeoForge运行故障；原050/051支持保持0，不按armor/orb/codec/粒子/增删各拆credit。',
+ 'Boss灰字需服务端最终拒控理由而非hurtfalse或效果attempt；按目标/控制类型限频应使用稳定标识/世界生命周期及明确时间值，不用可变effect作为键。效果接纳、归因、物理控制、爆波回执需独立标注；现成爆炸声/火焰不代表Boss免疫，更不新增普通阴阳灰字要求。此例tracking补发适用于持续状态，短免疫文字不应对晚追踪者无期限重放。',
+ '实际模组9a88991固定归档manifest SHA，本轮未重hash该源archive/无tree；native comparator Forge1.21.1-52.1.20 injected archive和三entry字节本轮SHA核验，但模组要求NeoForge21.1.200，具体Neo native hooks未读，不将comparator当实际平台已验收。native duration/update/equals/hash/packet完整方法已读0支持；无实际同步/像素/音效/游戏/编译/生产修改。Packet不带目标UUID/dimension/seq/age，其固定位置爆波消费不当目标锚定灰字。','native_effect_admission_attribution_delay_and_feedback_lifecycle')
+out={'helper_file_sha256':sha,'helper_original_credit':0,'main_review_new_effective':1,'promoted_key':key,'checked_helper_ranges':len(checked),'source_refs':checked,'native_comparator_archive_verified':nm,'native_comparator_credit':0,'native_ranges_read':{'MobEffectInstance.java':[[130,176],[216,250],[286,310]],'LivingEntity.java':[[947,1000],[1009,1066]],'ClientPacketListener.java':[[1567,1581],[1736,1741]]},'semantic_comparisons':['iron-heartstop-deferred-settlement-not-immunity','iron-echoing-post-damage-qualified-recursion-filter-and-consumable-proc','spellengine-stashed-combat-charge-consumed-on-attempt-with-deferred-effect-replacement'],'whole_050_051_support_no_separate_credit':True,'actual_neoforge_hooks_and_runtime_unverified':True,'production_changes':False,'game_started':False,'reviewed_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+(O/'HERSCHEL-052-REVIEW.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n')
+s=json.loads((O/'semantic-dedup.json').read_text());s['groups'].append({'family':'batch175-immolate-whole-lifecycle','credited_chains':[key],'rationale':'Admission-independent source attribution + instance merging/mutable delay-key + native spread and synchronized ongoing effects; distinguish debt/echo/stash, merge all wrappers/variants/support into1.'});(O/'semantic-dedup.json').write_text(json.dumps(s,ensure_ascii=False,indent=2)+'\n');verify()

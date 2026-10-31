@@ -1,0 +1,1057 @@
+package com.momosoftworks.coldsweat.config.spec;
+
+import com.momosoftworks.coldsweat.api.util.Temperature;
+import com.momosoftworks.coldsweat.compat.CompatManager;
+import com.momosoftworks.coldsweat.util.serialization.ListBuilder;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.loading.FMLPaths;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class WorldSettingsConfig
+{
+    private static final CSConfigSpec SPEC;
+    private static final CSConfigSpec.Builder BUILDER = new CSConfigSpec.Builder();
+
+    public static final CSConfigSpec.IntValue HOTTEST_TIME;
+    public static final CSConfigSpec.IntValue COLDEST_TIME;
+
+    public static final CSConfigSpec.ConfigValue<List<? extends List<?>>> BIOME_TEMP_OFFSETS;
+    public static final CSConfigSpec.ConfigValue<List<? extends List<?>>> BIOME_TEMPERATURES;
+    public static final CSConfigSpec.ConfigValue<List<? extends List<?>>> DIMENSION_TEMP_OFFSETS;
+    public static final CSConfigSpec.ConfigValue<List<? extends List<?>>> DIMENSION_TEMPERATURES;
+    public static final CSConfigSpec.ConfigValue<List<? extends List<?>>> STRUCTURE_TEMP_OFFSETS;
+    public static final CSConfigSpec.ConfigValue<List<? extends List<?>>> STRUCTURE_TEMPERATURES;
+
+    public static final CSConfigSpec.ConfigValue<List<? extends List<?>>> BLOCK_TEMPERATURES;
+    public static final CSConfigSpec.IntValue MAX_BLOCK_TEMP_RANGE;
+
+    public static final CSConfigSpec.ConfigValue<Boolean> IS_SOUL_FIRE_COLD;
+
+    public static CSConfigSpec.ConfigValue<List<?>> SUMMER_TEMPERATURES;
+    public static CSConfigSpec.ConfigValue<List<?>> AUTUMN_TEMPERATURES;
+    public static CSConfigSpec.ConfigValue<List<?>> WINTER_TEMPERATURES;
+    public static CSConfigSpec.ConfigValue<List<?>> SPRING_TEMPERATURES;
+
+    public static final CSConfigSpec.ConfigValue<Boolean> ENABLE_SMART_HEARTH;
+    public static final CSConfigSpec.ConfigValue<Boolean> ENABLE_SMART_BOILER;
+    public static final CSConfigSpec.ConfigValue<Boolean> ENABLE_SMART_ICEBOX;
+    public static final CSConfigSpec.ConfigValue<Double> SOURCE_EFFECT_STRENGTH;
+    public static final CSConfigSpec.ConfigValue<List<? extends String>> SOURCE_SPREAD_WHITELIST;
+    public static final CSConfigSpec.ConfigValue<List<? extends String>> SOURCE_SPREAD_BLACKLIST;
+
+    public static final CSConfigSpec.ConfigValue<Integer> HEARTH_RANGE;
+    public static final CSConfigSpec.ConfigValue<Integer> HEARTH_MAX_RANGE;
+    public static final CSConfigSpec.ConfigValue<Integer> HEARTH_MAX_VOLUME;
+    public static final CSConfigSpec.ConfigValue<Integer> HEARTH_WARM_UP_TIME;
+    public static final CSConfigSpec.ConfigValue<Integer> HEARTH_MAX_INSULATION;
+    public static final CSConfigSpec.ConfigValue<Integer> HEARTH_FUEL_INTERVAL;
+
+    public static final CSConfigSpec.ConfigValue<Integer> BOILER_RANGE;
+    public static final CSConfigSpec.ConfigValue<Integer> BOILER_MAX_RANGE;
+    public static final CSConfigSpec.ConfigValue<Integer> BOILER_MAX_VOLUME;
+    public static final CSConfigSpec.ConfigValue<Integer> BOILER_WARM_UP_TIME;
+    public static final CSConfigSpec.ConfigValue<Integer> BOILER_MAX_INSULATION;
+    public static final CSConfigSpec.ConfigValue<Integer> BOILER_FUEL_INTERVAL;
+
+    public static final CSConfigSpec.ConfigValue<Integer> ICEBOX_RANGE;
+    public static final CSConfigSpec.ConfigValue<Integer> ICEBOX_MAX_RANGE;
+    public static final CSConfigSpec.ConfigValue<Integer> ICEBOX_MAX_VOLUME;
+    public static final CSConfigSpec.ConfigValue<Integer> ICEBOX_WARM_UP_TIME;
+    public static final CSConfigSpec.ConfigValue<Integer> ICEBOX_MAX_INSULATION;
+    public static final CSConfigSpec.ConfigValue<Integer> ICEBOX_FUEL_INTERVAL;
+
+    public static final CSConfigSpec.ConfigValue<List<? extends String>> SLEEPING_OVERRIDE_BLOCKS;
+    public static final CSConfigSpec.ConfigValue<Boolean> SHOULD_CHECK_SLEEP;
+
+    public static final CSConfigSpec.ConfigValue<Boolean> CUSTOM_WATER_FREEZE_BEHAVIOR;
+    public static final CSConfigSpec.ConfigValue<Boolean> CUSTOM_ICE_DROPS;
+
+    public static final CSConfigSpec.ConfigValue<List<?>> SHADE_TEMP_OFFSET;
+
+    public static final CSConfigSpec.DoubleValue DRYOFF_SPEED;
+    public static final CSConfigSpec.DoubleValue WATER_SOAK_SPEED;
+    public static final CSConfigSpec.DoubleValue RAIN_SOAK_SPEED;
+    public static final CSConfigSpec.ConfigValue<List<?>> DEFAULT_WATER_TEMP;
+    public static final CSConfigSpec.DoubleValue MAX_RAIN_SOAK;
+
+    /* Compat */
+    public static final CSConfigSpec.ConfigValue<Integer> THERMOREGULATOR_INSULATION;
+
+    static
+    {
+        BUILDER.comment("─────────────────────────────────────────────────────────────────────────",
+                        " Anywhere that uses IDs, such as blocks, biomes, dimensions, and structures, also supports:",
+                        " • Tags (e.g. \"#minecraft:is_underground\")",
+                        " • Comma-separated lists (e.g. \"minecraft:desert,#minecraft:is_badlands\")",
+                        "     Applies the setting to all listed IDs. Can use tags, regular IDs, and negation interchangeably",
+                        " • Negation (e.g. \"!minecraft:jungle_leaves\")",
+                        "     Useful with lists/tags. Excludes the listed IDs from the setting",
+                        "     i.e. \"#minecraft:leaves,!minecraft:jungle_leaves\" (all leaves EXCEPT jungle leaves)",
+                        " Settings with \"//v\" will list elements vertically. Removing \"//v\" will list elements in one line",
+                        "─────────────────────────────────────────────────────────────────────────");
+
+        /*
+         General
+         */
+        BUILDER.push("General");
+            HOTTEST_TIME = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────//v",
+                         " The time of day when the world is at its hottest, in ticks",
+                         " └── 0 = sunrise, 6000 = noon, 12000 = sunset, 18000 = midnight")
+                .defineInRange("Hottest Time", 6000, 0, 24000);
+            COLDEST_TIME = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────//v",
+                         " The time of day when the world is at its coldest, in ticks",
+                         " └── 0 = sunrise, 6000 = noon, 12000 = sunset, 18000 = midnight")
+                .defineInRange("Coldest Time", 18000, 0, 24000);
+        BUILDER.pop();
+        /*
+         Dimensions
+         */
+        BUILDER.push("Dimensions");
+
+            DIMENSION_TEMP_OFFSETS = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────//v",
+                         " Applies an offset to the world's temperature across an entire dimension",
+                         " ├── Format: [[\"dimension_id\", temperature, *units], [...], etc]",
+                         " └── [* = optional]",
+                         " • dimension_id: The ID of the dimension (e.g. \"minecraft:the_nether\")",
+                         " • temperature: The temperature offset to apply to the dimension",
+                         " • *units: The units of the temperature (\"f\", \"c\", or \"mc\"). Defaults to Minecraft units (mc))")
+            .defineListAllowEmpty(List.of("Dimension Temperature Offsets"), () -> ListBuilder.begin(
+                    List.of("minecraft:the_nether", 32, "f"),
+                    List.of("minecraft:the_end", -5, "f"))
+                .addIf(CompatManager.isTwilightForestLoaded(), () -> List.of("twilightforest:twilight_forest_type", 10, "f"))
+                .addIf(CompatManager.isAetherLoaded(), () -> List.of("aether:the_aether", 32, "f"))
+                .build(),
+            it -> it instanceof List<?> list
+                    && list.get(0) instanceof String
+                    && list.get(1) instanceof Number
+                    && (list.size() < 3 || list.get(2) instanceof String));
+
+            DIMENSION_TEMPERATURES = BUILDER
+            .comment("─────────────────────────────────────────────────────────────────────────//v",
+                     " Defines the temperature of a dimension, overriding biome and elevation temperature",
+                     " ├── Format: [[\"dimension_id\", temperature, *units], [...], etc]",
+                     " └── [* = optional]",
+                     " • dimension_id: The ID of the dimension (e.g. \"minecraft:the_nether\")",
+                     " • temperature: The temperature of the dimension",
+                     " • *units: The units of the temperature (\"f\", \"c\", or \"mc\"). Defaults to Minecraft units (mc))")
+            .defineListAllowEmpty(List.of("Dimension Temperatures"), () -> List.of(
+                    // No default values
+            ),
+            it -> it instanceof List<?> list
+                    && list.get(0) instanceof String
+                    && list.get(1) instanceof Number
+                    && (list.size() < 3 || list.get(2) instanceof String));
+
+        BUILDER.pop();
+
+        /*
+         Biomes
+         */
+        BUILDER.push("Biomes");
+
+        BIOME_TEMP_OFFSETS = BUILDER
+            .comment("─────────────────────────────────────────────────────────────────────────//v",
+                     " Applies an offset to the temperature of a biome",
+                     " ├── Format: [[\"biome_id\", lowTemp, highTemp, *units, *waterTemp, *freezingPoint], [...], etc]",
+                     " └── [* = optional]",
+                     " • biome_id: The ID of the biome (e.g. \"minecraft:desert\")",
+                     " • lowTemp: The temperature offset at midnight",
+                     " • highTemp: The temperature offset at noon",
+                     " • *units: The units of the temperature (\"f\", \"c\", or \"mc\"). Defaults to Minecraft units (mc))",
+                     " • *waterTemp: Offsets the temperature of water in the biome",
+                     " • *freezingPoint: Offsets the temperature at which water freezes in the biome")
+            .defineListAllowEmpty(List.of("Biome Temperature Offsets"), () -> List.of(),
+                it -> it instanceof List<?> list
+                      && list.get(0) instanceof String
+                      && list.get(1) instanceof Number
+                      && (list.size() < 3 || list.get(2) instanceof Number)
+                      && (list.size() < 4 || list.get(3) instanceof String)
+                      && (list.size() < 5 || list.get(4) instanceof Number)
+                      && (list.size() < 6 || list.get(5) instanceof Number)
+                );
+
+        BIOME_TEMPERATURES = BUILDER
+            .comment("─────────────────────────────────────────────────────────────────────────//v",
+                     " Defines the temperature of a biome, overriding the biome's default temperature",
+                     " ├── Format: [[\"biome_id\", lowTemp, highTemp, *units, *waterTemp, *freezingPoint], [...], etc]",
+                     " └── [* = optional]",
+                     " • biome_id: The ID of the biome (e.g. \"minecraft:desert\")",
+                     " • lowTemp: The temperature of the biome at midnight",
+                     " • highTemp: The temperature of the biome at noon",
+                     " • *units: The units of the temperature (\"f\", \"c\", or \"mc\"). Defaults to Minecraft units (mc))",
+                     " • *waterTemp: The temperature of water in the biome",
+                     " • *freezingPoint: The temperature at which water freezes in the biome")
+            .defineListAllowEmpty(List.of("Biome Temperatures"), () -> ListBuilder.begin(
+                            List.of("minecraft:badlands", 84, 120, "F", 90),
+                            List.of("minecraft:bamboo_jungle", 76, 87, "F"),
+                            List.of("minecraft:beach", 52, 84, "F"),
+                            List.of("minecraft:birch_forest", 47, 77, "F"),
+                            List.of("minecraft:cherry_grove", 42, 67, "F"),
+                            List.of("minecraft:cold_ocean", 39, 70, "F"),
+                            List.of("minecraft:dark_forest", 53, 80, "F"),
+                            List.of("minecraft:deep_cold_ocean", 39, 70, "F"),
+                            List.of("minecraft:deep_dark", 63, 63, "F"),
+                            List.of("minecraft:deep_frozen_ocean", 8, 31, "F"),
+                            List.of("minecraft:deep_lukewarm_ocean", 39, 70, "F"),
+                            List.of("minecraft:deep_ocean", 39, 70, "F"),
+                            List.of("minecraft:desert", 48, 115, "F"),
+                            List.of("minecraft:dripstone_caves", "disable"),
+                            List.of("minecraft:eroded_badlands", 88, 120, "F", 90),
+                            List.of("minecraft:flower_forest", 51, 76, "F"),
+                            List.of("minecraft:forest", 51, 76, "F"),
+                            List.of("minecraft:frozen_ocean", 15, 31, "F"),
+                            List.of("minecraft:frozen_peaks", 8, 31, "F"),
+                            List.of("minecraft:frozen_river", 15, 31, "F"),
+                            List.of("minecraft:grove", 10, 36, "F"),
+                            List.of("minecraft:ice_spikes", 17, 47, "F"),
+                            List.of("minecraft:jagged_peaks", -11, 12, "F"),
+                            List.of("minecraft:jungle", 76, 89, "F"),
+                            List.of("minecraft:lukewarm_ocean", 39, 70, "F"),
+                            List.of("minecraft:lush_caves", 39, 70, "F"),
+                            List.of("minecraft:mangrove_swamp", 56, 80, "F"),
+                            List.of("minecraft:meadow", 42, 67, "F"),
+                            List.of("minecraft:mushroom_fields", 61, 84, "F"),
+                            List.of("minecraft:ocean", 39, 70, "F"),
+                            List.of("minecraft:old_growth_birch_forest", 58, 72, "F"),
+                            List.of("minecraft:old_growth_pine_taiga", 48, 62, "F"),
+                            List.of("minecraft:old_growth_spruce_taiga", 48, 62, "F"),
+                            List.of("minecraft:plains", 52, 84, "F"),
+                            List.of("minecraft:river", "disable"),
+                            List.of("minecraft:savanna", 70, 95, "F"),
+                            List.of("minecraft:savanna_plateau", 76, 98, "F"),
+                            List.of("minecraft:small_end_islands", 39, 70, "F"),
+                            List.of("minecraft:snowy_beach", 8, 30, "F"),
+                            List.of("minecraft:snowy_plains", 8, 30, "F"),
+                            List.of("minecraft:snowy_slopes", 24, 32, "F"),
+                            List.of("minecraft:snowy_taiga", 8, 30, "F"),
+                            List.of("minecraft:soul_sand_valley", 53, 53, "F"),
+                            List.of("minecraft:sparse_jungle", 62, 87, "F"),
+                            List.of("minecraft:stony_peaks", 60, 94, "F"),
+                            List.of("minecraft:stony_shore", 50, 64, "F"),
+                            List.of("minecraft:sunflower_plains", 52, 84, "F"),
+                            List.of("minecraft:swamp", 72, 84, "F", 78),
+                            List.of("minecraft:taiga", 44, 62, "F"),
+                            List.of("minecraft:warm_ocean", 67, 76, "F", 82),
+                            List.of("minecraft:windswept_forest", 48, 66, "F"),
+                            List.of("minecraft:windswept_gravelly_hills", 24, 58, "F"),
+                            List.of("minecraft:windswept_hills", 24, 58, "F"),
+                            List.of("minecraft:windswept_savanna", 67, 90, "F"),
+                            List.of("minecraft:wooded_badlands", 80, 108, "F", 90))
+                     .addIf(CompatManager.isBiomesOPlentyLoaded(),
+                            () -> List.of("biomesoplenty:bog", 41, 58, "F"),
+                            () -> List.of("biomesoplenty:cold_desert", 0, 40, "F"),
+                            () -> List.of("biomesoplenty:floodplain", 68, 89, "F"),
+                            () -> List.of("biomesoplenty:fir_clearing", 49, 68, "F"),
+                            () -> List.of("biomesoplenty:marsh", 70, 84, "F", 78),
+                            () -> List.of("biomesoplenty:crag", 62, 80, "F"),
+                            () -> List.of("biomesoplenty:wetland", 63, 83, "F", 74),
+                            () -> List.of("biomesoplenty:field", 58, 85, "F"),
+                            () -> List.of("biomesoplenty:hot_springs", 26, 54, "F", 85),
+                            () -> List.of("biomesoplenty:coniferous_forest", 44, 67, "F"),
+                            () -> List.of("biomesoplenty:seasonal_forest", 48, 64, "F"),
+                            () -> List.of("biomesoplenty:pumpkin_patch", 48, 64, "F"),
+                            () -> List.of("biomesoplenty:aspen_glade", 28, 48, "F"),
+                            () -> List.of("biomesoplenty:woodland", 67, 80, "F"),
+                            () -> List.of("biomesoplenty:old_growth_woodland", 67, 80, "F"),
+                            () -> List.of("biomesoplenty:mediterranean_forest", 64, 78, "F"),
+                            () -> List.of("biomesoplenty:dune_beach", 67, 78, "F"),
+                            () -> List.of("biomesoplenty:rainforest", 73, 86, "F"),
+                            () -> List.of("biomesoplenty:rocky_rainforest", 73, 86, "F"),
+                            () -> List.of("biomesoplenty:forested_field", 58, 78, "F"),
+                            () -> List.of("biomesoplenty:fungal_jungle", 73, 86, "F"),
+                            () -> List.of("biomesoplenty:highland", 57, 70, "F"),
+                            () -> List.of("biomesoplenty:moor", 54, 68, "F"),
+                            () -> List.of("biomesoplenty:muskeg", 10, 32, "F"),
+                            () -> List.of("biomesoplenty:grassland", 54, 79, "F"),
+                            () -> List.of("biomesoplenty:clover_patch", 56, 78, "F"),
+                            () -> List.of("biomesoplenty:jade_cliffs", 57, 70, "F"),
+                            () -> List.of("biomesoplenty:lush_desert", 72, 94, "F"),
+                            () -> List.of("biomesoplenty:dryland", 67, 97, "F"),
+                            () -> List.of("biomesoplenty:maple_woods", 58, 68, "F"),
+                            () -> List.of("biomesoplenty:mystic_grove", 65, 72, "F"),
+                            () -> List.of("biomesoplenty:orchard", 58, 78, "F"),
+                            () -> List.of("biomesoplenty:prairie", 66, 82, "F"),
+                            () -> List.of("biomesoplenty:origin_valley", 65, 80, "F"),
+                            () -> List.of("biomesoplenty:snowy_maple_woods", 32, 48, "F"),
+                            () -> List.of("biomesoplenty:spider_nest", 75, 75, "F"),
+                            () -> List.of("biomesoplenty:tundra", 8, 30, "F"),
+                            () -> List.of("biomesoplenty:volcanic_plains", 82, 95, "F"),
+                            () -> List.of("biomesoplenty:volcano", 94, 120, "F"),
+                            () -> List.of("biomesoplenty:wasteland", 78, 105, "F"),
+                            () -> List.of("biomesoplenty:wasteland_steppe", 78, 95, "F"))
+                    .addIf(CompatManager.isBiomesWeveGoneLoaded(),
+                            () -> List.of("biomeswevegone:allium_shrubland", 58, 74, "F"),
+                            () -> List.of("biomeswevegone:jacaranda_jungle", 76, 87, "F"),
+                            () -> List.of("biomeswevegone:araucaria_savanna", 70, 92, "F"),
+                            () -> List.of("biomeswevegone:aspen_boreal", 48, 68, "F"),
+                            () -> List.of("biomeswevegone:windswept_desert", 60, 108, "F"),
+                            () -> List.of("biomeswevegone:atacama_outback", 60, 108, "F"),
+                            () -> List.of("biomeswevegone:baobab_savanna", 70, 95, "F"),
+                            () -> List.of("biomeswevegone:ironwood_gour", 69, 90, "F"),
+                            () -> List.of("biomeswevegone:bayou", 67, 86, "F", 67),
+                            () -> List.of("biomeswevegone:black_forest", 46, 70, "F"),
+                            () -> List.of("biomeswevegone:cika_woods", 40, 67, "F"),
+                            () -> List.of("biomeswevegone:canadian_shield", 38, 62, "F"),
+                            () -> List.of("biomeswevegone:forgotten_forest", 62, 78, "F"),
+                            () -> List.of("biomeswevegone:ebony_woods", 64, 75, "F"),
+                            () -> List.of("biomeswevegone:tropical_rainforest", 76, 87, "F"),
+                            () -> List.of("biomeswevegone:weeping_witch_forest", 56, 73, "F"),
+                            () -> List.of("biomeswevegone:zelkova_forest", 44, 61, "F"),
+                            () -> List.of("biomeswevegone:maple_taiga", 15, 18, "C", 5),
+                            () -> List.of("biomeswevegone:pumpkin_valley", 57, 78, "F"),
+                            () -> List.of("biomeswevegone:coniferous_forest", 44, 58, "F"),
+                            () -> List.of("biomeswevegone:frosted_coniferous_forest", 10, 31, "F"),
+                            () -> List.of("biomeswevegone:crimson_tundra", 20, 38, "F"),
+                            () -> List.of("biomeswevegone:dacite_ridges", 40, 65, "F"),
+                            () -> List.of("biomeswevegone:dacite_shore", 40, 65, "F"),
+                            () -> List.of("biomeswevegone:cypress_swamplands", 68, 82, "F"),
+                            () -> List.of("biomeswevegone:skyris_vale", 42, 68, "F"),
+                            () -> List.of("biomeswevegone:orchard", 58, 78, "F"),
+                            () -> List.of("biomeswevegone:prairie", 66, 82, "F"),
+                            () -> List.of("biomeswevegone:enchanted_tangle", 66, 82, "F"),
+                            () -> List.of("biomeswevegone:firecracker_chaparral", 72, 105, "F"),
+                            () -> List.of("biomeswevegone:fragment_jungle", 76, 87, "F"),
+                            () -> List.of("biomeswevegone:frosted_taiga", 19, 48, "F"),
+                            () -> List.of("biomeswevegone:howling_peaks", 15, 33, "F"),
+                            () -> List.of("biomeswevegone:mojave_desert", 60, 105, "F"),
+                            () -> List.of("biomeswevegone:overgrowth_woodlands", 62, 78, "F"),
+                            () -> List.of("biomeswevegone:red_rock_valley", 84, 120, "F", 90),
+                            () -> List.of("biomeswevegone:redwood_thicket", 52, 81, "F"),
+                            () -> List.of("biomeswevegone:rugged_badlands", 72, 100, "F", 90),
+                            () -> List.of("biomeswevegone:white_mangrove_marshes", 70, 86, "F", 78))
+                    .addIf(CompatManager.isAtmosphericLoaded(),
+                            () -> List.of("atmospheric:dunes", 78, 115, "F"),
+                            () -> List.of("atmospheric:flourishing_dunes", 68, 105, "F"),
+                            () -> List.of("atmospheric:petrified_dunes", 58, 120, "F"),
+                            () -> List.of("atmospheric:rocky_dunes", 55, 125, "F", 75),
+                            () -> List.of("atmospheric:rainforest", 68, 90, "F"),
+                            () -> List.of("atmospheric:rainforest_basin", 68, 90, "F"),
+                            () -> List.of("atmospheric:sparse_rainforest", 62, 83, "F"),
+                            () -> List.of("atmospheric:sparse_rainforest_basin", 62, 83, "F"))
+                    .addIf(CompatManager.isEnvironmentalLoaded(),
+                            () -> List.of("environmental:marsh", 60, 80, "F", 78))
+                    .addIf(CompatManager.isTerralithLoaded(),
+                            () -> List.of("terralith:moonlight_valley", 57, 76, "F"),
+                            () -> List.of("terralith:rocky_mountains", 45, 73, "F"),
+                            () -> List.of("terralith:blooming_plateau", 49, 78, "F"),
+                            () -> List.of("terralith:alpine_grove", 16, 53, "F"),
+                            () -> List.of("terralith:yellowstone", 47, 68, "F"),
+                            () -> List.of("terralith:forested_highlands", 43, 70, "F"),
+                            () -> List.of("terralith:temperate_highlands", 54, 80, "F"),
+                            () -> List.of("terralith:amethyst_rainforest", 69, 84, "F"),
+                            () -> List.of("terralith:sandstone_valley", 78, 114, "F"),
+                            () -> List.of("terralith:ancient_sands", 83, 130, "F"),
+                            () -> List.of("terralith:arid_highlands", 74, 102, "F"),
+                            () -> List.of("terralith:volcanic_crater", 96, 162, "F"),
+                            () -> List.of("terralith:volcanic_peaks", 76, 122, "F"),
+                            () -> List.of("terralith:basalt_cliffs", 76, 122, "F"),
+                            () -> List.of("terralith:birch_taiga", 40, 62, "F"),
+                            () -> List.of("terralith:brushland", 64, 89, "F"),
+                            () -> List.of("terralith:bryce_canyon", 72, 110, "F"),
+                            () -> List.of("terralith:caldera", 58, 71, "F"),
+                            () -> List.of("terralith:cloud_forest", 38, 58, "F"),
+                            () -> List.of("terralith:desert_canyon", 73, 121, "F"),
+                            () -> List.of("terralith:desert_spires", 60, 121, "F"),
+                            () -> List.of("terralith:orchid_swamp", 62, 81, "F"),
+                            () -> List.of("terralith:fractured_savanna", 65, 92, "F"),
+                            () -> List.of("terralith:savanna_badlands", 68, 99, "F"),
+                            () -> List.of("terralith:granite_cliffs", 65, 85, "F"),
+                            () -> List.of("terralith:haze_mountain", 62, 74, "F"),
+                            () -> List.of("terralith:highlands", 62, 74, "F"),
+                            () -> List.of("terralith:lavender_valley", 59, 76, "F"),
+                            () -> List.of("terralith:lavender_forest", 56, 75, "F"),
+                            () -> List.of("terralith:red_oasis", 58, 94, "F"),
+                            () -> List.of("terralith:shield", 48, 68, "F"),
+                            () -> List.of("terralith:shield_clearing", 28, 80, "F"),
+                            () -> List.of("terralith:steppe", 44, 78, "F"),
+                            () -> List.of("terralith:warped_mesa", 66, 84, "F", -5))
+                    .addIf(CompatManager.isWythersLoaded(),
+                            () -> List.of("wythers:ancient_copper_beech_forest", 12, 16, "C"),
+                            () -> List.of("wythers:ancient_emerald_beech_forest", 12, 15, "C"),
+                            () -> List.of("wythers:ancient_golden_beech_forest", 12, 15, "C"),
+                            () -> List.of("wythers:ancient_moss_forest", 12, 15, "C"),
+                            () -> List.of("wythers:ancient_mossy_swamp", 10, 12, "C"),
+                            () -> List.of("wythers:ancient_oak_swamp", 12, 15, "C"),
+                            () -> List.of("wythers:ancient_taiga", 15, 18, "C"),
+                            () -> List.of("wythers:andesite_crags", 20, 25, "C"),
+                            () -> List.of("wythers:aspen_crags", 18, 20, "C"),
+                            () -> List.of("wythers:autumnal_birch_forest", 15, 16, "C"),
+                            () -> List.of("wythers:autumnal_crags", 15, 18, "C"),
+                            () -> List.of("wythers:autumnal_flower_forest", 18, 20, "C"),
+                            () -> List.of("wythers:autumnal_forest", 15, 16, "C"),
+                            () -> List.of("wythers:autumnal_forest_edge", 15, 18, "C"),
+                            () -> List.of("wythers:autumnal_plains", 18, 20, "C"),
+                            () -> List.of("wythers:autumnal_swamp", 12, 15, "C"),
+                            () -> List.of("wythers:ayers_rock", 32, 35, "C"),
+                            () -> List.of("wythers:badlands_canyon", 30, 35, "C"),
+                            () -> List.of("wythers:badlands_desert", 35, 40, "C"),
+                            () -> List.of("wythers:badlands_river", 30, 34, "C"),
+                            () -> List.of("wythers:bamboo_jungle_canyon", 12, 18, "C"),
+                            () -> List.of("wythers:bamboo_jungle_highlands", 13, 15, "C"),
+                            () -> List.of("wythers:bamboo_jungle_swamp", 12, 15, "C"),
+                            () -> List.of("wythers:bamboo_swamp", 12, 15, "C"),
+                            () -> List.of("wythers:bayou", 14, 18, "C", 14),
+                            () -> List.of("wythers:berry_bog", 12, 16, "C", 12),
+                            () -> List.of("wythers:billabong", 12, 16, "C"),
+                            () -> List.of("wythers:birch_swamp", 12, 16, "C"),
+                            () -> List.of("wythers:birch_taiga", 12, 16, "C"),
+                            () -> List.of("wythers:black_beach", 18, 22, "C"),
+                            () -> List.of("wythers:black_river", 15, 20, "C"),
+                            () -> List.of("wythers:boreal_forest_red", 20, 23, "C"),
+                            () -> List.of("wythers:boreal_forest_yellow", 20, 25, "C"),
+                            () -> List.of("wythers:cactus_desert", 30, 45, "C"),
+                            () -> List.of("wythers:calcite_caverns", 30, 35, "C"),
+                            () -> List.of("wythers:calcite_coast", 30, 35, "C"),
+                            () -> List.of("wythers:chaparral", 30, 35, "C"),
+                            () -> List.of("wythers:coastal_mangroves", 15, 19, "C"),
+                            () -> List.of("wythers:cold_island", -1, 3, "C"),
+                            () -> List.of("wythers:cold_plains", -5, 2, "C"),
+                            () -> List.of("wythers:cold_stony_shore", -10, 2, "C"),
+                            () -> List.of("wythers:cool_forest", 5, 10, "C"),
+                            () -> List.of("wythers:cool_forest_edge", 5, 10, "C"),
+                            () -> List.of("wythers:cool_plains", 5, 10, "C"),
+                            () -> List.of("wythers:cool_stony_canyons", 0, 1, "C"),
+                            () -> List.of("wythers:cool_stony_peaks", -10, 0, "C"),
+                            () -> List.of("wythers:crimson_tundra", 12, 15, "C"),
+                            () -> List.of("wythers:danakil_desert", 30, 40, "C"),
+                            () -> List.of("wythers:deep_dark_forest", 5, 6, "C"),
+                            () -> List.of("wythers:deep_desert", 30, 40, "C"),
+                            () -> List.of("wythers:deep_desert_river", 25, 30, "C"),
+                            () -> List.of("wythers:deep_icy_ocean", -20, 0, "C"),
+                            () -> List.of("wythers:deep_snowy_taiga", -10, 0, "C"),
+                            () -> List.of("wythers:deep_underground", 0, 5, "C"),
+                            () -> List.of("wythers:deepslate_shore", 10, 12, "C"),
+                            () -> List.of("wythers:desert_beach", 30, 35, "C"),
+                            () -> List.of("wythers:desert_island", 40, 45, "C"),
+                            () -> List.of("wythers:desert_lakes", 30, 31, "C"),
+                            () -> List.of("wythers:desert_pinnacles", 28, 30, "C"),
+                            () -> List.of("wythers:desert_river", 30, 35, "C"),
+                            () -> List.of("wythers:dripleaf_swamp", 20, 25, "C"),
+                            () -> List.of("wythers:dry_savanna", 29, 35, "C"),
+                            () -> List.of("wythers:dry_tropical_forest", 20, 26, "C"),
+                            () -> List.of("wythers:dry_tropical_grassland", 28, 30, "C"),
+                            () -> List.of("wythers:eucalyptus_deanei_forest", 20, 25, "C"),
+                            () -> List.of("wythers:eucalyptus_jungle", 20, 25, "C"),
+                            () -> List.of("wythers:eucalyptus_jungle_canyon", 20, 25, "C"),
+                            () -> List.of("wythers:eucalyptus_salubris_woodland", 20, 25, "C"),
+                            () -> List.of("wythers:eucalyptus_woodland", 22, 25, "C"),
+                            () -> List.of("wythers:fen", 10, 15, "C"),
+                            () -> List.of("wythers:flooded_jungle", 12, 18, "C"),
+                            () -> List.of("wythers:flooded_rainforest", 16, 20, "C"),
+                            () -> List.of("wythers:flooded_savanna", 16, 20, "C"),
+                            () -> List.of("wythers:flooded_temperate_rainforest", 20, 22, "C"),
+                            () -> List.of("wythers:flowering_pantanal", 25, 28, "C"),
+                            () -> List.of("wythers:forbidden_forest", 12, 18, "C"),
+                            () -> List.of("wythers:forest_edge", 15, 18, "C"),
+                            () -> List.of("wythers:forested_highlands", 15, 18, "C"),
+                            () -> List.of("wythers:frigid_island", 0, 5, "C"),
+                            () -> List.of("wythers:frozen_island", -15, 0, "C"),
+                            () -> List.of("wythers:fungous_dripstone_caves", 5, 10, "C"),
+                            () -> List.of("wythers:giant_sequoia_forest", 10, 15, "C"),
+                            () -> List.of("wythers:glacial_cliffs", 1, 10, "C"),
+                            () -> List.of("wythers:granite_canyon", 15, 20, "C"),
+                            () -> List.of("wythers:gravelly_beach", 20, 25, "C"),
+                            () -> List.of("wythers:gravelly_river", 15, 20, "C"),
+                            () -> List.of("wythers:guelta", 15, 18, "C"),
+                            () -> List.of("wythers:harvest_fields", 20, 26, "C"),
+                            () -> List.of("wythers:highland_plains", 20, 25, "C"),
+                            () -> List.of("wythers:highland_tropical_rainforest", 15, 20, "C"),
+                            () -> List.of("wythers:highlands", 20, 25, "C"),
+                            () -> List.of("wythers:huangshan_highlands", 15, 25, "C"),
+                            () -> List.of("wythers:humid_tropical_grassland", 20, 26, "C"),
+                            () -> List.of("wythers:ice_cap", 0, 5, "C"),
+                            () -> List.of("wythers:icy_crags", -5, 0, "C"),
+                            () -> List.of("wythers:icy_ocean", -5, 0, "C"),
+                            () -> List.of("wythers:icy_river", -5, 0, "C"),
+                            () -> List.of("wythers:icy_shore", -5, 0, "C"),
+                            () -> List.of("wythers:icy_volcano", 1, 2, "C"),
+                            () -> List.of("wythers:jacaranda_savanna", 20, 25, "C"),
+                            () -> List.of("wythers:jade_highlands", 20, 25, "C"),
+                            () -> List.of("wythers:jungle_canyon", 20, 25, "C"),
+                            () -> List.of("wythers:jungle_island", 20, 25, "C"),
+                            () -> List.of("wythers:jungle_river", 20, 25, "C"),
+                            () -> List.of("wythers:kwongan_heath", 30, 50, "C"),
+                            () -> List.of("wythers:lantern_river", 15, 20, "C"),
+                            () -> List.of("wythers:lapacho_plains", 20, 25, "C"),
+                            () -> List.of("wythers:larch_taiga", 20, 22, "C"),
+                            () -> List.of("wythers:lichenous_caves", 15, 20, "C"),
+                            () -> List.of("wythers:lichenous_dripstone_caves", 12, 18, "C"),
+                            () -> List.of("wythers:lush_dripstone_caves", 12, 18, "C"),
+                            () -> List.of("wythers:lush_fungous_dripstone_caves", 10, 15, "C"),
+                            () -> List.of("wythers:lush_shroom_caves", 15, 18, "C"),
+                            () -> List.of("wythers:maple_mountains", 15, 18, "C"),
+                            () -> List.of("wythers:marsh", 12, 15, "C"),
+                            () -> List.of("wythers:mediterranean_island", 15, 18, "C"),
+                            () -> List.of("wythers:mediterranean_island_thermal_springs", 25, 30, "C"),
+                            () -> List.of("wythers:mossy_caves", 12, 15, "C"),
+                            () -> List.of("wythers:mossy_dripstone_caves", 12, 15, "C"),
+                            () -> List.of("wythers:mud_pools", 20, 25, "C"),
+                            () -> List.of("wythers:mushroom_caves", 20, 25, "C"),
+                            () -> List.of("wythers:mushroom_island", 25, 28, "C"),
+                            () -> List.of("wythers:old_growth_taiga_crags", 18, 28, "C"),
+                            () -> List.of("wythers:old_growth_taiga_swamp", 18, 22, "C"),
+                            () -> List.of("wythers:outback", 30, 38, "C"),
+                            () -> List.of("wythers:outback_desert", 40, 45, "C"),
+                            () -> List.of("wythers:pantanal", 12, 18, "C"),
+                            () -> List.of("wythers:phantasmal_forest", 15, 18, "C"),
+                            () -> List.of("wythers:phantasmal_swamp", 15, 16, "C"),
+                            () -> List.of("wythers:pine_barrens", 20, 26, "C"),
+                            () -> List.of("wythers:red_desert", 30, 35, "C"),
+                            () -> List.of("wythers:red_rock_canyon", 30, 32, "C"),
+                            () -> List.of("wythers:sakura_forest", 26, 32, "C"),
+                            () -> List.of("wythers:salt_lakes_pink", 16, 28, "C"),
+                            () -> List.of("wythers:salt_lakes_turquoise", 16, 20, "C"),
+                            () -> List.of("wythers:salt_lakes_white", 16, 29, "C"),
+                            () -> List.of("wythers:sand_dunes", 30, 35, "C"),
+                            () -> List.of("wythers:sandy_jungle", 30, 38, "C"),
+                            () -> List.of("wythers:savanna_badlands", 35, 39, "C"),
+                            () -> List.of("wythers:savanna_basaltic_incursions", 35, 40, "C"),
+                            () -> List.of("wythers:savanna_river", 30, 35, "C"),
+                            () -> List.of("wythers:scrub_forest", 20, 28, "C"),
+                            () -> List.of("wythers:scrubland", 15, 18, "C"),
+                            () -> List.of("wythers:snowy_bog", 0, 5, "C"),
+                            () -> List.of("wythers:snowy_canyon", -5, 0, "C"),
+                            () -> List.of("wythers:snowy_fen", -10, 0, "C"),
+                            () -> List.of("wythers:snowy_peaks", -20, 0, "C"),
+                            () -> List.of("wythers:snowy_thermal_taiga", 0, 5, "C"),
+                            () -> List.of("wythers:snowy_tundra", 0, 2, "C"),
+                            () -> List.of("wythers:sparse_bamboo_jungle", 15, 18, "C"),
+                            () -> List.of("wythers:sparse_eucalyptus_jungle", 15, 18, "C"),
+                            () -> List.of("wythers:sparse_eucalyptus_woodland", 20, 25, "C"),
+                            () -> List.of("wythers:spring_flower_fields", 20, 28, "C"),
+                            () -> List.of("wythers:spring_flower_forest", 20, 28, "C"),
+                            () -> List.of("wythers:stony_canyon", 10, 15, "C"),
+                            () -> List.of("wythers:subtropical_forest", 15, 18, "C"),
+                            () -> List.of("wythers:subtropical_forest_edge", 15, 18, "C"),
+                            () -> List.of("wythers:subtropical_grassland", 15, 20, "C"),
+                            () -> List.of("wythers:taiga_crags", 12, 16, "C"),
+                            () -> List.of("wythers:tangled_forest", 12, 16, "C"),
+                            () -> List.of("wythers:temperate_island", 20, 25, "C"),
+                            () -> List.of("wythers:temperate_rainforest", 20, 25, "C"),
+                            () -> List.of("wythers:temperate_rainforest_crags", 20, 25, "C"),
+                            () -> List.of("wythers:tepui", 10, 15, "C"),
+                            () -> List.of("wythers:thermal_taiga", 20, 25, "C"),
+                            () -> List.of("wythers:thermal_taiga_crags", 20, 25, "C"),
+                            () -> List.of("wythers:tibesti_mountains", 30, 35, "C"),
+                            () -> List.of("wythers:tropical_beach", 35, 38, "C"),
+                            () -> List.of("wythers:tropical_forest", 22, 30, "C"),
+                            () -> List.of("wythers:tropical_forest_canyon", 25, 30, "C"),
+                            () -> List.of("wythers:tropical_forest_river", 22, 30, "C"),
+                            () -> List.of("wythers:tropical_grassland", 20, 30, "C"),
+                            () -> List.of("wythers:tropical_island", 24, 34, "C"),
+                            () -> List.of("wythers:tropical_rainforest", 25, 32, "C"),
+                            () -> List.of("wythers:tropical_volcano", 40, 50, "C"),
+                            () -> List.of("wythers:tsingy_forest", 15, 18, "C"),
+                            () -> List.of("wythers:tundra", 10, 15, "C"),
+                            () -> List.of("wythers:underground", 15, 18, "C"),
+                            () -> List.of("wythers:volcanic_chamber", 35, 45, "C"),
+                            () -> List.of("wythers:volcanic_crater", 35, 45, "C"),
+                            () -> List.of("wythers:volcano", 40, 50, "C"),
+                            () -> List.of("wythers:warm_birch_forest", 30, 37, "C"),
+                            () -> List.of("wythers:warm_stony_shore", 30, 37, "C"),
+                            () -> List.of("wythers:waterlily_swamp", 15, 18, "C"),
+                            () -> List.of("wythers:windswept_jungle", 18, 22, "C"),
+                            () -> List.of("wythers:wistman_woods", 18, 20, "C"),
+                            () -> List.of("wythers:wooded_desert", 22, 25, "C"),
+                            () -> List.of("wythers:wooded_savanna", 22, 26, "C")
+                    ).addIf(CompatManager.isRegionsUnexploredLoaded(),
+                            () -> List.of("regions_unexplored:alpha_grove", 65, 85, "F"),
+                            () -> List.of("regions_unexplored:arid_mountains", 85, 120, "F"),
+                            () -> List.of("regions_unexplored:ashen_woodland", 70, 90, "F"),
+                            () -> List.of("regions_unexplored:autumnal_maple_forest", 60, 85, "F"),
+                            () -> List.of("regions_unexplored:bamboo_forest", 76, 87, "F"),
+                            () -> List.of("regions_unexplored:baobab_savanna", 70, 95, "F"),
+                            () -> List.of("regions_unexplored:barley_fields", 66, 82, "F"),
+                            () -> List.of("regions_unexplored:bayou", 67, 78, "F"),
+                            () -> List.of("regions_unexplored:bioshroom_caves", 80, 80, "F"),
+                            () -> List.of("regions_unexplored:blackstone_basin", 85, 85, "F"),
+                            () -> List.of("regions_unexplored:blackwood_taiga", 48, 68, "F"),
+                            () -> List.of("regions_unexplored:blackwood_taiga", 48, 68, "F"),
+                            () -> List.of("regions_unexplored:boreal_taiga", 48, 68, "F"),
+                            () -> List.of("regions_unexplored:chalk_cliffs", 60, 88, "F"),
+                            () -> List.of("regions_unexplored:clover_plains", 65, 85, "F"),
+                            () -> List.of("regions_unexplored:cold_boreal_taiga", 40, 59, "F"),
+                            () -> List.of("regions_unexplored:cold_deciduous_forest", 43, 62, "F"),
+                            () -> List.of("regions_unexplored:cold_river", 45, 60, "F"),
+                            () -> List.of("regions_unexplored:deciduous_forest", 58, 82, "F"),
+                            () -> List.of("regions_unexplored:dry_bushland", 72, 89, "F"),
+                            () -> List.of("regions_unexplored:eucalyptus_forest", 69, 86, "F"),
+                            () -> List.of("regions_unexplored:fen", 58, 79, "F"),
+                            () -> List.of("regions_unexplored:flower_fields", 58, 85, "F"),
+                            () -> List.of("regions_unexplored:frozen_pine_taiga", 34, 62, "F"),
+                            () -> List.of("regions_unexplored:frozen_tundra", 30, 59, "F"),
+                            () -> List.of("regions_unexplored:fungal_fen", 60, 82, "F"),
+                            () -> List.of("regions_unexplored:golden_boreal_taiga", 48, 68, "F"),
+                            () -> List.of("regions_unexplored:grassland", 66, 86, "F"),
+                            () -> List.of("regions_unexplored:grassy_beach", 67, 80, "F"),
+                            () -> List.of("regions_unexplored:gravel_beach", 62, 80, "F"),
+                            () -> List.of("regions_unexplored:highland_fields", 60, 78, "F"),
+                            () -> List.of("regions_unexplored:hyacinth_deeps", 60, 78, "F"),
+                            () -> List.of("regions_unexplored:icy_heights", 30, 52, "F"),
+                            () -> List.of("regions_unexplored:joshua_desert", 72, 92, "F"),
+                            () -> List.of("regions_unexplored:magnolia_woodland", 66, 86, "F"),
+                            () -> List.of("regions_unexplored:maple_forest", 62, 82, "F"),
+                            () -> List.of("regions_unexplored:marsh", 72, 88, "F"),
+                            () -> List.of("regions_unexplored:mauve_hills", 65, 85, "F"),
+                            () -> List.of("regions_unexplored:mountains", 60, 85, "F"),
+                            () -> List.of("regions_unexplored:muddy_river", 65, 85, "F"),
+                            () -> List.of("regions_unexplored:old_growth_bayou", 74, 86, "F"),
+                            () -> List.of("regions_unexplored:orchard", 62, 85, "F"),
+                            () -> List.of("regions_unexplored:outback", 62, 97, "F"),
+                            () -> List.of("regions_unexplored:pine_slopes", 53, 74, "F"),
+                            () -> List.of("regions_unexplored:pine_taiga", 47, 73, "F"),
+                            () -> List.of("regions_unexplored:poppy_fields", 64, 84, "F"),
+                            () -> List.of("regions_unexplored:prairie", 66, 82, "F"),
+                            () -> List.of("regions_unexplored:prismachasm", 75, 75, "F"),
+                            () -> List.of("regions_unexplored:pumpkin_fields", 60, 80, "F"),
+                            () -> List.of("regions_unexplored:rainforest", 73, 89, "F"),
+                            () -> List.of("regions_unexplored:redstone_caves", 80, 80, "F"),
+                            () -> List.of("regions_unexplored:redwoods", 60, 80, "F"),
+                            () -> List.of("regions_unexplored:rocky_meadow", 65, 85, "F"),
+                            () -> List.of("regions_unexplored:rocky_reef", 68, 86, "F"),
+                            () -> List.of("regions_unexplored:saguaro_desert", 53, 120, "F"),
+                            () -> List.of("regions_unexplored:scorching_caves", 90, 90, "F"),
+                            () -> List.of("regions_unexplored:shrubland", 64, 86, "F"),
+                            () -> List.of("regions_unexplored:silver_birch_forest", 65, 85, "F"),
+                            () -> List.of("regions_unexplored:sparse_rainforest", 73, 89, "F"),
+                            () -> List.of("regions_unexplored:spires", 20, 50, "F"),
+                            () -> List.of("regions_unexplored:steppe", 72, 89, "F"),
+                            () -> List.of("regions_unexplored:temperate_grove", 65, 85, "F"),
+                            () -> List.of("regions_unexplored:towering_cliffs", 65, 85, "F"),
+                            () -> List.of("regions_unexplored:tropical_river", 74, 85, "F"),
+                            () -> List.of("regions_unexplored:tropics", 74, 87, "F"),
+                            () -> List.of("regions_unexplored:willow_forest", 63, 82, "F")
+                    ).build(),
+                it -> it instanceof List<?> list
+                      && list.get(0) instanceof String
+                      && (list.get(1) instanceof String string && string.equals("disable")
+                      || (list.get(1) instanceof Number
+                      && list.get(2) instanceof Number
+                      && (list.size() < 4 || list.get(3) instanceof String)
+                      && (list.size() < 5 || list.get(4) instanceof Number)
+                      && (list.size() < 6 || list.get(5) instanceof Number)))
+                );
+
+        BUILDER.pop();
+
+
+        BUILDER.push("Blocks");
+
+            BLOCK_TEMPERATURES = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────//v",
+                         " Applies temperature-emitting properties to blocks",
+                         " ├── Format: [[\"block_id\", temperature, range, *units, *maxEffect, *\"predicates\", *\"{nbt}\", *tempLimit], [...], etc]",
+                         " └── [* = optional]",
+                         " • block_id: The ID of the block (i.e. \"minecraft:lava\")",
+                         " • temperature: The temperature of the block, in Minecraft units",
+                         " • range: The radius of the block's temperature effect, in blocks",
+                         " • *units: The units of the temperature (\"f\", \"c\", or \"mc\"). Defaults to Minecraft units (mc))",
+                         " • *maxEffect: The maximum cumulative temperature change this block can cause to a player (even with multiple blocks)",
+                         " • *predicates: The state that the block must have for the temperature to be applied (i.e. \"lit=true\").",
+                         "   (Define multiple predicates by separating them with commas [i.e. \"lit=true,waterlogged=false\"])",
+                         " • *nbt: The NBT data that the block must have for the temperature to be applied.",
+                         " • *tempLimit: The maximum world temperature at which this block temp will have any effect.",
+                         "   (Represents the minimum temp if the block temp is negative)")
+                .defineListAllowEmpty(List.of("Block Temperatures"), () -> ListBuilder.begin(
+                                            List.of("cold_sweat:boiler",         15, 7, "f", 36, "lit=true", "", 212),
+                                            List.of("cold_sweat:icebox",        -15, 7, "f", 36, "frosted=true", "", 32),
+                                            List.of("minecraft:lava",            30, 7, "f", 200, "", "", 1000, true),
+                                            List.of("#minecraft:fire",           25, 7, "f", 50, "", "", 400),
+                                            List.of("#minecraft:campfires",      25, 7, "f", 50, "lit=true", " ", 400),
+                                            List.of("minecraft:magma_block",     20, 3, "f", 48),
+                                            List.of("minecraft:lava_cauldron",   30, 7, "f", 200, "", "", 1000, true),
+                                            List.of("minecraft:ice",            -10, 4, "f", 24, "", "", 33),
+                                            List.of("minecraft:packed_ice",     -15, 4, "f", 48, "", "", 16),
+                                            List.of("minecraft:blue_ice",       -20, 4, "f", 64, "", "", 0),
+                                            List.of("#minecraft:ice",            -6, 4, "f", 27, "", "", 33)
+                                      ).addIf(CompatManager.isCreateLoaded(),
+                                            () -> List.of("create:blaze_burner", 5,  3, "f", 30, "blaze=smouldering", "", 400),
+                                            () -> List.of("create:blaze_burner", 12, 4, "f", 30, "blaze=fading", "", 400),
+                                            () -> List.of("create:blaze_burner", 20, 5, "f", 45, "blaze=kindled", "", 400),
+                                            () -> List.of("create:blaze_burner", 30, 6, "f", 60, "blaze=seething", "", 400))
+                                      .build(),
+                            it -> it instanceof List<?> list
+                                    && list.size() >= 3
+                                    && list.get(0) instanceof String
+                                    && (list.get(1) instanceof Number || list.get(1) instanceof String)
+                                    && list.get(2) instanceof Number
+                                    && (list.size() < 4 || list.get(3) instanceof String)
+                                    && (list.size() < 5 || list.get(4) instanceof Number)
+                                    && (list.size() < 6 || list.get(5) instanceof String)
+                                    && (list.size() < 7 || list.get(6) instanceof String)
+                                    && (list.size() < 8 || list.get(7) instanceof Number));
+
+            MAX_BLOCK_TEMP_RANGE = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum range of blocks' area of effect",
+                         " - Note: This will not change anything unless blocks are configured to utilize the expanded range",
+                         " - This value is limited to 16 for performance reasons")
+                .defineInRange("Block Range", 7, 1, 16);
+
+            CUSTOM_WATER_FREEZE_BEHAVIOR = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " When set to true, uses Cold Sweat's temperature system to determine water freezing behavior")
+                .define("Custom Freezing Behavior", true);
+
+            CUSTOM_ICE_DROPS = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " When set to true, modifies ice blocks to be harvestable with a pickaxe and tweaks its mining speed")
+                .define("Custom Ice Drops", true);
+
+            DRYOFF_SPEED = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The speed at which wet players dry off")
+                .defineInRange("Dryoff Speed", 0.0015, 0.0, Double.POSITIVE_INFINITY);
+
+            WATER_SOAK_SPEED = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The speed at which players become soaked when in water")
+                .defineInRange("Water Soak Speed", 0.1, 0.0, Double.POSITIVE_INFINITY);
+
+            RAIN_SOAK_SPEED = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The speed at which players become soaked when in rain")
+                .defineInRange("Rain Soak Speed", 0.0125, 0.0, Double.POSITIVE_INFINITY);
+
+            DEFAULT_WATER_TEMP = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The default temperature of water",
+                         " └── Format: [temperature, *units]")
+                .defineList("Default Water Temperature",
+                            List.of(-10, "f"),
+                            it -> it instanceof Number || it instanceof String);
+
+            MAX_RAIN_SOAK = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum temperature effect of rain soaking on the player, in MC units")
+                .defineInRange("Max Rain Soak", 0.2, 0.0, Double.POSITIVE_INFINITY);
+
+        BUILDER.pop();
+
+
+        BUILDER.push("Structures");
+
+            STRUCTURE_TEMPERATURES = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " Overrides the world temperature when the player is within this structure",
+                         " ├── Format: [[\"structure_id\", temperature, *units], [...], etc]",
+                         " └── [* = optional]",
+                         " • structure_id: The ID of the structure (i.e. \"minecraft:stronghold\")",
+                         " • temperature: The temperature of the structure, in Minecraft units",
+                         " • *units: The units of the temperature (\"f\" for Fahrenheit, \"c\" for Celsius, \"mc\" for Minecraft units)")
+                .defineListAllowEmpty(List.of("Structure Temperatures"), () -> List.of(
+                        // empty
+                ), it -> it instanceof List<?> list
+                        && list.get(0) instanceof String
+                        && list.get(1) instanceof Number
+                        && (list.size() < 3 || list.get(2) instanceof String));
+
+            STRUCTURE_TEMP_OFFSETS = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " Offsets the world temperature when the player is within this structure",
+                         " ├── Format: [[\"structure_id\", offset, *units], [...], etc]",
+                         " └── [* = optional]",
+                         " • structure_id: The ID of the structure (i.e. \"minecraft:igloo\")",
+                         " • offset: The temperature offset of the structure, in Minecraft units",
+                         " • *units: The units of the temperature (\"f\" for Fahrenheit, \"c\" for Celsius, \"mc\" for Minecraft units)")
+                .defineListAllowEmpty(List.of("Structure Temperature Offsets"), () -> List.of(
+                        // empty
+                ), it -> it instanceof List<?> list
+                        && list.get(0) instanceof String
+                        && list.get(1) instanceof Number
+                        && (list.size() < 3 || list.get(2) instanceof String));
+
+        BUILDER.pop();
+
+
+        BUILDER.push("Misc");
+
+            SHADE_TEMP_OFFSET = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " A temperature offset applied when in complete shade or when the sky is overcast",
+                         " └── Format: [offset, *units]")
+                .defineList("Shade Temperature Offset",
+                            List.of(-9, "f"),
+                            it -> it instanceof Number || it instanceof String);
+
+            SLEEPING_OVERRIDE_BLOCKS = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " List of blocks that will allow the player to sleep on them, regardless of the \"Prevent Sleep When in Danger\" setting",
+                         " Use this list if the player is not getting the temperature effect from sleeping on particular blocks")
+                .defineListAllowEmpty(List.of("Sleep Check Override Blocks"), () -> ListBuilder.<String>begin()
+                        .addIf(CompatManager.modLoaded("comforts"),
+                                () -> "#comforts:sleeping_bags")
+                        .build(),
+                it -> it instanceof String);
+
+            SHOULD_CHECK_SLEEP = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " When set to true, players cannot sleep if they are cold or hot enough to die")
+                .define("Check Sleeping Conditions", true);
+
+            IS_SOUL_FIRE_COLD = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " Converts damage dealt by Soul Fire to cold damage (default: true)",
+                         " Does not affect the block's temperature")
+                .define("Cold Soul Fire", true);
+
+        BUILDER.pop();
+
+
+        BUILDER.comment("\"Thermal sources\" are blocks that have a smokestack and give frigidness/warmth. like the hearth, boiler, and iceobx")
+               .push("Thermal Sources");
+
+            SOURCE_EFFECT_STRENGTH = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " How effective thermal sources are at normalizing temperature")
+                .defineInRange("Thermal Source Strength", 0.75, 0, 1.0);
+
+            SOURCE_SPREAD_WHITELIST = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " List of additional blocks that thermal sources can spread through",
+                         " Use this list if thermal sources aren't spreading through particular blocks that they should")
+                .defineListAllowEmpty(List.of("Thermal Source Spread Whitelist"), ListBuilder.begin(
+                                              "minecraft:iron_bars",
+                                              "#minecraft:leaves")
+                                          .addIf(CompatManager.isCreateLoaded(),
+                                              () -> "create:encased_fluid_pipe")
+                                          .build(),
+                                      o -> o instanceof String);
+
+            SOURCE_SPREAD_BLACKLIST = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " List of additional blocks that thermal sources spread through",
+                         " Use this list if thermal sources are spreading through particular blocks that they shouldn't")
+                .defineListAllowEmpty(List.of("Thermal Source Spread Blacklist"), () -> List.of(
+                                            "minecraft:water"
+                ), o -> o instanceof String);
+
+        BUILDER.push("Hearth");
+
+            ENABLE_SMART_HEARTH = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " Allows the hearth to automatically turn on/off based on nearby players' temperature",
+                         " If false, it turns on/off by redstone signal instead")
+                .define("Automatic Hearth", false);
+            HEARTH_RANGE = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The distance the hearth's air will travel from a source, like the hearth itself or the end of a pipe")
+                .defineInRange("Hearth Range", 20, 0, Integer.MAX_VALUE);
+            HEARTH_MAX_RANGE = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum distance that air can be piped away from the hearth")
+                .defineInRange("Max Hearth Range", 96, 0, Integer.MAX_VALUE);
+            HEARTH_MAX_VOLUME = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum volume of the hearth's area of effect")
+                .defineInRange("Hearth Volume", 12000, 1, Integer.MAX_VALUE);
+            HEARTH_WARM_UP_TIME = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The time it takes for the hearth to be fully functional after being placed")
+                .defineInRange("Hearth Warm-Up Time", 1200, 0, Integer.MAX_VALUE);
+            HEARTH_MAX_INSULATION = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum amount of insulation that the hearth can provide")
+                .defineInRange("Hearth Effect Strength", 10, 0, 10);
+            HEARTH_FUEL_INTERVAL = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " How often the hearth consumes fuel (in ticks)",
+                         " Lower numbers cause fuel to be consumed faster. Setting to 0 disables fuel consumption")
+                .defineInRange("Hearth Fuel Consumption Interval", 40, 0, Integer.MAX_VALUE);
+
+        BUILDER.pop();
+
+        BUILDER.push("Boiler");
+
+            ENABLE_SMART_BOILER = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " Allows the boiler to automatically turn on/off based on nearby players' temperature",
+                         " If false, it turns on/off by redstone signal instead")
+                .define("Automatic Boiler", false);
+            BOILER_RANGE = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The distance the boiler's air will travel from a source, like the boiler itself or the end of a pipe")
+                .defineInRange("Boiler Range", 16, 0, Integer.MAX_VALUE);
+            BOILER_MAX_RANGE = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum distance that air can be piped away from the boiler")
+                .defineInRange("Max Boiler Range", 96, 0, Integer.MAX_VALUE);
+            BOILER_MAX_VOLUME = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum volume of the boiler's area of effect")
+                .defineInRange("Boiler Volume", 2000, 1, Integer.MAX_VALUE);
+            BOILER_WARM_UP_TIME = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The time it takes for the boiler to be fully functional after being placed")
+                .defineInRange("Boiler Warm-Up Time", 1200, 0, Integer.MAX_VALUE);
+            BOILER_MAX_INSULATION = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum amount of insulation that the boiler can provide")
+                .defineInRange("Boiler Warmth Strength", 5, 0, 10);
+            BOILER_FUEL_INTERVAL = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " How often the boiler consumes fuel (in ticks)",
+                         " Lower numbers cause fuel to be consumed faster. Setting to 0 disables fuel consumption")
+                .defineInRange("Boiler Fuel Consumption Interval", 40, 0, Integer.MAX_VALUE);
+
+        BUILDER.pop();
+
+        BUILDER.push("Icebox");
+
+            ENABLE_SMART_ICEBOX = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " Allows the icebox to automatically turn on/off based on nearby players' temperature",
+                         " If false, it turns on/off by redstone signal instead")
+                .define("Automatic Icebox", false);
+            ICEBOX_RANGE = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The distance the icebox's air will travel from a source, like the icebox itself or the end of a pipe")
+                .defineInRange("Icebox Range", 16, 0, Integer.MAX_VALUE);
+            ICEBOX_MAX_RANGE = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum distance that air can be piped away from the icebox")
+                .defineInRange("Max Icebox Range", 96, 0, Integer.MAX_VALUE);
+            ICEBOX_MAX_VOLUME = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum volume of the icebox's area of effect")
+                .defineInRange("Icebox Volume", 2000, 1, Integer.MAX_VALUE);
+            ICEBOX_WARM_UP_TIME = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The time it takes for the icebox to be fully functional after being placed")
+                .defineInRange("Icebox Warm-Up Time", 1200, 0, Integer.MAX_VALUE);
+            ICEBOX_MAX_INSULATION = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " The maximum amount of insulation that the icebox can provide")
+                .defineInRange("Icebox Chill Strength", 5, 0, 10);
+            ICEBOX_FUEL_INTERVAL = BUILDER
+                .comment("─────────────────────────────────────────────────────────────────────────",
+                         " How often the icebox consumes fuel (in ticks)",
+                         " Lower numbers cause fuel to be consumed faster. Setting to 0 disables fuel consumption")
+                .defineInRange("Icebox Fuel Consumption Interval", 40, 0, Integer.MAX_VALUE);
+
+        BUILDER.pop();
+
+        if (CompatManager.isToughAsNailsLoaded())
+        {
+            BUILDER.push("Thermoregulator");
+                THERMOREGULATOR_INSULATION = BUILDER
+                    .comment("─────────────────────────────────────────────────────────────────────────",
+                             " The amount of insulation that Tough as Nails's thermoregulator provides",
+                             " ⌄ ")
+                    .defineInRange("Thermoregulator Effect Strength", 10, 0, 10);
+            BUILDER.pop();
+        }
+        else
+        {   THERMOREGULATOR_INSULATION = null;
+        }
+
+        BUILDER.pop();
+
+
+        BUILDER.push("Compatibility");
+        /* Seasons config */
+        if (!CompatManager.getSeasonsMods().isEmpty())
+        {
+            BUILDER.push("Seasons");
+
+            BUILDER.comment("─────────────────────────────────────────────────────────────────────────",
+                            " Defines the temperature changes caused by each season",
+                            " ├── Format: [seasonStart, seasonMid, seasonEnd, *units]",
+                            " └── [* = optional]",
+                            " • seasonStart/Mid/End: The temperature offset at the start, middle, and end of the season",
+                            " • *units: The unit of temperature (C, F, or MC)",
+                            " ⌄ ");
+
+                SUMMER_TEMPERATURES = BUILDER
+                    .defineList("Summer", Arrays.asList(
+                            0.4, 0.6, 0.4
+                    ), it -> it instanceof Number || it instanceof String);
+
+                AUTUMN_TEMPERATURES = BUILDER
+                    .defineList("Autumn", Arrays.asList(
+                            0.2, 0, -0.2
+                    ), it -> it instanceof Number || it instanceof String);
+
+                WINTER_TEMPERATURES = BUILDER
+                    .defineList("Winter", Arrays.asList(
+                            -0.4, -0.6, -0.4
+                    ), it -> it instanceof Number || it instanceof String);
+
+                SPRING_TEMPERATURES = BUILDER
+                    .defineList("Spring", Arrays.asList(
+                            -0.2, 0, 0.2
+                    ), it -> it instanceof Number || it instanceof String);
+
+            BUILDER.pop();
+        }
+        BUILDER.pop();
+
+        SPEC = BUILDER.build();
+    }
+
+    public static void setup()
+    {
+        Path configPath = FMLPaths.CONFIGDIR.get();
+        Path csConfigPath = Paths.get(configPath.toAbsolutePath().toString(), "coldsweat");
+
+        // Create the config folder
+        try
+        {   Files.createDirectory(csConfigPath);
+        }
+        catch (Exception ignored) {}
+
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, "coldsweat/world.toml");
+    }
+
+    public static void save()
+    {   SPEC.save();
+    }
+
+    public static List<?> getSummerTemps()
+    {   return getSeasonalTemperature(SUMMER_TEMPERATURES);
+    }
+    public static List<?> getAutumnTemps()
+    {   return getSeasonalTemperature(AUTUMN_TEMPERATURES);
+    }
+    public static List<?> getWinterTemps()
+    {   return getSeasonalTemperature(WINTER_TEMPERATURES);
+    }
+    public static List<?> getSpringTemps()
+    {   return getSeasonalTemperature(SPRING_TEMPERATURES);
+    }
+    private static List<?> getSeasonalTemperature(CSConfigSpec.ConfigValue<List<?>> setting)
+    {
+        return setting.get().stream().map(o ->
+        {
+            if (o instanceof Number)
+            {   return ((Number) o).doubleValue();
+            }
+            else if (o instanceof String)
+            {   return Temperature.Units.fromID((String) o);
+            }
+            throw new IllegalArgumentException(String.format("Invalid argument \"%s\" for seasonal temperature", o));
+        }).toList();
+    }
+
+    public static synchronized void setSourceSpreadWhitelist(List<ResourceLocation> whitelist)
+    {   synchronized (SOURCE_SPREAD_WHITELIST)
+        {   SOURCE_SPREAD_WHITELIST.set(whitelist.stream().map(ResourceLocation::toString).collect(Collectors.toList()));
+        }
+    }
+
+    public static synchronized void setSourceSpreadBlacklist(List<ResourceLocation> blacklist)
+    {   synchronized (SOURCE_SPREAD_BLACKLIST)
+        {   SOURCE_SPREAD_BLACKLIST.set(blacklist.stream().map(ResourceLocation::toString).collect(Collectors.toList()));
+        }
+    }
+}

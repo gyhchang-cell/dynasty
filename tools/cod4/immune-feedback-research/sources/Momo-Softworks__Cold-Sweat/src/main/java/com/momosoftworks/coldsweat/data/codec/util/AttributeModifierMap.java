@@ -1,0 +1,101 @@
+package com.momosoftworks.coldsweat.data.codec.util;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.mojang.serialization.Codec;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+
+import java.util.*;
+
+public class AttributeModifierMap
+{
+    public static final Codec<AttributeModifierMap> CODEC = Codec.unboundedMap(AttributeCodecs.ATTRIBUTE_CODEC, AttributeCodecs.MODIFIER_CODEC.listOf())
+            .xmap(AttributeModifierMap::new,
+                  map -> map.getMap().asMap().entrySet()
+                            .stream()
+                            .collect(HashMap::new,
+                                     (mp, ent) -> mp.put(ent.getKey(), new ArrayList<>(ent.getValue())),
+                                     HashMap::putAll));
+
+    private final Multimap<Attribute, AttributeModifier> map = HashMultimap.create();
+
+    public AttributeModifierMap()
+    {
+    }
+
+    public AttributeModifierMap(Map<Attribute, ?> attributeListMap)
+    {   attributeListMap.forEach((attribute, list) ->
+        {   if (list instanceof Collection)
+            {   map.putAll(attribute, (Collection<AttributeModifier>) list);
+            }
+            else if (list instanceof AttributeModifier)
+            {   map.put(attribute, (AttributeModifier) list);
+            }
+        });
+    }
+
+    public AttributeModifierMap(Multimap<Attribute, AttributeModifier> map)
+    {   this.map.putAll(map);
+    }
+
+    public void put(Attribute attribute, AttributeModifier modifier)
+    {   map.put(attribute, modifier);
+    }
+
+    public Collection<AttributeModifier> get(Attribute attribute)
+    {   return map.get(attribute);
+    }
+
+    public Multimap<Attribute, AttributeModifier> getMap()
+    {   return map;
+    }
+
+    public AttributeModifierMap putAll(AttributeModifierMap other)
+    {   map.putAll(other.map);
+        return this;
+    }
+
+    public AttributeModifierMap putAll(Attribute attribute, Collection<AttributeModifier> modifiers)
+    {   map.putAll(attribute, modifiers);
+        return this;
+    }
+
+    public boolean isEmpty()
+    {   return map.isEmpty();
+    }
+
+    public void clear()
+    {   map.clear();
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        AttributeModifierMap that = (AttributeModifierMap) obj;
+        for (Map.Entry<Attribute, Collection<AttributeModifier>> entry : map.asMap().entrySet())
+        {
+            if (!that.map.containsKey(entry.getKey())) return false;
+
+            Collection<AttributeModifier> other = that.map.get(entry.getKey());
+            if (entry.getValue().size() != other.size()) return false;
+
+            Iterator<AttributeModifier> thatIterator = other.iterator();
+            for (AttributeModifier modifier : entry.getValue())
+            {
+                if (!thatIterator.hasNext()) return false;
+                AttributeModifier thatModifier = thatIterator.next();
+                if (!(Double.compare(modifier.getAmount(), thatModifier.getAmount()) == 0
+                      && modifier.getOperation() == thatModifier.getOperation()
+                      && modifier.getName().equals(thatModifier.getName())))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+}

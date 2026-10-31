@@ -1,0 +1,23 @@
+"""Manual full native-chain review; two policies, no wrapper/particle credits."""
+from ledger import B,O,record,verify
+import json,hashlib
+p='src/main/java/com/aizistral/enigmaticlegacy/'
+k='enigmatic-native-gaze-crowd-retarget-primary-exclusion-asymmetric-consumption'
+record(k,'Aizistral-Studios/Enigmatic-Legacy',[(p+'items/GuardianHeart.java',52,217),(p+'handlers/SuperpositionHandler.java',277,280),(p+'handlers/SuperpositionHandler.java',389,391),(p+'handlers/SuperpositionHandler.java',445,470),(p+'handlers/SuperpositionHandler.java',1322,1324),(p+'objects/Vector3.java',54,56),(p+'registries/EnigmaticItems.java',503,503),(p+'EnigmaticLegacy.java',331,401),(p+'packets/clients/PacketGenericParticleEffect.java',1,91)],
+ '真实guardian_heart注册→server inventoryTick：cursed ring Curios存在+hotbar+本item无CD→遍历附近Monster，首个注视/视线可达且非excluded为primary→primary活体→其周围活体且primary LOS可达列表→最近非自己secondary存在才设置双方目标/增益/群体反向目标→声+NEAR同dimension64快照粒子包→item cooldown。实际注册id21、encode/decode/effect fallback及enqueueWork client消费全文已读。',
+ '一个原生群体控制的最终准入与非对称排除政策1。默认AbstractPiglin/Guardian仅排除primary，secondary和回指群体循环不查isExcluded；不是全局抗控。目标修改先于盲目/增益addEffect且忽略返回，不能把抗药水当改AI目标失败。primary取遍历首个、secondary才最近。AbstractPiglin写Brain/target/lastHurt并调wasHurtBy，NeutralMob仅setTarget，其余setTarget+lastHurt；适配分支合并。外层另有被动普通Guardian空target时攻击非Guardian分支，不另计。不同已有ownerUUID临时mind control、potion MindTrick清目标、ambient cloak拒目标：这是注视选择与群体互相改敌、primary-only排除和一次执行后item级CD。',
+ 'Boss拒控必须在每个实际控制接入检查真实目标资格，不能只过滤主选中目标；发送成功/改target调用/药水拒绝分别不能证明最终AI状态。适合提醒正式灰字生产必须来自最终Boss拒绝语义，而非普通伤害返回或声光。',
+ '固定来源完整GuardianHeart及packet全文、列出的完整helpers/setup已读；item注册为定位行上下文，未把整个注册构造器当独立研究。excluded public list可能外部扩展未穷尽；Curios/vanilla setTarget/wasHurtBy/事件引擎未展开，不证明Boss可被控制或目标最终保留。粒子固定坐标无target身份/代际/expiry，client player无nullguard；amount计算未用于该分支4+12粒子，声在player处、粒子在primary眼位。声光不读取最终接纳结果。包未显示本注册direction约束，未声称安全校验完备；无专用拒控灰字、目标级节流、实际像素/声音/TCP验收。','native_control_admission_and_target_eligibility')
+r='AlexModGuy/DomesticationInnovation';h=O/'helpers/herschel-immune/batch-032.json';proposal=json.loads(h.read_text());rr=proposal['rows'][0]['source_refs']
+refs=[(x['source_key'].split('/',1)[1],*x['lines']) for x in rr]
+p='src/main/java/com/github/alexthe668/domesticationinnovation/'
+refs += [(p+'DomesticationMod.java',30,30),(p+'client/ClientProxy.java',56,56),(p+'mixin/EntityMixin.java',54,65),(p+'mixin/FoxMixin.java',98,100),('src/main/resources/domesticationinnovation.mixins.json',1,30)]
+j='domestication-native-allied-pet-direct-player-damage-denial-with-shift-consent'
+record(j,r,refs,
+ '真实mod构造注册PROXY至Forge总线（client proxy继承CommonProxy）→LivingDamage onLivingDamage：目标isTamed且directEntity是Player、isPetOf(player,victim)、非shift才cancel。isPetOf为victim.isAlliedTo(player)或单向owner对象解析；modified Fox使用trusted0优先else1、当前world getPlayerByUUID解析owner，isTame是trusted存在且config，setTame为空。另完整LivingAttack onLivingHurt和mixin联盟入口已读作上下文。',
+ '一个明确用户手势允许越过的己方/联盟宠物防误伤最终拒绝政策1。和旧MoCreatures外来玩家用户名不等才拒伤方向相反；也不同于Iron归属友伤恒拒，这里直接Player来源+目标驯养/联盟+潜行明确选择放行本门。isPetOf非单纯UUID相等，owner需解析活对象；不能把directEntity换成source.getEntity，箭矢拥有者不是此处直接Player。shift只不取消本门，不保证真正伤害成功。onLivingDamage取消后无return，后续tamed attacker immaturity仍可改amount；此分支无拒伤声光。完整前期LivingAttack能在最终伤害前执行次效/声音/开窗口，不据晚取消声称那些也未发生。所有pet类别、trusted slot、辅助函数合并0额外。',
+ '同样不掉血可能是防误伤及明确交互选择，而非Boss抗控。Boss灰字须绑定真实控制拒绝原因；不能为普通宠物/普通阴阳体质新增Boss灰字规则。不同事件阶段应保留已发生的攻击次效边界，回执须不误报全链拒绝。',
+ '主岗全文阅读12候选方法、native proxy选择/继承、mixin注解和配置上下文，固定源码核验随后运行。vanilla团队/isAlliedTo/getOwner和Forge事件最终派发顺序未展开，故不声称所有team具体范围或已实测事件先后。Fox setter是addTrustedUUID，未宣称独占owner替换。没有新PVP机制、游戏/编译/测试或正式源码修改。','native_explicit_consent_damage_refusal')
+d=json.loads((O/'semantic-dedup.json').read_text());d['groups'].extend([{'family':'batch145-gaze-crowd-primary-only-exclusion','credited_chains':[k],'rationale':'One real gaze-qualified reciprocal-control admission policy, not a new credit for each AI adapter, status, packet or cooldown wrapper.'},{'family':'batch145-explicit-shift-consent-friendly-pet-denial','credited_chains':[j],'rationale':'Direct-player allied-pet damage safety with explicit shift opt-in is distinct from foreign-owner exclusion and unconditional ownership friendly-fire denial. Species/wrappers/mixin adapters merged.'}]);(O/'semantic-dedup.json').write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+(O/'HERSCHEL-032-REVIEW.json').write_text(json.dumps({'helper_batch_sha256':hashlib.sha256(h.read_bytes()).hexdigest(),'promoted':1,'master_id':j,'main_full_read':'12 candidate complete containing methods plus native proxy/mixin context, compared against MoCreatures028 and Iron friendly-fire family. No credit for helper031 damage substitution or repeated candidate references.','helper_original_remains_credit0':True,'not_runtime_verified':True},ensure_ascii=False,indent=2)+'\n')
+verify()

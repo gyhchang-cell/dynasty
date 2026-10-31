@@ -1,0 +1,675 @@
+package it.hurts.sskirillss.relics.client.screen.description.research;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import it.hurts.sskirillss.relics.Relics;
+import it.hurts.sskirillss.relics.api.relics.IRelicItem;
+import it.hurts.sskirillss.relics.api.relics.RelicTemplate;
+import it.hurts.sskirillss.relics.client.screen.base.IHoverableWidget;
+import it.hurts.sskirillss.relics.client.screen.description.base.DescriptionScreen;
+import it.hurts.sskirillss.relics.client.screen.description.misc.DescriptionTextures;
+import it.hurts.sskirillss.relics.client.screen.description.misc.DescriptionUtils;
+import it.hurts.sskirillss.relics.client.screen.description.misc.TextJustificator;
+import it.hurts.sskirillss.relics.client.screen.description.relic.RelicDescriptionScreen;
+import it.hurts.sskirillss.relics.client.screen.description.research.misc.BurnPoint;
+import it.hurts.sskirillss.relics.client.screen.description.research.particles.ResearchParticleData;
+import it.hurts.sskirillss.relics.client.screen.description.research.widgets.HintWidget;
+import it.hurts.sskirillss.relics.client.screen.description.research.widgets.StarWidget;
+import it.hurts.sskirillss.relics.client.screen.utils.ParticleStorage;
+import it.hurts.sskirillss.relics.init.RelicsSounds;
+import it.hurts.sskirillss.relics.items.relics.base.data.research.ResearchTemplate;
+import it.hurts.sskirillss.relics.items.relics.base.data.research.StarData;
+import it.hurts.sskirillss.relics.network.NetworkHandler;
+import it.hurts.sskirillss.relics.network.packets.research.PacketManageLink;
+import it.hurts.sskirillss.relics.utils.MathUtils;
+import it.hurts.sskirillss.relics.utils.RenderUtils;
+import it.hurts.sskirillss.relics.utils.data.AnimationData;
+import it.hurts.sskirillss.relics.utils.data.GUIRenderer;
+import it.hurts.sskirillss.relics.utils.data.SpriteAnchor;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec2;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import org.apache.commons.lang3.tuple.Pair;
+import org.joml.Vector2f;
+import org.lwjgl.glfw.GLFW;
+
+import javax.annotation.Nullable;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+@OnlyIn(Dist.CLIENT)
+public class AbilityResearchScreen extends DescriptionScreen {
+    public final String ability;
+
+    @Nullable
+    public StarData selectedStar;
+
+    private List<BurnPoint> points = new ArrayList<>();
+    private List<StarWidget> stars = new ArrayList<>();
+
+    private final int maxResearchProgress = 40;
+    private int researchProgress = 0;
+
+    public final int backgroundHeight = 256;
+    public final int backgroundWidth = 418;
+
+    public int x;
+    public int y;
+
+    public AbilityResearchScreen(Player player, int container, int slot, Screen screen, String ability) {
+        super(player, container, slot, screen);
+
+        this.ability = ability;
+    }
+
+    public int getTotalConnectionsCount(StarData star) {
+        if (!(stack.getItem() instanceof IRelicItem relic))
+            return 0;
+
+        var template = relic.getRelicData(minecraft.player, stack).getAbilitiesData().getAbilityData(ability).getTemplate();
+
+        if (template == null)
+            return 0;
+
+        return template.getResearchTemplate().getConnectedStars(star).size();
+    }
+
+    public int getOccupiedConnectionsCount(StarData star) {
+        if (!(stack.getItem() instanceof IRelicItem relic))
+            return 0;
+
+        int index = star.getIndex();
+
+        return (int) relic.getRelicData(minecraft.player, stack).getAbilitiesData().getAbilityData(ability).getResearchData().getLinks().entries().stream()
+                .filter(entry -> entry.getKey() == index || entry.getValue() == index)
+                .map(entry -> entry.getKey() < entry.getValue()
+                        ? entry.getKey() + "-" + entry.getValue()
+                        : entry.getValue() + "-" + entry.getKey())
+                .distinct()
+                .count();
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+
+        this.x = (this.width - this.backgroundWidth) / 2;
+        this.y = (this.height - this.backgroundHeight) / 2;
+
+        if (stack == null || !(stack.getItem() instanceof IRelicItem relic))
+            return;
+
+        researchProgress = 0;
+
+        stars.clear();
+        points.clear();
+
+        var template = relic.getRelicData(minecraft.player, stack).getAbilitiesData().getAbilityData(ability).getTemplate();
+
+        if (template == null)
+            return;
+
+        this.addRenderableWidget(new HintWidget(x + 192, y + 198, this));
+
+        int starSize = 17;
+
+        for (var entry : template.getResearchTemplate().getStars().values())
+            stars.add(this.addWidget(new StarWidget((int) (x + 67 + (entry.getX() * 5F) - starSize / 2F), (int) (y + 54 + (entry.getY() * 5F) - starSize / 2F), this, entry)));
+    }
+
+    @Override
+    public void rebuildWidgets() {
+        stack = DescriptionUtils.gatherRelicStack(minecraft.player, slot);
+
+        super.rebuildWidgets();
+    }
+
+    @Override
+    public void tick() {
+        if (!(stack.getItem() instanceof IRelicItem relic))
+            return;
+
+        super.tick();
+
+        var abilityData = relic.getRelicData(minecraft.player, stack).getAbilitiesData().getAbilityData(ability);
+        var template = abilityData.getTemplate();
+
+        if (template == null)
+            return;
+
+        RandomSource random = minecraft.player.getRandom();
+
+        if (abilityData.getResearchData().isResearched()) {
+            if (researchProgress >= 0 && researchProgress < maxResearchProgress) {
+                researchProgress++;
+
+                if (researchProgress % 3 == 0) {
+                    ResearchTemplate researchData = template.getResearchTemplate();
+
+                    for (var link : abilityData.getResearchData().getLinks().entries()) {
+                        var start = researchData.getStars().get(link.getKey()).getPos();
+                        var end = researchData.getStars().get(link.getValue()).getPos();
+
+                        executeForConnection(start, end, 0.75F, point -> {
+                            ParticleStorage.addParticle(this, new ResearchParticleData(new Color(100 + random.nextInt(150), random.nextInt(25), 200 + random.nextInt(50)),
+                                    point.x + MathUtils.randomFloat(random), point.y + MathUtils.randomFloat(random), 1F + (random.nextFloat() * 0.25F), 20 + random.nextInt(40 + researchProgress), random.nextFloat() * 0.025F));
+                        });
+                    }
+                }
+            }
+        }
+
+        if (minecraft.player.tickCount % 3 == 0) {
+            var links = relic.getRelicData(minecraft.player, stack).getAbilitiesData().getAbilityData(ability).getResearchData().getLinks();
+
+            for (var pair : links.entries()) {
+                var start = pair.getKey();
+                var end = pair.getValue();
+
+                var startStar = stars.stream().filter(entry -> entry.getStar().getIndex() == start).findFirst();
+                var endStar = stars.stream().filter(entry -> entry.getStar().getIndex() == end).findFirst();
+
+                if (startStar.isPresent() && endStar.isPresent())
+                    executeForConnection(startStar.get().getStar().getPos(), endStar.get().getStar().getPos(), 1.1F, point -> {
+                        addStaticPoint((int) point.x, (int) point.y, 0.06F, Pair.of(start, end));
+                    });
+            }
+
+            for (var pair : points.stream().map(BurnPoint::getLink).filter(Objects::nonNull).toList()) {
+                var start = pair.getKey();
+                var end = pair.getValue();
+
+                if (!links.containsEntry(start, end) && !links.containsEntry(end, start)) {
+                    this.points.stream().filter(point -> point.getLink() != null && point.getLink().getKey().equals(start) && point.getLink().getValue().equals(end)).forEach(entry -> {
+                        entry.setLink(null);
+                        entry.setTicker(point -> {
+                            int time = point.getLifeTime();
+
+                            if (time <= 0)
+                                return;
+
+                            point.setLifeTime(--time);
+
+                            float diff = Mth.clamp(point.getLifeTime(), 0.01F, point.getMaxLifeTime()) / point.getMaxLifeTime();
+
+                            point.setScaleO(point.getScale());
+                            point.setScale(point.getScale() * diff);
+                        });
+                    });
+                }
+            }
+        }
+
+        for (BurnPoint point : points)
+            point.tick();
+    }
+
+    private void addAbstractPoint(BurnPoint point) {
+        if (points.size() >= 256)
+            return;
+
+        var optional = points.stream().filter(entry -> entry.getX() == point.getX() && entry.getY() == point.getY()).findAny();
+
+        if (optional.isPresent()) {
+            if (optional.get().getLifeTime() > 0)
+                return;
+        } else
+            optional = points.stream().filter(entry -> entry.getLifeTime() <= 0).findFirst();
+
+        if (optional.isEmpty())
+            points.add(point);
+        else optional.get().set(point);
+    }
+
+    private void addLivingPoint(int x, int y, int lifeTime, float scale) {
+        addAbstractPoint(BurnPoint.builder(x, y, scale)
+                .lifeTime(lifeTime)
+                .maxLifeTime(lifeTime)
+                .ticker(point -> {
+                    int time = point.getLifeTime();
+
+                    if (time < 0)
+                        return;
+
+                    point.setLifeTime(--time);
+
+                    float diff = Mth.clamp(point.getLifeTime(), 0.01F, point.getMaxLifeTime()) / point.getMaxLifeTime();
+
+                    point.setScaleO(point.getScale());
+                    point.setScale(point.getMaxScale() * diff);
+                })
+                .build());
+    }
+
+    private void addStaticPoint(int x, int y, float scale, Pair<Integer, Integer> link) {
+        addAbstractPoint(BurnPoint.builder(x, y, scale)
+                .scale(0F)
+                .lifeTime(1)
+                .maxLifeTime(8)
+                .ticker(point -> {
+                    point.setScaleO(point.getScale());
+
+                    if (researchProgress <= 0) {
+                        int time = point.getLifeTime();
+
+                        if (time >= point.getMaxLifeTime())
+                            return;
+
+                        point.setLifeTime(++time);
+
+                        float diff = Mth.clamp(point.getLifeTime(), 0.01F, point.getMaxLifeTime()) / point.getMaxLifeTime();
+
+                        point.setScale(point.getMaxScale() * diff);
+                    } else
+                        point.setScale(point.getScale() + (researchProgress * 0.00075F));
+                })
+                .link(link)
+                .build());
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+        super.renderBackground(guiGraphics, pMouseX, pMouseY, pPartialTick);
+
+        LocalPlayer player = minecraft.player;
+
+        if (stack == null || !(stack.getItem() instanceof IRelicItem relic) || player == null)
+            return;
+
+        var relicData = relic.getRelicData(player, stack);
+
+        if (relicData == null)
+            return;
+
+        PoseStack poseStack = guiGraphics.pose();
+
+        RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
+
+        {
+            float color = (float) (0.5F + (Math.sin((player.tickCount + pPartialTick) * 0.1F) * 0.1F));
+
+            GUIRenderer.begin(DescriptionTextures.getAbilityCardTexture(stack, ability), poseStack)
+                    .anchor(SpriteAnchor.TOP_LEFT)
+                    .color(color, color, color, 1F)
+                    .pos(x + 67, y + 54)
+                    .texSize(110, 155)
+                    .end();
+        }
+
+        {
+            var abilityData = relicData.getAbilitiesData().getAbilityData(ability);
+            var template = abilityData.getTemplate();
+
+            if (template == null)
+                return;
+
+            ResearchTemplate researchData = template.getResearchTemplate();
+
+            for (var link : abilityData.getResearchData().getLinks().entries()) {
+                var start = researchData.getStars().get(link.getKey()).getPos();
+                var end = researchData.getStars().get(link.getValue()).getPos();
+
+                drawLink(poseStack, getScaledPos(start), getScaledPos(end), pMouseX, pMouseY, pPartialTick);
+            }
+
+            if (selectedStar != null) {
+                var pos = selectedStar.getPos();
+
+                drawLink(poseStack, getScaledPos(pos), new Vec2(pMouseX, pMouseY), pMouseX, pMouseY, pPartialTick);
+            }
+        }
+
+        {
+            for (StarWidget widget : stars) {
+                widget.renderWidget(guiGraphics, pMouseX, pMouseY, pPartialTick);
+            }
+        }
+
+        {
+            poseStack.pushPose();
+
+            RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
+
+            RenderSystem.setShaderTexture(0, DescriptionTextures.RESEARCH_FOG);
+
+            List<Vector2f> positions = Lists.newArrayList(new Vector2f(pMouseX, pMouseY));
+            List<Float> scales = Lists.newArrayList(0.15F);
+            List<Float> noises = Lists.newArrayList(10F);
+
+            addLivingPoint(pMouseX, pMouseY, 3, 0.1F);
+
+            for (BurnPoint point : points) {
+                boolean shouldRender = point.getLifeTime() > 0;
+
+                positions.add(new Vector2f(shouldRender ? point.getX() : -100, shouldRender ? point.getY() : -100));
+                scales.add(Mth.lerp(pPartialTick, point.getScaleO(), point.getScale()));
+                noises.add(point.getScale() * 75);
+            }
+
+            poseStack.translate(0, 0, 5000);
+
+            RenderUtils.renderRevealingPanel(poseStack, x + 67, y + 54, 110, 155, positions, scales, noises, (player.tickCount + pPartialTick) / 50F);
+
+            GUIRenderer.begin(DescriptionTextures.RESEARCH_BACKGROUND, poseStack)
+                    .anchor(SpriteAnchor.TOP_LEFT)
+                    .pos(x + 60, y + 45)
+                    .end();
+
+            poseStack.popPose();
+        }
+
+        {
+            poseStack.pushPose();
+
+            var title = Component.translatable("relics.description.ability.research.rules").withStyle(ChatFormatting.BOLD);
+
+            poseStack.translate((int) (x + 184 + (102 / 2F) - (minecraft.font.width(title) / 2F / 1.3F)), y + 67, 0F);
+
+            poseStack.scale(0.75F, 0.75F, 1F);
+
+            guiGraphics.drawString(minecraft.font, title, 0, 0, DescriptionUtils.TEXT_COLOR, false);
+
+            poseStack.popPose();
+        }
+
+        {
+            poseStack.pushPose();
+
+            poseStack.translate(x + 191, y + 85, 0F);
+
+            poseStack.scale(0.5F, 0.5F, 1F);
+
+            var yOff = 0;
+
+            var description = new ArrayList<MutableComponent>();
+
+            description.add(Component.literal("1. ").append(Component.translatable("relics.description.ability.research.rule_1.title")).withStyle(ChatFormatting.BOLD).withColor(DescriptionUtils.POSITIVE_COLOR(true)));
+            description.add(Component.translatable("relics.description.ability.research.rule_1.description"));
+            description.add(Component.literal(" "));
+            description.add(Component.literal("2. ").append(Component.translatable("relics.description.ability.research.rule_2.title")).withStyle(ChatFormatting.BOLD).withColor(DescriptionUtils.NEUTRAL_COLOR(true)));
+            description.add(Component.translatable("relics.description.ability.research.rule_2.description"));
+            description.add(Component.literal(" "));
+            description.add(Component.literal("3. ").append(Component.translatable("relics.description.ability.research.rule_3.title")).withStyle(ChatFormatting.BOLD).withColor(DescriptionUtils.NEGATIVE_COLOR(true)));
+            description.add(Component.translatable("relics.description.ability.research.rule_3.description"));
+
+            for (var component : description) {
+                for (var line : TextJustificator.justifyStyledText(component, 180)) {
+                    guiGraphics.drawString(minecraft.font, line, 0, yOff, DescriptionUtils.TEXT_COLOR, false);
+
+                    yOff += 10;
+                }
+            }
+
+            poseStack.popPose();
+        }
+    }
+
+    public Vec2 getScaledPos(Vec2 pos) {
+        int scale = 5;
+
+        return new Vec2(x + 67 + (pos.x * scale), y + 54 + (pos.y * scale));
+    }
+
+    private void drawLink(PoseStack poseStack, Vec2 start, Vec2 end, int mouseX, int mouseY, float partialTick) {
+        if (!(stack.getItem() instanceof IRelicItem relic))
+            return;
+
+        poseStack.pushPose();
+
+        float offset = (float) (Math.sin(((minecraft.player.tickCount + partialTick + start.length()) * 0.2F)) * 0.1F);
+        float color = 1.25F + offset;
+
+        if (!relic.getRelicData(minecraft.player, stack).getAbilitiesData().getAbilityData(ability).getResearchData().isResearched() && isHoveringConnection(start, end, mouseX, mouseY))
+            RenderSystem.setShaderColor(color, 0.25F, 0.25F, 0.75F + offset);
+        else
+            RenderSystem.setShaderColor(color, color, color, 0.75F + offset);
+
+        RenderSystem.enableBlend();
+
+        int width = 6;
+        int height = 4;
+
+        int distance = (int) Math.sqrt(start.distanceToSqr(end));
+
+        poseStack.translate(start.x, start.y, 0);
+
+        poseStack.mulPose(Axis.ZP.rotationDegrees(getAngle(start, end)));
+
+        poseStack.translate(-(width / 2F), -(height / 2F), 0);
+
+        RenderSystem.setShaderTexture(0, ResourceLocation.fromNamespaceAndPath(Relics.MODID, "textures/gui/description/research/line.png"));
+
+        GUIRenderer.begin(ResourceLocation.fromNamespaceAndPath(Relics.MODID, "textures/gui/description/research/line.png"), poseStack)
+                .pos(0, 0)
+                .texSize(width, height * 6)
+                .patternSize(distance, height)
+                .anchor(SpriteAnchor.TOP_LEFT)
+                .animation(AnimationData.builder()
+                        .frame(0, 2).frame(1, 2).frame(2, 2)
+                        .frame(3, 2).frame(4, 2).frame(5, 2)
+                )
+                .end();
+
+        poseStack.mulPose(Axis.ZP.rotationDegrees(-getAngle(start, end)));
+
+        RenderSystem.disableBlend();
+
+        poseStack.popPose();
+    }
+
+    private void executeForConnection(Vec2 start, Vec2 end, float step, Consumer<Vec2> task) {
+        int steps = (int) (Math.sqrt(start.distanceToSqr(end)) / step);
+
+        Vec2 direction = new Vec2(end.x - start.x, end.y - start.y).normalized();
+
+        for (int i = 0; i <= steps; i++) {
+            Vec2 point = new Vec2(direction.x * step * i, direction.y * step * i).add(start);
+
+            task.accept(getScaledPos(point));
+        }
+    }
+
+    private boolean isHoveringConnection(Vec2 start, Vec2 end, int mouseX, int mouseY) {
+        float minDistance = 4F;
+        float thickness = 4F;
+
+        float x1 = start.x;
+        float y1 = start.y;
+
+        float x2 = end.x;
+        float y2 = end.y;
+
+        double distanceToStart = Math.hypot(mouseX - x1, mouseY - y1);
+        double distanceToEnd = Math.hypot(mouseX - x2, mouseY - y2);
+
+        if (distanceToStart < minDistance || distanceToEnd < minDistance)
+            return false;
+
+        double collinearity = (x2 - x1) * (mouseY - y1) - (y2 - y1) * (mouseX - x1);
+
+        double lineLength = Math.hypot(x2 - x1, y2 - y1);
+        double distanceFromLine = Math.abs(collinearity / lineLength);
+
+        if (distanceFromLine > thickness / 2)
+            return false;
+
+        return Math.min(x1, x2) - thickness / 2 <= mouseX && mouseX <= Math.max(x1, x2) + thickness / 2
+                && Math.min(y1, y2) - thickness / 2 <= mouseY && mouseY <= Math.max(y1, y2) + thickness / 2;
+    }
+
+    @Override
+    public void render(GuiGraphics guiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+        super.render(guiGraphics, pMouseX, pMouseY, pPartialTick);
+
+        for (GuiEventListener listener : this.children()) {
+            if (listener instanceof AbstractButton button && button.isHovered()
+                    && button instanceof IHoverableWidget widget) {
+                guiGraphics.pose().translate(0, 0, 100);
+
+                widget.onHovered(guiGraphics, pMouseX, pMouseY);
+            }
+        }
+    }
+
+    @Override
+    public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
+        if (minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(pKeyCode, pScanCode))) {
+            this.onClose();
+
+            return true;
+        }
+
+        return super.keyPressed(pKeyCode, pScanCode, pModifiers);
+    }
+
+    @Override
+    public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
+        if (stack.getItem() instanceof IRelicItem relic && !relic.getRelicData(minecraft.player, stack).getAbilitiesData().getAbilityData(ability).getResearchData().isResearched() && pButton == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            var abilityData = relic.getRelicData(minecraft.player, stack).getAbilitiesData().getAbilityData(ability);
+            var template = abilityData.getTemplate();
+
+            if (template == null)
+                return super.mouseClicked(pMouseX, pMouseY, pButton);
+
+            ResearchTemplate researchData = template.getResearchTemplate();
+
+            Pair<Integer, Integer> toRemove = null;
+
+            for (var link : abilityData.getResearchData().getLinks().entries())
+                if (isHoveringConnection(getScaledPos(researchData.getStars().get(link.getKey()).getPos()), getScaledPos(researchData.getStars().get(link.getValue()).getPos()), (int) pMouseX, (int) pMouseY))
+                    toRemove = Pair.of(link.getKey(), link.getValue());
+
+            if (toRemove != null)
+                removeLink(toRemove.getKey(), toRemove.getValue());
+        }
+
+        return super.mouseClicked(pMouseX, pMouseY, pButton);
+    }
+
+    public void addLink(int start, int end) {
+        var startStar = stars.stream().filter(entry -> entry.getStar().getIndex() == start).findFirst();
+        var endStar = stars.stream().filter(entry -> entry.getStar().getIndex() == end).findFirst();
+
+        if (startStar.isEmpty() || endStar.isEmpty())
+            return;
+
+        var random = minecraft.player.getRandom();
+
+        NetworkHandler.sendToServer(new PacketManageLink(container, slot, ability, PacketManageLink.Operation.ADD, start, end));
+
+        executeForConnection(startStar.get().getStar().getPos(), endStar.get().getStar().getPos(), 0.25F, point -> {
+            ParticleStorage.addParticle(this, new ResearchParticleData(new Color(100 + random.nextInt(150), random.nextInt(25), 200 + random.nextInt(50)),
+                    point.x + MathUtils.randomFloat(random), point.y + MathUtils.randomFloat(random), 1F + (random.nextFloat() * 0.25F), 20 + random.nextInt(60), random.nextFloat() * 0.025F));
+        });
+    }
+
+    public void removeLink(int start, int end) {
+        var startStar = stars.stream().filter(entry -> entry.getStar().getIndex() == start).findFirst();
+        var endStar = stars.stream().filter(entry -> entry.getStar().getIndex() == end).findFirst();
+
+        if (startStar.isEmpty() || endStar.isEmpty())
+            return;
+
+        var random = minecraft.player.getRandom();
+
+        NetworkHandler.sendToServer(new PacketManageLink(container, slot, ability, PacketManageLink.Operation.REMOVE, start, end));
+
+        executeForConnection(startStar.get().getStar().getPos(), endStar.get().getStar().getPos(), 0.1F, point -> {
+            ParticleStorage.addParticle(this, new ResearchParticleData(new Color(100 + random.nextInt(150), random.nextInt(25), 200 + random.nextInt(50)),
+                    point.x + MathUtils.randomFloat(random), point.y + MathUtils.randomFloat(random), 1F + (random.nextFloat() * 0.25F), 10 + random.nextInt(50), random.nextFloat() * 0.01F));
+        });
+
+        minecraft.getSoundManager().play(SimpleSoundInstance.forUI(RelicsSounds.DISCONNECT_STARS.get(), 0.75F + minecraft.player.getRandom().nextFloat() * 0.5F, 0.75F));
+    }
+
+    @Override
+    public boolean mouseReleased(double pMouseX, double pMouseY, int pButton) {
+        if (stack.getItem() instanceof IRelicItem relic && pButton == GLFW.GLFW_MOUSE_BUTTON_LEFT && selectedStar != null) {
+
+            for (StarWidget widget : stars) {
+                if (!widget.isHovered())
+                    continue;
+
+                Multimap<Integer, Integer> links = relic.getRelicData(minecraft.player, stack).getAbilitiesData().getAbilityData(ability).getResearchData().getLinks();
+
+                int start = selectedStar.getIndex();
+                int end = widget.getStar().getIndex();
+
+                StarData star = widget.getStar();
+
+                if (start == end || getOccupiedConnectionsCount(star) >= getTotalConnectionsCount(star)
+                        || links.containsEntry(start, end) || links.containsEntry(end, start))
+                    continue;
+
+                addLink(start, end);
+
+                break;
+            }
+
+            selectedStar = null;
+        }
+
+        return super.mouseReleased(pMouseX, pMouseY, pButton);
+    }
+
+    @Override
+    protected void initTopScroll() {
+
+    }
+
+    @Override
+    protected void initBottomScroll() {
+
+    }
+
+    @Override
+    protected void renderTopScroll(GuiGraphics guiGraphics) {
+
+    }
+
+    @Override
+    protected void renderBottomScroll(GuiGraphics guiGraphics) {
+
+    }
+
+    @Override
+    public void onClose() {
+        screen.rebuildWidgets();
+
+        minecraft.setScreen(screen);
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+
+    public float getAngle(Vec2 from, Vec2 to) {
+        float angle = (float) Math.toDegrees(Math.atan2(to.y - from.y, to.x - from.x));
+
+        if (angle < 0)
+            angle += 360;
+
+        return angle;
+    }
+}

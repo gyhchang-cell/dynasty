@@ -1,0 +1,19 @@
+"""Retain actual read support; never promote adjacent or generic material by file count."""
+from ledger import B,O,R
+from pathlib import Path
+import json,hashlib
+
+def refs(repo,files):
+ root=B/'sources'/repo.replace('/','__');meta=json.loads((root/'source.json').read_text());out=[]
+ for rel,a,z in files:
+  f=root/rel;assert 1<=a<=z<=len(f.read_text().splitlines());out.append({'path':str(f.relative_to(R)),'source_path':rel,'lines':[a,z],'file_sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'url':f'https://github.com/{repo}/blob/{meta["commit"]}/{rel}#L{a}-L{z}'})
+ return out
+r='BobMowzie/MowziesMobs-Public';p='src/main/java/com/bobmowzie/mowziesmobs/'
+full=['client/sound/BossMusic.java','client/sound/BossMusicPlayer.java','client/sound/BossMusicSound.java'];root=B/'sources'/r.replace('/','__')
+rows=[{'id':'mowzie-boss-background-music-lifecycle-not-refusal-feedback','research_credit':0,'observation':'完整三音乐类及原生MowzieEntity tick/event和听音资格、client LevelTick入口已读。server每tick依据canPlayMusic发送67/68，不是一次命中拒绝回执；currentMusic按主题对象合并同类Boss及引用接替，不是每目标事件去重。移除/死/静音可使boss引用清空并延迟淡出；正常播放重置60，首次80；死亡直接0。BossMusicSound attenuation NONE，坐标只构造时取boss，不是每tick物理锚定。客户端请求volume0只清currentMusic引用，不等于主动stop旧sound。没有本段世界代际token，跨维是否原生SoundManager清理未展开。','reason':'Boss背景音乐属于相邻辅助材料；并非免控/受击文字或实际命中反馈，不用于补1000。拒控嗡声不应复制持续MUSIC和每tick播放事件模式。不宣称任何运行缺陷。','refs':refs(r,[(p+x,1,len((root/p/x).read_text().splitlines())) for x in full]+[(p+'server/entity/MowzieEntity.java',297,333),(p+'server/entity/MowzieEntity.java',480,491),(p+'client/ClientEventHandler.java',306,312)])}]
+r='VazkiiMods/Botania';p='Xplat/src/main/java/vazkii/botania/';root=B/'sources'/r.replace('/','__');ff=['common/item/EquestrianVirusItem.java','common/item/equipment/bauble/CrimsonPendantItem.java','mixin/EntityMixin.java'];rows.append({'id':'botania-rider-fall-and-crimson-source-gates-support-only','research_credit':0,'observation':'完整三文件已读。Entity mixin HEAD将乘客改查Living vehicle：已驯养zombie/skeleton horse+source引用等于本world fall源则true；不要求马由病毒物品产生，病毒转换成功回执非拒伤回执。火项链source tag+装备查询保护，onWornTick清火，未消费单目标限频。','reason':'既有骑手/坐骑伤害准入及装备来源拒绝家族支持0，不以物品名或伤源常量加数。Crimson能力查询底层和mixin注册未重新追全；不声称本次已补闭合新独立链。','refs':refs(r,[(p+x,1,len((root/p/x).read_text().splitlines())) for x in ff])})
+r='Octo-Studios/relics';rel='src/main/java/it/hurts/sskirillss/relics/effects/AntiHealEffect.java';root=B/'sources'/r.replace('/','__');rows.append({'id':'relics-antiheal-single-effect-tag-cancel-support','research_credit':0,'observation':'AntiHeal完整文件：实际注解LivingHeal listener只检查当前effect并取消heal。未重新追实际grant source，不能据类/注解当完整新生产链。','reason':'简单状态→事件取消包装与已计输入/状态最终门相邻，只支持0，不用不同effect名称补数。','refs':refs(r,[(rel,1,len((root/rel).read_text().splitlines()))])})
+# Read-only foreign cache screening retained without importing any guard research credit.
+root=R/'tools/cod4/guard-ownership-research/helpers/halley-recruits/sources/talhanation__recruits';meta=json.loads((root/'source.json').read_text());rel='src/main/java/com/talhanation/recruits/DamageEvent.java';f=root/rel
+rows.append({'id':'recruits-vanilla-swing-flag-as-knockback-stamp-pending-native-registration','research_credit':0,'observation':'DamageEvent全文：native AttackEntityEvent server蓄力<=.1取消；<=.75把victim.swinging=true，KnockBack看到victim.swinging即取消并false。普通动画也使用此字段，不能当唯一attack token。Main注册new DamageEvent实例，静态onPlayerAttack/onKnockback是否被该版EventBus实例注册实际启用未闭合；不声称生产链激活。两个伤害instance方法仅筛读，未全追队伍入口。','reason':'实际原生注册缺口，候选0；守卫研究缓存只读，旧账没有转信用。未请求外部源或更改他人文件。','source_commit':meta['commit'],'refs':[{'path':str(f.relative_to(R)),'source_path':rel,'lines':[1,len(f.read_text().splitlines())],'file_sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'url':f'https://github.com/talhanation/recruits/blob/{meta["commit"]}/{rel}'}]})
+(O/'uncredited-observations-20261028c.json').write_text(json.dumps({'research_credit':0,'observations':rows},ensure_ascii=False,indent=2)+'\n');print('saved 4 zero-credit groups')

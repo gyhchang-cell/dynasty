@@ -1,0 +1,305 @@
+package se.mickelus.tetra.gui.stats.bar;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.crafting.conditions.ICondition;
+import se.mickelus.mutil.gui.GuiAlignment;
+import se.mickelus.mutil.gui.GuiString;
+import se.mickelus.mutil.gui.GuiStringSmall;
+import se.mickelus.mutil.gui.impl.GuiHorizontalLayoutGroup;
+import se.mickelus.mutil.util.CastOptional;
+import se.mickelus.tetra.Tooltips;
+import se.mickelus.tetra.gui.stats.getter.ILabelGetter;
+import se.mickelus.tetra.gui.stats.getter.IStatGetter;
+import se.mickelus.tetra.gui.stats.getter.ITooltipGetter;
+import se.mickelus.tetra.gui.stats.sorting.BasicStatSorter;
+import se.mickelus.tetra.gui.stats.sorting.IStatSorter;
+import se.mickelus.tetra.items.modular.IModularItem;
+
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@ParametersAreNonnullByDefault
+@OnlyIn(Dist.CLIENT)
+public class GuiStatBar extends GuiStatBase {
+    protected ICondition[] conditions;
+
+    protected double min;
+    protected double max;
+
+    protected String labelKey;
+    protected GuiString labelString;
+    protected GuiString valueString;
+    protected GuiBar bar;
+
+    protected GuiHorizontalLayoutGroup indicatorGroup;
+    protected GuiStatIndicator[] indicators = new GuiStatIndicator[0];
+
+    protected List<Component> tooltip;
+    protected List<Component> extendedTooltip;
+
+    protected GuiAlignment alignment = GuiAlignment.left;
+
+    protected boolean inverted;
+
+    protected IStatGetter statGetter;
+    protected ILabelGetter labelGetter;
+    protected ITooltipGetter tooltipGetter;
+
+    protected String[] contexts = new String[0];
+
+    protected IStatSorter sorter = null;
+
+    public GuiStatBar(int x, int y, int barLength, String labelKey, double min, double max, boolean segmented,
+            IStatGetter statGetter, ILabelGetter labelGetter, ITooltipGetter tooltipGetter) {
+        this(x, y, barLength, labelKey, min, max, segmented, false, false, statGetter, labelGetter, tooltipGetter);
+    }
+
+    public GuiStatBar(int x, int y, int barLength, String labelKey, double min, double max, boolean segmented, boolean split,
+            boolean inverted, IStatGetter statGetter, ILabelGetter labelGetter, ITooltipGetter tooltipGetter, @Nullable ICondition[] conditions,
+            boolean generateSorter) {
+        this(x, y, barLength, labelKey, min, max, segmented, split, inverted, statGetter, labelGetter, tooltipGetter, conditions);
+
+        if (generateSorter) {
+            sorter = new BasicStatSorter(statGetter, labelKey, (value) -> labelGetter.getLabel(value, value, false));
+        }
+    }
+
+
+    public GuiStatBar(int x, int y, int barLength, String labelKey, double min, double max, boolean segmented, boolean split,
+            boolean inverted, IStatGetter statGetter, ILabelGetter labelGetter, ITooltipGetter tooltipGetter) {
+        this(x, y, barLength, labelKey, min, max, segmented, split, inverted, statGetter, labelGetter, tooltipGetter, null);
+    }
+
+    public GuiStatBar(int x, int y, int barLength, String labelKey, double min, double max, boolean segmented, boolean split,
+            boolean inverted, IStatGetter statGetter, ILabelGetter labelGetter, ITooltipGetter tooltipGetter, @Nullable ICondition[] conditions) {
+        super(x, y, barLength, 12);
+
+        this.conditions = conditions;
+
+        this.min = min;
+        this.max = max;
+
+        this.labelKey = labelKey;
+
+        labelString = new GuiStringSmall(0, 0, "");
+        valueString = new GuiStringSmall(0, 0, "");
+
+        if (segmented) {
+            bar = new GuiBarSegmented(0, 0, barLength + 1, min, max, inverted);
+        } else {
+            if (split) {
+                bar = new GuiBarSplit(0, 0, barLength, max, inverted);
+            } else {
+                bar = new GuiBar(0, 0, barLength, min, max, inverted);
+            }
+        }
+
+        indicatorGroup = new GuiHorizontalLayoutGroup(0, -2, 7, 1);
+
+        addChild(labelString);
+        addChild(valueString);
+        addChild(bar);
+        addChild(indicatorGroup);
+
+        this.statGetter = statGetter;
+        this.labelGetter = labelGetter;
+        this.tooltipGetter = tooltipGetter;
+
+        this.inverted = inverted;
+    }
+
+    public GuiStatBar setIndicators(GuiStatIndicator... indicators) {
+        this.indicators = indicators;
+        return this;
+    }
+
+    public GuiStatBar setContexts(String... contexts) {
+        this.contexts = contexts;
+        return this;
+    }
+
+    public void setAlignment(GuiAlignment alignment) {
+        this.alignment = alignment;
+        realign();
+    }
+
+    protected void realign() {
+        bar.setAlignment(alignment);
+
+        labelString.setAttachment(alignment.toAttachment());
+        valueString.setAttachment(alignment.toAttachment().flipHorizontal());
+
+        indicatorGroup.setAttachment(alignment.toAttachment());
+        int offset = labelString.getWidth() + 2;
+        indicatorGroup.setX(GuiAlignment.right.equals(alignment) ? -offset : offset);
+    }
+
+    @Override
+    public void update(Player player, ItemStack currentStack, ItemStack previewStack, @Nullable String slot, @Nullable String improvement) {
+        double value;
+        double diffValue;
+
+        if (labelKey != null) {
+            labelString.setString(I18n.get(labelKey));
+        }
+        labelString.setVisible(labelKey != null);
+
+        if (!previewStack.isEmpty()) {
+            value = statGetter.getValue(player, currentStack);
+            diffValue = statGetter.getValue(player, previewStack);
+
+            tooltip = getCombinedTooltip(player, previewStack);
+            extendedTooltip = getCombinedTooltipExtended(player, previewStack);
+        } else {
+            value = statGetter.getValue(player, currentStack);
+
+            if (slot != null) {
+                diffValue = value;
+                value = value - getSlotValue(player, currentStack, slot, improvement);
+            } else {
+                diffValue = value;
+            }
+
+            tooltip = getCombinedTooltip(player, currentStack);
+            extendedTooltip = getCombinedTooltipExtended(player, currentStack);
+        }
+
+        updateValue(value, diffValue);
+
+        updateIndicators(player, currentStack, previewStack, slot, improvement);
+    }
+
+    protected void updateIndicators(Player player, ItemStack currentStack, ItemStack previewStack, String slot, String improvement) {
+        indicatorGroup.clearChildren();
+
+        for (int i = 0; i < indicators.length; i++) {
+            if (indicators[i].update(player, currentStack, previewStack, slot, improvement)) {
+                indicatorGroup.addChild(indicators[i]);
+            }
+        }
+    }
+
+    @Override
+    public boolean shouldShow(Player player, ItemStack currentStack, ItemStack previewStack, String slot, String improvement) {
+        return (conditions == null || Arrays.stream(conditions).allMatch(condition -> condition.test(ICondition.IContext.EMPTY)))
+                && statGetter.shouldShow(player, currentStack, previewStack);
+    }
+
+    protected double getSlotValue(Player player, ItemStack itemStack, @Nullable String slot, @Nullable String improvement) {
+        return CastOptional.cast(itemStack.getItem(), IModularItem.class)
+                .map(item -> {
+                    if (improvement != null) {
+                        return statGetter.getValue(player, itemStack, slot, improvement);
+                    }
+
+                    return statGetter.getValue(player, itemStack, slot);
+                })
+                .orElse(0d);
+    }
+
+    public void updateValue(double value, double diffValue) {
+        bar.setValue(value, diffValue);
+        updateValueLabel(value, diffValue);
+    }
+
+    private void updateValueLabel(double value, double diffValue) {
+        valueString.setString(labelGetter.getLabel(value, diffValue, alignment == GuiAlignment.right));
+    }
+
+    @Override
+    public List<Component> getTooltipLines() {
+        if (hasFocus()) {
+            if (Screen.hasShiftDown()) {
+                return extendedTooltip;
+            }
+            return tooltip;
+        }
+        return super.getTooltipLines();
+    }
+
+    protected List<GuiStatIndicator> getActiveIndicators() {
+        return indicatorGroup.getChildren(GuiStatIndicator.class);
+    }
+
+    protected String getCombinedTooltipBase(Player player, ItemStack itemStack) {
+        String tooltip = tooltipGetter.getTooltipBase(player, itemStack);
+
+        tooltip += getActiveIndicators().stream()
+                .filter(indicator -> indicator.isActive(player, itemStack))
+                .map(indicator -> ChatFormatting.YELLOW + indicator.getLabel() + "\n" + ChatFormatting.GRAY + indicator.getTooltipBase(player, itemStack))
+                .map(string -> "\n \n" + string)
+                .collect(Collectors.joining())
+                .replace(ChatFormatting.RESET.toString(), ChatFormatting.RESET.toString() + ChatFormatting.GRAY);
+
+        return tooltip;
+    }
+
+    protected List<Component> getCombinedTooltip(Player player, ItemStack itemStack) {
+        List<Component> result = new ArrayList<>();
+        Arrays.stream(getCombinedTooltipBase(player, itemStack).split("\\\\n"))
+                .map(Component::literal)
+                .forEach(result::add);
+
+        if (tooltipGetter.hasExtendedTooltip(player, itemStack) || getActiveIndicators().stream().anyMatch(ind -> ind.hasExtendedTooltip(player, itemStack))) {
+            result.add(Component.literal(" "));
+            result.add(Tooltips.expand);
+        }
+
+        return result;
+    }
+
+    protected List<Component> getCombinedTooltipExtended(Player player, ItemStack itemStack) {
+        List<Component> result = new ArrayList<>();
+        Arrays.stream(getCombinedTooltipBase(player, itemStack).split("\\\\n"))
+                .map(Component::literal)
+                .forEach(result::add);
+
+        boolean hasExtendedTooltip = tooltipGetter.hasExtendedTooltip(player, itemStack);
+        if (hasExtendedTooltip || getActiveIndicators().stream().anyMatch(ind -> ind.hasExtendedTooltip(player, itemStack))) {
+            result.add(Component.literal(" "));
+            result.add(Tooltips.expanded);
+
+            if (hasExtendedTooltip) {
+                Arrays.stream(tooltipGetter.getTooltipExtension(player, itemStack).split("\\\\n"))
+                        .map(string -> string.replace(ChatFormatting.RESET.toString(), ChatFormatting.RESET.toString() + ChatFormatting.GRAY))
+                        .map(Component::literal)
+                        .map(component -> component.withStyle(ChatFormatting.GRAY))
+                        .forEach(result::add);
+            }
+
+            boolean isFirst = true;
+            for (GuiStatIndicator indicator : getActiveIndicators()) {
+                if (indicator.hasExtendedTooltip(player, itemStack)) {
+                    if (!isFirst || hasExtendedTooltip) {
+                        result.add(Component.literal(" "));
+                    }
+                    result.add(Component.literal(indicator.getTooltipExtension(player, itemStack)).withStyle(ChatFormatting.GRAY));
+                    isFirst = false;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    @Override
+    public String[] getContexts() {
+        return contexts;
+    }
+
+    @Override
+    public IStatSorter getSorter() {
+        return sorter;
+    }
+}

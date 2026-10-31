@@ -1,0 +1,95 @@
+package dev.cammiescorner.arcanus.client.renderer.entity.magic;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import dev.cammiescorner.arcanus.Arcanus;
+import dev.cammiescorner.arcanus.client.ArcanusClient;
+import dev.cammiescorner.arcanus.common.entity.magic.Beam;
+import dev.cammiescorner.arcanus.common.util.ArcanusHelper;
+import dev.upcraft.sparkweave.api.color.Color;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
+import org.joml.Vector3d;
+
+public class BeamRenderer extends EntityRenderer<Beam> {
+	private static final ResourceLocation BEAM_TEXTURE = Arcanus.id("textures/entity/magic/beam.png");
+	private static final RenderType LAYER = ArcanusClient.getMagicCircles(BEAM_TEXTURE);
+	private static final Vector3d UP = new Vector3d(0, 1, 0);
+
+	public BeamRenderer(EntityRendererProvider.Context ctx) {
+		super(ctx);
+	}
+
+	@Override
+	public void render(Beam entity, float yaw, float tickDelta, PoseStack poseStack, MultiBufferSource vertices, int light) {
+		LivingEntity caster = entity.getCaster();
+		Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+
+		if(caster != null) {
+			Vec3 startPos = caster.getPosition(tickDelta).add(0, caster.getEyeHeight(caster.getPose()) * 0.9f, 0);
+			Vec3 endPos = entity.getBeamPos(tickDelta);
+			Vector3d axis = new Vector3d(endPos.x() - startPos.x(), endPos.y() - startPos.y(), endPos.z() - startPos.z()).normalize();
+			VertexConsumer vertex = vertices.getBuffer(LAYER);
+			Color color = ArcanusHelper.getMagicColor(entity);
+			float distance = entity.distanceTo(caster) / 2f;
+
+			poseStack.pushPose();
+			poseStack.translate(-entity.getX(), -entity.getY(), -entity.getZ());
+
+			for(int i = 0; i < 2; i++) {
+				Vector3d vec = new Vector3d(cam.x(), cam.y(), cam.z()).sub(startPos.x(), startPos.y(), startPos.z()).cross(axis).normalize().mul(0.2);
+				vec.rotateAxis(Math.toRadians(i == 0 ? 45 : -45), axis.x, axis.y, axis.z);
+				Vec3 vert1 = startPos.add(vec.x, vec.y, vec.z);
+				Vec3 vert2 = startPos.subtract(vec.x, vec.y, vec.z);
+				Vec3 vert3 = endPos.add(vec.x, vec.y, vec.z);
+				Vec3 vert4 = endPos.subtract(vec.x, vec.y, vec.z);
+				float beamProgress = entity.getBeamProgress(tickDelta) * 2f;
+
+				if(i > 0)
+					beamProgress *= -1f;
+
+				float minU = 0;
+				float minV = -beamProgress;
+				float maxU = 1;
+				float maxV = distance - beamProgress;
+
+				if(i > 0) {
+					minV = 1 - minV;
+					maxV = 1 - maxV;
+				}
+
+				vertex(vertex, poseStack, vert4, color, maxU, minV);
+				vertex(vertex, poseStack, vert3, color, minU, minV);
+				vertex(vertex, poseStack, vert1, color, minU, maxV);
+				vertex(vertex, poseStack, vert2, color, maxU, maxV);
+			}
+
+			poseStack.popPose();
+		}
+	}
+
+	@Override
+	public boolean shouldRender(Beam entity, Frustum frustum, double x, double y, double z) {
+		return true;
+	}
+
+	private static void vertex(VertexConsumer vertex, PoseStack poseStack, Vec3 vert, Color color, float u, float v) {
+		Matrix4f modelMatrix = poseStack.last().pose();
+
+		vertex.addVertex(modelMatrix, (float) vert.x(), (float) vert.y(), (float) vert.z()).setColor(color.asIntARGB()).setUv(u, v).setOverlay(OverlayTexture.NO_OVERLAY).setLight(15728880).setNormal(poseStack.last(), 0f, 1f, 0f);
+	}
+
+	@Override
+	public ResourceLocation getTextureLocation(Beam entity) {
+		return BEAM_TEXTURE;
+	}
+}

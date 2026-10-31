@@ -1,0 +1,12 @@
+"""One actual boss combat-part immobility/refusal and block-health proxy family."""
+from ledger import O,record,verify
+import json
+r='TeamLapen/Vampirism';p='projects/vampirism/src/main/java/de/teamlapen/vampirism/';q='projects/faction/src/main/java/de/teamlapen/faction/'
+def f(s,a,z):return p+s,a,z
+k='vampirism-native-immobile-boss-vulnerability-proxy-versus-rejected-source'
+record(k,r,[f('common/core/ModEntities.java',86,87),f('common/core/ModEntities.java',128,134),f('common/core/ModEntities.java',193,199),f('common/core/ModBlocks.java',341,343),f('common/world/blocks/mother/ActiveVulnerableRemainsBlock.java',21,63),f('common/world/blockentity/VulnerableRemainsBlockEntity.java',28,159),f('common/world/entity/VulnerableRemainsDummyEntity.java',32,247),f('common/world/entity/RemainsDefenderEntity.java',135,212),f('common/world/blockentity/MotherBlockEntity.java',205,233),f('data/provider/tags/ModDamageTypeTagsProvider.java',21,40),(q+'common/util/SpawnUtil.java',121,127)],
+ '实际ActiveVulnerableRemainsBlock服务端ticker/onPlace→BlockEntity.checkDummyEntity当前世界UUID复用或SpawnUtil生成注册Dummy并写ownerPos→原生Living伤害isInvulnerableTo先拒removed或MOTHER_RESISTANT_TO。accepted actuallyHurt转交方块血池onDamageDealt并向Living伤源反刺3。Dummy delta getter恒ZERO/setter与push空实现；附着Defender同样速度丢弃且move空。Defender实际hurtServer成功才通知Dummy.childrenIsHurt→方块0伤通知，Boss血条进度读方块健康集合。',
+ '一个具体Boss部件的运动拒绝/伤害代理/归属生命周期链1，不按Dummy/Defender/方向/伤害tag各加数。零速度不等于伤害被拒：方块按(int)damage扣health，转交时仍可反刺；child成功伤害通知0伤亦能更新mother战斗关联，不能由血池没下降判断immune。Dummy最终源门没有super，Defender另有parent与窒息/溺水政策，常量差异仅支持0。datagen明确fire/holywater/freeze/magic/indirectmagic集合，但运行数据包可覆盖。',
+ 'Boss拒控应在实际运动/控制接纳入口定义结果；不可把不可推动或代理血量无变化当拒控文字生产依据。目标锚定与生命周期需绑定真实战斗实体及owner，成功受击声和反刺不是免疫嗡声。',
+ '完整Dummy、BlockEntity、ActiveBlock、SpawnUtil及Defender已读；引用Defender关键段仅作同链支持，非额外信用。tick先getBlockState(ownerPos)再检查null，ownerPos save也直接解引用，delayRespawn本类只写100无递减；静态边界不作实机bug断言。SpawnUtil忽略addFreshEntity bool，写UUID不证明入世界成功。Mother.onVulnerabilityHit/updateFightStatus完整已读，其深层结构遍历/冻结/客户端HUD消费未展开，不称两端Boss血条或画面已验。无显式拒控文字回执。','native_boss_part_immobility_refusal_and_damage_proxy')
+d=json.loads((O/'semantic-dedup.json').read_text());d['groups'].append({'family':'batch126-native-immobile-vulnerability-proxy','credited_chains':[k],'rationale':'One actual combat-part final velocity sink with block-bound damage proxy and source denial; two related classes and six faces merged. Distinct from DBNO players, summoner source policy and native multipart hurt replay.'});(O/'semantic-dedup.json').write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n');verify()

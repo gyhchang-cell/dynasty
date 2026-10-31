@@ -1,0 +1,44 @@
+package com.lothrazar.cyclic.block.eye;
+
+import com.lothrazar.cyclic.block.TileBlockEntityCyclic;
+import com.lothrazar.cyclic.registry.TileRegistry;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.ModConfigSpec;
+
+public class TileEye extends TileBlockEntityCyclic {
+
+  public static ModConfigSpec.IntValue RANGE;
+  public static ModConfigSpec.IntValue FREQUENCY;
+
+  public TileEye(BlockPos pos, BlockState state) {
+    super(TileRegistry.EYE_REDSTONE.get(), pos, state);
+  }
+
+  public static void serverTick(Level level, BlockPos blockPos, BlockState blockState, TileEye e) {
+    e.tick();
+  }
+
+  public void tick() {
+    if (level.isClientSide) {
+      return;
+    }
+    timer--;
+    if (timer > 0) {
+      return;
+    }
+    timer = FREQUENCY.get();
+    //
+    boolean playerFound = getLookingPlayer(RANGE.get(), false) != null;
+    this.setLitProperty(playerFound);
+  }
+
+  @Override
+  public void setField(int field, int value) {}
+
+  @Override
+  public int getField(int field) {
+    return 0;
+  }
+}

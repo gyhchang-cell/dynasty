@@ -1,0 +1,14 @@
+"""Herschel026 main full source review; sampled environmental occupancy damage mitigation is not immunity."""
+from ledger import B,O,record,verify
+import json,hashlib
+r='Fuzss/illager-invasion';root=B/'sources'/r.replace('/','__');p='Common/src/main/java/fuzs/illagerinvasion/'
+ns=['world/entity/monster/Necromancer.java','client/render/entity/NecromancerRender.java','client/render/entity/layers/NecromancerShieldLayer.java']
+refs=[(p+x,1,len((root/p/x).read_text().splitlines())) for x in ns]+[(p+'world/entity/monster/Invoker.java',232,247),(p+'init/ModRegistry.java',65,65),(p+'client/IllagerInvasionClient.java',43,60),(p+'client/IllagerInvasionClient.java',62,65),(p+'client/IllagerInvasionClient.java',68,71)]
+k='illagerinvasion-native-sampled-undead-occupancy-mitigation-versus-buff-receipt'
+record(k,r,refs,
+ '正式EntityType Necromancer→registerGoals原生召亡灵goal和customServerAiStep→每次服务端AI查询inflate10 MobType.UNDEAD群体，给buff/灭火/目标赋值、每10entityticks发双方粒子；仅tickCount%20更新Synched DATA_IS_SHIELDED为list非空→真实hurt按缓存flag将amount减半再super.hurt。原生renderer注册→加ShieldLayer继承vanillaEnergySwirl，isPowered读同flag；buff粒子注册原版HeartProvider，层模型定义注册也实际核对。',
+ '周期环境群体占据快照控制最终伤害缩放的独立游戏结算位点1，不能称免疫：无owner/team绑定，任一近处亡灵Mob列表非空就可让缓存flag开启，并不依赖buff成功。与既账Invoker受击来源概率翻转持久盾、Basher累计预算破盾不同；与GoetySkullLord固定活partner直接拒伤及Endergetic随机child转伤也不同。这里不转移伤害、不消费盾，群体20tick采样可与当前位置暂时不同，不能声称按墙钟严格1秒或每hit实时复验。10tick粒子由list驱动不看两个addEffect返回，不表示对方准入；30格目标覆盖也不看effect是否接受，非每次拒控收据。Summon goal昼夜数量/四次上限、sync bool getter、模型层/材质/目标类别常量均合并0额外。',
+ 'Boss「免疫」只能用于实际最终控制拒绝；环境减伤50%不能发Immune。反馈目标及状态需说明当前最终判断而非旧采样flag或buff粒子，按目标/原因限频。普通阴阳无灰字追加。',
+ '主岗全文读取Necromancer及两renderer类，完整Invoker hurt重读作去重，原生注册核对。vanilla EnergySwirlLayer/HeartProvider实现和完整SynchedData引擎未展开，只支持0；不证明实际旋纹可见、深度/透明、多人同步或buff效果。只有服务端缩放生产点晋级，不把未读通用绘制消费当额外参考。未游戏/编译/测试或生产代码/资产/TODO改动。','native_environmental_membership_sampled_mitigation_not_immunity')
+d=json.loads((O/'semantic-dedup.json').read_text());d['groups'].append({'family':'batch142-herschel026-occupancy-sampled-mitigation','credited_chains':[k],'rationale':'Unowned nearby undead occupancy sampled every20 entity ticks -> half damage differs from source-flipped permanent shield, finite hit budget, fixed live-partner full refusal or random child transfer. Actual server settlement1; shared sync/render/particles/variants0.'});(O/'semantic-dedup.json').write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+f=O/'helpers/herschel-immune/batch-026.json';receipt={'helper_batch_sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'promoted':1,'decisions':[{'helper_id':'herschel-026-01','master_id':k,'credit':1}],'scope':'Main complete classes/native producer and registrations reviewed, full Invoker hurt compared. No vanilla graphics/TCP/semantic auto-proof. Helper original remains0.'};(O/'HERSCHEL-026-REVIEW.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n');verify()

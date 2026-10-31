@@ -1,0 +1,196 @@
+package com.lothrazar.cyclic.block.anvilvoid;
+
+import com.lothrazar.cyclic.block.TileBlockEntityCyclic;
+import com.lothrazar.cyclic.capabilities.block.FluidTankBase;
+import com.lothrazar.cyclic.data.DataTags;
+import com.lothrazar.cyclic.fluid.FluidXpJuiceHolder;
+import com.lothrazar.cyclic.registry.BlockRegistry;
+import com.lothrazar.cyclic.registry.TileRegistry;
+import com.lothrazar.cyclic.util.FluidHelpers.FluidAttributes;
+import com.lothrazar.library.cap.ItemStackHandlerWrapper;
+import com.lothrazar.library.util.FluidHelpersUtil;
+import com.lothrazar.library.util.SoundUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.WorldlyContainer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
+import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.CustomData;
+
+
+public class TileAnvilVoid extends TileBlockEntityCyclic implements MenuProvider, WorldlyContainer {
+
+  static enum Fields {
+    TIMER, REDSTONE;
+  }
+
+  public static final int CAPACITY = 16 * FluidAttributes.BUCKET_VOLUME;
+  public static ModConfigSpec.IntValue FLUIDPAY;
+  ItemStackHandler inputSlots = new ItemStackHandler(1) {
+
+    @Override
+    public boolean isItemValid(int slot, ItemStack stack) {
+      return stack.isEnchanted() || stack.getItem() == Items.ENCHANTED_BOOK;
+    }
+  };
+  ItemStackHandler outputSlots = new ItemStackHandler(1);
+  private ItemStackHandlerWrapper inventory = new ItemStackHandlerWrapper(inputSlots, outputSlots);
+// //  private LazyOptional<IItemHandler> inventoryCap = LazyOptional.of(() -> inventory);
+  public FluidTankBase tank = new FluidTankBase(this, CAPACITY, p -> {
+    return FluidHelpersUtil.matches(p.getFluid(), DataTags.EXPERIENCE);
+  });
+// //  LazyOptional<FluidTankBase> fluidCap = LazyOptional.of(() -> tank);
+
+  @Override
+  public IFluidHandler getFluidHandler(Direction side) {
+    return tank;
+  }
+
+  public TileAnvilVoid(BlockPos pos, BlockState state) {
+    super(TileRegistry.ANVILVOID.get(), pos, state);
+    this.needsRedstone = 0;
+  }
+
+  public static void serverTick(Level level, BlockPos blockPos, BlockState blockState, TileAnvilVoid e) {
+    e.tick();
+  }
+
+
+  @Override
+  public Component getDisplayName() {
+    return BlockRegistry.ANVILVOID.get().getName();
+  }
+
+  @Override
+  public AbstractContainerMenu createMenu(int i, Inventory playerInventory, Player playerEntity) {
+    return new ContainerAnvilVoid(i, level, worldPosition, playerInventory, playerEntity);
+  }
+
+
+
+  @Override
+  public void loadAdditional( CompoundTag tag, HolderLookup.Provider provider) {
+    inventory.deserializeNBT(provider,tag.getCompound(NBTINV));
+    tank.readFromNBT(provider,tag.getCompound(NBTFLUID));
+    super.loadAdditional(tag, provider);
+  }
+
+  @Override
+  public void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
+    tag.put(NBTINV, inventory.serializeNBT(provider));
+    CompoundTag fluid = new CompoundTag();
+    tank.writeToNBT(provider,fluid);
+    tag.put(NBTFLUID, fluid);
+    super.saveAdditional(tag, provider);
+  }
+
+  //  @Override
+  public void tick() {
+    this.syncEnergy();
+    if (this.requiresRedstone() && !this.isPowered()) {
+      setLitProperty(false);
+      return;
+    }
+    setLitProperty(true);
+    //is output empty
+    if (outputSlots.getStackInSlot(0).isEmpty() == false) {
+      return;
+    }
+    ItemStack stack = inventory.getStackInSlot(0);
+    boolean doCost = false;
+    if (stack.getItem() == Items.ENCHANTED_BOOK) {
+      inputSlots.extractItem(0, 1, false);
+      outputSlots.insertItem(0, new ItemStack(Items.BOOK), false);
+      doCost = true;
+    }
+    else if (stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag() != null && stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().contains("Enchantments") && !stack.is(DataTags.ANVIL_IMMUNE)) {
+      //is enchanted
+      stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().remove("Enchantments");
+      outputSlots.insertItem(0, stack.copy(), false);
+      inputSlots.extractItem(0, stack.getCount(), false);
+      doCost = true;
+    }
+    if (doCost && FLUIDPAY.get() > 0) {
+      SoundUtil.playSound(level, worldPosition, SoundEvents.ENCHANTMENT_TABLE_USE);
+      Fluid newFluid = FluidXpJuiceHolder.STILL.get();
+      if (!this.getFluid().isEmpty()) {
+        //if its holding a tag compatible but different fluid, just fill 
+        newFluid = this.getFluid().getFluid();
+      }
+      tank.fill(new FluidStack(newFluid, FLUIDPAY.get()), IFluidHandler.FluidAction.EXECUTE);
+    }
+  }
+
+  @Override
+  public void setFluid(FluidStack fluid) {
+    tank.setFluid(fluid);
+  }
+
+  @Override
+  public FluidStack getFluid() {
+    return tank == null ? FluidStack.EMPTY : tank.getFluid();
+  }
+
+  @Override
+  public int getField(int id) {
+    switch (Fields.values()[id]) {
+      case REDSTONE:
+        return this.needsRedstone;
+      case TIMER:
+        return this.timer;
+      default:
+      break;
+    }
+    return 0;
+  }
+
+  @Override
+  public void setField(int field, int value) {
+    switch (Fields.values()[field]) {
+      case REDSTONE:
+        this.needsRedstone = value % 2;
+      break;
+      case TIMER:
+        this.timer = value;
+      break;
+    }
+  }
+
+  @Override
+  public IItemHandler getItemHandler(Direction side) {
+    return inventory;
+  }
+
+  @Override
+  public int[] getSlotsForFace(Direction direction) {
+    return inventory.getSlotsForFace(direction);
+  }
+
+  @Override
+  public boolean canPlaceItemThroughFace(int i, ItemStack itemStack,  Direction direction) {
+    return inventory.canPlaceItemThroughFace(i, itemStack, direction);
+  }
+
+  @Override
+  public boolean canTakeItemThroughFace(int i, ItemStack itemStack, Direction direction) {
+    return inventory.canTakeItemThroughFace(i, itemStack, direction);
+  }
+}

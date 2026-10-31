@@ -1,0 +1,235 @@
+package com.bobmowzie.mowziesmobs.server.entity.umvuthana;
+
+import com.bobmowzie.mowziesmobs.server.ai.UmvuthanaHurtByTargetAI;
+import com.bobmowzie.mowziesmobs.server.config.ConfigHandler;
+import com.bobmowzie.mowziesmobs.server.entity.EntityHandler;
+import com.bobmowzie.mowziesmobs.server.entity.LeaderSunstrikeImmune;
+import com.bobmowzie.mowziesmobs.server.entity.MowzieEntity;
+import net.minecraft.util.Mth;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.neoforged.neoforge.event.EventHooks;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+
+public class EntityUmvuthanaRaptor extends EntityUmvuthana implements LeaderSunstrikeImmune, Enemy {
+    private final List<EntityUmvuthanaFollowerToRaptor> pack = new ArrayList<>();
+
+    private final int packRadius = 3;
+
+    public EntityUmvuthanaRaptor(EntityType<? extends EntityUmvuthanaRaptor> type, Level world) {
+        super(type, world);
+        this.setMask(MaskType.FURY);
+        this.xpReward = 8;
+    }
+
+    @Override
+    protected void registerGoals() {
+        super.registerGoals();
+        this.goalSelector.addGoal(3, new UmvuthanaHurtByTargetAI(this, true));
+    }
+
+    @Override
+    protected void registerTargetGoals() {
+        registerHuntingTargetGoals();
+    }
+
+    @Override
+    protected boolean canHoldVaryingWeapons() {
+        return false;
+    }
+
+    public static AttributeSupplier.Builder createAttributes() {
+        return MowzieEntity.createAttributes().add(Attributes.ATTACK_DAMAGE, 6)
+                .add(Attributes.MAX_HEALTH, 10)
+                .add(Attributes.STEP_HEIGHT, 1);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+
+        for (int i = 0; i < pack.size(); i++) {
+            pack.get(i).index = i;
+        }
+
+        if (!level().isClientSide && pack != null) {
+            float theta = (2 * (float) Math.PI / pack.size());
+            for (int i = 0; i < pack.size(); i++) {
+                EntityUmvuthanaFollowerToRaptor hunter = pack.get(i);
+                if (hunter.getTarget() == null) {
+                    hunter.getNavigation().moveTo(getX() + packRadius * Mth.cos(theta * i), getY(), getZ() + packRadius * Mth.sin(theta * i), 0.45);
+                    if (distanceTo(hunter) > 20 && onGround()) {
+                        hunter.setPos(getX() + packRadius * Mth.cos(theta * i), getY(), getZ() + packRadius * Mth.sin(theta * i));
+                    }
+                }
+            }
+        }
+
+        if (!this.level().isClientSide && this.level().getDifficulty() == Difficulty.PEACEFUL)
+        {
+            this.discard();
+        }
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        if (tickCount == 0) {
+            pack.forEach(EntityUmvuthanaFollowerToRaptor::setShouldSetDead);
+        }
+        pack.forEach(EntityUmvuthanaFollowerToRaptor::removeLeader);
+        super.remove(reason);
+    }
+
+    @Override
+    public boolean checkSpawnObstruction(LevelReader worldReader) {
+        if (tickCount == 0) {
+            return !worldReader.containsAnyLiquid(this.getBoundingBox()) && worldReader.noCollision(this);
+        }
+        else {
+            return !worldReader.containsAnyLiquid(this.getBoundingBox()) && worldReader.noCollision(this) && this.level().isUnobstructed(this);
+        }
+    }
+
+    public void removePackMember(EntityUmvuthanaFollowerToRaptor member) {
+        pack.remove(member);
+        sortPackMembers();
+    }
+
+    public void addPackMember(EntityUmvuthanaFollowerToRaptor member) {
+        pack.add(member);
+        sortPackMembers();
+    }
+
+    private void sortPackMembers() {
+        double theta = 2 * Math.PI / pack.size();
+        for (int i = 0; i < pack.size(); i++) {
+            int nearestIndex = -1;
+            double smallestDiffSq = Double.MAX_VALUE;
+            double targetTheta = theta * i;
+            double x = getX() + packRadius * Math.cos(targetTheta);
+            double z = getZ() + packRadius * Math.sin(targetTheta);
+            for (int n = 0; n < pack.size(); n++) {
+                EntityUmvuthanaFollowerToRaptor packMember = pack.get(n);
+                if (packMember == null) continue;
+                double diffSq = (x - packMember.getX()) * (x - packMember.getX()) + (z - packMember.getZ()) * (z - packMember.getZ());
+                if (diffSq < smallestDiffSq) {
+                    smallestDiffSq = diffSq;
+                    nearestIndex = n;
+                }
+            }
+            if (nearestIndex == -1) {
+                throw new ArithmeticException("All pack members have NaN x and z?");
+            }
+            pack.add(i, pack.remove(nearestIndex));
+        }
+    }
+
+    public int getPackSize() {
+        return pack.size();
+    }
+
+    @Override
+    public int getAttackChance() {
+        if (getPackSize() < 0) return super.getAttackChance();
+        return 8 * getPackSize() + 40;
+    }
+
+    @Override
+    public int getAttackCooldown() {
+        if (getPackSize() < 0) return super.getAttackCooldown();
+        return 8 * getPackSize() + 40;
+    }
+
+    @Nullable
+    @Override
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor world, DifficultyInstance difficulty, MobSpawnType reason, @Nullable SpawnGroupData livingData) {
+        int size = random.nextInt(2) + 3;
+        float theta = (2 * (float) Math.PI / size);
+        for (int i = 0; i <= size; i++) {
+            EntityUmvuthanaFollowerToRaptor packMember = new EntityUmvuthanaFollowerToRaptor(EntityHandler.UMVUTHANA_FOLLOWER_TO_RAPTOR.get(), this.level(), this);
+            packMember.setPos(getX() + 0.1 * Mth.cos(theta * i), getY(), getZ() + 0.1 * Mth.sin(theta * i));
+            int weapon = random.nextInt(3) == 0 ? 1 : 0;
+            packMember.setWeapon(weapon);
+            world.addFreshEntity(packMember);
+        }
+        return super.finalizeSpawn(world, difficulty, reason, livingData);
+    }
+
+    @Override
+    public void die(DamageSource source) {
+        super.die(source);
+        pack.forEach(EntityUmvuthanaFollowerToRaptor::removeLeader);
+    }
+
+    @Override
+    protected ConfigHandler.SpawnConfig getSpawnConfig() {
+        return ConfigHandler.COMMON.MOBS.UMVUTHANA.spawnConfig;
+    }
+
+    @Override
+    public boolean checkSpawnRules(LevelAccessor world, MobSpawnType reason) {
+        List<LivingEntity> nearby = getEntityLivingBaseNearby(30, 10, 30, 30);
+        for (LivingEntity nearbyEntity : nearby) {
+            if (nearbyEntity instanceof EntityUmvuthanaRaptor || nearbyEntity instanceof Villager || nearbyEntity instanceof EntityUmvuthi || nearbyEntity instanceof Animal) {
+                return false;
+            }
+        }
+        return super.checkSpawnRules(world, reason) && world.getDifficulty() != Difficulty.PEACEFUL;
+    }
+
+    public int getMaxSpawnClusterSize()
+    {
+        return 1;
+    }
+
+    @Override
+    public void checkDespawn() {
+        if (EventHooks.checkMobDespawn(this)) return;
+        if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) {
+            this.discard();
+        } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
+            Entity entity = this.level().getNearestPlayer(this, -1);
+
+            if (entity != null) {
+                double distance = entity.distanceToSqr(this);
+                int despawnDistance = getDespawnDistance();
+                int despawnRadius = despawnDistance * despawnDistance;
+
+                if (distance > despawnRadius && this.removeWhenFarAway(distance)) {
+                    if (pack != null) {
+                        pack.forEach(EntityUmvuthanaFollowerToRaptor::setShouldSetDead);
+                    }
+                    this.discard();
+                }
+
+                int noDespawnDistance = getNoDespawnDistance();
+                int noDespawnRadius = noDespawnDistance * noDespawnDistance;
+
+                if (this.noActionTime > 600 && this.random.nextInt(800) == 0 && distance > noDespawnRadius && this.removeWhenFarAway(distance)) {
+                    if (pack != null) {
+                        pack.forEach(EntityUmvuthanaFollowerToRaptor::setShouldSetDead);
+                    }
+                    this.discard();
+                } else if (distance < noDespawnRadius) {
+                    this.noActionTime = 0;
+                }
+            }
+        } else {
+            this.noActionTime = 0;
+        }
+    }
+}
