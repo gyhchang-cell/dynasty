@@ -1,0 +1,218 @@
+[
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "MinionEntity",
+    "observation": "构造hard谓词拒主人、同lordID的Minion和PVP不许玩家，另存soft阵营谓词；同lordUUID比较内部用了==。",
+    "application": "必要过滤与偏好过滤应分层，原Enemy许可应作为不能被偏好绕过的必要条件。",
+    "limits": "此固定版比Werewolves依赖更新，不能假定二者直接兼容；UUID比较只是静态观察。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "aiStep",
+    "observation": "父aiStep后服务端活体随机回血/每20tick吃副手；最后若无有效controller则警告并discard。",
+    "application": "无主验证在父AI之后，初始化次序可能留动作窗口，不能仅看最终回收。",
+    "limits": "回血和用物品不拆计，整体是受控minion有效身份生命周期。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "claimMinionSlot",
+    "observation": "向controller申请槽，成功才保存controller、minionId、token并同步lordUUID。",
+    "application": "租约身份应由成功占用凭据绑定，不能先发布无效的owner。",
+    "limits": "assert只表达minionId初值预期，未当成生产鉴权保证。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "die",
+    "observation": "先父die，再向在线lord发消息并用id/token标死释放槽，最后清controller。",
+    "application": "终结应校身份代次，旧实体不能释放同槽新召唤的登记。",
+    "limits": "非泛用死亡包装，核心在带token回收；未改本项目死亡逻辑。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "getAttackPredicate",
+    "observation": "onlyShould真返回hard AND soft，否则只hard。",
+    "application": "统一安全否决应始终保留，软阵营偏好可按护主/守区模式变化。",
+    "limits": "有具体组合行为而非单字段getter；只研究分层不引入新阵营规则。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "setTarget",
+    "observation": "null始终传父；非null只有hard谓词通过才赋值，拒绝时保留原target。",
+    "application": "赋值入口可覆盖多goal，但拒新目标仍保留旧目标，动态失效需另清。",
+    "limits": "不是把setTarget拒绝自动等同最终攻击许可；伤害入口仍需审。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "getLord",
+    "observation": "用同步lordUUID在当前level找Player，过滤alive再取阵营lord扩展。",
+    "application": "ownerUUID存在与在线可解析主人不同，死亡/跨世界空解析不能当成无归属。",
+    "limits": "不是纯getter，包含世界及存活/能力过滤，不套用所有版本API。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "onRemovedFromLevel",
+    "observation": "controller非空先按id/token checkIn，再存允许实体cap到minionData并清data/controller，最后父移除。",
+    "application": "卸载回收与死亡释放分开，必须使用原租约身份而非只凭同名实体。",
+    "limits": "通用cap序列化本身不计，具体minion凭据交还路径一处。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "readAdditionalSaveData",
+    "observation": "读minion.lord，服务端取世界controller，存在才恢复minion_id/token并同步LORD_ID，缺controller只警告。",
+    "application": "载入需要校实际管理器而非只读UUID；失效记录不得直接启用AI。",
+    "limits": "不是泛用NBT基础设施，具体双凭据恢复及失败路径计一处。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "consumeOffhand",
+    "observation": "已用物或任何targetSelector goal在运行时不吃；副手有可消费component且canConsume才开始副手使用并转身。",
+    "application": "运行中的目标goal与非空target不是同一战斗判据，会影响召唤物辅助动作。",
+    "limits": "只计具体minion战斗互斥用物规则，消费component工具不另计。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "mobInteract",
+    "observation": "isLord才可交互，ServerPlayer打开绑定此实体和解析lord的MinionContainer并写实体ID，否则父交互。",
+    "application": "本地实体ID只定位对象，真正权限需要ownerUUID验证。",
+    "limits": "只记录owner门和实际菜单绑定，不将菜单布局或通用网络当参考。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "registerGoals",
+    "observation": "FollowLord与MoveToTaskCenter并存，STAY禁止随机看；target侧HurtBy优先1，守区和护主同优先2。",
+    "application": "区域/护主过滤之外仍有通用复仇入口，统一hard门避免漏路。",
+    "limits": "匿名STAY条件包含整注册一条，基础Float/OpenDoor不独立计。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "checkoutMinionData",
+    "observation": "controller存在且data空才按id/token/entity办理checkout，失败清controller，成功handleLoaded。",
+    "application": "同槽不同代或重复实体不得同时获取活跃控制权。",
+    "limits": "具体minion代次租约办理相关，不把HashMap基础实现计数。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/MinionEntity.java",
+    "method": "handleLoadedMinionData",
+    "observation": "应用属性/存储生命/名称，回调实体cap恢复；ClassCastException则discard，之后仍sync。",
+    "application": "恢复失败要停用实体，不能留下半恢复受控单位参与AI。",
+    "limits": "外观/属性不是单独参考，计数依据是实际租约数据加载失败策略。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/DefendAreaGoal.java",
+    "method": "DefendAreaGoal",
+    "observation": "combat谓词要求getAttackPredicate(true)，忽略隐身检测并范围60，持TARGET标志。",
+    "application": "守区采用hard AND soft，不能只凭距离认为可攻击所有活体。",
+    "limits": "构造器含实际过滤策略才计，其他机械重载不计。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/DefendAreaGoal.java",
+    "method": "canUse",
+    "observation": "只有DEFEND_AREA任务且中心非空，中心变时重建按distance扩展AABB，按谓词找最近活体写targetMob。",
+    "application": "区域缓存重建条件只看中心，不看半径变化，研究时应区分配置更新语义。",
+    "limits": "源码局部事实，不宣称用户可动态修改该desc或已复现缺陷。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/DefendAreaGoal.java",
+    "method": "canContinueToUse",
+    "observation": "当前任务必须仍DEFEND_AREA且父TargetGoal持续许可通过。",
+    "application": "切换任务能够撤选择goal，但是否清实体target需结合stop/最终过滤。",
+    "limits": "普通start设目标模板不额外计；这里是具体任务身份互斥。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/DefendLordGoal.java",
+    "method": "DefendLordGoal",
+    "observation": "目标谓词用hard过滤且lord到候选平方距离<200，找不到lord时距离条件默认true，combat忽略隐身range60。",
+    "application": "在线主人解析失败的默认分支必须明确，不能默认它必然fail closed。",
+    "limits": "无lord时canUse另有false门，构造局部默认不能单独当运行漏洞。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/DefendLordGoal.java",
+    "method": "canUse",
+    "observation": "仅PROTECT_LORD且lord可解析，先尝试其lastHurtMob，再lastHurtBy，任何可攻击者写targetMob返回。",
+    "application": "主动助攻先于受击保护，两个来源都需要同一个必要许可。",
+    "limits": "与时间戳OwnerHurt模板不同，主动和反击同一方法优先选择一条。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/DefendLordGoal.java",
+    "method": "canContinueToUse",
+    "observation": "任务仍PROTECT且父许可通过，lord存在则要求target非空和平方距离<500，无lord距离门默认true。",
+    "application": "持续阶段失主和启动失主规则不同，要核运行中断策略。",
+    "limits": "起止阈值不是两个玩法样本，完整持续方法一条。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/FollowLordGoal.java",
+    "method": "canUse",
+    "observation": "仅FOLLOW或PROTECT任务取lord，空则拒；缓存后父canUse失败就清缓存。",
+    "application": "缓存建立与失败回滚要成对，避免下一次启动沿用旧主人对象。",
+    "limits": "其他纯look位置回退getter不计，研究具体任务身份和失败撤缓存。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/FollowLordGoal.java",
+    "method": "canContinueToUse",
+    "observation": "父导航许可成立且当前任务仍FOLLOW或PROTECT才继续。",
+    "application": "任务变更是独立撤销条件，不应只依距离或导航判断。",
+    "limits": "不将stop只清lord模板另计，完整任务持续门一条。"
+  },
+  {
+    "repo": "TeamLapen/Vampirism",
+    "file": "/DefendAreaTask.java",
+    "method": "activateTask",
+    "observation": "先触发成就，位置优先取minion，否则lord，二者都空返回null，否则建10半径守区描述。",
+    "application": "命令区域取受控对象位置还是发令人位置需明确，不能混用。",
+    "limits": "StayTask同位置模板不重复计；通用codec/NBT辅助不计。"
+  },
+  {
+    "repo": "lender544/new1.20.1",
+    "file": "/Modern_Remnant_Entity.java",
+    "method": "mobInteract",
+    "observation": "先父交互，未驯服蛋触发Forge驯服钩子；已驯服骨治疗与桶回收在owner门外；只有切命令要求isOwnedBy并循环0/1/2坐姿。",
+    "application": "控制命令与公开治疗/捕捉不能混称全为owner专属，需要逐入口核权限。",
+    "limits": "盟友模板与已接受Capuchin相同不计，客户端无统一server门是局部事实。"
+  },
+  {
+    "repo": "lender544/new1.20.1",
+    "file": "/Modern_Remnant_Entity.java",
+    "method": "stop",
+    "observation": "停攻击时重置环绕计时/方向，缓存当前target，只在创造/旁观目标时清它；空target才撤aggressive并停导航。",
+    "application": "停止不一定清活目标，重新选敌或动态许可失效需要另处处理。",
+    "limits": "不是单纯导航stop；完整环绕战斗恢复链一处。"
+  },
+  {
+    "repo": "lender544/new1.20.1",
+    "file": "/Modern_Remnant_Entity.java",
+    "method": "tick",
+    "observation": "实时target用于环绕至计时到或5格近改近战，近战最多120tick重来；咬动画第5tick直接hurt当前对象。",
+    "application": "动画期间目标可以更换，最终伤害必须审当前对象而非旧启动对象。",
+    "limits": "只接受该近战goal tick，不计通用角度数学；不同物种同模板今后排除。"
+  },
+  {
+    "repo": "lender544/new1.20.1",
+    "file": "/HurtByNearestTargetGoal.java",
+    "method": "canContinueToUse",
+    "observation": "父持续通过后，若新反击目标可用、不同当前且更近，保存旧target为lastHurtMob并返回false让goal重启。",
+    "application": "AI可在持续条件中主动触发重选并改攻击记录，不能只查canUse。",
+    "limits": "在Ignis/EnderGuardian等实际注册；注释掉的canUse逻辑不计。"
+  }
+]

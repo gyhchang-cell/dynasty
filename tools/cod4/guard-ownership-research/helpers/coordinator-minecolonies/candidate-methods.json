@@ -1,0 +1,962 @@
+[
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "move",
+    "line": 55,
+    "end_line": 107,
+    "excerpt": "private IState move()\n    {\n        if (!checkForTarget())\n        {\n            return CombatAIStates.NO_TARGET;\n        }\n\n        final ThreatTableEntry nextTarget = user.getThreatTable().getTarget();\n        if (nextTarget == null)\n        {\n            return CombatAIStates.NO_TARGET;\n        }\n\n        final boolean canSeeTarget = user.getSensing().hasLineOfSight(target);\n        if (canSeeTarget)\n        {\n            nextTarget.setLastSeen(user.level.getGameTime());\n        }\n        else if ((user.level.getGameTime() - nextTarget.getLastSeen()) > STOP_PERSECUTION_AFTER)\n        {\n            resetTarget();\n            return null;\n        }\n\n        if (!isInAttackDistance(target) || !canSeeTarget)\n        {\n            user.lookAt(target, (float) HALF_ROTATION, (float) HALF_ROTATION);\n            user.getLookControl().setLookAt(target, (float) HALF_ROTATION, (float) HALF_ROTATION);\n\n            if (pathAttempts > 5 || (targetPath != null && targetPath.isDone() && targetPath.failedToReachDestination()))\n            {\n                pathAttempts = 0;\n                targetPath = null;\n\n                user.getThreatTable().addThreat(target, -1);\n                if (nextTarget.getThreat() < 5)\n                {\n                    resetTarget();\n                    return null;\n                }\n            }\n\n            if (targetPath == null ||\n                  user.getNavigation().isDone() ||\n                  (targetPath.isDone() && targetPath.hasPath() && targetPath.getPath().getTarget().distSqr(target.blockPosition()) > Math.pow(getAttackDistance(), 2) - 1))\n            {\n                targetPath = moveInAttackPosition(target);\n                pathAttempts++;\n            }\n        }\n\n        return null;\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "resetTarget",
+    "line": 109,
+    "end_line": 115,
+    "excerpt": "@Override\n    public void resetTarget()\n    {\n        super.resetTarget();\n        targetPath = null;\n        pathAttempts = 0;\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "isInAttackDistance",
+    "line": 123,
+    "end_line": 126,
+    "excerpt": "protected boolean isInAttackDistance(final LivingEntity target)\n    {\n        return user.distanceTo(target) <= getAttackDistance();\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "tryAttack",
+    "line": 133,
+    "end_line": 154,
+    "excerpt": "protected IState tryAttack()\n    {\n        if (!checkForTarget() || !canAttack())\n        {\n            return CombatAIStates.NO_TARGET;\n        }\n\n        if (nextAttackTime >= user.level.getGameTime() || !isInDistanceForAttack(target))\n        {\n            return null;\n        }\n\n        if (user.getSensing().hasLineOfSight(target))\n        {\n            pathAttempts = 0;\n            user.getLookControl().setLookAt(target);\n            doAttack(target);\n            nextAttackTime = user.level.getGameTime() + getAttackDelay();\n        }\n\n        return null;\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "canAttack",
+    "line": 161,
+    "end_line": 164,
+    "excerpt": "public boolean canAttack()\n    {\n        return true;\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "isInDistanceForAttack",
+    "line": 172,
+    "end_line": 175,
+    "excerpt": "protected boolean isInDistanceForAttack(final LivingEntity target)\n    {\n        return isInAttackDistance(target);\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "doAttack",
+    "line": 182,
+    "end_line": 186,
+    "excerpt": "protected void doAttack(final LivingEntity target)\n    {\n        target.hurt(target.level.damageSources().source(DamageSourceKeys.DEFAULT, user), 5);\n        user.swing(InteractionHand.MAIN_HAND);\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "getAttackDistance",
+    "line": 193,
+    "end_line": 196,
+    "excerpt": "protected double getAttackDistance()\n    {\n        return 5;\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "getAttackDelay",
+    "line": 203,
+    "end_line": 206,
+    "excerpt": "protected int getAttackDelay()\n    {\n        return 40;\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/combat/AttackMoveAI.java",
+    "name": "moveInAttackPosition",
+    "line": 214,
+    "end_line": 218,
+    "excerpt": "protected PathResult moveInAttackPosition(final LivingEntity target)\n    {\n        EntityNavigationUtils.walkToPos((AbstractFastMinecoloniesEntity) user, target.blockPosition(), 1, false);\n        return ((MinecoloniesAdvancedPathNavigate) user.getNavigation()).getPathResult();\n    }",
+    "source_sha256": "ba79326bf1308951f74f592e1652285ada5cfcf5cd1e76375ffb3a2e6f8669be"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "doAttack",
+    "line": 119,
+    "end_line": 176,
+    "excerpt": "@Override\n    protected void doAttack(final LivingEntity target)\n    {\n        if (user.distanceToSqr(target) < RANGED_FLEE_SQDIST)\n        {\n            if (user.getRandom().nextInt(FLEE_CHANCE) == 0 &&\n                  !((AbstractBuildingGuards) user.getCitizenData().getWorkBuilding()).getTask().equals(GuardTaskSetting.GUARD))\n            {\n                EntityNavigationUtils.walkAwayFrom(user, target.blockPosition(), (int) (getAttackDistance() / 2.0), getCombatMovementSpeed());\n            }\n        }\n        else\n        {\n            user.getNavigation().stop();\n        }\n\n        user.swing(InteractionHand.MAIN_HAND);\n\n        final int level = user.getCitizenData().getCitizenSkillHandler().getLevel(ModGuardTypes.druid.get().getSecondarySkill());\n        final int time = user.getCitizenData().getCitizenSkillHandler().getLevel(ModGuardTypes.druid.get().getPrimarySkill()) * 20;\n\n        final float inaccuracy = 99f / level;\n        final MobEffect effect;\n        final ItemStack stack = new ItemStack(Items.SPLASH_POTION);\n        boolean gotMaterial = false;\n        BiPredicate<LivingEntity, MobEffect> predicate;\n        if (user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(DRUID_USE_POTIONS) > 0\n              && InventoryUtils.hasItemInItemHandler(user.getInventoryCitizen(), item -> item.getItem() == ModItems.magicpotion))\n        {\n            gotMaterial = true;\n        }\n        if (AbstractEntityAIGuard.isAttackableTarget(user, target))\n        {\n            effect = ADVERSE_EFFECTS.get(user.getRandom().nextInt(gotMaterial ? 2 : 1));\n            predicate = (entity, eff) -> AbstractEntityAIGuard.isAttackableTarget(user, entity);\n        }\n        else\n        {\n            effect = SUPPORT_EFFECTS.get(user.getRandom().nextInt(gotMaterial ? 4 : 1));\n            predicate = (entity, eff) -> !AbstractEntityAIGuard.isAttackableTarget(user, entity);\n        }\n\n        PotionUtils.setCustomEffects(stack, Collections.singleton(new MobEffectInstance(effect, time, gotMaterial ? 2 : 0)));\n        DruidPotionEntity.throwPotionAt(stack, target, user, user.getCommandSenderWorld(), POTION_VELOCITY, inaccuracy, predicate);\n\n        if (gotMaterial)\n        {\n            InventoryUtils.removeStackFromItemHandler(user.getCitizenData().getInventory(), new ItemStack(ModItems.magicpotion, 1), 1);\n        }\n\n        this.instantEffect = effect.isInstantenous();\n\n        user.setItemInHand(InteractionHand.MAIN_HAND, stack);\n\n        user.getThreatTable().removeCurrentTarget();\n\n        user.getCitizenExperienceHandler().addExperience(PER_POTION_XP);\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "getAttackDelay",
+    "line": 178,
+    "end_line": 182,
+    "excerpt": "@Override\n    protected int getAttackDelay()\n    {\n        return this.instantEffect ? super.getAttackDelay() * 2 : super.getAttackDelay();\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "getAttackDistance",
+    "line": 184,
+    "end_line": 200,
+    "excerpt": "@Override\n    protected double getAttackDistance()\n    {\n        int attackDist = BASE_DISTANCE_FOR_POTION_ATTACK;\n        // + 1 Blockrange per building level for a total of +5 from building level\n        if (user.getCitizenData().getWorkBuilding() != null)\n        {\n            attackDist += user.getCitizenData().getWorkBuilding().getBuildingLevelEquivalent();\n        }\n\n        if (target != null)\n        {\n            attackDist += user.getY() - target.getY();\n        }\n\n        return attackDist;\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "moveInAttackPosition",
+    "line": 202,
+    "end_line": 228,
+    "excerpt": "@Override\n    protected PathResult moveInAttackPosition(final LivingEntity target)\n    {\n        if (BlockPosUtil.getDistanceSquared(target.blockPosition(), user.blockPosition()) <= 4.0)\n        {\n            final PathJobMoveAwayFromLocation job = new PathJobMoveAwayFromLocation(user.level,\n              PathfindingUtils.prepareStart(target),\n              target.blockPosition(),\n              12,\n              (int) user.getAttribute(Attributes.FOLLOW_RANGE).getValue(),\n              user);\n            final PathResult pathResult = ((MinecoloniesAdvancedPathNavigate) user.getNavigation()).setPathJob(job, null, getCombatMovementSpeed(), true);\n            job.setPathingOptions(combatPathingOptions);\n            return pathResult;\n        }\n        else if (BlockPosUtil.getDistance2D(target.blockPosition(), user.blockPosition()) >= 20)\n        {\n            final PathJobMoveToLocation job = new PathJobMoveToLocation(user.level, PathfindingUtils.prepareStart(user), target.blockPosition(), 200, user);\n            final PathResult pathResult = ((MinecoloniesAdvancedPathNavigate) user.getNavigation()).setPathJob(job, null, getCombatMovementSpeed(), true);\n            job.setPathingOptions(combatPathingOptions);\n            return pathResult;\n        }\n        final PathJobCanSee job = new PathJobCanSee(user, target, user.level, ((AbstractBuildingGuards) user.getCitizenData().getWorkBuilding()).getGuardPos(user), 40);\n        final PathResult pathResult = ((MinecoloniesAdvancedPathNavigate) user.getNavigation()).setPathJob(job, null, getCombatMovementSpeed(), true);\n        job.setPathingOptions(combatPathingOptions);\n        return pathResult;\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "getCombatMovementSpeed",
+    "line": 235,
+    "end_line": 242,
+    "excerpt": "protected double getCombatMovementSpeed()\n    {\n        double levelAdjustment = user.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Mana) * SPEED_LEVEL_BONUS;\n        levelAdjustment += (user.getCitizenData().getWorkBuilding().getBuildingLevelEquivalent() - 1) * SPEED_LEVEL_BONUS;\n\n        levelAdjustment = Math.min(levelAdjustment, 0.3);\n        return COMBAT_SPEED + levelAdjustment;\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "isAttackableTarget",
+    "line": 244,
+    "end_line": 252,
+    "excerpt": "@Override\n    protected boolean isAttackableTarget(final LivingEntity entity)\n    {\n        return (AbstractEntityAIGuard.isAttackableTarget(user, entity)\n                  || (entity instanceof IThreatTableEntity && ((IThreatTableEntity) entity).getThreatTable().getTarget() != null)\n                  || (entity instanceof Player && entity.getLastHurtByMobTimestamp() != 0 && entity.tickCount > entity.getLastHurtByMobTimestamp()\n                        && entity.tickCount - entity.getLastHurtByMobTimestamp() < 20 * 30))\n                 && !wasAffectedByDruid(entity);\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "searchNearbyTarget",
+    "line": 254,
+    "end_line": 298,
+    "excerpt": "@Override\n    protected boolean searchNearbyTarget()\n    {\n        if (checkForTarget())\n        {\n            return true;\n        }\n\n        final List<LivingEntity> entities = user.level.getEntitiesOfClass(LivingEntity.class, getSearchArea());\n\n        if (entities.isEmpty())\n        {\n            return false;\n        }\n\n        int targetsUnderEffect = 0;\n        boolean foundTarget = false;\n        for (final LivingEntity entity : entities)\n        {\n            if (!entity.isAlive())\n            {\n                continue;\n            }\n\n            if (skipSearch(entity))\n            {\n                return false;\n            }\n\n            if (isEntityValidTarget(entity))\n            {\n                if (user.hasLineOfSight(entity))\n                {\n                    user.getThreatTable().addThreat(entity, 0);\n                    foundTarget = true;\n                }\n            }\n            else if (wasAffectedByDruid(entity))\n            {\n                targetsUnderEffect++;\n            }\n        }\n\n        return foundTarget && targetsUnderEffect <= parentAI.building.getBuildingLevelEquivalent() * 2;\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "wasAffectedByDruid",
+    "line": 306,
+    "end_line": 310,
+    "excerpt": "private boolean wasAffectedByDruid(final LivingEntity entity)\n    {\n        return entity.hasEffect(MobEffects.MOVEMENT_SLOWDOWN) || entity.hasEffect(MobEffects.SATURATION) || entity.hasEffect(MobEffects.DAMAGE_BOOST)\n                 || entity.hasEffect(MobEffects.WEAKNESS) || entity.hasEffect(MobEffects.DAMAGE_RESISTANCE) || entity.hasEffect(MobEffects.HEAL);\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "isWithinPersecutionDistance",
+    "line": 312,
+    "end_line": 316,
+    "excerpt": "@Override\n    protected boolean isWithinPersecutionDistance(final LivingEntity target)\n    {\n        return parentAI.isWithinPersecutionDistance(target.blockPosition(), getAttackDistance());\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "skipSearch",
+    "line": 318,
+    "end_line": 334,
+    "excerpt": "@Override\n    protected boolean skipSearch(final LivingEntity entity)\n    {\n        // Found a sleeping guard nearby\n        if (entity instanceof EntityCitizen && user.getRandom().nextInt(10) < 1)\n        {\n            final EntityCitizen citizen = (EntityCitizen) entity;\n            if (citizen.getCitizenJobHandler().getColonyJob() instanceof AbstractJobGuard && ((AbstractJobGuard<?>) citizen.getCitizenJobHandler().getColonyJob()).isAsleep()\n                  && user.getSensing().hasLineOfSight(citizen))\n            {\n                parentAI.setWakeCitizen(citizen);\n                return true;\n            }\n        }\n\n        return false;\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "getYSearchRange",
+    "line": 336,
+    "end_line": 345,
+    "excerpt": "@Override\n    protected int getYSearchRange()\n    {\n        if (((AbstractBuildingGuards) user.getCitizenData().getWorkBuilding()).getTask().equals(GuardTaskSetting.GUARD))\n        {\n            return Y_VISION + 25;\n        }\n\n        return Y_VISION;\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/DruidCombatAI.java",
+    "name": "onTargetDied",
+    "line": 347,
+    "end_line": 353,
+    "excerpt": "@Override\n    protected void onTargetDied(final LivingEntity entity)\n    {\n        parentAI.incrementActionsDone();\n        user.getCitizenExperienceHandler().addExperience(EXP_PER_MOB_DEATH);\n        user.decreaseSaturationForContinuousAction();\n    }",
+    "source_sha256": "d6a045bf93a5f30cc64885ef88ee7abb9298a8f755c99dc25559e433f939ac1d"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIFight.java",
+    "name": "startWorkingAtOwnBuilding",
+    "line": 92,
+    "end_line": 99,
+    "excerpt": "protected IAIState startWorkingAtOwnBuilding()\n    {\n        if (!walkToBuilding())\n        {\n            return getState();\n        }\n        return PREPARING;\n    }",
+    "source_sha256": "84c6e7f84b62c670c0d7468302fd3498a64bd48ae1317ddbc4c8eae01d52b14a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIFight.java",
+    "name": "afterRequestPickUp",
+    "line": 101,
+    "end_line": 105,
+    "excerpt": "@Override\n    public IAIState afterRequestPickUp()\n    {\n        return PREPARING;\n    }",
+    "source_sha256": "84c6e7f84b62c670c0d7468302fd3498a64bd48ae1317ddbc4c8eae01d52b14a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIFight.java",
+    "name": "getStateAfterPickUp",
+    "line": 107,
+    "end_line": 111,
+    "excerpt": "@Override\n    public IAIState getStateAfterPickUp()\n    {\n        return PREPARING;\n    }",
+    "source_sha256": "84c6e7f84b62c670c0d7468302fd3498a64bd48ae1317ddbc4c8eae01d52b14a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIFight.java",
+    "name": "prepare",
+    "line": 118,
+    "end_line": 143,
+    "excerpt": "private IAIState prepare()\n    {\n        for (final EquipmentTypeEntry tool : toolsNeeded)\n        {\n            if (checkForToolOrWeapon(tool))\n            {\n                return getState();\n            }\n            InventoryFunctions.matchFirstInProviderWithSimpleAction(worker,\n              stack -> !ItemStackUtils.isEmpty(stack)\n                         && ItemStackUtils.doesItemServeAsWeapon(stack)\n                         && ItemStackUtils.hasEquipmentLevel(stack, tool, stack.getItem() instanceof ItemSpear ? -1 : 0, building.getMaxEquipmentLevel()),\n              itemStack -> CitizenItemUtils.setMainHeldItem(worker, itemStack));\n        }\n\n        equipInventoryArmor();\n\n        // Can only \"see\" the inventory and check for items if at the building\n        if (worker.blockPosition().distSqr(building.getID()) > 50)\n        {\n            return DECIDE;\n        }\n\n        atBuildingActions();\n        return DECIDE;\n    }",
+    "source_sha256": "84c6e7f84b62c670c0d7468302fd3498a64bd48ae1317ddbc4c8eae01d52b14a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIFight.java",
+    "name": "atBuildingActions",
+    "line": 148,
+    "end_line": 264,
+    "excerpt": "protected void atBuildingActions()\n    {\n        for (final GuardGear item : itemsNeeded.get(building.getBuildingLevelEquivalent() - 1))\n        {\n            if (!(building.getBuildingLevelEquivalent() >= item.getMinBuildingLevelRequired() && building.getBuildingLevelEquivalent() <= item.getMaxBuildingLevelRequired()))\n            {\n                continue;\n            }\n            if (item.getItemNeeded() == ModEquipmentTypes.shield.get()\n                  && worker.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(SHIELD_USAGE) <= 0)\n            {\n                continue;\n            }\n\n            int bestSlot = -1;\n            int bestLevel = -1;\n            IItemHandler bestHandler = null;\n\n            if (item.getType().isArmor())\n            {\n                if (!ItemStackUtils.isEmpty(worker.getInventoryCitizen().getArmorInSlot(item.getType())))\n                {\n                    bestLevel = item.getItemNeeded().getMiningLevel(worker.getInventoryCitizen().getArmorInSlot(item.getType()));\n                }\n            }\n            else\n            {\n                if (!ItemStackUtils.isEmpty(worker.getItemBySlot(item.getType())))\n                {\n                    bestLevel = item.getItemNeeded().getMiningLevel(worker.getItemBySlot(item.getType()));\n                }\n            }\n\n\n            final Map<IItemHandler, List<Integer>> items = InventoryUtils.findAllSlotsInProviderWith(building, item);\n            if (items.isEmpty())\n            {\n                // None found, check for equipped\n                if ((item.getType().isArmor() && ItemStackUtils.isEmpty(worker.getInventoryCitizen().getArmorInSlot(item.getType()))) || (!item.getType().isArmor()\n                                                                                                                                            && ItemStackUtils.isEmpty(worker.getItemBySlot(\n                  item.getType()))))\n                {\n                    // create request\n                    checkForToolOrWeaponAsync(item.getItemNeeded(), item.getMinArmorLevel(), item.getMaxArmorLevel());\n                }\n            }\n            else\n            {\n                // Compare levels\n                for (Map.Entry<IItemHandler, List<Integer>> entry : items.entrySet())\n                {\n                    for (final Integer slot : entry.getValue())\n                    {\n                        final ItemStack stack = entry.getKey().getStackInSlot(slot);\n                        if (ItemStackUtils.isEmpty(stack))\n                        {\n                            continue;\n                        }\n\n                        int currentLevel = item.getItemNeeded().getMiningLevel(stack);\n\n                        if (currentLevel > bestLevel)\n                        {\n                            bestLevel = currentLevel;\n                            bestSlot = slot;\n                            bestHandler = entry.getKey();\n                        }\n                    }\n                }\n            }\n\n            // Transfer if needed\n            if (bestHandler != null)\n            {\n                if (item.getType().isArmor())\n                {\n                    if (!ItemStackUtils.isEmpty(worker.getInventoryCitizen().getArmorInSlot(item.getType())))\n                    {\n                        final ItemStack armorStack = worker.getInventoryCitizen().getArmorInSlot(item.getType());\n                        worker.getInventoryCitizen().moveArmorToInventory(item.getType());\n                        final int slot =\n                          InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), stack -> stack == armorStack);\n                        if (slot > -1)\n                        {\n                            InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(worker.getInventoryCitizen(), slot, building);\n                        }\n                    }\n\n                    final ItemStack newStack = bestHandler.getStackInSlot(bestSlot);\n                    InventoryUtils.transferItemStackIntoNextFreeSlotInItemHandler(bestHandler, bestSlot, worker.getInventoryCitizen());\n                    final int slot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), stack -> stack == newStack);\n                    if (slot > -1)\n                    {\n                        worker.getInventoryCitizen().transferArmorToSlot(item.getType(), slot);\n                    }\n                }\n                else\n                {\n                    if (!ItemStackUtils.isEmpty(worker.getItemBySlot(item.getType())))\n                    {\n                        final int slot =\n                          InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), stack -> stack == worker.getItemBySlot(item.getType()));\n                        if (slot > -1)\n                        {\n                            InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(worker.getInventoryCitizen(), slot, building);\n                        }\n                    }\n\n                    // Used for further comparisons, set to the right inventory slot afterwards\n                    worker.setItemSlot(item.getType(), bestHandler.getStackInSlot(bestSlot));\n                    InventoryUtils.transferItemStackIntoNextFreeSlotInItemHandler(bestHandler, bestSlot, worker.getInventoryCitizen());\n                }\n            }\n        }\n\n        equipInventoryArmor();\n    }",
+    "source_sha256": "84c6e7f84b62c670c0d7468302fd3498a64bd48ae1317ddbc4c8eae01d52b14a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIFight.java",
+    "name": "afterDump",
+    "line": 266,
+    "end_line": 270,
+    "excerpt": "@Override\n    public IAIState afterDump()\n    {\n        return PREPARING;\n    }",
+    "source_sha256": "84c6e7f84b62c670c0d7468302fd3498a64bd48ae1317ddbc4c8eae01d52b14a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIFight.java",
+    "name": "equipInventoryArmor",
+    "line": 275,
+    "end_line": 323,
+    "excerpt": "public void equipInventoryArmor()\n    {\n        cleanVisibleSlots();\n        final Set<EquipmentSlot> equipment = new HashSet<>();\n        for (final GuardGear item : itemsNeeded.get(building.getBuildingLevelEquivalent() - 1))\n        {\n            if (equipment.contains(item.getType()))\n            {\n                continue;\n            }\n            if (item.getType().isArmor())\n            {\n                if (building.getBuildingLevelEquivalent() >= item.getMinBuildingLevelRequired() && building.getBuildingLevelEquivalent() <= item.getMaxBuildingLevelRequired())\n                {\n                    int slot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), item);\n                    if (slot <= -1)\n                    {\n                        continue;\n                    }\n\n                    equipment.add(item.getType());\n                    final ItemStack current = worker.getInventoryCitizen().getArmorInSlot(item.getType());\n                    if (!current.isEmpty() && current.getItem() instanceof ArmorItem)\n                    {\n                        final int currentLevel = item.getItemNeeded().getMiningLevel(current);\n                        final int newLevel = item.getItemNeeded().getMiningLevel(worker.getInventoryCitizen().getStackInSlot(slot));\n                        if (currentLevel > newLevel)\n                        {\n                            continue;\n                        }\n                    }\n                    worker.getInventoryCitizen().transferArmorToSlot(item.getType(), slot);\n                }\n            }\n            else\n            {\n                if (ItemStackUtils.isEmpty(worker.getItemBySlot(item.getType())) && building.getBuildingLevelEquivalent() >= item.getMinBuildingLevelRequired()\n                      && building.getBuildingLevelEquivalent() <= item.getMaxBuildingLevelRequired())\n                {\n                    equipment.add(item.getType());\n                    int slot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), item);\n                    if (slot > -1)\n                    {\n                        worker.setItemSlot(item.getType(), worker.getInventoryCitizen().getStackInSlot(slot));\n                    }\n                }\n            }\n        }\n    }",
+    "source_sha256": "84c6e7f84b62c670c0d7468302fd3498a64bd48ae1317ddbc4c8eae01d52b14a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIFight.java",
+    "name": "cleanVisibleSlots",
+    "line": 328,
+    "end_line": 340,
+    "excerpt": "public void cleanVisibleSlots()\n    {\n        final ItemStack stack = worker.getItemBySlot(EquipmentSlot.OFFHAND);\n        if (stack.isEmpty()\n              || InventoryUtils.findFirstSlotInItemHandlerWith(getInventory(), itemStack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack, false, true)) == -1)\n        {\n            worker.setItemSlot(EquipmentSlot.OFFHAND, ItemStackUtils.EMPTY);\n        }\n        worker.setItemSlot(EquipmentSlot.HEAD, ItemStackUtils.EMPTY);\n        worker.setItemSlot(EquipmentSlot.CHEST, ItemStackUtils.EMPTY);\n        worker.setItemSlot(EquipmentSlot.LEGS, ItemStackUtils.EMPTY);\n        worker.setItemSlot(EquipmentSlot.FEET, ItemStackUtils.EMPTY);\n    }",
+    "source_sha256": "84c6e7f84b62c670c0d7468302fd3498a64bd48ae1317ddbc4c8eae01d52b14a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "canAttack",
+    "line": 114,
+    "end_line": 131,
+    "excerpt": "@Override\n    public boolean canAttack()\n    {\n        final int weaponSlot =\n          InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(user.getInventoryCitizen(), getWeaponType(), 0, user.getCitizenData().getWorkBuilding().getMaxEquipmentLevel());\n\n        if (weaponSlot != -1)\n        {\n            CitizenItemUtils.setHeldItem(user, InteractionHand.MAIN_HAND, weaponSlot);\n            if (nextAttackTime - BOW_HOLDING_DELAY >= user.level.getGameTime() && !user.isUsingItem())\n            {\n                user.startUsingItem(InteractionHand.MAIN_HAND);\n            }\n            return true;\n        }\n\n        return false;\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "getWeaponType",
+    "line": 138,
+    "end_line": 147,
+    "excerpt": "public EquipmentTypeEntry getWeaponType()\n    {\n        if (parentAI.getJob() instanceof JobRanger jobRanger)\n        {\n            return jobRanger.getEquipmentType();\n        }\n\n        // Default to bow.\n        return ModEquipmentTypes.bow.get();\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "checkForTarget",
+    "line": 149,
+    "end_line": 160,
+    "excerpt": "@Override\n    protected boolean checkForTarget()\n    {\n        final boolean validTarget = super.checkForTarget();\n\n        if (!validTarget && user.isUsingItem())\n        {\n            user.stopUsingItem();\n        }\n\n        return validTarget;\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "doAttack",
+    "line": 162,
+    "end_line": 228,
+    "excerpt": "@Override\n    protected void doAttack(final LivingEntity target)\n    {\n        if (user.distanceToSqr(target) < RANGED_FLEE_SQDIST)\n        {\n            if (user.getRandom().nextInt(FLEE_CHANCE) == 0 &&\n                  !((AbstractBuildingGuards) user.getCitizenData().getWorkBuilding()).getTask().equals(GuardTaskSetting.GUARD))\n            {\n                EntityNavigationUtils.walkAwayFrom(user, target.blockPosition(), (int) (getAttackDistance() / 2.0), getCombatMovementSpeed());\n            }\n        }\n        else\n        {\n            user.getNavigation().stop();\n        }\n\n        user.getCitizenData().setVisibleStatus(ARCHER_COMBAT);\n        user.swing(InteractionHand.MAIN_HAND);\n        user.stopUsingItem();\n\n        int amountOfArrows = 1;\n        if (user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(DOUBLE_ARROWS) > 0)\n        {\n            if (user.getRandom().nextDouble() < user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(DOUBLE_ARROWS))\n            {\n                amountOfArrows++;\n            }\n        }\n\n        for (int i = 0; i < amountOfArrows; i++)\n        {\n            final AbstractArrow arrow = CombatUtils.createArrowForShooter(user);\n\n            if (user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(ARROW_PIERCE) > 0)\n            {\n                arrow.setPierceLevel((byte) 2);\n            }\n\n            // Add bow enchant effects: Knocback and fire\n            final ItemStack bow = user.getItemInHand(InteractionHand.MAIN_HAND);\n\n            if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FLAMING_ARROWS, bow) > 0)\n            {\n                arrow.setSecondsOnFire(5);\n            }\n            final int k = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.PUNCH_ARROWS, bow);\n            if (k > 0)\n            {\n                arrow.setKnockback(k);\n            }\n\n            double damage = calculateDamage(arrow);\n            if (isMarksman())\n            {\n                arrow.setShotFromCrossbow(true);\n            }\n            arrow.setBaseDamage(damage);\n\n            final float chance = HIT_CHANCE_DIVIDER / (user.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Adaptability) + 1);\n            CombatUtils.shootArrow(arrow, target, chance);\n            user.playSound(SoundEvents.SKELETON_SHOOT, (float) BASIC_VOLUME, (float) SoundUtils.getRandomPitch(user.getRandom()));\n        }\n\n        target.setLastHurtByMob(user);\n        CitizenItemUtils.damageItemInHand(user, InteractionHand.MAIN_HAND, 1);\n        user.stopUsingItem();\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "getAttackDistance",
+    "line": 230,
+    "end_line": 258,
+    "excerpt": "@Override\n    protected double getAttackDistance()\n    {\n        int attackDist = BASE_DISTANCE_FOR_RANGED_ATTACK;\n        // + 1 Blockrange per building level for a total of +5 from building level\n        if (user.getCitizenData().getWorkBuilding() != null)\n        {\n            attackDist += user.getCitizenData().getWorkBuilding().getBuildingLevelEquivalent();\n        }\n        // ~ +1 each three levels for a total of +10 from guard level\n        if (user.getCitizenData() != null)\n        {\n            attackDist += (user.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Adaptability) / 50.0f) * 15;\n        }\n\n        attackDist = Math.min(attackDist, MAX_DISTANCE_FOR_RANGED_ATTACK);\n\n        if (target != null)\n        {\n            attackDist += user.getY() - target.getY();\n        }\n\n        if (((AbstractBuildingGuards) user.getCitizenData().getWorkBuilding()).getTask().equals(GuardTaskSetting.GUARD))\n        {\n            attackDist += GUARD_BONUS_RANGE;\n        }\n\n        return attackDist;\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "getAttackDelay",
+    "line": 260,
+    "end_line": 264,
+    "excerpt": "@Override\n    protected int getAttackDelay()\n    {\n        return (int) (RANGED_ATTACK_DELAY_BASE * (isMarksman() ? 0.67 : 1));\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "calculateDamage",
+    "line": 272,
+    "end_line": 324,
+    "excerpt": "private double calculateDamage(final AbstractArrow arrow)\n    {\n        double damage = user.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Agility) / 5d;\n\n        final ItemStack heldItem = user.getItemInHand(InteractionHand.MAIN_HAND);\n        damage += EnchantmentHelper.getDamageBonus(heldItem, target.getMobType()) / 2.5;\n        damage += EnchantmentHelper.getItemEnchantmentLevel(Enchantments.POWER_ARROWS, heldItem);\n        damage += user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(ARCHER_DAMAGE);\n\n        if (user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(ARCHER_USE_ARROWS) > 0)\n        {\n            int slot = InventoryUtils.findFirstSlotInItemHandlerWith(user.getInventoryCitizen(), item -> item.getItem() instanceof ArrowItem);\n            if (slot != -1)\n            {\n                if (!ItemStackUtils.isEmpty(user.getInventoryCitizen().extractItem(slot, 1, true)))\n                {\n                    damage += ARROW_EXTRA_DAMAGE;\n                    if (arrow instanceof CustomArrowEntity customArrowEntity)\n                    {\n                        customArrowEntity.setOnHitCallback(entityRayTraceResult ->\n                        {\n                            final int arrowSlot = InventoryUtils.findFirstSlotInItemHandlerWith(user.getInventoryCitizen(), item -> item.getItem() instanceof ArrowItem);\n                            if (arrowSlot != -1)\n                            {\n                                user.getInventoryCitizen().extractItem(arrowSlot, 1, false);\n                            }\n\n                            if (isMarksman())\n                            {\n                                // Calculate true damage from reduced arrow damage.\n                                entityRayTraceResult.getEntity()\n                                    .hurt(user.level.damageSources().source(DamageSourceKeys.PIERCE, user), (float) arrow.getBaseDamage() * (float) marksManTrueDamageShare() * 10);\n                            }\n\n                            return true;\n                        });\n                    }\n                }\n            }\n        }\n\n        if (user.getHealth() <= user.getMaxHealth() * 0.2D)\n        {\n            damage *= 2;\n        }\n\n        if (ColonyConstants.rand.nextDouble() > 1 / (1 + user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(GUARD_CRIT)))\n        {\n            damage *= 1.5;\n        }\n\n        return (RANGER_BASE_DMG + damage) * MineColonies.getConfig().getServer().guardDamageMultiplier.get() * ((isMarksman() ? 1 - marksManTrueDamageShare() : 1));\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "isMarksman",
+    "line": 330,
+    "end_line": 333,
+    "excerpt": "public boolean isMarksman()\n    {\n        return parentAI.getJob().getJobRegistryEntry() == ModJobs.marksman.get();\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "marksManTrueDamageShare",
+    "line": 335,
+    "end_line": 338,
+    "excerpt": "public double marksManTrueDamageShare()\n    {\n        return (50 + user.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Adaptability) / 2.0) / 100.0;\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "moveInAttackPosition",
+    "line": 340,
+    "end_line": 366,
+    "excerpt": "@Override\n    protected PathResult moveInAttackPosition(final LivingEntity target)\n    {\n        if (BlockPosUtil.getDistanceSquared(target.blockPosition(), user.blockPosition()) <= 4.0)\n        {\n            final PathJobMoveAwayFromLocation job = new PathJobMoveAwayFromLocation(user.level,\n              PathfindingUtils.prepareStart(target),\n              target.blockPosition(),\n              (int) 7.0,\n              (int) user.getAttribute(Attributes.FOLLOW_RANGE).getValue(),\n              user);\n            final PathResult pathResult = ((MinecoloniesAdvancedPathNavigate) user.getNavigation()).setPathJob(job, null, getCombatMovementSpeed(), true);\n            job.setPathingOptions(combatPathingOptions);\n            return pathResult;\n        }\n        else if (BlockPosUtil.getDistance2D(target.blockPosition(), user.blockPosition()) >= 20)\n        {\n            final PathJobMoveToLocation job = new PathJobMoveToLocation(user.level, PathfindingUtils.prepareStart(user), target.blockPosition(), 200, user);\n            final PathResult pathResult = ((MinecoloniesAdvancedPathNavigate) user.getNavigation()).setPathJob(job, null, getCombatMovementSpeed(), true);\n            job.setPathingOptions(combatPathingOptions);\n            return pathResult;\n        }\n        final PathJobCanSee job = new PathJobCanSee(user, target, user.level, ((AbstractBuildingGuards) user.getCitizenData().getWorkBuilding()).getGuardPos(user), 40);\n        final PathResult pathResult = ((MinecoloniesAdvancedPathNavigate) user.getNavigation()).setPathJob(job, null, getCombatMovementSpeed(), true);\n        job.setPathingOptions(combatPathingOptions);\n        return pathResult;\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "getCombatMovementSpeed",
+    "line": 373,
+    "end_line": 380,
+    "excerpt": "protected double getCombatMovementSpeed()\n    {\n        double levelAdjustment = user.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Agility) * SPEED_LEVEL_BONUS;\n        levelAdjustment += (user.getCitizenData().getWorkBuilding().getBuildingLevelEquivalent() * 2 - 1) * SPEED_LEVEL_BONUS;\n\n        levelAdjustment = Math.min(levelAdjustment, 0.3);\n        return COMBAT_SPEED + levelAdjustment;\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "isAttackableTarget",
+    "line": 382,
+    "end_line": 386,
+    "excerpt": "@Override\n    protected boolean isAttackableTarget(final LivingEntity entity)\n    {\n        return AbstractEntityAIGuard.isAttackableTarget(user, entity);\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "isWithinPersecutionDistance",
+    "line": 388,
+    "end_line": 392,
+    "excerpt": "@Override\n    protected boolean isWithinPersecutionDistance(final LivingEntity target)\n    {\n        return parentAI.isWithinPersecutionDistance(target.blockPosition(), getAttackDistance());\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "skipSearch",
+    "line": 394,
+    "end_line": 410,
+    "excerpt": "@Override\n    protected boolean skipSearch(final LivingEntity entity)\n    {\n        // Found a sleeping guard nearby\n        if (entity instanceof EntityCitizen)\n        {\n            final EntityCitizen citizen = (EntityCitizen) entity;\n            if (citizen.getCitizenJobHandler().getColonyJob() instanceof AbstractJobGuard && ((AbstractJobGuard<?>) citizen.getCitizenJobHandler().getColonyJob()).isAsleep()\n                  && user.getSensing().hasLineOfSight(citizen))\n            {\n                parentAI.setWakeCitizen(citizen);\n                return true;\n            }\n        }\n\n        return false;\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "onTargetChange",
+    "line": 412,
+    "end_line": 417,
+    "excerpt": "@Override\n    protected void onTargetChange(final LivingEntity newTarget)\n    {\n        super.onTargetChange(newTarget);\n        CombatUtils.notifyGuardsOfTarget(user, newTarget, PATROL_DEVIATION_RAID_POINT);\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "getYSearchRange",
+    "line": 419,
+    "end_line": 428,
+    "excerpt": "@Override\n    protected int getYSearchRange()\n    {\n        if (((AbstractBuildingGuards) user.getCitizenData().getWorkBuilding()).getTask().equals(GuardTaskSetting.GUARD))\n        {\n            return Y_VISION + 25;\n        }\n\n        return Y_VISION;\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/RangeCombatAI.java",
+    "name": "onTargetDied",
+    "line": 430,
+    "end_line": 441,
+    "excerpt": "@Override\n    protected void onTargetDied(final LivingEntity entity)\n    {\n        parentAI.incrementActionsDone();\n        user.getCitizenExperienceHandler().addExperience(EXP_PER_MOB_DEATH);\n        user.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().increment(MOBS_KILLED, user.getCitizenColonyHandler().getColonyOrRegister().getDay());\n        if (entity.getType().getDescription().getContents() instanceof TranslatableContents translatableContents)\n        {\n            parentAI.building.getModule(STATS_MODULE).increment(MOB_KILLED + \";\" + translatableContents.getKey());\n        }\n        user.decreaseSaturationForContinuousAction();\n    }",
+    "source_sha256": "ff52d631336948bd18dc43dd379effa6b1c962e540ee6879b87b061ad56943e1"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "attackProtect",
+    "line": 118,
+    "end_line": 139,
+    "excerpt": "protected IAIState attackProtect()\n    {\n        final int shieldSlot = InventoryUtils.findFirstSlotInItemHandlerWith(user.getInventoryCitizen(), Items.SHIELD);\n        if (!isHuscarl() && shieldSlot != -1 && target != null && target.isAlive() && nextAttackTime - user.level.getGameTime() >= MIN_TIME_TO_ATTACK &&\n              user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(SHIELD_USAGE) > 0)\n        {\n            CitizenItemUtils.setHeldItem(user, InteractionHand.OFF_HAND, shieldSlot);\n            user.startUsingItem(InteractionHand.OFF_HAND);\n\n            // Apply the colony Flag to the shield\n            ItemStack shieldStack = user.getInventoryCitizen().getHeldItem(InteractionHand.OFF_HAND);\n            CompoundTag nbt = shieldStack.getOrCreateTagElement(\"BlockEntityTag\");\n            if (!Objects.equals(nbt.get(TAG_BANNER_PATTERNS), user.getCitizenColonyHandler().getColonyOrRegister().getColonyFlag()))\n            {\n                nbt.put(TAG_BANNER_PATTERNS, user.getCitizenColonyHandler().getColonyOrRegister().getColonyFlag());\n                user.getInventoryCitizen().markDirty();\n            }\n            user.lookAt(target, (float) TURN_AROUND, (float) TURN_AROUND);\n        }\n\n        return null;\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "isHuscarl",
+    "line": 145,
+    "end_line": 148,
+    "excerpt": "public boolean isHuscarl()\n    {\n        return parentAI.getJob().getJobRegistryEntry() == ModJobs.huscarl.get();\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "canAttack",
+    "line": 155,
+    "end_line": 173,
+    "excerpt": "@Override\n    public boolean canAttack()\n    {\n        EquipmentTypeEntry tool = getWeaponType();\n\n        final int weaponSlot =\n          InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(user.getInventoryCitizen(),\n            tool,\n            0,\n            user.getCitizenData().getWorkBuilding().getMaxEquipmentLevel());\n\n        if (weaponSlot != -1)\n        {\n            CitizenItemUtils.setHeldItem(user, InteractionHand.MAIN_HAND, weaponSlot);\n            return true;\n        }\n\n        return false;\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "getWeaponType",
+    "line": 180,
+    "end_line": 190,
+    "excerpt": "public EquipmentTypeEntry getWeaponType()\n    {\n        if (isHuscarl())\n        {\n            return ModEquipmentTypes.axe.get();\n        }\n        else\n        {\n            return ModEquipmentTypes.sword.get();\n        }\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "doAttack",
+    "line": 192,
+    "end_line": 246,
+    "excerpt": "@Override\n    protected void doAttack(final LivingEntity target)\n    {\n        if (user.distanceTo(target) > 1)\n        {\n            moveInAttackPosition(target);\n        }\n\n        user.swing(InteractionHand.MAIN_HAND);\n        user.playSound(SoundEvents.PLAYER_ATTACK_SWEEP, (float) BASIC_VOLUME, (float) SoundUtils.getRandomPitch(user.getRandom()));\n\n        final double damageToBeDealt = getAttackDamage();\n        DamageSource source = target.level.damageSources().source(DamageSourceKeys.GUARD, user);\n        if (MineColonies.getConfig().getServer().pvp_mode.get() && target instanceof Player)\n        {\n            source = target.level.damageSources().source(DamageSourceKeys.GUARD_PVP, user);\n        }\n\n        final int fireLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FIRE_ASPECT, user.getItemInHand(InteractionHand.MAIN_HAND));\n        if (fireLevel > 0)\n        {\n            target.setSecondsOnFire(fireLevel * 4);\n        }\n\n        if (user.level.getGameTime() - lastAoeUseTime > KNOCKBACK_COOLDOWN)\n        {\n            doAoeAttack(source, damageToBeDealt);\n        }\n\n        if (isHuscarl())\n        {\n            double share = (50 + user.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Adaptability) / 2.0) / 100.0;\n            target.hurt(target.level.damageSources().source(DamageSourceKeys.PIERCE, user), (float) damageToBeDealt * (float) share);\n            target.hurt(source, (float) damageToBeDealt * (float) (1.0 - share));\n        }\n        else\n        {\n            target.hurt(source, (float) damageToBeDealt);\n        }\n\n        target.setLastHurtByMob(user);\n\n        if (target instanceof Mob && user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(KNIGHT_TAUNT) > 0)\n        {\n            ((Mob) target).setTarget(user);\n            if (target instanceof IThreatTableEntity)\n            {\n                ((IThreatTableEntity) target).getThreatTable().addThreat(user, 5);\n            }\n        }\n\n        user.stopUsingItem();\n        user.getCitizenData().setVisibleStatus(getCombatStatus());\n        CitizenItemUtils.damageItemInHand(user, InteractionHand.MAIN_HAND, 1);\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "getCombatStatus",
+    "line": 248,
+    "end_line": 251,
+    "excerpt": "protected VisibleCitizenStatus getCombatStatus()\n    {\n        return KNIGHT_COMBAT;\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "doAoeAttack",
+    "line": 259,
+    "end_line": 303,
+    "excerpt": "private void doAoeAttack(final DamageSource source, final double damageToBeDealt)\n    {\n        if (user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(KNIGHT_WHIRLWIND) > 0\n              && user.getRandom().nextInt(KNOCKBACK_CHANCE) == 0)\n        {\n            List<LivingEntity> entities = user.level.getEntitiesOfClass(LivingEntity.class, user.getBoundingBox().inflate(2.0D, 0.5D, 2.0D));\n            for (LivingEntity livingentity : entities)\n            {\n                if (livingentity != user && isEntityValidTarget(livingentity) && (!(livingentity instanceof ArmorStand)))\n                {\n                    livingentity.knockback(\n                      2F,\n                      Mth.sin(livingentity.getYRot() * ((float) Math.PI)),\n                      (-Mth.cos(livingentity.getYRot() * ((float) Math.PI))));\n                    livingentity.hurt(source, (float) (damageToBeDealt / entities.size()));\n                }\n            }\n\n            user.level.playSound(null,\n              user.getX(),\n              user.getY(),\n              user.getZ(),\n              SoundEvents.PLAYER_ATTACK_SWEEP,\n              user.getSoundSource(),\n              1.0F,\n              1.0F);\n\n            double d0 = (double) (-Mth.sin(user.getYRot() * ((float) Math.PI / 180)));\n            double d1 = (double) Mth.cos(user.getYRot() * ((float) Math.PI / 180));\n            if (user.level instanceof ServerLevel)\n            {\n                ((ServerLevel) user.level).sendParticles(ParticleTypes.SWEEP_ATTACK,\n                  user.getX() + d0,\n                  user.getY(0.5D),\n                  user.getZ() + d1,\n                  2,\n                  d0,\n                  0.0D,\n                  d1,\n                  0.0D);\n            }\n\n            lastAoeUseTime = user.level.getGameTime();\n        }\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "getAttackDamage",
+    "line": 310,
+    "end_line": 352,
+    "excerpt": "protected double getAttackDamage()\n    {\n        double addDmg = 0;\n\n        final ItemStack heldItem = user.getItemInHand(InteractionHand.MAIN_HAND);\n\n        if (ItemStackUtils.doesItemServeAsWeapon(heldItem))\n        {\n            if (heldItem.getItem() instanceof SwordItem)\n            {\n                addDmg += ((SwordItem) heldItem.getItem()).getDamage() + BASE_PHYSICAL_DAMAGE;\n            }\n            else if (heldItem.getItem() instanceof ItemSpear) \n            {\n                addDmg += ((ItemSpear) heldItem.getItem()).getDamage() + BASE_PHYSICAL_DAMAGE;\n            }\n            else if (heldItem.getItem() instanceof AxeItem)\n            {\n                addDmg += heldItem.getItem().getDamage(heldItem) + BASE_PHYSICAL_DAMAGE;\n            }\n            else\n            {\n                addDmg += TinkersToolHelper.getDamage(heldItem);\n            }\n            addDmg += EnchantmentHelper.getDamageBonus(heldItem, target.getMobType()) / 2.5;\n        }\n\n        addDmg += user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(MELEE_DAMAGE);\n\n        // TODO: Recheck balancing, do we need this\n        if (user.getHealth() <= user.getMaxHealth() * 0.2D)\n        {\n            addDmg *= 2;\n        }\n\n        if (ColonyConstants.rand.nextDouble() > 1 / (1 + user.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(GUARD_CRIT)))\n        {\n            addDmg *= 1.5;\n            ((ServerLevel) user.level).getChunkSource().broadcastAndSend(user, new ClientboundAnimatePacket(target, 4));\n        }\n\n        return addDmg * MineColonies.getConfig().getServer().guardDamageMultiplier.get();\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "getAttackDistance",
+    "line": 354,
+    "end_line": 358,
+    "excerpt": "@Override\n    protected double getAttackDistance()\n    {\n        return MAX_DISTANCE_FOR_ATTACK;\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "getAttackDelay",
+    "line": 360,
+    "end_line": 366,
+    "excerpt": "@Override\n    protected int getAttackDelay()\n    {\n        // TODO: Not sure if we should make knights attack faster, they are intended to not scale in dmg, but health\n        final int reload = KNIGHT_ATTACK_DELAY_BASE - user.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Adaptability) / (isHuscarl() ? 2 : 3);\n        return Math.max(reload, KNIGHT_ATTACK_DELAY_MIN);\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "moveInAttackPosition",
+    "line": 368,
+    "end_line": 373,
+    "excerpt": "@Override\n    protected PathResult moveInAttackPosition(final LivingEntity target)\n    {\n        EntityNavigationUtils.walkToPos(user, target.blockPosition(), (int) getAttackDistance(), false, getCombatMovementSpeed());\n        return user.getNavigation().getPathResult();\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "getCombatMovementSpeed",
+    "line": 380,
+    "end_line": 387,
+    "excerpt": "protected double getCombatMovementSpeed()\n    {\n        double levelAdjustment = user.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Adaptability) * SPEED_LEVEL_BONUS;\n        levelAdjustment += (user.getCitizenData().getWorkBuilding().getBuildingLevelEquivalent() - 1) * SPEED_LEVEL_BONUS;\n\n        levelAdjustment = Math.min(levelAdjustment, 0.3);\n        return COMBAT_SPEED + levelAdjustment;\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "isAttackableTarget",
+    "line": 389,
+    "end_line": 393,
+    "excerpt": "@Override\n    protected boolean isAttackableTarget(final LivingEntity entity)\n    {\n        return AbstractEntityAIGuard.isAttackableTarget(user, entity);\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "isWithinPersecutionDistance",
+    "line": 395,
+    "end_line": 399,
+    "excerpt": "@Override\n    protected boolean isWithinPersecutionDistance(final LivingEntity target)\n    {\n        return parentAI.isWithinPersecutionDistance(target.blockPosition(), getAttackDistance());\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "skipSearch",
+    "line": 401,
+    "end_line": 417,
+    "excerpt": "@Override\n    protected boolean skipSearch(final LivingEntity entity)\n    {\n        // Found a sleeping guard nearby\n        if (entity instanceof EntityCitizen)\n        {\n            final EntityCitizen citizen = (EntityCitizen) entity;\n            if (citizen.getCitizenJobHandler().getColonyJob() instanceof AbstractJobGuard && ((AbstractJobGuard<?>) citizen.getCitizenJobHandler().getColonyJob()).isAsleep()\n                  && user.getSensing().hasLineOfSight(citizen))\n            {\n                parentAI.setWakeCitizen(citizen);\n                return true;\n            }\n        }\n\n        return false;\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "onTargetChange",
+    "line": 419,
+    "end_line": 424,
+    "excerpt": "@Override\n    protected void onTargetChange(final LivingEntity newTarget)\n    {\n        super.onTargetChange(newTarget);\n        CombatUtils.notifyGuardsOfTarget(user, target, PATROL_DEVIATION_RAID_POINT);\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "getSearchRange",
+    "line": 426,
+    "end_line": 430,
+    "excerpt": "@Override\n    protected int getSearchRange()\n    {\n        return 16;\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/MeleeCombatAI.java",
+    "name": "onTargetDied",
+    "line": 432,
+    "end_line": 443,
+    "excerpt": "@Override\n    protected void onTargetDied(final LivingEntity entity)\n    {\n        parentAI.incrementActionsDone();\n        user.getCitizenExperienceHandler().addExperience(EXP_PER_MOB_DEATH);\n        user.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().increment(MOBS_KILLED, user.getCitizenColonyHandler().getColonyOrRegister().getDay());\n        if (entity.getType().getDescription().getContents() instanceof TranslatableContents translatableContents)\n        {\n            parentAI.building.getModule(STATS_MODULE).increment(MOB_KILLED + \";\" + translatableContents.getKey());\n        }\n        user.decreaseSaturationForContinuousAction();\n    }",
+    "source_sha256": "0317b3c3988d6172415023a8e24cb8688690973b7a50c2012d11e636b4f43ed3"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/CavalryCombatAI.java",
+    "name": "getAttackDamage",
+    "line": 28,
+    "end_line": 33,
+    "excerpt": "@Override\n    protected double getAttackDamage()\n    {\n        // TODO: Allow this to improve through research\n        return super.getAttackDamage() * CAVALRY_DAMAGE_MULTIPLIER;\n    }",
+    "source_sha256": "0403301b5d347f1c1401fcc0d27c47c9372f07d6a555c3850edc6bd4324eacc7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/CavalryCombatAI.java",
+    "name": "getWeaponType",
+    "line": 40,
+    "end_line": 44,
+    "excerpt": "@Override\n    public EquipmentTypeEntry getWeaponType()\n    {\n        return JobCavalry.getWeaponType();\n    }",
+    "source_sha256": "0403301b5d347f1c1401fcc0d27c47c9372f07d6a555c3850edc6bd4324eacc7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/CavalryCombatAI.java",
+    "name": "getAttackDistance",
+    "line": 52,
+    "end_line": 55,
+    "excerpt": "protected double getAttackDistance()\n    {\n        return super.getAttackDistance() * CAVALRY_RANGE_MULTIPLIER;\n    }",
+    "source_sha256": "0403301b5d347f1c1401fcc0d27c47c9372f07d6a555c3850edc6bd4324eacc7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/CavalryCombatAI.java",
+    "name": "getCombatStatus",
+    "line": 62,
+    "end_line": 66,
+    "excerpt": "@Override\n    protected VisibleCitizenStatus getCombatStatus()\n    {\n        return CAVALRY_COMBAT_ICON;\n    }",
+    "source_sha256": "0403301b5d347f1c1401fcc0d27c47c9372f07d6a555c3850edc6bd4324eacc7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "inCombat",
+    "line": 190,
+    "end_line": 204,
+    "excerpt": "private IAIState inCombat()\n    {\n        if (fighttimer <= 0)\n        {\n            onCombatEnter();\n        }\n\n        if (!hasTool())\n        {\n            return PREPARING;\n        }\n\n        fighttimer = COMBAT_TIME;\n        return null;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "onCombatEnter",
+    "line": 209,
+    "end_line": 213,
+    "excerpt": "private void onCombatEnter()\n    {\n        worker.setCanBeStuck(false);\n        worker.getNavigation().getPathingOptions().setCanUseRails(false);\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "onCombatLeave",
+    "line": 218,
+    "end_line": 222,
+    "excerpt": "private void onCombatLeave()\n    {\n        worker.getNavigation().getPathingOptions().setCanUseRails(((EntityCitizen) worker).canPathOnRails());\n        worker.setCanBeStuck(true);\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "wakeUpGuard",
+    "line": 229,
+    "end_line": 261,
+    "excerpt": "private IAIState wakeUpGuard()\n    {\n        if (sleepingGuard.get() == null || !(sleepingGuard.get().getCitizenJobHandler().getColonyJob() instanceof AbstractJobGuard) || !sleepingGuard.get()\n                                                                                                                                          .getCitizenJobHandler()\n                                                                                                                                          .getColonyJob(AbstractJobGuard.class)\n                                                                                                                                          .isAsleep())\n        {\n            return CombatAIStates.NO_TARGET;\n        }\n\n        wakeTimer++;\n        if (wakeTimer > 30)\n        {\n            return CombatAIStates.NO_TARGET;\n        }\n\n        final EntityCitizen sleepingCitizen = sleepingGuard.get();\n\n        // Move into range\n        if (BlockPosUtil.getDistanceSquared(sleepingCitizen.blockPosition(), worker.blockPosition()) > 2.25)\n        {\n            walkToUnSafePos(sleepingCitizen.blockPosition());\n        }\n        else\n        {\n            worker.swing(InteractionHand.OFF_HAND);\n            sleepingCitizen.hurt(world.damageSources().source(DamageSourceKeys.WAKEY, this.worker), 1);\n            sleepingCitizen.setLastHurtByMob(worker);\n            return CombatAIStates.NO_TARGET;\n        }\n\n        return getState();\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "shouldSleep",
+    "line": 268,
+    "end_line": 290,
+    "excerpt": "private boolean shouldSleep()\n    {\n        if (worker.getLastHurtByMob() != null || target != null || fighttimer > 0 || job.getCitizen().getCitizenDiseaseHandler().isSick())\n        {\n            return false;\n        }\n\n        final double chance = 1 / (1 + worker.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(SLEEP_LESS));\n\n        // Chance to fall asleep every 10sec, Chance is 1 in (10 + level/2) = 1 in Level1:5,Level2:6 Level6:8 Level 12:11 etc\n        if (worker.getRandom().nextInt((int) (worker.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Adaptability) * 0.5) + 20) == 1\n              && worker.getRandom().nextDouble() < chance)\n        {\n            // Sleep for 2500-3000 ticks\n            sleepTimer = worker.getRandom().nextInt(500) + 2500;\n            worker.getNavigation().stop();\n            SittingEntity.sitDown(worker.blockPosition(), worker, sleepTimer);\n\n            return true;\n        }\n\n        return false;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "sleepParticles",
+    "line": 297,
+    "end_line": 307,
+    "excerpt": "private IAIState sleepParticles()\n    {\n        Network.getNetwork().sendToTrackingEntity(new SleepingParticleMessage(worker.getX(), worker.getY() + 2.0d, worker.getZ()), worker);\n\n        if (worker.getHealth() < worker.getMaxHealth())\n        {\n            worker.setHealth(worker.getHealth() + 0.5f);\n        }\n\n        return null;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "sleep",
+    "line": 314,
+    "end_line": 332,
+    "excerpt": "protected IAIState sleep()\n    {\n        if (worker.getLastHurtByMob() != null || (sleepTimer -= getTickRate()) < 0)\n        {\n            stopSleeping();\n            ((EntityCitizen) worker).getThreatTable().removeCurrentTarget();\n            worker.setLastHurtByMob(null);\n            return CombatAIStates.NO_TARGET;\n        }\n\n        worker.getLookControl()\n          .setLookAt(worker.getX() + worker.getDirection().getStepX(),\n            worker.getY() + worker.getDirection().getStepY(),\n            worker.getZ() + worker.getDirection().getStepZ(),\n            0f,\n            30f);\n        ((LookHandler) worker.getLookControl()).setLookAtCooldown(sleepTimer);\n        return null;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "stopSleeping",
+    "line": 337,
+    "end_line": 346,
+    "excerpt": "protected void stopSleeping()\n    {\n        if (getState() == GUARD_SLEEP)\n        {\n            worker.stopRiding();\n            worker.setPos(worker.getX(), worker.getY() + 1, worker.getZ());\n            worker.getCitizenExperienceHandler().addExperience(1);\n            ((LookHandler) worker.getLookControl()).setLookAtCooldown(2);\n        }\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "shouldFlee",
+    "line": 353,
+    "end_line": 361,
+    "excerpt": "private boolean shouldFlee()\n    {\n        if (buildingGuards.shallRetrieveOnLowHealth() && worker.getHealth() < ((int) worker.getMaxHealth() * 0.2D) && worker.distanceToSqr(building.getID().getCenter()) > 20)\n        {\n            return worker.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(RETREAT) > 0;\n        }\n\n        return false;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "regen",
+    "line": 368,
+    "end_line": 385,
+    "excerpt": "private IAIState regen()\n    {\n        if (((EntityCitizen) worker).getThreatTable().getTargetMob() != null && ((EntityCitizen) worker).getThreatTable().getTargetMob().distanceTo(worker) < 10)\n        {\n            return CombatAIStates.ATTACKING;\n        }\n\n        if (worker.getHealth() < ((int) worker.getMaxHealth() * 0.75D) && buildingGuards.shallRetrieveOnLowHealth())\n        {\n            if (!worker.hasEffect(MobEffects.REGENERATION))\n            {\n                worker.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200));\n            }\n            return GUARD_REGEN;\n        }\n\n        return START_WORKING;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "flee",
+    "line": 392,
+    "end_line": 409,
+    "excerpt": "private IAIState flee()\n    {\n        if (!worker.hasEffect(MobEffects.MOVEMENT_SPEED))\n        {\n            final double effect = worker.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(FLEEING_SPEED);\n            if (effect > 0)\n            {\n                worker.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 200, (int) (0 + effect)));\n            }\n        }\n\n        if (!walkToBuilding())\n        {\n            return GUARD_FLEE;\n        }\n\n        return GUARD_REGEN;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "guard",
+    "line": 416,
+    "end_line": 420,
+    "excerpt": "private IAIState guard()\n    {\n        guardMovement();\n        return getState();\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "guardMovement",
+    "line": 425,
+    "end_line": 431,
+    "excerpt": "public void guardMovement()\n    {\n        if (ColonyConstants.rand.nextInt(10) == 0)\n        {\n            walkToUnSafePos(buildingGuards.getGuardPos(worker), 5);\n        }\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "follow",
+    "line": 438,
+    "end_line": 448,
+    "excerpt": "private IAIState follow()\n    {\n        if (BlockPosUtil.getDistance2D(worker.blockPosition(), buildingGuards.getPositionToFollow()) > MAX_FOLLOW_DERIVATION)\n        {\n            TeleportHelper.teleportCitizen(worker, worker.getCommandSenderWorld(), buildingGuards.getPositionToFollow());\n            return null;\n        }\n\n        walkToUnSafePos(buildingGuards.getPositionToFollow(), buildingGuards.isTightGrouping() ? GUARD_FOLLOW_TIGHT_RANGE : GUARD_FOLLOW_LOSE_RANGE);\n        return null;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "getActionsDoneUntilDumping",
+    "line": 450,
+    "end_line": 454,
+    "excerpt": "@Override\n    protected int getActionsDoneUntilDumping()\n    {\n        return ACTIONS_UNTIL_DUMPING * building.getBuildingLevelEquivalent();\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "rally",
+    "line": 461,
+    "end_line": 484,
+    "excerpt": "private IAIState rally(final ILocation location)\n    {\n        final ICitizenData citizenData = worker.getCitizenData();\n        if (!walkToUnSafePos(location.getInDimensionLocation()\n                                             .offset(randomGenerator.nextInt(GUARD_FOLLOW_TIGHT_RANGE) - GUARD_FOLLOW_TIGHT_RANGE / 2,\n                                               0,\n                                               randomGenerator.nextInt(GUARD_FOLLOW_TIGHT_RANGE) - GUARD_FOLLOW_TIGHT_RANGE / 2),\n          GUARD_FOLLOW_TIGHT_RANGE) && citizenData != null)\n        {\n            if (!worker.hasEffect(MobEffects.MOVEMENT_SPEED))\n            {\n                // Guards will rally faster with higher skill.\n                // Considering 99 is the maximum for any skill, the maximum theoretical getJobModifier() = 99 + 99/4 = 124. We want them to have Speed 5\n                // when they're at half-max, so at about skill60. Therefore, divide the skill by 20.\n                worker.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED,\n                  5 * TICKS_SECOND,\n                    Mth.clamp((citizenData.getCitizenSkillHandler().getLevel(Skill.Adaptability) / 30), 0, 3),\n                  false,\n                  false));\n            }\n        }\n\n        return null;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "startWorkingAtOwnBuilding",
+    "line": 486,
+    "end_line": 494,
+    "excerpt": "@Override\n    protected IAIState startWorkingAtOwnBuilding()\n    {\n        if (buildingGuards != null)\n        {\n            buildingGuards.setTempNextPatrolPoint(buildingGuards.getPosition());\n        }\n        return DECIDE;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "randomPatrolPoint",
+    "line": 500,
+    "end_line": 503,
+    "excerpt": "protected BlockPos randomPatrolPoint()\n    {\n        return buildingGuards.getColony().getServerBuildingManager().getRandomBuilding(b -> true);\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "patrol",
+    "line": 510,
+    "end_line": 542,
+    "excerpt": "public IAIState patrol()\n    {\n        if (buildingGuards.requiresManualTarget())\n        {\n            if (currentPatrolPoint == null || walkToSafePos(currentPatrolPoint) || !WorldUtil.isEntityBlockLoaded(world, currentPatrolPoint))\n            {\n                currentPatrolPoint = null;\n                if (!EntityNavigationUtils.walkToRandomPos(worker, 20, 1.0))\n                {\n                    return getState();\n                }\n\n                if (worker.getRandom().nextInt(5) <= 1)\n                {\n                    currentPatrolPoint = randomPatrolPoint();\n                    if (currentPatrolPoint != null)\n                    {\n                        walkToSafePos(currentPatrolPoint);\n                    }\n                }\n            }\n        }\n        else\n        {\n            currentPatrolPoint = buildingGuards.getNextPatrolTarget(false);\n            if (currentPatrolPoint != null && (!WorldUtil.isEntityBlockLoaded(world, currentPatrolPoint) || walkToSafePos(currentPatrolPoint)))\n            {\n                setCurrentDelay(10);\n                buildingGuards.arrivedAtPatrolPoint(worker);\n            }\n        }\n        return null;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "patrolMine",
+    "line": 549,
+    "end_line": 584,
+    "excerpt": "public IAIState patrolMine()\n    {\n        if (buildingGuards.getMinePos() == null)\n        {\n            return PREPARING;\n        }\n        if (currentPatrolPoint == null || walkToSafePos(currentPatrolPoint))\n        {\n            final IBuilding building = buildingGuards.getColony().getServerBuildingManager().getBuilding(buildingGuards.getMinePos());\n            if (building != null)\n            {\n                if (building instanceof BuildingMiner)\n                {\n                    final BuildingMiner buildingMiner = (BuildingMiner) building;\n                    final MinerLevel level = buildingMiner.getModule(BuildingModules.MINER_LEVELS).getCurrentLevel();\n                    if (level == null)\n                    {\n                        setNextPatrolTarget(buildingMiner.getPosition());\n                    }\n                    else\n                    {\n                        setNextPatrolTarget(level.getRandomCompletedNode(buildingMiner));\n                    }\n                }\n                else\n                {\n                    buildingGuards.getModule(BuildingModules.GUARD_SETTINGS).getSetting(AbstractBuildingGuards.GUARD_TASK).set(GuardTaskSetting.PATROL);\n                }\n            }\n            else\n            {\n                buildingGuards.getModule(BuildingModules.GUARD_SETTINGS).getSetting(AbstractBuildingGuards.GUARD_TASK).set(GuardTaskSetting.PATROL);\n            }\n        }\n        return null;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "setNextPatrolTarget",
+    "line": 591,
+    "end_line": 594,
+    "excerpt": "private void setNextPatrolTarget(final BlockPos target)\n    {\n        currentPatrolPoint = target;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "getCurrentPatrolPoint",
+    "line": 601,
+    "end_line": 604,
+    "excerpt": "public BlockPos getCurrentPatrolPoint()\n    {\n        return currentPatrolPoint;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "hasTool",
+    "line": 611,
+    "end_line": 621,
+    "excerpt": "public boolean hasTool()\n    {\n        for (final EquipmentTypeEntry toolType : toolsNeeded)\n        {\n            if (!InventoryUtils.hasItemHandlerEquipmentWithLevel(getInventory(), toolType, 0, buildingGuards.getMaxEquipmentLevel()))\n            {\n                return false;\n            }\n        }\n        return true;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "startHelpCitizen",
+    "line": 628,
+    "end_line": 635,
+    "excerpt": "public void startHelpCitizen(final LivingEntity attacker)\n    {\n        if (canHelp(attacker.blockPosition()))\n        {\n            ((IThreatTableEntity) worker).getThreatTable().addThreat(attacker, 20);\n            registerTarget(new AIOneTimeEventTarget(CombatAIStates.ATTACKING));\n        }\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "canHelp",
+    "line": 643,
+    "end_line": 657,
+    "excerpt": "public boolean canHelp(final BlockPos pos)\n    {\n        if ((getState() == CombatAIStates.NO_TARGET || getState() == GUARD_SLEEP) && canBeInterrupted())\n        {\n            if (buildingGuards.getTask().equals(GuardTaskSetting.GUARD) && !isWithinPersecutionDistance(pos, getPersecutionDistance()))\n            {\n                return false;\n            }\n\n            // Stop sleeping when someone called for help\n            stopSleeping();\n            return true;\n        }\n        return false;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "decide",
+    "line": 664,
+    "end_line": 720,
+    "excerpt": "protected IAIState decide()\n    {\n        final ILocation rallyLocation = buildingGuards.getRallyLocation();\n\n        if (regularActionTimer++ > ACTION_INCREASE_INTERVAL)\n        {\n            incrementActionsDone();\n            regularActionTimer = 0;\n        }\n\n        if (worker.getRandom().nextDouble() < 0.05)\n        {\n            equipInventoryArmor();\n        }\n\n        if (!hasTool())\n        {\n            return PREPARING;\n        }\n\n        if (fighttimer > 0)\n        {\n            fighttimer -= GUARD_TASK_INTERVAL;\n            if (fighttimer <= 0)\n            {\n                onCombatLeave();\n            }\n        }\n        else\n        {\n            worker.stopUsingItem();\n            lastGuardActionPos = worker.blockPosition();\n        }\n\n        if (rallyLocation != null || buildingGuards.getTask().equals(GuardTaskSetting.FOLLOW))\n        {\n            worker.addEffect(new MobEffectInstance(GLOW_EFFECT, GLOW_EFFECT_DURATION, 0, false, false));\n        }\n        else\n        {\n            worker.removeEffect(GLOW_EFFECT);\n        }\n\n        if (rallyLocation != null && rallyLocation.isReachableFromLocation(worker.getLocation()))\n        {\n            return rally(rallyLocation);\n        }\n\n        return switch (buildingGuards.getTask())\n                 {\n                     case GuardTaskSetting.PATROL -> patrol();\n                     case GuardTaskSetting.GUARD -> guard();\n                     case GuardTaskSetting.FOLLOW -> follow();\n                     case GuardTaskSetting.PATROL_MINE -> patrolMine();\n                     default -> PREPARING;\n                 };\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "isWithinPersecutionDistance",
+    "line": 728,
+    "end_line": 731,
+    "excerpt": "public boolean isWithinPersecutionDistance(final BlockPos entityPos, final double attackRange)\n    {\n        return BlockPosUtil.getDistanceSquared(getTaskReferencePoint(), entityPos) <= Math.pow(getPersecutionDistance() + attackRange, 2);\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "getTaskReferencePoint",
+    "line": 738,
+    "end_line": 750,
+    "excerpt": "private BlockPos getTaskReferencePoint()\n    {\n        switch (buildingGuards.getTask())\n        {\n            case GuardTaskSetting.PATROL:\n            case GuardTaskSetting.PATROL_MINE:\n                return lastGuardActionPos;\n            case GuardTaskSetting.FOLLOW:\n                return buildingGuards.getPositionToFollow();\n            default:\n                return buildingGuards.getGuardPos(worker);\n        }\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "getPersecutionDistance",
+    "line": 757,
+    "end_line": 773,
+    "excerpt": "protected int getPersecutionDistance()\n    {\n        if (buildingGuards.getRallyLocation() != null)\n        {\n            return MAX_FOLLOW_DERIVATION;\n        }\n        switch (buildingGuards.getTask())\n        {\n            case GuardTaskSetting.PATROL:\n                return MAX_PATROL_DERIVATION;\n            case GuardTaskSetting.PATROL_MINE:\n            case GuardTaskSetting.FOLLOW:\n                return MAX_FOLLOW_DERIVATION;\n            default:\n                return MAX_GUARD_DERIVATION + (getModuleForJob().getJobEntry() == ModJobs.knight.get() ? 20 : 0);\n        }\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "canBeInterrupted",
+    "line": 775,
+    "end_line": 784,
+    "excerpt": "@Override\n    public boolean canBeInterrupted()\n    {\n        if (fighttimer > 0 || getState() == CombatAIStates.ATTACKING || worker.getLastAttacker() != null || buildingGuards.getRallyLocation() != null || buildingGuards.getTask()\n                                                                                                                                                           .equals(GuardTaskSetting.FOLLOW))\n        {\n            return false;\n        }\n        return super.canBeInterrupted();\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "setWakeCitizen",
+    "line": 791,
+    "end_line": 796,
+    "excerpt": "public void setWakeCitizen(final EntityCitizen citizen)\n    {\n        sleepingGuard = new WeakReference<>(citizen);\n        wakeTimer = 0;\n        registerTarget(new AIOneTimeEventTarget(GUARD_WAKE));\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "getExpectedBuildingClass",
+    "line": 798,
+    "end_line": 802,
+    "excerpt": "@Override\n    public Class<B> getExpectedBuildingClass()\n    {\n        return (Class<B>) AbstractBuildingGuards.class;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "isAttackableTarget",
+    "line": 811,
+    "end_line": 847,
+    "excerpt": "public static boolean isAttackableTarget(final AbstractEntityCitizen user, final LivingEntity entity)\n    {\n        if (IColonyManager.getInstance().getCompatibilityManager().getAllMonsters().contains(ForgeRegistries.ENTITY_TYPES.getKey(entity.getType())) && !user.getCitizenData()\n                                                                                                                                                          .getWorkBuilding()\n                                                                                                                                                          .getModuleMatching(\n                                                                                                                                                            EntityListModule.class,\n                                                                                                                                                            m -> m.getId()\n                                                                                                                                                                   .equals(\n                                                                                                                                                                     HOSTILE_LIST))\n                                                                                                                                                          .isEntityInList(\n                                                                                                                                                            ForgeRegistries.ENTITY_TYPES.getKey(\n                                                                                                                                                              entity.getType())))\n        {\n            return true;\n        }\n\n        final IColony colony = user.getCitizenColonyHandler().getColonyOrRegister();\n        if (colony == null)\n        {\n            return false;\n        }\n\n        // Players\n        if (entity instanceof Player && (colony.getPermissions().getRank((Player) entity).isHostile() || colony.isValidAttackingPlayer((Player) entity)))\n        {\n            return true;\n        }\n\n        // Other colonies guard citizen attacking the colony\n        if (entity instanceof EntityCitizen otherCitizen && otherCitizen.getCitizenColonyHandler().getColonyId() != colony.getID()\n            && colony.isValidAttackingGuard((AbstractEntityCitizen) entity))\n        {\n            return true;\n        }\n\n        return false;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/ai/workers/guard/AbstractEntityAIGuard.java",
+    "name": "getJob",
+    "line": 853,
+    "end_line": 857,
+    "excerpt": "@NotNull\n    public J getJob()\n    {\n        return job;\n    }",
+    "source_sha256": "7b861f4a00592b8d3a479080c91b4d9ebee2857ba7f8088baafb1f6f07411d8a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 101,
+    "end_line": 113,
+    "excerpt": "@SubscribeEvent\n    public void on(final BlockEvent.EntityPlaceEvent event)\n    {\n        final Action action = event.getPlacedBlock().getBlock() instanceof AbstractBlockHut ? Action.PLACE_HUTS : Action.PLACE_BLOCKS;\n        if (MineColonies.getConfig().getServer().enableColonyProtection.get() && checkBlockEventDenied(event.getLevel(),\n          event.getPos(),\n          event.getEntity(),\n          event.getPlacedBlock(),\n          action))\n        {\n            cancelEvent(event, event.getEntity(), colony, action, event.getPos());\n        }\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "checkBlockEventDenied",
+    "line": 125,
+    "end_line": 149,
+    "excerpt": "private boolean checkBlockEventDenied(\n      final LevelAccessor worldIn, final BlockPos posIn, final Entity entity, final BlockState blockState,\n      final Action action)\n    {\n        if (entity instanceof Player)\n        {\n            @NotNull final Player player = EntityUtils.getPlayerOfFakePlayer((Player) entity, entity.level);\n            if (colony.isCoordInColony(entity.level, posIn))\n            {\n                if (blockState.getBlock() instanceof AbstractBlockHut\n                      && colony.getPermissions().hasPermission(player, action))\n                {\n                    return false;\n                }\n\n                return !colony.getPermissions().hasPermission(player, action);\n            }\n        }\n        /*\n         * - We are not inside the colony\n         * - We are in but not denied\n         * - The placer is not a player.\n         */\n        return false;\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "cancelEvent",
+    "line": 160,
+    "end_line": 206,
+    "excerpt": "private void cancelEvent(final Event event, @Nullable final Entity entity, final Colony colony, final Action action, final BlockPos pos)\n    {\n        event.setResult(Event.Result.DENY);\n        if (event.isCancelable())\n        {\n            event.setCanceled(true);\n            if (entity == null)\n            {\n                if (colony.getServerBuildingManager().hasTownHall())\n                {\n                    colony.getServerBuildingManager().getTownHall().addPermissionEvent(new PermissionEvent(null, \"-\", action, pos));\n                }\n                return;\n            }\n            if (colony.getServerBuildingManager().hasTownHall())\n            {\n                colony.getServerBuildingManager().getTownHall().addPermissionEvent(new PermissionEvent(entity.getUUID(), entity.getName().getString(), action, pos));\n            }\n\n\n            if (entity instanceof FakePlayer)\n            {\n                return;\n            }\n\n            final long worldTime = entity.level.getGameTime();\n            if (!lastPlayerNotificationTick.containsKey(entity.getUUID())\n                  || lastPlayerNotificationTick.get(entity.getUUID()) + (TICKS_SECOND * 10)\n                       < worldTime)\n            {\n                MessageUtils.format(PERMISSION_DENIED).sendTo((Player) entity);\n                lastPlayerNotificationTick.put(entity.getUUID(), worldTime);\n                playerAttempts.put(entity.getUUID(), 0);\n            }\n            else\n            {\n                if (playerAttempts.compute(entity.getUUID(), (uuid, count) -> count == null ? 1 : count + 1) > 10)\n                {\n                    if (entity instanceof LivingEntity living)\n                    {\n                        playerAttempts.put(entity.getUUID(), 0);\n                        living.addEffect(new MobEffectInstance(MobEffects.LEVITATION, TICKS_SECOND * 10));\n                    }\n                }\n            }\n        }\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 213,
+    "end_line": 269,
+    "excerpt": "@SubscribeEvent\n    public void on(final BlockEvent.BreakEvent event)\n    {\n        final LevelAccessor world = event.getLevel();\n        if (world.isClientSide())\n        {\n            return;\n        }\n\n        if (event.getState().getBlock() instanceof AbstractBlockHut)\n        {\n            @Nullable final IBuilding building = IColonyManager.getInstance().getBuilding(event.getPlayer().level, event.getPos());\n            if (building == null)\n            {\n                return;\n            }\n\n            if (!MineColonies.getConfig().getServer().enableColonyProtection.get())\n            {\n                building.destroy();\n                return;\n            }\n\n            if (event.getState().getBlock() == ModBlocks.blockHutTownHall && !((BlockHutTownHall)event.getState().getBlock()).getValidBreak() && !event.getPlayer().isCreative())\n            {\n                cancelEvent(event, event.getPlayer(), colony, Action.BREAK_HUTS, event.getPos());\n                return;\n            }\n\n            if (!building.getColony().getPermissions().hasPermission(event.getPlayer(), Action.BREAK_HUTS))\n            {\n                if (checkEventCancelation(Action.BREAK_HUTS, event.getPlayer(), event.getPlayer().getCommandSenderWorld(), event, event.getPos()))\n                {\n                    return;\n                }\n            }\n\n            building.destroy();\n\n            if (MineColonies.getConfig().getServer().pvp_mode.get() && event.getState().getBlock() == ModBlocks.blockHutTownHall)\n            {\n                IColonyManager.getInstance().deleteColonyByWorld(building.getColony().getID(), false, event.getPlayer().level);\n            }\n        }\n        else if (event.getState().getBlock() instanceof BlockDecorationController)\n        {\n            if (checkEventCancelation(Action.BREAK_HUTS, event.getPlayer(), event.getPlayer().getCommandSenderWorld(), event, event.getPos()))\n            {\n                return;\n            }\n            colony.getServerBuildingManager().removeLeisureSite(event.getPos());\n        }\n        else\n        {\n            checkEventCancelation(Action.BREAK_BLOCKS, event.getPlayer(), event.getPlayer().getCommandSenderWorld(), event, event.getPos());\n        }\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 276,
+    "end_line": 313,
+    "excerpt": "@SubscribeEvent\n    public void on(final ExplosionEvent.Detonate event)\n    {\n        if (MineColonies.getConfig().getServer().turnOffExplosionsInColonies.get() == Explosions.DAMAGE_EVERYTHING)\n        {\n            return;\n        }\n\n        final Level eventWorld = event.getLevel();\n        final Predicate<BlockPos> getBlocksInColony = pos -> colony.isCoordInColony(eventWorld, pos);\n        Predicate<Entity> getEntitiesInColony = entity -> (!(entity instanceof Enemy) || (entity instanceof Llama))\n                                                            && colony.isCoordInColony(entity.getCommandSenderWorld(), entity.blockPosition());\n        switch(MineColonies.getConfig().getServer().turnOffExplosionsInColonies.get())\n        {\n            case DAMAGE_NOTHING:\n                // if any entity is in colony -> remove from list\n                getEntitiesInColony = entity -> colony.isCoordInColony(entity.getCommandSenderWorld(), entity.blockPosition());\n                // intentional fall-through to next case.\n            case DAMAGE_PLAYERS:\n                // if non-mob or llama entity is in colony -> remove from list\n                final List<Entity> entitiesToRemove = event.getAffectedEntities().stream()\n                                                          .filter(getEntitiesInColony)\n                                                          .filter(entity -> !(entity instanceof ServerPlayer))\n                                                          .collect(Collectors.toList());\n                event.getAffectedEntities().removeAll(entitiesToRemove);\n                // intentional fall-through to next case.\n            case DAMAGE_ENTITIES:\n                // if block is in colony -> remove from list\n                final List<BlockPos> blocksToRemove = event.getAffectedBlocks().stream()\n                                                        .filter(getBlocksInColony)\n                                                        .collect(Collectors.toList());\n                event.getAffectedBlocks().removeAll(blocksToRemove);\n                break;\n            case DAMAGE_EVERYTHING:\n            default:\n                break;\n        }\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 320,
+    "end_line": 329,
+    "excerpt": "@SubscribeEvent\n    public void on(final ExplosionEvent.Start event)\n    {\n        if (MineColonies.getConfig().getServer().enableColonyProtection.get()\n              && MineColonies.getConfig().getServer().turnOffExplosionsInColonies.get() == Explosions.DAMAGE_NOTHING\n              && colony.isCoordInColony(event.getLevel(), BlockPos.containing(event.getExplosion().getPosition())))\n        {\n            cancelEvent(event, null, colony, Action.EXPLODE, BlockPos.containing(event.getExplosion().getPosition()));\n        }\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 338,
+    "end_line": 408,
+    "excerpt": "@SubscribeEvent\n    public void on(final PlayerInteractEvent event)\n    {\n        if (colony.isCoordInColony(event.getLevel(), event.getPos())\n              && !(event instanceof PlayerInteractEvent.EntityInteract || event instanceof PlayerInteractEvent.EntityInteractSpecific))\n        {\n            final BlockState state = event.getLevel().getBlockState(event.getPos());\n            final Block block = state.getBlock();\n\n            // Huts\n            if (event instanceof PlayerInteractEvent.RightClickBlock && block instanceof AbstractBlockHut\n                  && !colony.getPermissions().hasPermission(event.getEntity(), Action.ACCESS_HUTS))\n            {\n                cancelEvent(event, event.getEntity(), colony, Action.ACCESS_HUTS, event.getPos());\n                return;\n            }\n\n            final Permissions perms = colony.getPermissions();\n\n            if (isFreeToInteractWith(block, event.getPos()) && !perms.getRank(event.getEntity()).isHostile())\n            {\n                return;\n            }\n\n            if ((state.is(BlockTags.DOORS) || state.is(BlockTags.FENCE_GATES)) && perms.hasPermission(event.getEntity(), Action.ACCESS_TOGGLEABLES))\n            {\n                return;\n            }\n\n            if (MineColonies.getConfig().getServer().enableColonyProtection.get())\n            {\n                if (!perms.hasPermission(event.getEntity(), Action.RIGHTCLICK_BLOCK) && !(block instanceof AirBlock))\n                {\n                    checkEventCancelation(Action.RIGHTCLICK_BLOCK, event.getEntity(), event.getLevel(), event, event.getPos());\n                    return;\n                }\n\n                if (block instanceof BaseEntityBlock && !perms.hasPermission(event.getEntity(),\n                  Action.OPEN_CONTAINER))\n                {\n                    cancelEvent(event, event.getEntity(), colony, Action.OPEN_CONTAINER, event.getPos());\n                    return;\n                }\n\n                if (event.getLevel().getBlockEntity(event.getPos()) != null && !perms.hasPermission(event.getEntity(), Action.RIGHTCLICK_ENTITY))\n                {\n                    checkEventCancelation(Action.RIGHTCLICK_ENTITY, event.getEntity(), event.getLevel(), event, event.getPos());\n                    return;\n                }\n\n                final ItemStack stack = event.getItemStack();\n                if (ItemStackUtils.isEmpty(stack) || stack.isEdible())\n                {\n                    return;\n                }\n\n\n                if (stack.getItem() instanceof PotionItem)\n                {\n                    checkEventCancelation(Action.THROW_POTION, event.getEntity(), event.getLevel(), event, event.getPos());\n                    return;\n                }\n\n                if (stack.getItem() instanceof ItemScanTool\n                      && !perms.hasPermission(event.getEntity(), Action.USE_SCAN_TOOL))\n                {\n                    cancelEvent(event, event.getEntity(), colony, Action.USE_SCAN_TOOL, event.getPos());\n                }\n            }\n        }\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "isFreeToInteractWith",
+    "line": 417,
+    "end_line": 420,
+    "excerpt": "private boolean isFreeToInteractWith(@Nullable final Block block, final BlockPos pos)\n    {\n        return (block != null && (colony.getFreeBlocks().contains(block) || block.defaultBlockState().is(ModTags.colonyProtectionException))) || colony.getFreePositions().contains(pos);\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 429,
+    "end_line": 444,
+    "excerpt": "@SubscribeEvent\n    public void on(final PlayerInteractEvent.EntityInteract event)\n    {\n        if (isFreeToInteractWith(null, event.getPos())\n              && !colony.getPermissions().getRank(event.getEntity()).isHostile())\n        {\n            return;\n        }\n\n        if (event.getTarget().getType().is(ModTags.freeToInteractWith))\n        {\n            return;\n        }\n\n        checkEventCancelation(Action.RIGHTCLICK_ENTITY, event.getEntity(), event.getLevel(), event, event.getPos());\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "checkEventCancelation",
+    "line": 456,
+    "end_line": 482,
+    "excerpt": "private boolean checkEventCancelation(\n      final Action action, @NotNull final Player playerIn, @NotNull final Level world, @NotNull final Event event,\n      @Nullable final BlockPos pos)\n    {\n        @NotNull final Player player = EntityUtils.getPlayerOfFakePlayer(playerIn, world);\n\n        BlockPos positionToCheck = pos;\n        if (null == positionToCheck)\n        {\n            positionToCheck = player.blockPosition();\n        }\n        if (MineColonies.getConfig().getServer().enableColonyProtection.get()\n              && colony.isCoordInColony(player.getCommandSenderWorld(), positionToCheck)\n              && !colony.getPermissions().hasPermission(player, action))\n        {\n            if (MineColonies.getConfig().getServer().pvp_mode.get() && !world.isClientSide && colony.isValidAttackingPlayer(playerIn))\n            {\n                return false;\n            }\n            else\n            {\n                cancelEvent(event, player, colony, action, positionToCheck);\n                return true;\n            }\n        }\n        return false;\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 491,
+    "end_line": 499,
+    "excerpt": "@SubscribeEvent\n    public void on(final PlayerInteractEvent.EntityInteractSpecific event)\n    {\n        if (isFreeToInteractWith(null, event.getPos()) && !colony.getPermissions().getRank(event.getEntity()).isHostile())\n        {\n            return;\n        }\n        checkEventCancelation(Action.RIGHTCLICK_ENTITY, event.getEntity(), event.getLevel(), event, event.getPos());\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 508,
+    "end_line": 515,
+    "excerpt": "@SubscribeEvent\n    public void on(final ItemTossEvent event)\n    {\n        if (checkEventCancelation(Action.TOSS_ITEM, event.getPlayer(), event.getPlayer().getCommandSenderWorld(), event, event.getPlayer().blockPosition()))\n        {\n            event.getPlayer().getInventory().add(event.getEntity().getItem());\n        }\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 524,
+    "end_line": 530,
+    "excerpt": "@SubscribeEvent\n    public void on(final EntityItemPickupEvent event)\n    {\n        if (event.getEntity().equals(event.getItem().getOwner())) return;   // always allowed to pick up your own thrown items\n\n        checkEventCancelation(Action.PICKUP_ITEM, event.getEntity(), event.getEntity().getCommandSenderWorld(), event, event.getEntity().blockPosition());\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 539,
+    "end_line": 552,
+    "excerpt": "@SubscribeEvent\n    public void on(final FillBucketEvent event)\n    {\n        @Nullable BlockPos targetBlockPos = null;\n        if (event.getTarget() instanceof BlockHitResult)\n        {\n            targetBlockPos = ((BlockHitResult) event.getTarget()).getBlockPos();\n        }\n        else if (event.getTarget() instanceof EntityHitResult)\n        {\n            targetBlockPos = ((EntityHitResult) event.getTarget()).getEntity().blockPosition();\n        }\n        checkEventCancelation(Action.FILL_BUCKET, event.getEntity(), event.getEntity().getCommandSenderWorld(), event, targetBlockPos);\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 561,
+    "end_line": 565,
+    "excerpt": "@SubscribeEvent\n    public void on(final ArrowLooseEvent event)\n    {\n        checkEventCancelation(Action.SHOOT_ARROW, event.getEntity(), event.getEntity().getCommandSenderWorld(), event, event.getEntity().blockPosition());\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 575,
+    "end_line": 586,
+    "excerpt": "@SubscribeEvent\n    public void on(final LivingHurtEvent event)\n    {\n        if (event.getEntity() instanceof ServerPlayer\n              && event.getSource().getEntity() instanceof EntityCitizen\n              && ((EntityCitizen) event.getSource().getEntity()).getCitizenColonyHandler().getColonyId() == colony.getID()\n              && colony.getRaiderManager().isRaided()\n              && !colony.getPermissions().getRank((Player) event.getEntity()).isHostile())\n        {\n            event.setCanceled(true);\n        }\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/colony/permissions/ColonyPermissionEventHandler.java",
+    "name": "on",
+    "line": 595,
+    "end_line": 631,
+    "excerpt": "@SubscribeEvent\n    public void on(final AttackEntityEvent event)\n    {\n        if (event.getTarget() instanceof Monster)\n        {\n            return;\n        }\n\n        @NotNull final Player player = EntityUtils.getPlayerOfFakePlayer(event.getEntity(), event.getEntity().getCommandSenderWorld());\n\n        if (MineColonies.getConfig().getServer().enableColonyProtection.get()\n              && colony.isCoordInColony(player.getCommandSenderWorld(), player.blockPosition()))\n        {\n            final Permissions perms = colony.getPermissions();\n            if (event.getTarget() instanceof EntityCitizen)\n            {\n                final AbstractEntityCitizen citizen = (AbstractEntityCitizen) event.getTarget();\n                if (citizen.getCitizenJobHandler().getColonyJob() instanceof AbstractJobGuard && perms.getRank(event.getEntity()).isHostile())\n                {\n                    return;\n                }\n\n                if (perms.hasPermission(event.getEntity(), Action.ATTACK_CITIZEN))\n                {\n                    return;\n                }\n\n                cancelEvent(event, event.getEntity(), colony, Action.ATTACK_CITIZEN, event.getTarget().blockPosition());\n                return;\n            }\n\n            if (!(event.getTarget() instanceof Enemy) && !perms.hasPermission(event.getEntity(), Action.ATTACK_ENTITY))\n            {\n                cancelEvent(event, event.getEntity(), colony, Action.ATTACK_ENTITY, event.getTarget().blockPosition());\n            }\n        }\n    }",
+    "source_sha256": "fff52290247045c862f09a1ec4d35ceccc5186f1c6dce281201e59b7d3d290dc"
+  }
+]

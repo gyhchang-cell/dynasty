@@ -1,0 +1,42 @@
+[
+  {
+    "candidate_index": 7470,
+    "candidate_id": "1ea81e1bd390821dcbe9",
+    "decision": "accepted",
+    "observation": "全文ArrowVolleyEntity/SmallMagicArrow/AbstractMagicProjectile与ArrowVolleySpell.onCast：施法捕获位置方向owner、rows/arrowsPerRow，server tick%5发一整排；过rows*5仅在else-if非发射tick丢弃，所以截止倍数tick仍先发射。排声/烟独立于命中；箭hurt真才consumeEntityImpact，false反向减速且不耗穿透，base每tick局部hitEntities只去重大盒同tick、removed后break但随后仍处理block碰撞。15秒截止在碰撞之前return。一次施法的延迟批次→箭成功/失败消费链1，不按排数或箭数计。",
+    "snippet_sha256": "270cd6a9d8e8085296a205cb32fd38a23b0049af2d8b9b30f768a55d24336a59",
+    "reviewed_at": "2026-10-28T18:34:03.653172+08:00"
+  },
+  {
+    "candidate_index": 7471,
+    "candidate_id": "774f9fe1e8ba3cf9c56f",
+    "decision": "accepted",
+    "observation": "全文FangSwirlSpell.onCast、FangSwirlEntity、AoeEntity及ExtendedEvokerFang：距离预热整数delay(5..26tick)，预热期每tick路径生牙，tick>delay每6tick按旋转直径继续生牙；Aoe先过duration+delay则discard/return，正好等delay不攻击。每颗牙自己的warmup==0广播4，比真实伤害早8tick，warmup==-8当前附近目标applyDamage，--warmup<-22才discard，反魔法直接清。伤害成功不控制牙动画/CRIT。完整一个旋转发射→延迟牙-伤害-消失链1；同牙FangStrike不另计模板。",
+    "snippet_sha256": "b78c07e7216aefb5f5e5ba6921bb97b19056bc34dded6de88345a4d584eae49b",
+    "reviewed_at": "2026-10-28T18:34:03.653193+08:00"
+  },
+  {
+    "candidate_index": 7472,
+    "candidate_id": "527921840469e6463a88",
+    "decision": "accepted",
+    "observation": "全文FieryDaggerEntity、AnimatedActionGoal及FieryDaggerSwarm/ZoneAbilityGoal：goal.start即重置能力timer与cooldown，==动作戳才生产7把带owner位置跟随/目标UUID的飞刀，delay30..70+i*2；age++<delay期间悬停追目标，age==delay做近身碰撞声，下一tick才super移动；cachedTarget只查alive未查dim/UUID，未缓存则当前ServerLevel UUID解不到便清。碰撞hurt返回忽略、无敌帧清0仍consume，zone碰块派生多把与FireField，后者owner重选32格最近FireBoss并非原owner。NBT age和delay保存但ownerTrack用compound写却hasUUID读、isGrounded未存。一个预热/目标重解/碰撞消费/区域派生链1，两种阵型不拆数。",
+    "snippet_sha256": "c3377dbe2310157fe33ab35303e43fd99e4b4b1ad86e12f5e7a0cb48ace7c5ce",
+    "reviewed_at": "2026-10-28T18:34:03.653198+08:00"
+  },
+  {
+    "candidate_index": 7473,
+    "candidate_id": "674a7f31b8610e014726",
+    "decision": "accepted",
+    "observation": "全文VoidTentacle、SculkTentaclesSpell.onCast及DamageSources.applyDamage：当前选中目标位置或48格raycast造环，owner/damage绑定新触手；server自有age<280且%20才伤害，age==280停止伤害，age>300才discard，260退场声与客户端雾独立。true applyDamage才盲100，helper先可取消SpellDamageEvent再抗性/友伤最终hurt。owner缓存未核alive/dim，fallback当前世界UUID；NBT保存age/owner却没damage，因此读档恢复窗口但伤害字段默认0。一个持续伤害-成功状态-退场/存档窗口链1，不按触手数量或环数计。",
+    "snippet_sha256": "b8236e2ae81f39822431a7367eb61d519063ca2460175d1fe31f0b19f9e65dd8",
+    "reviewed_at": "2026-10-28T18:34:03.653201+08:00"
+  },
+  {
+    "candidate_index": 7474,
+    "candidate_id": "7bfa2f0f33d32bd40597",
+    "decision": "accepted",
+    "observation": "全文CreateUndeadRiftGoal、UndeadRiftEntity及SummonManager.setOwner/getOwner/setDuration：canUse仅ominous+aggressive时减CD，twin标志可绕该资格直接下一次start；start按当前目标生成并写forcedTarget引用/召唤数量/delay20，实体tick>=2*delay且%delay按次doSummon后无条件count++，到数量下一合格tick才vanish。每次消费重解当前世界summoner，有主才继承强制目标/owner，未查forcedTarget当前alive/dim；5分钟寿命用全服务器tick。NBT存count/数量/delay，不存tickCount/forcedTarget，因此重载重启首轮等待。此处审的是具体限额延迟刷怪生产消费，不重计已审SummonManager.onSummonerLogin通用owner恢复链。",
+    "snippet_sha256": "56c2341321dcca597c14d4c29526d71b957a246cfa4a751f54d9818fa09c11df",
+    "reviewed_at": "2026-10-28T18:34:03.653204+08:00"
+  }
+]

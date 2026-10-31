@@ -1,0 +1,14 @@
+// Compile only the two authorized patch classes against the coordinator's frozen compiled baseline.
+allprojects { p ->
+    def base=p.file('tools/cod4/guard-ownership-research/.work/compile')
+    p.layout.buildDirectory.set(new File(base,'gradle-output'))
+    p.afterEvaluate {
+        if(!p.plugins.hasPlugin('net.minecraftforge.gradle'))return
+        p.tasks.register('compileGuardOwnershipPatch',JavaCompile) {
+            source p.files('src/main/java/com/dynasty/expansion/SummonedGuard.java','src/main/java/com/dynasty/expansion/SecondaryMob.java')
+            classpath=p.files('tools/cod4/guard-target-acceptance/.work/gradle-output/classes/java/main')+p.sourceSets.main.compileClasspath
+            destinationDirectory.set(new File(base,'classes'))
+            options.release.set(17)
+        }
+    }
+}

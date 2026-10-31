@@ -1,0 +1,190 @@
+[
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "setPriorityTarget",
+    "observation": "override直接设置目标，非空同时给100tick优先期和目标位置；传空不在此清优先位置。",
+    "application": "目标清空与残余优先指令不同，最终攻击门应拒陈旧优先关系。",
+    "limits": "IServant实际随从命令入口，不把time/position字段getter计数。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "setGuarding",
+    "observation": "绑定当前位置并清wandering和staying，形成守区状态。",
+    "application": "命令状态互斥需一起切换；守区本身不能授予攻击所有旁观者。",
+    "limits": "实际随从驻守控制声明，不拆三个字段计数。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "setFollowing",
+    "observation": "清boundPos且清wandering/staying，跟随用无驻点状态表示。",
+    "application": "退出守卫需清驻点，不能只开一个跟随flag保留旧空间权限。",
+    "limits": "与setGuarding命令不同为撤销驻守锚点；普通getter不计。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IOwned.java",
+    "method": "startRevival",
+    "observation": "先设复活20tick并pacify周围64格，再传送取返回实体；回血1、清药火、恢复受控身份并给100无敌。",
+    "application": "复活/身份恢复前先中止周围攻击，遗留旧实体仍需generation许可兜底。",
+    "limits": "完整受控复活顺序一处，与已读teleportToRevive落点辅助不同。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MobUtil.java",
+    "method": "getSingleTarget",
+    "observation": "视线向前扩AABB候选按传入predicate，再LOS与碰撞盒截线取最近命中；默认重载负责排同盟。",
+    "application": "几何拾取不负责所有权，默认安全谓词与显式调用predicate需明确分层。",
+    "limits": "AbstractBorderWraith实际调用；只计完整算法重载，默认包装不另计。",
+    "start": 721
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MobUtil.java",
+    "method": "mobCanAttack",
+    "observation": "若传入目标正是attacker.getTarget，仅NO_CREATIVE_OR_SPECTATOR和attacker.canAttack，否则走canAttack通用过滤。",
+    "application": "缓存当前目标可选择不同判断通道，canAttack统一硬门可兜住此旁路。",
+    "limits": "IShielded经ownedCanAttack实际使用；普通布尔wrappercanAttack未另计。"
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MobUtil.java",
+    "method": "ownedCanAttack",
+    "observation": "存在owner则优先owner的Mob敌意或普通canAttack，失主退攻击实体本身Mob规则；其他false。",
+    "application": "失主回退会放大原生怪攻击权限，租约守卫应采用失主拒绝而非退野生。",
+    "limits": "IShielded实际owner守卫筛选链；不同于一般ownerStack解析。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FlashjackEntity.java",
+    "method": "mobInteract",
+    "observation": "主人可换色/触发闪电，非owner持FlashingPod则开始BEING_TAMED并消耗；落地已驯服主人空手可翻坐姿。",
+    "application": "公开捕获启动与owner指令是不同路径，不能将isTamed只理解为UUID绑定。",
+    "limits": "非主人触发后续碎片转化是实控身份路径；仅换色同构不单计。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FlashjackEntity.java",
+    "method": "tick",
+    "observation": "未isTamed且BEING_TAMED才累计tamingTime；服务器超60tick掉碎片与FlashLightning并丢弃实体。",
+    "application": "控制转换具有延时和最终删除边界，期间原实体仍在父tick运行。",
+    "limits": "实际mobInteract激活的身份转换流程，视觉动画predicate不计。",
+    "start": 186
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/AnimBlockSummon.java",
+    "method": "doHurtTarget",
+    "observation": "owner存在且目标isAlliedTo(owner)先拒，父伤成功才扣自身400tick寿命。",
+    "application": "先拒盟友再扣资源，拒绝的攻击不应消耗寿命或触发命中反馈。",
+    "limits": "真实临时构装攻击边界，canAttack与Skeleton相同UUID模板不再计。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/AnimBlockSummon.java",
+    "method": "tick",
+    "observation": "服务端递减寿命和AGE，20tick后CAN_WALK；到期返还FallingBlock再移除并发自然死亡事件。",
+    "application": "租约结束可还原非生物形态，必须在还原前阻止任何剩余伤害。",
+    "limits": "不同于普通寿命delete模板为延迟激活和方块还原，一整段计一次。",
+    "start": 141
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/WealdWalker.java",
+    "method": "performRangedAttack",
+    "observation": "创建LivingCaster为本树人的SpellContext和resolver，发EntityProjectileSpell后置castCooldown40。",
+    "application": "召唤/控制生物弹道实际来源是实体本身，最终所有权链需能从此追溯。",
+    "limits": "实际注册CastSpellGoal调用；瞄准与角度工具不另计。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/FamiliarWixie.java",
+    "method": "tick",
+    "observation": "DebuffTargetGoal有目标时随机弱化，亡灵毒改再生；直接addEffect140tick并置150CD及发动画。",
+    "application": "负面效果是独立攻击实效，不能只检查hurt造成的伤害边界。",
+    "limits": "已完整读类确认Goal注册与CD canUse；普通主tick减CD不计。",
+    "start": 157
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/FamiliarBookwyrm.java",
+    "method": "tick",
+    "observation": "20tick服务端以玩家owner为中心5格收物和经验；跳延迟/PreventRemoteMovement/死亡/Pre拒绝及物品owner等于本人UUID，XP也听可取消事件。",
+    "application": "自动跟随收益绑定具体owner并尊重物品归属事件，附近玩家不共享授权。",
+    "limits": "实际宠物归属行为一处，通用物品库存基础设施不计。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/WildenSummon.java",
+    "method": "tick",
+    "observation": "20帧创建两狼复制当前目标和寿命，设aggressive及isWildenSummon但不设玩家owner，到max清动作。",
+    "application": "怪物召唤的无主实体与玩家租约不同，不能拿无主狼回退策略放宽守卫。",
+    "limits": "真实WildenHunter技能的召唤敌意传递一处，不按两狼计数。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/EffectSummonDecoy.java",
+    "method": "onResolve",
+    "observation": "资格过门后生成有限寿命dummy，通过共享召唤器入场，20x10邻域所有Mob都直接setTarget(dummy)。",
+    "application": "群体目标覆盖可能触及友方，需最终实体硬门而非相信法术调用者。",
+    "limits": "具体诱饵大范围重定向，与Wizardry仅转移原追caster怪不同。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/EffectSummonUndead.java",
+    "method": "onResolve",
+    "observation": "正寿命才按Split召3+个，Pierce决定弓否则amp阶梯武器；依序finalize、owner、寿命并共享生成，最后召唤病。",
+    "application": "先finalize后owner的初始化顺序与入世界前赋主不同，验证最终授权而非武器属性。",
+    "limits": "Vex同一批量finalize/赋主/寿命模板仅boundOrigin差，另作支持不计。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/EffectSummonSteed.java",
+    "method": "onResolve",
+    "observation": "寿命非正保底20tick，按AOE数量生马，强转玩家tame并放鞍、ownerUUID、dropChance，然后共享生成，固定30秒召病。",
+    "application": "骑乘召唤身份要求玩家类型，通用canSummon不能当任何caster均安全。",
+    "limits": "实际驯服马生成流程，Skeleton/Vex普通寿命模板不另计。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/EffectSummonWolves.java",
+    "method": "onResolve",
+    "observation": "明确shooter非空/寿命正；两狼按生物群系变体生成，直接复制主人lastHurtMob否则lastHurtByMob，驯服后共享入场。",
+    "application": "来源敌意快照可能已无效，最终目标门不能因为主人旧受击记录就绕Enemy。",
+    "limits": "和Undead无目标复制的生成不同，变体外观参数不计。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/SummoningFocus.java",
+    "method": "castSpell",
+    "observation": "玩家戴Focus且法术属于sympatheticMethods，30格ISummon中仅getOwnerAlt等于玩家才用克隆context改LivingCaster重施。",
+    "application": "群体法术广播应逐实体核归属，不能同种或同区域全部继承。",
+    "limits": "实际佩饰事件联动控制者，不是通用消息广播基础设施。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/SummoningFocus.java",
+    "method": "summonDeathEvent",
+    "observation": "服务端主人戴Focus，来源存在且来源entity不是ownerAlt，则反伤来源实体5点。",
+    "application": "召唤死亡也有独立对外伤害出口，物体寿命结束与被杀需区分。",
+    "limits": "具体死亡触发反伤，不计单纯召唤增益属性事件。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/ChimeraSummonEvent.java",
+    "method": "tick",
+    "observation": "服务端按ownerID找WildenChimera，失效立即结束；每20tick出狼且按Boss部件概率加Wilden，寿命按phase。",
+    "application": "延迟事件也需重新解析控制实体，失效控制者不应继续生成攻击者。",
+    "limits": "真实队列召唤事件，客户端粒子与NBT序列化不计。"
+  },
+  {
+    "repo": "baileyholl/Ars-Nouveau",
+    "file": "/ChimeraSummonGoal.java",
+    "method": "tick",
+    "observation": "首次howling建带bossID的限时事件进服务端队列并广播，80tick结束动作设置随机CD。",
+    "application": "动画启动与实际子实体生成分离，终止Goal不自动证明已撤独立事件。",
+    "limits": "已注册Boss召唤动作与事件调度，不按每个阶段数值计。"
+  }
+]

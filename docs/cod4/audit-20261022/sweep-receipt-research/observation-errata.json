@@ -16,6 +16,38 @@
       "corrected_observation": "骷髅鱼服务器刺击仅动画tick7并视线/距离满足，先击退再hurt；横斩按当前目标为中心每5tick、0至25开区间反复范围攻击，范围分支排除同载具者、自身和友军。刺和横扫采用不同消费窗口，忽略hurt结果且目标可换，陆上挣扎声不证明任一攻击成功。",
       "reason": "纠正怪物名或过滤条件表述，全文逻辑与决定不变。",
       "reviewed_at": "2026-10-24T17:51:02.698215+08:00"
+    },
+    {
+      "candidate_index": 4088,
+      "candidate_id": "f9a0e656362925712472",
+      "original_observation": "FortressBossProjectile完整onImpact、getOwner/setOwner与attackEntityFrom已读：owner用UUID在当前world实体表解析，玩家反打时进入deflect状态并按其look赋运动；碰到Boss先rayTrace盾面，有盾就撤该片并广播声及18个保留原owner的环弹，无盾才固定伤害，随后取消Boss浮空并服务器setDead。此处防弹归属和命中Boss盾面的结果是独立状态，子弹保留原owner而非反打者；真实玩法提醒来源迁移必须明确，不能从当前碰撞对象推断。",
+      "corrected_observation": "FortressBossProjectile完整onImpact/getOwner/setOwner/attackEntityFrom/onUpdate已读：owner按UUID搜索当前world周围64格并缓存；可反弹时玩家持剑攻击先将弹体作为其乘客，并非立即赋运动。之后onUpdate等先松手再挥剑，以look发射、dismount并setThrower(player)，不改owner。碰Boss盾面撤片并播声、生成18个保留原owner的环弹，无盾才固定伤害；随后解除Boss浮空并server setDead。owner与thrower分离，碰撞排thrower而伤害/子弹仍归owner，真实玩法说明反弹来源迁移不能用当前碰撞对象推断。",
+      "reason": "继续阅读全文发现反打分两阶段：攻击入口骑乘，后续挥手才发射并仅改thrower；修正先前立即反弹措辞，来源分离和决定不变。",
+      "reviewed_at": "2026-10-26T18:20:08.462332+08:00"
+    },
+    {
+      "candidate_index": 3983,
+      "candidate_id": "50bfe9f1fb4a568be23f",
+      "original_observation": "Bewitchment完整damage HEAD注入在server进行效果反应：DEFLECTION仅把箭速度放大反向并setReturnValue(false)，不改其owner；另一路amount>0/hurtTime==0才吸血/荆棘/易爆。VOLATILITY逐近邻直接damage后发声/追踪及自身包，最后才removeStatusEffect，外伤尚未实际结算；嵌套回调可发生于消费前。此真实药剂玩法说明前置可重入事件与事后回执不同，来源和占位顺序须明确。",
+      "corrected_observation": "Bewitchment完整damage HEAD注入在server进行效果反应：DEFLECTION仅把箭各速度分量乘正数2*(amplifier+1)，不反向并setReturnValue(false)，不改其owner；另一路amount>0/hurtTime==0才吸血/荆棘/易爆。VOLATILITY逐近邻直接damage后发声/追踪及自身包，最后才removeStatusEffect，外伤尚未实际结算；嵌套回调可发生于消费前。此真实药剂玩法说明前置可重入事件与事后回执不同，来源和占位顺序须明确。",
+      "reason": "精确按实现修正效果名称DEFLECTION引起的反射措辞：乘数为正，实际不改变方向；不改变决定和计数。",
+      "reviewed_at": "2026-10-26T18:22:25.808850+08:00"
+    },
+    {
+      "candidate_index": 3342,
+      "candidate_id": "43963530965427ce6489",
+      "original_observation": "全文RestBehaviour.tick并补完整start/stop/checkExtraStartConditions及实际AI任务组：战斗记忆最近伤害>4才休息，start定身，runningTime25置RESTING，有限180至279tick行为在到期前37tick进入shake阶段；shake++到17后清RESTING，期间按当前顶部AABB甩开实体/扣砂发跟踪粒子，stop解除定身并给600tick特殊冷却。前摇/收尾与总行为期限是独立相位，等值25不等于全局server时钟；此真实受击触发可终止多阶段动作整链一条，EatBehaviour不计第二条。",
+      "corrected_observation": "全文RestBehaviour.tick并补完整start/stop/checkExtraStartConditions及实际AI任务组：战斗记忆最近伤害>4才休息，start定身，runningTime25置RESTING，有限180至279tick行为在到期前37tick进入shake阶段；shake++比较旧值>16（旧17递增到18）才清RESTING，期间按当前顶部AABB甩开实体/扣砂发跟踪粒子，stop解除定身并给600tick特殊冷却。前摇/收尾与总行为期限是独立相位，等值25不等于全局server时钟；此真实受击触发可终止多阶段动作整链一条，EatBehaviour不计第二条。",
+      "reason": "精确说明后自增的旧值比较边界，不改变决定与计数。",
+      "reviewed_at": "2026-10-26T19:40:54.227904+08:00"
+    },
+    {
+      "candidate_id": "7613383be3ca1bcd021a",
+      "candidate_index": 7191,
+      "original_observation": "完整Mimic.tick/setDormant/checkAndPerformAttack已读：无人近处地面休眠每DORMANT_TICK_RATE才super.tick并递减attackCooldown，20tick重判节流资格；碰到目标范围且cooldown<=0即设20、cancelDormant/跳/attack，不等攻击成功，setDormant(false)放大follow range和激活导航。冷却属于实体实际更新次数而非无条件world时间，唤醒转换会改等待速度；不宣称未审原生引擎tickCount推进或漏洞。",
+      "corrected_observation": "完整Mimic.tick/setDormant/playerTouch/setTarget复读：无人近处地面休眠每DORMANT_TICK_RATE才super.tick并递减attackCooldown，20tick重判节流资格；playerTouch在活体/非和平/近战范围/LOS且cooldown<=0时先设20，再player.hurtOrSimulate成功且ServerLevel才附魔后效。setTarget唤醒，setDormant(false)只清facing；没有checkAndPerformAttack/放大follow range逻辑。冷却按实体实际更新次数推进，唤醒转换可改等待速度；不宣称未审原生引擎tickCount推进或漏洞。",
+      "reason": "保存前将其他攻击goal记忆误写入本类；按本轮已展示完整源码纠正，保留原观察防静默覆盖。",
+      "reviewed_at": "2026-10-26T20:46:17.734733+08:00"
     }
   ]
 }

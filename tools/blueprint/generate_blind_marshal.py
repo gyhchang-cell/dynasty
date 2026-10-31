@@ -169,6 +169,13 @@ write(A/'models/block/marshal_oath_socket.json',{'textures':{'all':'dynasty:enti
 write(A/'blockstates/marshal_oath_socket.json',{'variants':{'':{'model':'dynasty:block/marshal_oath_socket'}}})
 write(A/'models/item/marshal_oath_socket.json',{'parent':'dynasty:block/marshal_oath_socket'})
 
+# Final actor material stage. The original16px PNG remains authoritative for
+# the three projectile effects and socket block; actor-only atlases are separate.
+import sys as _marshal_sys
+_marshal_sys.path.insert(0,str(ROOT/'tools/art/bestiary-v43'))
+from marshal_materials import export_materials as _marshal_export_materials
+_marshal_export_materials(A)
+
 # Approved inventory transparency: preserve entity atlases.
 import runpy as _inventory_runpy
 from pathlib import Path as _InventoryPath

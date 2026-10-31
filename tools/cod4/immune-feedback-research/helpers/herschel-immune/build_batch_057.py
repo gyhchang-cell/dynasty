@@ -1,0 +1,11 @@
+"""Read concrete freeze fluid; semantic overlap support0, no credit inflation."""
+from reference_evidence import Evidence,row
+import json
+e=Evidence(57);R='SlimeKnights__TinkersConstruct'
+refs=[e.ref(R,'FreezeFluidEffect'),e.ref(R,'EffectLevel'),e.ref(R,'FluidEffects'),e.ref(R,'FluidEffectProvider',span=(96,99)),e.ref(R,'AbstractFluidEffectProvider',method='coldDamage')]
+x=row(57,1,'tconstruct-powdered-snow-canfreeze-rejection-overlaps-existing-freeze-eligibility','support_only_not_independent',refs,
+ 'Actual powderedSnow fluid provider coldDamage2 plus FreezeFluidEffect ADD80 and snowplacement. coldDamage builder uses CAN_FREEZE predicate; separate Freeze.apply checks target.canFreeze and returns0 before mutations. ADD executes ticksFrozen=max(required,current)+round(time*value), clearFire and reportsvalue. SET computes existing excess overthreshold and effectivelevel, executes threshold+round(time*2*effective), sets remainingfireticks0 and reports effective-existing. SIMULATE skipsmutation and reports prospectivevalue, not native actual success. No dedicated immune reason sent. Sequence/toplevel consumption results do not prove all subeffectsaccepted; that settlement already056.',
+ 'Negative dedup evidence: targetcanFreeze is a real finalnative eligibility, not potion immunity or hurtboolean. Retain threshold/add/set/sourcecall observations to avoid accidentally counting a freeze name/time variant.',
+ 'Explicitly rejected as independent candidate: main iron-post-damage-freeze-eligibility and vampirism-native-freeze-eligibility-precedes-status-but-not-cue already cover canFreeze vs other action/cue. Threshold arithmetic/timeaction differences alone insufficient semantic novelty. Existing056 MAX consumption not recredited.',
+ 'Static actual complete effect and frozen support methods/statements only, no actual native client/server/tests. ColdDamage helper itself not independently closing target hurt pipeline. No claim immobilizes allmovement or disproves native gear immunity. Allcredit0.')
+print(json.dumps(e.finish([x],['Freeze effect fullclass read and rejected0, not candidate repetition.','PushEntityFluidEffect and AlternativesFluidEffect read during056/057 exploration; no independent proposals from unclosed/overlapping motion/combinator chains.']),ensure_ascii=False))

@@ -1,0 +1,50 @@
+[
+  {
+    "candidate_index": 7475,
+    "candidate_id": "954652a4ef73e1bc895e",
+    "decision": "accepted",
+    "observation": "全文CounterspellSpell.onCast、Utils.validAntiMagicTarget/serverSideCancelCast、CancelCastPacket与PlayerRecasts全部实际取消方法，并核SummonSwordsSpell/实际recastFinishedHelper：先raycast，再可取消CounterSpellEvent；自己有战斗目标的召唤物不onAntiMagic，但仍删除其MagicMobEffect，敌召唤物/弹体则反魔法。玩家取消当前cast并removeAll(COUNTERSPELL)，removeAll快照后先从表remove再回调；召唤法术helper在COUNTERSPELL反而forceAdd回同一recast，于是反制不撤召唤，末尾sync整表。效果键先toList再remove避免回调修改。最后ENCHANT路径粒子不依赖反制成功。一个具体反制-取消/保留-回调重入链1，既有CancelCast普通包与通用PlayerRecasts.tick不再计数。",
+    "snippet_sha256": "d628679f6a7c941753bda35fd99497e419b67804f0dd5634d28360de4cef1541",
+    "reviewed_at": "2026-10-28T18:38:07.826524+08:00"
+  },
+  {
+    "candidate_index": 7476,
+    "candidate_id": "422e3e8b7fe274618e0d",
+    "decision": "accepted",
+    "observation": "全文ShadowSlashSpell.onCast及DamageSources.applyDamage：前方锥区按近到远选中心，再范围内当前LOS目标伤害；hurt真才敌身ender粒子/附魔后续/击退，投射物格挡则先改owner为施法者、重射，完全不由hurt确认，parry标志独立发声。末尾自身位移、20tick坠落免疫、斩纹与轨迹无论命中仍发；knockback.scale返回未接收导致实际所加向量未缩放。一个同时含反弹来源转移与成功伤害反馈的原生玩法链1，不能用特效存在认定最终伤害。",
+    "snippet_sha256": "2a5fffc94940ca54068209040b7ffc38c1b5bb800b2c32d9098ecc437fb62531",
+    "reviewed_at": "2026-10-28T18:38:07.826543+08:00"
+  },
+  {
+    "candidate_index": 7477,
+    "candidate_id": "631d5f1e22f256fc15e4",
+    "decision": "excluded",
+    "observation": "全文SummonSwordsSpell及SummonedWeaponEntity、SummonedEntitiesCastData、SummonManager实际helper已复读。创建3种剑/10分钟TTL属于已有SummonManager召唤租期族，不按物种增加信用；COUNTERSPELL回调forceAdd恢复的具体分叉合入7475反制链作为支持，三种武器不拆数。",
+    "snippet_sha256": "4708d6ed829ab9dfc69a83f550a4c8407a69324eeb29faa3d486bcfb1fb1a359",
+    "reviewed_at": "2026-10-28T18:38:07.826548+08:00"
+  },
+  {
+    "candidate_index": 7478,
+    "candidate_id": "3f2321546f24e6806099",
+    "decision": "accepted",
+    "observation": "全文EvasionSpell/EvasionEffect及ServerPlayerEvents.onLivingIncomingDamage、Utils.handleSpellTeleport：赋予60秒amp窗口，onEffectAdded把amp写remaining；合格入伤先subtract，<0移效果但本次仍returntrue取消。寻找24个落点失败仍成功闪避，SpellTeleportEvent取消也忽略仍消耗次数/粒子/声音；fall/绕无敌/BYPASS_EVASION不消费。事件入口只ServerPlayer或IMagicEntity，EVASION存在时其doEffect false不再检查ABYSSAL_SHROUD(else-if)。一个有排除来源、次数消费和传送失败仍取消伤害的窗口链1；先消费标记和表现不是传送或伤害成功回执。",
+    "snippet_sha256": "591cb4d1138525207fe06b5dbc158b1af11f856a855993061eebb8066e8d723f",
+    "reviewed_at": "2026-10-28T18:38:07.826551+08:00"
+  },
+  {
+    "candidate_index": 7479,
+    "candidate_id": "c224809e2e7eaf84dd72",
+    "decision": "accepted",
+    "observation": "全文BloodStepSpell.onCast、Utils.handleSpellTeleport、TrueInvisibilityEffect与LivingEntityMixin.updateInvisibilityStatus/onEffectRemoved：teleport可取消却返回值被忽略，后续仍resetFall、在dest发声、立即setInvisible填补1tick间隙并给100tickTRUE_INVISIBILITY；施加时清附近40格怪目标/goal并erase ATTACK_TARGET。入伤事件只要source.entity是有该效果的攻击者即移除，未等hurt真，取消攻击亦可能失隐；mixin后续按当前效果保持隐身，移除定向同步。非空TeleportData但targetPos为空会dest空仍解引用。一个短战斗隐身授予-提前撤销-同步窗口链1，不计纯状态注册。",
+    "snippet_sha256": "89a6c942b96f6d2872c0d8f55364aa219c8bb393904143831dec120cff59c3e6",
+    "reviewed_at": "2026-10-28T18:38:07.826554+08:00"
+  },
+  {
+    "candidate_index": 7480,
+    "candidate_id": "be286e5593b6cdfd2963",
+    "decision": "accepted",
+    "observation": "全文EchoingStrikesSpell/Effect/Data、EchoingSword、EchoingArrowProjectile及MagicArrowProjectile：非SpellDamageSource的直接攻击/原版箭Post伤害按当前effect与owner次数创建echo，然后decrement并可能removeEffect清attachment；没有event.newDamage>0额外门，SpellDamageSource排除防递归。剑追当前/最后位置，tick25一次AOE、45消失；箭预热<15不碰撞/移动，15先super再停homing发射(lastHomingPosition未设会空)，victims以UUID记整个弹体寿命，hurt false也加入并消费穿透。两种echo共一个已完成伤害→延迟派生→重入抑制/次数消费链1，不能把下一次hurt/API结果等同原始回执。",
+    "snippet_sha256": "23b637ff354aa6b4c98c43b6b14d94d0072707745b3f7f200bd571d8b175639e",
+    "reviewed_at": "2026-10-28T18:38:07.826557+08:00"
+  }
+]

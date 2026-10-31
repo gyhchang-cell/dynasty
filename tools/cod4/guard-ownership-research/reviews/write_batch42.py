@@ -1,0 +1,31 @@
+import json,pathlib
+R=[]
+def a(r,f,m,o,b,l,s=None):
+ d=dict(repo=r,file='/'+f+'.java',method=m,observation=o,application=b,limits=l)
+ if s:d['start']=s
+ R.append(d)
+G='Polarice3/Goety-2';A='baileyholl/Ars-Nouveau';E='Alexthw46/Ars-Elemental'
+a(G,'IServant','setPriorityTarget','override直接设置目标，非空同时给100tick优先期和目标位置；传空不在此清优先位置。','目标清空与残余优先指令不同，最终攻击门应拒陈旧优先关系。','IServant实际随从命令入口，不把time/position字段getter计数。')
+a(G,'IServant','setGuarding','绑定当前位置并清wandering和staying，形成守区状态。','命令状态互斥需一起切换；守区本身不能授予攻击所有旁观者。','实际随从驻守控制声明，不拆三个字段计数。')
+a(G,'IServant','setFollowing','清boundPos且清wandering/staying，跟随用无驻点状态表示。','退出守卫需清驻点，不能只开一个跟随flag保留旧空间权限。','与setGuarding命令不同为撤销驻守锚点；普通getter不计。')
+a(G,'IOwned','startRevival','先设复活20tick并pacify周围64格，再传送取返回实体；回血1、清药火、恢复受控身份并给100无敌。','复活/身份恢复前先中止周围攻击，遗留旧实体仍需generation许可兜底。','完整受控复活顺序一处，与已读teleportToRevive落点辅助不同。')
+a(G,'MobUtil','getSingleTarget','视线向前扩AABB候选按传入predicate，再LOS与碰撞盒截线取最近命中；默认重载负责排同盟。','几何拾取不负责所有权，默认安全谓词与显式调用predicate需明确分层。','AbstractBorderWraith实际调用；只计完整算法重载，默认包装不另计。',721)
+a(G,'MobUtil','mobCanAttack','若传入目标正是attacker.getTarget，仅NO_CREATIVE_OR_SPECTATOR和attacker.canAttack，否则走canAttack通用过滤。','缓存当前目标可选择不同判断通道，canAttack统一硬门可兜住此旁路。','IShielded经ownedCanAttack实际使用；普通布尔wrappercanAttack未另计。')
+a(G,'MobUtil','ownedCanAttack','存在owner则优先owner的Mob敌意或普通canAttack，失主退攻击实体本身Mob规则；其他false。','失主回退会放大原生怪攻击权限，租约守卫应采用失主拒绝而非退野生。','IShielded实际owner守卫筛选链；不同于一般ownerStack解析。')
+a(E,'FlashjackEntity','mobInteract','主人可换色/触发闪电，非owner持FlashingPod则开始BEING_TAMED并消耗；落地已驯服主人空手可翻坐姿。','公开捕获启动与owner指令是不同路径，不能将isTamed只理解为UUID绑定。','非主人触发后续碎片转化是实控身份路径；仅换色同构不单计。')
+a(E,'FlashjackEntity','tick','未isTamed且BEING_TAMED才累计tamingTime；服务器超60tick掉碎片与FlashLightning并丢弃实体。','控制转换具有延时和最终删除边界，期间原实体仍在父tick运行。','实际mobInteract激活的身份转换流程，视觉动画predicate不计。',186)
+a(A,'AnimBlockSummon','doHurtTarget','owner存在且目标isAlliedTo(owner)先拒，父伤成功才扣自身400tick寿命。','先拒盟友再扣资源，拒绝的攻击不应消耗寿命或触发命中反馈。','真实临时构装攻击边界，canAttack与Skeleton相同UUID模板不再计。')
+a(A,'AnimBlockSummon','tick','服务端递减寿命和AGE，20tick后CAN_WALK；到期返还FallingBlock再移除并发自然死亡事件。','租约结束可还原非生物形态，必须在还原前阻止任何剩余伤害。','不同于普通寿命delete模板为延迟激活和方块还原，一整段计一次。',141)
+a(A,'WealdWalker','performRangedAttack','创建LivingCaster为本树人的SpellContext和resolver，发EntityProjectileSpell后置castCooldown40。','召唤/控制生物弹道实际来源是实体本身，最终所有权链需能从此追溯。','实际注册CastSpellGoal调用；瞄准与角度工具不另计。')
+a(A,'FamiliarWixie','tick','DebuffTargetGoal有目标时随机弱化，亡灵毒改再生；直接addEffect140tick并置150CD及发动画。','负面效果是独立攻击实效，不能只检查hurt造成的伤害边界。','已完整读类确认Goal注册与CD canUse；普通主tick减CD不计。',157)
+a(A,'FamiliarBookwyrm','tick','20tick服务端以玩家owner为中心5格收物和经验；跳延迟/PreventRemoteMovement/死亡/Pre拒绝及物品owner等于本人UUID，XP也听可取消事件。','自动跟随收益绑定具体owner并尊重物品归属事件，附近玩家不共享授权。','实际宠物归属行为一处，通用物品库存基础设施不计。')
+a(A,'WildenSummon','tick','20帧创建两狼复制当前目标和寿命，设aggressive及isWildenSummon但不设玩家owner，到max清动作。','怪物召唤的无主实体与玩家租约不同，不能拿无主狼回退策略放宽守卫。','真实WildenHunter技能的召唤敌意传递一处，不按两狼计数。')
+a(A,'EffectSummonDecoy','onResolve','资格过门后生成有限寿命dummy，通过共享召唤器入场，20x10邻域所有Mob都直接setTarget(dummy)。','群体目标覆盖可能触及友方，需最终实体硬门而非相信法术调用者。','具体诱饵大范围重定向，与Wizardry仅转移原追caster怪不同。')
+a(A,'EffectSummonUndead','onResolve','正寿命才按Split召3+个，Pierce决定弓否则amp阶梯武器；依序finalize、owner、寿命并共享生成，最后召唤病。','先finalize后owner的初始化顺序与入世界前赋主不同，验证最终授权而非武器属性。','Vex同一批量finalize/赋主/寿命模板仅boundOrigin差，另作支持不计。')
+a(A,'EffectSummonSteed','onResolve','寿命非正保底20tick，按AOE数量生马，强转玩家tame并放鞍、ownerUUID、dropChance，然后共享生成，固定30秒召病。','骑乘召唤身份要求玩家类型，通用canSummon不能当任何caster均安全。','实际驯服马生成流程，Skeleton/Vex普通寿命模板不另计。')
+a(A,'EffectSummonWolves','onResolve','明确shooter非空/寿命正；两狼按生物群系变体生成，直接复制主人lastHurtMob否则lastHurtByMob，驯服后共享入场。','来源敌意快照可能已无效，最终目标门不能因为主人旧受击记录就绕Enemy。','和Undead无目标复制的生成不同，变体外观参数不计。')
+a(A,'SummoningFocus','castSpell','玩家戴Focus且法术属于sympatheticMethods，30格ISummon中仅getOwnerAlt等于玩家才用克隆context改LivingCaster重施。','群体法术广播应逐实体核归属，不能同种或同区域全部继承。','实际佩饰事件联动控制者，不是通用消息广播基础设施。')
+a(A,'SummoningFocus','summonDeathEvent','服务端主人戴Focus，来源存在且来源entity不是ownerAlt，则反伤来源实体5点。','召唤死亡也有独立对外伤害出口，物体寿命结束与被杀需区分。','具体死亡触发反伤，不计单纯召唤增益属性事件。')
+a(A,'ChimeraSummonEvent','tick','服务端按ownerID找WildenChimera，失效立即结束；每20tick出狼且按Boss部件概率加Wilden，寿命按phase。','延迟事件也需重新解析控制实体，失效控制者不应继续生成攻击者。','真实队列召唤事件，客户端粒子与NBT序列化不计。')
+a(A,'ChimeraSummonGoal','tick','首次howling建带bossID的限时事件进服务端队列并广播，80tick结束动作设置随机CD。','动画启动与实际子实体生成分离，终止Goal不自动证明已撤独立事件。','已注册Boss召唤动作与事件调度，不按每个阶段数值计。')
+pathlib.Path(__file__).with_name('batch42.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

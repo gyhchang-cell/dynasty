@@ -1,0 +1,1122 @@
+[
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/mixin/MobEntityMixin.java",
+    "name": "onSetTarget",
+    "line": 25,
+    "end_line": 43,
+    "excerpt": "@Inject(method = \"setTarget\", at = @At(\"TAIL\"))\n    private void onSetTarget(@Nullable LivingEntity target, CallbackInfo ci) {\n        if (target == null || ((MobEntity)(Object)this) instanceof GuardEntity) {\n            return;\n        }\n        boolean isVillager = target.getType() == EntityType.VILLAGER || target instanceof GuardEntity;\n        if (isVillager) {\n            List<MobEntity> list = ((MobEntity)(Object)this).getWorld().getNonSpectatingEntities(MobEntity.class, ((MobEntity)(Object)this).getBoundingBox().expand(GuardVillagersConfig.guardVillagerHelpRange, 5.0D, GuardVillagersConfig.guardVillagerHelpRange));\n            for (MobEntity mobEntity : list) {\n                if ((mobEntity instanceof GuardEntity || ((MobEntity)(Object)this).getType() == EntityType.IRON_GOLEM) && mobEntity.getTarget() == null) {\n                    mobEntity.setTarget(((MobEntity)(Object)this));\n                }\n            }\n        }\n\n        if (((MobEntity)(Object)this) instanceof IronGolemEntity golem && target instanceof GuardEntity) {\n            golem.setTarget(null);\n        }\n    }",
+    "source_sha256": "ffbd43b5fde5e8a20d41b5bc1a5be966e90e916d033c71b7bca95148533f7898"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "slotToInventoryIndex",
+    "line": 111,
+    "end_line": 118,
+    "excerpt": "public static int slotToInventoryIndex(EquipmentSlot slot) {\n        return switch (slot) {\n            case CHEST -> 1;\n            case FEET -> 3;\n            case LEGS -> 2;\n            default -> 0;\n        };\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getRandomTypeForBiome",
+    "line": 123,
+    "end_line": 132,
+    "excerpt": "public static int getRandomTypeForBiome(WorldAccess world, BlockPos pos) {\n        VillagerType type = VillagerType.forBiome(world.getBiome(pos));\n        if (type == VillagerType.SNOW) return 6;\n        else if (type == VillagerType.TAIGA) return 5;\n        else if (type == VillagerType.JUNGLE) return 4;\n        else if (type == VillagerType.SWAMP) return 3;\n        else if (type == VillagerType.SAVANNA) return 2;\n        else if (type == VillagerType.DESERT) return 1;\n        else return 0;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "createAttributes",
+    "line": 134,
+    "end_line": 140,
+    "excerpt": "public static DefaultAttributeContainer.Builder createAttributes() {\n        return MobEntity.createMobAttributes()\n                .add(EntityAttributes.GENERIC_MAX_HEALTH, GuardVillagersConfig.healthModifier)\n                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, GuardVillagersConfig.speedModifier)\n                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 1.0D)\n                .add(EntityAttributes.GENERIC_FOLLOW_RANGE, GuardVillagersConfig.followRangeModifier);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "initialize",
+    "line": 142,
+    "end_line": 155,
+    "excerpt": "@Nullable\n    @Override\n    public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData dataTracker, @Nullable NbtCompound entityNbt) {\n        this.setPersistent();\n        int type = GuardEntity.getRandomTypeForBiome(world, this.getBlockPos());\n        if (dataTracker instanceof GuardEntity.GuardEntityData) {\n            type = ((GuardEntity.GuardEntityData) dataTracker).variantData;\n            dataTracker = new GuardEntity.GuardEntityData(type);\n        }\n        this.setGuardEntityVariant(type);\n        Random random = world.getRandom();\n        this.initEquipment(random, difficulty);\n        return super.initialize(world, difficulty, spawnReason, dataTracker, entityNbt);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "pushAway",
+    "line": 157,
+    "end_line": 164,
+    "excerpt": "@Override\n    protected void pushAway(Entity entity) {\n        if (entity instanceof PathAwareEntity living) {\n            boolean attackTargets = living.getTarget() instanceof VillagerEntity || living.getTarget() instanceof IronGolemEntity || living.getTarget() instanceof GuardEntity;\n            if (attackTargets) this.setTarget(living);\n        }\n        super.pushAway(entity);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getPatrolPos",
+    "line": 166,
+    "end_line": 169,
+    "excerpt": "@Nullable\n    public BlockPos getPatrolPos() {\n        return this.dataTracker.get(GUARD_POS).orElse(null);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setPatrolPos",
+    "line": 171,
+    "end_line": 174,
+    "excerpt": "@Nullable\n    public void setPatrolPos(BlockPos position) {\n        this.dataTracker.set(GUARD_POS, Optional.ofNullable(position));\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getAmbientSound",
+    "line": 176,
+    "end_line": 179,
+    "excerpt": "@Override\n    protected SoundEvent getAmbientSound() {\n        return GuardVillagers.GUARD_AMBIENT;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getHurtSound",
+    "line": 181,
+    "end_line": 188,
+    "excerpt": "@Override\n    protected SoundEvent getHurtSound(DamageSource damageSourceIn) {\n        if (this.isBlocking()) {\n            return SoundEvents.ITEM_SHIELD_BLOCK;\n        } else {\n            return GuardVillagers.GUARD_HURT;\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getDeathSound",
+    "line": 190,
+    "end_line": 193,
+    "excerpt": "@Override\n    protected SoundEvent getDeathSound() {\n        return GuardVillagers.GUARD_DEATH;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "dropEquipment",
+    "line": 195,
+    "end_line": 203,
+    "excerpt": "@Override\n    protected void dropEquipment(DamageSource source, int lootingMultiplier, boolean allowDrops) {\n        for (int i = 0; i < this.guardInventory.size(); ++i) {\n            ItemStack itemstack = this.guardInventory.getStack(i);\n            Random random = getWorld().getRandom();\n            if (!itemstack.isEmpty() && !EnchantmentHelper.hasVanishingCurse(itemstack) && random.nextFloat() < GuardVillagersConfig.chanceToDropEquipment)\n                this.dropStack(itemstack);\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "readCustomDataFromNbt",
+    "line": 205,
+    "end_line": 255,
+    "excerpt": "@Override\n    public void readCustomDataFromNbt(NbtCompound nbt) {\n        super.readCustomDataFromNbt(nbt);\n        UUID uuid = nbt.containsUuid(\"Owner\") ? nbt.getUuid(\"Owner\") : null;\n        if (uuid != null) {\n            try {\n                this.setOwnerId(uuid);\n            } catch (Throwable throwable) {\n                this.setOwnerId(null);\n            }\n        }\n        this.setGuardEntityVariant(nbt.getInt(\"Type\"));\n        this.kickTicks = nbt.getInt(\"KickTicks\");\n        this.setFollowing(nbt.getBoolean(\"Following\"));\n        this.interacting = nbt.getBoolean(\"Interacting\");\n        this.setPatrolling(nbt.getBoolean(\"Patrolling\"));\n        this.shieldCoolDown = nbt.getInt(\"KickCooldown\");\n        this.kickCoolDown = nbt.getInt(\"ShieldCooldown\");\n        this.lastGossipDecayTime = nbt.getLong(\"LastGossipDecay\");\n        this.lastGossipTime = nbt.getLong(\"LastGossipTime\");\n        this.spawnWithArmor = nbt.getBoolean(\"SpawnWithArmor\");\n        if (nbt.contains(\"PatrolPosX\")) {\n            int x = nbt.getInt(\"PatrolPosX\");\n            int y = nbt.getInt(\"PatrolPosY\");\n            int z = nbt.getInt(\"PatrolPosZ\");\n            this.dataTracker.set(GUARD_POS, Optional.ofNullable(new BlockPos(x, y, z)));\n        }\n        NbtList listtag = nbt.getList(\"Gossips\", 10);\n        this.gossips.deserialize(new Dynamic<>(NbtOps.INSTANCE, listtag));\n        NbtList listnbt = nbt.getList(\"Inventory\", 9);\n        for (int i = 0; i < listnbt.size(); ++i) {\n            NbtCompound nbtnbt = listnbt.getCompound(i);\n            int j = nbtnbt.getByte(\"Slot\") & 255;\n            this.guardInventory.setStack(j, ItemStack.fromNbt(nbtnbt));\n        }\n        if (nbt.contains(\"ArmorItems\", 9)) {\n            NbtList armorItems = nbt.getList(\"ArmorItems\", 10);\n            for (int i = 0; i < this.armorItems.size(); ++i) {\n                int index = GuardEntity.slotToInventoryIndex(MobEntity.getPreferredEquipmentSlot(ItemStack.fromNbt(armorItems.getCompound(i))));\n                this.guardInventory.setStack(index, ItemStack.fromNbt(armorItems.getCompound(i)));\n            }\n        }\n        if (nbt.contains(\"HandItems\", 9)) {\n            NbtList handItems = nbt.getList(\"HandItems\", 10);\n            for (int i = 0; i < this.handItems.size(); ++i) {\n                int handSlot = i == 0 ? 5 : 4;\n                this.guardInventory.setStack(handSlot, ItemStack.fromNbt(handItems.getCompound(i)));\n            }\n        }\n        if (!getWorld().isClient) this.readAngerFromNbt(getWorld(), nbt);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "consumeItem",
+    "line": 257,
+    "end_line": 276,
+    "excerpt": "@Override\n    protected void consumeItem() {\n        if (this.isUsingItem()) {\n            Hand hand = this.getActiveHand();\n            if (!this.activeItemStack.equals(this.getStackInHand(hand))) {\n                this.stopUsingItem();\n            } else {\n                if (!this.activeItemStack.isEmpty() && this.isUsingItem()) {\n                    this.spawnConsumptionEffects(this.activeItemStack, 16);\n                    ItemStack itemStack = this.activeItemStack.finishUsing(this.getWorld(), this);\n                    if (itemStack != this.activeItemStack) {\n                        this.setStackInHand(hand, itemStack);\n                    }\n                    if (!this.activeItemStack.isFood()) this.activeItemStack.decrement(1);\n                    this.stopUsingItem();\n                }\n\n            }\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "writeCustomDataToNbt",
+    "line": 278,
+    "end_line": 312,
+    "excerpt": "@Override\n    public void writeCustomDataToNbt(NbtCompound nbt) {\n        super.writeCustomDataToNbt(nbt);\n        nbt.putInt(\"Type\", this.getGuardEntityVariant());\n        nbt.putInt(\"KickTicks\", this.kickTicks);\n        nbt.putInt(\"ShieldCooldown\", this.shieldCoolDown);\n        nbt.putInt(\"KickCooldown\", this.kickCoolDown);\n        nbt.putBoolean(\"Following\", this.isFollowing());\n        nbt.putBoolean(\"Interacting\", this.interacting);\n        nbt.putBoolean(\"Patrolling\", this.isPatrolling());\n        nbt.putBoolean(\"SpawnWithArmor\", this.spawnWithArmor);\n        nbt.putLong(\"LastGossipTime\", this.lastGossipTime);\n        nbt.putLong(\"LastGossipDecay\", this.lastGossipDecayTime);\n        if (this.getOwnerId() != null) {\n            nbt.putUuid(\"Owner\", this.getOwnerId());\n        }\n        NbtList listnbt = new NbtList();\n        for (int i = 0; i < this.guardInventory.size(); ++i) {\n            ItemStack itemstack = this.guardInventory.getStack(i);\n            if (!itemstack.isEmpty()) {\n                NbtCompound nbtnbt = new NbtCompound();\n                nbtnbt.putByte(\"Slot\", (byte) i);\n                itemstack.writeNbt(nbtnbt);\n                listnbt.add(nbtnbt);\n            }\n        }\n        nbt.put(\"Inventory\", listnbt);\n        if (this.getPatrolPos() != null) {\n            nbt.putInt(\"PatrolPosX\", this.getPatrolPos().getX());\n            nbt.putInt(\"PatrolPosY\", this.getPatrolPos().getY());\n            nbt.putInt(\"PatrolPosZ\", this.getPatrolPos().getZ());\n        }\n        nbt.put(\"Gossips\", this.gossips.serialize(NbtOps.INSTANCE));\n        this.writeAngerToNbt(nbt);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "maybeDecayGossip",
+    "line": 314,
+    "end_line": 322,
+    "excerpt": "private void maybeDecayGossip() {\n        long i = getWorld().getTime();\n        if (this.lastGossipDecayTime == 0L) {\n            this.lastGossipDecayTime = i;\n        } else if (i >= this.lastGossipDecayTime + 24000L) {\n            this.gossips.decay();\n            this.lastGossipDecayTime = i;\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getEquippedStack",
+    "line": 324,
+    "end_line": 341,
+    "excerpt": "@Override\n    public ItemStack getEquippedStack(EquipmentSlot slot) {\n        switch (slot) {\n            case HEAD:\n                return this.guardInventory.getStack(0);\n            case CHEST:\n                return this.guardInventory.getStack(1);\n            case LEGS:\n                return this.guardInventory.getStack(2);\n            case FEET:\n                return this.guardInventory.getStack(3);\n            case OFFHAND:\n                return this.guardInventory.getStack(4);\n            case MAINHAND:\n                return this.guardInventory.getStack(5);\n        }\n        return ItemStack.EMPTY;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getGossips",
+    "line": 344,
+    "end_line": 346,
+    "excerpt": "public VillagerGossips getGossips() {\n        return this.gossips;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getPlayerEntityReputation",
+    "line": 348,
+    "end_line": 350,
+    "excerpt": "public int getPlayerEntityReputation(PlayerEntity player) {\n        return this.gossips.getReputationFor(player.getUuid(), (gossipType) -> true);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getOwner",
+    "line": 352,
+    "end_line": 361,
+    "excerpt": "@Nullable\n    public LivingEntity getOwner() {\n        try {\n            UUID uuid = this.getOwnerId();\n            boolean heroOfTheVillage = uuid != null && getWorld().getPlayerByUuid(uuid) != null && getWorld().getPlayerByUuid(uuid).hasStatusEffect(StatusEffects.HERO_OF_THE_VILLAGE);\n            return uuid == null || (getWorld().getPlayerByUuid(uuid) != null && (!heroOfTheVillage && GuardVillagersConfig.followHero) || !GuardVillagersConfig.followHero && getWorld().getPlayerByUuid(uuid) == null) ? null : getWorld().getPlayerByUuid(uuid);\n        } catch (IllegalArgumentException illegalargumentexception) {\n            return null;\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "isOwner",
+    "line": 363,
+    "end_line": 365,
+    "excerpt": "public boolean isOwner(LivingEntity entityIn) {\n        return entityIn == this.getOwner();\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getOwnerId",
+    "line": 367,
+    "end_line": 370,
+    "excerpt": "@Nullable\n    public UUID getOwnerId() {\n        return this.dataTracker.get(OWNER_UNIQUE_ID).orElse(null);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setOwnerId",
+    "line": 372,
+    "end_line": 374,
+    "excerpt": "public void setOwnerId(@Nullable UUID p_184754_1_) {\n        this.dataTracker.set(OWNER_UNIQUE_ID, Optional.ofNullable(p_184754_1_));\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "tryAttack",
+    "line": 376,
+    "end_line": 387,
+    "excerpt": "@Override\n    public boolean tryAttack(Entity target) {\n        if (this.isKicking()) {\n            ((LivingEntity) target).takeKnockback(1.0F, MathHelper.sin(this.getYaw() * ((float) Math.PI / 180F)), (-MathHelper.cos(this.getYaw() * ((float) Math.PI / 180F))));\n            this.kickTicks = 10;\n            getWorld().sendEntityStatus(this, (byte) 4);\n            this.lookAtEntity(target, 90.0F, 90.0F);\n        }\n        ItemStack hand = this.getMainHandStack();\n        hand.damage(1, this, (entity) -> entity.sendEquipmentBreakStatus(EquipmentSlot.MAINHAND));\n        return super.tryAttack(target);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "handleStatus",
+    "line": 389,
+    "end_line": 396,
+    "excerpt": "@Override\n    public void handleStatus(byte status) {\n        if (status == 4) {\n            this.kickTicks = 10;\n        } else {\n            super.handleStatus(status);\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "isImmobile",
+    "line": 398,
+    "end_line": 401,
+    "excerpt": "@Override\n    public boolean isImmobile() {\n        return this.interacting || super.isImmobile();\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "onDeath",
+    "line": 403,
+    "end_line": 415,
+    "excerpt": "@Override\n    public void onDeath(DamageSource damageSource) {\n        if ((getWorld().getDifficulty() == Difficulty.NORMAL || getWorld().getDifficulty() == Difficulty.HARD) && damageSource.getAttacker() instanceof ZombieEntity) {\n            ZombieVillagerEntity zombieguard = this.convertTo(EntityType.ZOMBIE_VILLAGER, true);\n            if (getWorld().getDifficulty() != Difficulty.HARD && this.random.nextBoolean() || zombieguard == null) {\n                return;\n            }\n            zombieguard.initialize((ServerWorldAccess) getWorld(), getWorld().getLocalDifficulty(zombieguard.getBlockPos()), SpawnReason.CONVERSION, new ZombieEntity.ZombieData(false, true), null);\n            if (!this.isSilent()) getWorld().syncWorldEvent(null, 1026, this.getBlockPos(), 0);\n            this.discard();\n        }\n        super.onDeath(damageSource);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "eatFood",
+    "line": 417,
+    "end_line": 425,
+    "excerpt": "@Override\n    public ItemStack eatFood(World world, ItemStack stack) {\n        if (stack.isFood()) {\n            this.heal(stack.getItem().getFoodComponent().getHunger());\n        }\n        world.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ENTITY_PLAYER_BURP, SoundCategory.PLAYERS, 0.5F, world.random.nextFloat() * 0.1F + 0.9F);\n        super.eatFood(world, stack);\n        return stack;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "tickMovement",
+    "line": 427,
+    "end_line": 449,
+    "excerpt": "@Override\n    public void tickMovement() {\n        if (this.kickTicks > 0)\n            --this.kickTicks;\n        if (this.kickCoolDown > 0)\n            --this.kickCoolDown;\n        if (this.shieldCoolDown > 0)\n            --this.shieldCoolDown;\n        if (this.getHealth() < this.getMaxHealth() && this.age % 200 == 0) {\n            this.heal(GuardVillagersConfig.amountOfHealthRegenerated);\n        }\n        if (spawnWithArmor && this.getWorld() instanceof ServerWorld serverWorld) {\n            for (EquipmentSlot equipmentslottype : EquipmentSlot.values()) {\n                for (ItemStack stack : this.getStacksFromLootTable(equipmentslottype, serverWorld)) {\n                    this.equipStack(equipmentslottype, stack);\n                }\n            }\n            this.spawnWithArmor = false;\n        }\n        if (!getWorld().isClient) this.tickAngerLogic((ServerWorld) getWorld(), true);\n        this.tickHandSwing();\n        super.tickMovement();\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "tick",
+    "line": 451,
+    "end_line": 455,
+    "excerpt": "@Override\n    public void tick() {\n        this.maybeDecayGossip();\n        super.tick();\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getDimensions",
+    "line": 457,
+    "end_line": 460,
+    "excerpt": "@Override\n    public EntityDimensions getDimensions(EntityPose poseIn) {\n        return SIZE_BY_POSE.getOrDefault(poseIn, EntityDimensions.changing(0.6F, 1.95F));\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getActiveEyeHeight",
+    "line": 462,
+    "end_line": 468,
+    "excerpt": "@Override\n    protected float getActiveEyeHeight(EntityPose pose, EntityDimensions dimensions) {\n        if (pose == EntityPose.CROUCHING) {\n            return 1.40F;\n        }\n        return super.getActiveEyeHeight(pose, dimensions);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "takeShieldHit",
+    "line": 471,
+    "end_line": 475,
+    "excerpt": "@Override\n    protected void takeShieldHit(LivingEntity entityIn) {\n        super.takeShieldHit(entityIn);\n        if (entityIn.getMainHandStack().getItem() instanceof AxeItem) this.disableShield(true);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "damageShield",
+    "line": 477,
+    "end_line": 495,
+    "excerpt": "@Override\n    public void damageShield(float amount) {\n        if (this.activeItemStack.getItem() == Items.SHIELD) { // Might create compatibility problems with other mods that add shields\n            if (amount >= 3.0F) {\n                int i = 1 + MathHelper.floor(amount);\n                Hand hand = this.getActiveHand();\n                this.activeItemStack.damage(i, this, (entity) -> entity.sendToolBreakStatus(hand));\n                if (this.activeItemStack.isEmpty()) {\n                    if (hand == Hand.MAIN_HAND) {\n                        this.equipStack(EquipmentSlot.MAINHAND, ItemStack.EMPTY);\n                    } else {\n                        this.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);\n                    }\n                    this.activeItemStack = ItemStack.EMPTY;\n                    this.playSound(SoundEvents.ITEM_SHIELD_BREAK, 0.8F, 0.8F + getWorld().random.nextFloat() * 0.4F);\n                }\n            }\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setCurrentHand",
+    "line": 497,
+    "end_line": 507,
+    "excerpt": "@Override\n    public void setCurrentHand(Hand hand) {\n        super.setCurrentHand(hand);\n        ItemStack itemstack = this.getStackInHand(hand);\n        if (itemstack.getItem() == Items.SHIELD) { // See above\n\n            EntityAttributeInstance modifiableattributeinstance = this.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED);\n            modifiableattributeinstance.removeModifier(USE_ITEM_SPEED_PENALTY);\n            modifiableattributeinstance.addTemporaryModifier(USE_ITEM_SPEED_PENALTY);\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "stopUsingItem",
+    "line": 509,
+    "end_line": 514,
+    "excerpt": "@Override\n    public void stopUsingItem() {\n        super.stopUsingItem();\n        if (this.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED).hasModifier(USE_ITEM_SPEED_PENALTY))\n            this.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED).removeModifier(USE_ITEM_SPEED_PENALTY);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "disableShield",
+    "line": 516,
+    "end_line": 524,
+    "excerpt": "public void disableShield(boolean increase) {\n        float chance = 0.25F + (float) EnchantmentHelper.getEfficiency(this) * 0.05F;\n        if (increase) chance += 0.75;\n        if (this.random.nextFloat() < chance) {\n            this.shieldCoolDown = 100;\n            this.stopUsingItem();\n            getWorld().sendEntityStatus(this, (byte) 30);\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "initDataTracker",
+    "line": 526,
+    "end_line": 537,
+    "excerpt": "@Override\n    protected void initDataTracker() {\n        super.initDataTracker();\n        this.dataTracker.startTracking(GUARD_VARIANT, 0);\n        this.dataTracker.startTracking(DATA_CHARGING_STATE, false);\n        this.dataTracker.startTracking(KICKING, false);\n        this.dataTracker.startTracking(OWNER_UNIQUE_ID, Optional.empty());\n        this.dataTracker.startTracking(FOLLOWING, false);\n        this.dataTracker.startTracking(GUARD_POS, Optional.empty());\n        this.dataTracker.startTracking(PATROLLING, false);\n        this.dataTracker.startTracking(RUNNING_TO_EAT, false);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "isCharging",
+    "line": 539,
+    "end_line": 541,
+    "excerpt": "public boolean isCharging() {\n        return this.dataTracker.get(DATA_CHARGING_STATE);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setChargingCrossbow",
+    "line": 543,
+    "end_line": 545,
+    "excerpt": "public void setChargingCrossbow(boolean charging) {\n        this.dataTracker.set(DATA_CHARGING_STATE, charging);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "isKicking",
+    "line": 547,
+    "end_line": 549,
+    "excerpt": "public boolean isKicking() {\n        return this.dataTracker.get(KICKING);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setKicking",
+    "line": 551,
+    "end_line": 553,
+    "excerpt": "public void setKicking(boolean kicking) {\n        this.dataTracker.set(KICKING, kicking);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "initEquipment",
+    "line": 555,
+    "end_line": 560,
+    "excerpt": "@Override\n    protected void initEquipment(Random random, LocalDifficulty localDifficulty) {\n        this.handDropChances[EquipmentSlot.MAINHAND.getEntitySlotId()] = 100.0F;\n        this.handDropChances[EquipmentSlot.OFFHAND.getEntitySlotId()] = 100.0F;\n        this.spawnWithArmor = true;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getStacksFromLootTable",
+    "line": 562,
+    "end_line": 569,
+    "excerpt": "public List<ItemStack> getStacksFromLootTable(EquipmentSlot slot, ServerWorld serverWorld) {\n        if (EQUIPMENT_SLOT_ITEMS.containsKey(slot)) {\n            LootTable loot = serverWorld.getServer().getLootManager().getLootTable(EQUIPMENT_SLOT_ITEMS.get(slot));\n            LootContextParameterSet.Builder lootcontext$builder = (new LootContextParameterSet.Builder((ServerWorld) getWorld()).add(LootContextParameters.THIS_ENTITY, this));\n            return loot.generateLoot(lootcontext$builder.build(GuardEntityLootTables.SLOT));\n        }\n        return null;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getGuardEntityVariant",
+    "line": 571,
+    "end_line": 573,
+    "excerpt": "public int getGuardEntityVariant() {\n        return this.dataTracker.get(GUARD_VARIANT);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setGuardEntityVariant",
+    "line": 575,
+    "end_line": 577,
+    "excerpt": "public void setGuardEntityVariant(int typeId) {\n        this.dataTracker.set(GUARD_VARIANT, typeId);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "initGoals",
+    "line": 579,
+    "end_line": 617,
+    "excerpt": "@Override\n    protected void initGoals() {\n        this.goalSelector.add(0, new SwimGoal(this));\n        this.goalSelector.add(0, new KickGoal(this));\n        this.goalSelector.add(0, new GuardEatFoodGoal(this));\n        this.goalSelector.add(0, new RaiseShieldGoal(this));\n        this.goalSelector.add(1, new GuardRunToEatGoal(this));\n        this.goalSelector.add(2, new RangedCrossbowAttackPassiveGoal<>(this, 1.0D, 8.0F));\n        this.goalSelector.add(2, new RangedBowAttackPassiveGoal<>(this, 0.5D, 20, 15.0F));\n        this.goalSelector.add(2, new GuardEntityMeleeGoal(this, 0.8D, true));\n        this.goalSelector.add(3, new GuardEntity.FollowHeroGoal(this));\n        if (GuardVillagersConfig.guardEntitysRunFromPolarBears)\n            this.goalSelector.add(3, new FleeEntityGoal<>(this, PolarBearEntity.class, 12.0F, 1.0D, 1.2D));\n        this.goalSelector.add(3, new WanderAroundPointOfInterestGoal(this, 0.5D, false));\n        this.goalSelector.add(3, new IronGolemWanderAroundGoal(this, 0.5D));\n        this.goalSelector.add(3, new MoveThroughVillageGoal(this, 0.5D, false, 4, () -> false));\n        if (GuardVillagersConfig.guardEntitysOpenDoors) this.goalSelector.add(3, new GuardInteractDoorGoal(this, true));\n        if (GuardVillagersConfig.guardEntityFormation) this.goalSelector.add(5, new FollowShieldGuards(this));\n        if (GuardVillagersConfig.clericHealing) this.goalSelector.add(6, new RunToClericGoal(this));\n        if (GuardVillagersConfig.armorerRepairGuardEntityArmor)\n            this.goalSelector.add(6, new ArmorerRepairGuardArmorGoal(this));\n        this.goalSelector.add(4, new WalkBackToCheckPointGoal(this, 0.5D));\n        this.goalSelector.add(5, new WanderAroundFarGoal(this, 0.5D));\n        this.goalSelector.add(8, new LookAtEntityGoal(this, MerchantEntity.class, 8.0F));\n        this.goalSelector.add(8, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F));\n        this.goalSelector.add(8, new GuardLookAtAndStopMovingWhenBeingTheInteractionTarget(this));\n        this.targetSelector.add(5, new GuardEntity.DefendVillageGuardEntityGoal(this));\n        this.targetSelector.add(2, new ActiveTargetGoal<>(this, RavagerEntity.class, true));\n        this.targetSelector.add(2, (new RevengeGoal(this, GuardEntity.class, IronGolemEntity.class)).setGroupRevenge());\n        this.targetSelector.add(2, new ActiveTargetGoal<>(this, WitchEntity.class, true));\n        this.targetSelector.add(3, new HeroHurtByTargetGoal(this));\n        this.targetSelector.add(3, new HeroHurtTargetGoal(this));\n        this.targetSelector.add(3, new ActiveTargetGoal<>(this, RaiderEntity.class, true));\n        if (GuardVillagersConfig.attackAllMobs)\n            this.targetSelector.add(3, new ActiveTargetGoal<>(this, MobEntity.class, 5, true, true, (mob) -> mob instanceof Monster && !GuardVillagersConfig.mobBlackList.contains(mob.getSavedEntityId())));\n        this.targetSelector.add(3, new ActiveTargetGoal<>(this, PlayerEntity.class, 10, true, false, this::shouldAngerAt));\n        this.targetSelector.add(4, new ActiveTargetGoal<>(this, ZombieEntity.class, true));\n        this.targetSelector.add(4, new UniversalAngerGoal<>(this, false));\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "canBeLeashedBy",
+    "line": 619,
+    "end_line": 622,
+    "excerpt": "@Override\n    public boolean canBeLeashedBy(PlayerEntity player) {\n        return false;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "attack",
+    "line": 624,
+    "end_line": 652,
+    "excerpt": "@Override\n    public void attack(LivingEntity target, float pullProgress) {\n        this.shieldCoolDown = 8;\n        if (this.getMainHandStack().getItem() instanceof CrossbowItem)\n            this.shoot(this, 6.0F);\n        if (this.getMainHandStack().getItem() instanceof BowItem) {\n            ItemStack itemStack = this.getProjectileType(this.getStackInHand(ProjectileUtil.getHandPossiblyHolding(this, Items.BOW)));\n            ItemStack hand = this.getActiveItem();\n            PersistentProjectileEntity persistentProjectileEntity = ProjectileUtil.createArrowProjectile(this, itemStack, pullProgress);\n            int powerLevel = EnchantmentHelper.getLevel(Enchantments.POWER, itemStack);\n            if (powerLevel > 0) {\n                persistentProjectileEntity.setDamage(persistentProjectileEntity.getDamage() + (double) powerLevel * 0.5D + 0.5D);\n            }\n            int punchLevel = EnchantmentHelper.getLevel(Enchantments.PUNCH, itemStack);\n            if (punchLevel > 0) {\n                persistentProjectileEntity.setPunch(punchLevel);\n            }\n            if (EnchantmentHelper.getLevel(Enchantments.FLAME, itemStack) > 0)\n                persistentProjectileEntity.setFireTicks(100);\n            double d = target.getX() - this.getX();\n            double e = target.getBodyY(0.3333333333333333D) - persistentProjectileEntity.getY();\n            double f = target.getZ() - this.getZ();\n            double g = Math.sqrt(d * d + f * f);\n            persistentProjectileEntity.setVelocity(d, e + g * 0.20000000298023224D, f, 1.6F, (float) (14 - this.getWorld().getDifficulty().getId() * 4));\n            this.playSound(SoundEvents.ENTITY_SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));\n            this.getWorld().spawnEntity(persistentProjectileEntity);\n            hand.damage(1, this, (entity) -> entity.sendEquipmentBreakStatus(EquipmentSlot.MAINHAND));\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "equipStack",
+    "line": 654,
+    "end_line": 681,
+    "excerpt": "@Override\n    public void equipStack(EquipmentSlot slotIn, ItemStack stack) {\n        super.equipStack(slotIn, stack);\n        switch (slotIn) {\n            case CHEST:\n                if (this.guardInventory.getStack(1).isEmpty())\n                    this.guardInventory.setStack(1, this.armorItems.get(slotIn.getEntitySlotId()));\n                break;\n            case FEET:\n                if (this.guardInventory.getStack(3).isEmpty())\n                    this.guardInventory.setStack(3, this.armorItems.get(slotIn.getEntitySlotId()));\n                break;\n            case HEAD:\n                if (this.guardInventory.getStack(0).isEmpty())\n                    this.guardInventory.setStack(0, this.armorItems.get(slotIn.getEntitySlotId()));\n                break;\n            case LEGS:\n                if (this.guardInventory.getStack(2).isEmpty())\n                    this.guardInventory.setStack(2, this.armorItems.get(slotIn.getEntitySlotId()));\n                break;\n            case MAINHAND:\n                this.guardInventory.setStack(5, this.handItems.get(slotIn.getEntitySlotId()));\n                break;\n            case OFFHAND:\n                this.guardInventory.setStack(4, this.handItems.get(slotIn.getEntitySlotId()));\n                break;\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getGuardVariant",
+    "line": 683,
+    "end_line": 685,
+    "excerpt": "public int getGuardVariant() {\n        return this.dataTracker.get(GUARD_VARIANT);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getProjectileType",
+    "line": 688,
+    "end_line": 697,
+    "excerpt": "@Override\n    public ItemStack getProjectileType(ItemStack shootable) {\n        if (shootable.getItem() instanceof RangedWeaponItem) {\n            Predicate<ItemStack> predicate = ((RangedWeaponItem) shootable.getItem()).getHeldProjectiles();\n            ItemStack itemstack = RangedWeaponItem.getHeldProjectile(this, predicate);\n            return itemstack.isEmpty() ? new ItemStack(Items.ARROW) : itemstack;\n        } else {\n            return ItemStack.EMPTY;\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getKickTicks",
+    "line": 699,
+    "end_line": 701,
+    "excerpt": "public int getKickTicks() {\n        return this.kickTicks;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "isFollowing",
+    "line": 703,
+    "end_line": 705,
+    "excerpt": "public boolean isFollowing() {\n        return this.dataTracker.get(FOLLOWING);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setFollowing",
+    "line": 707,
+    "end_line": 709,
+    "excerpt": "public void setFollowing(boolean following) {\n        this.dataTracker.set(FOLLOWING, following);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "canTarget",
+    "line": 711,
+    "end_line": 714,
+    "excerpt": "@Override\n    public boolean canTarget(LivingEntity target) {\n        return !GuardVillagersConfig.mobBlackList.contains(target.getSavedEntityId()) && !target.hasStatusEffect(StatusEffects.HERO_OF_THE_VILLAGE) && !this.isOwner(target) && !(target instanceof VillagerEntity) && !(target instanceof IronGolemEntity) && !(target instanceof GuardEntity) && super.canTarget(target);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "tickRiding",
+    "line": 716,
+    "end_line": 722,
+    "excerpt": "@Override\n    public void tickRiding() {\n        super.tickRiding();\n        if (this.getVehicle() instanceof PathAwareEntity creatureentity) {\n            this.bodyYaw = creatureentity.bodyYaw;\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getHeightOffset",
+    "line": 724,
+    "end_line": 727,
+    "excerpt": "@Override\n    public double getHeightOffset() {\n        return -0.35D;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "postShoot",
+    "line": 730,
+    "end_line": 733,
+    "excerpt": "@Override\n    public void postShoot() {\n        this.despawnCounter = 0;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setTarget",
+    "line": 735,
+    "end_line": 740,
+    "excerpt": "@Override\n    public void setTarget(LivingEntity entity) {\n        if (entity instanceof GuardEntity || entity instanceof VillagerEntity || entity instanceof IronGolemEntity)\n            return;\n        super.setTarget(entity);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "gossip",
+    "line": 743,
+    "end_line": 749,
+    "excerpt": "public void gossip(VillagerEntity villager, long gameTime) {\n        if ((gameTime < this.lastGossipTime || gameTime >= this.lastGossipTime + 1200L) && (gameTime < villager.gossipStartTime || gameTime >= villager.gossipStartTime + 1200L)) {\n            this.gossips.shareGossipFrom(villager.getGossip(), this.random, 10);\n            this.lastGossipTime = gameTime;\n            villager.gossipStartTime = gameTime;\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setCharging",
+    "line": 751,
+    "end_line": 754,
+    "excerpt": "@Override\n    public void setCharging(boolean charging) {\n\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "shoot",
+    "line": 756,
+    "end_line": 759,
+    "excerpt": "@Override\n    public void shoot(LivingEntity arg0, ItemStack arg1, ProjectileEntity arg2, float arg3) {\n        this.shoot(this, arg0, arg2, arg3, 1.6F);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "knockback",
+    "line": 761,
+    "end_line": 767,
+    "excerpt": "@Override\n    public void knockback(LivingEntity entityIn) {\n        if (this.isKicking()) {\n            this.setKicking(false);\n        }\n        super.knockback(this);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "interactMob",
+    "line": 769,
+    "end_line": 783,
+    "excerpt": "@Override\n    protected ActionResult interactMob(PlayerEntity player, Hand hand) {\n        boolean configValues = player.hasStatusEffect(StatusEffects.HERO_OF_THE_VILLAGE) && GuardVillagersConfig.giveGuardStuffHotv || player.hasStatusEffect(StatusEffects.HERO_OF_THE_VILLAGE) && GuardVillagersConfig.setGuardPatrolHotv || player.hasStatusEffect(StatusEffects.HERO_OF_THE_VILLAGE) && GuardVillagersConfig.giveGuardStuffHotv && GuardVillagersConfig.setGuardPatrolHotv || this.getPlayerEntityReputation(player) >= GuardVillagersConfig.reputationRequirement || player.hasStatusEffect(StatusEffects.HERO_OF_THE_VILLAGE) && !GuardVillagersConfig.giveGuardStuffHotv && !GuardVillagersConfig.setGuardPatrolHotv || this.getOwnerId() != null && this.getOwnerId().equals(player.getUuid());\n        boolean inventoryRequirements = !player.shouldCancelInteraction();\n        if (inventoryRequirements) {\n            if (this.getTarget() != player && this.canMoveVoluntarily() && configValues) {\n                if (player instanceof ServerPlayerEntity) {\n                    this.openGui((ServerPlayerEntity) player);\n                    return ActionResult.SUCCESS;\n                }\n            }\n            return ActionResult.CONSUME;\n        }\n        return super.interactMob(player, hand);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "onInteractionWith",
+    "line": 785,
+    "end_line": 788,
+    "excerpt": "@Override\n    public void onInteractionWith(EntityInteraction interaction, Entity entity) {\n\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "onInventoryChanged",
+    "line": 790,
+    "end_line": 793,
+    "excerpt": "@Override\n    public void onInventoryChanged(Inventory sender) {\n\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "damageArmor",
+    "line": 796,
+    "end_line": 813,
+    "excerpt": "@Override\n    public void damageArmor(DamageSource damageSource, float damage) {\n        if (damage >= 0.0F) {\n            damage = damage / 4.0F;\n            if (damage < 1.0F) {\n                damage = 1.0F;\n            }\n            for (int i = 0; i < this.guardInventory.size(); ++i) {\n                ItemStack itemstack = this.guardInventory.getStack(i);\n                if ((!damageSource.isOf(DamageTypes.ON_FIRE) || !itemstack.getItem().isFireproof()) && itemstack.getItem() instanceof ArmorItem) {\n                    int j = i;\n                    itemstack.damage((int) damage, this, (p_214023_1_) -> {\n                        p_214023_1_.sendEquipmentBreakStatus(EquipmentSlot.fromTypeIndex(EquipmentSlot.Type.ARMOR, j));\n                    });\n                }\n            }\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "onStruckByLightning",
+    "line": 815,
+    "end_line": 831,
+    "excerpt": "@Override\n    public void onStruckByLightning(ServerWorld world, LightningEntity lightning) {\n        if (world.getDifficulty() != Difficulty.PEACEFUL) {\n            WitchEntity witchentity = EntityType.WITCH.create(world);\n            if (witchentity == null) return;\n            witchentity.copyPositionAndRotation(this);\n            witchentity.initialize(world, world.getLocalDifficulty(witchentity.getBlockPos()), SpawnReason.CONVERSION, null, null);\n            witchentity.setAiDisabled(this.isAiDisabled());\n            witchentity.setCustomName(this.getCustomName());\n            witchentity.setCustomNameVisible(this.isCustomNameVisible());\n            witchentity.setPersistent();\n            world.spawnNewEntityAndPassengers(witchentity);\n            this.discard();\n        } else {\n            super.onStruckByLightning(world, lightning);\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getAngryAt",
+    "line": 833,
+    "end_line": 836,
+    "excerpt": "@Override\n    public UUID getAngryAt() {\n        return this.persistentAngerTarget;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setAngryAt",
+    "line": 838,
+    "end_line": 841,
+    "excerpt": "@Override\n    public void setAngryAt(UUID arg0) {\n        this.persistentAngerTarget = arg0;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getAngerTime",
+    "line": 843,
+    "end_line": 846,
+    "excerpt": "@Override\n    public int getAngerTime() {\n        return this.remainingPersistentAngerTime;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setAngerTime",
+    "line": 848,
+    "end_line": 851,
+    "excerpt": "@Override\n    public void setAngerTime(int arg0) {\n        this.remainingPersistentAngerTime = arg0;\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "chooseRandomAngerTime",
+    "line": 853,
+    "end_line": 856,
+    "excerpt": "@Override\n    public void chooseRandomAngerTime() {\n        this.setAngerTime(angerTime.get(random));\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "openGui",
+    "line": 858,
+    "end_line": 867,
+    "excerpt": "public void openGui(ServerPlayerEntity player) {\n        this.setOwnerId(player.getUuid());\n        if (player.currentScreenHandler != player.playerScreenHandler) {\n            player.closeHandledScreen();\n        }\n        this.interacting = true;\n        if (!this.getWorld().isClient()) {\n            player.openHandledScreen(new GuardScreenHandlerFactory());\n        }\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setGuardVariant",
+    "line": 869,
+    "end_line": 871,
+    "excerpt": "public void setGuardVariant(int i) {\n        this.dataTracker.set(GUARD_VARIANT, i);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "guard",
+    "line": 874,
+    "end_line": 876,
+    "excerpt": "private GuardEntity guard() {\n            return GuardEntity.this;\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "writeScreenOpeningData",
+    "line": 878,
+    "end_line": 881,
+    "excerpt": "@Override\n        public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {\n            buf.writeVarInt(this.guard().getId());\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getDisplayName",
+    "line": 883,
+    "end_line": 886,
+    "excerpt": "@Override\n        public Text getDisplayName() {\n            return this.guard().getDisplayName();\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "createMenu",
+    "line": 888,
+    "end_line": 892,
+    "excerpt": "@Override\n        public ScreenHandler createMenu(int syncId, PlayerInventory inv, PlayerEntity player) {\n            var guardInv = this.guard().guardInventory;\n            return new GuardVillagerScreenHandler(syncId, inv, guardInv, this.guard());\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "isEating",
+    "line": 895,
+    "end_line": 897,
+    "excerpt": "public boolean isEating() {\n        return GuardEatFoodGoal.isConsumable(this.getActiveItem()) && this.isUsingItem();\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "isPatrolling",
+    "line": 899,
+    "end_line": 901,
+    "excerpt": "public boolean isPatrolling() {\n        return this.dataTracker.get(PATROLLING);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "setPatrolling",
+    "line": 903,
+    "end_line": 905,
+    "excerpt": "public void setPatrolling(boolean patrolling) {\n        this.dataTracker.set(PATROLLING, patrolling);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "canUseRangedWeapon",
+    "line": 907,
+    "end_line": 910,
+    "excerpt": "@Override\n    public boolean canUseRangedWeapon(RangedWeaponItem item) {\n        return item instanceof BowItem || item instanceof CrossbowItem || super.canUseRangedWeapon(item);\n    }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "canStart",
+    "line": 930,
+    "end_line": 944,
+    "excerpt": "@Override\n        public boolean canStart() {\n            Box box = this.guard.getBoundingBox().expand(10.0D, 8.0D, 10.0D);\n            List<VillagerEntity> list = guard.getWorld().getNonSpectatingEntities(VillagerEntity.class, box);\n            List<PlayerEntity> list1 = guard.getWorld().getNonSpectatingEntities(PlayerEntity.class, box);\n            for (VillagerEntity villager : list) {\n                for (PlayerEntity player : list1) {\n                    int i = villager.getReputation(player);\n                    if (i <= GuardVillagersConfig.reputationRequirementToBeAttacked) {\n                        this.villageAggressorTarget = player;\n                    }\n                }\n            }\n            return villageAggressorTarget != null && !villageAggressorTarget.hasStatusEffect(StatusEffects.HERO_OF_THE_VILLAGE) && !this.villageAggressorTarget.isSpectator() && !((PlayerEntity) this.villageAggressorTarget).isCreative();\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "start",
+    "line": 946,
+    "end_line": 950,
+    "excerpt": "@Override\n        public void start() {\n            this.guard.setTarget(this.villageAggressorTarget);\n            super.start();\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "tick",
+    "line": 961,
+    "end_line": 969,
+    "excerpt": "@Override\n        public void tick() {\n            if (guard.getOwner() != null && guard.getOwner().distanceTo(guard) > 3.0D) {\n                guard.getNavigation().startMovingTo(guard.getOwner(), 0.7D);\n                guard.getLookControl().lookAt(guard.getOwner());\n            } else {\n                guard.getNavigation().stop();\n            }\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "shouldContinue",
+    "line": 971,
+    "end_line": 974,
+    "excerpt": "@Override\n        public boolean shouldContinue() {\n            return this.canStart();\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "canStart",
+    "line": 976,
+    "end_line": 979,
+    "excerpt": "@Override\n        public boolean canStart() {\n            return guard.isFollowing() && guard.getOwner() != null;\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "stop",
+    "line": 981,
+    "end_line": 984,
+    "excerpt": "@Override\n        public void stop() {\n            this.guard.getNavigation().stop();\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "canStart",
+    "line": 995,
+    "end_line": 998,
+    "excerpt": "@Override\n        public boolean canStart() {\n            return !(this.guard.getMainHandStack().getItem() instanceof CrossbowItem) && this.guard.getTarget() != null && !this.guard.isEating() && super.canStart();\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "shouldContinue",
+    "line": 1000,
+    "end_line": 1003,
+    "excerpt": "@Override\n        public boolean shouldContinue() {\n            return super.shouldContinue() && this.guard.getTarget() != null;\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "tick",
+    "line": 1005,
+    "end_line": 1016,
+    "excerpt": "@Override\n        public void tick() {\n            LivingEntity target = guard.getTarget();\n            if (target != null) {\n                if (target.distanceTo(guard) <= 3.0D && !guard.isBlocking()) {\n                    guard.getMoveControl().strafeTo(-2.0F, 0.0F);\n                    guard.lookAtEntity(target, 30.0F, 30.0F);\n                }\n                if (this.path != null && target.distanceTo(guard) <= 2.0D) guard.getNavigation().stop();\n                super.tick();\n            }\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "getSquaredMaxAttackDistance",
+    "line": 1018,
+    "end_line": 1021,
+    "excerpt": "@Override\n        protected double getSquaredMaxAttackDistance(LivingEntity attackTarget) {\n            return super.getSquaredMaxAttackDistance(attackTarget) * 3.55D;\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/GuardEntity.java",
+    "name": "attack",
+    "line": 1023,
+    "end_line": 1033,
+    "excerpt": "@Override\n        protected void attack(LivingEntity enemy, double distToEnemySqr) {\n            double d0 = this.getSquaredMaxAttackDistance(enemy);\n            if (distToEnemySqr <= d0 && this.getCooldown() <= 0) {\n                this.resetCooldown();\n                this.guard.stopUsingItem();\n                if (guard.shieldCoolDown == 0) this.guard.shieldCoolDown = 8;\n                this.guard.swingHand(Hand.MAIN_HAND);\n                this.guard.tryAttack(enemy);\n            }\n        }",
+    "source_sha256": "fe901234d9e2fbf2f19e96fe3b08d13ad467d71e216ad07933a7ce78fa2157e0"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/AttackEntityDaytimeGoal.java",
+    "name": "canStart",
+    "line": 12,
+    "end_line": 16,
+    "excerpt": "@Override\n    public boolean canStart() {\n        float f = this.mob.getBrightnessAtEyes();\n        return !(f >= 0.5F) && super.canStart();\n    }",
+    "source_sha256": "8b722961a911565d3425543a0676015ac1f3722cc518c8ad323b44fb23ad5f69"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RaiseShieldGoal.java",
+    "name": "canStart",
+    "line": 23,
+    "end_line": 26,
+    "excerpt": "@Override\n    public boolean canStart() {\n        return !CrossbowItem.isCharged(guard.getMainHandStack()) && (guard.getOffHandStack().getItem() == Items.SHIELD && raiseShield() && guard.shieldCoolDown == 0);\n    }",
+    "source_sha256": "02172cf4442c3d1f58acf9f1f6ce4de694ed4c2d8cb12f9406a54c0c87be1c75"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RaiseShieldGoal.java",
+    "name": "shouldContinue",
+    "line": 28,
+    "end_line": 31,
+    "excerpt": "@Override\n    public boolean shouldContinue() {\n        return this.canStart();\n    }",
+    "source_sha256": "02172cf4442c3d1f58acf9f1f6ce4de694ed4c2d8cb12f9406a54c0c87be1c75"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RaiseShieldGoal.java",
+    "name": "start",
+    "line": 33,
+    "end_line": 37,
+    "excerpt": "@Override\n    public void start() {\n        if (guard.getOffHandStack().getItem() == Items.SHIELD)\n            guard.setCurrentHand(Hand.OFF_HAND);\n    }",
+    "source_sha256": "02172cf4442c3d1f58acf9f1f6ce4de694ed4c2d8cb12f9406a54c0c87be1c75"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RaiseShieldGoal.java",
+    "name": "stop",
+    "line": 39,
+    "end_line": 43,
+    "excerpt": "@Override\n    public void stop() {\n        if (!GuardVillagersConfig.guardAlwaysShield)\n            guard.stopUsingItem();\n    }",
+    "source_sha256": "02172cf4442c3d1f58acf9f1f6ce4de694ed4c2d8cb12f9406a54c0c87be1c75"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RaiseShieldGoal.java",
+    "name": "raiseShield",
+    "line": 45,
+    "end_line": 52,
+    "excerpt": "protected boolean raiseShield() {\n        LivingEntity target = guard.getTarget();\n        if (target != null && guard.shieldCoolDown == 0) {\n            boolean ranged = guard.getMainHandStack().getItem() instanceof CrossbowItem || guard.getMainHandStack().getItem() instanceof BowItem;\n            return guard.distanceTo(target) <= 4.0D || target instanceof CreeperEntity || target instanceof RangedAttackMob && target.distanceTo(guard) >= 5.0D && !ranged || target instanceof RavagerEntity || GuardVillagersConfig.guardAlwaysShield;\n        }\n        return false;\n    }",
+    "source_sha256": "02172cf4442c3d1f58acf9f1f6ce4de694ed4c2d8cb12f9406a54c0c87be1c75"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/WalkBackToCheckPointGoal.java",
+    "name": "canStart",
+    "line": 20,
+    "end_line": 23,
+    "excerpt": "@Override\n    public boolean canStart() {\n        return guard.getPatrolPos() != null && !this.guard.getPatrolPos().isWithinDistance(this.guard.getBlockPos(), 1.0D) && !guard.isFollowing() && guard.isPatrolling();\n    }",
+    "source_sha256": "f5f11da607b404a0f6e9fbeb8a4b3ad134fd7b0260286a557b718c94457b06c5"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/WalkBackToCheckPointGoal.java",
+    "name": "shouldContinue",
+    "line": 25,
+    "end_line": 28,
+    "excerpt": "@Override\n    public boolean shouldContinue() {\n        return this.canStart();\n    }",
+    "source_sha256": "f5f11da607b404a0f6e9fbeb8a4b3ad134fd7b0260286a557b718c94457b06c5"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/WalkBackToCheckPointGoal.java",
+    "name": "tick",
+    "line": 30,
+    "end_line": 43,
+    "excerpt": "@Override\n    public void tick() {\n        BlockPos blockpos = this.guard.getPatrolPos();\n        if (blockpos != null) {\n            Vec3d vector3d = Vec3d.ofBottomCenter(blockpos);\n            Vec3d vector3d1 = NoPenaltyTargeting.findTo(this.guard, 16, 3, vector3d, (float) Math.PI / 10F);\n            this.guard.getPatrolPos().isWithinDistance(this.guard.getBlockPos(), 1.0D);\n            if (guard.getMainHandStack().getItem() instanceof RangedWeaponItem) {\n                this.guard.getNavigation().startMovingTo(blockpos.getX(), blockpos.getY(), blockpos.getZ(), this.speed);\n            } else if (vector3d1 != null && guard.getTarget() == null) {\n                this.guard.getNavigation().startMovingTo(vector3d1.x, vector3d1.y, vector3d1.z, this.speed);\n            }\n        }\n    }",
+    "source_sha256": "f5f11da607b404a0f6e9fbeb8a4b3ad134fd7b0260286a557b718c94457b06c5"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/KickGoal.java",
+    "name": "canStart",
+    "line": 14,
+    "end_line": 17,
+    "excerpt": "@Override\n    public boolean canStart() {\n        return guard.getTarget() != null && guard.getTarget().distanceTo(guard) <= 2.5D && guard.getMainHandStack().getItem().isUsedOnRelease(guard.getMainHandStack()) && !guard.isBlocking() && guard.kickCoolDown == 0;\n    }",
+    "source_sha256": "d60f1a0a6e078639da84c38a3dbe41d7a0e25a5c38d22f4515c7c462f351ec6b"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/KickGoal.java",
+    "name": "start",
+    "line": 19,
+    "end_line": 26,
+    "excerpt": "@Override\n    public void start() {\n        guard.setKicking(true);\n        if (guard.kickTicks <= 0) {\n            guard.kickTicks = 10;\n        }\n        guard.tryAttack(guard.getTarget());\n    }",
+    "source_sha256": "d60f1a0a6e078639da84c38a3dbe41d7a0e25a5c38d22f4515c7c462f351ec6b"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/KickGoal.java",
+    "name": "stop",
+    "line": 28,
+    "end_line": 32,
+    "excerpt": "@Override\n    public void stop() {\n        guard.setKicking(false);\n        guard.kickCoolDown = 50;\n    }",
+    "source_sha256": "d60f1a0a6e078639da84c38a3dbe41d7a0e25a5c38d22f4515c7c462f351ec6b"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/HeroHurtTargetGoal.java",
+    "name": "canStart",
+    "line": 24,
+    "end_line": 34,
+    "excerpt": "@Override\n    public boolean canStart() {\n        LivingEntity livingentity = this.guard.getOwner();\n        if (livingentity == null) {\n            return false;\n        } else {\n            this.attacker = livingentity.getAttacking();\n            int i = livingentity.getLastAttackTime();\n            return i != this.timestamp && this.canTrack(this.attacker, TargetPredicate.DEFAULT);\n        }\n    }",
+    "source_sha256": "8fb9fe11ed5cd83834d98d3052d839e26410d64b39a40aff0ca703edf6e9cf55"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/HeroHurtTargetGoal.java",
+    "name": "canTrack",
+    "line": 36,
+    "end_line": 39,
+    "excerpt": "@Override\n    protected boolean canTrack(@Nullable LivingEntity potentialTarget, TargetPredicate targetPredicate) {\n        return super.canTrack(potentialTarget, targetPredicate) && !(potentialTarget instanceof MerchantEntity) && !(potentialTarget instanceof GuardEntity);\n    }",
+    "source_sha256": "8fb9fe11ed5cd83834d98d3052d839e26410d64b39a40aff0ca703edf6e9cf55"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/HeroHurtTargetGoal.java",
+    "name": "start",
+    "line": 41,
+    "end_line": 49,
+    "excerpt": "@Override\n    public void start() {\n        this.mob.setTarget(this.attacker);\n        LivingEntity livingentity = this.guard.getOwner();\n        if (livingentity != null) {\n            this.timestamp = livingentity.getLastAttackTime();\n        }\n        super.start();\n    }",
+    "source_sha256": "8fb9fe11ed5cd83834d98d3052d839e26410d64b39a40aff0ca703edf6e9cf55"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedBowAttackPassiveGoal.java",
+    "name": "setAttackCooldown",
+    "line": 32,
+    "end_line": 34,
+    "excerpt": "public void setAttackCooldown(int attackCooldownIn) {\n        this.attackCooldown = attackCooldownIn;\n    }",
+    "source_sha256": "92c451c7161686690bc48944eddd7c2b5e5af730b0f04039b518a8db6ca1aa54"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedBowAttackPassiveGoal.java",
+    "name": "canStart",
+    "line": 36,
+    "end_line": 39,
+    "excerpt": "@Override\n    public boolean canStart() {\n        return entity.getTarget() != null && this.isBowInMainhand() && !entity.isEating() && !entity.isBlocking();\n    }",
+    "source_sha256": "92c451c7161686690bc48944eddd7c2b5e5af730b0f04039b518a8db6ca1aa54"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedBowAttackPassiveGoal.java",
+    "name": "isBowInMainhand",
+    "line": 41,
+    "end_line": 43,
+    "excerpt": "protected boolean isBowInMainhand() {\n        return entity.getMainHandStack().getItem() instanceof BowItem;\n    }",
+    "source_sha256": "92c451c7161686690bc48944eddd7c2b5e5af730b0f04039b518a8db6ca1aa54"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedBowAttackPassiveGoal.java",
+    "name": "shouldContinue",
+    "line": 45,
+    "end_line": 48,
+    "excerpt": "@Override\n    public boolean shouldContinue() {\n        return (this.canStart() || !entity.getNavigation().isIdle()) && this.isBowInMainhand();\n    }",
+    "source_sha256": "92c451c7161686690bc48944eddd7c2b5e5af730b0f04039b518a8db6ca1aa54"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedBowAttackPassiveGoal.java",
+    "name": "start",
+    "line": 50,
+    "end_line": 54,
+    "excerpt": "@Override\n    public void start() {\n        super.start();\n        this.entity.setAttacking(true);\n    }",
+    "source_sha256": "92c451c7161686690bc48944eddd7c2b5e5af730b0f04039b518a8db6ca1aa54"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedBowAttackPassiveGoal.java",
+    "name": "stop",
+    "line": 56,
+    "end_line": 63,
+    "excerpt": "@Override\n    public void stop() {\n        super.stop();\n        this.entity.setAttacking(false);\n        this.seeTime = 0;\n        this.attackTime = -1;\n        this.entity.stopUsingItem();\n    }",
+    "source_sha256": "92c451c7161686690bc48944eddd7c2b5e5af730b0f04039b518a8db6ca1aa54"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedBowAttackPassiveGoal.java",
+    "name": "tick",
+    "line": 65,
+    "end_line": 130,
+    "excerpt": "@Override\n    public void tick() {\n        LivingEntity livingentity = this.entity.getTarget();\n        if (livingentity != null) {\n            double d0 = this.entity.squaredDistanceTo(livingentity.getX(), livingentity.getY(), livingentity.getZ());\n            boolean flag = this.entity.getVisibilityCache().canSee(livingentity);\n            boolean flag1 = this.seeTime > 0;\n            if (flag != flag1) {\n                this.seeTime = 0;\n            }\n\n            if (flag) {\n                ++this.seeTime;\n            } else {\n                --this.seeTime;\n            }\n\n            if (!(d0 > (double) this.maxAttackDistance) && this.seeTime >= 20) {\n                this.entity.getNavigation().stop();\n                ++this.strafingTime;\n            } else {\n                this.entity.getNavigation().startMovingTo(livingentity, this.moveSpeedAmp);\n                this.strafingTime = -1;\n            }\n\n            if (this.strafingTime >= 20) {\n                if ((double) this.entity.getRandom().nextFloat() < 0.3D) {\n                    this.strafingClockwise = !this.strafingClockwise;\n                }\n\n                if ((double) this.entity.getRandom().nextFloat() < 0.3D) {\n                    this.strafingBackwards = !this.strafingBackwards;\n                }\n\n                this.strafingTime = 0;\n            }\n\n            if (this.strafingTime > -1) {\n                if (d0 > (double) (this.maxAttackDistance * 0.75F)) {\n                    this.strafingBackwards = false;\n                } else if (d0 < (double) (this.maxAttackDistance * 0.25F)) {\n                    this.strafingBackwards = true;\n                }\n                if (entity.getPatrolPos() == null)\n                    this.entity.getMoveControl().strafeTo(this.strafingBackwards ? -0.5F : 0.5F, this.strafingClockwise ? 0.5F : -0.5F);\n                this.entity.lookAtEntity(livingentity, 30.0F, 30.0F);\n            }\n            this.entity.lookAtEntity(livingentity, 30.0F, 30.0F);\n            this.entity.getLookControl().lookAt(livingentity, 30.0F, 30.0F);\n            if (this.entity.isUsingItem() && !this.entity.isBlocking()) {\n                if (!flag && this.seeTime < -60) {\n                    this.entity.stopUsingItem();\n                } else if (flag) {\n                    int i = this.entity.getItemUseTime();\n                    if (i >= 20) {\n                        this.entity.stopUsingItem();\n                        this.entity.attack(livingentity, BowItem.getPullProgress(i));\n                        this.attackTime = this.attackCooldown;\n                    }\n                }\n            } else if (--this.attackTime <= 0 && this.seeTime >= -60 && !this.entity.isBlocking()) {\n                this.entity.setCurrentHand(ProjectileUtil.getHandPossiblyHolding(this.entity, Items.BOW));\n            }\n\n        }\n    }",
+    "source_sha256": "92c451c7161686690bc48944eddd7c2b5e5af730b0f04039b518a8db6ca1aa54"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "canStart",
+    "line": 42,
+    "end_line": 45,
+    "excerpt": "@Override\n    public boolean canStart() {\n        return this.isValidTarget() && this.isHoldingCrossbow();\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "isHoldingCrossbow",
+    "line": 47,
+    "end_line": 49,
+    "excerpt": "private boolean isHoldingCrossbow() {\n        return this.mob.isHolding(is -> is.getItem() instanceof CrossbowItem);\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "shouldContinue",
+    "line": 51,
+    "end_line": 54,
+    "excerpt": "@Override\n    public boolean shouldContinue() {\n        return this.isValidTarget() && (this.canStart() || !this.mob.getNavigation().isIdle()) && this.isHoldingCrossbow();\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "isValidTarget",
+    "line": 56,
+    "end_line": 58,
+    "excerpt": "private boolean isValidTarget() {\n        return this.mob.getTarget() != null && this.mob.getTarget().isAlive();\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "stop",
+    "line": 60,
+    "end_line": 71,
+    "excerpt": "@Override\n    public void stop() {\n        super.stop();\n        this.mob.setAttacking(false);\n        this.mob.setTarget(null);\n        this.seeTime = 0;\n        if (this.mob.isUsingItem()) {\n            this.mob.stopUsingItem();\n            this.mob.setCharging(false);\n        }\n        this.mob.setPose(EntityPose.STANDING);\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "shouldRunEveryTick",
+    "line": 73,
+    "end_line": 76,
+    "excerpt": "@Override\n    public boolean shouldRunEveryTick() {\n        return true;\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "start",
+    "line": 78,
+    "end_line": 81,
+    "excerpt": "@Override\n    public void start() {\n        this.mob.setAttacking(true);\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "tick",
+    "line": 83,
+    "end_line": 161,
+    "excerpt": "@Override\n    public void tick() {\n        LivingEntity livingentity = this.mob.getTarget();\n        if (livingentity != null) {\n            boolean canSee = this.mob.getVisibilityCache().canSee(livingentity);\n            boolean hasSeenEntityRecently = this.seeTime > 0;\n            if (canSee != hasSeenEntityRecently) {\n                this.seeTime = 0;\n            }\n            if (canSee) {\n                ++this.seeTime;\n            } else {\n                --this.seeTime;\n            }\n            double d0 = this.mob.squaredDistanceTo(livingentity);\n            double d1 = livingentity.distanceTo(this.mob);\n            if (d1 <= 4.0D) {\n                this.mob.getMoveControl().strafeTo(this.mob.isUsingItem() ? -0.5F : -3.0F, 0.0F);\n                this.mob.lookAtEntity(livingentity, 30.0F, 30.0F);\n            }\n            if (this.mob.getRandom().nextInt(50) == 0) {\n                if (this.mob.isInPose(EntityPose.STANDING))\n                    this.mob.setPose(EntityPose.CROUCHING);\n                else\n                    this.mob.setPose(EntityPose.STANDING);\n            }\n            boolean canSee2 = (d0 > (double) this.attackRadiusSqr || this.seeTime < 5) && this.attackDelay == 0;\n            if (canSee2) {\n                --this.updatePathDelay;\n                if (this.updatePathDelay <= 0) {\n                    this.mob.getNavigation().startMovingTo(livingentity, this.canRun() ? this.speedModifier : this.speedModifier * 0.5D);\n                    this.updatePathDelay = PATHFINDING_DELAY_RANGE.get(this.mob.getRandom());\n                }\n            } else {\n                this.updatePathDelay = 0;\n                this.mob.getNavigation().stop();\n            }\n            this.mob.lookAtEntity(livingentity, 30.0F, 30.0F);\n            this.mob.getLookControl().lookAt(livingentity, 30.0F, 30.0F);\n            if (this.friendlyInLineOfSight() && GuardVillagersConfig.friendlyFire)\n                this.crossbowState = CrossbowState.FIND_NEW_POSITION;\n            if (this.crossbowState == CrossbowState.FIND_NEW_POSITION && GuardVillagersConfig.friendlyFire) {\n                this.mob.stopUsingItem();\n                this.mob.setCharging(false);\n                if (this.findPosition())\n                    this.mob.getNavigation().startMovingTo(this.wantedX, this.wantedY, this.wantedZ, this.mob.isSneaking() ? 0.5F : 1.2D);\n                this.crossbowState = CrossbowState.UNCHARGED;\n            } else if (this.crossbowState == CrossbowState.UNCHARGED) {\n                if (hasSeenEntityRecently) {\n                    this.mob.setCurrentHand(GuardVillagers.getHandWith(this.mob, item -> item instanceof CrossbowItem));\n                    this.crossbowState = CrossbowState.CHARGING;\n                    this.mob.setCharging(true);\n                }\n            } else if (this.crossbowState == CrossbowState.CHARGING) {\n                if (!this.mob.isUsingItem()) {\n                    this.crossbowState = CrossbowState.UNCHARGED;\n                }\n                int i = this.mob.getItemUseTime();\n                ItemStack itemstack = this.mob.getActiveItem();\n                if (i >= CrossbowItem.getPullTime(itemstack) || CrossbowItem.isCharged(itemstack)) {\n                    this.mob.stopUsingItem();\n                    this.crossbowState = CrossbowState.CHARGED;\n                    this.attackDelay = 10 + this.mob.getRandom().nextInt(5);\n                    this.mob.setCharging(false);\n                }\n            } else if (this.crossbowState == CrossbowState.CHARGED) {\n                --this.attackDelay;\n                if (this.attackDelay == 0) {\n                    this.crossbowState = CrossbowState.READY_TO_ATTACK;\n                }\n            } else if (this.crossbowState == CrossbowState.READY_TO_ATTACK && canSee) {\n                this.mob.attack(livingentity, 1.0F);\n                ItemStack itemstack1 = this.mob.getStackInHand(GuardVillagers.getHandWith(this.mob, item -> item instanceof CrossbowItem));\n                CrossbowItem.setCharged(itemstack1, false);\n                this.crossbowState = CrossbowState.UNCHARGED;\n            }\n        }\n\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "friendlyInLineOfSight",
+    "line": 163,
+    "end_line": 178,
+    "excerpt": "private boolean friendlyInLineOfSight() {\n        List<Entity> list = this.mob.getWorld().getOtherEntities(this.mob, this.mob.getBoundingBox().expand(5.0D));\n        for (Entity guard : list) {\n            if (guard != this.mob.getTarget()) {\n                boolean isVillager = ((GuardEntity) this.mob).getOwner() == guard || guard.getType() == EntityType.VILLAGER || guard.getType() == GuardVillagers.GUARD_VILLAGER || guard.getType() == EntityType.IRON_GOLEM;\n                if (isVillager) {\n                    Vec3d vector3d = this.mob.getRotationVector();\n                    Vec3d vector3d1 = guard.getPos().relativize(this.mob.getPos()).normalize();\n                    vector3d1 = new Vec3d(vector3d1.x, vector3d1.y, vector3d1.z);\n                    if (vector3d1.dotProduct(vector3d) < 1.0D && this.mob.canSee(guard) && guard.distanceTo(this.mob) <= 4.0D)\n                        return true;\n                }\n            }\n        }\n        return false;\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "findPosition",
+    "line": 180,
+    "end_line": 190,
+    "excerpt": "public boolean findPosition() {\n        Vec3d vector3d = this.getPosition();\n        if (vector3d == null) {\n            return false;\n        } else {\n            this.wantedX = vector3d.x;\n            this.wantedY = vector3d.y;\n            this.wantedZ = vector3d.z;\n            return true;\n        }\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "getPosition",
+    "line": 192,
+    "end_line": 198,
+    "excerpt": "@Nullable\n    protected Vec3d getPosition() {\n        if (this.isValidTarget())\n            return NoPenaltyTargeting.findFrom(this.mob, 16, 7, this.mob.getTarget().getPos());\n        else\n            return NoPenaltyTargeting.find(this.mob, 16, 7);\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "name": "canRun",
+    "line": 200,
+    "end_line": 202,
+    "excerpt": "private boolean canRun() {\n        return this.crossbowState == CrossbowState.UNCHARGED;\n    }",
+    "source_sha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/HeroHurtByTargetGoal.java",
+    "name": "canStart",
+    "line": 24,
+    "end_line": 34,
+    "excerpt": "@Override\n    public boolean canStart() {\n        LivingEntity livingentity = this.guard.getOwner();\n        if (livingentity == null) {\n            return false;\n        } else {\n            this.attacker = livingentity.getAttacker();\n            int i = livingentity.getLastAttackedTime();\n            return i != this.timestamp && this.canTrack(this.attacker, TargetPredicate.DEFAULT);\n        }\n    }",
+    "source_sha256": "c4560e10653d1557001b8556617a8d2379a10f129ea98f7a4e3f83980edd87f7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/HeroHurtByTargetGoal.java",
+    "name": "canTrack",
+    "line": 36,
+    "end_line": 39,
+    "excerpt": "@Override\n    protected boolean canTrack(@Nullable LivingEntity target, TargetPredicate targetPredicate) {\n        return super.canTrack(target, targetPredicate) && !(target instanceof IronGolemEntity) && !(target instanceof GuardEntity);\n    }",
+    "source_sha256": "c4560e10653d1557001b8556617a8d2379a10f129ea98f7a4e3f83980edd87f7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/HeroHurtByTargetGoal.java",
+    "name": "start",
+    "line": 41,
+    "end_line": 50,
+    "excerpt": "@Override\n    public void start() {\n        this.mob.setTarget(this.attacker);\n        LivingEntity livingentity = this.guard.getOwner();\n        if (livingentity != null) {\n            this.timestamp = livingentity.getLastAttackedTime();\n        }\n\n        super.start();\n    }",
+    "source_sha256": "c4560e10653d1557001b8556617a8d2379a10f129ea98f7a4e3f83980edd87f7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/network/GuardFollowPacket.java",
+    "name": "handle",
+    "line": 23,
+    "end_line": 32,
+    "excerpt": "public static void handle(GuardFollowPacket guardFollowPacket, ServerPlayerEntity serverPlayerEntity, PacketSender packetSender) {\n        int entityId = guardFollowPacket.id;\n\n        Entity entity = serverPlayerEntity.getWorld().getEntityById(entityId);\n        if (entity instanceof GuardEntity guardEntity) {\n            guardEntity.setFollowing(!guardEntity.isFollowing());\n            guardEntity.setOwnerId(serverPlayerEntity.getUuid());\n            guardEntity.playSound(SoundEvents.ENTITY_VILLAGER_YES, 1, 1);\n        }\n    }",
+    "source_sha256": "01c0cedc79b7fa0e41db0715132608ec08b3ee29abc02b3ec97a8f4b8ed0efc9"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/network/GuardFollowPacket.java",
+    "name": "read",
+    "line": 34,
+    "end_line": 37,
+    "excerpt": "public static GuardFollowPacket read(PacketByteBuf buf) {\n        int id = buf.readInt();\n        return new GuardFollowPacket(id);\n    }",
+    "source_sha256": "01c0cedc79b7fa0e41db0715132608ec08b3ee29abc02b3ec97a8f4b8ed0efc9"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/network/GuardFollowPacket.java",
+    "name": "write",
+    "line": 39,
+    "end_line": 42,
+    "excerpt": "@Override\n    public void write(PacketByteBuf buf) {\n        buf.writeInt(id);\n    }",
+    "source_sha256": "01c0cedc79b7fa0e41db0715132608ec08b3ee29abc02b3ec97a8f4b8ed0efc9"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/network/GuardFollowPacket.java",
+    "name": "getType",
+    "line": 44,
+    "end_line": 47,
+    "excerpt": "@Override\n    public PacketType<?> getType() {\n        return PACKET_TYPE;\n    }",
+    "source_sha256": "01c0cedc79b7fa0e41db0715132608ec08b3ee29abc02b3ec97a8f4b8ed0efc9"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/network/GuardPatrolPacket.java",
+    "name": "handle",
+    "line": 24,
+    "end_line": 36,
+    "excerpt": "public static void handle(GuardPatrolPacket packet, ServerPlayerEntity serverPlayerEntity, PacketSender buf) {\n        int entityId = packet.id;\n        boolean pressed = packet.pressed;\n\n        Entity entity = serverPlayerEntity.getWorld().getEntityById(entityId);\n        if (entity instanceof GuardEntity guardEntity) {\n            BlockPos pos = guardEntity.getBlockPos();\n            if (guardEntity.getBlockPos() != null) {\n                guardEntity.setPatrolPos(pos);\n            }\n            guardEntity.setPatrolling(pressed);\n        }\n    }",
+    "source_sha256": "8d9b2e5f523111c273209d8e07c3dd45191179ba8addf71587d9a8f2e4e848f7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/network/GuardPatrolPacket.java",
+    "name": "read",
+    "line": 38,
+    "end_line": 42,
+    "excerpt": "private static GuardPatrolPacket read(PacketByteBuf buf) {\n        int id = buf.readInt();\n        boolean pressed = buf.readBoolean();\n        return new GuardPatrolPacket(id, pressed);\n    }",
+    "source_sha256": "8d9b2e5f523111c273209d8e07c3dd45191179ba8addf71587d9a8f2e4e848f7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/network/GuardPatrolPacket.java",
+    "name": "write",
+    "line": 44,
+    "end_line": 48,
+    "excerpt": "@Override\n    public void write(PacketByteBuf buf) {\n        buf.writeInt(id);\n        buf.writeBoolean(pressed);\n    }",
+    "source_sha256": "8d9b2e5f523111c273209d8e07c3dd45191179ba8addf71587d9a8f2e4e848f7"
+  },
+  {
+    "source_local": "tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/network/GuardPatrolPacket.java",
+    "name": "getType",
+    "line": 50,
+    "end_line": 53,
+    "excerpt": "@Override\n    public PacketType<?> getType() {\n        return PACKET_TYPE;\n    }",
+    "source_sha256": "8d9b2e5f523111c273209d8e07c3dd45191179ba8addf71587d9a8f2e4e848f7"
+  }
+]

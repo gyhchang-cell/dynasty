@@ -1,0 +1,25 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('tools/cod4/boss-cooldown-network-acceptance/.work/gradle'))
+ p.afterEvaluate {
+  if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def qa=p.sourceSets.create('bossCooldownNetworkAcceptance') {
+   java.srcDir p.file('tools/cod4/boss-cooldown-network-acceptance/src')
+   resources.srcDir p.file('tools/cod4/boss-cooldown-network-acceptance/resources')
+   compileClasspath += p.files('build/cod4-network-20261022/compile-dynasty') + p.sourceSets.main.compileClasspath
+  }
+  p.tasks.register('bossCooldownNetworkAcceptanceJar',Jar) {
+   dependsOn qa.classesTaskName
+   archiveBaseName='dynasty-boss-cooldown-network-acceptance'
+   manifest { attributes('MixinConfigs':'dynasty_guard_network_qa.mixins.json') }
+   from qa.output
+  }
+  p.tasks.register('guardPatchJar',Jar) {
+   archiveBaseName='dynasty-guard-patch'
+   from(p.file('tools/cod4/guard-target-acceptance/.work/gradle-output/classes/java/main')) {
+    include 'com/dynasty/expansion/SummonedGuard.class','com/dynasty/expansion/SecondaryMob.class'
+   }
+  }
+  p.reobf { guardPatchJar {} }
+  p.reobf { bossCooldownNetworkAcceptanceJar {} }
+ }
+}

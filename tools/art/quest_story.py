@@ -123,7 +123,7 @@ def loot_index():
 
 # Text below is hand-authored from local behavior, recipes, loot and biome modifiers.
 HINTS = {
- "mu_mao":"两根木棍加一块橡木木板合成；当前配方指定橡木，不是任意木板。夜里先避开王朝精英怪。",
+ "mu_mao":"两根木棍加一块任意木板合成。夜里先避开王朝精英怪。",
  "jade":"铁镐开采主世界地下玉矿；先留一部分玉做饰品，再把多余的九块玉压成玉石块。",
  "cinnabar":"没有朱砂矿。主世界用探险者指南针搜索“山麓采矿庄园”或“天工山城”，开宝箱有概率取得；神庙与法阵遗迹无法直接用指南针搜索。",
  "bamboo_slip":"去丛林找竹子，线可由蜘蛛掉落。竹简用于兵器图纸，不是一次性的任务交付品。",

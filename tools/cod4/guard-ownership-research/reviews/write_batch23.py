@@ -1,0 +1,26 @@
+import json,pathlib
+R=[]
+def a(m,o,b,l,s=None):
+ d=dict(repo='TeamLapen/Vampirism',file='/PlayerMinionController.java',method=m,observation=o,application=b,limits=l)
+ if s:d['start']=s
+ R.append(d)
+a('activateTask','lord在线且旁观时拒绝；负minionID群发只对未锁task单位，非负单发直接激活，越上界警告。','群发与单发的锁定语义不同，操作者身份不能只靠任务类型推断。','此入口不自检task.isAvailable；只研究实际命令分发控制，非通用数组代码。',89)
+a('checkoutMinion','校id/token后以实体网络ID和维度checkout，成功返回专属minionData，否则null。','租约身份与活跃实例绑定，重复实体或旧代不能取同一控制数据。','通用Map访问不计，此为实际召唤控制凭据校验入口。')
+a('claimMinionSlot','id上界内且token空并不在死亡恢复期才发随机token写入槽返回。','长冷却应作为重新占用召唤槽的必要条件，不仅UI展示。','未检负id是源码局部事实，调用者契约需另查，不声明已可利用。')
+a('createMinionEntityAtPlayer','按槽类型LOAD生成，阵营不匹配或中立就discard，否则先claim槽/拷玩家位置/校死亡数据，再入世界并设STAY同步。','创建时先确立凭据，再入世界，默认stay减少初始化攻击窗口。','使用的Player参数未在此函数校是lord，授权在命令外层，不夸大。')
+a('createNewMinionSlot','现槽数小于max才扩建MinionInfo及空token平行数组并返回新ID，超额返回-1。','召唤额度与租约占用是两步，不能把创建槽成功当实体已绑定。','只计实际随从容量策略，不单列数组复制基础设施。')
+a('getCallableMinions','遍历所有槽，只排死亡恢复中的对象而不排已claim的token。','可呼叫列表与可新占用列表不同，测试必须明确接口含义。','非纯字段getter；getUnclaimed另有token门，不将列表实现算通用参考。')
+a('getUnclaimedMinions','仅token空且死亡恢复结束的槽进入未claim列表。','重召资格同时依赖凭据释放和真实冷却，任一缺失不得重召。','与getCallable实际用户语义不同但不按每slot计数。')
+a('markDeadAndReleaseMinionSlot','凭据有效才checkin，设置配置秒数x20死亡期，lord有恢复技能缩0.8，再清token。','死亡后释放活跃实例但保留恢复窗口，旧实体晚回调需要凭据隔离。','技能缩短为外部玩法不移植，不把每种冷却倍率拆条。')
+a('recallMinions','群体回收仅force或未锁任务才调用实际recall，收集不再恢复的ID。','强制与普通命令边界影响能否撤销召唤，不应误伤锁定任务。','单个int重载只是边界转发不计，实际私有回收另读。')
+a('serialize','保存max/faction，每个随从保存实体数据、death_timer、稳定id、类型及非空token。','卸载不能清除死亡长冷却或租约凭据，否则可能重载重召绕过。','只计实际召唤状态整体保存，不按NBT字段或codec凑数。')
+a('deserialize','阵营缺失max置0直接返；逐个有效id/data重建info和death_timer/类型/token，按id排序成两个数组。','读档失败项跳过会影响槽索引与稳定ID对应，需核后续访问契约。','只是静态恢复策略观察，不声明已在外模组复现索引漏洞。')
+a('setMaxMinions','换阵营先召回所有加载单位清两数组；同阵营减额从最后槽依次召回并缩数组，增加才更新max字段。','配额/身份改变必须回收已存活对象，不能只删登记留下无主AI。','只观察减额分支未改max字段的局部事实，不在本项目修外部代码。')
+a('tick','死亡期正值每tick减，到0恢复存储血量并通知在线lord；否则执行当前任务active/background tick。','真实冷却期间禁止任务执行，恢复边界与任务切换明确分开。','不把采集收益/一般资源逻辑当目标AI参考，只研究召唤复活窗口。')
+a('activateTask','调用任务activate传可能离线lord和可能未加载实体；返回null只提示，成功才switchTask并通知在线实例onTaskChanged。','命令失败应保留旧任务，成功后同步实际AI实例。','int入口分发和本条提交任务分别有独立语义，不按重载机械转发重复。',469)
+a('getMinionEntity','只有info活跃才按记录维度取世界，再网络ID取MinionEntity；其他类型警告，缺世界空。','短实体ID必须绑定维度与活跃租约，复用ID时仅类型核对的保护范围要明确。','非纯getter，实际跨维度召唤控制定位；未据此声称网络ID复用已出错。')
+a('getMinionInfo','先assert数组长度一致，id上界内且对应token等整数才返回info。','所有迟到死亡/移除回调应先核代次，不能仅凭slotID。','这是具体召唤lease验证，不是通用密码/哈希基础设施；负id契约另查。')
+a('recallMinion','先联系实体discard，若仍active则checkin兜底，再清槽token，返回是否已脱离死亡恢复期。','回收应清实际实体与登记双通道，缺实体时也必须使旧凭据失效。','仅521私有实现计，335重载边界转发不计。',521)
+a('tickTask','active状态任务获得可延迟解析实体的supplier执行tickActive，否则对同一desc/data跑tickBackground。','卸载后任务状态继续存在，不能把无实例解释为租约自动结束。','后台资源具体收益未计，此处研究活跃/卸载召唤任务切换。')
+a('checkout','活跃网络ID不是-1或仍恢复就拒绝；否则写entityId与dim。','同一槽只允许一个活跃实体且不能越死亡期重复使用。','MinionInfo内部真实租约状态机一处，纯isActive/isStillRecovering getter不计。')
+pathlib.Path(__file__).with_name('batch23.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

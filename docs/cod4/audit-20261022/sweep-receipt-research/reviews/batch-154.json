@@ -1,0 +1,74 @@
+[
+  {
+    "candidate_index": 7481,
+    "candidate_id": "c786b10cdb713b9a5156",
+    "decision": "accepted",
+    "observation": "主审完整executeAction、全类构造setTicking及helper9段支持：ItemStack.setDamageValue HEAD捕旧Damage、TAIL差量路由增/减/损坏动作；按物品引用定位装备槽或主背包槽，operatedStacks在用户回调之前占槽，power.tick/onRemoved清空。此玩法短窗口阻止同槽回调再入，三个动作包装与清理合并一条；槽而非物品/攻击标识，同槽换物仍占用，不能保证END相位，回调异常也不释放；与已审hurt命中史等链不重复。",
+    "snippet_sha256": "1f69289afa2decaae9600ad24815d165095398e32d118a46e14790f34ad7b432",
+    "reviewed_at": "2026-10-28T20:44:30.109086+08:00"
+  },
+  {
+    "candidate_index": 7482,
+    "candidate_id": "b35a02d330ff6ae97994",
+    "decision": "accepted",
+    "observation": "主审完整爆炸参数注入与三个真实生产入口及S2C消费：Explode/ExplosionRaycast/RocketJump把伤害、击退、声音与条件挂到同一Explosion实例；伤害修饰在首个hurt参数消费后清空，XYZ击退在Z清空、volume消费清空但pitch未清。explode后finalize(false)并发包，客户端execute只finalize(true)不重跑伤害；不是最终成功hurt回执。按首消费者取走实例临时参数的一条玩法链计，三个入口及编解码均不拆计。包当前世界数字ID且无代际/维度/TTL，不能直接移用到方天。",
+    "snippet_sha256": "859db42d79ada448a9993c6300460ddcc1bd908f4642ea9287186f944a899519",
+    "reviewed_at": "2026-10-28T20:44:30.109107+08:00"
+  },
+  {
+    "candidate_index": 7483,
+    "candidate_id": "029c48b35e02f176cfcf",
+    "decision": "accepted",
+    "observation": "主审完整hurt调用die前的amount快照、die归属选择及onTargetDeath：服务器优先非直接source的killCredit并传primeAdversary，再以includes_prime_adversary筛能力；否则Living直接source；伤害与双方条件通过且canUse后执行动作再use消费冷却。真正致死时刻到击杀能力结算的独立归属链，非已审RETURN成功累计命中史，整链一条。快照字段无清除/攻击ID/TTL且动作先于use，die重入和绕开hurt的死亡可能陈旧；不声称跨tick安全。",
+    "snippet_sha256": "83ca45a83ba587a235909dec51d5304bc04f1f2f9532ea0dc9bd75402d631b01",
+    "reviewed_at": "2026-10-28T20:44:30.109114+08:00"
+  },
+  {
+    "candidate_index": 7484,
+    "candidate_id": "7948b4b885a6123179d4",
+    "decision": "accepted",
+    "observation": "主审全类RedirectLightningPower及tickChunk完整捕获/位置消费：能力增加/移除重算持有者概率，零值删除；自然雷击位置按概率降序试选，并跳过skeletonHorse标志场合。消费以当前ServerWorld.isRainingAt候选坐标，未查实体alive或所属维度；静态表跨世界同坐标可误选，移除计数依赖power框架调用时序。是能力授权表实际改变天气雷击目标的一条生命周期，非单纯静态注册，包装/工厂不另计。",
+    "snippet_sha256": "c65a287dffd6c25cdfa51173a59dc2132b1ff3fe97188308d7fab7a69d47340b",
+    "reviewed_at": "2026-10-28T20:44:30.109117+08:00"
+  },
+  {
+    "candidate_index": 7485,
+    "candidate_id": "891c5cd4448ab7eee6d5",
+    "decision": "accepted",
+    "observation": "主审全类CrawlingPower及实际LivingTick事件、setForcedPlayerPose、S2C完整handle：onAdded创建实体WAS_ACTIVE，tick由当前能力与姿态做进入/退出边沿，飞行睡眠旋转先撤；最后一个power移除才删状态并清pose。服务器广播实体数字ID，客户端execute延后在当前世界解析Player并直接赋pose，无维度/UUID/代际/过期检查；多包陈旧覆盖未防止，onRemoved布尔拆箱依赖表项存在。一条真实移动姿态生命周期，与按键组件链分开，不拆包计数。",
+    "snippet_sha256": "f4d8f66977c2bb4e0f3ac2d80a676bdea5ed90bee4effb4c82e17cb6203d8195",
+    "reviewed_at": "2026-10-28T20:44:30.109121+08:00"
+  },
+  {
+    "candidate_index": 7486,
+    "candidate_id": "55f9f260adb57d068323",
+    "decision": "pending",
+    "observation": "全文读完check/getReturnValue/incrementCountIfPosCheck/两个invalidate/clearCache与setBlock RETURN和断连入口；成功setBlock才使几何条件证据失效，查询次数更新ENTITIES年龄而非tick，缓存键缺世界/端，指定data invalidate只清首个依赖中心。虽注册cached_block_in_radius为实际Minecraft条件，现有helper未给出具体power/内容数据使用实例；为避免将注册加缓存自动视为相关玩法，保留pending零信用，补实际内容消费后再定。",
+    "snippet_sha256": "f6a8f662258cd6473660128fb9941bf3efb9f6f8580d46f52f23ce9c54698621",
+    "reviewed_at": "2026-10-28T20:44:30.109124+08:00"
+  },
+  {
+    "candidate_index": 7487,
+    "candidate_id": "510acfea6f330a0ae440",
+    "decision": "accepted",
+    "observation": "主审18段完整方法及固定1.18源码：modify_mob_behavior每10实体age tick扫描服务器当前mob列表，按持有者条件/active授予FleeEntityGoal，不再适用或能力移除时撤目标和goal；modifiables未清会累积重复，但hasAppliedGoals挡重复授予。Flee实际加goalSelector却记入modifiedTargetSelectorGoals，removeGoals到错误selector撤，登记消失不代表真实AI消失。以具体AI授权/撤销生命周期一条，不按版本或注册计数，不与已审周期发射/姿态共享状态。",
+    "snippet_sha256": "7de73c0cb0bdc7517aa45d47b7848e3251cb79f3fa825b7b80edf7bc57715144",
+    "reviewed_at": "2026-10-28T20:44:30.109127+08:00"
+  },
+  {
+    "candidate_index": 7488,
+    "candidate_id": "346bb1e1eded191877a5",
+    "decision": "accepted",
+    "observation": "主审32段完整方法，固定1.20.1分支不与新分支拼接：modify_enchantment_level按实体UUID维护power修饰/active快照及每ComparableItemStack附魔结果，EnchantmentHelper真实读取钩子触发shouldReapply；首次变更由anyMatch消费全局快照，其他已缓存物品可继续旧结果，短路使部分power快照延后。onRemoved删power/末能力删实体结果，再发S2C于客户端当前实体及powerId撤销；无代际/维度/TTL，可作用新能力。普通非空物品holder初始绑定链未证实，空物品实际由tick赋专属实例且copy传播holder。整条附魔玩法缓存授予/失效/撤销一条，不因版本、方法数量或协议分拆。",
+    "snippet_sha256": "a401c95b5c8dd6f7c29b661c9ef2af6f610cb18b3e07a9f47d475c00310eb1c5",
+    "reviewed_at": "2026-10-28T20:44:30.109131+08:00"
+  },
+  {
+    "candidate_index": 7489,
+    "candidate_id": "31fe8d482432f9dce7e6",
+    "decision": "accepted",
+    "observation": "主审24段完整证据并补读doesApply/eat：1.16.5 edible_item真实baseTick含inactive能力，按age取模赋手持stack食物属性，移除时遍历背包/盔甲/副手以predicate和foodComponent引用一致才清理并广播槽索引；客户端queue延后只按当前世界targetId与当前槽无条件清，没有旧物/属性代际验证，换物或新授予可遭旧撤销。真实finishUsing调用eatFood及能力动作，copy共享component引用；offhand赋权错读mainhand状态，setFoodUseAction(null)无效，条件变假可能漏撤。独立物品临时授权整链一条，客户端/服务端/四属性不拆计。",
+    "snippet_sha256": "43d10626b58cc783f6ce30ab32ababc8e7967b24d15c03ef44cbc010923319e4",
+    "reviewed_at": "2026-10-28T20:44:30.109133+08:00"
+  }
+]

@@ -154,6 +154,13 @@ for name,col in [('cauldron_abyss_oil','dark'),('cauldron_bone_ritual','bronze')
  write(A/'models/block'/f'{name}.json',{'textures':{'all':'dynasty:entity/blueprint/boss/'+ID,'particle':'dynasty:entity/blueprint/boss/'+ID},'elements':[{'from':[0,0,0],'to':[16,16,16],'faces':{f:{'uv':UV[col]+[UV[col][0]+4,UV[col][1]+4],'texture':'#all'} for f in ['north','south','west','east','up','down']}}]});write(A/'blockstates'/f'{name}.json',{'variants':{'':{'model':'dynasty:block/'+name}}})
 write(A/'models/item/cauldron_bone_ritual.json',{'parent':'dynasty:block/cauldron_bone_ritual'})
 
+# Actor-only materials share UV semantics across the existing32tick transition.
+# Original16px PNGs remain authoritative for spells and functional arena blocks.
+import sys as _taoyan_sys
+_taoyan_sys.path.insert(0,str(ROOT/'tools/art/bestiary-v43'))
+from taoyan_materials import export_materials as _taoyan_export_materials
+_taoyan_export_materials(A)
+
 # Approved inventory transparency: preserve entity atlases.
 import runpy as _inventory_runpy
 from pathlib import Path as _InventoryPath

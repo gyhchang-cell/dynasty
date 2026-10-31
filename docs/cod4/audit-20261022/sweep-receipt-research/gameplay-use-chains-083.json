@@ -1,0 +1,119 @@
+{
+  "purpose": "人工全文审阅后的具体玩法使用链；支持方法不额外计数。",
+  "reviewed_at": "2026-10-28T23:28:35.007331+08:00",
+  "additional_credit": 0,
+  "external_runtime_tested": false,
+  "chains": [
+    {
+      "observation": "全文UltimateWitherSkull tick/onHit/clearInvincibility/initMotion、真实EnigmaticItem施放生产、WitherExplosion.finalizeExplosion和PacketWitherParticles.handle：首10刻用当前玩家视线重新瞄准，10刻加速，11..399按BOUND_TARGET实体ID懒取活体跟踪，400刻服务端有owner才主动miss引爆；owner空提前return故无此TTL清理。本体super.tick在前，无removed早退，未审父完整碰撞无法证明同帧不重入。onHit先清3格所有活体invulnerableTime，再遇直接目标==owner早退，故虽不伤owner仍改变无敌窗。hurt bool仅控制附魔后效，WITHER无条件；真实施放先音、spawn返回未查便发送诞生烟并设技能CD，不能当spawn接纳ACK。实际爆炸event取消时只跳explosion和原版爆炸包，专用烟粒子仍无条件按维度64格发送并discard。consumer enqueue后在当前localPlayer.level坐标造粒子，无null/维度/owner/UUID/序号/TTL复核，因此不能凭烟证明伤害或爆炸许可；amount循环<=多1。整条引导延时发射/固定寿命碰撞/分支反馈链1，不拆无敌清理/爆炸/packet各计；原版Explosion.explode未独立读不声称所有受害者成功。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "f90b023b15d92c0c0406",
+          "repo": "Aizistral-Studios/Enigmatic-Legacy",
+          "revision": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+          "path": "src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java",
+          "method": "onHit",
+          "line": 206,
+          "end_line": 255,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java",
+          "source_sha256": "9e6ca728f428ac2f618ea603287521fba91749145612ba9da2ef46fb7a8fa503",
+          "snippet_sha256": "7acc26b58f2980f8ecd6147117738eb1dfdcddce87fbe925176c6f142bf6c433",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java#L206-L255",
+          "excerpt": "@Override\n\tprotected void onHit(HitResult result) {\n\t\tif (!this.level().isClientSide) {\n\n\t\t\tthis.clearInvincibility();\n\n\t\t\tif (result.getType() == HitResult.Type.ENTITY) {\n\t\t\t\tEntity entity = ((EntityHitResult) result).getEntity();\n\n\t\t\t\tif (entity == this.getOwner())\n\t\t\t\t\treturn;\n\n\t\t\t\tif (this.getOwner() != null) {\n\t\t\t\t\tif (entity.hurt(entity.damageSources().indirectMagic(this, this.getOwner()), this.isSkullInvulnerable() ? 24.0F : 8.0F)) {\n\t\t\t\t\t\tif (entity.isAlive()) {\n\t\t\t\t\t\t\tthis.doEnchantDamageEffects((LivingEntity) this.getOwner(), entity);\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t} else {\n\t\t\t\t\tentity.hurt(entity.damageSources().magic(), this.isSkullInvulnerable() ? 16.0F : 5.0F);\n\t\t\t\t}\n\n\t\t\t\tif (entity instanceof LivingEntity) {\n\n\t\t\t\t\t((LivingEntity) entity).addEffect(new MobEffectInstance(MobEffects.WITHER, 20 * 30, 1));\n\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tfloat explosionRadius = this.isSkullInvulnerable() ? 1.5F : 1.0F;\n\t\t\tWitherExplosion explosion = new WitherExplosion(this.level(), this, this.getX(), this.getY(), this.getZ(), explosionRadius, false, Explosion.BlockInteraction.DESTROY);\n\n\n\t\t\tif (!net.minecraftforge.event.ForgeEventFactory.onExplosionStart(this.level(), explosion)) {\n\t\t\t\texplosion.explode();\n\t\t\t\texplosion.finalizeExplosion(true);\n\n\t\t\t\tfor(ServerPlayer serverPlayer : this.level().getServer().getLevel(this.level().dimension()).players()) {\n\t\t\t\t\tif (serverPlayer.distanceToSqr(explosion.getPosition().x, explosion.getPosition().y, explosion.getPosition().z) < 4096.0D) {\n\t\t\t\t\t\tserverPlayer.connection.send(new ClientboundExplodePacket(explosion.getPosition().x, explosion.getPosition().y, explosion.getPosition().z, explosionRadius, explosion.getToBlow(), explosion.getHitPlayers().get(serverPlayer)));\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tEnigmaticLegacy.packetInstance.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(this.getX(), this.getY(), this.getZ(), 64, this.level().dimension())), new PacketWitherParticles(this.getX(), this.getY() + (this.getBbHeight() / 2), this.getZ(), this.isSkullInvulnerable() ? 20 : 16, false));\n\n\t\t\tthis.discard();\n\t\t}\n\n\t}"
+        },
+        {
+          "repo": "Aizistral-Studios/Enigmatic-Legacy",
+          "revision": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+          "path": "src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java",
+          "method": "tick",
+          "line": 120,
+          "end_line": 201,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java",
+          "source_sha256": "9e6ca728f428ac2f618ea603287521fba91749145612ba9da2ef46fb7a8fa503",
+          "snippet_sha256": "bb785cbc15ef5bd0e5f9b8838de37f459f446345591687a0ef8d63ab28fc8e31",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java#L120-L201",
+          "excerpt": "@Override\n\tpublic void tick() {\n\t\tsuper.tick();\n\n\t\tif (this.tickCount > 10 && this.tickCount < 400) {\n\n\t\t\tif (this.target == null) {\n\n\t\t\t\tint targetId = this.entityData.get(UltimateWitherSkullEntity.BOUND_TARGET);\n\n\t\t\t\tif (targetId != -1) {\n\t\t\t\t\ttry {\n\t\t\t\t\t\tthis.target = (LivingEntity) this.level().getEntity(targetId);\n\t\t\t\t\t} catch (Exception ex) {\n\t\t\t\t\t\tex.printStackTrace();\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t}\n\n\t\t\tif (this.target != null && this.target.isAlive()) {\n\n\t\t\t\t/*\n\t\t\t\tfinal double d = this.getDistanceSq(this.target);\n\t\t\t\tdouble dx = this.target.getPosX() - this.getPosX();\n\t\t\t\tdouble dy = this.target.getBoundingBox().minY + this.target.getHeight() * 0.6 - this.getPosY();\n\t\t\t\tdouble dz = this.target.getPosZ() - this.getPosZ();\n\t\t\t\tfinal double d2 = 1.5;\n\t\t\t\tdx /= d;\n\t\t\t\tdy /= d;\n\t\t\t\tdz /= d;\n\n\t\t\t\tdouble motionX = this.getMotion().x + (dx * d2);\n\t\t\t\tdouble motionY = this.getMotion().y + (dy * d2);\n\t\t\t\tdouble motionZ = this.getMotion().z + (dz * d2);\n\n\t\t\t\tmotionX = Mth.clamp((float) motionX, -0.25f, 0.25f);\n\t\t\t\tmotionY = Mth.clamp((float) motionY, -0.25f, 0.25f);\n\t\t\t\tmotionZ = Mth.clamp((float) motionZ, -0.25f, 0.25f);\n\n\t\t\t\t */\n\n\t\t\t\tfinal Vector3 thisVec = Vector3.fromEntityCenter(this);\n\t\t\t\tfinal Vector3 targetVec = Vector3.fromEntityCenter(this.target);\n\t\t\t\tfinal Vector3 diffVec = targetVec.subtract(thisVec);\n\t\t\t\tfinal Vector3 motionVec = diffVec.normalize().multiply(0.6)/*.multiply(Math.min(this.getDistance(this.target)/4D, 1.0))*/;\n\n\t\t\t\tdouble distance = this.distanceTo(this.target);\n\t\t\t\tVector3 formerMotion = new Vector3(this.getDeltaMovement()).multiply(0.6);\n\n\t\t\t\tif (distance < 6D && distance != 0) {\n\t\t\t\t\tthis.setDeltaMovement(new Vec3(formerMotion.x + (motionVec.x * 2D / distance), formerMotion.y + (motionVec.y * 2D / distance), formerMotion.z + (motionVec.z * 2D / distance)).normalize().multiply(1.4D, 1.4D, 1.4D));\n\t\t\t\t}\n\n\t\t\t\t//this.setMotion(motionX, motionY, motionZ);\n\t\t\t\tthis.xPower = motionVec.x / 3.0D;\n\t\t\t\tthis.yPower = motionVec.y / 3.0D;\n\t\t\t\tthis.zPower = motionVec.z / 3.0D;\n\t\t\t}\n\n\t\t}\n\n\t\tif (this.level().isClientSide || this.getOwner() == null)\n\t\t\treturn;\n\n\t\tif (this.tickCount < 10) {\n\t\t\tVector3 res = AOEMiningHelper.calcRayTrace(this.level(), (Player) this.getOwner(), ClipContext.Fluid.NONE, 128);\n\n\t\t\tthis.initMotion((LivingEntity) this.getOwner(), res.x - this.getX(), res.y - this.getY(), res.z - this.getZ(), 0.1F);\n\n\t\t\treturn;\n\t\t} else if (this.tickCount == 10) {\n\t\t\tVector3 res = AOEMiningHelper.calcRayTrace(this.level(), (Player) this.getOwner(), ClipContext.Fluid.NONE, 128);\n\n\t\t\tthis.initMotion((LivingEntity) this.getOwner(), res.x - this.getX(), res.y - this.getY(), res.z - this.getZ(), 1.5F);\n\t\t} else if (this.tickCount >= 400) {\n\n\t\t\tthis.onHit(BlockHitResult.miss(this.position(), Direction.DOWN, this.blockPosition()));\n\n\t\t}\n\n\t}"
+        },
+        {
+          "repo": "Aizistral-Studios/Enigmatic-Legacy",
+          "revision": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+          "path": "src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java",
+          "method": "clearInvincibility",
+          "line": 257,
+          "end_line": 263,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java",
+          "source_sha256": "9e6ca728f428ac2f618ea603287521fba91749145612ba9da2ef46fb7a8fa503",
+          "snippet_sha256": "b37b2b43b08c8798e6ec0eee9b17272b9a5daa3d0979518b829ff22df0db056b",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java#L257-L263",
+          "excerpt": "public void clearInvincibility() {\n\t\tList<LivingEntity> entities = this.level().getEntitiesOfClass(LivingEntity.class, SuperpositionHandler.getBoundingBoxAroundEntity(this, 3D));\n\t\tfor (LivingEntity entity : entities) {\n\t\t\tentity.invulnerableTime = 0;\n\t\t}\n\n\t}"
+        },
+        {
+          "repo": "Aizistral-Studios/Enigmatic-Legacy",
+          "revision": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+          "path": "src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java",
+          "method": "initMotion",
+          "line": 79,
+          "end_line": 93,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java",
+          "source_sha256": "9e6ca728f428ac2f618ea603287521fba91749145612ba9da2ef46fb7a8fa503",
+          "snippet_sha256": "73d41f50a87b0e1bd50df552b0f9fca5693146792f0bb346b6dae82358dae324",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/entities/UltimateWitherSkullEntity.java#L79-L93",
+          "excerpt": "public void initMotion(LivingEntity player, double accelX, double accelY, double accelZ, float modifier) {\n\t\tthis.setPos(this.getX(), this.getY(), this.getZ());\n\t\t//this.setMotion(Vec3d.ZERO);\n\t\taccelX = accelX + this.random.nextGaussian() * 0.4D;\n\t\taccelY = accelY + this.random.nextGaussian() * 0.4D;\n\t\taccelZ = accelZ + this.random.nextGaussian() * 0.4D;\n\t\tdouble d0 = Math.sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);\n\t\tthis.xPower = accelX / d0 * 0.1D;\n\t\tthis.yPower = accelY / d0 * 0.1D;\n\t\tthis.zPower = accelZ / d0 * 0.1D;\n\n\t\tthis.xPower *= modifier;\n\t\tthis.yPower *= modifier;\n\t\tthis.zPower *= modifier;\n\t}"
+        },
+        {
+          "repo": "Aizistral-Studios/Enigmatic-Legacy",
+          "revision": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+          "path": "src/main/java/com/aizistral/enigmaticlegacy/objects/WitherExplosion.java",
+          "method": "finalizeExplosion",
+          "line": 47,
+          "end_line": 85,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/objects/WitherExplosion.java",
+          "source_sha256": "c0212def033fca289cb11f1576cf736b34816e451a2692cb2bd097e455584c6e",
+          "snippet_sha256": "9574fe44f7d647ccd74dbad1612cb6493f052de599c8cbe4c22d1a4afba9abb7",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/objects/WitherExplosion.java#L47-L85",
+          "excerpt": "@Override\n\t@SuppressWarnings(\"deprecation\")\n\tpublic void finalizeExplosion(boolean spawnParticles) {\n\t\tif (this.world.isClientSide) {\n\t\t\tthis.world.playLocalSound(this.x, this.y, this.z, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, 4.0F, (1.0F + (this.world.random.nextFloat() - this.world.random.nextFloat()) * 0.2F) * 0.7F, false);\n\t\t}\n\n\t\tboolean flag = this.mode != Explosion.BlockInteraction.KEEP;\n\t\tif (spawnParticles) {\n\t\t\tif (!(this.size < 2.0F) && flag) {\n\t\t\t\tthis.world.addParticle(ParticleTypes.EXPLOSION_EMITTER, this.x, this.y, this.z, 1.0D, 0.0D, 0.0D);\n\t\t\t} else {\n\t\t\t\tthis.world.addParticle(ParticleTypes.EXPLOSION, this.x, this.y, this.z, 1.0D, 0.0D, 0.0D);\n\t\t\t}\n\t\t}\n\n\t\tif (flag) {\n\t\t\tCollections.shuffle(super.getToBlow());\n\n\t\t\tfor (BlockPos blockpos : super.getToBlow()) {\n\t\t\t\tBlockState blockstate = this.world.getBlockState(blockpos);\n\t\t\t\tif (!blockstate.isAir()) {\n\t\t\t\t\tthis.world.getProfiler().push(\"explosion_blocks\");\n\n\t\t\t\t\tblockstate.onBlockExploded(this.world, blockpos, this);\n\t\t\t\t\tthis.world.getProfiler().pop();\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tif (this.causesFire) {\n\t\t\tfor (BlockPos blockpos2 : super.getToBlow()) {\n\t\t\t\tif (this.random.nextInt(3) == 0 && this.world.getBlockState(blockpos2).isAir() && this.world.getBlockState(blockpos2.below()).isSolidRender(this.world, blockpos2.below())) {\n\t\t\t\t\tthis.world.setBlockAndUpdate(blockpos2, Blocks.FIRE.defaultBlockState());\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t}"
+        },
+        {
+          "repo": "Aizistral-Studios/Enigmatic-Legacy",
+          "revision": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+          "path": "src/main/java/com/aizistral/enigmaticlegacy/packets/clients/PacketWitherParticles.java",
+          "method": "handle",
+          "line": 53,
+          "end_line": 77,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/packets/clients/PacketWitherParticles.java",
+          "source_sha256": "a556b1f42db158a257401982d03fe81a1ba2e2acbe78629a9429d6b133adc735",
+          "snippet_sha256": "891835ccf7dc21a7b63a5fa2a23e13a780d46f9b9019b09879c7ec89e80eaf23",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/packets/clients/PacketWitherParticles.java#L53-L77",
+          "excerpt": "public static void handle(PacketWitherParticles msg, Supplier<NetworkEvent.Context> ctx) {\n\n\t\tctx.get().enqueueWork(() -> {\n\n\t\t\tLocalPlayer player = Minecraft.getInstance().player;\n\n\t\t\tint amount = msg.num;\n\n\t\t\tif (msg.check) {\n\t\t\t\tamount *= SuperpositionHandler.getParticleMultiplier();\n\t\t\t}\n\n\t\t\tif (msg.mode == 0) {\n\t\t\t\tfor (int counter = 0; counter <= amount; counter++) {\n\t\t\t\t\tplayer.level().addParticle(ParticleTypes.LARGE_SMOKE, true, msg.x, msg.y, msg.z, (Math.random() - 0.5D) * 0.2D, (Math.random() - 0.5D) * 0.2D, (Math.random() - 0.5D) * 0.2D);\n\t\t\t\t}\n\t\t\t} else if (msg.mode == 1) {\n\t\t\t\tfor (int counter = 0; counter <= amount; counter++) {\n\t\t\t\t\tplayer.level().addParticle(ParticleTypes.LARGE_SMOKE, true, msg.x + (Math.random()-0.5D), msg.y, msg.z + (Math.random()-0.5D), 0.0D, 0.0D, 0.0D);\n\t\t\t\t}\n\t\t\t}\n\n\t\t});\n\t\tctx.get().setPacketHandled(true);\n\t}"
+        },
+        {
+          "repo": "Aizistral-Studios/Enigmatic-Legacy",
+          "revision": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+          "path": "src/main/java/com/aizistral/enigmaticlegacy/items/EnigmaticItem.java",
+          "method": "triggerActiveAbility",
+          "line": 147,
+          "end_line": 154,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/items/EnigmaticItem.java",
+          "source_sha256": "e69e4d24c7464130aa27ffcf946ab843bfe7b9998da1b77b640afda5df2bed1b",
+          "snippet_sha256": "6cb765757ac1d9d353254dbd1e4d8258b374f21427ea50fa2e0f61bb0c0ebaf3",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/items/EnigmaticItem.java#L147-L154",
+          "excerpt": "@Override\n\tpublic void triggerActiveAbility(Level world, ServerPlayer player, ItemStack stack) {\n\t\tif (world.isClientSide || SuperpositionHandler.hasSpellstoneCooldown(player))\n\t\t\treturn;\n\n\t\tthis.launchWitherSkull(world, player, random.nextDouble() <= 0.25);\n\t\tSuperpositionHandler.setSpellstoneCooldown(player, spellstoneCooldown.getValue());\n\t}"
+        },
+        {
+          "repo": "Aizistral-Studios/Enigmatic-Legacy",
+          "revision": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+          "path": "src/main/java/com/aizistral/enigmaticlegacy/items/EnigmaticItem.java",
+          "method": "launchWitherSkull",
+          "line": 156,
+          "end_line": 199,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/items/EnigmaticItem.java",
+          "source_sha256": "e69e4d24c7464130aa27ffcf946ab843bfe7b9998da1b77b640afda5df2bed1b",
+          "snippet_sha256": "5ac4349f6d953938567c8797dcc3c4178f146e6bdcde58b9d7933bd500fca288",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/items/EnigmaticItem.java#L156-L199",
+          "excerpt": "private void launchWitherSkull(Level world, Player player, boolean invulnerable) {\n\t\tworld.levelEvent((Player) null, 1024, BlockPos.containing(player.position()), 0);\n\n\t\tVector3 look = new Vector3(player.getLookAngle()).multiply(1, 0, 1);\n\n\t\tdouble playerRot = Math.toRadians(player.getYRot() + 90);\n\t\tif (look.x == 0 && look.z == 0) {\n\t\t\tlook = new Vector3(Math.cos(playerRot), 0, Math.sin(playerRot));\n\t\t}\n\n\t\tlook = look.normalize().multiply(-2);\n\n\t\tdouble div = -0.75 + (random.nextDouble() * 0.75);\n\t\tdouble mod = -0.5D + (random.nextDouble() * 6D);\n\n\t\tVector3 pl = look.add(Vector3.fromEntityCenter(player)).add(0, 1.6, div * 0.1);\n\n\t\tVector3 axis = look.normalize().crossProduct(new Vector3(-1, 0, -1)).normalize();\n\n\t\tdouble rot = mod * Math.PI / 4D - Math.PI / 2D;\n\n\t\tVector3 axis1 = axis.multiply(div * 3.5D + 5D).rotate(rot, look);\n\t\tif (axis1.y < 0) {\n\t\t\taxis1 = axis1.multiply(1, -1, 1);\n\t\t}\n\n\t\tVector3 end = pl.add(axis1);\n\n\t\t//end = end.add(0, -1, 0);\\\n\n\t\tLivingEntity doomedOne = SuperpositionHandler.getObservedEntity(player, world, 3, 64);\n\t\tUltimateWitherSkullEntity witherskullentity = doomedOne != null ? new UltimateWitherSkullEntity(world, player, doomedOne) : new UltimateWitherSkullEntity(world, player);\n\n\t\tif (invulnerable) {\n\t\t\twitherskullentity.setSkullInvulnerable(true);\n\t\t}\n\n\t\twitherskullentity.setPos(end.x, end.y, end.z);\n\n\t\tworld.addFreshEntity(witherskullentity);\n\n\t\tEnigmaticLegacy.packetInstance.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(witherskullentity.getX(), witherskullentity.getY(), witherskullentity.getZ(), 64, witherskullentity.level().dimension())), new PacketWitherParticles(witherskullentity.getX(), witherskullentity.getY() + (witherskullentity.getBbHeight() / 2), witherskullentity.getZ(), 8, false));\n\n\t}"
+        }
+      ]
+    }
+  ]
+}

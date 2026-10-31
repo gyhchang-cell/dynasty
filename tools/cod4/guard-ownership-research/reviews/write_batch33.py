@@ -1,0 +1,27 @@
+import json,pathlib
+R=[]
+def a(f,m,o,b,l,s=None):
+ d=dict(repo='Electroblob77/Wizardry',file='/'+f+'.java',method=m,observation=o,application=b,limits=l)
+ if s:d['start']=s
+ R.append(d)
+a('ISummonedCreature','getCaster','按当前实体world和ownerUUID查实体，仅Living返回，非Living与非实体实现警告返回null。','跨维/离线主人会无法解析，必须明确失效租约策略，不可自动转野生。','具体召唤身份解析计一处，纯getOwner转发不计；这是旧MC接口不直接移植。')
+a('ISummonedCreature','isValidTarget','先ADS许可；Player对善法师必须是其revenge/attack目标；Mob需IMob/召唤体/敌法师/正打主/白名单，最后黑名单否决。','统一谓词可同时用于主动和报复，规则交集顺序需清晰，不能只近战时补排主人。','用户保留Enemy政策，不导入此模组白名单或新PVP规则。')
+a('ISummonedCreature','getTargetSelector','不隐形且caster空时只攻击非creative玩家，caster有则isValidTarget。','失主回退攻击玩家与租借守卫目标相反，修复应失效拒绝。','完整实际候选lambda包在方法内一次，非通用基础设施。')
+a('ISummonedCreature','shouldRevengeTarget','配置允许revenge就完全放行，否则复用isValidTarget。','报复快捷分支可能绕统一许可，玩家未挑衅时不能被原生报复缓存误放行。','具体报复策略一处，不把每种实现类的同款转发重复计。')
+a('ISummonedCreature','updateDelegate','首次tick onSpawn；超过正寿命onDespawn再setDead，非正寿命无限；客户端可粒子。','租约截止应是服务端硬门，不能只等外观淡出才停止伤害。','整个召唤生命周期一次，所有子类相同updateDelegate调用不重复计。')
+a('ISummonedCreature','interactDelegate','玩家Shift施法物品则返回true吞交互，仅服务器data有效且caster等玩家时切selectedMinion弱引用并sync。','交互被消费与真正控制授权不同，应检查只有实际主人可写选择状态。','同步包基础设施不计，此方法具体主人控制入口。')
+a('ISummonedCreature','onLivingAttackEvent','最高优先级拦召唤体来源，caster非空就取消原伤，按直接/间接复制元素及伤害标志再safeAttack，成功才击退、onSuccessfulAttack并把revenge由主转随从。','重写伤害应保留因果与返回值，防止只改source却丢保护/后处理门。','完整伤害重归因一处，事件再入安全依赖下游不假定已证安全。')
+a('EntityMagicSlime','EntityMagicSlime','带caster/target构造直接骑目标，存casterUUID并设大小/寿命。','实际附着控制发生在生成时，无常规目标AI；需要查直接输入目标权限。','只计多参数创建构造，空构造和size属性不计。',51)
+a('EntityMagicSlime','setDead','直接isDead及health0替代原生Slime分裂，随后爆裂声粒子，避免onUpdate和平撤销删除。','召唤寿命结束应避免继承野生分裂遗留新攻击实体。','具体替换Slime死亡行为一处，烟雾循环不计。')
+a('EntityMagicSlime','onUpdate','父更新后撤和平误删但真零血立即死；updateDelegate后每16tick伤活载具并缓慢，载具死/丢失则自删。','直接对载具施法绕targetSelector，死亡生命周期和最终作用需要一起核。','整个寄生召唤周期一处，伤害源MAGIC未按主归因属源码局部事实。')
+a('EntitySpiritWolf','initEntityAI','显式只给主人受击/助攻/自身报复，无普通狼猎物目标；狼自带owner另用、不实现召唤接口。','真实子类移除野生猎物AI可保留专属受控行为，不能假定接口统一所有实体。','普通VanillaWolf模板部分不计，具体删猎物与不同owner体系作为注册一处。')
+a('EntitySpiritWolf','processInteract','仅驯服且owner操作者Shift持施法物品、存活20tick后开dispelTimer并返回true阻法杖施法。','消散必须属于主人并防刚生成同点击误撤销，窗口内攻击许可仍需考虑。','独立主动撤销控制入口，不按音效或十帧消散计数。')
+a('EntitySilverfishMinion','initEntityAI','不调super避免召同类/藏石，只加游泳近战、受击不呼援及统一selector目标。','继承野生特殊AI应明确删哪些，不能改父怪全局。','与冰巨人同款标准nearest模板不重复计，重点原生分裂/藏石剥离。')
+a('EntitySilverfishMinion','onKillEntity','服务端generation<5，死亡位置生成1至4只，传caster和原lifetime，generation加1。','繁殖链配额与租约owner要继承，必须防失主扩散无绑定后代。','所有子代一条实现，不把随机数量或代数当不同参考。')
+a('ItemWand','selectMinionTarget','16格实体射线，Shift且data.selectedMinion有效，minion为EntityLiving且非目标自身就setAttackTarget后清选择。','显式命令也可能绕过自动selector，最终攻击门仍必要；调用方应核选择的归属。','仅函数局部未重复caster校验，不能未经调用链宣称远端授权漏洞。')
+a('EntityForcefield','onUpdate','按下一tick预测碰撞，isValidTarget先过滤；护戒允许友方弹穿，排XP；仅服务端改速度/位置并给玩家速度包，触碰降低寿命。','控制/反弹应由服务器授权，客户端不同步盟友时不该自行推动真实玩家。','实际防护场游戏实现一处，几何顶点/视觉辅助不计。')
+a('EntityForcefield','onLivingAttackEvent','护戒玩家弹源直接放行；非不可阻伤、真源存在且非力场本身时，受击者与源所处力场不同即取消。','防护作用域可同时依赖攻击者和受害者所在区域，不能只检查owner。','不是一般事件总线基础设施，具体空间保护判定一处。')
+a('EntityZombieSpawner','onUpdate','生成器还余10tick以上且spawnTimer到0时服务端造尸/尸壳，传caster、法术寿命/伤害倍率、短无敌，重置带随机间隔。','多次召唤的中间实体需每次传真实主，不可只首个实例设owner。','整体持续产兵路径一处，不按尸与尸壳两个换皮拆计。')
+a('EntityIceGiant','onSuccessfulAttack','成功回调给目标按朝向速度、服务器frost300tick，再附魔与攻击声。','成功回调附效必须受与原伤害一致的授权，否则取消伤害后仍控制目标。','已沿ISummonedCreature事件读到该回调，独立附效出口不按每个效果凑数。')
+a('EntityPhoenix','onLivingUpdate','每tick按地面调hover，最后强制onGround=true再父更新，使原生空中近战可执行。','物理状态调整能启用父类攻击入口，审核不能只搜显式hurt。','整条近战激活来源一处，单独飞行/声音粒子均不计参考。')
+pathlib.Path(__file__).with_name('batch33.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

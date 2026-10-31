@@ -1,0 +1,16 @@
+import json,pathlib
+R=[]
+def a(f,m,s,o,b,l):R.append(dict(repo='klikli-dev/occultism',file='/'+f+'.java',method=m,start=s,observation=o,application=b,limits=l))
+a('BeholderFamiliarEntity','tick',279,'眼魔先存本次敌人ID列表并发跟踪消息，23tick延迟后按原缓存attack，然后清缓存。','选敌与命中分离，预热期间换主或目标变盟友必须在命中口再次核实。','射线客户端视觉不计实际攻击；本条是注册RayGoal服务端状态机。')
+a('BeholderFamiliarEntity','attack',304,'按缓存ID重新解析实体，仅null跳过；主人是玩家用playerAttack，否则mobAttack，没有重新验证敌友或LOS。','缓存ID仍存在不等于仍被授权攻击，身份门应覆盖实际hurt调用。','一整个延迟命中实现一处，未按每条射线或目标重复计数。')
+a('BeholderFamiliarEntity','start',340,'吃食Goal在3格取所有活ShubSpawn，能力启用后随机discard一个并给自身力量速度，未检查该食物主人。','召唤物之间的消耗也涉及跨主作用范围，不能只查伤害。','以源码范围缺少owner过滤作反例，不宣称外部模组已实际复现漏洞。')
+a('ChimeraFamiliarEntity','registerGoals',114,'实际启用近战及主人受击/助攻、自身受击三个目标入口；远程Goal注册注释禁用。','注册点决定哪些实现能算实际游戏路径，死代码不能充参考。','同一通用OwnerHurt模板不再各计，本条记录真实组合与禁用路径。')
+a('ChimeraFamiliarEntity','mobInteract',293,'只有主人金苹果拆Goat并传主人、外形尺寸；大体型骑乘也限定主人，肉类长大回血允许其他玩家。','共享喂食与专属控制许可分开，拆分召唤物应传递真实owner。','不是把三种物品分成多条，完整交互状态分支一处。')
+a('ChimeraFamiliarEntity','checkAndPerformAttack',588,'实际近战先canPerformAttack再拒target等主人，按玩家主人归因伤害，随后无论hurt结果执行随机特殊攻击及升级连击。','伤害被拒也可能点火、击退、上毒，最终许可必须在所有副作用之前。','禁用的ChimeraRangedAttackGoal完全排除，不与该已注册近战混淆。')
+a('ChimeraFamiliarEntity','specialAttack',620,'近战特殊效果dispatcher直接给目标火、击退、毒或缓慢，没有独立友方判断；由实际近战调用。','副作用出口应复用同一授权，不能依赖hurt返回值保护。','四种效果只计整个dispatcher一次，不按数值与攻击头部凑数。')
+a('DragonFamiliarEntity','registerGoals',112,'有Greedy乘客才寻找物品，无黑匠升级才用普通AttackGoal，同时有独立ThrowSwordGoal；跟主与坐下另列。','升级可切换实际攻击入口，需要沿注册追到两种终点而非只审父类。','匿名canUse包含在完整注册方法内，不重复计内部方法。')
+a('DragonFamiliarEntity','thrownSword',213,'从start实体位置生成剑，传入owner设为弹体owner，以enemy上部定向，贪婪状态加伤后入世界。','发射者、归属者和瞄准对象是三个角色，弹体伤害不能凭位置认主人。','此处只证明发射归属传递，后续碰撞保护须独立查阅，未假定安全。')
+a('GoatFamiliarEntity','ringBell',64,'有主人与黑匠升级时，30格范围内活MONSTER全setTarget(owner)，没有按原有目标敌友筛选。','防护伙伴也能把其他Mob的目标改向主人，外部目标重写应纳入审查。','不是普通声效工具；铃声与实体改目标同一实际反应方法。')
+a('GoatFamiliarEntity','mobInteract',147,'仅主人持变形材料可改黑色/眼睛/角，满足组合即transform，材料在服务端末尾消耗，非合法生物群系只摇头。','主人许可应先于受控单位永久变形与材料消耗，非法环境保留原体。','多个材料仅算整个状态转换入口，不新增本项目变形或PVP机制。')
+a('GoatFamiliarEntity','transform',177,'客户端烟雾，服务器以当前Goat创建Shub继承名称、入世界后discard旧实体。','转换需核构造器传递主人与旧体回收，不能两实例同时保留控制权。','构造器身份细节另查；仅记录此方法明确的新旧实体交换顺序。')
+pathlib.Path(__file__).with_name('batch27.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

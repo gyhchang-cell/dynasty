@@ -1,0 +1,130 @@
+[
+  {
+    "candidate_index": 3369,
+    "candidate_id": "f13f91b0e39bac0edb94",
+    "decision": "pending",
+    "observation": "MagicManager.tick完整复读，玩家施法castDuration<=0结算、连续施法在余时模interval为0才结算，末尾handleCastDuration后再onServerCastTick；需对应实际spell启动与完成清理防重入链，暂不把管理器字段当已闭环玩法。",
+    "snippet_sha256": "b1eec11b645f0d752f018626fcbcbdcc4225016ce13e0ca700d1e5f664fdf97a",
+    "reviewed_at": "2026-10-26T20:41:59.660155+08:00"
+  },
+  {
+    "candidate_index": 3479,
+    "candidate_id": "ac28cfaf51fd9825f209",
+    "decision": "accepted",
+    "observation": "全文ResonanceCrystalBlockEntity.tick/activateGolems/activate/readNetwork/writeNetwork及SquallGolem.activate：active先减，仍按旧POWERED状态本轮激活绑定golem20tick及下游crystal20tick，末尾才更新POWERED；UUID跨实体查询恢复列表，失联条目直接移除，邻晶只按当前位置BE类型不核原实例。这是具体级联供能的短存活窗口，最后一轮沿旧状态多传播一拍，绑定对象TTL刷新与当前块身份分别约束；完整同链只计一条。",
+    "snippet_sha256": "cfbf34dc8f999633d9982b4ee3e272d1cf5c1a9c2e9f72defd8d159abfffe1dc",
+    "reviewed_at": "2026-10-26T20:41:59.660181+08:00"
+  },
+  {
+    "candidate_index": 3495,
+    "candidate_id": "8357162298fae38fd18b",
+    "decision": "accepted",
+    "observation": "完整HackSimulation.tick/initiateNukeVirus/activateNukeVirus及Node.tick/setHackProgress/startHacking和SimulationController.tick已复读：initiate只保存一个pendingNukePos，simulation遍历到该节点才提交，activate无论成功都清pending，只有找到已黑邻居才设60冷却。连接进度本轮从<1推进到1，finishedConns在下一轮才识别完成；setHackProgress只在未黑到已黑边沿通知controller避免重复成功。真实安全站玩家对AI小游戏的延迟结算/一次回调边界一条，非网络基础设施。",
+    "snippet_sha256": "db2fe807c8e7dd5dbf4eafd4978e78ac31ebfe044e35dae37a7154688a9eadda",
+    "reviewed_at": "2026-10-26T20:41:59.660187+08:00"
+  },
+  {
+    "candidate_index": 3590,
+    "candidate_id": "b0343f19eb4194cf6626",
+    "decision": "accepted",
+    "observation": "完整GhostlyFog.tick及Mantle.curioTick/tickFogTrail/onLivingDamageModifiers、owner解析已读：原物品产生fog并保存stack/ownerUUID+ID，重叠fog按ownerUUID:targetUUID及worldGameTime同刻只记一次经验；伤害modifier则写受害者persistent的until=now+5并按>=now消费IN_WALL，不按雾owner分键，后写雾会覆盖值。map无维度键且每200整刻仅一次全局清过200旧值；效果TTL与经验去重属不同归属，当前owner先按整数ID解析再UUID回退。只计这一实际雾暴露/短TTL链，不拆多个字段。",
+    "snippet_sha256": "6da607cf74051ef3557d7eb87ac24168fd04332dd85fa6c49afff1e52c6e651c",
+    "reviewed_at": "2026-10-26T20:41:59.660193+08:00"
+  },
+  {
+    "candidate_index": 4085,
+    "candidate_id": "dde8d5c4acb3a5aed498",
+    "decision": "pending",
+    "observation": "完整RenderRush.tick，temp先读再--，temp>0每帧伤害/偶数造牙，temp==0下帧才停；需物品启动和cap调用生命周期，同步/归属未闭合前0信用。",
+    "snippet_sha256": "0d2341ccf1004bb66ac03fadc7594558b7ebd73a539ed70379980cf54c1af8d9",
+    "reviewed_at": "2026-10-26T20:41:59.660197+08:00"
+  },
+  {
+    "candidate_index": 4133,
+    "candidate_id": "b316fee527fb2a8ada08",
+    "decision": "excluded",
+    "observation": "OpalescentShuriken完整onHitEntity为原生箭伤害/Enderman/反弹与hit-player包模板，失败火焰恢复甚至是赋给自身当前值；语义克隆，不按手里剑外形增加回执数。",
+    "snippet_sha256": "e7b638de3de25e05858920ad6dee6fe5aa501f4f3a21ccb8b63ddf8dbcce1b78",
+    "reviewed_at": "2026-10-26T20:41:59.660200+08:00"
+  },
+  {
+    "candidate_index": 4161,
+    "candidate_id": "5d1611808a89ce908910",
+    "decision": "excluded",
+    "observation": "PoisonQuill完整onHitEntity为箭穿透ID集合预登记、成功后附魔/毒/声音的原生模板，WildRobe只变毒类型，无独立新短期回执玩法；与既有穿透箭家族合并。",
+    "snippet_sha256": "22eb8fd3af37d7ce21f203e17cc4557402852c5786eba210cf32ebf74b2f58a2",
+    "reviewed_at": "2026-10-26T20:41:59.660204+08:00"
+  },
+  {
+    "candidate_index": 4162,
+    "candidate_id": "e8ad0a8a3738e3c9e92d",
+    "decision": "pending",
+    "observation": "SpikeWave完整onUpdate延迟到>=delay运动，而涌出粒子/初始推力只在==delay，motionY>.1逐块AABB可能同目标多hurt且无去重；需实际产生延迟与年龄ticksExisted推进链，单独手动onUpdate未见super不能先认完整时钟消费。",
+    "snippet_sha256": "0e8da49e1dc9f496896a0e2a8eec6acd65b87f784a55e7920565e4b888bfb168",
+    "reviewed_at": "2026-10-26T20:41:59.660206+08:00"
+  },
+  {
+    "candidate_index": 2607,
+    "candidate_id": "3065b1d384e553b07035",
+    "decision": "pending",
+    "observation": "Rhino冲刺goal完整tick已读，真实tryToHurt消费者及攻击间隔未读，普通移动/毁块/声烟不充当命中回执证据。",
+    "snippet_sha256": "9958192ad229d1051c62c46fb95f9abfecb89f2ae7120514c3a52954c254e9ed",
+    "reviewed_at": "2026-10-26T20:41:59.660214+08:00"
+  },
+  {
+    "candidate_index": 2707,
+    "candidate_id": "c1d1f80b7ec27de1cbb6",
+    "decision": "pending",
+    "observation": "WixieCauldron完整tick等待craftCooldown并每20刻检查完成调用rotateCraft；需要实际完成/旋转消费与配方身份链，暂不计。",
+    "snippet_sha256": "0a5173019c99f8711580572abf16ddfff0ed8d53da978a562b140b74ae029545",
+    "reviewed_at": "2026-10-26T20:41:59.660220+08:00"
+  },
+  {
+    "candidate_index": 2708,
+    "candidate_id": "82b90c575cb008deed6a",
+    "decision": "excluded",
+    "observation": "DecideCrabActionState完整tick只是tamed/home/hat/source条件进入下个状态，source每20刻尝试消耗；未提供独立延期结果确认或去重，普通状态选择不计。",
+    "snippet_sha256": "f8077170e01755f737bd221444544ab394c1ae0d236953b29fbfcdc799291c40",
+    "reviewed_at": "2026-10-26T20:41:59.660224+08:00"
+  },
+  {
+    "candidate_index": 3215,
+    "candidate_id": "c240d88dcc4481d56f10",
+    "decision": "excluded",
+    "observation": "Trilocaris完整tick，ATTACK_TICK递减后biteProgress>4且当前目标接近时hurt；原生动画倒数近战变体，不按新物种单独计。",
+    "snippet_sha256": "7427b7ef523e21babfe21da88a246fd3bf8bbfc6e6506f22615c89d52671d0dc",
+    "reviewed_at": "2026-10-26T20:41:59.660227+08:00"
+  },
+  {
+    "candidate_index": 3364,
+    "candidate_id": "f894554da37302f9b516",
+    "decision": "pending",
+    "observation": "FracturedBedrock完整tick每getRate周期按intensity尝试毁块/生成，再step和activity无条件消费并可能deplete；需激活源与breakBlock/shouldDeplete完整实现核验，未计候选。",
+    "snippet_sha256": "7386f23fe77e1301bf388a0b5b765331ace8f90c917166c96355f2aeada41f67",
+    "reviewed_at": "2026-10-26T20:41:59.660230+08:00"
+  },
+  {
+    "candidate_index": 3410,
+    "candidate_id": "3c8cd968db1d355f2307",
+    "decision": "pending",
+    "observation": "Jellyfish完整tick只有AI有效才cooldown递减，到零声音，活体碰撞调用stingEntity；需真实stingEntity成功/冷却提交链，不以cooldown字段直接计。",
+    "snippet_sha256": "da361ad358ed4ab96c62f1cbe4211835adb4e4c1432f3ab3b5d934bf7e6fa79d",
+    "reviewed_at": "2026-10-26T20:41:59.660233+08:00"
+  },
+  {
+    "candidate_index": 3497,
+    "candidate_id": "bbfdc9757f114761be80",
+    "decision": "excluded",
+    "observation": "Alakarkinos完整tick的tamedTicks>60转物品、气泡呈现及普通stateMachine调度，尚无独立回执身份/短期去重；普通变种定时转换不补数。",
+    "snippet_sha256": "cc9f632577f18e47195e1da5fe1dd3a3b4c03a670879491b5143401e036233e1",
+    "reviewed_at": "2026-10-26T20:41:59.660236+08:00"
+  },
+  {
+    "candidate_index": 3587,
+    "candidate_id": "da238119e65b812f74dc",
+    "decision": "excluded",
+    "observation": "SpiritBlight完整onUpdate最近玩家每tick魔法伤并清无敌帧，其余随机声效/seed；普通持续近距伤害且无短期receipt，不增加计数。",
+    "snippet_sha256": "9a426becdde9ed33f6003808002d55bbef1e349f0539808ba72a1be3672a6524",
+    "reviewed_at": "2026-10-26T20:41:59.660239+08:00"
+  }
+]

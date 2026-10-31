@@ -1,0 +1,34 @@
+[
+  {
+    "candidate_index": 7520,
+    "candidate_id": "e2bf8d5afbd03cb35d8b",
+    "decision": "accepted",
+    "observation": "主审helper006全文BleedingEffect/LaceratingModifier两applyEffect重载+实际ModifiableItem.onLeftClickEntity→EntityInteractionHook→ToolAttackUtil.performAttack完整201行与secondary/hurt包装。原命中成功才施加，Lacerating先target.setLastHurtMob(attacker)，looting在施加时算入amplifier，时长level*40，同amplifier续期加旧duration保持mod20相位，不同加19重排。延后DOT每20消费时却重读target.getLastHurtMob可变字段(不是命中保存独立source)，忽略secondary返回仍粒子，恢复invulnerable无finally。具体相位保持与施加快照/迟读来源不同边界一整链1，普通换名DOT/伤害包装不另算。",
+    "snippet_sha256": "f78264eb0705f1129c4ebf57e5867481b5ac79217a17363c34a39be91d41da75",
+    "reviewed_at": "2026-10-28T22:16:27.073145+08:00"
+  },
+  {
+    "candidate_index": 7521,
+    "candidate_id": "ea6a937e20bd8d15e927",
+    "decision": "accepted",
+    "observation": "主审helper006完整真实按键→C2S当前sender HEAD/LEGS→startArmorInteract保存slot/modifierID/actor tickCount→stop先remove该slot记录，随后用当前slot工具按旧modifierID/旧年龄算charge，对当前全部modifier调用stop。SlingKnockback实际stop/sling全文读取：破损/条件/charge/射线检查后IS_BONKING临时标记、performAttack布尔被忽略且didBonk提前true，仍可发粒子/声/3tickCD；无伤也可能knockback反馈。记录不存原stack/dim/epoch，换装能消费旧charge，重复stop charge0；Holder invalidation保留旧数据。区别7519具体自爆效果取消终端，本条charged current-slot释放/取走先于回调一整链1，头腿和共享cap/伤害helper0。",
+    "snippet_sha256": "b3ec946c5f8ade1ced7bda11f6c4aacc7ca61c542884701377652850fa143a16",
+    "reviewed_at": "2026-10-28T22:16:27.073164+08:00"
+  },
+  {
+    "candidate_index": 7522,
+    "candidate_id": "23545e68f871fcb882cc",
+    "decision": "accepted",
+    "observation": "主审helper006 ModifierLootingHandler完整onLooting/set/get/logout/init及真实ToolAttackUtil.performAttack全201行和ModifierLootModifier.doApply/近战入口：hurt前按attacker UUID放sourceSlot，hurt后直接置MAINHAND即remove，真实同步LootingLevelEvent在hurt内读取当前该slot工具；无finally/旧值栈，嵌套攻击或异常可污染外层，不能跨tick拿这个动态槽当持久回执。投射物用其modifier/persistentData构DummyTool，直接提前return不读当前手；armor bonus仍取消费时装备。区别7518目标上死亡→XP快照与7520DOT来源，具体掉落归属动态作用域整链1，不将通用UUID map/helper另算。",
+    "snippet_sha256": "f8d4367535cac15f0413d13265d76c70133274f6ca888f301f1c85bbdd461684",
+    "reviewed_at": "2026-10-28T22:16:27.073169+08:00"
+  },
+  {
+    "candidate_index": 7523,
+    "candidate_id": "b6bc2ad49363d9024969",
+    "decision": "accepted",
+    "observation": "主审helper006 SlimeBounceHandler/BounceInfo构造/真实ModifierEvents.bounceOnFall/init/serverStopping完整：非ServerPlayer落地保存Vec3并预约entity.tickCount+1，为避开落地清Y速度；LivingTick只==bounceTick恢复后bounce=null/tick0一次消费，错过即无补消费。ServerPlayer落地无原velocity，反算fallDistance/gravity立即写动量，仅挂维持器，不用延后restore。空中无横速设age+5、严格>才清，落地退出另age+5宽限，飞行/旁观即remove，server stop清map，FakePlayer跳过挂载。真实落地跨阶段动量交接一整链1，类构造/两侧镜像/维持辅助0，不把精确==当方天正确TTL。",
+    "snippet_sha256": "b351d0bf1cd9557f6e28597e6e7d3c5aecff5e72b8cfe40555ea9dc48f420234",
+    "reviewed_at": "2026-10-28T22:16:27.073172+08:00"
+  }
+]

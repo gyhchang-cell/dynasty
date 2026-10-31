@@ -1,0 +1,115 @@
+[
+  {
+    "repo": "Moriyashiine/bewitchment",
+    "file": "/MinionComponent.java",
+    "method": "serverTick",
+    "observation": "masterUUID存在时仅在当前ServerWorld查找；主人是活Mob且有target就复制目标，否则发烟并discard部下。",
+    "application": "失主采用终止而不转野生，但复制主人目标仍须使用召唤物自身许可。",
+    "limits": "主人无target也直接消失，是外部明确寿命策略，本项目不新增这种回收规则。"
+  },
+  {
+    "repo": "Moriyashiine/bewitchment",
+    "file": "/BWTameableEntity.java",
+    "method": "interactMob",
+    "observation": "繁殖物治疗不要求已驯服或操作者主人；驯服物随机设主后坐下清target停路径，已驯服非食物只让owner切坐姿。",
+    "application": "驯服成功需同步撤旧目标和移动，公开治疗与专属控制应按分支区分。",
+    "limits": "与已有普通喂养不同，完整野生到宠物状态转换一条；Fabric命名不直接适配Forge。"
+  },
+  {
+    "repo": "Moriyashiine/bewitchment",
+    "file": "/BWTameableEntity.java",
+    "method": "canAttackWithOwner",
+    "observation": "排除所有已驯服Tameable及已驯服马，Player须owner允许伤害，最后排苦力怕和恶魂。",
+    "application": "有的宠物策略保护全部驯服动物而不只是同主，不能把非盟友直接当允许目标。",
+    "limits": "仅借鉴白名单/否决顺序，不把它的PVP规则加入本项目。"
+  },
+  {
+    "repo": "Moriyashiine/bewitchment",
+    "file": "/HellhoundEntity.java",
+    "method": "initGoals",
+    "observation": "攻击目标注册群体复仇及Player最近目标；主动Player目标谓词按BESMIRCHED护甲少于3件才通过。",
+    "application": "装备条件仅位于主动选择，受击复仇是另一入口；租约限制应覆盖两者。",
+    "limits": "野生地狱犬与本项目守卫并不等同，研究分入口策略而不复制装备门。"
+  },
+  {
+    "repo": "Moriyashiine/bewitchment",
+    "file": "/GhostEntity.java",
+    "method": "tick",
+    "observation": "服务器每20tick只要target非空直接施100tick负效，无距离/视线门；晴天露天无名幽灵消失。",
+    "application": "实际攻击可以是周期addStatusEffect，不经tryAttack或hurt，最终效果入口同样需许可。",
+    "limits": "整方法一处；日照存亡不另算AI案例，外部Ghost无需本项目新增。",
+    "start": 62
+  },
+  {
+    "repo": "Moriyashiine/bewitchment",
+    "file": "/GhostEntity.java",
+    "method": "setTarget",
+    "observation": "当前所在范围发现驱鬼烛台时先将目标置null，再父setTarget，服务端同步HAS_TARGET布尔。",
+    "application": "把许可放入赋目标入口能阻止多种goal写入，并保持表现状态与实际目标一致。",
+    "limits": "这保护区域而非owner/Enemy，本项目只借鉴入口位置。"
+  },
+  {
+    "repo": "Moriyashiine/bewitchment",
+    "file": "/GhostEntity.java",
+    "method": "findPos",
+    "observation": "遍历存储烛台位置，127格内查真实方块/祭坛槽中烛台，亮烛或祭坛物品给排斥半径，实际距离内返回位置半径。",
+    "application": "选敌区域门需要核实际有效锚点而不能只信持久位置列表。",
+    "limits": "属于已启用setTarget的具体避敌规则，通用距离数学没有另计。"
+  },
+  {
+    "repo": "TeamLapen/Werewolves",
+    "file": "/FollowAlphaWerewolfGoal.java",
+    "method": "canUse",
+    "observation": "无leader时找16x8范围活狼人队长且人数未满，最近者设leader并增加计数；已有leader活且距离平方>122才启动跟随。",
+    "application": "自动编队绑定身份是canUse副作用，不能把该方法只当无副作用布尔。",
+    "limits": "不新增本项目编队；只研究实际从无主到队属转换。"
+  },
+  {
+    "repo": "TeamLapen/Werewolves",
+    "file": "/FollowAlphaWerewolfGoal.java",
+    "method": "canContinueToUse",
+    "observation": "跟随持续只要求leader存在且平方距离122至256之间，不再核alive。",
+    "application": "启动和持续条件不对称，缓存队长死亡/离开时的撤销需另查。",
+    "limits": "与普通主人起止阈值类似但具有队长自动招募上下文；以后同阈值模板不重计。"
+  },
+  {
+    "repo": "TeamLapen/Werewolves",
+    "file": "/WerewolfMinionEntity.java",
+    "method": "WerewolfMinionEntity",
+    "observation": "父Minion初始化传狼人阵营敌人谓词，或无IFactionEntity且为Enemy非Creeper的候选。",
+    "application": "阵营和Enemy规则是并列入口，审计需明确OR每侧允许对象，不默认只有Enemy。",
+    "limits": "这构造器含真实目标策略而非参数机械转发；Vampirism基类后续单独研究。"
+  },
+  {
+    "repo": "TeamLapen/Werewolves",
+    "file": "/WerewolfMinionEntity.java",
+    "method": "mobInteract",
+    "observation": "只在服务端且isLord和minionData非空时处理同阵营升级物，等级范围满足才升级耗物同步，否则提示再返回成功。",
+    "application": "宠物升级交互应验证真正lord与阵营，不依据外观/队伍推断授权。",
+    "limits": "属性公式与外观菜单为辅助不计，升级入口完整一条。"
+  },
+  {
+    "repo": "TeamLapen/Werewolves",
+    "file": "/AggressiveWolfEntity.java",
+    "method": "getOwner",
+    "observation": "内部dead标志true则返回null，否则父getOwner。",
+    "application": "死亡阶段可能刻意隐藏owner，末次攻击归属不能仅靠当前getOwner结果。",
+    "limits": "带死亡门的解析不是纯getter；不把空owner当永久解绑。"
+  },
+  {
+    "repo": "TeamLapen/Werewolves",
+    "file": "/AggressiveWolfEntity.java",
+    "method": "tick",
+    "observation": "父tick后restrictLiveSpan为true且tickCount超过maxTicks则每tick以原生magic打自身10伤。",
+    "application": "到期可能通过伤害而非discard终止，死亡/owner隐藏顺序需与清目标配合。",
+    "limits": "只研究有限期召唤存亡，不把一般NBT布尔读写或每次超时打伤算条目。"
+  },
+  {
+    "repo": "TeamLapen/Werewolves",
+    "file": "/AggressiveWolfEntity.java",
+    "method": "die",
+    "observation": "先置dead=true再父die，使死亡回调中getOwner返回null。",
+    "application": "死亡身份门发生在父回调之前，取归属应区分死亡前后。",
+    "limits": "与getOwner成不同实际生命周期方法；没有据此声称本项目已有该行为。"
+  }
+]

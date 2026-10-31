@@ -1,0 +1,28 @@
+import json,pathlib
+R=[]
+def a(f,m,o,b,l,s=None):
+ d=dict(repo='TeamTwilight/twilightforest',file='/'+f+'.java',method=m,observation=o,application=b,limits=l)
+ if s:d['start']=s
+ R.append(d)
+a('LoyalZombie','registerGoals','主人受击/主人攻击/自身受击按1/2/3注册，主动Monster目标优先4，跟随与近战同存。','主动Monster筛选并未自动约束受击和助攻入口，修复必须看所有targetGoal。','新的固定版本使用NeoForge/新MCAPI，只研究策略；同类简单注册端口不再计。')
+a('LoyalZombie','aiStep','服务端力量效果消失后每20tick以EXPIRED伤害扣2，再父aiStep。','有限寿命由效果是否存在驱动，卸装备/重生应区分续期与原租约到期。','不按效果tick拆计；该退化机制与已有AggressiveWolf直接tick上限不同。')
+a('LoyalZombie','interact','仅主人持腐肉可移除再加1200tick力量、治疗1、播放感染并consume。','续期入口需严格所有者验证，不能由旁观者无授权延长受控实体。','没有导入腐肉续期设计，只记录明确寿命刷新与主人交互。')
+a('LichMinion','addBehaviourGoals','复仇goal除Lich外再override canAttack拒绝Lich，另外仍有主动Player最近目标。','构造器排除增援类型和真正canAttack否决不同，明确override可封住反击。','匿名canAttack包含在注册方法一处，不把构造传参再算一条。')
+a('LichMinion','hurtServer','保留受伤前target，父hurt成功且来源为Lich时将lastHurtBy恢复成旧target并加速度/力量。','抑制对主人反击可通过恢复仇恨记录实现，但不会替代主动目标过滤。','buff和hurt返回绑定，非普通减伤模板；不迁移强化机制。')
+a('LichMinion','aiStep','无master先findNewMaster，仍无主或主不活则discard，之后仍调用父aiStep。','失主后回收避免自动变野生，但回收后父tick执行顺序仍值得核查。','与Bewitchment要求master有target不同，实际重绑入口单独存在。')
+a('LichMinion','findNewMaster','遍历32x16附近Lich，首个非clone且还要minion者成为master，并立即复制它的target。','自动重绑可把单位转另一主人，需明确现有租约是否允许而非照搬。','不引入本项目重绑；本条是实际主人选择且非最近者保证。')
+a('LichMinion','finalizeSpawn','主人存在且困难模式时，按主人已召幼体计数及minion属性四分之一上限随机幼体并更新计数，再父初始化。','子代数量归属必须是实际master，其他召唤者不能共享计数。','普通生物初始化不另计，本条因真实按主人配额生成子代相关。')
+a('LichMinionsGoal','tick','目标存在且非传送隐身才运行，每15冷却点检查召唤，按视线计时横移；攻击冷却0近战/弹射/传送三选一。','同一AI tick能启动子召唤并攻击，目标门应先于两类动作。','整段boss召唤战斗一个完整实现，不把原生弓横移模板另计。')
+a('LichMinionsGoal','checkAndSpawnMinions','剩余可召大于0且countMyMinions少于MAX_ACTIVE时尝试spawnMinionAt，无论是否找到位置都减少剩余次数。','上限和消耗窗口要区分成功生成与尝试，防归属统计错误。','不是简单常量getter；具体召唤额度控制一处。')
+a('LichMinionsGoal','spawnMinionAt','取当前target找可视位置，新LichMinion构造时绑定master，finalize后加入世界再setTarget。','实体入世界前后分别设主人和目标，必须核初始化窗口而不只看最终NBT。','几何寻点不作为额外候选，整个真实生成入口一条。')
+a('LichAbsorbMinionsGoal','canUse','生命低于一半且自身minion数大于0才开始吸收。','消耗召唤物的技能应按自身主人配额而非附近总数量决定。','具体召唤物消耗门槛相关，普通生命百分比工具不另计。')
+a('LichAbsorbMinionsGoal','tick','非传送隐身且权杖计时结束后找32x16区域master恰等自身的minion，取首个discard并按其当前生命治疗，设置40pop冷却。','回收对象必须同主，错误选敌/归属也会让其他人的单位被当资源消耗。','单条包括声效粒子但它们辅助不计，未声称此模组实测。')
+a('Lich','registerGoals','阶段切换影子/部下/近战，归家失败可传送；复仇匿名goal拒绝同master的Lich，再注册主动Player。','同主反击保护放在具体goal，其他目标来源仍需统一最终许可。','完整注册含内嵌goal一处，新API不复制，通用Float/Look不算参考。')
+a('Lich','addAdditionalSaveData','写MasterLich实体引用和克隆UUID集合，并写盾强、剩余minion、幼体召唤数与未传送受击数。','主人身份和已用召唤额度应一起持久化，避免重载后重复扩增。','仅实际召唤生命周期存档链计一处，codec通用基础设施不拆计。')
+a('Lich','readAdditionalSaveData','读Master引用提UUID设置；仅存在SummonedClones子标签才先清再填集合，恢复召唤额度/幼体/盾及受击计数。','缺失字段的默认与旧集合清理条件会影响重载后身份，须对照保存方。','与简单NBTgetter不同，属于具体克隆和召唤配额恢复策略。')
+a('Lich','hurtServer','传送隐身及clone伤害门先拒绝；所有Lich来源拒绝；盾未破时非破盾伤可写lastHurtBy却返回false，实际受伤可触发换目标传送。','伤害被拒仍可能产生仇恨写入，不能仅按hurt返回值判断没有选敌副作用。','完整boss护盾/同类保护一条，不把每种伤害tag变体计数。')
+a('Lich','countMyClones','只在服务端按已登记UUID解析到Lich且它getMaster就是本体时计数。','登记名单与实体实际归属双重核对，避免旧UUID或其他主克隆占额。','有真实性校验的数量查询不是纯字段getter；不按每UUID重复计。')
+a('Lich','countMyMinions','只计32x16局部AABB内master对象等自身的LichMinion。','局部活跃数量与全局登记数量不同，召唤预算边界必须标明。','与clone UUID登记解析不同，是另一已使用统计策略。')
+a('Lich','teleportToNewTarget','先收范围内未死Player随机替换传入目标，再setTarget；传送成功才给全部克隆复制目标并传送且可生成clone。','移动函数也会重新选敌，不能把它当纯坐标辅助跳过许可审查。','未额外过滤创造/旁观是此处源码局部事实，不宣称游戏最终必攻击它们。')
+a('Lich','getPhase','clone或盾在走阶段1，否则剩余召唤或自身活跃部下任一存在走2，其他走近战3。','所属召唤实体的计数直接改变主人AI阶段，归属错误可锁定战斗模式。','不是普通字段getter而是实际召唤阶段调度，不按各阶段拆条。')
+pathlib.Path(__file__).with_name('batch21.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

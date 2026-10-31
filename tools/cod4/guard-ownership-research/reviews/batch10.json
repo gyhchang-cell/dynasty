@@ -1,0 +1,236 @@
+[
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/MyrmexAISummonerHurtTarget.java",
+    "method": "canUse",
+    "observation": "解析summoner后取其最近攻击对象与时间戳，要求新时间戳、父canAttack以及实体shouldAttackEntity。",
+    "application": "护主目标入口可统一委托实体策略，而非各goal各自复制不一致盟友判断。",
+    "limits": "HurtBy版本仅替换受击/攻击记录字段，语义端口不另计；不据委托名推定Enemy限定。",
+    "start": 21
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/MyrmexAIFollowSummoner.java",
+    "method": "tick",
+    "observation": "有target立即退出；每10tick直接飞向主人眼高，未牵引且距离平方>=50时遍历主人周围外圈两格高空/不遮挡位置并移动。",
+    "application": "跟随tick再次排攻击目标，且传送落点判断并非完整碰撞检查，需要保持各入口语义准确。",
+    "limits": "启动/停止水代价模板不重复计；不把嵌套25格采样当25个参考。",
+    "start": 75
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/CockatriceAITarget.java",
+    "method": "canUse",
+    "observation": "20次随机门和和平难度拒绝；父选敌后排同精确class，Player非owner时仅野生可攻，其他排owner并要求canMove。",
+    "application": "主动最近玩家goal可在驯服状态关闭，和野生路径保留并存，贴合租约局部限制原则。",
+    "limits": "驯服状态不等于本项目租约标记；不得全局改变野生蟹兵AI。",
+    "start": 21
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/CockatriceAIStareAttack.java",
+    "method": "isEntityLookingAt",
+    "observation": "眼睛朝向归一化后点乘目标眼位方向，方向归一化后再取长度作为阈值分母，并排looker旁观者。",
+    "application": "凝视类攻击有视线角度门，需读实际向量归一化顺序而非假定按距离衰减。",
+    "limits": "不是要求本项目新增凝视攻击；研究实际攻击触发判定，不将向量工具库计数。",
+    "start": 25
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/CockatriceAIStareAttack.java",
+    "method": "stop",
+    "observation": "父stop后清seeTime、停usingItem和导航、清目标站位BlockPos；没有在此清entity.targetedEntity同步ID。",
+    "application": "结束行为需要核查所有目标通道，清导航不保证客户端锁定目标ID也被撤销。",
+    "limits": "普通target和同步targetId由tick其他分支处理；不凭此单方法宣称永远残留。",
+    "start": 47
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/CockatriceAIStareAttack.java",
+    "method": "tick",
+    "observation": "目标石化或死亡就同时清普通target与targetedEntityId并stop；其他更新凝视站位、同步目标ID、视线计数、导航与朝向。",
+    "application": "无效目标撤销同步ID与服务端目标应同一路径完成，防表现与AI不一致。",
+    "limits": "此方法主要定位而非实际伤害结算，需追实体tick；未把每个视线分支算独立实现。",
+    "start": 56
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DragonAITarget.java",
+    "method": "canUse",
+    "observation": "命令1/2、睡眠或野生返巢拒绝；先检查旧target非空且异类再父canUse；随后按体型、玩家野生/驯服、同owner龙、饥饿与食物可攻规则判断。",
+    "application": "复杂选敌先后顺序与缓存target很重要；同owner和玩家限制不能被体型/饥饿分支绕开。",
+    "limits": "旧版API不是1.20.1补丁；target先于super的可达性需调用上下文，不直接认定外国AI坏掉。",
+    "start": 26
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DragonAITargetNonTamed.java",
+    "method": "canUse",
+    "observation": "野生返巢直接false；其余只在未驯服、未睡眠且父选敌成功才开始。",
+    "application": "保留野生攻击同时为受控实体禁用同一主动goal，比改全局Player敌我关系范围更小。",
+    "limits": "命令/睡眠是原模组玩法；这里只借鉴状态门，不新增本项目指令系统。",
+    "start": 23
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/HippogryphAITarget.java",
+    "method": "canUse",
+    "observation": "父选敌成功后排同精确class/过大目标；Player只允许野生，其余需Animal非主人可动，驯服时再经canTameDragonAttack。",
+    "application": "驯服主动选敌可限定具体生物类别并额外主人友军过滤，不能仅检查非owner。",
+    "limits": "与Cockatrice的任意非Player分支不同，有Animal及体型约束；不按阈值改动重复计数。",
+    "start": 27
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DreadAITargetNonDread.java",
+    "method": "canAttack",
+    "observation": "父canAttack通过后，额外排IDreadMob并要求DragonUtils.isAlive。",
+    "application": "实体类别排除与自定义逻辑死亡检查适合放在选敌谓词，不能只依赖原生health。",
+    "limits": "亡灵阵营与本项目Enemy无直接映射；不新增阵营系统。",
+    "start": 21
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DeathWormAITarget.java",
+    "method": "canUse",
+    "observation": "父选敌后排同类型；Player非owner只野生可攻、owner拒绝；其他仅Monster且虫龄>2，PathfinderMob再要求>3。",
+    "application": "驯服玩家排除之外还可用Monster白名单及成长条件，说明非盟友并不足以允许任意攻击。",
+    "limits": "年龄阶段不是本项目需求；不把两个年龄阈值当两个独立位点。",
+    "start": 25
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityMyrmexSwarmer.java",
+    "method": "registerGoals",
+    "observation": "重建飞行/召唤者跟随/无冷却近战等goal；target仅自身受击和召唤者受击/攻击，无最近玩家扫描。",
+    "application": "从敌对基类派生的召唤类需要审核完整注册链，避免父选择器偷偷保留。",
+    "limits": "该注册未super.registerGoals，野生Royal与Swarmer分开；本项目只对租约实体限制，不替换整个野生类。",
+    "start": 70
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityMyrmexSwarmer.java",
+    "method": "getSummoner",
+    "observation": "读同步UUID，非空只查当前level.getPlayerByUUID，IllegalArgumentException返回null。",
+    "application": "召唤者解析仅Player且当前世界，归属UUID仍可能存在但对象不可得。",
+    "limits": "不是任意LivingEntity owner查询；避免把空解析误判无租约。",
+    "start": 103
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityMyrmexSwarmer.java",
+    "method": "isAlliedTo",
+    "observation": "先排实体/召唤UUID为空；Tamable按其owner UUID比较；其他接受召唤者本人或同召唤UUID的Swarmer。",
+    "application": "稳定UUID可在主人对象离线时仍排同主宠物；关系分支应覆盖所有相关召唤类型。",
+    "limits": "没有团队继承和非Enemy白名单，不能当本项目完整旁观者保护。",
+    "start": 113
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityMyrmexSwarmer.java",
+    "method": "addAdditionalSaveData",
+    "observation": "父存档后以字符串写SummonerUUID，无owner写空串，另写已存活tick。",
+    "application": "租约归属和寿命必须一起保存，字段类型应和读档严格对应。",
+    "limits": "只有当前字符串写法观察；不能因字段名含UUID就假定NBT使用UUID数组。",
+    "start": 132
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityMyrmexSwarmer.java",
+    "method": "readAdditionalSaveData",
+    "observation": "只有hasUUID(SummonerUUID)才getString并尝试UUID.fromString，异常吞掉；随后恢复SummonTicks。",
+    "application": "持久化读写NBT类型检查需相容，否则owner可能丢而寿命仍恢复。",
+    "limits": "与同文件putString存在局部类型差异；未运行该旧版，不将其冒称已复现存档缺陷。",
+    "start": 144
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityMyrmexSwarmer.java",
+    "method": "aiStep",
+    "observation": "父执行后自增寿命并保持飞行；有目标就导航并排攻击动画，>1800tick kill；第6帧按距离bite或sting伤害，sting后重新取target非空才加毒。",
+    "application": "到期kill后同一方法仍有后续攻击分支；伤害钩子可能清target，效果前必须重新核对象。",
+    "limits": "没有实际跑此版本，不宣称到期必定多打；毒后效不依赖hurt返回值的顺序需主方案考虑。",
+    "start": 177
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityMyrmexSwarmer.java",
+    "method": "shouldAttackEntity",
+    "observation": "只返回不是isAlliedTo(attacker)，第二LivingEntity参数未用于判断。",
+    "application": "方法名看似完整许可实际仅排盟友，不能保护未挑衅非Enemy玩家。",
+    "limits": "本项目按现有Enemy谓词，不复制这种广泛非盟友许可。",
+    "start": 251
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/AmphithereAIAttackMelee.java",
+    "method": "start",
+    "observation": "飞行则用缓存targetXYZ发MoveControl目标，地面则导航已有path，最后清寻路延迟。",
+    "application": "切换飞行/地面后动作执行器不同，撤销目标也需考虑MoveControl旧意图。",
+    "limits": "缓存坐标可能从此前tick来，起始值有效性需完整调用链；不导入新飞行机制。",
+    "start": 100
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/AmphithereAIAttackMelee.java",
+    "method": "tick",
+    "observation": "飞行每tick先将MoveControl指向当前目标眼位，然后通用视线/延迟路径重算并递减attackTick，调用距离命中方法。",
+    "application": "同一行为可能同时驱动飞行与导航，停止单一导航不一定清全部追击。",
+    "limits": "其近战距离方法与Capuchin模板同构，不另计；这里只收双执行器这一完整实现。",
+    "start": 124
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DragonAIAttackMelee.java",
+    "method": "canUse",
+    "observation": "必须AdvancedPathNavigate、有活目标、canMove且非盘旋/飞行，随后直接moveToLivingEntity并true。",
+    "application": "地面攻击启动应与飞行模式互斥，导航类型也是实际前提，不能只看target存活。",
+    "limits": "不计构造器和getAttackReachSqr数值模板；限具体龙地面攻击入口。",
+    "start": 31
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DragonAIAttackMelee.java",
+    "method": "canContinueToUse",
+    "observation": "导航类型不对false；死目标主动stop；最终要求活目标且不飞/不盘旋，但未再查canMove。",
+    "application": "启动的移动权限不一定在持续阶段重查，换状态后的攻击窗口需明确。",
+    "limits": "与前述通用longMemory/区域继续条件不同；没有运行判定其实际状态切换效果。",
+    "start": 49
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DragonAIAttackMelee.java",
+    "method": "tick",
+    "observation": "shakeprey动画时stop返回；其他每tick高级导航追目标，按视线/延迟保存目标位置并在距离及20tick攻击冷却满足时doHurtTarget。",
+    "application": "某些互斥攻击动画应阻止普通近战重复结算，最终距离与冷却也需有实际分支。",
+    "limits": "通用路径惩罚模板不单独计数；Myrmex近似tick不再收录。",
+    "start": 77
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/MyrmexAIAttackMelee.java",
+    "method": "canUse",
+    "observation": "高级导航前提下，Player且有hive先检查声望低到允许战斗，再排无目标/死/不可动；建攻击路径失败时允许近距离攻击。",
+    "application": "社会关系门必须在攻击入口前，不能只依赖最近玩家扫描的过滤。",
+    "limits": "声望是外部模组机制，不引入本项目；借鉴仅为动作入口复核既有许可。",
+    "start": 33
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/MyrmexAIAttackMelee.java",
+    "method": "canContinueToUse",
+    "observation": "先用getTarget，但若lastHurtMob仍活则改用它决定继续；导航类型/死亡不合适stop，最后排创世旁观玩家。",
+    "application": "历史受击/攻击对象可让goal在普通target清空后继续，需查所有备用目标来源。",
+    "limits": "这里只改变局部判定对象，tick仍取普通target；不声称实际打了备用对象。",
+    "start": 61
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/MyrmexAIAttackMelee.java",
+    "method": "stop",
+    "observation": "仅当当前target为创世或旁观玩家时，同时清target和lastHurtMob；其他停止不清这两者。",
+    "application": "撤销历史攻击对象可避免继续条件回退复活旧目标，但清理范围必须与租约策略一致。",
+    "limits": "和仅清target的普通stop语义不同；不建议无差别清野生实体历史仇恨。",
+    "start": 80
+  }
+]

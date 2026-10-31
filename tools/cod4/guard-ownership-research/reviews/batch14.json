@@ -1,0 +1,182 @@
+[
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IEnchanter.java",
+    "method": "enchanterTick",
+    "observation": "服务器每tick减冷却，20tick后按UUID删不存在/施法者死亡/持续到期/目标死亡/超20格；给余者刷新30tick附魔并累计时长，空列表清时长。",
+    "application": "长期辅助锁定需要按实体存活、范围和期限清理；owner或团队改变未在此重验。",
+    "limits": "不是通用缓存基础设施，而是实际召唤者对受益者持续效果；不新增本项目附魔。",
+    "start": 50
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IEnchanter.java",
+    "method": "readEnchanterData",
+    "observation": "存在字段才读冷却/已持续时长；EnchantTargets字符串列表逐UUID解析并设置目标集合。",
+    "application": "重载后旧受益对象和剩余窗口会继续存在，需按当前归属重新核有效性。",
+    "limits": "UUID.fromString异常未在这里捕获只是局部观察；不将它泛化为用户旧档已损坏。",
+    "start": 99
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IEnchanter.java",
+    "method": "addEnchanterData",
+    "observation": "写冷却及持续时长，目标非空才逐UUID转字符串保存EnchantTargets。",
+    "application": "召唤物自己的长期辅助窗口可跨重载保存，撤销逻辑不能只清当前效果实例。",
+    "limits": "对应读档为一对实际持续玩法状态，不按每个字段拆计或计纯getter。",
+    "start": 116
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/RoyalGuardServant.java",
+    "method": "setMeleeAttacking",
+    "observation": "改DATA_FLAGS位后无论开关都将attackTick清0，并广播entity event5。",
+    "application": "取消与重新开始都重置延迟命中计时，不能只清可视动画而留旧攻击帧。",
+    "limits": "Blackguard相同实现不再计；不是纯字段setter，含真实攻击时序及网络状态转换。",
+    "start": 163
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/RoyalGuardServant.java",
+    "method": "tick",
+    "observation": "父tick后客户端按存活/攻击/驻守/移动显示动画；两端只要isMeleeAttacking就递增attackTick。",
+    "application": "服务端实际攻击帧由标志驱动，target清空但标志仍真时计时不会自动停止。",
+    "limits": "只计攻击时钟与状态联动，动画种类和美术内容不作为参考。",
+    "start": 263
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/RoyalGuardServant.java",
+    "method": "mobInteract",
+    "observation": "仅可解析且等于交互者的trueOwner，在服务端无盾、持修盾物、无target且未受伤时调用repairShield，否则父交互。",
+    "application": "维修/装备状态操作应由owner授权，并与战斗窗口互斥。",
+    "limits": "Blackguard同类交互模板不再计；不引入本项目新护盾修理机制。",
+    "start": 323
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/FlameConstruct.java",
+    "method": "doBreathing",
+    "observation": "按攻击属性0.1伤害，只有target.hurt成功才改invulnerableTime=10并点燃4秒。",
+    "application": "吐息后效可绑定伤害成功，但目标允许集合仍须在hurt前过滤。",
+    "limits": "没有把免疫帧常量当独立样本；本项目不新增火焰吐息。",
+    "start": 270
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/FlameConstruct.java",
+    "method": "mobInteract",
+    "observation": "服务器且真owner交互，燃料或岩浆块可回血消耗；空手且缩身时下蹲居中移位，否则按主人朝向四向旋转。",
+    "application": "owner限定不只包括攻击控制，也含可改变驻守位置/朝向的维护操作。",
+    "limits": "粒子和燃烧时长换算不独立计数；不改变本项目认可资产方向。",
+    "start": 347
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/FlameConstruct.java",
+    "method": "canUse",
+    "observation": "FireBreathGoal先调用父canUse缓存目标/概率，再要求非hunkered且实体tick达到nextAttack；超吐息范围可导航靠近但仍返回父结果。",
+    "application": "先父调用可能更新目标缓存，即使本层冷却/姿态拒绝；必须读完整先后顺序。",
+    "limits": "只计FireBreath独立姿态/冷却覆盖，不再把其父基础目标选择重复计。",
+    "start": 404
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/FlameConstruct.java",
+    "method": "breathOut",
+    "observation": "停止双移动通道；前40tick广播事件，27至67tick按水平视向和身体中部源点查5格射线候选并doBreathing，69tick结束声。",
+    "application": "实际吐息有延迟生效区间且使用另一个源点/方向，选定目标并非唯一受害者。",
+    "limits": "视觉调用只作时序上下文，不计粒子系统基础设施；没有用客户端handler制造通过。",
+    "start": 452
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/FlameConstruct.java",
+    "method": "canUse",
+    "observation": "BlastGoal只在非hunkered且达到实体tick期限时取普通target，3格外先导航，近于等于3格才开始。",
+    "application": "目标接近触发范围攻击，随后动画可能不再依赖当前target，最终AOE仍需逐对象复核。",
+    "limits": "与FireBreath使用父概率/射线条件不同，不按距离参数变体凑数。",
+    "start": 494
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/FlameConstruct.java",
+    "method": "tick",
+    "observation": "BlastGoal蓄力前40tick停导航横移，39及55tick两次fireBlast；42tick仅非staying时按视向前冲。",
+    "application": "同一动作会两次范围结算且可能移动，撤销目标不保证后续第二次攻击消失。",
+    "limits": "粒子/音效不是计数单位；冷却重置与FireBreath仅数值不同未另收stop。",
+    "start": 534
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/FlameConstruct.java",
+    "method": "fireBlast",
+    "observation": "服务端创建5格SpellExplosion，source为construct且damageSource为servantAttack，伤害后回调设置10无敌帧及4秒火。",
+    "application": "子范围组件要跟入过滤实现，传owner伤害源本身不能证明不误伤。",
+    "limits": "匿名postHurtEffect包含在完整fireBlast内不另计；视觉爆圈不算独立参考。",
+    "start": 571
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/FlameConstruct.java",
+    "method": "canUse",
+    "observation": "HunkerDownGoal需未缩身、未受伤、无target、非patrolling/commanded；guarding时必须在guard范围，否则需staying。",
+    "application": "驻守空闲状态依赖实际目标和区域，错误target会持续阻断守卫就位。",
+    "limits": "后续缩身动画声效不计，只收真实守卫状态转换前提。",
+    "start": 609
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/FlameConstruct.java",
+    "method": "canUse",
+    "observation": "StandUpGoal缩身后，收到指令、离开驻守/守区、出现target或hurtTime>0任一条件就开始站起。",
+    "application": "离开守区与战斗目标都能唤醒守卫，归属修复应保持已有站立/驻守状态语义。",
+    "limits": "不是给本项目新增站立动画；仅记录已有守卫模式到作战模式的触发。",
+    "start": 761
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/TwilightGoat.java",
+    "method": "start",
+    "observation": "随机1至近2秒windup，广播58；chargePos存在时计算起点相对终点的水平归一化ramDirection供击退。",
+    "application": "冲锋命中和击退方向持有独立起始快照，撤销时应清缓存和动作状态。",
+    "limits": "基础ChargeGoal已收，本条新增实际公羊撞击方向和广播语义；不按随机时长重复计。",
+    "start": 373
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/TwilightGoat.java",
+    "method": "tick",
+    "observation": "windup减至0才寻冲刺路；之后在自身碰撞盒找combat候选并删盟友，只打首个对象，用owner归属伤害后不依赖成功再击退，撞障碍/到终点也stop。",
+    "application": "实际冲撞受害者是路上碰撞体而非原chargeTarget，需逐候选Enemy许可且限制击退副作用。",
+    "limits": "原生公羊改造来源需在今后去重；不是将伤害、击退、断角各算一条。",
+    "start": 382
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/TwilightGoat.java",
+    "method": "stop",
+    "observation": "广播59并停导航，清windup/chargeTarget，按实体tick置冷却，关闭ICharger.charging。",
+    "application": "相比基础冲锋增加实际停止导航，否则缓存路线可能在动作标志清除后仍继续。",
+    "limits": "相同剩余参数/数值不计；这里只因撤导航与客户端冲撞结束状态有独立行为贡献。",
+    "start": 440
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/SpellExplosion.java",
+    "method": "SpellExplosion",
+    "observation": "完整构造执行范围结算：按曝光比例算伤，物品/爆炸免疫拒绝；从damageSource实体优先解析trueSource，否则source，排自己/盟友才explodeHurt，finally退出递归保护。",
+    "application": "范围攻击真实允许集合在构造时立即结算，必须早于伤害和击退统一检查；owner来源优先级也需正确。",
+    "limits": "只收执行型全参数构造；参数重载与递归保护基础设施不独立计。",
+    "start": 31
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/SpellExplosion.java",
+    "method": "explodeHurt",
+    "observation": "hurt成功才postHurtEffect，但之后无条件算击退衰减并推Living；抗女巫标签还可能移除不友好的Cyclone。",
+    "application": "拒伤不等于没有位移/实体移除，过滤必须在调用这个方法前而非仅hurt回调。",
+    "limits": "不计纯范围AABB和曝光采样算法，避免通用基础设施充数。",
+    "start": 82
+  }
+]

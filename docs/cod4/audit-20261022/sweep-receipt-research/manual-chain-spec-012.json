@@ -1,0 +1,166 @@
+[
+  {
+    "candidate_indices": [
+      3608
+    ],
+    "observation": "实际ProjectileImpact玩家受击拦截：当弹体owner已是受击玩家且有AB_DEFLECTED时间标签，tick差<10直接return让原碰撞继续而非cancel，避免循环；装备概率通过才cancel、反速度，箭清穿透集合/归属（回归三叉戟不改owner）或火球反power，清旧标签写当前实体年龄并按当前维度发运动包和声音。10tick豁免与3429终身加速令牌是不同玩法生命周期，整个反弹链一条。",
+    "supporting_methods": [
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java",
+        "onProjectileImpact"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/packets/clients/PacketForceArrowRotations.java",
+        "handle"
+      ]
+    ]
+  },
+  {
+    "candidate_indices": [
+      3618
+    ],
+    "observation": "BlackBeast死亡第40tick实际创建保存召回灵魂物品的FlyingItem并写原owner/secondsCool。FlyingItem服务器life>100才回收，同维度跟随或远距靠近，owner换维时直接尝试向原Player背包投递；投递前写物品专项冷却，失败掉落，成功才发拾取声，随后discard。item/life/cool由NBT保存；没有原请求代次，空item discard后本tick仍继续。延后物品归还与冷却提交整链一条。",
+    "supporting_methods": [
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/entities/projectiles/FlyingItem.java",
+        "tick"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/entities/projectiles/FlyingItem.java",
+        "teleportTowards"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/entities/projectiles/FlyingItem.java",
+        "addAdditionalSaveData"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/entities/projectiles/FlyingItem.java",
+        "readAdditionalSaveData"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/entities/ally/BlackBeast.java",
+        "tickDeath"
+      ]
+    ]
+  },
+  {
+    "candidate_indices": [
+      3634
+    ],
+    "observation": "SpellImpacts真实SUMMON分支提前创建/初始化实体与施法上下文，然后按组+个体delay将spawnEntity闭包放原ServerWorld队列；组FX只按组delay独立调度，未依赖spawnEntity布尔结果，因此视觉不等于召唤成功。完整WorldScheduler与ServerWorldMixin TAIL已读：0tick复制清立即队列后执行，正delay只取严格等于世界time的桶。执行端未重新检查caster生死/维度或已创建实体有效性；整个延迟召唤链只计一条，不重复6760的ANY回执链。",
+    "supporting_methods": [
+      [
+        "tools/cod4/legacy-migration-acceptance/.work/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/internals/impact/SpellImpacts.java",
+        "summon"
+      ],
+      [
+        "tools/cod4/legacy-migration-acceptance/.work/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/internals/impact/SpellImpacts.java",
+        "emitSummonGroupFx"
+      ],
+      [
+        "tools/cod4/legacy-migration-acceptance/.work/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/internals/impact/SpellImpacts.java",
+        "playSummonSound"
+      ],
+      [
+        "tools/cod4/legacy-migration-acceptance/.work/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/utils/WorldScheduler.java",
+        "schedule"
+      ],
+      [
+        "tools/cod4/legacy-migration-acceptance/.work/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/utils/WorldScheduler.java",
+        "updateScheduledTasks"
+      ],
+      [
+        "tools/cod4/legacy-migration-acceptance/.work/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/mixin/ServerWorldMixin.java",
+        "tick_TAIL_SpellEngine"
+      ]
+    ]
+  },
+  {
+    "candidate_indices": [
+      3659
+    ],
+    "observation": "LeapSystem完整类与PrehistoricLeaping碰撞消费已读：起跳使用currentTick==jumpDelayTick精确等值，落地和结束却用<=，错过起跳tick可卡准备态；跳跃目标失效会冻结位置清实体目标，hurt回调后再次判target非空避免同步回调清引用。start重置三时间戳，stop清阶段/目标；NBT只恢复攻击乘骑UUID，serverTick与当前vehicle UUID匹配才恢复target，否则结束乘骑。按完整跳跃/落地/乘骑状态机一条。",
+    "supporting_methods": [
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/system/LeapSystem.java",
+        "serverTick"
+      ],
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/system/LeapSystem.java",
+        "startLeap"
+      ],
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/system/LeapSystem.java",
+        "stopLeap"
+      ],
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/system/LeapSystem.java",
+        "tryAttackRiding"
+      ],
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/system/LeapSystem.java",
+        "stopAttackRiding"
+      ],
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/system/LeapSystem.java",
+        "setLeapTarget"
+      ],
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/system/LeapSystem.java",
+        "setAttackRiding"
+      ],
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/system/LeapSystem.java",
+        "saveAdditional"
+      ],
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/system/LeapSystem.java",
+        "load"
+      ],
+      [
+        "build/creature-reference-1000/TeamFossilsArcheology__FossilsArcheologyRevival/common/src/main/java/com/github/teamfossilsarcheology/fossil/entity/prehistoric/base/PrehistoricLeaping.java",
+        "push"
+      ]
+    ]
+  },
+  {
+    "candidate_indices": [
+      3667
+    ],
+    "observation": "Tetra实际throwItem把原模块物品从背包转为投射物，onHitEntity按实体ID集合防重复；先记命中再hurt，只有hurt成功才附魔/进度/暴击粒子，雷击与普通命中声仍不依赖hurt成功。临时将thrownStack置入玩家主手再恢复，无finally；穿透/反弹共享集合与限额，命中超限置dealtDamage，tick再进入忠诚返还。NBT保留物品/dealtDamage/优先槽却不保存命中集合；整条武器实体结果与归属链一条。",
+    "supporting_methods": [
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/items/modular/ThrownModularItemEntity.java",
+        "onHitEntity"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/items/modular/ThrownModularItemEntity.java",
+        "canHitEntity"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/items/modular/ThrownModularItemEntity.java",
+        "findHitEntity"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/items/modular/ThrownModularItemEntity.java",
+        "tick"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/items/modular/ThrownModularItemEntity.java",
+        "shouldReturnToThrower"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/items/modular/ThrownModularItemEntity.java",
+        "readAdditionalSaveData"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/items/modular/ThrownModularItemEntity.java",
+        "addAdditionalSaveData"
+      ],
+      [
+        "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/items/modular/ItemModularHandheld.java",
+        "throwItem"
+      ]
+    ]
+  }
+]

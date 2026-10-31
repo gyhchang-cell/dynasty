@@ -1,0 +1,236 @@
+[
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "isGuardingArea",
+    "observation": "若实现体是Entity且当前维度不等boundLevel则false；同维度才以boundPos非空确定守区。",
+    "application": "守卫区域是带维度的身份，不能只复制坐标跨世界追敌。",
+    "limits": "ResourceKey采用引用比较是实际代码，不在本研究擅自改为另一世界规则。",
+    "start": 62
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "isWithinGuard",
+    "observation": "boundPos为空直接true，有界则到目标BlockPos的平方距离严格小于GUARDING_RANGE平方。",
+    "application": "无界状态与有效守区状态不是同一含义，调用者需要先判断isGuardingArea。",
+    "limits": "与Summoned.setTarget完整守区许可不同，这是距离判定边界；不按配置常量变体计数。",
+    "start": 110
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "getCurrentWaypoint",
+    "observation": "空路线null，非空按clamp(patrolIndex,0,size-1)取GlobalPos。",
+    "application": "旧档越界巡逻索引可限制到有效点，防护应保留坐标所属维度。",
+    "limits": "非纯字段getter，含巡逻越界回退行为；不计GlobalPos编解码工具。",
+    "start": 138
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "advancePatrol",
+    "observation": "路线空则不动；否则index加1模size并更新boundPos为新点pos。",
+    "application": "巡逻推进会重置守区中心，攻击区域也随之改变，不能只核固定初始点。",
+    "limits": "setBoundPos具体实现可能更新维度，default还需实际实现配合；不把每个路点计一条。",
+    "start": 147
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "clearPatrol",
+    "observation": "将路线置空、index置0并清boundPos。",
+    "application": "退出巡逻也撤守区，后续isFollowing可能变化；清路线不只是删除列表。",
+    "limits": "具体守卫命令状态转换才计数，非通用List清理基础设施。",
+    "start": 156
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "copyStance",
+    "observation": "按following、wandering、guarding顺序复制；guarding时复制boundPos和boundLevel，没有staying分支。",
+    "application": "子召唤继承姿态的范围不一定覆盖所有命令；复制守区必须同步维度。",
+    "limits": "未假定遗漏staying即缺陷，原实现可有意不继承；不新增本项目姿态。",
+    "start": 237
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "isFollowing",
+    "observation": "仅非wandering、非staying、非guarding且canFollow才true。",
+    "application": "跟随是多个模式的派生值，清旧守区或切维度可能隐式改变它。",
+    "limits": "这不是单字段getter；相同派生模板今后不按实体种类再计。",
+    "start": 248
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "spawnUpgraded",
+    "observation": "默认取直接owner，配置允许时改用masterOwner；按召唤类别及owner对应披风/袍判断upgraded，亡灵还认直接Necromancer主人。",
+    "application": "子召唤装备收益归属可以选择直接主或最终主，需要明确防止跨玩家装备误用。",
+    "limits": "整张类别装备分支只计一个完整方法，不按九种服饰凑数；本项目不新增这些收益。",
+    "start": 256
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "updateMoveMode",
+    "observation": "按可用模式轮换wander→stay→guard当前位置→follow；各分支都先clearPatrol并统一更新bound/flags，成功后提示操作者与声效。",
+    "application": "切模式应清旧巡逻及区域状态，避免一个实体同时残留多套目标范围。",
+    "limits": "此方法未自检player是否owner，授权应由调用入口保证，不能凭参数名声称已鉴权。",
+    "start": 284
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "setCommandPos",
+    "observation": "双参版本按removeEntity清命令实体，再调用单参setCommandPos并设10秒命令时长。",
+    "application": "位置命令与实体命令需要互斥撤销；默认单/双参互相调用要求实现类override避免递归。",
+    "limits": "只收具体命令冲突及期限语义，单参纯转发不另计；不声称实现类真的缺override。",
+    "start": 340
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "isAbleToRide",
+    "observation": "自身非PlayerRideable/IGolem且目标可骑或tag且无首乘客，马只要tamed，其他有owner需与自己trueOwner相同；否则IServant可委托canBeRidden。",
+    "application": "骑乘许可存在物种快捷分支和owner关系分支，不能假定统一同主检查覆盖所有坐骑。",
+    "limits": "不导入新骑乘/PVP；只研究受控随从实际交互归属。",
+    "start": 407
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "servantTick",
+    "observation": "每tick处理驻留和命令；守区非优先时远于双倍范围的非priority目标清掉并返位，空目标可坐座或返区；优先状态无目标才减期限，处理死亡priority及回血/燃烧/子主继承。",
+    "application": "周期清目标有优先命令和距离豁免，不能拿它当最终攻击许可；错误目标还会驱动座位/返位路径。",
+    "limits": "完整复杂tick只计一处；未把座位、寻路、粒子基础设施拆成额外参考。",
+    "start": 433
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "ownedByServantTick",
+    "observation": "直接owner是IServant时，主人守区而自己未守区且同维度则复制boundPos；主人不守区就setFollowing。",
+    "application": "多层召唤自动继承守区，owner变化后的AI模式可能由主实体每tick覆盖。",
+    "limits": "只复制pos，boundDim需setBoundPos实现负责；不将空解析自动变野生。",
+    "start": 513
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "healServant",
+    "observation": "取直接或配置最终owner，按类别对应冠/饰品决定是否取消寿命，有寿命且不足等于20tick不治疗；服务器委托owner治疗。",
+    "application": "装备来源会改变召唤寿命及回收窗口，归属错误会连带影响持续存在。",
+    "limits": "不按每件冠冕拆条，不把治疗公式当AI参考；本项目沿既有租约期限不新增免死收益。",
+    "start": 544
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "commandMode",
+    "observation": "有命令且目的地稳定或有实体目标时递减期限并导航；卡住/到期清实体及位置，抵达可同主骑乘、更新守区/坐席，停双移动并精准移位后清命令。",
+    "application": "指令动作可能强制改位置/骑乘且持独立期限，撤销归属应考虑这个目标通道。",
+    "limits": "不把每个家具或路径工具计数；命令是否owner授权在调用端另核。",
+    "start": 606
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "stayingMode",
+    "observation": "自身/控制乘客staying或altStaying时停路径、先移同UUID速度modifier再加临时modifier并看目标，非驻留时移除modifier。",
+    "application": "驻留模式应防属性重复叠加且支持乘客继承，停止移动并不自动清攻击目标。",
+    "limits": "本条是具体守卫状态与控制关系，非重复纯属性表，也不重跑已过装备QA。",
+    "start": 665
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "readServantData",
+    "observation": "按存在字段恢复模式/命令位置和实体UUID、守区维度、巡逻列表索引、noHeal、优先时间及位置；未读保存方的commandTick。",
+    "application": "持久控制窗口必须对照读写字段，目标实体可能查不到时应有明确回退。",
+    "limits": "只记录局部读写不对称，不宣称游戏已复现期限丢失；不泛拷用户原档。",
+    "start": 724
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/IServant.java",
+    "method": "saveServantData",
+    "observation": "存模式/升级、非空命令位置与实体UUID、commandTick、守区位置维度、非空巡逻路径及索引、noHeal和priority时间/位置。",
+    "application": "存目标应使用稳定UUID并保留窗口，读档后还需按当前owner许可重核。",
+    "limits": "列表Codec/坐标NBT为辅助不独立计；整段实际守卫玩法存档只计一处。",
+    "start": 772
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/BlackBeast.java",
+    "method": "doHurtTarget",
+    "observation": "父近战成功且服务器，目标无Doom、可受影响且自己不在无雨日照时施Doom/凋零/诅咒，并按世界日数给自身再生。",
+    "application": "目标错误可能同时伤害旁人并给召唤物收益，最终许可应在父伤害及附效前成立。",
+    "limits": "不按三种效果或日数倍率拆计，外部数值不进入本项目。",
+    "start": 507
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/BlackBeast.java",
+    "method": "mobSense",
+    "observation": "活体有target且非隐身时，冷却中委托父感知，否则开隐身并重置30秒；目标Mob描述含nightmare_stalker时直接令它反选自己。",
+    "application": "感知不仅看目标，还能修改对方仇恨，原Enemy门需要覆盖这类主动挑衅副作用。",
+    "limits": "BlackWolf近似隐身端口不另计；字符串兼容规则不复制到本项目。",
+    "start": 751
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/BlackWolf.java",
+    "method": "doHurtTarget",
+    "observation": "父近战成功才解除自身隐身并调用curseTarget。",
+    "application": "攻击成功可以改变召唤物隐身和施加额外状态，不能只观察受害者血量。",
+    "limits": "curseTarget仅升级判定+加诅咒的简单下游不拆计；完整攻击链记一处。",
+    "start": 375
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/RedstoneGolem.java",
+    "method": "setTarget",
+    "observation": "新非Player且非空目标、不同现目标且summonCool<=0时先设召唤冷却，再无条件父setTarget。",
+    "application": "选敌赋值本身可能改变子召唤时钟，过滤非法对象应早于这些前置状态更新。",
+    "limits": "不能由该方法断言会攻击玩家，后续目标goal仍需审；不按冷却常量计数。",
+    "start": 650
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/SignalerServant.java",
+    "method": "setTarget",
+    "observation": "有目标且号角可用时计算敌群；初次强敌/Player/量化>=15才找同masterOwner的驻守及领队驻守随从，分配priority目标并递归通知其他信号兵，保存敌群设60号角期。",
+    "application": "群体调度应绑定最终owner且每个分配对象同样满足许可，不能让priority入口绕过Enemy过滤。",
+    "limits": "该override不直接父setTarget，清null也不转发，是实际控制流；是否另有overrideSetTarget需结合本体。",
+    "start": 165
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/SignalerServant.java",
+    "method": "quantityOfTargets",
+    "observation": "遍历敌群，大血量或由Player拥有且该Player可被ownedTargetable的对象权重3，其他权重1。",
+    "application": "召唤敌群威胁评估会追宠物owner，归属方向错误可触发不必要群体警报。",
+    "limits": "hordeOfTargets只是半径+已研究谓词包装不另计；不按三种权重分支拆条。",
+    "start": 213
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/VindicatorServant.java",
+    "method": "getTrueOwner",
+    "observation": "isJohnny时返回null，否则父解析owner。",
+    "application": "行为状态可暂时屏蔽owner对象而保留UUID；不得将解析null解释为原租约已解除。",
+    "limits": "这是有具体疯狂状态门的解析，不是纯getter；不引入本项目Johnny/PVP机制。",
+    "start": 132
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MobUtil.java",
+    "method": "illagerAllies",
+    "observation": "本人/队友先通过，Vex/Irk/Tormentor向各owner解析；ILLAGER若IOwned有主按主结盟，非hostile反向查，其他无队双方才盟友。",
+    "application": "不同子召唤类型的归属解析与反向关系各异，需要看完整分支优先级。",
+    "limits": "全模组阵营关系不是本项目Enemy许可；不把三个同类owner分支分别计数。",
+    "start": 147
+  }
+]

@@ -1,0 +1,66 @@
+[
+  {
+    "candidate_index": 2483,
+    "candidate_id": "55166d0f6dcd88a113c5",
+    "decision": "accepted",
+    "observation": "已全文读GuardiansSword及ChargeableItem：右键消耗晶石把栈组件charge写绝对gameTime+2400并加主手属性，背包每10世界tick查charge>0且charge<now撤属性清charge。窗口随原stack移动而非使用者，卸到副手仍定时维护，恰好到期需等下一轮；组件用float存绝对tick，跨世界游戏时间与精度有边界。具体剑充能增益/撤销链不拆方法计数。",
+    "snippet_sha256": "dd381f4f1dbf3e22693f1cf0ce303df665d8406eb43174df46759e4313e6224a",
+    "reviewed_at": "2026-10-26T18:39:29.632378+08:00"
+  },
+  {
+    "candidate_index": 2551,
+    "candidate_id": "4f1cac37f24b39c4f024",
+    "decision": "pending",
+    "observation": "魔法弹药raycast沿路径收集命中，以本次局部hitEntities防大碰撞箱重复并按离起点排序；还需读tick如何消费/移除及canHitEntity限制，不能只凭辅助几何函数计完整回执链。",
+    "snippet_sha256": "a2b70e679af834574335e369a9b99f5fa1b0dbc717673de450a261116418eab7",
+    "reviewed_at": "2026-10-26T18:39:29.632398+08:00"
+  },
+  {
+    "candidate_index": 2767,
+    "candidate_id": "544aead010b637e0d868",
+    "decision": "excluded",
+    "observation": "口袋维度每100世界tick将越界非创造玩家送回传送门并清跌落骑乘，是定期空间边界玩法；没有本题回执延期或来源去重相关链，不以维度关键词凑数。",
+    "snippet_sha256": "c0503a9c0f12667d010871a933c416d11fce46af2ecae4b88ac3279bf7cf669c",
+    "reviewed_at": "2026-10-26T18:39:29.632405+08:00"
+  },
+  {
+    "candidate_index": 3080,
+    "candidate_id": "26ade1bb6558066512e5",
+    "decision": "pending",
+    "observation": "粘附弹server每轮跟随活target，目标失效或年龄>=100爆炸后remove/return；构造保存shooter字段却未在该类设置owner，爆炸getOwner可能为空。需要找到真实生产端和createExplosion归属，不把单个寿命字段当完整链。",
+    "snippet_sha256": "a51406b7271e75abfc4b97b3449d3ca04279ff1b4b704df3963edc371c0629e2",
+    "reviewed_at": "2026-10-26T18:39:29.632410+08:00"
+  },
+  {
+    "candidate_index": 3211,
+    "candidate_id": "da516bbdbdf5c528dcc3",
+    "decision": "accepted",
+    "observation": "已全文读GuidingBoltManager及效果增删：实体Join只按原server维度把弹体入dirty队列，Level.Post等isAddedToLevel后按48范围/视线和非owner选一个带效果UUID目标，再remove并广播；已移除弹体清理，尚未加入保留待下轮。tracked每目标HashSet去重，Entity.Pre按当前速度引导，死亡撤追踪；客户端用当前世界解析包ID，logout清tracked。目标map跨维UUID而待处理弹体分维度，没有短TTL，明确延期初始化而非当刻相等。",
+    "snippet_sha256": "d5a669a2ae51f877bfd3349d1ebff3035c22b91d58c1cc21f74a01baec84c2ad",
+    "reviewed_at": "2026-10-26T18:39:29.632415+08:00"
+  },
+  {
+    "candidate_index": 3257,
+    "candidate_id": "b8e2edc1527801235a8c",
+    "decision": "accepted",
+    "observation": "灰烬吐息实体tick>2至>25边界内调用hitEntities，伤害只在tickCount%3==0，锥形距离随年龄扩张；成功hurt才盲目附状态，客户端烟火每轮独立80+2。caster死亡discard后缺return本轮仍可hitEntities，且该方法无独立server判端；固定caster引用用于间接伤害、朝向每轮跟当前头部，原来源与当前姿态分离。已全文读两方法，同链只计此tick。",
+    "snippet_sha256": "a68aa5691fdd35d8dbbc2e29b8ac3821b623b9acb1c53171f2a112d212006bb9",
+    "reviewed_at": "2026-10-26T18:39:29.632422+08:00"
+  },
+  {
+    "candidate_index": 3312,
+    "candidate_id": "54b39ed6baac674f1aba",
+    "decision": "excluded",
+    "observation": "灰烬吐息hitEntities已全文审读并归并3257生命周期链；伤害节奏与成功附状态不作为第二个独立实现计数。",
+    "snippet_sha256": "603801d2f5acd09f4b431cd44945a6c049db833f12a45908b80e39017c512946",
+    "reviewed_at": "2026-10-26T18:39:29.632427+08:00"
+  },
+  {
+    "candidate_index": 3255,
+    "candidate_id": "0a3a70c946b7fc90fd8c",
+    "decision": "accepted",
+    "observation": "红石法术完整链分两种截止：敏感模式在每ServerLevel SavedData以pos覆盖Entry，Post只对加载区块ticks--<=0移除并通知邻居，卸载暂停且剩ticks持久化；普通模式放TemporaryTile记录绝对gameTime+duration，tick到>=截止清AIR并通知六邻居，重载旧gameTime继续计绝对寿命。已读SavedData、RedstoneUtil实际信号查询、TemporaryTile完整消费者，重施同pos覆盖不另计队列条目；FakePlayer仅方块权限事件代理，不当真实玩家验收。",
+    "snippet_sha256": "cc97b3413715086f61b5639982d741149a3042dcea382d67f59b8c132a3acdb6",
+    "reviewed_at": "2026-10-26T18:39:29.632430+08:00"
+  }
+]

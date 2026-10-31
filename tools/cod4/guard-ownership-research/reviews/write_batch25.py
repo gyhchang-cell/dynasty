@@ -1,0 +1,28 @@
+import json,pathlib
+R=[]
+def a(f,m,o,b,l,s=None):
+ d=dict(repo='AlexModGuy/AlexsMobs',file='/'+f+'.java',method=m,observation=o,application=b,limits=l)
+ if s:d['start']=s
+ R.append(d)
+a('EntityElephant','registerGoals','自己的HurtBy群体警报优先1，主人受击/助攻2/3，捡物4，骑村民与近战及恐慌同优先2。','自身警报不受主人助攻筛选自动限制，坐骑和群体入口也需审。','整注册一条，不将每个通用goal实例算单独实现。')
+a('EntityElephant','tick','吃物17帧可按投喂者驯服并卸乘客；控制骑手lastHurtMob可替代本地target，冲撞先击退抬高再伤害，末尾冲锋还对周围非盟友AOE。','骑手衍生目标及接触AOE均绕普通target赋值，过滤须早于击退和每个AOE候选。','完整178行只计一处，不把时钟/动画/箱子遍历拆条。',262)
+a('EntityElephant','mobInteract','蹲下有箱直接openGUI，投食先接物记录来源；owner才能装卸地毯/箱、卸箱掉库存及成年骑上。','打开库存与控制坐骑的权限门不同，不能以owner后置分支推断前面的GUI也鉴权。','此处是否openGUI内部再验证需另查；不声明真实漏洞已复现。')
+a('EntityElephant','tickRidden','父骑乘后有前后/左右输入则跟随骑手旋转、停导航、清target并设sprinting。','原生操控可主动清AI目标，最终冲锋碰撞却可能另选候选，二者需分开核。','只计目标清理及骑乘控制冲突，旋转数学不独立计。')
+a('EntityElephant','start','幼体或非长牙象受击只警报后stop，其他父复仇start。','受击个体可不反击却把敌情传播给其他单位，不能只看自身target是否空。','与AnimalAIHurtByNotBaby的幼体分支相近，但包含成年非长牙角色分工；简单物种端口后续不计。',1043)
+a('EntityElephant','alertOther','仅目标增援是象且非幼体或非长牙才父alertOther。','群体警报接收侧也有限制，原布尔OR要按实际语义解读而非按注释猜。','此方法没比较owner，外层父增援筛选仍需配合，不夸大为任意玩家可串群。')
+a('ElephantAIFollowCaravan','canUse','捡物或受骑控拒；非长牙无队且不坐时先最近队尾、否则成年长牙无尾，距离和首领链核验后join。','队属自动建立不等同驯服归属，同主保护不能由编队关系替代。','与原生骆驼队列相近，此为首次该完整自动编队策略，后续Gorilla端口不重复。')
+a('ElephantAIFollowCaravan','canContinueToUse','坐/捡物退出；需队首活且链上存在成年长牙，远于26格先提速40tick，再视计时退出。','成员有效性和追随容忍窗口要一起核，不能只拿距离判断队属。','具体队属持续策略一处，stop清队形与数值getter不单独计。')
+a('EntityMantisShrimp','registerGoals','炒饭/破块优先0，主人才跟随，主动猎物需非命令3且非坐；OwnerHurt及自身HurtBy仍独立存在。','工作模式禁止主动选敌但未自动禁止助攻/反击，过滤需跨模式入口。','普通goal注册部分为辅助，仅具体命令门和多选敌入口计一处。')
+a('EntityMantisShrimp','tick','无AI补氧，湿润或手持水桶补湿度，否则耗尽时每20tick清命令/坐姿并自干伤；漂浮效果时抑竖速。','环境生存状态可强制覆盖主人命令，不能认为坐姿持久不变。','相关性是实际受控宠物命令撤销，通用水分属性表不计。',300)
+a('EntityMantisShrimp','mobInteract','未驯服按累计投喂>10随机或>30保底设主；已tame鱼回血公开，只有真owner可交换主手工作物或循环四命令。','累计驯服进度可由多人推进而最终投喂者得主，需区分累计值与owner身份。','不按投喂次数计参考；完整工作指令与驯服权限入口一条。')
+a('EntityMantisShrimp','aiStep','拳PUNCH_TICK到2对近当前target：野生鱼先清掉落，击退、抬高和出水点燃全在hurt之前。','最终许可要早于所有物理/火焰附效，拒hurt不能撤已施加的前置动作。','眼动画/粒子只是方法附带不另计，完整拳击路径一处。')
+a('EntityBlueJay','registerGoals','食物目标优先1，HurtBy带Player排除参数且群体警报，近战/跟随投喂者或浣熊并存。','构造Player参数在原生HurtBy含义是忽略伤害来源类型，不能误当总Player许可。','需要对应MC版本解释；本项目不引入鸟类派系。')
+a('EntityBlueJay','tick','投喂期到0清lastFeeder，绑定raccoon存在时自身无活target可复制浣熊活target并canAttack；已有敌则下骑；唱歌启动1200蓝光怪物标记。','临时投喂与持久伙伴两条身份通道不同，跨物种复制目标需再验许可。','全方法一条，唱歌粒子/动画不单独计。',174)
+a('EntityBlueJay','isAlliedTo','绑定raccoonUUID直接认对应浣熊为盟友，其余实际解析浣熊后双向盟友任一成立即认同盟，否则父逻辑。','关系可以经伙伴向外传播而非只从player owner传，null伙伴不能等于解绑UUID。','与Tamable主人模板不同，明确非驯服伙伴关系链。')
+a('EntityBlueJay','onGetItem','原手物先落地并治疗，结盟食物的投掷者成为lastFeeder、1200tick并下骑，警报食物还触发40tick唱歌。','短期伙伴输入需保存真实来源UUID且更新窗口，不能用最近玩家代替。','与普通tame拾物模板不同，此处只建立临时投喂关系并切救援/提示行为。')
+a('EntityBlueJay','canUse','已乘客或有活敌拒；先选解析成功的raccoon伙伴，才选投喂时限内feeder，有对象才缓存跟随。','多身份来源有优先级，不能把短时feeder强行覆盖已绑伙伴。','只计AIFollowFeederOrRaccoon的方法，随机飞行canUse不计。',886)
+a('EntityBlueJay','canContinueToUse','缓存following活且当前无活敌、未乘客，following为raccoon或投喂期未结束才继续。','持续许可必须撤过期临时投喂身份，同时保留明确伙伴关系。','是具体双身份任务持续门，不把一般isAlive getter另计。',908)
+a('EntityBlueJay','tick','对following飞/步追随；raccoon伙伴远40传送近身，1格内且其无乘客才骑上。','持续对象可能是玩家也可能伙伴，强制骑乘仅限定伙伴分支。','飞行几何辅助不计，本条实际跨物种跟随/登载行为一处。',913)
+a('BlueJayAIMelee','tick','有活target时近3格peck并以目标generic来源打1且stop，之后本tick仍按盘旋计时追击或绕飞。','伤害来源不总携攻击者，外部归属监听可能无法从generic恢复owner。','与Crow近距generic类似，但完整盘旋/stop后继续移动时序不同；纯盘旋数学不计。')
+a('FroststalkerAIFollowLeader','canUse','已有followers不跟人，已follower直接true；否则定时找60格最近有效Player优先，没玩家就选同类可队首者并批量addFollowers。','自动首领选择与普通tame不同，玩家合法性谓词和集群重选都需完整研究。','此处VALID_LEADER_PLAYERS仅引用待本体全文核实，不能自动当owner权限。')
+pathlib.Path(__file__).with_name('batch25.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

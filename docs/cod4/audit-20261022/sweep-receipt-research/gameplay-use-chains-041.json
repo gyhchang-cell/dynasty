@@ -1,0 +1,406 @@
+{
+  "purpose": "人工全文审阅后的具体玩法使用链；支持方法不额外计数。",
+  "reviewed_at": "2026-10-26T22:23:21.130423+08:00",
+  "additional_credit": 0,
+  "external_runtime_tested": false,
+  "chains": [
+    {
+      "observation": "全文InnervationSkill并核AoAPlayerEventListener.afterAttacking/onEntityKill：真实伤害Post以source.entity关联该player监听，按目标数字ID存(lastGameTime,累计damage)每次刷新时间，累计最多1.5maxHealth(首笔未此截断)。死亡监听遍历getAttackersForMob含本人即执行一次，先remove该目标条再授XP，缺记录默认5伤害；仅一次kill后size>10才purge严格timestamp<now-1200，因此年龄刚1200保留且查询hasAttackedEntity只查ID无TTL/维度。该历史伤害归属用于实杀XP，不把普通成长公式另计；Post记录-死亡消费-迟清理1条。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "bbe086bce843f16f49b4",
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/player/skill/InnervationSkill.java",
+          "method": "handleAfterAttacking",
+          "line": 49,
+          "end_line": 58,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/Tslat__Advent-Of-Ascension/source/player/skill/InnervationSkill.java",
+          "source_sha256": "d0ee27a9b09891bc359540245ef7939754291ea5a965f47853dff6bc4f50f803",
+          "snippet_sha256": "c0f0c3065a0847fbaebdd3eee58b83c9366dfaebec2fb9ce1c7f9a2464f0d3c6",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/player/skill/InnervationSkill.java#L49-L58",
+          "excerpt": "private void handleAfterAttacking(LivingDamageEvent.Post ev) {\n\t\tLivingEntity target = ev.getEntity();\n\n\t\tthis.attackTracker.compute(target.getId(), (id, value) -> {\n\t\t\tif (value == null)\n\t\t\t\treturn Pair.of(target.level().getGameTime(), ev.getNewDamage());\n\n\t\t\treturn Pair.of(target.level().getGameTime(), Math.min(target.getMaxHealth() * 1.5f, ev.getNewDamage() + value.getSecond()));\n\t\t});\n\t}"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/player/skill/InnervationSkill.java",
+          "method": "handleEntityKill",
+          "line": 60,
+          "end_line": 73,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/Tslat__Advent-Of-Ascension/source/player/skill/InnervationSkill.java",
+          "source_sha256": "d0ee27a9b09891bc359540245ef7939754291ea5a965f47853dff6bc4f50f803",
+          "snippet_sha256": "626d63b29a373f766495274a89b1bf0be5a8c200f96c065ce6bb919e7ab7e170",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/player/skill/InnervationSkill.java#L60-L73",
+          "excerpt": "private void handleEntityKill(LivingDeathEvent ev) {\n\t\tLivingEntity target = ev.getEntity();\n\t\tPair<Long, Float> attackEntry = this.attackTracker.get(target.getId());\n\t\tfloat damageDealt = attackEntry == null ? 5f : attackEntry.getSecond();\n\n\t\tif (attackEntry != null)\n\t\t\tthis.attackTracker.remove(ev.getEntity().getId());\n\n\t\tif (canGainXp(true))\n\t\t\tPlayerUtil.giveXpToPlayer((ServerPlayer)getPlayer(), type(), getKillXpForEntity(target, damageDealt), false);\n\n\t\tif (this.attackTracker.size() > 10)\n\t\t\tpurgeTracker(target.level().getGameTime());\n\t}"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/player/skill/InnervationSkill.java",
+          "method": "purgeTracker",
+          "line": 75,
+          "end_line": 77,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/Tslat__Advent-Of-Ascension/source/player/skill/InnervationSkill.java",
+          "source_sha256": "d0ee27a9b09891bc359540245ef7939754291ea5a965f47853dff6bc4f50f803",
+          "snippet_sha256": "9344b5e9ac499c800734ef18d9dd208eec198f244194c8539b51250fc23be703",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/player/skill/InnervationSkill.java#L75-L77",
+          "excerpt": "private void purgeTracker(long currentTime) {\n\t\tgetAttackEntries().removeIf(entry -> entry.getValue().getFirst() < currentTime - 1200);\n\t}"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/player/skill/InnervationSkill.java",
+          "method": "getAttackEntries",
+          "line": 79,
+          "end_line": 81,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/Tslat__Advent-Of-Ascension/source/player/skill/InnervationSkill.java",
+          "source_sha256": "d0ee27a9b09891bc359540245ef7939754291ea5a965f47853dff6bc4f50f803",
+          "snippet_sha256": "a88b31b773bcba55d519d080930dede26f428e5440c44e1eec0e7b51e2d81495",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/player/skill/InnervationSkill.java#L79-L81",
+          "excerpt": "public Int2ObjectMap.FastEntrySet<Pair<Long, Float>> getAttackEntries() {\n\t\treturn this.attackTracker.int2ObjectEntrySet();\n\t}"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/player/skill/InnervationSkill.java",
+          "method": "hasAttackedEntity",
+          "line": 83,
+          "end_line": 85,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/Tslat__Advent-Of-Ascension/source/player/skill/InnervationSkill.java",
+          "source_sha256": "d0ee27a9b09891bc359540245ef7939754291ea5a965f47853dff6bc4f50f803",
+          "snippet_sha256": "177b64a879b80fa84ef1984628b5984cecd73a52dedbd404fffd66a3a2e4a65a",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/player/skill/InnervationSkill.java#L83-L85",
+          "excerpt": "public boolean hasAttackedEntity(Entity entity) {\n\t\treturn this.attackTracker.containsKey(entity.getId());\n\t}"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/player/skill/InnervationSkill.java",
+          "method": "getKillXpForEntity",
+          "line": 87,
+          "end_line": 111,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/Tslat__Advent-Of-Ascension/source/player/skill/InnervationSkill.java",
+          "source_sha256": "d0ee27a9b09891bc359540245ef7939754291ea5a965f47853dff6bc4f50f803",
+          "snippet_sha256": "41fe65f030e6a93eb468bbb4f93458dc198986ddcaa843d00752f8a757d1c4cd",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/player/skill/InnervationSkill.java#L87-L111",
+          "excerpt": "protected float getKillXpForEntity(LivingEntity target, float damageDealt) {\n\t\tfloat xp = PlayerUtil.getTimeBasedXpForLevel(getLevel(true), (int)((Math.min(target.getMaxHealth() * 1.5f, damageDealt) / 16f) * 20));\n\t\tdouble armour = AttributeUtil.getAttributeValue(target, Attributes.ARMOR);\n\t\tdouble toughness = armour > 0 ? AttributeUtil.getAttributeValue(target, Attributes.ARMOR_TOUGHNESS) : 0;\n\t\tdouble speed = AttributeUtil.getAttributeValue(target, Attributes.MOVEMENT_SPEED);\n\n\t\txp *= 1 + (float)(Mth.square(armour / 30) + Math.pow(toughness / 15, 1.5d));\n\n\t\tif (target.getPersistentData().contains(EntityEvents.SPAWNED_BY_SPAWNER_TAG))\n\t\t\txp *= 0.25f;\n\n\t\tif (target instanceof FlyingMob || (target instanceof Mob mob && mob.getNavigation() instanceof WaterBoundPathNavigation))\n\t\t\txp *= 1.1f;\n\n\t\tif (speed > 0.3f)\n\t\t\txp *= 1.1f;\n\n\t\tif (!EntityUtil.isHostileMob(target))\n\t\t\txp *= 0.5f;\n\n\t\tif (target.getType().is(Tags.EntityTypes.BOSSES))\n\t\t\txp *= 1.3f;\n\n\t\treturn xp;\n\t}"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/player/AoAPlayerEventListener.java",
+          "method": "afterAttacking",
+          "line": 180,
+          "end_line": 182,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/Tslat__Advent-Of-Ascension/source/player/AoAPlayerEventListener.java",
+          "source_sha256": "b5c01b5cfc9146427b72f64e294f1a77b4207b318f776687b575a5a5cc54c7f7",
+          "snippet_sha256": "e90a5a88834ebcbe88f0b9faa3a30eae2e2ecd7de425ee85cf21af807cfcc95a",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/player/AoAPlayerEventListener.java#L180-L182",
+          "excerpt": "default DynamicEventSubscriber<LivingDamageEvent.Post> afterAttacking(Consumer<LivingDamageEvent.Post> handler) {\n\t\treturn listener(LivingDamageEvent.Post.class, ev -> ev.getSource().getEntity(), handler);\n\t}"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/player/AoAPlayerEventListener.java",
+          "method": "onEntityKill",
+          "line": 198,
+          "end_line": 208,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/Tslat__Advent-Of-Ascension/source/player/AoAPlayerEventListener.java",
+          "source_sha256": "b5c01b5cfc9146427b72f64e294f1a77b4207b318f776687b575a5a5cc54c7f7",
+          "snippet_sha256": "316e33a75a43fc9597ea85f0c77cfea1761a51d2b18ef849c7eb1543e798ab5e",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/player/AoAPlayerEventListener.java#L198-L208",
+          "excerpt": "default DynamicEventSubscriber<LivingDeathEvent> onEntityKill(Consumer<LivingDeathEvent> handler) {\n\t\treturn DynamicEventSubscriber.of(LivingDeathEvent.class, ev -> {\n\t\t\tfinal Entity selfEntity = getPlayer();\n\n\t\t\tfor (Entity attacker : EntityUtil.getAttackersForMob(ev.getEntity(), entity -> entity != ev.getEntity() && entity == selfEntity)) {\n\t\t\t\thandler.accept(ev);\n\n\t\t\t\tbreak;\n\t\t\t}\n\t\t}, this::isStillValid);\n\t}"
+        }
+      ]
+    },
+    {
+      "observation": "全文TharaflyAttachBehaviour全部方法并核getFightTasks实际安装：起始从brain锁定Player、LOS近战且非vehicle，强制骑乘后不核startRiding bool即发mount包；保持要求目标firstPassenger==该怪。entity.tickCount%10反复doHurtTarget忽略结果；蹲姿变化postIncrement shakes旧值>=10才停，即第11次变化；stop若target仍vehicle或null才stopRiding，但总发dismount并设40tickATTACK_COOLING_DOWN memory且清target/shakes。行为外另runFor100..200和cooldownFor100..200，周期命中时钟和停止冷却不同，整条附身周期攻击1。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "aaf1f5251d9a4e454077",
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/content/entity/monster/barathos/TharaflyEntity.java",
+          "method": "tick",
+          "line": 314,
+          "end_line": 325,
+          "source_local": "build/creature-reference-1000/Tslat__Advent-Of-Ascension/source/content/entity/monster/barathos/TharaflyEntity.java",
+          "source_sha256": "5fdc5f3bcc4ad49542c2d2e4d73f2c4cb167480529f482eddb77c416264b8d2a",
+          "snippet_sha256": "b355e8a278cfb0af90c30b2b7aca849330b77ea7380df82a64f66f6e5d873f88",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/content/entity/monster/barathos/TharaflyEntity.java#L314-L325",
+          "excerpt": "@Override\n        protected void tick(TharaflyEntity entity) {\n            if (entity.tickCount % 10 == 0)\n                entity.doHurtTarget(this.target);\n\n            if (this.target.isCrouching() != this.wasCrouching) {\n                this.wasCrouching = this.target.isCrouching();\n\n                if (this.shakes++ >= 10)\n                    doStop((ServerLevel)entity.level(), entity, entity.level().getGameTime());\n            }\n        }"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/content/entity/monster/barathos/TharaflyEntity.java",
+          "method": "getFightTasks",
+          "line": 113,
+          "end_line": 126,
+          "source_local": "build/creature-reference-1000/Tslat__Advent-Of-Ascension/source/content/entity/monster/barathos/TharaflyEntity.java",
+          "source_sha256": "5fdc5f3bcc4ad49542c2d2e4d73f2c4cb167480529f482eddb77c416264b8d2a",
+          "snippet_sha256": "9ea79ff401c43c35f23368e6bff963b93126d3126737b06e2a0c05e0face0135",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/content/entity/monster/barathos/TharaflyEntity.java#L113-L126",
+          "excerpt": "@Override\n    public BrainActivityGroup<? extends TharaflyEntity> getFightTasks() {\n        return BrainActivityGroup.fightTasks(\n                new InvalidateAttackTarget<>().invalidateIf((entity, target) -> !DamageUtil.isAttackable(target) || distanceToSqr(target.position()) > Mth.square(getAttributeValue(Attributes.FOLLOW_RANGE))),\n                new SetWalkTargetToAttackTarget<>(),\n                new OneRandomBehaviour<>(\n                        new AnimatableMeleeAttack<>(getPreAttackTime())\n                                .attackInterval(entity -> getAttackSwingDuration() + 2),\n                        new TharaflyAttachBehaviour()\n                                .startCondition(tharafly -> this.navigation == this.flyingPathNavigation)\n                                .runFor(tharafly -> rand().numberBetween(100, 200))\n                                .cooldownFor(tharafly -> rand().numberBetween(100, 200))\n                ));\n    }"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/content/entity/monster/barathos/TharaflyEntity.java",
+          "method": "getMemoryRequirements",
+          "line": 284,
+          "end_line": 287,
+          "source_local": "build/creature-reference-1000/Tslat__Advent-Of-Ascension/source/content/entity/monster/barathos/TharaflyEntity.java",
+          "source_sha256": "5fdc5f3bcc4ad49542c2d2e4d73f2c4cb167480529f482eddb77c416264b8d2a",
+          "snippet_sha256": "118052d3b61bb76f343ee5056855ac879ba4daa944b54b0e55f5b661e2283ae6",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/content/entity/monster/barathos/TharaflyEntity.java#L284-L287",
+          "excerpt": "@Override\n        protected List<Pair<MemoryModuleType<?>, MemoryStatus>> getMemoryRequirements() {\n            return MEMORY_REQUIREMENTS;\n        }"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/content/entity/monster/barathos/TharaflyEntity.java",
+          "method": "checkExtraStartConditions",
+          "line": 289,
+          "end_line": 299,
+          "source_local": "build/creature-reference-1000/Tslat__Advent-Of-Ascension/source/content/entity/monster/barathos/TharaflyEntity.java",
+          "source_sha256": "5fdc5f3bcc4ad49542c2d2e4d73f2c4cb167480529f482eddb77c416264b8d2a",
+          "snippet_sha256": "b24a649bb104338e48a2b8eb640ce6c8b32736199ba86a03aa6cb03336dbf288",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/content/entity/monster/barathos/TharaflyEntity.java#L289-L299",
+          "excerpt": "@Override\n        protected boolean checkExtraStartConditions(ServerLevel level, TharaflyEntity entity) {\n            LivingEntity target = BrainUtils.getTargetOfEntity(entity);\n\n            if (!(target instanceof Player pl))\n                return false;\n\n            this.target = pl;\n\n            return !this.target.isVehicle() && entity.getSensing().hasLineOfSight(this.target) && entity.isWithinMeleeAttackRange(this.target);\n        }"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/content/entity/monster/barathos/TharaflyEntity.java",
+          "method": "start",
+          "line": 301,
+          "end_line": 307,
+          "source_local": "build/creature-reference-1000/Tslat__Advent-Of-Ascension/source/content/entity/monster/barathos/TharaflyEntity.java",
+          "source_sha256": "5fdc5f3bcc4ad49542c2d2e4d73f2c4cb167480529f482eddb77c416264b8d2a",
+          "snippet_sha256": "7f67a7e2c85428aa08a90d7a16b23bb6bf09d242923eed041ecfb693973689cb",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/content/entity/monster/barathos/TharaflyEntity.java#L301-L307",
+          "excerpt": "@Override\n        protected void start(TharaflyEntity entity) {\n            this.wasCrouching = this.target.isCrouching();\n\n            entity.startRiding(this.target, true);\n            AoANetworking.sendToAllPlayersTrackingEntity(new EntityRidePlayerPacket(entity.getId(), this.target.getUUID(), EntityRidePlayerPacket.Operation.MOUNT), entity);\n        }"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/content/entity/monster/barathos/TharaflyEntity.java",
+          "method": "shouldKeepRunning",
+          "line": 309,
+          "end_line": 312,
+          "source_local": "build/creature-reference-1000/Tslat__Advent-Of-Ascension/source/content/entity/monster/barathos/TharaflyEntity.java",
+          "source_sha256": "5fdc5f3bcc4ad49542c2d2e4d73f2c4cb167480529f482eddb77c416264b8d2a",
+          "snippet_sha256": "7b736996b4e02d4bee8052ec51cd2568a8e3a45fe9b07a38568807d0ed63a459",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/content/entity/monster/barathos/TharaflyEntity.java#L309-L312",
+          "excerpt": "@Override\n        protected boolean shouldKeepRunning(TharaflyEntity entity) {\n            return this.target != null && this.target.getFirstPassenger() == entity;\n        }"
+        },
+        {
+          "repo": "Tslat/Advent-Of-Ascension",
+          "revision": "7919b5fe48599e6105c5740937ce36c36ef21d16",
+          "path": "source/content/entity/monster/barathos/TharaflyEntity.java",
+          "method": "stop",
+          "line": 327,
+          "end_line": 340,
+          "source_local": "build/creature-reference-1000/Tslat__Advent-Of-Ascension/source/content/entity/monster/barathos/TharaflyEntity.java",
+          "source_sha256": "5fdc5f3bcc4ad49542c2d2e4d73f2c4cb167480529f482eddb77c416264b8d2a",
+          "snippet_sha256": "dc7bdec823e03237bf8b01d86c20eab4e4dab3f3eae9855d4d200ec1884352a3",
+          "url": "https://github.com/Tslat/Advent-Of-Ascension/blob/7919b5fe48599e6105c5740937ce36c36ef21d16/source/content/entity/monster/barathos/TharaflyEntity.java#L327-L340",
+          "excerpt": "@Override\n        protected void stop(TharaflyEntity entity) {\n            if (this.target != null)\n                AoANetworking.sendToAllPlayersTrackingEntity(new EntityRidePlayerPacket(entity.getId(), this.target.getUUID(), EntityRidePlayerPacket.Operation.DISMOUNT), entity);\n\n            if (this.target == null || this.target == entity.getVehicle())\n                entity.stopRiding();\n\n            BrainUtils.setForgettableMemory(entity, MemoryModuleType.ATTACK_COOLING_DOWN, true, 40);\n\n            this.target = null;\n            this.shakes = 0;\n            this.wasCrouching = false;\n        }"
+        }
+      ]
+    },
+    {
+      "observation": "全文InfernoBow与ItemBow：release按onArrowLoose结果决定武器component=9和power，但玩家先设60tickcooldown再检查i<0或f阈值，取消也可已消费。inventory仅selected且server偶数worldtick把component先--再找当前carrier弹药并draw/shoot；未选中暂停burst，换人可续组件，未锁原owner/hand/dim。9次不是必须9箭，缺弹消耗轮次，draw空仍播放shoot音/授stat。父shoot每弹create/addFreshEntity后不核spawn bool就发motion包/损耐久；当前usedHand非release snapshot。延迟连射、取消及原生生成结果边界同一武器1。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "99d6841b58d1f26ba9af",
+          "repo": "DivineRPG/DivineRPG",
+          "revision": "3cebbbe867d743c456106971430665ee8e1a1de2",
+          "path": "src/main/java/divinerpg/items/ranged/bows/InfernoBow.java",
+          "method": "inventoryTick",
+          "line": 59,
+          "end_line": 79,
+          "source_local": "build/item-use-references/DivineRPG__DivineRPG/src/main/java/divinerpg/items/ranged/bows/InfernoBow.java",
+          "source_sha256": "98514516c469f0a4f2e2594caf130e34b178a4a1249d4df073c59e0df42af7dc",
+          "snippet_sha256": "c9718c7e73f4256df4af48ad5070435ef5a8aaeb160e44b88528b2e3f1623622",
+          "url": "https://github.com/DivineRPG/DivineRPG/blob/3cebbbe867d743c456106971430665ee8e1a1de2/src/main/java/divinerpg/items/ranged/bows/InfernoBow.java#L59-L79",
+          "excerpt": "@Override public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {\n        if(isSelected && (level.getGameTime() & 1L) == 0 && level instanceof ServerLevel server) {\n            int cooldown = stack.get(DataComponentRegistry.weaponAbility);\n            if(cooldown > 0) {\n                stack.set(DataComponentRegistry.weaponAbility, cooldown - 1);\n                float f = stack.get(DataComponentRegistry.weaponPower);\n                if(entity instanceof Player player) {\n                    ItemStack itemstack = player.getProjectile(stack);\n                    if(infinityArrow != null && (itemstack.isEmpty() || itemstack.is(infinityArrow.get()))) itemstack = new ItemStack(infinityArrow.get());\n                    if(itemstack.isEmpty()) return;\n                    List<ItemStack> list = draw(stack, itemstack, player);\n                    if(!list.isEmpty()) shoot(server, player, player.getUsedItemHand(), stack, list, f * 3F * speedScale, 8, f == 1, null);\n                    level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundRegistry.INFERNO_BOW_SHOOT.get(), PLAYERS, 1, 1 / (level.getRandom().nextFloat() * .4F + 1.2F) + f * .5F);\n                    player.awardStat(ITEM_USED.get(this));\n                } else if(entity instanceof LivingEntity living) {\n                    shoot(server, living, living.getUsedItemHand(), stack, List.of(new ItemStack(inferno_arrow.get())), f * 3F * speedScale, 8, f == 1, living instanceof Mob mob ? mob.getTarget() : null);\n                    living.playSound(SoundRegistry.INFERNO_BOW_SHOOT.get(), 1, 1 / (level.getRandom().nextFloat() * .4F + .8F));\n                }\n            }\n        }\n    }"
+        },
+        {
+          "repo": "DivineRPG/DivineRPG",
+          "revision": "3cebbbe867d743c456106971430665ee8e1a1de2",
+          "path": "src/main/java/divinerpg/items/ranged/bows/InfernoBow.java",
+          "method": "releaseUsing",
+          "line": 43,
+          "end_line": 58,
+          "source_local": "build/item-use-references/DivineRPG__DivineRPG/src/main/java/divinerpg/items/ranged/bows/InfernoBow.java",
+          "source_sha256": "98514516c469f0a4f2e2594caf130e34b178a4a1249d4df073c59e0df42af7dc",
+          "snippet_sha256": "f25fa485d29449692fb3a85162548383a206598049b0aa7504604c9a1542fe7a",
+          "url": "https://github.com/DivineRPG/DivineRPG/blob/3cebbbe867d743c456106971430665ee8e1a1de2/src/main/java/divinerpg/items/ranged/bows/InfernoBow.java#L43-L58",
+          "excerpt": "@Override public void releaseUsing(ItemStack stack, Level level, LivingEntity living, int timeLeft) {\n        int i;\n        if(living instanceof Player player) {\n            ItemStack itemstack = player.getProjectile(stack);\n            if(infinityArrow != null && (itemstack.isEmpty() || itemstack.is(infinityArrow.get()))) itemstack = new ItemStack(infinityArrow.get());\n            if(itemstack.isEmpty()) return;\n            i = EventHooks.onArrowLoose(stack, level, player, (getUseDuration(stack, player) - timeLeft) * 72000 / useDuration, true);\n            player.getCooldowns().addCooldown(this, 60);\n        } else i = (getUseDuration(stack, living) - timeLeft) * 72000 / useDuration;\n        if(i < 0) return;\n        float f = getPowerForTime(i);\n        if(f >= .1F) {\n            stack.set(DataComponentRegistry.weaponAbility, 9);\n            stack.set(DataComponentRegistry.weaponPower, f);\n        }\n    }"
+        },
+        {
+          "repo": "DivineRPG/DivineRPG",
+          "revision": "3cebbbe867d743c456106971430665ee8e1a1de2",
+          "path": "src/main/java/divinerpg/items/ranged/ItemBow.java",
+          "method": "shoot",
+          "line": 81,
+          "end_line": 99,
+          "source_local": "build/item-use-references/DivineRPG__DivineRPG/src/main/java/divinerpg/items/ranged/ItemBow.java",
+          "source_sha256": "cfe7abf1856aa661623519b53af41868e4f36bc072c76e45edd820b9aa83c40b",
+          "snippet_sha256": "0a955e0cc2708143dcf7afa65b9ff533d7fa0235ac1f8c34e48c1a7a657efedb",
+          "url": "https://github.com/DivineRPG/DivineRPG/blob/3cebbbe867d743c456106971430665ee8e1a1de2/src/main/java/divinerpg/items/ranged/ItemBow.java#L81-L99",
+          "excerpt": "@Override protected void shoot(ServerLevel level, LivingEntity shooter, InteractionHand hand, ItemStack weapon, List<ItemStack> projectileItems, float velocity, float inaccuracy, boolean isCrit, @Nullable LivingEntity target) {\n        float f = EnchantmentHelper.processProjectileSpread(level, weapon, shooter, 0);\n        float f1 = projectileItems.size() == 1 ? 0 : 2 * f / (projectileItems.size() - 1);\n        float f2 = ((projectileItems.size() - 1) % 2) * f1 / 2;\n        float f3 = 1;\n        for(int i = 0; i < projectileItems.size(); ++i) {\n            ItemStack itemstack = projectileItems.get(i);\n            if(!itemstack.isEmpty()) {\n                float f4 = f2 + f3 * ((i + 1) >> 1) * f1;\n                f3 = -f3;\n                Projectile projectile = createProjectile(level, shooter, weapon, itemstack, isCrit);\n                shootProjectile(shooter, projectile, i, velocity, inaccuracy, f4, target);\n                level.addFreshEntity(projectile);\n                PacketDistributor.sendToPlayersTrackingEntity(projectile, new AccurateSetMotionPacket(projectile.getId(), projectile.getDeltaMovement()));\n                weapon.hurtAndBreak(getDurabilityUse(itemstack), shooter, LivingEntity.getSlotForHand(hand));\n                if(weapon.isEmpty()) break;\n            }\n        }\n    }"
+        },
+        {
+          "repo": "DivineRPG/DivineRPG",
+          "revision": "3cebbbe867d743c456106971430665ee8e1a1de2",
+          "path": "src/main/java/divinerpg/items/ranged/ItemBow.java",
+          "method": "use",
+          "line": 54,
+          "end_line": 64,
+          "source_local": "build/item-use-references/DivineRPG__DivineRPG/src/main/java/divinerpg/items/ranged/ItemBow.java",
+          "source_sha256": "cfe7abf1856aa661623519b53af41868e4f36bc072c76e45edd820b9aa83c40b",
+          "snippet_sha256": "2c1044f68e1f7eccd3e31543cb970d01a0d8ec12728e89359a7431e3bf843af6",
+          "url": "https://github.com/DivineRPG/DivineRPG/blob/3cebbbe867d743c456106971430665ee8e1a1de2/src/main/java/divinerpg/items/ranged/ItemBow.java#L54-L64",
+          "excerpt": "@Override public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {\n        ItemStack itemstack = player.getItemInHand(hand);\n        boolean flag = !player.getProjectile(itemstack).isEmpty();\n        InteractionResultHolder<ItemStack> ret = EventHooks.onArrowNock(itemstack, level, player, hand, flag);\n        if(ret != null) return ret;\n        else if(infinityArrow == null && !player.hasInfiniteMaterials() && !flag) return InteractionResultHolder.fail(itemstack);\n        else {\n            player.startUsingItem(hand);\n            return InteractionResultHolder.consume(itemstack);\n        }\n    }"
+        }
+      ]
+    },
+    {
+      "observation": "全文StarcallerItem与FallingStarEntity：每stack NBT lastTrigger初始化当前worldtime，server主手对象相同且attackAnim精确浮点、年龄>12才先写now再raytrace召星；无命中方块仍消耗12tick窗口。生成结果不核，主星/夜间概率附星同链；星server沿前后位置AABB先找非owner且hurtTime0者onHit后return，onHitEntity村民早return不discard，其他活目标按当前getOwner Player决定damage source，hurt bool无检查后discard。tick>200超时位于扫描后，若扫描反复早return可能推迟到达清理；hasBeenInAir持久而非owner/原stack快照本类保证。完整挥击时钟至延后星命中1。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "90ab76903e9720ab55e7",
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/item/equipment/tool/StarcallerItem.java",
+          "method": "inventoryTick",
+          "line": 40,
+          "end_line": 60,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/equipment/tool/StarcallerItem.java",
+          "source_sha256": "a18d07f380c794af32c5d55666e810745a51d8bd919427ae7d7d346f38340745",
+          "snippet_sha256": "5197be64dd0809cd15d1a19eea1fb0cc2b3e4337e7dbef3caca9721ab86f3d6b",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/item/equipment/tool/StarcallerItem.java#L40-L60",
+          "excerpt": "@Override\n\tpublic void inventoryTick(ItemStack stack, Level world, Entity entity, int slot, boolean selected) {\n\t\tsuper.inventoryTick(stack, world, entity, slot, selected);\n\t\tif (!(entity instanceof Player player)) {\n\t\t\treturn;\n\t\t}\n\n\t\t// Initialize timer for new items\n\t\tif (!ItemNBTHelper.verifyExistance(stack, TAG_LAST_TRIGGER)) {\n\t\t\tItemNBTHelper.setLong(stack, TAG_LAST_TRIGGER, world.getGameTime());\n\t\t}\n\n\t\tMobEffectInstance haste = player.getEffect(MobEffects.DIG_SPEED);\n\t\tfloat check = haste == null ? 0.16666667F : haste.getAmplifier() == 1 ? 0.5F : 0.4F;\n\n\t\tlong timeSinceLast = world.getGameTime() - ItemNBTHelper.getLong(stack, TAG_LAST_TRIGGER, world.getGameTime());\n\t\tif (timeSinceLast > INTERVAL && player.getMainHandItem() == stack && player.attackAnim == check && !world.isClientSide) {\n\t\t\tItemNBTHelper.setLong(stack, TAG_LAST_TRIGGER, world.getGameTime());\n\t\t\tsummonFallingStar(stack, world, player);\n\t\t}\n\t}"
+        },
+        {
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/item/equipment/tool/StarcallerItem.java",
+          "method": "summonFallingStar",
+          "line": 62,
+          "end_line": 88,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/equipment/tool/StarcallerItem.java",
+          "source_sha256": "a18d07f380c794af32c5d55666e810745a51d8bd919427ae7d7d346f38340745",
+          "snippet_sha256": "6aca5c405d0bc3af9ffe762a24bfb5f062925ab39d79350d145aae49d3f02a85",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/item/equipment/tool/StarcallerItem.java#L62-L88",
+          "excerpt": "private void summonFallingStar(ItemStack stack, Level world, Player player) {\n\t\tBlockHitResult pos = ToolCommons.raytraceFromEntity(player, 48, false);\n\t\tif (pos.getType() == HitResult.Type.BLOCK) {\n\t\t\tVec3 posVec = Vec3.atLowerCornerOf(pos.getBlockPos());\n\t\t\tVec3 motVec = new Vec3((0.5 * Math.random() - 0.25) * 18, 24, (0.5 * Math.random() - 0.25) * 18);\n\t\t\tposVec = posVec.add(motVec);\n\t\t\tmotVec = motVec.normalize().reverse().scale(1.5);\n\n\t\t\tFallingStarEntity star = new FallingStarEntity(player, world);\n\t\t\tstar.setPos(posVec.x, posVec.y, posVec.z);\n\t\t\tstar.setDeltaMovement(motVec);\n\t\t\tworld.addFreshEntity(star);\n\n\t\t\tif (!world.isRaining()\n\t\t\t\t\t&& Math.abs(world.getDayTime() - 18000) < 1800\n\t\t\t\t\t&& Math.random() < 0.125) {\n\t\t\t\tFallingStarEntity bonusStar = new FallingStarEntity(player, world);\n\t\t\t\tbonusStar.setPos(posVec.x, posVec.y, posVec.z);\n\t\t\t\tbonusStar.setDeltaMovement(motVec.x + Math.random() - 0.5,\n\t\t\t\t\t\tmotVec.y + Math.random() - 0.5, motVec.z + Math.random() - 0.5);\n\t\t\t\tworld.addFreshEntity(bonusStar);\n\t\t\t}\n\n\t\t\tstack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(InteractionHand.MAIN_HAND));\n\t\t\tworld.playSound(null, player.getX(), player.getY(), player.getZ(), BotaniaSounds.starcaller, SoundSource.PLAYERS, 1F, 1F);\n\t\t}\n\t}"
+        },
+        {
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "method": "tick",
+          "line": 52,
+          "end_line": 89,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "source_sha256": "89b246da34b54bf8dfd4afc06681108c5fdb7d98dade97c345f869377b3b4810",
+          "snippet_sha256": "eab83620fe8edf59ec822d13633a30127c29f3c997a3fd1933828e59b9c8753c",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java#L52-L89",
+          "excerpt": "@Override\n\tpublic void tick() {\n\t\tsuper.tick();\n\n\t\tif (!hasBeenInAir && !level().isClientSide) {\n\t\t\tvar bs = getFeetBlockState();\n\t\t\thasBeenInAir = bs.isAir() || isInWater() || isInLava();\n\t\t}\n\n\t\tfloat dist = 1.5F;\n\t\tSparkleParticleData data = SparkleParticleData.sparkle(2F, 1F, 0.4F, 1F, 6);\n\t\tfor (int i = 0; i < 10; i++) {\n\t\t\tfloat xs = (float) (Math.random() - 0.5) * dist;\n\t\t\tfloat ys = (float) (Math.random() - 0.5) * dist;\n\t\t\tfloat zs = (float) (Math.random() - 0.5) * dist;\n\t\t\tlevel().addAlwaysVisibleParticle(data, getX() + xs, getY() + ys, getZ() + zs, 0, 0, 0);\n\t\t}\n\n\t\tEntity thrower = getOwner();\n\t\tif (!level().isClientSide && thrower != null) {\n\t\t\tAABB axis = new AABB(getX(), getY(), getZ(), xOld, yOld, zOld).inflate(2);\n\t\t\tList<LivingEntity> entities = level().getEntitiesOfClass(LivingEntity.class, axis);\n\t\t\tfor (LivingEntity living : entities) {\n\t\t\t\tif (living == thrower) {\n\t\t\t\t\tcontinue;\n\t\t\t\t}\n\n\t\t\t\tif (living.hurtTime == 0) {\n\t\t\t\t\tonHit(new EntityHitResult(living));\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tif (tickCount > 200) {\n\t\t\tdiscard();\n\t\t}\n\t}"
+        },
+        {
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "method": "onHitEntity",
+          "line": 91,
+          "end_line": 109,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "source_sha256": "89b246da34b54bf8dfd4afc06681108c5fdb7d98dade97c345f869377b3b4810",
+          "snippet_sha256": "0c61addc2a54a028817aa7f3a928e75db0012af50e8ad99eae28ceb8b701d513",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java#L91-L109",
+          "excerpt": "@Override\n\tprotected void onHitEntity(@NotNull EntityHitResult hit) {\n\t\tsuper.onHitEntity(hit);\n\t\tEntity e = hit.getEntity();\n\t\t// Blacklisting villagers since trading with them counts as a \"swing\" and will summon a star.\n\t\tif (e instanceof Villager) {\n\t\t\treturn;\n\t\t}\n\t\tif (!level().isClientSide) {\n\t\t\tif (e != getOwner() && e.isAlive()) {\n\t\t\t\tif (getOwner() instanceof Player player) {\n\t\t\t\t\te.hurt(player.damageSources().playerAttack(player), Math.random() < 0.25 ? 10 : 5);\n\t\t\t\t} else {\n\t\t\t\t\te.hurt(e.damageSources().generic(), Math.random() < 0.25 ? 10 : 5);\n\t\t\t\t}\n\t\t\t}\n\t\t\tdiscard();\n\t\t}\n\t}"
+        },
+        {
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "method": "onHitBlock",
+          "line": 111,
+          "end_line": 124,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "source_sha256": "89b246da34b54bf8dfd4afc06681108c5fdb7d98dade97c345f869377b3b4810",
+          "snippet_sha256": "28b0edc453754d6db41d9e1bc407284ec0f5d0a6ac69e1b6aa24a35e38ada38b",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java#L111-L124",
+          "excerpt": "@Override\n\tprotected void onHitBlock(BlockHitResult hit) {\n\t\tsuper.onHitBlock(hit);\n\t\tif (!level().isClientSide) {\n\t\t\tBlockPos bpos = hit.getBlockPos();\n\t\t\tBlockState state = level().getBlockState(bpos);\n\t\t\tif (hasBeenInAir) {\n\t\t\t\tif (BotaniaConfig.common().blockBreakParticles() && !state.isAir()) {\n\t\t\t\t\tthis.level().levelEvent(2001, bpos, Block.getId(state));\n\t\t\t\t}\n\t\t\t\tdiscard();\n\t\t\t}\n\t\t}\n\t}"
+        },
+        {
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "method": "addAdditionalSaveData",
+          "line": 126,
+          "end_line": 130,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "source_sha256": "89b246da34b54bf8dfd4afc06681108c5fdb7d98dade97c345f869377b3b4810",
+          "snippet_sha256": "cb948163ca16626dbc518b721ccf3c13f89c582009fb82e3cdb382abf2af200a",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java#L126-L130",
+          "excerpt": "@Override\n\tprotected void addAdditionalSaveData(CompoundTag tag) {\n\t\tsuper.addAdditionalSaveData(tag);\n\t\ttag.putBoolean(TAG_HAS_BEEN_IN_AIR, hasBeenInAir);\n\t}"
+        },
+        {
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "method": "readAdditionalSaveData",
+          "line": 132,
+          "end_line": 136,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java",
+          "source_sha256": "89b246da34b54bf8dfd4afc06681108c5fdb7d98dade97c345f869377b3b4810",
+          "snippet_sha256": "70b3cdd7612f35650f59a2b7083fd20e411d32cd7644194a14c4f870ec134540",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/entity/FallingStarEntity.java#L132-L136",
+          "excerpt": "@Override\n\tprotected void readAdditionalSaveData(CompoundTag tag) {\n\t\tsuper.readAdditionalSaveData(tag);\n\t\tthis.hasBeenInAir = tag.getBoolean(TAG_HAS_BEEN_IN_AIR);\n\t}"
+        }
+      ]
+    },
+    {
+      "observation": "补充7451/7452实际返回伤害结果的HelperMethods.damageThroughIframes：排除creative/spectator/ignored，暂置timeUntilRegen=0，以try/finally恢复原值并返回target.damage真实布尔。此为已有链支持0条额外信用。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "repo": "Sweenus/SimplySwords",
+          "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+          "path": "common/src/main/java/net/sweenus/simplyswords/util/HelperMethods.java",
+          "method": "damageThroughIframes",
+          "line": 884,
+          "end_line": 896,
+          "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/Sweenus__SimplySwords__708a57bc591e/common/src/main/java/net/sweenus/simplyswords/util/HelperMethods.java",
+          "source_sha256": "de5bf34b30535cc89eb7a85b399cb89b1d11413fbd3f3d7a2ae595482128185a",
+          "snippet_sha256": "5e2f4357a0dac6bb6a9b3bd7538e01a829a1c03a7f5d3abb4014cf585aca9870",
+          "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/util/HelperMethods.java#L884-L896",
+          "excerpt": "public static boolean damageThroughIframes(Entity targetEntity, DamageSource damageSource, float damage) {\n        if (targetEntity instanceof PlayerEntity player && (player.isCreative() || player.isSpectator()))\n            return false;\n        if (IgnoredEntities.isIgnored(targetEntity))\n            return false;\n        int iframes = targetEntity.timeUntilRegen;\n        try {\n            targetEntity.timeUntilRegen = 0;\n            return targetEntity.damage(damageSource, damage);\n        } finally {\n            targetEntity.timeUntilRegen = iframes;\n        }\n    }"
+        },
+        {
+          "repo": "Sweenus/SimplySwords",
+          "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+          "path": "common/src/main/java/net/sweenus/simplyswords/api/WeaponImplicitRegistry.java",
+          "method": "runSuppressed",
+          "line": 255,
+          "end_line": 262,
+          "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/Sweenus__SimplySwords__708a57bc591e/common/src/main/java/net/sweenus/simplyswords/api/WeaponImplicitRegistry.java",
+          "source_sha256": "2e3b4523fc636d53b5ea262a16dad687841ba6f4dcaed1ae2a46835b3d4006e9",
+          "snippet_sha256": "90cbed3212723ef4ef15fc35efec4bc37a182023ca4804c28380ee5af93c7822",
+          "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/api/WeaponImplicitRegistry.java#L255-L262",
+          "excerpt": "public static void runSuppressed(Runnable runnable) {\n        SUPPRESS_IMPLICITS.set(true);\n        try {\n            runnable.run();\n        } finally {\n            SUPPRESS_IMPLICITS.set(false);\n        }\n    }"
+        }
+      ]
+    }
+  ]
+}

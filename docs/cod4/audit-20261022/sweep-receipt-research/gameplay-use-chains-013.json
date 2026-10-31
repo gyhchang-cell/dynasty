@@ -1,0 +1,217 @@
+{
+  "purpose": "人工全文审阅后的具体玩法使用链；支持方法不额外计数。",
+  "reviewed_at": "2026-10-26T20:14:48.803184+08:00",
+  "additional_credit": 0,
+  "external_runtime_tested": false,
+  "chains": [
+    {
+      "observation": "DeadKingAnimatedWarlockAttackGoal完整类已读：doMeleeAction捕获currentAttack、置动画倒计时并发跟踪包；实际命中帧再算当前target/视线，单击doHurtTarget为true才可能排queueCombo，下一轮先取并清队列再开下一动画。声音提前4帧且SLAM击退/破盾不依赖hurt成功，stop清timer/queueCombo。倒计时命中和成功后连击分别有门控，整体一条，不能把动画/预备声当实际伤害回执。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "b9fd94f589e303f7b496",
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "method": "handleAttackLogic",
+          "line": 38,
+          "end_line": 109,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "source_sha256": "90af73373b6e57c9af3e95a575bebf29b404a13d65e5877bb4b17a65954054db",
+          "snippet_sha256": "b6c44dca2c9a1273e8db92abcc50d95d7edf9ed8d7a85060ea3d3d0ee2190026",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java#L38-L109",
+          "excerpt": "@Override\n    protected void handleAttackLogic(double distanceSquared) {\n        var meleeRange = meleeRange();\n        if (meleeAnimTimer < 0 && (!wantsToMelee || distanceSquared > meleeRange * meleeRange || spellCastingMob.isCasting())) {\n            super.handleAttackLogic(distanceSquared);\n            return;\n        }\n        //Handling Animation hit frames\n        mob.getLookControl().setLookAt(target);\n        deadKing.isMeleeing = meleeAnimTimer > 0;\n        if (meleeAnimTimer > 0) {\n            //We are currently attacking and are in a melee animation\n            forceFaceTarget();\n            meleeAnimTimer--;\n            if (currentAttack.data.isHitFrame(meleeAnimTimer - 4)) {\n                if (currentAttack == DeadKingBoss.AttackType.SLAM) {\n                    mob.playSound(SoundRegistry.DEAD_KING_SLAM.get());\n                } else {\n                    playSwingSound();\n                }\n            } else if (currentAttack.data.isHitFrame(meleeAnimTimer)) {\n                Vec3 lunge = target.position().subtract(mob.position()).normalize().scale(.35f);\n                mob.push(lunge.x, lunge.y, lunge.z);\n                if (currentAttack == DeadKingBoss.AttackType.SLAM) {\n                    Vec3 slamPos = mob.position().add(mob.getForward().multiply(1, 0, 1).normalize().scale(2.5f));\n                    Vec3 bbHalf = new Vec3(meleeRange, meleeRange, meleeRange).scale(.3);\n                    float damage = (float) mob.getAttributeValue(Attributes.ATTACK_DAMAGE) * 1.5f;\n                    mob.level.getEntitiesOfClass(LivingEntity.class, new AABB(slamPos.subtract(bbHalf), slamPos.add(bbHalf))).forEach((entity) -> {\n                        if (entity.isPickable() && !DamageSources.isFriendlyFireBetween(mob, entity)) {\n                            entity.hurt(mob.level().damageSources().mobAttack(mob), damage);\n                            var impulse = (slamPos.subtract(entity.position()).add(0, 0.75, 0)).normalize().scale(Mth.lerp(entity.distanceToSqr(mob.position()) / (meleeRange * meleeRange), 2, .5));\n                            entity.setDeltaMovement(entity.getDeltaMovement().add(impulse));\n                            entity.hurtMarked = true;\n                            if (entity instanceof Player player && player.isBlocking()) {\n                                player.disableShield();\n                            }\n                        }\n                    });\n                } else {\n                    if (distanceSquared <= meleeRange * meleeRange && Utils.hasLineOfSight(mob.level, mob, target, true)) {\n                        boolean flag = this.mob.doHurtTarget(target);\n                        target.invulnerableTime = 0;\n                        if (flag) {\n                            if (currentAttack.data.isSingleHit() && ((mob.getRandom().nextFloat() < .75f) || target.isBlocking())) {\n                                //Attack again! combos!\n                                queueCombo = randomizeNextAttack(0);\n                            }\n                        }\n                    }\n                }\n\n            }\n        } else if (queueCombo != null && target != null && !target.isDeadOrDying()) {\n            nextAttack = queueCombo;\n            queueCombo = null;\n            doMeleeAction();\n        } else if (meleeAnimTimer == 0) {\n            //Reset animations/attack\n            nextAttack = randomizeNextAttack((float) distanceSquared);\n            resetMeleeAttackInterval(distanceSquared);\n            meleeAnimTimer = -1;\n        } else {\n            //Handling attack delay\n            if (distanceSquared < meleeRange * meleeRange * 1.2 * 1.2) {\n                if (hasLineOfSight && --this.meleeAttackDelay == 0) {\n                    doMeleeAction();\n                } else if (this.meleeAttackDelay < 0) {\n                    resetMeleeAttackInterval(distanceSquared);\n                }\n            }\n        }\n    }"
+        },
+        {
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "method": "handleAttackLogic",
+          "line": 38,
+          "end_line": 109,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "source_sha256": "90af73373b6e57c9af3e95a575bebf29b404a13d65e5877bb4b17a65954054db",
+          "snippet_sha256": "b6c44dca2c9a1273e8db92abcc50d95d7edf9ed8d7a85060ea3d3d0ee2190026",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java#L38-L109",
+          "excerpt": "@Override\n    protected void handleAttackLogic(double distanceSquared) {\n        var meleeRange = meleeRange();\n        if (meleeAnimTimer < 0 && (!wantsToMelee || distanceSquared > meleeRange * meleeRange || spellCastingMob.isCasting())) {\n            super.handleAttackLogic(distanceSquared);\n            return;\n        }\n        //Handling Animation hit frames\n        mob.getLookControl().setLookAt(target);\n        deadKing.isMeleeing = meleeAnimTimer > 0;\n        if (meleeAnimTimer > 0) {\n            //We are currently attacking and are in a melee animation\n            forceFaceTarget();\n            meleeAnimTimer--;\n            if (currentAttack.data.isHitFrame(meleeAnimTimer - 4)) {\n                if (currentAttack == DeadKingBoss.AttackType.SLAM) {\n                    mob.playSound(SoundRegistry.DEAD_KING_SLAM.get());\n                } else {\n                    playSwingSound();\n                }\n            } else if (currentAttack.data.isHitFrame(meleeAnimTimer)) {\n                Vec3 lunge = target.position().subtract(mob.position()).normalize().scale(.35f);\n                mob.push(lunge.x, lunge.y, lunge.z);\n                if (currentAttack == DeadKingBoss.AttackType.SLAM) {\n                    Vec3 slamPos = mob.position().add(mob.getForward().multiply(1, 0, 1).normalize().scale(2.5f));\n                    Vec3 bbHalf = new Vec3(meleeRange, meleeRange, meleeRange).scale(.3);\n                    float damage = (float) mob.getAttributeValue(Attributes.ATTACK_DAMAGE) * 1.5f;\n                    mob.level.getEntitiesOfClass(LivingEntity.class, new AABB(slamPos.subtract(bbHalf), slamPos.add(bbHalf))).forEach((entity) -> {\n                        if (entity.isPickable() && !DamageSources.isFriendlyFireBetween(mob, entity)) {\n                            entity.hurt(mob.level().damageSources().mobAttack(mob), damage);\n                            var impulse = (slamPos.subtract(entity.position()).add(0, 0.75, 0)).normalize().scale(Mth.lerp(entity.distanceToSqr(mob.position()) / (meleeRange * meleeRange), 2, .5));\n                            entity.setDeltaMovement(entity.getDeltaMovement().add(impulse));\n                            entity.hurtMarked = true;\n                            if (entity instanceof Player player && player.isBlocking()) {\n                                player.disableShield();\n                            }\n                        }\n                    });\n                } else {\n                    if (distanceSquared <= meleeRange * meleeRange && Utils.hasLineOfSight(mob.level, mob, target, true)) {\n                        boolean flag = this.mob.doHurtTarget(target);\n                        target.invulnerableTime = 0;\n                        if (flag) {\n                            if (currentAttack.data.isSingleHit() && ((mob.getRandom().nextFloat() < .75f) || target.isBlocking())) {\n                                //Attack again! combos!\n                                queueCombo = randomizeNextAttack(0);\n                            }\n                        }\n                    }\n                }\n\n            }\n        } else if (queueCombo != null && target != null && !target.isDeadOrDying()) {\n            nextAttack = queueCombo;\n            queueCombo = null;\n            doMeleeAction();\n        } else if (meleeAnimTimer == 0) {\n            //Reset animations/attack\n            nextAttack = randomizeNextAttack((float) distanceSquared);\n            resetMeleeAttackInterval(distanceSquared);\n            meleeAnimTimer = -1;\n        } else {\n            //Handling attack delay\n            if (distanceSquared < meleeRange * meleeRange * 1.2 * 1.2) {\n                if (hasLineOfSight && --this.meleeAttackDelay == 0) {\n                    doMeleeAction();\n                } else if (this.meleeAttackDelay < 0) {\n                    resetMeleeAttackInterval(distanceSquared);\n                }\n            }\n        }\n    }"
+        },
+        {
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "method": "doMeleeAction",
+          "line": 127,
+          "end_line": 136,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "source_sha256": "90af73373b6e57c9af3e95a575bebf29b404a13d65e5877bb4b17a65954054db",
+          "snippet_sha256": "7d4b90318fbba99c689161b6773137f08215a2c08374aaaeb887915e4e13ef27",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java#L127-L136",
+          "excerpt": "@Override\n    protected void doMeleeAction() {\n        //anim duration\n        currentAttack = nextAttack;\n        if (currentAttack != null) {\n            this.mob.swing(InteractionHand.MAIN_HAND);\n            meleeAnimTimer = currentAttack.data.lengthInTicks;\n            PacketDistributor.sendToPlayersTrackingEntity(deadKing, new SyncAnimationPacket<>(currentAttack.toString(), deadKing));\n        }\n    }"
+        },
+        {
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "method": "stop",
+          "line": 174,
+          "end_line": 179,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "source_sha256": "90af73373b6e57c9af3e95a575bebf29b404a13d65e5877bb4b17a65954054db",
+          "snippet_sha256": "0b8c1eb248cd1f837e04731f80f9228ce75d96f1cd43ba94a6a62e69a5a7fcba",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java#L174-L179",
+          "excerpt": "@Override\n    public void stop() {\n        super.stop();\n        this.meleeAnimTimer = -1;\n        this.queueCombo = null;\n    }"
+        },
+        {
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "method": "canContinueToUse",
+          "line": 169,
+          "end_line": 172,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "source_sha256": "90af73373b6e57c9af3e95a575bebf29b404a13d65e5877bb4b17a65954054db",
+          "snippet_sha256": "a7eb3fe7b43eed21df4128dfda3a6a555ed9b5bdcf30fea03d3d0540fbc72185",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java#L169-L172",
+          "excerpt": "@Override\n    public boolean canContinueToUse() {\n        return super.canContinueToUse() || meleeAnimTimer > 0;\n    }"
+        },
+        {
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "method": "forceFaceTarget",
+          "line": 118,
+          "end_line": 125,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "source_sha256": "90af73373b6e57c9af3e95a575bebf29b404a13d65e5877bb4b17a65954054db",
+          "snippet_sha256": "de9072669b9c73d52133ef9db629af8380f56a549d6ecc7602dc7fc87b033c83",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java#L118-L125",
+          "excerpt": "private void forceFaceTarget() {\n        double d0 = target.getX() - mob.getX();\n        double d1 = target.getZ() - mob.getZ();\n        float yRot = (float) (Mth.atan2(d1, d0) * (double) (180F / (float) Math.PI)) - 90.0F;\n        mob.setYBodyRot(yRot);\n        mob.setYHeadRot(yRot);\n        mob.setYRot(yRot);\n    }"
+        },
+        {
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "method": "randomizeNextAttack",
+          "line": 111,
+          "end_line": 115,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java",
+          "source_sha256": "90af73373b6e57c9af3e95a575bebf29b404a13d65e5877bb4b17a65954054db",
+          "snippet_sha256": "0b61cb338174cc15f08aa6b732cf48f1d36c464228b0c5115f8cf229819fa132",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/goals/DeadKingAnimatedWarlockAttackGoal.java#L111-L115",
+          "excerpt": "private DeadKingBoss.AttackType randomizeNextAttack(float distanceSquared) {\n        return mob.getRandom().nextFloat() < .3f ? DeadKingBoss.AttackType.SLAM : DeadKingBoss.AttackType.DOUBLE_SWING;\n        //float chanceToSlam = Math.max(0.8f, .8f + .1f * mob.level.getEntities(mob, mob.getBoundingBox().expandTowards(mob.getForward().scale(2)).inflate(1), (e) -> !DamageSources.isFriendlyFireBetween(mob, e)).size());\n        //return chanceToSlam < mob.getRandom().nextFloat() ? DeadKingBoss.AttackType.SLAM : DeadKingBoss.AttackType.DOUBLE_SWING;\n    }"
+        }
+      ]
+    },
+    {
+      "observation": "JetBootsHandler实际耗气状态从prevAirUsage=0到非零时仅发启动MovingSound包，最低气压不足悬停保留1耗气以避免反复启动；高度越限用20tick物品冷却抑制且tick开头直接return。完整包消费者/MovingSounds创建与声音tick/isStopped已读：客户端按当前世界实体ID定位Player，随后动态重查状态，停飞倒计时可因再激活撤销，死亡结束。装备冷却提前return未更新prevAirUsage；一次启动通知与持续音效生命周期整链一条。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "bedcbcb4f11f851d980b",
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/handlers/JetBootsHandler.java",
+          "method": "tick",
+          "line": 87,
+          "end_line": 186,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/handlers/JetBootsHandler.java",
+          "source_sha256": "08e3e07a6bf5a7130df800d06758f2791ecd9953ec1047af90a3b442ab060a47",
+          "snippet_sha256": "8e9195f22a769801c75e4aa92963f5d3eb355290a8df05963792925091312f3e",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/handlers/JetBootsHandler.java#L87-L186",
+          "excerpt": "@Override\n    public void tick(ICommonArmorHandler commonArmorHandler, boolean enabled) {\n        if (commonArmorHandler.isOnCooldown(EquipmentSlot.FEET)) {\n            // putting the boots on cooldown is a way for other mods to temporarily suppress jet boots\n            return;\n        }\n\n        int jetbootsCount = commonArmorHandler.getUpgradeCount(EquipmentSlot.FEET, ModUpgrades.JET_BOOTS.get());\n        if (jetbootsCount == 0) return;\n\n        int jetbootsAirUsage = 0;\n\n        Player player = commonArmorHandler.getPlayer();\n        JetBootsStateTracker.JetBootsState jbState = JetBootsStateTracker.getTracker(player).getJetBootsState(player);\n        JetBootsLocalState jbLocal = commonArmorHandler.getExtensionData(this);\n\n        if (commonArmorHandler.hasMinPressure(EquipmentSlot.FEET)) {\n            boolean vibration = !player.level().isClientSide() && player.tickCount % 10 == 0;\n            if (jbState.isActive()) {\n                if (jbState.isBuilderMode() && jetbootsCount >= BUILDER_MODE_LEVEL) {\n                    // builder mode - rise vertically (or hover if sneaking and firing)\n                    setYMotion(player, player.isShiftKeyDown() ? 0 : 0.15 + 0.15 * (jetbootsCount - 3));\n                    jetbootsAirUsage = (int) (ConfigHelper.common().armor.jetBootsAirUsage.get() * jetbootsCount / 2.5F);\n                    if (vibration) {\n                        player.gameEvent(ModGameEvents.JET_BOOTS_FLY_BUILDER);\n                    }\n                } else {\n                    // jetboots firing - move in direction of looking\n                    Vec3 lookVec = player.getLookAngle().scale(0.3 * jetbootsCount);\n                    jbLocal.updateAccel(lookVec);\n                    lookVec = jbLocal.getEffectiveMotion(lookVec, player.isFallFlying());\n                    player.setDeltaMovement(lookVec.x, player.onGround() ? 0 : lookVec.y, lookVec.z);\n                    jetbootsAirUsage = jbLocal.calcAirUsage(jetbootsCount);\n                    if (vibration) {\n                        player.gameEvent(ModGameEvents.JET_BOOTS_FLY);\n                    }\n                }\n                if (player.isInWater()) jetbootsAirUsage *= 4;\n                jbLocal.tickActive();\n            } else if (jbState.isEnabled() && !isOnGround(player) && !player.isFallFlying()) {\n                // jetboots not firing, but enabled - slowly descend (or hover if enough upgrades)\n                // and bring player to complete halt if flight stabilizers and not actively moving forward/sideways\n                boolean reallyHovering = jbLocal.canHover() && (!jbLocal.isSmartHover() || jbLocal.isHovering());\n                boolean stopped = jbLocal.isFlightStabilizers()\n                        && jetbootsCount >= STABILIZERS_LEVEL\n                        && PneumaticCraftUtils.epsilonEquals(player.zza, 0f)\n                        && PneumaticCraftUtils.epsilonEquals(player.xxa, 0f);\n                double xMotion = stopped ? 0 : player.getDeltaMovement().x;\n                double yMotion = reallyHovering ? (player.isShiftKeyDown() ? -0.45 : -0.1 + 0.02 * jetbootsCount) : player.getDeltaMovement().y;\n                double zMotion = stopped ? 0 : player.getDeltaMovement().z;\n                player.setDeltaMovement(new Vec3(xMotion, yMotion, zMotion));\n                if (vibration && player.getKnownMovement().lengthSqr() > 0.03) {\n                    player.gameEvent(jbState.isBuilderMode() ? ModGameEvents.JET_BOOTS_FLY_BUILDER : ModGameEvents.JET_BOOTS_FLY);\n                }\n                if (reallyHovering) player.fallDistance = 0;\n                jetbootsAirUsage = reallyHovering ? (int) (ConfigHelper.common().armor.jetBootsAirUsage.get() * (player.isShiftKeyDown() ? 0.25F : 0.5F)) : 0;\n                jbLocal.resetAccel();\n            } else if (isOnGround(player)) {\n                jbLocal.setHovering(false);\n            } else {\n                jbLocal.resetAccel();\n            }\n        } else {\n            // insufficient pressure!\n            if (jbState.isEnabled() && !player.onGround() && !player.isFallFlying() && jbLocal.isHovering()) {\n                // still active and in the air: using minimal air here keeps the boots running\n                // and thus avoids triggering multiple looping sounds (see \"jet boots starting up\" code below)\n                jetbootsAirUsage = 1;\n            }\n            setJetBootsActive(commonArmorHandler,false);\n        }\n\n        if (jetbootsAirUsage != 0 && !player.level().isClientSide) {\n            if (jbLocal.getPrevJetBootsAirUsage() == 0) {\n                // jet boots starting up\n                NetworkHandler.sendToAllTracking(new PacketPlayMovingSound(MovingSounds.Sound.JET_BOOTS, MovingSoundFocus.of(player)), player.level(), player.blockPosition());\n                ModCriterionTriggers.FLIGHT.get().trigger((ServerPlayer) player);\n            }\n            if (player.horizontalCollision) {\n                double vel = player.getDeltaMovement().length();\n                if (player.level().getDifficulty() == Difficulty.HARD) {\n                    vel *= 2;\n                } else if (player.level().getDifficulty() == Difficulty.NORMAL) {\n                    vel *= 1.5;\n                }\n                if (vel > 2) {\n                    player.playSound(vel > 2.5 ? SoundEvents.GENERIC_BIG_FALL : SoundEvents.GENERIC_SMALL_FALL, 1.0F, 1.0F);\n                    player.hurt(player.damageSources().flyIntoWall(), (float) vel);\n                    ModCriterionTriggers.FLY_INTO_WALL.get().trigger((ServerPlayer) player);\n                }\n            }\n            commonArmorHandler.addAir(EquipmentSlot.FEET, -jetbootsAirUsage);\n\n            if (player.position().y > player.level().getMaxBuildHeight() + ConfigHelper.common().armor.jetBootsHeightLimit.get()) {\n                player.getCooldowns().addCooldown(ModItems.PNEUMATIC_BOOTS.get(), 20);\n            }\n        }\n        jbLocal.setPrevJetBootsAirUsage(jetbootsAirUsage);\n\n    }"
+        },
+        {
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/handlers/JetBootsHandler.java",
+          "method": "tick",
+          "line": 87,
+          "end_line": 186,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/handlers/JetBootsHandler.java",
+          "source_sha256": "08e3e07a6bf5a7130df800d06758f2791ecd9953ec1047af90a3b442ab060a47",
+          "snippet_sha256": "8e9195f22a769801c75e4aa92963f5d3eb355290a8df05963792925091312f3e",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/handlers/JetBootsHandler.java#L87-L186",
+          "excerpt": "@Override\n    public void tick(ICommonArmorHandler commonArmorHandler, boolean enabled) {\n        if (commonArmorHandler.isOnCooldown(EquipmentSlot.FEET)) {\n            // putting the boots on cooldown is a way for other mods to temporarily suppress jet boots\n            return;\n        }\n\n        int jetbootsCount = commonArmorHandler.getUpgradeCount(EquipmentSlot.FEET, ModUpgrades.JET_BOOTS.get());\n        if (jetbootsCount == 0) return;\n\n        int jetbootsAirUsage = 0;\n\n        Player player = commonArmorHandler.getPlayer();\n        JetBootsStateTracker.JetBootsState jbState = JetBootsStateTracker.getTracker(player).getJetBootsState(player);\n        JetBootsLocalState jbLocal = commonArmorHandler.getExtensionData(this);\n\n        if (commonArmorHandler.hasMinPressure(EquipmentSlot.FEET)) {\n            boolean vibration = !player.level().isClientSide() && player.tickCount % 10 == 0;\n            if (jbState.isActive()) {\n                if (jbState.isBuilderMode() && jetbootsCount >= BUILDER_MODE_LEVEL) {\n                    // builder mode - rise vertically (or hover if sneaking and firing)\n                    setYMotion(player, player.isShiftKeyDown() ? 0 : 0.15 + 0.15 * (jetbootsCount - 3));\n                    jetbootsAirUsage = (int) (ConfigHelper.common().armor.jetBootsAirUsage.get() * jetbootsCount / 2.5F);\n                    if (vibration) {\n                        player.gameEvent(ModGameEvents.JET_BOOTS_FLY_BUILDER);\n                    }\n                } else {\n                    // jetboots firing - move in direction of looking\n                    Vec3 lookVec = player.getLookAngle().scale(0.3 * jetbootsCount);\n                    jbLocal.updateAccel(lookVec);\n                    lookVec = jbLocal.getEffectiveMotion(lookVec, player.isFallFlying());\n                    player.setDeltaMovement(lookVec.x, player.onGround() ? 0 : lookVec.y, lookVec.z);\n                    jetbootsAirUsage = jbLocal.calcAirUsage(jetbootsCount);\n                    if (vibration) {\n                        player.gameEvent(ModGameEvents.JET_BOOTS_FLY);\n                    }\n                }\n                if (player.isInWater()) jetbootsAirUsage *= 4;\n                jbLocal.tickActive();\n            } else if (jbState.isEnabled() && !isOnGround(player) && !player.isFallFlying()) {\n                // jetboots not firing, but enabled - slowly descend (or hover if enough upgrades)\n                // and bring player to complete halt if flight stabilizers and not actively moving forward/sideways\n                boolean reallyHovering = jbLocal.canHover() && (!jbLocal.isSmartHover() || jbLocal.isHovering());\n                boolean stopped = jbLocal.isFlightStabilizers()\n                        && jetbootsCount >= STABILIZERS_LEVEL\n                        && PneumaticCraftUtils.epsilonEquals(player.zza, 0f)\n                        && PneumaticCraftUtils.epsilonEquals(player.xxa, 0f);\n                double xMotion = stopped ? 0 : player.getDeltaMovement().x;\n                double yMotion = reallyHovering ? (player.isShiftKeyDown() ? -0.45 : -0.1 + 0.02 * jetbootsCount) : player.getDeltaMovement().y;\n                double zMotion = stopped ? 0 : player.getDeltaMovement().z;\n                player.setDeltaMovement(new Vec3(xMotion, yMotion, zMotion));\n                if (vibration && player.getKnownMovement().lengthSqr() > 0.03) {\n                    player.gameEvent(jbState.isBuilderMode() ? ModGameEvents.JET_BOOTS_FLY_BUILDER : ModGameEvents.JET_BOOTS_FLY);\n                }\n                if (reallyHovering) player.fallDistance = 0;\n                jetbootsAirUsage = reallyHovering ? (int) (ConfigHelper.common().armor.jetBootsAirUsage.get() * (player.isShiftKeyDown() ? 0.25F : 0.5F)) : 0;\n                jbLocal.resetAccel();\n            } else if (isOnGround(player)) {\n                jbLocal.setHovering(false);\n            } else {\n                jbLocal.resetAccel();\n            }\n        } else {\n            // insufficient pressure!\n            if (jbState.isEnabled() && !player.onGround() && !player.isFallFlying() && jbLocal.isHovering()) {\n                // still active and in the air: using minimal air here keeps the boots running\n                // and thus avoids triggering multiple looping sounds (see \"jet boots starting up\" code below)\n                jetbootsAirUsage = 1;\n            }\n            setJetBootsActive(commonArmorHandler,false);\n        }\n\n        if (jetbootsAirUsage != 0 && !player.level().isClientSide) {\n            if (jbLocal.getPrevJetBootsAirUsage() == 0) {\n                // jet boots starting up\n                NetworkHandler.sendToAllTracking(new PacketPlayMovingSound(MovingSounds.Sound.JET_BOOTS, MovingSoundFocus.of(player)), player.level(), player.blockPosition());\n                ModCriterionTriggers.FLIGHT.get().trigger((ServerPlayer) player);\n            }\n            if (player.horizontalCollision) {\n                double vel = player.getDeltaMovement().length();\n                if (player.level().getDifficulty() == Difficulty.HARD) {\n                    vel *= 2;\n                } else if (player.level().getDifficulty() == Difficulty.NORMAL) {\n                    vel *= 1.5;\n                }\n                if (vel > 2) {\n                    player.playSound(vel > 2.5 ? SoundEvents.GENERIC_BIG_FALL : SoundEvents.GENERIC_SMALL_FALL, 1.0F, 1.0F);\n                    player.hurt(player.damageSources().flyIntoWall(), (float) vel);\n                    ModCriterionTriggers.FLY_INTO_WALL.get().trigger((ServerPlayer) player);\n                }\n            }\n            commonArmorHandler.addAir(EquipmentSlot.FEET, -jetbootsAirUsage);\n\n            if (player.position().y > player.level().getMaxBuildHeight() + ConfigHelper.common().armor.jetBootsHeightLimit.get()) {\n                player.getCooldowns().addCooldown(ModItems.PNEUMATIC_BOOTS.get(), 20);\n            }\n        }\n        jbLocal.setPrevJetBootsAirUsage(jetbootsAirUsage);\n\n    }"
+        },
+        {
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/common/network/PacketPlayMovingSound.java",
+          "method": "handle",
+          "line": 53,
+          "end_line": 55,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/network/PacketPlayMovingSound.java",
+          "source_sha256": "9b9565b1a9c4b71a8f14f7e800ddc2a8032015c1e79a30733416e1ef60ae81ef",
+          "snippet_sha256": "d96d098fff4ed5cc0f889670ff9817df9a5180dfaefaaebce2ece063ff23b073",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/network/PacketPlayMovingSound.java#L53-L55",
+          "excerpt": "public static void handle(PacketPlayMovingSound message, IPayloadContext ctx) {\n        if (message.source() != null) message.source().handle(message.sound());\n    }"
+        },
+        {
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/common/network/PacketPlayMovingSound.java",
+          "method": "handle",
+          "line": 79,
+          "end_line": 88,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/network/PacketPlayMovingSound.java",
+          "source_sha256": "9b9565b1a9c4b71a8f14f7e800ddc2a8032015c1e79a30733416e1ef60ae81ef",
+          "snippet_sha256": "cf1b204d9af92e96c23453083b1ac8ce9eee753082a654bff529931cca36de27",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/network/PacketPlayMovingSound.java#L79-L88",
+          "excerpt": "public void handle(MovingSounds.Sound sound) {\n            entityOrPos\n                    .ifLeft(id -> {\n                        Entity e = ClientUtils.getClientLevel().getEntity(id);\n                        if (e != null) {\n                            MovingSounds.playMovingSound(sound, e);\n                        }\n                    })\n                    .ifRight(pos -> MovingSounds.playMovingSound(sound, pos));\n        }"
+        },
+        {
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/client/sound/MovingSounds.java",
+          "method": "createMovingSound",
+          "line": 54,
+          "end_line": 101,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/client/sound/MovingSounds.java",
+          "source_sha256": "c85c92c70036fec55f8447e7dfca353807700da3e75e3d4ae19dc4c19b5c310c",
+          "snippet_sha256": "5f7ac40c71d1e60deae86b920f45bc5ab2fef8fe7cc3aecef6ac493163362fb1",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/client/sound/MovingSounds.java#L54-L101",
+          "excerpt": "private static AbstractTickableSoundInstance createMovingSound(Sound s, Object focus, Object... extraData) {\n        ClientLevel world = Minecraft.getInstance().level;\n        if (world == null) return null;\n\n        switch (s) {\n            case JET_BOOTS -> {\n                if (focus instanceof Player player) {\n                    return new MovingSoundJetBoots(player);\n                }\n            }\n            case MINIGUN -> {\n                if (focus instanceof Player || focus instanceof DroneEntity) {\n                    return new MovingSoundMinigun((Entity) focus);\n                } else if (focus instanceof BlockPos pos) {\n                    BlockEntity te = world.getBlockEntity(pos);\n                    return te == null ? null : new MovingSoundMinigun(te);\n                }\n            }\n            case ELEVATOR -> {\n                if (focus instanceof BlockPos pos) {\n                    BlockEntity te = world.getBlockEntity(pos);\n                    return te instanceof ElevatorBaseBlockEntity ? new MovingSoundElevator((ElevatorBaseBlockEntity) te) : null;\n                }\n            }\n            case AIR_LEAK -> {\n                if (focus instanceof BlockPos pos) {\n                    AbstractTickableSoundInstance sound = posToTickableSound.get(pos);\n                    if (sound != null && !sound.isStopped()) {\n                        return null;  // a sound is still playing; don't start another one\n                    }\n                    BlockEntity te = world.getBlockEntity(pos);\n                    if (te != null && PNCCapabilities.getAirHandler(te).isPresent()) {\n                        sound = new MovingSoundAirLeak(te, (Direction) extraData[0]);\n                        posToTickableSound.put(pos, sound);\n                        return sound;\n                    }\n                }\n                // can get here if the TE is not valid (e.g. chunk not fully loaded)\n                return null;\n            }\n            case JACKHAMMER -> {\n                if (focus instanceof Player player) {\n                    return MovingSoundJackhammer.startOrContinue(player);\n                }\n            }\n        }\n        throw new IllegalArgumentException(\"Invalid moving sound \" + s + \" for focus object \" + focus);\n    }"
+        },
+        {
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/client/sound/MovingSounds.java",
+          "method": "playMovingSound",
+          "line": 103,
+          "end_line": 108,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/client/sound/MovingSounds.java",
+          "source_sha256": "c85c92c70036fec55f8447e7dfca353807700da3e75e3d4ae19dc4c19b5c310c",
+          "snippet_sha256": "31954f4a7f59a3812fac3891b2b612a7ec67b78472c43a80c3d08c49102e51ff",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/client/sound/MovingSounds.java#L103-L108",
+          "excerpt": "public static void playMovingSound(Sound s, Object focus, Object... extraData) {\n        AbstractTickableSoundInstance movingSound = createMovingSound(s, focus, extraData);\n        if (movingSound != null) {\n            Minecraft.getInstance().getSoundManager().play(movingSound);\n        }\n    }"
+        },
+        {
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/client/sound/MovingSoundJetBoots.java",
+          "method": "tick",
+          "line": 61,
+          "end_line": 104,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/client/sound/MovingSoundJetBoots.java",
+          "source_sha256": "7c4af89df732801d04cc7d4d4bc0a3f7b54208b37a589b215ade09c3f126c4af",
+          "snippet_sha256": "90cff0801435f1634565ba3dbc7f61962361e1cb24f5319f9b8ed6f055715b78",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/client/sound/MovingSoundJetBoots.java#L61-L104",
+          "excerpt": "@Override\n    public void tick() {\n        if (!player.isAlive()) {\n            return;\n        }\n\n        JetBootsStateTracker.JetBootsState jbState = JetBootsStateTracker.getClientTracker().getJetBootsState(player);\n\n        if (endTimer == Integer.MAX_VALUE &&\n                (!jbState.isEnabled() || (!jbState.isActive() && (player.onGround() || player.isFallFlying())))) {\n            endTimer = END_TICKS;\n        }\n        if (endTimer <= END_TICKS) {\n            if (player.onGround() || !jbState.isActive()) {\n                endTimer--;\n            } else {\n                endTimer = Integer.MAX_VALUE;\n            }\n        }\n\n        x = (float) player.getX();\n        y = (float) player.getY();\n        z = (float) player.getZ();\n\n        if (endTimer > 0 && endTimer <= END_TICKS) {\n            targetPitch = 0.5F;\n            volume = volumeFromConfig(jbState.isBuilderMode()) - ((END_TICKS - endTimer) / 50F);\n        } else {\n            if (jbState.isActive()) {\n                double vel = player.getDeltaMovement().length();\n                targetPitch = 0.9F + (float) vel / 15;\n                volume = volumeFromConfig(jbState.isBuilderMode()) + (float) vel / 15;\n            } else {\n                targetPitch = 0.9F;\n                volume = volumeFromConfig(jbState.isBuilderMode()) * 0.8F;\n            }\n            handleParticles(jbState.isActive(), jbState.isBuilderMode());\n        }\n        pitch += (targetPitch - pitch) / 10F;\n        if (player.isInWater()) {\n            pitch *= 0.75f;\n            volume *= 0.5f;\n        }\n    }"
+        },
+        {
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/client/sound/MovingSoundJetBoots.java",
+          "method": "isStopped",
+          "line": 106,
+          "end_line": 109,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/client/sound/MovingSoundJetBoots.java",
+          "source_sha256": "7c4af89df732801d04cc7d4d4bc0a3f7b54208b37a589b215ade09c3f126c4af",
+          "snippet_sha256": "90dd9fc6d6ad9770dc526e9a2f9f813786f218447043bb8238daf979007bb7b1",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/client/sound/MovingSoundJetBoots.java#L106-L109",
+          "excerpt": "@Override\n    public boolean isStopped() {\n        return !player.isAlive() || endTimer <= 0;\n    }"
+        }
+      ]
+    }
+  ]
+}

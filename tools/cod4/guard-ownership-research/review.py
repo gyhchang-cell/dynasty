@@ -23,5 +23,5 @@ for a in annotations:
     accepted.append(record)
 DOC.mkdir(parents=True,exist_ok=True)
 (DOC/'references.json').write_text(json.dumps(accepted,ensure_ascii=False,indent=2)+'\n')
-(DOC/'progress.json').write_text(json.dumps(dict(target=1000,accepted=len(accepted),gap=max(0,1000-len(accepted)),candidateMethods=len(candidates),downloadedCandidatesAreNotAccepted=True,productionImplementationPermitted=False,duplicatePolicy='No repeated full method; exact normalized duplicates rejected automatically; reviewer also excludes alpha-port equivalents and boilerplate.'),ensure_ascii=False,indent=2)+'\n')
+(DOC/'progress.json').write_text(json.dumps(dict(target=1000,accepted=len(accepted),gap=max(0,1000-len(accepted)),candidateMethods=len(candidates),downloadedCandidatesAreNotAccepted=True,productionImplementationPermitted=len(accepted)>=1000 and (DOC/'gate-1000.json').exists(),duplicatePolicy='No repeated full method; exact normalized duplicates rejected automatically; reviewer also excludes alpha-port equivalents and boilerplate.'),ensure_ascii=False,indent=2)+'\n')
 print(f'Accepted {len(accepted)}/1000, gap {1000-len(accepted)}')

@@ -146,3 +146,10 @@ for identifier in (ID,ID+'_metal','wood_kite_thunder_bomb'):
    color=im.getpixel((x,y));assert 2<=x<=13 and 2<=y<=13 or color==(255,255,255)
    assert any(all(im.getpixel((xx,yy))==color for xx in (sx,sx+1) for yy in (sy,sy+1)) for sx in (x-1,x) for sy in (y-1,y) if 0<=sx<15 and 0<=sy<15)
 print('Exported original9m x5.5m serial-wing aircraft:',len(original),'bones',sum(len(b.get('cubes',[])) for b in original),'wood and',sum(len(b.get('cubes',[])) for b in phase2),'metal cuboids;',len(clips),'clips each')
+# Final, authoritative UV/material pass for the two existing actor forms. The
+# bomb keeps its separate legacy atlas. Exporting must not restore flat colours.
+import importlib.util
+_material_path=R/'tools/art/bestiary-v43/wood_kite_materials.py'
+_material_spec=importlib.util.spec_from_file_location('wood_kite_materials',_material_path)
+_material_module=importlib.util.module_from_spec(_material_spec);_material_spec.loader.exec_module(_material_module)
+_material_module.export_materials(A)

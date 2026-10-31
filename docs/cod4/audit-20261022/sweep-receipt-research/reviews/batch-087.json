@@ -1,0 +1,66 @@
+[
+  {
+    "candidate_index": 4078,
+    "candidate_id": "75e5d06687d69f3e151b",
+    "decision": "excluded",
+    "observation": "ThrownFluxTrident完整onHitEntity已读：dealtDamage先赋，hurt成功后附魔，尾部雷雨露天且引雷附魔生成闪电并播雷声、不依hurt；这是原版三叉戟引雷模板复用，和3979普通矛主体同义，不以能量主题另计。",
+    "snippet_sha256": "2bd6dbeb68d47aba2c0f1ff902d82208b20e45ea3c2c5d624309cbecf5e72743",
+    "reviewed_at": "2026-10-26T17:31:42.957175+08:00"
+  },
+  {
+    "candidate_index": 4080,
+    "candidate_id": "b1b16fcbd995fc5e49ac",
+    "decision": "pending",
+    "observation": "AbstractHauntedArmor完整hurt已读：Forge ShieldBlockEvent可取消或改blockedDamage，格挡声/29事件早于super.hurt，非格挡时可能减coolTime并发胸甲碎片；coolTime的赋值/递减/防御goal消费者尚未全文审完，不据字段扫描计完整防御生命周期。",
+    "snippet_sha256": "5005b66d31d68d3674e9788ada9a725a77417b64951bf12050b73976e4b45ba0",
+    "reviewed_at": "2026-10-26T17:31:42.957193+08:00"
+  },
+  {
+    "candidate_index": 4081,
+    "candidate_id": "db9e1ed2a5fc3e7101f6",
+    "decision": "pending",
+    "observation": "ObsidianMonolith完整hurt已读：empowered且非绕无敌时发6事件/熄火声并拒绝伤害，窒息时只在destroyBlocksTick<=0排20tick任务；非强化物理正确工具可加伤，粒子仍早于super.hurt。需要实际破块延期消费者与强化窗口生产者全文，不先计。",
+    "snippet_sha256": "422d5c8fd936fe5a371f5449fda5b90afb6bc38215dbae8ca6453e7d07937f68",
+    "reviewed_at": "2026-10-26T17:31:42.957200+08:00"
+  },
+  {
+    "candidate_index": 4084,
+    "candidate_id": "89f54ff73437e95eff69",
+    "decision": "pending",
+    "observation": "EnchantedFallingBlock完整onHitEntity已读：hurtEntities闸后先调用super，再以速度/状态加伤；piercingIgnoreEntityIds在hurt前加入，成功才击退后效声，失败恢复火焰。已定位canHitEntity按集合过滤，但完整tick/碰撞提交是否可多次还未读，留待补链，不将一个集合字段当完整去重验收。",
+    "snippet_sha256": "08a8f7aec7b162a2380fb4c5cdbc08a9966dace6d91706caa0068267f3a567bb",
+    "reviewed_at": "2026-10-26T17:31:42.957203+08:00"
+  },
+  {
+    "candidate_index": 4088,
+    "candidate_id": "f9a0e656362925712472",
+    "decision": "accepted",
+    "observation": "FortressBossProjectile完整onImpact、getOwner/setOwner与attackEntityFrom已读：owner用UUID在当前world实体表解析，玩家反打时进入deflect状态并按其look赋运动；碰到Boss先rayTrace盾面，有盾就撤该片并广播声及18个保留原owner的环弹，无盾才固定伤害，随后取消Boss浮空并服务器setDead。此处防弹归属和命中Boss盾面的结果是独立状态，子弹保留原owner而非反打者；真实玩法提醒来源迁移必须明确，不能从当前碰撞对象推断。",
+    "snippet_sha256": "4630263758845c330797cd62f648be875823de21bdc5514e799d582dae512553",
+    "reviewed_at": "2026-10-26T17:31:42.957207+08:00"
+  },
+  {
+    "candidate_index": 4091,
+    "candidate_id": "a75a4505c7f952e1544d",
+    "decision": "accepted",
+    "observation": "BouncyBubble完整onHit/explode/hurt与tick已读：方块每次反弹累加次数，实体只有hurt=true才加；达到6的下一碰撞爆，100tick寿命也爆，受非水/非同类攻击亦触发。explode先检查exploding/removed并置exploding=true才执行爆炸/粒子/音效/discard，防同tick多入口重入重复消费。该游戏爆裂是明确多生产者共享一次提交闸，与方天END/重复回执短TTL去重直接相关。",
+    "snippet_sha256": "1109f7fed60fe9ec650bf2e8627638e5827e4753c5efb2ce31b657fe88544c13",
+    "reviewed_at": "2026-10-26T17:31:42.957211+08:00"
+  },
+  {
+    "candidate_index": 4093,
+    "candidate_id": "292972ec1b18b85c4728",
+    "decision": "excluded",
+    "observation": "Watcher完整tick已读：咬13验证当前目标距离视线，激光9先声后验证活目标生成owner激光，没目标仍可播声。与已审动画定点投射/尝试声模板同义，没有另一个来源/回执/短期消费策略，避免仅换Boss数量增长。",
+    "snippet_sha256": "9e3ce79f72e4476094ba783f2cf387fceff0d54b3e6fd4014b772e072c7c1864",
+    "reviewed_at": "2026-10-26T17:31:42.957214+08:00"
+  },
+  {
+    "candidate_index": 4096,
+    "candidate_id": "4e8ec403b4c939c8eb35",
+    "decision": "accepted",
+    "observation": "MagicGround完整tick先在server概率发巫粒子，随后遍历包围盒将part映为living并按当前owner排友军，却没有对映射后living集合去重；每目标先无主magic4，再有主时追加indirectMagic(4或owner攻击一半)，不是二选一且均不检查返回。寿命tickCount>=duration在伤害之后discard，终期仍可尝试两次且此段遍历未侧闸。此例与方天同属同周期事件先执行后结束，需区分有效结算与视觉存活期限。",
+    "snippet_sha256": "8896a3d639ec23b321f8f5fbc6b640ec860045c78561bf73ce5ce4d75af565ef",
+    "reviewed_at": "2026-10-26T17:31:42.957217+08:00"
+  }
+]

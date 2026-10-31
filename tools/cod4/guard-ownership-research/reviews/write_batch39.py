@@ -1,0 +1,30 @@
+import json,pathlib
+R=[]
+def a(r,f,m,o,b,l,s=None):
+ d=dict(repo=r,file='/'+f+'.java',method=m,observation=o,application=b,limits=l)
+ if s:d['start']=s
+ R.append(d)
+A='AlexModGuy/AlexsMobs';I='iron431/irons-spells-n-spellbooks'
+a(A,'GorillaAIChargeLooker','canUse','仅银背、未驯服且延迟归零扫描20格非旁观玩家，凝视者中取最近。','保野生凝视挑衅，与受控防卫策略分开；不应给租约守卫新加PVP。','实际实体注册的威吓Goal入口，凝视几何本身不独立计。')
+a(A,'GorillaAIChargeLooker','tick','追凝视者接近后停导航，正面捶胸到10帧结束，并不setTarget或hurt。','威吓接近与真实攻击不同，不能把移动到旁观者当已证明误伤。','实际威吓任务完整tick，不计视觉动画常量。')
+a(A,'MudskipperAIAttack','tick','可见且过近则后退，8格内CD0发射owner为跳跳鱼的泥球，随后CD；无法射击则恢复strafe并导航。','侧退控制与弹道owner同时存在，最终弹道命中也要继承受控敌友规则。','真实已注册攻击Goal，普通canUse非空/活体模板不再计。')
+a(A,'CrocodileAIMelee','canUse','父近战许可后还要求无乘客，抓住猎物时不再启动普通近战。','多个攻击模式通过占用状态切换，修伤害边界不能只覆盖某个模式。','对应canContinue同一空乘客门不另计，checkAndPerformAttack原生模板排除。')
+a(A,'TameableAITempt','canUse','冷静期先递减；否则选手持食物的最近玩家，但已驯服Tamable一律不启动。','驯服后公开诱惑应停止，不能让第三方食物盖过主人指令。','Komodo/Gorilla/Flutter实际使用；普通食物谓词和构造参数辅助不计。')
+a(A,'AnimalAIHurtByTargetNotBaby','start','先父报复设置，然后幼体报警并stop自己战斗。','父方法副作用先发生，事后停Goal不等于从未授予目标；需检查最终攻击边界。','Raccoon/Crocodile等实际注册；不是未启用辅助函数。')
+a(A,'AnimalAIHurtByTargetNotBaby','alertOther','仅非幼体受众可由父逻辑获得警报目标。','传播仇恨时再校验受众资格，入口和传播链两处边界不同。','比Grizzly仅成年同种限制宽，实际多物种通用警报策略不同。')
+a(A,'AnimalAIMeleeNearby','tick','近距直接doHurtTarget；远距在起战位置范围内追敌，越界则回起战点，仍保留target。','有驻地导航不保证驻地攻击授权，越界回家也可能仍缓存旧敌人。','Tusklin实际注册的有限追击策略，坐标数学和start单字段赋值不计。')
+a(A,'TameableAIRide','canUse','当前控制乘客是玩家且为vehicle才缓存player，失败清sprinting。','骑手资格由getControllingPassenger上游决定，此Goal不自行验owner。','Tusklin实际注册，控制者资格链完整但不冒称此处有主人判定。')
+a(A,'TameableAIRide','tick','每帧停AI导航清target，依据缓存player前后输入与可选strafe设置速度/运动目的地，前进才冲刺。','输入接管必须持续撤AI敌意；缓存控制玩家中途变化也应注意重新验证。','具体原生骑乘输入到移动实现，不将方向/数学helpers分拆计。')
+a(I,'SummonedClaymoreEntity','canStartAction','有当前目标才收集12x6范围同类或目标盟友实体，多于2个缓存targets允许嘲讽。','AOE受众不能只依据目标同类/盟友便认为符合召唤者许可。','已最高优先注册ClaymoreTauntGoal；候选收集一处非通用基础设施。')
+a(I,'SummonedClaymoreEntity','doAction','先启taunting，再对缓存targets中所有Mob直接setTarget为本召唤剑，未重新检查当时存活或双方友军。','延时群体重定向有缓存失效风险，目标生成与最终伤害必须用同一权限原则。','实际嘲讽攻击意图改写，不计声音粒子。')
+a(I,'SummonedClaymoreEntity','stop','调用父终止isUsing，清taunting并撤缓存targets。','终止技能要清行为标记和缓存受众，防旧对象被下一次动作复用。','与普通Goal导航stop不同为实际嘲讽状态回收。')
+a(I,'SummonedRapierEntity','hurt','服务端实体伤且非绕无敌类型，先主人免伤门，再40%闪避，其他父hurt。','专用防御必须保留owner过滤优先，概率闪避不能替代归属许可。','实际召唤刺剑伤害入口，与单纯召唤helper转发模板不同。')
+a(I,'GenericAnimatedWarlockAttackGoal','handleAttackLogic','蓄势/多击帧/可取消距离/排队连招/下一击切换完整状态机；超射程或施法时退父逻辑。','延迟攻击多个tick持续作用，必须在每次命中验证资格。','实际三类召唤剑makeAttackGoal调用的战斗实现，非通用基础设施。')
+a(I,'GenericAnimatedWarlockAttackGoal','onHitFrame','先冲刺，再按AOE开关选单目标或同class锥形范围；逐个距离和LOS后handleDamaging。','AOE同class额外目标也需敌友许可，不得只校主目标。','召唤重剑明确配置area，实际伤害选择策略，不按每个目标计数。')
+a(I,'GenericAnimatedWarlockAttackGoal','handleDamaging','调用mob.doHurtTarget后无条件清目标无敌帧，成功才击中音效、额外击退与随机连招。','拒绝伤害时也可能产生外围副作用，审计应覆盖状态修改顺序。','具体召唤剑多击伤害结算，不将声音或随机常量另计。')
+a(I,'GenericAnimatedWarlockAttackGoal','stopMeleeAction','有当前攻击才置meleeAnimTimer0并向追踪者发空动画停止。','撤攻击要同时止服务端时钟与可见动画，但动画停止不是伤害许可证据。','实际被距离取消调用的动作撤销路径，消息编解码不计。')
+a(I,'GenericAnimatedWarlockAttackGoal','canContinueToUse','父目标持续资格失败后，只要meleeAnimTimer仍正也继续Goal。','持续动画可越过父目标失效门，最终命中防线不能省。','已注册召唤剑的真实持续条件；非普通活体canContinue移植。')
+a(I,'GenericAnimatedWarlockAttackGoal','stop','父清理后将近战计时-1并清queueCombo。','取消控制需要丢弃排队连招，否则后续时钟可重新发起伤害。','实际含连招回收，普通父stop模板不另计。')
+a(I,'WarlockAttackGoal','doMovement','未选近战退父移动；目标已死停导航；远处每5tick导航，近距停导航横移并面向目标。','死亡能止导航但不意味着上层缓存target清空，其他命中入口需独立验证。','实际召唤剑继承的移动策略，数值/几何辅助不单计。')
+a(I,'WarlockAttackGoal','handleAttackLogic','未想近战、超近战距离或正在施法就父远程逻辑；否则减延迟挥手doMeleeAction。','同一攻击Goal的多出口都必须共享目标授权，不能只限制近战选择。','实际父近战分派一处，参数setter和伤害wrapper未计。')
+pathlib.Path(__file__).with_name('batch39.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

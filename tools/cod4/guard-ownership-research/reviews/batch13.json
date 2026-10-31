@@ -1,0 +1,263 @@
+[
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MinionFollowGoal.java",
+    "method": "canUse",
+    "observation": "主人必须非空非旁观且不能是Mob，距离够且无target、未charging才缓存主人跟随。",
+    "application": "子召唤主是Mob时跟随被明确禁止；对象解析类型决定行为，不等于失去UUID归属。",
+    "limits": "其他跟随模板不再计；此条独立贡献是Mob主人排除和冲锋互斥。",
+    "start": 47
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MinionFollowGoal.java",
+    "method": "canContinueToUse",
+    "observation": "有target、charging或导航完成就false，否则按缓存主人距离超过maxDist继续。",
+    "application": "冲锋状态能中断跟随，但继续阶段未重取owner；换主时要考虑缓存。",
+    "limits": "与canUse排Mob主人不同，记录持续门的实际缺项，不宣称运行中必串主。",
+    "start": 67
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MinionFollowGoal.java",
+    "method": "tick",
+    "observation": "每10tick距主人>8时遍历周围外圈有效点设置MoveControl并停导航，没有首个成功即退出；远于平方144且配置允许才传送。",
+    "application": "空中跟随可在一次tick多次覆盖移动意图，导航完成状态不一定代表MoveControl已停。",
+    "limits": "随机传送和水代价模板均排除；不按25个格点拆参考。",
+    "start": 90
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ShieldedMeleeGoal.java",
+    "method": "canContinueToUse",
+    "observation": "持续条件仅攻击tick小于1.42秒，不再检查target存在、存活或isMeleeAttacking。",
+    "application": "有时动画攻击是定时完成而非目标维持，攻击帧仍需独立许可。",
+    "limits": "入口含IShielded标志，皇家/黑卫随从实际注册；不只读未使用类。",
+    "start": 30
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ShieldedMeleeGoal.java",
+    "method": "tick",
+    "observation": "看当前target但即使没有target也按attackTick1预声、9挥砸、14在自身前2格执行attack和视觉。",
+    "application": "目标消失后AOE仍可按动画发生，周期清target无法单独防旁观者误伤。",
+    "limits": "音效/粒子细节不另计；真正命中集合在attack。",
+    "start": 46
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ShieldedMeleeGoal.java",
+    "method": "attack",
+    "observation": "自身前方3立方与本体包围盒合并查Living，排自己；相交且是当前target、或对方Mob以自己为target、或非盟友就doHurtTarget。",
+    "application": "AOE许可有三个OR分支，已有target可绕开盟友判断；每个候选都需现有Enemy门。",
+    "limits": "不导入这套报复/PVP规则；本项目仅租约守卫受限，野生行为不变。",
+    "start": 73
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ShieldedPreMeleeGoal.java",
+    "method": "stop",
+    "observation": "停导航，但只有target为空才清aggressive；保留目标时停止仍保持攻击姿态。",
+    "application": "stop不一定意味着退战，归属撤销要检查动作旗标与旧target。",
+    "limits": "与通用近战stop按创世清目标不同，IShielded前置行为有特定联动。",
+    "start": 33
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ShieldedPreMeleeGoal.java",
+    "method": "tick",
+    "observation": "无target退出，朝向并每10tick在targetClose未满足时导航，随后总调用checkAndPerformAttack。",
+    "application": "接近动作和排攻击动作独立；距离已近也仍需最终目标权限。",
+    "limits": "同一完整方法只计一次，不按重算延迟和看向角度拆数。",
+    "start": 41
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ShieldedPreMeleeGoal.java",
+    "method": "checkAndPerformAttack",
+    "observation": "targetClose成立且当前非MeleeAttacking就置攻击标志，不直接伤害。",
+    "application": "排队攻击入口与14tick后的AOE执行点分离，前置过滤不能覆盖整个延迟窗口。",
+    "limits": "这不是通用doHurtTarget模板，独立贡献是把目标决策转换为延迟范围攻击旗标。",
+    "start": 59
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/EnchanterGoal.java",
+    "method": "isAlliedTarget",
+    "observation": "Ownable有owner时承认本人/同owner实体/主人盟友；否则自己敌对且目标Enemy时，Mob需未互相攻击且对方target非己方；最后回areAllies。",
+    "application": "辅助AI的盟友许可混合owner与敌对阵营，方向和当前target都会改变结果。",
+    "limits": "本项目不引入Enemy之间普遍盟友；只用于解释增益选人不能当攻击许可。",
+    "start": 25
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/EnchanterGoal.java",
+    "method": "getAllies",
+    "observation": "读取gameTime，代码在now<nextAllyScan时才重新扫描13格，排Enchanter/不可附魔tag/濒死/已有附魔/无攻击属性并要求盟友；每次设next=now+20。",
+    "application": "缓存时间比较方向必须读代码核对；缓存列表中的资格在实际施加帧仍可能变化。",
+    "limits": "初始next=0的真实调用时间要结合完整实体，未运行不判外模组失效。",
+    "start": 36
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/EnchanterEnchantGoal.java",
+    "method": "canUse",
+    "observation": "要当前战斗target、附魔列表少于2且getAllies非空，最后要求未受伤且enchantCool<=0。",
+    "application": "支援能力启动依赖自身战斗目标和接收者容量，错误target也能触发辅助行为。",
+    "limits": "实际EnchanterServant挂载；不把泛型构造器或列表访问包装计数。",
+    "start": 25
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/EnchanterEnchantGoal.java",
+    "method": "canContinueToUse",
+    "observation": "只查未受伤和castTime<83，没有复核原target或盟友集合。",
+    "application": "施法开始后目标关系变更可能不打断，最终选取/施加需再看当前资格。",
+    "limits": "不宣称不复核一定是bug，原设计可以完成一次已开始施法。",
+    "start": 37
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/EnchanterEnchantGoal.java",
+    "method": "stop",
+    "observation": "父stop后清castTime、设200冷却、收手并设IDLE。",
+    "application": "取消支援施法也产生冷却，不能把解除动作理解为无状态残留。",
+    "limits": "冷却是外部原机制，不用于本项目真实等待结论。",
+    "start": 50
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/EnchanterEnchantGoal.java",
+    "method": "tick",
+    "observation": "每tick停导航/横移，34帧重新取盟友按距离排序最多把2个UUID写EnchantList；35帧光效，其他帧控制声音和手势。",
+    "application": "最终接收者在延迟帧选取并以UUID持有，需追列表后来怎样施效和撤销。",
+    "limits": "不将各声音/粒子帧拆计；这里只计完整实际受益者选择过程。",
+    "start": 59
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/DefendVillagerGoal.java",
+    "method": "canUse",
+    "observation": "扫描村民受击者IOwned或正在攻击村民的IOwned作pendingTarget；玩家造铁傀儡不攻Player owner对象，最终排盟友/创世旁观。",
+    "application": "守卫应根据被保护对象的实际受击或对方攻击意图选敌，而非所有旁观者。",
+    "limits": "扫描前未清pendingTarget是局部观察；实际注册在外部事件尚需追源，不当运行已证。",
+    "start": 27
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/AvoidTargetGoal.java",
+    "method": "newGoalTwo",
+    "observation": "工厂创建AvoidRadiusGoal，额外候选谓词为当前target或MobUtil.isOwnedTargetable。",
+    "application": "即便已有统一许可，OR当前target仍可绕过它，旧非法目标可能继续驱动回避/追踪。",
+    "limits": "这是实际行为策略工厂而非普通构造转发；同类其他newGoal只转参数不计。",
+    "start": 51
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ChargeGoal.java",
+    "method": "canUse",
+    "observation": "缓存当前target，按实体tick绝对coolDown拒绝，需最小最大距离、地面、视线；计算越过目标落点后随机启动。",
+    "application": "冲锋存独立目标与位置，普通target后续变化不能保证旧冲锋撤销。",
+    "limits": "源码标Twilight来源，后续若读原同构实现不得二次计数；不以参数重载加数。",
+    "start": 50
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ChargeGoal.java",
+    "method": "start",
+    "observation": "windup设1至近2秒，立即setSprinting(true)。",
+    "application": "蓄力期间已改变行为旗标，取消应撤销冲刺/charging并落实冷却。",
+    "limits": "此处是具体冲锋时序，不作为本项目人工调时或实际等待证据。",
+    "start": 78
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ChargeGoal.java",
+    "method": "canContinueToUse",
+    "observation": "只要windup>0或导航未完成就继续，不要求chargeTarget仍为当前target或存活。",
+    "application": "被动清普通target无法立即终止旧冲锋的动作窗口。",
+    "limits": "只有目标缓存/动作条件观察，是否实际命中还看tick及最终伤害。",
+    "start": 84
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ChargeGoal.java",
+    "method": "tick",
+    "observation": "盯固定chargePos，windup归零才导航；蓄力时置ICharger.charging；不论windup是否完，只要接近缓存chargeTarget且未攻击就一次doHurtTarget。",
+    "application": "蓄力阶段也可能执行命中，最终许可必须早于接近目标伤害，不能只在起跑检查。",
+    "limits": "没有运行外模组，不把这个顺序冒称实测缺陷；动画旋转数学不单计。",
+    "start": 89
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ChargeGoal.java",
+    "method": "stop",
+    "observation": "清windup、chargeTarget和hasAttacked，关sprint，按当前实体tick+总冷却设deadline，ICharger关charging。",
+    "application": "取消缓存攻击要同时清动作状态与建立冷却，避免复用旧已命中标记。",
+    "limits": "和服务器绝对gameTime期限不同，实体tick持久化语义不能直接等同本项目租约。",
+    "start": 110
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/BreathingAttackGoal.java",
+    "method": "canUse",
+    "observation": "缓存当前target，距离范围及视线满足后按attackChance启动，没有在此自定义Enemy过滤。",
+    "application": "吐息起始目标只是瞄准源，实际范围命中会另找实体。",
+    "limits": "标明Twilight来源，后续原版端口不重复计；不将随机概率常量变体计数。",
+    "start": 36
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/BreathingAttackGoal.java",
+    "method": "start",
+    "observation": "非空缓存目标时保存其眼高坐标，设置durationLeft为maxDuration并打开breathing旗标。",
+    "application": "起始瞄准快照与持续目标不同，撤销须关闭吐息状态而非只清Mob.target。",
+    "limits": "这条具体时序对应后续5tick预热，不计纯坐标向量工具。",
+    "start": 47
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/BreathingAttackGoal.java",
+    "method": "canContinueToUse",
+    "observation": "需要剩余时间、攻击者活且非濒死、缓存目标活、仍在范围且有视线；不要求其还是普通target。",
+    "application": "目标被改为盟友或普通target清空时，缓存仍可能继续合法于这个谓词。",
+    "limits": "生存/距离/视线都不能替代本项目既有Enemy许可。",
+    "start": 58
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/BreathingAttackGoal.java",
+    "method": "tick",
+    "observation": "递减剩余时间，将瞄准坐标以0.25逐步追向缓存目标眼位，驱动看向/旋转后每tickbreathOut。",
+    "application": "动作持续输出由缓存及独立计时驱动，周期目标重选不足以阻断全部输出。",
+    "limits": "旋转算法本身不计参考；本条关注延迟追踪瞄准与持续攻击调用。",
+    "start": 65
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/BreathingAttackGoal.java",
+    "method": "breathOut",
+    "observation": "已执行超过5tick后，遍历MobUtil.getTargets沿朝向查得的每个实体并doBreathing。",
+    "application": "AOE实际命中者不只缓存瞄准对象，每个候选都需独立允许集合判断。",
+    "limits": "getTargets默认仅排盟友和创世旁观，不能等同Enemy白名单。",
+    "start": 89
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MobUtil.java",
+    "method": "getTargets",
+    "observation": "默认重载将NO_CREATIVE_OR_SPECTATOR、LIVING_OR_PART与非areAllies组合传入真正射线检索。",
+    "application": "通用射线目标集若只排盟友仍包含非Enemy旁观者，调用方需追加既有许可。",
+    "limits": "只收带实际过滤的默认重载；其他纯参数转发不计。",
+    "start": 668
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/MobUtil.java",
+    "method": "getTargets",
+    "observation": "完整重载按视向扩展范围查predicate候选，逐个要求pickable、有视线、非自身；扩大命中盒，含起点或命中射线且近于前次距离时加入列表。",
+    "application": "返回可能按遍历顺序积累多个对象，不可当唯一最近目标；逐命中安全门应在调用输出端存在。",
+    "limits": "为实际召唤吐息选择器计一处，不计单纯AABB/数学基础设施。",
+    "start": 684
+  }
+]

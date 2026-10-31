@@ -1,0 +1,40 @@
+"""Local-only helper receipt builder. No upstream execution or master-ledger writes."""
+from pathlib import Path
+import json,hashlib,re,shutil,importlib.util
+from datetime import datetime,timezone
+ROOT=Path(__file__).resolve().parents[5]
+OUT=ROOT/'docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune'
+LOCAL=ROOT/'tools/cod4/immune-feedback-research/helpers/herschel-immune'
+MASTER=ROOT/'docs/cod4/audit-20261022/immune-feedback-research'
+I='iron431__irons-spells-n-spellbooks';A='baileyholl__Ars-Nouveau';S='ZsoltMolnarrr__SpellEngine'
+BASE={I:ROOT/'tools/cod4/immune-feedback-research/sources'/I,A:ROOT/'tools/cod4/armor-acceptance/.work/research-sources'/A,S:ROOT/'tools/cod4/legacy-migration-acceptance/.work/sources'/S}
+B='BluSunrize__ImmersiveEngineering';U='Quek04__The-Undergarden';E='DaedalusGame__EmbersRekindled'
+BASE.update({k:ROOT/'tools/cod4/immune-feedback-research/sources'/k for k in (B,U,E)})
+# Authored lexical reader from another helper is read-only support, not research credit.
+spec=importlib.util.spec_from_file_location('reader',ROOT/'tools/cod4/immune-feedback-research/helpers/halley-immune/inspect_methods.py');reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(reader)
+sha=lambda x:hashlib.sha256(x).hexdigest()
+meta={k:json.loads((v/'source.json').read_text()) for k,v in BASE.items()}
+verified={};rows=[]
+before={p.name:sha(p.read_bytes()) for p in MASTER.iterdir() if p.is_file()}
+def evidence(repo,name,method,qualifier=None):
+ ps=list(BASE[repo].rglob(name+'.java'));assert len(ps)==1,(name,len(ps));p=ps[0];rel=p.relative_to(BASE[repo]).as_posix();data=p.read_bytes();lines=data.decode().splitlines(keepends=True)
+ starts=[i for i,l in enumerate(lines,1) if re.match(r'\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:public|private|protected|default|static)\s',l) and re.search(r'\b'+re.escape(method)+r'\s*\(',l) and (qualifier is None or qualifier in ''.join(lines[i-1:i+8]).split('{',1)[0]) and not l.strip().endswith(';')]
+ if method=='__complete_file__':starts=[1]
+ assert len(starts)==1,(name,method,qualifier,starts)
+ start=starts[0];end=len(lines) if method=='__complete_file__' else reader.end_method(lines,start);excerpt=''.join(lines[start-1:end]);pin=meta[repo];commit=pin.get('commit',pin.get('sha'));blob=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+ if (BASE[repo]/'tree.json').exists():
+  tree=json.loads((BASE[repo]/'tree.json').read_text());assert tree['sha']==commit;assert next(x['sha'] for x in tree['tree'] if x['path']==rel)==blob
+  proof='pinned Git tree blob SHA1'
+ else:
+  entry=next(x for x in pin['files'] if x['path']==rel);assert entry['sha256']==sha(data);proof='pinned archive source.json SHA256 inventory'
+  if 'git_blob_sha1' in entry:assert entry['git_blob_sha1']==blob;proof='pinned source inventory SHA256 and Git blob SHA1'
+ dest=LOCAL/'sources-batch008'/repo/rel;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(data)
+ verified[f'{repo}/{rel}']={'repo':pin['repo'],'commit':commit,'path':rel,'sha256':sha(data),'computed_git_blob_sha1':blob,'proof':proof,'local':str(dest.relative_to(ROOT))}
+ return {'unit':'complete_support_resource' if method=='__complete_file__' else 'complete_method','source_key':f'{repo}/{rel}','method':method,'lines':[start,end],'url':f"https://github.com/{pin['repo']}/blob/{commit}/{rel}#L{start}-L{end}",'file_sha256':sha(data),'excerpt_sha256':sha(excerpt.encode()),'normalized_excerpt_sha256':sha(re.sub(r'\s+','',excerpt).encode()),'excerpt':excerpt}
+def ev(repo,name,method,qual=None):return evidence(repo,name,method,qual)
+def add(key,obs,application,limits,chain,*refs,status='pending_primary_semantic_review',dedup=''):
+ rows.append({'id':f'herschel-008-{len(rows)+1:02d}','semantic_dedup_key':key,'status':status,'research_credit':0,'suggested_credit':0,'count_unit':'independent behavior site with complete containing methods; no automatic promotion','source_refs':list(refs),'observation':obs,'native_chain':chain,'application':application,'limits':limits,'deduplication':dedup or '与本批其他行按实际决策/结果分开；与001–007及当前主账按决策语义比较，完整方法共享只作支持；晋级仍须主岗复核。调用包装和同链支持不另计。'})
+def span(repo,name,start,end,label):
+ ref=ev(repo,name,'__complete_file__');lines=ref['excerpt'].splitlines(keepends=True);excerpt=''.join(lines[start-1:end]);ref.update(method=label,lines=[start,end],excerpt=excerpt,excerpt_sha256=sha(excerpt.encode()),normalized_excerpt_sha256=sha(re.sub(r'\s+','',excerpt).encode()));ref['url']=ref['url'].split('#')[0]+f'#L{start}-L{end}';ref['resource_scope']='complete nested declaration or complete registration statement; not a counted method';return ref
+
+

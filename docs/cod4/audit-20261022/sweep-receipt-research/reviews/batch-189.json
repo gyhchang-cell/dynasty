@@ -1,0 +1,34 @@
+[
+  {
+    "candidate_index": 3702,
+    "candidate_id": "551d404f14b56434b9fc",
+    "decision": "accepted",
+    "observation": "全文GlitchyMantle整类与GlitchyIllusion整类、TargetingUtils全文：装备server tick按stack持久CD创建幻象，先当前附近同类为空再addFresh（未验bool）后置CD；能力停用CD清0，但已生幻象不按当前装备存续立即清。幻象tickCount>lifetime先discard+return，owner当前数字ID优先并覆盖UUID，失配时才同ServerLevel UUID回查，不能认为数字ID必与UUID一致。实际own projectile旧位置到当前位置线段交叉可引爆，或owner source/direct验证hurt引爆；detonate先状态效果/统计/视觉再discard，无提前consumed锁，若效果回调重入需另防。电链每tick仅同owner最小ID实体发起，整条链共用UUID受击set且在hurt前加入，因此被取消的伤害也消费本帧机会；视觉不依据hurt成功。直接玩家近战Pre事件echo用ThreadLocal finally恢复防重入，先startEcho视觉+清无敌再hurt，仅hurt真累加damage但按illusion数量记攻击。整个幻象创建/到期/owner引爆/递归战斗反馈与每帧去重链合并1；相位移动及多个技能形式不额外拆分。NBT保owner/lifetime/stack却无已过tickCount和echo计时，加载可延长寿命，不声称实机。",
+    "snippet_sha256": "3c8941a8356cbf13774cd99549de0fa71f247d5936d75368f24645b3a7a1003e",
+    "reviewed_at": "2026-10-29T00:13:00.400296+08:00"
+  },
+  {
+    "candidate_index": 3061,
+    "candidate_id": "ee2d58f7ac0f80a3ccc9",
+    "decision": "accepted",
+    "observation": "全文RitualHealing与AbstractRitual真实tryTick/状态源需求、已审RitualBrazier.tick完整复读：server全局gameTime%100在当前5格对象heal或对亡灵用ANFakePlayer伤害，ZombieVillager优先即时转化并用当前列表首个玩家UUID，非仪式发起者UUID。didWorkOnce在尝试heal/hurt后无条件true，忽略hurt返回与实际血量差，随后setNeedsSource(true)而非立即扣源；炉下一tick先取200source，失败20tick backoff暂停后续tryTick，成功清需求。同炉relay可把实际执行位置/level上下文换成relay，但需求由该tile位置update；不是携带来源时刻的回执。先效果再后付且同帧多目标仅一次费用，视觉client每tick而非效果成功。独立周期恢复/亡灵伤害→后付源门控链1，区别已有炉通用生命周期3407与MobCapture3490；FakePlayer只原作者伤害来源，绝不当真人双人证据。",
+    "snippet_sha256": "2b762dc02176c0d2a1e3f9736bc009689312093c6ef8a9826b056b19400053bb",
+    "reviewed_at": "2026-10-29T00:13:00.400319+08:00"
+  },
+  {
+    "candidate_index": 3679,
+    "candidate_id": "15924b2e5d4dd9783501",
+    "decision": "accepted",
+    "observation": "全文RitualGrounding/实际TileMasterRitualStone.onUpdate与performRitual、PotionSuspended/HeavyHeart：server活动仪式每refresh=1调用，事件取消return但外层activeTime仍++；地面术每次枚举当前范围活体、按owner network essence给maxEffects预算，排creative后先totalEffects++，玩家/普通实体只global%10才施效而boss分支每tick，故大部分非十帧也按枚举数扣LP，付费不代表有效效果。sharedWillEffects为20tick悬浮/重力或levitation和100tick重心，效果add返回不检查；其drained入参累计值又以+=返回累计，会随多目标重复累计，不能当准确效果回执。PotionSuspended先列表contains决定开无重力，duration<=1才撤；提前移除/卸载清理并不由所读方法保证。临时buff来自当前仪式但效果中未保存owner/周期身份，复用回执不可只看效果存在。真实区域周期→事件取消→预算/持续窗口链1，旧状态语料0、支持方法0，未声称全模组移除hook穷尽。",
+    "snippet_sha256": "e6a10953a652c9569aa18655d8921ca3dd2565521087159e18ed4333bed0847e",
+    "reviewed_at": "2026-10-29T00:13:00.400324+08:00"
+  },
+  {
+    "candidate_index": 3186,
+    "candidate_id": "4a3c8beb9de547e8b151",
+    "decision": "accepted",
+    "observation": "全文SentryTurret整类、Minigun.tryFireMinigun/tick及AbstractGunAmmoItem整类：server每16世界tick无目标时当前范围按filter/LOS最近目标，每8tick再过滤目标才tryFire；tickCommonPost才推进转速与瞄准，射击用上一阶段gunAimedAtTarget，未捆绑该瞄准状态的目标身份。tryFire先续triggerTimeout10，达到最高转速且已瞄准才ammo.onTargetHit，回传FiringResult是ammoCost/耗尽，非伤害bool；基类onTargetHit伤害返回忽略却返回弹数，不能用ammoUsedUp证明命中。目标无效清对象/ID，Minigun.tick再按alive清目标；DescUpdate按当前level数字ID恢复client目标无UUID/生产tick。ownerId持久用于过滤，实际伤害source是固定profile FakePlayer，不是owner本人；此处FakePlayer不是双人验收。冷却/瞄准/target对象无NBT，物品弹药有，重载不同窗口。整个炮塔选择→上一帧瞄准/转速→弹药结果消费1，区别2846库存维修而非重复普通射击helper信用。",
+    "snippet_sha256": "4a635c3d14950583b0b0d06bf2853d36f5da27faa2292b4bf8a56acb3264d601",
+    "reviewed_at": "2026-10-29T00:13:00.400329+08:00"
+  }
+]

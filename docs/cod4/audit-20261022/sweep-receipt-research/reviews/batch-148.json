@@ -1,0 +1,50 @@
+[
+  {
+    "candidate_index": 7464,
+    "candidate_id": "004f2cd460595ee1066d",
+    "decision": "accepted",
+    "observation": "全文GleefulTargetAuthority及MobEffectInstanceMixin实际调用：未黑名单伤害Pre按resonance*100先给4倍时长/后续+时长封36000，非最终hurt回执。效果tick HEAD缓存pausePotionEffects结果；已冻结时只每10worldtick重查，失去GLEEFUL_TARGET后仍可能多冻结最多到下个10边界。tickDownDuration直接返原duration而非递减，shouldApplyEffectTickThisTick返回false抑制DOT/恢复实际执行；自身GLEEFUL和instant不冻结。一个受击触发的实际游戏效果延期消费链1，不把debuff/属性注册独立计，framework0。",
+    "snippet_sha256": "d3ad8626786635a043f94e86ee6717948c33c4f6d7e76b420cf13cc21bb8d822",
+    "reviewed_at": "2026-10-28T18:13:38.041024+08:00"
+  },
+  {
+    "candidate_index": 7465,
+    "candidate_id": "c86438b9b7fc870bf985",
+    "decision": "accepted",
+    "observation": "全文InvertedHeartAuthority+实际Post桥/实体Pre和DelayedDamageWorldEvent：40tick一次全清重扫可见目标缓存(WeakHashMap UUID->实体ref)，传播Post必须source.entity==attacker避免lastAttacker后备，目标伤害new/2；反击Post用originalDamage并各用黑名单排重入。damageTargets打乱缓存，排当前主目标且当前isAlive就按8+2*i排队，未重查LOS/范围/队伍/维度。事件放target.level，消费按该level重解target/attacker UUID且不检查当前owner合法性；hurt bool不控反馈，无最大年龄。40tick候选快照-Post来源约束-延迟传播同一玩法1，两个伤害变种/调度支持不拆。",
+    "snippet_sha256": "743590c670fb736e08d8de70d573320ba7bfc554a23da8ecba4a6142a5529e5c",
+    "reviewed_at": "2026-10-28T18:13:38.041054+08:00"
+  },
+  {
+    "candidate_index": 7466,
+    "candidate_id": "66824fa03cb81a3504fd",
+    "decision": "accepted",
+    "observation": "全文ArcanaphageGeas及实际Incoming分发：当前实例遇非magic源先cancel原事件再target.hurt同amount的新包装DamageSource；包装保留type/direct/entity/sourcePosition，仅is(IS_MAGIC)强制true，避免同效果重入无限递归，其它源标签仍原值。内层hurt结果未回传外层已cancel，不能由外层false推断没发生伤害，也未排已取消输入。本例为真实模组伤害递归/来源保留实施1；收魂叠层buff仅上下文0额外，非泛状态语料。",
+    "snippet_sha256": "c5cfa9942613046d0efc48c4ca4a0f00c17cc1bc443609f7b6dfbb2510bb1d7b",
+    "reviewed_at": "2026-10-28T18:13:38.041060+08:00"
+  },
+  {
+    "candidate_index": 7467,
+    "candidate_id": "99d3ab3d1d0173eba209",
+    "decision": "accepted",
+    "observation": "全文ShatteringAddictGeas、SoulHarvestHandler.onDeath/dropSpirits/applySpiritLootBonuses及LivingSoulData：仅未cancel非player灵魂可掉落死亡，先用当前attacker(源entity或lastHurtByMob)算本次奖励再setMostRecentShatter(now)，最后标soulless阻止重复。modifySpiritSpoils实际回调读上一次击杀戳，age<2加1且无>=0约束；首默认0早期可命中，跨维度没有key。时戳进实体CODEC，withdrawal只age>32000消耗玩家食物而不是奖励成功回执。一个实际两tick连杀归属/时钟消费链1，掉落/属性/饥饿变种不拆计。",
+    "snippet_sha256": "7b1825062bce1e812b572c7d50b09df2c0dfdaa7907c55a47aaf199803a04466",
+    "reviewed_at": "2026-10-28T18:13:38.041063+08:00"
+  },
+  {
+    "candidate_index": 7468,
+    "candidate_id": "df372669a07c55063be1",
+    "decision": "accepted",
+    "observation": "全文ReaperGeas+MalumScytheItem实际Pre/Post桥和DelayedDamageWorldEvent：PLAYER_ATTACK/TYRVING先当前主手损10耐久并把Pre伤害*.1后return；指定tag镰刀源按当前属性或boomerang字段快照决定概率和2/3次延迟4+3*i补刀。consumer保存attacker/directUUID，currentworld复解，忽略hurt返回仍播音。SCYTHE_COMBO Post按当前getScytheWeapon/canSweep决定slash与实际trySweep，后者不核hurt就knockback，非排队时装备快照。一个延迟连击-来源重解-Post专属扫击反馈链1，不把多击及每种动作独立计；源tag另固定blob核验。",
+    "snippet_sha256": "48d51273aaa412655008784cb720b1fde6e0d3c98e03e3ce299cebbbcb4513fd",
+    "reviewed_at": "2026-10-28T18:13:38.041066+08:00"
+  },
+  {
+    "candidate_index": 7469,
+    "candidate_id": "25cb15bad7a1ef4065de",
+    "decision": "accepted",
+    "observation": "全文MalignantConversionHandler.shieldPlayer/entityTick与MalignantInfluenceData全部方法，实际RuntimeEventHandler HIGHEST Incoming：server/nonbypass/original>=2/容量和盾层>0才先reduceAegis(1)、延长postAttackInvulnerability到min(2*原,40)、sync+音后cancel，并无检查已cancel事件，所以取消不等于没消费。Pre每tick容量不足--cooldown，<=0恢复1并addCooldown，容量变小夹回；recover无论增长都延长冷却仅增不减。CODEC aegisCooldown错误getter绑定getMalignantAegis，读档会以层数代原剩余时间，不能声称持久冷却正确。一个真实阻伤-取消回执-恢复时钟链1，转换通用属性算法0。",
+    "snippet_sha256": "b5f53be230ad67bd8be37cc76f7d6484f14f6adf523aeca7912df4c2396fa373",
+    "reviewed_at": "2026-10-28T18:13:38.041069+08:00"
+  }
+]

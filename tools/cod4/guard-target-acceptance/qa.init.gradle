@@ -1,0 +1,33 @@
+// Native AI regression only; never launches a client or changes production sources.
+allprojects { p ->
+    def base=p.file('tools/cod4/guard-target-acceptance/.work')
+    p.layout.buildDirectory.set(new File(base,'gradle-output'))
+    p.afterEvaluate {
+        if(!p.plugins.hasPlugin('net.minecraftforge.gradle'))return
+        p.sourceSets.main.java.setSrcDirs([new File(base,'frozen/src/main/java')])
+        p.sourceSets.main.resources.setSrcDirs([new File(base,'frozen/src/main/resources'),new File(base,'frozen/src/generated/resources')])
+        def qa=p.sourceSets.create('guardTargetAcceptance') {
+            java.srcDir p.file('tools/cod4/guard-target-acceptance/src')
+            compileClasspath+=p.sourceSets.main.output+p.sourceSets.main.compileClasspath
+            runtimeClasspath+=output+p.sourceSets.main.output+p.sourceSets.main.runtimeClasspath
+        }
+        p.tasks.named(qa.processResourcesTaskName).configure {
+            from(new File(base,'frozen/src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) {
+                into 'data/dynasty_guard_target_qa/structures'
+            }
+        }
+        p.minecraft.runs.gameTestServer {
+            workingDirectory new File(base,'server')
+            property 'forge.enabledGameTestNamespaces','dynasty_guard_target_qa'
+            property 'forge.logging.console.level','info'
+            property 'mixin.env.refMapRemappingFile',new File(base,'gradle-output/createSrgToMcp/output.srg').absolutePath
+            jvmArgs '-Xmx2G','-XX:ActiveProcessorCount=2','-Djava.awt.headless=true'
+            mods { dynasty { source qa } }
+        }
+        p.tasks.matching { it.name=='runGameTestServer' }.configureEach { dependsOn qa.classesTaskName,'createSrgToMcp' }
+        p.tasks.matching { it.name=='downloadAssets'||it.name=='downloadMCMeta' }.configureEach { onlyIf { false } }
+        def metadata=new File(gradle.gradleUserHomeDir,'caches/forge_gradle/minecraft_repo/versions/1.20.1/version.json')
+        def target=p.layout.buildDirectory.file('downloadMCMeta/version.json').get().asFile
+        target.parentFile.mkdirs();target.bytes=metadata.bytes
+    }
+}

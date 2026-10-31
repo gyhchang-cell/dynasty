@@ -13,6 +13,10 @@ def walk(n):
     yield n
     for c in n.children: yield from walk(c)
 rows=[]; sources={}; source_keys=set()
+# Explicitly selected complete gameplay methods may lack generic search words.
+requested=[]
+for review_file in sorted((ROOT/'reviews').glob('*.json')):
+    requested.extend(json.loads(review_file.read_text()))
 for repo in sorted(list(BASE.iterdir())+list((OUT/'sources').iterdir())):
     meta=repo/'source.json'
     if not meta.exists(): continue
@@ -26,7 +30,8 @@ for repo in sorted(list(BASE.iterdir())+list((OUT/'sources').iterdir())):
         if source_key in source_keys:continue
         source_keys.add(source_key)
         b=f.read_bytes(); txt=b.decode('utf8',errors='replace')
-        if not re.search(r'(Summon|Tame|Familiar|OwnerHurt|FollowOwner|Guard|Pet|Minion|Servant|isAlliedTo|wantsToAttack|getOwnerUUID)',txt) and f.stem not in {'ModMeleeAttackGoal','ModRangedAttackGoal','HurtAlertOtherGoal'}:continue
+        selected=[a for a in requested if a['repo']==info['repo'] and rel.endswith(a['file'])]
+        if not selected and not re.search(r'(Summon|Tame|Familiar|OwnerHurt|FollowOwner|Guard|Pet|Minion|Servant|isAlliedTo|wantsToAttack|getOwnerUUID)',txt) and not re.search(r'/(?:entity|entities)/ai/',rel) and f.stem not in {'ModMeleeAttackGoal','ModRangedAttackGoal','HurtAlertOtherGoal'}:continue
         tree=parser.parse(b)
         for n in walk(tree.root_node):
             if n.type not in ('method_declaration','constructor_declaration'):continue
@@ -41,7 +46,7 @@ for repo in sorted(list(BASE.iterdir())+list((OUT/'sources').iterdir())):
             if body is None or name is None:continue
             text=b[n.start_byte:n.end_byte].decode('utf8')
             # Filter to behavior, not attributes, recipes, animation, or accessors.
-            if not re.search(r'(target|owner|owned|summon|tame|familiar|ally|allied|canAttack|hurt|attack|follow|servant|minion|guard|expire|lifespan|pacif|hostile|natural)',text,re.I) and not (info['repo']=='Polarice3/Goety-2' and f.stem=='Wartling' and b[name.start_byte:name.end_byte]==b'die'):continue
+            if not any(a['method']==b[name.start_byte:name.end_byte].decode() and (not a.get('start') or a['start']==n.start_point.row+1) for a in selected) and not re.search(r'(target|owner|owned|summon|tame|familiar|ally|allied|canAttack|hurt|attack|follow|servant|minion|guard|expire|lifespan|pacif|hostile|natural)',text,re.I) and not (info['repo']=='Polarice3/Goety-2' and f.stem=='Wartling' and b[name.start_byte:name.end_byte]==b'die'):continue
             if len(text)<85:continue
             norm=re.sub(r'/\*.*?\*/|//[^\n]*','',text,flags=re.S)
             norm=re.sub(r'\s+','',norm)
