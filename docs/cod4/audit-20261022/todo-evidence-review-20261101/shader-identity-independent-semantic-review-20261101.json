@@ -1,0 +1,285 @@
+{
+  "recorded_at": "2026-11-01T02:51:33.653308+00:00",
+  "status": "INDEPENDENT_BOUNDED_REVIEW_COMPLETE_ZERO_CREDIT",
+  "proposal": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-shader-identity-boundary-20261101.json",
+    "sha256": "0a33ef4f8eec783c7b45e5ed2c04115e54b4eb5fb97d266cdf710c63d4db469f"
+  },
+  "candidate": {
+    "candidate_id": "7d8e5f583985b1dc74a7",
+    "status": "candidate_not_reviewed",
+    "repo": "BluSunrize/ImmersiveEngineering",
+    "revision": "75a27f03e4243544243567e8d5c38d336f4f10f4",
+    "path": "src/api/java/blusunrize/immersiveengineering/api/shader/CapabilityShader.java",
+    "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/BluSunrize__ImmersiveEngineering/src/api/java/blusunrize/immersiveengineering/api/shader/CapabilityShader.java",
+    "method": "read",
+    "start_line": 154,
+    "end_line": 161,
+    "file_sha256": "0dd956fa976fe289afb29ea78e2c1d9ce8dad017dd6ea8cdb1e4134063fc4cf6",
+    "method_sha256": "75215235a2a9f794d75eb5cdfb126561bb884c81f2fc7339cdd3c4741d22302a",
+    "structural_fingerprint": "34b8cddf55ee4327567e3cfe7a0498adbc1c1b83ffa8007c3a92b8817fc31cad",
+    "source_url_or_coordinate": "https://github.com/BluSunrize/ImmersiveEngineering/blob/75a27f03e4243544243567e8d5c38d336f4f10f4/src/api/java/blusunrize/immersiveengineering/api/shader/CapabilityShader.java#L154-L161",
+    "ast_calls": [
+      "parse",
+      "getString",
+      "contains",
+      "setShader",
+      "parse",
+      "getString"
+    ],
+    "ast_guards": [
+      "(!tag.contains(\"IE:NoShader\"))"
+    ],
+    "context": "@Override\n\t\tpublic ShaderWrapper_Direct read(IAttachmentHolder holder, CompoundTag tag, Provider provider)\n\t\t{\n\t\t\tShaderWrapper_Direct wrapper = new ShaderWrapper_Direct(ResourceLocation.parse(tag.getString(\"IE:ShaderType\")));\n\t\t\tif(!tag.contains(\"IE:NoShader\"))\n\t\t\t\twrapper.setShader(ResourceLocation.parse(tag.getString(\"IE:Shader\")));\n\t\t\treturn wrapper;\n\t\t}",
+    "class_has_migration_marker": false,
+    "parse_has_error": false
+  },
+  "source_pin": {
+    "path": "tools/cod4/legacy-migration-acceptance/.work/sources/BluSunrize__ImmersiveEngineering/source.json",
+    "sha256": "4792b0227175208907cc22458098748d8b39f15d2d734f72e846d30dcdca9470",
+    "metadata": {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "sha": "75a27f03e4243544243567e8d5c38d336f4f10f4",
+      "archive_url": "https://codeload.github.com/BluSunrize/ImmersiveEngineering/zip/75a27f03e4243544243567e8d5c38d336f4f10f4",
+      "archive_sha256": "da23468f93d68d2a94841cc6ea3b0760a510cb31266bd7700c33ed3bcfd2ba1e",
+      "java_files": 1305
+    }
+  },
+  "ledger_snapshot": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "a121d4fe130263585d02933bae999cb19f0c7d10ca64d53ea6422b38dfc86561",
+    "accepted_count_actual": 950
+  },
+  "decision": "SUPPORT_ONLY_INSUFFICIENT_NEW_GAMEPLAY_OWNERSHIP_OR_MIGRATION_SEMANTICS",
+  "maximum_recommended_credit": 0,
+  "accepted_reference_credit_added": 0,
+  "reason": "已确认真实矿车 attachment 序列化、实际装配交互、服务端身份同步与客户端渲染消费，不以缺游戏运行或未读renderer作为否决理由。但当前增量仍是可选资源身份/type字段加显式none哨兵，在世界对象上恢复外观，未展示旧格式转换、已获资格/实体替换后的稳定玩家owner映射、材料付款/退还或跨载体托管协调。单凭另一种外观字段与serializer、再附network/render桥，不构成第951个相关玩法持久机制。作为已有身份/空值边界研究的支持保留，不新增计数。",
+  "findings": [
+    "WrapperSerializer fresh wrapper 并恢复type；IE:NoShader只查存在，不查值/类型，且优先于同时存在的IE:Shader；缺type或缺shader且无none会进入ResourceLocation.parse，无局部fallback。",
+    "ShaderBanner缺compound时保留已有/构造wrapper，writer总写明确空身份；单个world owner不按banner/cart/item拆分。",
+    "onMinecartInteraction server从手持 IShaderItem 的getShaderName设实际attachment并发tracking同步；已读方法未扣物品也未查owner，不能称付费收藏/授权恢复。",
+    "MessageMinecartShaderSync server以当前世界entityID定位minecart，从真实attachment回复，忽略request shader；client写runtime ID keyed cache。持久资源ID与临时render cache应分开，packet/entityID/helper计0。",
+    "补读完整ShaderMinecartRenderer135行：cache取资源ID→ShaderRegistry.getShader(id,minecart)；unknown registry或无case时直接return。87-91 registry lookup不清理wrapper保存的原始合法ID，所以渲染无case不等于磁盘身份被改写。",
+    "渲染对模型层/颜色消费是外观，没观察到恢复新付费资格。对源码中的model part下标/缓存生命周期不做未实测故障断言。"
+  ],
+  "dedup_explanation": [
+    "12fb4d887e3b29d20382 Aether已计玩家UUID世界owner+实际verify/sync的皮肤选择，故不能笼统说所有外观都无关。本proposal没有同等独立稳定owner恢复约束。",
+    "bb766b1402d43f2efb3e Ars familiar是实体/玩家carrier和旧root/nested实际协调，并含cosmetic stack；本proposal没有此跨载体重建。",
+    "2277497966b30ed8abfb decorated pot存制作材料身份且真实返还材料；此处只设置可复用shader并渲染，无付费材料托管收据。",
+    "已有mimic、coffin dye、armor stand拒绝边界一致：纯外观可持久不等于新增相关进度/托管迁移机制。不是断言源实现与这些AST同构，也不借用全局helper当新计数。"
+  ],
+  "comparison_ledger_rows": [
+    {
+      "candidate_id": "12fb4d887e3b29d20382",
+      "status": "accepted",
+      "family": "aether-per-world-player-perk-selection-owned-identity",
+      "trigger": "PerkSavedData.compute load/save and ServerPerkData verify/sync",
+      "input": "UUID-keyed stored moa entity/skin selection and optional halo/developer glow appearance",
+      "output": "fresh world owner reconstructs optional null identities/colors; registry skin lookup resolves stored ID without applying a new purchase/reward",
+      "preservation": "Read full PerkSavedData plus ServerPerkData registration/applyPerkWithVerification/getServerPerkData and overworld data bridge. Actual per-player selected cosmetics survive entity replacement in world SavedData. Three same-owner cosmetic maps one credit, not one per color/key.",
+      "application_limit": "Unknown skin resolves null, malformed player UUID aborts load. Consumer filters visibility using external User predicate but leaves underlying stored rows. Offline/unverified entitlement handling beyond that predicate not traced; not evidence account identities can be guessed.",
+      "supporting_candidates": [],
+      "credit": 1
+    },
+    {
+      "candidate_id": "80f0dffc3154d690fc55",
+      "status": "rejected",
+      "reason": "Full readMimic/writeMimic methods only cosmetic/world block-state delegation, no paid inventory/player progress restoration proven; did not count generic block codec.",
+      "credit": 0
+    },
+    {
+      "candidate_id": "d6c0cac7b4872d58b47d",
+      "status": "rejected",
+      "reason": "Full reader/writer restores coffin dye and lid animation, no owned progress/legacy item recovery. Missing dye chooses BLACK unlike initialized RED; cosmetic excluded.",
+      "credit": 0
+    },
+    {
+      "candidate_id": "bb766b1402d43f2efb3e",
+      "status": "accepted",
+      "family": "ars-familiar-owned-customization-entity-and-player-carrier-reconciliation",
+      "trigger": "Familiar full pair/tick/setTagData/syncTag/deserializePersistentData/syncAfterPersistentFamiliarInit + PersistentFamiliarData whole",
+      "input": "stable owner UUID, holder ID, nested persistent name/color/cosmetic stack plus legacy root color/cosmetic",
+      "output": "loads nested actual customization via codec, then reconciles entity data and player familiar cap; absent nested optional name/color/cosmetic defaults empty",
+      "preservation": "Read whole actual codec and reconciliation consumers. Different from already credited learned familiar unlock set: this owns per-familiar customization and optional physical cosmetic stack while summoned/returned. Sync helper not separately counted; actual persisted tag not network-only.",
+      "application_limit": "Raw fromTag getOrThrow can fail, invalid holder tryParse null. Both root and nested cosmetic written, nested default EMPTY is nonnull and may override old root-only cosmetic; color only overrides if nonempty. Sync writes back player cap while init, relies owner online. Tick discards missing/off-dimension owner after20tick; no claim all familiar subclass extra data or whole player Clone.",
+      "supporting_candidates": [],
+      "credit": 1
+    },
+    {
+      "candidate_id": "2277497966b30ed8abfb",
+      "status": "accepted",
+      "family": "native-decorated-pot-crafting-shard-identities-and-return-format",
+      "trigger": "Whole pot entity/Decorations record/DecoratedPotRecipe/DecoratedPotBlock",
+      "input": "four positional ingredient registry IDs inside physical pot BlockEntityTag sherds list",
+      "output": "missing/null/wrongtype list gives four bricks; short list individual brick fallback; recipe embeds four supplied ingredient identities; dynamic drop consumer returns each recorded ingredient default stack",
+      "preservation": "Concrete crafted-material identity preservation, not cosmetic design or building production. Item/tile bridge and ordered recipe/drop contract read fully, one owner including nested load helper.",
+      "application_limit": "No arbitrary input stack NBT/count retained by design, IDs only; invalid ResourceLocation can throw, unknown registry uses registry default rather than opaque retain. LootTable actual dynamic-drop selection not deep read, so not claim every break returns four or exact preservation.",
+      "supporting_candidates": [],
+      "credit": 1
+    },
+    {
+      "candidate_id": "4d3985ac76f4d3815f98",
+      "status": "rejected",
+      "reason": "Complete FancyArmorStandEntity read save/load, variant bound in byId, left hand, pick and break own type/name; native gear inherited. Extra own fields mostly cosmetic/material-return wrapper, no new robust durable progression/custody implementation beyond native stand; no per-material references.",
+      "credit": 0
+    }
+  ],
+  "structural_fingerprint_collisions": [],
+  "evidence": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/BluSunrize__ImmersiveEngineering/src/api/java/blusunrize/immersiveengineering/api/shader/CapabilityShader.java",
+      "file_sha256": "0dd956fa976fe289afb29ea78e2c1d9ce8dad017dd6ea8cdb1e4134063fc4cf6",
+      "actual_read_ranges": [
+        [
+          1,
+          165
+        ]
+      ],
+      "range_evidence": [
+        {
+          "range": [
+            1,
+            165
+          ],
+          "excerpt_sha256_lf_no_trailing_newline": "0dd956fa976fe289afb29ea78e2c1d9ce8dad017dd6ea8cdb1e4134063fc4cf6"
+        }
+      ],
+      "support_credit": 0
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/register/IEDataAttachments.java",
+      "file_sha256": "b6cfb49abd45de2153edb062b6d649aa531c5804d59e94fbd5a8bf57154f6703",
+      "actual_read_ranges": [
+        [
+          1,
+          43
+        ]
+      ],
+      "range_evidence": [
+        {
+          "range": [
+            1,
+            43
+          ],
+          "excerpt_sha256_lf_no_trailing_newline": "71d6ce90e7ec978898be064b9c1cff249959236222315ba653e23cca69303ef0"
+        }
+      ],
+      "support_credit": 0
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/blocks/cloth/ShaderBannerBlockEntity.java",
+      "file_sha256": "7245a997b3a789fbd74d013e6d7cd5d64a9ce025c46b3f15804f698a903bc0f8",
+      "actual_read_ranges": [
+        [
+          1,
+          60
+        ]
+      ],
+      "range_evidence": [
+        {
+          "range": [
+            1,
+            60
+          ],
+          "excerpt_sha256_lf_no_trailing_newline": "8dc331d1c75c319b60af6e156ee1579a83ef350434c5b8a140365c1475d1921e"
+        }
+      ],
+      "support_credit": 0
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/EventHandler.java",
+      "file_sha256": "2db068ba1ee0ad049f0bf669afc50cd09f90a4687292dc2b0bff75250a98b7d2",
+      "actual_read_ranges": [
+        [
+          95,
+          163
+        ]
+      ],
+      "range_evidence": [
+        {
+          "range": [
+            95,
+            163
+          ],
+          "excerpt_sha256_lf_no_trailing_newline": "c8f46634a73f16f97fe334beb0df98e18d92557e96b5ffc334581b73e98e278b"
+        }
+      ],
+      "support_credit": 0
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/network/MessageMinecartShaderSync.java",
+      "file_sha256": "89300c5392716a35bafa75ea26c16cfd950faac86ac729848251b5de9dfdbc43",
+      "actual_read_ranges": [
+        [
+          1,
+          73
+        ]
+      ],
+      "range_evidence": [
+        {
+          "range": [
+            1,
+            73
+          ],
+          "excerpt_sha256_lf_no_trailing_newline": "89300c5392716a35bafa75ea26c16cfd950faac86ac729848251b5de9dfdbc43"
+        }
+      ],
+      "support_credit": 0
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/render/entity/ShaderMinecartRenderer.java",
+      "file_sha256": "5aa5866a0318e626b8afa034b01f538d5239b25df04edae58814bfe9f8bebb13",
+      "actual_read_ranges": [
+        [
+          1,
+          135
+        ]
+      ],
+      "range_evidence": [
+        {
+          "range": [
+            1,
+            135
+          ],
+          "excerpt_sha256_lf_no_trailing_newline": "5aa5866a0318e626b8afa034b01f538d5239b25df04edae58814bfe9f8bebb13"
+        }
+      ],
+      "support_credit": 0
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/BluSunrize__ImmersiveEngineering/src/api/java/blusunrize/immersiveengineering/api/shader/ShaderRegistry.java",
+      "file_sha256": "eefeb6534c22134a74a66cf14cad05b6d23cf1665779cebe8690e21db09b1cad",
+      "actual_read_ranges": [
+        [
+          80,
+          96
+        ]
+      ],
+      "range_evidence": [
+        {
+          "range": [
+            80,
+            96
+          ],
+          "excerpt_sha256_lf_no_trailing_newline": "5d3423a0e1390bc2e277f3dd8031096d51e17ed3ea2e0a1e227b51a5801391ac"
+        }
+      ],
+      "support_credit": 0
+    }
+  ],
+  "limits": [
+    "仅固定上游源码静态研究，没有游戏/原生NBT/attachment读盘运行。",
+    "没有读取完整NeoForge attachment engine、IEBaseBlockEntity磁盘桥、全部shader获得/复制/解锁逻辑。proposal的onItemPickup只读到163，不能外推整个拾取或收藏体系。",
+    "network注册/全局缓存清理和entityID复用生命周期未审，不把renderer cache当持久owner或已证明跨世界安全。",
+    "未观察旧格式迁移不等于整个IE项目没有迁移；结论只约束本proposal给出的链。"
+  ],
+  "effects": {
+    "ledger_edits": 0,
+    "checklist_edits": 0,
+    "production_edits": 0,
+    "game_starts": 0,
+    "network_requests": 0,
+    "git_commits_or_pushes_in_review": 0,
+    "backups_in_review": 0
+  }
+}

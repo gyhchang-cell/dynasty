@@ -22,7 +22,7 @@ for path in sorted(D.glob('review-batch-*.json')):
         g['target_proposals'] = sorted(set(g['target_proposals'] + r.get('applicable_targets_proposal', [])))
 
 # Cross-task duplicates are reviewed as EQUIPMENT cases, not byte identity.
-prior_rows = [r for name in ['prior-case-semantic-review.json', 'prior-batch07-semantic-review.json']
+prior_rows = [r for name in ['prior-case-semantic-review.json', 'prior-batch07-semantic-review.json','prior-batch11-semantic-review.json']
               for r in json.loads((D / name).read_text())['rows']]
 for r in prior_rows:
     for g in groups.values():
@@ -36,6 +36,11 @@ for r in prior_rows:
             else:
                 g['novelty'] = 'HOLD_SLOT_MISMATCH' if 'prior_local_png' in r else 'HOLD_PRIOR_PNG_UNAVAILABLE'
         g.setdefault('prior_comparison_cases', []).append(r['case'])
+
+for g in groups.values():
+    if g['family']=='twilight-arctic-fur-leather':
+        g['binding_supplement']='arctic-layer-manual-review.json'
+        g['binding_resolution_zh']='旧褐色胸甲 PNG 只是 layer0；实际 item JSON 另引用白毛 layer1，缺覆层原因已核明。穿戴 UV/染色分支仍待验，保持零新增，不再把白毛缺失直接解释成版本不同。'
 
 # First two batches: specific motif applicability, not blanket allotment to every weapon.
 assign = {
