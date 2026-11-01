@@ -1,0 +1,451 @@
+--- baseline/AGENTS.md
++++ AGENTS.md
+@@ -12,6 +12,8 @@
+ - 未经同场景应用 R/T 入口对比验证的实验只留在 `.build/candidates/`。不覆盖桌面或 `dist` 的成功版本，不修改原有权限。导出名保持 `mcPvPmax`。
+ 
+ ## 当前基线与证据范围
++
++- 2026-11-01 1.9.6（build 26）已同步桌面/dist，SHA-256 `60853efd7b152942686be974420e4c993dfefe06d7df50957b788c7ee64a7d1b`。普通连点限定有效游戏状态下手持剑和真实左键新按压，背包/菜单及非剑物品的按下、拖动、松开保持原生；GUI 中开始的拖动不因返回游戏而被接管。菜单、失焦、世界/读取会话变化或过期后取消本次宏按压，下一次真实按下可恢复，总开关保留。连点期间复用 LIGHT 读数，不修改 Java 组件、搭路控制器、放块、CPS 或工具策略。核心回归、102 项物品/工具检查、构建、签名与安装一致性通过；未进行真实物理左键游戏端到端实测，权限未改。备份 `.build/backups/sword-only-196/`，记录 `research/experiments-199-sword-only/release.json`。
+ 
+ - 2026-10-31 1.9.5（build 25）已同步桌面/dist，SHA-256 `8616b2090e292d9dee552e800b4de9ce1378ef6ea5b63aab52c30908fc953339`。用户要求普通连点改为仅左键：真实右键按下/松开/拖动不由连点器拦截，右键硬件回调和恢复检查不再启用连点；界面显示“仅左键”。现有核心回归（含左键单独/双键同时/右键单独/加载恢复）通过，签名与安装包一致性检查通过。独立 R/T 搭路流程、CPS、疾跑、工具与补料未改；没有游戏输入实测，没有修改权限。旧版备份 `.build/backups/left-only-195/`，记录 `research/experiments-198-left-only/release.json`。
+ 
+--- baseline/README.md
++++ README.md
+@@ -4,7 +4,13 @@
+ 
+ 独立 macOS 应用，界面为简体中文。当前安装包适用于 Apple Silicon（M1/M2/M3/M4 等），macOS 13 或更新版本。
+ 
+-## 1.9.5 仅左键连点（2026-10-31）
++## 1.9.6 持剑连点与菜单保护（2026-11-01）
++
++普通连点要求游戏在前台、没有打开 GUI、当前手持剑，并且有新的真实左键按压。鱼竿、弓、工具、食物、方块和空手不连点；识别的是实际物品类型，不依赖名称、材质包或固定槽位。原生背包单击、拖动、Shift 点击和右键保留。打开菜单、失焦、世界变化或读数失效后取消本次宏按压；关闭菜单后重新按下左键即可，不需要重开总开关。背包内开始的拖动即使跨到游戏画面也不转成连点。
++
++连点开启期间复用已授权的本机只读组件读取轻量状态；未读到有效状态时保留原生操作，不退回全局连点。快捷栏/菜单按键、滚轮和右键操作后短暂等待新读数，取消排队点击。菜单期间也释放普通疾跑键。没有修改 R/T 搭路控制器、放块或 CPS。核心回归及 102 项物品/工具策略检查通过；未进行真实物理鼠标的游戏端到端实测。记录见 `research/experiments-199-sword-only/`。
++
++## 1.9.5 仅左键连点（2026-10-31，历史）
+ 
+ 普通连点仅响应真实左键长按，松开左键即停止。右键按下、松开和拖动不再由连点器拦截，也不会生成右键连点；界面显示“仅左键”。原有 CPS、疾跑、自动工具、同种补料和独立 R/T 搭路流程保持不变。
+ 
+@@ -59,12 +65,12 @@
+ ## 操作
+ 
+ - 在游戏前台按数字 1 左侧的反引号键 ` 开启，再按一次关闭。可在程序里修改开关键，按键位置不依赖输入法。
+-- 开启后仅按住左键连点，松开左键即停止；右键保持游戏原生操作，不参与连点。左右键同时按住时也只有左键连点。左键默认使用 15–20 CPS。
++- 开启后，手持剑且游戏未打开菜单时，真实按住左键才连点，松开即停止。其他物品、空手、背包单击和拖动均保持原生操作；右键不连点。左键默认使用 15–20 CPS。
+ - 默认 CPS 为 15–20，可输入 1–40 之间的上下限并保存；设为相同值即固定 CPS。区间模式使用缓慢变化的目标速度叠加小幅局部变化；每个计划间隔严格在 CPS 上下限对应的范围内，不加停顿，按下时长也在该周期内变化。相同上下限仍保持固定点击间隔。系统调度延迟不会用补发点击突发追赶。短时间计数可能因计数窗口和系统调度出现波动，不承诺每个自然秒都恰好落在范围内。
+ - 勾选“启用时保持疾跑”后，程序仅在已启用且游戏处于前台时保持疾跑键；无需按住左键也会保持疾跑。取消勾选即可只使用连点。
+ - 默认疾跑键为左 Control。若遇到 Control + 左键被当作右键，改选 R，并在 Minecraft 控制设置里把疾跑键同步改为 R。若版本提供疾跑“切换／按住”选项，请设为“按住”。
+-- 总开关开启后持续保持就绪，没有运行时长限制。松开鼠标只停止对应键的点击。切出游戏、锁屏、睡眠或监听中断时暂停输入并释放疾跑键，总开关保留；回到游戏恢复就绪，再次真实按住鼠标才连点。再次按开关键、点“立即停止”或退出助手才手动关闭。Esc 不再关闭功能；切换世界和死亡重生保留总开关，加载后按硬件实际按住状态继续工作。
+-- 普通连点不因 Esc、T、/、E 改变总开关状态。启用下方搭路功能时，R、T 和聊天输入另按搭路规则处理。游戏内菜单同样遵循“按住才连点”，需要单次点击菜单时可先用开关键关闭助手。Esc 仅在助手的快捷键录制界面用于取消录制。
++- 总开关开启后持续保持就绪，没有运行时长限制。切出游戏、锁屏、睡眠、菜单或监听中断时暂停输入并释放普通疾跑键，总开关保留；回到游戏后持剑重新按下左键即可。切换世界和死亡重生也保留总开关，但不会接管跨世界持续按住的鼠标。
++- 普通连点不因 Esc、T、/、E 改变总开关状态，游戏菜单不会连点。启用搭路功能时，R、T 和聊天输入另按搭路规则处理。Esc 仅在助手的快捷键录制界面用于取消录制。
+ - 菜单栏“MC ○ / MC ●”表示关闭／开启。关闭设置窗口后程序仍在菜单栏，可选“退出”彻底关闭。
+ 
+ ## 1.8.8 单人起步平搭稳定性修复
+--- baseline/Sources/BridgeIntegration.swift
++++ Sources/BridgeIntegration.swift
+@@ -42,8 +42,9 @@
+         let diagnostic=bridgeDiagnosticUntil>0
+         let bridging=telly.active && telly.phase != .idle
+         let tooling=wantsToolObservation
++        let clicking=wantsClickObservation
+         gameTelemetry.needsGeometry=diagnostic || bridging
+-        guard diagnostic || bridging || tooling else {
++        guard diagnostic || bridging || tooling || clicking else {
+             if gameTelemetry.pid != nil {gameTelemetry.stop()}
+             if f3Capture.running {f3Capture.reset()}
+             return
+--- baseline/Sources/Interface.swift
++++ Sources/Interface.swift
+@@ -239,7 +239,7 @@
+             Chrome.place(Chrome.text(label,size:10,weight:.medium,color:Chrome.muted),in:clicks,x+2,119,100,18)
+         }
+         Chrome.place(Chrome.text("—",size:24,weight:.ultraLight,color:Chrome.muted),in:clicks,149,77,40,32)
+-        Chrome.place(Chrome.text("仅左键",size:11,color:Chrome.muted),in:clicks,385,87,120,18)
++        Chrome.place(Chrome.text("持剑 · 左键",size:11,color:Chrome.muted),in:clicks,385,87,120,18)
+         Chrome.place(rangeRail,in:clicks,23,145,486,14)
+         Chrome.rule(in:clicks,y:175,width:532)
+         Chrome.place(Chrome.text("疾跑",size:12),in:clicks,20,189,60,20)
+@@ -351,7 +351,11 @@
+         if invalid {statusLabel.stringValue="CPS 需在 1–40 之间，且最低 ≤ 最高"}
+         else if recordingHotkey {statusLabel.stringValue=notice.contains("已保留") ? "按键已占用，请换一个":"按下新快捷键 · Esc 取消"}
+         else if !ready {statusLabel.stringValue="输入权限未就绪 · 在设置中检查"}
+-        else if policy.enabled {statusLabel.stringValue=isTargetFront() ? "连点已开启":"连点已开启 · 等待游戏前台"}
++        else if policy.enabled {
++            if !isTargetFront() {statusLabel.stringValue="持剑连点 · 等待游戏前台"}
++            else if policy.menuPaused {statusLabel.stringValue="持剑连点 · 等待游戏状态"}
++            else {statusLabel.stringValue=policy.swordReady ? "持剑连点 · 就绪":"持剑连点 · 等待持剑"}
++        }
+         else {statusLabel.stringValue="连点已关闭"}
+         statusLabel.textColor = invalid || !ready ? .systemOrange:Chrome.muted
+         statusLabel.toolTip=notice
+--- baseline/Sources/InventoryIntegration.swift
++++ Sources/InventoryIntegration.swift
+@@ -2,6 +2,34 @@
+ import ApplicationServices
+ 
+ extension MacroApp {
++    var wantsClickObservation: Bool {
++        policy.enabled && !sessionSuspended && isTargetFront()
++    }
++
++    func refreshClickContext() {
++        let now=ProcessInfo.processInfo.systemUptime
++        let front=NSWorkspace.shared.frontmostApplication?.processIdentifier
++        guard !sessionSuspended, !bridgeChatOpen, isTargetFront(),
++              !CGEventSource.flagsState(.combinedSessionState).contains(.maskCommand),
++              let pid=gameTelemetry.pid, pid==front,
++              clickObservationSession==gameTelemetry.sessionID,
++              let state=bridgeWorldPreview,
++              now>=state.pose.time, now-state.pose.time<=0.10 else {
++            policy.menuPaused=true;policy.swordReady=false
++            clickObservationWorld=nil
++            leftClickHold.cancel();cancelClicks();releaseSprint()
++            return
++        }
++        if let world=clickObservationWorld,world != state.world {
++            leftClickHold.cancel();cancelClicks()
++        }
++        clickObservationWorld=state.world
++        policy.menuPaused=false
++        policy.swordReady=state.pose.time>=clickObserveAfter &&
++            SwordClickEligibility.allows(state.inventory,sampledAt:state.pose.time,now:now)
++        if !policy.swordReady { cancelClicks() }
++    }
++
+     var wantsToolObservation: Bool {
+         autoToolEnabled.state == .on && !policy.enabled && !sessionSuspended && isTargetFront()
+     }
+--- baseline/Sources/InventoryPolicy.swift
++++ Sources/InventoryPolicy.swift
+@@ -33,6 +33,16 @@
+     }
+     func matches(_ item: HotbarItem, identity: String) -> Bool {
+         item.kind == "block" && item.fullBlock && item.identity == identity
++    }
++}
++
++enum SwordClickEligibility {
++    static func allows(_ inventory: HotbarSnapshot?, sampledAt: Double, now: Double) -> Bool {
++        guard let inventory, inventory.valid, sampledAt.isFinite, now.isFinite,
++              now >= sampledAt, now - sampledAt + inventory.age <= 0.10,
++              let held = inventory.current else { return false }
++        // The agent determines kind by vanilla ItemSword, not its display name.
++        return held.kind == "sword"
+     }
+ }
+ 
+--- baseline/Sources/Policy.swift
++++ Sources/Policy.swift
+@@ -78,13 +78,30 @@
+ 
+ enum MacroMouseButton: CaseIterable { case left, right }
+ 
++// The route is chosen on the real mouse-down, never on a polling tick.
++// A drag begun in a GUI must remain native even if the GUI closes mid-drag.
++struct SwordClickHold {
++    private enum Route { case idle, native, macro, blocked }
++    private var route = Route.idle
++    var permitsClicks: Bool { route == .macro }
++    var consumesRelease: Bool { route == .macro || route == .blocked }
++    mutating func begin(eligible: Bool) { route = eligible ? .macro : .native }
++    mutating func cancel() { if route == .macro { route = .blocked } }
++    @discardableResult mutating func end() -> Bool {
++        let consumed = consumesRelease
++        route = .idle
++        return consumed
++    }
++}
++
+ struct MacroPolicy {
+     var enabled = false
+     var physicalLeftHeld = false
+     var physicalRightHeld = false
+     var targetActive = false
+     var menuPaused = false
+-    var mayClick: Bool { enabled && targetActive && !menuPaused && physicalLeftHeld }
++    var swordReady = false
++    var mayClick: Bool { enabled && targetActive && !menuPaused && swordReady && physicalLeftHeld }
+     func mayClick(_ button: MacroMouseButton) -> Bool {
+         button == .left && mayClick
+     }
+@@ -97,11 +114,13 @@
+         physicalLeftHeld = false
+         physicalRightHeld = false
+         menuPaused = false
++        swordReady = false
+     }
+ 
+     mutating func suspend() {
+         physicalLeftHeld = false
+         physicalRightHeld = false
++        swordReady = false
+     }
+ 
+     mutating func reconcileHardware(left: Bool, right: Bool) {
+--- baseline/Sources/main.swift
++++ Sources/main.swift
+@@ -27,6 +27,10 @@
+     let preferences = NSPopover()
+     let diagnosticLabel = NSTextField(wrappingLabelWithString: "")
+     var policy = MacroPolicy()
++    var leftClickHold = SwordClickHold()
++    var clickObservationSession: Int?
++    var clickObservationWorld: Int?
++    var clickObserveAfter = 0.0
+     let hardwareMouse = HardwareMouse()
+     var tap: CFMachPort?
+     var tapSource: CFRunLoopSource?
+@@ -110,6 +114,8 @@
+         gameTelemetry.onState = { [weak self] state,error in
+             guard let self else{return}
+             self.bridgeWorldPreview=state
++            self.clickObservationSession=self.gameTelemetry.sessionID
++            self.refreshClickContext()
+             self.observeInventory(state)
+             if self.bridgeDiagnosticUntil>0,let state {
+                 self.bridgePreview=state.pose;self.bridgeDiagnosticUntil=0
+@@ -188,7 +194,7 @@
+         bridgeTimer = Timer(timeInterval: 0.008, repeats: true) { [weak self] _ in self?.serviceBridge() }
+         RunLoop.main.add(bridgeTimer!, forMode: .common)
+         updateUI()
+-        traceBridge("START version=1.9.5 AX=\(AXIsProcessTrusted()) input=\(CGPreflightListenEventAccess())")
++        traceBridge("START version=1.9.6 AX=\(AXIsProcessTrusted()) input=\(CGPreflightListenEventAccess())")
+         if ProcessInfo.processInfo.environment["MC_MACRO_BACKGROUND"] != "1" {
+             window.makeKeyAndOrderFront(nil)
+             NSApp.activate(ignoringOtherApps: true)
+@@ -374,13 +380,29 @@
+         default:manualInput=nil
+         }
+         if let manualInput,bridgeManualInput.consume(manualInput,duringFinish:false) {return nil}
++        var clickerConsumedRelease=false
++        if type == .leftMouseUp {
++            clickerConsumedRelease=leftClickHold.end()
++            policy.physicalLeftHeld=false
++            cancelClicks(.left)
++        }
+         let active = isTargetFront()
+         policy.targetActive = active
+         if policy.enabled && !active { suspend("已切出游戏，暂停输入，总开关保留。") }
+-        guard active else { return Unmanaged.passUnretained(event) }
++        guard active else {
++            if type == .leftMouseDown {leftClickHold.begin(eligible:false)}
++            return clickerConsumedRelease ? nil:Unmanaged.passUnretained(event)
++        }
+         // Walking while holding attack must not end continuous tool selection.
+         // Menu/hotbar keys and explicit manual item changes still cancel it.
+         let toolMovementKey=telly.config.map {[$0.forward,$0.back,$0.left,$0.right,$0.jump,$0.sneak,$0.sprint].contains(code)} ?? false
++        // Stop queued clicks before an inventory/menu/hotbar key is delivered.
++        // Fresh telemetry after the key has been processed must re-authorize.
++        if policy.enabled && ((type == .keyDown && !toolMovementKey && code != boundHotkey) || type == .scrollWheel || type == .rightMouseDown) {
++            clickObserveAfter=ProcessInfo.processInfo.systemUptime+0.075
++            policy.swordReady=false
++            cancelClicks()
++        }
+         if (type == .keyDown && !toolMovementKey) || type == .scrollWheel || type == .rightMouseDown || type == .leftMouseUp || event.flags.contains(.maskCommand) {
+             autoToolPress.cancel();if !telly.active {inventoryInputEpoch.invalidate()}
+         }
+@@ -400,6 +422,7 @@
+             }
+             if bridgeManualInput.consume(manualInput,duringFinish:telly.finishing) {return nil}
+         }
++        if clickerConsumedRelease {return nil}
+         if type == .keyDown && bridgeEnabled.state == .on {
+             if bridgeChatOpen {
+                 if code==36 || code==53 {bridgeChatOpen=false}
+@@ -443,21 +466,26 @@
+             // Release before Cmd-Tab / Cmd-Q / other system shortcuts leave the game.
+             if policy.enabled && event.flags.contains(.maskCommand) { suspend("系统快捷键期间暂停，总开关保留。") }
+         }
++        if type == .leftMouseDown {
++            refreshClickContext()
++            let eligible=policy.enabled && !sessionSuspended && !telly.active && !bridgeChatOpen &&
++                !event.flags.contains(.maskCommand) && !policy.menuPaused && policy.swordReady
++            leftClickHold.begin(eligible:eligible)
++            if eligible {
++                policy.physicalLeftHeld=hardwareMouse.isDown(.left)
++                if clickTimers[.left] == nil { click(.left) }
++                return nil
++            }
++            return Unmanaged.passUnretained(event)
++        }
+         guard policy.enabled else { return Unmanaged.passUnretained(event) }
+         switch type {
+         case .flagsChanged:
+             if sprintOwned && sprintRenewal.isDown && ownedSprintCode == 59 {
+                 event.flags = CGEventFlags(rawValue: SprintModifier.flags(event.flags.rawValue, down: true))
+             }
+-        case .leftMouseDown:
+-            if policy.mayClick(.left), hardwareMouse.isDown(.left), clickTimers[.left] == nil { click(.left) }
+-            return nil
+-        case .leftMouseUp:
+-            // Synthetic up events must not change physical hold state.
+-            if !hardwareMouse.isDown(.left) { hardwareChanged(.left, down: false) }
+-            return nil
+         case .leftMouseDragged:
+-            if policy.mayClick(.left) {
++            if leftClickHold.permitsClicks && policy.mayClick(.left) {
+                 event.type = .mouseMoved
+                 event.flags.remove(.maskControl)
+             }
+@@ -468,6 +496,7 @@
+ 
+     func start() {
+         cancelInventoryActions()
++        leftClickHold.cancel()
+         guard isTargetFront(), AXIsProcessTrusted(), let tap, CGEvent.tapIsEnabled(tap: tap) else {
+             notice = "无法开启：请先授权并检查输入监听。"; updateUI(); return
+         }
+@@ -475,15 +504,16 @@
+         policy.physicalLeftHeld = false // A fresh physical press is required after every enable.
+         policy.physicalRightHeld = false
+         policy.targetActive = true
+-        policy.menuPaused = false
+         policy.enabled = true
+-        notice = hardwareMouse.connected ? "已就绪：按住才连点，总开关持续开启。" : "已启用疾跑；鼠标硬件未连接，连点暂停。"
++        refreshClickContext()
++        notice = hardwareMouse.connected ? "持剑并按住左键才连点；背包和菜单保持原生操作。" : "鼠标硬件未连接，连点暂停。"
+         if sprint.state == .on { pressSprint() }
+         updateUI()
+     }
+ 
+     func stop(_ reason: String) {
+         cancelInventoryActions()
++        leftClickHold.cancel()
+         if recordingHotkey {recordingHotkey=false;hotkeyButton.title=hotkeyTitle()}
+         telly.stop("搭路已停止。松开 R 后可重新开始。")
+         policy.stop()
+@@ -495,6 +525,7 @@
+ 
+     func suspend(_ reason: String) {
+         cancelInventoryActions()
++        leftClickHold.cancel()
+         telly.stop("搭路已暂停。松开 R 后可重新开始。")
+         policy.suspend()
+         cancelClicks()
+@@ -512,9 +543,10 @@
+             if wasActive || sprintOwned || !clickTimers.isEmpty { suspend("暂时暂停输入，总开关保留。") }
+             return
+         }
+-        policy.menuPaused = false
++        refreshClickContext()
+         if let tap, !CGEvent.tapIsEnabled(tap: tap) { CGEvent.tapEnable(tap: tap, enable: true) }
+-        if sprint.state == .on {
++        if policy.menuPaused { releaseSprint() }
++        else if sprint.state == .on {
+             if !sprintOwned { pressSprint() }
+             else if let down = sprintRenewal.advance(now: ProcessInfo.processInfo.systemUptime) { postSprint(down: down) }
+         }
+@@ -523,7 +555,7 @@
+         policy.reconcileHardware(left: hardwareMouse.isDown(.left) && !bridgeManualInput.suppressesButton(0),
+                                  right: hardwareMouse.isDown(.right) && !bridgeManualInput.suppressesButton(1))
+         for button in MacroMouseButton.allCases {
+-            if policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)) {
++            if leftClickHold.permitsClicks && policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)) {
+                 if clickTimers[button] == nil { click(button) }
+             } else { cancelClicks(button) }
+         }
+@@ -532,7 +564,9 @@
+ 
+     func click(_ button: MacroMouseButton) {
+         clickTimers.removeValue(forKey: button)?.invalidate()
+-        guard policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)), isTargetFront(), AXIsProcessTrusted() else {
++        refreshClickContext()
++        guard leftClickHold.permitsClicks, !telly.active, !sessionSuspended,
++              policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)), isTargetFront(), AXIsProcessTrusted() else {
+             cancelClicks(button); return
+         }
+         let started = ProcessInfo.processInfo.systemUptime
+@@ -571,7 +605,7 @@
+         guard !telly.active, !bridgeManualInput.suppressesButton(button == .left ? 0:1), policy.enabled, !sessionSuspended, !policy.menuPaused, isTargetFront() else { return }
+         if button == .left { policy.physicalLeftHeld = true }
+         else { policy.physicalRightHeld = true }
+-        if clickTimers[button] == nil { click(button) }
++        if leftClickHold.permitsClicks, clickTimers[button] == nil { click(button) }
+     }
+ 
+     func postMouse(_ button: MacroMouseButton, down: Bool) {
+--- baseline/Tests/Inventory/main.swift
++++ Tests/Inventory/main.swift
+@@ -11,6 +11,20 @@
+ }
+ let sword=item(0,267,1,kind:"sword"),pick=item(6,278,26.666),axe=item(3,279),shears=item(8,359)
+ let endStone=snapshot([sword,pick,axe,shears])
++expect(SwordClickEligibility.allows(endStone,sampledAt:100,now:100.05),"Selected sword allows clicking")
++for id in [267,268,272,276,283] {
++    expect(SwordClickEligibility.allows(snapshot([item(4,id,kind:"sword")],selected:4),sampledAt:100,now:100),"All vanilla sword materials, moved hotbar slot \(id)")
++}
++for (id,kind) in [(346,"other"),(261,"other"),(322,"other"),(35,"block"),(278,"tool")] {
++    expect(!SwordClickEligibility.allows(snapshot([item(0,id,kind:kind),item(4,276,kind:"sword")]),sampledAt:100,now:100),"Non-sword blocks macro even with another sword in hotbar \(id)")
++}
++expect(!SwordClickEligibility.allows(snapshot([]),sampledAt:100,now:100),"Empty hand never autoclicks")
++expect(!SwordClickEligibility.allows(nil,sampledAt:100,now:100),"Absent inventory never autoclicks")
++expect(!SwordClickEligibility.allows(endStone,sampledAt:100,now:100.101),"Stale world observation stops clicks")
++expect(!SwordClickEligibility.allows(snapshot([sword],age:0.06),sampledAt:100,now:100.05),"Combined packet and inventory age stops clicks")
++expect(!SwordClickEligibility.allows(endStone,sampledAt:101,now:100),"Future observation rejected")
++expect(!SwordClickEligibility.allows(endStone,sampledAt:.nan,now:100),"Nonfinite observation rejected")
++expect(!SwordClickEligibility.allows(snapshot([sword,sword]),sampledAt:100,now:100),"Malformed duplicate inventory rejected")
+ expect(AutoToolPolicy.choose(endStone)?.slot==6,"Detect moved pickaxe by actual slot")
+ expect(AutoToolPolicy.choose(snapshot([sword,item(3,279,8),pick],block:5,hardness:2))?.slot==6,"Use observed score, not guessed item rank")
+ let wool=snapshot([sword,item(6,278),item(8,359,5)],block:35,hardness:0.8)
+--- baseline/Tests/main.swift
++++ Tests/main.swift
+@@ -8,6 +8,8 @@
+ p.targetActive = true
+ check(!p.mayClick, "关闭时不能点击")
+ p.enabled = true
++check(!p.mayClick, "未确认持剑时不能连点")
++p.swordReady = true
+ check(p.mayClick, "启用且游戏前台且按住时应点击")
+ p.targetActive = false
+ check(!p.mayClick, "游戏失焦不能点击")
+@@ -34,6 +36,7 @@
+ p.physicalLeftHeld = true
+ p.suspend()
+ check(p.enabled && !p.physicalLeftHeld && !p.physicalRightHeld, "暂停仅释放按住状态，不能关闭总开关")
++p.swordReady = true
+ p.targetActive = true
+ p.physicalLeftHeld = true
+ p.menuPaused = true
+@@ -48,12 +51,28 @@
+ p.suspend()
+ check(p.enabled && !p.mayClick(.left), "加载中释放输入但保留总开关")
+ p.reconcileHardware(left: true, right: true)
++check(!p.mayClick, "加载后必须重新确认持剑")
++p.swordReady = true
+ check(p.mayClick(.left) && !p.mayClick(.right) && !p.physicalRightHeld, "加载后只恢复左键连点，不能重新启用右键")
+ p.reconcileHardware(left: false, right: false)
+ check(p.enabled && !p.mayClick(.left) && !p.mayClick(.right), "恢复后鼠标松开不能点击")
+ p.stop()
+ p.reconcileHardware(left: true, right: true)
+ check(!p.enabled && !p.mayClick(.left) && !p.mayClick(.right), "手动关闭后硬件按住也不能重开")
++var hold=SwordClickHold()
++check(!hold.permitsClicks && !hold.consumesRelease,"等待物理按下，不从轮询补造按下")
++hold.begin(eligible:false)
++check(!hold.permitsClicks && !hold.consumesRelease,"背包拖动/非剑按压原样通过")
++hold.cancel()
++check(!hold.permitsClicks && !hold.end(),"背包关闭或切成剑也不能接管已开始的原生拖动")
++hold.begin(eligible:true)
++check(hold.permitsClicks && hold.consumesRelease,"确认持剑的新按压可由连点器接管")
++hold.cancel()
++check(!hold.permitsClicks && hold.consumesRelease,"打开菜单/换世界立即结束本次宏按压，吞掉配对松开避免误点击")
++check(hold.end() && !hold.permitsClicks,"物理松开后取消完成")
++hold.begin(eligible:true)
++check(hold.permitsClicks,"下一次持剑物理按压恢复，不需重开总开关")
++check(hold.end() && !hold.permitsClicks,"正常松开也结束宏按压")
+ // Model the game ignoring repeated downs after its input binding was cleared.
+ var renewal = SprintRenewal()
+ check(renewal.advance(now: 100) == nil, "未启用疾跑时不能发事件")
+--- baseline/build.sh
++++ build.sh
+@@ -43,8 +43,8 @@
+ <key>CFBundleName</key><string>mcPvPmax</string>
+ <key>CFBundleDisplayName</key><string>mcPvPmax</string>
+ <key>CFBundlePackageType</key><string>APPL</string>
+-<key>CFBundleShortVersionString</key><string>1.9.5</string>
+-<key>CFBundleVersion</key><string>25</string>
++<key>CFBundleShortVersionString</key><string>1.9.6</string>
++<key>CFBundleVersion</key><string>26</string>
+ <key>LSMinimumSystemVersion</key><string>13.0</string>
+ <key>NSHighResolutionCapable</key><true/>
+ <key>NSHumanReadableCopyright</key><string>本地构建的 Minecraft 输入助手</string>

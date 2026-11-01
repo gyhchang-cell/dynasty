@@ -1,0 +1,191 @@
+{
+  "date": "2026-11-01",
+  "scope": "教程查阅与实现设计，尚未实现上述进阶战斗功能",
+  "references": [
+    {
+      "id": "wtap",
+      "url": "https://mmcpvp.com/lessons/beginner/wtapping",
+      "review": "已读作者正文：疾跑重置；不采用其绝对击退数值。"
+    },
+    {
+      "id": "wtap_timing",
+      "url": "https://mmcpvp.com/lessons/intermediate/wtaptiming",
+      "review": "已读作者正文：命中后松W，复按时机取决于距离、击退及服务器。"
+    },
+    {
+      "id": "blockhit",
+      "url": "https://mmcpvp.com/lessons/beginner/blockhit",
+      "review": "已读作者正文：持剑格挡影响移动/攻击；不把约40%减伤当作所有服务端常量。"
+    },
+    {
+      "id": "strafe",
+      "url": "https://mmcpvp.com/lessons/beginner/strafing",
+      "review": "已读作者正文：横向移动改变对手瞄准；不等同于固定频率左右摇摆。"
+    },
+    {
+      "id": "hit_timing",
+      "url": "https://mmcpvp.com/lessons/advanced/hitselecting",
+      "review": "已读作者正文：追击间隙减少无效攻击；作者说明旧视频名称hit selecting，本节不同于让出首击后反击。"
+    },
+    {
+      "id": "hit_select",
+      "url": "https://hypixel.net/threads/hit-selecting-mainly-for-sumo.4757967/",
+      "review": "已读作者教学首帖：让对手先击再回击；不采信其高延迟或20CPS下一定无效的绝对表述。"
+    },
+    {
+      "id": "jump_reset",
+      "url": "https://modrinth.com/mod/jump-reset-indicator",
+      "review": "已读项目作者说明：训练跳跃时机，疾跑起跳增加朝向动量；项目是高版本Fabric，不能直接用于当前1.8.9软件。"
+    },
+    {
+      "id": "jump_reset_discussion",
+      "url": "https://www.reddit.com/r/CompetitiveMinecraft/comments/1bttlyg/a_quick_guide_to_jumpresetting_and_what_it/",
+      "review": "已读作者及回复，适用场景有争议；不采信把水平速度按比例转换为竖直速度的简化解释。"
+    },
+    {
+      "id": "chase_jump",
+      "url": "https://mmcpvp.com/lessons/advanced/jumptiming",
+      "review": "已读作者正文：优势连击中的追击跳不同于平等换血时起跳。"
+    },
+    {
+      "id": "rod_timing",
+      "url": "https://mmcpvp.com/lessons/advanced/double-damage-rod-timing",
+      "review": "已读作者正文：某些服务端保留受伤保护计时，原窗口两侧可出现两次伤害；不是剑面板伤害乘二。"
+    },
+    {
+      "id": "positioning",
+      "url": "https://mmcpvp.com/lessons/intermediate/positioning",
+      "review": "已读教程可用部分：地形、低位、墙和边缘位置的作用。"
+    },
+    {
+      "id": "cn_critical",
+      "url": "https://www.bilibili.com/video/BV1cWb5zNEop/",
+      "review": "仅获得官方API标题、作者棍子sticks、160秒时长；网页412、公开视频CDN下载失败，没有观看，不能计作逐帧研究。"
+    },
+    {
+      "id": "dubh_jump",
+      "url": "https://www.youtube.com/watch?v=4_VKbB1HIdo",
+      "review": "定位到原作者Dubh的视频，未成功取得正文或播放，不算已观看。"
+    },
+    {
+      "id": "limefrog_hitselect",
+      "url": "https://www.youtube.com/watch?v=JGmnKDC8dN4",
+      "review": "定位到原视频，页面只返回通用导航，未观看。"
+    }
+  ],
+  "local_vanilla_check": {
+    "jar": "/Users/a15356015027/Public/.minecraft/versions/1.8.9/1.8.9.jar",
+    "sha256": "14f0d96d1a56fb4f5c3b2233d00699525893fe5ce3dcf181e7de59120595d298",
+    "method": "wn.f(pk)，攻击方法字节码81–185",
+    "observed": "疾跑先增加击退等级；暴击分支检查正fallDistance、非落地、非爬梯、非水、无失明、无骑乘、目标生物；分支没有!isSprinting条件；1.5乘法发生在附魔附加伤害相加之前。不能把现代版必须停止疾跑的限制照搬1.8.9；自服可能改变机制。"
+  },
+  "techniques": [
+    {
+      "name": "鱼竿衔接",
+      "help": "独立键触发一次切竿/甩竿/回剑，带槽位确认、取消和超时；再加飞行/命中机会提示。",
+      "needs": [
+        "钩实体生命周期",
+        "目标身份/包围盒/相对速度"
+      ],
+      "priority": 1
+    },
+    {
+      "name": "卡暴击",
+      "help": "显示自身进入合法下落攻击窗口；可选按住辅助键后调整下一次攻击时机，默认普通连点节奏不变。",
+      "needs": [
+        "fallDistance",
+        "落地/爬梯/水/失明/骑乘",
+        "目标在可攻击射线内"
+      ],
+      "priority": 2
+    },
+    {
+      "name": "跳跃重置",
+      "help": "先记录真实起跳和受击反馈的先后，显示早/晚；校准自服后再做条件式单次起跳。",
+      "needs": [
+        "实际起跳事件或可区分击退的跳跃意图",
+        "地面支撑",
+        "受击来源/本机接收时间",
+        "低顶与边缘保护"
+      ],
+      "priority": 2
+    },
+    {
+      "name": "W-tap/S-tap",
+      "help": "把命中后的短暂停顿与实际间距匹配；只有用户自己保持前进时才允许接管短暂重置，避免周期性刹车。",
+      "needs": [
+        "目标命中线索",
+        "相对距离/速度",
+        "按键所有权"
+      ],
+      "priority": 2
+    },
+    {
+      "name": "Blockhit",
+      "help": "手动触发短格挡或提供格挡时机提示；与攻击和疾跑协调，避免一直举剑。",
+      "needs": [
+        "持剑确认",
+        "使用物品状态",
+        "命中/受击上下文"
+      ],
+      "priority": 2
+    },
+    {
+      "name": "Hit Select",
+      "help": "独立后手训练模式记录受击到回击间隔，之后才考虑限定条件下延后首击；不能与无条件连点同时争夺。",
+      "needs": [
+        "攻击来源",
+        "目标确认",
+        "受击/自身落地",
+        "时间同步误差估计"
+      ],
+      "priority": 3
+    },
+    {
+      "name": "卡距离/Combo",
+      "help": "用眼睛到目标包围盒的射线距离和相对速度提示过近/过远，不把实体中心距离当攻击距离。",
+      "needs": [
+        "目标包围盒/遮挡",
+        "目标位置速度"
+      ],
+      "priority": 2
+    },
+    {
+      "name": "Strafe/反向走位",
+      "help": "做横移、切向和边缘风险提示，录像复盘瞄准丢失；不采用固定左右摆动。",
+      "needs": [
+        "目标移动",
+        "环境障碍/支撑",
+        "用户横移意图"
+      ],
+      "priority": 3
+    },
+    {
+      "name": "追击跳",
+      "help": "连击中目标正在远离时提示一次追跳；与受击时跳跃重置分开。",
+      "needs": [
+        "距离变化",
+        "当前连击上下文",
+        "可落脚区域"
+      ],
+      "priority": 3
+    },
+    {
+      "name": "鱼竿双伤时机",
+      "help": "自服机制验证后提供两次剑击窗口提示；无法获得真实伤害信息时不宣称双伤成功。",
+      "needs": [
+        "已确认的鱼竿接触",
+        "服务端机制验证",
+        "可靠伤害记录"
+      ],
+      "priority": 3
+    }
+  ],
+  "implementation_order": [
+    "已交付1.9.6持剑连点/GUI保护",
+    "建议：单次鱼竿切换与回剑",
+    "建议：补齐只读战斗状态并做静音记录/窗口提示",
+    "自服验证后分别加入选择式技巧辅助，禁止多计时器同时争夺输入"
+  ],
+  "uncertainty": "本机受伤动画和客户端粒子不是服务器确认时间；不以向上速度单独判定玩家起跳；对手未同步生命值时不统计真实伤害；没有连接服务器API。"
+}
