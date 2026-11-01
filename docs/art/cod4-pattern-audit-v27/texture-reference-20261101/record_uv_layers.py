@@ -1,0 +1,41 @@
+"""Record observations after actually opening all fourteen signed-crop sheets."""
+from pathlib import Path
+import json
+from datetime import datetime, timezone
+
+D=Path(__file__).resolve().parent
+source=json.loads((D/'uv-layer-crops.json').read_text())
+notes=[
+('cryomancer-01', '头盔内层 north 是深灰青的纵向面罩；外层 north 留阶梯式透明脸口，侧背则是薄荷灰的宽折纹。hood 的窄条只用两三个大色块；底衣胸口是深青与少量浅扣，上下面完全透明。不能把这张图集整体冰白当成所有胸面材质。', '白色集中到罩层，暗色内衣负责衬托；脸口透明不是白色平涂。'),
+('cryomancer-02', '后摆 cube1 只在侧背下段有浅色像素。cube2 的 north 是两根留中缝的白色袍襟，south 是较短肩背白块；腰带 cube3 为棕带加局部冰灰扣，north 使用负 U。裤腰层主要只在底部留下深色块。', '先核实际岛和透明区，再分配袍襟与腰带；不要把整面刷满金属或白色。'),
+('cryomancer-03', '左右袖主面是上端浅色簇与长透明区，左袖 south 从 V19 起而右袖 V20。额外左肩块 north 有两个深青凹点，顶面接近整块乳白；较小附块靠一条宽暗线区分，未画密集纹理。', '镜像左右袖仍须逐面核 V 偏移；肩甲复杂度来自独立岛与少量对比块，不来自满面噪点。'),
+('cryomancer-04', '极小肩端只有二至四像素面积的大色块，没有假细字。左腿 cube0 是浅色长条大折纹，cube1 是上段深青覆盖，靴子则把冰白齿边放到下段黑底上；上端透明。', '腿、覆层和靴子不能当三种新装备；透明覆盖层决定局部深浅关系。'),
+('cryomancer-05', '右腿与左腿相应图案方向相反，靴子的浅色齿形主要在同一低段；底面是灰框内黑块。没有从这张平面采样断言实际穿戴无穿插。', '从成对镜像规则学习像素节奏，不能直接镜像带字或不对称徽记。'),
+('electromancer-01', '帽檐六面共享蓝灰加铜橙边，up/down 是中心暗孔与阶梯蓝灰环；帽带正面才有铜色扣。帽尖以少量大阶梯色块区分层段。第一胸块仅 north/up 有两条铜边，大片透明。', '铜色作为窄连接边和扣件即可建立材质关系，不必整套泛金或加蓝光渐变。'),
+('electromancer-02', '第二胸块是蓝灰制服、稀疏横扣与棕腰带；背面只有宽暗框。右袖主体低段有一条铜色袖边，而额外短块是灰黑护件，四周复用同一面形。裤腰层仍是底部小岛。', '职责相同的饰边保持宽度节奏，金属护件用独立灰阶与布料区分。'),
+('electromancer-03', '左袖主面与右袖镜像，铜边只占下端；灰护件与右侧同图复用。左腿底层是近黑大块加铜色裤边，覆盖层仅上部蓝灰带斜铜边，未用密纹覆盖黑底。', '同材质允许大片低细节空间，避免每个像素都高对比。'),
+('electromancer-04', '靴子只在最下段有灰黑筒形边与一点铜扣，上方为透明；右腿复用同一类黑裤和斜边，侧面明暗面宽不同。', '局部亮扣能让暗装可读；不能因透明上段就误报整条腿缺贴图。'),
+('priest-01', '白罩袍头部与冰系同样使用阶梯脸口和宽侧折，金色面罩另占一个内层，后侧只剩棕带。另一个高度为零的头部块只有上面细框有效，四个零高侧面没有重采样。', '共享头罩构图不是新独立设计；内金外白是层次组织，不等于每面全金。零面积面不是缺失资源。'),
+('priest-02', '胸内层是紫衣金扣与棕腰带；长白袍由独立侧背下摆和开口正襟构成，金边沿开口与底边走。额外短宽外块 north/south 中心分别有开口或金色片，up 为留中孔白框。', '神圣感可由少量金色开口边与白底留白形成；不要把胸衣、长袍、短覆层的 UV 合成同一平面。'),
+('priest-03', '裤腰是棕带紫底与正中金扣。白袖外块只在暴露的三侧画白灰和金袖口；内袖长条用少量灰紫大色块，左右金边斜口互为镜像。', '有方向的袖口与留空面必须按左右结构核对；不额外填补本来未定义的内侧。'),
+('priest-04', '左袖外块只列 north/south/west/up/down；腿部是上端紫色、长白灰大块、底部窄金线；金靴只占底段，底面金框中留暗块。', '金色集中到鞋与下摆的少量区域，白布褶依靠大色簇，保留 MC 层次。'),
+('priest-05', '右靴 north 的少数浅黄像素形成局部亮点，其余侧面以黄橙两档区分；上段透明，底面暗方块有宽金边。', '亮金不依赖柔光；暗底和局部硬亮点足够。'),
+]
+rows=[]
+for stem,observation,principle in notes:
+    sheet=f'build/art-reference-20261101/uv-layers/{stem}.png'
+    matched=[r for r in source['rows'] if r['inspection_sheet']==sheet]
+    assert matched
+    rows.append({'sheet':sheet,'actually_opened':True,'cube_keys':[f"{r['bone']}[{r['cube_index']}]" for r in matched],
+        'observation_zh':observation,'applicable_principle_zh':principle,
+        'new_design_credit':0,'runtime_acceptance':False})
+assert {r['sheet'] for r in rows} == set(source['sheets'])
+out={'recorded_at':datetime.now(timezone.utc).isoformat(),'status':'ALL_14_FLAT_CROP_SHEETS_ACTUALLY_OPENED',
+    'manual_scope':'逐页逐岛观察；同一代理，不冒充独立审美验收。源模型面名不直接推断游戏朝向。',
+    'models':3,'cubes':52,'defined_faces':275,'integer_nonzero_face_crops':270,'zero_area_faces_not_resampled':5,
+    'new_png_design_cases':0,'new_accepted_visual_credit':0,'production_changes':0,
+    'limitations':['未展开 Paladin box UV','未验证骨骼穿戴槽位可见性、面绕向、前后侧整体、动态接缝或游戏渲染',
+        '整数裁剪复现原 UV 符号，不代表裁剪图就是三维朝向','原几何/UV 比例差异只记录，不擅自判原作者 bug'],
+    'rows':rows}
+(D/'uv-layer-manual-review.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({k:out[k] for k in ['models','cubes','defined_faces','integer_nonzero_face_crops','new_accepted_visual_credit']}))
