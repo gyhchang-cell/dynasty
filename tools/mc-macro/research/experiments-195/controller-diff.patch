@@ -1,0 +1,84 @@
+--- 1.9.2 TellyController
++++ 1.9.3 TellyController
+@@ -18,6 +18,8 @@
+     var mouse: (Bool) -> Void = { _ in }
+     var move: (Int64, Int64) -> Void = { _,_ in }
+     var cancelPendingInput: () -> Void = {}
++    var supplyReady: (BridgeWorldState) -> Bool = { _ in true }
++    var placementSupplyReady: () -> Bool = {true}
+     var trace:(String)->Void = {_ in}
+     var config: TellyGameConfig?
+     private var ownedKeys = Set<UInt16>()
+@@ -179,6 +181,32 @@
+         trace("MANUAL_FINISH phase=\(phase) finishing=\(finishing) wait_r_up=true")
+     }
+ 
++    func requestSupplyFinish() {
++        guard phase != .idle, !manualFinishRequested else { return }
++        if let state=worldState,state.onGround,let config,
++           [.preparing,.calibrating,.centering,.backing,.runup,.aligning].contains(phase) {
++            // Even the very first approach can carry momentum at the edge.
++            // Keep grounded sneak until stopped instead of releasing W into drift.
++            manualFinishRequested=true;restartRequiresRelease=true;held=false
++            finishing=true;finishAt=ProcessInfo.processInfo.systemUptime
++            blockJump(config:config,now:finishAt)
++            blockedReason="同种方块不足，已在支撑处停稳。"
++            message=blockedReason
++            return
++        }
++        requestManualFinish()
++        message=finishing ? "同种方块不足，完成本跳并回正后停止。" : "同种方块不足，未开始下一跳。"
++    }
++
++    private func checkSupply(config:TellyGameConfig) -> Bool {
++        guard let state=worldState else { return true }
++        guard supplyReady(state) else {
++            if phase != .idle, state.onGround {setPlacing(false);keys([config.sneak])}
++            return false
++        }
++        return true
++    }
++
+     func stop(_ reason: String) {
+         let wasRunning=phase != .idle
+         finishing=false
+@@ -386,6 +414,7 @@
+         case .preparing:
+             guard track.stable >= 2 else { return }
+             if let state=worldState, !state.onGround {message="等待人物实际落地；尚未开始移动。";return}
++            guard checkSupply(config:config) else {return}
+             guard abs(pose.y - pose.y.rounded()) < 0.04 else { stop("起点不是完整方块高度，已停止。"); return }
+             if let state=worldState,BridgeClearance.jumpBlocked(state,yaw:pose.yaw,rise:0) {
+                 blockJump(config:config,now:now);return
+@@ -787,6 +816,7 @@
+                 // longer flight made the earlier launch outrun the fourth face.
+                 let launchAligned=facingForward || (!finishing && held && activeRise>0 && risePerJump>0 && state.onGround && abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 && abs(F3Pose.angle(pose.yaw-heading))<=8 && abs(pose.pitch-forwardPitch)<=3)
+                 if launchAligned,near, let landed=nativeSupports.max(by:{route!.along(Double($0.x)+0.5,Double($0.z)+0.5)<route!.along(Double($1.x)+0.5,Double($1.z)+0.5)}) {
++                    guard checkSupply(config:config) else {return}
+                     support=landed;groundY=landingY;pendingPlacements.removeAll()
+                     // Commit the next mode together with its runway. A T
+                     // press after approach begins is for the following cycle;
+@@ -838,12 +868,14 @@
+     }
+     private func advanceRunup(config:TellyGameConfig,pose:F3Pose,now:Double) {
+         guard let route else{return}
++        guard checkSupply(config:config) else{return}
+         let speed=max(0,vx*route.ux+vz*route.uz)
+         if route.along(pose.x,pose.z)+speed*0.07>=runwayEnd {
+             beginJump(config:config,pose:pose,now:now)
+         } else {keys([config.forward,config.sprint])}
+     }
+     private func beginJump(config:TellyGameConfig,pose:F3Pose,now:Double) {
++        guard checkSupply(config:config) else{return}
+         if let state=worldState,state.onGround,BridgeClearance.jumpBlocked(state,yaw:heading,rise:jumpIndex==0 ? 0:plannedRise) {
+             blockJump(config:config,now:now);return
+         }
+@@ -888,7 +920,7 @@
+            pendingPlacements.count < 3,
+            (worldState == nil || (worldState!.tick != lastClickTick && pendingPlacements.isEmpty)),
+            (worldState != nil || (turn==nil && pendingAimPose==nil)),
+-           canPlace(placement,pose:pose) {
++           canPlace(placement,pose:pose),placementSupplyReady() {
+             if mouseDown { mouse(false) }
+             trace("PLACE tick=\(worldState?.tick ?? -1) xyz=\(pose.x),\(pose.y),\(pose.z) view=\(pose.yaw),\(pose.pitch) command=\(follower?.yaw ?? issuedTurnYaw),\(follower?.pitch ?? issuedTurnPitch) target=\(placement.result) face=\(placement.axis),\(placement.sign)")
+             mouse(true); mouseDown = true

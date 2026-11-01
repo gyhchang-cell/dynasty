@@ -2,6 +2,34 @@ import AppKit
 import ApplicationServices
 
 extension MacroApp {
+    var wantsClickObservation: Bool {
+        policy.enabled && !sessionSuspended && isTargetFront()
+    }
+
+    func refreshClickContext() {
+        let now=ProcessInfo.processInfo.systemUptime
+        let front=NSWorkspace.shared.frontmostApplication?.processIdentifier
+        guard !sessionSuspended, !bridgeChatOpen, isTargetFront(),
+              !CGEventSource.flagsState(.combinedSessionState).contains(.maskCommand),
+              let pid=gameTelemetry.pid, pid==front,
+              clickObservationSession==gameTelemetry.sessionID,
+              let state=bridgeWorldPreview,
+              now>=state.pose.time, now-state.pose.time<=0.10 else {
+            policy.menuPaused=true;policy.swordReady=false
+            clickObservationWorld=nil
+            leftClickHold.cancel();cancelClicks();releaseSprint()
+            return
+        }
+        if let world=clickObservationWorld,world != state.world {
+            leftClickHold.cancel();cancelClicks()
+        }
+        clickObservationWorld=state.world
+        policy.menuPaused=false
+        policy.swordReady=state.pose.time>=clickObserveAfter &&
+            SwordClickEligibility.allows(state.inventory,sampledAt:state.pose.time,now:now)
+        if !policy.swordReady { cancelClicks() }
+    }
+
     var wantsToolObservation: Bool {
         autoToolEnabled.state == .on && !policy.enabled && !sessionSuspended && isTargetFront()
     }

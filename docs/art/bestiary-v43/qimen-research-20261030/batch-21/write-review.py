@@ -18,7 +18,7 @@ e=[]
 def add(id,f,refs,limit):
  rr=[]
  for suffix,rg in refs:
-  a=[s for s in sources if s['id'].endswith(suffix)]
+  a=[s for s in sources if s['id'].endswith('/'+suffix) or s['id']==suffix]
   assert len(a)==1,(suffix,len(a));rr.append(dict(source=a[0]['id'],ranges=rg))
  e.append(dict(id=id,finding=f,sources=rr,limit=limit,credit_added=0))
 add('K01','作者页面源码链接闭合到myriantics/klaxon。先固定fabric/1.20.1归档3d4490a：0.3.1.2/Java17版本未检出grapple_winch/grapple_claw相关路径及文本；完整实现来自7d31931的1.21.1、mod1.0.0b1、Fabric0.17.3、Java21。',[('gradle.properties',[[7,22]]),('fabric.mod.json',[[10,46]])],'不把最新版页面功能倒灌到旧分支；1.21数据组件/网络/Java21不能直接套进Forge1.20.1，旧版本排除0新增案例。')

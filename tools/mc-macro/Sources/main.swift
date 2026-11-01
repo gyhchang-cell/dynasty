@@ -27,6 +27,10 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     let preferences = NSPopover()
     let diagnosticLabel = NSTextField(wrappingLabelWithString: "")
     var policy = MacroPolicy()
+    var leftClickHold = SwordClickHold()
+    var clickObservationSession: Int?
+    var clickObservationWorld: Int?
+    var clickObserveAfter = 0.0
     let hardwareMouse = HardwareMouse()
     var tap: CFMachPort?
     var tapSource: CFRunLoopSource?
@@ -110,6 +114,8 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         gameTelemetry.onState = { [weak self] state,error in
             guard let self else{return}
             self.bridgeWorldPreview=state
+            self.clickObservationSession=self.gameTelemetry.sessionID
+            self.refreshClickContext()
             self.observeInventory(state)
             if self.bridgeDiagnosticUntil>0,let state {
                 self.bridgePreview=state.pose;self.bridgeDiagnosticUntil=0
@@ -188,7 +194,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         bridgeTimer = Timer(timeInterval: 0.008, repeats: true) { [weak self] _ in self?.serviceBridge() }
         RunLoop.main.add(bridgeTimer!, forMode: .common)
         updateUI()
-        traceBridge("START version=1.9.3 AX=\(AXIsProcessTrusted()) input=\(CGPreflightListenEventAccess())")
+        traceBridge("START version=1.9.6 AX=\(AXIsProcessTrusted()) input=\(CGPreflightListenEventAccess())")
         if ProcessInfo.processInfo.environment["MC_MACRO_BACKGROUND"] != "1" {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -374,11 +380,30 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         default:manualInput=nil
         }
         if let manualInput,bridgeManualInput.consume(manualInput,duringFinish:false) {return nil}
+        var clickerConsumedRelease=false
+        if type == .leftMouseUp {
+            clickerConsumedRelease=leftClickHold.end()
+            policy.physicalLeftHeld=false
+            cancelClicks(.left)
+        }
         let active = isTargetFront()
         policy.targetActive = active
         if policy.enabled && !active { suspend("已切出游戏，暂停输入，总开关保留。") }
-        guard active else { return Unmanaged.passUnretained(event) }
-        if type == .keyDown || type == .scrollWheel || type == .rightMouseDown || type == .leftMouseUp || event.flags.contains(.maskCommand) {
+        guard active else {
+            if type == .leftMouseDown {leftClickHold.begin(eligible:false)}
+            return clickerConsumedRelease ? nil:Unmanaged.passUnretained(event)
+        }
+        // Walking while holding attack must not end continuous tool selection.
+        // Menu/hotbar keys and explicit manual item changes still cancel it.
+        let toolMovementKey=telly.config.map {[$0.forward,$0.back,$0.left,$0.right,$0.jump,$0.sneak,$0.sprint].contains(code)} ?? false
+        // Stop queued clicks before an inventory/menu/hotbar key is delivered.
+        // Fresh telemetry after the key has been processed must re-authorize.
+        if policy.enabled && ((type == .keyDown && !toolMovementKey && code != boundHotkey) || type == .scrollWheel || type == .rightMouseDown) {
+            clickObserveAfter=ProcessInfo.processInfo.systemUptime+0.075
+            policy.swordReady=false
+            cancelClicks()
+        }
+        if (type == .keyDown && !toolMovementKey) || type == .scrollWheel || type == .rightMouseDown || type == .leftMouseUp || event.flags.contains(.maskCommand) {
             autoToolPress.cancel();if !telly.active {inventoryInputEpoch.invalidate()}
         }
         // System shortcuts/focus loss remain immediate safety stops. Ordinary
@@ -397,6 +422,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
             }
             if bridgeManualInput.consume(manualInput,duringFinish:telly.finishing) {return nil}
         }
+        if clickerConsumedRelease {return nil}
         if type == .keyDown && bridgeEnabled.state == .on {
             if bridgeChatOpen {
                 if code==36 || code==53 {bridgeChatOpen=false}
@@ -440,23 +466,26 @@ final class MacroApp: NSObject, NSApplicationDelegate {
             // Release before Cmd-Tab / Cmd-Q / other system shortcuts leave the game.
             if policy.enabled && event.flags.contains(.maskCommand) { suspend("系统快捷键期间暂停，总开关保留。") }
         }
+        if type == .leftMouseDown {
+            refreshClickContext()
+            let eligible=policy.enabled && !sessionSuspended && !telly.active && !bridgeChatOpen &&
+                !event.flags.contains(.maskCommand) && !policy.menuPaused && policy.swordReady
+            leftClickHold.begin(eligible:eligible)
+            if eligible {
+                policy.physicalLeftHeld=hardwareMouse.isDown(.left)
+                if clickTimers[.left] == nil { click(.left) }
+                return nil
+            }
+            return Unmanaged.passUnretained(event)
+        }
         guard policy.enabled else { return Unmanaged.passUnretained(event) }
         switch type {
         case .flagsChanged:
             if sprintOwned && sprintRenewal.isDown && ownedSprintCode == 59 {
                 event.flags = CGEventFlags(rawValue: SprintModifier.flags(event.flags.rawValue, down: true))
             }
-        case .leftMouseDown, .rightMouseDown:
-            let button: MacroMouseButton = type == .leftMouseDown ? .left : .right
-            if policy.mayClick(button), hardwareMouse.isDown(button), clickTimers[button] == nil { click(button) }
-            return nil
-        case .leftMouseUp, .rightMouseUp:
-            let button: MacroMouseButton = type == .leftMouseUp ? .left : .right
-            // Synthetic up events must not change physical hold state.
-            if !hardwareMouse.isDown(button) { hardwareChanged(button, down: false) }
-            return nil
-        case .leftMouseDragged, .rightMouseDragged:
-            if policy.mayClick(type == .leftMouseDragged ? .left : .right) {
+        case .leftMouseDragged:
+            if leftClickHold.permitsClicks && policy.mayClick(.left) {
                 event.type = .mouseMoved
                 event.flags.remove(.maskControl)
             }
@@ -467,6 +496,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
 
     func start() {
         cancelInventoryActions()
+        leftClickHold.cancel()
         guard isTargetFront(), AXIsProcessTrusted(), let tap, CGEvent.tapIsEnabled(tap: tap) else {
             notice = "无法开启：请先授权并检查输入监听。"; updateUI(); return
         }
@@ -474,15 +504,16 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         policy.physicalLeftHeld = false // A fresh physical press is required after every enable.
         policy.physicalRightHeld = false
         policy.targetActive = true
-        policy.menuPaused = false
         policy.enabled = true
-        notice = hardwareMouse.connected ? "已就绪：按住才连点，总开关持续开启。" : "已启用疾跑；鼠标硬件未连接，连点暂停。"
+        refreshClickContext()
+        notice = hardwareMouse.connected ? "持剑并按住左键才连点；背包和菜单保持原生操作。" : "鼠标硬件未连接，连点暂停。"
         if sprint.state == .on { pressSprint() }
         updateUI()
     }
 
     func stop(_ reason: String) {
         cancelInventoryActions()
+        leftClickHold.cancel()
         if recordingHotkey {recordingHotkey=false;hotkeyButton.title=hotkeyTitle()}
         telly.stop("搭路已停止。松开 R 后可重新开始。")
         policy.stop()
@@ -494,6 +525,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
 
     func suspend(_ reason: String) {
         cancelInventoryActions()
+        leftClickHold.cancel()
         telly.stop("搭路已暂停。松开 R 后可重新开始。")
         policy.suspend()
         cancelClicks()
@@ -511,9 +543,10 @@ final class MacroApp: NSObject, NSApplicationDelegate {
             if wasActive || sprintOwned || !clickTimers.isEmpty { suspend("暂时暂停输入，总开关保留。") }
             return
         }
-        policy.menuPaused = false
+        refreshClickContext()
         if let tap, !CGEvent.tapIsEnabled(tap: tap) { CGEvent.tapEnable(tap: tap, enable: true) }
-        if sprint.state == .on {
+        if policy.menuPaused { releaseSprint() }
+        else if sprint.state == .on {
             if !sprintOwned { pressSprint() }
             else if let down = sprintRenewal.advance(now: ProcessInfo.processInfo.systemUptime) { postSprint(down: down) }
         }
@@ -522,7 +555,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         policy.reconcileHardware(left: hardwareMouse.isDown(.left) && !bridgeManualInput.suppressesButton(0),
                                  right: hardwareMouse.isDown(.right) && !bridgeManualInput.suppressesButton(1))
         for button in MacroMouseButton.allCases {
-            if policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)) {
+            if leftClickHold.permitsClicks && policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)) {
                 if clickTimers[button] == nil { click(button) }
             } else { cancelClicks(button) }
         }
@@ -531,7 +564,9 @@ final class MacroApp: NSObject, NSApplicationDelegate {
 
     func click(_ button: MacroMouseButton) {
         clickTimers.removeValue(forKey: button)?.invalidate()
-        guard policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)), isTargetFront(), AXIsProcessTrusted() else {
+        refreshClickContext()
+        guard leftClickHold.permitsClicks, !telly.active, !sessionSuspended,
+              policy.mayClick(button, hardwareDown: hardwareMouse.isDown(button)), isTargetFront(), AXIsProcessTrusted() else {
             cancelClicks(button); return
         }
         let started = ProcessInfo.processInfo.systemUptime
@@ -556,6 +591,8 @@ final class MacroApp: NSObject, NSApplicationDelegate {
     }
 
     func hardwareChanged(_ button: MacroMouseButton, down: Bool) {
+        // Right-button input stays native; only left holds drive the clicker.
+        guard button == .left else { return }
         if button == .left {
             if down {physicalToolPress()} else {autoToolPress.cancel();if !telly.active {inventoryInputEpoch.invalidate()}}
         }
@@ -568,7 +605,7 @@ final class MacroApp: NSObject, NSApplicationDelegate {
         guard !telly.active, !bridgeManualInput.suppressesButton(button == .left ? 0:1), policy.enabled, !sessionSuspended, !policy.menuPaused, isTargetFront() else { return }
         if button == .left { policy.physicalLeftHeld = true }
         else { policy.physicalRightHeld = true }
-        if clickTimers[button] == nil { click(button) }
+        if leftClickHold.permitsClicks, clickTimers[button] == nil { click(button) }
     }
 
     func postMouse(_ button: MacroMouseButton, down: Bool) {

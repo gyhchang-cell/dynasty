@@ -8,6 +8,8 @@ p.physicalLeftHeld = true
 p.targetActive = true
 check(!p.mayClick, "关闭时不能点击")
 p.enabled = true
+check(!p.mayClick, "未确认持剑时不能连点")
+p.swordReady = true
 check(p.mayClick, "启用且游戏前台且按住时应点击")
 p.targetActive = false
 check(!p.mayClick, "游戏失焦不能点击")
@@ -16,11 +18,11 @@ p.physicalLeftHeld = false
 check(!p.mayClick, "松手不能点击")
 p.physicalLeftHeld = true
 p.physicalRightHeld = true
-check(p.mayClick(.left) && p.mayClick(.right), "双键同时按住应同时连点")
+check(p.mayClick(.left) && !p.mayClick(.right), "双键同时按住也只允许左键连点")
 check(!p.mayClick(.left, hardwareDown: false) && !p.mayClick(.right, hardwareDown: false), "硬件松手时即使旧状态仍为按住，也绝不能继续点击")
-check(p.mayClick(.left, hardwareDown: true) && p.mayClick(.right, hardwareDown: true), "真实按住才允许双键点击")
+check(p.mayClick(.left, hardwareDown: true) && !p.mayClick(.right, hardwareDown: true), "右键真实按住也不能触发连点")
 p.physicalLeftHeld = false
-check(!p.mayClick(.left) && p.mayClick(.right), "松开左键不应影响右键")
+check(!p.mayClick(.left) && !p.mayClick(.right), "松开左键且仍按右键时没有连点")
 p.physicalLeftHeld = true
 p.physicalRightHeld = false
 check(p.mayClick(.left) && !p.mayClick(.right), "松开右键不应影响左键")
@@ -34,6 +36,7 @@ p.enabled = true
 p.physicalLeftHeld = true
 p.suspend()
 check(p.enabled && !p.physicalLeftHeld && !p.physicalRightHeld, "暂停仅释放按住状态，不能关闭总开关")
+p.swordReady = true
 p.targetActive = true
 p.physicalLeftHeld = true
 p.menuPaused = true
@@ -48,12 +51,28 @@ p.reconcileHardware(left: true, right: true)
 p.suspend()
 check(p.enabled && !p.mayClick(.left), "加载中释放输入但保留总开关")
 p.reconcileHardware(left: true, right: true)
-check(p.mayClick(.left) && p.mayClick(.right), "加载后仍真实按住双键时恢复，无需重新切换开关")
+check(!p.mayClick, "加载后必须重新确认持剑")
+p.swordReady = true
+check(p.mayClick(.left) && !p.mayClick(.right) && !p.physicalRightHeld, "加载后只恢复左键连点，不能重新启用右键")
 p.reconcileHardware(left: false, right: false)
 check(p.enabled && !p.mayClick(.left) && !p.mayClick(.right), "恢复后鼠标松开不能点击")
 p.stop()
 p.reconcileHardware(left: true, right: true)
 check(!p.enabled && !p.mayClick(.left) && !p.mayClick(.right), "手动关闭后硬件按住也不能重开")
+var hold=SwordClickHold()
+check(!hold.permitsClicks && !hold.consumesRelease,"等待物理按下，不从轮询补造按下")
+hold.begin(eligible:false)
+check(!hold.permitsClicks && !hold.consumesRelease,"背包拖动/非剑按压原样通过")
+hold.cancel()
+check(!hold.permitsClicks && !hold.end(),"背包关闭或切成剑也不能接管已开始的原生拖动")
+hold.begin(eligible:true)
+check(hold.permitsClicks && hold.consumesRelease,"确认持剑的新按压可由连点器接管")
+hold.cancel()
+check(!hold.permitsClicks && hold.consumesRelease,"打开菜单/换世界立即结束本次宏按压，吞掉配对松开避免误点击")
+check(hold.end() && !hold.permitsClicks,"物理松开后取消完成")
+hold.begin(eligible:true)
+check(hold.permitsClicks,"下一次持剑物理按压恢复，不需重开总开关")
+check(hold.end() && !hold.permitsClicks,"正常松开也结束宏按压")
 // Model the game ignoring repeated downs after its input binding was cleared.
 var renewal = SprintRenewal()
 check(renewal.advance(now: 100) == nil, "未启用疾跑时不能发事件")

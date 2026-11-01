@@ -1,7 +1,8 @@
 import Foundation
 
 var checks=0
-func expect(_ value:Bool,_ name:String) {precondition(value,name);checks+=1}
+var failures=0
+func expect(_ value:Bool,_ name:String) {checks+=1;if !value {failures+=1;print("FAIL \(name)")}}
 func item(_ slot:Int,_ id:Int,_ score:Double=1,kind:String="tool",meta:Int=0,count:Int=1,identity:String?=nil)->HotbarItem {
     HotbarItem(slot:slot,itemID:id,metadata:meta,count:count,identity:identity ?? "\(id):\(meta):none",kind:kind,fullBlock:kind=="block",score:score)
 }
@@ -10,6 +11,20 @@ func snapshot(_ slots:[HotbarItem],selected:Int=0,hit:String="block",block:Int=1
 }
 let sword=item(0,267,1,kind:"sword"),pick=item(6,278,26.666),axe=item(3,279),shears=item(8,359)
 let endStone=snapshot([sword,pick,axe,shears])
+expect(SwordClickEligibility.allows(endStone,sampledAt:100,now:100.05),"Selected sword allows clicking")
+for id in [267,268,272,276,283] {
+    expect(SwordClickEligibility.allows(snapshot([item(4,id,kind:"sword")],selected:4),sampledAt:100,now:100),"All vanilla sword materials, moved hotbar slot \(id)")
+}
+for (id,kind) in [(346,"other"),(261,"other"),(322,"other"),(35,"block"),(278,"tool")] {
+    expect(!SwordClickEligibility.allows(snapshot([item(0,id,kind:kind),item(4,276,kind:"sword")]),sampledAt:100,now:100),"Non-sword blocks macro even with another sword in hotbar \(id)")
+}
+expect(!SwordClickEligibility.allows(snapshot([]),sampledAt:100,now:100),"Empty hand never autoclicks")
+expect(!SwordClickEligibility.allows(nil,sampledAt:100,now:100),"Absent inventory never autoclicks")
+expect(!SwordClickEligibility.allows(endStone,sampledAt:100,now:100.101),"Stale world observation stops clicks")
+expect(!SwordClickEligibility.allows(snapshot([sword],age:0.06),sampledAt:100,now:100.05),"Combined packet and inventory age stops clicks")
+expect(!SwordClickEligibility.allows(endStone,sampledAt:101,now:100),"Future observation rejected")
+expect(!SwordClickEligibility.allows(endStone,sampledAt:.nan,now:100),"Nonfinite observation rejected")
+expect(!SwordClickEligibility.allows(snapshot([sword,sword]),sampledAt:100,now:100),"Malformed duplicate inventory rejected")
 expect(AutoToolPolicy.choose(endStone)?.slot==6,"Detect moved pickaxe by actual slot")
 expect(AutoToolPolicy.choose(snapshot([sword,item(3,279,8),pick],block:5,hardness:2))?.slot==6,"Use observed score, not guessed item rank")
 let wool=snapshot([sword,item(6,278),item(8,359,5)],block:35,hardness:0.8)
@@ -51,7 +66,7 @@ expect(decision(clicking:true)==nil,"Master ON forbids tool selection even while
 expect(decision(bridging:true)==nil,"Bridge owns inputs")
 expect(decision(down:false)==nil,"Physical release cancels")
 expect(decision(enabled:false)==nil,"Disabled feature cancels")
-expect(decision(time:1.3)==nil,"Old press expires")
+expect(decision(time:1.3)==nil,"Stale observation cannot select a tool")
 expect(decision(world:8)==nil,"World change cancels")
 expect(decision(inventory:snapshot([sword,pick],hit:"entity"))==nil,"New entity hit cancels pending press")
 expect(decision(inventory:snapshot([sword,pick],target:[2,79,2]))==nil,"Target motion cancels old press")
@@ -59,6 +74,57 @@ var press=AutoToolPress();press.begin(now:1,world:7,inventory:endStone)
 expect(press.update(now:1.01,sampledAt:0.99,world:7,inventory:endStone,enabled:true,clicking:false,bridging:false,physicalDown:true)==nil,"Wait for new observation")
 expect(press.update(now:1.04,sampledAt:1.02,world:7,inventory:endStone,enabled:true,clicking:false,bridging:false,physicalDown:true)?.slot==6,"Next fresh observation accepted")
 expect(press.update(now:1.05,sampledAt:1.03,world:7,inventory:endStone,enabled:true,clicking:false,bridging:false,physicalDown:true)==nil,"Holding cannot spawn repeated tasks")
+
+// Replay a single uninterrupted hardware press across several mined layers.
+func held(_ p:inout AutoToolPress,_ time:Double,_ sample:HotbarSnapshot,down:Bool=true,
+          enabled:Bool=true,clicking:Bool=false,bridging:Bool=false,world:Int=7)->HotbarItem? {
+    p.update(now:time,sampledAt:time-0.005,world:world,inventory:sample,
+             enabled:enabled,clicking:clicking,bridging:bridging,physicalDown:down)
+}
+let woodAfterStone=snapshot([sword,item(6,278),item(3,279,8),shears],selected:6,block:5,target:[1,79,3])
+let woolAfterWood=snapshot([sword,item(6,278),axe,item(8,359,5)],selected:3,block:35,target:[1,79,4])
+let bedAfterWool=snapshot([sword,item(6,278),axe,shears],selected:8,block:26,target:[1,79,5])
+var continuous=AutoToolPress();continuous.begin(now:10,world:7,inventory:endStone)
+expect(held(&continuous,10.03,endStone)?.slot==6,"Held mining starts with pickaxe")
+expect(held(&continuous,12,woodAfterStone)==nil,"Wait for a fresh confirmation of the new block")
+expect(held(&continuous,12.05,woodAfterStone)?.slot==3,"Same press: mined stone reveals wood, choose axe")
+expect(held(&continuous,14,woolAfterWood)==nil,"Confirm next wool target")
+expect(held(&continuous,14.05,woolAfterWood)?.slot==8,"Same press: wood reveals wool, choose shears")
+expect(held(&continuous,16,bedAfterWool)==nil,"Confirm next bed target")
+expect(held(&continuous,16.05,bedAfterWool)?.slot==0,"Same press: wool reveals bed, choose sword")
+let air=snapshot([sword,pick],hit:"miss",target:nil)
+let entity=snapshot([sword,pick],hit:"entity",target:nil)
+expect(held(&continuous,17,air)==nil,"Air gap never switches")
+expect(held(&continuous,18,entity)==nil,"Entity crossing never switches")
+expect(held(&continuous,19,endStone)==nil,"Reconfirm after entity/air gap")
+expect(held(&continuous,19.05,endStone)?.slot==6,"Still-held mining resumes after air and entity gaps")
+expect(held(&continuous,19.07,endStone)==nil,"Do not repeat an unconfirmed queued selection immediately")
+expect(held(&continuous,19.20,endStone)?.slot==6,"Retry a dropped selection while still held")
+let correctPick=snapshot([sword,pick],selected:6)
+expect(held(&continuous,19.25,correctPick)==nil,"Confirmed correct tool stops redundant selection")
+expect(held(&continuous,40,correctPick)==nil,"Long mining hold with correct tool remains quiet")
+let replacedInPlace=snapshot([sword,item(6,278),item(3,279,8)],selected:6,block:5,target:[1,79,2])
+expect(held(&continuous,41,replacedInPlace)==nil,"Block type changes at same coordinates require confirmation")
+expect(held(&continuous,41.05,replacedInPlace)?.slot==3,"Same coordinates with different material reselects tool")
+expect(continuous.update(now:41.3,sampledAt:41,world:7,inventory:replacedInPlace,
+                        enabled:true,clicking:false,bridging:false,physicalDown:true)==nil,"Delayed telemetry must not switch tools")
+expect(held(&continuous,41.35,endStone)==nil,"Reconfirm fresh target after delayed telemetry")
+expect(held(&continuous,41.4,endStone)?.slot==6,"Still-held mining resumes after transient telemetry delay")
+expect(continuous.update(now:41.41,sampledAt:41.35,world:7,inventory:replacedInPlace,
+                        enabled:true,clicking:false,bridging:false,physicalDown:true)==nil,"Out-of-order observation cannot revert current target")
+expect(held(&continuous,42,replacedInPlace,down:false)==nil,"Physical release ends continuous session")
+expect(held(&continuous,43,endStone)==nil,"Observation alone cannot rearm after release")
+for reason in 0..<4 {
+    var cancelled=AutoToolPress();cancelled.begin(now:50,world:7,inventory:endStone)
+    _=held(&cancelled,50.03,endStone)
+    expect(held(&cancelled,50.1,woodAfterStone,enabled:reason != 0,clicking:reason == 1,
+                bridging:reason == 2,world:reason == 3 ? 8:7)==nil,"Cancel active hold for disabled/master/bridge/world change \(reason)")
+    expect(held(&cancelled,51,endStone)==nil,"Cancelled hold needs fresh physical press \(reason)")
+}
+var unarmed=AutoToolPress()
+expect(held(&unarmed,60,endStone)==nil,"Synthetic/down flag without real press cannot arm")
+unarmed.begin(now:60,world:7,inventory:entity)
+expect(held(&unarmed,60.05,endStone)==nil,"Press that began on an entity does not arm mining")
 
 func woolStack(_ slot:Int,_ count:Int,_ meta:Int=14,_ identity:String?=nil)->HotbarItem {item(slot,35,kind:"block",meta:meta,count:count,identity:identity)}
 var supply=BridgeSupplyPolicy()
@@ -79,4 +145,5 @@ expect(supply.beforePlacement(snapshot([woolStack(0,1),woolStack(4,64,11)])) == 
 expect(supply.beforePlacement(snapshot([woolStack(0,3)])) == .ready,"Normal placement proceeds without changed timing")
 let malformed=Data("{\"selected\":\"bad\"}".utf8)
 expect((try? JSONDecoder().decode(OptionalObservation<HotbarSnapshot>.self,from:malformed))?.value==nil,"Invalid inventory is isolated from base telemetry")
-print("PASS \(checks) inventory and physical-input policy checks")
+print("\(failures == 0 ? "PASS":"FAIL") \(checks) inventory and physical-input policy checks; \(failures) failures")
+if failures>0 {exit(1)}

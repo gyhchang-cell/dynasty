@@ -42,8 +42,9 @@ extension MacroApp {
         let diagnostic=bridgeDiagnosticUntil>0
         let bridging=telly.active && telly.phase != .idle
         let tooling=wantsToolObservation
+        let clicking=wantsClickObservation
         gameTelemetry.needsGeometry=diagnostic || bridging
-        guard diagnostic || bridging || tooling else {
+        guard diagnostic || bridging || tooling || clicking else {
             if gameTelemetry.pid != nil {gameTelemetry.stop()}
             if f3Capture.running {f3Capture.reset()}
             return

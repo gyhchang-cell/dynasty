@@ -1,0 +1,24 @@
+<!doctype html><meta charset="utf-8"><title>KLAXON 实际资源与客户端消费核对</title><style>body{max-width:1100px;margin:32px auto;background:#152129;color:#dce7e7;font:16px/1.65 system-ui}a{color:#9ed4d1}img{max-width:100%;image-rendering:pixelated}article{border-top:1px solid #49606a;padding:18px 0}small{color:#aabfc5}</style><h1>KLAXON：实际 PNG / JSON / 客户端消费者</h1><p>固定 7d31931c1c94dc3d3e4209c6897bc77aad8c8432 · 1.21.1 Fabric 跨版本研究。延伸既有家族，新增验收计数 0。未修改生产资源、未启动 Java 或游戏。</p>
+<p><a href="render-client-study.json">逐项源码证据</a> · <a href="asset-inspection.json">资产检查</a> · <a href="local-verification.json">局部校验</a></p>
+<article><b>实体爪体与手持卷扬器分开</b><p>实体 renderer 使用 32×32 钢爪 PNG，2对反面+4旋转爪面共8quads；手持另走物品 JSON。item registry path 拼入 Klaxon 目录，不保留外部命名空间。</p><small>不是 Gecko 生物或通用跨模组自动纹理机制；无游戏画面。</small></article>
+<article><b>实际替换上下文</b><p>ALT_HAND_MODEL 对 GUI/FIXED/GROUND 之外上下文启用，alternate 模型再解析自己的 overrides；左手可选 mirrored。</p><small>不能说仅第一人称；未模拟 Minecraft 烘焙与手臂矩阵。</small></article>
+<article><b>镜像有具体边界</b><p>ModelUtils 围绕 X=8 反转 from/to、换东西面UV、反转Y/Z角；rotation origin 和 display transforms 保持。</p><small>非中心 origin 的一般情况不可直接保证；本轮不修改作者资源、不宣称运行出错。</small></article>
+<article><b>状态谓词按玩家连接</b><p>cable_length 为已有连接 cable/max；charged 看 charged projectiles；retracting 看玩家连接状态。未连接缺省0。</p><small>未绑定原始发射 stack，不能称逐 stack 独立状态。</small></article>
+<article><b>客户端真实接收链</b><p>S2C 注册→client.execute→新建或sync连接→重置manager更新计数；discard按connectionID排队。fallback positions经VECTOR3F编码再转Vec3。</p><small>double坐标记录不等于网络保留双精度；未闭合1.21原生codec/merged Mixin。</small></article>
+<article><b>长度同步会发送C2S</b><p>客户端 override setCableLength 无条件发 C2S；构造与远端sync也会调用。sync先按旧max处理长度再更新max；本地有连接时可保留预测长度。</p><small>服务端按sender当前连接处理，不能推定为跨玩家控制或已复现网络漏洞。</small></article>
+<article><b>名称与位置基准不同</b><p>loaded getPlayerEyePos 返回player.position；丢实体时fallback来自服务器eye。画线getHandPos另取眼高/手部矩阵。</p><small>这是所选源码的基准差异，不是实测位移；不以1.20原生代码冒充1.21。</small></article>
+<article><b>逐段缆线而非长条拉伸</b><p>实际循环每整格一段、末尾按余长；3/16格宽，两交叉cutout面，U按段余长，V0..3/16。代码注释2段每格与循环不一致。</p><small>同一绳索家族；不是实体链环，也不新增参考。</small></article>
+<article><b>短缆与整数末段边界</b><p>distance&lt;1 时maxSegments=0，segmentIndex/maxSegments为float0/0；整数距离会多绘制长度0末段。</p><small>记录算术边界，不宣称GPU画面/崩溃；没有游戏执行。</small></article>
+<article><b>普通光照消费</b><p>两端block/sky光插值；午夜daylight multiplier=0，夜视最低13，燃烧/发光端block15，白色顶点与传入packedlight。</p><small>这不是发光PNG材质，软件基础漫反射不等同游戏光照。</small></article>
+<article><b>管理器与绘制注入</b><p>ClientLevel.tick TAIL tickmanager；renderLevel在endLastBatch前调用manager.render；客户端disconnect会调用hook onDisconnect。</p><small>与服务端断连实现不同；仅检查源码配置入口，未验证混入后的字节码。</small></article>
+<article><b>停止使用的后续输入锁</b><p>S2C lockout 在client线程设flag并stopUsingItem；Minecraft startUseItem/LocalPlayer isUsingItem包装阻断，按键路径特定ordinal重新放行。</p><small>MultiPlayerGameMode目标method_41929仍须相同版本运行校验，不因源码存在就判定注入成功。</small></article>
+<h2>实际查看的像素图与离线技术预览</h2><p>同尺度、逐面采样真实PNG；不是 Minecraft 截图，不代表游戏烘焙/手持镜像/光照验收。</p>
+<p>actual-pngs-integer-zoom.png</p><img loading="lazy" src="actual-pngs-integer-zoom.png" alt="actual-pngs-integer-zoom.png">
+<p>full-loaded-software.png</p><img loading="lazy" src="full-loaded-software.png" alt="full-loaded-software.png">
+<p>full-unloaded-software.png</p><img loading="lazy" src="full-unloaded-software.png" alt="full-unloaded-software.png">
+<p>empty-loaded-software.png</p><img loading="lazy" src="empty-loaded-software.png" alt="empty-loaded-software.png">
+<p>full-retracting-software.png</p><img loading="lazy" src="full-retracting-software.png" alt="full-retracting-software.png">
+<p>uv-structure.png</p><img loading="lazy" src="uv-structure.png" alt="uv-structure.png">
+<p>uv-spool.png</p><img loading="lazy" src="uv-spool.png" alt="uv-spool.png">
+<p>uv-steel_grapple_claw.png</p><img loading="lazy" src="uv-steel_grapple_claw.png" alt="uv-steel_grapple_claw.png">
+<p>可借鉴：状态与图形分开；干净大面、材质定向对比；卷轴余量与动作状态可见。不能把4状态、10 PNG、28 overrides各算独立参考。</p>

@@ -239,7 +239,7 @@ extension MacroApp:NSTextFieldDelegate {
             Chrome.place(Chrome.text(label,size:10,weight:.medium,color:Chrome.muted),in:clicks,x+2,119,100,18)
         }
         Chrome.place(Chrome.text("—",size:24,weight:.ultraLight,color:Chrome.muted),in:clicks,149,77,40,32)
-        Chrome.place(Chrome.text("左键 + 右键",size:11,color:Chrome.muted),in:clicks,385,87,120,18)
+        Chrome.place(Chrome.text("持剑 · 左键",size:11,color:Chrome.muted),in:clicks,385,87,120,18)
         Chrome.place(rangeRail,in:clicks,23,145,486,14)
         Chrome.rule(in:clicks,y:175,width:532)
         Chrome.place(Chrome.text("疾跑",size:12),in:clicks,20,189,60,20)
@@ -270,7 +270,7 @@ extension MacroApp:NSTextFieldDelegate {
         Chrome.place(autoToolEnabled,in:inventory,206,16,44,26)
         Chrome.place(Chrome.text("同种补料",size:12,weight:.medium),in:inventory,286,20,130,20)
         Chrome.place(supplyEnabled,in:inventory,466,16,44,26)
-        autoToolEnabled.toolTip="连点关闭时，真实按下左键且准星命中方块才切换快捷栏工具；床用剑。"
+        autoToolEnabled.toolTip="连点关闭时，按住左键挖掘会随目标方块持续切换快捷栏工具；对人不切，床用剑。"
         supplyEnabled.toolTip="Telly 起跳前切换同种、同颜色的快捷栏备用方块；不打开背包。"
         statusLabel.font = .systemFont(ofSize:11);statusLabel.textColor=Chrome.muted;statusLabel.maximumNumberOfLines=1;statusLabel.lineBreakMode = .byTruncatingTail
         Chrome.place(statusLabel,in:root,28,668,410,23)
@@ -326,7 +326,7 @@ extension MacroApp:NSTextFieldDelegate {
         let read=PanelButton("检测连接",target:self,action:#selector(testBridgeReading));Chrome.place(read,in:root,20,224,100,30)
         let detail=PanelButton("诊断详情",target:self,action:#selector(showDiagnostics));Chrome.place(detail,in:root,132,224,100,30)
         Chrome.rule(in:root,y:278,width:360)
-        Chrome.place(Chrome.text("mcPvPmax  /  1.9.3",size:10,color:Chrome.muted),in:root,20,298,220,18)
+        Chrome.place(Chrome.text("mcPvPmax  /  1.9.5",size:10,color:Chrome.muted),in:root,20,298,220,18)
         let exit=PanelButton("退出",target:self,action:#selector(quit));exit.quiet=true;Chrome.place(exit,in:root,274,290,64,30)
         preferences.contentViewController=vc;preferences.behavior = .transient;preferences.appearance=NSAppearance(named:.darkAqua)
         updateUI();preferences.show(relativeTo:settingsButton.bounds,of:settingsButton,preferredEdge:.maxY)
@@ -351,7 +351,11 @@ extension MacroApp:NSTextFieldDelegate {
         if invalid {statusLabel.stringValue="CPS 需在 1–40 之间，且最低 ≤ 最高"}
         else if recordingHotkey {statusLabel.stringValue=notice.contains("已保留") ? "按键已占用，请换一个":"按下新快捷键 · Esc 取消"}
         else if !ready {statusLabel.stringValue="输入权限未就绪 · 在设置中检查"}
-        else if policy.enabled {statusLabel.stringValue=isTargetFront() ? "连点已开启":"连点已开启 · 等待游戏前台"}
+        else if policy.enabled {
+            if !isTargetFront() {statusLabel.stringValue="持剑连点 · 等待游戏前台"}
+            else if policy.menuPaused {statusLabel.stringValue="持剑连点 · 等待游戏状态"}
+            else {statusLabel.stringValue=policy.swordReady ? "持剑连点 · 就绪":"持剑连点 · 等待持剑"}
+        }
         else {statusLabel.stringValue="连点已关闭"}
         statusLabel.textColor = invalid || !ready ? .systemOrange:Chrome.muted
         statusLabel.toolTip=notice

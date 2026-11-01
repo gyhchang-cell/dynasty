@@ -43,8 +43,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>mcPvPmax</string>
 <key>CFBundleDisplayName</key><string>mcPvPmax</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.9.3</string>
-<key>CFBundleVersion</key><string>23</string>
+<key>CFBundleShortVersionString</key><string>1.9.6</string>
+<key>CFBundleVersion</key><string>26</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSHumanReadableCopyright</key><string>本地构建的 Minecraft 输入助手</string>

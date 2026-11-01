@@ -36,6 +36,16 @@ struct HotbarSnapshot: Decodable {
     }
 }
 
+enum SwordClickEligibility {
+    static func allows(_ inventory: HotbarSnapshot?, sampledAt: Double, now: Double) -> Bool {
+        guard let inventory, inventory.valid, sampledAt.isFinite, now.isFinite,
+              now >= sampledAt, now - sampledAt + inventory.age <= 0.10,
+              let held = inventory.current else { return false }
+        // The agent determines kind by vanilla ItemSword, not its display name.
+        return held.kind == "sword"
+    }
+}
+
 // A malformed optional feature must never invalidate the established bridge packet.
 struct OptionalObservation<T: Decodable>: Decodable {
     let value: T?
@@ -80,23 +90,54 @@ enum AutoToolPolicy {
 struct AutoToolPress {
     private var began: Double?
     private var world: Int?
-    private var target: [Int]?
-    mutating func cancel() { began = nil; world = nil; target = nil }
+    private struct Target: Equatable {
+        let position: [Int]
+        let block: Int
+        init?(_ inventory:HotbarSnapshot) {
+            guard inventory.hitKind == "block",let position=inventory.target,position.count==3,
+                  let block=inventory.blockID,block>0 else{return nil}
+            self.position=position;self.block=block
+        }
+    }
+    private var target: Target?
+    private var targetSeenAt: Double = 0
+    private var lastSampleAt: Double = 0
+    private var pending: (slot:Int,identity:String,time:Double)?
+    mutating func cancel() {
+        began=nil;world=nil;target=nil;pending=nil;targetSeenAt=0;lastSampleAt=0
+    }
     mutating func begin(now: Double, world: Int, inventory: HotbarSnapshot) {
         cancel()
-        guard inventory.valid, inventory.hitKind == "block", inventory.target?.count == 3 else { return }
-        began = now; self.world = world; target = inventory.target
+        guard inventory.valid,let target=Target(inventory) else { return }
+        began=now;self.world=world;self.target=target;targetSeenAt=now;lastSampleAt=now
     }
-    // One decision per genuine down edge, confirmed by a newer game observation.
+    // A genuine down edge arms a mining session until release/cancellation.
+    // New block positions or types need a second fresh observation. Air/entity
+    // gaps pause selection without ending the held session. Successful tool
+    // changes become no-ops through choose(); dropped inputs retry at most 8 Hz.
     mutating func update(now: Double, sampledAt: Double, world: Int, inventory: HotbarSnapshot,
                          enabled: Bool, clicking: Bool, bridging: Bool, physicalDown: Bool) -> HotbarItem? {
         guard let began else { return nil }
         guard enabled, !clicking, !bridging, physicalDown, self.world == world,
-              now >= began, now-began <= 0.18, now-sampledAt >= 0, now-sampledAt <= 0.10,
-              inventory.valid, inventory.hitKind == "block", inventory.target == target else { cancel(); return nil }
-        guard sampledAt > began else { return nil }
-        defer { cancel() }
-        return AutoToolPolicy.choose(inventory)
+              now >= began else {cancel();return nil}
+        // A delayed sample pauses decisions, not the physical hold. A fresh
+        // target must be confirmed again before continuing after that gap.
+        guard now-sampledAt >= 0,now-sampledAt <= 0.10,inventory.valid else {
+            target=nil;pending=nil;return nil
+        }
+        guard sampledAt>lastSampleAt else{return nil}
+        lastSampleAt=sampledAt
+        guard let next=Target(inventory) else {target=nil;pending=nil;return nil}
+        if next != target {
+            target=next;targetSeenAt=sampledAt;pending=nil
+            return nil
+        }
+        guard sampledAt>targetSeenAt else{return nil}
+        guard let choice=AutoToolPolicy.choose(inventory) else {pending=nil;return nil}
+        if let pending,pending.slot==choice.slot,pending.identity==choice.identity,
+           now-pending.time<0.125 {return nil}
+        pending=(choice.slot,choice.identity,now)
+        return choice
     }
 }
 

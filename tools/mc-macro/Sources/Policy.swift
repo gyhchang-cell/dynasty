@@ -78,15 +78,32 @@ struct BridgeModifiers {
 
 enum MacroMouseButton: CaseIterable { case left, right }
 
+// The route is chosen on the real mouse-down, never on a polling tick.
+// A drag begun in a GUI must remain native even if the GUI closes mid-drag.
+struct SwordClickHold {
+    private enum Route { case idle, native, macro, blocked }
+    private var route = Route.idle
+    var permitsClicks: Bool { route == .macro }
+    var consumesRelease: Bool { route == .macro || route == .blocked }
+    mutating func begin(eligible: Bool) { route = eligible ? .macro : .native }
+    mutating func cancel() { if route == .macro { route = .blocked } }
+    @discardableResult mutating func end() -> Bool {
+        let consumed = consumesRelease
+        route = .idle
+        return consumed
+    }
+}
+
 struct MacroPolicy {
     var enabled = false
     var physicalLeftHeld = false
     var physicalRightHeld = false
     var targetActive = false
     var menuPaused = false
-    var mayClick: Bool { enabled && targetActive && !menuPaused && physicalLeftHeld }
+    var swordReady = false
+    var mayClick: Bool { enabled && targetActive && !menuPaused && swordReady && physicalLeftHeld }
     func mayClick(_ button: MacroMouseButton) -> Bool {
-        enabled && targetActive && !menuPaused && (button == .left ? physicalLeftHeld : physicalRightHeld)
+        button == .left && mayClick
     }
     func mayClick(_ button: MacroMouseButton, hardwareDown: Bool) -> Bool {
         hardwareDown && mayClick(button)
@@ -97,16 +114,18 @@ struct MacroPolicy {
         physicalLeftHeld = false
         physicalRightHeld = false
         menuPaused = false
+        swordReady = false
     }
 
     mutating func suspend() {
         physicalLeftHeld = false
         physicalRightHeld = false
+        swordReady = false
     }
 
     mutating func reconcileHardware(left: Bool, right: Bool) {
         physicalLeftHeld = enabled && targetActive && left
-        physicalRightHeld = enabled && targetActive && right
+        physicalRightHeld = false
     }
 
     static func validRange(_ minimum: Double, _ maximum: Double) -> Bool {
