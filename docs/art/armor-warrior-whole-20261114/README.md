@@ -1,0 +1,19 @@
+# D109 immersive_armors:warrior 整套参考补证
+
+预先排重：旧warrior_v_collar家族未有完整穿戴分层补核。实看4图标、8分件图集及2默认穿戴图，共14原PNG；所有分件是一套设计，不拆成多个参考。银甲大面、棕皮斜带和下层网甲表达不同材质，披风深棕整块；不复制作者像素。
+
+Items.<clinit>198创建warrior ExtendedArmorMaterial，288 registerSet→291 WARRIOR_ARMOR；同Jar12份共同类与D101逐字节一致，复用已经读过的registerSet四槽、Piece纹理路径、LayerPiece与MixinArmorFeatureRenderer消费上下文，不重复已过范围。ItemsClient.setupPieces65–174本轮实读：隐藏secondLayer四槽；upper/lower各三层；head绑定HorizontalHeadModel horizontal；chest绑定CapePiece(CapeModel)。
+
+上身body_lower/.25、body_middle/.75、body_upper/1.25；LEGS leggings_lower/.125、middle/.5、upper/1.0，均标准64×32稀疏叠层。图标仅4generated对应layer0。横角是20×12×0平面、图集声明64×16，原horizontal.png也64×16一致；披风10×16×1、32×32。稀疏贴图不是缺面，先按真正消费者拼叠层，不能粗暴补实。
+
+CapePiece.getCapeTexture bootstrap实际textures/models/armor/<material>/cape<overlay>.png；本套未设置colored，默认false，使用无overlay原图。完整render234指令已读，包括运动角更新与收尾绘制；其真实动态/裁切和Mixin运行生效仍待验。隐藏玩家原披风的Mixin条件已读，不把静态调用当实机。
+
+旧历史来源含1.7.7-sst愚者分支红橙胸甲，当前1.5.6为银甲斜棕带。两边本地Jar对应条目与旧固定PNG均核实，字节/RGBA均不同，对照已查看；不同分支同case名不能证明整套设计相同，愚者分支其他三槽未在本轮研究，不计新信用。
+
+配方实读为既有皮甲加铁锭，头盔加骨、胸甲加皮革；四个原生输出无额外NBT。所用历史本地模组版本属于旧版比较上下文，不能当Dynasty1.20.1当前已加载兼容结论。
+
+固定本地Jar、原始文件与Python解析哈希均保存。原图及原始UV矩形已实际查看；矩形裁片不等于最终有符号面/穿戴接缝验收。既有整套家族比较见historic-family-dedup.json，同套新增部位、附加层不计新设计，新增验收信用0。保留既有适用认可证据，总数与缺口仍未核定，1000门槛未成立。
+
+待验：独立适用性验收未通过；全局1000真实不同相关设计门槛false；当前28件/7套无已证明未改且简陋目标；实机穿戴接缝/五视图未验；旧版本原生分层/默认Minecraft命名纹理路径只能作研究，不证明当前1.20.1实机兼容。
+
+289已认可与70优先资源哈希不变；未覆盖贴图、共享Jar或主清单；未运行Java或游戏，未操作用户实例、声音、屏幕和亮度。
