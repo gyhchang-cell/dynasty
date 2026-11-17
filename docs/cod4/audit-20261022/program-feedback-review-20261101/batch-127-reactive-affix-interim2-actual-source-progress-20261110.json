@@ -1,0 +1,822 @@
+{
+  "status": "interim20actualranges-before123private-plan-preparation;notwholeproposal",
+  "created_utc": "2026-11-10T04:09:07.269868+00:00",
+  "repo": "Shadows-of-Fire/Apotheosis",
+  "commit": "f2e76862ed9f4dcdf19c25400dc3d5478a46dd74",
+  "prior_immutable443_progress": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-127-reactive-affix-interim-actual-source-progress-20261110.json",
+    "sha256": "39f97d42e163cec985cb04300fc063ff0bfa0c8c4b5cb380c7421cfeacb42ab0",
+    "bytes": 23365
+  },
+  "source_manifest": {
+    "path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/source.json",
+    "sha256": "73d6be1a4f9396efad2426534abceb5136c7af3cdfe17d5e3dc2b2c50b704ef2",
+    "bytes": 87870
+  },
+  "source_tree": {
+    "path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/tree.json",
+    "sha256": "b033b0f178230fd72b3eab390c7afaff71a6fcc3fb2cc50bef72190af41f32a0",
+    "bytes": 919392
+  },
+  "ranges": [
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/affix/effect/StoneformingAffix.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/affix/effect/StoneformingAffix.java",
+      "start_line": 1,
+      "end_line": 133,
+      "whole_file_read": true,
+      "file_sha256": "5fddfb525113213a2dc8001c091dbccc21ecedf434713bcbe405431a883d0d90",
+      "git_blob_sha1": "b4e01edf82c7aa99cddf25f045432c283de7350e",
+      "raw_excerpt_sha256": "5fddfb525113213a2dc8001c091dbccc21ecedf434713bcbe405431a883d0d90",
+      "excerpt": "package dev.shadowsoffire.apotheosis.affix.effect;\n\nimport java.util.Set;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\n\nimport dev.shadowsoffire.apotheosis.Apoth.Components;\nimport dev.shadowsoffire.apotheosis.Apotheosis;\nimport dev.shadowsoffire.apotheosis.affix.Affix;\nimport dev.shadowsoffire.apotheosis.affix.AffixDefinition;\nimport dev.shadowsoffire.apotheosis.affix.AffixInstance;\nimport dev.shadowsoffire.apotheosis.loot.LootCategory;\nimport dev.shadowsoffire.apotheosis.loot.LootRarity;\nimport it.unimi.dsi.fastutil.objects.ObjectArrayList;\nimport net.minecraft.core.HolderSet;\nimport net.minecraft.core.RegistryCodecs;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.item.BlockItem;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.context.UseOnContext;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.storage.loot.LootContext;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParams;\nimport net.neoforged.neoforge.common.util.AttributeTooltipContext;\n\n/**\n * The Stoneforming affix allows a breaker to convert any blocks from the candidate set to any other block in it.\n * <p>\n * If a block drops as a different item (i.e. stone -> cobblestone), both blocks should be in the candidate set.\n */\npublic class StoneformingAffix extends Affix {\n\n    public static final Codec<StoneformingAffix> CODEC = RecordCodecBuilder.create(inst -> inst\n        .group(\n            affixDef(),\n            LootCategory.SET_CODEC.fieldOf(\"categories\").forGetter(a -> a.categories),\n            RegistryCodecs.homogeneousList(Registries.BLOCK).fieldOf(\"candidates\").forGetter(a -> a.candidates))\n        .apply(inst, StoneformingAffix::new));\n\n    public static final Component TOOLTIP_MARKER = Component.literal(\"APOTH_STONEFORMING_MARKER\");\n\n    protected final Set<LootCategory> categories;\n    protected final HolderSet<Block> candidates;\n\n    public StoneformingAffix(AffixDefinition definition, Set<LootCategory> categories, HolderSet<Block> candidates) {\n        super(definition);\n        this.categories = categories;\n        this.candidates = candidates;\n    }\n\n    @Override\n    public Codec<? extends Affix> getCodec() {\n        return CODEC;\n    }\n\n    @Override\n    public boolean isLevelIndependent(AffixInstance inst) {\n        return true;\n    }\n\n    @Override\n    public boolean canApplyTo(ItemStack stack, LootCategory cat, LootRarity rarity) {\n        return this.categories.contains(cat);\n    }\n\n    @Override\n    public MutableComponent getDescription(AffixInstance inst, AttributeTooltipContext ctx) {\n        return TOOLTIP_MARKER.copy();\n    }\n\n    @Override\n    public Component getAugmentingText(AffixInstance inst, AttributeTooltipContext ctx) {\n        return super.getDescription(inst, ctx);\n    }\n\n    @Override\n    public void modifyLoot(AffixInstance inst, ObjectArrayList<ItemStack> loot, LootContext ctx) {\n        if (ctx.hasParameter(LootContextParams.BLOCK_STATE)) {\n            Block block = ctx.getParameter(LootContextParams.BLOCK_STATE).getBlock();\n            if (this.isCandidate(block)) {\n                // If this action broke a candidate block, try to find that item in the loot list and do the replacement.\n                for (int i = 0; i < loot.size(); i++) {\n                    ItemStack stack = loot.get(i);\n                    if (stack.getItem() instanceof BlockItem bi) {\n                        Block lootBlock = bi.getBlock();\n                        if (this.isCandidate(lootBlock)) {\n                            loot.set(i, stack.transmuteCopy(this.getTarget(inst)));\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    @Override\n    public InteractionResult onItemUse(AffixInstance inst, UseOnContext ctx) {\n        BlockState state = ctx.getLevel().getBlockState(ctx.getClickedPos());\n        Block block = state.getBlock();\n        if (this.isCandidate(block) && this.getTarget(inst) != block && ctx.getPlayer().isShiftKeyDown()) {\n            if (!ctx.getLevel().isClientSide()) {\n                inst.stack().set(Components.STONEFORMING_TARGET, block);\n                ctx.getPlayer().sendSystemMessage(Apotheosis.lang(\"affix\", \"stoneforming.target_updated\", block.getName()));\n            }\n            return InteractionResult.SUCCESS;\n        }\n\n        return super.onItemUse(inst, ctx);\n    }\n\n    protected boolean isCandidate(Block block) {\n        return this.candidates.contains(BuiltInRegistries.BLOCK.wrapAsHolder(block));\n    }\n\n    public Block getTarget(AffixInstance inst) {\n        Block target = inst.stack().get(Components.STONEFORMING_TARGET);\n        if (target == null || !this.isCandidate(target)) {\n            return this.candidates.size() > 0 ? this.candidates.get(0).value() : Blocks.AIR;\n        }\n        return target;\n    }\n\n    public HolderSet<Block> getCandidates() {\n        return this.candidates;\n    }\n\n}\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/affix/effect/RetreatingAffix.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/affix/effect/RetreatingAffix.java",
+      "start_line": 1,
+      "end_line": 66,
+      "whole_file_read": true,
+      "file_sha256": "b4083f04d2a4f927be09c2c160c3a759982c1bb4c90baea862acb143510f1c46",
+      "git_blob_sha1": "932c5a1cfeaaaf87eff1115008437ff755a44eb9",
+      "raw_excerpt_sha256": "b4083f04d2a4f927be09c2c160c3a759982c1bb4c90baea862acb143510f1c46",
+      "excerpt": "package dev.shadowsoffire.apotheosis.affix.effect;\n\nimport java.util.Set;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\n\nimport dev.shadowsoffire.apotheosis.Apoth.LootCategories;\nimport dev.shadowsoffire.apotheosis.affix.Affix;\nimport dev.shadowsoffire.apotheosis.affix.AffixDefinition;\nimport dev.shadowsoffire.apotheosis.affix.AffixInstance;\nimport dev.shadowsoffire.apotheosis.loot.LootCategory;\nimport dev.shadowsoffire.apotheosis.loot.LootRarity;\nimport dev.shadowsoffire.placebo.codec.PlaceboCodecs;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.phys.Vec3;\n\n/**\n * Disengage\n */\npublic class RetreatingAffix extends Affix {\n\n    public static final Codec<RetreatingAffix> CODEC = RecordCodecBuilder.create(inst -> inst\n        .group(\n            affixDef(),\n            PlaceboCodecs.setOf(LootRarity.CODEC).fieldOf(\"rarities\").forGetter(a -> a.rarities))\n        .apply(inst, RetreatingAffix::new));\n\n    protected Set<LootRarity> rarities;\n\n    public RetreatingAffix(AffixDefinition def, Set<LootRarity> rarities) {\n        super(def);\n        this.rarities = rarities;\n    }\n\n    @Override\n    public boolean canApplyTo(ItemStack stack, LootCategory cat, LootRarity rarity) {\n        return cat == LootCategories.SHIELD && this.rarities.contains(rarity);\n    }\n\n    @Override\n    public float onShieldBlock(AffixInstance inst, LivingEntity entity, DamageSource source, float amount) {\n        Entity tSource = source.getEntity();\n        if (tSource != null && tSource.distanceToSqr(entity) <= 9) {\n            Vec3 look = entity.getLookAngle();\n            entity.setDeltaMovement(new Vec3(1 * -look.x, 0.25, 1 * -look.z));\n            entity.hurtMarked = true;\n            entity.setOnGround(false);\n        }\n        return super.onShieldBlock(inst, entity, source, amount);\n    }\n\n    @Override\n    public Codec<? extends Affix> getCodec() {\n        return CODEC;\n    }\n\n    @Override\n    public boolean isLevelIndependent(AffixInstance inst) {\n        return true;\n    }\n\n}\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/affix/effect/PsychicAffix.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/affix/effect/PsychicAffix.java",
+      "start_line": 1,
+      "end_line": 93,
+      "whole_file_read": true,
+      "file_sha256": "cdf44d515b0d6fff109b7c3d2fa6a6cac99cd22fc642b28b8effbfcb0c2b32d8",
+      "git_blob_sha1": "194be651d2ab312f98cb5f05f2ce946e249d5125",
+      "raw_excerpt_sha256": "cdf44d515b0d6fff109b7c3d2fa6a6cac99cd22fc642b28b8effbfcb0c2b32d8",
+      "excerpt": "package dev.shadowsoffire.apotheosis.affix.effect;\n\nimport java.util.Map;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\n\nimport dev.shadowsoffire.apotheosis.Apoth;\nimport dev.shadowsoffire.apotheosis.Apoth.LootCategories;\nimport dev.shadowsoffire.apotheosis.affix.Affix;\nimport dev.shadowsoffire.apotheosis.affix.AffixDefinition;\nimport dev.shadowsoffire.apotheosis.affix.AffixInstance;\nimport dev.shadowsoffire.apotheosis.loot.LootCategory;\nimport dev.shadowsoffire.apotheosis.loot.LootRarity;\nimport dev.shadowsoffire.placebo.util.StepFunction;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.item.ItemStack;\nimport net.neoforged.neoforge.common.util.AttributeTooltipContext;\n\n/**\n * When blocking an arrow, hurt the shooter.\n */\npublic class PsychicAffix extends Affix {\n\n    public static final Codec<PsychicAffix> CODEC = RecordCodecBuilder.create(inst -> inst\n        .group(\n            affixDef(),\n            LootRarity.mapCodec(StepFunction.CODEC).fieldOf(\"values\").forGetter(a -> a.values))\n        .apply(inst, PsychicAffix::new));\n\n    protected final Map<LootRarity, StepFunction> values;\n\n    public PsychicAffix(AffixDefinition def, Map<LootRarity, StepFunction> values) {\n        super(def);\n        this.values = values;\n    }\n\n    @Override\n    public MutableComponent getDescription(AffixInstance inst, AttributeTooltipContext ctx) {\n        return Component.translatable(\"affix.\" + this.id() + \".desc\", fmt(100 * this.getTrueLevel(inst)));\n    }\n\n    @Override\n    public Component getAugmentingText(AffixInstance inst, AttributeTooltipContext ctx) {\n        MutableComponent comp = this.getDescription(inst, ctx);\n\n        Component minComp = Component.translatable(\"%s%%\", fmt(100 * this.getTrueLevel(inst.getRarity(), 0)));\n        Component maxComp = Component.translatable(\"%s%%\", fmt(100 * this.getTrueLevel(inst.getRarity(), 1)));\n        return comp.append(valueBounds(minComp, maxComp));\n    }\n\n    @Override\n    public boolean canApplyTo(ItemStack stack, LootCategory cat, LootRarity rarity) {\n        return cat == LootCategories.SHIELD && this.values.containsKey(rarity);\n    }\n\n    @Override\n    public float onShieldBlock(AffixInstance inst, LivingEntity entity, DamageSource source, float amount) {\n        if (source.getDirectEntity() instanceof Projectile arrow) {\n            Entity owner = arrow.getOwner();\n            if (owner instanceof LivingEntity living && living.level() instanceof ServerLevel sl) {\n                living.hurtServer(sl, entity.damageSources().source(Apoth.DamageTypes.PSYCHIC, entity), amount * this.getTrueLevel(inst));\n            }\n        }\n\n        return super.onShieldBlock(inst, entity, source, amount);\n    }\n\n    @Override\n    public Codec<? extends Affix> getCodec() {\n        return CODEC;\n    }\n\n    @Override\n    public boolean isLevelIndependent(AffixInstance inst) {\n        return this.values.get(inst.getRarity()).isConstant();\n    }\n\n    private float getTrueLevel(AffixInstance inst) {\n        return this.getTrueLevel(inst.getRarity(), inst.level());\n    }\n\n    private float getTrueLevel(LootRarity rarity, float level) {\n        return this.values.get(rarity).get(level);\n    }\n\n}\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/AdventureEvents.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/AdventureEvents.java",
+      "start_line": 175,
+      "end_line": 220,
+      "whole_file_read": false,
+      "file_sha256": "ac32dc6eb5adb87a6ea625859363bd5aacb7463cf14b43c3b50bfc8361c73252",
+      "git_blob_sha1": "a23885c6b8baf80e6058c92246fa68833f2167be",
+      "raw_excerpt_sha256": "bff6d3337d96c5b0f8652deff5d4930b5fdff8582c91400248335608c1038eb3",
+      "excerpt": "        DamageSource src = e.getSource();\n        LivingEntity ent = e.getEntity();\n\n        if (ent.hasData(Apoth.Attachments.DAMAGE_REDUCTIONS)) {\n            DamageReductions reductions = ent.getData(Apoth.Attachments.DAMAGE_REDUCTIONS);\n            e.setAmount(reductions.applyReductions(src, e.getAmount()));\n        }\n\n        float amount = e.getAmount();\n        for (EquipmentSlot slot : EquipmentSlot.values()) {\n            ItemStack s = ent.getItemBySlot(slot);\n            amount = SocketHelper.getGems(s).onHurt(src, ent, amount);\n\n            var affixes = AffixHelper.getAffixes(s);\n            for (AffixInstance inst : affixes.values()) {\n                amount = inst.onHurt(src, ent, amount);\n            }\n        }\n        e.setAmount(amount);\n    }\n\n    @SubscribeEvent\n    public void shieldBlock(LivingShieldBlockEvent e) {\n        ItemStack stack = e.getEntity().getUseItem();\n        var affixes = AffixHelper.getAffixes(stack);\n        float blocked = e.getBlockedDamage();\n        blocked = SocketHelper.getGems(stack).onShieldBlock(e.getEntity(), e.getDamageSource(), blocked);\n\n        for (AffixInstance inst : affixes.values()) {\n            blocked = inst.onShieldBlock(e.getEntity(), e.getDamageSource(), blocked);\n        }\n        if (blocked != e.getOriginalBlockedDamage()) {\n            e.setBlockedDamage(blocked);\n        }\n    }\n\n    @SubscribeEvent\n    public void blockBreak(BreakBlockEvent e) {\n        ItemStack stack = e.getPlayer().getMainHandItem();\n        SocketHelper.getGems(stack).onBlockBreak(e.getPlayer(), e.getLevel(), e.getPos(), e.getState());\n        AffixHelper.streamAffixes(stack).forEach(inst -> {\n            inst.onBlockBreak(e.getPlayer(), e.getLevel(), e.getPos(), e.getState());\n        });\n    }\n\n    @SubscribeEvent(priority = EventPriority.LOW)\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/affix/Affix.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/affix/Affix.java",
+      "start_line": 155,
+      "end_line": 195,
+      "whole_file_read": false,
+      "file_sha256": "7ab98d663925b80d297df7cebad14fc94051b5d29f0fbc2531c84710cdb778ec",
+      "git_blob_sha1": "a76a7d20cb243595d557fc6f4c11308252b3525d",
+      "raw_excerpt_sha256": "70ae9b002d983317f353081cb3b95dd17bb9c79bd746e24f20ebd160e98897c9",
+      "excerpt": "     * Whenever an entity that has this affix on one of its associated items is damaged this method will be\n     * called.\n     */\n    public void doPostHurt(AffixInstance inst, LivingEntity user, DamageSource source) {}\n\n    /**\n     * Called when a user fires an projectile from a weapon with this affix on it.\n     */\n    public void onProjectileFired(AffixInstance inst, LivingEntity user, Projectile projectile) {}\n\n    /**\n     * Called when {@link Item#useOn(ItemUseContext)} would be called for an item with this affix.\n     * Return null to not impact the original result type.\n     */\n    @Nullable\n    public InteractionResult onItemUse(AffixInstance inst, UseOnContext ctx) {\n        return null;\n    }\n\n    /**\n     * Called when an projectile that was marked with this affix hits a target.\n     */\n    public void onProjectileImpact(float level, LootRarity rarity, Projectile proj, HitResult res, HitResult.Type type) {}\n\n    /**\n     * Called when a shield with this affix blocks some amount of damage.\n     *\n     * @param entity The blocking entity.\n     * @param source The damage source being blocked.\n     * @param amount The amount of damage blocked.\n     * @param level  The level of this affix.\n     * @return The amount of damage that is *actually* blocked by the shield, after this affix applies.\n     */\n    public float onShieldBlock(AffixInstance inst, LivingEntity entity, DamageSource source, float amount) {\n        return amount;\n    }\n\n    /**\n     * Called when a player with this affix breaks a block.\n     *\n     * @param player The breaking player.\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/affix/AffixInstance.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/affix/AffixInstance.java",
+      "start_line": 125,
+      "end_line": 152,
+      "whole_file_read": false,
+      "file_sha256": "765c4473ba5838375116da1eb62817993c32e567e6a2f1982760c5ca1d0fb170",
+      "git_blob_sha1": "57d96aa5c1278d58c57c269e4a1933f7e42e70c7",
+      "raw_excerpt_sha256": "3df4f2ee4723f0d68d77e2186ce5ef495257aadef2e2850f2e9afcd2dd3410c1",
+      "excerpt": "    /**\n     * @see Affix#onProjectileFired(ItemStack, LootRarity, float, LivingEntity, Projectile)\n     */\n    public void onProjectileFired(LivingEntity user, Projectile proj) {\n        this.getAffix().onProjectileFired(this, user, proj);\n    }\n\n    /**\n     * @see Affix#onItemUse(ItemStack, LootRarity, float, UseOnContext)\n     */\n    @Nullable\n    public InteractionResult onItemUse(UseOnContext ctx) {\n        return this.getAffix().onItemUse(this, ctx);\n    }\n\n    /**\n     * @see Affix#onShieldBlock(ItemStack, LootRarity, float, LivingEntity, DamageSource, float)\n     */\n    public float onShieldBlock(LivingEntity entity, DamageSource source, float amount) {\n        return this.getAffix().onShieldBlock(this, entity, source, amount);\n    }\n\n    /**\n     * @see Affix#onBlockBreak(ItemStack, LootRarity, float, Player, LevelAccessor, BlockPos, BlockState)\n     */\n    public void onBlockBreak(Player player, LevelAccessor world, BlockPos pos, BlockState state) {\n        this.getAffix().onBlockBreak(this, player, world, pos, state);\n    }\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/data/AffixProvider.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/data/AffixProvider.java",
+      "start_line": 945,
+      "end_line": 980,
+      "whole_file_read": false,
+      "file_sha256": "07b1fbfbd2e7f3e9231adf3414618aaf69bcd493d0373a412f4bf8291219864d",
+      "git_blob_sha1": "324aad3162bc227a41a38b6f2d42e4651d4a48a9",
+      "raw_excerpt_sha256": "f423b4bb8824b88ff1ca445e7ee4542f5bc01fc2495cfcc249e8234439cdc3aa",
+      "excerpt": "                .weights(TieredWeights.onlyFor(WorldTier.PINNACLE, 20, 0.75F))\n                .exclusiveWith(afx(\"boots/ability/unhurried\"))\n                .exclusiveWith(afx(\"boots/ability/surefooted\"))\n                .build(),\n            ApothMiscUtil.linkedSet(Attributes.MOVEMENT_SPEED, Attributes.STEP_HEIGHT),\n            linkedSet(mythic)));\n\n        // Shield Abilities\n\n        this.add(Apotheosis.loc(\"shield/retreating\"), new RetreatingAffix(\n            AffixDefinition.builder(AffixType.ABILITY).weights(TieredWeights.forAllTiers(DEFAULT_WEIGHT, DEFAULT_QUALITY)).build(),\n            linkedSet(epic, mythic)));\n\n        this.add(Apotheosis.loc(\"shield/psychic\"), AffixBuilder.simple(PsychicAffix::new)\n            .definition(AffixType.ABILITY, DEFAULT_WEIGHT, DEFAULT_QUALITY)\n            .value(epic, 0.5F, 0.9F)\n            .value(mythic, 0.6F, 1.2F)\n            .build());\n\n        this.add(Apotheosis.loc(\"shield/catalyzing\"), AffixBuilder.simple(CatalyzingAffix::new)\n            .definition(AffixType.ABILITY, DEFAULT_WEIGHT, DEFAULT_QUALITY)\n            .step(20)\n            .value(epic, 200, 400)\n            .value(mythic, 300, 600)\n            .build());\n\n        // Shear Effects\n        this.add(Apotheosis.loc(\"shears/effect/leafforming\"), new StoneformingAffix(\n            AffixDefinition.builder(AffixType.BASIC_EFFECT)\n                .weights(TieredWeights.forAllTiers(DEFAULT_WEIGHT, DEFAULT_QUALITY))\n                .exclusiveWith(afx(\"shears/effect/gardening\"))\n                .build(),\n            Set.of(LootCategories.SHEARS),\n            this.blockSet(Apoth.Tags.LEAFFORMING_CANDIDATES)));\n\n        this.add(Apotheosis.loc(\"shears/effect/gardening\"), new StoneformingAffix(\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/socket/gem/bonus/special/LeechBlockBonus.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/socket/gem/bonus/special/LeechBlockBonus.java",
+      "start_line": 1,
+      "end_line": 74,
+      "whole_file_read": true,
+      "file_sha256": "fa4c21e68f7463e8091680400bbdf7a75644b91f7de038236b8c77ef62e9f1f1",
+      "git_blob_sha1": "4572b4357f355679b455a6a7e67e50bec89b1362",
+      "raw_excerpt_sha256": "fa4c21e68f7463e8091680400bbdf7a75644b91f7de038236b8c77ef62e9f1f1",
+      "excerpt": "package dev.shadowsoffire.apotheosis.socket.gem.bonus.special;\n\nimport java.util.Map;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\n\nimport dev.shadowsoffire.apotheosis.Apoth.LootCategories;\nimport dev.shadowsoffire.apotheosis.affix.Affix;\nimport dev.shadowsoffire.apotheosis.socket.gem.GemClass;\nimport dev.shadowsoffire.apotheosis.socket.gem.GemInstance;\nimport dev.shadowsoffire.apotheosis.socket.gem.GemView;\nimport dev.shadowsoffire.apotheosis.socket.gem.Purity;\nimport dev.shadowsoffire.apotheosis.socket.gem.bonus.GemBonus;\nimport dev.shadowsoffire.apothic_attributes.api.AbilityCooldowns;\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.util.StringUtil;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.neoforged.neoforge.common.util.AttributeTooltipContext;\n\npublic class LeechBlockBonus extends GemBonus {\n\n    public static Codec<LeechBlockBonus> CODEC = RecordCodecBuilder.create(inst -> inst\n        .group(\n            Purity.mapCodec(Data.CODEC).fieldOf(\"values\").forGetter(a -> a.values))\n        .apply(inst, LeechBlockBonus::new));\n\n    protected final Map<Purity, Data> values;\n\n    public LeechBlockBonus(Map<Purity, Data> values) {\n        super(new GemClass(LootCategories.SHIELD));\n        this.values = values;\n    }\n\n    @Override\n    public float onShieldBlock(GemInstance inst, LivingEntity entity, DamageSource source, float amount) {\n        Data d = this.values.get(inst.purity());\n        if (amount <= 2 || AbilityCooldowns.isOnCooldown(entity, makeUniqueId(inst), d.cooldown)) {\n            return amount;\n        }\n        entity.heal(amount * d.healFactor);\n        AbilityCooldowns.startCooldown(entity, makeUniqueId(inst));\n        return amount;\n    }\n\n    @Override\n    public Codec<? extends GemBonus> getCodec() {\n        return CODEC;\n    }\n\n    @Override\n    public Component getSocketBonusTooltip(GemView inst, AttributeTooltipContext ctx) {\n        Data d = this.values.get(inst.purity());\n        Component cooldown = Component.translatable(\"affix.apotheosis.cooldown\", StringUtil.formatTickDuration(d.cooldown, ctx.tickRate()));\n        return Component.translatable(\"bonus.\" + this.getTypeKey() + \".desc\", Affix.fmt(d.healFactor * 100), cooldown).withStyle(ChatFormatting.YELLOW);\n    }\n\n    @Override\n    public boolean supports(Purity purity) {\n        return this.values.containsKey(purity);\n    }\n\n    public static record Data(float healFactor, int cooldown) {\n\n        public static final Codec<Data> CODEC = RecordCodecBuilder.create(inst -> inst\n            .group(\n                Codec.FLOAT.fieldOf(\"heal_factor\").forGetter(Data::healFactor),\n                Codec.INT.fieldOf(\"cooldown\").forGetter(Data::cooldown))\n            .apply(inst, Data::new));\n\n    }\n}\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/affix/effect/CatalyzingAffix.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/affix/effect/CatalyzingAffix.java",
+      "start_line": 1,
+      "end_line": 66,
+      "whole_file_read": true,
+      "file_sha256": "f1401712547ab905fcdf67d0717139f3bb6ccdedf9e09a0cdd2134a2985ff6bb",
+      "git_blob_sha1": "1a376821d57bb20205dca36b7d0e8a3c5b0c0675",
+      "raw_excerpt_sha256": "f1401712547ab905fcdf67d0717139f3bb6ccdedf9e09a0cdd2134a2985ff6bb",
+      "excerpt": "package dev.shadowsoffire.apotheosis.affix.effect;\n\nimport java.util.Map;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\n\nimport dev.shadowsoffire.apotheosis.Apoth.LootCategories;\nimport dev.shadowsoffire.apotheosis.affix.Affix;\nimport dev.shadowsoffire.apotheosis.affix.AffixDefinition;\nimport dev.shadowsoffire.apotheosis.affix.AffixInstance;\nimport dev.shadowsoffire.apotheosis.loot.LootCategory;\nimport dev.shadowsoffire.apotheosis.loot.LootRarity;\nimport dev.shadowsoffire.placebo.util.StepFunction;\nimport net.minecraft.tags.DamageTypeTags;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.item.ItemStack;\n\n/**\n * When blocking an explosion, gain great power.\n */\npublic class CatalyzingAffix extends Affix {\n\n    public static final Codec<CatalyzingAffix> CODEC = RecordCodecBuilder.create(inst -> inst\n        .group(\n            affixDef(),\n            LootRarity.mapCodec(StepFunction.CODEC).fieldOf(\"values\").forGetter(a -> a.values))\n        .apply(inst, CatalyzingAffix::new));\n\n    protected final Map<LootRarity, StepFunction> values;\n\n    public CatalyzingAffix(AffixDefinition def, Map<LootRarity, StepFunction> values) {\n        super(def);\n        this.values = values;\n    }\n\n    @Override\n    public boolean canApplyTo(ItemStack stack, LootCategory cat, LootRarity rarity) {\n        return cat == LootCategories.SHIELD && this.values.containsKey(rarity);\n    }\n\n    @Override\n    public float onShieldBlock(AffixInstance inst, LivingEntity entity, DamageSource source, float amount) {\n        if (source.is(DamageTypeTags.IS_EXPLOSION)) {\n            int time = this.values.get(inst.getRarity()).getInt(inst.level());\n            int modifier = 1 + (int) (Math.log(amount) / Math.log(3));\n            entity.addEffect(new MobEffectInstance(MobEffects.STRENGTH, time, modifier));\n        }\n\n        return super.onShieldBlock(inst, entity, source, amount);\n    }\n\n    @Override\n    public Codec<? extends Affix> getCodec() {\n        return CODEC;\n    }\n\n    @Override\n    public boolean isLevelIndependent(AffixInstance inst) {\n        return this.values.get(inst.getRarity()).isConstant();\n    }\n\n}\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/socket/SocketedGems.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/socket/SocketedGems.java",
+      "start_line": 1,
+      "end_line": 245,
+      "whole_file_read": true,
+      "file_sha256": "f2f23f96df750c0c402320b1a142aa89496e2e6c9b59a7060e4bd57ab77c7d30",
+      "git_blob_sha1": "86db132aeaa8a1bc0a6916463e211a2b0b62fe25",
+      "raw_excerpt_sha256": "f2f23f96df750c0c402320b1a142aa89496e2e6c9b59a7060e4bd57ab77c7d30",
+      "excerpt": "package dev.shadowsoffire.apotheosis.socket;\n\nimport java.util.Collection;\nimport java.util.Iterator;\nimport java.util.List;\nimport java.util.ListIterator;\nimport java.util.stream.DoubleStream;\nimport java.util.stream.Stream;\n\nimport javax.annotation.Nullable;\n\nimport com.google.common.base.Predicates;\nimport com.google.common.collect.ImmutableList;\n\nimport dev.shadowsoffire.apotheosis.socket.gem.GemInstance;\nimport dev.shadowsoffire.apothic_attributes.modifiers.StackAttributeModifiersEvent;\nimport it.unimi.dsi.fastutil.objects.ObjectArrayList;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.context.UseOnContext;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.storage.loot.LootContext;\nimport net.neoforged.neoforge.event.enchanting.GetEnchantmentLevelEvent;\n\n/**\n * Live instance of socketed gems on an item. The size of the list is equal to the number of sockets on the object.\n * Additionally, this list may contain empty or invalid gem instances.\n */\npublic record SocketedGems(ImmutableList<GemInstance> gems) implements List<GemInstance> {\n\n    public static final SocketedGems EMPTY = new SocketedGems(ImmutableList.of());\n\n    public SocketedGems(List<GemInstance> gems) {\n        this(ImmutableList.copyOf(gems));\n    }\n\n    public void addModifiers(StackAttributeModifiersEvent event) {\n        this.streamValidGems().forEach(inst -> inst.addModifiers(event));\n    }\n\n    public float getDamageProtection(DamageSource source) {\n        return this.streamValidGems().map(inst -> inst.getDamageProtection(source)).reduce(0F, Float::sum);\n    }\n\n    public float getDamageBonus(Entity entity) {\n        return this.streamValidGems().map(inst -> inst.getDamageBonus(entity)).reduce(Float::sum).orElse(0F);\n    }\n\n    public void doPostAttack(LivingEntity user, Entity target) {\n        this.streamValidGems().forEach(inst -> {\n            int old = target.invulnerableTime;\n            target.invulnerableTime = 0;\n            inst.doPostAttack(user, target);\n            target.invulnerableTime = old;\n        });\n    }\n\n    public void doPostHurt(LivingEntity user, DamageSource source) {\n        this.streamValidGems().forEach(inst -> inst.doPostHurt(user, source));\n    }\n\n    public void onProjectileFired(LivingEntity user, Projectile proj) {\n        this.streamValidGems().forEach(inst -> inst.onProjectileFired(user, proj));\n    }\n\n    @Nullable\n    public InteractionResult onItemUse(UseOnContext useinst) {\n        return this.streamValidGems().map(inst -> inst.onItemUse(useinst)).filter(Predicates.notNull()).findFirst().orElse(null);\n    }\n\n    public float onShieldBlock(LivingEntity entity, DamageSource source, float amount) {\n        for (GemInstance inst : this.gems) {\n            if (inst.isValid()) {\n                amount = inst.onShieldBlock(entity, source, amount);\n            }\n        }\n        return amount;\n    }\n\n    public void onBlockBreak(Player player, LevelAccessor world, BlockPos pos, BlockState state) {\n        this.streamValidGems().forEach(inst -> inst.onBlockBreak(player, world, pos, state));\n    }\n\n    public DoubleStream getDurabilityBonusPercentage() {\n        return this.streamValidGems().mapToDouble(GemInstance::getDurabilityBonusPercentage);\n    }\n\n    public float onHurt(DamageSource src, LivingEntity ent, float amount) {\n        for (GemInstance inst : this.gems) {\n            if (inst.isValid()) {\n                amount = inst.onHurt(src, ent, amount);\n            }\n        }\n        return amount;\n    }\n\n    public void getEnchantmentLevels(GetEnchantmentLevelEvent event) {\n        this.streamValidGems().forEach(inst -> inst.getEnchantmentLevels(event));\n    }\n\n    public void modifyLoot(ObjectArrayList<ItemStack> loot, LootContext ctx) {\n        this.streamValidGems().forEach(inst -> inst.modifyLoot(loot, ctx));\n    }\n\n    /**\n     * Returns a stream of all socketed gem instances that are {@link GemInstance#isValid()}.\n     */\n    public Stream<GemInstance> streamValidGems() {\n        return this.gems.stream().filter(GemInstance::isValid);\n    }\n\n    // List interface methods below this line\n\n    @Override\n    public int size() {\n        return this.gems.size();\n    }\n\n    @Override\n    public boolean isEmpty() {\n        return this.gems.isEmpty();\n    }\n\n    @Override\n    public boolean contains(Object o) {\n        return this.gems.contains(o);\n    }\n\n    @Override\n    public Iterator<GemInstance> iterator() {\n        return this.gems.iterator();\n    }\n\n    @Override\n    public Object[] toArray() {\n        return this.gems.toArray();\n    }\n\n    @Override\n    public <T> T[] toArray(T[] a) {\n        return this.gems.toArray(a);\n    }\n\n    @Override\n    @Deprecated\n    public boolean add(GemInstance e) {\n        throw new UnsupportedOperationException();\n    }\n\n    @Override\n    @Deprecated\n    public boolean remove(Object o) {\n        throw new UnsupportedOperationException();\n    }\n\n    @Override\n    public boolean containsAll(Collection<?> c) {\n        return this.gems.containsAll(c);\n    }\n\n    @Override\n    @Deprecated\n    public boolean addAll(Collection<? extends GemInstance> c) {\n        throw new UnsupportedOperationException();\n    }\n\n    @Override\n    @Deprecated\n    public boolean addAll(int index, Collection<? extends GemInstance> c) {\n        throw new UnsupportedOperationException();\n    }\n\n    @Override\n    public boolean removeAll(Collection<?> c) {\n        return false;\n    }\n\n    @Override\n    @Deprecated\n    public boolean retainAll(Collection<?> c) {\n        throw new UnsupportedOperationException();\n    }\n\n    @Override\n    @Deprecated\n    public void clear() {\n        throw new UnsupportedOperationException();\n    }\n\n    @Override\n    public GemInstance get(int index) {\n        return this.gems.get(index);\n    }\n\n    @Override\n    @Deprecated\n    public GemInstance set(int index, GemInstance element) {\n        throw new UnsupportedOperationException();\n    }\n\n    @Override\n    @Deprecated\n    public void add(int index, GemInstance element) {\n        throw new UnsupportedOperationException();\n    }\n\n    @Override\n    @Deprecated\n    public GemInstance remove(int index) {\n        throw new UnsupportedOperationException();\n    }\n\n    @Override\n    public int indexOf(Object o) {\n        return this.gems.indexOf(o);\n    }\n\n    @Override\n    public int lastIndexOf(Object o) {\n        return this.gems.lastIndexOf(o);\n    }\n\n    @Override\n    public ListIterator<GemInstance> listIterator() {\n        return this.gems.listIterator();\n    }\n\n    @Override\n    public ListIterator<GemInstance> listIterator(int index) {\n        return this.gems.listIterator(index);\n    }\n\n    @Override\n    public List<GemInstance> subList(int fromIndex, int toIndex) {\n        return this.gems.subList(fromIndex, toIndex);\n    }\n\n}\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/socket/SocketHelper.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/socket/SocketHelper.java",
+      "start_line": 30,
+      "end_line": 100,
+      "whole_file_read": false,
+      "file_sha256": "fa9f3be9776b6bf944184ffb329207197cc91a9c7c5b4265d1c79461d16053b0",
+      "git_blob_sha1": "92903772eea586f1ba8818594bfb1c45a7a1b71b",
+      "raw_excerpt_sha256": "e4c54a395910e0a50f9caebe8c172b0857105ef2e7e30b677915a0cfb352df99",
+      "excerpt": " * <p>\n * Sockets may only be applied to items which are of a valid loot category.\n */\npublic class SocketHelper {\n\n    public static final Identifier GEMS_CACHED_OBJECT = Apotheosis.loc(\"gems\");\n\n    private static final ToIntFunction<ItemStack> SOCKET_DEPENDENT_COMPONENTS_HASHER = CachedObject.hashComponents(Components.GEM, Components.PURITY, Components.SOCKETED_GEMS);\n\n    /**\n     * Gets the number of sockets on an item.\n     * By default, this equals the nbt-encoded socket count, but it may be modified by {@link GetItemSocketsEvent}.\n     *\n     * @param stack The stack being queried.\n     * @return The number of sockets on the stack.\n     */\n    public static int getSockets(ItemStack stack) {\n        int sockets = stack.getOrDefault(Components.SOCKETS, 0);\n        var event = new GetItemSocketsEvent(stack, sockets);\n        NeoForge.EVENT_BUS.post(event);\n        return event.getSockets();\n    }\n\n    /**\n     * Sets the number of sockets on the item to the specified value.\n     * <p>\n     * The value set here is not necessarily the value that will be returned by {@link #getSockets(ItemStack)} due to {@link GetItemSocketsEvent}.\n     *\n     * @param stack   The stack being modified.\n     * @param sockets The number of sockets.\n     */\n    public static void setSockets(ItemStack stack, int sockets) {\n        stack.set(Components.SOCKETS, Mth.clamp(sockets, 0, 16));\n    }\n\n    /**\n     * Gets the list of gems socketed into the item. Gems in the list may be unbound, invalid, or empty.\n     *\n     * @param stack The stack being queried\n     * @return An immutable list of all gems socketed in this item. This list is cached.\n     */\n    public static SocketedGems getGems(ItemStack stack) {\n        return CachedObjectSource.getOrCreate(stack, GEMS_CACHED_OBJECT, SocketHelper::getGemsImpl, SocketHelper::hashSockets);\n    }\n\n    /**\n     * Computes the invalidation hash for the SocketedGems cache. The hash changes if the number of sockets changes, or the affix data changes.\n     */\n    private static int hashSockets(ItemStack stack) {\n        return Objects.hash(SOCKET_DEPENDENT_COMPONENTS_HASHER.applyAsInt(stack), getSockets(stack));\n    }\n\n    /**\n     * Implementation for {@link #getGems(ItemStack)}\n     */\n    private static SocketedGems getGemsImpl(ItemStack stack) {\n        int size = getSockets(stack);\n        if (size <= 0 || stack.isEmpty()) {\n            return SocketedGems.EMPTY;\n        }\n\n        LootCategory cat = LootCategory.forItem(stack);\n        if (cat.isNone()) {\n            return SocketedGems.EMPTY;\n        }\n\n        NonNullList<GemInstance> list = NonNullList.withSize(size, GemInstance.EMPTY);\n        ItemContainerContents socketedGems = stack.getOrDefault(Components.SOCKETED_GEMS, ItemContainerContents.EMPTY);\n\n        for (int i = 0; i < Math.min(size, socketedGems.getSlots()); i++) {\n            ItemStack gem = socketedGems.getStackInSlot(i);\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/affix/AffixHelper.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/affix/AffixHelper.java",
+      "start_line": 125,
+      "end_line": 171,
+      "whole_file_read": false,
+      "file_sha256": "f7b2677e5932965a2603dde131882d128901aaee989f9fb3bed81622135f5e24",
+      "git_blob_sha1": "9a0b8aef8f1a9409da515ce9182661e0bdb9fdc4",
+      "raw_excerpt_sha256": "cfc0a5ce9b1b7d0dbe258d66d69be5a5eef346e7c969a76ddf0bcd9425187abf",
+      "excerpt": "    }\n\n    /**\n     * Gets the affixes of an item. The returned map is immutable.\n     * <p>\n     * Due to potential reloads, it is possible for an affix instance to become unbound but still remain cached.\n     *\n     * @param stack The stack being queried.\n     * @return An immutable map of all affixes on the stack, or an empty map if none were found.\n     * @apiNote Prefer using {@link #streamAffixes(ItemStack)} where applicable, since invalid instances will be pre-filtered.\n     */\n    public static Map<DynamicHolder<Affix>, AffixInstance> getAffixes(ItemStack stack) {\n        if (AffixRegistry.INSTANCE.getValues().isEmpty()) {\n            return Collections.emptyMap(); // Don't enter getAffixesImpl if the affixes haven't loaded yet.\n        }\n        return CachedObjectSource.getOrCreate(stack, AFFIX_CACHED_OBJECT, AffixHelper::getAffixesImpl, CachedObject.hashComponents(Components.AFFIXES, Components.RARITY));\n    }\n\n    public static Map<DynamicHolder<Affix>, AffixInstance> getAffixesImpl(ItemStack stack) {\n        if (stack.isEmpty()) {\n            return Collections.emptyMap();\n        }\n        DynamicHolder<LootRarity> rarity = getRarity(stack);\n        if (!rarity.isBound()) {\n            return Collections.emptyMap();\n        }\n        Map<DynamicHolder<Affix>, AffixInstance> map = new HashMap<>();\n        ItemAffixes affixes = stack.getOrDefault(Components.AFFIXES, ItemAffixes.EMPTY);\n        if (!affixes.isEmpty()) {\n            LootCategory cat = LootCategory.forItem(stack);\n            for (DynamicHolder<Affix> affix : affixes.keySet()) {\n                if (!affix.isBound() || !affix.get().canApplyTo(stack, cat, rarity.get())) {\n                    continue;\n                }\n                float lvl = affixes.getLevel(affix);\n                map.put(affix, new AffixInstance(affix, lvl, rarity, stack));\n            }\n        }\n        return Collections.unmodifiableMap(map);\n    }\n\n    public static Stream<AffixInstance> streamAffixes(ItemStack stack) {\n        return getAffixes(stack).values().stream().filter(AffixInstance::isValid);\n    }\n\n    public static Stream<AffixInstance> streamAffixes(Projectile proj) {\n        return getAffixes(proj).values().stream().filter(AffixInstance::isValid);\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/Apotheosis.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/Apotheosis.java",
+      "start_line": 130,
+      "end_line": 185,
+      "whole_file_read": false,
+      "file_sha256": "312adb23489ec0fc2a8bb526928497333acefd0a563c08843c94566283e49c6d",
+      "git_blob_sha1": "9f5b3f0b98a1fa3cf397e3abc7624fbc0f162ea5",
+      "raw_excerpt_sha256": "9377f9de5fc28b621a0335aa2442d22ee08e093e1332163f25d568137804dba0",
+      "excerpt": "        if (ModList.get().isLoaded(\"curios\")) {\n            CuriosCompat.register(bus);\n        }\n\n        if (ApothicEnchantingCompat.isLoaded()) {\n            ApothicEnchantingCompat.register(bus);\n        }\n    }\n\n    @SubscribeEvent\n    public void setup(FMLCommonSetupEvent e) {\n        e.enqueueWork(() -> {\n            TabFillingRegistry.register(Apoth.Tabs.ADVENTURE.getKey(),\n                Items.MYSTERIOUS_SCRAP_METAL, Items.TIMEWORN_FABRIC, Items.LUMINOUS_CRYSTAL_SHARD, Items.ARCANE_SANDS, Items.GODFORGED_PEARL, Items.GOD_FUSED_PEARL, Items.GEM_DUST, Items.GEM_FUSED_SLATE,\n                Items.SIGIL_OF_SOCKETING, Items.SIGIL_OF_WITHDRAWAL, Items.SIGIL_OF_REBIRTH, Items.SIGIL_OF_ENHANCEMENT, Items.SIGIL_OF_UNNAMING, Items.SIGIL_OF_MALICE, Items.SIGIL_OF_SUPREMACY,\n                Items.SALVAGING_TABLE, Items.GEM_CUTTING_TABLE, Items.SIMPLE_REFORGING_TABLE, Items.REFORGING_TABLE, Items.AUGMENTING_TABLE, Items.GEM_CASE, Items.ENDER_GEM_CASE,\n                Items.IRON_UPGRADE_SMITHING_TEMPLATE, Items.GOLD_UPGRADE_SMITHING_TEMPLATE, Items.DIAMOND_UPGRADE_SMITHING_TEMPLATE,\n                Items.MUSIC_DISC_FLASH, Items.MUSIC_DISC_GLIMMER, Items.MUSIC_DISC_SHIMMER);\n\n            if (ApothicSpawnersCompat.isLoaded()) {\n                // The spawner rune items only function when Apothic Spawners is installed, so they are hidden without it.\n                TabFillingRegistry.register(Apoth.Tabs.ADVENTURE.getKey(),\n                    Items.SPAWNER_CHAIN, Items.SPAWNER_RUNE, Items.INFUSED_SPAWNER_RUNE,\n                    Items.FRONTIER_SPAWNER_UPGRADE_RUNE, Items.ASCENT_SPAWNER_UPGRADE_RUNE, Items.SUMMIT_SPAWNER_UPGRADE_RUNE, Items.PINNACLE_SPAWNER_UPGRADE_RUNE,\n                    Items.SPAWN_RANGE_SPAWNER_RUNE, Items.REDSTONE_CONTROL_SPAWNER_RUNE, Items.IGNORE_LIGHT_SPAWNER_RUNE, Items.INITIAL_HEALTH_SPAWNER_RUNE,\n                    Items.SILENT_SPAWNER_RUNE, Items.YOUTHFUL_SPAWNER_RUNE, Items.BURNING_SPAWNER_RUNE, Items.NO_AI_SPAWNER_RUNE,\n                    Items.IGNORE_CONDITIONS_SPAWNER_RUNE, Items.IGNORE_PLAYERS_SPAWNER_RUNE, Items.ECHOING_SPAWNER_RUNE);\n            }\n\n            TabFillingRegistry.register(Apoth.Tabs.ADVENTURE.getKey(),\n                Items.GEM, // Gem is at the end because it also generates all the dynamic variants.\n                Items.BOSS_SUMMONER // Except this stupid little creature\n            );\n\n            TabFillingRegistry.register(CreativeModeTabs.FOOD_AND_DRINKS, Items.POTION_CHARM);\n        });\n        PayloadHelper.registerPayload(new BossSpawnPayload.Provider());\n        PayloadHelper.registerPayload(new RerollResultPayload.Provider());\n        PayloadHelper.registerPayload(new RadialStatePayload.Provider());\n        PayloadHelper.registerPayload(new AttributeTogglesPayload.Provider());\n        PayloadHelper.registerPayload(new WorldTierPayload.Provider());\n        PayloadHelper.registerPayload(new ConfigPayload.Provider());\n        PayloadHelper.registerPayload(new LinkItemToChatPayload.Provider());\n        PayloadHelper.registerPayload(new GemCaseSelectPayload.Provider());\n        NeoForge.EVENT_BUS.register(new AdventureEvents());\n        NeoForge.EVENT_BUS.register(new ApothMobEvents());\n        RarityRegistry.INSTANCE.registerToBus();\n        RarityOverrideRegistry.INSTANCE.registerToBus();\n        AffixRegistry.INSTANCE.registerToBus();\n        ExtraGemBonusRegistry.INSTANCE.registerToBus();\n        GemRegistry.INSTANCE.registerToBus();\n        AffixLootRegistry.INSTANCE.registerToBus();\n        InvaderRegistry.INSTANCE.registerToBus();\n        RogueSpawnerRegistry.INSTANCE.registerToBus();\n        EliteRegistry.INSTANCE.registerToBus();\n        PurityWeightsRegistry.INSTANCE.registerToBus();\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/socket/SocketHelper.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/socket/SocketHelper.java",
+      "start_line": 101,
+      "end_line": 116,
+      "whole_file_read": false,
+      "file_sha256": "fa9f3be9776b6bf944184ffb329207197cc91a9c7c5b4265d1c79461d16053b0",
+      "git_blob_sha1": "92903772eea586f1ba8818594bfb1c45a7a1b71b",
+      "raw_excerpt_sha256": "dd162356277a415abe598b34ba3b8e5d17280778e00768b2f2d374cc2c344b39",
+      "excerpt": "            if (!gem.isEmpty()) {\n                gem.setCount(1);\n                GemInstance inst = GemInstance.socketed(stack, gem, i);\n                list.set(i, inst);\n            }\n        }\n\n        return new SocketedGems(list);\n    }\n\n    /**\n     * Sets the gem list on the item to the provided list of gems.<br>\n     * Setting more gems than there are sockets will cause the extra gems to be lost.\n     *\n     * @param stack The stack being modified.\n     * @param gems  The list of socketed gems.\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/socket/gem/GemInstance.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/socket/gem/GemInstance.java",
+      "start_line": 1,
+      "end_line": 114,
+      "whole_file_read": false,
+      "file_sha256": "6e5bc169e239caff04df1b8dde7e13355625e6530adfcecc53663d94dcdff1c4",
+      "git_blob_sha1": "d3d73694b2aba72465ad8c3eb2427680b42d6d73",
+      "raw_excerpt_sha256": "fb254383db486a597605a8302675f59fa626ca7afbb8c15c79759661a7158d4d",
+      "excerpt": "package dev.shadowsoffire.apotheosis.socket.gem;\n\nimport java.util.Map;\nimport java.util.Optional;\nimport java.util.function.BiConsumer;\nimport java.util.function.Consumer;\nimport java.util.function.Function;\n\nimport javax.annotation.Nullable;\n\nimport dev.shadowsoffire.apotheosis.Apoth.LootCategories;\nimport dev.shadowsoffire.apotheosis.affix.AffixInstance;\nimport dev.shadowsoffire.apotheosis.loot.LootCategory;\nimport dev.shadowsoffire.apotheosis.loot.LootRarity;\nimport dev.shadowsoffire.apotheosis.socket.gem.bonus.GemBonus;\nimport dev.shadowsoffire.apothic_attributes.modifiers.StackAttributeModifiersEvent;\nimport dev.shadowsoffire.placebo.dynreg.DynamicHolder;\nimport it.unimi.dsi.fastutil.objects.ObjectArrayList;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.resources.Identifier;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.context.UseOnContext;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.storage.loot.LootContext;\nimport net.minecraft.world.phys.HitResult;\nimport net.neoforged.neoforge.common.util.AttributeTooltipContext;\nimport net.neoforged.neoforge.event.enchanting.GetEnchantmentLevelEvent;\n\n/**\n * A Gem Instance is a live copy of a Gem with all context needed to call Gem methods.\n * <p>\n * This is the Gem counterpart of {@link AffixInstance}.\n * <p>\n * The major difference between them is that most methods do not live on {@link Gem} but rather on {@link GemBonus}.\n *\n * @param gem      The socketed Gem.\n * @param category The LootCategory of the item the Gem is socketed into.\n * @param purity   The purity of the socketed Gem.\n * @param gemStack The itemstack form of the sockted Gem.\n * @param slot     The slot index of this gem in the socketed parent item.\n */\npublic record GemInstance(DynamicHolder<Gem> gem, LootCategory category, Purity purity, ItemStack gemStack, int slot) implements GemView {\n\n    public static GemInstance EMPTY = new GemInstance(GemRegistry.INSTANCE.emptyHolder(), LootCategories.NONE, Purity.CHIPPED, ItemStack.EMPTY, -1);\n\n    /**\n     * Creates a {@link GemInstance} for a socketed gem.\n     *\n     * @param socketed The item the gem is socketed in.\n     * @param gemStack The stack representing the gem.\n     */\n    public static GemInstance socketed(ItemStack socketed, ItemStack gemStack, int slot) {\n        return socketed(LootCategory.forItem(socketed), gemStack, slot);\n    }\n\n    /**\n     * Creates a {@link GemInstance} for a socketed gem.\n     *\n     * @param category The category of the object the gem is socketed in.\n     * @param gemStack The stack representing the gem.\n     */\n    public static GemInstance socketed(LootCategory category, ItemStack gemStack, int slot) {\n        DynamicHolder<Gem> gem = GemItem.getGem(gemStack);\n        Purity purity = GemItem.getPurity(gemStack);\n\n        if (gem.isBound()) {\n            purity = Purity.max(gem.get().getMinPurity(), purity);\n        }\n\n        return new GemInstance(gem, category, purity, gemStack, slot);\n    }\n\n    /**\n     * If this gem instance {@linkplain #isValidUnsocketed() is valid}, returns the stored {@link Gem}.\n     *\n     * @throws NullPointerException if this gem instance is invalid.\n     */\n    public Gem getGem() {\n        return this.gem.get();\n    }\n\n    /**\n     * Checks if the gem and rarity are not null, and there is a valid bonus for the socketed category.\n     */\n    public boolean isValid() {\n        return this.gem.isBound() && this.getGem().getBonus(this.category, this.purity).isPresent() && this.slot != -1;\n    }\n\n    /**\n     * Checks if this gem is a {@link Purity#PERFECT perfect} gem, which can no longer be upgraded.\n     */\n    public boolean isPerfect() {\n        return this.purity == Purity.PERFECT;\n    }\n\n    /**\n     * @see Gem#addInformation(GemInstance, Consumer, AttributeTooltipContext)\n     */\n    public void addInformation(Consumer<Component> list, AttributeTooltipContext ctx) {\n        this.getGem().addInformation(this, list, ctx);\n    }\n\n    /**\n     * @see Gem#canApplyTo(ItemStack, ItemStack, LootRarity)\n     */\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/socket/gem/GemInstance.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/socket/gem/GemInstance.java",
+      "start_line": 175,
+      "end_line": 194,
+      "whole_file_read": false,
+      "file_sha256": "6e5bc169e239caff04df1b8dde7e13355625e6530adfcecc53663d94dcdff1c4",
+      "git_blob_sha1": "d3d73694b2aba72465ad8c3eb2427680b42d6d73",
+      "raw_excerpt_sha256": "eed4d08f9ec284439c28750fd0e3c6c9278bdeb1dcb2430e74bd2a73268534fa",
+      "excerpt": "\n    /**\n     * @see {@link GemBonus#onProjectileImpact(Projectile, LootRarity, HitResult, HitResult.Type)}\n     */\n    public void onProjectileImpact(Projectile proj, HitResult res) {\n        this.ifPresent(b -> b.onProjectileImpact(this, proj, res));\n    }\n\n    /**\n     * @see GemBonus#onShieldBlock(ItemStack, LootRarity, LivingEntity, DamageSource, float)\n     */\n    public float onShieldBlock(LivingEntity entity, DamageSource source, float amount) {\n        return this.map(b -> b.onShieldBlock(this, entity, source, amount)).orElse(amount);\n    }\n\n    /**\n     * @see GemBonus#onBlockBreak(ItemStack, LootRarity, Player, LevelAccessor, BlockPos, BlockState)\n     */\n    public void onBlockBreak(Player player, LevelAccessor world, BlockPos pos, BlockState state) {\n        this.ifPresent(b -> b.onBlockBreak(this, player, world, pos, state));\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/socket/gem/GemInstance.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/socket/gem/GemInstance.java",
+      "start_line": 220,
+      "end_line": 253,
+      "whole_file_read": false,
+      "file_sha256": "6e5bc169e239caff04df1b8dde7e13355625e6530adfcecc53663d94dcdff1c4",
+      "git_blob_sha1": "d3d73694b2aba72465ad8c3eb2427680b42d6d73",
+      "raw_excerpt_sha256": "d1ee968c87e7757b669a66dbfe6c1e898bfa93099bc0b8c7b984a6f4122f5251",
+      "excerpt": "     */\n    public void modifyLoot(ObjectArrayList<ItemStack> loot, LootContext ctx) {\n        this.ifPresent(b -> b.modifyLoot(this, loot, ctx));\n    }\n\n    /**\n     * @see GemBonus#skipModifierIds(GemInstance, Consumer)\n     */\n    public void skipModifierIds(Consumer<Identifier> skip) {\n        this.ifPresent(b -> b.skipModifierIds(this, skip));\n    }\n\n    public Optional<GemBonus> getBonus() {\n        return this.gem.get().getBonus(this.category, this.purity);\n    }\n\n    /**\n     * Resolves a gem bonus using {@link Optional#map(Function)}.\n     *\n     * @throws UnsupportedOperationException if this instance is not {@link #isValid()}.\n     */\n    private <T> Optional<T> map(Function<GemBonus, T> function) {\n        return this.getBonus().map(function);\n    }\n\n    /**\n     * Resolves a gem bonus using {@link Optional#ifPresent(Consumer)}.\n     *\n     * @throws UnsupportedOperationException if this instance is not {@link #isValid()}.\n     */\n    private void ifPresent(Consumer<GemBonus> function) {\n        this.getBonus().ifPresent(function);\n    }\n}\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/affix/AffixInstance.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/affix/AffixInstance.java",
+      "start_line": 1,
+      "end_line": 100,
+      "whole_file_read": false,
+      "file_sha256": "765c4473ba5838375116da1eb62817993c32e567e6a2f1982760c5ca1d0fb170",
+      "git_blob_sha1": "57d96aa5c1278d58c57c269e4a1933f7e42e70c7",
+      "raw_excerpt_sha256": "9c891f63d4d299bce9f4855396c676e1efb8bc54b02910a72220bd874646006b",
+      "excerpt": "package dev.shadowsoffire.apotheosis.affix;\n\nimport java.util.Map;\nimport java.util.function.BiConsumer;\n\nimport javax.annotation.Nullable;\n\nimport dev.shadowsoffire.apotheosis.loot.LootCategory;\nimport dev.shadowsoffire.apotheosis.loot.LootRarity;\nimport dev.shadowsoffire.apothic_attributes.modifiers.StackAttributeModifiersEvent;\nimport dev.shadowsoffire.placebo.dynreg.DynamicHolder;\nimport it.unimi.dsi.fastutil.objects.ObjectArrayList;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.resources.Identifier;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.context.UseOnContext;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.storage.loot.LootContext;\nimport net.minecraft.world.phys.HitResult;\nimport net.neoforged.neoforge.common.util.AttributeTooltipContext;\nimport net.neoforged.neoforge.event.enchanting.GetEnchantmentLevelEvent;\nimport net.neoforged.neoforge.event.entity.living.LivingDropsEvent;\n\n/**\n * An Affix Instance is a wrapper around the necessary parameters for all affix methods.\n * Prefer using this over directly invoking methods on {@link Affix}.\n *\n * @param affix  The affix this instance is for.\n * @param level  The level of the affix.\n * @param rarity The rarity of the source item.\n * @param stack  The source item stack.\n */\npublic record AffixInstance(DynamicHolder<Affix> affix, float level, DynamicHolder<LootRarity> rarity, ItemStack stack) {\n\n    public LootCategory category() {\n        return LootCategory.forItem(this.stack);\n    }\n\n    public boolean isValid() {\n        return this.affix.isBound() && this.rarity.isBound();\n    }\n\n    /**\n     * Resolves the underlying {@link #rarity}. Throws if unbound.\n     */\n    public LootRarity getRarity() {\n        return this.rarity.get();\n    }\n\n    /**\n     * Resolves the underlying {@link #affix}. Throws if unbound.\n     */\n    public Affix getAffix() {\n        return this.affix.get();\n    }\n\n    /**\n     * @see Affix#addModifiers(ItemStack, LootRarity, float, EquipmentSlot, BiConsumer)\n     */\n    public void addModifiers(StackAttributeModifiersEvent event) {\n        this.getAffix().addModifiers(this, event);\n    }\n\n    /**\n     * @see Affix#getDescription(ItemStack, LootRarity, float)\n     */\n    public MutableComponent getDescription(AttributeTooltipContext ctx) {\n        return this.getAffix().getDescription(this, ctx);\n    }\n\n    /**\n     * @see Affix#getAugmentingText(ItemStack, LootRarity, float)\n     */\n    public Component getAugmentingText(AttributeTooltipContext ctx) {\n        return this.getAffix().getAugmentingText(this, ctx);\n    }\n\n    /**\n     * @see Affix#getName(boolean)\n     */\n    public Component getName(boolean prefix) {\n        return this.getAffix().getName(prefix);\n    }\n\n    /**\n     * @see Affix#getDamageProtection(ItemStack, LootRarity, float, DamageSource)\n     */\n    public float getDamageProtection(DamageSource source) {\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/Apotheosis.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/Apotheosis.java",
+      "start_line": 70,
+      "end_line": 130,
+      "whole_file_read": false,
+      "file_sha256": "312adb23489ec0fc2a8bb526928497333acefd0a563c08843c94566283e49c6d",
+      "git_blob_sha1": "9f5b3f0b98a1fa3cf397e3abc7624fbc0f162ea5",
+      "raw_excerpt_sha256": "ebf4dc1c8ad4b025ab84510201a4c542be7f4b5815fdea7d6ae8dec0727b3e01",
+      "excerpt": "import dev.shadowsoffire.placebo.config.Configuration;\nimport dev.shadowsoffire.placebo.datagen.DataGenBuilder;\nimport dev.shadowsoffire.placebo.datagen.RegisterFieldOrderingsEvent;\nimport dev.shadowsoffire.placebo.network.PayloadHelper;\nimport dev.shadowsoffire.placebo.tabs.TabFillingRegistry;\nimport dev.shadowsoffire.placebo.util.RunnableReloader;\nimport it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.data.DataProvider;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.resources.Identifier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.attributes.RangedAttribute;\nimport net.minecraft.world.item.CreativeModeTabs;\nimport net.neoforged.bus.api.IEventBus;\nimport net.neoforged.bus.api.SubscribeEvent;\nimport net.neoforged.fml.ModList;\nimport net.neoforged.fml.common.Mod;\nimport net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;\nimport net.neoforged.fml.util.ObfuscationReflectionHelper;\nimport net.neoforged.neoforge.capabilities.Capabilities;\nimport net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;\nimport net.neoforged.neoforge.common.NeoForge;\nimport net.neoforged.neoforge.data.event.GatherDataEvent;\nimport net.neoforged.neoforge.event.AddServerReloadListenersEvent;\n\n@Mod(Apotheosis.MODID)\npublic class Apotheosis {\n\n    public static final String MODID = \"apotheosis\";\n    public static final Logger LOGGER = LoggerFactory.getLogger(MODID);\n    public static final boolean DEBUG_WORLDGEN = \"on\".equalsIgnoreCase(System.getenv(\"APOTH_DEBUG_WORLDGEN\"));\n    public static final boolean DEBUG_MOBS = \"on\".equalsIgnoreCase(System.getenv(\"APOTH_DEBUG_MOBS\"));\n    public static final boolean STAGES_LOADED = ModList.get().isLoaded(\"gamestages\");\n\n    public Apotheosis(IEventBus bus) {\n        Apoth.bootstrap(bus);\n        bus.register(this);\n        ObfuscationReflectionHelper.setPrivateValue(RangedAttribute.class, (RangedAttribute) Attributes.ARMOR.value(), 200D, \"maxValue\");\n        ObfuscationReflectionHelper.setPrivateValue(RangedAttribute.class, (RangedAttribute) Attributes.ARMOR_TOUGHNESS.value(), 100D, \"maxValue\");\n        LootRule.initCodecs();\n        SpawnCondition.initCodecs();\n        EntityModifier.initCodecs();\n        GemBonus.initCodecs();\n        if (ModList.get().isLoaded(\"gateways\")) {\n            GatewaysCompat.register(bus);\n        }\n\n        // TODO(26.1): Restore Twilight/Patchouli/Curios compat once their 26.1 builds ship.\n        if (ModList.get().isLoaded(\"twilightforest\")) {\n            // AdventureTwilightCompat.register();\n        }\n\n        if (ModList.get().isLoaded(\"patchouli\")) {\n            PatchouliCompat.register();\n        }\n\n        if (ModList.get().isLoaded(\"curios\")) {\n"
+    },
+    {
+      "source_path": "src/main/java/dev/shadowsoffire/apotheosis/Apotheosis.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/Shadows-of-Fire__Apotheosis/src/main/java/dev/shadowsoffire/apotheosis/Apotheosis.java",
+      "start_line": 185,
+      "end_line": 212,
+      "whole_file_read": false,
+      "file_sha256": "312adb23489ec0fc2a8bb526928497333acefd0a563c08843c94566283e49c6d",
+      "git_blob_sha1": "9f5b3f0b98a1fa3cf397e3abc7624fbc0f162ea5",
+      "raw_excerpt_sha256": "7f57f07d2613a4981b95cde29d09461617078a5f44e8c6266c147cef059639b4",
+      "excerpt": "        PurityWeightsRegistry.INSTANCE.registerToBus();\n        AugmentRegistry.INSTANCE.registerToBus();\n        TierAugmentRegistry.INSTANCE.registerToBus();\n        loadConfig(true);\n        NeoForge.EVENT_BUS.addListener(AddServerReloadListenersEvent.class, event -> event.addListener(Apotheosis.loc(\"config_reloader\"), RunnableReloader.of(() -> loadConfig(false))));\n    }\n\n    @SubscribeEvent\n    public void caps(RegisterCapabilitiesEvent e) {\n        e.registerBlockEntity(Capabilities.Item.BLOCK, Apoth.Tiles.SALVAGING_TABLE, (be, side) -> be.getItemHandler());\n        e.registerBlockEntity(Capabilities.Item.BLOCK, Apoth.Tiles.REFORGING_TABLE, (be, side) -> be.getInventory());\n        e.registerBlockEntity(Capabilities.Item.BLOCK, Apoth.Tiles.AUGMENTING_TABLE, (be, side) -> be.getInventory());\n        e.registerBlockEntity(Capabilities.Item.BLOCK, Apoth.Tiles.GEM_CASE, GemCaseTile::getItemHandler);\n        e.registerBlockEntity(Capabilities.Item.BLOCK, Apoth.Tiles.ENDER_GEM_CASE, GemCaseTile::getItemHandler);\n    }\n\n    @SubscribeEvent\n    public void data(GatherDataEvent.Client e) {\n        DataProvider.INDENT_WIDTH.set(4);\n        DataGenBuilder.create(Apotheosis.MODID)\n            .registry(Registries.JUKEBOX_SONG, SongProvider::bootstrap)\n            .registry(Registries.PAINTING_VARIANT, ApothPaintingsProvider::bootstrap)\n            .registry(Registries.VILLAGER_TRADE, WandererTradesProvider::bootstrap)\n            .conditions(WandererTradesProvider.conditions())\n            .provider(ApothLootProvider::create)\n            .provider(ApothRecipeProvider::new)\n            .provider(ApothPaintingTagsProvider::new)\n            .provider(RarityProvider::new)\n"
+    }
+  ],
+  "new_ranges": 20,
+  "displayed_lines": 1375,
+  "distinct_lines": 1373,
+  "files": 14,
+  "whole_files": [
+    "src/main/java/dev/shadowsoffire/apotheosis/affix/effect/StoneformingAffix.java",
+    "src/main/java/dev/shadowsoffire/apotheosis/affix/effect/RetreatingAffix.java",
+    "src/main/java/dev/shadowsoffire/apotheosis/affix/effect/PsychicAffix.java",
+    "src/main/java/dev/shadowsoffire/apotheosis/socket/gem/bonus/special/LeechBlockBonus.java",
+    "src/main/java/dev/shadowsoffire/apotheosis/affix/effect/CatalyzingAffix.java",
+    "src/main/java/dev/shadowsoffire/apotheosis/socket/SocketedGems.java"
+  ],
+  "related_complete_saved_judgments_actually_read_after_source": [
+    {
+      "id": "relics-native-shield-final-cancel-recoil-and-release-rearm",
+      "status": "reviewed_effective",
+      "repo": "Octo-Studios/relics",
+      "commit": "da846fcb3223e88d7c926b4478506b3089caff51",
+      "category": "native_defense_feedback_and_target_lifecycle",
+      "semantic_dedup_key": "relics-native-shield-final-cancel-recoil-and-release-rearm",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java",
+          "lines": [
+            72,
+            324
+          ],
+          "file_sha256": "0ce3ba1e41092cf966a46dc4083ce878ddde70e5e26af028b7db220c5ebbf7f6",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java#L72-L324"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java",
+          "lines": [
+            491,
+            557
+          ],
+          "file_sha256": "0ce3ba1e41092cf966a46dc4083ce878ddde70e5e26af028b7db220c5ebbf7f6",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java#L491-L557"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java",
+          "lines": [
+            645,
+            751
+          ],
+          "file_sha256": "0ce3ba1e41092cf966a46dc4083ce878ddde70e5e26af028b7db220c5ebbf7f6",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java#L645-L751"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java",
+          "lines": [
+            755,
+            895
+          ],
+          "file_sha256": "0ce3ba1e41092cf966a46dc4083ce878ddde70e5e26af028b7db220c5ebbf7f6",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/items/relics/ShieldOfRetaliationItem.java#L755-L895"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/network/packets/S2CSetEntityMotion.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/network/packets/S2CSetEntityMotion.java",
+          "lines": [
+            1,
+            42
+          ],
+          "file_sha256": "02e797a9d29111615cf6704d406e0d198e7542a195bcc73b9cb22f5b9a6e8de1",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/network/packets/S2CSetEntityMotion.java#L1-L42"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/network/packets/item/shield_of_retaliation/C2SShieldOfRetaliationRelease.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/network/packets/item/shield_of_retaliation/C2SShieldOfRetaliationRelease.java",
+          "lines": [
+            1,
+            46
+          ],
+          "file_sha256": "c2df982a35f9ca65b03a85dc9eedffa00969c8b8629d697865215fc9c4f56a9b",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/network/packets/item/shield_of_retaliation/C2SShieldOfRetaliationRelease.java#L1-L46"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/dev/shake/ShakeManager.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/dev/shake/ShakeManager.java",
+          "lines": [
+            1,
+            41
+          ],
+          "file_sha256": "04eb65c3646d973878bf7c5db394b46259546f3bad5fc6ad30ebe3fa458831d2",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/dev/shake/ShakeManager.java#L1-L41"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/dev/shake/misc/ShakePacket.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/dev/shake/misc/ShakePacket.java",
+          "lines": [
+            1,
+            34
+          ],
+          "file_sha256": "1579b72b187e29c54a2971de28ee6bf5f248532ef28e3d11925bd6eca91f2a1a",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/dev/shake/misc/ShakePacket.java#L1-L34"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/utils/TargetingUtils.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/utils/TargetingUtils.java",
+          "lines": [
+            1,
+            277
+          ],
+          "file_sha256": "9d3c2d86b0486912b7552696c6e6f10b064a9190c887905e3c482dad4717eac8",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/utils/TargetingUtils.java#L1-L277"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/Relics.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/Relics.java",
+          "lines": [
+            1,
+            51
+          ],
+          "file_sha256": "1ba69abfc53fefd7d8d984e5bab5f649cd7a3645d94979fe721dc4c5218a9fdb",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/Relics.java#L1-L51"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/init/RelicsItems.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/init/RelicsItems.java",
+          "lines": [
+            78,
+            82
+          ],
+          "file_sha256": "425ebccef9bf51fffbad10a26a760d2f20d2ab65c50285e0d3955ee85b325cb4",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/init/RelicsItems.java#L78-L82"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/init/RelicsDataComponents.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/init/RelicsDataComponents.java",
+          "lines": [
+            76,
+            82
+          ],
+          "file_sha256": "72fd9e19fd33f352cec24a11903b90ae788c4d5726d325017d3d8795012cd97f",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/init/RelicsDataComponents.java#L76-L82"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/init/RelicsDataComponents.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/init/RelicsDataComponents.java",
+          "lines": [
+            106,
+            114
+          ],
+          "file_sha256": "72fd9e19fd33f352cec24a11903b90ae788c4d5726d325017d3d8795012cd97f",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/init/RelicsDataComponents.java#L106-L114"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/network/NetworkHandler.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/network/NetworkHandler.java",
+          "lines": [
+            1,
+            125
+          ],
+          "file_sha256": "8afd6a3d2aa2a5e261bcf808cecad841c018cc5b1293a85eed50acc42d78fce5",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/network/NetworkHandler.java#L1-L125"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/api/relics/data/AbilityData.java",
+          "source_path": "src/main/java/it/hurts/sskirillss/relics/api/relics/data/AbilityData.java",
+          "lines": [
+            272,
+            274
+          ],
+          "file_sha256": "634a727fdd9673dcf7748d2d68f66606f68d073027b50b3c556b851af42c6cfe",
+          "url": "https://github.com/Octo-Studios/relics/blob/da846fcb3223e88d7c926b4478506b3089caff51/src/main/java/it/hurts/sskirillss/relics/api/relics/data/AbilityData.java#L272-L274"
+        }
+      ],
+      "full_chain_observation": "已注册Shield原生use开每stack窗口；server LivingIncomingDamage→实际using同一stack/能力/方向资格→applyBlockRecoil先发本机motion→cancel事件并记成功，随后sound/可选反弹或捕获/定向Shake/可选stun；非guard当击关窗stopUse。原生inventoryTick/释放finishParry；client实际按用下降沿5tick发release，server收包仅解本人inventory所有此盾lock。",
+      "concrete_observation": "方向位置按direct entity中心→owner中心→sourcePosition择一；无来源位置直接允许格挡，未检查bypass tag，不能把它当vanilla shield来源策略。成功格挡仍强制反冲，因此取消伤害不等于不受控制。motion包按当前world整数id只查实体非null，无UUID/维度/代际/数值finite校验；server applyBlockRecoil只发client没有同法写server运动。finish没成功才设miss弱点，下一击finite乘伤后消费。client重发release是重武装，不是重复免疫反馈节流；packet无item token/age/use真实性验证，解锁全部同类stack。每包装/方向条件/声音变体0额外。",
+      "application_to_boss_immune": "Boss明确拒控应保持本次位移不执行，不能因cancel伤害就发Immune；按权威目标与原因生产反馈。本项目不能照搬改变他人Camera的Shake。输入重发与服务端目标反馈去重是不同职责。",
+      "limitations": "固定da846fcb3223e88d7c926b4478506b3089caff51。完整Shield类全部方法及实际native item/event/client tick/packet全文观察。未运行，不证明画面/粒子可辨、两端一致或声音合适；Shake内部渲染/codec未全文研究，只证明addForPlayer定向发包，不把相机方案应用到本项目。普通阴阳无灰字要求。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-26T14:03:58.687097+00:00"
+    },
+    {
+      "id": "tconstruct-native-timed-shield-reflection-owner-and-skip",
+      "status": "reviewed_effective",
+      "repo": "SlimeKnights/TinkersConstruct",
+      "commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+      "category": "native_control_refusal_and_target_feedback",
+      "semantic_dedup_key": "tconstruct-native-timed-shield-reflection-owner-and-skip",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/TConstruct.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/TConstruct.java",
+          "lines": [
+            104,
+            156
+          ],
+          "file_sha256": "2e18e427ec40a852470e2f0038d7aaa5bb189ace5dd2c0058b18c1c0ec607b42",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/TConstruct.java#L104-L156"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "lines": [
+            360,
+            366
+          ],
+          "file_sha256": "d26e071f4dca3a9e9bbf8c928d0f9e472653ff062d061307bab0a7d956b099e9",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java#L360-L366"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/ModifierManager.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/modifiers/ModifierManager.java",
+          "lines": [
+            285,
+            315
+          ],
+          "file_sha256": "b19ce6867175264394557fe8b027fc37c19af207144e046b84f447f63bd80967",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/ModifierManager.java#L285-L315"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/impl/ComposableModifier.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/modifiers/impl/ComposableModifier.java",
+          "lines": [
+            30,
+            79
+          ],
+          "file_sha256": "19dff597d693aa16ca13287ca55241d1e09c09e04fb3f5eed3cb49b6971680b4",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/impl/ComposableModifier.java#L30-L79"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/modules/build/VolatileIntModule.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/modifiers/modules/build/VolatileIntModule.java",
+          "lines": [
+            1,
+            67
+          ],
+          "file_sha256": "34186b001466c7c6e509083692fbb4469a9c84dbb6099cbd13bf21e12476b39c",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/modules/build/VolatileIntModule.java#L1-L67"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/logic/ModifierEvents.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/logic/ModifierEvents.java",
+          "lines": [
+            410,
+            574
+          ],
+          "file_sha256": "55a09c76f61d56c595f576f4ec447f3d0890464a455a60741b1e0887a89f5d84",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/ModifierEvents.java#L410-L574"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/logic/InteractionHandler.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/logic/InteractionHandler.java",
+          "lines": [
+            456,
+            477
+          ],
+          "file_sha256": "10bfa6ecc102220a6d9119176b0caf259889dd99c2a2f071063c804792c1fa0b",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/InteractionHandler.java#L456-L477"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/common/network/TinkerNetwork.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/common/network/TinkerNetwork.java",
+          "lines": [
+            45,
+            82
+          ],
+          "file_sha256": "451d49625eaec0b501e445adafc9be80924550303cc52a625eed4fb8ce8f2ada",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/common/network/TinkerNetwork.java#L45-L82"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/common/network/TinkerNetwork.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/common/network/TinkerNetwork.java",
+          "lines": [
+            129,
+            143
+          ],
+          "file_sha256": "451d49625eaec0b501e445adafc9be80924550303cc52a625eed4fb8ce8f2ada",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/common/network/TinkerNetwork.java#L129-L143"
+        }
+      ],
+      "full_chain_observation": "reflecting实际定义每级volatile int40→原生ProjectileImpact LOW：server/nonblacklist/非自身owner/真正在用SHIELDS→active GeneralInteract BLOCK且使用age>=5且<反射时间、canBlock方向→保留特殊owner或重设owner及arrow pickup→真实shoot和动力→motion包调用+原版盾音+SKIP_ENTITY+损耗3。",
+      "concrete_observation": "最终时窗反弹拒绝计1；角度/owner/pickup/velocity/声音和wrapper同链不多计。反射后没有return，仍可进入本方法下方Enderference手动伤害，SKIP_ENTITY不证明后续逻辑皆停止。time边界严格；事件未设独立每目标节流。网络调用参数Packet,target使用继承NetworkWrapper重载，不用本地反序参数重载冒充已验证收件范围。canBlock null源拒绝，水平方向但view含y，acos没夹值；仅静态边界不称运行故障。",
+      "application_to_boss_immune": "最终拒控后必须明确终止本次控制管线；一个回执窗口统管文字/闪光/声音，不能把反射尝试音当伤害成功。",
+      "limitations": "固定f4e77d43f39ba1047bf93ae816b7e1beaab514c2。实际JSON启用全文网页观察另存tinker-native-resources-web.json；不冒充raw blob验证，不为JSON/通用loader/网络包装额外计数。无游戏或观感结论，不改正式源/资产/待办，普通阴阳不新增灰字。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-26T14:56:34.228156+00:00"
+    },
+    {
+      "id": "enigmatic-native-cube-underlimit-random-cancel-retaliation-not-success-gated",
+      "status": "reviewed_effective",
+      "repo": "Aizistral-Studios/Enigmatic-Legacy",
+      "commit": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+      "category": "native_final_damage_refusal",
+      "semantic_dedup_key": "enigmatic-native-cube-underlimit-random-cancel-retaliation-not-success-gated",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java",
+          "lines": [
+            2014,
+            2343
+          ],
+          "file_sha256": "69ea5e44fa52fd57dcf700348370a735e60512b6226441def930fa2f0c426cf4",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java#L2014-L2343"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/EnigmaticLegacy.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/EnigmaticLegacy.java",
+          "lines": [
+            200,
+            244
+          ],
+          "file_sha256": "3b59d75f4c77b97ddbe4911d2612c0d69b53c1641a116eb9fe5afe33490ab6ef",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/EnigmaticLegacy.java#L200-L244"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/EnigmaticLegacy.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/EnigmaticLegacy.java",
+          "lines": [
+            246,
+            252
+          ],
+          "file_sha256": "3b59d75f4c77b97ddbe4911d2612c0d69b53c1641a116eb9fe5afe33490ab6ef",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/EnigmaticLegacy.java#L246-L252"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticItems.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticItems.java",
+          "lines": [
+            22,
+            24
+          ],
+          "file_sha256": "7aa86a6de0dcddf44a478e411a47e4afa6cf62c41aeef5575be17ed7643c2691",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticItems.java#L22-L24"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticItems.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticItems.java",
+          "lines": [
+            442,
+            549
+          ],
+          "file_sha256": "7aa86a6de0dcddf44a478e411a47e4afa6cf62c41aeef5575be17ed7643c2691",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticItems.java#L442-L549"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/registries/AbstractRegistry.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/registries/AbstractRegistry.java",
+          "lines": [
+            1,
+            53
+          ],
+          "file_sha256": "b728a7e3b31ea85d75c9e6bfc7582ab0350768eef487e77f7b309283d6d75717",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/registries/AbstractRegistry.java#L1-L53"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "lines": [
+            277,
+            280
+          ],
+          "file_sha256": "3c6140b7d1cc20a9408248cf8dd565973758c42093a26e080fcdac5b291dfb17",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java#L277-L280"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "lines": [
+            1146,
+            1155
+          ],
+          "file_sha256": "3c6140b7d1cc20a9408248cf8dd565973758c42093a26e080fcdac5b291dfb17",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java#L1146-L1155"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "lines": [
+            1322,
+            1324
+          ],
+          "file_sha256": "3c6140b7d1cc20a9408248cf8dd565973758c42093a26e080fcdac5b291dfb17",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java#L1322-L1324"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/items/TheCube.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/items/TheCube.java",
+          "lines": [
+            66,
+            89
+          ],
+          "file_sha256": "0d02bb22a58741d52a6fd28181ab64a9bafe0b9407355aa3914de4a084caabc4",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/items/TheCube.java#L66-L89"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/items/TheCube.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/items/TheCube.java",
+          "lines": [
+            143,
+            164
+          ],
+          "file_sha256": "0d02bb22a58741d52a6fd28181ab64a9bafe0b9407355aa3914de4a084caabc4",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/items/TheCube.java#L143-L164"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticSounds.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticSounds.java",
+          "lines": [
+            1,
+            69
+          ],
+          "file_sha256": "ae933249e9d9163e01862a2eb564c16e3d5c4a415d2b492d34e0b7432ec0da7c",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticSounds.java#L1-L69"
+        }
+      ],
+      "full_chain_observation": "同一完整native LivingHurt onEntityHurt最后：目标ServerPlayer且directSource为Living且Curios装备Cube→当前amount<=getDamageLimit(cursed150else100)并随机<=.35→cancel、directLiving.hurt沿用原DamageSource/currentAmount、再目标坐标play SWORD_HIT_REJECT；否则Cube.applyRandomEffect(directLiving,false)从实际debuff list选随机duration/amp addEffect。",
+      "concrete_observation": "一个低于阈值概率拒伤+无条件报声/反伤的最终点1。与既有Cube LOW endEntityHurt的超阈整次拒绝是两个不同native listener和可触发负例，不能仅按同物品合并所有语义，也不因9个debuff或两阈值拆。超过阈值或随机失败仅对directLiving加随机debuff，本阶段不cancel，不能全算免疫。拒伤后不论攻击者hurt返回真假仍响拒绝声；source归属不重写，若native攻击者也是source.entity，则是以原归属向自己伤害，而非确认源已反转。无每目标/每攻击者节流、有限资源或事件序号，同次递归若满足其余条件仍需动态看pipeline。负面addEffect未检查接纳，不能以声/状态最终为空判断反伤或拒控成功。",
+      "application_to_boss_immune": "为Boss文字/嗡声设置明确拒控reason与一次回执；反伤结果、加debuff失败和声音生产独立，不能从任何一个反推其余已通过。保持普通阴阳体质type9边界。",
+      "limitations": "固定源码，完整native方法及随机选择/helper/构造debuff表/音注册已读；没有读音频资源或实机听音，不将原版SoundEvent提交当实际S2C感官通过。native阈值事件优先级组合与并发不静态宣称已验。未改正式Java/资产/任务。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-26T18:45:19.915842+00:00"
+    },
+    {
+      "id": "spellengine-native-shield-contact-receipt-before-durability-and-player-source-filter",
+      "status": "reviewed_effective",
+      "repo": "ZsoltMolnarrr/SpellEngine",
+      "commit": "42dc472183d8c139e741961eefda05eddc7630f8",
+      "category": "native_explicit_contact_receipt_with_source_qualified_consumer",
+      "semantic_dedup_key": "spellengine-native-shield-contact-receipt-before-durability-and-player-source-filter",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/mixin/entity/LivingEntityEvents.java",
+          "source_path": "common/src/main/java/net/spell_engine/mixin/entity/LivingEntityEvents.java",
+          "lines": [
+            1,
+            112
+          ],
+          "file_sha256": "704869a2b5c14505b8943955dc17f6cc3e1ef179da5f0025308caae3425462db",
+          "url": "https://github.com/ZsoltMolnarrr/SpellEngine/blob/42dc472183d8c139e741961eefda05eddc7630f8/common/src/main/java/net/spell_engine/mixin/entity/LivingEntityEvents.java#L1-L112"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/SpellEngineMod.java",
+          "source_path": "common/src/main/java/net/spell_engine/SpellEngineMod.java",
+          "lines": [
+            77,
+            106
+          ],
+          "file_sha256": "67a383353c9ff9f9e4d990e8549d801636fc2d04b5f31598135c550bf8705ed5",
+          "url": "https://github.com/ZsoltMolnarrr/SpellEngine/blob/42dc472183d8c139e741961eefda05eddc7630f8/common/src/main/java/net/spell_engine/SpellEngineMod.java#L77-L106"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/internals/SpellTriggers.java",
+          "source_path": "common/src/main/java/net/spell_engine/internals/SpellTriggers.java",
+          "lines": [
+            106,
+            125
+          ],
+          "file_sha256": "074cabec988d7789bb05776d6d4991e183c57f2addce569d709223f30b15bbaf",
+          "url": "https://github.com/ZsoltMolnarrr/SpellEngine/blob/42dc472183d8c139e741961eefda05eddc7630f8/common/src/main/java/net/spell_engine/internals/SpellTriggers.java#L106-L125"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/internals/SpellTriggers.java",
+          "source_path": "common/src/main/java/net/spell_engine/internals/SpellTriggers.java",
+          "lines": [
+            223,
+            233
+          ],
+          "file_sha256": "074cabec988d7789bb05776d6d4991e183c57f2addce569d709223f30b15bbaf",
+          "url": "https://github.com/ZsoltMolnarrr/SpellEngine/blob/42dc472183d8c139e741961eefda05eddc7630f8/common/src/main/java/net/spell_engine/internals/SpellTriggers.java#L223-L233"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/internals/SpellTriggers.java",
+          "source_path": "common/src/main/java/net/spell_engine/internals/SpellTriggers.java",
+          "lines": [
+            255,
+            291
+          ],
+          "file_sha256": "074cabec988d7789bb05776d6d4991e183c57f2addce569d709223f30b15bbaf",
+          "url": "https://github.com/ZsoltMolnarrr/SpellEngine/blob/42dc472183d8c139e741961eefda05eddc7630f8/common/src/main/java/net/spell_engine/internals/SpellTriggers.java#L255-L291"
+        }
+      ],
+      "full_chain_observation": "声明的原生LivingEntity.damage→damageShield WrapOperation在original.call之前派发实体格挡事件和玩家格挡事件；SpellEngineMod.init注册SpellTriggers，玩家监听交onShieldBlock，仅source.getAttacker非null才进入服务端fireTriggers，先消费stash后尝试passive即时或排队执行。",
+      "concrete_observation": "计1：原生盾接触点生产的明确格挡回执及玩家消费来源资格。不是damage RETURN为false的推测，不是shield耐久结算成功回执；两个事件包装不另计。传给Args的是durabilityAmount，不是上下文damageAmount。环境来源仍可能派ENTITY事件，但玩家onShieldBlock会提前return；fireTriggers另有客户端早退。与已有EVASION生产/源对象关联、stash尝试扣层和玩家spell额度门语义独立。",
+      "application_to_boss_immune": "Boss应在明确拒控分支生产专用原因回执；尝试、接触、扣耐久、实际伤害分别命名，避免拿无HP变化生成IMMUNE。",
+      "limitations": "全文LivingEntityEvents和init/onShieldBlock/fireTriggers已读；未核查当前原版damage字节码、Mixin启用清单或实际装载，不把注释first当跨版本保证。没有证明配置有SHIELD_BLOCK技能，更无TCP/画面。下游stash与限额沿用已有研究不重计。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-28T12:38:04.755395+00:00"
+    },
+    {
+      "id": "rsa-native-paid-shield-repel-precedes-final-use-energy-admission",
+      "status": "reviewed_effective",
+      "repo": "CoFH/RedstoneArsenal",
+      "commit": "f6dc8b5245649479286b9210214177a87e4d2038",
+      "category": "native_control_side_effect_precedes_item_use_admission",
+      "semantic_dedup_key": "rsa-native-paid-shield-repel-precedes-final-use-energy-admission",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/CoFH__RedstoneArsenal/src/main/java/cofh/redstonearsenal/RedstoneArsenal.java",
+          "source_path": "src/main/java/cofh/redstonearsenal/RedstoneArsenal.java",
+          "lines": [
+            48,
+            80
+          ],
+          "file_sha256": "1a470cffae69ffb91c2a573cffe150eed89b43328190f6c8c1b7cec9178e8989",
+          "url": "https://github.com/CoFH/RedstoneArsenal/blob/f6dc8b5245649479286b9210214177a87e4d2038/src/main/java/cofh/redstonearsenal/RedstoneArsenal.java#L48-L80"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/CoFH__RedstoneArsenal/src/main/java/cofh/redstonearsenal/RedstoneArsenal.java",
+          "source_path": "src/main/java/cofh/redstonearsenal/RedstoneArsenal.java",
+          "lines": [
+            83,
+            114
+          ],
+          "file_sha256": "1a470cffae69ffb91c2a573cffe150eed89b43328190f6c8c1b7cec9178e8989",
+          "url": "https://github.com/CoFH/RedstoneArsenal/blob/f6dc8b5245649479286b9210214177a87e4d2038/src/main/java/cofh/redstonearsenal/RedstoneArsenal.java#L83-L114"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/CoFH__RedstoneArsenal/src/main/java/cofh/redstonearsenal/init/registries/ModItems.java",
+          "source_path": "src/main/java/cofh/redstonearsenal/init/registries/ModItems.java",
+          "lines": [
+            40,
+            72
+          ],
+          "file_sha256": "e574284ecd2738adb54989f3789a177bb77267f030e3be2440b631dcf6e38ea9",
+          "url": "https://github.com/CoFH/RedstoneArsenal/blob/f6dc8b5245649479286b9210214177a87e4d2038/src/main/java/cofh/redstonearsenal/init/registries/ModItems.java#L40-L72"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/CoFH__RedstoneArsenal/src/main/java/cofh/redstonearsenal/common/item/FluxShieldItem.java",
+          "source_path": "src/main/java/cofh/redstonearsenal/common/item/FluxShieldItem.java",
+          "lines": [
+            1,
+            215
+          ],
+          "file_sha256": "eff5d5c0ff31f9762e73dfc32461bc0963f933848c0cadec4743109c733b6e31",
+          "url": "https://github.com/CoFH/RedstoneArsenal/blob/f6dc8b5245649479286b9210214177a87e4d2038/src/main/java/cofh/redstonearsenal/common/item/FluxShieldItem.java#L1-L215"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/CoFH__RedstoneArsenal/src/main/java/cofh/redstonearsenal/common/item/IFluxItem.java",
+          "source_path": "src/main/java/cofh/redstonearsenal/common/item/IFluxItem.java",
+          "lines": [
+            1,
+            136
+          ],
+          "file_sha256": "bcb2974a9d50d12f8169c5020ca975ae8711880261738fa667568f7b4af81200",
+          "url": "https://github.com/CoFH/RedstoneArsenal/blob/f6dc8b5245649479286b9210214177a87e4d2038/src/main/java/cofh/redstonearsenal/common/item/IFluxItem.java#L1-L136"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/CoFH__RedstoneArsenal/src/main/java/cofh/redstonearsenal/common/item/IMultiModeFluxItem.java",
+          "source_path": "src/main/java/cofh/redstonearsenal/common/item/IMultiModeFluxItem.java",
+          "lines": [
+            1,
+            60
+          ],
+          "file_sha256": "26a5374931cc0f1afa5984f12c111027996b18b1e1b7a78c02f8987bdf10464f",
+          "url": "https://github.com/CoFH/RedstoneArsenal/blob/f6dc8b5245649479286b9210214177a87e4d2038/src/main/java/cofh/redstonearsenal/common/item/IMultiModeFluxItem.java#L1-L60"
+        }
+      ],
+      "full_chain_observation": "真实mod注册FluxShield物品/能力。原生Item.use empowered时先repel，只有useEnergy(true,living)成功才按范围排creative/spectator并对Living调用nativeknockback、其他实体normalize后setDeltaMovement/hasImpulse；repel结束后use再hasEnergy(true)，不足返回FAIL，够交父盾use。onUseTick不足releaseUsingItem；原生capability.onBlock也复用repel，不另计。",
+      "concrete_observation": "计1：实际控制副作用先付费执行，最终持盾准入随后再次验剩余能量的不同门顺序。普通非creative、提取成功且初始恰2000示例可先repel再FAIL，不能用FAIL当控制未发生或Boss拒控。Living原生knockback仍可有外部抗性，非Living走另一直接速度路径；本类没有世界side门，不声称无预测重复。付费不根据目标数量/实际移动成功/伤害回执；无目标也可花费。与MPS hurt true才目标addVelocity、SpellEnginehurt忽略bool后偏移冲量不同，此处根本未调用hurt。",
+      "application_to_boss_immune": "Boss控制门应包住所有实际控制路径，反馈不能根据物品use结果反推；统一语义原因需要位于真正副作用前，尝试成本和提示节流分开。",
+      "limitations": "FluxShield/IFlux/IMultiMode全文和注册已读；外部IEnergyContainerItem实际提取/Utils creative实现、ShieldItemCoFH最终父use未展开，限定接口提取成功假设，不把示例当实测。canBlock特殊flux扩展缺CoFH最终消费者，本轮保留支持0。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-28T13:09:23.772313+00:00"
+    }
+  ],
+  "limitations": [
+    "Actual GemInstance255..285 nonexistent range assertion stopped readonly output before requested latter sources; actual total253 checked then220..253 read, no255..285 reading credited.",
+    "Constructor spans108..137 and setup140..190 are complete by actual union70..212, not whole311class.",
+    "SocketHelper getGemsImpl85..109 complete by union30..116; AffixInstance1..100 ends at next method signature, no claim whole class/method100.",
+    "GemBonus type codec registration, actual GemProvider Leech config, AbilityCooldowns implementation and native shield event construction remain unread; no whole credit yet.",
+    "Hashes/ranges/lines/support APIs are not semantic credits. Oldformal218 source reduction and sweep1908AntiGravity whole remain owned; five related saved whole judgments actually read, underlying sourcechains not new."
+  ],
+  "proposed_credit": 0,
+  "applied_credit": 0,
+  "next": "Prepare requested123private exactplan only; then continue127closed callback/whole qualification or hold0."
+}
