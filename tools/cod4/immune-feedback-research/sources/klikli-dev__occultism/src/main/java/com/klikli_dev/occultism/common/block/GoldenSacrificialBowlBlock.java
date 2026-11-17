@@ -1,0 +1,127 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.block;
+
+import com.klikli_dev.occultism.common.blockentity.GoldenSacrificialBowlBlockEntity;
+import com.klikli_dev.occultism.registry.OccultismBlockEntities;
+import com.klikli_dev.occultism.registry.OccultismBlocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.redstone.Orientation;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+
+import javax.annotation.Nullable;
+import java.util.stream.Stream;
+
+public class GoldenSacrificialBowlBlock extends Block implements EntityBlock {
+
+    private static final VoxelShape SHAPE = Block.box(3, 2, 3, 13, 8, 13);
+    private static final VoxelShape SHAPE_TROPHY = Stream.of(
+            Block.box(5, 0, 5, 11, 1, 11),
+            Block.box(6, 1, 6, 10, 2, 10),
+            Block.box(7, 2, 7, 9, 5, 9),
+            Block.box(6, 5, 6, 10, 6, 10),
+            Block.box(5, 6, 5, 11, 12, 11),
+            Block.box(4.5, 12, 4.5, 11.5, 13, 11.5)
+    ).reduce((v1, v2) -> {
+        return Shapes.join(v1, v2, BooleanOp.OR);
+    }).get();
+
+    public GoldenSacrificialBowlBlock(Properties properties) {
+        super(properties);
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public void neighborChanged(BlockState state, Level level, BlockPos pos, Block blockIn, @Nullable Orientation orientation,
+                                boolean isMoving) {
+        super.neighborChanged(state, level, pos, blockIn, orientation, isMoving);
+        level.scheduleTick(pos, this, 0);
+    }
+
+
+    @Override
+    protected InteractionResult useItemOn(ItemStack pStack, BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, BlockHitResult pHitResult) {
+        BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
+        if (blockEntity instanceof GoldenSacrificialBowlBlockEntity bowl) {
+            return bowl.activate(pLevel, pPos, pPlayer, pHand,
+                    pHitResult.getDirection()) ? InteractionResult.SUCCESS : InteractionResult.PASS;
+        }
+        return super.useItemOn(pStack, pState, pLevel, pPos, pPlayer, pHand, pHitResult);
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
+        if (state.getBlock().equals(OccultismBlocks.ELDRITCH_CHALICE.get())
+                || state.getBlock().equals(OccultismBlocks.CELESTIAL_CHALICE.get()))
+            return SHAPE_TROPHY;
+
+        return SHAPE;
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public int getSignal(BlockState pBlockState, BlockGetter pBlockAccess, BlockPos pPos, Direction pSide) {
+        BlockEntity blockEntityAbove = pBlockAccess.getBlockEntity(pPos.above(3));
+        if (blockEntityAbove instanceof GoldenSacrificialBowlBlockEntity bowl) {
+            return bowl.getSignal();
+        }
+        BlockEntity blockEntity = pBlockAccess.getBlockEntity(pPos);
+        if (blockEntity instanceof GoldenSacrificialBowlBlockEntity bowl) {
+            return bowl.getSignal();
+        }
+        return 0;
+    }
+
+    @Nullable
+    @Override
+    public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {
+        return OccultismBlockEntities.GOLDEN_SACRIFICIAL_BOWL.get().create(blockPos, blockState);
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState blockState, BlockEntityType<T> type) {
+        return (l, p, s, be) -> {
+            if (be instanceof GoldenSacrificialBowlBlockEntity bowl)
+                bowl.tick();
+        };
+    }
+}

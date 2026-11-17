@@ -1,0 +1,33 @@
+
+328:       } else {
+329:          LevelData leveldata = this.level.getLevelData();
+330:          ProfilerFiller profilerfiller = this.level.getProfiler();
+331:          profilerfiller.push("pollingChunks");
+332:          int k = this.level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
+333:          boolean flag1 = leveldata.getGameTime() % 400L == 0L;
+334:          profilerfiller.push("naturalSpawnCount");
+335:          int l = this.distanceManager.getNaturalSpawnChunkCount();
+336:          NaturalSpawner.SpawnState naturalspawner$spawnstate = NaturalSpawner.createState(l, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap));
+337:          this.lastSpawnState = naturalspawner$spawnstate;
+338:          profilerfiller.popPush("filteringLoadedChunks");
+339:          List<ServerChunkCache.ChunkAndHolder> list = Lists.newArrayListWithCapacity(l);
+340: 
+341:          for(ChunkHolder chunkholder : this.chunkMap.getChunks()) {
+342:             LevelChunk levelchunk = chunkholder.getTickingChunk();
+343:             if (levelchunk != null) {
+344:                list.add(new ServerChunkCache.ChunkAndHolder(levelchunk, chunkholder));
+345:             }
+346:          }
+347: 
+348:          profilerfiller.popPush("spawnAndTick");
+349:          boolean flag2 = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING);
+350:          Collections.shuffle(list);
+351: 
+352:          for(ServerChunkCache.ChunkAndHolder serverchunkcache$chunkandholder : list) {
+353:             LevelChunk levelchunk1 = serverchunkcache$chunkandholder.chunk;
+354:             ChunkPos chunkpos = levelchunk1.getPos();
+355:             if ((this.level.isNaturalSpawningAllowed(chunkpos) && this.chunkMap.anyPlayerCloseEnoughForSpawning(chunkpos)) || this.distanceManager.shouldForceTicks(chunkpos.toLong())) {
+356:                levelchunk1.incrementInhabitedTime(j);
+357:                if (flag2 && (this.spawnEnemies || this.spawnFriendlies) && this.level.getWorldBorder().isWithinBounds(chunkpos)) {
+358:                   NaturalSpawner.spawnForChunk(this.level, levelchunk1, naturalspawner$spawnstate, this.spawnFriendlies, this.spawnEnemies, flag1);
+359:                }

@@ -1,0 +1,80 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.item.spirit;
+
+import com.klikli_dev.occultism.util.ItemNBTUtil;
+import com.klikli_dev.occultism.util.TextUtil;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Consumer;
+
+public class BookOfBindingBoundItem extends Item {
+
+    public BookOfBindingBoundItem(Properties properties) {
+        super(properties);
+    }
+
+
+    @Override
+    public void appendHoverText(ItemStack pStack, TooltipContext pContext, TooltipDisplay tooltipDisplay, Consumer<Component> tooltipAdder, TooltipFlag pTooltipFlag) {
+        super.appendHoverText(pStack, pContext, tooltipDisplay, tooltipAdder, pTooltipFlag);
+
+        tooltipAdder.accept(Component.translatable(this.getDescriptionId() + ".tooltip",
+                TextUtil.formatDemonName(ItemNBTUtil.getBoundSpiritName(pStack))));
+    }
+
+    @Override
+    public void onCraftedBy(ItemStack pStack, Player pPlayer) {
+        ItemNBTUtil.generateBoundSpiritNameIfNone(pStack);
+        super.onCraftedBy(pStack, pPlayer);
+    }
+
+    @Override
+    public void onCraftedPostProcess(ItemStack stack, Level level) {
+        ItemNBTUtil.generateBoundSpiritNameIfNone(stack);
+        super.onCraftedPostProcess(stack, level);
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, @Nullable EquipmentSlot slot) {
+        if (entity instanceof Player player && ItemNBTUtil.generateBoundSpiritNameIfNone(stack)) {
+            player.inventoryMenu.broadcastChanges();
+        }
+        super.inventoryTick(stack, level, entity, slot);
+    }
+
+    @Override
+    public boolean isFoil(ItemStack stack) {
+        return true;
+    }
+}

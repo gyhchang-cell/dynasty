@@ -1,0 +1,326 @@
+package com.talhanation.recruits;
+
+import com.talhanation.recruits.client.events.ClientClaimProtectionEvents;
+import com.talhanation.recruits.client.gui.overlay.ClaimOverlayManager;
+import com.talhanation.recruits.client.events.CommandCategoryManager;
+import com.talhanation.recruits.client.events.KeyEvents;
+import com.talhanation.recruits.client.events.ClientPlayerEvents;
+import com.talhanation.recruits.client.gui.commandscreen.CombatCategory;
+import com.talhanation.recruits.client.gui.commandscreen.MovementCategory;
+import com.talhanation.recruits.client.gui.commandscreen.OtherCategory;
+import com.talhanation.recruits.client.gui.commandscreen.GovernorCategory;
+import com.talhanation.recruits.governor.GovernorEvents;
+import com.talhanation.recruits.network.MessageSaveTeamSettings;
+import com.talhanation.recruits.commands.PatrolSpawnCommand;
+import com.talhanation.recruits.commands.RecruitsAdminCommands;
+import com.talhanation.recruits.config.RecruitsClientConfig;
+import com.talhanation.recruits.config.RecruitsServerConfig;
+import com.talhanation.recruits.init.ModBlocks;
+import com.talhanation.recruits.init.ModEntityTypes;
+import com.talhanation.recruits.init.ModItems;
+import com.talhanation.recruits.init.ModScreens;
+import com.talhanation.recruits.init.*;
+import com.talhanation.recruits.network.*;
+import de.maxhenkel.corelib.CommonRegistry;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.*;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.network.simple.SimpleChannel;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+@Mod(Main.MOD_ID)
+public class Main {
+    public static final String MOD_ID = "recruits";
+    public static final int NETWORK_PROTOCOL = 4;
+    public static SimpleChannel SIMPLE_CHANNEL;
+    public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
+    public static boolean isMusketModLoaded;
+    public static boolean isSmallShipsLoaded;
+    public static boolean isSmallShipsCompatible;
+    public static boolean isSiegeWeaponsLoaded;
+    public static boolean isSiegeWeaponsCompatible;
+    public static boolean isEpicKnightsLoaded;
+    public static boolean isCorpseLoaded;
+    public static boolean isRPGZLoaded;
+
+    public Main() {
+        final IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+
+        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, RecruitsServerConfig.SERVER);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, RecruitsClientConfig.CLIENT);
+        RecruitsClientConfig.loadConfig(RecruitsClientConfig.CLIENT, FMLPaths.CONFIGDIR.get().resolve("recruits-client.toml"));
+
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+                    FMLJavaModLoadingContext.get().getModEventBus().addListener(Main.this::clientSetup);
+                    FMLJavaModLoadingContext.get().getModEventBus().addListener(ModShortcuts::registerBindings);
+                }
+        );
+
+        modEventBus.addListener(this::setup);
+        ModBlocks.BLOCKS.register(modEventBus);
+        ModPois.POIS.register(modEventBus);
+        ModProfessions.PROFESSIONS.register(modEventBus);
+        ModScreens.MENU_TYPES.register(modEventBus);
+        ModItems.ITEMS.register(modEventBus);
+        ModEntityTypes.ENTITY_TYPES.register(modEventBus);
+
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::addCreativeTabs);
+
+        //ModSounds.SOUNDS.register(modEventBus);
+        MinecraftForge.EVENT_BUS.register(this);
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event) {
+        PatrolSpawnCommand.register(event.getDispatcher());
+        RecruitsAdminCommands.register(event.getDispatcher());
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void setup(final FMLCommonSetupEvent event) {
+        MinecraftForge.EVENT_BUS.register(new RecruitEvents());
+        MinecraftForge.EVENT_BUS.register(new VillagerEvents());
+        MinecraftForge.EVENT_BUS.register(new PillagerEvents());
+        MinecraftForge.EVENT_BUS.register(new CommandEvents());
+        MinecraftForge.EVENT_BUS.register(new DebugEvents());
+        MinecraftForge.EVENT_BUS.register(new FactionEvents());
+        MinecraftForge.EVENT_BUS.register(new DamageEvent());
+        MinecraftForge.EVENT_BUS.register(new UpdateChecker());
+        MinecraftForge.EVENT_BUS.register(new ClaimEvents());
+        MinecraftForge.EVENT_BUS.register(new VillageEvents());
+        MinecraftForge.EVENT_BUS.register(com.talhanation.recruits.pathfinding.ObstacleIndex.class);
+        MinecraftForge.EVENT_BUS.register(new GovernorEvents());
+        MinecraftForge.EVENT_BUS.register(this);
+
+        SIMPLE_CHANNEL = CommonRegistry.registerChannel(Main.MOD_ID, "default", NETWORK_PROTOCOL);
+
+        Class[] messages = {
+                MessageAggro.class,
+                MessageAggroGui.class,
+                MessageAssassinate.class,
+                MessageAssassinCount.class,
+                MessageAssassinGui.class,
+                MessageMountEntity.class,
+                MessageMountEntityGui.class,
+                MessageClearTargetGui.class,
+                MessageCommandScreen.class,
+                MessageDisband.class,
+                MessageMovement.class,
+                MessageFollowGui.class,
+                MessageGroup.class,
+                MessageListen.class,
+                MessageRecruitGui.class,
+                MessageHireGui.class,
+                MessageHire.class,
+                MessageProtectEntity.class,
+                MessageDismount.class,
+                MessageDismountGui.class,
+                MessageUpkeepPos.class,
+                MessageStrategicFire.class,
+                MessageShields.class,
+                MessageDebugGui.class,
+                MessageUpkeepEntity.class,
+                MessageClearTarget.class,
+                MessageCreateTeam.class,
+                MessageOpenTeamEditScreen.class,
+                MessageLeaveTeam.class,
+                MessageTeamMainScreen.class,
+                MessageOpenTeamInspectionScreen.class,
+                MessageOpenTeamListScreen.class,
+                MessageAddPlayerToTeam.class,
+                MessageOpenTeamAddPlayerScreen.class,
+                MessageAddRecruitToTeam.class,
+                MessageSendJoinRequestTeam.class,
+                MessageRemoveFromTeam.class,
+                MessageOpenDisbandScreen.class,
+                MessageAssignRecruitToPlayer.class,
+                MessageWriteSpawnEgg.class,
+                MessageBackToMountEntity.class,
+                MessageDisbandGroup.class,
+                MessageAssignGroupToPlayer.class,
+                MessagePromoteRecruit.class,
+                MessageOpenPromoteScreen.class,
+                MessageOpenSpecialScreen.class,
+                MessageSendMessenger.class,
+                MessagePatrolLeaderSetWaitTime.class,
+                MessageToClientUpdateLeaderScreen.class,
+                MessagePatrolLeaderAddWayPoint.class,
+                MessagePatrolLeaderRemoveWayPoint.class,
+                MessagePatrolLeaderSetPatrolState.class,
+                MessagePatrolLeaderSetCycle.class,
+                MessagePatrolLeaderSetInfoMode.class,
+                MessageAssignGroupToCompanion.class,
+                MessagePatrolLeaderSetPatrollingSpeed.class,
+                MessageToClientUpdateHireState.class,
+                MessageRemoveAssignedGroupFromCompanion.class,
+                MessageAnswerMessenger.class,
+                MessageToClientOpenMessengerAnswerScreen.class,
+                MessageClearUpkeepGui.class,
+                MessageApplyNoGroup.class,
+                MessageToClientUpdateGroups.class,
+                MessagePatrolLeaderSetRoute.class,
+                MessagePatrolLeaderSetEnemyAction.class,
+                MessageSetLeaderGroup.class,
+                MessageTransferRoute.class,
+                MessageToClientReceiveRoute.class,
+                MessageFormationFollowMovement.class,
+                MessageRest.class,
+                MessageRangedFire.class,
+                MessageSaveFormationFollowMovement.class,
+                MessageClearUpkeep.class,
+                MessageToClientUpdateFactions.class,
+                MessageToClientUpdateOnlinePlayers.class,
+                MessageChangeDiplomacyStatus.class,
+                MessageToClientSetToast.class,
+                MessageToClientUpdateDiplomacyList.class,
+                MessageSaveTeamSettings.class,
+                MessageToClientSetDiplomaticToast.class,
+                MessageScoutTask.class,
+                MessageToClientOpenTakeOverScreen.class,
+                MessageToClientUpdateClaims.class,
+                MessageUpdateClaim.class,
+                MessageDoPayment.class,
+                MessageToClientUpdateClaim.class,
+                MessageToClientUpdateOwnFaction.class,
+                MessageDeleteClaim.class,
+                MessageToClientOpenNobleTradeScreen.class,
+                MessageHireFromNobleVillager.class,
+                MessageAttack.class,
+                MessageToClientUpdateUnitInfo.class,
+                MessageUpdateGroup.class,
+                MessageMergeGroup.class,
+                MessageSplitGroup.class,
+                MessageAssignNearbyRecruitsInGroup.class,
+                MessageTeleportPlayer.class,
+                MessageSendTreaty.class,
+                MessageAnswerTreaty.class,
+                MessageToClientOpenTreatyAnswerScreen.class,
+                MessageToClientUpdateTreaties.class,
+                MessageFaceCommand.class,
+                MessageSetTargetPrio.class,
+                MessageAddEmbargo.class,
+                MessageRemoveEmbargo.class,
+                MessageToClientUpdateEmbargoes.class,
+                MessageAddEmbargoFaction.class,
+                MessageToClientWorldMapIdentity.class,
+                MessageCaptainHarbour.class,
+                MessageDepositInventory.class,
+                MessageTrainRecruit.class,
+                MessageToClientNobleInfo.class,
+                MessageOpenNobleTrade.class,
+                MessageNobleQuestAction.class,
+                MessageGovernorAddPost.class,
+                MessageGovernorRemovePost.class,
+                MessageGovernorSetQuota.class,
+                MessageGovernorSetLoadout.class,
+                MessageGovernorSetBudget.class,
+                MessageGovernorSetTax.class,
+                MessageGovernorReleaseRecruit.class,
+                MessageGovernorAssignGroup.class,
+                MessageGovernorRequestData.class,
+                MessageToClientGovernorData.class,
+                MessageGovernorSetClaim.class
+        };
+
+
+        for (int i = 0; i < messages.length; i++){
+            NetworkSecurity.registerMessage(SIMPLE_CHANNEL, i, messages[i]);
+        }
+
+
+        isMusketModLoaded = ModList.get().isLoaded("musketmod");//MusketMod
+        isSmallShipsLoaded = ModList.get().isLoaded("smallships");//small ships
+        isSiegeWeaponsLoaded = ModList.get().isLoaded("siegeweapons");//siege weapons
+        isRPGZLoaded = ModList.get().isLoaded("rpgz");//rpgz mod
+        isCorpseLoaded = ModList.get().isLoaded("corpse");//corpse mod
+        isEpicKnightsLoaded = ModList.get().isLoaded("magistuarmory");//epic knights mod
+
+        isSmallShipsCompatible = false;
+        if(isSmallShipsLoaded){
+            String smallshipsversion = ModList.get().getModFileById("smallships").versionString();
+            isSmallShipsCompatible = isVersionAtLeast(smallshipsversion, "2.0.2");
+        }
+
+        isSiegeWeaponsCompatible = false;
+        if(isSiegeWeaponsLoaded){
+            String siegeweaponsVersion = ModList.get().getModFileById("siegeweapons").versionString();
+            isSiegeWeaponsCompatible = isVersionAtLeast(siegeweaponsVersion, "0.2.5");
+        }
+    }
+
+    @SubscribeEvent
+    @OnlyIn(Dist.CLIENT)
+    public void clientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(ModScreens::registerMenus);
+        MinecraftForge.EVENT_BUS.register(new KeyEvents());
+        MinecraftForge.EVENT_BUS.register(new ClientPlayerEvents());
+        MinecraftForge.EVENT_BUS.register(new ClientClaimProtectionEvents());
+        MinecraftForge.EVENT_BUS.register(new ClaimOverlayManager());
+
+        CommandCategoryManager.register(new MovementCategory(), -2);
+        CommandCategoryManager.register(new CombatCategory(), -3);
+        CommandCategoryManager.register(new OtherCategory(), -1);
+        CommandCategoryManager.register(new GovernorCategory(), 0);
+    }
+
+    private void addCreativeTabs(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey().equals(CreativeModeTabs.SPAWN_EGGS)) {
+            event.accept(ModItems.BOWMAN_SPAWN_EGG.get());
+            event.accept(ModItems.RECRUIT_SHIELD_SPAWN_EGG.get());
+            event.accept(ModItems.RECRUIT_SPAWN_EGG.get());
+            event.accept(ModItems.NOMAD_SPAWN_EGG.get());
+            event.accept(ModItems.HORSEMAN_SPAWN_EGG.get());
+            event.accept(ModItems.CROSSBOWMAN_SPAWN_EGG.get());
+            event.accept(ModItems.VILLAGER_NOBLE_SPAWN_EGG.get());
+            event.accept(ModItems.MESSENGER_SPAWN_EGG.get());
+            event.accept(ModItems.SCOUT_SPAWN_EGG.get());
+            event.accept(ModItems.PATROL_LEADER_SPAWN_EGG.get());
+            event.accept(ModItems.CAPTAIN_SPAWN_EGG.get());
+            event.accept(ModItems.SIEGE_ENGINEER_SPAWN_EGG.get());
+            event.accept(ModItems.GOVERNOR_SPAWN_EGG.get());
+        }
+
+        if (event.getTabKey().equals(CreativeModeTabs.FUNCTIONAL_BLOCKS)){
+            event.accept(ModBlocks.RECRUIT_BLOCK.get());
+            event.accept(ModBlocks.BOWMAN_BLOCK.get());
+            event.accept(ModBlocks.RECRUIT_SHIELD_BLOCK.get());
+            event.accept(ModBlocks.CROSSBOWMAN_BLOCK.get());
+            event.accept(ModBlocks.HORSEMAN_BLOCK.get());
+            event.accept(ModBlocks.NOMAD_BLOCK.get());
+        }
+    }
+
+    public static boolean isVersionAtLeast(String installedVersion, String minVersion) {
+        String[] installed = installedVersion.split("[.\\-]", -1);
+        String[] minimum  = minVersion.split("[.\\-]", -1);
+
+        int len = Math.max(installed.length, minimum.length);
+        for (int i = 0; i < len; i++) {
+            String a = i < installed.length ? installed[i] : "0";
+            String b = i < minimum.length  ? minimum[i]   : "0";
+
+            int cmp;
+            try {
+                cmp = Integer.compare(Integer.parseInt(a), Integer.parseInt(b));
+            } catch (NumberFormatException e) {
+                cmp = a.compareTo(b);
+            }
+
+            if (cmp != 0) return cmp > 0;
+        }
+        return true;
+    }
+}

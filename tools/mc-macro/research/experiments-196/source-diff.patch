@@ -1,0 +1,110 @@
+--- 1.9.3/Sources/InventoryPolicy.swift
++++ 1.9.4/Sources/InventoryPolicy.swift
+@@ -80,23 +80,54 @@
+ struct AutoToolPress {
+     private var began: Double?
+     private var world: Int?
+-    private var target: [Int]?
+-    mutating func cancel() { began = nil; world = nil; target = nil }
++    private struct Target: Equatable {
++        let position: [Int]
++        let block: Int
++        init?(_ inventory:HotbarSnapshot) {
++            guard inventory.hitKind == "block",let position=inventory.target,position.count==3,
++                  let block=inventory.blockID,block>0 else{return nil}
++            self.position=position;self.block=block
++        }
++    }
++    private var target: Target?
++    private var targetSeenAt: Double = 0
++    private var lastSampleAt: Double = 0
++    private var pending: (slot:Int,identity:String,time:Double)?
++    mutating func cancel() {
++        began=nil;world=nil;target=nil;pending=nil;targetSeenAt=0;lastSampleAt=0
++    }
+     mutating func begin(now: Double, world: Int, inventory: HotbarSnapshot) {
+         cancel()
+-        guard inventory.valid, inventory.hitKind == "block", inventory.target?.count == 3 else { return }
+-        began = now; self.world = world; target = inventory.target
++        guard inventory.valid,let target=Target(inventory) else { return }
++        began=now;self.world=world;self.target=target;targetSeenAt=now;lastSampleAt=now
+     }
+-    // One decision per genuine down edge, confirmed by a newer game observation.
++    // A genuine down edge arms a mining session until release/cancellation.
++    // New block positions or types need a second fresh observation. Air/entity
++    // gaps pause selection without ending the held session. Successful tool
++    // changes become no-ops through choose(); dropped inputs retry at most 8 Hz.
+     mutating func update(now: Double, sampledAt: Double, world: Int, inventory: HotbarSnapshot,
+                          enabled: Bool, clicking: Bool, bridging: Bool, physicalDown: Bool) -> HotbarItem? {
+         guard let began else { return nil }
+         guard enabled, !clicking, !bridging, physicalDown, self.world == world,
+-              now >= began, now-began <= 0.18, now-sampledAt >= 0, now-sampledAt <= 0.10,
+-              inventory.valid, inventory.hitKind == "block", inventory.target == target else { cancel(); return nil }
+-        guard sampledAt > began else { return nil }
+-        defer { cancel() }
+-        return AutoToolPolicy.choose(inventory)
++              now >= began else {cancel();return nil}
++        // A delayed sample pauses decisions, not the physical hold. A fresh
++        // target must be confirmed again before continuing after that gap.
++        guard now-sampledAt >= 0,now-sampledAt <= 0.10,inventory.valid else {
++            target=nil;pending=nil;return nil
++        }
++        guard sampledAt>lastSampleAt else{return nil}
++        lastSampleAt=sampledAt
++        guard let next=Target(inventory) else {target=nil;pending=nil;return nil}
++        if next != target {
++            target=next;targetSeenAt=sampledAt;pending=nil
++            return nil
++        }
++        guard sampledAt>targetSeenAt else{return nil}
++        guard let choice=AutoToolPolicy.choose(inventory) else {pending=nil;return nil}
++        if let pending,pending.slot==choice.slot,pending.identity==choice.identity,
++           now-pending.time<0.125 {return nil}
++        pending=(choice.slot,choice.identity,now)
++        return choice
+     }
+ }
+ 
+--- 1.9.3/Sources/main.swift
++++ 1.9.4/Sources/main.swift
+@@ -188,7 +188,7 @@
+         bridgeTimer = Timer(timeInterval: 0.008, repeats: true) { [weak self] _ in self?.serviceBridge() }
+         RunLoop.main.add(bridgeTimer!, forMode: .common)
+         updateUI()
+-        traceBridge("START version=1.9.3 AX=\(AXIsProcessTrusted()) input=\(CGPreflightListenEventAccess())")
++        traceBridge("START version=1.9.4 AX=\(AXIsProcessTrusted()) input=\(CGPreflightListenEventAccess())")
+         if ProcessInfo.processInfo.environment["MC_MACRO_BACKGROUND"] != "1" {
+             window.makeKeyAndOrderFront(nil)
+             NSApp.activate(ignoringOtherApps: true)
+@@ -378,7 +378,10 @@
+         policy.targetActive = active
+         if policy.enabled && !active { suspend("已切出游戏，暂停输入，总开关保留。") }
+         guard active else { return Unmanaged.passUnretained(event) }
+-        if type == .keyDown || type == .scrollWheel || type == .rightMouseDown || type == .leftMouseUp || event.flags.contains(.maskCommand) {
++        // Walking while holding attack must not end continuous tool selection.
++        // Menu/hotbar keys and explicit manual item changes still cancel it.
++        let toolMovementKey=telly.config.map {[$0.forward,$0.back,$0.left,$0.right,$0.jump,$0.sneak,$0.sprint].contains(code)} ?? false
++        if (type == .keyDown && !toolMovementKey) || type == .scrollWheel || type == .rightMouseDown || type == .leftMouseUp || event.flags.contains(.maskCommand) {
+             autoToolPress.cancel();if !telly.active {inventoryInputEpoch.invalidate()}
+         }
+         // System shortcuts/focus loss remain immediate safety stops. Ordinary
+--- 1.9.3/Sources/Interface.swift
++++ 1.9.4/Sources/Interface.swift
+@@ -270,7 +270,7 @@
+         Chrome.place(autoToolEnabled,in:inventory,206,16,44,26)
+         Chrome.place(Chrome.text("同种补料",size:12,weight:.medium),in:inventory,286,20,130,20)
+         Chrome.place(supplyEnabled,in:inventory,466,16,44,26)
+-        autoToolEnabled.toolTip="连点关闭时，真实按下左键且准星命中方块才切换快捷栏工具；床用剑。"
++        autoToolEnabled.toolTip="连点关闭时，按住左键挖掘会随目标方块持续切换快捷栏工具；对人不切，床用剑。"
+         supplyEnabled.toolTip="Telly 起跳前切换同种、同颜色的快捷栏备用方块；不打开背包。"
+         statusLabel.font = .systemFont(ofSize:11);statusLabel.textColor=Chrome.muted;statusLabel.maximumNumberOfLines=1;statusLabel.lineBreakMode = .byTruncatingTail
+         Chrome.place(statusLabel,in:root,28,668,410,23)
+@@ -326,7 +326,7 @@
+         let read=PanelButton("检测连接",target:self,action:#selector(testBridgeReading));Chrome.place(read,in:root,20,224,100,30)
+         let detail=PanelButton("诊断详情",target:self,action:#selector(showDiagnostics));Chrome.place(detail,in:root,132,224,100,30)
+         Chrome.rule(in:root,y:278,width:360)
+-        Chrome.place(Chrome.text("mcPvPmax  /  1.9.3",size:10,color:Chrome.muted),in:root,20,298,220,18)
++        Chrome.place(Chrome.text("mcPvPmax  /  1.9.4",size:10,color:Chrome.muted),in:root,20,298,220,18)
+         let exit=PanelButton("退出",target:self,action:#selector(quit));exit.quiet=true;Chrome.place(exit,in:root,274,290,64,30)
+         preferences.contentViewController=vc;preferences.behavior = .transient;preferences.appearance=NSAppearance(named:.darkAqua)
+         updateUI();preferences.show(relativeTo:settingsButton.bounds,of:settingsButton,preferredEdge:.maxY)

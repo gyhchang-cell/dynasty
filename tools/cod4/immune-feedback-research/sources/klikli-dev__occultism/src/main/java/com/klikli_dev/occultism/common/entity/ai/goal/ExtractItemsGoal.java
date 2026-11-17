@@ -1,0 +1,211 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.entity.ai.goal;
+
+import com.klikli_dev.occultism.common.entity.ai.BlockSorter;
+import com.klikli_dev.occultism.common.entity.spirit.SpiritEntity;
+import com.klikli_dev.occultism.common.item.filter.EntityItemFilter;
+import com.klikli_dev.occultism.util.ItemTransferUtil;
+import com.klikli_dev.occultism.util.Math3DUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.Container;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.neoforged.neoforge.capabilities.Capabilities.Item;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+
+import java.util.EnumSet;
+import java.util.Optional;
+
+public class ExtractItemsGoal extends PausableGoal {
+
+    protected final SpiritEntity entity;
+    protected final BlockSorter targetSorter;
+    protected BlockPos targetBlock = null;
+
+    public ExtractItemsGoal(SpiritEntity entity) {
+        this.entity = entity;
+        this.targetSorter = new BlockSorter(entity);
+        this.setFlags(EnumSet.of(Flag.TARGET));
+    }
+
+    //region Getter / Setter
+
+    /**
+     * @return the position to move to to take from the target block.
+     */
+    private BlockPos getMoveTarget() {
+        double angle = Math3DUtil.yaw(this.entity.position(), Math3DUtil.center(this.targetBlock));
+        return this.targetBlock.relative(Direction.fromYRot(angle).getOpposite());
+    }
+    //endregion Getter / Setter
+
+    @Override
+    public boolean canUse() {
+        //do not use if there is a target to attack
+        if (this.entity.getTarget() != null) {
+            return false;
+        }
+
+        //hand already full, cannot pick up anythings
+        if (!this.entity.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
+            return false;
+        }
+        this.resetTarget();
+        return !this.isPaused() && this.targetBlock != null;
+    }
+
+    @Override
+    public boolean canContinueToUse() {
+        return !this.isPaused() && this.targetBlock != null && !this.entity.getItemInHand(InteractionHand.MAIN_HAND).isEmpty();
+    }
+
+    public void stop() {
+        this.entity.getNavigation().stop();
+        this.resetTarget();
+    }
+
+    @Override
+    public void tick() {
+        if (this.targetBlock != null) {
+            if (this.entity.level().getBlockEntity(this.targetBlock) != null) {
+                BlockEntity blockEntity = this.entity.level().getBlockEntity(this.targetBlock);
+
+                float accessDistance = 1.86f;
+
+                //when approaching a chest, open it visually
+                double distance = this.entity.position().distanceTo(Math3DUtil.center(this.targetBlock));
+
+                //briefly before reaching the target, open chest, if it is one.
+                if (distance < 2.5 && distance >= accessDistance && this.canSeeTarget() &&
+                        blockEntity instanceof Container container) {
+                    this.toggleChest(container, true);
+                }
+
+                if (distance < accessDistance) {
+                    //stop moving while taking out
+                    this.entity.getNavigation().stop();
+                } else {
+                    //continue moving
+                    BlockPos moveTarget = this.getMoveTarget();
+                    this.entity.getNavigation().moveTo(this.entity.getNavigation().createPath(moveTarget, 0), 1.0f);
+                }
+
+                //when close enough extract item
+                if (distance < accessDistance && this.canSeeTarget()) {
+
+                    var blockEntityHandler = this.entity.level().getCapability(Item.BLOCK, blockEntity.getBlockPos(), blockEntity.getBlockState(), blockEntity, this.entity.getDepositFacing());
+                    if (blockEntityHandler == null) { //worst case scenario if block entity or entity changes since last target reset.
+                        this.resetTarget();
+                        return;
+                    }
+
+                    var entityHandler = this.entity.getCapability(Item.ENTITY);
+
+                    if (this.tryPerformStorageActuatorExtraction(blockEntityHandler, entityHandler,
+                            this.entity.getFilterItem())) {
+                        //if the block entity is a storage actuator we use special optimized logic that can access the internal hashmap of item storage
+                    } else {
+                        //if not a storage actuator, just use item handler defaults
+                        int slot = EntityItemFilter.getFirstMatchingSlot(this.entity.level(), blockEntityHandler, this.entity);
+                        if (slot >= 0) {
+                            //simulate extraction
+                            ItemStack toExtract = ItemTransferUtil.extractItem(blockEntityHandler, slot, Integer.MAX_VALUE, true);
+                            if (!toExtract.isEmpty()) {
+                                ItemStack remaining = ItemTransferUtil.insertItem(entityHandler, toExtract, true);
+                                if (remaining.getCount() < toExtract.getCount()) {
+                                    //if simulation went well, do for real
+                                    ItemStack extracted = ItemTransferUtil.extractItem(blockEntityHandler, slot, toExtract.getCount() - remaining.getCount(), false);
+                                    ItemTransferUtil.insertItem(entityHandler, extracted, false);
+                                }
+                            }
+                        }
+                    }
+
+                    //after extracting, close chest
+                    if (blockEntity instanceof Container container) {
+                        this.toggleChest(container, false);
+                    }
+                }
+            } else {
+                this.resetTarget(); //if there is no block entity, recheck
+            }
+        }
+    }
+
+    public boolean tryPerformStorageActuatorExtraction(ResourceHandler<ItemResource> blockEntityHandler, ResourceHandler<ItemResource> entityHandler, ItemStack filterItem) {
+        return EntityItemFilter.tryPerformStorageActuatorExtraction(this.entity.level(), blockEntityHandler, entityHandler, filterItem);
+    }
+
+
+    public boolean canSeeTarget() {
+
+//        ClipContext context = new ClipContext(this.entity.position(),
+//                Math3DUtil.center(this.targetBlock), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE,
+//                this.entity);
+//        BlockHitResult result = this.entity.level().clip(context);
+//
+//        if (result.getType() != BlockHitResult.Type.MISS) {
+//            BlockPos sidePos = result.getBlockPos();
+//            BlockPos pos = BlockPos.containing(result.getLocation());
+//            return this.entity.level().isEmptyBlock(sidePos) || this.entity.level().isEmptyBlock(pos) ||
+//                    this.entity.level().getBlockEntity(pos) == this.entity.level().getBlockEntity(this.targetBlock);
+//        }
+
+        return true;
+    }
+
+    /**
+     * Opens or closes a chest
+     *
+     * @param blockEntity the chest block entity
+     * @param open        true to open the chest, false to close it.
+     */
+    public void toggleChest(Container blockEntity, boolean open) {
+        if (blockEntity instanceof ChestBlockEntity chest) {
+            if (open) {
+                this.entity.level().blockEvent(this.targetBlock, chest.getBlockState().getBlock(), 1, 1);
+            } else {
+                this.entity.level().blockEvent(this.targetBlock, chest.getBlockState().getBlock(), 1, 0);
+            }
+        }
+    }
+
+    private void resetTarget() {
+        Optional<BlockPos> targetPos = this.entity.getExtractPosition();
+        targetPos.ifPresent((pos) -> {
+            this.targetBlock = pos;
+
+            var rawHandler = this.entity.level().getCapability(Item.BLOCK, this.targetBlock, this.entity.getExtractFacing());
+            if (rawHandler == null) {
+                //the extract block is not valid for extracting, so we disable this to allow exiting this task.
+                this.entity.setExtractPosition(null);
+            }
+        });
+    }
+
+}

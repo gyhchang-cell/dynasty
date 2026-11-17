@@ -1,0 +1,121 @@
+package com.stal111.forbidden_arcanus.client.renderer.block;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import com.stal111.forbidden_arcanus.client.model.FAModelLayers;
+import com.stal111.forbidden_arcanus.client.renderer.block.state.HephaestusForgeRenderState;
+import com.stal111.forbidden_arcanus.client.renderer.effect.MagicCircleRenderer;
+import com.stal111.forbidden_arcanus.client.renderer.effect.ValidRitualIndicatorRenderer;
+import com.stal111.forbidden_arcanus.client.renderer.effect.state.MagicCircleRenderState;
+import com.stal111.forbidden_arcanus.client.renderer.effect.state.ValidRitualIndicatorRenderState;
+import com.stal111.forbidden_arcanus.common.block.entity.forge.HephaestusForgeBlockEntity;
+import com.stal111.forbidden_arcanus.common.block.entity.forge.HephaestusForgeClientData;
+import com.stal111.forbidden_arcanus.common.block.entity.forge.HephaestusForgeSharedData;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Hephaestus Forge Renderer <br>
+ * Forbidden Arcanus - com.stal111.forbidden_arcanus.client.renderer.block.HephaestusForgeRenderer
+ *
+ * @author stal111
+ * @since 2021-07-16
+ */
+public class HephaestusForgeRenderer implements BlockEntityRenderer<HephaestusForgeBlockEntity, HephaestusForgeRenderState> {
+
+    private final ItemModelResolver itemModelResolver;
+
+    private final ValidRitualIndicatorRenderer validRitualIndicatorRenderer;
+    private final MagicCircleRenderer magicCircleRenderer;
+
+    public HephaestusForgeRenderer(BlockEntityRendererProvider.Context context) {
+        this.itemModelResolver = context.itemModelResolver();
+        this.validRitualIndicatorRenderer = new ValidRitualIndicatorRenderer(context);
+        this.magicCircleRenderer = new MagicCircleRenderer(context, FAModelLayers.MAGIC_CIRCLE_OUTER_RING, FAModelLayers.MAGIC_CIRCLE_INNER_RING);
+    }
+
+    @Override
+    public HephaestusForgeRenderState createRenderState() {
+        return new HephaestusForgeRenderState();
+    }
+
+    @Override
+    public void extractRenderState(HephaestusForgeBlockEntity blockEntity, HephaestusForgeRenderState renderState, float partialTick, Vec3 cameraPosition, @Nullable ModelFeatureRenderer.CrumblingOverlay breakProgress) {
+        BlockEntityRenderer.super.extractRenderState(blockEntity, renderState, partialTick, cameraPosition, breakProgress);
+
+        HephaestusForgeClientData clientData = blockEntity.getClientData();
+        HephaestusForgeSharedData sharedData = blockEntity.getSharedData();
+
+        ItemStackRenderState itemStackRenderState = new ItemStackRenderState();
+        this.itemModelResolver.updateForTopItem(itemStackRenderState, sharedData.getMainSlotInventory().getStack(), ItemDisplayContext.FIXED, blockEntity.getLevel(), blockEntity, 0);
+
+        renderState.itemStackRenderState = itemStackRenderState;
+        renderState.ageInTicks = blockEntity.getAgeInTicks(partialTick);
+
+        renderState.validRitualIndicatorRenderState = ValidRitualIndicatorRenderState.create(renderState.lightCoords, blockEntity.hasValidOrActiveRitual(), clientData.getIndicatorTicks() + partialTick);
+
+        sharedData.getActiveRitualData().ifPresent(activeRitualData -> {
+            MagicCircleRenderState magicCircleRenderState = new MagicCircleRenderState();
+            magicCircleRenderState.lightCoords = renderState.lightCoords;
+            magicCircleRenderState.ageInTicks = activeRitualData.getTicks() + partialTick;
+            magicCircleRenderState.duration = activeRitualData.getRitual().duration();
+            magicCircleRenderState.magicCircleType = activeRitualData.getRitual().magicCircleType().value();
+
+            renderState.magicCircleRenderState = magicCircleRenderState;
+        });
+    }
+
+    @Override
+    public void submit(HephaestusForgeRenderState renderState, PoseStack poseStack, SubmitNodeCollector nodeCollector, CameraRenderState cameraRenderState) {
+        this.validRitualIndicatorRenderer.submit(renderState.validRitualIndicatorRenderState, poseStack, nodeCollector, cameraRenderState);
+
+        poseStack.pushPose();
+        poseStack.translate(0.5D, 0.0D, 0.5D);
+
+        if (renderState.magicCircleRenderState != null) {
+            this.magicCircleRenderer.submit(renderState.magicCircleRenderState, poseStack, nodeCollector);
+        }
+
+        if (!renderState.itemStackRenderState.isEmpty()) {
+            poseStack.translate(0.0D, 1.3D, 0.0D);
+            poseStack.mulPose(Axis.YP.rotation(ItemEntity.getSpin(renderState.ageInTicks, 0.0F)));
+
+            poseStack.scale(0.5F, 0.5F, 0.5F);
+
+            renderState.itemStackRenderState.submit(poseStack, nodeCollector, renderState.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+        }
+
+        poseStack.popPose();
+    }
+
+    @Override
+    public boolean shouldRenderOffScreen() {
+        return true;
+    }
+
+    @Override
+    public @NotNull AABB getRenderBoundingBox(@NotNull HephaestusForgeBlockEntity blockEntity) {
+        AABB boundingBox = BlockEntityRenderer.super.getRenderBoundingBox(blockEntity).expandTowards(0.0D, 1.0D, 0.0D);
+
+        if (this.useExpandedRenderBoundingBox(blockEntity)) {
+            boundingBox = boundingBox.inflate(2.5F, 0.0F, 2.5D);
+        }
+        return boundingBox;
+    }
+
+    public boolean useExpandedRenderBoundingBox(HephaestusForgeBlockEntity blockEntity) {
+        return blockEntity.hasValidOrActiveRitual();
+    }
+}

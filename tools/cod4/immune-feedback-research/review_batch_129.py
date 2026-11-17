@@ -1,0 +1,14 @@
+"""Native target refusal and distinct resource receipt; one complete policy, no wrapper credits."""
+from ledger import B,O,record,verify
+import json
+r='P3pp3rF1y/Reliquary';root=B/'sources'/r.replace('/','__');p='src/main/java/reliquary/'
+full=['item/MobCharmItem.java','item/MobCharmDefinition.java','item/MobCharmRegistry.java','util/MobHelper.java','util/PlayerInventoryProvider.java','network/MobCharmDamagePayload.java','init/ModPayloads.java','client/gui/hud/CharmPane.java','client/gui/components/Component.java','client/gui/components/Box.java','client/gui/components/ItemStackPane.java','client/gui/hud/HUDRenderrer.java']
+refs=[(p+x,1,len((root/p/x).read_text().splitlines())) for x in full]
+refs += [(p+'Reliquary.java',33,77),(p+'init/ModItems.java',119,120),(p+'init/ModItems.java',275,292),(p+'item/MobCharmBeltItem.java',94,145),(p+'pedestal/PedestalRegistry.java',25,80),(p+'block/tile/PedestalBlockEntity.java',94,110),(p+'handler/ClientEventHandler.java',88,122),(p+'handler/ClientEventHandler.java',197,205),(p+'handler/ClientEventHandler.java',223,351)]
+k='reliquary-native-charm-target-denial-cache-versus-kill-resource-receipt-lifecycle'
+record(k,r,refs,
+ '真实注册MobCharmItem构造器订阅native目标变更/实体tick/死亡。server Mob对非FakePlayer新目标按实体类别charm取消；tick从target/lastHurtByMob/Player型brain memory取目标，资格满足后清target、lastHurt及指定记忆。资格来自原生inventory handlers或附近启用pedestal；库存UUID→registryNameSet按gameTime换tick全清。独立native LivingDeath真实ServerPlayer伤源才消耗对应charm：直接库存发MobCharmDamagePayload至该玩家→playToClient handler→CharmPane静态slot map→above HOTBAR HUD组件绘制耐久物品。',
+ '同一实际拒敌/资格缓存/资源回执生命周期整链1，不拆事件、实体类别、腰带或绘图包装。拒敌本身不耗耐久不发此包，击杀资源消费才回执，不能把它当拒控成功。current GameTime缓存无具体维度键，charm破坏未显式失效缓存，可同tick保留旧资格；memory解析仅Player实例，不会把UUID型ANGRY_AT当Player，但reset会擦该记忆。原生产包均slot=-1，HUD覆盖同键而非按目标去重；容量满remove(0)不是移最旧。wallclock4秒TTL，低耐久延长至约12秒；本地logout只清InfernalTear数据，未清本面板；不得声称世界切换必清。直接charm仅damage+cost>max才销毁。腰带销毁返回EMPTY后上游可继续扫描/到pedestal，不能认为已耗即总退出。',
+ 'Boss应在最终权威拒控点产生明确回执，不能借击杀/耗资源提示推导免疫。按目标UUID+维度/会话去重、有限容量真实淘汰和生命周期清理应明确；普通阴阳体质维持原type9，无新增灰字。',
+ '所有计数主链包含方法已读；腰带只读所引完整入口方法，嵌套存储基类和NeoForge底层派发未展开，不额外信用。pedestal注册和查询传dimension().registry()而非这里显式具体维度location，不称可靠跨维隔离；原生ResourceKey实现未展开。外部inventory providers未穷尽。HUD物品图标不是世界锚定浮字，不证明像素可辨/深度/真实TCP；没有运行游戏或正式改动。','native_target_refusal_cache_and_receipt_lifecycle')
+d=json.loads((O/'semantic-dedup.json').read_text());d['groups'].append({'family':'batch129-charm-native-target-refusal-cache-resource-receipt','credited_chains':[k],'rationale':'Distinct native target cancellation and brain reset gated by transient inventory/pedestal membership, with separate native kill-cost S2C/HUD lifetime consumption. Not prior Reliquary hunger/effect denials. All entity aliases, source registrations, belt/pedestal wrappers and common HUD components merged, not separate credits.'});(O/'semantic-dedup.json').write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n');verify()

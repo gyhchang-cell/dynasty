@@ -1,0 +1,50 @@
+[
+  {
+    "candidate_index": 3608,
+    "candidate_id": "b1b80afd8decb19dbb26",
+    "decision": "accepted",
+    "observation": "实际ProjectileImpact玩家受击拦截：当弹体owner已是受击玩家且有AB_DEFLECTED时间标签，tick差<10直接return让原碰撞继续而非cancel，避免循环；装备概率通过才cancel、反速度，箭清穿透集合/归属（回归三叉戟不改owner）或火球反power，清旧标签写当前实体年龄并按当前维度发运动包和声音。10tick豁免与3429终身加速令牌是不同玩法生命周期，整个反弹链一条。",
+    "snippet_sha256": "3632cae4e0a947d92824247890360ef1a85643b39a2dce8384d0f18d83ecf8b3",
+    "reviewed_at": "2026-10-26T20:11:09.182204+08:00"
+  },
+  {
+    "candidate_index": 3618,
+    "candidate_id": "8c4e561e419cfeda85ae",
+    "decision": "accepted",
+    "observation": "BlackBeast死亡第40tick实际创建保存召回灵魂物品的FlyingItem并写原owner/secondsCool。FlyingItem服务器life>100才回收，同维度跟随或远距靠近，owner换维时直接尝试向原Player背包投递；投递前写物品专项冷却，失败掉落，成功才发拾取声，随后discard。item/life/cool由NBT保存；没有原请求代次，空item discard后本tick仍继续。延后物品归还与冷却提交整链一条。",
+    "snippet_sha256": "3c3e6e9ad8039c307d853708fd596d48f6e68aeb697f527783efeb4aad9ef7c6",
+    "reviewed_at": "2026-10-26T20:11:09.182229+08:00"
+  },
+  {
+    "candidate_index": 3634,
+    "candidate_id": "ce00cfe668273eff3df4",
+    "decision": "accepted",
+    "observation": "SpellImpacts真实SUMMON分支提前创建/初始化实体与施法上下文，然后按组+个体delay将spawnEntity闭包放原ServerWorld队列；组FX只按组delay独立调度，未依赖spawnEntity布尔结果，因此视觉不等于召唤成功。完整WorldScheduler与ServerWorldMixin TAIL已读：0tick复制清立即队列后执行，正delay只取严格等于世界time的桶。执行端未重新检查caster生死/维度或已创建实体有效性；整个延迟召唤链只计一条，不重复6760的ANY回执链。",
+    "snippet_sha256": "d73b5bea09b57fe24397bd8e17e009c0d760c3fc877f72ebf291127c5c2bbbb2",
+    "reviewed_at": "2026-10-26T20:11:09.182234+08:00"
+  },
+  {
+    "candidate_index": 3642,
+    "candidate_id": "5d487d352acc9dfcfd2b",
+    "decision": "excluded",
+    "observation": "完整读取VolatileSoul onUpdate/onImpact/owner查询及NBT：10tick后自动寻敌，owner失效或不再volatile销毁，短时盾挡反速度但不换owner。整体为普通追踪弹生命周期，未发现独立延后回执结算，暂排除而不以又一个投射物凑数。",
+    "snippet_sha256": "9237a7fb4d4a23b283a04bd0e9539249d917a169745344e18a87671d4fd37e35",
+    "reviewed_at": "2026-10-26T20:11:09.182237+08:00"
+  },
+  {
+    "candidate_index": 3659,
+    "candidate_id": "09cfb3cc08051aedd577",
+    "decision": "accepted",
+    "observation": "LeapSystem完整类与PrehistoricLeaping碰撞消费已读：起跳使用currentTick==jumpDelayTick精确等值，落地和结束却用<=，错过起跳tick可卡准备态；跳跃目标失效会冻结位置清实体目标，hurt回调后再次判target非空避免同步回调清引用。start重置三时间戳，stop清阶段/目标；NBT只恢复攻击乘骑UUID，serverTick与当前vehicle UUID匹配才恢复target，否则结束乘骑。按完整跳跃/落地/乘骑状态机一条。",
+    "snippet_sha256": "bc81827c56dd4e99ac816e7ab1345b546545cbef0e751f72b283bdd3b6af624b",
+    "reviewed_at": "2026-10-26T20:11:09.182240+08:00"
+  },
+  {
+    "candidate_index": 3667,
+    "candidate_id": "55dc1e1cd77dd124740f",
+    "decision": "accepted",
+    "observation": "Tetra实际throwItem把原模块物品从背包转为投射物，onHitEntity按实体ID集合防重复；先记命中再hurt，只有hurt成功才附魔/进度/暴击粒子，雷击与普通命中声仍不依赖hurt成功。临时将thrownStack置入玩家主手再恢复，无finally；穿透/反弹共享集合与限额，命中超限置dealtDamage，tick再进入忠诚返还。NBT保留物品/dealtDamage/优先槽却不保存命中集合；整条武器实体结果与归属链一条。",
+    "snippet_sha256": "b4a0b1545872fb9bb415327b59f6fbb7c9eed6be12f0ea51942b2b2d9240a067",
+    "reviewed_at": "2026-10-26T20:11:09.182243+08:00"
+  }
+]

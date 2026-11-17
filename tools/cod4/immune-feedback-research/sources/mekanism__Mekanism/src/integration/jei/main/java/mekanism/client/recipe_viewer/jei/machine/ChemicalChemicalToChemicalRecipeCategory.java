@@ -1,0 +1,62 @@
+package mekanism.client.recipe_viewer.jei.machine;
+
+import mekanism.api.recipes.ChemicalChemicalToChemicalRecipe;
+import mekanism.api.recipes.book.MekanismBookCategory;
+import mekanism.client.gui.element.bar.GuiHorizontalPowerBar;
+import mekanism.client.gui.element.gauge.GaugeType;
+import mekanism.client.gui.element.gauge.GuiChemicalGauge;
+import mekanism.client.gui.element.gauge.GuiGauge;
+import mekanism.client.gui.element.progress.GuiProgress;
+import mekanism.client.gui.element.progress.ProgressType;
+import mekanism.client.gui.element.slot.SlotType;
+import mekanism.client.recipe_viewer.RecipeViewerUtils;
+import mekanism.client.recipe_viewer.jei.HolderRecipeCategory;
+import mekanism.client.recipe_viewer.type.IRecipeViewerRecipeType;
+import mekanism.common.inventory.container.slot.SlotOverlay;
+import mekanism.common.tile.component.config.DataType;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.helpers.IGuiHelper;
+import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+
+public class ChemicalChemicalToChemicalRecipeCategory<BOOK_CATEGORY extends MekanismBookCategory, BOOK_INFO extends Recipe.BookInfo<BOOK_CATEGORY>>
+      extends HolderRecipeCategory<ChemicalChemicalToChemicalRecipe<BOOK_CATEGORY, BOOK_INFO>> {
+
+    protected static final String LEFT_INPUT = "leftInput";
+    protected static final String RIGHT_INPUT = "rightInput";
+    protected static final String OUTPUT = "output";
+
+    private final GuiGauge<?> leftInputGauge;
+    private final GuiGauge<?> rightInputGauge;
+    private final GuiGauge<?> outputGauge;
+    protected final GuiProgress rightArrow;
+    protected final GuiProgress leftArrow;
+
+    public ChemicalChemicalToChemicalRecipeCategory(IGuiHelper helper, IRecipeViewerRecipeType<ChemicalChemicalToChemicalRecipe<BOOK_CATEGORY, BOOK_INFO>> recipeType) {
+        super(helper, recipeType);
+        leftInputGauge = addElement(GuiChemicalGauge.getDummy(GaugeType.STANDARD.with(DataType.INPUT_1), this, 25, 13));
+        outputGauge = addElement(GuiChemicalGauge.getDummy(GaugeType.STANDARD.with(DataType.OUTPUT), this, 79, 4));
+        rightInputGauge = addElement(GuiChemicalGauge.getDummy(GaugeType.STANDARD.with(DataType.INPUT_2), this, 133, 13));
+        addSlot(SlotType.INPUT, 6, 56).with(SlotOverlay.MINUS);
+        addSlot(SlotType.INPUT_2, 154, 56).with(SlotOverlay.MINUS);
+        addSlot(SlotType.OUTPUT, 80, 65).with(SlotOverlay.PLUS);
+        addSlot(SlotType.POWER, 154, 14).with(SlotOverlay.POWER);
+        rightArrow = addConstantProgress(ProgressType.SMALL_RIGHT, 47, 39);
+        leftArrow = addConstantProgress(ProgressType.SMALL_LEFT, 101, 39);
+        addElement(new GuiHorizontalPowerBar(this, RecipeViewerUtils.FULL_BAR, 115, 75));
+    }
+
+    @Override
+    public void setRecipe(IRecipeLayoutBuilder builder, RecipeHolder<ChemicalChemicalToChemicalRecipe<BOOK_CATEGORY, BOOK_INFO>> recipeHolder, IFocusGroup focusGroup) {
+        ChemicalChemicalToChemicalRecipe<BOOK_CATEGORY, BOOK_INFO> recipe = recipeHolder.value();
+        builder.setShapeless();
+        initChemical(builder, RecipeIngredientRole.INPUT, leftInputGauge, recipe.getLeftInput().display())
+              .setSlotName(LEFT_INPUT);
+        initChemical(builder, RecipeIngredientRole.INPUT, rightInputGauge, recipe.getRightInput().display())
+              .setSlotName(RIGHT_INPUT);
+        initChemical(builder, RecipeIngredientRole.OUTPUT, outputGauge, recipe.getOutputDisplay())
+              .setSlotName(OUTPUT);
+    }
+}

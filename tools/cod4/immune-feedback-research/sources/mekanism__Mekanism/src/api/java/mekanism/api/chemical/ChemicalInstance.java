@@ -1,0 +1,94 @@
+package mekanism.api.chemical;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import mekanism.api.MekanismRegistries;
+import mekanism.api.datamaps.IMekanismDataMapTypes;
+import mekanism.api.datamaps.chemical.attribute.ChemicalFuel;
+import mekanism.api.datamaps.chemical.attribute.ChemicalRadioactivity;
+import mekanism.api.datamaps.chemical.attribute.CooledCoolant;
+import mekanism.api.datamaps.chemical.attribute.HeatedCoolant;
+import mekanism.api.text.IHasTranslationKey;
+import net.minecraft.core.Holder;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.TypedInstance;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.item.ItemInstance;
+import net.neoforged.neoforge.registries.datamaps.DataMapType;
+import org.jspecify.annotations.Nullable;
+
+/// Simple interface to provide helpers for objects that hold references to chemicals.
+///
+/// @since 10.8.0
+public interface ChemicalInstance extends TypedInstance<Chemical>, IHasTranslationKey {
+
+    String FIELD_ID = ItemInstance.FIELD_ID;
+
+    /// A standard codec for non-empty Chemical holders.
+    Codec<Holder<Chemical>> CHEMICAL_HOLDER_CODEC = ChemicalSerializationHelper.REFERENCE_CODEC.validate(
+          chemical -> chemical.is(ChemicalIds.EMPTY) ? DataResult.error(() -> "Chemical must not be " + ChemicalIds.EMPTY.identifier()) : DataResult.success(chemical)
+    );
+
+    /// A stream codec which can be used to encode and decode chemical holders over the network.
+    StreamCodec<RegistryFriendlyByteBuf, Holder<Chemical>> CHEMICAL_HOLDER_STREAM_CODEC = ByteBufCodecs.holderRegistry(MekanismRegistries.Keys.CHEMICAL);
+
+    @Override
+    default String getTranslationKey() {
+        //Wrapper to get translation key of the chemical type easier
+        return Chemical.getTranslationKey(typeHolder().keyOrNull());
+    }
+
+    /// Helper to check if this chemical is radioactive without having to look it up from the attributes.
+    ///
+    /// @return `true` if this chemical is radioactive.
+    default boolean isRadioactive(@Nullable RegistryAccess registryAccess) {
+        return getRadioactivityAttribute(registryAccess) != null;
+    }
+
+    /// {@return radiation level of this chemical, or zero if it is not radioactive}
+    default double getRadioactivity(@Nullable RegistryAccess registryAccess) {
+        ChemicalRadioactivity radioactivity = getRadioactivityAttribute(registryAccess);
+        return radioactivity == null ? 0 : radioactivity.radioactivity();
+    }
+
+    /// {@return energy density for one mB of this chemical, or zero if it is not usable as a fuel}
+    default int fuelEnergyDensity(@Nullable RegistryAccess registryAccess) {
+        ChemicalFuel fuel = getFuel(registryAccess);
+        return fuel == null ? 0 : fuel.energyDensity();
+    }
+
+    /// {@return radiatioactivity attribute of this chemical, or `null` if it is not radioactive}
+    @Nullable
+    default ChemicalRadioactivity getRadioactivityAttribute(@Nullable RegistryAccess registryAccess) {
+        return getData(registryAccess, IMekanismDataMapTypes.INSTANCE.chemicalRadioactivity());
+    }
+
+    /// {@return fuel attribute of this chemical, or `null` if it is not a fuel}
+    @Nullable
+    default ChemicalFuel getFuel(@Nullable RegistryAccess registryAccess) {
+        return getData(registryAccess, IMekanismDataMapTypes.INSTANCE.chemicalFuel());
+    }
+
+    /// {@return cooled coolant attribute of this chemical, or `null` if it is not a cooled coolant}
+    @Nullable
+    default CooledCoolant getCooledCoolant(@Nullable RegistryAccess registryAccess) {
+        return getData(registryAccess, IMekanismDataMapTypes.INSTANCE.cooledChemicalCoolant());
+    }
+
+    /// {@return heated coolant attribute of this chemical, or `null` if it is not a heated coolant}
+    @Nullable
+    default HeatedCoolant getHeatedCoolant(@Nullable RegistryAccess registryAccess) {
+        return getData(registryAccess, IMekanismDataMapTypes.INSTANCE.heatedChemicalCoolant());
+    }
+
+    /// Helper method to get the value of a specific data map for this chemical.
+    ///
+    /// @param registryAccess Registry access to look up the reference if a direct holder was provided. If `null`, this will just return `null` for direct holders.
+    /// @param type           Type of data to lookup.
+    @Nullable
+    default <DATA> DATA getData(@Nullable RegistryAccess registryAccess, DataMapType<Chemical, DATA> type) {
+        return IMekanismDataMapTypes.INSTANCE.getData(registryAccess, MekanismRegistries.Keys.CHEMICAL, typeHolder(), type);
+    }
+}

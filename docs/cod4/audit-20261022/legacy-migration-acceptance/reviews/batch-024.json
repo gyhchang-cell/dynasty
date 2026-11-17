@@ -1,0 +1,112 @@
+[
+  {
+    "candidate_id": "4ae93dd3497fed37f1a3",
+    "status": "accepted",
+    "family": "native-bed-item-legacy-default-metadata-migration",
+    "trigger": "DataFixers schema1125 BedItemColorFix on typed ITEM_STACK",
+    "input": "minecraft:bed with remainder Damage missing/default0",
+    "output": "rewrites Damage short14 only for legacy zero/default; all other saved stack data retained",
+    "preservation": "Full source and version registration reviewed. This is guarded old-default interpretation, not list of new item IDs. Non-bed and nonzero damage left intact; lesson: old absence/default may have different semantic meaning from current value.",
+    "application_limit": "Not safe to rerun on already current objects; version gate is essential. No blanket Dynasty metadata changes inferred."
+  },
+  {
+    "candidate_id": "b1da233c68ac870e6c60",
+    "status": "accepted",
+    "family": "native-banner-nested-payload-metadata-migration",
+    "trigger": "DataFixers schema804 ItemBannerColorFix",
+    "input": "banner tag.BlockEntityTag.Base numeric, optional display sentinel lore",
+    "output": "moves Base low4bits to top Damage while retaining rest of typed tag, special exact Lore sentinel returns earlier",
+    "preservation": "Full nested typed guard chain inspected. No manufacture of default tag if old nested payload absent. Source calls dynamic2.remove(Base) without assigning return, so must not claim old key removed successfully from immutable Dynamic. Single chain, no per-color credit.",
+    "application_limit": "Special display comparison requires exact map; malformed nested Base leaves unchanged; this is specific old payload ownership semantics, not arbitrary remapping list."
+  },
+  {
+    "candidate_id": "f988cf4beb9d66855c1c",
+    "status": "accepted",
+    "family": "native-shulker-box-id-derived-from-saved-blockentity-color",
+    "trigger": "DataFixers schema813 ItemShulkerBoxColorFix",
+    "input": "minecraft:shulker_box with existing tag.BlockEntityTag and Color default0",
+    "output": "selects colored item ID using old payload Color mod16 while retaining full other stack payload and tag",
+    "preservation": "Complete class and dispatcher reviewed; metadata-dependent ID migration preserves container payload by rewriting typed id rather than creating a new ItemStack. Sixteen lookup entries count as one method.",
+    "application_limit": "Negative Color gives negative Java remainder/index failure. Unassigned dynamic.remove(Color) does not establish actual key removal. No native storage runtime roundtrip performed."
+  },
+  {
+    "candidate_id": "c7fd13228965e14b2ede",
+    "status": "accepted",
+    "family": "native-projectile-old-owner-layout-and-potion-payload-upgrade",
+    "trigger": "DataFixers schema2511 EntityProjectileOwnerFix",
+    "input": "projectile-specific old owner longs/nested M,L and old potion Potion payload",
+    "output": "converts nonzero pair to four-int OwnerUUID, removes old owner layout; potion payload moves Potion→Item with empty-map fallback",
+    "preservation": "All updateProjectiles dispatcher/three owner-layout methods/setUUID and potion helper read. Ten entity choices remain one implementation chain; arithmetic is actual bitwise UUID layout, not identity regeneration.",
+    "application_limit": "Old owner removed even when either half0 and no replacement emitted; existing target OwnerUUID may be overwritten. Potion missing payload creates empty map. Studied compatibility/data-loss boundaries, not a generic lossless claim."
+  },
+  {
+    "candidate_id": "798d3c3cbc58003a5afe",
+    "status": "accepted",
+    "family": "native-blockentity-typed-owner-and-target-uuid-migration",
+    "trigger": "DataFixers schema2514 BlockEntityUUIDFix with shared AbstractUUIDFix",
+    "input": "skull Owner.Id string or conduit target_uuid M,L",
+    "output": "skull existing owner compound renamed SkullOwner even if invalid string unchanged; conduit changes to Target only on valid nonzero pair",
+    "preservation": "Full helper reviewed including successful remove/set and invalid UUID exception fallback. Different persistent block owner than item skull; both block types counted as one dispatch chain, shared helpers credit0.",
+    "application_limit": "Zero UUID halves rejected; invalid skull ID remains old inner representation within new owner key. No extra credit for helper calls or each block choice."
+  },
+  {
+    "candidate_id": "4ce07486a8a5e59a902b",
+    "status": "accepted",
+    "family": "native-raid-hero-earned-reward-identity-format-migration",
+    "trigger": "DataFixers schema2514 SavedDataUUIDFix through data/Raids",
+    "input": "HeroesOfTheVillage list entries UUIDMost/UUIDLeast",
+    "output": "converts valid entries to int-array UUIDs; invalid entries warn and retain original payload",
+    "preservation": "Whole nested raid-owned list and common helper read, not per hero or field. Preserves recipient relationship for earned raid hero status; unlike temporary combat target this is saved reward identity.",
+    "application_limit": "Malformed outer nonstream data may fail/default depending Dynamic API; invalid retained entry not guaranteed accepted by current raid consumer. No runtime assertion all old heroes recover."
+  },
+  {
+    "candidate_id": "fba58e8ec1dc6a73b46c",
+    "status": "accepted",
+    "family": "native-world-identity-graph-versioned-uuid-migration",
+    "trigger": "DataFixers schema2514 LevelUUIDFix",
+    "input": "world CustomBossEvents.Players, per-dimension DragonFight.DragonUUID longs, WanderingTraderId string",
+    "output": "converts each proper old identity representation with local unchanged fallback on invalid entries",
+    "preservation": "Full world fix with all three nested owner sections and shared helper read. World objects independent from player root, no copying their fields into Dynasty player clone. Three consumers treated as one whole class chain.",
+    "application_limit": "Partial invalid boss-player entry retained, not dropped or randomized; UUID helper rejects zero halves. New modern PlayerPersisted policy not inferred from world graph migration."
+  },
+  {
+    "candidate_id": "41abf52ae755502a551d",
+    "status": "accepted",
+    "family": "native-entity-string-uuid-to-long-pair-upgrade",
+    "trigger": "DataFixers schema108 EntityStringUuidFix",
+    "input": "entity UUID when stored as string",
+    "output": "parse same UUID then replace string with UUIDMost and UUIDLeast longs",
+    "preservation": "Full context and version dispatch reviewed. Type-specific conversion leaves nonstring UUID unchanged and preserves other entity payload. This earlier representation transition is substantively different from later four-int arrays, not repeat table rename.",
+    "application_limit": "UUID.fromString is not caught here, so malformed strings can fail rather than fallback. No claim converting arbitrary player root strings is safe."
+  },
+  {
+    "candidate_id": "d0de939b9d7ecbf3ad70",
+    "status": "accepted",
+    "family": "native-entity-role-dispatched-relationship-uuid-owner-upgrade",
+    "trigger": "DataFixers schema2514 EntityUUIDFix",
+    "input": "entity UUID; living Attributes.Modifiers; animal Owner/LoveCause; leash, fox TrustedUUIDs; item Owner/Thrower; projectile and conversion relationships",
+    "output": "keeps same identity in canonical int arrays, guarded class-role dispatch; fox list moves to Trusted, projectile OwnerUUID→Owner, malformed entries locally retained",
+    "preservation": "Complete class dispatcher and all helpers plus AbstractUUIDFix read. Species registry sets are not separately counted; living helper appears in player chain as support only. Real role boundaries explain why entity data cannot be blindly copied just because it has a UUID or shared prefix.",
+    "application_limit": "Attributes updates assume stream shape; fox malformed entry retained not validated by consumer; temporary HurtBy/angry_at explicitly not permanent earned player progress. No API transplant."
+  },
+  {
+    "candidate_id": "7a1a7c7b294754b6b647",
+    "status": "duplicate",
+    "reason": "makeRule is dispatcher for ItemCustomNameToComponentFix.fixTag already accepted, not new implementation."
+  },
+  {
+    "candidate_id": "ce5c623db98085bc39e9",
+    "status": "duplicate",
+    "reason": "makeRule wrapper for already accepted enchantment payload fixTag."
+  },
+  {
+    "candidate_id": "b5c54b9d5e8959cd9568",
+    "status": "duplicate",
+    "reason": "makeRule wrapper for already accepted written book page recovery fixTag."
+  },
+  {
+    "candidate_id": "8b5df9347fdbfe75c194",
+    "status": "duplicate",
+    "reason": "FurnaceRecipeFix makeRule dispatches already accepted updateFurnaceContents chain."
+  }
+]

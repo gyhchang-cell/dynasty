@@ -1,0 +1,65 @@
+add('ie-faraday-per-hit-slot-bitset-low-voltage-denial-high-voltage-reversal',
+ 'FaradaySuitItem.onStrike仅处理ElectricDamageSource。source.level<1.75时把this.type.ordinal对应bit OR进本次共享cache，等于15才把同一dmg.dmg清零；高电压分支反而每件乘1.2并在非创造时耗耐久2。IElectricEquipment.applyToEntity每次新建cache，遍历所有EquipmentSlot，持有实现接口的物品也调用。ElectricDamageSource.apply先跑装备，再仅dmg>0才调用原生hurt。注册排除BODY的四个Faraday甲型。',
+ '具体免疫必须记清来源级别与完整装备组合；同一装备面对另一来源可增伤。按本次命中建立的部件位图区别持久计数，不把四件模板拆信用。',
+ '静态未运行；门使用物品type而非eqSlot验证，不能声称代码强制必须在正确防具槽。高压耐久回调传入的是dmg.getEntity转ServerPlayer，不是owner；此电源构造super(tag)不带攻击者，不能声称必产生耐久动画回执。此处清零意味着不调hurt，不产生独立灰字。',
+ '实际EventHandler原生LivingDamageEvent.Pre反击/IEShield.hitShield→causeTeslaDamage→ElectricDamageSource.apply→IElectricEquipment逐槽onStrike→Faraday bitmask→dmg=0拒hurt；IEItems实际四件注册',
+ ev(B,'FaradaySuitItem','onStrike'),ev(B,'IEDamageSources','apply'),ev(B,'IEDamageSources','ElectricDamageSource'),ev(B,'IEDamageSources','causeTeslaDamage'),ev(B,'IElectricEquipment','applyToEntity'),ev(B,'EventHandler','onLivingAttacked'),ev(B,'IEShieldItem','hitShield'),span(B,'IEItems',332,336,'four_Faraday_types_registration'),ev(B,'ImmersiveEngineering','ImmersiveEngineering'),ev(B,'ImmersiveEngineering','setup'),
+ dedup='新来源强度阈值/本次槽位mask聚合/高压反转家族合1；不重复Botania mana减伤/Goety ward点消费，也不按四件护甲分数。')
+add('ie-electric-retaliation-boolean-is-positive-post-equipment-budget-not-native-hurt-receipt',
+ 'ElectricDamageSource.apply先改写dmg，dmg>0才调用e.hurt，但完全不读hurt的bool，最终返回dmg>0。实际onLivingAttacked的TESLA背包反击对近距Living、可模拟取够整笔能量时先扣费；if(apply(attacker))才尝试STUNNED60，但即使原生拒伤，只要装备未清零仍进此分支。spark声音在整次供能分支内无条件产生。注释说33%，实际该分支没有概率门。',
+ '检查实际返回语义比看apply命名可靠；正伤害预算/原生接纳/控制状态接纳是三件事。声音和扣费只能证明尝试发生。',
+ '与上一条同链支持方法共享，独立提出的是实际反击消费者误把budget bool作为命中门。STUNNED状态定义本缓存缺失，不能推定原生动作被禁；只证明addEffect被尝试且其bool未读。未实机复现任何伤害绕过。',
+ '@Mod构造注册setup→setup注册EventHandler→LivingDamageEvent.Pre→onLivingAttacked背包TESLA→能量模拟/扣除→ElectricDamageSource.apply budget bool→STUNNED尝试与spark声',
+ ev(B,'IEDamageSources','apply'),ev(B,'EventHandler','onLivingAttacked'),ev(B,'IElectricEquipment','applyToEntity'),ev(B,'IEDamageSources','causeTeslaDamage'),ev(B,'ImmersiveEngineering','setup'),ev(B,'ImmersiveEngineering','ImmersiveEngineering'),
+ dedup='不是为同电源包装再计：上一条是Faraday最终拒伤生产，本条是具体反击反馈消费者的返回值边界；与Ars SpellDamageEvent.Post不等HP差同为回执风险但这里有实际budget bool触发眩晕源。主岗仍可合并。')
+add('ie-shock-shield-projectile-destruction-and-damage-zero-with-contact-retaliation',
+ '真实onLivingAttacked仅Player正在用IEShield、originalDamage>=3且Utils.canBlockDamageSource通过时调用hitShield。该方向门要求非BYPASSES_ARMOR、isBlocking、来源位置非null和水平点积<0。SHOCK升级非冷却时若projectile tag且directEntity存在，直接discard投射物并newDamage=0；近距Living来源另外调用电伤。任一动作发生便写Cooldown40并spark声，不依电伤apply结果。FLASH独立分支可先给锥内非自身目标FLASHED100/amp1并清Mob target。',
+ '最终拒绝可同时消灭载体和置零当前伤害，两者要分别留证；来源位置、方向和伤害阶段影响是否能进入，不凭持盾外观推定免疫。',
+ '静态非原生运行。Pre是否会在所有原版已格挡路径调用未验证，不能声称全部弹丸/格挡必触发；不是取消原生damage方法。hitShield本身没有再次核对玩家方向。FLASH addEffect结果未读，清target不依状态接纳；仅现存行为，不转守卫账。',
+ 'IEItems.SHIELD注册→IEShieldItem.use/startUsingItem→原生LivingDamageEvent.Pre→EventHandler.onLivingAttacked→Utils方向门→hitShield→discard+setNewDamage0+升级cooldown/sound',
+ ev(B,'IEShieldItem','hitShield'),ev(B,'EventHandler','onLivingAttacked'),ev(B,'Utils','canBlockDamageSource'),ev(B,'IEShieldItem','use'),ev(B,'IEShieldItem','getUseAnimation'),span(B,'IEItems',301,301,'shield_registration'),ev(B,'ImmersiveEngineering','setup'),
+ dedup='不同于已有原版方向格挡家族：具体Pre入口消灭direct projectile并清零当前container，附独立反击/升级冷却；方向判定包装不另计。')
+add('spellengine-native-shield-contact-receipt-before-durability-and-player-source-filter',
+ 'LivingEntityEvents.damage_WRAP_damageShield在原生damage调用damageShield(F)的位置派发ENTITY_SHIELD_BLOCK、Player另派PLAYER_SHIELD_BLOCK，然后才original.call消耗耐久。SpellTriggers.init实际注册玩家监听；onShieldBlock没有attacker就直接return，否则把source/critical/damageAmount填入SHIELD_BLOCK事件，交fireTriggers先走stash后passive。没有依据最终health变化再生成该格挡事件。',
+ '格挡回执来源应是实际格挡接触点，不是零伤推测；先于耐久结算，不能表示盾未破。没有攻击实体的环境来源对全部实体事件与玩家被动消费策略不同。',
+ 'Java静态链，未原生运行。记录的是当前原生调用位置契约，不把注释“first”当所有版本保证；不证明外部装备配置真的装了SHIELD_BLOCK法术。已有stash/trigger限额逻辑仅支持，不加信用。',
+ '原生LivingEntity.damage→damageShield WrapOperation→PLAYER_SHIELD_BLOCK→SpellTriggers.init listener→onShieldBlock(攻击者门)→fireTriggers→既有SpellStashHelper/useStashes和passive',
+ ev(S,'LivingEntityEvents','damage_WRAP_damageShield'),ev(S,'SpellTriggers','onShieldBlock'),ev(S,'SpellTriggers','init'),ev(S,'SpellTriggers','fireTriggers'),ev(S,'SpellEngineMod','init'),
+ dedup='具体原生格挡接触回执生产点与007 stash尝试扣层独立；不为泛型CombatEvents或damage RETURN包装计数，不重复既有evasion事件。')
+add('undergarden-forgotten-guardian-peaceful-native-damage-denial-with-bypass',
+ 'ForgottenGuardian.hurtServer在传入ServerLevel的PEACEFUL难度且非creativePlayer来源、非BYPASSES_INVULNERABILITY时立即false；其他情况交super。checkDespawn先交EventHooks且若未拦截仅清noActionTime；实体注册带notInPeaceful，不能据此推断切难度后根本不会有Boss。canBeAffected无条件false另为固定状态免疫模板支持。',
+ '区分世界难度拒绝与伤害来源特权，明确拒绝可在原生hurtServer最前端发生；只在环境变化时生效的保护不应描述成永久无敌。',
+ '无原生服务/GUI。读取的是新版本hurtServer API，不复制至本项目1.20.1。未核查原版notInPeaceful与EventHooks运行交互，不保证自然生成/切难度实体存续；本门没有灰字/声音。',
+ 'UGEntityTypes实际registerWithEgg→registerWithPlacement→registerWithAttributes构造ForgottenGuardian；原生hurtServer→difficulty/source bypass判定→false或super；原生checkDespawn独立',
+ ev(U,'ForgottenGuardian','hurtServer'),ev(U,'ForgottenGuardian','checkDespawn'),ev(U,'ForgottenGuardian','canBeAffected'),span(U,'UGEntityTypes',92,92,'ForgottenGuardian_registration'),ev(U,'UGEntityTypes','registerWithEgg'),ev(U,'UGEntityTypes','registerWithPlacement'),ev(U,'UGEntityTypes','registerWithAttributes'),
+ dedup='独立世界难度+creative/bypass原生拒伤策略，非换名字复用phase/来源tag固定模板；无条件状态拒绝不单算。')
+add('embers-powered-tool-native-damage-refusal-uses-cached-state-and-deferred-charge',
+ 'Embers.preInit实际注册EventManager。onEntityDamaged仅trueSource为Player且主手非空进入工具逻辑；IEmberChargedTool且非creative并hasEmber=false则取消LivingHurtEvent。未取消且amount>0才setFire，server发EmberBurstFX并设didUse。真实ItemClockworkAxe.hasEmber读NBT poweredOn；onUpdate每5次更新才以总Ember>5刷新poweredOn，didUse为bool，后续更新统一removeEmber5并在余量<5关机。',
+ '原生拒伤前的资源门可能只是缓存状态；同tick多次尝试可被单个didUse标记合并，而不是严格每击原子扣费。预伤事件发的FX不能当最终HP伤害凭据。',
+ '静态未运行，不宣称已复现免费多击。MessageEmberBurstFX源码本地缺，因此发包之后的client显示/维度过滤/TTL未验证，不将该缺失链计作完整浮字实现。getEmberTotal的可选Baubles实现未展开，不保证所有兼容资源路径；此候选只限实际工具最终事件取消与延后消费边界。',
+ '@Mod Embers.preInit注册EventManager→原生LivingHurtEvent→onEntityDamaged→ItemClockworkAxe.hasEmber缓存门→取消或正amount点燃/FX发送/didUse→原生Item.onUpdate消耗；RegistryManager实际构造axe_clockwork',
+ ev(E,'EventManager','onEntityDamaged'),ev(E,'ItemClockworkAxe','hasEmber'),ev(E,'ItemClockworkAxe','onUpdate'),ev(E,'EmberInventoryUtil','getEmberTotal'),ev(E,'EmberInventoryUtil','removeEmber'),ev(E,'Embers','preInit'),span(E,'RegistryManager',383,383,'clockwork_axe_registration'),ev(E,'IEmberChargedTool','__complete_file__'),
+ dedup='具体攻击资源缓存+didUse延后合并结算，不按每种Clockwork工具拆账，不把缺失的FX接收器当第二条；与Faraday per-hit cache不同，需主岗最终判相关性。')
+add('ie-shield-rearm-energy-lifecycle-support-not-wall-clock-expiry',
+ 'IEShield.inventoryTick仅server；主手inHand参数加offhand同一对象判断，若不在手或实体不blocking才处理FLASH/SHOCK。每个冷却只有模拟取10能量恰够，才真扣10并cooldown.tick后写回UPGRADE_DATA；无能量/持盾格挡时不会按tick自然消失。hitShield成功动作写40。',
+ '具体效果重新可用时间应按真正资源条件计算，40不能直接标成2秒墙钟CD。声效节流不能只看显示数字。',
+ '通用装备冷却生命周期在Boss灰字范围关联有限，本条主动支持0。Cooldown定义本缓存未读，不能把tick语义更精确推定到零/负值；没有实际计时，不称等待已通过。',
+ 'hitShield→写FLASH/SHOCK Cooldown40→原生inventoryTick→装备/格挡门+10energy→tick/写component',
+ ev(B,'IEShieldItem','inventoryTick'),ev(B,'IEShieldItem','hitShield'),status='support_only_not_effective',dedup='同电盾具体免疫链辅助生命周期，不为普通冷却组件/数据写回再计。')
+add('ie-flashed-camera-effect-fog-consumer-support-with-missing-status-registration',
+ '真实hitShield FLASH分支给锥内Living（除player）尝试FLASHED100/amp1；ClientEventHandler.onFogUpdate仅当前camera entity有该状态才以duration/amplifier计算fog起终距，末20tick按farPlane插值恢复；onFogColourUpdate同门把RGB都置1。不是按攻击者或最近Boss全局覆盖。',
+ '特效消费者须锚定真正受影响对象，生命周期读状态剩余时间；其强制白雾是本项目禁止随意改相机方向之外的另一设计差异，也不拿来制作。',
+ '支持0：缓存缺IEPotions定义/客户端注册链，不能宣称效果真实运行或完整接收链已验证；也不是浮字拒绝回执。只读源码，没有启动/修改任何相机。',
+ '原生Pre→hitShield addEffect FLASHED（未读bool）→缺原生状态同步/注册证据→两client fog事件当前camera entity状态门',
+ ev(B,'ClientEventHandler','onFogUpdate'),ev(B,'ClientEventHandler','onFogColourUpdate'),ev(B,'IEShieldItem','hitShield'),status='support_only_not_effective',dedup='不把白色常量/两个fog函数拆参考；客户端链缺口主动0。')
+add('ie-endrod-enderman-special-source-support-missing-railgun-native-hit-consumer',
+ 'RailgunProjectiles.register真实EndRod匿名实现对EnderMan返回双倍基础伤；getDamageSource先尝试STUNNED200，再按shooter UUID是否能解析当前world Player选择不同damage type，构造Source以Player作为directEntity而causingEntity为null。非EnderMan返回null。',
+ '改变source归属可以改变原版免弹语义；应核对hurt最终消费者后才能判定绕过成功，不能根据方法名/眩晕尝试推断。',
+ '支持0：本固定缓存缺RailgunShotEntity原生命中实现及STUNNED定义，未补下载，无法证明特殊source确被消费。两个damage type命名与选择相反，不能自行纠正后陈述；这里只按代码记录，不报运行bug。',
+ 'RailgunProjectiles.register EndRod配置→匿名getDamage/getDamageSource→缺RailgunShotEntity实际命中消费→不提升',
+ ev(B,'RailgunProjectiles','register'),status='support_only_not_effective',dedup='整个弹药注册方法只是完整包含证据；只观察EndRod分支不把材料/弹药颜色或匿名包装逐条计。')
+
+# Final manual semantic dedup against immutable master reviewed_utc 2026-10-26.
+for i in (0,1,2,4,5):
+ rows[i]['status']='support_only_not_effective'
+ rows[i]['deduplication']='已与主账2026-10-26既有IE电盾/Faraday/Undergarden和平/Embers缓存资源链全文语义核对，包含bool非hurt结果细节，整体支持0，不再申请晋级。原观察保留便于核对；源文件/方法计数不加信用。'

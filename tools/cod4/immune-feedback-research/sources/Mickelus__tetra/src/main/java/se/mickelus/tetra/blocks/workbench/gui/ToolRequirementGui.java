@@ -1,0 +1,74 @@
+package se.mickelus.tetra.blocks.workbench.gui;
+
+import com.google.common.collect.ImmutableList;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraftforge.common.ToolAction;
+import se.mickelus.tetra.gui.GuiColors;
+
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Collections;
+import java.util.List;
+
+@ParametersAreNonnullByDefault
+public class ToolRequirementGui extends GuiTool {
+
+    String requirementTooltip;
+    private int requiredLevel;
+    private int availableLevel;
+    private boolean showTooltip = true;
+    private boolean showTooltipRequirement = true;
+
+    public ToolRequirementGui(int x, int y, ToolAction toolAction) {
+        this(x, y, toolAction, "tetra.tool." + toolAction.name() + ".requirement");
+    }
+
+    public ToolRequirementGui(int x, int y, ToolAction toolAction, String requirementTooltip) {
+        super(x, y, toolAction);
+
+        this.requirementTooltip = requirementTooltip;
+    }
+
+    public ToolRequirementGui setTooltipVisibility(boolean shouldShow) {
+        showTooltip = shouldShow;
+        return this;
+    }
+
+    public ToolRequirementGui setTooltipRequirementVisibility(boolean shouldShow) {
+        showTooltipRequirement = shouldShow;
+        return this;
+    }
+
+    public ToolRequirementGui updateRequirement(int requiredLevel, int availableLevel) {
+        setVisible(requiredLevel != 0);
+        this.requiredLevel = requiredLevel;
+        this.availableLevel = availableLevel;
+
+        if (isVisible()) {
+            if (requiredLevel > availableLevel) {
+                update(requiredLevel, GuiColors.remove);
+            } else {
+                update(requiredLevel, GuiColors.add);
+            }
+        }
+
+        return this;
+    }
+
+    @Override
+    public List<Component> getTooltipLines() {
+        if (hasFocus() && showTooltip) {
+            if (showTooltipRequirement) {
+                return ImmutableList.of(
+                        Component.translatable(requirementTooltip, requiredLevel),
+                        Component.literal(""),
+                        Component.translatable("tetra.tool.available", availableLevel)
+                                .withStyle(requiredLevel > availableLevel ? ChatFormatting.RED : ChatFormatting.GREEN));
+
+            }
+
+            return Collections.singletonList(Component.translatable(requirementTooltip, requiredLevel));
+        }
+        return super.getTooltipLines();
+    }
+}

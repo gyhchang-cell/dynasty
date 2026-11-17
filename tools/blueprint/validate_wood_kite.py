@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Inspect this aircraft's actual exported cuboids and animation ports. Never starts Java or a game."""
 from pathlib import Path
-import hashlib,importlib.util,json,math
+import hashlib,importlib.util,json,math,sys
 from functools import lru_cache
 from types import SimpleNamespace
 import numpy as np
 from PIL import Image
-R=Path(__file__).resolve().parents[2];A=R/'src/main/resources/assets/dynasty';D=R/'docs/blueprint-cod1/evidence/wood-kite-v1';ID='luban_yisha';forms=(ID,ID+'_metal');paths=set()
+R=Path(__file__).resolve().parents[2];A=R/'src/main/resources/assets/dynasty';D=R/'docs/art/bestiary-v43/wood-kite';ID='luban_yisha';forms=(ID,ID+'_metal');paths=set()
 def read(p):
  paths.add(p)
  def unique(rows):
@@ -24,17 +24,31 @@ def matrices(g,ch,t):
  return world
 report={'source':'actual exported geometry/software sampling; not native Minecraft','samplesPerClip':81,'forms':{}}
 for ident in forms+('wood_kite_thunder_bomb',):
- g=read(A/f'geo/blueprint/boss/{ident}.geo.json')['minecraft:geometry'][0];anim=read(A/f'animations/blueprint/boss/{ident}.animation.json')['animations'];bones={b['name']:b for b in g['bones']};assert len(bones)==len(g['bones']);assert g['description']['texture_width']==g['description']['texture_height']==16
+ g=read(A/f'geo/blueprint/boss/{ident}.geo.json')['minecraft:geometry'][0];anim=read(A/f'animations/blueprint/boss/{ident}.animation.json')['animations'];bones={b['name']:b for b in g['bones']};assert len(bones)==len(g['bones']);atlas_size=512 if ident in forms else 16;assert g['description']['texture_width']==g['description']['texture_height']==atlas_size
  tex=Image.open(A/f'textures/entity/blueprint/boss/{ident}.png').convert('RGB');paths.add(A/f'textures/entity/blueprint/boss/{ident}.png')
+ assert tex.size==(atlas_size,atlas_size)
+ coverage=np.zeros((atlas_size,atlas_size),dtype=bool);painted_faces=0
  for b in bones.values():
   chain=set();node=b
   while node.get('parent'):assert node['name'] not in chain;chain.add(node['name']);node=bones[node['parent']]
   assert all(math.isfinite(x) for x in b['pivot'])
   for c in b.get('cubes',[]):
    assert all(math.isfinite(x) and x>0 for x in c['size'])
-   for uv in c['uv'].values():
-    u,v=uv['uv'];w,h=uv['uv_size'];assert all(type(x)==int for x in (u,v,w,h));assert 2<=u<=14-w and 2<=v<=14-h and min(w,h)>=2
-    assert len({tex.getpixel((x,y)) for x in range(u,u+w) for y in range(v,v+h)})==1
+   for face,uv in c['uv'].items():
+    u,v=uv['uv'];w,h=uv['uv_size'];assert all(type(x)==int for x in (u,v,w,h))
+    if ident in forms:
+     assert 1<=u<=atlas_size-w-1 and 1<=v<=atlas_size-h-1 and min(w,h)>=1
+     assert not coverage[v-1:v+h+1,u-1:u+w+1].any(),('overlapping UV gutters',ident,b['name'],face)
+     coverage[v-1:v+h+1,u-1:u+w+1]=True
+     expected={'north':(c['size'][0],c['size'][1]),'south':(c['size'][0],c['size'][1]),'west':(c['size'][2],c['size'][1]),'east':(c['size'][2],c['size'][1]),'up':(c['size'][0],c['size'][2]),'down':(c['size'][0],c['size'][2])}[face]
+     assert (w,h)==tuple(max(1,math.ceil(s)) for s in expected),('pixel density',ident,b['name'],face)
+     tile=np.array(tex)[v:v+h,u:u+w];gutter=np.array(tex)[v-1:v+h+1,u-1:u+w+1]
+     assert np.array_equal(gutter,np.pad(tile,((1,1),(1,1),(0,0)),mode='edge'))
+     painted_faces+=len(np.unique(tile.reshape(-1,3),axis=0))>1
+    else:
+     assert 2<=u<=14-w and 2<=v<=14-h and min(w,h)>=2
+     assert len({tex.getpixel((x,y)) for x in range(u,u+w) for y in range(v,v+h)})==1
+ if ident in forms:assert painted_faces>400,('flat-swatches returned',ident,painted_faces)
  clips={};jointErrors=[]
  for name,clip in anim.items():
   assert set(clip['bones'])<=set(bones);assert 0<clip['animation_length']<=11
@@ -76,9 +90,16 @@ for ident in forms+('wood_kite_thunder_bomb',):
   for tick in (24,40,55):
    world=matrices(g,anim['animation.'+ID+'.wing_cut']['bones'],tick);pivot=np.array(bones['right_folding_rail_2']['pivot']);local=(np.array([-44.8,28,13])-pivot)*[-1,1,1];port=(world['right_folding_rail_2']@np.append(local,1))[:3]*[-1,1,-1]/16;assert np.allclose(port,[-2.8,1.75,-.8125]),('native wing blade port',ident,tick,port)
   frame=bones['eagle_tool_head']['cubes'];struts=[c for c in frame if c['size']==[2,14,8]];assert len(struts)==2 and all(c['origin'][1]+c['size'][1]>=44 for c in struts)
- report['forms'][ident]={'bones':len(bones),'cuboids':sum(len(b.get('cubes',[])) for b in bones.values()),'clips':clips,'restDimensionsMetres':dims.tolist(),'serialWingAndLandingJointMaximumErrorMetres':max(jointErrors,default=0)/16}
-# All actual delivered16px assets, icons, material islands and block textures.
-textures=list(A.glob('textures/entity/blueprint/boss/luban_yisha*.png'))+[A/'textures/entity/blueprint/boss/wood_kite_thunder_bomb.png']+list(A.glob('textures/item/stargazer_*.png'))+[A/'textures/item/luban_clockwork_diagram_page.png']+list(A.glob('textures/block/stargazer_*.png'))
+ report['forms'][ident]={'bones':len(bones),'cuboids':sum(len(b.get('cubes',[])) for b in bones.values()),'clips':clips,'restDimensionsMetres':dims.tolist(),'serialWingAndLandingJointMaximumErrorMetres':max(jointErrors,default=0)/16,'atlasSize':atlas_size,'nonconstantFaces':int(painted_faces)}
+# Actor atlases now have face-specific materials. Keep the separate legacy
+# bomb, item and block/icon restrictions; do not apply their16px limit to mobs.
+textures=[A/'textures/entity/blueprint/boss/wood_kite_thunder_bomb.png']+list(A.glob('textures/block/stargazer_*.png'))
+# Item icons are owned by the parallel item-art workstream and no longer have
+# the old16px format. Keep their old strict audit available explicitly instead
+# of silently passing it or modifying those unrelated production PNGs.
+legacy_icons=list(A.glob('textures/item/stargazer_*.png'))+[A/'textures/item/luban_clockwork_diagram_page.png']
+report['legacyIconAudit']='RUN_STRICT_16PX_RULES' if '--include-legacy-icons' in sys.argv else 'NOT_RUN_OUT_OF_SCOPE_PARALLEL_ITEM_ART'
+if '--include-legacy-icons' in sys.argv:textures+=legacy_icons
 for p in textures:
  paths.add(p);im=Image.open(p).convert('RGB');assert im.size==(16,16) and len(set(im.get_flattened_data()))<=4
  for y in range(16):
@@ -91,7 +112,8 @@ for loc in ('zh_cn','en_us'):read(A/f'lang/{loc}.json')
 assert 'dynasty:stargazer_gear_rope' in read(R/'src/main/resources/data/minecraft/tags/blocks/climbable.json')['values']
 paths.update(R.glob('src/main/java/com/dynasty/blueprint/boss/**/*.java'));paths.update(R.glob('src/main/java/com/dynasty/blueprint/artifact/**/*.java'))
 paths.update(R/p for p in ('src/main/java/com/dynasty/DynastyContent.java','src/main/java/com/dynasty/blueprint/BlueprintVisualEvent.java','src/main/java/com/dynasty/blueprint/client/BlueprintVisuals.java','tools/blueprint/generate_wood_kite.py','tools/blueprint/generate_stargazer_resources.py','tools/blueprint/validate_wood_kite.py','tools/blueprint/review_wood_kite.py','src/main/resources/data/dynasty_army/structures/cauldron_pit_test.nbt'))
-report.update(staticChecks='PASS_SOURCE_SOFTWARE_ONLY',nativeChecks='NOT_RUN_USER_EXAM_JAVA_PAUSE',nativeAcceptance='EIGHT_SOURCE_TESTS_WRITTEN_NOT_RUN',nativeDimensions={'bodyColliderMetres':[3.75,3],'visualRestMetres':[9,3,5.5],'bombColliderMetres':[.65,.7],'visualBombMetres':[.625,.6875,.625],'floorY':200,'octagonVoxelWidth':35,'floorCells':1005,'floorLossCapCells':150,'summonUUIDCap':1,'bombCap':8,'targetCap':16,'introTicks':200,'metalThreshold':.6,'morphTicks':48,'deathTicks':220,'meteorAscentTicks':60,'groundWaveJumpHeightMetres':.5},references=[{'url':'https://raw.githubusercontent.com/TeamTwilight/twilightforest/1.20.x/src/main/java/twilightforest/client/model/entity/RavenModel.java','actuallyRead':'Bird head/beak, body-wing-leg parent layout; no geometry copied.'},{'url':'https://raw.githubusercontent.com/lender544/new1.20.1/master/src/main/java/com/github/L_Ender/cataclysm/client/model/entity/The_Harbinger_Model.java','actuallyRead':'Attached jetpack and hinged machine frames; no assets copied.'}],pending=['NATIVE_BUILD_API_VALIDATION','SINGLE_AND_TWO_PLAYER_ACTUAL_FLIGHT_ATTACKS_COLLISION_AND_CULLING','ALL_SKILL_BALANCE_AND_DENSE_TARGETS_ABOVE16','FULL_AIR_CLAW_GRAPPLE_WEIGHT_AND_EDGE_THROW_PLAYTEST','ORDINARY_WORLD_PLATFORM_AND_FIRST_ASCENT_GENERATION','LIVE_DEATH_LOOT_ROPE_CLOUD_HALO_RELOAD_AND_PERFORMANCE'])
+paths.update(R/p for p in ('tools/art/bestiary-v43/wood_kite_materials.py','tools/art/bestiary-v43/wood-kite-material-map.json','docs/art/bestiary-v43/wing-reference-review.json'))
+report.update(staticChecks='PASS_SOURCE_SOFTWARE_ONLY',nativeChecks='NOT_RUN_THIS_MATERIAL_PASS',nativeAcceptance='PENDING_ACTUAL_GAME',nativeDimensions={'bodyColliderMetres':[3.75,3],'visualRestMetres':[9,3,5.5],'bombColliderMetres':[.65,.7],'visualBombMetres':[.625,.6875,.625],'floorY':200,'octagonVoxelWidth':35,'floorCells':1005,'floorLossCapCells':150,'summonUUIDCap':1,'bombCap':8,'targetCap':16,'introTicks':200,'metalThreshold':.6,'morphTicks':48,'deathTicks':220,'meteorAscentTicks':60,'groundWaveJumpHeightMetres':.5},references={'current_material_review':'docs/art/bestiary-v43/wing-reference-review.json','accepted_for_target':100,'no_external_pixels_copied':True},pending=['NATIVE_BUILD_API_VALIDATION','SINGLE_AND_TWO_PLAYER_ACTUAL_FLIGHT_ATTACKS_COLLISION_AND_CULLING','ALL_SKILL_BALANCE_AND_DENSE_TARGETS_ABOVE16','FULL_AIR_CLAW_GRAPPLE_WEIGHT_AND_EDGE_THROW_PLAYTEST','ORDINARY_WORLD_PLATFORM_AND_FIRST_ASCENT_GENERATION','LIVE_DEATH_LOOT_ROPE_CLOUD_HALO_RELOAD_AND_PERFORMANCE'])
 report['resourceSha256']={str(p.relative_to(R)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(paths)}
 D.mkdir(parents=True,exist_ok=True);(D/'validated-source.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
-print('PASS_SOURCE_SOFTWARE_ONLY',len(paths),'source fingerprints;26clips x81actual geometry samples; native not run')
+print('PASS_SOURCE_SOFTWARE_ONLY',len(paths),'source fingerprints;',sum(len(form['clips']) for form in report['forms'].values()),'clips x81actual geometry samples; native not run by this script')

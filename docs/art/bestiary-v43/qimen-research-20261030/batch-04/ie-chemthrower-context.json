@@ -1,0 +1,712 @@
+{
+  "id": "ie-chemthrower-projectile-render-context-extension",
+  "updated_utc": "2026-10-30T17:54:17.318414+00:00",
+  "status": "EXISTING_FAMILY_SELECTED_STATIC_CHAIN_EXPANDED_RUNTIME_AND_ENGINE_BOUNDARIES_PENDING",
+  "extends": "../reviewed-chains-20261031.json#ie-chemthrower-sustained-use",
+  "repo": "BluSunrize/ImmersiveEngineering",
+  "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+  "minecraft": "1.20.1",
+  "forge": "47.3.0",
+  "declared_ie_version": "10.2.0",
+  "declared_build_number": "183",
+  "new_source_studies": 0,
+  "new_independent_units": 0,
+  "new_accepted_credit": 0,
+  "human_creature_model_texture_reference_credit": 0,
+  "findings": [
+    {
+      "topic": "持续输入与燃料预算",
+      "observation": "use取实际hand栈；shift在server切ignite，否则startUsingItem(hand)。每个onUseTick以consumption*elapsed<=当前流体量作预算，循环8个散射方向；只有server addFreshEntity。onUseTick本身不扣油；releaseUsing重新读该栈当前流体，按结束elapsed整体shrink并写回/移除。不是每个喷射物单独扣费，也不是预留token事务。",
+      "evidence": [
+        "ChemthrowerItem.java114–201",
+        "IEItemInterfaces.java26–42",
+        "FluidUtils.java62–72"
+      ]
+    },
+    {
+      "topic": "原点与动量",
+      "observation": "持物hand用于startUsingItem；喷射物经父构造出生在owner眼高，不从渲染枪口或手部mesh出发。基础构造先shoot，物品随后把速度设为玩家动量+带散射方向range。悬空时每个split都减小量反作用速度。focus/gas改变scatter/range，不拆案例。",
+      "evidence": [
+        "ChemthrowerItem.java138–166",
+        "IEProjectileEntity.java65–90"
+      ]
+    },
+    {
+      "topic": "服务端命中与当前手",
+      "observation": "ChemthrowerShotEntity.onHit只在server且fluid非空执行；有tag effect则将owner强转Player并取命中时当前MAIN_HAND栈，未保存原始发射hand/栈。普通温度hurt返回true才缩短invulnerableTime。效果callback不统一返回hurt成功，Potion分支甚至可以独立施加效果，不能称effect调用等于伤害成功。",
+      "evidence": [
+        "ChemthrowerShotEntity.java125–165",
+        "ChemthrowerHandler.java61–67,87–174"
+      ]
+    },
+    {
+      "topic": "NPC强转边界",
+      "observation": "Bulwark的独立AI goal确实以自身为owner生成相同实体，固定使用ethanol；本模组Effects.register对ethanol只登记flammable、不登记effect。Player强转仅在effect!=null分支中；未查完整tag和外部扩展，不能宣称普通Bulwark链必然已崩溃。",
+      "evidence": [
+        "ChemthrowerAttackGoal.java24–79",
+        "ChemthrowerShotEntity.java134–145",
+        "ChemthrowerEffects.java166–184"
+      ]
+    },
+    {
+      "topic": "火焰与碰撞清理",
+      "observation": "喷射物可因可燃标签+点火开关或经过火/熔岩点燃；炎热流体和着火时还有额外命中分支。本类onHit没有调用super.onHit或统一discard，不能将一般“碰到”当作回收完成。混凝土/除草剂效果有明确区域discard。父类ticksInAir>=40或inGroundTime>=100移除后本方法没有立即return；其后仍调用super.tick。原版AbstractArrow完整影响未知。",
+      "evidence": [
+        "ChemthrowerShotEntity.java89–165",
+        "ChemthrowerEffects.java83–163",
+        "IEProjectileEntity.java50,141–209,259–262"
+      ]
+    },
+    {
+      "topic": "参数单位保留",
+      "observation": "着火命中f从getRemainingFireTicks取值，却传给setSecondsOnFire；按API命名存在ticks/seconds边界，代码没有在此处除20。只标记静态调用，不把未读引擎实现或实测伤害时长当已确认。",
+      "evidence": [
+        "ChemthrowerShotEntity.java154–163"
+      ]
+    },
+    {
+      "topic": "owner、同步与存档",
+      "observation": "父类维护owner+shooterUUID、synched UUID和spawn packet；子类FluidStack同步由实际注册serializer写/读/copy，client baseTick会取同步值。子类没有自定义流体磁盘NBT，父类自定义NBT只额外存Owner；不能将同步数据当已验证的重载流体恢复。真实AbstractArrow/Entity存档生命周期未读。",
+      "evidence": [
+        "IEProjectileEntity.java39–98,112–127,269–311",
+        "ChemthrowerShotEntity.java38–87,105–115",
+        "IEEntityDataSerializers.java19–28",
+        "IEFluid.java196–217",
+        "IEContent.java136–148"
+      ]
+    },
+    {
+      "topic": "真正喷射材质",
+      "observation": "renderer优先实体fluid后退synced；读取流体IClientFluidTypeExtensions的stillTexture在BLOCK_ATLAS取sprite，使用tint RGBA并取环境/流体亮度max，camera facing小四边形逐顶点UV0–4。TransformingVertexBuilder将pose后position、normal、UV、color、light真正交base.endVertex。getTextureLocation返回bullet.png没有被这段render选作采样材质。",
+      "evidence": [
+        "ChemthrowerShotRenderer.java39–96",
+        "TransformingVertexBuilder.java32–230",
+        "ChemthrowerShotEntity.java167–179"
+      ]
+    },
+    {
+      "topic": "真正手持模型",
+      "observation": "物品initializeClient注入USE_IEOBJ_RENDER；@Mod客户端构造注册chemthrower callback，生成JSON dynamic=true/loader=ie_obj/callback同名，并分别提供FP/TP左右手display。Loader→General覆盖栈/holder key→Specific applyTransform→IEOBJItemRenderer对可见组putBulkData链已接上。实际OBJ文件/MTL/PNG未查看，手部遮挡与视觉姿态未实机确认。",
+      "evidence": [
+        "ChemthrowerItem.java73–78",
+        "ImmersiveEngineering.java128–129",
+        "ClientProxy.java115–155,170–177,495–516",
+        "ItemCallback.java25–33",
+        "chemthrower.json1–160",
+        "IEOBJLoader.java43–69",
+        "GeneralIEOBJModel.java279–288",
+        "SpecificIEOBJModel.java125–129,161–184",
+        "IEOBJItemRenderer.java50–131"
+      ]
+    },
+    {
+      "topic": "持姿与升级是上下文",
+      "observation": "ChemthrowerCallbacks使用capacity/multitank选择base/grip/cage/tanks及容器组；额外旋转/平移仅holder instanceof Bulwark并TP hand。玩家使用动画返回NONE，四手持角度来自JSON；不把Bulwark回调当玩家举枪动画，不把各组另算案例。",
+      "evidence": [
+        "ChemthrowerCallbacks.java29–75",
+        "ChemthrowerItem.java99–104",
+        "models/item/chemthrower.json3–152"
+      ]
+    }
+  ],
+  "dedup": {
+    "decision": "EXISTING_FAMILY_COMPLETION_CONTEXT_ZERO_NEW_CREDIT",
+    "reason": "完成前批Chemthrower候选未读范围；continuous-use预算、效果、温度、流体类型和模型组属于同机制上下文，不以方法/弹数/材质分割案例。独立语义验收仍未进行。"
+  },
+  "pending_reads": [
+    "Forge47.3.0 FluidHandlerItemStack.drain/FriendlyByteBuf流体序列化具体实现未补读；只到真实调用边界。",
+    "原版AbstractArrow命中、存档与卸载内部未全文读，不能把mod覆写或期限当完整生命周期验证。",
+    "scrollwheel实际消息分派及切罐与release结算的真实先后未读/实测；不能称所有切换状态闭合。",
+    "实际手持OBJ/MTL/PNG及外部资源包替换未查看；不计模型+贴图参考。",
+    "玩家FP/TP、左手、换栈、延迟、读档与Npc扩展fluid tag实机未验证。"
+  ],
+  "production_modified": false,
+  "java_or_game_started": false,
+  "evidence": [
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "gradle.properties",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/gradle.properties",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/gradle.properties",
+      "git_blob_sha1": "dfcb4e869345af0e02de9718bfe12daef1f01b9a",
+      "read_ranges": [
+        [
+          1,
+          10
+        ]
+      ],
+      "supports": "精确MC1.20.1/Forge47.3.0/IE10.2.0构建183声明",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "fa0b90b54236897e8633681fdc811be964446ced72dbac4d6f6b9a1731e8b4ba"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "build.gradle",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/build.gradle",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/build.gradle",
+      "git_blob_sha1": "0a63204e13f3d316cc59231b6f20ee9fa50a4a95",
+      "read_ranges": [
+        [
+          206,
+          215
+        ]
+      ],
+      "supports": "实际net.minecraftforge坐标，不取被注释NeoForge坐标",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "sha256": "44c43a3fd2558b9ab7a3f00e09936adee07af3a925835e66a3a0ccb1870fae1d"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/entities/ChemthrowerShotEntity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/entities/ChemthrowerShotEntity.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/entities/ChemthrowerShotEntity.java",
+      "git_blob_sha1": "b8d78eebada32452f9b2e977b4f2ee56e251f582",
+      "read_ranges": [
+        [
+          1,
+          180
+        ]
+      ],
+      "supports": "完整喷射物：流体同步、密度重力、火焰与温度命中、效果回调、亮度",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "ed81b89a315577a4f8afb8e38493dc729d7b5d503a6d2d827e14d0f6da34bfc9"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/render/entity/ChemthrowerShotRenderer.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/render/entity/ChemthrowerShotRenderer.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/render/entity/ChemthrowerShotRenderer.java",
+      "git_blob_sha1": "d897f0bcc2e119ee871d4baaf181c4ede96dcb2b",
+      "read_ranges": [
+        [
+          1,
+          99
+        ]
+      ],
+      "supports": "真正读取FluidStack→still atlas sprite→tint→光照→4顶点；不是bullet.png",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "63a69283879be04dd6cc5ad7568b828f3b11ad71b0d4cf2a56d84513486fe336"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/api/java/blusunrize/immersiveengineering/api/tool/ChemthrowerHandler.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/api/java/blusunrize/immersiveengineering/api/tool/ChemthrowerHandler.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/api/java/blusunrize/immersiveengineering/api/tool/ChemthrowerHandler.java",
+      "git_blob_sha1": "d0ca2c3c3a01235bff45c5c248b5a574990adb60",
+      "read_ranges": [
+        [
+          1,
+          245
+        ]
+      ],
+      "supports": "首个匹配tag效果注册查找，flammable与effect分表，damage/potion/extinguish等实际回调",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "ad2f1271b530b4b455d5b0543ce427369827dcba7a0236dc5f79adee717afbef"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/items/ChemthrowerEffects.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/items/ChemthrowerEffects.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/items/ChemthrowerEffects.java",
+      "git_blob_sha1": "9a68fb4f78789ad8aa5919d37fed4167e658b086",
+      "read_ranges": [
+        [
+          1,
+          200
+        ]
+      ],
+      "supports": "真实注册水/药水/混凝土/除草剂/IE流体等效果；局部特殊效果删除喷射物，非全局命中删除",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "9b597acc963beb02b3f8688cd4a9330bfa10a37fad7e5f15b87cad182277f912"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/fluids/IEItemFluidHandler.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/fluids/IEItemFluidHandler.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/fluids/IEItemFluidHandler.java",
+      "git_blob_sha1": "e9d46e817559d669a67eaef523bb95205d11d6f4",
+      "read_ranges": [
+        [
+          1,
+          113
+        ]
+      ],
+      "supports": "实际容器能力、fill和容量；drain继承部分保留未知",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "6dcfd9e9e70f2f6e2ec2486e164928d7d809e4b757f318ec0a020a332bf42d0f"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/items/IEItemInterfaces.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/items/IEItemInterfaces.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/items/IEItemInterfaces.java",
+      "git_blob_sha1": "05fa43996001c3e85b033f9665ae846d535eb2d1",
+      "read_ranges": [
+        [
+          1,
+          56
+        ]
+      ],
+      "supports": "IAdvancedFluidItem默认getFluid从FluidUtils能力查询",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "393c14ff52b302a25d0e2a797f6cf3d1a103f68de5bea8c9d2c556e4226f87a9"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/api/java/blusunrize/immersiveengineering/api/fluid/FluidUtils.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/api/java/blusunrize/immersiveengineering/api/fluid/FluidUtils.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/api/java/blusunrize/immersiveengineering/api/fluid/FluidUtils.java",
+      "git_blob_sha1": "b6219e9c69473d37a0008ea5c4304f264cec4543",
+      "read_ranges": [
+        [
+          62,
+          72
+        ]
+      ],
+      "supports": "SIMULATE drain取流体，不是该处即时执行燃料扣除",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "sha256": "6e70a27f2845498a25d7dc5d28500378c296692e0c1cf3751060cba24c3800c1"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/util/ItemNBTHelper.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/util/ItemNBTHelper.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/util/ItemNBTHelper.java",
+      "git_blob_sha1": "eb2c84a46b05f1e11118d1514a4ae5c390934a78",
+      "read_ranges": [
+        [
+          1,
+          208
+        ]
+      ],
+      "supports": "流体NBT写回与remove辅助调用边界",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "16e6e22e7c7af4469b8e68ecc77b1c97eaae90d27379ca12774b3083387349ee"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/register/IEEntityDataSerializers.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/register/IEEntityDataSerializers.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/register/IEEntityDataSerializers.java",
+      "git_blob_sha1": "09bfc0d7eb45eb2f0264b730f2a7535d55d2ab95",
+      "read_ranges": [
+        [
+          1,
+          28
+        ]
+      ],
+      "supports": "fluid_stack serializer实际注册",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "900c456101357143f8b260f9cd272f7746b0e54093af8f8d35cb1333a0769b57"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/fluids/IEFluid.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/fluids/IEFluid.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/fluids/IEFluid.java",
+      "git_blob_sha1": "9b61e9061451353d9a1eba244221601db5d35e14",
+      "read_ranges": [
+        [
+          196,
+          217
+        ]
+      ],
+      "supports": "EntityFluidSerializer写/读FluidStack、copy实际委托；不是磁盘NBT保存",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "sha256": "4e1732e0374599a6176277b3e3802fe28f94230d46c0bdfc62acccb758926cd4"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/register/IEEntityTypes.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/register/IEEntityTypes.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/register/IEEntityTypes.java",
+      "git_blob_sha1": "6381b85f85ee9acdbe739cc6c085402267f3c92a",
+      "read_ranges": [
+        [
+          1,
+          125
+        ]
+      ],
+      "supports": "CHEMTHROWER_SHOT实体factory/尺寸及deferred register",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "ad7970730d08075d1389b35d74b1dc701f3f187245c1946755386611813769be"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/register/IEItems.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/register/IEItems.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/register/IEItems.java",
+      "git_blob_sha1": "27b774cd1410257be54a5ac1c6498f144d61147e",
+      "read_ranges": [
+        [
+          40,
+          50
+        ],
+        [
+          222,
+          233
+        ],
+        [
+          353,
+          365
+        ],
+        [
+          395,
+          426
+        ]
+      ],
+      "supports": "chemthrower实际item factory、嵌套类init与register/get辅助",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "sha256": "2ff775a01fd13aecf023f1ed4b62e4fe8e09110b950764a573d9797c587f9a7f"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/IEContent.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/IEContent.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/IEContent.java",
+      "git_blob_sha1": "96cf15e36f39ae98f12e7494219738b456bc18ce",
+      "read_ranges": [
+        [
+          109,
+          150
+        ],
+        [
+          191,
+          202
+        ],
+        [
+          251,
+          265
+        ],
+        [
+          302,
+          318
+        ]
+      ],
+      "supports": "启动真实注册实体、序列化器、物品与ChemthrowerEffects；非只读类声明",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "sha256": "77e26a32d1a38188b566f18437727f0eaf8f1f6cfbb31381aa80d995647f75a3"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/entities/ai/ChemthrowerAttackGoal.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/entities/ai/ChemthrowerAttackGoal.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/entities/ai/ChemthrowerAttackGoal.java",
+      "git_blob_sha1": "b292cd3fd6b08ae07ec68bb7a5d698e218f12ebf",
+      "read_ranges": [
+        [
+          1,
+          82
+        ]
+      ],
+      "supports": "明确Bulwark使用自身owner+固定ethanol；单独附属上下文不算另一个案例",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "1d9b9f1c30d923cb2aaa98d48a10fa03cdd4fb0976cd538623476e43dc020566"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/api/java/blusunrize/immersiveengineering/api/client/ieobj/ItemCallback.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/api/java/blusunrize/immersiveengineering/api/client/ieobj/ItemCallback.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/api/java/blusunrize/immersiveengineering/api/client/ieobj/ItemCallback.java",
+      "git_blob_sha1": "8d287f59cb63cc377f5d0969cf687e2574ec3d8b",
+      "read_ranges": [
+        [
+          1,
+          66
+        ]
+      ],
+      "supports": "实际custom renderer provider及默认非fullbright",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "090031d0c9e66a55324e63f312dd323e9555b06848dfb109b722bcc9ead2c86b"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/api/java/blusunrize/immersiveengineering/api/client/ieobj/IEOBJCallbacks.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/api/java/blusunrize/immersiveengineering/api/client/ieobj/IEOBJCallbacks.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/api/java/blusunrize/immersiveengineering/api/client/ieobj/IEOBJCallbacks.java",
+      "git_blob_sha1": "922864bcf683ebc5cf0ba589d2a8ba9cb3e892ae",
+      "read_ranges": [
+        [
+          1,
+          48
+        ]
+      ],
+      "supports": "callback ID映射及lookup",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "bed9e3278602eb685704470732747a8246291ab2ea9a2f0974295492eeb08e4f"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/utils/TransformingVertexBuilder.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/utils/TransformingVertexBuilder.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/utils/TransformingVertexBuilder.java",
+      "git_blob_sha1": "276f47802149226c4da9b841606942ccd0a976e5",
+      "read_ranges": [
+        [
+          32,
+          230
+        ]
+      ],
+      "supports": "真正转换position/normal、传UV/tint/light并base.endVertex",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH",
+      "sha256": "4b5fec17af4ed756f7d1679444a2b6750ca5069537cc956a448f1cb07758e3df"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/generated/resources/assets/immersiveengineering/models/item/chemthrower.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/generated/resources/assets/immersiveengineering/models/item/chemthrower.json",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/generated/resources/assets/immersiveengineering/models/item/chemthrower.json",
+      "git_blob_sha1": "279cc0935d1847491bbad407eeb1a1ba7f3f853b",
+      "read_ranges": [
+        [
+          1,
+          160
+        ]
+      ],
+      "supports": "权威generated item JSON的dynamic/IE_OBJ/callback与四种手持display变换",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "9d21261a08109d9b55435e67795a67ad05cf668e49d0c01eda396b97abedeaa7"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/resources/assets/immersiveengineering/transformations/item/chemthrower.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/resources/assets/immersiveengineering/transformations/item/chemthrower.json",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/resources/assets/immersiveengineering/transformations/item/chemthrower.json",
+      "git_blob_sha1": "92a8034cfe49118901200aa4dd9135f33f5d6d04",
+      "read_ranges": [
+        [
+          1,
+          45
+        ]
+      ],
+      "supports": "变换源四手持上下文与生成JSON对应，不把source原值直接当生成display",
+      "read_status": "FULL_FILE_READ_THIS_BATCH",
+      "sha256": "057c0a95bf866219c145eaa76579bce290318c98c3a0de7f35510365596119f7"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/items/ChemthrowerItem.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/items/ChemthrowerItem.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/items/ChemthrowerItem.java",
+      "git_blob_sha1": "376f5926eb7fe8119eb920ec632568c8aa21f13c",
+      "read_ranges": [
+        [
+          1,
+          314
+        ]
+      ],
+      "supports": "全文重读入口、持续喷射/预算、release结算、multitank、能力与ignite",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/common/entities/IEProjectileEntity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/entities/IEProjectileEntity.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/entities/IEProjectileEntity.java",
+      "git_blob_sha1": "5b4d8036186f02dd12da7b31c235bc79c5e02062",
+      "read_ranges": [
+        [
+          1,
+          313
+        ]
+      ],
+      "supports": "全文补读父类的owner同步、重力、期限、基础tick和NBT；原版AbstractArrow内部未全文读",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/callback/item/ChemthrowerCallbacks.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/callback/item/ChemthrowerCallbacks.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/callback/item/ChemthrowerCallbacks.java",
+      "git_blob_sha1": "9158995db72c31b2b82a5d386a7e60fd7a1b52b4",
+      "read_ranges": [
+        [
+          1,
+          76
+        ]
+      ],
+      "supports": "容量/多罐可见组；特殊持姿仅Bulwark三人称，不充当玩家动作",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/ClientProxy.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/ClientProxy.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/ClientProxy.java",
+      "git_blob_sha1": "3caffdad0422cc551e0f86a3787fc8b065aff444",
+      "read_ranges": [
+        [
+          109,
+          124
+        ],
+        [
+          136,
+          162
+        ],
+        [
+          170,
+          177
+        ],
+        [
+          203,
+          224
+        ],
+        [
+          374,
+          390
+        ],
+        [
+          495,
+          516
+        ]
+      ],
+      "supports": "实际callback、geometry loader、renderer注册和custom renderer对象注入",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/ImmersiveEngineering.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/ImmersiveEngineering.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/ImmersiveEngineering.java",
+      "git_blob_sha1": "8f545e77d5c327cb6a515fe90966d786867b9dd2",
+      "read_ranges": [
+        [
+          113,
+          140
+        ],
+        [
+          215,
+          228
+        ]
+      ],
+      "supports": "@Mod构造及setup调用IEContent/ClientProxy的真实入口",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/datagen/java/blusunrize/immersiveengineering/data/ItemModels.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/datagen/java/blusunrize/immersiveengineering/data/ItemModels.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/datagen/java/blusunrize/immersiveengineering/data/ItemModels.java",
+      "git_blob_sha1": "74d880a797f9ed0e30a4366b0aaf3c5930ab74fe",
+      "read_ranges": [
+        [
+          314,
+          319
+        ]
+      ],
+      "supports": "datagen指定实际dynamic/callback/模型/变换；未运行生成器",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJLoader.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJLoader.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJLoader.java",
+      "git_blob_sha1": "b3b7b28c303328b48b92e8ccb7047aef2180b5c5",
+      "read_ranges": [
+        [
+          1,
+          99
+        ]
+      ],
+      "supports": "实际从JSON取OBJ、callbacks、dynamic、layer并生成IEOBJModel",
+      "read_status": "FULL_FILE_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJModel.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJModel.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/IEOBJModel.java",
+      "git_blob_sha1": "349de90f6fb210ac5436fc6393d3e37758e1b8e3",
+      "read_ranges": [
+        [
+          41,
+          69
+        ]
+      ],
+      "supports": "bake将dynamic和callback传真实GeneralIEOBJModel",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/GeneralIEOBJModel.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/GeneralIEOBJModel.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/GeneralIEOBJModel.java",
+      "git_blob_sha1": "f9513622d19cb920fcd267dbd0bcce69b6983d6e",
+      "read_ranges": [
+        [
+          269,
+          290
+        ]
+      ],
+      "supports": "实际holder栈和升级key进入模型cache",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/models/obj/SpecificIEOBJModel.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/models/obj/SpecificIEOBJModel.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/models/obj/SpecificIEOBJModel.java",
+      "git_blob_sha1": "566025631b48f6fb6c3d0b9c33864dc94c9876a2",
+      "read_ranges": [
+        [
+          121,
+          138
+        ],
+        [
+          150,
+          205
+        ]
+      ],
+      "supports": "实际display左右手transform、callback持姿与activeModel消费者",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    },
+    {
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "commit": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "path": "src/main/java/blusunrize/immersiveengineering/client/render/IEOBJItemRenderer.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/client/render/IEOBJItemRenderer.java",
+      "url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/client/render/IEOBJItemRenderer.java",
+      "git_blob_sha1": "3c151f6c92c7a4cd14aacf603e19b04bd2bf4024",
+      "read_ranges": [
+        [
+          50,
+          131
+        ]
+      ],
+      "supports": "实际组筛选、quad生成和putBulkData最后消费",
+      "read_status": "SELECTED_RANGES_READ_THIS_BATCH"
+    }
+  ]
+}

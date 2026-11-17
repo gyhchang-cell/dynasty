@@ -1,0 +1,57 @@
+package com.klikli_dev.occultism.common.entity.ai.behaviour;
+
+import com.klikli_dev.occultism.Occultism;
+import com.klikli_dev.occultism.OccultismConstants.Color;
+import com.klikli_dev.occultism.common.entity.ai.BrainUtil;
+import com.klikli_dev.occultism.common.entity.spirit.SpiritEntity;
+import com.klikli_dev.occultism.network.Networking;
+import com.klikli_dev.occultism.network.messages.MessageSelectBlock;
+import com.klikli_dev.occultism.registry.OccultismMemoryTypes;
+import com.klikli_dev.occultism.util.ItemTransferUtil;
+import com.mojang.datafixers.util.Pair;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.entity.ai.behavior.BlockPosTracker;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.ai.memory.WalkTarget;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.List;
+
+/**
+ * Sets the WALK_TARGET memory based on the LAST_FELLED_TREE memory.
+ */
+public class SetWalkTargetToReplantSaplingBehaviour<E extends SpiritEntity> extends ExtendedBehaviour<E> {
+
+    private static final List<Pair<MemoryModuleType<?>, MemoryStatus>> MEMORY_REQUIREMENTS = ObjectArrayList.of(
+            Pair.of(MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED),
+            Pair.of(MemoryModuleType.LOOK_TARGET, MemoryStatus.REGISTERED),
+            Pair.of(OccultismMemoryTypes.LAST_FELLED_TREE.get(), MemoryStatus.VALUE_PRESENT)
+    );
+
+    public SetWalkTargetToReplantSaplingBehaviour() {
+        super(MEMORY_REQUIREMENTS);
+    }
+
+    @Override
+    protected boolean checkExtraStartConditions(ServerLevel level, E entity) {
+        return ItemTransferUtil.getFirstMatchingSlot(entity.inventory, ItemTags.SAPLINGS) != -1;
+    }
+
+    @Override
+    protected void start(E entity) {
+        var treePos = BrainUtil.getMemory(entity, OccultismMemoryTypes.LAST_FELLED_TREE.get()).getFirst();
+        if (entity.distanceToSqr(Vec3.atCenterOf(treePos)) < ReplantSaplingBehaviour.REPLANT_RANGE_SQUARE) {
+            BrainUtil.clearMemory(entity, MemoryModuleType.WALK_TARGET);
+        } else {
+            BrainUtil.setMemory(entity, MemoryModuleType.LOOK_TARGET, new BlockPosTracker(treePos));
+            BrainUtil.setMemory(entity, MemoryModuleType.WALK_TARGET, new WalkTarget(treePos, 1.0f, 0));
+
+            if (Occultism.DEBUG.debugAI) {
+                Networking.sendToTracking(entity, new MessageSelectBlock(treePos, 5000, Color.GREEN));
+            }
+        }
+    }
+}

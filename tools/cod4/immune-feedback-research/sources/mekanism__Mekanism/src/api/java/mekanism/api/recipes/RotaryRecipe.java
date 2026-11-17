@@ -1,0 +1,217 @@
+package mekanism.api.recipes;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
+import mekanism.api.MekanismAPI;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.api.chemical.ChemicalStackTemplate;
+import mekanism.api.recipes.book.RotaryBookCategory;
+import mekanism.api.recipes.book.RotaryBookCategory.RotaryBookInfo;
+import mekanism.api.recipes.display.SimpleMachineRecipeDisplay;
+import mekanism.api.recipes.ingredients.ChemicalStackIngredient;
+import mekanism.api.recipes.ingredients.FluidStackIngredient;
+import mekanism.api.recipes.vanilla_input.RotaryRecipeInput;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.context.ContextMap;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
+import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStackTemplate;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import org.jetbrains.annotations.Contract;
+
+/// Input: FluidStack
+///
+/// Output: ChemicalStack
+///
+/// Input: ChemicalStack
+///
+/// Output: FluidStack
+///
+/// @apiNote Rotary Condensentrators can process this recipe type. Converting from fluid to chemical when set to Decondensentrating and converting from chemical to fluid
+/// when set to Condensentrating.
+public abstract class RotaryRecipe extends MekanismRecipe<RotaryRecipeInput, RotaryBookCategory, RotaryBookInfo> {
+
+    private static final Holder<Item> ROTARY_CONDENSENTRATOR = DeferredHolder.create(Registries.ITEM, Identifier.fromNamespaceAndPath(MekanismAPI.MEKANISM_MODID, "rotary_condensentrator"));
+
+    /// @param commonInfo Common recipe info.
+    /// @param bookInfo   Recipe book info.
+    ///
+    /// @since 10.8.0
+    protected RotaryRecipe(Recipe.CommonInfo commonInfo, RotaryBookInfo bookInfo) {
+        super(commonInfo, bookInfo);
+    }
+
+    /// @return `true` if this recipe knows how to convert a chemical to a fluid.
+    public abstract boolean hasChemicalToFluid();
+
+    /// @return `true` if this recipe knows how to convert a fluid to a chemical.
+    public abstract boolean hasFluidToChemical();
+
+    /// Checks if this recipe can convert fluids to chemicals, and evaluates this recipe on the given input.
+    ///
+    /// @param fluidStack Fluid input.
+    ///
+    /// @return `true` if the input is valid for this recipe.
+    public abstract boolean test(FluidStack fluidStack);
+
+    /// Checks if this recipe can convert chemicals to fluids, and evaluates this recipe on the given input.
+    ///
+    /// @param chemicalStack Chemical input.
+    ///
+    /// @return `true` if the input is valid for this recipe.
+    public abstract boolean test(ChemicalStack chemicalStack);
+
+    @Override
+    public boolean matches(RotaryRecipeInput input, Level level) {
+        //Don't match incomplete recipes or ones that don't match
+        return !isIncomplete() && input.input().map(this::test, this::test);
+    }
+
+    /// Gets the fluid input ingredient.
+    ///
+    /// @throws IllegalStateException if [#hasFluidToChemical()] is `false`.
+    public abstract FluidStackIngredient getFluidInput();
+
+    /// Gets the chemical input ingredient.
+    ///
+    /// @throws IllegalStateException if [#hasChemicalToFluid()] is `false`.
+    public abstract ChemicalStackIngredient getChemicalInput();
+
+    /// For JEI, gets the chemical output representations to display.
+    ///
+    /// @return Representation of the chemical output, **MUST NOT** be modified.
+    ///
+    /// @throws IllegalStateException if [#hasFluidToChemical()] is `false`.
+    public abstract List<ChemicalStackTemplate> getChemicalOutputDefinition(ContextMap contextMap);
+
+    /// {@return a slot display for the chemical output of the recipe}
+    ///
+    /// @since 10.8.0
+    public abstract SlotDisplay getChemicalOutputDisplay();
+
+    /// For JEI, gets the fluid output representations to display.
+    ///
+    /// @return Representation of the output, **MUST NOT** be modified.
+    ///
+    /// @throws IllegalStateException if [#hasChemicalToFluid()] is `false`.
+    public abstract List<FluidStackTemplate> getFluidOutputDefinition(ContextMap contextMap);
+
+    /// {@return a slot display for the fluid output of the recipe}
+    ///
+    /// @since 10.8.0
+    public abstract SlotDisplay getFluidOutputDisplay();
+
+    /// Gets a new chemical output based on the given input.
+    ///
+    /// @param input Specific fluid input.
+    ///
+    /// @return New chemical output.
+    ///
+    /// @throws IllegalStateException if [#hasFluidToChemical()] is `false`.
+    /// @apiNote While Mekanism does not currently make use of the input, it is important to support it and pass the proper value in case any addons define input based
+    /// outputs where things like NBT may be different.
+    /// @implNote The passed in input should **NOT** be modified.
+    @Contract(pure = true)
+    public abstract ChemicalStackTemplate getChemicalOutput(FluidStack input);
+
+    /// Gets a new fluid output based on the given input.
+    ///
+    /// @param input Specific chemical input.
+    ///
+    /// @return New fluid output.
+    ///
+    /// @throws IllegalStateException if [#hasChemicalToFluid()] is `false`.
+    /// @apiNote While Mekanism does not currently make use of the input, it is important to support it and pass the proper value in case any addons define input based
+    /// outputs where things like NBT may be different.
+    /// @implNote The passed in input should **NOT** be modified.
+    @Contract(pure = true)
+    public abstract FluidStackTemplate getFluidOutput(ChemicalStack input);
+
+    @Override
+    public boolean isIncomplete() {
+        return (hasFluidToChemical() && getFluidInput().hasNoMatchingInstances()) || (hasChemicalToFluid() && getChemicalInput().hasNoMatchingInstances());
+    }
+
+    @Override
+    public void logMissingTags() {
+        if (hasFluidToChemical()) {
+            getFluidInput().logMissingTags();
+        }
+        if (hasChemicalToFluid()) {
+            getChemicalInput().logMissingTags();
+        }
+    }
+
+    @Override
+    public final RecipeType<RotaryRecipe> getType() {
+        return MekanismRecipeTypes.TYPE_ROTARY.value();
+    }
+
+    @Override
+    public List<RecipeDisplay> display() {
+        //TODO - 26.3: Do we need to have a custom display that we then pass a boolean parameter to for which direction it is going?
+        return Stream.<RecipeDisplay>of(
+                    hasChemicalToFluid() ? new SimpleMachineRecipeDisplay(
+                          getChemicalInput().display(),
+                          getFluidOutputDisplay(),
+                          new SlotDisplay.ItemSlotDisplay(ROTARY_CONDENSENTRATOR)
+                    ) : null,
+                    hasFluidToChemical() ? new SimpleMachineRecipeDisplay(
+                          getFluidInput().display(),
+                          getChemicalOutputDisplay(),
+                          new SlotDisplay.ItemSlotDisplay(ROTARY_CONDENSENTRATOR)
+                    ) : null
+              ).filter(Objects::nonNull)
+              .toList();
+    }
+
+    /// Helper interface for constructing [RotaryRecipes][RotaryRecipe]
+    ///
+    /// @since 10.8.0
+    @FunctionalInterface
+    public interface Factory<RECIPE extends RotaryRecipe> {
+
+        /// @param commonInfo     Common recipe info.
+        /// @param bookInfo       Recipe book info.
+        /// @param fluidInput     Fluid input.
+        /// @param chemicalInput  Chemical input.
+        /// @param chemicalOutput Chemical output.
+        /// @param fluidOutput    Fluid output.
+        RECIPE create(CommonInfo commonInfo, RotaryBookInfo bookInfo, FluidStackIngredient fluidInput, ChemicalStackIngredient chemicalInput,
+              ChemicalStackTemplate chemicalOutput, FluidStackTemplate fluidOutput);
+    }
+
+    /// Helper interface for constructing [RotaryRecipes][RotaryRecipe]
+    ///
+    /// @since 10.8.0
+    @FunctionalInterface
+    public interface ChemicalToFluidFactory<RECIPE extends RotaryRecipe> {
+
+        /// @param commonInfo    Common recipe info.
+        /// @param bookInfo      Recipe book info.
+        /// @param chemicalInput Chemical input.
+        /// @param fluidOutput   Fluid output.
+        RECIPE create(CommonInfo commonInfo, RotaryBookInfo bookInfo, ChemicalStackIngredient chemicalInput, FluidStackTemplate fluidOutput);
+    }
+
+    /// Helper interface for constructing [RotaryRecipes][RotaryRecipe]
+    ///
+    /// @since 10.8.0
+    @FunctionalInterface
+    public interface FluidToChemicalFactory<RECIPE extends RotaryRecipe> {
+
+        /// @param commonInfo     Common recipe info.
+        /// @param bookInfo       Recipe book info.
+        /// @param fluidInput     Fluid input.
+        /// @param chemicalOutput Chemical output.
+        RECIPE create(CommonInfo commonInfo, RotaryBookInfo bookInfo, FluidStackIngredient fluidInput, ChemicalStackTemplate chemicalOutput);
+    }
+}

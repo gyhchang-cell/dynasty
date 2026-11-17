@@ -1,0 +1,193 @@
+package com.stal111.forbidden_arcanus.client;
+
+import com.stal111.forbidden_arcanus.ForbiddenArcanus;
+import com.stal111.forbidden_arcanus.client.gui.label.*;
+import com.stal111.forbidden_arcanus.client.gui.overlay.AurealMeterOverlay;
+import com.stal111.forbidden_arcanus.client.gui.overlay.FlyingLabelOverlay;
+import com.stal111.forbidden_arcanus.client.gui.overlay.WandIndicatorLayer;
+import com.stal111.forbidden_arcanus.client.gui.screen.ClibanoScreen;
+import com.stal111.forbidden_arcanus.client.gui.screen.HephaestusForgeScreen;
+import com.stal111.forbidden_arcanus.client.gui.screen.research.ResearchScreen;
+import com.stal111.forbidden_arcanus.client.gui.screen.wand.WandDeskScreen;
+import com.stal111.forbidden_arcanus.client.particle.*;
+import com.stal111.forbidden_arcanus.client.renderer.block.*;
+import com.stal111.forbidden_arcanus.client.renderer.entity.*;
+import com.stal111.forbidden_arcanus.client.renderer.item.WandItemModel;
+import com.stal111.forbidden_arcanus.client.renderer.item.properties.EssenceFillPercentage;
+import com.stal111.forbidden_arcanus.client.renderer.special.EctoBlasterSpecialRenderer;
+import com.stal111.forbidden_arcanus.client.renderer.special.EssenceUtremJarSpecialRenderer;
+import com.stal111.forbidden_arcanus.client.tooltip.CapacityBucketTooltip;
+import com.stal111.forbidden_arcanus.client.tooltip.ClientCapacityBucketTooltip;
+import com.stal111.forbidden_arcanus.client.tooltip.ClientWandStatsTooltip;
+import com.stal111.forbidden_arcanus.common.block.skull.ObsidianSkullType;
+import com.stal111.forbidden_arcanus.common.item.wand.WandStats;
+import com.stal111.forbidden_arcanus.core.init.ModBlockEntities;
+import com.stal111.forbidden_arcanus.core.init.ModEntities;
+import com.stal111.forbidden_arcanus.core.init.ModParticles;
+import com.stal111.forbidden_arcanus.core.init.other.ModMenuTypes;
+import com.stal111.forbidden_arcanus.core.init.other.ModWoodTypes;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.object.skull.SkullModel;
+import net.minecraft.client.particle.HugeExplosionParticle;
+import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.entity.ThrownItemRenderer;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.*;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.valhelsia.valhelsia_core.api.client.ClientSetupHelper;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import static com.stal111.forbidden_arcanus.client.model.FAModelLayers.DETAILED_OBSIDIAN_SKULL;
+import static com.stal111.forbidden_arcanus.client.model.FAModelLayers.OBSIDIAN_SKULL;
+
+/**
+ * @author stal111
+ * @since 2021-02-13
+ */
+public class ClientSetup {
+
+    public static final List<FlyingLabel<?>> FLYING_LABELS = new CopyOnWriteArrayList<>();
+
+    public ClientSetup(ClientSetupHelper helper, IEventBus modEventBus) {
+        Minecraft minecraft = Minecraft.getInstance();
+
+        helper.registerBlockEntityRenderer(ModBlockEntities.PEDESTAL, PedestalRenderer::new);
+        helper.registerBlockEntityRenderer(ModBlockEntities.BLACK_HOLE, BlackHoleRenderer::new);
+        helper.registerBlockEntityRenderer(ModBlockEntities.ESSENCE_UTREM_JAR, _ -> new EssenceStorageRenderer());
+        helper.registerBlockEntityRenderer(ModBlockEntities.ESSENCE_CAULDRON, _ -> new EssenceStorageRenderer());
+        helper.registerBlockEntityRenderer(ModBlockEntities.HEPHAESTUS_FORGE, HephaestusForgeRenderer::new);
+        helper.registerBlockEntityRenderer(ModBlockEntities.RESEARCH_DESK, ResearchDeskRenderer::new);
+        helper.registerBlockEntityRenderer(ModBlockEntities.WAND_DESK, WandDeskRenderer::new);
+        helper.registerBlockEntityRenderer(ModBlockEntities.QUANTUM_INJECTOR, QuantumInjectorRenderer::new);
+
+        helper.registerEntityRenderer(ModEntities.BOOM_ARROW, BoomArrowRenderer::new);
+        helper.registerEntityRenderer(ModEntities.DRACO_ARCANUS_ARROW, DracoArcanusArrowRenderer::new);
+        helper.registerEntityRenderer(ModEntities.ENERGY_BALL, EnergyBallRenderer::new);
+        helper.registerEntityRenderer(ModEntities.CRIMSON_LIGHTNING_BOLT, CrimsonLightningBoltRenderer::new);
+//        helper.registerEntityRenderer(ModEntities.BOAT, context -> new ModBoatRenderer(context, false));
+//        helper.registerEntityRenderer(ModEntities.CHEST_BOAT, context -> new ModBoatRenderer(context, true));
+        helper.registerEntityRenderer(ModEntities.LOST_SOUL, context -> new LostSoulRenderer(context, ForbiddenArcanus.identifier("textures/entity/lost_soul/lost_soul.png")));
+        helper.registerEntityRenderer(ModEntities.CORRUPT_LOST_SOUL, context -> new LostSoulRenderer(context, ForbiddenArcanus.identifier("textures/entity/lost_soul/corrupt_lost_soul.png")));
+        helper.registerEntityRenderer(ModEntities.ENCHANTED_LOST_SOUL, context -> new LostSoulRenderer(context, ForbiddenArcanus.identifier("textures/entity/lost_soul/enchanted_lost_soul.png")));
+        helper.registerEntityRenderer(ModEntities.AUREAL_BOTTLE, ThrownItemRenderer::new);
+        helper.registerEntityRenderer(ModEntities.DARK_TRADER, DarkTraderRenderer::new);
+        helper.registerEntityRenderer(ModEntities.AUREAL_MISSILE, AurealMissileRenderer::new);
+
+        helper.registerSkullModel(ObsidianSkullType.DEFAULT, (modelSet) -> new SkullModel(modelSet.bakeLayer(OBSIDIAN_SKULL)), ObsidianSkullType.DEFAULT.getTextureLocation());
+        helper.registerSkullModel(ObsidianSkullType.CRACKED, (modelSet) -> new SkullModel(modelSet.bakeLayer(OBSIDIAN_SKULL)), ObsidianSkullType.CRACKED.getTextureLocation());
+        helper.registerSkullModel(ObsidianSkullType.FRAGMENTED, (modelSet) -> new SkullModel(modelSet.bakeLayer(OBSIDIAN_SKULL)), ObsidianSkullType.FRAGMENTED.getTextureLocation());
+        helper.registerSkullModel(ObsidianSkullType.FADING, (modelSet) -> new SkullModel(modelSet.bakeLayer(OBSIDIAN_SKULL)), ObsidianSkullType.FADING.getTextureLocation());
+        helper.registerSkullModel(ObsidianSkullType.AUREALIC, (modelSet) -> new SkullModel(modelSet.bakeLayer(DETAILED_OBSIDIAN_SKULL)), ObsidianSkullType.AUREALIC.getTextureLocation());
+        helper.registerSkullModel(ObsidianSkullType.ETERNAL, (modelSet) -> new SkullModel(modelSet.bakeLayer(DETAILED_OBSIDIAN_SKULL)), ObsidianSkullType.ETERNAL.getTextureLocation());
+
+        helper.registerScreen(ModMenuTypes.HEPHAESTUS_FORGE, HephaestusForgeScreen::new);
+        helper.registerScreen(ModMenuTypes.CLIBANO, ClibanoScreen::new);
+        helper.registerScreen(ModMenuTypes.RESEARCH_DESK, ResearchScreen::new);
+        helper.registerScreen(ModMenuTypes.WAND_DESK, WandDeskScreen::new);
+
+        modEventBus.addListener(this::onClientSetup);
+        //modEventBus.addListener(this::onTextureStitch);
+        modEventBus.addListener(this::onRegisterGuiOverlays);
+        modEventBus.addListener(this::onRegisterTooltipComponents);
+        modEventBus.addListener(this::onRegisterParticleProviders);
+        modEventBus.addListener(this::registerSpecialRenderers);
+        modEventBus.addListener(this::registerRangeProperties);
+        modEventBus.addListener(this::registerItemModels);
+
+        if (ModList.get().isLoaded("ponder")) {
+//            ForbiddenArcanusPonderPlugin.register();
+        }
+    }
+
+    @SubscribeEvent
+    public void onClientSetup(FMLClientSetupEvent event) {
+        this.registerCosmetics();
+
+        event.enqueueWork(() -> {
+            Sheets.addWoodType(ModWoodTypes.FUNGYSS);
+            Sheets.addWoodType(ModWoodTypes.AURUM);
+            Sheets.addWoodType(ModWoodTypes.EDELWOOD);
+
+            //TODO
+            //ItemProperties.register(ModItems.FORBIDDENMICON.get(), new ResourceLocation("open"), (stack, world, entity) -> entity != null && ForbiddenmiconItem.isOpen(stack) ? 1.0F : 0.0F);
+//            ItemProperties.register(ModItems.SPECTRAL_EYE_AMULET.get(), ForbiddenArcanus.location("deactivated"), (stack, level, entity, seed) -> entity != null && SpectralEyeAmuletItem.isActive(stack) ? 0.0F : 1.0F);
+//
+//            ItemProperties.register(ModItems.AUREAL_TANK.get(), ForbiddenArcanus.location("amount"), ESSENCE_AMOUNT_PROPERTY_FUNCTION);
+//            ItemProperties.register(ModItems.AUREAL_TANK.get(), ForbiddenArcanus.location("max"), (stack, level, entity, seed) -> {
+//                return EssenceHelper.getEssenceStorage(stack).map(essenceStorage -> essenceStorage.limit() == AurealTankItem.MAX_CAPACITY ? 1.0F : 0.0F).orElse(0.0F);
+//            });
+        });
+
+        FLYING_LABELS.add(new EssenceStorageFlyingLabel());
+        FLYING_LABELS.add(new QuantumCatcherFlyingLabel());
+        FLYING_LABELS.add(new PedestalFlyingLabel());
+        FLYING_LABELS.add(new EssenceCauldronFlyingLabel());
+    }
+
+    @SubscribeEvent
+    public void registerSpecialRenderers(RegisterSpecialModelRendererEvent event) {
+        event.register(ForbiddenArcanus.identifier("essence_utrem_jar"), EssenceUtremJarSpecialRenderer.Unbaked.MAP_CODEC);
+        event.register(ForbiddenArcanus.identifier("ecto_blaster"), EctoBlasterSpecialRenderer.Unbaked.MAP_CODEC);
+    }
+
+    @SubscribeEvent
+    public void test(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(ModBlockEntities.PEDESTAL.get(), PedestalRenderer::new);
+    }
+
+    @SubscribeEvent
+    public void registerRangeProperties(RegisterRangeSelectItemModelPropertyEvent event) {
+        event.register(ForbiddenArcanus.identifier("essence_fill_percentage"), EssenceFillPercentage.MAP_CODEC);
+    }
+
+    @SubscribeEvent
+    public void registerItemModels(RegisterItemModelsEvent event) {
+        event.register(ForbiddenArcanus.identifier("wand"), WandItemModel.Unbaked.MAP_CODEC);
+    }
+
+    private void registerCosmetics() {
+//        var source = new FACosmeticsSource(ForbiddenArcanus.MOD_ID);
+//
+//        CosmeticsRegistry.addSource(source);
+//
+//        CosmeticsRegistry.registerType(source, CosmeticType.builder(CosmeticsCategory.BACK, DracoAurumWingsModel::new)
+//                .exactName("draco_aurum_wings")
+//                .elytraModifier(CancelRenderingModifier.INSTANCE));
+//        CosmeticsRegistry.registerType(source, CosmeticType.builder(CosmeticsCategory.HAT, DracoAurumHeadModel::new)
+//                .exactName("draco_aurum_head"));
+    }
+
+    @SubscribeEvent
+    public void onRegisterGuiOverlays(RegisterGuiLayersEvent event) {
+        event.registerAbove(VanillaGuiLayers.EXPERIENCE_LEVEL, ForbiddenArcanus.identifier("aureal_meter"), new AurealMeterOverlay());
+        event.registerAbove(VanillaGuiLayers.EXPERIENCE_LEVEL, ForbiddenArcanus.identifier("flying_label"), new FlyingLabelOverlay());
+        event.registerAbove(VanillaGuiLayers.EXPERIENCE_LEVEL, ForbiddenArcanus.identifier("wand_indicator"), new WandIndicatorLayer());
+    }
+
+    @SubscribeEvent
+    public void onRegisterTooltipComponents(RegisterClientTooltipComponentFactoriesEvent event) {
+        event.register(CapacityBucketTooltip.class, ClientCapacityBucketTooltip::new);
+        event.register(WandStats.class, ClientWandStatsTooltip::new);
+    }
+
+    @SubscribeEvent
+    public void onRegisterParticleProviders(RegisterParticleProvidersEvent event) {
+        event.registerSpriteSet(ModParticles.SOUL.get(), SoulParticle.Factory::new);
+        event.registerSpriteSet(ModParticles.AUREAL_MOTE.get(), AurealMoteParticle.Factory::new);
+        event.registerSpriteSet(ModParticles.MAGIC_EXPLOSION.get(), HugeExplosionParticle.Provider::new);
+        event.registerSpecial(ModParticles.HUGE_MAGIC_EXPLOSION.get(), new HugeMagicExplosionParticle.Factory());
+        event.registerSpriteSet(ModParticles.MAGNETIC_GLOW.get(), MagneticGlowProvider::new);
+        event.registerSpriteSet(ModParticles.AUREAL_DROP.get(), EssenceDropParticle.Provider::new);
+        event.registerSpriteSet(ModParticles.ECTOPLASM_DROP.get(), EssenceDropParticle.Provider::new);
+        event.registerSpriteSet(ModParticles.BLOOD_DROP.get(), EssenceDropParticle.Provider::new);
+        event.registerSpriteSet(ModParticles.EXPERIENCE_DROP.get(), EssenceDropParticle.Provider::new);
+        event.registerSpriteSet(ModParticles.MAGIC_GLINT.get(), sprites -> new OpaqueAnimatedParticle.Factory(sprites, 9));
+        event.registerSpriteSet(ModParticles.MAGIC_HIT.get(), sprites -> new OpaqueAnimatedParticle.Factory(sprites, 4));
+        event.registerSpriteSet(ModParticles.SPELL_EXPLOSION.get(), SpellExplosionProvider::new);
+    }
+}

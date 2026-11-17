@@ -1,0 +1,82 @@
+[
+  {
+    "candidate_index": 4052,
+    "candidate_id": "bf66ab156f50211041ff",
+    "decision": "accepted",
+    "observation": "全文QuakingSpell.useSpell/stopSpell/tremor/surroundTremor/arcTremor/spawnBlocks/tremorSound：castTime恰等defaultDuration+i才推进第i段，每次按当前朝向/shift/staff重算，松手超过起手才加冷却；三条直线、圆环、双弧共用一个逐tick震波链计1。tremor及circle hurt真才push，声/落块独立，圆环无hitSet可重复碰同目标；弧形spawnBlocks竟以受害者构造mobAttack，盾禁用不依赖hurt真。比较明确：阶段相等可用来选震波第几段，不能用来消费已完成伤害的跨tick回执；归属必须保留原攻击者而非当前目标。",
+    "snippet_sha256": "5ea999bd7d0bf2018cb89685bf47aa108980515a478e7c7e6971843d8182fc6f",
+    "reviewed_at": "2026-10-28T18:30:11.098187+08:00"
+  },
+  {
+    "candidate_index": 4142,
+    "candidate_id": "f8f0381015feb9b6550d",
+    "decision": "excluded",
+    "observation": "全文圆环和QuakingSpell所有变体已并入4052逐tick震波施法链；圆环弧片、直线左右偏移、双弧不是额外独立回执实现，不按几何变体凑数。",
+    "snippet_sha256": "54d88560096ed4408f4ed9cbec3cb70c67eb5d9424ac5702fab65e2ac370b307",
+    "reviewed_at": "2026-10-28T18:30:11.098206+08:00"
+  },
+  {
+    "candidate_index": 4053,
+    "candidate_id": "d8b73c50d68540e546fc",
+    "decision": "accepted",
+    "observation": "全文SwarmSpell及InsectSwarm、IBreathingSpell.getBreathTarget→MobUtil.getTargets完整重载、Owned.tick/getTrueOwner和IOwned.ownedTick/setLimitedLife：施法hurt真后才毒与死亡生虫，音效独立；新虫捕获caster为owner、200*duration寿命，后续当前owner可能受WILD_RAGE变null。虫每tick范围伤害真才咬声/调整对方无敌帧/自身扣2，间接影响后续可存活攻击次数；super生命周期到<=1先discard，子tick无return仍可继续当轮攻击。整条杀敌生成-持续攻击-寿命消费1，不把创建和虫tick再拆数。",
+    "snippet_sha256": "a839584881495c7b3fc7ed5da951c1e913b35657f2bb99714e5b884fa47ac44d",
+    "reviewed_at": "2026-10-28T18:30:11.098212+08:00"
+  },
+  {
+    "candidate_index": 4061,
+    "candidate_id": "3dcc853a3999d8984ca2",
+    "decision": "accepted",
+    "observation": "全文WandUtil.chainLightning四重载、实际ThunderboltSpell.SpellResult调用及SLightningPacket/SThunderBoltPacket.consume：初始目标不在harmed，按天气4/8跳，每跳从上一目标当前世界位置+LOS抽未碰目标；hurt真才广播5/8tick电弧，但失败仍入harmed/改prevTarget/伤害减1，空候选则只消费循环次数。已计Thunderbolt为先发基础雷击后hurt的首发链，此处独立审的是连锁目标集合与失败仍消费路由预算的玩法状态，不给包/包装重载额外数。ALL包无维度/事件ID，enqueue后客户端用当前world创建，不能照搬为方天可靠身份回执。",
+    "snippet_sha256": "1d811b781bae0bf92840fd4c71dd491ac3822a2486a4dd85e4a1d42a239c59d4",
+    "reviewed_at": "2026-10-28T18:30:11.098215+08:00"
+  },
+  {
+    "candidate_index": 4070,
+    "candidate_id": "ed9f92ae0ef37d95118a",
+    "decision": "accepted",
+    "observation": "全文WaterJetSpell.SpellResult/stopSpell、MiscCapHelper目标ID四方法/save/load/sendMiscUpdatePacket、MiscCapUpdatePacket.consume及完整WaterJetRenderer：服务端先写当前敌目标ID并同步才hurt，成功才SAPPED；粒子/灭火不依赖成功，命中盟友分支不刷新旧目标，MISS或非entity及stop才清0。enqueue接收从当前客户端level解施法者numericID，再按同一level目标ID画束，没有维度/UUID/年龄。该目标可视锁定不是伤害成功回执，启示方天0/1tick容忍不能撤掉来源/维度/有效性校验。一个施法-同步-当前目标绘制/清除链1。",
+    "snippet_sha256": "9727652558d6585c2f0693bd9cc1ea6eae436c09ec9eacdd22205afaef8e1b1e",
+    "reviewed_at": "2026-10-28T18:30:11.098221+08:00"
+  },
+  {
+    "candidate_index": 4232,
+    "candidate_id": "f5bdfb12713aa511a6c5",
+    "decision": "accepted",
+    "observation": "全文FireBlastTrap及实际HellChant.tick/chant生产：第三次命中计数创建owner绑定trap，普通到20tick一次伤害，Immediate条件则每tick伤害至30tick清理，并非一次消费；owner死亡/removed检测在伤害之后，仍会做最后一轮。NBT存Owner但tick直接读owner字段而未调懒解析getOwner，读档后可能走无主magic；当前UnholySet在消费时决定BURN_HEX预加和来源。hurt返回值忽略，push/火不代表成功，开场粒子与20/5tick爆声独立。延迟触发/owner有效性/重复消费整个链1。",
+    "snippet_sha256": "2ea50df6247e0a650165138925a7c98b50975a9bc99ee2db07985824dd6005bf",
+    "reviewed_at": "2026-10-28T18:30:11.098225+08:00"
+  },
+  {
+    "candidate_index": 4235,
+    "candidate_id": "71c3f85928085b78e577",
+    "decision": "accepted",
+    "observation": "全文Tidal_Tentacle_Entity、Tidal_Claws和TidalTentacleUtil：发射先addFreshEntity再设creatorUUID/fromID/toID；tick以本世界UUID重解creator、numericID重解current，达到5tick扩展后每2tick hurt真才加60tick诅咒。hasChained确保每段只扩一次，previouslyTouched列表复制给child并加新目标，>5收回，伤害次数不由该去重控制；child没继承自定义damage，保存方法空。撤回progress0 kill但无return，canLaunch查询旧uuid非空却只按id找且未核uuid，setLastTentacle只写has标志。一个链式投射物延迟/目标与扩展去重链1，不能把一次扩展当一次伤害。",
+    "snippet_sha256": "3e7d2b81baaa6cfbfdfe0c47b5787dc6832cf5ac0892860285ea9d42784a597f",
+    "reviewed_at": "2026-10-28T18:30:11.098228+08:00"
+  },
+  {
+    "candidate_index": 4188,
+    "candidate_id": "ab59e9292d41b43589f5",
+    "decision": "accepted",
+    "observation": "全文Dimensional_Rift_Entity及LeviathanAbyssDimensionAttackGoal完整start/stop/tick/getClosestDimensionalRift：动画24 server生产stage1/lifespan600的rift；每tick当前邻域吸引，接触每5tick伤害，owner不存在用magic否则indirectMagic，未核owner存活；先伤害再life--，<=100且tick%40才stage--。stage<=0先madeParticle门闩server爆炸/client波，下一tick才discard，该tick前面仍伤害/吸引。关闭声另门闩一次，不是hurt回执。NBT存寿命阶段owner却不存这些瞬时门闩，读档不能视作已消费。延时攻击与关闭一次反馈链1。",
+    "snippet_sha256": "e4f50a48de2e4524d3b33065edeed737e123edce65904f5d4f523b486286bddb",
+    "reviewed_at": "2026-10-28T18:30:11.098231+08:00"
+  },
+  {
+    "candidate_index": 4200,
+    "candidate_id": "aee773ac10f01ea1aee2",
+    "decision": "accepted",
+    "observation": "全文Portal_Abyss_Blast_Entity及Abyss_Blast_Portal_Entity：portal --warmup<0首轮broadcast4且sentSpikeEvent防重，warmup==-22创建beam，caster原字段为空不调用getCaster而走无主构造；beam tick20发声，>20逐tick射线重算，hurt真才叠160tickburn。超duration先伤害后on=false，仅控制3tickappear退场，攻击没检查on；!on&&appear0 discard也无return，退场最后tick仍可伤害。caster死亡同样discard不return。NBT beam不存caster/伤害，portal不存lifeTicks/sent标记。整条预热-发射-逐tick伤害-退场1，不能将关闭标记或广播存在当最终成功。",
+    "snippet_sha256": "9e6fed7b7655bbf7aa3ce38f4609890b67988e375f0750d8c0cd078dde49c669",
+    "reviewed_at": "2026-10-28T18:30:11.098233+08:00"
+  },
+  {
+    "candidate_index": 4128,
+    "candidate_id": "05b4bda1a8d790a5214c",
+    "decision": "accepted",
+    "observation": "全文Infernal_forge.useOn/EarthQuake及AttributeUtils.OriginDamage：仅mainhand同一stack引用触发地震，然后无条件加物品cooldown/返回sidedSuccess；server震屏先于AOE，逐目标hurt真才升空与低血点火；声音和client环粒子独立。OriginDamage当前主手同引用直接取实体攻击值，否则只替换加法modifier，与生产时快照不同。一个实际物品按键→伤害成功后反馈/尝试消费冷却链1，不把sound/非零AOE候选当成功回执。",
+    "snippet_sha256": "53cc9ea205f6486297895be6c7bb3b207e9eb5d28f0bd0b990c38eaa30511076",
+    "reviewed_at": "2026-10-28T18:30:11.098236+08:00"
+  }
+]

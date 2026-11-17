@@ -1,0 +1,10 @@
+from ledger import record,verify,B
+r='iron431/irons-spells-n-spellbooks';p='src/main/java/io/redspace/ironsspellbooks/'
+refs=[('player/ServerPlayerEvents.java',116,117),('player/ServerPlayerEvents.java',447,490),('player/ServerPlayerEvents.java',546,564),('effect/EvasionEffect.java',1,101),('effect/AbyssalShroudEffect.java',1,97),('effect/MagicMobEffect.java',1,51),('registries/MobEffectRegistry.java',23,28),('spells/ender/EvasionSpell.java',1,69),('api/util/Utils.java',167,175),('api/util/Utils.java',290,292),('api/util/Utils.java',638,656),('capabilities/magic/MagicManager.java',125,128),('capabilities/magic/SyncedSpellData.java',51,78),('capabilities/magic/SyncedSpellData.java',202,228),('network/casting/SyncPlayerDataPacket.java',1,43),('network/casting/SyncEntityDataPacket.java',1,49),('setup/PayloadHandler.java',51,64),('player/ClientMagicData.java',176,215)]
+root=B/'sources'/r.replace('/','__');refs=[(p+x,a,min(b,len((root/(p+x)).read_text().splitlines()))) for x,a,b in refs]
+record('ironspells-authoritative-evasion-and-shroud-native-receipts',r,refs,
+ 'EventBusSubscriber两原生入口LivingIncomingDamage和ProjectileImpact→EVASION优先、else-if ABYSSAL_SHROUD→完整doEffect server/bypass校验→取消事件；已读Evasion法术onCast、effect注册/onEffectAdded、次数扣除同步，Evasion/同事件Shroud策略合并1。回执经MagicManager.spawnParticles→ServerLevel.sendParticles原生网络，音效level.playSound；Evasion计数另经SyncedSpellData codec/doSync→已注册SyncPlayerData/SyncEntityData包→enqueueWork→ClientMagicData记录或当前实体应用（后者接口为外部实现边界）。',
+ 'Evasion在服务端排fall/BYPASSES_INVULNERABILITY/BYPASS_EVASION；先扣次数，<0移除效果但当前仍免伤。最多24次找位，传送事件可被取消，但doEffect不检查handleSpellTeleport返回值，最后仍portal云/ENDERMAN_TELEPORT/true；无可用落点也不等于此次拒伤失败。成功位移可能产生两处云与两次音。Shroud使用碰撞找空位/烟云及自有声音，没有同一次数消费；只调整局部sideStep.yRot返回值未赋回，不能凭调用名认定正确按朝向旋转。两个doEffect都有lookAt，违背本项目禁止强制转向的方向，不可照搬。此链没有免疫文字或自有事件序号去重，不能称灰字范例；已读玩家同步map按整数ID存储，本类未见清空，不能据此声称已复现跨维度bug。',
+ '这是已有原生权威拒伤与粒子/声音回执的独立研究：拒伤、成功位移、文本与次数同步应分开判断；现有原版声音可参考，但不需要新录音。研究普通法术防护不对COD4普通阴阳体质新增灰字。两原生入口是否重复消耗须运行事件证据，静态不下故障结论。',
+ '完整读所列doEffect/调用者/计数codec/接收方法与位移助手；未审所有法术施法框架、mob具体setSyncedSpellData实现或原版粒子渲染内部，不把基础网络和图形算额外研究。无客户端启动、画面或音频通过结论。','explicit_rejection_native_feedback')
+verify()

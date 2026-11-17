@@ -1,0 +1,56 @@
+package com.provismet.provihealth;
+
+import com.provismet.provihealth.api.ProviHealthApi;
+import com.provismet.provihealth.config.Options;
+import com.provismet.provihealth.hud.ElementRegistry;
+import com.provismet.provihealth.hud.HudHealthBar;
+import com.provismet.provihealth.particle.Particles;
+import com.provismet.provihealth.util.StatusEffectIdentifier;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.fabricmc.fabric.api.resource.v1.pack.PackActivationType;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.PackType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class ProviHealthClient implements ClientModInitializer {
+    public static final String MODID = "provihealth";
+    public static final Logger LOGGER = LoggerFactory.getLogger("Provi's Health Bars");
+
+    public static Identifier identifier (String path) {
+        return Identifier.fromNamespaceAndPath(MODID, path);
+    }
+
+    @Override
+    public void onInitializeClient () {
+        FabricLoader.getInstance().getModContainer(MODID).ifPresent(container -> {
+            ResourceLoader.registerBuiltinPack(identifier("rounded_bars"), container, Component.translatable("resource.provihealth.rounded_bars"), PackActivationType.NORMAL);
+            ResourceLoader.registerBuiltinPack(identifier("square_bars"), container, Component.translatable("resource.provihealth.square_bars"), PackActivationType.NORMAL);
+        });
+
+        HudElementRegistry.addLast(HudHealthBar.HEALTHBAR_LAYER, new HudHealthBar());
+        ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(identifier("asset_listener"), new ElementRegistry());
+
+        FabricLoader.getInstance().getEntrypointContainers(MODID, ProviHealthApi.class).forEach(
+            entrypoint -> {
+                String otherModId = entrypoint.getProvider().getMetadata().getId();
+                try {
+                    entrypoint.getEntrypoint().onInitialize();
+                }
+                catch (Exception e) {
+                    LOGGER.error("Mod {} caused an error during inter-mod initialisation: ", otherModId, e);
+                }
+            }
+        );
+        ElementRegistry.sortTitles();
+
+        Options.load();
+        Particles.init();
+        StatusEffectIdentifier.setup();
+    }
+    
+}

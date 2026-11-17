@@ -15,9 +15,9 @@ PACK_MODS = [
      D + "vvuO3ImH/versions/IPQlZkz1/curios-forge-5.14.1%2B1.20.1.jar"),
     ("jei-1.20.1-forge-15.59.0.210.jar", os.path.join(ROOT, "libs/jei-1.20.1-forge-15.59.0.210.jar"),
      D + "u6dRKJwZ/versions/4vbuxppk/jei-1.20.1-forge-15.59.0.210.jar"),
-    ("OverflowingBars-v8.0.1-1.20.1-Forge.jar",
-     os.path.join(ROOT, "libs/OverflowingBars-v8.0.1-1.20.1-Forge.jar"),
-     D + "XD7XOrAF/versions/w90XIUWB/OverflowingBars-v8.0.1-1.20.1-Forge.jar"),
+    ("armorpointspp-forge-1.20-3.1.1.jar",
+     os.path.join(ROOT, "libs/armorpointspp-forge-1.20-3.1.1.jar"),
+     D + "xvAim1vw/versions/Uf0tqswT/armorpointspp-forge-1.20-3.1.1.jar"),
     ("PuzzlesLib-v8.1.33-1.20.1-Forge.jar",
      os.path.join(ROOT, "libs/PuzzlesLib-v8.1.33-1.20.1-Forge.jar"),
      D + "QAGBst4M/versions/mIyVGf3d/PuzzlesLib-v8.1.33-1.20.1-Forge.jar"),
@@ -58,27 +58,30 @@ for filename, src, url in PACK_MODS:
         "hashes": {"sha1": s1, "sha512": s512},
         "env": next(({"client": r.get("client", "required"), "server": r.get("server", "required")}
                      for r in QOL + FTB if r["filename"] == filename),
-                    {"client": "required", "server": "required"}),
+                    {"client": "required", "server": "unsupported"} if filename.startswith("armorpointspp-") else {"client": "required", "server": "required"}),
         "downloads": [url],
         "fileSize": os.path.getsize(os.path.join(MODS, filename)),
     })
     print("pack mod:", filename, files[-1]["fileSize"], "bytes")
 
 own_dir = os.path.join(ROOT, "build/libs")
-own_jars = [n for n in sorted(os.listdir(own_dir)) if n.startswith("dynasty-") and n.endswith(".jar")] \
-    if os.path.isdir(own_dir) else []
-if own_jars:
-    shutil.copy2(os.path.join(own_dir, own_jars[-1]), os.path.join(MODS, own_jars[-1]))
-    print("pack mod:", own_jars[-1], "(dynasty core)")
-else:
-    print("WARNING: run ./gradlew build first")
+with open(os.path.join(ROOT, "gradle.properties"), encoding="utf-8") as properties:
+    mod_version = next(line.split("=", 1)[1].strip() for line in properties
+                       if line.strip().startswith("mod_version="))
+# Test helpers, sources and development jars must never replace the release core.
+own_jar = "dynasty-%s.jar" % mod_version
+own_source = os.path.join(own_dir, own_jar)
+if not os.path.isfile(own_source):
+    raise FileNotFoundError("Run ./gradlew build first: " + own_source)
+shutil.copy2(own_source, os.path.join(MODS, own_jar))
+print("pack mod:", own_jar, "(dynasty core)")
 
 index = {
     "formatVersion": 1,
     "game": "minecraft",
     "versionId": "1.0.0",
     "name": "Dynasty 王朝",
-    "summary": "Dynasty 本体 + Curios 饰品槽 + 美化血条(Overflowing Bars + Puzzles Lib) + JEI 配方查询",
+    "summary": "Dynasty 本体 + Curios 饰品槽 + 美化血条(Armor Points++ + Puzzles Lib) + JEI 配方查询",
     "files": files,
     "dependencies": {"minecraft": "1.20.1", "forge": "47.4.10"},
 }

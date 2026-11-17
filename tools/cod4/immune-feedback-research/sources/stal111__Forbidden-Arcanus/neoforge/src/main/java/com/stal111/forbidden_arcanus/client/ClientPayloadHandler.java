@@ -1,0 +1,103 @@
+package com.stal111.forbidden_arcanus.client;
+
+import com.stal111.forbidden_arcanus.client.gui.screen.ClibanoScreen;
+import com.stal111.forbidden_arcanus.common.inventory.ClibanoMenu;
+import com.stal111.forbidden_arcanus.common.network.clientbound.AdvancedBlockEventPayload;
+import com.stal111.forbidden_arcanus.common.network.clientbound.InsertMoltenMaterialPayload;
+import com.stal111.forbidden_arcanus.common.network.clientbound.SpawnParticlePayload;
+import com.stal111.forbidden_arcanus.common.network.clientbound.TransformPedestalPayload;
+import com.stal111.forbidden_arcanus.core.init.ModParticles;
+import com.stal111.forbidden_arcanus.core.init.ModSounds;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.core.particles.ColorParticleOption;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.ParticleUtils;
+import net.minecraft.util.RandomSource;
+import net.minecraft.util.valueproviders.UniformInt;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+/**
+ * @author stal111
+ * @since 02.03.2024
+ */
+public final class ClientPayloadHandler {
+
+    private static final ClientPayloadHandler INSTANCE = new ClientPayloadHandler();
+
+    private final Minecraft minecraft = Minecraft.getInstance();
+
+    private ClientPayloadHandler() {
+    }
+
+    public static ClientPayloadHandler getInstance() {
+        return INSTANCE;
+    }
+
+    public void handle(InsertMoltenMaterialPayload payload, IPayloadContext context) {
+        Player player = context.player();
+
+        if (player.hasContainerOpen() && player.containerMenu instanceof ClibanoMenu menu) {
+            menu.getStoredMaterials().insert(payload.material());
+
+            if (this.minecraft.screen instanceof ClibanoScreen screen) {
+                screen.getMaterialList().updateSlots();
+            }
+        }
+    }
+
+    public void handle(TransformPedestalPayload payload, IPayloadContext context) {
+        ParticleUtils.spawnParticlesOnBlockFaces(this.minecraft.level, payload.pos(), ModParticles.MAGNETIC_GLOW.get(), UniformInt.of(3, 5));
+
+        this.minecraft.level.playLocalSound(payload.pos(), ModSounds.FERROGNETIC_MIXTURE_APPLY.get(), SoundSource.PLAYERS, 0.75F, 0.9F + this.minecraft.level.getRandom().nextFloat() * 0.1F, false);
+    }
+
+    public void handle(SpawnParticlePayload payload, IPayloadContext context) {
+        RandomSource random = this.minecraft.level.getRandom();
+        LevelRenderer levelRenderer = this.minecraft.levelRenderer;
+
+        double x = payload.x();
+        double y = payload.y();
+        double z = payload.z();
+
+        switch (payload.id()) {
+            case 1 -> {
+                for (int l = 0; l < 8; ++l) {
+                    this.minecraft.level.addParticle(new ItemParticleOption(ParticleTypes.ITEM, new ItemStackTemplate(Items.SPLASH_POTION)), x, y, z, random.nextGaussian() * 0.15D, random.nextDouble() * 0.2D, random.nextGaussian() * 0.15D);
+                }
+
+                ParticleOptions particleoptions = ModParticles.AUREAL_MOTE.get();
+
+                for (int j3 = 0; j3 < 100; ++j3) {
+                    double xPos = random.nextDouble() * 4.0D;
+                    double zPos = random.nextDouble() * Math.PI * 2.0D;
+                    double xSpeed = Math.cos(zPos) * xPos;
+                    double ySpeed = ((double) random.nextFloat() - 0.4D) * 0.125D;
+                    double zSpeed = Math.sin(zPos) * xPos;
+
+                    //TODO
+//                    Particle particle = ((LevelRendererAccessor) levelRenderer).callAddParticleInternal(particleoptions, particleoptions.getType().getOverrideLimiter(), x + xSpeed * 0.1D, y + 0.3D, z + zSpeed * 0.1D, xSpeed, ySpeed, zSpeed);
+
+//                    particle.setLifetime(25 + random.nextInt(10));
+                }
+
+                this.minecraft.level.playLocalSound(x, y, z, SoundEvents.SPLASH_POTION_BREAK, SoundSource.NEUTRAL, 1.0F, random.nextFloat() * 0.1F + 0.9F, false);
+            }
+            case 2 -> {
+                this.minecraft.level.addParticle(ColorParticleOption.create(ModParticles.SPELL_EXPLOSION.get(), ARGB.color(255, 116, 116, 224)), x, y, z, 0.0F, 0.0F, 0.0F);
+            }
+        }
+    }
+
+    public void handle(AdvancedBlockEventPayload payload, IPayloadContext context) {
+        this.minecraft.level.blockEvent(payload.pos(), payload.block(), payload.b1(), payload.b2());
+    }
+}

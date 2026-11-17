@@ -1,0 +1,178 @@
+[
+  {
+    "candidate_index": 4326,
+    "candidate_id": "e0dc93407eaf1be5e71a",
+    "decision": "accepted",
+    "observation": "Paper回调每100tick清理过期map条目，再从并发queue逐个poll转入map；新加入已过期项要到下一轮清理或执行时valid验证，维护周期与调用TTL不同。",
+    "snippet_sha256": "68a818275797270b33f29c68e8d95e236ab4b5946888fe55be37d1341383dc76",
+    "reviewed_at": "2026-10-23T09:04:56.328636+08:00"
+  },
+  {
+    "candidate_index": 4327,
+    "candidate_id": "003957c76a58c7c4782d",
+    "decision": "accepted",
+    "observation": "全局流控以channel.hashCode映射独立队列和最近读写时间，创建限定该通道线程；归属键是通道而非全局时钟，但hash键需了解唯一性契约，不能照搬实体ID。",
+    "snippet_sha256": "e2d3c64796a8e8a8afc65b6294b36a82878b0f82664f59c69251175bc462fe4b",
+    "reviewed_at": "2026-10-23T09:04:56.328655+08:00"
+  },
+  {
+    "candidate_index": 4328,
+    "candidate_id": "22e51d709495036de400",
+    "decision": "accepted",
+    "observation": "事件循环先跑线程安全taskQueue，再执行到期scheduled任务，因为跨线程调度先进入前者；最多maxDrainAttempts处理新递归任务，阶段顺序直接影响何轮可消费。",
+    "snippet_sha256": "1f2b50f2a71d99cfb84696307647e79e3946ec4e91508c5a028e5a762a9b2e4a",
+    "reviewed_at": "2026-10-23T09:04:56.328660+08:00"
+  },
+  {
+    "candidate_index": 4329,
+    "candidate_id": "8f63500134ae1b0d35cc",
+    "decision": "accepted",
+    "observation": "无时限排空先把到期调度任务迁入普通队列，若队列容量阻止全部迁移就反复排空重取；不能只做一次取队列就认定本轮所有到期事件均处理。",
+    "snippet_sha256": "5234e922e934794f86d24d0d6c14b7ba666c1f074c1f7808c73ebf1696c3b604",
+    "reviewed_at": "2026-10-23T09:04:56.328665+08:00"
+  },
+  {
+    "candidate_index": 4330,
+    "candidate_id": "d1131ddb29ed128cda12",
+    "decision": "excluded",
+    "observation": "4327同模式多加通道流量计数器，队列归属与时钟初始化未变化，去重排除。",
+    "snippet_sha256": "906c1eb1d7a9e4227f19461b27cfc7d0e0cbd23bb2fd3c8d4aa19e277fa455b4",
+    "reviewed_at": "2026-10-23T09:04:56.328668+08:00"
+  },
+  {
+    "candidate_index": 4331,
+    "candidate_id": "ea7be388e2c9d697de75",
+    "decision": "accepted",
+    "observation": "跨线程定时任务可execute或lazyExecute入普通队列，入队后再次检查唤醒钩子避免睡眠竞态；入队时间不等于计划任务已到期，run还要验证deadline。",
+    "snippet_sha256": "2f17aa82ac1356ec7dbba1ed72f0227ce0e374ca4624289365fe882dfa5c6927",
+    "reviewed_at": "2026-10-23T09:04:56.328671+08:00"
+  },
+  {
+    "candidate_index": 4332,
+    "candidate_id": "e0d02d3b7a2560c6b2a5",
+    "decision": "accepted",
+    "observation": "连接池超时循环只处理队首nanoTime-expire>=0，先remove并减pending再onTimeout；纳秒差值处理期限并将一次性消费置于回调之前。",
+    "snippet_sha256": "4f26707a8b59d3a604e84504d850a78774d5da661574086e260abfb4825233f7",
+    "reviewed_at": "2026-10-23T09:04:56.328674+08:00"
+  },
+  {
+    "candidate_index": 4333,
+    "candidate_id": "4bd13cde8a91e9d67a0a",
+    "decision": "excluded",
+    "observation": "HashedWheelTimer停止后的测试用例，不是生产实现，测试断言不计门槛。",
+    "snippet_sha256": "860f93ae56f0bfe154c6de474596e3f3e8f2d96cfbabcf6149705a32019a9c4b",
+    "reviewed_at": "2026-10-23T09:04:56.328676+08:00"
+  },
+  {
+    "candidate_index": 4334,
+    "candidate_id": "e947dcfaf8415cb6f365",
+    "decision": "accepted",
+    "observation": "流控按relativeTimeAction<=now发送，到未来项则加回队首并停止；每条携带原promise并同步减两级字节数，批次末flush，期限是到点可执行而非精确tick。",
+    "snippet_sha256": "d0780f82ae68e04b79c4400640557c9b04a19bc92278f9a6f8a92a0a29bf56fe",
+    "reviewed_at": "2026-10-23T09:04:56.328679+08:00"
+  },
+  {
+    "candidate_index": 4335,
+    "candidate_id": "0c1322a1a2bec8a3ecd3",
+    "decision": "excluded",
+    "observation": "4334同结构增加channelTrafficCounter计费一行，消费和回执语义相同，不重复计。",
+    "snippet_sha256": "f92dd8d3ed7108ab1508877899d20bec3e4639cf7c8b7c08325131da19da9786",
+    "reviewed_at": "2026-10-23T09:04:56.328683+08:00"
+  },
+  {
+    "candidate_index": 4336,
+    "candidate_id": "ee9ebad261ee687facfe",
+    "decision": "excluded",
+    "observation": "时间轮取消同tick任务的测试，适合设计验收但不计外部生产实现。",
+    "snippet_sha256": "f7794f539c143d1a9d6560ac35f4374a7f3e6900b21ad0f20a92715884be2695",
+    "reviewed_at": "2026-10-23T09:04:56.328686+08:00"
+  },
+  {
+    "candidate_index": 4337,
+    "candidate_id": "92c2e3c834893280327f",
+    "decision": "accepted",
+    "observation": "ScheduledFutureTask未到期重新入调度队列，取消则移除；单次任务先置不可取消再运行并成功Future，周期任务区分固定频率与运行后延时，异常结束为失败。",
+    "snippet_sha256": "c87a63b769d9f2b758ccb6014cb0c912d0263faf01ef8f28e30b32c35191e498",
+    "reviewed_at": "2026-10-23T09:04:56.328688+08:00"
+  },
+  {
+    "candidate_index": 4338,
+    "candidate_id": "c9762bb78cb85ecb654f",
+    "decision": "accepted",
+    "observation": "区块生成worker每轮poll一个任务，进度通知用处理数或60秒双阈值，空队列才发完成；genned注释承认只能确认加载状态，报告不能过度声称实际创建。",
+    "snippet_sha256": "19722d037a146007d269bbd0b3a3638e59be09e192152221cae0a8d02573f12b",
+    "reviewed_at": "2026-10-23T09:04:56.328691+08:00"
+  },
+  {
+    "candidate_index": 4339,
+    "candidate_id": "0e4a3326480b42c54b98",
+    "decision": "accepted",
+    "observation": "时间轮入队先增pending并限制容量，start失败回减，deadline防溢出；入队后再次检查已shutdown并CAS取消，覆盖停止与提交竞态，防留下永不消费的超时项。",
+    "snippet_sha256": "cc5c6cb474a9cf4c059e918aeb20e5b0acb6b9695be2a0c0daa8aa804f6173e3",
+    "reviewed_at": "2026-10-23T09:04:56.328693+08:00"
+  },
+  {
+    "candidate_index": 4340,
+    "candidate_id": "0602c0316bec50393621",
+    "decision": "accepted",
+    "observation": "手动IO事件循环保存并finally恢复当前executor归属，每项后按纳秒预算检查，先迁到期任务再排队；执行上下文不是简单全局线程标志，异常也要恢复。",
+    "snippet_sha256": "2e0112d3f9bb80b4f1b11ce73e3bbf6cd98a7106f17926b10f41a892a94dd80f",
+    "reviewed_at": "2026-10-23T09:04:56.328696+08:00"
+  },
+  {
+    "candidate_index": 4341,
+    "candidate_id": "ed5be7a21bc9c909b589",
+    "decision": "accepted",
+    "observation": "有预算排空每64任务才检查deadline，使用safeExecute且总记录活跃耗时；零/短预算仍允许一批任务，消费轮长度并非严格单tick或单任务。",
+    "snippet_sha256": "1b2608d37e584815d450c193c3215aaac7d95e755c045c8c5ad5a303a3ab1606",
+    "reviewed_at": "2026-10-23T09:04:56.328698+08:00"
+  },
+  {
+    "candidate_index": 4342,
+    "candidate_id": "35d9b26d07354429b280",
+    "decision": "accepted",
+    "observation": "IdleState按写完成时间、当前消息对象identity、待写字节和flush进度识别输出变化，first调用保留首个idle事件；仅消息内容相同不能判断是否同一在途事件。",
+    "snippet_sha256": "8267dd87fc549b4c63da82702895d0c3915034c4e1e3549352fa1a90db461abe",
+    "reviewed_at": "2026-10-23T09:04:56.328701+08:00"
+  },
+  {
+    "candidate_index": 4343,
+    "candidate_id": "88ca6eba2d8732658b5c",
+    "decision": "accepted",
+    "observation": "零delay仅在通道队列为空才直接写，否则仍排队保序；闭包冻结目标通道、消息promise和futureNow，到期批次以该阈值消费，不能仅当前全局时钟判断归属。",
+    "snippet_sha256": "3593f1413588727ba270898155212d074adb96f00a0426d0b2cf3f58e4711f3b",
+    "reviewed_at": "2026-10-23T09:04:56.328703+08:00"
+  },
+  {
+    "candidate_index": 4344,
+    "candidate_id": "d6a5d5735cf66641ef0a",
+    "decision": "excluded",
+    "observation": "IdleState首次事件重置的测试而非生产实现，不计门槛且未在本机执行。",
+    "snippet_sha256": "14281df73ad3598362e426f10d6dd3967ff18666a9f06a13932db37e535ab65e",
+    "reviewed_at": "2026-10-23T09:04:56.328706+08:00"
+  },
+  {
+    "candidate_index": 4345,
+    "candidate_id": "0268c4c1a60d87c89d9a",
+    "decision": "excluded",
+    "observation": "4343同一submitWrite实现仅增通道级流量计数，去重不重复接受。",
+    "snippet_sha256": "52b449394004740fdc2a1bfd3c54accb9f01753538b8916d942b3b8f981c47fc",
+    "reviewed_at": "2026-10-23T09:04:56.328708+08:00"
+  },
+  {
+    "candidate_index": 4346,
+    "candidate_id": "825f7035ec4c9ba76059",
+    "decision": "accepted",
+    "observation": "手动事件循环关闭先取消scheduled再排普通任务，quiet period与总shutdown timeout分别限制；最后静默检查也承认未来仍可并发提交，生命周期停止需提交侧配合。",
+    "snippet_sha256": "991f1d94050e161efe9ebea701a209ed6ae2240b5e07d0cb34959e13e13cec4b",
+    "reviewed_at": "2026-10-23T09:04:56.328711+08:00"
+  },
+  {
+    "candidate_index": 4347,
+    "candidate_id": "2dbdc945f20152b8ce2f",
+    "decision": "accepted",
+    "observation": "单线程关闭在普通任务后还跑shutdownHooks，并投WAKEUP任务维持静默期检查；与手动循环不同有关闭钩子和显式唤醒，任务完成和执行器关闭是两个阶段。",
+    "snippet_sha256": "6ee1cbe63af0a566c6ad5a259eb22f05bffecef114e9bcaceee32fa77ca5b82e",
+    "reviewed_at": "2026-10-23T09:04:56.328713+08:00"
+  }
+]

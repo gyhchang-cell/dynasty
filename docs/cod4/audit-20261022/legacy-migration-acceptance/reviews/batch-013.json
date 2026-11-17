@@ -1,0 +1,160 @@
+[
+  {
+    "candidate_id": "0a1a7595c5367c767d5a",
+    "status": "accepted",
+    "family": "ftb120-missing-item-original-payload-envelope",
+    "trigger": "MissingItem.readItem used for saved quest item payloads",
+    "input": "id, integer Count and tag compound, potentially unavailable registry ID",
+    "output": "empty/AIR returns EMPTY; unavailable item yields MISSING_ITEM carrying original complete compound under Item; registered item loads then restores int Count",
+    "preservation": "Full class paired writeItem returns embedded original Item compound for placeholder; otherwise saves Count as int. This preserves recoverable unavailable-ID data and avoids native signed-byte127 overflow.",
+    "application_limit": "ResourceLocation parse can throw; envelope holds reference, not tag.copy; placeholder physical count1 differs from embedded original count. Not direct runtime-version proof and not proposal to add Dynasty placeholder asset.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "194f0859e04f1759c6d3",
+    "status": "accepted",
+    "family": "ftb120-reward-table-typed-factory-and-weight-reader",
+    "trigger": "RewardTable.readData definition persistence",
+    "input": "rewards type/data list, optional weight, optional loot crate and loot table ID",
+    "output": "clears weighted rewards, skips unknown RewardType, each known reward read with weight default1; resets lootCrate null before optional create",
+    "preservation": "Definition restoration never calls claim; missing type entry does not create arbitrary default reward. Captures compatible old absent weight behavior without granting loot.",
+    "application_limit": "Invalid loot table ID parse can throw and skipped unknown reward definitions not retained raw. Borrow prevent migration from firing rewards or inventing mappings for old dq task indexes.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "6271855ca6522c33a356",
+    "status": "accepted",
+    "family": "ftb120-random-reward-unresolved-table-inline-fallback",
+    "trigger": "RandomReward.readData",
+    "input": "referenced table_id long and optional table_data compound",
+    "output": "clears table, resolves nonzero ID; if unresolved and inline data exists reconstructs internal table -1 and title Internal",
+    "preservation": "Fallback triggers both missing reference and nonresolvable nonzero reference; definition kept through alternate embedded representation.",
+    "application_limit": "No fallback if both unavailable. Table reader is already studied; no extra per reward credit. Borrow use existing current FTB entry plus defined compatible fallback, not lookup-only remap with null target.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "1a056db429399a174870",
+    "status": "accepted",
+    "family": "ftb120-item-task-count-and-consumption-reader",
+    "trigger": "ItemTask.readData task definition; paired writeData confirmed",
+    "input": "item payload, count long, consumption/crafting/NBT tristates and screen flags",
+    "output": "restores item and count clamp>=1; restores explicit/inherited policy flags",
+    "preservation": "Writer omits count when1; loader clamp maps omitted0 back1. submitItemsOnInventoryChange depends on consumesResources, so configuration restore affects actual item/progress ownership.",
+    "application_limit": "Definition count is required quantity, not player completed amount. Do not map old dq progress into this definition field or grant item/reward on load.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "58c89315b807c8c087f5",
+    "status": "accepted",
+    "family": "ftb112-old-autoclaim-flags-precedence-upgrade",
+    "trigger": "Reward.readData legacy reward schema",
+    "input": "current auto named mode, old autoclaim/invisible boolean keys and team_reward",
+    "output": "loads named mode first; present invisible true wins; otherwise old autoclaim presence chooses ENABLED/DISABLED",
+    "preservation": "Actual old-format policy upgrade distinguishes absent legacy flags from false values; invisible false alone leaves current named mode.",
+    "application_limit": "No reward execution here; defaults depend on enum name map not resolved fully. Borrow preserve claimed receipt separately from auto-claim configuration, never infer claimed status from policy.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "5d61ffb2214fa728961b",
+    "status": "accepted",
+    "family": "ftb112-item-task-single-to-multi-item-reader",
+    "trigger": "FTB1.12 ItemTask.readData stored task definition",
+    "input": "items list or fallback old item tag, count long and legacy matching policy byte",
+    "output": "clears accepted items; if list empty reads old single item; skips/logs empty decodes; count min1; NBT matching mode from byte",
+    "preservation": "Genuine version-specific multi-item/single-item fallback differs from1.20 single-payload reader; not same source with key substitutions.",
+    "application_limit": "NBTMatchingMode ordinal unchecked; ItemMissing resolver support not separately credited. Borrow explicit historical schema interpretation and logs, but task definition is not completed player progress.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "75e4145a5c9e759e8233",
+    "status": "accepted",
+    "family": "ftb112-player-task-progress-and-claim-receipt-reader",
+    "trigger": "ServerQuestData.readData after quest task map initialized",
+    "input": "Tasks map saved ID→long progress, team claimed int IDs and UUID→claimed reward arrays",
+    "output": "known tasks readProgress; clears/rebuilds both claim sets; invalid player UUID skipped; empty per-player array omitted",
+    "preservation": "Paired writer and claimReward consumer deeply inspected: claimReward calls reward.claim only if setRewardClaimed succeeds. Restoring progress without claimed receipts risks duplicate rewards.",
+    "application_limit": "Unknown task progress not retained; missing taskData initialized entry could fail, task IDs not Dynasty dq indices. Not blanket conversion between FTB versions or new event reward grants.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "8dcc657f2223719be52a",
+    "status": "accepted",
+    "family": "ftb120-loot-opener-buffer-count-owner-reader",
+    "trigger": "LootCrateOpener.load",
+    "input": "Items records containing item payload+amount and optional Owner UUID",
+    "output": "clears output map, reconstructs ItemEntry keys and integer quantities; owner set only for typed UUID else null",
+    "preservation": "Item payload count and output-map amount are separate representations; original owner identity preserved when shape valid.",
+    "application_limit": "Duplicate equal keys overwrite rather than sum; invalid ItemStack/negative amount not filtered.1.12 version grouped as near same buffer/owner reader, no extra version credit.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "b362021df15149c9e0b1",
+    "status": "accepted",
+    "family": "ftb120-questfile-gameplay-policy-and-emergency-items-reader",
+    "trigger": "BaseQuestFile.readData root persistent quest definition",
+    "input": "reward/consume/autoclaim defaults, emergency item payloads/cooldown, progression mode/detection_delay, book death option plus UI values",
+    "output": "restores actual emergency item list through missing-item resolver; leaves detectionDelay default on absent key; default quest shape sentinel normalized",
+    "preservation": "Paired semantic branches distinguish definition defaults from player progress: this config controls consumption/detection/death-book policy, never reconstructs claimed receipt itself.",
+    "application_limit": "UI fields no independent credit. MissingItem helper already studied independently; no per list-entry credits. User-defined legacy settings should not be blindly overwritten during player Clone.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "fc45bea28f361ea892df",
+    "status": "accepted",
+    "family": "ftb120-chapter-gameplay-default-and-sequencing-reader",
+    "trigger": "Chapter.readData stored chapter definition",
+    "input": "chapter progressionMode, consumption Tristate, repeatability, sequencing/dependency gating with optional typed default size",
+    "output": "restores policy and defaults, clears/rebuilds descriptive lists and images; correctly typed absent size defaults1",
+    "preservation": "requireSequentialTasks and dependency visibility determine future task access, but are not per-player completion markers. Real stored schema includes inherited policy.",
+    "application_limit": "Nested ChapterImage purely visual not separately counted; no claim this reader imports old player quest status. Borrow keep progress schema/definition and progress value separate.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "3511b0f667c132e26abf",
+    "status": "accepted",
+    "family": "pnc-logistics-frame-requester-provider-policy-reader",
+    "trigger": "AbstractLogisticsFrame.readAdditionalSaveData",
+    "input": "item filters, fluid filter codec, matching policies/side, optional requester minimum or provider stock counters",
+    "output": "restores item filter and fluid codec or fresh empty filter; side defaults UP; only correct interface role receives requester/provider fields; minimum request count clamp1",
+    "preservation": "Actual owner capability filters which saved counters apply; invalid fluid filter has explicit local fallback rather than failing entire frame.",
+    "application_limit": "Configuring stock is not earning stock; source decode failure loses filter conditions. Borrow correct ownership and typed meaning before importing permanent counters.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "d722be15b10d7dcdcc3b",
+    "status": "accepted",
+    "family": "gtceu-ae-input-bus-ghost-config-reader",
+    "trigger": "MEInputBusPartMachine.readConfigFromTag",
+    "input": "optional ConfigStacks compound keyed by config slot, GhostCircuit and DistinctBuses",
+    "output": "if whole compound present, each present key decoded GenericStack else target config cleared; absent whole container keeps config; circuit/distinct guarded",
+    "preservation": "Missing outer container and missing member have different semantics. Existing slot may be intentionally cleared only under supplied authoritative container.",
+    "application_limit": "GenericStack unresolved payload behavior not traced; fluid hatch near same loop grouped, no credit for changing item handler to fluid handler. Borrow avoid clearing new-player state when old field absent.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "0eae241234463ace5a77",
+    "status": "accepted",
+    "family": "gtceu-int-count-stack-with-custom-tag-reader",
+    "trigger": "GTUtil.loadItemStack",
+    "input": "registry string ID, int Count and optional typed tag",
+    "output": "new stack uses int quantity; original tag assigned then verifyTagAfterLoad/damage normalization; runtime decode failure logged and EMPTY returned",
+    "preservation": "Meaningful difference from native byte-count constructor: quantities above127 survive integer construction, but ForgeCaps restoration not visible.",
+    "application_limit": "Not universal replacement for ItemStack native loader; capability metadata may be dropped. Borrow retain Count/tag through native remap rather than unnecessary manual stack reconstruction.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "a88a4c56bf851beeeb8a",
+    "status": "duplicate",
+    "reason": "PerPlayerData mainly editor/pin preferences and helper of already studied TeamData restoration; no additional progress retention credit."
+  },
+  {
+    "candidate_id": "bfc8ea13fa49c33736fa",
+    "status": "duplicate",
+    "reason": "1.12 loot opener same buffer/owner retention role as selected1.20 reader, with older save-type guard. Group once rather than reward API-version changes."
+  },
+  {
+    "candidate_id": "7aa3a93444fc198119f2",
+    "status": "duplicate",
+    "reason": "AE fluid input hatch repeats same config-slot presence/clear loop and GhostCircuit branch from item input bus; no extra credit for handler substitution."
+  }
+]

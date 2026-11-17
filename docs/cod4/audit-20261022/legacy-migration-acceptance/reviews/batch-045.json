@@ -1,0 +1,87 @@
+[
+  {
+    "candidate_id": "c5cdac3007b2f3e374b6",
+    "status": "accepted",
+    "family": "botania-brewery-paid-ingredients-and-mana-recipe-rebind",
+    "trigger": "Brewery read/write/commonTick/findRecipe/addItem",
+    "input": "seven physical ingredient/container slots and paid mana, recipe cache absent on disk",
+    "output": "base inventory restored then mana; first tick with paid mana searches current recipes before completion",
+    "preservation": "Read both persistence methods and full paid input/tick/output path plus SimpleInventoryBlockEntity and BotaniaBlockEntity. readPacketNBT really serves disk load/saveAdditional, not merely networking. Restores full stacks and recomputes recipe from inventory without spending inputs again.",
+    "application_limit": "If current data no longer has matching recipe, paid mana resets0; unknown item stack behavior inherited native loader. Output spawn result unchecked before clearing all inputs. Recipe changes may reinterpret ingredients. No opaque removed-recipe retention or atomicity guarantee.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "9426939e22ad06da5c97",
+    "status": "accepted",
+    "family": "botania-cocoon-paid-hatch-bias-and-progress",
+    "trigger": "Cocoon read/write/commonTick/hatch plus block addStack",
+    "input": "paid emerald/chorus counts, gaia-spirit receipt, elapsed hatch time",
+    "output": "restore all four independent fields; hatch uses persisted paid biases instead of consuming gifts again",
+    "preservation": "Read complete pair, tick/hatch/random/forceRare and full addStack consumer. Real consumption increments each capped contribution only on server; spirit receipt prevents another payment. Each ingredient is part of one cocoon owner, not one credit each.",
+    "application_limit": "Reader raw counts/time unbounded; negative bias possible but probabilities upper-capped. Block destroyed before entity creation/spawn, null type or failed spawn loses cocoon and paid gifts. Missing fields reset0/false. No claim native hatch testing.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "a517b272152cca3cfd18",
+    "status": "accepted",
+    "family": "botania-incense-physical-stick-burn-budget-resume",
+    "trigger": "IncensePlate read/write/ignite/commonTick",
+    "input": "full incense stick in inherited slot plus burning and timeLeft",
+    "output": "load resumes remaining paid effect duration rather than reigniting full duration; zero duration consumes stick on subsequent tick",
+    "preservation": "Read full commonTick, ignition and pair, inherited full inventory disk bridge. Waterlogging truncates remaining time; derived comparator recalculated, no permanent player effect Clone involved. Distinct consumable physical burner duration owner.",
+    "application_limit": "No bounds on stored time; empty slot zeroes time but can leave burning true. Timer itself not setChanged every tick in viewed source; disk save timing not proven. Effect list get(0) assumes valid brew. Do not reuse this temporary effect policy as permanent root whitelist.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "36db7ba873c72c837574",
+    "status": "accepted",
+    "family": "botania-life-imbuer-paid-mana-remote-spawner-service",
+    "trigger": "LifeImbuer read/write/onSpawnerNearPlayer/receiveMana",
+    "input": "mana prepaid for nearby spawner activity",
+    "output": "restore stored service budget; active spawner check consumes6 only when balance>5",
+    "preservation": "Full class reviewed; disk bridge confirmed via BotaniaBlockEntity. Game consumer consumes a specific prepaid resource to replace nearby-player requirement. This counts that game service owner, not the generic integer getter/setter or mana interface.",
+    "application_limit": "Reader no clamp, incoming capped480 but can remain negative; callback side effects/client synchronization not tested. This is world block resource persistence, not permanent player progression; missing mana0. No separate credit for shared mana storage plumbing.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "980d0b8b01ef0f629fc3",
+    "status": "accepted",
+    "family": "botania-runic-altar-paid-mana-target-with-refundable-runes",
+    "trigger": "RunicAltar read/write/serverTick/updateRecipe/onUsedByWand",
+    "input": "full ingredient slots plus stored mana/manaToGet, transient lastRecipe/cooldown omitted",
+    "output": "recover paid charge and ingredients; current recipe target recomputed, wand completion refunds rune ingredients and consumes other inputs/livingrock",
+    "preservation": "Read full ingredient acquisition, both tick paths, all update/lastRecipe/wand methods and pair. Derived target can update after reload; lastRecipe is recipe history only and is not treated as owned stock/refunded independently. Rune output flags prevent immediate re-ingestion.",
+    "application_limit": "CurrentRecipe cache not persisted; missing/changed recipe can change target. addFreshEntity success unchecked before input clear/shrink. Omitted cooldown/history are temporary conveniences, not claimed preserved. Do not count helper Container load as another implementation.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "4645689dffaa458de33a",
+    "status": "accepted",
+    "family": "botania-terra-plate-charge-with-separate-world-item-ownership",
+    "trigger": "TerrestrialAgglomerationPlate read/write/serverTick/receiveMana",
+    "input": "paid stored mana while actual ingredients remain ItemEntities saved by world owner",
+    "output": "restore charge; current platform/current recipe verified before conversion; invalid platform/recipe drains1000 per tick",
+    "preservation": "Read full serverTick and pair. Unlike inventory machine, ingredient ownership is separate world entities; reading charge does not mint physical inputs. Completion only when stored charge reaches current recipe cost; returns one output after consuming item stacks.",
+    "application_limit": "World item persistence/atomic chunk snapshots not proven. Failed output spawn unchecked after setting original counts0. Charge not tied to recipe ID, may apply to changed compatible recipe; invalid context intentionally loses charge. No full cross-owner transaction claim.",
+    "supporting_candidates": [],
+    "structural_collision_review": {
+      "compared_candidate": "36db7ba873c72c837574",
+      "distinct_gameplay_owner_reason": "Identical one-int disk reader is not itself new semantics. Count complete distinct game chain: spawner claw repeatedly spends6 mana to pay proximity service; terra plate owns conversion charge, validates multiblock/recipe, leaves ingredients under separate world ItemEntity owners, drains invalid charge and consumes actual inputs only at threshold. Not merely changed key nor split helper.",
+      "reviewed_consumers": [
+        "LifeImbuerBlockEntity.onSpawnerNearPlayer full source",
+        "TerrestrialAgglomerationPlateBlockEntity.serverTick full source"
+      ]
+    }
+  },
+  {
+    "candidate_id": "55bf1ca651ea195c9aad",
+    "status": "accepted",
+    "family": "botania-corporea-pending-request-type-recovery",
+    "trigger": "CorporeaRetainer read/write/remember/fulfilRequest/forget",
+    "input": "pending request position, registered matcher type payload, count and missing-only mode",
+    "output": "registered matcher reader restores pending request; unknown/unparseable type becomes null and cannot fulfil",
+    "preservation": "Read complete pair and request lifecycle. Request remains pending if spark/requestor unavailable; only reaching requestor call forgets it and marks dirty. Independently owned deferred gameplay request, not paid item receipt or generic serializer.",
+    "application_limit": "Requestor return/result not checked; forget occurs even if extraction only partial. Missing coordinates become0, no dimension stored here. No unknown matcher payload retention when writer later omits it. Actual matcher subtypes/consumer extraction not counted or claimed completely traced.",
+    "supporting_candidates": []
+  }
+]

@@ -1,0 +1,190 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.container.storage;
+
+import com.klikli_dev.occultism.api.common.blockentity.IStorageController;
+import com.klikli_dev.occultism.api.common.data.GlobalBlockPos;
+import com.klikli_dev.occultism.common.container.storage.layout.StorageMenuVariant;
+import com.klikli_dev.occultism.common.item.storage.StorageRemoteItem;
+import com.klikli_dev.occultism.common.misc.StorageControllerCraftingInventory;
+import com.klikli_dev.occultism.network.Networking;
+import com.klikli_dev.occultism.network.messages.MessageUpdateLinkedMachines;
+import com.klikli_dev.occultism.registry.OccultismContainers;
+import com.klikli_dev.occultism.registry.OccultismDataComponents;
+import com.klikli_dev.occultism.util.CuriosUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class StorageRemoteContainer extends StorageControllerContainerBase {
+
+    protected int selectedSlot;
+
+    public StorageRemoteContainer(int id, Inventory playerInventory, int selectedSlot) {
+        super(OccultismContainers.STORAGE_REMOTE.get(), id, playerInventory);
+
+        this.playerInventory = playerInventory;
+        this.selectedSlot = selectedSlot;
+
+        this.matrix = new StorageControllerCraftingInventory(this,
+                this.getCraftingMatrixFromItemStack(this.getStorageRemote()));
+        this.orderInventory.setItem(0, this.getOrderStackFromItemStack(this.getStorageRemote()));
+
+        this.setupStorageControllerSlots();
+
+        this.slotsChanged(this.matrix);
+    }
+
+    //region Getter / Setter
+    public ItemStack getStorageRemote() {
+        if (this.selectedSlot == -1) {
+            return CuriosUtil.getStorageRemoteCurio(this.player);
+        }
+        if (this.selectedSlot < 0 || this.selectedSlot >= this.player.getInventory().getContainerSize())
+            return ItemStack.EMPTY;
+        ItemStack selected = this.player.getInventory().getItem(this.selectedSlot);
+        return selected.getItem() instanceof StorageRemoteItem ? selected : ItemStack.EMPTY;
+    }
+    //endregion Getter / Setter
+
+    @Override
+    public GlobalBlockPos getStorageControllerGlobalBlockPos() {
+        ItemStack storageRemote = this.getStorageRemote();
+        return storageRemote != ItemStack.EMPTY ? storageRemote.get(OccultismDataComponents.LINKED_STORAGE_CONTROLLER) : null;
+    }
+
+    @Override
+    protected StorageMenuVariant menuVariant() {
+        return StorageMenuVariant.REMOTE;
+    }
+
+    @Override
+    protected Slot createPlayerInventorySlot(int slotIndex, int x, int y) {
+        return slotIndex == this.selectedSlot ? this.createLockedSlot(slotIndex, x, y) : super.createPlayerInventorySlot(slotIndex, x, y);
+    }
+
+    @Override
+    protected Slot createHotbarSlot(int slotIndex, int x, int y) {
+        return slotIndex == this.selectedSlot ? this.createLockedSlot(slotIndex, x, y) : super.createHotbarSlot(slotIndex, x, y);
+    }
+
+    protected Slot createLockedSlot(int slotIndex, int x, int y) {
+        return new Slot(this.playerInventory, slotIndex, x, y) {
+
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return false;
+            }
+
+            @Override
+            public boolean hasItem() {
+                return false;
+            }
+
+            @Override
+            public boolean mayPickup(Player playerIn) {
+                return false;
+            }
+
+        };
+    }
+
+    @Override
+    public boolean stillValid(Player entityPlayer) {
+        IStorageController storageController = this.getStorageController();
+
+        //stillValid is constantly called, so we use it to send
+        //stack updates every 40 ticks.
+        if (storageController != null && !entityPlayer.level().isClientSide() &&
+                entityPlayer.level().getGameTime() % 40 == 0) {
+            Networking.sendTo((ServerPlayer) this.player, this.getStorageController().getMessageUpdateStacks());
+            Networking.sendTo((ServerPlayer) this.player,
+                    new MessageUpdateLinkedMachines(this.getStorageController().getLinkedMachines()));
+        }
+
+        //close container if storage controller block is destroyed ( -> if it is null here, this check is a bit different from the wormhole, because getStorageController() already handles that)
+        return storageController != null && this.getStorageRemote() != ItemStack.EMPTY;
+    }
+
+    @Override
+    public IStorageController getStorageController() {
+        return StorageRemoteItem.getStorageController(this.getStorageRemote(), this.playerInventory.player.level());
+    }
+
+    @Override
+    public boolean isContainerItem() {
+        return true;
+    }
+
+    @Override
+    public void updateCraftingSlots(boolean force) {
+        ListTag nbtTagList = new ListTag();
+        for (int i = 0; i < this.matrix.getContainerSize(); i++) {
+            nbtTagList.add(ItemStack.OPTIONAL_CODEC.encodeStart(this.player.registryAccess().createSerializationContext(NbtOps.INSTANCE), this.matrix.getItem(i)).getOrThrow());
+        }
+        var compoundTag = new CompoundTag();
+        compoundTag.put("craftingMatrix", nbtTagList);
+        ItemStack storageRemote = this.getStorageRemote();
+        if (storageRemote != ItemStack.EMPTY)
+            storageRemote.set(OccultismDataComponents.CRAFTING_MATRIX, CustomData.of(compoundTag));
+    }
+
+    @Override
+    public void updateOrderSlot(boolean force) {
+        ItemStack storageRemote = this.getStorageRemote();
+        if (storageRemote != ItemStack.EMPTY)
+            storageRemote.set(OccultismDataComponents.ORDER_STACK, CustomData.of((CompoundTag) ItemStack.OPTIONAL_CODEC.encodeStart(this.player.registryAccess().createSerializationContext(NbtOps.INSTANCE), this.orderInventory.getItem(0)).getOrThrow()));
+    }
+
+    protected List<ItemStack> getCraftingMatrixFromItemStack(ItemStack stack) {
+        List<ItemStack> craftingMatrix = new ArrayList<>(Collections.nCopies(9, ItemStack.EMPTY));
+        if (!stack.has(OccultismDataComponents.CRAFTING_MATRIX))
+            return craftingMatrix;
+
+        ListTag nbtTagList = stack.get(OccultismDataComponents.CRAFTING_MATRIX).copyTag().getListOrEmpty("craftingMatrix");
+
+        for (int i = 0; i < nbtTagList.size(); i++) {
+            craftingMatrix.set(i, ItemStack.OPTIONAL_CODEC.parse(this.player.registryAccess().createSerializationContext(NbtOps.INSTANCE), nbtTagList.getCompoundOrEmpty(i)).result().orElse(ItemStack.EMPTY));
+        }
+
+        return craftingMatrix;
+    }
+
+    protected ItemStack getOrderStackFromItemStack(ItemStack stack) {
+        if (!stack.has(OccultismDataComponents.ORDER_STACK))
+            return ItemStack.EMPTY;
+
+        return ItemStack.OPTIONAL_CODEC.parse(this.player.registryAccess().createSerializationContext(NbtOps.INSTANCE), stack.get(OccultismDataComponents.ORDER_STACK).copyTag()).result().orElse(ItemStack.EMPTY);
+    }
+
+}

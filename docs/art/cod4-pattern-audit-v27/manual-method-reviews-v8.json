@@ -1,0 +1,114 @@
+{
+  "reviewed": 3,
+  "rows": [
+    {
+      "id": 1626,
+      "repo": "lender544/new1.20.1",
+      "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/particle/AfterImageParticle.java",
+      "method": "render",
+      "start": 76,
+      "end": 185,
+      "sourceSha256": "27913f06bb312820274c5975f17ca251abfe2b050bf145afd37d67f2cada53b2",
+      "semanticHash": "9cf0d0c76d8cb11e8177331306d706523865bb02c5e76b97ac81134fbe4173d5",
+      "local": "build/item-use-references/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/client/particle/AfterImageParticle.java",
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/particle/AfterImageParticle.java#L76-L185",
+      "operations": {
+        "render": 1,
+        "getPackedLightCoords": 1,
+        "getRenderType": 1,
+        "isInvisibleTo": 1,
+        "isInvisible": 1,
+        "unsetDefaultColor": 1,
+        "defaultColor": 1,
+        "endVertex": 1,
+        "uv2": 1,
+        "uv": 1,
+        "color": 1,
+        "vertex": 1,
+        "getRenderer": 1,
+        "lerp": 3,
+        "getEntityRenderDispatcher": 1,
+        "renderBuffers": 1
+      },
+      "source": "@Override\n    public void render(@NotNull VertexConsumer vertex, Camera camera, float tick) {\n        MultiBufferSource.BufferSource multibuffersource$buffersource = Minecraft.getInstance().renderBuffers().bufferSource();\n        Vec3 vec3 = camera.getPosition();\n        EntityRenderDispatcher entityRenderDispatcher = Minecraft.getInstance().getEntityRenderDispatcher();\n\n        double lerpX = Mth.lerp(tick, this.xo, this.x);\n        double lerpY = Mth.lerp(tick, this.yo, this.y);\n        double lerpZ = Mth.lerp(tick, this.zo, this.z);\n        float colorR = this.rCol / 255.0F;\n        float colorG = this.gCol / 255.0F;\n        float colorB = this.bCol / 255.0F;\n        float colorA = 0.5F / Math.abs((float) age + 1);\n\n        PoseStack stack = new PoseStack();\n        Entity entity = this.getFromEntity();\n\n        if (entity instanceof LivingEntity living) {\n            EntityRenderer<? super LivingEntity> rendererRaw = entityRenderDispatcher.getRenderer(living);\n\n            if (rendererRaw instanceof LivingEntityRenderer) {\n                LivingEntityRenderer<LivingEntity, EntityModel<LivingEntity>> renderer = (LivingEntityRenderer<LivingEntity, EntityModel<LivingEntity>>) rendererRaw;\n                java.util.function.Function<VertexConsumer, VertexConsumer> createTintedBuffer = (originalBuffer) -> new VertexConsumer() {\n                    @Override\n                    public VertexConsumer vertex(double x, double y, double z) {\n                        originalBuffer.vertex(x, y, z);\n                        return this;\n                    }\n\n                    @Override\n                    public VertexConsumer color(int r, int g, int b, int a) {\n                        originalBuffer.color(\n                                (int) (r * colorR),\n                                (int) (g * colorG),\n                                (int) (b * colorB),\n                                (int) (a * colorA)\n                        );\n                        return this;\n                    }\n\n                    @Override\n                    public VertexConsumer uv(float u, float v) {\n                        originalBuffer.uv(u, v);\n                        return this;\n                    }\n\n                    @Override\n                    public VertexConsumer overlayCoords(int u, int v) {\n                        originalBuffer.overlayCoords(u, v); // 1.21.1의 setUv1 역할\n                        return this;\n                    }\n\n                    @Override\n                    public VertexConsumer uv2(int u, int v) {\n                        originalBuffer.uv2(u, v); // 1.21.1의 setUv2 역할\n                        return this;\n                    }\n\n                    @Override\n                    public VertexConsumer normal(float x, float y, float z) {\n                        originalBuffer.normal(x, y, z);\n                        return this;\n                    }\n\n                    @Override\n                    public void endVertex() {\n                        originalBuffer.endVertex();\n                    }\n\n                    @Override\n                    public void defaultColor(int r, int g, int b, int a) {\n                        originalBuffer.defaultColor(\n                                (int) (r * colorR),\n                                (int) (g * colorG),\n                                (int) (b * colorB),\n                                (int) (a * colorA)\n                        );\n                    }\n\n                    @Override\n                    public void unsetDefaultColor() {\n                        originalBuffer.unsetDefaultColor();\n                    }\n                };\n\n                Minecraft minecraft = Minecraft.getInstance();\n                boolean flag = !living.isInvisible();\n                boolean flag1 = !flag && !living.isInvisibleTo(minecraft.player);\n                boolean flag2 = minecraft.shouldEntityAppearGlowing(living);\n\n                MultiBufferSource tintedSource = (requestedType) -> {\n                    boolean hasTexture = requestedType.format().getElements().contains(DefaultVertexFormat.ELEMENT_UV0);\n                    boolean hasNormal = requestedType.format().getElements().contains(DefaultVertexFormat.ELEMENT_NORMAL);\n\n                    if (hasTexture && hasNormal) {\n                        RenderType ghostType = this.getRenderType(living, renderer, flag, flag1, flag2);\n                        VertexConsumer originalBuffer = multibuffersource$buffersource.getBuffer(ghostType);\n                        return createTintedBuffer.apply(originalBuffer);\n                    } else {\n                        VertexConsumer originalBuffer = multibuffersource$buffersource.getBuffer(requestedType);\n                        return createTintedBuffer.apply(originalBuffer);\n                    }\n                };\n\n                entityRenderDispatcher.render(living,\n                        lerpX - vec3.x(), lerpY - vec3.y(), lerpZ - vec3.z(),\n                        living.getYRot(), tick, stack, tintedSource, entityRenderDispatcher.getPackedLightCoords(living, tick));\n            }\n        }\n    }",
+      "targetScope": "school_melee",
+      "observation": "复用真实实体renderer，通过VertexConsumer代理乘RGB及1/(age+1)透明度；按请求顶点格式区分是否替换ghost RenderType。只保存位置而仍渲染living当前姿态，不能误称历史骨骼快照；注意重入渲染和隐藏状态。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 1632,
+      "repo": "lender544/new1.20.1",
+      "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/particle/LightningParticle.java",
+      "method": "render",
+      "start": 50,
+      "end": 73,
+      "sourceSha256": "effa1a91b24b9c29c45c97ca49c18630855ac364fcb16f7f665d959bff7deeb0",
+      "semanticHash": "d7b7d3a9bef42497245b6e10872b22f1d541500ae17ded90071a15c58f6989e5",
+      "local": "build/item-use-references/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/client/particle/LightningParticle.java",
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/particle/LightningParticle.java#L50-L73",
+      "operations": {
+        "render": 1,
+        "scale": 1,
+        "translate": 1,
+        "lerp": 3,
+        "renderBuffers": 1
+      },
+      "source": "public void render(VertexConsumer vertexConsumer, Camera camera, float partialTick) {\n        Vec3 vec3 = camera.getPosition();\n        PoseStack posestack = new PoseStack();\n        MultiBufferSource.BufferSource multibuffersource$buffersource = Minecraft.getInstance().renderBuffers().bufferSource();\n        float f = (float)(Mth.lerp((double)partialTick, this.xo, this.x) - vec3.x());\n        float f1 = (float)(Mth.lerp((double)partialTick, this.yo, this.y) - vec3.y());\n        float f2 = (float)(Mth.lerp((double)partialTick, this.zo, this.z) - vec3.z());\n        float lerpAge = this.age + partialTick;\n        float ageProgress = lerpAge / (float) this.lifetime;\n        float scale = 1.85F;\n        posestack.pushPose();\n        posestack.translate(f, f1, f2);\n        posestack.scale(scale, scale, scale);\n        LightningBoltData.BoltRenderInfo lightningBoltData = new LightningBoltData.BoltRenderInfo(0.5F, 0.1F, 0.5F, 0.85F, new Vector4f(rCol /255, gCol /255, bCol /255, (1.0F - ageProgress) * 0.8F), 0.1F);\n        LightningBoltData bolt = new LightningBoltData(lightningBoltData, Vec3.ZERO, new Vec3(toX, toY, toZ), 4)\n                .size(0.05F)\n                .lifespan(this.lifetime)\n                .spawn(LightningBoltData.SpawnFunction.CONSECUTIVE);\n        lightningRender.update(this, bolt, partialTick);\n        lightningRender.render(partialTick, posestack, multibuffersource$buffersource);\n\n        multibuffersource$buffersource.endBatch();\n        posestack.popPose();\n    }",
+      "targetScope": "school_talisman",
+      "observation": "从实际目标偏移构造4段闪电，颜色alpha按年龄衰减，并连续spawn更新。update位于每帧render，生命周期/数量可能依赖帧率，保留为应避免的集成案例而非正面范例。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": 1633,
+      "repo": "lender544/new1.20.1",
+      "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/particle/LightningStormParticle.java",
+      "method": "render",
+      "start": 48,
+      "end": 78,
+      "sourceSha256": "50ab9e122180c5551762383b4ed0b73232c6493e3735b026236ca05e145ec073",
+      "semanticHash": "347d18d6d953b5879a856ec4a43bf6b11b147e87bafc1b35b52df90b0c0b4748",
+      "local": "build/item-use-references/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/client/particle/LightningStormParticle.java",
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/particle/LightningStormParticle.java#L48-L78",
+      "operations": {
+        "endVertex": 4,
+        "uv2": 4,
+        "color": 4,
+        "uv": 4,
+        "vertex": 4,
+        "getLightColor": 1,
+        "rotate": 1,
+        "rotateY": 1,
+        "lerp": 3
+      },
+      "source": "@Override\n    public void render(VertexConsumer buffer, Camera camera, float partialTicks) {\n        Vec3 vec3 = camera.getPosition();\n        float f = (float)(Mth.lerp((double)partialTicks, this.xo, this.x) - vec3.x());\n        float f1 = (float)(Mth.lerp((double)partialTicks, this.yo, this.y) - vec3.y());\n        float f2 = (float)(Mth.lerp((double)partialTicks, this.zo, this.z) - vec3.z());\n        Quaternionf quaternionf = new Quaternionf();\n        quaternionf.rotateY((float) Math.toRadians(-camera.getYRot()));\n\n        Vector3f[] avector3f = new Vector3f[]{new Vector3f(-1.0F, -1.0F, 0.0F), new Vector3f(-1.0F, 1.0F, 0.0F), new Vector3f(1.0F, 1.0F, 0.0F), new Vector3f(1.0F, -1.0F, 0.0F)};\n        float f3 = this.getQuadSize(partialTicks);\n\n        for(int i = 0; i < 4; ++i) {\n            Vector3f vector3f = avector3f[i];\n            vector3f.rotate(quaternionf);\n            vector3f.mul(f3);\n            vector3f.add(f, f1, f2);\n        }\n\n        float f6 = this.getU0();\n        float f7 = this.getU1();\n        float f4 = this.getV0();\n        float f5 = this.getV1();\n        int j = this.getLightColor(partialTicks);\n        buffer.vertex(avector3f[0].x(), avector3f[0].y(), avector3f[0].z()).uv(f7, f5).color(this.rCol, this.gCol, this.bCol, this.alpha).uv2(j).endVertex();\n        buffer.vertex(avector3f[1].x(), avector3f[1].y(), avector3f[1].z()).uv(f7, f4).color(this.rCol, this.gCol, this.bCol, this.alpha).uv2(j).endVertex();\n        buffer.vertex(avector3f[2].x(), avector3f[2].y(), avector3f[2].z()).uv(f6, f4).color(this.rCol, this.gCol, this.bCol, this.alpha).uv2(j).endVertex();\n        buffer.vertex(avector3f[3].x(), avector3f[3].y(), avector3f[3].z()).uv(f6, f5).color(this.rCol, this.gCol, this.bCol, this.alpha).uv2(j).endVertex();\n\n\n    }",
+      "targetScope": "school_talisman",
+      "observation": "仅围绕摄像机yaw旋转平面而不跟随pitch，保持雷暴片直立；不同于完全billboard，适用于纵向符纹但俯视时可见面积会减小。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": [
+    {
+      "id": 1627,
+      "repo": "lender544/new1.20.1",
+      "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/particle/CircleLightningParticle.java",
+      "method": "render",
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/particle/CircleLightningParticle.java#L73-L86",
+      "sourceSha256": "be7b716323effe8d57a627601ce15128c2a94e80fc575805464cd211dbcb3525",
+      "reason": "只把位置矩阵传给已有闪电renderer，缺少独立表现算法，不单列。"
+    },
+    {
+      "id": 1639,
+      "repo": "lender544/new1.20.1",
+      "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/particle/SparkTrailParticle.java",
+      "method": "render",
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/particle/SparkTrailParticle.java#L50-L71",
+      "sourceSha256": "382939c3631212845c7d204c064693376d9c9c98e951fe471facb4b55c752741",
+      "reason": "与LightningParticle只在段数、常量alpha和参数不同，同算法保守排除。"
+    }
+  ]
+}

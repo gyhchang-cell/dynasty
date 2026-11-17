@@ -1,0 +1,76 @@
+/*
+ * MIT License
+ *
+ * Copyright 2021 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.advancement;
+
+import com.klikli_dev.occultism.common.advancement.RitualTrigger.TriggerInstance;
+import com.klikli_dev.occultism.common.ritual.Ritual;
+import com.klikli_dev.occultism.registry.OccultismAdvancements;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.advancements.Criterion;
+import net.minecraft.advancements.criterion.ContextAwarePredicate;
+import net.minecraft.advancements.criterion.EntityPredicate;
+import net.minecraft.advancements.criterion.SimpleCriterionTrigger;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+
+import java.util.Optional;
+
+public class RitualTrigger extends SimpleCriterionTrigger<TriggerInstance> {
+
+
+    public void trigger(ServerPlayer player, Ritual ritual) {
+        this.trigger(player, (instance) -> instance.matches(player, ritual));
+    }
+
+    @Override
+    public Codec<TriggerInstance> codec() {
+        return TriggerInstance.CODEC;
+    }
+
+    public record TriggerInstance(Optional<ContextAwarePredicate> player,
+                                  Optional<Identifier> ritualId,
+                                  Optional<Identifier> ritualFactoryId) implements SimpleInstance {
+
+        public static final Codec<TriggerInstance> CODEC = RecordCodecBuilder.create(
+                instance -> instance.group(
+                                EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(TriggerInstance::player),
+                                Identifier.CODEC.optionalFieldOf("ritual_id").forGetter(TriggerInstance::ritualId),
+                                Identifier.CODEC.optionalFieldOf("ritual_factory_id").forGetter(TriggerInstance::ritualFactoryId)
+                        )
+                        .apply(instance, TriggerInstance::new)
+        );
+
+        public static Criterion<TriggerInstance> ritualFactory(Identifier ritualFactoryId) {
+            return OccultismAdvancements.RITUAL.get().createCriterion(new TriggerInstance(Optional.empty(), Optional.empty(), Optional.of(ritualFactoryId)));
+        }
+
+        public boolean matches(ServerPlayer player, Ritual ritual) {
+            var holder = ritual.getRecipeHolder(player.level());
+            if (this.ritualId.isPresent() && holder != null && !this.ritualId.get().equals(holder.id()))
+                return false;
+            else return this.ritualFactoryId.isEmpty() || this.ritualFactoryId.get().equals(ritual.getFactoryID());
+        }
+
+    }
+}

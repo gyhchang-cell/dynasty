@@ -1,0 +1,20 @@
+相关实现研究已达到1000处，18个固定commit的项目；每处以一个实际方法/构造函数为单位。
+references-1000.jsonl保留完整方法、固定commit URL及行号、文件SHA、去重SHA、具体本地化表达式、条件/延迟回调、动态参数、调用时机、getString/I18n/换行操作和观察。
+方法：工具辅助解析全部方法的AST与源码，再按实际调用/分支/参数逐项审阅紧凑上下文，重点追踪如下生命周期。不是1000个真人试玩、1000种独立算法或1000个相同缺陷修复。
+不计翻译JSON静态键，不计坐标translate、不计数据生成器/模型/测试、不计只有静态标题的构造器；剔除同代码换键、数值类型验证复制、跨平台同逻辑方法、纯命令/玩法通知。候选数及淘汰记录独立保存；原quest1000、bow1000和原生JEI七处链路均未加进本次1000。
+
+重点推导（外部版本不同，学习生命周期；不能直接复制新版本API到本包1.20.1）：
+1. 本包JEI15.59.0.210：RecipeRegistration.addIngredientInfo → IngredientInfoRecipe.create → StringUtil.expandNewlines → ExpandNewLineTextAcceptor。Component.visit把当前语言展开成String，literal化后存储，翻译键丢失。这就是现有冷热差异的原因；WorkshopJei自身无getString。
+2. JEI DrawableWrappedText：构造时splitLines并缓存descriptionLines/height；draw再取Language只负责已拆文本的视觉顺序。只改语言代码或原组件不等于旧排版缓存自动更新，必须实测返回历史和重新打开页面。
+3. AE2 CondenserCategory.getTooltip（ledger中对应源码）：按recipe分支选择MatterBalls/Singularity参数，在hover时splitLines。可借鉴把本地化/排版推迟到消费阶段。
+4. Tinkers Modifier.getDescriptionList：虽缓存List<Component>，缓存的是带翻译键的Component；与缓存resolved String/literal不同。缓存对象存在本身不能直接当缺陷。
+5. PNC JEIPlugin.addStackInfo：注册时I18n.get + 分隔符拆串 + Component.literal，展示了另一处早绑定实现。仅观察风险，未声称其该版本也已真实复现或被修复。
+6. FTB-Library ClientTextComponentUtils.defaultStringToComponent：末端parse(I18n.get(s))在转换时就得到当前语言字符串；调用者何时重建会决定是否过期。
+7. Patchouli BookTextRenderer.setText：把i18n literal转成当前语言文字并重新layout/缓存words；ClientBookRegistry.reload更新currentLang并重载书内容。启示：文本解析和换行缓存有独立寿命。
+8. REI Argument.matches：比较LAST_LANGUAGE与当前languageCode，不同则resetCache(false)。这是实际按语言失效缓存的实现，不是同bug修复宣称。
+9. REI LabelWidget：orderedText为LazyResettable，setMessage会reset；保留组件键并不自动保证所有组件外层缓存刷新。
+10. Jade JadeLanguages.onResourceManagerReload：清空tokenCache/nameClassCache/cleanTranslationCache，再按语言元数据重建。实际资源重载失效模式。
+
+本项目最小应用：只替换WorkshopJei中七符addIngredientInfo便捷注册，使用原生RecipeTypes.INFORMATION及IJeiIngredientInfoRecipe，保留typed item身份并在getDescription交付可翻译组件；不用JEI提前展开factory。保持所有原配方、物品、资产、分类、焦点和导航。实际zh→en→zh验证getDescription、原生排版可读、滚动、返回历史及负例；若原生布局仍旧，继续最小定位，不以删页/删模组/重启JEI来伪造通过。
+
+外部源码缓存只在build/cod4-pack-20261022/language-sources；未安装或复制任何外部游戏内容。

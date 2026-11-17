@@ -1,0 +1,66 @@
+[
+  {
+    "candidate_index": 3797,
+    "candidate_id": "fbd1322fa569d8ddebd6",
+    "decision": "accepted",
+    "observation": "全文BroodEetle.tick/hurt/isEggMouthOpen/getEggSack及固定同commit BroodEggSack全类：本体箭直接拒绝/常规减伤，卵囊hurt服务器重读当前world数字BROOD_ID，只在本体活且mouthEndimation满或healthStage5才走super.hurt全伤；返回真才附魔副作用/粒子/声音。父tick创建/重建并更新ID，囊tick要求父当前eggSack对象仍是this否则discard；但hurt未复核互指，囊被替换到其tick清理前仍可能伤旧父。真实暴露窗口与子体归属/过期清理/最终伤害反馈一条，ID不是UUID，不把建囊和每个getter拆数。",
+    "snippet_sha256": "3d77b9cf6f2e236f1870fe34345b6569bf8ece8e29585072091b1d8e41a5d02e",
+    "reviewed_at": "2026-10-28T21:33:33.317494+08:00"
+  },
+  {
+    "candidate_index": 4189,
+    "candidate_id": "7085228a1dd6f9d8ed7a",
+    "decision": "accepted",
+    "observation": "全文TinyTNTPrimedEntity：创建fuse80并保存placedBy对象，tick先水中还原物品/discard但无return，再检查旧fuse<=0才explode最后递减，所以不是先减到0即炸；explode先音效再水中return，同tick可以还原且响声而无伤。实体与方块先提交伤害/移除及onExplosionHit，末尾才onExplosionDetonate再发原level64范围MockExplosion坐标包，事件发生不能当撤销前的许可/伤害成功回执，hurt布尔均忽略。完整定时引信→水失效→实际爆炸消费链一条，客户端包消费者尚未复读故不声称完整视觉链。",
+    "snippet_sha256": "66970bb80289f3cd0b38137749cfeeb25b534d9e49eec40513773744e8895503",
+    "reviewed_at": "2026-10-28T21:33:33.317516+08:00"
+  },
+  {
+    "candidate_index": 4220,
+    "candidate_id": "d91de4ca15af9430468f",
+    "decision": "accepted",
+    "observation": "全文EntityHammer/EntityMagicConstruct与LightningHammer/SpellConstruct.spawnConstruct、ItemLightningHammer：天空法术生成高50下落锤，空中逐tick碰撞伤、落地按受害者ticksExisted取模伤；先截maxTargets后敌我检查可吃掉名额，反馈/击退未验证hurt。父age>lifetime despawn不return子仍执行。原caster+ring可在age>10把实体变持有物，lifetime→物品maxDamage、age→damage；再投时maxDamage-damage为新实体剩余寿命且caster改投掷者，原物品无论spawn成功都清手。真实实体/物品间寿命和拥有者转移整条一计，非重复数雷锤模型/两种AOE。",
+    "snippet_sha256": "a7eded1e72300a2d9ebe77bcffa103e0910cce1ba2763dc7e18e6880f0a181ed",
+    "reviewed_at": "2026-10-28T21:33:33.317522+08:00"
+  },
+  {
+    "candidate_index": 4237,
+    "candidate_id": "3f1a500ceb062a5d4263",
+    "decision": "accepted",
+    "observation": "全文EntityMummyArm和ItemRingOfSummoning实际key→装备tick→spawn链：cap.active最长100、cooldown120，戒指tick消费时钟，附近arm上限32包含别人；isRingActive仅查装备中可用戒指而非cap.active，松键并不直接撤销已生成arm。arm逐tick当前owner/null/距离32/地基/戒指可用性与spawn40后despawn150失效设health0，之后isEntityAlive才攻击，spawn>=4即可伤；web独立，hurtResistantTime<10尝试hurt，返回忽略而摆臂照播。UUID/server对象缓存不重查isDead/world，client缓存ID比较是!=；NBT保存阶段计数。实际装备活动许可→召唤租约→来源与延后失效一条，未验证外部cap Clone继承。",
+    "snippet_sha256": "5245340e627c5152fa3ccbec719d43ce9813c68090d4611cff86e44646eccb5f",
+    "reviewed_at": "2026-10-28T21:33:33.317525+08:00"
+  },
+  {
+    "candidate_index": 4249,
+    "candidate_id": "1048f2a0343d19607dcd",
+    "decision": "accepted",
+    "observation": "全文EntityShock/EntityBLArrow.arrowHit与MessageShockArrowHit：命中箭生成shock保留source对象+首目标，原箭可能已停但每3tick按source当前速度/crit重算damage与原thrower来源，不是命中伤害快照。每已触目标扩一个新目标，先写newTargets/视觉pair再hurt；橡胶靴每件损2并blocked，blocked或hurt假仍加SHOCKED，乘客随组伤并纳入去重；failed也成为后续跳板，空轮仍jumps++。有湿度加倍初始maxJumps与每跳当前湿度半径/伤害。达到上限下次tick才setDead，不保存；tracking包按pairs在客户端当前实体位置画，不要求伤害真。区别此前单跳/固定前沿链的是座骑群组防重复与延迟重读已发生源对象，整条一计。",
+    "snippet_sha256": "416763c635f399b6d0d3b4308d4a1a5a14acbc43ba7df794da47c20824912dec",
+    "reviewed_at": "2026-10-28T21:33:33.317528+08:00"
+  },
+  {
+    "candidate_index": 3799,
+    "candidate_id": "08ef461554e11a07838b",
+    "decision": "excluded",
+    "observation": "全文EntityMutlipartPart.tick/getParent/hurt及MessageMultipartInteract.handle：getParent客户端固定null，使hurt内client+parent!=null发送分支不可达；server仅转父hurt比例。handler本身只当前world ID/距离<100与包内damage、未主线程enqueue/UUID/age校验，但本候选生产路径未证明可达，保留辅助漏洞观察不冒充实际可靠回执链。",
+    "snippet_sha256": "8be33689331b3b989f9fd8837df50f103a472cf39b24433534f810768f59d031",
+    "reviewed_at": "2026-10-28T21:33:33.317531+08:00"
+  },
+  {
+    "candidate_index": 3800,
+    "candidate_id": "e38f2a50664d4de67f74",
+    "decision": "excluded",
+    "observation": "全文EntityShield.attackEntityFrom：弹射物来源先播deflect，再super.attackEntityFrom且恒false；与已计ShieldPart/父伤害成功但局部返回false的分层反馈族重复，未补shield其余生命周期，不额外计数。",
+    "snippet_sha256": "f7b7b601d4251423325d222dffbb3527d17c3745864220bd1fe0989d082ca494",
+    "reviewed_at": "2026-10-28T21:33:33.317534+08:00"
+  },
+  {
+    "candidate_index": 4172,
+    "candidate_id": "15020ebe54259180f600",
+    "decision": "excluded",
+    "observation": "全文DraconicArrowEntity.onHitBlock：先消耗剩余穿透预算/判碰撞终点，碎片hurt忽略返回且主箭仍置inGround/清pierce；尚未闭合发射与命中去重/保存生命周期，候选全文阅读不足以计完整独立相关回执实现。",
+    "snippet_sha256": "23be5052bf41281b853cb2c05c073780a3734dc938bd54c06612c134a0ecf99d",
+    "reviewed_at": "2026-10-28T21:33:33.317537+08:00"
+  }
+]

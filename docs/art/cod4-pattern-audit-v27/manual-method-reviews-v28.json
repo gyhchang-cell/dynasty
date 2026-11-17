@@ -1,0 +1,129 @@
+{
+  "reviewed": 2,
+  "rows": [
+    {
+      "id": "explicit-source-method",
+      "repo": "stal111/Forbidden-Arcanus",
+      "revision": "fb0c39fd96520e3bbd1d1644512fe07d1f33069e",
+      "path": "neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/effect/MagicCircleRenderer.java",
+      "method": "submit",
+      "start": 32,
+      "end": 52,
+      "sourceSha256": "e5bb5038c9464d4797621791e887255bd97c076a8d073c5083770bdf02448450",
+      "semanticHash": "44dffae7ffba06346d9a18de143169527bd270eb5c694c257444c4d9257e11fd",
+      "local": "build/item-use-references/stal111__Forbidden-Arcanus/neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/effect/MagicCircleRenderer.java",
+      "url": "https://github.com/stal111/Forbidden-Arcanus/blob/fb0c39fd96520e3bbd1d1644512fe07d1f33069e/neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/effect/MagicCircleRenderer.java#L32-L52",
+      "source": "public void submit(MagicCircleRenderState renderState, PoseStack poseStack, SubmitNodeCollector nodeCollector) {\n        float progress = renderState.ageInTicks / renderState.duration;\n        SpriteId outerTexture = MAPPER.apply(renderState.magicCircleType.outerTexture());\n        SpriteId innerTexture = MAPPER.apply(renderState.magicCircleType.innerTexture());\n\n        poseStack.pushPose();\n\n        float size = this.easeSineOut(progress, 0.15D, 0.5D, 0.32D);\n\n        poseStack.scale(size, 1.0F, size);\n\n        poseStack.mulPose(Axis.YN.rotationDegrees(renderState.ageInTicks));\n\n        nodeCollector.submitModel(this.outerRing, Unit.INSTANCE, poseStack, outerTexture.renderType(this.outerRing::renderType), renderState.lightCoords, OverlayTexture.NO_OVERLAY, -1, this.sprites.get(outerTexture), 0, null);\n\n        poseStack.mulPose(Axis.YN.rotationDegrees(-renderState.ageInTicks * 2));\n\n        nodeCollector.submitModel(this.innerRing, Unit.INSTANCE, poseStack, innerTexture.renderType(this.innerRing::renderType), renderState.lightCoords, OverlayTexture.NO_OVERLAY, -1, this.sprites.get(innerTexture), 0, null);\n\n        poseStack.popPose();\n    }",
+      "targetScope": "school_talisman",
+      "observation": "内外环使用各自sprite和独立Model，先整体-age旋转，再相对+2age旋转内环，故世界净角分别-age/+age；easeSineOut以duration归一进度后在0.32钳制，开场约三分之一完成扩张。研究多层符面图案与变换职责分离；不是两层就算两参考。当前SubmitNodeCollector API不可搬到Forge1.20.1，零duration和负进度未双向clamp须另核。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": "explicit-source-method",
+      "repo": "Alexthw46/Ars-Elemental",
+      "revision": "b1b1e1dbb95b8544d3d34917758dbd2b3fa1e70c",
+      "path": "src/main/java/alexthw/ars_elemental/client/SpellFocusRenderer.java",
+      "method": "render",
+      "start": 21,
+      "end": 64,
+      "sourceSha256": "bcf011b2e8e136cda71e47e52f1b15c743570125773b6d1b438bf07975d01710",
+      "semanticHash": "007bcaebcf0d591863aa77ad7f94f5f7d975534127d468f8202ecc0ca2e31b91",
+      "local": "build/item-use-references/Alexthw46__Ars-Elemental/src/main/java/alexthw/ars_elemental/client/SpellFocusRenderer.java",
+      "url": "https://github.com/Alexthw46/Ars-Elemental/blob/b1b1e1dbb95b8544d3d34917758dbd2b3fa1e70c/src/main/java/alexthw/ars_elemental/client/SpellFocusRenderer.java#L21-L64",
+      "source": "@Override\n    public <T extends LivingEntity, M extends EntityModel<T>> void render(ItemStack stack, SlotContext slotContext, PoseStack matrixStack, RenderLayerParent<T, M> renderLayerParent, MultiBufferSource buffers, int light, float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float netHeadYaw, float headPitch) {\n\n        if (stack.getItem() instanceof ISchoolFocus focus && slotContext.entity() instanceof Player player) {\n\n            if (focus == ModItems.DEBUG_ICON.get()) {\n                specialRender(player, ageInTicks);\n            } else {\n                double XRot = getRelativeAngleX(player, 0.5, 0);\n                double ZRot = getRelativeAngleZ(player, 0.5, 0);\n                new ParticleBuilder(ParticleUtil.schoolToColor(focus.getSchool().getId()))\n                        .scale(1 / 6F)\n                        .alpha(0.4F)\n                        .spawn(player.level(),\n                                XRot,\n                                player.getEyeY() + 0.2 + 0.05 * Math.sin(ageInTicks / 10),\n                                ZRot);\n                new ParticleBuilder(ParticleUtil.schoolToColor2(focus.getSchool().getId()))\n                        .scale(1 / 8F)\n                        .alpha(0.2F)\n                        .setLifetime(10)\n                        .spawn(player.level(),\n                                XRot,\n                                player.getEyeY() + 0.2 + 0.05 * Math.sin(ageInTicks / 10),\n                                ZRot);\n            }\n            //TODO render a model\n\n            /*\n            matrixStack.pushPose();\n\n            matrixStack.scale(0.5F,0.5F,0.5F);\n            matrixStack.translate(0.45, -player.getEyeHeight() + 1, 0);\n            matrixStack.translate(-Math.sin(Math.toRadians(270)),-0.05 * Math.sin(ageInTicks / 10), Math.cos(Math.toRadians(270)));\n            //matrixStack.scale(0.75F,0.75F,0.75F);\n            matrixStack.mulPose(Vector3f.YP.rotationDegrees(ageInTicks * 2 + partialTicks));\n            Minecraft.getInstance().getItemRenderer().renderStatic(stack, ItemTransforms.TransformType.HEAD, light, OverlayTexture.NO_OVERLAY, matrixStack, buffers, 0);\n\n            matrixStack.popPose();\n            */\n\n        }\n\n    }",
+      "targetScope": "imperial_guard",
+      "observation": "Curios佩戴焦点按玩家bodyRot计算侧后方挂点，真实school色的主次两粒子同位置上下摆动，debug分支四方位环绕。借鉴佩戴者局部坐标和主次辨识，而非复制图案；完整类读取确认粒子在render每帧spawn，密度依FPS且第三人称可见性/隐藏饰品会影响生成，不作为推荐时序。TODO模型未实现不能算实体模型已完成。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": [
+    {
+      "repo": "stal111/Forbidden-Arcanus",
+      "revision": "fb0c39fd96520e3bbd1d1644512fe07d1f33069e",
+      "path": "neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/entity/EnergyBallRenderer.java",
+      "method": "submit",
+      "start": 34,
+      "end": 37,
+      "url": "https://github.com/stal111/Forbidden-Arcanus/blob/fb0c39fd96520e3bbd1d1644512fe07d1f33069e/neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/entity/EnergyBallRenderer.java#L34-L37",
+      "sourceSha256": "af0b51b3037d8be8d1e9de0036534d60d7090f38394934570ce710504c51455c",
+      "reason": "方法只super.submit，原能量球渲染整段注释TODO；不把未实现效果算参考。"
+    },
+    {
+      "repo": "stal111/Forbidden-Arcanus",
+      "revision": "fb0c39fd96520e3bbd1d1644512fe07d1f33069e",
+      "path": "neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/entity/CrimsonLightningBoltRenderer.java",
+      "method": "submit",
+      "start": 22,
+      "end": 91,
+      "url": "https://github.com/stal111/Forbidden-Arcanus/blob/fb0c39fd96520e3bbd1d1644512fe07d1f33069e/neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/entity/CrimsonLightningBoltRenderer.java#L22-L91",
+      "sourceSha256": "4c355a462a78250220fbee1bf2d619e89693048db645cdbd6da83cb13558de00",
+      "reason": "原版分支闪电生成和四层壳换红色，迁移至新Submit API不是新的专属纹样算法，不计。"
+    },
+    {
+      "repo": "stal111/Forbidden-Arcanus",
+      "revision": "fb0c39fd96520e3bbd1d1644512fe07d1f33069e",
+      "path": "neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/entity/AurealMissileRenderer.java",
+      "method": "submit",
+      "start": 31,
+      "end": 48,
+      "url": "https://github.com/stal111/Forbidden-Arcanus/blob/fb0c39fd96520e3bbd1d1644512fe07d1f33069e/neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/entity/AurealMissileRenderer.java#L31-L48",
+      "sourceSha256": "4eb41109812765d87d87303e37e0839e895609d7f8c84b74062ae687d7d4e667",
+      "reason": "普通相机朝向单片，非独立符纹/残影组织，法线Y与原局部XY片不一致需留意，不计。"
+    },
+    {
+      "repo": "stal111/Forbidden-Arcanus",
+      "revision": "fb0c39fd96520e3bbd1d1644512fe07d1f33069e",
+      "path": "neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/effect/ValidRitualIndicatorRenderer.java",
+      "method": "submit",
+      "start": 31,
+      "end": 44,
+      "url": "https://github.com/stal111/Forbidden-Arcanus/blob/fb0c39fd96520e3bbd1d1644512fe07d1f33069e/neoforge/src/main/java/com/stal111/forbidden_arcanus/client/renderer/effect/ValidRitualIndicatorRenderer.java#L31-L44",
+      "sourceSha256": "4b23262be3d0ca10d0600bbfd66b964d3eab97eeacd2a3f4a40200bb0c1f0ef8",
+      "reason": "地面仪式可用指示器按状态显隐与透明度缓出，属于仪式地面UI，不算当前武器纹样。"
+    },
+    {
+      "repo": "Alexthw46/Ars-Elemental",
+      "revision": "b1b1e1dbb95b8544d3d34917758dbd2b3fa1e70c",
+      "path": "src/main/java/alexthw/ars_elemental/client/particle/ShockwaveParticle.java",
+      "method": "render",
+      "start": 29,
+      "end": 45,
+      "url": "https://github.com/Alexthw46/Ars-Elemental/blob/b1b1e1dbb95b8544d3d34917758dbd2b3fa1e70c/src/main/java/alexthw/ars_elemental/client/particle/ShockwaveParticle.java#L29-L45",
+      "sourceSha256": "8ecd3b8cea2ff036d9336493a7668a22aa199c0af0c7e4586ba7df3ac187c65d",
+      "reason": "普通水平双面粒子，和既有双面符片同类；小/大provider只有尺寸，不拆计。"
+    },
+    {
+      "repo": "Alexthw46/Ars-Elemental",
+      "revision": "b1b1e1dbb95b8544d3d34917758dbd2b3fa1e70c",
+      "path": "src/main/java/alexthw/ars_elemental/client/SpellFocusRenderer.java",
+      "method": "specialRender",
+      "start": 68,
+      "end": 90,
+      "url": "https://github.com/Alexthw46/Ars-Elemental/blob/b1b1e1dbb95b8544d3d34917758dbd2b3fa1e70c/src/main/java/alexthw/ars_elemental/client/SpellFocusRenderer.java#L68-L90",
+      "sourceSha256": "bcf011b2e8e136cda71e47e52f1b15c743570125773b6d1b438bf07975d01710",
+      "reason": "四school方位是同挂点逻辑的debug数量/角度变体，合并同类render。"
+    },
+    {
+      "repo": "Alexthw46/Ars-Elemental",
+      "revision": "b1b1e1dbb95b8544d3d34917758dbd2b3fa1e70c",
+      "path": "src/main/java/alexthw/ars_elemental/client/PrismRenderer.java",
+      "method": "renderRecursively",
+      "start": 59,
+      "end": 73,
+      "url": "https://github.com/Alexthw46/Ars-Elemental/blob/b1b1e1dbb95b8544d3d34917758dbd2b3fa1e70c/src/main/java/alexthw/ars_elemental/client/PrismRenderer.java#L59-L73",
+      "sourceSha256": "cf829116cca1846e6f251133ca762efd44a4f21afbae559722b16ca25149c76a",
+      "reason": "棱镜骨骼core内渲染真实透镜ItemStack，属于设备挂点非当前武器特效，不计入范围。"
+    },
+    {
+      "repo": "Low-Drag-MC/Photon",
+      "revision": "9a38fcdad283682ae9c5e07ea9193f4ed742d038",
+      "path": "src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/BeamParticleRenderer.java",
+      "method": "renderBeam",
+      "start": 71,
+      "end": 101,
+      "url": "https://github.com/Low-Drag-MC/Photon/blob/9a38fcdad283682ae9c5e07ea9193f4ed742d038/src/main/java/com/lowdragmc/photon/client/gameobject/particle/renderer/BeamParticleRenderer.java#L71-L101",
+      "sourceSha256": "1417d2a2569060f07ab07e6be3fcfc9adb3009f19fc2be2f02139bfc78c60d58",
+      "reason": "通用相机叉积朝向束片、getRealEnd/UVscroll，已见同类机制；零长度及相机共线没有备用轴，CPU/GPU后端不可分别计。"
+    }
+  ]
+}

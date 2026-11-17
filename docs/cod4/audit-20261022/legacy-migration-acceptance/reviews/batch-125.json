@@ -1,0 +1,232 @@
+[
+  {
+    "candidate_id": "ec8050634d79942520d9",
+    "status": "accepted",
+    "family": "passive-skill-tree-version-refund-clone-and-rebuild",
+    "trigger": "技能数据读盘或服务端 PlayerEvent.Clone，之后玩家加入世界恢复已学习效果。",
+    "input": "自有 capability 中 TreeVersion UUID、Points、Skills 字符串列表；writer 另写 TreeReset。",
+    "output": "版本不匹配或任一技能缺失/无效时清空技能并按整个旧列表长度退点；版本匹配则解析注册表对象。Clone 只复制自己的序列化域；入世界 learn(false) 重建效果并抑制首次学习物品奖励。",
+    "preservation": "reader 先清 skills，后读取 Points；版本缺失也走不匹配分支。遇无效技能会撤掉本轮已读技能并退整个列表长度，不是保留已成功子集。Clone 明确 server guard、reviveCaps→自己的 serialize/deserialize→invalidateCaps，没有 isWasDeath 分支。属性学习通过 UUID 检查并添加 transient modifier；MAX_HEALTH 修改按原生命比例恢复。GrantItemBonus 在 firstTime=false 时直接返回，避免恢复时再次发一次性学习物品。TreeReset 虽写出，但 reader 没有读取它，也没有在成功路径清 false；新对象可能失去待通知状态、复用对象可能保留旧 true。 Master: Master read16 complete contexts: version mismatch and any invalid skill refund entire saved list, not partial recovery; on join learn(false) rebinds transient modifiers while GrantItem ignores repeat. One own capability Clone+skills+refund chain; no field-by-field credit. TreeReset writer lacks reader, ID parse exception and duplicate skill refund boundary retained.",
+    "application_limit": "不是旧资源 ID 映射表；ResourceLocation.parse 语法错误未 catch，旧列表重复 ID 没去重、点数无范围校验。revive/invalidate 无 try/finally。没有证明所有技能奖励均 firstTime 安全，仅补读 AttributeBonus 与 GrantItemBonus 两个真实消费者。固定分支源码研究未编译、未运行或验收。 Static source only; helper originals unchanged; Daripher/Passive-Skill-Tree and SilentChaos512/ScalingHealth revisions are pinned; no direct cross-version API port or native runtime claim.",
+    "supporting_candidates": [
+      "53982ba122647349c460",
+      "f56fdc9b89c2e1d245fe",
+      "63e599a9fabfc117783f",
+      "639a3fb7e36ab0f58499",
+      "cbcc4028a021448a5e35",
+      "390ef83d2891f42f336c",
+      "550bcb06c233a99e7b85",
+      "da0655acfe5ee2d0a4a6",
+      "99e9393eaf7cf10ac9d6",
+      "7d8583bf95cadae522c7",
+      "5c0a8764c84abf57f35c",
+      "0614c5cb8b4ef4430c82",
+      "367e2b106966165eed00",
+      "b6966db08c35c6bd7a2b",
+      "3272755ae1bfc92e6426"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-003/batch-003.json",
+      "sha256": "17a9ee2201d6c1b83fb5a5d60020dac832f53004f74315a8f4d24a2b7be21f94",
+      "helper_credit_before_master": 0,
+      "record_index": 0
+    }
+  },
+  {
+    "candidate_id": "69e18cae2a4c60f9f403",
+    "status": "accepted",
+    "family": "scalinghealth-selective-clone-with-death-only-mutators",
+    "trigger": "玩家克隆，先复制耐久能力，再按 isWasDeath 区分死亡和返回末地；登录或升级刷新派生属性。",
+    "input": "PlayerData 只存 HeartCrystals、PowerCrystals 两整数；DifficultySource 只存 Difficulty 浮点。",
+    "output": "克隆先 copy 两个明确 capability，再失效旧对象；非死亡直接返回。死亡先 updateStats，再计算配置表达式后的心数与难度并调用限幅 setter；登录按已存值重建固定 UUID 属性。",
+    "preservation": "这是有选择的域复制而非 ForgeData/所有能力复制。AFK、timeAfk、lastPos 和 difficulty.exempt 没进序列化，Clone 不保留它们。reader 直接 getInt/getFloat 绕过 setter 限幅，合法性边界只在后续 setter。固定健康/攻击 UUID 使用 remove→addPermanentModifier，可避免简单叠加。死亡心数由当前最大生命与配置表达式差值换算，表达式绑定实际 player/world/pos 变量。XP 变化刷新使用一个全局静态 changedLevelThisTick，首个存活服务端玩家 tick 消费，不是玩家 UUID 队列。 Master: Master read27 complete contexts: explicit two own capabilities before isWasDeath guard, then death-only configured heart/difficulty mutators. Independent actual crystal progression owner from skill tree. AFK/time/pos/exempt excluded by serializer; never copy all ForgeData. Reflection valid workaround not suitable for project, no server guard/try-finally guarantee. One combined Clone family, world mirror same codec0.",
+    "application_limit": "上游反射 CapabilityProvider.valid 绕过有效性，TODO 指向 reviveCaps，不应照抄；无 try/finally，Clone 方法没有显式 server guard。非死亡早返不在此立即 updateStats，不能宣称该路径已验证完整恢复。外部 EvalEx 计算及 SilentLib.heal 未执行；未证明配置坏值/NaN 安全。OVERWORLD 与玩家复用同一 codec，不另计世界一条。 Static source only; helper originals unchanged; Daripher/Passive-Skill-Tree and SilentChaos512/ScalingHealth revisions are pinned; no direct cross-version API port or native runtime claim.",
+    "supporting_candidates": [
+      "f91e2568be9e8ce9d6c9",
+      "c3f45b1d590f2bd8a8f5",
+      "77e0074dfc65be9a88c2",
+      "2ee0d776312ddf55e7f5",
+      "3827dff3cd11c9715334",
+      "8f4cbe13f064584ada9c",
+      "6f328df45ff36d3c0652",
+      "f60b8e97709c84e87f03",
+      "20c12bb2089fd66bd5b3",
+      "56ac7eee01fdaf8704db",
+      "a8eeeae3d6ab7895e30f",
+      "d8ac7cfff057ee431945",
+      "1bb78ff2d085082926f7",
+      "b1c7d1faae2af93de74b",
+      "d732ed7580e95625df0c",
+      "eb75698b07020c69fe33",
+      "016490268b061d51a706",
+      "13f6633e45190ef06866",
+      "600084172be82fa17514",
+      "af5d52afee62bb34ab94",
+      "b2df55beed1701591193",
+      "0a98509e9ccfd7f7898f",
+      "b426ac25d037a86d9e0c",
+      "16368ba5376b2f74c1e8",
+      "62af44d075334f2e0794",
+      "d29ced488841cdd8b04d"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-003/batch-003.json",
+      "sha256": "17a9ee2201d6c1b83fb5a5d60020dac832f53004f74315a8f4d24a2b7be21f94",
+      "helper_credit_before_master": 0,
+      "record_index": 1
+    }
+  },
+  {
+    "candidate_id": "db8c5bb331974143e683",
+    "status": "accepted",
+    "family": "scalinghealth-mob-saved-state-versus-ephemeral-processing",
+    "trigger": "真实怪物 capability 从存档读取后，服务端生物 tick 延迟到 tickCount>2 进行首次处理。",
+    "input": "持久字段 Blight、Difficulty；processed 仅内存默认 false。",
+    "output": "读入旧 blight/difficulty，但首次 tick 重新按当前区域与随机系数计算 difficulty 并 process，随后 processed=true；固定 UUID 健康/攻击 modifier 替换旧值。",
+    "preservation": "不能把这条写成原样恢复怪物难度：reader 存下的 difficulty 随后被 setDifficulty 覆盖，damage boost 也重新随机。makeBlight=true 才 setIsBlight(true)，false 不清已读 true；有效难度仍按旧 blight 标记乘倍率。初次处理和跟踪开始各有实际客户端 blight 通知。processed 不序列化意味着新建能力读取后允许重处理，而非跨卸载一次消费保证。spawnerSpawns 是内存 UUID 列表，处理时移除，仅该次健康倍率使用。 Master: Master read full persisted pair/tick/process/randomization and actual mob attribute consumer: saved blight influences later difficulty multiplier while processed=false triggers rerandomization and replacement. Concrete mixed persistent/derived state owner differs from Botania417a routing settings even though two-scalar AST identical. Not merely different key; actual restart semantics and gameplay target traced. One all mob species, no helper count.",
+    "application_limit": "这是怪物持久状态边界，不是玩家 Clone；若主账限定 player/item 可降为支持。不保证每次重载必然处理：命令路径另可 setProcessed(true)，本条不把命令当第二实现。药水数据驱动 effect.apply、数学库概率实现未逐一研究，不据此宣称随机数具体分布或稳定性。没有编译/游戏验证。 Static source only; helper originals unchanged; Daripher/Passive-Skill-Tree and SilentChaos512/ScalingHealth revisions are pinned; no direct cross-version API port or native runtime claim.",
+    "supporting_candidates": [
+      "b28c45cfc855f3ba13a1",
+      "24054b8bd7fa57c051eb",
+      "014b2edbcb51c22dedcb",
+      "6d6f3fb23ec1906ca041",
+      "f38cd040e171661c43e7",
+      "1e8dc0a945c1ffd31cf6",
+      "c3f45b1d590f2bd8a8f5",
+      "439d42082afc722191cc",
+      "5489212be65cfb41b667",
+      "3299eb36bc2fb0314a72",
+      "1181f80a02ca6cd61905",
+      "6d8fb04793bebc03a86b",
+      "00573578fff2864b4b53",
+      "2996168c00dfbfb292ee",
+      "16368ba5376b2f74c1e8",
+      "62af44d075334f2e0794",
+      "d29ced488841cdd8b04d"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-003/batch-003.json",
+      "sha256": "17a9ee2201d6c1b83fb5a5d60020dac832f53004f74315a8f4d24a2b7be21f94",
+      "helper_credit_before_master": 0,
+      "record_index": 2
+    },
+    "structural_collision_review": {
+      "compared_candidate": "417a16c6384a498a940a",
+      "distinct_gameplay_owner_reason": "Master read full persisted pair/tick/process/randomization and actual mob attribute consumer: saved blight influences later difficulty multiplier while processed=false triggers rerandomization and replacement. Concrete mixed persistent/derived state owner differs from Botania417a routing settings even though two-scalar AST identical. Not merely different key; actual restart semantics and gameplay target traced. One all mob species, no helper count.",
+      "reviewed_consumers": [
+        "DifficultyAffectedCapability.tick",
+        "MobDifficultyHandler.process/setEntityProperties",
+        "BlightHandler.startTrackingBlight"
+      ]
+    }
+  },
+  {
+    "candidate_id": "cd4e7d53c57684854120",
+    "status": "accepted",
+    "family": "scalinghealth-pet-durable-bonus-and-delayed-reapplication",
+    "trigger": "服务端玩家拿 HeartCrystal 与已驯服动物互动增加永久生命；重载后服务端已驯服宠物 tick 恢复属性。",
+    "input": "SHPetBonusHealth 浮点为永久累计量；refreshed 只为新 capability 对象的运行时 false。",
+    "output": "互动费用满足时 addHealth 累加并立即按累计量替换健康 modifier；写盘只写累计量。读盘后 tickCount>2 且未 refreshed 才重新应用，置 refreshed=true。",
+    "preservation": "pet reader 不重放付费互动，仅读累计量；延迟刷新按保存总量设置而非在旧 modifier 上继续加。实际互动过滤功能开关、HeartCrystal、TamableAnimal、isTame 与服务端；未检查 interacting player 是否宠物 owner。increasePetHp 在 capability ifPresent 之后无条件 shrink 与扣等级，能力缺失仍可能付费，不能借鉴成事务。refreshed 在重应用前先置 true，异常后无重试机制。 Master: Master read full pet pair/tick/paid HeartCrystal+XP interaction and modifier replacement. Different source/custody/lifetime from random mob difficulty: purchased cumulative bonus survives, refreshed is runtime, restored total replaces UUID modifier without paying again. Different from Botania36db mana spawner service despite one-float reader AST. Shared modifier helpers with mob0extra, missing capability can still cost item/XP.",
+    "application_limit": "getFloat 没上下界/有限值校验；不存在旧 ID 别名。refreshed 未在 deserializeNBT 重置，已刷新对象再次读盘不会因此自动重应用。功能关闭/未驯服不会 tick。本条不证明跨模组永久属性冲突无害；宠物和怪物可能共享同一健康 UUID，未实机验收。 Static source only; helper originals unchanged; Daripher/Passive-Skill-Tree and SilentChaos512/ScalingHealth revisions are pinned; no direct cross-version API port or native runtime claim.",
+    "supporting_candidates": [
+      "0588273bbbde70b4a5aa",
+      "70aa79b0980f507835b1",
+      "80da4b69604883475b90",
+      "479c65c3b8f75e6a9c59",
+      "11852af0f6177da587c7",
+      "7230c154397fa5c51252",
+      "64fe9692980694cc9187",
+      "c3f45b1d590f2bd8a8f5",
+      "439d42082afc722191cc",
+      "16368ba5376b2f74c1e8",
+      "62af44d075334f2e0794"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-003/batch-003.json",
+      "sha256": "17a9ee2201d6c1b83fb5a5d60020dac832f53004f74315a8f4d24a2b7be21f94",
+      "helper_credit_before_master": 0,
+      "record_index": 3
+    },
+    "structural_collision_review": {
+      "compared_candidate": "36db7ba873c72c837574",
+      "distinct_gameplay_owner_reason": "Master read full pet pair/tick/paid HeartCrystal+XP interaction and modifier replacement. Different source/custody/lifetime from random mob difficulty: purchased cumulative bonus survives, refreshed is runtime, restored total replaces UUID modifier without paying again. Different from Botania36db mana spawner service despite one-float reader AST. Shared modifier helpers with mob0extra, missing capability can still cost item/XP.",
+      "reviewed_consumers": [
+        "PetEventHandler.onPetInteraction",
+        "StatBoosterItem.increasePetHp",
+        "PetHealthCapability.tick/addHealth"
+      ]
+    }
+  },
+  {
+    "candidate_id": "1b0c5bb7d34d31e9f97f",
+    "status": "accepted",
+    "family": "passive-skill-tree-tagged-item-bonus-reconstruction",
+    "trigger": "工作台制作/升级物品后写入有注册类型的复合列表；以后装备更换时从存档物品重建玩家 transient 属性。",
+    "input": "ItemStack 原 tag 的 UpgradeBonuses 与 CraftingBonuses；每项 type 指定 ItemBonus serializer，GroupedItemBonus 递归 inner_bonuses，EquipmentBonus 包含 skill_bonus。",
+    "output": "serializer 写类型标识和具体负载，reader 按当前注册表重建嵌套对象；typed getItemBonuses 扁平化后筛选，装备事件移除旧属性并添加非动态新属性。升级以原物品 copy 为结果，写自己子标签。",
+    "preservation": "这是真实制作物品的状态读取与效果消费，不是通用网络模板。缺 type 或未知 serializer 返回 null，但 getBonusesFromTag 保留 null；typed 路径 type.isInstance 会过滤它。ResourceLocation.parse 和顶层注册表查询在 catch 之外，语法异常不被捕获。嵌套组任一 child 未知会 requireNonNull 抛出，由外层 deserializeBonus 捕获并把整个组降为 null，不是逐子项保留。升级 getResult 读取的是合并后的两类 bonuses，却全部写回 UpgradeBonuses；原 CraftingBonuses 仍保留，可能重复表示原制作奖励。mergeGroupedItemBonuses 忽略 mergeItemBonuses 返回值，实际返回未合并的新列表。 Master: Master read25 complete methods: real crafted/upgrade item payload with typed nested serializers and equipment-change consumer, independently owned from skill capability. Both tags and every wrapper one family; invalid nested child can drop group, raw top-level type parse outside catch; copy upgrade merges two categories into one and retains old crafting tag potential duplicate. No complete arbitrary serializer preservation claim.",
+    "application_limit": "两种标签、递归组、equipment/attribute serializer 和 workbench writer 整链只算一条。未审查所有 bonus/predicate 类型，因此不宣称所有负载可完整往返；这里的 getOrCreateTag 也可能为读取缺标签物品创建空根。未运行测试或游戏，不把静态疑点称为复现 bug。 Static source only; helper originals unchanged; Daripher/Passive-Skill-Tree and SilentChaos512/ScalingHealth revisions are pinned; no direct cross-version API port or native runtime claim.",
+    "supporting_candidates": [
+      "217ab1aff815be3b3aaf",
+      "cae9d3c9619a21bc0743",
+      "c5a7805b919a5271eb86",
+      "c4ece49957df33c2c656",
+      "b2e41e7df310e0e6d6b0",
+      "b90c16a442b031736138",
+      "07c6daf0952cbdc23fb5",
+      "09fdf7e93c12c6d72584",
+      "e801928bcde383eb6213",
+      "d3fe3e3e58a39fac03e4",
+      "2c053b82ba4d7c29c968",
+      "21e6f7a90584c6b4bd2e",
+      "eeec92dfbc5c02830943",
+      "7a560bbe7013a3fb3d3f",
+      "27c26cfdafb29b82e168",
+      "978003fe1120bd536c19",
+      "b27472bc5035274bed77",
+      "5d936c980ad23c8d8697",
+      "0fb116b3c3bd7564c19e",
+      "8307673f92e24a6cb5bd",
+      "b13f878e584dae37aeea",
+      "1839be320251d01684ae",
+      "6b3d0e725b21932b1114",
+      "6dbb81c63f784a8b62be"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-003/batch-003.json",
+      "sha256": "17a9ee2201d6c1b83fb5a5d60020dac832f53004f74315a8f4d24a2b7be21f94",
+      "helper_credit_before_master": 0,
+      "record_index": 4
+    }
+  },
+  {
+    "candidate_id": "7d4c8707c511ce8762c0",
+    "status": "accepted",
+    "family": "passive-skill-tree-poisoned-weapon-finite-use-persistence",
+    "trigger": "工作台将药水效果写到近战武器；后续 LivingAttackEvent 从玩家主手武器读取效果并扣可用次数。",
+    "input": "poisoned_weapon_effects Compound 列表以及 poisoned_weapon_uses_left 整数，-1 为无限次数。",
+    "output": "hasPoison 要求非空效果列表且次数为 -1 或正数；每次使用有限次数减一，到零同时移除次数和效果两个子标签；其余物品根标签保留。",
+    "preservation": "真正消费点是 LivingAttackEvent：来源实体为玩家、主手近战、有有效毒性后先给目标加效果，再对非无限次数 decrement。这里没有显式 server guard、最终伤害成功或取消检查，不能视为成功伤害回执。MobEffectInstance.load 的结果没过滤 null。制作 getResult 用 new ItemStack(weaponStack.getItem()) 而不是 copy，因而直接丢失原 Count、损伤、命名和其他 tag；与上一条升级 copy 路径有实质保留边界差异。 Master: Master read12 complete contexts: finite paid weapon poison payload plus remaining-use receipt, not transient player combat cooldown. Infinite -1 special and zero removes both tags. Actual attack handler not final damage success, no server guard; poisoning recipe new stack loses prior original components. One entire recipe/reader/consumer chain, distinct nested bonuses owner.",
+    "application_limit": "这不是旧 ID 迁移实现，而是真实武器持久状态的 reader/消耗语义参考。未证明该事件代表有效最终伤害，不能借鉴成防重复战斗回执；药效 load 在 Minecraft 中的内部实现未下载研究，不宣称损坏效果数据安全。未进行编译/测试/游戏验收。 Static source only; helper originals unchanged; Daripher/Passive-Skill-Tree and SilentChaos512/ScalingHealth revisions are pinned; no direct cross-version API port or native runtime claim.",
+    "supporting_candidates": [
+      "2510544ce8a613e8b714",
+      "60a4785a7f9d86fba41d",
+      "6ccba81d8b1ab7056eb8",
+      "d988f08cd188041e2916",
+      "6d9f614d3a44b666bdf2",
+      "3675251d538800b378d2",
+      "9975a7b70d0a16eb149c",
+      "c66044d526a96f600511",
+      "d8f2c4f3a6e67a93cdab",
+      "f387fbff8642a2c1f5c7",
+      "1839be320251d01684ae"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-003/batch-003.json",
+      "sha256": "17a9ee2201d6c1b83fb5a5d60020dac832f53004f74315a8f4d24a2b7be21f94",
+      "helper_credit_before_master": 0,
+      "record_index": 5
+    }
+  }
+]

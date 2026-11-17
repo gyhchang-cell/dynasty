@@ -1,0 +1,18 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('build/cod4-ecology-native-20261028/helper-build'))
+ p.afterEvaluate {
+  if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def qa=p.sourceSets.create('ecologyNativeAcceptance') {
+   java.srcDir p.file('tools/cod4/ecology-native-acceptance/src')
+   resources.srcDir p.file('tools/cod4/ecology-native-acceptance/resources')
+   compileClasspath += p.sourceSets.main.compileClasspath
+  }
+  p.tasks.register('ecologyNativeAcceptanceJar',Jar) {
+   dependsOn qa.classesTaskName
+   archiveBaseName='dynasty-ecology-native-acceptance'
+   from qa.output
+   manifest.attributes('MixinConfigs':'ecology-native-qa.mixins.json')
+  }
+  p.reobf { ecologyNativeAcceptanceJar { libraries.from(qa.compileClasspath) } }
+ }
+}

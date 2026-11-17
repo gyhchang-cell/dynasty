@@ -76,7 +76,7 @@ for row in rows:
     row['OBJECTIVE']=';'.join(objectives) or ('EQUIP (intrinsic; no quest)' if kind in ('accessory','armor') else 'APPLY/REMOVE (intrinsic; no quest)' if kind=='effect' else 'SPAWN/KILL (ecology/loot; no quest)' if kind=='entity' else 'NO_CURRENT_TASK_LINK')
     hooks=[]
     if any(entry['type']=='item' for entry in found):hooks.append('FTB native item detector (exact nodes above; real FTB acceptance pending)')
-    if any(entry['target'].startswith('cod4_obtain_') for entry in found):hooks.append('ContentProgress.crafted(ItemCraftedEvent)' if ident in supplies else 'ContentProgress.login/tick/reconcile (inventory+armor+active Curios)')
+    if any(entry['target'].startswith('cod4_obtain_') for entry in found):hooks.append('ContentProgress.crafted(ItemCraftedEvent)' if ident in supplies else 'ContentProgress.login/tick/reconcile (inventory+hands+armor+active Curios)')
     if kind in mechanisms:hooks.append(mechanisms[kind])
     if ident in school:hooks.append('DynastySchoolProgression.onKill -> canonical path rank; reconcile -> original attained milestones and recipe book; DynastyWeaponProgression.reward -> per-stack investment')
     row['PROGRESS_HOOK']='; '.join(hooks) or 'Vanilla registered recipe/crafting and item pickup; no custom task hook'
@@ -154,7 +154,7 @@ for row in rows:
     elif kind=='interaction':compat+='; Player.PERSISTED_NBT_TAG/dynastyCod4 site records retained; no reset of timers or completed rewards'
     elif ident in school:compat+='; player dynastySchoolProgression cloned and rank milestones/recipe discoveries reconciled without rank/XP changes; smithing preserves dynastyWeaponGrowth NBT'
     elif kind=='accessory':compat+='; Curios state and original attribute UUIDs retained; owned school ornament recipes reconciled'
-    elif any(entry['target'].startswith('cod4_obtain_') for entry in found):compat+='; inventory/armor/active Curios regrant missing impossible advancement only'
+    elif any(entry['target'].startswith('cod4_obtain_') for entry in found):compat+='; inventory/hands/armor/active Curios regrant missing impossible advancement only'
     row['OLD_SAVE_COMPAT']=compat
     notes=row['NOTES']
     if ident in ('fox_pelt','kappa_scale'):notes=re.sub(r'; Remaining material functions belong to existing Stage [^;]*; native workshop/NPC integration pending, not an invented new mainline','',notes)

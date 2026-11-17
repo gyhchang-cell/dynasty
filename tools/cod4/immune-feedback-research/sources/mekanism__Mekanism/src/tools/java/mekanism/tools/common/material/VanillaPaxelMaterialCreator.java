@@ -1,0 +1,123 @@
+package mekanism.tools.common.material;
+
+import java.util.function.Supplier;
+import mekanism.common.config.IMekanismConfig;
+import mekanism.common.config.value.CachedFloatValue;
+import mekanism.common.config.value.CachedIntValue;
+import mekanism.tools.common.config.ToolsConfigTranslations.VanillaPaxelMaterialTranslations;
+import net.minecraft.world.item.ToolMaterial;
+import net.neoforged.neoforge.common.ModConfigSpec;
+
+public class VanillaPaxelMaterialCreator implements IPaxelMaterial {
+
+    private final ToolMaterial vanillaMaterial;
+    private final String registryPrefix;
+
+    private final CachedFloatValue paxelDamage;
+    private final CachedFloatValue paxelAtkSpeed;
+    private final CachedFloatValue paxelEfficiency;
+    private final CachedIntValue paxelEnchantability;
+    private final CachedIntValue paxelDurability;
+    private final CachedFloatValue paxelDisableBlockingSeconds;
+
+    public VanillaPaxelMaterialCreator(IMekanismConfig config, ModConfigSpec.Builder builder, String registryPrefix, ToolMaterial vanillaMaterial, float axeAttackDamageBaseline) {
+        this.registryPrefix = registryPrefix;
+        this.vanillaMaterial = vanillaMaterial;
+        String toolKey = getRegistryPrefix();
+        VanillaPaxelMaterialTranslations translations = VanillaPaxelMaterialTranslations.create(toolKey);
+        translations.topLevel().applyToBuilder(builder).push(toolKey);
+        //Note: Damage predicate to allow for tools to go negative to the value of the base tier so that a tool
+        // can effectively have zero damage for things like the hoe
+        paxelDamage = CachedFloatValue.wrap(config, translations.damage().applyToBuilder(builder)
+              .gameRestart()
+              .define(toolKey + "PaxelDamage", validateDefaultModifier(axeAttackDamageBaseline + 1), this::validateDamageModifier));
+        paxelAtkSpeed = CachedFloatValue.wrap(config, translations.attackSpeed().applyToBuilder(builder)
+              .gameRestart()
+              .define(toolKey + "PaxelAtkSpeed", (double) IPaxelMaterial.super.paxelAtkSpeed()));
+        paxelEfficiency = CachedFloatValue.wrap(config, translations.efficiency().applyToBuilder(builder)
+              .gameRestart()
+              .define(toolKey + "PaxelEfficiency", (double) this.vanillaMaterial.speed()));
+        paxelEnchantability = CachedIntValue.wrap(config, translations.enchantability().applyToBuilder(builder)
+              .gameRestart()
+              .defineInRange(toolKey + "PaxelEnchantability", this.vanillaMaterial.enchantmentValue(), 0, Integer.MAX_VALUE));
+        paxelDurability = CachedIntValue.wrap(config, translations.durability().applyToBuilder(builder)
+              .gameRestart()
+              .defineInRange(toolKey + "PaxelDurability", 2 * this.vanillaMaterial.durability(), 1, Integer.MAX_VALUE));
+        paxelDisableBlockingSeconds = CachedFloatValue.wrap(config, translations.disableBlockingSeconds().applyToBuilder(builder)
+              .gameRestart()
+              .define(toolKey + "DisableBlockingSeconds", (double) IPaxelMaterial.super.paxelDisableBlockingSeconds(), MaterialCreator::nonNegativeFloat));
+        builder.pop();
+    }
+
+    private boolean validateDamageModifier(Object value) {
+        if (value instanceof Double) {
+            double val = (double) value;
+            float actualValue;
+            if (val > Float.MAX_VALUE) {
+                actualValue = Float.MAX_VALUE;
+            } else if (val < -Float.MAX_VALUE) {
+                //Note: Float.MIN_VALUE is the smallest positive value a float can represent
+                // the smallest value a float can represent overall is -Float.MAX_VALUE
+                actualValue = -Float.MAX_VALUE;
+            } else {
+                actualValue = (float) val;
+            }
+            float baseDamage = vanillaMaterial.attackDamageBonus();
+            return actualValue >= -baseDamage && actualValue <= Float.MAX_VALUE - baseDamage;
+        }
+        return false;
+    }
+
+    private Supplier<Double> validateDefaultModifier(double defaultModifier) {
+        return () -> {
+            if (validateDamageModifier(defaultModifier)) {
+                return defaultModifier;
+            }
+            return (double) -vanillaMaterial.attackDamageBonus();
+        };
+    }
+
+    public String getRegistryPrefix() {
+        return registryPrefix;
+    }
+
+    @Override
+    public int paxelDurability() {
+        return paxelDurability.getOrDefault();
+    }
+
+    @Override
+    public float paxelEfficiency() {
+        return paxelEfficiency.get();
+    }
+
+    @Override
+    public float paxelDamage() {
+        return paxelDamage.getOrDefault();
+    }
+
+    @Override
+    public float paxelAtkSpeed() {
+        return paxelAtkSpeed.getOrDefault();
+    }
+
+    @Override
+    public int paxelEnchantability() {
+        return paxelEnchantability.get();
+    }
+
+    @Override
+    public float paxelDisableBlockingSeconds() {
+        return paxelDisableBlockingSeconds.get();
+    }
+
+    public boolean isFireResistant() {
+        return vanillaMaterial == ToolMaterial.NETHERITE;
+    }
+
+    @Override
+    public ToolMaterial toPaxelToolMaterial() {
+        return new ToolMaterial(vanillaMaterial.incorrectBlocksForDrops(), paxelDurability(), vanillaMaterial.speed(), vanillaMaterial.attackDamageBonus(),
+              paxelEnchantability(), vanillaMaterial.repairItems());
+    }
+}

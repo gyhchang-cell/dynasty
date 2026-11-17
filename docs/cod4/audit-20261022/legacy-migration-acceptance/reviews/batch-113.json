@@ -1,0 +1,121 @@
+[
+  {
+    "candidate_id": "c6f482804691eed50175",
+    "status": "accepted",
+    "family": "mekanism-bin-lock-stock-placement-and-transactional-item-copy",
+    "trigger": "BinInventorySlot/ComponentBackedBin full source serialize/deserialize/copyContents/insert/extract",
+    "input": "ItemResource LOCK_TYPE optional, owned resource+longcount delegated base",
+    "output": "decode lock first absent/unknown→EMPTY then parent stock; lockedempty refuses differentresource; creative manually initializesfull, automationsimulatesvoid; copyContents moveslock both tile and component forms",
+    "preservation": "One concrete binowner across tile/item representation, same-shape two readers not independentlycounted. ItemResource carries component identity; do not replace same-ID defaults losing lock/contents.",
+    "application_limit": "Parent resourcecodec and inventorybase bridgeread but external ItemAccess exchange not runtimeverified. setLockType ignores result of failed exchange on deserialize; copyContents parent succeeds beforelock exchange couldfail. Creative infinite supply expected, not lossless realstock claim.",
+    "supporting_candidates": [
+      "cd2683c3910924eb8d3e"
+    ]
+  },
+  {
+    "candidate_id": "66fdc9d32f4e164dd276",
+    "status": "accepted",
+    "family": "mekanism-resistive-heater-rate-before-capacity-and-energy",
+    "trigger": "ResistiveHeaterEnergyContainer full pair/copyContents/updateEnergyUsage and tile onUpdateServer/config",
+    "input": "ENERGY_USAGE int and inherited energy balance",
+    "output": "deserializeusagefirst changescapacity multiplier beforeenergyloaded; copysame ratebeforeenergy acrosscomponent/tile; actual energy extractionconvertedheat in committedtransaction",
+    "preservation": "Independent paidheat resource owner and ordering constraint, not genericconfigaccessor. Useful restoration ordering: restoring count before maximum mayclamp data.",
+    "application_limit": "No localusagebounds; configwriter useslong while getIntreader, codec conversion behavior not runtimevalidated (do not assertfailurefromtype difference alone). Transaction support forchangingusage TODO upstream; baseenergyserializer inheritance not entirelyreviewed.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "9de0aee05714b5697c24",
+    "status": "accepted",
+    "family": "mekanism-fission-saved-reactor-control-and-safety-mode",
+    "trigger": "FissionLogicAdapter full source + base sustained diskbridge",
+    "input": "FissionReactorLogic namedcodec, defaultDISABLED",
+    "output": "disk+implicitcomponent restoreactual activationmode or temperature/waste/damage/fuel exhaustion redstone outputs; onPowerChange inACTIVATION setsreactoractive",
+    "preservation": "Concrete persisted fission controlowner with fuel/damage consumers, not genericenum serialization or sync-onlymirror. Stable stringcodec avoidsrawordinaldisk.",
+    "application_limit": "Unknownmode fallsDISABLED which suppressessafetyoutput; actualreactor physics/state durability not claimed. prevStatus transient derivesnexttick; no unconditionalonloadsetActive and parentonPowerChange schedulingunverified.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "0baef409e99f65c5e3bb",
+    "status": "accepted",
+    "family": "mekanism-fusion-saved-cooling-sensitive-readiness-predicate",
+    "trigger": "FusionLogicAdapter full source + base diskbridge",
+    "input": "FusionReactorLogic namedcodec and activeCooled boolean",
+    "output": "namedmode/defaultDISABLED; coolingdefaultfalse applied bothNBT/components; actual READY/CAPACITY comparesplasma againstcoolingdependentlimits, DEPLETED computeshalf injection componentfuel",
+    "preservation": "Independent fusionthermal/twofuel predicateowner, differs actualinput+math from fission activation/waste; not sameenumkeytable. One for mode+coolingselection, no perenumvalue credit.",
+    "application_limit": "Unknownmode disablesoutput; malformed/missingcoolingfalse changes threshold. Reactor fuel/temperature externalowner unreviewed, no entiremultiblockcontinuityclaim. prevOutputting runtimeonly.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "8c907364464afbf6f712",
+    "status": "accepted",
+    "family": "mekanism-qio-saved-network-stock-comparison-selector",
+    "trigger": "QIORedstoneAdapter pair/getStored/onUpdateServer/implicitcomponents",
+    "input": "ItemResource includescomponents; longcount; fuzzy/inverted",
+    "output": "strictcount exactresource; fuzzy groupssameitem variants; output requiresstored>0&&stored>=count xor inversion; disk/component same defaults",
+    "preservation": "Concrete saved network-stock predicate owner, no quantity ofactualowneditems storedhere. Distinguish selectiontemplate from stock topreventcopying/issuing newitems duringmigration.",
+    "application_limit": "Negativecount notclamped, zero stillrequirespositive stock; fuzzy sum couldoverflowlong. Absenttarget EMPTY disablesnormaloutput but invertedtrue emits. Frequency authentication/storage ancestry outside this batch.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "1c268f7eedc17da52a55",
+    "status": "accepted",
+    "family": "mekanism-logistical-sorter-program-and-disk-only-round-robin-cursor",
+    "trigger": "Sorter full pairs/onUpdateServer/rr gettersetter and base diskbridge",
+    "input": "filtermanager/color/autoeject/roundrobin/singleitem, rrTarget sidepos diskonly",
+    "output": "loadprogramdefaultsfalse; rrTarget optionalnull independentdiskcheckpoint, config excludescursor; actualinventoryrequests iteratefilters then optionaldefault, useAll successfulcommits atomic transfer",
+    "preservation": "Independent physicalinventory sorter selector owner. Filterghostsettings not stock; cursor belongsmachine not reusableconfigurationcard. Sharedtransportinflight85c21 owner0.",
+    "application_limit": "Filtermanagerfullcodec notdeepread here; exactRR target updatepath delegatedsharedTransitRequest. delayTicks notsaved, so schedule resets. No nativeautomationtest.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "ef3006c9e4f7e7885cb2",
+    "status": "accepted",
+    "family": "mekanism-qio-exporter-persistent-network-policy-and-acknowledged-stock-transfer",
+    "trigger": "QIOExporter full pairs/onUpdateServer/tryEject/getFilterEjectMap/full EfficientEjector",
+    "input": "auto-export and roundrobin booleans; rrTarget diskonly; inheritedfilters/frequency",
+    "output": "restoredfilters selectactualQIO map; emptyfilters requireexportWithoutFilter. EfficientEjector insertsdestination and removesexactaccepted quantity fromfrequency in sameTransaction, commits onlyequalremoved",
+    "preservation": "Independent QIO network resourceconsumer unlike sorter pullsphysicalbackinventory. Same rr cursor reader has ASTcollision reviewed explicitly, not duplicatepurewrapper. No separate nestedhelpercredit.",
+    "application_limit": "Diskfilter/frequencyparent itselfnotnewcredit. delayunsaved. ExternalTransaction contracts/Frequency persistence not runtimeverified; randomthrottling can defertypes, no guaranteed eachtickdelivery.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "9e0db88e856d9a2f03ed",
+    "status": "duplicate",
+    "duplicate_of": "fb17d9eda4eccfde49f1",
+    "reason": "Full runtime/searchrestart and sustained pair re-read belongs previously accepted DigitalMiner overflow/config separation owner, no newcredit."
+  },
+  {
+    "candidate_id": "edca40ac4c60dff2a8ec",
+    "status": "duplicate",
+    "duplicate_of": "85c21aa1c7e4f76b8156",
+    "reason": "Entire TransporterStack full source read; concrete cargo/home/reroute owner already reviewed via parenttransport chain."
+  },
+  {
+    "candidate_id": "9f89223233281c7478a4",
+    "status": "duplicate",
+    "duplicate_of": "85c21aa1c7e4f76b8156",
+    "reason": "Local pair only color parameter for existing inflighttransport owner; full TransporterStack canInsert consumer read, no additional storage owner."
+  },
+  {
+    "candidate_id": "d3c9cc2c6620dbb03ee0",
+    "status": "accepted",
+    "family": "mekanism-conductor-local-heat-capacity-disk-restore-to-network-calorimetric-transactions",
+    "trigger": "TileEntityTransmitter load/save → conductor pair; registered server network tick → HeatNetwork.onUpdate",
+    "input": "Owned per-conductor heat+capacity child STATE; native lazy ambient sentinel vs explicit heat; current tier coefficients",
+    "output": "Restore successfully decoded state atomically within capacitor subtransaction; consume restored balance via hot→cold neighbour exchange and six-side environment dissipation",
+    "preservation": "Completed actual reader/writer/native capacitor codec/snapshot and concrete network consumers. Local conductor stores balance, takeShare empty; no additional shared balance credited. Missing child retains buffer, present empty state defaults0heat/1capacity. See coordinator-conductor-thermal-owner-review-20261031.json for18 fixed-tree source evidence and semantic comparisons.",
+    "application_limit": "Lower-bound codecs/preconditions do not exclude NaN/infinity; config tier capacity can be overwritten by disk capacity. External ValueInput/NeoForge transaction internals and full block upgrade replacement not audited or executed. Newer API research only, no player Clone thermal state copy or native acceptance.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "84eaab7c49e5d164a30e",
+    "status": "accepted",
+    "family": "mekanism-fluid-container-slot-persistent-transfer-direction-and-transactional-output-routing",
+    "trigger": "Fluid tank disk restore and tick-driven FluidInventorySlot.handleTank; ResourceHandlerSlot.deserialize journal consumed by actual in/out ItemAccess routing",
+    "input": "Owned input item+resource counts, optional last_transfer_direction enum, restored container edit mode",
+    "output": "Restored direction resumes inbound/outbound exchange and routes transformed containers to input/output; failed transaction can revert journal; same-class upgrade copy preserves it",
+    "preservation": "Reviewed concrete tile construction/server cycle and indexed disk bridge plus complete direction/slot/access source, not helper accessor alone. Matched-amount commit branches preserve source/destination symmetry subject to external transaction contract.",
+    "application_limit": "UNKNOWN fallback changes hint; omitted/duplicate list children not wholesale replacement; empty-plus-direction can survive reader order; pure direction dirty guarantee absent; stack-only block item attachment loses journal per upstream TODO. No native proof, global crash atomicity or third-party capability proof. Full pinned source evidence/dedup in coordinator-fluid-direction-resume-review-20261031.json.",
+    "supporting_candidates": []
+  }
+]

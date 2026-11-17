@@ -1,0 +1,191 @@
+# ChenshaArchitecture.mound
+def mound(x,y,z):
+    if (((((((x < 11) or (x > 53)) or (z < 0)) or (z > 31)) or (y < 52)) or (y > 79))):
+        return None
+    radius = max((abs(((x - 32.0) - (((z - 13)) * .18))) / 21),(abs((z - 13.0)) / 18))
+    if ((radius > 1)):
+        return None
+    top = (79 - int(math.floor((max(0,(radius - .12)) * 10))))
+    if ((((x < 25) and (z < 8)) and ((x + z) < 27))):
+        top -= 3
+    if ((((x > 42) and (z > 19)) and ((x + z) > 66))):
+        top -= 2
+    if ((y > top)):
+        return None
+    return PALETTE[(8 if (y >= (top - 1)) else 2)]
+
+
+# ChenshaVaultLayout.moatRadius
+def moatRadius(x,z):
+    dx = (((x - 31.5)) / 23.5)
+    dz = (((z - 15.5)) / 13.5)
+    return ((dx * dx) + (dz * dz))
+
+
+# ChenshaVaultLayout.moatCell
+def moatCell(x,z):
+    radius = moatRadius(x,z)
+    return (((radius > .55) and (radius < .8)) and (not ((((x >= 30) and (x <= 34)) and (z >= 22)))))
+
+
+# ChenshaVaultLayout.daisHeight
+def daisHeight(x,z):
+    if ((((((x < 24) or (x > 39)) or (z < 6)) or (z > 25)) or (moatRadius(x,z) >= .55))):
+        return 0
+    return max(0,min(9,(10 - int(math.floor(max((abs((x - 31.5)) / 1.5),abs((z - 15.5))))))))
+
+
+# ChenshaVaultLayout.roofHeight
+def roofHeight(x,z):
+    return (8 + int(((9 * math.sqrt(max(0,(1 - moatRadius(x,z))))))))
+
+
+# ChenshaVaultLayout.constellationOffsets
+def constellationOffsets():
+    points = []
+    ring = 0
+    while (ring < 2):
+        count = (16 if (ring == 0) else 12)
+        rx = (17 if (ring == 0) else 10)
+        rz = (9 if (ring == 0) else 6)
+        index = 0
+        while (index < count):
+            angle = (((2 * math.pi) * ((index + .25))) / count)
+            x = int(jround((31.5 + (rx * math.cos(angle)))))
+            z = int(jround((15.5 + (rz * math.sin(angle)))))
+            points.append((x,roofHeight(x,z),z))
+            index += 1
+        ring += 1
+    return tuple(points)
+
+
+# ChenshaPiece.in
+def within(v,min,max):
+    return ((v >= min) and (v <= max))
+
+
+# ChenshaPiece.rect
+def rect(x,z,x0,z0,x1,z1):
+    return (within(x,x0,x1) and within(z,z0,z1))
+
+
+# ChenshaPiece.vaultRoof
+def vaultRoof(x,z):
+    d = (math.pow((((x - 31.5)) / 23.5),2) + math.pow((((z - 15.5)) / 13.5),2))
+    return (8 + int(((9 * math.sqrt(max(0,(1 - d)))))))
+
+
+# ChenshaPiece.daisHeight
+def daisHeight(x,z):
+    if ((not rect(x,z,22,6,41,25))):
+        return 0
+    return min(9,(1 + min(min((x - 22),(41 - x)),min((z - 6),(25 - z)))))
+
+
+# ChenshaPiece.cell
+def cell(x,y,z):
+    result = ChenshaArchitecture.mound(x,y,z)
+    if ((rect(x,z,25,0,39,11) and within(y,72,79))):
+        result = (masonry() if ((((((y == 72) or (y == 79)) or (x == 25)) or (x == 39)) or (z == 0)) or (z == 11)) else 'AIR')
+    if ((rect(x,z,30,0,34,1) and within(y,73,76))):
+        result = 'AIR'
+    if ((rect(x,z,4,33,59,88) and within(y,48,57))):
+        result = (masonry() if ((((((y == 48) or (y == 57)) or (x == 4)) or (x == 59)) or (z == 33)) or (z == 88)) else 'AIR')
+    if ((rect(x,z,4,32,59,89) and within(y,18,33))):
+        chamber = False
+        edge = False
+        for cx in [4,24,44]:
+            for cz in [32,52,72]:
+                if (rect(x,z,cx,cz,(cx + 15),(cz + 15))):
+                    chamber = True
+                    edge = ((((x == cx) or (x == (cx + 15))) or (z == cz)) or (z == (cz + 15)))
+        bridge = (((within(x,30,33) or within(z,58,61)) or within(z,38,41)) or within(z,78,81))
+        if ((y == 18)):
+            result = 'LIGHT_BLUE_STAINED_GLASS'
+        else:
+            if ((y < 24)):
+                result = 'AIR'
+            else:
+                if (chamber):
+                    result = (masonry() if (((y == 24) or (y == 33)) or edge) else 'AIR')
+                else:
+                    result = ('CUT_COPPER' if ((y == 24) and bridge) else 'AIR')
+        if ((((chamber and edge) and bridge) and within(y,25,28))):
+            result = 'AIR'
+    for cx in [12,52]:
+        if ((rect(x,z,(cx - 5),53,(cx + 5),66) and within(y,20,24))):
+            rim = ((((x == (cx - 5)) or (x == (cx + 5))) or (z == 53)) or (z == 66))
+            result = (masonry() if ((y == 20) or rim) else 'WATER')
+            stepTop = (23 if (z == 54) else (22 if (z == 55) else (21 if (z == 56) else (-1))))
+            if ((y <= stepTop)):
+                result = masonry()
+    if ((((((x == 24) or (x == 39))) and (((z == 58) or (z == 61)))) and within(y,25,28))):
+        result = masonry()
+    if ((rect(x,z,8,2,55,29) and within(y,0,17))):
+        d = ChenshaVaultLayout.moatRadius(x,z)
+        roof = ChenshaVaultLayout.roofHeight(x,z)
+        if (((d <= 1.1) and (y <= roof))):
+            result = (masonry() if (((y == 0) or (y == roof)) or (d > 1)) else 'AIR')
+        if (((y == 0) and ChenshaVaultLayout.moatCell(x,z))):
+            result = 'MERCURY_CHANNEL'
+        dais = (daisHeight(x,z) if (x <= 31) else max(daisHeight(x,z),ChenshaVaultLayout.daisHeight(x,z)))
+        if (((dais > 0) and within(y,1,dais))):
+            result = (((('SMOOTH_QUARTZ' if (y == dais) else 'QUARTZ_BRICKS')) if (x <= 31) else 'QUARTZ_BLOCK'))
+        if ((((y == 0) and within(x,30,34)) and within(z,22,27))):
+            result = 'QUARTZ_BLOCK'
+    if (((within(x,30,34) and within(z,27,29)) and within(y,1,4))):
+        result = 'AIR'
+    decoration = ChenshaArchitecture.decoration(x,y,z)
+    if ((decoration != None)):
+        result = decoration
+    if ((rect(x,z,17,40,25,48) and within(y,28,55))):
+        rim = ((((x == 17) or (x == 25)) or (z == 40)) or (z == 48))
+        result = (((("MASONRY_"+str(6)) if (y >= 48) else masonry())) if ((y == 28) or (rim and (y <= 49))) else 'AIR')
+    if ((rect(x,z,18,41,24,47) and (y == 28))):
+        result = 'BONE_BLOCK'
+    if ((rect(x,z,49,87,61,94) and within(y,24,31))):
+        result = (masonry() if ((((((y == 24) or (y == 31)) or (x == 49)) or (x == 61)) or (z == 87)) or (z == 94)) else 'AIR')
+    if (((within(x,51,53) and (z == 87)) and within(y,25,27))):
+        result = 'CRACKED_STONE_BRICKS'
+    if ((rect(x,z,50,85,53,86) and (y == 24))):
+        result = 'LIGHT_BLUE_STAINED_GLASS'
+    if ((rect(x,z,40,6,44,10) and within(y,0,76))):
+        result = (masonry() if ((((((y == 0) or (y == 76)) or (x == 40)) or (x == 44)) or (z == 6)) or (z == 10)) else 'AIR')
+    if (((within(x,40,42) and (z == 8)) and within(y,1,3))):
+        result = 'AIR'
+    if (((within(x,37,42) and (z == 8)) and within(y,73,75))):
+        result = 'AIR'
+    if (((within(x,39,43) and (z == 8)) and (y == 72))):
+        result = masonry()
+    if ((rect(x,z,30,40,34,42) and within(y,43,47))):
+        result = ('GREEN_STAINED_GLASS' if (y == 43) else 'AIR')
+    if (((rect(x,z,30,40,34,42) and (y == 44)) and ((((x + z)) % 2) == 0))):
+        result = 'POINTED_DRIPSTONE'
+    if ((rect(x,z,50,90,53,93) and (y == 25))):
+        result = 'BONE_BLOCK'
+    if (((x == 5) and ((((y == 52) and within(z,46,50)) or ((y == 51) and (((z == 49) or (z == 51)))))))):
+        result = 'RED_TERRACOTTA'
+    if ((((x == 18) and (z == 44)) and within(y,29,49))):
+        result = ('LADDER'+"["+str('FACING')+"="+str('EAST')+"]")
+    if ((((x == 35) and (z == 41)) and within(y,43,51))):
+        result = (masonry() if (y == 43) else 'AIR')
+    if ((((x == 36) and (z == 41)) and within(y,44,48))):
+        result = masonry()
+    if ((((x == 35) and (z == 41)) and within(y,44,48))):
+        result = ('LADDER'+"["+str('FACING')+"="+str('WEST')+"]")
+    if (within(x,29,35)):
+        floor = ((82 - z) if within(z,10,34) else (-1))
+        if (((floor >= 0) and within(y,floor,(floor + 5)))):
+            result = (masonry() if ((((y == floor) or (y == (floor + 5))) or (x == 29)) or (x == 35)) else 'AIR')
+        floor = ((107 - z) if within(z,59,83) else (-1))
+        if (((floor >= 0) and within(y,floor,(floor + 5)))):
+            result = (masonry() if ((((y == floor) or (y == (floor + 5))) or (x == 29)) or (x == 35)) else 'AIR')
+        floor = ((z - 28) if within(z,28,52) else (-1))
+        if (((floor >= 0) and within(y,floor,(floor + 5)))):
+            result = (masonry() if ((((y == floor) or (y == (floor + 5))) or (x == 29)) or (x == 35)) else 'AIR')
+    return result
+
+
+# ChenshaPiece.vaultStars
+def vaultStars():
+    return ChenshaVaultLayout.constellationOffsets()

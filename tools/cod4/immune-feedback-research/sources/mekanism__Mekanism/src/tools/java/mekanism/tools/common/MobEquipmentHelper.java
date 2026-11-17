@@ -1,0 +1,148 @@
+package mekanism.tools.common;
+
+import mekanism.common.config.value.CachedFloatValue;
+import mekanism.common.entity.ArmorSpawnable;
+import mekanism.tools.common.config.MekanismToolsConfig;
+import mekanism.tools.common.config.ToolsConfig.ArmorSpawnChanceConfig;
+import mekanism.tools.common.registration.ArmorCollection;
+import mekanism.tools.common.registration.ToolCollection;
+import mekanism.tools.common.registries.ToolsItems;
+import net.minecraft.core.Holder;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.monster.skeleton.AbstractSkeleton;
+import net.minecraft.world.entity.monster.skeleton.WitherSkeleton;
+import net.minecraft.world.entity.monster.zombie.Drowned;
+import net.minecraft.world.entity.monster.zombie.Zombie;
+import net.minecraft.world.entity.monster.zombie.ZombifiedPiglin;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.providers.VanillaEnchantmentProviders;
+import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
+
+public class MobEquipmentHelper {
+
+    private static final GearType REFINED_GLOWSTONE = new GearType(ToolsItems.REFINED_GLOWSTONE_ARMOR, ToolsItems.REFINED_GLOWSTONE_TOOLS, MekanismToolsConfig.tools.refinedGlowstoneSpawnRate);
+    private static final GearType LAPIS_LAZULI = new GearType(ToolsItems.LAPIS_LAZULI_ARMOR, ToolsItems.LAPIS_LAZULI_TOOLS, MekanismToolsConfig.tools.lapisLazuliSpawnRate);
+    private static final GearType REFINED_OBSIDIAN = new GearType(ToolsItems.REFINED_OBSIDIAN_ARMOR, ToolsItems.REFINED_OBSIDIAN_TOOLS, MekanismToolsConfig.tools.refinedObsidianSpawnRate);
+    private static final GearType STEEL = new GearType(ToolsItems.STEEL_ARMOR, ToolsItems.STEEL_TOOLS, MekanismToolsConfig.tools.steelSpawnRate);
+    private static final GearType BRONZE = new GearType(ToolsItems.BRONZE_ARMOR, ToolsItems.BRONZE_TOOLS, MekanismToolsConfig.tools.bronzeSpawnRate);
+    private static final GearType OSMIUM = new GearType(ToolsItems.OSMIUM_ARMOR, ToolsItems.OSMIUM_TOOLS, MekanismToolsConfig.tools.osmiumSpawnRate);
+
+    private static boolean isZombie(LivingEntity entity) {
+        //Ignore the specific subclasses that can't spawn with armor or weapons in vanilla.
+        // Vanilla zombified piglins CAN spawn with weapons, but they always spawn with a weapon so their hand won't be empty to accept a new one
+        return entity instanceof Zombie && !(entity instanceof Drowned) && !(entity instanceof ZombifiedPiglin);
+    }
+
+    private static boolean isSkeleton(LivingEntity entity) {
+        //Ignore the specific subclasses that can't spawn with armor or weapons in vanilla.
+        // Vanilla wither skeletons CAN spawn with weapons, but they always spawn with a weapon so their hand won't be empty to accept a new one
+        return entity instanceof AbstractSkeleton && !(entity instanceof WitherSkeleton);
+    }
+
+    private static boolean disallowArmor(LivingEntity entity) {
+        return entity instanceof ArmorSpawnable spawnable && !spawnable.canSpawnArmor();
+    }
+
+    public static void onLivingSpecialSpawn(FinalizeSpawnEvent event) {
+        LivingEntity entity = event.getEntity();
+        boolean isZombie = isZombie(entity);
+        if (isZombie || isSkeleton(entity) || entity instanceof Piglin) {
+            //Don't bother calculating random numbers unless the instanceof checks pass
+            RandomSource random = event.getLevel().getRandom();
+            DifficultyInstance difficulty = event.getDifficulty();
+            boolean isHard = difficulty.getDifficulty() == Difficulty.HARD;
+            float difficultyMultiplier = difficulty.getSpecialMultiplier();
+            GearType gearType = null;
+            if (!disallowArmor(entity) && random.nextFloat() < MekanismToolsConfig.tools.armorSpawnChance.get() * difficultyMultiplier) {
+                gearType = getGearType(entity, random);
+                setEntityArmorWithChance(random, entity, isHard, difficulty, gearType);
+            }
+            if (isZombie) {
+                CachedFloatValue spawnChance = isHard ? MekanismToolsConfig.tools.weaponSpawnChanceHard : MekanismToolsConfig.tools.weaponSpawnChance;
+                if (random.nextFloat() < spawnChance.get()) {
+                    if (gearType == null) {
+                        gearType = getGearType(entity, random);
+                    }
+                    if (gearType.spawnChance.canSpawnWeapon.get()) {
+                        Holder<Item> weapon;
+                        if (random.nextFloat() < gearType.spawnChance.sharpWeaponWeight.get()) {
+                            weapon = random.nextFloat() < gearType.spawnChance.swordChance.get() ? gearType.sword : gearType.spear;
+                        } else {
+                            weapon = gearType.shovel;
+                        }
+                        setStackIfEmpty(entity, random, gearType.spawnChance.weaponEnchantmentChance.get(), difficulty, EquipmentSlot.MAINHAND, weapon);
+                    }
+                }
+            }
+        }
+    }
+
+    private static GearType getGearType(LivingEntity entity, RandomSource random) {
+        //We can only spawn refined glowstone equipment on piglins
+        return getGearType(entity instanceof Piglin ? 0 : random.nextInt(6));
+    }
+
+    private static GearType getGearType(int type) {
+        return switch (type) {
+            case 1 -> LAPIS_LAZULI;
+            case 2 -> REFINED_OBSIDIAN;
+            case 3 -> STEEL;
+            case 4 -> BRONZE;
+            case 5 -> OSMIUM;
+            default -> REFINED_GLOWSTONE;
+        };
+    }
+
+    private static void setEntityArmorWithChance(RandomSource random, LivingEntity entity, boolean isHard, DifficultyInstance difficulty, GearType gearType) {
+        ArmorSpawnChanceConfig chanceConfig = gearType.spawnChance();
+        float stopChance = isHard ? chanceConfig.multiplePieceChanceHard.get() : chanceConfig.multiplePieceChance.get();
+        if (random.nextFloat() < chanceConfig.bootsChance.get()) {
+            setStackIfEmpty(entity, random, chanceConfig.armorEnchantmentChance.get(), difficulty, EquipmentSlot.FEET, gearType.boots);
+            if (random.nextFloat() < stopChance) {
+                return;
+            }
+        }
+        if (random.nextFloat() < chanceConfig.leggingsChance.get()) {
+            setStackIfEmpty(entity, random, chanceConfig.armorEnchantmentChance.get(), difficulty, EquipmentSlot.LEGS, gearType.leggings);
+            if (random.nextFloat() < stopChance) {
+                return;
+            }
+        }
+        if (random.nextFloat() < chanceConfig.chestplateChance.get()) {
+            setStackIfEmpty(entity, random, chanceConfig.armorEnchantmentChance.get(), difficulty, EquipmentSlot.CHEST, gearType.chestplate);
+            if (random.nextFloat() < stopChance) {
+                return;
+            }
+        }
+        if (random.nextFloat() < chanceConfig.helmetChance.get()) {
+            setStackIfEmpty(entity, random, chanceConfig.armorEnchantmentChance.get(), difficulty, EquipmentSlot.HEAD, gearType.helmet);
+        }
+    }
+
+    private static void setStackIfEmpty(LivingEntity entity, RandomSource random, float baseChance, DifficultyInstance difficulty, EquipmentSlot slot, Holder<Item> item) {
+        if (entity.getItemBySlot(slot).isEmpty()) {
+            ItemStack stack = new ItemStack(item);
+            if (random.nextFloat() < baseChance * difficulty.getSpecialMultiplier()) {
+                //Copy of vanilla's enchant item level logic
+                EnchantmentHelper.enchantItemFromProvider(stack, entity.level().registryAccess(), VanillaEnchantmentProviders.MOB_SPAWN_EQUIPMENT, difficulty, random);
+            }
+            entity.setItemSlot(slot, stack);
+        }
+    }
+
+    private record GearType(Holder<Item> sword, Holder<Item> spear, Holder<Item> shovel,
+                            Holder<Item> helmet, Holder<Item> chestplate, Holder<Item> leggings, Holder<Item> boots,
+                            ArmorSpawnChanceConfig spawnChance) {
+
+        public GearType(ArmorCollection armor, ToolCollection tools, ArmorSpawnChanceConfig spawnChange) {
+            this(tools.sword(), tools.spear(), tools.shovel(), armor.helmet(), armor.chestplate(), armor.leggings(), armor.boots(), spawnChange);
+        }
+    }
+}

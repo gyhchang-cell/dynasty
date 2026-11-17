@@ -1,0 +1,16 @@
+"""Independent DE combat immunity/activation implementations, no geometry credits."""
+from ledger import B,O,record,verify
+import json
+r='Draconic-Inc/Draconic-Evolution';p='src/main/java/com/brandon3055/draconicevolution/';keys=[]
+def whole(f):return f,1,len((B/'sources'/r.replace('/','__')/f).read_text().splitlines())
+def add(k,refs,chain,obs,lesson):
+ record(k,r,[(p+'DraconicEvolution.java',20,52)]+refs,chain,obs,lesson,'固定6251e32bc93eb4bfcd910236ec1eaa6546516229；全文原生game方法/调用观察。无游戏、编译或客户端/声音验证；基础网络/几何/换色辅助0，不改正式源/资产/待办，不给普通阴阳新增灰字。','explicit_immunity_window_and_target_feedback');keys.append(k)
+add('draconic-native-crystal-refusal-recharge-cue-and-destabilization-window',[whole(p+'entity/GuardianCrystalEntity.java'),(p+'entity/guardian/GuardianFightManager.java',280,320),whole(p+'entity/guardian/GuardianSpawnState.java'),whole(p+'client/render/entity/GuardianCrystalRenderer.java'),(p+'init/DEContent.java',400,400),(p+'init/DEClient.java',124,124)],
+ '原生召唤流程新建GuardianCrystal设置manager UUID、spawn invulnerable；后续resetCrystals解除原生标志。真实hurt→通用isInvulnerableTo→盾音→FightManager.getCrystalDamageModifier：Guardian源打开unstable并0.1，Chaotic配置旁路打开unstable并1，其余仅已有unstable>0才1。modifier0→playChargeAnimation+false；原生ticker减少unstable/beam计时，同步data驱动已注册晶体renderer读取盾/beam坐标。',
+ '独立水晶最终拒绝+明确charge回执计1，不与Boss主体同名水晶总门合并，也不按来源名字/反复beam片段计数。盾音每次hurt前发，不受beamChargeAnim20tick门限制；该20门仅charge动作/beam音。destabilize仅从0开始发开始音，但每次可重置时长，结束原生恢复音；unstable状态本身不保存，save只有manager/beam目标/showBottom。hurt的shield>0用配置比值，renderer分母max20，两者配置边界不等价；newPower转int小于1损耗截断加深，不是HP成功回执；removed/client分支可true。模型/beam几何0，未跟renderBeam内部深度不能声明穿墙/遮挡通过。',
+ '按目标单事件节流需同时约束灰字、闪光和嗡声，不要只给其中一种cue设门；窗口续期和新激活声音应分开，生命周期离档后明确清理。')
+add('draconic-native-undying-invulnerability-window-target-activation-receipt',[whole(p+'api/modules/entities/UndyingEntity.java'),(p+'api/modules/ModuleTypes.java',27,27),(p+'init/DEModules.java',247,252),(p+'handlers/ModularArmorEventHandler.java',64,79),(p+'handlers/ModularArmorEventHandler.java',184,240),(p+'handlers/ModularArmorEventHandler.java',251,307),(p+'network/DraconicNetwork.java',39,47),(p+'network/DraconicNetwork.java',82,85),(p+'network/DraconicNetwork.java',159,165),(p+'network/ClientPacketHandler.java',33,75),(p+'network/ClientPacketHandler.java',122,132),(p+'init/DEClient.java',55,56)],
+ '原生death监听收集真装备UndyingModule→tryBlockDeath已充能消费→回血/清负面/盾boost、发目标id+item activation、原版TOTEM_USE、设置invulnerableTime；真实Incoming和Pre两阶段优先于Shield拦后续伤害。tick倒计时每tick动作栏翻译并到0清，activation客户端当前level查id创建原版tracking emitter，仅target==本地玩家才popHUD。',
+ '一个明确无敌窗口+native目标回执家族计1，复活模板/codec/粒子/HUD包装不另计。伤害两阶段仅检查window，外围DEDamage.KILL绕过；死亡拒绝不完全同门：GuardianLaser+window可直接补1HP，不消耗charge/不重复activation，其他death仍走charge判定。Incoming/Pre返回true只表示本窗口接管。tick倒计时/动作栏在EffectiveSide服务器门之前，不声称仅服务端发送或去重；每tick写动作栏可能覆盖别提示，不是头顶灰字。CODEC存window但saveEntityToStack只存charge，onInstalled清window，不把多个保存路径等同。客户端缺目标直接drop，没有UUID/维度/序号重试；packet item被读但此handler不用。未读HUD内部全render链，pop调用不等于已验效果。',
+ '一次激活与窗口内重复拒绝分开；Boss灰字需要明确拒控事件而非每tick状态广播，回执只锚目标，不改他人镜头；可优先复用合适原版音。')
+f=O/'semantic-dedup.json';d=json.loads(f.read_text());d['groups'].append({'family':'draconic-native-batch35','credited_chains':keys,'rationale':'水晶原生拒绝/重充cue与unstable窗口1；装备无敌窗口/目标激活回执1。主体Boss已入账门不重记，通用图形/框架/序列化0额外。'});f.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n');verify()

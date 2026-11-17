@@ -22,11 +22,11 @@ final class ScenicModels {
     // Own buffer: never flush another renderer's shared MultiBufferSource.
     private static final MultiBufferSource.BufferSource BUFFERS=MultiBufferSource.immediate(new BufferBuilder(65536));
     private static String id(Cod3VisualPacket p){return switch(p.sequence()){
-        case "scenic_01"->"azure_dragon";case "scenic_10"->"mountain_xuanwu";case "scenic_25"->"sun_crow";default->null;
+        case "scenic_01"->"azure_dragon";case "scenic_03"->"ghost_ship";case "scenic_06"->"stone_god";case "scenic_10"->"mountain_xuanwu";case "scenic_25"->"sun_crow";default->null;
     };}
     static boolean supports(Cod3VisualPacket p){return id(p)!=null;}
-    static void clear(){ACTORS.clear();}
-    static void retain(List<Cod3VisualPacket> active){ACTORS.keySet().retainAll(active);}
+    static void clear(){ACTORS.clear();ScenicGhostShipWater.clear();ScenicStoneGodGround.clear();}
+    static void retain(List<Cod3VisualPacket> active){ACTORS.keySet().retainAll(active);ScenicGhostShipWater.retain(active);ScenicStoneGodGround.retain(active);}
     static final class Actor implements GeoAnimatable {
         final String id;final long start;double tick;float alpha=1;String lod="";
         private final AnimatableInstanceCache cache=GeckoLibUtil.createInstanceCache(this);
@@ -36,7 +36,11 @@ final class ScenicModels {
         public void registerControllers(AnimatableManager.ControllerRegistrar registrar){
             registrar.add(new AnimationController<Actor>(this,"scenic",0,state->state.setAndContinue(RawAnimation.begin().thenLoop("animation.scenic.idle"))){
                 // Absolute packet progress prevents late observers from restarting the loop.
-                @Override protected double adjustTick(double ignored){return Math.max(0,tick);}
+                @Override protected double adjustTick(double ignored){
+                    shouldResetTick=false;
+                    double period=currentAnimation==null?80:currentAnimation.animation().length();
+                    return Math.max(0,Actor.this.tick)%(period>0?period:80);
+                }
             });
         }
     }
@@ -49,6 +53,14 @@ final class ScenicModels {
         public ResourceLocation getAnimationResource(Actor a){return at("animations",".animation.json");}
         @Override public void applyMolangQueries(Actor a,double tick){}
     }){
+        @Override public void preRender(PoseStack pose,Actor a,software.bernie.geckolib.cache.object.BakedGeoModel model,
+                                        MultiBufferSource source,VertexConsumer buffer,boolean reRender,float partial,
+                                        int light,int overlay,float red,float green,float blue,float alpha){
+            super.preRender(pose,a,model,source,buffer,reRender,partial,light,overlay,red,green,blue,alpha);
+            // GeoObjectRenderer 4.8.4 adds block-centering (0.5,0.51,0.5).
+            // These rigs use their own waterline/feet origin, not a block corner.
+            if(a.id.equals("ghost_ship")||a.id.equals("stone_god"))pose.translate(-.5f,-.51f,-.5f);
+        }
         @Override public software.bernie.geckolib.core.object.Color getRenderColor(Actor a,float partial,int light){
             return software.bernie.geckolib.core.object.Color.ofRGBA(255,255,255,Math.round(255*a.alpha));
         }
@@ -57,29 +69,42 @@ final class ScenicModels {
         var level=Minecraft.getInstance().level;if(level==null)return;
         try{
             for(var p:scenes){
+                // A crow already in flight must also disappear when dawn ends or rain begins.
+                if(p.sequence().equals("scenic_25")&&(Math.floorMod(level.getDayTime(),24000)>2500||level.getRainLevel(partial)>.01f))continue;
+                double dragonVisibility=p.sequence().equals("scenic_01")?ScenicDragonFlight.visibility(level.getDayTime(),level.getRainLevel(partial)):1;
+                if(dragonVisibility<=0)continue;
+                boolean ship=p.sequence().equals("scenic_03"),stone=p.sequence().equals("scenic_06");
+                if(stone&&!ScenicStoneGodGround.valid(level,p))continue;
+                if(ship&&!ScenicGhostShipWater.valid(level,p))continue;
+                var water=p.sequence().equals("scenic_10")?ScenicXuanwuWater.surface(level,p):null;
+                if(p.sequence().equals("scenic_10")&&water==null)continue;
                 var actor=ACTORS.computeIfAbsent(p,key->new Actor(id(p),p.start()));actor.tick=level.getGameTime()-p.start()+partial;
                 double life=actor.tick/p.duration();if(life<0||life>=1)continue;
                 // Smooth lifetime fade, discrete texture values; this does not modify sky, fog or camera.
-                float alpha=(float)(.78*Math.min(1,actor.tick/40)*Math.min(1,(p.duration()-actor.tick)/40));
+                float alpha=(float)(.78*dragonVisibility*Math.min(1,actor.tick/40)*Math.min(1,(p.duration()-actor.tick)/40));
                 // Full render applies the actual exported animation and hierarchy.
                 pose.pushPose();
                 try{
-                    double travel=actor.id.equals("mountain_xuanwu")?0:(life-.5)*56;
-                    double rise=actor.id.equals("mountain_xuanwu")?-2+Math.sin(Math.min(1,life*4)*Math.PI/2)*3:44;
+                    double travel=actor.id.equals("mountain_xuanwu")||stone?0:(life-.5)*56;
+                    double rise=stone?0:water!=null?ScenicXuanwuWater.rise(actor.tick,p.duration()):44;
                     var forward=p.direction().multiply(1,0,1).normalize();if(forward.lengthSqr()<1e-8)forward=new Vec3(0,0,1);
-                    var at=p.origin().add(forward.scale(travel)).add(0,rise,0);
+                    var at=ship?com.dynasty.cod3.ScenicGhostShipRoute.position(p,actor.tick):(water!=null?water:p.origin()).add(forward.scale(travel)).add(0,rise,0);
                     if(at.distanceToSqr(camera)<16)continue;
-                    alpha*=(float)Math.max(0,Math.min(1,(at.distanceTo(camera)-24)/16));
+                    if(ship)alpha=(float)com.dynasty.cod3.ScenicGhostShipRoute.alpha(p,actor.tick,at.distanceTo(camera),com.dynasty.cod3.ScenicGhostShipRoute.visibility(level));
+                    else if(stone)alpha=(float)com.dynasty.cod3.ScenicStoneGodSite.alpha(actor.tick,p.duration(),at.distanceTo(camera),com.dynasty.cod3.ScenicStoneGodSite.visibility(level));
+                    else alpha*=(float)Math.max(0,Math.min(1,(at.distanceTo(camera)-24)/16));
                     if(alpha<=0)continue;
                     // Distance is measured at the packet anchor; the elevated flying rigs remain visible.
                     actor.lod=lod(p.origin().distanceTo(camera),Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL);
+                    if(stone){double distance=p.origin().distanceTo(camera);actor.lod=Minecraft.getInstance().options.particles().get()==net.minecraft.client.ParticleStatus.MINIMAL||distance>128?"_far":distance>80?"_medium":"";}
                     var renderer=renderer(actor.id,actor.lod);var model=renderer.getGeoModel();
                     var type=Cod3GhostRenderType.of(model.getTextureResource(actor));
                     pose.translate(at.x,at.y,at.z);pose.mulPose(Axis.YP.rotation((float)Math.atan2(forward.x,forward.z)));
                     float scale=(float)p.scale();pose.scale(scale,scale,scale);
                     // renderColor hook reads the per-draw alpha, isolated from other actor instances.
                     actor.alpha=alpha;
-                    renderer.render(pose,actor,BUFFERS,type,null,15728880);
+                    // GeoObjectRenderer replaces bufferSource with the global source if buffer is null.
+                    renderer.render(pose,actor,BUFFERS,type,BUFFERS.getBuffer(type),15728880);
                 }finally{actor.alpha=1;pose.popPose();}
             }
         }finally{BUFFERS.endBatch();}

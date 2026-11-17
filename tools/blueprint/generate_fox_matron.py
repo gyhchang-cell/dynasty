@@ -73,3 +73,8 @@ for language,labels in [('zh_cn',{'entity.dynasty.'+ID:'白面狐仙姑','effect
 assert len(atlas.getcolors(256))==4 and atlas.size==(16,16)
 assert set(b['name'] for b in bones).issuperset(n for a in A.values() for n in a['bones'])
 print(ID,len(bones),'bones',sum(len(b['cubes']) for b in bones),'cuboids',len(A),'clips;16px four-color palette')
+
+# Approved inventory transparency: preserve entity atlases.
+import runpy as _inventory_runpy
+from pathlib import Path as _InventoryPath
+_inventory_runpy.run_path(str(_InventoryPath(__file__).resolve().parents[1]/"art/inventory-refresh/transparent.py"))["cleanup_white"]()

@@ -1,0 +1,107 @@
+{
+  "schema": "herschel-independent-launcher-source-review-v1",
+  "reviewed_at_utc": "2026-10-28T18:23:22.405697+00:00",
+  "status": "BLOCKED_BEFORE_ANY_RUN_PREEXEC_TOOL_HASH_BINDING",
+  "scope": "Final Carson launcher source, delivery provenance, prepared sweep01 immutable inputs; independent read-only review only",
+  "source_freeze": {
+    "at_utc": "2026-10-28T18:19:48.958122+00:00",
+    "files": [
+      {
+        "path": "tools/cod4/sweep-native-acceptance/launch_pair.py",
+        "sha256": "4122263b7856ec03e7439561ef94d4c798d92132a869f48ef180cd7275b8f943",
+        "snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/00-launch_pair.py"
+      },
+      {
+        "path": "docs/cod4/audit-20261022/sweep-native-acceptance/launcher/delivery01.json",
+        "sha256": "89def76496c12e8d7e8a26f3d0287316afa17c8258d25cefb39475eceec218e5",
+        "snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/01-delivery01.json"
+      },
+      {
+        "path": "tools/cod4/sweep-native-acceptance/launch-checks/HANDOFF.md",
+        "sha256": "ec03d3c7c3b8b26476697c93a0f3479c3a19c413ff782ebaeb813006523a0e24",
+        "snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/02-HANDOFF.md"
+      },
+      {
+        "path": "docs/cod4/audit-20261022/sweep-native-acceptance/launcher/sweep01-plan-not-ready01.json",
+        "sha256": "deac1db76c7298fb2670801d04ef710bd1393e0eba1921948c82be422064806e",
+        "snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/03-sweep01-plan-not-ready01.json"
+      },
+      {
+        "path": "tools/cod4/sweep-native-acceptance/pair_watchdog.py",
+        "sha256": "189ae3d37becfe76964379d4fbdcaec2211fdce47ae42f34ca88610b490c221e",
+        "snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/04-pair_watchdog.py"
+      },
+      {
+        "path": "tools/cod4/ecology-native-acceptance/launch_once.py",
+        "sha256": "d5d6d7b99b8c13cdc9d63cd2c6c9f10491e21b127d06002bd668d7fd48efb889",
+        "snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/05-launch_once.py"
+      },
+      {
+        "path": "tools/cod4/ecology-native-acceptance/watchdog.py",
+        "sha256": "cd315e13c60ec3f33f5c0bca93a753f916a60f019d9030452b93385cebeb7237",
+        "snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/06-watchdog.py"
+      },
+      {
+        "path": "tools/cod4/ecology-native-acceptance/lint_mixin_boundary.py",
+        "sha256": "307b32f35910303b55f0a8113184ea37abf23b64de659a3ad8489c89be1d58a5",
+        "snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/07-lint_mixin_boundary.py"
+      },
+      {
+        "path": "tools/cod4/ecology-native-acceptance/prepare_inputs.py",
+        "sha256": "1be56d373ddc92ee728fd6664c41b6b426279f52b9dc0bc5e05e2fbf4bb33c56",
+        "snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/08-prepare_inputs.py"
+      }
+    ]
+  },
+  "launcher_current_sha256": "4122263b7856ec03e7439561ef94d4c798d92132a869f48ef180cd7275b8f943",
+  "launcher_matches_reviewed_snapshot": true,
+  "snapshot_sha256": "e4dfe1c7d5fd5eb2ac0b9c531819f3703251a6b7974db37a6e54b13f409261a7",
+  "independent_hash_recomputation": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/launcher-review01/snapshot-readonly-verification.json",
+  "independent_hash_recomputation_errors": [],
+  "findings": [
+    {
+      "id": "S-LAUNCH-01",
+      "priority": "P1",
+      "file": "tools/cod4/sweep-native-acceptance/launch_pair.py",
+      "lines": [
+        176,
+        187
+      ],
+      "related_lines": [
+        [
+          190,
+          201
+        ],
+        [
+          340,
+          364
+        ],
+        [
+          431,
+          445
+        ]
+      ],
+      "title": "Imported tool executes before expected reviewed digest is checked",
+      "observation": "load_tool hashes payload but its first call has no expected-digest argument or comparison. exec(payload,module.__dict__) occurs before LOADED_TOOL_SHA is populated. installed_command first-loads four ecology modules while snapshot is generated, before reviewed(root,observed); the final source binding check is after execution. execute also first-loads pair_watchdog before comparing its loaded SHA to again.tool_sources_sha256. Changed top-level bytes can therefore execute before refusal; repeat-load consistency does not fix first-load authorization.",
+      "evidence_boundary": "Current frozen dependency top levels were read; no changed-source payload was executed, no exploit/run was attempted. This is a static fail-closed ordering defect, not evidence that current files already launched an unexpected process.",
+      "minimal_required_change": "Require expected reviewed SHA in load_tool, compare SHA of payload before exec and execute exactly those bytes. Pair controller can use already verified again.tool_sources_sha256. Metadata dependencies need independently anchored reviewed/frozen expected hashes available before first import, rather than current-source self-hashing and retrospective comparison; cover plan/check as well. Main coordinator owns changes and validation."
+    }
+  ],
+  "checked_controls": {
+    "provenance": "Stored canonical snapshot digest matches delivery. 14 final bindings,40 tool sources,15 frozen inputs,92 runtime files match; source/copied world79 each, production folder inventories, private host/peer116 each, JDKlib66/libraries601/natives6 match. 1251 unique files independently hashed. No readiness exists.",
+    "ready_schema": "Exact status READY_FOR_ONE_BOUNDED_SWEEP_RUN, run, one_attempt_only true and canonical snapshot digest required; nonblank reviewer plus canonical dedicated-docs relative report path and exact report SHA. Schema validates integrity/reference, not substantive approval of report contents. This review does not approve a run.",
+    "default_off": "Default mode check; no ready writer. Missing readiness rejected before snapshot imports/platform checks/marker. Prepared and delivery results are not runtime acceptance.",
+    "argv_environment": "Regenerated argv exactly matches prepared role argv and installed metadata; strict JVM/property/game option validation, role UUID/name/paths fixed, sweep flags and all three ecology action flags false, background true/earlywindow false. Argfiles/agents/unsupported VM options and duplicate flags rejected. JAVA_TOOL_OPTIONS,_JAVA_OPTIONS,JDK_JAVA_OPTIONS,CLASSPATH rejected even if empty.",
+    "owned_process_entry": "Only run enters owned pair controller after checks and exclusive fsynced execution-started marker. Controller creates its own two Popen process groups without shell or attaching existing PID. Startup240/absolute900/save60/TERM15 budgets. Direct-child leader-exit descendant caveat remains; no evidence of actual orphan Java here.",
+    "display_user_instances": "CoreGraphics reads active/asleep state only; no wake/unlock/focus. Whole-machine ps rejects game/QA/unknown Java with narrow Gradle exception. Reviewer did not invoke platform probes or ps. No existing user process touched.",
+    "quiet_helper": "Flags false prevent ecology action registration; does not imply no mixin/core callback code loads.",
+    "acceptance": "Neither COMPLETE marker, process exit, nor connection alone proves gameplay correctness or saved evidence."
+  },
+  "limitations": [
+    "Read-only source/hash review; no launcher import/invocation, Python boundary test rerun, prep, compilation, JVM/game/server/GameTest or GUI operation.",
+    "Checks cover frozen sources and current observed file hashes only; subsequent edits need new review/bindings.",
+    "Runtime inventory binds assets index, not every assets object.",
+    "No ready file written; no automatic launch scheduled. No production, asset, TODO or world changes."
+  ],
+  "next": "Report S-LAUNCH-01 to main coordinator only; return to immune helper candidates, credit0 pending Russell semantic review."
+}

@@ -1,0 +1,39 @@
+package mekanism.client.recipe_viewer.jei;
+
+import com.mojang.serialization.Codec;
+import java.util.Collections;
+import java.util.List;
+import mekanism.client.recipe_viewer.type.IRecipeViewerRecipeType;
+import mezz.jei.api.helpers.ICodecHelper;
+import mezz.jei.api.helpers.IGuiHelper;
+import mezz.jei.api.recipe.IRecipeManager;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+
+public abstract class HolderRecipeCategory<RECIPE extends Recipe<?>> extends BaseRecipeCategory<RecipeHolder<RECIPE>> {
+
+    protected HolderRecipeCategory(IGuiHelper helper, IRecipeViewerRecipeType<RECIPE> recipeType) {
+        super(helper, MekanismJEI.holderRecipeType(recipeType), recipeType.getTextComponent(), createIcon(helper, recipeType), recipeType.xOffset(), recipeType.yOffset(), recipeType.width(), recipeType.height());
+    }
+
+    @Override
+    public Identifier getIdentifier(RecipeHolder<RECIPE> recipe) {
+        return recipe.id().identifier();
+    }
+
+    @Override
+    public List<Identifier> getSourceRecipeIds(RecipeHolder<RECIPE> recipe) {
+        Identifier identifier = recipe.id().identifier();
+        return hasSyntheticRecipes() && identifier.getPath().startsWith("/") ? Collections.emptyList() : Collections.singletonList(identifier);
+    }
+
+    protected boolean hasSyntheticRecipes() {
+        return false;
+    }
+
+    @Override
+    public Codec<RecipeHolder<RECIPE>> getCodec(ICodecHelper codecHelper, IRecipeManager recipeManager) {
+        return codecHelper.getRecipeHolderCodec();
+    }
+}

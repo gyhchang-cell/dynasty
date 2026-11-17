@@ -1,0 +1,152 @@
+[
+  {
+    "candidate_id": "23797827e30526442a98",
+    "status": "accepted",
+    "family": "pnc-controller-owner-sized-drone-inventory-reader",
+    "trigger": "ProgrammableController.loadAdditional",
+    "input": "own inventory/tank, optional owner UUID/name, droneItems variable-size handler, energy, variables, chunk flags",
+    "output": "restores owner/defaultfallback; temp handler defines usable drone slots; copies items then refreshes side configurator; retains variable compound",
+    "preservation": "Controller owns two distinct inventories; destination drone slot capacity established before payload transfer.",
+    "application_limit": "UUID.fromString on malformed present ID throws; copy helper deep-copy behavior not resolved. Borrow size/owner initialization before restoring owned data, not arbitrary fallback identity for Dynasty player."
+  },
+  {
+    "candidate_id": "0eee9835a4d183218e5f",
+    "status": "accepted",
+    "family": "pnc-programmer-item-and-edit-history-reader",
+    "trigger": "Programmer.loadAdditional",
+    "input": "Items inventory, programOnInsert flag, history list and programmable widget compounds",
+    "output": "restores inventory, displayedStack derives from slot0; appends history and adds empty list if no history; loads program widgets",
+    "preservation": "Persisted editor history not regenerated from current displayed item alone; no active program executed by this method.",
+    "application_limit": "history.addAll without clear may duplicate on repeated load. Borrow idempotent history/progress transfer; distinguish real receipts from current display cache."
+  },
+  {
+    "candidate_id": "23120fc5174b5f5cbbdf",
+    "status": "accepted",
+    "family": "pnc-assembly-saved-program-continuation-reader",
+    "trigger": "AssemblyController.loadAdditional",
+    "input": "Items including PROGRAM_SLOT plus saved program fields, home flag/text",
+    "output": "restores items first; only nonempty program item resolves curProgram; nonnull program then reads its saved continuation from root",
+    "preservation": "Actual saved program identity chooses continuation decoder; prevents blindly loading one program data into an unknown/null program.",
+    "application_limit": "Does not explicitly clear stale curProgram when slot empty. Borrow source mechanism identity before interpreting old progress schema."
+  },
+  {
+    "candidate_id": "882a10c7f155e0292f92",
+    "status": "accepted",
+    "family": "pnc-assembly-io-cargo-and-claw-state-reader",
+    "trigger": "AssemblyIOUnit.loadAdditional",
+    "input": "Items compound, clawProgress, clawClosing and state byte",
+    "output": "restores carried inventory and associated physical operation state",
+    "preservation": "Actual item owner restores both cargo and animation continuation; shows persistent on disk can include temporary motion state.",
+    "application_limit": "No state-byte range guard; no assertion claw state should persist across player death. Borrow permanent-versus-temporary classification by consumer semantics, not serialization alone."
+  },
+  {
+    "candidate_id": "7c1e095a6054ce34f94b",
+    "status": "accepted",
+    "family": "pnc-pressure-interface-io-mode-reader",
+    "trigger": "PressureChamberInterface.loadAdditional",
+    "input": "Items, input/output progress, interfaceMode ordinal, exportAny",
+    "output": "restores buffer/progress and direction mode via enum ordinal",
+    "preservation": "Cargo restored into owned inventory rather than granted to player; operation mode controls interpretation of buffer.",
+    "application_limit": "Unchecked InterfaceDirection.values index can throw. Borrow checked schema/types when restoring old progression, not unchecked numeric enum assumption."
+  },
+  {
+    "candidate_id": "dd1fc8e0c93dc9fce30c",
+    "status": "accepted",
+    "family": "pnc-pressure-chamber-fixed-capacity-payload-reader",
+    "trigger": "PressureChamberValve.loadAdditional",
+    "input": "multiblock geometry, variable-size itemsInChamber/craftedItems handlers, Valves int arrays",
+    "output": "sets multiblock; copies inputs and outputs only up to each fixed max; clears/rebuilds valve position list only for arrays length3",
+    "preservation": "Input and crafted output use independent capacity bounds; avoids slot exceptions while preserving supported-range payload.",
+    "application_limit": "Excess source slots silently omitted, not guaranteed lossless upgrade. Borrow validate capacity and report leftovers, never discard legacy player fields silently."
+  },
+  {
+    "candidate_id": "7f341de6813d6b22f62f",
+    "status": "accepted",
+    "family": "pnc-air-cannon-cargo-and-tracked-item-reference-reader",
+    "trigger": "AirCannon.loadAdditional",
+    "input": "Items, target/GPS angles, force, tracked UUIDMost/Least records and optional previous inventory coordinates/side",
+    "output": "restores cargo, rebuilds tracking set, reconstructs UUIDs from long pair; missing inventoryX clears both previous-position and side",
+    "preservation": "Optional compound state clears paired fields together, preventing stale coordinate-side mismatch; tracking references kept with cargo.",
+    "application_limit": "Most/Least longs default0 if absent; no malformed entry checks. Borrow validate complete reference pair rather than broad prefix copy."
+  },
+  {
+    "candidate_id": "53170bc49f86edecaa8e",
+    "status": "accepted",
+    "family": "pnc-smart-chest-slot-filter-reader",
+    "trigger": "SmartChestItemHandler.deserializeNBT",
+    "input": "super inventory payload plus LastSlot and Filter compound list with Slot index",
+    "output": "base handler restores actual contents; reader restores cursor and parses filter stack at explicit slot",
+    "preservation": "Saved items and filter policy are different roles; both must be considered when restoring container behavior.",
+    "application_limit": "filter[index] has no bounds check and array not cleared here; bad index throws and repeated import may keep stale filters. Borrow validated slot/key allowlist rather than copying arbitrary fields."
+  },
+  {
+    "candidate_id": "6204e6a0d5c367878a98",
+    "status": "accepted",
+    "family": "ars-scribe-consumed-items-and-crafting-receipt-reader",
+    "trigger": "ScribesTile.loadAdditional",
+    "input": "itemStack, optional recipe ID, consumed item list, crafting ticks/status and autoYoink",
+    "output": "restores output/input stack, recipe and consumed resources; crafting continuation restored; absent autoYoink defaults true",
+    "preservation": "Restores consumed accounting alongside continuation rather than starting new craft/recharging resources. Local newly allocated itemsTag is unused, not credited as actual data transfer.",
+    "application_limit": "Recipe tryParse can yield null; consumed list helper failure behavior not studied. Borrow keep progress and spent-resource/claimed-reward receipts paired without executing reward."
+  },
+  {
+    "candidate_id": "72a868163502ff9d98d8",
+    "status": "accepted",
+    "family": "ars-storage-lectern-inventory-links-reader",
+    "trigger": "StorageLectern.loadAdditional",
+    "input": "settings codec, invs position list, optional mainLecternPos and bookwyrm UUID array list",
+    "output": "clears/rebuilds inventory links with null runtime handlers, resets main link, rebuilds bookwyrm UUID set and marks updateItems",
+    "preservation": "Stores reference positions then rebuilds runtime item handlers later; copying live handler references would be wrong.",
+    "application_limit": "Invalid UUID array can throw; positions may point to absent blocks. Borrow detach runtime references from durable owner data and validate optional identity fields."
+  },
+  {
+    "candidate_id": "f207d9aa960aa927cc3e",
+    "status": "accepted",
+    "family": "ars-wixie-in-progress-craft-and-bound-storage-reader",
+    "trigger": "WixieCauldron.loadAdditional",
+    "input": "currentCraft stack, CraftingManager tag, entity/mana/potion flags, craftingIndex, boundedInvs and cooldown",
+    "output": "restores actual crafting stack and manager, reinitializes bounded storage position list, retains progress index and cooldown",
+    "preservation": "Incomplete craft state spans payload+manager+resource availability, not one integer; list rebuilt instead of appended.",
+    "application_limit": "Nested manager decoder not independently credited. Cooldown serialization is not grounds for death retention; Dynasty needs semantic permanent whitelist."
+  },
+  {
+    "candidate_id": "fa67bd88c54574b81344",
+    "status": "accepted",
+    "family": "ars-bookwyrm-held-item-and-home-reader",
+    "trigger": "EntityBookwyrm.readAdditionalSaveData",
+    "input": "optional lectern position, held item compound, backoff and optional color",
+    "output": "restores held cargo and home link, backoff; color only when present",
+    "preservation": "Cargo is actual saved stack independent of color customization. Real item-bearing entity reader qualifies; cosmetic color field does not receive separate credit.",
+    "application_limit": "Absent lectern does not clear old field; parseOptional can yield empty. Borrow missing-field policy per role rather than treat all fields as required."
+  },
+  {
+    "candidate_id": "0e6e468950e53a327849",
+    "status": "accepted",
+    "family": "ars-flying-item-payload-flight-continuation-reader",
+    "trigger": "EntityFlyingItem.load",
+    "input": "item compound, age, offset flags/amount and from/to vectors",
+    "output": "loads carried ItemStack into entityData, then restores flight continuation",
+    "preservation": "Real item transfer entity owns cargo persisted with travel endpoints; restoring only trajectory would lose payload.",
+    "application_limit": "No validation visible for age/vector schema and entityData updates may sync later. Borrow preserve real payload and only audited metadata, no blanket client state copying."
+  },
+  {
+    "candidate_id": "76ab488a8ac4edfc47d3",
+    "status": "accepted",
+    "family": "ars-starbuncle-behavior-cargo-restore",
+    "trigger": "Starbuncle.readAdditionalSaveData",
+    "input": "optional starbuncleData charm schema, held item, backoff and tamed flag",
+    "output": "decodes mutable charm data/default compound; creates behavior; restores held cargo/tamed; initializes goals once and restores behavior tag; sync only server",
+    "preservation": "Durable behavior definition is rebuilt into runtime strategy; guarded one-time goal reset avoids stacking duplicate goals.",
+    "application_limit": "Registry behavior may be null; nested charm codec defaults not all traced. Borrow explicit new-owner initialization and schema-bound field restore rather than copying old manager references."
+  },
+  {
+    "candidate_id": "26b804cd5898f7142a0c",
+    "status": "accepted",
+    "family": "curios-slots-payload-and-modifier-lifetime-reader",
+    "trigger": "CurioStacksHandler.deserialize ValueInput",
+    "input": "base/slot sizes, stack/cosmetic children, render/active lists, role flags/drop rule, PermanentModifiers versus Modifiers",
+    "output": "resizes first; restores stacks; restores toggles with current-value defaults; permanent modifiers through addPermanentModifier, other list through addTransientModifier",
+    "preservation": "Same persistent record explicitly distinguishes permanent and transient modifier lifetimes. Both are serialized, so serialization alone cannot define death permanence.",
+    "application_limit": "Render/active loops unbounded to target size may throw; modifiers added without visible clear here. Borrow whitelist correct lifetime fields and avoid duplicating existing Dynasty slot/PlayerPersisted clone ownership."
+  }
+]

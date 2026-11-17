@@ -1,0 +1,13 @@
+"""Manual fixed-source lifecycle and collision-order observations."""
+import json,datetime
+from pathlib import Path
+R=Path(__file__).resolve().parents[3];O=R/'docs/cod4/audit-20261022/sweep-receipt-research';cs=[json.loads(l) for l in (O/'candidates.jsonl').read_text().splitlines()]
+notes={3972:'全文Zephyr.onLivingUpdate及当前petType/getNearbyEntities/父Tameable和Base.canAttackEntity：服务端short aoeAttackTick先++且严格==当前familiar100/其他40才清0，再实时扫描4格并过滤自己/电系/权限/视线逐hurt，返回忽略；空范围/全部伤害拒绝仍消费周期。客户端每tick只按自己当前class/权限/视线发CRIT_MAGIC，未相同排自己/电系且不按服务端周期，无伤害回执因果保证。pet类型每刻查当前entry，阈值在计数已越过新阈值时严格等式不能立即catch-up，short溢出也未兜底；本轮未审真实切换入口，不宣称复现切换。父权限按当前tame owner/PVP/被动/同队/creative等，不保存扫描目标或来源维度快照。具体宠物类别控制周期范围放电/独立视觉链1，不把四个父权限辅助函数各计，无新伤害/游戏验收。',2452:'全文DemonicBlast全类、Cacodemon.mountAbility实际玩家骑乘生产、ProjectileBase完整onUpdate/onImpact/canDamage、DemonicSpark：服务端坐骑先验toggle/载客/体力后spawn玩家owner弹，spawnbool未查便launch声/attackCooldown与stamina成本；非玩家仍能走尾部体力消费。子弹super更新在前可能已杀死，rapidTicks模5且!isDead才每次6发，之后再做本类高度/15秒声明expiry，期限帧可能先发后删，但基类另有projectileLife200先消费故不能保证恰15秒；spark另50tick。fireProjectile重新getThrower，空则位置构造无owner；motion向量绝对分量和为0未防除零，声先于spawn，无接纳ACK。父onImpact算canDamage后仍先server调用onEntityCollision，DemonicBlast于此爆破/8发子弹，故PVP/AttackEntityEvent拒绝主伤害不阻该副作用；其wither/decay也在真正attackEntityFrom之前。分段pierce1先实际攻击且bool忽略，attackSuccess只后一段，不是本次总伤害事实；pierce实体不删也无目标去重账本。延期周期散弹与碰撞后续生成按同一载体整链1，不分六发/八发/负面/共用碰撞，未审原版EntityThrowable碰撞缓存及getThrower重载不夸大所有权可靠。'}
+B='build/creature-reference-1000/Lycanite__LycanitesMobs/src/main/java/com/lycanitesmobs/'
+D=B+'demonmobs/entity/EntityDemonicBlast.java';P=B+'core/entity/EntityProjectileBase.java';C=B+'core/entity/EntityCreatureBase.java';T=B+'core/entity/EntityCreatureTameable.java'
+def m(p,*ns):return [[p,n] for n in ns]
+S={3972:m(C,'canAttackEntity','canAttackClass','isPetType','getNearbyEntities')+m(T,'canAttackEntity'),2452:m(D,'setup','fireProjectile','onEntityCollision','onEntityLivingDamage')+m(B+'demonmobs/entity/EntityCacodemon.java','mountAbility')+[[P,'onImpact',170]]+m(P,'onUpdate','canDamage')+m(B+'demonmobs/entity/EntityDemonicSpark.java','setup','onUpdate')+m(C,'triggerAttackCooldown')+m(T,'applyStaminaCost')}
+p=O/'review-resolutions.json';d=json.loads(p.read_text());assert not any(e['candidate_index'] in notes for e in d['entries']);spec=[]
+for i,note in notes.items():
+ d['entries'].append(dict(candidate_index=i,candidate_id=cs[i]['candidate_id'],decision='accepted',observation=note,supporting_candidate_indices=[],reviewed_at=datetime.datetime.now().astimezone().isoformat()));spec.append(dict(candidate_indices=[i],observation=note,supporting_methods=S[i]))
+p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n');(O/'manual-chain-spec-079.json').write_text(json.dumps(spec,ensure_ascii=False,indent=2)+'\n')

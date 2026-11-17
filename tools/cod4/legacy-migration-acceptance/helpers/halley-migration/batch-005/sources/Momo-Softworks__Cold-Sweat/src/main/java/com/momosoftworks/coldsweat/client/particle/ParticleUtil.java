@@ -1,0 +1,50 @@
+package com.momosoftworks.coldsweat.client.particle;
+
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.momosoftworks.coldsweat.core.init.ParticleTypesInit;
+import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+public class ParticleUtil
+{
+    public static ParticleRenderType PARTICLE_SHEET_TRANSPARENT = new ParticleRenderType()
+    {
+        public void begin(BufferBuilder builder, TextureManager textureManager)
+        {   RenderSystem.depthMask(true);
+            RenderSystem.setShaderTexture(0, TextureAtlas.LOCATION_PARTICLES);
+            RenderSystem.enableBlend();
+            RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+            builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
+        }
+
+        public void end(Tesselator tesselator)
+        {   tesselator.end();
+        }
+
+        public String toString()
+        {   return "PARTICLE_SHEET_TRANSPARENT";
+        }
+    };
+
+    @SubscribeEvent
+    public static void registerParticles(RegisterParticleProvidersEvent event)
+    {   event.registerSpriteSet(ParticleTypesInit.WARM_AIR.get(), HearthParticle.AirParticleFactory::new);
+        event.registerSpriteSet(ParticleTypesInit.COLD_AIR.get(), VaporParticle.MistFactory::new);
+        event.registerSpriteSet(ParticleTypesInit.SMOKESTACK_WARM.get(), HearthParticle.SmokestackFactory::new);
+        event.registerSpriteSet(ParticleTypesInit.SMOKESTACK_COLD.get(), VaporParticle.SmokestackFactory::new);
+        event.registerSpriteSet(ParticleTypesInit.GROUND_MIST.get(), VaporParticle.GroundMistFactory::new);
+        event.registerSpriteSet(ParticleTypesInit.MOB_COLD.get(), EntityTempParticle.Factory::new);
+        event.registerSpriteSet(ParticleTypesInit.MOB_HOT.get(), EntityTempParticle.Factory::new);
+    }
+}

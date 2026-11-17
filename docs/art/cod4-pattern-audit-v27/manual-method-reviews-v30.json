@@ -1,0 +1,101 @@
+{
+  "reviewed": 1,
+  "rows": [
+    {
+      "id": "explicit-source-method",
+      "repo": "Sweenus/SimplySwords",
+      "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+      "path": "common/src/main/java/net/sweenus/simplyswords/client/renderer/ParchmentBoltEntityRenderer.java",
+      "method": "resolveSmoothedOffset",
+      "start": 60,
+      "end": 84,
+      "sourceSha256": "e6426c47263d39f28e6c467c2d1267f594157b4b4650fc6759ab62138c1fcef8",
+      "semanticHash": "5fc2dfe7a19eb0890d0628a1379a488676eb4e1a2115576a8e6fb1b708b5d383",
+      "local": "build/item-use-references/Sweenus__SimplySwords/common/src/main/java/net/sweenus/simplyswords/client/renderer/ParchmentBoltEntityRenderer.java",
+      "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/client/renderer/ParchmentBoltEntityRenderer.java#L60-L84",
+      "source": "private static <T extends Entity & ParchmentBoltRenderData> Vec3d resolveSmoothedOffset(T entity, float tickDelta) {\n        float ageTicks = entity.age + tickDelta;\n        Vec3d target = new Vec3d(\n                MathHelper.lerp(tickDelta, entity.prevX, entity.getX()),\n                MathHelper.lerp(tickDelta, entity.prevY, entity.getY()),\n                MathHelper.lerp(tickDelta, entity.prevZ, entity.getZ()));\n\n        RenderState state = RENDER_STATES.computeIfAbsent(entity.getId(),\n                ignored -> new RenderState(target, ageTicks));\n\n        float deltaTicks = ageTicks - state.lastAgeTicks;\n        if (deltaTicks < 0.0F || deltaTicks > 5.0F) {\n            state.position = target;\n        } else if (deltaTicks > 0.0F) {\n            state.position = state.position.lerp(target,\n                    Math.min(1.0F, POSITION_SMOOTHING_RATE * deltaTicks));\n        }\n        state.lastAgeTicks = ageTicks;\n\n        if (entity.age % 80 == 0) {\n            RENDER_STATES.entrySet().removeIf(entry ->\n                    entry.getKey() != entity.getId() && ageTicks - entry.getValue().lastAgeTicks > 100.0F);\n        }\n        return state.position.subtract(target);\n    }",
+      "targetScope": "school_talisman",
+      "observation": "稀疏网络位置包通过每实体RenderState缓存位置，以分数tick增量乘0.55逼近插值目标，渲染只返回平滑位置减目标的补偿，负时间/大跳时直接复位。研究符纸投射物平滑与旋转分工；静态Map仅按entityId且以各实体自身age比较清理，跨世界ID复用和不同出生时间不能当统一过期钟，缓存清理设计不可照搬。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": [
+    {
+      "repo": "Sweenus/SimplySwords",
+      "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+      "path": "common/src/main/java/net/sweenus/simplyswords/client/renderer/ShadowstingAfterimageVisualEntityRenderer.java",
+      "method": "render",
+      "start": 27,
+      "end": 51,
+      "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/client/renderer/ShadowstingAfterimageVisualEntityRenderer.java#L27-L51",
+      "sourceSha256": "725655a549f05dad50da89b09d8c6eec5a38afa7cb9d4cd5bbab854010b353f8",
+      "reason": "只画六个固定Cuboid，加固定yaw和上下摆动；没有保存玩家历史骨骼姿态，不算实际姿态残影，亦不采用此假人外形。"
+    },
+    {
+      "repo": "Sweenus/SimplySwords",
+      "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+      "path": "common/src/main/java/net/sweenus/simplyswords/client/renderer/RunicSlashProjectileEntityRenderer.java",
+      "method": "render",
+      "start": 35,
+      "end": 55,
+      "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/client/renderer/RunicSlashProjectileEntityRenderer.java#L35-L55",
+      "sourceSha256": "e9fbf0b628a3fb59f847b7ca2f305cb372e93617ee03d1fd87e45d6fa59ca774",
+      "reason": "普通俯仰/偏航双层月牙换色缩放，同类几何斩波已计过，不拆为新符纹。"
+    },
+    {
+      "repo": "Sweenus/SimplySwords",
+      "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+      "path": "common/src/main/java/net/sweenus/simplyswords/client/renderer/RunicSlashProjectileEntityRenderer.java",
+      "method": "pointOnCrescent",
+      "start": 73,
+      "end": 93,
+      "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/client/renderer/RunicSlashProjectileEntityRenderer.java#L73-L93",
+      "sourceSha256": "e9fbf0b628a3fb59f847b7ca2f305cb372e93617ee03d1fd87e45d6fa59ca774",
+      "reason": "sin包络椭圆月牙宽度与alpha参数化，属于前述斩波几何辅助，不拆计，端点最小宽度不是新实例。"
+    },
+    {
+      "repo": "Sweenus/SimplySwords",
+      "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+      "path": "common/src/main/java/net/sweenus/simplyswords/client/renderer/ChainLightningVisualEntityRenderer.java",
+      "method": "buildBoltPoints",
+      "start": 70,
+      "end": 87,
+      "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/client/renderer/ChainLightningVisualEntityRenderer.java#L70-L87",
+      "sourceSha256": "1c64f01db07ada0eb9ded424b18daa7bfdcdfe06fdc6cb06c57e4ef9caaa0b9d",
+      "reason": "固定seed、双正交轴、sin包络随机折线，与既有闪电路径同类，不靠九段/换色凑数量。"
+    },
+    {
+      "repo": "Sweenus/SimplySwords",
+      "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+      "path": "common/src/main/java/net/sweenus/simplyswords/client/renderer/ChainLightningVisualEntityRenderer.java",
+      "method": "drawBoltRibbon",
+      "start": 121,
+      "end": 153,
+      "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/client/renderer/ChainLightningVisualEntityRenderer.java#L121-L153",
+      "sourceSha256": "1c64f01db07ada0eb9ded424b18daa7bfdcdfe06fdc6cb06c57e4ef9caaa0b9d",
+      "reason": "相邻线段侧轴取平均且退化回退，与既有带状折角实现同类；缺少miter投影厚度修正和摄像机面向，不能称已解决全部折角/迎面可见问题。"
+    },
+    {
+      "repo": "Sweenus/SimplySwords",
+      "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+      "path": "common/src/main/java/net/sweenus/simplyswords/client/renderer/ObserverStatusVisualRenderer.java",
+      "method": "renderParchmentBand",
+      "start": 824,
+      "end": 844,
+      "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/client/renderer/ObserverStatusVisualRenderer.java#L824-L844",
+      "sourceSha256": "e99db24fea00e3af54d397a9cb0b2caf33746c011b6ea7a5b775ad9ded930eab",
+      "reason": "环形波动书带直接复用已审renderRibbon，与Nova环只是半径/波幅/高度变化，合并同类。"
+    },
+    {
+      "repo": "Sweenus/SimplySwords",
+      "revision": "708a57bc591e0af75ae0c5ec6beb0d8ff22f67af",
+      "path": "common/src/main/java/net/sweenus/simplyswords/client/renderer/ObserverStatusVisualRenderer.java",
+      "method": "renderOrbitingGlyphs",
+      "start": 797,
+      "end": 822,
+      "url": "https://github.com/Sweenus/SimplySwords/blob/708a57bc591e0af75ae0c5ec6beb0d8ff22f67af/common/src/main/java/net/sweenus/simplyswords/client/renderer/ObserverStatusVisualRenderer.java#L797-L822",
+      "sourceSha256": "e99db24fea00e3af54d397a9cb0b2caf33746c011b6ea7a5b775ad9ded930eab",
+      "reason": "按状态层数等角环绕glyph和固定seed高度变化，与已有符面环绕同类，不把叠层数量另计。"
+    }
+  ]
+}

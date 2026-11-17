@@ -1,0 +1,41 @@
+[
+  {
+    "candidate_id": "ae7e52e5809dfb194107",
+    "status": "accepted",
+    "family": "aoa-player-known-skill-progress-owned-read-chain",
+    "application_limit": "Borrow owner binding and present-only known-key import; Dynasty is Forge1.20.1, not this NeoForge HolderLookup API. getInt/getFloat lack strict numeric type guards and loaded ranges are not clamped. Whole Stats/skill/ability dispatch is ONE implementation credit; no extra credits per skill, field, wrapper or hash branch.",
+    "supporting_candidates": [
+      "a5e6274a967bb9dac7a9",
+      "a6c35dc99649504071ee"
+    ],
+    "review_origin": "main coordinator batch002; migration reviewer verified pinned source and owner-chain dedup",
+    "coordinator_evidence_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-reviewed-batch-002.json",
+    "trigger": "ServerPlayer attachment deserializeNBT calls PartialNbtSerializable.load(...,false)",
+    "input": "Known skills/resources keyed by registry ID; skill level/xp/cycle and named abilities",
+    "output": "Known present keys restored into initialized skill/resource owners; skill reader defaults level1/xp0 before optional values",
+    "preservation": "Persistent attachment creates ServerPlayerDataManager bound to actual ServerPlayer. PartialNbtSerializable.deserializeNBT delegates load(...,false), proving disk bridge. Stats.load iterates existing registered skill/resource owners, loads only keys present, preserving newly registered defaults. Full skill reader resets level/xp then restores optional cycle/level/xp and abilities keyed by original unique identifier; absent ability entry recalculates deactivation, not awarding an unlock. Outer manager checks legitimacy hash AFTER reading; missing/mismatched hash revokes legitimacy, not erasing earned skill counters. Paired saves use saveToNbt for disk versus getSyncData for client."
+  },
+  {
+    "candidate_id": "48c8c262cc754d5cf28d",
+    "status": "accepted",
+    "family": "aoa-player-stored-items-portal-books-distinct-payload-owner",
+    "application_limit": "Borrow independently owned durable stores and isolated malformed-entry handling. Empty compound does NOT clear old item/portal maps because of !isEmpty guard, checkpoint numeric getters may silently default, inventory keys not range validated here. Clone uses putAll and shallow item references; do not copy that pattern for Dynasty. This owner is distinct from Stats, but four child stores and per-entry loop are ONE credit.",
+    "supporting_candidates": [],
+    "review_origin": "main coordinator batch002; migration reviewer verified pinned source and owner-chain dedup",
+    "coordinator_evidence_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-reviewed-batch-002.json",
+    "trigger": "ServerPlayer attachment deserializeNBT calls PartialNbtSerializable.load(...,false)",
+    "input": "Independent Storage owner: ItemStorage, PortalMap, Checkpoint and PatchouliBooks",
+    "output": "Typed stores reconstruct payloads with per-entry catches; portal missing position uses shared spawn; supplied books list replaces old books",
+    "preservation": "Storage.load independently restores ItemStorage, PortalMap, Checkpoint and PatchouliBooks from the real attachment disk chain. Typed compound guards; nonempty ItemStorage/PortalMap clear and reconstruct per entry, invalid entries logged and skipped independently. Full ItemStacks retain actual payload; portal target key plus source dimension and position reconstructed together, missing BlockPos defaults actual shared spawn. Books clear on present list and parse valid registry identifiers; needsPatchouliSync set. Writer skips durable inventory/portal/checkpoint only when partial client sync, writes them in disk=false route. Existing initialized books remain when absent."
+  },
+  {
+    "candidate_id": "4da8427a8fd9a8bd6dda",
+    "status": "rejected",
+    "family": "aoa-client-mirror-not-disk-owner",
+    "application_limit": "No migration credit. No additional credit for shape similarity to server load.",
+    "supporting_candidates": [],
+    "review_origin": "main coordinator batch002; migration reviewer verified pinned source and owner-chain dedup",
+    "coordinator_evidence_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-reviewed-batch-002.json",
+    "reason": "ClientPlayerDataManager.loadFromNbt reconstructs skill/resource client instances, refreshes UI listeners and lore books from server sync. Actual durable attachment owner is ServerPlayerDataManager, and this client mirror cannot establish permanent old-world or death recovery. No migration credit. No additional credit for shape similarity to server load."
+  }
+]

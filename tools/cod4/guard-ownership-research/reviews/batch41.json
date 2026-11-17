@@ -1,0 +1,162 @@
+[
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/AttackMoveAI.java",
+    "method": "move",
+    "observation": "每轮先checkForTarget，再取威胁表；可见刷新lastSeen，失视超过1200tick重置；五次寻路失败降威胁并可放弃。",
+    "application": "攻击前持续验证与视线/路径失败回收分开，不能以定期选敌代替即时有效性。",
+    "limits": "追踪表是该模组设计，不新增到王朝；不能据寻路正常推断目标归属安全。 协调候选batch-001第0条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/AttackMoveAI.java",
+    "method": "tryAttack",
+    "observation": "依次校验checkForTarget/canAttack、冷却和距离、视线后才doAttack，并把下次时间设为当前tick加间隔。",
+    "application": "最终攻击入口先复核目标，再做伤害/动作，不能等AI结束才清目标。",
+    "limits": "canAttack默认真；安全依赖动态checkForTarget，不能误读为此布尔函数自带友军筛选。 协调候选batch-001第2条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/TargetAI.java",
+    "method": "checkForTarget",
+    "observation": "旧目标死亡先回调并清引用，再取最高威胁；isEntityValidTarget通过才更新target与onTargetChange，否则resetTarget。",
+    "application": "重选与续用都走同一有效性谓词，不给陈旧目标一个攻击窗口。",
+    "limits": "死亡回调与威胁表清理次序未在上游运行，所有结论仅静态控制流。 协调候选batch-001第3条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/TargetAI.java",
+    "method": "isEntityValidTarget",
+    "observation": "先排除自身/null/死亡/超追踪范围/FakePlayer；最后受伤来源直接返回真，其他目标才走isAttackableTarget。",
+    "application": "基础生存与距离门必须在特殊分支前；学习反例：报复不能越过王朝owner/非Enemy硬拒绝。",
+    "limits": "这里允许反击非Enemy，不能原样复制为王朝护卫的选择策略。 协调候选batch-001第4条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/TargetAI.java",
+    "method": "resetTarget",
+    "observation": "目标存在时清匹配的lastHurtMob与lastHurtByMob，威胁表标无效，然后清target。",
+    "application": "仅setTarget(null)可能留下其他复仇来源；逐项检查原生AI再抓回旧目标的通道。",
+    "limits": "王朝不新增威胁表；不能把该来源清理当作已证明原生HurtByTargetGoal所有缓存都消失。 协调候选batch-001第5条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/TargetAI.java",
+    "method": "searchNearbyTarget",
+    "observation": "已有有效目标就返回；否则活体列表逐一检查skipSearch、完整目标谓词及视线后添加威胁。",
+    "application": "目标获取应使用和继续攻击一致的谓词；扫描存在不等于允许攻击。",
+    "limits": "skipSearch返回真会中止整次扫描，不是只跳过单实体；不建议额外引入此中止机制。 协调候选batch-001第6条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/TargetAI.java",
+    "method": "isAttackableTarget",
+    "observation": "默认只接受Enemy并拒绝与user同Java类实例，是具体类型的敌对分类。",
+    "application": "保留王朝现有Enemy基线并另加所有者/同盟硬排除，不把玩家类型自动当敌人。",
+    "limits": "同类排除不是UUID同主关系；子类覆盖和报复捷径另有策略。 协调候选batch-001第7条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/DruidCombatAI.java",
+    "method": "doAttack",
+    "observation": "通过守卫敌对分类选择负面或支援药水，并把相同分类作为溅射目标predicate传给DruidPotionEntity。",
+    "application": "范围效果也应逐受体复核友军策略，不能只筛主目标后对周边无差别结算。",
+    "limits": "药水是支援职业专用，王朝租约守卫不复制药水、职业或治疗玩法。 协调候选batch-001第8条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/DruidCombatAI.java",
+    "method": "isAttackableTarget",
+    "observation": "除敌对对象外，也接受有威胁目标的实体或最近30秒受伤玩家，并排除已受德鲁伊效果者。",
+    "application": "不同用途的候选可以更宽，但攻击类型必须在最终结算区分，不把候选等同伤害许可。",
+    "limits": "这是治疗/支援的候选语义，不能放宽王朝护卫的非Enemy拒绝。 协调候选batch-001第9条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/RangeCombatAI.java",
+    "method": "canAttack",
+    "observation": "查询可用装备并实际持握；在下次攻击时间与举弓延迟的条件下开始使用，找不到武器即false。",
+    "application": "攻击就绪检查是实物与动作状态，不能只看AI是否有target。",
+    "limits": "装备就绪不提供所有者安全；本批不再给近战同构持械检查增加信用。 协调候选batch-001第11条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/RangeCombatAI.java",
+    "method": "checkForTarget",
+    "observation": "完整调用父级目标检查；无效且仍在使用武器时stopUsingItem，然后返回有效性结果。",
+    "application": "攻击目标失效要取消正在执行的远程使用动作，避免残留蓄力。",
+    "limits": "这是远程动作取消，不证明飞行中的旧投射物也已取消或重新筛选。 协调候选batch-001第12条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/RangeCombatAI.java",
+    "method": "doAttack",
+    "observation": "近敌随机避让否则停止；依研究可双箭/穿透，真实构造箭矢发射后记录受伤来源并损耗弓。",
+    "application": "审查最终投射物发射入口是否依赖上游筛选，别认为创建箭时自动有同盟验证。",
+    "limits": "本方法没有再次isEntityValidTarget；相关前置在AttackMoveAI.tryAttack，引用此处作为边界对照而非安全范例。 协调候选batch-001第13条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/MeleeCombatAI.java",
+    "method": "doAttack",
+    "observation": "按PVP配置选择伤害来源、火附魔、AOE、穿透拆分伤害，再记录仇恨并损耗武器。",
+    "application": "伤害源选择与敌友许可无关；最终近战结算仍需王朝自己的租约有效性门。",
+    "limits": "上游PVP只是来源类型分支，绝不能给王朝新增PVP规则；本方法本身未再次验证目标。 协调候选batch-001第14条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/MeleeCombatAI.java",
+    "method": "doAoeAttack",
+    "observation": "研究及随机条件下扫描近邻，逐个排除自己、无效目标、盔甲架后才击退和hurt。",
+    "application": "AOE需要每个受害者的真实许可，主目标通过不能授权所有周围实体。",
+    "limits": "伤害分母是整个扫描列表数量而非有效目标数；不复制该数值设计。 协调候选batch-001第15条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/AbstractEntityAIGuard.java",
+    "method": "canHelp",
+    "observation": "仅无目标或睡眠且可打断时接受；固定驻守任务还检查追击范围，成功前唤醒。",
+    "application": "守卫的外部求援也受当前动作与任务半径限制，不无条件覆盖进行中的目标。",
+    "limits": "此方法主要是行动许可；友军安全依后续目标检查而非醒来这一动作。 协调候选batch-001第17条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/AbstractEntityAIGuard.java",
+    "method": "canBeInterrupted",
+    "observation": "战斗计时未清、ATTACKING、存在lastAttacker、集结或跟随时拒绝打断，否则交给父级。",
+    "application": "目标清理与状态机忙闲是不同通道；已有攻击状态不能依赖低频任务更新来变安全。",
+    "limits": "这是非战斗工作的打断策略，不在王朝新增集结/跟随任务系统。 协调候选batch-001第19条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/AbstractEntityAIGuard.java",
+    "method": "isAttackableTarget",
+    "observation": "配置怪物表与建筑排除表可放行怪物；玩家须敌对rank或有效袭击身份，其他殖民地守卫须袭击资格。",
+    "application": "明确白名单和权限分支优于“不是owner就可打”；王朝仅保留原Enemy政策并检查同盟。",
+    "limits": "该权限制度不同于王朝，不复制殖民地rank/PVP机制；怪物快路径先于colony空判断。 协调候选batch-001第20条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/ThreatTable.java",
+    "method": "addThreat",
+    "observation": "排除FakePlayer后按实体引用查重；新条目给距离/低血量威胁，追加威胁再排序。",
+    "application": "仇恨收集和攻击授权是不同层；受击输入不能替代owner/同盟检查。",
+    "limits": "本方法未做同盟筛选；王朝不新增威胁分数系统。 协调候选batch-001第21条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/ThreatTable.java",
+    "method": "getTarget",
+    "observation": "按远近采用1.3/1.1倍仇恨切换，过期或不能当敌人的条目移除并递归选下一个，负仇恨不返回。",
+    "application": "续用目标必须检查时效，非法候选移除后再选择，而非等下一扫描周期。",
+    "limits": "current是ThreatTableEntry，其instanceof IThreatTableEntity分支未证明可达；不据此声称触发相互仇恨。 协调候选batch-001第22条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/ThreatTable.java",
+    "method": "markInvalidTarget",
+    "observation": "空表退出，死亡则移除；活体目标用-1标无效并移至尾部，重新置当前索引。",
+    "application": "暂时失效与实体死亡可分别处理；无效目标不应在同tick继续造成伤害。",
+    "limits": "与resetTarget是调用链不同节点，若主研究按整链合并则可降为支持。 协调候选batch-001第23条，接收方已逐条读完整方法及语义；非哈希脚本自动计数。"
+  }
+]

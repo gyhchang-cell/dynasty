@@ -1,0 +1,42 @@
+// Frozen source and private output; never replaces or stops an existing client.
+allprojects { p ->
+ def base=p.file('build/bestiary-v42-client')
+ p.layout.buildDirectory.set(new File(base,'gradle'))
+ p.afterEvaluate {
+  if(!p.plugins.hasPlugin('net.minecraftforge.gradle'))return
+  def run=p.findProperty('bestiaryRun')?.toString()
+  if(!run || !(run ==~ /[A-Za-z0-9_-]+/))throw new GradleException('Supply fresh bestiaryRun')
+  p.sourceSets.main.java.setSrcDirs([new File(base,'frozen/src/main/java')])
+  p.sourceSets.main.resources.setSrcDirs([new File(base,'frozen/src/main/resources'),new File(base,'frozen/src/generated/resources')])
+  def qa=p.sourceSets.create('bestiaryClientQa') {
+   java.srcDir p.file('tools/art/bestiary-v42/client-qa/src')
+   compileClasspath+=p.sourceSets.main.output+p.sourceSets.main.compileClasspath
+   runtimeClasspath+=output+p.sourceSets.main.output+p.sourceSets.main.runtimeClasspath
+  }
+  p.minecraft.runs.client {
+   workingDirectory new File(base,'run-'+run)
+   property 'dynasty.bestiaryQa',p.hasProperty('bestiaryNatural')?'false':'true'
+   property 'dynasty.bestiaryNaturalQa',p.hasProperty('bestiaryNatural')?'true':'false'
+   property 'dynasty.bestiaryQa.output',p.file('docs/art/bestiary-v42/client/'+run).absolutePath
+   property 'forge.enabledGameTestNamespaces','bestiary_client_qa_disabled'
+   property 'forge.logging.console.level','info'
+   property 'mixin.env.refMapRemappingFile',new File(base,'gradle/createSrgToMcp/output.srg').absolutePath
+   jvmArgs '-Xmx1400m','-XX:ActiveProcessorCount=2','-XstartOnFirstThread'
+   args '--username','BestiaryReviewer','--width','1120','--height','800'
+   mods {dynasty {source qa}}
+  }
+  p.tasks.matching{it.name=='runClient'}.configureEach {
+   dependsOn qa.classesTaskName,'createSrgToMcp'
+   doFirst {
+    def game=new File(base,'run-'+run)
+    if(new File(game,'saves').exists())throw new GradleException('Use a fresh isolated run')
+    game.mkdirs();new File(game,'config').mkdirs();new File(game,'config/fml.toml').text='earlyWindowControl = false\n'
+    new File(game,'options.txt').text='soundCategory_master:0.0\npauseOnLostFocus:false\nlang:zh_cn\nguiScale:2\ngamma:0.0\nmaxFps:30\nrenderDistance:3\nsimulationDistance:5\ntutorialStep:none\n'
+   }
+  }
+  p.tasks.matching{it.name=='downloadAssets'||it.name=='downloadMCMeta'}.configureEach{onlyIf{false}}
+  def meta=new File(gradle.gradleUserHomeDir,'caches/forge_gradle/minecraft_repo/versions/1.20.1/version.json')
+  def target=p.layout.buildDirectory.file('downloadMCMeta/version.json').get().asFile
+  target.parentFile.mkdirs();target.bytes=meta.bytes
+ }
+}

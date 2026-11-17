@@ -1,0 +1,70 @@
+// Freeze current production sources before running; QA is never added to the release jar.
+// Run with --project-cache-dir build/cod4-audit-20261022/project-cache so parallel
+// project builds cannot register these private outputs as stale shared outputs.
+allprojects { p ->
+    p.layout.buildDirectory.set(p.file('build/cod4-audit-20261022/verified-gradle'))
+    p.afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        def base = p.file('build/cod4-audit-20261022')
+        if (p.findProperty('qiFtb') == 'true') {
+            p.repositories.flatDir { dirs p.file('modpack/mods') }
+            ['ftb-quests-forge:2001.4.22','ftb-library-forge:2001.2.13',
+             'ftb-teams-forge:2001.3.2','item-filters-forge:2001.1.0-build.59',
+             'architectury:9.2.14-forge','NaturesCompass:1.20.1-1.12.0-forge',
+             'ExplorersCompass:1.20.1-1.4.0-forge'].each { artifact ->
+                p.dependencies.add('runtimeOnly', p.fg.deobf('dynasty_local_qa:' + artifact))
+            }
+        }
+        p.sourceSets.main.java.setSrcDirs([new File(base, 'frozen/src/main/java')])
+        p.sourceSets.main.resources.setSrcDirs([new File(base, 'frozen/src/main/resources'), new File(base, 'frozen/src/generated/resources')])
+        // ForgeGradle has already captured main's default output paths during plugin setup.
+        // Explicit paths keep other chats' rebuilds from removing nested classes mid-run.
+        def mainClasses = new File(base, 'verified-gradle/classes/java/main')
+        def mainResources = new File(base, 'verified-gradle/resources/main')
+        p.tasks.named('compileJava').configure { destinationDirectory.set(mainClasses) }
+        p.tasks.named('processResources').configure { destinationDir = mainResources }
+        p.sourceSets.main.output.classesDirs.setFrom(mainClasses)
+        p.sourceSets.main.output.resourcesDir = mainResources
+        def qa = p.sourceSets.create('qiQa') {
+            java.srcDir p.file('tools/cod4/qi-qa')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.tasks.named(qa.processResourcesTaskName).configure {
+            from(p.file('docs/cod4/quest-nodes.json')) {
+                rename { 'dynasty-cod4-node-qa.json' }
+            }
+            from(new File(base, 'frozen/src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) {
+                into 'data/dynasty_qi_qa/structures'
+            }
+        }
+        p.minecraft.runs.gameTestServer {
+            workingDirectory new File(base, p.findProperty('qiRun') ?: 'server')
+            property 'forge.enabledGameTestNamespaces', 'dynasty_qi_qa'
+            property 'forge.logging.console.level', 'info'
+            jvmArgs '-Xmx2G', '-XX:ActiveProcessorCount=2', '-Djava.awt.headless=true'
+            mods { dynasty { source qa } }
+            if (p.findProperty('qiFtb') == 'true') {
+                property 'dynasty.ftbRewardQa', 'true'
+                property 'mixin.env.remapRefMap', 'true'
+                property 'mixin.env.refMapRemappingFile', new File(base, 'verified-gradle/createSrgToMcp/output.srg').absolutePath
+            }
+        }
+        p.tasks.matching { it.name == 'runGameTestServer' }.configureEach { dependsOn qa.classesTaskName }
+        if (p.findProperty('qiFtb') == 'true') {
+            p.tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+                dependsOn 'createSrgToMcp'
+                doFirst {
+                    def copied = new File(base, (p.findProperty('qiRun') ?: 'server') + '/config/ftbquests/quests')
+                    if (copied.exists()) throw new GradleException('Choose a fresh qiRun for native FTB QA')
+                    p.copy { from p.file('modpack/config/ftbquests/quests'); into copied }
+                }
+            }
+        }
+        p.tasks.matching { it.name == 'downloadAssets' || it.name == 'downloadMCMeta' }.configureEach { onlyIf { false } }
+        def metadata = new File(gradle.gradleUserHomeDir, 'caches/forge_gradle/minecraft_repo/versions/1.20.1/version.json')
+        def target = p.layout.buildDirectory.file('downloadMCMeta/version.json').get().asFile
+        target.parentFile.mkdirs()
+        target.bytes = metadata.bytes
+    }
+}

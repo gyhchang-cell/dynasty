@@ -118,6 +118,10 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         }
         return super.isAlliedTo(other);
     }
+    @Override public boolean canAttack(LivingEntity target) {
+        return (!getPersistentData().hasUUID("cod4Summoner") || SummonedGuard.canAttack(this,target))
+                && super.canAttack(target);
+    }
     @Override public boolean checkSpawnObstruction(net.minecraft.world.level.LevelReader world){
         // Native Mob rejects all liquids by default. Aquatic actors must still
         // pass real obstruction while allowing their required water habitat.
@@ -130,6 +134,11 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         else super.travel(input);
     }
     @Override public void aiStep() {
+        // Revoke stale lease targets before native goals can navigate or swing.
+        if(!level().isClientSide && isAlive() && getPersistentData().hasUUID("cod4Summoner")){
+            SummonedGuard.tick(this);
+            if(!isAlive())return;
+        }
         super.aiStep();
         if(level().isClientSide || !isAlive()) return;
         if(specialCooldown>0)specialCooldown--;
@@ -139,7 +148,6 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         if(animationTicks>0)animationTicks--;else entityData.set(STATE,fleeTicks>0?3:getTarget()!=null?2:getDeltaMovement().horizontalDistanceSqr()>.001?1:0);
         if(spec.id().equals("swindler") && deceptionStage<3){setTarget(null);getNavigation().stop();animate(5,2);}
         if(friendly || spec.id().equals("famished_refugee") || spec.id().equals("herb_picker") || spec.id().equals("snail_maiden"))setTarget(null);
-        if(getPersistentData().hasUUID("cod4Summoner")) SummonedGuard.tick(this);
         tickWaterDrag();
         tickRangedSkill();
         combatActions.tick();
@@ -262,6 +270,8 @@ public class SecondaryMob extends PathfinderMob implements GeoEntity {
         setDeltaMovement(direction.x,.08,direction.z);hurtMarked=true;animate(5,16);
     }
     @Override public boolean doHurtTarget(Entity victim) {
+        if(getPersistentData().hasUUID("cod4Summoner")
+                && (!(victim instanceof LivingEntity guardTarget) || !canAttack(guardTarget)))return false;
         if(isAlliedTo(victim)||cropFleeOrigin!=null&&fleeTicks>0)return false;
         boolean hit=super.doHurtTarget(victim);
         if(!hit || !(victim instanceof LivingEntity target))return hit;

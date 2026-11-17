@@ -1,0 +1,473 @@
+{
+  "id": "hookshot-tidal-hook-owner-pull-real-hand-chain-family",
+  "updated_utc": "2026-10-30T16:59:36.999730+00:00",
+  "status": "STATIC_SELECTED_CHAIN_WITH_EXIT_AND_SYNC_GAPS_PENDING_INDEPENDENT_REVIEW",
+  "target": "flying_claw",
+  "secondary_scope_support": [
+    "rope_dart",
+    "meteor_hammer"
+  ],
+  "selected_scope": "右键牵索发射→附着→拉玩家→释放/超距清理→真实手端链条和手持物绘制；不是三种武器各一份信用。",
+  "source_version": "主研究Cataclysm3.31 / MC1.20.1 / Forge47.3.22；Hookshot 1.20.1固定分支为上游Fabric对照，不单独计数。",
+  "proposed_independent_units_max": 1,
+  "accepted_credit": 0,
+  "chain": [
+    "@Mod构造注册物品、实体、HookCapability实现及attach，并订阅ServerEventHandler LivingTick；clientSetup调用clientInit注册实际TIDAL_HOOK renderer。",
+    "Tidal_Claws.use取实际hand stack；服务器hasHook=false才spawn，setProperties保留同一个stack引用、设30范围和12速度；双端startUsingItem及hasHook=true，然后返回super.use。",
+    "父类Cataclysm_Weapon_Item没覆盖use；原版非食物Item.use返回PASS。发生开始使用副作用，不代表返回consume/success。",
+    "钩体baseDamage0；命中方块使isPulling=true且服务器设玩家noGravity；命中Living/EnderDragonPart后跟随其位置并牵引，不调用hurt。",
+    "服务器检查owner状态/hasHook/距离/当前钩爪，且主副手必须仍有原stack对象；isPulling按距离制动拉玩家向钩，不是拉目标。",
+    "松手/用尽清hasHook，后续tick走kill；自定义kill在cap有效时清flag并设noGravity=false，再super.kill。是撤销消失，没有沿绳飞回手的动画。",
+    "实际世界renderer先绘钩模型，再用模型body变换给链端；另一端按owner mainArm和当前主手是否钩爪选左右。本地FP取near-plane/FOV/swing，远端TP取身体朝向/蹲姿；AABB覆盖整链作裁剪，真实顶点/纹理绘交叉链面。",
+    "实际持物链独立：builtin/entity JSON四手display→initializeClient→CMItemRenderProperties→Forge ItemRenderer.getCustomRenderer.renderByItem→TIDAL_CLAWS分支→独立item模型绘制。世界钩renderer不等于手持物renderer。"
+  ],
+  "important_distinctions": [
+    "已计71c3f85928085b78e577是左键TidalTentacle串联伤害；本研究是右键单钩附着/牵引玩家，不重复那个信用。",
+    "Tidal_Hook_Entity第29行明确Hookshot出处；上游和Forge移植按一个源码家族，不算两个独立案例。",
+    "renderChainCube注明Alex’s Caves BoundroidWinchRenderer出处；渲染辅助不再拆为独立新机制。",
+    "链端按当前主手类型推断而不存发射hand；双手同持钩爪时不能保证对应原发射栈。",
+    "同一stack引用不同于上游按tag优先主手选当前栈；NBT读回会构造新对象，不证明持久化后identity继续成立。",
+    "不同颜色、手别、视角、方法和移植版本都不增加案例数。"
+  ],
+  "known_gaps": [
+    {
+      "area": "退出",
+      "finding": "无效状态kill后没有return，当前tick可继续执行移动/牵引；目标移除分支直接discard绕过本类kill。没有统一覆盖remove清理。",
+      "boundary": "静态路径风险，未在游戏重现或修复。"
+    },
+    {
+      "area": "重力",
+      "finding": "onHitBlock置true，kill直接false，不保存旧值；getCapability拒绝已死亡owner，死亡恢复不由此类保证。",
+      "boundary": "不可当作安全退出模板。"
+    },
+    {
+      "area": "同步",
+      "finding": "MessageHookFalling有注册/接收但全固定Java范围没找到构造发送；cap setter仅赋值。HOOKED_ENTITY_ID写入后本类无解析client hookedEntity回调，isPulling未声明同步字段。",
+      "boundary": "原生位置同步不证明上述字段已同步；未声称远端cap完整。"
+    },
+    {
+      "area": "上游入口",
+      "finding": "固定Hookshot快照fabric入口为registry.HookshotComponents，实际为common.registry；所读构建过程未见package重写。",
+      "boundary": "只作上下文，不能当完整可运行正例；不外推所有发布版本。"
+    },
+    {
+      "area": "实机与美术",
+      "finding": "未运行Java/游戏或外部模组，未看本候选PNG视觉效果。",
+      "boundary": "不计生物模型+贴图参考，不称持握、网络或视觉验收通过。"
+    }
+  ],
+  "dedup": {
+    "presearch": "presearch-dedup.json",
+    "targeted_context": "targeted-review-ledger-context.json",
+    "accepted_comparison": "71c3f85928085b78e577 (left-click TidalTentacle damage-chain)",
+    "nonaccepted_prior_candidate": "091547701cfc074ae545 readAdditionalSaveData，仅候选/AST分析，未接受，不按方法补数",
+    "same_origin_family": "Hookshot→Tidal Hook；render helper also credits Alex’s Caves",
+    "pending": "全局语义复核；精确项目名或路径未命中不代表新颖。"
+  },
+  "takeaways": [
+    "发射手/原栈身份、镜头手臂、世界链端分别确认。",
+    "统一所有终止路径，并保存原重力状态；此参考本身有缺口。",
+    "持物display与世界牵索renderer是两条真实消费链，需对应同一状态。",
+    "撤销、可见回收动画、物品回收、伤害成功是不同含义，当前钩不证明后三项。"
+  ],
+  "evidence": [
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "gradle.properties",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/gradle.properties",
+      "sha256": "791b0ec8b02c8117672b82a4e450f5bd2ec67acbd7f563df94c42f448d911db3",
+      "read_ranges": [
+        [
+          1,
+          62
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/gradle.properties",
+      "supports": "实际MC/Forge/模组版本及授权"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/resources/META-INF/mods.toml",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/resources/META-INF/mods.toml",
+      "sha256": "7328b32aed0d7e6ffe9f25fd907869d0bcdf25d605df954898eb323f0c49ae32",
+      "read_ranges": [
+        [
+          1,
+          69
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/resources/META-INF/mods.toml",
+      "supports": "实际依赖"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/Cataclysm.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/Cataclysm.java",
+      "sha256": "5dcf0583079d18caa2a5ae56a6102d200bb7910c62c2071239f0fd35620ecebe",
+      "read_ranges": [
+        [
+          42,
+          104
+        ],
+        [
+          111,
+          153
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/Cataclysm.java",
+      "supports": "注册/事件/仅消息注册"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/init/ModItems.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/init/ModItems.java",
+      "sha256": "0cf3c118532d332e1ad527063813a28f87d4ac46321384b92bce29a93ec81c37",
+      "read_ranges": [
+        [
+          585,
+          595
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/init/ModItems.java",
+      "supports": "claws物品注册"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/init/ModEntities.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/init/ModEntities.java",
+      "sha256": "dbcdeecedb7a120d3d9a6f692d8d64784a4f4bd69bb38f34efb429213cdc4c30",
+      "read_ranges": [
+        [
+          453,
+          463
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/init/ModEntities.java",
+      "supports": "hook实体注册"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/init/ModCapabilities.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/init/ModCapabilities.java",
+      "sha256": "4b2020c7c69cd7017a40bcdae3655fa8856b503745de8cbedc9db54b539cfdc2",
+      "read_ranges": [
+        [
+          1,
+          52
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/init/ModCapabilities.java",
+      "supports": "能力附加及存活owner条件"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/event/ServerEventHandler.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/event/ServerEventHandler.java",
+      "sha256": "9c0aad5573ccf0948f7c71f9617e1ef1835a41d88c6ceef260e7e8f053b08e18",
+      "read_ranges": [
+        [
+          54,
+          72
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/event/ServerEventHandler.java",
+      "supports": "完整LivingTick消费者"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/capabilities/HookCapability.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/capabilities/HookCapability.java",
+      "sha256": "8c160d579b9080d632686fa9b3b37dbb658893a3003c9d65c982939a25f8e38e",
+      "read_ranges": [
+        [
+          1,
+          90
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/capabilities/HookCapability.java",
+      "supports": "bool及fallDistance，setter无发送"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/items/Tidal_Claws.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/items/Tidal_Claws.java",
+      "sha256": "43a755b358c924dcbe22cd38e2732ffa2b5d567667ed99aa433a0e62e92e63c1",
+      "read_ranges": [
+        [
+          1,
+          181
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/items/Tidal_Claws.java",
+      "supports": "左键与右键区分，真实hand入口和释放"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/items/Cataclysm_Weapon_Item.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/items/Cataclysm_Weapon_Item.java",
+      "sha256": "711fbcc205a3987a606278ec215064044d72978f9414870c9899054226853749",
+      "read_ranges": [
+        [
+          1,
+          79
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/items/Cataclysm_Weapon_Item.java",
+      "supports": "继承Item，未覆盖use"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/entity/projectile/Tidal_Hook_Entity.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/entity/projectile/Tidal_Hook_Entity.java",
+      "sha256": "385d3e8539ad3cbdd432e14e15f54930ec8ca0805bd095e728fd1fdbd4b1d429",
+      "read_ranges": [
+        [
+          1,
+          206
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/entity/projectile/Tidal_Hook_Entity.java",
+      "supports": "完整状态、命中、清理、上游出处"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/ClientProxy.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/ClientProxy.java",
+      "sha256": "8b8d0c8653e675223eb17ea52b67c5e66c1b3c23532d623a0b6bfec64e0e4a31",
+      "read_ranges": [
+        [
+          133,
+          247
+        ],
+        [
+          310,
+          317
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/ClientProxy.java",
+      "supports": "真实renderer注册与ISTER properties"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/render/entity/Tidal_Hook_Renderer.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/client/render/entity/Tidal_Hook_Renderer.java",
+      "sha256": "969ed57eb68b8aa2d1f691736d2707ebcb627284db7fed3bc94ca5ec44c2b159",
+      "read_ranges": [
+        [
+          1,
+          168
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/render/entity/Tidal_Hook_Renderer.java",
+      "supports": "真实链条顶点和FP/TP手端"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/model/entity/Tidal_Hook_Model.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/client/model/entity/Tidal_Hook_Model.java",
+      "sha256": "0f7ddfe2c3910ad2022240f4e8c04e166a23e89c364a67afd54f3109e242cb8c",
+      "read_ranges": [
+        [
+          1,
+          91
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/model/entity/Tidal_Hook_Model.java",
+      "supports": "钩模型chain transform"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/render/item/CMItemRenderProperties.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/client/render/item/CMItemRenderProperties.java",
+      "sha256": "8d8bf52485edd922c737348a32e4f4cff4d676cedeed990cf055caff3fe55f05",
+      "read_ranges": [
+        [
+          1,
+          14
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/render/item/CMItemRenderProperties.java",
+      "supports": "IClientItemExtensions真实消费"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/render/CMItemstackRenderer.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/client/render/CMItemstackRenderer.java",
+      "sha256": "0fa59524daa00e2dc3d5b06a8410a5e3c8ac7e07fa9615e32f1ef05d9dc2221a",
+      "read_ranges": [
+        [
+          56,
+          85
+        ],
+        [
+          124,
+          150
+        ],
+        [
+          177,
+          188
+        ],
+        [
+          350,
+          357
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/render/CMItemstackRenderer.java",
+      "supports": "实际item render分支"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/client/model/item/Tidal_Claws_Model.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/client/model/item/Tidal_Claws_Model.java",
+      "sha256": "b69db779b01c14619707096e8b87e5ff1ecbd098351acc760a61d65ce3d21617",
+      "read_ranges": [
+        [
+          1,
+          104
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/client/model/item/Tidal_Claws_Model.java",
+      "supports": "独立item模型"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/resources/assets/cataclysm/models/item/tidal_claws.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/resources/assets/cataclysm/models/item/tidal_claws.json",
+      "sha256": "44b7f0345af10e29824b88b3ad1b54223e7a445d5be4981bafb05cb4a0e80653",
+      "read_ranges": [
+        [
+          1,
+          141
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/resources/assets/cataclysm/models/item/tidal_claws.json",
+      "supports": "builtin/entity和四手display"
+    },
+    {
+      "repo": "lender544/new1.20.1",
+      "commit": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+      "path": "src/main/java/com/github/L_Ender/cataclysm/message/MessageHookFalling.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/message/MessageHookFalling.java",
+      "sha256": "f6de0e0c8ee94be78ce4a5ad67ab30ca7906ee18d353af8bd7aeb46210bd11bd",
+      "read_ranges": [
+        [
+          1,
+          52
+        ]
+      ],
+      "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/message/MessageHookFalling.java",
+      "supports": "接收方，未找到发送"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "5072f91dfd3553d09fd7f8f071086f55868211be",
+      "path": "src/main/resources/fabric.mod.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/CammiesCorner__Hookshot/src/main/resources/fabric.mod.json",
+      "sha256": "156cdf402ffba0a6d81ca7369eff4b965d4243da80a4a85866ee2aef515ad7eb",
+      "read_ranges": [
+        [
+          1,
+          86
+        ]
+      ],
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/5072f91dfd3553d09fd7f8f071086f55868211be/src/main/resources/fabric.mod.json",
+      "supports": "快照组件入口"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "5072f91dfd3553d09fd7f8f071086f55868211be",
+      "path": "src/main/java/dev/cammiescorner/hookshot/common/registry/HookshotComponents.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/CammiesCorner__Hookshot/src/main/java/dev/cammiescorner/hookshot/common/registry/HookshotComponents.java",
+      "sha256": "11bc7151597b45948371628d4434740c35ef40dd72e1a246c5781c5f381ee272",
+      "read_ranges": [
+        [
+          1,
+          24
+        ]
+      ],
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/5072f91dfd3553d09fd7f8f071086f55868211be/src/main/java/dev/cammiescorner/hookshot/common/registry/HookshotComponents.java",
+      "supports": "实际组件package"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "5072f91dfd3553d09fd7f8f071086f55868211be",
+      "path": "build.gradle",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/CammiesCorner__Hookshot/build.gradle",
+      "sha256": "b840fe4df79ce4587107a0d697aefe1f68d5f5dd0c2bf416abde0e9db04526c4",
+      "read_ranges": [
+        [
+          1,
+          204
+        ]
+      ],
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/5072f91dfd3553d09fd7f8f071086f55868211be/build.gradle",
+      "supports": "只读构建上下文未执行，未见package改写"
+    },
+    {
+      "repo": "CammiesCorner/Hookshot",
+      "commit": "5072f91dfd3553d09fd7f8f071086f55868211be",
+      "path": "src/main/java/dev/cammiescorner/hookshot/common/component/PlayerHookOwnerComponent.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/CammiesCorner__Hookshot/src/main/java/dev/cammiescorner/hookshot/common/component/PlayerHookOwnerComponent.java",
+      "sha256": "fb25e429f474b17ef7cc5c054d42c4e49a63b1deb0f7f539f42d2eb57daec30e",
+      "read_ranges": [
+        [
+          1,
+          61
+        ]
+      ],
+      "url": "https://github.com/CammiesCorner/Hookshot/blob/5072f91dfd3553d09fd7f8f071086f55868211be/src/main/java/dev/cammiescorner/hookshot/common/component/PlayerHookOwnerComponent.java",
+      "supports": "上游保存旧重力与sync作差异比较"
+    },
+    {
+      "repo": "local Forge1.20.1/47.4.10 engine support",
+      "path": "net/minecraft/world/item/Item.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/native-support/net/minecraft/world/item/Item.java",
+      "sha256": "7acea0f9dcac2a301141e5584a9a3f35d7c7480c9ad93cfb974f39307cd30909",
+      "read_ranges": [
+        [
+          139,
+          151
+        ]
+      ],
+      "supports": "非食物use返回PASS",
+      "credit": 0
+    },
+    {
+      "repo": "local Forge1.20.1/47.4.10 engine support",
+      "path": "net/minecraft/client/renderer/entity/ItemRenderer.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/native-support/net/minecraft/client/renderer/entity/ItemRenderer.java",
+      "sha256": "920d4848a74da6d89f521db4e4c87108baa3088ece5fcb8efb432dfc8c5d4f76",
+      "read_ranges": [
+        [
+          100,
+          156
+        ]
+      ],
+      "supports": "实际custom renderer消费",
+      "credit": 0
+    }
+  ],
+  "later_context_supplement": {
+    "path": "../batch-03/hookshot-entry-exit-persistence.json",
+    "updated_utc": "2026-10-30T17:19:38.320673+00:00",
+    "summary": "入口移包差异已定位；补读退出、native setRemoved边界和NBT重建stack身份；不代表运行加载通过；家族信用不增加。"
+  }
+}

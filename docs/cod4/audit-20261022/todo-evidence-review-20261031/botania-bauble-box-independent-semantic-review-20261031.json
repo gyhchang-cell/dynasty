@@ -1,0 +1,199 @@
+{
+  "recorded_at": "2026-10-31T03:43:51.762815+00:00",
+  "decision": "SEMANTICALLY_DISTINCT_ONE_FAMILY_MAXIMUM_PENDING_SOURCE_REGISTRATION",
+  "proposed_family": "botania-held-accessory-box-positional-inventory-custody-and-menu-identity",
+  "original_candidate_id": null,
+  "maximum_semantic_family_opinion": 1,
+  "accepted_reference_credit_added": 0,
+  "additional_helper_slot_codec_or_ui_credit": 0,
+  "original_index_scan": {
+    "files_named_ItemBackedInventory_or_BaubleBox": [],
+    "action": "Do not fabricate an original candidate ID or append a reviewed row. Source registration/eligibility must be resolved by coordinator before accepted credit."
+  },
+  "source_pin": {
+    "repo": "VazkiiMods/Botania",
+    "sha": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+    "archive_url": "https://codeload.github.com/VazkiiMods/Botania/zip/0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+    "archive_sha256": "3defffe83b026e4c2b902dd44f401c4775ae436a51cbcbcc77347d5c80ac4b60",
+    "java_files": 1098
+  },
+  "pin_receipt_sha256_verified": "57c183ae58b6769c3469bd1ce0c315374a8d8b23d6868f3cb19e5cccfd25c6da",
+  "pin_limit": "Seven actual local source reads/hash checks against existing Java-only snapshot. Existing commit/archive metadata reused, no fresh archive or Git tree/blob-to-commit verification. Exact Botania native dependency version not established.",
+  "findings": [
+    {
+      "entry": "ItemBackedInventory27-35; ItemNBTHelper95-100,162-164",
+      "finding": "Construct fixed-size24 container. Read Items compound list by list POSITION, not Slot key; consume min(expectedSize,list size) using ItemStack.of. Missing/wrong-kind Items falls through native list getter/new-list boundary; no explicit validation of accessory eligibility, nested containers, numeric counts or registry migration in this reader. Entries beyond24 are not loaded; do not promise preservation."
+    },
+    {
+      "entry": "ItemBackedInventory43-50; ItemNBTHelper85-87",
+      "finding": "setChanged calls parent then writes every container slot, including empty entries, into new Items list on the same backing stack root. Only Items is replaced by this write, other root keys not explicitly cleared. Native ItemStack save/getOrCreateTag and SimpleContainer semantics remain external. Constructor calls inherited setItem; if parent dispatches setChanged during decode, root can be rewritten during construction. Do not claim pure read, no truncation, all metadata safe or disk atomicity."
+    },
+    {
+      "entry": "BaubleBoxContainer30-83; SlotLocked22-29",
+      "finding": "Network opening reads hand boolean and resolves held stack. Server uses physical item-backed inventory, client uses SimpleContainer24; no custom full-content payload in opening bool alone. stillValid is exact reference identity of nonempty box in either hand, not equality of item ID/NBT and not required to remain in original opening hand. Matching hotbar reference gets SlotLocked mayPickup/mayPlace false. Native menu hotkey/offhand swap, copy/replacement, removal and broadcast lifecycle untraced; do not claim complete dupe prevention or all click routes locked."
+    },
+    {
+      "entry": "BaubleBoxItem44-50; BaubleBoxContainer53-57,87-122; EquipmentHandler62-64",
+      "finding": "canPlaceItem/menu mayPlace and player-to-box quickmove use dynamic isAccessory. Base definition accepts rods, BaubleItem or platform-recognized mana item. Filtering is insertion policy only, not old-data sanitation. No explicit self-box/nested-box rejection in these seven files; whether box qualifies depends on item/tag/platform handler. Do not infer absolute nesting prohibition or sanitize historical contents."
+    },
+    {
+      "entry": "InventoryHelper40-101,117-147",
+      "finding": "Simulation copies input stack; accepted empty slot sets simulated remainder EMPTY without explicit per-container capacity split; merge subtracts min(input count, input maxStackSize minus destination count). No destination mutation in simulator itself, but inventoryGetter constructs item-backed inventory with untraced parent setItem dispatch. Native accessor canInsert/canMerge and actual Hopper addItem untraced. Therefore exact simulated versus actual capacity/acceptance equivalence is NOT established."
+    },
+    {
+      "entry": "InventoryHelper125-128,141-144,150-153",
+      "finding": "After simulated complete acceptance, slot path safeTakes current stack and calls real addItem; cursor path calls real addItem then sets cursor EMPTY. Both ignore returned remainder. checkEmpty warning helper exists but is not called by these two paths. No explicit retry, refund, remainder return or rollback. This is a static unchecked-outcome boundary, not a reproduced loss/duplication claim."
+    },
+    {
+      "entry": "BaubleBoxItem55-81; BaubleBoxContainer125-130",
+      "finding": "Server open flag is written before menu creation and cleared on removed. Runtime-like open is physically serialized; not permanent progression. onDestroyed reads inventory, passes nonempty stream to native onContainerDestroyed then clearContent; emission success and inherited clearContent write-through are not independently established. No death/Clone, old-ID remapping, save/reload or network acceptance."
+    }
+  ],
+  "dedup_comparison": {
+    "prior_batch": "157",
+    "prior_candidate_id": "faead9d43a623669c5dd",
+    "prior_family": "native-shulker-portable-owned-inventory-item-block-transfer-and-selective-state",
+    "actual_raw_source_observations": "Shulker loadFromTag allocates new27 slots then deferred loot wins over Items. SaveAdditional saves items only absent loot table. Creative nonempty break and clone save typed BlockEntityTag via saveToItem/saveWithoutMetadata. BlockItem placement merges item payload into fresh BE state after operator gate and load/setChanged. Sided insertion rejects shulker blocks and checks canFitInsideContainerItems, raw load does not invoke that predicate. Survival loot JSON remains unreviewed.",
+    "distinction": "Botania concrete custody owner is physical held item directly mutated during inventory operations, with same-object hand menu validity and outside-menu simulated/actual transfer boundaries. Native shulker custody is world block BE <-> item BlockEntityTag, not held same-object inventory editing. This complete consumer distinction supports at most ONE new semantic family, not extra credit for24versus27, positional versus Slot encoding, accessory tags, helper methods, UI, open flag or registry names.",
+    "limit": "Dedup opinion is against this actual batch157 owner; not a claim of exhaustive global semantic uniqueness or completed accepted-source registration."
+  },
+  "pending_sources_and_checks": [
+    "Coordinator must establish eligible documented candidate/source registration for the complete held-box owner; original index has no ItemBackedInventory/BaubleBox entry. Keep ID null rather than invent one.",
+    "Exact Botania target version/dependency source binding plus native SimpleContainer constructor/setItem/setChanged/clearContent dispatch and ItemStack load/save.",
+    "Exact native Hopper insertion/accessor semantics, container capacity, safeTake/SlotAccess behavior and actual insertion remainder handling.",
+    "EquipmentHandler concrete platform overrides, tags and mana recognition if claiming guaranteed no nesting.",
+    "Native menu hotkey/offhand lifecycle and player/item save, destruction delivery and reload before any runtime/persistence guarantee."
+  ],
+  "evidence_manifest": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/BaubleBoxItem.java",
+      "sha256": "61c67660cd656887cf84a0c20455f6563033dbe7074f471a0da8691d4135092c",
+      "actual_read_ranges": [
+        [
+          1,
+          104
+        ]
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/client/gui/box/BaubleBoxContainer.java",
+      "sha256": "3a3787c33d56684d46e6e0a2287ace2e2c36d89c4b26281491ca66bd1077f8c6",
+      "actual_read_ranges": [
+        [
+          1,
+          132
+        ]
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/ItemBackedInventory.java",
+      "sha256": "a5900c8d4e0e515b760210bf2bf23f460e311307a7f112ce0d3b003c1fc1bab3",
+      "actual_read_ranges": [
+        [
+          1,
+          52
+        ]
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/helper/InventoryHelper.java",
+      "sha256": "94cc443402b85e78ccec104f7ad32e3faf2cf22a9bedfd5888d46fbb4e35b7d1",
+      "actual_read_ranges": [
+        [
+          1,
+          207
+        ]
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/client/gui/SlotLocked.java",
+      "sha256": "91d3385a47be0f1f97bb4e716f93e9487ce9f475987c778e39d6a73961bac13c",
+      "actual_read_ranges": [
+        [
+          1,
+          32
+        ]
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/helper/ItemNBTHelper.java",
+      "sha256": "5ea781235d226986902d8d48c54a21ec1b584925cdc59467228076e9f04e7034",
+      "actual_read_ranges": [
+        [
+          21,
+          180
+        ]
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/handler/EquipmentHandler.java",
+      "sha256": "27bf28e8702aafe0f22f671dfb054266a7b4034dd9b94289cb3e88d5aafee174",
+      "actual_read_ranges": [
+        [
+          1,
+          145
+        ]
+      ]
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/entity/ShulkerBoxBlockEntity.java",
+      "sha256": "69fbff0d3f3eb95042c70fe1ddd4c059c54f7e1fb6ea122ff9a8ba2ce11c0660",
+      "actual_read_ranges": [
+        [
+          178,
+          222
+        ]
+      ],
+      "purpose": "batch157 original native owner comparison, NOT Botania exact-version parent validation"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/ShulkerBoxBlock.java",
+      "sha256": "8717782e38346316f0c82688ed8915a1c1c6fee8a6b7d5f3977cf8a43e43b7a1",
+      "actual_read_ranges": [
+        [
+          130,
+          150
+        ],
+        [
+          244,
+          251
+        ]
+      ],
+      "purpose": "batch157 original native owner comparison, NOT Botania exact-version parent validation"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/entity/BlockEntity.java",
+      "sha256": "3e15dabd6b92bc2d116a06c2464dfb447d21e811af3fdbeaa3258c391959e226",
+      "actual_read_ranges": [
+        [
+          75,
+          98
+        ]
+      ],
+      "purpose": "batch157 original native owner comparison, NOT Botania exact-version parent validation"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/item/BlockItem.java",
+      "sha256": "a0b28ddb58cd94583cb382d82f1ee27a18eb90e9b2f8779766d5f83c7383e2ea",
+      "actual_read_ranges": [
+        [
+          166,
+          193
+        ]
+      ],
+      "purpose": "batch157 original native owner comparison, NOT Botania exact-version parent validation"
+    }
+  ],
+  "proposal_sha256": "315aa7b4422954adbd868dab8867112a310f33599c95a8de586947e31f0f38bc",
+  "batch157_review_sha256": "012dd8dd71a5c280886fd77a8d5778a0fa4924ebe2cd0221aeb8aaffba163ebc",
+  "actions": {
+    "new_receipt_only": true,
+    "master_ledger_edits": 0,
+    "checklist_edits": 0,
+    "production_edits": 0,
+    "network_requests": 0,
+    "game_or_test_runs": 0,
+    "backups": 0,
+    "git_writes_or_uploads": 0
+  }
+}

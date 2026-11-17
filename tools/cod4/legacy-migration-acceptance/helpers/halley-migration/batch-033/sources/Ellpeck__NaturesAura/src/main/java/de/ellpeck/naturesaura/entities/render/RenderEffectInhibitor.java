@@ -1,0 +1,50 @@
+package de.ellpeck.naturesaura.entities.render;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import de.ellpeck.naturesaura.entities.EntityEffectInhibitor;
+import de.ellpeck.naturesaura.items.ItemEffectPowder;
+import de.ellpeck.naturesaura.items.ModItems;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@OnlyIn(Dist.CLIENT)
+public class RenderEffectInhibitor extends EntityRenderer<EntityEffectInhibitor> {
+
+    private final Map<ResourceLocation, ItemStack> items = new HashMap<>();
+
+    public RenderEffectInhibitor(EntityRendererProvider.Context ctx) {
+        super(ctx);
+    }
+
+    @Override
+    public ResourceLocation getTextureLocation(EntityEffectInhibitor entity) {
+        return InventoryMenu.BLOCK_ATLAS;
+    }
+
+    @Override
+    public void render(EntityEffectInhibitor entity, float entityYaw, float partialTicks, PoseStack matrixStackIn, MultiBufferSource bufferIn, int packedLightIn) {
+        matrixStackIn.pushPose();
+        var time = entity.renderTicks + entity.getId() + partialTicks;
+        var bob = (float) Math.sin(time / 10F) * 0.05F;
+        matrixStackIn.translate(0, 0.15F + bob, 0);
+        matrixStackIn.mulPose(Axis.YP.rotationDegrees(time * 3 % 360));
+        var effect = entity.getInhibitedEffect();
+        var stack = this.items.computeIfAbsent(effect,
+                res -> ItemEffectPowder.setEffect(new ItemStack(ModItems.EFFECT_POWDER), effect));
+        Minecraft.getInstance().getItemRenderer().renderStatic(stack, ItemDisplayContext.GROUND, packedLightIn, OverlayTexture.NO_OVERLAY, matrixStackIn, bufferIn, entity.level(), 0);
+        matrixStackIn.popPose();
+    }
+}

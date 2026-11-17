@@ -1,0 +1,146 @@
+[
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/WizardAttackGoal.java",
+    "method": "canUse",
+    "observation": "取mob当前target，非空且活体才缓存，并调用mob.canAttack判许可。",
+    "application": "canAttack是父Goal实际使用的统一许可入口，覆盖它能阻止原生攻击发起。",
+    "limits": "召唤剑实际继承Goal；canContinue只转发此处不另计。"
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/WizardAttackGoal.java",
+    "method": "stop",
+    "observation": "清缓存target、seeTime、spellAttackDelay，撤aggressive和strafe，再停导航。",
+    "application": "取消需清缓存和运动控制，不能只改mob目标字段。",
+    "limits": "实际多状态战斗回收；与仅动画连招清理的子类stop各有独立状态。"
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/WizardAttackGoal.java",
+    "method": "tick",
+    "observation": "缓存target空直接返，更新LOS/seeTime，移动后按上一tick受击加快攻击延迟，再执行攻击并减单发CD。",
+    "application": "服务端缓存目标与实时mob目标可能不同，最终伤害许可必须使用实际受伤对象。",
+    "limits": "真实召唤剑父战斗tick；法术列表/权重选择并非此受控者使用，不据此加计。"
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/WizardAttackGoal.java",
+    "method": "doMovement",
+    "observation": "施法降速；允许逃跑且贴近时找远离点，否则见目标足5tick则横移，失视距或太远每5tick导航或飞行。",
+    "application": "视线状态是移动/射击策略而非敌友授权，不应混作攻击许可。",
+    "limits": "实际受控剑可能通过父远程移动分支，数学速度与跳跃helper不另计。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityDragonBase.java",
+    "method": "getControllingPassenger",
+    "observation": "逐乘客要求玩家不等于当前target，已驯服且ownerUUID相同才返回控制者。",
+    "application": "控制乘客上游用UUID硬校验，可以防旁观者上座即授权。",
+    "limits": "Hippogryph同段只类型写法不同不再计；不是普通get首乘客。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityDragonBase.java",
+    "method": "mobInteract",
+    "observation": "死模型拒普通交互；创造龙餐可绑定，主人专享召唤水晶UUID、按阶段骑乘/上肩、背包、成长/禁成长及驻地/三态护送。",
+    "application": "身份命令和位置命令都依owner门；明确创造物品绑定路径与普通交互不同。",
+    "limits": "完整152行一次，食物/装饰/不同成长物品不拆计。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityDragonBase.java",
+    "method": "hurt",
+    "observation": "死模型只接受虚空伤；控制骑手伤免疫，乘坐时箭/坐骑来源伤拒；睡眠野生龙遭玩家伤醒后设置玩家目标。",
+    "application": "野生受击反击和驯服骑手免伤分别保留，不能用全局玩家免伤代替租约专用门。",
+    "limits": "实际伤害与报复目标入口，不将普通环境伤害常量计数。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityDragonBase.java",
+    "method": "doHurtTarget",
+    "observation": "朝目标看后若正在冲撞或死模型则拒，其他直接hurt并成功时附魔反馈。",
+    "application": "特殊死状态应在最终伤害前拒绝，单有getHealth存活不一定足够。",
+    "limits": "已注册龙近战实体边界，不是不同元素动画常量端口。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityDragonBase.java",
+    "method": "isAlliedTo",
+    "observation": "死模型一律对所有实体返回友军；活驯服龙认owner、同owner宠物和主人团队，否则父团队。",
+    "application": "伪死亡实体利用盟友门阻止其他攻击，与普通isAlive条件有不同覆盖。",
+    "limits": "仅死模型策略新增贡献，普通宠物同owner模板不拆计。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityDragonBase.java",
+    "method": "setTarget",
+    "observation": "父设置target后通知flightManager.onSetAttackTarget，无额外过滤。",
+    "application": "写目标还有飞行管理副作用，拒目标应避免先写后撤的额外行为。",
+    "limits": "非纯setter，包含实际目标变化驱动；飞行管理内部未据此自动计。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityDragonBase.java",
+    "method": "canAttack",
+    "observation": "父canAttack之外还调用DragonUtils.isAlive过滤目标。",
+    "application": "原生攻击许可可拓展统一真实存活定义，适合租约专用门再合并父资格。",
+    "limits": "实体override实际运行，普通getter和Utils已读实现不重复算。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/EntityHippogryph.java",
+    "method": "doHurtTarget",
+    "observation": "尚非抓挠/咬动画则随机起其中一种并返回false，已在攻击动画返回true而不直接hurt。",
+    "application": "doHurtTarget成功值可能仅表示动画进行，不代表玩家已扣血，验证要追实际帧。",
+    "limits": "真实已注册宠物攻击入口，动画名称不独立计数。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DeathWormAIAttack.java",
+    "method": "canUse",
+    "observation": "减jumpCooldown，要求有target、未载客、在地或严格沙中且冷却结束。",
+    "application": "骑乘和自主攻击互斥入口可保留，而目标敌友仍需独立最终检查。",
+    "limits": "实际死亡蠕虫注册Goal，canContinue仅活target模板不计。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DeathWormAIAttack.java",
+    "method": "start",
+    "observation": "有target时从沙层上移到最上沙面，shouldJump则扑跳，否则导航目标。",
+    "application": "攻击发起能改变实体位置，权限拒绝应在发起前，避免只挡伤仍触发扑跳。",
+    "limits": "完整攻击起手一处，jumpAttack数学速度未单计。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/DeathWormAIAttack.java",
+    "method": "tick",
+    "observation": "持续减跳CD，可见且3格内doHurtTarget；随后校正俯仰，满足跳条件继续扑，否则导航已完就追target。",
+    "application": "连续命中入口须每次复核；上次canUse的骑乘/目标状态不足担保后续tick。",
+    "limits": "真实受控宠物攻击循环，纯运动插值不单计。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/PixieAIFlee.java",
+    "method": "canUse",
+    "observation": "已驯服或空手即拒并清列表；野生持偷物时每4tick缓存非旁观实体，取列表首人并设置远离运动点。",
+    "application": "驯服应撤野生偷物逃跑策略；名字closest不等于实现真的排序最近。",
+    "limits": "实际Pixie注册逃离Goal，几何避让算法不计独立信用。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/MyrmexAIEscortEntity.java",
+    "method": "canUse",
+    "observation": "能移动、无战斗目标、有被护卫者，依双方天空状态且未入巢才启动。",
+    "application": "护送是独立控制任务，战斗抢占和环境差异均影响控制资格。",
+    "limits": "实际Soldier注册护卫Goal，非通用路径基础设施。"
+  },
+  {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "file": "/MyrmexAIEscortEntity.java",
+    "method": "canContinueToUse",
+    "observation": "持续要求能移动、无敌、有活被护卫者，距离<15或导航未完，并且双方都不见天空。",
+    "application": "持续条件比入口严格，地表护送会中断，不能把canUse当全部控制语义。",
+    "limits": "实际持续状态门，与入口天光不对称有明确差异；tick纯导航wrapper不计。"
+  }
+]

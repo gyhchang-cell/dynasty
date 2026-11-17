@@ -1,0 +1,132 @@
+{
+  "purpose": "人工全文审阅后的具体玩法使用链；支持方法不额外计数。",
+  "reviewed_at": "2026-10-26T20:19:24.301105+08:00",
+  "additional_credit": 0,
+  "external_runtime_tested": false,
+  "chains": [
+    {
+      "observation": "具体回声横扫延期后的原坐标与当前世界混域、hurt成功结果与收益结算整链；支持方法零额外信用。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "c3c464e826a9678af6dc",
+          "repo": "Mickelus/tetra",
+          "revision": "d212377491eaf2ef58ea841f0e45d532d5e69f95",
+          "path": "src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "method": "echoReap",
+          "line": 242,
+          "end_line": 254,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "source_sha256": "e263b2e2b9b71ea0b29bbc9ce24009a635fdf627989481b74a8926ff2a015264",
+          "snippet_sha256": "c927560c8b5cb8a50e6d6853941f9f6e7f90aa8ddba431dcec85ac401e00d5ea",
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/effect/ReapEffect.java#L242-L254",
+          "excerpt": "private void echoReap(ServerPlayer player, InteractionHand hand, ItemModularHandheld item, ItemStack itemStack, int chargedTicks, AABB aoe,\n            double damageMultiplier, int revengeLevel, boolean overextend, int overextendLevel, double momentumEfficiency, int comboPoints) {\n        EchoHelper.echo(player, 60, () -> {\n            AtomicInteger kills = new AtomicInteger();\n            AtomicInteger revengeKills = new AtomicInteger();\n            AtomicInteger hits = new AtomicInteger();\n            hitEntities(player, item, itemStack, aoe, damageMultiplier, revengeLevel, overextend, overextendLevel, momentumEfficiency,\n                    kills, revengeKills, hits);\n\n            applyBuff(player, kills.get(), hits.get(), hand, item, itemStack, chargedTicks, comboPoints, revengeKills.get());\n            player.sweepAttack();\n        });\n    }"
+        },
+        {
+          "repo": "Mickelus/tetra",
+          "revision": "d212377491eaf2ef58ea841f0e45d532d5e69f95",
+          "path": "src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "method": "perform",
+          "line": 36,
+          "end_line": 110,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "source_sha256": "e263b2e2b9b71ea0b29bbc9ce24009a635fdf627989481b74a8926ff2a015264",
+          "snippet_sha256": "d55da9f32ad9d79d9238942da1eb43893f22b4528ba4d558bfe8ef0c59655ea8",
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/effect/ReapEffect.java#L36-L110",
+          "excerpt": "@Override\n    public void perform(Player attacker, InteractionHand hand, ItemModularHandheld item, ItemStack itemStack, @Nullable LivingEntity target, @Nullable BlockPos targetPos, @Nullable Vec3 hitVec, int chargedTicks) {\n        if (!attacker.level().isClientSide) {\n            int overchargeBonus = canOvercharge(item, itemStack) ? getOverchargeBonus(item, itemStack, chargedTicks) : 0;\n            double momentumEfficiency = item.getEffectEfficiency(itemStack, ItemEffect.abilityMomentum);\n            int revengeLevel = item.getEffectLevel(itemStack, ItemEffect.abilityRevenge);\n            int overextendLevel = item.getEffectLevel(itemStack, ItemEffect.abilityOverextend);\n            boolean overextend = overextendLevel > 0 && !attacker.getFoodData().needsFood();\n            ServerPlayer serverPlayer = (ServerPlayer) attacker;\n\n            int cooldown = getCooldown(item, itemStack);\n            double damageMultiplier = EffectHelper.getEffectLevel(itemStack, ItemEffect.reap) / 100d;\n            double range = EffectHelper.getEffectEfficiency(itemStack, ItemEffect.reap);\n\n            if (overchargeBonus > 0) {\n                damageMultiplier += overchargeBonus * item.getEffectLevel(itemStack, ItemEffect.abilityOvercharge) / 100d;\n                range += overchargeBonus * 0.5;\n            }\n\n            int comboLevel = item.getEffectLevel(itemStack, ItemEffect.abilityCombo);\n            int comboPoints = ComboPoints.get(attacker);\n            if (comboLevel > 0) {\n                damageMultiplier += comboLevel * comboPoints / 100d;\n            }\n\n            AtomicInteger kills = new AtomicInteger();\n            AtomicInteger revengeKills = new AtomicInteger();\n            AtomicInteger hits = new AtomicInteger();\n            Vec3 targetVec;\n            if (target != null) {\n                targetVec = hitVec;\n            } else {\n                targetVec = Vec3.directionFromRotation(attacker.getXRot(), attacker.getYRot())\n                        .normalize()\n                        .scale(range)\n                        .add(attacker.getEyePosition(0));\n            }\n\n            AABB aoe = new AABB(targetVec, targetVec).inflate(range, 1d, range);\n\n            hitEntities(serverPlayer, item, itemStack, aoe, damageMultiplier, revengeLevel, overextend, overextendLevel, momentumEfficiency,\n                    kills, revengeKills, hits);\n\n            applyBuff(attacker, kills.get(), hits.get(), hand, item, itemStack, chargedTicks, comboPoints, revengeKills.get());\n\n            attacker.level().playSound(null, attacker.getX(), attacker.getY(), attacker.getZ(),\n                    SoundEvents.PLAYER_ATTACK_SWEEP, attacker.getSoundSource(), 1.0F, 1.0F);\n\n            item.tickProgression(attacker, itemStack, 1 + kills.get());\n\n            attacker.sweepAttack();\n\n            attacker.causeFoodExhaustion(overextendLevel > 0 ? 6 : 1);\n\n            double exhilarationEfficiency = item.getEffectEfficiency(itemStack, ItemEffect.abilityExhilaration);\n            if (exhilarationEfficiency > 0 && kills.get() > 0) {\n                cooldown = (int) (cooldown * (1 - exhilarationEfficiency / 100d));\n            }\n\n            attacker.getCooldowns().addCooldown(item, cooldown);\n\n            int echoLevel = item.getEffectLevel(itemStack, ItemEffect.abilityEcho);\n            if (echoLevel > 0) {\n                echoReap(serverPlayer, hand, item, itemStack, chargedTicks, aoe, damageMultiplier, revengeLevel, overextend, overextendLevel,\n                        momentumEfficiency, comboPoints);\n            }\n        }\n        attacker.swing(hand, false);\n\n        if (ComboPoints.canSpend(item, itemStack)) {\n            ComboPoints.reset(attacker);\n        }\n\n        item.applyDamage(2, itemStack, attacker);\n    }"
+        },
+        {
+          "repo": "Mickelus/tetra",
+          "revision": "d212377491eaf2ef58ea841f0e45d532d5e69f95",
+          "path": "src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "method": "hitEntities",
+          "line": 112,
+          "end_line": 156,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "source_sha256": "e263b2e2b9b71ea0b29bbc9ce24009a635fdf627989481b74a8926ff2a015264",
+          "snippet_sha256": "4515a102041cc216c23065709d59d776ddff515925bb2e151594e8ea3bdb397f",
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/effect/ReapEffect.java#L112-L156",
+          "excerpt": "private void hitEntities(ServerPlayer player, ItemModularHandheld item, ItemStack itemStack, AABB aoe,\n            double damageMultiplier, int revengeLevel, boolean overextend, int overextendLevel, double momentumEfficiency,\n            AtomicInteger kills, AtomicInteger revengeKills, AtomicInteger hits) {\n        Collection<LivingEntity> momentumTargets = new LinkedList<>();\n        player.level().getEntitiesOfClass(LivingEntity.class, aoe).stream()\n                .filter(entity -> entity != player)\n                .filter(entity -> !player.isAlliedTo(entity))\n                .forEach(entity -> {\n                    double individualDamageMultiplier = damageMultiplier;\n\n                    boolean canRevenge = revengeLevel > 0 && RevengeTracker.canRevenge(player, entity);\n                    if (canRevenge) {\n                        individualDamageMultiplier += revengeLevel / 100d;\n                    }\n\n                    if (overextend && entity.getHealth() / entity.getMaxHealth() >= overextendLevel / 100f) {\n                        individualDamageMultiplier *= 2;\n                    }\n\n                    AbilityUseResult result = item.hitEntity(itemStack, player, entity, individualDamageMultiplier, 0.5f, 0.2f);\n                    if (result != AbilityUseResult.fail) {\n                        if (!entity.isAlive()) {\n                            kills.incrementAndGet();\n\n                            if (canRevenge) {\n                                revengeKills.incrementAndGet();\n                                RevengeTracker.removeEnemySynced(player, entity);\n                            }\n                        } else if (momentumEfficiency > 0) {\n                            momentumTargets.add(entity);\n                        }\n\n                        hits.incrementAndGet();\n                    }\n\n                    if (result == AbilityUseResult.crit) {\n                        player.getCommandSenderWorld().playSound(player, entity.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1, 1.3f);\n                    }\n                });\n\n        if (momentumEfficiency > 0 && kills.get() > 0) {\n            int stunDuration = (int) (momentumEfficiency * kills.get() * 20);\n            momentumTargets.forEach(entity -> entity.addEffect(new MobEffectInstance(StunPotionEffect.instance, stunDuration, 0, false, false)));\n        }\n    }"
+        },
+        {
+          "repo": "Mickelus/tetra",
+          "revision": "d212377491eaf2ef58ea841f0e45d532d5e69f95",
+          "path": "src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "method": "applyBuff",
+          "line": 158,
+          "end_line": 240,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "source_sha256": "e263b2e2b9b71ea0b29bbc9ce24009a635fdf627989481b74a8926ff2a015264",
+          "snippet_sha256": "32079dad87a00f626caa9b0222369eb2b4e22135af9662a6f337560b32b27a4c",
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/effect/ReapEffect.java#L158-L240",
+          "excerpt": "private void applyBuff(Player attacker, int kills, int hits, InteractionHand hand, ItemModularHandheld item, ItemStack itemStack, int chargedTicks,\n            int comboPoints, int revengeKills) {\n        int defensiveLevel = item.getEffectLevel(itemStack, ItemEffect.abilityDefensive);\n        if (defensiveLevel > 0) {\n            if (hand == InteractionHand.OFF_HAND) {\n                if (hits > 0) {\n                    int duration = defensiveLevel * (1 + kills * 2);\n                    attacker.addEffect(new MobEffectInstance(SteeledPotionEffect.instance, duration, hits - 1, false, true));\n                }\n            } else if (kills > 0) {\n                int duration = (int) (item.getEffectEfficiency(itemStack, ItemEffect.abilityDefensive) * 20);\n                attacker.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, duration, kills - 1, false, true));\n            }\n        }\n\n        if (kills > 0) {\n            int overchargeLevel = item.getEffectLevel(itemStack, ItemEffect.abilityOvercharge);\n            if (overchargeLevel > 0) {\n                double duration = 30 * 20;\n\n                duration *= 1 + getOverchargeBonus(item, itemStack, chargedTicks) * item.getEffectEfficiency(itemStack, ItemEffect.abilityOvercharge);\n\n                attacker.addEffect(new MobEffectInstance(SmallStrengthPotionEffect.instance, (int) duration, kills - 1, false, true));\n            }\n\n            int speedLevel = item.getEffectLevel(itemStack, ItemEffect.abilitySpeed);\n            if (speedLevel > 0) {\n                attacker.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, (int) (item.getEffectEfficiency(itemStack, ItemEffect.abilitySpeed) * 20),\n                        kills - 1, false, true));\n            }\n\n            int momentumLevel = item.getEffectLevel(itemStack, ItemEffect.abilityMomentum);\n            if (momentumLevel > 0) {\n                attacker.addEffect(new MobEffectInstance(UnwaveringPotionEffect.instance, momentumLevel * kills * 20,\n                        0, false, true));\n            }\n\n            double comboEfficiency = item.getEffectEfficiency(itemStack, ItemEffect.abilityCombo);\n            if (comboEfficiency > 0) {\n                double duration = 15 * 20;\n\n                duration += comboEfficiency * comboPoints * 20;\n\n                attacker.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, (int) duration, kills - 1, false, true));\n            }\n\n\n            if (revengeKills > 0) {\n                double duration = 20 * 20;\n                duration += item.getEffectEfficiency(itemStack, ItemEffect.abilityRevenge) * revengeKills * 20;\n\n                attacker.addEffect(new MobEffectInstance(SmallStrengthPotionEffect.instance, (int) duration, kills - 1, false, true));\n            }\n\n            int exhilarationLevel = item.getEffectLevel(itemStack, ItemEffect.abilityExhilaration);\n            if (exhilarationLevel > 0) {\n                int currentAmplifier = Optional.ofNullable(attacker.getEffect(SmallAbsorbPotionEffect.instance))\n                        .map(MobEffectInstance::getAmplifier)\n                        .orElse(-1);\n                int amp = Math.max(currentAmplifier, kills - 1);\n                attacker.addEffect(new MobEffectInstance(SmallAbsorbPotionEffect.instance, 30 * 20, amp, false, true));\n            }\n\n            int echoLevel = item.getEffectLevel(itemStack, ItemEffect.abilityEcho);\n            if (echoLevel > 0) {\n                int amp = Optional.ofNullable(attacker.getEffect(SmallStrengthPotionEffect.instance))\n                        .map(MobEffectInstance::getAmplifier)\n                        .orElse(-1);\n                amp = Math.min(echoLevel, amp + kills);\n                attacker.addEffect(new MobEffectInstance(SmallStrengthPotionEffect.instance, 30 * 20, amp, false, true));\n            }\n        }\n\n        int overextendLevel = item.getEffectLevel(itemStack, ItemEffect.abilityOverextend);\n        if (overextendLevel > 0) {\n            if (kills > 0) {\n                attacker.addEffect(new MobEffectInstance(SmallHealthPotionEffect.instance, 45 * 20, kills - 1, false, true));\n            } else if (!attacker.getFoodData().needsFood()) {\n                attacker.addEffect(new MobEffectInstance(ExhaustedPotionEffect.instance, 20 * 20, 4, false, true));\n                attacker.causeFoodExhaustion(12);\n            }\n        }\n    }"
+        },
+        {
+          "repo": "Mickelus/tetra",
+          "revision": "d212377491eaf2ef58ea841f0e45d532d5e69f95",
+          "path": "src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "method": "echoReap",
+          "line": 242,
+          "end_line": 254,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/effect/ReapEffect.java",
+          "source_sha256": "e263b2e2b9b71ea0b29bbc9ce24009a635fdf627989481b74a8926ff2a015264",
+          "snippet_sha256": "c927560c8b5cb8a50e6d6853941f9f6e7f90aa8ddba431dcec85ac401e00d5ea",
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/effect/ReapEffect.java#L242-L254",
+          "excerpt": "private void echoReap(ServerPlayer player, InteractionHand hand, ItemModularHandheld item, ItemStack itemStack, int chargedTicks, AABB aoe,\n            double damageMultiplier, int revengeLevel, boolean overextend, int overextendLevel, double momentumEfficiency, int comboPoints) {\n        EchoHelper.echo(player, 60, () -> {\n            AtomicInteger kills = new AtomicInteger();\n            AtomicInteger revengeKills = new AtomicInteger();\n            AtomicInteger hits = new AtomicInteger();\n            hitEntities(player, item, itemStack, aoe, damageMultiplier, revengeLevel, overextend, overextendLevel, momentumEfficiency,\n                    kills, revengeKills, hits);\n\n            applyBuff(player, kills.get(), hits.get(), hand, item, itemStack, chargedTicks, comboPoints, revengeKills.get());\n            player.sweepAttack();\n        });\n    }"
+        },
+        {
+          "repo": "Mickelus/tetra",
+          "revision": "d212377491eaf2ef58ea841f0e45d532d5e69f95",
+          "path": "src/main/java/se/mickelus/tetra/effect/EchoHelper.java",
+          "method": "echo",
+          "line": 14,
+          "end_line": 33,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/effect/EchoHelper.java",
+          "source_sha256": "e9fa997be781e6d8f879e062907814f3c890c3cd9581b426f358bcea30d8e84f",
+          "snippet_sha256": "02e87847a875c70d698e6c9366602326e49fadf7b84e09f11a38ea04ed1410e3",
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/effect/EchoHelper.java#L14-L33",
+          "excerpt": "public static void echo(Player attacker, int delay, Runnable callback) {\n        Vec3 origin = attacker.position();\n        RandomSource rand = attacker.getRandom();\n        for (int i = 0; i < delay / 10; i++) {\n            ServerScheduler.schedule(i * 10, () -> {\n                ((ServerLevel) attacker.level()).sendParticles(ParticleTypes.WITCH,\n                        origin.x + attacker.getBbWidth() * (rand.nextGaussian() - 0.5) * 0.5,\n                        origin.y + attacker.getBbHeight() * rand.nextFloat(),\n                        origin.z + attacker.getBbWidth() * (rand.nextGaussian() - 0.5) * 0.5,\n                        3, rand.nextFloat() * 0.2, 0.2 + rand.nextFloat() * 0.6, rand.nextFloat() * 0.2, 0);\n            });\n        }\n\n        ServerScheduler.schedule(delay, () -> {\n            Vec3 currentPos = attacker.position();\n            attacker.setPos(origin.x, origin.y, origin.z);\n            callback.run();\n            attacker.setPos(currentPos.x, currentPos.y, currentPos.z);\n        });\n    }"
+        },
+        {
+          "repo": "Mickelus/tetra",
+          "revision": "d212377491eaf2ef58ea841f0e45d532d5e69f95",
+          "path": "src/main/java/se/mickelus/tetra/items/modular/ItemModularHandheld.java",
+          "method": "hitEntity",
+          "line": 439,
+          "end_line": 476,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/items/modular/ItemModularHandheld.java",
+          "source_sha256": "f087f6851397a6693c37b25811b9efb5d881bb3c84899149d1081d675b77cd0b",
+          "snippet_sha256": "9f39d929f38422a01235e9ca4a77d5bdf159baa2d3149c0beef86370f3b1b4d2",
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/items/modular/ItemModularHandheld.java#L439-L476",
+          "excerpt": "public AbilityUseResult hitEntity(ItemStack itemStack, Player player, LivingEntity target, double damageMultiplier, double damageBonus,\n            float knockbackBase, float knockbackMultiplier) {\n        float targetModifier = EnchantmentHelper.getDamageBonus(itemStack, target.getMobType());\n        float critMultiplier = Optional.ofNullable(ForgeHooks.getCriticalHit(player, target, false, 1.5f))\n                .map(CriticalHitEvent::getDamageModifier)\n                .orElse(1f);\n\n        double damage = (1 + getAbilityBaseDamage(player, itemStack) + targetModifier) * critMultiplier * damageMultiplier + damageBonus;\n\n        boolean success = target.hurt(player.damageSources().playerAttack(player), (float) damage);\n        if (success) {\n            // applies enchantment effects on both parties\n            EnchantmentHelper.doPostHurtEffects(target, player);\n            EffectHelper.applyEnchantmentHitEffects(itemStack, target, player);\n\n            // tetra item effects\n            ItemEffectHandler.applyHitEffects(itemStack, target, player);\n\n            // knocks back the target based on effect level + knockback enchantment level\n            float knockbackFactor = knockbackBase + EnchantmentHelper.getItemEnchantmentLevel(Enchantments.KNOCKBACK, itemStack);\n            target.knockback(knockbackFactor * knockbackMultiplier,\n                    player.getX() - target.getX(), player.getZ() - target.getZ());\n\n            if (targetModifier > 1) {\n                player.magicCrit(target);\n                return AbilityUseResult.magicCrit;\n            }\n\n            if (critMultiplier > 1) {\n                player.crit(target);\n                return AbilityUseResult.crit;\n            }\n\n            return AbilityUseResult.hit;\n        }\n\n        return AbilityUseResult.fail;\n    }"
+        },
+        {
+          "repo": "Mickelus/tetra",
+          "revision": "d212377491eaf2ef58ea841f0e45d532d5e69f95",
+          "path": "src/main/java/se/mickelus/tetra/ServerScheduler.java",
+          "method": "schedule",
+          "line": 17,
+          "end_line": 19,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/ServerScheduler.java",
+          "source_sha256": "5f5e70f1d8e3f3165a26fce7eacb31a0de0d4ca34afbd26dc1480a5e629340ca",
+          "snippet_sha256": "7f1edc0c1ae6f5f811f0b9ad8ea2e734d1a15be8e16046f20067d5c4252661f4",
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/ServerScheduler.java#L17-L19",
+          "excerpt": "public static void schedule(int delay, Runnable task) {\n        queue.add(new Task(counter + delay, task));\n    }"
+        },
+        {
+          "repo": "Mickelus/tetra",
+          "revision": "d212377491eaf2ef58ea841f0e45d532d5e69f95",
+          "path": "src/main/java/se/mickelus/tetra/ServerScheduler.java",
+          "method": "onServerTick",
+          "line": 30,
+          "end_line": 45,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Mickelus__tetra/src/main/java/se/mickelus/tetra/ServerScheduler.java",
+          "source_sha256": "5f5e70f1d8e3f3165a26fce7eacb31a0de0d4ca34afbd26dc1480a5e629340ca",
+          "snippet_sha256": "e182fd1b26862aa93e0fca04e4be006f11be73d33d3047b7678435d9c05caff9",
+          "url": "https://github.com/Mickelus/tetra/blob/d212377491eaf2ef58ea841f0e45d532d5e69f95/src/main/java/se/mickelus/tetra/ServerScheduler.java#L30-L45",
+          "excerpt": "@SubscribeEvent\n    public static void onServerTick(TickEvent.ServerTickEvent event) {\n        if (event.phase != TickEvent.Phase.END) {\n            return;\n        }\n\n        for (Iterator<Task> it = queue.iterator(); it.hasNext(); ) {\n            Task task = it.next();\n            if (task.getTick() < counter) {\n                task.run();\n                it.remove();\n            }\n        }\n\n        counter++;\n    }"
+        }
+      ]
+    }
+  ]
+}

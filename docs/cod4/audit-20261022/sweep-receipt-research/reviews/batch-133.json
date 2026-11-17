@@ -1,0 +1,122 @@
+[
+  {
+    "candidate_index": 1364,
+    "candidate_id": "84da258aaf16b2b69d64",
+    "decision": "accepted",
+    "observation": "全文wrapper/FluxShieldingHelper并补读RSAEvents两个完整伤害监听：当前护甲中先选可用栈，Attack已取消早退；<=500且非特殊双绕过时，invulnerableTime>0只取消不耗充能，否则useCharge成功才写10tick无敌并取消。Hurt阶段另按实际正伤害消费并减500；充能可用时间写当前栈NBT now+600，curCharges缓存绝对时间，能量不足无充能。是装备资格—原栈持久deadline—回执后消费的一条玩法链，两个监听/助手不拆数。",
+    "snippet_sha256": "56d9b7d81b220b730e53bc4157e4bb36f312d7916431aeaac461f5d2bb60edae",
+    "reviewed_at": "2026-10-26T21:26:38.010543+08:00"
+  },
+  {
+    "candidate_index": 2569,
+    "candidate_id": "7d9cb48ae64820d03443",
+    "decision": "accepted",
+    "observation": "全文markEntityAsHandled及IConveyorBelt/VerticalConveyor完整onEntityCollision：按side分集合、world gameTime变化即清、entity ID add结果判同刻；并非重复碰撞全跳过，blocked时首次清水平速度，已处理者保留先前水平分量，垂直带仅保留计算my。活体/蹲伏/高度资格先过滤，随后仍移动和可能插入；表无维度字段，异维不同clock可能反复清表。真实传送带交叠碰撞去重一条，垂直变体合并。",
+    "snippet_sha256": "8d27ce1e749c281e610867b4823e6c93e729d6791c1caf0137eeeee38fcaea52",
+    "reviewed_at": "2026-10-26T21:26:38.010575+08:00"
+  },
+  {
+    "candidate_index": 2972,
+    "candidate_id": "b83578ba2ccd8366f107",
+    "decision": "excluded",
+    "observation": "补全文BounceManager/BounceHandler/PacketBounce：shouldBounce在过期清除前执行且匹配位置无Y，可能先允许一次过期块反弹；清除用当前实体世界时钟扫所有维度。PacketBounce只把发送者fallDistance清零。后置速度链已计112，当前生产端/过期观察作为同链补充，不把同一反弹重复计数。",
+    "snippet_sha256": "3cc6ab813c614e4ef866c839754a57ac262d872adfed9d690904da232d95835b",
+    "reviewed_at": "2026-10-26T21:26:38.010588+08:00"
+  },
+  {
+    "candidate_index": 3088,
+    "candidate_id": "a95427c53258fc08329a",
+    "decision": "accepted",
+    "observation": "全文BounceEffect.onFall、BounceTimedEvent、同固定源码EventQueue：有效效果/距离>2/非蹲伏才取消并入side队列；事件保存实体引用和oldY，第一次被队列消费duration++==1恢复Y，isExpired>=1使下一次消费前删除，不依赖世界tick精确相等。队列Post前查expired，客户端暂停不推进，服务器冻结且非stepping不推进；无alive/维度或重复入列检查。此模组的一次队列消费区别于112的实体tick精确相等监听，支持节点不加数。",
+    "snippet_sha256": "a91dddf98631309fa3cf2faa49721298c5719447025be4535900985b5f2af717",
+    "reviewed_at": "2026-10-26T21:26:38.010593+08:00"
+  },
+  {
+    "candidate_index": 3171,
+    "candidate_id": "2349c8e9027059eb73e0",
+    "decision": "accepted",
+    "observation": "全文FocusEffect、ItemEffectHandler.onPlayerTick及ModularBowItem.fireArrow/releaseUsing/onUseTick：入口仅START，偶数世界tick且当前任一手Focus装备/潜行才积累，失格只在偶数tick清缓存。缓存用side符号实体ID、30秒expireAfterWrite不存原栈/维度；射箭事件取消或power不足不清，真正进入发射分支后才调用onFireArrow，echo可保留。蓄力用于spread与耗气，DROWN不清其他正伤害清；换同类弓可继承。完整蓄势消费链一条。",
+    "snippet_sha256": "a374b89406b0c069eb3822578d8d28dc758baa27d64a7f898e12eda56b3ced87",
+    "reviewed_at": "2026-10-26T21:26:38.010597+08:00"
+  },
+  {
+    "candidate_index": 3199,
+    "candidate_id": "362334c90fb130b9b48d",
+    "decision": "accepted",
+    "observation": "全文ArcaneJammer及ItemWand.canCast/cast/onUsingTick：debuff由真实命中授予，Pre以worldTime/15重置随机种子并跳一次随机，使同窗口不能狂点重抽；取消时WAND/SCROLL强置MAIN_HAND，可能与原手不同。canCast在castingTick0发Pre、后续发Tick；continuous首帧复用已检查结果，cast只在spell.cast成功后发Post/粒子包并耗mana/写冷却。确定性拒绝窗口与事件成功边界一条，不声称拒绝音效等于成功。",
+    "snippet_sha256": "0a2f0997e401a03d5639e8e5e914bd6afb95c3ca4f1436d194bc2e986bdcb3e8",
+    "reviewed_at": "2026-10-26T21:26:38.010599+08:00"
+  },
+  {
+    "candidate_index": 1606,
+    "candidate_id": "9fbb1a9b77932120048c",
+    "decision": "accepted",
+    "observation": "全文BasicSpellTurret及BasicSpellTurretTile：红石上升沿schedule4后标TRIGGERED，下落沿只清标志；scheduled tick不重新核验红石即shootSpell。消费时取当前spell、方向和存的UUID，扣source后先发recoil，再检查resolver castType；不保留入队时法术代次，短脉冲消失仍可发射，延迟中重配取新法术。FakePlayer仅是炮台施法归属，不代表真人测试；完整四tick发射链一条。",
+    "snippet_sha256": "8a8450afbd7aab0eda57585ef8f0b8bb7fe5aee7ec0ff739b0e9e3634cc8f90a",
+    "reviewed_at": "2026-10-26T21:26:38.010602+08:00"
+  },
+  {
+    "candidate_index": 2337,
+    "candidate_id": "53b29456aa677bad3e3b",
+    "decision": "accepted",
+    "observation": "全文PieceTrickConjureBlock与BlockConjured：execute验证radius/交互，conjure仅已加载chunk且可替换、setBlockAndUpdate成功才安排正timeVal延迟清除；当前已是同种块直接跳过，重施法不能续期。BlockConjured.tick消费时只removeBlock，无创建者/代次标签，彩色CAD只装饰不作归属。同种位置替换的旧定时任务边界为具体法术临时实体链，一条而非把通用schedule API计数。",
+    "snippet_sha256": "f0bafee24e7e05a064ae91b3d8fc8acaab91155be2307ee52998d072bf31404f",
+    "reviewed_at": "2026-10-26T21:26:38.010605+08:00"
+  },
+  {
+    "candidate_index": 2458,
+    "candidate_id": "dbf6904e132be625cf58",
+    "decision": "excluded",
+    "observation": "全文施法并复读PotionEvents.teleportShadowWalk，已计2314的EndWalk授予—撤销传回同链。保存pos/dimension、异维不传送仍清锚点、多个移除入口幂等观察不另计施法方法。",
+    "snippet_sha256": "bcaf4477f46c661a12cbc4775865888cac828efac2048476e6b0c500e70cd42d",
+    "reviewed_at": "2026-10-26T21:26:38.010609+08:00"
+  },
+  {
+    "candidate_index": 1598,
+    "candidate_id": "0e400ec880f61fb9acec",
+    "decision": "excluded",
+    "observation": "GuardiansSword完整类已在2483连ChargeableItem作为同一充能剑玩法链审阅，此inventoryTick只是续充支持节点，不拆分新增。",
+    "snippet_sha256": "18c03fe9058f3dc59117ea9680a46bbc01e20a95433e7625c42792fd61ca460f",
+    "reviewed_at": "2026-10-26T21:26:38.010612+08:00"
+  },
+  {
+    "candidate_index": 2083,
+    "candidate_id": "d8a80a68bcfa693292f7",
+    "decision": "excluded",
+    "observation": "SummonedEntity.setPhase是已计30完整召唤实体tick状态机的赋值端，非独立延迟回执实现。",
+    "snippet_sha256": "ea101571b7cdde7a3cbe58b3004bd352c4bbb74d429c37c088190e0bfb81b426",
+    "reviewed_at": "2026-10-26T21:26:38.010615+08:00"
+  },
+  {
+    "candidate_index": 2348,
+    "candidate_id": "a0b415d434b169bfbc57",
+    "decision": "excluded",
+    "observation": "attemptRepair每200tick花mana修当前装备的周期维护；虽有余额资格与支付，没有本问题相关的延迟消费/回执归属，保留观察不计。",
+    "snippet_sha256": "830343c2341979eeb3038facf780d8c605b94f051019423e2a5bcd56652befdc",
+    "reviewed_at": "2026-10-26T21:26:38.010619+08:00"
+  },
+  {
+    "candidate_index": 2758,
+    "candidate_id": "2725c55a5519f0114b04",
+    "decision": "excluded",
+    "observation": "PoisonCloud.run是即时范围状态刷新及随机fizz声，returntrue不汇总实际伤害；未体现延迟结算/生命周期回执，不能用状态授予充数。",
+    "snippet_sha256": "8b1b8a7edd0545e2bc1b3c35cf404c84bc5763c45ccdbea61886e4583142fa72",
+    "reviewed_at": "2026-10-26T21:26:38.010623+08:00"
+  },
+  {
+    "candidate_index": 3050,
+    "candidate_id": "a97cb5bf2b947c488f0d",
+    "decision": "auxiliary",
+    "observation": "CharmEvents.applyCharm是死亡物品白名单/保留库存相关的迁移辅助线索，不能用来填本次方天回执研究数；不声称真人/Clone验收。",
+    "snippet_sha256": "b118eff80e98e3fb0a42b5f5ff29618f878f87ab94ab81c089a6eb3e2502a213",
+    "reviewed_at": "2026-10-26T21:26:38.010626+08:00"
+  },
+  {
+    "candidate_index": 3142,
+    "candidate_id": "83d86175413e57fe7e39",
+    "decision": "excluded",
+    "observation": "SummonManager.levelTick归入已计2930召唤租约/恢复链，当前full method是同机制的周期端，不重复计数。",
+    "snippet_sha256": "e53125caf0d5c0989b58fcc13a3bd66ad395b42aa18cecbdcf3daeb2917730f3",
+    "reviewed_at": "2026-10-26T21:26:38.010629+08:00"
+  }
+]

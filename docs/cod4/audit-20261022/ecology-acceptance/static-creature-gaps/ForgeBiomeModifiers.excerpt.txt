@@ -1,0 +1,32 @@
+
+150:     public record AddSpawnsBiomeModifier(HolderSet<Biome> biomes, List<SpawnerData> spawners) implements BiomeModifier
+151:     {
+152:         /**
+153:          * Convenience method for using a single spawn data.
+154:          * @param biomes Biomes to add mob spawns to.
+155:          * @param spawner SpawnerData specifying EntityTYpe, weight, and pack size.
+156:          * @return AddSpawnsBiomeModifier that adds a single spawn entry to the specified biomes.
+157:          */
+158:         public static AddSpawnsBiomeModifier singleSpawn(HolderSet<Biome> biomes, SpawnerData spawner)
+159:         {
+160:             return new AddSpawnsBiomeModifier(biomes, List.of(spawner));
+161:         }
+162: 
+163:         @Override
+164:         public void modify(Holder<Biome> biome, Phase phase, Builder builder)
+165:         {
+166:             if (phase == Phase.ADD && this.biomes.contains(biome))
+167:             {
+168:                 MobSpawnSettingsBuilder spawns = builder.getMobSpawnSettings();
+169:                 for (SpawnerData spawner : this.spawners)
+170:                 {
+171:                     EntityType<?> type = spawner.type;
+172:                     spawns.addSpawn(type.getCategory(), spawner);
+173:                 }
+174:             }
+175:         }
+176: 
+177:         @Override
+178:         public Codec<? extends BiomeModifier> codec()
+179:         {
+180:             return ForgeMod.ADD_SPAWNS_BIOME_MODIFIER_TYPE.get();

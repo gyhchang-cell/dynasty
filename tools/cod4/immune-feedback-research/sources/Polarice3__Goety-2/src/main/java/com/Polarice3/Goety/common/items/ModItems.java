@@ -1,0 +1,531 @@
+package com.Polarice3.Goety.common.items;
+
+import com.Polarice3.Goety.Goety;
+import com.Polarice3.Goety.api.items.magic.ITotem;
+import com.Polarice3.Goety.api.magic.SpellType;
+import com.Polarice3.Goety.common.blocks.fluids.ModFluids;
+import com.Polarice3.Goety.common.effects.GoetyEffects;
+import com.Polarice3.Goety.common.entities.vehicle.ModBoat;
+import com.Polarice3.Goety.common.items.armor.*;
+import com.Polarice3.Goety.common.items.block.HauntedArmorStandItem;
+import com.Polarice3.Goety.common.items.block.HauntedPaintingItem;
+import com.Polarice3.Goety.common.items.brew.BrewBag;
+import com.Polarice3.Goety.common.items.brew.BrewItem;
+import com.Polarice3.Goety.common.items.brew.LingeringBrewItem;
+import com.Polarice3.Goety.common.items.brew.SplashBrewItem;
+import com.Polarice3.Goety.common.items.curios.*;
+import com.Polarice3.Goety.common.items.equipment.*;
+import com.Polarice3.Goety.common.items.magic.*;
+import com.Polarice3.Goety.common.items.research.ExtraScroll;
+import com.Polarice3.Goety.common.items.research.ForbiddenScroll;
+import com.Polarice3.Goety.common.items.research.ResearchScroll;
+import com.Polarice3.Goety.common.items.research.Scroll;
+import com.Polarice3.Goety.common.items.revive.BlazingHelm;
+import com.Polarice3.Goety.common.items.revive.HowlingSoul;
+import com.Polarice3.Goety.common.items.revive.SoulJar;
+import com.Polarice3.Goety.common.magic.ModSpells;
+import com.Polarice3.Goety.common.research.ResearchList;
+import com.Polarice3.Goety.config.ItemConfig;
+import com.Polarice3.Goety.init.ModSounds;
+import com.Polarice3.Goety.init.ModTags;
+import com.Polarice3.Goety.utils.MathHelper;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.food.Foods;
+import net.minecraft.world.item.*;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
+
+public class ModItems {
+    public static DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Goety.MOD_ID);
+
+    @SuppressWarnings("removal")
+    public static void init(){
+        ModItems.ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
+    }
+
+    public static final RegistryObject<FullSpentTotem> TOTEM_OF_ROOTS = ITEMS.register("totem_of_roots", () -> new FullSpentTotem(Math.max(ITotem.MAX_SOULS / 100, 5)));
+    public static final RegistryObject<TotemOfSouls> TOTEM_OF_SOULS = ITEMS.register("totem_of_souls", () -> new TotemOfSouls(ITotem.MAX_SOULS));
+
+    //Basic
+    public static final RegistryObject<Item> SPENT_TOTEM = ITEMS.register("spent_totem", ItemBase::new);
+    public static final RegistryObject<Item> CURSED_METAL_INGOT = ITEMS.register("cursed_ingot", ItemBase::new);
+    public static final RegistryObject<Item> PALE_STEEL_INGOT = ITEMS.register("pale_steel_ingot", ItemBase::new);
+    public static final RegistryObject<Item> DARK_ALLOY_INGOT = ITEMS.register("dark_ingot", ItemBase::new);
+    public static final RegistryObject<Item> ECTOPLASM = ITEMS.register("ectoplasm", ItemBase::new);
+    public static final RegistryObject<Item> SHADOW_ESSENCE = ITEMS.register("shadow_essence", ItemBase::new);
+    public static final RegistryObject<Item> DARK_FABRIC = ITEMS.register("dark_fabric", ItemBase::new);
+    public static final RegistryObject<Item> MAGIC_FABRIC = ITEMS.register("magic_fabric", ItemBase::new);
+    public static final RegistryObject<Item> OCCULT_FABRIC = ITEMS.register("occult_fabric", ItemBase::new);
+    public static final RegistryObject<Item> SPIRIT_FABRIC = ITEMS.register("spirit_fabric", ItemBase::new);
+    public static final RegistryObject<Item> GALE_FABRIC = ITEMS.register("gale_fabric", ItemBase::new);
+    public static final RegistryObject<Item> CHILL_FABRIC = ITEMS.register("chill_fabric", ItemBase::new);
+    public static final RegistryObject<Item> UNHOLY_FABRIC = ITEMS.register("unholy_fabric", () -> new Item(new Item.Properties().fireResistant()));
+    public static final RegistryObject<Item> SAVAGE_TOOTH = ITEMS.register("savage_tooth", ItemBase::new);
+    public static final RegistryObject<Item> JADE = ITEMS.register("jade", ItemBase::new);
+    public static final RegistryObject<Item> SPIDER_EGG = ITEMS.register("spider_egg", ItemBase::new);
+    public static final RegistryObject<Item> WARPED_WARTFUL_EGG = ITEMS.register("warped_wartful_egg", ItemBase::new);
+    public static final RegistryObject<Item> VENOMOUS_FANG = ITEMS.register("venomous_fang", ItemBase::new);
+    public static final RegistryObject<Item> GRAVE_DUST = ITEMS.register("grave_dust", ItemBase::new);
+    public static final RegistryObject<Item> RAGING_MATTER = ITEMS.register("raging_matter", ItemBase::new);
+    public static final RegistryObject<Item> ICE_CUBE = ITEMS.register("ice_cube", ItemBase::new);
+    public static final RegistryObject<Item> VOID_KEY = ITEMS.register("void_key", VoidKeyItem::new);
+    public static final RegistryObject<Item> VOID_ECHO = ITEMS.register("void_echo", () -> new Item(new Item.Properties().fireResistant()));
+    public static final RegistryObject<Item> SOUL_RUBY = ITEMS.register("soul_ruby", ItemBase::new);
+    public static final RegistryObject<Item> EMPTY_FOCUS = ITEMS.register("empty_focus", ItemBase::new);
+    public static final RegistryObject<Item> ANIMATION_CORE = ITEMS.register("animation_core", AnimationCore::new);
+    public static final RegistryObject<Item> HUNGER_CORE = ITEMS.register("hunger_core", ItemBase::new);
+    public static final RegistryObject<Item> WIND_CORE = ITEMS.register("wind_core", ItemBase::new);
+    public static final RegistryObject<Item> MYSTIC_CORE = ITEMS.register("mystic_core", ItemBase::new);
+    public static final RegistryObject<Item> VOID_SHARD = ITEMS.register("void_shard", ItemBase::new);
+    public static final RegistryObject<Item> OMINOUS_SHARD = ITEMS.register("ominous_shard", ItemBase::new);
+    public static final RegistryObject<Item> OMINOUS_ORB = ITEMS.register("ominous_orb", () -> new RepeatCraftItem(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> HEART_OF_THE_NIGHT = ITEMS.register("heart_of_the_night", ItemBase::new);
+    public static final RegistryObject<Item> CAULDRON_LADLE = ITEMS.register("cauldron_ladle", SingleStackItem::new);
+    public static final RegistryObject<Item> OMINOUS_SADDLE = ITEMS.register("ominous_saddle", ItemBase::new);
+    public static final RegistryObject<Item> IRON_TRAMPLER_ARMOR = ITEMS.register("iron_trampler_armor", () -> new TramplerArmorItem(5, "iron"));
+    public static final RegistryObject<Item> GOLD_TRAMPLER_ARMOR = ITEMS.register("gold_trampler_armor", () -> new TramplerArmorItem(7, "gold"));
+    public static final RegistryObject<Item> DIAMOND_TRAMPLER_ARMOR = ITEMS.register("diamond_trampler_armor", () -> new TramplerArmorItem(11, "diamond"));
+    public static final RegistryObject<Item> NETHERITE_TRAMPLER_ARMOR = ITEMS.register("netherite_trampler_armor", () -> new TramplerArmorItem(15, "netherite", new Item.Properties().stacksTo(1).fireResistant()));
+    public static final RegistryObject<Item> IRON_RAVAGER_ARMOR = ITEMS.register("iron_ravager_armor", () -> new RavagerArmorItem(7, "iron"));
+    public static final RegistryObject<Item> GOLD_RAVAGER_ARMOR = ITEMS.register("gold_ravager_armor", () -> new RavagerArmorItem(11, "gold"));
+    public static final RegistryObject<Item> DIAMOND_RAVAGER_ARMOR = ITEMS.register("diamond_ravager_armor", () -> new RavagerArmorItem(15, "diamond"));
+    public static final RegistryObject<Item> NETHERITE_RAVAGER_ARMOR = ITEMS.register("netherite_ravager_armor", () -> new RavagerArmorItem(20, "netherite", new Item.Properties().stacksTo(1).fireResistant()));
+    public static final RegistryObject<Item> WITHERED_MANUSCRIPT = ITEMS.register("withered_manuscript", () -> new Item(new Item.Properties().fireResistant()));
+    public static final RegistryObject<Item> SHROUDED_BLUEPRINT = ITEMS.register("shrouded_blueprint", () -> new Item(new Item.Properties().fireResistant()));
+    public static final RegistryObject<Item> FORBIDDEN_PIECE = ITEMS.register("forbidden_piece", ItemBase::new);
+    public static final RegistryObject<Item> FORBIDDEN_FRAGMENT = ITEMS.register("forbidden_fragment", ItemBase::new);
+
+    public static final RegistryObject<Item> FEET_OF_FROG = ITEMS.register("feet_of_frog", () -> new Item(new Item.Properties().food(Foods.COD)));
+    public static final RegistryObject<Item> COOKED_FEET_OF_FROG = ITEMS.register("cooked_feet_of_frog", () -> new Item(new Item.Properties().food(Foods.COOKED_COD)));
+
+    public static final RegistryObject<Item> VOID_BOTTLE = ITEMS.register("void_bottle", VoidBottleItem::new);
+    public static final RegistryObject<Item> VOID_BUCKET = ITEMS.register("void_bucket", () -> new BucketItem(ModFluids.VOID_FLUID_SOURCE, (new Item.Properties()).craftRemainder(Items.BUCKET).stacksTo(1)));
+
+    public static final RegistryObject<Item> END_MUD_BOTTLE = ITEMS.register("end_mud_bottle", () -> new Item(new Item.Properties().craftRemainder(Items.GLASS_BOTTLE)));
+    public static final RegistryObject<Item> END_MUD_BUCKET = ITEMS.register("end_mud_bucket", () -> new BucketItem(ModFluids.END_MUD_FLUID_SOURCE, (new Item.Properties()).craftRemainder(Items.BUCKET).stacksTo(1)));
+
+    public static final RegistryObject<Item> END_MINERAL_BOTTLE = ITEMS.register("end_mineral_bottle", () -> new Item(new Item.Properties().craftRemainder(Items.GLASS_BOTTLE)));
+    public static final RegistryObject<Item> END_MINERAL_BUCKET = ITEMS.register("end_mineral_bucket", () -> new BucketItem(ModFluids.END_MINERAL_FLUID_SOURCE, (new Item.Properties()).craftRemainder(Items.BUCKET).stacksTo(1)));
+
+    public static final RegistryObject<Item> PHILOSOPHERS_STONE = ITEMS.register("philosophers_stone", PhilosophersStone::new);
+    public static final RegistryObject<Item> DARK_SCROLL = ITEMS.register("dark_scroll", DarkScrollItem::new);
+    public static final RegistryObject<Item> BLAZING_HORN = ITEMS.register("blazing_horn", BlazingHornItem::new);
+    public static final RegistryObject<Item> MAGIC_EMERALD = ITEMS.register("magic_emerald", () -> new SimpleFoiledItem(new Item.Properties()));
+    public static final RegistryObject<Item> SOUL_EMERALD = ITEMS.register("soul_emerald", () -> new SimpleFoiledItem(new Item.Properties()));
+    public static final RegistryObject<Item> UNHOLY_BLOOD = ITEMS.register("unholy_blood", UnholyBloodItem::new);
+    public static final RegistryObject<Item> SOUL_TRANSFER = ITEMS.register("soul_transfer", SoulTransferItem::new);
+    public static final RegistryObject<Item> FLAME_CAPTURE = ITEMS.register("flame_capture", FlameCaptureItem::new);
+    public static final RegistryObject<Item> SNAP_FUNGUS = ITEMS.register("snap_fungus", SnapFungusItem::new);
+    public static final RegistryObject<Item> BLAST_FUNGUS = ITEMS.register("blast_fungus", BlastFungusItem::new);
+    public static final RegistryObject<Item> BERSERK_FUNGUS = ITEMS.register("berserk_fungus", BerserkFungusItem::new);
+    public static final RegistryObject<Item> WARTFUL_EGG = ITEMS.register("wartful_egg", WartlingEggItem::new);
+    public static final RegistryObject<Item> RED_MOSS_GROWTH = ITEMS.register("red_moss_growth", RedMossGrowthItem::new);
+    public static final RegistryObject<Item> CHORUS_GROWTH = ITEMS.register("chorus_growth", ChorusGrowthItem::new);
+    public static final RegistryObject<Item> HENBANE_FLOWER = ITEMS.register("henbane_flower", () -> new Item(new Item.Properties().food(ModFoods.HENBANE)));
+    public static final RegistryObject<Item> NIGHTSHADE_BLOSSOM = ITEMS.register("nightshade_blossom", () -> new Item(new Item.Properties().food(ModFoods.NIGHTSHADE)));
+    public static final RegistryObject<Item> QUICK_GROWING_SEED = ITEMS.register("quick_growing_seed", () -> new QuickGrowSeedItem(false));
+    public static final RegistryObject<Item> POISON_QUILL_SEED = ITEMS.register("poison_quill_seed", () -> new QuickGrowSeedItem(true));
+    public static final RegistryObject<Item> REFUSE_BOTTLE = ITEMS.register("refuse_bottle", RefuseBottleItem::new);
+    public static final RegistryObject<Item> RESILIENCE_LOTION = ITEMS.register("resilience_lotion", () -> new UnguentItem(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, MathHelper.minutesToTicks(3))));
+    public static final RegistryObject<Item> AGING_CREAM = ITEMS.register("aging_cream", () -> new UnguentItem(new MobEffectInstance(GoetyEffects.WANE.get(), MathHelper.minutesToTicks(3)), new MobEffectInstance(GoetyEffects.SAPPED.get(), MathHelper.minutesToTicks(3))));
+    public static final RegistryObject<Item> FLYING_OINTMENT = ITEMS.register("flying_ointment", FlyingOintmentItem::new);
+    public static final RegistryObject<Item> ILL_BOMB = ITEMS.register("ill_bomb", IllBombItem::new);
+    public static final RegistryObject<Item> OMINOUS_SHACKLES = ITEMS.register("ominous_shackles", OminousShacklesItem::new);
+    public static final RegistryObject<Item> REPAIR_PUTTY = ITEMS.register("repair_putty", RepairPuttyItem::new);
+    public static final RegistryObject<Item> CRYPTIC_EYE = ITEMS.register("cryptic_eye", CrypticEyeItem::new);
+    public static final RegistryObject<Item> VOIDED_EYE = ITEMS.register("void_eye", VoidEyeItem::new);
+    public static final RegistryObject<Item> COMMAND_HORN = ITEMS.register("command_horn", CommandHorn::new);
+    public static final RegistryObject<Item> RAIDING_HORN = ITEMS.register("raiding_horn", RaidingHorn::new);
+    public static final RegistryObject<Item> ESOTERIC_TESSERACT = ITEMS.register("esoteric_tesseract", EsotericTesseract::new);
+    public static final RegistryObject<Item> EMPTY_SOUL_JAR = ITEMS.register("empty_soul_jar", ItemBase::new);
+    public static final RegistryObject<Item> SOUL_JAR = ITEMS.register("soul_jar", SoulJar::new);
+    public static final RegistryObject<Item> HOWLING_SOUL = ITEMS.register("howling_soul", HowlingSoul::new);
+    public static final RegistryObject<Item> BLAZING_HELM = ITEMS.register("blazing_helm", BlazingHelm::new);
+    public static final RegistryObject<Item> TAGLOCK_KIT = ITEMS.register("taglock_kit", TaglockKit::new);
+    public static final RegistryObject<Item> WAYSTONE = ITEMS.register("waystone", WaystoneItem::new);
+    public static final RegistryObject<Item> TRANSFER_SCROLL = ITEMS.register("transfer_scroll", TransferScroll::new);
+    public static final RegistryObject<Item> ARCA_COMPASS = ITEMS.register("arca_compass", ArcaCompassItem::new);
+    public static final RegistryObject<Item> PATROL_PLAN = ITEMS.register("patrol_plan", PatrolPlan::new);
+    public static final RegistryObject<Item> GRIMOIRE_OF_GRUDGES = ITEMS.register("grimoire_of_grudges", GrudgeGrimoire::new);
+    public static final RegistryObject<Item> GRIMOIRE_OF_GOODWILL = ITEMS.register("grimoire_of_goodwill", GoodwillGrimoire::new);
+    public static final RegistryObject<Item> GRIMOIRE_OF_GROUNDING = ITEMS.register("grimoire_of_grounding", GroundGrimoire::new);
+
+    public static final RegistryObject<Item> RAVAGING_SCROLL = ITEMS.register("ravaging_scroll", () -> new Scroll(ResearchList.RAVAGING));
+    public static final RegistryObject<Item> WARRED_SCROLL = ITEMS.register("warred_scroll", () -> new Scroll(ResearchList.WARRED));
+    public static final RegistryObject<Item> BURIED_SCROLL = ITEMS.register("buried_scroll", () -> new Scroll(ResearchList.BURIED));
+    public static final RegistryObject<Item> HAUNTING_SCROLL = ITEMS.register("haunting_scroll", () -> new Scroll(ResearchList.HAUNTING));
+    public static final RegistryObject<Item> FRONT_SCROLL = ITEMS.register("front_scroll", () -> new Scroll(ResearchList.FRONT));
+    public static final RegistryObject<Item> MISTRAL_SCROLL = ITEMS.register("mistral_scroll", () -> new Scroll(ResearchList.MISTRAL));
+    public static final RegistryObject<Item> FLORAL_SCROLL = ITEMS.register("floral_scroll", () -> new Scroll(ResearchList.FLORAL));
+    public static final RegistryObject<Item> BYGONE_SCROLL = ITEMS.register("bygone_scroll", () -> new Scroll(ResearchScroll.fireResistant(), ResearchList.BYGONE));
+    public static final RegistryObject<Item> TERMINUS_SCROLL = ITEMS.register("terminus_scroll", () -> new ExtraScroll(ResearchScroll.fireResistant(), ResearchList.TERMINUS, ResearchList.WARRED));
+    public static final RegistryObject<Item> FORBIDDEN_SCROLL = ITEMS.register("forbidden_scroll", ForbiddenScroll::new);
+
+    public static final RegistryObject<Item> UNDEATH_POTION = ITEMS.register("undeath_potion", UndeathPotionItem::new);
+
+    public static final RegistryObject<Item> BREW = ITEMS.register("brew", BrewItem::new);
+    public static final RegistryObject<Item> SPLASH_BREW = ITEMS.register("splash_brew", SplashBrewItem::new);
+    public static final RegistryObject<Item> LINGERING_BREW = ITEMS.register("lingering_brew", LingeringBrewItem::new);
+    public static final RegistryObject<Item> GAS_BREW = ITEMS.register("gas_brew", SplashBrewItem::new);
+
+    public static final RegistryObject<Item> TREASURE_POUCH = ITEMS.register("treasure_pouch", TreasurePouchItem::new);
+
+    public static final RegistryObject<Item> HAUNTED_BOAT = ITEMS.register("haunted_boat", () -> new ModBoatItem(false, ModBoat.Type.HAUNTED, (new Item.Properties()).stacksTo(1)));
+    public static final RegistryObject<Item> HAUNTED_CHEST_BOAT = ITEMS.register("haunted_chest_boat", () -> new ModBoatItem(true, ModBoat.Type.HAUNTED, (new Item.Properties()).stacksTo(1)));
+
+    public static final RegistryObject<Item> ROTTEN_BOAT = ITEMS.register("rotten_boat", () -> new ModBoatItem(false, ModBoat.Type.ROTTEN, (new Item.Properties()).stacksTo(1)));
+    public static final RegistryObject<Item> ROTTEN_CHEST_BOAT = ITEMS.register("rotten_chest_boat", () -> new ModBoatItem(true, ModBoat.Type.ROTTEN, (new Item.Properties()).stacksTo(1)));
+
+    public static final RegistryObject<Item> MARSH_BOAT = ITEMS.register("marsh_boat", () -> new ModBoatItem(false, ModBoat.Type.MARSH, (new Item.Properties()).stacksTo(1)));
+    public static final RegistryObject<Item> MARSH_CHEST_BOAT = ITEMS.register("marsh_chest_boat", () -> new ModBoatItem(true, ModBoat.Type.MARSH, (new Item.Properties()).stacksTo(1)));
+
+    public static final RegistryObject<Item> WINDSWEPT_BOAT = ITEMS.register("windswept_boat", () -> new ModBoatItem(false, ModBoat.Type.WINDSWEPT, (new Item.Properties()).stacksTo(1)));
+    public static final RegistryObject<Item> WINDSWEPT_CHEST_BOAT = ITEMS.register("windswept_chest_boat", () -> new ModBoatItem(true, ModBoat.Type.WINDSWEPT, (new Item.Properties()).stacksTo(1)));
+
+    public static final RegistryObject<Item> PINE_BOAT = ITEMS.register("pine_boat", () -> new ModBoatItem(false, ModBoat.Type.PINE, (new Item.Properties()).stacksTo(1)));
+    public static final RegistryObject<Item> PINE_CHEST_BOAT = ITEMS.register("pine_chest_boat", () -> new ModBoatItem(true, ModBoat.Type.PINE, (new Item.Properties()).stacksTo(1)));
+
+    public static final RegistryObject<Item> CHORUS_BOAT = ITEMS.register("chorus_boat", () -> new ModBoatItem(false, ModBoat.Type.CHORUS, (new Item.Properties()).stacksTo(1)));
+    public static final RegistryObject<Item> CHORUS_CHEST_BOAT = ITEMS.register("chorus_chest_boat", () -> new ModBoatItem(true, ModBoat.Type.CHORUS, (new Item.Properties()).stacksTo(1)));
+
+    public static final RegistryObject<Item> CORRUPT_CHORUS_BOAT = ITEMS.register("corrupt_chorus_boat", () -> new ModBoatItem(false, ModBoat.Type.CORRUPT_CHORUS, (new Item.Properties()).stacksTo(1)));
+    public static final RegistryObject<Item> CORRUPT_CHORUS_CHEST_BOAT = ITEMS.register("corrupt_chorus_chest_boat", () -> new ModBoatItem(true, ModBoat.Type.CORRUPT_CHORUS, (new Item.Properties()).stacksTo(1)));
+
+    public static final RegistryObject<Item> HAUNTED_BROOM = ITEMS.register("haunted_broom", HauntedBroomItem::new);
+
+    public static final RegistryObject<Item> HAUNTED_ARMOR_STAND = ITEMS.register("haunted_armor_stand", HauntedArmorStandItem::new);
+    public static final RegistryObject<Item> HAUNTED_PAINTING = ITEMS.register("haunted_painting", HauntedPaintingItem::new);
+
+    public static final RegistryObject<Item> CROSS_BANNER_PATTERN = ITEMS.register("cross_banner_pattern", () -> new BannerPatternItem(ModTags.BannerPatterns.PATTERN_ITEM_CROSS, (new Item.Properties()).stacksTo(1)));
+    public static final RegistryObject<Item> GALE_BANNER_PATTERN = ITEMS.register("gale_banner_pattern", () -> new BannerPatternItem(ModTags.BannerPatterns.PATTERN_ITEM_GALE, (new Item.Properties()).stacksTo(1)));
+    public static final RegistryObject<Item> MOON_BANNER_PATTERN = ITEMS.register("moon_banner_pattern", () -> new BannerPatternItem(ModTags.BannerPatterns.PATTERN_ITEM_MOON, (new Item.Properties()).stacksTo(1)));
+
+    //Curios
+    public static final RegistryObject<Item> FOCUS_BAG = ITEMS.register("focus_bag", FocusBag::new);
+    public static final RegistryObject<Item> FOCUS_PACK = ITEMS.register("focus_pack", FocusPack::new);
+    public static final RegistryObject<Item> BREW_BAG = ITEMS.register("brew_bag", BrewBag::new);
+    public static final RegistryObject<SingleStackItem> RING_OF_WANT = ITEMS.register("ring_of_want", RingItem::new);
+    public static final RegistryObject<SingleStackItem> RING_OF_THIRST = ITEMS.register("ring_of_thirst", RingItem::new);
+    public static final RegistryObject<SingleStackItem> RING_OF_FORCE = ITEMS.register("ring_of_force", RingItem::new);
+    public static final RegistryObject<SingleStackItem> RING_OF_THE_FORGE = ITEMS.register("ring_of_the_forge", RingItem::new);
+    public static final RegistryObject<SingleStackItem> RING_OF_THE_DRAGON = ITEMS.register("ring_of_the_dragon", RingItem::new);
+    public static final RegistryObject<SingleStackItem> RING_OF_WRECKING = ITEMS.register("ring_of_wrecking", RingItem::new);
+    public static final RegistryObject<SingleStackItem> PENDANT_OF_HUNGER = ITEMS.register("pendant_of_hunger", PendantOfHungerItem::new);
+    public static final RegistryObject<SingleStackItem> TARGETING_MONOCLE = ITEMS.register("targeting_monocle", TargetingMonocleItem::new);
+    public static final RegistryObject<SingleStackItem> DARK_HAT = ITEMS.register("dark_hat", MagicHatItem::new);
+    public static final RegistryObject<SingleStackItem> DARK_CROWN = ITEMS.register("dark_crown", MagicHatItem::new);
+    public static final RegistryObject<SingleStackItem> GRAND_TURBAN = ITEMS.register("grand_turban", MagicHatItem::new);
+    public static final RegistryObject<SingleStackItem> FROST_CROWN = ITEMS.register("frost_crown", () -> new MagicCrownItem(SpellType.FROST));
+    public static final RegistryObject<SingleStackItem> WIND_CROWN = ITEMS.register("wind_crown", () -> new MagicCrownItem(SpellType.WIND));
+    public static final RegistryObject<SingleStackItem> STORM_CROWN = ITEMS.register("storm_crown", () -> new MagicCrownItem(SpellType.STORM));
+    public static final RegistryObject<SingleStackItem> WILD_CROWN = ITEMS.register("wild_crown", () -> new MagicCrownItem(SpellType.WILD));
+    public static final RegistryObject<SingleStackItem> ABYSS_CROWN = ITEMS.register("abyss_crown", () -> new MagicCrownItem(SpellType.ABYSS));
+    public static final RegistryObject<SingleStackItem> VOID_CROWN = ITEMS.register("void_crown", () -> new MagicCrownItem(SpellType.VOID));
+    public static final RegistryObject<SingleStackItem> NETHER_CROWN = ITEMS.register("nether_crown", () -> new MagicCrownItem(new Item.Properties().fireResistant().stacksTo(1), SpellType.NETHER));
+    public static final RegistryObject<SingleStackItem> NECRO_CROWN = ITEMS.register("necro_crown", NecroGarbs.NecroCrownItem::new);
+    public static final RegistryObject<SingleStackItem> NAMELESS_CROWN = ITEMS.register("nameless_crown", () -> new NecroGarbs.NecroCrownItem(true));
+    public static final RegistryObject<SingleStackItem> AMETHYST_NECKLACE = ITEMS.register("amethyst_necklace", SingleStackItem::new);
+    public static final RegistryObject<SingleStackItem> WITCH_HAT = ITEMS.register("witch_hat", WitchHatItem::new);
+    public static final RegistryObject<SingleStackItem> WITCH_HAT_HEDGE = ITEMS.register("witch_hat_hedge", WitchHatItem::new);
+    public static final RegistryObject<SingleStackItem> CRONE_HAT = ITEMS.register("crone_hat", WitchHatItem::new);
+    public static final RegistryObject<SingleStackItem> UNHOLY_HAT = ITEMS.register("unholy_hat", UnholyHatItem::new);
+    public static final RegistryObject<SingleStackItem> UNHOLY_HAT_HALO = ITEMS.register("unholy_hat_halo", UnholyHatItem::new);
+    public static final RegistryObject<SingleStackItem> DARK_ROBE = ITEMS.register("dark_robe", MagicRobeItem::new);
+    public static final RegistryObject<SingleStackItem> DARK_ROBE_FANCY = ITEMS.register("dark_robe_fancy", MagicRobeItem::new);
+    public static final RegistryObject<SingleStackItem> GRAND_ROBE = ITEMS.register("grand_robe", MagicRobeItem::new);
+    public static final RegistryObject<SingleStackItem> NECRO_CAPE = ITEMS.register("necro_cape", () -> new NecroGarbs.NecroCapeItem(false));
+    public static final RegistryObject<SingleStackItem> NAMELESS_CAPE = ITEMS.register("nameless_cape", () -> new NecroGarbs.NecroCapeItem(true));
+    public static final RegistryObject<SingleStackItem> ILLUSION_ROBE = ITEMS.register("illusion_robe", IllusionRobeItem::new);
+    public static final RegistryObject<SingleStackItem> ILLUSION_ROBE_MIRROR = ITEMS.register("illusion_robe_mirror", IllusionRobeItem::new);
+    public static final RegistryObject<SingleStackItem> GEO_ROBE = ITEMS.register("geo_robe", SingleStackItem::new);
+    public static final RegistryObject<SingleStackItem> FROST_ROBE = ITEMS.register("frost_robe", FrostRobeItem::new);
+    public static final RegistryObject<SingleStackItem> FROST_ROBE_CRYO = ITEMS.register("frost_robe_cryo", FrostRobeItem::new);
+    public static final RegistryObject<SingleStackItem> WIND_ROBE = ITEMS.register("wind_robe", WindyRobeItem::new);
+    public static final RegistryObject<SingleStackItem> STORM_ROBE = ITEMS.register("storm_robe", WindyRobeItem::new);
+    public static final RegistryObject<SingleStackItem> WILD_ROBE = ITEMS.register("wild_robe", WildRobeItem::new);
+    public static final RegistryObject<SingleStackItem> ABYSS_ROBE = ITEMS.register("abyss_robe", AbyssRobeItem::new);
+    public static final RegistryObject<SingleStackItem> VOID_ROBE = ITEMS.register("void_robe", VoidRobeItem::new);
+    public static final RegistryObject<SingleStackItem> WITCH_ROBE = ITEMS.register("witch_robe", WitchRobeItem::new);
+    public static final RegistryObject<SingleStackItem> WITCH_ROBE_HEDGE = ITEMS.register("witch_robe_hedge", WitchRobeItem::new);
+    public static final RegistryObject<SingleStackItem> WARLOCK_ROBE = ITEMS.register("warlock_robe", WarlockRobeItem::new);
+    public static final RegistryObject<SingleStackItem> WARLOCK_ROBE_DARK = ITEMS.register("warlock_robe_dark", WarlockRobeItem::new);
+    public static final RegistryObject<SingleStackItem> WARLOCK_SASH = ITEMS.register("warlock_sash", WarlockGarmentItem::new);
+    public static final RegistryObject<SingleStackItem> NETHER_ROBE = ITEMS.register("nether_robe", NetherRobeItem::new);
+    public static final RegistryObject<SingleStackItem> NETHER_ROBE_WARPED = ITEMS.register("nether_robe_warped", NetherRobeItem::new);
+    public static final RegistryObject<SingleStackItem> UNHOLY_ROBE = ITEMS.register("unholy_robe", UnholyRobeItem::new);
+    public static final RegistryObject<SingleStackItem> ETERNAL_CAULDRON = ITEMS.register("eternal_cauldron", EternalCauldronItem::new);
+    public static final RegistryObject<SingleStackItem> SEA_AMULET = ITEMS.register("sea_amulet", SeaAmuletItem::new);
+    public static final RegistryObject<SingleStackItem> FELINE_AMULET = ITEMS.register("feline_amulet", SingleStackItem::new);
+    public static final RegistryObject<SingleStackItem> ALARMING_CHARM = ITEMS.register("alarming_charm", SingleStackItem::new);
+    public static final RegistryObject<SingleStackItem> OMINOUS_CHARM = ITEMS.register("ominous_charm", OminousCharmItem::new);
+    public static final RegistryObject<SingleStackItem> WAYFARERS_BELT = ITEMS.register("wayfarers_belt", WayfarersBeltItem::new);
+    public static final RegistryObject<SingleStackItem> SPITEFUL_BELT = ITEMS.register("spiteful_belt", SingleStackItem::new);
+    public static final RegistryObject<SingleStackItem> STAR_AMULET = ITEMS.register("star_amulet", SingleFoiledStackItem::new);
+    public static final RegistryObject<SingleStackItem> GRAVE_GLOVE = ITEMS.register("grave_glove", GloveItem::new);
+    public static final RegistryObject<SingleStackItem> THRASH_GLOVE = ITEMS.register("thrash_glove", GloveItem::new);
+
+    //Artifacts
+    public static final RegistryObject<SingleStackItem> SOUL_HEALER = ITEMS.register("soul_healer", SoulHealer::new);
+
+    //Focus
+    ///Magic
+    public static final RegistryObject<Item> VEXING_FOCUS = ITEMS.register("vexing_focus", () -> new MagicFocus(ModSpells.VEXING));
+    public static final RegistryObject<Item> BITING_FOCUS = ITEMS.register("biting_focus", () -> new MagicFocus(ModSpells.BITING));
+    public static final RegistryObject<Item> FEAST_FOCUS = ITEMS.register("feast_focus", () -> new MagicFocus(ModSpells.FEAST));
+    public static final RegistryObject<Item> TEETH_FOCUS = ITEMS.register("teeth_focus", () -> new MagicFocus(ModSpells.TEETH));
+    public static final RegistryObject<Item> SHREDDING_FOCUS = ITEMS.register("shredding_focus", () -> new MagicFocus(ModSpells.SHREDDING));
+    public static final RegistryObject<Item> ILLUSION_FOCUS = ITEMS.register("illusion_focus", () -> new MagicFocus(ModSpells.ILLUSION));
+    public static final RegistryObject<Item> IGNITE_FOCUS = ITEMS.register("ignite_focus", () -> new MagicFocus(ModSpells.IGNITE));
+    public static final RegistryObject<Item> SOUL_BOLT_FOCUS = ITEMS.register("soul_bolt_focus", () -> new MagicFocus(ModSpells.SOUL_BOLT));
+    public static final RegistryObject<Item> MAGIC_BOLT_FOCUS = ITEMS.register("magic_bolt_focus", () -> new MagicFocus(ModSpells.MAGIC_BOLT));
+    public static final RegistryObject<Item> SWORD_FOCUS = ITEMS.register("sword_focus", () -> new MagicFocus(ModSpells.SWORD));
+    public static final RegistryObject<Item> SOUL_LIGHT_FOCUS = ITEMS.register("soul_light_focus", () -> new MagicFocus(ModSpells.SOUL_LIGHT));
+    public static final RegistryObject<Item> GLOW_LIGHT_FOCUS = ITEMS.register("glow_light_focus", () -> new MagicFocus(ModSpells.GLOW_LIGHT));
+    public static final RegistryObject<Item> ILLUMINATE_FOCUS = ITEMS.register("illuminate_focus", () -> new MagicFocus(ModSpells.ILLUMINATE));
+    public static final RegistryObject<Item> CRAFTING_FOCUS = ITEMS.register("crafting_focus", () -> new MagicFocus(ModSpells.CRAFTING));
+    public static final RegistryObject<Item> IRON_HIDE_FOCUS = ITEMS.register("iron_hide_focus", () -> new MagicFocus(ModSpells.IRON_HIDE));
+    public static final RegistryObject<Item> BULWARK_FOCUS = ITEMS.register("bulwark_focus", () -> new MagicFocus(ModSpells.BULWARK));
+    public static final RegistryObject<Item> SOUL_HEAL_FOCUS = ITEMS.register("soul_heal_focus", () -> new MagicFocus(ModSpells.SOUL_HEAL));
+    public static final RegistryObject<Item> SHOCKWAVE_FOCUS = ITEMS.register("shockwave_focus", () -> new MagicFocus(ModSpells.SHOCKWAVE));
+    public static final RegistryObject<Item> WEAKENING_FOCUS = ITEMS.register("weakening_focus", () -> new MagicFocus(ModSpells.WEAKENING));
+    public static final RegistryObject<Item> ARROW_RAIN_FOCUS = ITEMS.register("arrow_rain_focus", () -> new MagicFocus(ModSpells.ARROW_RAIN));
+    public static final RegistryObject<Item> TELEKINESIS_FOCUS = ITEMS.register("telekinesis_focus", () -> new MagicFocus(ModSpells.TELEKINESIS));
+    public static final RegistryObject<Item> COMMAND_FOCUS = ITEMS.register("command_focus", CommandFocus::new);
+    public static final RegistryObject<Item> ORDER_FOCUS = ITEMS.register("order_focus", OrderFocus::new);
+    public static final RegistryObject<Item> SONIC_BOOM_FOCUS = ITEMS.register("sonic_boom_focus", () -> new MagicFocus(ModSpells.SONIC_BOOM));
+    public static final RegistryObject<Item> CORRUPTION_FOCUS = ITEMS.register("corruption_focus", () -> new MagicFocus(ModSpells.CORRUPTION));
+
+    ///Necromancy
+    public static final RegistryObject<Item> ROTTING_FOCUS = ITEMS.register("rotting_focus", () -> new MagicFocus(ModSpells.ROTTING));
+    public static final RegistryObject<Item> OSSEOUS_FOCUS = ITEMS.register("osseous_focus", () -> new MagicFocus(ModSpells.OSSEOUS));
+    public static final RegistryObject<Item> GHOST_FIRE_FOCUS = ITEMS.register("ghost_fire_focus", () -> new MagicFocus(ModSpells.GHOST_FIRE));
+    public static final RegistryObject<Item> REAPING_FOCUS = ITEMS.register("reaping_focus", () -> new MagicFocus(ModSpells.REAPING));
+    public static final RegistryObject<Item> SPOOKY_FOCUS = ITEMS.register("spooky_focus", () -> new MagicFocus(ModSpells.SPOOKY));
+    public static final RegistryObject<Item> PHANTASM_FOCUS = ITEMS.register("phantasm_focus", () -> new MagicFocus(ModSpells.PHANTASM));
+    public static final RegistryObject<Item> VANGUARD_FOCUS = ITEMS.register("vanguard_focus", () -> new MagicFocus(ModSpells.VANGUARD));
+    public static final RegistryObject<Item> BLACKGUARD_FOCUS = ITEMS.register("blackguard_focus", () -> new MagicFocus(ModSpells.BLACKGUARD));
+    public static final RegistryObject<Item> LEECHING_FOCUS = ITEMS.register("leeching_focus", () -> new MagicFocus(ModSpells.LEECHING));
+    public static final RegistryObject<Item> KILLING_FOCUS = ITEMS.register("killing_focus", () -> new MagicFocus(ModSpells.KILLING));
+    public static final RegistryObject<Item> SKULL_FOCUS = ITEMS.register("skull_focus", () -> new MagicFocus(ModSpells.SKULL));
+
+    ///Geomancy
+    public static final RegistryObject<Item> BARRICADE_FOCUS = ITEMS.register("barricade_focus", () -> new MagicFocus(ModSpells.BARRICADE));
+    public static final RegistryObject<Item> QUAKING_FOCUS = ITEMS.register("quaking_focus", () -> new MagicFocus(ModSpells.QUAKING));
+    public static final RegistryObject<Item> EARTH_PUNCH_FOCUS = ITEMS.register("earth_punch_focus", () -> new MagicFocus(ModSpells.EARTH_PUNCH));
+    public static final RegistryObject<Item> SMACK_STONE_FOCUS = ITEMS.register("smack_stone_focus", () -> new MagicFocus(ModSpells.SMACK_STONE));
+    public static final RegistryObject<Item> TEMBLOR_CLAP_FOCUS = ITEMS.register("temblor_clap_focus", () -> new MagicFocus(ModSpells.TEMBLOR_CLAP));
+    public static final RegistryObject<Item> MINISTROUS_FOCUS = ITEMS.register("ministrous_focus", () -> new MagicFocus(ModSpells.MINISTROUS));
+    public static final RegistryObject<Item> PULVERIZE_FOCUS = ITEMS.register("pulverize_focus", () -> new MagicFocus(ModSpells.PULVERIZE));
+    public static final RegistryObject<Item> ROTATION_FOCUS = ITEMS.register("rotation_focus", () -> new MagicFocus(ModSpells.ROTATION));
+    public static final RegistryObject<Item> BURROWING_FOCUS = ITEMS.register("burrowing_focus", () -> new MagicFocus(ModSpells.BURROWING));
+    public static final RegistryObject<Item> SENSING_FOCUS = ITEMS.register("sensing_focus", () -> new MagicFocus(ModSpells.SENSING));
+    public static final RegistryObject<Item> SCATTER_FOCUS = ITEMS.register("scatter_focus", () -> new MagicFocus(ModSpells.SCATTER));
+    public static final RegistryObject<Item> ERUPTION_FOCUS = ITEMS.register("eruption_focus", () -> new MagicFocus(ModSpells.ERUPTION));
+
+    ///Frost
+    public static final RegistryObject<Item> FROST_BREATH_FOCUS = ITEMS.register("frost_breath_focus", () -> new MagicFocus(ModSpells.FROST_BREATH));
+    public static final RegistryObject<Item> ICE_SPIKE_FOCUS = ITEMS.register("ice_spike_focus", () -> new MagicFocus(ModSpells.ICE_SPIKE));
+    public static final RegistryObject<Item> ICE_STORM_FOCUS = ITEMS.register("ice_storm_focus", () -> new MagicFocus(ModSpells.ICE_STORM));
+    public static final RegistryObject<Item> HAIL_FOCUS = ITEMS.register("hail_focus", () -> new MagicFocus(ModSpells.HAIL));
+    public static final RegistryObject<Item> ICEOLOGY_FOCUS = ITEMS.register("iceology_focus", () -> new MagicFocus(ModSpells.ICEOLOGY));
+    public static final RegistryObject<Item> BLIZZARD_FOCUS = ITEMS.register("blizzard_focus", () -> new MagicFocus(ModSpells.BLIZZARD));
+    public static final RegistryObject<Item> CHILLING_FOCUS = ITEMS.register("chilling_focus", () -> new MagicFocus(ModSpells.CHILLING));
+    public static final RegistryObject<Item> FROST_NOVA_FOCUS = ITEMS.register("frost_nova_focus", () -> new MagicFocus(ModSpells.FROST_NOVA));
+    public static final RegistryObject<Item> FROSTBORN_FOCUS = ITEMS.register("frostborn_focus", () -> new MagicFocus(ModSpells.FROSTBORN));
+
+    ///Wild
+    public static final RegistryObject<Item> SWARM_FOCUS = ITEMS.register("swarm_focus", () -> new MagicFocus(ModSpells.SWARM));
+    public static final RegistryObject<Item> POISON_DART_FOCUS = ITEMS.register("poison_dart_focus", () -> new MagicFocus(ModSpells.POISON_DART));
+    public static final RegistryObject<Item> BLOSSOMING_FOCUS = ITEMS.register("blossoming_focus", () -> new MagicFocus(ModSpells.BLOSSOMING));
+    public static final RegistryObject<Item> GRAPPLE_FOCUS = ITEMS.register("grapple_focus", () -> new MagicFocus(ModSpells.GRAPPLE));
+    public static final RegistryObject<Item> HUNTING_FOCUS = ITEMS.register("hunting_focus", () -> new MagicFocus(ModSpells.HUNTING));
+    public static final RegistryObject<Item> MAULING_FOCUS = ITEMS.register("mauling_focus", () -> new MagicFocus(ModSpells.MAULING));
+    public static final RegistryObject<Item> SLIMY_FOCUS = ITEMS.register("slimy_focus", () -> new MagicFocus(ModSpells.SLIMY));
+    public static final RegistryObject<Item> CARRION_FOCUS = ITEMS.register("carrion_focus", () -> new MagicFocus(ModSpells.CARRION));
+    public static final RegistryObject<Item> OVERGROWTH_FOCUS = ITEMS.register("overgrowth_focus", () -> new MagicFocus(ModSpells.OVERGROWTH));
+    public static final RegistryObject<Item> ENTANGLING_FOCUS = ITEMS.register("entangling_focus", () -> new MagicFocus(ModSpells.ENTANGLING));
+    public static final RegistryObject<Item> WHISPERING_FOCUS = ITEMS.register("whispering_focus", () -> new MagicFocus(ModSpells.WHISPERING));
+    public static final RegistryObject<Item> LEAPING_FOCUS = ITEMS.register("leaping_focus", () -> new MagicFocus(ModSpells.LEAPING));
+
+    ///Wind
+    public static final RegistryObject<Item> LAUNCH_FOCUS = ITEMS.register("launch_focus", () -> new MagicFocus(ModSpells.LAUNCH));
+    public static final RegistryObject<Item> FLYING_FOCUS = ITEMS.register("flying_focus", () -> new MagicFocus(ModSpells.FLYING));
+    public static final RegistryObject<Item> CUSHION_FOCUS = ITEMS.register("cushion_focus", () -> new MagicFocus(ModSpells.CUSHION));
+    public static final RegistryObject<Item> WHIRLWIND_FOCUS = ITEMS.register("whirlwind_focus", () -> new MagicFocus(ModSpells.WHIRLWIND));
+    public static final RegistryObject<Item> CYCLONE_FOCUS = ITEMS.register("cyclone_focus", () -> new MagicFocus(ModSpells.CYCLONE));
+    public static final RegistryObject<Item> UPDRAFT_FOCUS = ITEMS.register("updraft_focus", () -> new MagicFocus(ModSpells.UPDRAFT));
+    public static final RegistryObject<Item> WIND_BLAST_FOCUS = ITEMS.register("wind_blast_focus", () -> new MagicFocus(ModSpells.WIND_BLAST));
+    public static final RegistryObject<Item> RAZOR_WIND_FOCUS = ITEMS.register("razor_wind_focus", () -> new MagicFocus(ModSpells.RAZOR_WIND));
+    public static final RegistryObject<Item> TREMBLING_FOCUS = ITEMS.register("trembling_focus", () -> new MagicFocus(ModSpells.TREMBLING));
+
+    ///Storm
+    public static final RegistryObject<Item> CHARGE_FOCUS = ITEMS.register("charge_focus", () -> new MagicFocus(ModSpells.CHARGE));
+    public static final RegistryObject<Item> SHOCKING_FOCUS = ITEMS.register("shocking_focus", () -> new MagicFocus(ModSpells.SHOCKING));
+    public static final RegistryObject<Item> THUNDERBOLT_FOCUS = ITEMS.register("thunderbolt_focus", () -> new MagicFocus(ModSpells.THUNDERBOLT));
+    public static final RegistryObject<Item> ELECTROCUTE_FOCUS = ITEMS.register("electrocute_focus", () -> new MagicFocus(ModSpells.ELECTROCUTE));
+    public static final RegistryObject<Item> SURGING_FOCUS = ITEMS.register("surging_focus", () -> new MagicFocus(ModSpells.SURGING));
+    public static final RegistryObject<Item> SPRIGHTLY_FOCUS = ITEMS.register("sprightly_focus", () -> new MagicFocus(ModSpells.SPRIGHTLY));
+    public static final RegistryObject<Item> MONSOON_FOCUS = ITEMS.register("monsoon_focus", () -> new MagicFocus(ModSpells.MONSOON));
+    public static final RegistryObject<Item> DISCHARGE_FOCUS = ITEMS.register("discharge_focus", () -> new MagicFocus(ModSpells.DISCHARGE));
+    public static final RegistryObject<Item> BOLTING_FOCUS = ITEMS.register("bolting_focus", () -> new MagicFocus(ModSpells.BOLTING));
+    public static final RegistryObject<Item> LIGHTNING_FOCUS = ITEMS.register("lightning_focus", () -> new MagicFocus(ModSpells.LIGHTNING));
+    public static final RegistryObject<Item> THUNDERSTORM_FOCUS = ITEMS.register("thunderstorm_focus", () -> new MagicFocus(ModSpells.THUNDERSTORM));
+
+    ///Abyss
+    public static final RegistryObject<Item> WATER_JET_FOCUS = ITEMS.register("water_jet_focus", () -> new MagicFocus(ModSpells.WATER_JET));
+    public static final RegistryObject<Item> BOUNCY_BUBBLE_FOCUS = ITEMS.register("bouncy_bubble_focus", () -> new MagicFocus(ModSpells.BOUNCY_BUBBLE));
+    public static final RegistryObject<Item> STEAMING_FOCUS = ITEMS.register("steaming_focus", () -> new MagicFocus(ModSpells.STEAMING));
+    public static final RegistryObject<Item> TRIDENT_STORM_FOCUS = ITEMS.register("trident_storm_focus", () -> new MagicFocus(ModSpells.TRIDENT_STORM));
+    public static final RegistryObject<Item> PRISMA_BEAM_FOCUS = ITEMS.register("prisma_beam_focus", () -> new MagicFocus(ModSpells.PRISMA_BEAM));
+    public static final RegistryObject<Item> GUARDIAN_FOCUS = ITEMS.register("guardian_focus", () -> new MagicFocus(ModSpells.GUARDIAN));
+    public static final RegistryObject<Item> BIOMINE_FOCUS = ITEMS.register("biomine_focus", () -> new MagicFocus(ModSpells.BIOMINE));
+    public static final RegistryObject<Item> WATER_WHIP_FOCUS = ITEMS.register("water_whip_focus", () -> new MagicFocus(ModSpells.WATER_WHIP));
+    public static final RegistryObject<Item> TIDAL_FOCUS = ITEMS.register("tidal_focus", () -> new MagicFocus(ModSpells.TIDAL));
+
+    ///Nether
+    public static final RegistryObject<Item> FIRE_BREATH_FOCUS = ITEMS.register("fire_breath_focus", () -> new MagicFocus(ModSpells.FIRE_BREATH));
+    public static final RegistryObject<Item> FIREBALL_FOCUS = ITEMS.register("fireball_focus", () -> new MagicFocus(ModSpells.FIREBALL));
+    public static final RegistryObject<Item> LAVABALL_FOCUS = ITEMS.register("lavaball_focus", () -> new MagicFocus(ModSpells.LAVABALL));
+    public static final RegistryObject<Item> BOMBARDMENT_FOCUS = ITEMS.register("bombardment_focus", () -> new MagicFocus(ModSpells.BOMBARDMENT));
+    public static final RegistryObject<Item> METEOR_SHOWER_FOCUS = ITEMS.register("meteor_shower_focus", () -> new MagicFocus(ModSpells.METEOR_SHOWER));
+    public static final RegistryObject<Item> MAGMA_BOMB_FOCUS = ITEMS.register("magma_bomb_focus", () -> new MagicFocus(ModSpells.MAGMA_BOMB));
+    public static final RegistryObject<Item> FIRE_BLAST_FOCUS = ITEMS.register("fire_blast_focus", () -> new MagicFocus(ModSpells.FIRE_BLAST));
+    public static final RegistryObject<Item> FLAME_STRIKE_FOCUS = ITEMS.register("flame_strike_focus", () -> new MagicFocus(ModSpells.FLAME_STRIKE));
+    public static final RegistryObject<Item> WITHER_SKULL_FOCUS = ITEMS.register("wither_skull_focus", () -> new MagicFocus(ModSpells.WITHER_SKULL));
+    public static final RegistryObject<Item> GHASTLY_FOCUS = ITEMS.register("ghastly_focus", () -> new MagicFocus(ModSpells.GHASTLY));
+    public static final RegistryObject<Item> BLAZING_FOCUS = ITEMS.register("blazing_focus", () -> new MagicFocus(ModSpells.BLAZING));
+    public static final RegistryObject<Item> HOGGING_FOCUS = ITEMS.register("hogging_focus", () -> new MagicFocus(ModSpells.HOGGING));
+
+    ///Void
+    public static final RegistryObject<Item> CALL_FOCUS = ITEMS.register("call_focus", CallFocus::new);
+    public static final RegistryObject<Item> TROOP_FOCUS = ITEMS.register("troop_focus", TroopFocus::new);
+    public static final RegistryObject<Item> RECALL_FOCUS = ITEMS.register("recall_focus", RecallFocus::new);
+    public static final RegistryObject<Item> ENDER_CHEST_FOCUS = ITEMS.register("ender_chest_focus", () -> new MagicFocus(ModSpells.ENDER_CHEST));
+    public static final RegistryObject<Item> END_WALK_FOCUS = ITEMS.register("end_walk_focus", () -> new MagicFocus(ModSpells.END_WALK));
+    public static final RegistryObject<Item> BLINK_FOCUS = ITEMS.register("blink_focus", () -> new MagicFocus(ModSpells.BLINK));
+    public static final RegistryObject<Item> BANISH_FOCUS = ITEMS.register("banish_focus", () -> new MagicFocus(ModSpells.BANISH));
+    public static final RegistryObject<Item> TUNNEL_FOCUS = ITEMS.register("tunnel_focus", () -> new MagicFocus(ModSpells.TUNNEL));
+    public static final RegistryObject<Item> RUPTURE_FOCUS = ITEMS.register("rupture_focus", () -> new MagicFocus(ModSpells.RUPTURE));
+    public static final RegistryObject<Item> STELLAR_FOCUS = ITEMS.register("stellar_focus", () -> new MagicFocus(ModSpells.STELLAR));
+    public static final RegistryObject<Item> VOID_FLASH_FOCUS = ITEMS.register("void_flash_focus", () -> new MagicFocus(ModSpells.VOID_FLASH));
+    public static final RegistryObject<Item> WATCHING_FOCUS = ITEMS.register("watching_focus", () -> new MagicFocus(ModSpells.WATCHING));
+    public static final RegistryObject<Item> BLASTING_FOCUS = ITEMS.register("blasting_focus", () -> new MagicFocus(ModSpells.BLASTING));
+    public static final RegistryObject<Item> SNARING_FOCUS = ITEMS.register("snaring_focus", () -> new MagicFocus(ModSpells.SNARING));
+
+    //Armors
+    public static final RegistryObject<Item> CURSED_KNIGHT_HELMET = ITEMS.register("cursed_knight_helmet", () -> new CursedKnightArmor(ArmorItem.Type.HELMET));
+    public static final RegistryObject<Item> CURSED_KNIGHT_CHESTPLATE = ITEMS.register("cursed_knight_chestplate", () -> new CursedKnightArmor(ArmorItem.Type.CHESTPLATE));
+    public static final RegistryObject<Item> CURSED_KNIGHT_LEGGINGS = ITEMS.register("cursed_knight_leggings", () -> new CursedKnightArmor(ArmorItem.Type.LEGGINGS));
+    public static final RegistryObject<Item> CURSED_KNIGHT_BOOTS = ITEMS.register("cursed_knight_boots", () -> new CursedKnightArmor(ArmorItem.Type.BOOTS));
+
+    public static final RegistryObject<Item> CURSED_PALADIN_HELMET = ITEMS.register("cursed_paladin_helmet", () -> new CursedPaladinArmor(ArmorItem.Type.HELMET));
+    public static final RegistryObject<Item> CURSED_PALADIN_CHESTPLATE = ITEMS.register("cursed_paladin_chestplate", () -> new CursedPaladinArmor(ArmorItem.Type.CHESTPLATE));
+    public static final RegistryObject<Item> CURSED_PALADIN_LEGGINGS = ITEMS.register("cursed_paladin_leggings", () -> new CursedPaladinArmor(ArmorItem.Type.LEGGINGS));
+    public static final RegistryObject<Item> CURSED_PALADIN_BOOTS = ITEMS.register("cursed_paladin_boots", () -> new CursedPaladinArmor(ArmorItem.Type.BOOTS));
+
+    public static final RegistryObject<Item> BLACK_IRON_HELMET = ITEMS.register("black_iron_helmet", () -> new BlackIronArmor(ArmorItem.Type.HELMET));
+    public static final RegistryObject<Item> BLACK_IRON_CHESTPLATE = ITEMS.register("black_iron_chestplate", () -> new BlackIronArmor(ArmorItem.Type.CHESTPLATE));
+    public static final RegistryObject<Item> BLACK_IRON_LEGGINGS = ITEMS.register("black_iron_leggings", () -> new BlackIronArmor(ArmorItem.Type.LEGGINGS));
+    public static final RegistryObject<Item> BLACK_IRON_BOOTS = ITEMS.register("black_iron_boots", () -> new BlackIronArmor(ArmorItem.Type.BOOTS));
+
+    public static final RegistryObject<Item> DARK_HELMET = ITEMS.register("dark_helmet", () -> new DarkArmor(ArmorItem.Type.HELMET));
+    public static final RegistryObject<Item> DARK_CHESTPLATE = ITEMS.register("dark_chestplate", () -> new DarkArmor(ArmorItem.Type.CHESTPLATE));
+    public static final RegistryObject<Item> DARK_LEGGINGS = ITEMS.register("dark_leggings", () -> new DarkArmor(ArmorItem.Type.LEGGINGS));
+    public static final RegistryObject<Item> DARK_BOOTS = ITEMS.register("dark_boots", () -> new DarkArmor(ArmorItem.Type.BOOTS));
+
+    public static final RegistryObject<Item> MALEFIC_HELM = ITEMS.register("malefic_helm", MaleficHelm::new);
+
+    //Tools & Weapons
+    public static final RegistryObject<Item> DARK_WAND = ITEMS.register("dark_wand", DarkWand::new);
+    public static final RegistryObject<Item> OMINOUS_STAFF = ITEMS.register("ominous_staff", () -> new DarkStaff(ItemConfig.OminousStaffDamage.get(), SpellType.ILL));
+    public static final RegistryObject<Item> NECRO_STAFF = ITEMS.register("necro_staff", () -> new DarkStaff(ItemConfig.NecroStaffDamage.get(), SpellType.NECROMANCY));
+    public static final RegistryObject<Item> GEO_STAFF = ITEMS.register("geo_staff", () -> new DarkStaff(ItemConfig.GeoStaffDamage.get(), SpellType.GEOMANCY));
+    public static final RegistryObject<Item> WIND_STAFF = ITEMS.register("wind_staff", () -> new DarkStaff(ItemConfig.WindStaffDamage.get(), SpellType.WIND));
+    public static final RegistryObject<Item> STORM_STAFF = ITEMS.register("storm_staff", () -> new DarkStaff(ItemConfig.StormStaffDamage.get(), SpellType.STORM));
+    public static final RegistryObject<Item> FROST_STAFF = ITEMS.register("frost_staff", () -> new DarkStaff(ItemConfig.FrostStaffDamage.get(), SpellType.FROST));
+    public static final RegistryObject<Item> WILD_STAFF = ITEMS.register("wild_staff", () -> new DarkStaff(ItemConfig.WildStaffDamage.get(), SpellType.WILD));
+    public static final RegistryObject<Item> ABYSS_STAFF = ITEMS.register("abyss_staff", () -> new DarkStaff(ItemConfig.AbyssStaffDamage.get(), -2.9D, SpellType.ABYSS));
+    public static final RegistryObject<Item> VOID_STAFF = ITEMS.register("void_staff", () -> new DarkStaff(ItemConfig.VoidStaffDamage.get(), SpellType.VOID));
+    public static final RegistryObject<Item> NETHER_STAFF = ITEMS.register("nether_staff", () -> new DarkStaff(DarkWand.wandProperties().fireResistant(), ItemConfig.NetherStaffDamage.get(), SpellType.NETHER));
+    public static final RegistryObject<Item> NAMELESS_STAFF = ITEMS.register("nameless_staff", NamelessStaff::new);
+    public static final RegistryObject<Item> OMINOUS_SCYTHE = ITEMS.register("dark_scythe", DarkScytheItem::new);
+    public static final RegistryObject<Item> DARK_SCYTHE = ITEMS.register("dark_metal_scythe", DarkMetalScythe::new);
+    public static final RegistryObject<Item> DEATH_SCYTHE = ITEMS.register("death_scythe", DeathScytheItem::new);
+    public static final RegistryObject<Item> GREAT_HAMMER = ITEMS.register("great_hammer", HammerItem::new);
+    public static final RegistryObject<Item> BONEHEAD_HAMMER = ITEMS.register("bonehead_hammer", BoneheadHammerItem::new);
+    public static final RegistryObject<Item> STORMLANDER = ITEMS.register("stormlander", StormlanderItem::new);
+    public static final RegistryObject<Item> FANGED_DAGGER = ITEMS.register("fanged_dagger", FangedDaggerItem::new);
+    public static final RegistryObject<Item> WICKED_BOLINE = ITEMS.register("wicked_boline", SickleItem::new);
+    public static final RegistryObject<Item> EERIE_PICKAXE = ITEMS.register("eerie_pickaxe", EeriePickaxeItem::new);
+    public static final RegistryObject<Item> RAMPAGING_AXE = ITEMS.register("rampaging_axe", RampagingAxeItem::new);
+    public static final RegistryObject<Item> GRAVEROBBER_SHOVEL = ITEMS.register("graverobber_shovel", GraverobberShovelItem::new);
+    public static final RegistryObject<Item> HUNTERS_BOW = ITEMS.register("hunters_bow", HuntersBowItem::new);
+//    public static final RegistryObject<Item> REVOLVER_CROSSBOW = ITEMS.register("revolver_crossbow", RevolverCrossbowItem::new);
+    public static final RegistryObject<Item> IRON_ICE_AXE = ITEMS.register("iron_ice_axe", () -> new IceAxeItem(Tiers.IRON));
+    public static final RegistryObject<Item> REINFORCED_ICE_AXE = ITEMS.register("reinforced_ice_axe", () -> new IceAxeItem(Tiers.IRON, new Item.Properties().durability(600)));
+    public static final RegistryObject<Item> DIAMOND_ICE_AXE = ITEMS.register("diamond_ice_axe", () -> new IceAxeItem(Tiers.DIAMOND));
+    public static final RegistryObject<Item> PHILOSOPHERS_MACE = ITEMS.register("philosophers_mace", PhilosophersMaceItem::new);
+    public static final RegistryObject<Item> DARK_SWORD = ITEMS.register("dark_sword", ModToolItems.DarkSwordItem::new);
+    public static final RegistryObject<Item> DARK_SHOVEL = ITEMS.register("dark_shovel", ModToolItems.DarkShovelItem::new);
+    public static final RegistryObject<Item> DARK_PICKAXE = ITEMS.register("dark_pickaxe", ModToolItems.DarkPickaxeItem::new);
+    public static final RegistryObject<Item> DARK_AXE = ITEMS.register("dark_axe", ModToolItems.DarkAxeItem::new);
+    public static final RegistryObject<Item> DARK_HOE = ITEMS.register("dark_hoe", ModToolItems.DarkHoeItem::new);
+    public static final RegistryObject<Item> HUNGRY_DAGGER = ITEMS.register("hungry_dagger", () -> new FangedDaggerItem(ModTiers.DARK));
+    public static final RegistryObject<Item> FELL_BLADE = ITEMS.register("fell_blade", () -> new SwordItem(ModTiers.SPECIAL, 3, -2.4F, new Item.Properties().durability(256)));
+    public static final RegistryObject<Item> FROZEN_BLADE = ITEMS.register("frozen_blade", () -> new SwordItem(ModTiers.SPECIAL, 4, -2.4F, new Item.Properties()));
+    public static final RegistryObject<Item> BLADE_OF_ENDER = ITEMS.register("blade_of_ender", BladeOfEnderItem::new);
+    public static final RegistryObject<Item> INFERNAL_TOME = ITEMS.register("infernal_tome", InfernalTome::new);
+
+    //Sherds
+    public static final RegistryObject<Item> CROSS_POTTERY_SHERD = ITEMS.register("cross_pottery_sherd", ItemBase::new);
+    public static final RegistryObject<Item> DEAD_POTTERY_SHERD = ITEMS.register("dead_pottery_sherd", ItemBase::new);
+    public static final RegistryObject<Item> HAUNT_POTTERY_SHERD = ITEMS.register("haunt_pottery_sherd", ItemBase::new);
+    public static final RegistryObject<Item> NIGHT_POTTERY_SHERD = ITEMS.register("night_pottery_sherd", ItemBase::new);
+    public static final RegistryObject<Item> SOUL_POTTERY_SHERD = ITEMS.register("soul_pottery_sherd", ItemBase::new);
+
+    //Discs
+    public static final RegistryObject<Item> MUSIC_DISC_ENDERMAN = ITEMS.register("music_disc_enderman", () -> new RecordItem(13, ModSounds.MUSIC_DISC_ENDERMAN, (new Item.Properties()).stacksTo(1).rarity(Rarity.RARE),2240));
+    public static final RegistryObject<Item> MUSIC_DISC_CRONE = ITEMS.register("music_disc_crone", () -> new RecordItem(13, ModSounds.MUSIC_DISC_CRONE, (new Item.Properties()).stacksTo(1).rarity(Rarity.RARE),2180));
+    public static final RegistryObject<Item> MUSIC_DISC_HERESIARCH = ITEMS.register("music_disc_heresiarch", () -> new RecordItem(13, ModSounds.MUSIC_DISC_HERESIARCH, (new Item.Properties()).stacksTo(1).rarity(Rarity.RARE),1820));
+    public static final RegistryObject<Item> MUSIC_DISC_SKULL_LORD = ITEMS.register("music_disc_skull_lord", () -> new RecordItem(13, ModSounds.MUSIC_DISC_SKULL_LORD, (new Item.Properties()).stacksTo(1).rarity(Rarity.RARE),2120));
+    public static final RegistryObject<Item> MUSIC_DISC_WITHER_NECROMANCER = ITEMS.register("music_disc_wither_necromancer", () -> new RecordItem(13, ModSounds.MUSIC_DISC_WITHER_NECROMANCER, (new Item.Properties()).stacksTo(1).rarity(Rarity.RARE),1580));
+    public static final RegistryObject<Item> MUSIC_DISC_RM = ITEMS.register("music_disc_rm", () -> new RecordItem(14, ModSounds.MUSIC_DISC_RM, (new Item.Properties()).stacksTo(1).rarity(Rarity.RARE),3200));
+    public static final RegistryObject<Item> MUSIC_DISC_VIZIER = ITEMS.register("music_disc_vizier", () -> new RecordItem(14, ModSounds.MUSIC_DISC_VIZIER, (new Item.Properties()).stacksTo(1).rarity(Rarity.RARE), 1860));
+    public static final RegistryObject<Item> MUSIC_DISC_KEEPER = ITEMS.register("music_disc_keeper", () -> new RecordItem(14, ModSounds.MUSIC_DISC_KEEPER, (new Item.Properties()).stacksTo(1).rarity(Rarity.RARE), 4640));
+    public static final RegistryObject<Item> MUSIC_DISC_APOSTLE = ITEMS.register("music_disc_apostle", () -> new RecordItem(15, ModSounds.MUSIC_DISC_APOSTLE, (new Item.Properties()).stacksTo(1).rarity(Rarity.RARE),3440));
+
+    //Dummies
+    public static final RegistryObject<Item> PEDESTAL_DUMMY = ITEMS.register("pedestal_dummy",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<DummyItem> JEI_DUMMY_NONE = ITEMS.register(
+            "jei_dummy/none", () -> new DummyItem(new Item.Properties()));
+    public static final RegistryObject<DummyItem> JEI_DUMMY_REQUIRE_SACRIFICE = ITEMS.register(
+            "jei_dummy/sacrifice", () -> new DummyItem(new Item.Properties()));
+    public static final RegistryObject<Item> BONE_SHARD = ITEMS.register("bone_shard",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> COOKING_LADLE = ITEMS.register("cooking_ladle",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> SOUL_ENERGY = ITEMS.register("soul_energy", SoulItem::new);
+
+    public static Item.Properties baseProperties(){
+        return new Item.Properties();
+    }
+
+    public static boolean isFocus(Item item) {
+        return item instanceof MagicFocus;
+    }
+
+    public static boolean shouldSkipCreativeModTab(Item item) {
+        return item == JEI_DUMMY_NONE.get()
+                || item == JEI_DUMMY_REQUIRE_SACRIFICE.get()
+                || item == PEDESTAL_DUMMY.get()
+                || item == BONE_SHARD.get()
+                || item == COOKING_LADLE.get()
+                || item instanceof TotemOfSouls
+                || item instanceof BrewItem
+                || item instanceof SoulItem;
+    }
+}

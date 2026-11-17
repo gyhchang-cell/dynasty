@@ -1,0 +1,545 @@
+{
+  "schema_version": 1,
+  "reviewer": "ui-thread independent read-only review",
+  "recorded_at_utc": "2026-10-31T01:50:35Z",
+  "status": "READ_ONLY_REVIEW_COMPLETE_DESIGN_CLARIFICATION_REQUIRED",
+  "deadline_utc": "2026-10-31T04:09:23Z",
+  "scope": "Four functional-NBT variant quest insertion contract and existing consumers. No production repair or native acceptance.",
+  "constraints": {
+    "production_changes": 0,
+    "master_ledger_changes": 0,
+    "todo_deleted": 0,
+    "java_or_game_started": false,
+    "old_ui_retested": false,
+    "original_saves_accessed": false,
+    "research_credit_added": 0,
+    "native_acceptance_credit_added": 0,
+    "new_variant_1000_gate_met": false
+  },
+  "findings": [
+    {
+      "id": "UI-QREV-01",
+      "severity": "P1",
+      "classification": "confirmed design-contract ambiguity; not an implemented new-node exploit",
+      "title": "Personal advancement does not make the FTB node personal",
+      "evidence": [
+        "ContentProgress.java:62-65; DynastyAdvancements.java:21-31",
+        "FTB 2001.4.22 AdvancementTask.java:114-128; AbstractBooleanTask.java:26-29",
+        "FTBQuestsEventHandler.java:157-171; BaseQuestFile.java:1014-1029; TeamData.java:663-717"
+      ],
+      "detail": "The submitting ServerPlayer supplies the personal advancement check, but progress/completion is keyed by quest/task ID in TeamData selected from the player's current team. Another member of the same party therefore sees the completed FTB task without having crafted. withPlayerContext only tracks the submitter during callbacks; it does not change the progress owner.",
+      "required_resolution": "Define separate acceptance assertions: only crafter A receives the personal advancement; A/B in one party share FTB completion by normal semantics; B in another team remains incomplete. If personal FTB completion is intended, the present plain advancement-task proposal does not implement it. Do not alter all existing team behavior implicitly.",
+      "native_status": "Not run; static source confirmation only."
+    },
+    {
+      "id": "UI-QREV-02",
+      "severity": "P2",
+      "classification": "transaction wording and future acceptance gap",
+      "title": "ItemCraftedEvent fires before crafting-matrix deduction",
+      "evidence": [
+        "Forge 1.20.1-47.4.10 ResultSlot.java:41-64",
+        "CraftingMenu.java:109-123,138-150; Slot.java:25-29",
+        "ForgeEventFactory.java:918-920; PlayerEvent.java:414-434"
+      ],
+      "detail": "ResultSlot checks achievements and posts the event, then onTake consumes each ingredient. This is a native crafting-action hook, not a separate post-payment commit event. Normal vanilla control flow subsequently deducts material; this review found no actual free-craft exploit and makes no such claim. Shift-click passes the original pre-transfer copy through Slot.onQuickCraft, so rejecting it as an empty output would be a false alarm.",
+      "required_resolution": "Do not re-consume ingredients in a future advancement handler. Verify ordinary take, shift-click, full-inventory failure and repeat craft using actual native transactions after authorization; document pre-deduction event timing. Distinguish proof of intended native craft action from crash-safe exactly-once payment settlement."
+    },
+    {
+      "id": "UI-QREV-03",
+      "severity": "P2",
+      "classification": "confirmed identity boundary; proposed handler not yet implemented",
+      "title": "Registry path alone cannot distinguish these four variants",
+      "evidence": [
+        "EquipmentBehaviors.java:423",
+        "ContentProgress.java:52-65",
+        "Four recipe JSONs and InfusionTraits.java:55-69; ExpansionSupplies.java:20"
+      ],
+      "detail": "Both charms reuse ordinary accessory IDs, warm wine reuses marching_wine, and poison smoke uses minecraft:lingering_potion (EquipmentBehaviors.id returns an empty string for this namespace). A future handler routed only through SUPPLIES or the Dynasty-only helper would miss three variants or conflate base items.",
+      "required_resolution": "Match actual output item plus functional tag(s), independent of translated display Name; validate the active known infusion rather than name text or tag presence alone. Poison requires the vanilla potion item, poison payload and variant marker. A dedicated registered code advancement is required; undefined advancement IDs silently do nothing."
+    },
+    {
+      "id": "UI-QREV-04",
+      "severity": "info",
+      "classification": "confirmed current legacy behavior",
+      "title": "Warm-wine crafting also satisfies the legacy marching-wine receipt",
+      "evidence": [
+        "ContentProgress.java:62-65",
+        "recipes/cod4/warm_wine.json",
+        "dynasty_c9.snbt:1484-1501"
+      ],
+      "detail": "A purchased or received base marching wine can be upgraded and the resulting marked wine awards cod4_obtain_marching_wine because it shares the base ID. Thus the old node does not prove the actor personally used the original honey/wolf-fang/red-mushroom recipe. This is existing broad result-based semantics, not a newly introduced reward duplicate.",
+      "required_resolution": "Preserve completed old advancement/task IDs. Do not reinterpret or reset legacy completion to infer an exact old recipe. New receipt meaning must state whether any functional native result or a particular recipe ID is required."
+    },
+    {
+      "id": "UI-QREV-05",
+      "severity": "info",
+      "classification": "confirmed separation of acquisition paths",
+      "title": "Table infusion is a different transaction from workbench crafting",
+      "evidence": [
+        "InfusionMenu.java:36-60",
+        "InfusionTraits.java:79-88",
+        "Four recipe JSONs"
+      ],
+      "detail": "Table validates owner/current menu/BE/distance/revision, then deducts noncreative material and levels before updating the base and awarding first_infusion. The workbench charm recipes consume two materials, steel and string, not a base claw/plate or XP, and have no jade-table gate.",
+      "required_resolution": "Do not award workbench craft history from first_infusion, inventory pickup, recipe discovery or purchased items. Keep original workbench path free of the table's get_jade prerequisite."
+    },
+    {
+      "id": "UI-QREV-06",
+      "severity": "info",
+      "classification": "confirmed cosmetic/functional divergence",
+      "title": "Removing infusion can retain a variant display name",
+      "evidence": [
+        "InfusionTraits.java:79-84",
+        "gray_wolf_fang_charm.json; crab_soldier_shell_charm.json"
+      ],
+      "detail": "Preview copies the original item and edits/removes only DynastyInfusion; the recipe's custom translated display Name survives removal or replacement. A name-based objective can therefore match a functionally ordinary item through a normal table operation.",
+      "required_resolution": "Use functional state for current-equipment checks and retain historical craft completion independently. This review does not modify naming behavior."
+    },
+    {
+      "id": "UI-QREV-07",
+      "severity": "info",
+      "classification": "confirmed current reward boundaries",
+      "title": "No reward on the five chosen existing predecessor nodes; future rewards need explicit ownership",
+      "evidence": [
+        "Five exact c9 nodes in selected_nodes",
+        "modpack/config/ftbquests/quests/data.snbt:2,6,20",
+        "FTB TeamData.java:277-301,599-640; QuestKey.java:18-20; Reward.java:204-205"
+      ],
+      "detail": "All five selected predecessors have rewards:[] and can_repeat:false. Their code advancements have no reward definition. Pack defaults are autoclaim enabled, per-team reward false, linear progression. A future nonempty reward with inherited defaults can be granted to eligible online team members, not only the crafter. Claimed rewards are keyed by reward ID and player/team setting.",
+      "required_resolution": "Keep proposed nodes rewards:[] and nonrepeatable unless deliberately designed otherwise; preserve old quest/task/reward IDs and do not duplicate automatic payouts in the crafting handler. Repeated crafting alone is not evidence of a duplicate payout."
+    },
+    {
+      "id": "UI-QREV-08",
+      "severity": "P2",
+      "classification": "confirmed boundary for any future use objective; current contract is craft-only",
+      "title": "Native poison cloud does not retain smoke-variant identity or a simple player-kill receipt",
+      "evidence": [
+        "Forge ThrowablePotionItem.java:15-29; ThrownPotion.java:82-101,165-191; AreaEffectCloud.java:249-254,316-330",
+        "MobEffect.java:58-60; PotionUtils.java:119-124",
+        "MaterialBrews.java:9-12; DynastyNpcEntity.java:111-118"
+      ],
+      "detail": "The native throw constructs a projectile from the actual player and consumes one potion outside creative mode. Impact transfers owner, potion effects and fixed color to the cloud, but does not copy cod4PoisonSmoke/display NBT. Poison ticks use generic magic damage only while health>1. A cloud owner or poison effect alone cannot prove use of the marked smoke variant, nor guarantee personal lethal-hit attribution. Hei Po's marked long-poison gu is a separate native merchant result with cod4HeiPoGu, not the workbench smoke recipe.",
+      "required_resolution": "Keep the proposed task craft-only. Any future paid-use/trade objective needs its own explicit event-boundary review; never count any lingering poison cloud, poison damage or bought gu as personal smoke crafting. No custom projectile system introduced by this review."
+    },
+    {
+      "id": "UI-QREV-09",
+      "severity": "P2",
+      "classification": "confirmed source-of-truth limitation for future insertion",
+      "title": "Generated chapters and recipe navigation currently lose variant distinctions",
+      "evidence": [
+        "tools/art/gen_ftbquests.py build() delegates to quest_story.build",
+        "tools/art/quest_story.py:82-104,452-468,594-611",
+        "tools/art/quest_cod4.py:122-165",
+        "dynasty_c10.snbt:1808-1822,2247-2260; tools/cod4/generate_assets.py:214,219-222"
+      ],
+      "detail": "recipe_index groups recipes by result registry ID and retains ingredients/count but drops result NBT/display metadata. Current base tiger-claw and scale-plate help consequently describes the variant recipe using the base item name. This does not make existing base-item objectives variant-specific. The supported quest generator rebuilds chapters, so manually adding only the rendered SNBT would not persist on regeneration. All four checked recipe outputs currently agree with their generator formulas.",
+      "required_resolution": "After the research gate, put dedicated variant objectives and stable IDs in the authoritative quest generation inputs and validate generated output. Preserve base item tasks/rewards. Do not claim variant-specific recipe navigation merely because the base-ID recipe index contains that recipe."
+    },
+    {
+      "id": "UI-QREV-10",
+      "severity": "info",
+      "classification": "confirmed transaction and idempotence evidence",
+      "title": "Actor binding is present on table requests; repeated awards are guarded, with no duplicate payout demonstrated",
+      "evidence": [
+        "InfusionRequest.java:5-8; InfusionMenu.java:46-55; InfusionBlockEntity.java:19-31",
+        "Forge PlayerAdvancements.java:169-193; MerchantResultSlot.java:39-55; ItemStack.java:486-488",
+        "FTB TeamData.java:277-301,599-640; ServerQuestFile.java:227-245"
+      ],
+      "detail": "Infusion packet takes its sender from server context, checks current container ID, then owner/menu/distance/BE/revision in the menu. BE revision detects changed stacks and invalidates stale previews. Shared table inventory is shared inventory, not proof of who supplied the item. Vanilla advancement reward granting is guarded by newly-completed transition; FTB reward claiming by its existing claim key. Merchant result uses ItemStack.onCraftedBy but does not post Forge ItemCraftedEvent in the inspected native path, so that similarly named callback is not a paid craft receipt.",
+      "required_resolution": "Keep event sender, actual transaction type and existing claim identities. Do not add a second payout path or manually post crafted events for trades. Preserve party join/leave claimed-reward merging; later runtime tests must distinguish intended per-player rewards from duplicate rewards."
+    }
+  ],
+  "graph_check": {
+    "nodes": 1259,
+    "duplicate_quest_ids": [],
+    "cycles": [],
+    "missing_dependencies": [],
+    "roots_unchanged_from_HEAD": {
+      "1000000000c40017": true,
+      "1000000000c40019": true,
+      "1000000000c40012": true,
+      "1000000000c40018": true,
+      "1000000000c4001d": true
+    },
+    "selected_nodes": {
+      "1000000000c4001d": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_c9.snbt",
+        "line": 1366,
+        "block": "{\n\t\t\tid: \"1000000000c4001d\"\n\t\t\ttitle: \"蝗粉\"\n\t\t\tsubtitle: \"获得物品 · 山野采获\"\n\t\t\tshape: \"square\"\n\t\t\tsize: 1.00d\n\t\t\tx: 18.82d\n\t\t\ty: -15.90d\n\t\t\ticon: { id: \"dynasty:locust_dust\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e蝗粉×1&r。\", \"主世界寻找沙漠、恶地或热带草原的蝗群；&6击败&r后有概率掉落。自然指南针只定位群系。\", \"蝗粉用于淬毒矢、毒烟弹，也有避毒丹配方。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000c4001d\", type: \"advancement\", advancement: \"dynasty:cod4_obtain_locust_dust\", icon: { id: \"dynasty:locust_dust\", Count: 1b }, title: \"取得物品 · 蝗粉\" }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"100000000001000b\"]\n\t\t\tcan_repeat: false\n\t\t\thide_until_deps_complete: false\n\t\t}",
+        "dependencies": [
+          "100000000001000b"
+        ]
+      },
+      "1000000000c40016": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_c9.snbt",
+        "line": 1247,
+        "block": "{\n\t\t\tid: \"1000000000c40016\"\n\t\t\ttitle: \"狐皮\"\n\t\t\tsubtitle: \"获得物品 · 山野采获\"\n\t\t\tshape: \"square\"\n\t\t\tsize: 1.00d\n\t\t\tx: 13.88d\n\t\t\ty: -17.70d\n\t\t\ticon: { id: \"dynasty:fox_pelt\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e狐皮×1&r。\", \"主世界寻找森林或山地的赤狐；&6击败&r后有概率掉落。自然指南针只定位群系。\", \"&a狐皮×1可换皮革×2&r；配丝绸和玉可做狐尾坠。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000c40016\", type: \"advancement\", advancement: \"dynasty:cod4_obtain_fox_pelt\", icon: { id: \"dynasty:fox_pelt\", Count: 1b }, title: \"取得物品 · 狐皮\" }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"100000000001000b\"]\n\t\t\tcan_repeat: false\n\t\t\thide_until_deps_complete: false\n\t\t}",
+        "dependencies": [
+          "100000000001000b"
+        ]
+      },
+      "1000000000010000": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 17,
+        "block": "{\n\t\t\tid: \"1000000000010000\"\n\t\t\ttitle: \"01 · 先读这一页 · 路线怎么走\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"square\"\n\t\t\tsize: 1.00d\n\t\t\tx: -3.00d\n\t\t\ty: -1.80d\n\t\t\ticon: { id: \"minecraft:campfire\", Count: 1b }\n\t\t\tdescription: [\"&e按编号和连线推进；六边形为永久加槽里程碑。支线/图鉴随时查，不需要收齐。阅读页可手动勾选。&r\", \"{\\\"text\\\": \\\"本章备料与支线\\\", \\\"color\\\": \\\"aqua\\\", \\\"underlined\\\": true, \\\"clickEvent\\\": {\\\"action\\\": \\\"change_page\\\", \\\"value\\\": \\\"1000000000070000\\\"}, \\\"hoverEvent\\\": {\\\"action\\\": \\\"show_text\\\", \\\"contents\\\": {\\\"text\\\": \\\"点击在任务书内跳转，无需完成此页\\\"}}}\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000010000\", type: \"checkmark\" }]\n\t\t\trewards: []\n\t\t}",
+        "dependencies": []
+      },
+      "1000000000000000": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 121,
+        "block": "{\n\t\t\tid: \"1000000000000000\"\n\t\t\ttitle: \"08 · 木矛\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: 0.00d\n\t\t\ty: 0.00d\n\t\t\ticon: { id: \"dynasty:mu_mao\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e木矛×1&r。\", \"两根木棍加一块任意木板&6合成&r。夜里先避开王朝精英怪。\", \"&6合成&r：&a木棍×2&r + &a任意木板×1&r → &a木矛×1&r。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000000000\", type: \"item\", item: { id: \"dynasty:mu_mao\", Count: 1b }, count: 1L }]\n\t\t\trewards: [{ id: \"3000000000000000\", type: \"item\", item: { id: \"dynasty:copper_coin\", Count: 1b }, count: 10 }, { id: \"3000000000000001\", type: \"xp\", xp: 6 }, { id: \"3000000000000002\", type: \"command\", command: \"dynasty merit 12\", elevate_perms: true, silent: true }]\n\t\t\tdependencies: [\"1000000000010021\"]\n\t\t}",
+        "dependencies": [
+          "1000000000010021"
+        ]
+      },
+      "1000000000010001": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 31,
+        "block": "{\n\t\t\tid: \"1000000000010001\"\n\t\t\ttitle: \"02 · 搭起工作台\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: -1.50d\n\t\t\ty: -1.80d\n\t\t\ticon: { id: \"minecraft:crafting_table\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e工作台×1&r。\", \"砍树做四块木板，在背包&6合成&r格摆成 &a2×2&r。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000010001\", type: \"item\", item: { id: \"minecraft:crafting_table\", Count: 1b }, count: 1L }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000010000\"]\n\t\t}",
+        "dependencies": [
+          "1000000000010000"
+        ]
+      },
+      "1000000000c40017": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_c9.snbt",
+        "line": 1264,
+        "block": "{\n\t\t\tid: \"1000000000c40017\"\n\t\t\ttitle: \"狼牙\"\n\t\t\tsubtitle: \"获得物品 · 山野采获\"\n\t\t\tshape: \"square\"\n\t\t\tsize: 1.00d\n\t\t\tx: 15.53d\n\t\t\ty: -17.70d\n\t\t\ticon: { id: \"dynasty:wolf_fang\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e狼牙×1&r。\", \"主世界寻找森林、山地或雪地的灰狼；&6击败&r后有概率掉落。自然指南针只定位群系。\", \"狼牙用于破甲矢、壮行酒和灰狼牙饰。普通狼不掉狼牙。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000c40017\", type: \"advancement\", advancement: \"dynasty:cod4_obtain_wolf_fang\", icon: { id: \"dynasty:wolf_fang\", Count: 1b }, title: \"取得物品 · 狼牙\" }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000c40016\"]\n\t\t\tcan_repeat: false\n\t\t\thide_until_deps_complete: false\n\t\t}",
+        "dependencies": [
+          "1000000000c40016"
+        ]
+      },
+      "1000000000010021": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 106,
+        "block": "{\n\t\t\tid: \"1000000000010021\"\n\t\t\ttitle: \"07 · 带一桶水出门\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: 1.50d\n\t\t\ty: 0.00d\n\t\t\ticon: { id: \"minecraft:water_bucket\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e水桶×1&r。\", \"三块铁锭做桶，对水源&6右键&r装满；水桶&c不能&r代替护甲，也不是所有维度都能放水。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000010021\", type: \"item\", item: { id: \"minecraft:water_bucket\", Count: 1b }, count: 1L }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000010020\"]\n\t\t}",
+        "dependencies": [
+          "1000000000010020"
+        ]
+      },
+      "1000000000c40018": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_c9.snbt",
+        "line": 1281,
+        "block": "{\n\t\t\tid: \"1000000000c40018\"\n\t\t\ttitle: \"蟒蛇胆\"\n\t\t\tsubtitle: \"获得物品 · 山野采获\"\n\t\t\tshape: \"square\"\n\t\t\tsize: 1.00d\n\t\t\tx: 17.18d\n\t\t\ty: -17.70d\n\t\t\ticon: { id: \"dynasty:python_gall\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e蟒蛇胆×1&r。\", \"主世界寻找森林、山地、沼泽或丛林的巨蟒；&6击败&r后有概率掉落。自然指南针只定位群系。\", \"蟒蛇胆用于避毒丹、状元酒和御寒酒。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000c40018\", type: \"advancement\", advancement: \"dynasty:cod4_obtain_python_gall\", icon: { id: \"dynasty:python_gall\", Count: 1b }, title: \"取得物品 · 蟒蛇胆\" }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000c40017\"]\n\t\t\tcan_repeat: false\n\t\t\thide_until_deps_complete: false\n\t\t}",
+        "dependencies": [
+          "1000000000c40017"
+        ]
+      },
+      "1000000000010020": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 91,
+        "block": "{\n\t\t\tid: \"1000000000010020\"\n\t\t\ttitle: \"06 · 先备好采矿工具\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: 3.00d\n\t\t\ty: 0.00d\n\t\t\ticon: { id: \"minecraft:iron_pickaxe\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e铁镐×1&r。\", \"三块铁锭加两根木棍制作铁镐；采掘时给自己留照明和回程台阶。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000010020\", type: \"item\", item: { id: \"minecraft:iron_pickaxe\", Count: 1b }, count: 1L }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000010004\"]\n\t\t}",
+        "dependencies": [
+          "1000000000010004"
+        ]
+      },
+      "1000000000010004": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 76,
+        "block": "{\n\t\t\tid: \"1000000000010004\"\n\t\t\ttitle: \"05 · 烧炼矿物\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: 3.00d\n\t\t\ty: -1.80d\n\t\t\ticon: { id: \"minecraft:furnace\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e熔炉×1&r。\", \"八块圆石围成一圈做熔炉；用燃料烧炼粗铜、粗铁。先留一把镐的材料。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000010004\", type: \"item\", item: { id: \"minecraft:furnace\", Count: 1b }, count: 1L }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000010003\"]\n\t\t}",
+        "dependencies": [
+          "1000000000010003"
+        ]
+      },
+      "1000000000c40019": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_c9.snbt",
+        "line": 1298,
+        "block": "{\n\t\t\tid: \"1000000000c40019\"\n\t\t\ttitle: \"蟹甲\"\n\t\t\tsubtitle: \"获得物品 · 山野采获\"\n\t\t\tshape: \"square\"\n\t\t\tsize: 1.00d\n\t\t\tx: 18.82d\n\t\t\ty: -17.70d\n\t\t\ticon: { id: \"dynasty:crab_shell\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e蟹甲×1&r。\", \"主世界寻找河流、海洋或沼泽的蟹兵；&6击败&r后有概率掉落。自然指南针只定位群系。\", \"蟹甲配铁锭可制精钢，也用于重钢弩矢和蟹将甲饰。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000c40019\", type: \"advancement\", advancement: \"dynasty:cod4_obtain_crab_shell\", icon: { id: \"dynasty:crab_shell\", Count: 1b }, title: \"取得物品 · 蟹甲\" }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000010021\"]\n\t\t\tcan_repeat: false\n\t\t\thide_until_deps_complete: false\n\t\t}",
+        "dependencies": [
+          "1000000000010021"
+        ]
+      },
+      "1000000000000001": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 136,
+        "block": "{\n\t\t\tid: \"1000000000000001\"\n\t\t\ttitle: \"09 · 石戈\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: -1.50d\n\t\t\ty: 0.00d\n\t\t\ticon: { id: \"dynasty:shi_ge\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e石戈×1&r。\", \"&6合成&r：&a木矛×1&r + &a圆石×2&r + &a木棍×1&r → &a石戈×1&r。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000000001\", type: \"item\", item: { id: \"dynasty:shi_ge\", Count: 1b }, count: 1L }]\n\t\t\trewards: [{ id: \"3000000000000100\", type: \"item\", item: { id: \"dynasty:copper_coin\", Count: 1b }, count: 10 }, { id: \"3000000000000101\", type: \"xp\", xp: 6 }, { id: \"3000000000000102\", type: \"command\", command: \"dynasty merit 12\", elevate_perms: true, silent: true }]\n\t\t\tdependencies: [\"1000000000000000\"]\n\t\t}",
+        "dependencies": [
+          "1000000000000000"
+        ]
+      },
+      "1000000000010002": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 46,
+        "block": "{\n\t\t\tid: \"1000000000010002\"\n\t\t\ttitle: \"03 · 安置储物箱\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: 0.00d\n\t\t\ty: -1.80d\n\t\t\ticon: { id: \"minecraft:chest\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e箱子×1&r。\", \"八块木板在工作台围成一圈。任务只检测持有；放到据点、记录坐标。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000010002\", type: \"item\", item: { id: \"minecraft:chest\", Count: 1b }, count: 1L }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000010001\"]\n\t\t}",
+        "dependencies": [
+          "1000000000010001"
+        ]
+      },
+      "1000000000000002": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 151,
+        "block": "{\n\t\t\tid: \"1000000000000002\"\n\t\t\ttitle: \"10 · 铜刀\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: -3.00d\n\t\t\ty: 0.00d\n\t\t\ticon: { id: \"dynasty:tong_dao\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e铜刀×1&r。\", \"&6合成&r：&a石戈×1&r + &a铜锭×3&r → &a铜刀×1&r。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000000002\", type: \"item\", item: { id: \"dynasty:tong_dao\", Count: 1b }, count: 1L }]\n\t\t\trewards: [{ id: \"3000000000000200\", type: \"item\", item: { id: \"dynasty:copper_coin\", Count: 1b }, count: 10 }, { id: \"3000000000000201\", type: \"xp\", xp: 6 }, { id: \"3000000000000202\", type: \"command\", command: \"dynasty merit 12\", elevate_perms: true, silent: true }]\n\t\t\tdependencies: [\"1000000000000001\"]\n\t\t}",
+        "dependencies": [
+          "1000000000000001"
+        ]
+      },
+      "100000000001000a": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_02.snbt",
+        "line": 17,
+        "block": "{\n\t\t\tid: \"100000000001000a\"\n\t\t\ttitle: \"01 · 出行准备 · 领取指南针材料\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: -3.00d\n\t\t\ty: -1.80d\n\t\t\ticon: { id: \"minecraft:cobblestone\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e圆石×4&r。\", \"在背包准备四块圆石，完成后点击奖励领取两个原版指南针；再砍四块原木，奖励每人仅领取一次，不收走圆石。\", \"&e掉落&r：石精（概率&6获得&r）。\", \"{\\\"text\\\": \\\"本章备料与支线\\\", \\\"color\\\": \\\"aqua\\\", \\\"underlined\\\": true, \\\"clickEvent\\\": {\\\"action\\\": \\\"change_page\\\", \\\"value\\\": \\\"1000000000070010\\\"}, \\\"hoverEvent\\\": {\\\"action\\\": \\\"show_text\\\", \\\"contents\\\": {\\\"text\\\": \\\"点击在任务书内跳转，无需完成此页\\\"}}}\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"200000000001000a\", type: \"item\", item: { id: \"minecraft:cobblestone\", Count: 1b }, count: 4L }]\n\t\t\trewards: [{ id: \"3000000001000a01\", type: \"item\", item: { id: \"minecraft:compass\", Count: 2b }, team_reward: false }]\n\t\t\tdependencies: [\"1000000000010005\"]\n\t\t}",
+        "dependencies": [
+          "1000000000010005"
+        ]
+      },
+      "100000000001000b": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_02.snbt",
+        "line": 32,
+        "block": "{\n\t\t\tid: \"100000000001000b\"\n\t\t\ttitle: \"两种罗盘 · 备齐导航\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: -1.50d\n\t\t\ty: -1.80d\n\t\t\ticon: { id: \"naturescompass:naturescompass\", Count: 1b }\n\t\t\tdescription: [\"&a同时持有自然指南针×1、结构罗盘×1&r。\", \"领取上一节点的两个指南针，按两种配方分别制作；\", \"{\\\"text\\\": \\\"自然指南针 · 找群系\\\", \\\"color\\\": \\\"aqua\\\", \\\"underlined\\\": true, \\\"clickEvent\\\": {\\\"action\\\": \\\"change_page\\\", \\\"value\\\": \\\"10d321e39511b688\\\"}, \\\"hoverEvent\\\": {\\\"action\\\": \\\"show_text\\\", \\\"contents\\\": {\\\"text\\\": \\\"点击在任务书内跳转，无需完成此页\\\"}}}\", \"{\\\"text\\\": \\\"结构罗盘 · 找建筑\\\", \\\"color\\\": \\\"aqua\\\", \\\"underlined\\\": true, \\\"clickEvent\\\": {\\\"action\\\": \\\"change_page\\\", \\\"value\\\": \\\"10d3a13033913eb9\\\"}, \\\"hoverEvent\\\": {\\\"action\\\": \\\"show_text\\\", \\\"contents\\\": {\\\"text\\\": \\\"点击在任务书内跳转，无需完成此页\\\"}}}\", \"{image:dynasty:textures/gui/quests/journey/compasses.png width:220 height:110 align:center fit:true}\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"200000000001000b\", type: \"item\", item: { id: \"naturescompass:naturescompass\", Count: 1b }, count: 1L }, { id: \"200000000001000c\", type: \"item\", item: { id: \"explorerscompass:explorerscompass\", Count: 1b }, count: 1L }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"100000000001000a\"]\n\t\t}",
+        "dependencies": [
+          "100000000001000a"
+        ]
+      },
+      "1000000000010003": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 61,
+        "block": "{\n\t\t\tid: \"1000000000010003\"\n\t\t\ttitle: \"04 · 点亮第一晚\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: 1.50d\n\t\t\ty: -1.80d\n\t\t\ticon: { id: \"minecraft:torch\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e火把×8&r。\", \"木棍加煤炭或木炭做火把；造一个封闭小屋，条件允许就做床设置重生点。\", \"&e宝箱&r：烽火台（概率&6获得&r）。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000010003\", type: \"item\", item: { id: \"minecraft:torch\", Count: 1b }, count: 8L }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000010002\"]\n\t\t}",
+        "dependencies": [
+          "1000000000010002"
+        ]
+      },
+      "1000000000000003": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 166,
+        "block": "{\n\t\t\tid: \"1000000000000003\"\n\t\t\ttitle: \"11 · 锻铁长剑\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: -3.00d\n\t\t\ty: 1.80d\n\t\t\ticon: { id: \"dynasty:tie_jian\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e锻铁长剑×1&r。\", \"&6合成&r：&a铜刀×1&r + &a铁锭×3&r → &a锻铁长剑×1&r。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000000003\", type: \"item\", item: { id: \"dynasty:tie_jian\", Count: 1b }, count: 1L }]\n\t\t\trewards: [{ id: \"3000000000000300\", type: \"item\", item: { id: \"dynasty:copper_coin\", Count: 1b }, count: 10 }, { id: \"3000000000000301\", type: \"xp\", xp: 6 }, { id: \"3000000000000302\", type: \"command\", command: \"dynasty merit 12\", elevate_perms: true, silent: true }]\n\t\t\tdependencies: [\"1000000000000002\"]\n\t\t}",
+        "dependencies": [
+          "1000000000000002"
+        ]
+      },
+      "1000000000c40012": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_c9.snbt",
+        "line": 1484,
+        "block": "{\n\t\t\tid: \"1000000000c40012\"\n\t\t\ttitle: \"壮行酒\"\n\t\t\tsubtitle: \"亲手合成 · 行旅补给\"\n\t\t\tshape: \"square\"\n\t\t\tsize: 1.00d\n\t\t\tx: -13.88d\n\t\t\ty: 15.90d\n\t\t\ticon: { id: \"dynasty:marching_wine\", Count: 1b }\n\t\t\tdescription: [\"&a亲手合成壮行酒×1&r；拾取或购买不计。\", \"&6合成&r就记录，无须试用；按住&6右键&r直到用完会&c消耗&r一份并生效。\", \"施加&b5秒&r阳气，同时反胃&b4秒&r；在安全位置饮用。\", \"&a蜂蜜瓶×1&r＋&a狼牙×1&r＋&a红蘑菇×1&r → &a壮行酒×1&r。\", \"{\\\"text\\\": \\\"前置 · 狼牙\\\", \\\"color\\\": \\\"aqua\\\", \\\"underlined\\\": true, \\\"clickEvent\\\": {\\\"action\\\": \\\"change_page\\\", \\\"value\\\": \\\"1000000000c40017\\\"}, \\\"hoverEvent\\\": {\\\"action\\\": \\\"show_text\\\", \\\"contents\\\": {\\\"text\\\": \\\"点击在任务书内跳转，无需完成此页\\\"}}}\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000c40012\", type: \"advancement\", advancement: \"dynasty:cod4_obtain_marching_wine\", icon: { id: \"dynasty:marching_wine\", Count: 1b }, title: \"亲手合成 · 壮行酒\" }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000c40017\"]\n\t\t\thide_dependency_lines: true\n\t\t\tcan_repeat: false\n\t\t\thide_until_deps_complete: false\n\t\t}",
+        "dependencies": [
+          "1000000000c40017"
+        ]
+      },
+      "1000000000010005": {
+        "path": "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt",
+        "line": 181,
+        "block": "{\n\t\t\tid: \"1000000000010005\"\n\t\t\ttitle: \"12 · 先学会挡伤害\"\n\t\t\tsubtitle: \"主线\"\n\t\t\tshape: \"circle\"\n\t\t\tsize: 1.00d\n\t\t\tx: -1.50d\n\t\t\ty: 1.80d\n\t\t\ticon: { id: \"minecraft:shield\", Count: 1b }\n\t\t\tdescription: [\"&6获得 &e盾牌×1&r。\", \"六块木板加铁锭做盾，放副手使用。盾不是万能防御，Boss 大招仍要躲。下一章准备图纸和王朝装备。\", \"&e宝箱&r：兵营（概率&6获得&r）。\", \"&6合成&r：&a夜叉潮甲片×1&r + &a铁锭×2&r + &a皮革×1&r → &a盾牌×1&r。\"]\n\t\t\tdisable_jei: false\n\t\t\ttasks: [{ id: \"2000000000010005\", type: \"item\", item: { id: \"minecraft:shield\", Count: 1b }, count: 1L }]\n\t\t\trewards: []\n\t\t\tdependencies: [\"1000000000000003\"]\n\t\t}",
+        "dependencies": [
+          "1000000000000003"
+        ]
+      }
+    },
+    "conclusion": "All existing proposed predecessor IDs exist; current graph has no missing dependency/cycle or duplicate quest ID. Their inspected ancestry is early tools/water/weapon/shield/compass collection, not a boss gate. No proposed node IDs exist yet; no installed new graph claim. Recipe usability and FTB visibility are distinct, and actual survival timing is unverified.",
+    "quest_task_reward_id_count": 4342,
+    "quest_task_reward_id_collisions": [],
+    "additional_legacy_nodes_unchanged_from_HEAD": {
+      "1000000000000181": "tiger_claw base item task and rewards",
+      "1000000000000162": "scale_plate base item task and rewards",
+      "1000000000073021": "refined_steel city navigation task and reward"
+    },
+    "steel_navigation_note": "Existing city steel task depends on the Tiangong city visit; do not force that navigation node as a hard new ingredient gate. Actual crab_steel recipe is crab_shell1+iron_ingot1 and canonical steel recipe remains iron_ingot3+cinnabar1→steel2.",
+    "early_craft_note": "Linear FTB prerequisites can delay submission while the personal advancement records earlier crafting. AdvancementTask polls the actor's history every5ticks after prerequisites permit submission. This source behavior is not native timing acceptance; include pre-prerequisite crafting and subsequent reconnect/dependency completion in later tests."
+  },
+  "source_sha256": {
+    "src/main/java/com/dynasty/expansion/ContentProgress.java": "d576bf782e8f430714afd3c1e821457b593c753ff0c7e98ed813f845adfd56e0",
+    "src/main/java/com/dynasty/DynastyAdvancements.java": "ffb694259e7ff3c95ed62340183006605330ef34b5d730a28cc2729331990085",
+    "src/main/java/com/dynasty/infusion/InfusionTraits.java": "92f6634cd5ec5fba340f04a5af286a19bba8a30e89cc91bcae22fa0cbd923b02",
+    "src/main/java/com/dynasty/infusion/InfusionMenu.java": "6455c3adca144ffeb532f1bcccb12473c360d3bd9a37be1aefc10e88bc09526e",
+    "src/main/java/com/dynasty/infusion/InfusionTooltips.java": "1792850efe4ad8b946df6dc24fb51abfcebf2b6ef536a822c64158ba831be83f",
+    "src/main/java/com/dynasty/infusion/InfusionCombat.java": "9360b2a5a78d51a13b240dad2f4076a345da520cb2d7396fc221e8e3210833e0",
+    "src/main/java/com/dynasty/expansion/ExpansionSupplies.java": "ae9dd058dc75e723c87b62d5c38c37bc30eeb9c1f7efcfaf1682791c51ab0fce",
+    "src/main/java/com/dynasty/expansion/EquipmentBehaviors.java": "feb3324f6c4cf1df914e869235e8fe3cc49e5914e31f1b188f96838984ef38f4",
+    "src/main/resources/data/dynasty/infusion/materials.json": "5005ad2ad656395febbf8b23647b60001f50e91455c29b3120c4cd3bba61fbe7",
+    "modpack/config/ftbquests/quests/data.snbt": "b670af232e75e8c228ccc6f323d3b216ad8e35ccd7cc837a60d880e6e4e80f1e",
+    "modpack/config/ftbquests/quests/chapters/dynasty_c9.snbt": "b92b2f1ef375c653cabd65137b21ce3d1c47318f73cda529732a7f33ca57ec58",
+    "modpack/config/ftbquests/quests/chapters/dynasty_story_01.snbt": "457eb6e50cd673e9d0ec375b2dbb07a402656f8f630098580647f37a52512a67",
+    "modpack/config/ftbquests/quests/chapters/dynasty_story_02.snbt": "afa6d898aa02f7122fb47f43c690d3bf604ef9348fa1bb6ab9b33ac7ab3a8a6c",
+    "src/main/resources/data/dynasty/recipes/cod4/crab_soldier_shell_charm.json": "df2063bed93c9d8360118c6e9fc8ce045fda8062e7516bb5fd4b7628e3bcd203",
+    "src/main/resources/data/dynasty/recipes/cod4/warm_wine.json": "2b3b2b5c458fccfd866af6341a95be83708682f937cb7de318d25ce0f25200cc",
+    "src/main/resources/data/dynasty/recipes/cod4/poison_smoke_bomb.json": "97ab35fd02edd43186bd8b41ceeaefcdf0f79756d965e70fc74430018d765047",
+    "src/main/resources/data/dynasty/recipes/cod4/gray_wolf_fang_charm.json": "802fb9a2636d5bc56a62778e03f09e3f9f639c7dd02198a5fe8263f17d4e2334",
+    "docs/cod4/audit-20261022/quest-integration-20261030/variant-quest-insertion-contract-20261031.json": "530cf8ea5ca91a9f29ef1abb063762d568e7f3ae66c7ffe98c7b9aef2e6ac082",
+    "docs/cod4/audit-20261022/quest-integration-20261030/variant-consumer-review.json": "625be7915a4594631c04d5918d11792bd5da22265a11f7919dff41554d4d7c01",
+    "tools/art/quest_story.py": "81e9bdac417a4419386bc8987ec728024449d1c04a6c160236e973a716216b7b",
+    "tools/art/quest_cod4.py": "62dfc83ef035325ea277a8e3cef9f7e09387ea3e0d070b2e53016aa3444a5cb3",
+    "tools/cod4/generate_assets.py": "e90aff5686b66d5f6fd077fffadd0553f05f5588cfb22b2025d968751ea7cae5",
+    "src/main/java/com/dynasty/infusion/InfusionRequest.java": "00908e9d0aa41878857804c3a33e652475e9ad22e18a488af5e2d604e430ec76",
+    "src/main/java/com/dynasty/infusion/InfusionBlockEntity.java": "cb4d3b933672f701c3527d3c499acc91d897e72dffccb77b0bfc398d0ab05342",
+    "src/main/java/com/dynasty/expansion/MaterialBrews.java": "11e0c1c9da0d37a795a5cd8ee735e1a328fac6a9faafa3f15749f36f68f81e5b",
+    "src/main/java/com/dynasty/cod3/DynastyNpcEntity.java": "dd0fcc59b738fe8070e5f1d2384589f5da8b2f24fd885efa46bcdadb4e013cc9",
+    "src/main/java/com/dynasty/expansion/MaterialBrewGameTests.java": "388845c22431270956cf1cfd3503ca9abda52812e5f2e1422c17ba7de08a9b63",
+    "src/main/java/com/dynasty/MaterialAccessoryGameTests.java": "a5d1cf1a0c05e9de0ab0b8b42f86eb17c90b5f49c5be4a1e37a066ba73effac0",
+    "modpack/config/ftbquests/quests/chapters/dynasty_c10.snbt": "f7e5570d797b9ff42818eab0540921d6dc8c2979153dfe61f1e22677fa624d7c",
+    "src/main/resources/data/dynasty/recipes/cod4/crab_steel.json": "d59f5d6b21012f21c7f3c3d63c2a5a11fb41152e5380e367556bdda58d9dad2e",
+    "src/main/resources/data/dynasty/recipes/cod4/marching_wine.json": "a46c39e25f08fceb1b68db465b05a44b13abcde67bd2e530d83ff519a9dfb667",
+    "src/main/resources/data/dynasty/recipes/tiger_claw.json": "8a8a405a2317dfd787325da55341fa36fa7d55d634c4a25854000cccdfe04849",
+    "src/main/resources/data/dynasty/recipes/scale_plate.json": "2deac230b5defeb6b6dc58c02f86fa314b64f9433708713b79dfb6404f6e3f10",
+    "src/main/resources/data/dynasty/recipes/refined_steel.json": "f1e33cbb1461877077c0cbe5f7d652497dc4c993c11380cff0a681aa4f0dbc26",
+    "src/main/resources/data/dynasty/advancements/cod4_obtain_wolf_fang.json": "3175f4be65f16603510cd97c7a86f4bf0644c9a2547848b6876d38e1aeabccf4",
+    "src/main/resources/data/dynasty/advancements/cod4_obtain_crab_shell.json": "3175f4be65f16603510cd97c7a86f4bf0644c9a2547848b6876d38e1aeabccf4",
+    "src/main/resources/data/dynasty/advancements/cod4_obtain_python_gall.json": "3175f4be65f16603510cd97c7a86f4bf0644c9a2547848b6876d38e1aeabccf4",
+    "src/main/resources/data/dynasty/advancements/cod4_obtain_locust_dust.json": "3175f4be65f16603510cd97c7a86f4bf0644c9a2547848b6876d38e1aeabccf4",
+    "src/main/resources/data/dynasty/advancements/cod4_obtain_marching_wine.json": "3175f4be65f16603510cd97c7a86f4bf0644c9a2547848b6876d38e1aeabccf4",
+    "src/main/resources/data/dynasty/advancements/first_infusion.json": "99585d2e4a07d2f2cf41a0816a29b7b3a16e0e51906732d586dd24ea1e3921d3"
+  },
+  "external_source": {
+    "ftb_common_source_url": "https://maven.ftb.dev/releases/dev/ftb/mods/ftb-quests/2001.4.22/ftb-quests-2001.4.22-sources.jar",
+    "ftb_common_source_sha256": "d58591ed78ed47c4965b2df141f22fc322ed225e5ddacfc992d74fd7cce57428",
+    "pack_jar": "modpack/mods/ftb-quests-forge-2001.4.22.jar",
+    "pack_jar_sha256": "9ea9d159a78a2724cfe0457b024680fdb52a2126eff9cfa5280a30578f647a68",
+    "version_match": "Pack jar hash matches the official Maven 2001.4.22 module metadata; reviewed official common source artifact of the same release (intermediary names). No binary execution or decompilation.",
+    "forge_sources_jar": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "reviewed_ftb_methods": [
+      "AdvancementTask114-128; AbstractBooleanTask26-29; FTBQuestsEventHandler145-183",
+      "BaseQuestFile1008-1036; TeamData45-95,277-301,585-640,663-727,754-781",
+      "Reward204-205; QuestKey12-20; ServerQuestFile153-180,214-245",
+      "ItemTask195-220,319-377; FTBQuestsInventoryListener25-52"
+    ]
+  },
+  "source_read_limits": [
+    "ContentProgress and DynastyAdvancements fully read; four recipe definitions fully read.",
+    "InfusionTraits/Menu/Tooltips/Combat fully read (initial imports of Traits/Menu also available in carried context); ExpansionSupplies focus20-64,94-99, full source read in prior audit segment.",
+    "EquipmentBehaviors bounded418-430, not whole-file review; materials.json only wolf_fang/crab_shell records.",
+    "FTB AdvancementTask/AbstractBooleanTask/QuestKey fully read; other FTB source reads are bounded methods listed in evidence, not entire classes.",
+    "Quest nodes individually read as exact parsed compounds, ancestry expanded. Global graph structure inspected; not all1259 quest texts reviewed.",
+    "Follow-up: InfusionRequest1-9 and InfusionBlockEntity1-37 fully read; MaterialBrews1-15 fully read; DynastyNpcEntity95-132 bounded.",
+    "Generator reads bounded: quest_story82-104,442-468,594-611; quest_cod4122-168; generate_assets202-222/282. No generator or game tests executed.",
+    "FTB ItemTask195-220,319-377 and inventory listener25-52 read; default matchNBT is tag-dependent. Did not assume all third-party pack tag overrides were exhaustively reviewed."
+  ],
+  "access_issues": [
+    {
+      "type": "local Python TLS trust",
+      "result": "urllib failed certificate verification; normal system curl with certificate verification enabled succeeded; no TLS bypass."
+    },
+    {
+      "type": "GitHub API",
+      "result": "403; not used as evidence, no auth/token bypass."
+    },
+    {
+      "type": "sources discovery",
+      "result": "Forge-platform sources artifact lacks shared quest classes; official common source artifact successfully obtained in memory."
+    }
+  ],
+  "pending_followups": [],
+  "stop_reason": "Bounded independent audit completed before the hard deadline; no idle time or three-hour active-work completion claimed. New implementation/native acceptance remains outside this read-only assignment.",
+  "followup_batches": [
+    {
+      "batch": 1,
+      "scope": "Recipe identity, ContentProgress/advancement bridge, active infusion/wine consumers",
+      "result": "Four functional variants confirmed; registry path and display name cannot establish separate variant history."
+    },
+    {
+      "batch": 2,
+      "scope": "Native workbench transaction ordering, ordinary and shift-click paths",
+      "result": "Event before matrix shrink; shift uses preserved copy; no actual free crafting demonstrated."
+    },
+    {
+      "batch": 3,
+      "scope": "Exact existing FTB predecessor nodes, ancestry, official same-version team/reward implementation",
+      "result": "Personal advancement and shared team node are different; current graph1259/no-cycle; five predecessors rewards[]/nonrepeat."
+    },
+    {
+      "batch": 4,
+      "scope": "Native poison ownership/effects, related merchant gu, infusion packet/BE revision, repeated advancement grants",
+      "result": "Owner preserved on cloud but variant marker not propagated; no kill/paid-trade inference; sender/revision guards inspected."
+    },
+    {
+      "batch": 5,
+      "scope": "Generation inputs, old base tasks/rewards, ID collision and source-consistency checks",
+      "result": "4342 IDs unique; selected legacy nodes identical to HEAD; four generator recipe comparisons true; source snapshot unchanged on final recheck."
+    }
+  ],
+  "existing_test_source_limit": {
+    "read_only": true,
+    "executed": false,
+    "material_brew": "MaterialBrewGameTests.java:32-48,76-98 defines actual result-slot/payment and thrown-cloud owner/effect cases.",
+    "material_accessory": "MaterialAccessoryGameTests.java:36-54 defines exact normal result take, ingredient payment and stack-save checks.",
+    "gap": "These inspected tests do not establish a newly registered four-variant advancement→FTB same-party/different-party receipt, shift-click bridge or two-player reward ownership. Their source presence is not a passing run; no prior pass reused as new acceptance."
+  },
+  "future_acceptance_matrix": [
+    {
+      "scenario": "plain/renamed tiger_claw or scale_plate",
+      "expected": "No dedicated variant advancement from name/base ID.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "wrong infusion material or inactive/conflicting trait layout",
+      "expected": "No functional-variant match; use active semantics rather than arbitrary slot string alone.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "correct native gray-wolf/crab output, ordinary take",
+      "expected": "Exact ingredients paid once; only actual crafting player gets corresponding personal advancement.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "correct native warm-wine/smoke output",
+      "expected": "Validate base item plus real function tags; smoke not discarded by Dynasty-only namespace helper.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "ordinary marching_wine or ordinary poison lingering potion",
+      "expected": "Does not award corresponding dedicated variant advancement.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "smoke marker on water potion / other item",
+      "expected": "Does not count as the poison-smoke result.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "recipe-book discovery, inventory receipt, dropped output transfer A→B",
+      "expected": "No personal craft advancement on recipient B.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "table apply/remove/replace, including custom name retained",
+      "expected": "Does not count as workbench crafting; completed historical receipt is not revoked by later trait removal.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "Shift-click / repeated crafting / full output inventory",
+      "expected": "Correct native event/output; payment and receipt are not duplicated; failed move gives no completion.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "A crafts with B in same party",
+      "expected": "A personal advancement only; shared FTB node completion expected unless deliberately replaced by personal-task design.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "A crafts with B in separate teams",
+      "expected": "B's advancement and FTB node remain incomplete.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "craft before prerequisites, then complete them/reconnect",
+      "expected": "Personal history remains; subsequent allowed submission completes without forcing recraft.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "repeat craft/login/death/party join-leave",
+      "expected": "No extra payout beyond intended FTB reward ownership; keep existing reward keys and completed legacy IDs.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "poison throw, ordinary potion and Hei Po gu comparison",
+      "expected": "Craft-only task does not infer a new crafting fact from usage/cloud/trade; future usage task must distinguish these flows.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "regenerate quests after dedicated-node implementation",
+      "expected": "New IDs persist and all legacy quest/task/reward IDs survive; no cycles or missing references.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    },
+    {
+      "scenario": "registered advancement/code absent or misspelled",
+      "expected": "Detect authoring error; no phantom completion because award silently ignores unknown IDs.",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE"
+    }
+  ],
+  "remaining_outside_scope": [
+    "Clarify individual advancement versus team FTB completion contract before implementation.",
+    "New-variant semantic1000 gate is not met; no credit from this review and no repairs made.",
+    "Future implementation, dedicated IDs/advancements, multiplayer/native acceptance and actual survival pacing are not complete."
+  ],
+  "final_static_checks": {
+    "source_hash_drift": [],
+    "four_recipe_generator_definitions_match": true,
+    "legacy_nodes_checked_unchanged": 8,
+    "receipt_json_parse": "PASS: parsed, unique finding IDs, zero-credit constraints, 40 source hashes unchanged and recorded before deadline",
+    "native_tests_executed": 0
+  }
+}

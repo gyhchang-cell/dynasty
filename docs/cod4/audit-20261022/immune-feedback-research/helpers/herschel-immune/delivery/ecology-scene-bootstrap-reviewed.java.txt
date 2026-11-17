@@ -1,0 +1,118 @@
+package com.dynasty.ecologyqa;
+
+import com.dynasty.ecologyqa.observer.EcologyOpportunityObserver;
+import com.google.gson.GsonBuilder;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.fml.common.Mod;
+import java.nio.file.*;
+import java.time.Instant;
+import java.util.Map;
+
+/** Private helper: explicit observer registration plus normal-save lifecycle budget. No launch task. */
+@Mod("dynastyecologyqa")
+public final class EcologyNativeQa {
+    static final boolean ENABLED=Boolean.getBoolean("ecology.nativeqa.enabled");
+    static Path instance,output,expectedWorld;
+    static MinecraftServer server;
+    static long startedNanos,ticks;
+    static boolean stopRequested;
+    public EcologyNativeQa() {
+        if(!ENABLED)return;
+        try {
+            Path project=Path.of(required("ecology.nativeqa.projectRoot")).toRealPath();
+            Path allowed=project.resolve("build/cod4-ecology-native-20261028").toRealPath();
+            instance=Path.of(required("ecology.nativeqa.instance")).toRealPath();
+            output=Path.of(required("ecology.nativeqa.output")).toRealPath();
+            if(!instance.startsWith(allowed)||instance.equals(allowed)||!instance.equals(Path.of(System.getProperty("user.dir")).toRealPath()))throw new IllegalArgumentException("Private process instance required");
+            Path evidenceRoot=project.resolve("docs/cod4/audit-20261022/ecology-native-acceptance").toRealPath();
+            if(!output.startsWith(evidenceRoot)||output.equals(evidenceRoot))throw new IllegalArgumentException("Private fresh evidence child required");
+            Path saves=instance.resolve("saves");
+            if(!saves.toRealPath().equals(saves)||!saves.startsWith(instance))throw new IllegalArgumentException("No outward or symlinked saves root");
+            expectedWorld=saves.resolve("ecology-checkpoint");
+            if(!expectedWorld.toRealPath().equals(expectedWorld)||!Files.isRegularFile(expectedWorld.resolve("level.dat")))throw new IllegalArgumentException("Existing internal copied checkpoint required");
+            if(!Boolean.getBoolean("ecology.nativegate.observe")||!Boolean.getBoolean("ecology.bounded.observe"))throw new IllegalArgumentException("Both explicit observers required");
+            var observerLeaves=new java.util.HashSet<Path>();
+            for(String key:new String[]{"ecology.nativegate.output","ecology.bounded.output"}) {
+                Path leaf=Path.of(required(key)).toAbsolutePath().normalize();
+                if(!leaf.getParent().toRealPath().equals(output)||Files.exists(leaf)||Files.isSymbolicLink(leaf)||!observerLeaves.add(leaf))throw new IllegalArgumentException("Observer outputs must be distinct fresh normalized direct children: "+key);
+            }
+        } catch(Exception e){throw new IllegalStateException("Unsafe private QA bootstrap",e);}
+        MinecraftForge.EVENT_BUS.register(EcologyNativeQa.class);
+        MinecraftForge.EVENT_BUS.register(NativeCreatureGateObserver.class);
+        MinecraftForge.EVENT_BUS.register(EcologyOpportunityObserver.class);
+        if(NativeSceneDriver.ENABLED){
+            if(!Boolean.getBoolean("ecology.nativeqa.openCopiedWorld"))throw new IllegalArgumentException("Scene driver requires explicit copied-world loading");
+            MinecraftForge.EVENT_BUS.register(NativeSceneDriver.class);
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT,()->()->MinecraftForge.EVENT_BUS.register(NativeSceneDriver.ClientActions.class));
+        }
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT,()->()->MinecraftForge.EVENT_BUS.register(ClientExit.class));
+    }
+    static String required(String key){String v=System.getProperty(key);if(v==null||v.isBlank())throw new IllegalArgumentException("Explicit "+key+" required");return v;}
+    static void write(String name,Object value)throws Exception{Files.writeString(output.resolve(name),new GsonBuilder().setPrettyPrinting().create().toJson(value)+"\n",StandardOpenOption.CREATE_NEW);}
+    @SubscribeEvent(priority=EventPriority.HIGHEST)
+    public static void started(ServerStartedEvent e)throws Exception {
+        if(!ENABLED)return;
+        var world=e.getServer().getWorldPath(LevelResource.ROOT).toRealPath();
+        if(!world.equals(expectedWorld))throw new IllegalStateException("Only the exact prepared copied checkpoint is permitted");
+        server=e.getServer();startedNanos=System.nanoTime();
+        write("controller-start.json",Map.of("instance",instance.toString(),"world",world.toString(),"at",Instant.now().toString(),"registration","explicit_once","normal_stop_ticks",4600,"normal_stop_seconds",300,"external_watchdog_still_required",true,"world_mechanics_mutated",false));
+    }
+    @SubscribeEvent(priority=EventPriority.LOWEST)
+    public static void tick(TickEvent.ServerTickEvent e)throws Exception {
+        if(!ENABLED||server==null||stopRequested||e.phase!=TickEvent.Phase.END)return;
+        ticks++;
+        boolean observerStop=Files.exists(Path.of(required("ecology.nativegate.output")).resolve("bounded-stop-request.txt"))||Files.exists(Path.of(required("ecology.bounded.output")).resolve("bounded-stop-request.txt"));
+        boolean wall=System.nanoTime()-startedNanos>=300_000_000_000L;
+        if(ticks>=4600||wall||observerStop||Files.exists(output.resolve("external-stop-request.txt"))) {
+            stopRequested=true;
+            write("controller-stop-request.json",Map.of("at",Instant.now().toString(),"ticks",ticks,"elapsed_seconds",(System.nanoTime()-startedNanos)/1e9,"observer_stop",observerStop,"wall_budget",wall,"normal_save_requested",true,"does_not_prove_save_completed",true));
+            try {
+                Files.writeString(output.resolve("stop-client.txt"),"Normal save and stop only this private QA.\n",StandardOpenOption.CREATE_NEW);
+            } catch(FileAlreadyExistsException alreadyRequested) {
+                // The independent watchdog can request this same normal exit concurrently.
+            }
+            server.halt(false);
+        }
+    }
+    public static final class ClientExit {
+        private static boolean stopping,openRequested,readyRecorded;
+        @SubscribeEvent public static void tick(TickEvent.ClientTickEvent e)throws Exception {
+            if(!ENABLED||stopping||e.phase!=TickEvent.Phase.END||output==null)return;
+            var client=net.minecraft.client.Minecraft.getInstance();
+            if(Files.exists(output.resolve("stop-client.txt"))){stopping=true;client.stop();return;}
+            // Loading is a separate explicit opt-in. A prepared input snapshot never starts itself.
+            if(!Boolean.getBoolean("ecology.nativeqa.openCopiedWorld"))return;
+            if(client.getOverlay()!=null)return;
+            if(client.screen instanceof net.minecraft.client.gui.screens.AccessibilityOnboardingScreen)
+                client.setScreen(new net.minecraft.client.gui.screens.TitleScreen());
+            if(!openRequested&&client.screen instanceof net.minecraft.client.gui.screens.TitleScreen){
+                if(!client.gameDirectory.toPath().toRealPath().equals(instance))throw new IllegalStateException("Client instance mismatch");
+                String folder=required("ecology.nativeqa.worldFolder");
+                if(!folder.equals("ecology-checkpoint"))throw new IllegalArgumentException("Only the prepared copied checkpoint may be opened");
+                Path saves=instance.resolve("saves").toRealPath();
+                Path world=saves.resolve(folder).toRealPath();
+                if(!saves.equals(instance.resolve("saves"))||!world.equals(expectedWorld)||!world.startsWith(instance)||!Files.isRegularFile(world.resolve("level.dat")))throw new IllegalStateException("Private exact existing copied world required before load");
+                openRequested=true;
+                write("client-open-request.json",Map.of("world",world.toString(),"existing_world",true,"creates_fresh_world",false,"world_load_not_yet_verified",true));
+                client.options.pauseOnLostFocus=false;
+                client.options.renderDistance().set(3);client.options.simulationDistance().set(5);
+                client.createWorldOpenFlows().loadLevel(new net.minecraft.client.gui.screens.TitleScreen(),folder);
+                return;
+            }
+            if(openRequested&&!readyRecorded&&client.player!=null&&client.level!=null&&client.getSingleplayerServer()!=null){
+                Path actualWorld=client.getSingleplayerServer().getWorldPath(LevelResource.ROOT).toRealPath();
+                if(!actualWorld.equals(expectedWorld))throw new IllegalStateException("Client readiness does not match requested copied world");
+                readyRecorded=true;
+                write("client-world-ready.json",Map.of("world",actualWorld.toString(),"bound_to_open_request",true,"player",client.player.getUUID().toString(),"dimension",client.level.dimension().location().toString(),"game_tick",client.level.getGameTime(),"position",client.player.position().toString(),"scene_driver_installed",NativeSceneDriver.ENABLED,"does_not_prove_ecology_or_save",true));
+            }
+        }
+    }
+}

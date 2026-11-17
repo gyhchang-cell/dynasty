@@ -1,0 +1,39 @@
+{
+  "credit": 0,
+  "accepted": false,
+  "new_suggestions_pending_Kepler": 4,
+  "master_rows_read_only": 1214,
+  "master_sha256": "e9566935f4b024eea998b6e65e4ac48cb91940308dde9ba42fc5c76b1a3e7b00",
+  "primary_mechanical_matches": [],
+  "same_repo_master_rows_at_read": 0,
+  "not_a_semantic_acceptance": true,
+  "families": [
+    {
+      "family": "betweenlands-legacy-critter-item-id-remap-and-captured-entity-payload-replacement",
+      "distinction": "ItemMobFixer首先检查id的NBT类型，再按两个精确全名分支，调用CRITTER.capture(实体类)，把新ItemStack写入全新compound并直接返回。capture(Class,nullableNBT)通过EntityList.getKey取真实注册实体名，把它写进Entity子compound，new ItemStack(this)后setTagInfo；CRITTER继承ItemMob且构造maxStackSize=1、无defaultMob。ItemRegistry.preInit按字段反射并用Locale.ENGLISH小写注册CRITTER；EntityRegistry实际注册两实体为thebetweenlands:gecko/firefly。MissingMappings只修注册指向，物品内实体身份仍由fixer的Entity子载荷决定，不能把两个入口拆计。createCapturedEntity优先Entity子NBT而非显示名；createCapturedEntityFromNBT反序列化实体、生成新UUID并重置位置/速度，onItemUse确认spawn路径返回SUCCESS才在server shrink(1)。spawnCapturedEntity没有检查world.spawnEntity布尔返回值。转换没有读取原Count、Damage、自定义名称、原tag、ForgeCaps或未知根键；因此这是保住物品种类语义但可能丢数量和附加数据的真实反例，不能宣称完整无损。实体类未注册时capture返回EMPTY，新compound仍来自空栈序列化。",
+      "risk": "同一CRITTER替代实现一次；两个旧id和MissingMappings/ITEM_INSTANCE/reader/释放为支持链。与其他模组旧ID重映射主题相近，具体捕获实体载荷替换和原Count丢失语义供Kepler最终去重；credit0。"
+    },
+    {
+      "family": "betweenlands-fixed-legacy-blockentity-id-rewrite-preserving-payload",
+      "distinction": "静态初始化将固定NAMES构造精确旧前缀到thebetweenlands:<name>映射，并有不要添加新TE的注释。fixTagCompound没有重建compound，没有复制子树或抹去未知键，因而此方法边界内Inventory/waterTank/progress等载荷仍留在原对象。TileEntityRegistry.init实际以新ResourceLocation(ModInfo.ID,baseName)注册目标类；以purifier为完整消费端补证：readFromNBT调用父类清库存并读取Inventory后恢复waterTank/state/progress；writer回写对应字段；update实际检查燃料/输出/水，完成时消耗库存与水并产物。它证明重命名后的对象不是仅界面名称变化，但purifier读写/通用库存都只是该ID修复链的消费者，不另计机器迁移建议。父类只在Inventory为compound时交Forge ItemStackHandler.deserializeNBT，缺值清空库存。",
+      "risk": "所有旧TE名统一映射控制流一家族，版本号和每个机器名0额外信用；与critter新栈替换不同目标类型/转换/保留边界，可供独立候选但须Kepler跨主账复核，credit0。"
+    },
+    {
+      "family": "betweenlands-herblore-manual-item-owned-discovery-history-restore-and-multi-carrier-union",
+      "distinction": "ItemManualHL.getContainer确保物品有compound，创建绑定该stack的DiscoveryContainer并updateFromNBT(false)。reader对每项调用AspectManager.readAspectItemFromNBT：从item compound构造ItemStack，再经当前Item→AspectItem matcher定位；aspects逐个IAspectType.readFromNBT按精确名字查注册表。reader没有过滤null item或null type；重复同item项后写覆盖先写。writer会移除null key/空列表，但非空列表中的null type仍调用writeToNBT，可能抛错，未保留未知类型原始文本。mergeDiscoveries对缺item直接共享other列表引用，已有item才contains判重union；查询合并体没有provider，修改共享列表不等于自动持久化源手册。实际gecko流程先要求有手册/活gecko/静态元素，mergedKnowledge.discover后对NEW/LAST写回每本手册、设置恢复600tick、触发成就消息，非creative扣1材料；END不再消费。discover按已存列表长度判断END，并未按当前有效静态集合交集计数，因此过时或重复类型会影响发现资格。getDiscoveredStaticAspects和ItemAspectContainer.getAspects用当前类型过滤可见静态元素，动态数量不受知识门槛。手册本身不是玩家UUID能力，死亡保留依赖实际物品载体生命周期，未见本链Clone拷贝。",
+      "risk": "每本书/每item/type/读写/union/gecko发现均同一物品知识恢复家族一次；世界随机分配是另一持久对象且不等同知识。与Patchouli/Roots手册恢复需Kepler语义复核，支持方法共享0额外信用。"
+    },
+    {
+      "family": "betweenlands-world-static-aspect-assignment-restore-preserve-existing-and-fill-new-items",
+      "distinction": "WorldStorageImpl.onWorldCapability真实绑定world_data并setWorld/init，序列化代理注册IWorldStorage storage，最终调用BetweenlandsWorldStorage.read/write；服务端读itemAspects调用loadAndPopulateStaticAspects。nbt只按hasKey(entries)判分支，loadStaticAspects直接强转entries/aspects为NBTTagList；缺失/错型可能中断。每条ItemStack经当前matcher定位，找不到跳过；任何一个Aspect.readFromNBT类型找不到便continue外层，舍弃整item映射，不保留原始未知项。有效数量int不钳制。updateAspects先containsKey跳过已恢复item（包括空列表），为缺失item按组要求用固定seed随机生成并合并同类型数量，保持已存分配避免升级重洗全部资源；未知/坏类型丢掉的当前item会随后补生成，可能改变既有化学配方。save重新写完整栈身份与aspect名字/amount。实际ItemAspectContainer的Storage.getAmount在未hasStoredStatic时查询世界分配，发生减少才固定storedStatic；Infuser.isItemValidForSlot据这些真实元素决定材料入槽，getInfusingAspects读取实际库存类型；并非仅贴图。世界cap框架、item resource容器及Infuser消费仅补证，不新增容器数量候选。",
+      "risk": "同一world aspect assignment读写/补缺/物品query/入槽消费者一家族；不按注册item/aspect/group数拆。与手册知识共用身份解析支持，但权威世界随机映射和个人携带发现集合是不同对象与恢复策略，待Kepler最终语义去重；credit0。"
+    }
+  ],
+  "excluded": [
+    {
+      "family": "excluded-betweenlands-legacy-pouch-type-is-color-default-only",
+      "reason": "完整checkForLegacyPouch只确保compound并补type整数；getColorMultiplier将type映射EnumBLDyeColor颜色。虽然方法名带Legacy，未转换Inventory或Clone永久字段，排除不计。onItemRightClick调用仅作真实触发证据，未执行GUI。"
+    }
+  ],
+  "support_policy": "Tile registry/table rows, MissingMappings, NBT writers/readers, framework callbacks and consumers support their parent family only; no per-key/color/item/method/download credit."
+}

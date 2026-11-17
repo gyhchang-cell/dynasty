@@ -8,7 +8,7 @@ for i,row in enumerate(rows):
  for old,yy in [(True,y),(False,y+260)]:
   p=(D/'before'/A.relative_to(R) if old else A)/'textures/item'/f"{row['id']}.png";im=Image.open(p).convert('RGBA');im=im.resize((240,240),Image.Resampling.NEAREST);o.paste(im,(x+40,yy),im)
  d.text((x+30,y+510),row['name'],font=font,fill='white')
- orig=Image.open(D/'sources'/f"{row['id']}.png").convert('RGBA');crop=orig.crop(orig.getbbox());expected=Image.new('RGBA',(crop.width+4,crop.height+4));expected.paste(crop,(2,2));target=Image.open(A/'textures/item'/f"{row['id']}.png").convert('RGBA');assert target.size==expected.size and target.tobytes()==expected.tobytes()
+ orig=Image.open(D/'sources'/f"{row['id']}.png").convert('RGBA');crop=orig.crop(row.get('crop_bounds',orig.getbbox()));expected=Image.new('RGBA',(crop.width+4,crop.height+4));expected.paste(crop,(2,2));target=Image.open(A/'textures/item'/f"{row['id']}.png").convert('RGBA');assert target.size==expected.size and target.tobytes()==expected.tobytes()
  review.append({'id':row['id'],'sourceSize':orig.size,'runtimeSize':target.size,'originalRgbaExact':True,'runtimeSha256':hashlib.sha256((A/'textures/item'/f"{row['id']}.png").read_bytes()).hexdigest()})
 o.save(D/'comparison.png');(D/'review.json').write_text(json.dumps(review,ensure_ascii=False,indent=2)+'\n')
 # Compact new-only sheet and 32px inventory-size sheet; scales only presentation files.

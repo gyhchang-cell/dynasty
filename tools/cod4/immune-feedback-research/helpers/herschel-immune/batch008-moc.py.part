@@ -1,0 +1,14 @@
+add('mocreatures-werewolf-form-qualified-held-weapon-damage-rewrite',
+ 'MoCEntityWerewolf.attackEntityFrom只在狼形、damageSource.entity为Player且当前持物非null时把传入int伤害先覆写为1；金锄/铲/镐/斧/剑分别覆写6/7/8/9/10，再交super。空手保留原amount，不是所有非金伤害归1；投射物也仅看归属Player当前持物，未核对发射时快照或direct source。',
+ '具体弱点机制应区分降低伤害、固定覆写和免疫；不能把不符合弱点的每击标IMMUNE。装备资格应基于实际伤害来源语义，避免发射后换手导致归因变化。',
+ '古老int伤害API只作概念参考，不复制代码。无游戏/服务运行。Transform有自伤和特效，但不是拒伤回执；没有新增PVP、资产或守卫计数。当前持金工具把低伤提升为常量，非伤害上限；空手和非Player不走覆写。',
+ 'MoCreatures.load→AddEntities实际Werewolf注册→constructor初始HumanForm→原生onLivingUpdate昼夜概率启动变身→Transform/setHumanForm→原生attackEntityFrom按同步form/current held覆写→MoCEntityMob.attackEntityFrom→原版父伤害',
+ ev(M,'MoCEntityWerewolf','attackEntityFrom'),ev(M,'MoCEntityWerewolf','MoCEntityWerewolf'),ev(M,'MoCEntityWerewolf','onLivingUpdate'),ev(M,'MoCEntityWerewolf','Transform'),ev(M,'MoCEntityWerewolf','getIsHumanForm'),ev(M,'MoCEntityWerewolf','setHumanForm'),ev(M,'MoCEntityWerewolf','IsNight'),ev(M,'MoCEntityWerewolf','readEntityFromNBT'),ev(M,'MoCEntityWerewolf','writeEntityToNBT'),ev(M,'MoCEntityMob','attackEntityFrom'),ev(M,'MoCreatures','load'),span(M,'MoCreatures',421,421,'Werewolf_registration'),ev(M,'MoCreatures','registerEntity','String visibleName'),
+ dedup='本仓旧账为Golem世界repair-rock空间开放核心/Croc被抓攻击者特殊拒绝；新点是形态×来源Player当前手持物覆写最终amount，一个家族不按五件金工具拆条。')
+add('mocreatures-turtle-threat-los-shell-denial-with-refused-hit-opening-roll',
+ 'Turtle原生onLivingUpdate服务端在非倒置且未驯服时getBoogey(4)，仅所返回候选有LOS才置hiding并首次hiss，失去该候选/LOS则清hiding。getBoogey实际在扩大AABB里迭代覆盖，返回最后一个entitiesToInclude目标，不是最近者；include排同class并要求Living且width或height>=0.5。attackEntityFrom只要hiding恒false，但1/10先flipflop(true)清hiding并倒置；本次仍拒伤。非hiding先super，之后1/3翻倒，不看父结果。',
+ '拒绝本次命中同时改变下一击资格，是不同的状态转移边界；提示频率不能把每次拒伤与首次进入护甲状态的hiss混同。LOS应针对实际选择目标，不按注释推断最近威胁。',
+ '无原生运行，没有证明实际概率/视觉。attackEntityFrom无server side guard，setIsHiding/setIsUpsideDown的client guard注释掉；不能声称仅服务端随机。read/write只保存UpsideDown与DisplayName，不保存hiding。驯服后原生交互和父归属门另行，不将其计为此拒伤策略。',
+ 'load/AddEntities实际Turtle注册→原生onLivingUpdate→getBoogey/LOS→hiding watcher22→原生attackEntityFrom→false并可能flipflop清hiding/watcher23；native interact可翻回；父Animal伤害仅非hiding路径',
+ ev(M,'MoCEntityTurtle','attackEntityFrom'),ev(M,'MoCEntityTurtle','onLivingUpdate'),ev(M,'MoCEntityAnimal','getBoogey'),ev(M,'MoCEntityAnimal','entitiesToInclude'),ev(M,'MoCEntityTurtle','flipflop'),ev(M,'MoCEntityTurtle','getIsHiding'),ev(M,'MoCEntityTurtle','setIsHiding'),ev(M,'MoCEntityTurtle','setIsUpsideDown'),ev(M,'MoCEntityTurtle','interact'),ev(M,'MoCEntityTurtle','readEntityFromNBT'),ev(M,'MoCEntityTurtle','writeEntityToNBT'),ev(M,'MoCEntityAnimal','attackEntityFrom'),ev(M,'MoCreatures','load'),span(M,'MoCreatures',405,405,'Turtle_registration'),ev(M,'MoCreatures','registerEntity','String visibleName'),
+ dedup='与Undergarden pot首次正伤必开再按LOS/CD回隐有相近点，明确交主岗跨项目判重：此处入壳由外部威胁LOS驱动，无CD；拒伤只概率清壳并倒置，失败父伤也可改变姿态。若只算phase模板则降0，不自动信用。')

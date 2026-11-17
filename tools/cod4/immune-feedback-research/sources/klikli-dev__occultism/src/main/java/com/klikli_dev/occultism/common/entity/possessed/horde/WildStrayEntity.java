@@ -1,0 +1,88 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.entity.possessed.horde;
+
+import com.klikli_dev.occultism.common.entity.possessed.PossessedMob;
+import com.klikli_dev.occultism.registry.OccultismTags.Entities;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.monster.skeleton.Stray;
+import net.minecraft.world.level.Level;
+
+import java.util.Optional;
+
+public class WildStrayEntity extends Stray implements PossessedMob {
+
+    protected Optional<PossessedBreezeEntity> master = Optional.empty();
+
+    public WildStrayEntity(EntityType<? extends Stray> type,
+                           Level worldIn) {
+        super(type, worldIn);
+    }
+
+    //region Static Methods
+    public static Builder createAttributes() {
+        return Stray.createAttributes()
+                .add(Attributes.MAX_HEALTH, 45.0)
+                .add(Attributes.ARMOR, 10)
+                .add(Attributes.KNOCKBACK_RESISTANCE, 0.5);
+    }
+
+    public void setMaster(PossessedBreezeEntity master) {
+        this.master = Optional.ofNullable(master);
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        this.master.ifPresent(boss -> {
+            boss.notifyMinionDeath(this);
+        });
+        super.remove(reason);
+    }
+
+    @Override
+    public boolean isInvulnerableTo(ServerLevel level, DamageSource source) {
+        TagKey<EntityType<?>> wildTrialTag = Entities.WILD_TRIAL;
+
+        Entity trueSource = source.getEntity();
+        if (trueSource != null && trueSource.getType().builtInRegistryHolder().is(wildTrialTag))
+            return true;
+
+        Entity immediateSource = source.getDirectEntity();
+        if (immediateSource != null && immediateSource.getType().builtInRegistryHolder().is(wildTrialTag))
+            return true;
+
+        return super.isInvulnerableTo(level, source);
+    }
+    //endregion Static Methods
+
+    @Override
+    public EntityType basedMob() {
+        return EntityType.STRAY;
+    }
+}

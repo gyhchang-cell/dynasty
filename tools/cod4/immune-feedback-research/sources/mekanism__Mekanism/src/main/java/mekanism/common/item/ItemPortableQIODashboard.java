@@ -1,0 +1,92 @@
+package mekanism.common.item;
+
+import mekanism.api.security.IItemSecurityUtils;
+import mekanism.common.capabilities.ICapabilityAware;
+import mekanism.common.capabilities.security.OwnerObject;
+import mekanism.common.component.FrequencyAware;
+import mekanism.common.component.qio.PortableDashboardContents;
+import mekanism.common.content.qio.QIOFrequency;
+import mekanism.common.inventory.container.item.PortableQIODashboardContainer;
+import mekanism.common.item.interfaces.IColoredItem;
+import mekanism.common.item.interfaces.IGuiItem;
+import mekanism.common.lib.frequency.FrequencyType;
+import mekanism.common.lib.frequency.FrequencyTypes;
+import mekanism.common.lib.frequency.IFrequencyItem;
+import mekanism.common.lib.security.ItemSecurityUtils;
+import mekanism.common.network.to_client.qio.BulkQIOData;
+import mekanism.common.registration.impl.ContainerTypeRegistryObject;
+import mekanism.common.registries.MekanismContainerTypes;
+import mekanism.common.registries.MekanismDataComponents;
+import mekanism.common.util.InventoryUtils;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import org.jspecify.annotations.Nullable;
+
+public class ItemPortableQIODashboard extends Item implements IFrequencyItem, IGuiItem, IColoredItem, ICapabilityAware {
+
+    public ItemPortableQIODashboard(Properties properties) {
+        super(properties.stacksTo(1).rarity(Rarity.RARE)
+              .component(MekanismDataComponents.INSERT_INTO_FREQUENCY, true)
+              .component(MekanismDataComponents.QIO_DASHBOARD, PortableDashboardContents.EMPTY)
+        );
+    }
+
+    @Override
+    public void onDestroyed(ItemEntity item, DamageSource damageSource) {
+        InventoryUtils.dropItemContents(item, damageSource);
+    }
+
+    @Override
+    public InteractionResult use(Level world, Player player, InteractionHand hand) {
+        return ItemSecurityUtils.get().claimOrOpenGui(world, player, hand, getContainerType()::tryOpenGui);
+    }
+
+    @Override
+    public void encodeContainerData(RegistryFriendlyByteBuf buf, ItemResource itemType) {
+        FrequencyAware<QIOFrequency> frequencyAware = itemType.get(getFrequencyComponent());
+        BulkQIOData.encodeToPacket(buf, frequencyAware == null ? null : frequencyAware.frequency().orElse(null));
+    }
+
+    @Override
+    public ContainerTypeRegistryObject<PortableQIODashboardContainer> getContainerType() {
+        return MekanismContainerTypes.PORTABLE_QIO_DASHBOARD;
+    }
+
+    @Override
+    public FrequencyType<?> getFrequencyType() {
+        return FrequencyTypes.QIO;
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, @Nullable EquipmentSlot slot) {
+        super.inventoryTick(stack, level, entity, slot);
+        if (!level.isClientSide() && level.getGameTime() % (5 * SharedConstants.TICKS_PER_SECOND) == 0) {
+            syncColorWithFrequency(stack);
+        }
+    }
+
+    @Override
+    public void attachCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerItem(IItemSecurityUtils.INSTANCE.ownerCapability(), (_, itemAccess) -> new OwnerObject(itemAccess), this);
+    }
+
+    @Override
+    public DataComponentType<FrequencyAware<QIOFrequency>> getFrequencyComponent() {
+        return MekanismDataComponents.QIO_FREQUENCY.get();
+    }
+}

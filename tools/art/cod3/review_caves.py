@@ -5,6 +5,10 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 ROOT=Path(__file__).resolve().parents[3];D=ROOT/'docs/art/cod3-caves-v1'
+ONLY='--crystal-only' in sys.argv
+ICE='--ice-only' in sys.argv
+if ONLY:D=ROOT/'docs/art/cod3-crystal-canopy-v2'
+if ICE:D=ROOT/'docs/art/cod3-ice-bloom-v2'
 sys.path.insert(0,str(ROOT/'tools/art/boss-forms'))
 import texture_review as review
 
@@ -27,7 +31,7 @@ client=Path.home()/'.gradle/caches/forge_gradle/minecraft_repo/versions/1.20.1/c
 assert client.exists(),'Use existing local 1.20.1 vanilla client assets; no downloads'
 records={}
 with zipfile.ZipFile(client) as source:
-    for id in ('scenic_crystal_canopy','scenic_ice_bloom'):
+    for id in (('scenic_ice_bloom',) if ICE else ('scenic_crystal_canopy',) if ONLY else ('scenic_crystal_canopy','scenic_ice_bloom')):
         raw=gzip.decompress((ROOT/f'src/main/resources/data/dynasty/structures/{id}.nbt').read_bytes());reader=Reader(raw)
         assert reader.read('>B')==10 and reader.string()==''
         nbt=reader.value(10);assert reader.data.read()==b''
@@ -41,6 +45,11 @@ with zipfile.ZipFile(client) as source:
         shell='minecraft:deepslate' if 'crystal' in id else 'minecraft:packed_ice'
         # Omit the front shell and upper ceiling solely for inspecting actual interior blocks.
         visible={p:b for p,b in blocks.items() if b!='minecraft:air' and not (b==shell and (p[1]>=11 or p[2]<=3 and p[1]>0))}
+        if ICE:
+            # Remove only authored chamber-shell voxels, retaining packed-ice flower stems.
+            from scenic_caves import Cave
+            chamber=Cave(id,'packed_ice');chamber.chamber()
+            visible={p:b for p,b in blocks.items() if b!='minecraft:air' and not (p[1]>0 and b==shell and chamber.blocks.get(p)==shell)}
         textures={}
         def tex(block,face):
             key=block.split(':')[1]+('_top' if block=='minecraft:deepslate' and face in ('up','down') else '')
@@ -57,7 +66,10 @@ with zipfile.ZipFile(client) as source:
         out=D/id;out.mkdir(parents=True,exist_ok=True)
         points=np.concatenate([q[0] for q in quads]);fallback=np.zeros((16,16,3),dtype=np.uint8)
         for yaw,label in [(0,'front'),(45,'45'),(90,'right'),(-90,'left'),(180,'back')]:
-            review.labelled(review.raster(quads,fallback,yaw=yaw,elevation=14,size=(1000,720),mode='lit',frame_points=points),id+' / '+label+' / NBT cutaway','软件剖视 · 仅读取实际 NBT + 本机原版 PNG · 移去前壁/顶壳便于检查 · 非实机').save(out/(label+'.png'))
+            review.labelled(review.raster(quads,fallback,yaw=yaw,elevation=14,size=(1000,720),mode='lit',frame_points=points),id+' / '+label+' / NBT cutaway','软件剖视 · 移去冰壳保留花茎/悬冰用于检查 · 实际 NBT + 原版 PNG · 非实机' if ICE else '软件剖视 · 仅读取实际 NBT + 本机原版 PNG · 移去前壁/顶壳便于检查 · 非实机').save(out/(label+'.png'))
+        if ONLY or ICE:
+            black=[(vertices,dict(uv,_tex=fallback),bone) for vertices,uv,bone in quads]
+            review.labelled(review.raster(black,fallback,yaw=45,elevation=14,size=(1000,720),mode='unlit',frame_points=points),id+' / black silhouette / NBT cutaway','纯黑剪影 · 同一份实际 NBT 剖视 · 非实机').save(out/'silhouette.png')
         records[id]={'nbt_blocks':len(blocks),'palette':palette,'entities':0,'block_entities':0,'clear_crossing':True,'visible_cutaway_faces':len(quads),'texture_source':'local Minecraft 1.20.1 client.jar; no PNG copied into project','software_cutaway_only':True}
 (D/'software-validation.json').write_text(json.dumps(records,ensure_ascii=False,indent=2)+'\n')
-print('PASS actual delivered NBT: two clear crossings, no entity/NBT payload, real vanilla-texture five-view cutaways')
+print('PASS actual delivered NBT: clear crossings, no entity/NBT payload, real vanilla-texture five-view cutaways')

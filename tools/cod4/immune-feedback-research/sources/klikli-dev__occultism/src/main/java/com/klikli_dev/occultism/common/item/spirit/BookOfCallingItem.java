@@ -1,0 +1,372 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.item.spirit;
+
+import com.klikli_dev.occultism.TranslationKeys;
+import com.klikli_dev.occultism.api.common.data.WorkAreaSize;
+import com.klikli_dev.occultism.api.common.item.IHandleItemMode;
+import com.klikli_dev.occultism.client.gui.GuiHelper;
+import com.klikli_dev.occultism.common.entity.spirit.SpiritEntity;
+import com.klikli_dev.occultism.common.item.spirit.calling.ItemMode;
+import com.klikli_dev.occultism.common.item.spirit.calling.ItemModes;
+import com.klikli_dev.occultism.registry.OccultismDataComponents;
+import com.klikli_dev.occultism.util.EntityUtil;
+import com.klikli_dev.occultism.util.ItemNBTUtil;
+import com.klikli_dev.occultism.util.TextUtil;
+import com.mojang.logging.LogUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.ProblemReporter.ScopedCollector;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.Entity.RemovalReason;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
+public class BookOfCallingItem extends Item implements IHandleItemMode {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    public static Map<UUID, Long> spiritDeathRegister = new HashMap<>();
+    public String translationKeyBase;
+    public Predicate<SpiritEntity> targetSpirit;
+
+
+    public BookOfCallingItem(Properties properties, String translationKeyBase, Predicate<SpiritEntity> targetSpirit) {
+        super(properties);
+        this.translationKeyBase = translationKeyBase;
+        this.targetSpirit = targetSpirit;
+    }
+
+    //region Getter / Setter
+
+    /**
+     * @return returns the base item translation including the spirit name, but excluding the job.
+     */
+    public String getTranslationKeyBase() {
+        return this.translationKeyBase;
+    }
+
+    //endregion Getter / Setter
+
+    public List<ItemMode> getItemModes() {
+        return new ArrayList<>();
+    }
+
+    @Override
+    public int getItemMode(ItemStack stack) {
+        return ItemNBTUtil.getItemMode(stack);
+    }
+
+    @Override
+    public void setItemMode(ItemStack stack, int mode) {
+        ItemNBTUtil.setItemMode(stack, mode);
+    }
+
+    public ItemMode nextItemMode(ItemStack stack) {
+        int mode = this.getItemMode(stack);
+        mode = (mode + 1) % this.getItemModes().size();
+        this.setItemMode(stack, mode);
+        return this.getCurrentItemMode(stack);
+    }
+
+    public int modeValue(ItemMode mode) {
+        return this.getItemModes().indexOf(mode);
+    }
+
+    @Override
+    public InteractionResult use(Level pLevel, Player pPlayer, InteractionHand pUsedHand) {
+        ItemStack itemStack = pPlayer.getItemInHand(pUsedHand);
+        if (!pPlayer.isShiftKeyDown() && pLevel.isClientSide()) {
+            ItemMode curr = this.getCurrentItemMode(itemStack);
+            WorkAreaSize workAreaSize = ItemNBTUtil.getWorkAreaSize(itemStack);
+            GuiHelper.openBookOfCallingGui(curr, workAreaSize, pUsedHand);
+        }
+        return super.use(pLevel, pPlayer, pUsedHand);
+
+    }
+
+    @Override
+    public InteractionResult useOn(UseOnContext context) {
+        Player player = context.getPlayer();
+        ItemStack itemStack = context.getItemInHand();
+        Level world = context.getLevel();
+        Direction facing = context.getClickedFace();
+        BlockPos pos = context.getClickedPos();
+        var spiritEntityData = ItemNBTUtil.getSpiritEntityDataComponent(itemStack);
+        if (spiritEntityData != null) {
+            //whenever we have an entity stored we can do nothing but release it
+            if (!world.isClientSide()) {
+                if (spiritEntityData.contains(OccultismDataComponents.INVALID_SPIRIT_ENTITY_DATA_MARKER)) {
+                    itemStack.remove(OccultismDataComponents.SPIRIT_ENTITY_DATA);
+                    itemStack.set(DataComponents.RARITY, Rarity.COMMON);
+                    if (player != null)
+                        player.inventoryMenu.broadcastChanges();
+                    return InteractionResult.FAIL;
+                }
+
+                EntityType<?> type = spiritEntityData.type();
+                CompoundTag entityData = spiritEntityData.copyTagWithoutId();
+
+                facing = facing == null ? Direction.UP : facing;
+
+                BlockPos spawnPos = pos.immutable();
+                if (!world.getBlockState(spawnPos).getCollisionShape(world, spawnPos).isEmpty()) {
+                    spawnPos = spawnPos.relative(facing);
+                }
+
+                //remove position from tag to allow the entity to spawn where it should be
+                entityData.remove("Pos");
+
+                if (!(type.create(world, EntitySpawnReason.LOAD) instanceof SpiritEntity entity)) {
+                    itemStack.remove(OccultismDataComponents.SPIRIT_ENTITY_DATA);
+                    itemStack.set(DataComponents.RARITY, Rarity.COMMON);
+                    if (player != null)
+                        player.inventoryMenu.broadcastChanges();
+                    return InteractionResult.FAIL;
+                }
+
+                try (ScopedCollector reporter = new ScopedCollector(entity.problemPath(), LOGGER)) {
+                    entity.load(TagValueInput.create(reporter, entity.registryAccess(), entityData));
+                }
+                entity.snapTo(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, 0, 0);
+                world.addFreshEntity(entity);
+
+                //old spawn code
+                //                SpiritEntity entity = (SpiritEntity) type.spawn((ServerLevel)world, wrapper, customName, null, spawnPos,
+                //                        EntitySpawnReason.MOB_SUMMONED, true, !pos.equals(spawnPos) && facing == Direction.UP);
+                //                if (entityData.contains("OwnerUUID") && !entityData.getString("OwnerUUID").isEmpty()) {
+                //                    entity.setOwnerId(UUID.fromString(entityData.getString("OwnerUUID")));
+                //                }
+
+                //refresh item nbt
+                ItemNBTUtil.updateItemNBTFromEntity(itemStack, entity);
+
+                itemStack.remove(OccultismDataComponents.SPIRIT_ENTITY_DATA);
+                itemStack.set(DataComponents.RARITY, Rarity.COMMON);
+                if (player != null)
+                    player.inventoryMenu.broadcastChanges();
+            }
+        } else {
+            //if there are no entities stored, we can either open the ui or perform the action
+            if (player.isShiftKeyDown()) {
+                //when sneaking, perform action based on mode
+                return this.handleItemMode(player, world, pos, itemStack, facing, context.getHand());
+            } else if (world.isClientSide()) {
+                //if not sneaking, open general ui
+                ItemMode curr = this.getCurrentItemMode(itemStack);
+                WorkAreaSize workAreaSize = ItemNBTUtil.getWorkAreaSize(itemStack);
+                GuiHelper.openBookOfCallingGui(curr, workAreaSize, context.getHand());
+            }
+        }
+
+        return InteractionResult.SUCCESS;
+    }
+
+    @Override
+    public InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity target,
+                                                  InteractionHand hand) {
+
+        //Ignore anything that is not a spirit owned by the player
+        if (!(target instanceof SpiritEntity targetSpirit) || !targetSpirit.isOwnedBy(player))
+            return InteractionResult.PASS;
+
+        if (target.level().isClientSide())
+            return InteractionResult.SUCCESS;
+
+        //books can only control the spirit that is bound to them.
+        if (!targetSpirit.getUUID().equals(ItemNBTUtil.getSpiritEntityUUID(stack))) {
+            //re-link book
+            if (player.isShiftKeyDown()) {
+                if (this.targetSpirit.test(targetSpirit)) {
+                    ItemNBTUtil.setSpiritEntityUUID(stack, targetSpirit.getUUID());
+                    stack.set(DataComponents.RARITY, Rarity.RARE);
+                    ItemNBTUtil.setBoundSpiritName(stack, targetSpirit.getName().getString());
+                    player.sendOverlayMessage(
+                            Component.translatable(
+                                    TranslationKeys.BOOK_OF_CALLING_GENERIC + ".message_target_linked"));
+                    player.swing(hand);
+                    player.setItemInHand(hand, stack); //need to write the item back to hand, otherwise we only modify a copy
+                    player.inventoryMenu.broadcastChanges();
+                    return InteractionResult.SUCCESS;
+                } else {
+                    //if our mode is "set deposit" then we check if the target is appropriate for depositing
+                    //Note: we filter above for spirits -> so for now only spirits are an appropriate target
+                    if (this.getCurrentItemMode(stack) == ItemModes.SET_DEPOSIT) {
+                        if (targetSpirit.getCapability(Capabilities.Item.ENTITY) != null) {
+                            UUID boundSpiritId = ItemNBTUtil.getSpiritEntityUUID(stack);
+                            if (boundSpiritId != null) {
+                                Optional<SpiritEntity> boundSpirit = EntityUtil.getEntityByUuiDGlobal(target.level().getServer(), boundSpiritId)
+                                        .map(e -> (SpiritEntity) e);
+
+                                if (boundSpirit.isPresent()) {
+                                    boundSpirit.get().setDepositEntityUUID(EntityReference.of(targetSpirit.getUUID()));
+                                    //also update control item with latest data
+                                    ItemNBTUtil.updateItemNBTFromEntity(stack, boundSpirit.get());
+                                    ItemNBTUtil.setDepositEntityName(stack, target.getName().getString());
+
+
+                                    player.sendOverlayMessage(
+                                            Component.translatable(TranslationKeys.BOOK_OF_CALLING_GENERIC + ".message_set_deposit_entity",
+                                                    TextUtil.formatDemonName(boundSpirit.get().getName().getString()),
+                                                    TextUtil.formatDemonName(targetSpirit.getName().getString())));
+                                    player.swing(hand);
+                                    player.setItemInHand(hand, stack); //need to write the item back to hand, otherwise we only modify a copy
+                                    player.inventoryMenu.broadcastChanges();
+                                    return InteractionResult.SUCCESS;
+                                } else {
+                                    player.sendOverlayMessage(
+                                            Component.translatable(
+                                                    TranslationKeys.BOOK_OF_CALLING_GENERIC + ".message_spirit_not_found"));
+                                    return InteractionResult.FAIL;
+                                }
+                            } else {
+                                //if spirit id is null then this was a (failed) link attempt -> and we fail
+                                player.sendOverlayMessage(
+                                        Component.translatable(
+                                                TranslationKeys.BOOK_OF_CALLING_GENERIC + ".message_target_cannot_link"));
+                                return InteractionResult.FAIL;
+                            }
+                        } else {
+                            //if target is not appropriate, we fail
+                            player.sendOverlayMessage(
+                                    Component.translatable(
+                                            TranslationKeys.BOOK_OF_CALLING_GENERIC + ".message_target_entity_no_inventory"));
+                            return InteractionResult.FAIL;
+                        }
+                    }
+
+                    //if mode is not deposit we fail the linking
+                    player.sendOverlayMessage(
+                            Component.translatable(
+                                    TranslationKeys.BOOK_OF_CALLING_GENERIC + ".message_target_cannot_link"));
+                    return InteractionResult.FAIL;
+                }
+            } else {
+                player.sendOverlayMessage(
+                        Component.translatable(
+                                TranslationKeys.BOOK_OF_CALLING_GENERIC + ".message_target_uuid_no_match"));
+                return InteractionResult.FAIL;
+            }
+        }
+
+        //serialize entity
+        CompoundTag entityData;
+        try (ScopedCollector reporter = new ScopedCollector(targetSpirit.problemPath(), LOGGER)) {
+            TagValueOutput output = TagValueOutput.createWithContext(reporter, targetSpirit.registryAccess());
+            targetSpirit.saveWithoutId(output);
+            entityData = output.buildResult();
+        }
+
+        ItemNBTUtil.setSpiritEntityData(stack, targetSpirit.getType(), entityData);
+        ItemNBTUtil.setSpiritEntityUUID(stack, targetSpirit.getUUID());
+        ItemNBTUtil.setBoundSpiritName(stack, targetSpirit.getName().getString());
+        //show player swing anim
+        player.swing(hand);
+        player.setItemInHand(hand, stack); //need to write the item back to hand, otherwise we only modify a copy
+        targetSpirit.remove(RemovalReason.DISCARDED);
+        player.inventoryMenu.broadcastChanges();
+        return InteractionResult.SUCCESS;
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack, ServerLevel worldIn, Entity entityIn, @Nullable EquipmentSlot slot) {
+        if (worldIn.getGameTime() % (20 * 60) == 0) {
+            UUID spiritID = ItemNBTUtil.getSpiritEntityUUID(stack);
+            if (spiritID != null) {
+                Long deathTime = spiritDeathRegister.get(spiritID);
+                if (deathTime != null && deathTime < worldIn.getGameTime()) {
+                    spiritDeathRegister.remove(spiritID);
+                    stack.set(OccultismDataComponents.SPIRIT_DEAD, true);
+                    stack.remove(OccultismDataComponents.SPIRIT_ENTITY_UUID);
+                }
+            }
+        }
+
+        super.inventoryTick(stack, worldIn, entityIn, slot);
+    }
+
+    @Override
+    public void appendHoverText(ItemStack pStack, TooltipContext pContext, TooltipDisplay tooltipDisplay, Consumer<Component> tooltipAdder, TooltipFlag pTooltipFlag) {
+        super.appendHoverText(pStack, pContext, tooltipDisplay, tooltipAdder, pTooltipFlag);
+
+        tooltipAdder.accept(Component.translatable(this.getTranslationKeyBase() +
+                        (ItemNBTUtil.getSpiritDead(pStack) ? ".tooltip_dead" : ".tooltip"),
+                TextUtil.formatDemonName(ItemNBTUtil.getBoundSpiritName(pStack))));
+    }
+
+    @Override
+    public boolean isFoil(ItemStack stack) {
+        return ItemNBTUtil.getSpiritEntityData(stack) != null;
+    }
+
+    public ItemMode getCurrentItemMode(ItemStack stack) {
+        int mode = this.getItemMode(stack);
+
+        // sanity check.
+        // here to prevent crashes if old system has invalid mode
+        if (mode < 0 || mode >= this.getItemModes().size()) {
+            mode = 0;
+            this.setItemMode(stack, mode);
+        }
+        return this.getItemModes().get(mode);
+    }
+
+    public boolean useWorkAreaSize() {
+        return true;
+    }
+
+    public InteractionResult handleItemMode(Player player, Level world, BlockPos pos, ItemStack stack,
+                                            Direction facing, InteractionHand hand) {
+        ItemMode itemMode = this.getCurrentItemMode(stack);
+        BlockEntity blockEntity = world.getBlockEntity(pos);
+        //handle the serverside item modes
+        if (!world.isClientSide()) {
+
+            return itemMode.handle(blockEntity, player, world, pos, stack, facing) ? InteractionResult.SUCCESS : InteractionResult.PASS;
+
+        }
+        return InteractionResult.PASS;
+    }
+}

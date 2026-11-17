@@ -1,0 +1,414 @@
+{
+  "purpose": "人工全文审阅后的具体玩法使用链；支持方法不额外计数。",
+  "reviewed_at": "2026-10-26T21:12:58.786665+08:00",
+  "additional_credit": 0,
+  "external_runtime_tested": false,
+  "chains": [
+    {
+      "observation": "人工全文审阅；本链所有支持0额外信用，见batch-131详细观察。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "93b897da8a231f83e9fc",
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "method": "groundBlock",
+          "line": 235,
+          "end_line": 320,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "source_sha256": "813ac6447eabdda8e7824701ef227293c62bb408f91cc6b235f5340909e00c3b",
+          "snippet_sha256": "18af05011de26980b75ce4d9780115b6e654ee728d07188add45133ea3efb2ee",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java#L235-L320",
+          "excerpt": "public BlockPos groundBlock(boolean ignoreAir) {\n        Block block = this.blockState.getBlock();\n        BlockPos blockpos = this.blockPosition();\n        BlockState blockstate = this.level.getBlockState(blockpos);\n        boolean isConcrete = this.blockState.getBlock() instanceof ConcretePowderBlock;\n        boolean isConcreteInWater = isConcrete && this.level.getFluidState(blockpos).is(FluidTags.WATER);\n        this.setDeltaMovement(this.getDeltaMovement().multiply(0.7D, -0.5D, 0.7D));\n        if (blockstate.is(Blocks.MOVING_PISTON))\n            return null;\n        if (this.cancelDrop) {\n            this.discard();\n            this.callOnBrokenAfterFall(block, blockpos);\n            return null;\n        }\n        boolean canBeReplaced = blockstate.canBeReplaced(new DirectionalPlaceContext(this.level, blockpos, Direction.DOWN, ItemStack.EMPTY, Direction.UP));\n        boolean isFreeBelow = FallingBlock.isFree(this.level.getBlockState(blockpos.below())) && (!isConcrete || !isConcreteInWater);\n        boolean canSurvive = this.blockState.canSurvive(this.level, blockpos) && (!isFreeBelow || ignoreAir);\n        if (canBeReplaced && canSurvive) {\n            if (this.blockState.hasProperty(BlockStateProperties.WATERLOGGED) && this.level.getFluidState(blockpos).getType() == Fluids.WATER) {\n                this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, Boolean.TRUE);\n            }\n\n            if (this.level.setBlock(blockpos, this.blockState, 3)) {\n                ((ServerLevel) this.level).getChunkSource().chunkMap.broadcast(this, new ClientboundBlockUpdatePacket(blockpos, this.level.getBlockState(blockpos)));\n                this.discard();\n                if (block instanceof Fallable fallable) {\n                    fallable.onLand(this.level, blockpos, this.blockState, blockstate, new FallingBlockEntity(level, this.getX(), this.getY(), this.getZ(), this.blockState));\n                } else if (context != null && resolver != null) {\n                    RewindAttachment.get(context).addRewindEvent(level.getGameTime(), new EntityToBlockRewind(this, blockpos, this.blockState));\n                    ShapersFocus.tryPropagateBlockSpell(new BlockHitResult(\n                            new Vec3(blockpos.getX(), blockpos.getY(), blockpos.getZ()), Direction.DOWN, blockpos, false\n                    ), level, getOwner(), context, resolver);\n                }\n\n                if (this.blockData != null && this.blockState.hasBlockEntity()) {\n                    BlockEntity blockentity = this.level.getBlockEntity(blockpos);\n                    if (blockentity != null) {\n\n                        try {\n                            blockentity.loadWithComponents(this.blockData, level.registryAccess());\n                            if (blockentity instanceof SkullBlockEntity sk && this.blockData != null && this.blockData.contains(\"SkullOwner\")) {\n                                sk.setOwner(ANCodecs.decode(level.registryAccess(), ResolvableProfile.CODEC, this.blockData.getCompound(\"SkullOwner\")));\n                            }\n                        } catch (Exception exception) {\n                            exception.printStackTrace();\n                        }\n\n                        blockentity.setChanged();\n                    }\n                }\n                if (this.level.getBlockEntity(blockpos) instanceof MageBlockTile mbt) {\n                    if (context != null) {\n                        mbt.color = context.getSpell().particleTimeline().get(ParticleTimelineRegistry.MAGEBLOCK_TIMELINE.get()).getColor();\n                    }\n                    mbt.setChanged();\n                }\n\n                return blockpos;\n            } else if (this.dropItem && this.level.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {\n                this.discard();\n                this.callOnBrokenAfterFall(block, blockpos);\n                ItemStack itemstack = new ItemStack(block);\n                if (this.blockData != null && this.getBlockState().is(Blocks.PLAYER_HEAD)) {\n                    ResolvableProfile.CODEC\n                            .parse(NbtOps.INSTANCE, blockData.get(\"profile\"))\n                            .resultOrPartial().ifPresent(profile -> itemstack.set(DataComponents.PROFILE, profile));\n                }\n                this.spawnAtLocation(itemstack);\n                return null;\n            }\n        } else {\n            this.discard();\n            if (this.dropItem && this.level.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {\n                this.callOnBrokenAfterFall(block, blockpos);\n                ItemStack itemstack = new ItemStack(block);\n                if (this.blockData != null && this.getBlockState().is(Blocks.PLAYER_HEAD)) {\n                    ResolvableProfile.CODEC\n                            .parse(NbtOps.INSTANCE, blockData.get(\"profile\"))\n                            .resultOrPartial().ifPresent(profile -> itemstack.set(DataComponents.PROFILE, profile));\n\n                }\n                this.spawnAtLocation(itemstack);\n            }\n        }\n        return null;\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "method": "canFall",
+          "line": 130,
+          "end_line": 139,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "source_sha256": "813ac6447eabdda8e7824701ef227293c62bb408f91cc6b235f5340909e00c3b",
+          "snippet_sha256": "c27215edf5648f0ab72498d18bebe39ca93e27e9f70115db6ef9acf6a8a757e4",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java#L130-L139",
+          "excerpt": "public static boolean canFall(Level level, BlockPos pos, Entity owner, SpellStats spellStats) {\n        if (level.isEmptyBlock(pos)\n                || !level.getFluidState(pos).isEmpty()\n                || level.getBlockState(pos).is(BlockTagProvider.RELOCATION_NOT_SUPPORTED)\n                || (level.getBlockEntity(pos) != null && !(level.getBlockEntity(pos) instanceof MageBlockTile\n                || level.getBlockEntity(pos) instanceof SkullBlockEntity))) {\n            return false;\n        }\n        return BlockUtil.canBlockBeHarvested(spellStats, level, pos) && BlockUtil.destroyRespectsClaim((LivingEntity) owner, level, pos);\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "method": "fall",
+          "line": 141,
+          "end_line": 171,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "source_sha256": "813ac6447eabdda8e7824701ef227293c62bb408f91cc6b235f5340909e00c3b",
+          "snippet_sha256": "1cba30a338ae18edc2b5ff546cfc31e75865029c53fd10fea9dc960d5723c92f",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java#L141-L171",
+          "excerpt": "public static @Nullable EnchantedFallingBlock fall(Level level, BlockPos pos, Entity owner, SpellContext context, SpellResolver resolver, SpellStats spellStats) {\n        if (!canFall(level, pos, owner, spellStats)) return null;\n        BlockState blockState = level.getBlockState(pos);\n        EnchantedFallingBlock fallingblockentity;\n        if (level.getBlockEntity(pos) instanceof MageBlockTile tile) {\n            fallingblockentity = new EnchantedMageblock(level, pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, blockState.hasProperty(BlockStateProperties.WATERLOGGED) ? blockState.setValue(BlockStateProperties.WATERLOGGED, Boolean.FALSE) : blockState);\n            fallingblockentity.resolver = resolver;\n        } else if (level.getBlockEntity(pos) instanceof SkullBlockEntity tile) {\n            fallingblockentity = new EnchantedSkull(level, pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, blockState.hasProperty(BlockStateProperties.WATERLOGGED) ? blockState.setValue(BlockStateProperties.WATERLOGGED, Boolean.FALSE) : blockState);\n        } else {\n            fallingblockentity = new EnchantedFallingBlock(level, pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, blockState.hasProperty(BlockStateProperties.WATERLOGGED) ? blockState.setValue(BlockStateProperties.WATERLOGGED, Boolean.FALSE) : blockState, resolver);\n        }\n        if (level.getBlockEntity(pos) != null) {\n            fallingblockentity.blockData = level.getBlockEntity(pos).saveWithoutMetadata(level.registryAccess());\n        }\n        level.addFreshEntity(fallingblockentity);\n        fallingblockentity.setOwner(owner);\n        fallingblockentity.context = context;\n        fallingblockentity.baseDamage = (float) (9.0f + spellStats.getDamageModifier());\n        fallingblockentity.dropItem = !blockState.is(BlockTagProvider.GRAVITY_BLACKLIST);\n        fallingblockentity.spellStats = spellStats;\n        if (resolver.hasFocus(ItemsRegistry.SHAPERS_FOCUS.get())) {\n            fallingblockentity.hurtEntities = true;\n        }\n        if (context != null) {\n            RewindAttachment rewindAttachment = RewindAttachment.get(context);\n            rewindAttachment.addRewindEvent(level.getGameTime(), new BlockToEntityRewind(pos, blockState));\n        }\n        level.setBlock(pos, blockState.getFluidState().createLegacyBlock(), 3);\n        return fallingblockentity;\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "method": "tick",
+          "line": 188,
+          "end_line": 233,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "source_sha256": "813ac6447eabdda8e7824701ef227293c62bb408f91cc6b235f5340909e00c3b",
+          "snippet_sha256": "2fcd5b9703939ceaafe82faf11fcff6f72430e7c878808fa10042f5993067505",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java#L188-L233",
+          "excerpt": "@Override\n    public void tick() {\n        super.tick();\n        if (this.blockState.isAir()) {\n            this.discard();\n            return;\n        }\n        Block block = this.blockState.getBlock();\n        ++this.time;\n        if (!this.isNoGravity()) {\n            this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.04D, 0.0D));\n        }\n        EntityHitResult hitEntity = findHitEntity(this.position, this.position.add(this.getDeltaMovement()));\n        if (hitEntity != null) {\n            onHitEntity(hitEntity);\n        }\n        this.move(MoverType.SELF, this.getDeltaMovement());\n        if (!this.level.isClientSide && !this.isRemoved()) {\n            BlockPos blockpos = this.blockPosition();\n            boolean isConcrete = this.blockState.getBlock() instanceof ConcretePowderBlock;\n            boolean isConcreteInWater = isConcrete && this.level.getFluidState(blockpos).is(FluidTags.WATER);\n            double d0 = this.getDeltaMovement().lengthSqr();\n            if (isConcrete && d0 > 1.0D) { // if we are concrete powder\n                BlockHitResult blockhitresult = this.level.clip(new ClipContext(new Vec3(this.xo, this.yo, this.zo), this.position(), ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, this));\n                if (blockhitresult.getType() != HitResult.Type.MISS && this.level.getFluidState(blockhitresult.getBlockPos()).is(FluidTags.WATER)) {\n                    blockpos = blockhitresult.getBlockPos();\n                    isConcreteInWater = true;\n                }\n            }\n\n            if (!this.onGround() && !isConcreteInWater) {\n                if (!this.level.isClientSide && (this.time > 100 && (blockpos.getY() <= this.level.getMinBuildHeight() || blockpos.getY() > this.level.getMaxBuildHeight()) || this.time > 600)) {\n                    if (this.dropItem && this.level.getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) {\n                        this.spawnAtLocation(block);\n                    }\n\n                    this.discard();\n                }\n            } else { // on ground\n                if (this instanceof IRewindable rewindable && !rewindable.isRewinding()) {\n                    this.groundBlock(false);\n                }\n            }\n        }\n        this.setDeltaMovement(this.getDeltaMovement().scale(0.98D));\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "method": "onHitEntity",
+          "line": 333,
+          "end_line": 375,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "source_sha256": "813ac6447eabdda8e7824701ef227293c62bb408f91cc6b235f5340909e00c3b",
+          "snippet_sha256": "08a8f7aec7b162a2380fb4c5cdbc08a9966dace6d91706caa0068267f3a567bb",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java#L333-L375",
+          "excerpt": "@Override\n    protected void onHitEntity(@NotNull EntityHitResult pResult) {\n        if (!hurtEntities)\n            return;\n        super.onHitEntity(pResult);\n        Entity entity = pResult.getEntity();\n        float f = (float) this.getDeltaMovement().length();\n        int i = Mth.ceil(Mth.clamp((Math.min(f, 2.5) * this.baseDamage) + getStateDamageBonus(), 0.0D, 2.147483647E9D));\n        this.piercingIgnoreEntityIds.add(entity.getId());\n\n        Entity owner = this.getOwner();\n        DamageSource damagesource;\n        damagesource = getDamageSource(owner, entity);\n\n        boolean isEnderman = entity.getType() == EntityType.ENDERMAN;\n        int k = entity.getRemainingFireTicks();\n        if (this.isOnFire() && !isEnderman) {\n            entity.igniteForTicks(5);\n        }\n\n        if (entity.hurt(damagesource, (float) i)) {\n            if (isEnderman) {\n                return;\n            }\n\n            if (entity instanceof LivingEntity livingentity) {\n\n                if (this.knockback > 0) {\n                    Vec3 vec3 = this.getDeltaMovement().multiply(1.0D, 0.0D, 1.0D).normalize().scale((double) this.knockback * 0.6D);\n                    if (vec3.lengthSqr() > 0.0D) {\n                        livingentity.push(vec3.x, 0.1D, vec3.z);\n                    }\n                }\n\n                this.doPostHurtEffects(livingentity);\n            }\n\n            this.playSound(this.blockState.getSoundType().getBreakSound(), 1.0F, 1.2F / (this.random.nextFloat() * 0.2F + 0.9F));\n\n        } else {\n            entity.setRemainingFireTicks(k);\n        }\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "method": "getDamageSource",
+          "line": 377,
+          "end_line": 388,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java",
+          "source_sha256": "813ac6447eabdda8e7824701ef227293c62bb408f91cc6b235f5340909e00c3b",
+          "snippet_sha256": "acac6432939a8ca6fcc7056811a248eb8b484024a06bb6be4b9b73bfec194665",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/EnchantedFallingBlock.java#L377-L388",
+          "excerpt": "public @NotNull DamageSource getDamageSource(Entity owner, Entity entity) {\n        DamageSource damagesource;\n        if (owner == null) {\n            damagesource = level.damageSources().thrown(this, owner);\n        } else {\n            damagesource = level.damageSources().thrown(this, owner);\n            if (owner instanceof LivingEntity livingOwner) {\n                livingOwner.setLastHurtMob(entity);\n            }\n        }\n        return damagesource;\n    }"
+        }
+      ]
+    },
+    {
+      "observation": "人工全文审阅；本链所有支持0额外信用，见batch-131详细观察。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "6a8bdef22ae6e2395a9f",
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "method": "tick",
+          "line": 288,
+          "end_line": 373,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "source_sha256": "9bf6542e845a8d308af821b2e4541c47f0bba72ad995766cca0f48cfb4f57ad9",
+          "snippet_sha256": "fc9e01d61027f17d70a6fda30581c2c15a5deb57f04c7dfe06941e322a855385",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java#L288-L373",
+          "excerpt": "@Override\n    public void tick() {\n        super.tick();\n        if (level.isClientSide && !initMusic) {\n            initMusic = true;\n            ((Runnable) () -> ChimeraMusic.play(WildenChimera.this)).run();\n        }\n\n        // written like this allows for hotswap\n        // this.goalSelector.getAvailableGoals().stream().filter(WrappedGoal::isRunning).map(WrappedGoal::getGoal).forEach(System.out::println);\n\n\n        if (!level.isClientSide && isDefensive()) {\n            this.getNavigation().stop();\n        }\n        if (level.isClientSide && isFlying() && random.nextInt(18) == 0) {\n\n            this.level.playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.BAT_LOOP, this.getSoundSource(),\n                    0.95F + this.random.nextFloat() * 0.05F,\n                    0.3f + this.random.nextFloat() * 0.05F,\n                    false);\n\n        }\n\n        if (!level.isClientSide && this.isInLava() && this.level.getGameTime() % 10 == 0) {\n            this.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 20, 4));\n            this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 20, 3));\n            this.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 20));\n            this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 20, 3));\n\n        }\n\n        if (this.isFlying()) {\n            this.navigation.stop();\n            flyingNavigator.tick();\n        }\n\n        if (!level.isClientSide) {\n            // Reduce skill cooldown\n            if (diveCooldown > 0) {\n                diveCooldown--;\n                if (this.isInLava() || this.isInWater())\n                    diveCooldown -= 2;\n            }\n            if (summonCooldown > 0) summonCooldown--;\n            if (spikeCooldown > 0) spikeCooldown--;\n            if (ramCooldown > 0) ramCooldown--;\n\n            if (getTarget() != null && this.invulnerableTime == 0 && !this.isDefensive() && !this.isFlying() && (this.onGround() || isInWater())) {\n                var path = getNavigation().createPath(getTarget(), 1);\n                if (path == null || !path.canReach() || getTarget().getY() - (this.getY() + 2) >= 3) {\n                    rageTimer--;\n                }\n            }\n\n        }\n\n        if (!level.isClientSide && getPhaseSwapping() && !this.dead) {\n            if (swapTicks < 60) {\n                swapTicks++;\n                this.navigation.stop();\n            } else {\n                this.removeAllEffects();\n                this.setPhaseSwapping(false);\n                for (LivingEntity e : level.getEntitiesOfClass(Player.class, new AABB(this.blockPosition()).inflate(5))) {\n                    EntitySpellResolver resolver = new EntitySpellResolver(new SpellContext(level, new Spell().add(MethodTouch.INSTANCE)\n                            .add(EffectLaunch.INSTANCE)\n                            .add(AugmentAmplify.INSTANCE, 2)\n                            .add(EffectDelay.INSTANCE)\n                            .add(EffectKnockback.INSTANCE)\n                            .add(AugmentAmplify.INSTANCE, 2)\n                            , this, new LivingCaster(this)));\n                    resolver.onCastOnEntity(ItemStack.EMPTY, e, InteractionHand.MAIN_HAND);\n                }\n                getRandomUpgrade();\n                ParticleUtil.spawnPoof((ServerLevel) level, blockPosition().above());\n                if (getPhase() == 1)\n                    rageTimer = 200;\n                swapTicks = 0;\n            }\n        }\n\n        if (getPhaseSwapping() && level.isClientSide) {\n            spawnPhaseParticles(blockPosition(), level, getPhase());\n        }\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "method": "hurt",
+          "line": 497,
+          "end_line": 537,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "source_sha256": "9bf6542e845a8d308af821b2e4541c47f0bba72ad995766cca0f48cfb4f57ad9",
+          "snippet_sha256": "65badd6cc1f515cbc6a5396f887a9640c866d056d058f182d89bc83c55d6dba5",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java#L497-L537",
+          "excerpt": "@Override\n    public boolean hurt(DamageSource source, float amount) {\n        if (source.is(DamageTypes.CACTUS) || source.is(DamageTypes.SWEET_BERRY_BUSH) || source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.LAVA) || source.is(DamageTypes.DROWN))\n            return false;\n        if (source.is(DamageTypes.FREEZE))\n            amount = amount / 2;\n        if (this.getPhaseSwapping())\n            return false;\n\n        Entity entity = source.getEntity();\n        if (entity instanceof LivingEntity entity1 && !entity.equals(this)) {\n            if (isDefensive() && !source.is(DamageTypes.THORNS)) {\n                if (!source.is(DamageTypeTags.BYPASSES_ARMOR) && BlockUtil.distanceFrom(level, entity.position, position) <= 3) {\n                    entity.hurt(level.damageSources().thorns(this), 6.0f);\n                }\n            }\n\n            // Omit our summoned sources that might aggro or accidentally hurt us\n            if (entity1 instanceof WildenStalker || entity1 instanceof WildenGuardian || entity instanceof WildenHunter\n                    || entity instanceof ISummon && ((ISummon) entity).getOwnerUUID() != null && ((ISummon) entity).getOwnerUUID().equals(this.getUUID())\n                    || entity1 instanceof SummonWolf && ((SummonWolf) entity1).isWildenSummon)\n                return false;\n        }\n\n        if (isDefensive())\n            return false;\n        var threshold = this.getMaxHealth() / 4;\n        var nextMin = this.getMaxHealth() - threshold * (1 + getPhase());\n        boolean res = super.hurt(source, amount);\n        if (!this.level.isClientSide && this.getHealth() <= nextMin && getPhase() < 3) {\n            this.setPhaseSwapping(true);\n            this.setPhase(this.getPhase() + 1);\n            this.getNavigation().stop();\n            this.setHealth(nextMin);\n            this.dead = false;\n            this.setFlying(false);\n            this.setDefensiveMode(false);\n            isRamGoal = false;\n        }\n        return res;\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "method": "getRandomUpgrade",
+          "line": 468,
+          "end_line": 484,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "source_sha256": "9bf6542e845a8d308af821b2e4541c47f0bba72ad995766cca0f48cfb4f57ad9",
+          "snippet_sha256": "6ea1d79e581cd5e7e2671d185bcd9f2f9983445f535622b436d79cd58e15b60e",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java#L468-L484",
+          "excerpt": "public void getRandomUpgrade() {\n        ArrayList<Integer> upgrades = new ArrayList<>();\n        if (!this.hasWings())\n            upgrades.add(0);\n        if (!this.hasSpikes())\n            upgrades.add(1);\n        if (!this.hasHorns())\n            upgrades.add(2);\n        if (upgrades.isEmpty())\n            return;\n        int upgrade = upgrades.get(random.nextInt(upgrades.size()));\n        switch (upgrade) {\n            case 0 -> setWings(true);\n            case 1 -> setSpikes(true);\n            case 2 -> setHorns(true);\n        }\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "method": "load",
+          "line": 706,
+          "end_line": 721,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "source_sha256": "9bf6542e845a8d308af821b2e4541c47f0bba72ad995766cca0f48cfb4f57ad9",
+          "snippet_sha256": "1ccb4eb893da29f7c59ae20ea564da37ecf55a3f1e551dc3f997a6985ad3385c",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java#L706-L721",
+          "excerpt": "@Override\n    public void load(@NotNull CompoundTag tag) {\n        super.load(tag);\n        setHorns(tag.getBoolean(\"horns\"));\n        setSpikes(tag.getBoolean(\"spikes\"));\n        setWings(tag.getBoolean(\"wings\"));\n        setPhase(tag.getInt(\"phase\"));\n        setDefensiveMode(tag.getBoolean(\"defensive\"));\n        setPhaseSwapping(tag.getBoolean(\"swapping\"));\n        summonCooldown = tag.getInt(\"summonCooldown\");\n        diveCooldown = tag.getInt(\"diveCooldown\");\n        spikeCooldown = tag.getInt(\"spikeCooldown\");\n        ramCooldown = tag.getInt(\"ramCooldown\");\n        rageTimer = tag.getInt(\"rage\");\n        swapTicks = tag.getInt(\"swapTicks\");\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "method": "save",
+          "line": 723,
+          "end_line": 738,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "source_sha256": "9bf6542e845a8d308af821b2e4541c47f0bba72ad995766cca0f48cfb4f57ad9",
+          "snippet_sha256": "4911288b3501a97b4a8105c5ae8013f2857c69474eea2fe5b5277fdaf1ba6e4a",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java#L723-L738",
+          "excerpt": "@Override\n    public boolean save(CompoundTag tag) {\n        tag.putBoolean(\"spikes\", hasSpikes());\n        tag.putBoolean(\"horns\", hasHorns());\n        tag.putBoolean(\"wings\", hasWings());\n        tag.putInt(\"phase\", getPhase());\n        tag.putBoolean(\"defensive\", isDefensive());\n        tag.putInt(\"summonCooldown\", summonCooldown);\n        tag.putInt(\"diveCooldown\", diveCooldown);\n        tag.putInt(\"spikeCooldown\", spikeCooldown);\n        tag.putInt(\"ramCooldown\", ramCooldown);\n        tag.putBoolean(\"swapping\", getPhaseSwapping());\n        tag.putInt(\"rage\", rageTimer);\n        tag.putInt(\"swapTicks\", swapTicks);\n        return super.save(tag);\n    }"
+        },
+        {
+          "repo": "baileyholl/Ars-Nouveau",
+          "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+          "path": "src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "method": "setPhaseSwapping",
+          "line": 678,
+          "end_line": 680,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "source_sha256": "9bf6542e845a8d308af821b2e4541c47f0bba72ad995766cca0f48cfb4f57ad9",
+          "snippet_sha256": "5c9b9c0f02079ef798bcebfb37576e830c181b0942f0ed983a756c2dfd88f59d",
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java#L678-L680",
+          "excerpt": "public void setPhaseSwapping(boolean swapping) {\n        entityData.set(PHASE_SWAPPING, swapping);\n    }"
+        }
+      ]
+    },
+    {
+      "observation": "人工全文审阅；本链所有支持0额外信用，见batch-131详细观察。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "431e1d35707d426e5808",
+          "repo": "klikli-dev/occultism",
+          "revision": "2373141325d6bcfabf1a03b28eb647e19ab745ee",
+          "path": "src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "method": "tick",
+          "line": 192,
+          "end_line": 277,
+          "source_local": "build/item-use-references/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "source_sha256": "84b1da69b8be1051428a0dbf1c9ff5d4a0e72ba02ef0be8a6615e71d81b5d03f",
+          "snippet_sha256": "bff4725da4aa3ec607e978969799efbf2f2b46130528d2d8a6e32701a9316190",
+          "url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java#L192-L277",
+          "excerpt": "public void tick() {\n        if (this.level.hasNeighborSignal(this.getBlockPos())) {\n            this.miningTime = 0;\n            return;\n        }\n        if (!this.level.isClientSide()) {\n            ItemStack input = this.inputHandler.getStackInSlot(0);\n\n            if (!this.cachedEnchantment) {\n                this.setCachedEnchantment();\n                this.cachedEnchantment = true;\n            }\n\n            // handle unusing enchantment from evilcraft, see\n            // https://github.com/klikli-dev/occultism/issues/909\n            if (input.isEnchanted() && input.getMaxDamage() - input.getDamageValue() < 6 &&\n                    this.UNUSING != null && input.getEnchantmentLevel(this.UNUSING) > 0) {\n                this.miningTime = 0;\n                return;\n            }\n\n            if (this.miningTime > 0) {\n\n                int efficiency = this.bonusEfficiency && input.isEnchanted() ? input.getEnchantmentLevel(this.EFFICIENCY) : 0;\n                if (efficiency > 0) {\n                    int extra1 = this.level.getRandom().nextIntBetweenInclusive(0, efficiency);\n                    int extra2 = this.level.getRandom().nextIntBetweenInclusive(0, efficiency);\n                    efficiency = Math.min(extra1, extra2);\n                }\n\n                this.miningTime -= 1 + efficiency;\n\n                if (this.miningTime <= 0 && !this.level.isClientSide()) {\n                    this.mine();\n                }\n\n                if (input.getItem() != this.currentInputType) {\n                    this.miningTime = 0;\n                    this.possibleResults = null;\n                }\n\n                // handled by delta check\n            } else if (!input.isEmpty()) {\n\n                this.currentInputType = input.getItem();\n\n                forceInitStackNBT(input, (ServerLevel) this.level);\n                this.maxMiningTime = getMaxMiningTime(input);\n                this.rollsPerOperation = getRollsPerOperation(input);\n                this.outputMultiplier = getOutputMultiplier(input);\n                this.miningTime = this.maxMiningTime;\n            }\n\n            // Sync Logic\n            boolean needsSync = this.maxMiningTime != this.lastSyncedMaxMiningTime;\n\n            // Sync if max mining time changed (e.g. new item with different stats)\n\n            // Sync if mining active state changes (0 <-> >0)\n            boolean wasActive = this.lastSyncedMiningTime > 0;\n            boolean isActive = this.miningTime > 0;\n            if (wasActive != isActive) {\n                needsSync = true;\n            }\n\n            // Syncs if progress drifts by 10\n            if (Math.abs(this.miningTime - this.lastSyncedMiningTime) >= 10) {\n                needsSync = true;\n            }\n            // Also sync if we just finished (already covered by 0 check above? sorta).\n\n            if (needsSync) {\n                this.markNetworkDirty();\n            }\n\n            if (this.outputDirty) {\n                this.setChanged();\n                this.outputDirty = false;\n            }\n        } else {\n            if (this.miningTime > 0 && this.level.getGameTime() % 10 == 0) {\n                this.level.addParticle(ParticleTypes.PORTAL, this.worldPosition.getX() + 0.5f,\n                        this.worldPosition.getY() + 0.5, this.worldPosition.getZ() + 0.5f, 0.0D, 0.0D, 0.0D);\n            }\n        }\n    }"
+        },
+        {
+          "repo": "klikli-dev/occultism",
+          "revision": "2373141325d6bcfabf1a03b28eb647e19ab745ee",
+          "path": "src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "method": "mine",
+          "line": 285,
+          "end_line": 366,
+          "source_local": "build/item-use-references/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "source_sha256": "84b1da69b8be1051428a0dbf1c9ff5d4a0e72ba02ef0be8a6615e71d81b5d03f",
+          "snippet_sha256": "f77f6895560aa9b3369f0205aa541f3bd2e67ea5ce0dbd64a001ec2930199d03",
+          "url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java#L285-L366",
+          "excerpt": "public void mine() {\n        if (this.level == null)\n            return;\n\n        if (this.possibleResults == null) {\n            SingleRecipeInput recipeInput = new SingleRecipeInput(this.inputHandler.getStackInSlot(0));\n            List<RecipeHolder<MinerRecipe>> recipes = ((ServerLevel) this.level).getServer().getRecipeManager()\n                    .recipeMap()\n                    .getRecipesFor(OccultismRecipes.MINER_TYPE.get(), recipeInput, this.level)\n                    .collect(Collectors.toList());\n            if (recipes == null || recipes.size() == 0) {\n                this.possibleResults = new ArrayList<>();\n            } else {\n                this.possibleResults = recipes.stream().map(r -> r.value().getWeightedResult())\n                        .collect(Collectors.toList());\n                this.possibleResults.removeIf(i -> i.getStack().getItem().equals(Items.BARRIER));\n            }\n        }\n\n        if (this.possibleResults.size() == 0)\n            return;\n\n        ItemStack input = getStack(this.inputHandler, 0);\n\n        int fortune = this.bonusFortune && input.isEnchanted() ? input.getEnchantmentLevel(this.FORTUNE) : 0;\n        if (fortune > 0) {\n            int extra1 = this.level.getRandom().nextIntBetweenInclusive(0, fortune);\n            int extra2 = this.level.getRandom().nextIntBetweenInclusive(0, fortune);\n            int extra3 = this.level.getRandom().nextIntBetweenInclusive(0, fortune);\n            fortune = Math.min(extra1, Math.min(extra2, extra3));\n        }\n        int silk = this.bonusSilk && input.isEnchanted() ? input.getEnchantmentLevel(this.SILK_TOUCH) : 0;\n\n        List<ItemStack> batchedDrops = new ArrayList<>();\n\n        for (int i = 0; i < this.rollsPerOperation + fortune; i++) {\n            var result = WeightedRandom.getRandomItem(this.level.getRandom(), this.possibleResults, WeightedRecipeResult::weight);\n            int finalSilk = silk > 0 ? 1 + this.level.getRandom().nextIntBetweenInclusive(0, silk) : 1;\n\n            result.ifPresent(r -> {\n                ItemStack finalResult = r.getStack().copy();\n                finalResult.setCount(finalResult.getCount() * this.outputMultiplier * finalSilk);\n                //Check if recipe has custom limit\n                if (finalResult.has(OccultismDataComponents.MINER_OPERATION_LIMIT)) {\n                    finalResult.setCount(Math.min(finalResult.getCount(), finalResult.get(OccultismDataComponents.MINER_OPERATION_LIMIT)));\n                    //Now make stackable again with the default item\n                    if (finalResult.getItem().getDefaultInstance().has(OccultismDataComponents.MINER_OPERATION_LIMIT)) {\n                        finalResult.set(OccultismDataComponents.MINER_OPERATION_LIMIT, finalResult.getItem().getDefaultInstance().get(OccultismDataComponents.MINER_OPERATION_LIMIT));\n                    } else {\n                        finalResult.remove(OccultismDataComponents.MINER_OPERATION_LIMIT);\n                    }\n                }\n\n                // Batching Logic: Check if we can merge with existing drop\n                boolean merged = false;\n                for (ItemStack existing : batchedDrops) {\n                    if (ItemStack.isSameItemSameComponents(existing, finalResult)) {\n                        existing.grow(finalResult.getCount());\n                        merged = true;\n                        break;\n                    }\n                }\n                if (!merged) {\n                    batchedDrops.add(finalResult);\n                }\n            });\n        }\n\n        // Insert batched drops\n        ResourceHandler<ItemResource> currentHandler = this.getCurrentHandler();\n        for (ItemStack drop : batchedDrops) {\n            ItemTransferUtil.insertItemStacked(currentHandler, drop, false);\n        }\n\n        input.hurtAndBreak(1, (ServerLevel) this.level, (LivingEntity) null, (item) -> {});\n        //Check if the next operation will break the miner\n        if (this.saveMiner && input.nextDamageWillBreak()) {\n            ItemTransferUtil.insertItemStacked(currentHandler, input.copy(), false);\n            input.shrink(1);\n        }\n        this.inputHandler.set(0, ItemResource.of(input), input.getCount());\n    }"
+        },
+        {
+          "repo": "klikli-dev/occultism",
+          "revision": "2373141325d6bcfabf1a03b28eb647e19ab745ee",
+          "path": "src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "method": "loadAdditional",
+          "line": 161,
+          "end_line": 167,
+          "source_local": "build/item-use-references/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "source_sha256": "84b1da69b8be1051428a0dbf1c9ff5d4a0e72ba02ef0be8a6615e71d81b5d03f",
+          "snippet_sha256": "39e6db7a2354e529bb91c9050016822e0edf2286bc3fab752d019442f57557fa",
+          "url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java#L161-L167",
+          "excerpt": "@Override\n    public void loadAdditional(ValueInput input) {\n        super.loadAdditional(input);\n        this.inputHandler.deserialize(input.childOrEmpty(\"inputHandler\"));\n        this.outputHandler.deserialize(input.childOrEmpty(\"outputHandler\"));\n        this.updateBelowBlock();\n    }"
+        },
+        {
+          "repo": "klikli-dev/occultism",
+          "revision": "2373141325d6bcfabf1a03b28eb647e19ab745ee",
+          "path": "src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "method": "saveAdditional",
+          "line": 169,
+          "end_line": 174,
+          "source_local": "build/item-use-references/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "source_sha256": "84b1da69b8be1051428a0dbf1c9ff5d4a0e72ba02ef0be8a6615e71d81b5d03f",
+          "snippet_sha256": "78f29baa0541552e76032f65c34e06a26b58bc520614d03037e625031eb1b22f",
+          "url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java#L169-L174",
+          "excerpt": "@Override\n    protected void saveAdditional(ValueOutput output) {\n        this.inputHandler.serialize(output.child(\"inputHandler\"));\n        this.outputHandler.serialize(output.child(\"outputHandler\"));\n        super.saveAdditional(output);\n    }"
+        },
+        {
+          "repo": "klikli-dev/occultism",
+          "revision": "2373141325d6bcfabf1a03b28eb647e19ab745ee",
+          "path": "src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "method": "loadNetwork",
+          "line": 176,
+          "end_line": 181,
+          "source_local": "build/item-use-references/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "source_sha256": "84b1da69b8be1051428a0dbf1c9ff5d4a0e72ba02ef0be8a6615e71d81b5d03f",
+          "snippet_sha256": "df54ec76659cf1e88b52e46863306832e50b6b5ac61f2eba868faa70a8a7dab8",
+          "url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java#L176-L181",
+          "excerpt": "@Override\n    public void loadNetwork(ValueInput input) {\n        super.loadNetwork(input);\n        this.miningTime = input.getIntOr(\"miningTime\", 0);\n        this.maxMiningTime = input.getIntOr(\"maxMiningTime\", 0);\n    }"
+        },
+        {
+          "repo": "klikli-dev/occultism",
+          "revision": "2373141325d6bcfabf1a03b28eb647e19ab745ee",
+          "path": "src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "method": "saveNetwork",
+          "line": 183,
+          "end_line": 190,
+          "source_local": "build/item-use-references/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java",
+          "source_sha256": "84b1da69b8be1051428a0dbf1c9ff5d4a0e72ba02ef0be8a6615e71d81b5d03f",
+          "snippet_sha256": "3f368280d3453c77bdc5fafbfa54711e6d67ededf3a87aa7f93e8c85152efbd5",
+          "url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/blockentity/DimensionalMineshaftBlockEntity.java#L183-L190",
+          "excerpt": "@Override\n    public void saveNetwork(ValueOutput output) {\n        this.lastSyncedMiningTime = this.miningTime;\n        this.lastSyncedMaxMiningTime = this.maxMiningTime;\n        output.putInt(\"miningTime\", this.miningTime);\n        output.putInt(\"maxMiningTime\", this.maxMiningTime);\n        super.saveNetwork(output);\n    }"
+        }
+      ]
+    },
+    {
+      "observation": "人工全文审阅；本链所有支持0额外信用，见batch-131详细观察。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "5c9fee7107e82055fdc9",
+          "repo": "Polarice3/Goety-2",
+          "revision": "02adbe7491767210f63857fa763a6f1de1262cbd",
+          "path": "src/main/java/com/Polarice3/Goety/common/items/equipment/DarkScytheItem.java",
+          "method": "attackMobs",
+          "line": 107,
+          "end_line": 159,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/items/equipment/DarkScytheItem.java",
+          "source_sha256": "8c6dd18ab3148e3b4f638c4c2ad50707b72775cf5019f383b3c7fdd60fa45654",
+          "snippet_sha256": "59b4d8fa43570f89875b1a14864e6d1905774e785f6317615b5900f2838afa06",
+          "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/items/equipment/DarkScytheItem.java#L107-L159",
+          "excerpt": "public void attackMobs(ItemStack pStack, LivingEntity pTarget, Player pPlayer){\n        int enchantment = pStack.getEnchantmentLevel(ModEnchantments.SOUL_EATER.get());\n        int soulEater = Mth.clamp(enchantment + 1, 1, 10);\n        if (SEHelper.getSoulGiven(pTarget) > 0) {\n            SEHelper.increaseSouls(pPlayer, ItemConfig.DarkScytheSouls.get() * soulEater);\n        }\n\n        float f = (float)pPlayer.getAttributeValue(Attributes.ATTACK_DAMAGE);\n        float f1 = EnchantmentHelper.getDamageBonus(pPlayer.getMainHandItem(), pTarget.getMobType());\n        float f2 = pPlayer.getAttackStrengthScale(0.5F);\n        f = f * (0.2F + f2 * f2 * 0.8F);\n        f1 = f1 * f2;\n        f = f + f1;\n\n        if (f > 0.5F || f1 > 0.5F) {\n            float f3 = 1.0F + EnchantmentHelper.getSweepingDamageRatio(pPlayer) * f;\n            int j = EnchantmentHelper.getFireAspect(pPlayer);\n            double area = 1.0D;\n            if (f2 > 0.9F) {\n                area = 2.0D;\n            }\n            for (LivingEntity livingentity : pPlayer.level.getEntitiesOfClass(LivingEntity.class, pTarget.getBoundingBox().inflate(area, 0.25D, area))) {\n                if (livingentity != pPlayer && livingentity != pTarget && !pPlayer.isAlliedTo(livingentity) && (!(livingentity instanceof ArmorStand) || !((ArmorStand) livingentity).isMarker()) && pPlayer.distanceToSqr(livingentity) < 16.0D && livingentity != pPlayer.getVehicle()) {\n                    livingentity.knockback(0.4F, (double) Mth.sin(pPlayer.getYRot() * ((float) Math.PI / 180F)), (double) (-Mth.cos(pPlayer.getYRot() * ((float) Math.PI / 180F))));\n                    if (livingentity.hurt(livingentity.damageSources().playerAttack(pPlayer), f3)) {\n                        if (j > 0) {\n                            livingentity.setSecondsOnFire(j * 4);\n                        }\n                        pStack.hurtAndBreak(1, pPlayer, (p_220045_0_) ->\n                                p_220045_0_.broadcastBreakEvent(EquipmentSlot.MAINHAND));\n                        boolean giveSoul = false;\n                        if (livingentity instanceof OwnableEntity owned){\n                            if (owned.getOwner() != pPlayer){\n                                giveSoul = true;\n                            }\n                        } else {\n                            giveSoul = true;\n                        }\n                        if (giveSoul) {\n                            if (SEHelper.getSoulGiven(livingentity) > 0) {\n                                SEHelper.increaseSouls(pPlayer, ItemConfig.DarkScytheSouls.get() * soulEater);\n                            }\n                        }\n                        EnchantmentHelper.doPostHurtEffects(livingentity, pPlayer);\n                        EnchantmentHelper.doPostDamageEffects(pPlayer, livingentity);\n                    }\n                }\n            }\n        }\n\n        pPlayer.level.playSound((Player) null, pPlayer.getX(), pPlayer.getY(), pPlayer.getZ(), ModSounds.SCYTHE_SWING.get(), pPlayer.getSoundSource(), 1.0F, 1.0F);\n        pPlayer.sweepAttack();\n    }"
+        },
+        {
+          "repo": "Polarice3/Goety-2",
+          "revision": "02adbe7491767210f63857fa763a6f1de1262cbd",
+          "path": "src/main/java/com/Polarice3/Goety/common/items/equipment/DarkScytheItem.java",
+          "method": "hurtEnemy",
+          "line": 75,
+          "end_line": 82,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/items/equipment/DarkScytheItem.java",
+          "source_sha256": "8c6dd18ab3148e3b4f638c4c2ad50707b72775cf5019f383b3c7fdd60fa45654",
+          "snippet_sha256": "528ff6fd695344330bf937eee53cbcc0a1505f152afe74f3ea89be049b55f9be",
+          "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/items/equipment/DarkScytheItem.java#L75-L82",
+          "excerpt": "public boolean hurtEnemy(ItemStack pStack, LivingEntity pTarget, LivingEntity pAttacker) {\n        pStack.hurtAndBreak(1, pAttacker, (p_220045_0_) ->\n                p_220045_0_.broadcastBreakEvent(EquipmentSlot.MAINHAND));\n        if (pAttacker instanceof Player player){\n            this.attackMobs(pStack, pTarget, player);\n        }\n        return true;\n    }"
+        },
+        {
+          "repo": "Polarice3/Goety-2",
+          "revision": "02adbe7491767210f63857fa763a6f1de1262cbd",
+          "path": "src/main/java/com/Polarice3/Goety/common/entities/neutral/AbstractReaper.java",
+          "method": "attackMobs",
+          "line": 540,
+          "end_line": 590,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/entities/neutral/AbstractReaper.java",
+          "source_sha256": "00785bef882aa2af5cbfc3880bc35c05778950c38793bd67067ebd16c849861a",
+          "snippet_sha256": "252b7b40bc69c584ded050f90fbe5c61075f4500f88a5f0ba7a610dc683a3bc1",
+          "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/entities/neutral/AbstractReaper.java#L540-L590",
+          "excerpt": "public void attackMobs(LivingEntity pTarget, AbstractReaper reaper){\n            if (reaper.getMasterOwner() instanceof Player player) {\n                if (SEHelper.getSoulGiven(pTarget) > 0) {\n                    SEHelper.increaseSouls(player, ItemConfig.DarkScytheSouls.get() * 5);\n                }\n            }\n            float f = (float)reaper.getAttributeValue(Attributes.ATTACK_DAMAGE);\n            float f1 = EnchantmentHelper.getDamageBonus(reaper.getMainHandItem(), pTarget.getMobType());\n            float f2 = 1.0F;\n            f = f * (0.2F + f2 * f2 * 0.8F);\n            f1 = f1 * f2;\n            f = f + f1;\n\n            float f3 = 1.0F + SweepingEdgeEnchantment.getSweepingDamageRatio(3) * f;\n            int j = EnchantmentHelper.getFireAspect(reaper);\n            double area = 2.0D;\n            for (LivingEntity livingentity : reaper.level.getEntitiesOfClass(LivingEntity.class, this.reaper.getBoundingBox().move(this.getHorizontalLookAngle().scale(2.0D)).inflate(area, area, area))) {\n                if (livingentity != reaper && !MobUtil.areAllies(reaper, livingentity) && (!(livingentity instanceof ArmorStand) || !((ArmorStand) livingentity).isMarker()) && reaper.distanceToSqr(livingentity) < 16.0D && livingentity != reaper.getVehicle()) {\n                    livingentity.knockback(0.4F, (double) Mth.sin(reaper.getYRot() * ((float) Math.PI / 180F)), (double) (-Mth.cos(reaper.getYRot() * ((float) Math.PI / 180F))));\n                    if (livingentity.hurt(this.reaper.getServantAttack(), f3)) {\n                        if (j > 0) {\n                            livingentity.setSecondsOnFire(j * 4);\n                        }\n                        if (reaper.getMasterOwner() instanceof Player player) {\n                            boolean giveSoul = false;\n                            if (livingentity instanceof IOwned owned) {\n                                if (owned.getMasterOwner() != reaper) {\n                                    giveSoul = true;\n                                }\n                            } else {\n                                giveSoul = true;\n                            }\n                            if (giveSoul) {\n                                if (SEHelper.getSoulGiven(livingentity) > 0) {\n                                    SEHelper.increaseSouls(player, ItemConfig.DarkScytheSouls.get() * 5);\n                                }\n                            }\n                        }\n                        EnchantmentHelper.doPostHurtEffects(livingentity, reaper);\n                        EnchantmentHelper.doPostDamageEffects(reaper, livingentity);\n                    }\n                }\n            }\n\n            reaper.level.playSound(null, reaper.getX(), reaper.getY(), reaper.getZ(), ModSounds.SCYTHE_SWING.get(), reaper.getSoundSource(), 1.0F, 1.0F);\n            double d0 = -Mth.sin(reaper.getYRot() * ((float)Math.PI / 180F));\n            double d1 = Mth.cos(reaper.getYRot() * ((float)Math.PI / 180F));\n            if (reaper.level instanceof ServerLevel serverLevel) {\n                serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, reaper.getX() + d0, reaper.getY(0.5D), reaper.getZ() + d1, 0, d0, 0.0D, d1, 0.0D);\n            }\n        }"
+        }
+      ]
+    },
+    {
+      "observation": "人工全文审阅；本链所有支持0额外信用，见batch-131详细观察。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "0559bdd0e2a6dbef8971",
+          "repo": "Electroblob77/Wizardry",
+          "revision": "fe5d05a7a134836dd972e3680a900619c7e9c134",
+          "path": "src/main/java/electroblob/wizardry/entity/projectile/EntitySparkBomb.java",
+          "method": "onImpact",
+          "line": 36,
+          "end_line": 91,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Electroblob77__Wizardry/src/main/java/electroblob/wizardry/entity/projectile/EntitySparkBomb.java",
+          "source_sha256": "5fa08883bd062a0b6d22a225d37463561c9cf976c2ae5a9318c0e328a9ceae95",
+          "snippet_sha256": "b9a24ac93d1c8aeb81443dbfdbd19258e6311777ad5eb4f395c297d6b3806e21",
+          "url": "https://github.com/Electroblob77/Wizardry/blob/fe5d05a7a134836dd972e3680a900619c7e9c134/src/main/java/electroblob/wizardry/entity/projectile/EntitySparkBomb.java#L36-L91",
+          "excerpt": "@Override\n\tprotected void onImpact(RayTraceResult rayTrace){\n\n\t\tif(!this.world.isRemote){\n\n\t\t\tEntity entityHit = rayTrace.entityHit;\n\n\t\t\tif(entityHit != null){\n\t\t\t\t// This is if the spark bomb gets a direct hit\n\t\t\t\tfloat damage = Spells.spark_bomb.getProperty(Spell.DIRECT_DAMAGE).floatValue() * damageMultiplier;\n\n\t\t\t\tthis.playSound(WizardrySounds.ENTITY_SPARK_BOMB_HIT, 1.0F, 1.2F / (this.rand.nextFloat() * 0.2F + 0.9F));\n\n\t\t\t\tentityHit.attackEntityFrom(\n\t\t\t\t\t\tMagicDamage.causeIndirectMagicDamage(this, this.getThrower(), DamageType.SHOCK).setProjectile(),\n\t\t\t\t\t\tdamage);\n\t\t\t}\n\n\t\t\tdouble seekerRange = Spells.spark_bomb.getProperty(Spell.EFFECT_RADIUS).doubleValue() * blastMultiplier;\n\n\t\t\tList<EntityLivingBase> targets = EntityUtils.getLivingWithinRadius(seekerRange, this.posX, this.posY,\n\t\t\t\t\tthis.posZ, this.world);\n\n\t\t\tList<Integer> secondaryTargetIDs = new ArrayList<>();\n\n\t\t\tfor(int i = 0; i < Math.min(targets.size(), Spells.spark_bomb.getProperty(SECONDARY_MAX_TARGETS).intValue()); i++){\n\n\t\t\t\tboolean flag = targets.get(i) != entityHit && targets.get(i) != this.getThrower()\n\t\t\t\t\t\t&& !(targets.get(i) instanceof EntityPlayer\n\t\t\t\t\t\t\t\t&& ((EntityPlayer)targets.get(i)).isCreative());\n\n\t\t\t\tif(flag){\n\t\t\t\t\tEntityLivingBase target = targets.get(i);\n\n\t\t\t\t\ttarget.playSound(WizardrySounds.ENTITY_SPARK_BOMB_CHAIN, 1.0F, rand.nextFloat() * 0.4F + 1.5F);\n\n\t\t\t\t\ttarget.attackEntityFrom(\n\t\t\t\t\t\t\tMagicDamage.causeIndirectMagicDamage(this, this.getThrower(), DamageType.SHOCK),\n\t\t\t\t\t\t\tSpells.spark_bomb.getProperty(Spell.SPLASH_DAMAGE).floatValue() * damageMultiplier);\n\n\t\t\t\t\tsecondaryTargetIDs.add(target.getEntityId());\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Notify clients to play the explosion effect, including lightning arcs to secondary targets\n\t\t\tint[] idArray = secondaryTargetIDs.stream().mapToInt(Integer::intValue).toArray();\n\t\t\tWizardryPacketHandler.net.sendToAllAround(\n\t\t\t\t\tnew PacketBombExplosion.Message(PacketBombExplosion.SPARK_BOMB, posX, posY + height / 2, posZ,\n\t\t\t\t\t\t\tblastMultiplier, idArray),\n\t\t\t\t\tnew NetworkRegistry.TargetPoint(world.provider.getDimension(), posX, posY, posZ, 64));\n\n\t\t\tthis.playSound(WizardrySounds.ENTITY_SPARK_BOMB_HIT_BLOCK, 0.5f, 0.5f);\n\t\t}\n\n\t\tthis.setDead();\n\t}"
+        },
+        {
+          "repo": "Electroblob77/Wizardry",
+          "revision": "fe5d05a7a134836dd972e3680a900619c7e9c134",
+          "path": "src/main/java/electroblob/wizardry/packet/PacketBombExplosion.java",
+          "method": "onMessage",
+          "line": 22,
+          "end_line": 29,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Electroblob77__Wizardry/src/main/java/electroblob/wizardry/packet/PacketBombExplosion.java",
+          "source_sha256": "2d1a012cc09b9f9f484402809ae97c7586f4eb39264baf3fdacb2d24279355a7",
+          "snippet_sha256": "beca3f37426f894e3bec4870744e5fe1cd8060f0119c9ad71c661ddb9b45bd41",
+          "url": "https://github.com/Electroblob77/Wizardry/blob/fe5d05a7a134836dd972e3680a900619c7e9c134/src/main/java/electroblob/wizardry/packet/PacketBombExplosion.java#L22-L29",
+          "excerpt": "@Override\n\tpublic IMessage onMessage(Message message, MessageContext ctx){\n\t\tif(ctx.side.isClient()){\n\t\t\tnet.minecraft.client.Minecraft.getMinecraft().addScheduledTask(\n\t\t\t\t\t() -> Wizardry.proxy.handleBombExplosionPacket(message));\n\t\t}\n\t\treturn null;\n\t}"
+        },
+        {
+          "repo": "Electroblob77/Wizardry",
+          "revision": "fe5d05a7a134836dd972e3680a900619c7e9c134",
+          "path": "src/main/java/electroblob/wizardry/client/ClientProxy.java",
+          "method": "handleBombExplosionPacket",
+          "line": 734,
+          "end_line": 791,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/Electroblob77__Wizardry/src/main/java/electroblob/wizardry/client/ClientProxy.java",
+          "source_sha256": "a5f55a6f15d733a5e14f5e7493dbd5b1b77f1344cc51710b49bca872cd6ddb5c",
+          "snippet_sha256": "7ff83ad016e5c57a88278638fb90d255c04f65fbb5f80eee9e47362a6e3b1e4f",
+          "url": "https://github.com/Electroblob77/Wizardry/blob/fe5d05a7a134836dd972e3680a900619c7e9c134/src/main/java/electroblob/wizardry/client/ClientProxy.java#L734-L791",
+          "excerpt": "@Override\n\tpublic void handleBombExplosionPacket(PacketBombExplosion.Message message){\n\n\t\tnet.minecraft.world.World world = Minecraft.getMinecraft().world;\n\t\tdouble x = message.x, y = message.y, z = message.z;\n\t\tfloat blastMultiplier = message.blastMultiplier;\n\n\t\tswitch(message.bombType){\n\n\t\t\tcase PacketBombExplosion.FIREBOMB:\n\t\t\t\tParticleBuilder.create(Type.FLASH).pos(x, y, z).scale(5 * blastMultiplier).clr(1, 0.6f, 0).spawn(world);\n\t\t\t\tfor(int i = 0; i < 60 * blastMultiplier; i++){\n\t\t\t\t\tParticleBuilder.create(Type.MAGIC_FIRE, world.rand, x, y, z, 2 * blastMultiplier, false)\n\t\t\t\t\t\t\t.time(10 + world.rand.nextInt(4)).scale(2 + world.rand.nextFloat()).spawn(world);\n\t\t\t\t\tParticleBuilder.create(Type.DARK_MAGIC, world.rand, x, y, z, 2 * blastMultiplier, false)\n\t\t\t\t\t\t\t.clr(1.0f, 0.2f + world.rand.nextFloat() * 0.4f, 0.0f).spawn(world);\n\t\t\t\t}\n\t\t\t\tworld.spawnParticle(EnumParticleTypes.EXPLOSION_LARGE, x, y, z, 0, 0, 0);\n\t\t\t\tbreak;\n\n\t\t\tcase PacketBombExplosion.POISON_BOMB:\n\t\t\t\tParticleBuilder.create(Type.FLASH).pos(x, y, z).scale(5 * blastMultiplier)\n\t\t\t\t\t\t.clr(0.2f + world.rand.nextFloat() * 0.3f, 0.6f, 0.0f).spawn(world);\n\t\t\t\tfor(int i = 0; i < 60 * blastMultiplier; i++){\n\t\t\t\t\tParticleBuilder.create(Type.SPARKLE, world.rand, x, y, z, 2 * blastMultiplier, false).time(35)\n\t\t\t\t\t\t\t.scale(2).clr(0.2f + world.rand.nextFloat() * 0.3f, 0.6f, 0.0f).spawn(world);\n\t\t\t\t\tParticleBuilder.create(Type.DARK_MAGIC, world.rand, x, y, z, 2 * blastMultiplier, false)\n\t\t\t\t\t\t\t.clr(0.2f + world.rand.nextFloat() * 0.2f, 0.8f, 0.0f).spawn(world);\n\t\t\t\t}\n\t\t\t\tworld.spawnParticle(EnumParticleTypes.EXPLOSION_LARGE, x, y, z, 0, 0, 0);\n\t\t\t\tbreak;\n\n\t\t\tcase PacketBombExplosion.SMOKE_BOMB:\n\t\t\t\tParticleBuilder.create(Type.FLASH).pos(x, y, z).scale(5 * blastMultiplier).clr(0, 0, 0).spawn(world);\n\t\t\t\tworld.spawnParticle(EnumParticleTypes.EXPLOSION_LARGE, x, y, z, 0, 0, 0);\n\t\t\t\tfor(int i = 0; i < 60 * blastMultiplier; i++){\n\t\t\t\t\tfloat brightness = world.rand.nextFloat() * 0.1f + 0.1f;\n\t\t\t\t\tParticleBuilder.create(Type.CLOUD, world.rand, x, y, z, 2 * blastMultiplier, false)\n\t\t\t\t\t\t\t.clr(brightness, brightness, brightness).time(80 + world.rand.nextInt(12)).shaded(true).spawn(world);\n\t\t\t\t\tbrightness = world.rand.nextFloat() * 0.3f;\n\t\t\t\t\tParticleBuilder.create(Type.DARK_MAGIC, world.rand, x, y, z, 2 * blastMultiplier, false)\n\t\t\t\t\t\t\t.clr(brightness, brightness, brightness).spawn(world);\n\t\t\t\t}\n\t\t\t\tbreak;\n\n\t\t\tcase PacketBombExplosion.SPARK_BOMB:\n\t\t\t\tParticleBuilder.spawnShockParticles(world, x, y, z);\n\t\t\t\tfor(int id : message.secondaryTargetIDs){\n\t\t\t\t\tnet.minecraft.entity.Entity target = world.getEntityByID(id);\n\t\t\t\t\tif(target instanceof net.minecraft.entity.EntityLivingBase){\n\t\t\t\t\t\tParticleBuilder.create(Type.LIGHTNING).pos(x, y, z).target(target).spawn(world);\n\t\t\t\t\t\tParticleBuilder.spawnShockParticles(world, target.posX,\n\t\t\t\t\t\t\t\ttarget.posY + target.height / 2, target.posZ);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tbreak;\n\t\t}\n\t}"
+        }
+      ]
+    },
+    {
+      "observation": "人工全文审阅；本链所有支持0额外信用，见batch-131详细观察。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "13e498df555eb52fc244",
+          "repo": "Interactive-Modding/Jurassic-Reborn",
+          "revision": "4a9a21b6ad7cea718534abd31913cccca2a6d98e",
+          "path": "src/main/java/mod/reborn/server/entity/DinosaurEntity.java",
+          "method": "attackEntityFrom",
+          "line": 452,
+          "end_line": 526,
+          "source_local": "build/creature-reference-1000/Interactive-Modding__Jurassic-Reborn/src/main/java/mod/reborn/server/entity/DinosaurEntity.java",
+          "source_sha256": "9ff981cc68a843ed7e29ed5283a0dced1fa5187209edd7325a4e041e6884f888",
+          "snippet_sha256": "87baa08c4afe20d0ab7a0e33474f08c39beb5d3670cff098a831a194097eaa9c",
+          "url": "https://github.com/Interactive-Modding/Jurassic-Reborn/blob/4a9a21b6ad7cea718534abd31913cccca2a6d98e/src/main/java/mod/reborn/server/entity/DinosaurEntity.java#L452-L526",
+          "excerpt": "@Override\n    public boolean attackEntityFrom(DamageSource damageSource, float amount) {\n        boolean canHarmInCreative = damageSource.canHarmInCreative();\n        Entity attacker = damageSource.getTrueSource();\n\n        if (!this.isCarcass()) {\n            if (this.getHealth() - amount <= 0.0F) {\n                if (!canHarmInCreative) {\n                    this.playSound(this.getSoundForAnimation(EntityAnimation.DYING.get()), this.getSoundVolume(), this.getSoundPitch());\n                    this.setHealth(this.getMaxHealth());\n                    this.setCarcass(true);\n                    return true;\n                }\n\n                if (attacker instanceof DinosaurEntity) {\n                    this.getRelationship(attacker, true).onAttacked(amount);\n                }\n\n                return super.attackEntityFrom(damageSource, amount);\n            } else {\n                if (this.getAnimation() == EntityAnimation.RESTING.get() && !this.world.isRemote) {\n                    this.setAnimation(EntityAnimation.IDLE.get());\n                    this.isSittingNaturally = false;\n                }\n\n                if (!this.world.isRemote) {\n                    if (!((float)this.hurtResistantTime > (float)this.maxHurtResistantTime / 2.0F))\n                        this.setAnimation(EntityAnimation.INJURED.get());\n                }\n\n                if (this.shouldSleep()) {\n                    this.disturbSleep();\n                }\n\n                if(attacker instanceof EntityLivingBase) {\n                    this.respondToAttack((EntityLivingBase)attacker);\n                }\n\n                return super.attackEntityFrom(damageSource, amount);\n            }\n        } else if (!this.world.isRemote) {\n\n            if(!(((float)this.hurtResistantTime > (float)this.maxHurtResistantTime / 2.0F))) {\n                boolean carcassAllowed = RebornConfig.ENTITIES.allowCarcass;\n                if(!carcassAllowed) {\n                    this.dropMeat(attacker);\n                    this.onDeath(damageSource);\n                    this.setDead();\n                }\n\n                if (damageSource != DamageSource.DROWN) {\n                    if (!this.dead && this.carcassHealth >= 0 && this.world.getGameRules().getBoolean(\"doMobLoot\")) {\n                        this.dropMeat(attacker);\n                    }\n\n                    if (this.carcassHealth <= 0) {\n                        this.onDeath(damageSource);\n                        this.setDead();\n                    }\n\n                    this.carcassHealth--;\n                }\n\n                if (canHarmInCreative) {\n                    return super.attackEntityFrom(damageSource, amount);\n                }\n\n                if (this.hurtResistantTime <= this.maxHurtResistantTime / 2.0F) {\n                    this.hurtTime = this.maxHurtTime = 10;\n                }\n            }\n        }\n\n        return false;\n    }"
+        },
+        {
+          "repo": "Interactive-Modding/Jurassic-Reborn",
+          "revision": "4a9a21b6ad7cea718534abd31913cccca2a6d98e",
+          "path": "src/main/java/mod/reborn/server/entity/DinosaurEntity.java",
+          "method": "setCarcass",
+          "line": 1404,
+          "end_line": 1424,
+          "source_local": "build/creature-reference-1000/Interactive-Modding__Jurassic-Reborn/src/main/java/mod/reborn/server/entity/DinosaurEntity.java",
+          "source_sha256": "9ff981cc68a843ed7e29ed5283a0dced1fa5187209edd7325a4e041e6884f888",
+          "snippet_sha256": "21c44f15edd8b848848ea31c32930e13a9850e46b70209a85b1e4f855f8ac7ec",
+          "url": "https://github.com/Interactive-Modding/Jurassic-Reborn/blob/4a9a21b6ad7cea718534abd31913cccca2a6d98e/src/main/java/mod/reborn/server/entity/DinosaurEntity.java#L1404-L1424",
+          "excerpt": "public void setCarcass(boolean carcass) {\n        if(!this.world.isRemote && carcass != this.isCarcass && !this.wasMoved) {\n            this.moveTicks = 18;\n        }\n        this.isCarcass = carcass;\n\n        boolean carcassAllowed = RebornConfig.ENTITIES.allowCarcass;\n        if (!this.world.isRemote) {\n            this.dataManager.set(WATCHER_IS_CARCASS, this.isCarcass);\n        }\n        if (carcass && carcassAllowed) {\n            this.setAnimation(EntityAnimation.DYING.get());\n            this.carcassHealth = MathHelper.clamp(Math.max(1, (int) Math.sqrt(this.width * this.height)), 0, 8);\n            this.ticksExisted = 0;\n            this.inventory.dropItems(this.world, this.rand);\n        }else if (carcass){\n            this.setAnimation(EntityAnimation.DYING.get());\n            this.carcassHealth = 0;\n            this.inventory.dropItems(this.world, this.rand);\n        }\n    }"
+        },
+        {
+          "repo": "Interactive-Modding/Jurassic-Reborn",
+          "revision": "4a9a21b6ad7cea718534abd31913cccca2a6d98e",
+          "path": "src/main/java/mod/reborn/server/entity/DinosaurEntity.java",
+          "method": "dropMeat",
+          "line": 542,
+          "end_line": 561,
+          "source_local": "build/creature-reference-1000/Interactive-Modding__Jurassic-Reborn/src/main/java/mod/reborn/server/entity/DinosaurEntity.java",
+          "source_sha256": "9ff981cc68a843ed7e29ed5283a0dced1fa5187209edd7325a4e041e6884f888",
+          "snippet_sha256": "3a2df732acbf67962dd823e73ab2ffb75e5568ea5dacfc60bb2c42fde4bca1f7",
+          "url": "https://github.com/Interactive-Modding/Jurassic-Reborn/blob/4a9a21b6ad7cea718534abd31913cccca2a6d98e/src/main/java/mod/reborn/server/entity/DinosaurEntity.java#L542-L561",
+          "excerpt": "private void dropMeat(Entity attacker) {\n        int fortune = 0;\n        if (attacker instanceof EntityLivingBase) {\n            fortune = EnchantmentHelper.getLootingModifier((EntityLivingBase) attacker);\n        }\n\n        int count = this.rand.nextInt(2) + 1 + fortune;\n\n        boolean burning = this.isBurning();\n\n        for (int i = 0; i < count; ++i) {\n            int meta = EntityHandler.getDinosaurId(this.dinosaur);\n\n            if (burning) {\n                this.entityDropItem(new ItemStack(ItemHandler.DINOSAUR_STEAK, 1, meta), 0.0F);\n            } else {\n                this.dropStackWithGenetics(new ItemStack(ItemHandler.DINOSAUR_MEAT, 1, meta));\n            }\n        }\n    }"
+        },
+        {
+          "repo": "Interactive-Modding/Jurassic-Reborn",
+          "revision": "4a9a21b6ad7cea718534abd31913cccca2a6d98e",
+          "path": "src/main/java/mod/reborn/server/entity/DinosaurEntity.java",
+          "method": "respondToAttack",
+          "line": 2089,
+          "end_line": 2119,
+          "source_local": "build/creature-reference-1000/Interactive-Modding__Jurassic-Reborn/src/main/java/mod/reborn/server/entity/DinosaurEntity.java",
+          "source_sha256": "9ff981cc68a843ed7e29ed5283a0dced1fa5187209edd7325a4e041e6884f888",
+          "snippet_sha256": "fa72901d4307a4d95a510f652ff172ef91d43220dc45d87c65319dc47a831776",
+          "url": "https://github.com/Interactive-Modding/Jurassic-Reborn/blob/4a9a21b6ad7cea718534abd31913cccca2a6d98e/src/main/java/mod/reborn/server/entity/DinosaurEntity.java#L2089-L2119",
+          "excerpt": "public void respondToAttack(EntityLivingBase attacker) {\n        if (attacker != null && !attacker.isDead && !(attacker instanceof EntityPlayer && ((EntityPlayer) attacker).capabilities.isCreativeMode)) {\n            List<EntityLivingBase> enemies = new LinkedList<>();\n\n            if (attacker instanceof DinosaurEntity) {\n                DinosaurEntity enemyDinosaur = (DinosaurEntity) attacker;\n\n                if (enemyDinosaur.herd != null) {\n                    enemies.addAll(enemyDinosaur.herd.members);\n                }\n            } else {\n                enemies.add(attacker);\n            }\n\n            if (enemies.size() > 0) {\n                Herd herd = this.herd;\n\n                if (herd != null) {\n                    herd.fleeing = !herd.shouldDefend(enemies) || this.dinosaur.shouldFlee();\n\n                    for (EntityLivingBase entity : enemies) {\n                        if (!herd.enemies.contains(entity)) {\n                            herd.enemies.add(entity);\n                        }\n                    }\n                } else {\n                    this.setAttackTarget(enemies.get(this.getRNG().nextInt(enemies.size())));\n                }\n            }\n        }\n    }"
+        }
+      ]
+    }
+  ]
+}

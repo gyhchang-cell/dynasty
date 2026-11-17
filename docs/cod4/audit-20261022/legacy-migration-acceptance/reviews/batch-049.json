@@ -1,0 +1,108 @@
+[
+  {
+    "candidate_id": "e3623547de1d0371069b",
+    "status": "accepted",
+    "family": "ae2-condenser-consumed-item-charge-and-output-commit",
+    "trigger": "Condenser loadTag/saveAdditional/addPower/fillOutput/CondenseResourceHandler",
+    "input": "output slot, physical storage component capacity, converted input credit storedPower, output config",
+    "output": "restore capacity/items then raw saved credit; future addPower clamps credit and fills only capacity output can accept",
+    "preservation": "Read full pair, base loadAdditional/loadTag disk bridge, base inventory pair, complete fillOutput and both input consumers including transaction onRootCommit. Credit increment occurs only committed transfer; simulated insert never earns physical charge. Owned matter-conversion chain1, generic inventory/journal0.",
+    "application_limit": "Config read callback addPower(0) occurs before final storedPower assignment, possible load order effects not runtime-tested. fillOutput debits before actual insertion relying same-state simulation; raw saved credit not clamped until addPower. Invalid config/removed storage can lose credit when subsequently clamped. No claim entire transaction framework audited.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "601c68c748978bc63f98",
+    "status": "accepted",
+    "family": "ae2-vibration-generator-paid-fuel-budget-and-upgrade-speed-rescale",
+    "trigger": "VibrationChamber load/save/tickingRequest/eatFuel/setCurrentFuelTicksPerTick",
+    "input": "physical fuel and upgrades, fractional remaining/maxFuelTicks, burnSpeed percentage",
+    "output": "restore paid remaining fuel and rescale old stored percentage against current maximum after reading upgrades",
+    "preservation": "Read full persistence, complete fuel consumption and generation tick. Fuel consumed once and returned bucket/remainder handled; resumed balance produces energy without consuming second fuel item. Speed setter clamps against runtime bounds.",
+    "application_limit": "Percentage integer quantization loses precision; loaded missing burnSpeed0 clamps. Raw remaining/max unbounded. Actual energy overflow explicitly voided after fuel debit. Tick recalculates speed bounds; changed upgrade/config semantics may alter conversion rate. Generator chain distinct from generic furnace, not extra credit per upgrade.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "bf2c6587a36d93331c59",
+    "status": "accepted",
+    "family": "psi-cad-assembler-legacy19-slot-to-component-and-socket-ownership",
+    "trigger": "TileCADAssembler loadAdditional/readPacketNBT/saveAdditional/setSocketableStack/setStackForComponent/onCraftCAD",
+    "input": "old19row Items with fake CAD row/components/socketable/bullets versus new slotted physical inventory",
+    "output": "old branch clears then skips fake slot; reconstructs five component roles/socketable and nested bullets using legacy full-stack parser; new branch honors saved Slot",
+    "preservation": "Read complete reader/writer and setters/crafting consumer. Only real component slots consumed during CAD craft; fake cached CAD is derived and not a second owned item. LegacyItemStacks already credited parser in batch003 support0.",
+    "application_limit": "Old branch uses list index rather than encoded Slot and requires exactly19 rows; sparse old inventories may miss migration branch. Failed role validation/bullet socket rejection can drop payload silently; modern branch does not clear reused slots. No rollback/unknown-item opaque retention. Two formats one implementation.",
+    "supporting_candidates": [
+      "b10bf6943a5a64e5eba5"
+    ]
+  },
+  {
+    "candidate_id": "36cbc70384f40ad21ff0",
+    "status": "accepted",
+    "family": "psi-flash-ring-spell-bullet-legacy-spell-component-migration",
+    "trigger": "ItemFlashRing/ItemSpellBullet verifyComponentsAfterLoad, Spell create/read/write",
+    "input": "legacy CUSTOM_DATA.spell complete spell with validity/name/UUID/grid",
+    "output": "decode legacy spell to registered component then remove old spell key on copied custom data; unrelated custom data retained",
+    "preservation": "Read both full identical migration methods (one family), Spell full root pair and item get/cast/clear consumers. Full grid/piece parser pair additionally reviewed as support. Existing arbitrary CUSTOM_DATA not replaced wholesale with selected spell.",
+    "application_limit": "No current-component presence guard: old spell can overwrite newer component. Invalid valid flag gives null, yet legacy key still removed; missing legacy spell changes rarity COMMON even if newer component exists. Spell grid skips unsupported pieces; no backup of unknown syntax. This is a negative recovery boundary, not guaranteed lossless fallback.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "747401bcda3c16d8eada",
+    "status": "duplicate",
+    "reason": "Full method identical to FlashRing spell migration, same spell owner semantics; grouped one family batch049."
+  },
+  {
+    "candidate_id": "6ff0243187b62a18c775",
+    "status": "rejected",
+    "reason": "CellConfig inner load/save copies filter ConfigInventory list; no owned inventory, earned progression or remap/fallback transformation. Generic configuration support0."
+  },
+  {
+    "candidate_id": "b341418071c9c065286d",
+    "status": "accepted",
+    "family": "ae2-energy-cell-clamped-durable-balance-portable-component-and-grid-consumption",
+    "trigger": "完整EnergyCellBE/StoredEnergyAmount/EnergyCellBlock/Item；base真实拆块放置方法及EnergyService取注能实际调用",
+    "input": "internalCurrentPower double与neighborChangePending boolean，磁盘getDoubleOr0/getBooleanOrfalse；STORED_ENERGY持久Codec.DOUBLE便携物品",
+    "output": "setStored小于MIN_AMOUNT归0再clamp0..maximum并发阈值事件；实际inject/extract只有MODULATE更新balance并无ticket标chunk unsaved；拆物export仅DISMANTLE且>0→component，放置import且非null恢复",
+    "preservation": "补全旧pending数值wrapper到真实业务保值和消费链，普通/致密单元同类一个owner；StoredEnergyAmount通用辅助与grid service只支持0，不按能量阈值/数值字段/两容量拆。派生fullness与邻居延迟通知单独处理：load恢复余额再恢复pending，onReady从余额更新显示，不把缓存当永久玩家成就。",
+    "application_limit": "容量下降裁剪且无旧溢出旁存；NaN未显式finite检查，不能声称clamp处理全部脏数。setStored事件在load期间发但super grid初始化内部未全展开。Item途径直接amount运算无非负/容量裁剪保护，不同于BE严格存储；出口仅首个同BlockItem加components，无世界/物品联合事务。markUnsaved若chunk取不到直接skip，pending true已有时不再alert，真实tick卸载边界未运行。current modernValueInput/组件API不能直接移植Dynasty1.20.1。读取完整真实消费方法不等于整个AE网络/平台/原生codec已审或测试。",
+    "supporting_candidates": [
+      "b341418071c9c065286d",
+      "48107fd8f351ba033c3a",
+      "3949313fe7451e02656e",
+      "6c0ba12ccf16aeed64d9",
+      "f9b88d2108febbf0e185",
+      "76d772a05b1addc4bfc2",
+      "37c45154feb72f2072eb",
+      "5d9212c63752dd7883e0",
+      "a08e055cec59e8a35fcb",
+      "fff170ea7199d9d26d0a",
+      "7b45db6be2e5cf641ce7",
+      "542e8c3abe6f4c2916f1",
+      "7238ce872d34324d4029",
+      "66f63498245c4b60b832",
+      "b5cb8d76c9e707fad816",
+      "78f8dda3bc6935b405ad",
+      "2c2a039a453f6be6d088",
+      "26e47f691ee848b35f72",
+      "90aae4532a5baa041290",
+      "cbe969aa9ee7e0735c62",
+      "78460a67980ddb0ec64e",
+      "c6aa6bbe984b21554153"
+    ],
+    "reassessment": {
+      "prior_status": "pending",
+      "support_batch": 223,
+      "reason": "补完整stored amount实现、真实grid消费及实际拆块carrier→放置恢复；不以数值包装层独立计数。"
+    }
+  },
+  {
+    "candidate_id": "92df248a0342dc37051a",
+    "status": "accepted",
+    "family": "ae2-spatial-cell-item-handle-world-plot-custody-and-native-region-recovery",
+    "trigger": "Actual disk BE/loadTag plus spatial-cell persistent component → world SavedData plot lookup → paid native two-way region swap",
+    "input": "Actual2slot cell stack, persisted redstone latch, cell plotID, authoritative dimension SavedData plot metadata and physical region chunks",
+    "output": "Resolve existing same-sized plot or allocate new metadata; store transition+cellhandle then swap full region; move cell input→output and charge only on reported success",
+    "preservation": "Read19 fixed-tree source files/ranges including real default BE snapshot/recreate/recovery, region consumers and SavedData identity. Persistent handle is not content; world metadata and physical region own data. Port ordinal alone duplicates IO latch; combined independent plot custody chain1. See coordinator-spatial-world-custody-review-20261031.json.",
+    "application_limit": "No cross-disk atomicity. Handle set before swap; finally may retain failed plot, no durable unresolved BE escrow. DuplicateID lastwins, unchecked negativeID/ordinal, relative tick coordinates and ignored teleport/extraction returns preserved as static limitations, not native failures reproduced. No Dynasty runtime or implementation credit.",
+    "supporting_candidates": []
+  }
+]

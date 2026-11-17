@@ -1,0 +1,209 @@
+[
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "LivingEffects",
+    "observation": "非眩晕Mob每tick清Ownable主人盟友和IOwned死亡/创造旁观目标；IGNORE_SERVANTS遇有主随从则把目标和lastHurtBy改成其主人。",
+    "application": "审查清理之外的重定向入口，旁观者不可因宠物关系被意外替代成敌人。",
+    "limits": "眩晕时跳过整个过滤块；不是本项目Enemy过滤实现，也未运行此模组。",
+    "start": 68
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "TargetEvents",
+    "observation": "监听原目标：被随从攻击的怪物若转选其Player主人则回指随从；IGNORE_SERVANTS可反向转主人；nullifyTarget按MOB_TARGET设null或取消事件，和平非Enemy也有防误仇规则。",
+    "application": "目标事件类型有两种处置，重定向后仍需按最终目标验证许可。",
+    "limits": "完整事件只计一条，不按每个分支凑数；原目标变量与newTarget的区别保留。",
+    "start": 104
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "InteractEntityEvent",
+    "observation": "服务端玩家蹲下交互载具，只在控制乘客为IServant且其主人恰为该玩家时让乘客下车。",
+    "application": "受控实体与被点载具可以不同，授权须针对实际被改动的乘客。",
+    "limits": "仅研究随从控制归属，不将一般载具输入作为另一个AI过滤案例。",
+    "start": 148
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "AttackEvent",
+    "observation": "随从打主人可取消，但继续执行斧破盾/附效；随后按服务器PVP保护玩家或玩家随从，另有主人反打取消与冰僵尸迟缓。",
+    "application": "取消伤害事件不等于函数立即退出；许可应先于破盾、移抗性和状态副作用。",
+    "limits": "本项目不添加PVP机制；研究其事件取消与副作用顺序，不声称外部游戏实测。",
+    "start": 163
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "PlayerAttackEvent",
+    "observation": "最高优先级处理主人或上一级主人左击随从，配置取消时先调用物品onLeftClickEntity再取消攻击。",
+    "application": "取消攻击可能保留明确交互钩子，不能简单认为取消就没有状态变化。",
+    "limits": "只观察两层主人授权，不泛化任意递归主人或新交互系统。",
+    "start": 220
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "HurtEvent",
+    "observation": "兼容owned受伤设置停疗期；劫掠者伤村民按主人记恶评；nightmare攻击随从时衰减凋零/再生并改伤害。",
+    "application": "误选目标会带来玩家声望和治疗窗口副作用，伤害归属审查应覆盖这些监听者。",
+    "limits": "兼容细节整体一个事件，不按效果种类独立计；不迁移兼容机制。",
+    "start": 233
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "DamageEvent",
+    "observation": "最终伤害事件中，来源IOwned解析到非空主人且目标就是主人时取消。",
+    "application": "最后伤害兜底可保护主人，但旁观者不是主人仍需更早的Enemy许可。",
+    "limits": "与AttackEvent不同阶段且覆盖面不同，不能由此认为前置附效被撤销。",
+    "start": 290
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "DeathEvent",
+    "observation": "杀手或lastHurtBy的IOwned向最终Player主人记成就及uncreditedKill；俘虏可改主人并复活取消死亡，随从自身可借复活位置取消死亡。",
+    "application": "最终死亡还有所有权转移及复活，不可仅封伤害而忽略错误杀手的后续归属。",
+    "limits": "整段死亡处理含战利品只计一处，具体收益不搬入本项目。",
+    "start": 302
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "ChangeDimensions",
+    "observation": "IServant跨维度事件只要目的维度非空就清boundPos。",
+    "application": "区域目标身份不能跨维度沿用旧坐标；撤销守区是单独生命周期入口。",
+    "limits": "此处没有清owner和target的代码，不能夸大为全状态清理。",
+    "start": 432
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "ServantProjectileImpact",
+    "observation": "冰僵尸随从雪球撞到盟友取消Impact；非MISS仍播放命中声。",
+    "application": "投射物实际碰撞须重验关系，取消碰撞和后续声效是独立控制流。",
+    "limits": "事件不处理其他随从弹种；不能把一个雪球过滤当全局所有权保护。",
+    "start": 441
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "ExplosionDetonateEvent",
+    "observation": "爆炸按间接来源过滤Apostle部下/本体；HauntedSkull按相同owner及主人免除；Fungus还排自己同类和马的ownerUUID。",
+    "application": "AOE受影响列表有独立筛选，不应只限制当前单体target。",
+    "limits": "马UUID使用==是该源码事实，未声称已在运行时复现；不按爆炸来源重复计数。",
+    "start": 459
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "DropEvents",
+    "observation": "服务端Mob掉落时找归属灾厄随从，主人有戒可先剔除物品，再把整批战利品移入随从并清原集合。",
+    "application": "伤害及最后攻击者归属会影响物品去向，错误目标不仅影响血量。",
+    "limits": "仅具体随从拾取归属链计数，不把一般容器清理算实现参考。",
+    "start": 487
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "getIllagerServant",
+    "observation": "先由受害者lastHurtBy的IOwned主人找灾厄随从，否则伤害源；然后直接灾厄攻击者可覆盖间接解析。",
+    "application": "多来源归属有明确优先级，需检验最后攻击记录和即时来源不一致的情况。",
+    "limits": "不是通用UUID工具，是实际掉落事件使用的归属选择；不另计相同包装器。",
+    "start": 511
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantEvents.java",
+    "method": "onTotemUse",
+    "observation": "伤害源属于DISMISSED时取消不死图腾使用。",
+    "application": "主人回收召唤物可以有独立生命周期终止语义，不能与敌方击杀复活混淆。",
+    "limits": "只记录专用遣散伤害类型，不新增本项目遣散或不死机制。",
+    "start": 533
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantSpawnEggItem.java",
+    "method": "useOn",
+    "observation": "服务端方块用蛋可改刷怪笼，普通生成后仅非hostile的IOwned且玩家蹲下才设该玩家主人并再finalize。",
+    "application": "实体加入世界与主人赋值存在先后；生成瞬间默认AI状态需单独检查。",
+    "limits": "同类液体use路径所有权逻辑相同不再计；通用刷怪蛋放置代码不是计数理由。",
+    "start": 50
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantSpawnEggItem.java",
+    "method": "spawnOffspringFromSpawnEgg",
+    "observation": "按可繁殖类别创建幼体，确认真是baby后，仅双方非hostile且父有主时继承父主人，再加入世界和消耗蛋。",
+    "application": "新子实体可以继承被点击对象主人而非操作者，审计必须区分二者。",
+    "limits": "幼体无法成立会返回empty，完整实际继承入口仅计一处。",
+    "start": 138
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/AnimalSummon.java",
+    "method": "mobInteract",
+    "observation": "只允许实际非空主人喂食：成年服务端进入恋爱并耗物，幼体加速成长，客户端按结果消费交互。",
+    "application": "主人校验应包住实际状态和消耗，不能仅保护菜单显示。",
+    "limits": "繁殖寻伴距离与普通动物模板不计，只收随从主人授权的具体入口。",
+    "start": 247
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantUtil.java",
+    "method": "convertZombies",
+    "observation": "按僵尸亚型转随从，非空owner先赋值后finalize；村民僵尸复制交易记忆，临时转换设随机寿命，再发转换事件。",
+    "application": "转换继承归属和初始化顺序会决定新AI启动时身份。",
+    "limits": "骷髅转换只是同模板换物种不另计；每亚型不拆条。",
+    "start": 50
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantUtil.java",
+    "method": "convertUndead",
+    "observation": "先convertTo生成各类亡灵随从，再调用canLivingConvert；获准才设主/finalize/临时寿命和事件。",
+    "application": "授权检查在转换前后位置不同，失败路径也要核查实体是否已变化。",
+    "limits": "只说明当前源码顺序，未宣称运行时转换钩子必产生已知缺陷。",
+    "start": 119
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantUtil.java",
+    "method": "infect",
+    "observation": "村民/囚犯/灾厄/猪灵等转换为不同随从，村民先释放POI；转后检查Forge许可，再设主人寿命并复制村民数据或装备。",
+    "application": "感染路径会把原中立对象变成受控单位，应覆盖继承目标和归属的完整生命周期。",
+    "limits": "LivingEntity重载只是类型转发不计，本条仅Mob完整实现。",
+    "start": 161
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantUtil.java",
+    "method": "healServant",
+    "observation": "服务端未燃烧未死且非禁疗的随从，在受伤、有对应curio、主人灵魂足够且tick模治疗周期为0时治疗并扣主人灵魂。",
+    "application": "错误解析主人会把耗费和回血转移给另一玩家，归属检查不仅针对攻击。",
+    "limits": "LivingEntity转发重载不计；未把每种治疗配置当不同参考。",
+    "start": 308
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantUtil.java",
+    "method": "peekReviveTarget",
+    "observation": "只在服务端且revivePos非空并当前世界该区块已加载时返回随从本体。",
+    "application": "复活资格前置只验证当前世界加载状态，与最终复活维度需要分开核对。",
+    "limits": "不是纯getter，有复活生命周期许可；不按坐标序列化凑数。",
+    "start": 332
+  },
+  {
+    "repo": "Polarice3/Goety-2",
+    "file": "/ServantUtil.java",
+    "method": "teleportToRevive",
+    "observation": "寻找复活站位，跨维度则取目标ServerLevel并changeDimension后校边界传送；同维度无站位时可用中心，越界落世界出生点。",
+    "application": "跨世界可能得到新实体引用，主身份及租约必须随实际存活实例保持。",
+    "limits": "只研究受控随从复活转移，不把通用传送几何另计。",
+    "start": 347
+  }
+]

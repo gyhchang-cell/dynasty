@@ -1,0 +1,270 @@
+package de.dafuqs.spectrum.blocks.titration_barrel;
+
+import de.dafuqs.spectrum.api.block.*;
+import de.dafuqs.spectrum.helpers.*;
+import de.dafuqs.spectrum.mixin.accessors.*;
+import de.dafuqs.spectrum.progression.*;
+import de.dafuqs.spectrum.recipe.titration_barrel.*;
+import de.dafuqs.spectrum.registries.*;
+import net.fabricmc.fabric.api.transfer.v1.fluid.*;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.*;
+import net.minecraft.block.*;
+import net.minecraft.block.entity.*;
+import net.minecraft.entity.player.*;
+import net.minecraft.fluid.*;
+import net.minecraft.inventory.*;
+import net.minecraft.item.*;
+import net.minecraft.nbt.*;
+import net.minecraft.server.network.*;
+import net.minecraft.sound.*;
+import net.minecraft.text.*;
+import net.minecraft.util.collection.*;
+import net.minecraft.util.math.*;
+import net.minecraft.world.*;
+import net.minecraft.world.biome.*;
+import org.jetbrains.annotations.*;
+
+import java.util.*;
+
+import static de.dafuqs.spectrum.blocks.titration_barrel.TitrationBarrelBlock.*;
+
+@SuppressWarnings("UnstableApiUsage")
+public class TitrationBarrelBlockEntity extends BlockEntity implements FluidStackInventory {
+	
+	protected static final int INVENTORY_SIZE = 5;
+	public static final int MAX_ITEM_COUNT = 64;
+	protected DefaultedList<ItemStack> items;
+	protected SingleVariantStorage<FluidVariant> fluidStorage = new SingleVariantStorage<>() {
+		@Override
+		protected FluidVariant getBlankVariant() {
+			return FluidVariant.blank();
+		}
+		
+		@Override
+		protected long getCapacity(FluidVariant variant) {
+			return FluidConstants.BUCKET;
+		}
+		
+		@Override
+		protected void onFinalCommit() {
+			super.onFinalCommit();
+			inventoryChanged();
+		}
+	};
+	
+	@Override
+	public DefaultedList<ItemStack> getItems() {
+		return this.items;
+	}
+	
+	@Override
+	public SingleVariantStorage<FluidVariant> getFluidStorage() {
+		return this.fluidStorage;
+	}
+	
+	// Times in milliseconds using the Date class
+	protected long sealTime = -1;
+	protected long tapTime = -1;
+	
+	protected String recipe;
+	protected int extractedBottles = 0;
+	
+	public TitrationBarrelBlockEntity(BlockPos pos, BlockState state) {
+		super(SpectrumBlockEntities.TITRATION_BARREL, pos, state);
+		this.items = DefaultedList.ofSize(INVENTORY_SIZE, ItemStack.EMPTY);
+	}
+	
+	@Override
+	protected void writeNbt(NbtCompound nbt) {
+		super.writeNbt(nbt);
+		Inventories.writeNbt(nbt, items);
+		nbt.put("FluidVariant", this.fluidStorage.variant.toNbt());
+		nbt.putLong("FluidAmount", this.fluidStorage.amount);
+		nbt.putLong("SealTime", this.sealTime);
+		nbt.putLong("TapTime", this.tapTime);
+		nbt.putInt("ExtractedBottles", this.extractedBottles);
+	}
+	
+	@Override
+	public void readNbt(NbtCompound nbt) {
+		super.readNbt(nbt);
+		
+		this.items = DefaultedList.ofSize(INVENTORY_SIZE, ItemStack.EMPTY);
+		Inventories.readNbt(nbt, items);
+		this.fluidStorage.variant = FluidVariant.fromNbt(nbt.getCompound("FluidVariant"));
+		this.fluidStorage.amount = nbt.getLong("FluidAmount");
+		this.sealTime = nbt.contains("SealTime", NbtElement.LONG_TYPE) ? nbt.getLong("SealTime") : -1;
+		this.tapTime = nbt.contains("TapTime", NbtElement.LONG_TYPE) ? nbt.getLong("TapTime") : -1;
+		this.extractedBottles = nbt.contains("ExtractedBottles", NbtElement.NUMBER_TYPE) ? nbt.getInt("ExtractedBottles") : 0;
+	}
+	
+	public void seal() {
+		this.sealTime = new Date().getTime();
+		this.markDirty();
+	}
+	
+	public void tap() {
+		this.tapTime = new Date().getTime();
+		this.markDirty();
+	}
+	
+	public void reset(World world, BlockPos blockPos, BlockState state) {
+		this.sealTime = -1;
+		this.tapTime = -1;
+		this.fluidStorage.variant = FluidVariant.blank();
+		this.fluidStorage.amount = 0;
+		this.extractedBottles = 0;
+		this.getItems().clear();
+		
+		world.setBlockState(pos, state.with(BARREL_STATE, TitrationBarrelBlock.BarrelState.EMPTY));
+		world.playSound(null, blockPos, SoundEvents.BLOCK_BARREL_OPEN, SoundCategory.BLOCKS, 1.0F, 1.0F);
+		markDirty();
+	}
+	
+	public long getSealMilliseconds() {
+		if (this.sealTime == -1) {
+			return 0;
+		}
+		
+		long tapTime;
+		if (this.tapTime == -1) {
+			tapTime = new Date().getTime();
+		} else {
+			tapTime = this.tapTime;
+		}
+		return tapTime - this.sealTime;
+	}
+	
+	public long getSealSeconds() {
+		return getSealMilliseconds() / 1000;
+	}
+	
+	public int getSealMinecraftDays() {
+		return (int) (getSealMilliseconds() / 1000 / 60 / 20);
+	}
+	
+	public String getSealRealDays() {
+		return Support.getWithOneDecimalAfterComma(getSealMilliseconds() / 1000F / 60 / 20 / 72);
+	}
+	
+	private boolean isEmpty(float temperature, int extractedBottles, ITitrationBarrelRecipe recipe) {
+		if (recipe.isEmpty() || !recipe.getFluidInput().test(getFluidVariant())) {
+			return true;
+		}
+		return extractedBottles >= recipe.getOutputCountAfterAngelsShare(this.world, temperature, getSealSeconds());
+	}
+	
+	public void addOneDayOfSealTime() {
+		this.sealTime -= TimeHelper.EPOCH_DAY_MILLIS;
+		this.markDirty();
+	}
+	
+	public ItemStack tryHarvest(World world, BlockPos blockPos, BlockState blockState, ItemStack handStack, @Nullable PlayerEntity player) {
+		ItemStack harvestedStack = ItemStack.EMPTY;
+		Biome biome = world.getBiome(blockPos).value();
+		
+		boolean shouldReset = false;
+		Text message = null;
+		
+		int daysSealed = getSealMinecraftDays();
+		int inventoryCount = InventoryHelper.countItemsInInventory(this.getItems());
+		
+		Optional<ITitrationBarrelRecipe> optionalRecipe = getRecipeForInventory(world);
+		if (optionalRecipe.isEmpty()) {
+			if (getItems().isEmpty() && getFluidVariant().isBlank()) {
+				message = Text.translatable("block.spectrum.titration_barrel.empty_when_tapping");
+			} else {
+				message = Text.translatable("block.spectrum.titration_barrel.invalid_recipe_when_tapping");
+			}
+			shouldReset = true;
+		} else {
+			ITitrationBarrelRecipe recipe = optionalRecipe.get();
+			if (recipe.getFluidInput().test(this.getFluidVariant())) {
+				if (recipe.canPlayerCraft(player)) {
+					boolean canTap = true;
+					Item tappingItem = recipe.getTappingItem();
+					if (tappingItem != Items.AIR) {
+						if (handStack.isOf(tappingItem)) {
+							handStack.decrement(1);
+						} else {
+							message = Text.translatable("block.spectrum.titration_barrel.tapping_item_required").append(tappingItem.getName());
+							canTap = false;
+						}
+					}
+					if (canTap) {
+						long secondsFermented = (this.tapTime - this.sealTime) / 1000;
+						float downfall = ((BiomeAccessor)(Object) biome).getWeather().downfall();
+						harvestedStack = recipe.getResult(this, secondsFermented, downfall);
+						
+						this.extractedBottles += 1;
+						shouldReset = isEmpty(biome.getTemperature(), this.extractedBottles, recipe);
+					}
+				} else {
+					message = Text.translatable("block.spectrum.titration_barrel.recipe_not_unlocked");
+				}
+			} else {
+				if (getFluidVariant().isBlank()) {
+					message = Text.translatable("block.spectrum.titration_barrel.missing_liquid_when_tapping");
+				} else {
+					message = Text.translatable("block.spectrum.titration_barrel.invalid_recipe_when_tapping");
+				}
+				shouldReset = true;
+			}
+		}
+		
+		if (player != null) {
+			SpectrumAdvancementCriteria.TITRATION_BARREL_TAPPING.trigger((ServerPlayerEntity) player, harvestedStack, daysSealed, inventoryCount);
+			
+			if (message != null) {
+				player.sendMessage(message, true);
+			}
+		}
+		
+		if (shouldReset) {
+			reset(world, blockPos, blockState);
+		}
+		
+		this.markDirty();
+		
+		return harvestedStack;
+	}
+	
+	public Optional<ITitrationBarrelRecipe> getRecipeForInventory(World world) {
+		return world.getRecipeManager().getFirstMatch(SpectrumRecipeTypes.TITRATION_BARREL, this, world);
+	}
+	
+	public void giveRecipeRemainders(PlayerEntity player) {
+		for (ItemStack stack : this.getItems()) {
+			ItemStack remainder = stack.getRecipeRemainder();
+			if (!remainder.isEmpty()) {
+				player.getInventory().offerOrDrop(remainder);
+			}
+		}
+	}
+	
+	public @NotNull FluidVariant getFluidVariant() {
+		if (this.fluidStorage.amount > 0) {
+			return this.fluidStorage.variant;
+		} else {
+			return FluidVariant.blank();
+		}
+	}
+	
+	public boolean canBeSealed(PlayerEntity player) {
+		int itemCount = InventoryHelper.countItemsInInventory(getItems());
+		Fluid fluid = fluidStorage.variant.getFluid();
+		if (itemCount == 0 && fluid == Fluids.EMPTY) {
+			return true; // tap empty barrel advancement
+		}
+
+		if (world != null) {
+			Optional<ITitrationBarrelRecipe> optionalRecipe = getRecipeForInventory(world);
+			return optionalRecipe.isPresent()
+					&& optionalRecipe.get().canPlayerCraft(player)
+					&& optionalRecipe.get().getFluidInput().test(this.getFluidVariant().getFluid());
+		}
+
+		return false;
+	}
+	
+}

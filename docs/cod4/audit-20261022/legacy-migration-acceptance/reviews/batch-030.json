@@ -1,0 +1,62 @@
+[
+  {
+    "candidate_id": "156cd2444a703bc8c8bc",
+    "status": "accepted",
+    "family": "ars-brazier-ritual-owned-consumed-items-and-running-receipts",
+    "trigger": "RitualBrazierTile.loadAdditional reconstructs ritual by saved ritualID",
+    "input": "ritualID, context progress/complete/started/needsMana plus consumed item stacks",
+    "output": "new registry ritual attached to current tile; context reinstated without onStart or consuming input again; blank ritualID clears ritual",
+    "preservation": "Read full tile, AbstractRitual, RitualContext, factory and NBT item helper. tick respects done/started/paid-source flags and calls onEnd then clears; consumedItems are stack.split(1) records, not an item-name table. Entire context/factory chain one credit.",
+    "application_limit": "Unknown ritual ID results null; playerUUID set onStart is absent base writer, cannot assert actor preserved. Item helper catches exception and may return partial list; relayPos absent on reused tile may stay stale. Modern NeoForge APIs research only.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "6c46ef9c68f9dff4a296",
+    "status": "accepted",
+    "family": "ars-captured-mob-jar-full-payload-cache-and-fallback",
+    "trigger": "MobJarTile disk/component load then lazy getEntity or onDispel",
+    "input": "entityTag full entity NBT, extraMobData, optional cached entity",
+    "output": "resets cache on present saved tag, lazy recursive loader then type-only fallback; writer reserializes live entity or catches and retains old tag",
+    "preservation": "Read complete class including components, saveEntityToTag, loadEntityFromTag and SavingItemHandler. Item capability mutation updates retained entityTag only for nonsimulated operations. Owned captured entity payload is independent of normal entity reader, not repeated basic ItemStack wrapper.",
+    "application_limit": "Type-only fallback loses attributes/inventory; release addFreshEntity return ignored before removeEntity, so no guaranteed successful release. Empty/invalid entity may not recover; absent entityTag does not clear reused owner; no runtime proof.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "9cbb67147f80cc78261b",
+    "status": "accepted",
+    "family": "ars-drygmy-earned-production-progress-versus-resource-receipt",
+    "trigger": "DrygmyTile disk read then server tick/generateItems",
+    "input": "progress, bonus, needsMana and optional includeEntities",
+    "output": "restores progress/paid-source state; absent includeEntities explicitly true, live nearby-entity list rebuilt",
+    "preservation": "Whole reader/writer and tick, giveProgress, refresh and generateItems read. Stored needsMana is a cost receipt: payout resets progress0/needsMana true; only successful source take clears it. Bonus is recalculated, not a permanent reward.",
+    "application_limit": "Missing needsMana false can affect legacy cost; progress/bonus not clamped on read. Output insertion durability/atomicity unproven. One owner regardless entity species or loot entries, no new Dynasty farming mechanic.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "eac7835bdd12979a2cb2",
+    "status": "accepted",
+    "family": "ars-potion-jar-owned-contents-amount-and-locked-type",
+    "trigger": "PotionJarTile loadAdditional and implicit item component application",
+    "input": "potionData codec, currentFill amount, locked type preference",
+    "output": "optional saved potionData decoded; scalar amount and lock restored; item component transfers contents/amount/lock together",
+    "preservation": "Read full tile and ANCodecs encode/decode bodies. remove empties potion data only when unlocked, preserving locked chosen type at0 amount; component collection explicitly retains locked empty jars. Count and semantic contents must be verified together.",
+    "application_limit": "Codec parse getOrThrow, no fallback for bad potionData; absent potionData keeps old data on reused object. Missing fill0, no load clamp. Save TODO potionNames list is not implemented, cannot claim quest string support.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "0d1b893e24428150df04",
+    "status": "accepted",
+    "family": "enigmatic-permanent-dropped-owned-item-and-soul-index-lifecycle",
+    "trigger": "PermanentItemEntity disk read, owner-restricted pickup and SoulArchive index update",
+    "input": "full Item stack payload, owner/thrower UUID, health/age/pickup delay and bound XYZ",
+    "output": "restores actual dropped stack and complete bound-position tuple; invalid EMPTY stack discards, removes archive receipt on killed/discarded",
+    "preservation": "Reader/writer and complete pickup path plus full SoulArchive source read. SoulArchive is location/owner/UUID index only, not backup item payload; it cannot recreate erased stack. Nonowner cannot retrieve soul-bound payload; soul retrieval failure returns before receipt removal. Same entity/index lifecycle counted one.",
+    "application_limit": "Owner fields existence checked without UUID type guard. Generic pickup stats use original count; archive JSON replacement not atomic and parse errors fatal. StorageCrystal retrieval success not proven by this consumer; no claim all grave contents restore. SoulArchive helper/index0 extra credit.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "ed30a15b4dcfa44288a2",
+    "status": "duplicate",
+    "reason": "Full RepositoryCatalogTile read. Physical scroll restore is ItemStack.parseOptional/saveOptional wrapper already covered by native stack chains; plain name getString also not independent recovery. Filters consume scroll and network is rebuilt, but no new migration/recovery semantic sufficient for extra credit."
+  }
+]

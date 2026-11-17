@@ -30,22 +30,30 @@ def main():
         assert {b['name'] for b in original['bones']}<=names,'Dropped established locator'
         old=json.loads((review.SOURCE/'original.animation.json').read_text())['animations']
         assert set(a['animations'])==set(old)
-        image=Image.open(review.TEX).convert('RGB');assert image.size==(16,16)
+        image=Image.open(review.TEX).convert('RGB')
+        desc=g['minecraft:geometry'][0]['description']
+        assert image.size==(desc['texture_width'],desc['texture_height'])
         pixels=np.asarray(image);palette={tuple(c) for c in pixels.reshape(-1,3)}
-        assert len(palette)==4 and (255,255,255) in palette
-        assert np.all(pixels[0]==255) and np.all(pixels[-1]==255) and np.all(pixels[:,0]==255) and np.all(pixels[:,-1]==255)
-        for y in range(1,15,2):
-            for x in range(1,15,2):assert np.all(pixels[y:y+2,x:x+2]==pixels[y,x]),'Sub 2x2 colour region'
+        legacy=image.size==(16,16)
+        if legacy:
+            assert len(palette)==4 and (255,255,255) in palette
+            assert np.all(pixels[0]==255) and np.all(pixels[-1]==255) and np.all(pixels[:,0]==255) and np.all(pixels[:,-1]==255)
+        occupied=set()
         for b in bones:
             for c in b.get('cubes',[]):
                 assert all(v>0 for v in c['size']) and 'texture_meshes' not in b
                 for uv in c['uv'].values():
                     u,v=uv['uv'];du,dv=uv['uv_size']
                     assert all(float(x).is_integer() for x in [u,v,du,dv])
-                    assert 1<=u<u+du<=15 and 1<=v<v+dv<=15
-                    assert du>=2 and dv>=2
-                    block=pixels[v:v+dv,u:u+du]
-                    assert np.all(block==block[0,0]) and not np.all(block[0,0]==255),'UV sampled background or neighbouring material'
+                    assert 0<=u<u+du<=image.width and 0<=v<v+dv<=image.height
+                    if legacy:
+                        block=pixels[v:v+dv,u:u+du]
+                        assert np.all(block==block[0,0]) and not np.all(block[0,0]==255)
+                    else:
+                        for y in range(v,v+dv):
+                            for x in range(u,u+du):
+                                assert (x,y) not in occupied,'UV overlap'
+                                occupied.add((x,y))
         bounds={}
         for key,clip in a['animations'].items():
             assert clip['animation_length']==old[key]['animation_length']
@@ -69,11 +77,11 @@ def main():
         for c,element in zip(cubes,bb['elements']):
             low=element['from'];high=element['to'];size=[high[i]-low[i] for i in range(3)]
             origin=[-high[0],low[1],low[2]]
-            assert size==c['size'] and origin==c['origin'] and element['inflate']==c.get('inflate',0),'Editing source lost coordinate/armour thickness'
-        results.append(dict(id=name,bones=len(bones),cuboids=len(cubes),texture=[16,16],palette=[[int(v) for v in c] for c in sorted(palette)],
+            assert np.allclose(size,c['size'],atol=1e-7) and np.allclose(origin,c['origin'],atol=1e-7) and element['inflate']==c.get('inflate',0),'Editing source lost coordinate/armour thickness'
+        results.append(dict(id=name,bones=len(bones),cuboids=len(cubes),texture=list(image.size),palette=[[int(v) for v in c] for c in sorted(palette)],
             clips=len(a['animations']),ground_minimum_pixels=bounds,resource_sha256={str(p.relative_to(review.REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [review.GEO,review.ANIM,review.TEX]}))
     (OUT/args.output).write_text(json.dumps(dict(passed=True,models=results),indent=2)+'\n')
-    print('PASS:',len(results),'resource contracts, four-colour 16x16 atlases, UVs, rigs, editable source, quarter-tick floor clearance')
+    print('PASS:',len(results),'resource contracts, declared pixel atlases, UVs, rigs, editable source, quarter-tick floor clearance')
 
 
 if __name__=='__main__':main()

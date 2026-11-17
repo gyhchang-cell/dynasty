@@ -4,7 +4,7 @@ These are GUI instruction figures, not entity/item textures or copied pack art.
 """
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
-import json,zipfile
+import json,zipfile,hashlib
 
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'src/main/resources/assets/dynasty/textures/gui/quests/journey'
@@ -100,7 +100,11 @@ def build(only_figures=None,only_charm_labels=False):
     font=ImageFont.truetype('/System/Library/Fonts/STHeiti Medium.ttc',18)
     bold=ImageFont.truetype('/System/Library/Fonts/STHeiti Medium.ttc',22)
     selected={} if only_charm_labels else FIGURES if only_figures is None else {key:FIGURES[key] for key in only_figures}
+    native=json.loads((OUT/"native-figures.json").read_text())["sha256"] if (OUT/"native-figures.json").exists() else {}
     for key,(title,cells,notes) in selected.items():
+        if key in native:
+            assert hashlib.sha256((OUT/(key+".png")).read_bytes()).hexdigest()==native[key], "Native figure changed; inspect before regenerating: "+key
+            continue
         im=Image.new('RGB',(512,256),'#142628');d=ImageDraw.Draw(im)
         d.rectangle((3,3,508,252),outline='#9dbeaa',width=2)
         d.text((20,16),title,font=bold,fill='#e5d1a0')

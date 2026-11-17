@@ -1,0 +1,54 @@
+[
+  {
+    "candidate_id": "e50bb81325195462465c",
+    "status": "accepted",
+    "family": "arcanus-player-primal-arcana-balances-and-new-type-defaults",
+    "trigger": "ArcanaComponent CCA readFromNbt/writeToNbt with ALWAYS_COPY registration",
+    "input": "registry-keyed primal arcana balances, owner attributes/max/lock",
+    "output": "known registered primal types initialized20 then stored balances overlaid; nonprimal types ignored",
+    "preservation": "Read full component, regeneration/drain/set consumers and actual ArcanusComponents respawn registrations. Game-owned mana balance is explicitly preserved across respawn while casting/stun other owners NEVER_COPY. Thus serialization and death permanence separately sourced. All primal types one implementation.",
+    "application_limit": "resetArcana puts defaults but does not clear map, so reused obsolete types can remain. Reader raw double bypasses setter clamp, negative/nonfinite/saved overmax not validated on load; server tick caps upper bound but not lower. Not a Dynasty field policy to copy.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "9b8204953f357f2876d4",
+    "status": "accepted",
+    "family": "arcanus-player-pocket-portal-dimension-identity-and-coordinate-recovery",
+    "trigger": "PocketDimensionPortalComponent CCA read/write ALWAYS_COPY; createPortal replacement consumer",
+    "input": "dimension→portalUUID+position bindings",
+    "output": "clears bindings before reconstructing, preserves dimension resource keys and UUID identity used to remove prior owned portal",
+    "preservation": "Read full class and registration. Consumer uses saved position to add portal chunk ticket then UUID lookup/remove, and records new owner portal after creation. Concrete defect: writer stores each position on outer tag, not row, so last map entry position overwrites others; reader getInt narrows saved doubles.",
+    "application_limit": "Malformed registry ID/UUID unguarded; missing row position uses outer defaults. Reference comparison portalId!=NIL_UUID and worldKey!=POCKET_DIMENSION_WORLD_KEY not value semantics. New entity addFreshEntity result ignored. Negative recovery example, no claim reliable portal reuse.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "48149e864af78495ae4f",
+    "status": "accepted",
+    "family": "arcanus-player-spell-cooldown-structured-identity-encode-result-boundary",
+    "trigger": "SpellCoolDownComponent CCA read/write ALWAYS_COPY and serverTick",
+    "input": "serialized full Spell and remaining CoolDown per entry",
+    "output": "reader clears map, decodes Spell with blank fallback, restores remaining ticks; tick decrements and removes expired",
+    "preservation": "Full component and Spell CODEC fields/default constructor/getCoolDown plus respawn registration read. Distinct structured Spell identity persistence from string/item cooldown maps. Writer calls Codec.encode but ignores returned DataResult and persists original spellTag, a concrete encode-result ownership risk; not claimed working roundtrip.",
+    "application_limit": "Codec encode return must be consumed; no native run here to prove output mutation, record as static defect risk. Blank defaults erase identity for malformed/empty spell. Spell class has no equals/hashCode in full saved source; no assertion matching reconstructed spell works. Timers remain excluded from Dynasty permanent root whitelist.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "f5c23527e65a75354f2d",
+    "status": "accepted",
+    "family": "arcanus-owned-arcana-inventory-disk-to-item-component-and-error-policy",
+    "trigger": "AthanorBlockEntity save/load plus apply/collectImplicitComponents and ArcanaStack CODEC",
+    "input": "list of typed ArcanaStack arcana registry object plus double quantity",
+    "output": "clears prior list then reconstructs each payload; item component transfer preserves list without inventing resources",
+    "preservation": "Read full Athanor and Crucible classes, WardedJar persistence pair, full ArcanaStack and Arcana registry codec. Codec absent type=NIL, absent amount0; isEmpty NIL or<=0. Writer removes empty entries. Component import defaults empty list. Whole resource container chain1; sibling wrappers and codec helpers support0.",
+    "application_limit": "Athanor decode errors throw, Crucible sibling decode errors become EMPTY (silent resource loss); structurally same list algorithm not second credit. Quantity codec unrestricted DOUBLE; reader does not enforce container128/32 maximum. set/add mark dirty; no conservation through all external transfer consumers claimed.",
+    "supporting_candidates": [
+      "5cbada336e47a32d2844",
+      "e366cf9020dcf2c3420a"
+    ]
+  },
+  {
+    "candidate_id": "9e355089324afbe7de01",
+    "status": "rejected",
+    "reason": "Full StockpileOrbsComponent read plus actual respawn strategy NEVER_COPY. UUID list tracks active spell entities and removes missing entities when adding. Temporary projectile references, no independent permanent progress/item recovery. Generic list copying alone0."
+  }
+]

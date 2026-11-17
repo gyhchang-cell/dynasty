@@ -1,0 +1,12 @@
+"""Native stationary qualification, interaction reset and final incoming-damage refusal, one chain."""
+from ledger import O,record,verify
+import json
+p='src/main/java/it/hurts/sskirillss/relics/'
+k='relics-native-stillness-qualified-short-lease-immunity-delayed-action-reset'
+record(k,'Octo-Studios/relics',[(p+'Relics.java',1,51),(p+'init/RelicsItems.java',72,72),(p+'init/RelicsMobEffects.java',1,28),(p+'init/RelicsDataComponents.java',100,100),(p+'init/RelicsDataComponents.java',106,114),(p+'items/relics/ring/RingOfTheSevenDeadlySinsItem.java',74,318),(p+'items/relics/ring/RingOfTheSevenDeadlySinsItem.java',341,409),(p+'items/relics/ring/RingOfTheSevenDeadlySinsItem.java',921,969),(p+'items/relics/ring/RingOfTheSevenDeadlySinsItem.java',978,995),(p+'effects/ImmortalityEffect.java',1,23),(p+'utils/ServerScheduler.java',1,67),(p+'utils/EntityUtils.java',216,240),(p+'api/relics/data/AbilityData.java',264,274)],
+ '实际Relics模组注册ring/effect/component；Curios原生curioTick sloth.canPlayerUse后读每stack位置/视角/stillTicks，距离平方>0.0001或yaw/pitch合差>0.001则归零，否则递增，达到round(time*20)且server时尝试addEffect IMMORTALITY 5ticks。Immortality已注册事件在LivingIncomingDamage有effect即cancel。伤害Post/左右交互/挖掘尝试/攻击/丢拾物原生事件经onInteract服务端逐已穿戴ring安排延迟重置stillTicks；ServerTick.Pre队列执行，stop清队列。',
+ '一个真正不同于普通effect名单拒伤的静止及视角共同资格、短租期续期与动作撤销生命周期政策1；与Aether单次静止拒弹/客户端边框不同，不按7种事件/组件/药水包装多计。动作只重置计数，不remove已有effect，所以不是即刻解除；移动或脱装同样需既有5tick效果自然耗尽。curioTick在客户端也更新stillTicks及统计，只有addEffect服务端；gainedImmortality只以调用前hasEffect=false判定，不检查addEffect结果，经验增加不代表成功免伤。IncomingDamage只查效果，无Boss/源tag/bypass例外，本源码不能推导框架所有伤害路径皆经过事件。',
+ 'Boss灰字必须由明确拒控最终生产点产生，不能拿计时/经验或延迟撤销误当当前控制已拒绝。回执生命周期须区别资格撤销和旧租期到期，重复续期不是重复文字事件；普通阴阳不加灰字。',
+ '已完整读constructDefaultRelicTemplate、curioTick、onInteract全部原生入口、SlothData、最终拒伤effect和Scheduler全类。引用template范围只覆盖完整方法，不把另6种能力/常量计数；穿戴Curios外部派发内部、effect实际到期引擎/跨端同步未运行。schedule(1)首个Pre把1减0而不run，下一次Pre才run；不将它宣称精确下一实体tick执行。延期closure保留原stack/entity，没有重新检查穿戴、alive或world身份；当前效果消费无专门graytext/S2C/微光声。无正式修改/资产/编译/游戏。','native_temporal_qualification_and_damage_refusal')
+d=json.loads((O/'semantic-dedup.json').read_text());d['groups'].append({'family':'batch149-stillness-qualified-short-lease-and-action-reset','credited_chains':[k],'rationale':'One stationary+view-qualified short renewed status lease, delayed native interaction reset and final damage denial. Not a generic effect predicate variant or separate credit per event adapter. Aether stationary projectile safety lacks this timed state lifecycle.'});(O/'semantic-dedup.json').write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+verify()

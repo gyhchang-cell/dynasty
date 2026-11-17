@@ -1,0 +1,25 @@
+allprojects { p -> afterEvaluate {
+    if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+    p.dependencies.add('runtimeOnly', p.fg.deobf('mezz.jei:jei-1.20.1-forge:15.59.0.210'))
+    def qa=p.sourceSets.create('bugfixUiQa') {
+        java.srcDir p.file('tools/bugfix-20261018/qa')
+        compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+    }
+    p.minecraft.runs.client {
+        workingDirectory p.file('build/bugfix-client-20261018')
+        property 'dynasty.bugfix.output',p.file('docs/bugfix-20261018/native-client').absolutePath
+        property 'forge.logging.console.level','info'
+        args '--width','1280','--height','800','--username','BugfixReviewer'
+        jvmArgs '-Xmx3G','-XX:ActiveProcessorCount=2'
+        mods { dynasty { source qa } }
+    }
+    p.tasks.matching{it.name=='runClient'}.configureEach {
+        dependsOn qa.classesTaskName
+        doFirst {
+            def game=p.file('build/bugfix-client-20261018');game.mkdirs()
+            if(new File(game,'saves').exists())throw new GradleException('QA world already exists; inspect rather than overwrite')
+            new File(game,'options.txt').text='soundCategory_master:0.0\nlang:zh_cn\nguiScale:3\ngamma:0.0\nmaxFps:30\nrenderDistance:2\nsimulationDistance:5\ntutorialStep:none\n'
+        }
+    }
+} }

@@ -265,3 +265,24 @@ write(DATA / 'recipes/blueprint/yasha_tidal_shield.json', {'type': 'minecraft:cr
 write(DATA / 'recipes/blueprint/yasha_recovered_trident.json', {'type': 'minecraft:crafting_shaped', 'pattern': ['TTT', ' S ', ' S '],
     'key': {'T': {'item': 'dynasty:corroded_trident_tine'}, 'S': {'item': 'minecraft:stick'}}, 'result': {'item': 'minecraft:trident'}})
 print('Exported original yasha, seven clips, finite vortex and three usable salvage items.')
+
+# Approved inventory transparency: preserve entity atlases.
+import runpy as _inventory_runpy
+from pathlib import Path as _InventoryPath
+_inventory_runpy.run_path(str(_InventoryPath(__file__).resolve().parents[1]/"art/inventory-refresh/transparent.py"))["cleanup_white"]()
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('fubo_xunhai_yecha')
+
+# Original MC creature shape correction, after the material export.
+import runpy as _creature33_runpy
+_creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v33/refine.py"))["finish"]('fubo_xunhai_yecha')
+
+# Connected anatomy correction; final authoritative export (V34).
+import runpy as _creature34_runpy
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v34/refine.py"))["finish"]('fubo_xunhai_yecha')
+
+# Continuous anatomical masses and coherent pigmentation (V35).
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v35/refine.py"))["finish"]('fubo_xunhai_yecha')

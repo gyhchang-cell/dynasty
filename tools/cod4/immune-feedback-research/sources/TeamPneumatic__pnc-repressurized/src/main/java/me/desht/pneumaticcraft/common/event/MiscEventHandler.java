@@ -1,0 +1,315 @@
+/*
+ * This file is part of pnc-repressurized.
+ *
+ *     pnc-repressurized is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     pnc-repressurized is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with pnc-repressurized.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package me.desht.pneumaticcraft.common.event;
+
+import me.desht.pneumaticcraft.api.PneumaticRegistry;
+import me.desht.pneumaticcraft.api.block.IPneumaticWrenchable;
+import me.desht.pneumaticcraft.api.client.pneumatic_helmet.InventoryTrackEvent;
+import me.desht.pneumaticcraft.api.data.PneumaticCraftTags;
+import me.desht.pneumaticcraft.api.drone.DroneConstructingEvent;
+import me.desht.pneumaticcraft.api.item.IPositionProvider;
+import me.desht.pneumaticcraft.api.lib.Names;
+import me.desht.pneumaticcraft.api.semiblock.ISemiBlock;
+import me.desht.pneumaticcraft.common.block.entity.drone.ProgrammerBlockEntity;
+import me.desht.pneumaticcraft.common.block.entity.spawning.VacuumTrapBlockEntity;
+import me.desht.pneumaticcraft.common.config.ConfigHelper;
+import me.desht.pneumaticcraft.common.drone.DroneClaimManager;
+import me.desht.pneumaticcraft.common.drone.IDroneBase;
+import me.desht.pneumaticcraft.common.entity.drone.DroneEntity;
+import me.desht.pneumaticcraft.common.entity.semiblock.SpawnerAgitatorEntity;
+import me.desht.pneumaticcraft.common.item.PneumaticArmorItem;
+import me.desht.pneumaticcraft.common.item.minigun.MinigunItem;
+import me.desht.pneumaticcraft.common.network.NetworkHandler;
+import me.desht.pneumaticcraft.common.network.PacketModWrenchBlock;
+import me.desht.pneumaticcraft.common.network.PacketPlaySound;
+import me.desht.pneumaticcraft.common.network.PacketServerTickTime;
+import me.desht.pneumaticcraft.common.pneumatic_armor.CommonArmorRegistry;
+import me.desht.pneumaticcraft.common.recipes.machine.ExplosionCraftingRecipeImpl;
+import me.desht.pneumaticcraft.common.registry.ModCriterionTriggers;
+import me.desht.pneumaticcraft.common.semiblock.SemiblockTracker;
+import me.desht.pneumaticcraft.common.thirdparty.ModdedWrenchUtils;
+import me.desht.pneumaticcraft.common.util.PneumaticCraftUtils;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.Boat;
+import net.minecraft.world.entity.vehicle.MinecartSpawner;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluids;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.ServerChatEvent;
+import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import net.neoforged.neoforge.event.entity.EntityEvent;
+import net.neoforged.neoforge.event.entity.EntityMountEvent;
+import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.furnace.FurnaceFuelBurnTimeEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.neoforged.neoforge.fluids.FluidUtil;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
+import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
+
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
+public class MiscEventHandler {
+    private static final Set<ResourceLocation> needsTPSSync = new HashSet<>();
+
+    /**
+     * Call this from the tick method of block entities which require server TPS to be synced to client.
+     * Just the Elevator for now.
+     * @param level the level
+     */
+    public static void needsTPSSync(Level level) {
+        if (level != null && (level.getGameTime() & 0x3f) == 0) {
+            needsTPSSync.add(level.dimension().location());
+        }
+    }
+
+    @SubscribeEvent
+    public void onWorldTickEnd(LevelTickEvent.Post event) {
+        if (event.getLevel() instanceof ServerLevel serverLevel) {
+            DroneClaimManager.getInstance(serverLevel).tick();
+
+            if ((serverLevel.getGameTime() & 0x7f) == 0 && needsTPSSync.contains(serverLevel.dimension().location())) {
+                double tickTime = event.getLevel().getServer().getAverageTickTimeNanos() / 1_000_000D;
+                NetworkHandler.sendToDimension(new PacketServerTickTime(tickTime), serverLevel);
+                needsTPSSync.remove(serverLevel.dimension().location());
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void handleFuelEvent(FurnaceFuelBurnTimeEvent event) {
+        // allow burning of PNC fuel fluids in any container item, iff item.hasContainer() is true
+        ItemStack containerStack = event.getItemStack();
+        if (containerStack.hasCraftingRemainingItem()) {
+            FluidUtil.getFluidContained(containerStack).ifPresent(fluidStack -> {
+                PneumaticCraftUtils.getRegistryName(fluidStack.getFluid()).ifPresent(regName -> {
+                    if (Names.MOD_ID.equals(regName.getNamespace())) {
+                        int value = PneumaticRegistry.getInstance().getFuelRegistry().getFuelValue(null, fluidStack.getFluid());
+                        if (value > 0) {
+                            int amountTaken = amountTaken(fluidStack.getAmount(), containerStack);
+                            double mult = Math.min(amountTaken, fluidStack.getAmount()) / 1000d;
+                            event.setBurnTime((int) (value * mult * ConfigHelper.common().general.fuelBucketEfficiency.get()));
+                        } else {
+                            event.setBurnTime(-1);
+                        }
+                    }
+                });
+            });
+        }
+    }
+
+    private int amountTaken(int origAmount, ItemStack stack) {
+        IFluidHandlerItem handler = stack.getCraftingRemainingItem().getCapability(Capabilities.FluidHandler.ITEM);
+        if (handler != null) {
+            int newAmount = handler.drain(Integer.MAX_VALUE, IFluidHandler.FluidAction.SIMULATE).getAmount();
+            return origAmount - newAmount;
+        }
+        return origAmount;
+    }
+
+    @SubscribeEvent
+    public void explosionCraftingEvent(ExplosionEvent.Detonate event) {
+        if (event.getLevel().isClientSide) {
+            return;
+        }
+
+        Iterator<Entity> iterator = event.getAffectedEntities().iterator();
+        while (iterator.hasNext()) {
+            Entity entity = iterator.next();
+            if (entity instanceof ItemEntity itemEntity && entity.isAlive()) {
+                ItemStack stack = itemEntity.getItem();
+                if (!stack.isEmpty()) {
+                    boolean firstItem = true;
+                    for (ItemStack result : ExplosionCraftingRecipeImpl.tryToCraft(event.getLevel(), stack)) {
+                        if (firstItem) {
+                            // first item in result: just replace the existing entity
+                            itemEntity.setItem(result);
+                            iterator.remove();
+                            firstItem = false;
+                        } else {
+                            // subsequent items: add a new item entity
+                            PneumaticCraftUtils.dropItemOnGround(result, event.getLevel(), entity.blockPosition());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onEntityConstruction(EntityEvent.EntityConstructing event) {
+        if (event.getEntity() instanceof IDroneBase d) {
+            NeoForge.EVENT_BUS.post(new DroneConstructingEvent(d));
+        }
+    }
+
+    @SubscribeEvent
+    public void onFillBucket(PlayerInteractEvent.RightClickItem event) {
+        if (event.getItemStack().getItem() instanceof BucketItem bucket
+                && event.getLevel().getBlockState(event.getPos()).getBlock() instanceof LiquidBlock liquidBlock
+                && liquidBlock.fluid.is(PneumaticCraftTags.Fluids.CRUDE_OIL)
+                && bucket.content == Fluids.EMPTY
+                && event.getEntity() instanceof ServerPlayer sp)
+        {
+            ModCriterionTriggers.OIL_BUCKET.get().trigger(sp);
+        }
+    }
+
+    @SubscribeEvent
+    public void onModdedWrenchBlock(PlayerInteractEvent.RightClickBlock event) {
+        BlockState state = event.getLevel().getBlockState(event.getPos());
+        if (!event.isCanceled() && state.getBlock() instanceof IPneumaticWrenchable) {
+            if (event.getHand() == InteractionHand.OFF_HAND && ModdedWrenchUtils.getInstance().isModdedWrench(event.getEntity().getItemInHand(InteractionHand.MAIN_HAND))) {
+                event.setCanceled(true);
+            } else if (ModdedWrenchUtils.getInstance().isModdedWrench(event.getEntity().getItemInHand(event.getHand()))) {
+                if (event.getLevel().isClientSide) {
+                    NetworkHandler.sendToServer(PacketModWrenchBlock.forSide(event.getPos(), event.getHand(), event.getFace()));
+                }
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onModdedWrenchEntity(PlayerInteractEvent.EntityInteract event) {
+        if (!event.isCanceled() && event.getTarget() instanceof IPneumaticWrenchable) {
+            if (event.getHand() == InteractionHand.OFF_HAND && ModdedWrenchUtils.getInstance().isModdedWrench(event.getEntity().getItemInHand(InteractionHand.MAIN_HAND))) {
+                event.setCanceled(true);
+            } else if (ModdedWrenchUtils.getInstance().isModdedWrench(event.getEntity().getItemInHand(event.getHand()))) {
+                if (event.getLevel().isClientSide) {
+                    NetworkHandler.sendToServer(PacketModWrenchBlock.forEntity(event.getPos(), event.getHand(), event.getTarget().getId()));
+                }
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void quetziMoo(ServerChatEvent event) {
+        String username = event.getUsername();
+        ServerPlayer player = event.getPlayer();
+        if (username.equals("Quetzz") && event.getMessage().getString().equals("m00")) {
+            for (int i = 0; i < 4; i++) {
+                NetworkHandler.sendToPlayer(new PacketPlaySound(SoundEvents.COW_AMBIENT, SoundSource.NEUTRAL,
+                        (float) player.getX(), (float) player.getY(), (float) player.getZ(), 1, 1, true), player);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onInventoryTracking(InventoryTrackEvent event) {
+        if (event.getTileEntity() instanceof ProgrammerBlockEntity) event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public void onEquipmentChanged(LivingEquipmentChangeEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            if (event.getSlot().getType() == EquipmentSlot.Type.HAND && event.getTo().getItem() instanceof IPositionProvider) {
+                // sync any variable values in this position provider item to the client for rendering purposes
+                ((IPositionProvider) event.getTo().getItem()).syncVariables(player, event.getTo());
+            } else if (event.getSlot() == EquipmentSlot.MAINHAND) {
+                if (event.getTo().getItem() instanceof MinigunItem) {
+                    ((MinigunItem) event.getTo().getItem()).onEquipmentChange(player, event.getTo(), true);
+                } else if (event.getFrom().getItem() instanceof MinigunItem) {
+                    ((MinigunItem) event.getFrom().getItem()).onEquipmentChange(player, event.getFrom(), false);
+                }
+            } else if (event.getSlot().getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
+                // trigger the "compressed iron man" advancement if wearing a full suit
+                for (ItemStack stack : player.getArmorSlots()) {
+                    if (!(stack.getItem() instanceof PneumaticArmorItem)) {
+                        return;
+                    }
+                }
+                ModCriterionTriggers.PNEUMATIC_ARMOR.get().trigger(player);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void entityMounting(EntityMountEvent event) {
+        if (event.isMounting()) {
+            // prevent minecarts/boats which have just been dropped by drones from immediately picking up the drone
+            if (event.getEntityMounting() instanceof DroneEntity
+                    && (event.getEntityBeingMounted() instanceof AbstractMinecart || event.getEntityBeingMounted() instanceof Boat)) {
+                if (!event.getEntityBeingMounted().onGround()) {
+                    event.setCanceled(true);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onTagsUpdated(TagsUpdatedEvent event) {
+        CommonArmorRegistry.getInstance().resolveBlockTags();
+
+        PneumaticRegistry.getInstance().getMiscHelpers().registerXPFluid(FluidIngredient.tag(PneumaticCraftTags.Fluids.EXPERIENCE), 20);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onMobSpawn(FinalizeSpawnEvent event) {
+        if (event.getSpawner() != null) {
+            // tag any mob spawned by a vanilla Spawner (rather than naturally) as a "defender"
+            // such defenders are immune to being absorbed by a Vacuum Trap
+            // note: mobs spawned by a Pressurized Spawner are not considered to be defenders
+            if (event.getSpawner().map(be -> be instanceof SpawnerBlockEntity, e -> e instanceof MinecartSpawner)) {
+                event.getEntity().addTag(VacuumTrapBlockEntity.DEFENDER_TAG);
+            }
+
+            // any mob spawned due to a spawner with Agitator attached should be persistent
+            // i.e. not despawn if no players nearby
+            if (event.getLevel() instanceof Level level) {
+                event.getSpawner().ifLeft(blockEntity -> {
+                    ISemiBlock semi = SemiblockTracker.getInstance().getSemiblock(level, blockEntity.getBlockPos());
+                    if (semi instanceof SpawnerAgitatorEntity) {
+                        event.getEntity().setPersistenceRequired();
+                    }
+                });
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onIncomingDamage(LivingIncomingDamageEvent event) {
+        if (PneumaticRegistry.getInstance().getDamageSources().isMinigunDamage(event.getSource())) {
+            event.setInvulnerabilityTicks(ConfigHelper.common().minigun.invulnerabilityTicks.get());
+        }
+    }
+}

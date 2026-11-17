@@ -1,0 +1,396 @@
+{
+  "recorded_at": "2026-10-30T17:58:31.746253+00:00",
+  "candidate_id": "d574ca8b005a65629895",
+  "decision": "accepted",
+  "credit": 1,
+  "family": "pnc-crossing-junction-two-reservoir-custody-with-axis-derived-isolated-routing",
+  "repo": "TeamPneumatic/pnc-repressurized",
+  "commit": "93d04cc52714742c4ef747eed82528d0fdbde581",
+  "source_metadata": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/source.json",
+  "source_metadata_sha256": "7d3a4f365fe9585ea48693217f5e1eea94ce9250b1c86aebfefa2f2b92cd2ba0",
+  "tree": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/tree.json",
+  "tree_sha256": "c39267a33ebafe02cefe8b1e87df0c71e6e54884904d0da0ce6800d8ba69fa61",
+  "sources": [
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/block/entity/tube/TubeJunctionBlockEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/entity/tube/TubeJunctionBlockEntity.java",
+      "sha256": "5e46f3fdf927e67a37ad70441d4c750fcde92bb15a793979beab6972521c858c",
+      "git_blob_sha1": "75d882e07a86f17cea53769a2bcf29717c7ce9f5",
+      "actual_read_ranges": [
+        [
+          1,
+          61
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/entity/tube/TubeJunctionBlockEntity.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            61
+          ],
+          "text": "package me.desht.pneumaticcraft.common.block.entity.tube;\n\nimport me.desht.pneumaticcraft.api.pressure.PressureTier;\nimport me.desht.pneumaticcraft.api.tileentity.IAirHandlerMachine;\nimport me.desht.pneumaticcraft.common.block.entity.AbstractAirHandlingBlockEntity;\nimport me.desht.pneumaticcraft.common.capabilities.MachineAirHandler;\nimport me.desht.pneumaticcraft.common.registry.ModBlockEntityTypes;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.Direction.Axis;\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.properties.BlockStateProperties;\nimport org.jetbrains.annotations.Nullable;\n\npublic class TubeJunctionBlockEntity extends AbstractAirHandlingBlockEntity {\n    private final IAirHandlerMachine tube2Handler;\n\n    public TubeJunctionBlockEntity(BlockPos pPos, BlockState pState) {\n        super(ModBlockEntityTypes.TUBE_JUNCTION.get(), pPos, pState, PressureTier.TIER_TWO, 4000, 0);\n\n        this.tube2Handler  = new MachineAirHandler(PressureTier.TIER_TWO, 4000);\n    }\n\n    @Override\n    public boolean hasItemCapability() {\n        return false;\n    }\n\n    @Nullable\n    @Override\n    public IAirHandlerMachine getAirHandler(Direction dir) {\n        if (dir != null) {\n            Axis axis = getBlockState().getValue(BlockStateProperties.AXIS);\n            if (axis == Axis.X && dir.getAxis() == Axis.Y\n                    || axis == Axis.Y && dir.getAxis() == Axis.Z\n                    || axis == Axis.Z && dir.getAxis() == Axis.X) {\n                return tube2Handler;\n            }\n        }\n        return super.getAirHandler(dir);\n    }\n\n    @Override\n    public boolean canConnectPneumatic(Direction side) {\n        return side.getAxis() != getBlockState().getValue(BlockStateProperties.AXIS);\n    }\n\n    @Override\n    public void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {\n        super.saveAdditional(tag, provider);\n        tag.put(\"tube2\", tube2Handler.serializeNBT());\n    }\n\n    @Override\n    public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {\n        super.loadAdditional(tag, provider);\n        tube2Handler.deserializeNBT(tag.getCompound(\"tube2\"));\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/block/TubeJunctionBlock.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/TubeJunctionBlock.java",
+      "sha256": "05389df0aebb74b9256df87e26a6b2cf79ffba266b329a7a7b7fb750b5d0d4dd",
+      "git_blob_sha1": "b7e3a739a1549613b0a577a84f65784b3d1dc8d0",
+      "actual_read_ranges": [
+        [
+          1,
+          93
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/TubeJunctionBlock.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            93
+          ],
+          "text": "package me.desht.pneumaticcraft.common.block;\n\nimport me.desht.pneumaticcraft.common.block.entity.AbstractAirHandlingBlockEntity;\nimport me.desht.pneumaticcraft.common.block.entity.tube.TubeJunctionBlockEntity;\nimport me.desht.pneumaticcraft.common.registry.ModBlockEntityTypes;\nimport me.desht.pneumaticcraft.common.util.VoxelShapeUtils;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.Direction.Axis;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.context.BlockPlaceContext;\nimport net.minecraft.world.level.BlockGetter;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.StateDefinition;\nimport net.minecraft.world.level.block.state.properties.BlockStateProperties;\nimport net.minecraft.world.phys.shapes.BooleanOp;\nimport net.minecraft.world.phys.shapes.CollisionContext;\nimport net.minecraft.world.phys.shapes.Shapes;\nimport net.minecraft.world.phys.shapes.VoxelShape;\nimport org.jetbrains.annotations.Nullable;\n\nimport java.util.EnumMap;\nimport java.util.Map;\nimport java.util.stream.Stream;\n\npublic class TubeJunctionBlock extends AbstractPneumaticCraftBlock implements PneumaticCraftEntityBlock {\n    private static final VoxelShape SHAPE = Stream.of(\n            Block.box(4, 4, 4, 12, 12, 12),\n            Block.box(0, 6, 6, 16, 10, 10),\n            Block.box(6, 6, 0, 10, 10, 16),\n            Block.box(3, 5, 5, 13, 11, 11),\n            Block.box(5, 5, 3, 11, 11, 13)\n    ).reduce((v1, v2) -> Shapes.join(v1, v2, BooleanOp.OR)).get();\n    private static final Map<Axis, VoxelShape> SHAPES = new EnumMap<>(Axis.class);\n    static {\n        SHAPES.put(Axis.Y, SHAPE);\n        SHAPES.put(Axis.Z, VoxelShapeUtils.rotateX(SHAPE, 90));\n        SHAPES.put(Axis.X, VoxelShapeUtils.rotateY(SHAPES.get(Axis.Z), 90));\n    }\n\n    public TubeJunctionBlock(Properties props) {\n        super(props);\n\n        registerDefaultState(defaultBlockState().setValue(BlockStateProperties.AXIS, Axis.Y));\n    }\n\n    @Override\n    protected boolean isWaterloggable() {\n        return true;\n    }\n\n    @Override\n    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {\n        super.createBlockStateDefinition(builder);\n\n        builder.add(BlockStateProperties.AXIS);\n    }\n\n    @Override\n    public VoxelShape getShape(BlockState pState, BlockGetter pLevel, BlockPos pPos, CollisionContext pContext) {\n        return SHAPES.get(pState.getValue(BlockStateProperties.AXIS));\n    }\n\n    @Override\n    public boolean onWrenched(Level world, Player player, BlockPos pos, Direction side, InteractionHand hand) {\n        if (player != null && player.isShiftKeyDown()) {\n            return super.onWrenched(world, player, pos, side, hand);\n        } else {\n            BlockState state = world.getBlockState(pos);\n            Axis newAxis = Axis.values()[(state.getValue(BlockStateProperties.AXIS).ordinal() + 1) % Axis.values().length];\n            world.setBlockAndUpdate(pos, state.setValue(BlockStateProperties.AXIS, newAxis));\n            world.getBlockEntity(pos, ModBlockEntityTypes.TUBE_JUNCTION.get()).ifPresent(AbstractAirHandlingBlockEntity::onBlockRotated);\n            return true;\n        }\n    }\n\n    @Nullable\n    @Override\n    public BlockState getStateForPlacement(BlockPlaceContext ctx) {\n        BlockState state = super.getStateForPlacement(ctx);\n        return state == null ? null : state.setValue(BlockStateProperties.AXIS, ctx.getClickedFace().getAxis());\n    }\n\n    @Nullable\n    @Override\n    public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {\n        return new TubeJunctionBlockEntity(pPos, pState);\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/block/entity/AbstractAirHandlingBlockEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/entity/AbstractAirHandlingBlockEntity.java",
+      "sha256": "a3b98b1b6ff9cdabc77144ef1cb6cc332066d0e0fd355f49514a7f5a3091c0bd",
+      "git_blob_sha1": "346dafb16988c0bb6e4ebb8d7e84eb2edddb7c9e",
+      "actual_read_ranges": [
+        [
+          1,
+          180
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/entity/AbstractAirHandlingBlockEntity.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            180
+          ],
+          "text": "/*\n * This file is part of pnc-repressurized.\n *\n *     pnc-repressurized is free software: you can redistribute it and/or modify\n *     it under the terms of the GNU General Public License as published by\n *     the Free Software Foundation, either version 3 of the License, or\n *     (at your option) any later version.\n *\n *     pnc-repressurized is distributed in the hope that it will be useful,\n *     but WITHOUT ANY WARRANTY; without even the implied warranty of\n *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *     GNU General Public License for more details.\n *\n *     You should have received a copy of the GNU General Public License\n *     along with pnc-repressurized.  If not, see <https://www.gnu.org/licenses/>.\n */\n\npackage me.desht.pneumaticcraft.common.block.entity;\n\nimport me.desht.pneumaticcraft.api.PNCCapabilities;\nimport me.desht.pneumaticcraft.api.PneumaticRegistry;\nimport me.desht.pneumaticcraft.api.lib.NBTKeys;\nimport me.desht.pneumaticcraft.api.pressure.PressureTier;\nimport me.desht.pneumaticcraft.api.tileentity.IAirHandlerMachine;\nimport me.desht.pneumaticcraft.common.network.GuiSynced;\nimport me.desht.pneumaticcraft.common.thirdparty.computer_common.LuaConstant;\nimport me.desht.pneumaticcraft.common.thirdparty.computer_common.LuaMethod;\nimport me.desht.pneumaticcraft.common.thirdparty.computer_common.LuaMethodRegistry;\nimport me.desht.pneumaticcraft.common.upgrades.ModUpgrades;\nimport me.desht.pneumaticcraft.common.util.DirectionUtil;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.level.block.entity.BlockEntityType;\nimport net.minecraft.world.level.block.state.BlockState;\n\nimport javax.annotation.Nullable;\nimport java.util.EnumSet;\nimport java.util.IdentityHashMap;\nimport java.util.Map;\n\n/**\n * Base class for all PNC tile entities which handle air. Provides one default air handler; machines with multiple\n * air handlers can add extra handlers in their subclass.\n */\npublic abstract class AbstractAirHandlingBlockEntity extends AbstractTickingBlockEntity {\n    @GuiSynced\n    protected final IAirHandlerMachine airHandler;\n    private final Map<IAirHandlerMachine, EnumSet<Direction>> airHandlerMap = new IdentityHashMap<>();\n\n    public AbstractAirHandlingBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state, PressureTier pressureTier, int volume, int upgradeSlots) {\n        super(type, pos, state, upgradeSlots);\n\n        this.airHandler = PneumaticRegistry.getInstance().getAirHandlerMachineFactory().createAirHandler(pressureTier, volume);\n    }\n\n    /**\n     * Get the air handler on the given side of the block. Override in subclasses for blocks with more than one air\n     * handler.\n     *\n     * @param side the side to query\n     * @return the air handler on the given side\n     */\n    @Nullable\n    public IAirHandlerMachine getAirHandler(Direction side) {\n        return side == null || canConnectPneumatic(side) ? airHandler : null;\n    }\n\n    /**\n     * Checks if the given side of this BE can be pneumatically connected to.\n     *\n     * @param side the side to check\n     * @return true if connectable, false otherwise\n     */\n    public boolean canConnectPneumatic(Direction side) {\n        return true;\n    }\n\n    @Override\n    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider provider) {\n        super.handleUpdateTag(tag, provider);\n\n        initializeHullAirHandlers();\n    }\n\n    @Override\n    public void onLoad() {\n        // call this before super so handlers are init'd and things like volume/security upgrades apply properly\n        initializeHullAirHandlers();\n\n        super.onLoad();\n    }\n\n    @Override\n    public void tickCommonPre() {\n        super.tickCommonPre();\n\n        // note: needs to tick client-side too (for handling leak particles & sounds)\n        airHandlerMap.keySet().forEach(handler -> handler.tick(this));\n    }\n\n    @Override\n    public void onUpgradesChanged() {\n        super.onUpgradesChanged();\n\n        airHandlerMap.keySet().forEach(h -> {\n            h.setVolumeUpgrades(getUpgrades(ModUpgrades.VOLUME.get()));\n            handleSecurityUpgrade(h);\n        });\n    }\n\n    private void handleSecurityUpgrade(IAirHandlerMachine handler) {\n        if (!level.isClientSide) {\n            if (getUpgrades(ModUpgrades.SECURITY.get()) > 0) {\n                handler.enableSafetyVenting(p -> p > getDangerPressure(), Direction.UP);\n            } else {\n                handler.disableSafetyVenting();\n            }\n        }\n    }\n\n    @Override\n    public void onBlockRotated() {\n        super.onBlockRotated();\n\n        initializeHullAirHandlers();\n\n        airHandlerMap.keySet().forEach(h -> h.setSideLeaking(null));\n\n        level.updateNeighborsAt(getBlockPos(), getBlockState().getBlock());\n    }\n\n    @Override\n    public void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {\n        super.saveAdditional(tag, provider);\n        tag.put(NBTKeys.NBT_AIR_HANDLER, airHandler.serializeNBT());\n    }\n\n    @Override\n    public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {\n        super.loadAdditional(tag, provider);\n\n        airHandler.deserializeNBT(tag.getCompound(NBTKeys.NBT_AIR_HANDLER));\n    }\n\n    public void initializeHullAirHandlers() {\n        invalidateCapabilities();\n\n        airHandlerMap.clear();\n        for (Direction side : DirectionUtil.VALUES) {\n            IAirHandlerMachine h = getAirHandler(side);\n            if (h != null) {\n                airHandlerMap.computeIfAbsent(h, k -> EnumSet.noneOf(Direction.class)).add(side);\n            }\n        }\n\n        airHandlerMap.forEach(IAirHandlerMachine::setConnectableFaces);\n    }\n\n    // called clientside when a PacketUpdatePressureBlock is received\n    // this ensures the BE can tick this air handler for air leak sound and particle purposes\n    public void initializeHullAirHandlerClient(Direction dir, IAirHandlerMachine handler) {\n        airHandlerMap.clear();\n        EnumSet<Direction> l = EnumSet.of(dir);\n        airHandlerMap.put(handler, l);\n        handler.setConnectableFaces(l);\n    }\n\n    @Override\n    public void onNeighborBlockUpdate(BlockPos fromPos) {\n        super.onNeighborBlockUpdate(fromPos);\n\n        initializeHullAirHandlers();\n    }\n\n    @Override\n    public void writeToPacket(CompoundTag tag, HolderLookup.Provider provider) {\n        super.writeToPacket(tag, provider);\n        tag.put(NBTKeys.NBT_AIR_HANDLER, airHandler.serializeNBT());"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/block/entity/AbstractTickingBlockEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/entity/AbstractTickingBlockEntity.java",
+      "sha256": "7cfe1a6035c1d213edffba3534101de60dfd9d4852e1fdb50d16b879bc9158b1",
+      "git_blob_sha1": "b0bfd8a75d7d5f87c6e21da6c234ea4d72157cca",
+      "actual_read_ranges": [
+        [
+          1,
+          57
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/entity/AbstractTickingBlockEntity.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            57
+          ],
+          "text": "/*\n * This file is part of pnc-repressurized.\n *\n *     pnc-repressurized is free software: you can redistribute it and/or modify\n *     it under the terms of the GNU General Public License as published by\n *     the Free Software Foundation, either version 3 of the License, or\n *     (at your option) any later version.\n *\n *     pnc-repressurized is distributed in the hope that it will be useful,\n *     but WITHOUT ANY WARRANTY; without even the implied warranty of\n *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *     GNU General Public License for more details.\n *\n *     You should have received a copy of the GNU General Public License\n *     along with pnc-repressurized.  If not, see <https://www.gnu.org/licenses/>.\n */\n\npackage me.desht.pneumaticcraft.common.block.entity;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.level.block.entity.BlockEntityType;\nimport net.minecraft.world.level.block.state.BlockState;\n\n/**\n * Ticking tile entities should either extend this class, or implement ITickable themselves.\n * Note that the superclass, TileEntityBase, contains an implementation of tick() which\n * is used by default.\n */\npublic abstract class AbstractTickingBlockEntity extends AbstractPneumaticCraftBlockEntity {\n    public AbstractTickingBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {\n        this(type, pos, state, 0);\n    }\n\n    public AbstractTickingBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state, int upgradeSize) {\n        super(type, pos, state, upgradeSize);\n    }\n\n    /**\n     * Called on both server and client, before anything else\n     */\n    public void tickCommonPre() {\n        getUpgradeCache().validateCache();\n    }\n\n    public void tickClient() {\n    }\n\n    public void tickServer() {\n        defaultServerTick();\n    }\n\n    /**\n     * Called on both server and client, after anything else\n     */\n    public void tickCommonPost() {\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/block/PneumaticCraftEntityBlock.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/PneumaticCraftEntityBlock.java",
+      "sha256": "9d32fee48f8f11b40cff28442a44e8800da8eb2f098dd335cabb90b351462141",
+      "git_blob_sha1": "787efc07ff222fbca1bd678a6d81c94fe9e6394e",
+      "actual_read_ranges": [
+        [
+          1,
+          29
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/PneumaticCraftEntityBlock.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            29
+          ],
+          "text": "package me.desht.pneumaticcraft.common.block;\n\nimport me.desht.pneumaticcraft.common.block.entity.AbstractTickingBlockEntity;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.EntityBlock;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.minecraft.world.level.block.entity.BlockEntityTicker;\nimport net.minecraft.world.level.block.entity.BlockEntityType;\nimport net.minecraft.world.level.block.state.BlockState;\n\nimport javax.annotation.Nullable;\n\npublic interface PneumaticCraftEntityBlock extends EntityBlock {\n    @Nullable\n    @Override\n    default <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level pLevel, BlockState pState, BlockEntityType<T> pBlockEntityType) {\n        return (level1, blockPos, blockState, t) -> {\n            if (t instanceof AbstractTickingBlockEntity tickable) {\n                tickable.tickCommonPre();\n                if (level1.isClientSide()) {\n                    tickable.tickClient();\n                } else {\n                    tickable.tickServer();\n                }\n                tickable.tickCommonPost();\n            }\n        };\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/capabilities/MachineAirHandler.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/capabilities/MachineAirHandler.java",
+      "sha256": "13d4f09d7970ac8e3bb8c8a697ebec67eab21ea047a1e1018d3fda6172b8b821",
+      "git_blob_sha1": "13fd765e5fa37ecf7495b4ce3fe306978dee01e4",
+      "actual_read_ranges": [
+        [
+          1,
+          438
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/capabilities/MachineAirHandler.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            438
+          ],
+          "text": "/*\n * This file is part of pnc-repressurized.\n *\n *     pnc-repressurized is free software: you can redistribute it and/or modify\n *     it under the terms of the GNU General Public License as published by\n *     the Free Software Foundation, either version 3 of the License, or\n *     (at your option) any later version.\n *\n *     pnc-repressurized is distributed in the hope that it will be useful,\n *     but WITHOUT ANY WARRANTY; without even the implied warranty of\n *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *     GNU General Public License for more details.\n *\n *     You should have received a copy of the GNU General Public License\n *     along with pnc-repressurized.  If not, see <https://www.gnu.org/licenses/>.\n */\n\npackage me.desht.pneumaticcraft.common.capabilities;\n\nimport it.unimi.dsi.fastutil.floats.FloatPredicate;\nimport me.desht.pneumaticcraft.api.PNCCapabilities;\nimport me.desht.pneumaticcraft.api.pressure.PressureHelper;\nimport me.desht.pneumaticcraft.api.pressure.PressureTier;\nimport me.desht.pneumaticcraft.api.tileentity.IAirHandlerMachine;\nimport me.desht.pneumaticcraft.api.tileentity.IAirListener;\nimport me.desht.pneumaticcraft.api.tileentity.IManoMeasurable;\nimport me.desht.pneumaticcraft.client.sound.MovingSounds;\nimport me.desht.pneumaticcraft.common.block.entity.AbstractAirHandlingBlockEntity;\nimport me.desht.pneumaticcraft.common.network.NetworkHandler;\nimport me.desht.pneumaticcraft.common.network.PacketUpdatePressureBlock;\nimport me.desht.pneumaticcraft.common.particle.AirParticleData;\nimport me.desht.pneumaticcraft.common.registry.ModSounds;\nimport me.desht.pneumaticcraft.common.util.DirectionUtil;\nimport me.desht.pneumaticcraft.common.util.PneumaticCraftUtils;\nimport me.desht.pneumaticcraft.lib.PneumaticValues;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.neoforged.neoforge.capabilities.BlockCapabilityCache;\n\nimport javax.annotation.Nullable;\nimport java.util.*;\n\n/**\n * A ticking air handler owned by a block entity, which disperses air to those neighbouring air handlers\n * which have lower pressure than it does.\n */\npublic class MachineAirHandler extends BasicAirHandler implements IAirHandlerMachine, IManoMeasurable {\n    private final PressureTier tier;\n    private int volumeUpgrades = 0;\n    private final BitSet connectableFaces = new BitSet(6);\n    private Direction leakDir = null;\n    private Direction prevLeakDir = null;\n    private int prevAir;\n\n    private final Map<Direction, BlockCapabilityCache<IAirHandlerMachine,Direction>> neighbourAirHandlers = new EnumMap<>(Direction.class);\n\n    // note: leaks due to security upgrade are tracked separately from leaks due to disconnection\n    private boolean safetyLeaking;   // is the handler venting right now?\n    private Direction safetyLeakDir; // direction handler would vent in (non-null does not mean actively venting)\n    private FloatPredicate safetyPredicate;  // for determining when safety venting is needed\n    private int pendingAir;\n\n    public MachineAirHandler(PressureTier tier, int volume) {\n        super(volume);\n\n        this.tier = tier;\n    }\n\n    @Override\n    public int getVolume() {\n        return PressureHelper.getUpgradedVolume(getBaseVolume(), volumeUpgrades);\n    }\n\n    @Override\n    public float getDangerPressure() {\n        return tier.getDangerPressure();\n    }\n\n    @Override\n    public float getCriticalPressure() {\n        return tier.getCriticalPressure();\n    }\n\n    @Override\n    public void setPressure(float pressure) {\n        addAir(((int) (pressure * getVolume())) - getAir());\n    }\n\n    @Override\n    public void setVolumeUpgrades(int newVolumeUpgrades) {\n        int newVolume = PressureHelper.getUpgradedVolume(getBaseVolume(), newVolumeUpgrades);\n        if (newVolume < getVolume()) {\n            // a decrease in volume causes a proportionate decrease in air amount to keep the pressure constant\n            int newAir = (int) (getAir() * (float) newVolume / getVolume());\n            addAir(newAir - getAir());\n        }\n        this.volumeUpgrades = newVolumeUpgrades;\n    }\n\n    @Override\n    public void enableSafetyVenting(FloatPredicate pressureCheck, Direction dir) {\n        this.safetyPredicate = pressureCheck;\n        this.safetyLeakDir = dir;\n    }\n\n    @Override\n    public void disableSafetyVenting() {\n        this.safetyPredicate = null;\n        this.safetyLeakDir = null;\n    }\n\n    @Override\n    public void setConnectableFaces(Collection<Direction> sides) {\n        connectableFaces.clear();\n        sides.forEach(side -> connectableFaces.set(side.get3DDataValue()));\n    }\n\n    @Override\n    public void tick(BlockEntity ownerTE) {\n        Level world = Objects.requireNonNull(ownerTE.getLevel());\n        Direction actualLeakDir = leakDir;\n\n        if (!world.isClientSide) {\n            if (pendingAir != 0) {\n                // add any saved air if this is being restored from item stack component data\n                // need to wait till now to ensure saved volume upgrades are also accounted for\n                addAir(pendingAir);\n                pendingAir = 0;\n                if (getPressure() > getDangerPressure()) {\n                    // shouldn't happen but just in case\n                    setPressure(getDangerPressure() - 0.1f);\n                }\n            }\n\n            // server\n            disperseAir(ownerTE);\n\n            BlockPos pos = ownerTE.getBlockPos();\n            if (safetyLeakDir != null) {\n                float pressure = getPressure();\n                if (!safetyLeaking && safetyPredicate.test(pressure)) {\n                    safetyLeaking = true;\n                } else if (safetyLeaking && !safetyPredicate.test(pressure + 0.2f)) {\n                    safetyLeaking = false;\n                }\n                // also cap pressure at critical level (it's still possible for air to added faster than it can vent)\n                if (pressure >= getCriticalPressure()) {\n                    int wanted = (int)(getCriticalPressure() * getVolume());\n                    addAir(wanted - getAir());\n                }\n            } else if (Objects.requireNonNull(world.getServer()).getTickCount() > 20) {\n                // little kludge: no overpressure checks right after server starts up (just to be safe)\n                doOverpressureChecks(ownerTE, world, pos);\n            }\n\n            actualLeakDir = safetyLeaking ? safetyLeakDir : leakDir;\n            if (prevLeakDir != actualLeakDir || actualLeakDir != null && (world.getGameTime() & 0x1f) == 0) {\n                // if leak status changes, sync pressure & leak dir to the client\n                // OR if already leaking, periodically sync pressure & leak dir to the client\n                NetworkHandler.sendToAllTracking(PacketUpdatePressureBlock.create(ownerTE.getBlockPos(),\n                        anyConnectableFace(), actualLeakDir, getAir()\n                ), ownerTE);\n            }\n\n            prevAir = getAir();\n            prevLeakDir = actualLeakDir;\n        }\n\n        if (actualLeakDir != null && getAir() != 0) {\n            handleAirLeak(ownerTE, actualLeakDir);\n        }\n    }\n\n    private Direction anyConnectableFace() {\n        for (Direction d : DirectionUtil.VALUES) {\n            if (connectableFaces.get(d.get3DDataValue())) return d;\n        }\n        return null;\n    }\n\n    private void doOverpressureChecks(BlockEntity ownerTE, Level world, BlockPos pos) {\n        float p = getPressure();\n        if (getAir() > prevAir && p > getDangerPressure()) {\n            float range = getCriticalPressure() - getDangerPressure();\n            float delta = p - getDangerPressure();\n            float rnd = world.random.nextFloat() * range;\n            if (rnd < delta / 125f || p > getCriticalPressure()) {\n                world.explode(null, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, 1.0F, Level.ExplosionInteraction.BLOCK);\n                world.destroyBlock(pos, false);\n            } else if (rnd < delta / 25f) {\n                world.playSound(null, ownerTE.getBlockPos(), ModSounds.CREAK.get(), SoundSource.BLOCKS, 0.7f, 0.6f + world.random.nextFloat() * 0.8f);\n            }\n        }\n    }\n\n    private void handleAirLeak(BlockEntity ownerTE, Direction actualLeakDir) {\n        Level world = Objects.requireNonNull(ownerTE.getLevel());\n        BlockPos pos = ownerTE.getBlockPos();\n\n        float pressure = getPressure();\n\n        if (!world.isClientSide) {\n            if ((world.getGameTime() & 0xf) == 0 && checkForCrossChunkLeak(ownerTE, pos, actualLeakDir)) {\n                setSideLeaking(null);\n                return;\n            }\n\n            if (getAir() > 0) {\n                int leakedAmount = (int) (pressure * PneumaticValues.AIR_LEAK_FACTOR) + 20;\n                if (leakedAmount > getAir()) leakedAmount = getAir();\n                onAirDispersion(ownerTE, actualLeakDir, -leakedAmount);\n                addAir(-leakedAmount);\n            } else if (getAir() < 0) {\n                int leakedAmount = -(int) (pressure * PneumaticValues.AIR_LEAK_FACTOR) + 20;\n                if (getAir() > leakedAmount) leakedAmount = -getAir();\n                onAirDispersion(ownerTE, actualLeakDir, leakedAmount);\n                addAir(leakedAmount);\n            }\n        } else {\n            double mx = actualLeakDir.getStepX();\n            double my = actualLeakDir.getStepY();\n            double mz = actualLeakDir.getStepZ();\n            double speed = getPressure() * 0.1F;\n            if (getAir() > 0) {\n                if (pressure > 1f || pressure > 0.5f && world.random.nextBoolean() || world.random.nextInt(3) == 0) {\n                    world.addParticle(AirParticleData.DENSE, pos.getX() + 0.5D + mx * 0.6, pos.getY() + 0.5D + my * 0.6, pos.getZ() + 0.5D + mz * 0.6,\n                            mx * speed, my * speed, mz * speed);\n                }\n            } else if (getAir() < 0 && world.random.nextBoolean()) {\n                world.addParticle(AirParticleData.DENSE, pos.getX() + 0.5D + mx, pos.getY() + 0.5D + my, pos.getZ() + 0.5D + mz, mx * speed, my * speed, mz * speed);\n            }\n            MovingSounds.playMovingSound(MovingSounds.Sound.AIR_LEAK, ownerTE.getBlockPos(), anyConnectableFace());\n        }\n    }\n\n    private boolean checkForCrossChunkLeak(BlockEntity ownerTE, BlockPos pos, Direction actualLeakDir) {\n        BlockPos pos2 = pos.relative(actualLeakDir);\n        if (pos.getX() >> 4 != pos2.getX() >> 4 || pos.getZ() >> 4 != pos2.getZ() >> 4) {\n            // cross-chunk leak... let's be sure there really is no air handler there\n            if (ownerTE.getLevel() != null && ownerTE.getLevel().hasChunk(pos2.getX() >> 4, pos2.getZ() >> 4)) {\n                BlockEntity neighbourBE = ownerTE.getLevel().getBlockEntity(pos2);\n                if (neighbourBE != null && ownerTE instanceof AbstractAirHandlingBlockEntity airBE) {\n                    IAirHandlerMachine cap = ownerTE.getLevel().getCapability(PNCCapabilities.AIR_HANDLER_MACHINE, pos2,\n                            neighbourBE.getBlockState(), neighbourBE, actualLeakDir.getOpposite());\n                    if (cap != null) {\n                        // looks like a false leak?\n                        airBE.onNeighborBlockUpdate(pos2);\n                        return true;\n                    }\n                }\n            }\n        }\n        return false;\n    }\n\n    @Override\n    public void setSideLeaking(@Nullable Direction dir) {\n        this.leakDir = dir;\n    }\n\n    @Nullable\n    @Override\n    public Direction getSideLeaking() {\n        return this.leakDir;\n    }\n\n    private Optional<IAirHandlerMachine> getNeighbourAirHandler(BlockEntity ownerTE, Direction dir) {\n        if (!connectableFaces.get(dir.get3DDataValue())) {\n            return Optional.empty();\n        }\n\n        if (ownerTE.getLevel() instanceof ServerLevel level) {\n            if (neighbourAirHandlers.get(dir) == null) {\n                neighbourAirHandlers.put(dir, BlockCapabilityCache.create(PNCCapabilities.AIR_HANDLER_MACHINE,\n                        level,\n                        ownerTE.getBlockPos().relative(dir),\n                        dir.getOpposite()\n                ));\n            }\n            return Optional.ofNullable(neighbourAirHandlers.get(dir).getCapability());\n        } else {\n            // no block cap cache on the client\n            BlockEntity be = ownerTE.getLevel().getBlockEntity(ownerTE.getBlockPos().relative(dir));\n            return be == null ? Optional.empty() : PNCCapabilities.getAirHandler(be, dir.getOpposite());\n        }\n    }\n\n    private void disperseAir(BlockEntity ownerTE) {\n        // 1. build a list of all neighbouring and otherwise connected air handlers with a lower pressure than us\n        List<IAirHandlerMachine.Connection> neighbours = getConnectedAirHandlers(ownerTE, true);\n\n        // 2. get the total volume and air amount in this and all connected handlers\n        int totalVolume = this.getVolume();\n        int totalAir = this.getAir();\n        for (IAirHandlerMachine.Connection neighbour : neighbours) {\n            totalVolume += neighbour.getAirHandler().getVolume();\n            totalAir += neighbour.getAirHandler().getAir();\n        }\n\n        // 3. figure out how much air will be dispersed to each neighbour\n        for (IAirHandlerMachine.Connection neighbour: neighbours) {\n            int totalMachineAir = (int) ((long) totalAir * neighbour.getAirHandler().getVolume() / totalVolume);\n            neighbour.setMaxDispersion(getMaxDispersion(ownerTE, neighbour.getDirection()));\n            neighbour.setAirToDisperse(Math.max(0, totalMachineAir - neighbour.getAirHandler().getAir()));  // no backflow\n        }\n\n        // 4. finally, actually disperse the air\n        for (IAirHandlerMachine.Connection neighbour : neighbours) {\n            int air = Math.min(neighbour.getMaxDispersion(), neighbour.getDispersedAir());\n            if (air != 0) {\n                onAirDispersion(ownerTE, neighbour.getDirection(), air);\n                neighbour.getAirHandler().addAir(air);\n                addAir(-air);\n            }\n        }\n    }\n\n    private List<Connection> getConnectedAirHandlers(BlockEntity ownerTE, boolean onlyLowerPressure) {\n        List<IAirHandlerMachine.Connection> neighbours = new ArrayList<>();\n        for (Direction dir : DirectionUtil.VALUES) {\n            if (connectableFaces.get(dir.get3DDataValue())) {\n                getNeighbourAirHandler(ownerTE, dir).ifPresent(h -> {\n                    if ((!onlyLowerPressure || h.getPressure() < getPressure())) {\n                        neighbours.add(new ConnectedAirHandler(dir, h));\n                    }\n                });\n            }\n        }\n        neighbours.addAll(addExtraConnectedHandlers(ownerTE).stream()\n                .filter(h -> !onlyLowerPressure || h.getPressure() < getPressure())\n                .map(ConnectedAirHandler::new)\n                .toList());\n        return neighbours;\n    }\n\n    @Override\n    public CompoundTag serializeNBT() {\n        CompoundTag nbt = super.serializeNBT();\n        if (leakDir != null) {\n            nbt.putByte(\"Leaking\", (byte) leakDir.get3DDataValue());\n        }\n        return nbt;\n    }\n\n    @Override\n    public void deserializeNBT(CompoundTag nbt) {\n        super.deserializeNBT(nbt);\n        leakDir = nbt.contains(\"Leaking\") ? Direction.from3DDataValue(nbt.getByte(\"Leaking\")) : null;\n    }\n\n    @Override\n    public void addPendingAir(int pendingAir) {\n        this.pendingAir = pendingAir;\n    }\n\n    @Override\n    public List<IAirHandlerMachine.Connection> getConnectedAirHandlers(BlockEntity ownerTE) {\n        return getConnectedAirHandlers(ownerTE, false);\n    }\n\n    private List<IAirHandlerMachine> addExtraConnectedHandlers(BlockEntity ownerTE) {\n        return ownerTE instanceof IAirListener l ?\n                l.addConnectedPneumatics(new ArrayList<>()) :\n                List.of();\n    }\n\n    private void onAirDispersion(BlockEntity ownerTE, Direction dir, int airDispersed) {\n        if (ownerTE instanceof IAirListener l) {\n            l.onAirDispersion(this, dir, airDispersed);\n        }\n    }\n\n    private int getMaxDispersion(BlockEntity ownerTE, Direction dir) {\n        return ownerTE instanceof IAirListener l ?\n                l.getMaxDispersion(this, dir) :\n                Integer.MAX_VALUE;\n    }\n\n    @Override\n    public void printManometerMessage(Player player, List<Component> curInfo) {\n        curInfo.add(Component.translatable(\"pneumaticcraft.gui.tooltip.pressure\",\n                PneumaticCraftUtils.roundNumberTo(getPressure(), 1)));\n    }\n\n    private static class ConnectedAirHandler implements IAirHandlerMachine.Connection {\n        final @Nullable Direction direction;\n        final IAirHandlerMachine airHandler;\n        int maxDispersion;\n        int toDisperse;\n\n        ConnectedAirHandler(@Nullable Direction direction, IAirHandlerMachine airHandler) {\n            this.direction = direction;\n            this.airHandler = airHandler;\n        }\n\n        ConnectedAirHandler(IAirHandlerMachine airHandler) {\n            this(null, airHandler);\n        }\n\n        @Override\n        @Nullable\n        public Direction getDirection() {\n            return direction;\n        }\n\n        @Override\n        public int getMaxDispersion() {\n            return maxDispersion;\n        }\n\n        @Override\n        public void setMaxDispersion(int maxDispersion) {\n            this.maxDispersion = maxDispersion;\n        }\n\n        @Override\n        public int getDispersedAir() {\n            return toDisperse;\n        }\n\n        @Override\n        public void setAirToDisperse(int toDisperse) {\n            this.toDisperse = toDisperse;\n        }\n\n        @Override\n        public IAirHandlerMachine getAirHandler() {\n            return airHandler;\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/capabilities/BasicAirHandler.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/capabilities/BasicAirHandler.java",
+      "sha256": "759617f42fd21c89798235e946d9c65e78f6e3730a1980d49e3faa99759824e7",
+      "git_blob_sha1": "0b30a0a5256c209617e756e18cfecb3649875cdd",
+      "actual_read_ranges": [
+        [
+          1,
+          83
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/capabilities/BasicAirHandler.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            83
+          ],
+          "text": "/*\n * This file is part of pnc-repressurized.\n *\n *     pnc-repressurized is free software: you can redistribute it and/or modify\n *     it under the terms of the GNU General Public License as published by\n *     the Free Software Foundation, either version 3 of the License, or\n *     (at your option) any later version.\n *\n *     pnc-repressurized is distributed in the hope that it will be useful,\n *     but WITHOUT ANY WARRANTY; without even the implied warranty of\n *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *     GNU General Public License for more details.\n *\n *     You should have received a copy of the GNU General Public License\n *     along with pnc-repressurized.  If not, see <https://www.gnu.org/licenses/>.\n */\n\npackage me.desht.pneumaticcraft.common.capabilities;\n\nimport me.desht.pneumaticcraft.api.tileentity.IAirHandler;\nimport me.desht.pneumaticcraft.common.network.GuiSynced;\nimport net.minecraft.nbt.CompoundTag;\n\n/**\n * A reference implementation.  Subclass this or implement your own.\n */\npublic class BasicAirHandler implements IAirHandler {\n    @GuiSynced\n    private int baseVolume;\n    @GuiSynced\n    private int airAmount;\n\n    public BasicAirHandler(int volume) {\n        this.baseVolume = volume;\n        this.airAmount = 0;\n    }\n\n    @Override\n    public float getPressure() {\n        return (float) airAmount / getVolume();\n    }\n\n    @Override\n    public int getAir() {\n        return airAmount;\n    }\n\n    @Override\n    public void addAir(int amount) {\n        // floor at -1 bar, which is a hard vacuum\n        airAmount = Math.max(airAmount + amount, -getVolume());\n    }\n\n    @Override\n    public int getBaseVolume() {\n        return baseVolume;\n    }\n\n    @Override\n    public void setBaseVolume(int baseVolume) {\n        this.baseVolume = baseVolume;\n    }\n\n    @Override\n    public int getVolume() {\n        return baseVolume;\n    }\n\n    @Override\n    public float maxPressure() {\n        return 10f;\n    }\n\n    public CompoundTag serializeNBT() {\n        CompoundTag nbt = new CompoundTag();\n        nbt.putInt(\"Air\", getAir());\n        return nbt;\n    }\n\n    public void deserializeNBT(CompoundTag nbt) {\n        airAmount = nbt.getInt(\"Air\");\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/block/entity/AbstractPneumaticCraftBlockEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/entity/AbstractPneumaticCraftBlockEntity.java",
+      "sha256": "cc535477a2b1df14e9eab2e70bf502fa34cb8cf46ede520f3734435651bc2c08",
+      "git_blob_sha1": "2684410736e40512ad9cbbe8f506712dca58f492",
+      "actual_read_ranges": [
+        [
+          210,
+          255
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/entity/AbstractPneumaticCraftBlockEntity.java",
+      "excerpts": [
+        {
+          "range": [
+            210,
+            255
+          ],
+          "text": "     * A way to safely mark a block for an update from another thread (like the CC Lua thread).\n     */\n    protected void scheduleDescriptionPacket() {\n        forceFullSync = true;\n    }\n\n    /*\n     * Even though this class doesn't implement ITickableTileEntity, we'll keep the base tick logic here; classes\n     * which extend non-tickable subclasses might need it (e.g. PressureChamberInterfaceBlockEntity)\n     */\n    void defaultServerTick() {\n        if (!nonNullLevel().isClientSide) {\n            if (this instanceof IHeatExchangingTE he) {\n                // tick default heat exchanger; if the BE has other exchangers, they are handled in the subclass\n                IHeatExchangerLogic logic = he.getHeatExchanger();\n                if (logic != null) logic.tick();\n            }\n\n            if (this instanceof IAutoFluidEjecting ejector && getUpgrades(ModUpgrades.DISPENSER.get()) > 0) {\n                ejector.autoExportFluid(this);\n            }\n\n            for (int i = 0; i < getDescriptionFields().size(); i++) {\n                if (getDescriptionFields().get(i).update()) {\n                    fieldsToSync.set(i);\n                }\n            }\n\n            if (forceFullSync || !fieldsToSync.isEmpty()) {\n                sendDescriptionPacket();\n            }\n        }\n    }\n\n    @Override\n    public void setChanged() {\n        // overridden to only update neighbours if this BE actually has a useful comparator output\n        if (level != null) {\n            if (level.isLoaded(worldPosition)) {\n                level.getChunkAt(worldPosition).setUnsaved(true);\n            }\n            if (this instanceof IComparatorSupport && !this.getBlockState().isAir()) {\n                this.level.updateNeighbourForOutputSignal(this.worldPosition, this.getBlockState().getBlock());\n            }\n        }\n    }"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/CapabilitySetup.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/CapabilitySetup.java",
+      "sha256": "1536296786d3a600f8cbe9f19575f8603695acdb8bd5736cefbd87d7f8e06e14",
+      "git_blob_sha1": "2e6e6939864ea486f0d4c43dba37f14dc8ffde34",
+      "actual_read_ranges": [
+        [
+          48,
+          86
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/CapabilitySetup.java",
+      "excerpts": [
+        {
+          "range": [
+            48,
+            86
+          ],
+          "text": "                return null;\n            }\n        });\n\n        // block entities\n        ModBlockEntityTypes.streamBlockEntities().forEach(blockEntity -> {\n            if (blockEntity instanceof AbstractPneumaticCraftBlockEntity pncBE) {\n                if (pncBE.hasItemCapability()) {\n                    event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, pncBE.getType(),\n                            (object, dir) -> object instanceof AbstractPneumaticCraftBlockEntity be ? be.getItemHandler(dir) : null);\n                }\n                if (pncBE.hasFluidCapability()) {\n                    event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, pncBE.getType(),\n                            (object, dir) -> object instanceof AbstractPneumaticCraftBlockEntity be ? be.getFluidHandler(dir) : null);\n                }\n                if (pncBE.hasEnergyCapability()) {\n                    event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, pncBE.getType(),\n                            (object, dir) -> object instanceof AbstractPneumaticCraftBlockEntity be ? be.getEnergyHandler(dir) : null);\n                }\n                if (pncBE instanceof IHeatExchangingTE) {\n                    event.registerBlockEntity(PNCCapabilities.HEAT_EXCHANGER_BLOCK, pncBE.getType(),\n                            (object, dir) -> object instanceof IHeatExchangingTE heat ? heat.getHeatExchanger(dir) : null);\n                }\n                if (pncBE instanceof AbstractAirHandlingBlockEntity) {\n                    event.registerBlockEntity(PNCCapabilities.AIR_HANDLER_MACHINE, pncBE.getType(),\n                            (object, dir) -> object instanceof AbstractAirHandlingBlockEntity a ? a.getAirHandler(dir) : null);\n                }\n            }\n        });\n\n        // items\n        ModItems.ITEMS.getEntries().forEach(entry -> {\n            if (entry.get() instanceof IPressurizableItem) {\n                event.registerItem(PNCCapabilities.AIR_HANDLER_ITEM, (stack, ctx) -> new AirHandlerItemStack(stack), entry.get());\n            }\n            if (entry.get() instanceof IFluidCapProvider f) {\n                event.registerItem(Capabilities.FluidHandler.ITEM, (stack, ctx) -> f.provideFluidCapability(stack), entry.get());\n            }\n        });"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/registry/ModBlockEntityTypes.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/registry/ModBlockEntityTypes.java",
+      "sha256": "f506c8bb9815ef57ebded40876bdffa15d08cb9094483abde3c186b5b08aecd8",
+      "git_blob_sha1": "a6494070fbbaea3ebaeed1cbde132adb804ad0a2",
+      "actual_read_ranges": [
+        [
+          190,
+          192
+        ],
+        [
+          202,
+          220
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/registry/ModBlockEntityTypes.java",
+      "excerpts": [
+        {
+          "range": [
+            190,
+            192
+          ],
+          "text": "    public static final Supplier<BlockEntityType<TubeJunctionBlockEntity>> TUBE_JUNCTION\n            = register(\"tube_junction\", TubeJunctionBlockEntity::new, ModBlocks.TUBE_JUNCTION);\n    public static final Supplier<BlockEntityType<SolarCompressorBlockEntity>> SOLAR_COMPRESSOR"
+        },
+        {
+          "range": [
+            202,
+            220
+          ],
+          "text": "\n    /**\n     * A stream of dummy block entities, used during capability registration. Returned block entities should ONLY be\n     * used for instanceof or getType() checks; they are not useful otherwise.\n     * @return a stream of block entities\n     */\n    public static Stream<BlockEntity> streamBlockEntities() {\n        if (DUMMY_BE_LIST.isEmpty()) {\n            DUMMY_BE_LIST.addAll(BLOCK_ENTITY_TYPES.getEntries().stream()\n                    .flatMap(holder -> holder.get().getValidBlocks().stream()\n                            .findFirst()\n                            .stream()\n                            .map(b -> holder.get().create(BlockPos.ZERO, b.defaultBlockState())))\n                    .toList()\n            );\n        }\n        return DUMMY_BE_LIST.stream();\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/network/PacketUpdatePressureBlock.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/network/PacketUpdatePressureBlock.java",
+      "sha256": "655f82536195441c3a9d8b4d61b8aab701856dbd67d4a87e9620bd8c066a9fd6",
+      "git_blob_sha1": "5aaa85b3d209dd2a6ca9222672427e3b316335e2",
+      "actual_read_ranges": [
+        [
+          40,
+          76
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/network/PacketUpdatePressureBlock.java",
+      "excerpts": [
+        {
+          "range": [
+            40,
+            76
+          ],
+          "text": " * - For air grate modules, when the pressure changes enough to modify the range\n * - For machine air handlers which are currently leaking\n */\npublic record PacketUpdatePressureBlock(BlockPos pos, Optional<Direction> handlerDir, Optional<Direction> leakDir, int currentAir) implements CustomPacketPayload {\n    public static final Type<PacketUpdatePressureBlock> TYPE = new Type<>(RL(\"update_pressure_block\"));\n\n    public static final StreamCodec<FriendlyByteBuf, PacketUpdatePressureBlock> STREAM_CODEC = StreamCodec.composite(\n            BlockPos.STREAM_CODEC, PacketUpdatePressureBlock::pos,\n            ByteBufCodecs.optional(Direction.STREAM_CODEC), PacketUpdatePressureBlock::handlerDir,\n            ByteBufCodecs.optional(Direction.STREAM_CODEC), PacketUpdatePressureBlock::leakDir,\n            ByteBufCodecs.INT, PacketUpdatePressureBlock::currentAir,\n            PacketUpdatePressureBlock::new\n    );\n\n    public static PacketUpdatePressureBlock create(BlockPos pos, @Nullable Direction handlerDir, @Nullable Direction leakDir, int currentAir) {\n        return new PacketUpdatePressureBlock(pos, Optional.ofNullable(handlerDir), Optional.ofNullable(leakDir), currentAir);\n    }\n\n    @Override\n    public Type<PacketUpdatePressureBlock> type() {\n        return TYPE;\n    }\n\n    public static void handle(PacketUpdatePressureBlock message, IPayloadContext ctx) {\n        BlockEntity blockEntity = ctx.player().level().getBlockEntity(message.pos());\n        if (blockEntity != null) {\n            Direction handlerDir = message.handlerDir().orElse(null);\n            PNCCapabilities.getAirHandler(blockEntity, handlerDir).ifPresent(handler -> {\n                handler.setSideLeaking(message.leakDir().orElse(null));\n                handler.addAir(message.currentAir() - handler.getAir());\n                if (handlerDir != null && blockEntity instanceof AbstractAirHandlingBlockEntity aah) {\n                    aah.initializeHullAirHandlerClient(handlerDir, handler);\n                }\n            });\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/pressure/AirHandlerMachineFactory.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/pressure/AirHandlerMachineFactory.java",
+      "sha256": "dcd2c5909f404ecc85b0cead950de2c3e8de8d1cfc9f8fb3dc0333daff17a169",
+      "git_blob_sha1": "3d30ec36b6945440654865697d910ce794c5ba9f",
+      "actual_read_ranges": [
+        [
+          20,
+          46
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/pressure/AirHandlerMachineFactory.java",
+      "excerpts": [
+        {
+          "range": [
+            20,
+            46
+          ],
+          "text": "import me.desht.pneumaticcraft.api.pressure.PressureTier;\nimport me.desht.pneumaticcraft.api.tileentity.IAirHandlerMachine;\nimport me.desht.pneumaticcraft.api.tileentity.IAirHandlerMachineFactory;\nimport me.desht.pneumaticcraft.common.capabilities.MachineAirHandler;\n\npublic class AirHandlerMachineFactory implements IAirHandlerMachineFactory {\n    private static final AirHandlerMachineFactory INSTANCE = new AirHandlerMachineFactory();\n\n    public static AirHandlerMachineFactory getInstance() {\n        return INSTANCE;\n    }\n\n    @Override\n    public IAirHandlerMachine createTierOneAirHandler(int volume) {\n        return createAirHandler(PressureTier.TIER_ONE, volume);\n    }\n\n    @Override\n    public IAirHandlerMachine createTierTwoAirHandler(int volume) {\n        return createAirHandler(PressureTier.TIER_TWO, volume);\n    }\n\n    @Override\n    public IAirHandlerMachine createAirHandler(PressureTier tier, int volume) {\n        return new MachineAirHandler(tier, volume);\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/VacuumPumpBlockEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/VacuumPumpBlockEntity.java",
+      "sha256": "62eda8f18241f817435f4b4897c21be97556a3de5f7508b02655b73e7c0f35db",
+      "git_blob_sha1": "908cb515f096dcde73cccffde86f38ee03907522",
+      "actual_read_ranges": [
+        [
+          1,
+          172
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/VacuumPumpBlockEntity.java",
+      "excerpts": [
+        {
+          "range": [
+            1,
+            172
+          ],
+          "text": "/*\n * This file is part of pnc-repressurized.\n *\n *     pnc-repressurized is free software: you can redistribute it and/or modify\n *     it under the terms of the GNU General Public License as published by\n *     the Free Software Foundation, either version 3 of the License, or\n *     (at your option) any later version.\n *\n *     pnc-repressurized is distributed in the hope that it will be useful,\n *     but WITHOUT ANY WARRANTY; without even the implied warranty of\n *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *     GNU General Public License for more details.\n *\n *     You should have received a copy of the GNU General Public License\n *     along with pnc-repressurized.  If not, see <https://www.gnu.org/licenses/>.\n */\n\npackage me.desht.pneumaticcraft.common.block.entity.utility;\n\nimport me.desht.pneumaticcraft.api.pressure.PressureTier;\nimport me.desht.pneumaticcraft.api.tileentity.IAirHandlerMachine;\nimport me.desht.pneumaticcraft.api.tileentity.IManoMeasurable;\nimport me.desht.pneumaticcraft.common.block.entity.AbstractAirHandlingBlockEntity;\nimport me.desht.pneumaticcraft.common.block.entity.IRedstoneControl;\nimport me.desht.pneumaticcraft.common.block.entity.RedstoneController;\nimport me.desht.pneumaticcraft.common.capabilities.MachineAirHandler;\nimport me.desht.pneumaticcraft.common.inventory.VacuumPumpMenu;\nimport me.desht.pneumaticcraft.common.network.DescSynced;\nimport me.desht.pneumaticcraft.common.network.GuiSynced;\nimport me.desht.pneumaticcraft.common.registry.ModBlockEntityTypes;\nimport me.desht.pneumaticcraft.common.util.PneumaticCraftUtils;\nimport me.desht.pneumaticcraft.lib.PneumaticValues;\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.MenuProvider;\nimport net.minecraft.world.entity.player.Inventory;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.inventory.AbstractContainerMenu;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.neoforged.neoforge.items.IItemHandler;\n\nimport javax.annotation.Nullable;\nimport java.util.List;\n\nimport static me.desht.pneumaticcraft.common.util.PneumaticCraftUtils.xlate;\n\npublic class VacuumPumpBlockEntity extends AbstractAirHandlingBlockEntity implements\n        IRedstoneControl<VacuumPumpBlockEntity>, IManoMeasurable, MenuProvider {\n    @GuiSynced\n    private final IAirHandlerMachine vacuumHandler;\n    public int rotation;\n    public int oldRotation;\n    private int turnTimer = -1;\n    @DescSynced\n    public boolean turning = false;\n    private int rotationSpeed;\n    @GuiSynced\n    public final RedstoneController<VacuumPumpBlockEntity> rsController = new RedstoneController<>(this);\n\n    public VacuumPumpBlockEntity(BlockPos pos, BlockState state) {\n        super(ModBlockEntityTypes.VACUUM_PUMP.get(), pos, state, PressureTier.TIER_ONE, PneumaticValues.VOLUME_VACUUM_PUMP, 4);\n\n        this.vacuumHandler  = new MachineAirHandler(PressureTier.TIER_ONE, PneumaticValues.VOLUME_VACUUM_PUMP);\n    }\n\n    @Override\n    public IAirHandlerMachine getAirHandler(Direction side) {\n        if (side == getVacuumSide()) {\n            return vacuumHandler;\n        } else if (side == getInputSide() || side == null) {\n            return super.getAirHandler(side);\n        } else {\n            return null;\n        }\n    }\n\n    @Override\n    public boolean canConnectPneumatic(Direction side) {\n        return side == getInputSide() || side == getVacuumSide();\n    }\n\n    @Override\n    public IItemHandler getItemHandler(@org.jetbrains.annotations.Nullable Direction dir) {\n        return null;\n    }\n\n    public Direction getInputSide() {\n        return getVacuumSide().getOpposite();\n    }\n\n    public Direction getVacuumSide() {\n        return getRotation();\n    }\n\n    @Override\n    public void tickClient() {\n        super.tickClient();\n\n        oldRotation = rotation;\n        if (turning) {\n            rotationSpeed = Math.min(rotationSpeed + 1, 20);\n        } else {\n            rotationSpeed = Math.max(rotationSpeed - 1, 0);\n        }\n        rotation += rotationSpeed;\n    }\n\n    @Override\n    public void tickServer() {\n        super.tickServer();\n\n        if (turnTimer >= 0) turnTimer--;\n\n        if (airHandler.getPressure() > PneumaticValues.MIN_PRESSURE_VACUUM_PUMP && vacuumHandler.getPressure() > -0.99F && rsController.shouldRun()) {\n            if (turnTimer == -1) {\n                turning = true;\n            }\n            airHandler.addAir((int) (-PneumaticValues.USAGE_VACUUM_PUMP * getSpeedUsageMultiplierFromUpgrades()));\n            // negative because it's creating a vacuum.\n            vacuumHandler.addAir((int) (-PneumaticValues.PRODUCTION_VACUUM_PUMP * getSpeedMultiplierFromUpgrades()));\n            turnTimer = 40;\n        }\n        if (turnTimer == 0) {\n            turning = false;\n        }\n        airHandler.setSideLeaking(airHandler.getConnectedAirHandlers(this).isEmpty() ? getInputSide() : null);\n        vacuumHandler.setSideLeaking(vacuumHandler.getConnectedAirHandlers(this).isEmpty() ? getVacuumSide() : null);\n    }\n\n    @Override\n    public void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {\n        super.saveAdditional(tag, provider);\n        tag.put(\"vacuum\", vacuumHandler.serializeNBT());\n        tag.putBoolean(\"turning\", turning);\n    }\n\n    @Override\n    public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {\n        super.loadAdditional(tag, provider);\n\n        vacuumHandler.deserializeNBT(tag.getCompound(\"vacuum\"));\n        turning = tag.getBoolean(\"turning\");\n    }\n\n    @Override\n    public void handleGUIButtonPress(String tag, boolean shiftHeld, ServerPlayer player) {\n        rsController.parseRedstoneMode(tag);\n    }\n\n    @Override\n    public void printManometerMessage(Player player, List<Component> curInfo) {\n        String input = PneumaticCraftUtils.roundNumberTo(airHandler.getPressure(), 1);\n        String vac = PneumaticCraftUtils.roundNumberTo(vacuumHandler.getPressure(), 1);\n        curInfo.add(xlate(\"pneumaticcraft.message.vacuum_pump.manometer\", input, vac).withStyle(ChatFormatting.GREEN));\n    }\n\n    @Override\n    public RedstoneController<VacuumPumpBlockEntity> getRedstoneController() {\n        return rsController;\n    }\n\n    @Nullable\n    @Override\n    public AbstractContainerMenu createMenu(int i, Inventory playerInventory, Player playerEntity) {\n        return new VacuumPumpMenu(i, playerInventory, getBlockPos());\n    }\n}"
+        }
+      ]
+    },
+    {
+      "path": "src/api/java/me/desht/pneumaticcraft/api/PNCCapabilities.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/api/java/me/desht/pneumaticcraft/api/PNCCapabilities.java",
+      "sha256": "10df8273367b6de88dafe129d96c2c346dce1fbdd71a64f299febb7f93a40b3f",
+      "git_blob_sha1": "abdf98eda3480bdb5453ddbbc3f7f6d79d170413",
+      "actual_read_ranges": [
+        [
+          96,
+          117
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/api/java/me/desht/pneumaticcraft/api/PNCCapabilities.java",
+      "excerpts": [
+        {
+          "range": [
+            96,
+            117
+          ],
+          "text": "    /**\n     * Convenience method to get the air handler for a block entity, if it exists\n     * @param blockEntity the block entity to query\n     * @param direction the direction to check\n     * @return the optional air handler\n     */\n    public static Optional<IAirHandlerMachine> getAirHandler(BlockEntity blockEntity, Direction direction) {\n        return blockEntity.getLevel() == null ?\n                Optional.empty() :\n                Optional.ofNullable(blockEntity.getLevel().getCapability(AIR_HANDLER_MACHINE, blockEntity.getBlockPos(), direction));\n    }\n\n    /**\n     * Convenience method to get the air handler for a block entity on the null \"face\", if it exists\n     * @param blockEntity the block entity to query\n     * @return the optional air handler\n     */\n    public static Optional<IAirHandlerMachine> getAirHandler(BlockEntity blockEntity) {\n        return getAirHandler(blockEntity, null);\n    }\n\n    /**"
+        }
+      ]
+    },
+    {
+      "path": "src/api/java/me/desht/pneumaticcraft/api/pressure/PressureHelper.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/api/java/me/desht/pneumaticcraft/api/pressure/PressureHelper.java",
+      "sha256": "45039b5e03c412a6d9c642981108e330331375e886183970dd0de083a2007d3b",
+      "git_blob_sha1": "4b677e8e61a7639981362280e2df808e5318c8e6",
+      "actual_read_ranges": [
+        [
+          25,
+          43
+        ]
+      ],
+      "source_url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/api/java/me/desht/pneumaticcraft/api/pressure/PressureHelper.java",
+      "excerpts": [
+        {
+          "range": [
+            25,
+            43
+          ],
+          "text": "\n    /**\n     * Implement the PneumaticCraft standard for Volume Upgrade calculations. The formula is\n     * {@code}2 * sqrt(upgradeCount){@code}.\n     *\n     * @param baseVolume the base volume, before modification\n     * @param upgradeCount the number of Volume Upgrades\n     * @return the upgraded volume\n     * @throws IllegalArgumentException if the upgrade count is not in the range 0..64 inclusive\n     */\n    public static int getUpgradedVolume(int baseVolume, int upgradeCount) {\n        Validate.isTrue(upgradeCount >= 0 && upgradeCount <= 64, \"upgrade count must be in range 0..64 inclusive!\");\n\n        if (UPGRADE_CACHE[upgradeCount] == 0f) {\n            UPGRADE_CACHE[upgradeCount] = upgradeCount == 0 ? 1f : 2f * Mth.sqrt(upgradeCount);\n        }\n        return (int) (baseVolume * UPGRADE_CACHE[upgradeCount]);\n    }\n}"
+        }
+      ]
+    }
+  ],
+  "whole_chain": [
+    "TubeJunctionBlockEntity constructs parent tier-two4000 handler and separate tube2 tier-two4000 handler. Parent saves/loads normal AirHandler child; junction separately saves/loads tube2 compound using same MachineAirHandler pair.",
+    "BasicAirHandler serializes raw Air only; MachineAirHandler adds optional Leaking direction. Base volume comes from constructed owner, volumeUpgrades from owned upgrades, connection caches and connectableFaces are derived runtime state. Missing tube2 compound reads empty => Air0/leaknull.",
+    "For blockstate axis X, Y-facing pair returns tube2 and Z-facing pair returns parent; axis Y maps Z to tube2 and X parent; axis Z maps X to tube2 and Y parent. Faces on block axis return null; null-face lookup returns parent, not both.",
+    "AbstractAirHandlingBlockEntity.onLoad runs initializeHullAirHandlers before super; identity map groups actual returned handlers with their two directions, invalidates capabilities and sets each handler connectableFaces. Rotation/neighbor updates rebuild; rotation clears both leak directions but retains each handler air.",
+    "TubeJunctionBlock implements PneumaticCraftEntityBlock actualticker: tickCommonPre before client/server methods. Parent tickCommonPre iterates identity-map keys once, so both restored reservoirs tick.",
+    "CapabilitySetup registers AIR_HANDLER_MACHINE for matching registered BE types using actual virtual getAirHandler(dir); TUBE_JUNCTION registry plus dummy-BE stream confirm inclusion. PNCCapabilities level lookup passes requested direction.",
+    "MachineAirHandler.getConnectedAirHandlers enumerates only its rebuilt face bitset and gets neighbour opposite-side capability; disperseAir considers lower-pressure neighbours then calculates volume-weighted target and debits source/credits neighbour. Junction does not implement IAirListener extra connections, so no direct internal bridge of its two reservoirs. External topology may reconnect them.",
+    "Block wrench changes blockstate axis then calls onBlockRotated, rebuilding direction mapping without swapping stored parent/tube2 identities. Placement axis derives clicked face. Native blockstate disk persistence not independently reviewed here."
+  ],
+  "semantic_dedup": [
+    {
+      "candidate_id": "0c5848b5f9586be9345d",
+      "difference": "Read actual full VacuumPump source for comparison: pump has positive input and opposite vacuum output, consumes positive air to lower vacuum toward-0.99; junction is passive orthogonal pair identity rebuilt from AXIS with no direct internal bridge. Shared second-handler Air/Leaking serializer and factory count0; accepted only full geometric reconstruction and concrete network consumer as one mechanism."
+    },
+    {
+      "candidate_id": "970fe549b269d5675c90",
+      "difference": "PressureTube persists polymorphic installed modules and per-side masks. Junction has no module list or registry payload; physical split reservoir identity survives separate connection reconstruction. Common parent/handler routines support0."
+    },
+    {
+      "candidate_id": "4471ce4ac093816e3776",
+      "difference": "Dynamo restores FE balance and pays pressure for FE generation; junction has no FE conversion. Generic pressure parent is not separately counted."
+    }
+  ],
+  "static_limits": [
+    "No claim of two credits for two identical Air compounds or enum/side variants. One whole concrete crossing topology-custody mechanism.",
+    "Missing/wrong-type tube2 resets that reservoir to0 through getCompound/getInt; unknown payload not quarantined. Raw Air allows negative vacuum and has no read bounds. No lossless corrupt-data guarantee.",
+    "onLoad reconstructs topology from current native blockstate; if schema/AXIS changes, identity of external consumers can change. Native blockstate chunk/version migration not traced; no runtime round-trip.",
+    "MachineAirHandler uses int totalAir/volume accumulation and no transactional external debit-credit contract. Integer overflow, partial third-party behavior or cross-crash atomicity not ruled out.",
+    "Air mutations do not directly call owner.setChanged in reviewed handler code; defaultServerTick synchronizes fields. All pressure changes durable-on-disk dirty scheduling not proved.",
+    "Loaded leakDir is not necessarily normalized against new connectableFaces on load; rotation explicitly clears it. New disconnected-face leak discovery for junction is not asserted.",
+    "Client initializeHullAirHandlerClient clears map then adds just packet-selected handler; no claim simultaneous two-channel client visualization was verified.",
+    "Volume upgrade decreases intentionally reduce air proportional to volume; pending item air applies next server tick with pressure cap. Full block-item placement/break serialization is not part of this review.",
+    "Specialist readings/parallel time and source hash checks are not extra semantic reference or coordinator-hour credit."
+  ],
+  "application_to_dynasty": "Later migration design should preserve each owned independent resource pool while rebuilding disposable connection maps from current owner schema; copying one primary handler or generic player Clone compound is insufficient. Do not infer permanent quest rewards from network pressure or derived faces. Relevant1000 gate remains unmet.",
+  "native_acceptance_credit": 0,
+  "production_changes": 0,
+  "game_starts": 0,
+  "todo_deletions": 0
+}

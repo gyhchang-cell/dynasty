@@ -1,0 +1,181 @@
+[
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonDirewolf.java",
+    "method": "SummonDirewolf",
+    "observation": "升级构造器在旧狼位置生成，先取player.lastHurtMob设目标、设aggressive再tame，复制旧狼有益效果。",
+    "application": "转换初始化的首次setTarget也要敌友门，不能等驯服后周期修正。",
+    "limits": "只计有旧体输入的构造器；空构造及属性表不计。",
+    "start": 25
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonSlime.java",
+    "method": "SummonSlime",
+    "observation": "分裂复制体沿用旧owner引用、variant和剩余寿命，若给summoner再设UUID，复制有益效果后重建AI。",
+    "application": "引用owner与UUID可来源不同，复制体应核身份一致而非只看tame标记。",
+    "limits": "与Goety史莱姆分裂不同，此条关注复制构造与动态重建。",
+    "start": 58
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonSlime.java",
+    "method": "addGoalsAfterConstructor",
+    "observation": "先注册原生Slime goal，清全targetSelector；新增跟随、复制主目标、对正在打主人或killCredit属主的Mob选敌。",
+    "application": "替换选择器能删野生主动目标，但不能遗漏原生碰撞伤害入口。",
+    "limits": "OR分支条件按源码保留，不把killCredit误当实时敌意证明。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonSlime.java",
+    "method": "push",
+    "observation": "父push后，活体且owner为空或非同盟/非主UUID，再排相同ownerUUID的ISummon，直接dealDamage。",
+    "application": "owner未解析时是放宽碰撞攻击的分支，离线身份需明确失败策略。",
+    "limits": "非简单isAlliedTo模板；实际碰撞出口含独立失主和同召唤过滤。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonSlime.java",
+    "method": "playerTouch",
+    "observation": "只排玩家UUID等ownerUUID，其他玩家交父playerTouch处理。",
+    "application": "碰撞路径和玩家触碰路径保护不对称，不能用push审查代替所有攻击源。",
+    "limits": "完整方法虽短仍为真实独立原生接触伤害入口，不按玩家数计。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonSlime.java",
+    "method": "hurt",
+    "observation": "来源实体为ISummon且同非空ownerUUID时拒伤，其他走父hurt。",
+    "application": "友伤入口基于攻击来源类型，同主玩家及其他实体不会自动在本函数被排除。",
+    "limits": "这是具体受击保护分支，与target获得许可分开，不宣称全局防友伤。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonSlime.java",
+    "method": "readAdditionalSaveData",
+    "observation": "恢复寿命、ownerUUID与variant，同世界解析Player为owner，最后重新构建AI。",
+    "application": "必须在恢复身份以后注册捕获owner的goal，重载顺序决定实际跟随对象。",
+    "limits": "常规NBT写入和getter不另计，带真实AI重建的恢复路径一处。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonSlime.java",
+    "method": "canUse",
+    "observation": "取主lastHurtMob否则lastHurtBy，先mob.setTarget(target)，随后才返回非主且非同主ISummon的许可。",
+    "application": "布尔返回false不能撤回之前的目标写入；授权应先于有副作用setter。",
+    "limits": "本条完整CopyOwnerTargetGoal.canUse，不与Ars标准Goal转抄合算。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonSlime.java",
+    "method": "start",
+    "observation": "启动时重新从主人取lastHurtMob或By并直接setTarget，未重复canUse末尾同主排除。",
+    "application": "canUse至start之间目标可能改变，开始执行应核同一授权条件。",
+    "limits": "不是通用TargetGoal父类，一次具体再次读取并写目标的游戏路径。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonBee.java",
+    "method": "registerGoals",
+    "observation": "保留BeeAttack、BeeHurtByOther群体报复，新增主跟随/复制目标及正在打主或killCredit属主Mob筛选。",
+    "application": "驯养召唤版继承原生报复应单查，不能只看新增主人目标Goal。",
+    "limits": "寿命、owner getter/NBT等与史莱姆同模板不计。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/AllyVhexEntity.java",
+    "method": "AllyVhexEntity",
+    "observation": "旧Vex升级时finalizeSpawn，再setOwner(player)、沿用boundOrigin并给旧剩余寿命加50，复制有益效果。",
+    "application": "生成初始化后覆写owner和寿命，可避免部分默认AI初始化丢归属；首次目标另查父类。",
+    "limits": "只计升级构造器，基础两构造和武器外观不计。",
+    "start": 32
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonDolphin.java",
+    "method": "mobInteract",
+    "observation": "服务端主手空且非Shift就让交互玩家骑乘，未要求其为owner。",
+    "application": "召唤物控制许可与召唤归属可不同；审查公开骑乘不能凭owner字段推断私有。",
+    "limits": "原请求不新增骑乘机制；此处只作具体开放控制入口反例。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/SummonDolphin.java",
+    "method": "travel",
+    "observation": "有首乘客则用其朝向和横纵输入移动；本地控制在水中加速垂直转向，远端Player分支清速度。",
+    "application": "实际移动权限跟随controllingPassenger而非owner，需连同骑乘入口分析。",
+    "limits": "水中移动整体一处，不拆速度与角度公式凑数。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/HijackTurretGoal.java",
+    "method": "tick",
+    "observation": "对当前target先持续发光，近7格冷却就电击；否则逐炮塔LOS瞄准立即shootSpell，再把30格活WealdWalker全改为该target。",
+    "application": "协同单位目标传播可越过各自原选敌池，最终目标门需覆盖被转交对象。",
+    "limits": "实际已注册Flashjack Goal；FakePlayer用于外部炮塔授权，未拿来当联机QA玩家。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FlashjackEntity.java",
+    "method": "registerGoals",
+    "observation": "只主动找活Enemy且非类型黑名单，回家Goal.start清target；另有Hijack与盘旋，坐下共享优先级2。",
+    "application": "回家清目标可抑制攻击状态，但其他重赋入口仍须共同过滤。",
+    "limits": "匿名start计在完整注册方法内不另计，与原模组通用hurt过滤转发不计。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FlashjackEntity.java",
+    "method": "onFirstConnection",
+    "observation": "收到storedPos只验对应方块是RotatingTurret即追加位置并反馈，随后调用接口默认。",
+    "application": "配对炮塔列表是后续发射授权来源，位置绑定是否限制主人须沿调用链核实。",
+    "limits": "仅函数局部无owner判断，不能未经调用方就声称任意玩家可劫持。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FlashjackEntity.java",
+    "method": "onLastConnection",
+    "observation": "storedEntity类型在黑名单则删否则加；非炮塔storedPos改home，最后调默认。",
+    "application": "敌人类型过滤能动态变更，修改后现有target是否还可攻击要另查。",
+    "limits": "实体类型切换与家点同一完整交互方法，不按类型数量计。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FirenandoEntity.java",
+    "method": "isAlliedTo",
+    "observation": "把所有非Enemy视为同盟，Enemy仍可由父类同盟决定。",
+    "application": "以现有Enemy边界集中表达不主动伤旁观者，与本项目租约政策方向相关。",
+    "limits": "该外部方法不区分租约野生；本项目不可整体照搬扩大作用范围。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FirenandoEntity.java",
+    "method": "die",
+    "observation": "非绕无敌死亡转不活跃；若配置允许且伤害源UUID是主人则掉护符并真死，否则清攻击Mob目标并回0.1血。",
+    "application": "主人处置与敌人击败两种生命周期分开；退出战斗需清对方追杀目标。",
+    "limits": "真实计时复活另由tick完成，这里不冒称已做长时间游戏等待。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FirenandoEntity.java",
+    "method": "performRangedAttack",
+    "observation": "生成归自身SpellContext的Homing弹，basicIgnores外加忽略非Enemy与同主Firenando，设置忽略列表后入世界并冷却20。",
+    "application": "发射目标参数之外的追踪弹候选还要过滤，实际ignore池是第二攻击入口。",
+    "limits": "记录getOwner().equals的空值前提但未构造外部崩溃复现。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FirenandoEntity.java",
+    "method": "registerGoals",
+    "observation": "主动目标仅Enemy Mob；回家仅无目标时；FireCannon由castCooldown<=0且active允许启动。",
+    "application": "选敌类型和技能状态门分别控制，外部setTarget仍需最终Enemy校验。",
+    "limits": "本条具体原生组合，不把Float/Look/Stroll各算独立实现。"
+  },
+  {
+    "repo": "Alexthw46/Ars-Elemental",
+    "file": "/FireCannonGoal.java",
+    "method": "animationChecks",
+    "observation": "看见40tick后标SHOOTING并发动画，开始后累积动画tick，在delay一半performRangedAttack，到delay结束。",
+    "application": "预热开始后若当前目标换人仍传当前target，命中许可不能只核预热第一帧。",
+    "limits": "实际Firenando注册子类，通用CastGoal基础设施和移植弓箭横移算法不计。"
+  }
+]

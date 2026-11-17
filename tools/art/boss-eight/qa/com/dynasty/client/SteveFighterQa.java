@@ -30,7 +30,7 @@ public final class SteveFighterQa {
  static final boolean ON=Boolean.getBoolean("dynasty.steveFighterQa");
  static final Path OUT=Path.of(System.getProperty("dynasty.steveFighterQa.output","build/steve-fighters-qa"));
  static boolean started,done,captured,actionStarted;static int stage=-1,wait;static Mob fixture;static int entityId;static CompletableFuture<Integer> pending;static CompletableFuture<?> action;
- static final String[] IDS=java.util.stream.Stream.concat(Arrays.stream(SteveFighterBindings.IDS),java.util.stream.Stream.of("carp_spirit","tree_spirit","clockwork_rat")).toArray(String[]::new);
+ static final String[] IDS=Boolean.getBoolean("dynasty.priestQa")?new String[]{"fufa_jijiu","pijia_panjiang_huwei"}:Boolean.getBoolean("dynasty.swordGripQa")?new String[]{"imperial_soldier","royal_guard","rebel_soldier","assassin","bandit_thug","zuwu_daoshou","ludun_jiashi","tiesuo_chihou","kuijun_sishi"}:java.util.stream.Stream.concat(Arrays.stream(SteveFighterBindings.IDS),java.util.stream.Stream.of("carp_spirit","tree_spirit","clockwork_rat")).toArray(String[]::new);
  static final String[] VIEWS={"front","45","side","back","action"};static final List<String> LOG=new ArrayList<>();
  @SubscribeEvent public static void tick(TickEvent.ClientTickEvent e){
   if(!ON||done||e.phase!=TickEvent.Phase.END)return;var mc=Minecraft.getInstance();
@@ -59,15 +59,18 @@ public final class SteveFighterQa {
    world.setBlockAndUpdate(new BlockPos(x,-61,z),(Math.floorMod(x+z,6)==0?Blocks.STONE_BRICKS:Blocks.GRASS_BLOCK).defaultBlockState());for(int y=-60;y<-54;y++)world.setBlockAndUpdate(new BlockPos(x,y,z),Blocks.AIR.defaultBlockState());
   }
   String id=IDS[stage/5];var type=net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("dynasty",id));fixture=(Mob)type.create(world);fixture.moveTo(0,-60,0,0,0);fixture.setNoAi(true);fixture.setSilent(true);fixture.setPersistenceRequired();world.addFreshEntity(fixture);
-  for(var p:server.getPlayerList().getPlayers())p.teleportTo(world,-2,-60,0,180,0);
+  if(Boolean.getBoolean("dynasty.swordGripQa")){
+   var reference=EntityType.HUSK.create(world);reference.moveTo(-1.65,-60,0,0,0);reference.setNoAi(true);reference.setSilent(true);reference.setBaby(false);reference.setItemSlot(EquipmentSlot.MAINHAND,new ItemStack(Items.IRON_SWORD));reference.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.FIRE_RESISTANCE,20000,0,false,false));world.addFreshEntity(reference);
+  }
+  for(var p:server.getPlayerList().getPlayers())p.teleportTo(world,Boolean.getBoolean("dynasty.swordGripQa")?-4:-2,-60,0,180,0);
   return fixture.getId();
  }
  static void beginAction(Minecraft mc){
   String id=IDS[stage/5];var world=mc.getSingleplayerServer().overworld();
   if(id.equals("archer")){fixture.startUsingItem(InteractionHand.MAIN_HAND);return;}
   if(fixture instanceof TemplateMob t){
-   var cow=EntityType.COW.create(world);cow.moveTo(0,-60,id.equals("liannu_zhenzu")?8:2,180,0);cow.setNoAi(true);cow.setSilent(true);cow.getAttribute(Attributes.MAX_HEALTH).setBaseValue(10000);cow.setHealth(10000);cow.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INVISIBILITY,2000,0,false,false));world.addFreshEntity(cow);
-   List<com.dynasty.blueprint.combat.SkillDefinition> skills=new ArrayList<>(ArmySkills.ALL);skills.add(TemplateSkills.SWORD);skills.add(TemplateSkills.SHIELD);
+   var cow=EntityType.COW.create(world);cow.moveTo(0,-60,(id.equals("liannu_zhenzu")||id.equals("fufa_jijiu"))?8:2,180,0);cow.setNoAi(true);cow.setSilent(true);cow.getAttribute(Attributes.MAX_HEALTH).setBaseValue(10000);cow.setHealth(10000);cow.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INVISIBILITY,2000,0,false,false));world.addFreshEntity(cow);
+   List<com.dynasty.blueprint.combat.SkillDefinition> skills=new ArrayList<>(ArmySkills.ALL);skills.add(TemplateSkills.SWORD);skills.add(TemplateSkills.SHIELD);skills.add(TemplateSkills.TALISMAN);
    boolean ok=false;for(var skill:skills)if(t.startSkill(skill.id(),cow)){LOG.add(id+" synchronized skill "+skill.id()+" contacts="+skill.impactTicks());ok=true;break;}
    if(!ok)throw new AssertionError("No existing skill started for "+id);
   }else if(fixture instanceof com.dynasty.expansion.SecondaryMob secondary){
@@ -100,5 +103,5 @@ public final class SteveFighterQa {
    LOG.add(label+" renderer="+renderer.getClass().getSimpleName()+" bowUse="+mob.isUsingItem());Files.writeString(OUT.resolve("progress.txt"),String.join("\n",LOG));captured=true;
   }catch(Throwable t){finish(mc,t);}
  }
- static void finish(Minecraft mc,Throwable t){if(done)return;done=true;try{Files.createDirectories(OUT);Files.writeString(OUT.resolve(t==null?"PASS.txt":"FAIL.txt"),String.join("\n",LOG)+"\n"+(t==null?"PASS: 85 native binding/views, 17 synchronized-clock sequences (AI disabled). Natural combat remains separate verification.":t.toString()));}catch(Exception ignored){}if(t!=null)t.printStackTrace();mc.stop();}
+ static void finish(Minecraft mc,Throwable t){if(done)return;done=true;try{Files.createDirectories(OUT);Files.writeString(OUT.resolve(t==null?"PASS.txt":"FAIL.txt"),String.join("\n",LOG)+"\n"+(t==null?"PASS: "+(IDS.length*5)+" native binding/views, "+IDS.length+" synchronized-clock sequences (AI disabled). Natural combat remains separate verification.":t.toString()));}catch(Exception ignored){}if(t!=null)t.printStackTrace();mc.stop();}
 }

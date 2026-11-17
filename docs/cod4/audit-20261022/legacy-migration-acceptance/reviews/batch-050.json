@@ -1,0 +1,61 @@
+[
+  {
+    "candidate_id": "ff3ffd2ecd91e31397b5",
+    "status": "accepted",
+    "family": "relics-unclaimed-relic-experience-orb-to-earned-item-level",
+    "trigger": "RelicExperienceOrb read/write/tick/getUpgradeableRelics",
+    "input": "unclaimed integer relic XP in world entity",
+    "output": "reload exact saved amount; merge orbs to target10 then grant selected equipped non-max relic XP and25percent spread before discard",
+    "preservation": "Read full pair/tick and selection/setter methods. Specific gameplay progression currency owner, not ordinary visual orb: actual recipient relic item LevelingData receives saved amount. One whole reward transfer chain; currency merge helpers0.",
+    "application_limit": "Negative/overflow values not clamped, age/tickCount not saved here so lifetime1000 resets after load. Selection/grant tick has no explicit server guard visible, client authority behavior not tested. No atomic persistence between orb discard and item data save. Relic LevelingData child persistence already owns earned XP elsewhere; not recounted.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "1a270bccc410d629802e",
+    "status": "accepted",
+    "family": "relics-golden-tooth-pending-physical-reward-and-mask-progress",
+    "trigger": "GoldenTooth read/write/tick/getSuitableRelics",
+    "input": "merged pending tooth stack count, later grants physical item and mask stacks/metric/XP",
+    "output": "reload pending quantity; nearby eligible mask consumer receives count and physical golden tooth item",
+    "preservation": "Read full pair and entire tick, selection and setter. Distinct from relicXP orb: physical inventory reward plus duration/looting metric, not changed numeric key alone. Multiple equipped masks loop may award physical count multiple times even after discard; no success receipt.",
+    "application_limit": "player.addItem return unchecked, can lose physical reward with full inventory; loop may duplicate per suitable mask. Raw count/merge int overflow unchecked, expiry age not saved. This is a studied negative transfer boundary, not approved implementation to reuse.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "5590b3957a34b3a7dc46",
+    "status": "accepted",
+    "family": "aether-curios-legacy-player-file-to-accessories-equipment-import",
+    "trigger": "EntityListener onLoadPlayerFile/tryGetCapsTag",
+    "input": "loaded legacy ForgeCaps or neoforge attachments Curios inventory with Aether namespace item IDs",
+    "output": "when not AccessoriesEncoded try equip each registered valid Aether item in compatible current accessory slot",
+    "preservation": "Full event and helper read. Guards absent loaded-player tag/caps, already encoded Curios and unavailable capability/slot. This is real old player inventory migration location; one chain independent of Curios export/native inventory configuration.",
+    "application_limit": "Constructs new ItemStack(item), ignores old Count/tag/components/ForgeCaps/cosmetic slots. Does not mark encoded or clear migrated source here, repeated load can re-equip if space remains. getLoadedPlayerTag source scope for dedicated server/unrelated UUID not verified. Cannot use as lossless/idempotent implementation for our original stack remap.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "bb3c9278d47cd414ab25",
+    "status": "accepted",
+    "family": "occultism-paid-dimensional-miner-tool-and-produced-output-resume",
+    "trigger": "DimensionalMineshaft load/save/loadNetwork/saveNetwork/tick/mine",
+    "input": "physical miner tool9output slots and miningTime/maxTime via NetworkedBlockEntity disk bridge",
+    "output": "restore owned tool/output independently of cached recipe/operation stats; derive current tool settings at next start",
+    "preservation": "Read full pairs, base bridge, complete tick/mine/getCurrentHandler and inventory child. loadNetwork genuinely used for disk. Actual generation damages tool once; near-break saveMiner moves tool copy to output then clears input; one owned extraction machine.",
+    "application_limit": "currentInputType/possibleResults/rolls/outputMultiplier absent from save. Restored positive timer may reset because cached type unset, no seamless resume guarantee. Output insertion remainders ignored by mine here; no full-buffer loss guarantee. Generic NeoForge resource codecs/transactions not counted as game implementations.",
+    "supporting_candidates": [
+      "d9621f26dc46506b39e3"
+    ]
+  },
+  {
+    "candidate_id": "2782a71cc45b391dda86",
+    "status": "accepted",
+    "family": "occultism-soul-battlefield-paid-soul-weapon-fuel-and-output",
+    "trigger": "DimensionalBattlefield load/save/loadNetwork/saveNetwork/tick/defeat",
+    "input": "captured entity soul payload, physical weapon and fuel,25outputs; mob life/hit timer/soulValue",
+    "output": "restore four inventory handlers and progress scalars; derive live entity/loot cache from actual saved soul on first tick",
+    "preservation": "Read all persistence methods, complete tick/defeat/getCurrentHandler and output inventory. Distinct from miner: captured entity identity/weapon durability, paid soul fuel, event drops and XP bottle reward. Preserve actual inventory while transient runtime entity is recreated.",
+    "application_limit": "xpStored remainder not serialized, paid progress can lose sub10XP on reload. Cache rebuild may reset saved mobHealth; fuel debited before failed-loot or invalid entity. Source defeat accesses entity.typeHolder before later null check. Inserter return remainder ignored; no guaranteed full output recovery. All fields in same machine1, no per-field counting.",
+    "supporting_candidates": [
+      "5e5b29836e2586e39fe8"
+    ]
+  }
+]

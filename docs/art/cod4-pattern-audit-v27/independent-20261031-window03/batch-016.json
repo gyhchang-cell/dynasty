@@ -1,0 +1,102 @@
+{
+  "reviewed": 0,
+  "rows": [],
+  "excluded": [
+    {
+      "id": "explicit-source-method",
+      "repo": "iron431/irons-spells-n-spellbooks",
+      "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+      "path": "src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+      "method": "render",
+      "start": 39,
+      "end": 50,
+      "sourceSha256": "214d0eb688e1969d546806c61d5ca27a61de931aac16cfb72f85509047403e82",
+      "semanticHash": "eb981d8e8d174ce42631aac44400dfeaf5ec58fa00a4f6042b7b14649986c5a5",
+      "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+      "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java#L39-L50",
+      "source": "@Override\n        public void render(PoseStack poseStack, MultiBufferSource multiBufferSource, int pPackedLight, T livingEntity, float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float netHeadYaw, float headPitch) {\n            var eye = getEyeType(livingEntity);\n            if (eye != EyeType.None) {\n                VertexConsumer vertexconsumer = multiBufferSource.getBuffer(this.renderType());\n\n                //pMatrixStack.translate(0, -eye.yOffset, -eye.forwardOffset);\n                float scale = getEyeScale(livingEntity);\n                poseStack.scale(scale, scale, scale);\n                this.getParentModel().renderToBuffer(poseStack, vertexconsumer, 15728640, OverlayTexture.NO_OVERLAY, Utils.packRGB(new Vector3f(eye.r, eye.g, eye.b)));\n            }\n        }",
+      "targetScope": "EXCLUDED",
+      "observation": "完整读GlowingEyesLayer全类（Vanilla/Geo两个实现及状态选择器/enum）。Vanilla用同一purple_eyes纹理的eyes层重画整个parent模型，RGB随effect变；Geo只找head骨并updateScale，再renderChildBones。颜色优先ABYSSAL_SHROUD后PLANAR_SIGHT，SHADOWWALKER_HELMET颜色分支注释掉但scale仍优先检测该头盔；所以仅戴该头盔且无两effect时eyeTypeNone，不会启用眼层。Vanilla直接scale共享PoseStack没有本方法push/pop，Geo改head scale也没有局部恢复；调用者是否隔离/后续重置未读，不能称状态安全。Geo取到原buffer参数继续传renderChildBones，未沿该较新API确认EYES缓冲重取契约，不能拿另版本GeckoLib4.8.4当精确消费者。图案是否仅眼区取决于实际PNG与模型UV，本轮未读像素，不能把名字eyes当遮罩局部匹配证明。与batch003 dyeable和batch015全模型emissive换色均属既有UV上选择材质/色/骨的wrapper，无独立装备纹样/UV新机制，不按效果/骨/框架两版拆计。",
+      "reviewMode": "READ_SOURCE_EXCLUDED_NO_COUNT",
+      "countsTowardReferenceGate": false,
+      "callContext": [
+        {
+          "id": "explicit-source-method",
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+          "method": "render",
+          "start": 58,
+          "end": 69,
+          "sourceSha256": "214d0eb688e1969d546806c61d5ca27a61de931aac16cfb72f85509047403e82",
+          "semanticHash": "9c97a60bff48d514cf1e816082f9da17a034e30c5b0298afd5dab1b985e6f466",
+          "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java#L58-L69",
+          "source": "@Override\n        public void render(PoseStack poseStack, AbstractSpellCastingMob animatable, BakedGeoModel bakedModel, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {\n            var eye = getEyeType(animatable);\n            if (eye != EyeType.None) {\n                bakedModel.getBone(\"head\").ifPresent((headBone) -> {\n                    var scale = getEyeScale(animatable);\n                    headBone.updateScale(scale, scale, scale);\n\n                    this.getRenderer().renderChildBones(poseStack, animatable, headBone, EYES, bufferSource, buffer, true, partialTick, packedLight, packedOverlay, Utils.packRGB(new Vector3f(eye.r, eye.g, eye.b)) | 0xFF000000);\n                });\n            }\n        }",
+          "targetScope": "CONTEXT_ONLY_NO_COUNT",
+          "observation": "完整方法上下文，零额外计数。",
+          "reviewMode": "READ_SOURCE_CONTEXT_NO_COUNT"
+        },
+        {
+          "id": "explicit-source-method",
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+          "method": "getEyeType",
+          "start": 72,
+          "end": 81,
+          "sourceSha256": "214d0eb688e1969d546806c61d5ca27a61de931aac16cfb72f85509047403e82",
+          "semanticHash": "1c9176df93b159de6b50f6b1e497628db66397c445d8421652c73831744181a2",
+          "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java#L72-L81",
+          "source": "public static EyeType getEyeType(LivingEntity entity) {\n        //Sorted by most prioritized color\n        if (entity.hasEffect(MobEffectRegistry.ABYSSAL_SHROUD))\n            return EyeType.Abyssal;\n        if (entity.hasEffect(MobEffectRegistry.PLANAR_SIGHT))\n            return EyeType.Planar_Sight;\n//        else if (entity.getItemBySlot(EquipmentSlot.HEAD).is(ItemRegistry.SHADOWWALKER_HELMET.get()))\n//            return EyeType.Ender_Armor;\n        else return EyeType.None;\n    }",
+          "targetScope": "CONTEXT_ONLY_NO_COUNT",
+          "observation": "完整方法上下文，零额外计数。",
+          "reviewMode": "READ_SOURCE_CONTEXT_NO_COUNT"
+        },
+        {
+          "id": "explicit-source-method",
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+          "method": "getEyeScale",
+          "start": 83,
+          "end": 92,
+          "sourceSha256": "214d0eb688e1969d546806c61d5ca27a61de931aac16cfb72f85509047403e82",
+          "semanticHash": "9130342b039ea03615b450433244d49dc0f07d4a972cc84894162d97e72e5821",
+          "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java#L83-L92",
+          "source": "public static float getEyeScale(LivingEntity entity) {\n        //Sorted by most prioritized scale (highest to lowest)\n        if (entity.getItemBySlot(EquipmentSlot.HEAD).is(ItemRegistry.SHADOWWALKER_HELMET.get()))\n            return EyeType.Ender_Armor.scale;\n        if (entity.hasEffect(MobEffectRegistry.ABYSSAL_SHROUD))\n            return EyeType.Abyssal.scale;\n        if (entity.hasEffect(MobEffectRegistry.PLANAR_SIGHT))\n            return EyeType.Planar_Sight.scale;\n        else return EyeType.None.scale;\n    }",
+          "targetScope": "CONTEXT_ONLY_NO_COUNT",
+          "observation": "完整方法上下文，零额外计数。",
+          "reviewMode": "READ_SOURCE_CONTEXT_NO_COUNT"
+        },
+        {
+          "id": "explicit-source-method",
+          "repo": "iron431/irons-spells-n-spellbooks",
+          "revision": "e4056af90302d37eb1739f5ff05020b020e6e252",
+          "path": "src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+          "method": "renderType",
+          "start": 34,
+          "end": 37,
+          "sourceSha256": "214d0eb688e1969d546806c61d5ca27a61de931aac16cfb72f85509047403e82",
+          "semanticHash": "8e95950e10dbeefa526b345e2c481564b768036c26ff03f66734b30ab087c0b1",
+          "local": "build/item-use-references/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/e4056af90302d37eb1739f5ff05020b020e6e252/src/main/java/io/redspace/ironsspellbooks/render/GlowingEyesLayer.java#L34-L37",
+          "source": "@Override\n        public RenderType renderType() {\n            return EYES;\n        }",
+          "targetScope": "CONTEXT_ONLY_NO_COUNT",
+          "observation": "完整方法上下文，零额外计数。",
+          "reviewMode": "READ_SOURCE_CONTEXT_NO_COUNT"
+        }
+      ]
+    }
+  ],
+  "parentReview": {
+    "status": "ONE_FRESH_EFFECT_LAYER_WRAPPER_EXCLUDED",
+    "newImplementations": 0,
+    "newExclusions": 1,
+    "mainLedgerUpdated": false,
+    "productionChanges": false,
+    "networkRequests": 0
+  }
+}

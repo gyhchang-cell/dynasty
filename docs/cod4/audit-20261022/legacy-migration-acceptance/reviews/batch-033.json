@@ -1,0 +1,39 @@
+[
+  {
+    "candidate_id": "501fc299b52d94cd3b2b",
+    "status": "accepted",
+    "family": "tetra-toolbelt-real-inventory-shadow-history-and-overflow-return",
+    "trigger": "QuickslotInventory/ToolbeltInventory.readFromNBT then module capacity and store/emptyOverflow consumers",
+    "input": "real ItemStack list indexed against maxSize; shadow historical ItemStacks and active numSlots",
+    "output": "restores real items even in inactive capacity slots; shadow matches guide return placement but do not create owned items",
+    "preservation": "Complete QuickslotInventory and ToolbeltInventory constructor/read/write/store/emptyOverflow methods read. Super real inventory uses unsigned byte index bounded maxSize; shadow index int bounded active size. setChanged refreshes only nonempty shadows, preserving historical empty-slot identity. Overflow removed and offered to player or dropped. One inherited owner/consumer chain, superclass reader support0.",
+    "application_limit": "Shadow writer saves all12 while reader accepts only active slots: inactive history can be lost. Shadow matching compares item identity rather than full NBT; historical shadow must never be remapped into a second real stack. No proof drop failure atomic.",
+    "supporting_candidates": [
+      "d6ba8f12af8c68b47cae"
+    ]
+  },
+  {
+    "candidate_id": "b792793895df571922cc",
+    "status": "accepted",
+    "family": "bewitchment-paid-lock-owner-whitelist-negative-list-type-recovery",
+    "trigger": "Lockable.fromNbtLockable after saved block/entity reload",
+    "input": "owner UUID, locked flag, whitelist mode and paid permission UUID list",
+    "output": "owner should retain access; paid lock state is restored separately from current users; concrete writer/reader type mismatch loses saved entries",
+    "preservation": "Full interface methods toNbtLockable/fromNbtLockable/onUse/use/test/sync and Broom analogous persistence/drop/use consumers read. Writer uses NbtString UUID list, reader requests COMPOUND_TYPE then strings, so list does not roundtrip. Locked empty list denies all except owner. Silver ingot payment is not replayed by reader. This is actual game permission loss mechanism, not a working fallback recommendation.",
+    "application_limit": "Owner presence test lacks UUID type guard; reader does not clear reused list. Broom shares permission parser bug and is supporting cross-owner comparison0 rather than extra count. Broom sigil uses/mode paid state noted but no separate credit here.",
+    "supporting_candidates": [
+      "c7291a95b4c4ebe8fc09"
+    ]
+  },
+  {
+    "candidate_id": "3d42c5384dc2700b04ab",
+    "status": "accepted",
+    "family": "bewitchment-world-poppet-shelf-owned-stack-state-and-null-marker",
+    "trigger": "BWWorldState getPersistentStateManager.getOrCreate with readNbt/writeNbt; PoppetData.update and shelf break",
+    "input": "per-world shelf position to nullable9-slot inventory, cauldron names and potential position lists",
+    "output": "nonnull inventory restores full stacks; missing Inventory remains null marker rather than inventing empty owned stack container",
+    "preservation": "Full world state class, full PoppetData and shelf onStateReplaced read. Registration is per ServerWorld. Writer conditionally emits Inventory preserving null distinction. Consumer modifies stored slot, removes fully empty shelf, marks dirty; breaking shelf scatters saved inventory then removes record. All maps/list positions same world owner1, not field counts.",
+    "application_limit": "Position numeric getters lack explicit type guard and default0 can collide; PoppetData scans all worlds by same long position and returns first matching shelf, no dimension identity in record. ItemScatterer success/atomicity not established. World owner restoration is not player Clone mechanism.",
+    "supporting_candidates": []
+  }
+]

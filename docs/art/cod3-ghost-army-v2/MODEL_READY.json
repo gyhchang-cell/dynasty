@@ -1,0 +1,125 @@
+{
+  "status": "MODEL_READY_TEXTURE_PENDING",
+  "scope": "cod3 #4 古战场回光·巡猎大军，纯客户端视觉军士模型，未新增战斗实体",
+  "model_body_height_metres": 2.65625,
+  "animated_body_height_approx_metres": 2.61,
+  "pole_rest_top_metres": 3.0375,
+  "origin": "feet Y0; forward +Z; scale1",
+  "lod_cubes": [
+    56,
+    45,
+    24
+  ],
+  "bone_count": 19,
+  "animation": {
+    "name": "animation.scenic.idle",
+    "purpose": "巡猎行走循环，不是静止呼吸",
+    "seconds": 4,
+    "ticks": 80,
+    "in_place": true,
+    "required_world_speed_m_per_s": 0.2,
+    "cycle_world_displacement_m": 0.8,
+    "travel_forward": "+Z",
+    "sounds": false
+  },
+  "references": {
+    "manifest": "references/selected-100.json",
+    "actual_images_viewed_and_selected": 100,
+    "distinct_projects": 16,
+    "not_100_distinct_creatures": true,
+    "dedup": "references/dedup.json"
+  },
+  "validation": "validation.json",
+  "checks_passed": [
+    "three LOD hierarchy and finite geometry",
+    "81 poses per LOD OBB component connections",
+    "pole grip contacts all four groups throughout cycle",
+    "no tested pole/body or foot/foot intersection",
+    "ground contact and stance-slip math",
+    "UV island bounds and no overlap",
+    "exact animation loop seam"
+  ],
+  "production_files": {
+    "src/main/resources/assets/dynasty/geo/scenic/ghost_army_soldier.geo.json": "f93d2c7bda15d909a81ae41eb2a0dc2fe275b7a5f07765e455a1b6a3278d2d68",
+    "src/main/resources/assets/dynasty/geo/scenic/ghost_army_soldier_medium.geo.json": "3c3485407b93ce2f2f07f975cc2131f6a927074756e56763f7e44fc61c45ea3b",
+    "src/main/resources/assets/dynasty/geo/scenic/ghost_army_soldier_far.geo.json": "6d1b1691ac66cdd8dde6b24d027da51d797a075b45141e6e8fad1e62dac11b01",
+    "src/main/resources/assets/dynasty/animations/scenic/ghost_army_soldier.animation.json": "872dea83e3189bc88ddf51c160df5b64f50cbf97e06d59d35e1d2768b8d18e44",
+    "docs/art/cod3-ghost-army-v2/blockbench/ghost_army_soldier.bbmodel": "c1b22263a400f09df1b86f55eb0e4bfc493ae9ee012dc3ff1c12670bd2c72f0b",
+    "docs/art/cod3-ghost-army-v2/UV_LOCK.json": "5c2e3ee685ec55e07950e7002d24f69d03c34055910357805476b464b8a1270d"
+  },
+  "source": [
+    "tools/art/cod3/scenic_ghost_army.py",
+    "tools/art/cod3/review_ghost_army.py",
+    "tools/art/cod3/check_ghost_army.py"
+  ],
+  "pending": [
+    "final production texture by texture owner",
+    "main-thread Java binding and per-soldier animation cache/phase integration",
+    "native bake/build/game validation",
+    "formation terrain grounding and distant white particle array"
+  ],
+  "integration_notes": [
+    "ScenicModels.java currently does not support scenic_04. Do not use its generic rise=44 or lifetime travel=56: soldiers must remain grounded and move at 0.2m/s.",
+    "GeoObjectRenderer 4.8.4 preRender applies (+.5,+.51,+.5); main integration must compensate like existing foot-origin rigs, without changing frozen #6.",
+    "Each soldier requires independent animation phase/cache if phase offsets are used; sharing one Actor across formation may reset or alias state.",
+    "LOD distances, terrain route and particle budget belong to main integration; these JSON files do not implement them.",
+    "No Java/task-list/world/combat files were edited by this art task; no Java/game/sound/brightness actions run."
+  ],
+  "gallery": "index.html",
+  "orientation_contract": {
+    "source_geo_forward": "+Z",
+    "source_geo_ground": "Y=0",
+    "software_preview_coordinate_conversion": "Gecko-style X reflection only; Z unchanged. Front camera yaw180 looks toward -Z, i.e. sees +Z face.",
+    "gecko_object_rendered_forward_without_caller_yaw": "+Z",
+    "extra_Y180_required": false,
+    "caller_yaw_radians": "atan2(forward.x, forward.z)",
+    "world_forward": "normalized packet horizontal direction",
+    "world_velocity_formula": "position = grounded_origin + forward * (age_ticks * 0.01 metres)",
+    "local_velocity_m_per_s": [
+      0,
+      0,
+      0.2
+    ],
+    "cycle_displacement_local_m": [
+      0,
+      0,
+      0.8
+    ],
+    "warning": "Do not translate along local -Z or add an extra Y180. That would reverse the stance-speed agreement. If caller rotates by Y180 for any other convention, rotate velocity with the same matrix too.",
+    "centering_compensation_after_super_preRender": [
+      -0.5,
+      -0.51,
+      -0.5
+    ],
+    "basis_examples": [
+      {
+        "packet_forward": [
+          0,
+          0,
+          1
+        ],
+        "yaw_degrees": 0,
+        "march_world": "+Z"
+      },
+      {
+        "packet_forward": [
+          1,
+          0,
+          0
+        ],
+        "yaw_degrees": 90,
+        "march_world": "+X"
+      },
+      {
+        "packet_forward": [
+          0,
+          0,
+          -1
+        ],
+        "yaw_degrees": 180,
+        "march_world": "-Z"
+      }
+    ],
+    "evidence_scope": "Static code audit of source geo, local ScenicModels wrapper, software foot-contact math and upstream 1.20.1 Forge renderer/factory source. No native bake or game executed; main native orientation check still required."
+  }
+}

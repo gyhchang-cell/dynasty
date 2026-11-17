@@ -1,0 +1,85 @@
+{
+  "reviewed": 2,
+  "rows": [
+    {
+      "id": "explicit-source-method",
+      "repo": "Antikythera-Studios/epicfight",
+      "revision": "a78aa24b72e90a9d09f5fd61925e4369d117abaf",
+      "path": "src/main/java/yesman/epicfight/client/particle/ForceFieldParticle.java",
+      "method": "tick",
+      "start": 42,
+      "end": 59,
+      "sourceSha256": "c94404d6792c4da07e33ea2e93bde1e8236314fc8f6c28a9808a3ea4a6201fd4",
+      "semanticHash": "ae6fc437118348730f209199bf01c4019d87ff2ddaa6f56fe1f89f164f3113c7",
+      "local": "build/item-use-references/Antikythera-Studios__epicfight/src/main/java/yesman/epicfight/client/particle/ForceFieldParticle.java",
+      "url": "https://github.com/Antikythera-Studios/epicfight/blob/a78aa24b72e90a9d09f5fd61925e4369d117abaf/src/main/java/yesman/epicfight/client/particle/ForceFieldParticle.java#L42-L59",
+      "source": "@Override\n\tpublic void tick() {\n\t\tsuper.tick();\n\t\t\n\t\tthis.yaw += 36.0F;\n\t\tthis.scale += (float)(Math.max(30 - this.age, 0)) / 140.0F;\n\t\t\n\t\tif (this.caster != null && this.caster.getStunShield() <= 0.0F) {\n\t\t\tthis.remove();\n\t\t}\n\t\t\n\t\tfor (int x = -1; x <= 1; x+=2) {\n\t\t\tfor (int z = -1; z <= 1; z += 2) {\n\t\t\t\tVec3 rand = new Vec3(Math.random() * x, Math.random(), Math.random() * z).normalize().scale(10.0D);\n\t\t\t\tthis.level.addParticle(EpicFightParticles.DUST_CONTRACTIVE.get(), this.x + rand.x, this.y + rand.y - 1.0D, this.z + rand.z, -rand.x, -rand.y, -rand.z);\n\t\t\t}\n\t\t}\n\t}",
+      "targetScope": "imperial_guard",
+      "observation": "护体网格只前30tick累加缩放，每tick转36度，真实caster眩晕盾耗尽触发remove；四象限尘粒以相反向量收束。借鉴逻辑状态控制护体消失而非仅固定寿命；本身未持续跟随caster位置，remove后本帧仍spawn，需补移动/卸载验证。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    },
+    {
+      "id": "explicit-source-method",
+      "repo": "Antikythera-Studios/epicfight",
+      "revision": "a78aa24b72e90a9d09f5fd61925e4369d117abaf",
+      "path": "src/main/java/yesman/epicfight/client/particle/LaserParticle.java",
+      "method": "LaserParticle",
+      "start": 27,
+      "end": 49,
+      "sourceSha256": "5861a5c6765881eb264910e76ecfddd13c949ae9dd88143bea6c1f77d0cf7c7e",
+      "semanticHash": "f011045eaa48f547b343fb253bd1cc4b3a7961bb66c679f218e0e87f660abdb7",
+      "local": "build/item-use-references/Antikythera-Studios__epicfight/src/main/java/yesman/epicfight/client/particle/LaserParticle.java",
+      "url": "https://github.com/Antikythera-Studios/epicfight/blob/a78aa24b72e90a9d09f5fd61925e4369d117abaf/src/main/java/yesman/epicfight/client/particle/LaserParticle.java#L27-L49",
+      "source": "public LaserParticle(ClientLevel level, double x, double y, double z, double toX, double toY, double toZ) {\n\t\tsuper(level, x, y, z, 0, 0, 0, Meshes.LASER);\n\t\tthis.lifetime = 5;\n\t\t\n\t\tVec3 direction = new Vec3(toX - x, toY - y, toZ - z);\n\t\tVec3 start = new Vec3(x, y, z);\n\t\tVec3 destination = start.add(direction.normalize().scale(200.0D));\n\t\tBlockHitResult hitResult = level.clip(new ClipContext(start, destination, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));\n\t\tdouble xLength = hitResult.getLocation().x - x;\n\t\tdouble yLength = hitResult.getLocation().y - y;\n\t\tdouble zLength = hitResult.getLocation().z - z;\n\t\tdouble horizontalDistance = (float)Math.sqrt(xLength * xLength + zLength * zLength);\n\t\tthis.length = (float)Math.sqrt(xLength * xLength + yLength * yLength + zLength * zLength);\n\t\tthis.yRot = (float)(Math.atan2(zLength, xLength) * (180D / Math.PI)) + 90.0F + 180.0F;\n\t\tthis.xRot = (float)(Math.atan2(yLength, horizontalDistance) * (180D / Math.PI));\n\t\tint smokeCount = (int)this.length * 4;\n\t\t\n\t\tfor (int i = 0; i < smokeCount; i++) {\n\t\t\tlevel.addParticle(ParticleTypes.SMOKE, x + xLength / smokeCount * i, y + yLength / smokeCount * i, z + zLength / smokeCount * i, 0, 0, 0);\n\t\t}\n\t\t\n\t\tthis.setBoundingBox(new AABB(x, y, z, toX, toY, toZ));\n\t}",
+      "targetScope": "school_talisman",
+      "observation": "构造时沿输入方向延长200格并用COLLIDER光线截断，保存实际长度和俯仰yaw；结合完整读取setupPoseStack，横截面正弦收缩、纵向前半增长后半不缩。边界AABB仍用输入to而不是截断终点，可能裁剪；小于1格smokeCount为0时循环不执行、不等于实际发生除零；零方向需单独验证。",
+      "reviewMode": "MANUALLY_READ_FULL_METHOD"
+    }
+  ],
+  "excluded": [
+    {
+      "repo": "Antikythera-Studios/epicfight",
+      "revision": "a78aa24b72e90a9d09f5fd61925e4369d117abaf",
+      "path": "src/main/java/yesman/epicfight/client/particle/ForceFieldEndParticle.java",
+      "method": "render",
+      "start": 32,
+      "end": 50,
+      "url": "https://github.com/Antikythera-Studios/epicfight/blob/a78aa24b72e90a9d09f5fd61925e4369d117abaf/src/main/java/yesman/epicfight/client/particle/ForceFieldEndParticle.java#L32-L50",
+      "sourceSha256": "4863f95792d2a3cf178f21df1f74f00020079c2960a7cbf74a2d776a3c47321c",
+      "reason": "护体结束全屏闪烁+射线爆闪，非纹样研究目标；render里初始化overlay依赖可见帧，不能用于一致联机生命周期。"
+    },
+    {
+      "repo": "Antikythera-Studios/epicfight",
+      "revision": "a78aa24b72e90a9d09f5fd61925e4369d117abaf",
+      "path": "src/main/java/yesman/epicfight/client/particle/LaserParticle.java",
+      "method": "setupPoseStack",
+      "start": 51,
+      "end": 67,
+      "url": "https://github.com/Antikythera-Studios/epicfight/blob/a78aa24b72e90a9d09f5fd61925e4369d117abaf/src/main/java/yesman/epicfight/client/particle/LaserParticle.java#L51-L67",
+      "sourceSha256": "5861a5c6765881eb264910e76ecfddd13c949ae9dd88143bea6c1f77d0cf7c7e",
+      "reason": "与同类LaserParticle构造一并研究为一个束体实现，纵横缩放组织已记，不拆函数凑数。"
+    },
+    {
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/core/handlers/client/SoulWardRenderHandler.java",
+      "method": "renderSoulWard",
+      "start": 66,
+      "end": 139,
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/handlers/client/SoulWardRenderHandler.java#L66-L139",
+      "sourceSha256": "d7ff4556c4043ebb55db65210c1b531a8b24deec3e1406a81cdeb305133ca97c",
+      "reason": "屏幕HUD溶解/辉光，不是世界护体或武器纹样；不能将HUD盾图当世界贴面已接入。"
+    },
+    {
+      "repo": "baileyholl/Ars-Nouveau",
+      "revision": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+      "path": "src/main/java/com/hollingsworth/arsnouveau/client/renderer/tile/RuneRenderer.java",
+      "method": "actuallyRender",
+      "start": 57,
+      "end": 95,
+      "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/client/renderer/tile/RuneRenderer.java#L57-L95",
+      "sourceSha256": "105c51c900154424920e5ba2064f697e7470044009098480eaa8e064cf62b5c5",
+      "reason": "核查器发现此前已记录同一源码范围；六向符面观察合并原记录，不重复计数。"
+    }
+  ]
+}

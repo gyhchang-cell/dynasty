@@ -1,0 +1,108 @@
+package wayoftime.bloodmagic.impl;
+
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.FireBlock;
+import net.minecraft.world.level.block.GrassBlock;
+import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.SimpleWaterloggedBlock;
+import wayoftime.bloodmagic.altar.ComponentType;
+import wayoftime.bloodmagic.api.IBloodMagicAPI;
+import wayoftime.bloodmagic.api.compat.EnumDemonWillType;
+import wayoftime.bloodmagic.common.block.BloodMagicBlocks;
+import wayoftime.bloodmagic.common.fluid.BloodMagicFluids;
+import wayoftime.bloodmagic.incense.EnumTranquilityType;
+import wayoftime.bloodmagic.incense.IncenseTranquilityRegistry;
+import wayoftime.bloodmagic.incense.TranquilityStack;
+
+public class BloodMagicCorePlugin
+{
+	public static final BloodMagicCorePlugin INSTANCE = new BloodMagicCorePlugin();
+
+	public void register(IBloodMagicAPI apiInterface)
+	{
+		BloodMagicAPI api = (BloodMagicAPI) apiInterface;
+		api.getValueManager().setTranquility(Blocks.LAVA, new TranquilityStack(EnumTranquilityType.LAVA, 1.2D));
+//        api.getValueManager().setTranquility(Blocks.FLOWING_LAVA, new TranquilityStack(EnumTranquilityType.LAVA, 1.2D));
+		api.getValueManager().setTranquility(Blocks.WATER, new TranquilityStack(EnumTranquilityType.WATER, 1.0D));
+//        api.getValueManager().setTranquility(Blocks.water, new TranquilityStack(EnumTranquilityType.WATER, 1.0D));
+		api.getValueManager().setTranquility(BloodMagicFluids.LIFE_ESSENCE_BLOCK.get(), new TranquilityStack(EnumTranquilityType.WATER, 1.5D));
+		api.getValueManager().setTranquility(Blocks.NETHERRACK, new TranquilityStack(EnumTranquilityType.FIRE, 0.5D));
+		api.getValueManager().setTranquility(Blocks.DIRT, new TranquilityStack(EnumTranquilityType.EARTHEN, 0.25D));
+		api.getValueManager().setTranquility(Blocks.FARMLAND, new TranquilityStack(EnumTranquilityType.EARTHEN, 1.0D));
+		api.getValueManager().setTranquility(Blocks.POTATOES, new TranquilityStack(EnumTranquilityType.CROP, 1.0D));
+		api.getValueManager().setTranquility(Blocks.CARROTS, new TranquilityStack(EnumTranquilityType.CROP, 1.0D));
+		api.getValueManager().setTranquility(Blocks.WHEAT, new TranquilityStack(EnumTranquilityType.CROP, 1.0D));
+		api.getValueManager().setTranquility(Blocks.NETHER_WART, new TranquilityStack(EnumTranquilityType.CROP, 1.0D));
+		api.getValueManager().setTranquility(Blocks.BEETROOTS, new TranquilityStack(EnumTranquilityType.CROP, 1.0D));
+        api.getValueManager().setTranquility(BloodMagicBlocks.WEAK_TAU.get(), new TranquilityStack(EnumTranquilityType.CROP, 1.2D));
+        api.getValueManager().setTranquility(BloodMagicBlocks.STRONG_TAU.get(), new TranquilityStack(EnumTranquilityType.CROP, 1.5D));
+
+		//Added some blocks to the list at Tara's suggestion.
+		api.getValueManager().setTranquility(Blocks.CRIMSON_NYLIUM, new TranquilityStack(EnumTranquilityType.FIRE, 0.75D));
+		api.getValueManager().setTranquility(Blocks.WARPED_NYLIUM, new TranquilityStack(EnumTranquilityType.FIRE, 0.75D));
+		api.getValueManager().setTranquility(Blocks.NETHER_WART_BLOCK, new TranquilityStack(EnumTranquilityType.PLANT, 1.0D));
+		api.getValueManager().setTranquility(Blocks.WARPED_WART_BLOCK, new TranquilityStack(EnumTranquilityType.PLANT, 1.0D));
+		api.getValueManager().setTranquility(Blocks.SOUL_SAND, new TranquilityStack(EnumTranquilityType.EARTHEN, 0.75D));
+		api.getValueManager().setTranquility(Blocks.SOUL_SOIL, new TranquilityStack(EnumTranquilityType.EARTHEN, 0.75D));
+		api.getValueManager().setTranquility(Blocks.SOUL_FIRE, new TranquilityStack(EnumTranquilityType.FIRE, 1.2D));
+		api.getValueManager().setTranquility(Blocks.VINE, new TranquilityStack(EnumTranquilityType.PLANT, 0.25D));
+		api.getValueManager().setTranquility(Blocks.WEEPING_VINES, new TranquilityStack(EnumTranquilityType.PLANT, 0.5D));
+		api.getValueManager().setTranquility(Blocks.TWISTING_VINES, new TranquilityStack(EnumTranquilityType.PLANT, 0.5D));
+        api.getValueManager().setTranquility(Blocks.CAVE_VINES, new TranquilityStack(EnumTranquilityType.PLANT, 0.5D));
+
+        apiInterface.registerTranquilityHandler(state -> state.is(BlockTags.CANDLES), EnumTranquilityType.FIRE.name(), 0.2D);
+		apiInterface.registerTranquilityHandler(state -> state.getBlock() instanceof LeavesBlock, EnumTranquilityType.PLANT.name(), 1.0D);
+		apiInterface.registerTranquilityHandler(state -> state.getBlock() instanceof FireBlock, EnumTranquilityType.FIRE.name(), 1.0D);
+		apiInterface.registerTranquilityHandler(state -> state.getBlock() instanceof GrassBlock, EnumTranquilityType.EARTHEN.name(), 0.5D);
+
+		apiInterface.registerTranquilityHandler(state -> state.is(BlockTags.LOGS), EnumTranquilityType.TREE.name(), 1.0D);
+		apiInterface.registerTranquilityHandler(state -> state.getBlock() instanceof SimpleWaterloggedBlock && state.getFluidState().isSource(), EnumTranquilityType.WATER.name(), 1.0D);
+
+		IncenseTranquilityRegistry.registerTranquilityHandler((world, pos, block, state) -> BloodMagicAPI.INSTANCE.getValueManager().getTranquility().get(state));
+
+		apiInterface.registerAltarComponent(Blocks.GLOWSTONE.defaultBlockState(), ComponentType.GLOWSTONE.name());
+		apiInterface.registerAltarComponent(Blocks.SEA_LANTERN.defaultBlockState(), ComponentType.GLOWSTONE.name());
+		apiInterface.registerAltarComponent(Blocks.SHROOMLIGHT.defaultBlockState(), ComponentType.GLOWSTONE.name());
+        apiInterface.registerAltarComponent(Blocks.OCHRE_FROGLIGHT.defaultBlockState(), ComponentType.GLOWSTONE.name());
+        apiInterface.registerAltarComponent(Blocks.PEARLESCENT_FROGLIGHT.defaultBlockState(), ComponentType.GLOWSTONE.name());
+        apiInterface.registerAltarComponent(Blocks.VERDANT_FROGLIGHT.defaultBlockState(), ComponentType.GLOWSTONE.name());
+
+		apiInterface.registerAltarComponent(BloodMagicBlocks.BLOODSTONE.get().defaultBlockState(), ComponentType.BLOODSTONE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.BLOODSTONE_BRICK.get().defaultBlockState(), ComponentType.BLOODSTONE.name());
+
+        apiInterface.registerAltarComponent(BloodMagicBlocks.HELLFORGED_BLOCK.get().defaultBlockState(), ComponentType.BEACON.name());
+        apiInterface.registerAltarComponent(BloodMagicBlocks.CORROSIVE_HELLFORGED_BLOCK.get().defaultBlockState(), ComponentType.BEACON.name());
+        apiInterface.registerAltarComponent(BloodMagicBlocks.DESTRUCTIVE_HELLFORGED_BLOCK.get().defaultBlockState(), ComponentType.BEACON.name());
+        apiInterface.registerAltarComponent(BloodMagicBlocks.STEADFAST_HELLFORGED_BLOCK.get().defaultBlockState(), ComponentType.BEACON.name());
+        apiInterface.registerAltarComponent(BloodMagicBlocks.VENGEFUL_HELLFORGED_BLOCK.get().defaultBlockState(), ComponentType.BEACON.name());
+
+        // literally call this to get t6 in your pack/add-on
+        // apiInterface.registerAltarComponent(<t6 capstone blockstate here>, ComponentType.CRYSTAL.name());
+
+		apiInterface.registerAltarComponent(BloodMagicBlocks.BLANK_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.SPEED_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.SACRIFICE_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.SELF_SACRIFICE_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.DISPLACEMENT_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.CAPACITY_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.AUGMENTED_CAPACITY_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.ORB_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.ACCELERATION_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.CHARGING_RUNE.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+
+		apiInterface.registerAltarComponent(BloodMagicBlocks.SPEED_RUNE_2.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.SACRIFICE_RUNE_2.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.SELF_SACRIFICE_RUNE_2.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.DISPLACEMENT_RUNE_2.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.CAPACITY_RUNE_2.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.AUGMENTED_CAPACITY_RUNE_2.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.ORB_RUNE_2.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.ACCELERATION_RUNE_2.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+		apiInterface.registerAltarComponent(BloodMagicBlocks.CHARGING_RUNE_2.get().defaultBlockState(), ComponentType.BLOODRUNE.name());
+
+		apiInterface.registerInventoryProvider("mainInventory", player -> player.getInventory().items);
+		apiInterface.registerInventoryProvider("armorInventory", player -> player.getInventory().armor);
+		apiInterface.registerInventoryProvider("offHandInventory", player -> player.getInventory().offhand);
+	}
+}

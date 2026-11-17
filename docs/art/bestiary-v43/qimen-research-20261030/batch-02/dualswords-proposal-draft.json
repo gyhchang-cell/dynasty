@@ -1,0 +1,191 @@
+{
+  "id": "dualswords-active-stack-parry-riposte-reverse-grip",
+  "status": "SUPERSEDED_BY_REVIEWED_PROPOSAL_NOT_ACCEPTED",
+  "created_utc": "2026-10-30T16:45:51.924477+00:00",
+  "target": "mandarin_duck_axe",
+  "selected_scope": "一项实际使用手武器的短时格挡→近身反击→冷却退出→第一/第三人称实际物品反握与格挡姿态整链；不拆方法或四手视角计数。",
+  "source_version": "Dual Swords1.1.2 / Minecraft1.20.1 / Fabric0.15.6；不是Forge兼容实现。",
+  "chain": [
+    "fabric.mod.json指定DualSwordsMain与mixins；初始化注册PARRY/RIPOSTE等附魔。",
+    "ItemMixin.use读取真实hand stack；有PARRY设currentHand，getUseAction为BLOCK，getMaxUseTime为10×附魔级。",
+    "LivingEntityMixin.quickParry将原版盾等待改为至少2tick；preventParry仍保留原阻挡判定并额外拒绝bypasses_parry及禁盾近战。",
+    "damage TAIL的实际blocked局部标志与activeItem附魔触发：直接Living攻击者且<=4.5才结算riposte；特定投射物分支只处理速度。",
+    "回调以实际activeItem耐久/冷却、sweep状态和stopUsingItem退出，反击伤害类型列入bypasses_parry阻断互相无限弹反。",
+    "客户端声明的HeldItemRendererMixin结合实际hand和mainArm变换当前物品矩阵；HeldItemFeatureRendererMixin在真实held item绘制调用前变换，只有正在使用的同一stack额外45度格挡。"
+  ],
+  "important_distinctions": [
+    "弹反入口不要求双手都有DualWeapon；Daisho另在OFFHAND且主副手都为dual时加伤，不能把两条路径合称两武器共同格挡。",
+    "firstperson按hand映射mainArm并要求swingProgress==0才反握；thirdperson对带附魔持物常态反握，仅activeItem==stack时加格挡角。两个视角不是共用一个固定世界偏移。",
+    "攻击者damage返回未被使用，后续耐久/效果/动画不是反击伤害成功回执；缺少距离资格也仍执行部分后续近战回调。",
+    "原版盾判定包含来源朝向、穿透等；只是被格挡不能当作目标受伤成功。"
+  ],
+  "limitations": [
+    "尚需结合同版CombatPlus依赖确认正常物品资格与辅助回调，完整主路径已读但提案未封口。",
+    "本地引擎源是Forge映射比较资料；Forge isBlocking额外依赖SHIELD_BLOCK ToolAction，不能声称Fabric注入可直接移植或已验证。",
+    "未启动外部模组/Java/游戏，不证明Mixin ordinal适配、网络同步和实际像素效果。"
+  ],
+  "dedup": {
+    "presearch": "presearch-dedup.json",
+    "exact_project_hits": 0,
+    "semantic_comparison": "与已计EpicFight持续资源格挡、AoA受击timestamp反击对照；不转入既有信用。候选以activeStack窗口/短时冷却/非递归反击及实际物品反握整链待独立复核。"
+  },
+  "proposed_independent_units_max": 1,
+  "accepted_credit": 0,
+  "evidence": [
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "gradle.properties",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/gradle.properties",
+      "sha256": "1d2cedc83a191fdf37a8b1e3d4fc531a06d16564935324ad42eb637627c2a9ff",
+      "read_ranges": [
+        [
+          1,
+          28
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/gradle.properties"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/resources/fabric.mod.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/resources/fabric.mod.json",
+      "sha256": "1780b6eb0e960d9a3be5043eec1191c1fb09bbf85ef0e459491718ff3371cdd7",
+      "read_ranges": [
+        [
+          1,
+          49
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/resources/fabric.mod.json"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/resources/dualswords.mixins.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/resources/dualswords.mixins.json",
+      "sha256": "b6d9336e90bc024142a16cb8605c566723ad5209693c7ca39d0bbaea1d3463e9",
+      "read_ranges": [
+        [
+          1,
+          16
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/resources/dualswords.mixins.json"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/java/com/provismet/dualswords/DualSwordsMain.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/java/com/provismet/dualswords/DualSwordsMain.java",
+      "sha256": "d26ede215d9226af4d2b15bab155c612cd90c70d083a11ab21690e3de80b355d",
+      "read_ranges": [
+        [
+          1,
+          64
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/java/com/provismet/dualswords/DualSwordsMain.java"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/java/com/provismet/dualswords/registry/DSEnchantments.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/java/com/provismet/dualswords/registry/DSEnchantments.java",
+      "sha256": "e38bc6e8e82344eab5c701d9c74bbb475c44a8815d39e859ed410edebda81f10",
+      "read_ranges": [
+        [
+          1,
+          42
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/java/com/provismet/dualswords/registry/DSEnchantments.java"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/java/com/provismet/dualswords/mixin/ItemMixin.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/java/com/provismet/dualswords/mixin/ItemMixin.java",
+      "sha256": "38889b2388ec4c74e8a883825e58d079a73d2738202459ea43dd2afd929ba0fe",
+      "read_ranges": [
+        [
+          1,
+          104
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/java/com/provismet/dualswords/mixin/ItemMixin.java"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/java/com/provismet/dualswords/mixin/LivingEntityMixin.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/java/com/provismet/dualswords/mixin/LivingEntityMixin.java",
+      "sha256": "23f5abec0089190bf2155945994594781fede3ef9abca90868fc82ba22c0bbe8",
+      "read_ranges": [
+        [
+          1,
+          188
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/java/com/provismet/dualswords/mixin/LivingEntityMixin.java"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/java/com/provismet/dualswords/mixin/HeldItemRendererMixin.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/java/com/provismet/dualswords/mixin/HeldItemRendererMixin.java",
+      "sha256": "cd6fbb68656e3d1a5c864f7b983eac3f27791472ce345ef916dd5d33d0096b67",
+      "read_ranges": [
+        [
+          1,
+          88
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/java/com/provismet/dualswords/mixin/HeldItemRendererMixin.java"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/java/com/provismet/dualswords/mixin/HeldItemFeatureRendererMixin.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/java/com/provismet/dualswords/mixin/HeldItemFeatureRendererMixin.java",
+      "sha256": "38526e1d2358ec049a6b73dc1f71e9776de31a15f36003b9a55d6a25df3733ab",
+      "read_ranges": [
+        [
+          1,
+          45
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/java/com/provismet/dualswords/mixin/HeldItemFeatureRendererMixin.java"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/java/com/provismet/dualswords/DSDamageTypes.java",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/java/com/provismet/dualswords/DSDamageTypes.java",
+      "sha256": "9c8735704e5bba46ac0251cd30fbadb5be251df1174b9e283ff4a56bfe6f0b3c",
+      "read_ranges": [
+        [
+          1,
+          29
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/java/com/provismet/dualswords/DSDamageTypes.java"
+    },
+    {
+      "repo": "Provismet/Dual-Swords",
+      "commit": "8c306787a59990d88963e70cf293823131c59196",
+      "path": "src/main/resources/data/dualswords/tags/damage_type/bypasses_parry.json",
+      "local": "docs/art/bestiary-v43/qimen-research-20261030/batch-02/sources/Provismet__Dual-Swords/src/main/resources/data/dualswords/tags/damage_type/bypasses_parry.json",
+      "sha256": "587f5448139ee3b3c83cb36553066db8601b118a3cfc2ab9d69ee52ae9f8ac98",
+      "read_ranges": [
+        [
+          1,
+          11
+        ]
+      ],
+      "url": "https://github.com/Provismet/Dual-Swords/blob/8c306787a59990d88963e70cf293823131c59196/src/main/resources/data/dualswords/tags/damage_type/bypasses_parry.json"
+    }
+  ],
+  "superseded_by": "dualswords-reviewed-proposal.json"
+}

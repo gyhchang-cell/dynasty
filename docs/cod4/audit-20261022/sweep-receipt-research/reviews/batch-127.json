@@ -1,0 +1,90 @@
+[
+  {
+    "candidate_index": 1092,
+    "candidate_id": "7c6935721ca87af7acf3",
+    "decision": "accepted",
+    "observation": "全文ICooldownSpellCaster全部方法及ItemStaff实体/方块/右键入口：isCoolingDown按物品NBT lastCast与当前worldTime差<=lastCooldown，到期相等仍拒绝，缺下界导致回拨持续冷却；setCooldown遇任一continuous ring直接return，其他取最大或override时间，先停止手/挥手发主副手包后写原stack时间。真实法杖尝试施法后提交栈冷却，一条物品/手槽归属链，不把接口字段或客户端包数各算条。",
+    "snippet_sha256": "fc88c5e4014aa74abc34698cb2e8a0b411f9037e0a1832240020d6353fbdcdf8",
+    "reviewed_at": "2026-10-26T20:50:13.805302+08:00"
+  },
+  {
+    "candidate_index": 1205,
+    "candidate_id": "881478f0a0a20651eb64",
+    "decision": "accepted",
+    "observation": "完整MobCharm.playerHasMobCharm/getCharmRegistryNames及onEntityTargetedEvent/onLivingUpdate/getRealPlayer：缓存按UUID每世界gameTime失效，无维度键，同刻换物品仍用旧护符集合；实际用于取消选人或清仇恨/记忆，显式排除FakePlayer。具体相同tick装备资格缓存对战斗归属的玩法链，展示ID/字段扫描不替代本次全文；pedestal另外路径未读全不声称覆盖。",
+    "snippet_sha256": "d411c3bb0ba525e32d7980b3008085dd5e1c8f86719a22969756d22d917c7e84",
+    "reviewed_at": "2026-10-26T20:50:13.805322+08:00"
+  },
+  {
+    "candidate_index": 1469,
+    "candidate_id": "6a2a8b596a9ca045395d",
+    "decision": "accepted",
+    "observation": "完整Psi CapabilityTriggerSensor与PieceTrickDetonate.execute及IDetonationHandler全部方法：法术按半径/当前位置选具有cap的实体，DetonationEvent未cancel才逐handler；玩家cap在其PlayerData.lastTriggeredDetonation!=worldTime时先写时间再post DETONATE，重复同刻被挡，tick0默认哨兵会拒绝首触发。单玩家同周期动作去重，不是一般网络队列；handler与法术同链不拆信用。",
+    "snippet_sha256": "e35081f4f7463b2dfb3b001d5a72094251892b30708b18e2ddb7ba24b220cea9",
+    "reviewed_at": "2026-10-26T20:50:13.805328+08:00"
+  },
+  {
+    "candidate_index": 1646,
+    "candidate_id": "6a68c679fd69e732e43f",
+    "decision": "pending",
+    "observation": "完整getTimeSinceLastCharge只是物品NBT读取且future time返回0，缺实际ModifierWindingGears充能写入和使用者，0信用留待闭合。",
+    "snippet_sha256": "16ad75f16a4ca370ccfebe95f9abe921938f706c5762b4eae31895b5b2049c02",
+    "reviewed_at": "2026-10-26T20:50:13.805332+08:00"
+  },
+  {
+    "candidate_index": 1820,
+    "candidate_id": "d886496668608338c941",
+    "decision": "accepted",
+    "observation": "全文AntiGravityArrowBonus全部方法及AdventureEvents.update：socket射箭写arrow附件开始worldTime并noGravity；server EntityTick.Post仅有附件时tick，低速或age>=600恢复重力并删标记，撞击另路同样restore。若外部已取消noGravity也主动删旧开始时间；物理效果生命周期以弹体自身所有，两个终止入口幂等清理，一个实际限时箭效果链不拆计。",
+    "snippet_sha256": "bc6d15a8348d1cb3788d8563ad5213059500c203f667f35b776f0528c6e93c42",
+    "reviewed_at": "2026-10-26T20:50:13.805335+08:00"
+  },
+  {
+    "candidate_index": 1974,
+    "candidate_id": "71d1e8b10f5f619357d6",
+    "decision": "pending",
+    "observation": "PotionFlaskTrackingAttachment全类与Codec已读，同种药继续doses，换种重置start，存活才advancement，reset清dose/potion不清时间；缓存缺实际finishUsing生产入口，不将仅attachment状态实现算闭环。",
+    "snippet_sha256": "edf0caecc2d034fec167af6f61ec34ff0ca033db42a87c80f145877ed00f48c9",
+    "reviewed_at": "2026-10-26T20:50:13.805339+08:00"
+  },
+  {
+    "candidate_index": 2006,
+    "candidate_id": "947e89220d9d188a7397",
+    "decision": "accepted",
+    "observation": "全文Pyrinos.hurt/pruneOldHits/wasHitFrequently/clearRecentHits及WingPushGoal：super.hurt先发生，环境source分支之后返回false；只成功玩家伤害追加时钟，距首>200才移除，恰200仍有效；>=4触发wing，tick首个有目标时推后清历史并triggered，stop冷却60。四次回执短窗口聚合与一次反击消费链，历史不按玩家ID分桶且不保存，不能把整体false代表未受伤。",
+    "snippet_sha256": "2368d383682c7f591ce87eaf2d5403d109c39f04eb2d856880b87dbf62edc705",
+    "reviewed_at": "2026-10-26T20:50:13.805344+08:00"
+  },
+  {
+    "candidate_index": 2181,
+    "candidate_id": "74215e184f36976fdad8",
+    "decision": "accepted",
+    "observation": "完整Quark Pipe.passIn/tick/passOut/bounceBack及PipeItem.tick/getTargetFace复读：进入新pipe写lastTickUpdated=当前worldTime，同刻接力到另一块不再累计移动；迭代重入转queuedItems末尾追加避免重复消费，本分支没有设置传入timeInWorld，非迭代才保存。完成ticksInPipe>=speed而非要求相等，出库按真实剩余量决定回弹。具体物品管道同周期归属/重入/延迟交付链，一条，不拆每个pipe。",
+    "snippet_sha256": "bcc7e54ccf04f23ec09fb4c3da75f65eb180623e4e688f0e38545f63299737b2",
+    "reviewed_at": "2026-10-26T20:50:13.805348+08:00"
+  },
+  {
+    "candidate_index": 3374,
+    "candidate_id": "62d6f4bd839a7e5d026c",
+    "decision": "excluded",
+    "observation": "Create throughput.itemReceived全文同刻计算amount/(gameTime-previousTime)可为零间隔，历史环平均用于显示；缺相近回执/一次性生命周期功能，仅流量显示算术不计1000。",
+    "snippet_sha256": "09cecb3f4a45c86afa8c0752af4173f6c188a132325451c2504ff4c96721aaf7",
+    "reviewed_at": "2026-10-26T20:50:13.805351+08:00"
+  },
+  {
+    "candidate_index": 3527,
+    "candidate_id": "cbfab08b0dfd6cf6bd62",
+    "decision": "accepted",
+    "observation": "完整Tinkers OverburnModule全部方法：物品modifier id分桶FuelInfo NBT存expiration/rate，按holder.tickCount模间隔运行，使用当前同stack拉弓时跳过；expiry严格<worldTime才换燃料，等于期限仍可用，足够跨下次周期才存，否则本轮仍可恢复一次。卸modifier清其状态，物品换持有者仍带原绝对世界时钟。实际工具燃料短期承诺/恢复与时钟边界链一条，未把NBT helper计独立。",
+    "snippet_sha256": "fbce0a6c35846b2bd22af525281d977f07820c655be2c4ddb0e24d3372cae140",
+    "reviewed_at": "2026-10-26T20:50:13.805354+08:00"
+  },
+  {
+    "candidate_index": 3568,
+    "candidate_id": "c578cb6b315aaa018797",
+    "decision": "accepted",
+    "observation": "全文RingSevenSins.onLivingHurt3及WrathData：每个当前可用戒指按其物品lastHitTick与当前worldTime差决定窗口早增伤晚减伤，多戒指乘积后在Pre修改伤害；最后逐戒指写now，即使canHarm失败modifier1也刷新时间，未等最终伤害成立。delta<window无>=0，跨世界回拨可超出原曲线；物品Codec保存时间，窗口提交在Pre而非最终成功回执。与同戒指已审动物延时死亡是不同具体玩法，不复用其信用。",
+    "snippet_sha256": "988bea124fb75cac4619f09831720bfe1dbf6df1e893045b7e485c99ad0561df",
+    "reviewed_at": "2026-10-26T20:50:13.805357+08:00"
+  }
+]

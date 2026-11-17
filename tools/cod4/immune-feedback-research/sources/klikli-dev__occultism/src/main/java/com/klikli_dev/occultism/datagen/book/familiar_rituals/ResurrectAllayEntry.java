@@ -1,0 +1,55 @@
+package com.klikli_dev.occultism.datagen.book.familiar_rituals;
+
+import com.klikli_dev.modonomicon.api.datagen.CategoryProvider;
+import com.klikli_dev.modonomicon.api.datagen.EntryBackground;
+import com.klikli_dev.modonomicon.api.datagen.EntryProvider;
+import com.klikli_dev.modonomicon.api.datagen.book.BookIconModel;
+import com.klikli_dev.modonomicon.api.datagen.book.page.BookEntityPageModel;
+import com.klikli_dev.modonomicon.client.gui.book.theme.GuiSprite;
+import com.klikli_dev.occultism.integration.modonomicon.pages.BookRitualRecipePageModel;
+
+public class ResurrectAllayEntry extends EntryProvider {
+
+    public static final String ENTRY_ID = "resurrect_allay";
+
+    public ResurrectAllayEntry(CategoryProvider parent) {
+        super(parent);
+    }
+
+    @Override
+    protected void generatePages() {
+        this.page("entity", () -> BookEntityPageModel.create()
+                .withEntityId("minecraft:allay")
+                .withText(this.context().pageText())
+                .withOffset(-0.4f));
+        this.pageText("Purify a Vex to an Allay on a resurrection process that reveals its true name.");
+
+        this.page("ritual", () -> BookRitualRecipePageModel.create()
+                .withRecipeId1(this.modLoc("ritual/resurrect_allay")));
+    }
+
+    @Override
+    protected String entryName() {
+        return "Purify Vex to Allay";
+    }
+
+    @Override
+    protected String entryDescription() {
+        return "Lawful good";
+    }
+
+    @Override
+    protected GuiSprite entryBackground() {
+        return EntryBackground.DEFAULT;
+    }
+
+    @Override
+    protected BookIconModel entryIcon() {
+        return BookIconModel.create(this.modLoc("textures/gui/book/allay.png"));
+    }
+
+    @Override
+    protected String entryId() {
+        return ENTRY_ID;
+    }
+}

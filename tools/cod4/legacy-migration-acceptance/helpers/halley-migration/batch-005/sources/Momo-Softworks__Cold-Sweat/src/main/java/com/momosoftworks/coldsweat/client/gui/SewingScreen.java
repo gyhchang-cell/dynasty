@@ -1,0 +1,63 @@
+package com.momosoftworks.coldsweat.client.gui;
+
+import com.momosoftworks.coldsweat.client.gui.util.CyclingSlotBackground;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import com.momosoftworks.coldsweat.ColdSweat;
+import com.momosoftworks.coldsweat.common.container.SewingContainer;
+import net.minecraft.world.entity.player.Inventory;
+
+import java.util.List;
+
+public class SewingScreen extends AbstractContainerScreen<SewingContainer>
+{
+    private static final ResourceLocation SEWING_GUI = new ResourceLocation(ColdSweat.MOD_ID, "textures/gui/screen/sewing_gui.png");
+    private static ResourceLocation ARMOR_ICON = new ResourceLocation(ColdSweat.MOD_ID, "textures/gui/sprites/sewing/sewing_armor_slot.png");
+    private static ResourceLocation LEATHER_ICON = new ResourceLocation(ColdSweat.MOD_ID, "textures/gui/sprites/sewing/sewing_insulator_slot.png");
+    private static ResourceLocation SHEARS_ICON = new ResourceLocation(ColdSweat.MOD_ID, "textures/gui/sprites/sewing/sewing_shears_slot.png");
+
+    CyclingSlotBackground insulatorBackground;
+    CyclingSlotBackground armorBackground;
+
+    public SewingScreen(SewingContainer screenContainer, Inventory inv, Component titleIn)
+    {
+        super(screenContainer, inv, titleIn);
+        this.imageWidth = 176;
+        this.imageHeight = 201;
+        this.insulatorBackground = new CyclingSlotBackground(1, List.of(LEATHER_ICON, SHEARS_ICON));
+        this.armorBackground = new CyclingSlotBackground(0, List.of(ARMOR_ICON));
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
+    {   this.renderBackground(graphics);
+        super.render(graphics, mouseX, mouseY, partialTicks);
+        this.renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    @Override
+    protected void init()
+    {
+        super.init();
+        this.titleLabelX = this.getXSize() / 2 - this.font.width(this.title) / 2;
+    }
+
+    @Override
+    protected void containerTick()
+    {
+        super.containerTick();
+        this.insulatorBackground.tick();
+        this.armorBackground.tick();
+    }
+
+    @Override
+    protected void renderBg(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY)
+    {
+        graphics.blit(SEWING_GUI, this.leftPos, this.topPos, 0, 0, this.getXSize(), this.getYSize());
+
+        this.armorBackground.render(this.getMenu(), graphics, partialTicks, this.getGuiLeft(), this.getGuiTop());
+        this.insulatorBackground.render(this.getMenu(), graphics, partialTicks, this.getGuiLeft(), this.getGuiTop());
+    }
+}

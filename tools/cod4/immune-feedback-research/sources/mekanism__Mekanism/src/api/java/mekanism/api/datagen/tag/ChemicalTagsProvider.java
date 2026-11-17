@@ -1,0 +1,16 @@
+package mekanism.api.datagen.tag;
+
+import java.util.concurrent.CompletableFuture;
+import mekanism.api.MekanismRegistries;
+import mekanism.api.chemical.Chemical;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.data.PackOutput;
+import net.minecraft.data.tags.TagsProvider;
+
+/// Helper class for implementing tag providers for chemicals.
+public abstract class ChemicalTagsProvider extends TagsProvider<Chemical> {
+
+    protected ChemicalTagsProvider(PackOutput packOutput, CompletableFuture<HolderLookup.Provider> lookupProvider, String modid) {
+        super(packOutput, MekanismRegistries.Keys.CHEMICAL, lookupProvider, modid);
+    }
+}

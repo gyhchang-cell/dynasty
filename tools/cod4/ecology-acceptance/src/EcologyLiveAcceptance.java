@@ -1,0 +1,108 @@
+package com.dynasty.expansion;
+import com.google.gson.GsonBuilder;
+import net.minecraft.core.*;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.*;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.*;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.phys.*;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.living.*;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.eventbus.api.*;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
+import java.nio.file.*;
+import java.util.*;
+
+/** Native dedicated-server ticks, normal terrain, real network owner, natural spawn provenance, actual client attacks. */
+@Mod.EventBusSubscriber(modid="dynasty")
+public final class EcologyLiveAcceptance {
+ static final boolean ENABLED=Boolean.getBoolean("ecology.live");
+ static int observerHeight=100;static boolean sampledNight;static long controlStamp;static int holdUntil,targetStarted;static final Map<UUID,Integer> skip=new HashMap<>();
+ static final Map<String,Set<String>> SOURCE_MATERIALS=Map.ofEntries(Map.entry("red_fox",Set.of("fox_pelt")),Map.entry("gray_wolf",Set.of("wolf_fang")),Map.entry("giant_python",Set.of("python_gall")),Map.entry("crab_soldier",Set.of("crab_shell")),Map.entry("river_imp",Set.of("kappa_scale")),Map.entry("stone_sprite",Set.of("sprite_jade")),Map.entry("lantern_ghost",Set.of("lantern_oil")),Map.entry("night_watchman",Set.of("lantern_oil")),Map.entry("locust_swarm",Set.of("locust_dust")),Map.entry("clockwork_rat",Set.of("qimen_cable","qimen_gear")),Map.entry("wooden_magpie",Set.of("qimen_gear")));
+ static MinecraftServer server;static Path out;static long initialDay,initialTick;static int ticks,zoneTicks;static int zoneIndex=-1;
+ static final Map<UUID,List<String>> nativeSpawnStacks=new HashMap<>();
+ static final Set<UUID> pendingNatural=new HashSet<>(),natural=new HashSet<>();
+ static final Map<String,List<String>> positive=new LinkedHashMap<>();
+ static final Map<String,BlockPos> zones=new LinkedHashMap<>();
+ static final Map<String,Integer> spawned=new TreeMap<>(),deaths=new TreeMap<>(),materials=new TreeMap<>();
+ static final List<BlockPos> samples=new ArrayList<>();static final Set<Long> sampleKeys=new HashSet<>();
+ static final List<Runnable> work=new ArrayList<>();static UUID target;static Vec3 lastDeath,watchPoint;static boolean returnWatch;static int idleAtWatch;static int lootingUntil;
+ static final Set<String> pickedMaterials=new HashSet<>();static final Map<UUID,String> unpickedNaturalLoot=new LinkedHashMap<>();
+ static final Set<String> MATERIAL_IDS=Set.of("qimen_cable","qimen_gear","fox_pelt","wolf_fang","python_gall","crab_shell","kappa_scale","sprite_jade","lantern_oil","locust_dust");
+ static Map<String,Object> row(Object... xs){var m=new LinkedHashMap<String,Object>();for(int i=0;i<xs.length;i+=2)m.put(xs[i].toString(),xs[i+1]);return m;}
+ static String id(net.minecraft.world.entity.Entity e){return ForgeRegistries.ENTITY_TYPES.getKey(e.getType()).toString();}
+ static void event(String kind,Object... xs){if(!ENABLED||out==null)return;var m=row(xs);m.put("kind",kind);if(server!=null){m.put("game_tick",server.overworld().getGameTime());m.put("day_time",server.overworld().getDayTime());}try{Files.writeString(out.resolve("events.jsonl"),new com.google.gson.Gson().toJson(m)+"\n",StandardOpenOption.CREATE,StandardOpenOption.APPEND);}catch(Exception x){throw new RuntimeException(x);}}
+ static void save(){if(out==null)return;var l=server.overworld();var m=row("seed",l.getSeed(),"generator",l.getChunkSource().getGenerator().getClass().getName(),"initial_day_time",initialDay,"initial_game_tick",initialTick,"current_day_time",l.getDayTime(),"live_raining",l.isRaining(),"live_rain_time",server.getWorldData().overworldData().getRainTime(),"live_night",l.isNight(),"native_category_counts",l.getChunkSource().getLastSpawnState()==null?null:l.getChunkSource().getLastSpawnState().getMobCategoryCounts().toString(),"native_spawnable_chunks",l.getChunkSource().getLastSpawnState()==null?0:l.getChunkSource().getLastSpawnState().getSpawnableChunkCount(),"observer_height_above_surface",observerHeight,"current_game_tick",l.getGameTime(),"actual_server_ticks",ticks,"time_weather_mutation",false,"artificial_entity_spawn",false,"biome_block_mutation",false,"positive_positions",positive,"zones",zones.entrySet().stream().map(e->row("name",e.getKey(),"pos",e.getValue().toShortString())).toList(),"natural_spawn_counts",spawned,"native_player_deaths",deaths,"natural_material_drop_counts",materials,"picked_materials",pickedMaterials,"unpicked_natural_material_entities",unpickedNaturalLoot.size(),"sample_positions",samples.size(),"queued_scans",work.size(),"player_fixture","Real automated client; survival mode, invulnerable flight, provided unenchanted existing mandarin_duck_axe (phase1/2 netherite sword) and teleports. NOT full survival acquisition route.");try{Files.writeString(out.resolve("state.json"),new GsonBuilder().setPrettyPrinting().create().toJson(m));}catch(Exception e){throw new RuntimeException(e);}}
+ @SubscribeEvent public static void start(ServerStartedEvent e){if(!ENABLED)return;server=e.getServer();out=Path.of(System.getProperty("ecology.liveOutput"));try{Files.createDirectories(out);Files.writeString(out.resolve("listening.txt"),"127.0.0.1:25587\n");}catch(Exception x){throw new RuntimeException(x);}var l=server.overworld();initialDay=l.getDayTime();initialTick=l.getGameTime();
+  try{if(Files.exists(out.resolve("events.jsonl")))for(String line:Files.readAllLines(out.resolve("events.jsonl"))){var v=com.google.gson.JsonParser.parseString(line).getAsJsonObject();String k=v.get("kind").getAsString();if(k.equals("confirmed_natural_spawn")){natural.add(UUID.fromString(v.get("uuid").getAsString()));spawned.merge(v.get("species").getAsString(),1,Integer::sum);}if(k.equals("natural_entity_death_drops")&&v.get("actual_player_damage").getAsBoolean()){deaths.merge(v.get("species").getAsString(),1,Integer::sum);for(var elem:v.getAsJsonArray("drops")){var item=elem.getAsJsonObject();String id=item.get("item").getAsString().replace("dynasty:","");if(MATERIAL_IDS.contains(id))materials.merge(id,item.get("count").getAsInt(),Integer::sum);}}}}catch(Exception ex){throw new RuntimeException("Cannot restore natural provenance",ex);}
+  try{if(Files.exists(out.resolve("events.jsonl")))for(String line:Files.readAllLines(out.resolve("events.jsonl"))){var v=com.google.gson.JsonParser.parseString(line).getAsJsonObject();String k=v.get("kind").getAsString();if(k.equals("natural_entity_death_drops")&&v.get("actual_player_damage").getAsBoolean()){for(var x:v.getAsJsonArray("drops")){var d=x.getAsJsonObject();String material=d.get("item").getAsString().replace("dynasty:","");if(MATERIAL_IDS.contains(material))unpickedNaturalLoot.put(UUID.fromString(d.get("entity_uuid").getAsString()),material);}}if(k.equals("native_item_pickup")){String material=v.get("item").getAsString().replace("dynasty:","");if(MATERIAL_IDS.contains(material)){pickedMaterials.add(material);if(v.has("pickup_item_entity_uuid"))unpickedNaturalLoot.remove(UUID.fromString(v.get("pickup_item_entity_uuid").getAsString()));}}}}catch(Exception ex){throw new RuntimeException("Cannot restore native loot UUID provenance",ex);}
+  event("start","normal_world",!(l.getChunkSource().getGenerator() instanceof net.minecraft.world.level.levelgen.FlatLevelSource));
+  zones.put("forest",new BlockPos(-64,93,-80));zones.put("battlefield",new BlockPos(-2672,66,-1344));zones.put("post_house",new BlockPos(752,101,-640));zones.put("ocean",new BlockPos(512,62,512));
+  for(var entry:new ArrayList<>(zones.entrySet()))work.add(()->scan(entry.getKey(),entry.getValue()));
+  for(String biome:List.of("savanna","desert","swamp","dripstone_caves","lush_caves"))work.add(()->locateBiome(biome));
+  work.add(()->locateClockwork());save();
+ }
+ static void locateBiome(String name){var l=server.overworld();var origin=new BlockPos(-64,name.endsWith("caves")?0:64,-80);long begin=System.nanoTime();
+  var pair=l.findClosestBiome3d(h->h.is(new ResourceLocation("minecraft",name)),origin,6400,128,32);
+  event("native_biome_locate","biome",name,"origin",origin.toShortString(),"radius_blocks",6400,"horizontal_step",128,"vertical_step",32,"found",pair==null?null:pair.getFirst().toShortString(),"elapsed_ms",(System.nanoTime()-begin)/1000000);
+  if(pair!=null){zones.put(name,pair.getFirst());scan(name,pair.getFirst());}
+ }
+ static void locateClockwork(){var l=server.overworld();var tag=TagKey.create(Registries.STRUCTURE,new ResourceLocation("dynasty","blueprint/clockwork_dog_sites"));long begin=System.nanoTime();var p=l.findNearestMapStructure(tag,l.getSharedSpawnPos(),12,false);event("native_structure_locate","tag","blueprint/clockwork_dog_sites","radius_placement_regions",12,"found",p==null?null:p.toShortString(),"elapsed_ms",(System.nanoTime()-begin)/1000000);if(p!=null){zones.put("clockwork",p);scan("clockwork",p);}}
+ static void scan(String name,BlockPos origin){var l=server.overworld();int cx=origin.getX()>>4,cz=origin.getZ()>>4;
+  for(int dx=-2;dx<=2;dx++)for(int dz=-2;dz<=2;dz++){var c=l.getChunk(cx+dx,cz+dz);for(var e:c.getAllStarts().entrySet())if(e.getValue().isValid())event("natural_structure_start","zone",name,"id",l.registryAccess().registryOrThrow(Registries.STRUCTURE).getKey(e.getKey()).toString(),"chunk",e.getValue().getChunkPos().toString(),"bbox",e.getValue().getBoundingBox().toString());}
+  int before=samples.size();for(int dx=-24;dx<=24;dx+=4)for(int dz=-24;dz<=24;dz+=4){int x=origin.getX()+dx,z=origin.getZ()+dz;int top=l.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,x,z);
+   for(int y=Math.max(-62,Math.min(-48,top-8));y<=Math.min(180,top+3);y++){var p=new BlockPos(x,y,z);if(!l.getBlockState(p).isAir()&&!l.getFluidState(p).is(net.minecraft.tags.FluidTags.WATER))continue;
+    if(l.getFluidState(p).isEmpty()&&l.getBlockState(p.below()).isAir()&&y<top)continue;
+    if(sampleKeys.add(p.asLong()))samples.add(p.immutable());check(p,name);
+   }
+  }event("zone_scan_finished","zone",name,"new_samples",samples.size()-before,"all_samples",samples.size());save();
+ }
+ static void check(BlockPos p,String zone){var l=server.overworld();for(var spec:SecondaryMobs.SPECS){var seen=positive.computeIfAbsent(spec.id(),k->new ArrayList<>());if(seen.size()>=3)continue;if(SpawnPlacements.checkSpawnRules(SecondaryMobs.TYPES.get(spec.id()).get(),l,MobSpawnType.NATURAL,p,l.random)){
+   String key=p.toShortString();if(seen.contains(key))continue;seen.add(key);var biome=l.registryAccess().registryOrThrow(Registries.BIOME).getKey(l.getBiome(p).value());event("positive_native_position","species",spec.id(),"zone",zone,"pos",key,"biome",biome.toString(),"on_support",l.getBlockState(p.below()).toString(),"sky_visible",l.canSeeSky(p),"brightness",l.getMaxLocalRawBrightness(p),"night",l.isNight(),"fluid",l.getFluidState(p).getType().toString());}}
+ }
+ @SubscribeEvent(priority=EventPriority.LOWEST) public static void finalizeSpawn(MobSpawnEvent.FinalizeSpawn e){if(!ENABLED||e.getSpawnType()!=MobSpawnType.NATURAL)return;pendingNatural.add(e.getEntity().getUUID());if(e.getEntity() instanceof SecondaryMob)nativeSpawnStacks.put(e.getEntity().getUUID(),Arrays.stream(Thread.currentThread().getStackTrace()).map(Object::toString).filter(v->v.contains("NaturalSpawner")||v.contains("ForgeEventFactory")||v.contains("EcologyLiveAcceptance")).toList());}
+ @SubscribeEvent(priority=EventPriority.LOWEST) public static void join(EntityJoinLevelEvent e){if(!ENABLED||server==null||e.getLevel().isClientSide()||e.isCanceled()||!pendingNatural.remove(e.getEntity().getUUID()))return;var entity=e.getEntity();natural.add(entity.getUUID());spawned.merge(id(entity),1,Integer::sum);event("confirmed_natural_spawn","uuid",entity.getUUID().toString(),"species",id(entity),"pos",entity.position().toString(),"loaded_from_disk",e.loadedFromDisk(),"native_spawn_stack",nativeSpawnStacks.remove(entity.getUUID()),"biome",server.overworld().registryAccess().registryOrThrow(Registries.BIOME).getKey(server.overworld().getBiome(entity.blockPosition()).value()).toString());}
+ @SubscribeEvent public static void login(PlayerEvent.PlayerLoggedInEvent e){if(!ENABLED||!(e.getEntity() instanceof ServerPlayer p)||!p.getGameProfile().getName().equals("EcologyQA"))return;p.setInvulnerable(true);p.getAbilities().mayfly=true;p.getAbilities().flying=true;p.onUpdateAbilities();p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new ItemStack(ExpansionContent.DUCK.get()));event("real_client_login_fixture","uuid",p.getUUID().toString(),"name",p.getGameProfile().getName(),"connection",p.connection.getClass().getName(),"weapon","dynasty:mandarin_duck_axe unenchanted","flight_invulnerable",true);}
+ @SubscribeEvent(priority=EventPriority.LOWEST) public static void drops(LivingDropsEvent e){if(!ENABLED||e.isCanceled()||!natural.contains(e.getEntity().getUUID()))return;var owner=e.getSource().getEntity();var stacks=e.getDrops().stream().map(x->row("entity_uuid",x.getUUID().toString(),"stack",x.getItem().save(new net.minecraft.nbt.CompoundTag()).toString(),"item",ForgeRegistries.ITEMS.getKey(x.getItem().getItem()).toString(),"count",x.getItem().getCount())).toList();boolean valid=owner instanceof ServerPlayer p&&p.getGameProfile().getName().equals("EcologyQA");event("natural_entity_death_drops","uuid",e.getEntity().getUUID().toString(),"species",id(e.getEntity()),"actual_player_damage",valid,"owner",owner==null?null:owner.getUUID().toString(),"drops",stacks);if(valid){deaths.merge(id(e.getEntity()),1,Integer::sum);for(var item:e.getDrops()){String path=ForgeRegistries.ITEMS.getKey(item.getItem().getItem()).getPath();if(MATERIAL_IDS.contains(path)){materials.merge(path,item.getItem().getCount(),Integer::sum);unpickedNaturalLoot.put(item.getUUID(),path);}}lastDeath=e.getEntity().position();lootingUntil=ticks+40;returnWatch=true;target=null;}save();}
+ @SubscribeEvent public static void pickup(PlayerEvent.ItemPickupEvent e){if(!ENABLED||!e.getEntity().getGameProfile().getName().equals("EcologyQA"))return;String material=ForgeRegistries.ITEMS.getKey(e.getStack().getItem()).getPath();if(MATERIAL_IDS.contains(material)){pickedMaterials.add(material);unpickedNaturalLoot.remove(e.getOriginalEntity().getUUID());}event("native_item_pickup","player",e.getEntity().getUUID().toString(),"pickup_item_entity_uuid",e.getOriginalEntity().getUUID().toString(),"item",ForgeRegistries.ITEMS.getKey(e.getStack().getItem()).toString(),"count",e.getStack().getCount(),"stack",e.getStack().save(new net.minecraft.nbt.CompoundTag()).toString());}
+ static void teleport(ServerPlayer p,Vec3 v,String reason){if(reason.startsWith("natural_spawn_observation_zone_")||reason.startsWith("explicit_zone_")){watchPoint=v;idleAtWatch=ticks;}p.teleportTo(p.serverLevel(),v.x,v.y,v.z,p.getYRot(),p.getXRot());p.setDeltaMovement(Vec3.ZERO);p.getAbilities().flying=true;p.onUpdateAbilities();event("observation_teleport_fixture","reason",reason,"pos",v.toString());}
+ @SubscribeEvent public static void tick(TickEvent.ServerTickEvent e){if(!ENABLED||server==null||e.phase!=TickEvent.Phase.END)return;ticks++;try{
+  if(Files.exists(out.resolve("stop-server.txt"))){save();Files.writeString(out.resolve("stop-client.txt"),"stop");server.halt(false);return;}
+  var control=out.resolve("control.json");if(Files.exists(control)&&Files.getLastModifiedTime(control).toMillis()!=controlStamp){controlStamp=Files.getLastModifiedTime(control).toMillis();var c=com.google.gson.JsonParser.parseString(Files.readString(control)).getAsJsonObject();if(c.has("height_above_surface"))observerHeight=Math.max(25,Math.min(112,c.get("height_above_surface").getAsInt()));if(c.has("scan_zone")){String name=c.get("scan_zone").getAsString();if(zones.containsKey(name))work.add(()->scan(name,zones.get(name)));}if(c.has("observe_zone")){String name=c.get("observe_zone").getAsString();var owner=server.getPlayerList().getPlayerByName("EcologyQA");if(owner!=null&&zones.containsKey(name)){var at=zones.get(name);server.overworld().getChunk(at.getX()>>4,at.getZ()>>4);int h=server.overworld().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,at.getX(),at.getZ());teleport(owner,new Vec3(at.getX()+.5,name.endsWith("caves")?at.getY()+5:h+observerHeight,at.getZ()+.5),"explicit_zone_"+name);holdUntil=ticks+(c.has("hold_ticks")?c.get("hold_ticks").getAsInt():1200);target=null;}}event("qa_control_applied","control",c.toString());}
+  if(server.overworld().isNight()&&!sampledNight){sampledNight=true;event("natural_night_reached","elapsed_world_ticks",server.overworld().getGameTime()-initialTick);for(String name:List.of("forest","battlefield","post_house","ocean","dripstone_caves","lush_caves","clockwork"))if(zones.containsKey(name))work.add(()->scan(name,zones.get(name)));}
+
+  if(!work.isEmpty()&&ticks%20==0){work.remove(0).run();return;}
+  if(ticks%200==0){if(ticks%600==0)for(var p:samples)check(p,"night_or_time_resample");save();}
+  var p=server.getPlayerList().getPlayerByName("EcologyQA");if(p==null)return;p.getFoodData().setFoodLevel(20);
+  if(ticks<lootingUntil&&lastDeath!=null){if(ticks%10==0)teleport(p,lastDeath,"pickup_after_natural_kill");return;}
+  if(ticks>=lootingUntil&&ticks%20==0){for(var loot:new ArrayList<>(unpickedNaturalLoot.keySet())){var entity=server.overworld().getEntity(loot);if(entity instanceof net.minecraft.world.entity.item.ItemEntity item&&item.isAlive()){lastDeath=item.position();lootingUntil=ticks+40;returnWatch=true;teleport(p,lastDeath,"recover_existing_unpicked_natural_ItemEntity_"+loot);return;}}}
+  if(returnWatch&&ticks>=lootingUntil&&watchPoint!=null){returnWatch=false;teleport(p,watchPoint,"return_to_natural_observation_after_loot");idleAtWatch=ticks;return;}
+  if(ticks>=holdUntil&&(++zoneTicks>=1000||zoneIndex<0)&&!zones.isEmpty()){
+   target=null;Files.deleteIfExists(out.resolve("attack-target.txt"));var list=new ArrayList<>(zones.entrySet());zoneIndex=(zoneIndex+1)%list.size();zoneTicks=0;var zone=list.get(zoneIndex);var at=zone.getValue();var l=server.overworld();l.getChunk(at.getX()>>4,at.getZ()>>4);int height=l.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,at.getX(),at.getZ());Vec3 v=Vec3.atCenterOf(at).add(0,zone.getKey().endsWith("caves")?5:height-at.getY()+observerHeight,0);teleport(p,v,"natural_spawn_observation_zone_"+zone.getKey());event("observation_zone","zone",zone.getKey(),"pos",v.toString());
+  }
+  if(target!=null&&ticks-targetStarted>500){event("attack_target_timeout","target",target.toString());skip.put(target,ticks+2400);target=null;Files.deleteIfExists(out.resolve("attack-target.txt"));}
+  if(target!=null){var entity=server.overworld().getEntity(target);if(entity==null||!entity.isAlive()){target=null;Files.deleteIfExists(out.resolve("attack-target.txt"));}else{
+   if(ticks%20==0){for(double angle:new double[]{0,Math.PI/2,Math.PI,Math.PI*1.5}){var v=entity.position().add(1.8*Math.cos(angle),.1,1.8*Math.sin(angle));var box=p.getDimensions(p.getPose()).makeBoundingBox(v.x,v.y,v.z);var eye=v.add(0,p.getEyeHeight(),0);var hit=server.overworld().clip(new net.minecraft.world.level.ClipContext(eye,entity.getEyePosition(),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,p));if(server.overworld().noCollision(p,box)&&hit.getType()==HitResult.Type.MISS){teleport(p,v,"native_client_attack_natural_entity");break;}}}return;
+  }}
+  if(ticks%20==0){var mobs=server.overworld().getEntitiesOfClass(SecondaryMob.class,p.getBoundingBox().inflate(120),m->m.isAlive()&&natural.contains(m.getUUID())&&skip.getOrDefault(m.getUUID(),0)<=ticks&&SOURCE_MATERIALS.getOrDefault(m.spec.id(),Set.of()).stream().anyMatch(material->!pickedMaterials.contains(material)));
+   if(mobs.isEmpty()&&ticks-idleAtWatch>=120){
+     var competitors=server.overworld().getEntitiesOfClass(net.minecraft.world.entity.Mob.class,p.getBoundingBox().inflate(110),m->m.isAlive()&&natural.contains(m.getUUID())&&m.getType().getCategory()==net.minecraft.world.entity.MobCategory.MONSTER&&skip.getOrDefault(m.getUUID(),0)<=ticks);
+     if(!competitors.isEmpty()){competitors.sort(Comparator.comparingDouble(m->m.distanceToSqr(p)));var mob=competitors.get(0);target=mob.getUUID();targetStarted=ticks;Files.writeString(out.resolve("attack-target.txt"),target.toString());event("target_natural_competitor","uuid",target.toString(),"species",id(mob),"reason","Actual client native combat releases ordinary monster cap; no cap/AI/entity deletion edits");return;}
+    }
+   if(!mobs.isEmpty()){mobs.sort(Comparator.comparingDouble(m->m.distanceToSqr(p)));var mob=mobs.get(0);target=mob.getUUID();targetStarted=ticks;Files.writeString(out.resolve("attack-target.txt"),target.toString());event("target_natural_entity","uuid",target.toString(),"species",id(mob),"pos",mob.position().toString());return;}}
+
+  if(Files.exists(out.resolve("stop-server.txt"))){save();Files.writeString(out.resolve("stop-client.txt"),"stop");server.halt(false);}
+ }catch(Throwable x){event("qa_error","error",x.toString());x.printStackTrace();save();}}
+}

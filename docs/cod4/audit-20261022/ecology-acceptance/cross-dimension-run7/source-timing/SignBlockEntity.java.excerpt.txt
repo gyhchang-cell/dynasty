@@ -1,0 +1,88 @@
+173:    public boolean setText(SignText p_277733_, boolean p_277720_) {
+174:       return p_277720_ ? this.setFrontText(p_277733_) : this.setBackText(p_277733_);
+175:    }
+176: 
+177:    private boolean setBackText(SignText p_277777_) {
+178:       if (p_277777_ != this.backText) {
+179:          this.backText = p_277777_;
+180:          this.markUpdated();
+181:          return true;
+182:       } else {
+183:          return false;
+184:       }
+185:    }
+186: 
+187:    private boolean setFrontText(SignText p_278038_) {
+188:       if (p_278038_ != this.frontText) {
+189:          this.frontText = p_278038_;
+190:          this.markUpdated();
+191:          return true;
+192:       } else {
+193:          return false;
+194:       }
+195:    }
+196: 
+197:    public boolean canExecuteClickCommands(boolean p_278276_, Player p_278240_) {
+198:       return this.isWaxed() && this.getText(p_278276_).hasAnyClickCommands(p_278240_);
+199:    }
+200: 
+201:    public boolean executeClickCommandsIfPresent(Player p_279304_, Level p_279201_, BlockPos p_278282_, boolean p_278254_) {
+202:       boolean flag = false;
+203: 
+204:       for(Component component : this.getText(p_278254_).getMessages(p_279304_.isTextFilteringEnabled())) {
+205:          Style style = component.getStyle();
+206:          ClickEvent clickevent = style.getClickEvent();
+207:          if (clickevent != null && clickevent.getAction() == ClickEvent.Action.RUN_COMMAND) {
+208:             p_279304_.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(p_279304_, p_279201_, p_278282_), clickevent.getValue());
+209:             flag = true;
+210:          }
+211:       }
+212: 
+213:       return flag;
+214:    }
+215: 
+216:    private static CommandSourceStack createCommandSourceStack(@Nullable Player p_279428_, Level p_279359_, BlockPos p_279430_) {
+217:       String s = p_279428_ == null ? "Sign" : p_279428_.getName().getString();
+218:       Component component = (Component)(p_279428_ == null ? Component.literal("Sign") : p_279428_.getDisplayName());
+219:       return new CommandSourceStack(CommandSource.NULL, Vec3.atCenterOf(p_279430_), Vec2.ZERO, (ServerLevel)p_279359_, 2, s, component, p_279359_.getServer(), p_279428_);
+220:    }
+221: 
+222:    public ClientboundBlockEntityDataPacket getUpdatePacket() {
+223:       return ClientboundBlockEntityDataPacket.create(this);
+224:    }
+225: 
+226:    public CompoundTag getUpdateTag() {
+227:       return this.saveWithoutMetadata();
+228:    }
+229: 
+230:    public boolean onlyOpCanSetNbt() {
+231:       return true;
+232:    }
+233: 
+234:    public void setAllowedPlayerEditor(@Nullable UUID p_155714_) {
+235:       this.playerWhoMayEdit = p_155714_;
+236:    }
+237: 
+238:    @Nullable
+239:    public UUID getPlayerWhoMayEdit() {
+240:       return this.playerWhoMayEdit;
+241:    }
+242: 
+243:    private void markUpdated() {
+244:       this.setChanged();
+245:       this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
+246:    }
+247: 
+248:    public boolean isWaxed() {
+249:       return this.isWaxed;
+250:    }
+251: 
+252:    public boolean setWaxed(boolean p_277344_) {
+253:       if (this.isWaxed != p_277344_) {
+254:          this.isWaxed = p_277344_;
+255:          this.markUpdated();
+256:          return true;
+257:       } else {
+258:          return false;
+259:       }
+260:    }

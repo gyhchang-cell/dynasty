@@ -200,3 +200,19 @@ write(DATA/'advancements/blueprint'/f'kill_{ID}.json',{'criteria':{'kill':{'trig
 write(DATA/'recipes/blueprint/corpse_shackle_salvage.json',{'type':'minecraft:crafting_shapeless','ingredients':[{'item':'dynasty:corpse_iron_shackle'}],'result':{'item':'minecraft:iron_nugget','count':6}})
 write(DATA/'recipes/blueprint/corpse_recovered_sword.json',{'type':'minecraft:crafting_shaped','pattern':['B','B','S'],'key':{'B':{'item':'dynasty:broken_burial_blade'},'S':{'item':'minecraft:stick'}},'result':{'item':'minecraft:iron_sword'}})
 print('Exported four-knuckle coffin corpse:',len(bones),'bones',sum(len(b.get('cubes',[])) for b in bones),'cuboids',len(anims),'clips; native acceptance pending.')
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('banshan_jiazhou_shikuang')
+
+# Original MC creature shape correction, after the material export.
+import runpy as _creature33_runpy
+_creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v33/refine.py"))["finish"]('banshan_jiazhou_shikuang')
+
+# Connected anatomy correction; final authoritative export (V34).
+import runpy as _creature34_runpy
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v34/refine.py"))["finish"]('banshan_jiazhou_shikuang')
+
+# Continuous anatomical masses and coherent pigmentation (V35).
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v35/refine.py"))["finish"]('banshan_jiazhou_shikuang')

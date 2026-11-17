@@ -1,0 +1,78 @@
+{
+  "recorded_at": "2026-10-31T02:55:37.140570+00:00",
+  "status": "PROPOSAL_PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+  "candidate_id": "2012dadb0e7cbabf0948",
+  "proposed_family": "botania-world-spawner-item-custody-and-placement-metadata-rebase",
+  "source_pin": {
+    "repo": "VazkiiMods/Botania",
+    "sha": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+    "archive_url": "https://codeload.github.com/VazkiiMods/Botania/zip/0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+    "archive_sha256": "3defffe83b026e4c2b902dd44f401c4775ae436a51cbcbcc77347d5c80ac4b60",
+    "java_files": 1098
+  },
+  "pin_receipt_sha256": "57c183ae58b6769c3469bd1ce0c315374a8d8b23d6868f3cb19e5cccfd25c6da",
+  "pin_limit": "Reuse existing fixed local snapshot and original candidate index SHA; no new archive/tree/blob-to-commit verification claimed. Same limitation as preceding accepted Botania snapshot.",
+  "direct_read_evidence": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/LifeAggregatorItem.java",
+      "sha256": "3fbf89d60750985cf0bc7198e2d1c89113a88d226b6fb3e52f870428e4be04e2",
+      "read_range": [
+        1,
+        161
+      ],
+      "excerpt_sha256": "3fbf89d60750985cf0bc7198e2d1c89113a88d226b6fb3e52f870428e4be04e2"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/test/item/LifeAggregatorTest.java",
+      "sha256": "8dcd453ae9ebc42f674258850afeac791f1c0206317b5e3b96209523fe255a4b",
+      "read_range": [
+        1,
+        52
+      ],
+      "excerpt_sha256": "8dcd453ae9ebc42f674258850afeac791f1c0206317b5e3b96209523fe255a4b"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/helper/PlayerHelper.java",
+      "sha256": "76d8f3f2c7c7261cb13d604b6bccef8979c59a53bba8ab7fad6e69fb2beb11e7",
+      "read_range": [
+        152,
+        203
+      ],
+      "excerpt_sha256": "cad5c065a30a1e629d2a1552d4d76651226e331095a6e3f223fa44b53d396f16"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/BotaniaItems.java",
+      "sha256": "34ddda6a77e5279030a6b1a4bad290ed3a4a7d934f5ba70fc0d8307e6cb7588a",
+      "read_range": [
+        247,
+        247
+      ],
+      "excerpt_sha256": "163992f66fb6c7c5418ef13f3909d3ef454dfa0c751833b1a21921ab23976232"
+    }
+  ],
+  "mechanism": {
+    "capture": "Only native spawner block is eligible. Server obtains SpawnerBlockEntity, writes saveWithFullMetadata into mover spawner subtag before destroyBlock(pos,false). Destroy return ignored. Cooldown20 and success trigger follow; client branch only particles. Native block with missing BE still returns capture success without data.",
+    "reader": "SpawnData.CODEC result with nested entity id and ResourceLocation.tryParse selects capture vs placement. Parseable unknown registry ID still selects placement; tooltip registry optional lookup is separate. Malformed/missing data routes capture and is not deleted merely by reader.",
+    "place": "Build temporary vanilla spawner ItemStack and run substituteUseTrackPos, computing BlockPlaceContext actual offset position. On consumesAction, server shrinks mover before obtaining destination BE; only actual SpawnerBlockEntity receives copied payload with x/y/z rewritten then load. Reader checks only SpawnData ID but writer transfers full metadata.",
+    "custody_helper": "With player, save held stack, substitute temporary stack, construct fresh context, call useOn, restore saved stack after normal return. Null-player context explicitly supported. No try/finally; exception recovery not guaranteed.",
+    "test_source_only": "Existing GameTest source creates pig spawner, captures, checks hasData/air, places and checks spawner present/mover empty. It does not assert pig identity, full payload or unchanged metadata after reload; not executed."
+  },
+  "limits": [
+    "No same-version native ItemStack/BaseSpawner/BlockItem implementation located under tools/cod4; native API treatment of consumed-stack getTagElement and placed spawner load/sync/dirty not independently traced. Do not assert crash/duplication occurs.",
+    "No independent post-load setChanged/update packet in local consumer; cannot conclude absent synchronization without native parent.",
+    "World destroy, item write and item consume/block load not disk-atomic. Missing BE or failed destroy callbacks can leave custody gaps; only source ordering observed.",
+    "Full spawner payload is world-block custody, not authorized player Clone whitelist, old-ID registry remap or crafting history. No extra credit per metadata key, helper, test or spawner species.",
+    "No new game/test/production edit."
+  ],
+  "dedup_comparison": {
+    "read_review_rows": [
+      "batch-046.json:ie-physical-crate-barrel-minecart-blockentity-payload-bridge",
+      "batch-114.json:pnc-spawner-extractor-paid-stage-and-world-spawner-conversion"
+    ],
+    "distinction_proposed": "Unlike moving minecart inventory bridge or converting paid staged spawner into percent core: same full native spawner metadata changes custody world->physical unstackable item->new world position via actual vanilla placement substitution. Requires independent semantic decision; generic codec alone not extra credit.",
+    "accepted_identical_fingerprint": []
+  },
+  "accepted_reference_credit_added": 0,
+  "maximum_proposed_credit": 1,
+  "production_changes": 0
+}

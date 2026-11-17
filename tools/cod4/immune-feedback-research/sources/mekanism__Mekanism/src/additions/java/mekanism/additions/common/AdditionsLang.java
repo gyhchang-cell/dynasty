@@ -1,0 +1,29 @@
+package mekanism.additions.common;
+
+import mekanism.api.text.ILangEntry;
+
+public enum AdditionsLang implements ILangEntry {
+    MEKANISM_ADDITIONS("constants", "mod_name"),
+    PACK_DESCRIPTION("constants", "pack_description"),
+    CHANNEL("walkie", "channel"),
+    CHANNEL_CHANGE("walkie", "channel.change"),
+    WALKIE_DISABLED("walkie", "disabled"),
+    KEY_VOICE("key", "voice"),
+    DESCRIPTION_OBSIDIAN_TNT("description", "obsidian_tnt"),
+    DESCRIPTION_GLOW_PANEL("description", "glow_panel");
+
+    private final String key;
+
+    AdditionsLang(String type, String path) {
+        this(MekanismAdditions.rl(path).toLanguageKey(type));
+    }
+
+    AdditionsLang(String key) {
+        this.key = key;
+    }
+
+    @Override
+    public String getTranslationKey() {
+        return key;
+    }
+}

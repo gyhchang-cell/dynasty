@@ -1,0 +1,29 @@
+package mekanism.client.gui.item;
+
+import mekanism.client.gui.GuiMekanism;
+import mekanism.client.gui.element.tab.GuiSecurityTab;
+import mekanism.common.inventory.container.item.PersonalStorageItemContainer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+
+public class GuiPersonalStorageItem extends GuiMekanism<PersonalStorageItemContainer> {
+
+    public GuiPersonalStorageItem(PersonalStorageItemContainer container, Inventory inv, Component title) {
+        super(container, inv, title, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT + 56);
+        dynamicSlots = true;
+    }
+
+    @Override
+    protected void addGuiElements() {
+        super.addGuiElements();
+        addRenderableWidget(new GuiSecurityTab(this, menu.getHand()));
+    }
+
+    @Override
+    protected void drawForegroundText(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+        renderTitleText(guiGraphics);
+        renderInventoryText(guiGraphics);
+        super.drawForegroundText(guiGraphics, mouseX, mouseY);
+    }
+}

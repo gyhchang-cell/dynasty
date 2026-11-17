@@ -1,0 +1,1 @@
+scoreboard players set @s oszu_fd_compensation_for_mojang_handling_advancements_in_a_random_order 1

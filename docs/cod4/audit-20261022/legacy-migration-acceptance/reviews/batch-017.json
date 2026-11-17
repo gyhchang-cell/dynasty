@@ -1,0 +1,197 @@
+[
+  {
+    "candidate_id": "30e0699a807bca0768c7",
+    "status": "accepted",
+    "family": "gtceu-player-medical-progress-and-permanent-receipt-reader",
+    "trigger": "MedicalConditionTracker capability deserializeNBT",
+    "input": "medical_conditions id/progression compounds and separate permanent_conditions registry IDs",
+    "output": "clears both prior sets, restores only registered conditions and saved progression, then durable-condition membership",
+    "preservation": "Paired writer persists both progress and permanent marker; one owner and two lists count once. Permanent designation is explicit separate set, not inferred from persistence alone.",
+    "application_limit": "GTCEu.id may throw on malformed ID; unknown entries skipped and not retained raw; missing lists clear prior state. Dynasty injury already has intentional death rule, not replaced by GT medical policy.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "a600b50aafcf19d07f51",
+    "status": "accepted",
+    "family": "pnc-active-entity-hacks-registry-restore-with-local-fallback",
+    "trigger": "HACKING serializable attachment restores ActiveEntityHacks",
+    "input": "hackables list saved registry IDs",
+    "output": "clears prior hacks; valid ID+known factory restores hack; malformed or missing registry logs per entry and continues",
+    "preservation": "Full writer stores current IDs, tick removes hacks when _afterHackTick returns false. Registry-backed persistent restoration can hold temporary behavior; does not imply permanent Clone eligibility.",
+    "application_limit": "No payload per hack; writer returns null for empty collection; no newAPI copied. Relevant failure isolation lesson, not a proposal to retain Dynasty temporary hacking/immune state.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "e694043e4dd3975bfad7",
+    "status": "accepted",
+    "family": "werewolf-level-progress-present-only-owned-reader",
+    "trigger": "WerewolfPlayer delegates saved level owner to LevelHandler.deserializeNBT",
+    "input": "optional progress numeric field under level owner key",
+    "output": "restores levelProgress only when source key present; absent keeps initialized/current value",
+    "preservation": "Full writer emits progress; canLevelUp compares saved counter to next-level requirement. This is actual progression persistence, not getter or one count per field. Outer Werewolf wrapper remains no additional credit.",
+    "application_limit": "contains has no numeric type argument, malformed value can reset0; no clamp to requirement. New owner API version not direct1.20.1 implementation.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "a088b1f03637bc2b800c",
+    "status": "accepted",
+    "family": "irons-world-player-pocket-identity-and-next-counter-reader",
+    "trigger": "IronsDataStorage typed PocketDimensionIdManager disk bridge",
+    "input": "UUID→pocket_id list plus next_id allocator counter",
+    "output": "each valid identity pair restored, malformed entry caught/logged independently; nextId restored after list",
+    "preservation": "Full writer and idFor consumer read: existing UUID keeps original room, new UUID allocates nextId then increments. Map and allocator must be retained together to prevent colliding ownership.",
+    "application_limit": "Map not cleared; nextId not checked against existing maximum; duplicate UUID overwrites; no migration should create rooms or structures during load.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "51516cc9b423241193f6",
+    "status": "accepted",
+    "family": "irons-portal-world-store-filtered-lifetime-payload-reader",
+    "trigger": "IronsDataStorage PortalManager disk bridge",
+    "input": "portalLookup UUID→PortalData, position/id pairs and ticksToLive/isBlock",
+    "output": "reconstructs new PortalData per key; complete first pair required before second pair restored",
+    "preservation": "Full writer explicitly omits10tick cooldownLookup while retaining portal ownership payload. canUsePortal needs both real IDs; this illustrates selective lifetime persistence instead of whole-manager copying.",
+    "application_limit": "Unchecked casts and UUID parse can abort batch; map not cleared. Child PortalData is same chain extra0. Armor long cooldowns already belong to PlayerPersisted owner, not this omission policy.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "517f5e7d67ed1db57fbe",
+    "status": "accepted",
+    "family": "irons-offline-summoner-entity-payload-and-duration-recovery",
+    "trigger": "IronsDataStorage saved OfflineSummons reader; EntityJoinLevelEvent native consumer",
+    "input": "summoner UUID plus list of complete saved summon compounds with summon_duration_remaining",
+    "output": "restores UUID-owned payload list; join removes owner receipt, creates entities with passengers in owner level, restores ownership and remaining lifespan",
+    "preservation": "Full saveSummonerData uses entity.save and records remaining duration; writer retains list payload; consumer server tick reconstructs expiration. Distinct owner from PortalManager, not one count per summon.",
+    "application_limit": "No list clear/deep copies/catch; consumer removes receipt before successful entity creation/add confirmation, so unavailable entity type can lose payload. Duration represents leased summons, not permanent root progress.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "5fab6ae8a50218663ad8",
+    "status": "accepted",
+    "family": "divinerpg-attached-item-full-nbt-versus-id-only-sync-reader",
+    "trigger": "AttachedItem INBTSerializable deserializeNBT",
+    "input": "saved item compound emitted with item.save(provider)",
+    "output": "native ItemStack.parse preserves valid actual payload, failure falls back EMPTY",
+    "preservation": "Complete class distinguishes persistent item save/read from StreamCodec numeric ID only producing defaultInstance. Do not use network identity-only reconstruction to recover old inventory.",
+    "application_limit": "Attachment registration/Clone policy not verified here; no claim field survives death. EMPTY fallback can lose unavailable payload, so registry remap must precede native item parsing.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "403ff28f83f8ee868efa",
+    "status": "accepted",
+    "family": "create-item-drain-held-cargo-and-processing-reader",
+    "trigger": "ItemDrainBlockEntity saved read",
+    "input": "optional HeldItem complete transported stack plus ProcessingTicks",
+    "output": "clears prior held reference, restores ticks and optional decoded cargo before super.read",
+    "preservation": "Paired writer stores exact HeldItem serialized compound and ticks. TransportedItemStack helper already studied, not extra credit.",
+    "application_limit": "Missing HeldItem intentionally clears; parse failure behavior inherited helper; no range check. This is distinct block-owned cargo lifetime, not a global player progress map.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "39dc4ca2a85eac4bf2cf",
+    "status": "accepted",
+    "family": "create-belt-controller-cargo-order-reader",
+    "trigger": "BeltBlockEntity controller-only read delegates BeltInventory.read",
+    "input": "Items transported stacks, optional LazyItem and PositiveOrder",
+    "output": "clears real items and rebuilds list with movement order; optional cached client stack read",
+    "preservation": "Paired writer flushes pending inserts/removes before serializing cargo, so omitted pending edits are not silently lost in saved snapshot; outer controller wrapper extra0.",
+    "application_limit": "Absent LazyItem does not clear existing lazyClientItem; client-only cache is not permanent progress. Do not duplicate controller inventory to each segment.",
+    "supporting_candidates": [
+      "b4bda4178691528cc113"
+    ]
+  },
+  {
+    "candidate_id": "dfea6927a8773448e1dd",
+    "status": "accepted",
+    "family": "create-ejector-launched-cargo-and-target-reader",
+    "trigger": "EjectorBlockEntity saved read",
+    "input": "launcher distances, State, launched int-attached item payload list, optional early target/time",
+    "output": "reconfigures/clamps launcher only if changed; restores real launched stacks; clears early target/time then optional read",
+    "preservation": "Writer retains launched item compounds, positions/timing. Distance clamp is explicit compatibility with current configuration, not item quantity clamp.",
+    "application_limit": "Unchecked enum helper semantics not independently proven; restoring scene state not proof all items land. No construction asset changes.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "fee3fc5e58153bc090e0",
+    "status": "accepted",
+    "family": "create-factory-panel-network-promises-and-recipe-reader",
+    "trigger": "FactoryPanelBehaviour per-slot saved read",
+    "input": "panel subcompound filter/count/Freq UUID, targeting graphs, craft input list and restocker Promises",
+    "output": "empty panel deactivates; existing network UUID restored; failed codecs use empty graph; server-only restocker queue reconstructed",
+    "preservation": "Paired write vs writeSafe differs: safe resets PromiseClearingInterval and RecipeOutput but disk writer stores real values. RequestPromiseQueue reader and writer support same-chain extra0.",
+    "application_limit": "Missing empty panel leaves prior internals behind inactive; decode failures clear graph; absent UUID retains prior network. Do not confuse copy/schematic-safe snapshot with permanent player disk data.",
+    "supporting_candidates": [
+      "1ea0f0a502f42ddbb962"
+    ]
+  },
+  {
+    "candidate_id": "e77ffcf77945a3079655",
+    "status": "accepted",
+    "family": "create-redstone-requester-order-codec-compatible-default",
+    "trigger": "RedstoneRequesterBlockEntity saved read",
+    "input": "EncodedRequest structured PackageOrderWithCrafts and address, allowPartial and success/powered flags",
+    "output": "restores actual encoded order, codec failure→empty request; restores address/policy",
+    "preservation": "Paired normal/safe writers encode same order payload; load does not send request or reserve resources. This is stored instruction reconstruction, not ownership of requested items.",
+    "application_limit": "Empty fallback loses malformed order; no guarantee request prior to unload completes. Borrow separate earned/proc receipt from instructions that could run again.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "a1ca3bc55a5365ea898e",
+    "status": "accepted",
+    "family": "create-tablecloth-owned-stock-and-auto-request-reader",
+    "trigger": "TableClothBlockEntity saved read",
+    "input": "Items manually stocked list, AutoRequestData codec, optional OwnerUUID and Facing",
+    "output": "restores stock list; decode failure fresh request config; absent owner explicitly clears; facing positiveModulo4",
+    "preservation": "Paired writer only emits owner when nonnull, preserves item payloads and request data. Owner and resource configuration distinct from transient client rendering.",
+    "application_limit": "contains OwnerUUID lacks hasUUID validation; malformed UUID throws. AutoRequestData child semantics not separately credited; setting defaults not proof lossless migration.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "dcf526b3ab6886481b76",
+    "status": "accepted",
+    "family": "create-brass-tunnel-pending-distribution-cargo-reader",
+    "trigger": "BrassTunnelBlockEntity saved read",
+    "input": "StackToDistribute, optional source face, distribution progress/index/distances, both target lists",
+    "output": "restores in-flight cargo and distribution bookkeeping; missing face null; rebuilds targets then invokes base read",
+    "preservation": "Writer stores actual stack and progress together; client-only model invalidation branch happens after server early return, not a new persisted owner.",
+    "application_limit": "Target coordinate/face parsing not range checked; no claim unload cannot duplicate delivery. Distinct in-flight pending stack owner, not same list reader with renamed key.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "198de700e4ce09a559a9",
+    "status": "accepted",
+    "family": "create-vault-server-only-inventory-owner-reader",
+    "trigger": "ItemVaultBlockEntity saved read",
+    "input": "optional Controller/LastKnownPos, controller Size/Length and Inventory",
+    "output": "clears stale controller/last position then optional restore; only controller reads dimensions; only non-client packet imports inventory",
+    "preservation": "Paired writer stores CombinedInv+Inventory only for disk; client packets update topology/visuals without overwriting real stock. Ownership and transport distinction concrete.",
+    "application_limit": "inventory handler decode details not recredited; no capacity validation in wrapper. Avoid synchronizing empty client inventory over authoritative server resources.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "4e63057c8d54fd5e6773",
+    "status": "accepted",
+    "family": "create-schematicannon-resumable-paid-inventory-and-printer-reader",
+    "trigger": "SchematicannonBlockEntity saved read",
+    "input": "server Inventory, RemainingFuel, placed counters, State, MissingItem and Options, Printer/FlyingBlocks",
+    "output": "server imports cargo; missing state→STOPPED; missing item null; failed Options codec defaults2/false/false; restores saved printer and launched block data",
+    "preservation": "Paired writer includes real inventory/fuel/counters plus flying payloads. GUI progress is not sole restoration source; paid fuel and printer state tied to same owner.",
+    "application_limit": "Unknown nonempty State valueOf throws; child printer internals not counted. This is read-only machine payload study, not architecture/building production.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "c51b5ba50398c2faf5c5",
+    "status": "duplicate",
+    "reason": "DefaultResearchCapability body belongs to already accepted embers-research-checkmarks-clone-chain; full paired writer and actual bool consumer reviewed but no second chain credit."
+  },
+  {
+    "candidate_id": "d84c409ad97ee49ceec4",
+    "status": "duplicate",
+    "reason": "Contraption readNBT delegates already accepted paletted/legacy block decoder and mounted storage recovery; expanded seats/actors support does not justify another wrapper credit."
+  },
+  {
+    "candidate_id": "4da746b332cf3338f99a",
+    "status": "duplicate",
+    "reason": "SchematicTable main disk behavior is generic inventory delegation; extra fields client-only upload progress, no separate durable restore implementation credit."
+  }
+]

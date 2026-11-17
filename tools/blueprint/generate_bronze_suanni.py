@@ -134,3 +134,24 @@ for name in ('suanni_copper_gear','stone_fire_cinder'):
  else:
   draw.rectangle((4,4,11,11),fill=COLORS['patina']);draw.rectangle((4,4,11,9),fill=COLORS['fire']);draw.rectangle((6,4,9,7),fill=COLORS['white']);draw.rectangle((8,10,11,11),fill=COLORS['bronze'])
  icon.save(A/'textures/item'/f'{name}.png');write(A/'models/item'/f'{name}.json',{'parent':'minecraft:item/generated','textures':{'layer0':'dynasty:item/'+name}})
+
+# Approved inventory transparency: preserve entity atlases.
+import runpy as _inventory_runpy
+from pathlib import Path as _InventoryPath
+_inventory_runpy.run_path(str(_InventoryPath(__file__).resolve().parents[1]/"art/inventory-refresh/transparent.py"))["cleanup_white"]()
+
+# Original component-directed cod1 creature atlas; preserve the approved rig.
+import runpy as _creature_runpy
+from pathlib import Path as _CreaturePath
+_creature_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/cod1-creatures-v32/paint.py"))["finish"]('zhenmu_suanni_tonghou')
+
+# Original MC creature shape correction, after the material export.
+import runpy as _creature33_runpy
+_creature33_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v33/refine.py"))["finish"]('zhenmu_suanni_tonghou')
+
+# Connected anatomy correction; final authoritative export (V34).
+import runpy as _creature34_runpy
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v34/refine.py"))["finish"]('zhenmu_suanni_tonghou')
+
+# Continuous anatomical masses and coherent pigmentation (V35).
+_creature34_runpy.run_path(str(_CreaturePath(__file__).resolve().parents[1]/"art/creature-mc-v35/refine.py"))["finish"]('zhenmu_suanni_tonghou')

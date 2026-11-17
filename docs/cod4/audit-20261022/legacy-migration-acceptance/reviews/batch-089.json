@@ -1,0 +1,85 @@
+[
+  {
+    "candidate_id": "6e4a67bb6ba9c8c8f083",
+    "status": "accepted",
+    "family": "native-moving-piston-typed-carried-block-state-upgrade",
+    "trigger": "Whole BlockEntityBlockStateFix, NamedEntityFix, DataFixers schema1451.2 and BlockStateData.getTag",
+    "input": "piston block entity legacy blockId + blockData; entire remainder",
+    "output": "mask metadata15, remove legacy pair, construct output choice and parse new typed blockState while preserving remainder",
+    "preservation": "Actual moving-block owner migration, distinct from entity carried/display fields: output choice type is rebuilt with new typed field, not plain ID alias. Static state lookup table credit0.",
+    "application_limit": "Missing numeric defaults0; out-of-range/unmapped state falls back MAP0, not opaque preservation. Output choice or state parse throws; full state table not deeply reviewed. No execution or losslessness claim.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "3fddb3ed6e7eae50bb0a",
+    "status": "accepted",
+    "family": "native-status-factor-elapsed-duration-schema-upgrade",
+    "trigger": "Whole EffectDurationFix + DataFixers schema3322",
+    "input": "entity/player Effects, ActiveEffects, CustomPotionEffects; optional FactorCalculationData timestamp and Duration",
+    "output": "within factor record remove effect_changed_timestamp and set ticks_active=timestamp-Duration, each default -1; preserve other effect fields",
+    "preservation": "Concrete persisted effect timing representation change, all carriers grouped one. Temporary duration must not be copied into permanent progression whitelist.",
+    "application_limit": "Mapped source item branch filters Optional<Pair<String,String>> using Set<String>.contains, apparently never matches: report static item-coverage defect/inference, not working potion migration. Difference may be negative/overflow; native non-negative decoder behavior not runtime exercised. Entity list malformed stream semantics not proven.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "195a419450f3999d182f",
+    "status": "accepted",
+    "family": "native-historical-entity-boolean-repair-with-role-guard",
+    "trigger": "Whole ArmorStandSilentFix + StriderGravityFix + DataFixers versions147/2529, current ArmorStand full save/read",
+    "input": "old ArmorStand Silent/Marker; old Strider NoGravity",
+    "output": "silent non-marker removes obsolete Silent; markers keep it. Strider true NoGravity becomes false; missing/default false unchanged",
+    "preservation": "Group two small historical boolean-state repairs ONE credit rather than count key-swapped setters. Guard restricts historical owner and policy, remaining payload untouched; illustrates intentional transient/state retirement, not all-NBT copy.",
+    "application_limit": "Strider cannot distinguish deliberate user NoGravity from old bug; repair overwrites true by version policy. ArmorStand default false derived from native parent reader, not verified in game. Do not apply generic reset to Dynasty permanent fields.",
+    "supporting_candidates": [
+      "d7073caa4040af7a2fdc"
+    ]
+  },
+  {
+    "candidate_id": "6a09129cd7eca670e806",
+    "status": "accepted",
+    "family": "native-item-frame-2d-to-3d-orientation-migration",
+    "trigger": "Whole EntityItemFrameDirectionFix + DataFixers1456 + current ItemFrame full save/read/setDirection",
+    "input": "legacy Facing byte and saved Item full payload",
+    "output": "map0→3,1→4,2→2,3→5,invalid→2; replace only Facing; native consumer uses Direction.from3DDataValue then recomputes bounds",
+    "preservation": "Actual persisted mounted inventory orientation conversion without rebuilding/loss of Item. Direction mapping entries all one implementation, native reader supports0.",
+    "application_limit": "Missing Facing maps0→3, unknown collapses2; version gate essential, repeated unversioned conversion can rotate valid new3. No mounted-frame runtime test.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "27b4405f5508cf3e8021",
+    "status": "accepted",
+    "family": "native-villager-gossip-target-reputation-uuid-list-upgrade",
+    "trigger": "Whole GossipUUIDFix + AbstractUUIDFix + DataFixers2516 and current Villager save/read",
+    "input": "villager and zombievillager Gossips list, per-entry TargetMost/Least, reputation type/value",
+    "output": "convert valid nonzero long pair to Target intarray, delete only source pair, keep same entry remainder; failed perentry conversion and nonlist input retained",
+    "preservation": "Specific reputation relation list owner, distinct from general entity owner/root UUID and item attribute UUID. Two entity registrations count ONE; helper previously credited elsewhere support0. Reputation payload retained independently of temporary anger.",
+    "application_limit": "Helper rejects either half zero even valid UUID; records remain old rather than recovered. Current Villager delegates parsing to GossipContainer; acceptance of retained malformed/old entries not claimed. No native migrated-trade test.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "aa8740f1ed031071948b",
+    "status": "accepted",
+    "family": "native-villager-versioned-default-attribute-upgrade-preserving-custom-values",
+    "trigger": "Whole VillagerFollowRangeFix and DataFixers2533",
+    "input": "Attributes entries with Name generic.follow_range and Base number",
+    "output": "only matching exact old default16 becomes48; other name/base entries returned unchanged",
+    "preservation": "Concrete conditional persisted gameplay attribute update; avoids blanket replacing authored/player-modified value. Not static registration or accessor. Entire migration read including list transformation and equality guard.",
+    "application_limit": "Malformed Attributes treated as stream without explicit fallback; numeric asDouble default0; exact equality intentionally misses non16 modifications. No execution, other attribute rename migrations not duplicated.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "ecb1566347fe2640491d",
+    "status": "duplicate",
+    "reason": "Whole class and schema813 read: removes shulker Color only; retirement companion to already credited ItemShulkerBoxColorFix f988cf4beb9d66855c1c, not second independent migration credit."
+  },
+  {
+    "candidate_id": "e812461d9de52d4996d7",
+    "status": "duplicate",
+    "reason": "Whole class read: invert collar numeric palette 15-color; no distinct retained gameplay owner from previously grouped color/palette rewrites sufficient for additional credit. No key-by-key/color-by-color count."
+  },
+  {
+    "candidate_id": "6cd9d4ec9dc83c398510",
+    "status": "rejected",
+    "reason": "Whole class plus schema1500 read: DUMMY keepPacked=true preservation hint, but this is deferred chunk infrastructure without separately reviewed gameplay owner/consumer; auxiliary only, credit0."
+  }
+]

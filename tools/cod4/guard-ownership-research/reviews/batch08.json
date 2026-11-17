@@ -1,0 +1,182 @@
+[
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "getOwner",
+    "observation": "仅服务端在summonToOwner有召唤UUID时，于召唤物当前ServerLevel查主人UUID；客户端固定null。",
+    "application": "owner为空可能是客户端或跨维度查不到，不能将空解析等同野生实体。",
+    "limits": "这是当前维度归属查询，非全服务器遍历；本项目不迁移其全局管理器。",
+    "start": 63
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "setOwner",
+    "observation": "先removeSummon解除原双向关联，再写召唤→主人并登记主人→召唤，标数据脏；主人服务端时发SetSummonOwnerEvent。",
+    "application": "换归属需清旧主人的召唤集合与重施法记录，不能只改实体字段。",
+    "limits": "removeSummon还有事件外部影响需继续追；这里只研究实际召唤归属重绑定而非通用Map实现。",
+    "start": 79
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "initSummon",
+    "observation": "顺序setOwner、setDuration、加入本次SummonedEntitiesCastData。",
+    "application": "召唤落地应同时绑定主人、期限和施法批次；漏任一层会影响解除或残留。",
+    "limits": "短协调方法但三层均为具体召唤玩法状态；不是将通用初始化基础设施凑数。",
+    "start": 92
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "setDuration",
+    "observation": "仅ServerLevel，将召唤UUID、服务器当前tick及当前tick+duration加入到期队列，未在此移除旧记录。",
+    "application": "重复设置租约可能保留旧期限，审核应追实际续期调用而非假定队列覆盖。",
+    "limits": "不能仅凭局部add判定可复现提前消失；本项目仍沿用已有期限存储。",
+    "start": 104
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "removeSummon",
+    "observation": "移除召唤→主人映射；若存在则从主人集合删该UUID，空集删owner项，服务端再从该主人的重施法记录清除召唤。",
+    "application": "销毁要从所有玩法索引去关联，避免旧批次解除新归属实体。",
+    "limits": "此处不清到期队列，由onRemovedHelper另做，必须保留两层职责区分。",
+    "start": 114
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "recastFinishedHelper",
+    "observation": "反制结果重新加回recast；非TIMEOUT才按castData召唤UUID逐个onUnSummon/discard；TIMEOUT且戴高级护符则返回false避免冷却。",
+    "application": "用户解除、反制和自然到期可以有不同回收语义；必须明确哪些由租约管理器实际处理。",
+    "limits": "护符/反制均是该模组既有玩法，不导入本项目，也不拆每个结果枚举计数。",
+    "start": 142
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "removeFromRecastData",
+    "observation": "仅能解析到owner Player才取其active recasts，找到首个包含召唤UUID的SummonedEntitiesCastData后handleRemove并break。",
+    "application": "持久召唤删除应写回正确owner的施法窗口；无法解析主人时不能写到其他玩家。",
+    "limits": "离线owner分支直接退出，完整离线恢复还需saveSummonerData；不声称单方法全部处理。",
+    "start": 167
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "stopTrackingSummonerAndSummons",
+    "observation": "先移主人集合，对每个召唤UUID删反向owner成功才查找并删一条到期记录；标记存储脏。",
+    "application": "主人离开时需要同时撤销活跃归属和计时，避免已序列化实体还被旧计时处理。",
+    "limits": "getExpirationInstance只返回第一条，重复期限问题要结合实际调用验证，不冒称必然故障。",
+    "start": 209
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "saveSummonerData",
+    "observation": "同步方法按主人集合找当前维度有效入世界实体，save实体并写剩余服务器tick；收集完再UNLOADED_WITH_PLAYER移除，保存离线列表并停活跃追踪。",
+    "application": "离线保存先采集再移除可避免回调修改遍历集合；剩余时长而非绝对serverTick跨重启恢复。",
+    "limits": "仅处理当前维度可找到实体；未设置期限时可能得到负剩余值，需调用上下文而非泛判。",
+    "start": 239
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "serializeNBT",
+    "observation": "仅将offlineSummonersToSavedEntities按主人UUID和每组召唤NBT写OfflineSummons列表；活跃映射和期限不直接序列化。",
+    "application": "存档模型可只存离线实体，但停服前必须把活跃召唤转为离线表示。",
+    "limits": "通用NBT容器不独立计数；本条贡献为具体召唤存档范围与前置停服转换约束。",
+    "start": 265
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "deserializeNBT",
+    "observation": "逐条OfflineSummons读取summoner UUID和召唤Compound列表，恢复离线主人→实体存档表，没有在此生成实体。",
+    "application": "读档并不等于召唤已回世界或AI已有owner；需要后续主人加入事件完成。",
+    "limits": "不与直接写owner字段的Ars存档模板重复；这里只恢复分组离线实体模型。",
+    "start": 281
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "levelTick",
+    "observation": "服务端每20tick查到期堆，严格expiration<tick才移除；遍历全部维度找UUID并按IMagicSummon回调或discard，逐项直到下一个未过期。",
+    "application": "实际期限有严格不等与20tick扫描边界；跨维度到期应以UUID查找并调用正确销毁链。",
+    "limits": "调试日志不计；同tick续期旧记录仍需另核，不将源码计时冒充真实运行等待。",
+    "start": 294
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "onServerStopping",
+    "observation": "先复制所有活跃主人UUID，遍历所有ServerLevel找到主人实体就调用saveSummonerData。",
+    "application": "停服必须覆盖非玩家召唤者，不应只保存在线玩家名单。",
+    "limits": "这是具体召唤生命周期钩子；onPlayerLogout单层转发未另计。",
+    "start": 337
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/SummonManager.java",
+    "method": "onSummonerLogin",
+    "observation": "任意实体加入服务端时按其UUID取离线召唤，反序列化到主人当前维度并先入世界，再恢复双向归属和当前tick+剩余时长。",
+    "application": "重载顺序会出现入世界回调先于owner映射恢复；跨维度搬运与剩余期限都需明示。",
+    "limits": "未证明该间隙会实际AI攻击；本项目不新增离线召唤迁移机制。",
+    "start": 351
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/DamageSources.java",
+    "method": "applyDamage",
+    "observation": "Living目标且SpellDamageSource先发可取消事件和抗性计算，NoKnockback投射预登记免击退；Living来源友伤则返回false，否则写最近攻击并hurt；其他直接hurt。",
+    "application": "最终友伤闸门只覆盖指定伤害类型；拒绝前已做的副作用也须核查。",
+    "limits": "只读该版本逻辑，不能由此声称所有普通伤害也受保护；与本项目Enemy白名单并不等价。",
+    "start": 44
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/DamageSources.java",
+    "method": "preHitEffects",
+    "observation": "法术先配置无敌帧；直接来源优先、间接来源次之识别IMagicSummon，若summoner UUID等于受伤者则取消，否则按主人的SUMMON_DAMAGE缩放。",
+    "application": "来源归属与目标许可是独立检查；主人免伤不自动覆盖同队或非Enemy旁观玩家。",
+    "limits": "乘伤属性不作为新机制建议；优先直接实体的三元路径需与投射归属链结合。",
+    "start": 113
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/DamageSources.java",
+    "method": "postHitEffects",
+    "observation": "SpellDamageSource有后效时按实际newDamage给Living来源吸血，按配置累加冻tick或点燃受害者。",
+    "application": "最终攻击许可应在后效链前成立，不能只比较生命值忽略冻结/点燃/主人回血。",
+    "limits": "没有断言零伤一定不会触发事件；运行事件语义尚需NeoForge对应版本，不直接移植。",
+    "start": 91
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/DamageSources.java",
+    "method": "isFriendlyFireBetween",
+    "observation": "两端分别最多展开一层IMagicSummon主人；同载具、玩家canHarmPlayer限制、队伍禁止友伤或最终isAlliedTo时返回true。",
+    "application": "敌我关系需要两端归属归一化；允许打非盟友仍不满足本项目Enemy限定。",
+    "limits": "该方法有PVP规则，本项目不引入；记录仅用于识别为什么owner/ally门不足以保护旁观者。",
+    "start": 134
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/Utils.java",
+    "method": "doMeleeAttack",
+    "observation": "服务器读取近战属性并对Living目标改附魔伤害/击退，交DamageSources.applyDamage；仅成功才击退、施附魔后效并记最近攻击目标。",
+    "application": "伤害门应控制后续副作用，且调用方必须提供能走友伤分支的伤害源。",
+    "limits": "新版附魔接口不同；不把属性公式当独立研究点，关注伤害许可与效果顺序。",
+    "start": 475
+  },
+  {
+    "repo": "iron431/irons-spells-n-spellbooks",
+    "file": "/OwnerHelper.java",
+    "method": "getAndCacheOwner",
+    "observation": "cachedOwner仍活着即直接返回；否则有UUID且服务端时查UUID，查不到仍返回旧cachedOwner，其他null。",
+    "application": "缓存存活不代表UUID/维度仍匹配；失败回退旧对象必须和换归属语义一起审核。",
+    "limits": "是具体游戏实体owner解析，不计OwnerHelper纯NBT包装访问器；不据局部代码断言已可复现串主。",
+    "start": 12
+  }
+]

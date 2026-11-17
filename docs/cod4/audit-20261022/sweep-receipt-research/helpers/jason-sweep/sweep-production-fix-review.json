@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "reviewer": "Jason",
+  "reviewed_at": "2026-10-29T00:33:05.599695+08:00",
+  "task": "Independent read-only production sweep receipt fix review; research gate complete, no further reference credit",
+  "status": "NO_NEW_DETERMINISTIC_STATIC_BLOCKER_NATIVE_ACCEPTANCE_PENDING",
+  "research_gate": {
+    "accepted_1000_reported_by_human_and_delivery": true,
+    "recount_performed": false,
+    "credit_added": 0,
+    "further_reference_collection": false
+  },
+  "scope": {
+    "production_modified": false,
+    "main_ledger_modified": false,
+    "qa_modified": false,
+    "todo_modified_or_backed_up": false,
+    "game_or_server_started": false,
+    "compile_or_tests_run": false,
+    "gui_or_screen_operated": false,
+    "downloaded_or_repository_code_executed": false,
+    "method": "Local text reading, git-show/diff baseline comparison and hash/JSON evidence packaging only"
+  },
+  "baseline": {
+    "path": "tools/cod4/sweep-receipt-research/.work/receipt-fix/FangtianSweep.before.java",
+    "sha256": "75a74c10ebc2f3c0075c056a54c071fbd9583630be749ec5ff27520e7f254977",
+    "matches_fix_baseline_json": true,
+    "matches_delivery_before_sha256": true,
+    "matches_git_HEAD_source": true,
+    "git_HEAD": "3dc354d6e6b4f1c150804ba395dc24db892c4f3b"
+  },
+  "production": {
+    "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+    "sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+    "matches_delivery_after_sha256": true,
+    "matches_delivered_source": true
+  },
+  "diff": {
+    "baseline_to_current_unified": "--- verified original baseline\n+++ src/main/java/com/dynasty/cod3/FangtianSweep.java\n@@ -3,6 +3,7 @@\n import com.dynasty.*;\n import com.dynasty.network.DynastyNetwork;\n import net.minecraft.server.level.ServerPlayer;\n+import net.minecraft.server.level.ServerLevel;\n import net.minecraft.world.entity.LivingEntity;\n import net.minecraft.world.damagesource.*;\n import net.minecraft.world.phys.Vec3;\n@@ -24,11 +25,11 @@\n     private static final List<Start> STARTS=new ArrayList<>();\n     private record Contact(LivingEntity target,float health) {}\n     public static final class Receipt {\n-        final ServerPlayer player;final LivingEntity main;final long tick;final Vec3 origin,direction;\n+        final ServerPlayer player;final LivingEntity main;final ServerLevel level;final long tick;final Vec3 origin,direction;\n         final float health;final List<Contact> contacts=new ArrayList<>();\n         final DamageSource primary;boolean secondary,primaryDamage;\n         Receipt(ServerPlayer p,LivingEntity t,DamageSource source) {\n-            player=p;main=t;primary=source;tick=p.serverLevel().getGameTime();health=t.getHealth();\n+            player=p;main=t;primary=source;level=p.serverLevel();tick=level.getGameTime();health=t.getHealth();\n             origin=t.position().add(0,Math.min(1.1,t.getBbHeight()*.5),0);\n             double yaw=Math.toRadians(p.getYRot());direction=new Vec3(-Math.sin(yaw),0,Math.cos(yaw));\n         }\n@@ -76,7 +77,9 @@\n         STARTS.clear();\n         for(var it=PENDING.iterator();it.hasNext();) {\n             var r=it.next();it.remove();var p=r.player;long now=p.serverLevel().getGameTime();\n-            if(r.tick!=now||!p.isAlive()||p.isRemoved()||r.main.level()!=p.level()\n+            // Native C2S damage may precede the next END by one world tick.\n+            long age=now-r.tick;\n+            if(age<0||age>1||!p.isAlive()||p.isRemoved()||p.serverLevel()!=r.level||r.main.level()!=r.level\n                     ||!(r.secondary||r.primaryDamage&&r.main.getHealth()<r.health))continue;\n             var n=p.getPersistentData();if(n.contains(STAMP)&&n.getLong(STAMP)==now)continue;n.putLong(STAMP,now);\n             var packet=packet(p.serverLevel().dimension().location().toString(),p.getId(),now,r.origin,r.direction);\n",
+    "unchanged_method_source_fragments": {
+      "begin": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "4b15c9e86841e6c1a6210561ed3a43719547d741e7af207b94e9dd24422002be",
+        "matches_delivery_declared_hash": true
+      },
+      "attack": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "44f65ea6d53bad39d34f51e7bc4910a3c0e517d394c453528966960929337b19",
+        "matches_delivery_declared_hash": true
+      },
+      "finish": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "90b832c108fad549713795112f3bd5b635a9b7b233356a91206ccf335ddc282c",
+        "matches_delivery_declared_hash": true
+      },
+      "real": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "c510102af7876528e55b5ece14db7cd060e0ec7ccd7d8eb2d2af288dba36f2bf",
+        "matches_delivery_declared_hash": true
+      },
+      "damage": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "7ffbf48c218219296d3803950fdaac19ceb4ab1957a101d08f11655481cb6d7c",
+        "matches_delivery_declared_hash": true
+      },
+      "stopped": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "88b68990ccf14219cac6c35afc3b2eb5dc8ff68347dc471d84d2aa9c2309b255",
+        "matches_delivery_declared_hash": true
+      },
+      "packet": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "d0ea7e3c5195721ceae515bd09a7e5a9d026f5e353d5a2c0d93d442b91b138ec",
+        "matches_delivery_declared_hash": true
+      },
+      "accepts": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "0507d07271a208ea1d75d581f31214c0530c4b93a6ba16ab85c21289655b76d7",
+        "matches_delivery_declared_hash": true
+      },
+      "geometry": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "5456910d32d6f64b1ec9d8edabfbb4bfa2097f5ed88e8df2c07ac63c15c96e97",
+        "matches_delivery_declared_hash": true
+      },
+      "at": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "af7fbe6874f1d128cc287e7bb60c20104cadf4c7ccc512040e63d063c45726bf",
+        "matches_delivery_declared_hash": true
+      },
+      "quad": {
+        "baseline_equals_current": true,
+        "source_fragment_sha256": "87f3db0f338e061dbe9688981be76b46a6e264a18b8e7142b23abbfa9ae06994",
+        "matches_delivery_declared_hash": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "id": "bounded_age_0_or_1",
+      "status": "PASS_STATIC",
+      "observation": "Receipt构造保存原level的gameTime；END计算now-r.tick，age<0或age>1拒绝。0和1通过时龄门，2及以上/未来tick拒绝；START直接返回。原4991→4992在同一level且其他事实成立时不再被原r.tick!=now丢弃。这里只是静态控制流判断，未执行用例。",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 28,
+          "end_line": 35,
+          "excerpt": "        final ServerPlayer player;final LivingEntity main;final ServerLevel level;final long tick;final Vec3 origin,direction;\n        final float health;final List<Contact> contacts=new ArrayList<>();\n        final DamageSource primary;boolean secondary,primaryDamage;\n        Receipt(ServerPlayer p,LivingEntity t,DamageSource source) {\n            player=p;main=t;primary=source;level=p.serverLevel();tick=level.getGameTime();health=t.getHealth();\n            origin=t.position().add(0,Math.min(1.1,t.getBbHeight()*.5),0);\n            double yaw=Math.toRadians(p.getYRot());direction=new Vec3(-Math.sin(yaw),0,Math.cos(yaw));\n        }",
+          "excerpt_sha256": "034cdf73e6bbe2291b75aafb9d656384ebb3998f3a9f719a4212d0dc32a4d94a"
+        },
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 75,
+          "end_line": 87,
+          "excerpt": "    @SubscribeEvent public static void tick(TickEvent.ServerTickEvent e) {\n        if(e.phase!=TickEvent.Phase.END)return;\n        STARTS.clear();\n        for(var it=PENDING.iterator();it.hasNext();) {\n            var r=it.next();it.remove();var p=r.player;long now=p.serverLevel().getGameTime();\n            // Native C2S damage may precede the next END by one world tick.\n            long age=now-r.tick;\n            if(age<0||age>1||!p.isAlive()||p.isRemoved()||p.serverLevel()!=r.level||r.main.level()!=r.level\n                    ||!(r.secondary||r.primaryDamage&&r.main.getHealth()<r.health))continue;\n            var n=p.getPersistentData();if(n.contains(STAMP)&&n.getLong(STAMP)==now)continue;n.putLong(STAMP,now);\n            var packet=packet(p.serverLevel().dimension().location().toString(),p.getId(),now,r.origin,r.direction);\n            DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(r.origin.x,r.origin.y,r.origin.z,32,p.serverLevel().dimension())),packet);\n        }",
+          "excerpt_sha256": "946e14c31e5e90f8af9d0a1ca0cbdf7e9c8be73c12ccb8abf76cc6f22bc68033"
+        }
+      ]
+    },
+    {
+      "id": "original_serverlevel_object_binding",
+      "status": "PASS_STATIC",
+      "observation": "Receipt保存ServerLevel对象身份。END要求p.serverLevel()==r.level且r.main.level()==r.level，玩家/目标/两者一起换世界都拒绝；即使dimension key相同的其他ServerLevel实例也拒绝。now在取当前level后才算，但能发送的记录必先通过原level身份比较，故接受路径的时钟仍是原level。没有把同维度字符串当对象绑定。",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 28,
+          "end_line": 35,
+          "excerpt": "        final ServerPlayer player;final LivingEntity main;final ServerLevel level;final long tick;final Vec3 origin,direction;\n        final float health;final List<Contact> contacts=new ArrayList<>();\n        final DamageSource primary;boolean secondary,primaryDamage;\n        Receipt(ServerPlayer p,LivingEntity t,DamageSource source) {\n            player=p;main=t;primary=source;level=p.serverLevel();tick=level.getGameTime();health=t.getHealth();\n            origin=t.position().add(0,Math.min(1.1,t.getBbHeight()*.5),0);\n            double yaw=Math.toRadians(p.getYRot());direction=new Vec3(-Math.sin(yaw),0,Math.cos(yaw));\n        }",
+          "excerpt_sha256": "034cdf73e6bbe2291b75aafb9d656384ebb3998f3a9f719a4212d0dc32a4d94a"
+        },
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 79,
+          "end_line": 86,
+          "excerpt": "            var r=it.next();it.remove();var p=r.player;long now=p.serverLevel().getGameTime();\n            // Native C2S damage may precede the next END by one world tick.\n            long age=now-r.tick;\n            if(age<0||age>1||!p.isAlive()||p.isRemoved()||p.serverLevel()!=r.level||r.main.level()!=r.level\n                    ||!(r.secondary||r.primaryDamage&&r.main.getHealth()<r.health))continue;\n            var n=p.getPersistentData();if(n.contains(STAMP)&&n.getLong(STAMP)==now)continue;n.putLong(STAMP,now);\n            var packet=packet(p.serverLevel().dimension().location().toString(),p.getId(),now,r.origin,r.direction);\n            DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(r.origin.x,r.origin.y,r.origin.z,32,p.serverLevel().dimension())),packet);",
+          "excerpt_sha256": "40a00f7d58d26742cc7420a2df8e2fea1516036032e1b8bb069a69ca04932db9"
+        }
+      ]
+    },
+    {
+      "id": "damage_evidence_preserved",
+      "status": "PASS_STATIC",
+      "observation": "begin要求原生AttackEntityEvent准备、同世界活主目标、PLAYER_ATTACK、直接/归属均是玩家、非synthetic/spell/dragon/solar、已观察primary与武器快照。secondary只在ACTIVE期间记录非主目标/非玩家的非取消、有限正amount、MOB_ATTACK且来源匹配的伤害事件，finish在原hurt返回后要求contact健康下降。primary要求主目标和DamageSource对象身份匹配、PLAYER_ATTACK、真实有限正amount事件，并在END确认主目标比begin快照低血。是secondary OR (primaryDamage AND health下降)，不把damage事件或准备态本身当cue。",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 37,
+          "end_line": 74,
+          "excerpt": "    public static Receipt begin(LivingEntity attacker,LivingEntity main,DamageSource source) {\n        if(!(attacker instanceof ServerPlayer p)||main.level()!=p.level()||!main.isAlive()\n                ||!source.is(DamageTypes.PLAYER_ATTACK)||!real(source,1,p)\n                ||DynastyTrinketOnHit.isSyntheticDamage()||!DynastySchoolCombat.observedPrimary(p,main)\n                ||!\"halberd_fangtian\".equals(DynastyTrinkets.idOf(DynastySchoolCombat.primaryStack(p,main))))return null;\n        boolean nativeAttack=STARTS.removeIf(s->s.player==p&&s.main==main&&s.tick==p.serverLevel().getGameTime());\n        if(!nativeAttack)return null;\n        var r=new Receipt(p,main,source);ACTIVE.set(r);return r;\n    }\n    @SubscribeEvent(priority=EventPriority.LOWEST)\n    public static void attack(net.minecraftforge.event.entity.player.AttackEntityEvent e) {\n        if(e.isCanceled()||!(e.getEntity() instanceof ServerPlayer p)||!(e.getTarget() instanceof LivingEntity main)\n                ||!\"halberd_fangtian\".equals(DynastyTrinkets.idOf(p.getMainHandItem())))return;\n        STARTS.removeIf(s->s.player==p);if(STARTS.size()>=32)STARTS.remove(0);\n        STARTS.add(new Start(p,main,p.serverLevel().getGameTime()));\n    }\n    public static void finish(Receipt r) {\n        if(r==null)return;\n        ACTIVE.remove();\n        // The original hurt calls have returned: a canceled/zero final event cannot fake contact.\n        r.secondary=r.contacts.stream().anyMatch(c->c.target.getHealth()<c.health);\n        if(PENDING.size()>=32)PENDING.remove(0);PENDING.add(r);\n    }\n    private static boolean real(DamageSource s,float amount,ServerPlayer p) {\n        return amount>0&&Float.isFinite(amount)&&s.getEntity()==p&&s.getDirectEntity()==p\n                &&!DynastyTrinketOnHit.isSyntheticDamage()&&!EdictSpells.isSpell(s)\n                &&!QinglongDescent.isDragonDamage(s)&&!DynastyBowRitual.isSolarDamage(s);\n    }\n    @SubscribeEvent(priority=EventPriority.LOWEST)\n    public static void damage(LivingDamageEvent e) {\n        if(e.isCanceled())return;\n        var active=ACTIVE.get();\n        if(active!=null&&e.getEntity()!=active.main&&e.getEntity()!=active.player&&e.getSource().is(DamageTypes.MOB_ATTACK)\n                &&real(e.getSource(),e.getAmount(),active.player)&&active.contacts.size()<64)\n            active.contacts.add(new Contact(e.getEntity(),e.getEntity().getHealth()));\n        for(var r:PENDING)if(r.main==e.getEntity()&&r.primary==e.getSource()&&real(e.getSource(),e.getAmount(),r.player)\n                &&e.getSource().is(DamageTypes.PLAYER_ATTACK))r.primaryDamage=true;\n    }",
+          "excerpt_sha256": "860ce640beb084d197eaedcd8df9521a6bcc3394012bc0ca19e0dc10b08d25dc"
+        },
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 82,
+          "end_line": 83,
+          "excerpt": "            if(age<0||age>1||!p.isAlive()||p.isRemoved()||p.serverLevel()!=r.level||r.main.level()!=r.level\n                    ||!(r.secondary||r.primaryDamage&&r.main.getHealth()<r.health))continue;",
+          "excerpt_sha256": "94cca140ec2d8793823f81c60ace0aeb222e91e74f8ce180d1f4f37339f8ab18"
+        }
+      ]
+    },
+    {
+      "id": "end_remove_before_validation",
+      "status": "PASS_STATIC",
+      "observation": "END中it.next后立即it.remove，随后才检时龄/世界/玩家/伤害/STAMP/发送。通过或拒绝都不会留在PENDING等待下个END重播；STARTS在END清空。stopped清理ACTIVE/PENDING/STARTS。声明只涉及队列一次消费，不承诺网络送达exactly-once。",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 75,
+          "end_line": 89,
+          "excerpt": "    @SubscribeEvent public static void tick(TickEvent.ServerTickEvent e) {\n        if(e.phase!=TickEvent.Phase.END)return;\n        STARTS.clear();\n        for(var it=PENDING.iterator();it.hasNext();) {\n            var r=it.next();it.remove();var p=r.player;long now=p.serverLevel().getGameTime();\n            // Native C2S damage may precede the next END by one world tick.\n            long age=now-r.tick;\n            if(age<0||age>1||!p.isAlive()||p.isRemoved()||p.serverLevel()!=r.level||r.main.level()!=r.level\n                    ||!(r.secondary||r.primaryDamage&&r.main.getHealth()<r.health))continue;\n            var n=p.getPersistentData();if(n.contains(STAMP)&&n.getLong(STAMP)==now)continue;n.putLong(STAMP,now);\n            var packet=packet(p.serverLevel().dimension().location().toString(),p.getId(),now,r.origin,r.direction);\n            DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(r.origin.x,r.origin.y,r.origin.z,32,p.serverLevel().dimension())),packet);\n        }\n    }\n    @SubscribeEvent public static void stopped(net.minecraftforge.event.server.ServerStoppedEvent e){ACTIVE.remove();PENDING.clear();STARTS.clear();}",
+          "excerpt_sha256": "fc5504d5cc93cbc8c9af660f705bd71083dc061768004e1cfba58d146cbaee54"
+        }
+      ]
+    },
+    {
+      "id": "per_player_per_settlement_tick_dedup",
+      "status": "PASS_STATIC",
+      "observation": "STAMP为每玩家persistent data；存在且等于当前消费tick才拒绝，默认time0无STAMP不误拒绝。写STAMP在send前，不同玩家独立；同一玩家多个有效回执合并为每结算tick最多一cue。包start仍用消费now，origin/direction是begin快照，不回读换手物品或当前目标位置。",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 20,
+          "end_line": 20,
+          "excerpt": "    public static final String CUE=\"equipment_confirmed_fangtian_sweep\",STAMP=\"cod3_confirmed_sweep_at\";",
+          "excerpt_sha256": "56e87f455217f7f640c92562f6c35c67190335ac7b93115e3e96d9ee35c183bf"
+        },
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 31,
+          "end_line": 35,
+          "excerpt": "        Receipt(ServerPlayer p,LivingEntity t,DamageSource source) {\n            player=p;main=t;primary=source;level=p.serverLevel();tick=level.getGameTime();health=t.getHealth();\n            origin=t.position().add(0,Math.min(1.1,t.getBbHeight()*.5),0);\n            double yaw=Math.toRadians(p.getYRot());direction=new Vec3(-Math.sin(yaw),0,Math.cos(yaw));\n        }",
+          "excerpt_sha256": "6ed022e13f4068b3b767c9f88b1b29f928036d58a59795516486d6532823d685"
+        },
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 84,
+          "end_line": 86,
+          "excerpt": "            var n=p.getPersistentData();if(n.contains(STAMP)&&n.getLong(STAMP)==now)continue;n.putLong(STAMP,now);\n            var packet=packet(p.serverLevel().dimension().location().toString(),p.getId(),now,r.origin,r.direction);\n            DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(r.origin.x,r.origin.y,r.origin.z,32,p.serverLevel().dimension())),packet);",
+          "excerpt_sha256": "5298014a0e279f68dde239f425e5861a92c2fd4c43aeb78283f5354f38eff471"
+        }
+      ]
+    },
+    {
+      "id": "no_damage_or_vfx_body_changes",
+      "status": "PASS_STATIC",
+      "observation": "相对哈希核实的原baseline，diff只有ServerLevel import/Receipt.level与构造赋值/END age和原level守卫及注释。begin/attack/finish/real/damage/stopped/packet/accepts/geometry/at/quad这11段源码片段逐字相同，全部哈希等于交付声明。包常量、半径32、几何/颜色/时长、专用cue以及现有伤害证据逻辑未变；未新增hurt/push等攻击或位移调用。结论是本文件diff范围内代码未变，不是假定运行画面已验收。",
+      "evidence": [
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 17,
+          "end_line": 35,
+          "excerpt": "/** Cosmetic receipt for the existing 360-degree sweep. Never damages or moves an entity. */\n@Mod.EventBusSubscriber(modid=Dynasty.MODID)\npublic final class FangtianSweep {\n    public static final String CUE=\"equipment_confirmed_fangtian_sweep\",STAMP=\"cod3_confirmed_sweep_at\";\n    public static final int DURATION=6;\n    private static final ThreadLocal<Receipt> ACTIVE=new ThreadLocal<>();\n    private static final List<Receipt> PENDING=new ArrayList<>();\n    private record Start(ServerPlayer player,LivingEntity main,long tick) {}\n    private static final List<Start> STARTS=new ArrayList<>();\n    private record Contact(LivingEntity target,float health) {}\n    public static final class Receipt {\n        final ServerPlayer player;final LivingEntity main;final ServerLevel level;final long tick;final Vec3 origin,direction;\n        final float health;final List<Contact> contacts=new ArrayList<>();\n        final DamageSource primary;boolean secondary,primaryDamage;\n        Receipt(ServerPlayer p,LivingEntity t,DamageSource source) {\n            player=p;main=t;primary=source;level=p.serverLevel();tick=level.getGameTime();health=t.getHealth();\n            origin=t.position().add(0,Math.min(1.1,t.getBbHeight()*.5),0);\n            double yaw=Math.toRadians(p.getYRot());direction=new Vec3(-Math.sin(yaw),0,Math.cos(yaw));\n        }",
+          "excerpt_sha256": "a4b6a40f5b4521cc14c2c513999cf103d8509bff0489688d1678b9d04f4e4000"
+        },
+        {
+          "path": "src/main/java/com/dynasty/cod3/FangtianSweep.java",
+          "source_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+          "line": 75,
+          "end_line": 118,
+          "excerpt": "    @SubscribeEvent public static void tick(TickEvent.ServerTickEvent e) {\n        if(e.phase!=TickEvent.Phase.END)return;\n        STARTS.clear();\n        for(var it=PENDING.iterator();it.hasNext();) {\n            var r=it.next();it.remove();var p=r.player;long now=p.serverLevel().getGameTime();\n            // Native C2S damage may precede the next END by one world tick.\n            long age=now-r.tick;\n            if(age<0||age>1||!p.isAlive()||p.isRemoved()||p.serverLevel()!=r.level||r.main.level()!=r.level\n                    ||!(r.secondary||r.primaryDamage&&r.main.getHealth()<r.health))continue;\n            var n=p.getPersistentData();if(n.contains(STAMP)&&n.getLong(STAMP)==now)continue;n.putLong(STAMP,now);\n            var packet=packet(p.serverLevel().dimension().location().toString(),p.getId(),now,r.origin,r.direction);\n            DynastyNetwork.CHANNEL.send(PacketDistributor.NEAR.with(()->new PacketDistributor.TargetPoint(r.origin.x,r.origin.y,r.origin.z,32,p.serverLevel().dimension())),packet);\n        }\n    }\n    @SubscribeEvent public static void stopped(net.minecraftforge.event.server.ServerStoppedEvent e){ACTIVE.remove();PENDING.clear();STARTS.clear();}\n    public static Cod3VisualPacket packet(String dim,int actor,long start,Vec3 origin,Vec3 direction) {\n        return new Cod3VisualPacket(dim,2,actor,0,start,DURATION,1,origin,TangWind.horizontal(direction,Vec3.ZERO),CUE,0,0x91B6B7);\n    }\n    public static boolean accepts(Cod3VisualPacket p) {\n        return p!=null&&p.valid()&&CUE.equals(p.sequence())&&p.template()==2&&p.entityId()>=0\n                &&p.duration()==DURATION&&p.scale()==1&&p.tick()==0&&p.tint()==0x91B6B7\n                &&Math.abs(p.direction().y)<1e-6&&Math.abs(p.direction().lengthSqr()-1)<1e-6;\n    }\n    /** Faceted contact ornament, not a depiction of the original box's exact damage boundary. */\n    public static List<WeaponImpactVisual.Triangle> geometry(Cod3VisualPacket p,double age) {\n        if(!accepts(p)||!Double.isFinite(age)||age<0||age>=DURATION)return List.of();\n        var out=new ArrayList<WeaponImpactVisual.Triangle>();double alpha=.8*(1-age/DURATION);\n        double heading=Math.atan2(p.direction().x,p.direction().z),step=Math.PI/6,phase=heading+age/DURATION*Math.PI*2;\n        for(int i=0;i<12;i++) {\n            double a=heading+i*step,b=a+step;\n            quad(out,at(p,a,1.27,-.035),at(p,a,1.31,.035),at(p,b,1.31,.035),at(p,b,1.27,-.035),0x647F83,alpha*.65);\n        }\n        for(int i=0;i<6;i++) {\n            double a=phase+(i-3)*step,b=a+step,width=.025+.105*(1-Math.abs((i-2.5)/3));\n            quad(out,at(p,a,1.15-width,0),at(p,a,1.15+width,0),at(p,b,1.15+width,0),at(p,b,1.15-width,0),p.tint(),alpha);\n            quad(out,at(p,a,1.15,-width*.55),at(p,a,1.15,width*.55),at(p,b,1.15,width*.55),at(p,b,1.15,-width*.55),p.tint(),alpha);\n        }\n        return List.copyOf(out);\n    }\n    private static Vec3 at(Cod3VisualPacket p,double angle,double radius,double y){return p.origin().add(Math.sin(angle)*radius,y,Math.cos(angle)*radius);}\n    private static void quad(List<WeaponImpactVisual.Triangle> out,Vec3 a,Vec3 b,Vec3 c,Vec3 d,int color,double alpha) {\n        out.add(new WeaponImpactVisual.Triangle(a,b,c,color,alpha));out.add(new WeaponImpactVisual.Triangle(a,c,d,color,alpha));\n    }\n    private FangtianSweep() {}",
+          "excerpt_sha256": "81b45e4d97c452077c93db2234bc838357a8b07716d1bcd929ad94655b85c127"
+        }
+      ]
+    }
+  ],
+  "blocking_findings": [],
+  "preserved_boundaries_and_limits": [
+    {
+      "id": "primary_health_evidence_is_end_net_delta",
+      "introduced_by_fix": false,
+      "line": 72,
+      "end_line": 83,
+      "observation": "primaryDamage是相同DamageSource事件观察位，health下降在END读取净值，不是hurt返回后的独立已提交正损血快照。先损血后治回原值可拒绝；观察位置真后另一次伤害也可改变END净值。当前修复保留原证据策略，只扩时龄，不据此宣称任意嵌套/后续取消/其他mod事件组合下因果归属已证明。",
+      "recommendation": "集中QA保留取消/零伤害负例并记录真实伤害事实与produced/END时钟；如评估更强因果快照，应另立具体问题，不把本次静态通过当作覆盖。"
+    },
+    {
+      "id": "level_binding_checked_at_consume",
+      "introduced_by_fix": false,
+      "line": 82,
+      "end_line": 83,
+      "observation": "对象绑定在END检查当前身份；换出再换回原实例的历史不可从当前相等性判定。主目标致死不要求isAlive，允许已完成致死攻击回执；玩家则必须活且未移除。",
+      "recommendation": "按原世界实例当前绑定口径验收，不宣称拦截全部曾发生的短暂换维历史。"
+    },
+    {
+      "id": "queue_attempt_not_network_ack",
+      "introduced_by_fix": false,
+      "line": 79,
+      "end_line": 86,
+      "observation": "先移出且先写STAMP再send，是本地最多一次尝试；send异常或未接收不会自动重试。PENDING/STARTS上限32、contact上限64均是原有有界丢弃策略。",
+      "recommendation": "集中run另外验证实际发送/双端接收与显示；不把队列移除等同真实客户端接收。"
+    },
+    {
+      "id": "settlement_tick_coalescing",
+      "introduced_by_fix": false,
+      "line": 84,
+      "end_line": 86,
+      "observation": "去重单位是玩家+消费tick，非每一次原生攻击序号。两个可接受的producedTick在同一个END可能合并为一个cue，原设计每结算tick最多一条没有改变。",
+      "recommendation": "验收注明合并口径，不能由单包反推全部攻击逐一发送。"
+    }
+  ],
+  "offline_evidence_read_only": {
+    "boundary_receipt_status": "PASS",
+    "fixed_existing_pass_lines": 55,
+    "fixture_sha256_matches_receipt": true,
+    "fixed_fixture_production_sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+    "before_log_first_failure": "native4991_to_END4992",
+    "logs_and_fixture_read_not_rerun": true,
+    "fixture_range": {
+      "path": "tools/cod4/sweep-receipt-research/.work/receipt-fix/boundaries-02/fixtures/com/dynasty/cod3/ReceiptBoundaryTest.java",
+      "line": 8,
+      "end_line": 44
+    },
+    "limitations": "API替身日志支持控制流；不证明真实Forge顺序、TCP、reobf集成或像素。编译成功记录仅引用交付既有证据，本岗未编译。"
+  },
+  "delivery_file_hashes": [
+    {
+      "path": "tools/cod4/sweep-receipt-research/delivery/README.txt",
+      "sha256": "696206b9ffaf823f13ea352e7db9765d7e5bca0ed5645a97884ef6734ae5db76",
+      "matches_declared": true
+    },
+    {
+      "path": "tools/cod4/sweep-receipt-research/delivery/official-mapped/classes/com/dynasty/cod3/FangtianSweep$Contact.class",
+      "sha256": "06301e88a76ef8042a45d00ac1387ea47dce7b170544fb1ec4f3f30721552464",
+      "matches_declared": true
+    },
+    {
+      "path": "tools/cod4/sweep-receipt-research/delivery/official-mapped/classes/com/dynasty/cod3/FangtianSweep$Receipt.class",
+      "sha256": "ed1c6c15ef6bd7dc2a9134a785f9c91f4ae2151145cc3c86832743fe51402baf",
+      "matches_declared": true
+    },
+    {
+      "path": "tools/cod4/sweep-receipt-research/delivery/official-mapped/classes/com/dynasty/cod3/FangtianSweep$Start.class",
+      "sha256": "ebbb49dffd274edbd33cfad84f5decfd75d3a71f5baa6482548d78af1ad97447",
+      "matches_declared": true
+    },
+    {
+      "path": "tools/cod4/sweep-receipt-research/delivery/official-mapped/classes/com/dynasty/cod3/FangtianSweep.class",
+      "sha256": "5846561d18c4a1bf170d11e7773bcdbcb856af48289c7234e3ba3a154b112bd6",
+      "matches_declared": true
+    },
+    {
+      "path": "tools/cod4/sweep-receipt-research/delivery/source/com/dynasty/cod3/FangtianSweep.java",
+      "sha256": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+      "matches_declared": true
+    }
+  ],
+  "call_chain_support": [
+    {
+      "path": "src/main/java/com/dynasty/DynastyCombatEvents.java",
+      "source_sha256": "7a19c2dd17db4a59134ae3deac7801d2b1ee540e2591e03038a64ed3af0d5058",
+      "line": 192,
+      "end_line": 204,
+      "excerpt": "    /** 方天画戟横扫：对主目标周围的敌人造成额外伤害 / Fangtian halberd sweep */\n    private static void sweep(LivingEntity attacker, LivingEntity main, float damage, net.minecraft.world.damagesource.DamageSource visualSource) {\n        if(SWEEP.get() || DynastyTrinketOnHit.isSyntheticDamage())return;\n        SWEEP.set(true);\n        var sweepVisual=com.dynasty.cod3.FangtianSweep.begin(attacker,main,visualSource);\n        try {\n        for (LivingEntity nearby : attacker.level().getEntitiesOfClass(LivingEntity.class,\n                main.getBoundingBox().inflate(3.0D),\n                e -> e != attacker && e != main && e.isAlive() && !attacker.isAlliedTo(e) && !e.isAlliedTo(attacker) && attacker.hasLineOfSight(e))) {\n            nearby.hurt(attacker.damageSources().mobAttack(attacker), damage);\n        }\n        } finally { SWEEP.remove(); com.dynasty.cod3.FangtianSweep.finish(sweepVisual); }\n    }",
+      "excerpt_sha256": "9486a4ee43890219f0e200541a0d54ffed9cdd061492f7c1dde5b2122e9bf7b4"
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastySchoolCombat.java",
+      "source_sha256": "215b82470886b369b644374baf03412525b548d1bbb8303bdf24b4742d5d9187",
+      "line": 113,
+      "end_line": 117,
+      "excerpt": "    /** Existing pre-attack context also supplies immutable, source-correct presentation. */\n    public static boolean observedPrimary(Player p,LivingEntity target){\n        var s=STATES.get(p.getUUID());return s!=null&&s.attackTick==now(p)&&target.getUUID().equals(s.primaryTarget);\n    }\n    public static ItemStack primaryStack(Player p,LivingEntity target){var s=STATES.get(p.getUUID());return observedPrimary(p,target)?s.primaryStack.copy():ItemStack.EMPTY;}",
+      "excerpt_sha256": "5fd9c4542706d5bc3985433b0ae581d299ef76ecf93c757d1f051bb466ef405a"
+    }
+  ],
+  "native_acceptance_remaining": [
+    "由主协调集中集成/reobf当前冻结源码，仅精确四类，不能直接注入official-mapped交付class",
+    "真实C2S产生tick4991/END4992或等价跨1tick，专用cue与既有mesh_weapon残影共存",
+    "有效主/次伤害、取消/零伤害负例、过期和原level绑定、同一END去重需实测；画面和联网仍单独验收"
+  ],
+  "input_sha256": {
+    "src/main/java/com/dynasty/cod3/FangtianSweep.java": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+    "tools/cod4/sweep-receipt-research/.work/receipt-fix/FangtianSweep.before.java": "75a74c10ebc2f3c0075c056a54c071fbd9583630be749ec5ff27520e7f254977",
+    "docs/cod4/audit-20261022/sweep-receipt-research/fix-baseline.json": "df43eed49578213a35a769cffcd369c08042b28130150dc530ddff705d674abc",
+    "docs/cod4/audit-20261022/sweep-receipt-research/fix-delivery-receipt.json": "b48183986e4495aae83d9e352594029ee716f289dd7354eba407a1d3420b23ad",
+    "docs/cod4/audit-20261022/sweep-receipt-research/offline-boundary-receipt.json": "d842d3bf1620e12ee5651dc38722040580acd6b849b638803f8f2104bb0bc3c7",
+    "docs/cod4/audit-20261022/sweep-receipt-research/offline-compile-receipt.json": "63004fdb409cb09476fcb46e41937582761d629c5ce933dcaa8e47b156c8a1e3",
+    "tools/cod4/sweep-receipt-research/.work/receipt-fix/boundaries-02/fixtures/com/dynasty/cod3/ReceiptBoundaryTest.java": "81874abd3d3f7905b07c30ad27d55f5d334d9387e981f74c18b00acc7a4b59f6",
+    "tools/cod4/sweep-receipt-research/.work/receipt-fix/boundaries-02/fixed-run.log": "1ed6ba68c17fd769a86c9d1da19998d4eb78aa784751ccb3513b94e57a6565d5",
+    "tools/cod4/sweep-receipt-research/.work/receipt-fix/boundaries-02/before-run.log": "7affc33024ea32765e0fb949591d3c5f9d13f6b243721dbe0da36243c82f8e87",
+    "src/main/java/com/dynasty/DynastyCombatEvents.java": "7a19c2dd17db4a59134ae3deac7801d2b1ee540e2591e03038a64ed3af0d5058",
+    "src/main/java/com/dynasty/DynastySchoolCombat.java": "215b82470886b369b644374baf03412525b548d1bbb8303bdf24b4742d5d9187"
+  },
+  "conclusion": "指定静态范围未发现本次修复引入的确定阻断。0/1tick龄、原ServerLevel实例绑定、有效伤害原策略、END先移出与STAMP合并、无伤害/几何代码变更均可核对；仅源码审查通过，不宣称原生验收完成。"
+}

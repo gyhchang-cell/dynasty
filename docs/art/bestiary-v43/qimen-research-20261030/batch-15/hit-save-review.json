@@ -1,0 +1,441 @@
+{
+  "saved_utc": "2026-10-31T02:09:48.190464+00:00",
+  "status": "SAVED_EXISTING_IE_PROJECTILE_NATIVE_HIT_SAVE_AND_UNITS_CONSUMERS",
+  "source_family": "既有IE Chemthrower/Projectile共用链，不新增机制家族",
+  "sources": [
+    {
+      "id": "AbstractArrow",
+      "local": "../batch-08/native/forge-47.3.0/reading-view/net/minecraft/world/entity/projectile/AbstractArrow.java",
+      "sha256": "6c8f02c223eb9b4de5d9f5da0bff61422dcfe24a4ce72898b9683b57a95c5988",
+      "reviewed_ranges": [
+        [
+          123,
+          286
+        ],
+        [
+          308,
+          510
+        ]
+      ],
+      "version": "Minecraft1.20.1+Forge47.3.0 exact reconstruction B8"
+    },
+    {
+      "id": "Projectile",
+      "local": "../batch-08/native/forge-47.3.0/reading-view/net/minecraft/world/entity/projectile/Projectile.java",
+      "sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+      "reviewed_ranges": [
+        [
+          26,
+          105
+        ]
+      ],
+      "version": "Minecraft1.20.1+Forge47.3.0 exact reconstruction B8"
+    },
+    {
+      "id": "Entity",
+      "local": "../batch-09/native/forge-47.3.0/reading_view/net/minecraft/world/entity/Entity.java",
+      "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "reviewed_ranges": [
+        [
+          421,
+          485
+        ],
+        [
+          533,
+          554
+        ],
+        [
+          1568,
+          1752
+        ],
+        [
+          3415,
+          3431
+        ]
+      ],
+      "version": "Minecraft1.20.1+Forge47.3.0 exact reconstruction B9"
+    },
+    {
+      "id": "ForgeEventFactory",
+      "local": "../batch-08/framework-sources/forge-47.3.0/net/minecraftforge/event/ForgeEventFactory.java",
+      "sha256": "107bddda4c0a330411342ad7d110847093ab7b354f07f9c53837130b0e45bc33",
+      "reviewed_ranges": [
+        [
+          664,
+          688
+        ]
+      ],
+      "version": "Forge47.3.0 official sources"
+    },
+    {
+      "id": "IEProjectileEntity",
+      "local": "../sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/entities/IEProjectileEntity.java",
+      "sha256": "83ae88b1921e492bdc9b3b75a22c9a0a67fbd764a45c797a232100d6f65637f8",
+      "reviewed_ranges": [
+        [
+          34,
+          134
+        ],
+        [
+          137,
+          219
+        ],
+        [
+          248,
+          313
+        ]
+      ],
+      "version": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "fixed_url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/entities/IEProjectileEntity.java"
+    },
+    {
+      "id": "ChemthrowerShotEntity",
+      "local": "../batch-04/sources/BluSunrize__ImmersiveEngineering/src/main/java/blusunrize/immersiveengineering/common/entities/ChemthrowerShotEntity.java",
+      "sha256": "ed81b89a315577a4f8afb8e38493dc729d7b5d503a6d2d827e14d0f6da34bfc9",
+      "reviewed_ranges": [
+        [
+          34,
+          180
+        ]
+      ],
+      "version": "e63e4824800945eccf3684200a2c2270e2e1cdf2",
+      "repo": "BluSunrize/ImmersiveEngineering",
+      "fixed_url": "https://github.com/BluSunrize/ImmersiveEngineering/blob/e63e4824800945eccf3684200a2c2270e2e1cdf2/src/main/java/blusunrize/immersiveengineering/common/entities/ChemthrowerShotEntity.java"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "L01",
+      "finding": "IE tick期限达到时discard后仍调用super；精确Forge AbstractArrow的碰撞while条件为!isRemoved，并在循环后再检查removed立即return。IE补充方块检测也要求!removed。",
+      "sources": [
+        {
+          "source": "IEProjectileEntity",
+          "ranges": [
+            [
+              141,
+              179
+            ]
+          ]
+        },
+        {
+          "source": "AbstractArrow",
+          "ranges": [
+            [
+              176,
+              225
+            ]
+          ]
+        }
+      ],
+      "limit": "因此不能仅凭没有return宣称到期后仍通过这些路径再次命中。Entity.baseTick等先行副作用仍可能发生；不声称对象此刻完全停止一切代码。",
+      "credit_added": 0
+    },
+    {
+      "id": "L02",
+      "finding": "Forge原生箭impact分支区分SKIP_ENTITY、STOP_AT_CURRENT_NO_DAMAGE、STOP_AT_CURRENT和DEFAULT；IE补充方块检查却用旧布尔包装，任何非DEFAULT都被当作不继续。",
+      "sources": [
+        {
+          "source": "AbstractArrow",
+          "ranges": [
+            [
+              182,
+              220
+            ]
+          ]
+        },
+        {
+          "source": "ForgeEventFactory",
+          "ranges": [
+            [
+              672,
+              685
+            ]
+          ]
+        },
+        {
+          "source": "IEProjectileEntity",
+          "ranges": [
+            [
+              169,
+              178
+            ]
+          ]
+        }
+      ],
+      "limit": "这是两处调用对同一返回值的不同解释，不能用DEFAULT单一路径代表所有事件监听器；没有运行事件。",
+      "credit_added": 0
+    },
+    {
+      "id": "L03",
+      "finding": "ChemthrowerShot覆写onHit，没调super.onHit/onHitEntity/onHitBlock。原版箭的中箭计数、失败反向、常规命中discard不由此入口自动执行；但它仍经过原生tick的碰撞搜索。",
+      "sources": [
+        {
+          "source": "ChemthrowerShotEntity",
+          "ranges": [
+            [
+              125,
+              165
+            ]
+          ]
+        },
+        {
+          "source": "AbstractArrow",
+          "ranges": [
+            [
+              176,
+              220
+            ],
+            [
+              308,
+              430
+            ],
+            [
+              444,
+              450
+            ]
+          ]
+        }
+      ],
+      "limit": "没有把“覆写onHit”当作完全绕过碰撞过滤、PvP或Forge impact事件；具体效果回调可自行移除。",
+      "credit_added": 0
+    },
+    {
+      "id": "L04",
+      "finding": "原版tick先按delta移动到本tick末端；IE随后从当前position向position+旧delta再clip方块。它不是在相同起点重查原来的线段。",
+      "sources": [
+        {
+          "source": "AbstractArrow",
+          "ranges": [
+            [
+              225,
+              266
+            ]
+          ]
+        },
+        {
+          "source": "IEProjectileEntity",
+          "ranges": [
+            [
+              152,
+              178
+            ]
+          ]
+        }
+      ],
+      "limit": "无碰撞改速/网络纠偏的特例下两次线段是p→p+delta和p+delta→p+2delta；这是静态几何推演，不宣称已测出实际提前命中距离。",
+      "credit_added": 0
+    },
+    {
+      "id": "L05",
+      "finding": "IE在super前保存delta、临时forceNoGravity=true，super后若未inGround用旧delta算衰减与自定义重力，重新写速度。原版super的移动仍会发生，不能把super整个视作无效。",
+      "sources": [
+        {
+          "source": "IEProjectileEntity",
+          "ranges": [
+            [
+              152,
+              207
+            ],
+            [
+              249,
+              267
+            ],
+            [
+              308,
+              312
+            ]
+          ]
+        },
+        {
+          "source": "AbstractArrow",
+          "ranges": [
+            [
+              225,
+              266
+            ]
+          ]
+        }
+      ],
+      "limit": "本模型下普通空气的最终存储速度用IE旧delta*decay+自定义重力；外部在super改速可能被覆盖。不要把上一批DualSwords原版箭公式直接推广给IE子类。",
+      "credit_added": 0
+    },
+    {
+      "id": "L06",
+      "finding": "流体实体默认fluid与同步值均EMPTY；现有构造只在新发射时赋流体并同步。该子类没有流体NBT覆写，IE父类只另写Owner，原版箭NBT写life/穿透/落地等不含流体。",
+      "sources": [
+        {
+          "source": "ChemthrowerShotEntity",
+          "ranges": [
+            [
+              38,
+              86
+            ],
+            [
+              105,
+              115
+            ],
+            [
+              125,
+              130
+            ]
+          ]
+        },
+        {
+          "source": "IEProjectileEntity",
+          "ranges": [
+            [
+              269,
+              286
+            ]
+          ]
+        },
+        {
+          "source": "AbstractArrow",
+          "ranges": [
+            [
+              452,
+              489
+            ]
+          ]
+        },
+        {
+          "source": "Projectile",
+          "ranges": [
+            [
+              62,
+              85
+            ]
+          ]
+        }
+      ],
+      "limit": "在正常新建实体+所读NBT读链、没有外部cap/event恢复的前提，服务器重建后仍EMPTY，onHit会直接返回。未打开存档，实际是否被保存/重建仍待验证。",
+      "credit_added": 0
+    },
+    {
+      "id": "L07",
+      "finding": "Entity通用保存只写基础状态、ForgeCaps/ForgeData，再虚调用addAdditionalSaveData；加载还原基础状态再调子类readAdditionalSaveData。SynchedEntityData字段没有自动全量写盘。IE ticksInAir/tickLimit也不在这些覆写中保存。",
+      "sources": [
+        {
+          "source": "Entity",
+          "ranges": [
+            [
+              1598,
+              1662
+            ],
+            [
+              1690,
+              1752
+            ],
+            [
+              3418,
+              3423
+            ]
+          ]
+        },
+        {
+          "source": "IEProjectileEntity",
+          "ranges": [
+            [
+              42,
+              50
+            ],
+            [
+              269,
+              286
+            ]
+          ]
+        },
+        {
+          "source": "ChemthrowerShotEntity",
+          "ranges": [
+            [
+              38,
+              42
+            ],
+            [
+              65,
+              80
+            ]
+          ]
+        }
+      ],
+      "limit": "同步与磁盘恢复必须分开；不能声称剩余40tick预算会原样延续，也不能说所有capability绝不可能补恢复。",
+      "credit_added": 0
+    },
+    {
+      "id": "L08",
+      "finding": "IE父类另存shooterUUID，原生Projectile也保存Owner并在ServerLevel中按UUID懒查实体。加载IE字段后未调用setShooterSynced；客户端tick把同步UUID读入本字段也不调用父setOwner。",
+      "sources": [
+        {
+          "source": "IEProjectileEntity",
+          "ranges": [
+            [
+              112,
+              126
+            ],
+            [
+              149,
+              150
+            ],
+            [
+              269,
+              305
+            ]
+          ]
+        },
+        {
+          "source": "Projectile",
+          "ranges": [
+            [
+              38,
+              85
+            ]
+          ]
+        }
+      ],
+      "limit": "不能用客户端有shooterUUID字段等同getOwner缓存已绑定；服务器UUID解析与客户端同步不是同一种机制。所有外部注册/扩展包未运行。",
+      "credit_added": 0
+    },
+    {
+      "id": "L09",
+      "finding": "Chemthrower取getRemainingFireTicks传给目标setSecondsOnFire。原生方法明确乘20，再应用生物火焰保护并只在更长时更新；因此这里确有ticks→seconds单位放大边界，不只是命名猜测。",
+      "sources": [
+        {
+          "source": "ChemthrowerShotEntity",
+          "ranges": [
+            [
+              154,
+              162
+            ]
+          ]
+        },
+        {
+          "source": "Entity",
+          "ranges": [
+            [
+              533,
+              550
+            ],
+            [
+              449,
+              462
+            ]
+          ]
+        }
+      ],
+      "limit": "例如f=100、无火焰保护且已有时长更小时，会设置2000tick；不是相加2000，也不是实测目标必然燃烧2000tick，水/免疫等仍影响。",
+      "credit_added": 0
+    }
+  ],
+  "new_source_families": 0,
+  "new_accepted_gate_credit": 0,
+  "global_accepted_total": null,
+  "production_changed": false,
+  "java_game_started": false,
+  "pending": [
+    "正常发射/松手/断线/读档/事件组合仍未运行",
+    "实体是否在目标情境被保存及外部恢复扩展未验证",
+    "真实OBJ/MTL/PNG与持物画面继续补读；不把源码方法抵模型贴图参考"
+  ]
+}

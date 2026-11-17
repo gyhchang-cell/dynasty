@@ -1,0 +1,187 @@
+package mekanism.client.gui.item;
+
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import mekanism.api.text.TextComponentUtil;
+import mekanism.client.gui.GuiMekanism;
+import mekanism.client.gui.element.GuiArrowSelection;
+import mekanism.client.gui.element.GuiInnerScreen;
+import mekanism.client.gui.element.button.MekanismImageButton;
+import mekanism.client.gui.element.scroll.GuiScrollBar;
+import mekanism.client.render.MekanismRenderer;
+import mekanism.client.render.MekanismRenderer.FluidTextureType;
+import mekanism.common.Mekanism;
+import mekanism.common.MekanismLang;
+import mekanism.common.inventory.container.item.SeismicReaderContainer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BubbleColumnBlock;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import org.joml.Matrix3x2fStack;
+import org.jspecify.annotations.Nullable;
+
+public class GuiSeismicReader extends GuiMekanism<SeismicReaderContainer> {
+
+    private final List<BlockInfo<?>> blockList = new ArrayList<>();
+    private final Reference2IntMap<Block> blockFrequencies = new Reference2IntOpenHashMap<>();
+    private final Reference2IntMap<FluidResource> fluidFrequencies = new Reference2IntOpenHashMap<>();
+    private final int minHeight;
+    @Nullable
+    private GuiScrollBar scrollBar;
+
+    public GuiSeismicReader(SeismicReaderContainer container, Inventory inv, Component title) {
+        super(container, inv, title, DEFAULT_IMAGE_WIDTH - 26, DEFAULT_IMAGE_HEIGHT + 16);
+        Player player = inv.player;
+        Level level = player.level();
+        this.minHeight = level.getMinY();
+        BlockPos pos = player.blockPosition();
+        //Calculate all the blocks in the column
+        for (BlockPos p : BlockPos.betweenClosed(new BlockPos(pos.getX(), minHeight, pos.getZ()), pos)) {
+            BlockState state = level.getBlockState(p);
+            if (state.isAir()) {//Ensure all types of air are treated as air for calculations
+                state = Blocks.AIR.defaultBlockState();
+            }
+            Block block = state.getBlock();
+            blockFrequencies.mergeInt(block, 1, Integer::sum);
+            //Try to get the clone item stack as maybe it has one, though it might not have a corresponding block
+            ItemStack stack = state.getCloneItemStack(p, level, false, player);
+            if (stack.isEmpty()) {
+                Fluid fluid = Fluids.EMPTY;
+                if (block instanceof LiquidBlock liquidBlock) {
+                    fluid = liquidBlock.fluid;
+                } else if (block instanceof BubbleColumnBlock) {
+                    fluid = level.getFluidState(p).getType();
+                }
+                if (fluid == Fluids.EMPTY) {
+                    blockList.add(new BlockInfo<>(state, state, null));
+                } else {
+                    FluidResource fluidType = FluidResource.of(fluid);
+                    blockList.add(new BlockInfo<>(state, fluidType, (graphics, f, x, y) -> {
+                        TextureAtlasSprite texture = MekanismRenderer.getFluidTexture(f, FluidTextureType.STILL);
+                        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, texture, x, y, 16, 16, MekanismRenderer.color(f));
+                    }));
+                    fluidFrequencies.mergeInt(fluidType, 1, Integer::sum);
+                }
+            } else {
+                blockList.add(new BlockInfo<>(state, stack, GuiGraphicsExtractor::item));
+                FluidState fluid = state.getFluidState();
+                if (!fluid.isEmpty()) {//Take the fluid into account for frequency count
+                    //TODO: Do we want to render the fact that it is fluid logged in some way?
+                    fluidFrequencies.mergeInt(FluidResource.of(fluid.getType()), 1, Integer::sum);
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void addGuiElements() {
+        super.addGuiElements();
+        addRenderableWidget(new GuiInnerScreen(this, 5, 11, 69, 50, () -> {
+            // Get the name from the stack and render it
+            int currentLayer = getCurrentLayer();
+            if (currentLayer >= 0) {
+                List<Component> text = new ArrayList<>(4);
+                BlockInfo<?> blockInfo = blockList.get(currentLayer);
+                BlockState state = blockInfo.state();
+                Block block = state.getBlock();
+                if (!(block instanceof LiquidBlock)) {
+                    //If the block is a liquid, let the fluid handling display and calculate the quantity
+                    //Note: Bubble columns, still get counted so that we display it is a bubble column, and how many there are
+                    //TODO: Do we want to try and make it so that the first few lines of the block's name wraps instead of scrolls
+                    // for very long names like waxed oxidized copper stairs?
+                    text.add(block.getName());
+                    text.add(MekanismLang.ABUNDANCY.translate(blockFrequencies.getInt(block)));
+                }
+                if (blockInfo.type() instanceof FluidResource fluidType) {//TODO: Improve this so it actually displays for fluid logged blocks
+                    text.add(fluidType.getFluidType().getDescription());
+                    text.add(MekanismLang.ABUNDANCY.translate(fluidFrequencies.getInt(fluidType)));
+                }
+                return text;
+            }
+            return Collections.emptyList();
+        }).padding(3));
+        addRenderableWidget(new GuiInnerScreen(this, 77, 11, 51, 160));
+        scrollBar = addRenderableWidget(new GuiScrollBar(this, 129, 25, 132, blockList::size, () -> 1));
+        addRenderableWidget(new GuiArrowSelection(this, 79, 81, () -> TextComponentUtil.build(minHeight + getCurrentLayer())));
+        addRenderableWidget(new MekanismImageButton(this, 129, 11, 14, Mekanism.rl("button/up"), (_, _, _) -> scrollBar.adjustScroll(1)))
+              .setCheckActive(() -> scrollBar.getCurrentSelection() > 0);
+        addRenderableWidget(new MekanismImageButton(this, 129, 157, 14, Mekanism.rl("button/down"), (_, _, _) -> scrollBar.adjustScroll(-1)))
+              .setCheckActive(() -> getCurrentLayer() > 0);
+    }
+
+    private int getCurrentLayer() {
+        int currentSelection = scrollBar == null ? 0 : scrollBar.getCurrentSelection();
+        return blockList.size() - currentSelection - 1;
+    }
+
+    @Override
+    protected void drawForegroundText(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+        //TODO - V11: Eventually instead of just rendering the item stacks, it would be nice to be able to render the actual vertical column of blocks
+        //Render the item stacks or fluids
+        int currentLayer = getCurrentLayer();
+        for (int i = 0; i < 9; i++) {
+            int layer = currentLayer + (i - 4);
+            if (0 <= layer && layer < blockList.size()) {
+                BlockInfo<?> info = blockList.get(layer);
+                if (info.renderTarget == null) {
+                    continue;
+                }
+                int renderX = 95;
+                int renderY = 146 - 16 * i;
+                if (i == 4) {
+                    info.render(guiGraphics, renderX, renderY);
+                } else {
+                    Matrix3x2fStack pose = guiGraphics.pose();
+                    pose.pushMatrix();
+                    pose.translate(renderX, renderY);
+                    if (i < 4) {
+                        pose.translate(1.7F, 2.5F);
+                    } else {
+                        pose.translate(1.5F, 0);
+                    }
+                    pose.scale(0.8F, 0.8F);
+                    info.render(guiGraphics, 0, 0);
+                    pose.popMatrix();
+                }
+            }
+        }
+        super.drawForegroundText(guiGraphics, mouseX, mouseY);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double xDelta, double yDelta) {
+        return super.mouseScrolled(mouseX, mouseY, xDelta, yDelta) || scrollBar != null && scrollBar.adjustScroll(yDelta);
+    }
+
+    private record BlockInfo<TYPE>(BlockState state, TYPE type, @Nullable RenderTarget<TYPE> renderTarget) {
+
+        public void render(GuiGraphicsExtractor guiGraphics, int x, int y) {
+            if (renderTarget != null) {
+                renderTarget.render(guiGraphics, type, x, y);
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface RenderTarget<TYPE> {
+
+        void render(GuiGraphicsExtractor guiGraphics, TYPE type, int x, int y);
+    }
+}

@@ -1,0 +1,128 @@
+package org.cyclops.cyclopscore.capability.fluid;
+
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.INBTSerializable;
+import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.templates.FluidHandlerItemStack;
+import org.cyclops.cyclopscore.Capabilities;
+
+import javax.annotation.Nullable;
+
+/**
+ * An itemfluid handler with a mutable capacity.
+ * @author rubensworks
+ */
+public class FluidHandlerItemCapacity extends FluidHandlerItemStack implements IFluidHandlerItemCapacity, IFluidHandlerMutable, INBTSerializable {
+
+    private final Fluid fluid;
+    private final int capacityDefault;
+
+    /**
+     * @param container The container itemStack, data is stored on it directly as NBT.
+     * @param capacity  The maximum capacity of this fluid tank.
+     */
+    public FluidHandlerItemCapacity(ItemStack container, int capacity) {
+        this(container, capacity, null);
+    }
+
+    /**
+     * @param container The container itemStack, data is stored on it directly as NBT.
+     * @param capacity  The maximum capacity of this fluid tank.
+     * @param fluid     The accepted fluid.
+     */
+    public FluidHandlerItemCapacity(ItemStack container, int capacity, Fluid fluid) {
+        super(container, capacity);
+        this.fluid = fluid;
+        this.capacityDefault = capacity;
+    }
+
+    @Override
+    public boolean canFillFluidType(FluidStack resource) {
+        return fluid == null || resource == null || fluid == resource.getFluid();
+    }
+
+    @Override
+    protected void setFluid(FluidStack fluid) {
+//        super.setFluid(fluid); // We override the implementation completely to avoid NBT saving for empty fluids
+
+        if (fluid != null && !fluid.isEmpty()) {
+            if (!this.container.hasTag()) {
+                this.container.setTag(new CompoundTag());
+            }
+
+            CompoundTag fluidTag = new CompoundTag();
+            fluid.writeToNBT(fluidTag);
+            this.container.getTag().put("Fluid", fluidTag);
+        } else {
+            if (this.container.hasTag()) {
+                this.container.getTag().remove("Fluid");
+            }
+        }
+    }
+
+    @Override
+    public void setCapacity(int capacity) {
+        CompoundTag tag = getContainer().getOrCreateTag();
+        this.capacity = capacity;
+        if (this.getCapacity() != this.capacityDefault) {
+            tag.putInt("capacity", capacity);
+        } else {
+            tag.remove("capacity");
+        }
+    }
+
+    @Override
+    public int getCapacity() {
+        CompoundTag tag = getContainer().getOrCreateTag();
+        return tag.contains("capacity", Tag.TAG_INT) ? tag.getInt("capacity") : this.capacity;
+    }
+
+    @Nullable
+    @Override
+    public FluidStack getFluid() {
+        this.capacity = getCapacity(); // Force overriding protected capacity field as soon as possible.
+        return super.getFluid();
+    }
+
+    @Nullable
+    @Override
+    public <T> LazyOptional<T> getCapability(Capability<T> capability, Direction facing) {
+        return capability == Capabilities.FLUID_HANDLER_ITEM_CAPACITY ? LazyOptional.of(() -> this).cast() : super.getCapability(capability, facing);
+    }
+
+    @Override
+    public void setFluidInTank(int tank, FluidStack fluidStack) {
+        if (tank == 0) {
+            setFluid(fluidStack);
+        }
+    }
+
+    @Override
+    public Tag serializeNBT() {
+        CompoundTag nbt = new CompoundTag();
+        FluidStack fluid = this.getFluid();
+        if (fluid != null && !fluid.isEmpty()) {
+            fluid.writeToNBT(nbt);
+        }
+        if (this.getCapacity() != this.capacityDefault) {
+            nbt.putInt("capacity", this.getCapacity());
+        }
+        return nbt;
+    }
+
+    @Override
+    public void deserializeNBT(Tag nbt) {
+        CompoundTag tags = (CompoundTag) nbt;
+        if (tags.contains("capacity", Tag.TAG_INT)) {
+            this.setCapacity(tags.getInt("capacity"));
+        }
+        FluidStack fluid = FluidStack.loadFluidStackFromNBT(tags);
+        this.setFluid(fluid);
+    }
+}

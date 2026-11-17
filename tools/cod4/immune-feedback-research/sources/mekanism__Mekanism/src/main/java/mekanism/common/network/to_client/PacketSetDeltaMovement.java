@@ -1,0 +1,27 @@
+package mekanism.common.network.to_client;
+
+import io.netty.buffer.ByteBuf;
+import mekanism.common.Mekanism;
+import mekanism.common.network.IMekanismPacket;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+public record PacketSetDeltaMovement(Vec3 deltaMovement) implements IMekanismPacket {
+
+    public static final CustomPacketPayload.Type<PacketSetDeltaMovement> TYPE = new CustomPacketPayload.Type<>(Mekanism.rl("set_delta_movement"));
+    public static final StreamCodec<ByteBuf, PacketSetDeltaMovement> STREAM_CODEC = Vec3.STREAM_CODEC.map(
+          PacketSetDeltaMovement::new, PacketSetDeltaMovement::deltaMovement
+    );
+
+    @Override
+    public CustomPacketPayload.Type<PacketSetDeltaMovement> type() {
+        return TYPE;
+    }
+
+    @Override
+    public void handle(IPayloadContext context) {
+        context.player().lerpMotion(deltaMovement);
+    }
+}

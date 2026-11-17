@@ -1,0 +1,438 @@
+[
+  {
+    "candidate_id": "913f61a3187c629aff1a",
+    "status": "accepted",
+    "family": "halley-accessories-deferred-slot-restore",
+    "trigger": "附件反序列化先暂存 carrier；capability 初始化后恢复，实体 tick 返还 invalidStacks。",
+    "input": "旧大写键、槽类型映射、带槽号物品/外观栈、永久与缓存 modifier。",
+    "output": "按当前实体槽配置恢复；不存在的槽提取其栈送入 invalidStacks；服务端返还玩家或掉落。",
+    "preservation": "decode 不立即访问实体注册表；init 在锁内创建当前槽再调用 read。旧键通过 dfuKeysCarrier 写到新键，容器区分同步 modifier 与持久/缓存 modifier；缓存属性复算。CONTAINERS_KEY 闭包处理失效槽，resize 同时保留可容纳的物品和外观，溢出物品先卸下属性再返还。 Master semantic review: Deferred attachment slot restoration is distinct from Curios or Aether file import; one actual accessories owner chain. Master additionally read full AccessoriesContainerImpl.write. Invalid-stack queue drained without success acknowledgement; old keys overwrite modern keys, shrink starts size-1.",
+    "application_limit": "改键函数若旧键存在会覆盖新键，并不删除旧键。AttributeModifier codec getOrThrow 可中断。闭包缩容遍历从 size-1 开始，可能重复收集末个有效槽；不能照搬。未把附件 copyOnDeath 注册当成永久字段白名单。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "4652985fc0e6b0d47782",
+      "9dd1f4bc5d8db9604d1a",
+      "7905267d76f1fe2076de",
+      "c5dfe7b2c39b83984c89",
+      "34618f7a0a4559c7ae2c",
+      "bc67d54cc6fa9aa15970",
+      "3ae4066ac0baffb7f683",
+      "f930f8c92754a471c268",
+      "2bdb4ffb76a509fb1e61"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-01",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "429cc72479fe0895eaf3",
+    "status": "accepted",
+    "family": "halley-patchouli-manual-quest-disk-progress",
+    "trigger": "客户端启动 setup 读 patchouli_data.json；手动任务按钮修改后 save。",
+    "input": "bookData 按书 Identifier 分组的 completedManualQuests 等数组。",
+    "output": "恢复书内手工完成标记，缺数组为空；每书 serialize 再写完成标记。",
+    "preservation": "PageQuest.isCompleted 对无 trigger 的任务直接查询该持久列表；有 trigger 的任务查询 advancement，不混作同一种进度。BookData 同时读取 history，但 serialize 未写回 history。任一本书的解析异常会冒泡到 setup，将整个文件改成默认值并保存。 Master semantic review: Actual manual quest completion list on disk + toggle + completion consumer, not generic JSON infrastructure. One client-local book progress owner; not server rewards or Clone. Whole-file parse failure overwrites defaults, history omitted from serialize.",
+    "application_limit": "此处只有本机书籍手动勾选，没有服务端 Clone/账号隔离保证，不能把它等同服务器任务奖励或功名。GUI 缩放、书签、history 不单独建议。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "a0e5b07041b40d4b7f44",
+      "3a62bf36db631bff2b72",
+      "c7293046e4a399d0c14a",
+      "c7054139557c4f45fe82",
+      "9d3b703c1a54ad43b765",
+      "1885f8a3db9f286e6485",
+      "31704249e6d3c381b3d6"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-02",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "ee3849b2a1cfa1e320e5",
+    "status": "accepted",
+    "family": "halley-framed-camo-validated-restoration",
+    "trigger": "方块实体从世界 ValueInput 读回；双材质子类追加第二材质。",
+    "input": "camo codec 载荷、overlay、glowing/intangible/reinforced/emissive。",
+    "output": "恢复材料和实体状态；未知/无效 camo 降为空并告警；亮度恢复触发强制光照更新。",
+    "preservation": "loadAndValidateCamo 在 codec 成功后仍执行当前 factory 的合法性校验，针对配置/tag 变化可主动移除旧材料；不是只看 NBT 是否能解码。双材质复用同一校验。 Master semantic review: Camo load validates current content factory after codec, removes invalid formerly paid material. Concrete gameplay state recovery negative example; double-camo and flags together1. Native/codec internals untraced, no safe alias recipe claim.",
+    "application_limit": "此实现主动丢弃无效材料，不提供隔离保留栈，不能作为 Dynasty 丢任务册的安全 fallback；未声称支持未知历史格式。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "8999f854e25001b9eb53",
+      "18ec0aadf65111bd4cfb",
+      "c1b4a1620ed6fd0b702e",
+      "f91f598b061b5cdbc082",
+      "6e1f816e37c343e25276"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-03",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "16fc43d4d41eddad2267",
+    "status": "accepted",
+    "family": "halley-framed-item-frame-held-stack",
+    "trigger": "物品展示框方块从世界持久输入恢复，交互取物或地图 tick 使用。",
+    "input": "OPTIONAL_CODEC 物品栈、rotation 字节、map_tick_offset 整数。",
+    "output": "保存物品组件和数量所需完整 ItemStack，默认空栈；恢复朝向及地图更新相位。",
+    "preservation": "存档恢复 heldItem 与地图 tick 相位，removeItem 使用该真实栈而非重建默认物品。它同时说明并非所有存储字段都是永久进度：mapTickOffset 属派生/调度状态。 Master semantic review: Owned displayed stack restored then actually returned, map marker cleanup before return; unlike generic 27slot wrapper, complete owner-specific consumer read. Rotation/scheduling not permanent progression. give helper untraced so no lossless return guarantee.",
+    "application_limit": "OPTIONAL_CODEC 失败直接为空；不是无损未知格式回收方案。rotation 未见显式加载范围校验。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "ff358f28748f06c94ff1",
+      "428d580a53e72228fc51",
+      "6392502f45e08f49ee9f"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-05",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "a51fe72b271273b7553b",
+    "status": "accepted",
+    "family": "halley-framed-flower-pot-registry-restore",
+    "trigger": "花盆世界存档恢复，拆除掉落与物品组件恢复共用 flowerBlock。",
+    "input": "flower 注册表字符串，物品组件上的花种块值。",
+    "output": "tryParse 后注册表 getValue 解析花种；拆除时生成该块物品。",
+    "preservation": "存档不保存显示名称，使用稳定 registry ID；真正的消费者会把保存的花种变成物品掉落，故区别于纯渲染字段。组件路径另有空值/默认处理。 Master semantic review: Concrete planted flower uses registry ID and actual item drop consumer, distinct owned registry-backed state. Invalid ID has no opaque preservation; apply-if-nonempty may retain stale reused flower. No proof null Identifier accepted safely.",
+    "application_limit": "tryParse 返回 null 时再交给 registry 的行为本方法未保护；未知 ID 不保留原始字符串，不能照搬为任务物品 fallback。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "45900667c15e93a84622",
+      "b1c1e276a85389572240",
+      "eedb6f1839ed2451f642"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-09",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "30604a375a5c0c8d9971",
+    "status": "accepted",
+    "family": "halley-framed-deformation-saved-shape",
+    "trigger": "变形方块持久加载 packed offsets；getShape 据此查询/重建 VoxelShape。",
+    "input": "offsets packed int，缺省0；物品组件存储展开偏移。",
+    "output": "恢复玩家编辑的几何形状，参与实际选择/形状查询。",
+    "preservation": "此字段不是只影响颜色：FramedCollapsibleBlock.getShape 把保存的偏移与 face 合并作为缓存 key 构建形状。存档 packed 数据与组件展开数组存在表示边界。 Master semantic review: Player-configured physical block shape restored and consumed by collision shape cache; concrete game state, no asset production. Packed disk vs component representation; raw offsets not validated and low bits only decoded. Whole family1.",
+    "application_limit": "加载只取整值未验证每个 bit/偏移；这是方块持久状态借鉴，对玩家功名无直接字段对应。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "8837dde0ce456a926be8",
+      "8db47abec5cc507d5ba1",
+      "24caf4e31a4009ed533f",
+      "0210aacc82628f1f65a3",
+      "d9e984b0caeecd5d34f1"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-10",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "8f60eb3b205f39aa416a",
+    "status": "accepted",
+    "family": "halley-framed-paint-roller-consumable-codec",
+    "trigger": "物品持久组件 CODEC 解码调用 deserialize，涂料提取/消耗使用恢复值。",
+    "input": "可选 BlockOverlay holder 与0..256 count；CODEC 字段声明随证据保留。",
+    "output": "无 overlay 时归一为 NO_OVERLAY(0)；有 overlay 保留 count。",
+    "preservation": "RecordCodecBuilder 的持久 codec 有 count 范围检查，而平行网络 StreamCodec 仅 VAR_INT；共同 deserialize 不再检查 count。extract 会将 count 变成真实源物品并减去提取数。 Master semantic review: Paid roller source resources converted to overlay+count then recoverable physical source item; disk count bounded but stream VAR_INT unbounded. Missing overlay discards count, zero-count overlay retained, extract ignores SlotAccess.set result. One codec+consumer chain1.",
+    "application_limit": "缺 overlay 时剩余 count 被抛弃；0 count 且有 overlay 不归一为空。不可将该策略直接用于有价任务栈。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "3237f4bf02a1cc203b93",
+      "f59d589f2b3a4883e672",
+      "4a828f02d8b8e152de1e"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-11",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "04be6cc14917cd5536bd",
+    "status": "accepted",
+    "family": "halley-ice-dragon-horn-transactional-carrier",
+    "trigger": "服务器主手对已拥有的龙装入号角；对上表面使用号角恢复实体。",
+    "input": "DragonHornEntityID + 完整 EntityTag，可选旧 EntityUUID。",
+    "output": "按注册表类型新建实体并 load；addFreshEntity 成功才删三个载体键。",
+    "preservation": "捕获先 save 再移除龙；释放成功才清载体，显式兼容外部旧 EntityUUID。DragonBase load 恢复装备/成长/家及绑定状态，且把攻击/飞行等临时状态也混在同一快照中。 Master semantic review: Carrier ownership transaction independently guards clear on successful addFreshEntity, beyond previously credited dragon-owned gear/growth reader. DragonBase support already counted0extra. Unknown entity id retains carrier; null type.create unguarded; no explicit server release guard.",
+    "application_limit": "type.create 可为空而后被解引用；释放没有显式服务端 guard；DragonBase 的两支库存读取只有一支限制槽<=4，均非通用安全迁移模板。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "967a3b77c522709b1739",
+      "23d50f17e0c9fbd6aa6d",
+      "1aebc9d5a2c4505a45bb"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-12",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "92104b36be997a152e57",
+    "status": "accepted",
+    "family": "halley-ice-crystal-uuid-world-recall",
+    "trigger": "召唤水晶读取保存 UUID，在玩家当前维度查现有实体；DragonPosWorldData 为召回提供位置。",
+    "input": "键名包含 Dragon 的子 tag、DragonUUID，世界 DragonMap UUID->坐标。",
+    "output": "移动已有实体；成功 flag 后清空水晶 tag；世界 reader 先 clear 再建 UUID 映射。",
+    "preservation": "与号角新建并导入实体 NBT 不同，这条恢复引用已存在实体，位置表只是索引。查找只针对当前维度；chunkLoad 分支含服务端代码里的 isClientSide 条件和未置 true 的 flag2，不能当成可用的跨 chunk 保证。 Master semantic review: UUID recall references existing world entity, not serialized horn payload. Actual index persistence+summon consumer distinct owner; wide contains Dragon key match and clear-all after any success risk partial receipt loss. Binding writer not supplied so do not claim whole capture path.",
+    "application_limit": "任意包含 Dragon 的键都被消费；一次成功会清全部 tag，多条记录可能部分丢失。未见释放时重新校验主人。不能复制此宽松匹配。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "b154ba56fd87c611c8c7",
+      "f079459d3824718c9583",
+      "d00052bd0f6f45069e56",
+      "ddc5f808d4e920c620d0",
+      "25784ae508a1174c209c"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-13",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "935bd01aeea935ef248f",
+    "status": "accepted",
+    "family": "halley-ice-cockatrice-taming-progress-identity-risk",
+    "trigger": "实体载入驯化积累和命令；getTamingPlayer 用保存整数查当前实体。",
+    "input": "TamingLevel、TamingPlayer 整数、Command、HomePosition、Hen/Staring。",
+    "output": "恢复驯化累积及当前驯化者引用，缺数字默认为0。",
+    "preservation": "长期驯化进度与会话 entityId 混存，getTamingPlayer 在当前世界按整数查找。该引用在重启/跨维度后并不由 UUID 保证；这是身份边界反例，非普通伤害字段。 Master semantic review: Actual earned taming accumulation paired with persistent integer session entityId, consumer getEntity not stable UUID; master read server mutual-gaze progression branch including final tame. Specific identity-loss counterexample distinct inventory/egg/colony. No runtime proof of wrong-player assignment.",
+    "application_limit": "没有声明格式版本或旧身份纠正。不能凭存储了 tamingPlayer 就声称跨重启仍指同人；home 零轴限制同样存在。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "8c2fc8ba785f1f9845fe",
+      "4c650c411c43c666cb89"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-16",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "1102295e7f5a0bbcd09c",
+    "status": "accepted",
+    "family": "halley-ice-amphithere-riding-taming-home",
+    "trigger": "飞蛇实体读档后继续骑乘驯化计时、命令与家位置。",
+    "input": "RidingTime、FlightCooldown、Command、HasHomePosition、HomeArea XYZ、Variant/Flying。",
+    "output": "整数/布尔直接恢复，只有 HasHomePosition 且三坐标非0才构造 home。",
+    "preservation": "RidingTime 是驯化过程持久累积，与已驯化主人并不是同一个字段；FlightCooldown/Flying 是短期行为状态。一个 reader 混合两种寿命，不能整体复制为“永久”。 Master semantic review: Saved mounted taming work has actual consumer: master read progression/reset/tame branches. No rider resets work immediately despite persistence, different lifetime from cooldown/flying; neither all timers permanent nor saved means resumable. Full unrelated combat tick not read, not claimed.",
+    "application_limit": "没有范围钳制和 schema 版本。此项只建议持久生命周期边界，不认为应保留玩家飞行状态或所有计时器。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "9b8fd50fc1374adf2cd7"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-17",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "516cda2a923879a33e98",
+    "status": "accepted",
+    "family": "halley-ice-world-feature-spacing-history",
+    "trigger": "维度 SavedData 工厂加载历史位置，危险结构生成 check 消费。",
+    "input": "FeatureType 分类的 id+position 列表。",
+    "output": "枚举分类遍历读 NBT，向 LAST_GENERATED 静态 map 追加；保存重新写分类列表。",
+    "preservation": "历史不是临时缓存：check 用记录位置限制后续生成距离。但加载不清 static map，跨维度/重复 load 可合并陈旧记录；check 循环覆盖 canGenerate 而非累计所有距离结果。 Master semantic review: Concrete world encounter generation spacing history, not generic SavedData infrastructure; full load/save/check/get read. Static global map not cleared across loads and loop overwrites distance result; no world generation/game launch. Not a building design reference.",
+    "application_limit": "此项是世界持久状态，距玩家任务进度较远，列低优先级；不研究建筑设计，也未运行世界生成。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "d67174ed53ea8c063eae",
+      "8c3e25f5773030db47db",
+      "1d0112ac3d903a274369"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-21",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "6adf502f66ad8d259ad1",
+    "status": "accepted",
+    "family": "halley-sophisticated-uuid-content-world-restoration",
+    "trigger": "SavedData 工厂读 UUID 内容库；木容器放置按 STORAGE_UUID 恢复后移除该世界记录。",
+    "input": "旧 shulkerBoxContents 或新 storageContents 列表，每条 uuid+contents。",
+    "output": "旧键存在则优先选旧列表；规范化嵌套库存，再存入 UUID map，writer 统一新键。",
+    "preservation": "加载会调用 LegacyStorageBlockDataMigration 对嵌套 storageWrapper/contents 中库存与升级库存归一；底层 LegacyItemStackMigration 在 SophisticatedCore，不在本批重复研究。setPlacedBy 仅非 linked endpoint 恢复内容，loadAdditional 后才 removeStorageContents。 Master semantic review: Historical shulkerBoxContents vs storageContents outer UUID owner + actual placement consumes saved receipt, distinct existing stack capacity promotion and canonical wrapper serializer. Same normalizeInventory helper0, missing UUID fatal, remove-before-capacity-init no rollback.",
+    "application_limit": "UUID 缺失 Objects.requireNonNull 可使整个加载失败；外部 Core 规范化细节未列为新证据。remove 早于后续容量/初始化完成，没有事务回滚。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "c01af67f411f061c662f",
+      "9b4463666df1ec7d01e3",
+      "49751e94e482374d79ee",
+      "b985c5ebbeef26723002",
+      "1a9f846db02abc702e9e",
+      "7732a41b967c62a79f8b",
+      "af6505108665eddcf3da",
+      "ecf93ada6946bc133e37",
+      "c8000349a96beaa13159"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-24",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "fc5a732e62d4ed83b286",
+    "status": "accepted",
+    "family": "halley-sophisticated-orphan-double-chest-salvage",
+    "trigger": "单箱读到超过单箱上限的库存，且不在升级过程时触发半箱内容回收。",
+    "input": "已恢复 inventory slots、当前 SINGLE 方块状态和 isBeingUpgraded。",
+    "output": "将超出单箱槽位的栈复制并清槽，排队掉落；缩小存储并删除失效槽设置。",
+    "preservation": "linked storage 在 dropSecondPartContents 中直接返回，避免缩小共享数据。普通库存先从原 handler 清出，再以 TickTask 延后掉落，最终刷新升级包装与外观侧。 Master semantic review: Actual orphaned double-chest overflow recovery consumer distinct generic inventory serializer. Source clears before deferred TickTask drops; no server means clear without return; linked owner excluded. All overflow slots1.",
+    "application_limit": "任务排队前已清槽，崩溃窗口可能丢物；无 level/server 时也可能清槽而不发物。仅静态验证。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "b27829ffca4f4300cd85"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-25",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "e6fff3477a9071d514d3",
+    "status": "accepted",
+    "family": "halley-sophisticated-live-tier-snapshot-replacement",
+    "trigger": "服务端升级物品校验权限/数量，通过具体 tier definition 升级已存在模组容器。",
+    "input": "旧 BE.saveAdditional 全部数据、新方块状态及目标 inventory/upgrade 容量。",
+    "output": "先新建 BE 并 load 快照，标记升级、关菜单，再替换世界 BE；按 linked/普通路径调整容量。",
+    "preservation": "新对象在旧对象移除之前完成 NBT 导入，isBeingUpgraded 避免 Chest load 的溢出回收；双箱主/从决定哪一半扩双倍容量，整个双箱仍复用 upgradeStorageBlock。 Master semantic review: Actual live storage tier snapshot replacement independent from canonical disk reader: new BE imports before old removed, beingUpgraded suppresses orphan salvage. Linked capacity failure after removal and dual conversion non-atomic. One all-tier owner conversion.",
+    "application_limit": "世界替换与 linked 容量更新不原子，后者失败会在旧 BE 已移除后抛异常；没有事务回滚。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "d2432427358c336d652c",
+      "fc46becc6e1069cc8934",
+      "3276619913fd6a2db40e"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-26",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "a047ac5b40ba4b52644c",
+    "status": "accepted",
+    "family": "halley-sophisticated-vanilla-container-import",
+    "trigger": "vanilla tier definition 在玩家有 canOpen 权限时把原版容器转模组容器。",
+    "input": "原版容器逐槽 ItemStack、customName、目标 woodType 与新 blockstate。",
+    "output": "只导入明确挑选的物品/名称/木类型；相邻双箱分别转换后 join。",
+    "preservation": "这条不复制整个旧 BE NBT，而是显式导出 be.getContainerSize 的每槽，再向新容器赋值；与模组容器升级的原始快照迁移有不同保留边界。 Master semantic review: Actual vanilla Container interface-to-new owner transfer selective items/name, different from mod BE whole snapshot. Destination grows before installing slot references; arbitrary source metadata omitted. Shared capacity wrappers0. Partial double chest lacks rollback.",
+    "application_limit": "它只承诺容器接口能读到的栈和名称，不保留任意旧 BE 自定义数据；双箱另一半缺失时允许先前转换保留，无整体回滚。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "92dda578d57b8ea1bd06",
+      "46622620e7b6cd5fa693",
+      "f248a4fac60e43a2498d"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-27",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "f2e55f723eafd60a152f",
+    "status": "accepted",
+    "family": "halley-sophisticated-crafting-tier-component-preservation",
+    "trigger": "合成升级旧容器物品；matches 验证 endpoint 角色，assemble 保留原组件。",
+    "input": "原 storage item 的完整 components、新配方输出与容量缺省。",
+    "output": "非 primary/非 unlinked 返回空栈；原 components 复制到升级输出，再按新 tier 调整槽数。",
+    "preservation": "角色检查同时在 matches 和 assemble，但只有 matches 的 canUpgrade 会核对服务端 manager 里的真实 primary 身份。物品有 STORAGE_UUID 时才重写容量。DoubleChest 只是乘2模板，shapeless 是同实现包装，全部合并。 Master semantic review: Actual item crafting tier conversion preserves original full components then resets slot limits; primary endpoint guard present and server manager validation in matches. Shared canonical wrapper0, shaped/shapeless/double one family; broad components inappropriate for whitelist player Clone.",
+    "application_limit": "applyComponents 是广泛复制，可能携带不应迁移的暂态组件；本批不重复 credit 主账 StackStorageWrapper 容量提升 reader。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "4c63aa1b9b88f3965c46",
+      "2e0b6fc2d4d5ce96ea43",
+      "1ea619faa6f60461ce2d",
+      "833ff89869b5d42227a2",
+      "cd13761a62d53832605d"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-29",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "5a5669607c6a98529e75",
+    "status": "accepted",
+    "family": "halley-sophisticated-vanilla-shulker-capability-import",
+    "trigger": "将原版潜影盒物品在合成中转为模组容器；通过物品 ItemHandler capability 读取内部物品。",
+    "input": "原版潜影盒物品的 capability 库存、配方新输出；不是已经放置的 BE。",
+    "output": "有 capability 时为目标确保 contents UUID，遍历非空栈，复制并插入目标 handler；无 capability 仍返回配方输出。",
+    "preservation": "与物品 tier 配方整份 applyComponents 不同，本项通过 capability 枚举实际栈，只复制内容；与世界 BE 转换也不同，插入策略可重新排列槽。insertItem 返回的未插入余量未检查，因此不能认为转换必然无损。 Master semantic review: Actual vanilla item capability-to-new item storage conversion, distinct world BE importer and full component copy recipe. Ignores insertion remainder, loses name/other components, missing capability still yields crafted item. Slot copying entire owner1.",
+    "application_limit": "没有复制 customName/其他源组件；capability 缺失或目标拒收时可能产出空/不完整容器，且方法没有回滚。Core 的 ensureContentsUuid 内部实现不作为本批独立信用。 Master scope: static full supplied contexts; source/hash checked, no upstream execution or native GUI.",
+    "supporting_candidates": [
+      "df5e35cdefafe3e9a489",
+      "7a90c6ca17113f20fc7c"
+    ],
+    "helper_provenance": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/helpers/halley-migration/batch-001.json",
+      "sha256": "29366e739e90501e050f808ad47ec186742ce6693a7eb99785cd15fba4d99aa6",
+      "id": "halley-migration-30",
+      "helper_credit_before_master": 0
+    }
+  },
+  {
+    "candidate_id": "a296ee562e0198b48384",
+    "status": "accepted",
+    "family": "icefire-dread-command-identity-legacy-name-and-summon-budget-continuity",
+    "trigger": "完整DreadMob/DreadLich；读旧CommanderUUID String或现代UUID→实际Lich投召唤物/目标继承/MinionCount额度",
+    "input": "CommanderUUID现代UUID或旧name，Lich独立MinionCount Int已召唤额度/Variant；fire和minion相对冷却未保存",
+    "output": "旧名字交OldUsersConverter；恢复commander控制实体，Lich loaded count<5才可继续召唤，恢复持装备后setCombatTask重建AI",
+    "preservation": "同一军团关系/计数整体1；真实performRangedAttack创建minion并写commander UUID，DreadMob.aiStep从同维在线lich继承目标。MinionCount不同于通用tame宠物owner且有真实数量限制消费者；非按各亡灵型号/UUID字段拆。读失败只catch setCommanderId，不覆盖前置OldUsersConverter调用。",
+    "application_limit": "不声称完整成功：remove对所有RemovalReason包括卸载尝试减count，不按死亡过滤，可破坏磁盘额度一致性；生成boolean忽略仍count++，无重算，负count无夹紧。necromancyEntity全方法已读，传装备同引用未清原槽；onKillEntity仓库仅声明无调用，不宣称已打通真实击杀转化。DreadHorse非DreadMob分支不会被写CommanderId，非全物种承诺。旧名解析底层未本轮再读/运行，getCommander未找到不清UUID；相对冷却是瞬态不复制到Dynasty白名单。",
+    "supporting_candidates": [
+      "af91e5badfbc47053690",
+      "35af41a680dfbf7b0df1",
+      "8a668ab7d1235a627501",
+      "ac5e7c9c98dcc50ec481",
+      "ca4ba8346f6728047352",
+      "40aa1eb860311c8bb0f3",
+      "7df8b2580eb3112fdc14",
+      "7504fa67e92ddd6b486d",
+      "bd65697a15d4fea6c44e",
+      "a1b765cef0f4fbec65fe"
+    ],
+    "semantic_reassessment": "batch068原因仅共用OldUsersConverter，把不同实际业务owner过度合并。本轮全文DreadMob/Lich、实际召唤预算与remove消费确认独立军团对象，旧记录由0credit duplicate改为1，不再创建第二root、不重复算helper。"
+  },
+  {
+    "candidate_id": "07a9163c88eda4464b4f",
+    "status": "duplicate",
+    "reason": "Exact unlocked Pages owner+Enum methods already credited batch063 lectern/bestiary chain.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "d51cbc9b0b890d315687",
+    "status": "accepted",
+    "family": "sophisticated-limited-barrel-fixed-slot-policy-rehydration-and-sort-consumer",
+    "trigger": "LimitedBarrelBlockEntity.loadAdditional + non-linked onLoad after storage-owned settings reload",
+    "input": "Persisted display/no-sort slot selections plus restored limited-barrel inventory slot count",
+    "output": "Cardinality-triggered fixed-slot policy union is serialized through owned settings callbacks; server menu sort consumes category exclusions together with partition/accessibility/memory rules",
+    "preservation": "Consumer excludes protected physical stacks before compaction and skips their rewrite. Actual full owner/load/save/category/menu/wrapper/sorter chain reviewed, not category setter alone.",
+    "application_limit": "Collection size is not membership; no-sort union leaves stale indices, display list append/limit early-return can fail to normalize, linked guards differ. Fixed Core/Storage snapshots are source research, not proven compatible runtime. Exact ranges and official tree/blob pins in coordinator-limited-barrel-policy-review-20261031.json; no native verification.",
+    "supporting_candidates": []
+  }
+]

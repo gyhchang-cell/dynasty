@@ -1,0 +1,102 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.ritual;
+
+import com.klikli_dev.occultism.common.blockentity.GoldenSacrificialBowlBlockEntity;
+import com.klikli_dev.occultism.crafting.recipe.RitualRecipe;
+import com.klikli_dev.occultism.registry.OccultismDataComponents;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Unit;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.Level;
+import net.neoforged.fml.ModList;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+
+public class UnbreakableRitual extends Ritual {
+
+    private static final ResourceKey<Enchantment> EVILCRAFT_UNUSING_ENCHANTMENT = ResourceKey.create(
+            Registries.ENCHANTMENT, Identifier.parse("evilcraft:unusing"));
+
+    public UnbreakableRitual(RitualRecipe recipe) {
+        super(recipe);
+    }
+
+    @Override
+    public boolean isValid(Level level, BlockPos goldenBowlPosition, GoldenSacrificialBowlBlockEntity blockEntity,
+                           @Nullable Player castingPlayer, ItemStack activationItem,
+                           List<Ingredient> remainingAdditionalIngredients) {
+
+        if (!activationItem.isDamageableItem()) {
+            if (castingPlayer != null)
+                castingPlayer.sendSystemMessage(Component.translatable("ritual.occultism.misc_unbreakable.true"));
+            return false;
+        }
+
+        return super.isValid(level, goldenBowlPosition, blockEntity, castingPlayer, activationItem, remainingAdditionalIngredients);
+    }
+
+    @Override
+    public void finish(Level level, BlockPos goldenBowlPosition, GoldenSacrificialBowlBlockEntity blockEntity, @Nullable ServerPlayer castingPlayer, ItemStack activationItem) {
+        super.finish(level, goldenBowlPosition, blockEntity, castingPlayer, activationItem);
+
+        ItemStack result = activationItem.copy();
+        activationItem.shrink(1); //remove activation item.
+
+        ((ServerLevel) level).sendParticles(ParticleTypes.LARGE_SMOKE, goldenBowlPosition.getX() + 0.5,
+                goldenBowlPosition.getY() + 0.5, goldenBowlPosition.getZ() + 0.5, 1, 0, 0, 0, 0);
+
+        result.setDamageValue(0);
+
+        result.set(DataComponents.UNBREAKABLE, Unit.INSTANCE);
+        if (result.has(DataComponents.MAX_DAMAGE))
+            result.remove(DataComponents.MAX_DAMAGE);
+        if (result.has(DataComponents.DAMAGE))
+            result.remove(DataComponents.DAMAGE);
+        if (result.isEnchanted()) {
+            EnchantmentHelper.updateEnchantments(result, p_330066_ -> p_330066_.removeIf(p_344368_ -> p_344368_.is(Enchantments.UNBREAKING)));
+            EnchantmentHelper.updateEnchantments(result, p_330066_ -> p_330066_.removeIf(p_344368_ -> p_344368_.is(Enchantments.MENDING)));
+            if (ModList.get().isLoaded("evilcraft"))
+                EnchantmentHelper.updateEnchantments(result, p_330066_ -> p_330066_.removeIf(p_344368_ -> p_344368_.is(EVILCRAFT_UNUSING_ENCHANTMENT)));
+        }
+        result.set(DataComponents.RARITY, Rarity.EPIC);
+        result.set(OccultismDataComponents.UNBREAKABLE, true);
+
+        this.dropResultAndFlame(level, goldenBowlPosition, blockEntity, castingPlayer, result);
+    }
+}

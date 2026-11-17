@@ -1,0 +1,87 @@
+[
+  {
+    "candidate_id": "cd5124d3106b9f09d8fd",
+    "status": "accepted",
+    "family": "pnc-solid-fuel-compressor-prepaid-burn-and-remainder-custody",
+    "trigger": "AirCompressor full diskpair + tickServer/getBurnTimeRemainingScaled",
+    "input": "burnTime/maxBurn ints, actual one fuelitem slot",
+    "output": "restore prepaid burn balance and stock; consume one fuel or replace with craftingremainder only upon refuel; burn remainder continuously even redstone off once paid; output air wholeunits",
+    "preservation": "Paid solidfuel resource owner distinct from recipe crafting checkpoint; burnTime must remain while per-tick curFuelUsage/airPerTick derive upgrades. Do not restore arbitrary simulation state as permanent progress.",
+    "application_limit": "Missing burn keys0 safelyempties prepaidwork, no rangechecks. airBuffer fractional air unsaved. Generic handler and superclass disk helpers0; no native run or everytickdirty guarantee.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "d057398d16d4dfad80af",
+    "status": "accepted",
+    "family": "pnc-liquid-fuel-compressor-prepaid-buffer-and-fuel-multiplier",
+    "trigger": "LiquidCompressor fullpair + tickServer/getSerializableTanks",
+    "input": "double internalFuelBuffer,float burnMultiplier,itemcontainers, declaredfuel tank",
+    "output": "restore prepaid liquid energy and burn multiplier aswell as input/output containers; drainfuel basedonfuelvalue before convertingremainingbuffer toair; parent tank saved via declaredmap",
+    "preservation": "Distinct fluidfuel owner vs solidfuel burnticks, multiplier persists to interpret alreadydrained fluid. Never replace stored buffer with default under changed ID.",
+    "application_limit": "Missingmultiplier0 replacesinitializer1; actualusage/outputcomputedbefore refuelupdatesmultiplier. Fractional airBuffer unsaved; draininglastfluid then lookup multiplier via emptytank mayfallback upstreamregistry not examined. No fluidcodec/runtimeclaim.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "4471ce4ac093816e3776",
+    "status": "accepted",
+    "family": "pnc-pneumatic-dynamo-owned-fe-and-pressure-conversion",
+    "trigger": "PneumaticDynamo full source + PneumaticEnergyStorage fullsource",
+    "input": "Energy int raw; parent air/heat",
+    "output": "restore FEbalance; actualconsumer paysair/producesheat/creditsFE only ifcapacityroom; sends FE to front using simulations then ownextract+neighborreceive",
+    "preservation": "Independent air-to-FE paid conversionmachine; storagehelper credit0. Direction/capacity of resource owner differ from generic serializeaccessor.",
+    "application_limit": "No energybounds onload (rawassignment); outputneighbor actualreceive not checked against simulation after ownextract. rf/air rates rederive20ticks; no atomic/crash or runtimeclaims.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "b654bdf3e6e28a61cdb0",
+    "status": "accepted",
+    "family": "pnc-flux-compressor-owned-fe-debit-to-pressure",
+    "trigger": "FluxCompressor complete source + same storagehelper support0",
+    "input": "Energy int; air/heat inherited, fractionalbuffer runtime",
+    "output": "restore own FE; everyworkingtick accumulates air using efficiency/upgrades then extracts FE; buffers wholeair and heats then leaksonunconnectedside",
+    "preservation": "Inverse machine has separate actualFE-debit consumer vs dynamo FEcredit/export consumer, not key-renamed copy. Preserve actual paidstock only; derived rates and enabledstate recompute.",
+    "application_limit": "Raw no energybounds; airBuffer remainder notsaved; rateinit cadence5ticks; no transactional guarantee between energy extraction and pressuremutation. No need to copy helperclass into production.",
+    "supporting_candidates": [],
+    "structural_collision_review": {
+      "compared_candidate": "4471ce4ac093816e3776",
+      "distinct_gameplay_owner_reason": "Flux consumes owned FE toair whereas Dynamo consumes air to creditandexportFE; independently placed custody and inverse actual resource consumers.",
+      "reviewed_consumers": [
+        "FluxCompressor.tickServer",
+        "PneumaticDynamo.tickServer"
+      ]
+    }
+  },
+  {
+    "candidate_id": "93f9dd1b9468249c37ba",
+    "status": "accepted",
+    "family": "pnc-solar-compressor-durable-overheat-breakage",
+    "trigger": "SolarCompressor localfullpair/tickServer/breakCompressor/fixBroken/canGenerateAir",
+    "input": "optional boolean BROKEN; parent heat persisted; sky/weather transient",
+    "output": "write BROKEN onlytrue, missingfalse; overheat>698.15 marksbroken, ventsheat toambient and surroundingfires; broken suppressesair until explicitfix",
+    "preservation": "Concrete durable machine damage flag vs transient heat warning/skyvisibility; illustrates intentionaldurable negative state must not be mistaken generic cooldown.",
+    "application_limit": "fixBroken localmethod no dirtycall; repair cost/caller not reviewed, no inferred itemconsumption. Exact multiblock bounding persistence external, airfractionunsaved; no runtimevalidation.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "d9322f831e27955b6f24",
+    "status": "accepted",
+    "family": "pnc-thermal-compressor-six-exchanger-restored-gradient",
+    "trigger": "ThermalCompressor complete source + HeatExchangerLogicTicking full serialize/deserialize methods",
+    "input": "four horizontal side heat owners and two connectors each temp+behaviour IDs",
+    "output": "restore six heatrecords; realtick equalizes pairedgradients and addswholeair from absdiff>=10, conserving via opposite heatdeltas; constructor reconnects graph",
+    "preservation": "One concrete six-node thermal machine not sixreferences; actual gradientconsumer differentiatesgeneric heatwrapper. Serializebehaviour IDs createsknown behaviours and unknownskipped.",
+    "application_limit": "Sharedheatcodec ResourceLocation.parse malformed canthrow, absent temperature0 notambient. FractionalairGenerated unsaved; behaviorimplementations and crashconsistency not deeplyread, supportonlyno extra credit.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "20fe849b0123144caed1",
+    "status": "accepted",
+    "family": "pnc-gas-lift-drill-resource-depth-and-liquid-custody",
+    "trigger": "GasLift complete source fullpair/tickServer/retractPipes/tryDigDown/suckLiquid/findLake/tankmap",
+    "input": "drillpipe inventory, mode string optional, depth int; parent collectedfluid",
+    "output": "restoredepth/mode/pipe andtank; verifyexistingpipes, retract insertsbeforeworlddestroy, drill extractspipe/paysair thenplaces, fluidpumping requiresfullcapacity simulation and sourcepickup",
+    "preservation": "Independent worldresource and stock checkpoint; modeleavefluid alters tankdrain tokeep1, distinct meaningful consumer notlabel-onlysetting. World structure and inventory ownership cannot be reconstructed from genericNBT copy.",
+    "application_limit": "Missingmode retainsPUMP_EMPTY; unknownmode throws unlike GUIcatch. depth notbounded; workTimer/lakescan runtime rebuilt. Pipe worldwrite notacknowledged beforepayment; FluidUtils pickupexternalunreviewed, no native/crash claim.",
+    "supporting_candidates": []
+  }
+]

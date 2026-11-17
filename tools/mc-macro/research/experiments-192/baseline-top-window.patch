@@ -1,0 +1,57 @@
+--- app-1.8.9/Sources/TellyController.swift
++++ 191-top-window/Sources/TellyController.swift
+@@ -61,6 +61,7 @@
+     private var probeAt = 0.0
+     private var lastPlacementAt = 0.0
+     private var launchAt = 0.0
++    private var lastPlanTick = -1
+     private var lastGateTick = -1
+     private var lastClickTick = -1
+     private var jumpPlacements = 0
+@@ -105,7 +106,8 @@
+             // During ascent the integrated server may still have the previous
+             // tick's lower body position. Do not click a new top block at the
+             // first 1.001-height frame, where placement is still obstructed.
+-            if target.axis==1,state.velocity.1>0,pose.y<Double(b.y)+1.12 {return false}
++            let margin=abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? 0.001:0.12
++            if target.axis==1,state.velocity.1>0,pose.y<Double(b.y)+1+margin {return false}
+             let turning=turn != nil || pendingAimPose != nil
+             let commanded=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:turning ? issuedTurnYaw : follower?.yaw ?? pose.yaw,pitch:turning ? issuedTurnPitch : follower?.pitch ?? pose.pitch,time:pose.time)
+             let face=target.axis==1 ? "up" : target.axis==0 ? (target.sign>0 ? "east":"west") : (target.sign>0 ? "south":"north")
+@@ -228,7 +230,10 @@
+         if x != 0 || y != 0 {
+             follower=nil
+             let span=max(abs(dyaw),abs(dpitch))
+-            let duration=RelativeMouseTurn.duration(for:span)
++            // A one-block rise leaves roughly 0.4 s after observed takeoff.
++            // Complete its back turn before the first legal top-face window.
++            let diagonalRise=phase == .flight && activeRise>0 && abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2
++            let duration=diagonalRise ? min(0.072,RelativeMouseTurn.duration(for:span)):RelativeMouseTurn.duration(for:span)
+             turn=RelativeMouseTurn(x:x,y:y,start:now,duration:duration)
+             issuedTurnYaw=baseYaw;issuedTurnPitch=basePitch
+             turnOriginYaw=baseYaw;turnOriginPitch=basePitch
+@@ -566,6 +571,13 @@
+             } else if support.y < flightFloor {
+                 target = TellyPlacement(support:support,result:F3Block(x:support.x,y:support.y+1,z:support.z),axis:1,sign:1,
+                     x:Double(support.x)+0.5,y:Double(support.y)+1,z:Double(support.z)+0.5)
++            } else if abs(route.ux*route.uz)>0.2, let previous=placement,
++                      previous.support==support, previous.axis != 1,
++                      !(worldState?.solid.contains(previous.result) ?? observed.contains(previous.result)) {
++                // A diagonal exposes two faces during the same half-turn.
++                // Complete the chosen face before changing to its neighbour;
++                // otherwise every newly exposed side retargets the moving aim.
++                target=previous
+             } else {
+                 let exposed=route.exposedCandidates(after:support,from:pose)
+                 let choices=exposed.isEmpty ? [route.next(after:support)]:exposed
+@@ -610,6 +622,10 @@
+                 let low=atan2(pose.y+eyeHeight-Double(target.support.y)-0.80,distance)*180 / .pi
+                 let high=atan2(pose.y+eyeHeight-Double(target.support.y)-0.20,distance)*180 / .pi
+                 aimPitch=max(low,min(high,aimPitch))
++            }
++            if let state=worldState,lastPlanTick != state.tick {
++                lastPlanTick=state.tick
++                trace("PLAN tick=\(state.tick) target=\(target.result) from=\(target.support) aim=\(aimYaw),\(aimPitch) expected=\(expectedYaw),\(expectedPitch) follower=\(String(describing:follower)) turn=\(turn != nil) pendingAim=\(pendingAimPose != nil) use=\(String(describing:state.useHit)),\(state.useFace ?? "nil") render=\(String(describing:state.pose.looking)),\(state.face ?? "nil") velocity=\(state.velocity) coast=\(flightCoast)")
+             }
+             let awaitingPlacement=worldState != nil && !pendingPlacements.isEmpty
+             let ready=canPlace(target,pose:pose)

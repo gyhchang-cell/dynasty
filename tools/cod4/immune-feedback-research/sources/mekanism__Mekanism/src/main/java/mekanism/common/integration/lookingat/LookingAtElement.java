@@ -1,0 +1,62 @@
+package mekanism.common.integration.lookingat;
+
+import mekanism.client.gui.GuiUtils;
+import mekanism.client.gui.GuiUtils.TilingDirection;
+import mekanism.client.render.IFancyFontRenderer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.CommonColors;
+import org.jspecify.annotations.Nullable;
+
+public abstract sealed class LookingAtElement implements ILookingAtElement, IFancyFontRenderer permits EnergyElement, ResourceElement {
+
+    private final int borderColor;
+    private final int textColor;
+
+    protected LookingAtElement(int borderColor, int textColor) {
+        this.borderColor = borderColor;
+        this.textColor = textColor;
+    }
+
+    public void render(GuiGraphicsExtractor guiGraphics, int x, int y) {
+        int width = getWidth();
+        int height = getHeight();
+        guiGraphics.fill(x, y, x + width - 1, y + 1, borderColor);
+        guiGraphics.fill(x, y, x + 1, y + height - 1, borderColor);
+        guiGraphics.fill(x + width - 1, y, x + width, y + height - 1, borderColor);
+        guiGraphics.fill(x, y + height - 1, x + width, y + height, borderColor);
+        TextureAtlasSprite icon = getIcon();
+        if (icon != null) {
+            int scale = getScaledLevel(width - 2);
+            if (scale > 0) {
+                GuiUtils.drawTiledSprite(guiGraphics, x + 1, y + 1, scale, height - 2, icon, TilingDirection.DOWN_RIGHT, getRenderColor());
+            }
+        }
+        drawScrollingString(guiGraphics, getText(), x, y + 3, TextAlignment.LEFT, textColor, 4, false);
+    }
+
+    public int getWidth() {
+        return 100;
+    }
+
+    @Override
+    public int getImageWidth() {
+        return getWidth();
+    }
+
+    public int getHeight() {
+        return 13;
+    }
+
+    public abstract int getScaledLevel(int level);
+
+    @Nullable
+    public abstract TextureAtlasSprite getIcon();
+
+    public abstract Component getText();
+
+    protected int getRenderColor() {
+        return CommonColors.WHITE;
+    }
+}

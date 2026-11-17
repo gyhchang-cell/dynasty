@@ -1,0 +1,16 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('build/cod4-sweep-receipt-integration-20261029'))
+ p.afterEvaluate {
+  if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def q=p.sourceSets.create('sweepReceiptFix') {
+   java.srcDir p.file('tools/cod4/sweep-receipt-research/.work/coordinator-srg-20261029/source')
+   compileClasspath += p.sourceSets.main.compileClasspath+p.files('tools/cod4/sweep-receipt-research/.work/coordinator-srg-20261029/baseline')
+  }
+  p.tasks.register('sweepReceiptFixJar',Jar) {
+   dependsOn q.classesTaskName
+   archiveBaseName='dynasty-sweep-receipt-fix'
+   from q.output
+  }
+  p.reobf { sweepReceiptFixJar { libraries.from(q.compileClasspath) } }
+ }
+}

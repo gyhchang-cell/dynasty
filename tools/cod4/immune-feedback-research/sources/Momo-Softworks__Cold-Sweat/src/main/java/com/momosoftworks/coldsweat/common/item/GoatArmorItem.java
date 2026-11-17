@@ -1,0 +1,60 @@
+package com.momosoftworks.coldsweat.common.item;
+
+import com.momosoftworks.coldsweat.client.event.RegisterModels;
+import com.momosoftworks.coldsweat.client.renderer.model.armor.GoatChestplateModel;
+import com.momosoftworks.coldsweat.util.math.CSMath;
+import com.momosoftworks.coldsweat.util.registries.ModItems;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.ArmorMaterial;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
+
+import java.util.function.Consumer;
+
+public class GoatArmorItem extends ArmorItem
+{
+    public GoatArmorItem(ArmorMaterial material, ArmorItem.Type type, Properties properties)
+    {   super(material, type, properties);
+    }
+
+    @Override
+    public void initializeClient(Consumer<IClientItemExtensions> consumer)
+    {
+        consumer.accept(new IClientItemExtensions()
+        {
+            @Override
+            public HumanoidModel<?> getHumanoidArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlot armorSlot, HumanoidModel<?> playerModel)
+            {
+                RegisterModels.checkForInitModels();
+                return switch (armorSlot)
+                {
+                    case HEAD -> RegisterModels.GOAT_HELMET_MODEL;
+                    case CHEST ->
+                    {
+                        GoatChestplateModel<?> model = RegisterModels.GOAT_CHESTPLATE_MODEL;
+                        ModelPart fluff = model.body.getChild("fluff");
+                        float headPitch = entityLiving.getViewXRot(Minecraft.getInstance().getFrameTime());
+
+                        fluff.xRot = CSMath.toRadians(CSMath.clamp(headPitch, 0, 60f)) / 2;
+                        fluff.x = fluff.zRot * 2;
+                        yield model;
+                    }
+                    case LEGS -> RegisterModels.GOAT_LEGGINGS_MODEL;
+                    case FEET -> RegisterModels.GOAT_BOOTS_MODEL;
+                    default -> null;
+                };
+            }
+        });
+    }
+
+    @Override
+    public boolean canWalkOnPowderedSnow(ItemStack stack, LivingEntity wearer)
+    {
+        return stack.is(ModItems.GOAT_FUR_BOOTS);
+    }
+}

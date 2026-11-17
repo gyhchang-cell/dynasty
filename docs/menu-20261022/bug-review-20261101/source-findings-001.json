@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-01T00:49:36Z",
+  "status": "PARTIAL_CHECKPOINT_RESEARCH_REQUIRED_NO_PRODUCTION_FIX",
+  "scope": "標題範圍：主菜單入口、設定/世界選項、刷怪蛋基礎說明。未接通用Java、任務、領獎、遷移、生態或美術製作。",
+  "authority": {
+    "direct_human_constraint": "背景別改，主界面只改按鈕；世界選項可自行考慮。",
+    "delegation_source_thread": "01a16364-cac0-7ca2-a042-a5312781ca34",
+    "window_source": "docs/cod4/audit-20261022/continuation-20261028/session.json#five_hour_window_20261101",
+    "window_started_utc": "2026-11-01T00:44:05+00:00",
+    "deadline_utc": "2026-11-01T05:44:05+00:00",
+    "deadline_beijing": "2026-11-01 13:44:05",
+    "window_completed": false,
+    "elapsed_window_is_not_active_work": true
+  },
+  "skill": {
+    "read": "/Users/a15356015027/.codex/skills/find-skills/SKILL.md",
+    "application": "本地Java呼叫流程與固定來源閱讀用現有工具即可；未安裝技能或外掛。"
+  },
+  "production_files_read": [
+    "src/main/java/com/dynasty/client/DynastyTitleScreen.java",
+    "src/main/java/com/dynasty/client/DynastyTitleMenu.java",
+    "src/main/java/com/dynasty/client/DynastyWorldMenus.java",
+    "src/main/java/com/dynasty/client/DynastyItemInfo.java",
+    "src/main/java/com/dynasty/client/DynastyTooltips.java",
+    "src/main/java/com/dynasty/client/DynastyTooltipGate.java"
+  ],
+  "source_identity": {
+    "src/main/java/com/dynasty/client/DynastyTitleScreen.java": "75c0e5dd432f5e01eea794df50fe28e97eb9ce39c5adbdc8a9d4a83954f4f5f5",
+    "purpose": "標識缺陷證據的版本，不是參考例數。"
+  },
+  "native_sources": {
+    "archive": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "members_read": [
+      "net/minecraft/client/Minecraft.java:1268-1280",
+      "net/minecraft/client/gui/screens/Screen.java:314-340,425-432",
+      "net/minecraft/client/gui/screens/TitleScreen.java:84-94,108-170,283-314",
+      "com/mojang/realmsclient/gui/screens/RealmsNotificationsScreen.java:63-109,138-180",
+      "net/minecraftforge/client/gui/TitleScreenModUpdateIndicator.java:19-69",
+      "net/minecraft/client/gui/screens/LanguageSelectScreen.java:29-68",
+      "net/minecraft/client/gui/screens/OptionsScreen.java:51-165"
+    ],
+    "execution": "zipfile 文本讀取；沒有執行 Java 或遊戲。"
+  },
+  "findings": [
+    {
+      "id": "UI-20261101-01",
+      "title": "設定中樞標題與返回文案不隨語言切換",
+      "severity": "P2",
+      "evidence_level": "SOURCE_CONFIRMED",
+      "locations": [
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:250",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:257"
+      ],
+      "trigger": "英文或其他非中文介面，開啟設定中樞；或切換語言後重新開啟。",
+      "causal_chain": [
+        "SettingsHub 的 title 是 Component.literal(\"设置与更多\")。",
+        "返回按鈕是 Component.literal(\"返回\")。",
+        "此兩個 Component 未引用語言資源；原版語言切換/reload 不會翻譯 literal。"
+      ],
+      "observed_scope": "源碼確定的固定文案；本輪沒有啟動客戶端取得英文截圖。",
+      "repair_boundary_after_gate": "只涉及自有標題及通用返回標籤；原動作與畫面背景保留。",
+      "gate": "NOT_MET"
+    },
+    {
+      "id": "UI-20261101-02",
+      "title": "設定中樞縮放後以父主選單舊尺寸繪製背景",
+      "severity": "P2",
+      "evidence_level": "SOURCE_CONFIRMED",
+      "locations": [
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:261",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:144"
+      ],
+      "trigger": "在設定中樞保持開啟的情況下調整視窗/GUI尺寸，例如邏輯視口由320×240擴至640×400。",
+      "causal_chain": [
+        "Minecraft.resizeDisplay 只對當前 screen 呼叫 resize。",
+        "Screen.resize 更新當前物件 width/height 並重建控件；沒有遞迴更新 parent。",
+        "SettingsHub.render 呼叫 parent.renderArtwork(g)，而該方法用 parent.width、parent.height、parent.layout。",
+        "中樞面板及控件已用新尺寸，背景比例、漸層、邊框仍取父物件舊尺寸。"
+      ],
+      "observed_scope": "尺寸來源失同步由呼叫鏈確定；空白區/裁切等實際像素表現待靜音實機授權後驗收，不冒稱已看見。",
+      "repair_boundary_after_gate": "讓設定頁繪製取當前視口，主選單原畫、裁切規則及原尺寸下效果保留；不能為同步背景重跑父主菜單 init 的服務初始化。",
+      "gate": "NOT_MET"
+    },
+    {
+      "id": "UI-20261101-03",
+      "title": "Realms 通知圖示仍綁在已隱藏的主頁按鈕",
+      "severity": "P2",
+      "evidence_level": "SOURCE_CONFIRMED_CONDITIONAL_DISPLAY",
+      "locations": [
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:92",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:126",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:251"
+      ],
+      "trigger": "正常非Demo帳號；Realms validClient 且有 unseen notification、邀請、新聞或試用等可繪製狀態。",
+      "causal_chain": [
+        "arrange 隱藏所有按鈕，只恢復四個主操作；menu.online 仍存在但 visible=false。",
+        "主頁render只檢查 realms!=null 與 realmsLayer!=null，未按可見入口決定通知圖示所有權。",
+        "原版RealmsNotificationsScreen.render 在 validClient 為真時繪圖，並不讀本模組按鈕visible。",
+        "設定中樞另建可見Realms按鈕，只繪背景及自身widgets，沒有對應通知層。"
+      ],
+      "observed_scope": "源碼可確認層與可見入口分離；本輪未聯網查Realms、未注入帳號通知、未實機復現。",
+      "repair_boundary_after_gate": "先確定通知應附著哪個可見入口；不可僅把原layer搬到Hub就宣稱完成，因原版getConfiguration還要求當前screen instanceof TitleScreen。",
+      "gate": "NOT_MET"
+    },
+    {
+      "id": "UI-20261101-04",
+      "title": "Forge 模組更新圖示仍在主頁舊 Mods 按鈕位置繪製",
+      "severity": "P2",
+      "evidence_level": "SOURCE_CONFIRMED_CONDITIONAL_DISPLAY",
+      "locations": [
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:71",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:92",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:137",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:251"
+      ],
+      "trigger": "Forge 檢查結果 showNotification.shouldDraw() 為真，且 VERSION_CHECK 開啟。",
+      "causal_chain": [
+        "Mods按鈕被主頁arrange隱藏；syncOriginalBounds只同步其幾何，未把通知所有權轉到中樞可見按鈕。",
+        "主頁render仍呼叫updateLayer.render。",
+        "Forge layer通過通知狀態及設定檢查後直接讀modButton幾何繪圖，沒有visible檢查。",
+        "SettingsHub新建Mods wrapper，但未繪製updateLayer。"
+      ],
+      "observed_scope": "有更新狀態時會發生的源碼問題；本輪未檢查更新服務或造通知事件。",
+      "repair_boundary_after_gate": "通知與當前可見Mods入口同步，並保留Forge更新開關；不改全局更新機制。",
+      "gate": "NOT_MET"
+    }
+  ],
+  "non_findings": [
+    {
+      "scope": "刷怪蛋提示",
+      "evidence": "DynastyItemInfo.lines:49-51 及 shortText:114 對 SpawnEggItem 返回空；DynastyTooltips:87-90 只加入非空說明。",
+      "result": "未發現新的基礎刷怪蛋教學回流證據；不重跑舊115蛋驗收，不重開已完成修復。"
+    },
+    {
+      "scope": "建立世界頁面",
+      "evidence": "本輪檢視既有事件裝飾與還原流程，未取得新的具體復現證據。",
+      "result": "不把可能的第三方衝突當成已成立bug。"
+    },
+    {
+      "scope": "舊F6翻譯鍵",
+      "evidence": "語言檔仍含舊hint鍵，但本輪未取得可見引用。",
+      "result": "未使用文字不等於玩家會見到提示，不據此新增修復。"
+    }
+  ],
+  "acceptance_cases": [
+    {
+      "id": "locale-en",
+      "expected": "en_us 下開設定中樞，標題/返回與選項語言一致",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE_ONLY"
+    },
+    {
+      "id": "locale-switch",
+      "expected": "語言切換並返回後重新開啟中樞，沒有殘留固定中文",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE_ONLY"
+    },
+    {
+      "id": "resize-grow",
+      "expected": "中樞內由320×240擴至640×400，背景/邊框與當前視口一致",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE_ONLY"
+    },
+    {
+      "id": "resize-shrink",
+      "expected": "中樞內縮小再放大，沒有舊尺寸裁切，按鈕仍可鍵盤導航",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE_ONLY"
+    },
+    {
+      "id": "resize-return",
+      "expected": "中樞縮放後返回主頁，背景原畫及主頁原布局策略不變",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE_ONLY"
+    },
+    {
+      "id": "realms-pending",
+      "expected": "條件性通知存在時，圖示附著可見入口，沒有主頁浮空圖示",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE_ONLY"
+    },
+    {
+      "id": "realms-empty",
+      "expected": "沒有通知時不憑空顯示圖示，停留中樞時資料生命週期有明確驗證",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE_ONLY"
+    },
+    {
+      "id": "forge-update",
+      "expected": "有更新通知時圖示隨可見Mods入口，關閉VERSION_CHECK時遵守原規則",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE_ONLY"
+    },
+    {
+      "id": "actions",
+      "expected": "未受限帳號與多人受限帳號都保留原始回呼、disabled狀態及原tooltip",
+      "status": "NOT_RUN_FUTURE_ACCEPTANCE_ONLY"
+    }
+  ],
+  "research": {
+    "file": "reference-batch-001.json",
+    "new_related_manual_examples": 5,
+    "supporting_not_counted": 1,
+    "minimum_gap": 995,
+    "per_scope_gate_passed": false,
+    "old_100_added": 0,
+    "network_429_stop": true
+  },
+  "actions": {
+    "production_edits": 0,
+    "artwork_edits": 0,
+    "existing_acceptance_reruns": 0,
+    "game_launches": 0,
+    "java_executions": 0,
+    "focus_wake_or_sound_actions": 0,
+    "save_world_access": 0,
+    "pushes": 0,
+    "master_ledger_edits": 0,
+    "todo_backups": 0,
+    "other_threads_assets_modified": 0
+  },
+  "handoff": {
+    "coordinator_can_review": "本地4條缺陷因果與5個具體參考；不是已修復回執，也不是清單刪除依據。",
+    "next_required": "先補各缺陷範圍的真實相關參考並去重；門檻通過後再改專屬菜單代碼，實機驗收另等允許啟動遊戲的時段。",
+    "window_completion_claim": false
+  }
+}

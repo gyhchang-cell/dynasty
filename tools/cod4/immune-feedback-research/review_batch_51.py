@@ -1,0 +1,22 @@
+"""Actual Assorted floating captions and Tetra native control feedback producers."""
+from ledger import B,O,record,attach_auxiliary,verify
+import json
+keys=[]
+r='AssortedMods/AssortedUtil';p='mods/damagenumbers/common/src/main/java/com/grim3212/assorted/damagenumbers/'
+def w(repo,f):return f,1,len((B/'sources'/repo.replace('/','__')/f).read_text().splitlines())
+k='assorted-native-damage-source-memory-health-delta-and-world-identity-text'
+record(k,r,[w(r,'mods/damagenumbers/fabric/src/main/resources/fabric.mod.json'),w(r,'mods/damagenumbers/common/src/main/resources/assorteddamagenumbers.mixins.json'),w(r,'mods/damagenumbers/fabric/src/main/java/com/grim3212/assorted/damagenumbers/AssortedDamageNumbersFabricClient.java')]+[w(r,p+f) for f in ['mixin/client/LivingEntityDamageEventMixin.java','client/DamageNumbersClient.java','client/damage/DamageNumbers.java','client/damage/DamagePopup.java','client/damage/DamageKind.java','config/DamageNumbersClientConfig.java']],
+ '实际Fabric client entrypoint/Mixin config→LivingEntity.handleDamageEvent HEAD按entityId记原生DamageSource/gameTime→END_CLIENT_TICK遍历实体血量变化，与5tick以内来源配对→spawn实体朝viewer一侧的物理DamagePopup→每tick运动/年龄剔除→LevelRender COLLECT_SUBMITS提交NORMAL世界字体。实际AssortedLib service provider及Fabric事件桥补作辅助0。',
+ '整条来源配对+世界身份清理+浮字链1，不按source枚举/颜色/物理helper拆。level对象改变/null/无player/toggle关同时清健康、source和popups；同世界同ID复用未验证UUID，5tick内旧source可能错归，新实体需上次health存在才显示。健康delta非伤害包数量，阈值.05/隐身/第一人称camera实体排除；同tick多hit可能累积为一delta、只保留最后来源，伤害包未改血时不生字所以不能IMMUNE。来源标签优先fire/explosion/projectile等，普通generic模组id稳定hash颜色/可本地化fallback不等于拒控原因。spawn把Component转VisualOrderText并缓存宽度，已有popups会缓存出生语言，不随热切重排；出生快照朝viewer偏移防自身遮挡，后续非target-follow，floor为初始Y+.25而不是实际地面，物理可穿地形。真实独立tick lifetime及插值fade，未见总数/按目标时间节流；NORMAL+满亮/outline提交不是已证遮挡观感。',
+ 'Boss明确拒控类型/目标S2C，文字清理绑定world+UUID/目标代际；拒绝原因不能从五tick来源近邻/血量变化推测，总容量与按目标节流须分别设计。',
+ '固定5853d33fee5f996f71ae5c215d0d21fdb3d2e3fc及Git blob/SHA。Java25/新渲染API只研究策略，不直接移植1.20运行；原始fabric变量清单未运行资源扩展打包。实际完整关键方法已读，未编译/启动/验像素/音效，无正式源码资产待办改动。','floating_combat_text');keys.append(k)
+a='AssortedMods/AssortedLib';q='common/src/main/java/com/grim3212/assorted/lib/platform/';ff='fabric/src/main/java/com/grim3212/assorted/lib/platform/FabricClientHelper.java'
+attach_auxiliary(k,a,[w(a,q+'ClientServices.java'),w(a,q+'Services.java'),(ff,174,186),w(a,'fabric/src/main/resources/META-INF/services/com.grim3212.assorted.lib.platform.services.IClientHelper')],
+ '实际ServiceLoader固定a2c9a9ff75231667b337e673c27f73f5e684914f→FabricClientHelper将tickEnd注册Fabric END_CLIENT_TICK，submit注册COLLECT_SUBMITS。通用平台桥0；没有将独立库当游戏实现计数，未编译证明依赖版本组合。')
+r='Mickelus/tetra';p='src/main/java/se/mickelus/tetra/';k='tetra-native-control-hit-sound-and-particles-ignore-effect-admission'
+record(k,r,[(p+'TetraMod.java',82,100),(p+'TetraRegistries.java',166,176),(p+'TetraRegistries.java',385,389),(p+'effect/ItemEffectHandler.java',80,116),(p+'effect/ItemEffectHandler.java',161,204),(p+'items/modular/ItemModularHandheld.java',227,259),(p+'effect/EffectHelper.java',72,80),(p+'items/modular/IModularItem.java',874,888),w(r,p+'effect/StunEffect.java'),w(r,p+'effect/potion/StunPotionEffect.java'),w(r,p+'effect/potion/EarthboundPotionEffect.java'),w(r,p+'effect/gui/EffectUnRenderer.java')],
+ '已注册ItemEffectHandler native LivingAttack箭分支由当前shooter装备取modular bow/crossbow调用applyHitEffects；native ItemModularHandheld.hurtEnemy高attackScale同入口→getstunlevel>0→StunEffect服务器概率命中→target.addEffect(stun)随后目标位置原版strongattack声+ENTITY_EFFECT包粒子；被接纳的effect原生applyEffectTick再每4duration tick环绕两粒，隐藏原生药水图标。',
+ '真实控制受击声光生产点1，earthbind/bleed同applyHitEffects旁支常量/粒子包装不另计。最关键：addEffect返回布尔被忽略，即目标原生canBeAffected拒绝也会播放首次声光，而后续状态环绕只在真有效果时存在；不能据首次“眩晕特效”称控制已生效或反推“免疫”。native arrow分支在LivingAttack阶段且未等最终hurt通过，装备取shooter当前手而非箭发射快照；nativehurtEnemy也有自己攻击冷却门。Stun三个属性乘-1为移速/攻击伤害/击退，不是通用暂停AI/取消动画；Earthbound KNOCKBACK_RESISTANCE用MULTIPLY_TOTAL+1只是现有值翻倍，并非无条件设1。原生声音为攻击强击而非免疫嗡声，无逐目标节流/拒控S2C/灰字。',
+ 'Boss拒控必须检查最终控制接纳/显式拒绝理由后派发，不把普通命中特效当拒绝回执；普通体质仍不新增灰字。',
+ '固定d212377491eaf2ef58ea841f0e45d532d5e69f95。关键自有方法及原生入口已完整观察，其它攻击提升/数据效果内部辅助0，不以缺动态装备数据自称自然可获取完成。无游戏、正式源码资产待办改动。','native_control_feedback_admission_semantics');keys.append(k)
+f=O/'semantic-dedup.json';d=json.loads(f.read_text());d['groups'].append({'family':'assorted-tetra-batch51','credited_chains':keys,'rationale':'Assorted实际source memory/health/world文字整链1；Tetra原生控制接纳未检查却播声光生产点1，所有色/标签/状态常量/包装合并；纯Anima/ImmersiveMessages泛用文本API仍辅助0。'});f.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n');verify()

@@ -1,0 +1,82 @@
+package com.dynasty.dungeon.client;
+
+import com.dynasty.dungeon.DungeonContent;
+import com.dynasty.dungeon.DungeonMechanismBlock;
+import com.dynasty.dungeon.DungeonMechanismBlockEntity;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.ModelEvent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.RenderType;
+import com.dynasty.dungeon.DungeonTrapGeometry;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+/** Rendering follows the server phase snapshot. No animation callback causes damage. */
+@Mod.EventBusSubscriber(modid="dynasty",bus=Mod.EventBusSubscriber.Bus.MOD,value=Dist.CLIENT)
+public final class DungeonMechanismRenderer implements BlockEntityRenderer<DungeonMechanismBlockEntity> {
+    public static final ResourceLocation HAMMER_MODEL=new ResourceLocation("dynasty","block/cod2_mechanism/crusher_head");
+    public static final ResourceLocation CLOUD_MODEL=new ResourceLocation("dynasty","block/cod2_cloud/cloud");
+    public DungeonMechanismRenderer(BlockEntityRendererProvider.Context ignored){}
+    @SubscribeEvent public static void additional(ModelEvent.RegisterAdditional event){event.register(HAMMER_MODEL);event.register(CLOUD_MODEL);}
+    @SubscribeEvent public static void register(EntityRenderersEvent.RegisterRenderers event){
+        event.registerBlockEntityRenderer(DungeonContent.MECHANISM.get(),DungeonMechanismRenderer::new);
+        event.registerEntityRenderer(DungeonContent.TRAP_ARROW.get(),net.minecraft.client.renderer.entity.TippableArrowRenderer::new);
+    }
+    @Override public void render(DungeonMechanismBlockEntity be,float partial,PoseStack pose,MultiBufferSource buffers,int light,int overlay){
+        if(be.kind()==DungeonMechanismBlock.Kind.TRAP&&com.dynasty.dungeon.DungeonTrapProfile.forId(be.mechanismId())==com.dynasty.dungeon.DungeonTrapProfile.CRUSHER){
+            pose.pushPose();try{
+                int phase=be.getBlockState().getValue(DungeonMechanismBlock.STAGE);float progress=be.visualProgress(partial);
+                double y=DungeonTrapGeometry.hammerY(phase,progress);
+                pose.translate(DungeonTrapGeometry.HAMMER_INSET,y,DungeonTrapGeometry.HAMMER_INSET);
+                pose.scale((float)DungeonTrapGeometry.HAMMER_WIDTH,(float)DungeonTrapGeometry.HAMMER_HEIGHT,(float)DungeonTrapGeometry.HAMMER_WIDTH);
+                var mc=Minecraft.getInstance();var type=RenderType.cutout();
+                // The opaque base can be dark while the raised head is in daylight.
+                int headLight=be.getLevel()==null?light:net.minecraft.client.renderer.LevelRenderer.getLightColor(be.getLevel(),
+                    be.getBlockPos().above((int)Math.floor(y+DungeonTrapGeometry.HAMMER_HEIGHT*.5)));
+                mc.getBlockRenderer().getModelRenderer().renderModel(pose.last(),buffers.getBuffer(type),be.getBlockState(),
+                    mc.getModelManager().getModel(HAMMER_MODEL),1,1,1,headLight,overlay,net.minecraftforge.client.model.data.ModelData.EMPTY,type);
+            }finally{pose.popPose();}return;
+        }
+        if(be.getBlockState().is(DungeonContent.CLOUD.get())){
+            int phase=be.getBlockState().getValue(DungeonMechanismBlock.STAGE);
+            // Delayed re-solidification also stays visually absent while an actor occupies the tile.
+            if(phase==2||phase==0&&be.getBlockState().getValue(DungeonMechanismBlock.OPEN))return;
+            float progress=be.visualProgress(partial);
+            float scale=phase==1?1-.25F*progress:phase==3?.8F*progress:1;
+            pose.pushPose();try{
+                pose.translate(.5,1,.5);pose.scale(scale,scale,scale);pose.translate(-.5,-1,-.5);
+                var mc=Minecraft.getInstance();var type=RenderType.cutout();
+                mc.getBlockRenderer().getModelRenderer().renderModel(pose.last(),buffers.getBuffer(type),be.getBlockState(),
+                    mc.getModelManager().getModel(CLOUD_MODEL),1,1,1,be.getLevel()==null?light:net.minecraft.client.renderer.LevelRenderer.getLightColor(be.getLevel(),be.getBlockPos().above()),overlay,net.minecraftforge.client.model.data.ModelData.EMPTY,type);
+            }finally{pose.popPose();}return;
+        }
+        if(be.kind()!=DungeonMechanismBlock.Kind.DOOR&&be.kind()!=DungeonMechanismBlock.Kind.FLOOR)return;
+        pose.pushPose();
+        try{
+            var state=be.getBlockState();
+            if(be.kind()==DungeonMechanismBlock.Kind.DOOR){
+                float open=be.doorProgress(partial);if(open>=1)return;
+                pose.scale(1,1-open,1);
+                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(Blocks.POLISHED_DEEPSLATE.defaultBlockState(),pose,buffers,light,overlay);
+            }else{
+                int phase=state.getValue(DungeonMechanismBlock.STAGE);float progress=be.visualProgress(partial);
+                float angle=switch(phase){case 1->(float)Math.sin(progress*Math.PI*6)*3;case 2->90;case 3->90*(1-progress);
+                    default->state.getValue(DungeonMechanismBlock.OPEN)?90:0;};
+                pose.translate(.5,1,.5);
+                pose.mulPose(Axis.YP.rotationDegrees(-state.getValue(DungeonMechanismBlock.FACING).toYRot()));
+                pose.translate(-.5,0,-.5);pose.mulPose(Axis.XP.rotationDegrees(angle));
+                pose.translate(0,-1,0);
+                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(Blocks.DEEPSLATE_TILES.defaultBlockState(),pose,buffers,light,overlay);
+            }
+        }finally{pose.popPose();}
+    }
+    @Override public int getViewDistance(){return 64;}
+}

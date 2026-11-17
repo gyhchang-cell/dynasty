@@ -3,6 +3,7 @@ package com.dynasty.cod3;
 import com.dynasty.*;
 import com.dynasty.network.DynastyNetwork;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.damagesource.*;
 import net.minecraft.world.phys.Vec3;
@@ -24,11 +25,11 @@ public final class FangtianSweep {
     private static final List<Start> STARTS=new ArrayList<>();
     private record Contact(LivingEntity target,float health) {}
     public static final class Receipt {
-        final ServerPlayer player;final LivingEntity main;final long tick;final Vec3 origin,direction;
+        final ServerPlayer player;final LivingEntity main;final ServerLevel level;final long tick;final Vec3 origin,direction;
         final float health;final List<Contact> contacts=new ArrayList<>();
         final DamageSource primary;boolean secondary,primaryDamage;
         Receipt(ServerPlayer p,LivingEntity t,DamageSource source) {
-            player=p;main=t;primary=source;tick=p.serverLevel().getGameTime();health=t.getHealth();
+            player=p;main=t;primary=source;level=p.serverLevel();tick=level.getGameTime();health=t.getHealth();
             origin=t.position().add(0,Math.min(1.1,t.getBbHeight()*.5),0);
             double yaw=Math.toRadians(p.getYRot());direction=new Vec3(-Math.sin(yaw),0,Math.cos(yaw));
         }
@@ -76,7 +77,9 @@ public final class FangtianSweep {
         STARTS.clear();
         for(var it=PENDING.iterator();it.hasNext();) {
             var r=it.next();it.remove();var p=r.player;long now=p.serverLevel().getGameTime();
-            if(r.tick!=now||!p.isAlive()||p.isRemoved()||r.main.level()!=p.level()
+            // Native C2S damage may precede the next END by one world tick.
+            long age=now-r.tick;
+            if(age<0||age>1||!p.isAlive()||p.isRemoved()||p.serverLevel()!=r.level||r.main.level()!=r.level
                     ||!(r.secondary||r.primaryDamage&&r.main.getHealth()<r.health))continue;
             var n=p.getPersistentData();if(n.contains(STAMP)&&n.getLong(STAMP)==now)continue;n.putLong(STAMP,now);
             var packet=packet(p.serverLevel().dimension().location().toString(),p.getId(),now,r.origin,r.direction);

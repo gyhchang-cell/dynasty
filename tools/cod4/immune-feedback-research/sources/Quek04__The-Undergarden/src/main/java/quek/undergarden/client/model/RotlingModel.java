@@ -1,0 +1,63 @@
+package quek.undergarden.client.model;
+
+import net.minecraft.client.model.AnimationUtils;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.PartPose;
+import net.minecraft.client.model.geom.builders.*;
+import net.minecraft.util.Mth;
+import quek.undergarden.client.state.entity.RotlingRenderState;
+
+public class RotlingModel extends EntityModel<RotlingRenderState> {
+
+	private final ModelPart head;
+	private final ModelPart rightLeg;
+	private final ModelPart leftLeg;
+	private final ModelPart rightArm;
+	private final ModelPart leftArm;
+
+	public RotlingModel(ModelPart root) {
+		super(root);
+		ModelPart body = root.getChild("body");
+		this.head = body.getChild("head");
+		this.rightLeg = body.getChild("rightLeg");
+		this.leftLeg = body.getChild("leftLeg");
+		this.rightArm = body.getChild("rightArm");
+		this.leftArm = body.getChild("leftArm");
+	}
+
+	public static LayerDefinition createBodyLayer() {
+		MeshDefinition meshdefinition = new MeshDefinition();
+		PartDefinition partdefinition = meshdefinition.getRoot();
+
+		PartDefinition body = partdefinition.addOrReplaceChild("body", CubeListBuilder.create().texOffs(0, 17).addBox(-4.0F, -10.5F, -4.0F, 8.0F, 7.0F, 8.0F, new CubeDeformation(0.0F))
+				.texOffs(0, 38).addBox(-4.0F, -12.5F, -4.0F, 8.0F, 2.0F, 8.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 24.5F, 0.0F));
+
+		PartDefinition head = body.addOrReplaceChild("head", CubeListBuilder.create().texOffs(0, 0).addBox(-4.0F, -5.0F, -8.0F, 8.0F, 5.0F, 8.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, -11.5F, 4.0F));
+
+		PartDefinition rightLeg = body.addOrReplaceChild("rightLeg", CubeListBuilder.create().texOffs(24, 2).addBox(0.0F, 0.0F, -2.0F, 3.0F, 3.0F, 3.0F, new CubeDeformation(0.0F)), PartPose.offset(-4.0F, -3.5F, 1.0F));
+
+		PartDefinition leftLeg = body.addOrReplaceChild("leftLeg", CubeListBuilder.create().texOffs(24, 2).mirror().addBox(-3.0F, 0.0F, -2.0F, 3.0F, 3.0F, 3.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offset(4.0F, -3.5F, 1.0F));
+
+		PartDefinition rightArm = body.addOrReplaceChild("rightArm", CubeListBuilder.create().texOffs(0, 0).addBox(-2.0F, 0.0F, -1.0F, 2.0F, 6.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offsetAndRotation(-3.0F, -10.5F, 0.0F, 0.0F, 0.0F, 0.4363F));
+
+		PartDefinition leftArm = body.addOrReplaceChild("leftArm", CubeListBuilder.create().texOffs(0, 0).mirror().addBox(-1.2817F, 0.0977F, -1.0F, 2.0F, 6.0F, 2.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offsetAndRotation(4.0F, -11.0F, 0.0F, 0.0F, 0.0F, -0.4363F));
+
+		return LayerDefinition.create(meshdefinition, 64, 64);
+	}
+
+	@Override
+	public void setupAnim(RotlingRenderState state) {
+		super.setupAnim(state);
+		this.head.xRot = state.aggressive ? -0.5235F : -0.1745F;
+
+		this.leftArm.xRot = state.aggressive ? -1.5F : Mth.cos(state.walkAnimationPos * 0.6662F + Mth.PI) * 1.4F * state.walkAnimationSpeed;
+		this.rightArm.xRot = state.aggressive ? -1.5F : Mth.cos(state.walkAnimationPos * 0.6662F) * 1.4F * state.walkAnimationSpeed;
+		this.rightArm.zRot = 0.4363F;
+		this.leftArm.zRot = -0.4363F;
+		AnimationUtils.bobArms(this.rightArm, this.leftArm, state.ageInTicks);
+
+		this.leftLeg.xRot = Mth.cos(state.walkAnimationPos * 0.6662F) * 1.4F * state.walkAnimationSpeed;
+		this.rightLeg.xRot = Mth.cos(state.walkAnimationPos * 0.6662F + Mth.PI) * 1.4F * state.walkAnimationSpeed;
+	}
+}

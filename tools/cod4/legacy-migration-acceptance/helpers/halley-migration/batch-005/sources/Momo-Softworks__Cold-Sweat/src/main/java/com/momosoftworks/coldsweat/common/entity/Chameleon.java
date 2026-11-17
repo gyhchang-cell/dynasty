@@ -1,0 +1,854 @@
+package com.momosoftworks.coldsweat.common.entity;
+
+import com.momosoftworks.coldsweat.ColdSweat;
+import com.momosoftworks.coldsweat.api.util.Temperature;
+import com.momosoftworks.coldsweat.client.renderer.animation.AnimationManager;
+import com.momosoftworks.coldsweat.common.entity.data.edible.ChameleonEdibles;
+import com.momosoftworks.coldsweat.common.entity.data.edible.Edible;
+import com.momosoftworks.coldsweat.common.entity.goal.EatObjectsGoal;
+import com.momosoftworks.coldsweat.common.entity.goal.LazyLookGoal;
+import com.momosoftworks.coldsweat.common.entity.goal.EdibleTemptGoal;
+import com.momosoftworks.coldsweat.config.ConfigSettings;
+import com.momosoftworks.coldsweat.core.init.EntityInit;
+import com.momosoftworks.coldsweat.core.network.ColdSweatPacketHandler;
+import com.momosoftworks.coldsweat.core.network.message.ChameleonEatMessage;
+import com.momosoftworks.coldsweat.core.network.message.EntityMountMessage;
+import com.momosoftworks.coldsweat.data.loot.ModLootTables;
+import com.momosoftworks.coldsweat.data.tag.ModEntityTags;
+import com.momosoftworks.coldsweat.data.tag.ModItemTags;
+import com.momosoftworks.coldsweat.util.math.CSMath;
+import com.momosoftworks.coldsweat.util.registries.ModItems;
+import com.momosoftworks.coldsweat.util.registries.ModSounds;
+import com.momosoftworks.coldsweat.util.world.WorldHelper;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageSources;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.goal.*;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec2;
+import net.minecraftforge.common.util.ITeleporter;
+import net.minecraftforge.event.entity.EntityEvent;
+import net.minecraftforge.event.entity.ProjectileImpactEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
+import net.minecraftforge.network.PacketDistributor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.UUID;
+
+@Mod.EventBusSubscriber
+public class Chameleon extends Animal
+{
+    static Method GET_DATA_ITEM = ObfuscationReflectionHelper.findMethod(SynchedEntityData.class, "m_135379_", EntityDataAccessor.class);
+    static
+    {   GET_DATA_ITEM.setAccessible(true);
+    }
+
+    static final EntityDataAccessor<Integer> SHED_TIME = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.INT);
+    static final EntityDataAccessor<Integer> LAST_SHED = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.INT);
+    static final EntityDataAccessor<Integer> HURT_TIMESTAMP = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.INT);
+    static final EntityDataAccessor<CompoundTag> TRUSTED_PLAYERS = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.COMPOUND_TAG);
+    static final EntityDataAccessor<BlockPos> TRACKING_POS = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.BLOCK_POS);
+    static final EntityDataAccessor<Integer> EAT_TIMESTAMP = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.INT);
+    static final EntityDataAccessor<Float> TEMPERATURE = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.FLOAT);
+    static final EntityDataAccessor<CompoundTag> EDIBLE_COOLDOWNS = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.COMPOUND_TAG);
+    static final EntityDataAccessor<Boolean> SEARCHING = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.BOOLEAN);
+    static final EntityDataAccessor<Integer> AGE_SECS = SynchedEntityData.defineId(Chameleon.class, EntityDataSerializers.INT);
+
+    private int ageTicks = 0;
+    private int feedCooldown = 0;
+
+    public float xRotHead = 0;
+    public float yRotHead = 0;
+    public float xRotLeftEye = 0;
+    public float yRotLeftEye = 0;
+    public float xRotRightEye = 0;
+    public float yRotRightEye = 0;
+    public float xRotTail = 0;
+    public float tailPhase = 0;
+
+    float eatAnimationTimer = 0;
+    public float opacity = 1;
+    float desiredTemp = 1f;
+
+    boolean mountSneaking = false;
+    int mountSneakCount = 0;
+    int lastMountSneak = 0;
+
+    public Chameleon(EntityType<Chameleon> type, Level Level)
+    {
+        super(type, Level);
+    }
+
+    @Override
+    protected void registerGoals()
+    {   this.goalSelector.addGoal(0, new FloatGoal(this));
+        this.goalSelector.addGoal(1, new PanicGoal(this, 1.6));
+        this.goalSelector.addGoal(2, new BreedGoal(this, 1.0D));
+        this.goalSelector.addGoal(3, new EatObjectsGoal(this, ModEntityTags.CHAMELEON_EATS));
+        this.goalSelector.addGoal(4, new EdibleTemptGoal(this, 1.25, false));
+        this.goalSelector.addGoal(4, new FollowParentGoal(this, 1.1D));
+        this.goalSelector.addGoal(5, new LazyLookGoal(this));
+        this.goalSelector.addGoal(5, new LookAtPlayerGoal(this, Player.class, 6.0F));
+        this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0D));
+    }
+
+    public static AttributeSupplier.Builder createAttributes()
+    {
+        return TamableAnimal.createMobAttributes()
+                .add(Attributes.MAX_HEALTH, 10.0D)
+                .add(Attributes.MOVEMENT_SPEED, 0.16D)
+                .add(Attributes.ATTACK_KNOCKBACK, 0.0D)
+                .add(Attributes.ATTACK_DAMAGE, 4.0D);
+    }
+
+    @Override
+    protected void defineSynchedData()
+    {
+        super.defineSynchedData();
+        this.entityData.define(SHED_TIME, -1);
+        this.entityData.define(LAST_SHED, 0);
+        this.entityData.define(HURT_TIMESTAMP, 0);
+        this.entityData.define(TRUSTED_PLAYERS, new CompoundTag());
+        this.entityData.define(TRACKING_POS, BlockPos.ZERO);
+        this.entityData.define(EAT_TIMESTAMP, 0);
+        this.entityData.define(TEMPERATURE, (float) CSMath.average(ConfigSettings.MIN_TEMP.get(), ConfigSettings.MAX_TEMP.get()));
+        this.entityData.define(EDIBLE_COOLDOWNS, new CompoundTag());
+        this.entityData.define(SEARCHING, false);
+        this.entityData.define(AGE_SECS, 0);
+    }
+
+    @Override
+    public boolean isInvulnerableTo(@NotNull DamageSource source)
+    {
+        if (this.getVehicle() instanceof Player player)
+        {   DamageSources damageSources = player.level().damageSources();
+            if (source.equals(damageSources.inWall()) || source.equals(damageSources.fall())) return true;
+            return player.isCreative() || player.isInvulnerableTo(source);
+        }
+        return super.isInvulnerableTo(source);
+    }
+
+    @Override
+    public void die(DamageSource source)
+    {
+        super.die(source);
+
+        if (this.dead)
+        {
+            this.getCombatTracker().recordDamage(source, 1);
+            Component deathMessage = this.getCombatTracker().getDeathMessage();
+            ListTag trustedPlayers = this.getTrustedPlayers().getList("Players", 8);
+
+            if (!this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES))
+            {   trustedPlayers.forEach(string ->
+                {
+                    Player player = this.level().getPlayerByUUID(UUID.fromString(string.getAsString()));
+                    if (player != null)
+                    {   player.sendSystemMessage(deathMessage);
+                    }
+                });
+            }
+        }
+    }
+
+    @NotNull
+    @Override
+    public InteractionResult mobInteract(@NotNull Player player, @NotNull InteractionHand hand)
+    {
+        // Shed chameleon
+        if (!ConfigSettings.CHAMELEON_SHED_AUTOMATICALLY.get() && makeShed(this))
+        {   return InteractionResult.SUCCESS;
+        }
+
+        // Feed edible
+        ItemStack stack = player.getItemInHand(hand);
+        Edible edible = ChameleonEdibles.getEdible(stack).orElse(null);
+
+        if (edible != null)
+        {
+            if (this.feedCooldown <= 0 && this.getCooldown(edible) <= 0 && edible.shouldEat(stack, this, player))
+            {
+                this.feedCooldown = 10;
+                if (!player.level().isClientSide)
+                {
+                    ItemStack dropStack = stack.copy();
+                    dropStack.setCount(1);
+                    ItemEntity dropped = player.drop(dropStack, true);
+                    if (dropped != null)
+                    {   dropped.getPersistentData().putUUID("Recipient", this.getUUID());
+                    }
+                    player.stopUsingItem();
+                    player.swing(hand, true);
+                    this.usePlayerItem(player, hand, stack);
+
+                    return InteractionResult.SUCCESS;
+                }
+            }
+            return InteractionResult.CONSUME;
+        }
+        else if (this.isPlayerTrusted(player) && player.getPassengers().isEmpty() && !this.level().isClientSide)
+        {
+            if (this.startRiding(player) && player instanceof ServerPlayer serverPlayer)
+            {   ColdSweatPacketHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), new EntityMountMessage(this.getId(), player.getId(), EntityMountMessage.Action.MOUNT));
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        return InteractionResult.PASS;
+    }
+
+    public static boolean makeShed(LivingEntity entity)
+    {
+        if (entity instanceof Chameleon chameleon && chameleon.canShed())
+        {
+            chameleon.shedItems();
+            chameleon.setLastShed(chameleon.getAgeTicks());
+            chameleon.stopShedding();
+            if (!entity.level().isClientSide)
+            {   WorldHelper.playEntitySound(ModSounds.CHAMELEON_SHED, chameleon, chameleon.getSoundSource(), chameleon.getSoundVolume(), chameleon.getVoicePitch());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isFood(ItemStack pStack)
+    {   return pStack.is(ModItemTags.CHAMELEON_TAMING);
+    }
+
+    @Override
+    public boolean canFallInLove()
+    {   return super.canFallInLove() && !this.isBaby() && !this.isInLove()
+            && !this.getPersistentData().getBoolean("HasBred");
+    }
+
+    @Override
+    protected void ageBoundaryReached()
+    {
+        super.ageBoundaryReached();
+        if (!this.isBaby())
+        {   this.shedItems();
+        }
+    }
+
+    private void shedItems()
+    {
+        for (ItemStack stack : ModLootTables.getEntityDropsLootTable(this, null, ModLootTables.CHAMELEON_SHEDDING))
+        {   WorldHelper.entityDropItem(this, stack, 40000);
+        }
+    }
+
+    @Override
+    protected float getStandingEyeHeight(Pose pPose, EntityDimensions pDimensions)
+    {   return this.isBaby() ? 0.25F : 0.3F;
+    }
+
+    @SubscribeEvent
+    public static void setHeight(EntityEvent.Size event)
+    {
+        if (event.getEntity().isAddedToWorld() && event.getEntity() instanceof Chameleon chameleon)
+        {
+            if (chameleon.isBaby())
+            {   event.setNewSize(EntityDimensions.fixed(0.65f, 0.5f));
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onHitFromOwner(LivingHurtEvent event)
+    {
+        if (event.getEntity() instanceof Chameleon chameleon)
+        {
+            if (chameleon.getVehicle() != null && chameleon.getVehicle() == event.getSource().getEntity())
+            {   event.setCanceled(true);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void cancelProjectileHit(ProjectileImpactEvent event)
+    {
+        if (!(event.getRayTraceResult() instanceof EntityHitResult hitResult)) return;
+        if (hitResult.getEntity() instanceof Chameleon chameleon && chameleon.getVehicle() instanceof Player)
+        {
+            event.setImpactResult(ProjectileImpactEvent.ImpactResult.SKIP_ENTITY);
+            chameleon.setHurtTimestamp(chameleon.tickCount - 20);
+        }
+    }
+
+    public int getTimeToShed()
+    {   return 600;
+    }
+
+    public int getEatAnimLength()
+    {   return 6;
+    }
+
+    @Nullable
+    @Override
+    public AgeableMob getBreedOffspring(@NotNull ServerLevel level, @NotNull AgeableMob parent)
+    {   return EntityInit.CHAMELEON.get().create(level);
+    }
+
+    @Override
+    public void spawnChildFromBreeding(ServerLevel level, Animal mate)
+    {
+        super.spawnChildFromBreeding(level, mate);
+        this.getPersistentData().putBoolean("HasBred", true);
+        mate.getPersistentData().putBoolean("HasBred", true);
+    }
+
+    @Nullable
+    @Override
+    protected SoundEvent getAmbientSound()
+    {   return ModSounds.CHAMELEON_AMBIENT;
+    }
+
+    @Nullable
+    @Override
+    protected SoundEvent getHurtSound(@NotNull DamageSource source)
+    {   return ModSounds.CHAMELEON_HURT;
+    }
+
+    @Nullable
+    @Override
+    protected SoundEvent getDeathSound()
+    {   return ModSounds.CHAMELEON_DEATH;
+    }
+
+    @Override
+    protected float getSoundVolume()
+    {   return 0.7f;
+    }
+
+    @Override
+    public void playAmbientSound()
+    {
+        SoundEvent soundevent = this.getAmbientSound();
+        if (!this.level().isClientSide && soundevent != null && !this.isSearching())
+        {   // This method plays a sound that actually follows the entity
+            WorldHelper.playEntitySound(soundevent, this, this.getSoundSource(), this.getSoundVolume(), this.getVoicePitch());
+        }
+    }
+
+    @Override
+    protected void playHurtSound(@NotNull DamageSource damageSource)
+    {
+        SoundEvent soundevent = this.getHurtSound(damageSource);
+        if (soundevent != null)
+        {   // This method plays a sound that actually follows the entity
+            WorldHelper.playEntitySound(soundevent, this, this.getSoundSource(), this.getSoundVolume(), this.getVoicePitch());
+        }
+    }
+
+    public boolean isWalking()
+    {   return new Vec2((float) getDeltaMovement().x, (float) getDeltaMovement().z).length() > 0.005;
+    }
+
+    @Override
+    public int getHeadRotSpeed()
+    {   return 20;
+    }
+
+    @Override
+    public void tick()
+    {
+        super.tick();
+
+        this.ageTicks++;
+
+        if (this.feedCooldown > 0)
+        {   this.feedCooldown--;
+        }
+
+        if (this.eatAnimationTimer > 0)
+        {   this.eatAnimationTimer--;
+        }
+
+        // Age
+        if (!this.level().isClientSide && this.tickCount % 20 == 0)
+        {   int ageSecs = this.getAgeSecs();
+            this.setAgeSecs(ageSecs + 1);
+            this.ageTicks = ageSecs * 20;
+        }
+
+        // Tick shedding
+        if (!this.level().isClientSide)
+        {
+            int shedCheckInterval = ConfigSettings.SHED_TIMINGS.get().interval();
+            int shedCooldown = ConfigSettings.SHED_TIMINGS.get().cooldown();
+            double shedChance = ConfigSettings.SHED_TIMINGS.get().chance();
+            int shedTime = this.getShedTime();
+
+            if (this.tickCount % shedCheckInterval == 0 && shedTime < 0 && !this.isBaby()
+            && this.random.nextDouble() < shedChance && this.getAgeTicks() - this.getLastShed() > shedCooldown)
+            {   this.startShedding();
+            }
+            // Increment shed timer
+            if (shedTime > -1)
+            {   this.setShedTime(shedTime + 1);
+            }
+            // Trigger shedding event
+            if (shedTime == this.getTimeToShed())
+            {   this.gameEvent(GameEvent.ENTITY_SHAKE);
+                WorldHelper.playEntitySound(ModSounds.CHAMELEON_SHED_READY, this, this.getSoundSource(), this.getSoundVolume(), this.getVoicePitch());
+            }
+            // Shed items automatically if enabled
+            if (ConfigSettings.CHAMELEON_SHED_AUTOMATICALLY.get() && this.canShed())
+            {   makeShed(this);
+            }
+            if (shedTime - this.getTimeToShed() > ConfigSettings.CHAMELEON_SHED_TIME_LIMIT.get())
+            {   this.stopShedding();
+                this.setLastShed(this.getAgeTicks());
+                WorldHelper.playEntitySound(ModSounds.CHAMELEON_SHED_FAIL, this, this.getSoundSource(), this.getSoundVolume(), this.getVoicePitch());
+                WorldHelper.spawnParticleBatch(this.level(), new ItemParticleOption(ParticleTypes.ITEM, ModItems.CHAMELEON_MOLT.getDefaultInstance()),
+                                               this.getBoundingBox().inflate(0.2), 20, 0.05);
+            }
+        }
+        // Particles
+        else if (this.random.nextDouble() < 0.2 && this.canShed())
+        {
+            // spawn shedding particles
+            WorldHelper.spawnParticle(this.level(), new ItemParticleOption(ParticleTypes.ITEM, ModItems.CHAMELEON_MOLT.getDefaultInstance()),
+                    this.getX() + (this.random.nextDouble() - 0.5) * this.getBbWidth(),
+                    this.getY() + this.random.nextDouble() * this.getBbHeight(),
+                    this.getZ() + (this.random.nextDouble() - 0.5) * this.getBbWidth(),
+                    0.01, 0.05, 0.01);
+        }
+
+        // Follow the player's movements when riding
+        if (this.getVehicle() instanceof Player player)
+        {
+            float playerHeadYaw = player.yHeadRot;
+            this.yHeadRot = CSMath.clamp(this.yHeadRot, playerHeadYaw - 50, playerHeadYaw + 50);
+            this.yBodyRot = playerHeadYaw;
+        }
+
+        // Control temperature
+        if (this.tickCount % 20 == 0 || this.tickCount  == 1)
+        {   this.desiredTemp = (float) CSMath.clamp(Temperature.get(this, Temperature.Trait.WORLD), ConfigSettings.MIN_TEMP.get(), ConfigSettings.MAX_TEMP.get());
+        }
+        this.setTemperature(this.getTemperature() + (this.desiredTemp - this.getTemperature()) * 0.03f);
+
+        // Handle dismounting
+        if (this.getVehicle() instanceof Player player && !this.level().isClientSide)
+        {
+            if (player.isCrouching())
+            {
+                if (!mountSneaking)
+                {
+                    if (player.tickCount - lastMountSneak < 8 || mountSneakCount == 0)
+                    {   mountSneakCount++;
+                    }
+                    else
+                    {   mountSneakCount = 0;
+                    }
+                    lastMountSneak = player.tickCount;
+                    mountSneaking = true;
+
+                    if (mountSneakCount >= 2)
+                    {
+                        this.stopRiding();
+                        if (player instanceof ServerPlayer serverPlayer)
+                        {   ColdSweatPacketHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), new EntityMountMessage(this.getId(), player.getId(), EntityMountMessage.Action.DISMOUNT));
+                        }
+                        this.boardingCooldown = 10;
+                        mountSneakCount = 0;
+                    }
+                }
+            }
+            else mountSneaking = false;
+        }
+
+        // Spawn particles if tracking a position. After 5 minutes, clear the position
+        if (this.tickCount % 5 == 0 && this.isTracking())
+        {
+            if (this.random.nextDouble() < 0.3)
+            {
+                WorldHelper.spawnParticle(this.level(), ParticleTypes.HAPPY_VILLAGER,
+                        this.getX() + Math.random() - 0.5, this.getY() + Math.random() - 0.5 + this.getBbHeight() / 2, this.getZ() + Math.random() - 0.5,
+                        0.01, 0.01, 0.01);
+            }
+
+            if (this.tickCount % 20 == 0)
+            {
+                if (this.getAgeTicks() - this.getEatTimestamp() > 6000)
+                {   this.clearTrackingPos();
+                }
+                // Award nearby players the "chameleon_find_biome" advancement
+                if ((Math.sqrt(Math.pow(this.getX() - this.getTrackingPos().getX(), 2)
+                             + Math.pow(this.getZ() - this.getTrackingPos().getZ(), 2)) < 20
+                || this.getTrackingPos().equals(BlockPos.ZERO))
+                && this.getServer() != null)
+                {
+                    Advancement advancement = this.getServer().getAdvancements().getAdvancement(new ResourceLocation(ColdSweat.MOD_ID, "chameleon_find_biome"));
+                    for (ServerPlayer player : WorldHelper.getEntitiesOfClass(ServerPlayer.class, this.level(), this.getBoundingBox().inflate(20), e -> true))
+                    {
+                        if (advancement != null)
+                        {
+                            if (player.getAdvancements().getOrStartProgress(advancement).isDone())
+                                continue;
+                            player.getAdvancements().award(advancement, "requirement");
+                        }
+                    }
+                    this.clearTrackingPos();
+                    WorldHelper.spawnParticleBatch(this.level(), ParticleTypes.HAPPY_VILLAGER, this.getBoundingBox().inflate(0.2), 20, 0.01);
+                }
+            }
+        }
+
+        // Spawn love particles
+        if (this.isInLove() && this.random.nextDouble() < 0.8 && this.tickCount % 8 == 0)
+        {
+            WorldHelper.spawnParticleBatch(this.level(), ParticleTypes.HEART, this.getX(), this.getY() + this.getBbHeight() / 2, this.getZ(),
+                                           this.getBbWidth() / 1.5, this.getBbHeight() / 1.5, this.getBbWidth() / 1.5,
+                                           1, 0);
+        }
+
+        // Tick cooldowns
+        if (!level().isClientSide)
+        {
+            CompoundTag cooldowns = this.getCooldowns();
+            for (String tag : cooldowns.getAllKeys())
+            {
+                int time = cooldowns.getInt(tag);
+                if (time > 0)
+                    cooldowns.putInt(tag, time - 1);
+            }
+            this.entityData.set(EDIBLE_COOLDOWNS, cooldowns);
+        }
+    }
+
+    @Override
+    public boolean hurt(DamageSource source, float amount)
+    {
+        if (source.getEntity() != null && !this.isInvulnerableTo(source))
+        {   this.setHurtTimestamp(this.tickCount);
+        }
+        return super.hurt(source, amount);
+    }
+
+    @Nullable
+    @Override
+    public Entity changeDimension(ServerLevel p_20118_, ITeleporter teleporter)
+    {   this.clearTrackingPos();
+        return super.changeDimension(p_20118_, teleporter);
+    }
+
+    public void onEatEntity(Entity entity)
+    {
+        if (!level().isClientSide)
+        {
+            if (entity instanceof ItemEntity itemEntity)
+            {
+                ItemStack item = itemEntity.getItem();
+                ChameleonEdibles.getEdible(item).ifPresent(edible ->
+                {
+                    if (edible.onEaten(item, this, itemEntity.getOwner()) == Edible.Result.SUCCESS)
+                    {   this.setCooldown(edible, edible.getCooldown());
+                    }
+                    else
+                    {   this.setCooldown(edible, edible.getCooldown() / 4);
+                    }
+                });
+            }
+            this.setEatTimestamp(this.getAgeTicks());
+        }
+    }
+
+    @Override
+    public double getMyRidingOffset()
+    {
+        return this.getVehicle() instanceof Player player
+               ? player.getItemBySlot(EquipmentSlot.HEAD).is(ModItems.HOGLIN_HELMET)
+                    ? 0.65 : 0.5
+               : 0;
+    }
+
+    public static boolean canSpawn(EntityType<Chameleon> type, LevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random)
+    {   return true;
+    }
+
+    @Override
+    public int getMaxHeadYRot()
+    {
+        return 60;
+    }
+
+    public void eatAnimation()
+    {
+        if (this.eatAnimationTimer <= 0)
+        {
+            if (!this.level().isClientSide)
+            {   ColdSweatPacketHandler.INSTANCE.send(PacketDistributor.TRACKING_ENTITY.with(() -> this), new ChameleonEatMessage(this.getId()));
+            }
+            else
+            {   AnimationManager.ANIMATION_TIMERS.put(this, 0f);
+            }
+            this.eatAnimationTimer = this.getEatAnimLength();
+        }
+    }
+
+    public void manualSync(EntityDataAccessor<?> accessor)
+    {
+        // Forge refuses to sync some DataItems, like CompoundTags
+        try
+        {   ((SynchedEntityData.DataItem<?>) GET_DATA_ITEM.invoke(this.entityData, accessor)).setDirty(true);
+        } catch (Exception ignored) {}
+    }
+
+    public float getEatTimer()
+    {   return this.eatAnimationTimer;
+    }
+
+    public int getShedTime()
+    {   return this.entityData.get(SHED_TIME);
+    }
+
+    public void setShedTime(int shedTime)
+    {   this.entityData.set(SHED_TIME, shedTime);
+    }
+
+    public void startShedding()
+    {
+        if (this.getShedTime() < 0)
+        {   this.setShedTime(0);
+        }
+    }
+
+    public void stopShedding()
+    {   this.setShedTime(-1);
+    }
+
+    public boolean isShedding()
+    {   return this.getShedTime() >= 0;
+    }
+
+    public boolean canShed()
+    {   return this.getShedTime() >= this.getTimeToShed();
+    }
+
+    public CompoundTag getTrustedPlayers()
+    {   return this.entityData.get(TRUSTED_PLAYERS);
+    }
+
+    public void addTrustedPlayer(UUID player)
+    {
+        CompoundTag trustedPlayers = this.getTrustedPlayers();
+        ListTag players = trustedPlayers.getList("Players", 8);
+        StringTag uuid = StringTag.valueOf(player.toString());
+        if (!players.contains(uuid))
+        {   players.add(uuid);
+        }
+        trustedPlayers.put("Players", players);
+
+        this.entityData.set(TRUSTED_PLAYERS, trustedPlayers);
+        this.manualSync(TRUSTED_PLAYERS);
+    }
+
+    public void removeTrustedPlayer(UUID player)
+    {
+        CompoundTag trustedPlayers = this.getTrustedPlayers();
+        trustedPlayers.getList("Players", 8).removeIf(tag -> tag.getAsString().equals(player.toString()));
+        this.entityData.set(TRUSTED_PLAYERS, trustedPlayers);
+    }
+
+    public boolean isPlayerTrusted(Entity player)
+    {   return this.isPlayerTrusted(player.getUUID());
+    }
+
+    public boolean isPlayerTrusted(UUID player)
+    {   return this.getTrustedPlayers().getList("Players", 8).contains(StringTag.valueOf(player.toString()));
+    }
+
+    public int getLastShed()
+    {   return this.entityData.get(LAST_SHED);
+    }
+
+    public void setLastShed(int lastShed)
+    {   this.entityData.set(LAST_SHED, lastShed);
+    }
+
+    public float getTemperature()
+    {   return this.entityData.get(TEMPERATURE);
+    }
+
+    public void setTemperature(float temperature)
+    {   this.entityData.set(TEMPERATURE, temperature);
+    }
+
+    public void setSearching(boolean searching)
+    {   this.entityData.set(SEARCHING, searching);
+    }
+
+    public boolean isSearching()
+    {   return this.entityData.get(SEARCHING);
+    }
+
+    public int getHurtTimestamp()
+    {   return this.entityData.get(HURT_TIMESTAMP);
+    }
+
+    public void setHurtTimestamp(int hurtTimestamp)
+    {   this.entityData.set(HURT_TIMESTAMP, hurtTimestamp);
+    }
+
+    public void setTrackingPos(BlockPos pos)
+    {   this.entityData.set(TRACKING_POS, pos);
+    }
+
+    public void clearTrackingPos()
+    {   this.entityData.set(TRACKING_POS, BlockPos.ZERO);
+    }
+
+    public BlockPos getTrackingPos()
+    {   return this.entityData.get(TRACKING_POS);
+    }
+
+    public boolean isTracking()
+    {   return !this.entityData.get(TRACKING_POS).equals(BlockPos.ZERO);
+    }
+
+    public long getEatTimestamp()
+    {   return this.entityData.get(EAT_TIMESTAMP);
+    }
+
+    public void setEatTimestamp(int eatTimestamp)
+    {
+        this.entityData.set(EAT_TIMESTAMP, eatTimestamp);
+    }
+
+    public void setCooldown(Edible edible, Integer time)
+    {
+        CompoundTag map = this.entityData.get(EDIBLE_COOLDOWNS);
+        map.putInt(edible.associatedItems().location().toString(), time);
+        this.entityData.set(EDIBLE_COOLDOWNS, map);
+    }
+
+    public Integer getCooldown(Edible edible)
+    {
+        return this.entityData.get(EDIBLE_COOLDOWNS).getInt(edible.getName());
+    }
+
+    public CompoundTag getCooldowns()
+    {
+        return this.entityData.get(EDIBLE_COOLDOWNS);
+    }
+
+    public int getAgeSecs()
+    {   return this.entityData.get(AGE_SECS);
+    }
+
+    public int getAgeTicks()
+    {   return ageTicks;
+    }
+
+    public void setAgeSecs(int ageSecs)
+    {
+        this.entityData.set(AGE_SECS, ageSecs);
+    }
+
+    public boolean isTamingItem(ItemStack item)
+    {
+        return item.is(ModItemTags.CHAMELEON_TAMING);
+    }
+
+
+    @Override
+    public CompoundTag saveWithoutId(CompoundTag tag)
+    {
+        super.saveWithoutId(tag);
+
+        tag.put("TrustedPlayers", Objects.requireNonNullElseGet(this.getTrustedPlayers().get("Players"), ListTag::new));
+        tag.putInt("LastShed", this.getLastShed());
+        tag.putInt("ShedTime", this.getShedTime());
+        tag.putInt("HurtTimestamp", this.getHurtTimestamp());
+        tag.putInt("AgeInSeconds", this.getAgeSecs());
+        tag.putLong("EatTimestamp", this.getEatTimestamp());
+
+        // Tracking pos
+        if (this.isTracking())
+            tag.putLong("TrackingPos", this.getTrackingPos().asLong());
+        else tag.remove("TrackingPos");
+
+        // Edible cooldowns
+        ListTag edibleCooldowns = new ListTag();
+        for (String key : this.getCooldowns().getAllKeys())
+        {
+            CompoundTag cooldownTag = new CompoundTag();
+            cooldownTag.putString("Edible", key);
+            cooldownTag.putInt("Cooldown", this.getCooldowns().getInt(key));
+            edibleCooldowns.add(cooldownTag);
+        }
+        tag.put("EdibleCooldowns", edibleCooldowns);
+
+        tag.putFloat("Temperature", this.getTemperature());
+        return tag;
+    }
+
+    @Override
+    public void load(CompoundTag nbt)
+    {
+        super.load(nbt);
+
+        CompoundTag players = new CompoundTag();
+        players.put("Players", Objects.requireNonNullElseGet(nbt.get("TrustedPlayers"), ListTag::new));
+        this.entityData.set(TRUSTED_PLAYERS, players);
+
+        this.setLastShed(nbt.getInt("LastShed"));
+        this.setShedTime(nbt.getInt("ShedTime"));
+        this.setHurtTimestamp(nbt.getInt("HurtTimestamp"));
+        this.setAgeSecs(nbt.getInt("AgeInSeconds"));
+        this.setEatTimestamp(nbt.getInt("EatTimestamp"));
+
+        if (nbt.contains("TrackingPos"))
+            this.setTrackingPos(BlockPos.of(nbt.getLong("TrackingPos")));
+
+        ListTag edibleCooldowns = nbt.getList("EdibleCooldowns", 10);
+        for (int i = 0; i < edibleCooldowns.size(); i++)
+        {
+            CompoundTag cooldownTag = edibleCooldowns.getCompound(i);
+            ChameleonEdibles.EDIBLES.stream().filter(ed -> ed.getName().equals(cooldownTag.getString("Item"))).findFirst().ifPresent(edible ->
+            {   this.setCooldown(edible, cooldownTag.getInt("Cooldown"));
+            });
+        }
+        this.setTemperature(nbt.getFloat("Temperature"));
+        this.desiredTemp = this.getTemperature();
+    }
+}

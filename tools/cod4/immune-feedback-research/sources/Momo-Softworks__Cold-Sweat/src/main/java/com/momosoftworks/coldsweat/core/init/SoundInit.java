@@ -1,0 +1,64 @@
+package com.momosoftworks.coldsweat.core.init;
+
+import com.momosoftworks.coldsweat.ColdSweat;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
+
+public class SoundInit
+{
+    public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, ColdSweat.MOD_ID);
+
+    public static final RegistryObject<SoundEvent> FREEZE_SOUND_REGISTRY = SOUNDS.register("entity.player.damage.freeze",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.player.damage.freeze")));
+
+    public static final RegistryObject<SoundEvent> SOUL_LAMP_ON_SOUND_REGISTRY = SOUNDS.register("item.soulspring_lamp.on",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "item.soulspring_lamp.on")));
+    public static final RegistryObject<SoundEvent> SOUL_LAMP_OFF_SOUND_REGISTRY = SOUNDS.register("item.soulspring_lamp.off",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "item.soulspring_lamp.off")));
+
+    public static final RegistryObject<SoundEvent> WATERSKIN_POUR_SOUND_REGISTRY = SOUNDS.register("item.waterskin.pour",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "item.waterskin.pour")));
+    public static final RegistryObject<SoundEvent> WATERSKIN_FILL_SOUND_REGISTRY = SOUNDS.register("item.waterskin.fill",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "item.waterskin.fill")));
+
+    public static final RegistryObject<SoundEvent> HEARTH_DEPLETE_SOUND_REGISTRY = SOUNDS.register("block.hearth.fuel_deplete",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "block.hearth.fuel_deplete")));
+    public static final RegistryObject<SoundEvent> BOILER_DEPLETE_SOUND_REGISTRY = SOUNDS.register("block.boiler.fuel_deplete",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "block.boiler.fuel_deplete")));
+    public static final RegistryObject<SoundEvent> ICEBOX_DEPLETE_SOUND_REGISTRY = SOUNDS.register("block.icebox.fuel_deplete",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "block.icebox.fuel_deplete")));
+    public static final RegistryObject<SoundEvent> ICEBOX_OPEN_SOUND_REGISTRY = SOUNDS.register("block.icebox.open",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "block.icebox.open")));
+    public static final RegistryObject<SoundEvent> ICEBOX_CLOSE_SOUND_REGISTRY = SOUNDS.register("block.icebox.close",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "block.icebox.close")));
+
+    public static final RegistryObject<SoundEvent> CHAMELEON_AMBIENT_SOUND_REGISTRY = SOUNDS.register("entity.chameleon.ambient",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.chameleon.ambient")));
+    public static final RegistryObject<SoundEvent> CHAMELEON_HURT_SOUND_REGISTRY = SOUNDS.register("entity.chameleon.hurt",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.chameleon.hurt")));
+    public static final RegistryObject<SoundEvent> CHAMELEON_DEATH_SOUND_REGISTRY = SOUNDS.register("entity.chameleon.death",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.chameleon.death")));
+    public static final RegistryObject<SoundEvent> CHAMELEON_FIND_SOUND_REGISTRY = SOUNDS.register("entity.chameleon.find",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.chameleon.find")));
+    public static final RegistryObject<SoundEvent> CHAMELEON_TONGUE_IN_SOUND_REGISTRY = SOUNDS.register("entity.chameleon.tongue.in",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.chameleon.tongue.in")));
+    public static final RegistryObject<SoundEvent> CHAMELEON_TONGUE_OUT_SOUND_REGISTRY = SOUNDS.register("entity.chameleon.tongue.out",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.chameleon.tongue.out")));
+    public static final RegistryObject<SoundEvent> CHAMELEON_SHED_SOUND_REGISTRY = SOUNDS.register("entity.chameleon.shed",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.chameleon.shed")));
+    public static final RegistryObject<SoundEvent> CHAMELEON_SHED_READY_SOUND_REGISTRY = SOUNDS.register("entity.chameleon.shed.ready",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.chameleon.shed.ready")));
+    public static final RegistryObject<SoundEvent> CHAMELEON_SHED_FAIL_SOUND_REGISTRY = SOUNDS.register("entity.chameleon.shed.fail",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "entity.chameleon.shed.fail")));
+
+    public static final RegistryObject<SoundEvent> CHAMELEON_ARMOR_EQUIP_SOUND_REGISTRY = SOUNDS.register("item.armor.equip_chameleon_scale",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "item.armor.equip_chameleon_scale")));
+
+    public static final RegistryObject<SoundEvent> BUCKET_FILL_SLUSH = SOUNDS.register("item.bucket.fill_slush",
+                                                                                       () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "item.bucket.fill_slush")));
+    public static final RegistryObject<SoundEvent> BUCKET_EMPTY_SLUSH = SOUNDS.register("item.bucket.empty_slush",
+                                                                                        () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ColdSweat.MOD_ID, "item.bucket.empty_slush")));
+}

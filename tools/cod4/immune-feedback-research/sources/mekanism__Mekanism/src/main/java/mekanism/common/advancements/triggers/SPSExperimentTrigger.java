@@ -1,0 +1,45 @@
+package mekanism.common.advancements.triggers;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import java.util.Optional;
+import mekanism.api.SerializationConstants;
+import mekanism.common.advancements.MekanismCriteriaTriggers;
+import mekanism.common.advancements.triggers.SPSExperimentTrigger.TriggerInstance;
+import net.minecraft.advancements.predicates.entity.EntityTypePredicate;
+import net.minecraft.advancements.triggers.Criterion;
+import net.minecraft.advancements.triggers.SimpleCriterionTrigger;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+
+public class SPSExperimentTrigger extends SimpleCriterionTrigger<TriggerInstance> {
+
+    @Override
+    public Codec<TriggerInstance> codec() {
+        return TriggerInstance.CODEC;
+    }
+
+    public void trigger(ServerPlayer player, Holder<EntityType<?>> experimentedUpon) {
+        this.trigger(player, instance -> instance.entityType.matches(experimentedUpon));
+    }
+
+    public record TriggerInstance(Optional<Holder<LootItemCondition>> player, EntityTypePredicate entityType) implements SimpleInstance {
+
+        public static final Codec<TriggerInstance> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+              LootItemCondition.CODEC.optionalFieldOf(SerializationConstants.PLAYER).forGetter(TriggerInstance::player),
+              EntityTypePredicate.CODEC.fieldOf(SerializationConstants.TYPE).forGetter(TriggerInstance::entityType)
+        ).apply(instance, TriggerInstance::new));
+
+        public static Criterion<TriggerInstance> create(HolderGetter<EntityType<?>> holderGetter, EntityType<?> entityType) {
+            return MekanismCriteriaTriggers.SPS_EXPERIMENT.createCriterion(new TriggerInstance(Optional.empty(), EntityTypePredicate.of(holderGetter, entityType)));
+        }
+
+        public static Criterion<TriggerInstance> create(HolderGetter<EntityType<?>> holderGetter, TagKey<EntityType<?>> entityType) {
+            return MekanismCriteriaTriggers.SPS_EXPERIMENT.createCriterion(new TriggerInstance(Optional.empty(), EntityTypePredicate.of(holderGetter, entityType)));
+        }
+    }
+}

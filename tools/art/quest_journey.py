@@ -172,7 +172,7 @@ def preparations(source):
                     if ':' in t and not t.startswith('#') and ' / ' not in t and t!=q['target']]
         deployed=locked.get(q['id'],[])
         if deployed:
-            assert any({p['target'] for p in deployed}<=set(r['ingredients']) for r in recipes[q['target']]),'Deployed prep recipe removed; inspect before changing save identity: '+q['id']
+            assert any({('#minecraft:planks' if p['target']=='minecraft:oak_planks' and '#minecraft:planks' in r['ingredients'] else p['target']) for p in deployed}<=set(r['ingredients']) for r in recipes[q['target']]),'Deployed prep recipe removed; inspect before changing save identity: '+q['id']
             candidates=[(p['target'],1) for p in deployed]
         if not candidates:continue
         # Curated density: two steps for eight recipes per source section, three on main pages.
@@ -348,6 +348,13 @@ def apply(base):
             simplify(q)
             describe_charm(q)
     add_operation_steps(chapters)
+    from quest_bugfix_oct17 import apply as fix_oct17
+    fix_oct17(chapters)
+    from quest_bugfix_oct18 import apply as fix_oct18
+    fix_oct18(chapters)
+    from quest_cod2 import add_chensha,add_wangsi
+    add_chensha(chapters)
+    add_wangsi(chapters)
     separate_main_routes(chapters)
     removed={n for v in MERGES.values() for n in v};mapping={}
     for target,aliases in MERGES.items():
@@ -386,19 +393,27 @@ def apply(base):
     validate(chapters,base)
     previous=DOC/'last-deployed-book.json'
     if previous.is_file():validate_forward(chapters,json.loads(previous.read_text()))
+    from quest_readability_oct20 import apply as readability
+    readability(chapters)
     return chapters
 
 def validate_forward(chapters,previous):
     """Nightly additions have save identities too, not just the original 808."""
     new={q['id']:q for c in chapters for q in c['quests']}
     assert {c['id'] for c in previous}<={c['id'] for c in chapters},'Previously deployed chapter lost'
+    from quest_bugfix_oct17 import REMOVED_BLUEPRINT_PREPS
     for q in (q for c in previous for q in c['quests']):
+        from quest_bugfix_oct18 import REMOVED
+        if q['id'] in REMOVED_BLUEPRINT_PREPS | REMOVED:continue
         assert q['id'] in new,'Previously deployed quest lost: '+q['id']
         n=new[q['id']]
         assert (n['target'],n['kind'],n['rewards'])==(q['target'],q['kind'],q['rewards']),'Deployed identity repurposed: '+q['id']
         assert n['count']<=q['count'],'Deployed quantity increased: '+q['id']
         normalize=lambda text:re.sub(r'\b(count|value):\s*\d+L',r'\1: Q',text)
-        assert normalize(n['tasks'])==normalize(q['tasks']),'Deployed task detector changed: '+q['id']
+        # Explicit material migration for the previously conflicting Wind Plume smithing recipe.
+        old_tasks=q['tasks']
+        if q['id']=='1000000000030280':old_tasks=old_tasks.replace('dynasty:refined_steel','dynasty:sky_feather')
+        assert normalize(n['tasks'])==normalize(old_tasks),'Deployed task detector changed: '+q['id']
         if q['role']=='main':assert n['deps']==q['deps'],'Deployed main spine changed'
 
 def validate(chapters,base):

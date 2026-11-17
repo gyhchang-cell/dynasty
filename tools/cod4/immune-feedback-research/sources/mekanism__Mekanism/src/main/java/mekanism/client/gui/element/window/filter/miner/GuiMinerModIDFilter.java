@@ -1,0 +1,39 @@
+package mekanism.client.gui.element.window.filter.miner;
+
+import mekanism.client.gui.IGuiWrapper;
+import mekanism.client.gui.element.window.filter.GuiModIDFilter;
+import mekanism.common.base.TagCache;
+import mekanism.common.content.miner.MinerModIDFilter;
+import mekanism.common.tile.machine.TileEntityDigitalMiner;
+import org.jspecify.annotations.Nullable;
+
+public class GuiMinerModIDFilter extends GuiModIDFilter<MinerModIDFilter, TileEntityDigitalMiner> implements GuiMinerFilterHelper {
+
+    public static GuiMinerModIDFilter create(IGuiWrapper gui, TileEntityDigitalMiner tile) {
+        return new GuiMinerModIDFilter(gui, (gui.getImageWidth() - MINER_FILTER_WIDTH) / 2, 30, tile, null);
+    }
+
+    public static GuiMinerModIDFilter edit(IGuiWrapper gui, TileEntityDigitalMiner tile, MinerModIDFilter filter) {
+        return new GuiMinerModIDFilter(gui, (gui.getImageWidth() - MINER_FILTER_WIDTH) / 2, 30, tile, filter);
+    }
+
+    private GuiMinerModIDFilter(IGuiWrapper gui, int x, int y, TileEntityDigitalMiner tile, @Nullable MinerModIDFilter origFilter) {
+        super(gui, x, y, MINER_FILTER_WIDTH, 90, tile, origFilter);
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        addMinerDefaults(gui(), getSlotOffset(), this::addChild);
+    }
+
+    @Override
+    protected MinerModIDFilter createNewFilter() {
+        return new MinerModIDFilter();
+    }
+
+    @Override
+    protected boolean hasMatchingTargets(String name) {
+        return TagCache.getBlockModIDStacks(name).hasMatch();
+    }
+}

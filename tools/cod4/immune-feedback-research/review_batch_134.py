@@ -1,0 +1,12 @@
+"""Native earplug admission/revocation and singer-source lure ownership; one policy."""
+from ledger import B,O,record,verify
+import json
+r='AlexModGuy/Ice_and_Fire';root=B/'sources'/r.replace('/','__');p='src/main/java/com/github/alexthe666/iceandfire/'
+refs=[(p+'entity/EntitySiren.java',1,541),(p+'entity/props/SirenProperties.java',1,len((root/p/'entity/props/SirenProperties.java').read_text().splitlines())),(p+'message/MessageSirenSong.java',1,len((root/p/'message/MessageSirenSong.java').read_text().splitlines())),(p+'CommonProxy.java',125,127),(p+'IceAndFire.java',89,133),(p+'IceAndFire.java',174,178),(p+'IceAndFire.java',184,213),(p+'event/ServerEvents.java',442,473),(p+'event/ServerEvents.java',624,639),(p+'entity/IafEntityRegistry.java',50,50),(p+'entity/IafEntityRegistry.java',90,133)]
+k='icefire-siren-native-earplug-lure-refusal-revocation-and-source-owned-pull'
+record(k,r,refs,
+ '实际Siren实体注册→aiStep服务端actuallySinging→每20tick updateLure对SIREN_PREY范围查询，耳塞/earmuff拒绝，已有有效siren来源不覆写，失源可新设CharmedBy runtime ID。CommonProxy.setup实际注册ServerEvents；LivingUpdate对玩家/村民/IHearsSiren→tickCharmedEntity：本世界按ID解析EntitySiren且still actuallySinging才进入；耳塞/时间超限清状态并设歌手cooldown，死亡/过远/创造清理，距离<5清理转敌对并通知同类，余者加速度拉近/跳跃/下乘，仅非玩家改朝向。数据通过Citadel PropertiesMessage尝试广播；StartTracking有主动补发。另setSinging独立MessageSirenSong→本地世界按ID与类型匹配→setSinging。',
+ '耳塞实时准入与撤销、来源占用和牵引生命周期整链1，不按耳塞名称、3轴、邻近Sirens、两个包包装或粒子拆数，与既有Gorgon替代和Cockatrice减速独立最终控制生产。getSingTime只读，tick写回相同时间；本岗当前已缓存源码内CharmeTime只在此定义，不能据maxSingTime断言自然超时一定发生。外层siren无效/不再唱时没有清旧flag；距离退出仅在外层成立后检查。runtime ID只检当前world EntitySiren，无UUID/维度epoch；已有flag和已解析来源不能推导真实效果仍活动。歌声/音乐粒子按歌手状态，不是耳塞拒控回执，局部心粒子也不证明PropertiesMessage实收。攻击pull忽略hurt结果且可转玩家朝向，和charm分支不改玩家朝向必须区分；不将hurt=false当Boss免疫。',
+ 'Boss拒控回执由最终耳塞式资格拒绝/明确取消点驱动，状态清理应覆盖来源失效与维度身份；超时须有真实递增时钟。灰字/有限闪光/嗡声不借用周期歌声或心形粒子。普通阴阳无新增灰字。',
+ '只计本项目闭合的实际控制准入/撤销生产及LivingUpdate消费；Citadel外部PropertiesMessage接收与NBT同步底层未取得，作为广播支持0，绝不称TCP/晚加入同步通过。MessageSirenSong handler未enqueueWork且未限制server接收后修改来源，静态记录实际边界但未运行复现/定性漏洞。常规导航模型及音乐粒子消费者未展开，不声称实机观感；无正式修改/游戏。','native_source_control_refusal_revocation_and_lifecycle')
+d=json.loads((O/'semantic-dedup.json').read_text());d['groups'].append({'family':'batch134-native-earplug-lure-source-revocation','credited_chains':[k],'rationale':'Independent source-owned charm admission and live earplug revocation; complete native producer/LivingUpdate consumer1. External Citadel receiver unclosed support0, no packet/motion-axis/earmuff variants extra credit.'});(O/'semantic-dedup.json').write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n');verify()

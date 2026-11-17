@@ -166,6 +166,17 @@ public class ImperialSoldier extends PathfinderMob {
             }
             double error=position().distanceToSqr(target);
             if(!ground||error<.12*.12)getNavigation().stop();
+            else if(error<2.5*2.5&&canApproachSlot(target)) {
+                // Navigation finishes at a block centre, but formation slots may
+                // lie between centres. Finish the last step with native movement
+                // and collisions, never by teleporting or changing the slot ID.
+                getNavigation().stop();
+                // Mob.setSpeed scales both ground speed and forward input.
+                // Taper with sqrt(distance) only in the final block, avoiding
+                // the quadratic slowdown of a linear speed modifier.
+                double speed=.7*Math.sqrt(Math.min(1,Math.sqrt(error)));
+                getMoveControl().setWantedPosition(target.x,target.y,target.z,speed);
+            }
             else if(tickCount%5==0)getNavigation().moveTo(target.x,target.y,target.z,tag.getBoolean("ArmyBanner")?1.28:1.15);
             var enemy=getTarget();
             int ready=Math.max(0,tag.getInt("ArmyAttackCooldown")-1);tag.putInt("ArmyAttackCooldown",ready);
@@ -192,6 +203,20 @@ public class ImperialSoldier extends PathfinderMob {
             }
             if(tickCount%40==0&&!com.dynasty.army.ArmyEncounters.active(owner))com.dynasty.army.ArmySupport.snapshot(owner,java.util.List.of(self));
             if(tickCount%40==0)com.dynasty.army.ArmyRoster.snapshot(com.dynasty.army.ArmyRoster.find(owner,tag.getUUID("ArmySoldier")),self);
+        }
+        private boolean canApproachSlot(net.minecraft.world.phys.Vec3 target) {
+            var delta=target.subtract(position());
+            if(Math.abs(delta.y)>.1||!level().noCollision(ImperialSoldier.this,
+                    getBoundingBox().expandTowards(delta).deflate(.01)))return false;
+            // Direct steering is only for the final flat, supported approach;
+            // walls, steps, liquids and gaps stay under normal pathfinding.
+            for(int i=0;i<=6;i++) {
+                var feet=net.minecraft.core.BlockPos.containing(position().add(delta.scale(i/6.0)));
+                var floor=feet.below();
+                if(!level().hasChunkAt(feet)||!level().getFluidState(feet).isEmpty()
+                        ||!level().getBlockState(floor).isFaceSturdy(level(),floor,net.minecraft.core.Direction.UP))return false;
+            }
+            return true;
         }
     }
 

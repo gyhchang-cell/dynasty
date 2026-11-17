@@ -1,0 +1,53 @@
+package mekanism.client.gui.element.tab;
+
+import mekanism.api.text.EnumColor;
+import mekanism.client.SpecialColors;
+import mekanism.client.gui.IGuiWrapper;
+import mekanism.client.gui.element.GuiInsetElement;
+import mekanism.client.gui.tooltip.TooltipUtils;
+import mekanism.common.Mekanism;
+import mekanism.common.MekanismLang;
+import mekanism.common.tile.interfaces.IHasVisualization;
+import mekanism.common.util.text.BooleanStateDisplay.OnOff;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.Nullable;
+
+public class GuiVisualsTab extends GuiInsetElement<IHasVisualization> {
+
+    private static final Component ON = MekanismLang.VISUALS.translate(OnOff.ON);
+    private static final Component OFF = MekanismLang.VISUALS.translate(OnOff.OFF);
+    private static final Component TOO_BIG = MekanismLang.VISUALS_TOO_BIG.translateColored(EnumColor.RED);
+    @Nullable
+    private static final Tooltip VISUALS_ON = TooltipUtils.create(ON);
+    @Nullable
+    private static final Tooltip VISUALS_OFF = TooltipUtils.create(OFF);
+    @Nullable
+    private static final Tooltip VISUALS_ON_TOO_BIG = TooltipUtils.create(ON, TOO_BIG);
+    @Nullable
+    private static final Tooltip VISUALS_OFF_TOO_BIG = TooltipUtils.create(OFF, TOO_BIG);
+
+    public GuiVisualsTab(IGuiWrapper gui, IHasVisualization hasVisualization) {
+        super(Mekanism.rl("button/visuals"), gui, hasVisualization, -26, 6, 26, 18, true);
+    }
+
+    @Override
+    public void updateTooltip(int mouseX, int mouseY) {
+        if (dataSource.canDisplayVisuals()) {
+            setTooltip(dataSource.isClientRendering() ? VISUALS_ON : VISUALS_OFF);
+        } else {
+            setTooltip(dataSource.isClientRendering() ? VISUALS_ON_TOO_BIG : VISUALS_OFF_TOO_BIG);
+        }
+    }
+
+    @Override
+    protected int getTabColor() {
+        return SpecialColors.TAB_VISUALS.argb();
+    }
+
+    @Override
+    public void onClick(MouseButtonEvent event, boolean isDoubleClick) {
+        dataSource.toggleClientRendering();
+    }
+}

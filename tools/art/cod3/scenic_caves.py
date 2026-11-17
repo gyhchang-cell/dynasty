@@ -66,32 +66,61 @@ class Cave:
 
 def crystal():
     c=Cave('scenic_crystal_canopy','deepslate');c.chamber()
-    # Five geometric star knots and a sparse constellation trace on the inner roof.
+    # Exposed inner ceiling: each mineral trace replaces the first solid block above air.
+    # A flat y=17 trace was buried above the stepped roof when seen from inside.
+    roof={}
+    for x in range(31):
+        for z in range(31):
+            air=[y for y in range(5,17) if c.blocks.get((x,y,z))=='minecraft:air']
+            if air:roof[x,z]=max(air)+1
     stars=[(10,12),(14,10),(20,13),(19,19),(11,20)]
     for (x,z),(nx,nz) in zip(stars,stars[1:]):
         steps=max(abs(nx-x),abs(nz-z))
         for step in range(steps+1):
-            c.put(round(x+(nx-x)*step/steps),17,round(z+(nz-z)*step/steps),'calcite')
+            xx,zz=round(x+(nx-x)*step/steps),round(z+(nz-z)*step/steps)
+            c.put(xx,roof[xx,zz],zz,'calcite')
     for i,(x,z) in enumerate(stars):
-        c.box(x-1,16,z-1,3,1,3,'amethyst_block');c.put(x,15,z,'sea_lantern')
-        if i%2==0:c.put(x,14,z,'amethyst_block')
-    for x,z,h in [(6,7,5),(24,8,4),(7,24,3),(24,23,6)]:
-        c.box(x-1,1,z-1,3,1,3,'calcite');c.box(x-1,2,z-1,3,h-2,3,'amethyst_block')
-        c.put(x,h,z,'sea_lantern');c.put(x,h+1,z,'amethyst_block');c.put(x,h+2,z,'calcite')
+        # Mineral cross embedded in the roof, with one lit descending crystal tip.
+        for dx,dz in [(0,0),(-1,0),(1,0),(0,-1),(0,1)]:
+            xx,zz=x+dx,z+dz;c.put(xx,roof[xx,zz],zz,'amethyst_block')
+        y=roof[x,z]-1
+        c.put(x,y,z,'sea_lantern')
+        if i%2==0:c.put(x,y-1,z,'amethyst_block')
+    for i,(x,z,h) in enumerate([(6,7,5),(24,8,4),(7,24,3),(24,23,6)]):
+        # Tapered cluster with one offset shoulder; four distinct heights, no decorative noise.
+        c.box(x-1,1,z-1,3,1,3,'calcite')
+        c.box(x-1,2,z-1,3,max(1,h-3),3,'amethyst_block')
+        c.put(x,h-1,z,'amethyst_block');c.put(x,h,z,'sea_lantern')
+        c.put(x,h+1,z,'amethyst_block');c.put(x,h+2,z,'calcite')
+        sx=x+(-2 if i%2 else 2)
+        for yy in range(1,max(2,h-1)):c.put(sx,yy,z,'amethyst_block')
+        c.put(sx,max(2,h-1),z,'calcite')
     return c
 
 def ice():
     c=Cave('scenic_ice_bloom','packed_ice');c.chamber()
-    # Two different scales of stepped ice flowers. Broad petals attach to one central crystal.
-    for x,z,h in [(7,7,5),(23,8,7),(7,24,4),(23,23,6)]:
+    # Four distinct heights; a shared flower cup joins every stepped petal to the stem.
+    roof={}
+    for x in range(31):
+        for z in range(31):
+            air=[y for y in range(5,17) if c.blocks.get((x,y,z))=='minecraft:air']
+            if air:roof[x,z]=max(air)+1
+    for x,z,h in [(8,8,5),(22,8,7),(8,22,4),(22,22,6)]:
         c.box(x-1,1,z-1,3,2,3,'blue_ice');c.box(x,3,z,1,h-2,1,'packed_ice')
-        for dx,dz in [(-2,0),(2,0),(0,-2),(0,2)]:
-            c.box(x+dx-1,h-1,z+dz-1,2,2,2,'blue_ice')
+        c.box(x-1,h-1,z-1,3,1,3,'blue_ice')
+        for dx,dz in [(-1,0),(1,0),(0,-1),(0,1)]:
+            for side in (-1,0,1):
+                c.box(x+dx*2+dz*side,h-1,z+dz*2+dx*side,1,2,1,'blue_ice')
+            c.put(x+dx*3,h,z+dz*3,'blue_ice')
         c.put(x,h,z,'sea_lantern');c.put(x,h+1,z,'calcite')
-    for x,z in [(5,15),(25,15),(15,5),(15,25)]:
-        for dx,dz in [(-2,0),(2,0),(0,-2),(0,2)]:
-            c.box(x+dx,8,z+dz,1,3,1,'blue_ice')
-        c.box(x,7,z,1,5,1,'calcite');c.put(x,9,z,'sea_lantern')
+    for x,z in [(8,15),(22,15),(15,8),(15,22)]:
+        # Each upper shoulder is anchored to the real stepped roof, never a guessed Y.
+        for dx,dz in [(0,0),(-1,0),(1,0),(0,-1),(0,1)]:
+            xx,zz=x+dx,z+dz
+            c.box(xx,roof[x,z]-1,zz,1,roof[xx,zz]-roof[x,z]+2,1,'blue_ice')
+        y=roof[x,z]
+        c.box(x,y-4,z,1,4,1,'blue_ice')
+        c.put(x,y-3,z,'sea_lantern');c.put(x,y-5,z,'calcite')
     # Non-slippery central mineral path lets visitors cross the display safely.
     c.box(13,0,0,5,1,31,'calcite');c.box(0,0,13,31,1,5,'calcite')
     return c
@@ -105,6 +134,27 @@ def main():
         for x,z in [(x,z) for x in range(13,18) for z in range(31)]+[(x,z) for x in range(31) for z in range(13,18)]:
             assert c.blocks[x,0,z]!='minecraft:air'
             assert all(c.blocks[x,y,z]=='minecraft:air' for y in range(1,5))
-    dump(DOC/'manifest.json',{'source':'tools/art/cod3/scenic_caves.py','scenes':{'scenic_09':first.id,'scenic_24':second.id},'records':records,'permanence':'ordinary placed blocks in generated chunks; no timer','generation':'standard data-driven JigsawStructure, one piece, only newly generated chunks','audio':'no added sound','lighting':'vanilla sea lantern blocks, no server particle or mob creation'})
+    dump(DOC/'manifest.json',{'source':'tools/art/cod3/scenic_caves.py','scenes':{'scenic_09':first.id,'scenic_24':second.id},'records':records,'permanence':'ordinary placed blocks in generated chunks; no timer','generation':'standard data-driven JigsawStructure, one piece, only newly generated chunks','audio':'crystal: silent; ice bloom: quiet vanilla glass-hit ambience inside the actual registered cave','lighting':'vanilla sea lantern blocks, no server particle or mob creation'})
     print('Generated two permanent one-piece cave landmarks; four clear portals, no entity or block-entity data.')
-if __name__=='__main__':main()
+def crystal_only():
+    c=crystal();record=c.export(['#minecraft:is_overworld'],460090901)
+    dump(DOC/f'{c.id}.blocks.json',{'size':SIZE,'blocks':[{'pos':pos,'block':b} for pos,b in sorted(c.blocks.items())]})
+    p=DOC/'manifest.json';manifest=json.loads(p.read_text())
+    manifest['records']=[record if r['id']==c.id else r for r in manifest['records']]
+    dump(p,manifest)
+    for x,z in [(x,z) for x in range(13,18) for z in range(31)]+[(x,z) for x in range(31) for z in range(13,18)]:
+        assert c.blocks[x,0,z]!='minecraft:air' and all(c.blocks[x,y,z]=='minecraft:air' for y in range(1,5))
+    print('Generated crystal canopy only; retained ice-bloom resources and records.')
+def ice_only():
+    c=ice();record=c.export(['minecraft:snowy_plains','minecraft:ice_spikes','minecraft:frozen_peaks','minecraft:jagged_peaks','minecraft:snowy_slopes','minecraft:grove','minecraft:snowy_taiga'],460092401)
+    dump(DOC/f'{c.id}.blocks.json',{'size':SIZE,'blocks':[{'pos':pos,'block':b} for pos,b in sorted(c.blocks.items())]})
+    p=DOC/'manifest.json';manifest=json.loads(p.read_text())
+    manifest['records']=[record if r['id']==c.id else r for r in manifest['records']]
+    manifest['audio']='crystal: silent; ice bloom: quiet vanilla glass-hit ambience inside the actual registered cave'
+    dump(p,manifest)
+    for x,z in [(x,z) for x in range(13,18) for z in range(31)]+[(x,z) for x in range(31) for z in range(13,18)]:
+        assert c.blocks[x,0,z]!='minecraft:air' and all(c.blocks[x,y,z]=='minecraft:air' for y in range(1,5))
+    print('Generated ice bloom only; retained accepted crystal resources and records.')
+if __name__=='__main__':
+    import sys
+    ice_only() if '--ice-only' in sys.argv else crystal_only() if '--crystal-only' in sys.argv else main()

@@ -1,0 +1,335 @@
+{
+  "batch": "herschel-immune-056",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 1,
+  "support_only_units": 0,
+  "rows": [
+    {
+      "id": "herschel-056-01",
+      "semantic_dedup_key": "tconstruct-ender-slime-partial-sequence-cost-survives-final-teleport-refusal",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/entity/RandomTeleportFluidEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            43
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "28289001d3e48b2206f382c73beaed4733c48888778faf4b5e7abd08f48ea5b3",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/entity/RandomTeleportFluidEffect.java#L1-L43",
+          "excerpt": "package slimeknights.tconstruct.library.modifiers.fluid.entity;\n\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraftforge.fluids.FluidStack;\nimport net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;\nimport slimeknights.mantle.data.loadable.record.RecordLoadable;\nimport slimeknights.tconstruct.library.events.teleport.FluidEffectTeleportEvent;\nimport slimeknights.tconstruct.library.json.LevelingInt;\nimport slimeknights.tconstruct.library.modifiers.fluid.EffectLevel;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffect;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext.Entity;\nimport slimeknights.tconstruct.library.utils.TeleportHelper;\n\n/** Fluid effect that randomly teleports the target. */\npublic record RandomTeleportFluidEffect(LevelingInt diameter, LevelingInt chances) implements FluidEffect<FluidEffectContext.Entity> {\n  private static final LevelingInt DEFAULT = LevelingInt.flat(16);\n  // TODO 1.21: remove defaults\n  public static final RecordLoadable<RandomTeleportFluidEffect> LOADER = RecordLoadable.create(\n    LevelingInt.LOADABLE.defaultField(\"diameter\", DEFAULT, true, RandomTeleportFluidEffect::diameter),\n    LevelingInt.LOADABLE.defaultField(\"chances\", DEFAULT, true, RandomTeleportFluidEffect::chances),\n    RandomTeleportFluidEffect::new);\n\n  @Override\n  public RecordLoadable<RandomTeleportFluidEffect> getLoader() {\n    return LOADER;\n  }\n\n  @Override\n  public float apply(FluidStack fluid, EffectLevel level, Entity context, FluidAction action) {\n    LivingEntity target = context.getLivingTarget();\n    // must have a full level to apply, unless we have scaling behavior\n    boolean isFlat = diameter.eachLevel() == 0 && chances.eachLevel() == 0;\n    if (target != null && (level.isFull() || !isFlat)) {\n      float value = level.value();\n      if (action.execute()) {\n        TeleportHelper.randomNearbyTeleport(target, FluidEffectTeleportEvent.TELEPORT_FACTORY, diameter.compute(value), chances.compute(value));\n      }\n      return isFlat ? 1 : value;\n    }\n    return 0;\n  }\n}\n",
+          "excerpt_sha256": "28289001d3e48b2206f382c73beaed4733c48888778faf4b5e7abd08f48ea5b3",
+          "normalized_excerpt_sha256": "fa66920cf011a69b37eb0e09ebf21245a0df071e472e5f685fdf6d29e3c517d7",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/events/teleport/FluidEffectTeleportEvent.java",
+          "method": null,
+          "lines": [
+            1,
+            16
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "14894edab46ab71606f542daf3cfc848afd4a366134e232c11b708e39fd2619a",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/events/teleport/FluidEffectTeleportEvent.java#L1-L16",
+          "excerpt": "package slimeknights.tconstruct.library.events.teleport;\n\nimport net.minecraft.world.entity.Entity;\nimport net.minecraftforge.event.entity.EntityTeleportEvent;\nimport net.minecraftforge.eventbus.api.Cancelable;\nimport slimeknights.tconstruct.library.utils.TeleportHelper.ITeleportEventFactory;\n\n/** Event fired when an entity teleports via the fluid effect */\n@Cancelable\npublic class FluidEffectTeleportEvent extends EntityTeleportEvent {\n  public static final ITeleportEventFactory TELEPORT_FACTORY = FluidEffectTeleportEvent::new;\n\n  public FluidEffectTeleportEvent(Entity entity, double targetX, double targetY, double targetZ) {\n    super(entity, targetX, targetY, targetZ);\n  }\n}\n",
+          "excerpt_sha256": "14894edab46ab71606f542daf3cfc848afd4a366134e232c11b708e39fd2619a",
+          "normalized_excerpt_sha256": "3679d36461eb3af19f8be7dd6cfedf1ad22a478287c316e74b837c29023a268d",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/utils/TeleportHelper.java",
+          "method": null,
+          "lines": [
+            1,
+            105
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "3697f919de0d6ed7b3eb925943b06ebc23495a1b2d573ad301e788b9c828c350",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/utils/TeleportHelper.java#L1-L105",
+          "excerpt": "package slimeknights.tconstruct.library.utils;\n\nimport com.google.errorprone.annotations.CanIgnoreReturnValue;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.RelativeMovement;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.event.entity.EntityTeleportEvent;\nimport slimeknights.tconstruct.common.Sounds;\n\nimport java.util.EnumSet;\nimport java.util.Set;\n\npublic class TeleportHelper {\n  private static final Set<RelativeMovement> PACKET_FLAGS = EnumSet.of(RelativeMovement.X, RelativeMovement.Y, RelativeMovement.Z, RelativeMovement.X_ROT, RelativeMovement.Y_ROT);\n\n  /** Randomly teleports an entity, mostly copied from chorus fruit */\n  @CanIgnoreReturnValue\n  public static boolean randomNearbyTeleport(LivingEntity living, ITeleportEventFactory factory) {\n    return randomNearbyTeleport(living, factory, 16, 16);\n  }\n\n  /** Randomly teleports an entity, mostly copied from chorus fruit */\n  @CanIgnoreReturnValue\n  public static boolean randomNearbyTeleport(LivingEntity living, ITeleportEventFactory factory, int diameter, int chances) {\n    Level level = living.level();\n    if (level.isClientSide) {\n      return true;\n    }\n    double posX = living.getX();\n    double posY = living.getY();\n    double posZ = living.getZ();\n\n    RandomSource random = living.getRandom();\n    float minHeight = level.getMinBuildHeight();\n    float maxHeight = (level instanceof ServerLevel server ? (level.getMinBuildHeight() + server.getLogicalHeight()) : level.getMaxBuildHeight()) - 1;\n    for(int i = 0; i < chances; ++i) {\n      double x = posX + (random.nextDouble() - 0.5D) * diameter;\n      double y = Mth.clamp(posY + (double)(random.nextInt(diameter) - 8), minHeight, maxHeight);\n      double z = posZ + (random.nextDouble() - 0.5D) * diameter;\n      if (living.isPassenger()) {\n        living.stopRiding();\n      }\n\n      level.gameEvent(GameEvent.TELEPORT, living.position(), GameEvent.Context.of(living));\n      EntityTeleportEvent event = factory.create(living, x, y, z);\n      MinecraftForge.EVENT_BUS.post(event);\n      if (!event.isCanceled() && living.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true)) {\n        SoundEvent soundevent = Sounds.SLIME_TELEPORT.getSound();\n        // sound where we left\n        level.playSound(null, posX, posY, posZ, soundevent, living.getSoundSource(), 1.0F, 1.0F);\n        // sound at destination\n        living.playSound(soundevent, 1.0F, 1.0F);\n        return true;\n      }\n    }\n    return false;\n  }\n\n  /** Spawns particles around the entity for teleporting */\n  private static void spawnParticles(Entity entity) {\n    Level level = entity.level();\n    if (level instanceof ServerLevel serverWorld) {\n      for (int i = 0; i < 32; ++i) {\n        serverWorld.sendParticles(ParticleTypes.PORTAL, entity.getX(), entity.getY() + level.random.nextDouble() * 2.0D, entity.getZ(), 1, level.random.nextGaussian(), 0.0D, level.random.nextGaussian(), 0);\n      }\n    }\n  }\n\n  /** Fires the teleport event, then teleports the player if it works */\n  public static boolean tryTeleport(EntityTeleportEvent event) {\n    MinecraftForge.EVENT_BUS.post(event);\n    if (!event.isCanceled()) {\n      // spawn particles at old location\n      Entity entity = event.getEntity();\n      spawnParticles(entity);\n\n      // this logic only runs serverside, so need to use the server controller logic to move the player\n      if (entity instanceof ServerPlayer playerMP) {\n        playerMP.connection.teleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), playerMP.getYRot(), playerMP.getXRot(), PACKET_FLAGS);\n      } else {\n        entity.setPos(event.getTargetX(), event.getTargetY(), event.getTargetZ());\n      }\n      // particles at new location\n      spawnParticles(entity);\n      entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(), Sounds.ENDERPORTING.getSound(), entity.getSoundSource(), 1f, 1f);\n      return true;\n    }\n    return false;\n  }\n\n  /** Predicate to test if the entity can teleport, typically just fires a cancelable event */\n  @FunctionalInterface\n  public interface ITeleportEventFactory {\n    EntityTeleportEvent create(LivingEntity entity, double x, double y, double z);\n  }\n}\n",
+          "excerpt_sha256": "3697f919de0d6ed7b3eb925943b06ebc23495a1b2d573ad301e788b9c828c350",
+          "normalized_excerpt_sha256": "c2f2c73c809696cb20e5afa0248be34947285ce4b4d8760e2e81a8601ce37acc",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidEffects.java",
+          "method": null,
+          "lines": [
+            1,
+            124
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "a04d84a074670dda919a891fd23f511e301a8835823e1d425a32ea0904c81c90",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidEffects.java#L1-L124",
+          "excerpt": "package slimeknights.tconstruct.library.modifiers.fluid;\n\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.level.material.Fluid;\nimport net.minecraftforge.fluids.FluidStack;\nimport net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;\nimport org.jetbrains.annotations.ApiStatus.Internal;\nimport slimeknights.mantle.data.loadable.Loadables;\nimport slimeknights.mantle.data.loadable.primitive.BooleanLoadable;\nimport slimeknights.mantle.data.loadable.record.RecordLoadable;\nimport slimeknights.mantle.recipe.ingredient.FluidIngredient;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext.Block;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext.Entity;\n\nimport java.util.List;\n\n/** Data class to connect fluids to fluid effects */\npublic record FluidEffects(FluidIngredient ingredient, List<FluidEffect<? super FluidEffectContext.Block>> blockEffects, List<FluidEffect<? super FluidEffectContext.Entity>> entityEffects, boolean hidden) {\n  public static final RecordLoadable<FluidEffects> LOADABLE = RecordLoadable.create(\n    FluidIngredient.LOADABLE.requiredField(\"fluid\", e -> e.ingredient),\n    FluidEffect.BLOCK_EFFECTS.list(0).defaultField(\"block_effects\", List.of(), e -> e.blockEffects),\n    FluidEffect.ENTITY_EFFECTS.list(0).defaultField(\"entity_effects\", List.of(), e -> e.entityEffects),\n    BooleanLoadable.INSTANCE.defaultField(\"hidden\", false, false, e -> e.hidden),\n    FluidEffects::new);\n\n  /** @apiNote This constructor is internal, use either {@link slimeknights.tconstruct.library.data.tinkering.AbstractFluidEffectProvider} or JSON to instantiate. */\n  @Internal\n  public FluidEffects {}\n\n\n  /* Fluid */\n\n  /**\n   * Checks if the recipe matches the given fluid\n   * @param fluid  Fluid to test\n   * @return  True if this recipe handles the given fluid\n   */\n  public boolean matches(Fluid fluid) {\n    return ingredient.test(fluid);\n  }\n\n  /** Gets the amount of fluid needed for a single level */\n  public int getAmount(Fluid fluid) {\n    return ingredient.getAmount(fluid);\n  }\n\n\n  /* Effects present */\n\n  /**\n   * Checks if this fluid has any effects of either type\n   * @see #hasBlockEffects()\n   * @see #hasEntityEffects()\n   */\n  public boolean hasEffects() {\n    return hasBlockEffects() || hasEntityEffects();\n  }\n\n  /** Checks if this fluid has any block effects */\n  public boolean hasBlockEffects() {\n    return !blockEffects.isEmpty();\n  }\n\n  /** Checks if this fluid has any entity effects */\n  public boolean hasEntityEffects() {\n    return !entityEffects.isEmpty();\n  }\n\n\n  /* Running effects */\n\n  /** Runs the effects for a generic context */\n  private <C extends FluidEffectContext> int apply(FluidStack fluid, float level, C context, List<FluidEffect<? super C>> effects, FluidAction action) {\n    int amountPerLevel = getAmount(fluid.getFluid());\n    float scale;\n    if (fluid.getAmount() >= amountPerLevel * level) {\n      scale = level;\n    } else {\n      scale = fluid.getAmount() / (float)amountPerLevel;\n    }\n    EffectLevel effectLevel = new EffectLevel(scale, level);\n    float usedScale = 0;\n    for (FluidEffect<? super C> effect : effects) {\n      float newScale = effect.apply(fluid, effectLevel, context, action);\n      if (newScale > usedScale) {\n        usedScale = newScale;\n      }\n    }\n    return (int)Math.ceil(amountPerLevel * Math.min(scale, usedScale));\n  }\n\n  /**\n   * Applies the effect to a block\n   * @param fluid    Input fluid, will not be modified\n   * @param level    Level of effect to apply\n   * @param context  Entity fluid context\n   * @param action   If {@link FluidAction#SIMULATE}, makes no changes to the context. If {@link FluidAction#EXECUTE}, the context may be modified.\n   * @return  Amount of fluid to consumed from this effect, will return 0 if no effect was performed. Note this may be slightly larger than the input fluid due to rounding.\n   */\n  @SuppressWarnings(\"UnusedReturnValue\")\n  public int applyToBlock(FluidStack fluid, float level, Block context, FluidAction action) {\n    return apply(fluid, level, context, blockEffects, action);\n  }\n\n  /**\n   * Applies the effect to an entity\n   * @param fluid    Input fluid, will not be modified\n   * @param level    Level of effect to apply\n   * @param context  Entity fluid context\n   * @param action   If {@link FluidAction#SIMULATE}, makes no changes to the context. If {@link FluidAction#EXECUTE}, the context may be modified.\n   * @return  Amount of fluid to consumed from this effect, will return 0 if no effect was performed.\n   */\n  public int applyToEntity(FluidStack fluid, float level, Entity context, FluidAction action) {\n    return apply(fluid, level, context, entityEffects, action);\n  }\n\n  /** Entry for storage in the manager */\n  public record Entry(ResourceLocation name, FluidEffects effects) {\n    public static final RecordLoadable<Entry> LOADABLE = RecordLoadable.create(\n      Loadables.RESOURCE_LOCATION.requiredField(\"name\", Entry::name),\n      FluidEffects.LOADABLE.requiredField(\"effects\", Entry::effects),\n      Entry::new);\n  }\n}\n",
+          "excerpt_sha256": "a04d84a074670dda919a891fd23f511e301a8835823e1d425a32ea0904c81c90",
+          "normalized_excerpt_sha256": "7c516af4a3e5246c68b363e105f3affadedfc40dfffa8fa414f20bee63c4e08b",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/general/SequenceFluidEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            64
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "fce9fdde8a51d7793589fa590290df9463bb62bddd6b90d42858a37c37818678",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/general/SequenceFluidEffect.java#L1-L64",
+          "excerpt": "package slimeknights.tconstruct.library.modifiers.fluid.general;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.network.chat.Component;\nimport net.minecraftforge.fluids.FluidStack;\nimport net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;\nimport org.jetbrains.annotations.ApiStatus.Internal;\nimport slimeknights.mantle.data.loadable.Loadable;\nimport slimeknights.mantle.data.loadable.record.RecordLoadable;\nimport slimeknights.tconstruct.library.modifiers.fluid.EffectLevel;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffect;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext;\n\nimport java.util.List;\n\n/**\n * Fluid effect which applies all effects in a sequence, stopping once an effect fails.\n * @param <C>  Effect context type\n */\npublic record SequenceFluidEffect<C extends FluidEffectContext>(List<FluidEffect<? super C>> effects, RecordLoadable<SequenceFluidEffect<C>> getLoader) implements FluidEffect<C> {\n  public static final RecordLoadable<SequenceFluidEffect<FluidEffectContext.Block>> BLOCK_LOADER = createLoader(FluidEffectListBuilder.BLOCK_EFFECT_LIST);\n  public static final RecordLoadable<SequenceFluidEffect<FluidEffectContext.Entity>> ENTITY_LOADER = createLoader(FluidEffectListBuilder.ENTITY_EFFECT_LIST);\n\n  /** @apiNote Internal constructor, use {@link #blocks()} or {@link #entities()} */\n  @Internal\n  public SequenceFluidEffect {}\n\n  @Override\n  public float apply(FluidStack fluid, EffectLevel level, C context, FluidAction action) {\n    float maxApplied = 0;\n    for (FluidEffect<? super C> effect : effects) {\n      float applied = effect.apply(fluid, level, context, action);\n      // sequence breaks at first effect that doesn't apply\n      if (applied <= 0) {\n        break;\n      }\n      if (applied > maxApplied) {\n        maxApplied = applied;\n      }\n    }\n    return maxApplied;\n  }\n\n  @Override\n  public Component getDescription(RegistryAccess registryAccess) {\n    // almost definitely want a book description for this, but might as well generate something useful\n    return effects.stream().map(effect -> effect.getDescription(registryAccess)).reduce(MERGE_COMPONENT_LIST).orElse(Component.empty());\n  }\n\n\n  /** Creates a new builder for block effects */\n  public static FluidEffectListBuilder<FluidEffectContext.Block,SequenceFluidEffect<FluidEffectContext.Block>> blocks() {\n    return FluidEffectListBuilder.builder(list -> new SequenceFluidEffect<>(list, BLOCK_LOADER));\n  }\n\n  public static FluidEffectListBuilder<FluidEffectContext.Entity,SequenceFluidEffect<FluidEffectContext.Entity>> entities() {\n    return FluidEffectListBuilder.builder(list -> new SequenceFluidEffect<>(list, ENTITY_LOADER));\n  }\n\n  /** Creates a loader for the given */\n  public static <C extends FluidEffectContext> RecordLoadable<SequenceFluidEffect<C>> createLoader(Loadable<List<FluidEffect<? super C>>> effectList) {\n    return RecordLoadable.withLoader(effectList.requiredField(\"effects\", SequenceFluidEffect::effects), SequenceFluidEffect::new);\n  }\n}\n",
+          "excerpt_sha256": "fce9fdde8a51d7793589fa590290df9463bb62bddd6b90d42858a37c37818678",
+          "normalized_excerpt_sha256": "14af70c54659e221a919d8bb827c6a806cb00f9d90ca7fd62e4a46641828f76c",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/general/ConditionalFluidEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            76
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "f15a0c59a7d30eeeb91aea65e1d98968cd2f64e437785518f0acfb88cda36a5f",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/general/ConditionalFluidEffect.java#L1-L76",
+          "excerpt": "package slimeknights.tconstruct.library.modifiers.fluid.general;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraftforge.fluids.FluidStack;\nimport net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;\nimport org.jetbrains.annotations.ApiStatus.Internal;\nimport slimeknights.mantle.data.loadable.record.RecordLoadable;\nimport slimeknights.mantle.data.predicate.IJsonPredicate;\nimport slimeknights.mantle.data.predicate.block.BlockPredicate;\nimport slimeknights.mantle.data.predicate.entity.LivingEntityPredicate;\nimport slimeknights.tconstruct.library.json.predicate.TinkerPredicate;\nimport slimeknights.tconstruct.library.modifiers.fluid.EffectLevel;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffect;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext;\n\n/**\n * Fluid effect that conditions on the holder and target.\n * @apiNote This class is internal, no need to use directly. Instead, make use of the helpers in {@link slimeknights.tconstruct.library.data.tinkering.AbstractFluidEffectProvider}.\n */\n@Internal\npublic interface ConditionalFluidEffect<C extends FluidEffectContext> extends FluidEffect<C> {\n  /** Gets the effect to apply */\n  FluidEffect<? super C> effect();\n\n  /** Checks if this effect can be applied */\n  boolean canApply(C context);\n\n  @Override\n  default float apply(FluidStack fluid, EffectLevel level, C context, FluidAction action) {\n    return canApply(context) ? effect().apply(fluid, level, context, action) : 0;\n  }\n\n  @Override\n  default Component getDescription(RegistryAccess registryAccess) {\n    return effect().getDescription(registryAccess);\n  }\n\n  /** Conditional block effect */\n  record Block(IJsonPredicate<BlockState> block, FluidEffect<? super FluidEffectContext.Block> effect) implements ConditionalFluidEffect<FluidEffectContext.Block> {\n    public static final RecordLoadable<Block> LOADER = RecordLoadable.create(\n      BlockPredicate.LOADER.defaultField(\"block\", e -> e.block),\n      FluidEffect.BLOCK_EFFECTS.requiredField(\"effect\", e -> e.effect),\n      Block::new);\n\n    @Override\n    public boolean canApply(FluidEffectContext.Block context) {\n      return block.matches(context.getBlockState());\n    }\n\n    @Override\n    public RecordLoadable<Block> getLoader() {\n      return LOADER;\n    }\n  }\n\n  /** Conditional block effect */\n  record Entity(IJsonPredicate<LivingEntity> target, FluidEffect<? super FluidEffectContext.Entity> effect) implements ConditionalFluidEffect<FluidEffectContext.Entity> {\n    public static final RecordLoadable<Entity> LOADER = RecordLoadable.create(\n      LivingEntityPredicate.LOADER.defaultField(\"target\", e -> e.target),\n      FluidEffect.ENTITY_EFFECTS.requiredField(\"effect\", e -> e.effect),\n      Entity::new);\n\n    @Override\n    public boolean canApply(FluidEffectContext.Entity context) {\n      return TinkerPredicate.matches(target, context.getLivingTarget());\n    }\n\n    @Override\n    public RecordLoadable<Entity> getLoader() {\n      return LOADER;\n    }\n  }\n}\n",
+          "excerpt_sha256": "f15a0c59a7d30eeeb91aea65e1d98968cd2f64e437785518f0acfb88cda36a5f",
+          "normalized_excerpt_sha256": "1db1c6719671efe171d95960d7b32cc63111108d9dbcc8c765e9d7720287cfbf",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/EffectLevel.java",
+          "method": null,
+          "lines": [
+            1,
+            51
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "173c7a07743a24cf604fe2121943d1ce94f74a6708582629238bea0d64d9c61a",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/EffectLevel.java#L1-L51",
+          "excerpt": "package slimeknights.tconstruct.library.modifiers.fluid;\n\n/**\n * Represents the level of a fluid effect\n * @param value  Effective level\n * @param max    Max level, used when dealing with conservative effects\n */\npublic record EffectLevel(float value, float max) {\n  /**\n   * Gets the effective amount given the existing amount. Can possibly be up to {@link #max()} by summing with {@link #value()}.\n   * Used level will be {@code effective - existing}. If {@code effective <= existing}, no action need be performed.\n   * @param existing  Existing level on the target, note you will likely want to rescale this from result to level units.\n   * @return Effective effect level\n   */\n  public float effective(float existing) {\n    return Math.min(this.value + existing, max);\n  }\n\n  /**\n   * Gets the level that was used, given the cap exists\n   * @param max  Maximum level that could have been set\n   * @return  Level that was used.\n   */\n  public float computeUsed(float max) {\n    return Math.min(this.value, max);\n  }\n\n  /** Check if the effect level is at least 1, used to limit effects that don't scale */\n  public boolean isFull() {\n    return value >= 1;\n  }\n\n  /** Divides the effect level by the given divisor */\n  public EffectLevel divide(float divisor) {\n    if (divisor == 1) {\n      return this;\n    }\n    if (divisor == 0) {\n      throw new IllegalArgumentException(\"Divisor cannot be zero\");\n    }\n    return new EffectLevel(value / divisor, max / divisor);\n  }\n\n  /** Subtracts the given amount from the effect level */\n  public EffectLevel subtract(float amount) {\n    if (amount == 0) {\n      return this;\n    }\n    return new EffectLevel(value - amount, max);\n  }\n}\n",
+          "excerpt_sha256": "173c7a07743a24cf604fe2121943d1ce94f74a6708582629238bea0d64d9c61a",
+          "normalized_excerpt_sha256": "283a3a2345a2e947b93850b9407e34a6ddadf2269b101b21de9b715b849d0669",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/entity/MobEffectFluidEffect.java",
+          "method": null,
+          "lines": [
+            1,
+            46
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "98e6a6961a9656aef3c9462f80c0db815aa9d920181c1cdcb461194395bccd6a",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/entity/MobEffectFluidEffect.java#L1-L46",
+          "excerpt": "package slimeknights.tconstruct.library.modifiers.fluid.entity;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraftforge.fluids.FluidStack;\nimport net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;\nimport slimeknights.mantle.data.loadable.record.RecordLoadable;\nimport slimeknights.tconstruct.library.modifiers.fluid.EffectLevel;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffect;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidEffectContext;\nimport slimeknights.tconstruct.library.modifiers.fluid.FluidMobEffect;\nimport slimeknights.tconstruct.library.modifiers.fluid.TimeAction;\n\n/**\n * Spilling effect to apply a potion effect\n * @param effect  Effect to apply\n * @param action  How the time scales\n * @see FluidMobEffect.Builder\n */\npublic record MobEffectFluidEffect(FluidMobEffect effect, TimeAction action) implements FluidEffect<FluidEffectContext.Entity> {\n  public static final RecordLoadable<MobEffectFluidEffect> LOADER = RecordLoadable.create(\n    FluidMobEffect.LOADABLE.directField(e -> e.effect),\n    TimeAction.LOADABLE.requiredField(\"action\", e -> e.action),\n    MobEffectFluidEffect::new);\n\n  @Override\n  public RecordLoadable<MobEffectFluidEffect> getLoader() {\n    return LOADER;\n  }\n\n  @Override\n  public float apply(FluidStack fluid, EffectLevel scale, FluidEffectContext.Entity context, FluidAction action) {\n    // first, need a target\n    LivingEntity target = context.getLivingTarget();\n    if (target != null) {\n      return effect.apply(target, scale, this.action, action, context.getEffectSource());\n    }\n    return 0;\n  }\n\n  @Override\n  public Component getDescription(RegistryAccess registryAccess) {\n    return effect.getDisplayName(action);\n  }\n}\n",
+          "excerpt_sha256": "98e6a6961a9656aef3c9462f80c0db815aa9d920181c1cdcb461194395bccd6a",
+          "normalized_excerpt_sha256": "df4057d9dc9ecbfb37d4819e7b97865e8513a2c231ae7af0e85f84e9487e7c5a",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidMobEffect.java",
+          "method": "apply",
+          "lines": [
+            74,
+            130
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "f5cf4f60c86b2e1f5e631f9b7d20c1db757849a324014646d2d98664f44d9d51",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidMobEffect.java#L74-L130",
+          "excerpt": "  public float apply(LivingEntity target, EffectLevel scale, TimeAction timeAction, FluidAction action, @Nullable Entity source) {\n    // infinite requires a full level\n    if (isInfinite() && !scale.isFull()) {\n      return 0;\n    }\n    float used;\n    int time;\n    // infinite costs 1 and sets the full time\n    if (isInfinite()) {\n      time = this.time;\n      used = 1;\n    } else {\n      // add and set both have distinct behavior under an existing effect, same otherwise\n      MobEffectInstance existingInstance = target.getEffect(effect);\n      int amplifier = amplifier();\n      if (existingInstance != null && existingInstance.getAmplifier() >= amplifier) {\n        // if the existing level is larger, just skip, would be a cheese to increase said level\n        // lower levels we treat as not having the effect, must be exact match to extend\n        if (existingInstance.getAmplifier() > amplifier) {\n          return 0;\n        }\n        if (timeAction == TimeAction.ADD) {\n          int extraTime = (int) (this.time * scale.value());\n          if (extraTime <= 0) {\n            return 0;\n          }\n          // add simply sums existing time with the desired time. If the level is higher than ours, it produces a hidden effect\n          time = existingInstance.getDuration() + extraTime;\n          used = scale.value();\n        } else {\n          // set can produce time up to the maximum allowed by scale,\n          float existing = existingInstance.getDuration() / (float) this.time;\n          float effective = scale.effective(existing);\n          // no change? means we skip applying entirely\n          if (effective < existing) {\n            return 0;\n          }\n          used = effective - existing;\n          time = (int) (this.time * effective);\n        }\n      } else {\n        // if no existing, time and set behave the same way, use maximum amount to compute time\n        time = (int) (this.time * scale.value());\n        used = scale.value();\n      }\n    }\n    // if we got time, add the effect\n    if (time != 0) {\n      MobEffectInstance newInstance = effectWithTime(time);\n      // if simulating, just ask if it's applicable. Won't handle event canceling, but thats acceptable.\n      if (action.simulate()) {\n        return target.canBeAffected(newInstance) ? used : 0;\n      }\n      return target.addEffect(newInstance, source) ? used : 0;\n    }\n    return 0;\n  }\n",
+          "excerpt_sha256": "b7b23965b6ca90b41857cfd2df851f901b44c4e8d117f8a401b029e50f70f8ad",
+          "normalized_excerpt_sha256": "a7f990a251a3b24d4f1a1e6b308c3587474626edda7f6858fe012e2020bc752d",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidMobEffect.java",
+          "method": "effectWithTime",
+          "lines": [
+            55,
+            61
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "f5cf4f60c86b2e1f5e631f9b7d20c1db757849a324014646d2d98664f44d9d51",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidMobEffect.java#L55-L61",
+          "excerpt": "  public MobEffectInstance effectWithTime(int time) {\n    MobEffectInstance instance = new MobEffectInstance(effect, time, this.level - 1);\n    if (curativeItems != null) {\n      instance.setCurativeItems(curativeItems.stream().map(ItemStack::new).collect(Collectors.toList()));\n    }\n    return instance;\n  }\n",
+          "excerpt_sha256": "765a87510b9bcf632f60b4afea0bd6a64015c0299cca2199d1d7fa1396d7c543",
+          "normalized_excerpt_sha256": "6c22225ff5c0258a0a83f1d0e28451b5b6923383e030679abb8a31412c427af3",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidMobEffect.java",
+          "method": "isInfinite",
+          "lines": [
+            50,
+            52
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "f5cf4f60c86b2e1f5e631f9b7d20c1db757849a324014646d2d98664f44d9d51",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidMobEffect.java#L50-L52",
+          "excerpt": "  public boolean isInfinite() {\n    return time == MobEffectInstance.INFINITE_DURATION;\n  }\n",
+          "excerpt_sha256": "9e8c6b55b3dc2faf8cecab4af9f0ec1df0356e00355f6a4766e712dee13bd36f",
+          "normalized_excerpt_sha256": "3ea1adecc63415b125d1d86c0037a612784e4da0c7ae1fad3155c06b84d2f3d9",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidMobEffect.java",
+          "method": "amplifier",
+          "lines": [
+            45,
+            47
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "f5cf4f60c86b2e1f5e631f9b7d20c1db757849a324014646d2d98664f44d9d51",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidMobEffect.java#L45-L47",
+          "excerpt": "  public int amplifier() {\n    return level - 1;\n  }\n",
+          "excerpt_sha256": "3b96bad0871d6067b9a4065592cc493744be746f199274f3965eeb5c3efe10c6",
+          "normalized_excerpt_sha256": "5c9a50e4308bb238e495484570818cb69e408e0c2eff9967868c5e7207c243d0",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/entity/FluidEffectProjectile.java",
+          "method": "onHitEntity",
+          "lines": [
+            222,
+            253
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "23ba1ad466e7d097b8295451239d7e7c2105700f84b9edab4897fd7ea2909c91",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/entity/FluidEffectProjectile.java#L222-L253",
+          "excerpt": "  protected void onHitEntity(EntityHitResult result) {\n    Entity target = result.getEntity();\n    // apply knockback to the entity regardless of fluid type\n    if (knockback > 0) {\n      Vec3 vec3 = this.getDeltaMovement().multiply(1, 0, 1).normalize().scale(knockback * 0.6);\n      if (vec3.lengthSqr() > 0) {\n        target.push(vec3.x, 0.1, vec3.z);\n      }\n    }\n    FluidStack fluid = getFluid();\n    Level level = level();\n    if (!level.isClientSide && !fluid.isEmpty()) {\n      FluidEffects recipe = FluidEffectManager.INSTANCE.find(fluid.getFluid());\n      if (recipe.hasEntityEffects()) {\n        FluidEffectContext.Entity context = buildContext().location(result.getLocation()).target(target);\n        int consumed = recipe.applyToEntity(fluid, power, context, FluidAction.EXECUTE);\n        // update the stack\n        if (consumed > 0) {\n          updateCannonStack(context);\n        }\n        // shrink our internal fluid, means we get a crossbow piercing like effect if its not all used\n        // discarding when empty ensures the fluid won't continue with the block effect\n        // unlike blocks, failing is fine, means we just continue through to the block below the entity\n        fluid.shrink(consumed);\n        if (fluid.isEmpty()) {\n          this.discard();\n        } else {\n          setFluid(fluid);\n        }\n      }\n    }\n  }\n",
+          "excerpt_sha256": "ef849e28335a4d5a27d8d7dce0d33312b832c930e7aa2b039c3efb91bd125b4e",
+          "normalized_excerpt_sha256": "c89196e67ad0e01e19d488cd128f7780c2dc03b511ba95f06b63b55f51c6e685",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/entity/FluidEffectProjectile.java",
+          "method": "buildContext",
+          "lines": [
+            154,
+            168
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "23ba1ad466e7d097b8295451239d7e7c2105700f84b9edab4897fd7ea2909c91",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/entity/FluidEffectProjectile.java#L154-L168",
+          "excerpt": "  private FluidEffectContext.Builder buildContext() {\n    Level level = level();\n    FluidEffectContext.Builder builder = FluidEffectContext.builder(level).projectile(this);\n    Entity owner = getOwner();\n    if (owner != null) {\n      builder.user(owner);\n    }\n    if (this.cannon != null) {\n      IItemHandler handler = getCannonInventory();\n      if (handler != null) {\n        builder.stack(handler.getStackInSlot(0).copy());\n      }\n    }\n    return builder;\n  }\n",
+          "excerpt_sha256": "3a75e463d6c4a9fb950c580f151d23471b4289f24ccd8dd2b2e3510627a76c8a",
+          "normalized_excerpt_sha256": "6a0debd8f75fa9b90d8c03d9df44c1d2e50b584b7d36a27fb98a6601ddc2b366",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/entity/FluidEffectProjectile.java",
+          "method": "updateCannonStack",
+          "lines": [
+            171,
+            178
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "23ba1ad466e7d097b8295451239d7e7c2105700f84b9edab4897fd7ea2909c91",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/entity/FluidEffectProjectile.java#L171-L178",
+          "excerpt": "  private void updateCannonStack(FluidEffectContext context) {\n    if (cannon != null) {\n      IItemHandlerModifiable handler = getCannonInventory();\n      if (handler != null) {\n        handler.setStackInSlot(0, context.getStack());\n      }\n    }\n  }\n",
+          "excerpt_sha256": "8108d7d15d066bbefe7b2c675d526a35e39875998b1c7c210f6ce00bb6b38f06",
+          "normalized_excerpt_sha256": "92b8cfaf737bde18de430f6e1feee55f0dbaac2457c1815f2f7981390fcf4bf1",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/logic/ModifierEvents.java",
+          "method": "onTeleport",
+          "lines": [
+            577,
+            581
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "55a09c76f61d56c595f576f4ec447f3d0890464a455a60741b1e0887a89f5d84",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/ModifierEvents.java#L577-L581",
+          "excerpt": "  static void onTeleport(EntityTeleportEvent event) {\n    if (event.getEntity() instanceof LivingEntity living && living.hasEffect(TinkerEffects.enderference.get())) {\n      event.setCanceled(true);\n    }\n  }\n",
+          "excerpt_sha256": "1e239176cb96465bcaa9888ef43e05d7be1e3086fcafa981c92a09245aaeb1d3",
+          "normalized_excerpt_sha256": "6f6b3c0c0eb6e9ab795890e85dfb2a3af85ef0a72f48c35b666e1a1816a1691a",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/data/FluidEffectProvider.java",
+          "method": null,
+          "lines": [
+            133,
+            142
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "ecf4e9175485204f3a1674bc75fde5f8b908567f850d1407da635ad7d61e460e",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/data/FluidEffectProvider.java#L133-L142",
+          "excerpt": "    // ender - teleporting\n    LivingEntityPredicate hasReturning = new HasMobEffectPredicate(TinkerEffects.returning.get());\n    FluidMobEffect returningEffect = new FluidMobEffect(TinkerEffects.returning.get(), 7*20, 1, null);\n    addSlime(TinkerFluids.enderSlime)\n      .addEntityEffects(FluidMobEffect.builder().effect(MobEffects.MOVEMENT_SLOWDOWN, 20*5).buildEntity(TimeAction.ADD))\n      // if returning, extend it, need to do this first as otherwise we extend ourself\n      .addEntityEffect(hasReturning, new MobEffectFluidEffect(returningEffect, TimeAction.ADD))\n      // if no returning, give returning then teleport\n      .addEntityEffect(hasReturning.inverted(), SequenceFluidEffect.entities().effect(new MobEffectFluidEffect(returningEffect, TimeAction.SET)).effect(new RandomTeleportFluidEffect(LevelingInt.eachLevel(8), LevelingInt.flat(16))).build())\n      .addBlockEffect(SequenceFluidEffect.blocks().effect(new BreakBlockFluidEffect(0)).effect(new PlaceBlockFluidEffect(null)).build());\n",
+          "excerpt_sha256": "0a4f7de98a1997f7e538d90a0c60b8fc26668bf8b438bb85d25e8f860102fcde",
+          "normalized_excerpt_sha256": "9403c9a1cc4573f6031508ac02493c9ef6849788d86fc50293da067871ee8aca",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "method": null,
+          "lines": [
+            810,
+            810
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "d26e071f4dca3a9e9bbf8c928d0f9e472653ff062d061307bab0a7d956b099e9",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java#L810-L810",
+          "excerpt": "      FluidEffect.ENTITY_EFFECTS.register(getResource(\"teleport\"), RandomTeleportFluidEffect.LOADER);\n",
+          "excerpt_sha256": "acf9aa8659dfafb394e1ada09b9ed4d5d9e606c29cea547b4955366a01cd5664",
+          "normalized_excerpt_sha256": "a9d6085bd0b59f21f68e33020274d12c46613ac94e1d3f6e6289053812da3d49",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/json/LevelingInt.java",
+          "method": "compute",
+          "lines": [
+            35,
+            37
+          ],
+          "fixed_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+          "file_sha256": "f54ade403b2e167c59fcd186e3edac581854ee836ae0db2c80fc7fef15052f53",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/json/LevelingInt.java#L35-L37",
+          "excerpt": "  public int compute(float level) {\n    return (int)(this.flat + this.eachLevel * level);\n  }\n",
+          "excerpt_sha256": "0b44224f90a9f46b210ad5f58736807f09e803c6ffd0482736d3eacc3a62568c",
+          "normalized_excerpt_sha256": "a40e2d6da7a844ab7bf3ea6a64e4a26f1b9b759cc029a7e592a9241dcf82ae16",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Actual enderSlime provider installs slow effect; extends existing returning, otherwise sequences SET returning7s then random teleport diameter8*level/chances16. Registered teleport loader is RandomTeleportFluidEffect.LOADER. SET producer complete FluidMobEffect.apply returns0 if incompatible higheramplifier/noeligibletime/native addEffectfalse; SIMULATE only canBeAffected, cannot prove EXECUTE eventadmission. Sequence breaks at first applied<=0 but RETURNS MAX prior positive amount, not whole-success boolean or rollback. RandomTeleportFluidEffect requiresLiving and fulllevel unless scaling; EXECUTE calls randomNearbyTeleport but ignores boolean and returns1 orvalue. Teleport helper client shortcuttrue is not server success. Server eachattempt stopsRiding and emits GameEvent.TELEPORT BEFORE cancelable event; canceled event skips randomTeleport, loops up to16; only actual randomTeleporttrue plays departure/destination sounds and returnstrue; exhaust returnsfalse. Actual existing enderference event hook can cancel all attempts. Therefore accepted returning plus refused teleport retains acceptedeffect/cost, and randomTeleporteffect itself still reports positiveusage even when helperfalse; no dedicated refusal reason to user in this chain.",
+      "application_to_boss_immune": "Trace resource settlement separately from final movement/control result. Actual FluidEffects.apply computes available scale, applies effects and uses MAX positive usedScale, ceil amountPerLevel*min(scale,used). FluidEffectProjectile.onHitEntity server lookup calls recipe with EXECUTE, updatescannon stack if consumed>0, shrinks projectilefluid byconsumed, discardsifempty else syncsetFluid. Actual upfront knockback happens before serverfluidbranch regardless teleportresult. Do not claim fluid spent/teleport GameEvent proves control accepted or zero-cost refusal. This is partial sequence settlement policy, not automatically a bug: returning may legitimately consume even if teleport rejected. Geometry/gameevent/stopRiding are not a gray immune cue.",
+      "semantic_dedup": "One gameplay ender-slime returning+teleport+actual projectile consumption chain proposal. Sequence/MAX aggregation/conditionals/loader/amount wrappers eachsupport0, not infrastructure credits. Existing tconstruct-native-enderference-final-teleport-cancellation hook reused strictlysupport0: new candidate is failure propagation through fluid floatusage and partial sequence/resource settlement, not same eventgate countedtwice. Distinct055 void-cast greenfeedback: no textual success here, positive fluidused survives partial chain; main reviewer may merge related settlement family if insufficient independent. No separate16trials or potionvariants credit.",
+      "limitations": "Static complete containing methods/fullclasses and provider registration statements, not entire provider/init read. Actual generated JSON lookup/load and complete cannon inventory retrieval not audited; no instantiated specific projectile/config/runtime trace claimed. OnlyonHitEntity complete and context/update routines read, not complete projectiletick/movement. Final hurt immunity/control admission not inferred from fluidpositive. Low scaleddiameter may produce invalid random.nextInt bound if diameter0, but no concrete producerlevel schedule proven; no runtime defect claim. No game/GUI/compile/runtime tests/production/mainledger/assets/TODO edits."
+    }
+  ],
+  "exclusions": [
+    "Generic Sequence/Alternatives utilities are not independently credited; Alternatives fullclass read for contrast only.",
+    "Existing Enderference hook remains support; no auto recredit main prior row.",
+    "Actual recipe provider/callsite chain has partial acceptance; zero control success inference from fluidspent."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

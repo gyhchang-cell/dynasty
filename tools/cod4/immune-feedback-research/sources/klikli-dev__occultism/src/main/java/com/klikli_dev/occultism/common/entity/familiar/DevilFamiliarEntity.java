@@ -1,0 +1,267 @@
+/*
+ * MIT License
+ *
+ * Copyright 2021 vemerion
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.entity.familiar;
+
+import com.geckolib.animatable.GeoEntity;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager.ControllerRegistrar;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.RawAnimation;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.state.AnimationTest;
+import com.geckolib.util.GeckoLibUtil;
+import com.klikli_dev.occultism.common.advancement.FamiliarTrigger.Type;
+import com.klikli_dev.occultism.registry.OccultismAdvancements;
+import com.klikli_dev.occultism.registry.OccultismItems;
+import com.klikli_dev.occultism.util.FamiliarUtil;
+import com.klikli_dev.occultism.util.ItemTransferUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.network.syncher.SynchedEntityData.Builder;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.goal.FollowMobGoal;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.List;
+
+public class DevilFamiliarEntity extends FamiliarEntity implements GeoEntity {
+    protected static final long SIN_INTERVAL = 20 * 60 * 5;
+    private static final EntityDataAccessor<Long> SIN_TIME = SynchedEntityData.defineId(DevilFamiliarEntity.class, EntityDataSerializers.LONG);
+    private final float heightOffset;
+
+    AnimatableInstanceCache animatableInstanceCache = GeckoLibUtil.createInstanceCache(this);
+
+    public DevilFamiliarEntity(EntityType<? extends DevilFamiliarEntity> type, Level level) {
+        super(type, level);
+        this.heightOffset = this.getRandom().nextFloat() * 5;
+    }
+
+    @Override
+    protected void playStepSound(BlockPos pPos, BlockState pBlock) {
+    }
+
+    @Override
+    protected void registerGoals() {
+        this.goalSelector.addGoal(1, new SitGoal(this));
+        this.goalSelector.addGoal(2, new LookAtPlayerGoal(this, Player.class, 8));
+        this.goalSelector.addGoal(3, new FollowOwnerGoal(this, 1, 3, 1));
+        this.goalSelector.addGoal(4, new AttackGoal(this, 5));
+        this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 1.0));
+        this.goalSelector.addGoal(6, new FollowMobGoal(this, 1, 3, 7));
+    }
+
+    @Override
+    protected void defineSynchedData(Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(SIN_TIME, (long) 0);
+    }
+
+    @Override
+    public void readAdditionalSaveData(ValueInput input) {
+        super.readAdditionalSaveData(input);
+        this.entityData.set(SIN_TIME, input.getLongOr("sinLastTime", 0L));
+    }
+
+    @Override
+    public void addAdditionalSaveData(ValueOutput output) {
+        super.addAdditionalSaveData(output);
+        output.putLong("sinLastTime", this.getSinTime());
+    }
+
+    private long getSinTime() {
+        return this.entityData.get(SIN_TIME);
+    }
+
+    private void setSinTime(long b) {
+        this.entityData.set(SIN_TIME, b);
+    }
+
+    @Override
+    public InteractionResult mobInteract(Player pPlayer, InteractionHand pHand) {
+        ItemStack itemstack = pPlayer.getItemInHand(pHand);
+        if (this.getOwner() == pPlayer) {
+
+            if (itemstack.is(Items.GOLDEN_APPLE)) {
+                long time = this.hasIesniumUpgrade() ? -1 : this.getSinTime() + SIN_INTERVAL - this.level().getGameTime();
+                if (!this.hasBlacksmithUpgrade()) {
+                    if (pPlayer.level().isClientSide())
+                        pPlayer.sendSystemMessage(Component.translatable("dialog.occultism.devil.no_upgrade"));
+                } else if (time < 0) {
+                    this.setSinTime(this.level().getGameTime());
+                    itemstack.shrink(1);
+                    ItemTransferUtil.giveItemToPlayer(pPlayer, new ItemStack(Items.ENCHANTED_GOLDEN_APPLE));
+                } else if (pPlayer.level().isClientSide()) {
+                    pPlayer.sendSystemMessage(Component.translatable("dialog.occultism.devil.sin_on_cooldown", time));
+                }
+                //even if we don't give a breath we return success, otherwise we make the familiar change sitting position
+                return this.level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+            }
+            if (itemstack.is(OccultismItems.PITAYA_GOLDEN)) {
+                long time = this.hasIesniumUpgrade() ? -1 : this.getSinTime() + SIN_INTERVAL - this.level().getGameTime();
+                if (!this.hasBlacksmithUpgrade()) {
+                    if (pPlayer.level().isClientSide())
+                        pPlayer.sendSystemMessage(Component.translatable("dialog.occultism.devil.no_upgrade"));
+                } else if (time < 0) {
+                    this.setSinTime(this.level().getGameTime());
+                    itemstack.shrink(1);
+                    ItemTransferUtil.giveItemToPlayer(pPlayer, new ItemStack(OccultismItems.PITAYA_ENCHANTED.get()));
+                } else if (pPlayer.level().isClientSide()) {
+                    pPlayer.sendSystemMessage(Component.translatable("dialog.occultism.devil.sin_on_cooldown", time));
+                }
+                //even if we don't give a breath we return success, otherwise we make the familiar change sitting position
+                return this.level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+            }
+
+        }
+        return super.mobInteract(pPlayer, pHand);
+    }
+
+    @Override
+    public void aiStep() {
+        super.aiStep();
+        if (this.level().isClientSide() && this.swinging) {
+            Vec3 direction = Vec3.directionFromRotation(this.getRotationVector()).scale(0.6);
+            for (int i = 0; i < 5; i++) {
+                Vec3 pos = this.position().add(direction.x + (this.getRandom().nextFloat() - 0.5f) * 0.7,
+                        1.5 + (this.getRandom().nextFloat() - 0.5f) * 0.7, direction.z + (this.getRandom().nextFloat() - 0.5f) * 0.7);
+                this.level().addParticle(this.hasIesniumUpgrade() ? ParticleTypes.SOUL_FIRE_FLAME : ParticleTypes.FLAME,
+                        pos.x, pos.y, pos.z, direction.x * 0.25, 0, direction.z * 0.25);
+            }
+        }
+    }
+
+    @Override
+    public void curioTick(LivingEntity wearer) {
+        Level level = wearer.level();
+        if (this.isAbilityEnabled(wearer) && !level.isClientSide() && level.getGameTime() % 32 == 0) {
+            List<Monster> enemies = level.getEntitiesOfClass(Monster.class, wearer.getBoundingBox().inflate(9));
+            if (enemies.isEmpty())
+                return;
+
+            for (Monster e : enemies)
+                e.setRemainingFireTicks(4 * 20);
+        }
+    }
+
+    public float getAnimationHeight(float partialTicks) {
+        return Mth.cos((this.tickCount + this.heightOffset + partialTicks) / 3.5f);
+    }
+
+    @Override
+    public void registerControllers(ControllerRegistrar controllerRegistrar) {
+        var mainController = new AnimationController<DevilFamiliarEntity>("mainController", 0, this::animPredicate);
+        controllerRegistrar.add(mainController);
+    }
+
+    @Override
+    public int getCurrentSwingDuration() {
+        return 11; //to match our attack animation speed + 1 tick
+    }
+
+    private PlayState animPredicate(AnimationTest<DevilFamiliarEntity> tAnimationState) {
+
+        if (this.swinging) {
+            return tAnimationState.setAndContinue(RawAnimation.begin().thenPlay("attack"));
+        }
+
+        if (this.isSitting()) {
+            tAnimationState.setAnimation(RawAnimation.begin().thenPlay("sitting"));
+            return PlayState.CONTINUE;
+        }
+
+        return tAnimationState.setAndContinue(tAnimationState.isMoving() ? RawAnimation.begin().thenPlay("walk") : RawAnimation.begin().thenPlay("idle"));
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return this.animatableInstanceCache;
+    }
+
+    public static class AttackGoal extends Goal {
+
+        private static final int MAX_COOLDOWN = 20;
+
+        protected final FamiliarEntity entity;
+        private final float range;
+        private int cooldown = MAX_COOLDOWN;
+
+        public AttackGoal(FamiliarEntity entity, float range) {
+            this.entity = entity;
+            this.range = range;
+        }
+
+        @Override
+        public boolean canUse() {
+            return this.cooldown-- < 0
+                    && this.entity.getFamiliarOwner() instanceof Player owner
+                    && !this.getNearbyEnemies(owner).isEmpty()
+                    && this.entity.isAbilityEnabled(owner);
+        }
+
+        private List<LivingEntity> getNearbyEnemies(LivingEntity owner) {
+            return FamiliarUtil.getOwnerEnemies(owner, this.entity, this.range);
+        }
+
+        public void start() {
+            List<LivingEntity> enemies = this.getNearbyEnemies(this.entity.getFamiliarOwner());
+            if (!enemies.isEmpty() && this.entity instanceof DevilFamiliarEntity)
+                OccultismAdvancements.FAMILIAR.get().trigger(this.entity.getFamiliarOwner(), Type.DEVIL_FIRE);
+
+            this.attack(enemies);
+            this.entity.swing(InteractionHand.MAIN_HAND);
+            this.cooldown = MAX_COOLDOWN;
+        }
+
+        protected void attack(List<LivingEntity> enemies) {
+            for (Entity e : enemies) {
+                this.entity.doHurtTarget(getServerLevel(this.entity), e);
+                e.setRemainingFireTicks(4 * 20);
+            }
+        }
+
+        public void stop() {
+            this.cooldown = MAX_COOLDOWN;
+        }
+    }
+}
+

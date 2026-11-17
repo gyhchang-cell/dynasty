@@ -1,0 +1,236 @@
+[
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitEvents.java",
+    "method": "canAttackRecruit",
+    "start": 551,
+    "observation": "先拒绝自攻击；recruit对recruit依次排除同玩家owner、同队且禁友伤、同protectUUID、同groupUUID、执行任务的Messenger，最后才委托队伍/外交/条约许可。NPC无owner时仍可通过group避免内斗。",
+    "application": "稳定owner与临时编队身份是不同防线；租约守卫的Enemy白名单之外仍需排除同主单位，但不能把不属同主当作攻击许可。",
+    "limits": "只针对攻击者和目标都是recruit时启用这些身份分支；最终canHarmTeam在队伍缺失时放行。与其玩家/动物分支分别承担不同对象边界，辅助统一分派器不另计。 Halley候选0完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitEvents.java",
+    "method": "canAttackPlayer",
+    "start": 539,
+    "observation": "仅当攻击者是recruit时，按UUID排除owner、被保护玩家，另排除创造/旁观者；剩余玩家交canHarmTeam处理。",
+    "application": "owner和保护对象应成为明确硬拒绝条件；Dynasty租约守卫还必须坚持既有Enemy条件，不能允许其他旁观玩家。",
+    "limits": "这里并未默认禁止普通玩家，且非recruit攻击者不受这些特殊排除；不能直接迁入禁止新增PvP的任务。canAttack统一分派器只作辅助。 Halley候选1完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitEvents.java",
+    "method": "canAttackAnimal",
+    "start": 525,
+    "observation": "recruit不攻击自身坐骑；下一句在protectUUID非空时把该UUID与自身比较，因而这一分支拒绝所有Animal而非特定保护对象。动物载有recruit或玩家时改按乘客策略判断，其他再查队伍许可。",
+    "application": "坐骑与乘客两个实际实体都要复核；保护UUID必须与目标UUID比较，保留此处自比较作为静态反例。",
+    "limits": "这是固定提交中可见的自比较控制流，不宣称实机复现。以首乘客决定动物许可不覆盖多乘客所有身份，不能当作一般Enemy定义。 Halley候选2完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitEvents.java",
+    "method": "canHarmTeam",
+    "start": 610,
+    "observation": "任一侧无Team立即true；同队且禁友伤false，外交ALLY false，存在未过期条约false，其余true。hasTreaty用排序队名键和系统毫秒时间比较；外交关系默认NEUTRAL。",
+    "application": "队伍/外交是负面限制而非Enemy正面白名单；租约守卫不应因owner离线或无Team而退回广泛可攻击。",
+    "limits": "该mod允许中立和无队伍伤害，明显不同于Dynasty既有Enemy策略。isAlly/isEnemy/isNeutral、条约键/查询均附为同链证据，不分别凑数。 Halley候选3完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitEvents.java",
+    "method": "onLivingAttack",
+    "start": 457,
+    "observation": "已在Main.setup注册的LivingAttack订阅者先排除客户端；当伤害来源entity和目标都是LivingEntity时再次canAttack，失败cancel，成功才处理潜在外交恶化。不是只依赖最初AI目标。",
+    "application": "攻击执行后、伤害进入目标前仍需用权威身份和同一许可规则复核；失效旧target不能绕过守卫边界。",
+    "limits": "非LivingEntity来源不走本条件。该事件中的量不是最终实扣HP；handleSignificantDamage只用当前HP减事件amount估算关系升级，不能当作伤害成功回执。Forge/vanilla内部事件执行顺序未运行验证。 Halley候选4完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitEvents.java",
+    "method": "onProjectileImpact",
+    "start": 283,
+    "observation": "解析Projectile owner和实际Entity命中；跳过尸体。穿透箭遇不可攻击目标设SKIP_ENTITY并加入canceledProjectiles。recruit箭命中Animal还检查首乘客身份，再检查Animal本体；玩家箭检查canHarmTeam。取消集合在实体离世事件移除。",
+    "application": "飞行期间身份可能改变，应检查实际命中实体/坐骑乘客，不能只信发射时锁定target；维护碰撞抑制状态也须清理。",
+    "limits": "已入canceledProjectiles的后续回调只是return，并未在该分支重新设SKIP_ENTITY，不能声称所有后续碰撞永久免伤；并非所有投射物都会受此回调覆盖。许可仍是此mod较宽的PvP语义。 Halley候选5完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitEvents.java",
+    "method": "onLivingHurt",
+    "start": 402,
+    "observation": "服务端LivingHurt中仅在musketmod已装且来源recruit当前持火枪时额外canAttack，失败cancel，成功加经验；之后对任何活体来源都alertTeam，即使前面的musket分支刚cancel也继续。",
+    "application": "第三方伤害通道需要额外检查；拒绝伤害后也应审查是否仍传播仇恨、经验或其他副作用。",
+    "limits": "属于条件兼容分支；只核对本仓库IWeapon识别和注册，不运行外部musketmod。当前持物判断不是来源武器快照；不能声称替代所有最终伤害检查。 Halley候选6完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitEvents.java",
+    "method": "alertTeam",
+    "start": 430,
+    "observation": "被打者有Team时，在其32格包围盒搜索当前无target且队伍equals的recruit，直接setTarget(attacker)；没有在本方法检查owner、passive或shouldAttack。setTarget自身也只过滤深水。",
+    "application": "报警/协防是新的目标入口，必须沿用守卫租约与Enemy许可，不能因队友受击就让全队向普通玩家建立仇恨。",
+    "limits": "最终伤害事件仍可能阻止伤害，但不等于没建立target、没移动或没先点火。本方法独立研究传播范围，onLivingHurt只负责触发及兼容顺序。 Halley候选7完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "shouldAttack",
+    "start": 2061,
+    "observation": "state3拒绝；state0用neutral；state1用neutral或aggressive；state2排除ALLY后检查canAttack；default直接canAttack。neutral允许Enemy、isAttackingOwnerOrSelf或外交ENEMY；aggressive另允许NEUTRAL/ENEMY玩家及recruit，排除Villager。",
+    "application": "把许可与行为模式分别定义，未知状态也须按安全白名单处理；租约存在时不能落入default广泛攻击。",
+    "limits": "此mod激进模式主动允许普通玩家，不可迁入Dynasty。isAttackingOwnerOrSelf实际读target.getLastHurtByMob，语义是目标被谁打，而非目标刚打谁；不要被方法名误导。两个状态子方法只附证据，不另计。 Halley候选8完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "searchForTargetsSync",
+    "start": 327,
+    "observation": "服务端扫描inflate40的LivingEntity，排除自身并使用构造器配置的targetingConditions和深水过滤；按距离排序，在最近最多10个候选中随机选一个，再setTarget。构造器selector正是shouldAttack，且忽略视线/隐身测试。",
+    "application": "先把所有候选按同一Enemy与归属规则过滤，再做排序/随机选择；选择策略不能扩大许可集合。",
+    "limits": "这里不限制既有target必须重新合法，也不做视线过滤；后续goal/tick另查。searchForTargets只是server wrapper，构造器和深水辅助不另计。 Halley候选9完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "tick",
+    "start": 242,
+    "observation": "只在服务端推进；按entity id相位错开20/60tick搜索，state3不搜索。现有target死亡/移除即清；每10tick另清深水或无视线目标。也处理攻击冷却、到点切守位及支付/补给时钟。",
+    "application": "新租约生效或身份变化后不仅拦搜索，还要清理已有target；定期维护与立即攻击边界各司其职。",
+    "limits": "这些复核没有重新跑shouldAttack/canAttack，也没有owner/team变化后的完整许可复查；setTarget不补此项。不能把视线维护当作防误伤保证。 Halley候选10完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "hire",
+    "start": 1403,
+    "observation": "服务端先发可取消Hired事件，再查单位上限；成功设置owner UUID和owned，停导航、清target，切守位/中立状态、停despawn，登记数量/组/队伍后可选发招募消息。",
+    "application": "从野生变为租约守卫应是一次明确状态转换，清除旧仇恨和运动状态，避免继承此前野生目标。",
+    "limits": "本方法没有支付动作，调用者负责资格/费用；不能仅靠hire当作授权入口。事件取消和上限失败返回false，调用链必须检查；不是Dynasty现成代码。 Halley候选11完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "disband",
+    "start": 947,
+    "observation": "服务端发可取消Dismissed事件；未取消则清target、取消owned，可调成本；服务端修正单位数、解除驻防、清owner、按keepTeam移除队伍并解除组成员。",
+    "application": "结束租约时清理归属、队伍、组和仇恨必须分清顺序与失败；保留野生逻辑应通过明确转换实现。",
+    "limits": "该方法void，取消不会反馈给assignToPlayer；而且未统一清protectUUID、follow/aggro状态和全部受击记忆。不能把owned=false理解为整套控制状态已重置。 Halley候选12完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "assignToPlayer",
+    "start": 2227,
+    "observation": "先从旧组移除，设置新group并获取对象，再disband，随后写新owner；仅当新owner能在当前world解析时调用hire并切跟随。忽略disband取消状态及hire布尔结果。",
+    "application": "所有权转交应先验证新owner可用并以成功结果提交，不能留下新UUID/旧owned或半迁移的组状态。",
+    "limits": "新owner离线/其他world时不会hire；disband还可能清刚写入的group。这里记录真实控制流，不断言所有调用都触发错误；网络canAssign只能限制入口，不能使转换原子化。 Halley候选13完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "updateTeam",
+    "start": 2109,
+    "observation": "仅owned且服务端运行，解析在线owner后按owner无队、recruit无队、双方同队、双方异队四路移除/加入队伍并更新NPC数/颜色，完成才清needsTeamUpdate。加入队伍辅助方法成功后清target。",
+    "application": "owner团队变化需要主动使守卫状态失效并重建；ownerUUID存在与团队已同步是不同状态。",
+    "limits": "owner解析不到时保持needsTeamUpdate而不改队伍；同队仅更新颜色，不普遍重验target。不要让租约守卫因此沿用旧阵营可攻击集合。 Halley候选14完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "isEffectedByCommand",
+    "start": 1311,
+    "observation": "先要求owned、存活、listen=true并排除garrison，再按owner UUID值相等确认发令者；group为空表示不限组，非空则必须group UUID匹配。",
+    "application": "命令资格应同时校验控制身份、单位状态与组范围；客户端传来的实体/组ID不能自行证明归属。",
+    "limits": "未证明owned时ownerUUID一定非空，源码直接equals可在损坏状态出错；此处也不负责target是否合法。一参数转发重载不计。 Halley候选15完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "setAggroState",
+    "start": 1056,
+    "observation": "切state0或3时先setTarget(null)，state2会setFollowState(0)取消既有位置/保护模式，最后写STATE；state1无额外清理。",
+    "application": "从可战斗模式进入租约限制模式时应立即清旧target；模式转换本身可能联动移动/保护状态。",
+    "limits": "只清target不清lastHurt*记忆；并非所有setTarget入口都检查state。只研究有状态副作用的setter，不把纯字段存取当参考。 Halley候选16完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "setFollowState",
+    "start": 1085,
+    "observation": "按状态互斥设置follow/hold/protect/move：2在当前位置建立hold，3沿用hold，4把hold设到owner位置后改写为3，5改成protect，其余0/6取消这些标志。",
+    "application": "守位和保护移动应有明确互斥转换；租约控制不可仅加一个目标谓词却保留冲突的移动模式。",
+    "limits": "state4直接getOwner().position无空检查；default无重置，state5不在此设置protectUUID；不是完整身份授权。 Halley候选17完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "reactToHit",
+    "start": 1498,
+    "observation": "先减morale，活体攻击者且canAttack通过才处理target：近者替换当前目标，无目标直接设；保护模式可向保护的巡逻leader传播。首段循环却比较每个recruit自身UUID与其protectUUID，非当前受保护UUID。",
+    "application": "受击反击也要复用守卫Enemy规则；传播目标时必须比较正确的保护关系，不能靠名字或近距离扩大攻击者集合。",
+    "limits": "本身不查passive/state3；由hurt在super.hurt返回成功之前调用，所以不等于实际扣血确认；最终cancel仍可能已发生仇恨副作用。 Halley候选18完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/AbstractRecruitEntity.java",
+    "method": "doHurtTarget",
+    "start": 1528,
+    "observation": "计算攻击及附魔伤害，FireAspect先点火，再entity.hurt(mobAttack)；hurt=true时才附魔后效和setLastHurtMob，但经验、饥饿、morale、武器损耗无论伤害成功与否都执行，最后恒return true。此处没有再canAttack。",
+    "application": "最终近战伤害边界和返回值要与实际成功一致；拒绝目标时应阻止点火、仇恨、损耗等前后副作用，不能只在hurt事件cancel。",
+    "limits": "LivingAttack事件可拦hurt但不证明撤回先前setSecondsOnFire。本文只静态观察返回契约，未执行伤害。普通附魔计算是辅助，核心是许可缺口和成功语义。 Halley候选19完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/MessageAssignRecruitToPlayer.java",
+    "method": "canAssign",
+    "start": 57,
+    "observation": "Governor禁止转交；owner可转自己的非驻防单位。非owner必须同队且是该faction leader，并且newOwner只能是发令者自己，最后查其单位上限。executeServerSide在64格同world按recruit UUID找到对象才调用。",
+    "application": "归属转移权限不同于普通指挥；权限应由服务器sender和实时单位身份产生，并清楚区分owner与领袖管理例外。",
+    "limits": "owner分支并未在此检查newOwner在线或接收上限；leader能力是此mod的玩法，不应给Dynasty引入新权限机制。网络编解码/近邻枚举只作辅助。 Halley候选20完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitHurtByTargetGoal.java",
+    "method": "alertOthers",
+    "start": 54,
+    "observation": "按自身实际class及follow距离扫描周围同类；排除自己、已有target、无攻击者、无owner、ownerUUID不同、与攻击者结盟和ignore class，随后调用父alertOther。该goal在base.registerGoals中实际注册并启用setAlertOthers。",
+    "application": "群体协防至少按真实owner与盟友关系过滤，避免租约守卫从邻近野生/他人单位接收越界仇恨。",
+    "limits": "无owner NPC不会传播；接收方state/Enemy正面条件未在此复核。父Forge/vanilla alertOther内部未取源码，不能声称其会自动补齐本任务策略。 Halley候选21完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitMeleeAttackGoal.java",
+    "method": "canContinueToUse",
+    "start": 58,
+    "observation": "现有target必须非空存活；失去视线立即清target退出；继续时排除创造/旁观者并重查守位、passive、补给、上坐骑、movePos。它未重新检查owner/team/canAttack。",
+    "application": "目标在动作开始后仍可能失效，持续goal不能只检查alive；租约/归属变化须加入相同许可复核。",
+    "limits": "这些状态门不等同于重新跑Enemy规则。canUse的路径可达/攻击距离分支附在辅助证据中，不再把同一近战资格拆一条。 Halley候选23完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitProtectEntityGoal.java",
+    "method": "tick",
+    "start": 55,
+    "observation": "保持与protectingMob的马背20/步行10距离，远离时每10tick重寻路，Captain载船时另设sailPos；对象为空/死亡则clear并改守位。每20tick重新搜索UUID绑定并同步坐骑。getProtecting没找到新匹配时并不清旧缓存。",
+    "application": "保护实体引用要与当前UUID/维度持续一致；owner/保护对象离线、死亡、换绑时应明确停跟随而不保留旧缓存。",
+    "limits": "getProtecting只搜当前32格，tick先处理旧对象后刷新；protectUUID改变且新对象未找到时可留旧引用。范围是移动跟随距离而非攻击白名单。clear/getProtecting/checkMounts仅作同生命周期辅助。 Halley候选25完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/RecruitRangedCrossbowAttackGoal.java",
+    "method": "tick",
+    "start": 105,
+    "observation": "按follow/hold/wander处理移动后进入IDLE/RELOAD/AIMING/SHOOT。实体射击的SHOOT重新要求target存活、canAttack和非passive，之后才可能换为坐骑坐标发射并复原target。strategic fire无实体target路径直接向坐标发射，无上述SHOOT实体许可门。",
+    "application": "拉弓/瞄准后真正发射时再次验证；范围火力/战略坐标模式不能用实体目标检查来假定安全。",
+    "limits": "坐骑替换发生在原target许可后，没有对替换坐骑再检查；最终箭命中仍需碰撞与LivingAttack边界。canUse/weapon工厂作为辅助，不将弩和弓公共移动模板另计。 Halley候选26完整方法已独立阅读，按语义边界去重。"
+  },
+  {
+    "repo": "talhanation/recruits",
+    "file": "/CommandEvents.java",
+    "method": "onAttackCommand",
+    "start": 352,
+    "observation": "按服务器player视线pick100取落点，再取inflate10候选；先按owner/group授权过滤单位，只用第一名recruit.canAttack过滤整池，然后轮转分配各单位target、设置engage holdPos和守位3。MessageAttack忽略payload的playerUuid而用context sender UUID。",
+    "application": "服务器发令者可信来源之外，批量分配还应逐个守卫验证目标；第一单位的关系不能代表其余单位。",
+    "limits": "firstRecruit.canAttack不调用shouldAttack正面选择策略，也可能把中立玩家装入目标池；targets临时列表未用于最后池。pick的原版实体命中行为未运行验证；不把它声称为已测可点击所有实体。 Halley候选27完整方法已独立阅读，按语义边界去重。"
+  }
+]

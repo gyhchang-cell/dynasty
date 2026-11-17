@@ -1,0 +1,40 @@
+[
+  {
+    "repo": "ldtteam/minecolonies",
+    "commit": "d1573f78af389c66d3d673343e86ff3a32868561",
+    "path": "src/main/java/com/minecolonies/core/entity/citizen/EntityCitizen.java",
+    "source": "/Users/a15356015027/Desktop/dynasty/tools/cod4/guard-ownership-research/helpers/coordinator-minecolonies/sources/src/main/java/com/minecolonies/core/entity/citizen/EntityCitizen.java",
+    "sourceSha256": "8f1f22aed89b5d76f878d59a667d3727a91cecc020ed975143f48e70221dd4a2",
+    "name": "hurt",
+    "start": 1234,
+    "end": 1281,
+    "text": "@Override\n    public boolean hurt(@NotNull final DamageSource damageSource, final float damage)\n    {\n        // TODO: temporary debug data\n        if (damageSource.getEntity() instanceof Player player && player.isCreative() && player.getMainHandItem().getItem() == ModItems.scanAnalyzer)\n        {\n            CompoundTag tag = new CompoundTag();\n            try\n            {\n                save(tag);\n            }\n            catch (Exception e)\n            {\n                Log.getLogger().warn(\"Error while saving:\", e);\n            }\n\n            final RemovalReason removalReason = getRemovalReason();\n\n            Log.getLogger()\n              .warn(\"Entity:\" + getName() + \" uuid:\" + getUUID() + \" id:\" + getId() + \" removed:\" + isRemoved() + \" colonyid:\" + citizenColonyHandler.getColonyId()\n                      + \" entitydata colony id:\" + getEntityData().get(DATA_COLONY_ID) + \" hascolony:\" + (citizenColonyHandler.getColonyOrRegister() != null) +\n                      \" registered:\" + citizenColonyHandler.registered() + \" world:\" + level + \" saved data:\" + tag + \" removalReason: \" + removalReason);\n        }\n\n        if (handleInWallDamage(damageSource))\n        {\n            return false;\n        }\n\n        final Entity sourceEntity = damageSource.getEntity();\n        if (!checkIfValidDamageSource(damageSource, damage))\n        {\n            return false;\n        }\n\n        if (getCitizenJobHandler().getColonyJob() != null && getCitizenJobHandler().getColonyJob().ignoresDamage(damageSource))\n        {\n            return false;\n        }\n\n        if (getCitizenColonyHandler().getColonyOrRegister() == null)\n        {\n            return super.hurt(damageSource, damage);\n        }\n\n        // Maxdmg cap so citizens need a certain amount of hits to die, so we get more gameplay value and less scaling issues.\n        return handleDamagePerformed(damageSource, damage, sourceEntity);\n    }",
+    "excerptSha256": "3a5d0f858259cf9efe94b6732d873d45fdcc8fb0c84e44e7b7de0e36ac59277a",
+    "normalizedSha256": "59320e5bb91e5cc1c2b532b991bd4501febd18cea1e15adfb7d26f988566e125",
+    "url": "https://github.com/ldtteam/minecolonies/blob/d1573f78af389c66d3d673343e86ff3a32868561/src/main/java/com/minecolonies/core/entity/citizen/EntityCitizen.java#L1234-L1281",
+    "observation": "依次处理墙内伤害、来源校验和职业ignoresDamage；无殖民地才走super，否则进入受伤处理。",
+    "application": "核对原生入口控制流，友军筛选需在真实受伤与仇恨派发前，而非AI末尾补清。",
+    "limits": "内部来源检查仍可能读取colony，不能声称末尾空colony兜底保证上游永不空指针；未执行上游。",
+    "credit": 0,
+    "decision": "proposed; master semantic dedup pending"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "commit": "8caa9df695951fe15733a14fd0f5cc49d5ea09f3",
+    "path": "src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "source": "/Users/a15356015027/Desktop/dynasty/tools/cod4/guard-ownership-research/helpers/coordinator-guardvillagers/sources/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java",
+    "sourceSha256": "c42bd81297adca6c89a6cc3e9f02e1beb4dd1aa253abbc1efff42e43b516299a",
+    "start": 60,
+    "end": 71,
+    "name": "stop",
+    "text": "@Override\n    public void stop() {\n        super.stop();\n        this.mob.setAttacking(false);\n        this.mob.setTarget(null);\n        this.seeTime = 0;\n        if (this.mob.isUsingItem()) {\n            this.mob.stopUsingItem();\n            this.mob.setCharging(false);\n        }\n        this.mob.setPose(EntityPose.STANDING);\n    }",
+    "excerptSha256": "d6b6c799b8a3ee486d066278d231a166ebb9dbba3adda496d0a99e1cf5c456ea",
+    "normalizedSha256": "14bf5e05ab0e18a567280d439ba89376ad8599190210ac9825947ec6306e1421",
+    "url": "https://github.com/mrsterner/GuardVillagers/blob/8caa9df695951fe15733a14fd0f5cc49d5ea09f3/src/main/java/dev/sterner/guardvillagers/common/entity/goal/RangedCrossbowAttackPassiveGoal.java#L60-L71",
+    "observation": "弩AI停止时清attacking、target、seeTime；若使用物品则停止并取消charging，恢复站立姿态。",
+    "application": "目标/蓄力/姿态等残余状态要一起清理，不能只删target引用。",
+    "limits": "没有在本方法重置crossbowState枚举或清已装填NBT，不能声称完整清空每种装填状态。",
+    "credit": 0,
+    "decision": "proposed; master semantic dedup pending"
+  }
+]

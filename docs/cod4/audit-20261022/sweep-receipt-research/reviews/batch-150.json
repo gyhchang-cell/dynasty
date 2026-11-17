@@ -1,0 +1,82 @@
+[
+  {
+    "candidate_index": 3617,
+    "candidate_id": "ded7cf8a34ca2f7ee31d",
+    "decision": "accepted",
+    "observation": "全文WatcherEntity.tick与attemptPossession/getPossessedEntity/stopPossession/canPossessTargetEntity/onPossessionKeyPacket、WatcherAttackGoal及完整PossessionKeyMessage：包enqueueWork后用当前sender.level解watcherId和包playerId，未比playerId==sender；回调当前possessed.equals(keyPresser)无null保护。server每tick以UUID当前世界取对象，释放则清UUID/实体ID并发78；有效期间发77压移动，客户端强度到0才允许按键；强度每tick-.05、回执+.07且timeout>140后+.1。attempt先写lastPossessedTime与持久Player.PERSISTED_NBT，再由goal设UUID，冷却以当前worldtime差比较，未来戳会延迟。一个C2S排队-消费时重解身份-解除与冷却链1，不把包或多种动画另计。",
+    "snippet_sha256": "3d3b0a97768dcf747c67f3ad6ce9a4c5f772dd3c39e1558d65b12a83a186f17b",
+    "reviewed_at": "2026-10-28T18:21:17.370934+08:00"
+  },
+  {
+    "candidate_index": 3677,
+    "candidate_id": "0d98a2863433ba809c72",
+    "decision": "accepted",
+    "observation": "全文MineGuardianEntity.tick、MeleeGoal全部方法和MineExplosion.explode/finalizeExplosion/构造：近身<=2触发不可撤销EXPLODING，progress每tick+.5到10(20次推进)先remove KILLED再构造真实Explosion伤害与声音粒子，消费在server分支外，丢目标/超过300tick清target不复位exploding。scan每5tick看当前LOS目标、scan/sleep另有时钟不等于攻击回执；explode忽略hurt bool仍knockback/hitPlayers，finalize反馈不以伤害成功为条件。一个延迟自爆-先移除仍消费-反馈归属链1，扫描、爆炸工具方法0额外。",
+    "snippet_sha256": "c587d7e369ca3c7d16dfcc2f353abaef4f56b0afc4a0e2ee5de6538a28798301",
+    "reviewed_at": "2026-10-28T18:21:17.370954+08:00"
+  },
+  {
+    "candidate_index": 4168,
+    "candidate_id": "e0c3ac1e2141aff14cf6",
+    "decision": "accepted",
+    "observation": "全文Rattlesnake.tick并核doHurtTarget：doHurtTarget只设BITE恒returntrue，实际tick8重取当前target并距离<2才hurt；不查原生结果仍加300tick poison(除Roadrunner)，BITE tick4就音效、tick8才伤害。非server-only包围这段，不能把动画API返回true或先前音效当真实伤害。一个排队动作与晚到伤害/副作用条件差异1，两种年龄/生物特例不拆计。",
+    "snippet_sha256": "7cbb91effcb7af2d7b26b6168f78c04a70dc691c383be95a422204b74264b2a8",
+    "reviewed_at": "2026-10-28T18:21:17.370959+08:00"
+  },
+  {
+    "candidate_index": 4194,
+    "candidate_id": "bd32e9236a8498cc1025",
+    "decision": "accepted",
+    "observation": "全文MantisShrimp.aiStep/doHurtTarget/punch：doHurtTarget恒true只把同步PUNCH_TICK设4，aiStep先读==2才对当前target近身伤害，然后--，其间换target可换受击者。实际hurt前已对野生目标鱼改空掉落表、击退/加竖速、陆地点火，hurt结果不查；声音看独立punchProgress==1，水泡client看==2，和伤害倒计时不同。单动作同步状态-两tick后伤害-独立反馈时钟1，非纯动物注册。",
+    "snippet_sha256": "89d9871a312a23ffdbb55b04ec5ef7e426f8e91c5ba616126d374aa20eda9fcb",
+    "reviewed_at": "2026-10-28T18:21:17.370963+08:00"
+  },
+  {
+    "candidate_index": 4203,
+    "candidate_id": "f27f1cf283cba8abdb9b",
+    "decision": "accepted",
+    "observation": "全文TasmanianDevil.tick/mobInteract/doHurtTarget：喂howling食物先吞物并设HOWL，tick1声、>3每帧把scareMobsTime重置40，随后每tick清周围Monster target/lastHurtByMob且每5tick导逃跑、--，因此40tick从HOWL后段不断续而非开始一次。近战doHurtTarget仅设动画恒true，tick5 server/LOS对当前目标尝试伤害，预先knockback不核hurt。实际交互-跨tick恐惧刷新与伤害分支归属1，喂食注册或普通坐姿计时不另计。",
+    "snippet_sha256": "bb2dfeaba69f9df1c8bfb98d4c0a018de4d32c40a444a17187c53b6bf54d7dda",
+    "reviewed_at": "2026-10-28T18:21:17.370966+08:00"
+  },
+  {
+    "candidate_index": 4228,
+    "candidate_id": "9eaed87feaed65cdf51a",
+    "decision": "accepted",
+    "observation": "全文WarpedMosco.tick与positionRider：SUCK tick3尝试target.startRiding不查bool，实际每个passenger positionRider按当前SUCK动画tick，在(tick-10)%4==0给自身100tickregen再伤passenger，hurt false亦回血；非SUCK先stopRiding但本次仍继续setPos及余数判断。SLAM tick19多目标hurt忽略结果仍launch，groundFX在无target时也按动画单独触发；PUNCH tick13当前target无成功锁。整条延迟捕获/骑乘周期消费/独立落地反馈1，左右拳与AOE不拆。",
+    "snippet_sha256": "9293447847596c2d2b9e218aae5b1f218ccee4c673b3640c7697ff01a0c46a8d",
+    "reviewed_at": "2026-10-28T18:21:17.370969+08:00"
+  },
+  {
+    "candidate_index": 4240,
+    "candidate_id": "0abc597bab80e6279efa",
+    "decision": "accepted",
+    "observation": "全文Tusklin.tick/doHurtTarget/positionRider：BUCK>=5记录当前controllingPassenger数字ID，下一tick先按当前level解ID、ejectPassengers、清entityToLaunchId再验证并launch；清除发生在副作用前，未核UUID/原passenger身份且对象此时不乘任何载具才继续。主动骑乘超时设BUCK，同tick移动碾压每tickhurt忽略bool；gore/fling动作恒returntrue、tick6当前目标另hurt。一个真实单tick排队-先消费ID-解除骑乘链1，三种动画/每次伤害不拆计。",
+    "snippet_sha256": "f88eb67de953f16e4082ce9ba4f27efed0ff40d32440bcf2bc21ec25543881b0",
+    "reviewed_at": "2026-10-28T18:21:17.370972+08:00"
+  },
+  {
+    "candidate_index": 4273,
+    "candidate_id": "ab3ba9426dae291dfb4c",
+    "decision": "accepted",
+    "observation": "全文ForsakenAttackGoal全部方法并核实体registerGoals/getSonicDamageAgainst：10..30动画窗把attemptSonicDamageIn设ceil(当前distance*.2)，下一goal tick先--、到0且当前LOS才hurt当前target，未锁发射目标；无目标则倒计时暂停，stop未清计数而start清0。窗口内归零可再排，sonicEnqueued到30/40后才关，允许窗口末排队晚消费；hurt bool不控sonic knockback。近战checkAndDealDamage返回真实bool但先随机排后继jump/sonic，即使hurtfalse亦可排；左右slash/AOE副作用部分按bool分支。一个排队声波-晚消费-同链多段重入1，不按动作数增加。",
+    "snippet_sha256": "185d9d2cb0c25e0e629b7916f8bbff2565b8d0cea5ad81910474b813243d8ccf",
+    "reviewed_at": "2026-10-28T18:21:17.370975+08:00"
+  },
+  {
+    "candidate_index": 3657,
+    "candidate_id": "f65fe8d24653aa8d2049",
+    "decision": "excluded",
+    "observation": "全文BoundroidWinch.tick复读：4148已明确完整头tick与绞盘getHead/link/tick同链，6tick latch切换/无头移除/stopPulling条件等此次不再单拆一条，避免相互依赖实体双计。",
+    "snippet_sha256": "0e0258f2a8105a7b3c9386a19447ea0f014e9d66f01cbea8ac59f6d79bd70ed7",
+    "reviewed_at": "2026-10-28T18:21:17.370978+08:00"
+  },
+  {
+    "candidate_index": 4267,
+    "candidate_id": "2f6579fc9d3b236a6a28",
+    "decision": "excluded",
+    "observation": "全文Farseer实体tick复读：4166已审实际laser AttackGoal及目标重取/最终杀死才87，当前tick包含同一激光的展示与近战strikeProgress5广播(伤害前)。作为原链补充观察保留，不把同实体的动画/粒子循环再增信用，且非独立延迟receipt实例。",
+    "snippet_sha256": "694c33bd2dda8e6b917a85947cddf886d7fd25774059daba597f1a0b2abb822f",
+    "reviewed_at": "2026-10-28T18:21:17.370981+08:00"
+  }
+]

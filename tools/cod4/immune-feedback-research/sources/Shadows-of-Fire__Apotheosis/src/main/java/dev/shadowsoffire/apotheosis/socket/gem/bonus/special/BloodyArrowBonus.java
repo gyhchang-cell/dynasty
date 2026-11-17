@@ -1,0 +1,93 @@
+package dev.shadowsoffire.apotheosis.socket.gem.bonus.special;
+
+import java.util.Map;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+
+import dev.shadowsoffire.apotheosis.Apoth.LootCategories;
+import dev.shadowsoffire.apotheosis.affix.Affix;
+import dev.shadowsoffire.apotheosis.compat.enchanting.ApothicEnchantingCompat;
+import dev.shadowsoffire.apotheosis.socket.gem.GemClass;
+import dev.shadowsoffire.apotheosis.socket.gem.GemInstance;
+import dev.shadowsoffire.apotheosis.socket.gem.GemView;
+import dev.shadowsoffire.apotheosis.socket.gem.Purity;
+import dev.shadowsoffire.apotheosis.socket.gem.bonus.GemBonus;
+import dev.shadowsoffire.apothic_attributes.api.AbilityCooldowns;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.StringUtil;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+import net.neoforged.neoforge.common.util.AttributeTooltipContext;
+
+public class BloodyArrowBonus extends GemBonus {
+
+    public static Codec<BloodyArrowBonus> CODEC = RecordCodecBuilder.create(inst -> inst
+        .group(
+            Purity.mapCodec(Data.CODEC).fieldOf("values").forGetter(a -> a.values))
+        .apply(inst, BloodyArrowBonus::new));
+
+    /**
+     * Damage type supplied by Apothic Enchanting. When it is not installed, the gem falls back to magic damage.
+     */
+    public static final ResourceKey<DamageType> CORRUPTED = ResourceKey.create(Registries.DAMAGE_TYPE, Identifier.fromNamespaceAndPath(ApothicEnchantingCompat.MODID, "corrupted"));
+
+    protected final Map<Purity, Data> values;
+
+    public BloodyArrowBonus(Map<Purity, Data> values) {
+        super(new GemClass(LootCategories.BOW));
+        this.values = values;
+    }
+
+    @Override
+    public void onProjectileFired(GemInstance inst, LivingEntity user, Projectile proj) {
+        if (proj instanceof AbstractArrow arrow && !user.level().isClientSide()) {
+            Data d = this.values.get(inst.purity());
+            if (AbilityCooldowns.isOnCooldown(user, makeUniqueId(inst), d.cooldown)) {
+                return;
+            }
+            DamageSource src = user.level().registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE)
+                .get(CORRUPTED).map(DamageSource::new)
+                .orElseGet(() -> user.damageSources().magic());
+            user.hurtServer((ServerLevel) user.level(), src, user.getMaxHealth() * d.healthCost);
+            arrow.setBaseDamage(arrow.baseDamage * d.dmgMultiplier);
+            AbilityCooldowns.startCooldown(user, makeUniqueId(inst));
+        }
+    }
+
+    @Override
+    public Codec<? extends GemBonus> getCodec() {
+        return CODEC;
+    }
+
+    @Override
+    public Component getSocketBonusTooltip(GemView inst, AttributeTooltipContext ctx) {
+        Data d = this.values.get(inst.purity());
+        Component cooldown = Component.translatable("affix.apotheosis.cooldown", StringUtil.formatTickDuration(d.cooldown, ctx.tickRate()));
+        return Component.translatable("bonus." + this.getTypeKey() + ".desc", Affix.fmt(d.healthCost * 100), Affix.fmt(100 * d.dmgMultiplier), cooldown).withStyle(ChatFormatting.YELLOW);
+    }
+
+    @Override
+    public boolean supports(Purity purity) {
+        return this.values.containsKey(purity);
+    }
+
+    public static record Data(float healthCost, float dmgMultiplier, int cooldown) {
+
+        public static final Codec<Data> CODEC = RecordCodecBuilder.create(inst -> inst
+            .group(
+                Codec.FLOAT.fieldOf("health_cost").forGetter(Data::healthCost),
+                Codec.FLOAT.fieldOf("damage_mult").forGetter(Data::dmgMultiplier),
+                Codec.INT.fieldOf("cooldown").forGetter(Data::cooldown))
+            .apply(inst, Data::new));
+
+    }
+}

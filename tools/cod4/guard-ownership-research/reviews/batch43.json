@@ -1,0 +1,58 @@
+[
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/IGuardBuilding.java",
+    "method": "checkIfGuardShouldTakeDamage",
+    "observation": "无守卫建筑时放行；当前跟随/集结玩家与来源玩家相等时拒绝，否则放行。",
+    "application": "检查伤害另一端也可按真实跟随者身份拒绝，不能只相信调用者提供owner名。",
+    "limits": "这是守卫被玩家伤害的保护，不是王朝守卫对外伤害许可；不能倒置使用。 协调候选batch-002第0条，已独立全文复核及主账去重。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/EntityCitizen.java",
+    "method": "hurt",
+    "observation": "依次处理墙内伤害、来源校验和职业ignoresDamage；无殖民地才走super，否则进入受伤处理。",
+    "application": "核对原生入口控制流，友军筛选需在真实受伤与仇恨派发前，而非AI末尾补清。",
+    "limits": "内部来源检查仍可能读取colony，不能声称末尾空colony兜底保证上游永不空指针；未执行上游。 协调候选batch-002第1条，已独立全文复核及主账去重。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/EntityCitizen.java",
+    "method": "checkIfValidDamageSource",
+    "observation": "同殖民地公民伤害直接拒绝；跨殖民地PVP可登记敌对；服务端玩家受袭击阶段、伤害量/权限和跟随守卫身份限制。",
+    "application": "真实伤害边界需解析归属与来源身份，多种入口一致硬拒绝同阵营。",
+    "limits": "1点及以下伤害存在权限例外，客户端和服务端分支也不同；王朝不能复制该伤害豁免或殖民地权限系统。 协调候选batch-002第2条，已独立全文复核及主账去重。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/EntityCitizen.java",
+    "method": "handleDamagePerformed",
+    "observation": "将伤害限为生命20%并处理骑兵分摊/格挡/撤退减伤；super.hurt失败即退出，成功后才把生物来源加入威胁表。",
+    "application": "只有真实成功受伤才触发后续仇恨，不能把失败、免疫或取消伤害当作有效报复凭证。",
+    "limits": "performMoveAway及setLastHurtMob发生在super.hurt之前，故不是所有前置状态都以成功受伤为条件；数值机制不照抄。 协调候选batch-002第3条，已独立全文复核及主账去重。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/EntityCitizen.java",
+    "method": "callForHelp",
+    "observation": "非活体或求援冷却中退出，睡眠守卫不求援；按同殖民地及距离收集守卫，先加0威胁再canHelp并排序，最后逐个startHelpCitizen。",
+    "application": "即使canHelp拒绝，先入表的目标也可能后续重新被选中；最终伤害门不能依赖一次状态拒绝。",
+    "limits": "循环边界i<=CALL_TO_HELP_AMOUNT可能包含第N+1个，不称严格N；与batch001接收侧startHelpCitizen有关，最终可按整链合并信用。 协调候选batch-002第5条，已独立全文复核及主账去重。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/CombatUtils.java",
+    "method": "createArrowForShooter",
+    "observation": "先给原箭设shooter，再允许Bow自定义箭或改为矛/三叉戟，最终再次设owner与出手位置。",
+    "application": "替换投射物后必须重新绑定真实来源，避免武器工厂更换实体丢失所有者。",
+    "limits": "setOwner不是碰撞友军过滤；投射物身份正确不证明绝不误伤，射击几何函数不计信用。 协调候选batch-002第6条，已独立全文复核及主账去重。"
+  },
+  {
+    "repo": "ldtteam/minecolonies",
+    "file": "/CombatUtils.java",
+    "method": "notifyGuardsOfTarget",
+    "observation": "同建筑已分配公民在没有lastHurtByMob时接收0威胁；目标为袭击者时又给范围内守卫建筑临时巡逻点。",
+    "application": "目标共享有第二入口，审查广播接收者和最终攻击不能只筛原始选敌者。",
+    "limits": "无直接友军判断且target来自调用者；王朝不新增威胁广播或跨建筑调度。 协调候选batch-002第7条，已独立全文复核及主账去重。"
+  }
+]

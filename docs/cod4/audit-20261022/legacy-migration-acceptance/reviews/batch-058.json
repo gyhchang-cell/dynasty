@@ -1,0 +1,44 @@
+[
+  {
+    "candidate_id": "df79a473c5fc29ffeea0",
+    "status": "accepted",
+    "family": "framedblocks-powered-saw-owned-inventory-energy-and-deferred-recipe",
+    "trigger": "PoweredFramingSawBlockEntity whole class plus local energy/item adapter full",
+    "input": "physical material/additives/output inventory, remaining paid energy and optional recipe ID; crafting progress currently in-memory",
+    "output": "load persists item/energy separately and defers registry recipe resolution until onLoad; revalidates actual recipe type and input satisfaction before spending",
+    "preservation": "Read full save/load/onLoad/selectRecipe/checkRecipeSatisfied/canRun/tick/preRemoveSideEffects. Earned output and consumed budget ownership differs from generic serialization delegate. Transaction groups ingredient extraction+output insert at completion; recipe disappearance leaves saved item handler rather than refunding guessed output.",
+    "application_limit": "Progress not serialized despite energy paid each tick, so reload may lose paid work. Transaction return quantities ignored; energy debit outside final item transaction. Missing recipe field leaves stale selectedRecipeId on reused object. Native modern handler serializers are external to local source, marked boundary; no claim complete runtime recovery.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "9e36f2f7ffdea0f37648",
+    "status": "accepted",
+    "family": "framedblocks-tank-material-preserving-block-to-item-component",
+    "trigger": "FramedTankBlockEntity full class + TankFluidResourceHandler full",
+    "input": "one owned fluid stack in world disk tag or tank-content item component",
+    "output": "disk optional FluidStack codec, item extraction collects full fluid+amount, application restores it; removeComponentsFromTag discards old disk field to avoid double representation",
+    "preservation": "Read all block/handler methods, including interaction/dirty callback and component collect/apply/remove. Relevant persistent format handoff keeps actual material payload while removing duplicate field representation; both item/world same owner count1.",
+    "application_limit": "Absent/bad fluid codec does not clear existing handler (ifPresent only), empty component similarly leaves reused content. Decoder writes raw stack without explicit capacity clamp; external native FluidStack codec validation boundary unreviewed. No independent current-vs-old precedence proof of whole base item pipeline; no game run.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "464ed419ef5a75edfae5",
+    "status": "rejected",
+    "reason": "Full pair and complete local StorageBlockItemResourceHandler read: simple superclass inventory serialization/menu wrapper, no distinct compatibility implementation or transactional gameplay consumer beyond generic handler proven; not counted."
+  },
+  {
+    "candidate_id": "e992c1117d7703fe23cf",
+    "status": "accepted",
+    "family": "halley-framed-ownable-window-uuid",
+    "trigger": "单向窗实体持久加载，窗交互检查玩家 UUID 是否等于 getOwner。",
+    "input": "UUIDUtil.CODEC owner。",
+    "output": "合法 UUID 恢复，缺失或解码失败为 null。",
+    "preservation": "owner 使用 UUID codec 而不是会话实体整数；与玩家对象生命周期分离。setOwner 只有发生变化或 forceSync 时同步。实际交互权限调用见 FramedOneWayWindowBlock 的 owner 比较。 Master read isOwnedBy: disabled policy true, UUID.equals(null) false; invalid/missing owner denies enabled window permission.",
+    "application_limit": "本方法只有存储类型兼容，没有旧名称转换；null 的权限效果取决于消费者，不能推断统一拒绝。 Traced actual consumer promotes prior pending; same window ownership counted once.",
+    "supporting_candidates": [
+      "31dfbed9f21f06e148b5",
+      "dd1f6e148b9b7ae4d328",
+      "6ef84f6c0ab36c79aa30"
+    ]
+  }
+]

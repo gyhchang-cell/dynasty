@@ -1,0 +1,19 @@
+"""Two native control/refusal chains; codec, registration, renderer wrappers earn zero extra."""
+from ledger import O,record,verify
+import json
+r='AlexModGuy/AlexsMobs';p='src/main/java/com/github/alexthe666/alexsmobs/'
+def f(s,a,z):return p+s,a,z
+keys=[]
+k='alexsmobs-native-vine-lasso-control-owner-lifecycle-and-attached-render-anchor';keys.append(k)
+record(k,r,[f('AlexsMobs.java',75,114),f('AlexsMobs.java',180,182),f('ClientProxy.java',105,268),f('item/AMItemRegistry.java',164,166),f('entity/AMEntityRegistry.java',111,111),f('item/ItemVineLasso.java',21,96),f('entity/EntityVineLasso.java',31,247),f('entity/util/VineLassoUtil.java',16,114),f('event/ServerEvents.java',373,435),f('event/ServerEvents.java',480,485),f('event/ServerEvents.java',615,721),f('client/event/ClientEvents.java',215,242),f('client/render/RenderVineLasso.java',41,64),f('client/render/RenderVineLasso.java',80,115)],
+ '原生Item.use持续使用→releaseUsing服务端生成lasso投射物并减物品→tick原生射线/onImpact→onEntityHit只接受非自身Living且尚无lasso数据→移除投射物、lassoTo写owner UUID/ID。LivingTick实际调tickLasso，Mob距离>3寻路、否则停，距离>10直接加速度，Player不加Y；玩家非潜行交互/死亡掉落清owner并退lasso。Post living render取得当前lasso owner，非Player目标且owner为其他Living才按目标插值位置与owner ropehold绘两条24段leash。',
+ '一个具体持续控制的归属/回执/生命周期/目标锚定整链1，不按NBT字段、发送、两个render或释放包装拆数。服务端UUID查当前ServerLevel，客户端ID命中不校验UUID，ID未命中仅fallback玩家UUID。tickLasso以contains(LASSO_PACKET)而非getBoolean为条件，置false仍保留key，故后续仍进入广播；这不是有效dirty节流。owner缺失仅跳过控制，不自动清tag/退款。投射物renderer用本地玩家作绳端，附着living renderer才用解析owner；二者不能混称目标正确。直接控制没有Boss/tag/KBR拒控门，伤害结果完全未参与。',
+ 'Boss拒控需在真实控制生产点给出显式拒绝，不能从伤害失败推断；拒绝文字锚定真实目标而不是本地玩家。去重应检查布尔值并清理生命周期，ID/维度/UUID应有一致政策。',
+ '完整native item、projectile、util、事件包含方法与clientInit已读。Citadel PropertiesMessage收包/标签附着内部未展开，网络校验不算已验证。Projectile defineSynchedData为空且ownerNetworkId未在本类同步，不能声称客户端射手正确。释放addFreshEntity返回值未检查仍减物品；命中入口无side guard；均为静态观察非实机故障结论，未作像素/两TCP验收。','native_control_ownership_lifecycle_anchor')
+k='alexsmobs-native-stung-arthropod-source-refusal-and-sting-receipt-reconstruction';keys.append(k)
+record(k,r,[f('AlexsMobs.java',75,114),f('AlexsMobs.java',142,178),f('entity/AMEntityRegistry.java',94,94),f('effect/AMEffectRegistry.java',36,36),f('entity/EntityTarantulaHawk.java',100,103),f('entity/EntityTarantulaHawk.java',128,149),f('entity/EntityTarantulaHawk.java',190,195),f('entity/EntityTarantulaHawk.java',716,818),f('effect/EffectDebilitatingSting.java',23,99),f('message/MessageTarantulaHawkSting.java',17,63)],
+ '真实hawk注册→registerGoals安装AIMelee→attackProgress==5原生doHurtTarget（忽略bool）后addEffect，节肢目标2400tick其他600，bred旗决定amplifier；服务端节肢分支广播hawkID+targetID。收包enqueue当前玩家世界查两实体，验证hawk类+Living节肢类型，重建默认amp0/2400tick sting。hawk最终hurt若source.entity是已有sting的节肢Living直接false，其余走super。effect对节肢减速、禁跳/调整重力碰撞，并在lastDuration==1结算伤害/生幼体及还原physics。',
+ '一个原生状态伤源拒绝及真实状态回执重建整链1，两个ID codec/属性/producer/consumer不另计。拒伤针对任意已中sting的节肢来源，不限本hawk施加者；不是所有伤害免疫，也不是Boss拒控。效果和广播在doHurtTarget结果之外，不能将sting回执当HP受击成功。广播all players无生产端距离/维度筛选；接收只在本世界ID查类型，无UUID、dimension、sequence或实际攻击关系校验。包未携带amp/剩余duration，重建不能当完整权威状态镜像。',
+ '拒控反馈应复用明确生产语义、定向tracking及目标身份校验，文字/微光消费不应顺便重施机制效果；强度/寿命应明确是否是视觉TTL还是真实状态。',
+ '完整AIMelee/最终hurt/效果/packet/注册与实际发送方法已读。注册无显式direction约束而handler接受sender或client proxy，不据静态信息声称可利用。effect.lastDuration是共享MobEffect实例字段，early removeAttributeModifiers未恢复physics；静态风险记录不称实测bug。外部Minecraft伤害/效果最终仲裁未运行，未验灰字、声音或画面。','native_status_source_refusal_and_receipt')
+d=json.loads((O/'semantic-dedup.json').read_text());d['groups'].append({'family':'batch125-alex-native-control-and-source-status-denial','credited_chains':keys,'rationale':'Lasso persistent control ownership/anchor is one chain; stung-source final denial plus concrete status receipt is one different policy. No additional credits for wrappers, codecs, flags, registry entries, positive damage or constant-only effects. Existing Emu dodge and multipart hurt receipt remain separate.'});(O/'semantic-dedup.json').write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n');verify()

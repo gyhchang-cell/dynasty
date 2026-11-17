@@ -1,0 +1,307 @@
+package mekanism.common.block;
+
+import java.util.HashSet;
+import java.util.Set;
+import mekanism.api.security.IBlockSecurityUtils;
+import mekanism.common.block.attribute.Attribute;
+import mekanism.common.block.attribute.AttributeGui;
+import mekanism.common.block.attribute.AttributeHasBounding;
+import mekanism.common.block.attribute.AttributeMultiblock;
+import mekanism.common.block.attribute.AttributeStateFacing;
+import mekanism.common.block.attribute.Attributes.AttributeComparator;
+import mekanism.common.block.interfaces.IHasTileEntity;
+import mekanism.common.block.states.BlockStateHelper;
+import mekanism.common.block.states.IStateFluidLoggable;
+import mekanism.common.config.MekanismConfig;
+import mekanism.common.lib.multiblock.MultiblockData;
+import mekanism.common.lib.radiation.Meltdown.MeltdownExplosion;
+import mekanism.common.lib.radiation.RadiationManager;
+import mekanism.common.lib.security.ISecurityTile;
+import mekanism.common.network.to_client.security.PacketSyncSecurity;
+import mekanism.common.registries.MekanismParticleTypes;
+import mekanism.common.tile.base.TileEntityUpdateable;
+import mekanism.common.tile.interfaces.IComparatorSupport;
+import mekanism.common.tile.interfaces.ITileRadioactive;
+import mekanism.common.util.MekanismUtils;
+import mekanism.common.util.WorldUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.PushReaction;
+import net.minecraft.world.level.redstone.Redstone;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.util.BlockRelocability;
+import net.neoforged.neoforge.network.PacketDistributor;
+import org.jspecify.annotations.Nullable;
+
+public abstract class BlockMekanism extends Block {
+
+    protected BlockMekanism(BlockBehaviour.Properties properties) {
+        super(BlockStateHelper.applyLightLevelAdjustments(properties));
+        registerDefaultState(BlockStateHelper.getDefaultState(stateDefinition.any()));
+    }
+
+    @Nullable
+    @Override
+    public PushReaction getPistonPushReaction(BlockState state) {
+        if (state.hasBlockEntity()) {
+            //Protect against mods like Quark that allow blocks with TEs to be moved
+            //TODO: Eventually it would be nice to go through this and maybe even allow some TEs to be moved if they don't strongly
+            // care about the world, but for now it is safer to just block them from being moved
+            return PushReaction.IMMOVEABLE;
+        }
+        return super.getPistonPushReaction(state);
+    }
+
+    @Override
+    protected boolean canBeReplaced(BlockState state, Fluid fluid) {
+        return false;
+    }
+
+    @Override
+    public ItemStack getCloneItemStack(LevelReader world, BlockPos pos, BlockState state, boolean includeData, Player player) {
+        ItemStack stack = super.getCloneItemStack(world, pos, state, includeData, player);
+        //TODO - 26.3: Do we also want to check the includeData field in this if statement?
+        if (MekanismConfig.local.copyBlockData.get()) {
+            TileEntityUpdateable tile = WorldUtils.getTileEntity(TileEntityUpdateable.class, world, pos);
+            if (tile != null) {
+                stack.applyComponents(tile.collectComponents());
+            }
+        }
+        return stack;
+    }
+
+    @Override
+    protected boolean triggerEvent(BlockState state, Level level, BlockPos pos, int id, int param) {
+        boolean triggered = super.triggerEvent(state, level, pos, id, param);
+        if (this instanceof IHasTileEntity<?> hasTileEntity) {
+            return hasTileEntity.triggerBlockEntityEvent(state, level, pos, id, param);
+        }
+        return triggered;
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
+        BlockStateHelper.fillBlockStateContainer(this, builder);
+    }
+
+    @Nullable
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        BlockState state = BlockStateHelper.getStateForPlacement(super.getStateForPlacement(context), context);
+        if (state != null) {
+            AttributeHasBounding hasBounding = Attribute.get(state, AttributeHasBounding.class);
+            if (hasBounding != null && !hasBounding.handle(context.getLevel(), context.getClickedPos(), state, context, (level, pos, ctx) -> WorldUtils.isValidReplaceableBlock(level, ctx, pos))) {
+                return null;
+            }
+        }
+        return state;
+    }
+
+    @Override
+    protected FluidState getFluidState(BlockState state) {
+        if (state.getBlock() instanceof IStateFluidLoggable fluidLoggable) {
+            return fluidLoggable.getFluid(state);
+        }
+        return super.getFluidState(state);
+    }
+
+    @Override
+    protected BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess scheduledTickAccess, BlockPos currentPos,
+          Direction facing, BlockPos facingPos, BlockState facingState, RandomSource random) {
+        if (state.getBlock() instanceof IStateFluidLoggable fluidLoggable) {
+            fluidLoggable.updateFluids(level, currentPos, state, scheduledTickAccess);
+        }
+        return super.updateShape(state, level, scheduledTickAccess, currentPos, facing, facingPos, facingState, random);
+    }
+
+    @Override
+    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+        AttributeHasBounding hasBounding = Attribute.get(state, AttributeHasBounding.class);
+        if (hasBounding != null) {
+            hasBounding.removeBoundingBlocks(level, pos, state);
+        }
+        //TODO - 26.3: I believe this theoretically only needs to happen if it supports comparators?
+        Containers.updateNeighboursAfterDestroy(state, level, pos);
+    }
+
+    @Override
+    public BlockRelocability getRelocability(LevelReader level, BlockPos pos, BlockState state) {
+        if (state.is(Tags.Blocks.RELOCATION_NOT_SUPPORTED)) {//This is the check that happens in super
+            return BlockRelocability.No.INSTANCE;
+        } else if (RadiationManager.isGlobalRadiationEnabled()) {//Skip getting the tile if radiation is disabled in the config
+            BlockEntity tile = WorldUtils.getTileEntity(level, pos);
+            if (tile instanceof ITileRadioactive radioactiveTile && radioactiveTile.getRadiationScale(level) > 0) {
+                //Don't allow blocks that may have a radioactive substance in them to be picked up as it
+                // will effectively dupe the radiation and also leak out into the atmosphere which is not
+                // what people want, and means that it is likely someone miss-clicked.
+                return BlockRelocability.No.INSTANCE;
+            }
+        }
+        AttributeHasBounding hasBounding = Attribute.get(state, AttributeHasBounding.class);
+        if (hasBounding == null) {
+            return BlockRelocability.Yes.INSTANCE;
+        }
+        Set<BlockPos> positions = new HashSet<>();
+        positions.add(pos);
+        //noinspection RedundantTypeArguments - Nullability warnings get confused without the explicit types
+        if (hasBounding.<LevelReader, Set<BlockPos>>handle(level, pos, state, positions, (_, boundingLocation, set) -> set.add(boundingLocation.immutable()))) {
+            return new BlockRelocability.Multiblock(positions);
+        }
+        //Something went wrong, just return we can't relocate it. This should theoretically never be the case
+        return BlockRelocability.No.INSTANCE;
+    }
+
+    @Override
+    public void setPlacedBy(Level world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(world, pos, state, placer, stack);
+        AttributeHasBounding hasBounding = Attribute.get(state, AttributeHasBounding.class);
+        if (hasBounding != null) {
+            hasBounding.placeBoundingBlocks(world, pos, state);
+        }
+        TileEntityUpdateable tile = WorldUtils.getTileEntity(TileEntityUpdateable.class, world, pos);
+        if (tile != null) {
+            //Note: We call onAdded here rather than in onPlace so that we make sure we can run any client side code and that the
+            // tile is present
+            tile.onAdded(world);
+            if (tile instanceof ISecurityTile securityTile && securityTile.getOwnerUUID() == null && placer != null) {
+                //There was no stored owner that got set, use the placer's id
+                securityTile.setOwnerUUID(placer.getUUID(), null);
+                if (!world.isClientSide()) {
+                    //If the machine doesn't already have an owner, make sure we portray this
+                    PacketDistributor.sendToAllPlayers(new PacketSyncSecurity(placer.getUUID()));
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onBlockExploded(BlockState state, ServerLevel world, BlockPos pos, Explosion explosion) {
+        AttributeMultiblock multiblockAttribute = Attribute.get(state, AttributeMultiblock.class);
+        if (multiblockAttribute != null && explosion instanceof MeltdownExplosion meltdown) {
+            MultiblockData multiblock = multiblockAttribute.getMultiblock(world, pos, meltdown.getMultiblockID());
+            if (multiblock != null) {
+                multiblock.meltdownHappened(world);
+            }
+        }
+        super.onBlockExploded(state, world, pos, explosion);
+    }
+
+    @Override
+    public BlockState rotate(BlockState state, LevelAccessor world, BlockPos pos, Rotation rotation) {
+        return AttributeStateFacing.rotate(state, world, pos, rotation);
+    }
+
+    @Override
+    protected BlockState rotate(BlockState state, Rotation rotation) {
+        return AttributeStateFacing.rotate(state, rotation);
+    }
+
+    @Override
+    protected BlockState mirror(BlockState state, Mirror mirror) {
+        return AttributeStateFacing.mirror(state, mirror);
+    }
+
+    @Override
+    protected boolean hasAnalogOutputSignal(BlockState blockState) {
+        return Attribute.has(blockState.typeHolder(), AttributeComparator.class);
+    }
+
+    @Override
+    protected int getAnalogOutputSignal(BlockState blockState, Level world, BlockPos pos, Direction direction) {
+        //TODO - 26.3: Should we add support for direction? Maybe for multiblocks to not output one inside the multiblock or something
+        if (hasAnalogOutputSignal(blockState)) {
+            BlockEntity tile = WorldUtils.getTileEntity(world, pos);
+            //Double-check the tile actually has comparator support
+            if (tile instanceof IComparatorSupport comparatorTile && comparatorTile.supportsComparator()) {
+                return comparatorTile.getCurrentRedstoneLevel();
+            }
+        }
+        return Redstone.SIGNAL_NONE;
+    }
+
+    @Override
+    protected float getDestroyProgress(BlockState state, Player player, BlockGetter blockGetter, BlockPos pos) {
+        return getDestroyProgress(state, player, blockGetter, pos, state.hasBlockEntity() ? WorldUtils.getTileEntity(blockGetter, pos) : null);
+    }
+
+    /// Like [BlockBehaviour#getDestroyProgress(BlockState, Player, BlockGetter, BlockPos)] except also passes the tile to only have to get it once.
+    protected float getDestroyProgress(BlockState state, Player player, BlockGetter blockGetter, BlockPos pos, @Nullable BlockEntity tile) {
+        Level level = tile == null ? null : tile.getLevel();
+        //Do our best effort to see if we can figure out a corresponding level to look up the security from
+        if (level == null && blockGetter instanceof Level) {
+            level = (Level) blockGetter;
+        }
+        if (level != null && !IBlockSecurityUtils.INSTANCE.canAccess(player, level, pos, state, tile)) {
+            //If we have a level and the player cannot access the block, don't allow the player to break the block
+            return 0.0F;
+        }
+        //Call super variant of player relative hardness to get default
+        float speed = super.getDestroyProgress(state, player, blockGetter, pos);
+        if (RadiationManager.isGlobalRadiationEnabled() && tile instanceof ITileRadioactive radioactiveTile) {
+            float radiationScale = blockGetter instanceof LevelReader levelReader ? radioactiveTile.getRadiationScale(levelReader) : 0;
+            if (radiationScale > 0) {
+                //Our tile has some radioactive substance in it; slow down breaking it
+                //Note: Technically our getRadiationScale impls validate that radiation is enabled, but we do so here as well
+                // to make intentions clearer
+                return speed / 5F;
+            }
+        }
+        return speed;
+    }
+
+    @Override
+    public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource random) {
+        super.animateTick(state, world, pos, random);
+        if (RadiationManager.isGlobalRadiationEnabled()) {//Skip getting the tile if radiation is disabled in the config
+            BlockEntity tile = WorldUtils.getTileEntity(world, pos);
+            if (tile instanceof ITileRadioactive radioactiveTile) {
+                int count = radioactiveTile.getRadiationParticleCount(world);
+                if (count > 0) {
+                    //Update count to be randomized but store it instead of calculating our max number each time we loop
+                    count = random.nextInt(count);
+                    for (int i = 0; i < count; i++) {
+                        double randX = pos.getX() - 0.1 + random.nextDouble() * 1.2;
+                        double randY = pos.getY() - 0.1 + random.nextDouble() * 1.2;
+                        double randZ = pos.getZ() - 0.1 + random.nextDouble() * 1.2;
+                        world.addParticle(MekanismParticleTypes.RADIATION.get(), randX, randY, randZ, 0, 0, 0);
+                    }
+                }
+            }
+        }
+    }
+
+    protected InteractionResult genericClientActivated(Level level, ItemStack stack, BlockEntity blockEntity) {
+        if (!Attribute.has(this, AttributeGui.class) && MekanismUtils.canUseAsWrench(stack)) {
+            if (blockEntity instanceof ITileRadioactive tileRadioactive && tileRadioactive.getRadiationScale(level) > 0) {
+                return InteractionResult.FAIL;
+            }
+            return InteractionResult.SUCCESS;
+        }
+        return InteractionResult.TRY_WITH_EMPTY_HAND;
+    }
+}

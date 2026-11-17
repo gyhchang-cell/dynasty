@@ -1,0 +1,339 @@
+package com.telepathicgrunt.the_bumblezone.blocks;
+
+import com.telepathicgrunt.the_bumblezone.Bumblezone;
+import com.telepathicgrunt.the_bumblezone.blocks.blockentities.EssenceBlockEntity;
+import com.telepathicgrunt.the_bumblezone.bossbars.ServerEssenceEvent;
+import com.telepathicgrunt.the_bumblezone.entities.living.CosmicCrystalEntity;
+import com.telepathicgrunt.the_bumblezone.items.essence.EssenceOfTheBees;
+import com.telepathicgrunt.the_bumblezone.modinit.BzBlockEntities;
+import com.telepathicgrunt.the_bumblezone.modinit.BzBlocks;
+import com.telepathicgrunt.the_bumblezone.modinit.BzParticles;
+import com.telepathicgrunt.the_bumblezone.platform.BlockExtension;
+import com.telepathicgrunt.the_bumblezone.utils.GeneralUtils;
+import com.telepathicgrunt.the_bumblezone.utils.OptionalBoolean;
+import com.telepathicgrunt.the_bumblezone.worldgen.processors.ArenaSpecialBlockHandlerProcessor;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.InsideBlockEffectApplier;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.templatesystem.BlockIgnoreProcessor;
+import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.EntityCollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.Optional;
+
+
+public abstract class EssenceBlock extends BaseEntityBlock implements BlockExtension {
+    private static final VoxelShape ALMOST_BLOCK = Block.box(0.0001, 0.0001, 0.0001, 0.9999, 0.9999, 0.9999);
+
+    public static final GeneralUtils.Lazy<StructurePlaceSettings> PLACEMENT_SETTINGS = new GeneralUtils.Lazy<>(() ->
+            new StructurePlaceSettings()
+                .setRotation(Rotation.NONE)
+                .setMirror(Mirror.NONE)
+                .setLiquidSettings(LiquidSettings.IGNORE_WATERLOGGING)
+                .setIgnoreEntities(true)
+                .setKnownShape(true)
+                .addProcessor(new BlockIgnoreProcessor(List.of(
+                    BzBlocks.ESSENCE_BLOCK_RED.get(),
+                    BzBlocks.ESSENCE_BLOCK_PURPLE.get(),
+                    BzBlocks.ESSENCE_BLOCK_BLUE.get(),
+                    BzBlocks.ESSENCE_BLOCK_GREEN.get(),
+                    BzBlocks.ESSENCE_BLOCK_YELLOW.get(),
+                    BzBlocks.ESSENCE_BLOCK_WHITE.get(),
+                    BzBlocks.INFINITY_BARRIER.get()
+                )))
+                .addProcessor(new ArenaSpecialBlockHandlerProcessor(false)));
+
+    public static final GeneralUtils.Lazy<StructurePlaceSettings> PLACEMENT_SETTINGS_WITH_ENTITIES = new GeneralUtils.Lazy<>(() ->
+            new StructurePlaceSettings()
+                .setRotation(Rotation.NONE)
+                .setMirror(Mirror.NONE)
+                    .setLiquidSettings(LiquidSettings.IGNORE_WATERLOGGING)
+                .setIgnoreEntities(false)
+                .setKnownShape(true)
+                .addProcessor(new BlockIgnoreProcessor(List.of(
+                    BzBlocks.ESSENCE_BLOCK_RED.get(),
+                    BzBlocks.ESSENCE_BLOCK_PURPLE.get(),
+                    BzBlocks.ESSENCE_BLOCK_BLUE.get(),
+                    BzBlocks.ESSENCE_BLOCK_GREEN.get(),
+                    BzBlocks.ESSENCE_BLOCK_YELLOW.get(),
+                    BzBlocks.ESSENCE_BLOCK_WHITE.get()
+                )))
+                .addProcessor(new ArenaSpecialBlockHandlerProcessor(true)));
+
+    protected EssenceBlock(Properties properties) {
+        super(properties);
+    }
+
+    @Override
+    public VoxelShape getOcclusionShape(BlockState blockState) {
+        return Shapes.block();
+    }
+
+    @Override
+    public RenderShape getRenderShape(BlockState blockState) {
+        return RenderShape.MODEL;
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState blockState, BlockGetter level, BlockPos blockPos, CollisionContext context) {
+        if (context instanceof EntityCollisionContext ctx) {
+            Entity entity = ctx.getEntity();
+            if (entity == null || entity instanceof CosmicCrystalEntity || entity.isSpectator()) {
+                return Shapes.empty();
+            }
+
+            if (entity instanceof LivingEntity || entity instanceof Player) {
+                return ALMOST_BLOCK;
+            }
+        }
+
+        return Shapes.empty();
+    }
+
+    @Nullable
+    @Override
+    public BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {
+        return new EssenceBlockEntity(blockPos, blockState);
+    }
+
+    public abstract Identifier getArenaNbt();
+
+    public abstract int getEventTimeFrame();
+
+    public abstract void performUniqueArenaTick(ServerLevel serverLevel, BlockPos blockPos, BlockState blockState, EssenceBlockEntity essenceBlockEntity);
+
+    public abstract ServerEssenceEvent getServerEssenceEvent(RandomSource random);
+
+    public abstract Identifier getEssenceItemReward();
+
+    public abstract void awardPlayerWinStat(ServerPlayer serverPlayer);
+
+    public abstract int getEssenceXpReward();
+
+    public abstract boolean hasMiningFatigue();
+
+    public void onPlayerEnter(ServerLevel serverLevel, ServerPlayer serverPlayer, EssenceBlockEntity essenceBlockEntity) {}
+
+    public void onPlayerLeave(ServerLevel serverLevel, ServerPlayer serverPlayer, EssenceBlockEntity essenceBlockEntity) {
+        if (serverPlayer.hasEffect(MobEffects.MINING_FATIGUE)) {
+            serverPlayer.removeEffect(MobEffects.MINING_FATIGUE);
+        }
+    }
+
+    @Override
+    public boolean propagatesSkylightDown(BlockState blockState) {
+        return true;
+    }
+
+    @Override
+    public void entityInside(BlockState blockState, Level level, BlockPos blockPos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
+        if (!(blockState.getBlock() instanceof EssenceBlock essenceBlock)) {
+            return;
+        }
+
+        Vec3 center = Vec3.atCenterOf(blockPos);
+        float powerPush = entity instanceof Player player && player.onGround() ? 0.5f : 0.35f;
+        entity.push(
+                (entity.getX() - center.x()) * powerPush,
+                (entity.getY() - center.y()) * powerPush,
+                (entity.getZ() - center.z()) * powerPush);
+
+        boolean isClientside = entity.level().isClientSide();
+        boolean isNonPlayer = entity instanceof LivingEntity && !(entity instanceof Player);
+        boolean isNonEssencedServerPlayer = entity instanceof ServerPlayer serverPlayer && !EssenceOfTheBees.hasEssence(serverPlayer);
+
+        if (isClientside || isNonPlayer || isNonEssencedServerPlayer) {
+            if (!isClientside) {
+                if (entity instanceof ServerPlayer serverPlayer) {
+                    BlockEntity blockEntity = level.getBlockEntity(blockPos);
+                    if (blockEntity instanceof EssenceBlockEntity essenceBlockEntity && essenceBlockEntity.getPlayerInArena().isEmpty()) {
+                        serverPlayer.sendOverlayMessage(
+                                Component.translatable("essence.the_bumblezone.missing_essence_effect").withStyle(ChatFormatting.RED));
+                    }
+                }
+
+                entity.hurt(entity.damageSources().magic(), 0.5f);
+            }
+        }
+
+        if (entity instanceof ServerPlayer touchingPlayer && EssenceOfTheBees.hasEssence(touchingPlayer)) {
+            ServerLevel serverLevel = ((ServerLevel) level);
+            BlockEntity blockEntity = serverLevel.getBlockEntity(blockPos);
+
+            if (blockEntity instanceof EssenceBlockEntity essenceBlockEntity && essenceBlockEntity.getPlayerInArena().isEmpty()) {
+                StructureTemplateManager structureTemplateManager = serverLevel.getStructureManager();
+                Optional<StructureTemplate> optionalStructureTemplate = structureTemplateManager.get(getArenaNbt());
+                optionalStructureTemplate.ifPresentOrElse(loadingStructureTemplate -> {
+                    Vec3i size = loadingStructureTemplate.getSize();
+                    BlockPos negativeHalfLengths = new BlockPos(-size.getX() / 2, -size.getY() / 2, -size.getZ() / 2);
+                    essenceBlockEntity.setArenaSize(new BlockPos(size));
+
+                    // Save area
+                    StructureTemplate savingStructureTemplate;
+                    try {
+                        savingStructureTemplate = structureTemplateManager.getOrCreate(essenceBlockEntity.getSavedNbtLocation());
+                    }
+                    catch (Exception exception) {
+                        Bumblezone.LOGGER.error("Bumblezone Essence Block failed to create the NBT file to save area - {} - {} - {} - Location: {} - Error: {}", blockState, blockPos, getArenaNbt(), essenceBlockEntity.getSavedNbtLocationAsString(), exception);
+                        return;
+                    }
+                    savingStructureTemplate.fillFromWorld(serverLevel, blockPos.offset(negativeHalfLengths), size, !PLACEMENT_SETTINGS.getOrFillFromInternal().isIgnoreEntities(), List.of(essenceBlock));
+                    try {
+                        structureTemplateManager.save(essenceBlockEntity.getSavedNbtLocation());
+                    }
+                    catch (Exception exception) {
+                        Bumblezone.LOGGER.error("Bumblezone Essence Block failed to save area into NBT file - {} - {} - {} - Location: {} - Error: {}", blockState, blockPos, getArenaNbt(), essenceBlockEntity.getSavedNbtLocationAsString(), exception);
+                        return;
+                    }
+
+                    // load arena
+                    GeneralUtils.placeInWorldWithoutNeighborUpdate(
+                            serverLevel,
+                            loadingStructureTemplate,
+                            blockPos.offset(negativeHalfLengths),
+                            blockPos.offset(negativeHalfLengths),
+                            PLACEMENT_SETTINGS_WITH_ENTITIES.getOrFillFromInternal().setRotationPivot(blockPos),
+                            serverLevel.getRandom(),
+                            Block.UPDATE_CLIENTS + Block.UPDATE_KNOWN_SHAPE
+                    );
+
+                    List<ServerPlayer> players = ((ServerLevel) level).getPlayers(p ->
+                            (blockPos.getX() + size.getX()) > p.blockPosition().getX() &&
+                            (blockPos.getY() + size.getY()) > p.blockPosition().getY() &&
+                            (blockPos.getZ() + size.getZ()) > p.blockPosition().getZ() &&
+                            (blockPos.getX() - size.getX()) < p.blockPosition().getX() &&
+                            (blockPos.getY() - size.getY()) < p.blockPosition().getY() &&
+                            (blockPos.getZ() - size.getZ()) < p.blockPosition().getZ()
+                    );
+
+                    essenceBlockEntity.getPlayerInArena().clear();
+                    for (ServerPlayer serverPlayer : players) {
+                        essenceBlock.onPlayerEnter(serverLevel, serverPlayer, essenceBlockEntity);
+                        essenceBlockEntity.getPlayerInArena().add(serverPlayer.getUUID());
+
+                        // Teleport everyone to trigger player.
+                        if (serverPlayer != touchingPlayer) {
+                            serverPlayer.setDeltaMovement(
+                                    touchingPlayer.getDeltaMovement().x(),
+                                    touchingPlayer.getDeltaMovement().y(),
+                                    touchingPlayer.getDeltaMovement().z()
+                            );
+                            serverPlayer.teleportTo(
+                                    touchingPlayer.getX(),
+                                    touchingPlayer.getY(),
+                                    touchingPlayer.getZ()
+                            );
+                        }
+
+                        spawnParticles(serverLevel, serverPlayer.position(), serverPlayer.getRandom());
+
+                        for (int x = -1; x <= 1; x++) {
+                            for (int z = -1; z <= 1; z++) {
+                                ChunkPos chunkPos = ChunkPos.containing(blockPos);
+                                serverLevel.getChunk(chunkPos.x() + x, chunkPos.z() + z).setInhabitedTime(1512000);
+                            }
+                        }
+                    }
+
+                    essenceBlockEntity.getEventBar().setProgress(1f);
+                    essenceBlockEntity.setEventTimer(this.getEventTimeFrame());
+                    essenceBlockEntity.setChanged();
+                },
+                () -> Bumblezone.LOGGER.error("Bumblezone Essence Block failed to even detect the nbt file at all {} - {} - {}", essenceBlockEntity, blockState, getArenaNbt()));
+            }
+        }
+    }
+
+    /**
+     * Done to prevent some blocks from being able to attach to this block
+     */
+    @Override
+    public VoxelShape getBlockSupportShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos) {
+        return Shapes.empty();
+    }
+
+    public void animateTick(BlockState blockState, Level level, BlockPos blockPos, RandomSource randomSource) {
+        for (int i = 0; i <= 2; i++) {
+            level.addParticle(
+                    BzParticles.SPARKLE_PARTICLE.get(),
+                    (double)blockPos.getX() + (randomSource.nextDouble() * 1.5D) - 0.25D,
+                    (double)blockPos.getY() + (randomSource.nextDouble() * 1.5D) - 0.25D,
+                    (double)blockPos.getZ() + (randomSource.nextDouble() * 1.5D) - 0.25D,
+                    randomSource.nextGaussian() * 0.003d,
+                    randomSource.nextGaussian() * 0.003d,
+                    randomSource.nextGaussian() * 0.003d);
+        }
+    }
+
+    public static void spawnParticles(ServerLevel world, Vec3 location, RandomSource random) {
+        world.sendParticles(
+                ParticleTypes.FIREWORK,
+                location.x(),
+                location.y() + 1,
+                location.z(),
+                100,
+                random.nextGaussian() * 0.1D,
+                (random.nextGaussian() * 0.1D) + 0.1,
+                random.nextGaussian() * 0.1D,
+                random.nextFloat() * 0.4 + 0.2f);
+
+        world.sendParticles(
+                ParticleTypes.ENCHANT,
+                location.x(),
+                location.y() + 1,
+                location.z(),
+                400,
+                1,
+                1,
+                1,
+                random.nextFloat() * 0.5 + 1.2f);
+    }
+
+    @Override
+    @Nullable
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState blockState, BlockEntityType<T> blockEntityType) {
+        return EssenceBlock.createEssenceTicker(level, blockEntityType, BzBlockEntities.ESSENCE_BLOCK.get());
+    }
+
+    @Nullable
+    protected static <T extends BlockEntity> BlockEntityTicker<T> createEssenceTicker(Level level, BlockEntityType<T> blockEntityType, BlockEntityType<? extends EssenceBlockEntity> blockEntityType2) {
+        return level.isClientSide() ? null : EssenceBlock.createTickerHelper(blockEntityType, blockEntityType2, EssenceBlockEntity::serverTick);
+    }
+
+    @Override
+    public OptionalBoolean bz$shouldNotDisplayFluidOverlay() {
+        return OptionalBoolean.TRUE;
+    }
+}

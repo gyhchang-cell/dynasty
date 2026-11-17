@@ -1,0 +1,28 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('build/cod4-pack-20261022/gradle'))
+ p.afterEvaluate {
+  if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def qa=p.sourceSets.create('packAcceptance') {
+   java.srcDir p.file('tools/cod4/pack-acceptance/src')
+   resources.srcDir p.file('tools/cod4/pack-acceptance/resources')
+   compileClasspath += p.files('build/cod4-pack-20261022/compile-dynasty') + p.sourceSets.main.compileClasspath
+  }
+  p.tasks.register('packAcceptanceJar',Jar) {
+   dependsOn qa.classesTaskName
+   archiveBaseName='dynasty-pack-acceptance'
+   from qa.output
+  }
+  p.reobf { packAcceptanceJar {} }
+  def repair=p.sourceSets.create('languageRepair') {
+   java.srcDir p.file('src/main/java')
+   java.include 'com/dynasty/workshop/WorkshopJei.java'
+   compileClasspath += p.files('build/cod4-pack-20261022/compile-dynasty') + p.sourceSets.main.compileClasspath
+  }
+  p.tasks.register('languageRepairJar',Jar) {
+   dependsOn repair.classesTaskName
+   archiveBaseName='dynasty-language-repair-classes'
+   from repair.output
+  }
+  p.reobf { languageRepairJar {} }
+ }
+}

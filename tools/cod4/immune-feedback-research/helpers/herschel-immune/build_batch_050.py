@@ -1,0 +1,15 @@
+"""Resume after sweep review: incomplete source chains stay support0."""
+from reference_evidence import Evidence,row
+import json
+e=Evidence(50);R='iron431__irons-spells-n-spellbooks'
+rows=[row(50,1,'iron-immolate-chain-screen-not-yet-closed','support_only',[e.ref(R,'ImmolateEffect')],
+ 'Entire ImmolateEffect read. addImmolateStack replaces15s instance with previousamp+1 and copiesvisibility flags, writes EFFECT_CREDIT before entity.addEffect and ignores its acceptance. Returns constructed instance regardless admission. WeakMap delayed instances keyed instance, not victim UUID, delay guard uses shared static duration set by shouldApplyEffectTickThisTick. Thirdstack gate enables apply; server removes credit before explosion, radius6/LOS/projectile-hittable/friendly filters, sets victim invulnerableTime0 before hurt, and ONLY hurttrue Living victims get anotherstack and delayed-map write. Client burst packet and explosion sound sent irrespective of number of accepted hurt/effect attempts; apply returnsfalse after blast; exact-version native effect teardown consumer not yet expanded. No standalone new credit for constants or particle consumer.',
+ 'Stack object creation/delay entry cannot certify effect admitted; returnedhurt success cannot certify newstack accepted. Burst sound and visuals cannot be called immune denial or successful propagation.',
+ 'Support0 until actual spell/attack producer, effect event/tick consumer and exact-version effect-instance identity behavior reviewed and compared main. This is actual fullfile screening, not1000 credit. Shared singleton duration is observed source design, not a proven multiplayer bug.',
+ 'Modern archive manifestSHA only; no tree. No runtime/compile. Native effect merge/instance replacement and client renderer not expanded. Do not assume returned constructed instance is the actual stored effect identity.'),
+ row(50,2,'iron-airborne-wall-hurt-versus-effect-end-screen','support_only',[e.ref(R,'AirborneEffect')],
+ 'Entire AirborneEffect read. Tick always scheduled; only server horizontalCollision with delta horizontal speed*10-1>0 plays bigfall sound before native flyIntoWall hurt then returnsfalse regardless hurt result; damage4+0.5*(amplifier+1). Otherwise effect continues. This does not itself add upward motion or reject admission; class name Airborne is not proof actual launch. Sound/end can happen on rejectedhurt.',
+ 'Separate collision threshold, independent sound/effect end and actual native damage acceptance; do not call a collision sound Boss immune or cast success.',
+ 'Support0 actual effect producer and native removal semantics not yet closed; do not count generic hurt wrapper or sound-before-result family as independent.',
+ 'No source-specific Boss policy or S2C feedback read here. No tests/game/production edit.')]
+print(json.dumps(e.finish(rows,['After independently writing sweep-preparation review, resumed full local immune source reading.','049 Java precedence correction separately saved; original049 immutable.','Continue linking real Immolate/Airborne producers before considering any candidate.']),ensure_ascii=False))

@@ -1,0 +1,96 @@
+package mekanism.client.gui.machine;
+
+import java.lang.ref.WeakReference;
+import mekanism.api.chemical.ChemicalResource;
+import mekanism.api.recipes.ChemicalCrystallizerRecipe;
+import mekanism.api.recipes.cache.CachedRecipe.OperationTracker.RecipeError;
+import mekanism.client.gui.GuiConfigurableTile;
+import mekanism.client.gui.element.GuiElement;
+import mekanism.client.gui.element.bar.GuiVerticalPowerBar;
+import mekanism.client.gui.element.custom.GuiCrystallizerScreen;
+import mekanism.client.gui.element.custom.GuiCrystallizerScreen.IOreInfo;
+import mekanism.client.gui.element.gauge.GaugeType;
+import mekanism.client.gui.element.gauge.GuiChemicalGauge;
+import mekanism.client.gui.element.progress.GuiProgress;
+import mekanism.client.gui.element.progress.ProgressType;
+import mekanism.client.gui.element.tab.GuiEnergyTab;
+import mekanism.common.inventory.container.tile.MekanismTileContainer;
+import mekanism.common.inventory.warning.WarningTracker.WarningType;
+import mekanism.common.tile.machine.TileEntityChemicalCrystallizer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import org.jspecify.annotations.Nullable;
+
+public class GuiChemicalCrystallizer extends GuiConfigurableTile<TileEntityChemicalCrystallizer, MekanismTileContainer<TileEntityChemicalCrystallizer>> {
+
+    private final IOreInfo oreInfo = new OreInfo();
+    @Nullable
+    private GuiElement inputGauge;
+
+    public GuiChemicalCrystallizer(MekanismTileContainer<TileEntityChemicalCrystallizer> container, Inventory inv, Component title) {
+        super(container, inv, title);
+        dynamicSlots = true;
+        titleLabelY -= 2;
+    }
+
+    @Override
+    protected void addGuiElements() {
+        super.addGuiElements();
+        addRenderableWidget(new GuiVerticalPowerBar(this, tile.energyContainer(), 157, 23))
+              .warning(WarningType.NOT_ENOUGH_ENERGY, tile.getWarningCheck(RecipeError.NOT_ENOUGH_ENERGY));
+        addRenderableWidget(new GuiEnergyTab(this, tile.energyContainer(), tile::getActive));
+        inputGauge = addRenderableWidget(new GuiChemicalGauge(() -> tile.inputTank, tile::getChemicalTanks, GaugeType.STANDARD, this, 7, 4))
+              .warning(WarningType.NO_MATCHING_RECIPE, tile.getWarningCheck(RecipeError.NOT_ENOUGH_INPUT));
+        addRenderableWidget(new GuiProgress(tile::getScaledProgress, ProgressType.LARGE_RIGHT, this, 53, 61).recipeViewerCategory(tile))
+              .warning(WarningType.INPUT_DOESNT_PRODUCE_OUTPUT, tile.getWarningCheck(RecipeError.INPUT_DOESNT_PRODUCE_OUTPUT));
+        addRenderableWidget(new GuiCrystallizerScreen(this, 31, 13, 115, 42, oreInfo));
+    }
+
+    @Override
+    protected void drawForegroundText(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+        renderTitleTextWithOffset(guiGraphics, inputGauge == null ? 0 : inputGauge.getRelativeRight(), tile.getEnergySlotX());
+        super.drawForegroundText(guiGraphics, mouseX, mouseY);
+    }
+
+    private class OreInfo implements IOreInfo {
+
+        @Nullable
+        private WeakReference<ChemicalCrystallizerRecipe> cachedRecipe;
+
+        @Override
+        public ChemicalResource getInputChemical() {
+            return tile.inputTank.resource();
+        }
+
+        @Nullable
+        @Override
+        public ChemicalCrystallizerRecipe getRecipe() {
+            ChemicalResource input = getInputChemical();
+            if (input.isEmpty()) {
+                return null;
+            }
+            ChemicalCrystallizerRecipe recipe;
+            if (cachedRecipe == null) {
+                recipe = getRecipeAndCache();
+            } else {
+                recipe = cachedRecipe.get();
+                if (recipe == null || !recipe.testType(input)) {
+                    recipe = getRecipeAndCache();
+                }
+            }
+            return recipe;
+        }
+
+        @Nullable
+        private ChemicalCrystallizerRecipe getRecipeAndCache() {
+            ChemicalCrystallizerRecipe recipe = tile.getRecipe(0);
+            if (recipe == null) {
+                cachedRecipe = null;
+            } else {
+                cachedRecipe = new WeakReference<>(recipe);
+            }
+            return recipe;
+        }
+    }
+}

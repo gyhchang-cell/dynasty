@@ -1,0 +1,18 @@
+import json,pathlib
+R=[]
+def a(f,m,s,o,b,l):R.append(dict(repo='AlexModGuy/Ice_and_Fire',file='/'+f+'.java',method=m,start=s,observation=o,application=b,limits=l))
+a('AmphithereAIFleePlayer','canUse',35,'仅未驯且非飞行查玩家，每4tick更新缓存，取列表首个而非距离排序；找更远离该玩家且可导航位置，否则拒用。','野生和驯服行为边界应明确，不把宠物修复强行施于野生单位。','普通逃跑数学不另计，本条核心驯养/飞行状态和缓存候选切换。')
+a('CockatriceAIAggroLook','CockatriceAIAggroLook',18,'构造专门看向Cockatrice且在followDistance内的活体谓词，组合combat范围25的Player查询。','视线触发是独立原生挑衅来源，应与最近玩家无挑衅选择区分。','完整构造含实际候选谓词，不将匿名test单独再计。')
+a('CockatriceAIAggroLook','canUse',31,'驯服立即拒；未驯才按特定TargetingConditions找最近Player并缓存。','同一个AI保留野生看视挑衅，只在受控状态关闭主动Player目标。','简短但实际驯养权限门，非普通空值getter。')
+a('CockatriceAIAggroLook','canContinueToUse',53,'缓存Player非创/旁观且继续看它则追视；未驯才setTargetedEntity并setTarget，驯服后仍可返回true但不再写目标。','持续状态布尔与实际赋目标并非等价，需要检查执行副作用的位置。','完整持续入口一处，视线角度常数不当独立实现。')
+a('DragonAIEscort','tick',24,'有主人且未超过maxRange才追，主人位置改变足够才导航；远30或高差8且允许起飞时hover并清坐下。','主人跟随可主动撤销坐下状态，控制许可应在统一模式边界而非只看当前姿势。','具体龙起飞跟主流程一处，通用FollowOwner模板不计。')
+a('DragonAIReturnToRoost','canUse',19,'需能移动、lookingForRoost、无活target、有home且同home维度并离开宽度范围。','守点回返应先排活战斗与跨维坐标，不能仅有BlockPos就导航。','完整home维度行为门，后面纯飞行高度导航tick只辅助不计。')
+a('DragonAIRide','tick',34,'骑乘tick立即停导航并setTarget(null)，再按玩家输入/升降/飞行方式驱动wantedPosition。','手控时明确撤销自主攻击目标，原生近战若更早执行仍需最终伤害门。','只计手动与自主控制交接，所有角度速度公式整体不拆。')
+a('MyrmexAIDefendHive','canUse',21,'可移动且有hive先取最近侵扰者canAttack，失败时1/20再取低声望Player并canAttack。','集体护卫可能有报复与主动Player两条来源，均应走相同最终目标许可。','不引入本项目声望/PVP系统，只研究现有两路筛选控制流。')
+a('MyrmexAIAttackPlayers','MyrmexAIAttackPlayers',13,'Player主动目标谓词在hive空时放行，有hive才要求声望足够低。','缺失绑定的开放回退不适合租借守卫，失效租约应拒攻击而非转野生。','完整实际构造选择器一处，匿名test不另计。')
+a('MyrmexAIFindGaurdingEntity','MyrmexAIFindGaurdingEntity',20,'护卫对象限非Soldier、成年、同hive、未被保护且needsGuarding，设置MOVE标志。','保护对象和敌人目标应区分；同归属与是否已有护卫决定协同分工。','候选筛选作为完整护卫绑定实现，不把每个布尔分支分计。')
+a('MyrmexAIFindGaurdingEntity','canUse',35,'能动且无攻击目标、无guardingEntity才查附近候选，距离排序后选首个存guardingEntity。','敌对状态与保护绑定不能互相覆盖；绑定只在空闲时选择也需失效回收。','排序工具不计，整条实际护卫绑定时机一处。')
+a('PixieAIPickupItem','tick',89,'近1格糖回血，蛋糕且未驯/物品thrower为在线玩家才tame该玩家并坐下；随后手持取物并减少一份。','掉落物拾取归属以thrower为依据而不是最近玩家，应避免旁观玩家抢主。','与其他驯养食物模板不同指定thrower+服务器玩家解析，整个拾取一处。')
+a('PixieAISteal','canUse',26,'配置关闭/手非空/偷取CD拒；驯服也拒；否则近10玩家非creative且有物品才缓存。','宠物状态停用原生敌对偷取，可保留野生行为而不改共享整体AI。','普通tempt倒计时模板不单计，关注明确tame边界。')
+a('PixieAISteal','tick',64,'近距随机非快捷栏可堆叠槽整叠转移给Pixie，40格所有Pixie设偷取CD，再给受害玩家负效；否则追玩家。','非伤害敌对行为仍可影响旁观者；修复作用边界不能只审hurt。','未驯野生专有行为作为受控/野生隔离对照，不将物品槽数计样本。')
+pathlib.Path(__file__).with_name('batch32.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

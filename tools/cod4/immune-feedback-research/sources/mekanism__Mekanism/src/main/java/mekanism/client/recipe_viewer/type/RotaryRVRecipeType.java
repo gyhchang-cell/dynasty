@@ -1,0 +1,78 @@
+package mekanism.client.recipe_viewer.type;
+
+import java.util.List;
+import mekanism.api.recipes.RotaryRecipe;
+import mekanism.api.recipes.book.RotaryBookCategory;
+import mekanism.api.recipes.book.RotaryBookCategory.RotaryBookInfo;
+import mekanism.api.recipes.vanilla_input.RotaryRecipeInput;
+import mekanism.api.text.IHasTranslationKey;
+import mekanism.api.text.TextComponentUtil;
+import mekanism.common.recipe.IMekanismRecipeTypeProvider;
+import mekanism.common.recipe.MekanismRecipeType;
+import mekanism.common.recipe.lookup.cache.RotaryInputRecipeCache;
+import mekanism.common.registries.MekanismBlocks;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
+import org.jspecify.annotations.Nullable;
+
+public record RotaryRVRecipeType(Identifier id, IHasTranslationKey name, List<SlotDisplay> workstations) implements IRecipeViewerRecipeType<RotaryRecipe>,
+      IMekanismRecipeTypeProvider<RotaryRecipeInput, RotaryBookCategory, RotaryBookInfo, RotaryRecipe, RotaryInputRecipeCache> {
+
+    public RotaryRVRecipeType(Identifier id, IHasTranslationKey name) {
+        this(id, name, IRecipeViewerRecipeType.asWorkStations(MekanismBlocks.ROTARY_CONDENSENTRATOR));
+    }
+
+    @Override
+    public Component getTextComponent() {
+        return TextComponentUtil.build(name);
+    }
+
+    @Override
+    public Class<? extends RotaryRecipe> recipeClass() {
+        return RotaryRecipe.class;
+    }
+
+    @Override
+    public boolean requiresHolder() {
+        return true;
+    }
+
+    @Override
+    public ItemStack iconStack() {
+        return new ItemStack(MekanismBlocks.ROTARY_CONDENSENTRATOR);
+    }
+
+    @Nullable
+    @Override
+    public Identifier icon() {
+        //Handled by the icon stack
+        return null;
+    }
+
+    @Override
+    public int xOffset() {
+        return -3;
+    }
+
+    @Override
+    public int yOffset() {
+        return -12;
+    }
+
+    @Override
+    public int width() {
+        return 170;
+    }
+
+    @Override
+    public int height() {
+        return 64;
+    }
+
+    @Override
+    public MekanismRecipeType<RotaryRecipeInput, RotaryBookCategory, RotaryBookInfo, RotaryRecipe, RotaryInputRecipeCache> getRecipeType() {
+        return MekanismRecipeType.ROTARY.getRecipeType();
+    }
+}

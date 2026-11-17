@@ -1,0 +1,52 @@
+allprojects { p ->
+ p.layout.buildDirectory.set(p.file('build/cod4-old-world-20261023/gradle'))
+ p.afterEvaluate {
+  if(!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+  def base=p.file('build/cod4-old-world-20261023')
+  def gameName=p.findProperty('oldWorldGame')?:'run-01'
+  def reportName=p.findProperty('oldWorldReport')?:'run-05-death'
+  p.sourceSets.main.java.setSrcDirs([p.file('build/cod4-audit-20261022/frozen/src/main/java')])
+  if(p.findProperty('oldWorldOverlay'))p.sourceSets.main.java.srcDir p.file(p.findProperty('oldWorldOverlay'))
+  p.sourceSets.main.resources.setSrcDirs([p.file('build/cod4-audit-20261022/frozen/src/main/resources'),p.file('build/cod4-audit-20261022/frozen/src/generated/resources')])
+  def classes=new File(base,'gradle/classes/java/main'), mainResources=new File(base,'gradle/resources/main')
+  p.tasks.named('compileJava').configure { destinationDirectory.set(classes) }
+  p.tasks.named('processResources').configure { destinationDir=mainResources }
+  p.sourceSets.main.output.classesDirs.setFrom(classes);p.sourceSets.main.output.resourcesDir=mainResources
+  p.repositories.flatDir { dirs p.file('modpack/mods') }
+  ['ftb-quests-forge:2001.4.22','ftb-library-forge:2001.2.13','ftb-teams-forge:2001.3.2','item-filters-forge:2001.1.0-build.59','architectury:9.2.14-forge','NaturesCompass:1.20.1-1.12.0-forge','ExplorersCompass:1.20.1-1.4.0-forge'].each { artifact ->p.dependencies.add('runtimeOnly',p.fg.deobf('dynasty_local_qa:'+artifact)) }
+  def qa=p.sourceSets.create('cod4OldWorldQa') {
+   java.srcDir p.file('tools/cod4/old-world-acceptance/com')
+   compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+   runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+  }
+  p.minecraft.runs.client {
+   workingDirectory new File(base,gameName)
+   property 'dynasty.oldWorldQa','true'
+   property 'dynasty.oldWorldQa.death','true'
+   property 'dynasty.oldWorldQa.output',p.file('docs/cod4/audit-20261022/old-world-acceptance/'+reportName).absolutePath
+   property 'dynasty.oldWorldQa.expectProgressFix',p.hasProperty('oldWorldExpectFix')?'true':'false'
+   property 'mixin.env.remapRefMap','true'
+   property 'mixin.env.refMapRemappingFile',new File(base,'gradle/createSrgToMcp/output.srg').absolutePath
+   property 'forge.logging.console.level','info'
+   jvmArgs '-Xmx3G','-XX:ActiveProcessorCount=2'
+   args '--username','LegacyAudit','--uuid','380df991f603344ca090369bad2a924a','--width','1200','--height','800'
+   mods { dynasty { source qa } }
+  }
+  p.tasks.matching {it.name=='runClient'}.configureEach {
+   dependsOn qa.classesTaskName,'createSrgToMcp'
+   doFirst {
+    def game=new File(base,gameName)
+    if(!new File(game,'saves/legacy-copy/level.dat').exists()) throw new GradleException('Existing private clone required')
+    game.mkdirs();new File(game,'config').mkdirs()
+    new File(game,'config/fml.toml').text='earlyWindowControl = false\n'
+    new File(game,'options.txt').text='soundCategory_master:0.0\npauseOnLostFocus:false\nlang:zh_cn\nguiScale:4\ngamma:0.0\nresourcePacks:["vanilla","mod_resources","file/dynasty-quest-guides-v3.zip"]\nmaxFps:60\nrenderDistance:2\ntutorialStep:none\nsimulationDistance:5\n'
+    p.copy {from p.file('modpack/config/ftbquests/quests');into new File(game,'config/ftbquests/quests')}
+    p.copy {from p.file('modpack/resourcepacks/dynasty-quest-guides-v3.zip');into new File(game,'resourcepacks')}
+   }
+  }
+  p.tasks.matching{it.name=='downloadAssets'||it.name=='downloadMCMeta'}.configureEach{onlyIf{false}}
+  def metadata=new File(gradle.gradleUserHomeDir,'caches/forge_gradle/minecraft_repo/versions/1.20.1/version.json')
+  def target=p.layout.buildDirectory.file('downloadMCMeta/version.json').get().asFile
+  target.parentFile.mkdirs();target.bytes=metadata.bytes
+ }
+}

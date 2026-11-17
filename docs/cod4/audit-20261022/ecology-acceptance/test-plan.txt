@@ -1,0 +1,8 @@
+COD4-1 / COD4-11 原生自然生态复现计划
+
+第一层：独立冻结正式来源，核对原表30种ID、30个biome modifier/biome tag、SpawnPlacement回调、结构tag和自然structure_set入口。另以10种材料为分母，逐项记录原掉落表来源和 killed_by_player/随机概率条件。配置存在不能替代自然生成成功。
+第二层：独立普通Forge DedicatedServer，种子20261023，level-type=minecraft:normal，generate-structures=true，难度normal；本机端口25587，无客户端。确认实际generator非FlatLevelSource。来源、GradleHome、project-cache、编译输出和世界均独立；不共享其他代理frozen/privatebuild。
+第三层：实际主世界Registry解析30种biome标签及修改后的原生刷怪权重。以出生点为原点，对墓葬、鬼怪场景、道路、机关城四个实际结构tag分别调用原生findNearestMapStructure，run1半径1个、run2半径4个placement-region环，不称全世界或固定方块半径。找到位置生成周围3x3 FULL区块；记录真实chunk StructureStart的ID、start chunk、bbox、pieces，不调用piece或改结构。
+第四层：四个固定样本（出生点与±512地形点）及找到的区域，逐处加载3x3 FULL区块。每区域9个平面点×5高度（原生地表、地表下2、32、0、-32）=45位置；各位置对30种执行原注册SpawnPlacements NATURAL判定，记录实际biome、昼夜、亮度、水体、已加载结构条件。重复高度仍逐条记录，最终另给去重坐标分母。不改biome、方块、时间、天气或规则，不命令生成/蛋生成/手放生物。
+判定限制：普通DedicatedServer初始白天；夜间条件若未到只能记录拒绝，不代为篡改时钟。无玩家时自然刷怪及真实自然死亡掉落不能视为通过；报告0次观察及PENDING。调用SpawnPlacement只验证原生入口条件，尚未覆盖NaturalSpawner最终距离、mob cap、随机选中和自然成功事件。自然掉落下一阶段须自然出现实体、记录自然spawn来源、实际玩家击杀和拾取，概率未命中不能立即判坏。既有人工死亡/配方验收只作关联证据。
+场景缺口：ecology/ruined_villages为空；blueprint/ghost_sites只有ruined_battlefield；ecology/tombs为imperial_tomb/chensha_xuangong。不得将古战场当成已存在独立荒村/义庄/墓地/鬼市，不为通过验收新建建筑。

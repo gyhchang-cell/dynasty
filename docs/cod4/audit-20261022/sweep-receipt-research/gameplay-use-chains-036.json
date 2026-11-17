@@ -1,0 +1,257 @@
+{
+  "purpose": "人工全文审阅后的具体玩法使用链；支持方法不额外计数。",
+  "reviewed_at": "2026-10-26T21:57:05.398136+08:00",
+  "additional_credit": 0,
+  "external_runtime_tested": false,
+  "chains": [
+    {
+      "observation": "全文审阅的伤害窗口、来源归属、取消/重入消费方法；不计支持方法。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "c0e330a5a0694136f255",
+          "repo": "lender544/new1.20.1",
+          "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+          "path": "src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "method": "hurt",
+          "line": 312,
+          "end_line": 350,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "source_sha256": "dc3af7a939ba1b13efed51404be77d61bd0efbf9433e87ae3e4984d1801ccad1",
+          "snippet_sha256": "f965b56c6741ab8df59446487c90534538b04ec54ae4fb6ebfdb47fc557870d9",
+          "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java#L312-L350",
+          "excerpt": "public boolean hurt(DamageSource source, float damage) {\n        Entity entity = source.getDirectEntity();\n        if (entity instanceof Abyss_Blast_Entity || entity instanceof Portal_Abyss_Blast_Entity) {\n            return false;\n        }\n        if (this.destroyBlocksTick <= 0) {\n            this.destroyBlocksTick = 20;\n        }\n        double range = calculateRange(source);\n\n\n        boolean flag1 = this.canInFluidType(this.getEyeInFluidType());\n        if (!flag1) {\n            if(!source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) &&  CMCommonConfig.Leviathan.ImmuneOutofWater) {\n                if (entity instanceof Player player) {\n                    player.displayClientMessage(Component.translatable(\"entity.cataclysm.the_leviathan_immune\"), true);\n                }\n                return false;\n            }\n        }\n\n        if ((this.getAnimation() == LEVIATHAN_PHASE2) && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {\n            return false;\n        }\n\n\n        boolean attack = super.hurt(source, damage);\n\n        if(this.getAnimation() == LEVIATHAN_RUSH) {\n            if (this.getAnimationTick() >= 38 && this.getAnimationTick() <= 54) {\n                if(attack){\n                    AnimationHandler.INSTANCE.sendAnimationMessage(this, LEVIATHAN_STUN);\n                }\n            }\n        }\n\n\n        return attack;\n    }"
+        },
+        {
+          "repo": "lender544/new1.20.1",
+          "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+          "path": "src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "method": "tick",
+          "line": 392,
+          "end_line": 546,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "source_sha256": "dc3af7a939ba1b13efed51404be77d61bd0efbf9433e87ae3e4984d1801ccad1",
+          "snippet_sha256": "fd15c03587c197e0a9ddbccac332aa21e438c5d84d04abda3665732b4c3848a1",
+          "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java#L392-L546",
+          "excerpt": "public void tick() {\n        super.tick();\n        this.setYRot(this.yHeadRot);\n        if (isInWater() && this.isLandNavigator) {\n            switchNavigator(false);\n        }\n        if (!isInWater() && !this.isLandNavigator) {\n            switchNavigator(true);\n        }\n        Entity weapon = getTongue();\n        if (weapon instanceof The_Leviathan_Tongue_Entity magneticWeapon) {\n            this.entityData.set(TONGUE_ID, magneticWeapon.getId());\n            magneticWeapon.setControllerUUID(this.getUUID());\n        }\n\n        if (!this.getPassengers().isEmpty() && this.getPassengers().get(0).isShiftKeyDown() && this.getAnimation() == LEVIATHAN_TENTACLE_HOLD_BLAST) {\n            this.getPassengers().get(0).setShiftKeyDown(false);\n        }\n\n\n        LivingEntity target = this.getTarget();\n        if (!level().isClientSide) {\n            float halfHealth = this.getMaxHealth() / 2;\n            if (!this.getMeltDown()) {\n                this.bossInfo.setProgress((this.getHealth() - halfHealth) / (this.getMaxHealth() - halfHealth));\n            }else{\n                this.bossInfo.setProgress(this.getHealth() / this.getMaxHealth());\n                this.bossInfo.setRenderType(6);\n            }\n\n        }\n\n        final boolean groundAnimate = !this.isInWater();\n        this.prevNoSwimProgress = NoSwimProgress;\n        if (groundAnimate) {\n            if (this.NoSwimProgress < 10F)\n                this.NoSwimProgress++;\n        } else {\n            if (this.NoSwimProgress > 0F)\n                this.NoSwimProgress--;\n        }\n        this.prevLeftTentacleProgress = LeftTentacleProgress;\n        this.prevRightTentacleProgress = RightTentacleProgress;\n        if (blocksByrighttentacle) {\n            if (this.RightTentacleProgress < 10F)\n                this.RightTentacleProgress++;\n        } else {\n            if (this.RightTentacleProgress > 0F)\n                this.RightTentacleProgress--;\n        }\n        if (blocksBylefttentacle) {\n            if (this.LeftTentacleProgress < 10F)\n                this.LeftTentacleProgress++;\n        } else {\n            if (this.LeftTentacleProgress > 0F)\n                this.LeftTentacleProgress--;\n        }\n\n        if (tickCount % 10 == 0) {\n            blocksByrighttentacle = checkBlocksByTentacle(1,-3)\n                    || checkBlocksByTentacle(2,-3)\n                    || checkBlocksByTentacle(3,-3)\n                    || checkBlocksByTentacle(4,-3)\n                    || checkBlocksByTentacle(5,-3);\n            blocksBylefttentacle = checkBlocksByTentacle(1,3)\n                    || checkBlocksByTentacle(2,3)\n                    || checkBlocksByTentacle(3,3)\n                    || checkBlocksByTentacle(4,3)\n                    || checkBlocksByTentacle(5,3);\n\n        }\n\n        if (this.portalTarget != null && this.portalTarget.getLifespan() < 5) {\n            this.portalTarget = null;\n        }\n        if (teleportPos != null) {\n            this.setPos(teleportPos.x, teleportPos.y, teleportPos.z);\n            teleportPos = null;\n        }\n        if (makePortalCooldown > 0) {\n            makePortalCooldown--;\n        }\n\n        if (hunting_cooldown > 0) {\n            hunting_cooldown--;\n        }\n\n        if (bite_cooldown > 0) {\n            bite_cooldown--;\n        }\n\n        if (melee_cooldown > 0) {\n            melee_cooldown--;\n        }\n\n\n        if (!this.isNoAi()) {\n            if (this.getAnimation() == NO_ANIMATION && !this.getMeltDown() && this.isMeltDown() && this.isAlive()) {\n                this.setAnimation(LEVIATHAN_PHASE2);\n            }\n            if(this.getAnimation() == NO_ANIMATION &&  this.getTarget() !=null) {\n                if (Math.abs(xo - this.getX()) < 0.01F && Math.abs(yo - this.getY()) < 0.01F && Math.abs(zo - this.getZ()) < 0.01F) {\n                    waterstillTicks++;\n                } else {\n                    waterstillTicks = 0;\n                }\n                if (waterstillTicks > 40 && makePortalCooldown == 0) {\n                    createStuckPortal();\n                }\n            }\n            if (!this.level().isClientSide) {\n                if (this.destroyBlocksTick > 0) {\n                    --this.destroyBlocksTick;\n                    if (this.destroyBlocksTick == 0){\n                        if(CMCommonConfig.Leviathan.ignoreMobGriefing){\n                            blockbreak(0.5D,0.5D,0.5D);\n                        }else{\n                            if (net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.level(), this)) {\n                                blockbreak(0.5D,0.5D,0.5D);\n                            }\n                        }\n                    }\n                }\n                if(mode ==AttackMode.MELEE) {\n                    if (CMCommonConfig.Leviathan.ignoreMobGriefing) {\n                        blockbreak2();\n                    } else {\n                        if (net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.level(), this)) {\n                            blockbreak2();\n                        }\n                    }\n                }\n            }\n            final float f17 = this.getYRot() * (float) Math.PI / 180.0F;\n            final float pitch = this.getXRot() * (float) Math.PI / 180.0F;\n            final float f3 = Mth.sin(f17) * (1 - Math.abs(this.getXRot() / 90F));\n            final float f18 = Mth.cos(f17) * (1 - Math.abs(this.getXRot() / 90F));\n            this.setPartPosition(this.headPart, f3 * -3.8F, -pitch * 3F, -f18 * -3.8F);\n            this.setPartPosition(this.tailPart1, f3 * 3.3F, -pitch * -5F, -f18 * 3.3F);\n            this.setPartPosition(this.tailPart2, f3 * 4.7F, -pitch * -8F, -f18 * 4.7F);\n            Vec3[] avector3d = new Vec3[this.leviathanParts.length];\n            for (int j = 0; j < this.leviathanParts.length; ++j) {\n                avector3d[j] = new Vec3(this.leviathanParts[j].getX(), this.leviathanParts[j].getY(), this.leviathanParts[j].getZ());\n            }\n            for (int l = 0; l < this.leviathanParts.length; ++l) {\n                this.leviathanParts[l].xo = avector3d[l].x;\n                this.leviathanParts[l].yo = avector3d[l].y;\n                this.leviathanParts[l].zo = avector3d[l].z;\n                this.leviathanParts[l].xOld = avector3d[l].x;\n                this.leviathanParts[l].yOld = avector3d[l].y;\n                this.leviathanParts[l].zOld = avector3d[l].z;\n            }\n\n        }\n    }"
+        },
+        {
+          "repo": "lender544/new1.20.1",
+          "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+          "path": "src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "method": "start",
+          "line": 2345,
+          "end_line": 2348,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "source_sha256": "dc3af7a939ba1b13efed51404be77d61bd0efbf9433e87ae3e4984d1801ccad1",
+          "snippet_sha256": "6c65ece9da8b754ae288ec6b3aee7b1b892d5488dbeb330dbe1fb1b6c363f4ee",
+          "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java#L2345-L2348",
+          "excerpt": "public void start() {\n            entity.getNavigation().stop();\n            super.start();\n        }"
+        },
+        {
+          "repo": "lender544/new1.20.1",
+          "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+          "path": "src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "method": "stop",
+          "line": 2350,
+          "end_line": 2356,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "source_sha256": "dc3af7a939ba1b13efed51404be77d61bd0efbf9433e87ae3e4984d1801ccad1",
+          "snippet_sha256": "d16abf420bf7414afcf375b48b5790e3cc7297134394d8c2472621d4364028bd",
+          "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java#L2350-L2356",
+          "excerpt": "public void stop() {\n            LivingEntity target = entity.getTarget();\n            if (target != null) {\n                entity.getLookControl().setLookAt(target, 30, 90);\n            }\n            super.stop();\n        }"
+        },
+        {
+          "repo": "lender544/new1.20.1",
+          "revision": "819937203e22b4fa72fdeccc6c56ad415d65eeef",
+          "path": "src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "method": "tick",
+          "line": 2358,
+          "end_line": 2365,
+          "source_local": "tools/cod4/armor-acceptance/.work/research-sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java",
+          "source_sha256": "dc3af7a939ba1b13efed51404be77d61bd0efbf9433e87ae3e4984d1801ccad1",
+          "snippet_sha256": "f00aad8954686bd8c468db572b41b24904b2edc04bc9a9ccefbfe8f7897f7466",
+          "url": "https://github.com/lender544/new1.20.1/blob/819937203e22b4fa72fdeccc6c56ad415d65eeef/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/The_Leviathan/The_Leviathan_Entity.java#L2358-L2365",
+          "excerpt": "public void tick() {\n            LivingEntity target = entity.getTarget();\n            if (target != null) {\n                if (this.entity.getAnimationTick() > 28) {\n                    entity.getLookControl().setLookAt(target, 30, 90);\n                }\n            }\n        }"
+        }
+      ]
+    },
+    {
+      "observation": "全文审阅的伤害窗口、来源归属、取消/重入消费方法；不计支持方法。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "ad50fcbf5b0d75312fd1",
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/event/ServerEvents.java",
+          "method": "onProjectileHit",
+          "line": 242,
+          "end_line": 282,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/event/ServerEvents.java",
+          "source_sha256": "745c854f1255cf6cf600c543a8d7da6b259bb6300521b17fdfee8b6581d8718b",
+          "snippet_sha256": "b94ef5c1159d7a0abe0fc7324d253a8472134f366e21e8bba51b87bf39d611d7",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/event/ServerEvents.java#L242-L282",
+          "excerpt": "@SubscribeEvent\n    public void onProjectileHit(ProjectileImpactEvent event) {\n        if (event.getRayTraceResult() instanceof EntityHitResult hitResult\n            && hitResult.getEntity() instanceof EntityEmu emu && !event.getEntity().level().isClientSide) {\n            if (event.getEntity() instanceof AbstractArrow arrow) {\n                //fixes soft crash with vanilla\n                arrow.setPierceLevel((byte) 0);\n            }\n            if ((emu.getAnimation() == EntityEmu.ANIMATION_DODGE_RIGHT || emu.getAnimation() == EntityEmu.ANIMATION_DODGE_LEFT) && emu.getAnimationTick() < 7) {\n                event.setCanceled(true);\n            }\n            if (emu.getAnimation() != EntityEmu.ANIMATION_DODGE_RIGHT && emu.getAnimation() != EntityEmu.ANIMATION_DODGE_LEFT) {\n                boolean left = true;\n                Vec3 arrowPos = event.getEntity().position();\n                Vec3 rightVector = emu.getLookAngle().yRot(0.5F * Mth.PI).add(emu.position());\n                Vec3 leftVector = emu.getLookAngle().yRot(-0.5F * Mth.PI).add(emu.position());\n                if (arrowPos.distanceTo(rightVector) < arrowPos.distanceTo(leftVector)) {\n                    left = false;\n                } else if (arrowPos.distanceTo(rightVector) > arrowPos.distanceTo(leftVector)) {\n                    left = true;\n                } else {\n                    left = emu.getRandom().nextBoolean();\n                }\n                Vec3 vector3d2 = event.getEntity().getDeltaMovement().yRot((float) ((left ? -0.5F : 0.5F) * Math.PI)).normalize();\n                emu.setAnimation(left ? EntityEmu.ANIMATION_DODGE_LEFT : EntityEmu.ANIMATION_DODGE_RIGHT);\n                emu.hasImpulse = true;\n                if (!emu.horizontalCollision) {\n                    emu.move(MoverType.SELF, new Vec3(vector3d2.x() * 0.25F, 0.1F, vector3d2.z() * 0.25F));\n                }\n                if (!event.getEntity().level().isClientSide) {\n                    if (event.getEntity() instanceof Projectile projectile) {\n                        if (projectile.getOwner() instanceof ServerPlayer serverPlayer) {\n                            AMAdvancementTriggerRegistry.EMU_DODGE.trigger(serverPlayer);\n                        }\n                    }\n                }\n                emu.setDeltaMovement(emu.getDeltaMovement().add(vector3d2.x() * 0.5F, 0.32F, vector3d2.z() * 0.5F));\n                event.setCanceled(true);\n            }\n        }\n    }"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityEmu.java",
+          "method": "tick",
+          "line": 167,
+          "end_line": 200,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityEmu.java",
+          "source_sha256": "38a264a294a96472963d8e68d170a887fdb7fd38e4e7a338b356c147686ed61e",
+          "snippet_sha256": "e5f983df1c123b688cee0d4363a00df25509d1e43e3e6b878269a51ea37d1d6b",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityEmu.java#L167-L200",
+          "excerpt": "public void tick() {\n        super.tick();\n        if (!this.level().isClientSide) {\n            if (this.getLastHurtByMob() == null && this.getTarget() == null) {\n                if (this.getDeltaMovement().lengthSqr() < 0.03D && this.getRandom().nextInt(190) == 0 && this.getAnimation() == NO_ANIMATION) {\n                    if (getRandom().nextInt(3) == 0) {\n                        this.setAnimation(ANIMATION_PUZZLED);\n                    } else if (this.onGround()) {\n                        this.setAnimation(ANIMATION_PECK_GROUND);\n                    }\n                }\n            }\n            if (revengeCooldown > 0) {\n                revengeCooldown--;\n            }\n            if (revengeCooldown <= 0 && this.getLastHurtByMob() != null && !emuAttackedDirectly) {\n                this.setLastHurtByMob(null);\n                revengeCooldown = 0;\n            }\n            LivingEntity target = getTarget();\n            if (this.isAlive() && target != null && this.getAnimation() == ANIMATION_SCRATCH && this.distanceTo(target) < 4F && (this.getAnimationTick() == 8 || this.getAnimationTick() == 15)) {\n                float f1 = this.getYRot() * Mth.DEG_TO_RAD;\n                this.setDeltaMovement(this.getDeltaMovement().add(-Mth.sin(f1) * 0.02F, 0.0D, Mth.cos(f1) * 0.02F));\n                target.knockback(0.4F, target.getX() - this.getX(), target.getZ() - this.getZ());\n                target.hurt(this.damageSources().mobAttack(this), (float) this.getAttribute(Attributes.ATTACK_DAMAGE).getBaseValue());\n            }\n        }\n        if (!this.level().isClientSide && this.isAlive() && !this.isBaby() && --this.timeUntilNextEgg <= 0) {\n            this.playSound(SoundEvents.CHICKEN_EGG, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F);\n            this.spawnAtLocation(AMItemRegistry.EMU_EGG.get());\n            this.timeUntilNextEgg = this.random.nextInt(6000) + 6000;\n        }\n        AnimationHandler.INSTANCE.updateAnimations(this);\n    }"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityEmu.java",
+          "method": "setAnimation",
+          "line": 207,
+          "end_line": 210,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityEmu.java",
+          "source_sha256": "38a264a294a96472963d8e68d170a887fdb7fd38e4e7a338b356c147686ed61e",
+          "snippet_sha256": "17cf796a38f4781f14af036e9f175077d7256c31fb1de3f21b756c24fd014886",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityEmu.java#L207-L210",
+          "excerpt": "@Override\n    public void setAnimation(Animation animation) {\n        currentAnimation = animation;\n    }"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityEmu.java",
+          "method": "getAnimation",
+          "line": 202,
+          "end_line": 205,
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityEmu.java",
+          "source_sha256": "38a264a294a96472963d8e68d170a887fdb7fd38e4e7a338b356c147686ed61e",
+          "snippet_sha256": "44bb498893f6863bc329a1dc0e42266cfc5e324a6594a08c018f52baa1c8d918",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityEmu.java#L202-L205",
+          "excerpt": "@Override\n    public Animation getAnimation() {\n        return currentAnimation;\n    }"
+        }
+      ]
+    },
+    {
+      "observation": "全文审阅的伤害窗口、来源归属、取消/重入消费方法；不计支持方法。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "d559b4f64084206ed976",
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/DeepOneEntity.java",
+          "method": "startAttackBehavior",
+          "line": 68,
+          "end_line": 91,
+          "source_local": "build/creature-reference-1000/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/DeepOneEntity.java",
+          "source_sha256": "3ee65283d18240fa43530f420722b2cb993ac5f92ff0030a95bc9c4fe9abfe0b",
+          "snippet_sha256": "95a0a4d4953384081e78d17ae37b18e7a81093ff5fb1e14283764415b026ac6c",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/DeepOneEntity.java#L68-L91",
+          "excerpt": "@Override\n    public void startAttackBehavior(LivingEntity target) {\n        double dist = this.distanceTo(target);\n        float f = this.getBbWidth() + target.getBbWidth();\n        if (dist < f + 1.0D) {\n            if (this.getAnimation() == IAnimatedEntity.NO_ANIMATION) {\n                setAnimation(this.getRandom().nextBoolean() ? ANIMATION_SCRATCH : ANIMATION_BITE);\n                this.playSound(ACSoundRegistry.DEEP_ONE_ATTACK.get());\n            }\n        }\n        if (dist > f + 4) {\n            this.getNavigation().moveTo(target, 1.3D);\n        }\n        if (this.getAnimation() == ANIMATION_SCRATCH) {\n            if (this.getAnimationTick() > 5 && this.getAnimationTick() < 9 || this.getAnimationTick() > 12 && this.getAnimationTick() < 16) {\n                checkAndDealMeleeDamage(target, 1.0F);\n            }\n        }\n        if (this.getAnimation() == ANIMATION_BITE) {\n            if (this.getAnimationTick() > 3 && this.getAnimationTick() <= 7) {\n                checkAndDealMeleeDamage(target, 1.0F);\n            }\n        }\n    }"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/DeepOneBaseEntity.java",
+          "method": "checkAndDealMeleeDamage",
+          "line": 592,
+          "end_line": 594,
+          "source_local": "build/creature-reference-1000/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/DeepOneBaseEntity.java",
+          "source_sha256": "2485f3f53231a1966ba81304ac23e98de5954247f2259a3dae556ba56ed35d9c",
+          "snippet_sha256": "5c1ecbbba1efac1b6bf4f9c7631aa1d7414aff1d7a795396621634f2ef8a2626",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/DeepOneBaseEntity.java#L592-L594",
+          "excerpt": "protected void checkAndDealMeleeDamage(LivingEntity target, float multiplier) {\n        checkAndDealMeleeDamage(target, multiplier, 0.25F);\n    }"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/DeepOneBaseEntity.java",
+          "method": "checkAndDealMeleeDamage",
+          "line": 596,
+          "end_line": 607,
+          "source_local": "build/creature-reference-1000/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/DeepOneBaseEntity.java",
+          "source_sha256": "2485f3f53231a1966ba81304ac23e98de5954247f2259a3dae556ba56ed35d9c",
+          "snippet_sha256": "d537fe65231b48ca7ff99c9bf753339b2b37a9663915728ec71bcb3cc183a847",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/DeepOneBaseEntity.java#L596-L607",
+          "excerpt": "protected void checkAndDealMeleeDamage(LivingEntity target, float multiplier, float knockback) {\n        if (this.hasLineOfSight(target) && this.distanceTo(target) < this.getBbWidth() + target.getBbWidth() + 5.0D) {\n            float f = (float) this.getAttribute(Attributes.ATTACK_DAMAGE).getValue() * multiplier;\n            target.hurt(damageSources().mobAttack(this), f);\n            target.knockback(knockback * multiplier, this.getX() - target.getX(), this.getZ() - target.getZ());\n            Entity entity = target.getVehicle();\n            if (entity != null) {\n                entity.setDeltaMovement(target.getDeltaMovement());\n                entity.hurt(damageSources().mobAttack(this), f);\n            }\n        }\n    }"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/DeepOneAttackGoal.java",
+          "method": "canUse",
+          "line": 19,
+          "end_line": 22,
+          "source_local": "build/creature-reference-1000/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/DeepOneAttackGoal.java",
+          "source_sha256": "351e59567dd0312b607df5704760993862bb111efb8b21540b7b0c0a52ecaebb",
+          "snippet_sha256": "92579fa8dd69cbb579c1d3d1037583ca00b12e495ad2a3705b7dab5759db1374",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/DeepOneAttackGoal.java#L19-L22",
+          "excerpt": "@Override\n    public boolean canUse() {\n        return deepOne.getTarget() != null && deepOne.getTarget().isAlive() && !deepOne.isTradingLocked();\n    }"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/DeepOneAttackGoal.java",
+          "method": "stop",
+          "line": 24,
+          "end_line": 28,
+          "source_local": "build/creature-reference-1000/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/DeepOneAttackGoal.java",
+          "source_sha256": "351e59567dd0312b607df5704760993862bb111efb8b21540b7b0c0a52ecaebb",
+          "snippet_sha256": "1839189cc5b8bf6972421b42d979861d4b1280f7876d39679e7f9e3a96993d25",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/DeepOneAttackGoal.java#L24-L28",
+          "excerpt": "@Override\n    public void stop(){\n        super.stop();\n        deepOne.setSoundsAngry(false);\n    }"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/DeepOneAttackGoal.java",
+          "method": "tick",
+          "line": 30,
+          "end_line": 40,
+          "source_local": "build/creature-reference-1000/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/DeepOneAttackGoal.java",
+          "source_sha256": "351e59567dd0312b607df5704760993862bb111efb8b21540b7b0c0a52ecaebb",
+          "snippet_sha256": "4cf3d897bcc01bf4d4085ea866fa70c0d0ecf76548952397c7e472e465dc17a5",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/DeepOneAttackGoal.java#L30-L40",
+          "excerpt": "public void tick() {\n        LivingEntity target = deepOne.getTarget();\n        if (target != null) {\n            deepOne.getLookControl().setLookAt(target.getX(), target.getEyeY(), target.getZ(), 20.0F, (float) deepOne.getMaxHeadXRot());\n            deepOne.startAttackBehavior(target);\n            deepOne.setSoundsAngry(true);\n            if(deepOne.distanceTo(target) <= 16){\n                SubmarineEntity.alertSubmarineMountOf(target);\n            }\n        }\n    }"
+        }
+      ]
+    },
+    {
+      "observation": "全文审阅的伤害窗口、来源归属、取消/重入消费方法；不计支持方法。",
+      "additional_credit": 0,
+      "nodes": [
+        {
+          "candidate_id": "eb4f0e96ca3193edeab0",
+          "repo": "AlexModGuy/Ice_and_Fire",
+          "revision": "02b2922003cbce3c67dad55dfea79acf1721e0db",
+          "path": "src/main/java/com/github/alexthe666/iceandfire/entity/IafDragonLogic.java",
+          "method": "updateDragonAttack",
+          "line": 445,
+          "end_line": 474,
+          "source_local": "build/creature-reference-1000/AlexModGuy__Ice_and_Fire/src/main/java/com/github/alexthe666/iceandfire/entity/IafDragonLogic.java",
+          "source_sha256": "d56ee2dd3ab34cf5979434346ff229c0ad9ba9e59d279072f055bb554df88a19",
+          "snippet_sha256": "1618ec1495e694cd247a95584de5339247e645535f5b61cf0250e2cbe523593d",
+          "url": "https://github.com/AlexModGuy/Ice_and_Fire/blob/02b2922003cbce3c67dad55dfea79acf1721e0db/src/main/java/com/github/alexthe666/iceandfire/entity/IafDragonLogic.java#L445-L474",
+          "excerpt": "public void updateDragonAttack() {\n        Player ridingPlayer = dragon.getRidingPlayer();\n        if (dragon.isPlayingAttackAnimation() && dragon.getTarget() != null && dragon.hasLineOfSight(dragon.getTarget())) {\n            LivingEntity target = dragon.getTarget();\n            final double dist = dragon.distanceTo(target);\n            if (dist < dragon.getRenderSize() * 0.2574 * 2 + 2) {\n                if (dragon.getAnimation() == EntityDragonBase.ANIMATION_BITE) {\n                    if (dragon.getAnimationTick() > 15 && dragon.getAnimationTick() < 25) {\n                        attackTarget(target, ridingPlayer, (int) dragon.getAttribute(Attributes.ATTACK_DAMAGE).getValue());\n                        dragon.usingGroundAttack = dragon.getRandom().nextBoolean();\n                        dragon.randomizeAttacks();\n                    }\n                } else if (dragon.getAnimation() == EntityDragonBase.ANIMATION_TAILWHACK) {\n                    if (dragon.getAnimationTick() > 20 && dragon.getAnimationTick() < 30) {\n                        attackTarget(target, ridingPlayer, (int) dragon.getAttribute(Attributes.ATTACK_DAMAGE).getValue());\n                        target.knockback(dragon.getDragonStage() * 0.6F, Mth.sin(dragon.getYRot() * 0.017453292F), -Mth.cos(dragon.getYRot() * 0.017453292F));\n                        dragon.usingGroundAttack = dragon.getRandom().nextBoolean();\n                        dragon.randomizeAttacks();\n                    }\n                } else if (dragon.getAnimation() == EntityDragonBase.ANIMATION_WINGBLAST) {\n                    if ((dragon.getAnimationTick() == 15 || dragon.getAnimationTick() == 25 || dragon.getAnimationTick() == 35)) {\n                        attackTarget(target, ridingPlayer, (int) dragon.getAttribute(Attributes.ATTACK_DAMAGE).getValue());\n                        target.knockback(dragon.getDragonStage() * 0.6F, Mth.sin(dragon.getYRot() * 0.017453292F), -Mth.cos(dragon.getYRot() * 0.017453292F));\n                        dragon.usingGroundAttack = dragon.getRandom().nextBoolean();\n                        dragon.randomizeAttacks();\n                    }\n                }\n            }\n        }\n    }"
+        },
+        {
+          "repo": "AlexModGuy/Ice_and_Fire",
+          "revision": "02b2922003cbce3c67dad55dfea79acf1721e0db",
+          "path": "src/main/java/com/github/alexthe666/iceandfire/entity/IafDragonLogic.java",
+          "method": "attackTarget",
+          "line": 283,
+          "end_line": 288,
+          "source_local": "build/creature-reference-1000/AlexModGuy__Ice_and_Fire/src/main/java/com/github/alexthe666/iceandfire/entity/IafDragonLogic.java",
+          "source_sha256": "d56ee2dd3ab34cf5979434346ff229c0ad9ba9e59d279072f055bb554df88a19",
+          "snippet_sha256": "34e7b1097123c69d3809abde7dddb6589b4ffd7d584a5e83877f447a50e76b5e",
+          "url": "https://github.com/AlexModGuy/Ice_and_Fire/blob/02b2922003cbce3c67dad55dfea79acf1721e0db/src/main/java/com/github/alexthe666/iceandfire/entity/IafDragonLogic.java#L283-L288",
+          "excerpt": "public void attackTarget(Entity target, Player ridingPlayer, float damage) {\n        if (ridingPlayer == null)\n            target.hurt(DamageSource.mobAttack(dragon), damage);\n        else\n            target.hurt(DamageSource.indirectMobAttack(dragon, ridingPlayer), damage);\n    }"
+        }
+      ]
+    }
+  ]
+}

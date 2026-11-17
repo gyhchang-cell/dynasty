@@ -1,0 +1,50 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.item.tool;
+
+import com.klikli_dev.modonomicon.item.ModonomiconCustomItemBase;
+import com.klikli_dev.occultism.Occultism;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemInstance;
+import net.minecraft.world.item.ItemStackTemplate;
+import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+
+public class GuideBookItem extends ModonomiconCustomItemBase {
+
+    public static final Identifier DICTIONARY_OF_SPIRITS = Identifier.fromNamespaceAndPath(Occultism.MODID, "dictionary_of_spirits");
+
+    public GuideBookItem(Properties properties) {
+        super(DICTIONARY_OF_SPIRITS, properties);
+    }
+
+    @Override
+    public @Nullable ItemStackTemplate getCraftingRemainder(@NonNull ItemInstance instance) {
+        DataComponentPatch componentPatch = instance.has(DataComponents.CUSTOM_NAME) ?
+                DataComponentPatch.builder().set(DataComponents.CUSTOM_NAME, instance.get(DataComponents.CUSTOM_NAME)).build() :
+                DataComponentPatch.EMPTY;
+        return new ItemStackTemplate(this, componentPatch);
+    }
+}

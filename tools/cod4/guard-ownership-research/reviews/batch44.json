@@ -1,0 +1,92 @@
+[
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/MobEntityMixin.java",
+    "method": "onSetTarget",
+    "start": 25,
+    "observation": "setTarget尾部注入发现村民/守卫遭锁定时，向附近空目标守卫转派攻击者；铁傀儡以守卫为目标时清空。",
+    "application": "外部Mixin也能直接setTarget，必须在最终伤害边界维持归属安全。",
+    "limits": "循环内IRON_GOLEM判断用的是this攻击者类型而非候选mobEntity，不能概括为仅守卫与傀儡接收；只静态研究不照搬。 协调GuardVillagers候选0，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/GuardEntity.java",
+    "method": "getOwner",
+    "start": 352,
+    "observation": "以持久UUID查当前世界玩家，并按followHero配置及村庄英雄状态解析有效owner；IllegalArgumentException时返回空。",
+    "application": "持久身份和当前可用owner不是同一概念，应在攻击时重新解析有效关系。",
+    "limits": "这是英雄跟随机制，不是王朝装备租约；不导入英雄状态门槛。 协调GuardVillagers候选1，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/GuardEntity.java",
+    "method": "tryAttack",
+    "start": 376,
+    "observation": "踢击时先向传入活体施加击退、发状态并转头，损耗武器后才调用super.tryAttack。",
+    "application": "最终伤害拒绝还须放在击退/动作/耐久副作用之前，不能仅让末尾hurt返回false。",
+    "limits": "方法内没有owner过滤，是相关反例；强转LivingEntity依赖上游，不保证任意Entity参数安全。 协调GuardVillagers候选2，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/GuardEntity.java",
+    "method": "initGoals",
+    "start": 579,
+    "observation": "同时注册近战/弓弩、村庄保护、报复、主人受击/攻击、怪物分类及愤怒玩家目标选择器。",
+    "application": "逐入口枚举选敌通道，改一个最近玩家选择器不能保证所有赋目标路径都安全。",
+    "limits": "配置会启用不同分支；只研究分层入口，不为王朝新增村庄愤怒或PVP。 协调GuardVillagers候选3，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/GuardEntity.java",
+    "method": "canTarget",
+    "start": 711,
+    "observation": "统一canTarget同时拒绝黑名单、英雄、owner、村民、铁傀儡和其他守卫，再走super。",
+    "application": "在统一候选谓词中硬拒绝归属和同盟，比只在AI尾部清目标更完整。",
+    "limits": "目标为null时此实现先解引用，王朝实现需自己处理空/死亡/过期，不照抄。 协调GuardVillagers候选5，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/GuardEntity.java",
+    "method": "setTarget",
+    "start": 735,
+    "observation": "setTarget遇守卫、村民、铁傀儡直接返回；其他对象和null才调用super。",
+    "application": "直接目标赋值也可加防线，尤其防外部事件绕过选择器。",
+    "limits": "拒绝赋值不等于清旧目标；这里没拒绝owner/英雄，不能视作完整归属策略。 协调GuardVillagers候选6，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/GuardEntity.java",
+    "method": "canStart",
+    "start": 930,
+    "observation": "遍历近邻村民对玩家的声望，低于配置阈值记为目标；最终排除英雄、旁观和创造玩家。",
+    "application": "获取玩家目标需明示原因与过滤，不应把附近玩家无条件当敌人。",
+    "limits": "这是村庄声望政策，王朝不新增该政策；villageAggressorTarget未在本方法开头清空，不能假设每轮完全重新选择。 协调GuardVillagers候选7，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/RangedCrossbowAttackPassiveGoal.java",
+    "method": "stop",
+    "start": 60,
+    "observation": "弩AI停止时清attacking、target、seeTime；若使用物品则停止并取消charging，恢复站立姿态。",
+    "application": "目标/蓄力/姿态等残余状态要一起清理，不能只删target引用。",
+    "limits": "没有在本方法重置crossbowState枚举或清已装填NBT，不能声称完整清空每种装填状态。 协调GuardVillagers候选11，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/RangedCrossbowAttackPassiveGoal.java",
+    "method": "tick",
+    "start": 83,
+    "observation": "弩AI管理UNCHARGED/CHARGING/CHARGED/READY状态；检测友军阻挡且配置启用时先取消使用/充能、重定位并退回未蓄状态。",
+    "application": "在发射前处理友军安全和动作取消，避免先射击再下周期清目标。",
+    "limits": "此配置分支按原文friendlyFire真启用，不能凭名称反推配置含义；未运行上游或复制其机制。 协调GuardVillagers候选12，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  },
+  {
+    "repo": "mrsterner/GuardVillagers",
+    "file": "/GuardFollowPacket.java",
+    "method": "handle",
+    "start": 23,
+    "observation": "服务端按玩家当前世界的实体ID取守卫，切换follow并用实际连接玩家UUID重写owner。",
+    "application": "身份应来自真实发送者，不能信任包内伪造UUID；也要检查实体操作权限和范围。",
+    "limits": "本方法未验证既有owner/距离，不能称安全网络授权范例；read/write/getType包装不计。 协调GuardVillagers候选14，独立完整阅读与语义复核；Yarn概念参考不复制。"
+  }
+]

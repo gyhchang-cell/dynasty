@@ -1,0 +1,69 @@
+package mekanism.common.integration.crafttweaker.recipe.manager;
+
+import com.blamejared.crafttweaker.api.annotation.ZenRegister;
+import com.blamejared.crafttweaker.api.fluid.CTFluidIngredient;
+import com.blamejared.crafttweaker.api.fluid.IFluidStack;
+import mekanism.api.recipes.FluidToFluidRecipe;
+import mekanism.api.recipes.basic.BasicEvaporatingRecipe;
+import mekanism.api.recipes.basic.BasicFluidToFluidRecipe;
+import mekanism.api.recipes.vanilla_input.SingleFluidRecipeInput;
+import mekanism.common.integration.crafttweaker.CrTConstants;
+import mekanism.common.integration.crafttweaker.CrTUtils;
+import mekanism.common.recipe.IMekanismRecipeTypeProvider;
+import mekanism.common.recipe.MekanismRecipeType;
+import net.minecraft.util.context.ContextMap;
+import net.neoforged.neoforge.fluids.FluidStackTemplate;
+import org.openzen.zencode.java.ZenCodeType;
+
+@ZenRegister
+@ZenCodeType.Name(CrTConstants.CLASS_RECIPE_MANAGER_FLUID_TO_FLUID)
+public abstract class FluidToFluidRecipeManager extends MekanismRecipeManager<SingleFluidRecipeInput, FluidToFluidRecipe<?, ?>> {
+
+    protected FluidToFluidRecipeManager(IMekanismRecipeTypeProvider<SingleFluidRecipeInput, FluidToFluidRecipe<?, ?>, ?> recipeType) {
+        super(recipeType);
+    }
+
+    /// Adds a recipe that converts a fluid into another fluid.
+    ///
+    /// If this is called from the evaporating recipe manager, this will be an evaporating recipe and able to be processed in a thermal evaporation plant.
+    ///
+    /// @param name   Name of the new recipe.
+    /// @param input  [CTFluidIngredient] representing the input of the recipe.
+    /// @param output [IFluidStack] representing the output of the recipe.
+    @ZenCodeType.Method
+    public void addRecipe(String name, CTFluidIngredient input, IFluidStack output) {
+        addRecipe(name, makeRecipe(input, output));
+    }
+
+    /// Creates a recipe that converts a fluid into another fluid.
+    ///
+    /// @param input  [CTFluidIngredient] representing the input of the recipe.
+    /// @param output [IFluidStack] representing the output of the recipe. Will be validated as not empty.
+    public final BasicFluidToFluidRecipe<?, ?> makeRecipe(CTFluidIngredient input, IFluidStack output) {
+        return makeRecipe(input, getAndValidateNotEmpty(output));
+    }
+
+    protected abstract BasicFluidToFluidRecipe<?, ?> makeRecipe(CTFluidIngredient input, FluidStackTemplate output);
+
+    @Override
+    protected String describeOutputs(FluidToFluidRecipe<?, ?> recipe) {
+        //TODO - CrT: ContextMap
+        return CrTUtils.describeOutputs(recipe.getOutputDefinition(ContextMap.EMPTY), IFluidStack::of);
+    }
+
+    @ZenRegister
+    @ZenCodeType.Name(CrTConstants.CLASS_RECIPE_MANAGER_EVAPORATING)
+    public static class EvaporatingRecipeManager extends FluidToFluidRecipeManager {
+
+        public static final EvaporatingRecipeManager INSTANCE = new EvaporatingRecipeManager();
+
+        private EvaporatingRecipeManager() {
+            super(MekanismRecipeType.EVAPORATING);
+        }
+
+        @Override
+        protected BasicFluidToFluidRecipe<?, ?> makeRecipe(CTFluidIngredient input, FluidStackTemplate output) {
+            return new BasicEvaporatingRecipe(, , CrTUtils.fromCrT(input), output);
+        }
+    }
+}

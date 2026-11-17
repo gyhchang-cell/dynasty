@@ -1,0 +1,18 @@
+from pathlib import Path
+import json,sys
+D=Path(__file__).resolve().parent;sys.path.insert(0,str(D.parent));import record_source_methods as M
+def rec(repo,p,n,i=0):
+ r=M.record(repo,p,n,i,'CONTEXT_ONLY_NO_COUNT','完整读取的方法上下文；不计独立参考。');r['reviewMode']='READ_SOURCE_CONTEXT_NO_COUNT';return r
+def exc(r,note,ctx=[]):
+ r.update(targetScope='EXCLUDED',reviewMode='READ_SOURCE_EXCLUDED_NO_COUNT',countsTowardReferenceGate=False,observation=note,callContext=ctx);return r
+out=[];repo='TeamTwilight/twilightforest';p='src/main/java/twilightforest/client/TextureGeneratorReloadListener.java'
+out.append(exc(rec(repo,p,'generate'),'完整读取TextureGeneratorReloadListener全类：为箱船从vanillaChestBoat填补TF纹理的固定图窗。检测下部48x38窗口是否全0x00000000，非零透明RGB也会阻止回填；按图宽/128的整数scale取像素，默认要求宽高/比例兼容但方法不验证，小于128可能出现0scale，非整除倍率不精确。若vanilla分辨率大则以其拷贝作新底并nearest拷TF上部102x52，否则只填下窗；保留tfContents metadata，newImage分支close原tfImage。onReload只首次register，后续registered早退不等于纹理永不重载，因为ReloadableTexture仍归TextureManager；具体框架reload机制本轮未读，不作相反断言。范围是箱船，不为武器/纹章/盔甲技术门槛贡献信用；不按像素窗口/分辨率分支凑独立实例。',[rec(repo,p,n) for n in ['onResourceManagerReload','getTextureLocation','loadContents']]))
+repo='iron431/irons-spells-n-spellbooks';pre='src/main/java/io/redspace/ironsspellbooks/render/';p=pre+'SpectralItemModel.java'
+out.append(exc(rec(repo,p,'getRenderTypes'),'完整读取SpectralItemModel：所有quads、transform、particle、override均转发original，只用getRenderTypes换成RenderHelper.CustomerRenderType.magic(block atlas)。没有新UV、像素合成或独立纹样。魔法渲染层具体shader与实际创建/注册调用本轮未读，不能按类名声称透明/发光/动画一定怎样，更不能称武器身份已实现。',[rec(repo,p,'getQuads'),rec(repo,p,'getOverrides')]))
+p=pre+'NBTOverrideItemModel.java'
+out.append(exc(rec(repo,p,'resolve'),'完整读取NBTOverrideItemModel全类：构造匿名ItemOverrides由抽象getModelFromStack返回Optional定位ResourceManager已烘焙standalone模型；empty回original，非empty直接返回查询模型，missing检测与fallback代码被注释掉。匿名ModelBaker诸入口直接null，不能当正常bake实现。无新UV展开/物品构图，抽象NBT取路径正文不在此类，本轮未读具体子类/模型注册，也未证明所有NBT键/世界变化缓存安全，不按数据驱动换整模型再计纹样实现。',[rec(repo,p,'NBTOverrideItemModel')]))
+repo='Sweenus/SimplySwords';p='common/src/main/java/net/sweenus/simplyswords/client/renderer/FurnaceChainVisualEntityRenderer.java'
+r=rec(repo,p,'renderChain');r.update(targetScope='PENDING_NO_COUNT',reviewMode='READ_SOURCE_PENDING_NO_COUNT',countsTowardReferenceGate=False)
+r['observation']='完整读取FurnaceChainVisualEntityRenderer全类。潜在不同点是武器侧锚点→目标胸部间28段下垂链，link奇偶交换局部widthAxis，热量减少抛物下垂并增波动；pulseStartAge定位10tick单次沿链传播的头，按link中点求前.75/后5link非对称smoothstep包络，首尾1.25tick再fade；同一个pulse同时改变暗底、细边、发光宽度和颜色，不是全链同步闪。SNAP按transitionAge10tick把end收向start并整体fade。与已有常宽beam/历史条带有可辨状态组合，但实际FurnaceChainVisualEntity及pulse/heat/mode数据生产与同步正文未缓存，本地仅有renderer注册名可查，不能凭实体getter名证明事件对应或一次真实攻击。暂作待补链，学校/皇权身份适用未定，零计数；28段、奇偶轴、dark/glow两pass、各mode均不拆信用。渲染的是细条组合不是中空真实铁环，所有white texture采样(0.5,.5)不生成纹样UV。weaponSideAnchor按yaw固定右侧，未检查主副手/骨骼，不可称真实武器握点；每段独算局部轴，未平行传输，弯曲/反向轴稳定性未验。未生产资产/运行游戏。'
+r['callContext']=[rec(repo,p,n) for n in ['render','renderPass','renderBrand','renderCore','renderFinale','weaponSideAnchor','lerpedPosition','horizontalPerpendicular','pulseIntensity','drawRibbon','drawEmissiveRibbon','drawEmissiveQuad','putDarkVertex','putGlowVertex','drawBrokenRing','drawSolidRing','drawVerticalEmbers','drawFlare','lerpChannel','heatRed','heatGreen','easeOutCubic','shouldRender']]
+(D/'batch-014.json').write_text(json.dumps({'reviewed':0,'rows':[],'excluded':out,'pending':[r],'parentReview':{'status':'THREE_FRESH_SCOPE_WRAPPER_EXCLUSIONS_ONE_UNBOUND_CHAIN_NOTE','newImplementations':0,'newExclusions':3,'newPendingIncomplete':1,'mainLedgerUpdated':False,'productionChanges':False,'networkRequests':0}},ensure_ascii=False,indent=2)+'\n');print('batch014 three exclusions one incomplete chain')

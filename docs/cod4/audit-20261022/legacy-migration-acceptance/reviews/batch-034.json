@@ -1,0 +1,49 @@
+[
+  {
+    "candidate_id": "ddf07698c3631c381fb5",
+    "status": "accepted",
+    "family": "iceandfire-myrmex-hive-player-reputation-legacy-name-identity",
+    "trigger": "MyrmexHive.readVillageDataFromNBT then reputation-gated trading/command",
+    "input": "hive UUID, owner, members/room topology and Players UUID-or-legacy-Name reputation scores",
+    "output": "clears owned collections then restores; UUID records preferred, legacy Name converted using profile/offline UUID path",
+    "preservation": "Full read/write pair, findUUID/get/modify reputation and trade/command/fight thresholds read. Reputation is game-earned shared colony state, independent of ephemeral player instance. Owner modification forces100; ordinary updates clamp0..100. Whole hive owner1, room lists support not separate migration counts.",
+    "application_limit": "Actual load does not clamp saved scores. WanderRadius INT writer but hasUUID guard prevents normal restoration. findUUID fallback world==null gives offline UUID, not verified online-account migration; nonnull branch conditional appears reversed (profile present offline, absent get). Invalid member/hive UUID can abort. Do not silently reassign Dynasty account identity.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "20c0985d69e0ec7ee7f7",
+    "status": "accepted",
+    "family": "native-player-advancements-versioned-disk-progress-and-reward-transition",
+    "trigger": "PlayerAdvancements.load/save and award/revoke/startProgress/listener methods",
+    "input": "player JSON keyed advancement IDs with timestamped criteria and DataVersion default1343",
+    "output": "DataFixTypes.ADVANCEMENTS upgrade before parse; resolved definitions update criteria requirements without awarding ordinary completed rewards",
+    "preservation": "Full load/save, award/revoke/startProgress/checkForAutomaticTriggers/register/unregister listeners read. Done transition requires !previousDone && nowDone to grant normal advancement rewards; restored progress binds directly. Fields within same advancement persistence chain not individual credits.",
+    "application_limit": "Unknown advancement IDs are logged then omitted, subsequent save drops them; parse/io error logs rather than preserving opaque unknown data. Empty-criteria automatic branch explicitly grants rewards on load and is exception to no replay. Save writes direct file, no atomic backup proven. Native format reference only, cannot map legacy dq task IDs automatically.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "f729a1f0541352b2eefa",
+    "status": "accepted",
+    "family": "create-train-owned-vehicle-identity-and-dimension-passenger-recovery",
+    "trigger": "Train.read/write with Carriage read/write/manageEntities",
+    "input": "train owner/id, carriages/spacings, serialized entity/passenger seat payloads, dimensions and graph/station links",
+    "output": "fresh train constructed with stored owner and physical carriages; station reservation rebound after load; serialized entity copied",
+    "preservation": "Full train pair, carriage pair and dimensional read/write, manageEntities and carriage contraption pair read. Live passenger saveAsPassenger results stored per seat; retained serialized passengers merged; missing graph represented null. This substantive owned vehicle reconstruction counts1, carriage helpers0. ScheduleRuntime separately owns instruction completion and is not included in this credit.",
+    "application_limit": "Malformed passenger Seat key substring/Integer.valueOf unguarded; reserved/occupied UUID getters unguarded. Carriage storage underlying implementation and native entity re-add transaction not fully traced: no claim all cargo/seat respawns lossless. Multiple dimensional reads share storage owner; boundaries retained.",
+    "supporting_candidates": [
+      "d61410b08dbe61819e0b",
+      "9f4a6682acfce5627d2e"
+    ]
+  },
+  {
+    "candidate_id": "f550ae474ff8a10de96f",
+    "status": "accepted",
+    "family": "create-schedule-instruction-and-condition-completion-resume",
+    "trigger": "ScheduleRuntime.read/write then tick/tickConditions/checkEndOfScheduleReached",
+    "input": "schedule definition, current entry, completion/paused flags, per-condition progress/context, prediction times",
+    "output": "reset stale owner before restore; currentEntry lower bounded0; transit prediction array restored only when entry count matches",
+    "preservation": "Full reset/persistence pair and tick, destinationReached, tickConditions, setSchedule/checkEnd methods read. Restored progress skips already fulfilled wait conditions, retains condition-specific context; noncyclic schedule marks paused+completed at end. Independent itinerary progress owner, not train identity wrapper; no credit per condition field.",
+    "application_limit": "conditionProgress/context lengths not checked against restored definition, possible index failure. Only lower bound current entry; setSchedule new input clamps differently. Prediction data mismatched uses TBD rather than discarding completion. Combat cooldowns are not analogous permanent player fields.",
+    "supporting_candidates": []
+  }
+]

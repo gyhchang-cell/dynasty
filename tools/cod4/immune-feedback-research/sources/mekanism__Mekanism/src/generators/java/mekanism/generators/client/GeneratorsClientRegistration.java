@@ -1,0 +1,145 @@
+package mekanism.generators.client;
+
+import mekanism.api.gear.IClientModuleHelper;
+import mekanism.client.ClientRegistrationUtil;
+import mekanism.common.inventory.container.tile.MekanismTileContainer;
+import mekanism.generators.client.gui.GuiBioGenerator;
+import mekanism.generators.client.gui.GuiFissionReactor;
+import mekanism.generators.client.gui.GuiFissionReactorLogicAdapter;
+import mekanism.generators.client.gui.GuiFissionReactorStats;
+import mekanism.generators.client.gui.GuiFusionReactorController;
+import mekanism.generators.client.gui.GuiFusionReactorFuel;
+import mekanism.generators.client.gui.GuiFusionReactorHeat;
+import mekanism.generators.client.gui.GuiFusionReactorLogicAdapter;
+import mekanism.generators.client.gui.GuiFusionReactorStats;
+import mekanism.generators.client.gui.GuiGasGenerator;
+import mekanism.generators.client.gui.GuiHeatGenerator;
+import mekanism.generators.client.gui.GuiIndustrialTurbine;
+import mekanism.generators.client.gui.GuiSolarGenerator;
+import mekanism.generators.client.gui.GuiTurbineStats;
+import mekanism.generators.client.gui.GuiWindGenerator;
+import mekanism.generators.client.model.GeneratorsModelCache;
+import mekanism.generators.client.model.ModelTurbine;
+import mekanism.generators.client.render.RenderBioGenerator;
+import mekanism.generators.client.render.RenderFissionReactor;
+import mekanism.generators.client.render.RenderFusionReactor;
+import mekanism.generators.client.render.RenderIndustrialTurbine;
+import mekanism.generators.client.render.RenderTurbineRotor;
+import mekanism.generators.client.render.RenderWindGenerator;
+import mekanism.generators.client.render.item.RenderWindGeneratorItem;
+import mekanism.generators.common.MekanismGenerators;
+import mekanism.generators.common.registries.GeneratorsBlocks;
+import mekanism.generators.common.registries.GeneratorsContainerTypes;
+import mekanism.generators.common.registries.GeneratorsFluids;
+import mekanism.generators.common.registries.GeneratorsModules;
+import mekanism.generators.common.registries.GeneratorsTileEntityTypes;
+import mekanism.generators.common.tile.TileEntityAdvancedSolarGenerator;
+import mekanism.generators.common.tile.TileEntitySolarGenerator;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.event.RegisterSpecialModelRendererEvent;
+import net.neoforged.neoforge.client.event.TextureAtlasStitchedEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+
+@EventBusSubscriber(modid = MekanismGenerators.MODID, value = Dist.CLIENT)
+public class GeneratorsClientRegistration {
+
+    private GeneratorsClientRegistration() {
+    }
+
+    @SubscribeEvent
+    public static void init(FMLClientSetupEvent event) {
+        //TODO: Eventually make use of these custom model wrappers
+        //ClientRegistration.addCustomModel(GeneratorsBlocks.FISSION_FUEL_ASSEMBLY, (orig, evt) -> new FuelAssemblyBakedModel(orig, 0.75));
+        //ClientRegistration.addCustomModel(GeneratorsBlocks.CONTROL_ROD_ASSEMBLY, (orig, evt) -> new FuelAssemblyBakedModel(orig, 0.375));
+
+        IClientModuleHelper moduleHelper = IClientModuleHelper.INSTANCE;
+        moduleHelper.addMekaSuitModuleModels(MekanismGenerators.rl("entity/mekasuit_modules"));
+        moduleHelper.addMekaSuitModuleModelSpec("solar_helmet", GeneratorsModules.SOLAR_RECHARGING_UNIT, EquipmentSlot.HEAD);
+    }
+
+    @SubscribeEvent
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(GeneratorsTileEntityTypes.BIO_GENERATOR.get(), _ -> new RenderBioGenerator());
+        event.registerBlockEntityRenderer(GeneratorsTileEntityTypes.FUSION_REACTOR_CONTROLLER.get(), _ -> new RenderFusionReactor());
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderFissionReactor(), GeneratorsTileEntityTypes.FISSION_REACTOR_CASING,
+              GeneratorsTileEntityTypes.FISSION_REACTOR_PORT, GeneratorsTileEntityTypes.FISSION_REACTOR_LOGIC_ADAPTER);
+        event.registerBlockEntityRenderer(GeneratorsTileEntityTypes.TURBINE_ROTOR.get(), RenderTurbineRotor::new);
+        ClientRegistrationUtil.bindTileEntityRenderer(event, _ -> new RenderIndustrialTurbine(), GeneratorsTileEntityTypes.TURBINE_CASING,
+              GeneratorsTileEntityTypes.TURBINE_VALVE, GeneratorsTileEntityTypes.TURBINE_VENT);
+        event.registerBlockEntityRenderer(GeneratorsTileEntityTypes.WIND_GENERATOR.get(), _ -> new RenderWindGenerator());
+    }
+
+    @SubscribeEvent
+    public static void registerLayer(EntityRenderersEvent.RegisterLayerDefinitions event) {
+        event.registerLayerDefinition(ModelTurbine.TURBINE_LAYER, ModelTurbine::createLayerDefinition);
+    }
+
+    @SuppressWarnings("Convert2MethodRef")
+    @SubscribeEvent
+    public static void registerScreens(RegisterMenuScreensEvent event) {
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.BIO_GENERATOR, GuiBioGenerator::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.GAS_BURNING_GENERATOR, GuiGasGenerator::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.HEAT_GENERATOR, GuiHeatGenerator::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.INDUSTRIAL_TURBINE, GuiIndustrialTurbine::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.FISSION_REACTOR, GuiFissionReactor::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.FISSION_REACTOR_STATS, GuiFissionReactorStats::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.FISSION_REACTOR_LOGIC_ADAPTER, GuiFissionReactorLogicAdapter::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.FUSION_REACTOR_CONTROLLER, GuiFusionReactorController::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.FUSION_REACTOR_FUEL, GuiFusionReactorFuel::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.FUSION_REACTOR_HEAT, GuiFusionReactorHeat::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.FUSION_REACTOR_LOGIC_ADAPTER, GuiFusionReactorLogicAdapter::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.FUSION_REACTOR_STATS, GuiFusionReactorStats::new);
+        // for some reason java is unable to infer the types with this generics structure, so we include constructor signature ourselves
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.SOLAR_GENERATOR, (MekanismTileContainer<TileEntitySolarGenerator> container, Inventory inv, Component title) -> new GuiSolarGenerator<>(container, inv, title));
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.ADVANCED_SOLAR_GENERATOR, (MekanismTileContainer<TileEntityAdvancedSolarGenerator> container, Inventory inv, Component title) -> new GuiSolarGenerator<>(container, inv, title));
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.TURBINE_STATS, GuiTurbineStats::new);
+        ClientRegistrationUtil.registerScreen(event, GeneratorsContainerTypes.WIND_GENERATOR, GuiWindGenerator::new);
+    }
+
+    @SubscribeEvent
+    public static void fluidModels(RegisterFluidModelsEvent event) {
+        ClientRegistrationUtil.registerFluidModels(event, GeneratorsFluids.FLUIDS);
+    }
+
+    @SubscribeEvent
+    public static void onStitch(TextureAtlasStitchedEvent event) {
+        if (!event.getAtlas().location().equals(TextureAtlas.LOCATION_BLOCKS)) {
+            return;
+        }
+        GeneratorsSpecialColors.GUI_OBJECTS.parse(MekanismGenerators.rl("textures/colormap/gui_objects.png"));
+    }
+
+    @SubscribeEvent
+    public static void registerClientExtensions(RegisterClientExtensionsEvent event) {
+        ClientRegistrationUtil.registerBlockExtensions(event, GeneratorsBlocks.BLOCKS);
+        ClientRegistrationUtil.registerFluidExtensions(event, GeneratorsFluids.FLUIDS);
+    }
+
+    @SubscribeEvent
+    public static void registerAdditionalModels(ModelEvent.RegisterStandalone event) {
+        GeneratorsModelCache.INSTANCE.setup(event);
+    }
+
+    @SubscribeEvent
+    public static void onModelBake(ModelEvent.BakingCompleted event) {
+        GeneratorsModelCache.INSTANCE.onBake(event);
+        //Reset any cached models now that the atlases are built
+        RenderWindGenerator.resetCached();
+    }
+
+    @SubscribeEvent
+    public static void specialItemRenderers(RegisterSpecialModelRendererEvent event) {
+        event.register(MekanismGenerators.rl("wind_generator_model"), RenderWindGeneratorItem.Unbaked.MAP_CODEC);
+    }
+}

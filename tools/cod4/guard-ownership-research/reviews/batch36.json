@@ -1,0 +1,188 @@
+[
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/SpellMinion.java",
+    "method": "spawnMinions",
+    "observation": "服务器逐个寻找合法落点，飞行提高2格，落点失败终止；新实体依次赋caster、寿命、伤害血量并初始化入世界。",
+    "application": "身份和寿命应在入世界前建立，不能待首帧AI后补授权。",
+    "limits": "真实召唤入口一处，属性数值与不同召唤物工厂不拆计。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/SpellMinion.java",
+    "method": "cast",
+    "observation": "发射器分支在服务器直接方块位置生成并赋寿命，addMinionExtras的caster为空，不设置caster。",
+    "application": "非玩家来源会产生无主召唤；受租守卫不应把失主解释成野生许可。",
+    "limits": "仅发射器重载，两个玩家/NPC转发spawnMinions不另计。",
+    "start": 104
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/MindControl.java",
+    "method": "onEntityHit",
+    "observation": "活体但不可控制只提示抵抗；可控制实体先找ADS合法目标，无则清空，再写控制药效；绵羊另有染色支路。",
+    "application": "身份切换时立即重选或撤目标，不应沿用原敌对目标等未来tick纠正。",
+    "limits": "完整命中入口一处，视觉粒子不计；旧1.12API只借鉴控制流。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/MindControl.java",
+    "method": "canControl",
+    "observation": "要求EntityLiving、非Boss、非INpc、非邪恶法师且注册名不在黑名单。",
+    "application": "目标资格可使用既有分类白名单，不需要新增玩家敌意系统。",
+    "limits": "实际被命中与持续重选共用的资格门，不是普通字段访问器。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/MindControl.java",
+    "method": "startControlling",
+    "observation": "仅服务端把controller UUID写实体数据并施加有期限mind_control药效。",
+    "application": "控制者与有效期是成对授权，最终攻击应能同时证明两者有效。",
+    "limits": "具体身份变更入口；通用NBT读写或药效注册不另计。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/MindControl.java",
+    "method": "findMindControlTarget",
+    "observation": "跟随距离内移除自身、坐骑、盔甲架，再按施法者ADS过滤选最近活体，成功设置目标返回true。",
+    "application": "重选范围与敌友判断分开，最近并不能替代明确目标许可。",
+    "limits": "一个完整最近目标策略，不把列表遍历和距离比较拆成多处。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/MindControl.java",
+    "method": "processTargeting",
+    "observation": "仅可控制且药效存在时解析UUID；当前目标合法保持，否则重找；失主或找不到统一清空。",
+    "application": "失效主人默认禁止攻击，缓存目标也需要复核当前控制关系。",
+    "limits": "完整回退路径一处，工具UUID查找未额外计。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/MindControl.java",
+    "method": "onLivingUpdateEvent",
+    "observation": "50tick检查受控EntityLiving，当现目标空或已死才启动重新选敌。",
+    "application": "周期修复只处理部分情况，不能取代最终伤害时的立即授权。",
+    "limits": "实际事件订阅入口；频率数值不是新的实现。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/MindControl.java",
+    "method": "onLivingSetAttackTargetEvent",
+    "observation": "仅非空目标进入processTargeting，避免清目标递归触发。",
+    "application": "在目标写入入口阻断原生AI重选，并保留清空操作的递归安全。",
+    "limits": "真实重选事件控制一处，不计事件总线基础设施。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/MindControl.java",
+    "method": "onEffectEnd",
+    "observation": "确认对应药效且EntityLiving，清attackTarget及revengeTarget两条敌意缓存。",
+    "application": "过期时不能仅清显示目标而留下报复缓存下一帧重获目标。",
+    "limits": "expiry/remove两个包装同一实现，仅接受共享清理体。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "onEntityHit",
+    "observation": "要求EntityLiving且非黑名单、玩家未附身，非创造需健康高于临界；服务器才实际possess。",
+    "application": "控制转换须检查已有控制状态与主体资格，客户端表现不能授予权限。",
+    "limits": "完整实际命中入口，具体黑名单字段getter不另计。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "possess",
+    "observation": "拒下蹲或无WizardData；记录被控实体并停其AI清目标，保存原背包；控制者继承体形属性装备并同步，附近不能攻击新物种者清目标。",
+    "application": "身份变化既影响攻击者也影响既有追击者，旧缓存关系不能继续隐式授权。",
+    "limits": "112行完整控制转换一次；属性/背包序列化基础设施不拆，用户不新增附身。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "endPossession",
+    "observation": "被控实体恢复AI并在玩家位置重入世界；控制者清状态、飞行与固定UUID属性，恢复背包，服务端广播结束。",
+    "application": "租约结束必须撤回赋予权限并恢复持有者状态，不能只将计时清零。",
+    "limits": "完整撤销交易一处，客户端shader仅随附表现不计。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "update",
+    "observation": "空计时归0；正值且仍附身未下蹲才递减，否则结束并归0；非正仍附身也结束。",
+    "application": "到期与主动取消共用撤销路径，负计时在此实现也不会无限延续。",
+    "limits": "实际注册变量更新回调；不同计时值不拆计。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "onPlayerTickEvent",
+    "observation": "START将被控者位置运动对齐玩家并在离世界状态调用onUpdate；血量耗尽结束；END覆盖玩家尺寸。",
+    "application": "被控实体即使离开世界仍可能跑原生逻辑，不能把不在实体列表当作安全。",
+    "limits": "完整控制tick一次，尺寸数学未独立计数。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "onLivingAttackEvent",
+    "observation": "玩家受到非OUT_OF_WORLD攻击且正附身时把原伤害交被控实体，再取消玩家原事件。",
+    "application": "伤害归属转交需避免原事件与转发双重命中，最终许可不应只看外观主体。",
+    "limits": "具体伤害委派边界；普通安全调用器没有据此多计。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "onLivingDamageEvent",
+    "observation": "逐玩家找possessee同一实例，非创造者承受经被控者减免后的半伤；低于临界则锁最低血并结束。",
+    "application": "多控制者判断必须比较具体绑定，不能把同种实体或共享区域当主人。",
+    "limits": "实际损伤回流并撤销控制一处，数值常量不拆。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "shootProjectile",
+    "observation": "检查控制者变量冷却为0且仍有被控者，按类型施法或结束后引爆；工厂弹道赋玩家caster，再生成并置冷却。",
+    "application": "原生输入至最终发射间要再确认控制关系，弹道需明确授权主体。",
+    "limits": "一次实际服务端发射入口，不将各工厂常量或注册器计数。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "onLivingSetAttackTargetEvent",
+    "observation": "怪将目标设为附身玩家时，以被控物种canAttackClass复核，不允许则清目标；明确不覆盖revenge事件。",
+    "application": "目标设置门有覆盖边界，最终攻击门仍必要，不能只依赖一种重选事件。",
+    "limits": "完整事件过滤一处，与MindControl的主人ADS重选语义不同。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Possession.java",
+    "method": "onAttackEntityEvent",
+    "observation": "无附身则保原行为；被控苦力怕拒近战，其他被控者若没有原生近战任务也取消。",
+    "application": "控制专用分支前先识别受控，保留非受控原行为，符合野生不变约束。",
+    "limits": "实际玩家近战入口，任务类别筛选不是新增PVP规则。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/SummonSpiritWolf.java",
+    "method": "cast",
+    "observation": "服务器先查存档UUID杀旧狼，再找落点；成功新狼赋caster和tame，升级属性回血并生成保存UUID。",
+    "application": "替换单实例先杀旧者可能在新生成失败时留下空档；generation需能拒绝旧残体。",
+    "limits": "SpiritHorse相同单实例流程仅装备/属性换常量不另计；1.12参考。",
+    "start": 40
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/Decoy.java",
+    "method": "spawnDecoy",
+    "observation": "设caster寿命和名字生成分身，附近仅原目标为caster的怪按概率改目标分身，主体与分身反向移动。",
+    "application": "旁观目标不会凭范围自动加入敌意；重定向已有仇恨与主动敌对要区分。",
+    "limits": "具体替身转移目标实现，两个cast包装不另计。"
+  },
+  {
+    "repo": "Electroblob77/Wizardry",
+    "file": "/EntityDecoy.java",
+    "method": "onUpdate",
+    "observation": "父tick之后若caster不存在或已死则setDead并走消散。",
+    "application": "父AI先跑而后清理有时间窗，最终伤害仍需独立失主门。",
+    "limits": "实际已生成替身寿命门；纯无敌常量与视觉消散不计。"
+  }
+]

@@ -64,6 +64,8 @@ class Rig:
             'description': dict(identifier='geometry.'+self.name, texture_width=16,
                 texture_height=16, visible_bounds_width=8, visible_bounds_height=6,
                 visible_bounds_offset=[0, 1.4, 0]), 'bones': self.bones}]}
+        from species_materials import finish
+        self.image = finish(self.name, geo, self.image)
         anim = {'format_version': '1.8.0', 'animations': self.animations}
         baseline = OUT/'source'/self.name
         original = json.loads((baseline/'original.animation.json').read_text())
@@ -106,7 +108,7 @@ class Rig:
             else: roots.append(groups[bone['name']])
         data=dict(meta=dict(format_version='4.10',model_format='geckolib_model',box_uv=False),
             name=self.name,model_identifier=self.name,geckolib_modid='dynasty',
-            resolution=dict(width=16,height=16),elements=elements,outliner=roots,
+            resolution=dict(width=self.image.width,height=self.image.height),elements=elements,outliner=roots,
             textures=[dict(path=str(texture),name=texture.name,id='0',uuid=uid('texture'),
                 width=16,height=16,uv_width=16,uv_height=16,
                 source='data:image/png;base64,'+base64.b64encode(texture.read_bytes()).decode())])

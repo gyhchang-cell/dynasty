@@ -1,0 +1,408 @@
+/*******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (C) 2014-2018 Sam Bassett (aka Lothrazar)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ ******************************************************************************/
+package com.lothrazar.cyclic.block.crafter;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import com.lothrazar.cyclic.block.TileBlockEntityCyclic;
+import com.lothrazar.cyclic.data.PreviewOutlineType;
+import com.lothrazar.cyclic.registry.BlockRegistry;
+import com.lothrazar.cyclic.registry.TileRegistry;
+import com.lothrazar.library.cap.EnergyStorageWrapper;
+import com.lothrazar.library.cap.ItemStackHandlerWrapper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.WorldlyContainer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.TransientCraftingContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
+import net.minecraft.core.Direction;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+
+
+@SuppressWarnings("unchecked")
+public class TileCrafter extends TileBlockEntityCyclic implements MenuProvider, WorldlyContainer {
+
+  static final int MAX = 64000;
+  public static final int TIMER_FULL = 40;
+  public static ModConfigSpec.IntValue POWERCONF;
+  private EnergyStorageWrapper energy = new EnergyStorageWrapper(MAX, MAX);
+  ItemStackHandler inputHandler = new ItemStackHandler(IO_SIZE);
+  ItemStackHandler outHandler = new ItemStackHandler(IO_SIZE);
+
+  final ItemStackHandler gridCap =  new ItemStackHandler(GRID_SIZE);
+  final ItemStackHandler preview = new ItemStackHandler(1);
+  private ItemStackHandlerWrapper inventory = new ItemStackHandlerWrapper(inputHandler, outHandler);
+
+  //
+  public static final int IO_NUM_ROWS = 5;
+  public static final int IO_NUM_COLS = 2;
+  public static final int GRID_NUM_ROWS = 3;
+  public static final int GRID_NUM_COLS = 3;
+  public static final int IO_SIZE = IO_NUM_ROWS * IO_NUM_COLS;
+  public static final int GRID_SIZE = GRID_NUM_ROWS * GRID_NUM_COLS;
+  public static final int PREVIEW_SLOT = IO_SIZE * 2 + GRID_SIZE;
+  public static final int OUTPUT_SLOT_START = IO_SIZE + GRID_SIZE;
+  public static final int OUTPUT_SLOT_STOP = OUTPUT_SLOT_START + IO_SIZE - 1;
+  public static final int GRID_SLOT_START = IO_SIZE;
+  public static final int GRID_SLOT_STOP = GRID_SLOT_START + GRID_SIZE - 1;
+
+  public enum ItemHandlers {
+    INPUT, OUTPUT, GRID, PREVIEW
+  };
+
+  public enum Fields {
+    TIMER, REDSTONE, RENDER;
+  }
+
+  public TileCrafter(BlockPos pos, BlockState state) {
+    super(TileRegistry.CRAFTER.get(), pos, state);
+    this.needsRedstone = 0;
+  }
+
+  @Override
+  public boolean canPlaceItem(int index, ItemStack stack) {
+    if (index != PREVIEW_SLOT &&
+        (index < OUTPUT_SLOT_START || index > OUTPUT_SLOT_STOP)) {
+      super.canPlaceItem(index, stack);
+    }
+    return false;
+  }
+
+  public static void serverTick(Level level, BlockPos blockPos, BlockState blockState, TileCrafter tile) {
+    tile.serverTick();
+  }
+
+  public void serverTick() {
+    //redstone phase
+    if (this.requiresRedstone() && !this.isPowered()) {
+      setLitProperty(false);
+      return;
+    }
+    //i am running
+    setLitProperty(true);
+    if (this.level.isClientSide) {
+      return;
+    }
+
+    this.syncEnergy();
+    final int cost = POWERCONF.get();
+    if (energy.getEnergyStored() < cost && cost > 0) {
+      return;
+    }
+    if (timer < 0) {
+      timer = 0;
+    }
+    RecipeHolder<CraftingRecipe> lastValidRecipe = findMatchingRecipe(null);
+    if (lastValidRecipe == null) {
+      //reset 
+      this.timer = TIMER_FULL;
+      setPreviewSlot(ItemStack.EMPTY);
+    }
+    else {
+      //recipes not null and it matches  
+      ItemStack recipeOutput = lastValidRecipe.value().getResultItem(level.registryAccess()).copy();
+      setPreviewSlot(recipeOutput);
+      //if we have space for the output, then go ahead
+      if (hasFreeSpace(outHandler, recipeOutput)) {
+        if (!checkInput(inputHandler)) { //Checks input before processing
+          this.timer = TIMER_FULL;
+          return;
+        }
+        if (--timer > 0) { //Get recipe before processing
+          return;
+        }
+        if (doCraft(lastValidRecipe)) {
+          //reset the timer
+          this.timer = TIMER_FULL;
+          //pay energy cost
+          this.energy.extractEnergy(cost, false);
+          //get the result item
+          depositOutput(recipeOutput, outHandler);
+          //stuff like empty buckets happen down here
+          CraftingInput craftingInput = CraftingInput.of(3, 3, java.util.List.of(
+        craftMatrix.getItem(0), craftMatrix.getItem(1), craftMatrix.getItem(2),
+        craftMatrix.getItem(3), craftMatrix.getItem(4), craftMatrix.getItem(5),
+        craftMatrix.getItem(6), craftMatrix.getItem(7), craftMatrix.getItem(8)
+    ));
+          NonNullList<ItemStack> rem = lastValidRecipe.value().getRemainingItems(craftingInput);
+          for (int i = 0; i < rem.size(); ++i) {
+            ItemStack s = rem.get(i);
+            if (!s.isEmpty() && s.getItem() == craftMatrix.getItem(i).getItem()) {
+              s = depositOutput(s, this.inputHandler);
+            }
+            //otherwise its something like bucket->empty bucket, so different item, so right side 
+            depositOutput(s, this.outHandler);
+          }
+          this.updateComparatorOutputLevel();
+        }
+      }
+    }
+  }
+
+  private ItemStack depositOutput(ItemStack recipeOutput, ItemStackHandler dest) {
+    if (recipeOutput.isEmpty()) {
+      return recipeOutput;
+    }
+    for (int slotId = 0; slotId < dest.getSlots(); slotId++) {
+      recipeOutput = dest.insertItem(slotId, recipeOutput, false);
+      if (recipeOutput.isEmpty()) {
+        break;
+      }
+    }
+    return recipeOutput;
+  }
+
+  private void setPreviewSlot(ItemStack itemStack) {
+    IItemHandler previewHandler = this.preview;
+    if (previewHandler != null) {
+      previewHandler.extractItem(0, 64, false);
+      previewHandler.insertItem(0, itemStack, false);
+    }
+  }
+
+  private boolean hasFreeSpace(IItemHandler inv, ItemStack output) {
+    ItemStack test = output.copy();
+    for (int slotId = 0; slotId < inv.getSlots(); slotId++) {
+      test = inv.insertItem(slotId, test, true); // simulated
+    }
+    return test.isEmpty(); //empty means all of it was allowed to go in
+  }
+
+  // This could be done better, but it works so ¯\_(ツ)_/¯
+  private boolean checkInput(IItemHandler inv) {
+
+    List<ItemStack> inputStacks = new ArrayList<ItemStack>();
+    List<ItemStack> gridStacks = new ArrayList<ItemStack>();
+    for (int i = 0; i < inv.getSlots(); i++) {
+      inputStacks.add(inv.getStackInSlot(i).copy());
+    }
+    for (int i = 0; i < this.gridCap.getSlots(); i++) {
+      gridStacks.add(this.gridCap.getStackInSlot(i).copy());
+    }
+    for (ItemStack stack : inputStacks) {
+      List<ItemStack> lolbit = new ArrayList<ItemStack>();
+      boolean match = false;
+      for (ItemStack grid : gridStacks) {
+        if (stack.getItem() == grid.getItem()) {
+          match = true;
+          lolbit.add(grid);
+          stack.shrink(1);
+        }
+      }
+      if (match) {
+        gridStacks.removeAll(lolbit);
+      }
+    }
+    return gridStacks.isEmpty();
+  }
+
+  private boolean doCraft(RecipeHolder<CraftingRecipe> lastValidRecipe) {
+    HashMap<Integer, List<ItemStack>> putbackStacks = new HashMap<>();
+    for (Ingredient ingredient : lastValidRecipe.value().getIngredients()) {
+      if (ingredient.isEmpty()) {
+        continue;
+      }
+      boolean matched = false;
+      for (int index = 0; index < inputHandler.getSlots(); index++) {
+        ItemStack itemStack = inputHandler.getStackInSlot(index);
+        if (ingredient.test(itemStack)) {
+          if (putbackStacks.containsKey(index)) {
+            putbackStacks.get(index).add(inputHandler.getStackInSlot(index).copy());
+          }
+          else {
+            List<ItemStack> list = new ArrayList<>();
+            list.add(inputHandler.getStackInSlot(index).copy());
+            putbackStacks.put(index, list);
+          }
+          matched = true;
+          inputHandler.extractItem(index, 1, false);
+          break;
+        }
+      }
+      if (!matched) {
+        putbackStacks(putbackStacks, inputHandler);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private void putbackStacks(HashMap<Integer, List<ItemStack>> putbackStacks, IItemHandler itemHandler) {
+    for (HashMap.Entry<Integer, List<ItemStack>> entry : putbackStacks.entrySet()) {
+      for (ItemStack stack : entry.getValue()) {
+        itemHandler.insertItem(entry.getKey(), stack, false);
+      }
+    }
+  }
+
+  private RecipeHolder<CraftingRecipe> findMatchingRecipe(ArrayList<ItemStack> itemStacksInGrid) {
+    for (int i = 0; i < this.gridCap.getSlots(); i++) {
+      craftMatrix.setItem(i, this.gridCap.getStackInSlot(i).copy());//fake items anyway. but also jus do a copy
+    }
+    CraftingInput craftingInput = CraftingInput.of(3, 3, java.util.List.of(
+        craftMatrix.getItem(0), craftMatrix.getItem(1), craftMatrix.getItem(2),
+        craftMatrix.getItem(3), craftMatrix.getItem(4), craftMatrix.getItem(5),
+        craftMatrix.getItem(6), craftMatrix.getItem(7), craftMatrix.getItem(8)
+    ));
+    java.util.List<RecipeHolder<CraftingRecipe>> recipes = level.getRecipeManager().getAllRecipesFor(RecipeType.CRAFTING);
+    for (RecipeHolder<CraftingRecipe> rec : recipes) {
+      if (rec.value().matches(craftingInput, level)) {
+        return rec;
+      }
+    }
+    return null;
+  }
+
+  public static class FakeContainer extends AbstractContainerMenu {
+
+    protected FakeContainer(MenuType<?> type, int id) {
+      super(type, id);
+    }
+
+    @Override
+    public boolean stillValid(Player playerIn) {
+      return true;
+    }
+
+    @Override
+    public ItemStack quickMoveStack(Player p_38941_, int p_38942_) {
+      return ItemStack.EMPTY;
+    }
+  }
+
+  private final TransientCraftingContainer craftMatrix = new TransientCraftingContainer(new FakeContainer(MenuType.CRAFTING, 18291238), 3, 3);
+
+  @Override
+  public Component getDisplayName() {
+    return BlockRegistry.CRAFTER.get().getName();
+  }
+
+  @Override
+  public AbstractContainerMenu createMenu(int i, Inventory playerInventory, Player playerEntity) {
+    return new ContainerCrafter(i, level, worldPosition, playerInventory, playerEntity);
+  }
+
+  @Override
+  public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    if (tag.contains("energy")) {
+      energy.deserializeNBT(registries, tag.get("energy"));
+    }
+    inputHandler.deserializeNBT(registries,tag.getCompound("input"));
+    outHandler.deserializeNBT(registries,tag.getCompound("output"));
+    gridCap.deserializeNBT(registries,tag.getCompound("grid"));
+    preview.deserializeNBT(registries,tag.getCompound("preview"));
+    super.loadAdditional(tag,registries);
+  }
+  @Override
+  public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+
+      tag.put("energy", energy.serializeNBT(registries));
+
+      tag.put("input", inputHandler.serializeNBT(registries));
+
+
+      tag.put("output", outHandler.serializeNBT(registries));
+
+
+      tag.put("grid", gridCap.serializeNBT(registries));
+
+
+      tag.put("preview", preview.serializeNBT(registries));
+
+    super.saveAdditional(tag,registries);
+  }
+
+  @Override
+  public int getField(int id) {
+    switch (TileCrafter.Fields.values()[id]) {
+      case TIMER:
+        return timer;
+      case REDSTONE:
+        return this.needsRedstone;
+      case RENDER:
+        return render;
+    }
+    return -1;
+  }
+
+  @Override
+  public void setField(int id, int value) {
+    switch (TileCrafter.Fields.values()[id]) {
+      case TIMER:
+        this.timer = value;
+      break;
+      case REDSTONE:
+        this.needsRedstone = value % 2;
+      break;
+      case RENDER:
+        this.render = value % PreviewOutlineType.values().length;
+      break;
+    }
+  }
+
+  @Override
+  public IItemHandler getItemHandler(Direction side) {
+    return inventory;
+  }
+
+
+  @Override
+  public IEnergyStorage getEnergyHandler(Direction side) {
+    return energy;
+  }
+
+  @Override
+  public int[] getSlotsForFace(Direction direction) {
+    return inventory.getSlotsForFace(direction);
+  }
+
+  @Override
+  public boolean canPlaceItemThroughFace(int i, ItemStack itemStack,  Direction direction) {
+    return inventory.canPlaceItemThroughFace(i, itemStack, direction);
+  }
+
+  @Override
+  public boolean canTakeItemThroughFace(int i, ItemStack itemStack, Direction direction) {
+    return inventory.canTakeItemThroughFace(i, itemStack, direction);
+  }
+}

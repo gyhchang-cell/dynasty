@@ -1,0 +1,94 @@
+--- 191-top-window/Sources/BridgeIntegration.swift
++++ 192-clear-top/Sources/BridgeIntegration.swift
+@@ -155,9 +155,11 @@
+         event.setIntegerValueField(.eventSourceUserData,value:eventMarker)
+         guard let pid=bridgeConfigPID else { return }
+         let gate=bridgeInputEpoch, token=gate.snapshot()
+-        bridgeInputQueue.async {
++        let requested=ProcessInfo.processInfo.systemUptime
++        bridgeInputQueue.async { [weak self] in
+             guard !down || (gate.accepts(token) && NSWorkspace.shared.frontmostApplication?.processIdentifier == pid) else { return }
+             event.post(tap:.cgSessionEventTap)
++            self?.traceBridge("POST mouse=\(down) queued_ms=\((ProcessInfo.processInfo.systemUptime-requested)*1000)")
+         }
+     }
+ 
+--- 191-top-window/Sources/F3Model.swift
++++ 192-clear-top/Sources/F3Model.swift
+@@ -229,3 +229,16 @@
+         blocks.compactMap{intersection(block:$0,pose:pose)}.min{$0.distance<$1.distance}
+     }
+ }
++
++// A top placement need not wait for a full block of vertical rise once the
++// body has left that column. Small clearance covers the native float width.
++extension TellyPlacement {
++    func clearOfBody(_ poses:[F3Pose]) -> Bool {
++        guard !poses.isEmpty else{return false}
++        return poses.allSatisfy { p in
++            p.x+0.301<=Double(result.x) || p.x-0.301>=Double(result.x+1) ||
++            p.z+0.301<=Double(result.z) || p.z-0.301>=Double(result.z+1) ||
++            p.y>=Double(result.y+1)+0.001 || p.y+1.8<=Double(result.y)
++        }
++    }
++}
+--- 191-top-window/Sources/TellyController.swift
++++ 192-clear-top/Sources/TellyController.swift
+@@ -107,7 +107,13 @@
+             // tick's lower body position. Do not click a new top block at the
+             // first 1.001-height frame, where placement is still obstructed.
+             let margin=abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2 ? 0.001:0.12
+-            if target.axis==1,state.velocity.1>0,pose.y<Double(b.y)+1+margin {return false}
++            if target.axis==1,state.velocity.1>0,pose.y<Double(b.y)+1+margin {
++                let diagonal=abs((route?.ux ?? 0)*(route?.uz ?? 0))>0.2
++                // Height clearance is only necessary while the body can
++                // overlap the new block. Use both logical and previous tick
++                // positions to reserve the integrated server's input delay.
++                guard diagonal, target.clearOfBody([pose,state.previousPose]) else{return false}
++            }
+             let turning=turn != nil || pendingAimPose != nil
+             let commanded=F3Pose(x:pose.x,y:pose.y,z:pose.z,yaw:turning ? issuedTurnYaw : follower?.yaw ?? pose.yaw,pitch:turning ? issuedTurnPitch : follower?.pitch ?? pose.pitch,time:pose.time)
+             let face=target.axis==1 ? "up" : target.axis==0 ? (target.sign>0 ? "east":"west") : (target.sign>0 ? "south":"north")
+@@ -154,6 +160,7 @@
+     }
+ 
+     func stop(_ reason: String) {
++        let wasRunning=phase != .idle
+         finishing=false
+         phase = .idle
+         turn=nil; follower=nil; pendingAimPose=nil; cancelPendingInput()
+@@ -163,6 +170,15 @@
+         releaseTimer?.invalidate(); releaseTimer=nil
+         if mouseDown { mouse(false); mouseDown=false }
+         message = reason
++        if wasRunning,let state=worldState {
++            let age=ProcessInfo.processInfo.systemUptime-state.pose.time
++            let yawError=abs(F3Pose.angle(state.pose.yaw-heading)),pitchError=abs(state.pose.pitch-forwardPitch)
++            let audit:[String:Any] = ["grounded":state.onGround,"yaw_error_degrees":yawError,
++                "pitch_error_degrees":pitchError,"keys_released":ownedKeys.isEmpty,"right_released":!mouseDown,
++                "safe_aligned_finish":age<0.25 && !state.flying && state.onGround && yawError<1 && pitchError<1 && ownedKeys.isEmpty && !mouseDown,
++                "pose_age_ms":(ProcessInfo.processInfo.systemUptime-state.pose.time)*1000,"reason":reason]
++            if let data=try? JSONSerialization.data(withJSONObject:audit,options:[.sortedKeys]),let json=String(data:data,encoding:.utf8) {trace("FINISH "+json)}
++        }
+     }
+ 
+     func observe(_ pose: F3Pose?, error: String, now: TimeInterval) {
+@@ -487,7 +503,7 @@
+         case .flight:
+             keys(finishing ? [config.sneak] : flightCoast ? []:forwardKeys(pose:pose,config:config))
+             if let state=worldState {
+-                while let first=pendingPlacements.first, state.solid.contains(first.0.result) {observed.insert(first.0.result);support=first.0.result;jumpPlacements+=1;pendingPlacements.removeFirst()}
++                while let first=pendingPlacements.first, state.solid.contains(first.0.result) {trace("CONFIRM tick=\(state.tick) target=\(first.0.result) elapsed_ms=\((now-first.1)*1000)");observed.insert(first.0.result);support=first.0.result;jumpPlacements+=1;pendingPlacements.removeFirst()}
+                 if let first=pendingPlacements.first,state.tick>lastClickTick,!state.solid.contains(first.0.result),
+                    (state.clickDelay==4 && now-first.1>0.08) || (state.clickDelay<3 && now-first.1>=1/maximumCPS) {
+                     // Vanilla consumed this right press, but no block appeared.
+--- 191-top-window/Sources/main.swift
++++ 192-clear-top/Sources/main.swift
+@@ -102,6 +102,7 @@
+                 self.telly.observeWorld(state,error:error,now:ProcessInfo.processInfo.systemUptime)
+                 if let state,state.tick != self.bridgeTraceTick {
+                     self.bridgeTraceTick=state.tick
++                    self.traceBridge("TELE tick=\(state.tick) delay=\(state.clickDelay) useDown=\(state.useDown) cache=\(String(describing:state.pose.looking)),\(state.face ?? "nil") logical=\(String(describing:state.useHit)),\(state.useFace ?? "nil") velocity=\(state.velocity) sprint=\(String(describing:state.sprinting))")
+                     self.traceBridge(String(format:"POSE %.4f %.4f %.4f yaw %.2f pitch %.2f ground %@ ",state.pose.x,state.pose.y,state.pose.z,state.pose.yaw,state.pose.pitch,String(state.onGround))+self.telly.diagnostic)
+                 }
+             }

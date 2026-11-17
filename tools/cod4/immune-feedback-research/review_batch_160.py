@@ -1,0 +1,17 @@
+"""Primary semantic review of Herschel041: one phase-protection producer, shared pose not receipt."""
+from ledger import B,O,R,record,verify
+import json,hashlib,datetime
+h=O/'helpers/herschel-immune/batch-041.json';d=json.loads(h.read_text());repo='Tslat/Advent-Of-Ascension';root=B/'sources/Tslat__Advent-Of-Ascension';meta=json.loads((root/'source.json').read_text());tree=json.loads((root/'tree.json').read_text());blobs={x['path']:x['sha'] for x in tree['tree'] if x['type']=='blob'};refs=[]
+for row in d['rows']:
+ for x in row['source_refs']:
+  key,rel=x['source_key'].split('/',1);assert key==root.name
+  raw=(root/rel).read_bytes();assert hashlib.sha256(raw).hexdigest()==x['file_sha256'] and meta['commit']==x['fixed_commit']==tree['sha'];assert hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()==blobs[rel]
+  a,z=x['lines'];assert 1<=a<=z<=len(raw.decode().splitlines());refs.append((rel,a,z))
+k='aoa-native-quarter-health-collapse-protection-independent-of-shared-exhaustion-pose'
+record(k,repo,refs,
+ '固定ELITE_KING_BAMBAMBAM实际factory→原生hurt保存旧HP比例并调用AoABoss/AoAMonster父结算，非technical来源且从>25%跨到<=25%才collapse；collapse显式setInvulnerable(true)经AoAMonster同步INVULNERABLE，并耗光energy。native fightTasks优先Rest，能量0才准入，start停导航/速度/路径并设同步EXHAUSTED与跟随声；controller实际读取EXHAUSTED播放倒地/起身。stop清EXHAUSTED、两次setInvulnerable(false)、补满energy。',
+ '一个跨实际血线后开启保护并借耗能休息阶段消费的独立实现1；不按22方法/866行/五minion/普通精英数值拆。阈值判断不直接要求super.hurt success为true，检查的是前后真实HP比例；technical源即使跨线不触发；不是这次造成跨线的伤害被回滚，也没有保底HP或alive保护，不能宣称致死一击被救活。非保护的普通energy0休息也设EXHAUSTED/同声同动画，故倒地声光不能识别保护flag、更不能当每次拒伤/拒控回执。Rest.shouldKeepRunning保护时true，否则energy!=150；runFor480/160是配置不是已读引擎最终截止保证。每5serverAITick加energy1、吸金物体近身heal50/addEnergy30，均不能自行推断提前解除保护。读档若原生invul flag仍true则HP改max/2并继续flagtrue；本类未保存energy/exhausted，sync默认150/false，不等于恢复原Rest或已证永久卡住。',
+ 'Boss文字必须来自实际拒控分支，不能将通用阶段姿态/耗能声当免疫收据。状态同步和可见动画可以共用却有不同语义，需要区分保护flag、被拒原因与生命周期恢复。正式方案不增新Boss阶段，不从HP变化反推普通阴阳免疫文字。',
+ '主岗完整866行精英类含Rest/Fireballs/五召唤匿名类/吸金物体、所列完整父hurt/read/save同步setter及具体factory已读；固定tree/blob/hash逐项核。SmartBrainLib HeldBehaviour调度和超时引擎未全文匹配，故不声称480/160必到期、读档必卡无敌或完成解除时序；原版invulnerability具体source bypass仍由父引擎决定，非无条件拒所有来源/控制。GeckoLib模型/动画资源与TME声音/粒子底层不展开、不做观感验收。五minion政策与已账共享家族0。Helper原文件仍credit0，主岗此整链晋级1；无生产修改/编译/游戏。','native_boss_phase_protection_and_shared_feedback_semantics')
+(O/'HERSCHEL-041-REVIEW.json').write_text(json.dumps({'helper_file_sha256':hashlib.sha256(h.read_bytes()).hexdigest(),'helper_original_credit':0,'main_review_new_effective':1,'promoted_key':k,'main_entire_elite_class_read':True,'main_all_listed_complete_methods_read':True,'source_ranges_verified':len(refs),'semantic_decision':'跨HP门→保护flag/能量清零→共享休息pose与stop解除整链1；重复minion/普通精英数值/包装0。未读HeldBehaviour调度明确不冒称保证超时或持久卡死。','actual_pixels_verified':False,'production_changes':False,'game_started':False,'reviewed_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()},ensure_ascii=False,indent=2)+'\n')
+s=json.loads((O/'semantic-dedup.json').read_text());s['groups'].append({'family':'batch160-herschel041-health-threshold-collapse-protection','credited_chains':[k],'rationale':'Actual post-parent HP-threshold protection uses a separate native invulnerable flag while sharing ordinary exhaustion feedback, distinct from burst-damage mist or aura conversion; shared helper methods/minions/tiers0.'});(O/'semantic-dedup.json').write_text(json.dumps(s,ensure_ascii=False,indent=2)+'\n');verify()

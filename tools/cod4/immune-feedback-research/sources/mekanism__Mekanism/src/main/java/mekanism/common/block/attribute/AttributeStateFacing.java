@@ -1,0 +1,138 @@
+package mekanism.common.block.attribute;
+
+import java.util.Collection;
+import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.Property;
+import org.jspecify.annotations.Nullable;
+
+public record AttributeStateFacing(EnumProperty<Direction> facingProperty, FacePlacementType placementType, boolean canRotate) implements AttributeState {
+
+    public AttributeStateFacing() {
+        this(true);
+    }
+
+    public AttributeStateFacing(boolean canRotate) {
+        this(BlockStateProperties.HORIZONTAL_FACING, canRotate);
+    }
+
+    public AttributeStateFacing(EnumProperty<Direction> facingProperty) {
+        this(facingProperty, true);
+    }
+
+    public AttributeStateFacing(EnumProperty<Direction> facingProperty, boolean canRotate) {
+        this(facingProperty, FacePlacementType.PLAYER_LOCATION, canRotate);
+    }
+
+    public AttributeStateFacing(EnumProperty<Direction> facingProperty, FacePlacementType placementType) {
+        this(facingProperty, placementType, true);
+    }
+
+    public Direction getDirection(BlockState state) {
+        return state.getValue(facingProperty());
+    }
+
+    public BlockState setDirection(BlockState state, Direction newDirection) {
+        return supportsDirection(newDirection) ? state.setValue(facingProperty(), newDirection) : state;
+    }
+
+    public Collection<Direction> supportedDirections() {
+        return facingProperty().getPossibleValues();
+    }
+
+    public boolean supportsDirection(Direction direction) {
+        return supportedDirections().contains(direction);
+    }
+
+    @Override
+    public void fillBlockStateContainer(Block block, List<Property<?>> properties) {
+        properties.add(facingProperty());
+    }
+
+    @Override
+    public BlockState copyStateData(BlockState oldState, BlockState newState) {
+        AttributeStateFacing newStateFacingAttribute = Attribute.get(newState, AttributeStateFacing.class);
+        if (newStateFacingAttribute != null) {
+            EnumProperty<Direction> oldFacingProperty = Attribute.getOrThrow(oldState, AttributeStateFacing.class).facingProperty();
+            newState = newState.setValue(newStateFacingAttribute.facingProperty(), oldState.getValue(oldFacingProperty));
+        }
+        return newState;
+    }
+
+    @Override
+    public BlockState getStateForPlacement(BlockState state, LevelAccessor world, BlockPos pos, @Nullable Player player, Direction face) {
+        AttributeStateFacing blockFacing = Attribute.getOrThrow(state, AttributeStateFacing.class);
+        Direction newDirection = Direction.SOUTH;
+        if (blockFacing.placementType() == FacePlacementType.PLAYER_LOCATION) {
+            //TODO: Somehow weight this stuff towards context.getFace(), so that it has a higher likelihood of going with the face that was clicked on
+            if (blockFacing.supportsDirection(Direction.DOWN) && blockFacing.supportsDirection(Direction.UP)) {
+                float rotationPitch = player == null ? 0 : player.getXRot();
+                int height = Math.round(rotationPitch);
+                if (height >= 65) {
+                    newDirection = Direction.UP;
+                } else if (height <= -65) {
+                    newDirection = Direction.DOWN;
+                }
+            }
+            if (newDirection != Direction.DOWN && newDirection != Direction.UP) {
+                //TODO: Can this just use newDirection = context.getPlacementHorizontalFacing().getOpposite(); or is that not accurate
+                float placementYaw = player == null ? 0 : player.getYRot();
+                int side = Mth.floor((placementYaw * 4.0F / 360.0F) + 0.5D) & 3;
+                newDirection = switch (side) {
+                    case 0 -> Direction.NORTH;
+                    case 1 -> Direction.EAST;
+                    case 2 -> Direction.SOUTH;
+                    case 3 -> Direction.WEST;
+                    default -> newDirection;
+                };
+            }
+
+        } else {
+            newDirection = blockFacing.supportsDirection(face) ? face : Direction.NORTH;
+        }
+
+        return blockFacing.setDirection(state, newDirection);
+    }
+
+    public static BlockState rotate(BlockState state, LevelAccessor world, BlockPos pos, Rotation rotation) {
+        return rotate(state, rotation);
+    }
+
+    public static BlockState rotate(BlockState state, Rotation rotation) {
+        AttributeStateFacing blockFacing = Attribute.get(state, AttributeStateFacing.class);
+        if (blockFacing != null && blockFacing.canRotate()) {
+            return rotate(blockFacing, blockFacing.facingProperty(), state, rotation);
+        }
+        return state;
+    }
+
+    public static BlockState mirror(BlockState state, Mirror mirror) {
+        AttributeStateFacing blockFacing = Attribute.get(state, AttributeStateFacing.class);
+        if (blockFacing != null && blockFacing.canRotate()) {
+            EnumProperty<Direction> property = blockFacing.facingProperty();
+            return rotate(blockFacing, property, state, mirror.getRotation(state.getValue(property)));
+        }
+        return state;
+    }
+
+    private static BlockState rotate(AttributeStateFacing blockFacing, EnumProperty<Direction> property, BlockState state, Rotation rotation) {
+        return blockFacing.setDirection(state, rotation.rotate(state.getValue(property)));
+    }
+
+    public enum FacePlacementType {
+        /// Set the face based on the player's relative location to the placement location.
+        PLAYER_LOCATION,
+        /// Set the face based on the direction of the block face selected.
+        SELECTED_FACE
+    }
+}

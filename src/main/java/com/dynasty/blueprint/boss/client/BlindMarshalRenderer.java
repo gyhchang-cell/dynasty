@@ -23,7 +23,7 @@ public final class BlindMarshalRenderer extends GeoEntityRenderer<BlindMarshal>{
     private static String form(BlindMarshal e){return BlindMarshal.ID+(e.form()==2?"_foot":"");}
     public BlindMarshalRenderer(EntityRendererProvider.Context c){super(c,new GeoModel<>(){
         public ResourceLocation getModelResource(BlindMarshal e){return resource("geo/blueprint/boss/",form(e),".geo.json");}
-        public ResourceLocation getTextureResource(BlindMarshal e){return resource("textures/entity/blueprint/boss/",form(e),".png");}
+        public ResourceLocation getTextureResource(BlindMarshal e){return resource("textures/entity/blueprint/boss/",form(e)+"_body",".png");}
         public ResourceLocation getAnimationResource(BlindMarshal e){return resource("animations/blueprint/boss/",form(e),".animation.json");}
     });shadowRadius=1.5F;}
     @Override protected float getDeathMaxRotation(BlindMarshal e){return 0;}

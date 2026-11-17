@@ -1,0 +1,40 @@
+package com.tiviacz.travelersbackpack.fluids.effects;
+
+import com.tiviacz.travelersbackpack.api.fluids.EffectFluid;
+import net.minecraft.core.Holder;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidType;
+
+public class WaterEffect extends EffectFluid {
+    public WaterEffect() {
+        super("minecraft:water", Fluids.WATER, FluidType.BUCKET_VOLUME);
+    }
+
+    @Override
+    public void affectDrinker(FluidStack fluidStack, Level level, Entity entity) {
+        if(entity instanceof Player player) {
+            Holder<Biome> biome = level.getBiome(player.blockPosition());
+            int duration = 7 * 20;
+
+            if(player.isOnFire()) {
+                player.clearFire();
+            } else {
+                if(biome.value().getBaseTemperature() >= 2.0F) {
+                    player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, duration, 0));
+                }
+            }
+        }
+    }
+
+    @Override
+    public boolean canExecuteEffect(FluidStack stack, Level level, Entity entity) {
+        return stack.getAmount() >= amountRequired;
+    }
+}

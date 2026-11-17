@@ -1,0 +1,139 @@
+{
+  "status": "SUPERSEDED_NOT_CURRENT_REVIEW",
+  "files_full_read": {
+    "tools/cod4/ecology-native-acceptance/watchdog.py": {
+      "sha256": "cd315e13c60ec3f33f5c0bca93a753f916a60f019d9030452b93385cebeb7237",
+      "lines": 120
+    },
+    "tools/cod4/ecology-native-acceptance/src/com/dynasty/ecologyqa/EcologyNativeQa.java": {
+      "sha256": "72d525dfba7fc7fa0e3d543da4863d29665c68d4962b7346769b75c6fc0965d1",
+      "lines": 82
+    },
+    "docs/cod4/audit-20261022/ecology-native-acceptance/preparation-20261028/watchdog-smoke.json": {
+      "sha256": "a59235797b5edee5c34649af151ca91160d09777f867707624ea42f4b19f9395",
+      "lines": 48
+    },
+    "docs/cod4/audit-20261022/ecology-native-acceptance/preparation-20261028/verification.json": {
+      "sha256": "72d070b76640a977a3dad06cf0df9d8fce04984965d680e1ee1f61ef502575ea",
+      "lines": 60
+    }
+  },
+  "existing_smoke": {
+    "reported_status": "PASS_PYTHON_CHILD_ONLY_NO_GAME",
+    "cases": [
+      {
+        "case": "normal",
+        "pid": 24021,
+        "exit_code": 0,
+        "elapsed_seconds": 0.013920750003308058,
+        "stop_reason": null,
+        "forced_signal_used": false,
+        "controller_ready_observed": false,
+        "normal_exit_without_forced_signal": true,
+        "native_save_verified": false,
+        "gameplay_acceptance": false
+      },
+      {
+        "case": "blocked",
+        "pid": 24022,
+        "exit_code": -9,
+        "elapsed_seconds": 0.7289141661021858,
+        "stop_reason": "startup_deadline",
+        "forced_signal_used": true,
+        "controller_ready_observed": false,
+        "normal_exit_without_forced_signal": false,
+        "native_save_verified": false,
+        "gameplay_acceptance": false
+      },
+      {
+        "case": "partial_readiness_then_cooperative_stop",
+        "pid": 24024,
+        "exit_code": 0,
+        "elapsed_seconds": 0.32384170801378787,
+        "stop_reason": "runtime_deadline",
+        "forced_signal_used": false,
+        "controller_ready_observed": true,
+        "normal_exit_without_forced_signal": true,
+        "native_save_verified": false,
+        "gameplay_acceptance": false
+      },
+      {
+        "case": "invalid_budget",
+        "rejected_before_child_start": true
+      }
+    ],
+    "java_or_game_started": false,
+    "reviewer_reran": false,
+    "boundary": "Aggregated existing coordinator receipt, no source hash/fixture argv in this JSON. Current reviewed source separately pinned here; no claim independent reproduction or proof of unlisted cases."
+  },
+  "compile_boundary": {
+    "existing_receipt_status": "OFFLINE_COMPILE_REOBF_AND_BYTECODE_INSPECTION_ONLY",
+    "java_current_sha256": "72d525dfba7fc7fa0e3d543da4863d29665c68d4962b7346769b75c6fc0965d1",
+    "java_receipt_sha256": "61820973052aef72fb118223fff4e15d914314f14892fe6c5a41e000846ad6e3",
+    "matches_existing_receipt": false,
+    "interpretation": "compile03 reported in progress by coordinator; this review does not execute/confirm it or bind modified source to an older jar."
+  },
+  "confirmed": [
+    "run_owned accepts argv, not any existing PID. Popen start_new_session=True creates owned session/group; signal helper checks alive child then pgid==child.pid before killpg. No process inventory or user instance attachment.",
+    "All budgets must >0 and finite before Popen: NaN fails positivity, infinity fails isfinite. Existing blocked smoke reports SIGKILL exit-9 and normal smoke exit0; these are Python only.",
+    "Monotonic startup/runtime/absolute request deadlines, then save grace60 then TERM grace15 then KILL; absolute600 is deadline to request exit, not guaranteed process termination at600. Poll/scheduler/I/O add overhead.",
+    "Normal shutdown request files precede forced signals; normal code0 without signal remains separate from native_save_verified false/gameplay_acceptance false. Exception cleanup attempts TERM/KILL and reraises; no success receipt on exceptions.",
+    "Java catches FileAlreadyExistsException for stop-client CREATE_NEW and then continues halt(false); Python handles competing same stop marker too. Other I/O failures remain fail-closed.",
+    "Path/hash/argv validation intentionally belongs future private launcher. This module only resolve-existing instance/evidence and reserved-file absence; it alone does not enforce copied-world/project restrictions or validate Java flags. No real launcher integration/game run reviewed."
+  ],
+  "findings": [
+    {
+      "id": "WATCHDOG-READ-01",
+      "priority": "P2 potential startup blocker",
+      "file": "tools/cod4/ecology-native-acceptance/watchdog.py",
+      "lines": [
+        64,
+        69
+      ],
+      "related_file": "tools/cod4/ecology-native-acceptance/src/com/dynasty/ecologyqa/EcologyNativeQa.java",
+      "related_lines": [
+        49,
+        56
+      ],
+      "issue": "controller-start.json written directly with Files.writeString CREATE_NEW; existence can be observed while content empty/partial. Immediate json.loads can throw, leading BaseException cleanup signals and aborting otherwise valid private startup. Three existing smoke cases have controller_ready_observed false and do not cover readiness handoff.",
+      "recommendation": "Coordinator can publish readiness by same-filesystem temp+atomic move or tolerate transient incomplete read under startup deadline while still failing persistent malformed markers. Do not claim observed runtime reproduction; no fix by reviewer."
+    },
+    {
+      "id": "WATCHDOG-READ-02",
+      "priority": "P2 process-boundary requirement",
+      "file": "tools/cod4/ecology-native-acceptance/watchdog.py",
+      "lines": [
+        53,
+        105
+      ],
+      "issue": "Signals only while process-group leader child.poll() is None. If launcher is shell/wrapper that exits before its JVM, or leader exits on TERM while same-group descendants continue, loop/exception cleanup can stop without bounding descendants. setsid descendants also escape. Current Python smoke does not exercise process trees.",
+      "recommendation": "Future launcher must pass foreground single JVM or exec it, never daemonize/spawn-and-return. Do not advertise arbitrary descendant-tree cleanup. If broader child trees required, coordinator needs separate owned-group lifecycle design."
+    },
+    {
+      "id": "WATCHDOG-READ-03",
+      "priority": "P3 readiness/evidence scope",
+      "file": "tools/cod4/ecology-native-acceptance/watchdog.py",
+      "lines": [
+        66,
+        69
+      ],
+      "issue": "Readiness accepts any parseable JSON without schema or matching expected instance/world; fresh controlled evidence root and trusted child are required. Path validation delegated by docstring, not enforced here.",
+      "recommendation": "Launcher must pass absolute validated private paths and pinned command, keep markers exclusively owned. Runtime receipt must independently confirm expected world/session and saved shutdown."
+    }
+  ],
+  "remaining": [
+    "Future real launcher/action driver not integrated or run",
+    "Readiness handoff and process-tree limitations not covered by existing smoke",
+    "Native mixin loading, natural birth6, lantern-oil drop/pickup, normal save completion all unaccepted"
+  ],
+  "actions": {
+    "reviewed_source_edits": 0,
+    "production_asset_todo_writes": 0,
+    "watchdog_imports_or_invocations": 0,
+    "smoke_runs": 0,
+    "compile_game_gui_runs": 0,
+    "research_credit": 0
+  },
+  "superseded_by": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/ecology-watchdog-followup-04.json",
+  "correction": "See04: current source tolerates partial readiness JSON and matches four-case smoke; old findings01/03 and smoke/compile snapshot are obsolete/mixed observations, not valid for bound cd315 source."
+}

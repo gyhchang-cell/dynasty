@@ -1,0 +1,361 @@
+{
+  "batch": "herschel-immune-049",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 2,
+  "pending_primary_review_units": 1,
+  "support_only_units": 1,
+  "rows": [
+    {
+      "id": "herschel-049-01",
+      "semantic_dedup_key": "iron-scapegoat-owner-qualified-damage-refusal-versus-unconditional-taunt-target-receipt",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/spells/evocation/ScapegoatSpell.java",
+          "method": null,
+          "lines": [
+            1,
+            100
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "ba3f9f239c584133081e862bd4908f9ff27d792eae3fbe78aa5b45e9f4c740bd",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/spells/evocation/ScapegoatSpell.java#L1-L100",
+          "excerpt": "package io.redspace.ironsspellbooks.spells.evocation;\n\nimport io.redspace.ironsspellbooks.IronsSpellbooks;\nimport io.redspace.ironsspellbooks.api.config.DefaultConfig;\nimport io.redspace.ironsspellbooks.api.magic.MagicData;\nimport io.redspace.ironsspellbooks.api.registry.SchoolRegistry;\nimport io.redspace.ironsspellbooks.api.spells.*;\nimport io.redspace.ironsspellbooks.api.util.Utils;\nimport io.redspace.ironsspellbooks.entity.spells.scapegoat.ScapegoatEntity;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.level.ClipContext;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.Vec3;\n\nimport java.util.List;\n\npublic class ScapegoatSpell extends AbstractSpell {\n    private final ResourceLocation spellId = ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"scapegoat\");\n\n    @Override\n    public List<MutableComponent> getUniqueInfo(int spellLevel, LivingEntity caster) {\n        return List.of(\n                Component.translatable(\"ui.irons_spellbooks.taunt_range\", Utils.stringTruncation(tauntRange(spellLevel, caster), 1)),\n                Component.translatable(\"ui.irons_spellbooks.hp\", Utils.stringTruncation(getGoatHealth(spellLevel, caster), 1))\n        );\n    }\n\n    private final DefaultConfig defaultConfig = new DefaultConfig()\n            .setMinRarity(SpellRarity.RARE)\n            .setSchoolResource(SchoolRegistry.EVOCATION_RESOURCE)\n            .setMaxLevel(3)\n            .setCooldownSeconds(45)\n            .build();\n\n    public ScapegoatSpell() {\n        this.baseSpellPower = 20;\n        this.spellPowerPerLevel = 10;\n        this.castTime = 0;\n        this.baseManaCost = 30;\n        this.manaCostPerLevel = 15;\n    }\n\n    @Override\n    public CastType getCastType() {\n        return CastType.INSTANT;\n    }\n\n    @Override\n    public DefaultConfig getDefaultConfig() {\n        return defaultConfig;\n    }\n\n    @Override\n    public ResourceLocation getSpellResource() {\n        return spellId;\n    }\n\n    @Override\n    public void onCast(Level world, int spellLevel, LivingEntity entity, CastSource castSource, MagicData playerMagicData) {\n        super.onCast(world, spellLevel, entity, castSource, playerMagicData);\n        Vec3 targetPos = Utils.moveToRelativeGroundLevel(world, Utils.raycastForBlock(world, entity.getEyePosition(), entity.getEyePosition().add(entity.getForward().scale(getRange(spellLevel, entity))), ClipContext.Fluid.NONE).getLocation(), 4, 24);\n        ScapegoatEntity goat = new ScapegoatEntity(world);\n        goat.setOwner(entity);\n        goat.setTargetPos(BlockPos.containing(targetPos));\n        float y = entity.getYRot();\n        goat.setYBodyRot(y);\n        goat.yBodyRotO = y;\n        goat.setYRot(y);\n        goat.yRotO = y;\n        goat.yHeadRot = y;\n        goat.yHeadRotO = y;\n        //todo: clip?\n        goat.moveTo(entity.getEyePosition().add(entity.getForward().scale(2)));\n        goat.getAttributes().getInstance(Attributes.MAX_HEALTH).setBaseValue(getGoatHealth(spellLevel, entity));\n        goat.setHealth(goat.getMaxHealth());\n        goat.poofParticles(20, 1f);\n        // todo: expose to tootip/power scaling?\n        goat.setDurationRemaining(20 * 15);\n        goat.invulnerableTime = 60;\n        world.addFreshEntity(goat);\n        Utils.performTaunt(goat, 12f, Utils.tauntPredicate(entity));\n    }\n\n    private int getRange(int spellLevel, LivingEntity entity) {\n        return 18;\n    }\n\n    private float tauntRange(int spellLevel, LivingEntity entity) {\n        return 12f;\n    }\n\n    private float getGoatHealth(int spellLevel, LivingEntity entity) {\n        return getSpellPower(spellLevel, entity);\n    }\n}\n",
+          "excerpt_sha256": "ba3f9f239c584133081e862bd4908f9ff27d792eae3fbe78aa5b45e9f4c740bd",
+          "normalized_excerpt_sha256": "d6466ac81beaac5bb97f790dfef6c2956663f075140f01917d464b503a36991c",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/scapegoat/ScapegoatEntity.java",
+          "method": null,
+          "lines": [
+            1,
+            271
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "605144f7ce8bfa52e314285788ddddc4772327182ccbcba3d5af8815e5610cda",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/scapegoat/ScapegoatEntity.java#L1-L271",
+          "excerpt": "package io.redspace.ironsspellbooks.entity.spells.scapegoat;\n\nimport io.redspace.ironsspellbooks.api.magic.MagicData;\nimport io.redspace.ironsspellbooks.capabilities.magic.MagicManager;\nimport io.redspace.ironsspellbooks.damage.DamageSources;\nimport io.redspace.ironsspellbooks.entity.mobs.AntiMagicSusceptible;\nimport io.redspace.ironsspellbooks.entity.mobs.wizards.fire_boss.NotIdioticNavigation;\nimport io.redspace.ironsspellbooks.registries.EntityRegistry;\nimport io.redspace.ironsspellbooks.registries.ParticleRegistry;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.NbtUtils;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.Vec3;\nimport org.jetbrains.annotations.NotNull;\nimport software.bernie.geckolib.animatable.GeoEntity;\nimport software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;\nimport software.bernie.geckolib.animation.AnimatableManager;\nimport software.bernie.geckolib.animation.AnimationController;\nimport software.bernie.geckolib.animation.AnimationState;\nimport software.bernie.geckolib.animation.PlayState;\nimport software.bernie.geckolib.animation.RawAnimation;\nimport software.bernie.geckolib.util.GeckoLibUtil;\n\nimport javax.annotation.Nullable;\nimport java.util.UUID;\n\npublic class ScapegoatEntity extends PathfinderMob implements AntiMagicSusceptible, GeoEntity {\n    class RunToTargetGoal extends Goal {\n        int pathingDelay;\n\n        @Override\n        public boolean canUse() {\n            return targetPos != null && ScapegoatEntity.this.distanceToSqr(ScapegoatEntity.this.targetPos.getCenter()) > 1.5 * 1.5;\n        }\n\n        @Override\n        public void tick() {\n            if (targetPos == null) {\n                // logically impossible\n                return;\n            }\n            var path = ScapegoatEntity.this.navigation.getPath();\n            if (path != null && path.isDone() || (path == null && (pathingDelay-- <= 0 || tickCount < 20))) {\n                pathingDelay = 30;\n                Vec3 flee = ScapegoatEntity.this.targetPos.getCenter();\n//                Vec3 flee = Optional.ofNullable(DefaultRandomPos.getPosTowards(ScapegoatEntity.this, 16, 7, ScapegoatEntity.this.targetPos.getCenter(), 1f)).orElse(ScapegoatEntity.this.targetPos.getCenter());\n                ScapegoatEntity.this.getNavigation().moveTo(flee.x, flee.y, flee.z, 1);\n            }\n        }\n\n        @Override\n        public void stop() {\n            ScapegoatEntity.this.navigation.stop();\n        }\n    }\n\n    @Override\n    protected @NotNull PathNavigation createNavigation(@NotNull Level level) {\n        return new NotIdioticNavigation(this, level);\n    }\n\n    @Nullable\n    private UUID ownerUUID;\n    @Nullable\n    private Entity cachedOwner;\n\n    @Nullable\n    protected BlockPos targetPos;\n\n    protected int jumpDelay;\n\n    protected int durationRemaining;\n\n    public int getDurationRemaining() {\n        return durationRemaining;\n    }\n\n    public void setDurationRemaining(int durationRemaining) {\n        this.durationRemaining = durationRemaining;\n    }\n\n    public ScapegoatEntity(EntityType<? extends PathfinderMob> entityType, Level level) {\n        super(entityType, level);\n    }\n\n    public ScapegoatEntity(Level level) {\n        this(EntityRegistry.SCAPEGOAT.get(), level);\n    }\n\n    public void setTargetPos(BlockPos targetPos) {\n        this.targetPos = targetPos;\n    }\n\n    @Override\n    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new RunToTargetGoal());\n    }\n\n    public void setOwner(@Nullable Entity owner) {\n        if (owner != null) {\n            this.ownerUUID = owner.getUUID();\n            this.cachedOwner = owner;\n        }\n    }\n\n    @Override\n    public void tick() {\n        super.tick();\n        if (jumpDelay > 0) {\n            jumpDelay--;\n        } else if (jumpDelay == 0) {\n            jumpDelay = 20;\n            this.playSound(SoundEvents.GOAT_DEATH, 2f, 1f + random.nextFloat() * .2f);\n            if (level.isClientSide) {\n                animationToPlay = RawAnimation.begin().thenPlay(\"scapegoat_run_accent\");\n            }\n        }\n        if (tickCount % 5 == 0) {\n            poofParticles(1, 1);\n        }\n        if (durationRemaining > 0) {\n            if (--durationRemaining == 0) {\n                poofAndDiscard();\n            }\n        }\n    }\n\n    @Nullable\n    public Entity getOwner() {\n        if (this.cachedOwner != null && !this.cachedOwner.isRemoved()) {\n            return this.cachedOwner;\n        } else if (this.ownerUUID != null && this.level instanceof ServerLevel serverlevel) {\n            this.cachedOwner = serverlevel.getEntity(this.ownerUUID);\n            return this.cachedOwner;\n        } else {\n            return null;\n        }\n    }\n\n    @Override\n    public boolean hurt(DamageSource source, float amount) {\n        if (!DamageSources.isFriendlyFireBetween(source.getEntity(), this.getOwner()) && super.hurt(source, amount)) {\n            if (level instanceof ServerLevel serverLevel) {\n                poofParticles(10, 0.4f);\n            }\n            return true;\n        }\n        return false;\n    }\n\n    public void poofAndDiscard() {\n        if (level instanceof ServerLevel serverLevel) {\n            poofParticles(30, 1f);\n            discard();\n        }\n    }\n\n    @Override\n    public float getVoicePitch() {\n        return 0.5f;\n    }\n\n    @Override\n    protected @Nullable SoundEvent getDeathSound() {\n        return SoundEvents.BREEZE_WIND_CHARGE_BURST.value();\n    }\n\n    @Override\n    protected void playHurtSound(DamageSource source) {\n        this.playSound(SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), 1, 0.75f);\n    }\n\n    public void poofParticles(int amount, float strength) {\n        if (level.isClientSide) return;\n        Vec3 pos = this.getBoundingBox().getCenter();\n        MagicManager.spawnParticles(level, ParticleRegistry.FALLING_SPARKLE_PARTICLE.get(), pos.x, pos.y + 0.5, pos.z, amount, .1, .1, .1, .3 * strength, false);\n    }\n\n    @Override\n    public void onAntiMagic(MagicData playerMagicData) {\n        poofAndDiscard();\n    }\n\n    @Override\n    public void die(DamageSource damageSource) {\n        // preserve event firing with super call, but immediately discard without animation\n        super.die(damageSource);\n        if (dead) {\n            poofAndDiscard();\n        }\n    }\n\n    @Override\n    public void addAdditionalSaveData(CompoundTag compound) {\n        super.addAdditionalSaveData(compound);\n        if (this.ownerUUID != null) {\n            compound.putUUID(\"Owner\", this.ownerUUID);\n        }\n        if (this.targetPos != null) {\n            compound.put(\"scapegoat_target\", NbtUtils.writeBlockPos(this.targetPos));\n        }\n        if (durationRemaining > 0) {\n            compound.putInt(\"duration_remaining\", durationRemaining);\n        }\n    }\n\n    @Override\n    public void readAdditionalSaveData(CompoundTag compound) {\n        super.readAdditionalSaveData(compound);\n        if (compound.hasUUID(\"Owner\")) {\n            this.ownerUUID = compound.getUUID(\"Owner\");\n            this.cachedOwner = null;\n        }\n        NbtUtils.readBlockPos(compound, \"scapegoat_target\").ifPresent(p_325838_ -> this.targetPos = p_325838_);\n        this.durationRemaining = compound.getInt(\"duration_remaining\");\n    }\n\n    public static AttributeSupplier.Builder prepareAttributes() {\n        return LivingEntity.createLivingAttributes()\n                .add(Attributes.MAX_HEALTH, 1)\n                .add(Attributes.KNOCKBACK_RESISTANCE, 0.6)\n                .add(Attributes.FOLLOW_RANGE, 32)\n                .add(Attributes.ENTITY_INTERACTION_RANGE, 4)\n                .add(Attributes.STEP_HEIGHT, 1)\n                .add(Attributes.MOVEMENT_SPEED, .35);\n    }\n\n    /*\n     Geckolib Impl\n     */\n    RawAnimation animationToPlay = null;\n\n    private PlayState animationPredicate(AnimationState<ScapegoatEntity> event) {\n        var controller = event.getController();\n        if (this.animationToPlay != null) {\n            controller.forceAnimationReset();\n            controller.setAnimation(animationToPlay);\n            animationToPlay = null;\n        }\n        return PlayState.CONTINUE;\n    }\n\n    private final RawAnimation ANIMATION = RawAnimation.begin().thenPlay(\"emerge\");\n\n    private final AnimationController controller = new AnimationController(this, \"controller\", 0, this::animationPredicate);\n\n    @Override\n    public void registerControllers(AnimatableManager.ControllerRegistrar controllerRegistrar) {\n        controllerRegistrar.add(controller);\n    }\n\n    @Override\n    public AnimatableInstanceCache getAnimatableInstanceCache() {\n        return this.cache;\n    }\n\n    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);\n}\n",
+          "excerpt_sha256": "605144f7ce8bfa52e314285788ddddc4772327182ccbcba3d5af8815e5610cda",
+          "normalized_excerpt_sha256": "69a83f959d56922f86a26b47100c14e2163f58b1f9e4f53a8c559f05d98464b0",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-007-09"
+          ]
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/scapegoat/ScapegoatRenderer.java",
+          "method": null,
+          "lines": [
+            1,
+            21
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "5bfd442d58b81786e38968ce820bb144abe455b192a35ababa387d1081bb7f2d",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/scapegoat/ScapegoatRenderer.java#L1-L21",
+          "excerpt": "package io.redspace.ironsspellbooks.entity.spells.scapegoat;\n\n\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport io.redspace.ironsspellbooks.render.GeoLivingEntityRenderer;\nimport net.minecraft.client.renderer.LightTexture;\nimport net.minecraft.client.renderer.MultiBufferSource;\nimport net.minecraft.client.renderer.entity.EntityRendererProvider;\n\npublic class ScapegoatRenderer extends GeoLivingEntityRenderer<ScapegoatEntity> {\n    public ScapegoatRenderer(EntityRendererProvider.Context context) {\n        super(context, new ScapegoatModel());\n        this.shadowRadius = 0.7f;\n        this.shadowStrength = 0.4f;\n    }\n\n    @Override\n    public void render(ScapegoatEntity entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {\n        super.render(entity, entityYaw, partialTick, poseStack, bufferSource, LightTexture.FULL_BRIGHT);\n    }\n}\n",
+          "excerpt_sha256": "5bfd442d58b81786e38968ce820bb144abe455b192a35ababa387d1081bb7f2d",
+          "normalized_excerpt_sha256": "487bfeea0f84e5aa1eb4cba2af13493d2493f0537c3041b49a9ffe992767551c",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/scapegoat/ScapegoatModel.java",
+          "method": null,
+          "lines": [
+            1,
+            97
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "23c4c9faf664e1c062455319b1b957285427204efa80788dbd8ac98f4a288de8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/scapegoat/ScapegoatModel.java#L1-L97",
+          "excerpt": "package io.redspace.ironsspellbooks.entity.spells.scapegoat;\n\nimport io.redspace.ironsspellbooks.IronsSpellbooks;\nimport io.redspace.ironsspellbooks.entity.mobs.abstract_spell_casting_mob.TransformStack;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.WalkAnimationState;\nimport org.joml.Vector2f;\nimport software.bernie.geckolib.animatable.GeoReplacedEntity;\nimport software.bernie.geckolib.animation.AnimationState;\nimport software.bernie.geckolib.constant.DataTickets;\nimport software.bernie.geckolib.model.DefaultedEntityGeoModel;\n\npublic class ScapegoatModel extends DefaultedEntityGeoModel<ScapegoatEntity> {\n    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"textures/entity/scapegoat.png\");\n    private static final ResourceLocation MODEL = ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"geo/scapegoat.geo.json\");\n    public static final ResourceLocation ANIMS = ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"animations/scapegoat_animations.animation.json\");\n\n    public ScapegoatModel() {\n        super(IronsSpellbooks.id(\"spellcastingmob\"));\n    }\n\n\n    @Override\n    public ResourceLocation getTextureResource(ScapegoatEntity object) {\n        return TEXTURE;\n    }\n\n    @Override\n    public ResourceLocation getModelResource(ScapegoatEntity object) {\n        return MODEL;\n    }\n\n    @Override\n    public ResourceLocation getAnimationResource(ScapegoatEntity animatable) {\n        return ANIMS;\n    }\n\n    private long lastRenderedInstance = -1;\n    protected TransformStack transformStack = new TransformStack();\n\n    @Override\n    public void handleAnimations(ScapegoatEntity entity, long instanceId, AnimationState<ScapegoatEntity> animationState, float partialTick) {\n        var manager = entity.getAnimatableInstanceCache().getManagerForId(instanceId);\n        Double currentTick = animationState.getData(DataTickets.TICK);\n        double currentFrameTime = entity instanceof Entity || entity instanceof GeoReplacedEntity ? currentTick + partialTick : currentTick - manager.getFirstTickTime();\n        boolean isReRender = !manager.isFirstTick() && currentFrameTime == manager.getLastUpdateTime();\n        if (isReRender && instanceId == this.lastRenderedInstance)\n            return;\n        this.lastRenderedInstance = instanceId;\n        transformStack.resetDirty();\n        super.handleAnimations(entity, instanceId, animationState, partialTick);\n        transformStack.popStack();\n    }\n\n    @Override\n    public void setCustomAnimations(ScapegoatEntity entity, long instanceId, AnimationState<ScapegoatEntity> animationState) {\n        super.setCustomAnimations(entity, instanceId, animationState);\n        var partialTick = animationState.getPartialTick();\n\n//        this.rightHindLeg.xRot = Mth.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount;\n//        this.leftHindLeg.xRot = Mth.cos(limbSwing * 0.6662F + (float) Math.PI) * 1.4F * limbSwingAmount;\n//        this.rightFrontLeg.xRot = Mth.cos(limbSwing * 0.6662F + (float) Math.PI) * 1.4F * limbSwingAmount;\n//        this.leftFrontLeg.xRot = Mth.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount;\n\n        Vector2f limbSwingVec = getLimbSwing(entity, entity.walkAnimation, partialTick);\n        float limbSwing = limbSwingVec.y;\n        float limbSwingAmount = limbSwingVec.x;\n        transformStack.pushRotation(getAnimationProcessor().getBone(\"rightHindLeg\"), Mth.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount, 0, 0);\n        transformStack.pushRotation(getAnimationProcessor().getBone(\"leftHindLeg\"), Mth.cos(limbSwing * 0.6662F + (float) Math.PI) * 1.4F * limbSwingAmount, 0, 0);\n        transformStack.pushRotation(getAnimationProcessor().getBone(\"rightFrontLeg\"), Mth.cos(limbSwing * 0.6662F + (float) Math.PI) * 1.4F * limbSwingAmount, 0, 0);\n        transformStack.pushRotation(getAnimationProcessor().getBone(\"leftFrontLeg\"), Mth.cos(limbSwing * 0.6662F) * 1.4F * limbSwingAmount, 0, 0);\n    }\n\n\n    /**\n     * @return x: amount, y: speed\n     */\n    protected Vector2f getLimbSwing(LivingEntity entity, WalkAnimationState walkAnimationState, float partialTick) {\n        float limbSwingAmount = 0;\n        float limbSwingSpeed = 0;\n        if (entity.isAlive()) {\n            limbSwingAmount = walkAnimationState.speed(partialTick);\n            limbSwingSpeed = walkAnimationState.position(partialTick);\n            if (entity.isBaby()) {\n                limbSwingSpeed *= 3.0F;\n            }\n\n            if (limbSwingAmount > 1.0F) {\n                limbSwingAmount = 1.0F;\n            }\n        }\n        return new Vector2f(limbSwingAmount, limbSwingSpeed);\n    }\n}",
+          "excerpt_sha256": "23c4c9faf664e1c062455319b1b957285427204efa80788dbd8ac98f4a288de8",
+          "normalized_excerpt_sha256": "c8875feed450f7eec6bd384f1b197f872253734e8239f60c1e75b5a3ea5941a2",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "method": "tauntPredicate",
+          "lines": [
+            891,
+            894
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L891-L894",
+          "excerpt": "    public static Predicate<Entity> tauntPredicate(Entity taunter) {\n        return entity -> (entity instanceof Enemy ^ taunter instanceof Enemy && !taunter.isAlliedTo(entity))\n                || ((taunter instanceof LivingEntity livingEntity && entity instanceof NeutralMob neutralMob) && neutralMob.isAngryAt(livingEntity));\n    }\n",
+          "excerpt_sha256": "b69b437347f7d70409d85b2c689fa39d2a16b7c0549dc68f4be5df896b18508c",
+          "normalized_excerpt_sha256": "26331354df4dd912965829d463698d5e1bde8ac3f603ee3a0efa97b445a40fef",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-007-09"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "method": "performTaunt",
+          "lines": [
+            896,
+            899
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L896-L899",
+          "excerpt": "    public static void performTaunt(Entity taunter, LivingEntity newTarget, float range) {\n        Predicate<Entity> predicate = mob -> newTarget instanceof Enemy ^ mob instanceof Enemy;\n        performTaunt(newTarget, 10, predicate);\n    }\n",
+          "excerpt_sha256": "58d5a9128c957f8e1fc91addf4147773de16b130a0fe646bdaab81f9dae67e6f",
+          "normalized_excerpt_sha256": "1ab5456f1736a9d8e3986f2b19ad2836132a352fd5868e37b4fd7309a873c490",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "method": "performTaunt",
+          "lines": [
+            901,
+            904
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L901-L904",
+          "excerpt": "    public static void performTaunt(LivingEntity newTarget, float range, Predicate<Entity> selector) {\n        performTaunt(newTarget, newTarget.level.getEntities(newTarget, newTarget.getBoundingBox().inflate(range, range, range),\n                entity -> entity.distanceToSqr(newTarget) < range * range && selector.test(entity)));\n    }\n",
+          "excerpt_sha256": "4226069b477020de4471a273342e17fff66e3255b7b9be6db484d99738d12f45",
+          "normalized_excerpt_sha256": "6900af03efc12246412172bf8c07336f4a53a3bd21dcccf750c001a83ed7c772",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-007-09"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "method": "performTaunt",
+          "lines": [
+            906,
+            913
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L906-L913",
+          "excerpt": "    public static void performTaunt(LivingEntity newTarget, List<Entity> targets) {\n        targets.forEach(entity -> {\n            if (entity instanceof Mob tauntmob) {\n                MagicManager.spawnParticles(tauntmob.level, ParticleTypes.ANGRY_VILLAGER, tauntmob.getX(), tauntmob.getEyeY() + (tauntmob.getBoundingBox().maxY - tauntmob.getEyeY()) * 2, tauntmob.getZ(), 5, 0.3, 0.3, 0.3, 0, false);\n                tauntmob.setTarget(newTarget);\n            }\n        });\n    }\n",
+          "excerpt_sha256": "8b4ff08915e4bb6064951731b7163a78f0a60846cf67f602a2332aff797731a2",
+          "normalized_excerpt_sha256": "5f586cb72aba23d04565ef07fbf0b7c4eba3237806ae7c967a675c3eb01d74f8",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-007-09"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "isFriendlyFireBetween",
+          "lines": [
+            134,
+            163
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L134-L163",
+          "excerpt": "    public static boolean isFriendlyFireBetween(@Nullable Entity attacker, @Nullable Entity target) {\n        if (attacker == null || target == null) {\n            return false;\n        }\n        if (attacker instanceof IMagicSummon summon) {\n            var tmp = summon.getSummoner();\n            if (tmp != null) {\n                attacker = tmp;\n            }\n        }\n        if (target instanceof IMagicSummon summon) {\n            var tmp = summon.getSummoner();\n            if (tmp != null) {\n                target = tmp;\n            }\n        }\n        if (attacker.isPassengerOfSameVehicle(target)) {\n            return true;\n        }\n        if (attacker instanceof Player playerAttacker && target instanceof Player playertarget\n                && !playerAttacker.canHarmPlayer(playertarget)) {\n            return true;\n        }\n        var team = attacker.getTeam();\n        if (team != null) {\n            return team.isAlliedTo(target.getTeam()) && !team.isAllowFriendlyFire();\n        }\n        //We already manually checked for teams, so this will only return true for any overrides (such as summons)\n        return attacker.isAlliedTo(target);\n    }\n",
+          "excerpt_sha256": "77218fda82774cf55ff26a0d4d4ca8a1bf2bfb583bb90dceee5707185bed8dcc",
+          "normalized_excerpt_sha256": "03442118d661e693ec7dbcc42fe070394868fc746fb4c4394d23be57ed9d89a7",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-001-01",
+            "herschel-038-01"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/MagicManager.java",
+          "method": "spawnParticles",
+          "lines": [
+            125,
+            127
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "81edce519130919e4b93e2a946dc7726beb52b7aaf866b53ce97155727c5aedd",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/MagicManager.java#L125-L127",
+          "excerpt": "    public static void spawnParticles(Level level, ParticleOptions particle, double x, double y, double z, int count, double deltaX, double deltaY, double deltaZ, double speed, boolean force) {\n        level.getServer().getPlayerList().getPlayers().forEach(player -> ((ServerLevel) level).sendParticles(player, particle, force, x, y, z, count, deltaX, deltaY, deltaZ, speed));\n    }\n",
+          "excerpt_sha256": "07a116522200b35c89760f6d149053943df6f3a948a48e1b202833b25c7a8bb3",
+          "normalized_excerpt_sha256": "0d21a5451c17801328c1cec029347a1297db1ab93706958343fb862b0318f43b",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/spells/AbstractSpell.java",
+          "method": "onCast",
+          "lines": [
+            362,
+            368
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "37219541e6b89ca5a820b7d8cee9ab09bc7b0ed7099ef5a249b290f8c1e0b2c7",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/spells/AbstractSpell.java#L362-L368",
+          "excerpt": "    public void onCast(Level level, int spellLevel, LivingEntity entity, CastSource castSource, MagicData playerMagicData) {\n        if (Log.SPELL_DEBUG) {\n            IronsSpellbooks.LOGGER.debug(\"AbstractSpell.onCast isClient:{}, spell{}({}), pmd:{}\", level.isClientSide, getSpellId(), spellLevel, playerMagicData);\n        }\n\n        playSound(getCastFinishSound(), entity);\n    }\n",
+          "excerpt_sha256": "ffa20e00fe6e3e87f5aaa3b64884a899cace73099035f468388db0c52492d388",
+          "normalized_excerpt_sha256": "ee41aed92364a8051e735b42fee1ecbd5cc9c71a3903ec0a7bd559dc3590e4f7",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/spells/AbstractSpell.java",
+          "method": "playSound",
+          "lines": [
+            404,
+            406
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "37219541e6b89ca5a820b7d8cee9ab09bc7b0ed7099ef5a249b290f8c1e0b2c7",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/spells/AbstractSpell.java#L404-L406",
+          "excerpt": "    public void playSound(Optional<SoundEvent> sound, Entity entity) {\n        sound.ifPresent((soundEvent -> entity.playSound(soundEvent, 2.0f, .9f + Utils.random.nextFloat() * .2f)));\n    }\n",
+          "excerpt_sha256": "a7af8355896c0080020d8a877dc4afa879e220f4180633e5d871a8b8832866c7",
+          "normalized_excerpt_sha256": "59f1534789e73a520a63cf53525fb05ac4f04a93a42e54818882f68a69e75891",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/registry/SpellRegistry.java",
+          "method": null,
+          "lines": [
+            135,
+            135
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "469037e9fd2ca52fa10ee4c355499b4ddb812d91830d86b00c9ed7440b250d17",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/registry/SpellRegistry.java#L135-L135",
+          "excerpt": "    public static final Supplier<AbstractSpell> SCAPEGOAT_SPELL = registerSpell(new ScapegoatSpell());\n",
+          "excerpt_sha256": "5cb8b010d45c87d09995eb82615cdaf75c94b4e671da6f2f9692d2ee07f966df",
+          "normalized_excerpt_sha256": "0f508948327104ae2fc46fc9c06611e96cd20a48a5a6fa0e4c8f61703aef5445",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-007-09"
+          ]
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/registries/EntityRegistry.java",
+          "method": null,
+          "lines": [
+            683,
+            687
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "bf5d4aa97f51c9a4483013538c05a89ce9a8fec5fc30d1136617674537559417",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/registries/EntityRegistry.java#L683-L687",
+          "excerpt": "    public static final DeferredHolder<EntityType<?>, EntityType<ScapegoatEntity>> SCAPEGOAT =\n            ENTITIES.register(\"scapegoat\", () -> EntityType.Builder.<ScapegoatEntity>of(ScapegoatEntity::new, MobCategory.MISC)\n                    .sized(0.9F, 1.3F)\n                    .clientTrackingRange(64)\n                    .build(ResourceLocation.fromNamespaceAndPath(IronsSpellbooks.MODID, \"scapegoat\").toString()));\n",
+          "excerpt_sha256": "3ce313e36082b9e1119375ed6024bde2304f4ace5bf58ca7f716b5fc88148867",
+          "normalized_excerpt_sha256": "cbf01a736e7ce7da0024cddab75bc4b3a82d12a79009eedf029db6367b6c96eb",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/setup/CommonSetup.java",
+          "method": "onAttributeCreate",
+          "lines": [
+            94,
+            126
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "ca52d6980c935ac2cd0611971eddc833350825ddbcb20820f353a448e82bc322",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/setup/CommonSetup.java#L94-L126",
+          "excerpt": "    public static void onAttributeCreate(EntityAttributeCreationEvent event) {\n        event.put(EntityRegistry.DEBUG_WIZARD.get(), DebugWizard.prepareAttributes().build());\n        event.put(EntityRegistry.PYROMANCER.get(), PyromancerEntity.prepareAttributes().build());\n        event.put(EntityRegistry.NECROMANCER.get(), NecromancerEntity.prepareAttributes().build());\n        event.put(EntityRegistry.SPECTRAL_STEED.get(), SummonedHorse.prepareAttributes().build());\n        event.put(EntityRegistry.WISP.get(), WispEntity.prepareAttributes().build());\n        event.put(EntityRegistry.SPECTRAL_HAMMER.get(), SpectralHammer.prepareAttributes().build());\n        event.put(EntityRegistry.SUMMONED_VEX.get(), SummonedVex.createAttributes().build());\n        event.put(EntityRegistry.SUMMONED_ZOMBIE.get(), SummonedZombie.createAttributes().build());\n        event.put(EntityRegistry.SUMMONED_SKELETON.get(), SummonedSkeleton.createAttributes().build());\n        event.put(EntityRegistry.FROZEN_HUMANOID.get(), FrozenHumanoid.prepareAttributes().build());\n        event.put(EntityRegistry.SUMMONED_POLAR_BEAR.get(), PolarBear.createAttributes().build());\n        event.put(EntityRegistry.DEAD_KING.get(), DeadKingBoss.prepareAttributes().build());\n        event.put(EntityRegistry.DEAD_KING_CORPSE.get(), DeadKingBoss.prepareAttributes().build());\n        event.put(EntityRegistry.CATACOMBS_ZOMBIE.get(), Zombie.createAttributes().build());\n        event.put(EntityRegistry.MAGEHUNTER_VINDICATOR.get(), Vindicator.createAttributes().build());\n        event.put(EntityRegistry.ARCHEVOKER.get(), ArchevokerEntity.prepareAttributes().build());\n        event.put(EntityRegistry.PRIEST.get(), PriestEntity.prepareAttributes().build());\n        event.put(EntityRegistry.KEEPER.get(), KeeperEntity.prepareAttributes().build());\n        event.put(EntityRegistry.SCULK_TENTACLE.get(), VoidTentacle.createLivingAttributes().build());\n        event.put(EntityRegistry.CRYOMANCER.get(), CryomancerEntity.prepareAttributes().build());\n        event.put(EntityRegistry.ROOT.get(), RootEntity.createLivingAttributes().build());\n        event.put(EntityRegistry.FIREFLY_SWARM.get(), WispEntity.prepareAttributes().build());\n        event.put(EntityRegistry.APOTHECARIST.get(), ApothecaristEntity.prepareAttributes().build());\n        event.put(EntityRegistry.CULTIST.get(), CultistEntity.prepareAttributes().build());\n        event.put(EntityRegistry.FIRE_BOSS.get(), FireBossEntity.prepareAttributes().build());\n        event.put(EntityRegistry.CURSED_ARMOR_STAND.get(), CursedArmorStandEntity.prepareAttributes().build());\n        event.put(EntityRegistry.SUMMONED_SWORD.get(), SummonedSwordEntity.prepareAttributes().build());\n        event.put(EntityRegistry.SUMMONED_CLAYMORE.get(), SummonedClaymoreEntity.prepareAttributes().build());\n        event.put(EntityRegistry.SUMMONED_RAPIER.get(), SummonedRapierEntity.prepareAttributes().build());\n        event.put(EntityRegistry.ICE_SPIDER.get(), IceSpiderEntity.prepareAttributes().build());\n        event.put(EntityRegistry.SCAPEGOAT.get(), ScapegoatEntity.prepareAttributes().build());\n    }\n",
+          "excerpt_sha256": "cd77b1753eadb8c27ed71bcad837bf5d6e85d47f113504a1f6fd42c3c3a849f0",
+          "normalized_excerpt_sha256": "830edbca3313c88d18a3b745a9285fe8cd9bd258d69638c1e0581813cfb9f2b1",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/setup/ClientSetup.java",
+          "method": null,
+          "lines": [
+            425,
+            425
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "b4ac1a00d7ac569148913dfbe824ebe9b019924d65154ff620df388d41250715",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/setup/ClientSetup.java#L425-L425",
+          "excerpt": "        event.registerEntityRenderer(EntityRegistry.SCAPEGOAT.get(), ScapegoatRenderer::new);\n",
+          "excerpt_sha256": "ea3192d312a4c3c6fa9c6b09aae83dc8a773e34cfcdea342cfcc9a280640fdd9",
+          "normalized_excerpt_sha256": "48bc514401ff4941a148ff9360565bb5395cc202eaf692780637e018a8b42b58",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_registration_statements_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/IronsSpellbooks.java",
+          "method": null,
+          "lines": [
+            53,
+            102
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "0475592583c6f99972ad38569917b47e2f3d056a4789c24d41b34dec83ead9da",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/IronsSpellbooks.java#L53-L102",
+          "excerpt": "    public IronsSpellbooks(IEventBus modEventBus, ModContainer modContainer) {\n\n        ModSetup.setup();\n\n        MAGIC_MANAGER = new MagicManager();\n        MagicHelper.MAGIC_MANAGER = MAGIC_MANAGER;\n\n        modEventBus.addListener(ModSetup::init);\n        modEventBus.addListener(this::enqueueIMC);\n        modEventBus.addListener(this::processIMC);\n        modEventBus.addListener(SchoolRegistry::registerRegistry);\n        modEventBus.addListener(SpellRegistry::registerRegistry);\n        modEventBus.addListener(UpgradeOrbTypeRegistry::registerDatapackRegistries);\n        //NeoForge.EVENT_BUS.register(this);\n\n        //TODO: custom annotation would be nice\n        SchoolRegistry.register(modEventBus);\n        SpellRegistry.register(modEventBus);\n        ItemRegistry.register(modEventBus);\n        AttributeRegistry.register(modEventBus);\n        BlockRegistry.register(modEventBus);\n        MenuRegistry.register(modEventBus);\n        EntityRegistry.register(modEventBus);\n        LootRegistry.register(modEventBus);\n        MobEffectRegistry.register(modEventBus);\n        ParticleRegistry.register(modEventBus);\n        SoundRegistry.register(modEventBus);\n        FeatureRegistry.register(modEventBus);\n        PotionRegistry.register(modEventBus);\n        CommandArgumentRegistry.register(modEventBus);\n        StructureProcessorRegistry.register(modEventBus);\n        StructureElementRegistry.register(modEventBus);\n        CreativeTabRegistry.register(modEventBus);\n        DataAttachmentRegistry.register(modEventBus);\n        ArmorMaterialRegistry.register(modEventBus);\n        ComponentRegistry.register(modEventBus);\n        PoiTypeRegistry.register(modEventBus);\n        FluidRegistry.register(modEventBus);\n        RecipeRegistry.register(modEventBus);\n\n        modEventBus.addListener(this::addPackFinders);\n        NeoForge.EVENT_BUS.addListener(this::addServerDataListeners);\n\n        //ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientConfigs.SPEC,\"irons_spellbooks-client.toml\");\n        modContainer.registerConfig(ModConfig.Type.CLIENT, ClientConfigs.SPEC, String.format(\"%s-client.toml\", IronsSpellbooks.MODID));\n        modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfigs.SPEC, String.format(\"%s-server.toml\", IronsSpellbooks.MODID));\n\n    }\n\n    public void addServerDataListeners(AddReloadListenerEvent event) {\n",
+          "excerpt_sha256": "965dc025f62d010a921b1664949158d78e757a7d84a48633cde913faf2269b44",
+          "normalized_excerpt_sha256": "f4e1f3733523a7054a50cf7f35bf2eb4b22e250a6ac362b2219c8976206e93da",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Read full spell100lines, full ScapegoatEntity271lines, renderer/model complete, complete tauntPredicate and all three performTaunt overloads, damage-friendly-fire and server particle transport methods. onCast calls parent sound before outcome, creates goat owned by caster, computes ground target but initial move2forward un-clipped, assigns maxhealth/power, poof BEFORE spawn, sets15s duration and native invulnerableTime60, ignores world.addFreshEntity result then taunts irrespective of spawn success. Selected actual call is performTaunt(goat,12f,tauntPredicate(caster)), not the unused overload that ignores taunter/range and hardcodes10. Predicate Java precedence is entityEnemy XOR (taunterEnemy AND !taunter.isAlliedTo(entity)), OR neutral-mob-isAngryAt(caster). Thus for nonEnemy caster every Enemy passes regardless ally test; not a universal no-friendly-taunt gate. Sphere strictly distanceSq<rangeSq around goat, actual Mob selected gets ANGRY_VILLAGER particles BEFORE tauntmob.setTarget(goat); no readback/return/owner-qualified lease/release policy or Boss immune tag. Later native AI/target hooks may reject/replace target, particles only attempted assignment. Goat getOwner caches entity if notremoved else server UUID lookup, NBT stores owner,targetPos,positive duration; hurt first checks friendly fire BETWEEN attack source entity and goat OWNER then super, success particles only if supertrue. Projectile noowner source => helper false; not all projectiles rejected. Goat is not IMagicSummon in own declaration, explicit owner relation only via hurt call. Counter decrements only ifpositive, so missing/0 duration never expires from this tick branch. AntiMagic poof/discard; die calls super then ifdead poof/discard. Cosmetic bleat/jumpDelay20 and5tick particles independent of actual taunt effect. Fullbright renderer and walking animation do not prove control. Registry spell/entity/attributes/renderer and main constructor register calls read.",
+      "application_to_boss_immune": "Verify a control request at actual AI assignment and final acceptance/readback, independently of a friendly damage guard or summon visibility. Do not label angry particles or visible decoy as Boss control success/refusal. A failed spawn must not silently become a valid control target; no implementation recommendation before1000. Parent cast sound, initial native hurt cooldown and final AI goal replacement are different outcomes.",
+      "semantic_dedup": "One whole decoy creation/target-admission/feedback lifetime candidate, credit0 pending Russell. Compared main Relics native owner-qualified decoy detonation: owner-hit is explicit consume command there, here goat redirects OTHER mobs AI and owner relationship gates damage only. Compared Enigmatic gaze crowd retarget: that excludes primary and assigns mobs to one another, rather than a finite-lived spawned actor whose spawn result is ignored and whose damage-owner policy differs from taunt eligibility. WaxPrison preserves/restores original target only while it still owns current target; this chain has no such release token. If primary considers all equivalent direct-target assignment, downgrade0; no separate credit for friendly helper/renderer/overloads/constants.",
+      "limitations": "Modern NeoForge fixed commit source.json archive manifest SHA, no tree.json exists: do not claim remote Git tree/blob verification. Source snapshots computedblob is local only. Actual native Mob.setTarget/event implementation not expanded at exact source MC version; no assertion setTarget always sticks or particles arrive/distance exactnetwork. No run/compile, no source change, no gameplay acquisition/renderer visual acceptance. No separate registration/physics/animation/tooltip credits."
+    },
+    {
+      "id": "herschel-049-02",
+      "semantic_dedup_key": "poisecluster-versus-main-thrasher-prehurt-budget-dedup-supplement",
+      "status": "support_only",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "team-abnormals__upgrade-aquatic/src/main/java/com/teamabnormals/upgrade_aquatic/common/entity/monster/Thrasher.java",
+          "method": "hurt",
+          "lines": [
+            270,
+            301
+          ],
+          "fixed_commit": "214a42e108d58a9064aaf828a4dbb746029f1e2a",
+          "file_sha256": "a90a3ad44aa321b904ecab2d9cd2b7ec5a9fdff34b750a98c83be23417bfff82",
+          "url": "https://github.com/team-abnormals/upgrade-aquatic/blob/214a42e108d58a9064aaf828a4dbb746029f1e2a/src/main/java/com/teamabnormals/upgrade_aquatic/common/entity/monster/Thrasher.java#L270-L301",
+          "excerpt": "\tpublic boolean hurt(DamageSource source, float amount) {\n\t\tEntity entitySource = source.getEntity();\n\t\tif (entitySource instanceof LivingEntity) {\n\t\t\tVec3 difference = new Vec3(entitySource.getX() - this.getX(), entitySource.getY() - this.getY(), entitySource.getZ() - this.getZ());\n\t\t\tif (difference.length() <= 8) {\n\t\t\t\tif (entitySource.isInWater()) {\n\t\t\t\t\tif (entitySource instanceof Player && !((Player) entitySource).isCreative() && !entitySource.isSpectator()) {\n\t\t\t\t\t\tthis.setTarget((LivingEntity) entitySource);\n\t\t\t\t\t} else if (!(entitySource instanceof Player)) {\n\t\t\t\t\t\tthis.setTarget((LivingEntity) entitySource);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tif (this.getHitsLeftTillStun() > 0) {\n\t\t\t\t\tint difficultyDividend = switch (this.level().getDifficulty()) {\n\t\t\t\t\t\tcase EASY, PEACEFUL -> 10;\n\t\t\t\t\t\tcase NORMAL -> 12;\n\t\t\t\t\t\tcase HARD -> 16;\n\t\t\t\t\t};\n\t\t\t\t\tint chance = amount >= this.getStunDamageThreshold() ? 1 : difficultyDividend / (int) Math.max(1, amount);\n\t\t\t\t\tif (this.getRandom().nextInt(chance) == 0) {\n\t\t\t\t\t\tthis.setHitsTillStun(this.getHitsLeftTillStun() - 1);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\tif (!(entitySource instanceof Player player) || (!player.isCreative() && !player.isSpectator())) {\n\t\t\t\t\tthis.setPossibleDetectionPoint(Optional.of(entitySource.blockPosition().offset(this.getRandom().nextInt(2), this.getRandom().nextInt(2), this.getRandom().nextInt(2))));\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t\tif (!this.level().isClientSide() && this.isNoEndimationPlaying()) NetworkUtil.setPlayingAnimation(this, UAPlayableEndimations.THRASHER_HURT);\n\t\treturn super.hurt(source, amount);\n\t}\n",
+          "excerpt_sha256": "1b1ebe89a83fb0eb180d1d53cbcd1c921aeb7704f0c4ad391b1e93fa100b1f54",
+          "normalized_excerpt_sha256": "f40ba40850088208473e24b0d3b2dfe7e4a74dd4e0cd775f3e05dee07f2f7df9",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "team-abnormals__upgrade-aquatic/src/main/java/com/teamabnormals/upgrade_aquatic/common/entity/monster/Thrasher.java",
+          "method": "onSyncedDataUpdated",
+          "lines": [
+            150,
+            159
+          ],
+          "fixed_commit": "214a42e108d58a9064aaf828a4dbb746029f1e2a",
+          "file_sha256": "a90a3ad44aa321b904ecab2d9cd2b7ec5a9fdff34b750a98c83be23417bfff82",
+          "url": "https://github.com/team-abnormals/upgrade-aquatic/blob/214a42e108d58a9064aaf828a4dbb746029f1e2a/src/main/java/com/teamabnormals/upgrade_aquatic/common/entity/monster/Thrasher.java#L150-L159",
+          "excerpt": "\tpublic void onSyncedDataUpdated(EntityDataAccessor<?> key) {\n\t\tif (HITS_TILL_STUN.equals(key) && this.tickCount > 10) {\n\t\t\tif (this.getHitsLeftTillStun() == 0) {\n\t\t\t\tthis.setStunned(((this.getRandom().nextInt(2) + 2) * 20) + this.getRandom().nextInt(10));\n\t\t\t}\n\t\t} else if (CAUGHT_SIZE.equals(key)) {\n\t\t\tthis.refreshDimensions();\n\t\t}\n\t\tsuper.onSyncedDataUpdated(key);\n\t}\n",
+          "excerpt_sha256": "408c4af43a199190def4f3dfaa8b70e7cdfefbf62ca0d8eb3044988ba823fadc",
+          "normalized_excerpt_sha256": "45b5f7feada5a477f84b334b2a9e728c88b8a44a717bcd7d7a1debf83e2c5650",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "Read complete Thrasher.hurt and onSyncedDataUpdated to supplement048 comparison against existing main upgradeaquatic-native-prehurt-stun-budget-releases-captive-without-health-success. Within8 of Living source, positive remaining budget probabilistically decrements using damage amount/difficulty BEFORE super.hurt, irrespective final damage acceptance. Native synced callback after tickCount10 and budget0 picks40..69 stun. This is a real existing pre-success target budget and must not be overlooked just because main key lacks skipAttackInteraction.",
+      "application_to_boss_immune": "048 cannot count merely because it has an early hit counter. Its only proposed independent whole-lifecycle distinction is special interaction entry consuming finalhit to discard actor/block-return BEFORE native hurt, with projectile actuallyHurt sharing budget and later tick cleanup. Different constants or generic counter alone earn0.",
+      "semantic_dedup": "Support0 always. Ask Russell compare048 against this closer existing Thrasher chain in addition PNC. Do not modify already handed048 hash or retrospectively claim independence accepted. If destructive pre-hurt attack interception is considered same family, downgrade0480.",
+      "limitations": "Only these complete methods additionally read/frozen, not a claim this turn reread whole693line actor or native callback implementation. No new main credit, no runtime/test/production change."
+    }
+  ],
+  "exclusions": [
+    "HeartstopEffect fullread is main iron-heartstop-deferred-settlement-not-immunity duplicate0, not candidate.",
+    "BoofBlockEntity fullread is existing endergetic boof trigger/final push chain duplicate0.",
+    "Main428 explicit Russell snapshot; helper ledger remains0, Bumblezone excluded."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

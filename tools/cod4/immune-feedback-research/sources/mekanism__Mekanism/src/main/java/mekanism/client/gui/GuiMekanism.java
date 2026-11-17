@@ -1,0 +1,788 @@
+package mekanism.client.gui;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
+import mekanism.client.gui.element.GuiElement;
+import mekanism.client.gui.element.slot.GuiSlot;
+import mekanism.client.gui.element.slot.GuiVirtualSlot;
+import mekanism.client.gui.element.slot.SlotType;
+import mekanism.client.gui.element.tab.GuiWarningTab;
+import mekanism.client.gui.element.window.GuiWindow;
+import mekanism.client.render.MekanismRenderer;
+import mekanism.common.Mekanism;
+import mekanism.common.inventory.container.MekanismContainer;
+import mekanism.common.inventory.container.SelectedWindowData;
+import mekanism.common.inventory.container.slot.ContainerSlotType;
+import mekanism.common.inventory.container.slot.IVirtualSlot;
+import mekanism.common.inventory.container.slot.InventoryContainerSlot;
+import mekanism.common.inventory.container.slot.SlotOverlay;
+import mekanism.common.inventory.container.tile.MekanismTileContainer;
+import mekanism.common.inventory.warning.IWarningTracker;
+import mekanism.common.inventory.warning.WarningTracker;
+import mekanism.common.inventory.warning.WarningTracker.WarningType;
+import mekanism.common.lib.collection.LRU;
+import mekanism.common.tile.component.config.DataType;
+import mekanism.common.tile.interfaces.ISideConfiguration;
+import net.minecraft.client.gui.ComponentPath;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.events.ContainerEventHandler;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.navigation.FocusNavigationEvent;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Util;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import org.joml.Matrix3x2fStack;
+import org.jspecify.annotations.Nullable;
+
+public abstract class GuiMekanism<CONTAINER extends AbstractContainerMenu> extends VirtualSlotContainerScreen<CONTAINER> implements IGuiWrapper {
+    
+    public static final Identifier BASE_BACKGROUND_SLICE = Mekanism.rl("base");
+    public static final Identifier SHADOW = Mekanism.rl("shadow");
+    public static final Identifier BLUR = Mekanism.rl("blur");
+    //TODO: Look into defaulting this to true
+    protected boolean dynamicSlots;
+    protected boolean initialFocusSet;
+    protected final LRU<GuiWindow> windows = new LRU<>();
+    public boolean switchingToRecipeViewer;
+    @Nullable
+    private IWarningTracker warningTracker;
+    private long lastMSInitialized;
+
+    private boolean hasClicked = false;
+
+    protected GuiMekanism(CONTAINER container, Inventory inv, Component title) {
+        super(container, inv, title);
+    }
+
+    protected GuiMekanism(CONTAINER container, Inventory inv, Component title, int imageWidth, int imageHeight) {
+        super(container, inv, title, imageWidth, imageHeight);
+    }
+
+    @Override
+    public BooleanSupplier trackWarning(WarningType type, BooleanSupplier warningSupplier) {
+        if (warningTracker == null) {
+            warningTracker = new WarningTracker();
+        }
+        return warningTracker.trackWarning(type, warningSupplier);
+    }
+
+    @Override
+    public void removed() {
+        if (!switchingToRecipeViewer) {
+            //If we are not switching to JEI then run the super close method
+            // which will exit the container. We don't want to mark the
+            // container as exited if it will be revived when leaving JEI
+            // Note: We start by closing all open windows so that any cleanup
+            // they need to have done such as saving positions can be done
+            windows.forEach(GuiWindow::close);
+            super.removed();
+        }
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        if (warningTracker != null) {
+            //If our warning tracker isn't null (so this isn't the first time we are initializing, such as after resizing)
+            // clear out any tracked warnings, so we don't have duplicates being tracked when we add our elements again
+            warningTracker.clearTrackedWarnings();
+        } else {
+            //If we haven't been initialized yet, we can initialize it here
+            lastMSInitialized = Util.getMillis();
+        }
+        addGuiElements();
+        if (warningTracker != null) {
+            //If we have a warning tracker add it as a button, we do so via a method in case any of the sub GUIs need to reposition where it ends up
+            addWarningTab(warningTracker);
+        }
+        initPinnedWindows();
+    }
+
+    protected void initPinnedWindows() {
+        if (this.windows.isEmpty()) {
+            //TODO: Improve support for this if we have windows that are opened from other windows
+            for (GuiEventListener child : children()) {
+                if (child instanceof GuiElement element) {
+                    element.openPinnedWindows();
+                }
+            }
+        }
+    }
+
+    protected void addWarningTab(IWarningTracker warningTracker) {
+        addRenderableWidget(new GuiWarningTab(this, warningTracker, true));
+    }
+
+    /// Called to add gui elements to the GUI. Add elements before calling super if they should be before the slots, and after if they should be after the slots. Most
+    /// elements can and should be added after the slots.
+    protected void addGuiElements() {
+        if (dynamicSlots) {
+            addSlots();
+        }
+    }
+
+    @Override
+    protected void setInitialFocus(GuiEventListener listener) {
+        if (!initialFocusSet) {
+            super.setInitialFocus(listener);
+            initialFocusSet = true;
+        }
+    }
+
+    /// Like [#addRenderableWidget(GuiEventListener)], except doesn't add the element as narratable.
+    @SuppressWarnings("unchecked")//todo AT the children list or use addWidget
+    protected <T extends GuiElement> T addElement(T element) {
+        renderables.add(element);
+        ((List<GuiEventListener>) children()).add(element);
+        return element;
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        renderables.forEach(action -> {
+            if (action instanceof GuiElement guiElement) {
+                guiElement.updateBeforeExtract();
+            }
+        });
+        super.extractRenderState(graphics, mouseX, mouseY, a);
+    }
+
+    @Override
+    public void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        super.extractContents(graphics, mouseX, mouseY, a);
+        //After we render all the contents and moved to the furthest stratum that vanilla will use
+        // excluding things like tooltips or the currently carried item which should both render above windows:
+        // shift the matrix to relative coordinates again, and add a new stratum for each window
+        //TODO - 26.3: Make sure this works fine and there isn't some unforseen side effects
+        Matrix3x2fStack pose = graphics.pose();
+        pose.pushMatrix();
+        pose.translate(leftPos, topPos);
+        // now render overlays in reverse-order (i.e. back to front)
+        for (LRU<GuiWindow>.LRUIterator iter = getWindowsDescendingIterator(); iter.hasNext(); ) {
+            graphics.nextStratum();
+            GuiWindow overlay = iter.next();
+            //Max z offset is incremented based on what is the deepest level offset we go to
+            // if our gui isn't flagged as visible we won't increment it as nothing is drawn
+            // we need to do this based on what the max is after having rendered the previous
+            // window as while the windows don't necessarily overlap, if they do we want to
+            // ensure that there is no clipping
+            overlay.onRenderForeground(graphics, mouseX, mouseY, a);
+            if (iter.hasNext()) {
+                // if this isn't the focused window, render a 'blur' effect over it
+                overlay.renderBlur(graphics);
+            }
+        }
+        pose.popMatrix();
+    }
+
+    protected <T extends GuiElement> T addRenderableWidget(T element) {
+        //TODO: At some point we want to replace calls of this to directly call addElement, and then add in better support
+        // for the narrator and what is currently focused and implement in some gui elements updateNarration rather than
+        // just have it NO-OP. We currently redirect this to our version that doesn't add it as narratable so that we don't
+        // have hitting tab with the narrator on just list indices
+        return addElement(element);
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        for (GuiEventListener child : children()) {
+            if (child instanceof GuiElement element) {
+                element.tick();
+            }
+        }
+        windows.forEach(GuiWindow::tick);
+    }
+
+    @Override
+    public long getTimeOpened() {
+        return lastMSInitialized;
+    }
+
+    protected void renderTitleText(GuiGraphicsExtractor guiGraphics) {
+        drawTitleText(guiGraphics, title, titleLabelY);
+    }
+
+    protected void renderTitleTextWithOffset(GuiGraphicsExtractor guiGraphics, int x) {
+        renderTitleTextWithOffset(guiGraphics, x, getImageWidth());
+    }
+
+    protected void renderTitleTextWithOffset(GuiGraphicsExtractor guiGraphics, int x, int end) {
+        drawTitleTextTextWithOffset(guiGraphics, title, x, titleLabelY, end);
+    }
+
+    protected void renderTitleTextWithOffset(GuiGraphicsExtractor guiGraphics, int x, int end, int maxLengthPad, TextAlignment alignment) {
+        drawTitleTextTextWithOffset(guiGraphics, title, x, titleLabelY, end, maxLengthPad, alignment);
+    }
+
+    protected void renderInventoryText(GuiGraphicsExtractor guiGraphics) {
+        renderInventoryText(guiGraphics, getImageWidth());
+    }
+
+    protected void renderInventoryText(GuiGraphicsExtractor guiGraphics, int end) {
+        drawScrollingString(guiGraphics, playerInventoryTitle, inventoryLabelX, inventoryLabelY, TextAlignment.LEFT, titleTextColor(), end - inventoryLabelX - 6, 0, false);
+    }
+
+    protected void renderInventoryTextAndOther(GuiGraphicsExtractor guiGraphics, Component rightAlignedText) {
+        renderInventoryTextAndOther(guiGraphics, rightAlignedText, 0);
+    }
+
+    protected void renderInventoryTextAndOther(GuiGraphicsExtractor guiGraphics, Component rightAlignedText, int rightEndPad) {
+        drawScrollingString(guiGraphics, playerInventoryTitle, inventoryLabelX, inventoryLabelY, TextAlignment.LEFT, titleTextColor(), 53, 0, false);
+        int rightStart = inventoryLabelX + 50;
+        drawScrollingString(guiGraphics, rightAlignedText, rightStart, inventoryLabelY, TextAlignment.RIGHT, titleTextColor(), getImageWidth() - rightStart - rightEndPad, 6, false);
+    }
+
+    @Override
+    public ItemStack getCarriedItem() {
+        return getMenu().getCarried();
+    }
+
+    @Nullable
+    private <NAVIGATION extends FocusNavigationEvent> ComponentPath handleNavigationWithWindows(NAVIGATION navigation,
+          BiFunction<ContainerEventHandler, NAVIGATION, @Nullable ComponentPath> handleNavigation) {
+        GuiWindow topWindow = windows.head();
+        List<GuiEventListener> combinedChildren;
+        //Note: As allowContainer wise only allows interacting with slots, which we don't have navigation for, we check against allowAll.
+        // If we are allowed to interact with everything, we want to include all the windows and children in the navigation check,
+        // otherwise we only include the top window, as while it should already be focused, maybe it isn't, so we need to make sure
+        // to handle checking navigation on it
+        if (topWindow.getInteractionStrategy().allowAll()) {
+            combinedChildren = new ArrayList<>(windows);
+            combinedChildren.addAll(children());
+        } else {
+            combinedChildren = List.of(topWindow);
+        }
+        ContainerEventHandler handlerWithWindows = new ContainerEventHandler() {
+            @Override
+            public List<? extends GuiEventListener> children() {
+                return combinedChildren;
+            }
+
+            @Override
+            public boolean isDragging() {
+                return GuiMekanism.this.isDragging();
+            }
+
+            @Override
+            public void setDragging(boolean dragging) {
+            }
+
+            @Nullable
+            @Override
+            public GuiEventListener getFocused() {
+                return GuiMekanism.this.getFocused();
+            }
+
+            @Override
+            public void setFocused(@Nullable GuiEventListener focused) {
+            }
+
+            @Override
+            public ScreenRectangle getRectangle() {
+                return GuiMekanism.this.getRectangle();
+            }
+        };
+        ComponentPath componentPath = handleNavigation.apply(handlerWithWindows, navigation);
+        if (componentPath == null) {
+            return null;
+        } else if (componentPath instanceof ComponentPath.Path(ContainerEventHandler component, ComponentPath childPath)) {
+            if (component == handlerWithWindows) {
+                //Replace the root of the path with ourselves rather than our fake wrapper
+                return ComponentPath.path(this, childPath);
+            }
+        }
+        return componentPath;
+    }
+
+    @Nullable
+    @Override
+    public ComponentPath handleTabNavigation(FocusNavigationEvent.TabNavigation navigation) {
+        //Note: We have to AT this method and the arrow navigation one, as Screen explicitly calls super.nextFocusPath,
+        // so we can't get away with just overriding getFocusPath
+        if (windows.isEmpty()) {
+            return super.handleTabNavigation(navigation);
+        }
+        return handleNavigationWithWindows(navigation, ContainerEventHandler::handleTabNavigation);
+    }
+
+    @Nullable
+    @Override
+    public ComponentPath handleArrowNavigation(FocusNavigationEvent.ArrowNavigation navigation) {
+        if (windows.isEmpty()) {
+            return super.handleArrowNavigation(navigation);
+        }
+        return handleNavigationWithWindows(navigation, ContainerEventHandler::handleArrowNavigation);
+    }
+
+    @Override
+    protected boolean hasClickedOutside(double mouseX, double mouseY, int left, int top) {
+        return getWindowHovering(mouseX, mouseY) == null && super.hasClickedOutside(mouseX, mouseY, left, top);
+    }
+
+    @Override
+    protected void repositionElements() {
+        if (switchingToRecipeViewer) {
+            //Mark that we are not switching to JEI if we start being initialized again
+            // Note: We can do this here as the screen will always have initialized as true, so we don't need to definalize init(mc, width, height)
+            // as it will never potentially have init() with no params be the call path
+            // Additionally, as the screen is not actively being used we shouldn't have cases this is called from resize while we are not present
+            // and setting this to false when it is already false does nothing
+            switchingToRecipeViewer = false;
+            //If we were switching to a recipe viewer, then we also want to restart the time the scrolling text is using
+            lastMSInitialized = Util.getMillis();
+        }
+        super.repositionElements();
+    }
+
+    @Override
+    protected void rebuildWidgets() {
+        //Gather any persistent data from existing elements
+        record PreviousElement(int index, GuiElement element, boolean wasFocus) {
+        }
+        List<PreviousElement> prevElements = new ArrayList<>();
+        GuiEventListener previousFocused = getFocused();
+        for (int i = 0; i < children().size(); i++) {
+            GuiEventListener widget = children().get(i);
+            if (widget instanceof GuiElement element) {
+                boolean wasPreviousFocus = element == previousFocused;
+                if (wasPreviousFocus || element.hasPersistentData()) {
+                    prevElements.add(new PreviousElement(i, element, wasPreviousFocus));
+                }
+            }
+        }
+        int prevLeft = leftPos, prevTop = topPos;
+        //Allow the elements to be cleared and reinitialized
+        super.rebuildWidgets();
+
+        //Resize any windows as we can't easily just rebuild them
+        for (GuiWindow window : windows) {
+            window.resize(prevLeft, prevTop, leftPos, topPos);
+        }
+
+        //And set any persistent data that we stored
+        int childCount = children().size();
+        for (PreviousElement e : prevElements) {
+            if (e.index() < childCount) {
+                GuiEventListener widget = children().get(e.index());
+                // we're forced to assume that the children list is the same before and after the resize.
+                // for verification, we run a lightweight class equality check
+                // Note: We do not perform an instance check on widget to ensure it is a GuiElement, as that is
+                // ensured by the class comparison, and the restrictions of what can go in prevElements
+                if (widget.getClass() == e.element().getClass()) {
+                    ((GuiElement) widget).syncFrom(e.element());
+                    if (e.wasFocus()) {
+                        setFocused(widget);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override//TODO - 26.3: review `pose` used for zindex stuff
+    protected void extractLabels(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+        float partialTicks = MekanismRenderer.getPartialTick();
+        for (GuiEventListener c : children()) {
+            if (c instanceof GuiElement element) {
+                element.onDrawBackground(guiGraphics, mouseX, mouseY, partialTicks);
+            }
+        }
+        drawForegroundText(guiGraphics, mouseX, mouseY);
+        // first render general foregrounds
+        for (GuiEventListener widget : children()) {
+            if (widget instanceof GuiElement element) {
+                element.onRenderForeground(guiGraphics, mouseX, mouseY, partialTicks);
+            }
+        }
+    }
+
+    @Override
+    protected void extractTooltip(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+        super.extractTooltip(guiGraphics, mouseX, mouseY);
+        GuiElement tooltipElement = getWindowHovering(mouseX, mouseY);
+        if (tooltipElement == null) {
+            tooltipElement = (GuiElement) GuiUtils.findChild(children(), mouseX, mouseY, (child, x, y) -> child instanceof GuiElement && child.isMouseOver(x, y));
+        }
+        if (tooltipElement != null) {
+            tooltipElement.renderToolTip(guiGraphics, mouseX, mouseY);
+        }
+    }
+
+
+    protected void drawForegroundText(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+    }
+
+    @Override
+    public Optional<GuiEventListener> getChildAt(double mouseX, double mouseY) {
+        GuiWindow window = getWindowHovering(mouseX, mouseY);
+        return window == null ? super.getChildAt(mouseX, mouseY) : Optional.of(window);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        // first try to send the mouse event to our focused window
+        GuiWindow top = windows.peek();
+        if (top != null) {
+            boolean windowScroll = top.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+            if (windowScroll || !top.getInteractionStrategy().allowAll()) {
+                //If our focused window was able to handle the scroll or doesn't allow interacting with
+                // things outside the window, return our scroll result
+                return windowScroll;
+            }
+        }
+        //Then try super for items
+        if (super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
+            return true;
+        }
+        //And finally try the children
+        List<? extends GuiEventListener> children = children();
+        for (int i = children.size() - 1; i >= 0; i--) {
+            if (children.get(i) instanceof GuiElement element) {
+                if (element.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean isDoubleClick) {
+        hasClicked = true;
+        // first try to send the mouse event to our overlays
+        GuiWindow top = windows.peek();
+        for (GuiWindow overlay : windows) {
+            if (overlay.mouseClicked(event, isDoubleClick)) {
+                if (windows.contains(overlay)) {
+                    //Validate that the focused window is still one of our windows, as if it wasn't focused/on top, and
+                    // it is being closed, we don't want to update and mark it as focused, as our defocusing code won't
+                    // run as we ran it when we pressed the button
+                    setFocused(overlay);
+                    if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
+                        setDragging(true);
+                    }
+                    // this check prevents us from moving the window to the top of the stack if the clicked window opened up an additional window
+                    if (top != overlay) {
+                        //noinspection DataFlowIssue: if null, we won't be in this loop
+                        top.onFocusLost();
+                        windows.moveUp(overlay);
+                        overlay.onFocused();
+                    }
+                }
+                return true;
+            }
+        }
+        // otherwise, we send it to the current element (this is the same as super.super [ContainerEventHandler#mouseClicked], but in reverse order)
+        //TODO: Why do we do this in reverse order?
+        GuiEventListener clickedChild = GuiUtils.findChild(children(), event, isDoubleClick, GuiEventListener::mouseClicked);
+        if (clickedChild != null) {
+            setFocused(clickedChild);
+            if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
+                setDragging(true);
+            }
+            return true;
+        } else {
+            //If we can't find a child, allow clearing whatever focus we currently have
+            clearFocus();
+        }
+        return super.mouseClicked(event, isDoubleClick);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (hasClicked) {
+            // always pass mouse released events to windows for drag checks
+            for (GuiWindow w : windows) {
+                w.onRelease(event);
+            }
+            return super.mouseReleased(event);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        for (GuiWindow window : windows) {
+            if (window.keyPressed(event)) {
+                return true;
+            }
+        }
+        return GuiUtils.checkChildren(children(), event, (child, e) -> child instanceof GuiElement && child.keyPressed(e)) ||
+               super.keyPressed(event);
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        for (GuiWindow window : windows) {
+            if (window.charTyped(event)) {
+                return true;
+            }
+        }
+        return GuiUtils.checkChildrenChar(children(), event, (child, e) -> child instanceof GuiElement && child.charTyped(e)) || super.charTyped(event);
+    }
+
+    /// @apiNote mouseXOld and mouseYOld are just guessed mappings I couldn't find any usage from a quick glance.
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double mouseXOld, double mouseYOld) {
+        super.mouseDragged(event, mouseXOld, mouseYOld);
+        return getFocused() != null && isDragging() && event.button() == InputConstants.MOUSE_BUTTON_LEFT && getFocused().mouseDragged(event, mouseXOld, mouseYOld);
+    }
+
+    @Nullable
+    @Override
+    @Deprecated//Don't use directly, this is normally private in ContainerScreen
+    protected Slot getHoveredSlot(double mouseX, double mouseY) {
+        //We override the implementation we have in VirtualSlotContainerScreen so that we can cache getting our window
+        // and have some general performance improvements given we can batch a bunch of lookups together
+        boolean checkedWindow = false;
+        boolean overNoButtons = false;
+        GuiWindow window = null;
+        for (Slot slot : menu.slots) {
+            if (!slot.isActive()) {
+                continue;
+            }
+            boolean virtual = slot instanceof IVirtualSlot;
+            int xPos = slot.x;
+            int yPos = slot.y;
+            if (virtual) {
+                //Virtual slots need special handling to allow for matching them to the window they may be attached to
+                IVirtualSlot virtualSlot = (IVirtualSlot) slot;
+                if (!isVirtualSlotAvailable(virtualSlot)) {
+                    //If the slot is not available just skip all checks related to it
+                    continue;
+                }
+                xPos = virtualSlot.getActualX();
+                yPos = virtualSlot.getActualY();
+            }
+            if (super.isHovering(xPos, yPos, 16, 16, mouseX, mouseY)) {
+                if (!checkedWindow) {
+                    //Only lookup the window once
+                    checkedWindow = true;
+                    window = getWindowHovering(mouseX, mouseY);
+                    overNoButtons = overNoButtons(window, mouseX, mouseY);
+                }
+                if (overNoButtons && slot.isActive()) {
+                    if (window == null) {
+                        return slot;
+                    } else if (virtual) {
+                        for (GuiElement child : window.children()) {
+                            if (child instanceof GuiVirtualSlot v && v.isElementForSlot((IVirtualSlot) slot)) {
+                                return slot;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    @Override
+    protected boolean isMouseOverSlot(Slot slot, double mouseX, double mouseY) {
+        if (slot instanceof IVirtualSlot virtualSlot) {
+            //Virtual slots need special handling to allow for matching them to the window they may be attached to
+            if (isVirtualSlotAvailable(virtualSlot)) {
+                //Start by checking if the slot is even "active/available"
+                int xPos = virtualSlot.getActualX();
+                int yPos = virtualSlot.getActualY();
+                if (super.isHovering(xPos, yPos, 16, 16, mouseX, mouseY)) {
+                    GuiWindow window = getWindowHovering(mouseX, mouseY);
+                    //If we are hovering over a window, check if the virtual slot is a child of the window
+                    if (window == null) {
+                        return overNoButtons((GuiWindow) null, mouseX, mouseY);
+                    } else {
+                        for (GuiElement child : window.children()) {
+                            if (child instanceof GuiVirtualSlot v && v.isElementForSlot(virtualSlot)) {
+                                return overNoButtons(window, mouseX, mouseY);
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        return isHovering(slot.x, slot.y, 16, 16, mouseX, mouseY);
+    }
+
+    private boolean overNoButtons(@Nullable GuiWindow window, double mouseX, double mouseY) {
+        if (window == null) {
+            return overNoButtons(children(), mouseX, mouseY);
+        }
+        return overNoButtons(window.children(), mouseX, mouseY);
+    }
+
+    private static boolean overNoButtons(List<? extends GuiEventListener> children, double mouseX, double mouseY) {
+        for (GuiEventListener child : children) {
+            if (child.isMouseOver(mouseX, mouseY)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isVirtualSlotAvailable(IVirtualSlot virtualSlot) {
+        // A virtual slot is only considered as available if it is linked to the window, and the window hasn't been closed
+        return virtualSlot.getLinkedWindow() instanceof GuiWindow linkedWindow && windows.contains(linkedWindow);
+    }
+
+    @Override
+    protected boolean isHovering(int x, int y, int width, int height, double mouseX, double mouseY) {
+        // overridden to prevent slot interactions when a GuiElement is blocking
+        return super.isHovering(x, y, width, height, mouseX, mouseY) && getWindowHovering(mouseX, mouseY) == null &&
+               overNoButtons((GuiWindow) null, mouseX, mouseY);
+    }
+
+    protected void addSlots() {
+        int size = menu.slots.size();
+        for (int i = 0; i < size; i++) {
+            Slot slot = menu.getSlot(i);
+            if (slot instanceof InventoryContainerSlot containerSlot) {
+                ContainerSlotType slotType = containerSlot.getSlotType();
+                DataType dataType = findDataType(containerSlot);
+                //Shift the slots by one as the elements include the border of the slot
+                SlotType type;
+                if (dataType != null) {
+                    type = SlotType.get(dataType);
+                } else if (slotType == ContainerSlotType.INPUT || slotType == ContainerSlotType.OUTPUT || slotType == ContainerSlotType.EXTRA) {
+                    type = SlotType.NORMAL;
+                } else if (slotType == ContainerSlotType.POWER) {
+                    type = SlotType.POWER;
+                } else if (slotType == ContainerSlotType.NORMAL || slotType == ContainerSlotType.VALIDITY) {
+                    type = SlotType.NORMAL;
+                } else {//slotType == ContainerSlotType.IGNORED: don't do anything
+                    continue;
+                }
+                GuiSlot guiSlot = new GuiSlot(type, this, slot.x - 1, slot.y - 1);
+                containerSlot.addWarnings(guiSlot);
+                SlotOverlay slotOverlay = containerSlot.getSlotOverlay();
+                if (slotOverlay != null) {
+                    guiSlot.with(slotOverlay);
+                }
+                if (slotType == ContainerSlotType.VALIDITY) {
+                    int index = i;
+                    guiSlot.validity(() -> checkValidity(index));
+                }
+                addRenderableWidget(guiSlot);
+            } else {
+                addRenderableWidget(new GuiSlot(SlotType.NORMAL, this, slot.x - 1, slot.y - 1));
+            }
+        }
+    }
+
+    @Nullable
+    protected DataType findDataType(InventoryContainerSlot slot) {
+        if (menu instanceof MekanismTileContainer<?> container && container.getTileEntity() instanceof ISideConfiguration sideConfig) {
+            return sideConfig.getActiveDataType(slot.getInventorySlot());
+        }
+        return null;
+    }
+
+    protected ItemStack checkValidity(int slotIndex) {
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        super.extractBackground(graphics, mouseX, mouseY, a);
+        if (getImageWidth() < 8 || getImageHeight() < 8) {
+            Mekanism.logger.warn("Gui: {}, was too small to draw the background of. Unable to draw a background for a gui smaller than 8 by 8.", getClass().getSimpleName());
+            return;
+        }
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, BASE_BACKGROUND_SLICE, leftPos, topPos, imageWidth, imageHeight);
+    }
+
+    @Override
+    public Font font() {
+        //Note: In theory font is never null here, as we should only be calling it after init has happened
+        // Previously we checked if it was and then fell back to Minecraft's overall font. But as the minecraft
+        // object we queried was actually null as well, we know that this doesn't ever get called before init
+        return font;
+    }
+
+    @Override
+    public boolean currentlyQuickCrafting() {
+        return isQuickCrafting && !quickCraftSlots.isEmpty();
+    }
+
+    @Override
+    public void addWindow(GuiWindow window) {
+        GuiWindow top = windows.peek();
+        if (top != null) {
+            top.onFocusLost();
+        }
+        windows.add(window);
+        window.onFocused();
+    }
+
+    @Override
+    public void removeWindow(GuiWindow window) {
+        if (!windows.isEmpty()) {
+            GuiWindow top = windows.head();
+            windows.remove(window);
+            if (window == top) {
+                //If the window was the top window, make it lose focus
+                window.onFocusLost();
+                //Amd check if a new window is now in focus
+                GuiWindow newTop = windows.peek();
+                if (newTop == null) {
+                    //If there isn't any because they have all been removed
+                    // fire an "event" for any post all windows being closed
+                    lastWindowRemoved();
+                } else {
+                    //Otherwise, mark the new window as being focused
+                    newTop.onFocused();
+                }
+                //Update the listener to being the window that is now selected or null if none are
+                setFocused(newTop);
+            }
+        }
+    }
+
+    protected void lastWindowRemoved() {
+        //Mark that no windows are now selected
+        if (menu instanceof MekanismContainer container) {
+            container.setSelectedWindow(null);
+        }
+    }
+
+    @Override
+    public void setSelectedWindow(SelectedWindowData selectedWindow) {
+        if (menu instanceof MekanismContainer container) {
+            container.setSelectedWindow(selectedWindow);
+        }
+    }
+
+    @Nullable
+    @Override
+    public GuiWindow getWindowHovering(double mouseX, double mouseY) {
+        for (GuiWindow w : windows) {
+            if (w.isMouseOver(mouseX, mouseY)) {
+                return w;
+            }
+        }
+        return null;
+    }
+
+    public Collection<GuiWindow> getWindows() {
+        return windows;
+    }
+
+    public LRU<GuiWindow>.LRUIterator getWindowsDescendingIterator() {
+        return windows.descendingIterator();
+    }
+}

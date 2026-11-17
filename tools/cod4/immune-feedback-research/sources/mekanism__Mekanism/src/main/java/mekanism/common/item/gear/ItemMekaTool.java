@@ -1,0 +1,446 @@
+package mekanism.common.item.gear;
+
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2BooleanArrayMap;
+import it.unimi.dsi.fastutil.objects.Reference2BooleanMap;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import mekanism.api.event.MekanismTeleportEvent;
+import mekanism.api.gear.ICustomModule;
+import mekanism.api.gear.IModule;
+import mekanism.api.gear.IModuleContainer;
+import mekanism.api.gear.IModuleHelper;
+import mekanism.api.math.MathUtils;
+import mekanism.common.Mekanism;
+import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.proxy.AutomatedEnergyHandler;
+import mekanism.common.config.MekanismConfig;
+import mekanism.common.content.gear.IBlastingItem;
+import mekanism.common.content.gear.IRadialModuleContainerItem;
+import mekanism.common.content.gear.ModuleHelper;
+import mekanism.common.content.gear.mekatool.ModuleAttackAmplificationUnit;
+import mekanism.common.content.gear.mekatool.ModuleBlastingUnit;
+import mekanism.common.content.gear.mekatool.ModuleExcavationEscalationUnit;
+import mekanism.common.content.gear.mekatool.ModuleTeleportationUnit;
+import mekanism.common.content.gear.mekatool.ModuleVeinMiningUnit;
+import mekanism.common.item.ItemEnergized;
+import mekanism.common.lib.transaction.TransactionHelper;
+import mekanism.common.network.PacketUtils;
+import mekanism.common.network.to_client.PacketPortalFX;
+import mekanism.common.registries.MekanismDamageTypes;
+import mekanism.common.registries.MekanismModules;
+import mekanism.common.tags.MekanismTags;
+import mekanism.common.util.ItemAccessUtils;
+import mekanism.common.util.MekanismUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup.RegistryLookup;
+import net.minecraft.core.TypedInstance;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemInstance;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.component.Tool;
+import net.minecraft.world.item.component.Weapon;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.neoforged.neoforge.common.ItemAbility;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.ItemAttributeModifierEvent;
+import net.neoforged.neoforge.registries.holdersets.AnyHolderSet;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+
+public class ItemMekaTool extends ItemEnergized implements IRadialModuleContainerItem, IBlastingItem {
+
+    private static final Identifier RADIAL_ID = Mekanism.rl("meka_tool");
+
+    public ItemMekaTool(Properties properties) {
+        super(IModuleHelper.INSTANCE.applyModuleContainerProperties(properties.fireResistant().rarity(Rarity.EPIC).stacksTo(1)
+              //Note: The meka-tool does not use vanilla damage, so we just set the item damage per attack to zero
+              .component(DataComponents.WEAPON, new Weapon(0, ItemAtomicDisassembler.DISABLES_BLOCKING_FOR_SECONDS))
+              .delayedHolderComponent(DataComponents.DAMAGE_TYPE, MekanismDamageTypes.DISASSEMBLING.key())
+              .delayedComponent(DataComponents.TOOL, context -> new Tool(List.of(
+                    Tool.Rule.deniesDrops(context.getOrThrow(MekanismTags.Blocks.INCORRECT_FOR_MEKA_TOOL)),
+                    new Tool.Rule(new AnyHolderSet<>(BuiltInRegistries.BLOCK), Optional.empty(), Optional.of(true))
+              ), 1, 0, true))
+        ));
+    }
+
+    @Override
+    public void onDestroyed(ItemEntity item, DamageSource damageSource) {
+        ModuleHelper.INSTANCE.dropModuleContainerContents(item, damageSource);
+    }
+
+    @Override
+    public boolean canPerformAction(ItemInstance instance, ItemAbility action) {
+        IModuleContainer container = moduleContainer(instance);
+        if (container != null) {
+            for (IModule<?> module : container.modules()) {
+                if (module.isEnabled() && canPerformAction(module, container, instance, action)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private <ITEM extends TypedInstance<Item> & DataComponentGetter, MODULE extends ICustomModule<MODULE>> boolean canPerformAction(IModule<MODULE> module,
+          IModuleContainer moduleContainer, ITEM instance, ItemAbility action) {
+        return module.getCustomInstance().canPerformAction(module, moduleContainer, instance, action);
+    }
+
+    public static int getDestroyEnergy(IModuleContainer container, float hardness, boolean silk) {
+        return getDestroyEnergy(getDestroyEnergy(container, silk), hardness);
+    }
+
+    private static int getDestroyEnergy(IModuleContainer container, boolean silk) {
+        int destroyEnergy = getDestroyEnergy(silk);
+        IModule<ModuleExcavationEscalationUnit> module = container.getIfEnabled(MekanismModules.EXCAVATION_ESCALATION_UNIT);
+        float efficiency = module == null ? MekanismConfig.gear.mekaToolBaseEfficiency.get() : module.getCustomInstance().getEfficiency();
+        return MathUtils.clampToInt(destroyEnergy * efficiency);
+    }
+
+    @Override
+    public boolean isNotReplaceableByPickAction(ItemStack stack, Player player, int inventorySlot) {
+        //Try to avoid replacing this item if there are any modules currently installed
+        return super.isNotReplaceableByPickAction(stack, player, inventorySlot) || hasInstalledModules(stack);
+    }
+
+    @Override
+    public int getEnchantmentLevel(ItemInstance instance, Holder<Enchantment> enchantment) {
+        //Enchantments in our data
+        IModuleContainer container = moduleContainer(instance);
+        int moduleLevel = container == null ? 0 : container.getModuleEnchantmentLevel(enchantment);
+        return Math.max(moduleLevel, super.getEnchantmentLevel(instance, enchantment));
+    }
+
+    @Override
+    public ItemEnchantments getAllEnchantments(ItemStack stack, RegistryLookup<Enchantment> lookup) {
+        ItemEnchantments enchantments = super.getAllEnchantments(stack, lookup);
+        IModuleContainer container = IModuleHelper.INSTANCE.getModuleContainer(stack);
+        if (container != null) {
+            ItemEnchantments moduleEnchantments = container.moduleBasedEnchantments();
+            if (enchantments.isEmpty()) {
+                //Skip copying if there are no builtin enchantments
+                return moduleEnchantments;
+            } else if (!moduleEnchantments.isEmpty()) {
+                ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(enchantments);
+                for (Object2IntMap.Entry<Holder<Enchantment>> entry : moduleEnchantments.entrySet()) {
+                    mutable.upgrade(entry.getKey(), entry.getIntValue());
+                }
+                return mutable.toImmutable();
+            }
+        }
+        return enchantments;
+    }
+
+    @Override
+    public InteractionResult useOn(UseOnContext context) {
+        for (IModule<?> module : getModules(context.getItemInHand())) {
+            if (module.isEnabled()) {
+                //Protect against any mods that might be doing transactional logic, such as if an auto clicker validates it has enough energy before calling this method
+                try (Transaction transaction = TransactionHelper.openTransactionSafe()) {
+                    InteractionResult result = onModuleUse(module, context, transaction);
+                    if (result != InteractionResult.PASS) {
+                        if (result.consumesAction()) {
+                            transaction.commit();
+                        }
+                        return result;
+                    }
+                }
+            }
+        }
+        return super.useOn(context);
+    }
+
+    private <MODULE extends ICustomModule<MODULE>> InteractionResult onModuleUse(IModule<MODULE> module, UseOnContext context, TransactionContext transaction) {
+        return module.getCustomInstance().onItemUse(module, context, transaction);
+    }
+
+    @Override
+    public InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity entity, InteractionHand hand) {
+        IModuleContainer moduleContainer = moduleContainer(stack);
+        if (moduleContainer != null) {
+            ItemAccess itemAccess = ItemAccess.forStack(stack);
+            for (IModule<?> module : moduleContainer.modules()) {
+                if (module.isEnabled()) {
+                    //Protect against any mods that might be doing transactional logic, such as if an auto clicker validates it has enough energy before calling this method
+                    try (Transaction transaction = TransactionHelper.openTransactionSafe()) {
+                        InteractionResult result = onModuleInteract(module, player, entity, hand, itemAccess, transaction);
+                        if (result != InteractionResult.PASS) {
+                            if (result.consumesAction()) {
+                                transaction.commit();
+                            }
+                            return result;
+                        }
+                    }
+                }
+            }
+        }
+        return super.interactLivingEntity(stack, player, entity, hand);
+    }
+
+    private <MODULE extends ICustomModule<MODULE>> InteractionResult onModuleInteract(IModule<MODULE> module, Player player, LivingEntity entity,
+          InteractionHand hand, ItemAccess itemAccess, TransactionContext transaction) {
+        return module.getCustomInstance().onInteract(module, player, entity, hand, itemAccess, transaction);
+    }
+
+    @Override
+    public float getDestroySpeed(ItemStack stack, BlockState state) {
+        EnergyHandler energyHandler = AutomatedEnergyHandler.manual(Capabilities.ENERGY.getCapability(ItemAccessUtils.sideEffectFreeAccess(stack)));
+        if (energyHandler == null) {
+            return 0;
+        }
+        //Protect against any mods that might be doing transactional logic, such as if an auto clicker validates it has enough energy before calling this method
+        try (Transaction simulation = TransactionHelper.openTransactionSafe()) {
+            //Use raw hardness to get the best guess of if it is zero or not
+            int energyRequired = getDestroyEnergy(stack, state.destroySpeed, isModuleEnabled(stack, MekanismModules.SILK_TOUCH_UNIT));
+            int energyAvailable = energyHandler.extract(energyRequired, simulation);
+            if (energyAvailable < energyRequired) {
+                //If we can't extract all the energy we need to break it go at base speed reduced by how much we actually have available
+                return MekanismConfig.gear.mekaToolBaseEfficiency.get() * ((float) energyAvailable / energyRequired);
+            }
+        }
+        IModule<ModuleExcavationEscalationUnit> module = getEnabledModule(stack, MekanismModules.EXCAVATION_ESCALATION_UNIT);
+        return module == null ? MekanismConfig.gear.mekaToolBaseEfficiency.get() : module.getCustomInstance().getEfficiency();
+    }
+
+    @Override
+    public boolean mineBlock(ItemStack stack, Level world, BlockState state, BlockPos pos, LivingEntity entity) {
+        EnergyHandler energyHandler = AutomatedEnergyHandler.manual(Capabilities.ENERGY.getCapability(ItemAccess.forStack(stack)));
+        if (energyHandler != null) {
+            boolean silk = isModuleEnabled(stack, MekanismModules.SILK_TOUCH_UNIT);
+            int modDestroyEnergy = getDestroyEnergy(stack, silk);
+            int energyRequired = getDestroyEnergy(modDestroyEnergy, state.getDestroySpeed(world, pos));
+            //Protect against any mods that might be doing transactional logic, such as if an auto clicker validates it has enough energy before calling this method
+            try (Transaction transaction = TransactionHelper.openTransactionSafe()) {
+                energyHandler.extract(energyRequired, transaction);
+                //AOE/vein mining handling
+                if (!world.isClientSide() && entity instanceof ServerPlayer player && MekanismUtils.isPlayingMode(player)) {
+                    boolean hasEnergyToVeinMine;
+                    try (Transaction simulation = Transaction.open(transaction)) {
+                        hasEnergyToVeinMine = energyHandler.extract(energyRequired, simulation) == energyRequired;
+                    }
+                    if (hasEnergyToVeinMine) {
+                        Map<BlockPos, BlockState> blocks = getBlastedBlocks(world, player, stack, pos, state);
+                        blocks = blocks.isEmpty() && ModuleVeinMiningUnit.canVeinBlock(state) ? Map.of(pos, state) : blocks;
+
+                        Reference2BooleanMap<Block> oreTracker = blocks.values().stream().collect(Collectors.toMap(BlockStateBase::getBlock,
+                              bs -> bs.is(MekanismTags.Blocks.ATOMIC_DISASSEMBLER_ORE), (l, _) -> l, Reference2BooleanArrayMap::new));
+
+                        Object2IntMap<BlockPos> veinedBlocks = getVeinedBlocks(world, stack, blocks, oreTracker);
+                        if (!veinedBlocks.isEmpty()) {
+                            //Don't include bonus energy required by efficiency modules when calculating energy of vein mining targets
+                            int baseDestroyEnergy = getDestroyEnergy(silk);
+                            MekanismUtils.veinMineArea(energyHandler, modDestroyEnergy, baseDestroyEnergy, (ServerLevel) world, pos, player, stack, this, veinedBlocks,
+                                  transaction, ItemMekaTool::getDestroyEnergy, (base, hardness, distance, bs) -> {
+                                      double multiplier = 0.5 * Math.pow(distance, bs.is(MekanismTags.Blocks.ATOMIC_DISASSEMBLER_ORE) ? 1.5 : 2);
+                                      return Mth.ceil(getDestroyEnergy(base, hardness) * multiplier);
+                                  });
+                        }
+                    }
+                }
+                transaction.commit();
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
+        IModule<ModuleAttackAmplificationUnit> attackAmplificationUnit = getEnabledModule(stack, MekanismModules.ATTACK_AMPLIFICATION_UNIT);
+        if (attackAmplificationUnit != null) {
+            //Note: We only have an energy cost if the damage is above base, so we can skip all those checks
+            // if we don't have an enabled attack amplification unit
+            int unitDamage = attackAmplificationUnit.getCustomInstance().getDamage();
+            if (unitDamage > 0) {
+                EnergyHandler energyHandler = AutomatedEnergyHandler.manual(Capabilities.ENERGY.getCapability(ItemAccess.forStack(stack)));
+                if (energyHandler != null) {
+                    //Try to extract full energy, even if we have a lower damage amount this is fine as that just means
+                    // we don't have enough energy, but we will remove as much as we can, which is how much corresponds
+                    // to the amount of damage we will actually do
+                    //Protect against any mods that might be doing transactional logic, such as if an auto clicker validates it has enough energy before calling this method
+                    try (Transaction transaction = TransactionHelper.openTransactionSafe()) {
+                        energyHandler.extract(MathUtils.clampToInt(MekanismConfig.gear.mekaToolEnergyUsageWeapon.get() * (unitDamage / 4D)), transaction);
+                        transaction.commit();
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public Map<BlockPos, BlockState> getBlastedBlocks(Level world, Player player, ItemStack stack, BlockPos pos, BlockState state) {
+        //Setup initial set for blasting
+        if (!player.isShiftKeyDown()) {
+            IModule<ModuleBlastingUnit> blastingUnit = getEnabledModule(stack, MekanismModules.BLASTING_UNIT);
+            if (blastingUnit != null) {
+                int radius = blastingUnit.getCustomInstance().getBlastRadius();
+                if (radius > 0 && IBlastingItem.canBlastBlock(world, pos, state)) {
+                    return IBlastingItem.findPositions(world, pos, player, radius);
+                }
+            }
+        }
+        return Collections.emptyMap();
+    }
+
+    private Object2IntMap<BlockPos> getVeinedBlocks(Level world, ItemStack stack, Map<BlockPos, BlockState> blocks, Reference2BooleanMap<Block> oreTracker) {
+        IModule<ModuleVeinMiningUnit> veinMiningUnit = getEnabledModule(stack, MekanismModules.VEIN_MINING_UNIT);
+        if (veinMiningUnit != null) {
+            ModuleVeinMiningUnit customInstance = veinMiningUnit.getCustomInstance();
+            return ModuleVeinMiningUnit.findPositions(world, blocks, customInstance.extended() ? customInstance.getExcavationRange() : 0, oreTracker);
+        }
+        return blocks.entrySet().stream().collect(Collectors.toMap(Entry::getKey, _ -> 0, (l, _) -> l, Object2IntArrayMap::new));
+    }
+
+    private static int getDestroyEnergy(boolean silk) {
+        return silk ? MekanismConfig.gear.mekaToolEnergyUsageSilk.get() : MekanismConfig.gear.mekaToolEnergyUsage.get();
+    }
+
+    public static int getDestroyEnergy(ItemStack itemStack, float hardness, boolean silk) {
+        return getDestroyEnergy(getDestroyEnergy(itemStack, silk), hardness);
+    }
+
+    private static int getDestroyEnergy(int baseDestroyEnergy, float hardness) {
+        return hardness == 0 ? Math.max(baseDestroyEnergy / 2, 1) : baseDestroyEnergy;
+    }
+
+    private static int getDestroyEnergy(ItemStack itemStack, boolean silk) {
+        int destroyEnergy = getDestroyEnergy(silk);
+        IModule<ModuleExcavationEscalationUnit> module = IModuleHelper.INSTANCE.getIfEnabled(itemStack, MekanismModules.EXCAVATION_ESCALATION_UNIT);
+        float efficiency = module == null ? MekanismConfig.gear.mekaToolBaseEfficiency.get() : module.getCustomInstance().getEfficiency();
+        return MathUtils.clampToInt(destroyEnergy * efficiency);
+    }
+
+    @Override
+    public void adjustAttributes(ItemAttributeModifierEvent event) {
+        ItemStack stack = event.getItemStack();
+        double damage = MekanismConfig.gear.mekaToolBaseDamage.get();
+        double attackSpeed = MekanismConfig.gear.mekaToolAttackSpeed.get();
+        IModule<ModuleAttackAmplificationUnit> attackAmplificationUnit = getEnabledModule(stack, MekanismModules.ATTACK_AMPLIFICATION_UNIT);
+        if (attackAmplificationUnit != null) {
+            int unitDamage = attackAmplificationUnit.getCustomInstance().getDamage();
+            if (unitDamage > 0) {
+                int energyCost = MathUtils.clampToInt(MekanismConfig.gear.mekaToolEnergyUsageWeapon.get() * (unitDamage / 4D));
+                EnergyHandler energyHandler = Capabilities.ENERGY.getCapability(ItemAccessUtils.sideEffectFreeAccess(stack));
+                int energy = energyHandler == null ? 0 : energyHandler.getAmountAsInt();
+                if (energy < energyCost) {
+                    //If we don't have enough power use it at a reduced power level (this will be false the majority of the time)
+                    damage += unitDamage * MathUtils.divideToLevel(energy, energyCost);
+                } else {
+                    damage += unitDamage;
+                }
+            }
+        }
+        //Retrieve a cached map if we have enough energy to attack at the full damage value based on configured damage
+        event.replaceModifier(Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_ID, damage, Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND);
+        event.replaceModifier(Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_ID, attackSpeed, Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND);
+        IRadialModuleContainerItem.super.adjustAttributes(event);
+    }
+
+    @Override
+    public InteractionResult use(Level world, Player player, InteractionHand hand) {
+        if (!world.isClientSide()) {
+            ItemAccess itemAccess = ItemAccessUtils.playerHandAccess(player, hand);
+            IModule<ModuleTeleportationUnit> module = getEnabledModule(itemAccess.getResource(), MekanismModules.TELEPORTATION_UNIT);
+            if (module != null) {
+                BlockHitResult result = MekanismUtils.rayTrace(player, MekanismConfig.gear.mekaToolMaxTeleportReach.get());
+                //If we don't require a block target or are not a miss, allow teleporting
+                if (!module.getCustomInstance().requiresBlockTarget() || result.getType() != HitResult.Type.MISS) {
+                    BlockPos pos = result.getBlockPos();
+                    // make sure we fit
+                    if (isValidDestinationBlock(world, pos.above()) && isValidDestinationBlock(world, pos.above(2))) {
+                        double distance = player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ());
+                        if (distance < 5) {
+                            return InteractionResult.PASS;
+                        }
+                        //Protect against any mods that might be doing transactional logic, such as if an auto clicker validates it has enough energy before calling this method
+                        try (Transaction transaction = TransactionHelper.openTransactionSafe()) {
+                            if (MekanismUtils.isPlayingMode(player)) {
+                                EnergyHandler energyHandler = AutomatedEnergyHandler.manual(Capabilities.ENERGY.getCapability(itemAccess));
+                                if (energyHandler == null) {
+                                    return InteractionResult.PASS;
+                                }
+                                int energyNeeded = Mth.ceil(MekanismConfig.gear.mekaToolEnergyUsageTeleport.get() * (distance / 10D));
+                                if (energyHandler.extract(energyNeeded, transaction) < energyNeeded) {
+                                    //Not enough energy to operate
+                                    return InteractionResult.PASS;
+                                }
+                            }
+                            double targetX = pos.getX() + 0.5;
+                            double targetY = pos.getY() + 1.5;
+                            double targetZ = pos.getZ() + 0.5;
+                            MekanismTeleportEvent.MekaTool event = new MekanismTeleportEvent.MekaTool(player, (ServerLevel) player.level(), targetX, targetY, targetZ, itemAccess, result);
+                            if (NeoForge.EVENT_BUS.post(event).isCanceled()) {
+                                //Fail if the event was cancelled
+                                return InteractionResult.FAIL;
+                            }
+                            transaction.commit();
+                            //Note: We intentionally don't use the event's coordinates as we do not support changing the location the Meka-Tool is teleporting to
+                            if (player.isPassenger()) {
+                                player.dismountTo(targetX, targetY, targetZ);
+                            } else {
+                                player.teleportTo(targetX, targetY, targetZ);
+                            }
+                            player.resetFallDistance();
+                            PacketUtils.sendToAllTracking(new PacketPortalFX(pos.above()), world, pos);
+                            world.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_TELEPORT, SoundSource.PLAYERS);
+                            return InteractionResult.SUCCESS_SERVER.heldItemTransformedTo(ItemAccessUtils.asStack(itemAccess));
+                        }
+                    }
+                }
+            }
+        }
+        return InteractionResult.PASS;
+    }
+
+    private boolean isValidDestinationBlock(Level world, BlockPos pos) {
+        BlockState blockState = world.getBlockState(pos);
+        //Allow teleporting into air or fluids
+        return blockState.isAir() || MekanismUtils.isLiquidBlock(blockState.getBlock());
+    }
+
+    @Override
+    public boolean supportsEnchantment(ItemStack stack, Holder<Enchantment> enchantment) {
+        return stack.has(DataComponents.ENCHANTABLE) && super.supportsEnchantment(stack, enchantment);
+    }
+
+    @Override
+    public Identifier getRadialIdentifier() {
+        return RADIAL_ID;
+    }
+}

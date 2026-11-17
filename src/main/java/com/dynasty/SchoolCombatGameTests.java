@@ -269,7 +269,7 @@ public final class SchoolCombatGameTests {
                     "Wind bow preserves vanilla arrow identity and trajectory");
             String[][] recipes={{"beichen_spear","zhenyue_blade","refined_steel","juque_sword","dragon_crystal"},
                     {"chengying_sword","liuyun_sword","jade","sword_dragon_crystal","dragon_crystal"},
-                    {"fengling_bow","zhuxing_bow","refined_steel","shenbi_bow","refined_steel"},
+                    {"fengling_bow","zhuxing_bow","sky_feather","shenbi_bow","refined_steel"},
                     {"leifu_staff","chiling_brush","jade","taiyi_sword","dragon_crystal"}};
             for(String[] spec:recipes)for(int step=0;step<2;step++) {
                 ItemStack trained=new ItemStack(accessory(step==0?spec[1]:spec[0]));
@@ -279,7 +279,11 @@ public final class SchoolCombatGameTests {
                         new ItemStack(accessory(step==0?spec[2]:spec[4])));
                 var recipe=(net.minecraft.world.item.crafting.SmithingRecipe)h.getLevel().getRecipeManager()
                         .byKey(new ResourceLocation("dynasty","branch_"+spec[0]+(step==0?"":"_advance"))).orElseThrow();
-                h.assertTrue(recipe.matches(input,h.getLevel()),"Branch recipe inputs match");
+                h.assertTrue(recipe.matches(input,h.getLevel()),"Branch recipe inputs match: "+spec[0]+", step="+step);
+                if(spec[0].equals("fengling_bow")&&step==0)
+                    h.assertTrue(!recipe.matches(new net.minecraft.world.SimpleContainer(
+                        new ItemStack(DynastyRelics.BLUEPRINT.get()),trained,new ItemStack(accessory("refined_steel"))),h.getLevel()),
+                        "Retired colliding steel recipe must not replace the sky-feather branch");
                 var output=recipe.assemble(input,h.getLevel().registryAccess());
                 h.assertTrue(output.is(accessory(step==0?spec[0]:spec[3]))&&output.getTag().equals(trained.getTag()),
                         "Every branch evolution preserves weapon investment");

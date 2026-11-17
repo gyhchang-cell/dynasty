@@ -1,0 +1,436 @@
+package com.telepathicgrunt.the_bumblezone.entities.teleportation;
+
+import com.telepathicgrunt.the_bumblezone.Bumblezone;
+import com.telepathicgrunt.the_bumblezone.configs.BzDimensionConfigs;
+import com.telepathicgrunt.the_bumblezone.modinit.BzDimension;
+import com.telepathicgrunt.the_bumblezone.modules.registry.ModuleRegistry;
+import com.telepathicgrunt.the_bumblezone.services.PlatformService;
+import com.telepathicgrunt.the_bumblezone.utils.EnchantmentUtils;
+import com.telepathicgrunt.the_bumblezone.utils.ThreadExecutor;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket;
+import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
+import net.minecraft.network.protocol.game.ClientboundSetExperiencePacket;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ChunkLevel;
+import net.minecraft.server.level.DistanceManager;
+import net.minecraft.server.level.FullChunkStatus;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.Ticket;
+import net.minecraft.server.level.TicketType;
+import net.minecraft.server.players.PlayerList;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+
+public class BzWorldSavedData extends SavedData {
+	private static final BzWorldSavedData CLIENT_DUMMY = new BzWorldSavedData();
+	private static final BzWorldSavedData SERVER_WIDE = new BzWorldSavedData();
+	private static final List<QueuedEntityData> QUEUED_ENTITIES_TO_TELEPORT_FOR_BUMBLEZONE = new ArrayList<>();
+	private static final List<QueuedEntityData> QUEUED_ENTITIES_TO_GENERIC_TELEPORT = new ArrayList<>();
+	private static final List<NextTickRunnable> RUNNABLES_FOR_NEXT_TICK = new ArrayList<>();
+
+	public BzWorldSavedData() {}
+
+	public static BzWorldSavedData get(Level world) {
+		if (!(world instanceof ServerLevel)) {
+			return CLIENT_DUMMY;
+		}
+
+		return SERVER_WIDE;
+	}
+
+	public static void queueEntityToTeleport(Entity entity, ResourceKey<Level> destination) {
+		if(entity != null && !entity.level().isClientSide() && !isEntityQueuedToTeleportAlready(entity)) {
+			QUEUED_ENTITIES_TO_TELEPORT_FOR_BUMBLEZONE.add(new QueuedEntityData(entity, destination));
+		}
+	}
+
+	public static void queueEntityToGenericTeleport(Entity entity, ResourceKey<Level> destination, BlockPos destinationPos, Runnable runnable) {
+		if (entity != null && !entity.level().isClientSide() && !isEntityQueuedToGenericTeleportAlready(entity)) {
+			QUEUED_ENTITIES_TO_GENERIC_TELEPORT.add(new QueuedEntityData(entity, destination, destinationPos, runnable));
+		}
+	}
+
+	public static boolean isEntityQueuedToTeleportAlready(Entity entity) {
+		return QUEUED_ENTITIES_TO_TELEPORT_FOR_BUMBLEZONE.stream().anyMatch(entry -> entry.getEntity().equals(entity));
+	}
+
+	public static boolean isEntityQueuedToGenericTeleportAlready(Entity entity) {
+		return QUEUED_ENTITIES_TO_GENERIC_TELEPORT.stream().anyMatch(entry -> entry.getEntity().equals(entity));
+	}
+
+	public static void tick(ServerLevel world) {
+		RUNNABLES_FOR_NEXT_TICK.removeIf(r -> r.executeTick(world));
+
+		if(QUEUED_ENTITIES_TO_GENERIC_TELEPORT.size() > 0) {
+			Set<Entity> teleportedEntities = new HashSet<>();
+			for (QueuedEntityData entry : QUEUED_ENTITIES_TO_GENERIC_TELEPORT) {
+				ResourceKey<Level> destinationKey = entry.getDestination();
+				BlockPos destinationPos = entry.getDestinationPos();
+				Entity entity = entry.getEntity();
+
+				ServerLevel destination = world.getLevel().getServer().getLevel(destinationKey);
+				baseTeleporting(entity, destinationPos.getCenter(), destination, teleportedEntities, entity);
+				entry.runnable.run();
+			}
+
+			// remove all entities that were teleported from the queue
+			QUEUED_ENTITIES_TO_GENERIC_TELEPORT.removeIf(entry -> teleportedEntities.contains(entry.getEntity()));
+		}
+
+		if(QUEUED_ENTITIES_TO_TELEPORT_FOR_BUMBLEZONE.size() > 0) {
+			Set<Entity> teleportedEntities = new HashSet<>();
+			for (QueuedEntityData entry : QUEUED_ENTITIES_TO_TELEPORT_FOR_BUMBLEZONE) {
+				if (!entry.getIsCurrentTeleporting()) {
+					entry.setIsCurrentTeleporting(true);
+					ResourceKey<Level> destinationKey = entry.getDestination();
+					if (destinationKey.equals(BzDimension.BZ_WORLD_KEY)) {
+						if (entry.getEntity() instanceof ServerPlayer serverPlayer) {
+							serverPlayer.sendOverlayMessage(Component.translatable("system.the_bumblezone.teleporting_into_bz"));
+						}
+
+						ThreadExecutor.dimensionDestinationSearch(world.getServer(), () -> {
+								try {
+									ServerLevel bumblezoneWorld = world.getServer().getLevel(BzDimension.BZ_WORLD_KEY);
+									return Optional.of(EntityTeleportationBackend.getBzCoordinate(entry.getEntity(), world, bumblezoneWorld));
+								}
+								catch (Throwable e){
+									Bumblezone.LOGGER.error("Bumblezone: Failed to teleport entity. Error:", e);
+									return Optional.empty();
+								}
+							})
+							.thenOnServerThread(entry::setDestinationPosFound);
+					}
+					else {
+						if (entry.getEntity() instanceof ServerPlayer serverPlayer) {
+							serverPlayer.sendOverlayMessage(Component.translatable("system.the_bumblezone.teleporting_out_of_bz"));
+						}
+
+						ThreadExecutor.dimensionDestinationSearch(world.getServer(), () -> {
+								try {
+									ServerLevel destination = world.getLevel().getServer().getLevel(destinationKey);
+									return Optional.of(EntityTeleportationBackend.destPostFromOutOfBoundsTeleport(entry.getEntity(), destination));
+								}
+								catch (Throwable e){
+									Bumblezone.LOGGER.error("Bumblezone: Failed to teleport entity. Error:", e);
+									return Optional.empty();
+								}
+							})
+							.thenOnServerThread(entry::setDestinationPosFound);
+					}
+				}
+				else if (entry.getDestinationPosFound() != null) {
+					// Skip entities that were already teleported due to riding a vehicle that teleported
+					Entity entity = entry.getEntity();
+					if(teleportedEntities.contains(entity)) continue;
+
+					ResourceKey<Level> destinationKey = entry.getDestination();
+					ServerLevel destination = world.getLevel().getServer().getLevel(destinationKey);
+
+					if (entry.getDestinationPosFound().isPresent()) {
+						Vec3 destinationPos = entry.getDestinationPosFound().get();
+						// Teleport the entity's root vehicle and its passengers to the desired dimension.
+						// Also updates teleportedEntities to keep track of which entity was teleported.
+						if (destinationKey.equals(BzDimension.BZ_WORLD_KEY)) {
+							enteringBumblezone(entity, destinationPos, teleportedEntities);
+						}
+						else {
+							if (entity.getControllingPassenger() != null) {
+								exitingBumblezone(entity.getControllingPassenger(), destinationPos, destination, teleportedEntities);
+							}
+							else {
+								exitingBumblezone(entity, destinationPos, destination, teleportedEntities);
+							}
+						}
+					}
+					else {
+						teleportedEntities.add(entity);
+						if (entity instanceof ServerPlayer serverPlayer) {
+							serverPlayer.sendSystemMessage(Component.translatable("system.the_bumblezone.failed_teleporting"));
+							Bumblezone.LOGGER.error("Bumblezone: Failed to teleport entity. Aborting teleportation. Please retry. Entity: {}-{} Pos: {} Destination: {}", entity.getClass().getSimpleName(), entity.getName(), entity.position(), destinationKey);
+						}
+					}
+				}
+			}
+
+			// remove all entities that were teleported from the queue
+			QUEUED_ENTITIES_TO_TELEPORT_FOR_BUMBLEZONE.removeIf(entry -> teleportedEntities.contains(entry.getEntity()));
+		}
+	}
+
+	public static void enteringBumblezone(Entity entity, Vec3 destinationPosFound, Set<Entity> teleportedEntities) {
+		//Note, the player does not hold the previous dimension oddly enough.
+		if (!entity.level().isClientSide()) {
+			MinecraftServer minecraftServer = entity.level().getServer(); // the server itself
+			ServerLevel bumblezoneWorld = minecraftServer.getLevel(BzDimension.BZ_WORLD_KEY);
+			BlockPos blockPos = BlockPos.containing(destinationPosFound);
+
+			if (bumblezoneWorld != null) {
+				if (bumblezoneWorld.getBlockState(blockPos.above()).isSuffocating(bumblezoneWorld, blockPos.above())) {
+					RUNNABLES_FOR_NEXT_TICK.add(new NextTickRunnable(bumblezoneWorld.getGameTime() + 5, () -> {
+						//We are going to spawn player at exact spot of scaled coordinates by placing air at the spot with honeycomb bottom
+						//and honeycomb walls to prevent drowning
+						//This is the last resort
+						ServerPlayer fakePlayer = createSilkTouchFakePlayer(bumblezoneWorld);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos, Blocks.AIR);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.above(), Blocks.AIR);
+
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.below(), Blocks.HONEYCOMB_BLOCK);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.above().above(), Blocks.HONEYCOMB_BLOCK);
+
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.north(), Blocks.HONEYCOMB_BLOCK);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.west(), Blocks.HONEYCOMB_BLOCK);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.east(), Blocks.HONEYCOMB_BLOCK);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.south(), Blocks.HONEYCOMB_BLOCK);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.north().above(), Blocks.HONEYCOMB_BLOCK);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.west().above(), Blocks.HONEYCOMB_BLOCK);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.east().above(), Blocks.HONEYCOMB_BLOCK);
+						destroyAndPlaceBlock(bumblezoneWorld, fakePlayer, blockPos.south().above(), Blocks.HONEYCOMB_BLOCK);
+					}));
+				}
+
+				if (BzDimensionConfigs.enableInitialWelcomeMessage && entity instanceof ServerPlayer serverPlayer) {
+					RUNNABLES_FOR_NEXT_TICK.add(new NextTickRunnable(bumblezoneWorld.getGameTime() + 20, () -> {
+						PlatformService.INSTANCE.getModule(serverPlayer, ModuleRegistry.PLAYER_DATA).ifPresent(playerData -> {
+							if (!playerData.gottenWelcomedInDimension) {
+								playerData.gottenWelcomedInDimension = true;
+								serverPlayer.sendSystemMessage(Component.translatable("system.the_bumblezone.advancement_hint"));
+							}
+						});
+					}));
+				}
+			}
+
+			PlatformService.INSTANCE.getModule(entity, ModuleRegistry.ENTITY_POS_AND_DIM).ifPresent(capability -> {
+				capability.setNonBZPos(Optional.of(entity.position()));
+				capability.setNonBZDim(entity.level().dimension().identifier());
+
+				// Prevent crash due to mojang bug that makes mod's json dimensions not exist upload first creation of world on server. A restart fixes this.
+				if (bumblezoneWorld == null) {
+					if (entity instanceof ServerPlayer playerEntity) {
+						Bumblezone.LOGGER.info("Bumblezone: Please restart the server. The Bumblezone dimension hasn't been made yet due to this bug: https://bugs.mojang.com/browse/MC-195468. A restart will fix this.");
+						MutableComponent message = Component.translatable("system.the_bumblezone.missing_dimension", Component.translatable("system.the_bumblezone.missing_dimension_link").withStyle(ChatFormatting.RED));
+						playerEntity.sendSystemMessage(message);
+					}
+					teleportedEntities.add(entity);
+					return;
+				}
+
+				Entity baseVehicle = entity.getRootVehicle();
+				baseTeleporting(entity, destinationPosFound, bumblezoneWorld, teleportedEntities, baseVehicle);
+			});
+		}
+	}
+
+	public static void exitingBumblezone(Entity entity, Vec3 destinationPosition, ServerLevel destination, Set<Entity> teleportedEntities) {
+		BlockPos destBlockPos = BlockPos.containing(destinationPosition);
+		if (destination.getBlockState(destBlockPos.above()).isSuffocating(destination, destBlockPos.above())) {
+			RUNNABLES_FOR_NEXT_TICK.add(new NextTickRunnable(destination.getGameTime() + 5, () -> {
+				ServerPlayer fakePlayer = createSilkTouchFakePlayer(destination);
+				destroyAndPlaceBlock(destination, fakePlayer, destBlockPos, Blocks.AIR);
+				destroyAndPlaceBlock(destination, fakePlayer, destBlockPos.above(), Blocks.AIR);
+			}));
+		}
+		Entity baseVehicle = entity.getRootVehicle();
+		baseTeleporting(entity, destinationPosition, destination, teleportedEntities, baseVehicle);
+	}
+
+	private static void destroyAndPlaceBlock(ServerLevel level, ServerPlayer fakePlayer, BlockPos blockPos, Block block) {
+		BlockState state = level.getBlockState(blockPos);
+		BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(blockPos) : null;
+		Block.dropResources(state, level, blockPos, blockEntity, fakePlayer, fakePlayer.getMainHandItem());
+		level.setBlockAndUpdate(blockPos, block.defaultBlockState());
+	}
+
+	private static ServerPlayer createSilkTouchFakePlayer(ServerLevel level) {
+		ServerPlayer serverPlayer = PlatformService.INSTANCE.getFakePlayer(level, null);
+		ItemStack fakeHandItem = Items.STONE_PICKAXE.getDefaultInstance();
+		ItemEnchantments.Mutable mutableItemEnchantments = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+		mutableItemEnchantments.set(EnchantmentUtils.getEnchantmentHolder(Enchantments.SILK_TOUCH, level), 1);
+		fakeHandItem.set(DataComponents.ENCHANTMENTS, mutableItemEnchantments.toImmutable());
+		serverPlayer.setItemInHand(InteractionHand.MAIN_HAND, fakeHandItem);
+		return serverPlayer;
+	}
+
+	private static void baseTeleporting(Entity entity, Vec3 destinationPosition, ServerLevel destination, Set<Entity> teleportedEntities, Entity baseVehicle) {
+		teleportEntityAndAssignToVehicle(baseVehicle, null, destination, destinationPosition, teleportedEntities);
+		((ServerLevel) entity.level()).resetEmptyTime();
+		destination.resetEmptyTime();
+	}
+
+	private static void teleportEntityAndAssignToVehicle(Entity entity, Entity vehicle, ServerLevel destination, Vec3 destinationPosition, Set<Entity> teleportedEntities) {
+		Entity teleportedEntity;
+		List<Entity> passengers = entity.getPassengers();
+		entity.ejectPassengers();
+		entity.setPortalCooldown();
+
+		if(destination.dimension().equals(BzDimension.BZ_WORLD_KEY)) {
+			PlatformService.INSTANCE.getModule(entity, ModuleRegistry.ENTITY_POS_AND_DIM).ifPresent(capability -> {
+				capability.setNonBZPos(Optional.of(entity.position()));
+				capability.setNonBZDim(entity.level().dimension().identifier());
+			});
+		}
+
+		if (entity instanceof ServerPlayer serverPlayer) {
+
+			if (serverPlayer.isSleeping()) {
+				serverPlayer.stopSleepInBed(true, true);
+			}
+
+			if (PlatformService.INSTANCE.isDimensionAllowed(serverPlayer, destination.dimension())) {
+                PlayerList playerList = serverPlayer.level().getServer().getPlayerList();
+
+				serverPlayer.connection.send(new ClientboundRespawnPacket(serverPlayer.createCommonSpawnInfo(destination), (byte)3));
+				serverPlayer.teleportTo(destination, destinationPosition.x, destinationPosition.y + 0.1f, destinationPosition.z, Set.of(), serverPlayer.getYRot(), serverPlayer.getXRot(), true);
+				serverPlayer.connection.send(new ClientboundChangeDifficultyPacket(destination.getDifficulty(), destination.getLevelData().isDifficultyLocked()));
+				serverPlayer.connection.send(new ClientboundSetExperiencePacket(serverPlayer.experienceProgress, serverPlayer.totalExperience, serverPlayer.experienceLevel));
+				serverPlayer.connection.send(new ClientboundPlayerAbilitiesPacket(serverPlayer.getAbilities()));
+				playerList.sendActivePlayerEffects(serverPlayer);
+				playerList.sendLevelInfo(serverPlayer, destination);
+				playerList.sendPlayerPermissionLevel(serverPlayer);
+				serverPlayer.setPortalCooldown(100);
+				serverPlayer.addEffect(new MobEffectInstance(
+						MobEffects.SLOW_FALLING,
+						20,
+						1,
+						false,
+						false,
+						false));
+                playerList.sendAllPlayerInfo(serverPlayer);
+				teleportedEntity = destination.getPlayerByUUID(serverPlayer.getUUID());
+			}
+			else {
+				teleportedEntity = null;
+			}
+		}
+		else {
+			Entity newEntity = entity;
+			newEntity = newEntity.getType().create(destination, EntitySpawnReason.DIMENSION_TRAVEL);
+			if (newEntity == null) {
+				return;
+			}
+			newEntity.restoreFrom(entity);
+			newEntity.snapTo(destinationPosition.x, destinationPosition.y, destinationPosition.z, entity.getYRot(), entity.getXRot());
+			newEntity.setPortalCooldown(100);
+			destination.addDuringTeleport(newEntity);
+			teleportedEntity = newEntity;
+			entity.remove(Entity.RemovalReason.CHANGED_DIMENSION);
+		}
+
+		// update set to keep track of entities teleported
+		teleportedEntities.add(entity);
+
+		if(teleportedEntity != null) {
+			ChunkPos chunkpos = ChunkPos.containing(BlockPos.containing(destinationPosition.x, destinationPosition.y, destinationPosition.z));
+            destination.getChunkSource().addTicket(new Ticket(TicketType.PLAYER_LOADING, ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING)), chunkpos);
+
+			if(vehicle != null) {
+				teleportedEntity.startRiding(vehicle);
+			}
+
+			passengers.forEach(passenger -> teleportEntityAndAssignToVehicle(passenger, teleportedEntity, destination, destinationPosition, teleportedEntities));
+		}
+	}
+
+
+	///////////
+	// Utils //
+
+	private record NextTickRunnable(long targetTick, Runnable runnable) {
+		public boolean executeTick(ServerLevel serverLevel) {
+			if (serverLevel.getGameTime() >= targetTick()) {
+				runnable.run();
+				return true;
+			}
+			return false;
+		}
+	}
+
+	private static final class QueuedEntityData {
+		private final Entity entity;
+		private final ResourceKey<Level> destination;
+		private final BlockPos destinationPos;
+		private final Runnable runnable;
+		private boolean isCurrentTeleporting = false;
+		private Optional<Vec3> destinationPosFound = null;
+
+		public QueuedEntityData(Entity entity, ResourceKey<Level> destination) {
+			this.entity = entity;
+			this.destination = destination;
+			this.destinationPos = null;
+			this.runnable = null;
+		}
+
+		public QueuedEntityData(Entity entity,
+								ResourceKey<Level> destination,
+								BlockPos destinationPos,
+								Runnable runnable)
+		{
+			this.entity = entity;
+			this.destination = destination;
+			this.destinationPos = destinationPos;
+			this.runnable = runnable;
+		}
+
+		public Entity getEntity() {
+			return entity;
+		}
+
+		public ResourceKey<Level> getDestination() {
+			return destination;
+		}
+
+		public BlockPos getDestinationPos() {
+			return destinationPos;
+		}
+
+		public Runnable getRunnable() {
+			return runnable;
+		}
+
+		public Optional<Vec3> getDestinationPosFound() {
+			return destinationPosFound;
+		}
+
+		public void setDestinationPosFound(Optional<Vec3> destinationPosFound) {
+			this.destinationPosFound = destinationPosFound;
+		}
+
+		public boolean getIsCurrentTeleporting() {
+			return isCurrentTeleporting;
+		}
+
+		public void setIsCurrentTeleporting(boolean isCurrentTeleporting) {
+			this.isCurrentTeleporting = isCurrentTeleporting;
+		}
+	}
+}

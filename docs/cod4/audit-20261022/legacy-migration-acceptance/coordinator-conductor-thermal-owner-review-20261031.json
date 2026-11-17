@@ -1,0 +1,482 @@
+{
+  "at_utc": "2026-10-30T16:01:21.384721+00:00",
+  "candidate_id": "d3c9cc2c6620dbb03ee0",
+  "decision": "ACCEPT_ONE_COMPLETE_CONDUCTOR_DISTRIBUTED_THERMAL_BALANCE_RESTORE",
+  "repo": "mekanism/Mekanism",
+  "commit": "d4df9b354c209c85713bdc8a017bfe54aa044e40",
+  "tree": "tools/cod4/immune-feedback-research/sources/mekanism__Mekanism/tree.json",
+  "tree_sha256": "3dee658223bbc617c0c9eb25af39100cdfd8ad92f00b29f84f29e2b294f5af8f",
+  "files": [
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/content/network/transmitter/ThermodynamicConductor.java",
+      "upstream_path": "src/main/java/mekanism/common/content/network/transmitter/ThermodynamicConductor.java",
+      "sha256": "84475be4b71d10a8594d2950afae0f3b25c9fbbf24fcd0a01f85b8769e8222d0",
+      "git_blob_sha1": "4cc1c374eef8280f606183aac5e0de3238d300d1",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/content/network/transmitter/ThermodynamicConductor.java",
+      "read_ranges": [
+        [
+          1,
+          167
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 167,
+          "text": "package mekanism.common.content.network.transmitter;\n\nimport java.util.Collection;\nimport java.util.UUID;\nimport mekanism.api.IContentsListener;\nimport mekanism.api.SerializationConstants;\nimport mekanism.api.heat.IHeatCapacitor;\nimport mekanism.api.heat.IHeatHandler;\nimport mekanism.common.block.attribute.Attribute;\nimport mekanism.common.capabilities.Capabilities;\nimport mekanism.common.capabilities.heat.CachedAmbientTemperature;\nimport mekanism.common.capabilities.heat.ITileHeatHandler;\nimport mekanism.common.capabilities.heat.VariableHeatCapacitor;\nimport mekanism.common.component.containers.type.ContainerType;\nimport mekanism.common.content.network.HeatNetwork;\nimport mekanism.common.lib.Color;\nimport mekanism.common.lib.transmitter.TransmissionType;\nimport mekanism.common.lib.transmitter.acceptor.AcceptorCache;\nimport mekanism.common.tier.ConductorTier;\nimport mekanism.common.tile.transmitter.TileEntityTransmitter;\nimport mekanism.common.upgrade.transmitter.ThermodynamicConductorUpgradeData;\nimport mekanism.common.upgrade.transmitter.TransmitterUpgradeData;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.Holder;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.minecraft.world.level.storage.ValueInput;\nimport net.minecraft.world.level.storage.ValueOutput;\nimport net.neoforged.neoforge.transfer.transaction.TransactionContext;\nimport org.jspecify.annotations.Nullable;\n\npublic class ThermodynamicConductor extends Transmitter<IHeatHandler, HeatNetwork, ThermodynamicConductor> implements ITileHeatHandler, IContentsListener,\n      IUpgradeableTransmitter<ThermodynamicConductorUpgradeData> {\n\n    private final CachedAmbientTemperature ambientTemperature = new CachedAmbientTemperature(this::getLevel, this::getBlockPos);\n    public final ConductorTier tier;\n    //Default to negative one, so we know we need to calculate it when needed\n    private double clientTemperature = -1;\n    public final VariableHeatCapacitor buffer;\n\n    public ThermodynamicConductor(Holder<Block> blockProvider, TileEntityTransmitter tile) {\n        this.tier = Attribute.getTierNN(blockProvider, ConductorTier.class);\n        super(tile, TransmissionType.HEAT);\n        buffer = VariableHeatCapacitor.create(tier.getHeatCapacity(), tier::getInverseConduction, tier::getInverseConductionInsulation, ambientTemperature, this);\n    }\n\n    @Override\n    protected AcceptorCache<IHeatHandler> createAcceptorCache() {\n        return new AcceptorCache<>(getTransmitterTile(), Capabilities.HEAT);\n    }\n\n    @Override\n    public ConductorTier getTier() {\n        return tier;\n    }\n\n    @Override\n    public HeatNetwork createEmptyNetworkWithID(UUID networkID) {\n        return new HeatNetwork(networkID);\n    }\n\n    @Override\n    public HeatNetwork createNetworkByMerging(Collection<HeatNetwork> networks) {\n        return new HeatNetwork(networks);\n    }\n\n    @Override\n    public void takeShare(@Nullable TransactionContext transaction) {\n    }\n\n    @Override\n    protected boolean isValidAcceptor(@Nullable BlockEntity tile, Direction side) {\n        //Note: We intentionally do not call super here as other elements in the network are intentionally acceptors\n        return getAcceptorCache().getConnectedAcceptor(side) != null;\n    }\n\n    @Override\n    public ThermodynamicConductorUpgradeData getUpgradeData() {\n        return new ThermodynamicConductorUpgradeData(redstoneReactive, getConnectionTypesRaw(), buffer.getHeat());\n    }\n\n    @Override\n    public boolean dataTypeMatches(TransmitterUpgradeData data) {\n        return data instanceof ThermodynamicConductorUpgradeData;\n    }\n\n    @Override\n    public void parseUpgradeData(ThermodynamicConductorUpgradeData data, TransactionContext transaction) {\n        redstoneReactive = data.redstoneReactive;\n        setConnectionTypesRaw(data.connectionTypes);\n        buffer.setHeat(data.heat, transaction);\n    }\n\n    @Override\n    public void write(ValueOutput output) {\n        super.write(output);\n        ContainerType.HEAT.saveTo(output, buffer);\n    }\n\n    @Override\n    public void read(ValueInput input) {\n        super.read(input);\n        ContainerType.HEAT.readFrom(input, buffer);\n    }\n\n    @Override\n    public void writeReducedUpdatedTag(ValueOutput output) {\n        super.writeReducedUpdatedTag(output);\n        output.putDouble(SerializationConstants.HEAT_STORED, buffer.getHeat());\n    }\n\n    @Override\n    public boolean handleUpdateTag(ValueInput input) {\n        boolean refreshModelData = super.handleUpdateTag(input);\n        buffer.setHeat(input.getDoubleOr(SerializationConstants.HEAT_STORED, buffer.getHeat()), null);\n        return refreshModelData;\n    }\n\n    public Color getBaseColor() {\n        return tier.getBaseColor();\n    }\n\n    @Override\n    public IHeatCapacitor getHeatCapacitor(@Nullable Direction side) {\n        return buffer;\n    }\n\n    public double getTemperature() {\n        return buffer.getTemperature();\n    }\n\n    @Override\n    public void onContentsChanged() {\n        if (!isClientSide()) {\n            if (clientTemperature == -1) {\n                clientTemperature = ambientTemperature.getAsDouble();\n            }\n            if (Math.abs(buffer.getTemperature() - clientTemperature) > (buffer.getTemperature() / 20)) {\n                clientTemperature = buffer.getTemperature();\n                getTransmitterTile().sendUpdatePacket();\n            }\n        }\n        getTransmitterTile().setChanged();\n    }\n\n    @Override\n    public double getAmbientTemperature(Direction side) {\n        return ambientTemperature.getTemperature(side);\n    }\n\n    @Nullable\n    @Override\n    public IHeatHandler getAdjacent(Direction side) {\n        if (connectionMapContainsSide(getAllCurrentConnections(), side)) {\n            //Note: We use the acceptor cache as the heat network is different and the transmitters count the other transmitters in the\n            // network as valid acceptors, which means we don't have to differentiate between acceptors and other transmitters here\n            return getAcceptorCache().getConnectedAcceptor(side);\n        }\n        return null;\n    }\n\n    @Override\n    public boolean countsAsAdjacent(Direction side) {\n        //Heat transmitter to heat transmitter, don't count as \"adjacent transfer\"\n        return !hasTransmitterNetwork() || getTransmitterNetworkNN().getTransmitter(getBlockPos().relative(side)) != null;\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/content/network/HeatNetwork.java",
+      "upstream_path": "src/main/java/mekanism/common/content/network/HeatNetwork.java",
+      "sha256": "ee2e85729a7916384108274c42df39bdd0fafb3025a03719c570bf3df81e5c5c",
+      "git_blob_sha1": "6137e80911a29b38005b7e330e85608f4a51a80a",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/content/network/HeatNetwork.java",
+      "read_ranges": [
+        [
+          1,
+          81
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 81,
+          "text": "package mekanism.common.content.network;\n\nimport java.util.Collection;\nimport java.util.UUID;\nimport mekanism.api.heat.HeatAPI;\nimport mekanism.api.heat.HeatAPI.HeatTransfer;\nimport mekanism.api.heat.IHeatHandler;\nimport mekanism.common.MekanismLang;\nimport mekanism.common.content.network.transmitter.ThermodynamicConductor;\nimport mekanism.common.lib.transmitter.DynamicNetwork;\nimport mekanism.common.util.MekanismUtils;\nimport mekanism.common.util.UnitDisplayUtils.TemperatureUnit;\nimport net.minecraft.network.chat.Component;\nimport net.neoforged.neoforge.transfer.transaction.Transaction;\n\npublic class HeatNetwork extends DynamicNetwork<IHeatHandler, HeatNetwork, ThermodynamicConductor> {\n\n    private double meanTemp = HeatAPI.AMBIENT_TEMP;\n    private double heatLost;\n    private double heatTransferred;\n\n    public HeatNetwork(UUID networkID) {\n        super(networkID);\n    }\n\n    public HeatNetwork(Collection<HeatNetwork> networks) {\n        this(UUID.randomUUID());\n        adoptAllAndRegister(networks);\n    }\n\n    @Override\n    public Component getStoredInfo() {\n        return MekanismLang.HEAT_NETWORK_STORED.translate(MekanismUtils.getTemperatureDisplay(meanTemp, TemperatureUnit.KELVIN, true));\n    }\n\n    @Override\n    public Component getFlowInfo() {\n        Component transferred = MekanismUtils.getTemperatureDisplay(heatTransferred, TemperatureUnit.KELVIN, false);\n        Component lost = MekanismUtils.getTemperatureDisplay(heatLost, TemperatureUnit.KELVIN, false);\n        if (heatTransferred + heatLost == 0) {\n            return MekanismLang.HEAT_NETWORK_FLOW.translate(transferred, lost);\n        }\n        return MekanismLang.HEAT_NETWORK_FLOW_EFFICIENCY.translate(transferred, lost,\n              MekanismLang.GENERIC_PERCENT.translate(Math.round(heatTransferred / (heatTransferred + heatLost) * 10_000) / 100F));\n    }\n\n    @Override\n    public void onUpdate() {\n        super.onUpdate();\n        double newSumTemp = 0, newHeatLost = 0, newHeatTransferred = 0;\n        Collection<ThermodynamicConductor> transmitters = getTransmitters();\n        try (Transaction transaction = Transaction.openRoot()) {\n            for (ThermodynamicConductor transmitter : transmitters) {\n                HeatTransfer transfer = transmitter.simulate(transaction);\n                newHeatTransferred += transfer.adjacentTransfer();\n                newHeatLost += transfer.environmentTransfer();\n            }\n            transaction.commit();\n        }\n        //After we updated the heat values of all the transmitters, we need to update the temperatures\n        // we do this after instead of when iterating initially so that if heat is transferred from one\n        // conductor to one we already updated then we want it to have the proper total temperature\n        for (ThermodynamicConductor transmitter : transmitters) {\n            newSumTemp += transmitter.getTemperature();\n        }\n        heatLost = newHeatLost;\n        heatTransferred = newHeatTransferred;\n        //TODO - 26.3 (heat): Is there a worry that the transmitter collection is empty?\n        meanTemp = newSumTemp / transmitters.size();\n    }\n\n    @Override\n    public String toString() {\n        return \"[HeatNetwork] \" + transmittersSize() + \" transmitters, \" + getAcceptorCount() + \" acceptors.\";\n    }\n\n    @Override\n    public Component getTextComponent() {\n        return MekanismLang.NETWORK_DESCRIPTION.translate(MekanismLang.HEAT_NETWORK, transmittersSize(), getAcceptorCount());\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/capabilities/heat/VariableHeatCapacitor.java",
+      "upstream_path": "src/main/java/mekanism/common/capabilities/heat/VariableHeatCapacitor.java",
+      "sha256": "694b0f9051c45ecae1f609cc11ea0ede5df9d8ac15d10fd3bc6b1b000053bf14",
+      "git_blob_sha1": "2408f108ecd605df69bc8142d80ddd98575bc6a4",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/capabilities/heat/VariableHeatCapacitor.java",
+      "read_ranges": [
+        [
+          1,
+          40
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 40,
+          "text": "package mekanism.common.capabilities.heat;\n\nimport java.util.function.DoubleSupplier;\nimport mekanism.api.IContentsListener;\nimport mekanism.api.MekanismPreconditions;\nimport mekanism.api.heat.HeatAPI;\nimport org.jspecify.annotations.Nullable;\n\npublic class VariableHeatCapacitor extends BasicHeatCapacitor {\n\n    private final DoubleSupplier conductionCoefficientSupplier;\n    private final DoubleSupplier insulationCoefficientSupplier;\n\n    public static VariableHeatCapacitor create(double heatCapacity, @Nullable DoubleSupplier ambientTempSupplier, @Nullable IContentsListener listener) {\n        return create(heatCapacity, () -> HeatAPI.DEFAULT_INVERSE_CONDUCTION, () -> HeatAPI.DEFAULT_INVERSE_INSULATION, ambientTempSupplier, listener);\n    }\n\n    public static VariableHeatCapacitor create(double heatCapacity, DoubleSupplier conductionCoefficient, DoubleSupplier insulationCoefficient,\n          @Nullable DoubleSupplier ambientTempSupplier, @Nullable IContentsListener listener) {\n        MekanismPreconditions.checkHeatCapacity(heatCapacity);\n        return new VariableHeatCapacitor(heatCapacity, conductionCoefficient, insulationCoefficient, ambientTempSupplier, listener);\n    }\n\n    protected VariableHeatCapacitor(double heatCapacity, DoubleSupplier conductionCoefficient, DoubleSupplier insulationCoefficient,\n          @Nullable DoubleSupplier ambientTempSupplier, @Nullable IContentsListener listener) {\n        super(heatCapacity, conductionCoefficient.getAsDouble(), insulationCoefficient.getAsDouble(), ambientTempSupplier, listener);\n        this.conductionCoefficientSupplier = conductionCoefficient;\n        this.insulationCoefficientSupplier = insulationCoefficient;\n    }\n\n    @Override\n    public double getInverseConduction() {\n        return Math.max(1, conductionCoefficientSupplier.getAsDouble());\n    }\n\n    @Override\n    public double getInverseInsulation() {\n        return insulationCoefficientSupplier.getAsDouble();\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/capabilities/heat/BasicHeatCapacitor.java",
+      "upstream_path": "src/main/java/mekanism/common/capabilities/heat/BasicHeatCapacitor.java",
+      "sha256": "e00977c383a9b00a79deae5ac0f49875dd3268657dc0f628560fb7cf56670920",
+      "git_blob_sha1": "1267eea99ca38bd393985707ad52e313cec3d437",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/capabilities/heat/BasicHeatCapacitor.java",
+      "read_ranges": [
+        [
+          1,
+          171
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 171,
+          "text": "package mekanism.common.capabilities.heat;\n\nimport java.util.function.DoubleSupplier;\nimport mekanism.api.IContentsListener;\nimport mekanism.api.MekanismPreconditions;\nimport mekanism.api.heat.HeatAPI;\nimport mekanism.api.heat.IHeatCapacitor;\nimport mekanism.common.component.containers.heat.HeatCapacitorData;\nimport net.minecraft.util.Mth;\nimport net.neoforged.neoforge.transfer.transaction.SnapshotJournal;\nimport net.neoforged.neoforge.transfer.transaction.Transaction;\nimport net.neoforged.neoforge.transfer.transaction.TransactionContext;\nimport org.jspecify.annotations.Nullable;\n\npublic class BasicHeatCapacitor extends SnapshotJournal<HeatCapacitorData> implements IHeatCapacitor {\n\n    @Nullable\n    private final IContentsListener listener;\n\n    @Nullable\n    private final DoubleSupplier ambientTempSupplier;\n    private final double inverseConductionCoefficient;\n    private final double inverseInsulationCoefficient;\n\n    // set to ambient * heat capacity by default\n    private double storedHeat = -1;\n    private double heatCapacity;\n\n    public static BasicHeatCapacitor create(double heatCapacity, @Nullable DoubleSupplier ambientTempSupplier, @Nullable IContentsListener listener) {\n        return create(heatCapacity, HeatAPI.DEFAULT_INVERSE_CONDUCTION, HeatAPI.DEFAULT_INVERSE_INSULATION, ambientTempSupplier, listener);\n    }\n\n    public static BasicHeatCapacitor create(double heatCapacity, double inverseConductionCoefficient, double inverseInsulationCoefficient,\n          @Nullable DoubleSupplier ambientTempSupplier, @Nullable IContentsListener listener) {\n        MekanismPreconditions.checkHeatCapacity(heatCapacity);\n        if (inverseConductionCoefficient < 1) {\n            throw new IllegalArgumentException(\"Inverse conduction coefficient must be at least one\");\n        }\n        return new BasicHeatCapacitor(heatCapacity, inverseConductionCoefficient, inverseInsulationCoefficient, ambientTempSupplier, listener);\n    }\n\n    protected BasicHeatCapacitor(double heatCapacity, double inverseConductionCoefficient, double inverseInsulationCoefficient,\n          @Nullable DoubleSupplier ambientTempSupplier, @Nullable IContentsListener listener) {\n        this.heatCapacity = heatCapacity;\n        this.inverseConductionCoefficient = inverseConductionCoefficient;\n        this.inverseInsulationCoefficient = inverseInsulationCoefficient;\n        this.ambientTempSupplier = ambientTempSupplier;\n        this.listener = listener;\n    }\n\n    protected double getAmbientTemperature() {\n        return ambientTempSupplier == null ? HeatAPI.AMBIENT_TEMP : ambientTempSupplier.getAsDouble();\n    }\n\n    @Override\n    public double getInverseConduction() {\n        return inverseConductionCoefficient;\n    }\n\n    @Override\n    public double getInverseInsulation() {\n        return inverseInsulationCoefficient;\n    }\n\n    @Override\n    public final double getHeatCapacity() {\n        return heatCapacity;\n    }\n\n    public void onContentsChanged(HeatCapacitorData originalState) {\n        if (listener != null) {\n            listener.onContentsChanged();\n        }\n    }\n\n    @Override\n    public void handleHeat(double transfer, TransactionContext transaction) {\n        if (Math.abs(transfer) > HeatAPI.EPSILON) {\n            updateSnapshots(transaction);\n            storedHeat = Math.max(0D, getHeat() + transfer);\n        }\n    }\n\n    @Override\n    public boolean isAmbientTemperature() {\n        return Mth.equal(getTemperature(), getAmbientTemperature());\n    }\n\n    private boolean isHeatInitialized() {\n        return storedHeat != -1;\n    }\n\n    @Override\n    public final double getHeat() {\n        if (!isHeatInitialized()) {\n            //If the stored heat hasn't been initialized yet, update the stored heat based on initial capacity\n            storedHeat = Math.max(0D, getHeatCapacity() * getAmbientTemperature());\n        }\n        return storedHeat;\n    }\n\n    @Override\n    public void setHeat(double heat, @Nullable TransactionContext transaction) {\n        MekanismPreconditions.checkNonNegative(heat);\n        if (transaction == null) {\n            HeatCapacitorData originalState = createSnapshot();\n            storedHeat = heat;\n            //TODO - 26.3: do we need a way to avoid calling onContentsChange when loading from disk? I don't think we used to have one but it might be useful to have\n            onContentsChanged(originalState);\n        } else {\n            updateSnapshots(transaction);\n            storedHeat = heat;\n        }\n    }\n\n    public void updateHeatAndCapacity(double newCapacity, @Nullable TransactionContext transaction) {\n        if (isHeatInitialized()) {\n            //If the heat has been initialized, calculate the value the heat should have, and also update the capacity\n            try (Transaction subTransaction = Transaction.open(transaction)) {\n                //Ensure there is a snapshot from before we call getHeat\n                updateSnapshots(subTransaction);\n                double capacityChange = newCapacity - getHeatCapacity();\n                setHeatAndCapacity(Math.max(0D, getHeat() + capacityChange * getAmbientTemperature()), newCapacity, subTransaction);\n                subTransaction.commit();\n            }\n        } else {\n            //If heat hasn't been initialized yet, just update the capacity\n            setHeatCapacity(newCapacity, transaction);\n        }\n    }\n\n    @Override\n    public void setHeatCapacity(double newCapacity, @Nullable TransactionContext transaction) {\n        MekanismPreconditions.checkHeatCapacity(newCapacity);\n        if (transaction == null) {\n            HeatCapacitorData originalState = createSnapshot();\n            heatCapacity = newCapacity;\n            onContentsChanged(originalState);\n        } else {\n            //If we are in a transactional context, update the snapshot of the heat capacity before updating the value\n            updateSnapshots(transaction);\n            heatCapacity = newCapacity;\n        }\n    }\n\n    @Override\n    protected HeatCapacitorData createSnapshot() {\n        if (isHeatInitialized()) {\n            return new HeatCapacitorData(getHeat(), heatCapacity);\n        }\n        return new HeatCapacitorData(heatCapacity);\n    }\n\n    @Override\n    protected void revertToSnapshot(HeatCapacitorData snapshot) {\n        //Bypass contents change check\n        storedHeat = snapshot.heat().orElse(-1);\n        heatCapacity = snapshot.capacity();\n    }\n\n    @Override\n    protected void onRootCommit(HeatCapacitorData originalState) {\n        super.onRootCommit(originalState);\n        //TODO - 26.3 (heat): Should this use Mth#equal? I suspect no? Then tiny changes would potentially never get saved,\n        // as it compares against last value rather than last saved value and we are checking the Mth#equal in the setHeat method\n        if (storedHeat != originalState.heat().orElse(-1) || !Mth.equal(heatCapacity, originalState.capacity())) {\n            //Fire content change listeners during root commit if the final state is different from the original one\n            onContentsChanged(originalState);\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/component/containers/type/HeatContainerType.java",
+      "upstream_path": "src/main/java/mekanism/common/component/containers/type/HeatContainerType.java",
+      "sha256": "2dc1d4af99635d7606db964bdd332e3dcff01be61c15c2e36d144c728ab68dd0",
+      "git_blob_sha1": "eaff018a1186927e0a95b56cda146be146d64b96",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/component/containers/type/HeatContainerType.java",
+      "read_ranges": [
+        [
+          1,
+          58
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 58,
+          "text": "package mekanism.common.component.containers.type;\n\nimport mekanism.api.SerializationConstants;\nimport mekanism.api.heat.IHeatCapacitor;\nimport mekanism.common.component.containers.heat.HeatCapacitorData;\nimport mekanism.common.registries.MekanismDataComponents;\nimport mekanism.common.tile.base.TileEntityMekanism;\nimport net.neoforged.neoforge.transfer.transaction.TransactionContext;\nimport org.jspecify.annotations.Nullable;\n\npublic final class HeatContainerType extends AbstractContainerType<IHeatCapacitor, HeatCapacitorData> implements ISingleContainerType<IHeatCapacitor, HeatCapacitorData> {\n\n    HeatContainerType() {\n        super(MekanismDataComponents.ATTACHED_HEAT, SerializationConstants.HEAT_CAPACITOR);\n    }\n\n    @Nullable\n    @Override\n    public IHeatCapacitor getContainer(TileEntityMekanism tile) {\n        return tile.getHeatCapacitor();\n    }\n\n    @Override\n    public void copyToContainer(IHeatCapacitor capacitor, HeatCapacitorData data) {\n        if (data.heat().isPresent()) {\n            capacitor.setHeatAndCapacity(data.heat().getAsDouble(), data.capacity(), null);\n        } else {\n            capacitor.setHeatCapacity(data.capacity(), null);\n        }\n    }\n\n    @Override\n    public HeatCapacitorData attachedCopyOf(IHeatCapacitor capacitor) {\n        if (capacitor.isAmbientTemperature()) {\n            return new HeatCapacitorData(capacitor.getHeatCapacity());\n        }\n        return new HeatCapacitorData(capacitor.getHeat(), capacitor.getHeatCapacity());\n    }\n\n    @Override\n    public boolean canHandle(TileEntityMekanism tile) {\n        return tile.canHandleHeat();\n    }\n\n    @Override\n    public void copy(IHeatCapacitor from, IHeatCapacitor to, @Nullable TransactionContext transaction) {\n        to.copyContents(from, transaction);\n    }\n\n    public void mergeCapacitors(@Nullable IHeatCapacitor capacitor, @Nullable IHeatCapacitor mergeCapacitor, TransactionContext transaction) {\n        if (capacitor == null || mergeCapacitor == null) {\n            //Nothing to do here\n            //TODO: Do we want to error if they are different nullabilities?\n            return;\n        }\n        capacitor.setHeatAndCapacity(capacitor.getHeat() + mergeCapacitor.getHeat(), capacitor.getHeatCapacity() + mergeCapacitor.getHeatCapacity(), transaction);\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/component/containers/type/ISingleContainerType.java",
+      "upstream_path": "src/main/java/mekanism/common/component/containers/type/ISingleContainerType.java",
+      "sha256": "03e8082463b680e87a8f8f50d318c7cf10c31f292604ef9a54c2ee0cc51fcbb8",
+      "git_blob_sha1": "5e66fb9ac0daf440eb8abc5ea1cee0a834c5b257",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/component/containers/type/ISingleContainerType.java",
+      "read_ranges": [
+        [
+          1,
+          89
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 89,
+          "text": "package mekanism.common.component.containers.type;\n\nimport mekanism.common.tile.base.TileEntityMekanism;\nimport net.minecraft.core.component.DataComponentGetter;\nimport net.minecraft.core.component.DataComponentMap;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.storage.ValueInput;\nimport net.minecraft.world.level.storage.ValueOutput;\nimport net.neoforged.neoforge.common.util.ValueIOSerializable;\nimport org.jspecify.annotations.Nullable;\n\npublic interface ISingleContainerType<CONTAINER extends ValueIOSerializable, ATTACHED> extends IContainerType<CONTAINER, ATTACHED> {\n\n    @Nullable\n    CONTAINER getContainer(TileEntityMekanism tile);\n\n    @Override\n    default void copyToTile(TileEntityMekanism tile, DataComponentGetter componentGetter) {\n        ATTACHED attachedData = componentGetter.get(getComponentType());\n        if (attachedData != null) {\n            CONTAINER container = getContainer(tile);\n            if (container != null) {\n                copyToContainer(container, attachedData);\n            }\n        }\n    }\n\n    default void copyToContainer(CONTAINER container, DataComponentGetter componentGetter) {\n        ATTACHED attachedData = componentGetter.get(getComponentType());\n        if (attachedData != null) {\n            copyToContainer(container, attachedData);\n        }\n    }\n\n    void copyToContainer(CONTAINER container, ATTACHED attached);\n\n    @Override\n    default void copyFromTile(TileEntityMekanism tile, DataComponentMap.Builder builder) {\n        CONTAINER container = getContainer(tile);\n        if (container != null) {\n            ATTACHED attachedData = copyFromTile(tile, container);\n            if (attachedData != null) {\n                builder.set(getComponentType(), attachedData);\n            }\n        }\n    }\n\n    @Nullable\n    default ATTACHED copyFromTile(TileEntityMekanism tile, CONTAINER container) {\n        return attachedCopyOf(container);\n    }\n\n    @Nullable\n    ATTACHED attachedCopyOf(CONTAINER container);\n\n    default void attachCopyToStack(CONTAINER container, ItemStack stack) {\n        ATTACHED attached = attachedCopyOf(container);\n        if (attached != null) {\n            stack.set(getComponentType(), attached);\n        }\n    }\n\n    @Override\n    default void saveTo(ValueOutput output, TileEntityMekanism tile) {\n        saveTo(output, getContainer(tile));\n    }\n\n    default void saveTo(ValueOutput output, @Nullable CONTAINER container) {\n        if (container != null) {\n            String containerTag = getTag();\n            ValueOutput storedContainer = output.child(containerTag);\n            container.serialize(storedContainer);\n            if (storedContainer.isEmpty()) {\n                output.discard(containerTag);\n            }\n        }\n    }\n\n    @Override\n    default void readFrom(ValueInput input, TileEntityMekanism tile) {\n        readFrom(input, getContainer(tile));\n    }\n\n    default void readFrom(ValueInput input, @Nullable CONTAINER container) {\n        if (container != null) {\n            input.child(getTag()).ifPresent(container::deserialize);\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/component/containers/heat/HeatCapacitorData.java",
+      "upstream_path": "src/main/java/mekanism/common/component/containers/heat/HeatCapacitorData.java",
+      "sha256": "1cf9db75ae72abeeaa5f8fdeb5aeca8f39a4c993538860db76d2cd21d7e67620",
+      "git_blob_sha1": "bbd35ad46806315a00d3e1ea4eb50e509397ad3d",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/component/containers/heat/HeatCapacitorData.java",
+      "read_ranges": [
+        [
+          1,
+          76
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 76,
+          "text": "package mekanism.common.component.containers.heat;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport io.netty.buffer.ByteBuf;\nimport java.util.Optional;\nimport java.util.OptionalDouble;\nimport mekanism.api.MekanismPreconditions;\nimport mekanism.api.SerializationConstants;\nimport mekanism.api.SerializerHelper;\nimport mekanism.api.heat.HeatAPI;\nimport mekanism.common.network.PacketUtils;\nimport net.minecraft.network.codec.ByteBufCodecs;\nimport net.minecraft.network.codec.StreamCodec;\nimport net.minecraft.util.Mth;\n\npublic record HeatCapacitorData(OptionalDouble heat, double capacity) {\n\n    public static final Codec<HeatCapacitorData> CODEC = RecordCodecBuilder.create(instance -> instance.group(\n          SerializerHelper.NON_NEGATIVE_DOUBLE.optionalFieldOf(SerializationConstants.HEAT_STORED).forGetter(data -> data.heat.isPresent() ? Optional.of(data.heat.getAsDouble()) : Optional.empty()),\n          SerializerHelper.ONE_OR_GREATER_DOUBLE.optionalFieldOf(SerializationConstants.HEAT_CAPACITY, 1D).forGetter(HeatCapacitorData::capacity)\n    ).apply(instance, (heat, capacity) -> new HeatCapacitorData(\n          heat.map(OptionalDouble::of).orElseGet(OptionalDouble::empty),\n          capacity\n    )));\n    public static final StreamCodec<ByteBuf, HeatCapacitorData> STREAM_CODEC = StreamCodec.composite(\n          PacketUtils.OPTIONAL_DOUBLE_STREAM_CODEC, HeatCapacitorData::heat,\n          ByteBufCodecs.DOUBLE, HeatCapacitorData::capacity,\n          HeatCapacitorData::new\n    );\n\n    public HeatCapacitorData(double heat, double capacity) {\n        this(OptionalDouble.of(heat), capacity);\n    }\n\n    public HeatCapacitorData(double capacity) {\n        this(OptionalDouble.empty(), capacity);\n    }\n\n    public HeatCapacitorData {\n        if (heat.isPresent()) {\n            MekanismPreconditions.checkNonNegative(heat.getAsDouble());\n        }\n        MekanismPreconditions.checkHeatCapacity(capacity);\n    }\n\n    public HeatCapacitorData withHeat(double heat) {\n        MekanismPreconditions.checkNonNegative(heat);\n        if (Mth.equal(heatOrAmbient(), heat)) {\n            return this;\n        }\n        return new HeatCapacitorData(heat, capacity);\n    }\n\n    public HeatCapacitorData withCapacity(double heatCapacity) {\n        MekanismPreconditions.checkHeatCapacity(heatCapacity);\n        if (Mth.equal(capacity, heatCapacity)) {\n            return this;\n        }\n        return new HeatCapacitorData(heat, heatCapacity);\n    }\n\n    public double temperature() {\n        if (heat.isPresent()) {\n            return heat.getAsDouble() / capacity;\n        }\n        return HeatAPI.AMBIENT_TEMP;\n    }\n\n    public double heatOrAmbient() {\n        if (heat.isPresent()) {\n            return heat.getAsDouble();\n        }\n        return HeatAPI.AMBIENT_TEMP * capacity;\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/api/java/mekanism/api/heat/IHeatCapacitor.java",
+      "upstream_path": "src/api/java/mekanism/api/heat/IHeatCapacitor.java",
+      "sha256": "401b6119368d39b2eb7c189907c25d1f945070d96f5481de7a0f51278a21b5cf",
+      "git_blob_sha1": "429da1dfac21cbdf6301744442251264744dd2de",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/api/java/mekanism/api/heat/IHeatCapacitor.java",
+      "read_ranges": [
+        [
+          1,
+          113
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 113,
+          "text": "package mekanism.api.heat;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport mekanism.api.MekanismPreconditions;\nimport mekanism.api.SerializationConstants;\nimport mekanism.api.SerializerHelper;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.level.storage.ValueInput;\nimport net.minecraft.world.level.storage.ValueOutput;\nimport net.neoforged.neoforge.common.util.ValueIOSerializable;\nimport net.neoforged.neoforge.transfer.transaction.Transaction;\nimport net.neoforged.neoforge.transfer.transaction.TransactionContext;\nimport org.jspecify.annotations.Nullable;\n\npublic interface IHeatCapacitor extends ValueIOSerializable, IHeatHandler {\n\n    /// {@return the inverse insulation coefficient for this capacitor} The larger the value the less heat dissipates into the environment.\n    double getInverseInsulation();\n\n    /// {@return heat stored in this capacitor}\n    double getHeat();\n\n    @Override\n    default double getTemperature() {\n        return getHeat() / getHeatCapacity();\n    }\n\n    /// Overrides the amount of heat in this [IHeatCapacitor].\n    ///\n    /// @param heat        Heat to set this capacitor's storage to. **Must be at least 0**.\n    /// @param transaction The transaction that this operation is part of if any. May be `null`\n    ///\n    /// @throws IllegalArgumentException If heat is less than zero. See also [MekanismPreconditions#checkNonNegative(double)] to help perform this check.\n    /// @since 10.8.0\n    void setHeat(double heat, @Nullable TransactionContext transaction);\n\n    /// Overrides the heat capacity of this [IHeatCapacitor].\n    ///\n    /// @param newCapacity Heat capacity to set this capacitor to. **Must be at least 1**.\n    /// @param transaction The transaction that this operation is part of if any. May be `null`\n    ///\n    /// @throws IllegalArgumentException If heat capacity is less than one. See also [MekanismPreconditions#checkHeatCapacity(double)] to help perform this check.\n    /// @since 10.8.0\n    void setHeatCapacity(double newCapacity, @Nullable TransactionContext transaction);\n\n    /// Overrides the heat and heat capacity of this [IHeatCapacitor].\n    ///\n    /// @param heat         Heat to set this capacitor's storage to. **Must be at least 0**.\n    /// @param heatCapacity Heat capacity to set this capacitor to. **Must be at least 1**.\n    /// @param transaction  The transaction that this operation is part of if any. May be `null`\n    ///\n    /// @throws IllegalArgumentException If heat is less than zero, or heat capacity is less than one. See also [MekanismPreconditions#checkNonNegative(double)] and\n    /// [MekanismPreconditions#checkHeatCapacity(double)] to help perform this check.\n    /// @since 10.8.0\n    default void setHeatAndCapacity(double heat, double heatCapacity, @Nullable TransactionContext transaction) {\n        try (Transaction subTransaction = Transaction.open(transaction)) {\n            setHeatCapacity(heatCapacity, subTransaction);\n            setHeat(heat, subTransaction);\n            //Ensure that no onContentsChange is fired until after both have been updated (in case the transaction is null)\n            subTransaction.commit();\n        }\n    }\n\n    /// Checks if this heat capacitor is currently at the ambient temperature of its surroundings.\n    ///\n    /// @return `true` if this capacitor is currently at the ambient temperature of the environment it is in.\n    ///\n    /// @implNote This method should be overridden to take into account any variable ambient temperature data such as biomes.\n    /// @since 10.7.15\n    default boolean isAmbientTemperature() {\n        return Mth.equal(getTemperature(), HeatAPI.AMBIENT_TEMP);\n    }\n\n    @Override\n    default void serialize(ValueOutput output) {\n        output.store(SerializationConstants.STATE, CapacitorState.CODEC, new CapacitorState(getHeat(), getHeatCapacity()));\n    }\n\n    @Override\n    default void deserialize(ValueInput input) {\n        input.read(SerializationConstants.STATE, CapacitorState.CODEC).ifPresent(state -> setHeatAndCapacity(state.heat(), state.heatCapacity(), null));\n    }\n\n    /// Helper method to copy all pertinent data from another [`heat capacitor`][IHeatCapacitor] to this one without requiring a serialization, deserialization cycle.\n    ///\n    /// @param other       Capacitor to copy data from.\n    /// @param transaction The transaction that this operation is part of. May be `null`, and also the implementation may not fully support rolling back the transaction.\n    ///\n    /// @implSpec If [#serialize] is overridden, this method should be overridden as well to transfer the relevant data.\n    /// @see HeatCapacitorWrapper#getInternal() Getting the internal capacitor when wrapped if instance checks are necessary.\n    /// @since 10.8.0\n    default void copyContents(IHeatCapacitor other, @Nullable TransactionContext transaction) {\n        setHeatAndCapacity(other.getHeat(), other.getHeatCapacity(), transaction);\n    }\n\n    /// Helper record for use in serialization to represent a heat capacitor's state.\n    ///\n    /// @since 10.8.0\n    record CapacitorState(double heat, double heatCapacity) {\n\n        /// Codec for serializing and deserializing a heat capacitor's state.\n        public static final Codec<CapacitorState> CODEC = RecordCodecBuilder.create(instance -> instance.group(\n              SerializerHelper.NON_NEGATIVE_DOUBLE.optionalFieldOf(SerializationConstants.HEAT_STORED, 0D).forGetter(CapacitorState::heat),\n              SerializerHelper.ONE_OR_GREATER_DOUBLE.optionalFieldOf(SerializationConstants.HEAT_CAPACITY, 1D).forGetter(CapacitorState::heatCapacity)\n        ).apply(instance, CapacitorState::new));\n\n        public CapacitorState {\n            MekanismPreconditions.checkNonNegative(heat);\n            MekanismPreconditions.checkHeatCapacity(heatCapacity);\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/capabilities/heat/ITileHeatHandler.java",
+      "upstream_path": "src/main/java/mekanism/common/capabilities/heat/ITileHeatHandler.java",
+      "sha256": "d48419c671d540e1669b669375959dde12306fbe1374bbc2bba53457bade51be",
+      "git_blob_sha1": "f91e87849232389dc42b9982fafc10bcd28e0387",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/capabilities/heat/ITileHeatHandler.java",
+      "read_ranges": [
+        [
+          1,
+          106
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 106,
+          "text": "package mekanism.common.capabilities.heat;\n\nimport mekanism.api.heat.HeatAPI;\nimport mekanism.api.heat.HeatAPI.HeatTransfer;\nimport mekanism.api.heat.IHeatCapacitor;\nimport mekanism.api.heat.IHeatHandler;\nimport mekanism.common.util.EnumUtils;\nimport net.minecraft.core.Direction;\nimport net.neoforged.neoforge.transfer.transaction.TransactionContext;\nimport org.jspecify.annotations.Nullable;\n\n@FunctionalInterface\npublic interface ITileHeatHandler {\n\n    /// Gets the [IHeatHandler] adjacent to this [ITileHeatHandler].\n    ///\n    /// @param side The side of this [ITileHeatHandler] to look on.\n    ///\n    /// @return The [IHeatHandler] adjacent to this [ITileHeatHandler], otherwise returns `null`.\n    ///\n    /// @implSpec If this method is called it can be assumed the handler has been checked as supporting heat.\n    @Nullable\n    default IHeatHandler getAdjacent(Direction side) {\n        return null;\n    }\n\n    /// {@return the [IHeatCapacitor] on the given side}\n    ///\n    /// @param side The side we are interacting with the handler from (null for internal).\n    @Nullable\n    IHeatCapacitor getHeatCapacitor(@Nullable Direction side);\n\n    /// Simulate heat transfers\n    default HeatTransfer simulate(TransactionContext transaction) {\n        return new HeatTransfer(simulateAdjacent(transaction), simulateEnvironment(transaction));\n    }\n\n    default double getAmbientTemperature(Direction side) {\n        return HeatAPI.AMBIENT_TEMP;\n    }\n\n    default double simulateEnvironment(TransactionContext transaction) {\n        double environmentTransfer = 0;\n        for (Direction side : EnumUtils.DIRECTIONS) {\n            IHeatCapacitor heatCapacitor = getHeatCapacitor(side);\n            if (heatCapacitor == null) {\n                continue;\n            }\n            double heatCapacity = heatCapacitor.getHeatCapacity();\n            //transfer to air otherwise\n            double invConduction = HeatAPI.AIR_INVERSE_COEFFICIENT + heatCapacitor.getInverseInsulation() + heatCapacitor.getInverseConduction();\n            //transfer heat difference based on environment temperature (ambient)\n            double tempToTransfer = (heatCapacitor.getTemperature() - getAmbientTemperature(side)) / invConduction;\n            heatCapacitor.handleHeat(-tempToTransfer * heatCapacity, transaction);\n            if (tempToTransfer > 0) {\n                //Only count it towards environmental loss if it is hotter than the ambient temperature\n                environmentTransfer += tempToTransfer;\n            }\n        }\n        return environmentTransfer;\n    }\n\n    default double simulateAdjacent(TransactionContext transaction) {\n        double adjacentTransfer = 0;\n        for (Direction side : EnumUtils.DIRECTIONS) {\n            IHeatCapacitor heatCapacitor = getHeatCapacitor(side);\n            if (heatCapacitor == null) {\n                continue;\n            }\n            //Note: We can safely call getAdjacent as we know we supuport heat transfers on the side due to having a heat capacitor\n            IHeatHandler sink = getAdjacent(side);\n            if (sink == null) {\n                continue;\n            }\n            double temp = heatCapacitor.getTemperature();\n            double sinkTemp = sink.getTemperature();\n            if (temp <= sinkTemp) {\n                //If our temperature is lower than the sink, we skip calculating what the adjacent loss to the sink\n                // is as if the sink is able to have heat transferred away from it (which is a bit of a weird concept\n                // in relation to thermodynamics, but makes some sense with our implementation), it will be handled by\n                // the sink when the sink simulates adjacent heat transfers. This also prevents us from having heat\n                // transfers effectively happen \"twice\" per tick rather than just once\n                // Note: We also skip if our temp is equal to the sink's temperature so that we can short circuit\n                // past the following logic\n                continue;\n            }\n            double heatCapacity = heatCapacitor.getHeatCapacity();\n            double sinkHeatCapacity = sink.getHeatCapacity();\n            //Calculate the target temperature using calorimetry\n            double finalTemp = (temp * heatCapacity + sinkTemp * sinkHeatCapacity) / (heatCapacity + sinkHeatCapacity);\n            double invConduction = sink.getInverseConduction() + heatCapacitor.getInverseConduction();\n            double tempToTransfer = (temp - finalTemp) / invConduction;\n            double heatToTransfer = tempToTransfer * heatCapacity;\n            heatCapacitor.handleHeat(-heatToTransfer, transaction);\n            sink.handleHeat(heatToTransfer, transaction);\n            if (tempToTransfer != 0 && countsAsAdjacent(side)) {\n                adjacentTransfer += tempToTransfer;\n            }\n        }\n        return adjacentTransfer;\n    }\n\n    default boolean countsAsAdjacent(Direction side) {\n        return true;\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/capabilities/heat/CachedAmbientTemperature.java",
+      "upstream_path": "src/main/java/mekanism/common/capabilities/heat/CachedAmbientTemperature.java",
+      "sha256": "e29b0018c619b11bf9cce0e7e4eeecb05d2a48e6db31facc826e8dabb5bb960b",
+      "git_blob_sha1": "87d5a1efc7367c7250ec3c5f349ef1e16f79f2fe",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/capabilities/heat/CachedAmbientTemperature.java",
+      "read_ranges": [
+        [
+          1,
+          46
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 46,
+          "text": "package mekanism.common.capabilities.heat;\n\nimport java.util.Arrays;\nimport java.util.function.DoubleSupplier;\nimport java.util.function.Supplier;\nimport mekanism.api.heat.HeatAPI;\nimport mekanism.common.util.EnumUtils;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.world.level.Level;\nimport org.jspecify.annotations.Nullable;\n\npublic class CachedAmbientTemperature implements DoubleSupplier {\n\n    private final double[] ambientTemperature = new double[EnumUtils.DIRECTIONS.length + 1];\n    private final Supplier<@Nullable Level> worldSupplier;\n    private final Supplier<BlockPos> positionSupplier;\n\n    public CachedAmbientTemperature(Supplier<@Nullable Level> worldSupplier, Supplier<BlockPos> positionSupplier) {\n        this.worldSupplier = worldSupplier;\n        this.positionSupplier = positionSupplier;\n        Arrays.fill(ambientTemperature, -1);\n    }\n\n    @Override\n    public double getAsDouble() {\n        return getTemperature(null);\n    }\n\n    public double getTemperature(@Nullable Direction side) {\n        int index = side == null ? EnumUtils.DIRECTIONS.length : side.ordinal();\n        double biomeAmbientTemp = ambientTemperature[index];\n        if (biomeAmbientTemp == -1) {\n            Level world = worldSupplier.get();\n            if (world == null) {\n                return HeatAPI.AMBIENT_TEMP;\n            }\n            BlockPos pos = positionSupplier.get();\n            if (side != null) {\n                pos = pos.relative(side);\n            }\n            return ambientTemperature[index] = HeatAPI.getAmbientTemp(world, pos);\n        }\n        return biomeAmbientTemp;\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/tile/transmitter/TileEntityThermodynamicConductor.java",
+      "upstream_path": "src/main/java/mekanism/common/tile/transmitter/TileEntityThermodynamicConductor.java",
+      "sha256": "c90c45846ccfd6159cbd624982fbc842354a4467b2b79590d0221fbee25960b4",
+      "git_blob_sha1": "4b42a72e3bf3f9c19ebaa0a3bd86ab791b56884e",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/tile/transmitter/TileEntityThermodynamicConductor.java",
+      "read_ranges": [
+        [
+          1,
+          87
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 87,
+          "text": "package mekanism.common.tile.transmitter;\n\nimport mekanism.api.tier.BaseTier;\nimport mekanism.common.block.states.BlockStateHelper;\nimport mekanism.common.block.states.TransmitterType;\nimport mekanism.common.capabilities.Capabilities;\nimport mekanism.common.capabilities.resolver.manager.HeatHandlerManager;\nimport mekanism.common.content.network.transmitter.ThermodynamicConductor;\nimport mekanism.common.lib.transmitter.ConnectionType;\nimport mekanism.common.registries.MekanismBlocks;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.Holder;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic class TileEntityThermodynamicConductor extends TileEntityTransmitter {\n\n    public TileEntityThermodynamicConductor(Holder<Block> blockProvider, BlockPos pos, BlockState state) {\n        super(blockProvider, pos, state);\n        addCapabilityResolver(new HeatHandlerManager(direction -> {\n            ThermodynamicConductor conductor = getTransmitter();\n            //TODO - 26.3 (heat): Should we make this a full on anonymous class and implement canInsert/canExtract? The fact that we check this stuff for exposing the cap\n            // makes me think that we should, but in some ways it would also make sense to expose it on all sides regardless?\n            if (direction != null && (conductor.getConnectionTypeRaw(direction) == ConnectionType.NONE) || conductor.isRedstoneActivated()) {\n                //If we actually have a side, and our connection type on that side is none, or we are currently activated by redstone,\n                // then return that we have no capacitors\n                return null;\n            }\n            return conductor.getHeatCapacitor(direction);\n        }));\n    }\n\n    @Override\n    protected ThermodynamicConductor createTransmitter(Holder<Block> blockProvider) {\n        return new ThermodynamicConductor(blockProvider, this);\n    }\n\n    @Override\n    public ThermodynamicConductor getTransmitter() {\n        return (ThermodynamicConductor) super.getTransmitter();\n    }\n\n    @Override\n    public TransmitterType getTransmitterType() {\n        return TransmitterType.THERMODYNAMIC_CONDUCTOR;\n    }\n\n    @Override\n    protected BlockState upgradeResult(BlockState current, BaseTier tier) {\n        return BlockStateHelper.copyStateData(current, switch (tier) {\n            case BASIC -> MekanismBlocks.BASIC_THERMODYNAMIC_CONDUCTOR;\n            case ADVANCED -> MekanismBlocks.ADVANCED_THERMODYNAMIC_CONDUCTOR;\n            case ELITE -> MekanismBlocks.ELITE_THERMODYNAMIC_CONDUCTOR;\n            case ULTIMATE -> MekanismBlocks.ULTIMATE_THERMODYNAMIC_CONDUCTOR;\n            default -> null;\n        });\n    }\n\n    @Override\n    public void sideChanged(Direction side, ConnectionType old, ConnectionType type) {\n        super.sideChanged(side, old, type);\n        if (type == ConnectionType.NONE) {\n            //We no longer have a capability, invalidate it, which will also notify the level\n            invalidateCapability(Capabilities.HEAT, side);\n        } else if (old == ConnectionType.NONE) {\n            //Notify any listeners to our position that we now do have a capability\n            //Note: We don't invalidate our impls because we know they are already invalid, so we can short circuit setting them to null from null\n            invalidateCapabilities();\n        }\n    }\n\n    @Override\n    public void redstoneChanged(boolean powered) {\n        super.redstoneChanged(powered);\n        if (powered) {\n            //The transmitter now is powered by redstone and previously was not\n            //Note: While at first glance the below invalidation may seem over aggressive, it is not actually that aggressive as\n            // if a cap has not been initialized yet on a side then invalidating it will just NO-OP\n            invalidateCapabilityAll(Capabilities.HEAT);\n        } else {\n            //Notify any listeners to our position that we now do have a capability\n            //Note: We don't invalidate our impls because we know they are already invalid, so we can short circuit setting them to null from null\n            invalidateCapabilities();\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/upgrade/transmitter/ThermodynamicConductorUpgradeData.java",
+      "upstream_path": "src/main/java/mekanism/common/upgrade/transmitter/ThermodynamicConductorUpgradeData.java",
+      "sha256": "1674da9029763d3e9d3315c1e362df137d519603c8f006ef08c331e950bbdd04",
+      "git_blob_sha1": "1cdd66ae0835a8ceb92a94aa1d6ae5c55940df13",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/upgrade/transmitter/ThermodynamicConductorUpgradeData.java",
+      "read_ranges": [
+        [
+          1,
+          13
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 13,
+          "text": "package mekanism.common.upgrade.transmitter;\n\nimport mekanism.common.lib.transmitter.ConnectionType;\n\npublic class ThermodynamicConductorUpgradeData extends TransmitterUpgradeData {\n\n    public final double heat;\n\n    public ThermodynamicConductorUpgradeData(boolean redstoneReactive, ConnectionType[] connectionTypes, double heat) {\n        super(redstoneReactive, connectionTypes);\n        this.heat = heat;\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/tile/transmitter/TileEntityTransmitter.java",
+      "upstream_path": "src/main/java/mekanism/common/tile/transmitter/TileEntityTransmitter.java",
+      "sha256": "e971079980c292fe59d0a9141c71c581d51bc6521230c9a6eeeb191e4958b4f5",
+      "git_blob_sha1": "160a9de1496dbcaff69903f02bf6d76cc4d3b88d",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/tile/transmitter/TileEntityTransmitter.java",
+      "read_ranges": [
+        [
+          110,
+          139
+        ]
+      ],
+      "complete_file_read": false,
+      "excerpts": [
+        {
+          "start": 110,
+          "end": 139,
+          "text": "    public static void tickServer(Level level, BlockPos pos, BlockState state, TileEntityTransmitter transmitter) {\n        transmitter.onUpdateServer((ServerLevel) level);\n    }\n\n    @Override\n    public void writeReducedUpdatedTag(ValueOutput output) {\n        super.writeReducedUpdatedTag(output);\n        getTransmitter().writeReducedUpdatedTag(output);\n    }\n\n    @Override\n    public void handleUpdateTag(ValueInput input) {\n        super.loadAdditional(input);//we do NOT call super directly, as it will call a load and the below check never sees the changes\n        if (getTransmitter().handleUpdateTag(input)) {\n            //Only update the model data if something got updated that caused the model data to change\n            updateModelData();\n        }\n    }\n\n    @Override\n    public void loadAdditional(ValueInput input) {\n        super.loadAdditional(input);\n        getTransmitter().read(input);\n    }\n\n    @Override\n    public void saveAdditional(ValueOutput output) {\n        super.saveAdditional(output);\n        getTransmitter().write(output);\n    }"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/content/network/transmitter/Transmitter.java",
+      "upstream_path": "src/main/java/mekanism/common/content/network/transmitter/Transmitter.java",
+      "sha256": "448d3a1eb8ac7f0b7f77d30db233ffa5bbfd5e2a4b4915b74522bd06fa1133e6",
+      "git_blob_sha1": "8386f96248d9c4e34176aaee76f5011bcd16c023",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/content/network/transmitter/Transmitter.java",
+      "read_ranges": [
+        [
+          488,
+          516
+        ]
+      ],
+      "complete_file_read": false,
+      "excerpts": [
+        {
+          "start": 488,
+          "end": 516,
+          "text": "    public void read(ValueInput input) {\n        redstoneReactive = input.getBooleanOr(SerializationConstants.REDSTONE, DEFAULT_REDSTONE_REACTIVE);\n        currentTransmitterConnections = input.getByteOr(SerializationConstants.CURRENT_CONNECTIONS, DEFAULT_TRANSMITTER_CONNECTIONS);\n        acceptorCache.currentAcceptorConnections = input.getByteOr(SerializationConstants.CURRENT_ACCEPTORS, AcceptorCache.DEFAULT_ACCEPTOR_CONNECTIONS);\n        readRawConnections(input);\n    }\n\n    public void write(ValueOutput output) {\n        output.putBoolean(SerializationConstants.REDSTONE, redstoneReactive);\n        output.putByte(SerializationConstants.CURRENT_CONNECTIONS, currentTransmitterConnections);\n        output.putByte(SerializationConstants.CURRENT_ACCEPTORS, acceptorCache.currentAcceptorConnections);\n        output.putIntArray(SerializationConstants.CONNECTION, getRawConnections());\n    }\n\n    private int[] getRawConnections() {\n        int[] raw = new int[EnumUtils.DIRECTIONS.length];\n        for (int i = 0; i < EnumUtils.DIRECTIONS.length; i++) {\n            raw[i] = getConnectionTypeRaw(EnumUtils.DIRECTIONS[i]).ordinal();\n        }\n        return raw;\n    }\n\n    private void readRawConnections(ValueInput input) {\n        int[] raw = input.getIntArray(SerializationConstants.CONNECTION).orElse(MISSING_RAW_CONNECTIONS);\n        for (int i = 0; i < raw.length && i < EnumUtils.DIRECTIONS.length; i++) {\n            setConnectionTypeRaw(EnumUtils.DIRECTIONS[i], ConnectionType.BY_ID.apply(raw[i]));\n        }\n    }\n"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/lib/transmitter/TransmitterNetworkRegistry.java",
+      "upstream_path": "src/main/java/mekanism/common/lib/transmitter/TransmitterNetworkRegistry.java",
+      "sha256": "66f562e51232d444de44aac30717c1dcf840039c7f5b7f03252119b34ea72e58",
+      "git_blob_sha1": "9f134c79b5a9ad594c6ce6f8a8b6f13650a07737",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/lib/transmitter/TransmitterNetworkRegistry.java",
+      "read_ranges": [
+        [
+          113,
+          137
+        ]
+      ],
+      "complete_file_read": false,
+      "excerpts": [
+        {
+          "start": 113,
+          "end": 137,
+          "text": "        networksToChange.add(network);\n    }\n\n    public static void registerNetwork(DynamicNetwork<?, ?, ?> network) {\n        networks.add(network);\n    }\n\n    public static void removeNetwork(DynamicNetwork<?, ?, ?> network) {\n        networks.remove(network);\n        networksToChange.remove(network);\n    }\n\n    @SubscribeEvent\n    public static void onTick(ServerTickEvent.Post event) {\n        handleChangedChunks();\n        removeInvalidTransmitters();\n        assignOrphans();\n        commitChanges();\n        if (event.getServer().tickRateManager().runsNormally()) {\n            for (DynamicNetwork<?, ?, ?> net : networks) {\n                net.onUpdate();\n            }\n        }\n    }\n"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/main/java/mekanism/common/lib/transmitter/DynamicNetwork.java",
+      "upstream_path": "src/main/java/mekanism/common/lib/transmitter/DynamicNetwork.java",
+      "sha256": "d1c6bb7606c6f9572945bd2de42011a62c33489dc8ce145fb9c1a90c7d155da7",
+      "git_blob_sha1": "487f4fd421bffe88708e7caf2c9eccc9026ff41b",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/main/java/mekanism/common/lib/transmitter/DynamicNetwork.java",
+      "read_ranges": [
+        [
+          210,
+          219
+        ]
+      ],
+      "complete_file_read": false,
+      "excerpts": [
+        {
+          "start": 210,
+          "end": 219,
+          "text": "    }\n\n    /// @apiNote Only called on the server\n    public void onUpdate() {\n    }\n\n    public Collection<TRANSMITTER> getTransmitters() {\n        return positionedTransmitters.values();\n    }\n"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/api/java/mekanism/api/MekanismPreconditions.java",
+      "upstream_path": "src/api/java/mekanism/api/MekanismPreconditions.java",
+      "sha256": "cc776fb27c0f2e3f5bca9e6fa66cc8620da267db611c264939af412bc1609649",
+      "git_blob_sha1": "6499540c6558acf0693cfa5ea52dde01b786c425",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/api/java/mekanism/api/MekanismPreconditions.java",
+      "read_ranges": [
+        [
+          1,
+          39
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 39,
+          "text": "package mekanism.api;\n\n/// Precondition checks useful for implementing Mekanism handlers.\n///\n/// @since 10.8.0\npublic final class MekanismPreconditions {\n\n    private MekanismPreconditions() {\n    }\n\n    /// Ensures the value is non-negative, throws otherwise.\n    ///\n    /// @throws IllegalArgumentException when value is negative.\n    /// @see net.neoforged.neoforge.transfer.TransferPreconditions#checkNonNegative(int)\n    public static void checkNonNegative(long value) {\n        if (value < 0) {\n            throw new IllegalArgumentException(\"Expected value to be non-negative: \" + value);\n        }\n    }\n\n    /// Ensures the value is non-negative, throws otherwise.\n    ///\n    /// @throws IllegalArgumentException when value is negative.\n    /// @see net.neoforged.neoforge.transfer.TransferPreconditions#checkNonNegative(int)\n    public static void checkNonNegative(double value) {\n        if (value < 0) {\n            throw new IllegalArgumentException(\"Expected value to be non-negative: \" + value);\n        }\n    }\n\n    /// Ensures the value is a valid heat capacity, throws otherwise.\n    ///\n    /// @throws IllegalArgumentException when value is less than one.\n    public static void checkHeatCapacity(double value) {\n        if (value < 1) {\n            throw new IllegalArgumentException(\"Expected heat capacity to be at least one: \" + value);\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/mekanism__Mekanism/src/api/java/mekanism/api/SerializerHelper.java",
+      "upstream_path": "src/api/java/mekanism/api/SerializerHelper.java",
+      "sha256": "f80f85d249076c1bbebc3d7dee35d367a1dc0888279de1aa0d7ee46333ea66f7",
+      "git_blob_sha1": "27cbba7849e5f2af964f7687ad2ce9dc9df0eb3a",
+      "source_url": "https://github.com/mekanism/Mekanism/blob/d4df9b354c209c85713bdc8a017bfe54aa044e40/src/api/java/mekanism/api/SerializerHelper.java",
+      "read_ranges": [
+        [
+          18,
+          34
+        ]
+      ],
+      "complete_file_read": false,
+      "excerpts": [
+        {
+          "start": 18,
+          "end": 34,
+          "text": "public class SerializerHelper {\n\n    private SerializerHelper() {\n    }\n\n    /// Double codec that validates the value is non-negative.\n    ///\n    /// @since 10.8.0\n    public static final Codec<Double> NON_NEGATIVE_DOUBLE = doubleRangeMinInclusiveWithMessage(0, n -> \"Value must be non-negative: \" + n);\n    /// Double codec that validates the value is at least one.\n    ///\n    /// @since 10.8.0\n    public static final Codec<Double> ONE_OR_GREATER_DOUBLE = doubleRangeMinInclusiveWithMessage(1, n -> \"Value must be greater than or equal to one: \" + n);\n\n    private static Codec<Double> doubleRangeMinInclusiveWithMessage(double minInclusive, Function<Double, String> error) {\n        return Codec.DOUBLE.validate(value -> value.compareTo(minInclusive) >= 0 ? DataResult.success(value) : DataResult.error(() -> error.apply(value)));\n    }"
+        }
+      ]
+    }
+  ],
+  "existing_semantic_families_compared": [
+    {
+      "candidate_id": "c4a802492948b2fd4e6b",
+      "family": "mekanism-robit-owner-inventory-energy-reader",
+      "preservation": "Real personal robot state ties owner/security to item payload and stored energy; invalid security fallback can weaken access and is explicitly a risk."
+    },
+    {
+      "candidate_id": "fb17d9eda4eccfde49f1",
+      "family": "mekanism-digital-miner-owned-overflow-excluded-from-config-copy",
+      "preservation": "Read all four persistence methods, full OverflowAware class, trackOverflow/tryAddOverflow consumers. Actual insertion decrements stored count only by accepted amount and retains remainder; duplicate resource rows merged. Loading SEARCHING marks FINISHED if no fresh calculation to restart safely. Distinct game mining output owner1, parser/helper0."
+    },
+    {
+      "candidate_id": "113fcbeeb59974e75337",
+      "family": "embers-heat-coil-owned-output-and-energy-funded-heat",
+      "preservation": "Read full payment/heating/smelting path. Operation schedule actually uses ticksExisted modulo cookTime, saved progress field does not control update; persisted-field existence alone not recovery proof. Cost/heat derive future cadence separate from value ownership."
+    },
+    {
+      "candidate_id": "85c21aa1c7e4f76b8156",
+      "family": "mekanism-transporter-owned-inflight-stack-disk-reroute-and-transactional-return",
+      "preservation": "Read actual disk owner and complete transfer/drop consumers, not network-only snapshots. Child item carrier and base list one chain, one credit. Snapshot rollback removes queued drops; onRootCommit actually emits items. Illustrates keep owned payload while recomputing disposable route state."
+    },
+    {
+      "candidate_id": "ad4662a11512ac39c6ae",
+      "family": "mekanism-pump-paid-operating-progress-active-fluid-and-source-discovery",
+      "preservation": "Read payment, source removal and tank insertion, independent actual fluid extraction owner. Saved discovery set is navigation cache rather than player permanent reward. Missing active fluid clears, reset explicitly clears discoveries. No generic tank wrapper extra credit."
+    },
+    {
+      "candidate_id": "c6f482804691eed50175",
+      "family": "mekanism-bin-lock-stock-placement-and-transactional-item-copy",
+      "preservation": "One concrete binowner across tile/item representation, same-shape two readers not independentlycounted. ItemResource carries component identity; do not replace same-ID defaults losing lock/contents."
+    },
+    {
+      "candidate_id": "66fdc9d32f4e164dd276",
+      "family": "mekanism-resistive-heater-rate-before-capacity-and-energy",
+      "preservation": "Independent paidheat resource owner and ordering constraint, not genericconfigaccessor. Useful restoration ordering: restoring count before maximum mayclamp data."
+    },
+    {
+      "candidate_id": "9de0aee05714b5697c24",
+      "family": "mekanism-fission-saved-reactor-control-and-safety-mode",
+      "preservation": "Concrete persisted fission controlowner with fuel/damage consumers, not genericenum serialization or sync-onlymirror. Stable stringcodec avoidsrawordinaldisk."
+    },
+    {
+      "candidate_id": "0baef409e99f65c5e3bb",
+      "family": "mekanism-fusion-saved-cooling-sensitive-readiness-predicate",
+      "preservation": "Independent fusionthermal/twofuel predicateowner, differs actualinput+math from fission activation/waste; not sameenumkeytable. One for mode+coolingselection, no perenumvalue credit."
+    },
+    {
+      "candidate_id": "8c907364464afbf6f712",
+      "family": "mekanism-qio-saved-network-stock-comparison-selector",
+      "preservation": "Concrete saved network-stock predicate owner, no quantity ofactualowneditems storedhere. Distinguish selectiontemplate from stock topreventcopying/issuing newitems duringmigration."
+    },
+    {
+      "candidate_id": "1c268f7eedc17da52a55",
+      "family": "mekanism-logistical-sorter-program-and-disk-only-round-robin-cursor",
+      "preservation": "Independent physicalinventory sorter selector owner. Filterghostsettings not stock; cursor belongsmachine not reusableconfigurationcard. Sharedtransportinflight85c21 owner0."
+    },
+    {
+      "candidate_id": "ef3006c9e4f7e7885cb2",
+      "family": "mekanism-qio-exporter-persistent-network-policy-and-acknowledged-stock-transfer",
+      "preservation": "Independent QIO network resourceconsumer unlike sorter pullsphysicalbackinventory. Same rr cursor reader has ASTcollision reviewed explicitly, not duplicatepurewrapper. No separate nestedhelpercredit."
+    },
+    {
+      "candidate_id": "93f9dd1b9468249c37ba",
+      "family": "pnc-solar-compressor-durable-overheat-breakage",
+      "preservation": "Concrete durable machine damage flag vs transient heat warning/skyvisibility; illustrates intentionaldurable negative state must not be mistaken generic cooldown."
+    },
+    {
+      "candidate_id": "d9322f831e27955b6f24",
+      "family": "pnc-thermal-compressor-six-exchanger-restored-gradient",
+      "preservation": "One concrete six-node thermal machine not sixreferences; actual gradientconsumer differentiatesgeneric heatwrapper. Serializebehaviour IDs createsknown behaviours and unknownskipped."
+    },
+    {
+      "candidate_id": "6ae9e61c78bdfb845c86",
+      "family": "pnc-heat-frame-dual-processing-checkpoints-portable-semiblock-payload",
+      "preservation": "实际两种加工余额和携带热量合为同一热框业务owner1，不按冷/热拆数。已有其它熔炉/物流框架宏观类似但真实双余额与外部库存热转换提交算法非换键clone；通用semiblock外壳/temperature codec只支持不另计。firsttick initializeAmbient只设ambient，不覆盖恢复temperature；同步status与slotcache非持久派生。"
+    }
+  ],
+  "semantic_difference": "A per-conductor physical heat balance plus capacity is rehydrated before participating in neighbour calorimetric transactions and environmental dissipation. It is independent of resistive heater rate/energy ordering, fusion/fission control modes and thermal compressor gradient machine. One entire distributed conductor owner; codec, packet, capacity, six directions, upgrade carriers and network wrappers add zero.",
+  "actual_observations": [
+    "Actual TileEntityTransmitter disk load/save invokes conductor read/write. HEAT single-container reader only deserializes when child exists; capacitor deserialize only applies successfully decoded state. Absent child/state retains existing/lazily initialized buffer, while a present empty state decodes defaults heat0/capacity1.",
+    "IHeatCapacitor stores both heat and capacity as one state. setHeatAndCapacity uses a subtransaction, setting capacity then heat and commits both before contents listener. BasicHeatCapacitor snapshot includes uninitialized heat sentinel and capacity, rollback restores both. Native NeoForge transaction implementation not independently executed/audited.",
+    "getHeat lazily initializes unset -1 to heatCapacity*ambient; explicit restored0 remains0. Cached ambient lookup is a runtime world/position cache, not restored paid heat. Conduction coefficients remain current tier suppliers, while disk capacity overwrites constructor tier capacity.",
+    "HeatNetwork.onUpdate performs conductor.simulate under one root transaction, commits before averaging temperatures. ITileHeatHandler transfers only hot→cold by finalTemp=(T1*C1+T2*C2)/(C1+C2), then opposite signed heat to source/sink; environment transfer runs for each side. No takeShare transfer; physical balances stay conductor-local rather than a second shared balance to duplicate on network split.",
+    "Server tick registry dispatches net.onUpdate when runsNormally. Conductor contents listener marks actual tile changed and optionally sends reduced heat packet; packet mirror is not disk recovery.",
+    "Upgrade payload carries heat and raw connection/redstone fields, not old capacity. Full upgrade caller replacement transaction not traced, so no whole upgrade runtime guarantee.",
+    "Disk codec lower-bound validation and constructors do not test finiteness: NaN can pass Double.compareTo lower bound and value<0/value<1 guards; infinity not rejected here. ValueInput external error reporting and real corrupt-data behavior not run. Empty networks may divide by zero; upstream TODO retained."
+  ],
+  "application_to_dynasty": "Keep owned value, schema/default state and derived cache separate. Apply related permanent fields together before notifying consumers. World conductor heat/side caches never belong in player Clone whitelist. This source is a newer ValueInput/NeoForge API, not a direct Forge1.20.1 patch template.",
+  "accepted_reference_credit_added": 1,
+  "native_acceptance_credit_added": 0,
+  "production_changes": 0,
+  "game_starts": 0,
+  "counting": "18 files/context ranges are evidence for one mechanism, not 18 credits; existing source full reads not double counted."
+}

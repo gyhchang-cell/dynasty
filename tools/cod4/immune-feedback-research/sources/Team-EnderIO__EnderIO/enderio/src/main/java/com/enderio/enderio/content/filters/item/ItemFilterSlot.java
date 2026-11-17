@@ -1,0 +1,35 @@
+package com.enderio.enderio.content.filters.item;
+
+import com.enderio.enderio.content.filters.FilterSlot;
+import net.minecraft.world.item.ItemStack;
+
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+public class ItemFilterSlot extends FilterSlot<ItemStack> {
+
+    public ItemFilterSlot(Supplier<ItemStack> getter, Consumer<ItemStack> setter, int slot, int x, int y) {
+        super(getter, setter, slot, x, y);
+    }
+
+    @Override
+    protected ItemStack emptyResource() {
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public ItemStack getItem() {
+        return getResource();
+    }
+
+    @Override
+    public ItemStack processResource(ItemStack resource) {
+        return resource.copyWithCount(1);
+    }
+
+    @Override
+    public Optional<ItemStack> getResourceFrom(ItemStack itemStack) {
+        return Optional.of(itemStack);
+    }
+}

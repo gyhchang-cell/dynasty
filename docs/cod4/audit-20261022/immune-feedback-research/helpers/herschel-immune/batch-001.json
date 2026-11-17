@@ -1,0 +1,1574 @@
+{
+  "schema_version": 1,
+  "batch": "herschel-immune-001",
+  "created_utc": "2026-10-26T12:32:57.651692+00:00",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "reviewed_units": 30,
+  "pending_primary_review_units": 28,
+  "support_only_units": 2,
+  "effective_promoted": 0,
+  "master_credit_unchanged": true,
+  "scope": "read-only fixed local Minecraft sources; no external code executed; no game/server/client launched",
+  "rows": [
+    {
+      "id": "herschel-001-01",
+      "semantic_dedup_key": "iron-spell-event-friendlyfire-native-result",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "applyDamage",
+          "lines": [
+            44,
+            65
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L44-L65",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "excerpt_sha256": "6257a4123c0945b2393dbc14f63285ca8fd07e6bb1e0e237373acba03c39aaa8",
+          "normalized_excerpt_sha256": "2b556e51fa473305a35bfe35472d6b71079845fd5b1a5f53644d1a3d713c5ed7",
+          "excerpt": "    public static boolean applyDamage(Entity target, float baseAmount, DamageSource damageSource) {\n        if (target instanceof LivingEntity livingTarget && damageSource instanceof SpellDamageSource spellDamageSource) {\n            var e = new SpellDamageEvent(livingTarget, baseAmount, spellDamageSource);\n            if (NeoForge.EVENT_BUS.post(e).isCanceled()) {\n                return false;\n            }\n            baseAmount = e.getAmount();\n            float adjustedDamage = baseAmount * getResist(livingTarget, spellDamageSource.spell.getSchoolType());\n            if (damageSource.getDirectEntity() instanceof NoKnockbackProjectile) {\n                ignoreNextKnockback(livingTarget);\n            }\n            if (damageSource.getEntity() instanceof LivingEntity livingAttacker) {\n                if (isFriendlyFireBetween(livingAttacker, livingTarget)) {\n                    return false;\n                }\n                livingAttacker.setLastHurtMob(target);\n            }\n            return livingTarget.hurt(damageSource, adjustedDamage);\n        } else {\n            return target.hurt(damageSource, baseAmount);\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "isFriendlyFireBetween",
+          "lines": [
+            134,
+            163
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L134-L163",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "excerpt_sha256": "77218fda82774cf55ff26a0d4d4ca8a1bf2bfb583bb90dceee5707185bed8dcc",
+          "normalized_excerpt_sha256": "03442118d661e693ec7dbcc42fe070394868fc746fb4c4394d23be57ed9d89a7",
+          "excerpt": "    public static boolean isFriendlyFireBetween(@Nullable Entity attacker, @Nullable Entity target) {\n        if (attacker == null || target == null) {\n            return false;\n        }\n        if (attacker instanceof IMagicSummon summon) {\n            var tmp = summon.getSummoner();\n            if (tmp != null) {\n                attacker = tmp;\n            }\n        }\n        if (target instanceof IMagicSummon summon) {\n            var tmp = summon.getSummoner();\n            if (tmp != null) {\n                target = tmp;\n            }\n        }\n        if (attacker.isPassengerOfSameVehicle(target)) {\n            return true;\n        }\n        if (attacker instanceof Player playerAttacker && target instanceof Player playertarget\n                && !playerAttacker.canHarmPlayer(playertarget)) {\n            return true;\n        }\n        var team = attacker.getTeam();\n        if (team != null) {\n            return team.isAlliedTo(target.getTeam()) && !team.isAllowFriendlyFire();\n        }\n        //We already manually checked for teams, so this will only return true for any overrides (such as summons)\n        return attacker.isAlliedTo(target);\n    }\n"
+        }
+      ],
+      "observation": "applyDamage先发布可取消SpellDamageEvent，再按学派抗性缩放；NoKnockback先记目标；召唤归属友伤检查失败可返回false，原生hurt本身也可能返回false。",
+      "native_chain": "BlackHole.handleGravity/法术命中→DamageSources.applyDamage→SpellDamageEvent→friendlyfire→LivingEntity.hurt",
+      "application": "免疫反馈须挂在明确拒绝原因分支；公共布尔结果不足以还原事件取消、友伤或原生受伤冷却。",
+      "limits": "没有免疫字/拒绝原因枚举；抗性计算与事件内容只是上下文，不能将减伤认作拒伤。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-02",
+      "semantic_dedup_key": "iron-one-shot-knockback-uuid-window",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "ignoreNextKnockback",
+          "lines": [
+            69,
+            77
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L69-L77",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "excerpt_sha256": "42be2028ff0550fb0287a6ae77b7c73aa9e450345734dcb3382f8be6502fbed0",
+          "normalized_excerpt_sha256": "bc9075a6109c155d2c62be0f33ff4ac10799b9277e0524beef6f94242c4bf2e7",
+          "excerpt": "    public static void ignoreNextKnockback(LivingEntity livingEntity) {\n        if (livingEntity.getServer() != null) {\n            var tickCount = livingEntity.getServer().getTickCount();\n            //help manage memory\n            knockbackImmunes.entrySet().removeIf(entry -> tickCount - entry.getValue() >= 10);\n            //enter entity\n            knockbackImmunes.put(livingEntity.getUUID(), tickCount);\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "cancelKnockback",
+          "lines": [
+            80,
+            89
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L80-L89",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "excerpt_sha256": "538e51e3affb4761cb525a1652c2be3f7b5ba1e92a69801a6af6d0da8883a292",
+          "normalized_excerpt_sha256": "90bea2d1173b2536d77f299945415493494677f5ba0459f552134a826026d165",
+          "excerpt": "    public static void cancelKnockback(LivingKnockBackEvent event) {\n        //IronsSpellbooks.LOGGER.debug(\"DamageSources.cancelKnockback {}\", event.getEntity().getName().getString());\n        var entity = event.getEntity();\n        if (entity.getServer() != null && knockbackImmunes.containsKey(event.getEntity().getUUID())) {\n            if (entity.getServer().getTickCount() - knockbackImmunes.get(entity.getUUID()) <= 1) {\n                event.setCanceled(true);\n            }\n            knockbackImmunes.remove(entity.getUUID());\n        }\n    }\n"
+        }
+      ],
+      "observation": "ignoreNextKnockback以目标UUID写服务端tick；新写入时清>=10tick旧项。cancelKnockback只在差<=1tick取消并无条件消费对应项。",
+      "native_chain": "NoKnockbackProjectile→applyDamage登记→LivingKnockBackEvent→取消并消费",
+      "application": "按目标、短窗口、消费一次的拒控记录可比较；不能把多次击退/一次命中天然等同。",
+      "limits": "清理仅发生在登记时；没有攻击序号，未来tick下界未校验；这是主动抑制投射物击退，并非Boss免疫。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-03",
+      "semantic_dedup_key": "iron-post-damage-freeze-eligibility",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "postHitEffects",
+          "lines": [
+            92,
+            111
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L92-L111",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "excerpt_sha256": "88fd190af8ebc5f9c7feaea2ccf329ab10e65a8267bc36293b4be9958345f20d",
+          "normalized_excerpt_sha256": "f21f7e649190be6e9fbebbd686d3111a734c668185e8c79f9b22513555ef0087",
+          "excerpt": "    public static void postHitEffects(LivingDamageEvent.Post event) {\n        var damageSource = event.getSource();\n        if (damageSource instanceof SpellDamageSource spellDamageSource && spellDamageSource.hasPostHitEffects()) {\n            float actualDamage = event.getNewDamage();\n            var target = event.getEntity();\n            var attacker = event.getSource().getEntity();\n            if (attacker instanceof LivingEntity livingAttacker) {\n                if (spellDamageSource.getLifestealPercent() > 0) {\n                    livingAttacker.heal(spellDamageSource.getLifestealPercent() * actualDamage);\n                }\n            }\n            if (spellDamageSource.getFreezeTicks() > 0 && target.canFreeze()) {\n                //Freeze ticks count down by 2, so we * 2 so the spell damages source can be dumb\n                target.setTicksFrozen(target.getTicksFrozen() + spellDamageSource.getFreezeTicks() * 2);\n            }\n            if (spellDamageSource.getFireTime() > 0 && target instanceof LivingEntity) {\n                target.igniteForTicks(spellDamageSource.getFireTime());\n            }\n        }\n    }\n"
+        }
+      ],
+      "observation": "伤害Post回调按actualDamage吸血；冻结量额外检查target.canFreeze，设置冻结tick为原数+参数*2；点火是另一独立动作。",
+      "native_chain": "LivingDamageEvent.Post→postHitEffects→canFreeze→setTicksFrozen",
+      "application": "伤害成功与附带控制资格分开，Boss拒绝冻结不能吞掉已完成伤害反馈。",
+      "limits": "Post里未检查add冻结果，也没有拒控回执；不意味着所有Post都代表正HP损失。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-04",
+      "semantic_dedup_key": "iron-summon-source-owner-incoming-rejection",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "preHitEffects",
+          "lines": [
+            114,
+            132
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L114-L132",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "excerpt_sha256": "c831c90db1a84f7aa1effb9a4a1cd891f71fd0fbca3c37092405f0ecea35b4bc",
+          "normalized_excerpt_sha256": "455f0ac63aa0ab0d58afa31ceb3e27a49f34d7e7385246274031713d894ebc20",
+          "excerpt": "    public static void preHitEffects(LivingIncomingDamageEvent event) {\n        var damageSource = event.getSource();\n        if (damageSource instanceof SpellDamageSource spellDamageSource) {\n            if (spellDamageSource.getIFrames() >= 0) {\n                event.getContainer().setPostAttackInvulnerabilityTicks(spellDamageSource.getIFrames());\n            }\n        }\n        IMagicSummon fromSummon = damageSource.getDirectEntity() instanceof IMagicSummon summon ? summon : damageSource.getEntity() instanceof IMagicSummon summon ? summon : null;\n        if (fromSummon != null) {\n            var summoner = fromSummon.getSummoner();\n            if (summoner != null && summoner.getUUID().equals(event.getEntity().getUUID())) {\n                event.setCanceled(true);\n                return;\n            }\n            if (summoner instanceof LivingEntity livingSummoner) {\n                event.setAmount(event.getAmount() * (float) livingSummoner.getAttributeValue(AttributeRegistry.SUMMON_DAMAGE));\n            }\n        }\n    }\n"
+        }
+      ],
+      "observation": "preHitEffects先按SpellDamageSource覆盖postattack invulnerability ticks，再从direct优先/causing来源识别召唤物；目标UUID等summoner即取消，否则按主人SUMMON_DAMAGE缩放。",
+      "native_chain": "LivingIncomingDamageEvent→IMagicSummon归属→取消或伤害倍率",
+      "application": "记录来源层级和实际取消点，区别主人保护、伤害缩放与受伤无敌帧参数。",
+      "limits": "非Boss策略，不应给友伤目标显示Boss免疫；冷却参数修改在取消前。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-05",
+      "semantic_dedup_key": "iron-incoming-tomb-redirect-fireward",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "method": "onLivingIncomingDamage",
+          "lines": [
+            448,
+            490
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java#L448-L490",
+          "file_sha256": "f982d66f86f51158774d59a72f1d41a49803cdb714ddf45a1e0fd7a6e4bf7608",
+          "excerpt_sha256": "5a1ea0c7717102aaf2985cf78461ef46b1dc56f310da8762c853fb2d6cb9ea6d",
+          "normalized_excerpt_sha256": "b396eff14ae4bb8b61e592f6c50ee96655669a8e96345466f77103d3222b5be7",
+          "excerpt": "    public static void onLivingIncomingDamage(LivingIncomingDamageEvent event) {\n        var livingEntity = event.getEntity();\n        //irons_spellbooks.LOGGER.debug(\"onLivingAttack.1: {}\", livingEntity);\n        if (event.getSource().getEntity() != null && livingEntity.getVehicle() instanceof IceTombEntity iceTomb && !DamageSources.isFriendlyFireBetween(event.getSource().getEntity(), livingEntity)) {\n            // redirect entity-caused damage away from entombed players into the tomb\n            event.setCanceled(true);\n            iceTomb.hurt(event.getSource(), event.getOriginalAmount());\n            return;\n        }\n        if ((livingEntity instanceof ServerPlayer) || (livingEntity instanceof IMagicEntity)) {\n            if (ItemRegistry.FIREWARD_RING.get().isEquippedBy(livingEntity) && event.getSource().is(DamageTypeTags.IS_FIRE)) {\n                event.getEntity().clearFire();\n                event.setCanceled(true);\n                return;\n            }\n            var playerMagicData = MagicData.getPlayerMagicData(livingEntity);\n            if (livingEntity.hasEffect(MobEffectRegistry.EVASION)) {\n                if (EvasionEffect.doEffect(livingEntity, event.getSource())) {\n                    event.setCanceled(true);\n                    return;\n                }\n            } else if (livingEntity.hasEffect(MobEffectRegistry.ABYSSAL_SHROUD)) {\n                if (AbyssalShroudEffect.doEffect(livingEntity, event.getSource())) {\n                    event.setCanceled(true);\n                    return;\n                }\n            }\n\n            if (livingEntity instanceof ServerPlayer serverPlayer) {\n                if (playerMagicData.isCasting() &&\n                        playerMagicData.getCastingSpell().getSpell().canBeInterrupted(serverPlayer) &&\n                        playerMagicData.getCastDurationRemaining() > 0 &&\n                        !event.getSource().is(DamageTypeTagGenerator.LONG_CAST_IGNORE) &&\n                        !playerMagicData.popMarkedPoison()) {\n                    Utils.serverSideCancelCast(serverPlayer);\n                }\n            }\n        }\n        if (ServerConfigs.BETTER_CREEPER_THUNDERHIT.get() && event.getSource().is(DamageTypeTags.IS_FIRE) && event.getEntity() instanceof Creeper creeper && creeper.isPowered()) {\n            event.setCanceled(true);\n            return;\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/ice_tomb/IceTombEntity.java",
+          "method": "hurt",
+          "lines": [
+            138,
+            152
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/ice_tomb/IceTombEntity.java#L138-L152",
+          "file_sha256": "f02c5d4c107892f26f56abace10437601e1013c8aeaa6dee559e0ece665a4d1d",
+          "excerpt_sha256": "c0af589d3ff97af36eb31ef86a22db4ff7fb6f3e7213f808760ab120f17618bf",
+          "normalized_excerpt_sha256": "407060453ecc20816c198954d772b819147d00176bbb81d50e12684790fbba81",
+          "excerpt": "    public boolean hurt(DamageSource source, float amount) {\n        if (!level.isClientSide && health > 0) {\n            if (DamageSources.isFriendlyFireBetween(source.getEntity(), this.getFirstPassenger())) {\n                return false;\n            }\n            if (!isInvulnerableTo(source) && (source.getEntity() == null || !isPassengerOfSameVehicle(source.getEntity()))) {\n                health -= amount;\n                if (health <= 0) {\n                    die(source, amount);\n                }\n                return true;\n            }\n        }\n        return super.hurt(source, amount);\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/ice_tomb/IceTombEntity.java",
+          "method": "die",
+          "lines": [
+            154,
+            160
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/ice_tomb/IceTombEntity.java#L154-L160",
+          "file_sha256": "f02c5d4c107892f26f56abace10437601e1013c8aeaa6dee559e0ece665a4d1d",
+          "excerpt_sha256": "c1b3de4b85aca83d7c9a38f3acf59a418b06701635a3aab649ac6999576c481a",
+          "normalized_excerpt_sha256": "f6582319ea97a9bfde01063b40102e560c3eed2657fe8faecf3f9cfd4ca32dc2",
+          "excerpt": "    public void die(DamageSource damageSource, float amount) {\n        var entities = getPassengers();\n        destroyTomb();\n        if (evil) {\n            entities.forEach(entity -> entity.hurt(damageSource, amount * 2));\n        }\n    }\n"
+        }
+      ],
+      "observation": "实体伤害命中IceTomb乘客且非友伤时先取消，再将originalAmount转给墓体；Fireward仅ServerPlayer/IMagicEntity佩戴且火源时清火取消。末尾通电苦力怕配置也可取消火伤。",
+      "native_chain": "LivingIncomingDamageEvent→onLivingIncomingDamage→IceTomb.hurt或clearFire/cancel",
+      "application": "乘客零伤是转移，戒指火保护是来源拒伤；同一事件入口必须保留原因，不能仅看cancel标志。",
+      "limits": "Evasion/Shroud是主账既有链，本行明确排除，不新增信用；三个新分支作为一个完整入口建议，不拆数。",
+      "deduplication": "与既有ironspells-authoritative-evasion-and-shroud-native-receipts共享方法但排除其所有Evasion/Shroud分支，仅审伤害转移与来源保护。"
+    },
+    {
+      "id": "herschel-001-06",
+      "semantic_dedup_key": "iron-heartstop-deferred-settlement-not-immunity",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "method": "onBeforeDamageTaken",
+          "lines": [
+            493,
+            510
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java#L493-L510",
+          "file_sha256": "f982d66f86f51158774d59a72f1d41a49803cdb714ddf45a1e0fd7a6e4bf7608",
+          "excerpt_sha256": "2b37386e4e20d4881de062dfe19a51cb836e7b3298a5b6363d54d12953889886",
+          "normalized_excerpt_sha256": "2ec139583655f98571c555858ec5df6967e64db55f73ee5997bf1968ed46b641",
+          "excerpt": "    public static void onBeforeDamageTaken(LivingDamageEvent.Pre event) {\n        var livingEntity = event.getEntity();\n        if (livingEntity instanceof IMagicEntity || livingEntity instanceof ServerPlayer) {\n            var playerMagicData = MagicData.getPlayerMagicData(livingEntity);\n            if (livingEntity.hasEffect(MobEffectRegistry.HEARTSTOP)) {\n                playerMagicData.getSyncedData().addHeartstopDamage(event.getOriginalDamage() * .5f);\n                event.setNewDamage(0);\n            }\n        }\n        if (event.getSource().is(ISSDamageTypes.FIRE_MAGIC) && event.getSource().getEntity() instanceof LivingEntity livingAttacker) {\n            if (livingAttacker.getItemBySlot(EquipmentSlot.CHEST).is(ItemRegistry.INFERNAL_SORCERER_CHESTPLATE) && (!(livingAttacker instanceof Player player) || !player.getCooldowns().isOnCooldown(ItemRegistry.INFERNAL_SORCERER_CHESTPLATE.get()))) {\n                ImmolateEffect.addImmolateStack(livingEntity, livingAttacker);\n//                if (livingAttacker instanceof Player player) {\n//                    player.getCooldowns().addCooldown(ItemRegistry.INFERNAL_SORCERER_CHESTPLATE.get(), Utils.applyCooldownReduction(InfernalSorcererArmorItem.COOLDOWN_TICKS, player));\n//                }\n            }\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/HeartstopEffect.java",
+          "method": "onEffectRemoved",
+          "lines": [
+            23,
+            40
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/HeartstopEffect.java#L23-L40",
+          "file_sha256": "d3e37cc841c92181d3f94009d9a6502b8782bda6848ec4dee5da459144d7d237",
+          "excerpt_sha256": "ba3e16d21faf9732b9312afbf1e931e403b64421d32c0c90e0ddd8727e972507",
+          "normalized_excerpt_sha256": "bcec2e31559ff7e35cba3e14900a026e9a3f236953e1539fabe67cc876fd01e7",
+          "excerpt": "    public void onEffectRemoved(LivingEntity pLivingEntity, int pAmplifier) {\n        super.onEffectRemoved(pLivingEntity, pAmplifier);\n        var playerMagicData = MagicData.getPlayerMagicData(pLivingEntity);\n        //Whether or not player has spawn immunity (we want to damage them regardless)\n        if (pLivingEntity.tickCount > 60) {\n            pLivingEntity.hurt(DamageSources.get(pLivingEntity.level, ISSDamageTypes.HEARTSTOP), playerMagicData.getSyncedData().getHeartstopAccumulatedDamage());\n            //irons_spellbooks.LOGGER.debug(\"{} had no spawn immunity\", pLivingEntity.getName().getString());\n\n        } else {\n            //TODO: find a better way to apply damage\n            pLivingEntity.kill();\n//                serverPlayer.setHealth(serverPlayer.getHealth() - playerMagicData.getSyncedData().getHeartstopAccumulatedDamage());\n\n            //irons_spellbooks.LOGGER.debug(\"{} had spawn immunity\", pLivingEntity.getName().getString());\n\n        }\n        playerMagicData.getSyncedData().setHeartstopAccumulatedDamage(0);\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/HeartstopEffect.java",
+          "method": "applyEffectTick",
+          "lines": [
+            43,
+            60
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/HeartstopEffect.java#L43-L60",
+          "file_sha256": "d3e37cc841c92181d3f94009d9a6502b8782bda6848ec4dee5da459144d7d237",
+          "excerpt_sha256": "b7c6280e09c208fb48cfd1796502aef24928acbda1e36c9dc7a1e180f0fbb360",
+          "normalized_excerpt_sha256": "c3cad05025f712426058a44b029513bd6daa9e82d6b8c75920fb20c2ac23db76",
+          "excerpt": "    public boolean applyEffectTick(@NotNull LivingEntity pLivingEntity, int pAmplifier) {\n        //irons_spellbooks.LOGGER.debug(\"{} ticks existed: {}\", pLivingEntity.getName().getString(), pLivingEntity.tickCount);\n\n        //Heart beats once every 2 seconds at 0% damage, and 2 times per second at 100% damage (relative to health)\n        if (pLivingEntity.level.isClientSide) {\n            if (pLivingEntity instanceof Player player) {\n                float damage = ClientMagicData.getSyncedSpellData(player).getHeartstopAccumulatedDamage();\n                float f = 1 - Mth.clamp(damage / player.getHealth(), 0, 1);\n                int i = (int) (10 + (40 - 10) * f);\n                //Ironsspellbooks.logger.debug(\"{} ({}/{} = {})\", i, damage, player.getHealth(), f);\n                if (this.duration % Math.max(i, 1) == 0) {\n                    player.playSound(SoundEvents.WARDEN_HEARTBEAT, 1, 0.85f);\n                }\n            }\n        }\n        return true;\n\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/HeartstopEffect.java",
+          "method": "shouldApplyEffectTickThisTick",
+          "lines": [
+            63,
+            66
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/HeartstopEffect.java#L63-L66",
+          "file_sha256": "d3e37cc841c92181d3f94009d9a6502b8782bda6848ec4dee5da459144d7d237",
+          "excerpt_sha256": "1db7f45aff5562ae045a7d51c2017e61da3a197b148c59bf6c01895f07a849fb",
+          "normalized_excerpt_sha256": "fb7f7d5258ee5fb197f59d487e86e449b79d87a6fdd3835d82233f6073113f37",
+          "excerpt": "    public boolean shouldApplyEffectTickThisTick(int pDuration, int pAmplifier) {\n        this.duration = pDuration;\n        return true;\n    }\n"
+        }
+      ],
+      "observation": "Pre仅IMagicEntity/ServerPlayer有Heartstop时积累originalDamage*0.5并将newDamage置0。移除效果时tickCount>60以HEARTSTOP伤害结算，否则直接kill，最后清积累；客户端心跳按积累/HP缩短间隔。",
+      "native_chain": "LivingDamage.Pre→SyncedSpellData债务→Heartstop.onEffectRemoved结算→applyEffectTick心跳",
+      "application": "暂时不扣血可能是延期债务；清除效果不等于无代价解除免疫。",
+      "limits": "移除回调结算hurt结果未读；spawn immunity分支直接kill是上游特殊做法，不推荐复制；客户端duration为效果对象字段。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-07",
+      "semantic_dedup_key": "iron-telekinesis-motion-independent-of-status",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/spells/eldritch/TelekinesisSpell.java",
+          "method": "checkPreCastConditions",
+          "lines": [
+            89,
+            100
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/spells/eldritch/TelekinesisSpell.java#L89-L100",
+          "file_sha256": "280292ea7432e6f439d65d32ac8d184bb2dae96d33acd16e9cfb61eafd1945fe",
+          "excerpt_sha256": "9cf8839666a458a70f843fbb7a60b868a1f1be3f720da58a18ad0ac2a42f8830",
+          "normalized_excerpt_sha256": "1cdabb1633100c00c6d5711e8a6c8516e2bfe91ede3169d87ddc707ce2d8a644",
+          "excerpt": "    public boolean checkPreCastConditions(Level level, int spellLevel, LivingEntity entity, MagicData playerMagicData) {\n        if (Utils.preCastTargetHelper(level, entity, playerMagicData, this, getRange(spellLevel, entity), .15f)) {\n            var target = ((TargetEntityCastData) playerMagicData.getAdditionalCastData()).getTarget((ServerLevel) level);\n            if (target == null) {\n                return false;\n            }\n            playerMagicData.setAdditionalCastData(new TelekinesisData(entity.distanceTo(target), target, 6));\n            return true;\n        } else {\n            return false;\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/spells/eldritch/TelekinesisSpell.java",
+          "method": "onServerCastTick",
+          "lines": [
+            108,
+            113
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/spells/eldritch/TelekinesisSpell.java#L108-L113",
+          "file_sha256": "280292ea7432e6f439d65d32ac8d184bb2dae96d33acd16e9cfb61eafd1945fe",
+          "excerpt_sha256": "24acc16fdbd92fa0e6d44beecea8ed03ec5a4929d23e45fb0586ae6afa43c0a1",
+          "normalized_excerpt_sha256": "c1f78de96a2fe9c32340570152d72295242153e16a24abcdd0f15cadd1947d61",
+          "excerpt": "    public void onServerCastTick(Level level, int spellLevel, LivingEntity entity, @Nullable MagicData playerMagicData) {\n        super.onServerCastTick(level, spellLevel, entity, playerMagicData);\n        if (playerMagicData != null && (playerMagicData.getCastDurationRemaining()) % 2 == 0) {\n            handleTelekinesis((ServerLevel) level, entity, playerMagicData, .6f);\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/spells/eldritch/TelekinesisSpell.java",
+          "method": "handleTelekinesis",
+          "lines": [
+            115,
+            150
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/spells/eldritch/TelekinesisSpell.java#L115-L150",
+          "file_sha256": "280292ea7432e6f439d65d32ac8d184bb2dae96d33acd16e9cfb61eafd1945fe",
+          "excerpt_sha256": "965d4752d72094014d585664e21b7ad0cb961f02a2ae571f5f88833373d82934",
+          "normalized_excerpt_sha256": "c7135e0146d39f75963da084509ed84f730084c0b681b4de38630f49f87b888f",
+          "excerpt": "    private void handleTelekinesis(ServerLevel world, LivingEntity entity, MagicData playerMagicData, float strength) {\n        if (playerMagicData.getAdditionalCastData() instanceof TelekinesisData targetData) {\n            var targetEntity = targetData.getTarget(world);\n            if (targetEntity != null) {\n                if ((targetEntity.isRemoved() || targetEntity.isDeadOrDying()) && entity instanceof ServerPlayer serverPlayer) {\n                    Utils.serverSideCancelCast(serverPlayer);\n                    return;\n                }\n                float resistance = Utils.clampedKnockbackResistanceFactor(entity, .2f, 1f);\n                float lockedDistance = targetData.getDistance();\n                float actualDistance = entity.distanceTo(targetEntity);\n                float distance = Mth.lerp(actualDistance > lockedDistance ? .05f : .02f, lockedDistance, actualDistance);\n                targetData.setDistance(distance);\n                Vec3 force = (entity.getForward().normalize().scale(targetData.getDistance()).add(entity.position()).subtract(targetEntity.position())).scale(resistance * strength);\n                Vec3 travel = new Vec3(targetEntity.getX() - targetEntity.xOld, targetEntity.getY() - targetEntity.yOld, targetEntity.getZ() - targetEntity.zOld);\n                if (force.y > 0) {\n                    targetEntity.resetFallDistance();\n                }\n                if ((playerMagicData.getCastDurationRemaining()) % 10 == 0) {\n                    int airborne = (int) (travel.x * travel.x + travel.z * travel.z) / 2;\n                    targetEntity.addEffect(new MobEffectInstance(MobEffectRegistry.AIRBORNE, 31, airborne, false, false, true));\n                    targetEntity.addEffect(new MobEffectInstance(MobEffectRegistry.ANTIGRAVITY, 11, 0, false, false, true));\n                }\n                var deltaMovement = targetEntity.getDeltaMovement();\n                var newMotion = force.subtract(deltaMovement).scale(0.25).add(deltaMovement);\n                var delta = newMotion.subtract(deltaMovement);\n                var clampedMotion = new Vec3(\n                        Utils.signedMin(delta.x, force.x * 4),\n                        Utils.signedMin(delta.y, force.y * 4),\n                        Utils.signedMin(delta.z, force.z * 4)\n                );\n                targetEntity.setDeltaMovement(deltaMovement.add(clampedMotion));\n                targetEntity.hurtMarked = true;\n            }\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "method": "clampedKnockbackResistanceFactor",
+          "lines": [
+            807,
+            813
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L807-L813",
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "excerpt_sha256": "a8710441fe6bd179706f78a41608872ff0a31cd6924bd07fc1befb474d14b3e5",
+          "normalized_excerpt_sha256": "578254303072b77129e28a7e03bc22098b19a213d68f5652d1539d64bcf0d118",
+          "excerpt": "    public static float clampedKnockbackResistanceFactor(Entity entity, float min, float max) {\n        if (entity instanceof LivingEntity living) {\n            return Mth.clamp(1 - (float) living.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), min, max);\n        } else {\n            return max;\n        }\n    }\n"
+        }
+      ],
+      "observation": "目标预选后记录距离；每2tick处理，玩家施法者发现目标已死/移除会取消。速度直接setDeltaMovement并hurtMarked；每10tick另加AIRBORNE/ANTIGRAVITY。阻力计算传入施法者entity而非targetEntity。",
+      "native_chain": "checkPreCastConditions→TelekinesisData→onServerCastTick→handleTelekinesis→motion/status writes",
+      "application": "控制效果拒绝与物理拉动是两条路径；应审最终速度写入，不能仅拦药水。",
+      "limits": "未见Boss拒控门；min0.2意味着阻力不能完全归零，且用施法者属性是明确反例；不声称上游免疫成功。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-08",
+      "semantic_dedup_key": "iron-blackhole-soft-boss-resistance-and-expiry-bypass",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/black_hole/BlackHole.java",
+          "method": "tick",
+          "lines": [
+            133,
+            151
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/black_hole/BlackHole.java#L133-L151",
+          "file_sha256": "120dcb2c90f01be054a68ca86e48c667274ef6fd4d8195afa478798fac4fb901",
+          "excerpt_sha256": "977457f462ccc4bfba9597ef138554280378c47e0cb4e10fdaf19ed3a49845d2",
+          "normalized_excerpt_sha256": "ab78036f1365cebd311db797f11fb2fa872213392001e78c4921d8c328c474f5",
+          "excerpt": "    public void tick() {\n        super.tick();\n        this.xo = getX();\n        this.yo = getY();\n        this.zo = getZ();\n        setPos(position().add(getDeltaMovement()));\n        int update = Math.max((int) (getRadius() / 2), 2);\n        // only query entities at low rate, especially with large hitboxes, and reuse a cached result instead\n        if (tickCount % update == 0) {\n            updateTrackingEntities();\n        }\n        var bb = this.getBoundingBox();\n        float radius = (float) (bb.getXsize());\n        boolean hitTick = this.tickCount % 10 == 0;\n        Vec3 center = bb.getCenter();\n        handleGravity(center, radius, hitTick);\n        handleSpellGriefing(radius, center);\n        handleClientEffects(center);\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/black_hole/BlackHole.java",
+          "method": "handleGravity",
+          "lines": [
+            153,
+            173
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/black_hole/BlackHole.java#L153-L173",
+          "file_sha256": "120dcb2c90f01be054a68ca86e48c667274ef6fd4d8195afa478798fac4fb901",
+          "excerpt_sha256": "8e50b929a71932daa351660fb6fd49f52db8940778a8cf74b80f668ceb139fb0",
+          "normalized_excerpt_sha256": "337f978408dba3272296f2e4dd93a60b9e533409277aa0be857234d2321b7230",
+          "excerpt": "    private void handleGravity(Vec3 center, float radius, boolean hitTick) {\n        for (Entity entity : trackingEntities) {\n            if (entity != getOwner() && !DamageSources.isFriendlyFireBetween(getOwner(), entity) && !entity.isSpectator() && !(entity instanceof BlackHole)) {\n                float distance = (float) center.distanceTo(entity.position());\n                if (distance > radius) {\n                    continue;\n                }\n                float f = 1 - distance / radius;\n                float scale = f * f * f * f * .25f;\n                float resistance = Utils.clampedKnockbackResistanceFactor(entity, .3f, 1f);\n                float bossResistance = entity.getType().is(Tags.EntityTypes.BOSSES) ? 0.5f : 1f;\n                Vec3 diff = center.subtract(entity.position()).scale(scale * resistance * bossResistance);\n                entity.push(diff.x, diff.y, diff.z);\n                double dmgRadius = Math.min(2.0, radius / 5.0);\n                if (damage > 0 && hitTick && distance < dmgRadius * dmgRadius && canHitEntity(entity)) {\n                    DamageSources.applyDamage(entity, damage, SpellRegistry.BLACK_HOLE_SPELL.get().getDamageSource(this, getOwner()));\n                }\n                entity.fallDistance = 0;\n            }\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/black_hole/BlackHole.java",
+          "method": "handleClientEffects",
+          "lines": [
+            199,
+            215
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/black_hole/BlackHole.java#L199-L215",
+          "file_sha256": "120dcb2c90f01be054a68ca86e48c667274ef6fd4d8195afa478798fac4fb901",
+          "excerpt_sha256": "89395108678f7126bb3a9273f056cdb9ab52c36f9fa3b063dcf183b3093b9f1d",
+          "normalized_excerpt_sha256": "487945469c54195f5b3ef395cb00e8ad51339864a6e321bc85df2c57d75cee72",
+          "excerpt": "    private void handleClientEffects(Vec3 center) {\n        if (!level().isClientSide) {\n            if (tickCount > duration) {\n                this.discard();\n                this.playSound(SoundRegistry.BLACK_HOLE_CAST.get(), getRadius() / 2f, 1);\n                MagicManager.spawnParticles(level(), ParticleHelper.UNSTABLE_ENDER, getX(), getY() + getRadius(), getZ(), 200, 1, 1, 1, 1, true);\n                for (Entity entity : trackingEntities) {\n                    if (entity.distanceToSqr(center) < 9) {\n                        entity.setDeltaMovement(entity.getDeltaMovement().add(entity.position().subtract(center).normalize().scale(0.5f)));\n                        entity.hurtMarked = true;\n                    }\n                }\n            } else if ((tickCount - 1) % loopSoundDurationInTicks == 0 && (duration < loopSoundDurationInTicks || tickCount + loopSoundDurationInTicks < duration)) {\n                this.playSound(SoundRegistry.BLACK_HOLE_LOOP.get(), getRadius() / 3f, .9f + Utils.random.nextFloat() * .2f);\n            }\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/black_hole/BlackHole.java",
+          "method": "updateTrackingEntities",
+          "lines": [
+            217,
+            219
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/black_hole/BlackHole.java#L217-L219",
+          "file_sha256": "120dcb2c90f01be054a68ca86e48c667274ef6fd4d8195afa478798fac4fb901",
+          "excerpt_sha256": "28693aed18acf78e923e64fd7ebe0dfd32a2c1d765fb9c6d5c977bd55ab1dc21",
+          "normalized_excerpt_sha256": "a3b63abda594d75d432c5886c93a484e8777170c228e41a369834f809af9dd6a",
+          "excerpt": "    private void updateTrackingEntities() {\n        trackingEntities = level().getEntities(this, this.getBoundingBox().inflate(1));\n    }\n"
+        }
+      ],
+      "observation": "常规吸引排owner/友伤/旁观/黑洞，半径筛选后按距离四次方、clamped阻力和Boss0.5缩放；伤害另有10tick/中心区域门。寿终handleClientEffects爆散对缓存近处实体直接加速度，未重复常规过滤。",
+      "native_chain": "BlackHole.tick→缓存更新→handleGravity→handleClientEffects寿终爆散",
+      "application": "Boss软抗性不是免控；终止爆散也属于控制生产点，最终边界应覆盖生命周期尾部。",
+      "limits": "不声称Boss零移动；distance与dmgRadius*dmgRadius比较是源码原样，不代改；方法名ClientEffects包含服务端速度写入。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-09",
+      "semantic_dedup_key": "iron-root-cant-root-mount-control",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/spells/nature/RootSpell.java",
+          "method": "onCast",
+          "lines": [
+            86,
+            105
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/spells/nature/RootSpell.java#L86-L105",
+          "file_sha256": "0d6e2dccd50250316a80cd4d1b01b7e5d03b3b43bee63c766568775d029ad517",
+          "excerpt_sha256": "5b684ebcf443082059c8e23e14aaf0253bb2789779e0c34619f044e36b79f2f4",
+          "normalized_excerpt_sha256": "0cdb84ae7362892ed91734bc8ea8860845909bdbc23239ec695233bd5679a034",
+          "excerpt": "    public void onCast(Level level, int spellLevel, LivingEntity entity, CastSource castSource, MagicData playerMagicData) {\n        if (playerMagicData.getAdditionalCastData() instanceof TargetEntityCastData castTargetingData) {\n            LivingEntity target = castTargetingData.getTarget((ServerLevel) level);\n            if (target != null && !target.getType().is(ModTags.CANT_ROOT)) {\n                Vec3 spawn = target.position();\n                float health = getRootHealth(spellLevel, entity);\n                RootEntity rootEntity = new RootEntity(level, entity);\n                rootEntity.setDuration(getDuration(spellLevel, entity));\n                rootEntity.setTarget(target);\n                rootEntity.moveTo(spawn);\n                rootEntity.getAttribute(Attributes.MAX_HEALTH).setBaseValue(health);\n                rootEntity.setHealth(health);\n                level.addFreshEntity(rootEntity);\n                target.stopRiding();\n                target.startRiding(rootEntity, true);\n            }\n        }\n\n        super.onCast(level, spellLevel, entity, castSource, playerMagicData);\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/root/RootEntity.java",
+          "method": "tick",
+          "lines": [
+            140,
+            160
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/root/RootEntity.java#L140-L160",
+          "file_sha256": "dc0e109a71ad4b85d71973627e16aefd64eea2e4968fd9510ced3b850b2c19e9",
+          "excerpt_sha256": "d86e92fc0cb1f8279d6eb29e82b746a69f5572677b884721eed497b956e7dbf6",
+          "normalized_excerpt_sha256": "185648aaf84257f44f34b95f14f3dff41fccd430dda1bc8cac59e1756cbc81bb",
+          "excerpt": "    public void tick() {\n        super.tick();\n        if (playSound) {\n            this.refreshDimensions();\n            playSound(SoundRegistry.ROOT_EMERGE.get(), 2f, 1);\n            playSound = false;\n        }\n\n        if (!level().isClientSide) {\n            if (tickCount % 20 == 0 && this.random.nextFloat() < .5f && this.getFirstPassenger() instanceof Mob mob) {\n                mob.setTarget(this);\n            }\n            if (tickCount > duration || (target != null && target.isDeadOrDying()) || !isVehicle()) {\n                this.removeRoot();\n            }\n        } else {\n            if (tickCount < 20) {\n                clientDiggingParticles(this);\n            }\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/root/RootEntity.java",
+          "method": "positionRider",
+          "lines": [
+            271,
+            285
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/root/RootEntity.java#L271-L285",
+          "file_sha256": "dc0e109a71ad4b85d71973627e16aefd64eea2e4968fd9510ced3b850b2c19e9",
+          "excerpt_sha256": "932a23f450d7bfc1e50acd6166f5fc3da61d390903cbdf2e0d152a7e21224aad",
+          "normalized_excerpt_sha256": "f920270ec0007ad8c98bfde3a27f815811a8e487ed634e5e92282ca7ad2c49ee",
+          "excerpt": "    public void positionRider(Entity passenger, Entity.MoveFunction p_19958_) {\n        //super.positionRider(pPassenger);\n        int x = (int) (this.getX() - passenger.getX());\n        int y = (int) (this.getY() - passenger.getY());\n        int z = (int) (this.getZ() - passenger.getZ());\n        x *= x;\n        y *= y;\n        z *= z;\n        //probably teleported away\n        if (x + y + z > 5 * 5) {\n            this.removeRoot();\n        } else {\n            passenger.setPos(this.getX(), this.getY(), this.getZ());\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/root/RootEntity.java",
+          "method": "removeRoot",
+          "lines": [
+            196,
+            207
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/root/RootEntity.java#L196-L207",
+          "file_sha256": "dc0e109a71ad4b85d71973627e16aefd64eea2e4968fd9510ced3b850b2c19e9",
+          "excerpt_sha256": "317dd344a223500e7f303658567aa86562b0c9975003fd82541b632a2669cb0c",
+          "normalized_excerpt_sha256": "9c1a16ba9547204a32d64267e4f8cf63f31ff5066217b8761572e4e6ead9d1ef",
+          "excerpt": "    public void removeRoot() {\n        if (level().isClientSide) {\n            for (int i = 0; i < 5; i++) {\n                level().addParticle(ParticleHelper.ROOT_FOG, getX() + Utils.getRandomScaled(.1f), getY() + Utils.getRandomScaled(.1f), getZ() + Utils.getRandomScaled(.1f), Utils.getRandomScaled(2f), -random.nextFloat() * .5f, Utils.getRandomScaled(2f));\n            }\n        }\n        if (this.getFirstPassenger() instanceof Mob mob && mob.getTarget() == this) {\n            mob.setTarget(null);\n        }\n        this.ejectPassengers();\n        this.discard();\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/resources/data/irons_spellbooks/tags/entity_type/cant_root.json",
+          "unit": "complete_support_resource",
+          "lines": [
+            1,
+            6
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/resources/data/irons_spellbooks/tags/entity_type/cant_root.json",
+          "file_sha256": "d40f8e4e9da56eed65f907d086d14b1311863d61ea796dfad7ffd251c42605ed",
+          "excerpt_sha256": "d40f8e4e9da56eed65f907d086d14b1311863d61ea796dfad7ffd251c42605ed",
+          "normalized_excerpt_sha256": "1a7e8d4856b817703193417d898d78ee8baac4f29a946ebdf5681ab4ca5cd2bd",
+          "excerpt": "{\n  \"replace\": false,\n  \"values\": [\n    \"#c:bosses\"\n  ]\n}"
+        }
+      ],
+      "observation": "onCast解析目标后以CANT_ROOT标签拒绝创建；允许时生成有HP和duration的Root，先stopRiding再强制startRiding。Root tick超时/目标死亡/失去乘客释放；远距positionRider移除而非拉回。 固定资源cant_root.json实际包含#c:bosses（replace false）。",
+      "native_chain": "RootSpell.onCast→tag资格→RootEntity乘客锁定→tick/positionRider→removeRoot",
+      "application": "拒控入口必须发生在卸载坐骑/创建副实体前；控制持续和异常移动应有释放路径。",
+      "limits": "标签拒绝无专属灰字；不把普通预选成功提示当控制成功；startRiding结果未读。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-10",
+      "semantic_dedup_key": "iron-fireboss-parry-authoritative-receipt",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/FireBossEntity.java",
+          "method": "hurt",
+          "lines": [
+            979,
+            1026
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/FireBossEntity.java#L979-L1026",
+          "file_sha256": "0731e666b6d5c72a88802dcc423952e455cf6f0550bc7f91afa797f1b5f8d35c",
+          "excerpt_sha256": "afb8053624b1bab1a3412f225262b731adaf32553b864feb94e977915a3e2adc",
+          "normalized_excerpt_sha256": "12ea6fb6bd4fbddf9a4fd3f1361721117202351bab408f8a117a72e49dfdf8b9",
+          "excerpt": "    public boolean hurt(DamageSource pSource, float pAmount) {\n        if (level.isClientSide) {\n            return false;\n        }\n        /*\n        can parry:\n        - serverside\n        - in combat\n        - we aren't in melee attack anim or spell cast\n        - the damage source is caused by an entity (ie not fall damage)\n        - the damage is caused within our rough field of vision (117 degrees)\n        - the damage is not /kill\n         */\n        boolean isDodgeableAttack = this.isAggressive() &&\n                parryCooldown <= 0 &&\n                !isImmobile() &&\n                pSource.getEntity() != null &&\n                !pSource.is(DamageTypeTags.BYPASSES_INVULNERABILITY);\n        boolean canParry = isDodgeableAttack &&\n                !attackGoal.isActing() &&\n                pSource.getSourcePosition() != null && pSource.getSourcePosition().subtract(this.position()).normalize().dot(this.getForward()) >= 0.35;\n        if (canParry && this.random.nextFloat() < 0.5) {\n            serverTriggerAnimation(\"offhand_parry\");\n            procSpectralDagger();\n            this.parryCooldown = 100;\n            this.playSound(SoundRegistry.FIRE_DAGGER_PARRY.get());\n            return false;\n        }\n        if (isStanceBroken()) {\n            pAmount *= 0.40f;\n        }\n        if (isSoulMode()) {\n            pAmount *= 0.50f;\n        }\n        if (isHalfHealthAttacking()) {\n            pAmount *= 0.80f;\n        }\n        // damage limiter\n        var limit = getMaxHealth() * 0.025f;\n        if (pAmount > limit) {\n            pAmount = limit + (pAmount - limit) * .3f; // damage about limit has .3x multiplier applied\n        }\n        if (pSource.is(DamageTypes.IN_WALL) && this.destroyBlockDelay <= 0) {\n            Utils.doMobBreakSuffocatingBlocks(this);\n            destroyBlockDelay = 40;\n        }\n        return super.hurt(pSource, pAmount);\n    }\n"
+        }
+      ],
+      "observation": "hurt仅服务端：交战、parryCooldown<=0、非immobile、有攻击者、非bypass、非攻击动作、来源在前方dot>=0.35，再50%概率格挡；触发动画/匕首/100tickCD/格挡声并false。其他姿态乘数及伤害上限仍进入super。",
+      "native_chain": "原生hurt→资格/朝向/随机→parry回执或伤害缩放→super.hurt",
+      "application": "用确定分支生产格挡反馈；阶段减伤和上限不要显示Immune；保留bypass来源。",
+      "limits": "这是parry不等于Boss常驻免疫；未运行外部版本；随机与冷却不能由动画存在反推命中。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-11",
+      "semantic_dedup_key": "iron-fireboss-stagger-control-rejection",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/FireBossEntity.java",
+          "method": "knockback",
+          "lines": [
+            926,
+            931
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/FireBossEntity.java#L926-L931",
+          "file_sha256": "0731e666b6d5c72a88802dcc423952e455cf6f0550bc7f91afa797f1b5f8d35c",
+          "excerpt_sha256": "0655f29e17d1f39f8d256791cd7c0a3983e8e7f943bbd9f5916e5c357ed0da06",
+          "normalized_excerpt_sha256": "896bf0aef787839d522ad8f4abc37f174bbddf6b206bb4dbb61baf47bfddd071",
+          "excerpt": "    public void knockback(double pStrength, double pX, double pZ) {\n        if (isStanceBroken()) {\n            return;\n        }\n        super.knockback(pStrength, pX, pZ);\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/FireBossEntity.java",
+          "method": "push",
+          "lines": [
+            919,
+            923
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/FireBossEntity.java#L919-L923",
+          "file_sha256": "0731e666b6d5c72a88802dcc423952e455cf6f0550bc7f91afa797f1b5f8d35c",
+          "excerpt_sha256": "cdb2e6eb72393d17334660f4c4f274725d75fea5965e5f80b1936e702ee7c009",
+          "normalized_excerpt_sha256": "73ab9fe66fb815cb4402a5cf1482770a779b7989513d979cf42b0a6a85f7607f",
+          "excerpt": "    public void push(Entity pEntity) {\n        if (!isSpawning()) {\n            super.push(pEntity);\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/FireBossEntity.java",
+          "method": "isPushable",
+          "lines": [
+            934,
+            936
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/fire_boss/FireBossEntity.java#L934-L936",
+          "file_sha256": "0731e666b6d5c72a88802dcc423952e455cf6f0550bc7f91afa797f1b5f8d35c",
+          "excerpt_sha256": "9dc104e226a406371106c9ef361995f8f7780f15457d29e780d7434c428a2e3c",
+          "normalized_excerpt_sha256": "d8064d85ba04fe83f868591bbe8c3ad7cc0e960d0dc7a04b840c5122d012bb56",
+          "excerpt": "    public boolean isPushable() {\n        return false;//super.isPushable() && !isImmobile();\n    }\n"
+        }
+      ],
+      "observation": "knockback在isStanceBroken时直接return，其他情况走super；push在spawning时不调用super；isPushable恒false。不同控制入口条件不相同。",
+      "native_chain": "原生collision push/knockback→FireBoss对应覆盖→阶段分支",
+      "application": "同一Boss碰撞推挤/受击击退/直接速度必须分开核查，不能以isPushable false代替所有控制拒绝。",
+      "limits": "三个覆盖合并为一个Boss控制策略，不按薄常量方法拆数；未证明直接速度也被拒绝。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-12",
+      "semantic_dedup_key": "iron-ice-spider-emerging-native-invulnerability",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/ice_spider/IceSpiderEntity.java",
+          "method": "isInvulnerableTo",
+          "lines": [
+            513,
+            515
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/ice_spider/IceSpiderEntity.java#L513-L515",
+          "file_sha256": "8ffa235e77a780b6a5677a2b1cacce4f22283bdb1c71a7b671f226c408e34dfe",
+          "excerpt_sha256": "44898e559d6602653bb09072eda5c35162500b1e41437fa8b8c2b54df2b0c3f4",
+          "normalized_excerpt_sha256": "2e312aefee407af05fd9eab4b36f6f24bad408977d515dce4bb3185a10519c9b",
+          "excerpt": "    public boolean isInvulnerableTo(DamageSource source) {\n        return super.isInvulnerableTo(source) || getPose().equals(Pose.EMERGING);\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/ice_spider/IceSpiderEntity.java",
+          "method": "isImmobile",
+          "lines": [
+            503,
+            505
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/ice_spider/IceSpiderEntity.java#L503-L505",
+          "file_sha256": "8ffa235e77a780b6a5677a2b1cacce4f22283bdb1c71a7b671f226c408e34dfe",
+          "excerpt_sha256": "55d62b4f7b113dd97d88c2658c99845dbef89a952bd4b7097eca31532d8b2952",
+          "normalized_excerpt_sha256": "e9bb91cba245da5d59a3bf5bf171f8ffd9c07e4fbfc8f094895a76cb840750f1",
+          "excerpt": "    protected boolean isImmobile() {\n        return super.isImmobile() || getPose().equals(Pose.EMERGING);\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/ice_spider/IceSpiderEntity.java",
+          "method": "onSyncedDataUpdated",
+          "lines": [
+            583,
+            594
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/ice_spider/IceSpiderEntity.java#L583-L594",
+          "file_sha256": "8ffa235e77a780b6a5677a2b1cacce4f22283bdb1c71a7b671f226c408e34dfe",
+          "excerpt_sha256": "273167d70efbbe5c333440e847f63f47336499ca14bb4612021a20b4bf2f6b1f",
+          "normalized_excerpt_sha256": "40f7390b6eb45760bd72c0c2f2a189778e05e42c4c44bd5063a2614d76791d89",
+          "excerpt": "    public void onSyncedDataUpdated(EntityDataAccessor<?> pKey) {\n        super.onSyncedDataUpdated(pKey);\n        if (pKey == DATA_IS_CROUCHING) {\n            refreshDimensions();\n            crouchTick = tickCount;\n        } else if (pKey == Entity.DATA_POSE) {\n            if (this.getPose() == Pose.EMERGING) {\n                playAnimation(\"emerge_from_ground\");\n                emergeTick = EMERGE_TIME;\n            }\n        }\n    }\n"
+        }
+      ],
+      "observation": "isInvulnerableTo在super之外按EMERGING姿态拒伤；同姿态isImmobile；SyncedData pose变化启动emerge动画并设置EMERGE_TIME。",
+      "native_chain": "原生伤害资格→isInvulnerableTo→DATA_POSE更新→onSyncedDataUpdated",
+      "application": "短阶段拒伤应由原生资格门和同步状态对应，动画只是可见状态，不是免疫来源。",
+      "limits": "本行记录完整资格/同步方法；不将phase时长常量或bodypart hurt转发另计；未跑动画/计时。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-13",
+      "semantic_dedup_key": "iron-frozen-decoy-once-shatter-not-health-hit",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/frozen_humanoid/FrozenHumanoid.java",
+          "method": "hurt",
+          "lines": [
+            266,
+            275
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/frozen_humanoid/FrozenHumanoid.java#L266-L275",
+          "file_sha256": "d45e3f8f1a1d2a17dc81bcd8b02bcb3bb859276acf0e047fbdb0c57130fddec6",
+          "excerpt_sha256": "5c2ecbf0d857496cca3883fbeb3b175f21060a2648148d437a47e0cfba411c52",
+          "normalized_excerpt_sha256": "6b31d4f192a3e0e4e0190a1802f9b1cf78e6cb3feb806d2a90599d3a961a656f",
+          "excerpt": "    public boolean hurt(DamageSource pSource, float pAmount) {\n        if (level().isClientSide || this.isInvulnerableTo(pSource) || invulnerableTime > 0)\n            return false;\n        invulnerableTime = 10;\n        doPuffDamage();\n        spawnIcicleShards(this.getEyePosition(), this.shatterProjectileDamage);\n        this.playHurtSound(pSource);\n        this.discard();\n        return true;\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/frozen_humanoid/FrozenHumanoid.java",
+          "method": "tick",
+          "lines": [
+            212,
+            228
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/frozen_humanoid/FrozenHumanoid.java#L212-L228",
+          "file_sha256": "d45e3f8f1a1d2a17dc81bcd8b02bcb3bb859276acf0e047fbdb0c57130fddec6",
+          "excerpt_sha256": "9e2ac3cf735d1b376eb57daafb94fd09047c7e3ce1458fcbe2152403422608ed",
+          "normalized_excerpt_sha256": "33f27a2371fd8d07894154e490eb254fe899f108bbd7230cf8730bc2da3e90fa",
+          "excerpt": "    public void tick() {\n        if (firstTick) {\n            if (level.isClientSide) {\n                if (cachedSummoner != null) {\n                    this.walkAnimSpeed = cachedSummoner.walkAnimation.speed();\n                    this.walkAnimPos = cachedSummoner.walkAnimation.position();\n                }\n            }\n        }\n        super.tick();\n        if (deathTimer > 0) {\n            deathTimer--;\n        }\n        if (deathTimer == 0) {\n            this.hurt(level().damageSources().generic(), 100);\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/frozen_humanoid/FrozenHumanoid.java",
+          "method": "doPuffDamage",
+          "lines": [
+            277,
+            291
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/frozen_humanoid/FrozenHumanoid.java#L277-L291",
+          "file_sha256": "d45e3f8f1a1d2a17dc81bcd8b02bcb3bb859276acf0e047fbdb0c57130fddec6",
+          "excerpt_sha256": "123d0160ddfd93ef88abe41e8230b900ddb96116f3c065367f669d45d39a9792",
+          "normalized_excerpt_sha256": "56155a4bf081858da5a933998925d686688e27f62f90d63069558bf2041ff9b2",
+          "excerpt": "    private void doPuffDamage() {\n        var damage = this.shatterProjectileDamage * .5f;\n        var collider = this.getBoundingBox().inflate(2);\n        var radius = collider.getXsize();\n        Vec3 center = collider.getCenter();\n        var entities = level.getEntities(this, collider);\n        for (Entity entity : entities) {\n            double distanceSqr = entity.distanceToSqr(center);\n            if (distanceSqr < radius * radius && entity.canBeHitByProjectile() && !DamageSources.isFriendlyFireBetween(entity, getSummoner()) && Utils.hasLineOfSight(level, center, entity.getBoundingBox().getCenter(), true)) {\n                DamageSources.applyDamage(entity, damage, SpellRegistry.ICICLE_SPELL.get().getDamageSource(this, getSummoner()));\n            }\n        }\n        MagicManager.spawnParticles(level, ParticleHelper.SNOW_DUST, getX(), getY() + 1, getZ(), 50, 0.2, 0.2, 0.2, 0.2, false);\n        MagicManager.spawnParticles(level, ParticleHelper.SNOWFLAKE, getX(), getY() + 1, getZ(), 50, 0.2, 0.2, 0.2, 0.2, false);\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/frozen_humanoid/FrozenHumanoid.java",
+          "method": "spawnIcicleShards",
+          "lines": [
+            293,
+            314
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/frozen_humanoid/FrozenHumanoid.java#L293-L314",
+          "file_sha256": "d45e3f8f1a1d2a17dc81bcd8b02bcb3bb859276acf0e047fbdb0c57130fddec6",
+          "excerpt_sha256": "5d697ab78fa70e6f7771aaf0da62a827df01447c51ad8ace2467516b8caeef60",
+          "normalized_excerpt_sha256": "a39ccc737e83e175787d4950cf3926ba0b99e903507a01f05cef4a8cf2242daa",
+          "excerpt": "    private void spawnIcicleShards(Vec3 origin, float damage) {\n        int count = 8;\n        int offset = 360 / count;\n        for (int i = 0; i < count; i++) {\n\n            Vec3 motion = new Vec3(0, 0, 1.0);\n            motion = motion.xRot(12 * Mth.DEG_TO_RAD);\n            motion = motion.yRot(offset * i * Mth.DEG_TO_RAD);\n\n\n            IcicleProjectile shard = new IcicleProjectile(level(), getSummoner());\n            shard.setDamage(damage);\n            shard.setDeltaMovement(motion);\n            shard.setNoGravity(false);\n\n            Vec3 spawn = origin.add(motion.multiply(1, 0, 1).normalize().scale(.5f));\n            var angle = Utils.rotationFromDirection(motion);\n\n            shard.moveTo(spawn.x, spawn.y - shard.getBoundingBox().getYsize() / 2, spawn.z, angle.y, angle.x);\n            level().addFreshEntity(shard);\n        }\n    }\n"
+        }
+      ],
+      "observation": "hurt客户端/原生invulnerable/ invulnerableTime>0拒绝；允许后设10tick、AOE伤害、8碎片、玻璃声、discard并true，不按amount扣HP；构造器初始1tick保护，定时tick也会调用hurt引爆。",
+      "native_chain": "FrozenHumanoid.tick或外部hit→hurt资格→doPuffDamage/spawnIcicleShards→discard",
+      "application": "true可能代表消耗诱饵/爆裂，不是HP损失；冷却false也不天然为Boss免疫。",
+      "limits": "物理自爆链，不是Boss；AOE用友伤/LOS/投射物资格；方法合并不按8碎片计数。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-14",
+      "semantic_dedup_key": "iron-deadking-lava-rejection-distance-reduction",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/DeadKingBoss.java",
+          "method": "hurt",
+          "lines": [
+            444,
+            459
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/dead_king_boss/DeadKingBoss.java#L444-L459",
+          "file_sha256": "77ec9728fc38d29332078be2eb464e81a404f1dda06862fde7c93623d7730236",
+          "excerpt_sha256": "213d36bd3136c742e97d0f6fecb9e471b579f6389f0bb2fa49eab37e63406bad",
+          "normalized_excerpt_sha256": "95a4d6dd9c8b0c3e4d816352b8349dd680510ef4936ba961e05822f4701e5290",
+          "excerpt": "    public boolean hurt(DamageSource pSource, float pAmount) {\n        if (pSource == level.damageSources().lava()) {\n            return false;\n        }\n        if (pSource.is(DamageTypes.IN_WALL) && this.destroyBlockDelay <= 0) {\n            Utils.doMobBreakSuffocatingBlocks(this);\n            destroyBlockDelay = 40;\n        }\n        var entity = pSource.getEntity();\n        if (entity != null) {\n            float distance = entity.distanceTo(this);\n            float damageReduction = Mth.clampedLerp(1, 0.5f, (distance - 8) / 16); // reduce damage from 8-24 blocks away, down to 50%\n            pAmount *= damageReduction;\n        }\n        return super.hurt(pSource, pAmount);\n    }\n"
+        }
+      ],
+      "observation": "hurt以pSource==level.damageSources().lava()拒绝；窒息时尝试破方块并40tick间隔；有攻击者则8..24格将伤害降至50%，然后super。",
+      "native_chain": "DeadKingBoss.hurt→lava identity gate→distance multiplier→super.hurt",
+      "application": "来源免疫、逃脱窒息和远距减伤必须区分；对象相等来源条件不能误写成泛火伤。",
+      "limits": "没有专属拒绝提示；继承类其他门未重建，不把hurt整体所有false解释成此lava分支。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-15",
+      "semantic_dedup_key": "iron-apothecarist-potion-and-self-indirect-rejection",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/alchemist/ApothecaristEntity.java",
+          "method": "canBeAffected",
+          "lines": [
+            127,
+            129
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/alchemist/ApothecaristEntity.java#L127-L129",
+          "file_sha256": "3236d64ce5f12de9bc297acbf77cd9901abb738dfadc67e94ca2d72f723caec9",
+          "excerpt_sha256": "bb8a4df05850e20a1a22a64a0ef9cbeff04cd787b1684cc05076c000b3938e04",
+          "normalized_excerpt_sha256": "4d01d0d6f4a34eae9d9413cce874cd1dcc66866883b293151e4d06fe927bd722",
+          "excerpt": "    public boolean canBeAffected(MobEffectInstance pEffectInstance) {\n        return !AlchemistAttackGoal.ATTACK_POTIONS.contains(pEffectInstance.getEffect());\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/alchemist/ApothecaristEntity.java",
+          "method": "hurt",
+          "lines": [
+            118,
+            124
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/wizards/alchemist/ApothecaristEntity.java#L118-L124",
+          "file_sha256": "3236d64ce5f12de9bc297acbf77cd9901abb738dfadc67e94ca2d72f723caec9",
+          "excerpt_sha256": "9a2d44c2dfc9812032e8d5d4befd54ecf01c058cd36186499191ea6753c6c1cb",
+          "normalized_excerpt_sha256": "79b66e1ed6be6c169a05afdfbe60b7c350660d7238dd6cda03a7e3046b26b027",
+          "excerpt": "    public boolean hurt(DamageSource pSource, float pAmount) {\n        if (pSource.is(DamageTypes.INDIRECT_MAGIC) && pSource.getEntity() == this) {\n            //prevent our own harm potions from affecting us\n            return false;\n        }\n        return super.hurt(pSource, pAmount);\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/mobs/goals/AlchemistAttackGoal.java",
+          "method": "doSpellAction",
+          "lines": [
+            61,
+            106
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/mobs/goals/AlchemistAttackGoal.java#L61-L106",
+          "file_sha256": "fcc90f02b667d93b3fb1cf920cc9abc46f3bddeebe54f3afb7303486569f2c69",
+          "excerpt_sha256": "7da6e4d63894edc2db8d596a1913b37271a348ec04d4e8d63e09b6fd1a6f2855",
+          "normalized_excerpt_sha256": "444f10e81d56eb00d3abe1709b3d1ecca5dfc40d43fc43db1f00569438dbda37",
+          "excerpt": "    protected void doSpellAction() {\n        //Instead of taking a normal casting action, there is a chance to attempt a potion action\n        if (this.mob.distanceToSqr(this.target) < throwRangeSqr && this.mob.getRandom().nextFloat() < potionBias) {\n            int attackWeight = getAttackWeight();\n            int supportWeight = getSupportWeight();\n            ItemStack potion = new ItemStack(Items.SPLASH_POTION);\n            var targetedEntity = target;\n            if (hasLineOfSight && mob.getRandom().nextFloat() * (attackWeight + supportWeight) > supportWeight) {\n                // We want the potion amplifier to scale with the \"difficulty\" of our target, with a chunk of randomness. For vanilla players, this will stick to from I-II.\n                int amplifier = (mob.getRandom().nextFloat() < 0.75f ? 0 : 1) + (target.getMaxHealth() > 30 ? (mob.getRandom().nextFloat() < 0.5f ? 0 : 1) : 0);\n                var effect = target.isInvertedHealAndHarm() ? MobEffects.HEAL : MobEffects.HARM;\n                if (mob.getRandom().nextFloat() < 0.45f) {\n                    //Effect, instead of damage\n                    for (int i = 0; i < ATTACK_POTIONS.size(); i++) {\n                        int p = mob.getRandom().nextInt(ATTACK_POTIONS.size());\n                        if (!target.hasEffect(ATTACK_POTIONS.get(p))) {\n                            effect = ATTACK_POTIONS.get(p);\n                            break;\n                        }\n                    }\n                }\n                //PotionUtils.setCustomEffects(potion, List.of(new MobEffectInstance(effect, effect.isInstantenous() ? 0 : 200, amplifier)));\n                //Utils.setPotion(potion, Potions.WATER); //\"Empty\" potion skips rendering color. \"water\" checks for the effect and renders properly\n                potion.set(DataComponents.POTION_CONTENTS, new PotionContents(Potions.WATER).withEffectAdded(new MobEffectInstance(effect, effect.value().isInstantenous() ? 0 : 200, amplifier)));\n            } else {\n                Utils.setPotion(potion, Potions.STRONG_HEALING);\n                targetedEntity = this.mob;\n            }\n            ThrownPotion thrownpotion = new ThrownPotion(this.mob.level, this.mob);\n            thrownpotion.setItem(potion);\n            thrownpotion.setXRot(thrownpotion.getXRot() - -20.0F);\n            Vec3 vec3 = targetedEntity.getDeltaMovement();\n            double d0 = targetedEntity.getX() + vec3.x - this.mob.getX();\n            double d1 = targetedEntity.getEyeY() - (double) 1.1F - this.mob.getEyeY();\n            double d2 = targetedEntity.getZ() + vec3.z - this.mob.getZ();\n            double d3 = Math.sqrt(d0 * d0 + d2 * d2);\n            thrownpotion.shoot(d0, d1 + d3 * 0.2D, d2, (float) Mth.clampedLerp(0.5f, 1.25f, this.mob.distanceToSqr(targetedEntity) / throwRangeSqr), 8.0F);\n            if (!this.mob.isSilent()) {\n                this.mob.level.playSound(null, this.mob.getX(), this.mob.getY(), this.mob.getZ(), SoundEvents.WITCH_THROW, this.mob.getSoundSource(), 1.0F, 0.8F + this.mob.getRandom().nextFloat() * 0.4F);\n            }\n            this.mob.level.addFreshEntity(thrownpotion);\n            this.mob.swing(InteractionHand.MAIN_HAND, true);\n        } else {\n            super.doSpellAction();\n        }\n    }\n"
+        }
+      ],
+      "observation": "canBeAffected直接排AlchemistAttackGoal.ATTACK_POTIONS，未调用super；hurt只拒自身归属INDIRECT_MAGIC。攻击列表为weakness/blindness/levitation/slow/mining fatigue，同AI可投伤害或这些效果。",
+      "native_chain": "AlchemistAttackGoal.doSpellAction→ThrownPotion→Apothecarist.canBeAffected/hurt",
+      "application": "来源限制与效果列表不同；最终药水资格应核实真实Holder类型和父规则保留。",
+      "limits": "这里未保留super.canBeAffected可能放行其他父类拒绝；药水音效是投掷声，不是目标拒绝回执。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-16",
+      "semantic_dedup_key": "iron-shield-multipart-parent-throttle-false-result",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/ShieldPart.java",
+          "method": "hurt",
+          "lines": [
+            39,
+            47
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/ShieldPart.java#L39-L47",
+          "file_sha256": "a0c41bde4deac7bb7b00c77991aa3a650a8702b470db1e82119dc4eea9d87054",
+          "excerpt_sha256": "6e14581e5e9ef2e248ee902c0f8506f650839824c0bea158a4fae793133507a7",
+          "normalized_excerpt_sha256": "f1dcb4c0b2e0f6ba6c3753e1864a4d6000e9141011b3159e462a8b8ef6fdce5e",
+          "excerpt": "    public boolean hurt(DamageSource pSource, float pAmount) {\n        if (!level.isClientSide) {\n            if (!parentEntity.hurtThisTick) {\n                parentEntity.takeDamage(pSource, pAmount, this.getBoundingBox().getCenter());\n                parentEntity.hurtThisTick = true;\n            }\n        }\n        return false;\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/shield/ShieldEntity.java",
+          "method": "takeDamage",
+          "lines": [
+            67,
+            75
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/shield/ShieldEntity.java#L67-L75",
+          "file_sha256": "dc66d55c0ecdabb5a3b1dd0b03e1676e04c5693ccc8aacd5027da16c8f442dc6",
+          "excerpt_sha256": "1d3ec8e00c93daebab70805912d8ede075be2269211bae1af9a9a9834cb328bb",
+          "normalized_excerpt_sha256": "cbe04a531afe19d86e3413a61cc85cfec5a288865c0f16ce1a7010897a445c36",
+          "excerpt": "    public void takeDamage(DamageSource source, float amount, @Nullable Vec3 location) {\n        if (!this.isInvulnerableTo(source)) {\n            this.setHealth(this.getHealth() - amount);\n            if (!level().isClientSide && location != null) {\n                MagicManager.spawnParticles(level(), ParticleTypes.ELECTRIC_SPARK, location.x, location.y, location.z, 30, .1, .1, .1, .5, false);\n                level().playSound(null, location.x, location.y, location.z, SoundRegistry.FORCE_IMPACT.get(), SoundSource.NEUTRAL, .8f, 1f);\n            }\n        }\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/shield/ShieldEntity.java",
+          "method": "tick",
+          "lines": [
+            78,
+            103
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/shield/ShieldEntity.java#L78-L103",
+          "file_sha256": "dc66d55c0ecdabb5a3b1dd0b03e1676e04c5693ccc8aacd5027da16c8f442dc6",
+          "excerpt_sha256": "a023bff6955d6713fa46b656362788e9aecf010880ae027861ff3339b04fee28",
+          "normalized_excerpt_sha256": "57e2455224be470eebfe157a6db31259b2fbf4b0e25621e2df1b9be9a6ca93a5",
+          "excerpt": "    public void tick() {\n        hurtThisTick = false;\n        if (getHealth() <= 0) {\n            destroy();\n        } else if (++age > LIFETIME) {\n            if (!this.level().isClientSide) {\n                level().playSound(null, getX(), getY(), getZ(), SoundEvents.RESPAWN_ANCHOR_SET_SPAWN, SoundSource.NEUTRAL, 1, 1.4f);\n            }\n            discard();\n        } else {\n            for (int i = 0; i < subEntities.length; i++) {\n                var subEntity = subEntities[i];\n\n                Vec3 pos = subPositions[i].xRot(Mth.DEG_TO_RAD * -this.getXRot()).yRot(Mth.DEG_TO_RAD * -this.getYRot()).add(this.position());\n                subEntity.setPos(pos);\n                //subEntity.setDeltaMovement(newVector);\n                //var vec3 = new Vec3(subEntity.getX(), subEntity.getY(), subEntity.getZ());\n                subEntity.xo = pos.x;\n                subEntity.yo = pos.y;\n                subEntity.zo = pos.z;\n                subEntity.xOld = pos.x;\n                subEntity.yOld = pos.y;\n                subEntity.zOld = pos.z;\n            }\n        }\n    }\n"
+        }
+      ],
+      "observation": "ShieldPart.hurt仅服务端且父hurtThisTick未置时转父takeDamage，然后置标记，始终return false；takeDamage非invulnerable时扣父HP，命中点火花/冲击声；Shield.tick每tick重置去重。",
+      "native_chain": "命中ShieldPart→parent.takeDamage→health/impact→ShieldEntity.tick重置",
+      "application": "同目标多部件合并应归父实体；false可能已实际扣护盾HP，不能作为Immune。",
+      "limits": "hurtThisTick不区分攻击者和攻击次数，可能合并同tick不同攻击；拒绝时也置标记；无文字消息。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-17",
+      "semantic_dedup_key": "ars-wilden-phase-and-defense-rejection",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "method": "hurt",
+          "lines": [
+            498,
+            537
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java#L498-L537",
+          "file_sha256": "9bf6542e845a8d308af821b2e4541c47f0bba72ad995766cca0f48cfb4f57ad9",
+          "excerpt_sha256": "40742525cc97b554b846bd8aef79128a61f3548f7e24eb938d2fe5ae13e577fb",
+          "normalized_excerpt_sha256": "de8b23cdb7eaea4491c311a534fc72888adf7795b581d06516e8437186d032dd",
+          "excerpt": "    public boolean hurt(DamageSource source, float amount) {\n        if (source.is(DamageTypes.CACTUS) || source.is(DamageTypes.SWEET_BERRY_BUSH) || source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.LAVA) || source.is(DamageTypes.DROWN))\n            return false;\n        if (source.is(DamageTypes.FREEZE))\n            amount = amount / 2;\n        if (this.getPhaseSwapping())\n            return false;\n\n        Entity entity = source.getEntity();\n        if (entity instanceof LivingEntity entity1 && !entity.equals(this)) {\n            if (isDefensive() && !source.is(DamageTypes.THORNS)) {\n                if (!source.is(DamageTypeTags.BYPASSES_ARMOR) && BlockUtil.distanceFrom(level, entity.position, position) <= 3) {\n                    entity.hurt(level.damageSources().thorns(this), 6.0f);\n                }\n            }\n\n            // Omit our summoned sources that might aggro or accidentally hurt us\n            if (entity1 instanceof WildenStalker || entity1 instanceof WildenGuardian || entity instanceof WildenHunter\n                    || entity instanceof ISummon && ((ISummon) entity).getOwnerUUID() != null && ((ISummon) entity).getOwnerUUID().equals(this.getUUID())\n                    || entity1 instanceof SummonWolf && ((SummonWolf) entity1).isWildenSummon)\n                return false;\n        }\n\n        if (isDefensive())\n            return false;\n        var threshold = this.getMaxHealth() / 4;\n        var nextMin = this.getMaxHealth() - threshold * (1 + getPhase());\n        boolean res = super.hurt(source, amount);\n        if (!this.level.isClientSide && this.getHealth() <= nextMin && getPhase() < 3) {\n            this.setPhaseSwapping(true);\n            this.setPhase(this.getPhase() + 1);\n            this.getNavigation().stop();\n            this.setHealth(nextMin);\n            this.dead = false;\n            this.setFlying(false);\n            this.setDefensiveMode(false);\n            isRamGoal = false;\n        }\n        return res;\n    }\n"
+        }
+      ],
+      "observation": "hurt先拒仙人掌/浆果/窒息/熔岩/溺水，冻伤减半；phaseSwapping直接false；defensive可先反射近距非穿甲伤害再拒本体伤害；自己召唤来源拒绝；通过super后按25%阶段阈值抬HP并换阶段。",
+      "native_chain": "WildenChimera.hurt→环境/阶段/来源→defense反伤→super→phase clamp",
+      "application": "阶段拒伤、反伤、来源资格和生命阈值截断须区分，不能看到BossHP不降就统一Immune。",
+      "limits": "同一完整hurt方法诸分支合并一条，不拆同名Boss/阶段；源码有entity/entity1混用，按实际表达式记录。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-18",
+      "semantic_dedup_key": "ars-wilden-effect-check-is-not-application",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java",
+          "method": "canBeAffected",
+          "lines": [
+            578,
+            589
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/entity/WildenChimera.java#L578-L589",
+          "file_sha256": "9bf6542e845a8d308af821b2e4541c47f0bba72ad995766cca0f48cfb4f57ad9",
+          "excerpt_sha256": "1593a3801d47bd6957e4f9139e650fefd51de012a4e344921f72efbe925a1d45",
+          "normalized_excerpt_sha256": "3a319f76f331e02e81afdabb1a53ccb927de83c2e1cb470a82ad7c068798332e",
+          "excerpt": "    public boolean canBeAffected(MobEffectInstance instance) {\n        MobEffect effect = instance.getEffect().value();\n        if (instance.getEffect() instanceof SnareEffect)\n            return false;\n\n        if (effect == MobEffects.MOVEMENT_SLOWDOWN)\n            instance = new MobEffectInstance(instance.getEffect(), 1, 0);\n\n        if (effect == ModPotions.GRAVITY_EFFECT.get())\n            instance = new MobEffectInstance(instance.getEffect(), Math.min(instance.getDuration(), 100), 0);\n        return super.canBeAffected(instance);\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/api/spell/IPotionEffect.java",
+          "method": "applyPotion",
+          "lines": [
+            18,
+            24
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/api/spell/IPotionEffect.java#L18-L24",
+          "file_sha256": "7d497e6c11446d52f5ab579b39269d486dbc5e341500afe65b326662694a550e",
+          "excerpt_sha256": "b7842d285c305bdaf7df89a46476098b89f29519c9a06c7fc96c353c1b099353",
+          "normalized_excerpt_sha256": "51d4cc2b4ac77baf9fff321622499a85335781908e95b834e9f7160edf7ca8cc",
+          "excerpt": "    default void applyPotion(LivingEntity entity, Holder<MobEffect> potionEffect, SpellStats stats, int baseDurationSeconds, int durationBuffSeconds, boolean showParticles) {\n        if (entity == null)\n            return;\n        int ticks = baseDurationSeconds * 20 + durationBuffSeconds * stats.getDurationInTicks();\n        int amp = (int) stats.getAmpMultiplier();\n        entity.addEffect(new MobEffectInstance(potionEffect, ticks, amp, false, showParticles, true));\n    }\n"
+        }
+      ],
+      "observation": "canBeAffected先effect=value；Snare判断却是instance.getEffect() instanceof SnareEffect（Holder而非value）；slow和gravity只给局部instance重新赋值，再调用super资格。不能据此证明最终addEffect对象被缩短。",
+      "native_chain": "LivingEntity效果资格→WildenChimera.canBeAffected→super；IPotionEffect.applyPotion的原对象未被替换",
+      "application": "这是资格查询不能变更调用者对象的反例；免疫/缩短时长需在实际施加路径验证。",
+      "limits": "不作为有效拒控实现建议：Snare类型判断和局部重赋值都存在证据问题；未运行/编译外部仓库。",
+      "deduplication": "代码完整读过，但不能证明有效Snare拒绝/时长缩短；0信用，不用方法名补数。"
+    },
+    {
+      "id": "herschel-001-19",
+      "semantic_dedup_key": "ars-rewind-blacklist-start-and-record",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectRewind.java",
+          "method": "onResolveEntity",
+          "lines": [
+            38,
+            52
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectRewind.java#L38-L52",
+          "file_sha256": "01835026c648f5e59ac0ec06c9e9081e6e6dd11c13a3a8cc7e80785525a22804",
+          "excerpt_sha256": "2e497b388bfb06011270a1dcdc31767eb685e5fd312773a1a293ef18f2d853a5",
+          "normalized_excerpt_sha256": "d3af5a11e02134acfbd1ff2ced76bcdf3522ddda7b79c9dfa8d4c747765e7894",
+          "excerpt": "    public void onResolveEntity(EntityHitResult rayTraceResult, Level world, @NotNull LivingEntity shooter, SpellStats spellStats, SpellContext spellContext, SpellResolver resolver) {\n        super.onResolveEntity(rayTraceResult, world, shooter, spellStats, spellContext, resolver);\n        int ticksToRewind = getRewindTicks(spellStats);\n        Entity entity = rayTraceResult.getEntity();\n        if (!entity.getType().is(EntityTags.REWIND_BLACKLIST) && entity instanceof IRewindable rewindable && !rewindable.isRewinding()) {\n            var delayEvent = new DelayedSpellEvent(ticksToRewind, rayTraceResult, world, resolver);\n            spellContext.delay(delayEvent);\n            EventQueue.getServerInstance().addEvent(new RewindEvent(entity, world.getGameTime(), ticksToRewind, spellContext));\n            if (rewindable instanceof Player player) {\n                Networking.sendToNearbyClient(world, player, new PacketClientRewindEffect(ticksToRewind, player));\n            }\n\n            EventQueue.getServerInstance().addEvent(delayEvent);\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectRewind.java",
+          "method": "shouldRecordData",
+          "lines": [
+            80,
+            88
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectRewind.java#L80-L88",
+          "file_sha256": "01835026c648f5e59ac0ec06c9e9081e6e6dd11c13a3a8cc7e80785525a22804",
+          "excerpt_sha256": "1dadce7934f7f2fd95ed34b8f97b0b11573cfd4c6363c60f4ea4d24b38fbfa36",
+          "normalized_excerpt_sha256": "5c235d49ab00126e57c8bcc418615e7c020cd28eecce870ad049e59ff41b0a35",
+          "excerpt": "    public static boolean shouldRecordData(Entity entity, IRewindable rewindable) {\n        if (entity.level.isClientSide && !(entity instanceof Player)) {\n            return false;\n        }\n        if (!EffectRewind.INSTANCE.isEnabled() || entity.getType().is(EntityTags.REWIND_BLACKLIST)) {\n            return false;\n        }\n        return !rewindable.isRewinding();\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/datagen/EntityTagProvider.java",
+          "method": "addTags",
+          "lines": [
+            28,
+            121
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/datagen/EntityTagProvider.java#L28-L121",
+          "file_sha256": "281cda89c51c561e14abf2b486fa05f70cb4e4821b3ce84931b58548bf6eee8f",
+          "excerpt_sha256": "5de076cc17715ad61d6543ad8456e6d03c0d810e6abb257eb2f8c435c32fcafe",
+          "normalized_excerpt_sha256": "3843010585d4f2034bb5e696d40c1da8f366db1904d3db49e96a612f6d560623",
+          "excerpt": "    protected void addTags(HolderLookup.Provider pProvider) {\n        this.tag(Tags.EntityTypes.BOSSES).add(ModEntities.WILDEN_BOSS.get());\n        this.tag(EntityTags.REWIND_BLACKLIST).addTags(Tags.EntityTypes.BOSSES);\n        this.tag(EntityTags.DISINTEGRATION_BLACKLIST);\n        this.tag(EntityTags.DISINTEGRATION_WHITELIST);\n        this.tag(EntityTags.DRYGMY_BLACKLIST).add(EntityType.IRON_GOLEM);\n        this.tag(EntityTags.MAGIC_FIND)\n                .add(ModEntities.STARBUNCLE_TYPE.get(), ModEntities.ENTITY_DRYGMY.get(),\n                        ModEntities.WHIRLISPRIG_TYPE.get(),\n                        ModEntities.ENTITY_BOOKWYRM_TYPE.get(),\n                        ModEntities.ENTITY_WIXIE_TYPE.get(),\n                        ModEntities.GIFT_STARBY.get(),\n                        ModEntities.WILDEN_GUARDIAN.get(),\n                        ModEntities.WILDEN_BOSS.get(),\n                        ModEntities.WILDEN_STALKER.get(),\n                        ModEntities.WILDEN_HUNTER.get(),\n                        ModEntities.ALAKARKINOS_TYPE.get()\n                );\n        this.tag(EntityTags.SPELL_CAN_HIT);\n        this.tag(EntityTags.HOSTILE_MOBS)\n                .add(ModEntities.WILDEN_HUNTER.get(), ModEntities.WILDEN_GUARDIAN.get(),\n                        ModEntities.WILDEN_STALKER.get()\n                );\n        this.tag(EntityTags.VITALIC_GROWTH_BLACKLIST).add(\n                ModEntities.ENTITY_BLAZING_WEALD.get(),\n                ModEntities.ENTITY_CASCADING_WEALD.get(),\n                ModEntities.ENTITY_FLOURISHING_WEALD.get(),\n                ModEntities.ENTITY_VEXING_WEALD.get()\n        );\n        this.tag(EntityTags.VITALIC_DEATH_BLACKLIST).add(\n                ModEntities.ENTITY_BLAZING_WEALD.get(),\n                ModEntities.ENTITY_CASCADING_WEALD.get(),\n                ModEntities.ENTITY_FLOURISHING_WEALD.get(),\n                ModEntities.ENTITY_VEXING_WEALD.get()\n        );\n        this.tag(EntityTags.BUBBLE_BLACKLIST).addTags(\n                Tags.EntityTypes.BOSSES\n        ).add(\n                ModEntities.BUBBLE.get(),\n                ModEntities.ENTITY_FOLLOW_PROJ.get(),\n                ModEntities.ENTITY_FLYING_ITEM.get(),\n                EntityType.WITHER_SKULL,\n                EntityType.SMALL_FIREBALL,\n                EntityType.DRAGON_FIREBALL\n        );\n        this.tag(EntityTags.BUBBLE_BLACKLIST).addOptional(ResourceLocation.fromNamespaceAndPath(\"create\", \"contraption\"))\n                .addOptional(ResourceLocation.fromNamespaceAndPath(\"create\", \"carriage_contraption\"))\n                .addOptional(ResourceLocation.fromNamespaceAndPath(\"create\", \"stationary_contraption\"))\n                .addOptional(ResourceLocation.fromNamespaceAndPath(\"create\", \"seat\"))\n                .addOptional(ResourceLocation.fromNamespaceAndPath(\"create\", \"gantry_contraption\"));\n        this.tag(EntityTags.FAMILIAR).add(ModEntities.ENTITY_FAMILIAR_STARBUNCLE.get(), ModEntities.ENTITY_FAMILIAR_SYLPH.get(),\n                ModEntities.ENTITY_FAMILIAR_WIXIE.get(), ModEntities.ENTITY_FAMILIAR_DRYGMY.get(),\n                ModEntities.ENTITY_FAMILIAR_BOOKWYRM.get(), ModEntities.LILY.get());\n        this.tag(EntityTags.JAR_BLACKLIST).addTag(EntityTags.FAMILIAR).addTag(Tags.EntityTypes.CAPTURING_NOT_SUPPORTED);\n\n        this.tag(EntityTags.JAR_WHITELIST)\n                .add(EntityType.ITEM)\n                .add(EntityType.END_CRYSTAL)\n                .add(EntityType.BOAT)\n                .add(EntityType.CHEST_BOAT)\n                .add(EntityType.ARROW)\n                .add(EntityType.SNOWBALL)\n                .add(EntityType.EGG)\n                .add(EntityType.ENDER_PEARL)\n                .add(EntityType.EYE_OF_ENDER)\n                .add(EntityType.POTION)\n                .add(EntityType.ARMOR_STAND)\n                .add(EntityType.LIGHTNING_BOLT)\n                .add(ModEntities.LIGHTNING_ENTITY.get())\n                .add(EntityType.TRIDENT).addOptional(ResourceLocation.parse(\"create:contraption\"));\n        this.tag(EntityTags.LINGERING_BLACKLIST)\n                .add(ModEntities.LIGHTNING_ENTITY.get(), ModEntities.LINGER_SPELL.get(), ModEntities.WALL_SPELL.get());\n        this.tag(EntityTags.BERRY_BLACKLIST)\n                .add(ModEntities.STARBUNCLE_TYPE.get(), ModEntities.WHIRLISPRIG_TYPE.get(), EntityType.FOX, EntityType.BEE);\n\n        this.tag(EntityTags.JAR_RELEASE_BLACKLIST).add(EntityType.ENDER_DRAGON);\n\n        this.tag(EntityTags.ANIMAL_SUMMON_BLACKLIST).add(ModEntities.GIFT_STARBY.get());\n        this.tag(EntityTags.BURST_WHITELIST).add(ModEntities.BUBBLE.get(), EntityType.ARROW);\n        this.tag(EntityTags.DENY_SPAWN_RITUAL_WHITELIST);\n        this.tag(EntityTags.DENY_SPAWN_RITUAL_BLACKLIST);\n        this.tag(EntityTags.BREED_BLACKLIST);\n        this.tag(EntityTags.OVERGROWTH_BLACKLIST);\n        this.tag(EntityTags.INTERACT_JAR_BLACKLIST);\n        this.tag(EntityTags.ITEM_GRATE_PASSABLE);\n        this.tag(EntityTags.ITEM_GRATE_COLLIDE);\n\n        TagKey<EntityType<?>> RETAIN_IN_SUBLEVEL = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(\"sable\", \"retain_in_sub_level\"));\n        TagKey<EntityType<?>> DESTROY_LEAVING_PLOT = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(\"sable\", \"destroy_when_leaving_plot\"));\n        this.tag(RETAIN_IN_SUBLEVEL).add(ModEntities.STARBUNCLE_TYPE.get(), ModEntities.GIFT_STARBY.get(), ModEntities.AMETHYST_GOLEM.get());\n        this.tag(DESTROY_LEAVING_PLOT).add(ModEntities.STARBUNCLE_TYPE.get(), ModEntities.GIFT_STARBY.get(), ModEntities.AMETHYST_GOLEM.get());\n        this.tag(EntityTags.UNDERFOOT_BLACKLIST).addOptional(ResourceLocation.parse(\"create:super_glue\"));\n        this.tag(EntityTags.UNDERFOOD_WHITELIST).add(EntityType.ITEM);\n    }\n"
+        }
+      ],
+      "observation": "onResolveEntity排REWIND_BLACKLIST/非IRewindable/已rewinding后才delay并入队；Player才发附近倒带效果包。shouldRecordData客户端只记Player，关闭功能/黑名单/已倒带不记历史。 EntityTagProvider.addTags将WILDEN_BOSS列入c:bosses，并将bosses纳入rewind blacklist。",
+      "native_chain": "EffectRewind.onResolveEntity→IRewindable→RewindEvent队列；实体历史→shouldRecordData",
+      "application": "开始控制与历史记录要共享资格；Boss黑名单不能仅阻止一侧；玩家专用视觉与Boss策略分开。",
+      "limits": "拒绝无免疫字；已有倒带属于重复申请不一定免疫；tag数据需随上下文核实。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-20",
+      "semantic_dedup_key": "ars-exchange-nonatomic-two-target-teleport-gates",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectExchange.java",
+          "method": "onResolveEntity",
+          "lines": [
+            50,
+            67
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectExchange.java#L50-L67",
+          "file_sha256": "15d1a8ead7689554de97e65fc5a976d05aa67f4d0506ce14981d924ecabd927f",
+          "excerpt_sha256": "481b5b481f9b0cf4081c3b829891bb2dcf1fdf8e82311e3f762f2b3794870c2e",
+          "normalized_excerpt_sha256": "b23deb0bbca8cb048c68cc5e00bfe0ddd42274b84ece009933c2b32c383683ea",
+          "excerpt": "    public void onResolveEntity(EntityHitResult rayTraceResult, Level world, @NotNull LivingEntity shooter, SpellStats spellStats, SpellContext spellContext, SpellResolver resolver) {\n        Entity entity = rayTraceResult.getEntity();\n        Vec3 origLoc = shooter.position;\n\n        Level shooterLevel = shooter.level;\n        if (entity.getType().is(Tags.EntityTypes.TELEPORTING_NOT_SUPPORTED) || entity instanceof FakePlayer) {\n            return;\n        }\n        if (!EventHooks.onEnderTeleport(shooter, entity.getX(), entity.getY(), entity.getZ()).isCanceled())\n            if (entity.level instanceof ServerLevel serverLevel) {\n                shooter.teleportTo(serverLevel, entity.getX(), entity.getY(), entity.getZ(), Set.of(), entity.getYRot(), entity.getXRot());\n            }\n        if (!(entity instanceof LivingEntity living) || !EventHooks.onEnderTeleport(living, origLoc.x(), origLoc.y(), origLoc.z()).isCanceled()) {\n            if (shooterLevel instanceof ServerLevel serverLevel) {\n                entity.teleportTo(serverLevel, origLoc.x(), origLoc.y(), origLoc.z(), Set.of(), shooter.getYRot(), shooter.getXRot());\n            }\n        }\n    }\n"
+        }
+      ],
+      "observation": "交换前拒TELEPORTING_NOT_SUPPORTED或FakePlayer；分别向shooter与living目标发EnderTeleport事件并独立决定两次teleport，事件拒绝可能造成只交换一半。",
+      "native_chain": "EffectExchange.onResolveEntity→caster Ender hook→caster teleport→target Ender hook→target teleport",
+      "application": "同次双目标控制要区分每一目标的结果；不能把一个事件通过当整次交换成功。",
+      "limits": "不是灰字生产；非living目标绕过Ender事件检查；与Blink共用底层事件但这里多实体非原子语义独立。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-21",
+      "semantic_dedup_key": "ars-blink-qualified-warp-and-feedback-order",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectBlink.java",
+          "method": "onResolveEntity",
+          "lines": [
+            47,
+            82
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectBlink.java#L47-L82",
+          "file_sha256": "3fb7d3b28bc5a2bb12f8f05c74a04df51efb18791d1ba2ab7eab357b48fb1937",
+          "excerpt_sha256": "1d7caea34f1e242d13bbbc6c283d7f31bea886f928fc62b69814210f6be0c6bf",
+          "normalized_excerpt_sha256": "a33658e126780b9c189a78b8273142a0d5ce9aba377036d3051f37480c520974",
+          "excerpt": "    public void onResolveEntity(EntityHitResult rayTraceResult, Level world, @NotNull LivingEntity shooter, SpellStats spellStats, SpellContext spellContext, SpellResolver resolver) {\n        Vec3 vec = safelyGetHitPos(rayTraceResult);\n        if (rayTraceResult.getEntity().getType().is(Tags.EntityTypes.TELEPORTING_NOT_SUPPORTED)) {\n            return;\n        }\n        double distance = GENERIC_INT.get() + AMP_VALUE.get() * spellStats.getAmpMultiplier();\n\n        if (spellContext.getCaster() instanceof TileCaster) {\n            InventoryManager manager = spellContext.getCaster().getInvManager();\n            SlotReference reference = manager.findItem(i -> (i.getItem() == ItemsRegistry.WARP_SCROLL.asItem() || i.getItem() == ItemsRegistry.STABLE_WARP_SCROLL.asItem()), InteractType.EXTRACT);\n            if (!reference.isEmpty()) {\n                ItemStack stack = reference.getHandler().getStackInSlot(reference.getSlot());\n                WarpScrollData data = stack.get(DataComponentRegistry.WARP_SCROLL);\n                if (data != null && data.isValid() && data.canTeleportWithDim(world)) {\n                    warpEntity(rayTraceResult.getEntity(), data);\n                    return;\n                }\n            }\n        }\n\n        if ((rayTraceResult).getEntity().equals(shooter)) {\n            blinkForward(spellContext.level, shooter, distance);\n            return;\n        }\n\n        if (isNotFakePlayer(shooter)) {\n            WarpScrollData scrollData = shooter.getOffhandItem().get(DataComponentRegistry.WARP_SCROLL);\n            if (scrollData != null && scrollData.isValid() && scrollData.canTeleportWithDim(world)) {\n                warpEntity(rayTraceResult.getEntity(), scrollData);\n            } else if (spellContext.level instanceof ServerLevel serverLevel) {\n                shooter.teleportTo(serverLevel, vec.x(), vec.y(), vec.z(), Set.of(), shooter.getYRot(), shooter.getXRot());\n            }\n        } else if (spellContext.getCaster().getCasterType() == SpellContext.CasterType.RUNE && rayTraceResult.getEntity() instanceof LivingEntity living) {\n            blinkForward(spellContext.level, living, distance);\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectBlink.java",
+          "method": "warpEntity",
+          "lines": [
+            84,
+            97
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectBlink.java#L84-L97",
+          "file_sha256": "3fb7d3b28bc5a2bb12f8f05c74a04df51efb18791d1ba2ab7eab357b48fb1937",
+          "excerpt_sha256": "43ca15ecfd6f9b2a4a5980c6369ba7f3135c0bc33ef58ad0c9fedff6768e013e",
+          "normalized_excerpt_sha256": "d65e2fce50a47840e4bbc3715609b3aa06de55253f291634c4dcd5f9036436be",
+          "excerpt": "    public static void warpEntity(Entity entity, WarpScrollData warpScrollData) {\n        if (entity == null) return;\n        var pos = warpScrollData.pos().get();\n        if (entity instanceof LivingEntity living) {\n\n            EntityTeleportEvent.EnderEntity event = EventHooks.onEnderTeleport(living, pos.getX(), pos.getY(), pos.getZ());\n            if (event.isCanceled()) return;\n        }\n        ServerLevel dimension = PortalTile.getServerLevel(warpScrollData.dimension(), (ServerLevel) entity.level);\n        if (dimension == null)\n            return;\n        PortalTile.teleportEntityTo(entity, dimension, pos, warpScrollData.rotation());\n\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectBlink.java",
+          "method": "warpEntity",
+          "lines": [
+            99,
+            117
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectBlink.java#L99-L117",
+          "file_sha256": "3fb7d3b28bc5a2bb12f8f05c74a04df51efb18791d1ba2ab7eab357b48fb1937",
+          "excerpt_sha256": "9758034539691ec41ef55710a19930e3f724e3c2e129c8750ddf4834391c0480",
+          "normalized_excerpt_sha256": "75af634ce97a32999f8bc24ae75012daa064f2b388f1c4a7237fcb1ac00978f4",
+          "excerpt": "    public static void warpEntity(Entity entity, Level level, BlockPos warpPos) {\n        if (entity == null || !(level instanceof ServerLevel serverLevel)) return;\n\n        Level world = entity.level;\n        if (entity instanceof LivingEntity living) {\n            EntityTeleportEvent.EnderEntity event = EventHooks.onEnderTeleport(living, warpPos.getX(), warpPos.getY(), warpPos.getZ());\n            if (event.isCanceled()) return;\n        }\n        ((ServerLevel) entity.level).sendParticles(ParticleTypes.PORTAL, entity.getX(), entity.getY() + 1, entity.getZ(),\n                4, (world.random.nextDouble() - 0.5D) * 2.0D, -world.random.nextDouble(), (world.random.nextDouble() - 0.5D) * 2.0D, 0.1f);\n\n        Vec3 vec3 = entity.position;\n        entity.teleportTo(serverLevel, warpPos.getX() + 0.5, warpPos.getY(), warpPos.getZ() + 0.5, Set.of(), entity.getYRot(), entity.getXRot());\n        entity.level().gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(entity));\n        Networking.sendToNearbyClient(world, entity, new PacketWarpPosition(entity.getId(), entity.getX(), entity.getY(), entity.getZ(), entity.getXRot(), entity.getYRot()));\n        entity.level.playSound(null, entity.blockPosition(), SoundEvents.ILLUSIONER_MIRROR_MOVE, SoundSource.NEUTRAL, 1.0f, 1.0f);\n        ((ServerLevel) entity.level).sendParticles(ParticleTypes.PORTAL, entity.blockPosition().getX() + 0.5, entity.blockPosition().getY() + 1.0, entity.blockPosition().getZ() + 0.5,\n                4, (world.random.nextDouble() - 0.5D) * 2.0D, -world.random.nextDouble(), (world.random.nextDouble() - 0.5D) * 2.0D, 0.1f);\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectBlink.java",
+          "method": "blinkForward",
+          "lines": [
+            127,
+            138
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectBlink.java#L127-L138",
+          "file_sha256": "3fb7d3b28bc5a2bb12f8f05c74a04df51efb18791d1ba2ab7eab357b48fb1937",
+          "excerpt_sha256": "45d6b27e1949d613b122ef74a5890256a9ac24b8caf5ccd9dc4b4d6f38365790",
+          "normalized_excerpt_sha256": "77b48a52d51db49c09cacd2cd9474b7f094c53775af1e566672b369794c3da40",
+          "excerpt": "    public static void blinkForward(Level world, Entity shooter, double distance) {\n        Vec3 lookVec = new Vec3(shooter.getLookAngle().x(), 0, shooter.getLookAngle().z());\n        Vec3 vec = shooter.position().add(lookVec.scale(distance));\n\n        BlockPos pos = BlockPos.containing(vec);\n        if (!isValidTeleport(world, pos)) {\n            pos = getForward(world, pos, shooter, distance) == null ? getForward(world, pos.above(2), shooter, distance) : getForward(world, pos, shooter, distance);\n        }\n        if (pos == null)\n            return;\n        warpEntity(shooter, world, pos);\n    }\n"
+        }
+      ],
+      "observation": "onResolveEntity先拒不可传送tag，再分炮塔卷轴、自身前闪、玩家卷轴/定位施法者、符文。warpEntity的living分支先Ender事件；Level重载通过后才发portal粒子、teleport、gameEvent、位置包和声音。",
+      "native_chain": "onResolveEntity→warpEntity或blinkForward→Ender hook→teleport→PacketWarpPosition/FX",
+      "application": "成功反馈应在最终资格与可用维度之后；预选命中不等于目标传送；服务端位置与反馈接收要对应。",
+      "limits": "两个warp重载同链不拆；onResolveEntity无卷轴路径移动施法者，不应给目标误发被控制成功；无免疫字。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-22",
+      "semantic_dedup_key": "ars-snare-status-rejection-does-not-stop-motion-write",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectSnare.java",
+          "method": "onResolveEntity",
+          "lines": [
+            29,
+            42
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectSnare.java#L29-L42",
+          "file_sha256": "35d0d104918e0b72498bc16099ee6694c76f1432ec5a515d4961b5e763e65fd5",
+          "excerpt_sha256": "8c2b463625cb0ca2674f278155233a61f86c94e2d026093a5959c6198057c00b",
+          "normalized_excerpt_sha256": "d450e23d7e879051675a5721bd98af9c648915bb288b3d4907f6d60bc6662d90",
+          "excerpt": "    public void onResolveEntity(EntityHitResult rayTraceResult, Level world, @NotNull LivingEntity shooter, SpellStats spellStats, SpellContext spellContext, SpellResolver resolver) {\n\n        if (rayTraceResult.getEntity() instanceof LivingEntity living) {\n            this.applyConfigPotion(living, ModPotions.SNARE_EFFECT, spellStats);\n            living.setDeltaMovement(0, 0, 0);\n            living.hurtMarked = true;\n        } else if (rayTraceResult.getEntity() instanceof EnchantedFallingBlock fallingBlock) {\n            BlockPos resultPos = fallingBlock.groundBlock(true);\n            if (resultPos != null) {\n                ShapersFocus.tryPropagateBlockSpell(new BlockHitResult(new Vec3(resultPos.getX(), resultPos.getY(), resultPos.getZ()), rayTraceResult.getEntity().getMotionDirection(), resultPos, false), world, shooter, spellContext, resolver);\n            }\n        }\n\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/api/spell/IPotionEffect.java",
+          "method": "applyPotion",
+          "lines": [
+            18,
+            24
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/api/spell/IPotionEffect.java#L18-L24",
+          "file_sha256": "7d497e6c11446d52f5ab579b39269d486dbc5e341500afe65b326662694a550e",
+          "excerpt_sha256": "b7842d285c305bdaf7df89a46476098b89f29519c9a06c7fc96c353c1b099353",
+          "normalized_excerpt_sha256": "51d4cc2b4ac77baf9fff321622499a85335781908e95b834e9f7160edf7ca8cc",
+          "excerpt": "    default void applyPotion(LivingEntity entity, Holder<MobEffect> potionEffect, SpellStats stats, int baseDurationSeconds, int durationBuffSeconds, boolean showParticles) {\n        if (entity == null)\n            return;\n        int ticks = baseDurationSeconds * 20 + durationBuffSeconds * stats.getDurationInTicks();\n        int amp = (int) stats.getAmpMultiplier();\n        entity.addEffect(new MobEffectInstance(potionEffect, ticks, amp, false, showParticles, true));\n    }\n"
+        }
+      ],
+      "observation": "Snare对Living先applyConfigPotion，再不读结果直接归零速度并hurtMarked；非living可落地EnchantedFallingBlock。IPotionEffect最终addEffect的boolean被丢弃；SnareEffect减速属性为-1 total。",
+      "native_chain": "EffectSnare.onResolveEntity→IPotionEffect.applyPotion/addEffect→无条件motion ZERO",
+      "application": "只拒药水无法阻止一次归零速度，Boss免控必须覆盖这次实际写入；属性成功也不能反证伤害结果。",
+      "limits": "负例/实际控制生产点，没有Boss拒绝门；Potion helper薄包装随主链支持，不另计。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-23",
+      "semantic_dedup_key": "ars-knockback-resistance-final-motion-gate",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectKnockback.java",
+          "method": "onResolveEntity",
+          "lines": [
+            43,
+            49
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectKnockback.java#L43-L49",
+          "file_sha256": "2bae40cefb348e286dc45af9dddf908f53a9ec89d99365b1af06e6a07723eb5c",
+          "excerpt_sha256": "34b4d5a104b981856d7a6cf2c2b38bb375a61d34228113da6479f52450ba5386",
+          "normalized_excerpt_sha256": "c1cb00d7f07d0789e317694a4da923573139b4e9699699d5c6ba800fe69e4d04",
+          "excerpt": "    public void onResolveEntity(EntityHitResult rayTraceResult, Level world, @NotNull LivingEntity shooter, SpellStats spellStats, SpellContext spellContext, SpellResolver resolver) {\n\n        float strength = (float) (GENERIC_DOUBLE.get() + AMP_VALUE.get() * spellStats.getAmpMultiplier());\n        knockback(rayTraceResult.getEntity(), spellContext.getCaster(), strength, spellStats.hasBuff(AugmentExtract.INSTANCE));\n        rayTraceResult.getEntity().hurtMarked = true;\n\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectKnockback.java",
+          "method": "knockback",
+          "lines": [
+            66,
+            83
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectKnockback.java#L66-L83",
+          "file_sha256": "2bae40cefb348e286dc45af9dddf908f53a9ec89d99365b1af06e6a07723eb5c",
+          "excerpt_sha256": "fdf31ef5385128b172ea232fe9b6faedb6f5d7f4597ff8ddec31348279a8f532",
+          "normalized_excerpt_sha256": "da630b42f28a373e289c1797546907cc4145531f69aaf7a9cb02660203acd69e",
+          "excerpt": "    public void knockback(Entity target, @NotNull IWrappedCaster shooter, float strength, boolean fromCaster) {\n        if (fromCaster) {\n            Vec3 vec3 = shooter.getPosition().subtract(target.position());\n            vec3 = vec3.normalize();\n            knockback(target, strength, vec3.x, vec3.z);\n            return;\n        }\n        float v = 0;\n        if (shooter instanceof TileCaster tc) {\n            BlockEntity tile = tc.getTile();\n            if (tile instanceof RotatingTurretTile rotatingTurretTile) {\n                v = rotatingTurretTile.getRotationY();\n            } else if (tile instanceof BasicSpellTurretTile || tile instanceof RuneTile) {\n                v = tile.getBlockState().getValue(FACING).toYRot();\n            }\n        } else if (shooter instanceof LivingCaster lc) v = lc.livingEntity.yRot;\n        knockback(target, strength, Mth.sin(v * ((float) Math.PI / 180F)), -Mth.cos(v * ((float) Math.PI / 180F)));\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectKnockback.java",
+          "method": "knockback",
+          "lines": [
+            85,
+            94
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectKnockback.java#L85-L94",
+          "file_sha256": "2bae40cefb348e286dc45af9dddf908f53a9ec89d99365b1af06e6a07723eb5c",
+          "excerpt_sha256": "f60d1a237726f0881ba27d9402fddf9ac11a7cfa43031e000eef351c0bb3722c",
+          "normalized_excerpt_sha256": "35005ce4223aa72b4c4832463ca8bd91ccfc618392824171a589b5e85cfb802e",
+          "excerpt": "    public void knockback(Entity entity, double strength, double xRatio, double zRatio) {\n        if (entity instanceof LivingEntity living)\n            strength *= 1.0D - living.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);\n        if (strength > 0.0D) {\n            entity.hasImpulse = true;\n            Vec3 vec3 = entity.getDeltaMovement();\n            Vec3 vec31 = (new Vec3(xRatio, 0.0D, zRatio)).normalize().scale(strength);\n            entity.setDeltaMovement(vec3.x / 2.0D - vec31.x, entity.onGround() ? Math.min(0.4D, vec3.y / 2.0D + strength) : vec3.y, vec3.z / 2.0D - vec31.z);\n        }\n    }\n"
+        }
+      ],
+      "observation": "onResolveEntity经方向计算重载到最终knockback(Entity,double,..)，living strength乘1-resistance，仅strength>0时写hasImpulse及速度；调用方无条件hurtMarked。",
+      "native_chain": "EffectKnockback.onResolveEntity→caster/turret方向→final strength gate→setDeltaMovement",
+      "application": "最终物理写入门可以明确说明阻力1导致无位移；拒绝运动与网络脏标记不是一回事。",
+      "limits": "伤害系统未调用，零强度也可能来自配置或负amp；不能将每个不动目标都叫Boss免疫。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-24",
+      "semantic_dedup_key": "ars-damage-pre-post-receipt-is-not-actual-hp-delta",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/api/spell/IDamageEffect.java",
+          "method": "attemptDamage",
+          "lines": [
+            39,
+            74
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/api/spell/IDamageEffect.java#L39-L74",
+          "file_sha256": "ee0c85eae8f5937224fc5a55f72ed06bfc39ccbf2815559b8d8d722e7e278868",
+          "excerpt_sha256": "ccea96514e27dd3d5661764fe68b3f01011319f551f7431abae47a53aaca64fa",
+          "normalized_excerpt_sha256": "77f5af119a32c0d8a68e4c848c49c159677459b48e09ddfbadbcf33f9d407f01",
+          "excerpt": "    default boolean attemptDamage(Level world, @NotNull LivingEntity shooter, SpellStats stats, SpellContext spellContext, SpellResolver resolver, Entity entity, DamageSource source, float baseDamage) {\n        if (!canDamage(shooter, stats, spellContext, resolver, entity))\n            return false;\n        ServerLevel server = (ServerLevel) world;\n        float totalDamage = (float) (baseDamage + stats.getDamageModifier() + (shooter.getAttributes().hasAttribute(PerkAttributes.SPELL_DAMAGE_BONUS) ?\n                shooter.getAttributeValue(PerkAttributes.SPELL_DAMAGE_BONUS) : 0));\n\n        //randomize damage buff or debuff\n        if (stats.isRandomized())\n            totalDamage += randomRolls(stats, server);\n\n        ///Make sure your DamageSource is an instance of SpellDamageSource,made with [#source(LevelAccessor , ResourceKey)] or manually,\n        ///The luck augment will be used during loot generation [LootItemRandomChanceWithEnchantedBonusConditionMixin] and [EnchantedCountIncreaseFunctionMixin]\n        if (source instanceof DamageUtil.SpellDamageSource spellSource) {\n            spellSource.setLuckLevel(stats.getBuffCount(AugmentFortune.INSTANCE));\n        }\n\n        SpellDamageEvent.Pre preDamage = new SpellDamageEvent.Pre(source, shooter, entity, totalDamage, spellContext);\n        NeoForge.EVENT_BUS.post(preDamage);\n\n        source = preDamage.damageSource;\n        totalDamage = preDamage.damage;\n        if (totalDamage <= 0 || preDamage.isCanceled())\n            return false;\n\n        if (!entity.hurt(source, totalDamage)) {\n            return false;\n        }\n\n        shooter.setLastHurtMob(entity);\n\n        SpellDamageEvent.Post postDamage = new SpellDamageEvent.Post(source, shooter, entity, totalDamage, spellContext);\n        NeoForge.EVENT_BUS.post(postDamage);\n\n        return true;\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/api/spell/IDamageEffect.java",
+          "method": "canDamage",
+          "lines": [
+            24,
+            26
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/api/spell/IDamageEffect.java#L24-L26",
+          "file_sha256": "ee0c85eae8f5937224fc5a55f72ed06bfc39ccbf2815559b8d8d722e7e278868",
+          "excerpt_sha256": "a9127208bde5cffeee1f3ff021594404eaa400b87f8ca0c8c14be23a1d921b76",
+          "normalized_excerpt_sha256": "044d7b3923df589799f3a5ce5aeed54cbee54ec45a7c7cdf61322c48f921e64c",
+          "excerpt": "    default boolean canDamage(LivingEntity shooter, SpellStats stats, SpellContext spellContext, SpellResolver resolver, @NotNull Entity entity) {\n        return !(entity instanceof LivingEntity living && living.getHealth() <= 0 || entity.isAlliedTo(shooter));\n    }\n"
+        }
+      ],
+      "observation": "attemptDamage先dead/ally资格，计算perk/random伤害和luck，再发可改source/damage的Pre；非正量或cancel拒绝；原生hurt false拒绝；true后setLastHurtMob并Post。",
+      "native_chain": "ColdSnap/Flare→IDamageEffect.attemptDamage→Pre→Entity.hurt→Post",
+      "application": "明确取消原因应在Pre/资格处保留；Post记录totalDamage不是实际扣HP，不能用它绘实际伤害数字。",
+      "limits": "公共attemptDamage false覆盖多原因，仍无免疫回执；仅读源码未运行。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-25",
+      "semantic_dedup_key": "ars-dispel-pre-deny-allow-and-post-order",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectDispel.java",
+          "method": "onResolveEntity",
+          "lines": [
+            33,
+            60
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectDispel.java#L33-L60",
+          "file_sha256": "8f784457cfaa2ced6ac57e60128723bb9767d8f609f6aae4256c2f98dcb5ee2d",
+          "excerpt_sha256": "18945934424b9f5d8e5457bb244591829249f486ec077ced114e191dc94d859a",
+          "normalized_excerpt_sha256": "84fef26ad3cd59817db86e3ecabc38f24058d3b6f5c9de1492bc03cd37187109",
+          "excerpt": "    public void onResolveEntity(@NotNull EntityHitResult rayTraceResult, Level world, @NotNull LivingEntity shooter, SpellStats spellStats, SpellContext spellContext, SpellResolver resolver) {\n        var dispelEvent = NeoForge.EVENT_BUS.post(new DispelEvent.Pre(rayTraceResult, world, shooter, spellStats, spellContext));\n        if (dispelEvent.isCanceled())\n            return;\n        if (rayTraceResult.getEntity() instanceof LivingEntity entity) {\n            Collection<MobEffectInstance> effects = entity.getActiveEffects();\n            MobEffectInstance[] array = effects.toArray(new MobEffectInstance[0]);\n            Optional<HolderSet.Named<MobEffect>> blacklist = world.registryAccess().registryOrThrow(Registries.MOB_EFFECT).getTag(PotionEffectTags.DISPEL_DENY);\n            Optional<HolderSet.Named<MobEffect>> whitelist = world.registryAccess().registryOrThrow(Registries.MOB_EFFECT).getTag(PotionEffectTags.DISPEL_ALLOW);\n            for (MobEffectInstance e : array) {\n                if (e.getCures().contains(EffectCures.MILK)) {\n                    if (blacklist.isPresent() && blacklist.get().stream().anyMatch(effect -> effect.value() == e.getEffect()))\n                        continue;\n                    entity.removeEffect(e.getEffect());\n                } else if (whitelist.isPresent() && whitelist.get().stream().anyMatch(effect -> effect.value() == e.getEffect())) {\n                    entity.removeEffect(e.getEffect());\n                }\n            }\n            if (!entity.isAlive() || entity.getHealth() <= 0 || entity.isRemoved()) {\n                //TODO dispel loot table?\n                return;\n            }\n            if (entity instanceof IDispellable iDispellable) {\n                iDispellable.onDispel(shooter);\n            }\n            NeoForge.EVENT_BUS.post(new DispelEvent.Post(rayTraceResult, world, shooter, spellStats, spellContext));\n        }\n    }\n"
+        }
+      ],
+      "observation": "实体Dispel先发Pre可取消；将activeEffects快照；可牛奶清除项遇deny跳过，否则移除，不可牛奶项可allow强制移除；死亡/移除检查在效果遍历之后，存活才IDispellable及Post。",
+      "native_chain": "EffectDispel.onResolveEntity→DispelEvent.Pre→effect cure/tag filters→onDispel→Post",
+      "application": "清除失败不等于目标整体免疫；结果可能按每种效果不同，Post不能保证每个效果都被清除。",
+      "limits": "源码blacklist比较effect.value()==e.getEffect存在value/Holder层级不一致疑点，只静态记录不声称deny实际生效；block同模板不计。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-26",
+      "semantic_dedup_key": "ars-coldsnap-prerequisite-vs-hit-and-snare",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectColdSnap.java",
+          "method": "onResolveEntity",
+          "lines": [
+            43,
+            57
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectColdSnap.java#L43-L57",
+          "file_sha256": "5fa985ebb695fa1db023ab7cf95bfdebe2459f8e99051c9886deff56f7ad773b",
+          "excerpt_sha256": "f938120bd79cf388bdc0984f5cb69cf59730c8de1ceafbbd6625482db8587f8c",
+          "normalized_excerpt_sha256": "068ed961454180918382d9cdf34b4566e29193fc7be53ac3efd9db68b1a62688",
+          "excerpt": "    public void onResolveEntity(EntityHitResult rayTraceResult, Level world, @NotNull LivingEntity shooter, SpellStats spellStats, SpellContext spellContext, SpellResolver resolver) {\n        if (!(rayTraceResult.getEntity() instanceof LivingEntity livingEntity && world instanceof ServerLevel level))\n            return;\n        Vec3 vec = safelyGetHitPos(rayTraceResult);\n        float damage = (float) (DAMAGE.get() + AMP_VALUE.get() * spellStats.getAmpMultiplier());\n        int snareSec = (int) (POTION_TIME.get() + EXTEND_TIME.get() * spellStats.getDurationMultiplier());\n\n        if (!canDamage(livingEntity))\n            return;\n        this.damage(vec, level, shooter, livingEntity, spellStats, spellContext, resolver, snareSec, damage);\n        spawnIce(shooter, level, BlockPos.containing(vec.x, vec.y + (rayTraceResult.getEntity().onGround() ? 1 : 0), vec.z), spellStats, spellContext, resolver);\n        if (livingEntity.hasEffect(ModPotions.FREEZING_EFFECT)) {\n            livingEntity.setTicksFrozen(livingEntity.getTicksRequiredToFreeze() + 3);\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectColdSnap.java",
+          "method": "canDamage",
+          "lines": [
+            131,
+            133
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectColdSnap.java#L131-L133",
+          "file_sha256": "5fa985ebb695fa1db023ab7cf95bfdebe2459f8e99051c9886deff56f7ad773b",
+          "excerpt_sha256": "35144f17a9ce2af781a9ea0b88ee1b81502f563929b5a11e16b61140585b5abd",
+          "normalized_excerpt_sha256": "d9192830fe6f4b1b55f3ca000aaf983f899a0508804c401cd86089a673445038",
+          "excerpt": "    public boolean canDamage(LivingEntity livingEntity) {\n        return livingEntity.isInWaterOrRain() || livingEntity.hasEffect(MobEffects.MOVEMENT_SLOWDOWN) || livingEntity.getPercentFrozen() > 0.0;\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectColdSnap.java",
+          "method": "damage",
+          "lines": [
+            135,
+            142
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectColdSnap.java#L135-L142",
+          "file_sha256": "5fa985ebb695fa1db023ab7cf95bfdebe2459f8e99051c9886deff56f7ad773b",
+          "excerpt_sha256": "05bd30543a8f353c36331e36c4ddade787bf03b1afaacc7fa484e776780a25a6",
+          "normalized_excerpt_sha256": "5a955b09763e7fbf86eb05601a4132940dab711d8e88bb8199b598474993539a",
+          "excerpt": "    public void damage(Vec3 vec, ServerLevel world, LivingEntity shooter, LivingEntity livingEntity, SpellStats stats, SpellContext context, SpellResolver resolver, int snareTime, float damage) {\n        if (attemptDamage(world, shooter, stats, context, resolver, livingEntity, buildDamageSource(world, shooter), damage)) {\n            world.sendParticles(ParticleTypes.SPIT, vec.x, vec.y + 0.5, vec.z, 50,\n                    ParticleUtil.inRange(-0.1, 0.1), ParticleUtil.inRange(-0.1, 0.1), ParticleUtil.inRange(-0.1, 0.1), 0.3);\n\n            livingEntity.addEffect(new MobEffectInstance(ModPotions.SNARE_EFFECT, 20 * snareTime));\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectColdSnap.java",
+          "method": "spawnIce",
+          "lines": [
+            105,
+            118
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectColdSnap.java#L105-L118",
+          "file_sha256": "5fa985ebb695fa1db023ab7cf95bfdebe2459f8e99051c9886deff56f7ad773b",
+          "excerpt_sha256": "25c9e4396d9b9df3e96cad5d99ad4ca9ae14acfc6a23cb20af46c60ae99991f4",
+          "normalized_excerpt_sha256": "780c1cb03f96887f3d1d38248cd5272588b5ebc76a423f50419fc575a23eade3",
+          "excerpt": "    public void spawnIce(Level level, BlockPos pos, BlockPos targetPos, Vec3 scaleVec, SpellStats spellStats, SpellContext context, SpellResolver resolver, LivingEntity shooter) {\n        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);\n        IceShardEntity fallingBlock = new IceShardEntity(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, Blocks.ICE.defaultBlockState(), resolver);\n        // Send the falling block the opposite direction of the target\n        fallingBlock.setDeltaMovement(pos.getX() - targetPos.getX(), pos.getY() - targetPos.getY(), pos.getZ() - targetPos.getZ());\n        fallingBlock.setDeltaMovement(fallingBlock.getDeltaMovement().multiply(scaleVec));\n        fallingBlock.cancelDrop = true;\n        fallingBlock.dropItem = false;\n        fallingBlock.hurtEntities = true;\n        fallingBlock.baseDamage = ((float) (DAMAGE.get() + AMP_VALUE.get() * spellStats.getAmpMultiplier())) * 0.5f;\n        fallingBlock.shooter = shooter;\n        level.addFreshEntity(fallingBlock);\n        ShapersFocus.tryPropagateEntitySpell(fallingBlock, level, shooter, context, resolver);\n    }\n"
+        }
+      ],
+      "observation": "ColdSnap仅server Living且wet/rain/slow/frozen才继续；damage仅attemptDamage成功才发SPIT并加Snare，但onResolveEntity无论伤害成功与否仍spawnIce，原有FREEZING还直接setTicksFrozen。",
+      "native_chain": "onResolveEntity→canDamage条件→damage/attemptDamage→spawnIce→conditional freeze",
+      "application": "前置资格不满足与免疫不同；命中拒伤后仍可能产生碎片/冻结，不能把一个boolean当整个法术结果。",
+      "limits": "Snare addEffect结果忽略；碎片独立命中需另审，本行不声明已完成所有碎片路径。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-27",
+      "semantic_dedup_key": "ars-flare-analogue-to-coldsnap-no-extra-credit",
+      "status": "support_only_not_effective",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectFlare.java",
+          "method": "onResolveEntity",
+          "lines": [
+            40,
+            56
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectFlare.java#L40-L56",
+          "file_sha256": "4f63ed7b68f3a75a3071bdce304c652d56c79df3ffd360da1c75307fbb266db9",
+          "excerpt_sha256": "05b54a571087993b52ab4fcb269dfb43e2406250408de66b2c388c50924056e3",
+          "normalized_excerpt_sha256": "eea46d524f436980e124713f66eae67a6f6e6f22210b0e632814799797b5574c",
+          "excerpt": "    public void onResolveEntity(EntityHitResult rayTraceResult, Level world, @NotNull LivingEntity shooter, SpellStats spellStats, SpellContext spellContext, SpellResolver resolver) {\n        if (!(rayTraceResult.getEntity() instanceof LivingEntity livingEntity && world instanceof ServerLevel level))\n            return;\n        Vec3 vec = safelyGetHitPos(rayTraceResult);\n        float damage = (float) (DAMAGE.get() + AMP_VALUE.get() * spellStats.getAmpMultiplier());\n\n        if (!canDamage(livingEntity))\n            return;\n        this.damage(vec, level, shooter, livingEntity, spellStats, spellContext, resolver, damage);\n        spawnCinders(shooter, level, rayTraceResult.getLocation().add(0, (rayTraceResult.getEntity().onGround() ? 1 : 0), 0), spellStats, spellContext, resolver);\n\n        if (rayTraceResult.getEntity() instanceof LivingEntity living && living.hasEffect(ModPotions.BLAST_EFFECT)) {\n            int amplifier = living.getEffect(ModPotions.BLAST_EFFECT).getAmplifier();\n            living.removeEffect(ModPotions.BLAST_EFFECT);\n            BlastEffect.explode(living, amplifier + 1);\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectFlare.java",
+          "method": "canDamage",
+          "lines": [
+            75,
+            77
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectFlare.java#L75-L77",
+          "file_sha256": "4f63ed7b68f3a75a3071bdce304c652d56c79df3ffd360da1c75307fbb266db9",
+          "excerpt_sha256": "3eb4774cd6b19acb2c07e6641f0e07e42e114e78c12960f74023130b6195374d",
+          "normalized_excerpt_sha256": "48993be32d4fab8b791bb549cd4aff75e90163d07b19e866ae419ab8b09a46b3",
+          "excerpt": "    public boolean canDamage(LivingEntity livingEntity) {\n        return livingEntity.isOnFire() || livingEntity.hasEffect(ModPotions.BLAST_EFFECT) || livingEntity.level.getBlockState(livingEntity.blockPosition()).is(BlockTags.FIRE);\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectFlare.java",
+          "method": "damage",
+          "lines": [
+            105,
+            110
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectFlare.java#L105-L110",
+          "file_sha256": "4f63ed7b68f3a75a3071bdce304c652d56c79df3ffd360da1c75307fbb266db9",
+          "excerpt_sha256": "46a32b508a4678c589212296f5b0264265469beeb2961db2b4f6417b50c3b9ac",
+          "normalized_excerpt_sha256": "89a2f33ac514187b96db05e23fdbe5288e176ceea3d62c1681df6c4a20002f0f",
+          "excerpt": "    public void damage(Vec3 vec, ServerLevel world, LivingEntity shooter, LivingEntity livingEntity, SpellStats stats, SpellContext context, SpellResolver resolver, float damage) {\n        if (attemptDamage(world, shooter, stats, context, resolver, livingEntity, buildDamageSource(world, shooter), damage)) {\n            world.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, vec.x, vec.y + 0.5, vec.z, 50,\n                    ParticleUtil.inRange(-0.1, 0.1), ParticleUtil.inRange(-0.1, 0.1), ParticleUtil.inRange(-0.1, 0.1), 0.3);\n        }\n    }\n"
+        }
+      ],
+      "observation": "Flare需fire/BLAST/站火上；damage成功才烟粒子，但无论该结果均spawnCinders；BLAST存在则remove后explode。与ColdSnap共同骨架且同attemptDamage结果不传播。",
+      "native_chain": "Flare.onResolveEntity→prerequisite→attemptDamage→cinders/consume BLAST",
+      "application": "支持“主伤害失败不代表附带动作都拒绝”的比较；BLAST消耗爆炸与主hit语义分开。",
+      "limits": "与ColdSnap高度同构，不作为新有效实现推荐；完整方法已读保留支持，不用元素换皮补数。",
+      "deduplication": "ColdSnap相同模版降支持；火元素条件差异不足以独立晋级。"
+    },
+    {
+      "id": "herschel-001-28",
+      "semantic_dedup_key": "ars-gravity-duration-vs-direct-motion-control",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectGravity.java",
+          "method": "onResolveEntity",
+          "lines": [
+            43,
+            53
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectGravity.java#L43-L53",
+          "file_sha256": "f3d24727bd19ebe33d1efba1c01ea276ae5597d8947fe90d8716894eba785bb8",
+          "excerpt_sha256": "a056ec76ef47820cd38c256e2762d436894b895808afdaceb0f974356d37becd",
+          "normalized_excerpt_sha256": "64f172ad99cb24e608cb339fa092ea5b44d138d91ec0fa1c3c2939cc162bb002",
+          "excerpt": "    public void onResolveEntity(EntityHitResult rayTraceResult, Level world, @NotNull LivingEntity shooter, SpellStats spellStats, SpellContext spellContext, SpellResolver resolver) {\n        if (rayTraceResult.getEntity() instanceof LivingEntity living) {\n            if (spellStats.hasBuff(AugmentExtendTime.INSTANCE)) {\n                this.applyConfigPotion(living, ModPotions.GRAVITY_EFFECT, spellStats);\n            } else {\n                Entity entity = rayTraceResult.getEntity();\n                entity.setDeltaMovement(entity.getDeltaMovement().add(0, -1.0 - spellStats.getAmpMultiplier(), 0));\n                entity.hurtMarked = true;\n            }\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/potions/GravityEffect.java",
+          "method": "applyEffectTick",
+          "lines": [
+            24,
+            44
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/potions/GravityEffect.java#L24-L44",
+          "file_sha256": "b6f7bc0c207d8b3b425de590b00b27b4aa6684508b280cb1f04f544683fc11f3",
+          "excerpt_sha256": "39c503a5e957d16457e52e2b2f32b27ea71d08b377875a50739210c8f5648ca0",
+          "normalized_excerpt_sha256": "9afa9988424abe712669dbf7edc83f6c0dab5a909c55193f3cb7acc28d5fcbee",
+          "excerpt": "    public boolean applyEffectTick(LivingEntity livingEntity, int p_76394_2_) {\n        if (!livingEntity.onGround()) {\n            boolean isTooHigh = true;\n            Level world = livingEntity.level;\n            if (livingEntity instanceof Player) {\n                for (int i = 1; i < 3; i++) {\n                    if (!world.getBlockState(livingEntity.blockPosition().below(i)).isAir()) {\n                        isTooHigh = false;\n                        break;\n                    }\n                }\n            }\n            if (isTooHigh) {\n                livingEntity.setDeltaMovement(livingEntity.getDeltaMovement().add(0, -0.5, 0));\n                livingEntity.hurtMarked = true;\n            }\n\n        }\n\n        return true;\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/potions/GravityEffect.java",
+          "method": "entityTick",
+          "lines": [
+            53,
+            57
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/potions/GravityEffect.java#L53-L57",
+          "file_sha256": "b6f7bc0c207d8b3b425de590b00b27b4aa6684508b280cb1f04f544683fc11f3",
+          "excerpt_sha256": "83ac4df16f93195eab5740c9aa51cd3444545141205bf2a2b51f9565534ae2bf",
+          "normalized_excerpt_sha256": "642b551fd88d4dc380affcffd6cba329c593729230af438cfad279dae9310cdb",
+          "excerpt": "    public static void entityTick(PlayerTickEvent.Post e) {\n        if (e.getEntity().hasEffect(ModPotions.GRAVITY_EFFECT) && !e.getEntity().onGround() && !e.getEntity().isCreative()) {\n            e.getEntity().abilities.flying = false;\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/potions/GravityEffect.java",
+          "method": "entityHurt",
+          "lines": [
+            60,
+            67
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/potions/GravityEffect.java#L60-L67",
+          "file_sha256": "b6f7bc0c207d8b3b425de590b00b27b4aa6684508b280cb1f04f544683fc11f3",
+          "excerpt_sha256": "9e210499c3769d6b3833647fa7132cec4a9d5ea98423f2fd9788201b1466dd3c",
+          "normalized_excerpt_sha256": "984cd4f8833a48e6ac97d761897188da9c8faaca1214ea8cdfbc3802f719d540",
+          "excerpt": "    public static void entityHurt(LivingDamageEvent.Pre e) {\n        var container = e.getContainer();\n        var source = container.getSource();\n        var amount = container.getNewDamage();\n        if (source.is(DamageTypes.FALL) && e.getEntity().hasEffect(ModPotions.GRAVITY_EFFECT)) {\n            container.setNewDamage(amount * 2.0f);\n        }\n    }\n"
+        }
+      ],
+      "observation": "Gravity有ExtendTime则apply potion，无则直接Y速度加-1-amp并hurtMarked；GravityEffect在非地面持续下拉，Player距地<=2不下拉；PlayerPost且非creative禁flight，fall Pre双倍伤。",
+      "native_chain": "EffectGravity.onResolveEntity→direct motion 或 IPotionEffect→GravityEffect.tick/playerPost/damagePre",
+      "application": "瞬时速度与持续效果/飞行资格/摔伤倍率是不同结果，不可仅拦药水后说免控；玩家creative例外不能复制成Boss例外。",
+      "limits": "方法链合并一条；下拉本身无Boss过滤，也非伤害拒绝回执；没有客户灰字。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-29",
+      "semantic_dedup_key": "ars-rewind-control-lifecycle-crossdimension-cleanup",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java",
+          "method": "tick",
+          "lines": [
+            51,
+            84
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java#L51-L84",
+          "file_sha256": "2a0ec27b537e59d07cad2621c125a73fa8b53c16e2448fb19874f84357d71867",
+          "excerpt_sha256": "b23362f6f1b751cf03bccdd1d362c905f00ea7d01f70c04947c7165ef37506c5",
+          "normalized_excerpt_sha256": "880a6b30257df200a04263034d72c5550848092d2c26ff922a89cb3733eeebb0",
+          "excerpt": "    public void tick(boolean serverSide) {\n        this.serverSide = serverSide;\n        if (!this.registeredEvents && this.serverSide) {\n            if (entity instanceof ServerPlayer) {\n                NeoForge.EVENT_BUS.addListener(this::onEntityRemoved);\n            }\n            NeoForge.EVENT_BUS.addListener(this::onChangeDimension);\n            this.registeredEvents = true;\n        }\n        long eventGameTime = startGameTime - this.rewindTicks;\n        if (entity instanceof IRewindable rewindable) {\n            rewindable.setRewinding(true);\n            if (!rewindable.getMotions().empty()) {\n                RewindEntityData data = rewindable.getMotions().pop();\n                data.onRewind(this);\n            }\n        }\n        if (context != null) {\n            RewindAttachment rewindAttachment = RewindAttachment.get(context);\n            List<IRewindCallback> contextData = rewindAttachment.getForTime(eventGameTime);\n            // Lock and prevent adding rewind events for the current tick. Otherwise you get CME or infinte loops\n            rewindAttachment.setLockedTime(eventGameTime);\n            if (contextData != null) {\n                for (IRewindCallback callback : contextData) {\n                    callback.onRewind(this);\n                }\n            }\n            rewindAttachment.setLockedTime(-1);\n        }\n        rewindTicks++;\n        if (rewindTicks >= ticksToRewind) {\n            stop();\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java",
+          "method": "stop",
+          "lines": [
+            86,
+            93
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java#L86-L93",
+          "file_sha256": "2a0ec27b537e59d07cad2621c125a73fa8b53c16e2448fb19874f84357d71867",
+          "excerpt_sha256": "a301bb18c70fbc72e7f167109ba4bda73fbf766353b62b2458854c7e64013d37",
+          "normalized_excerpt_sha256": "d4f2b61351c6a6e2f794495c3f40c1231e8db66eea08eb22e2938a8c4d455abc",
+          "excerpt": "    public void stop() {\n        doneRewinding = true;\n        if (entity instanceof IRewindable rewindable) {\n            rewindable.setRewinding(false);\n            entity.setDeltaMovement(Vec3.ZERO);\n            this.removeWeightlessness();\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java",
+          "method": "onChangeDimension",
+          "lines": [
+            112,
+            121
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java#L112-L121",
+          "file_sha256": "2a0ec27b537e59d07cad2621c125a73fa8b53c16e2448fb19874f84357d71867",
+          "excerpt_sha256": "c5a1f90999e1966d9d5fc59948586d22b42b7711be87bb1c6864a0fc0c8fea49",
+          "normalized_excerpt_sha256": "c618495dbe6efdd8d5135896279bbc485f3233edf1e0528f2e093a91dec3d289",
+          "excerpt": "    public void onChangeDimension(EntityTravelToDimensionEvent event) {\n        if (entity == null) {\n            NeoForge.EVENT_BUS.unregister(this);\n            return;\n        }\n\n        if (!event.isCanceled() && entity == event.getEntity() && event.getEntity() instanceof IRewindable rewindable) {\n            rewindable.getMotions().clear();\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java",
+          "method": "onEntityRemoved",
+          "lines": [
+            100,
+            110
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java#L100-L110",
+          "file_sha256": "2a0ec27b537e59d07cad2621c125a73fa8b53c16e2448fb19874f84357d71867",
+          "excerpt_sha256": "c1e1881282ee1057d8d2a3119ddc568511498ede374a38475171448c5b8025e5",
+          "normalized_excerpt_sha256": "8e50d756db8babe2778a1daeaa4c5c9c9f4d0e29ad6246cb399a448b1678260b",
+          "excerpt": "    public void onEntityRemoved(PlayerEvent.PlayerLoggedOutEvent event) {\n        if (entity == null) {\n            NeoForge.EVENT_BUS.unregister(this);\n            return;\n        }\n\n        if (entity == event.getEntity()) {\n            this.removeWeightlessness();\n            NeoForge.EVENT_BUS.unregister(this);\n        }\n    }\n"
+        },
+        {
+          "source_key": "baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java",
+          "method": "removeWeightlessness",
+          "lines": [
+            123,
+            136
+          ],
+          "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/event/timed/RewindEvent.java#L123-L136",
+          "file_sha256": "2a0ec27b537e59d07cad2621c125a73fa8b53c16e2448fb19874f84357d71867",
+          "excerpt_sha256": "1c017deda44805f20b52c3200acc42e669915d225264080d9652bf864b385895",
+          "normalized_excerpt_sha256": "0e4c9c29291cefc1629990e9b7ba8d92dbe2dc8dae0e097f1e4c6d75538fb274",
+          "excerpt": "    public void removeWeightlessness() {\n        if (!respectsGravity) {\n            return;\n        }\n\n        if (entity instanceof LivingEntity le) {\n            var weight = le.getAttribute(PerkAttributes.WEIGHT);\n            if (weight != null) {\n                weight.removeModifier(ArsNouveau.prefix(\"rewind\"));\n            }\n        } else if (entity != null) {\n            entity.setNoGravity(false);\n        }\n    }\n"
+        }
+      ],
+      "observation": "RewindEvent tick首次服务端注册登出/换维度监听，置rewinding并弹历史，锁当前时间执行回调防重入；累计ticks满stop清rewinding、速度与失重；换维度清历史，登出移除失重并unregister。",
+      "native_chain": "EffectRewind→EventQueue→RewindEvent.tick→stop/onChangeDimension/onEntityRemoved→removeWeightlessness",
+      "application": "控制生命周期结束、换维度和登出清理应核实；事件入队不是长期成功回执。",
+      "limits": "没有灰字；logout分支未显式stop/expired，stop未统一注销监听；保留风险，不声称完整无泄露；与起始资格条按生命周期独立。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    },
+    {
+      "id": "herschel-001-30",
+      "semantic_dedup_key": "iron-precast-target-feedback-not-control-success",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "count_unit": "independent behavior site with complete containing methods; no automatic promotion",
+      "source_refs": [
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "method": "preCastTargetHelper",
+          "lines": [
+            674,
+            711
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L674-L711",
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "excerpt_sha256": "f10f020d330655b452ac4ff8d7c97303a123c93a98feb5027c6f707476da64ce",
+          "normalized_excerpt_sha256": "125b79eed306c7aa2c13d7d8ec55cce460e5d1781b2c0d5133b9f669da55771e",
+          "excerpt": "    public static boolean preCastTargetHelper(Level level, LivingEntity caster, MagicData playerMagicData, AbstractSpell spell, int range, float aimAssist, boolean sendFailureMessage, Predicate<LivingEntity> filter) {\n        var target = RaycastBuilder.begin(caster.level, caster)\n                .range(range)\n                .checkForBlocks(true)\n                .bbInflation(aimAssist)\n                .build();\n        LivingEntity livingTarget = null;\n        if (target instanceof EntityHitResult entityHit) {\n            if (entityHit.getEntity() instanceof PreventDismount) {\n                if (entityHit.getEntity().getFirstPassenger() instanceof LivingEntity livingRooted) {\n                    livingTarget = livingRooted;\n                }\n            } else if (entityHit.getEntity() instanceof LivingEntity livingEntity && filter.test(livingEntity)) {\n                livingTarget = livingEntity;\n            } else if (entityHit.getEntity() instanceof PartEntity<?> partEntity &&\n                    partEntity.getParent() instanceof LivingEntity livingParent && !caster.equals(livingParent)\n                    && filter.test(livingParent)) {\n                livingTarget = livingParent;\n            }\n        }\n\n        if (livingTarget != null) {\n            playerMagicData.setAdditionalCastData(new TargetEntityCastData(livingTarget));\n            if (caster instanceof ServerPlayer serverPlayer) {\n                if (spell.getCastType() != CastType.INSTANT) {\n                    PacketDistributor.sendToPlayer(serverPlayer, new SyncTargetingDataPacket(livingTarget, spell));\n                }\n                serverPlayer.connection.send(new ClientboundSetActionBarTextPacket(Component.translatable(\"ui.irons_spellbooks.spell_target_success\", livingTarget.getDisplayName().getString(), spell.getDisplayName(serverPlayer)).withStyle(ChatFormatting.GREEN)));\n            }\n            if (livingTarget instanceof ServerPlayer serverPlayer) {\n                Utils.sendTargetedNotification(serverPlayer, caster, spell);\n            }\n            return true;\n        } else if (sendFailureMessage && caster instanceof ServerPlayer serverPlayer) {\n            serverPlayer.connection.send(new ClientboundSetActionBarTextPacket(Component.translatable(\"ui.irons_spellbooks.cast_error_target\").withStyle(ChatFormatting.RED)));\n        }\n        return false;\n    }\n"
+        },
+        {
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "method": "sendTargetedNotification",
+          "lines": [
+            661,
+            663
+          ],
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L661-L663",
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "excerpt_sha256": "1b3b2c5d87ed28c49ec0ba7cbf254b5d6cb1f277df8db4827c4f4e04a627d38d",
+          "normalized_excerpt_sha256": "a609334cc4683b959957db5b579b31069ff5a69bf6161543f5e07fe1d7e5e0ad",
+          "excerpt": "    public static void sendTargetedNotification(ServerPlayer target, LivingEntity caster, AbstractSpell spell) {\n        target.connection.send(new ClientboundSetActionBarTextPacket(Component.translatable(\"ui.irons_spellbooks.spell_target_warning\", caster.getDisplayName().getString(), spell.getDisplayName(target)).withStyle(ChatFormatting.LIGHT_PURPLE)));\n    }\n"
+        }
+      ],
+      "observation": "preCastTargetHelper真实Raycast检查blocks，识别PreventDismount乘客/普通活体/Multipart父。成功存target并给caster GREEN actionbar/非instant targeting包，目标若ServerPlayer发target通知；失败RED actionbar。PreventDismount分支未应用传入filter。",
+      "native_chain": "法术checkPreCast→Utils.preCastTargetHelper最终重载→target存储→actionbar/target同步",
+      "application": "这是目标锁定回执，不是控制落地；Boss后续CANT_ROOT拒绝时不能复用绿色消息当成功。实体父锚点与player定向通知可比较。",
+      "limits": "wrapper重载不计；Root/Telekinesis之前已引用作为支持，本条仅独立审核预选反馈生产和父锚点解析，不重复计算控制写入。",
+      "deduplication": "与本批其他行按实际决策/结果分开；本次读取的既有主账中无相同位点。调用包装和同链支持不另计。"
+    }
+  ],
+  "additional_support_only_entrypoints": [
+    {
+      "reason": "selected cache lacks called Protection.tryProtect implementation; no complete authority chain",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_ref": {
+        "source_key": "ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/mixin/entity/PlayerProtectionEffectMixin.java",
+        "method": "isInvulnerable_SpellEngine",
+        "lines": [
+          14,
+          20
+        ],
+        "url": "https://github.com/ZsoltMolnarrr/SpellEngine/blob/42dc472183d8c139e741961eefda05eddc7630f8/common/src/main/java/net/spell_engine/mixin/entity/PlayerProtectionEffectMixin.java#L14-L20",
+        "file_sha256": "27fd6ff83d0075c3f9403ccf531e16412b4c81e36ff17f9741418d9b7ac7c8c8",
+        "excerpt_sha256": "756cba6e11fc0c936217090ef365c59b1993bc8e3f6dafc6a0354511c0dfc697",
+        "normalized_excerpt_sha256": "e979c8d855456be30ff86ca5c6923729e5a5a491ea095fabfa7953588ad5ad17",
+        "excerpt": "    private void isInvulnerable_SpellEngine(DamageSource damageSource, CallbackInfoReturnable<Boolean> cir) {\n        // Check if the player has a protection effect\n        if (Protection.tryProtect((PlayerEntity) (Object) this, damageSource)) {\n            cir.setReturnValue(true);\n            cir.cancel();\n        }\n    }\n"
+      }
+    },
+    {
+      "reason": "selected cache lacks EntityActionsAllowed.isImpaired; attack HEAD interception alone does not prove effect decision",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_ref": {
+        "source_key": "ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/mixin/action_impair/PlayerEntityActionImpairing.java",
+        "method": "attack_HEAD_SpellEngine",
+        "lines": [
+          14,
+          19
+        ],
+        "url": "https://github.com/ZsoltMolnarrr/SpellEngine/blob/42dc472183d8c139e741961eefda05eddc7630f8/common/src/main/java/net/spell_engine/mixin/action_impair/PlayerEntityActionImpairing.java#L14-L19",
+        "file_sha256": "aba042595e425b57109b53f6b7a72f25954d5f27b09864c26480b755e2619709",
+        "excerpt_sha256": "5ea4eb40234c9d2d11076bcc7b1e930fe3abaa9a45c724de32f71add9e7cc2ce",
+        "normalized_excerpt_sha256": "ba8595a24a3f0694271e7315d719114e7a2b6c022ba7f44fd76f937885ff9e99",
+        "excerpt": "    private void attack_HEAD_SpellEngine(Entity target, CallbackInfo ci) {\n        if (EntityActionsAllowed.isImpaired((PlayerEntity) ((Object) this),\n                EntityActionsAllowed.Player.ATTACK)) {\n            ci.cancel();\n        }\n    }\n"
+      }
+    },
+    {
+      "reason": "selected cache lacks EntityActionsAllowed.isImpaired; subsequent SpellChoices branch can replace FAIL with SUCCESS after cancellation (no explicit return)",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_ref": {
+        "source_key": "ZsoltMolnarrr__SpellEngine/common/src/main/java/net/spell_engine/mixin/action_impair/ServerPlayerInteractionManagerMixin.java",
+        "method": "interactItem_HEAD_SpellEngine",
+        "lines": [
+          23,
+          37
+        ],
+        "url": "https://github.com/ZsoltMolnarrr/SpellEngine/blob/42dc472183d8c139e741961eefda05eddc7630f8/common/src/main/java/net/spell_engine/mixin/action_impair/ServerPlayerInteractionManagerMixin.java#L23-L37",
+        "file_sha256": "e4fe8fa5c0b7ce5647b2f6fa7444d2ab23e8a010855549fb9e74ffa9001aa329",
+        "excerpt_sha256": "34b115d6d944f58607d9b14abe9234ec51cec03dc52ba72d157db5ee152e3ecc",
+        "normalized_excerpt_sha256": "3ccd9b71a8f5029d6f91a41af36876e1fd1069fb63342f7dd92e38ca17de5d07",
+        "excerpt": "    private void interactItem_HEAD_SpellEngine(ServerPlayerEntity player, World world, ItemStack stack, Hand hand, CallbackInfoReturnable<ActionResult> cir) {\n        if (EntityActionsAllowed.isImpaired(player, EntityActionsAllowed.Player.ITEM_USE)) {\n            cir.setReturnValue(ActionResult.FAIL);\n            cir.cancel();\n        }\n        if (SpellChoices.from(stack) != null) {\n            player.openHandledScreen(new SimpleNamedScreenHandlerFactory(\n                    (syncId, inventory, playerEntity) ->\n                            new SpellChoiceScreenHandler(syncId, stack, inventory, ScreenHandlerContext.create(world, player.getBlockPos())),\n                    Text.translatable(\"spell.tooltip.choice.list.spell\")\n            ));\n            cir.setReturnValue(ActionResult.SUCCESS);\n            cir.cancel();\n        }\n    }\n"
+      }
+    }
+  ]
+}

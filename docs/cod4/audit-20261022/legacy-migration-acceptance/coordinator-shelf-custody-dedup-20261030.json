@@ -1,0 +1,217 @@
+{
+  "at_utc": "2026-10-30T15:59:09.848628+00:00",
+  "candidate_id": "50c2e32e75b35b7657e8",
+  "decision": "DUPLICATE_PORTABLE_PHYSICAL_CONTAINER_CUSTODY_ZERO_CREDIT",
+  "repo": "Lothrazar/Cyclic",
+  "commit": "b2213600474fa088702dec68a783549e44dfa6ae",
+  "tree": "tools/cod4/immune-feedback-research/sources/Lothrazar__Cyclic/tree.json",
+  "tree_sha256": "7f7e679eef46210b3b1dd33cd0f7ee22805d0f5030d0608f115e454e1e230cda",
+  "files": [
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/block/enderitemshelf/TileItemShelf.java",
+      "upstream_path": "src/main/java/com/lothrazar/cyclic/block/enderitemshelf/TileItemShelf.java",
+      "sha256": "ae365be8e8f6ece589583088397ff8fe0752b311faab79229cf4d18e5534d93d",
+      "git_blob_sha1": "ee992ec6fadf5c1887fdce9464f39f10dc24fc1d",
+      "read_ranges": [
+        [
+          1,
+          67
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 67,
+          "text": "package com.lothrazar.cyclic.block.enderitemshelf;\n\nimport com.lothrazar.cyclic.block.TileBlockEntityCyclic;\nimport com.lothrazar.cyclic.block.endershelf.EnderShelfItemHandler;\nimport com.lothrazar.cyclic.block.endershelf.TileEnderShelf.RenderTextType;\nimport com.lothrazar.cyclic.registry.TileRegistry;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.neoforged.neoforge.items.ItemStackHandler;\nimport net.minecraft.core.Direction;\nimport net.neoforged.neoforge.items.IItemHandler;\n\n\npublic class TileItemShelf extends TileBlockEntityCyclic {\n\n  public final ItemStackHandler inventory = new ClientAutoSyncItemHandler(this, EnderShelfItemHandler.ROWS);\n\n  public RenderTextType renderStyle = RenderTextType.STACK;\n\n  public TileItemShelf(BlockPos pos, BlockState state) {\n    super(TileRegistry.SHELF.get(), pos, state);\n    this.needsRedstone = 0;\n  }\n\n\n  @Override\n  public void setField(int field, int value) {}\n\n  @Override\n  public int getField(int field) {\n    return 0;\n  }\n\n\n  @Override\n  public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {\n    inventory.deserializeNBT(registries,tag.getCompound(NBTINV));\n    if (tag.contains(\"RenderTextType\")) {\n      int rt = tag.getInt(\"RenderTextType\");\n      this.renderStyle = RenderTextType.values()[rt];\n    }\n    super.loadAdditional(tag,registries);\n  }\n\n  @Override\n  public void saveAdditional(CompoundTag tag,HolderLookup.Provider registries) {\n    tag.put(NBTINV, inventory.serializeNBT(registries));\n    tag.putInt(\"RenderTextType\", this.renderStyle.ordinal());\n    super.saveAdditional(tag,registries);\n  }\n\n  public void toggleShowText() {\n    int ord = renderStyle.ordinal() + 1;\n    if (ord == RenderTextType.values().length) {\n      ord = 0;\n    }\n    this.renderStyle = RenderTextType.values()[ord];\n  }\n\n  @Override\n  public IItemHandler getItemHandler(Direction side) {\n    return inventory;\n  }\n\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/block/enderitemshelf/BlockItemShelf.java",
+      "upstream_path": "src/main/java/com/lothrazar/cyclic/block/enderitemshelf/BlockItemShelf.java",
+      "sha256": "79a6312db670e5ad6517fe78888ab4fdf6bdf8ee45d9b509be764c1430bfe679",
+      "git_blob_sha1": "e76bfb917f667a732a73f0c6a46766d7face5852",
+      "read_ranges": [
+        [
+          1,
+          171
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 171,
+          "text": "package com.lothrazar.cyclic.block.enderitemshelf;\n\nimport java.util.ArrayList;\nimport java.util.List;\nimport com.lothrazar.cyclic.block.BlockCyclic;\nimport com.lothrazar.cyclic.block.endershelf.BlockEnderShelf;\nimport com.lothrazar.cyclic.data.DataTags;\nimport com.lothrazar.cyclic.util.CapabilityUtil;\nimport com.lothrazar.cyclic.registry.SoundRegistry;\nimport net.neoforged.neoforge.items.IItemHandler;\nimport net.neoforged.neoforge.items.ItemStackHandler;\nimport com.lothrazar.library.util.BlockstatesUtil;\nimport com.lothrazar.library.util.ItemStackUtil;\nimport com.lothrazar.library.util.SoundUtil;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.inventory.AbstractContainerMenu;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.StateDefinition;\nimport net.minecraft.world.level.block.state.properties.BlockStateProperties;\nimport net.minecraft.world.level.storage.loot.LootParams;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.Vec3;\n\npublic class BlockItemShelf extends BlockCyclic {\n\n  public BlockItemShelf(Properties properties) {\n    super(properties.strength(0.8F).noOcclusion());\n  }\n\n  @Override\n  public boolean hasAnalogOutputSignal(BlockState bs) {\n    return true;\n  }\n\n  @Override\n  public int getAnalogOutputSignal(BlockState st, Level level, BlockPos pos) {\n    return AbstractContainerMenu.getRedstoneSignalFromBlockEntity(level.getBlockEntity(pos));\n  }\n\n  @Override\n  protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {\n    builder.add(BlockStateProperties.HORIZONTAL_FACING);\n  }\n\n  @Override\n  public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {\n    return new TileItemShelf(pos, state);\n  }\n\n  @Override\n  public void onRemove(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving) {\n\n    if (!state.is(newState.getBlock())) {\n      worldIn.removeBlockEntity(pos);\n    }\n  }\n\n  @Override\n  public InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {\n    ItemStack heldItem = player.getMainHandItem();\n    TileItemShelf shelf = getTileEntity(world, pos);\n    if (heldItem.is(DataTags.WRENCH)) {\n      //wrench tag\n      shelf.toggleShowText();\n      player.swing(InteractionHand.MAIN_HAND);\n      return InteractionResult.PASS;\n    }\n    Direction face = hit.getDirection();\n    Vec3 hitVec = hit.getLocation();\n    int slot = BlockEnderShelf.getSlotFromHitVec(pos, face, hitVec);\n    if (hit.getDirection() == state.getValue(BlockStateProperties.HORIZONTAL_FACING)) {\n      //\n      // single shelf\n      ItemStack shelfStack = shelf.inventory.getStackInSlot(slot);\n      //first , check if deposit spot is empty\n      if (shelfStack.isEmpty() || heldItem.getItem() == shelfStack.getItem()) {\n        //try to insert  \n        boolean oldEmpty = shelfStack.isEmpty();\n        ItemStack remaining = shelf.inventory.insertItem(slot, heldItem, false);\n        shelf.updateComparatorOutputLevel();\n        if (remaining.isEmpty() || remaining.getCount() != shelfStack.getCount()) {\n          player.setItemInHand(InteractionHand.MAIN_HAND, remaining);\n          player.swing(InteractionHand.MAIN_HAND);\n          SoundUtil.playSound(player, SoundRegistry.CRACKLE.get(), oldEmpty ? 0.3F : 0.1F, 0.3F);\n\n          return InteractionResult.CONSUME;\n        }\n      }\n      if (heldItem.isEmpty()) {\n        //withdraw direct to players empty hand\n        int q = player.isCrouching() ? 1 : 64;\n        ItemStack retrieved = shelf.inventory.extractItem(slot, q, false);\n        player.setItemInHand(InteractionHand.MAIN_HAND, retrieved);\n        player.swing(InteractionHand.MAIN_HAND);\n        shelf.updateComparatorOutputLevel();\n      }\n      if (!shelfStack.isEmpty() && !heldItem.isEmpty()) {\n        //\n        ItemStack forShelf = heldItem.copy();\n        //        ItemStack forPlayer = shelfStack.copy();\n        //extract all from shelf\n        ItemStack forPlayer = shelf.inventory.extractItem(slot, 64, false);\n        player.setItemInHand(InteractionHand.MAIN_HAND, forPlayer);\n        player.swing(InteractionHand.MAIN_HAND);\n        shelf.inventory.insertItem(slot, forShelf, false);\n        shelf.updateComparatorOutputLevel();\n      }\n      return InteractionResult.SUCCESS;\n    }\n    return InteractionResult.PASS;\n  }\n\n  public TileItemShelf getTileEntity(Level world, BlockPos pos) {\n    return (TileItemShelf) world.getBlockEntity(pos);\n  }\n\n  @Override\n  public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {\n    // because harvestBlock manually forces a drop, we must do this to dodge that0\n    return new ArrayList<>();\n  }\n\n  @Override\n  public void setPlacedBy(Level world, BlockPos pos, BlockState state, LivingEntity entity, ItemStack stack) {\n    if (entity != null) {\n      //facing state if needed\n      world.setBlock(pos, state.setValue(BlockStateProperties.HORIZONTAL_FACING, BlockstatesUtil.getFacingFromEntityHorizontal(pos, entity)), 2);\n    }\n    BlockEntity tileentity = world.getBlockEntity(pos);\n    if (!(tileentity instanceof TileItemShelf shelf)) {\n      return;\n    }\n    //pull inventory from the item's capability (which loads from CUSTOM_DATA) into the tile\n    IItemHandler stackInv = CapabilityUtil.item(stack);\n    if (stackInv != null) {\n      int slots = Math.min(stackInv.getSlots(), shelf.inventory.getSlots());\n      for (int i = 0; i < slots; i++) {\n        shelf.inventory.setStackInSlot(i, stackInv.getStackInSlot(i).copy());\n      }\n    }\n  }\n\n  @Override\n  public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, BlockEntity tileentity, ItemStack stackToolUsed) {\n    super.playerDestroy(world, player, pos, state, tileentity, stackToolUsed);\n    ItemStack newStack = new ItemStack(this);\n    if (tileentity instanceof TileItemShelf shelf) {\n      //write the tile's inventory into the dropped item's capability (which persists into CUSTOM_DATA)\n      IItemHandler stackInv = CapabilityUtil.item(newStack);\n      if (stackInv instanceof ItemStackHandler sh) {\n        int slots = Math.min(sh.getSlots(), shelf.inventory.getSlots());\n        for (int i = 0; i < slots; i++) {\n          sh.setStackInSlot(i, shelf.inventory.getStackInSlot(i).copy());\n        }\n      }\n      CompoundTag tileData = shelf.inventory.serializeNBT(world.registryAccess());\n      // newStack.setTag(tileData); // disabled: use DataComponents in 1.21.1\n    }\n    ItemStackUtil.dropItemStackMotionless(world, pos, newStack);\n  }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/block/enderitemshelf/ClientAutoSyncItemHandler.java",
+      "upstream_path": "src/main/java/com/lothrazar/cyclic/block/enderitemshelf/ClientAutoSyncItemHandler.java",
+      "sha256": "3bd6203749e2e85cedd5fd1cd0038cc5bc50e859ebfcda3cab5b370de815fa6e",
+      "git_blob_sha1": "bb1a71b9316626b7a663b006b995c3a5578450fc",
+      "read_ranges": [
+        [
+          1,
+          50
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 50,
+          "text": "package com.lothrazar.cyclic.block.enderitemshelf;\n\nimport com.lothrazar.cyclic.net.PacketTileInventoryToClient;\nimport com.lothrazar.cyclic.net.PacketTileInventoryToClient.SyncPacketType;\nimport com.lothrazar.cyclic.registry.PacketRegistry;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.neoforged.neoforge.items.ItemStackHandler;\n\npublic class ClientAutoSyncItemHandler extends ItemStackHandler {\n\n  private BlockEntity shelf;\n\n  public ClientAutoSyncItemHandler(BlockEntity shelf, int rows) {\n    super(rows);\n    this.shelf = shelf;\n  }\n\n  public ItemStack emptySlot(int slot) {\n    ItemStack returnStack = this.getStackInSlot(slot);\n    this.stacks.set(slot, ItemStack.EMPTY);\n    return returnStack;\n  }\n\n  @Override\n  public ItemStack extractItem(int slot, int amount, boolean simulate) {\n    ItemStack extracted = super.extractItem(slot, amount, simulate);\n    if (!simulate) {\n      PacketRegistry.sendToAllClients(shelf.getLevel(), new PacketTileInventoryToClient(shelf.getBlockPos(), slot, getStackInSlot(slot), SyncPacketType.SET));\n    }\n    return extracted;\n  }\n\n  @Override\n  public int getStackLimit(int slot, ItemStack stack) {\n    return Math.min(getSlotLimit(slot), stack.getMaxStackSize());\n  }\n\n  @Override\n  public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {\n    if (!this.isItemValid(slot, stack)) {\n      return stack; // not valid\n    }\n    ItemStack remaining = super.insertItem(slot, stack, simulate);\n    if (!simulate) {\n      PacketRegistry.sendToAllClients(shelf.getLevel(), new PacketTileInventoryToClient(shelf.getBlockPos(), slot, getStackInSlot(slot), SyncPacketType.SET));\n    }\n    return remaining;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/capabilities/item/ItemInventoryCap.java",
+      "upstream_path": "src/main/java/com/lothrazar/cyclic/capabilities/item/ItemInventoryCap.java",
+      "sha256": "bfaa3afd35878d69d533c3788fdc9e2c498c78ba097b837774e479b2da120d69",
+      "git_blob_sha1": "31837bc270b63a1e18d4b9bb5f261a0b46e14c87",
+      "read_ranges": [
+        [
+          1,
+          42
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 42,
+          "text": "package com.lothrazar.cyclic.capabilities.item;\n\nimport com.lothrazar.cyclic.util.RegistryHolder;\nimport net.minecraft.core.component.DataComponents;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.component.CustomData;\nimport net.neoforged.neoforge.items.ItemStackHandler;\n\n/**\n * Item-level inventory capability backed by the host stack's CUSTOM_DATA component.\n * Reads/writes the full ItemStackHandler NBT under the \"inventory\" key so contents\n * persist across place/break cycles.\n */\npublic class ItemInventoryCap extends ItemStackHandler {\n\n  private static final String KEY = \"inventory\";\n  private final ItemStack host;\n\n  public ItemInventoryCap(ItemStack host, int slots) {\n    super(slots);\n    this.host = host;\n    var registries = RegistryHolder.get();\n    if (registries != null) {\n      CompoundTag data = host.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();\n      if (data.contains(KEY)) {\n        deserializeNBT(registries, data.getCompound(KEY));\n      }\n    }\n  }\n\n  @Override\n  protected void onContentsChanged(int slot) {\n    var registries = RegistryHolder.get();\n    if (registries == null) {\n      return;\n    }\n    CompoundTag data = host.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();\n    data.put(KEY, serializeNBT(registries));\n    host.set(DataComponents.CUSTOM_DATA, CustomData.of(data));\n  }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/net/PacketTileInventoryToClient.java",
+      "upstream_path": "src/main/java/com/lothrazar/cyclic/net/PacketTileInventoryToClient.java",
+      "sha256": "7b8cce15eed8e1782612578acaca250858016074ac8af9e13609d074b6ee8214",
+      "git_blob_sha1": "2f4f3796d63bb67ef26f1ecea4f630948d6eeb75",
+      "read_ranges": [
+        [
+          1,
+          62
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 62,
+          "text": "package com.lothrazar.cyclic.net;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.network.RegistryFriendlyByteBuf;\nimport net.minecraft.network.codec.StreamCodec;\nimport net.minecraft.network.protocol.common.custom.CustomPacketPayload;\nimport net.minecraft.resources.ResourceLocation;\nimport net.neoforged.neoforge.network.handling.IPayloadContext;\nimport com.lothrazar.cyclic.ModCyclic;\n\npublic class PacketTileInventoryToClient implements CustomPacketPayload {\n\n  public static final CustomPacketPayload.Type<PacketTileInventoryToClient> TYPE = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ModCyclic.MODID, \"packet_tile_inventory_to_client\"));\n\n  public static final StreamCodec<RegistryFriendlyByteBuf, PacketTileInventoryToClient> STREAM_CODEC = StreamCodec.of(PacketTileInventoryToClient::encode, PacketTileInventoryToClient::decode);\n\n\n  @Override\n  public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {\n    return TYPE;\n  }\n\n\n  BlockPos blockPos;\n  int slot;\n  ItemStack itemStack;\n  SyncPacketType type;\n\n  public static enum SyncPacketType {\n    CHANGE, SET\n  }\n\n  public PacketTileInventoryToClient(BlockPos blockPos, int slot, ItemStack itemStack, SyncPacketType type) {\n    this.blockPos = blockPos;\n    this.slot = slot;\n    this.itemStack = itemStack;\n    this.type = type;\n  }\n\n  public PacketTileInventoryToClient() {}\n\n  public static void handle(PacketTileInventoryToClient message, IPayloadContext ctx) {\n    ctx.enqueueWork(() -> ClientNetHandlers.handleTileInventory(message));\n  }\n\n  public static PacketTileInventoryToClient decode(RegistryFriendlyByteBuf buf) {\n    PacketTileInventoryToClient p = new PacketTileInventoryToClient();\n    p.blockPos = buf.readBlockPos();\n    p.slot = buf.readInt();\n    p.itemStack = ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);\n    p.type = buf.readEnum(SyncPacketType.class);\n    return p;\n  }\n\n  public static void encode(RegistryFriendlyByteBuf buf, PacketTileInventoryToClient msg) {\n    buf.writeBlockPos(msg.blockPos);\n    buf.writeInt(msg.slot);\n    ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, msg.itemStack);\n    buf.writeEnum(msg.type);\n  }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/net/ClientNetHandlers.java",
+      "upstream_path": "src/main/java/com/lothrazar/cyclic/net/ClientNetHandlers.java",
+      "sha256": "739d832205eec5fecf94469d4b83b6a28c3240af8c22103ff850d78e764fc35c",
+      "git_blob_sha1": "b4abb74af44962f915b23d535699fda808352f1f",
+      "read_ranges": [
+        [
+          1,
+          40
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 40,
+          "text": "package com.lothrazar.cyclic.net;\n\nimport com.lothrazar.cyclic.block.enderitemshelf.ClientAutoSyncItemHandler;\nimport com.lothrazar.cyclic.block.endershelf.EnderShelfItemHandler;\nimport com.lothrazar.cyclic.util.CapabilityUtil;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.world.item.ItemStack;\npublic final class ClientNetHandlers {\n\n  private ClientNetHandlers() {}\n\n  public static void handleTileInventory(PacketTileInventoryToClient message) {\n    if (Minecraft.getInstance().level == null) {\n      return;\n    }\n    var item = CapabilityUtil.item(Minecraft.getInstance().level, message.blockPos);\n    if (item != null) {\n      if (message.type == PacketTileInventoryToClient.SyncPacketType.SET) {\n        if (item instanceof EnderShelfItemHandler es) {\n          ItemStack extracted = es.emptySlot(message.slot);\n        }\n        else if (item instanceof ClientAutoSyncItemHandler cas) {\n          ItemStack extracted = cas.emptySlot(message.slot);\n        }\n        else {\n          item.extractItem(message.slot, 64, false);\n        }\n      }\n      item.insertItem(message.slot, message.itemStack, false);\n    }\n  }\n\n  public static void handlePlayerSync(PacketPlayerSyncToClient message) {\n    Minecraft.getInstance().player.getAbilities().mayfly = message.mayfly;\n    if (!message.mayfly) {\n      Minecraft.getInstance().player.getAbilities().flying = false;\n    }\n  }\n\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/util/RegistryHolder.java",
+      "upstream_path": "src/main/java/com/lothrazar/cyclic/util/RegistryHolder.java",
+      "sha256": "b9d10bb03e332655c799b46f8db57206d0fa59c427aef3603bfe24103581dc51",
+      "git_blob_sha1": "53c20ed766b01d557d5d641520805eda14a2788b",
+      "read_ranges": [
+        [
+          1,
+          32
+        ]
+      ],
+      "complete_file_read": true,
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 32,
+          "text": "package com.lothrazar.cyclic.util;\n\nimport java.util.function.Supplier;\nimport net.minecraft.core.HolderLookup;\nimport net.neoforged.neoforge.server.ServerLifecycleHooks;\n\n/**\n *\n * Client setup populates {@link #CLIENT_LOOKUP} via FMLClientSetupEvent so this class\n * never directly references any client-only types, keeping it safe to load on dedicated server.\n */\npublic class RegistryHolder {\n\n  // Set by the client during FMLClientSetupEvent. Returns null on server.\n  public static volatile Supplier<HolderLookup.Provider> CLIENT_LOOKUP = () -> null;\n\n\n  /**\n   *\n   * Provides a HolderLookup.Provider that works on both sides:\n   *   - Server: ServerLifecycleHooks.getCurrentServer().registryAccess()\n   *   - Client (including dedicated-server clients): supplied by a client-side init hook\n   */\n  public static HolderLookup.Provider get() {\n    var server = ServerLifecycleHooks.getCurrentServer();\n    if (server != null) {\n      return server.registryAccess();\n    }\n    return CLIENT_LOOKUP.get();\n  }\n\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/registry/CapabilityRegistry.java",
+      "upstream_path": "src/main/java/com/lothrazar/cyclic/registry/CapabilityRegistry.java",
+      "sha256": "4781a04b082ee780b3f8cb49d31808190d1331dc1f5926cb288d5a1538c39f18",
+      "git_blob_sha1": "6de7729e29735190e95375f2894adcb56f157a00",
+      "read_ranges": [
+        [
+          145,
+          166
+        ]
+      ],
+      "complete_file_read": false,
+      "excerpts": [
+        {
+          "start": 145,
+          "end": 166,
+          "text": "        event.registerItem(Capabilities.FluidHandler.ITEM,\n            (stack, ctx) -> new ItemFluidCap(stack, TileTank.CAPACITY),\n            ItemRegistry.TANK.get());\n        event.registerItem(Capabilities.FluidHandler.ITEM,\n            (stack, ctx) -> new ItemFluidCap(stack, TileCask.CAPACITY),\n            ItemRegistry.CASK.get());\n        event.registerItem(Capabilities.FluidHandler.ITEM,\n            (stack, ctx) -> new ItemFluidCap(stack, TileExpPylon.CAPACITY),\n            ItemRegistry.EXPERIENCE_PYLON.get());\n        // Inventory on BlockItem\n        // Note: ender shelf uses a bespoke handler with extra serialized state (book caches, etc)\n        // and persists its full handler NBT directly into CUSTOM_DATA via the block's\n        // setPlacedBy/playerDestroy, so it doesn't get an item-level cap.\n        event.registerItem(Capabilities.ItemHandler.ITEM,\n            (stack, ctx) -> new ItemInventoryCap(stack, 9 * 9),\n            ItemRegistry.CRATE.get());\n        event.registerItem(Capabilities.ItemHandler.ITEM,\n            (stack, ctx) -> new ItemInventoryCap(stack, EnderShelfItemHandler.ROWS),\n            ItemRegistry.SHELF.get());\n    }\n}"
+        }
+      ]
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/Lothrazar__Cyclic/src/main/java/com/lothrazar/cyclic/block/TileBlockEntityCyclic.java",
+      "upstream_path": "src/main/java/com/lothrazar/cyclic/block/TileBlockEntityCyclic.java",
+      "sha256": "4d7bbe8fea9331629bde7a96ac7684708c6aae18f32e2aa78ad9e0911307f8c3",
+      "git_blob_sha1": "29a32401deb9663aa82f2c97a4cf634840bfe860",
+      "read_ranges": [
+        [
+          493,
+          508
+        ],
+        [
+          679,
+          686
+        ]
+      ],
+      "complete_file_read": false,
+      "excerpts": [
+        {
+          "start": 493,
+          "end": 508,
+          "text": "  public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {\n    flowing = tag.getInt(\"flowing\");\n    needsRedstone = tag.getInt(\"needsRedstone\");\n    render = tag.getInt(\"renderParticles\");\n    timer = tag.getInt(\"timer\");\n    super.loadAdditional(tag,registries);\n  }\n\n  @Override\n  public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {\n    tag.putInt(\"flowing\", flowing);\n    tag.putInt(\"needsRedstone\", needsRedstone);\n    tag.putInt(\"renderParticles\", render);\n    tag.putInt(\"timer\", timer);\n    super.saveAdditional(tag,registries);\n  }"
+        },
+        {
+          "start": 679,
+          "end": 686,
+          "text": "  public void updateComparatorOutputLevel() {\n    //was updateComparatorOutputLevel()\n    level.updateNeighbourForOutputSignal(worldPosition, this.getBlockState().getBlock());\n  }\n\n  public void updateComparatorOutputLevelAt(BlockPos target) {\n    level.updateNeighbourForOutputSignal(target, level.getBlockState(target).getBlock());\n  }"
+        }
+      ]
+    }
+  ],
+  "compared_accepted_candidate": "faead9d43a623669c5dd",
+  "semantic_reason": "Full shelf transfer is physical slots serialized to a carried block item then restored at placement, already represented by portable shulker custody family. Different component/key names, row count, display enum and client SET packet do not justify another semantic mechanism. No distinct old-format conversion, schema conflict handling or overflow escrow was found in reviewed chain.",
+  "actual_observations": [
+    "Tile inv reader/writer delegates ItemStackHandler and independently stores unchecked RenderTextType ordinal. Block item uses ItemInventoryCap CUSTOM_DATA.inventory, not tile inv key.",
+    "playerDestroy copies min(source,target) slots into new item capability; setPlacedBy copies min slots back. No overflow recovery, no transfer of renderStyle or whole tile metadata. Copies actual ItemStacks, no minting via quest reward.",
+    "ItemInventoryCap constructor and onContentsChanged use RegistryHolder; absent registry returns without hydrate/save. Updates copy existing CUSTOM_DATA before replacing inventory key.",
+    "AutoSync handler insert/extract sends SET, emptySlot bypasses notify; client consumer clears slot before insertion. This is display sync, not another durable ownership migration.",
+    "Shelf local onContentsChanged does not override native no-op here; comparator helper only notifies neighbours. No claim persistence dirty scheduling is proven."
+  ],
+  "limits": [
+    "Native NeoForge ItemStackHandler codec not available in same fixed cache; do not claim full nested component decoding or malformed payload behavior.",
+    "No runtime, native acceptance, actual data loss reproduction or Dynasty production change.",
+    "Sources already read last heartbeat do not receive fresh reading credit; this receipt closes pending semantic classification only."
+  ],
+  "accepted_reference_credit_added": 0,
+  "production_changes": 0,
+  "game_starts": 0
+}

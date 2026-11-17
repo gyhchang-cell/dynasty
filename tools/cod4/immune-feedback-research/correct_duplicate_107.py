@@ -1,0 +1,6 @@
+"""Cross-ledger review retracts a repeated chain; supporting reread keeps zero credit."""
+from ledger import O,verify
+import json
+p=O/'reviewed.json';rows=json.loads(p.read_text());key='cyclic-native-laser-client-render-time-gate-and-server-hit-settlement-validation';old='cyclic-native-render-produced-laser-server-target-validation';x=next(r for r in rows if r['id']==key);x['research_credit']=0;x['status']='merged_existing_chain';x['merged_into']=old;x['reason']='Same fixed source, producer, request validation and settlement as existing batch; newly read full capability/helper does not create a new native implementation.'
+(O/'DEDUP-CORRECTION-107.json').write_text(json.dumps(x,ensure_ascii=False,indent=2)+'\n');rows=[r for r in rows if r['id']!=key];p.write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n')
+p=O/'semantic-dedup.json';d=json.loads(p.read_text());g=next(g for g in d['groups'] if g['family'].startswith('batch107-'));g['credited_chains'].remove(key);g['merged_zero_credit']={key:old};g['rationale']+=' Cross-ledger correction: Laser was already counted; retracted credit, full capability reread support only.';p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n');verify()

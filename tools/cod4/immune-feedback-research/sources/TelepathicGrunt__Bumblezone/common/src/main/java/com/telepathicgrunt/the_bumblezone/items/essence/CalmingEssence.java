@@ -1,0 +1,134 @@
+package com.telepathicgrunt.the_bumblezone.items.essence;
+
+import com.telepathicgrunt.the_bumblezone.configs.BzGeneralConfigs;
+import com.telepathicgrunt.the_bumblezone.events.entity.BzEntityHurtEvent;
+import com.telepathicgrunt.the_bumblezone.modinit.BzDataComponents;
+import com.telepathicgrunt.the_bumblezone.modinit.BzEffects;
+import com.telepathicgrunt.the_bumblezone.modinit.BzItems;
+import com.telepathicgrunt.the_bumblezone.modinit.BzParticles;
+import com.telepathicgrunt.the_bumblezone.modinit.BzTags;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.Stats;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.monster.warden.Warden;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+public class CalmingEssence extends AbilityEssenceItem {
+
+    private static final Supplier<Integer> cooldownLengthInTicks = () -> BzGeneralConfigs.calmingEssenceCooldown;
+    private static final Supplier<Integer> abilityUseAmount = () -> BzGeneralConfigs.calmingEssenceAbilityUse;
+
+    public CalmingEssence(Properties properties) {
+        super(properties, cooldownLengthInTicks, abilityUseAmount);
+    }
+
+    @Override
+    public int getColor() {
+        return 0x00ADED;
+    }
+
+    @Override
+    void addDescriptionComponents(Consumer<Component> components) {
+        components.accept(Component.translatable("item.the_bumblezone.essence_calming_description_1").withStyle(ChatFormatting.BLUE).withStyle(ChatFormatting.ITALIC));
+        components.accept(Component.translatable("item.the_bumblezone.essence_calming_description_2").withStyle(ChatFormatting.BLUE).withStyle(ChatFormatting.ITALIC));
+        components.accept(Component.translatable("item.the_bumblezone.essence_calming_description_3").withStyle(ChatFormatting.BLUE).withStyle(ChatFormatting.ITALIC));
+    }
+
+    @Override
+    public void applyAbilityEffects(ItemStack itemStack, Level level, ServerPlayer serverPlayer) {
+        if (itemStack.get(BzDataComponents.ABILITY_ESSENCE_ACTIVITY_DATA.get()).isActive()) {
+            if (((long)serverPlayer.tickCount + serverPlayer.getUUID().getLeastSignificantBits()) % 12L == 0) {
+                spawnParticles(serverPlayer.level(), serverPlayer.position(), serverPlayer.getRandom());
+            }
+
+            if (((long)serverPlayer.tickCount + serverPlayer.getUUID().getLeastSignificantBits()) % 20L == 0) {
+                serverPlayer.getStats().setValue(serverPlayer, Stats.CUSTOM.get(Stats.TIME_SINCE_REST), 0);
+
+                for (Entity entity : level.getEntities(serverPlayer, serverPlayer.getBoundingBox().inflate(60))) {
+                    if (entity.is(BzTags.CALMING_ALLOW_ANGER_THROUGH)) {
+                        continue;
+                    }
+
+                    if (entity instanceof Mob mob && mob.getTarget() == serverPlayer) {
+                        mob.setTarget(null);
+                    }
+
+                    if (entity instanceof NeutralMob neutralMob && neutralMob.getPersistentAngerTarget() != null && neutralMob.getPersistentAngerTarget().getUUID() == serverPlayer.getUUID()) {
+                        neutralMob.stopBeingAngry();
+                    }
+
+                    if (entity instanceof Warden warden && warden.getAngerManagement().getActiveEntity().orElse(null) == serverPlayer) {
+                        warden.clearAnger(serverPlayer);
+                    }
+                }
+
+                if (serverPlayer.removeEffect(BzEffects.WRATH_OF_THE_HIVE.holder())) {
+                    decrementAbilityUseRemaining(itemStack, serverPlayer, getAbilityUseRemaining(itemStack));
+                }
+                else if (serverPlayer.isSprinting()) {
+                    decrementAbilityUseRemaining(itemStack, serverPlayer, 60);
+                }
+                else {
+                    decrementAbilityUseRemaining(itemStack, serverPlayer, 1);
+                }
+            }
+        }
+    }
+
+    private void depleteEssence(ItemStack stack, ServerPlayer serverPlayer) {
+        setAbilityUseRemaining(stack, 0);
+        setDepleted(stack, serverPlayer, false);
+    }
+
+    public static boolean IsCalmingEssenceActive(Player player) {
+        if (player != null) {
+            ItemStack offHandItem = player.getOffhandItem();
+            return offHandItem.is(BzItems.ESSENCE_CALMING.get()) && offHandItem.get(BzDataComponents.ABILITY_ESSENCE_ACTIVITY_DATA.get()).isActive();
+        }
+        return false;
+    }
+
+    public static void OnAttack(BzEntityHurtEvent event) {
+        DamageSource damageSource = event.source();
+        LivingEntity livingEntity = event.entity();
+        if (livingEntity instanceof Mob && damageSource.getEntity() instanceof ServerPlayer serverPlayer) {
+            ItemStack offHandItem = serverPlayer.getOffhandItem();
+            if (offHandItem.getItem() instanceof CalmingEssence calmingEssence && IsCalmingEssenceActive(serverPlayer)) {
+                calmingEssence.depleteEssence(offHandItem, serverPlayer);
+            }
+        }
+        else if (livingEntity instanceof ServerPlayer serverPlayer && damageSource.getEntity() instanceof Mob) {
+            ItemStack offHandItem = serverPlayer.getOffhandItem();
+            if (offHandItem.getItem() instanceof CalmingEssence calmingEssence && IsCalmingEssenceActive(serverPlayer)) {
+                calmingEssence.depleteEssence(offHandItem, serverPlayer);
+            }
+        }
+    }
+
+    public static void spawnParticles(ServerLevel world, Vec3 location, RandomSource random) {
+        world.sendParticles(
+                BzParticles.SPARKLE_PARTICLE.get(),
+                location.x(),
+                location.y() + 1,
+                location.z(),
+                1,
+                random.nextGaussian() * 0.2D,
+                (random.nextGaussian() * 0.25D) + 0.1,
+                random.nextGaussian() * 0.2D,
+                0);
+    }
+}

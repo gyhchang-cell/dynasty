@@ -1,0 +1,52 @@
+// Private native route QA, never added to production sources or release artifacts.
+allprojects { p ->
+    def base = p.file('tools/cod4/journey-acceptance/.work/routes')
+    p.layout.buildDirectory.set(new File(base, 'gradle'))
+    p.afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        p.repositories.flatDir { dirs p.file('modpack/mods') }
+        ['ftb-quests-forge:2001.4.22','ftb-library-forge:2001.2.13',
+         'ftb-teams-forge:2001.3.2','item-filters-forge:2001.1.0-build.59',
+         'architectury:9.2.14-forge','NaturesCompass:1.20.1-1.12.0-forge',
+         'ExplorersCompass:1.20.1-1.4.0-forge'].each { artifact ->
+            p.dependencies.add('runtimeOnly', p.fg.deobf('dynasty_local_qa:' + artifact))
+        }
+        p.sourceSets.main.java.setSrcDirs([new File(base, 'frozen/src/main/java')])
+        p.sourceSets.main.resources.setSrcDirs([new File(base, 'frozen/src/main/resources')])
+        def classes = new File(base, 'gradle/classes/java/main')
+        def mainResources = new File(base, 'gradle/resources/main')
+        p.tasks.named('compileJava').configure { destinationDirectory.set(classes) }
+        p.tasks.named('processResources').configure { destinationDir = mainResources }
+        p.sourceSets.main.output.classesDirs.setFrom(classes)
+        p.sourceSets.main.output.resourcesDir = mainResources
+        def qa = p.sourceSets.create('routeQa') {
+            java.srcDir p.file('tools/cod4/journey-acceptance/java')
+            java.include 'JourneyRouteGameTests.java'
+            java.include 'JourneySupplyGameTests.java'
+            resources.srcDir new File(base, 'qa-resources')
+            compileClasspath += p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+            runtimeClasspath += output + p.sourceSets.main.output + p.sourceSets.main.runtimeClasspath
+        }
+        p.tasks.named(qa.processResourcesTaskName).configure {
+            from(new File(base, 'frozen/src/main/resources/data/dynasty/structures/bow_ritual_test.nbt')) {
+                into 'data/dynasty_journey_routes_qa/structures'
+            }
+        }
+        p.minecraft.runs.gameTestServer {
+            workingDirectory new File(base, p.findProperty('journeyRun'))
+            property 'forge.enabledGameTestNamespaces', 'dynasty_journey_routes_qa'
+            property 'forge.logging.console.level', 'info'
+            property 'dynasty.ftbRewardQa', 'true'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', new File(base, 'gradle/createSrgToMcp/output.srg').absolutePath
+            property 'dynasty.journey.routes.report', new File(base, p.findProperty('journeyRun') + '/native-results.json').absolutePath
+            jvmArgs '-Xmx2G', '-XX:ActiveProcessorCount=2', '-Djava.awt.headless=true'
+            mods { dynasty { source qa } }
+        }
+        p.tasks.matching { it.name == 'runGameTestServer' }.configureEach { dependsOn qa.classesTaskName, 'createSrgToMcp' }
+        p.tasks.matching { it.name == 'downloadAssets' || it.name == 'downloadMCMeta' }.configureEach { onlyIf { false } }
+        def metadata = new File(gradle.gradleUserHomeDir, 'caches/forge_gradle/minecraft_repo/versions/1.20.1/version.json')
+        def target = new File(base, 'gradle/downloadMCMeta/version.json')
+        target.parentFile.mkdirs(); target.bytes = metadata.bytes
+    }
+}

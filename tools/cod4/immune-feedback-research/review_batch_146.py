@@ -1,0 +1,12 @@
+"""Timed native teleport denial: full producer/consumer/expiration chain, one credit."""
+from ledger import O,record,verify
+import json
+p='src/main/java/com/aizistral/enigmaticlegacy/'
+k='enigmatic-native-pre-settlement-teleport-suppression-presence-lease-dual-entry'
+record(k,'Aizistral-Studios/Enigmatic-Legacy',[(p+'EnigmaticLegacy.java',201,244),(p+'items/EnderSlayer.java',1,126),(p+'registries/EnigmaticItems.java',525,525),(p+'handlers/EnigmaticEventHandler.java',551,556),(p+'handlers/EnigmaticEventHandler.java',1016,1266),(p+'handlers/EnigmaticEventHandler.java',2014,2343),(p+'handlers/SuperpositionHandler.java',277,280),(p+'handlers/SuperpositionHandler.java',1322,1324),(p+'mixin/MixinShulker.java',1,26),('src/main/resources/enigmaticlegacy.mixins.json',1,48),(p+'handlers/SuperpositionHandler.java',477,494),(p+'objects/TransientPlayerData.java',132,158)],
+ '真实mod构造Forge注册handler及EnderSlayer item→LivingHurt直接Player且PLAYER_ATTACK、ServerPlayer且Curios cursed ring且当前主手EnderSlayer→EnderMan/Shulker persistent键ELTeleportBlock=400。EnderEntity传送事件只看contains取消；真实MixinShulker.teleportSomewhere HEAD同键存在返回false，配置列入common mixins。LivingTick存活且server、两物种才读int，正值先--，仍正则写回，否则删除。完整包含onEntityHurt/onPlayerTick已读。',
+ '一个在伤害最终结算前刷新、以presence消费且正数tick到期的原生控制禁用租约1。区别PNC完成60tick hack永久资格、TConstruct实际Enderference药水存在、Goety EnderGround命令例外/普遍randomTeleport门：这里两个事件/特定物种底层入口共享实际伤害阶段生产的整数租约。后续伤害取消不撤销该键；HP未损失不能当控制拒绝。正常400正数递减至删除，不凭客户端年龄推断全局wallclock；若外部/存档有0或负键，contains仍拒绝而本tick不清，这仅条件性静态边界，不声称正常生产400必会变成永久0。player目标另施三种item CD和spellstone共享CD是同链上下文0，不为每个item拆数。',
+ 'Boss纹丝不动与免控应以原生最终控制入口拒绝为准，攻击HP结算与控制写入分离；过期/缺失/非正值策略要一致。正式回执需绑定实际原因和目标，不能把传送按钮冷却或固定提示当Boss灰字，普通阴阳体质不加字。',
+ '原生生产/两个消费/存活server tick生命周期和Mixin配置均全文方法阅读。Forge EnderMan引擎派发、Shulker vanilla目标方法与持久数据平台存档实现未新展开，故不证明所有传送路径、跨卸载tick推进、真实reobf装载/跨TCP。producer仅检查当前主手非伤害weapon快照，别推断所有来源拿此剑都阻传送。player共享CD setter/math helpers只支持，不宣称全部主动技能消费者穷尽。无每次拒传送的专用文字、声光或目标级回执节流，未编译/测试/游戏。','native_timed_control_refusal_lifecycle')
+d=json.loads((O/'semantic-dedup.json').read_text());d['groups'].append({'family':'batch146-pre-settlement-integer-teleport-lease','credited_chains':[k],'rationale':'One actual pre-final-damage integer lease and presence-based denial/positive-only expiry policy. Enderman event/Shulker mixin, item cooldown names, helper setters and each tick are merged, not separate credits. Distinct from permanent hack and active-potion gates.'});(O/'semantic-dedup.json').write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+verify()

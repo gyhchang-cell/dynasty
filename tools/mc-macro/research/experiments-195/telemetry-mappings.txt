@@ -1,0 +1,891 @@
+StateAgent inventory telemetry: local vanilla 1.8.9 bytecode evidence
+Date: 2026-10-31
+
+Scope: StateAgent.java plus this explicitly authorized evidence file only.
+Preserved existing uncommitted StateAgent changes (baseline copy in the isolated
+validation directory). No game launch, attachment, server API, root build.sh,
+telemetry/build.sh, or distribution replacement performed by this task.
+
+Authoritative input:
+  /Users/a15356015027/Public/.minecraft/versions/1.8.9/1.8.9.jar
+  SHA-256 14f0d96d1a56fb4f5c3b2233d00699525893fe5ce3dcf181e7de59120595d298
+Command (each referenced class, no downloaded mappings):
+  /usr/bin/javap -classpath /Users/a15356015027/Public/.minecraft/versions/1.8.9/1.8.9.jar -p -c -s CLASS
+Raw disassemblies and isolated test harness/results:
+  /tmp/mcmacro-inventory.78pmtf/
+Final StateAgent.java SHA-256:
+  f15bdd2cc60829fe66dea97366903244db07be6e5d3454dcfa508239e2447c4b
+
+Exact reflection mappings (descriptors are in disassembly excerpts below):
+  main-thread test       ave.aJ():boolean -- currentThread() == ave.aO
+  player inventory      wn.bi:wm; wm.a:zx[] (main inventory, first 9 hotbar)
+  selected hotbar        wm.c:int; wm.h() checks 0 <= c < 9 before indexing a
+  game settings/keys    ave.t:avh; avh.aw:avb[9]; avb.i():int -> current key g
+  combined key bindings avh.ax:avb[] -- 24 action objects + the nine aw objects
+  actual renderer hit   ave.s:auh; auh.a:auh$a; auh.a():cj -> position e
+  hit enum              auh$a.a=MISS, .b=BLOCK, .c=ENTITY (actual enum names)
+  block coordinates     df.n()/o()/p():int (cj extends df)
+  target block          adm.p(cj):alz; alz.c():afh
+  block registry ID     afh.a(afh):int; afh.S() registers bed as 26
+  target hardness       afh.g(adm,cj):float (virtual call)
+  material/empty harvest afh.t():arm; arm.l():boolean
+  stack item/count      zx.b():zw; zx.b:int
+  item registry ID      zw.b(zw):int
+  metadata/damage       zx.i():int -> f
+  durability            zx.e():boolean; zx.j():int (Unbreakable respected)
+  candidate strength    zx.a(afh):float -> zw.a(zx,afh) virtual dispatch
+  candidate harvest     zx.b(afh):boolean -> zw.b(afh) virtual dispatch
+  efficiency level      ack.a(int,zx):int; aci initializer registers efficiency=32
+  sword kind            aay extends zw (zw registration iron_sword -> aay)
+  tool kind             za (aag pickaxe/aaq shovel and axe subclass), aap shears,
+                        zv hoe; zw registrations and superclass bytecode inspected
+  block kind/full cube  yo; yo.d():afh; afh.u():boolean
+  full stack tag        zx.o():dn -> e; NOT zx.toString(), hashCode(), or stack save
+  NBT type              eb.a():byte
+  compound read         dn.c():Set<String>; dn.a(String):eb (map getters)
+  list read             du.c():int size; du.f():int type; du.g(int):eb element
+  primitive payload     eb.a(DataOutput):void, invoked only for exact primitive classes
+  exact NBT classes by ID:
+    0=dq(end; null-tag marker only), 1=dm(byte), 2=dz(short), 3=dt(int),
+    4=dv(long), 5=dr(float), 6=dp(double), 7=dl(byte[]), 8=ea(string),
+    9=du(list), 10=dn(compound), 11=ds(int[]).
+  eb.a(byte) factory switch proves these type IDs. Every non-null node requires
+  its exact class, not instanceof, and a valid ID. Unknown nodes omit inventory.
+  All primitive DataOutput writer bodies were inspected and only read payload.
+  DO NOT invoke dn/du serialization: du.a(DataOutput) writes du.d at offsets 29/37.
+  Our sorted compound traversal and ordered list traversal never call those writers.
+
+Contract and safety:
+- New optional inventory is constructed separately and appended atomically.
+  Missing mappings disable only inventory; invalid observations omit it and retry
+  after 50ms. Existing bridge fields and heartbeat/socket behavior remain usable.
+  A 59000-character ASCII guard prevents inventory pushing a bridge packet beyond
+  the existing 60000-byte datagram threshold.
+- Main-thread check occurs before inventory/game-object reads. All sampling is in
+  the existing scheduled callback. No game field writes or game input calls added.
+- selected is 0..8; only nonempty slots, unique index 0..8, at most nine entries.
+  Item IDs >0, metadata >=0, count 1..64. Damageable stacks must have max>0 and
+  damage<=max; vanilla consumes a stack when damage>max, not at equality.
+  Invalid nonempty candidates omit the entire inventory, rather than pretending
+  the selected slot is empty. Null/zero/negative-count entries are empty.
+- keys always has nine fresh configured LWJGL values. No default key guesses.
+  Zero (unbound) and negative mouse mappings remain actual values; native-key
+  support and key simulation stay with Swift.
+- blockedKeys:[Int] contains current codes of ALL non-hotbar bindings in avh.ax.
+  This combined keyBindings field was freshly verified with /usr/bin/javap:
+  avh constructors build 24 action bindings at offsets 869..1059, add aw at
+  1061..1064, and store the combined avb[] into ax at 1070. Options loading and
+  saving iterate ax as well. No hard-coded action names/default codes are used.
+  Exclude only binding objects identical (==) to one of the nine aw objects;
+  an action with the same keycode as a hotbar binding remains in blockedKeys.
+  Preserve all action codes, including duplicate codes, zero, and negative mouse
+  codes; Swift decides native-key admissibility. Read both arrays and codes fresh
+  each packet on the main thread. No key-cache or game field writes added.
+  Strict ax field type/instance validation is part of optional mapping setup;
+  absent/wrong mapping permanently disables inventory independently of the bridge.
+  Null combined arrays/entries, duplicate hotbar objects, missing hotbar identities,
+  or no non-hotbar action coverage omit the entire inventory, never an empty
+  blockedKeys fallback. Action array order and count are not hard-coded.
+- hitKind/target/blockID/hardness, selected, count, keys, blockedKeys and scores are fresh every
+  packet. ENTITY/MISS/unknown have null block fields; no Entity.rayTrace fallback.
+  The pre-existing top-level useHit logical ray remains unchanged for the bridge.
+  bfk.a(float) initially writes a block ray to ave.s, then can replace it with
+  entity hit at bytecode offset 569; this is why ave.s is authoritative.
+- Score is relative to EMPTY HAND = 1, with no handScore field:
+    S = stack.a(block)
+    if S>1 and efficiency>0: S += efficiency*efficiency + 1
+    handCan = block.material.l()
+    candidateCan = handCan || stack.b(block)
+    score = S * (handCan ? 30 : 100) / (candidateCan ? 30 : 100)
+  Derivation: wn.a(afh) gates efficiency on base>1; wm.b(afh) permits hand-friendly
+  material or candidate harvest; afh.a(wn,adm,cj) divides by hardness and /30 or
+  /100. Hardness and common haste/fatigue/water/ground multipliers cancel in the
+  ratio. E.g. stone, strength6, efficiency2, harvestable -> 11*100/30=36.6667;
+  insufficient harvest tier with strength2 -> 2, not a harvest-capable score.
+  Non-block, instant-break, and unbreakable targets receive neutral finite score1;
+  hardness is sent unchanged so Swift can exclude tool swaps for those targets.
+  Bed ID26 is sent unchanged; special sword preference remains entirely in Swift.
+- identity is '<itemID>:<metadata>:sha256:<64 hex>' of the entire typed NBT tree.
+  Compound keys sorted; list order and declared type preserved; native primitive
+  payloads include lengths, numeric types, arrays and strings. Null and empty
+  compound differ. Count is excluded, while a user NBT key named Count is included.
+  Cache identity only, keyed by slot stack/item/tag object plus itemID/metadata,
+  expired at >=50ms. In-place NBT changes are reread at expiry. World/player changes,
+  empty slots, inactive samples and optional errors clear relevant caches.
+  inventory.age seconds measures the oldest identity timestamp, including digest
+  computation; fresh actual targeting is never cached. The 50ms cache is not a
+  hard latency guarantee if the JVM itself pauses.
+  NBT budget per observation: 65536 serialized bytes, 4096 nodes, depth<=64.
+  Oversize/malformed/unknown NBT omits inventory; no partial or fallback digest.
+- geometry is volatile, defaults true. Snapshot captures it once and emits that
+  captured boolean. Exact token+' LIGHT' sets false and renews heartbeat; exact
+  token+' FULL' sets true and renews heartbeat. Plain token only renews heartbeat
+  and retains mode. Existing 'STOP '+token remains unchanged. LIGHT emits empty
+  solid/collisions arrays and skips all 648 full-cube queries and collision lookup;
+  the single actual block-target lookup needed for inventory remains.
+  Only existing connected 127.0.0.1 UDP transport is used. No new connection API.
+
+Validation completed without launching Minecraft:
+- Final source compiled with Microsoft JDK 21 javac --release 8 -Xlint:all,-options
+  into /tmp/mcmacro-inventory.78pmtf/classes and fixture-classes; no diagnostics.
+- 39 reflected members resolved against the ORIGINAL signed 1.8.9 jar plus its
+  32 locally installed manifest dependencies, without initializing Minecraft.
+- Real NBT classes: equal compounds with reversed colliding-key insertion order
+  have equal digest; changed payload differs; list type field remains unchanged.
+- 50 isolated-fixture behavioral assertions passed: FULL default; FULL=648 geometry
+  reads + 1 target read; LIGHT=1 target read/no collision read; fresh entity/miss/
+  unknown and block position; stale block ray never drives inventory; efficiency/
+  harvest ratios; neutral special hardness; bed ID; fresh remaps; count-independent
+  cached identity; in-place NBT refresh; durability equality/beyond-max; invalid
+  count/selection/keys/NaN; NBT limit; zero count; main-thread refusal; missing-map
+  isolation; inactive LIGHT; exact LIGHT/FULL/plain/malformed heartbeat messages.
+- 11 additional blockedKeys assertions passed: all 24 fixture actions retained;
+  nine hotbar objects excluded; shared hotbar/action code stays blocked; next-packet
+  action remap; combined-array reordering; null array/entry; missing hotbar identity
+  despite equal code; absent actions; duplicate hotbar object; recovery after repair.
+  A separate fixture with avh.ax removed confirms a missing combined-array mapping
+  marks only inventory unavailable and leaves the pre-existing packet unchanged.
+- FULL/LIGHT/ENTITY output parsed as JSON and inventory shape checked. The blockedKeys
+  output also parsed as JSON with all 24 action codes and the intentional conflict.
+- git diff --check for StateAgent.java passed.
+These are bytecode/compile/isolated tests, not gameplay or live-attachment results.
+
+Selected authoritative disassembly excerpts:
+
+CLASS ave
+  public boolean aJ();
+    descriptor: ()Z
+    Code:
+       0: invokestatic  #332                // Method java/lang/Thread.currentThread:()Ljava/lang/Thread;
+       3: aload_0
+       4: getfield      #334                // Field aO:Ljava/lang/Thread;
+       7: if_acmpne     14
+      10: iconst_1
+      11: goto          15
+      14: iconst_0
+      15: ireturn
+
+
+CLASS wm
+  public zx h();
+    descriptor: ()Lzx;
+    Code:
+       0: aload_0
+       1: getfield      #40                 // Field c:I
+       4: bipush        9
+       6: if_icmpge     26
+       9: aload_0
+      10: getfield      #40                 // Field c:I
+      13: iflt          26
+      16: aload_0
+      17: getfield      #29                 // Field a:[Lzx;
+      20: aload_0
+      21: getfield      #40                 // Field c:I
+      24: aaload
+      25: areturn
+      26: aconst_null
+      27: areturn
+
+
+CLASS wm
+  public boolean b(afh);
+    descriptor: (Lafh;)Z
+    Code:
+       0: aload_1
+       1: invokevirtual #260                // Method afh.t:()Larm;
+       4: invokevirtual #265                // Method arm.l:()Z
+       7: ifeq          12
+      10: iconst_1
+      11: ireturn
+      12: aload_0
+      13: aload_0
+      14: getfield      #40                 // Field c:I
+      17: invokevirtual #266                // Method a:(I)Lzx;
+      20: astore_2
+      21: aload_2
+      22: ifnull        31
+      25: aload_2
+      26: aload_1
+      27: invokevirtual #268                // Method zx.b:(Lafh;)Z
+      30: ireturn
+      31: iconst_0
+      32: ireturn
+
+
+CLASS wn
+  public float a(afh);
+    descriptor: (Lafh;)F
+    Code:
+       0: aload_0
+       1: getfield      #85                 // Field bi:Lwm;
+       4: aload_1
+       5: invokevirtual #817                // Method wm.a:(Lafh;)F
+       8: fstore_2
+       9: fload_2
+      10: fconst_1
+      11: fcmpl
+      12: ifle          47
+      15: aload_0
+      16: invokestatic  #822                // Method ack.c:(Lpr;)I
+      19: istore_3
+      20: aload_0
+      21: getfield      #85                 // Field bi:Lwm;
+      24: invokevirtual #273                // Method wm.h:()Lzx;
+      27: astore        4
+      29: iload_3
+      30: ifle          47
+      33: aload         4
+      35: ifnull        47
+      38: fload_2
+      39: iload_3
+      40: iload_3
+      41: imul
+      42: iconst_1
+      43: iadd
+      44: i2f
+      45: fadd
+      46: fstore_2
+      47: aload_0
+      48: getstatic     #827                // Field pe.e:Lpe;
+      51: invokevirtual #830                // Method a:(Lpe;)Z
+      54: ifeq          79
+      57: fload_2
+      58: fconst_1
+      59: aload_0
+      60: getstatic     #827                // Field pe.e:Lpe;
+      63: invokevirtual #833                // Method b:(Lpe;)Lpf;
+      66: invokevirtual #837                // Method pf.c:()I
+      69: iconst_1
+      70: iadd
+      71: i2f
+      72: ldc_w         #472                // float 0.2f
+      75: fmul
+      76: fadd
+      77: fmul
+      78: fstore_2
+      79: aload_0
+      80: getstatic     #839                // Field pe.f:Lpe;
+      83: invokevirtual #830                // Method a:(Lpe;)Z
+      86: ifeq          161
+      89: fconst_1
+      90: fstore_3
+      91: aload_0
+      92: getstatic     #839                // Field pe.f:Lpe;
+      95: invokevirtual #833                // Method b:(Lpe;)Lpf;
+      98: invokevirtual #837                // Method pf.c:()I
+     101: tableswitch   { // 0 to 3
+                     0: 132
+                     1: 139
+                     2: 146
+                     3: 153
+               default: 153
+          }
+     132: ldc_w         #799                // float 0.3f
+     135: fstore_3
+     136: goto          157
+     139: ldc_w         #840                // float 0.09f
+     142: fstore_3
+     143: goto          157
+     146: ldc_w         #841                // float 0.0027f
+     149: fstore_3
+     150: goto          157
+     153: ldc_w         #842                // float 8.1E-4f
+     156: fstore_3
+     157: fload_2
+     158: fload_3
+     159: fmul
+     160: fstore_2
+     161: aload_0
+     162: getstatic     #847                // Field arm.h:Larm;
+     165: invokevirtual #850                // Method a:(Larm;)Z
+     168: ifeq          184
+     171: aload_0
+     172: invokestatic  #854                // Method ack.j:(Lpr;)Z
+     175: ifne          184
+     178: fload_2
+     179: ldc_w         #855                // float 5.0f
+     182: fdiv
+     183: fstore_2
+     184: aload_0
+     185: getfield      #271                // Field C:Z
+     188: ifne          197
+     191: fload_2
+     192: ldc_w         #855                // float 5.0f
+     195: fdiv
+     196: fstore_2
+     197: fload_2
+     198: freturn
+
+
+CLASS afh
+  public float a(wn, adm, cj);
+    descriptor: (Lwn;Ladm;Lcj;)F
+    Code:
+       0: aload_0
+       1: aload_2
+       2: aload_3
+       3: invokevirtual #380                // Method g:(Ladm;Lcj;)F
+       6: fstore        4
+       8: fload         4
+      10: fconst_0
+      11: fcmpg
+      12: ifge          17
+      15: fconst_0
+      16: freturn
+      17: aload_1
+      18: aload_0
+      19: invokevirtual #385                // Method wn.b:(Lafh;)Z
+      22: ifne          38
+      25: aload_1
+      26: aload_0
+      27: invokevirtual #388                // Method wn.a:(Lafh;)F
+      30: fload         4
+      32: fdiv
+      33: ldc_w         #389                // float 100.0f
+      36: fdiv
+      37: freturn
+      38: aload_1
+      39: aload_0
+      40: invokevirtual #388                // Method wn.a:(Lafh;)F
+      43: fload         4
+      45: fdiv
+      46: ldc_w         #390                // float 30.0f
+      49: fdiv
+      50: freturn
+
+
+CLASS zx
+  public int i();
+    descriptor: ()I
+    Code:
+       0: aload_0
+       1: getfield      #72                 // Field f:I
+       4: ireturn
+
+
+CLASS zx
+  public dn o();
+    descriptor: ()Ldn;
+    Code:
+       0: aload_0
+       1: getfield      #83                 // Field e:Ldn;
+       4: areturn
+
+
+CLASS zx
+  public boolean e();
+    descriptor: ()Z
+    Code:
+       0: aload_0
+       1: getfield      #68                 // Field d:Lzw;
+       4: ifnonnull     9
+       7: iconst_0
+       8: ireturn
+       9: aload_0
+      10: getfield      #68                 // Field d:Lzw;
+      13: invokevirtual #199                // Method zw.l:()I
+      16: ifgt          21
+      19: iconst_0
+      20: ireturn
+      21: aload_0
+      22: invokevirtual #202                // Method n:()Z
+      25: ifeq          42
+      28: aload_0
+      29: invokevirtual #206                // Method o:()Ldn;
+      32: ldc           #208                // String Unbreakable
+      34: invokevirtual #211                // Method dn.n:(Ljava/lang/String;)Z
+      37: ifeq          42
+      40: iconst_0
+      41: ireturn
+      42: iconst_1
+      43: ireturn
+
+
+CLASS avb
+  public int i();
+    descriptor: ()I
+    Code:
+       0: aload_0
+       1: getfield      #68                 // Field g:I
+       4: ireturn
+
+
+CLASS arm
+  public boolean l();
+    descriptor: ()Z
+    Code:
+       0: aload_0
+       1: getfield      #59                 // Field N:Z
+       4: ireturn
+
+
+CLASS eb
+  protected static eb a(byte);
+    descriptor: (B)Leb;
+    Code:
+       0: iload_0
+       1: tableswitch   { // 0 to 11
+                     0: 64
+                     1: 72
+                     2: 80
+                     3: 88
+                     4: 96
+                     5: 104
+                     6: 112
+                     7: 120
+                     8: 136
+                     9: 144
+                    10: 152
+                    11: 128
+               default: 160
+          }
+      64: new           #25                 // class dq
+      67: dup
+      68: invokespecial #26                 // Method dq."<init>":()V
+      71: areturn
+      72: new           #28                 // class dm
+      75: dup
+      76: invokespecial #29                 // Method dm."<init>":()V
+      79: areturn
+      80: new           #31                 // class dz
+      83: dup
+      84: invokespecial #32                 // Method dz."<init>":()V
+      87: areturn
+      88: new           #34                 // class dt
+      91: dup
+      92: invokespecial #35                 // Method dt."<init>":()V
+      95: areturn
+      96: new           #37                 // class dv
+      99: dup
+     100: invokespecial #38                 // Method dv."<init>":()V
+     103: areturn
+     104: new           #40                 // class dr
+     107: dup
+     108: invokespecial #41                 // Method dr."<init>":()V
+     111: areturn
+     112: new           #43                 // class dp
+     115: dup
+     116: invokespecial #44                 // Method dp."<init>":()V
+     119: areturn
+     120: new           #46                 // class dl
+     123: dup
+     124: invokespecial #47                 // Method dl."<init>":()V
+     127: areturn
+     128: new           #49                 // class ds
+     131: dup
+     132: invokespecial #50                 // Method ds."<init>":()V
+     135: areturn
+     136: new           #52                 // class ea
+     139: dup
+     140: invokespecial #53                 // Method ea."<init>":()V
+     143: areturn
+     144: new           #55                 // class du
+     147: dup
+     148: invokespecial #56                 // Method du."<init>":()V
+     151: areturn
+     152: new           #58                 // class dn
+     155: dup
+     156: invokespecial #59                 // Method dn."<init>":()V
+     159: areturn
+     160: aconst_null
+     161: areturn
+
+
+CLASS dn
+  public java.util.Set<java.lang.String> c();
+    descriptor: ()Ljava/util/Set;
+    Code:
+       0: aload_0
+       1: getfield      #32                 // Field b:Ljava/util/Map;
+       4: invokeinterface #41,  1           // InterfaceMethod java/util/Map.keySet:()Ljava/util/Set;
+       9: areturn
+
+
+CLASS dn
+  public eb a(java.lang.String);
+    descriptor: (Ljava/lang/String;)Leb;
+    Code:
+       0: aload_0
+       1: getfield      #32                 // Field b:Ljava/util/Map;
+       4: aload_1
+       5: invokeinterface #63,  2           // InterfaceMethod java/util/Map.get:(Ljava/lang/Object;)Ljava/lang/Object;
+      10: checkcast     #4                  // class eb
+      13: areturn
+
+
+CLASS du
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_0
+       1: getfield      #24                 // Field c:Ljava/util/List;
+       4: invokeinterface #38,  1           // InterfaceMethod java/util/List.isEmpty:()Z
+       9: ifne          35
+      12: aload_0
+      13: aload_0
+      14: getfield      #24                 // Field c:Ljava/util/List;
+      17: iconst_0
+      18: invokeinterface #42,  2           // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+      23: checkcast     #4                  // class eb
+      26: invokevirtual #45                 // Method eb.a:()B
+      29: putfield      #26                 // Field d:B
+      32: goto          40
+      35: aload_0
+      36: iconst_0
+      37: putfield      #26                 // Field d:B
+      40: aload_1
+      41: aload_0
+      42: getfield      #26                 // Field d:B
+      45: invokeinterface #51,  2           // InterfaceMethod java/io/DataOutput.writeByte:(I)V
+      50: aload_1
+      51: aload_0
+      52: getfield      #24                 // Field c:Ljava/util/List;
+      55: invokeinterface #55,  1           // InterfaceMethod java/util/List.size:()I
+      60: invokeinterface #58,  2           // InterfaceMethod java/io/DataOutput.writeInt:(I)V
+      65: iconst_0
+      66: istore_2
+      67: iload_2
+      68: aload_0
+      69: getfield      #24                 // Field c:Ljava/util/List;
+      72: invokeinterface #55,  1           // InterfaceMethod java/util/List.size:()I
+      77: if_icmpge     103
+      80: aload_0
+      81: getfield      #24                 // Field c:Ljava/util/List;
+      84: iload_2
+      85: invokeinterface #42,  2           // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+      90: checkcast     #4                  // class eb
+      93: aload_1
+      94: invokevirtual #60                 // Method eb.a:(Ljava/io/DataOutput;)V
+      97: iinc          2, 1
+     100: goto          67
+     103: return
+
+
+CLASS du
+  public int f();
+    descriptor: ()I
+    Code:
+       0: aload_0
+       1: getfield      #26                 // Field d:B
+       4: ireturn
+
+
+CLASS du
+  public eb g(int);
+    descriptor: (I)Leb;
+    Code:
+       0: iload_1
+       1: iflt          17
+       4: iload_1
+       5: aload_0
+       6: getfield      #24                 // Field c:Ljava/util/List;
+       9: invokeinterface #55,  1           // InterfaceMethod java/util/List.size:()I
+      14: if_icmplt     25
+      17: new           #185                // class dq
+      20: dup
+      21: invokespecial #186                // Method dq."<init>":()V
+      24: areturn
+      25: aload_0
+      26: getfield      #24                 // Field c:Ljava/util/List;
+      29: iload_1
+      30: invokeinterface #42,  2           // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+      35: checkcast     #4                  // class eb
+      38: areturn
+
+
+CLASS dm (verified primitive writer)
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #19                 // Field b:B
+       5: invokeinterface #29,  2           // InterfaceMethod java/io/DataOutput.writeByte:(I)V
+      10: return
+
+
+CLASS dz (verified primitive writer)
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #19                 // Field b:S
+       5: invokeinterface #29,  2           // InterfaceMethod java/io/DataOutput.writeShort:(I)V
+      10: return
+
+
+CLASS dt (verified primitive writer)
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #19                 // Field b:I
+       5: invokeinterface #28,  2           // InterfaceMethod java/io/DataOutput.writeInt:(I)V
+      10: return
+
+
+CLASS dv (verified primitive writer)
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #19                 // Field b:J
+       5: invokeinterface #28,  3           // InterfaceMethod java/io/DataOutput.writeLong:(J)V
+      10: return
+
+
+CLASS dr (verified primitive writer)
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #19                 // Field b:F
+       5: invokeinterface #28,  2           // InterfaceMethod java/io/DataOutput.writeFloat:(F)V
+      10: return
+
+
+CLASS dp (verified primitive writer)
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #19                 // Field b:D
+       5: invokeinterface #28,  3           // InterfaceMethod java/io/DataOutput.writeDouble:(D)V
+      10: return
+
+
+CLASS dl (verified primitive writer)
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #16                 // Field b:[B
+       5: arraylength
+       6: invokeinterface #27,  2           // InterfaceMethod java/io/DataOutput.writeInt:(I)V
+      11: aload_1
+      12: aload_0
+      13: getfield      #16                 // Field b:[B
+      16: invokeinterface #30,  2           // InterfaceMethod java/io/DataOutput.write:([B)V
+      21: return
+
+
+CLASS ea (verified primitive writer)
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #15                 // Field b:Ljava/lang/String;
+       5: invokeinterface #34,  2           // InterfaceMethod java/io/DataOutput.writeUTF:(Ljava/lang/String;)V
+      10: return
+
+
+CLASS ds (verified primitive writer)
+  void a(java.io.DataOutput) throws java.io.IOException;
+    descriptor: (Ljava/io/DataOutput;)V
+    Code:
+       0: aload_1
+       1: aload_0
+       2: getfield      #16                 // Field b:[I
+       5: arraylength
+       6: invokeinterface #27,  2           // InterfaceMethod java/io/DataOutput.writeInt:(I)V
+      11: iconst_0
+      12: istore_2
+      13: iload_2
+      14: aload_0
+      15: getfield      #16                 // Field b:[I
+      18: arraylength
+      19: if_icmpge     40
+      22: aload_1
+      23: aload_0
+      24: getfield      #16                 // Field b:[I
+      27: iload_2
+      28: iaload
+      29: invokeinterface #27,  2           // InterfaceMethod java/io/DataOutput.writeInt:(I)V
+      34: iinc          2, 1
+      37: goto          13
+      40: return
+
+
+Actual reflection resolution output:
+public wm wn.bi
+public zx[] wm.a
+public int wm.c
+public avh ave.t
+public avb[] avh.aw
+public avb[] avh.ax
+public auh ave.s
+public auh$a auh.a
+public int zx.b
+public boolean ave.aJ()
+public int avb.i()
+public zw zx.b()
+public int zx.i()
+public boolean zx.e()
+public int zx.j()
+public static int zw.b(zw)
+public cj auh.a()
+public int df.n()
+public int df.o()
+public int df.p()
+public alz adm.p(cj)
+public abstract afh alz.c()
+public static int afh.a(afh)
+public float afh.g(adm,cj)
+public arm afh.t()
+public boolean arm.l()
+public float zx.a(afh)
+public boolean zx.b(afh)
+public static int ack.a(int,zx)
+public afh yo.d()
+public boolean afh.u()
+public dn zx.o()
+public abstract byte eb.a()
+abstract void eb.a(java.io.DataOutput) throws java.io.IOException
+public java.util.Set dn.c()
+public eb dn.a(java.lang.String)
+public int du.c()
+public int du.f()
+public eb du.g(int)
+PASS: 39 real-jar reflected members resolved without initializing Minecraft
+PASS: actual NBT classes: sorted compound identity, changed payload, no list type mutation
+
+Additional combined-keyBindings javap evidence (avh constructor):
+     868: aload_0
+     869: bipush        24
+     871: anewarray     #268                // class avb
+     874: dup
+     875: iconst_0
+     876: aload_0
+     877: getfield      #321                // Field ai:Lavb;
+     880: aastore
+     881: dup
+     882: iconst_1
+     883: aload_0
+     884: getfield      #313                // Field ag:Lavb;
+     887: aastore
+     888: dup
+     889: iconst_2
+     890: aload_0
+     891: getfield      #277                // Field Y:Lavb;
+     894: aastore
+     895: dup
+     896: iconst_3
+     897: aload_0
+     898: getfield      #281                // Field Z:Lavb;
+     901: aastore
+     902: dup
+     903: iconst_4
+     904: aload_0
+     905: getfield      #285                // Field aa:Lavb;
+     908: aastore
+     909: dup
+     910: iconst_5
+     911: aload_0
+     912: getfield      #289                // Field ab:Lavb;
+     915: aastore
+     916: dup
+     917: bipush        6
+     919: aload_0
+     920: getfield      #293                // Field ac:Lavb;
+     923: aastore
+     924: dup
+     925: bipush        7
+     927: aload_0
+     928: getfield      #297                // Field ad:Lavb;
+     931: aastore
+     932: dup
+     933: bipush        8
+     935: aload_0
+     936: getfield      #301                // Field ae:Lavb;
+     939: aastore
+     940: dup
+     941: bipush        9
+     943: aload_0
+     944: getfield      #317                // Field ah:Lavb;
+     947: aastore
+     948: dup
+     949: bipush        10
+     951: aload_0
+     952: getfield      #307                // Field af:Lavb;
+     955: aastore
+     956: dup
+     957: bipush        11
+     959: aload_0
+     960: getfield      #331                // Field ak:Lavb;
+     963: aastore
+     964: dup
+     965: bipush        12
+     967: aload_0
+     968: getfield      #335                // Field al:Lavb;
+     971: aastore
+     972: dup
+     973: bipush        13
+     975: aload_0
+     976: getfield      #325                // Field aj:Lavb;
+     979: aastore
+     980: dup
+     981: bipush        14
+     983: aload_0
+     984: getfield      #339                // Field am:Lavb;
+     987: aastore
+     988: dup
+     989: bipush        15
+     991: aload_0
+     992: getfield      #345                // Field an:Lavb;
+     995: aastore
+     996: dup
+     997: bipush        16
+     999: aload_0
+    1000: getfield      #349                // Field ao:Lavb;
+    1003: aastore
+    1004: dup
+    1005: bipush        17
+    1007: aload_0
+    1008: getfield      #353                // Field ap:Lavb;
+    1011: aastore
+    1012: dup
+    1013: bipush        18
+    1015: aload_0
+    1016: getfield      #367                // Field as:Lavb;
+    1019: aastore
+    1020: dup
+    1021: bipush        19
+    1023: aload_0
+    1024: getfield      #371                // Field at:Lavb;
+    1027: aastore
+    1028: dup
+    1029: bipush        20
+    1031: aload_0
+    1032: getfield      #375                // Field au:Lavb;
+    1035: aastore
+    1036: dup
+    1037: bipush        21
+    1039: aload_0
+    1040: getfield      #379                // Field av:Lavb;
+    1043: aastore
+    1044: dup
+    1045: bipush        22
+    1047: aload_0
+    1048: getfield      #357                // Field aq:Lavb;
+    1051: aastore
+    1052: dup
+    1053: bipush        23
+    1055: aload_0
+    1056: getfield      #361                // Field ar:Lavb;
+    1059: aastore
+    1060: aload_0
+    1061: getfield      #399                // Field aw:[Lavb;
+    1064: invokestatic  #405                // Method org/apache/commons/lang3/ArrayUtils.addAll:([Ljava/lang/Object;[Ljava/lang/Object;)[Ljava/lang/Object;
+    1067: checkcast     #406                // class "[Lavb;"
+    1070: putfield      #408                // Field ax:[Lavb;
+
+Blocked-key validation results:
+PASS: 11 blockedKeys assertions
+PASS: absent avh.ax mapping disables only inventory

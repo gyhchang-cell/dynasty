@@ -1,0 +1,162 @@
+{
+  "reviewed_at": "2026-10-28T23:14:31.108839+08:00",
+  "helper_batch": "helpers/apugli-rpginventory/batch-010.json",
+  "evidence_nodes_checked": 69,
+  "errors": [],
+  "source_checks_only_credit": 0,
+  "manual_accept_indices": [
+    7529,
+    7530
+  ],
+  "semantic_dedup": "准备/收线消费和有限流体弹载荷各整链1；通用ToolAttackUtil/同步方块效果/每配方/父层方法均0",
+  "main_additional_observation": "FluidEffectProjectile.onHitBlock在效果后若仍有流体且当前块已为空气直接return，不经过尾部updateCannonStack；影响context物品写回，不宣称复现。Impact取消亦未消除hitType驱动的位置分支。",
+  "full_methods_not_credit": true,
+  "local_vanilla_support": [
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/FishingHook.java",
+      "source_sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "method": "tick",
+      "line": 131,
+      "end_line": 227,
+      "excerpt": "   public void tick() {\n      this.syncronizedRandom.setSeed(this.getUUID().getLeastSignificantBits() ^ this.level().getGameTime());\n      super.tick();\n      Player player = this.getPlayerOwner();\n      if (player == null) {\n         this.discard();\n      } else if (this.level().isClientSide || !this.shouldStopFishing(player)) {\n         if (this.onGround()) {\n            ++this.life;\n            if (this.life >= 1200) {\n               this.discard();\n               return;\n            }\n         } else {\n            this.life = 0;\n         }\n\n         float f = 0.0F;\n         BlockPos blockpos = this.blockPosition();\n         FluidState fluidstate = this.level().getFluidState(blockpos);\n         if (fluidstate.is(FluidTags.WATER)) {\n            f = fluidstate.getHeight(this.level(), blockpos);\n         }\n\n         boolean flag = f > 0.0F;\n         if (this.currentState == FishingHook.FishHookState.FLYING) {\n            if (this.hookedIn != null) {\n               this.setDeltaMovement(Vec3.ZERO);\n               this.currentState = FishingHook.FishHookState.HOOKED_IN_ENTITY;\n               return;\n            }\n\n            if (flag) {\n               this.setDeltaMovement(this.getDeltaMovement().multiply(0.3D, 0.2D, 0.3D));\n               this.currentState = FishingHook.FishHookState.BOBBING;\n               return;\n            }\n\n            this.checkCollision();\n         } else {\n            if (this.currentState == FishingHook.FishHookState.HOOKED_IN_ENTITY) {\n               if (this.hookedIn != null) {\n                  if (!this.hookedIn.isRemoved() && this.hookedIn.level().dimension() == this.level().dimension()) {\n                     this.setPos(this.hookedIn.getX(), this.hookedIn.getY(0.8D), this.hookedIn.getZ());\n                  } else {\n                     this.setHookedEntity((Entity)null);\n                     this.currentState = FishingHook.FishHookState.FLYING;\n                  }\n               }\n\n               return;\n            }\n\n            if (this.currentState == FishingHook.FishHookState.BOBBING) {\n               Vec3 vec3 = this.getDeltaMovement();\n               double d0 = this.getY() + vec3.y - (double)blockpos.getY() - (double)f;\n               if (Math.abs(d0) < 0.01D) {\n                  d0 += Math.signum(d0) * 0.1D;\n               }\n\n               this.setDeltaMovement(vec3.x * 0.9D, vec3.y - d0 * (double)this.random.nextFloat() * 0.2D, vec3.z * 0.9D);\n               if (this.nibble <= 0 && this.timeUntilHooked <= 0) {\n                  this.openWater = true;\n               } else {\n                  this.openWater = this.openWater && this.outOfWaterTime < 10 && this.calculateOpenWater(blockpos);\n               }\n\n               if (flag) {\n                  this.outOfWaterTime = Math.max(0, this.outOfWaterTime - 1);\n                  if (this.biting) {\n                     this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.1D * (double)this.syncronizedRandom.nextFloat() * (double)this.syncronizedRandom.nextFloat(), 0.0D));\n                  }\n\n                  if (!this.level().isClientSide) {\n                     this.catchingFish(blockpos);\n                  }\n               } else {\n                  this.outOfWaterTime = Math.min(10, this.outOfWaterTime + 1);\n               }\n            }\n         }\n\n         if (!fluidstate.is(FluidTags.WATER)) {\n            this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.03D, 0.0D));\n         }\n\n         this.move(MoverType.SELF, this.getDeltaMovement());\n         this.updateRotation();\n         if (this.currentState == FishingHook.FishHookState.FLYING && (this.onGround() || this.horizontalCollision)) {\n            this.setDeltaMovement(Vec3.ZERO);\n         }\n\n         double d1 = 0.92D;\n         this.setDeltaMovement(this.getDeltaMovement().scale(0.92D));\n         this.reapplyPosition();\n      }\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/FishingHook.java",
+      "source_sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "method": "shouldStopFishing",
+      "line": 229,
+      "end_line": 240,
+      "excerpt": "   private boolean shouldStopFishing(Player p_37137_) {\n      ItemStack itemstack = p_37137_.getMainHandItem();\n      ItemStack itemstack1 = p_37137_.getOffhandItem();\n      boolean flag = itemstack.canPerformAction(net.minecraftforge.common.ToolActions.FISHING_ROD_CAST);\n      boolean flag1 = itemstack1.canPerformAction(net.minecraftforge.common.ToolActions.FISHING_ROD_CAST);\n      if (!p_37137_.isRemoved() && p_37137_.isAlive() && (flag || flag1) && !(this.distanceToSqr(p_37137_) > 1024.0D)) {\n         return false;\n      } else {\n         this.discard();\n         return true;\n      }\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/FishingHook.java",
+      "source_sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "method": "onHitEntity",
+      "line": 251,
+      "end_line": 257,
+      "excerpt": "   protected void onHitEntity(EntityHitResult p_37144_) {\n      super.onHitEntity(p_37144_);\n      if (!this.level().isClientSide) {\n         this.setHookedEntity(p_37144_.getEntity());\n      }\n\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/FishingHook.java",
+      "source_sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "method": "setHookedEntity",
+      "line": 264,
+      "end_line": 267,
+      "excerpt": "   private void setHookedEntity(@Nullable Entity p_150158_) {\n      this.hookedIn = p_150158_;\n      this.getEntityData().set(DATA_HOOKED_ENTITY, p_150158_ == null ? 0 : p_150158_.getId() + 1);\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/FishingHook.java",
+      "source_sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "method": "retrieve",
+      "line": 402,
+      "end_line": 450,
+      "excerpt": "   public int retrieve(ItemStack p_37157_) {\n      Player player = this.getPlayerOwner();\n      if (!this.level().isClientSide && player != null && !this.shouldStopFishing(player)) {\n         int i = 0;\n         net.minecraftforge.event.entity.player.ItemFishedEvent event = null;\n         if (this.hookedIn != null) {\n            this.pullEntity(this.hookedIn);\n            CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)player, p_37157_, this, Collections.emptyList());\n            this.level().broadcastEntityEvent(this, (byte)31);\n            i = this.hookedIn instanceof ItemEntity ? 3 : 5;\n         } else if (this.nibble > 0) {\n            LootParams lootparams = (new LootParams.Builder((ServerLevel)this.level())).withParameter(LootContextParams.ORIGIN, this.position()).withParameter(LootContextParams.TOOL, p_37157_).withParameter(LootContextParams.THIS_ENTITY, this).withParameter(LootContextParams.KILLER_ENTITY, this.getOwner()).withParameter(LootContextParams.THIS_ENTITY, this).withLuck((float)this.luck + player.getLuck()).create(LootContextParamSets.FISHING);\n            LootTable loottable = this.level().getServer().getLootData().getLootTable(BuiltInLootTables.FISHING);\n            List<ItemStack> list = loottable.getRandomItems(lootparams);\n            event = new net.minecraftforge.event.entity.player.ItemFishedEvent(list, this.onGround() ? 2 : 1, this);\n            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event);\n            if (event.isCanceled()) {\n               this.discard();\n               return event.getRodDamage();\n            }\n            CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)player, p_37157_, this, list);\n\n            for(ItemStack itemstack : list) {\n               ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), itemstack);\n               double d0 = player.getX() - this.getX();\n               double d1 = player.getY() - this.getY();\n               double d2 = player.getZ() - this.getZ();\n               double d3 = 0.1D;\n               itementity.setDeltaMovement(d0 * 0.1D, d1 * 0.1D + Math.sqrt(Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2)) * 0.08D, d2 * 0.1D);\n               this.level().addFreshEntity(itementity);\n               player.level().addFreshEntity(new ExperienceOrb(player.level(), player.getX(), player.getY() + 0.5D, player.getZ() + 0.5D, this.random.nextInt(6) + 1));\n               if (itemstack.is(ItemTags.FISHES)) {\n                  player.awardStat(Stats.FISH_CAUGHT, 1);\n               }\n            }\n\n            i = 1;\n         }\n\n         if (this.onGround()) {\n            i = 2;\n         }\n\n         this.discard();\n         return event == null ? i : event.getRodDamage();\n      } else {\n         return 0;\n      }\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/FishingHook.java",
+      "source_sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "method": "remove",
+      "line": 472,
+      "end_line": 475,
+      "excerpt": "   public void remove(Entity.RemovalReason p_150146_) {\n      this.updateOwnerInfo((FishingHook)null);\n      super.remove(p_150146_);\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/FishingHook.java",
+      "source_sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "method": "setOwner",
+      "line": 481,
+      "end_line": 484,
+      "excerpt": "   public void setOwner(@Nullable Entity p_150154_) {\n      super.setOwner(p_150154_);\n      this.updateOwnerInfo(this);\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/FishingHook.java",
+      "source_sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "method": "updateOwnerInfo",
+      "line": 486,
+      "end_line": 492,
+      "excerpt": "   private void updateOwnerInfo(@Nullable FishingHook p_150148_) {\n      Player player = this.getPlayerOwner();\n      if (player != null) {\n         player.fishing = p_150148_;\n      }\n\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/FishingHook.java",
+      "source_sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "method": "getPlayerOwner",
+      "line": 495,
+      "end_line": 498,
+      "excerpt": "   public Player getPlayerOwner() {\n      Entity entity = this.getOwner();\n      return entity instanceof Player ? (Player)entity : null;\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/Projectile.java",
+      "source_sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/Projectile.java",
+      "method": "setOwner",
+      "line": 38,
+      "end_line": 44,
+      "excerpt": "   public void setOwner(@Nullable Entity p_37263_) {\n      if (p_37263_ != null) {\n         this.ownerUUID = p_37263_.getUUID();\n         this.cachedOwner = p_37263_;\n      }\n\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/Projectile.java",
+      "source_sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/Projectile.java",
+      "method": "getOwner",
+      "line": 47,
+      "end_line": 56,
+      "excerpt": "   public Entity getOwner() {\n      if (this.cachedOwner != null && !this.cachedOwner.isRemoved()) {\n         return this.cachedOwner;\n      } else if (this.ownerUUID != null && this.level() instanceof ServerLevel) {\n         this.cachedOwner = ((ServerLevel)this.level()).getEntity(this.ownerUUID);\n         return this.cachedOwner;\n      } else {\n         return null;\n      }\n   }",
+      "additional_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/sweep-receipt-research/helpers/apugli-rpginventory/sources/vanilla-forge-1.20.1-47.4.10-010/net/minecraft/world/entity/projectile/Projectile.java",
+      "source_sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+      "artifact": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "artifact_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/world/entity/projectile/Projectile.java",
+      "method": "onHit",
+      "line": 135,
+      "end_line": 147,
+      "excerpt": "   protected void onHit(HitResult p_37260_) {\n      HitResult.Type hitresult$type = p_37260_.getType();\n      if (hitresult$type == HitResult.Type.ENTITY) {\n         this.onHitEntity((EntityHitResult)p_37260_);\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, p_37260_.getLocation(), GameEvent.Context.of(this, (BlockState)null));\n      } else if (hitresult$type == HitResult.Type.BLOCK) {\n         BlockHitResult blockhitresult = (BlockHitResult)p_37260_;\n         this.onHitBlock(blockhitresult);\n         BlockPos blockpos = blockhitresult.getBlockPos();\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, blockpos, GameEvent.Context.of(this, this.level().getBlockState(blockpos)));\n      }\n\n   }",
+      "additional_credit": 0
+    }
+  ],
+  "runtime_tested": false,
+  "upstream_code_executed": false
+}

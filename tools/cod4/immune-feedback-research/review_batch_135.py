@@ -1,0 +1,19 @@
+"""Native frozen status refusal/recovery and two-way scepter target lifetime policies."""
+from ledger import B,O,record,verify
+import json
+r='AlexModGuy/Ice_and_Fire';root=B/'sources'/r.replace('/','__');p='src/main/java/com/github/alexthe666/iceandfire/'
+def whole(names):return [(p+x,1,len((root/p/x).read_text().splitlines())) for x in names]
+common=[(p+'IceAndFire.java',89,133),(p+'IceAndFire.java',184,213),(p+'CommonProxy.java',125,127),(p+'client/ClientProxy.java',45,69),(p+'event/ServerEvents.java',442,473),(p+'event/ServerEvents.java',624,639),(p+'event/ClientEvents.java',57,62),(p+'event/ClientEvents.java',209,222)]
+k1='icefire-native-frozen-admission-and-server-fire-death-expiry-release-versus-shell'
+record(k1,r,whole(['item/ItemAlchemySword.java','entity/props/FrozenProperties.java','client/render/tile/RenderFrozenState.java'])+common+[(p+'item/IafItemRegistry.java',136,136),(p+'client/render/IafRenderType.java',52,55)],
+ '正式注册冰龙骨剑hurtEnemy→setFrozenFor目标200，EntityIceDragon在写入/查询时拒绝frozen→Citadel状态存储并广播调用。真实LivingUpdate isFrozen才tickFrozenEntity：server优先火/死亡/剩余递减/到0后清理→同handler之后isFrozen再判，普通目标水平速度乘.25且非EnderDragon空中额外重力，创造玩家免该运动修正。ClientProxy.init注册ClientEvents→PostRenderLiving在isFrozen时画以目标体型为界的六面冰壳，按剩余时间选4原版冰纹；StartTracking补发状态。',
+ '一个实际状态免疫门与火/死亡/自然期末释放、状态壳生命周期家族1。setFrozenFor直接覆盖非max延长；计时从1减0的tick仍true，下tick才清，不能将0计时误认为已解除；火清同时灭火，死亡清不破冰音，正常解除有玻璃碎音/粒子调用。冰龙frozen拒绝不等于冰剑其他减速/挖掘减速/击退一并被拒，addEffect结果未用；不称Boss完整免控。生效玻璃音只有false→true，非每次重施或免疫嗡声。壳纹4张/六面/顶点/常量/外部同步包装合并，不按视觉细节加数；PostRenderLiving先setCanceled仍继续后续绘制，本段没有return，不擅自推断所有骑乘视角实际隐藏。',
+ 'Boss灰字应在最终控制拒绝点而非泛化frozen=false触发；不同控制副作用须一起明确裁决。自然到期应配同tick状态，首次/重复施加音与拒绝音分离，反馈有限寿命。普通阴阳type9保留。',
+ '真实物品producer、注册、状态tick、完整壳方法已静态读；Citadel PropertiesMessage收包未闭合只支持0，原版hurtEnemy派发/模型姿态/透明排序无实机或TCP证明。getIce声明translucent/cull/lightmap，不能以声明证明遮挡和像素质量。龙吐息/其他同setter来源未展开，不额外计。未修改功能/资产或启动游戏。','native_control_admission_and_environmental_recovery')
+k2='icefire-native-scepter-bidirectional-target-membership-cleanup-and-release-accounting'
+record(k2,r,whole(['item/ItemCockatriceScepter.java','entity/props/MiscProperties.java','client/particle/CockatriceBeamRender.java'])+common+[(p+'item/IafItemRegistry.java',240,240),(p+'entity/EntityGorgon.java',55,71),(p+'entity/util/DragonUtils.java',351,356)],
+ '已注册scepter use真实startUsingItem→onUsingTick玩家视线实体盒射线、排盲/雕像黑名单→MiscProperties.addScepterTargetData双向记录caster/target runtime ID并防重；随后每次attackTargets遍历已存目标：失去凝视或caster死时双侧remove，但当前局部列表仍往后add WITHER/按caster.tick%20伤害与specialWeaponDmg++/粒子。releaseUsing延迟结算specialWeaponDmg耐久，逐目标移除被瞄记录后removeTargets；ClientEvents.PostRenderLiving遍历target.getTargetedBy并调用已有beam。',
+ '独立的双向施法目标成员及释放账务/视觉锚定家族1，非前项Cockatrice AI单TARGET_ENTITY或同一beam换常量。add入口OR任一方向已存在即return，可能保留单侧状态而非自动修复；removeTargets实际清TARGETED_BY_SCEPTER_HOLDERS而非TARGETING_ENTITIES_WITH_SCEPTER。release后不据方法名断言caster目标列表清空；失效移除后无continue，当前tick仍执行后续效果/音画。specialWeaponDmg为Item实例字段，不是ItemStack或玩家字段，伤害按caster绝对tick边界累计不看hurt结果。ID解析仅当前world LivingEntity，未UUID/removed/维度验证，dead target只清caster方向。beam来自被瞄记录，不是最终接纳WITHER或Boss拒控回执；复用beam几何0额外。',
+ 'Boss反馈不能用双向成员记录或发射beam代替最终拒控；失效后须停止当前tick副作用、释放清双方、耐久/节流按目标与实际玩家隔离。灰字只Boss明确拒控，普通阴阳不扩展。',
+ '所有本地producer/关系更新/最终攻击与release/实际renderer调用方法完整阅读，Citadel收包链/原版getUseDuration=1实际持续调度未运行；不宣称共享字段串扰、旧目标beam或TCP故障已实机复现。声音/模型无新增制作。','native_target_membership_lifecycle_and_feedback_ownership')
+d=json.loads((O/'semantic-dedup.json').read_text());d['groups'].append({'family':'batch135-frozen-release-and-scepter-membership','credited_chains':[k1,k2],'rationale':'Two independent actual native policies: frozen species denial/environment expiry and scepter bidirectional target lifetime/deferred accounting. Shared Citadel broadcast and CockatriceBeam rendering0; each entire chain1, no field/texture/tick wrapper inflation.'});(O/'semantic-dedup.json').write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n');verify()

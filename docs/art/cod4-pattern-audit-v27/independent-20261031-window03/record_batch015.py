@@ -1,0 +1,15 @@
+from pathlib import Path
+import json,sys,hashlib
+D=Path(__file__).resolve().parent;A=D.parent;R=A.parents[2];sys.path.insert(0,str(A));import record_source_methods as M
+def rec(repo,p,n,i=0):
+ r=M.record(repo,p,n,i,'CONTEXT_ONLY_NO_COUNT','完整方法上下文，零额外信用。');r['reviewMode']='READ_SOURCE_CONTEXT_NO_COUNT';return r
+def exc(r,note,ctx=[]):
+ r.update(targetScope='EXCLUDED',reviewMode='READ_SOURCE_EXCLUDED_NO_COUNT',countsTowardReferenceGate=False,observation=note,callContext=ctx);return r
+repo='Sweenus/SimplySwords';pre='common/src/main/java/net/sweenus/simplyswords/';p=pre+'client/renderer/AmanuensisBookRenderer.java';q=pre+'api/render/ParchmentBookRenderData.java'
+r=exc(rec(repo,p,'updatePageState'),'完整读取AmanuensisBookRenderer全类及ParchmentBookRenderData接口。原版BookModel/附魔台书纹理，按运动速度/攀升与channel/pulse控制bank、倾角、开合、flutter和翻页相位；递增age差(0,5]才平滑，倒退或>5则snap位置/yaw/pulse而保留两个累计相位。实体ID作全局PAGE_STATES键，无UUID/世界身份，且每80entityAge清旧条目时用各实体自身age相减，不是共享worldTime，不能称跨实体淘汰时长可靠。state.channel虽平滑，renderScribbles仍传原始channel门控；glyph正文只调此前已收renderGlyphArc，不能把书宿主/抖动包装再算新符纹。渲染调用前用offset做平滑迟滞，不证明书页glyph贴合UV；glyph在书局部旋转/缩放push分支pop之后才绘，非书面字形。数据getter实际entity实现未缓存，接口无body不冒充已读数据生产。与已收Wraithmaw等状态平滑同类的普通书动画消费者排除，未运行游戏。',[rec(repo,p,n) for n in ['AmanuensisBookRenderer','render','renderScribbles','PageState']])
+root=R/'build/item-use-references/Sweenus__SimplySwords';b=(root/q).read_bytes();r['contextEvidence']=[dict(repo=repo,revision=json.loads((root/'source.json').read_text())['sha'],path=q,local=str((root/q).relative_to(R)),sourceSha256=hashlib.sha256(b).hexdigest(),source=b.decode(),targetScope='CONTEXT_ONLY_NO_COUNT',reviewMode='READ_SOURCE_CONTEXT_NO_COUNT',observation='全接口只两个抽象getter；无body，不作实际状态来源证明。')]
+p=pre+'client/renderer/MagispearFallingSpearVisualEntityRenderer.java'
+s=exc(rec(repo,p,'renderSpear'),'完整读MagispearFallingSpearVisualEntityRenderer。LAUNCH按path求yaw/pitch，另两mode却直接相机billboard并固定roll-135；与batch008保留飞行轴再求roll的约束不同，不能把任何相机向平物品称尖端真实朝下。render用eased进度定位：LAUNCH为1-(1-p)^2、其余p²，但drawTrail长度travelled用path.length*p，和实际eased位移不一致，早期可能延伸过起点；这是人工按生命周期画直带，非真实历史采样。clearance只沿path方向减而未核ItemRenderer GROUND/实际模型轴，薄图可见不代表武器握点/碰撞正确。两个cross平面、双宽双色带、mode尺寸与min fade.2为参数差异，不再计学校弓或近战参考；实体offset/lifetime生产未读，不称真实命中验收。',[rec(repo,p,n) for n in ['render','drawTrail','drawRibbon','drawQuad','vertex','shouldRender']])
+p=pre+'client/renderer/feature/CaelestisCorruptionFeatureRenderer.java';q=pre+'client/renderer/CaelestisDreadglareRenderer.java'
+t=exc(rec(repo,p,'render'),'完整读CaelestisCorruptionFeatureRenderer与DreadglareRenderer两类。所谓corruption只是按seed位移floorMod挑RGB、unbound切红/紫范围，再把整个上下文模型使用同一原纹理+emissive全亮重画；没有独立污染mask、像素/UV或字符局部选区。Dreadglare只是按状态bank、pitch和unbound比例，实际材质仍单实体图。本scope是武器/装备纹章，不把怪物整体换色wrapper算独立参考，也未读/改Boss实体与AI。',[rec(repo,p,'colorFor'),rec(repo,q,'render'),rec(repo,q,'CaelestisDreadglareRenderer')])
+(D/'batch-015.json').write_text(json.dumps({'reviewed':0,'rows':[],'excluded':[r,s,t],'parentReview':{'status':'THREE_FRESH_BOOK_PROJECTILE_TINT_FAMILIES_EXCLUDED','newImplementations':0,'newExclusions':3,'mainLedgerUpdated':False,'productionChanges':False,'networkRequests':0}},ensure_ascii=False,indent=2)+'\n');print('batch015 three exclusions')

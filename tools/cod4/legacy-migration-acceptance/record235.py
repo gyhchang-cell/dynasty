@@ -1,0 +1,9 @@
+import json
+from review_batch import accepted,record,O
+cs=list(map(json.loads,(O/'candidates.jsonl').read_text().splitlines()))
+base='tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/'
+files=['api/sync_system/data_transformers/gtceu/MonitorGroupTransformer.java','common/machine/multiblock/electric/monitor/MonitorGroup.java','common/machine/multiblock/electric/CentralMonitorMachine.java','common/item/modules/TextModuleBehaviour.java','common/mui/factory/CentralMonitorUIFactory.java']
+root='e0642e52aaef2f6aeae9'
+s=[r['candidate_id'] for r in cs if r['repo']=='GregTechCEu/GregTech-Modern' and any(r['path'].endswith('/'+f) for f in files[:4]) and r['candidate_id']!=root]
+a=accepted(root,'gtceu-monitor-group-old-slot-payload-to-codec-owned-module-recovery','CentralMonitorMachine @SaveField monitorGroups磁盘load走既已核实ManagedSync保存桥；完整Transformer/MonitorGroup/CentralMonitorMachine/TextModuleBehaviour，UI buildUIFunction全文和editor物品槽片段。','旧positions compound list -> monitorPositions CODEC list；placeholderSlots.Items -> placeholderItems，旧items.Items -> items；targetPos compound转换为BlockPos codec；当前group name/positions/module stacks/placeholder stacks/target/dataSlot。','Codec构造group实际handler，UI ModularSlot存取物品、server tick遍历module.tick；TextModuleBehaviour实际读格式文本、targetlevel/position与placeholder库存生成text；拆machine实际drop两库存。','一个具体物理模块托管对象的旧格式适配链1，不将两个inventory与各坐标字段拆分。旧新共存时monitorPositions/placeholderItems优先新字段，明确避免覆盖当前格式；actual module slot与destruction返还证据排除纯同步codec。通用SyncDataHolder/ItemStackCodec不另计。','旧Items缺失requireNonNull/codec getOrThrow无逐item隔离；codec constructor不重新设置module filter且容量随list长度，不等同新建固定1/8槽。targetSide无则null，registry/dim parse错误边界未局部兜底；group UI删除仅groups.remove/setValue，无这里返还库存动作（静态观察未复现）。UI不allowC2S整list但不作安全全审；只读buildUIFunction完整及editor槽片段，未声称其余完整401行均审。恢复bridge已232研究不重复。',s)
+record(235,[a],[base+f for f in files])

@@ -1,0 +1,151 @@
+package mekanism.additions.common;
+
+import mekanism.additions.client.AdditionsClient;
+import mekanism.additions.common.block.BlockObsidianTNT;
+import mekanism.additions.common.config.MekanismAdditionsConfig;
+import mekanism.additions.common.item.ItemBalloon;
+import mekanism.additions.common.registries.AdditionsBiomeModifierSerializers;
+import mekanism.additions.common.registries.AdditionsBlocks;
+import mekanism.additions.common.registries.AdditionsCreativeTabs;
+import mekanism.additions.common.registries.AdditionsDataComponents;
+import mekanism.additions.common.registries.AdditionsDatapackRegistries;
+import mekanism.additions.common.registries.AdditionsEntityTypes;
+import mekanism.additions.common.registries.AdditionsIntProviderTypes;
+import mekanism.additions.common.registries.AdditionsItems;
+import mekanism.additions.common.registries.AdditionsSounds;
+import mekanism.additions.common.registries.AdditionsStructureModifierSerializers;
+import mekanism.additions.common.voice.VoiceServerManager;
+import mekanism.api.MekanismAPI;
+import mekanism.api.text.EnumColorCollection;
+import mekanism.common.Mekanism;
+import mekanism.common.base.IModModule;
+import mekanism.common.lib.Version;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.dispenser.BlockSource;
+import net.minecraft.core.dispenser.OptionalDispenseItemBehavior;
+import net.minecraft.core.dispenser.SulfurCubeBlockDispenseItemBehavior;
+import net.minecraft.network.Connection;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.DispenserBlock;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.gamerules.GameRules;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.data.event.GatherDataRegistryEntriesEvent;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import org.jspecify.annotations.Nullable;
+
+@Mod(MekanismAdditions.MODID)
+public class MekanismAdditions implements IModModule {
+
+    public static final String MODID = MekanismAPI.ADDITIONS_MODID;
+
+    @Nullable
+    public static MekanismAdditions instance;
+
+    /// MekanismTools version number
+    public final Version versionNumber;
+
+    /// The VoiceServer manager for walkie-talkies
+    @Nullable
+    public static VoiceServerManager voiceManager;
+
+    public MekanismAdditions(ModContainer modContainer, IEventBus modEventBus) {
+        Mekanism.addModule(instance = this);
+        //Set our version number to match the neoforge.mods.toml file, which matches the one in our build.gradle
+        versionNumber = new Version(modContainer);
+        MekanismAdditionsConfig.registerConfigs(modContainer);
+
+        NeoForge.EVENT_BUS.addListener(ServerStartingEvent.class, this::serverStarting);
+        NeoForge.EVENT_BUS.addListener(ServerStoppingEvent.class, this::serverStopping);
+
+        modEventBus.addListener(FMLCommonSetupEvent.class, this::commonSetup);
+        modEventBus.addListener(ModConfigEvent.class, MekanismAdditionsConfig::onConfigLoad);
+        modEventBus.addListener(GatherDataRegistryEntriesEvent.class, AdditionsDatapackRegistries::register);
+        AdditionsDataComponents.register(modEventBus);
+        AdditionsItems.ITEMS.register(modEventBus);
+        AdditionsBlocks.BLOCKS.register(modEventBus);
+        AdditionsCreativeTabs.CREATIVE_TABS.register(modEventBus);
+        AdditionsEntityTypes.ENTITY_TYPES.register(modEventBus);
+        AdditionsIntProviderTypes.INT_PROVIDER_TYPES.register(modEventBus);
+        AdditionsSounds.SOUND_EVENTS.register(modEventBus);
+        AdditionsBiomeModifierSerializers.BIOME_MODIFIER_SERIALIZERS.register(modEventBus);
+        AdditionsStructureModifierSerializers.STRUCTURE_MODIFIER_SERIALIZERS.register(modEventBus);
+    }
+
+    public static Identifier rl(String path) {
+        return Identifier.fromNamespaceAndPath(MODID, path);
+    }
+
+    @Override
+    public Version getVersion() {
+        return versionNumber;
+    }
+
+    @Override
+    public String getName() {
+        return "Additions";
+    }
+
+    @Override
+    public void resetClient() {
+        AdditionsClient.reset();
+    }
+
+    @Override
+    public void launchClient(Connection connection) {
+        AdditionsClient.launch(connection);
+    }
+
+    private void commonSetup(FMLCommonSetupEvent event) {
+        event.enqueueWork(() -> {
+            //Dispenser behavior
+            DispenserBlock.registerBehavior(AdditionsBlocks.OBSIDIAN_TNT, new OptionalDispenseItemBehavior() {
+                @Override
+                protected ItemStack execute(BlockSource source, ItemStack dispensed) {
+                    //Based heavily on vanilla's tnt dispense behavior
+                    ServerLevel level = source.level();
+                    if (!level.getGameRules().get(GameRules.TNT_EXPLODES)) {
+                        setSuccess(false);
+                        return dispensed;
+                    }
+                    BlockPos target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
+                    if (SulfurCubeBlockDispenseItemBehavior.dispenseBlock(level, target, dispensed)) {
+                        return dispensed;
+                    }
+                    if (BlockObsidianTNT.createAndAddEntity(source.level(), target, null)) {
+                        level.gameEvent(null, GameEvent.ENTITY_PLACE, target);
+                        dispensed.shrink(1);
+                        setSuccess(true);
+                    }
+                    return dispensed;
+                }
+            });
+            EnumColorCollection.zipApply(EnumColorCollection.VALUES, AdditionsItems.BALLOONS, (color, balloon) -> DispenserBlock.registerBehavior(balloon, new ItemBalloon.DispenserBehavior(color)));
+        });
+        Mekanism.logger.info("Loaded 'Mekanism: Additions' module.");
+    }
+
+    private void serverStarting(ServerStartingEvent event) {
+        if (MekanismAdditionsConfig.additions.voiceServerEnabled.get()) {
+            if (voiceManager == null) {
+                voiceManager = new VoiceServerManager();
+            }
+            voiceManager.start();
+        }
+    }
+
+    private void serverStopping(ServerStoppingEvent event) {
+        if (voiceManager != null) {
+            voiceManager.stop();
+            voiceManager = null;
+        }
+    }
+}

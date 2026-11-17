@@ -1,0 +1,50 @@
+[
+  {
+    "candidate_index": 3644,
+    "candidate_id": "1f59fda22b53ce9eb877",
+    "decision": "accepted",
+    "observation": "SpellCloud完整tick将生成/活动/消散阶段分开；仅ACTIVE且age整除间隔才用当前owner与spell执行范围impact，返回成功才累加impactCap并进入消散。age>=TTL先discard并return，cloudData空却直接返回而不回收。已读onCreatedFromSpell/phase/despawn/impact消费者：一次性命中特效用坐标快照sendBatchesDetached避免同tick实体删除使客户端错位；cap计成功执行次数而不是目标数。与横扫回执相关的是先固定实际执行结果再独立播短期反馈，不能用接收时实体仍在代替成功证据。",
+    "snippet_sha256": "bee58eb303685df76342e32015126bebd46315842ce206ea76643ea8a87e4b59",
+    "reviewed_at": "2026-10-26T17:20:31.470847+08:00"
+  },
+  {
+    "candidate_index": 3552,
+    "candidate_id": "2e3db5fddcebe4f26de7",
+    "decision": "accepted",
+    "observation": "召唤物DynamicMeleeAttackGoal完整tick以swingTick保存蓄力窗口、lastAttackTime/age恢复冷却；windupTick只执行一次，完成>=duration释放目标清理回调。已读全部goal与performAttackImpact：进行中canStop=false防高优先施法抢MOVE/LOOK令命中分支永不到达；目标失效重置-1，命中时重新读取当前目标与1.10范围容忍。impact声先播且tryAttack返回值未使用，AOE独立排除主人与同主宠物，因此这是尝试攻击反馈而非伤害成功回执，不能直接照搬为方天成功月牙。",
+    "snippet_sha256": "a008b79dc5393bcfe9c5a8cfbf40d9de71040bcbd899fdd7f9d4511f5376f544",
+    "reviewed_at": "2026-10-26T17:20:31.470864+08:00"
+  },
+  {
+    "candidate_index": 3660,
+    "candidate_id": "20ab79da4341de888969",
+    "decision": "accepted",
+    "observation": "SpellEngine完整服务端performAttackAgainstTargets经ServerNetwork.handleAttackPerform当前世界验证后executeSync调用；解析spell/attack并夹charge，按当前世界ID/关系/距离复验目标，临时清无敌帧和改攻击属性。player.attack无返回结果，impact声与targets收集无成功门槛；重复targetId未去重，后续meleeImpact也只反映二次法术impact。常规尾部移除属性和activeSkill，但每目标regen与lastAttackTime恢复不在finally，异常可留临时状态。对横扫的借鉴是分清C2S尝试、实际伤害证据与消费一次反馈，不把目标非空当成功。",
+    "snippet_sha256": "0f88db1e0550ed737eccfa32262cc3460ba24c5b4abb3add8f9e8c0c1945fced",
+    "reviewed_at": "2026-10-26T17:20:31.470869+08:00"
+  },
+  {
+    "candidate_index": 2853,
+    "candidate_id": "85c1364e9cc7738d0074",
+    "decision": "excluded",
+    "observation": "全文已审，作为3644同一施法云生命周期的初始化支撑：固定spellId/context/dataIndex，TTL=spawn+activeSeconds*20+despawn并设置impactCap；不把同一窗口的初始化重复计算独立玩法实现。",
+    "snippet_sha256": "710b92aedc1f5c764d39cda5664790fd03bf6e5de1c52429f79181863b941b45",
+    "reviewed_at": "2026-10-26T17:20:31.470874+08:00"
+  },
+  {
+    "candidate_index": 1870,
+    "candidate_id": "55e20def3084fc55e712",
+    "decision": "excluded",
+    "observation": "全文已审，作为3644同一消散消费链支撑：客户端或已消散直接返回，非正ticks立即discard，否则以当前age重设TTL并立即发布DESPAWNING，避免等下一tick露出活动姿态；同链不另计。",
+    "snippet_sha256": "1198418bb84723cc196243cd90ae06432bcc9168bfbb792fc5e15139f6138bc2",
+    "reviewed_at": "2026-10-26T17:20:31.470877+08:00"
+  },
+  {
+    "candidate_index": 2488,
+    "candidate_id": "75650ece526dd67efc03",
+    "decision": "excluded",
+    "observation": "全文已审，作为3644同一消散事件去重支撑：tracker阶段变化才触发playDespawnFX，持续更新END_OF_PHASE_AGE；实际音效粒子模型均在playDespawnFX中读到。此幂等闸属于同一云生命周期，不额外拆分计数。",
+    "snippet_sha256": "6350d35432896854324b2fb21c65f986507c5363291616b4944da8558f7c0289",
+    "reviewed_at": "2026-10-26T17:20:31.470881+08:00"
+  }
+]

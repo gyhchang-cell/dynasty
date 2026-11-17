@@ -27,6 +27,15 @@ public class DynastyTooltips {
     }
 
     static void append(ItemStack stack, String path, List<Component> tip, boolean zh, boolean shift) {
+        if (stack.getItem() instanceof net.minecraft.world.item.PotionItem) {
+            // Vanilla already lists this stack's effects and real attribute modifiers under
+            // “When Applied”. Iron Wall's separate combat multiplier is the only extra stat.
+            if (net.minecraft.world.item.alchemy.PotionUtils.getMobEffects(stack).stream()
+                    .anyMatch(e -> e.getEffect() == DynastyEffects.IRON_WALL.get()))
+                tip.add(Component.literal(zh ? "-30% 承受伤害" : "-30% Damage Taken")
+                        .withStyle(ChatFormatting.BLUE));
+            return;
+        }
         if (stack.getItem() instanceof ArmorItem) {
             double[] bonus = DynastyBalance.setNameBonus(path);
             if (bonus != null) {
@@ -38,7 +47,15 @@ public class DynastyTooltips {
                 tip.add(at, Component.literal("+" + number(bonus[1]) + " "
                         + (zh ? "生命上限" : "Max Health")).withStyle(ChatFormatting.BLUE));
             }
-            return; // Armour stats already describe the item; set details live in the book.
+            if (path.equals("tiangang_helmet") || path.equals("tiangang_chestplate")
+                    || path.equals("tiangang_leggings") || path.equals("tiangang_boots"))
+                tip.add(Component.literal(zh ? "四件·白天至阳：免疫并清除阴气" : "4 pieces, daytime: Yang constitution; blocks and cleanses Yin Qi")
+                        .withStyle(ChatFormatting.BLUE));
+            else if (path.equals("disha_helmet") || path.equals("disha_chestplate")
+                    || path.equals("disha_leggings") || path.equals("disha_boots"))
+                tip.add(Component.literal(zh ? "四件·夜晚阴体：免疫并清除阳气（含其增益）" : "4 pieces, nighttime: Yin constitution; blocks and cleanses Yang Qi, including its buffs")
+                        .withStyle(ChatFormatting.BLUE));
+            return; // Other set details live in the book.
         }
         if (stack.getItem() instanceof DynastyTrinketTips.Charm) return;
         if (DynastyWeaponProgression.eligible(stack)) {

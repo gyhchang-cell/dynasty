@@ -1,0 +1,74 @@
+[
+  {
+    "candidate_index": 2665,
+    "candidate_id": "1efe9a74e5a5f633b297",
+    "decision": "accepted",
+    "observation": "IOBusPart红石低转高且无pending时记单个pendingPulse并alertDevice，多次沿合并；tick先复验睡眠/主网供电及目标区块ticking条件，失败保留待处理，实际doBusWork前清pending。ImportBusPart.doBusWork完整已读，执行实际库存导入并以context.hasDoneWork调频；卸载NBT只在脉冲模式保留标记，重载addToWorld重新alert，换模式清旧pending。具体物流玩法跨tick一次消费，非独立网络基础设施。",
+    "snippet_sha256": "dc0830326d5bb12d0f429af5dca002aa727a74a91e6e0c9968a7373dd49f5676",
+    "reviewed_at": "2026-10-26T18:32:27.048861+08:00"
+  },
+  {
+    "candidate_index": 2669,
+    "candidate_id": "b7d96ff0fd6aac1816c8",
+    "decision": "pending",
+    "observation": "灌装输入先复制stack构造带recipe的过程，addProcessToQueue成功才缩输入并传simulate；未读BottlingProcess实际转化和移除，不计独立队列生产端。",
+    "snippet_sha256": "624e416bc495957e27fdcc71b6ce3d426ade40d1591217355d8e842f921b2014",
+    "reviewed_at": "2026-10-26T18:32:27.048880+08:00"
+  },
+  {
+    "candidate_index": 2670,
+    "candidate_id": "e73d1e20ad294e165a51",
+    "decision": "pending",
+    "observation": "直接加工以displayStack复制精确输入或堆叠量，只有预约成功才缩原复制stack；需补MultiblockProcessInWorld和处理器消费确认同链后归并。",
+    "snippet_sha256": "bbb2c7c331da05d5eae33a12c2fec8197022fa5a7062709801ddc11f5395caf3",
+    "reviewed_at": "2026-10-26T18:32:27.048886+08:00"
+  },
+  {
+    "candidate_index": 2677,
+    "candidate_id": "cb53f8814e646fad11dd",
+    "decision": "pending",
+    "observation": "泵机仅当原pumpQueue为空才按当前泵头下方实际液体重建，类型变更清空；需完整pumpCycle和buildPumpQueue才能判定过期源位置复验，不计当前候选。",
+    "snippet_sha256": "33fcd2523a84c6667d32deb20225cd81931e2d763201127ef02771e3ad196e6e",
+    "reviewed_at": "2026-10-26T18:32:27.048889+08:00"
+  },
+  {
+    "candidate_index": 2678,
+    "candidate_id": "f2b68351c17a4eb15860",
+    "decision": "pending",
+    "observation": "泵机update先输出液体，能量不足不推进，双倍周期尝试下降泵头，其余周期pumpCycle，每分钟清禁采集；与2677同一队列链待补，不拆credit。",
+    "snippet_sha256": "426cd98e018c3f5cc7d5fd9451d0391d7222d6331b2e7ab67f595f1b2177cb43",
+    "reviewed_at": "2026-10-26T18:32:27.048892+08:00"
+  },
+  {
+    "candidate_index": 2699,
+    "candidate_id": "ce1db935ba1518714e4c",
+    "decision": "accepted",
+    "observation": "无人机接口实际Lua命令messageToDrone只排颜色，server每次poll前按队长>10选1tick否则5tick冷却；发包时才使用当前drone实体ID而非入队来源，setDrone(null)未清队列/冷却，重连可能给新无人机播放旧命令环。已读PacketSpawnRing完整按当前客户端世界查ID生成RingEntity、其tick每轮增进度0.05结束discard；这是具体无人机命令视觉延期链，不能把环当执行成功回执。",
+    "snippet_sha256": "47aca777f9e94341ed0af3c01719b28ab923144177769f12a0cae1de6d7a5307",
+    "reviewed_at": "2026-10-26T18:32:27.048895+08:00"
+  },
+  {
+    "candidate_index": 2726,
+    "candidate_id": "d0f42989165c1005d5b5",
+    "decision": "pending",
+    "observation": "榨汁机enqueueProcesses通过现有过程输入槽计数预留数量，按占用排序后找配方，防同一原料多次预约；未读该状态的实际processor消费，先保留pending。",
+    "snippet_sha256": "f57203814f89e5ea0aabffd6d6cc21d22d92216d52f545927c57207cd3bb02ca",
+    "reviewed_at": "2026-10-26T18:32:27.048898+08:00"
+  },
+  {
+    "candidate_index": 2734,
+    "candidate_id": "e30e6436c7063b12da9a",
+    "decision": "pending",
+    "observation": "采矿机先模拟drops入库，成功才真实插入、替换世界矿块、移除队首并同步坐标，否则保留队首；需生产矿位和掉落计算入口复验方块，避免过期矿位重复开采，不提前计数。",
+    "snippet_sha256": "729caec493ff6781f2edc8304d69d8af2754477568c03a9c76cf7a4fd6900944",
+    "reviewed_at": "2026-10-26T18:32:27.048901+08:00"
+  },
+  {
+    "candidate_index": 2740,
+    "candidate_id": "9c1d5719de0b09de3d21",
+    "decision": "accepted",
+    "observation": "已全文读MobCharmItem耐久消费与MobCharmDamagePayload到CharmPane：服务端实际损耗后给指定玩家发栈与slot=-1，客户端以slot覆盖记录并用接收时墙钟定TTL，4秒基础且剩耐久<10%延长至接近12秒；渲染shouldRender才清过期，不与server tick相等比较。空栈移除对应键，多个护符因-1共槽覆盖，迟包仍重新获得完整展示期；仅算HUD受损反馈寿命而非真实战斗效果证明。",
+    "snippet_sha256": "beb53576c7ba0151e6beaad9abffff6e7db90b613c69d4580a57cb712eff463a",
+    "reviewed_at": "2026-10-26T18:32:27.048904+08:00"
+  }
+]

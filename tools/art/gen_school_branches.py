@@ -8,7 +8,7 @@ BRANCHES={
               effect='每点护甲韧性增加0.8%伤害，最多60%。',effect_en='+0.8% damage per armour toughness, up to 60%.'),
  'sword':dict(id='chengying_sword',zh='承影剑',en='Chengying Sword',base='liuyun_sword',material='jade',next='sword_dragon_crystal',next_material='dragon_crystal',
               effect='对生命至少90%的目标增加20%伤害。',effect_en='+20% damage against targets at 90% health or above.'),
- 'archer':dict(id='fengling_bow',zh='风翎弓',en='Wind Plume Bow',base='zhuxing_bow',material='refined_steel',next='shenbi_bow',next_material='refined_steel',
+ 'archer':dict(id='fengling_bow',zh='风翎弓',en='Wind Plume Bow',base='zhuxing_bow',material='sky_feather',next='shenbi_bow',next_material='refined_steel',
               effect='箭矢伤害较逐星弓增加25%，穿透1个目标。',effect_en='+25% arrow damage over Star Bow; pierces one target.'),
  'talisman':dict(id='leifu_staff',zh='雷符杖',en='Thunder Edict Staff',base='chiling_brush',material='jade',next='taiyi_sword',next_material='dragon_crystal',
               effect='伤害增加15%，命中施加3秒缓慢。',effect_en='+15% damage; hits slow targets for 3 seconds.'),

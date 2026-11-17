@@ -188,7 +188,8 @@ public final class ChenshaEcologyGameTests {
             // Every channel is bypassable on both sides, without entering the water.
             for(int z=54;z<=65;z++)for(int x:new int[]{cx-6,cx+6})
                 h.assertTrue(ChenshaPiece.cell(x,24,z).is(DungeonContent.MASONRY.get())
-                    &&ChenshaPiece.cell(x,25,z).isAir(),"Dry gallery bypass remains open");
+                    &&ChenshaPiece.cell(x,25,z).isAir()
+                    &&ChenshaPiece.cell(x,26,z).isAir(),"Dry gallery bypass remains open at "+x+", "+z);
         }
         for(var m:ChenshaPiece.markers())h.assertTrue(!ChenshaPiece.cell(m.offset().getX(),m.offset().getY(),m.offset().getZ()).is(Blocks.WATER),"No water overwrites progression marker");
         h.succeed();

@@ -1,0 +1,294 @@
+package mekanism.common.recipe.compat;
+
+import mekanism.api.MekanismAPITags;
+import mekanism.api.chemical.ChemicalIds;
+import mekanism.api.datagen.recipe.builder.ItemStackChemicalToItemStackRecipeBuilder;
+import mekanism.api.datagen.recipe.builder.ItemStackToChemicalRecipeBuilder;
+import mekanism.api.datagen.recipe.builder.ItemStackToItemStackRecipeBuilder;
+import mekanism.api.recipes.ingredients.ItemStackIngredient;
+import mekanism.api.recipes.ingredients.creator.IngredientCreatorAccess;
+import mekanism.api.text.EnumColor;
+import mekanism.common.Mekanism;
+import mekanism.common.recipe.RecipeProviderUtil;
+import mekanism.common.recipe.impl.PigmentExtractingRecipeProvider;
+import mekanism.common.util.EnumUtils;
+import mekanism.common.util.RegistryUtils;
+import net.minecraft.core.Holder;
+import net.minecraft.data.recipes.RecipeOutput;
+import net.minecraft.data.worldgen.BootstrapContextAccess;
+import net.minecraft.references.ItemIds;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ItemLike;
+import net.neoforged.neoforge.common.conditions.ICondition;
+import net.neoforged.neoforge.common.conditions.NotCondition;
+import net.neoforged.neoforge.common.conditions.TagEmptyCondition;
+import net.potionstudios.biomeswevegone.world.level.block.BWGBlocks;
+import net.potionstudios.biomeswevegone.world.level.block.sand.BWGSandSet;
+import net.potionstudios.biomeswevegone.world.level.block.set.BWGBlockSet;
+import net.potionstudios.biomeswevegone.world.level.block.wood.BWGWoodSet;
+
+public class BWGRecipeProvider extends CompatRecipeProvider {
+
+    public BWGRecipeProvider(BootstrapContextAccess contextAccess, String modid) {
+        super(contextAccess, modid);
+    }
+
+    @Override
+    protected void registerRecipes(RecipeOutput consumer, String basePath) {
+        addDyeRecipes(consumer, basePath);
+        addCrushingRecipes(consumer, basePath + "crushing/");
+        addEnrichingRecipes(consumer, basePath + "enriching/");
+        addMetallurgicInfusingRecipes(consumer, basePath + "metallurgic_infusing/");
+        addPrecisionSawmillRecipes(consumer, basePath + "sawing/");
+        addSandRecipes(consumer, basePath + "sandstone_to_sand/");
+        //TODO: Bio-fuel recipes?
+    }
+
+    private void addPrecisionSawmillRecipes(RecipeOutput consumer, String basePath) {
+        for (BWGWoodSet woodType : BWGWoodSet.woodsets()) {
+            RecipeProviderUtil.addPrecisionSawmillWoodTypeRecipes(consumer, this.items, basePath, woodType.planks().asItem(), woodType.boatItem().get(),
+                  woodType.chestBoatItem().get(), woodType.door().asItem(), woodType.fenceGate().asItem(), woodType.logItemTag(), woodType.pressurePlate().asItem(),
+                  woodType.trapdoor().asItem(), woodType.hangingSignItem(), woodType.strippedLogStem().asItem(), woodType.shelf().asItem(), woodType.name(), modLoaded);
+        }
+    }
+
+    private void addSandRecipes(RecipeOutput consumer, String basePath) {
+        for (BWGSandSet sandSet : BWGSandSet.getSandSets()) {
+            RecipeProviderUtil.save(consumer, ItemStackToItemStackRecipeBuilder.crushing(
+                  IngredientCreatorAccess.item().from(items, sandSet.getSandstoneBlocksItemTag()),
+                  new ItemStackTemplate(sandSet.getSand().asItem(), 2)
+            ), basePath + sandSet.getName(), modLoaded);
+        }
+    }
+
+    private void addDyeRecipes(RecipeOutput consumer, String basePath) {
+        for (EnumColor color : EnumColor.VALUES) {
+            DyeColor dyeColor = color.getDyeColor();
+            if (dyeColor != null) {
+                Holder<Item> dye = this.items.getOrThrow(ItemIds.DYE.pick(dyeColor));
+                dye(consumer, basePath, dye, false, color);
+                dye(consumer, basePath, dye, true, color);
+            }
+        }
+    }
+
+    private void dye(RecipeOutput consumer, String basePath, Holder<Item> output, boolean large, EnumColor color) {
+        String name = color.getRegistryPrefix();
+        String makeTarget = name;
+        if (large) {
+            makeTarget = "2_" + makeTarget;
+            name = "large_" + name;
+        }
+        TagKey<Item> makesDyeTag = tag("dye/makes_" + makeTarget + "_dye");
+        ICondition tagNotEmpty = new NotCondition(new TagEmptyCondition<>(makesDyeTag));
+        ItemStackIngredient inputIngredient = IngredientCreatorAccess.item().from(this.items, makesDyeTag);
+        ItemStackToItemStackRecipeBuilder.enriching(
+                    inputIngredient,
+                    new ItemStackTemplate(output, large ? 4 : 2)
+              ).addCondition(modLoaded)
+              .addCondition(tagNotEmpty)
+              .save(consumer, Mekanism.rl(basePath + "dye/" + name));
+        //Flowers -> 4x dye output (See PigmentExtractingRecipeProvider#addFlowerExtractionRecipes for note)
+        int flowerRate = 3 * PigmentExtractingRecipeProvider.DYE_RATE;
+        ItemStackToChemicalRecipeBuilder.pigmentExtracting(
+                    inputIngredient,
+                    chemicalTemplate(ChemicalIds.SIMPLE_PIGMENTS.pick(color), large ? 2 * flowerRate : flowerRate)
+              ).addCondition(modLoaded)
+              .addCondition(tagNotEmpty)
+              .save(consumer, Mekanism.rl(basePath + "pigment_extracting/" + name));
+    }
+
+    private void addCrushingRecipes(RecipeOutput consumer, String basePath) {
+        addCrusherDaciteRecipes(consumer, basePath + "dacite/");
+        addCrusherWhiteDaciteRecipes(consumer, basePath + "white_dacite/");
+        addCrusherRedRockRecipes(consumer, basePath + "red_rock/");
+    }
+
+    private void addCrusherDaciteRecipes(RecipeOutput consumer, String basePath) {
+        //Dacite -> Dacite Cobblestone
+        crushing(consumer, basePath, BWGBlocks.DACITE_SET, BWGBlocks.DACITE_COBBLESTONE_SET);
+        //Dacite Cobblestone -> Dacite Tile
+        crushing(consumer, basePath, BWGBlocks.DACITE_COBBLESTONE_SET, BWGBlocks.DACITE_TILES_SET);
+        //Dacite Tile -> Chiseled Dacite Bricks
+        crushing(consumer, basePath, BWGBlocks.DACITE_TILES_SET, BWGBlocks.CHISELED_DACITE_BRICKS_SET);
+        //Chiseled Dacite Bricks -> Dacite Bricks
+        crushing(consumer, basePath, BWGBlocks.CHISELED_DACITE_BRICKS_SET, BWGBlocks.DACITE_BRICKS_SET);
+        //Dacite Bricks -> Cracked Dacite Bricks
+        crushing(consumer, basePath, BWGBlocks.DACITE_BRICKS_SET, BWGBlocks.CRACKED_DACITE_BRICKS_SET);
+        //Dacite Bricks -> Dacite
+        crushing(consumer, basePath, BWGBlocks.CRACKED_DACITE_BRICKS_SET, BWGBlocks.DACITE_SET);
+        //Dacite Pillar -> Dacite
+        ItemStackToItemStackRecipeBuilder.crushing(
+                    IngredientCreatorAccess.item().from(BWGBlocks.DACITE_PILLAR.get()),
+                    new ItemStackTemplate(BWGBlocks.DACITE_SET.getBase().asItem(), 2)
+              ).addCondition(modLoaded)
+              .save(consumer, Mekanism.rl(basePath + "from_dacite_pillar"));
+    }
+
+    private void addCrusherWhiteDaciteRecipes(RecipeOutput consumer, String basePath) {
+        //White Dacite -> White Dacite Cobblestone
+        crushing(consumer, basePath, BWGBlocks.WHITE_DACITE_SET, BWGBlocks.WHITE_DACITE_COBBLESTONE_SET);
+        //White Dacite Cobblestone -> White Dacite Tile
+        crushing(consumer, basePath, BWGBlocks.WHITE_DACITE_COBBLESTONE_SET, BWGBlocks.WHITE_DACITE_TILES_SET);
+        //White Dacite Tile -> Chiseled White Dacite Bricks
+        crushing(consumer, basePath, BWGBlocks.WHITE_DACITE_TILES_SET, BWGBlocks.CHISELED_WHITE_DACITE_BRICKS_SET);
+        //Chiseled White Dacite Bricks -> White Dacite Bricks
+        crushing(consumer, basePath, BWGBlocks.CHISELED_WHITE_DACITE_BRICKS_SET, BWGBlocks.WHITE_DACITE_BRICKS_SET);
+        //White Dacite Bricks -> Cracked White Dacite Bricks
+        crushing(consumer, basePath, BWGBlocks.WHITE_DACITE_BRICKS_SET, BWGBlocks.CRACKED_WHITE_DACITE_BRICKS_SET);
+        //White Dacite Bricks -> White Dacite
+        crushing(consumer, basePath, BWGBlocks.CRACKED_WHITE_DACITE_BRICKS_SET, BWGBlocks.WHITE_DACITE_SET);
+        ItemStackToItemStackRecipeBuilder.crushing(
+                    IngredientCreatorAccess.item().from(BWGBlocks.WHITE_DACITE_PILLAR.get()),
+                    new ItemStackTemplate(BWGBlocks.WHITE_DACITE_SET.getBase().asItem(), 2)
+              ).addCondition(modLoaded)
+              .save(consumer, Mekanism.rl(basePath + "from_white_dacite_pillar"));
+    }
+
+    private void addCrusherRedRockRecipes(RecipeOutput consumer, String basePath) {
+        //Red Rock Tile -> Chiseled Red Rock Bricks
+        crushing(consumer, basePath, BWGBlocks.RED_ROCK_TILES_SET, BWGBlocks.CHISELED_RED_ROCK_BRICKS_SET);
+        //Chiseled Red Rock -> Red Rock Bricks
+        crushing(consumer, basePath, BWGBlocks.CHISELED_RED_ROCK_BRICKS_SET, BWGBlocks.RED_ROCK_BRICKS_SET);
+        //Red Rock Bricks -> Cracked Red Rock Bricks
+        crushing(consumer, basePath, BWGBlocks.RED_ROCK_BRICKS_SET, BWGBlocks.CRACKED_RED_ROCK_BRICKS_SET);
+        //Cracked Red Rock Bricks -> Polished Red Rock
+        crushing(consumer, basePath, BWGBlocks.CRACKED_RED_ROCK_BRICKS_SET, BWGBlocks.POLISHED_RED_ROCK_SET);
+        //Polished Red Rock -> Red Rock
+        crushing(consumer, basePath, BWGBlocks.POLISHED_RED_ROCK_SET, BWGBlocks.RED_ROCK_SET);
+        //Red Rock -> Red Rock Tiles
+        crushing(consumer, basePath, BWGBlocks.RED_ROCK_SET, BWGBlocks.RED_ROCK_TILES_SET);
+    }
+
+    private void crushing(RecipeOutput consumer, String basePath, BWGBlockSet from, BWGBlockSet to) {
+        String name = RegistryUtils.getPath(from.getBase());
+        crushing(consumer, from.getBase(), to.getBase(), basePath + "conversion_" + name);
+        crushing(consumer, from.getSlab(), to.getSlab(), basePath + "slabs_conversion_" + name);
+        crushing(consumer, from.getStairs(), to.getStairs(), basePath + "stairs_conversion_" + name);
+        crushing(consumer, from.getWall(), to.getWall(), basePath + "walls_conversion_" + name);
+    }
+
+    private void crushing(RecipeOutput consumer, ItemLike input, ItemLike output, String path) {
+        ItemStackToItemStackRecipeBuilder.crushing(
+                    IngredientCreatorAccess.item().from(input),
+                    new ItemStackTemplate(output.asItem())
+              ).addCondition(modLoaded)
+              .save(consumer, Mekanism.rl(path));
+    }
+
+    private void addEnrichingRecipes(RecipeOutput consumer, String basePath) {
+        addMossyStoneEnrichingRecipes(consumer, basePath + "mossy_stone/");
+        addDaciteEnrichingRecipes(consumer, basePath + "dacite/");
+        addWhiteDaciteEnrichingRecipes(consumer, basePath + "white_dacite/");
+        addRedRockEnrichingRecipes(consumer, basePath + "red_rock/");
+    }
+
+    private void addMossyStoneEnrichingRecipes(RecipeOutput consumer, String basePath) {
+        BWGBlockSet from = BWGBlocks.MOSSY_STONE_SET;
+        String name = RegistryUtils.getPath(from.getBase());
+        enriching(consumer, from.getBase(), Items.STONE, basePath + "conversion_" + name);
+        enriching(consumer, from.getSlab(), Items.STONE_SLAB, basePath + "slabs_conversion_" + name);
+        enriching(consumer, from.getStairs(), Items.STONE_STAIRS, basePath + "stairs_conversion_" + name);
+        //enriching(consumer, from.getWall(), Items.STONE_WALL, basePath + "walls_conversion_" + name);
+    }
+
+    private void addDaciteEnrichingRecipes(RecipeOutput consumer, String basePath) {
+        //Dacite Cobble -> Dacite
+        enriching(consumer, basePath, BWGBlocks.DACITE_COBBLESTONE_SET, BWGBlocks.DACITE_SET);
+        //Dacite -> Cracked Dacite Bricks
+        enriching(consumer, basePath, BWGBlocks.DACITE_SET, BWGBlocks.CRACKED_DACITE_BRICKS_SET);
+        //Cracked Dacite Bricks -> Dacite Bricks
+        enriching(consumer, basePath, BWGBlocks.CRACKED_DACITE_BRICKS_SET, BWGBlocks.DACITE_BRICKS_SET);
+        //Dacite Bricks -> Chiseled Dacite Bricks
+        enriching(consumer, basePath, BWGBlocks.DACITE_BRICKS_SET, BWGBlocks.CHISELED_DACITE_BRICKS_SET);
+        //Chiseled Dacite Bricks -> Dacite Tile
+        enriching(consumer, basePath, BWGBlocks.CHISELED_DACITE_BRICKS_SET, BWGBlocks.DACITE_TILES_SET);
+        //Dacite Tile -> Dacite Cobble
+        enriching(consumer, basePath, BWGBlocks.DACITE_TILES_SET, BWGBlocks.DACITE_COBBLESTONE_SET);
+    }
+
+    private void addWhiteDaciteEnrichingRecipes(RecipeOutput consumer, String basePath) {
+        //White Dacite Cobble -> White Dacite
+        enriching(consumer, basePath, BWGBlocks.WHITE_DACITE_COBBLESTONE_SET, BWGBlocks.WHITE_DACITE_SET);
+        //White Dacite -> White Cracked Dacite Bricks
+        enriching(consumer, basePath, BWGBlocks.WHITE_DACITE_SET, BWGBlocks.CRACKED_WHITE_DACITE_BRICKS_SET);
+        //Cracked White Dacite Bricks -> White Dacite Bricks
+        enriching(consumer, basePath, BWGBlocks.CRACKED_WHITE_DACITE_BRICKS_SET, BWGBlocks.WHITE_DACITE_BRICKS_SET);
+        //White Dacite Bricks -> Chiseled White Dacite Bricks
+        enriching(consumer, basePath, BWGBlocks.WHITE_DACITE_BRICKS_SET, BWGBlocks.CHISELED_WHITE_DACITE_BRICKS_SET);
+        //Chiseled White Dacite Bricks -> White Dacite Tile
+        enriching(consumer, basePath, BWGBlocks.CHISELED_WHITE_DACITE_BRICKS_SET, BWGBlocks.WHITE_DACITE_TILES_SET);
+        //White Dacite Tile -> White Dacite Cobble
+        enriching(consumer, basePath, BWGBlocks.WHITE_DACITE_TILES_SET, BWGBlocks.WHITE_DACITE_COBBLESTONE_SET);
+    }
+
+    private void addRedRockEnrichingRecipes(RecipeOutput consumer, String basePath) {
+        //Red Rock -> Polished Red Rock
+        enriching(consumer, basePath, BWGBlocks.RED_ROCK_SET, BWGBlocks.POLISHED_RED_ROCK_SET);
+        //Polished Red Rock -> Cracked Red Rock
+        enriching(consumer, basePath, BWGBlocks.POLISHED_RED_ROCK_SET, BWGBlocks.CRACKED_RED_ROCK_BRICKS_SET);
+        //Cracked Red Rock Bricks -> Red Rock Bricks
+        enriching(consumer, basePath, BWGBlocks.CRACKED_RED_ROCK_BRICKS_SET, BWGBlocks.RED_ROCK_BRICKS_SET);
+        //Red Rock Bricks -> Chiseled Red Rock
+        enriching(consumer, basePath, BWGBlocks.RED_ROCK_BRICKS_SET, BWGBlocks.CHISELED_RED_ROCK_BRICKS_SET);
+        //Chiseled Red Rock -> Red Rock Tiles
+        enriching(consumer, basePath, BWGBlocks.CHISELED_RED_ROCK_BRICKS_SET, BWGBlocks.RED_ROCK_TILES_SET);
+        //Red Rock Tiles -> Red Rock
+        enriching(consumer, basePath, BWGBlocks.RED_ROCK_TILES_SET, BWGBlocks.RED_ROCK_SET);
+
+        //Mossy Red Rock Bricks -> Red Rock Bricks
+        enriching(consumer, basePath, BWGBlocks.MOSSY_RED_ROCK_BRICKS_SET, BWGBlocks.RED_ROCK_BRICKS_SET);
+    }
+
+    private void enriching(RecipeOutput consumer, String basePath, BWGBlockSet from, BWGBlockSet to) {
+        String name = RegistryUtils.getPath(from.getBase());
+        enriching(consumer, from.getBase(), to.getBase(), basePath + "conversion_" + name);
+        enriching(consumer, from.getSlab(), to.getSlab(), basePath + "slabs_conversion_" + name);
+        enriching(consumer, from.getStairs(), to.getStairs(), basePath + "stairs_conversion_" + name);
+        enriching(consumer, from.getWall(), to.getWall(), basePath + "walls_conversion_" + name);
+    }
+
+    private void enriching(RecipeOutput consumer, ItemLike input, ItemLike output, String path) {
+        ItemStackToItemStackRecipeBuilder.enriching(
+                    IngredientCreatorAccess.item().from(input),
+                    new ItemStackTemplate(output.asItem())
+              ).addCondition(modLoaded)
+              .save(consumer, Mekanism.rl(path));
+    }
+
+    private void addMetallurgicInfusingRecipes(RecipeOutput consumer, String basePath) {
+        addMossyStoneInfusingRecipes(consumer, basePath + "mossy_stone/");
+        infuseMoss(consumer, basePath + "red_rock/", BWGBlocks.RED_ROCK_BRICKS_SET, BWGBlocks.MOSSY_RED_ROCK_BRICKS_SET);
+    }
+
+    private void addMossyStoneInfusingRecipes(RecipeOutput consumer, String basePath) {
+        String name = "stone";
+        BWGBlockSet to = BWGBlocks.MOSSY_STONE_SET;
+        infuseMoss(consumer, Items.STONE, to.getBase(), basePath + "conversion_" + name);
+        infuseMoss(consumer, Items.STONE_SLAB, to.getSlab(), basePath + "slabs_conversion_" + name);
+        infuseMoss(consumer, Items.STONE_STAIRS, to.getStairs(), basePath + "stairs_conversion_" + name);
+        //infuseMoss(consumer, Items.STONE_WALL, to.getWall(), basePath + "walls_conversion_" + name);
+    }
+
+    private void infuseMoss(RecipeOutput consumer, String basePath, BWGBlockSet from, BWGBlockSet to) {
+        String name = RegistryUtils.getPath(from.getBase());
+        infuseMoss(consumer, from.getBase(), to.getBase(), basePath + "conversion_" + name);
+        infuseMoss(consumer, from.getSlab(), to.getSlab(), basePath + "slabs_conversion_" + name);
+        infuseMoss(consumer, from.getStairs(), to.getStairs(), basePath + "stairs_conversion_" + name);
+        infuseMoss(consumer, from.getWall(), to.getWall(), basePath + "walls_conversion_" + name);
+    }
+
+    private void infuseMoss(RecipeOutput consumer, ItemLike input, ItemLike output, String path) {
+        ItemStackChemicalToItemStackRecipeBuilder.metallurgicInfusing(
+                    IngredientCreatorAccess.item().from(input),
+                    IngredientCreatorAccess.chemicalStack().from(this.chemicals, MekanismAPITags.Chemicals.BIO, 10),
+                    false,
+                    new ItemStackTemplate(output.asItem())
+              ).addCondition(modLoaded)
+              .save(consumer, Mekanism.rl(path));
+    }
+}

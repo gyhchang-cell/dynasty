@@ -11,6 +11,7 @@
 运行：python3 tools/art/verify_gear.py
 """
 import importlib.util
+import hashlib
 import json
 import os
 import re
@@ -47,10 +48,37 @@ def read(path):
     return open(path, encoding="utf-8").read()
 
 
+def texture_errors(tid, texture, model, expected, approved):
+    """Keep legacy size checks; verify approved originals against their published hash."""
+    from PIL import Image
+    errors = []
+    with Image.open(texture) as image:
+        original = approved.get(tid)
+        if original:
+            binding = {}
+            if os.path.isfile(model):
+                with open(model, encoding="utf-8") as model_file:
+                    binding = json.load(model_file)
+            with open(texture, 'rb') as source:
+                digest = hashlib.sha256(source.read()).hexdigest()
+            if (image.size != tuple(original['size']) or digest != original['sha256']
+                    or binding.get('loader') != 'dynasty:original_item'
+                    or binding.get('original_texture') != f'dynasty:textures/item/{tid}.png'):
+                errors.append(f'饰品 {tid} 与获选原稿或原图加载器绑定不一致')
+        elif image.size != (expected, expected):
+            errors.append("饰品 %s 的贴图不是 %d×%d（实际 %s）"
+                          % (tid, expected, expected, "×".join(str(n) for n in image.size)))
+        if image.convert("RGBA").getchannel("A").getextrema()[1] == 0:
+            errors.append("饰品 %s 的贴图全透明（画失败？）" % tid)
+    return errors
+
+
 def check_trinkets():
     # 真源 = 所有饰品生成器（每批一张表）/ source of truth: every trinket generator table
     table = {}
     sizes = dict(LEGACY_HD_SIZES)
+    manifest = os.path.join(ROOT, 'docs/art/original-runtime-v7/published.json')
+    approved = {row['id']: row for row in json.load(open(manifest, encoding='utf-8'))} if os.path.isfile(manifest) else {}
     for generator in ("gen_trinkets3", "gen_trinkets4", "gen_trinkets5", "gen_trinkets6", "gen_trinkets7"):
         path = os.path.join(ROOT, "tools/art/%s.py" % generator)
         if os.path.exists(path):
@@ -78,14 +106,9 @@ def check_trinkets():
         if not os.path.exists(os.path.join(ASSETS, "textures/item/%s.png" % tid)):
             problems.append("饰品 %s 缺贴图" % tid)
         else:
-            from PIL import Image
-            with Image.open(os.path.join(ASSETS, "textures/item/%s.png" % tid)) as image:
-                expected = sizes.get(tid, 32)
-                if image.size != (expected, expected):
-                    problems.append("饰品 %s 的贴图不是 %d×%d（实际 %s）"
-                                    % (tid, expected, expected, "×".join(str(n) for n in image.size)))
-                if image.convert("RGBA").getchannel("A").getextrema()[1] == 0:
-                    problems.append("饰品 %s 的贴图全透明（画失败？）" % tid)
+            problems.extend(texture_errors(tid, os.path.join(ASSETS, "textures/item/%s.png" % tid),
+                                           os.path.join(ASSETS, "models/item/%s.json" % tid),
+                                           sizes.get(tid, 32), approved))
         if not os.path.exists(os.path.join(ASSETS, "models/item/%s.json" % tid)):
             problems.append("饰品 %s 缺模型" % tid)
         if not os.path.exists(os.path.join(DATA, "recipes/%s.json" % tid)):

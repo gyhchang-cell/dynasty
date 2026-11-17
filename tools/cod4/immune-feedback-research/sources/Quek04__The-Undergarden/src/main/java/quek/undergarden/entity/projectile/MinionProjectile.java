@@ -1,0 +1,59 @@
+package quek.undergarden.entity.projectile;
+
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrowableItemProjectile;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import quek.undergarden.entity.Minion;
+import quek.undergarden.registry.UGEntityTypes;
+import quek.undergarden.registry.UGItems;
+
+public class MinionProjectile extends ThrowableItemProjectile {
+
+	public MinionProjectile(EntityType<? extends MinionProjectile> type, Level level) {
+		super(type, level);
+	}
+
+	public MinionProjectile(Level level, LivingEntity shooter) {
+		super(UGEntityTypes.MINION_PROJECTILE.get(), shooter, level, new ItemStack(UGItems.FORGOTTEN_NUGGET.get()));
+	}
+
+	@Override
+	protected Item getDefaultItem() {
+		return UGItems.FORGOTTEN_NUGGET.get();
+	}
+
+	@Override
+	public void handleEntityEvent(byte id) {
+		if (id == 3) {
+			for (int i = 0; i < 8; ++i) {
+				this.level().addParticle(new ItemParticleOption(ParticleTypes.ITEM, this.getItem().getItem()), this.getX(), this.getY(), this.getZ(), 0.0D, 0.0D, 0.0D);
+			}
+		}
+	}
+
+	@Override
+	protected void onHit(HitResult result) {
+		super.onHit(result);
+		if (!this.level().isClientSide()) {
+			this.level().broadcastEntityEvent(this, (byte) 3);
+			this.remove(RemovalReason.KILLED);
+		}
+	}
+
+	@Override
+	protected void onHitEntity(EntityHitResult result) {
+		if (result.getEntity() instanceof LivingEntity living && this.level() instanceof ServerLevel level) {
+			if (!(living instanceof Minion)) {
+				living.hurtServer(level, this.damageSources().thrown(this, this.getOwner()), 10.0F);
+			}
+		}
+	}
+}

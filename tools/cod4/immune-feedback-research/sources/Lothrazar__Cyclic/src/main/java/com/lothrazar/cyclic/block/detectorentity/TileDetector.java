@@ -1,0 +1,260 @@
+package com.lothrazar.cyclic.block.detectorentity;
+
+import java.util.List;
+import com.lothrazar.cyclic.ModCyclic;
+import com.lothrazar.cyclic.block.TileBlockEntityCyclic;
+import com.lothrazar.cyclic.data.PreviewOutlineType;
+import com.lothrazar.cyclic.item.datacard.EntityDataCard;
+import com.lothrazar.cyclic.registry.BlockRegistry;
+import com.lothrazar.cyclic.registry.ItemRegistry;
+import com.lothrazar.cyclic.registry.TileRegistry;
+import com.lothrazar.library.data.EntityFilterType;
+import com.lothrazar.library.util.ShapeUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.core.HolderLookup;
+import net.neoforged.neoforge.items.ItemStackHandler;
+
+public class TileDetector extends TileBlockEntityCyclic implements MenuProvider {
+
+  static enum Fields {
+    GREATERTHAN, LIMIT, RANGEX, RANGEY, RANGEZ, ENTITYTYPE, RENDER;
+  }
+
+  private static final int PER_TICK = 10;
+  public static final int MAX_RANGE = 32;
+  private int rangeX = 5;
+  private int rangeY = 1;
+  private int rangeZ = 5;
+  //default is > 0 living entities 
+  private int limitUntilRedstone = 0;
+  private CompareType compType = CompareType.GREATER;
+  public EntityFilterType entityFilter = EntityFilterType.LIVING;
+  private boolean isPoweredNow = false;
+  public final ItemStackHandler filter = new ItemStackHandler(1) {
+
+    @Override
+    public boolean isItemValid(int slot, ItemStack stack) {
+      if (stack.isEmpty()) {
+        return true;
+      }
+      return stack.getItem() == ItemRegistry.ENTITY_DATA.get();
+    }
+
+    @Override
+    public int getSlotLimit(int slot) {
+      return 1;
+    }
+  };
+
+  public TileDetector(BlockPos pos, BlockState state) {
+    super(TileRegistry.DETECTOR_ENTITY.get(), pos, state);
+    this.needsRedstone = 0;
+  }
+
+  public static void serverTick(Level level, BlockPos blockPos, BlockState blockState, TileDetector e) {
+    e.tick();
+  }
+
+  public void tick() {
+    timer--;
+    if (level.isClientSide || timer > 0) {
+      return;
+    }
+    timer = PER_TICK;
+    //and then
+    int entitiesFound = getCountInRange();
+    boolean trigger = false;
+    switch (this.compType) {
+      case LESS:
+        trigger = (entitiesFound < limitUntilRedstone);
+      break;
+      case GREATER:
+        trigger = (entitiesFound > limitUntilRedstone);
+      break;
+      case EQUAL:
+        trigger = (entitiesFound == limitUntilRedstone);
+      break;
+      default:
+      break;
+    }
+    if (isPoweredNow != trigger) {
+      isPoweredNow = trigger;
+      BlockState state = level.getBlockState(this.getBlockPos());
+      level.sendBlockUpdated(this.getBlockPos(), state, state, 3);
+      try {
+        level.updateNeighborsAt(this.getBlockPos(), this.getBlockState().getBlock());
+      }
+      catch (Throwable e) {
+        //somehow this lead to a  
+        //        java.lang.NullPointerException
+        //        at net.minecraft.block.BlockDoor.neighborChanged(BlockDoor.java:228)
+        // from the notifyNeighborsOfStateChange(...)
+        // door was doing a get state on pos.up() , so its top half..
+        //this catch means no game crash 
+        ModCyclic.LOGGER.error("State change error in adjacent block ", e);
+      }
+    }
+  }
+
+
+  @Override
+  public Component getDisplayName() {
+    return BlockRegistry.DETECTOR_ENTITY.get().getName();
+  }
+
+  @Override
+  public AbstractContainerMenu createMenu(int i, Inventory playerInventory, Player playerEntity) {
+    return new ContainerDetector(i, level, worldPosition, playerInventory, playerEntity);
+  }
+
+  @Override
+  public boolean isPowered() {
+    return isPoweredNow;
+  }
+
+  public List<BlockPos> getShapeHollow() {
+    return getShape();
+  }
+
+  public List<BlockPos> getShape() {
+    return ShapeUtil.getShape(getRange(), worldPosition.getY());
+  }
+
+  private int getCountInRange() {
+    ItemStack filterSta = filter.getStackInSlot(0);
+    if (EntityDataCard.hasEntity(filterSta)) {
+      //card present: ignore the Type button and count entities matching the card's stored entity type
+      AABB range = getRange();
+      List<Entity> all = level.getEntitiesOfClass(Entity.class, range);
+      int count = 0;
+      for (Entity e : all) {
+        if (EntityDataCard.matchesEntity(e, filterSta)) {
+          count++;
+        }
+      }
+      return count;
+    }
+    List<? extends LivingEntity> list = this.entityFilter.getEntities(level, getRange());
+    return list.size();
+  }
+
+  private AABB getRange() {
+    double x = worldPosition.getX();
+    double y = worldPosition.getY();
+    double z = worldPosition.getZ();
+    AABB entityRange = new AABB(
+        x - this.rangeX, y - this.rangeY, z - this.rangeZ,
+        x + this.rangeX + 1, y + this.rangeY, z + this.rangeZ + 1);
+    return entityRange;
+  }
+
+  @Override
+  public int getField(int f) {
+    switch (Fields.values()[f]) {
+      case ENTITYTYPE:
+        return this.entityFilter.ordinal();
+      case GREATERTHAN:
+        return this.compType.ordinal();
+      case LIMIT:
+        return this.limitUntilRedstone;
+      case RANGEX:
+        return this.rangeX;
+      case RANGEY:
+        return this.rangeY;
+      case RANGEZ:
+        return this.rangeZ;
+      case RENDER:
+        return render;
+    }
+    return 0;
+  }
+
+  @Override
+  public void setField(int field, int value) {
+    switch (Fields.values()[field]) {
+      case RENDER:
+        this.render = value % PreviewOutlineType.values().length;
+      break;
+      case GREATERTHAN:
+        if (value >= CompareType.values().length) {
+          value = 0;
+        }
+        if (value < 0) {
+          value = CompareType.values().length - 1;
+        }
+        this.compType = CompareType.values()[value];
+      break;
+      case LIMIT:
+        if (value > 999) {
+          value = 999;
+        }
+        if (value < 0) {
+          value = 0;
+        }
+        this.limitUntilRedstone = value;
+      break;
+      case RANGEX:
+        this.rangeX = value;
+      break;
+      case RANGEY:
+        this.rangeY = value;
+      break;
+      case RANGEZ:
+        this.rangeZ = value;
+      break;
+      case ENTITYTYPE:
+        if (value >= EntityFilterType.values().length) {
+          value = 0;
+        }
+        if (value < 0) {
+          value = EntityFilterType.values().length - 1;
+        }
+        this.entityFilter = EntityFilterType.values()[value];
+      break;
+    }
+  }
+
+  @Override
+  public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    this.rangeX = tag.getInt("ox");
+    this.rangeY = tag.getInt("oy");
+    this.rangeZ = tag.getInt("oz");
+    this.limitUntilRedstone = tag.getInt("limit");
+    int cType = tag.getInt("compare");
+    if (cType >= 0 && cType < CompareType.values().length) {
+      this.compType = CompareType.values()[cType];
+    }
+    int eType = tag.getInt("entityType");
+    if (eType >= 0 && eType < EntityFilterType.values().length) {
+      this.entityFilter = EntityFilterType.values()[eType];
+    }
+    if (tag.contains("filter")) {
+      filter.deserializeNBT(registries, tag.getCompound("filter"));
+    }
+    super.loadAdditional(tag, registries);
+  }
+
+  @Override
+  public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    tag.putInt("ox", rangeX);
+    tag.putInt("oy", rangeY);
+    tag.putInt("oz", rangeZ);
+    tag.putInt("limit", limitUntilRedstone);
+    tag.putInt("compare", compType.ordinal());
+    tag.putInt("entityType", entityFilter.ordinal());
+    tag.put("filter", filter.serializeNBT(registries));
+    super.saveAdditional(tag, registries);
+  }
+}

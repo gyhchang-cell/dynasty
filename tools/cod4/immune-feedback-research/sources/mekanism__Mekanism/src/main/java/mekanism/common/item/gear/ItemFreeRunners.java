@@ -1,0 +1,126 @@
+package mekanism.common.item.gear;
+
+import java.util.List;
+import java.util.function.Consumer;
+import mekanism.api.text.EnumColor;
+import mekanism.common.Mekanism;
+import mekanism.common.MekanismLang;
+import mekanism.common.component.containers.type.ContainerType;
+import mekanism.common.config.MekanismConfig;
+import mekanism.common.item.interfaces.IFreeRunnerItem;
+import mekanism.common.item.interfaces.IFreeRunnerItem.FreeRunnerMode;
+import mekanism.common.item.interfaces.IHasConditionalAttributes;
+import mekanism.common.item.interfaces.IItemHUDProvider;
+import mekanism.common.item.interfaces.IModeItem.IAttachmentBasedModeItem;
+import mekanism.common.registration.impl.CreativeTabDeferredRegister.ICustomCreativeTabContents;
+import mekanism.common.registries.MekanismDataComponents;
+import mekanism.common.util.ItemAccessUtils;
+import mekanism.common.util.text.EnergyDisplay;
+import net.minecraft.core.Holder;
+import net.minecraft.core.TypedInstance;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.CreativeModeTab.ItemDisplayParameters;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.equipment.EquipmentAsset;
+import net.minecraft.world.item.equipment.Equippable;
+import net.neoforged.neoforge.event.ItemAttributeModifierEvent;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+
+public class ItemFreeRunners extends ItemSpecialArmor implements IItemHUDProvider, ICustomCreativeTabContents, IAttachmentBasedModeItem<FreeRunnerMode>,
+      IHasConditionalAttributes, IFreeRunnerItem {
+
+    private static final AttributeModifier MOVEMENT_EFFICIENCY = new AttributeModifier(Mekanism.rl("free_runners"), 1, Operation.ADD_VALUE);
+
+    public ItemFreeRunners(Item.Properties properties, ResourceKey<EquipmentAsset> markerAsset) {
+        super(properties.stacksTo(1).rarity(Rarity.RARE)
+              .component(MekanismDataComponents.FREE_RUNNER_MODE, FreeRunnerMode.NORMAL)
+              .component(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.FEET).setAsset(markerAsset).build())
+        );
+    }
+
+    @Override
+    public void addItems(ItemDisplayParameters displayParameters, Holder<Item> item, Consumer<ItemStack> tabOutput) {
+        tabOutput.accept(ContainerType.ENERGY.getFilledVariant(item, null));
+    }
+
+    @Override
+    public boolean canWalkOnPowderedSnow(ItemStack stack, LivingEntity wearer) {
+        return true;
+    }
+
+    @Override
+    public boolean isBarVisible(ItemStack stack) {
+        return ContainerType.ENERGY.isBarVisible(stack);
+    }
+
+    @Override
+    public int getBarWidth(ItemStack stack) {
+        return ContainerType.ENERGY.getBarWidth(stack);
+    }
+
+    @Override
+    public int getBarColor(ItemStack stack) {
+        return MekanismConfig.client.energyColor.get();
+    }
+
+    @Override
+    public DataComponentType<FreeRunnerMode> getModeDataType() {
+        return MekanismDataComponents.FREE_RUNNER_MODE.get();
+    }
+
+    @Override
+    public FreeRunnerMode getDefaultMode() {
+        return FreeRunnerMode.NORMAL;
+    }
+
+    @Override
+    public <ITEM extends TypedInstance<Item> & DataComponentGetter> FreeRunnerMode getFreeRunnerMode(ITEM instance) {
+        return getMode(instance);
+    }
+
+    @Override
+    public <ITEM extends TypedInstance<Item> & DataComponentGetter> void addHUDStrings(List<Component> list, Player player, ITEM instance, EquipmentSlot slotType) {
+        if (slotType == EquipmentSlot.FEET) {
+            list.add(MekanismLang.FREE_RUNNERS_MODE.translateColored(EnumColor.GRAY, getMode(instance).getTextComponent()));
+            EnergyHandler energyHandler = ContainerType.ENERGY.getCapOrUnexposed(ItemAccessUtils.sideEffectFreeAccess(instance));
+            EnergyDisplay display = energyHandler == null ? EnergyDisplay.ZERO : EnergyDisplay.of(energyHandler);
+            list.add(MekanismLang.FREE_RUNNERS_STORED.translateColored(EnumColor.BRIGHT_GREEN, EnumColor.GRAY, display));
+        }
+    }
+
+    @Override
+    public void changeMode(Player player, ItemAccess itemAccess, int shift, DisplayChange displayChange, TransactionContext transaction) {
+        FreeRunnerMode mode = getMode(itemAccess);
+        FreeRunnerMode newMode = mode.adjust(shift);
+        if (mode != newMode && setMode(itemAccess, player, newMode, transaction)) {
+            displayChange.sendMessage(player, newMode, MekanismLang.FREE_RUNNER_MODE_CHANGE::translate);
+        }
+    }
+
+    @Override
+    public <ITEM extends TypedInstance<Item> & DataComponentGetter> boolean supportsSlotType(ITEM instance, EquipmentSlot slotType) {
+        return slotType == EquipmentSlot.FEET;
+    }
+
+    @Override
+    public void adjustAttributes(ItemAttributeModifierEvent event) {
+        if (getMode(event.getItemStack()) == FreeRunnerMode.NORMAL) {
+            event.addModifier(Attributes.MOVEMENT_EFFICIENCY, MOVEMENT_EFFICIENCY, EquipmentSlotGroup.FEET);
+        }
+    }
+}

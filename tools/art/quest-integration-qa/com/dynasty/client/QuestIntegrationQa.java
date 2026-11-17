@@ -63,7 +63,7 @@ public final class QuestIntegrationQa {
                     if(q)quests++;else{adv++;if(((String)call(object,"getRawTitle",new Class<?>[0])).isBlank())throw new AssertionError("Blank advancement title: "+object);}
                     listing.add(object+" -> "+icon);
                 }
-                check(quests==1284,"Native client loaded all 1284 quests, including every old identity with nonempty icons");
+                check(quests==1259,"Native client loaded all 1259 quests, including every old identity with nonempty icons");
                 check(adv>46,"All "+adv+" native advancement tasks have explicit icons and titles");
                 var covers=new HashSet<String>();
                 for(Object chapter:(Collection<?>)call(file,"getAllChapters",new Class<?>[0])){

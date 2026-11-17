@@ -1,0 +1,21 @@
+--- a/src/main/java/com/dynasty/dungeon/WangsiPiece.java
++++ b/src/main/java/com/dynasty/dungeon/WangsiPiece.java
+@@ -72,7 +72,17 @@
+             SignText text=new SignText();String[] rows={a,b,c,d};
+             for(int i=0;i<4;i++)text=text.setMessage(i,Component.literal(rows[i]));
+             if(a.equals("阴阳界"))text=text.setColor(net.minecraft.world.item.DyeColor.RED);
+-            sign.setText(text,true);sign.setWaxed(true);sign.setChanged();
++            if(sign.hasLevel()){
++                sign.setText(text,true);sign.setWaxed(true);sign.setChanged();
++            }else{
++                // FEATURES generation may expose a ProtoChunk entity before it has a Level.
++                CompoundTag initialized=sign.saveWithoutMetadata();
++                initialized.put("front_text",SignText.DIRECT_CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE,text)
++                    .result().orElseThrow(()->new IllegalStateException("Cannot encode Wangsi sign text")));
++                initialized.putBoolean("is_waxed",true);
++                sign.load(initialized);
++                sign.setChanged();
++            }
+         }
+     }
+     private void loop(WorldGenLevel level,BoundingBox clip,BlockPos p,boolean core){

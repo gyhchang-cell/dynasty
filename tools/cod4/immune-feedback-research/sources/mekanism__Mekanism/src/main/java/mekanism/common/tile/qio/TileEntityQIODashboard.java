@@ -1,0 +1,154 @@
+package mekanism.common.tile.qio;
+
+import mekanism.api.IContentsListener;
+import mekanism.api.SerializationConstants;
+import mekanism.api.inventory.IInventorySlot;
+import mekanism.common.Mekanism;
+import mekanism.common.capabilities.holder.container.IContainerHolder;
+import mekanism.common.capabilities.holder.container.MekContainerHelper;
+import mekanism.common.content.qio.IQIOCraftingWindowHolder;
+import mekanism.common.content.qio.QIOCraftingWindow;
+import mekanism.common.content.qio.QIOFrequency;
+import mekanism.common.integration.computer.ComputerException;
+import mekanism.common.integration.computer.SpecialComputerMethodWrapper.ComputerIInventorySlotWrapper;
+import mekanism.common.integration.computer.annotation.WrappingComputerMethod;
+import mekanism.common.inventory.container.MekanismContainer;
+import mekanism.common.inventory.container.sync.SyncableBoolean;
+import mekanism.common.network.to_client.qio.BulkQIOData;
+import mekanism.common.registries.MekanismBlocks;
+import mekanism.common.registries.MekanismDataComponents;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.Nullable;
+
+public class TileEntityQIODashboard extends TileEntityQIOComponent implements IQIOCraftingWindowHolder {
+
+    private static final boolean DEFAULT_INSERT_INTO_FREQUENCY = true;
+
+    /// @apiNote This is only not final for purposes of being able to assign it in presetVariables so that we can use it in getInitialInventory.
+    private final QIOCraftingWindow[] craftingWindows;
+    private boolean insertIntoFrequency = DEFAULT_INSERT_INTO_FREQUENCY;
+    private boolean recipesChecked = false;
+
+    public TileEntityQIODashboard(BlockPos pos, BlockState state) {
+        craftingWindows = new QIOCraftingWindow[MAX_CRAFTING_WINDOWS];
+        super(MekanismBlocks.QIO_DASHBOARD, pos, state);
+    }
+
+    @Override
+    protected IContainerHolder<IInventorySlot> getInitialInventory(IContentsListener listener) {
+        //TODO - 1.18: Re-evaluate/make an improved performance ItemHandlerManager that uses this method
+        // that is for read only slots instead of actually exposing slots to various sides
+        MekContainerHelper<IInventorySlot> builder = MekContainerHelper.readOnly();
+        for (byte tableIndex = 0; tableIndex < craftingWindows.length; tableIndex++) {
+            //Note: We don't bother passing a special listener as:
+            // a. We don't support comparators
+            // b. If we did it would be of items which this would already be
+            QIOCraftingWindow craftingWindow = craftingWindows[tableIndex] = new QIOCraftingWindow(this, tableIndex);
+            for (int slot = 0; slot < QIOCraftingWindow.SLOTS_PER_WINDOW; slot++) {
+                builder.addContainer(craftingWindow.getInputSlot(slot));
+            }
+            builder.addContainer(craftingWindow.getOutputSlot());
+        }
+        return builder.build();
+    }
+
+    @Override
+    protected boolean onUpdateServer(ServerLevel level, @Nullable QIOFrequency frequency) {
+        boolean needsUpdate = super.onUpdateServer(level, frequency);
+        if (Mekanism.worldTickHandler.flushTagAndRecipeCaches || !recipesChecked) {
+            //If we need to update the recipes because of a reload or if we just haven't checked the recipes yet
+            // after loading, as there was no world set yet, refresh the recipes
+            recipesChecked = true;
+            for (QIOCraftingWindow craftingWindow : craftingWindows) {
+                craftingWindow.invalidateRecipe(level);
+            }
+        }
+        return needsUpdate;
+    }
+
+    @Override
+    public void encodeExtraContainerData(RegistryFriendlyByteBuf buffer) {
+        super.encodeExtraContainerData(buffer);
+        BulkQIOData.encodeToPacket(buffer, getFrequency());
+    }
+
+    @Override
+    public QIOCraftingWindow[] getCraftingWindows() {
+        return craftingWindows;
+    }
+
+    @Nullable
+    @Override
+    public QIOFrequency getFrequency() {
+        return getQIOFrequency();
+    }
+
+    @Override
+    public void writeSustainedData(ValueOutput output) {
+        super.writeSustainedData(output);
+        output.putBoolean(SerializationConstants.INSERT_INTO_FREQUENCY, insertIntoFrequency);
+    }
+
+    @Override
+    public void readSustainedData(ValueInput input) {
+        super.readSustainedData(input);
+        insertIntoFrequency = input.getBooleanOr(SerializationConstants.INSERT_INTO_FREQUENCY, DEFAULT_INSERT_INTO_FREQUENCY);
+    }
+
+    @Override
+    protected void collectImplicitComponents(DataComponentMap.Builder builder) {
+        super.collectImplicitComponents(builder);
+        builder.set(MekanismDataComponents.INSERT_INTO_FREQUENCY, insertIntoFrequency);
+    }
+
+    @Override
+    protected void applyImplicitComponents(DataComponentGetter input) {
+        super.applyImplicitComponents(input);
+        insertIntoFrequency = input.getOrDefault(MekanismDataComponents.INSERT_INTO_FREQUENCY, DEFAULT_INSERT_INTO_FREQUENCY);
+    }
+
+    public boolean shiftClickIntoFrequency() {
+        return insertIntoFrequency;
+    }
+
+    public void toggleShiftClickDirection() {
+        this.insertIntoFrequency = !insertIntoFrequency;
+        markForSave();
+    }
+
+    @Override
+    public void addContainerTrackers(MekanismContainer container) {
+        super.addContainerTrackers(container);
+        container.track(SyncableBoolean.create(this::shiftClickIntoFrequency, value -> insertIntoFrequency = value));
+    }
+
+    //Methods relating to IComputerTile
+    private void validateWindow(int window) throws ComputerException {
+        if (window < 0 || window >= craftingWindows.length) {
+            throw new ComputerException("Window '%d' is out of bounds, must be between 0 and %d.", window, craftingWindows.length);
+        }
+    }
+
+    @WrappingComputerMethod(wrapper = ComputerIInventorySlotWrapper.class, methodNames = "getCraftingInput", docPlaceholder = "crafting input slot")
+    IInventorySlot getCraftingInputSlot(int window, int slot) throws ComputerException {
+        validateWindow(window);
+        if (slot < 0 || slot >= 9) {
+            throw new ComputerException("Slot '%d' is out of bounds, must be between 0 and 9.", slot);
+        }
+        return craftingWindows[window].getInputSlot(slot);
+    }
+
+    @WrappingComputerMethod(wrapper = ComputerIInventorySlotWrapper.class, methodNames = "getCraftingOutput", docPlaceholder = "crafting output slot")
+    IInventorySlot getCraftingOutputSlot(int window) throws ComputerException {
+        validateWindow(window);
+        return craftingWindows[window].getOutputSlot();
+    }
+    //End methods IComputerTile
+}

@@ -1,0 +1,43 @@
+package com.telepathicgrunt.the_bumblezone.modules;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.telepathicgrunt.the_bumblezone.Bumblezone;
+import com.telepathicgrunt.the_bumblezone.modules.base.Module;
+import net.minecraft.resources.Identifier;
+
+public class LivingEntityDataModule implements Module<LivingEntityDataModule> {
+    public static final MapCodec<LivingEntityDataModule> CODEC = RecordCodecBuilder.mapCodec((instance) -> instance.group(
+            Codec.INT.fieldOf("missedParalysis").forGetter(module -> module.missedParalysis)
+    ).apply(instance, LivingEntityDataModule::new));
+
+    public static final Identifier ID = Identifier.fromNamespaceAndPath(Bumblezone.MODID, "living_entity_data");
+    private int missedParalysis;
+
+    public LivingEntityDataModule(int missedParalysis) {
+        this.missedParalysis = missedParalysis;
+    }
+
+    public LivingEntityDataModule() {
+        this.missedParalysis = 0;
+    }
+
+    public int getMissedParalysis() {
+        return missedParalysis;
+    }
+
+    public void setMissedParalysis(int missedParalysis) {
+        this.missedParalysis = missedParalysis;
+    }
+
+    @Override
+    public MapCodec<LivingEntityDataModule> codec() {
+        return CODEC;
+    }
+
+    @Override
+    public Identifier id() {
+        return ID;
+    }
+}

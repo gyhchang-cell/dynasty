@@ -1,0 +1,142 @@
+{
+  "status": "READ_ONLY_REVIEW_CHANGES_REQUESTED_NO_RUNTIME_ACCEPTANCE",
+  "timestamp_utc": "2026-10-28T16:10:53.672753+00:00",
+  "reviewed_sources": {
+    "src/com/dynasty/ecologyqa/NativeSceneDriver.java": {
+      "sha256": "31e4f2e2fe7c6a3a6034cb16b729e0386240b3d1d26cf5bd0822dc66274c238f",
+      "reviewed_snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/ecology-scene-final-NativeSceneDriver.java-31e4f2e2fe7c.txt",
+      "current_matches_snapshot": true
+    },
+    "src/com/dynasty/ecologyqa/EcologyNativeQa.java": {
+      "sha256": "8e5ebf585cd349fd0f002cc92668c98db2c526c50a587f5228d2fc7c6d4c0261",
+      "reviewed_snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/ecology-scene-final-EcologyNativeQa.java-8e5ebf585cd3.txt",
+      "current_matches_snapshot": true
+    },
+    "launch_once.py": {
+      "sha256": "e6047528fff0c580ce9db4eb2bf98f1d0c2cf7fbb7c75f68a654483d62a5bca7",
+      "reviewed_snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/ecology-scene-final-launch_once.py-e6047528fff0.txt",
+      "current_matches_snapshot": true
+    },
+    "watchdog.py": {
+      "sha256": "cd315e13c60ec3f33f5c0bca93a753f916a60f019d9030452b93385cebeb7237",
+      "reviewed_snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/ecology-scene-final-watchdog.py-cd315e13c60e.txt",
+      "current_matches_snapshot": true
+    },
+    "src/com/dynasty/ecologyqa/mixin/QuietWindowMixin.java": {
+      "sha256": "a466b15e60faf76964c037fcf447070ecd970d1a80a7bc3d62f4c0a597829ee6",
+      "reviewed_snapshot": "docs/cod4/audit-20261022/immune-feedback-research/helpers/herschel-immune/delivery/ecology-scene-final-QuietWindowMixin.java-a466b15e60fa.txt",
+      "current_matches_snapshot": true
+    }
+  },
+  "concurrent_changes": "Bound current stable source after complete original read plus diff. Final driver31e4f2e.. and bootstrap8e5ebf.. add volatile stopRequested and server/client action-entry short circuits. Launcher run_once lines63-140 reread fully after snapshot: source/preparation binding, saved world realpath and installed metadata equality present. Earlier report L2 missing-metadata statement superseded; earlier reading and later launcher snapshot differed during concurrent write.",
+  "findings": [
+    {
+      "id": "S1",
+      "priority": "P2",
+      "blocks": "protected-animal guarantee before culling run",
+      "location": "NativeSceneDriver.java countedAnimal (line50 in reviewed snapshot)",
+      "observation": "Only TamableAnimal.isTame excluded. AbstractHorse extends Animal implements OwnableEntity, not TamableAnimal; isTamed/setTamed/ownerUUID separate, tameWithName sets owner+tame without persistence flag. Native Mob.requiresCustomPersistence only isPassenger, AbstractHorse no override found. Nonpersistent unnamed owned/tamed horse can satisfy current predicate. Leashed/baby/bred farm animals have no explicit exclusion either; do not call this all owner-safe.",
+      "recommendation": "Explicitly reject owned/tamed AbstractHorse/OwnableEntity and leashed/occupied/protected fixtures; preferably narrow the actual vanilla preparation species allowlist. Revalidate protected status at attack time. Do not alter production animal AI."
+    },
+    {
+      "id": "S2",
+      "priority": "P2",
+      "blocks": "committed-death source association across canceled/revived attempt",
+      "location": "NativeSceneDriver.java died/left latest delta",
+      "observation": "Latest driver no longer increments at health0 death callback: pendingCullDeaths UUID then count only server EntityLeaveLevelEvent KILLED is an improvement. However pending UUID is not cleared after canceled death/revival. A canceled saved-player attempt can leave UUID pending; later unrelated kill can satisfy KILLED and be credited to old saved-player source. Death-event label target_actual_death still precedes cancellation/removal. Pending active reservations also not included in64 cutoff.",
+      "recommendation": "Bind staged candidate to attempt/source/epoch, clear on canceled/revived alive observation with bounded lifetime, verify committed removal belongs to same accepted death; retain actual-removal reason evidence. Label callback as death candidate. Bound confirmed plus in-flight candidates if64 is strict actual death maximum."
+    },
+    {
+      "id": "S3",
+      "priority": "P2",
+      "blocks": "non-AOE weapon assertion/protected-neighbor boundary",
+      "location": "NativeSceneDriver.java initial dagger assertion/ClientActions; DynastyWeapons.java245-246,324-325; native Player.java1123-1128/1158-1170",
+      "observation": "yuchang_dagger registers plain SwordItem, native attack checks SWORD_SWEEP when grounded and charged/noncrit/nonsprint. Native SwordItem.canPerformAction returns DEFAULT_SWORD_ACTIONS. Saved flying and above-target teleport likely avoid grounded case, but only initialized once and no onGround/neighbor safety assertion at actual strike. Cannot label item intrinsically nonAOE; splash could harm unselected protected mobs or exceed counted target deaths.",
+      "recommendation": "Retain existing item; enforce/log native no-sweep preconditions per strike on server and client plus protected-neighbor exclusion, or conservatively skip uncertain attacks. Never claim test already verified no-AOE."
+    },
+    {
+      "id": "S4",
+      "priority": "P2",
+      "blocks": "exact four Overworld-scene claim",
+      "location": "NativeSceneDriver.java initialization/teleport/scene/gateHints",
+      "observation": "teleport uses current p.serverLevel, anchors have no dimension binding; no current Overworld assertion. gateHints accepts all actual category rows by overworld_game_time, not target dimension/scope. Hint is correctly credit0, but could trigger preparation/scene under unrelated dimension.",
+      "recommendation": "Require expected dimension and log/validate actual scene position/dimension; filter hint dimension when available. Treat closed or wrong scopes as pending, never successful scene/native birth."
+    },
+    {
+      "id": "L1",
+      "priority": "boundary",
+      "blocks": false,
+      "location": "launch_once.py run_once CoreGraphics display checks",
+      "observation": "Display active/asleep check is read-only and does not detect session lock. No wake/unlock/focus calls in launcher; QuietWindow sets invisible/unfocused hints and verifies attributes. This satisfies no explicit unlock/wake action seen, but is not runtime proof of no window effect under locked session.",
+      "recommendation": "Keep no wake/unlock operations. If coordinator additionally wants deny-any-start-while-locked, add read-only session check; that would be an extra engineering policy, not new user approval requirement."
+    },
+    {
+      "id": "L2",
+      "priority": "boundary",
+      "blocks": false,
+      "location": "launch_once.py command/run_once readiness binding",
+      "observation": "Latest launcher DOES compare installed Dynasty.json hash with ready expected SHA, validates real saves/world paths, and binds all required Java source hashes to preparation verification plus actual helper jar SHA. These incremental gaps are closed in current source. Imported prepare_inputs.py still absent required_sources; external library jars/natives/JVM/assets/main client jar content not frozen by ready equality. Source/jar association uses coordinator build receipt, not own recompile.",
+      "recommendation": "Include prepare_inputs.py and any external execution dependencies if claiming fully frozen executable environment. Otherwise explicitly state external installed runtime assumptions; do not withhold all diagnostic runs solely because whole assets library tree not hashed."
+    },
+    {
+      "id": "B1",
+      "priority": "boundary",
+      "blocks": false,
+      "observation": "200 initial+1200 cull+4*800=4600 only when player initialized immediately. Player connection wait/20tick quantization/timeouts can consume controller budget earlier. Driver latest fallback correctly separates creatureSampling=false and one battlefield oil window, no revisit, so full four windows are not unconditional. Controller4600/300s and watchdog absolute600+save60+TERM15 remain global; accept incomplete denominator as pending, never extend."
+    },
+    {
+      "id": "B2",
+      "priority": "boundary",
+      "blocks": false,
+      "observation": "Oil retains original ItemEntity UUID from freshNatural NATURAL-stack finalized+non-disk join and saved-player source, max200 or scene800 earlier, teleport every5ticks only with server8 empties. No replacement item created. Missing/merged UUID is bounded failure, no rebinding; success picked event logs exactUUID but does not prove inventory count delta/quantity/stable persistence. Final acceptance should correlate actual joined item provenance, positive pickup receipt and postpickup server oil count; driver hints remain0."
+    },
+    {
+      "id": "B3",
+      "priority": "boundary",
+      "blocks": false,
+      "observation": "Client THROW uses inventoryMenu9..44 JUNK allowlist, dagger is not in list, capacity readback is server main36 empty count>=8. Native handleInventoryMouseClick checks actual container match, predicts+emits ServerboundContainerClickPacket. Native MultiPlayerGameMode.attack calls ensureHasSentCarriedItem before attack packet, so selected=8 is not missing network sync. Actual target damage/drop/death ACK still distinct from input log. Explicit container-current check, inventory readiness handshake and saved-flight/dagger revalidation would improve operational certainty; no game proof."
+    },
+    {
+      "id": "B4",
+      "priority": "boundary",
+      "blocks": false,
+      "observation": "Launcher direct foreground JVM invokes owned-child watchdog, no existing PID signaling/retry; marker CREATE_NEW prevents second attempt. Marker is consumed before command expansion/out validation; prelaunch errors can burn attempt but fail closed. Existing process scan covers only project cod4 JVM, not user generic game; it does not kill user processes and cannot promise exclusive machine resources. Fresh runtime evidence path is not realpath-checked immediately after mkdir against symlink replacement; local TOCTOU boundary, not reproduced exploit."
+    },
+    {
+      "id": "B5",
+      "priority": "boundary",
+      "blocks": false,
+      "observation": "Latest stopRequested volatile plus both server/client action-entry guards prevents new callbacks entering after observed controller stop; an in-progress callback is not atomic cancellation. Other event-only observer handlers may log until shutdown. ServerStarted exactworld check remains, client-ready exactworld+openRequested; no direct openRequested guard/second-start guard before server assignment in started, CREATE_NEW receipt later rejects reuse. Private single-run marker and normal quit limit practical path. Synchronous IO failures still require external watchdog."
+    }
+  ],
+  "positive_observations": [
+    "driveScenes defaults false; explicit QA enabled/copied-world opt-in required; existing saved UUID/flight/item verified without grants.",
+    "No spawn predicates/spawn API/direct caps/RNG/time changes invoked by driver; fixture player teleport and real C2S attacks do mutate isolated copied gameplay, not source save.",
+    "Gate rows only hints, not accepted attempts/births; raw auditor remains necessary.",
+    "Global controller normal stop still4600ticks/300s; external watchdog force result/native save and gameplay acceptance separate.",
+    "Latest stopRequested volatile visible across integrated client/server with guards at both action entrypoints; source/compiled-helper/metadata/world path bindings rechecked statically."
+  ],
+  "source_context_read": [
+    "Installed1.20.1-47.4.10 MultiPlayerGameMode ensureHasSentCarriedItem/attack/handleInventoryMouseClick",
+    "Installed LivingDeathEvent full + ForgeHooks.onLivingDeath",
+    "Installed AbstractHorse hierarchy/isTamed/getOwnerUUID/setTamed/tameWithName and persistence search; Mob.requiresCustomPersistence",
+    "Installed Player native sweep eligibility/hurt-neighbor branch, SwordItem.canPerformAction",
+    "Production DynastyWeapons plain sword factory+YUCHANG_DAGGER registration, read only",
+    "EcologyOpportunityObserver exact drop/pickup logging portions only"
+  ],
+  "current_inputs": "inputs01 remains user-reported frozen compile03/runtime_ready=false; no integration, ready receipt or launcher execution performed. Compile09 user-reported only, no independent compile claim.",
+  "actions": {
+    "game_launches": 0,
+    "compilations": 0,
+    "runtime_tests": 0,
+    "screen_operations": 0,
+    "production_changes": 0,
+    "coordinator_source_changes": 0,
+    "frozen_input_changes": 0,
+    "todo_changes": 0
+  },
+  "research_credit": 0,
+  "next": "Resume immune helper038; no further ecology launch or patch by this helper.",
+  "previous_report_sha256": "11c16e916a1f0d678c944da25224f6943b83874b3bf619b1e43f1816d4a62272",
+  "latest_source_matches_at_write": true
+}

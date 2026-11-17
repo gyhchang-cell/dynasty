@@ -1,0 +1,173 @@
+[
+  {
+    "candidate_id": "31029bf3ff2896540d41",
+    "status": "accepted",
+    "family": "tcon-capability-clone-lifecycle",
+    "trigger": "PersistentDataCapability.register registers playerClone on Forge EVENT_BUS for death and End-return Clone",
+    "input": "old player's ModDataNBT capability, possibly invalidated and/or empty",
+    "output": "new player's own capability receives oldData.getCopy only when both capabilities exist and compound is nonempty",
+    "preservation": "reviveCaps before reading and invalidateCaps afterwards; only subsystem capability copied; respawn separately syncs client. getCopy separates saved compound from old data",
+    "application_limit": "Dynasty's observed fields are root persistent tags, not capabilities; lifecycle hack is relevant only to capabilities and must not be added blindly"
+  },
+  {
+    "candidate_id": "87a24224aa3cd1593aba",
+    "status": "accepted",
+    "family": "apotheosis-exact-root-seed-clone",
+    "trigger": "AdventureEvents @SubscribeEvent clone(PlayerEvent.Clone)",
+    "input": "original persistent REFORGE_SEED integer or absent",
+    "output": "new persistent exact REFORGE_SEED integer, defaults zero if absent",
+    "preservation": "copies one named durable seed; no full ForgeData merge and no reward action",
+    "application_limit": "newer getIntOr API differs from Forge1.20.1; its unconditional default would manufacture an absent field, so Dynasty should retain contains/type guard"
+  },
+  {
+    "candidate_id": "2d54184c5d2834517d59",
+    "supporting_candidates": [
+      "bf5f9aeb06089859d918",
+      "20738ee5e017a6d59c43"
+    ],
+    "status": "accepted",
+    "family": "botania-resolute-ivy-selective-death-inventory-recovery",
+    "trigger": "death inventory drop hook followed by onPlayerRespawn when alive=false",
+    "input": "nonempty inventory stacks with keepIvy flag collected out of original inventory into KeptItemsComponent",
+    "output": "copies returned to new inventory with keep flag removed; full inventory spills at player location",
+    "preservation": "Count and unrelated stack tags follow stack.copy; removal from original inventory prevents ordinary duplicate drop; Forge abstraction revives/invalidates capability around old read",
+    "application_limit": "restores selected flagged items, not arbitrary quest fields; no authority to grant replacement lost items without original source stack. Whole chain counted once"
+  },
+  {
+    "candidate_id": "700366e0d20eaf8999e5",
+    "status": "accepted",
+    "family": "ftb112-book-death-recovery-with-keepinventory-guard",
+    "trigger": "Forge Clone HIGH priority, wasDeath true, non-FakePlayer and keepInventory false",
+    "input": "old main inventory FTB quest book stacks",
+    "output": "new inventory accepts book then old slot becomes EMPTY; failed add leaves old slot unchanged",
+    "preservation": "keepInventory path exits to avoid duplicate book; death and portal transfer are distinguished; direct existing stack avoids replacement count manufacture",
+    "application_limit": "1.12 API and item retention policy; not a present1.20 quest progress migration implementation"
+  },
+  {
+    "candidate_id": "63d0f75108a81ae07651",
+    "status": "rejected",
+    "reason": "Clone callback only reattaches inventory listener; no durable progress/item recovery or format conversion, so not another implementation credit"
+  },
+  {
+    "candidate_id": "d070215afd88b945e347",
+    "status": "accepted",
+    "reason": "listener delegates CapabilityHooks.AetherPlayerHooks.clone(newPlayer,wasDeath), but selected partial source snapshot lacks hook implementation; cannot infer copied fields from name",
+    "family": "aether-copy-on-death-attachment-post-copy-reset",
+    "trigger": "Aether Clone listener -> CapabilityHooks.AetherPlayerHooks.clone(newPlayer,wasDeath) -> attachment.handleRespawn",
+    "input": "new player attachment declared .serialize(CODEC).copyOnDeath(); wasDeath distinguishes death versus End portal clone",
+    "output": "on death resets remedyStartDuration0; all clone paths set shouldSyncAfterJoin true",
+    "preservation": "AetherPlayerAttachment.CODEC full declaration includes life_shard_count and seen_sun_spirit permanent history alongside saved_health/remedy duration and optional mount UUID/NBT. Registration declares copyOnDeath; handler then explicitly resets timed remedy on death.",
+    "application_limit": "NeoForge framework copy implementation not traced here; claim covers actual post-copy filter and source registration contract, not proven deep-copy of all codec fields. Handler count only once with listener/hook/constructor as support. Borrow preserve achievements while clearing timed effects.",
+    "supporting_candidates": [
+      "2ccaf826c400444c698a",
+      "75904f1ff320e74cd7a0",
+      "32f8f6d0143401bb71c6"
+    ]
+  },
+  {
+    "candidate_id": "b522c4fb83131e24bcb1",
+    "status": "duplicate",
+    "reason": "Dispatcher now traced to independently reviewed Stats and Storage clone bodies; orchestration gives no third credit."
+  },
+  {
+    "candidate_id": "0d68f4864ec09ce33745",
+    "status": "accepted",
+    "reason": "death-only clone retains summon effects, synced persistent data and cooldowns; downstream getPersistentData policy not yet verified, therefore do not prescribe whole-state transfer",
+    "family": "irons-death-filtered-learned-spells-owner-transfer",
+    "trigger": "ServerPlayerEvents.onPlayerCloned requires ServerPlayer target and wasDeath",
+    "input": "old SummonTimer effects, SyncedSpellData learned spells/selection and spell cooldown map",
+    "output": "copies only SummonTimer active effects; new synced object from getPersistentData uses old identity then binds newServerPlayer; learned set addAll; selection reference assigned; cooldown entries put into new map",
+    "preservation": "getPersistentData full body now verified: fresh synced object does NOT copy isCasting/heartStopDamage/evasion hits. Owner reference updated while retaining original entity identity until clone identity initialized.",
+    "application_limit": "Selection and cooldown values shallow shared, not deep copies. Upstream deliberately preserves selected summon timers/cooldowns; Dynasty should use audited permanent fields and exclude temporary immunity/counterattack rather than importing that policy.",
+    "supporting_candidates": [
+      "9bf1513f0d649069a5ec"
+    ]
+  },
+  {
+    "candidate_id": "2e21b6c724c601009192",
+    "status": "accepted",
+    "reason": "death and hasData guards verified; FamiliarSettingsData.clone shallowly puts settings entries. Need capture downstream AST context and immutability boundary before counting",
+    "family": "occultism-death-only-familiar-settings-clone",
+    "trigger": "PlayerEvent.Clone with isWasDeath and old hasData",
+    "input": "old familiar settings attachment map",
+    "output": "new settings clone puts each entry into destination map",
+    "preservation": "Only death, excludes portal transfers. FamiliarEffectSettings objects are assigned directly rather than copied.",
+    "application_limit": "Shallow mutable value sharing; no target clear. Borrow explicit lifetime guard, but use Tag.copy for Dynasty root whitelist rather than copying attachment managers.",
+    "supporting_candidates": [
+      "e4139bf4237e069a09c1"
+    ]
+  },
+  {
+    "candidate_id": "f1ff7cb17de053079b77",
+    "status": "accepted",
+    "family": "ae2-inscriber-legacy-setting-upgrade",
+    "trigger": "InscriberBlockEntity.loadTag reads saved block entity ValueInput after base/upgrades/config load",
+    "input": "legacy inscriber_buffer_size string NO with ordinary inventory/config state",
+    "output": "current INSCRIBER_INPUT_CAPACITY forced FOUR; other/absent legacy values leave current setting loaded",
+    "preservation": "compat branch changes one setting after current config load; original inventory handlers untouched; stack tracker refreshed",
+    "application_limit": "newer snapshot uses ValueInput; shows old-key sentinel guard and deterministic precedence rather than player Clone mechanics"
+  },
+  {
+    "candidate_id": "073a5c9234ed1252a843",
+    "status": "accepted",
+    "family": "create-contraption-old-type-factory-fallback",
+    "trigger": "ContraptionType.fromType used to deserialize stored contraption type string",
+    "input": "historical unnamespaced factory name or current resource identifier",
+    "output": "legacy factory first; otherwise current registry factory; unavailable registry value produces null",
+    "preservation": "preserves old semantics by explicit legacy factory lookup before current parse. Does not mutate saved payload here",
+    "application_limit": "method uses tryParse then registry get without explicit null-ID guard; does not itself preserve unknown payload and cannot justify deleting unmapped old stacks"
+  },
+  {
+    "candidate_id": "4473c0dbb149df811086",
+    "status": "accepted",
+    "family": "create-paletted-or-legacy-contraption-payload",
+    "trigger": "Contraption.readBlocksCompound with saved format selector usePalettedDeserialization",
+    "input": "current compound Palette+BlockList versus old direct list; optional UpdateTag and Legacy marker per block",
+    "output": "reconstructed position/block state info plus updateTags and isLegacy maps, then reset client contraption",
+    "preservation": "explicitly stores even empty UpdateTag compounds; legacy markers retained for client block entity construction. Unrelated block info supplied to corresponding reader",
+    "application_limit": "wrong payload tag type casts can fail; supporting state readers not credited separately; relevant as version-selected payload retention"
+  },
+  {
+    "candidate_id": "23885464188091218f07",
+    "supporting_candidates": [
+      "cf2bc2776cda80e66a84"
+    ],
+    "status": "accepted",
+    "family": "create-clipboard-components-atomic-merge-chain",
+    "trigger": "ItemStack constructor injection before item.verifyComponentsAfterLoad",
+    "input": "ClipboardBlockItem with nonempty component patch, no current CLIPBOARD_CONTENT, optional five old clipboard components",
+    "output": "single ClipboardContent assembled from old values; each present legacy component removed; current content never overwritten",
+    "preservation": "absent legacy values leave content unchanged; remaining unrelated components and item count untouched; all five fields form one migration chain",
+    "application_limit": "new component-era API not1.20.1; read-only migration maps any present old value to true, so not evidence all legacy boolean values are preserved literally"
+  },
+  {
+    "candidate_id": "6db147460d014c7589d1",
+    "status": "accepted",
+    "family": "gtceu-molten-cross-registry-safe-target-remap",
+    "trigger": "MissingMappingsEvent via remapIds calls remapLegacyMoltenFluids for GTCEu FLUID/ITEM/FLUID_TYPE",
+    "input": "old molten path optionally flowing_ or _bucket suffix; existing material liquid lookup",
+    "output": "flowing/source fluid or non-AIR bucket/fluid type remap; recognized but unavailable replacement calls warn",
+    "preservation": "registry-level identity transfer rather than new stack grant; explicit null/flowing subtype/AIR checks; no invented placeable molten block mapping",
+    "application_limit": "each registry branch and mapping entry is one shared transform family, not many credits. Need separate Forge native behavior proof for stack tags"
+  },
+  {
+    "candidate_id": "c04acae835e299e084a6",
+    "status": "accepted",
+    "family": "gtceu-dynamic-old-namespace-remap-fallback",
+    "trigger": "@SubscribeEvent remapIds on missing registries, especially gregiceng input/output_buffer paths",
+    "input": "legacy block/item/blockentity namespace IDs plus tool/material names",
+    "output": "current matching registry target if exists; input/output buffer otherwise uses explicit LuV hatch fallback; wirecutters warn if type/material/tool absent",
+    "preservation": "containsKey check prevents remapping to missing current name; dynamic material prefix matches prefer existing material block then item. Static switch entries do not receive individual credit",
+    "application_limit": "LuV fallback intentionally changes tier for unrecognized variants; can't copy that semantic loss into player quest restoration. Molten helper is separate family, not counted again here"
+  },
+  {
+    "candidate_id": "5a2b9cc4dcf672bd35a7",
+    "status": "rejected",
+    "reason": "body is static removed/renamed ID target switches delegated to RegistrationHelper; entries cannot count as many implementations and helper not reviewed here"
+  },
+  {
+    "candidate_id": "61db32011f42889d3238",
+    "status": "rejected",
+    "reason": "datagen StructureUpdater merely invokes general DataFixTypes then template load/save; outside requested item/progression scope and not an independent compatible-recovery implementation"
+  }
+]

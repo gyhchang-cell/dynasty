@@ -1,0 +1,41 @@
+package mekanism.common.registration;
+
+import java.util.function.Function;
+import java.util.function.Supplier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.neoforged.neoforge.registries.DeferredRegister;
+
+public class MekanismDeferredRegister<T> extends DeferredRegister<T> {
+
+    private final Function<ResourceKey<T>, ? extends MekanismDeferredHolder<T, ?>> holderCreator;
+
+    public MekanismDeferredRegister(ResourceKey<? extends Registry<T>> registryKey, String namespace) {
+        this(registryKey, namespace, MekanismDeferredHolder::new);
+    }
+
+    public MekanismDeferredRegister(ResourceKey<? extends Registry<T>> registryKey, String namespace,
+          Function<ResourceKey<T>, ? extends MekanismDeferredHolder<T, ? extends T>> holderCreator) {
+        super(registryKey, namespace);
+        this.holderCreator = holderCreator;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <I extends T> MekanismDeferredHolder<T, I> register(String name, Function<Identifier, ? extends I> func) {
+        return (MekanismDeferredHolder<T, I>) super.register(name, func);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <I extends T> MekanismDeferredHolder<T, I> register(String name, Supplier<? extends I> sup) {
+        return (MekanismDeferredHolder<T, I>) super.register(name, sup);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected <I extends T> MekanismDeferredHolder<T, I> createHolder(ResourceKey<? extends Registry<T>> registryKey, Identifier key) {
+        return (MekanismDeferredHolder<T, I>) holderCreator.apply(ResourceKey.create(registryKey, key));
+    }
+}

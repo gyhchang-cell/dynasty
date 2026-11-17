@@ -1,0 +1,46 @@
+[
+  {
+    "candidate_id": "a67dcd836f26f429421b",
+    "status": "accepted",
+    "family": "cyclic-crafter-real-input-vs-ghost-recipe-output-restore",
+    "trigger": "TileCrafter full load/save/serverTick/findMatchingRecipe/checkInput/doCraft/putbackStacks/depositOutput",
+    "input": "real input/output, ghost grid/preview and energy, base timer",
+    "output": "restores each inventory role separately, reselects recipe from ghost grid; only real inputs consumed, current components kept in paid output",
+    "preservation": "Read full named methods and pair. Actual payment has attempted rollback when ingredient missing; distinguish physical cargo from grid preview to avoid minting ghost contents during recovery. All roles one crafter owner, not per inventory.",
+    "application_limit": "putbackStacks records full pre-extract stack for each ingredient rather than removed count1, then inserts all snapshots (ignored remainder), so rollback can duplicate/lose. Output remainder from recipe deposit ignored; checkInput matches item not components and does not enforce enough count robustly. Native handler codec support previously inspected; no runtime claim.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "03e92df984f80eae3fb2",
+    "status": "accepted",
+    "family": "cyclic-crusher-consumed-input-recipe-receipt-missing-on-load",
+    "trigger": "TileCrusher full pair/tick/findMatchingRecipe",
+    "input": "physical remaining input/output and energy, saved burnTime/burnTimeMax; consumed recipe object not serialized",
+    "output": "loads numeric paid progress, but currentRecipe null triggers new match consuming another input and resets timers; when final input already consumed no recipe recoverable",
+    "preservation": "Read full recipe start/completion: findMatchingRecipe extracts physical1 immediately, tick charges per work tick then emits normal/bonus outputs. Concrete lost-paid-input negative distinct from generic machine reader: numeric progress alone insufficient without recipe identity/debited material receipt.",
+    "application_limit": "Saved numeric timers cannot reconstruct already consumed recipe, not a usable recovery design. Output-space check count-only not item compatibility; ignored insert remainder may destroy paid output. currentRecipe caching tests post-consume input could change selected recipe on subsequent find. All output/bonus variants one owner.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "d4d33dba97daac031b57",
+    "status": "accepted",
+    "family": "cyclic-melter-paid-energy-resume-and-owned-fluid-output",
+    "trigger": "TileMelter full pair/tick/findMatchingRecipe/tryProcessRecipe/anyInputAtOne",
+    "input": "physical input item, existing fluid output, energy and saved base timer/max, persistent lock policy",
+    "output": "reader preserves actual fluid and input; current registry recipe found with fluid compatibility; full amount simulation required before item debit and fluid insertion",
+    "preservation": "Read complete methods. Paid work timer restored by base then immediately overwritten on first currentRecipe-null find, concrete paid energy progress reset; recovered actual input remains physical until successful output fill. Distinct liquid-output owner from machine solid output.",
+    "application_limit": "Timer preservation ineffective across load due findMatchingRecipe sets full duration. Energy can be consumed while output tank cannot fit, retry continues; execute amount not rechecked after simulate. Native FluidTankBase decoder not newly deep-read; no end-to-end fluid malformed payload proof. Last-item lock explicitly halts before debit.",
+    "supporting_candidates": []
+  },
+  {
+    "candidate_id": "a40a1690bfd271c0f767",
+    "status": "accepted",
+    "family": "cyclic-solidifier-owned-fluid-and-three-paid-inputs-resume",
+    "trigger": "TileSolidifier full pair/tick/findMatchingRecipe/tryProcessRecipe/anyInputAtOne",
+    "input": "three real input slots, separate physical output, fluid input/energy, timer/max, lock",
+    "output": "all owned stores decoded separately, current recipe matches combined fluid/item input; simulate fluid/output then debit input+fluid and issue output",
+    "preservation": "Read complete paired save/load and all recipe consumers. Distinct paid multisource owner from melter (fluid consumed rather than produced,3inputs/output incompatibility check). Typed saved store roles must not merge. Similar restart timer resets observed, shared serializer not separate count.",
+    "application_limit": "CurrentRecipe omitted, first match resets timer so prior paid work lost; execute output/amount not checked after simulation and no transaction. Shrinks each slot1 regardless recipe ingredient role representation; recipe class not fully inspected so no universal mischarge claim. Raw lock/timers not clamped by reader.",
+    "supporting_candidates": []
+  }
+]

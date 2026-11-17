@@ -1,0 +1,67 @@
+/*
+ * MIT License
+ *
+ * Copyright 2020 klikli-dev
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+ * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.klikli_dev.occultism.common.entity.possessed.horde;
+
+import com.klikli_dev.occultism.common.entity.possessed.PossessedMob;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.level.Level;
+
+public class WildHordeCreeperEntity extends Creeper implements PossessedMob {
+
+    public WildHordeCreeperEntity(EntityType<? extends Creeper> type,
+                                  Level worldIn) {
+        super(type, worldIn);
+    }
+
+    //region Static Methods
+    public static Builder createAttributes() {
+        return Creeper.createAttributes()
+                .add(Attributes.ARMOR, 20.0)
+                .add(Attributes.MAX_HEALTH, 5.0)
+                .add(Attributes.KNOCKBACK_RESISTANCE, 1.0);
+    }
+
+    public boolean isInvulnerableTo(ServerLevel level, DamageSource source) {
+        if (source.is(DamageTypeTags.IS_EXPLOSION))
+            return true;
+        return super.isInvulnerableTo(level, source);
+    }
+
+    //endregion Static Methods
+
+    @Override
+    public boolean isPowered() {
+        return true;
+    }
+
+    @Override
+    public EntityType basedMob() {
+        return EntityType.CREEPER;
+    }
+}

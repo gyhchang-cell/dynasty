@@ -1,0 +1,31 @@
+import json,pathlib
+R=[]
+def a(repo,f,m,o,b,l,s=None):
+ d=dict(repo=repo,file='/'+f+'.java',method=m,observation=o,application=b,limits=l)
+ if s:d['start']=s
+ R.append(d)
+M='AlexModGuy/AlexsMobs';O='klikli-dev/occultism'
+a(M,'EntityFroststalker','registerGoals','同类伤害忽略的HurtBy群体警报，猎物tag目标优先2，Player目标优先3只排戴霜头盔者；跟首领有独立goal。','伪装装备只筛主动Player入口，主人助攻和报复不能自动认为受相同限制。','不新增本项目伪装或PVP，完整实际选敌注册一处。')
+a(M,'EntityFroststalker','hurt','火伤翻倍，父hurt成功且有刺未摇刺、来源非空10格内才启动20至79tick摇刺并站立。','受伤驱动的AOE反击可绕普通target，需要检查反伤起始与实际弹体候选。','不是通用减伤模板，实际启动独立反击状态一处。')
+a(M,'EntityFroststalker','tick','服务器摇刺定时生成IceShard；先清有效首领target，再将当前敌记lastHurtBy促全群攻击；Player首领主动/被动敌又可覆盖target；动画帧先击退再hurt。','清掉首领后同tick又有助攻重赋入口，周期清理不能当最终许可。','整体复杂tick一处，不把4种动画或每颗弹计参考。')
+a(M,'EntityFroststalker','lookForPlayerLeader','仅现leader非Player时10格找最近戴特定头盔玩家，找到先stopFollowing再startFollowing。','动态重选首领优先玩家且只在特定状态发生，需明确不代表永久主人。','固定已有Player首领不会在此被更近者替换，不能夸大。')
+a(M,'EntityFroststalker','isValidLeader','Player若是当前lastHurtBy则无效，否则头盔对就有效；其他需活且同类。','行为敌意可使装备关系临时失效，ownerUUID不能被这类临时关系替代。','只是外部首领规则，用户要求本项目不造新PVP/仇恨系统。')
+a(M,'EntityFroststalker','startFollowing','保存leader引用，同类leader增加其follower计数，返回leader。','绑定控制关系同时维护数量，重复绑定前需由上层撤旧以免叠计。','同类简单setter不再计，本条有真实队伍配额副作用。')
+a(M,'EntityFroststalker','stopFollowing','若旧leader同类先减少其follower计数，再将leader置null。','退出关系须维护原首领计数，不能只清当前引用。','与开始绑定对称但为独立回收控制入口，纯packSize加减getter不计。')
+a(M,'EntityFroststalker','pathToLeader','合法follower才导航，Player主速度1.3，远24提1.4并站20tick；距6以外且导航完才发路径。','身份持续有效才执行跟随，首领状态改变后不该无条件沿旧路径发命令。','只研究具体首领类型和追随状态，不计通用导航数学。')
+a(O,'FamiliarUtil','getOwnerEnemies','空owner空列表，主动target若同主IFamiliar/Tamable则清，复仇对象不走此排除；两个对象各近距就加入，未去重。','助攻和复仇保护不对称，且同一目标双记录可能进入两次，要核最终筛选。','isClose比较平方距离与range实参直接值，未将其当线性半径保证。')
+a(O,'FamiliarUtil','getAllNearbyFamiliars','同类型10格内仅pred通过、getFamiliarOwner同对象且活着的实体。','附近伙伴查找应同时验证所有者和生存状态，不能按类型近邻授权。','非纯getter，是实际提供保护/攻击熟悉单位的归属池。')
+a(O,'FamiliarUtil','getAllEquippedFamiliars','无Curios handler立刻返空；遍历饰品所有槽以及手持工具/盔甲，解析存储familiar按类型和pred收集，未显式验证其owner等穿戴者。','实际穿戴者与存储实体主人必须区分，下游还需owner校验。','完整装备来源池一处，物品槽循环是辅助不拆计。')
+a(O,'FamiliarUtil','getFamiliar','优先装备内familiar，无才附近找，二者都按pred。','保护效果可能由未入世界实体提供，不能仅按世界实体列表判断存在性。','只计带pred完整重载，默认true转发不计。',93)
+a(O,'FamiliarEventHandler','familiarFriends','目标非空且事件未取消时，按攻击者四类FRIENDS tag与目标对应保护效果取消选敌。','中央目标变更事件可覆盖多个来源，但基于效果的动态门还需旧目标撤销。','四类只是同模板一次方法，未按tag拆计，也不引入新阵营。')
+a(O,'FamiliarEventHandler','fairySave','死亡对象是非Guardian/Fairy熟悉单位且非绕无敌伤，解析其owner并找该主启用Fairy，saveFamiliar成功后才处理未入世界时冷却并取消死亡恢复2血。','救援必须绑被救单位的实际主人，存储态与世界态冷却策略不同。','注意saveFamiliar先于玩家冷却判断的实际顺序；不据此声称外模组漏洞已复现。')
+a(O,'FamiliarEventHandler','guardianUltimateSacrifice','玩家非绕无敌死亡且启用guardian，按该玩家找guardian；未入世界状态先核玩家冷却，sacrifice成功才取消死、清效/回血/临时无敌并设按升级和剩命计算冷却。','给主人保命应以主人自身记录冷却，不能被另一玩家或存储实例串用。','数值不移植，整套归属/消耗生命/冷却一处，不按buff个数计。')
+a(O,'FamiliarEventHandler','headlessStealHead','玩家来源死亡且该玩家启用Headless时，只找该玩家附近Headless，再将死者类型设为其headType。','击杀归属决定伙伴永久状态，必须核伤害来源真实主人。','不是普通掉落工具，具体熟悉单位战斗进度归属一处。')
+a(O,'FamiliarCurio','familiarInteractLivingEntity','服务端IFamiliar只在owner是操作者或空、curio有容量并capture成功时标occupied并发成功反馈。','捕捉不能从另一玩家手里直接夺受控单位；空owner解析与真实无owner应区分。','对存储实体owner解析失败策略另查，当前仅明确代码门，不冒称已完全安全。')
+a(O,'FamiliarCurio','captureFamiliar','手动onRemovedFromLevel后加入curio存储，stopRiding并ejectPassengers，再discard世界实例。','捕捉回收要撤双向乘客关系和活跃世界实例，避免重复控制。','手动回调与remove自身回调是否重复是后续生命周期关注，不在外部运行断言。')
+a(O,'FamiliarCurio','releaseFamiliar','拒null或已入世界对象，序列化后递归新建，在加入世界之前设释放玩家为owner，最后清原curio记录。','释放可以改主人到当前持有者，存储转移和旧实例回收须严格成对。','当前函数不检查load是否返回成功再clear，是源码局部事实；不移动用户资产。')
+a(O,'FamiliarCurio','curioTick','未入世界familiar先设当前level，仅其owner对象等穿戴者才按20tick加效果并跑familiar.curioTick。','存储身份与穿戴者不一致时应不触发，不能只凭getAllEquipped筛选判定有效。','效果列表整体辅助一处，按每buff不计。')
+a(O,'FamiliarCurio','getFamiliars','已有实例缓存就返；否则服务端先处理type物品，读FAMILIAR_DATA清缓存恢复NBT，再逐项load成未入世界IFamiliar缓存。','未入世界实体是有身份的活动表示，跨level使用需明确缓存更新策略。','实际召唤物存储恢复路径计一处，通用codec和CompoundTag工具不计。')
+a(O,'FamiliarCurio','addFamiliar','确保加载已有伙伴，追加实际实例，saveAsPassenger成功才加cachedNbt，随后把完整序列化更新物品component。','内存列表和保存成功列表可能不同，捕捉必须检查真实序列化结果而非只看列表增加。','这是具体召唤物存储提交，不把一般List.add算新基础设施样本。')
+a(O,'FamiliarCurio','clearFamiliar','确保加载，按熟悉对象索引移实例和相同索引NBT，再回写物品component，不在列表则直接返。','释放后两个表示必须同步撤销，避免旧实体随下次装备重复出现。','列表索引一致性属于该具体存储协议，不把通用删除工具另计。')
+pathlib.Path(__file__).with_name('batch26.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

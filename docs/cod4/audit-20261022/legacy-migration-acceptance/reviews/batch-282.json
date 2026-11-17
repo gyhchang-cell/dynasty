@@ -1,0 +1,944 @@
+[
+  {
+    "candidate_id": "7eacfe0ba223d7c3b859",
+    "status": "accepted",
+    "family": "goety-grave-golem-summoning-skull-stable-owner-to-live-player-dependent-return-negative",
+    "trigger": "SkullItem.getOwnerID54-61从实际物品owner读取UUID；flag外观不是权限证明。setOwner30-36只在传入LivingEntity非null时写owner/name。",
+    "input": "Stable owner UUID on actual summoning skull item/block, legacy string fallback and optional custom name",
+    "output": "Placement and golem construction use UUID directly; block-to-fresh-item return resolves Player first, so unresolved current-level owner does not receive UUID on returned item",
+    "preservation": "SkullItem.getOwnerID54-61从实际物品owner读取UUID；flag外观不是权限证明。setOwner30-36只在传入LivingEntity非null时写owner/name。 GraveGolemSkullBlock.setPlacedBy92-115：未完成召唤时将物品UUID直接放进BE；trySpawnGolem146-174：优先物品UUID传给新golem，否则取placer。UUID在此实际决定召唤归属，不是仅tooltip。 SkullBlockEntity.readNetwork61-78新UUID优先，否则旧字符串交OldUsersConverter；write80-87保存稳定UUID。disk load/save与network均委派此对。 本地OldUsersConverter243-272补读：短非空用户名先profile cache，认证多人可lookup，单机/离线可派生UUID，长/空字符串尝试UUID.fromString失败null。仅静态读取，绝未执行查询；该通用helper0。 Block clone56-65潜行才拷，playerDestroy82-89总新建skull并经setOwner68-71→BE.getPlayer117-119→getTrueOwner108-115（level.getPlayerByUUID）→Item.setOwner。原始UUID未直接写回，玩家不可在该level解析时新物品不带owner。 补读GraveGolem.tickDeath406-429：延时死亡新建头颅，getTrueOwner非null才写owner/name并投出，否则11%普通头颅；货物dropInventory另有成功回执，不能把货物保证推广到头颅。 Distinction: 独立增量不是Owner UUID字段或legacy converter：这件实际召唤载体在item→block→golem路径直接携带稳定UUID，但block→fresh item返还却需先解析当前world里的Player对象。已存合法UUID与当前玩家可解析性被混同，会在返还时失去可用于下次召唤归属的身份。现有grave golem账目是50槽收集货物成功返回收据，未覆盖独立头颅物品的召唤归属；原生horse/UUID/头骨格式转换也未覆盖此有向carrier不对称。完整载体链及这个具体负面恢复策略合1，不按block/item/entity/legacy parser或副作用拆计。",
+    "application_limit": "没有游戏/原生读盘复现；结论是条件性数据流，不保证所有破坏/掉落/跨维度情形均执行。 block BE lookup是当前level.getPlayerByUUID，不是全服在线列表；离线、同服其他level等不能直接合称已可解析。非nulllevel是前提，旧转换调用level.getServer在try外，实际load初始化顺序未展开。 legacy fallback uuid null不清已有owner；mod_custom_name缺失也不清；item getOwnerID只contains不hasUUID，坏类型依赖原生getter。 trySpawnGolem先移除材料再create/add，成功布尔未核；不保证物料事务。复制/破坏返还fresh item不保所有原始tag。 nativeSkullBlockEntity的SkullOwner/GameProfile是另一字段，底层持久化未全文读；不把可变网络包等同owner授权。 getTrueOwner完整golem继承实现未追踪，本条新观察主要约束已读block BE返还链；死亡skull仅按所读调用条件描述。",
+    "supporting_candidates": [],
+    "independent_review": {
+      "path": "docs/cod4/audit-20261022/todo-evidence-review-20261101/skull-guardian-independent-semantic-review-20261101.json",
+      "sha256": "8dd43840831301ea30777aca25783f89da5fa151be75f5393f934c26ccf734ff",
+      "dedup_against": [
+        "a99c9aa6e06456201e92",
+        "52a522f16644b74729fc",
+        "644c27082233dedb448a",
+        "65d75547428320fc1f68",
+        "6301e39719398579cc78",
+        "a6595bbc42a69579f903"
+      ]
+    },
+    "actual_source_evidence": [
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/blocks/entities/GraveGolemSkullBlockEntity.java",
+        "file_sha256": "2e55fe5642cb6d0c51a33610294561a24a99ba3c360a88d00c418d3bc013c38c",
+        "actual_read_ranges": [
+          [
+            1,
+            133
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              133
+            ],
+            "excerpt_sha256": "b6f3fb64bfcf96b52814f192eadc28f377cde70bad7b674d259b9ed98e3923fa"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/blocks/GraveGolemSkullBlock.java",
+        "file_sha256": "6ffe69588f4e84c0eba7bedb39d9944b7085a72a66650c54f873dfd31abd298b",
+        "actual_read_ranges": [
+          [
+            50,
+            180
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              50,
+              180
+            ],
+            "excerpt_sha256": "54e96196be40671913906930f1579a3e0b544a2583632d87a85c5b5f539cf897"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/items/block/GraveGolemSkullItem.java",
+        "file_sha256": "fe04871763b18af6a5e9ff396b1c51a541fe0a451bff512f34ab038076ed5905",
+        "actual_read_ranges": [
+          [
+            1,
+            76
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              76
+            ],
+            "excerpt_sha256": "14554398abac5ce9634f6d0042ce462e706ab51d831c5444320129e719d6ea8e"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/familiar/GuardianFamiliarEntity.java",
+        "file_sha256": "ef5993ddafde3a0ee1faa14a6fbcc366037826864d7a24ecb181a33c9a9798d0",
+        "actual_read_ranges": [
+          [
+            1,
+            254
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              254
+            ],
+            "excerpt_sha256": "76eb8627e92a534fa7bf13f43b5a6d55558ab653dfefc8abaf9f20648c2cdb95"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/handlers/FamiliarEventHandler.java",
+        "file_sha256": "499c6be24aefac949e65c0a1c839c6460e6d11c28e07ae099ebeb8335da86e93",
+        "actual_read_ranges": [
+          [
+            345,
+            406
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              345,
+              406
+            ],
+            "excerpt_sha256": "d48d6f645948697ee3047fafde31b87594356516263c3208dee8e8fd6d60d672"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/familiar/FamiliarEntity.java",
+        "file_sha256": "a533c7e014e4f57a2e2bd64f7c88261f3f8e7ac16a34106b9b22eb2c1a6debc4",
+        "actual_read_ranges": [
+          [
+            130,
+            178
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              130,
+              178
+            ],
+            "excerpt_sha256": "556647e4a800cd542bf5ba2410d92ff9cf41be8d4a03d4713c2c54fa8cbac44c"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/blocks/GraveGolemSkullBlock.java",
+        "file_sha256": "6ffe69588f4e84c0eba7bedb39d9944b7085a72a66650c54f873dfd31abd298b",
+        "actual_read_ranges": [
+          [
+            181,
+            226
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              181,
+              226
+            ],
+            "excerpt_sha256": "77711d31015f41b7e32b8ad8aa1ad2793f1c42c7c0d53c8384bea483f818b18e"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/entities/ally/undead/GraveGolem.java",
+        "file_sha256": "04072d6a8d0aab5a283dd331076641cf4c894e8110adcdad5e230b8ce139b183",
+        "actual_read_ranges": [
+          [
+            390,
+            431
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              390,
+              431
+            ],
+            "excerpt_sha256": "6964d7009da72d5648de139fa6151adf3c58a26ced4503dc845e7d72ac5a18ad"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/players/OldUsersConverter.java",
+        "file_sha256": "53c6fa17c5505c2f8baa657d1407c722a96ab05768ba4cee7a30c49f20e20f44",
+        "actual_read_ranges": [
+          [
+            243,
+            272
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              243,
+              272
+            ],
+            "excerpt_sha256": "7d00c873b40339eb02402ee66ba8dc80fe60617489af1569c0fbfb3543c2e5a2"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/util/datafix/fixes/EntityUUIDFix.java",
+        "file_sha256": "0e74ca7335a6c41917d06a4ca9c14dbb235cb83b61491beb01176095f0fbe9b9",
+        "actual_read_ranges": [
+          [
+            112,
+            139
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              112,
+              139
+            ],
+            "excerpt_sha256": "09f76937b1656859a46e6e399462fba892a15bc0da860d555f475590fefc9967"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/util/FamiliarUtil.java",
+        "file_sha256": "83622db577cdec5b25ed136bae3f3beea7877b3a6edd0dd4b54976156d526af9",
+        "actual_read_ranges": [
+          [
+            48,
+            176
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              48,
+              176
+            ],
+            "excerpt_sha256": "802606f32f1159a522d99c56426dbb96267e30f9e7eaee56ef1a8e0934eb71d1"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/item/familiar/FamiliarCurio.java",
+        "file_sha256": "a6582fefad4940e0c7c85dfa912d9504720a36a466afa0f9a381748aaf8963dd",
+        "actual_read_ranges": [
+          [
+            1,
+            318
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              318
+            ],
+            "excerpt_sha256": "0fb722247eb0c99ebee4874aeff5d41f1d8ca5d4622705cafff41c8a9e9702ee"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/item/tool/SoulShardItem.java",
+        "file_sha256": "c63d6dd9bf9782e8ed1f9875ff20c521151b29b79db5db80ae35b201813d435b",
+        "actual_read_ranges": [
+          [
+            1,
+            118
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              118
+            ],
+            "excerpt_sha256": "a9d88bdb2506235cd1af596aca4bd4d0af84409f87e0b9dab2f04db758b0ed65"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/ritual/ResurrectFamiliarRitual.java",
+        "file_sha256": "a8268a83e41da8101e0c1e64022056ec4794dda1b6ce7848c7ad607825e0b230",
+        "actual_read_ranges": [
+          [
+            1,
+            106
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              106
+            ],
+            "excerpt_sha256": "d075e595d362c00b6611f31fa614507501c6d7ab1ed4efcdda16d3f76bfc9564"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/handlers/FamiliarEventHandler.java",
+        "file_sha256": "499c6be24aefac949e65c0a1c839c6460e6d11c28e07ae099ebeb8335da86e93",
+        "actual_read_ranges": [
+          [
+            45,
+            78
+          ],
+          [
+            280,
+            302
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              45,
+              78
+            ],
+            "excerpt_sha256": "315f09e1794ab3386afc6f8831853ecbe900d5197e034ef886c9286c8fc3de58"
+          },
+          {
+            "range": [
+              280,
+              302
+            ],
+            "excerpt_sha256": "6a638a0cddf3251ec61902d29250a16efbba1186781bc703b0c20d602b613b1d"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/familiar/FamiliarEntity.java",
+        "file_sha256": "a533c7e014e4f57a2e2bd64f7c88261f3f8e7ac16a34106b9b22eb2c1a6debc4",
+        "actual_read_ranges": [
+          [
+            180,
+            265
+          ],
+          [
+            280,
+            335
+          ],
+          [
+            350,
+            385
+          ],
+          [
+            440,
+            490
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              180,
+              265
+            ],
+            "excerpt_sha256": "e4e9042b039dea43afce212526ff223dd17be912c848e9fb7cbdc649cdfd4a4b"
+          },
+          {
+            "range": [
+              280,
+              335
+            ],
+            "excerpt_sha256": "68df3a6a0a99a1bbf97cd587323418e91596d49c2645ca925fe730fdce8dfb33"
+          },
+          {
+            "range": [
+              350,
+              385
+            ],
+            "excerpt_sha256": "3b8b1457c3fba46bdae3b35cba212949d8832ce104cf3ff64e65a251295bec55"
+          },
+          {
+            "range": [
+              440,
+              490
+            ],
+            "excerpt_sha256": "7e0b3204b55ae93c8effc11bf62a5528414016a73f9016be398545d7f8f9e688"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/registry/OccultismCapabilities.java",
+        "file_sha256": "7297a60908daaf578dd23f965b202c14f5cb0a36f7e55b51cf08f99a9eeedd59",
+        "actual_read_ranges": [
+          [
+            23,
+            62
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              23,
+              62
+            ],
+            "excerpt_sha256": "9e2e489fa284c3624b08431f0ace0cc83bc7d04d5b658b13892d6af5fa4649c8"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/registry/OccultismDataComponents.java",
+        "file_sha256": "aa5ed409f4ec792ddcf6fdaf2893f21669b3ea33d09e42c2f9cf6b8564fca7b6",
+        "actual_read_ranges": [
+          [
+            85,
+            94
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              85,
+              94
+            ],
+            "excerpt_sha256": "c688ae5d536be9d10d59ea6daceceaf700fcc9b13cd13d5b8c60cf5155bb8c9a"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/familiar/BlacksmithFamiliarEntity.java",
+        "file_sha256": "c6c98602902d69ccc42e7cbc30929e05479a77bdc8bb56a7eff60c4d8cc57e72",
+        "actual_read_ranges": [
+          [
+            289,
+            341
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              289,
+              341
+            ],
+            "excerpt_sha256": "35d3407badb72fe925da01be715897f6b639ca66b347559b4a97e6bd9426816c"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/LLibrary_Boss_Monster.java",
+        "file_sha256": "0a2729372ae9a857d0eae7e01f50c8dc59d1eb9057a118f0ae94a3c38850c955",
+        "actual_read_ranges": [
+          [
+            61,
+            66
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              61,
+              66
+            ],
+            "excerpt_sha256": "df44e9970ff6dd313142dd39e2b7d61ed0639f4e9d7343a71e456eabd88e96c2"
+          }
+        ],
+        "support_credit": 0
+      }
+    ],
+    "structural_collision_review": {
+      "compared_candidate": "30bd3c1e581796907be8",
+      "distinct_gameplay_owner_reason": "相同AST只说明均先调用一项本地reader再super；Cataclysm所撞的是LLibrary_Boss_Monster.readAdditionalHomePoint的委派wrapper，计入Harbinger实体付NETHER_STAR激活/旧Home坐标迁移的支持。Skull.load这个wrapper本身同样0；本建议1依据已读item/block召唤owner载体与返还须解析live Player的负边界，不借wrapper、字段名称或语法新颖计数。",
+      "reviewed_consumers": "Actual skull item/block UUID transfer and live-player-dependent return chain; wrapper itself0"
+    }
+  },
+  {
+    "candidate_id": "0877eb1ad6c4acf8d89a",
+    "status": "accepted",
+    "family": "occultism-guardian-finite-death-rescue-budget-world-carrier-and-shard-reset-boundaries",
+    "trigger": "Guardian定LIVES byte默认0，setter218-222只接收0..5；writer225-228存lives，reader231-243缺省0，无效范围保当前值，for_book覆为5并随机颜色。finalizeSpawn随机1..5；blacksmithUpgrade可在lives<5重复+1。",
+    "input": "Saved lives byte0..5, familiar owner/upgrades and equipped item entity snapshot",
+    "output": "Actual death handler consumes1 before rescue, world exhaustion kills entity; death shard intentionally rerolls lives, equipped live-cache mutation has no observed immediate component writeback",
+    "preservation": "Guardian定LIVES byte默认0，setter218-222只接收0..5；writer225-228存lives，reader231-243缺省0，无效范围保当前值，for_book覆为5并随机颜色。finalizeSpawn随机1..5；blacksmithUpgrade可在lives<5重复+1。 补读Blacksmith upgrade tick289-341：同owner eligible目标接近后调其blacksmithUpgrade，再从payer扣配置iron cost；payer钱包和recipient flags现有信用不再加。 FamiliarEntity.read356-374恢复EntityReference owner和永久upgrade，不重跑加属性。FamiliarUtil64-161先查装备carrier再查10格内同owner且alive的world familiar。装备用type/predicate筛，未在该lookup额外核owner相等。 事件类@EventBusSubscriber62与@SubscribeEvent livingDeathEvent291-297实际调用guardianUltimateSacrifice365-395。非bypass damage、玩家enabled、存在guardian、装备态没有cooldown时，sacrifice139-146先扣1；仅原值>0才成功。handler随后取消死亡、health1、清效果/给regen与absorption，装备态还给升级/扣后lives计算的cooldown。 世界guardian tick152-153耗尽时kill；getFamiliarEffects173-187亦使用剩余lives决定效果。world持久读值有真实消费者，不因部分装饰variants存在而排除整项。 FamiliarCurio完整318行：capture→addFamiliar保存asPassenger到FAMILIAR_DATA→discard世界体；getFamiliars用组件copyTag/cache和loadEntityRecursive重建；release保存当前实体、load新实体并改owner为当前player，再clear载体。OccultismCapabilities39-59注册new Curio(stack)，FAMILIAR_DATA89-93明示persistent CustomData codec。 关键负边界：guard.sacrifice仅改缓存实体synched数据；death handler与Curio.curioTick没有将当前familiars序列化回stack组件。可见写组件入口是初始type构造、add或clear；虽然serializeNBT方法会写当前live values，但本次救命未调用。外部cap缓存/其他重写时机未全审，不能说已证可重复无限救命。 FamiliarEntity.dropFromLootTable134-168先临时满血、清fall/effects、resetCustomFamiliarData，再saveWithoutId到soul shard TypedEntityData，之后仅恢复旧health。Guardian reset246-251普通1..3/blacksmith3..4/iesnium5。 补读ResurrectFamiliarRitual全文106行：先copy/shrink激活shard，取ENTITY_DATA、去Pos、create/load、定位/add；随后按castingPlayer重设owner。故复活采用先前reset后的次数，并非reader把已花次数错误补满。SoulShardItem.use本身是带SOUL_VALUE时roll loot，不是此复活入口。 Distinction: 已补真实事件入口、owner/carrier lookup、戒指capture/load/release/component persistence和碎片复活。lives不是肢体外观键，而是消耗的救命额度：世界实体持久剩余次数，死亡handler实际扣1并取消玩家死亡；实体死亡碎片则有意重设下一次额度。与已计永久upgrade flags/金属钱包不同，它的剩余值会随每次履约递减；也不同一次性坐标祝福、永久pet_reviver和Relics复活宠物的待缴费骨头。所有world/item/shard/cooldown支持合最多1。戒指分支扣次没有观察到组件写回，故只能作为带具体持久风险的实现研究，绝不能称跨carrier可靠保存成功。",
+    "application_limit": "本轮纯固定源码静态审阅，不宣称真实救命、跨保存正确、无限利用或新版本NeoForge事件框架运行成功。 装备Curio从物品快照重建、扣次未写回是已见接线缺口；capability缓存/物品外层序列化原生引擎没有展开，不外推具体刷新频率。 sacrifice扣在事件取消和效果之前，无rollback；事件链fairySave在guardian前调用，guardian内部未检查event.isCanceled，未扩大解读未读fairy逻辑。 世界耗尽会kill，但装备curioTick非Entity.tick，不从world kill逻辑推断戒指内也会自动死亡/产shard。 Resurrect ritual在create/load/add失败之前扣激活物，create无null guard，spawn结果未检；魂碎片发放和真正loot调用受原生death/gamerule影响，完整底层未审。 for_book是特定展示覆盖分支，不把它当普通档自动续满或权限漏洞。Guard reader在parent variants后按hasTree/hasBird/hasTools默认false逐位重设，而own writer只写lives；这是外观格式边界支持0。 父EntityReference/ValueInput与DataComponents底层不直接移植到Dynasty；此研究不授权新死亡惩罚、回血机制或玩家Clone白名单扩大。",
+    "supporting_candidates": [],
+    "independent_review": {
+      "path": "docs/cod4/audit-20261022/todo-evidence-review-20261101/skull-guardian-independent-semantic-review-20261101.json",
+      "sha256": "8dd43840831301ea30777aca25783f89da5fa151be75f5393f934c26ccf734ff",
+      "dedup_against": [
+        "ff97dfc7c171a2a3b6cd",
+        "98a838ba191a6cd2391c",
+        "f2108efbb2716d82048b",
+        "3516c9e51be5732381da",
+        "d76482e6549376d7d00c"
+      ]
+    },
+    "actual_source_evidence": [
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/blocks/entities/GraveGolemSkullBlockEntity.java",
+        "file_sha256": "2e55fe5642cb6d0c51a33610294561a24a99ba3c360a88d00c418d3bc013c38c",
+        "actual_read_ranges": [
+          [
+            1,
+            133
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              133
+            ],
+            "excerpt_sha256": "b6f3fb64bfcf96b52814f192eadc28f377cde70bad7b674d259b9ed98e3923fa"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/blocks/GraveGolemSkullBlock.java",
+        "file_sha256": "6ffe69588f4e84c0eba7bedb39d9944b7085a72a66650c54f873dfd31abd298b",
+        "actual_read_ranges": [
+          [
+            50,
+            180
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              50,
+              180
+            ],
+            "excerpt_sha256": "54e96196be40671913906930f1579a3e0b544a2583632d87a85c5b5f539cf897"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/items/block/GraveGolemSkullItem.java",
+        "file_sha256": "fe04871763b18af6a5e9ff396b1c51a541fe0a451bff512f34ab038076ed5905",
+        "actual_read_ranges": [
+          [
+            1,
+            76
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              76
+            ],
+            "excerpt_sha256": "14554398abac5ce9634f6d0042ce462e706ab51d831c5444320129e719d6ea8e"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/familiar/GuardianFamiliarEntity.java",
+        "file_sha256": "ef5993ddafde3a0ee1faa14a6fbcc366037826864d7a24ecb181a33c9a9798d0",
+        "actual_read_ranges": [
+          [
+            1,
+            254
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              254
+            ],
+            "excerpt_sha256": "76eb8627e92a534fa7bf13f43b5a6d55558ab653dfefc8abaf9f20648c2cdb95"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/handlers/FamiliarEventHandler.java",
+        "file_sha256": "499c6be24aefac949e65c0a1c839c6460e6d11c28e07ae099ebeb8335da86e93",
+        "actual_read_ranges": [
+          [
+            345,
+            406
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              345,
+              406
+            ],
+            "excerpt_sha256": "d48d6f645948697ee3047fafde31b87594356516263c3208dee8e8fd6d60d672"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/familiar/FamiliarEntity.java",
+        "file_sha256": "a533c7e014e4f57a2e2bd64f7c88261f3f8e7ac16a34106b9b22eb2c1a6debc4",
+        "actual_read_ranges": [
+          [
+            130,
+            178
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              130,
+              178
+            ],
+            "excerpt_sha256": "556647e4a800cd542bf5ba2410d92ff9cf41be8d4a03d4713c2c54fa8cbac44c"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/blocks/GraveGolemSkullBlock.java",
+        "file_sha256": "6ffe69588f4e84c0eba7bedb39d9944b7085a72a66650c54f873dfd31abd298b",
+        "actual_read_ranges": [
+          [
+            181,
+            226
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              181,
+              226
+            ],
+            "excerpt_sha256": "77711d31015f41b7e32b8ad8aa1ad2793f1c42c7c0d53c8384bea483f818b18e"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/entities/ally/undead/GraveGolem.java",
+        "file_sha256": "04072d6a8d0aab5a283dd331076641cf4c894e8110adcdad5e230b8ce139b183",
+        "actual_read_ranges": [
+          [
+            390,
+            431
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              390,
+              431
+            ],
+            "excerpt_sha256": "6964d7009da72d5648de139fa6151adf3c58a26ced4503dc845e7d72ac5a18ad"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/players/OldUsersConverter.java",
+        "file_sha256": "53c6fa17c5505c2f8baa657d1407c722a96ab05768ba4cee7a30c49f20e20f44",
+        "actual_read_ranges": [
+          [
+            243,
+            272
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              243,
+              272
+            ],
+            "excerpt_sha256": "7d00c873b40339eb02402ee66ba8dc80fe60617489af1569c0fbfb3543c2e5a2"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/util/datafix/fixes/EntityUUIDFix.java",
+        "file_sha256": "0e74ca7335a6c41917d06a4ca9c14dbb235cb83b61491beb01176095f0fbe9b9",
+        "actual_read_ranges": [
+          [
+            112,
+            139
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              112,
+              139
+            ],
+            "excerpt_sha256": "09f76937b1656859a46e6e399462fba892a15bc0da860d555f475590fefc9967"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/util/FamiliarUtil.java",
+        "file_sha256": "83622db577cdec5b25ed136bae3f3beea7877b3a6edd0dd4b54976156d526af9",
+        "actual_read_ranges": [
+          [
+            48,
+            176
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              48,
+              176
+            ],
+            "excerpt_sha256": "802606f32f1159a522d99c56426dbb96267e30f9e7eaee56ef1a8e0934eb71d1"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/item/familiar/FamiliarCurio.java",
+        "file_sha256": "a6582fefad4940e0c7c85dfa912d9504720a36a466afa0f9a381748aaf8963dd",
+        "actual_read_ranges": [
+          [
+            1,
+            318
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              318
+            ],
+            "excerpt_sha256": "0fb722247eb0c99ebee4874aeff5d41f1d8ca5d4622705cafff41c8a9e9702ee"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/item/tool/SoulShardItem.java",
+        "file_sha256": "c63d6dd9bf9782e8ed1f9875ff20c521151b29b79db5db80ae35b201813d435b",
+        "actual_read_ranges": [
+          [
+            1,
+            118
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              118
+            ],
+            "excerpt_sha256": "a9d88bdb2506235cd1af596aca4bd4d0af84409f87e0b9dab2f04db758b0ed65"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/ritual/ResurrectFamiliarRitual.java",
+        "file_sha256": "a8268a83e41da8101e0c1e64022056ec4794dda1b6ce7848c7ad607825e0b230",
+        "actual_read_ranges": [
+          [
+            1,
+            106
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              1,
+              106
+            ],
+            "excerpt_sha256": "d075e595d362c00b6611f31fa614507501c6d7ab1ed4efcdda16d3f76bfc9564"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/handlers/FamiliarEventHandler.java",
+        "file_sha256": "499c6be24aefac949e65c0a1c839c6460e6d11c28e07ae099ebeb8335da86e93",
+        "actual_read_ranges": [
+          [
+            45,
+            78
+          ],
+          [
+            280,
+            302
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              45,
+              78
+            ],
+            "excerpt_sha256": "315f09e1794ab3386afc6f8831853ecbe900d5197e034ef886c9286c8fc3de58"
+          },
+          {
+            "range": [
+              280,
+              302
+            ],
+            "excerpt_sha256": "6a638a0cddf3251ec61902d29250a16efbba1186781bc703b0c20d602b613b1d"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/familiar/FamiliarEntity.java",
+        "file_sha256": "a533c7e014e4f57a2e2bd64f7c88261f3f8e7ac16a34106b9b22eb2c1a6debc4",
+        "actual_read_ranges": [
+          [
+            180,
+            265
+          ],
+          [
+            280,
+            335
+          ],
+          [
+            350,
+            385
+          ],
+          [
+            440,
+            490
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              180,
+              265
+            ],
+            "excerpt_sha256": "e4e9042b039dea43afce212526ff223dd17be912c848e9fb7cbdc649cdfd4a4b"
+          },
+          {
+            "range": [
+              280,
+              335
+            ],
+            "excerpt_sha256": "68df3a6a0a99a1bbf97cd587323418e91596d49c2645ca925fe730fdce8dfb33"
+          },
+          {
+            "range": [
+              350,
+              385
+            ],
+            "excerpt_sha256": "3b8b1457c3fba46bdae3b35cba212949d8832ce104cf3ff64e65a251295bec55"
+          },
+          {
+            "range": [
+              440,
+              490
+            ],
+            "excerpt_sha256": "7e0b3204b55ae93c8effc11bf62a5528414016a73f9016be398545d7f8f9e688"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/registry/OccultismCapabilities.java",
+        "file_sha256": "7297a60908daaf578dd23f965b202c14f5cb0a36f7e55b51cf08f99a9eeedd59",
+        "actual_read_ranges": [
+          [
+            23,
+            62
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              23,
+              62
+            ],
+            "excerpt_sha256": "9e2e489fa284c3624b08431f0ace0cc83bc7d04d5b658b13892d6af5fa4649c8"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/registry/OccultismDataComponents.java",
+        "file_sha256": "aa5ed409f4ec792ddcf6fdaf2893f21669b3ea33d09e42c2f9cf6b8564fca7b6",
+        "actual_read_ranges": [
+          [
+            85,
+            94
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              85,
+              94
+            ],
+            "excerpt_sha256": "c688ae5d536be9d10d59ea6daceceaf700fcc9b13cd13d5b8c60cf5155bb8c9a"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/familiar/BlacksmithFamiliarEntity.java",
+        "file_sha256": "c6c98602902d69ccc42e7cbc30929e05479a77bdc8bb56a7eff60c4d8cc57e72",
+        "actual_read_ranges": [
+          [
+            289,
+            341
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              289,
+              341
+            ],
+            "excerpt_sha256": "35d3407badb72fe925da01be715897f6b639ca66b347559b4a97e6bd9426816c"
+          }
+        ],
+        "support_credit": 0
+      },
+      {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/lender544__new1.20.1/src/main/java/com/github/L_Ender/cataclysm/entity/AnimationMonster/BossMonsters/LLibrary_Boss_Monster.java",
+        "file_sha256": "0a2729372ae9a857d0eae7e01f50c8dc59d1eb9057a118f0ae94a3c38850c955",
+        "actual_read_ranges": [
+          [
+            61,
+            66
+          ]
+        ],
+        "range_evidence": [
+          {
+            "range": [
+              61,
+              66
+            ],
+            "excerpt_sha256": "df44e9970ff6dd313142dd39e2b7d61ed0639f4e9d7343a71e456eabd88e96c2"
+          }
+        ],
+        "support_credit": 0
+      }
+    ]
+  }
+]

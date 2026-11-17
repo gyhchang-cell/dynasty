@@ -1,0 +1,279 @@
+package com.lothrazar.cyclic.block.user;
+
+import java.lang.ref.WeakReference;
+import java.util.UUID;
+import com.lothrazar.cyclic.ModCyclic;
+import com.lothrazar.cyclic.block.TileBlockEntityCyclic;
+import com.lothrazar.cyclic.data.PreviewOutlineType;
+import com.lothrazar.cyclic.registry.BlockRegistry;
+import com.lothrazar.cyclic.registry.TileRegistry;
+import com.lothrazar.library.cap.EnergyStorageWrapper;
+import com.lothrazar.library.cap.ItemStackHandlerWrapper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.WorldlyContainer;
+import net.minecraft.world.entity.EntitySelector;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.util.FakePlayer;
+import net.neoforged.neoforge.items.ItemStackHandler;
+import net.minecraft.core.Direction;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.items.IItemHandler;
+
+public class TileUser extends TileBlockEntityCyclic implements MenuProvider, WorldlyContainer {
+
+  public static ModConfigSpec.IntValue POWERCONF;
+  /**
+   * When true, the fake player's GameProfile UUID is the block's owner instead of a shared
+   * anonymous ID, so claim/protection mods can recognize it as the owner. Default false because
+   * this also means the owner's real advancement progress gets credited for actions the fake
+   * player performs (killing mobs, etc) - see issue #2522.
+   */
+  public static ModConfigSpec.BooleanValue USE_OWNER_UUID;
+  static final int MAX = 640000;
+
+  static enum Fields {
+    REDSTONE, TIMER, TIMERDEL, RENDER, INTERACTTYPE, ENTITIES;
+  }
+
+  ItemStackHandler userSlots = new ItemStackHandler(1);
+  ItemStackHandler outputSlots = new ItemStackHandler(4);
+  EnergyStorageWrapper energy = new EnergyStorageWrapper(MAX, MAX / 4);
+
+  private ItemStackHandlerWrapper inventory = new ItemStackHandlerWrapper(userSlots, outputSlots);
+
+  private WeakReference<FakePlayer> fakePlayer;
+  private int timerDelay = 20;
+  boolean doHitBreak = false; // was useLeftHand
+  boolean entities = false;
+  private UUID ownerId;
+
+  public void setOwner(UUID ownerId) {
+    this.ownerId = ownerId;
+  }
+
+  public TileUser(BlockPos pos, BlockState state) {
+    super(TileRegistry.USER.get(), pos, state);
+    this.needsRedstone = 1;
+  }
+
+  public static void serverTick(Level level, BlockPos blockPos, BlockState blockState, TileUser e) {
+    e.tick();
+  }
+
+  public void tick() {
+    this.syncEnergy();
+    if (this.requiresRedstone() && !this.isPowered()) {
+      return;
+    }
+    if (level.isClientSide) { //  || !(level instanceof ServerLevel)
+      return;
+    }
+    if (timer > 0) {
+      timer--;
+      return;
+    }
+    //timer is zero so trigger
+    timer = timerDelay;
+    if (fakePlayer == null) {
+      UUID useOwner = USE_OWNER_UUID.get() ? this.ownerId : null;
+      fakePlayer = setupBeforeTrigger((ServerLevel) level, "user", useOwner);
+    }
+    final int repair = POWERCONF.get();
+    if (repair > 0) {
+      //we need to pay a cost
+      if (energy.getEnergyStored() < repair) {
+        //not enough cost
+        return;
+      }
+      //i dont care if result is SUCCESS or FAIL. still drain power every time. 
+      //user can turn off with redstone if they want to save power
+      energy.extractEnergy(repair, false);
+    }
+    try {
+      // Added to address the broken server side FakePlayer cooldowns we they
+      // are not getting decremented causing any item with one to not function correctly.
+      var cooldowns = fakePlayer.get().getCooldowns();
+      TileBlockEntityCyclic.tryEquipItem(inventory, fakePlayer, 0, InteractionHand.MAIN_HAND);
+      var item = fakePlayer.get().getItemInHand(InteractionHand.MAIN_HAND).getItem();
+      var oldItem = item.asItem();
+      if (cooldowns.isOnCooldown(item)) {
+        cooldowns.removeCooldown(item);
+      }
+      BlockPos target = this.worldPosition.relative(this.getCurrentFacing());
+      if (entities) {
+        //do entities
+        this.interactEntities(target);
+      }
+      else {
+        //not entities so blocks
+        if (doHitBreak) {
+          TileBlockEntityCyclic.playerAttackBreakBlock(fakePlayer, level, target, InteractionHand.MAIN_HAND, this.getCurrentFacing());
+        }
+        else {
+          TileBlockEntityCyclic.interactUseOnBlock(fakePlayer, level, target, InteractionHand.MAIN_HAND, null);
+        }
+      }
+      boolean mainhandChanged = oldItem != userSlots.getStackInSlot(0).getItem();
+      if (mainhandChanged) {
+        this.depositOutputMainhand();
+      }
+      TileBlockEntityCyclic.syncEquippedItem(this.userSlots, fakePlayer, 0, InteractionHand.MAIN_HAND);
+    }
+    catch (Exception e) {
+      ModCyclic.LOGGER.error("User action item error", e);
+    }
+    final boolean dropItemsOnGround = false;
+    tryDumpFakePlayerInvo(fakePlayer, this.outputSlots, dropItemsOnGround);
+  }
+
+  private void depositOutputMainhand() {
+    var usedItem = fakePlayer.get().getItemInHand(InteractionHand.MAIN_HAND);
+    for (int slotId = 0; slotId < outputSlots.getSlots(); slotId++) {
+      if (!usedItem.isEmpty()) {
+        if (outputSlots.insertItem(slotId, usedItem.copy(), true).isEmpty()) {
+          usedItem = outputSlots.insertItem(slotId, usedItem.copy(), false);
+          TileBlockEntityCyclic.tryEquipItem(usedItem, fakePlayer, InteractionHand.MAIN_HAND);
+        }
+      }
+    }
+  }
+
+  private void interactEntities(BlockPos target) {
+    AABB ab = getEntityRange(target);
+    this.level.getEntities(fakePlayer.get(), ab, EntitySelector.NO_SPECTATORS).forEach((entityFound) -> {
+      if (doHitBreak) {
+        fakePlayer.get().attack(entityFound);
+      }
+      else { // interact 
+        InteractionResult res = fakePlayer.get().interactOn(entityFound, InteractionHand.MAIN_HAND);
+
+      }
+    });
+  }
+
+  private AABB getEntityRange(BlockPos target) {
+    final int r = 1;
+    AABB ab = new AABB(target.getX() + r, target.getY(), target.getZ() + r,
+        target.getX() - r, target.getY() + 1, target.getZ() - r);
+    return ab;
+  }
+
+  @Override
+  public void setField(int field, int value) {
+    switch (Fields.values()[field]) {
+      case REDSTONE:
+        this.needsRedstone = value % 2;
+      break;
+      case TIMER:
+        this.timer = value;
+      break;
+      case TIMERDEL:
+        this.timerDelay = value;
+      break;
+      case RENDER:
+        this.render = value % PreviewOutlineType.values().length;
+      break;
+      case INTERACTTYPE: // was LEFTHAND
+        this.doHitBreak = value == 1;
+      break;
+      case ENTITIES:
+        this.entities = value == 1;
+      break;
+    }
+  }
+
+  @Override
+  public int getField(int field) {
+    switch (Fields.values()[field]) {
+      case REDSTONE:
+        return this.needsRedstone;
+      case TIMER:
+        return timer;
+      case TIMERDEL:
+        return timerDelay;
+      case RENDER:
+        return render;
+      case INTERACTTYPE:
+        return doHitBreak ? 1 : 0;
+      case ENTITIES:
+        return entities ? 1 : 0;
+    }
+    return 0;
+  }
+
+  @Override
+  public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    timerDelay = tag.getInt("delay");
+    if (tag.contains(NBTENERGY)) {
+      energy.deserializeNBT(registries, tag.get(NBTENERGY));
+    }
+    userSlots.deserializeNBT(registries,tag.getCompound(NBTINV));
+    doHitBreak = tag.getBoolean("doBreakBlock");
+    entities = tag.getBoolean("entities");
+    ownerId = tag.hasUUID("ownerId") ? tag.getUUID("ownerId") : null;
+    super.loadAdditional(tag,registries);
+  }
+
+  @Override
+  public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    tag.putInt("delay", timerDelay);
+    tag.put(NBTENERGY, energy.serializeNBT(registries));
+    tag.put(NBTINV, userSlots.serializeNBT(registries));
+    tag.putBoolean("doBreakBlock", doHitBreak);
+    tag.putBoolean("entities", entities);
+    if (ownerId != null) {
+      tag.putUUID("ownerId", ownerId);
+    }
+    super.saveAdditional(tag,registries);
+  }
+
+  @Override
+  public Component getDisplayName() {
+    return BlockRegistry.USER.get().getName();
+  }
+
+  @Override
+  public AbstractContainerMenu createMenu(int i, Inventory playerInventory, Player playerEntity) {
+    return new ContainerUser(i, level, worldPosition, playerInventory, playerEntity);
+  }
+
+  @Override
+  public IItemHandler getItemHandler(Direction side) {
+    return inventory;
+  }
+
+
+  @Override
+  public IEnergyStorage getEnergyHandler(Direction side) {
+    return energy;
+  }
+
+  @Override
+  public int[] getSlotsForFace(Direction direction) {
+    return inventory.getSlotsForFace(direction);
+  }
+
+  @Override
+  public boolean canPlaceItemThroughFace(int i, ItemStack itemStack,  Direction direction) {
+    return inventory.canPlaceItemThroughFace(i, itemStack, direction);
+  }
+
+  @Override
+  public boolean canTakeItemThroughFace(int i, ItemStack itemStack, Direction direction) {
+    return inventory.canTakeItemThroughFace(i, itemStack, direction);
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "client_side": "required",
+  "server_side": "unsupported",
+  "game_versions": [
+    "1.20.1",
+    "1.21.1",
+    "26.1.2"
+  ],
+  "environment": [
+    "client_and_server",
+    "client_only"
+  ],
+  "id": "xugd56Pv",
+  "slug": "ae2-organizer",
+  "project_type": "mod",
+  "team": "JprXK93C",
+  "organization": null,
+  "title": "Storage Organizer",
+  "description": "Adds the ability to create filter tabs in your AE2/RS terminals",
+  "body": "# Storage Organizer\n\nA client-side mod that adds user-defined **filter tabs** to **Applied Energistics 2 terminals** *and* **Refined Storage 2 grids**. Create tabs that narrow the view to just the items you want — by mod, item tag, name, or per-stack data component (NBT) — and switch between them with one click.\n\nBoth storage mods are optional: the jar loads cleanly with **either, both, or neither** installed, adding its tabs to whichever is present. It does nothing on its own.\n\n> **Formerly “AE2 Organizer”.** Same mod, same project, same settings — renamed in **2.0.0** because it is no longer AE2-only. Your existing tabs carry over automatically; there is nothing to migrate.\n>\n> If you install mods **by hand**, delete the old `AE2Organizer-*.jar` before adding `StorageOrganizer-*.jar`. The file name changed but the mod id didn't, so having both is the same mod twice and the game won't start. Launcher and modpack users are unaffected — it updates in place.\n\n## What it does\n\nAE2 and RS both filter and sort their item list on the client; Storage Organizer hooks into that view, so tabs are purely client-side with **zero server load** — they work even when you connect to a server that doesn't have the mod.\n\nEach storage system is kept **fully separate**: AE2 terminals and RS grids have their own independent tabs, windows, and settings, and never share a filter. (You can copy a filter set from one to the other with [Export / Import](#windows).) The rest of this guide applies the same way to both — \"terminal\" below means an AE2 terminal *or* an RS grid.\n\nOne or more **filter windows** attach to every terminal. Out of the box there's a single window docked to the terminal's right edge; you can add more, move them anywhere, and lay each out as a vertical list or a horizontal icon row (see [Windows](#windows)).\n\nEach window shows:\n\n- **All** (optional per window) — clears the filter.\n- **Your tabs** — click one to filter to that tab's items; click the active tab again to clear back to All. The list scrolls (mouse wheel or the scrollbar) when there are more tabs than fit.\n- **Settings icon** — opens the editor.\n\nWindows are drawn in each backend's **native look**: on an AE2 terminal they use AE2's own GUI style (so AE2 \"dark mode\" resource packs reskin them too) and AE2's gear icon; on an RS grid they use RS's grid style and RS's own wrench icon. A tab's filter combines with the storage's own search box (AND), so you can pick a broad tab and then type to narrow further. Only **one tab is active at a time** per storage system.\n\n## Editing tabs\n\nClick the settings icon to open the editor. The left panel is a **tree**: each *window* node expands to the tabs inside it. Select a window row to edit that [window](#windows); select a tab row to edit the tab (name, icon, match mode, conditions) on the right.\n\nToolbar: **+Win** (new window) · **+Tab** (new tab in the selected window) · **Copy** (duplicate the selected tab — or the whole window, with its tabs) · **Del** · **▲ ▼** (reorder within the window/among windows). A tab's **\"Window…\"** button opens a picker to move it to another window. Deleting a window that still has tabs asks first.\n\nSet a tab's **icon** and the item for `mod` / `tag` / `text` conditions in any of three ways:\n\n- **Built-in picker** — click the icon slot or a condition's **`…`** button to open a searchable item grid (works without JEI).\n- **Drag from your inventory** — shown along the bottom of the editor.\n- **Drag from JEI** — if JEI is installed, its item list appears beside the editor.\n\nWhat a chosen item does, by condition type: `mod` → its mod id · `text` → its display name · `tag` → opens a list of *that item's* tags to pick from (no need to know tag ids) · the **icon slot** → sets it as the tab icon.\n\n## Tab criteria\n\nEach tab combines its conditions with **Match ANY** (OR) or **Match ALL** (AND):\n\n| Type | Matches | Example |\n|------|---------|---------|\n| `mod` | items from a mod id | `create` |\n| `tag` | items in an item tag | `c:ingots` |\n| `text` | display name contains text (case-insensitive) | `sword` |\n| `component` | a per-stack data component (see below) | — |\n\nEach condition also has an **`Is` / `Not`** toggle. `Not` turns it into an **exclusion** — anything it matches is *hidden*. Exclusions always apply on top of the positive conditions regardless of the match mode, so a tab reads as *(positives combined by ANY/ALL) and none of the exclusions*. For example: **Match ANY**, `Is tag c:oak_logs`, `Is tag c:spruce_logs`, `Not mod sophisticatedstorage` shows oak **or** spruce wood, but never the storage-mod's drawers. A tab with only `Not` conditions shows everything except those.\n\nComponent checks:\n\n- `enchanted` — has enchantments (or stored enchantments, for books)\n- `named` — has a custom name\n- `damaged` — has taken damage\n- `custom_data_key` — its custom data contains a given NBT key (the *arg* field)\n- `component_type` — has a given component type id, e.g. `minecraft:potion_contents` (the *arg* field)\n\n> **Tag tip (1.21):** common tags use the `c:` namespace on NeoForge — `c:ingots`, `c:nuggets`, `c:ores`, and so on. The old `forge:` namespace is gone. Dragging an item onto a `tag` condition lists its real tags, so you don't have to guess.\n\n## Windows\n\nSelect a window in the editor tree to set its presentation (each property is per window):\n\n- **Layout** — Vertical list or Horizontal icon row (horizontal is always icon-only).\n- **Display** — Labels or Icons only (vertical windows).\n- **Size** — a per-window scale slider.\n- **Gear** — show or hide the settings icon on this window. At least one window always keeps a reachable one.\n- **All entry** — show or hide the *All* button on this window.\n- **Terminals…** — show or hide this window per **terminal type** (AE2 ME/Crafting/Pattern/Wireless terminals, the RS Grid, …). Each type stands for every terminal of that type.\n- **Position** — see below.\n- **Export / Import** — copy this window's **tabs** (conditions only — no layout) to the clipboard as JSON, or **replace** them from a copied export (asks first). Handy for sharing a filter set, reusing it in another window, or **moving a set between AE2 and RS** (which otherwise stay separate).\n\n**Moving windows.** Hold **Alt** in the terminal to drag any window (release to stop), or click **Move…** in the editor for a persistent move mode with a banner. (Alt, not Shift — so it never clashes with shift-click actions like JEI's cheat-mode grab.) Positions are remembered **per terminal type**: the first terminal you place a window in becomes its base, and other terminals inherit that spot until you drag the window there specifically. **Center here** (window → Position) recenters the window for the terminal you're in.\n\n**Stuck?** The client command `/storageorganizer resetwindows` restores every window (in **both** backends) to a reachable state — first window docked, the rest centered, all settings icons shown — and clears per-terminal positions and hides. (Works in singleplayer and on any server; it's client-side.)\n\n## Settings\n\nIn the editor, click **Settings…** for cross-cutting behaviour (per-window layout lives on each [window](#windows)). Settings are **per storage system** — AE2 and RS each have their own:\n\n- **Reset filter when opening a terminal** — on: every terminal opens on *All*. Off (default): your last active tab is remembered. Either way, coming *back* to a terminal from a craft request, a crafting-status view or a settings page keeps the tab you were on — only actually opening a terminal counts.\n- **Clear search bar when selecting a tab** — on: clicking a tab also empties the storage's search box, so the tab's filter starts clean instead of combining (AND) with whatever you'd typed. Off (default): the search text is kept.\n- **Sync JEI search bar when selecting a tab** *(needs JEI)* — on: clicking a tab also sets JEI's search to match it, so JEI shows the same things (e.g. pick your \"Create\" tab and JEI narrows to Create). The tab's conditions become JEI search terms — `mod` → `@mod`, `tag` → `#tag`, `text` → the name — joined to mirror the tab's **Match ANY** (`|` / OR) or **Match ALL** (space / AND) mode. `Not` conditions become JEI exclusions (`-`), applied to every OR branch. *Component* conditions have no JEI equivalent and are skipped — so a `Not component` exclusion can't be mirrored and JEI may show a little more than the terminal. Off (default).\n- **Export all / Import all** — copy this storage system's **entire** setup (every window *with* its layout, plus all tabs) to the clipboard as JSON, or **replace** everything from a copied export (asks first) — a quick backup or full transfer between instances. Plain JSON; the per-window and all-windows formats are tagged distinctly, so pasting the wrong one just fails safely.\n\nYour windows, tabs, and settings save automatically, per client, and separately per storage system.\n",
+  "body_url": null,
+  "published": "2026-06-20T12:31:15.396688Z",
+  "updated": "2026-08-30T12:27:25.435778Z",
+  "approved": "2026-06-24T01:10:12.581527Z",
+  "queued": "2026-06-20T13:19:01.868451Z",
+  "status": "approved",
+  "requested_status": "approved",
+  "moderator_message": null,
+  "license": {
+    "id": "MIT",
+    "name": "MIT License",
+    "url": "https://github.com/LJack2k/AE2-Organizer/blob/main/LICENSE"
+  },
+  "downloads": 1223,
+  "followers": 3,
+  "categories": [
+    "storage",
+    "utility"
+  ],
+  "additional_categories": [],
+  "loaders": [
+    "forge",
+    "neoforge"
+  ],
+  "versions": [
+    "Pj8gPyMV",
+    "nHQfxpip",
+    "JrVj0f8b",
+    "Dd0DIhoo",
+    "CKB1meV4",
+    "2CN9a8bP",
+    "FUfGJ1Rg",
+    "CFlMRtQH",
+    "1Cbke3Bw",
+    "qbVpLstY",
+    "k3oZnVc8",
+    "Y4pHOzSE",
+    "ixuzwdmC",
+    "bynyAeaU",
+    "yc9OCLSD",
+    "fJre1qOv",
+    "zEPv4zfc",
+    "6SbH7EJx",
+    "uvze3nEs"
+  ],
+  "icon_url": "https://cdn.modrinth.com/data/xugd56Pv/1f51f46531f3ffb5c95f1856f13946393d35b01d_96.webp",
+  "raw_icon_url": "https://cdn.modrinth.com/data/xugd56Pv/1f51f46531f3ffb5c95f1856f13946393d35b01d.webp",
+  "issues_url": "https://github.com/LJack2k/AE2-Organizer/issues",
+  "source_url": "https://github.com/LJack2k/AE2-Organizer",
+  "wiki_url": null,
+  "discord_url": null,
+  "donation_urls": [
+    {
+      "id": "patreon",
+      "platform": "Patreon",
+      "url": "https://www.patreon.com/cw/LJack2k"
+    },
+    {
+      "id": "ko-fi",
+      "platform": "Ko-fi",
+      "url": "https://ko-fi.com/ljack2k"
+    }
+  ],
+  "gallery": [
+    {
+      "url": "https://cdn.modrinth.com/data/xugd56Pv/images/bbf55b180e49964bb4f225efb2b6ad200b47a47b_350.webp",
+      "raw_url": "https://cdn.modrinth.com/data/xugd56Pv/images/bbf55b180e49964bb4f225efb2b6ad200b47a47b.png",
+      "featured": false,
+      "title": "Filter tabs in a AE2 terminal",
+      "description": null,
+      "created": "2026-06-20T12:42:57.878011Z",
+      "ordering": 0
+    },
+    {
+      "url": "https://cdn.modrinth.com/data/xugd56Pv/images/c085ace6f4314acb446514ab65dc1610fa28ffd1_350.webp",
+      "raw_url": "https://cdn.modrinth.com/data/xugd56Pv/images/c085ace6f4314acb446514ab65dc1610fa28ffd1.jpeg",
+      "featured": true,
+      "title": "Filter tabs in a AE2 terminal",
+      "description": null,
+      "created": "2026-06-21T11:27:48.764693Z",
+      "ordering": 0
+    }
+  ],
+  "color": 12106169,
+  "thread_id": "2HvNaDm4",
+  "monetization_status": "monetized"
+}

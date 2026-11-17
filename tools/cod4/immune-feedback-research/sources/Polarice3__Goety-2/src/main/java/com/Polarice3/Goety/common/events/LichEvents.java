@@ -1,0 +1,340 @@
+package com.Polarice3.Goety.common.events;
+
+import com.Polarice3.Goety.Goety;
+import com.Polarice3.Goety.client.particles.LichShockwaveParticleOption;
+import com.Polarice3.Goety.client.particles.ModParticleTypes;
+import com.Polarice3.Goety.common.effects.GoetyEffects;
+import com.Polarice3.Goety.common.network.ModNetwork;
+import com.Polarice3.Goety.common.network.server.SPlayFollowSoundPacket;
+import com.Polarice3.Goety.compat.iron.IronAttributes;
+import com.Polarice3.Goety.compat.iron.IronLoaded;
+import com.Polarice3.Goety.config.MainConfig;
+import com.Polarice3.Goety.init.ModSounds;
+import com.Polarice3.Goety.init.ModTags;
+import com.Polarice3.Goety.utils.*;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.stats.Stats;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.gossip.GossipType;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.living.MobEffectEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+import java.util.UUID;
+
+import static net.minecraftforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET;
+
+@Mod.EventBusSubscriber(modid = Goety.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+public class LichEvents {
+
+    public static AttributeModifier BLOOD_RESIST_MOD = new AttributeModifier(UUID.fromString("1d0bd7da-03e8-4b25-be6d-014d73689417"), "Lich Blood Resistance", 0.5F, AttributeModifier.Operation.ADDITION);
+    public static AttributeModifier HOLY_WEAK_MOD = new AttributeModifier(UUID.fromString("5290681e-7020-4de5-bba2-a659242d45a9"), "Lich Holy Weakness", -0.5F, AttributeModifier.Operation.ADDITION);
+
+    @SubscribeEvent
+    public static void onPlayerLichdom(TickEvent.PlayerTickEvent event){
+        Player player = event.player;
+        Level world = player.level;
+        if (LichdomHelper.isLich(player)){
+            player.getFoodData().setFoodLevel(17);
+            player.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_REST));
+            boolean burn = MobUtil.isInSunlightNoRain(player);
+
+            if (!player.level.isClientSide) {
+                if (burn){
+                    ItemStack helmet = player.getItemBySlot(EquipmentSlot.HEAD);
+                    if (!helmet.isEmpty()) {
+                        if (!player.isCreative()) {
+                            if (!MobUtil.isFireImmune(player)) {
+                                if (MainConfig.LichDamageHelmet.get()) {
+                                    if (helmet.isDamageableItem()) {
+                                        ItemHelper.hurtAndBreak(helmet, world.random.nextInt(2), player);
+                                    }
+                                }
+                            }
+                        }
+                        burn = false;
+                    }
+                    if (burn){
+                        if (!MobUtil.isFireImmune(player)){
+                            player.setSecondsOnFire(8);
+                        }
+                    }
+                }
+            }
+
+            player.getActiveEffects().removeIf(effectInstance -> !EffectsUtil.canAffectLich(effectInstance, world));
+            if (player.hasEffect(GoetyEffects.SOUL_HUNGER.get())){
+                if (SEHelper.getSoulsAmount(player, MainConfig.MaxSouls.get())){
+                    player.removeEffect(GoetyEffects.SOUL_HUNGER.get());
+                }
+            }
+            if (MainConfig.LichSoulHeal.get()) {
+                if (!(player.isOnFire() && !MobUtil.isFireImmune(player)) && LichdomHelper.smited(player) <= 0) {
+                    if (player.getHealth() < player.getMaxHealth()) {
+                        if (player.tickCount % (MathHelper.secondsToTicks(MainConfig.LichHealSeconds.get()) + 1) == 0 && SEHelper.getSoulsAmount(player, MainConfig.LichHealCost.get())) {
+                            player.heal(MainConfig.LichHealAmount.get().floatValue());
+                            Vec3 vector3d = player.getDeltaMovement();
+                            if (!player.level.isClientSide) {
+                                ServerLevel serverWorld = (ServerLevel) player.level;
+                                serverWorld.sendParticles(ParticleTypes.SCULK_SOUL, player.getRandomX(0.5D), player.getRandomY(), player.getRandomZ(0.5D), 0, vector3d.x * -0.2D, 0.1D, vector3d.z * -0.2D, 0.5F);
+                            }
+                            SEHelper.decreaseSouls(player, MainConfig.LichHealCost.get());
+                        }
+                    }
+                }
+            }
+            if (MainConfig.LichVillagerHate.get() && player.tickCount % 20 == 0) {
+                for (Villager villager : player.level.getEntitiesOfClass(Villager.class, player.getBoundingBox().inflate(16.0D))) {
+                    if (villager.getPlayerReputation(player) > -200 && villager.getPlayerReputation(player) < 100) {
+                        villager.getGossips().add(player.getUUID(), GossipType.MAJOR_NEGATIVE, 25);
+                    }
+                }
+                for (IronGolem ironGolem : player.level.getEntitiesOfClass(IronGolem.class, player.getBoundingBox().inflate(16.0D))) {
+                    if (!ironGolem.isPlayerCreated() && ironGolem.getTarget() != player && TargetingConditions.forCombat().range(16.0F).test(ironGolem, player)) {
+                        ironGolem.setTarget(player);
+                    }
+                }
+            }
+            if (LichdomHelper.isInLichMode(player)) {
+                if (player.tickCount % 5 == 0) {
+                    if (world.isClientSide) {
+                        int color = LichdomHelper.lichModeColor(player);
+                        if (color > -1) {
+                            ColorUtil colorUtil = new ColorUtil(color);
+                            world.addParticle(ModParticleTypes.LICH_COLORED.get(), player.getRandomX(0.5D), player.getY(), player.getRandomZ(0.5D), colorUtil.red(), colorUtil.green(), colorUtil.blue());
+                        } else {
+                            world.addParticle(ModParticleTypes.LICH.get(), player.getRandomX(0.5D), player.getY(), player.getRandomZ(0.5D), 0.0D, 0.0D, 0.0D);
+                        }
+                    }
+                }
+                if (MainConfig.LichModeSounds.get()) {
+                    if (event.phase == TickEvent.Phase.END) {
+                        if (player.isAlive()) {
+                            MiscCapHelper.doAmbientSoundTime(player);
+                            if (MiscCapHelper.getAmbientSoundTime(player) > player.getRandom().nextInt(1000)) {
+                                MiscCapHelper.setAmbientSoundTime(player, -MathHelper.secondsToTicks(4));
+                                if (!player.level.isClientSide) {
+                                    ModNetwork.sentToTrackingEntityAndPlayer(player, new SPlayFollowSoundPacket(player, ModSounds.LICH_AMBIENT.get(), 1.0F, player.getVoicePitch(), false));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (player.isAlive()){
+                if (!player.level.isClientSide) {
+                    MobEffectInstance instance = player.getEffect(MobEffects.NIGHT_VISION);
+                    if (LichdomHelper.nightVision(player) && MainConfig.LichNightVision.get()) {
+                        if (instance == null || instance.getDuration() <= 210) {
+                            player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 300, 0, false, false, false));
+                        }
+                    } else {
+                        if (instance != null) {
+                            if (instance.getDuration() <= 300) {
+                                player.removeEffect(MobEffects.NIGHT_VISION);
+                            }
+                        }
+                    }
+                }
+            }
+            if (LichdomHelper.smited(player) > 0){
+                LichdomHelper.setSmited(player, LichdomHelper.smited(player) - 1);
+            }
+        } else {
+            if (LichdomHelper.isInLichMode(player)) {
+                LichdomHelper.setLichMode(player, false);
+            }
+            if (LichdomHelper.nightVision(player)) {
+                LichdomHelper.setNightVision(player, false);
+            }
+        }
+
+        if (IronLoaded.IRON_SPELLBOOKS.isLoaded()){
+            AttributeInstance bloodResist = player.getAttribute(IronAttributes.BLOOD_MAGIC_RESIST);
+            if (bloodResist != null){
+                if (LichdomHelper.isLich(player)){
+                    if (!bloodResist.hasModifier(BLOOD_RESIST_MOD)){
+                        bloodResist.addPermanentModifier(BLOOD_RESIST_MOD);
+                    }
+                } else {
+                    if (bloodResist.hasModifier(BLOOD_RESIST_MOD)){
+                        bloodResist.removeModifier(BLOOD_RESIST_MOD);
+                    }
+                }
+            }
+
+            AttributeInstance holyResist = player.getAttribute(IronAttributes.HOLY_MAGIC_RESIST);
+            if (holyResist != null){
+                if (LichdomHelper.isLich(player)){
+                    if (!holyResist.hasModifier(HOLY_WEAK_MOD)){
+                        holyResist.addPermanentModifier(HOLY_WEAK_MOD);
+                    }
+                } else {
+                    if (holyResist.hasModifier(HOLY_WEAK_MOD)){
+                        holyResist.removeModifier(HOLY_WEAK_MOD);
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void SpecialPotionEffects(MobEffectEvent.Applicable event){
+        if (event.getEntity() instanceof Player player){
+            if (LichdomHelper.isLich(player)){
+                if (!EffectsUtil.canAffectLich(event.getEffectInstance(), player.level)) {
+                    event.setResult(Event.Result.DENY);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void UndeadFriendly(LivingChangeTargetEvent event){
+        if (MainConfig.LichUndeadFriends.get()) {
+            if (event.getEntity() instanceof Enemy) {
+                if (event.getEntity().getMobType() == MobType.UNDEAD
+                        || event.getEntity().getType().is(ModTags.EntityTypes.LICH_NEUTRAL)) {
+                    if (event.getOriginalTarget() != null) {
+                        if (event.getOriginalTarget() instanceof Player player) {
+                            if (LichdomHelper.isLich(player)) {
+                                if (MainConfig.LichPowerfulFoes.get()) {
+                                    if (event.getEntity().getMaxHealth() <= MainConfig.LichPowerfulFoesHealth.get()) {
+                                        if (event.getTargetType() == MOB_TARGET) {
+                                            event.setNewTarget(null);
+                                            if (event.getEntity() instanceof NeutralMob){
+                                                event.setNewTarget(null);
+                                            }
+                                        } else {
+                                            event.setCanceled(true);
+                                        }
+                                    }
+                                } else {
+                                    if (event.getTargetType() == MOB_TARGET) {
+                                        event.setNewTarget(null);
+                                        if (event.getEntity() instanceof NeutralMob){
+                                            event.setNewTarget(null);
+                                        }
+                                    } else {
+                                        event.setCanceled(true);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void HurtEvent(LivingHurtEvent event){
+        LivingEntity victim = event.getEntity();
+        Entity source = event.getSource().getEntity();
+        if (victim instanceof Player player) {
+            if (LichdomHelper.isLich(player)){
+                if (event.getSource().is(ModTags.DamageTypes.LICH_IMMUNE)) {
+                    event.setCanceled(true);
+                }
+                if (MainConfig.LichMagicResist.get()) {
+                    if (event.getSource().is(DamageTypeTags.WITCH_RESISTANT_TO)) {
+                        event.setAmount(event.getAmount() * 0.15F);
+                    }
+                }
+                if (ModDamageSource.freezeAttacks(event.getSource()) || event.getSource().is(DamageTypeTags.IS_FREEZING)){
+                    event.setAmount(event.getAmount()/2);
+                }
+                if (MainConfig.LichUndeadFriends.get()) {
+                    if (CuriosFinder.hasUndeadSet(player) && source != null) {
+                        if (source instanceof LivingEntity attacker && attacker.isAlive()) {
+                            for (Mob undead : player.level.getEntitiesOfClass(Mob.class, player.getBoundingBox().inflate(16))) {
+                                if (!MobUtil.areAllies(attacker, player)) {
+                                    if (undead.getMobType() == MobType.UNDEAD) {
+                                        if (undead.getTarget() != player) {
+                                            if (MainConfig.LichPowerfulFoes.get()) {
+                                                if (undead.getMaxHealth() <= MainConfig.LichPowerfulFoesHealth.get()) {
+                                                    undead.setLastHurtByMob(attacker);
+                                                    undead.setTarget(attacker);
+                                                }
+                                            } else {
+                                                undead.setLastHurtByMob(attacker);
+                                                undead.setTarget(attacker);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (LichdomHelper.isInLichMode(player)){
+                    if (MainConfig.LichModeSounds.get()) {
+                        if (player.isAlive()) {
+                            if (event.getAmount() > 0.0F) {
+                                if (!player.level.isClientSide) {
+                                    player.level.playSound(null, player.getX(), player.getY(), player.getZ(), ModSounds.LICH_HURT.get(), player.getSoundSource(), 1.0F, player.getVoicePitch());
+                                    MiscCapHelper.setAmbientSoundTime(player, -MathHelper.secondsToTicks(4));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (event.getSource().getDirectEntity() instanceof Player player){
+            if (LichdomHelper.isLich(player) && MainConfig.LichTouch.get()){
+                if (ModDamageSource.physicalAttacks(event.getSource()) && victim != player){
+                    if (player.getMainHandItem().isEmpty()) {
+                        victim.addEffect(new MobEffectInstance(GoetyEffects.FREEZING.get(), 900));
+                    }
+                    if (victim.getMobType() != MobType.UNDEAD && player.getMainHandItem().is(ModTags.Items.LICH_WITHER_ITEMS)){
+                        victim.addEffect(new MobEffectInstance(MobEffects.WITHER, MathHelper.secondsToTicks(5)));
+                    }
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingDeathEvent(LivingDeathEvent event) {
+        LivingEntity livingEntity = event.getEntity();
+        if (LichdomHelper.isLich(livingEntity)){
+            if (LichdomHelper.isInLichMode(livingEntity)){
+                if (!event.isCanceled()){
+                    if (MainConfig.LichModeSounds.get()) {
+                        Vec3 vec3 = livingEntity.position();
+                        livingEntity.level.playSound(null, vec3.x, vec3.y, vec3.z, ModSounds.LICH_DEATH.get(), livingEntity.getSoundSource(), 1.0F, livingEntity.getVoicePitch());
+                    }
+                    if (livingEntity.level instanceof ServerLevel serverLevel){
+                        ColorUtil colorUtil = new ColorUtil(0x36e416);
+                        if (livingEntity instanceof Player player) {
+                            int color = LichdomHelper.lichModeColor(player);
+                            colorUtil = new ColorUtil(color);
+                        }
+                        serverLevel.sendParticles(new LichShockwaveParticleOption(colorUtil, 40, 20, 1, 100), livingEntity.getX(), livingEntity.getY() + 0.5F, livingEntity.getZ(), 0, 0, 0, 0, 0.5F);
+                    }
+                }
+            }
+        }
+    }
+
+}

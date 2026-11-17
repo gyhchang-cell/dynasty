@@ -27,21 +27,13 @@ OWN_JAR = "dynasty-%s.jar" % VERSION
 OURS = os.path.join(MODS, OWN_JAR)
 assert os.path.exists(OURS), "先运行 ./gradlew build 生成 " + OWN_JAR
 
-# CurseForge 项目/文件 ID（经 cfwidget 查得）
-CF_FILES = [
-    (309927, 6418456),   # Curios API          curios-forge-5.14.1+1.20.1.jar
-    (238222, 8851009),   # JEI                 jei-1.20.1-forge-15.59.0.210.jar
-    (852662, 5763974),   # Overflowing Bars    OverflowingBars-v8.0.1-1.20.1-Forge.jar
-    (495476, 6918565),   # Puzzles Lib         PuzzlesLib-v8.1.33-1.20.1-Forge.jar
-]
-
 MR_FILES = [
     ("curios-forge-5.14.1+1.20.1.jar",
      "https://cdn.modrinth.com/data/vvuO3ImH/versions/IPQlZkz1/curios-forge-5.14.1%2B1.20.1.jar"),
     ("jei-1.20.1-forge-15.59.0.210.jar",
      "https://cdn.modrinth.com/data/u6dRKJwZ/versions/4vbuxppk/jei-1.20.1-forge-15.59.0.210.jar"),
-    ("OverflowingBars-v8.0.1-1.20.1-Forge.jar",
-     "https://cdn.modrinth.com/data/XD7XOrAF/versions/w90XIUWB/OverflowingBars-v8.0.1-1.20.1-Forge.jar"),
+    ("armorpointspp-forge-1.20-3.1.1.jar",
+     "https://cdn.modrinth.com/data/xvAim1vw/versions/Uf0tqswT/armorpointspp-forge-1.20-3.1.1.jar"),
     ("PuzzlesLib-v8.1.33-1.20.1-Forge.jar",
      "https://cdn.modrinth.com/data/QAGBst4M/versions/mIyVGf3d/PuzzlesLib-v8.1.33-1.20.1-Forge.jar"),
 ]
@@ -49,7 +41,7 @@ MR_FILES = [
 # ---- 优化 / 便利模组（fetch_qol_mods.py 下载并登记）----
 QOL_JSON = os.path.join(ROOT, "tools", "art", "qol_mods.json")
 QOL = json.load(open(QOL_JSON, encoding="utf-8")) if os.path.exists(QOL_JSON) else []
-# ---- FTB 系列（fetch_ftb_mods.py 下载并登记，CF 上没有引用 ID，一并打进 overrides）----
+# ---- FTB 系列（fetch_ftb_mods.py 下载并登记；CF 使用独立锁定引用）----
 FTB_JSON = os.path.join(ROOT, "tools", "art", "ftb_mods.json")
 FTB = json.load(open(FTB_JSON, encoding="utf-8")) if os.path.exists(FTB_JSON) else []
 QOL = [r for r in QOL + FTB if release_mod(r['filename'])]
@@ -98,7 +90,7 @@ def add_config_to(zip_file):
 
 
 full_snapshot = None
-if args.bundle_ftb:
+if args.bundle_ftb and args.platform in ('both', 'modrinth'):
     from export_ftb_complete import export
     # Validates locked FTB jars, transitive dependencies, current core and quests.
     full_snapshot = export(ROOT, mrpack_only=True)
@@ -108,7 +100,7 @@ CF_README = """Dynasty 王朝 整合包 1.4.0（平衡重制）
 =============================
 以《Dynasty 王朝》模组为主体，另附：
   * Curios API   —— 饰品槽位（本模组的 12 件饰品可直接放进 Curios 槽）
-  * Overflowing Bars + Puzzles Lib —— 更美观的血条/护甲条/饥饿条
+  * Armor Points++ + Puzzles Lib —— 更美观的血条/护甲条/饥饿条
   * JEI          —— 配方查询
   * 11 个优化/便利模组（都不改玩法）：
       Embeddium / FerriteCore / ModernFix / Entity Culling / ImmediatelyFast
@@ -129,29 +121,10 @@ MR_README = CF_README
 
 # ---------------------------------------------------------------- CurseForge
 outputs = []
-manifest = {
-    "minecraft": {"version": "1.20.1", "modLoaders": [{"id": "forge-47.4.10", "primary": True}]},
-    "manifestType": "minecraftModpack",
-    "manifestVersion": 1,
-    "name": "Dynasty 王朝",
-    "version": VERSION,
-    "author": "Newton",
-    "description": "以 Dynasty 王朝为主体，附 Curios 饰品槽 / 美化血条 / JEI。",
-    "files": [{"projectID": p, "fileID": f, "required": True} for p, f in CF_FILES],
-    "overrides": "overrides",
-}
 cf_zip = os.path.join(DIST, "dynasty-modpack-%s.zip" % VERSION)
 if args.platform in ('both', 'curseforge'):
-    with zipfile.ZipFile(cf_zip, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
-        z.writestr("overrides/README.txt", CF_README)
-        z.writestr("overrides/mods/" + OWN_JAR, open(OURS, "rb").read())
-        # Existing CF export behavior is deliberately left unchanged in this task.
-        for filename in QOL_FILENAMES:
-            path = os.path.join(MODS, filename)
-            if os.path.exists(path):
-                z.writestr("overrides/mods/" + filename, open(path, "rb").read())
-        add_config_to(z)
+    from curseforge_export import export as export_curseforge
+    cf_zip = str(export_curseforge(ROOT, CF_README, cf_zip))
     outputs.append(cf_zip)
     print("CurseForge 包:", cf_zip, os.path.getsize(cf_zip), "bytes")
 

@@ -1,3 +1,17 @@
+from quest_bugfix_oct17 import REMOVED_BLUEPRINT_PREPS
+from quest_bugfix_oct18 import REMOVED
+REMOVED_BLUEPRINT_PREPS = REMOVED_BLUEPRINT_PREPS | REMOVED
+
+def migrated_tasks(key, tasks):
+    return tasks.replace('dynasty:refined_steel','dynasty:sky_feather') if key=='1000000000030280' else tasks
+
+def migrated_deps(deps, old):
+    out=[]
+    for dep in deps:
+        values=migrated_deps(old[dep]['deps'],old) if dep in REMOVED_BLUEPRINT_PREPS else [dep]
+        out.extend(v for v in values if v not in out)
+    return out
+
 """Migration checks: old saves, easier goals, live navigation and readable blocks."""
 import copy
 import json
@@ -13,6 +27,8 @@ class QuestJourneyTest(unittest.TestCase):
         cls.base=story.build_source_book();cls.book=story.build_book()
         cls.before={q['id']:q for c in cls.base for q in c['quests']}
         cls.after={q['id']:q for c in cls.book for q in c['quests']}
+        # Semantic regressions must ignore native FTB colour spans. Presentation is audited separately.
+        for q in cls.after.values():q['description']=[journey.clean(s) for s in q['description']]
 
     def test_consolidation_preserves_every_quest_and_reward(self):
         self.assertEqual(20,len(self.book));self.assertGreater(len(self.after),1200)
@@ -116,20 +132,25 @@ class QuestJourneyTest(unittest.TestCase):
             self.assertTrue(q['hide_dependency_lines'])
         snapshot=json.loads((journey.DOC/'last-deployed-book.json').read_text())
         journey.validate_forward(self.book,snapshot)
+        prior={q['id']:q for c in snapshot for q in c['quests']}
         for c in snapshot:
             for old in c['quests']:
-                self.assertEqual(old['deps'],self.after[old['id']]['deps'])
+                if old['id'] in REMOVED_BLUEPRINT_PREPS:continue
+                self.assertEqual(migrated_deps(old['deps'],prior),self.after[old['id']]['deps'])
                 self.assertEqual(old.get('size',1.),self.after[old['id']].get('size',1.),
                                  'User requires unchanged quest button scale')
 
     def test_main_pages_have_no_optional_spurs_and_saved_tasks_survive(self):
         previous=json.loads((journey.DOC/'last-deployed-book.json').read_text())
         old={q['id']:q for c in previous for q in c['quests']}
-        self.assertEqual(set(old),set(self.after))
+        added_cod2={journey.ident('cod2:chensha:'+key) for key in ('visit','route','jinwu','hammer')}
+        added_cod2|={journey.ident('cod2:wangsi:'+key) for key in ('visit','route')}
+        self.assertEqual((set(old)-REMOVED_BLUEPRINT_PREPS)|added_cod2,set(self.after))
         for key,q in old.items():
+            if key in REMOVED_BLUEPRINT_PREPS:continue
             n=self.after[key]
             for field in ('tasks','count','rewards','target','kind','deps'):
-                self.assertEqual(q[field],n[field],(key,field))
+                self.assertEqual(migrated_deps(q[field],old) if field=='deps' else migrated_tasks(key,q[field]) if field=='tasks' else q[field],n[field],(key,field))
         for c in self.book:
             if not c['main']:continue
             self.assertTrue(all(q['role']=='main' for q in c['quests']))
@@ -179,7 +200,7 @@ class QuestJourneyTest(unittest.TestCase):
         for q in self.after.values():
             detector=re.search(r'type:\s*"kill"[^}]*entity:\s*"([^"]+)"[^}]*value:\s*(\d+)L',q['tasks'])
             if detector and q['target'] not in {'dynasty:royal_guard','dynasty:imperial_soldier','dynasty:jade_guard'}:
-                goals=[s for s in q['description'] if s.startswith('&e击败')]
+                goals=[s for s in q['description'] if re.fullmatch(r'击败[^。]*×\d+。',s)]
                 self.assertEqual(1,len(goals),q['id'])
                 self.assertIn('×'+detector[2]+'。',goals[0])
 
@@ -187,7 +208,7 @@ class QuestJourneyTest(unittest.TestCase):
         for q in self.after.values():
             if q['target'] in {'dynasty:royal_guard','dynasty:imperial_soldier','dynasty:jade_guard'} and q['kind']=='kill':
                 self.assertIn('无需主动攻击',' '.join(q['description']))
-                self.assertFalse(any(s.startswith('&e击败') for s in q['description']))
+                self.assertFalse(any(s.startswith('击败') for s in q['description']))
 
     def test_bottle_and_target_tutorials_use_vanilla_recipes_without_new_old_gates(self):
         recipes=json.loads((journey.DOC/'round9-vanilla-recipes.json').read_text())['recipes']
@@ -289,10 +310,10 @@ class QuestJourneyTest(unittest.TestCase):
     def test_charm_prose_separates_day_night_cost_and_hit_probability(self):
         dusk=' '.join(self.after['10000000000000d8']['description'])
         self.assertIn('佩戴：夜晚，攻击+26%',dusk)
-        self.assertIn('&c代价：白天，生命上限-20%',dusk)
+        self.assertIn('代价：白天，生命上限-20%',dusk)
         self.assertIn('会心，额外伤害+45%；概率25%',dusk)
         blood=' '.join(self.after['1000000000000107']['description'])
-        self.assertIn('&c代价：常驻，生命上限-30%',blood)
+        self.assertIn('代价：常驻，生命上限-30%',blood)
         self.assertIn('吸血15%',blood)
         conditional=[q for q in self.after.values() if q.get('journey_effect_notes') and
                      '生命低于40%' in ' '.join(q['description'])]
@@ -322,7 +343,7 @@ class QuestJourneyTest(unittest.TestCase):
         for q in self.after.values():
             if q.get('for_quest'):
                 target=self.after[q['for_quest']]['target']
-                self.assertTrue(any(q['target'] in r['ingredients'] for r in recipes[target]))
+                self.assertTrue(any((q['target'] in r['ingredients'] or q['target']=='minecraft:oak_planks' and '#minecraft:planks' in r['ingredients']) for r in recipes[target]))
 
     def test_short_tutorials_keep_scene_conditions(self):
         for item,terms in [('puzzle_box',['40秒','潜行']),('ancient_well',['7次','3分钟']),
@@ -345,7 +366,7 @@ class QuestJourneyTest(unittest.TestCase):
             visit=journey.SITE_VISITS[SITES[item][0]]
             links={json.loads(s)['clickEvent']['value'] for s in q['description'] if s.startswith('{"')}
             self.assertIn(visit,links,item)
-            self.assertIn('探险者指南针',' '.join(self.after[visit]['description']))
+            self.assertIn('结构罗盘',' '.join(self.after[visit]['description']))
             self.assertEqual(self.before[q['id']]['tasks'],q['tasks'])
             self.assertEqual(self.before[q['id']]['rewards'],q['rewards'])
         text=' '.join(pages['old_weapon_rack']['description'])
@@ -408,7 +429,7 @@ class QuestJourneyTest(unittest.TestCase):
             self.assertTrue(pools,item)
             self.assertTrue(all(any(c['condition']=='minecraft:killed_by_player' for c in p['conditions']) for p in pools))
             self.assertIn('击败后有概率掉落',text);self.assertIn(use,text)
-            self.assertIn('×1',text);self.assertIn('不收走物品',text)
+            self.assertIn('×1',text);self.assertNotIn('背包持有即可',text)
             self.assertNotRegex(text,'下一步|下一站|继续前往|沿河继续|去哪里|如何完成|采回来做什么')
             self.assertLess(len(text),180,item)
             self.assertEqual(self.before[q['id']]['tasks'],q['tasks'])
@@ -458,7 +479,7 @@ class QuestJourneyTest(unittest.TestCase):
         self.assertIn('换维度后失效',byitem['guide_incense'])
         for nonfood in ('silk_pouch','jade_crown'):
             text=' '.join(next(q['description'] for q in self.after.values() if q.get('cod4_item')==nonfood))
-            self.assertNotIn('直到用完',text);self.assertIn('取得',text)
+            self.assertNotIn('直到用完',text);self.assertIn('获得',text)
 
     def test_map_card_jump_cannot_point_to_removed_chapter(self):
         bad=copy.deepcopy(self.book)
@@ -486,7 +507,7 @@ class QuestJourneyTest(unittest.TestCase):
                 target=re.search(r'item:\s*\{[^}]*id:\s*"([^"]+)"',task)[1]
                 count=re.search(r'count:\s*(\d+)L',task)[1]
                 self.assertIn(display_name(target)+'×'+count,text,q['id'])
-            self.assertEqual(deployed[q['id']]['tasks'],q['tasks'])
+            self.assertEqual(migrated_tasks(q['id'],deployed[q['id']]['tasks']),q['tasks'])
             self.assertFalse(any(s.startswith('&e取得') for s in q['description']),q['id'])
         self.assertEqual(25,len(affected))
 
@@ -581,13 +602,13 @@ class QuestJourneyTest(unittest.TestCase):
         actual=[q for q in added if q.get('for_quest')==parent]
         self.assertEqual([(q['id'],q['target']) for q in expected],[(q['id'],q['target']) for q in actual])
         section_locked=[q for q in self.after.values() if q.get('for_quest') and q['section']==c['file'] and not q.get('journey_main_origin')]
-        self.assertEqual({q['id'] for q in section_locked},{q['id'] for q in added})
+        self.assertEqual({q['id'] for q in section_locked},{q['id'] for q in added}-REMOVED_BLUEPRINT_PREPS)
 
     def test_prep_source_hints_are_grounded_and_short(self):
         from quest_journey_help import source_hint
         for q in self.after.values():
             if q.get('for_quest'):
-                self.assertTrue(q['source_hint']);self.assertEqual(source_hint(q['target']),q['description'][1])
+                self.assertTrue(q['source_hint']);self.assertEqual(__import__('quest_readability_oct20').shorten(source_hint(q['target'])),q['description'][1])
                 self.assertLess(len(q['description'][1]),180)
         self.assertIn('没有朱砂矿',source_hint('dynasty:cinnabar'))
         self.assertIn('Y=-60至-5',source_hint('dynasty:dragon_crystal'))
@@ -617,7 +638,7 @@ class QuestJourneyTest(unittest.TestCase):
             self.assertEqual('item',q['kind']);self.assertEqual('[]',q['rewards'])
             self.assertIn('四角留空',' '.join(q['description']))
         q=self.after['100000000001000b']
-        self.assertIn('自然指南针×1、探险者指南针×1',' '.join(q['description']))
+        self.assertIn('自然指南针×1、结构罗盘×1',' '.join(q['description']))
         self.assertEqual(q['tasks'],self.before[q['id']]['tasks'])
 
     def test_refining_detail_keeps_actual_stage_and_costs(self):
@@ -709,7 +730,7 @@ class QuestJourneyTest(unittest.TestCase):
     def test_acquisition_help_does_not_claim_crafting_or_manual_detection(self):
         for key in ('nature','explorer'):
             q=self.after[journey.ident('navigation:'+key)]
-            self.assertIn('取得并持有',q['description'][0])
+            self.assertIn('获得',q['description'][0])
             self.assertNotIn('合成并持有',q['description'][0])
         for route in ('guard','sword','archer','talisman'):
             q=self.after[journey.ident('refining:'+route)]
@@ -749,7 +770,7 @@ class QuestJourneyTest(unittest.TestCase):
         for qid in ('10000000000a0000','10000000000a0005','10000000000a0006'):
             q=self.after[qid];text=' '.join(s for s in q['description'] if not s.startswith('{'))
             self.assertEqual(self.before[qid]['tasks'],q['tasks'])
-            self.assertIn('进入',q['description'][0]);self.assertIn('探险者指南针',text)
+            self.assertIn('进入',q['description'][0]);self.assertIn('结构罗盘',text)
             self.assertNotIn('place',text);self.assertNotIn('dynasty:',text)
             self.assertLess(len(text),100)
 

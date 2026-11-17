@@ -1,0 +1,82 @@
+[
+  {
+    "candidate_index": 7440,
+    "candidate_id": "92203fbdec82b32ff19b",
+    "decision": "accepted",
+    "observation": "全文复读ParryingSkill并补完GuardSkill的生产、保持、伤害事件、取消与updateContainer：合并普通格挡及精准招架为一个能力链。招架窗口默认8或正配置，now-LAST_ACTIVE<window无负年龄下界；成功在后续体力消费前把LAST_ACTIVE清0阻连续招架；反馈音粒先于消费，故不是伤害成功回执。Guard依据当前primary武器与正在保持的同skill、正面来源位置、阻挡类型；dealEvent取消Income设BLOCKED并countHurtTime，LivingEntityPatch.tryHurt对cancel返回MISSED，Revelation却可读事件BLOCKED。取消/松手停active；离开保持后now-restore>40才清惩罚，精确40不清。上述所有方法同链只计1，不拆普通/高级/恢复计数。",
+    "snippet_sha256": "261bb5de8e8e355394703d3fc57914f446e4a27f02c536c3c4cd65cfd913f6f6",
+    "reviewed_at": "2026-10-26T22:13:17.474375+08:00"
+  },
+  {
+    "candidate_index": 7441,
+    "candidate_id": "ae85a0cccee6e858e33a",
+    "decision": "accepted",
+    "observation": "全文EnduranceSkill及Skill.updateContainer、execute/cancel、PlayerPatch.consumeForSkill：伤害PRE且动作级1且有来源实体，先消耗本技能资源再按当前体力比例至少1.5消耗体力，第二次失败不回滚首次消费。成功super执行激活duration，覆写本玩家max/current stunShield并发9tick白闪；duration逐tick--到<=0触发子类cancel归零盾再发expired。该PRE不证明最终伤害成功，窗口按容器属于executor，不是全局静态单例；白闪时长与实际盾duration不同，全部临时盾链计1。",
+    "snippet_sha256": "23e86ffdff1e9cfeaf2eafc9020330a71c3875d7ed48d6f10fcfe94319f50201",
+    "reviewed_at": "2026-10-26T22:13:17.474400+08:00"
+  },
+  {
+    "candidate_index": 7442,
+    "candidate_id": "6f7751c2760e55060f3e",
+    "decision": "accepted",
+    "observation": "全文EmergencyEscapeSkill与SkillContainer.canUse/requestCasting和PlayerPatch.consumeForSkill：CAST事件只放开DODGE的动作条件；CONSUME事件在体力不足或hurt状态下再消费自己的冷却资源并服务器手动stack-1反馈，体力不足分支改NONE，否则仍保留正常闪避成本。资源检查和消费事件发生于外层canUse过程，故这些副作用在最终执行之前，不能当最终闪避成功；冷却由Skill.updateContainer只在stack<max时恢复，包拥有者绑定容器executor。不同于击中返还与防御窗，整条受击脱出转换链计1。",
+    "snippet_sha256": "a47e76efdfbabc66419012f317cbf39261d4d53a7517a9e786e255887c2a077c",
+    "reviewed_at": "2026-10-26T22:13:17.474405+08:00"
+  },
+  {
+    "candidate_index": 7443,
+    "candidate_id": "613455064d0c023d51a0",
+    "decision": "accepted",
+    "observation": "全文VengeanceSkill并追Skill duration基类：PRE来源Living首设当前目标实体ID，同ID刷新tick；其他ID须年龄>=80才可替换，update年龄>=160或当前level找不到/死亡即cancel；仅ID无UUID/原维度校验。对目标伤害PRE加成并刷新不等于伤害成功；目标击杀事件且尚未active才super激活持续窗并清ID，后续其他目标加成按剩余duration衰减，取消覆盖层。替换先cancel旧、ID清除在取消包前，onRemoved仅找到实体才发旧目标取消。标记、击杀、衰减与清理完整同能力只计1。",
+    "snippet_sha256": "86d3b70184c42f2b55ca58cdd6bd06f1ab1bc16c9d46b4c5121f48f16a5f85dc",
+    "reviewed_at": "2026-10-26T22:13:17.474411+08:00"
+  },
+  {
+    "candidate_index": 7444,
+    "candidate_id": "5b50616c35f9e276af51",
+    "decision": "accepted",
+    "observation": "全文RevelationSkill并读SkillContainer.canUse/requestCasting和Skill.updateContainer：当前目标必须等于伤害直接实体才累积ON_DODGE或Income事件BLOCKED的格挡/招架分数，换目标清栈；阈值仅未激活时设置maxDuration，已激活不会续时，仍清分数。客户端武器固有技输入转发自身cast可执行才本地duration清0并取消原输入；服务器requestCasting重新canUse然后execute按当前primary武器(含副手类别镜像)选动画，未见额外原攻击来源snapshot。基础持续窗<=0取消；此计为反制分数-临时执行窗一条，不把两个事件或动画映射另计。",
+    "snippet_sha256": "9fb02cbbdff4c588ad683d9919da1969ecdbadd88bed06c331445b0abced093a",
+    "reviewed_at": "2026-10-26T22:13:17.474414+08:00"
+  },
+  {
+    "candidate_index": 7446,
+    "candidate_id": "2c2cd326f2790519a675",
+    "decision": "accepted",
+    "observation": "全文PlayerWeaponAbilityChannelManager与PlayerWeaponAbilityManager.start/stop/handleInput：真正武器输入成功才建UUID+hand通道，复制stack但有效性仅areItemsEqual不是对象/组件等价；维度key引用比较、存活/失能/耐久校验。elapsed=max(0,now-start)用>=到期，tick到期先remove再finish，原版同手使用时跳过重复usageTick。stop亦先remove；finishEarly则在finish回调后才finished=true，重入边界与先消费不同。替换同item仍可沿用，invalid直接移除无onStoppedUsing。通道与具体Stormbringer格挡窗语义分开，但本通道的start/finish/tick不拆数。",
+    "snippet_sha256": "8283d7e79be4059b19c30a9a684278ab7c23619f24bbc624263fab690c16ee64",
+    "reviewed_at": "2026-10-26T22:13:17.474417+08:00"
+  },
+  {
+    "candidate_index": 7447,
+    "candidate_id": "ec408f644f818e0c3c4d",
+    "decision": "accepted",
+    "observation": "全文SimplySwordsAPI.activateWeaponWithProvenance及cooldown调用/WeaponAbilityCooldownManager：实际武器能力经解锁、失能和冷却校验，ability.activate返回false或抛RuntimeException取消started execution；成功才start并按execution修正冷却然后一次take退款。副作用activate发生于设置冷却之前，非防重入预占。玩家用原版item冷却，非玩家用(UUID,item)->world.time+ticks静态map，无dim入key或NBT；now==end可用，200tick清<=now，用任一world时钟清全部map。减冷却不延长/下限now。能力激活与拥有者冷却归属合为1条，不把manager各方法充数。",
+    "snippet_sha256": "1a20e107e0efd269c5f3e62b421dbb8193976a1f5e0235a0f74f89f125e39c09",
+    "reviewed_at": "2026-10-26T22:13:17.474420+08:00"
+  },
+  {
+    "candidate_index": 7448,
+    "candidate_id": "197af59d16150fafe97b",
+    "decision": "accepted",
+    "observation": "全文EvocationFangManager+EvocationPower库存触发+visual-only fang伤害Mixin+SimplySwordsAPI.applyEntityWeaponHit：扫描按user.age取模，按世界/目标UUID共用冷却先预占再生成视觉实体及PendingStrike(拥有者UUID、目标UUID、复制武器、damage、now+warmup+delay)。tick当now>=execute先remove再execute无上限TTL，延迟帧仍消费；同ServerWorld重找双方、活体友伤校验但无重新距离/现持武器。真实damage bool为false不发命中粒/slow，视觉fang有标签HEAD取消其原版damage避免双伤。目标冷却年龄>=配置可用且每200tick清旧。整个视觉-延迟伤害-结果链1条。",
+    "snippet_sha256": "e19030147ae2da18c2dbb69d715aedc143d292852c2479e70238a70d0c39e1fc",
+    "reviewed_at": "2026-10-26T22:13:17.474423+08:00"
+  },
+  {
+    "candidate_index": 7449,
+    "candidate_id": "783773995946102b4a46",
+    "decision": "accepted",
+    "observation": "全文RunicSlashManager/Power及完整RunicSlashProjectileEntity：真实swing触发先按UUID读now<nextEligible拒绝并预占攻击速度冷却，然后才方向检查/生成，生成bool未用仍播放挥击。projectile复制武器、server同世界找owner优先数字ID仅缺失再UUID，未核ID对应UUID；每tick沿线伤害后距离/age>80/撞墙结束，hitTargets在hurt前add所以失败亦不会重试该UUID。仅真实applyEntityWeaponHit返回true发命中音粒；ThreadLocal runSuppressed异常finally设false不是保存前值，嵌套可过早解除。NBT存武器/ownerID/UUID/伤害/路程但不存hitTargets/age，重载去重边界。整个扫击投射物生产至消费只计1。",
+    "snippet_sha256": "98d0ee13375c12008441810321b60735fb4b0520b07e0d724ef05924109244c3",
+    "reviewed_at": "2026-10-26T22:13:17.474425+08:00"
+  },
+  {
+    "candidate_index": 7450,
+    "candidate_id": "d10ffda2271072ffe399",
+    "decision": "auxiliary",
+    "observation": "已全文读MinionHitSuppression：只有ThreadLocal布尔及try/finally的独立包装，嵌套run之后直接false会过早解除，但尚无真实召唤物伤害调用链证明；保留辅助0，不能仅通用抑制器实现计入玩法1000。",
+    "snippet_sha256": "3479997634fd4bc407267eb38d036cf1b0a9ad5bb8f78b3753aca29d98e10b38",
+    "reviewed_at": "2026-10-26T22:13:17.474428+08:00"
+  }
+]

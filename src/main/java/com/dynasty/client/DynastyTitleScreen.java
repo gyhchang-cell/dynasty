@@ -301,17 +301,4 @@ public final class DynastyTitleScreen extends TitleScreen {
             boolean utility = actionKey.startsWith("narrator.button.");
             int x = getX(), y = getY(), w = getWidth(), h = getHeight();
 
-            RoundedUi.fill(g,x,y+2,w,h,h/2,0x35000000);
-            RoundedUi.fill(g,x,y,w,h,h/2,focus?0xDD476769:primary?0xCF72503C:0xAA18353D);
-            if(focus) RoundedUi.fill(g,x+10,y+3,w-20,1,0,0x7799CBC8);
-            int color = active ? (focus ? 0xFFFFF6DD : PAPER) : 0xFF7C8C87;
-            // Font fitting prevents long translated labels from escaping half-width buttons.
-            float scale = Math.min(1, (float) (w - 16) / Math.max(1, font.width(getMessage())));
-            g.pose().pushPose();
-            g.pose().translate(x + w / 2F, y + (h - font.lineHeight * scale) / 2F, 0);
-            g.pose().scale(scale, scale, 1);
-            g.drawString(font, getMessage(), -font.width(getMessage()) / 2, 0, color, false);
-            g.pose().popPose();
-        }
-    }
-}
+            RoundedUi.button(g, x, y, w, h, active, focus, primary);

@@ -1,0 +1,263 @@
+{
+  "batch": "herschel-immune-038",
+  "research_credit": 0,
+  "suggested_credit": 0,
+  "effective_promoted": 0,
+  "reviewed_units": 1,
+  "pending_primary_review_units": 1,
+  "support_only_units": 0,
+  "rows": [
+    {
+      "id": "herschel-038-01",
+      "semantic_dedup_key": "iron-native-uuid-one-shot-knockback-cancellation-short-tick-lease-before-hit-settlement",
+      "status": "pending_primary_semantic_review",
+      "research_credit": 0,
+      "suggested_credit": 0,
+      "source_refs": [
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "applyDamage",
+          "lines": [
+            44,
+            65
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L44-L65",
+          "excerpt": "    public static boolean applyDamage(Entity target, float baseAmount, DamageSource damageSource) {\n        if (target instanceof LivingEntity livingTarget && damageSource instanceof SpellDamageSource spellDamageSource) {\n            var e = new SpellDamageEvent(livingTarget, baseAmount, spellDamageSource);\n            if (NeoForge.EVENT_BUS.post(e).isCanceled()) {\n                return false;\n            }\n            baseAmount = e.getAmount();\n            float adjustedDamage = baseAmount * getResist(livingTarget, spellDamageSource.spell.getSchoolType());\n            if (damageSource.getDirectEntity() instanceof NoKnockbackProjectile) {\n                ignoreNextKnockback(livingTarget);\n            }\n            if (damageSource.getEntity() instanceof LivingEntity livingAttacker) {\n                if (isFriendlyFireBetween(livingAttacker, livingTarget)) {\n                    return false;\n                }\n                livingAttacker.setLastHurtMob(target);\n            }\n            return livingTarget.hurt(damageSource, adjustedDamage);\n        } else {\n            return target.hurt(damageSource, baseAmount);\n        }\n    }\n",
+          "excerpt_sha256": "6257a4123c0945b2393dbc14f63285ca8fd07e6bb1e0e237373acba03c39aaa8",
+          "normalized_excerpt_sha256": "2b556e51fa473305a35bfe35472d6b71079845fd5b1a5f53644d1a3d713c5ed7",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-001-01",
+            "herschel-006-01"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "ignoreNextKnockback",
+          "lines": [
+            69,
+            77
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L69-L77",
+          "excerpt": "    public static void ignoreNextKnockback(LivingEntity livingEntity) {\n        if (livingEntity.getServer() != null) {\n            var tickCount = livingEntity.getServer().getTickCount();\n            //help manage memory\n            knockbackImmunes.entrySet().removeIf(entry -> tickCount - entry.getValue() >= 10);\n            //enter entity\n            knockbackImmunes.put(livingEntity.getUUID(), tickCount);\n        }\n    }\n",
+          "excerpt_sha256": "42be2028ff0550fb0287a6ae77b7c73aa9e450345734dcb3382f8be6502fbed0",
+          "normalized_excerpt_sha256": "bc9075a6109c155d2c62be0f33ff4ac10799b9277e0524beef6f94242c4bf2e7",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-001-02"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "cancelKnockback",
+          "lines": [
+            80,
+            89
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L80-L89",
+          "excerpt": "    public static void cancelKnockback(LivingKnockBackEvent event) {\n        //IronsSpellbooks.LOGGER.debug(\"DamageSources.cancelKnockback {}\", event.getEntity().getName().getString());\n        var entity = event.getEntity();\n        if (entity.getServer() != null && knockbackImmunes.containsKey(event.getEntity().getUUID())) {\n            if (entity.getServer().getTickCount() - knockbackImmunes.get(entity.getUUID()) <= 1) {\n                event.setCanceled(true);\n            }\n            knockbackImmunes.remove(entity.getUUID());\n        }\n    }\n",
+          "excerpt_sha256": "538e51e3affb4761cb525a1652c2be3f7b5ba1e92a69801a6af6d0da8883a292",
+          "normalized_excerpt_sha256": "90bea2d1173b2536d77f299945415493494677f5ba0459f552134a826026d165",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-001-02"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "isFriendlyFireBetween",
+          "lines": [
+            134,
+            163
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L134-L163",
+          "excerpt": "    public static boolean isFriendlyFireBetween(@Nullable Entity attacker, @Nullable Entity target) {\n        if (attacker == null || target == null) {\n            return false;\n        }\n        if (attacker instanceof IMagicSummon summon) {\n            var tmp = summon.getSummoner();\n            if (tmp != null) {\n                attacker = tmp;\n            }\n        }\n        if (target instanceof IMagicSummon summon) {\n            var tmp = summon.getSummoner();\n            if (tmp != null) {\n                target = tmp;\n            }\n        }\n        if (attacker.isPassengerOfSameVehicle(target)) {\n            return true;\n        }\n        if (attacker instanceof Player playerAttacker && target instanceof Player playertarget\n                && !playerAttacker.canHarmPlayer(playertarget)) {\n            return true;\n        }\n        var team = attacker.getTeam();\n        if (team != null) {\n            return team.isAlliedTo(target.getTeam()) && !team.isAllowFriendlyFire();\n        }\n        //We already manually checked for teams, so this will only return true for any overrides (such as summons)\n        return attacker.isAlliedTo(target);\n    }\n",
+          "excerpt_sha256": "77218fda82774cf55ff26a0d4d4ca8a1bf2bfb583bb90dceee5707185bed8dcc",
+          "normalized_excerpt_sha256": "03442118d661e693ec7dbcc42fe070394868fc746fb4c4394d23be57ed9d89a7",
+          "prior_helper_exact_normalized_matches": [
+            "herschel-001-01"
+          ]
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java",
+          "method": "getResist",
+          "lines": [
+            168,
+            174
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "42490153e76e1abbc2e5f3cf3ead627d32d4c12952ea59f7a9b649ec2e443bc8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/damage/DamageSources.java#L168-L174",
+          "excerpt": "    public static float getResist(LivingEntity entity, SchoolType damageSchool) {\n        var baseResist = entity.getAttributeValue(AttributeRegistry.SPELL_RESIST);\n        if (damageSchool == null)\n            return 2 - (float) Utils.softCapFormula(baseResist);\n        else\n            return 2 - (float) Utils.softCapFormula(damageSchool.getResistanceFor(entity) * baseResist);\n    }\n",
+          "excerpt_sha256": "d26e02ac41e79a4284287feb63e01a0faba16ca8c831cda7bb8be3092bbe6f0e",
+          "normalized_excerpt_sha256": "8e3ed1900debe26a1e3d7c36b2de8138f8c859c0db4b421892154f7b433cb27b",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_file_support_only",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/entity/NoKnockbackProjectile.java",
+          "method": null,
+          "lines": [
+            1,
+            5
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "b33bc5e263b2a9162fe3ea5b5b6ad653e52019b431237fa4900ae4fe1dd45ff2",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/entity/NoKnockbackProjectile.java#L1-L5",
+          "excerpt": "package io.redspace.ironsspellbooks.api.entity;\n\npublic interface NoKnockbackProjectile {\n    //Marker interface to ignore knockback\n}\n",
+          "excerpt_sha256": "b33bc5e263b2a9162fe3ea5b5b6ad653e52019b431237fa4900ae4fe1dd45ff2",
+          "normalized_excerpt_sha256": "244da4c09905932014c6d1243d2f8dcaed55f7c167c5ad69c9e7af386ad88c9a",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/EarthquakeAoe.java",
+          "method": "applyEffect",
+          "lines": [
+            45,
+            53
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "0bb1de48c2ebae7102b5f5a7624c86ddf1e558797f0bed734b41a863acf823f3",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/EarthquakeAoe.java#L45-L53",
+          "excerpt": "    public void applyEffect(LivingEntity target) {\n        var damageSource = SpellRegistry.EARTHQUAKE_SPELL.get().getDamageSource(this, getOwner());\n        DamageSources.ignoreNextKnockback(target);\n        if (target.hurt(damageSource, getDamage())) {\n            target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 120, slownessAmplifier));\n            target.setDeltaMovement(target.getDeltaMovement().add(0, .5, 0));\n            target.hurtMarked = true;\n        }\n    }\n",
+          "excerpt_sha256": "24dea38d23a91169a7f88f92c7b61a1443de52a79636f3628226ba5bf7a6eef7",
+          "normalized_excerpt_sha256": "1e93d672d5d814d08a0a3e8684f557fd89ae965410c8966680bca149e1702e95",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/EarthquakeAoe.java",
+          "method": "canHitTargetForGroundContext",
+          "lines": [
+            126,
+            128
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "0bb1de48c2ebae7102b5f5a7624c86ddf1e558797f0bed734b41a863acf823f3",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/EarthquakeAoe.java#L126-L128",
+          "excerpt": "    protected boolean canHitTargetForGroundContext(LivingEntity target) {\n        return true;\n    }\n",
+          "excerpt_sha256": "ff6c3031a1fd92831e886d3737d4e8f2d3e43b98f2959c64758efdd7fd7357e5",
+          "normalized_excerpt_sha256": "12a3f92148734fe36c9eea0582b1757db5487b328b9917891132ae328b030c23",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/EarthquakeAoe.java",
+          "method": "getInflation",
+          "lines": [
+            131,
+            133
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "0bb1de48c2ebae7102b5f5a7624c86ddf1e558797f0bed734b41a863acf823f3",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/EarthquakeAoe.java#L131-L133",
+          "excerpt": "    protected Vec3 getInflation() {\n        return new Vec3(0, 5, 0);\n    }\n",
+          "excerpt_sha256": "931d967dc41b586b2dcd89f42a9028455058a14d34294a35a66a5a56f40687d1",
+          "normalized_excerpt_sha256": "5558aaa90a630d102a41be479f89ea6fb185add182d83a70b7b79c3b58c25a4b",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/EarthquakeAoe.java",
+          "method": "EarthquakeAoe",
+          "lines": [
+            34,
+            38
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "0bb1de48c2ebae7102b5f5a7624c86ddf1e558797f0bed734b41a863acf823f3",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/EarthquakeAoe.java#L34-L38",
+          "excerpt": "    public EarthquakeAoe(EntityType<? extends Projectile> pEntityType, Level pLevel) {\n        super(pEntityType, pLevel);\n        this.reapplicationDelay = 25;\n        this.setCircular();\n    }\n",
+          "excerpt_sha256": "20fe295c85c3643820007edcddabe3b759a10c47268f160ad381579f6f4d8611",
+          "normalized_excerpt_sha256": "1efd12d9dbb61246d8d42796f57eca362714c626e2ec9aaf2181942918fc7e8a",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/AoeEntity.java",
+          "method": "tick",
+          "lines": [
+            95,
+            112
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "abbe541e8cb31b3828604612eb9fa0e7ef8712a2a4faff0a003a5260036e5225",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/AoeEntity.java#L95-L112",
+          "excerpt": "    public void tick() {\n        super.tick();\n        if (tickCount > getDelay()) {\n            if (!level.isClientSide) {\n                if (tickCount > duration + getDelay()) {\n                    discard();\n                    return;\n                }\n                if (tickCount % reapplicationDelay == 0) {\n                    checkHits();\n                }\n                if (tickCount % 5 == 0)\n                    this.setRadius(getRadius() + radiusPerTick);\n            } else {\n                ambientParticles();\n            }\n        }\n    }\n",
+          "excerpt_sha256": "9461f83e91ef444e3edaef1367dcc4783263c0c35e4a323cc7c8a91967dff592",
+          "normalized_excerpt_sha256": "8cb077b33b72d1bd538989b1518dbae846f04297b1f9267b678d501686d57571",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/AoeEntity.java",
+          "method": "checkHits",
+          "lines": [
+            114,
+            134
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "abbe541e8cb31b3828604612eb9fa0e7ef8712a2a4faff0a003a5260036e5225",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/AoeEntity.java#L114-L134",
+          "excerpt": "    protected void checkHits() {\n        if (level.isClientSide)\n            return;\n        List<LivingEntity> targets = this.level.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(this.getInflation().x, this.getInflation().y, this.getInflation().z));\n        boolean hit = false;\n        var radiusSqr = getRadius();\n        radiusSqr *= radiusSqr;\n        for (LivingEntity target : targets) {\n            if (canHitEntity(target) && (!isCircular() || target.distanceToSqr(this) < radiusSqr)) {\n                if (canHitTargetForGroundContext(target)) {\n                    applyEffect(target);\n                    hit = true;\n                }\n            }\n        }\n        if (hit) {\n            this.setRadius(getRadius() + radiusOnUse);\n            this.duration += durationOnUse;\n            onPostHit();\n        }\n    }\n",
+          "excerpt_sha256": "06d3c2a56206269e453dcd63ae3161bbe72597e90e8087e1273d1c5e612e9eaa",
+          "normalized_excerpt_sha256": "dc0334e2cb1cade1da894274844a14c75b306bd5acb36245e9f5f88a3237dc9b",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/AoeEntity.java",
+          "method": "canHitEntity",
+          "lines": [
+            148,
+            150
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "abbe541e8cb31b3828604612eb9fa0e7ef8712a2a4faff0a003a5260036e5225",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/AoeEntity.java#L148-L150",
+          "excerpt": "    protected boolean canHitEntity(Entity pTarget) {\n        return (getOwner() == null || (pTarget != getOwner() && !getOwner().isAlliedTo(pTarget))) && super.canHitEntity(pTarget);\n    }\n",
+          "excerpt_sha256": "2d9b195b5f78b5f52c8a7ba19f45576987659993b1c0d2c964f3b8190ab885d4",
+          "normalized_excerpt_sha256": "0ea740930713b005feff55dde0fa9fa821539d07db428da3b6c284573935b879",
+          "prior_helper_exact_normalized_matches": []
+        },
+        {
+          "unit": "complete_method",
+          "source_key": "iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/entity/spells/AoeEntity.java",
+          "method": "canHitTargetForGroundContext",
+          "lines": [
+            143,
+            145
+          ],
+          "fixed_commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+          "file_sha256": "abbe541e8cb31b3828604612eb9fa0e7ef8712a2a4faff0a003a5260036e5225",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/entity/spells/AoeEntity.java#L143-L145",
+          "excerpt": "    protected boolean canHitTargetForGroundContext(LivingEntity target) {\n        return target.onGround() || target.getY() - getY() < .5;\n    }\n",
+          "excerpt_sha256": "21987ed2e00aacebb75149f0565d8dfde85f4121219853b10b7b7fa49f897ec9",
+          "normalized_excerpt_sha256": "a2c4334f81da89541968fea676e42ae909673b40b83435fe28ff2ad56ce7eec7",
+          "prior_helper_exact_normalized_matches": []
+        }
+      ],
+      "concrete_observation": "DamageSources static subscriber owns UUID->serverTick map. ignoreNextKnockback only when target has server: opportunistically removes all entries age>=10 then replaces target tick. LivingKnockBackEvent handler checks same UUID and server, cancels if currentServerTick-stored<=1, then removes entry regardless expired/not-canceled. Thus a one-use short lease, not permanent resistance or status admission. No lower-bound age check, no server-instance/dimension discriminator, no per-hit source token; no periodic cleanup besides next producer. Generic applyDamage with Living+SpellDamageSource posts SpellDamageEvent first, cancellation returnsfalse before lease; then adjusts school resistance. Direct NoKnockbackProjectile arms lease BEFORE living-attacker friendlyfire check and target.hurt. Friendlyfire false-return or hurtfalse need not consume lease immediately; unrelated target knockback within window can consume it. Marker alone is0, actual subscriber and native production consumer both read. Concrete EarthquakeAoe applyEffect manually arms target then native target.hurt(damageSource,getDamage), on true attempts MOVEMENT_SLOWDOWN and unconditionally addsY0.5 to existing velocity/hurtMarked without inspecting addEffect return. This is native combat knockback suppression followed by distinct spell lift on accepted hurt, not victim immunity to all displacement. AoeEntity server tick, delay/duration and reapply checkHits provide real call chain: owner/allied rejection plus super projectile eligibility, circular radius; earthquake override admits all ground contexts and expandsY5. checkHits sets hittrue after applyEffect returnsvoid even when hurtfalse, so radius/duration-on-use semantics mean eligibility, not damage success. No Boss type-tag no-lift filter seen in this chain.",
+      "application_to_boss_immune": "Control rejection needs exact refusal layer and correlated attempt identity: UUID+short tick one-use map can suppress ordinary knockback while explicit post-hit velocity still executes. Do not infer overall movement immunity from canceled native knockback or failed potion application. Arm-before-final-friendlyfire can reserve rejection without accepted damage; useful boundary for authoritative result receipt design, no production code copied.",
+      "semantic_dedup": "One proposed independent native short lease: explicit producer, global UUID/tick storage, final event consumption/removal and actual earthquake consumer. Unlike Cyclic persistent equipped charm cancellation or034 thermal attacker scaling, this is transient one-event correlation. Earthquake lift/potion/ground overrides, source wrappers/variants and opportunistic cleanup are context0, not extra credit. Main current row IDs contain no dedicated ignoreNextKnockback lease; shared DamageSources applyDamage in prior friendlyfire review does not itself prove semantic novelty. Russell must merge/reject if same lease already accepted. Helpercredit0.",
+      "limitations": "This is cached NeoForge branch, conceptual reference only; installed1.20.1 Forge is not executed. NeoForge knockback event emission and listener ordering not expanded; no claim window always consumed by intended hurt or same true attacker. Static tick reset/cross-server UUID stale risk is source-level possibility, not reproduced runtime failure. School getResistanceFor/softCapFormula internals and SpellDamageEvent dispatcher beyond callsite not expanded; no formula output proof. Full original vanilla projectile selector not re-read. Earthquake spell casting/acquisition and camera shake manager not expanded, no visual acknowledgment or multiplayer acceptance claimed. No runtime/compile/game/production/assets/TODO writes."
+    }
+  ],
+  "exclusions": [
+    "No separate credit for each NoKnockbackProjectile/AOE subclass or helper/map operations.",
+    "Native hurt success gates lift, but effect admission boolean is ignored; do not equate those outcomes."
+  ],
+  "counting_policy": "Method/hash/file counts are not research credit. Fixed full containing methods plus manual observations; Russell must review semantic independence. Missing chains remain support0.",
+  "master_observation": "Master bytes unchanged during this evidence serialization."
+}

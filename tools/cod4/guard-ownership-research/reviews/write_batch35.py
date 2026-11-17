@@ -1,0 +1,20 @@
+import json,pathlib
+R=[]
+def a(repo,f,m,s,o,b,l):R.append(dict(repo=repo,file='/'+f+'.java',method=m,start=s,observation=o,application=b,limits=l))
+W='Electroblob77/Wizardry';G='Polarice3/Goety-2'
+a(W,'EntityAIAttackSpell','shouldExecute',78,'缓存attacker当前target，只有null拒，否则直接允许，未附敌友门。','Goal入口默认信任已选目标，最终技能需统一许可防上游重选绕过。','实际Wizard/EvilWizard施法Goal，不将构造参数或普通getters计实现。')
+a(W,'EntityAIAttackSpell','resetTask',96,'清target、seeTime和cooldown，发none连续法术并清连续timer。','退出战斗需同时撤缓存和持续技能，单清实体target可能仍保持续施法。','这个具体施法状态回收有网络停止语义，通用消息编解码不计。')
+a(W,'EntityAIAttackSpell','updateTask',115,'按缓存target追击与可见时间；连续法术逐tick检查距离/LOS/事件/实际cast并终止，非持续随机试法直到成功或用尽。','持续命中需要每次校验，不应仅在挑选法术或起手时检查权限。','整个真实施法调度一次，随机法术种类和多tick调用不拆计。')
+a(W,'EntityAIAttackSpell','attemptCastSpell',209,'Pre事件取消即返；cast成功连续则扣一帧并同步，瞬发则Post、设冷却和可选维度广播。','效果是否已发生与网络动画广播分开，验收不能用客户端消息替代实际cast许可。','具体已注册施法行为不等同一般事件总线基础设施。')
+a(W,'EntityIceWraith','updateTask',242,'先减CD取当前target，null早返；近距近战，中距分预热60/三轮6tick冰片/100tick休息，远距追。','切换近远攻击路径时都需共享合法目标门，清target早返可阻止当前入口。','LightningWraith整段仅法术常量换arc，语义同源不另计；livingBaseUpdate是原生移动移植不计。')
+a(G,'Prisoner','hurt',850,'允许受伤脱链时选近leader否则master，非盟友伤源且离owner8外、非致死伤按伤害比例随机unshackle来源玩家。','解除绑定是伤害触发的身份变更，必须依据真实主人与伤源关系。','具体控制关系转变一处，不把概率数值或距离数学计数。')
+a(G,'Prisoner','unshackle',882,'服务器转村民/商人，保交易饥饿和合条件装备；救者非原主/盟友给声望，原主负面记录；锁链仅退原主，最终转换事件。','退出受控身份需要清楚新实体状态、物品归还与旧owner后果，不保留旧指令。','完整转换流程一处，交易保存基础设施不拆，用户不新增囚禁机制。')
+a(G,'RaiderServant','setLeader',297,'非空非自身leader同步UUID/clientID并停导航，否则清两个ID。','双表示控制绑定应一起更新；停旧导航避免继续执行前队长路径。','不是普通单字段setter，实含主从ID配对和导航副作用。')
+a(G,'RaiderServant','onCeaseFire',527,'父停火后玩家任一手有旗则清raidPos，leader额外提示停止突袭。','停止攻击还需撤持续任务状态，否则下一tick任务可再次赋目标。','普通消息文本不计，实际撤袭击命令入口一处。')
+a(G,'RaiderServant','tick',570,'leader失资格/死亡或自身成为leader则清；否则传播偶像复活点、标记/raid/target及capture，最后强制沿leader trueOwner更新本人owner。','队长传目标与传主人在同tick有顺序，最终攻击不能只信上一帧关系。','完整队伍状态同步一次，不按每个成员或每字段重复计。')
+a(G,'RaiderServant','raidTick',723,'跨维、村庄目标清空、超48000tick或村民被判盟友就撤raid；任务完庆祝回主，leader把同raidPos无leader伙伴收为跟随。','任务撤销、维度与盟友变化都应使旧目标失去许可，不能仅坐标相同便继续。','完整Raid状态机一处，村庄几何或chunk基础设施不计。')
+a(G,'RaiderServant','followGoal',120,'袭击/训练不跟主，有leader时需非旁观、远距、following、非commanded、无target且非伤残，继续时再检查训练。','跟随可使用中间leader，与trueOwner授权角色需区分；训练/任务会抢控制。','Prisoner同款删减跟随模板不再计，匿名两方法包含在完整注册内。')
+a(G,'RaiderServant','mobInteract',1061,'真实主人可授队长旗、Taglock命令全队目标和传送、Waystone村庄raid；同盟村民拒raid，另可捕获切换/囚犯绑定/撤头旗。','显式群体命令会把同一目标扩给队友，必须在接收和命中都保留各自租约门。','整个复杂交互一处，不按命令分支凑数，Taglock与BlackBeast不同为群体传播。')
+a(G,'AbstractIllagerServant','targetSelectGoal',111,'父目标外，自身报复仅hostile/natural允许；村民非幼与IronGolem主动目标仅hostile。','依控制状态门控原生敌对行为，可在保野生的同时关受控继承选择器。','完整实际目标注册一处，与其他通用HurtBy模板不重复同一方法。')
+a(G,'AbstractIllagerServant','setCommandPos',235,'父存命令点后，仅该处Pyre有训练位、目标种类/训练要求符合且同trueOwner才记storedTrainPos。','空间命令必须校验设施归属，不能凭当前位置或共同阵营授权。','真实随从训练绑定行为一处，普通BlockPos setter不计。')
+pathlib.Path(__file__).with_name('batch35.json').write_text(json.dumps(R,ensure_ascii=False,indent=2)+'\n')

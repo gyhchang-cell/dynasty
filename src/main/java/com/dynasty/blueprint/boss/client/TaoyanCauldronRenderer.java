@@ -18,7 +18,7 @@ public final class TaoyanCauldronRenderer extends GeoEntityRenderer<TaoyanCauldr
     private static String form(TaoyanCauldron e){return TaoyanCauldron.ID+(e.form()==2?"_phase2":"");}
     public TaoyanCauldronRenderer(EntityRendererProvider.Context c){super(c,new GeoModel<>(){
         public ResourceLocation getModelResource(TaoyanCauldron e){return resource("geo/blueprint/boss/",form(e),".geo.json");}
-        public ResourceLocation getTextureResource(TaoyanCauldron e){return resource("textures/entity/blueprint/boss/",e.form()==2&&e.transition()&&e.level().getGameTime()-e.shifted()<32?TaoyanCauldron.ID:form(e),".png");}
+        public ResourceLocation getTextureResource(TaoyanCauldron e){return resource("textures/entity/blueprint/boss/",(e.form()==2&&e.transition()&&e.level().getGameTime()-e.shifted()<32?TaoyanCauldron.ID:form(e))+"_body",".png");}
         public ResourceLocation getAnimationResource(TaoyanCauldron e){return resource("animations/blueprint/boss/",form(e),".animation.json");}
     });shadowRadius=1.7F;}
     @Override protected float getDeathMaxRotation(TaoyanCauldron e){return 0;}

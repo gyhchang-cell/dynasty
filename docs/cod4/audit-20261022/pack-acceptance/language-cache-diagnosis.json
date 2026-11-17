@@ -1,0 +1,74 @@
+{
+  "status": "SCOPED_REPAIR_COMPLETE_AND_REAL_CLIENT_VERIFIED",
+  "production_jar_for_latest_run": "ce92592ecd1e1e6e5584cfb05646fb8e82e3275b4d81b235910a1e996ec2458b",
+  "jei_jar": "modpack/mods/jei-1.20.1-forge-15.59.0.210.jar",
+  "jei_sha256": "21491fcd31155ba148633c93dbe069f9895feaa3c2cbc54dc7370b10bb124d60",
+  "finding": "WorkshopJei does not call getString(). TalismanDiscovery creates translatable components. JEI 15.59.0.210 expands translated contents into literal components during ingredient-info registration, retaining the initial language. The information layout additionally caches wrapped lines.",
+  "research": {
+    "related_external_implementation_sites_inspected": 1000,
+    "external_projects": 18,
+    "verified_same_problem_fix_examples": 0,
+    "required_sites": 1000,
+    "gap": 0,
+    "method": "Pinned full-method source + AST localization calls/guards/arguments/text-consumer analysis at every counted site, compact source-context review across the ledger, selected deep lifecycle traces. Not 1000 manually executed mods or 1000 independent algorithms.",
+    "ledger": "language-study/references-1000.jsonl",
+    "summary": "language-study/summary.json",
+    "native_chain_note": "Original seven bytecode chain sites remain diagnosis evidence; not added to the new 1000 count."
+  },
+  "references": [
+    {
+      "class": "mezz.jei.library.load.registration.RecipeRegistration",
+      "member": "addIngredientInfo(List, type, Component...)",
+      "observation": "Hands original components to IngredientInfoRecipe.create; no Dynasty getString call is involved.",
+      "evidence": "jei-info-native-bytecode.txt"
+    },
+    {
+      "class": "mezz.jei.library.plugins.jei.info.IngredientInfoRecipe",
+      "member": "create",
+      "observation": "Immediately calls StringUtil.expandNewlines and stores the returned description list.",
+      "evidence": "jei-info-native-bytecode.txt"
+    },
+    {
+      "class": "mezz.jei.common.util.StringUtil",
+      "member": "expandNewlines",
+      "observation": "Visits styled component content with current Language before storing it.",
+      "evidence": "jei-string-native-bytecode.txt"
+    },
+    {
+      "class": "mezz.jei.common.util.ExpandNewLineTextAcceptor",
+      "member": "accept (SRG m_7164_)",
+      "observation": "Receives resolved String chunks and creates Component.literal via m_237113_; translation keys are lost.",
+      "evidence": "jei-text-acceptor-bytecode.txt"
+    },
+    {
+      "class": "mezz.jei.library.plugins.jei.info.IngredientInfoRecipeCategory",
+      "member": "createRecipeExtras",
+      "observation": "Uses the stored description to create a scroll box for the information page.",
+      "evidence": "jei-text-acceptor-bytecode.txt"
+    },
+    {
+      "class": "mezz.jei.library.gui.widgets.ScrollBoxRecipeWidget",
+      "member": "setContents(List<FormattedText>)",
+      "observation": "Creates a DrawableWrappedText when the layout is constructed.",
+      "evidence": "jei-scrollbox-bytecode.txt"
+    },
+    {
+      "class": "mezz.jei.common.gui.elements.DrawableWrappedText",
+      "member": "constructor / draw",
+      "observation": "Constructor splits and caches descriptionLines. Later draw reads current Language only for visual ordering of already flattened lines.",
+      "evidence": "jei-wrapped-text-bytecode.txt"
+    }
+  ],
+  "acceptance_split": {
+    "cold_start": "Original run02 Chinese/run03-05 English retained. Repaired jar run06 Chinese and run07 English seven pages verified.",
+    "hot_switch": "Original run02 failure retained; repaired jar run06 zh→en→zh all seven pages and native back navigation passed."
+  },
+  "implemented": {
+    "file": "src/main/java/com/dynasty/workshop/WorkshopJei.java",
+    "change": "Replace only seven addIngredientInfo convenience registrations with seven IJeiIngredientInfoRecipe instances registered under existing RecipeTypes.INFORMATION. Each retains typed item identity and translatable description components / translation-key supplier, rather than calling JEI flattening factory. getDescription evaluates TalismanDiscovery.details for the current language. Keep the native information category and input/output focus, original recipes and IDs. This can be nested in the same Java file.",
+    "validation_needed": "Actual zh→en→zh switching with page close/reopen and back history; inspect recipe-layout wrapped-text caching. If old visible layouts survive, add a narrowly scoped refresh for these seven layouts on language resource reload. Do not rebuild/hide unrelated recipes or reset JEI globally.",
+    "confidence": "Confirmed run06 zh→en→zh actual description AND native cached wrapped lines; 216/216. Native page/back-history layout rebuild suffices in tested flow; no global JEI reset or custom resource listener needed.",
+    "prerequisite": "Relevant1000 implementation study completed before formal change; original user authorization sufficient."
+  },
+  "resolution_evidence": "final-acceptance.json"
+}

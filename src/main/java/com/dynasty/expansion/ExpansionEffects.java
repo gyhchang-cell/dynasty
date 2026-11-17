@@ -45,6 +45,8 @@ public final class ExpansionEffects {
     }
     public static void apply(LivingEntity target, RegistryObject<MobEffect> type, int duration) {
         if (target.level().isClientSide) return;
+        // Reject before opposite-Qi neutralisation: an immune hit must not consume a valid buff.
+        if (QiConstitution.immune(target, type.get())) { CombatFeedback.send(target, CombatFeedback.IMMUNE); return; }
         if ((type == SHA || type == STAGGER) && boss(target)) { CombatFeedback.send(target, CombatFeedback.IMMUNE); return; }
         if (type == YIN && target.hasEffect(YANG.get())) { target.removeEffect(YANG.get());if(target instanceof net.minecraft.world.entity.player.Player p)EquipmentBehaviors.neutralisedQi(p);return; }
         if (type == YANG && target.hasEffect(YIN.get())) { target.removeEffect(YIN.get());if(target instanceof net.minecraft.world.entity.player.Player p)EquipmentBehaviors.neutralisedQi(p);return; }

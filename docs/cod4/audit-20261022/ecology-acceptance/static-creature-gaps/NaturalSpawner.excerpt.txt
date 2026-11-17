@@ -1,0 +1,244 @@
+
+67:    public static NaturalSpawner.SpawnState createState(int p_186525_, Iterable<Entity> p_186526_, NaturalSpawner.ChunkGetter p_186527_, LocalMobCapCalculator p_186528_) {
+68:       PotentialCalculator potentialcalculator = new PotentialCalculator();
+69:       Object2IntOpenHashMap<MobCategory> object2intopenhashmap = new Object2IntOpenHashMap<>();
+70: 
+71:       for(Entity entity : p_186526_) {
+72:          if (entity instanceof Mob mob) {
+73:             if (mob.isPersistenceRequired() || mob.requiresCustomPersistence()) {
+74:                continue;
+75:             }
+76:          }
+77: 
+78:          MobCategory mobcategory = entity.getClassification(true);
+79:          if (mobcategory != MobCategory.MISC) {
+80:             BlockPos blockpos = entity.blockPosition();
+81:             p_186527_.query(ChunkPos.asLong(blockpos), (p_275163_) -> {
+82:                MobSpawnSettings.MobSpawnCost mobspawnsettings$mobspawncost = getRoughBiome(blockpos, p_275163_).getMobSettings().getMobSpawnCost(entity.getType());
+83:                if (mobspawnsettings$mobspawncost != null) {
+84:                   potentialcalculator.addCharge(entity.blockPosition(), mobspawnsettings$mobspawncost.charge());
+85:                }
+86: 
+87:                if (entity instanceof Mob) {
+88:                   p_186528_.addMob(p_275163_.getPos(), mobcategory);
+89:                }
+90: 
+91:                object2intopenhashmap.addTo(mobcategory, 1);
+92:             });
+93:          }
+94:       }
+95: 
+96:       return new NaturalSpawner.SpawnState(p_186525_, object2intopenhashmap, potentialcalculator, p_186528_);
+97:    }
+
+103:    public static void spawnForChunk(ServerLevel p_47030_, LevelChunk p_47031_, NaturalSpawner.SpawnState p_47032_, boolean p_47033_, boolean p_47034_, boolean p_47035_) {
+104:       p_47030_.getProfiler().push("spawner");
+105: 
+106:       for(MobCategory mobcategory : SPAWNING_CATEGORIES) {
+107:          if ((p_47033_ || !mobcategory.isFriendly()) && (p_47034_ || mobcategory.isFriendly()) && (p_47035_ || !mobcategory.isPersistent()) && p_47032_.canSpawnForCategory(mobcategory, p_47031_.getPos())) {
+108:             spawnCategoryForChunk(mobcategory, p_47030_, p_47031_, p_47032_::canSpawn, p_47032_::afterSpawn);
+109:          }
+110:       }
+111: 
+112:       p_47030_.getProfiler().pop();
+113:    }
+114: 
+115:    public static void spawnCategoryForChunk(MobCategory p_47046_, ServerLevel p_47047_, LevelChunk p_47048_, NaturalSpawner.SpawnPredicate p_47049_, NaturalSpawner.AfterSpawnCallback p_47050_) {
+116:       BlockPos blockpos = getRandomPosWithin(p_47047_, p_47048_);
+117:       if (blockpos.getY() >= p_47047_.getMinBuildHeight() + 1) {
+118:          spawnCategoryForPosition(p_47046_, p_47047_, p_47048_, blockpos, p_47049_, p_47050_);
+119:       }
+120:    }
+
+198:    private static boolean isRightDistanceToPlayerAndSpawnPoint(ServerLevel p_47025_, ChunkAccess p_47026_, BlockPos.MutableBlockPos p_47027_, double p_47028_) {
+199:       if (p_47028_ <= 576.0D) {
+200:          return false;
+201:       } else if (p_47025_.getSharedSpawnPos().closerToCenterThan(new Vec3((double)p_47027_.getX() + 0.5D, (double)p_47027_.getY(), (double)p_47027_.getZ() + 0.5D), 24.0D)) {
+202:          return false;
+203:       } else {
+204:          return Objects.equals(new ChunkPos(p_47027_), p_47026_.getPos()) || p_47025_.isNaturalSpawningAllowed(p_47027_);
+205:       }
+206:    }
+207: 
+208:    private static boolean isValidSpawnPostitionForType(ServerLevel p_220422_, MobCategory p_220423_, StructureManager p_220424_, ChunkGenerator p_220425_, MobSpawnSettings.SpawnerData p_220426_, BlockPos.MutableBlockPos p_220427_, double p_220428_) {
+209:       EntityType<?> entitytype = p_220426_.type;
+210:       if (entitytype.getCategory() == MobCategory.MISC) {
+211:          return false;
+212:       } else if (!entitytype.canSpawnFarFromPlayer() && p_220428_ > (double)(entitytype.getCategory().getDespawnDistance() * entitytype.getCategory().getDespawnDistance())) {
+213:          return false;
+214:       } else if (entitytype.canSummon() && canSpawnMobAt(p_220422_, p_220424_, p_220425_, p_220423_, p_220426_, p_220427_)) {
+215:          SpawnPlacements.Type spawnplacements$type = SpawnPlacements.getPlacementType(entitytype);
+216:          if (!isSpawnPositionOk(spawnplacements$type, p_220422_, p_220427_, entitytype)) {
+217:             return false;
+218:          } else if (!SpawnPlacements.checkSpawnRules(entitytype, p_220422_, MobSpawnType.NATURAL, p_220427_, p_220422_.random)) {
+219:             return false;
+220:          } else {
+221:             return p_220422_.noCollision(entitytype.getAABB((double)p_220427_.getX() + 0.5D, (double)p_220427_.getY(), (double)p_220427_.getZ() + 0.5D));
+222:          }
+223:       } else {
+224:          return false;
+225:       }
+226:    }
+
+244:    private static boolean isValidPositionForMob(ServerLevel p_46992_, Mob p_46993_, double p_46994_) {
+245:       if (p_46994_ > (double)(p_46993_.getType().getCategory().getDespawnDistance() * p_46993_.getType().getCategory().getDespawnDistance()) && p_46993_.removeWhenFarAway(p_46994_)) {
+246:          return false;
+247:       } else {
+248:          return net.minecraftforge.event.ForgeEventFactory.checkSpawnPosition(p_46993_, p_46992_, MobSpawnType.NATURAL);
+249:       }
+
+275:    private static BlockPos getRandomPosWithin(Level p_47063_, LevelChunk p_47064_) {
+276:       ChunkPos chunkpos = p_47064_.getPos();
+277:       int i = chunkpos.getMinBlockX() + p_47063_.random.nextInt(16);
+278:       int j = chunkpos.getMinBlockZ() + p_47063_.random.nextInt(16);
+279:       int k = p_47064_.getHeight(Heightmap.Types.WORLD_SURFACE, i, j) + 1;
+280:       int l = Mth.randomBetweenInclusive(p_47063_.random, p_47063_.getMinBuildHeight(), k);
+281:       return new BlockPos(i, l, j);
+282:    }
+283: 
+284:    public static boolean isValidEmptySpawnBlock(BlockGetter p_47057_, BlockPos p_47058_, BlockState p_47059_, FluidState p_47060_, EntityType<?> p_47061_) {
+285:       if (p_47059_.isCollisionShapeFullBlock(p_47057_, p_47058_)) {
+286:          return false;
+287:       } else if (p_47059_.isSignalSource()) {
+288:          return false;
+289:       } else if (!p_47060_.isEmpty()) {
+290:          return false;
+291:       } else if (p_47059_.is(BlockTags.PREVENT_MOB_SPAWNING_INSIDE)) {
+292:          return false;
+293:       } else {
+294:          return !p_47061_.isBlockDangerous(p_47059_);
+295:       }
+296:    }
+297: 
+298:    public static boolean isSpawnPositionOk(SpawnPlacements.Type p_47052_, LevelReader p_47053_, BlockPos p_47054_, @Nullable EntityType<?> p_47055_) {
+299:       if (p_47052_ == SpawnPlacements.Type.NO_RESTRICTIONS) {
+300:          return true;
+301:       } else if (p_47055_ != null && p_47053_.getWorldBorder().isWithinBounds(p_47054_)) {
+302:          return p_47052_.canSpawnAt(p_47053_, p_47054_, p_47055_);
+303:       }
+304:       return false;
+305:    }
+306: 
+307:    public static boolean canSpawnAtBody(SpawnPlacements.Type p_47052_, LevelReader p_47053_, BlockPos p_47054_, @Nullable EntityType<?> p_47055_) {
+308:       {
+309:          BlockState blockstate = p_47053_.getBlockState(p_47054_);
+310:          FluidState fluidstate = p_47053_.getFluidState(p_47054_);
+311:          BlockPos blockpos = p_47054_.above();
+312:          BlockPos blockpos1 = p_47054_.below();
+313:          switch (p_47052_) {
+314:             case IN_WATER:
+315:                return fluidstate.is(FluidTags.WATER) && !p_47053_.getBlockState(blockpos).isRedstoneConductor(p_47053_, blockpos);
+316:             case IN_LAVA:
+317:                return fluidstate.is(FluidTags.LAVA);
+318:             case ON_GROUND:
+319:             default:
+320:                BlockState blockstate1 = p_47053_.getBlockState(blockpos1);
+321:             if (!blockstate1.isValidSpawn(p_47053_, blockpos1, p_47052_, p_47055_)) {
+322:                   return false;
+323:                } else {
+324:                   return isValidEmptySpawnBlock(p_47053_, p_47054_, blockstate, fluidstate, p_47055_) && isValidEmptySpawnBlock(p_47053_, blockpos, p_47053_.getBlockState(blockpos), p_47053_.getFluidState(blockpos), p_47055_);
+325:                }
+
+330:    public static void spawnMobsForChunkGeneration(ServerLevelAccessor p_220451_, Holder<Biome> p_220452_, ChunkPos p_220453_, RandomSource p_220454_) {
+331:       MobSpawnSettings mobspawnsettings = p_220452_.value().getMobSettings();
+332:       WeightedRandomList<MobSpawnSettings.SpawnerData> weightedrandomlist = mobspawnsettings.getMobs(MobCategory.CREATURE);
+333:       if (!weightedrandomlist.isEmpty()) {
+334:          int i = p_220453_.getMinBlockX();
+335:          int j = p_220453_.getMinBlockZ();
+336: 
+337:          while(p_220454_.nextFloat() < mobspawnsettings.getCreatureProbability()) {
+338:             Optional<MobSpawnSettings.SpawnerData> optional = weightedrandomlist.getRandom(p_220454_);
+339:             if (optional.isPresent()) {
+340:                MobSpawnSettings.SpawnerData mobspawnsettings$spawnerdata = optional.get();
+341:                int k = mobspawnsettings$spawnerdata.minCount + p_220454_.nextInt(1 + mobspawnsettings$spawnerdata.maxCount - mobspawnsettings$spawnerdata.minCount);
+342:                SpawnGroupData spawngroupdata = null;
+343:                int l = i + p_220454_.nextInt(16);
+344:                int i1 = j + p_220454_.nextInt(16);
+345:                int j1 = l;
+346:                int k1 = i1;
+347: 
+348:                for(int l1 = 0; l1 < k; ++l1) {
+349:                   boolean flag = false;
+350: 
+351:                   for(int i2 = 0; !flag && i2 < 4; ++i2) {
+352:                      BlockPos blockpos = getTopNonCollidingPos(p_220451_, mobspawnsettings$spawnerdata.type, l, i1);
+353:                      if (mobspawnsettings$spawnerdata.type.canSummon() && isSpawnPositionOk(SpawnPlacements.getPlacementType(mobspawnsettings$spawnerdata.type), p_220451_, blockpos, mobspawnsettings$spawnerdata.type)) {
+354:                         float f = mobspawnsettings$spawnerdata.type.getWidth();
+355:                         double d0 = Mth.clamp((double)l, (double)i + (double)f, (double)i + 16.0D - (double)f);
+356:                         double d1 = Mth.clamp((double)i1, (double)j + (double)f, (double)j + 16.0D - (double)f);
+357:                         if (!p_220451_.noCollision(mobspawnsettings$spawnerdata.type.getAABB(d0, (double)blockpos.getY(), d1)) || !SpawnPlacements.checkSpawnRules(mobspawnsettings$spawnerdata.type, p_220451_, MobSpawnType.CHUNK_GENERATION, BlockPos.containing(d0, (double)blockpos.getY(), d1), p_220451_.getRandom())) {
+358:                            continue;
+359:                         }
+360: 
+361:                         Entity entity;
+362:                         try {
+363:                            entity = mobspawnsettings$spawnerdata.type.create(p_220451_.getLevel());
+364:                         } catch (Exception exception) {
+365:                            LOGGER.warn("Failed to create mob", (Throwable)exception);
+366:                            continue;
+367:                         }
+368: 
+369:                         if (entity == null) {
+370:                            continue;
+371:                         }
+372: 
+373:                         entity.moveTo(d0, (double)blockpos.getY(), d1, p_220454_.nextFloat() * 360.0F, 0.0F);
+374:                         if (entity instanceof Mob) {
+375:                            Mob mob = (Mob)entity;
+376:                            if (net.minecraftforge.event.ForgeEventFactory.checkSpawnPosition(mob, p_220451_, MobSpawnType.CHUNK_GENERATION)) {
+377:                               spawngroupdata = mob.finalizeSpawn(p_220451_, p_220451_.getCurrentDifficultyAt(mob.blockPosition()), MobSpawnType.CHUNK_GENERATION, spawngroupdata, (CompoundTag)null);
+378:                               p_220451_.addFreshEntityWithPassengers(mob);
+379:                               flag = true;
+380:                            }
+
+455:       private boolean canSpawn(EntityType<?> p_47128_, BlockPos p_47129_, ChunkAccess p_47130_) {
+456:          this.lastCheckedPos = p_47129_;
+457:          this.lastCheckedType = p_47128_;
+458:          MobSpawnSettings.MobSpawnCost mobspawnsettings$mobspawncost = NaturalSpawner.getRoughBiome(p_47129_, p_47130_).getMobSettings().getMobSpawnCost(p_47128_);
+459:          if (mobspawnsettings$mobspawncost == null) {
+460:             this.lastCharge = 0.0D;
+461:             return true;
+462:          } else {
+463:             double d0 = mobspawnsettings$mobspawncost.charge();
+464:             this.lastCharge = d0;
+465:             double d1 = this.spawnPotential.getPotentialEnergyChange(p_47129_, d0);
+466:             return d1 <= mobspawnsettings$mobspawncost.energyBudget();
+467:          }
+468:       }
+469: 
+470:       private void afterSpawn(Mob p_47132_, ChunkAccess p_47133_) {
+471:          EntityType<?> entitytype = p_47132_.getType();
+472:          BlockPos blockpos = p_47132_.blockPosition();
+473:          double d0;
+474:          if (blockpos.equals(this.lastCheckedPos) && entitytype == this.lastCheckedType) {
+475:             d0 = this.lastCharge;
+476:          } else {
+477:             MobSpawnSettings.MobSpawnCost mobspawnsettings$mobspawncost = NaturalSpawner.getRoughBiome(blockpos, p_47133_).getMobSettings().getMobSpawnCost(entitytype);
+478:             if (mobspawnsettings$mobspawncost != null) {
+479:                d0 = mobspawnsettings$mobspawncost.charge();
+480:             } else {
+481:                d0 = 0.0D;
+482:             }
+483:          }
+484: 
+485:          this.spawnPotential.addCharge(blockpos, d0);
+486:          MobCategory mobcategory = entitytype.getCategory();
+487:          this.mobCategoryCounts.addTo(mobcategory, 1);
+488:          this.localMobCapCalculator.addMob(new ChunkPos(blockpos), mobcategory);
+489:       }
+490: 
+491:       public int getSpawnableChunkCount() {
+492:          return this.spawnableChunkCount;
+493:       }
+494: 
+495:       public Object2IntMap<MobCategory> getMobCategoryCounts() {
+496:          return this.unmodifiableMobCategoryCounts;
+497:       }
+498: 
+499:       boolean canSpawnForCategory(MobCategory p_186549_, ChunkPos p_186550_) {
+500:          int i = p_186549_.getMaxInstancesPerChunk() * this.spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
+501:          if (this.mobCategoryCounts.getInt(p_186549_) >= i) {
+502:             return false;
+503:          } else {
+504:             return this.localMobCapCalculator.canSpawn(p_186549_, p_186550_);
+505:          }

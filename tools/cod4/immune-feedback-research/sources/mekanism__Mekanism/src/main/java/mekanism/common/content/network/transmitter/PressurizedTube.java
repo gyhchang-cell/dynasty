@@ -1,0 +1,84 @@
+package mekanism.common.content.network.transmitter;
+
+import com.mojang.serialization.Codec;
+import java.util.Collection;
+import java.util.UUID;
+import mekanism.api.chemical.BasicChemicalTank;
+import mekanism.api.chemical.ChemicalResource;
+import mekanism.api.chemical.IChemicalTank;
+import mekanism.api.resource.LargeResourceStack;
+import mekanism.common.block.attribute.Attribute;
+import mekanism.common.capabilities.Capabilities;
+import mekanism.common.content.network.ChemicalNetwork;
+import mekanism.common.lib.transmitter.CompatibleTransmitterValidator;
+import mekanism.common.lib.transmitter.CompatibleTransmitterValidator.CompatibleChemicalTransmitterValidator;
+import mekanism.common.lib.transmitter.TransmissionType;
+import mekanism.common.lib.transmitter.acceptor.AcceptorCache;
+import mekanism.common.tier.TubeTier;
+import mekanism.common.tile.transmitter.TileEntityTransmitter;
+import mekanism.common.upgrade.transmitter.ResourceTransmitterUpgradeData;
+import mekanism.common.upgrade.transmitter.TransmitterUpgradeData;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+
+public class PressurizedTube extends BufferedResourceTransmitter<ChemicalResource, IChemicalTank, ChemicalNetwork, PressurizedTube> {
+
+    public final TubeTier tier;
+
+    public PressurizedTube(Holder<Block> blockProvider, TileEntityTransmitter tile) {
+        this.tier = Attribute.getTierNN(blockProvider, TubeTier.class);
+        super(tile, BasicChemicalTank::createAllValid, TransmissionType.CHEMICAL);
+    }
+
+    @Override
+    protected AcceptorCache<ResourceHandler<ChemicalResource>> createAcceptorCache() {
+        return new AcceptorCache<>(getTransmitterTile(), Capabilities.CHEMICAL.block());
+    }
+
+    @Override
+    protected Codec<ChemicalResource> resourceCodec() {
+        return ChemicalResource.CODEC;
+    }
+
+    @Override
+    public TubeTier getTier() {
+        return tier;
+    }
+
+    @Override
+    public boolean dataTypeMatches(TransmitterUpgradeData data) {
+        return data instanceof ResourceTransmitterUpgradeData<?> upgradeData && upgradeData.buffer.stackHelper() == LargeResourceStack.CHEMICAL_HELPER;
+    }
+
+    @Override
+    public ChemicalNetwork createEmptyNetworkWithID(UUID networkID) {
+        return new ChemicalNetwork(networkID);
+    }
+
+    @Override
+    public ChemicalNetwork createNetworkByMerging(Collection<ChemicalNetwork> toMerge) {
+        return new ChemicalNetwork(toMerge);
+    }
+
+    @Override
+    public CompatibleTransmitterValidator<ResourceHandler<ChemicalResource>, ChemicalNetwork, PressurizedTube> getNewOrphanValidator() {
+        return new CompatibleChemicalTransmitterValidator(this);
+    }
+
+    @Override
+    public boolean isValidTransmitter(TileEntityTransmitter transmitter, Direction side) {
+        return super.isValidTransmitter(transmitter, side) && transmitter.getTransmitter() instanceof PressurizedTube other && isValidTransmitter(other);
+    }
+
+    public float getRadiationScale(LevelReader level) {
+        IChemicalTank chemicalTank = getContainer();
+        ChemicalResource resource = chemicalTank.resource();
+        if (!resource.isEmpty() && resource.isRadioactive(level.registryAccess())) {
+            return chemicalTank.amountAsLong() / (float) chemicalTank.capacityAsLong(resource);
+        }
+        return 0;
+    }
+}

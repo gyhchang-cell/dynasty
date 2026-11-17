@@ -1,0 +1,157 @@
+package mekanism.client.recipe_viewer.emi;
+
+import com.google.common.primitives.Ints;
+import dev.emi.emi.api.render.EmiRender;
+import dev.emi.emi.api.render.EmiTooltipComponents;
+import dev.emi.emi.api.stack.EmiStack;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import mekanism.api.MekanismAPI;
+import mekanism.api.MekanismRegistries;
+import mekanism.api.chemical.Chemical;
+import mekanism.api.chemical.ChemicalIds;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.api.chemical.SizedChemicalInstance;
+import mekanism.api.text.EnumColor;
+import mekanism.api.text.TextComponentUtil;
+import mekanism.client.MekanismClient;
+import mekanism.client.recipe_viewer.RecipeViewerUtils;
+import mekanism.client.render.MekanismRenderer;
+import mekanism.common.MekanismLang;
+import mekanism.common.util.text.TextUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.ARGB;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Item.TooltipContext;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
+
+public class ChemicalEmiStack extends EmiStack {
+
+    private final Holder<Chemical> chemical;
+
+    public ChemicalEmiStack(SizedChemicalInstance stack) {
+        this(stack.typeHolder(), stack.amount());
+    }
+
+    public ChemicalEmiStack(Chemical chemical, DataComponentPatch ignored, long amount) {
+        //TODO - Emi: Re-evaluate usage and if we can just use the below, or what needs to happen
+        // I am not sure if EmiRegistryAdapter even works with data pack registries in the first place,
+        // so we might have to request a different entry point from Emi anyway
+        Optional<Registry<Chemical>> optionalRegistry = MekanismEmi.getRegistry(MekanismRegistries.Keys.CHEMICAL);
+        this(optionalRegistry.orElseThrow().wrapAsHolder(chemical), amount);
+    }
+
+    public ChemicalEmiStack(Holder<Chemical> chemical, long amount) {
+        this.chemical = chemical;
+        this.amount = amount;
+    }
+
+    @Override
+    public EmiStack copy() {
+        ChemicalEmiStack e = new ChemicalEmiStack(this.chemical, this.amount);
+        e.setChance(this.chance);
+        e.setRemainder(getRemainder().copy());
+        e.comparison = this.comparison;
+        return e;
+    }
+
+    @Override
+    public void render(GuiGraphicsExtractor graphics, int x, int y, float delta, int flags) {
+        if ((flags & RENDER_ICON) != 0) {
+            int color = chemical.value().tint();
+            TextureAtlasSprite sprite = MekanismRenderer.getChemicalTexture(chemical);
+            float red = ARGB.redFloat(color);
+            float green = ARGB.greenFloat(color);
+            float blue = ARGB.blueFloat(color);
+            graphics.blit(x, y, 0, 16, 16, sprite, red, green, blue, 1);
+
+        }
+
+        if ((flags & RENDER_REMAINDER) != 0) {
+            EmiRender.renderRemainderIcon(this, graphics, x, y);
+        }
+    }
+
+    public ChemicalStack getStack() {
+        if (isEmpty()) {
+            return ChemicalStack.EMPTY;
+        }
+        return new ChemicalStack(chemical, amount);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return amount <= 0 || chemical.is(ChemicalIds.EMPTY);
+    }
+
+    @Override
+    public DataComponentPatch getComponentChanges() {
+        return DataComponentPatch.EMPTY;
+    }
+
+    @Override
+    public Chemical getKey() {
+        return chemical.value();
+    }
+
+    @Override
+    public Identifier getId() {
+        ResourceKey<Chemical> key = chemical.keyOrNull();
+        return key == null ? ChemicalIds.EMPTY.identifier() : key.identifier();
+    }
+
+    @Override
+    public List<Component> getTooltipText() {
+        if (isEmpty()) {
+            return Collections.emptyList();
+        }
+        ChemicalStack stack = new ChemicalStack(chemical, amount > 1 ? Ints.saturatedCast(amount) : 1);
+        return stack.getTooltipLines(getRVTooltipContext(), null, TooltipFlag.NORMAL);
+    }
+
+    private static TooltipContext getRVTooltipContext() {
+        //Similar to how ItemEmiStack works
+        Level level = MekanismClient.tryGetClientWorld();
+        if (level == null) {
+            return TooltipContext.EMPTY;
+        } else if (Minecraft.getInstance().isSameThread()) {
+            return Item.TooltipContext.of(level);
+        }
+        // Don't provide world as context, as it is not thread safe
+        return Item.TooltipContext.of(level.registryAccess());
+    }
+
+    @Override
+    public List<ClientTooltipComponent> getTooltip() {
+        List<ClientTooltipComponent> tooltips = getTooltipText().stream()
+              .map(EmiTooltipComponents::of)
+              .collect(Collectors.toList());
+        if (amount > 1) {
+            //TODO - 1.20.4: https://github.com/emilyploszaj/emi/issues/482
+            tooltips.add(EmiTooltipComponents.of(MekanismLang.GENERIC_MB.translateColored(EnumColor.GRAY, TextUtils.format(amount))));
+        }
+
+        EmiTooltipComponents.appendModName(tooltips, getId().getNamespace());
+        tooltips.addAll(super.getTooltip());
+        return tooltips;
+    }
+
+    @Override
+    public Component getName() {
+        ResourceKey<Chemical> key = chemical.keyOrNull();
+        return Chemical.getTranslatedName(key == null ? ChemicalIds.EMPTY : key);
+    }
+}
