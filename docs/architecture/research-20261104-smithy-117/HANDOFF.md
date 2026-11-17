@@ -1,0 +1,1 @@
+117封存两个制革铺有界筛查0：20生成、6实际、14未看，0完整新增研究/0pending/0formal。首次绑定Main116F01 bounded0（三图/15位置、4图未看，非完整研究），消除仅116当前pending；保留旧其他pending。115accepted1first116、111accepted1first112只carry0；115原3,1,3open trapdoor及9,2,2torch更正、111四柱y1..3更正保留。COD4仍153/1000差847。无Java/游戏/制作/主清单改动。

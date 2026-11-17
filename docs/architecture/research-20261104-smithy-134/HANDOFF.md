@@ -1,0 +1,1 @@
+134封存：T&T tudor cartographer+fletcher F01仅3图有界0；meadow cartographer+library F02全9图/76palette/12BE/全12层索引及10空frame实体实质字段完整研究，最多1整屋proposal pending正式0。底层西门读书间，东南内折转阶（非南储物门）上南落脚厅，北门入制图工区且西敞向同盖围栏平台；有顶非露天，门/牌/反向TOP支撑/蜂巢空状态均保留。与087/115及既存095/097/126比较，不把职业替换当新屋；独立判断可0。16PNG12实际4未看。128F02 first131完整接受carry0，全部旧pending为空仅本批F02新pending，111/115/118纠正保留。COD4仍153差847；无Java/游戏/制作/主清单改动。

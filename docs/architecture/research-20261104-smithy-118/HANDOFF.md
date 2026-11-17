@@ -1,0 +1,1 @@
+118封存nilotic制革织工与flowerforest制革两源有界0；14PNG/11实际/3未看，0完整新增研究/0pending/formal0。前者houses原letherworker拼写与实际leatherworker不符，精确选中为空；后者L主房/西北水缸凹位/内缸/短梯屋盖储箱近059F01，未证明新增家族。116bounded0first117本批carry0，115/111既有接受只carry0且两项勘误保留；旧其他pending不取消。COD4仍153差847。无Java/游戏/制作/任务删除。

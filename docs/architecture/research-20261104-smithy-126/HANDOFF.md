@@ -1,0 +1,1 @@
+126封批：desert_fletcher全部9图/45palette及主上下层矩阵，南端内旋梯接上层开侧有盖制箭长廊候选最多1pending；snowy小工住屋只3图有界0。16图12实际4未看。旋梯四转west/south/east/north和实角台及4,5,8退出上廊原态保留，高落脚不写第三满铺层。125F02 Main37ead5c9af72eb458acb33a5b971e8cae6baf2e046f44c983d611c9e8a3c5b3b接受1首次126精确绑定并解除其pending，旧120first122/122first124carry0；125内隔带不封实/低靶无连续地板/梯顶半块未验/无精确入池/正确slab空格限制及115/111/118纠正保留。无Java/游戏/音亮唤醒/制作/产品或主清单更改，COD4仍153差847。

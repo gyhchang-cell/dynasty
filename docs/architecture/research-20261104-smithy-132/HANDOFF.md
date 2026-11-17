@@ -1,0 +1,1 @@
+132封存taiga_mason/snowy_mason各3图有界0，15PNG实际6/未看9。taiga真实east门、littrue/signaltrue campfire保留，Residence挂牌但无床；snowy草土/雪层包单小木工作室，snow83不是83雪块，两源未证明新完整组织。128F02 Main接受完整对象首次131解除pending，本批只carry0；旧接受和111/115/118纠正保留，原131异常final不改。COD4仍153差847，不推COD3累计，任务删除0，无Java/游戏/制作/主清单修改。

@@ -1,0 +1,1 @@
+136封存：Terralith desert mason1采石坑/短盖台仅3图有界0；fletcher1全8PNG/33palette/9原层/6BE完整研究，围中央开庭、南双门入下工厅、北双宽三东阶到中三面廊、再从北西双宽三东阶上TOPslab屋顶边廊，三高工位不拆屋/不称三满铺封闭层，最多1pending formal0。17生成11实际6未看，原TOP支撑/阶口/露空及NPC/箱/生成未验限制保留。134F02 Main完整接受对象首次136carry1 COD3-only，精确关闭旧134pending一次；sealed134/135不改，旧接受carry0。COD4仍153差847，无Java/游戏/制作/主清单变更。
