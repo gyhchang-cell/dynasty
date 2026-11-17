@@ -1,0 +1,590 @@
+{
+  "schema": "dynasty.private.additive-source-family-comparison.v1",
+  "created_utc": "2026-11-13T22:39:43.814407+00:00",
+  "batch": 174,
+  "status": "AUTHOR_HOLD0_WHOLE_FAMILY_COMPARISON_COMPLETE_WITH_BOUNDED_PROVENANCE_LIMITS_PENDING_MAIN",
+  "formal_id": null,
+  "formal_credit": 0,
+  "maximum_possible_related_wholes": 1,
+  "same_family_Brain_counterpart_credit": 0,
+  "MERGE0_permitted": true,
+  "original174_artifact_immutable": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-174-native-crossbow-goal-use-item-handoff-actual-source-HOLD0-20261114.json",
+    "sha256": "771725ca0eb51c2d6911f992bb13c502496203622e12461f21fc06b9679f30b8",
+    "bytes": 133041
+  },
+  "original18_findings_verbatim": [
+    {
+      "source": "EntityType243; Pillager54..85/133..143/181..187",
+      "finding": "Pinned factory constructs Pillager; its registered ranged goal3 uses speed1/radius8, actual ranged method delegates to CrossbowAttackMob and shooting delegates its target-aware helper. Whole Pillager source provides local provenance, not current loaded Jar/natural spawn or a new patrol/raid reference."
+    },
+    {
+      "source": "RangedCrossbowAttackGoal15..46/61..63",
+      "finding": "Goal owns MOVE+LOOK and requests every-tick dispatch. Admission needs current alive target and a held CrossbowItem; continuation also includes canUse OR unfinished navigation but still requires valid target and held crossbow. No immutable victim, hand or ItemStack is captured in fields. Parent AI/priority/listener authority remains bounded."
+    },
+    {
+      "source": "RangedCrossbowAttackGoal65..98",
+      "finding": "Each delivered tick reads current target, computes signed seeTime from current LOS and requests chase only under (out-of-radius OR seeTime<5) AND attackDelay==0; otherwise stops navigation. UNCHARGED enters CHARGING after startUsingItem without checking that use actually started, then publishes charging flag. Source predicates do not establish arbitrary field combinations naturally reachable."
+    },
+    {
+      "source": "LivingEntity2938..2952; ForgeEventFactory376..386; LivingEntityUseItemEvent whole129",
+      "finding": "startUsingItem can return without starting for empty item/alreadyusing or hook duration below ForgeConfig minimum. Start is cancelable and duration mutable; Tick also mutable/cancelable. Goal still sets its local CHARGING after normal return. No current subscriber/config/default-duration execution has been verified."
+    },
+    {
+      "source": "RangedCrossbowAttackGoal100..112; LivingEntity3034..3059; ItemStack491..504",
+      "finding": "CHARGING first changes local state to UNCHARGED if no longer using, but does not immediately return. It reads current use ticks/stack and, when threshold reached, calls void releaseUsingItem then unconditionally advances local state CHARGED and delay20..39, clearing charging flag on normal return. It does not inspect Charged NBT, loaded projectiles or load success."
+    },
+    {
+      "source": "LivingEntity3046..3073; ForgeEventFactory388..391; LivingEntityUseItemEvent76..95",
+      "finding": "Cancelable Stop suppresses ItemStack.releaseUsing callback when canceled; release still runs useOnRelease/update and stopUsing on normal flow. Thus a normally returning release request need not execute the crossbow loader. Exceptions/reentrant item hooks remain external, so neither guaranteed cancellation scenario nor atomic cleanup is claimed."
+    },
+    {
+      "source": "RangedCrossbowAttackGoal48..59; LivingEntity3061..3073; CrossbowItem142..145",
+      "finding": "Goal.stop requests aggression false/target null and clears seeTime. Only if currently using does it stopUsing, clear charging flag, then setCharged(getUseItem(),false). Ordinary base stopUsing has already replaced useItem with EMPTY, so that subsequent getter is not the prior held crossbow object. No final global EMPTY-tag consequence, natural inventory loss or repair need is inferred."
+    },
+    {
+      "source": "RangedCrossbowAttackGoal18..23/48..59; base Goal reused172",
+      "finding": "No own start override resets the stage. stop does not reset crossbowState, attackDelay or updatePathDelay, and only conditionally clears charging flag. Same goal object reentry may retain CHARGED/READY state/delay while item use is separately stopped; goal reconstruction and full save/load are different unproven lifetimes."
+    },
+    {
+      "source": "RangedCrossbowAttackGoal113..123; CrossbowAttackMob26..34; Pillager100..102/181..186",
+      "finding": "CHARGED decrements its own delay to0 then READY. READY plus current LOS calls ranged attack with current target, reselects current crossbow hand to clear Charged, then becomes UNCHARGED. Interface reselects current hand again and calls shooting if a crossbow is currently held, but onCrossbowAttackPerformed runs after that condition even without an actual shot; Pillager resets noActionTime. No projectile-admission result is returned to goal."
+    },
+    {
+      "source": "ProjectileUtil142..148; CrossbowAttackMob26..44; CrossbowItem194..224",
+      "finding": "Hand selection prefers main if predicate matches, otherwise off. Actual projectile shot obtains CrossbowAttackMob.getTarget again; Pillager performRangedAttack does not preserve its supplied target parameter as immutable victim. Current target/weapon can therefore differ across separate callbacks without a stored lease. No actual retarget exploit or callback race is reproduced."
+    },
+    {
+      "source": "Monster120..128; ForgeHooks1006..1011; LivingGetProjectileEvent whole70",
+      "finding": "Monster uses supported held projectile or freshly constructed ARROW fallback, then mutable noncancelable/no-result GetProjectile event. A living mob fallback arrow is not evidence of player-paid ammunition. Full ProjectileWeaponItem held-ammo chooser and all subscribers remain outside this batch."
+    },
+    {
+      "source": "CrossbowItem81..186",
+      "finding": "Item release only marks Charged and requests loading-end sound when power>=1, !isCharged and tryLoadProjectiles true. It serializes charged projectile stacks, splitting first noncreative/nonduplicate ammo and copying remaining multishot entries. Item Charged flag, list payload and AI stage are independent; tryLoad mayfalse after earlier writes and has no shown rollback. Native item custody belongs to selected prior magazine owners as shared support0, not new migration credit."
+    },
+    {
+      "source": "CrossbowItem194..285",
+      "finding": "performShooting reads payload list and handles nonempty indices0..2; server projectile path constructs, uses current target, applies durability before unchecked addFreshEntity and sound. onCrossbowShot clears projectile payload on normal return, including empty list case. Goal then separately clears Charged/current stage. A false entity add does not itself refund durability or preserve payload; exceptions can interrupt. No paid/captured actor or positive HP/actual shot receipt."
+    },
+    {
+      "source": "CrossbowItem243..244/275..285; CrossbowAttackMob26..34",
+      "finding": "Player-only ArrowLoose veto may return before the item shot loop; it is not the Pillager branch. Item stats/criterion are ServerPlayer-only; interface postattack callback is a separate ordinary-return action. Do not infer mob ammo success from a player criterion, pose or noAction reset."
+    },
+    {
+      "source": "CrossbowItem287..373; Pillager83..117",
+      "finding": "Loading audio flags are fields on the CrossbowItem object; charging/hold arm pose reads entity flag/current held crossbow. Tooltip reads Charged plus payload, not AI state. These concrete source consumers supply context0, not rendered pixels/audio/approved UI or a new visual mechanism."
+    },
+    {
+      "source": "LivingEntity2871..2907/2938..2963/3034..3073",
+      "finding": "Entity use state follows synchronized flags, current hand compatibility, useItem reference and remaining duration with Start/Tick/Stop hooks. Use may be replaced/stopped independently of AI stage. Full canContinueUsing/item overrides/NoAI and enclosing invocation cadence are unexpanded; no exact seconds or universal stale-stage bug is asserted."
+    },
+    {
+      "source": "Pillager104..123/193..235; whole crossbow goal",
+      "finding": "Pillager own persistence delegates inventory plus parent but has no own save keys for this goal enum/delay/charging flag; this alone is not full inherited reload proof. Banner pickup, raid equipment replacement and ally context were read only as whole-entity context, not new material acquisition, raid/patrol or NBT references."
+    },
+    {
+      "source": "Complete old243/521/526; migration482/990; EA0034",
+      "finding": "Old243 owns control-hit feedback versus effect admission. Old521 owns retained burst/shared melee-ranged clock across stop/LOS. Old526 owns copied mutable gear feeding ordinary use/custom consumers, including its own crossbow AI. Two magazine owners retain paid component/NBT custody; EA0034 retains captain-first patrol creation. None may be narrowed or split for new timer/hand/helper/cue credit. Potential remaining comparison is one native goal-stage/entity-use/item-magazine admission-and-stop handoff whole, not yet an independent accepted reference."
+    }
+  ],
+  "original7_limits_verbatim": [
+    "Fixed local mapped1.20.1/47.4.10 source ZIP equality only, not fresh authenticated Git/current installed pack/listeners/config or API compatibility.",
+    "13files15ranges1295unique6whole; large Living/ItemStack/Monster/Forge/EntityType/ProjectileUtil partial. Full held-ammo chooser, item overrides, enclosing AI/NoAI, canContinueUsing, physics/manager/target setters/transport/render/backend not whole expanded.",
+    "Three complete prior program four-business objects, two complete migration non-evidence judgments and EA0034 observed/limits/proof read; not all their raw ancestor chains or whole groups. Broader same-family group/ownership comparison still open; exact path-ref keyword absence is discovery0, not global novelty.",
+    "No natural cancellation/retarget/reentry trace, actual stale-charge/inventory loss/EMPTYtag consequence/exploit/security defect, population/material/payment or control refusal/shot/HP/pixel/audio proof. Static callback assumptions apply only on normal return.",
+    "At most1 possible whole pending further comparison and independent Main; mayMERGE0. No new migration/NBT/ecology/native credit, no formalID/append/once/plan/executor/validator authority. Applicable1000 remains false.",
+    "Original clipped multi-owner discovery output credited0; relevant482/990 business recovered bounded. Initial Monster range110..140 failed at EOF129 after printing actual110..129; subsequent dependencies read separately, only110..129 recorded. No missing output counted.",
+    "Only new immutable private JSON; no source/production/UI/art/model/UV/building/sharedJar/instance/world/formal/master/session/active/pending/ownership/external-prompt changes, no Java/Gradle/game/script/import/help/validators/process/display/wake/unlock/sound/brightness/focus/Git/network/newchat/automation/taskdelete. No activehours or allcomplete claim."
+  ],
+  "original3_applications_verbatim": [
+    "After applicable1000, make AI attempt stage, accepted item-use start/release, actual charged payload, current weapon/victim and projectile admission separate explicit states. Pose/audio/goal stage cannot certify control or paid acquisition. Research only.",
+    "Define ordinary stop/reentry and cancellation/hand replacement without freezing native Boss AI. Preserve item NBT, player entitlements and reward progress; no new magazine or paid material mechanism is implemented.",
+    "Original UI scope remains unimplemented: retain background, revise only requested main buttons, design world options separately and remove useless spawn-egg/basic tutorial text after authorized implementation gates. No UI/art acceptance."
+  ],
+  "new_source_ref": {
+    "binding": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/CrossbowAttack.java",
+      "sha256": "7463a0c1f3f09fe470dc637106c077ba1cf077bd053fc0ae8974fcb76bc6e4d5",
+      "bytes": 4313
+    },
+    "archive_member": "net/minecraft/world/entity/ai/behavior/CrossbowAttack.java",
+    "archive_equal": true,
+    "whole_file_read": true,
+    "total_file_lines": 97,
+    "evidence": [
+      {
+        "lines": [
+          1,
+          97
+        ],
+        "raw_utf8_keepends": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.monster.CrossbowAttackMob;\nimport net.minecraft.world.entity.projectile.ProjectileUtil;\nimport net.minecraft.world.item.CrossbowItem;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\n\npublic class CrossbowAttack<E extends Mob & CrossbowAttackMob, T extends LivingEntity> extends Behavior<E> {\n   private static final int TIMEOUT = 1200;\n   private int attackDelay;\n   private CrossbowAttack.CrossbowState crossbowState = CrossbowAttack.CrossbowState.UNCHARGED;\n\n   public CrossbowAttack() {\n      super(ImmutableMap.of(MemoryModuleType.LOOK_TARGET, MemoryStatus.REGISTERED, MemoryModuleType.ATTACK_TARGET, MemoryStatus.VALUE_PRESENT), 1200);\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_22778_, E p_22779_) {\n      LivingEntity livingentity = getAttackTarget(p_22779_);\n      return p_22779_.isHolding(is -> is.getItem() instanceof CrossbowItem) && BehaviorUtils.canSee(p_22779_, livingentity) && BehaviorUtils.isWithinAttackRange(p_22779_, livingentity, 0);\n   }\n\n   protected boolean canStillUse(ServerLevel p_22781_, E p_22782_, long p_22783_) {\n      return p_22782_.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET) && this.checkExtraStartConditions(p_22781_, p_22782_);\n   }\n\n   protected void tick(ServerLevel p_22794_, E p_22795_, long p_22796_) {\n      LivingEntity livingentity = getAttackTarget(p_22795_);\n      this.lookAtTarget(p_22795_, livingentity);\n      this.crossbowAttack(p_22795_, livingentity);\n   }\n\n   protected void stop(ServerLevel p_22805_, E p_22806_, long p_22807_) {\n      if (p_22806_.isUsingItem()) {\n         p_22806_.stopUsingItem();\n      }\n\n      if (p_22806_.isHolding(is -> is.getItem() instanceof CrossbowItem)) {\n         p_22806_.setChargingCrossbow(false);\n         CrossbowItem.setCharged(p_22806_.getUseItem(), false);\n      }\n\n   }\n\n   private void crossbowAttack(E p_22787_, LivingEntity p_22788_) {\n      if (this.crossbowState == CrossbowAttack.CrossbowState.UNCHARGED) {\n         p_22787_.startUsingItem(ProjectileUtil.getWeaponHoldingHand(p_22787_, item -> item instanceof CrossbowItem));\n         this.crossbowState = CrossbowAttack.CrossbowState.CHARGING;\n         p_22787_.setChargingCrossbow(true);\n      } else if (this.crossbowState == CrossbowAttack.CrossbowState.CHARGING) {\n         if (!p_22787_.isUsingItem()) {\n            this.crossbowState = CrossbowAttack.CrossbowState.UNCHARGED;\n         }\n\n         int i = p_22787_.getTicksUsingItem();\n         ItemStack itemstack = p_22787_.getUseItem();\n         if (i >= CrossbowItem.getChargeDuration(itemstack)) {\n            p_22787_.releaseUsingItem();\n            this.crossbowState = CrossbowAttack.CrossbowState.CHARGED;\n            this.attackDelay = 20 + p_22787_.getRandom().nextInt(20);\n            p_22787_.setChargingCrossbow(false);\n         }\n      } else if (this.crossbowState == CrossbowAttack.CrossbowState.CHARGED) {\n         --this.attackDelay;\n         if (this.attackDelay == 0) {\n            this.crossbowState = CrossbowAttack.CrossbowState.READY_TO_ATTACK;\n         }\n      } else if (this.crossbowState == CrossbowAttack.CrossbowState.READY_TO_ATTACK) {\n         p_22787_.performRangedAttack(p_22788_, 1.0F);\n         ItemStack itemstack1 = p_22787_.getItemInHand(ProjectileUtil.getWeaponHoldingHand(p_22787_, item -> item instanceof CrossbowItem));\n         CrossbowItem.setCharged(itemstack1, false);\n         this.crossbowState = CrossbowAttack.CrossbowState.UNCHARGED;\n      }\n\n   }\n\n   private void lookAtTarget(Mob p_22798_, LivingEntity p_22799_) {\n      p_22798_.getBrain().setMemory(MemoryModuleType.LOOK_TARGET, new EntityTracker(p_22799_, true));\n   }\n\n   private static LivingEntity getAttackTarget(LivingEntity p_22785_) {\n      return p_22785_.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).get();\n   }\n\n   static enum CrossbowState {\n      UNCHARGED,\n      CHARGING,\n      CHARGED,\n      READY_TO_ATTACK;\n   }\n}\n",
+        "sha256": "7463a0c1f3f09fe470dc637106c077ba1cf077bd053fc0ae8974fcb76bc6e4d5",
+        "bytes": 4313
+      }
+    ]
+  },
+  "new_actual_source_reading": {
+    "files": 1,
+    "ranges": 1,
+    "distinct_lines": 97,
+    "whole_files": 1,
+    "semantic_credit": 0
+  },
+  "combined_source_coverage": {
+    "files": 14,
+    "ranges": 16,
+    "distinct_lines": 1392,
+    "whole_files": 7,
+    "old172_scheduler_reuse_newlines": 0,
+    "counts_semantic_credit": 0
+  },
+  "additional_findings": [
+    {
+      "source": "CrossbowAttack.java whole97",
+      "finding": "The native Brain behavior repeats the same UNCHARGED/CHARGING/CHARGED/READY state machine and void-release-to-CHARGED handoff, including no immediate return after resetting UNCHARGED when use is absent. It is a same-family counterpart, never a second reference. Full constructor requires LOOK_TARGET registered and ATTACK_TARGET present; direct entry/continuation additionally require held crossbow, visibility and attack range helpers."
+    },
+    {
+      "source": "CrossbowAttack39..49/51..79",
+      "finding": "Brain stop first conditionally stopUsingItem, then if currently holding crossbow clears charging and calls setCharged(getUseItem(),false). Goal counterpart nests those actions inside the initial using check; both leave stage/delay fields without own reset. This does not establish stale ammo, global EMPTY mutation or a natural live bug. No separate stop-branch/flag reference."
+    },
+    {
+      "source": "CrossbowAttack20..30/83..89",
+      "finding": "Brain superclass receives1200 and current ATTACK_TARGET is read from memory.get; LOOK_TARGET gets new EntityTracker. Actual BehaviorUtils predicates, Brain scheduling/activity construction and containing Piglin provenance are not newly closed here. These are comparison-only context, not a proven installed second actor producer or precise20/1200-worldtick promise."
+    },
+    {
+      "source": "Complete whole groups60/249/254 and old503 reuse0",
+      "finding": "Whole current Tetra cue, Blaze shared residual burst and copied-gear consumer group rationales/closure metadata were actually read and retained. Old503 complete four-business judgment is exact prior172 actually-read reuse0. Goal/Brain wrapper differences cannot create extra examples of already-owned retained phase, predebit, current-target reread or cue."
+    },
+    {
+      "source": "174 family comparison decision",
+      "finding": "Only at most1 related possible whole is the coupled native goal-stage/entity-use/current-item-magazine admission and ordinary-stop handoff. Goal and Brain variants, loader/serializer, current target/hand selectors, ammo hooks and sound all merge into that whole or support0. No global527 novelty or formal acceptance; independent Main may MERGE0 against521/526/503 or paid magazine ownership."
+    }
+  ],
+  "complete_old_groups_actually_read": [
+    {
+      "index_zero_based": 60,
+      "whole_group": {
+        "family": "assorted-tetra-batch51",
+        "credited_chains": [
+          "assorted-native-damage-source-memory-health-delta-and-world-identity-text",
+          "tetra-native-control-hit-sound-and-particles-ignore-effect-admission"
+        ],
+        "rationale": "Assorted实际source memory/health/world文字整链1；Tetra原生控制接纳未检查却播声光生产点1，所有色/标签/状态常量/包装合并；纯Anima/ImmersiveMessages泛用文本API仍辅助0。"
+      },
+      "canonical_sha256": "2d06f2a7c2d1ed97bd1c5005cb2cbc1254858fc5bed8bcdfd774a411a0223c34"
+    },
+    {
+      "index_zero_based": 249,
+      "whole_group": {
+        "family": "native-blaze-retained-burst-cross-mode-residual-clock-ownership",
+        "credited_chain": "native-blaze-retained-burst-phase-shared-melee-ranged-clock-ownership-policy",
+        "rationale": "One shared residual attack clock multiplexes close melee writes and a retained ranged burst phase across LOS/range gaps, current-target changes and ordinary stop/reentry. Start resets step only; stop clears charge/lastSeen only; melee rewrites timer without clearing burst/charge. This whole cross-mode clock ownership is distinct from the nine selected complete old qualification/expiry/callback/ritual/Guardian LOS/Witch drink/Wither producer/Ravager delayed roar/Wither consumer owners, all retained unchanged. Projectile admission, hit/fire rollback, visual charge, stages, constants, sounds and model support add0; no exhaustive global521 novelty claim or incoming-control immunity conclusion.",
+        "Main_actual_author_ack_review": {
+          "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program155-actual-author-ACK-final-preformal-20261112.json",
+          "sha256": "753aad0727e59842bc07cd3a9508212850ffd84063b8e98be59fd74945ce9f37",
+          "bytes": 35262
+        },
+        "actual_source_review": {
+          "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program155-blaze-retained-shared-clock-actual-whole-review-20261112.json",
+          "sha256": "aafa24933a2bfb7ac866223eab9824908f6a74ef86814fa97d95b0e9a6746f11",
+          "bytes": 126754
+        },
+        "existing_nine_owners_credit_added": 0,
+        "migration_credit_added": 0
+      },
+      "canonical_sha256": "0623add7842f75cb92c057ebd2d34b6ba3160cdc7e122e99dc20ab87fdc3e22f"
+    },
+    {
+      "index_zero_based": 254,
+      "whole_group": {
+        "family": "native-causing-attacker-copied-gear-payload-current-consumers-lifecycle",
+        "credited_chain": "native-causing-attacker-copied-gear-payload-current-consumers-lifecycle",
+        "status": "ACCEPTED_ONE_RELATED_SOURCE_IMPLEMENTATION_MAIN_INDEPENDENT_REVIEW_WITH_EXPLICIT_LIMITS",
+        "formal_id": "native-causing-attacker-copied-gear-payload-current-consumers-lifecycle",
+        "rationale": "At most one related implementation site: copied mutable causing-attacker gear feeds passive shield/goal selection and current target/use/customfood consumers with explicit lifecycle gaps. Helpers/timers/parenthooks/slotcopy/savefields not separately counted. Conditional counter/attack/load cases are not runtimebug or gameplayrepair. Source-only final review implements no requested Boss feedback or assets.",
+        "actual_source_review": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program169-complete-gear-response-actual-source-preACK-review-20261114.json",
+          "sha256": "868c4ec7fef95f342423bec88730ff7fa2a82d79471a56f60e3c87b98e9e94dd",
+          "bytes": 88081
+        },
+        "Main_actual_author_ack_review": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program169-actual41-author-ACK-final-static-20261114.json",
+          "sha256": "09e1530016f3b23b0906d67e03d53e3e3077e7aa91c6d159b094df656063ada8",
+          "bytes": 94086
+        },
+        "complete_evidence_bundle": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/program167-169-private-current525-ecology65-preview-v1-20261114/complete-original-and-review-evidence.json",
+          "sha256": "16c5fbab1bcfb4724bb3e7cdf4e9e6dedd6ca3f29901d9cd2913fa6e25389a85",
+          "bytes": 13194839
+        },
+        "existing_owner_credit_added": 0,
+        "migration_credit_added": 0,
+        "global_NBT_credit_added": 0,
+        "ecology_credit_added": 0
+      },
+      "canonical_sha256": "eb4d955ada94d9039493c259932cd27d49976c3b0e10570b156065fec703cc91"
+    }
+  ],
+  "complete_prior503_business_reused0": {
+    "index_zero_based": 503,
+    "id": "native-brain-running-attempt-with-expiring-memory-release-predebit-before-current-target-requalification-and-result-independent-sonic-settlement",
+    "complete_object_canonical_sha256": "1279ebeeb80ef9b12389d01049b21ad09f6c1d0603ec5505ebbaf496b85d2363",
+    "four_business_fields_actually_read": {
+      "full_chain_observation": "One related native attack-attempt lifecycle is substantively supported: qualified entry begins a gameTime-bounded RUNNING behavior; separately expiring memory gates a release latch, debited before current target requalification; normal damage return does not gate push; stop writes shared cooldown. At most1 whole, not separate Brain/timer/ray/force/event/codec/file/entity references. Brain starts STOPPED behaviors only IN ACTIVE eligible activities, then ticks all RUNNING behaviors without that active filter. This is the explicit corrected interpretation of original concatenated in+active wording; original observation retained plus additive clarification. setActiveActivity erases configured other-activity memories but does not itself stop behaviors. Explicit stopAll does call doStop. At release, both sound delay and sound cooldown must be absent. Sonic writes SOUND_COOLDOWN TTL26 BEFORE current ATTACK_TARGET retrieval/filter. No eligible current target can therefore consume the normal opportunity without particles/damage. It is a local release latch, not payment, conserved ammunition, refund, irrevocable global once-only transaction or guaranteed shot. Sonic.stop sets only SONIC_BOOM_COOLDOWN40; it does not clear all attack/sound memories, refund a spent release or issue a victim-specific failure receipt. Warden.setAttackTarget writes target and cooldown200, and doHurtTarget writes cooldown40 before parent result. Shared memory can be changed by other actions; not a private per-target escrow.",
+      "concrete_observation": "Original observation 1: ONE proposed native Brain attack-attempt lifecycle whole: memory-qualified entry and gametime-bounded RUNNING attempt separate from expiring-memory delay/release latch; consume release opportunity before current target requalification; independent shot/hurt/push/cue then stop cooldown. Atmost1relatedorMainmerge0, no extra ray/threshold/timer/Brain/helper/species/event/codec credit.\nOriginal observation 2: Actual EntityType.WARDEN constructsWarden. Warden.makeBrain delegatesWardenAi, whose full156lines register allSonic memories, core/defaultactivities andFight list. Actual customServerAiStep ticksBrain before ordinary parent/darkness/anger andupdateActivity; containingWarden andfullouterMob/NoAI invocation notwhole read/run.\nOriginal observation 3: Fight is activity requiringATTACK_TARGET andconfigured to erase it onactivityexit. Ordered list includes digcooldownsetter, StopAttackingIfTargetInvalid, look/walk, newSonicBoom thenMeleeAttack18. BraincreatePriorityPairs increments priorities, TreeMap traversesascending; genericdeclarativebuilder/sensors/hooks canaffectconditions, not fullyexpanded. No separateactivity/goalcredit.\nOriginal observation 4: CompleteBehavior constructor andSonic entry: ATTACK_TARGETpresent, SONIC_BOOM_COOLDOWNabsent, other2soundmemoriesREGISTERED; stricthorizontalXZdistance<15 andverticaldifference²<20² throughEntity.closerThan. REGISTERED onlymeansslotexists, notsoundlatchesabsent. No directLOS/raycast inownSonicstartcondition; external targetselection mayapplyothergates.\nOriginal observation 5: Behavior.tryStart checksentry+extra once, marksRUNNING, drawsfixedduration60 fromequalmin/max andstoresendTimestamp=currentgameTime+duration beforestart. tickOrStop lateronlytimeout andcanStillUse; Sonicreturns true unconditionally. Entrymemoryconditions/range notautomaticallyrechecked there eachrunningtick. Timeout usesstrictgameTime>endTimestamp, not>= or guaranteed60wallticks.\nOriginal observation 6: Sonic.start writesATTACK_COOLING_DOWN trueTTL60 andSOUND_DELAY UnitTTL34, requestsentityevent62 andWARDEN_SONIC_CHARGE sound. These precede eventualcurrent-target eligibility. No immutablevictim/attemptUUID captured inSonic fields; laterbodyrereadsATTACK_TARGET. Charge/animation notsuccessfulshot/refusal receipt.\nOriginal observation 7: Brain.tick firstforgetOutdatedMemories, ticksensors, startsnonrunningbehaviors inactiveeligibleactivities, thenticksallRUNNINGbehaviors. getRunningBehaviors traversesallactivitieswithoutactivefilter. setActiveActivity erasesconfiguredmemoriesbutdoesnotcallstop here. Target/activityloss alone therefore doesnot prove immediatestop ofthiscanStillUsetrueattempt; explicitstopAll doesinvoke doStop. Wholeengine/overrides canstillstop/remove behavior.\nOriginal observation 8: ExpirableValue storesrawlongTTL, decrementswhenfinite andhasExpired iff<=0. Brain sweepexaminesexpired BEFORE decrement; slotsetter/getter/checkMemory useOptionalpresent withoutanexpirytest. Avaluebecoming0bydecrementremains untilnextsweep. This is delivered-Brain-update countdown, separatefromBehavior gameTime timestamp; no exact1.7seconds/dualclock atomicity/runtimeoffbyone orpause exploit asserted.\nOriginal observation 9: Each Sonic.tick firstlooks atcurrentattacktargetposition ifpresent. WhenbothSOUND_DELAY andSOUND_COOLDOWN absent, it writesSOUND_COOLDOWN UnitTTL26 BEFORE fetching/filteringcurrenttarget. Missing/ineligible/outofrange target cantherefore spendthisreleaseopportunity withnoray. Within normaldurationthelatchsuppressesownretry; externalmemorywriters/removal/callbacks remainoutside, notguaranteedexactlyonce.\nOriginal observation 10: ActualreleasecanTargetEntity requiresLivingEntitysamelevel, nativeNO_CREATIVE_OR_SPECTATOR predicate, notallied/notARMOR_STAND/notWARDEN/notinvulnerable/notdeadordying andworldbordercontainsboundingbox; thencloserThanstrictXZ15/Y20 again. These aredifferentfromentry/anger/currentloadedBosscontrolpredicates. NO_CREATIVE selector/alliances/worldborder/subclass internals notexhaustivelyaudited.\nOriginal observation 11: Qualifyingrelease usesemitterposition+y(double)1.6F tocurrentvictimeyes, normalizesvector, requestsSONIC_BOOMparticles fori1..<floor(length)+7 thenplaysboomsound. Itdoesnottraceblocksorcollidealongray inownbody. Sourceparticlepattern notworldadmission/visiblepixels/physicalprojectile orallterrainhitguarantee; vectors/math/backend remainboundaries.\nOriginal observation 12: Thenhurt(sonicBoom(emitter),10) booleanignored; normalreturnalwaysreadsKBRandpushesdirection*(2.5horizontal,.5vertical)*(1-KBR). BaseEntity.push addsdeltaMovement andsetsImpulse, notdirectsetPos/actualmotion. Parenthurtfalse notcancelthese laterrequests. This genericresult-independentray/force part isalreadyknownArs/Guardian/sharedsupport0, notthestatednewwhole byitself.\nOriginal observation 13: Sonic.stop onlysetsSONIC_BOOM_COOLDOWN TTL40; ownbodydoesnotclearothersound/attackcoolingmemoriesorissueaborted-victimreceipt. Warden.setAttackTarget separatelyclearsroar/cantreach, writesnewtarget, resetsSoniccooldown200. Warden.doHurtTarget setsSoniccooldown40 BEFOREsuperhurtresult. Sharedmemorycanbeaffected byotheractions, notprivatepervictimrefund/transaction.\nOriginal observation 14: WholeMeleeAttack builder requiresATTACK_COOLING_DOWNabsent+target+nearestvisible, thenrange/usableweapon check, swings/doHurtTargetignoredbool andwrites18cooldown. Sonicstart cooling60canwithholdthatlocalMelee branch. FullcommonMobattack/behaviorbuilder/externalcallers unexpanded; no universalmelee-lock guarantee orallattacksblockedclaim.\nOriginal observation 15: WholeStopAttackingIfTargetInvalid useslivingtarget/currentlevel/canAttack/custompredicate; Warden passesfalse tiredreachflag andanger/canTargetpredicate, invalidconsumer optionallyclearsanger/setdigcooldown thenerasestarget. This canchangeATTACK_TARGET independentlyofalreadyRUNNINGSonic. Sourceorderingnormalcallbacks only, no reproducedstaletargetattack/race.\nOriginal observation 16: Warden.handleEntityEvent62 startsownsonicAnimationState atcurrentclienttick; unlikeGuardianbeam noimmutablevictimID inthatowncue. Sound/particles originateemitter/rayrequests, notdeniedvictimtext. Model/animationclip/particlefactory/fullnetworkconsumer/actualpixelsunexpanded, no animationleak/loop orBossgraytext acceptance.\nOriginal observation 17: MemoryModuleType ATTACK_TARGET/ATTACK_COOLING_DOWN plainregister whilethreeSonicUnit slots explicitlyregistercodec. WholeExpirableValue exposesvalue+optionalttlcodec. FullSonic/Behavior have noownIO, but doNOTinferallSonicmemoryistransient orcompleteinflightreloadresume. Brainpartialcodecexplorationnotcitedascompleteroundtrip; save/world/recreatedbehaviorclocks unverified, migrationcredit0.\nOriginal observation 18: FullGuardianfourfields andgroup16Mainfindings8limits recoveredbeforeanynewSonic source. GuardianownsLOS-progressedselectorrelease, separateID/cache/localclockbeam/sound anddualhurt; proposedSonicownsBrainRUNNINGversusmemoryTTL/latepredebitqualification/stopcooldown lifecycle ifMainfindssubstantivedifferent. Newbeam/sound/damageconstantsalonewould0.\nOriginal observation 19: CompleteArsSonic/Forsaken/Bumblezone judgments/groups read orpriorsealedjudgmentreused0: actor-checkedcounterrayaftercancellation, refusaltocoalescedcharge, combat-revokedpacificationretainfullpolicies. Fourmigrationjudgments (Wardenanger,Shriekerwarning,Ravagerphase,Skreecherlifetimeattempt), completeEA16Main15/9+corrections andhistoricalpending54/actualaccepted826 compared; nativeSoniccooldownhelpersalreadyEA16support0, notnewclasscredit.\nOriginal observation 20: Fresh382crossarea candidate/proposal/whole-review/handoffsemanticdocuments and49receiptsselectedfields screened;13/5matches mostlynestedEA16comparison, notallwholesource review/globalnovelty. Ownpending089/098/108 andaccepted105107/Milk savedfullcontexts retained0. Main10822/12+authorplan presentlypendingformal0; current502/ecology49historicalexact, noindependentcandidatecredit orproduction authorization.\nMain finding 1: One related native attack-attempt lifecycle is substantively supported: qualified entry begins a gameTime-bounded RUNNING behavior; separately expiring memory gates a release latch, debited before current target requalification; normal damage return does not gate push; stop writes shared cooldown. At most1 whole, not separate Brain/timer/ray/force/event/codec/file/entity references.\nMain finding 2: Main actually read all24 cited ranges913distinct lines from12 fixed entries, including six complete declarations SonicBoom, Behavior, WardenAi, ExpirableValue, StopAttackingIfTargetInvalid and MeleeAttack. Remaining containing classes are bounded partials. Inherited or generic helpers are not new credit. All raw keepends/normalized excerpt/private-copy/archive bindings independently verified.\nMain finding 3: Warden EntityType constructor and makeBrain delegate establish local provenance. Full WardenAi registers memories/sensors, initializes core/default and specialized activities; Fight requires ATTACK_TARGET and erases it on exit. Ordered priorities place invalid-target behavior, look/walk, Sonic then Melee; source construction is not current loaded-pack execution.\nMain finding 4: Sonic entry requires target present, sonic cooldown absent and two sound memories REGISTERED. REGISTERED means registered slot, not absence or permission. Extra distance uses strict XZ radius15 and vertical difference20, not a sphere or inclusive boundary. Own start condition has no line-of-sight ray test; upstream target selection remains a boundary.\nMain finding 5: Behavior.tryStart checks entry memories/extra once, sets RUNNING and endTimestamp from current gameTime plus random duration with equal60 bounds, then start. Later tickOrStop uses strict gameTime>endTimestamp and canStillUse, which Sonic returns true. It does not automatically repeat entry memory predicates each tick or capture a target identity.\nMain finding 6: Sonic.start sets ATTACK_COOLING_DOWN trueTTL60 and SOUND_DELAY UnitTTL34, then event62 and charge sound. These requests precede release and do not prove eligible victim, damage, accepted control or paid acquisition. No immutable victim/attempt identifier is stored by this class.\nMain finding 7: Brain starts STOPPED behaviors only IN ACTIVE eligible activities, then ticks all RUNNING behaviors without that active filter. This is the explicit corrected interpretation of original concatenated in+active wording; original observation retained plus additive clarification. setActiveActivity erases configured other-activity memories but does not itself stop behaviors. Explicit stopAll does call doStop.\nMain finding 8: Brain forgetOutdatedMemories precedes sensors/start/run, checks hasExpired before decrementing; ExpirableValue expires at<=0, decrements finite rawlong TTL, MAX_VALUE stays infinite. Setter/getter/checkMemory do not themselves remove expired entries; decrement to0 remains until a subsequent sweep. These update clocks differ from Behavior gameTime, so exact walltime or universal off-by-one behavior is unproved.\nMain finding 9: At release, both sound delay and sound cooldown must be absent. Sonic writes SOUND_COOLDOWN TTL26 BEFORE current ATTACK_TARGET retrieval/filter. No eligible current target can therefore consume the normal opportunity without particles/damage. It is a local release latch, not payment, conserved ammunition, refund, irrevocable global once-only transaction or guaranteed shot.\nMain finding 10: Current target is re-read after warmup and validated by Warden.canTargetEntity and strict distance: same level, native no creative/spectator predicate, not allied/armorstand/Warden/invulnerable/dead-or-dying, world-border bounding box. It need not be the starting target. Selector, alliance, border and subclass internals are not fully expanded; no global Boss-control predicate claim.\nMain finding 11: Qualified ray requests particles from emitter+y(double)1.6F toward current victim eyes, with normalized direction and i=1..<floor(length)+7, then boom sound. Own method does not block-raycast. Source geometry is not an admitted physical projectile, guaranteed wall penetration, drawn pixels, audible output or terrain-wide hit proof.\nMain finding 12: hurt(sonicBoom(emitter),10) Boolean is ignored; on ordinary return KBR then push follows, even if hurt returns false. Base Entity.push adds deltaMovement and sets impulse, not actual displacement/setPos. KBR-dependent requests and parent hurt engine are not an independent new credit or native accepted damage/knockback test.\nMain finding 13: Sonic.stop sets only SONIC_BOOM_COOLDOWN40; it does not clear all attack/sound memories, refund a spent release or issue a victim-specific failure receipt. Warden.setAttackTarget writes target and cooldown200, and doHurtTarget writes cooldown40 before parent result. Shared memory can be changed by other actions; not a private per-target escrow.\nMain finding 14: Whole MeleeAttack requires attack-cooling absent/target/nearest-visible, tests range and usable projectile weapon, then swing/doHurtTarget and cooldown18 without conditioning on damage Boolean. Sonic60 memory can suppress this local branch, not every attack caller. StopAttackingIfTargetInvalid can erase target after predicate/callback; Warden false flag disables its tired-reach check, not all invalidation.\nMain finding 15: Warden server step ticks Brain before parent AI/darkness/anger/updateActivity. Event62 starts its own sonic animation state at current client tick; that own cue carries no immutable victim ID. Source call order is not two-client packet/order/owner identity, rendered clip lifetime or denial-feedback acceptance.\nMain finding 16: Three Sonic Unit memories explicitly register codecs, unlike plain target/attack-cooling registrations; whole ExpirableValue has optional TTL codec. No own Sonic/Behavior IO and partial Brain codec exploration do not prove all sound memory transient, complete in-flight restoration or absent hidden state. Migration credit remains0.\nMain finding 17: Full Guardian four-field judgment and full group including distinct Main16findings8limits were actually compared. Guardian whole is LOS-progressed selector windup/release plus server target versus client ID/cache/local beam clock and split damage/local sound lifetime. Brain RUNNING versus TTL and late predebit current-target qualification is a different whole; generic beam/force/cue alone remains0. Preserve literal Guardian sound target predicate, not an invented hasActiveAttackTarget guard.\nMain finding 18: Full Ars cancellation-before-actor-validation/paid return-ray, Forsaken coalesced refusal-to-countercharge, and Bumblezone combat-revoked pacification judgments and groups were read. Their entire qualification/settlement policies remain owned. This recommendation does not split their shared Sonic/ray/cooldown primitives into new references.\nMain finding 19: Four complete migration saved non-evidence judgments were compared: Shrieker warning, Warden anger UUID state, Ravager resumed phases and Skreecher lifetime attempt. EA16 complete Main15/9/fourcorrections/floor clarification and historical pending54 full findings/distinctions/limits were read. Missing sturdy floor is NOT an explicit Skreecher rejection gate; old Sonic cooldown helpers are EA16support0. Historical826 is accepted now, not newly pending.\nMain finding 20: Candidate assembly history502/108pending remains verbatim, but current actual formal baseline is503/gap497/231 groups following Main108 exact closure. Current ecology49 remains; V2 research install adds no acceptance. Current whole recommendation formal0 pending real author acknowledgment and separately reviewed exact append plan. Old consumed proofs/append markers were not replayed.\nMain finding 21: Dynasty integration would require actual refusal versus actual control and identity-correlated original acquisition/payment receipts, preserving IDs/rewards. Warmup cue, damage request or release-latch consumption cannot satisfy those native gameplay tasks. Applicable1000 gate remainsfalse; no production or checklist deletion is supported by this source review.",
+      "application_to_boss_immune": "Separate start qualification, continuing attempt lifetime, opportunity debit, current-target finalqualification, actualacceptedcontrol andtarget-boundcue. GrayBossrefusal requiresactualfinaldecision; charge/beam/push/animation alone notproof. Researchonly.",
+      "limitations": "Original limit 1: Fixedlocallycached mappedForge1.20.1/47.4.10 exactarchive/extractedbytes only; no freshremote/Git/tree/currentpack/API/tag/config/loadedregistry/brainbuilder/listener compatibility guarantee.\nOriginal limit 2: 24citedranges913lineoccurrences12entries6whole declarations actuallyread; Brain/Warden/Entity/DamageSources/MemoryModuleType/EntityType boundedpartials, notfullengine. Checkpoint25/981incidentalcodecandadjacentread exclusions explicit; helper/file/range/numericcounts0credit.\nOriginal limit 3: One proposedwholememory-qualifiedattempt/latepredebitcurrenttargetsettlement versuscue atmost1orMainmerge0. Genericray/force/particles/ignoredbool, warmup/slots/constants/Brain/codec/helper/entitynamecannotearnanotherreference.\nOriginal limit 4: No Java/Gradle/runtime/AI/combat/world/game/physics/render/audio/networkexecutions. Sourcewrite/request/boolean/cue notactualacceptedHP/displacement/targetidentity/denial/material/quest acceptance.\nOriginal limit 5: BehaviorgameTimebound andmemoryTTLs aredifferentconditionalclocks; owncanStillUsetrue/Brainallrunningdoesnot establishuniversaluncancelableattack. ExternalstopAll, removedbehavior,NoAI/scheduler/timechange/subclasses/hooks unexpanded. No exactwalltime/guaranteedsingle shot/exploitorrace.\nOriginal limit 6: SOUND_COOLDOWNpredebitbeforetargetfiltermaywasteopportunity normally, but externalmemorywriters/composition/callbackfailures unexpanded. No refund/atomicity/exactlyonce/conservedresource orpervictimwindowproof.\nOriginal limit 7: NativecanTarget/start/range checksnotglobalBosscontrolorLOScoverage; fullselectors/sensors/canAttack/alliance/border/mathtype/tagcontents/customrecipients/attributeclamping/hurt backend unexpanded. No universalwallpenetration oralltargeteligibility claim.\nOriginal limit 8: Hurtfalse followednormalreturnpush issharedsupport, notnewsemanticcountoractualknockback. Sound/event62/particlesnotrefusalreason, victimUUID, finalvisibleclip/graytext/microglow/audio acceptance. No model/texture/UV work.\nOriginal limit 9: Brainmemorycodecpartialread+typedUnitregistrations/wholeExpirablecodecnotcompletebrainworld/hiddenstate/persistence/clone/restore. DoNOTclaimallSonicmemoriesnonpersistent; BehaviorfreshendTimestamp/sourceownIOabsencealonecannotproveinflightresumability. No newmigrationcredit.\nOriginal limit 10: Complete4formaljudgments4groups/4migration/EA16Main15/9andhistoricalpending54 judgmentsread; oldunderlyingsourcechainsnotreplayed.382metadata/selected49receiptchecks arediscoveryonly, no exhaustiveglobalnovelty. OriginalclippedGuardianmetadata fullyrecovered beforeprescreen; no clippedoutputcredit.\nOriginal limit 11: Originalcurrent502 and49contexts/108authorplan retainedhistory;108hasnoappendgrantatassembly andnew110formal0. Applicable1000unmet gatefalse. No production/programUI/background/quest/texture/model/UV/building/sharedJar/originalworld/Mainstate/pending/taskchecklist edits.\nOriginal limit 12: No process/display/volume/brightness/focus/wake/network/Git/commit/push/publish/newchat/automation/providerbypass, nooldvalidators/consumedmarkers/appendsscriptsreplay. No quantifiedactivehours/tenhourcompletion orcompletedgamefeature/taskdeletion claim.\nMain limit 1: At most1 whole related research recommendation; formal/applied0 until actual original author acknowledgment and separate exact append-plan review. No production permission or completed game task.\nMain limit 2: Fixed cached mapped Forge1.20.1-47.4.10 source bytes only. No fresh remote/Git/tree/current-pack configuration/tag/listener/loaded registry guarantee.\nMain limit 3: 24ranges913distinctlines12entries6whole are bookkeeping0. Brain/Warden/Entity/DamageSources/MemoryModuleType/EntityType are bounded partials; full engine/NoAI/sensors/builders/hooks are not newly audited.\nMain limit 4: Exploratory25ranges981 occurrences included excluded partial codec and adjacent material, not formal whole scope. Earlier locator printed metadata only; it was not counted as source reading. Selected source and full comparison outputs were recovered in bounded calls.\nMain limit 5: GameTime timeout and expiring memory countdown differ. External stopAll/removal/scheduler/time changes/other writers may stop/rearm/alter an attempt; no uncancelable or guaranteed once-only shot, universal exploit or exact walltime proof.\nMain limit 6: Predebit is a local memory write before current-target filtering, not material debit, conserved budget, atomically committed damage or per-victim refund. Callback exceptions/listeners are not expanded.\nMain limit 7: Entry/release predicates and strict distances do not establish all Boss control rules, full line-of-sight coverage, terrain collision, selector contents or attribute clamping/backend acceptance.\nMain limit 8: Hurt-false ordinary-return push is shared source support0 and a delta-velocity request only. Event62/charge/ray sound/particles are not accepted refusal text, immutable target identity, rendered pixels, audible outcome or actual motion.\nMain limit 9: Unit codecs plus partial Brain/whole ExpirableValue do not establish complete persistence/world/clone/reload or resume behavior. Do not call all Sonic memories nonpersistent; no migration credit.\nMain limit 10: Complete selected4formal/group4/migration4/EA16/historical54 judgments read, not all their original source chains. Own old089/098/108/105107/Milk saved contexts reused0.382document metadata49selected receipts are discovery0, not exhaustive global semantic novelty.\nMain limit 11: No Java/Gradle/game/server/world/process/display/audio/brightness/focus/wake/network/Git/commit/push/publish/newchat/automation/provider-bypass or production/sharedJar/proasset/originalsave changes. Ecological24/30+9/10 and originalrun12false limits remain.\nMain limit 12: No quantified active hours or ten-hour completion; no COD1-6 all-complete claim, no fabricated cod5, no task deletion. Old108 pending wording preserved solely as historical assembly, superseded by actual503 closure."
+    },
+    "underlying_old_source_newly_read": false
+  },
+  "prior_actualreading_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-172-native-illusioner-start-stamped-target-current-effect-actual-source-HOLD0-20261114.json",
+    "sha256": "184a628e5e39edaf2a1080884e284436bb0ccf9e2264d846830e7ac59b465bed",
+    "bytes": 184005
+  },
+  "current172_Main_whole_closure_context_only": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program172-author33-ACK-independent-whole-closure-20261114.json",
+    "sha256": "f8309411b3ac2aa988a621fa63f6d15e1a0e4103559d37f72e3cfc27cd5fa1df",
+    "bytes": 253845
+  },
+  "Main172_new_credit_applied_claimed": false,
+  "extra_limits": [
+    "Brain counterpart is comparative same-family support0; no actual Piglin activity registration/BehaviorUtils/whole Brain scheduler/condition closure newly read. Pillager original goal factory/registration remains actual primary producer.",
+    "Whole old group metadata and three complete four-business owners plus503 priorread reuse0 do not mean all nested ancestors globally reread. Two magazine and EA34 complete business retained, not broader global1329/66 semantic novelty.",
+    "Conditional event Start/Stop cancellation, failed loader and poststop EMPTY getter order are source facts only on normal returning path; no current listeners/config/actual state trace, no natural exploit/fix or universal ammo/payment theorem.",
+    "Main172 private preview does not alter actual527. Existing original174 snapshot remains immutable; no append/once/validator/formal/session/task/production or activehour/native authorization."
+  ],
+  "checks": [
+    {
+      "check": "original174 immutable",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "pass": true
+    },
+    {
+      "check": "current527/66/protected /Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "pass": true
+    },
+    {
+      "check": "fixed archive unchanged",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraft/world/entity/ai/goal/RangedCrossbowAttackGoal.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/entity/ai/goal/RangedCrossbowAttackGoal.java[1, 138]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraft/world/entity/monster/CrossbowAttackMob.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/entity/monster/CrossbowAttackMob.java[1, 57]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraft/world/entity/monster/Pillager.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/entity/monster/Pillager.java[1, 240]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraft/world/item/CrossbowItem.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/item/CrossbowItem.java[1, 373]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraft/world/entity/LivingEntity.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/entity/LivingEntity.java[2855, 2963]",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/entity/LivingEntity.java[3034, 3076]",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/entity/LivingEntity.java[3264, 3274]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraft/world/entity/projectile/ProjectileUtil.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/entity/projectile/ProjectileUtil.java[139, 152]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraft/world/entity/monster/Monster.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/entity/monster/Monster.java[110, 129]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraftforge/common/ForgeHooks.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraftforge/common/ForgeHooks.java[1000, 1016]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraftforge/event/ForgeEventFactory.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraftforge/event/ForgeEventFactory.java[370, 408]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraft/world/item/ItemStack.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/item/ItemStack.java[491, 524]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraftforge/event/entity/living/LivingEntityUseItemEvent.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraftforge/event/entity/living/LivingEntityUseItemEvent.java[1, 129]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraftforge/event/entity/living/LivingGetProjectileEvent.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraftforge/event/entity/living/LivingGetProjectileEvent.java[1, 70]",
+      "pass": true
+    },
+    {
+      "check": "native source net/minecraft/world/entity/EntityType.java",
+      "pass": true
+    },
+    {
+      "check": "native raw range net/minecraft/world/entity/EntityType.java[243, 243]",
+      "pass": true
+    },
+    {
+      "check": "new whole97 Brain counterpart exact ZIP",
+      "pass": true
+    },
+    {
+      "check": "original1295 and combined1392 source lines",
+      "pass": true
+    },
+    {
+      "check": "oldwhole program 243",
+      "pass": true
+    },
+    {
+      "check": "oldwhole program 521",
+      "pass": true
+    },
+    {
+      "check": "oldwhole program 526",
+      "pass": true
+    },
+    {
+      "check": "migration ledger unchanged",
+      "pass": true
+    },
+    {
+      "check": "whole old migration business 482",
+      "pass": true
+    },
+    {
+      "check": "whole old migration business 990",
+      "pass": true
+    },
+    {
+      "check": "EA0034 currentledger binding",
+      "pass": true
+    },
+    {
+      "check": "whole EA34 and complete business",
+      "pass": true
+    },
+    {
+      "check": "prior actualread503 whole business reused0 exact current",
+      "pass": true
+    },
+    {
+      "check": "all16 guards unchanged at additive save",
+      "pass": true
+    }
+  ],
+  "checks_passed": 58,
+  "current_program": {
+    "count": 527,
+    "groups": 255,
+    "gap": 473,
+    "gate_met": false
+  },
+  "current_ecology": {
+    "count": 66,
+    "gap": 934,
+    "gate_met": false
+  },
+  "guard_after": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "99b4236aa080fbbc293459ea3e5a4bb1c697e9e33f8cb68b9248bd28be06b4c0",
+      "bytes": 68461643
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+      "sha256": "1562f9bb9b37723507da1f68a55eb090879d7f1702add319ef3f3f81a006f7b2",
+      "bytes": 438454
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+      "sha256": "34e67d46ec440adb156ddd5d5a80f830d0b96a3ebbdc62a00e2b191184312b70",
+      "bytes": 631
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "sha256": "5c9f20d0519fefc57946332a9972d50facb61fdbdcb00d3beb72d6c7ee1ffc78",
+      "bytes": 4663669
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+      "sha256": "47cabe8d93ea9276f6b91fab08ecdabbf343a101fc40ee2a90b1291319f208dc",
+      "bytes": 4478781
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+      "sha256": "3aab4c6ad55a1c43a4dd0a53e2f8b30577b15c68e8373ed147dc2f3428fb960e",
+      "bytes": 1551802
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+      "sha256": "deed8bf3f0e34114b34a89c4e95445108231bfdea1351c239db5a13d1d8f909c",
+      "bytes": 266014
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+      "sha256": "1cd8d182e684cbd9043d9f30d3e094d7721ab0d8188f669779afb4bd50999468",
+      "bytes": 1055512
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "production_changes": 0,
+  "native_credit": 0,
+  "task_deletions": 0,
+  "active_hours_claimed": null,
+  "all_old_once_forever_consumed": true
+}

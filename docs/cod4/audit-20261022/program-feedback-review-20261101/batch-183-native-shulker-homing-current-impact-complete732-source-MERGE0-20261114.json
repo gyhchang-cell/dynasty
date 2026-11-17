@@ -1,0 +1,801 @@
+{
+  "schema": "dynasty-183-native-shulker-homing-current-impact-complete732-MERGE0-v1",
+  "recorded_at": "2026-11-14T03:53:42.258087+00:00",
+  "status": "COMPLETE_SOURCE_COMPARATIVE_VERIFICATION_RECOMMEND_MERGE0_HOLD0",
+  "formal_id": null,
+  "research_credit": 0,
+  "formal_append": false,
+  "maximum_proposed_new_wholes": 0,
+  "recommendation": "MERGE0; migration668 owns whole moving projectile route/checkpoint/target-resolution/hit chain, program517/128 complementary owners retained",
+  "archive": {
+    "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "source_coverage": {
+    "members": 8,
+    "ranges": 9,
+    "unique_lines": 732,
+    "whole_files": 4
+  },
+  "actual_sources": [
+    {
+      "member": "net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "sha256": "a27d210d38fbccf0dd46274335bc7d5618f0eb8fb3585d34352fcac20d469e97",
+      "bytes": 12289,
+      "total_lines": 319,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 319,
+          "raw_utf8": "package net.minecraft.world.entity.projectile;\n\nimport com.google.common.base.MoreObjects;\nimport com.google.common.collect.Lists;\nimport java.util.List;\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.protocol.game.ClientboundAddEntityPacket;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\n\npublic class ShulkerBullet extends Projectile {\n   private static final double SPEED = 0.15D;\n   @Nullable\n   private Entity finalTarget;\n   @Nullable\n   private Direction currentMoveDirection;\n   private int flightSteps;\n   private double targetDeltaX;\n   private double targetDeltaY;\n   private double targetDeltaZ;\n   @Nullable\n   private UUID targetId;\n\n   public ShulkerBullet(EntityType<? extends ShulkerBullet> p_37319_, Level p_37320_) {\n      super(p_37319_, p_37320_);\n      this.noPhysics = true;\n   }\n\n   public ShulkerBullet(Level p_37330_, LivingEntity p_37331_, Entity p_37332_, Direction.Axis p_37333_) {\n      this(EntityType.SHULKER_BULLET, p_37330_);\n      this.setOwner(p_37331_);\n      BlockPos blockpos = p_37331_.blockPosition();\n      double d0 = (double)blockpos.getX() + 0.5D;\n      double d1 = (double)blockpos.getY() + 0.5D;\n      double d2 = (double)blockpos.getZ() + 0.5D;\n      this.moveTo(d0, d1, d2, this.getYRot(), this.getXRot());\n      this.finalTarget = p_37332_;\n      this.currentMoveDirection = Direction.UP;\n      this.selectNextMoveDirection(p_37333_);\n   }\n\n   public SoundSource getSoundSource() {\n      return SoundSource.HOSTILE;\n   }\n\n   protected void addAdditionalSaveData(CompoundTag p_37357_) {\n      super.addAdditionalSaveData(p_37357_);\n      if (this.finalTarget != null) {\n         p_37357_.putUUID(\"Target\", this.finalTarget.getUUID());\n      }\n\n      if (this.currentMoveDirection != null) {\n         p_37357_.putInt(\"Dir\", this.currentMoveDirection.get3DDataValue());\n      }\n\n      p_37357_.putInt(\"Steps\", this.flightSteps);\n      p_37357_.putDouble(\"TXD\", this.targetDeltaX);\n      p_37357_.putDouble(\"TYD\", this.targetDeltaY);\n      p_37357_.putDouble(\"TZD\", this.targetDeltaZ);\n   }\n\n   protected void readAdditionalSaveData(CompoundTag p_37353_) {\n      super.readAdditionalSaveData(p_37353_);\n      this.flightSteps = p_37353_.getInt(\"Steps\");\n      this.targetDeltaX = p_37353_.getDouble(\"TXD\");\n      this.targetDeltaY = p_37353_.getDouble(\"TYD\");\n      this.targetDeltaZ = p_37353_.getDouble(\"TZD\");\n      if (p_37353_.contains(\"Dir\", 99)) {\n         this.currentMoveDirection = Direction.from3DDataValue(p_37353_.getInt(\"Dir\"));\n      }\n\n      if (p_37353_.hasUUID(\"Target\")) {\n         this.targetId = p_37353_.getUUID(\"Target\");\n      }\n\n   }\n\n   protected void defineSynchedData() {\n   }\n\n   @Nullable\n   private Direction getMoveDirection() {\n      return this.currentMoveDirection;\n   }\n\n   private void setMoveDirection(@Nullable Direction p_37351_) {\n      this.currentMoveDirection = p_37351_;\n   }\n\n   private void selectNextMoveDirection(@Nullable Direction.Axis p_37349_) {\n      double d0 = 0.5D;\n      BlockPos blockpos;\n      if (this.finalTarget == null) {\n         blockpos = this.blockPosition().below();\n      } else {\n         d0 = (double)this.finalTarget.getBbHeight() * 0.5D;\n         blockpos = BlockPos.containing(this.finalTarget.getX(), this.finalTarget.getY() + d0, this.finalTarget.getZ());\n      }\n\n      double d1 = (double)blockpos.getX() + 0.5D;\n      double d2 = (double)blockpos.getY() + d0;\n      double d3 = (double)blockpos.getZ() + 0.5D;\n      Direction direction = null;\n      if (!blockpos.closerToCenterThan(this.position(), 2.0D)) {\n         BlockPos blockpos1 = this.blockPosition();\n         List<Direction> list = Lists.newArrayList();\n         if (p_37349_ != Direction.Axis.X) {\n            if (blockpos1.getX() < blockpos.getX() && this.level().isEmptyBlock(blockpos1.east())) {\n               list.add(Direction.EAST);\n            } else if (blockpos1.getX() > blockpos.getX() && this.level().isEmptyBlock(blockpos1.west())) {\n               list.add(Direction.WEST);\n            }\n         }\n\n         if (p_37349_ != Direction.Axis.Y) {\n            if (blockpos1.getY() < blockpos.getY() && this.level().isEmptyBlock(blockpos1.above())) {\n               list.add(Direction.UP);\n            } else if (blockpos1.getY() > blockpos.getY() && this.level().isEmptyBlock(blockpos1.below())) {\n               list.add(Direction.DOWN);\n            }\n         }\n\n         if (p_37349_ != Direction.Axis.Z) {\n            if (blockpos1.getZ() < blockpos.getZ() && this.level().isEmptyBlock(blockpos1.south())) {\n               list.add(Direction.SOUTH);\n            } else if (blockpos1.getZ() > blockpos.getZ() && this.level().isEmptyBlock(blockpos1.north())) {\n               list.add(Direction.NORTH);\n            }\n         }\n\n         direction = Direction.getRandom(this.random);\n         if (list.isEmpty()) {\n            for(int i = 5; !this.level().isEmptyBlock(blockpos1.relative(direction)) && i > 0; --i) {\n               direction = Direction.getRandom(this.random);\n            }\n         } else {\n            direction = list.get(this.random.nextInt(list.size()));\n         }\n\n         d1 = this.getX() + (double)direction.getStepX();\n         d2 = this.getY() + (double)direction.getStepY();\n         d3 = this.getZ() + (double)direction.getStepZ();\n      }\n\n      this.setMoveDirection(direction);\n      double d6 = d1 - this.getX();\n      double d7 = d2 - this.getY();\n      double d4 = d3 - this.getZ();\n      double d5 = Math.sqrt(d6 * d6 + d7 * d7 + d4 * d4);\n      if (d5 == 0.0D) {\n         this.targetDeltaX = 0.0D;\n         this.targetDeltaY = 0.0D;\n         this.targetDeltaZ = 0.0D;\n      } else {\n         this.targetDeltaX = d6 / d5 * 0.15D;\n         this.targetDeltaY = d7 / d5 * 0.15D;\n         this.targetDeltaZ = d4 / d5 * 0.15D;\n      }\n\n      this.hasImpulse = true;\n      this.flightSteps = 10 + this.random.nextInt(5) * 10;\n   }\n\n   public void checkDespawn() {\n      if (this.level().getDifficulty() == Difficulty.PEACEFUL) {\n         this.discard();\n      }\n\n   }\n\n   public void tick() {\n      super.tick();\n      if (!this.level().isClientSide) {\n         if (this.finalTarget == null && this.targetId != null) {\n            this.finalTarget = ((ServerLevel)this.level()).getEntity(this.targetId);\n            if (this.finalTarget == null) {\n               this.targetId = null;\n            }\n         }\n\n         if (this.finalTarget == null || !this.finalTarget.isAlive() || this.finalTarget instanceof Player && this.finalTarget.isSpectator()) {\n            if (!this.isNoGravity()) {\n               this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.04D, 0.0D));\n            }\n         } else {\n            this.targetDeltaX = Mth.clamp(this.targetDeltaX * 1.025D, -1.0D, 1.0D);\n            this.targetDeltaY = Mth.clamp(this.targetDeltaY * 1.025D, -1.0D, 1.0D);\n            this.targetDeltaZ = Mth.clamp(this.targetDeltaZ * 1.025D, -1.0D, 1.0D);\n            Vec3 vec3 = this.getDeltaMovement();\n            this.setDeltaMovement(vec3.add((this.targetDeltaX - vec3.x) * 0.2D, (this.targetDeltaY - vec3.y) * 0.2D, (this.targetDeltaZ - vec3.z) * 0.2D));\n         }\n\n         HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);\n         if (hitresult.getType() != HitResult.Type.MISS && !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, hitresult)) {\n            this.onHit(hitresult);\n         }\n      }\n\n      this.checkInsideBlocks();\n      Vec3 vec31 = this.getDeltaMovement();\n      this.setPos(this.getX() + vec31.x, this.getY() + vec31.y, this.getZ() + vec31.z);\n      ProjectileUtil.rotateTowardsMovement(this, 0.5F);\n      if (this.level().isClientSide) {\n         this.level().addParticle(ParticleTypes.END_ROD, this.getX() - vec31.x, this.getY() - vec31.y + 0.15D, this.getZ() - vec31.z, 0.0D, 0.0D, 0.0D);\n      } else if (this.finalTarget != null && !this.finalTarget.isRemoved()) {\n         if (this.flightSteps > 0) {\n            --this.flightSteps;\n            if (this.flightSteps == 0) {\n               this.selectNextMoveDirection(this.currentMoveDirection == null ? null : this.currentMoveDirection.getAxis());\n            }\n         }\n\n         if (this.currentMoveDirection != null) {\n            BlockPos blockpos = this.blockPosition();\n            Direction.Axis direction$axis = this.currentMoveDirection.getAxis();\n            if (this.level().loadedAndEntityCanStandOn(blockpos.relative(this.currentMoveDirection), this)) {\n               this.selectNextMoveDirection(direction$axis);\n            } else {\n               BlockPos blockpos1 = this.finalTarget.blockPosition();\n               if (direction$axis == Direction.Axis.X && blockpos.getX() == blockpos1.getX() || direction$axis == Direction.Axis.Z && blockpos.getZ() == blockpos1.getZ() || direction$axis == Direction.Axis.Y && blockpos.getY() == blockpos1.getY()) {\n                  this.selectNextMoveDirection(direction$axis);\n               }\n            }\n         }\n      }\n\n   }\n\n   protected boolean canHitEntity(Entity p_37341_) {\n      return super.canHitEntity(p_37341_) && !p_37341_.noPhysics;\n   }\n\n   public boolean isOnFire() {\n      return false;\n   }\n\n   public boolean shouldRenderAtSqrDistance(double p_37336_) {\n      return p_37336_ < 16384.0D;\n   }\n\n   public float getLightLevelDependentMagicValue() {\n      return 1.0F;\n   }\n\n   protected void onHitEntity(EntityHitResult p_37345_) {\n      super.onHitEntity(p_37345_);\n      Entity entity = p_37345_.getEntity();\n      Entity entity1 = this.getOwner();\n      LivingEntity livingentity = entity1 instanceof LivingEntity ? (LivingEntity)entity1 : null;\n      boolean flag = entity.hurt(this.damageSources().mobProjectile(this, livingentity), 4.0F);\n      if (flag) {\n         this.doEnchantDamageEffects(livingentity, entity);\n         if (entity instanceof LivingEntity) {\n            LivingEntity livingentity1 = (LivingEntity)entity;\n            livingentity1.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 200), MoreObjects.firstNonNull(entity1, this));\n         }\n      }\n\n   }\n\n   protected void onHitBlock(BlockHitResult p_37343_) {\n      super.onHitBlock(p_37343_);\n      ((ServerLevel)this.level()).sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(), this.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.0D);\n      this.playSound(SoundEvents.SHULKER_BULLET_HIT, 1.0F, 1.0F);\n   }\n\n   private void destroy() {\n      this.discard();\n      this.level().gameEvent(GameEvent.ENTITY_DAMAGE, this.position(), GameEvent.Context.of(this));\n   }\n\n   protected void onHit(HitResult p_37347_) {\n      super.onHit(p_37347_);\n      this.destroy();\n   }\n\n   public boolean isPickable() {\n      return true;\n   }\n\n   public boolean hurt(DamageSource p_37338_, float p_37339_) {\n      if (!this.level().isClientSide) {\n         this.playSound(SoundEvents.SHULKER_BULLET_HURT, 1.0F, 1.0F);\n         ((ServerLevel)this.level()).sendParticles(ParticleTypes.CRIT, this.getX(), this.getY(), this.getZ(), 15, 0.2D, 0.2D, 0.2D, 0.0D);\n         this.destroy();\n      }\n\n      return true;\n   }\n\n   public void recreateFromPacket(ClientboundAddEntityPacket p_150185_) {\n      super.recreateFromPacket(p_150185_);\n      double d0 = p_150185_.getXa();\n      double d1 = p_150185_.getYa();\n      double d2 = p_150185_.getZa();\n      this.setDeltaMovement(d0, d1, d2);\n   }\n}\n",
+          "excerpt_sha256": "a27d210d38fbccf0dd46274335bc7d5618f0eb8fb3585d34352fcac20d469e97"
+        }
+      ],
+      "actual_read_after_complete_oldwhole_checkpoint": true,
+      "new_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/client/renderer/entity/ShulkerBulletRenderer.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/ShulkerBulletRenderer.java",
+      "sha256": "491da97b31dddea807526892cbaa8cd1cb8ad05808437bb4d8dc71bed36eb0ef",
+      "bytes": 2858,
+      "total_lines": 56,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 56,
+          "raw_utf8": "package net.minecraft.client.renderer.entity;\n\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport com.mojang.blaze3d.vertex.VertexConsumer;\nimport com.mojang.math.Axis;\nimport net.minecraft.client.model.ShulkerBulletModel;\nimport net.minecraft.client.model.geom.ModelLayers;\nimport net.minecraft.client.renderer.MultiBufferSource;\nimport net.minecraft.client.renderer.RenderType;\nimport net.minecraft.client.renderer.texture.OverlayTexture;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.projectile.ShulkerBullet;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class ShulkerBulletRenderer extends EntityRenderer<ShulkerBullet> {\n   private static final ResourceLocation TEXTURE_LOCATION = new ResourceLocation(\"textures/entity/shulker/spark.png\");\n   private static final RenderType RENDER_TYPE = RenderType.entityTranslucent(TEXTURE_LOCATION);\n   private final ShulkerBulletModel<ShulkerBullet> model;\n\n   public ShulkerBulletRenderer(EntityRendererProvider.Context p_174368_) {\n      super(p_174368_);\n      this.model = new ShulkerBulletModel<>(p_174368_.bakeLayer(ModelLayers.SHULKER_BULLET));\n   }\n\n   protected int getBlockLightLevel(ShulkerBullet p_115869_, BlockPos p_115870_) {\n      return 15;\n   }\n\n   public void render(ShulkerBullet p_115862_, float p_115863_, float p_115864_, PoseStack p_115865_, MultiBufferSource p_115866_, int p_115867_) {\n      p_115865_.pushPose();\n      float f = Mth.rotLerp(p_115864_, p_115862_.yRotO, p_115862_.getYRot());\n      float f1 = Mth.lerp(p_115864_, p_115862_.xRotO, p_115862_.getXRot());\n      float f2 = (float)p_115862_.tickCount + p_115864_;\n      p_115865_.translate(0.0F, 0.15F, 0.0F);\n      p_115865_.mulPose(Axis.YP.rotationDegrees(Mth.sin(f2 * 0.1F) * 180.0F));\n      p_115865_.mulPose(Axis.XP.rotationDegrees(Mth.cos(f2 * 0.1F) * 180.0F));\n      p_115865_.mulPose(Axis.ZP.rotationDegrees(Mth.sin(f2 * 0.15F) * 360.0F));\n      p_115865_.scale(-0.5F, -0.5F, 0.5F);\n      this.model.setupAnim(p_115862_, 0.0F, 0.0F, 0.0F, f, f1);\n      VertexConsumer vertexconsumer = p_115866_.getBuffer(this.model.renderType(TEXTURE_LOCATION));\n      this.model.renderToBuffer(p_115865_, vertexconsumer, p_115867_, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);\n      p_115865_.scale(1.5F, 1.5F, 1.5F);\n      VertexConsumer vertexconsumer1 = p_115866_.getBuffer(RENDER_TYPE);\n      this.model.renderToBuffer(p_115865_, vertexconsumer1, p_115867_, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 0.15F);\n      p_115865_.popPose();\n      super.render(p_115862_, p_115863_, p_115864_, p_115865_, p_115866_, p_115867_);\n   }\n\n   public ResourceLocation getTextureLocation(ShulkerBullet p_115860_) {\n      return TEXTURE_LOCATION;\n   }\n}",
+          "excerpt_sha256": "491da97b31dddea807526892cbaa8cd1cb8ad05808437bb4d8dc71bed36eb0ef"
+        }
+      ],
+      "actual_read_after_complete_oldwhole_checkpoint": true,
+      "new_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/world/entity/projectile/Projectile.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/Projectile.java",
+      "sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+      "bytes": 8381,
+      "total_lines": 220,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 220,
+          "raw_utf8": "package net.minecraft.world.entity.projectile;\n\nimport com.google.common.base.MoreObjects;\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.protocol.Packet;\nimport net.minecraft.network.protocol.game.ClientGamePacketListener;\nimport net.minecraft.network.protocol.game.ClientboundAddEntityPacket;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.TraceableEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\n\npublic abstract class Projectile extends Entity implements TraceableEntity {\n   @Nullable\n   private UUID ownerUUID;\n   @Nullable\n   private Entity cachedOwner;\n   private boolean leftOwner;\n   private boolean hasBeenShot;\n\n   protected Projectile(EntityType<? extends Projectile> p_37248_, Level p_37249_) {\n      super(p_37248_, p_37249_);\n   }\n\n   public void setOwner(@Nullable Entity p_37263_) {\n      if (p_37263_ != null) {\n         this.ownerUUID = p_37263_.getUUID();\n         this.cachedOwner = p_37263_;\n      }\n\n   }\n\n   @Nullable\n   public Entity getOwner() {\n      if (this.cachedOwner != null && !this.cachedOwner.isRemoved()) {\n         return this.cachedOwner;\n      } else if (this.ownerUUID != null && this.level() instanceof ServerLevel) {\n         this.cachedOwner = ((ServerLevel)this.level()).getEntity(this.ownerUUID);\n         return this.cachedOwner;\n      } else {\n         return null;\n      }\n   }\n\n   public Entity getEffectSource() {\n      return MoreObjects.firstNonNull(this.getOwner(), this);\n   }\n\n   protected void addAdditionalSaveData(CompoundTag p_37265_) {\n      if (this.ownerUUID != null) {\n         p_37265_.putUUID(\"Owner\", this.ownerUUID);\n      }\n\n      if (this.leftOwner) {\n         p_37265_.putBoolean(\"LeftOwner\", true);\n      }\n\n      p_37265_.putBoolean(\"HasBeenShot\", this.hasBeenShot);\n   }\n\n   protected boolean ownedBy(Entity p_150172_) {\n      return p_150172_.getUUID().equals(this.ownerUUID);\n   }\n\n   protected void readAdditionalSaveData(CompoundTag p_37262_) {\n      if (p_37262_.hasUUID(\"Owner\")) {\n         this.ownerUUID = p_37262_.getUUID(\"Owner\");\n         this.cachedOwner = null;\n      }\n\n      this.leftOwner = p_37262_.getBoolean(\"LeftOwner\");\n      this.hasBeenShot = p_37262_.getBoolean(\"HasBeenShot\");\n   }\n\n   public void tick() {\n      if (!this.hasBeenShot) {\n         this.gameEvent(GameEvent.PROJECTILE_SHOOT, this.getOwner());\n         this.hasBeenShot = true;\n      }\n\n      if (!this.leftOwner) {\n         this.leftOwner = this.checkLeftOwner();\n      }\n\n      super.tick();\n   }\n\n   private boolean checkLeftOwner() {\n      Entity entity = this.getOwner();\n      if (entity != null) {\n         for(Entity entity1 : this.level().getEntities(this, this.getBoundingBox().expandTowards(this.getDeltaMovement()).inflate(1.0D), (p_37272_) -> {\n            return !p_37272_.isSpectator() && p_37272_.isPickable();\n         })) {\n            if (entity1.getRootVehicle() == entity.getRootVehicle()) {\n               return false;\n            }\n         }\n      }\n\n      return true;\n   }\n\n   public void shoot(double p_37266_, double p_37267_, double p_37268_, float p_37269_, float p_37270_) {\n      Vec3 vec3 = (new Vec3(p_37266_, p_37267_, p_37268_)).normalize().add(this.random.triangle(0.0D, 0.0172275D * (double)p_37270_), this.random.triangle(0.0D, 0.0172275D * (double)p_37270_), this.random.triangle(0.0D, 0.0172275D * (double)p_37270_)).scale((double)p_37269_);\n      this.setDeltaMovement(vec3);\n      double d0 = vec3.horizontalDistance();\n      this.setYRot((float)(Mth.atan2(vec3.x, vec3.z) * (double)(180F / (float)Math.PI)));\n      this.setXRot((float)(Mth.atan2(vec3.y, d0) * (double)(180F / (float)Math.PI)));\n      this.yRotO = this.getYRot();\n      this.xRotO = this.getXRot();\n   }\n\n   public void shootFromRotation(Entity p_37252_, float p_37253_, float p_37254_, float p_37255_, float p_37256_, float p_37257_) {\n      float f = -Mth.sin(p_37254_ * ((float)Math.PI / 180F)) * Mth.cos(p_37253_ * ((float)Math.PI / 180F));\n      float f1 = -Mth.sin((p_37253_ + p_37255_) * ((float)Math.PI / 180F));\n      float f2 = Mth.cos(p_37254_ * ((float)Math.PI / 180F)) * Mth.cos(p_37253_ * ((float)Math.PI / 180F));\n      this.shoot((double)f, (double)f1, (double)f2, p_37256_, p_37257_);\n      Vec3 vec3 = p_37252_.getDeltaMovement();\n      this.setDeltaMovement(this.getDeltaMovement().add(vec3.x, p_37252_.onGround() ? 0.0D : vec3.y, vec3.z));\n   }\n\n   protected void onHit(HitResult p_37260_) {\n      HitResult.Type hitresult$type = p_37260_.getType();\n      if (hitresult$type == HitResult.Type.ENTITY) {\n         this.onHitEntity((EntityHitResult)p_37260_);\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, p_37260_.getLocation(), GameEvent.Context.of(this, (BlockState)null));\n      } else if (hitresult$type == HitResult.Type.BLOCK) {\n         BlockHitResult blockhitresult = (BlockHitResult)p_37260_;\n         this.onHitBlock(blockhitresult);\n         BlockPos blockpos = blockhitresult.getBlockPos();\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, blockpos, GameEvent.Context.of(this, this.level().getBlockState(blockpos)));\n      }\n\n   }\n\n   protected void onHitEntity(EntityHitResult p_37259_) {\n   }\n\n   protected void onHitBlock(BlockHitResult p_37258_) {\n      BlockState blockstate = this.level().getBlockState(p_37258_.getBlockPos());\n      blockstate.onProjectileHit(this.level(), blockstate, p_37258_, this);\n   }\n\n   public void lerpMotion(double p_37279_, double p_37280_, double p_37281_) {\n      this.setDeltaMovement(p_37279_, p_37280_, p_37281_);\n      if (this.xRotO == 0.0F && this.yRotO == 0.0F) {\n         double d0 = Math.sqrt(p_37279_ * p_37279_ + p_37281_ * p_37281_);\n         this.setXRot((float)(Mth.atan2(p_37280_, d0) * (double)(180F / (float)Math.PI)));\n         this.setYRot((float)(Mth.atan2(p_37279_, p_37281_) * (double)(180F / (float)Math.PI)));\n         this.xRotO = this.getXRot();\n         this.yRotO = this.getYRot();\n         this.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());\n      }\n\n   }\n\n   protected boolean canHitEntity(Entity p_37250_) {\n      if (!p_37250_.canBeHitByProjectile()) {\n         return false;\n      } else {\n         Entity entity = this.getOwner();\n         return entity == null || this.leftOwner || !entity.isPassengerOfSameVehicle(p_37250_);\n      }\n   }\n\n   protected void updateRotation() {\n      Vec3 vec3 = this.getDeltaMovement();\n      double d0 = vec3.horizontalDistance();\n      this.setXRot(lerpRotation(this.xRotO, (float)(Mth.atan2(vec3.y, d0) * (double)(180F / (float)Math.PI))));\n      this.setYRot(lerpRotation(this.yRotO, (float)(Mth.atan2(vec3.x, vec3.z) * (double)(180F / (float)Math.PI))));\n   }\n\n   protected static float lerpRotation(float p_37274_, float p_37275_) {\n      while(p_37275_ - p_37274_ < -180.0F) {\n         p_37274_ -= 360.0F;\n      }\n\n      while(p_37275_ - p_37274_ >= 180.0F) {\n         p_37274_ += 360.0F;\n      }\n\n      return Mth.lerp(0.2F, p_37274_, p_37275_);\n   }\n\n   public Packet<ClientGamePacketListener> getAddEntityPacket() {\n      Entity entity = this.getOwner();\n      return new ClientboundAddEntityPacket(this, entity == null ? 0 : entity.getId());\n   }\n\n   public void recreateFromPacket(ClientboundAddEntityPacket p_150170_) {\n      super.recreateFromPacket(p_150170_);\n      Entity entity = this.level().getEntity(p_150170_.getData());\n      if (entity != null) {\n         this.setOwner(entity);\n      }\n\n   }\n\n   public boolean mayInteract(Level p_150167_, BlockPos p_150168_) {\n      Entity entity = this.getOwner();\n      if (entity instanceof Player) {\n         return entity.mayInteract(p_150167_, p_150168_);\n      } else {\n         return entity == null || net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(p_150167_, entity);\n      }\n   }\n}\n",
+          "excerpt_sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9"
+        }
+      ],
+      "actual_read_after_complete_oldwhole_checkpoint": true,
+      "new_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/client/model/ShulkerBulletModel.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/model/ShulkerBulletModel.java",
+      "sha256": "b909a2768e030d29c12c528a6dcb427a6b9ddcd685bd5bd2076edb09059c2ff4",
+      "bytes": 1706,
+      "total_lines": 39,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 39,
+          "raw_utf8": "package net.minecraft.client.model;\n\nimport net.minecraft.client.model.geom.ModelPart;\nimport net.minecraft.client.model.geom.PartPose;\nimport net.minecraft.client.model.geom.builders.CubeListBuilder;\nimport net.minecraft.client.model.geom.builders.LayerDefinition;\nimport net.minecraft.client.model.geom.builders.MeshDefinition;\nimport net.minecraft.client.model.geom.builders.PartDefinition;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class ShulkerBulletModel<T extends Entity> extends HierarchicalModel<T> {\n   private static final String MAIN = \"main\";\n   private final ModelPart root;\n   private final ModelPart main;\n\n   public ShulkerBulletModel(ModelPart p_170916_) {\n      this.root = p_170916_;\n      this.main = p_170916_.getChild(\"main\");\n   }\n\n   public static LayerDefinition createBodyLayer() {\n      MeshDefinition meshdefinition = new MeshDefinition();\n      PartDefinition partdefinition = meshdefinition.getRoot();\n      partdefinition.addOrReplaceChild(\"main\", CubeListBuilder.create().texOffs(0, 0).addBox(-4.0F, -4.0F, -1.0F, 8.0F, 8.0F, 2.0F).texOffs(0, 10).addBox(-1.0F, -4.0F, -4.0F, 2.0F, 8.0F, 8.0F).texOffs(20, 0).addBox(-4.0F, -1.0F, -4.0F, 8.0F, 2.0F, 8.0F), PartPose.ZERO);\n      return LayerDefinition.create(meshdefinition, 64, 32);\n   }\n\n   public ModelPart root() {\n      return this.root;\n   }\n\n   public void setupAnim(T p_103716_, float p_103717_, float p_103718_, float p_103719_, float p_103720_, float p_103721_) {\n      this.main.yRot = p_103720_ * ((float)Math.PI / 180F);\n      this.main.xRot = p_103721_ * ((float)Math.PI / 180F);\n   }\n}",
+          "excerpt_sha256": "b909a2768e030d29c12c528a6dcb427a6b9ddcd685bd5bd2076edb09059c2ff4"
+        }
+      ],
+      "actual_read_after_complete_oldwhole_checkpoint": true,
+      "new_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/world/entity/monster/Shulker.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/Shulker.java",
+      "sha256": "6053155cf0c01708d766f0c6b130199f80d7a93621bc45d3b78ff0ddca8621f7",
+      "bytes": 26561,
+      "total_lines": 694,
+      "whole_file_actually_read": false,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 61,
+          "last_line": 99,
+          "raw_utf8": "public class Shulker extends AbstractGolem implements VariantHolder<Optional<DyeColor>>, Enemy {\n   private static final UUID COVERED_ARMOR_MODIFIER_UUID = UUID.fromString(\"7E0292F2-9434-48D5-A29F-9583AF7DF27F\");\n   private static final AttributeModifier COVERED_ARMOR_MODIFIER = new AttributeModifier(COVERED_ARMOR_MODIFIER_UUID, \"Covered armor bonus\", 20.0D, AttributeModifier.Operation.ADDITION);\n   protected static final EntityDataAccessor<Direction> DATA_ATTACH_FACE_ID = SynchedEntityData.defineId(Shulker.class, EntityDataSerializers.DIRECTION);\n   protected static final EntityDataAccessor<Byte> DATA_PEEK_ID = SynchedEntityData.defineId(Shulker.class, EntityDataSerializers.BYTE);\n   protected static final EntityDataAccessor<Byte> DATA_COLOR_ID = SynchedEntityData.defineId(Shulker.class, EntityDataSerializers.BYTE);\n   private static final int TELEPORT_STEPS = 6;\n   private static final byte NO_COLOR = 16;\n   private static final byte DEFAULT_COLOR = 16;\n   private static final int MAX_TELEPORT_DISTANCE = 8;\n   private static final int OTHER_SHULKER_SCAN_RADIUS = 8;\n   private static final int OTHER_SHULKER_LIMIT = 5;\n   private static final float PEEK_PER_TICK = 0.05F;\n   static final Vector3f FORWARD = Util.make(() -> {\n      Vec3i vec3i = Direction.SOUTH.getNormal();\n      return new Vector3f((float)vec3i.getX(), (float)vec3i.getY(), (float)vec3i.getZ());\n   });\n   private float currentPeekAmountO;\n   private float currentPeekAmount;\n   @Nullable\n   private BlockPos clientOldAttachPosition;\n   private int clientSideTeleportInterpolation;\n   private static final float MAX_LID_OPEN = 1.0F;\n\n   public Shulker(EntityType<? extends Shulker> p_33404_, Level p_33405_) {\n      super(p_33404_, p_33405_);\n      this.xpReward = 5;\n      this.lookControl = new Shulker.ShulkerLookControl(this);\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(1, new LookAtPlayerGoal(this, Player.class, 8.0F, 0.02F, true));\n      this.goalSelector.addGoal(4, new Shulker.ShulkerAttackGoal());\n      this.goalSelector.addGoal(7, new Shulker.ShulkerPeekGoal());\n      this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n      this.targetSelector.addGoal(1, (new HurtByTargetGoal(this, this.getClass())).setAlertOthers());\n      this.targetSelector.addGoal(2, new Shulker.ShulkerNearestAttackGoal(this));\n      this.targetSelector.addGoal(3, new Shulker.ShulkerDefenseAttackGoal(this));\n   }\n",
+          "excerpt_sha256": "6adba5c05228aada2714ff99dcdd31f9096e5f9b05528027e552858c203a7b8a"
+        },
+        {
+          "first_line": 538,
+          "last_line": 588,
+          "raw_utf8": "   class ShulkerAttackGoal extends Goal {\n      private int attackTime;\n\n      public ShulkerAttackGoal() {\n         this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));\n      }\n\n      public boolean canUse() {\n         LivingEntity livingentity = Shulker.this.getTarget();\n         if (livingentity != null && livingentity.isAlive()) {\n            return Shulker.this.level().getDifficulty() != Difficulty.PEACEFUL;\n         } else {\n            return false;\n         }\n      }\n\n      public void start() {\n         this.attackTime = 20;\n         Shulker.this.setRawPeekAmount(100);\n      }\n\n      public void stop() {\n         Shulker.this.setRawPeekAmount(0);\n      }\n\n      public boolean requiresUpdateEveryTick() {\n         return true;\n      }\n\n      public void tick() {\n         if (Shulker.this.level().getDifficulty() != Difficulty.PEACEFUL) {\n            --this.attackTime;\n            LivingEntity livingentity = Shulker.this.getTarget();\n            if (livingentity != null) {\n               Shulker.this.getLookControl().setLookAt(livingentity, 180.0F, 180.0F);\n               double d0 = Shulker.this.distanceToSqr(livingentity);\n               if (d0 < 400.0D) {\n                  if (this.attackTime <= 0) {\n                     this.attackTime = 20 + Shulker.this.random.nextInt(10) * 20 / 2;\n                     Shulker.this.level().addFreshEntity(new ShulkerBullet(Shulker.this.level(), Shulker.this, livingentity, Shulker.this.getAttachFace().getAxis()));\n                     Shulker.this.playSound(SoundEvents.SHULKER_SHOOT, 2.0F, (Shulker.this.random.nextFloat() - Shulker.this.random.nextFloat()) * 0.2F + 1.0F);\n                  }\n               } else {\n                  Shulker.this.setTarget((LivingEntity)null);\n               }\n\n               super.tick();\n            }\n         }\n      }\n   }\n",
+          "excerpt_sha256": "06a979012a647d8f0b343687e685ce2129454a0e7ecc931f91963206ac071eea"
+        }
+      ],
+      "actual_read_after_complete_oldwhole_checkpoint": true,
+      "new_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/world/damagesource/DamageSources.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/damagesource/DamageSources.java",
+      "sha256": "06b6582513dec5205fce30f684992b4dad54788bf0de21855aa527815b6877ea",
+      "bytes": 8519,
+      "total_lines": 254,
+      "whole_file_actually_read": false,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 203,
+          "last_line": 205,
+          "raw_utf8": "   public DamageSource mobProjectile(Entity p_270210_, @Nullable LivingEntity p_270757_) {\n      return this.source(DamageTypes.MOB_PROJECTILE, p_270210_, p_270757_);\n   }\n",
+          "excerpt_sha256": "6952124de6ab97a857f006adc521022dbf2a143900a2540398068470acb360b9"
+        }
+      ],
+      "actual_read_after_complete_oldwhole_checkpoint": true,
+      "new_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraftforge/event/ForgeEventFactory.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+      "sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "bytes": 46418,
+      "total_lines": 997,
+      "whole_file_actually_read": false,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 708,
+          "last_line": 711,
+          "raw_utf8": "    public static boolean onProjectileImpact(Projectile projectile, HitResult ray)\n    {\n        return onProjectileImpactResult(projectile, ray) != ProjectileImpactEvent.ImpactResult.DEFAULT;\n    }\n",
+          "excerpt_sha256": "2693c223f6987333fd600795b817c5a5a25b5fdcb3f7c327c1ad0114c508c53b"
+        }
+      ],
+      "actual_read_after_complete_oldwhole_checkpoint": true,
+      "new_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/world/entity/EntityType.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+      "sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "bytes": 52218,
+      "total_lines": 775,
+      "whole_file_actually_read": false,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 252,
+          "last_line": 252,
+          "raw_utf8": "   public static final EntityType<ShulkerBullet> SHULKER_BULLET = register(\"shulker_bullet\", EntityType.Builder.<ShulkerBullet>of(ShulkerBullet::new, MobCategory.MISC).sized(0.3125F, 0.3125F).clientTrackingRange(8));\n",
+          "excerpt_sha256": "4f564dc4fb21570818049f3b3c63fa65192dcb508f1fa694159e2534b58830b1"
+        }
+      ],
+      "actual_read_after_complete_oldwhole_checkpoint": true,
+      "new_semantic_credit": 0
+    }
+  ],
+  "oldwhole_first_checkpoint_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-183-complete-old128-517-groups29-244-migration668-before-source-20261114.json",
+    "sha256": "3bb5839390572ec2593d9bc38b8e25c04ea9f8ffd344f6bbd7f552407959e5d7",
+    "bytes": 19872
+  },
+  "complete_oldwhole_first_checkpoint_unchanged": {
+    "schema": "dynasty-183-homing-source-oldwhole-first-v1",
+    "recorded_at": "2026-11-14T03:51:36.646264+00:00",
+    "status": "COMPLETE_OLD_128_517_GROUPS29_244_MIGRATION668_BEFORE_SOURCE",
+    "complete_old_comparisons": [
+      {
+        "position1": 128,
+        "id": "iron-guiding-bolt-native-projectile-immunity-and-control-assignment",
+        "complete_four_business": {
+          "full_chain_observation": "GuidingBoltEffect加入→startTracking；EntityJoinLevel→onProjectileShot→LevelTick.Post serverTick→Start S2C→livingTick；效果移除→stopTracking→Stop S2C；Client LoggingOut→clear",
+          "concrete_observation": "EntityJoinLevel原生事件仅server且已有追踪目标才收Projectile，GUIDING_BOLT_IMMUNE类型不入dirty。LevelTick.Post按当前维度、向前raycast、各轴48格及目标膨胀包围盒匹配第一个非owner目标，绑定Projectile集合；EntityTick.Pre逐tick保持速度大小转向，反向dot<-0.75/removed退出。效果首次加入start，原生onEffectRemoved Mixin及server死亡回调委托stop；Start包目标UUID+弹整数ID，Stop包UUID。 主岗：原生控制分配/弹种拒绝/目标绑定和停止链完整，合计1；目标UUID和弹整数ID是不同校验对象，客户端死亡stopTracking的server-only条件导致本地分支不清；未缓存默认tag，不能声称某实际弹种必拒。",
+          "application_to_boss_immune": "抗强制转向是弹种资格，不能显示成受击Boss免疫；目标/弹绑定必须由权威资格分支产生，客户端视觉状态不能反推伤害。",
+          "limitations": "没有默认tag内容缓存，不声称哪些实际弹种受保护；首次目标加入不会将既有全世界弹重新扫描。客户端Start仅立即查现有整数ID，缺弹丢失且无重试；客户端死亡清理调用server-only stopTracking无效，Stop/Logout才显式清map。没有运行或网络验证。 主岗全文复核固定版本；静态不证明实际观感/音量/TCP/Boss覆盖；普通体质不要求灰字；守卫旧账0转入。"
+        },
+        "canonical_sha256": "86af6dd81c233f1894bc62e0e8d197c1450eeec00ea00d259b518cc22417e6c4",
+        "whole_row_canonical_sha256": "e55d030e99aeac01fbfbf4390e7320666a8db0333dc3a83cd125b6219f8e63b0",
+        "old_raw_source_ancestors_newly_read": false
+      },
+      {
+        "position1": 517,
+        "id": "native-shulker-accepted-hit-branch-precedence-and-open-shell-teleport-before-oldspace-density-qualified-newborn-admission-attempt",
+        "complete_four_business": {
+          "full_chain_observation": "Native shell DATA_PEEK byte defaults0 and isClosed tests exactly==0, not visual lid interpolation or health threshold. setRawPeekAmount server removes covered armor modifier then readds+20 onzero andrequests close/open cue before writing byte. Damage phase/armor/cue are related but different results; native scheduling/sync/attribute outcome not run.\nRegistered own AttackGoal startsraw100 andattackTime20, stopsraw0; tick currenttarget/difficulty/distance<400 can request newly constructed ownerShulker-targeted bullet andshootsound with unchecked addFreshEntity. Look-at/currenttarget behavior is studycontext0, not a production suggestion or guaranteed natural activation.\nOwn hurt first ifclosed rejects direct AbstractArrow before parenthurt without an explicit tag/bypass exception. This exact closed/arrow rule overlaps prior45 helmet-phase refusal and earns0alone. Nonarrow, openarrow and laterparenthook outcomes remain separate.\nOnly parenthurttrue enters own aftermath. If post-parenthealth<halfmax andnextInt4==0, attempt teleport takes precedence and itsboolignored. Because next case is else-if, that chosen branch suppresses reproduction even when teleportfalse; allnormallyreturningparenttrue paths stillreturntrue.\nOtherwise only IS_PROJECTILE-tagged source with nonnull directentity exact EntityType.SHULKER_BULLET calls hitByShulkerBullet. Owner same-as-target is not checked; a same-species typed projectile need not have been fired by this victim. Actual merged tag membership/nativehits remain conditional.\nhitBy snapshots positionVec3 andAABB before requiring !closed andteleportSomewheretrue. Thus movement/target-clear/peekclose commit requests occur before density/RNG/create/add. Failure laterdoesnotrollbackparentdamage ormovement, and hurtstilltrue onnormalreturn.\nDensity query occurs aftermovement butuses OLD aabb.inflate8 andaliveEntityType.SHULKER entries. Threshold f=(i-1)/5 isnotclamped; candidateuserRandom.nextFloat<f deniesattempt. It is a localrandom density rule, not an atomic reservation/globalfive-shulker cap or allworldcount. Parent inclusion depends liveposition/query/listeners, no runtimeprobability/limit measured.\nIf random permits, EntityType.SHULKER.create maynull; otherwise onlyownsetVariant(currentparentvariant), moveTo(OLDvec3) andunchecked addFreshEntity shown. Original parent remains at requestednewposition while newbornattempt placedoldspace. OwnmethoddoesnotcopyarbitraryNBT/UUID/owner orreturnadmissionresult; no successfulbirth/refund/identityconservation claimed.\nteleportSomewhere gates !NoAi && alive, triesup-to5 integeroffsets±8 aroundinitialblockpos, prechecksbuildheight/empty/worldborder/collision andattachablesurface. No top-levelserverguard here; parentdamage/AI actual scheduling notsubstituted.\nfindAttachableSurface scansdirections, canStayAt checksunblockedcell andloadedface support plusfully-openprogressAABBcollision. Positionblocked hasonlyair orsamecurrentMOVING_PISTON exception. These are pre-eventcandidatechecks, not allworld/physicsvalidatorproof.\nForgeevent maycancel ormutateXYZ. Methodsets directionnulloncancel, floorsmutateddestination toBlockPos, then onlydirectionnonnull path unRide/setAttachFace/sound/setPos/gameevent/rawpeek0/targetnull/true. Cancelediterationmaycontinuetonextcandidate. Sameoriginalattachdirection/prechecks notrerun onmutatedXYZ inthismethod; Entity.setPos/worldbackendunexpanded, no reproducedinvalidlandingbug.\nShulker ownsetPos delegates snappedcoordinates toparent, andaftertick0 changedblock writesrawpeek0/impulse/clientoldpos/interpolation6. Boththisandteleport writeentityData directly, bypassingsetRawPeekAmount armor/cue helper there. No finalarmor/render/clientdesync conclusion; latergoalstop/nativeattributesmayintervene.\nActual ShulkerBullet constructorstoresowner,initialmouth-centerposition,finalTarget andUPdirection beforeselectNextMoveDirection. Oldmigration668 alreadyowns route/targetcheckpoint, no newhoming/persistence/ownercredit.\nNativeProjectile.onHit dispatchesonHitEntity beforePROJECTILE_LAND event. Bullet.onHitEntity callstargethurt(mobProjectile(this,livingowner),4); trueonlyattemptsenchantandeffectLEVITATION200withsourceowner-orbullet, ignoresaddEffectbool. Targethurttrue/teleport/newbornattempt is not acceptedlevitation orHP proof.\nBullet.onHit afterparentsuper normallyreturns callsdestroy: discardthenENTITY_DAMAGEgameevent. Thereforetargethurtfalse doesnotitselfpreventbulletdestruction; exceptioncaninterrupt. Ownbul lethurtserversound/particles/destroythenreturnstrue withoutitselfHPwrite; thisgenericbool/cuecontext0, notnewsecondpolicy.\nNinewholepriorfourfieldjudgments, completepending140candidate andmigration668businessowner compared. Onlyproposedwhole distinction is accepted-hit/openshell route andbranchprecedence into oldspace population-qualifiednewbornattempt after parentmovement; genericarrowrefusal/teleport/effect/childwrapper/truebool/cue alreadyowned0.\nForDynasty, distinguishactualrefusal, acceptedhit, movementstate, actoridentity/newbornadmission andeffectrequest. No shownBossreason/UUIDepoch/lifetime immuneack orfee/paidresource policy; thisresearchdoesnotaddreproduction/capture/rotationmechanicsorordinaryconstitutiongraytext.",
+          "concrete_observation": "Closed-arrowveto(old0) -> parenthurt acceptance -> lowHPteleportpriority OR taggedtypedbullet/openphase -> snapshotoldspace -> teleportclose/targetclear -> liveoldspace density/RNG -> freshvariantoldposuncheckedadmission. Returnedhurtbool/effectcaller/destruction allseparate. Atmost1adjacentwhole orMainmerge0.",
+          "application_to_boss_immune": "Trackactualcontrolreason/phase/recipientidentity separatelyfromparenthurt,movement, actoradmissionandeffectrequests. Studyonly; no newgameplay orgrayfeedbackbeforeapplicable1000.",
+          "limitations": "Atmost1adjacent lifecyclewhole pendingindependentMain, accepted/formal0/IDnull; Mainmaymerge0especiallywith45/140/443/505. Cannotcountnewspecies/arrowphase/5or8constants/helpers/branches/offpsring/goal/ranges/bugseparately.\nFixedlocalForge1.20.1-47.4.10 mappedarchive4entrybytes exactonly, nofreshremote/Gitcommit-tree/currentDynastybinary/config/runtime/nativeacceptance. No upstreamcode executed.\nExactmerged IS_PROJECTILE/MOB_PROJECTILE tags/DamageType/effect/immunity/nativeparenthurt/effectlistenersnotclosed. TypedBulletrouteconditional; directentityandowner distinct, notimmutableattackeridentity.\nFullShulker694/Bullet319/nativeengine notread; explicit4files10ranges373lines/0wholefiles, onecompleteinnerAttackGoal only. Partialincidentalmethods andearlierexcesslineattemptnotcredited.\nActualGoalSelector/NoAI scheduling/targetarbitration, inheritance/constructorinit/attributeoperationsandloadedstateunexpanded; raw0notpixelclosed/actualarmorproof, attacksoundnotbulletadmission.\nOldspace localpopulationquery/randomthreshold nothardglobalcap/atomicreservation/deterministicprobability. Membershipafterlistener/movement/queryconcurrencyunverified, noactualduplication/exploit/collisionfailureclaim.\nFactory/moveTo/addFreshEntity/backendadmission/persistence/trackingnotallreadorrun. Ignoredaddresultnotadmittednewborn, originalidentitycarryover/resourceconservation/pickup/payment/questreward/Clonewhitelist.\nteleportevent cancellation/rewrite/sourceorderonly; nativeunRide/dismountcanberefused viaexternalcontracts, destinationpostrewritephysics/EntitysetPosnotclosed. Noatomicteleport/restore/currentpackallcontrolguarantee.\nlowHPquarterchance branchsuppresseselse-if evenfailedteleport; hurttrueonlyparentnormalreturn plusaftermathnormalreturn, notpositiveHP/teleport/newborn/stun/levitationreceipt.\nSharedForgeevent/DamageSource helpersreuse140exactoldrefs0. Commonarrow/effect/child/successfeedback/nativepacketsemanticownerspreserved0;139FabricprovenanceHOLDnotimprovedbythisForgeevidence.\nNinewholejudgmentfourfieldsreadbounded;505concreteverifiedliteraljoinofall46alreadyreadentries, nothash-onlysemanticcredit. All515keywordnavigationnotmanualallsource/globaluniqueness, nestedoldsourcechainsnotreread.\nMigration668completeoldtarget/routeownerretained; sourceBulletselectedrangescontext0, no newNBT/migration/UUID/ownerpolicycredit. NewbornownsetVariantnotlosslesscopy/backupstrategy.\nGameevent/sound/particle/peek/interpolationrequestsnotdeliveredgraytext/lifetimes/packetACK/pixels/audio. Ordinaryconstitutiongraytextunchanged, nolookrotationgameplayimplemented.\nOnlynewimmutableprivateartifacts; noformalappendplan/grant/token/marker/proof/executor/import/help/run/production/UIbackground/assets/UV/model/building/sharedJar/userinstance/worldsave/process/network/Java/Gradle/Git/automation/display/audio/brightness/wake/focus/masterpendingownership/taskdeletion. Applicable1000false; nohours/allcomplete.\nMain bounded limits:\nMax1 adjacentwhole orboundedmerge0 pendingactual originalauthor ACK to17Mainfindings+14limits; original17observations14limits retained. Formal0/IDnull/noappend oronce authority.\nFixedlocal mappedForge1.20.1/47.4.10 archive4entrybytes only; notfreshremote/Git/currentinstalledDynastybinary/config proof. Source notexecuted.\n4files10boundedranges373lines/0wholefiles andoneinnergoal, not10mechanisms. Fullparent/native engine/GoalSelector/currentloadedtags outside.\nAlltags/DamageTypes/parentdamage/effectlisteners conditional; parenthurttrue not positiveHP, ownnormalreturn bool notmovement/newborn/control receipt.\nLowHP selectedbranch mayfailmovement while suppressing reproduction; randomstatement isnot empiricalchance, ticktime/wholeAI schedule notproven.\nOldspacequery f unclamped/notatomic/noreservation; entity identity/inclusion/concurrentchanges unmeasured. No cap/ecologyprobability/production proposal.\nFactory/moveTo/add/tracking/save/pickup/backend unexpanded. Newbornvariant request notadmitted orlosslessactorcopy/material/payment/questreceipt.\nEventediteddestination notsameasprecheckedcandidate; nativeunRide/EntitysetPos external. No globalphysics/atomicrollback/exploit/runtimefailure conclusion.\nRawpeek/armorhelper/cue/interpolation paths sourceonly. Directraw maybypasshelper but not provenfinalwrongarmor/clientdesync or needtofix.\nBullet hurt/destroy/enchant/effect/gameevent/sourceowner context0. No renderedpixels/audio/graytext/lifetime/UUIDepoch/packetACK/native/TCP acceptance.\nNine complete savedfourfield judgments andmigration668business actuallyread; oldfullsourcebodies onlyboundexcept4explicitnewfiles. Lexicalnavigation notall515/globalnovelty. Pending140oldsource/contextreuse0.\nShared140Forgeevent/factory/DamageSource currentbound0;139Spectrum provenanceHOLD unaffected. No source/helper/constant/branch/file/AI/species splitcredit.\nCandidate sealedhistoric515/eco53 preserved; currentMain515/eco54 separatebinding, notoldproposalrewrite/rebase/consumedplan replay.\nNo production/Java/Gradle/game/process/display/network/UI/audio/brightness/wake/unlock/focus/userinstance/save/sharedJar/proassets/quest/masterlists/pending/ownership/Git/automation changes; taskdelete0/hoursnull/allcompletefalse."
+        },
+        "canonical_sha256": "9b265bfb2769d87fa181ab7c97a03cd832075a18aa80aa7bceded2e9f6e90e39",
+        "whole_row_canonical_sha256": "34551a362395dc99cd6e9caaf9fc62ed6f6f40fb8e70eae524a1f89f3fafbee2",
+        "old_raw_source_ancestors_newly_read": false
+      }
+    ],
+    "complete_old_groups": [
+      {
+        "index": 29,
+        "complete_group": {
+          "family": "herschel-003-primary-reviewed",
+          "credited_chains": [
+            "iron-guiding-bolt-native-projectile-immunity-and-control-assignment",
+            "iron-enderchain-breakable-control-window-and-part-fx-order",
+            "ars-wall-per-target-attempt-window-and-expiry-burst",
+            "ars-native-cast-refusal-chat-replacement-ignores-channel",
+            "iron-corpse-refused-hit-triggers-idempotent-boss-awakening",
+            "iron-dimension-spell-teleport-rejection-precedes-success-proof",
+            "ars-disintegration-removal-bypasses-damage-immunity",
+            "ars-player-totem-death-cancel-resource-and-rearm"
+          ],
+          "rationale": "6条独立新链+2条002补证；召唤来源白名单合并既有资格家族；Boss攻击者tag/FALL常量0，Protection缺register消费者/CastError缺producer仍0。没有按方法/实体/包装增加信用。"
+        },
+        "canonical_sha256": "9761845789323049ac5ba46dbaee152b3df6f1a0bd72dce27cd2b6f16d137220"
+      },
+      {
+        "index": 244,
+        "complete_group": {
+          "family": "native-shulker-accepted-hit-open-shell-movement-before-oldspace-qualified-newborn-attempt",
+          "credited_chain": "native-shulker-accepted-hit-branch-precedence-and-open-shell-teleport-before-oldspace-density-qualified-newborn-admission-attempt",
+          "rationale": "Closed-arrowveto(old0) -> parenthurt acceptance -> lowHPteleportpriority OR taggedtypedbullet/openphase -> snapshotoldspace -> teleportclose/targetclear -> liveoldspace density/RNG -> freshvariantoldposuncheckedadmission. Returnedhurtbool/effectcaller/destruction allseparate. Atmost1adjacentwhole orMainmerge0.",
+          "assessment": {
+            "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batches-141-142-current516-ecology54-v1-private-batch141-dedup-assessment-20261112.json",
+            "sha256": "3f37550e887c958a82847fa15a19673370cdf71e0bcebab9ef1be376cdd0c52a",
+            "bytes": 1932
+          },
+          "Main_actual_author_ack_review": {
+            "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program141-actual31-author-ACK-closure-20261112.json",
+            "sha256": "1c0033da0767e258b9fa41b426a9c8702b402e8deed9a968ccc8dab533154ad7",
+            "bytes": 1643
+          },
+          "current516_ecology54_context": {
+            "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batches-141-142-current516-ecology54-v1-context-20261112.json",
+            "sha256": "093f70b9eb7c3ecb04c5a82aa10b28088e4fbbbec71e0f3c6340f4d89da0c107",
+            "bytes": 9603
+          }
+        },
+        "canonical_sha256": "323c914eb21acf52c66290df141d14504cc21a126b354615bbfc1f7d42c1d4c0"
+      }
+    ],
+    "complete_saved_migration668_owner": {
+      "candidate_id": "b87b4952c60e17092c19",
+      "status": "accepted",
+      "family": "native-shulker-homing-projectile-route-checkpoint-and-target-resolution-loss",
+      "trigger": "Full ShulkerBullet pair/tick/selectNextMoveDirection/onHit/onHitEntity",
+      "input": "Target UUID from livefinaltarget; direction/steps/targetdelta checkpoint",
+      "output": "restore routevector andstepbudget, nextservertick resolves target once; active target resumes movementsteering; hit appliesdamage andlevitation then destroys",
+      "preservation": "Concrete moving projectile state owner, distinct from static conduit target (route checkpoint + traversal consumers). Parent projectileowner chain support0.",
+      "application_limit": "Failedtargetlookup clears savedidentity without retry; resave before resolve omits pendingtargetUUID. Missing target/direction can retain stale on reused object. Deltasraw, nofiniteguard; impact hook mayveto. No guarantee homingresumes across unloadedtarget/dimensions.",
+      "supporting_candidates": [],
+      "credit": 1,
+      "evidence": [
+        {
+          "candidate_id": "b87b4952c60e17092c19",
+          "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+          "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "path": "net/minecraft/world/entity/projectile/ShulkerBullet.java",
+          "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ShulkerBullet.java",
+          "start_line": 83,
+          "end_line": 97,
+          "method": "readAdditionalSaveData",
+          "file_sha256": "a27d210d38fbccf0dd46274335bc7d5618f0eb8fb3585d34352fcac20d469e97",
+          "method_sha256": "c714067a1a1a9660efcc3171a42505ddf79fefa7a1c52b21d976b24f056c8536",
+          "structural_fingerprint": "8941a3bdd37953c861fd55c201cafae1465dfa6d0f098db95b180337ff713a3a",
+          "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+          "context": "protected void readAdditionalSaveData(CompoundTag p_37353_) {\n      super.readAdditionalSaveData(p_37353_);\n      this.flightSteps = p_37353_.getInt(\"Steps\");\n      this.targetDeltaX = p_37353_.getDouble(\"TXD\");\n      this.targetDeltaY = p_37353_.getDouble(\"TYD\");\n      this.targetDeltaZ = p_37353_.getDouble(\"TZD\");\n      if (p_37353_.contains(\"Dir\", 99)) {\n         this.currentMoveDirection = Direction.from3DDataValue(p_37353_.getInt(\"Dir\"));\n      }\n\n      if (p_37353_.hasUUID(\"Target\")) {\n         this.targetId = p_37353_.getUUID(\"Target\");\n      }\n\n   }",
+          "parse_has_error": false
+        }
+      ]
+    },
+    "migration668_complete_object_actually_read": true,
+    "migration668_scope_not_narrowed_to_read_method_locator": true,
+    "preliminary_decision": "Route/target resolution loss and impact semantics already whole-owned by668 and517; read source only for bounded original-program comparative verification, expect MERGE0.",
+    "program": 533,
+    "groups": 261,
+    "ecology": 75,
+    "research_credit": 0,
+    "formal_id": null,
+    "formal_append": false,
+    "new_private_or_once": false,
+    "production_changes": 0
+  },
+  "complete_old_comparisons": [
+    {
+      "position1": 128,
+      "id": "iron-guiding-bolt-native-projectile-immunity-and-control-assignment",
+      "complete_four_business": {
+        "full_chain_observation": "GuidingBoltEffect加入→startTracking；EntityJoinLevel→onProjectileShot→LevelTick.Post serverTick→Start S2C→livingTick；效果移除→stopTracking→Stop S2C；Client LoggingOut→clear",
+        "concrete_observation": "EntityJoinLevel原生事件仅server且已有追踪目标才收Projectile，GUIDING_BOLT_IMMUNE类型不入dirty。LevelTick.Post按当前维度、向前raycast、各轴48格及目标膨胀包围盒匹配第一个非owner目标，绑定Projectile集合；EntityTick.Pre逐tick保持速度大小转向，反向dot<-0.75/removed退出。效果首次加入start，原生onEffectRemoved Mixin及server死亡回调委托stop；Start包目标UUID+弹整数ID，Stop包UUID。 主岗：原生控制分配/弹种拒绝/目标绑定和停止链完整，合计1；目标UUID和弹整数ID是不同校验对象，客户端死亡stopTracking的server-only条件导致本地分支不清；未缓存默认tag，不能声称某实际弹种必拒。",
+        "application_to_boss_immune": "抗强制转向是弹种资格，不能显示成受击Boss免疫；目标/弹绑定必须由权威资格分支产生，客户端视觉状态不能反推伤害。",
+        "limitations": "没有默认tag内容缓存，不声称哪些实际弹种受保护；首次目标加入不会将既有全世界弹重新扫描。客户端Start仅立即查现有整数ID，缺弹丢失且无重试；客户端死亡清理调用server-only stopTracking无效，Stop/Logout才显式清map。没有运行或网络验证。 主岗全文复核固定版本；静态不证明实际观感/音量/TCP/Boss覆盖；普通体质不要求灰字；守卫旧账0转入。"
+      },
+      "canonical_sha256": "86af6dd81c233f1894bc62e0e8d197c1450eeec00ea00d259b518cc22417e6c4",
+      "whole_row_canonical_sha256": "e55d030e99aeac01fbfbf4390e7320666a8db0333dc3a83cd125b6219f8e63b0",
+      "old_raw_source_ancestors_newly_read": false
+    },
+    {
+      "position1": 517,
+      "id": "native-shulker-accepted-hit-branch-precedence-and-open-shell-teleport-before-oldspace-density-qualified-newborn-admission-attempt",
+      "complete_four_business": {
+        "full_chain_observation": "Native shell DATA_PEEK byte defaults0 and isClosed tests exactly==0, not visual lid interpolation or health threshold. setRawPeekAmount server removes covered armor modifier then readds+20 onzero andrequests close/open cue before writing byte. Damage phase/armor/cue are related but different results; native scheduling/sync/attribute outcome not run.\nRegistered own AttackGoal startsraw100 andattackTime20, stopsraw0; tick currenttarget/difficulty/distance<400 can request newly constructed ownerShulker-targeted bullet andshootsound with unchecked addFreshEntity. Look-at/currenttarget behavior is studycontext0, not a production suggestion or guaranteed natural activation.\nOwn hurt first ifclosed rejects direct AbstractArrow before parenthurt without an explicit tag/bypass exception. This exact closed/arrow rule overlaps prior45 helmet-phase refusal and earns0alone. Nonarrow, openarrow and laterparenthook outcomes remain separate.\nOnly parenthurttrue enters own aftermath. If post-parenthealth<halfmax andnextInt4==0, attempt teleport takes precedence and itsboolignored. Because next case is else-if, that chosen branch suppresses reproduction even when teleportfalse; allnormallyreturningparenttrue paths stillreturntrue.\nOtherwise only IS_PROJECTILE-tagged source with nonnull directentity exact EntityType.SHULKER_BULLET calls hitByShulkerBullet. Owner same-as-target is not checked; a same-species typed projectile need not have been fired by this victim. Actual merged tag membership/nativehits remain conditional.\nhitBy snapshots positionVec3 andAABB before requiring !closed andteleportSomewheretrue. Thus movement/target-clear/peekclose commit requests occur before density/RNG/create/add. Failure laterdoesnotrollbackparentdamage ormovement, and hurtstilltrue onnormalreturn.\nDensity query occurs aftermovement butuses OLD aabb.inflate8 andaliveEntityType.SHULKER entries. Threshold f=(i-1)/5 isnotclamped; candidateuserRandom.nextFloat<f deniesattempt. It is a localrandom density rule, not an atomic reservation/globalfive-shulker cap or allworldcount. Parent inclusion depends liveposition/query/listeners, no runtimeprobability/limit measured.\nIf random permits, EntityType.SHULKER.create maynull; otherwise onlyownsetVariant(currentparentvariant), moveTo(OLDvec3) andunchecked addFreshEntity shown. Original parent remains at requestednewposition while newbornattempt placedoldspace. OwnmethoddoesnotcopyarbitraryNBT/UUID/owner orreturnadmissionresult; no successfulbirth/refund/identityconservation claimed.\nteleportSomewhere gates !NoAi && alive, triesup-to5 integeroffsets±8 aroundinitialblockpos, prechecksbuildheight/empty/worldborder/collision andattachablesurface. No top-levelserverguard here; parentdamage/AI actual scheduling notsubstituted.\nfindAttachableSurface scansdirections, canStayAt checksunblockedcell andloadedface support plusfully-openprogressAABBcollision. Positionblocked hasonlyair orsamecurrentMOVING_PISTON exception. These are pre-eventcandidatechecks, not allworld/physicsvalidatorproof.\nForgeevent maycancel ormutateXYZ. Methodsets directionnulloncancel, floorsmutateddestination toBlockPos, then onlydirectionnonnull path unRide/setAttachFace/sound/setPos/gameevent/rawpeek0/targetnull/true. Cancelediterationmaycontinuetonextcandidate. Sameoriginalattachdirection/prechecks notrerun onmutatedXYZ inthismethod; Entity.setPos/worldbackendunexpanded, no reproducedinvalidlandingbug.\nShulker ownsetPos delegates snappedcoordinates toparent, andaftertick0 changedblock writesrawpeek0/impulse/clientoldpos/interpolation6. Boththisandteleport writeentityData directly, bypassingsetRawPeekAmount armor/cue helper there. No finalarmor/render/clientdesync conclusion; latergoalstop/nativeattributesmayintervene.\nActual ShulkerBullet constructorstoresowner,initialmouth-centerposition,finalTarget andUPdirection beforeselectNextMoveDirection. Oldmigration668 alreadyowns route/targetcheckpoint, no newhoming/persistence/ownercredit.\nNativeProjectile.onHit dispatchesonHitEntity beforePROJECTILE_LAND event. Bullet.onHitEntity callstargethurt(mobProjectile(this,livingowner),4); trueonlyattemptsenchantandeffectLEVITATION200withsourceowner-orbullet, ignoresaddEffectbool. Targethurttrue/teleport/newbornattempt is not acceptedlevitation orHP proof.\nBullet.onHit afterparentsuper normallyreturns callsdestroy: discardthenENTITY_DAMAGEgameevent. Thereforetargethurtfalse doesnotitselfpreventbulletdestruction; exceptioncaninterrupt. Ownbul lethurtserversound/particles/destroythenreturnstrue withoutitselfHPwrite; thisgenericbool/cuecontext0, notnewsecondpolicy.\nNinewholepriorfourfieldjudgments, completepending140candidate andmigration668businessowner compared. Onlyproposedwhole distinction is accepted-hit/openshell route andbranchprecedence into oldspace population-qualifiednewbornattempt after parentmovement; genericarrowrefusal/teleport/effect/childwrapper/truebool/cue alreadyowned0.\nForDynasty, distinguishactualrefusal, acceptedhit, movementstate, actoridentity/newbornadmission andeffectrequest. No shownBossreason/UUIDepoch/lifetime immuneack orfee/paidresource policy; thisresearchdoesnotaddreproduction/capture/rotationmechanicsorordinaryconstitutiongraytext.",
+        "concrete_observation": "Closed-arrowveto(old0) -> parenthurt acceptance -> lowHPteleportpriority OR taggedtypedbullet/openphase -> snapshotoldspace -> teleportclose/targetclear -> liveoldspace density/RNG -> freshvariantoldposuncheckedadmission. Returnedhurtbool/effectcaller/destruction allseparate. Atmost1adjacentwhole orMainmerge0.",
+        "application_to_boss_immune": "Trackactualcontrolreason/phase/recipientidentity separatelyfromparenthurt,movement, actoradmissionandeffectrequests. Studyonly; no newgameplay orgrayfeedbackbeforeapplicable1000.",
+        "limitations": "Atmost1adjacent lifecyclewhole pendingindependentMain, accepted/formal0/IDnull; Mainmaymerge0especiallywith45/140/443/505. Cannotcountnewspecies/arrowphase/5or8constants/helpers/branches/offpsring/goal/ranges/bugseparately.\nFixedlocalForge1.20.1-47.4.10 mappedarchive4entrybytes exactonly, nofreshremote/Gitcommit-tree/currentDynastybinary/config/runtime/nativeacceptance. No upstreamcode executed.\nExactmerged IS_PROJECTILE/MOB_PROJECTILE tags/DamageType/effect/immunity/nativeparenthurt/effectlistenersnotclosed. TypedBulletrouteconditional; directentityandowner distinct, notimmutableattackeridentity.\nFullShulker694/Bullet319/nativeengine notread; explicit4files10ranges373lines/0wholefiles, onecompleteinnerAttackGoal only. Partialincidentalmethods andearlierexcesslineattemptnotcredited.\nActualGoalSelector/NoAI scheduling/targetarbitration, inheritance/constructorinit/attributeoperationsandloadedstateunexpanded; raw0notpixelclosed/actualarmorproof, attacksoundnotbulletadmission.\nOldspace localpopulationquery/randomthreshold nothardglobalcap/atomicreservation/deterministicprobability. Membershipafterlistener/movement/queryconcurrencyunverified, noactualduplication/exploit/collisionfailureclaim.\nFactory/moveTo/addFreshEntity/backendadmission/persistence/trackingnotallreadorrun. Ignoredaddresultnotadmittednewborn, originalidentitycarryover/resourceconservation/pickup/payment/questreward/Clonewhitelist.\nteleportevent cancellation/rewrite/sourceorderonly; nativeunRide/dismountcanberefused viaexternalcontracts, destinationpostrewritephysics/EntitysetPosnotclosed. Noatomicteleport/restore/currentpackallcontrolguarantee.\nlowHPquarterchance branchsuppresseselse-if evenfailedteleport; hurttrueonlyparentnormalreturn plusaftermathnormalreturn, notpositiveHP/teleport/newborn/stun/levitationreceipt.\nSharedForgeevent/DamageSource helpersreuse140exactoldrefs0. Commonarrow/effect/child/successfeedback/nativepacketsemanticownerspreserved0;139FabricprovenanceHOLDnotimprovedbythisForgeevidence.\nNinewholejudgmentfourfieldsreadbounded;505concreteverifiedliteraljoinofall46alreadyreadentries, nothash-onlysemanticcredit. All515keywordnavigationnotmanualallsource/globaluniqueness, nestedoldsourcechainsnotreread.\nMigration668completeoldtarget/routeownerretained; sourceBulletselectedrangescontext0, no newNBT/migration/UUID/ownerpolicycredit. NewbornownsetVariantnotlosslesscopy/backupstrategy.\nGameevent/sound/particle/peek/interpolationrequestsnotdeliveredgraytext/lifetimes/packetACK/pixels/audio. Ordinaryconstitutiongraytextunchanged, nolookrotationgameplayimplemented.\nOnlynewimmutableprivateartifacts; noformalappendplan/grant/token/marker/proof/executor/import/help/run/production/UIbackground/assets/UV/model/building/sharedJar/userinstance/worldsave/process/network/Java/Gradle/Git/automation/display/audio/brightness/wake/focus/masterpendingownership/taskdeletion. Applicable1000false; nohours/allcomplete.\nMain bounded limits:\nMax1 adjacentwhole orboundedmerge0 pendingactual originalauthor ACK to17Mainfindings+14limits; original17observations14limits retained. Formal0/IDnull/noappend oronce authority.\nFixedlocal mappedForge1.20.1/47.4.10 archive4entrybytes only; notfreshremote/Git/currentinstalledDynastybinary/config proof. Source notexecuted.\n4files10boundedranges373lines/0wholefiles andoneinnergoal, not10mechanisms. Fullparent/native engine/GoalSelector/currentloadedtags outside.\nAlltags/DamageTypes/parentdamage/effectlisteners conditional; parenthurttrue not positiveHP, ownnormalreturn bool notmovement/newborn/control receipt.\nLowHP selectedbranch mayfailmovement while suppressing reproduction; randomstatement isnot empiricalchance, ticktime/wholeAI schedule notproven.\nOldspacequery f unclamped/notatomic/noreservation; entity identity/inclusion/concurrentchanges unmeasured. No cap/ecologyprobability/production proposal.\nFactory/moveTo/add/tracking/save/pickup/backend unexpanded. Newbornvariant request notadmitted orlosslessactorcopy/material/payment/questreceipt.\nEventediteddestination notsameasprecheckedcandidate; nativeunRide/EntitysetPos external. No globalphysics/atomicrollback/exploit/runtimefailure conclusion.\nRawpeek/armorhelper/cue/interpolation paths sourceonly. Directraw maybypasshelper but not provenfinalwrongarmor/clientdesync or needtofix.\nBullet hurt/destroy/enchant/effect/gameevent/sourceowner context0. No renderedpixels/audio/graytext/lifetime/UUIDepoch/packetACK/native/TCP acceptance.\nNine complete savedfourfield judgments andmigration668business actuallyread; oldfullsourcebodies onlyboundexcept4explicitnewfiles. Lexicalnavigation notall515/globalnovelty. Pending140oldsource/contextreuse0.\nShared140Forgeevent/factory/DamageSource currentbound0;139Spectrum provenanceHOLD unaffected. No source/helper/constant/branch/file/AI/species splitcredit.\nCandidate sealedhistoric515/eco53 preserved; currentMain515/eco54 separatebinding, notoldproposalrewrite/rebase/consumedplan replay.\nNo production/Java/Gradle/game/process/display/network/UI/audio/brightness/wake/unlock/focus/userinstance/save/sharedJar/proassets/quest/masterlists/pending/ownership/Git/automation changes; taskdelete0/hoursnull/allcompletefalse."
+      },
+      "canonical_sha256": "9b265bfb2769d87fa181ab7c97a03cd832075a18aa80aa7bceded2e9f6e90e39",
+      "whole_row_canonical_sha256": "34551a362395dc99cd6e9caaf9fc62ed6f6f40fb8e70eae524a1f89f3fafbee2",
+      "old_raw_source_ancestors_newly_read": false
+    }
+  ],
+  "complete_old_groups": [
+    {
+      "index": 29,
+      "complete_group": {
+        "family": "herschel-003-primary-reviewed",
+        "credited_chains": [
+          "iron-guiding-bolt-native-projectile-immunity-and-control-assignment",
+          "iron-enderchain-breakable-control-window-and-part-fx-order",
+          "ars-wall-per-target-attempt-window-and-expiry-burst",
+          "ars-native-cast-refusal-chat-replacement-ignores-channel",
+          "iron-corpse-refused-hit-triggers-idempotent-boss-awakening",
+          "iron-dimension-spell-teleport-rejection-precedes-success-proof",
+          "ars-disintegration-removal-bypasses-damage-immunity",
+          "ars-player-totem-death-cancel-resource-and-rearm"
+        ],
+        "rationale": "6条独立新链+2条002补证；召唤来源白名单合并既有资格家族；Boss攻击者tag/FALL常量0，Protection缺register消费者/CastError缺producer仍0。没有按方法/实体/包装增加信用。"
+      },
+      "canonical_sha256": "9761845789323049ac5ba46dbaee152b3df6f1a0bd72dce27cd2b6f16d137220"
+    },
+    {
+      "index": 244,
+      "complete_group": {
+        "family": "native-shulker-accepted-hit-open-shell-movement-before-oldspace-qualified-newborn-attempt",
+        "credited_chain": "native-shulker-accepted-hit-branch-precedence-and-open-shell-teleport-before-oldspace-density-qualified-newborn-admission-attempt",
+        "rationale": "Closed-arrowveto(old0) -> parenthurt acceptance -> lowHPteleportpriority OR taggedtypedbullet/openphase -> snapshotoldspace -> teleportclose/targetclear -> liveoldspace density/RNG -> freshvariantoldposuncheckedadmission. Returnedhurtbool/effectcaller/destruction allseparate. Atmost1adjacentwhole orMainmerge0.",
+        "assessment": {
+          "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batches-141-142-current516-ecology54-v1-private-batch141-dedup-assessment-20261112.json",
+          "sha256": "3f37550e887c958a82847fa15a19673370cdf71e0bcebab9ef1be376cdd0c52a",
+          "bytes": 1932
+        },
+        "Main_actual_author_ack_review": {
+          "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program141-actual31-author-ACK-closure-20261112.json",
+          "sha256": "1c0033da0767e258b9fa41b426a9c8702b402e8deed9a968ccc8dab533154ad7",
+          "bytes": 1643
+        },
+        "current516_ecology54_context": {
+          "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batches-141-142-current516-ecology54-v1-context-20261112.json",
+          "sha256": "093f70b9eb7c3ecb04c5a82aa10b28088e4fbbbec71e0f3c6340f4d89da0c107",
+          "bytes": 9603
+        }
+      },
+      "canonical_sha256": "323c914eb21acf52c66290df141d14504cc21a126b354615bbfc1f7d42c1d4c0"
+    }
+  ],
+  "complete_saved_migration668_owner": {
+    "candidate_id": "b87b4952c60e17092c19",
+    "status": "accepted",
+    "family": "native-shulker-homing-projectile-route-checkpoint-and-target-resolution-loss",
+    "trigger": "Full ShulkerBullet pair/tick/selectNextMoveDirection/onHit/onHitEntity",
+    "input": "Target UUID from livefinaltarget; direction/steps/targetdelta checkpoint",
+    "output": "restore routevector andstepbudget, nextservertick resolves target once; active target resumes movementsteering; hit appliesdamage andlevitation then destroys",
+    "preservation": "Concrete moving projectile state owner, distinct from static conduit target (route checkpoint + traversal consumers). Parent projectileowner chain support0.",
+    "application_limit": "Failedtargetlookup clears savedidentity without retry; resave before resolve omits pendingtargetUUID. Missing target/direction can retain stale on reused object. Deltasraw, nofiniteguard; impact hook mayveto. No guarantee homingresumes across unloadedtarget/dimensions.",
+    "supporting_candidates": [],
+    "credit": 1,
+    "evidence": [
+      {
+        "candidate_id": "b87b4952c60e17092c19",
+        "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+        "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "path": "net/minecraft/world/entity/projectile/ShulkerBullet.java",
+        "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ShulkerBullet.java",
+        "start_line": 83,
+        "end_line": 97,
+        "method": "readAdditionalSaveData",
+        "file_sha256": "a27d210d38fbccf0dd46274335bc7d5618f0eb8fb3585d34352fcac20d469e97",
+        "method_sha256": "c714067a1a1a9660efcc3171a42505ddf79fefa7a1c52b21d976b24f056c8536",
+        "structural_fingerprint": "8941a3bdd37953c861fd55c201cafae1465dfa6d0f098db95b180337ff713a3a",
+        "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "context": "protected void readAdditionalSaveData(CompoundTag p_37353_) {\n      super.readAdditionalSaveData(p_37353_);\n      this.flightSteps = p_37353_.getInt(\"Steps\");\n      this.targetDeltaX = p_37353_.getDouble(\"TXD\");\n      this.targetDeltaY = p_37353_.getDouble(\"TYD\");\n      this.targetDeltaZ = p_37353_.getDouble(\"TZD\");\n      if (p_37353_.contains(\"Dir\", 99)) {\n         this.currentMoveDirection = Direction.from3DDataValue(p_37353_.getInt(\"Dir\"));\n      }\n\n      if (p_37353_.hasUUID(\"Target\")) {\n         this.targetId = p_37353_.getUUID(\"Target\");\n      }\n\n   }",
+        "parse_has_error": false
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": 1,
+      "title": "real emitter and factory",
+      "anchor": "EntityType252;Shulker85..99,538..588",
+      "observation": "注册factory实际构造bullet，Shulker攻击Goal4在非和平/当前目标距离平方<400且attackTime到期时先重置20+随机延迟再uncheckedadd与shoot声。start/stop请求peek100/0。这里只读完整内部goal和注册上下文，完整Shulker、调度和peek效果不新展开；旧517已拥有生产支持0。"
+    },
+    {
+      "id": 2,
+      "title": "owner target and spawn position",
+      "anchor": "ShulkerBullet45..61;Projectile38..60",
+      "observation": "构造令noPhysics=true，设置owner、以owner所在格中心moveTo、存finalTarget引用、方向UP后选路。owner与追踪目标不同角色，均不是最终接纳回执；当前装备和发射者生存没有在bullet每tick重新资格审查。"
+    },
+    {
+      "id": 3,
+      "title": "target resolution loss already owned",
+      "anchor": "ShulkerBullet192..202,67..97",
+      "observation": "服务端finalTarget为空且targetId存在才按UUID查；查不到即清targetId，不自行重试。成功后savedId不主动清但引用非空时不再查。这整个解析/保存丢失语义由migration668完整所有，不因本轮全文另计。"
+    },
+    {
+      "id": 4,
+      "title": "direction planning",
+      "anchor": "ShulkerBullet111..183",
+      "observation": "按当前目标格及高度一半选目标点；远于2格时排除传入轴，并优先可空方向，空候选时随机至多再试5次仍不保证出口为空。将方向向量归一为0.15，置impulse及10..50步预算；不等完整寻路、碰撞保证或固定成功率。"
+    },
+    {
+      "id": 5,
+      "title": "steering and qualification differ",
+      "anchor": "ShulkerBullet202..212,226..246",
+      "observation": "无目标、死亡目标或Player spectator走重力分支；有合格目标则各轴目标速度乘1.025截至±1再按0.2趋近。后段重选路只检查finalTarget非空且非removed，条件不等于前段alive/spectator判断，不扩大成已复现异常。"
+    },
+    {
+      "id": 6,
+      "title": "route budget consumer",
+      "anchor": "ShulkerBullet226..246",
+      "observation": "flightSteps正值才递减，恰0按当前轴选路；前方loadedAndEntityCanStandOn或同目标对应轴坐标也可改路。零/负预算不自动进入恰0分支，保存读回与实际路径仍668所有，无额外计数或运行时间结论。"
+    },
+    {
+      "id": 7,
+      "title": "impact gate local scope",
+      "anchor": "ShulkerBullet214..225;ForgeEventFactory708..711",
+      "observation": "非MISS且旧boolean helper返回false才调用onHit；helper以ImpactResult非DEFAULT为true。没有在该调用点细分新枚举行为，不冒充其它Projectile处理方式；门外checkInsideBlocks/setPos/rotate仍在正常路径，监听全副作用未知。"
+    },
+    {
+      "id": 8,
+      "title": "collision recipient not tracked target",
+      "anchor": "ShulkerBullet250..252;Projectile170..177;ShulkerBullet266..278",
+      "observation": "canHitEntity委托父canBeHitByProjectile/owner乘骑排除并排noPhysics，没有要求碰撞实体等于finalTarget。真正受伤对象来自EntityHitResult而非存下的追踪目标。碰撞工具内部和真实追踪场景未运行，不能保证旁击。"
+    },
+    {
+      "id": 9,
+      "title": "hurt gated effect request not effect receipt",
+      "anchor": "ShulkerBullet266..280;DamageSources203..205",
+      "observation": "当前owner只在Living时作为mobProjectile造成者，目标hurt4正常返回true才做附魔损伤效果并向Living请求LEVITATION200；addEffect返回忽略，source为原owner或bullet。parenthurttrue、HP变化及最终漂浮是不同结果；旧517已完整说明此边界。"
+    },
+    {
+      "id": 10,
+      "title": "normal impact retires independent of effect",
+      "anchor": "Projectile135..155;ShulkerBullet282..296",
+      "observation": "父onHit先实体/方块回调再PROJECTILE_LAND，正常返回后bullet destroy先discard再ENTITY_DAMAGE事件。即使目标hurtfalse也可正常退休；抛异常可中断，不能称事务。若随后本tick继续运动只属局部无return的静态路径，不宣称运行漏洞。"
+    },
+    {
+      "id": 11,
+      "title": "incoming hurt is not HP proof",
+      "anchor": "ShulkerBullet298..310",
+      "observation": "本体hurt服务端请求声、15粒子并destroy，客户端不走这些请求但都returntrue；函数自身未写Living HP。仅调用侧返回语义，泛化bool错配和旧517控制归属0。"
+    },
+    {
+      "id": 12,
+      "title": "parent owner packet boundary",
+      "anchor": "Projectile198..210;ShulkerBullet312..318",
+      "observation": "父通用add包data用当前owner整数ID，客户端当时getEntity找到才设owner；bullet自身recreate另恢复包中速度。没有在所示链传递finalTarget/route预算，未穷尽tracker/modpacket，所以不诊断实际失同步或永久丢失。"
+    },
+    {
+      "id": 13,
+      "title": "local renderer model",
+      "anchor": "ShulkerBulletRenderer1..56;ShulkerBulletModel1..39",
+      "observation": "本地tick与partial用于旋转，先普通层再1.5倍/alpha0.15半透明层，model按yaw/pitch转main。光照返回15只是renderer值；表现不读目标伤害或最终拒绝，不创建/批准贴图或模型资产，也无像素验收。"
+    },
+    {
+      "id": 14,
+      "title": "partial own save and reused instance",
+      "anchor": "ShulkerBullet67..97;Projectile62..86",
+      "observation": "保存仅finalTarget非空时写Target，pending targetId本身不保存；读缺Target/Dir不显式清已有对应字段或finalTarget，父Owner缺键也有自身边界。fresh和复用对象分开，完整668检查点归属保留；不宣称Clone、迁移修复或全部祖先安全。"
+    },
+    {
+      "id": 15,
+      "title": "no persistence new credit",
+      "anchor": "complete migration668 saved object",
+      "observation": "已实际读668完整trigger/input/output/preservation/application_limit及证据对象，owner范围是整个route/target/tick/hit消费者，不缩成83..97方法定位。后续源码全文一致仅对照支持0，无新NBT/UUID/旧世界信用。"
+    },
+    {
+      "id": 16,
+      "title": "complete semantic owners",
+      "anchor": "complete old128/517 groups29/244",
+      "observation": "128拥有按类型资格的外部导向分配、绑定停止链，517拥有壳相位命中、移动后旧位置出生与bullet结算支持，668拥有完整追踪检查点链。本批所见未证明独立新整体，建议MERGE0，不因full319/renderer增加信用。"
+    },
+    {
+      "id": 17,
+      "title": "actual epoch remains separately bound",
+      "anchor": "current16 observations;program180 delivery",
+      "observation": "新180私有数据预览只有533→假设534/261→假设262，未正式写；181仅闭环。当前源观察以ec75收据16依赖另记，若Main后改只记变更不倒写旧候选，不重放once。"
+    },
+    {
+      "id": 18,
+      "title": "unfinished task scope",
+      "anchor": "original user UI scope",
+      "observation": "保留主背景、按钮棱角、世界选项及删除无用刷怪蛋/基础提示的请求仍待实际实现验收。本研究不触动生产、共享Jar或用户实例，不能当任务完成或10小时证明。"
+    }
+  ],
+  "limitations": [
+    "固定本地mapped归档逐成员字节，仅固定版本来源，不是当前加载Jar、上游新版本或实际配置/监听证明。",
+    "实际8成员9段732唯一行/4全文；Shulker完整694、Entity原生移动、ProjectileUtil碰撞内部、GoalSelector及引擎全体未展开。",
+    "旧128/517完整四业务、组29/244及保存668完整对象先于新读。旧原始祖先没有冒充重读，也不全局穷尽533。",
+    "目标路线、解析丢失和保存消费已归668整个实现，不缩成方法定位；bullet伤害/漂浮退休已有517，不新计追踪/持久化/物种/renderer。",
+    "回调速度、步预算与随机选择非墙钟、确定寻路成功、全物理安全或自然命中保证；坏参数NaN/极值未验。",
+    "最终追踪目标、碰撞实际对象、owner造成者与效果source需分开；父hurttrue不等正HP损失，addEffect请求不等控制成功。",
+    "helper只读boolean包装完整708..711，返回枚举生产体未新展开；探索打印713..716无关方法片段0覆盖/0信用。",
+    "取消只门此onHit，外监听、异常重入及移除后正常路径不证明安全漏洞或可复现误行为，无修复权限。",
+    "自身IO与父Projectile已读不等全部Entity/Clone/重载和真实旧世界通过；fresh与复用对象不同，不回填全部迁移。",
+    "包owner data及速度链不涵盖完整tracker/模组同步；没有实际丢包、跨端seed、像素、音频、TCP或灰字回执验收。",
+    "原有Shulker壳相位/传送/密度出生范围仍旧517，不新研究或改生态cap、概率、spawn、付款和任务机制。",
+    "仅新不可变JSON与获授权Main通信；无项目脚本/JVM/游戏/进程/屏幕唤醒/声音亮度焦点/网络Git/资产UV模型建筑/共享Jar/原档操作。",
+    "建议MERGE0/HOLD0；无新private/once/正式表，门槛1000false，不删待办，不加生态/NBT/native或主动工时、10小时、allcod完成。"
+  ],
+  "applications": [
+    "Boss权威反馈绑定实际碰撞受控对象和本次最终拒绝，不能拿追踪target、hurtfalse或源渲染推断；普通导向资格拒绝不显示受击Boss免疫。",
+    "未来适用1000后分开路径目标、实际受害者、造成者、伤害结果和效果接纳，并保留明确重载解析失败策略；本批只对照不实施也不重复计数。",
+    "后续集成真实材料→旧前置→实际制作交易付款→带型提交→预期原生获取，保留ID/奖励/进度，不用基础物品冒充NBT、不双发；UI请求继续待办。"
+  ],
+  "ecology75_receipt_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-copper-EA0076-Main-actual75-data-application-20261114.json",
+    "sha256": "a5391ab0b78f72d645f6cc4df918c931e5f58ded3a8009e5d57e1824a81610b1",
+    "bytes": 15816
+  },
+  "fresh16_observed_not_rewriting_old_context": [
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "867a1e85e20be99dc79803db529ca6a1edc8d7d9c8c4a69feca19a5e6ba51796",
+        "bytes": 34594592
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "867a1e85e20be99dc79803db529ca6a1edc8d7d9c8c4a69feca19a5e6ba51796",
+        "bytes": 34594592
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "998d01f3ef0733a55db9533fc755a6931acf7f67fc2f2a54e46e93511355c159",
+        "bytes": 33589205
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "998d01f3ef0733a55db9533fc755a6931acf7f67fc2f2a54e46e93511355c159",
+        "bytes": 33589205
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "be7c9df56d1c59c12f3c00e5049237287f00311cef1716b6d8a90896dcc186dd",
+        "bytes": 2559491
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "be7c9df56d1c59c12f3c00e5049237287f00311cef1716b6d8a90896dcc186dd",
+        "bytes": 2559491
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "55aaff65342a2df823d2cc2e11aad04a5a0a6d0f66831c764a7ff60731a8938a",
+        "bytes": 351588
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "55aaff65342a2df823d2cc2e11aad04a5a0a6d0f66831c764a7ff60731a8938a",
+        "bytes": 351588
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "4efb976f7ff0ca06ac92b66cbeec2c0fb35be933c1832e6f6c9611525aab34f1",
+        "bytes": 1195336
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "4efb976f7ff0ca06ac92b66cbeec2c0fb35be933c1832e6f6c9611525aab34f1",
+        "bytes": 1195336
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "4c3b575e53c876fd145601c9f203131b2597a8016739e5117224bc4bd2ec421d",
+        "bytes": 71715445
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "4c3b575e53c876fd145601c9f203131b2597a8016739e5117224bc4bd2ec421d",
+        "bytes": 71715445
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "79ca3213d1f78e2ec23b9e461894897a0236e2779b77285b51bbb12096a73f76",
+        "bytes": 2821347
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "79ca3213d1f78e2ec23b9e461894897a0236e2779b77285b51bbb12096a73f76",
+        "bytes": 2821347
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "7c1935c2fcb41d5530354453091e1d64a3f62f140b05d81db5d6b37a37566774",
+        "bytes": 631
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "7c1935c2fcb41d5530354453091e1d64a3f62f140b05d81db5d6b37a37566774",
+        "bytes": 631
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+        "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+        "bytes": 264172604
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+        "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+        "bytes": 264172604
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+        "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+        "bytes": 16879
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+        "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+        "bytes": 16879
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+        "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+        "bytes": 60249
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+        "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+        "bytes": 60249
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+        "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+        "bytes": 176564
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+        "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+        "bytes": 176564
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+        "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+        "bytes": 88472
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+        "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+        "bytes": 88472
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+        "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+        "bytes": 114611
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+        "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+        "bytes": 114611
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+        "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+        "bytes": 13391
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+        "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+        "bytes": 13391
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+        "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+        "bytes": 63710
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+        "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+        "bytes": 63710
+      },
+      "match": true
+    }
+  ],
+  "all16_match_ec75_program533_at_creation": true,
+  "actual_program_progress_observation": {
+    "target": 1000,
+    "reviewed_effective_semantic_dedup": 533,
+    "remaining": 467,
+    "source_projects_acquired": 79,
+    "acquisition_credit": 0,
+    "formal_design_gate_satisfied": false,
+    "production_changes": false,
+    "game_started": false,
+    "counting_note": "Each manually reviewed semantically independent game implementation site earns 1; full containing methods and native chain context are evidence, not extra credits. Method/file counts, wrappers, ports, constant-only variants and candidate hits earn 0. Semantic cross-project review still requires human-agent judgment; verifier checks key uniqueness and hashes only."
+  },
+  "source180_private_delivery_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/program180-private-current533-ecology75-preview-v1-20261114/delivery-index.json",
+    "sha256": "bca508281e8859327562132449afde13baaebbebc3b13866351bbcd51530ffe1",
+    "bytes": 18921
+  },
+  "180_private_not_formal534": true,
+  "new_private181": false,
+  "data_checks": [
+    "fixed archive",
+    "archive member net/minecraft/world/entity/projectile/ShulkerBullet.java",
+    "archive member net/minecraft/client/renderer/entity/ShulkerBulletRenderer.java",
+    "archive member net/minecraft/world/entity/projectile/Projectile.java",
+    "archive member net/minecraft/client/model/ShulkerBulletModel.java",
+    "archive member net/minecraft/world/entity/monster/Shulker.java",
+    "archive member net/minecraft/world/damagesource/DamageSources.java",
+    "archive member net/minecraftforge/event/ForgeEventFactory.java",
+    "archive member net/minecraft/world/entity/EntityType.java",
+    "coverage732",
+    "oldbusiness 128",
+    "oldbusiness 517",
+    "oldgroup 29",
+    "oldgroup 244",
+    "18 13 3"
+  ],
+  "data_checks_count": 15,
+  "no_authority": {
+    "new_private_three_once_intent_executor_validator": false,
+    "formal_writes": 0,
+    "production_changes": 0,
+    "UI_changes": 0,
+    "native_credit": 0,
+    "ecology_credit": 0,
+    "migration_NBT_credit": 0,
+    "game_starts": 0,
+    "task_deletions": 0,
+    "active_hours_claimed": null,
+    "all_tasks_complete": false
+  }
+}

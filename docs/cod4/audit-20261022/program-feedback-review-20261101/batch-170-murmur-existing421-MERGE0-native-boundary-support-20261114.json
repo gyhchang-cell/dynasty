@@ -1,0 +1,1704 @@
+{
+  "schema": "program170-existing421-whole-merge0-native-boundary-support",
+  "recorded_at": "2026-11-13T21:17:53.930231+00:00",
+  "user_session_date": "2026-11-14",
+  "batch": 170,
+  "status": "MERGE0_EXISTING_FORMAL421_NO_NEW_IMPLEMENTATION",
+  "checkpoint_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-170-murmur-body-head-actual-bounded-source-checkpoint-20261114.json",
+    "sha256": "7e38983f066a8ce84b181d89a9e369db8ea888bba770f79f193e444510701086",
+    "bytes": 479762
+  },
+  "original_checkpoint_observations_unchanged": [
+    "Actual declared factories bind body/head MONSTER; body installs water/wander and HurtBy, head AttackGoal and target selectors. This is static class/goal wiring, not loaded runtime factory proof.",
+    "Body server tick looks up current HEAD_UUID in currentServerLevel; onnull constructs head, assigns UUID/ID after unchecked addFreshEntity. Client uses numericHEAD_ID. Ownsave persists onlyHEAD_UUID aftersuper; live resolvedexistinghead doesnotrefreshHEAD_ID in thisownbodytick.",
+    "Head constructor setsBODY_UUID andpositionfromneck. Server lookupcurrentlevelUUID/clientBODY_ID. Headtick syncsBODY_ID onlymatchingEntityMurmur, pulls towardbody ifpulled+bodyalive with noPhysics duringdistance>=1, else noPhysicsfalse. Motion request notarrival.",
+    "Headtarget alive has priority: ifbody.canAttack(headtarget), requestbody.setTarget; else clearboth. Otherwise alive eligiblebodytarget requestshead.setTarget. Setter/event results unexpanded, so no immutable sharedvictim/actualsynchronizedtarget guarantee.",
+    "Headhurt first ownisInvulnerableTo, addingIN_WALL tosuper. Else anyresolvedbody.hurt(source,halfamount) true returnstrue; false ormissingbody fallsbacksuper.hurt(head,fullamount). Not sharedHP/dedup/rollback; boolnotHP proof andbodyfalse sideeffects mayalreadyexist. Parentnativepath notyetnewlyread for170.",
+    "AttackcanUse currenttargetnonemptyalive; start time0/bite0/pulledfalse; stop time0/pulledtrue/angryfalse, ownstopdoesnotcleartarget/emergeFrom/biteCooldown. Nativecontinue/scheduler notyetread170.",
+    "Attacktick rereadscurrenttarget/body. bodydist>16+time>30 requestsbodytarget/nav; >64 setsheadpulled. Otherwise bite0 takesoutbound path, initialcircling aroundstoredemergeFrom through30 thenangry/directnav. No fixedvictimlease; timer callbacksnotwallseconds.",
+    "Eveninitialcirclingbranch checksdistance<1.5+LOS andcanbite; soundandrandom5..19cooldownbeforetarget.hurt(headmobAttack,5) ignoredboolean. PositivebiteCooldowndecrements samecallback, thenlaterpull/angryfalsebranch until0. Nativehurt/LOS/event/physicsunexpanded; nocontrol/HPacceptance.",
+    "Cleanupheadtick requestremove ifmatchingbodyisRemoved orbody==nullaftertick20; wrongtype nonnullbodynotcoveredbythosenull/matchingconditions. No completeouterremoval/death/loadcleanup proof orinvulnerable/permanentorphanruntimebugclaim.",
+    "Alliedchecks compare pairedUUID orsuper. BodygetAngry delegatesresolvedmatchinghead, headangry also!isAlive; launchsound dependspriorpulled andcurrentoutbound notadmittedbite/control.",
+    "Five fulloldbusiness owners actuallyread:63sharedparent per-tickshield false;236corpse/riderdamage filters;248arrowwholemultipartignore-set preparent;449subtargetlatches/regression/delayedrandomcontrol;505animationownedchildcapture/return/currenttargethandoff. These are comparisonjudgments, not oldchains newlyread orglobalnovelty. Need fullnativeproducer/recipient/targethooks beforecandidate."
+  ],
+  "original_source_refs_unchanged": [
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      },
+      "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "manifest_entry": {
+        "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "git_blob_sha1": "9c65a7995271e2a97928c3614c55da5f0b11f94f"
+      },
+      "git_blob_sha1": "9c65a7995271e2a97928c3614c55da5f0b11f94f",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 211,
+          "actual_excerpt_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+          "actual_source_text": "package com.github.alexthe666.alexsmobs.entity;\n\nimport com.github.alexthe666.alexsmobs.config.AMConfig;\nimport com.github.alexthe666.alexsmobs.entity.ai.AnimalAILeaveWater;\nimport com.github.alexthe666.alexsmobs.entity.ai.AnimalAIWanderRanged;\nimport com.github.alexthe666.alexsmobs.misc.AMSoundRegistry;\nimport com.github.alexthe666.alexsmobs.misc.AMTagRegistry;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.Vec3;\n\nimport javax.annotation.Nullable;\nimport java.util.Optional;\nimport java.util.UUID;\n\npublic class EntityMurmur extends Monster implements ISemiAquatic {\n\n    private static final EntityDataAccessor<Optional<UUID>> HEAD_UUID = SynchedEntityData.defineId(EntityMurmur.class, EntityDataSerializers.OPTIONAL_UUID);\n    private static final EntityDataAccessor<Integer> HEAD_ID = SynchedEntityData.defineId(EntityMurmur.class, EntityDataSerializers.INT);\n    private boolean renderFakeHead = true;\n\n\n    protected EntityMurmur(EntityType<? extends Monster> type, Level level) {\n        super(type, level);\n        this.xpReward = 10;\n    }\n\n    public static AttributeSupplier.Builder bakeAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 30.0D).add(Attributes.FOLLOW_RANGE, 48.0D).add(Attributes.ATTACK_DAMAGE, 3.0D).add(Attributes.KNOCKBACK_RESISTANCE, 0.3F).add(Attributes.MOVEMENT_SPEED, 0.2F);\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new AnimalAILeaveWater(this));\n        this.goalSelector.addGoal(2, new AnimalAIWanderRanged(this, 55, 1.0D, 14, 7));\n        this.targetSelector.addGoal(0, (new HurtByTargetGoal(this)));\n    }\n\n\n    protected SoundEvent getHurtSound(DamageSource damageSourceIn) {\n        return AMSoundRegistry.MURMUR_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return AMSoundRegistry.MURMUR_HURT.get();\n    }\n\n    protected void playStepSound(BlockPos pos, BlockState blockIn) {\n    }\n\n    public static <T extends Mob> boolean checkMurmurSpawnRules(EntityType<EntityMurmur> entityType, ServerLevelAccessor iServerWorld, MobSpawnType reason, BlockPos pos, RandomSource random) {\n        return reason == MobSpawnType.SPAWNER || !iServerWorld.canSeeSky(pos) && (pos.getY() <= AMConfig.murmurSpawnHeight || iServerWorld.getBiome(pos).is(AMTagRegistry.SPAWNS_MURMURS_IGNORE_HEIGHT)) && checkMonsterSpawnRules(entityType, iServerWorld, reason, pos, random);\n    }\n\n    public boolean checkSpawnRules(LevelAccessor worldIn, MobSpawnType spawnReasonIn) {\n        return AMEntityRegistry.rollSpawn(AMConfig.murmurSpawnRolls, this.getRandom(), spawnReasonIn) && super.checkSpawnRules(worldIn, spawnReasonIn);\n    }\n\n    public boolean isAlliedTo(Entity entity) {\n        return this.getHeadUUID() != null && entity.getUUID().equals(this.getHeadUUID()) || super.isAlliedTo(entity);\n    }\n\n    public MobType getMobType() {\n        return MobType.UNDEAD;\n    }\n\n    @Override\n    protected float getStandingEyeHeight(Pose pose, EntityDimensions dimensions) {\n        return dimensions.height * 1.2F;\n    }\n\n    protected float getWaterSlowDown() {\n        return 0.9F;\n    }\n\n    @Override\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(HEAD_UUID, Optional.empty());\n        this.entityData.define(HEAD_ID, -1);\n    }\n\n    @Nullable\n    public UUID getHeadUUID() {\n        return this.entityData.get(HEAD_UUID).orElse(null);\n    }\n\n    public void setHeadUUID(@Nullable UUID uniqueId) {\n        this.entityData.set(HEAD_UUID, Optional.ofNullable(uniqueId));\n    }\n\n    public Entity getHead() {\n        if (!this.level().isClientSide) {\n            UUID id = getHeadUUID();\n            return id == null ? null : ((ServerLevel) level()).getEntity(id);\n        }else{\n            int id = this.entityData.get(HEAD_ID);\n            return id == -1 ? null : level().getEntity(id);\n        }\n    }\n\n    public boolean shouldRenderFakeHead() {\n        return this.renderFakeHead;\n    }\n\n    public void tick() {\n        super.tick();\n        if (this.renderFakeHead) this.renderFakeHead = false;\n        this.yBodyRot = this.getYRot();\n        this.yHeadRot = Mth.clamp(this.yHeadRot, this.yBodyRot - 70, this.yBodyRot + 70);\n        if (!this.level().isClientSide) {\n            Entity head = getHead();\n            if(head == null){\n                LivingEntity created = createHead();\n                this.setHeadUUID(created.getUUID());\n                this.entityData.set(HEAD_ID, created.getId());\n            }\n        }\n    }\n\n    public Vec3 getNeckBottom(float partialTick){\n        double d0 = Mth.lerp(partialTick, this.xo, this.getX());\n        double d1 = Mth.lerp(partialTick, this.yo, this.getY());\n        double d2 = Mth.lerp(partialTick, this.zo, this.getZ());\n        double height = this.getBbHeight() - 0.4F + calculateWalkBounce(partialTick);\n        Vec3 rotatedOnDeath = new Vec3(0, height, 0);\n        if(this.deathTime > 0){\n            float f = ((float)this.deathTime + partialTick - 1.0F) / 20.0F * 1.6F;\n            f = Mth.sqrt(f);\n            if (f > 1.0F) {\n                f = 1.0F;\n            }\n            rotatedOnDeath = rotatedOnDeath.add(f * 0.1F, f * 0.4F, 0).zRot((float) (f * Math.PI / 2F)).yRot(-this.yBodyRot * Mth.DEG_TO_RAD);\n        }\n        return new Vec3(d0, d1, d2).add(rotatedOnDeath);\n    }\n\n    public double calculateWalkBounce(float partialTick){\n        float limbSwingAmount = this.walkAnimation.speed(partialTick);\n        float limbSwing = this.walkAnimation.position() - this.walkAnimation.speed() * (1.0F - partialTick);\n        return Math.abs(Math.sin(limbSwing * 0.9F) * limbSwingAmount * 0.25F);\n    }\n\n\n    @Override\n    public boolean shouldEnterWater() {\n        return false;\n    }\n\n    @Override\n    public boolean shouldLeaveWater() {\n        return true;\n    }\n\n    @Override\n    public boolean shouldStopMoving() {\n        return false;\n    }\n\n    @Override\n    public int getWaterSearchRange(){\n        return 5;\n    }\n\n    public void readAdditionalSaveData(CompoundTag compound) {\n        super.readAdditionalSaveData(compound);\n        if (compound.hasUUID(\"HeadUUID\")) {\n            this.setHeadUUID(compound.getUUID(\"HeadUUID\"));\n        }\n    }\n\n\n    public void addAdditionalSaveData(CompoundTag compound) {\n        super.addAdditionalSaveData(compound);\n        if (this.getHeadUUID() != null) {\n            compound.putUUID(\"HeadUUID\", this.getHeadUUID());\n        }\n    }\n\n    private LivingEntity createHead() {\n        EntityMurmurHead head = new EntityMurmurHead(this);\n        level().addFreshEntity(head);\n        return head;\n    }\n\n    public boolean isAngry(){\n        Entity entity = this.getHead();\n        if(entity instanceof EntityMurmurHead){\n            return ((EntityMurmurHead)entity).isAngry();\n        }\n        return false;\n    }\n}\n"
+        }
+      ],
+      "whole_file_actually_read": true
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      },
+      "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "manifest_entry": {
+        "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "git_blob_sha1": "c273070aebe2ac670fec37800413f6cc0c99d4d8"
+      },
+      "git_blob_sha1": "c273070aebe2ac670fec37800413f6cc0c99d4d8",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 235,
+          "actual_excerpt_sha256": "c476477f9f836d56b1a236fcfed24d62bbfccb40563a9b67839e98e6801fa8f3",
+          "actual_source_text": "package com.github.alexthe666.alexsmobs.entity;\n\nimport com.github.alexthe666.alexsmobs.entity.ai.EntityAINearestTarget3D;\nimport com.github.alexthe666.alexsmobs.entity.util.Maths;\nimport com.github.alexthe666.alexsmobs.misc.AMSoundRegistry;\nimport net.minecraft.commands.arguments.EntityAnchorArgument;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.damagesource.DamageTypes;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.control.MoveControl;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.animal.FlyingAnimal;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.npc.AbstractVillager;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.Vec3;\n\nimport javax.annotation.Nullable;\nimport java.util.EnumSet;\nimport java.util.Optional;\nimport java.util.UUID;\n\npublic class EntityMurmurHead extends Monster implements FlyingAnimal {\n\n    private static final EntityDataAccessor<Optional<UUID>> BODY_UUID = SynchedEntityData.defineId(EntityMurmurHead.class, EntityDataSerializers.OPTIONAL_UUID);\n    private static final EntityDataAccessor<Integer> BODY_ID = SynchedEntityData.defineId(EntityMurmurHead.class, EntityDataSerializers.INT);\n    private static final EntityDataAccessor<Boolean> PULLED_IN = SynchedEntityData.defineId(EntityMurmurHead.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Boolean> ANGRY = SynchedEntityData.defineId(EntityMurmurHead.class, EntityDataSerializers.BOOLEAN);\n    public double prevXHair;\n    public double prevYHair;\n    public double prevZHair;\n    public double xHair;\n    public double yHair;\n    public double zHair;\n    public float angerProgress;\n    public float prevAngerProgress;\n    private boolean prevLaunched = false;\n\n    protected EntityMurmurHead(EntityType type, Level level) {\n        super(type, level);\n        this.moveControl = new MoveController();\n    }\n\n    protected EntityMurmurHead(EntityMurmur parent) {\n        this(AMEntityRegistry.MURMUR_HEAD.get(), parent.level());\n        this.setBodyId(parent.getUUID());\n        this.doSpawnPositioning(parent);\n    }\n\n    protected PathNavigation createNavigation(Level level) {\n        FlyingPathNavigation flyingpathnavigation = new FlyingPathNavigation(this, level());\n        flyingpathnavigation.setCanOpenDoors(false);\n        flyingpathnavigation.setCanFloat(true);\n        flyingpathnavigation.setCanPassDoors(true);\n        return flyingpathnavigation;\n    }\n\n    public int getExperienceReward() {\n        return 0;\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(1, new AttackGoal());\n        this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n        this.goalSelector.addGoal(9, new LookAtPlayerGoal(this, Player.class, 6.0F));\n        this.targetSelector.addGoal(1, (new HurtByTargetGoal(this)));\n        this.targetSelector.addGoal(2, new EntityAINearestTarget3D(this, Player.class, 10, false, true, null));\n        this.targetSelector.addGoal(3, new EntityAINearestTarget3D(this, AbstractVillager.class, 30, false, true, null));\n    }\n\n    @Override\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(BODY_UUID, Optional.empty());\n        this.entityData.define(BODY_ID, -1);\n        this.entityData.define(PULLED_IN, true);\n        this.entityData.define(ANGRY, false);\n    }\n\n    private void doSpawnPositioning(EntityMurmur parent){\n        this.setPos(parent.getNeckBottom(1.0F).add(0, 0.5F, 0));\n    }\n\n    public static AttributeSupplier.Builder bakeAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 30.0D).add(Attributes.FOLLOW_RANGE, 48.0D).add(Attributes.ATTACK_DAMAGE, 3.0D).add(Attributes.MOVEMENT_SPEED, 0.2F);\n    }\n\n    public boolean causeFallDamage(float distance, float damageMultiplier) {\n        return false;\n    }\n\n    protected void checkFallDamage(double y, boolean onGroundIn, BlockState state, BlockPos pos) {\n    }\n\n    public boolean isNoGravity() {\n        return true;\n    }\n\n    public boolean isPulledIn(){\n        return this.entityData.get(PULLED_IN);\n    }\n\n    public void setPulledIn(boolean pulledIn){\n        this.entityData.set(PULLED_IN, pulledIn);\n    }\n\n    public boolean isAngry(){\n        return this.entityData.get(ANGRY) || !this.isAlive();\n    }\n\n    public void setAngry(boolean angry){\n        this.entityData.set(ANGRY, angry);\n    }\n\n\n    public Vec3 getNeckTop(float partialTick){\n        double d0 = Mth.lerp(partialTick, this.xo, this.getX());\n        double d1 = Mth.lerp(partialTick, this.yo, this.getY());\n        double d2 = Mth.lerp(partialTick, this.zo, this.getZ());\n        double bounce = 0;\n        Entity body = this.getBody();\n        if(body instanceof EntityMurmur){\n            bounce = ((EntityMurmur)body).calculateWalkBounce(partialTick);\n        }\n        return new Vec3(d0, d1 + bounce, d2);\n    }\n\n    public Vec3 getNeckBottom(float partialTick){\n        Entity body = this.getBody();\n        Vec3 top = this.getNeckTop(partialTick);\n        if(body instanceof EntityMurmur){\n            EntityMurmur murmur = (EntityMurmur) body;\n            Vec3 bodyBase = murmur.getNeckBottom(partialTick);\n            final double sub = top.subtract(bodyBase).horizontalDistance();\n            return sub <= 0.06 ? new Vec3(top.x, bodyBase.y, top.z) : bodyBase;\n        }\n        return top.add(0, -0.5F, 0);\n    }\n\n    public boolean hasNeckBottom(){\n        return true;\n    }\n\n    public MobType getMobType() {\n        return MobType.UNDEAD;\n    }\n\n    @Nullable\n    public UUID getBodyId() {\n        return this.entityData.get(BODY_UUID).orElse(null);\n    }\n\n    public void setBodyId(@Nullable UUID uniqueId) {\n        this.entityData.set(BODY_UUID, Optional.ofNullable(uniqueId));\n    }\n\n    public Entity getBody() {\n        if (!this.level().isClientSide) {\n            final UUID id = getBodyId();\n            return id == null ? null : ((ServerLevel) level()).getEntity(id);\n        }else{\n            int id = this.entityData.get(BODY_ID);\n            return id == -1 ? null : level().getEntity(id);\n        }\n    }\n\n    public void readAdditionalSaveData(CompoundTag compound) {\n        super.readAdditionalSaveData(compound);\n        if (compound.hasUUID(\"BodyUUID\")) {\n            this.setBodyId(compound.getUUID(\"BodyUUID\"));\n        }\n    }\n\n\n    public void addAdditionalSaveData(CompoundTag compound) {\n        super.addAdditionalSaveData(compound);\n        if (this.getBodyId() != null) {\n            compound.putUUID(\"BodyUUID\", this.getBodyId());\n        }\n    }\n\n    @Override\n    protected float getStandingEyeHeight(Pose pose, EntityDimensions dimensions) {\n        return dimensions.height * 0.35F;\n    }\n\n    public void tick(){\n        super.tick();\n        this.yHeadRot = Mth.clamp(this.yHeadRot, this.yBodyRot - 70, this.yBodyRot + 70);\n        this.prevAngerProgress = angerProgress;\n        if(this.isAngry() && angerProgress < 5F) {\n            angerProgress++;\n        }\n        if(!this.isAngry() && angerProgress > 0F){\n            angerProgress--;\n        }\n        moveHair();\n        Entity body = getBody();\n        if(!this.level().isClientSide) {\n            if (body instanceof EntityMurmur) {\n                EntityMurmur murmur = (EntityMurmur) body;\n                this.entityData.set(BODY_ID, body.getId());\n                if(this.isPulledIn() && murmur.isAlive()){\n                    Vec3 base = murmur.getNeckBottom(1.0F).add(0, 0.55F, 0);\n                    Vec3 vec3 = base.subtract(this.position());\n                    if(vec3.length() < 1){\n                        this.setPos(base.x, base.y, base.z);\n                        this.noPhysics = false;\n                    }else{\n                        this.noPhysics = true;\n                        vec3 = base.subtract(this.position()).normalize();\n                        float f = this.getTarget() != null && this.getTarget().isAlive() ? 0.3F : 0.15F;\n                        this.setDeltaMovement(vec3.scale(f));\n                    }\n                    this.setYRot(murmur.getYRot());\n                    this.yBodyRot = murmur.getYRot();\n                }else{\n"
+        },
+        {
+          "start": 236,
+          "end": 501,
+          "actual_excerpt_sha256": "362adec51c23457d6ca373f5b7ca4f3583a56b60252804d7c442befb31a82097",
+          "actual_source_text": "                    this.noPhysics = false;\n                }\n                LivingEntity headTarget = this.getTarget();\n                LivingEntity bodyTarget = murmur.getTarget();\n                if(headTarget != null && headTarget.isAlive()){\n                    if(murmur.canAttack(headTarget)){\n                        murmur.setTarget(headTarget);\n                    }else{\n                        this.setTarget(null);\n                        murmur.setTarget(null);\n                    }\n                }else if(bodyTarget != null && bodyTarget.isAlive() && this.canAttack(bodyTarget)){\n                    this.setTarget(bodyTarget);\n                }\n                if (body.isRemoved()) {\n                    this.remove(RemovalReason.DISCARDED);\n                }\n            }\n            if(body == null && this.tickCount > 20){\n                this.remove(RemovalReason.DISCARDED);\n            }\n        }else{\n            if (body instanceof EntityMurmur) {\n                EntityMurmur murmur = (EntityMurmur) body;\n                if (murmur.hurtTime > 0 || murmur.deathTime > 0) {\n                    this.hurtTime = murmur.hurtTime;\n                    this.deathTime = murmur.deathTime;\n                }\n            }\n        }\n        if(prevLaunched && !this.isPulledIn()){\n            this.playSound(AMSoundRegistry.MURMUR_NECK.get(), 3F * this.getSoundVolume(), this.getVoicePitch());\n        }\n        prevLaunched = this.isPulledIn();\n    }\n\n    public boolean isPushedByFluid() {\n        return false;\n    }\n\n    @Override\n    public boolean hurt(DamageSource source, float damage) {\n        Entity body = this.getBody();\n        if(isInvulnerableTo(source)){\n            return false;\n        }\n        if(body != null && body.hurt(source, 0.5F * damage)){\n            return true;\n        }\n        return super.hurt(source, damage);\n    }\n\n    public boolean isInvulnerableTo(DamageSource damageSource) {\n        return super.isInvulnerableTo(damageSource) || damageSource.is(DamageTypes.IN_WALL);\n    }\n\n    private void moveHair() {\n        this.prevXHair = this.xHair;\n        this.prevYHair = this.yHair;\n        this.prevZHair = this.zHair;\n        double d0 = this.getX() - this.xHair;\n        double d1 = this.getY() - this.yHair;\n        double d2 = this.getZ() - this.zHair;\n\n        if (d0 > 10.0D) {\n            this.xHair = this.getX();\n            this.prevXHair = this.xHair;\n        }\n\n        if (d2 > 10.0D) {\n            this.zHair = this.getZ();\n            this.prevZHair = this.zHair;\n        }\n\n        if (d1 > 10.0D) {\n            this.yHair = this.getY();\n            this.prevYHair = this.yHair;\n        }\n\n        if (d0 < -10.0D) {\n            this.xHair = this.getX();\n            this.prevXHair = this.xHair;\n        }\n\n        if (d2 < -10.0D) {\n            this.zHair = this.getZ();\n            this.prevZHair = this.zHair;\n        }\n\n        if (d1 < -10.0D) {\n            this.yHair = this.getY();\n            this.prevYHair = this.yHair;\n        }\n\n        this.xHair += d0 * 0.25D;\n        this.zHair += d2 * 0.25D;\n        this.yHair += d1 * 0.25D;\n    }\n\n    public boolean isAlliedTo(Entity entity) {\n        return this.getBodyId() != null && entity.getUUID().equals(this.getBodyId()) || super.isAlliedTo(entity);\n    }\n\n    public void playAmbientSound() {\n        if(this.isPulledIn() && !this.isAngry()){\n            super.playAmbientSound();\n        }\n    }\n\n    protected SoundEvent getAmbientSound() {\n        return AMSoundRegistry.MURMUR_IDLE.get();\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSourceIn) {\n        return this.getBody() == null ? AMSoundRegistry.MURMUR_HURT.get() : null;\n    }\n\n    protected SoundEvent getDeathSound() {\n        return this.getBody() == null ? AMSoundRegistry.MURMUR_HURT.get() : null;\n    }\n\n    public boolean isFlying() {\n        return true;\n    }\n\n    protected void playStepSound(BlockPos pos, BlockState blockIn) {\n    }\n\n    class MoveController extends MoveControl {\n        private final Mob parentEntity;\n\n        public MoveController() {\n            super(EntityMurmurHead.this);\n            this.parentEntity = EntityMurmurHead.this;\n        }\n\n        public void tick() {\n            if(EntityMurmurHead.this.isPulledIn()){\n                return;\n            }\n            float angle = (Maths.STARTING_ANGLE * (parentEntity.yBodyRot + 90));\n            float radius = (float) Math.sin(parentEntity.tickCount * 0.2F) * 2;\n            double extraX = radius * Mth.sin(Mth.PI + angle);\n            double extraY = radius * -Math.cos(angle - Math.PI / 2);\n            double extraZ = radius * Mth.cos(angle);\n            Vec3 strafPlus = new Vec3(extraX, extraY, extraZ);\n            if (this.operation == MoveControl.Operation.MOVE_TO) {\n                Vec3 vector3d = new Vec3(this.wantedX - parentEntity.getX(), this.wantedY - parentEntity.getY(), this.wantedZ - parentEntity.getZ());\n                double d0 = vector3d.length();\n                double width = parentEntity.getBoundingBox().getSize();\n                Vec3 shimmy = Vec3.ZERO;\n                LivingEntity attackTarget = parentEntity.getTarget();\n                if (attackTarget != null) {\n                    if (parentEntity.horizontalCollision) {\n                        shimmy = new Vec3(0, 0.005, 0);\n                    }\n                }\n\n                Vec3 vector3d1 = vector3d.scale(this.speedModifier * 0.05D / d0);\n                parentEntity.setDeltaMovement(parentEntity.getDeltaMovement().add(vector3d1.add(strafPlus.scale(0.003D * Math.min(d0, 100)).add(shimmy))));\n\n                if (attackTarget == null) {\n                    if(d0 >= width){\n                        Vec3 deltaMovement = parentEntity.getDeltaMovement();\n                        parentEntity.setYRot(-((float) Mth.atan2(deltaMovement.x, deltaMovement.z)) * Mth.RAD_TO_DEG);\n                        parentEntity.yBodyRot = parentEntity.getYRot();\n                    }\n                } else {\n                    double d2 = attackTarget.getX() - parentEntity.getX();\n                    double d1 = attackTarget.getZ() - parentEntity.getZ();\n                    parentEntity.setYRot(-((float) Mth.atan2(d2, d1)) * Mth.RAD_TO_DEG);\n                    parentEntity.yBodyRot = parentEntity.getYRot();\n                }\n            } else if (this.operation == MoveControl.Operation.WAIT) {\n                parentEntity.setDeltaMovement(parentEntity.getDeltaMovement().add(strafPlus.scale(0.003D)));\n            }\n        }\n    }\n\n    private class AttackGoal extends Goal {\n\n        private int time;\n        private int biteCooldown = 0;\n        private Vec3 emergeFrom = Vec3.ZERO;\n        private float emergeAngle = 0;\n\n        public AttackGoal() {\n            this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));\n        }\n\n        @Override\n        public boolean canUse() {\n            return EntityMurmurHead.this.getTarget() != null && EntityMurmurHead.this.getTarget().isAlive();\n        }\n\n        public void start(){\n            time = 0;\n            biteCooldown = 0;\n            EntityMurmurHead.this.setPulledIn(false);\n        }\n\n        public void stop(){\n            time = 0;\n            EntityMurmurHead.this.setPulledIn(true);\n            EntityMurmurHead.this.setAngry(false);\n        }\n\n        public void tick(){\n            LivingEntity target = EntityMurmurHead.this.getTarget();\n            Entity body = EntityMurmurHead.this.getBody();\n            if(target != null){\n                double dist = Math.sqrt(EntityMurmurHead.this.distanceToSqr(target.getEyePosition()));\n                double bodyDist = body != null ? body.distanceTo(target) : 0.0;\n                if(bodyDist > 16 && time > 30){\n                    if(body instanceof EntityMurmur){\n                        EntityMurmur murmur = (EntityMurmur) body;\n                        murmur.setTarget(target);\n                        murmur.getNavigation().moveTo(target, 1.35D);\n                    }\n                }\n                if(bodyDist > 64){\n                    EntityMurmurHead.this.setPulledIn(true);\n                }else if(biteCooldown == 0){\n                    EntityMurmurHead.this.setPulledIn(false);\n                    Vec3 moveTo = target.getEyePosition();\n                    if(time > 30){\n                        if(!EntityMurmurHead.this.isAngry()){\n                            EntityMurmurHead.this.playSound(AMSoundRegistry.MURMUR_ANGER.get(), 1.5F * EntityMurmurHead.this.getSoundVolume(), EntityMurmurHead.this.getVoicePitch());\n                            EntityMurmurHead.this.gameEvent(GameEvent.ENTITY_ROAR);\n                        }\n                        EntityMurmurHead.this.setAngry(true);\n                        EntityMurmurHead.this.getNavigation().moveTo(moveTo.x, moveTo.y, moveTo.z, 1.3D);\n                    }else{\n                        if(time == 0){\n                            emergeFrom = EntityMurmurHead.this.getNeckTop(1.0F).add(0, 0.5F, 0);\n                            Vec3 face = moveTo.subtract(emergeFrom);\n                        }\n                        boolean clockwise = false;\n                        float circleDistance = 2.5F;\n                        float circlingTime = 30 * time;\n                        float angle = (Maths.STARTING_ANGLE * (clockwise ? -circlingTime : circlingTime));\n                        double extraX = circleDistance * Mth.sin(Mth.PI + angle);\n                        double extraZ = circleDistance * Mth.cos(angle);\n                        double y = Math.max(emergeFrom.y + 2, target.getEyeY());\n                        Vec3 vec3 = new Vec3(emergeFrom.x + extraX, y, emergeFrom.z + extraZ);\n                        EntityMurmurHead.this.getNavigation().moveTo(vec3.x, vec3.y, vec3.z, 0.7D);\n                    }\n                    EntityMurmurHead.this.lookAt(EntityAnchorArgument.Anchor.EYES, moveTo);\n                    if(dist < 1.5F && EntityMurmurHead.this.hasLineOfSight(target)){\n                        EntityMurmurHead.this.playSound(AMSoundRegistry.MURMUR_ATTACK.get(), EntityMurmurHead.this.getSoundVolume(), EntityMurmurHead.this.getVoicePitch());\n                        biteCooldown = 5 + EntityMurmurHead.this.getRandom().nextInt(15);\n                        target.hurt(EntityMurmurHead.this.damageSources().mobAttack(EntityMurmurHead.this), 5.0F);\n                    }\n                }else{\n                    EntityMurmurHead.this.setPulledIn(true);\n                    EntityMurmurHead.this.lookAt(EntityAnchorArgument.Anchor.EYES, target.getEyePosition());\n                    EntityMurmurHead.this.setAngry(false);\n                }\n                time++;\n            }\n            if(biteCooldown > 0){\n                biteCooldown--;\n            }\n        }\n    }\n}\n"
+        }
+      ],
+      "whole_file_actually_read": true
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+        "bytes": 56666
+      },
+      "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "manifest_entry": {
+        "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+        "git_blob_sha1": "a88edf42cabd97f5a3176f996d0f992cde982c1b"
+      },
+      "git_blob_sha1": "a88edf42cabd97f5a3176f996d0f992cde982c1b",
+      "ranges": [
+        {
+          "start": 139,
+          "end": 140,
+          "actual_excerpt_sha256": "57c722cf40d228923dd5d487658e9b9bb68eba1e60d75691c0af1ff915f79def",
+          "actual_source_text": "    public static final RegistryObject<EntityType<EntityMurmur>> MURMUR = DEF_REG.register(\"murmur\", () -> registerEntity(EntityType.Builder.of(EntityMurmur::new, MobCategory.MONSTER).sized(0.7F, 1.45F).setTrackingRange(8), \"murmur\"));\n    public static final RegistryObject<EntityType<EntityMurmurHead>> MURMUR_HEAD = DEF_REG.register(\"murmur_head\", () -> registerEntity(EntityType.Builder.of(EntityMurmurHead::new, MobCategory.MONSTER).sized(0.55F, 0.55F).setTrackingRange(8), \"murmur_head\"));\n"
+        },
+        {
+          "start": 237,
+          "end": 237,
+          "actual_excerpt_sha256": "7feb278b91d9ba7aab4bf2bae8be955ab228bec6aaafc13be0a50a826e662ace",
+          "actual_source_text": "        SpawnPlacements.register(MURMUR.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EntityMurmur::checkMurmurSpawnRules);\n"
+        },
+        {
+          "start": 332,
+          "end": 333,
+          "actual_excerpt_sha256": "1e9775e576f9e06e0ae5598411493b7d0402683e5a9012c0c9a4f8eaca129f0c",
+          "actual_source_text": "        event.put(MURMUR.get(), EntityMurmur.bakeAttributes().build());\n        event.put(MURMUR_HEAD.get(), EntityMurmurHead.bakeAttributes().build());\n"
+        }
+      ],
+      "whole_file_actually_read": false
+    }
+  ],
+  "added_actual_source_refs": [
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/guard-ownership-research/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/ai/EntityAINearestTarget3D.java",
+        "sha256": "41f9307775c0a0fa6ddcd4030291c2bef1515a808fce43c3ae73877f810cb4ed",
+        "bytes": 1257
+      },
+      "source_total_lines": 28,
+      "whole_file_actually_read": true,
+      "identity_kind": "local09755_manifest_and_fixed_tree_blob_only",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 28,
+          "bytes": 1257,
+          "sha256": "41f9307775c0a0fa6ddcd4030291c2bef1515a808fce43c3ae73877f810cb4ed",
+          "raw_utf8_keepends": "package com.github.alexthe666.alexsmobs.entity.ai;\n\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.phys.AABB;\n\nimport javax.annotation.Nullable;\nimport java.util.function.Predicate;\n\npublic class EntityAINearestTarget3D<T extends LivingEntity> extends NearestAttackableTargetGoal<T> {\n    public EntityAINearestTarget3D(Mob goalOwnerIn, Class<T> targetClassIn, boolean checkSight) {\n        super(goalOwnerIn, targetClassIn, checkSight);\n    }\n\n    public EntityAINearestTarget3D(Mob goalOwnerIn, Class<T> targetClassIn, boolean checkSight, boolean nearbyOnlyIn) {\n        super(goalOwnerIn, targetClassIn, checkSight, nearbyOnlyIn);\n    }\n\n    public EntityAINearestTarget3D(Mob goalOwnerIn, Class<T> targetClassIn, int targetChanceIn, boolean checkSight, boolean nearbyOnlyIn, @Nullable Predicate<LivingEntity> targetPredicate) {\n        super(goalOwnerIn, targetClassIn, targetChanceIn, checkSight, nearbyOnlyIn, targetPredicate);\n    }\n\n    protected AABB getTargetSearchArea(double targetDistance) {\n        return this.mob.getBoundingBox().inflate(targetDistance, targetDistance, targetDistance);\n    }\n\n}\n"
+        }
+      ],
+      "tree_entry": {
+        "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/ai/EntityAINearestTarget3D.java",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3c027038efb940c8dfccda2c247ebfba1f4bf247",
+        "size": 1257,
+        "url": "https://api.github.com/repos/AlexModGuy/AlexsMobs/git/blobs/3c027038efb940c8dfccda2c247ebfba1f4bf247"
+      },
+      "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843"
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/guard-ownership-research/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/util/Maths.java",
+        "sha256": "a1825df3829a64edcc9c50f7d60253a7b292de66e4b8d84f30fa1d1286385ebc",
+        "bytes": 451
+      },
+      "source_total_lines": 13,
+      "whole_file_actually_read": true,
+      "identity_kind": "local09755_manifest_and_fixed_tree_blob_only",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 13,
+          "bytes": 451,
+          "sha256": "a1825df3829a64edcc9c50f7d60253a7b292de66e4b8d84f30fa1d1286385ebc",
+          "raw_utf8_keepends": "package com.github.alexthe666.alexsmobs.entity.util;\n\npublic class Maths {\n    public static final float QUARTER_PI = ((float)Math.PI / 4F);\n\n    public static final float STARTING_ANGLE = 0.0174532925F;\n    public static final float THREE_STARTING_ANGLE = STARTING_ANGLE * 3;\n    public static final float EIGHT_STARTING_ANGLE = STARTING_ANGLE * 8;\n\n    public static float rad(final double deg) {\n        return (float) Math.toRadians(deg);\n    }\n}\n"
+        }
+      ],
+      "tree_entry": {
+        "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/util/Maths.java",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "54ff1f5ab4a5c829a382576314be156676e821c3",
+        "size": 451,
+        "url": "https://api.github.com/repos/AlexModGuy/AlexsMobs/git/blobs/54ff1f5ab4a5c829a382576314be156676e821c3"
+      },
+      "fixed_commit": "09755dade2cfbdf14839e026d3af446f9d3ff843"
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/Goal.java",
+        "sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+        "bytes": 1166
+      },
+      "source_total_lines": 59,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 59,
+          "bytes": 1166,
+          "sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport net.minecraft.util.Mth;\n\npublic abstract class Goal {\n   private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);\n\n   public abstract boolean canUse();\n\n   public boolean canContinueToUse() {\n      return this.canUse();\n   }\n\n   public boolean isInterruptable() {\n      return true;\n   }\n\n   public void start() {\n   }\n\n   public void stop() {\n   }\n\n   public boolean requiresUpdateEveryTick() {\n      return false;\n   }\n\n   public void tick() {\n   }\n\n   public void setFlags(EnumSet<Goal.Flag> p_25328_) {\n      this.flags.clear();\n      this.flags.addAll(p_25328_);\n   }\n\n   public String toString() {\n      return this.getClass().getSimpleName();\n   }\n\n   public EnumSet<Goal.Flag> getFlags() {\n      return this.flags;\n   }\n\n   protected int adjustedTickDelay(int p_186072_) {\n      return this.requiresUpdateEveryTick() ? p_186072_ : reducedTickDelay(p_186072_);\n   }\n\n   protected static int reducedTickDelay(int p_186074_) {\n      return Mth.positiveCeilDiv(p_186074_, 2);\n   }\n\n   public static enum Flag {\n      MOVE,\n      LOOK,\n      JUMP,\n      TARGET;\n   }\n}"
+        }
+      ],
+      "archive_member": "net/minecraft/world/entity/ai/goal/Goal.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Mob.java",
+        "sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+        "bytes": 54074
+      },
+      "source_total_lines": 1534,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 228,
+          "end": 244,
+          "bytes": 622,
+          "sha256": "f41ac04d21af38df9c978a8cb36e0a19b25e30a2860f6dc8e4f6a246acb1dd91",
+          "raw_utf8_keepends": "\n   @Nullable\n   public LivingEntity getTarget() {\n      return this.target;\n   }\n\n   public void setTarget(@Nullable LivingEntity p_21544_) {\n      net.minecraftforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.minecraftforge.common.ForgeHooks.onLivingChangeTarget(this, p_21544_, net.minecraftforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);\n      if(!changeTargetEvent.isCanceled()) {\n          this.target = changeTargetEvent.getNewTarget();\n      }\n   }\n\n   public boolean canAttackType(EntityType<?> p_21399_) {\n      return p_21399_ != EntityType.GHAST;\n   }\n\n"
+        }
+      ],
+      "archive_member": "net/minecraft/world/entity/Mob.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+        "sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "bytes": 131153
+      },
+      "source_total_lines": 3473,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 663,
+          "end": 670,
+          "bytes": 300,
+          "sha256": "cd721ca9ad93ec73e3e872a30dae17ec682e9badfe4af0e444098eccfb5a0992",
+          "raw_utf8_keepends": "   public void remove(Entity.RemovalReason p_276115_) {\n      super.remove(p_276115_);\n      this.brain.clearMemories();\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_21145_) {\n      p_21145_.putFloat(\"Health\", this.getHealth());\n      p_21145_.putShort(\"HurtTime\", (short)this.hurtTime);\n"
+        },
+        {
+          "start": 848,
+          "end": 874,
+          "bytes": 940,
+          "sha256": "91ffba621be43d6a1651bde9d610dd833107a5c05d92dd6c469696e211c39b18",
+          "raw_utf8_keepends": "         }\n      }\n      d0 = net.minecraftforge.common.ForgeHooks.getEntityVisibilityMultiplier(this, p_20969_, d0);\n      return d0;\n   }\n\n   public boolean canAttack(LivingEntity p_21171_) {\n      return p_21171_ instanceof Player && this.level().getDifficulty() == Difficulty.PEACEFUL ? false : p_21171_.canBeSeenAsEnemy();\n   }\n\n   public boolean canAttack(LivingEntity p_21041_, TargetingConditions p_21042_) {\n      return p_21042_.test(this, p_21041_);\n   }\n\n   public boolean canBeSeenAsEnemy() {\n      return !this.isInvulnerable() && this.canBeSeenByAnyone();\n   }\n\n   public boolean canBeSeenByAnyone() {\n      return !this.isSpectator() && this.isAlive();\n   }\n\n   public static boolean areAllEffectsAmbient(Collection<MobEffectInstance> p_21180_) {\n      for(MobEffectInstance mobeffectinstance : p_21180_) {\n         if (mobeffectinstance.isVisible() && !mobeffectinstance.isAmbient()) {\n            return false;\n         }\n"
+        },
+        {
+          "start": 1058,
+          "end": 1215,
+          "bytes": 6031,
+          "sha256": "31246ad20aef4d2e255dd696f6007363d1bbd8d01238e6856ecda9cd0d3dab44",
+          "raw_utf8_keepends": "   public boolean hurt(DamageSource p_21016_, float p_21017_) {\n      if (!net.minecraftforge.common.ForgeHooks.onLivingAttack(this, p_21016_, p_21017_)) return false;\n      if (this.isInvulnerableTo(p_21016_)) {\n         return false;\n      } else if (this.level().isClientSide) {\n         return false;\n      } else if (this.isDeadOrDying()) {\n         return false;\n      } else if (p_21016_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE)) {\n         return false;\n      } else {\n         if (this.isSleeping() && !this.level().isClientSide) {\n            this.stopSleeping();\n         }\n\n         this.noActionTime = 0;\n         float f = p_21017_;\n         boolean flag = false;\n         float f1 = 0.0F;\n         if (p_21017_ > 0.0F && this.isDamageSourceBlocked(p_21016_)) {\n            net.minecraftforge.event.entity.living.ShieldBlockEvent ev = net.minecraftforge.common.ForgeHooks.onShieldBlock(this, p_21016_, p_21017_);\n            if(!ev.isCanceled()) {\n            if(ev.shieldTakesDamage()) this.hurtCurrentlyUsedShield(p_21017_);\n            f1 = ev.getBlockedDamage();\n            p_21017_ -= ev.getBlockedDamage();\n            if (!p_21016_.is(DamageTypeTags.IS_PROJECTILE)) {\n               Entity entity = p_21016_.getDirectEntity();\n               if (entity instanceof LivingEntity) {\n                  LivingEntity livingentity = (LivingEntity)entity;\n                  this.blockUsingShield(livingentity);\n               }\n            }\n\n            flag = p_21017_ <= 0;\n         }\n         }\n\n         if (p_21016_.is(DamageTypeTags.IS_FREEZING) && this.getType().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {\n            p_21017_ *= 5.0F;\n         }\n\n         this.walkAnimation.setSpeed(1.5F);\n         boolean flag1 = true;\n         if ((float)this.invulnerableTime > 10.0F && !p_21016_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {\n            if (p_21017_ <= this.lastHurt) {\n               return false;\n            }\n\n            this.actuallyHurt(p_21016_, p_21017_ - this.lastHurt);\n            this.lastHurt = p_21017_;\n            flag1 = false;\n         } else {\n            this.lastHurt = p_21017_;\n            this.invulnerableTime = 20;\n            this.actuallyHurt(p_21016_, p_21017_);\n            this.hurtDuration = 10;\n            this.hurtTime = this.hurtDuration;\n         }\n\n         if (p_21016_.is(DamageTypeTags.DAMAGES_HELMET) && !this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {\n            this.hurtHelmet(p_21016_, p_21017_);\n            p_21017_ *= 0.75F;\n         }\n\n         Entity entity1 = p_21016_.getEntity();\n         if (entity1 != null) {\n            if (entity1 instanceof LivingEntity) {\n               LivingEntity livingentity1 = (LivingEntity)entity1;\n               if (!p_21016_.is(DamageTypeTags.NO_ANGER)) {\n                  this.setLastHurtByMob(livingentity1);\n               }\n            }\n\n            if (entity1 instanceof Player) {\n               Player player1 = (Player)entity1;\n               this.lastHurtByPlayerTime = 100;\n               this.lastHurtByPlayer = player1;\n            } else if (entity1 instanceof net.minecraft.world.entity.TamableAnimal tamableEntity) {\n               if (tamableEntity.isTame()) {\n                  this.lastHurtByPlayerTime = 100;\n                  LivingEntity livingentity2 = tamableEntity.getOwner();\n                  if (livingentity2 instanceof Player) {\n                     Player player = (Player)livingentity2;\n                     this.lastHurtByPlayer = player;\n                  } else {\n                     this.lastHurtByPlayer = null;\n                  }\n               }\n            }\n         }\n\n         if (flag1) {\n            if (flag) {\n               this.level().broadcastEntityEvent(this, (byte)29);\n            } else {\n               this.level().broadcastDamageEvent(this, p_21016_);\n            }\n\n            if (!p_21016_.is(DamageTypeTags.NO_IMPACT) && (!flag || p_21017_ > 0.0F)) {\n               this.markHurt();\n            }\n\n            if (entity1 != null && !p_21016_.is(DamageTypeTags.IS_EXPLOSION)) {\n               double d0 = entity1.getX() - this.getX();\n\n               double d1;\n               for(d1 = entity1.getZ() - this.getZ(); d0 * d0 + d1 * d1 < 1.0E-4D; d1 = (Math.random() - Math.random()) * 0.01D) {\n                  d0 = (Math.random() - Math.random()) * 0.01D;\n               }\n\n               this.knockback((double)0.4F, d0, d1);\n               if (!flag) {\n                  this.indicateDamage(d0, d1);\n               }\n            }\n         }\n\n         if (this.isDeadOrDying()) {\n            if (!this.checkTotemDeathProtection(p_21016_)) {\n               SoundEvent soundevent = this.getDeathSound();\n               if (flag1 && soundevent != null) {\n                  this.playSound(soundevent, this.getSoundVolume(), this.getVoicePitch());\n               }\n\n               this.die(p_21016_);\n            }\n         } else if (flag1) {\n            this.playHurtSound(p_21016_);\n         }\n\n         boolean flag2 = !flag || p_21017_ > 0.0F;\n         if (flag2) {\n            this.lastDamageSource = p_21016_;\n            this.lastDamageStamp = this.level().getGameTime();\n         }\n\n         if (this instanceof ServerPlayer) {\n            CriteriaTriggers.ENTITY_HURT_PLAYER.trigger((ServerPlayer)this, p_21016_, f, p_21017_, flag);\n            if (f1 > 0.0F && f1 < 3.4028235E37F) {\n               ((ServerPlayer)this).awardStat(Stats.CUSTOM.get(Stats.DAMAGE_BLOCKED_BY_SHIELD), Math.round(f1 * 10.0F));\n            }\n         }\n\n         if (entity1 instanceof ServerPlayer) {\n            CriteriaTriggers.PLAYER_HURT_ENTITY.trigger((ServerPlayer)entity1, this, p_21016_, f, p_21017_, flag);\n         }\n\n         return flag2;\n      }\n   }\n\n   protected void blockUsingShield(LivingEntity p_21200_) {\n      p_21200_.blockedByShield(this);\n   }\n\n   protected void blockedByShield(LivingEntity p_21246_) {\n      p_21246_.knockback(0.5D, p_21246_.getX() - this.getX(), p_21246_.getZ() - this.getZ());\n   }\n"
+        },
+        {
+          "start": 1562,
+          "end": 1640,
+          "bytes": 3387,
+          "sha256": "d41975bd00b81a67e7b8113d94234fd138ff4bc954d0f7b20bddc72d49021660",
+          "raw_utf8_keepends": "   protected void hurtArmor(DamageSource p_21122_, float p_21123_) {\n   }\n\n   protected void hurtHelmet(DamageSource p_147213_, float p_147214_) {\n   }\n\n   protected void hurtCurrentlyUsedShield(float p_21316_) {\n   }\n\n   protected float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {\n      if (!p_21162_.is(DamageTypeTags.BYPASSES_ARMOR)) {\n         this.hurtArmor(p_21162_, p_21163_);\n         p_21163_ = CombatRules.getDamageAfterAbsorb(p_21163_, (float)this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS));\n      }\n\n      return p_21163_;\n   }\n\n   protected float getDamageAfterMagicAbsorb(DamageSource p_21193_, float p_21194_) {\n      if (p_21193_.is(DamageTypeTags.BYPASSES_EFFECTS)) {\n         return p_21194_;\n      } else {\n         if (this.hasEffect(MobEffects.DAMAGE_RESISTANCE) && !p_21193_.is(DamageTypeTags.BYPASSES_RESISTANCE)) {\n            int i = (this.getEffect(MobEffects.DAMAGE_RESISTANCE).getAmplifier() + 1) * 5;\n            int j = 25 - i;\n            float f = p_21194_ * (float)j;\n            float f1 = p_21194_;\n            p_21194_ = Math.max(f / 25.0F, 0.0F);\n            float f2 = f1 - p_21194_;\n            if (f2 > 0.0F && f2 < 3.4028235E37F) {\n               if (this instanceof ServerPlayer) {\n                  ((ServerPlayer)this).awardStat(Stats.CUSTOM.get(Stats.DAMAGE_RESISTED), Math.round(f2 * 10.0F));\n               } else if (p_21193_.getEntity() instanceof ServerPlayer) {\n                  ((ServerPlayer)p_21193_.getEntity()).awardStat(Stats.CUSTOM.get(Stats.DAMAGE_DEALT_RESISTED), Math.round(f2 * 10.0F));\n               }\n            }\n         }\n\n         if (p_21194_ <= 0.0F) {\n            return 0.0F;\n         } else if (p_21193_.is(DamageTypeTags.BYPASSES_ENCHANTMENTS)) {\n            return p_21194_;\n         } else {\n            int k = EnchantmentHelper.getDamageProtection(this.getArmorSlots(), p_21193_);\n            if (k > 0) {\n               p_21194_ = CombatRules.getDamageAfterMagicAbsorb(p_21194_, (float)k);\n            }\n\n            return p_21194_;\n         }\n      }\n   }\n\n   protected void actuallyHurt(DamageSource p_21240_, float p_21241_) {\n      if (!this.isInvulnerableTo(p_21240_)) {\n         p_21241_ = net.minecraftforge.common.ForgeHooks.onLivingHurt(this, p_21240_, p_21241_);\n         if (p_21241_ <= 0) return;\n         p_21241_ = this.getDamageAfterArmorAbsorb(p_21240_, p_21241_);\n         p_21241_ = this.getDamageAfterMagicAbsorb(p_21240_, p_21241_);\n         float f1 = Math.max(p_21241_ - this.getAbsorptionAmount(), 0.0F);\n         this.setAbsorptionAmount(this.getAbsorptionAmount() - (p_21241_ - f1));\n         float f = p_21241_ - f1;\n         if (f > 0.0F && f < 3.4028235E37F) {\n            Entity entity = p_21240_.getEntity();\n            if (entity instanceof ServerPlayer) {\n               ServerPlayer serverplayer = (ServerPlayer)entity;\n               serverplayer.awardStat(Stats.DAMAGE_DEALT_ABSORBED, Math.round(f * 10.0F));\n            }\n         }\n\n         f1 = net.minecraftforge.common.ForgeHooks.onLivingDamage(this, p_21240_, f1);\n         if (f1 != 0.0F) {\n            this.getCombatTracker().recordDamage(p_21240_, f1);\n            this.setHealth(this.getHealth() - f1);\n            this.setAbsorptionAmount(this.getAbsorptionAmount() - f1);\n            this.gameEvent(GameEvent.ENTITY_DAMAGE);\n         }\n      }\n   }\n"
+        },
+        {
+          "start": 2788,
+          "end": 2815,
+          "bytes": 887,
+          "sha256": "39af86933ddd91f6ecf5ee1b93cf25a8e0b802d86cd7b91b82742b4339c184e5",
+          "raw_utf8_keepends": "      }\n\n   }\n\n   public boolean hasLineOfSight(Entity p_147185_) {\n      if (p_147185_.level() != this.level()) {\n         return false;\n      } else {\n         Vec3 vec3 = new Vec3(this.getX(), this.getEyeY(), this.getZ());\n         Vec3 vec31 = new Vec3(p_147185_.getX(), p_147185_.getEyeY(), p_147185_.getZ());\n         if (vec31.distanceTo(vec3) > 128.0D) {\n            return false;\n         } else {\n            return this.level().clip(new ClipContext(vec3, vec31, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this)).getType() == HitResult.Type.MISS;\n         }\n      }\n   }\n\n   public float getViewYRot(float p_21286_) {\n      return p_21286_ == 1.0F ? this.yHeadRot : Mth.lerp(p_21286_, this.yHeadRotO, this.yHeadRot);\n   }\n\n   public float getAttackAnim(float p_21325_) {\n      float f = this.attackAnim - this.oAttackAnim;\n      if (f < 0.0F) {\n         ++f;\n      }\n\n"
+        }
+      ],
+      "archive_member": "net/minecraft/world/entity/LivingEntity.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+        "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+        "bytes": 128890
+      },
+      "source_total_lines": 3566,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 331,
+          "end": 360,
+          "bytes": 628,
+          "sha256": "173426d276ad8a00a85e1c17c0f111de8f6f4e9d4f0685c5d193fa67bf5441c6",
+          "raw_utf8_keepends": "   public final void discard() {\n      this.remove(Entity.RemovalReason.DISCARDED);\n   }\n\n   protected abstract void defineSynchedData();\n\n   public SynchedEntityData getEntityData() {\n      return this.entityData;\n   }\n\n   public boolean equals(Object p_20245_) {\n      if (p_20245_ instanceof Entity) {\n         return ((Entity)p_20245_).id == this.id;\n      } else {\n         return false;\n      }\n   }\n\n   public int hashCode() {\n      return this.id;\n   }\n\n   public void remove(Entity.RemovalReason p_146834_) {\n      this.setRemoved(p_146834_);\n      this.invalidateCaps();\n   }\n\n   public void onClientRemoval() {\n   }\n\n"
+        },
+        {
+          "start": 1474,
+          "end": 1482,
+          "bytes": 210,
+          "sha256": "0d579a2368b9c50ea463b1a1df1656fffe3bad32aa3ad90a15d2eff1567b2a93",
+          "raw_utf8_keepends": "   public boolean hurt(DamageSource p_19946_, float p_19947_) {\n      if (this.isInvulnerableTo(p_19946_)) {\n         return false;\n      } else {\n         this.markHurt();\n         return false;\n      }\n   }\n\n"
+        },
+        {
+          "start": 2420,
+          "end": 2440,
+          "bytes": 1254,
+          "sha256": "927106e06b0f42b41439995c4194486cc8026307be5b5de018e06a3dc24e5a7f",
+          "raw_utf8_keepends": "\n   public String toString() {\n      String s = this.level() == null ? \"~NULL~\" : this.level().toString();\n      return this.removalReason != null ? String.format(Locale.ROOT, \"%s['%s'/%d, l='%s', x=%.2f, y=%.2f, z=%.2f, removed=%s]\", this.getClass().getSimpleName(), this.getName().getString(), this.id, s, this.getX(), this.getY(), this.getZ(), this.removalReason) : String.format(Locale.ROOT, \"%s['%s'/%d, l='%s', x=%.2f, y=%.2f, z=%.2f]\", this.getClass().getSimpleName(), this.getName().getString(), this.id, s, this.getX(), this.getY(), this.getZ());\n   }\n\n   public boolean isInvulnerableTo(DamageSource p_20122_) {\n      return this.isRemoved() || this.invulnerable && !p_20122_.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !p_20122_.isCreativePlayer() || p_20122_.is(DamageTypeTags.IS_FIRE) && this.fireImmune() || p_20122_.is(DamageTypeTags.IS_FALL) && this.getType().is(EntityTypeTags.FALL_DAMAGE_IMMUNE);\n   }\n\n   public boolean isInvulnerable() {\n      return this.invulnerable;\n   }\n\n   public void setInvulnerable(boolean p_20332_) {\n      this.invulnerable = p_20332_;\n   }\n\n   public void copyPosition(Entity p_20360_) {\n      this.moveTo(p_20360_.getX(), p_20360_.getY(), p_20360_.getZ(), p_20360_.getYRot(), p_20360_.getXRot());\n   }\n"
+        },
+        {
+          "start": 3357,
+          "end": 3388,
+          "bytes": 873,
+          "sha256": "4bade87099f247d3cb5c992e9e3288a40e1be50f220fdcb6814959b3e15beac7",
+          "raw_utf8_keepends": "   public final void setRemoved(Entity.RemovalReason p_146876_) {\n      if (this.removalReason == null) {\n         this.removalReason = p_146876_;\n      }\n\n      if (this.removalReason.shouldDestroy()) {\n         this.stopRiding();\n      }\n\n      this.getPassengers().forEach(Entity::stopRiding);\n      this.levelCallback.onRemove(p_146876_);\n   }\n\n   protected void unsetRemoved() {\n      this.removalReason = null;\n   }\n\n   public void setLevelCallback(EntityInLevelCallback p_146849_) {\n      this.levelCallback = p_146849_;\n   }\n\n   public boolean shouldBeSaved() {\n      if (this.removalReason != null && !this.removalReason.shouldSave()) {\n         return false;\n      } else if (this.isPassenger()) {\n         return false;\n      } else {\n         return !this.isVehicle() || !this.hasExactlyOnePlayerPassenger();\n      }\n   }\n\n   public boolean isAlwaysTicking() {\n"
+        }
+      ],
+      "archive_member": "net/minecraft/world/entity/Entity.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/target/NearestAttackableTargetGoal.java",
+        "sha256": "1a785d31c0efb2a2f3c564940c83f75a6b919db064ac224cd8fdc652a2a82183",
+        "bytes": 3030
+      },
+      "source_total_lines": 74,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 74,
+          "bytes": 3030,
+          "sha256": "1a785d31c0efb2a2f3c564940c83f75a6b919db064ac224cd8fdc652a2a82183",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal.target;\n\nimport java.util.EnumSet;\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.phys.AABB;\n\npublic class NearestAttackableTargetGoal<T extends LivingEntity> extends TargetGoal {\n   private static final int DEFAULT_RANDOM_INTERVAL = 10;\n   protected final Class<T> targetType;\n   protected final int randomInterval;\n   @Nullable\n   protected LivingEntity target;\n   protected TargetingConditions targetConditions;\n\n   public NearestAttackableTargetGoal(Mob p_26060_, Class<T> p_26061_, boolean p_26062_) {\n      this(p_26060_, p_26061_, 10, p_26062_, false, (Predicate<LivingEntity>)null);\n   }\n\n   public NearestAttackableTargetGoal(Mob p_199891_, Class<T> p_199892_, boolean p_199893_, Predicate<LivingEntity> p_199894_) {\n      this(p_199891_, p_199892_, 10, p_199893_, false, p_199894_);\n   }\n\n   public NearestAttackableTargetGoal(Mob p_26064_, Class<T> p_26065_, boolean p_26066_, boolean p_26067_) {\n      this(p_26064_, p_26065_, 10, p_26066_, p_26067_, (Predicate<LivingEntity>)null);\n   }\n\n   public NearestAttackableTargetGoal(Mob p_26053_, Class<T> p_26054_, int p_26055_, boolean p_26056_, boolean p_26057_, @Nullable Predicate<LivingEntity> p_26058_) {\n      super(p_26053_, p_26056_, p_26057_);\n      this.targetType = p_26054_;\n      this.randomInterval = reducedTickDelay(p_26055_);\n      this.setFlags(EnumSet.of(Goal.Flag.TARGET));\n      this.targetConditions = TargetingConditions.forCombat().range(this.getFollowDistance()).selector(p_26058_);\n   }\n\n   public boolean canUse() {\n      if (this.randomInterval > 0 && this.mob.getRandom().nextInt(this.randomInterval) != 0) {\n         return false;\n      } else {\n         this.findTarget();\n         return this.target != null;\n      }\n   }\n\n   protected AABB getTargetSearchArea(double p_26069_) {\n      return this.mob.getBoundingBox().inflate(p_26069_, 4.0D, p_26069_);\n   }\n\n   protected void findTarget() {\n      if (this.targetType != Player.class && this.targetType != ServerPlayer.class) {\n         this.target = this.mob.level().getNearestEntity(this.mob.level().getEntitiesOfClass(this.targetType, this.getTargetSearchArea(this.getFollowDistance()), (p_148152_) -> {\n            return true;\n         }), this.targetConditions, this.mob, this.mob.getX(), this.mob.getEyeY(), this.mob.getZ());\n      } else {\n         this.target = this.mob.level().getNearestPlayer(this.targetConditions, this.mob, this.mob.getX(), this.mob.getEyeY(), this.mob.getZ());\n      }\n\n   }\n\n   public void start() {\n      this.mob.setTarget(this.target);\n      super.start();\n   }\n\n   public void setTarget(@Nullable LivingEntity p_26071_) {\n      this.target = p_26071_;\n   }\n}"
+        }
+      ],
+      "archive_member": "net/minecraft/world/entity/ai/goal/target/NearestAttackableTargetGoal.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/target/TargetGoal.java",
+        "sha256": "02eeb5ab6e85b142cfeab5711f84c5cef7f3b026d0fed8adcd4ffe793f3bc746",
+        "bytes": 4086
+      },
+      "source_total_lines": 134,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 134,
+          "bytes": 4086,
+          "sha256": "02eeb5ab6e85b142cfeab5711f84c5cef7f3b026d0fed8adcd4ffe793f3bc746",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal.target;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.level.pathfinder.Node;\nimport net.minecraft.world.level.pathfinder.Path;\nimport net.minecraft.world.scores.Team;\n\npublic abstract class TargetGoal extends Goal {\n   private static final int EMPTY_REACH_CACHE = 0;\n   private static final int CAN_REACH_CACHE = 1;\n   private static final int CANT_REACH_CACHE = 2;\n   protected final Mob mob;\n   protected final boolean mustSee;\n   private final boolean mustReach;\n   private int reachCache;\n   private int reachCacheTime;\n   private int unseenTicks;\n   @Nullable\n   protected LivingEntity targetMob;\n   protected int unseenMemoryTicks = 60;\n\n   public TargetGoal(Mob p_26140_, boolean p_26141_) {\n      this(p_26140_, p_26141_, false);\n   }\n\n   public TargetGoal(Mob p_26143_, boolean p_26144_, boolean p_26145_) {\n      this.mob = p_26143_;\n      this.mustSee = p_26144_;\n      this.mustReach = p_26145_;\n   }\n\n   public boolean canContinueToUse() {\n      LivingEntity livingentity = this.mob.getTarget();\n      if (livingentity == null) {\n         livingentity = this.targetMob;\n      }\n\n      if (livingentity == null) {\n         return false;\n      } else if (!this.mob.canAttack(livingentity)) {\n         return false;\n      } else {\n         Team team = this.mob.getTeam();\n         Team team1 = livingentity.getTeam();\n         if (team != null && team1 == team) {\n            return false;\n         } else {\n            double d0 = this.getFollowDistance();\n            if (this.mob.distanceToSqr(livingentity) > d0 * d0) {\n               return false;\n            } else {\n               if (this.mustSee) {\n                  if (this.mob.getSensing().hasLineOfSight(livingentity)) {\n                     this.unseenTicks = 0;\n                  } else if (++this.unseenTicks > reducedTickDelay(this.unseenMemoryTicks)) {\n                     return false;\n                  }\n               }\n\n               this.mob.setTarget(livingentity);\n               return true;\n            }\n         }\n      }\n   }\n\n   protected double getFollowDistance() {\n      return this.mob.getAttributeValue(Attributes.FOLLOW_RANGE);\n   }\n\n   public void start() {\n      this.reachCache = 0;\n      this.reachCacheTime = 0;\n      this.unseenTicks = 0;\n   }\n\n   public void stop() {\n      this.mob.setTarget((LivingEntity)null);\n      this.targetMob = null;\n   }\n\n   protected boolean canAttack(@Nullable LivingEntity p_26151_, TargetingConditions p_26152_) {\n      if (p_26151_ == null) {\n         return false;\n      } else if (!p_26152_.test(this.mob, p_26151_)) {\n         return false;\n      } else if (!this.mob.isWithinRestriction(p_26151_.blockPosition())) {\n         return false;\n      } else {\n         if (this.mustReach) {\n            if (--this.reachCacheTime <= 0) {\n               this.reachCache = 0;\n            }\n\n            if (this.reachCache == 0) {\n               this.reachCache = this.canReach(p_26151_) ? 1 : 2;\n            }\n\n            if (this.reachCache == 2) {\n               return false;\n            }\n         }\n\n         return true;\n      }\n   }\n\n   private boolean canReach(LivingEntity p_26149_) {\n      this.reachCacheTime = reducedTickDelay(10 + this.mob.getRandom().nextInt(5));\n      Path path = this.mob.getNavigation().createPath(p_26149_, 0);\n      if (path == null) {\n         return false;\n      } else {\n         Node node = path.getEndNode();\n         if (node == null) {\n            return false;\n         } else {\n            int i = node.x - p_26149_.getBlockX();\n            int j = node.z - p_26149_.getBlockZ();\n            return (double)(i * i + j * j) <= 2.25D;\n         }\n      }\n   }\n\n   public TargetGoal setUnseenMemoryTicks(int p_26147_) {\n      this.unseenMemoryTicks = p_26147_;\n      return this;\n   }\n}"
+        }
+      ],
+      "archive_member": "net/minecraft/world/entity/ai/goal/target/TargetGoal.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java",
+        "sha256": "7f85aeb490db487081a482da9043fcdbe72b052341eecafcef7e19d9174db4e1",
+        "bytes": 3791
+      },
+      "source_total_lines": 112,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 112,
+          "bytes": 3791,
+          "sha256": "7f85aeb490db487081a482da9043fcdbe72b052341eecafcef7e19d9174db4e1",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal.target;\n\nimport java.util.EnumSet;\nimport java.util.Iterator;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.entity.EntitySelector;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.TamableAnimal;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.phys.AABB;\n\npublic class HurtByTargetGoal extends TargetGoal {\n   private static final TargetingConditions HURT_BY_TARGETING = TargetingConditions.forCombat().ignoreLineOfSight().ignoreInvisibilityTesting();\n   private static final int ALERT_RANGE_Y = 10;\n   private boolean alertSameType;\n   private int timestamp;\n   private final Class<?>[] toIgnoreDamage;\n   @Nullable\n   private Class<?>[] toIgnoreAlert;\n\n   public HurtByTargetGoal(PathfinderMob p_26039_, Class<?>... p_26040_) {\n      super(p_26039_, true);\n      this.toIgnoreDamage = p_26040_;\n      this.setFlags(EnumSet.of(Goal.Flag.TARGET));\n   }\n\n   public boolean canUse() {\n      int i = this.mob.getLastHurtByMobTimestamp();\n      LivingEntity livingentity = this.mob.getLastHurtByMob();\n      if (i != this.timestamp && livingentity != null) {\n         if (livingentity.getType() == EntityType.PLAYER && this.mob.level().getGameRules().getBoolean(GameRules.RULE_UNIVERSAL_ANGER)) {\n            return false;\n         } else {\n            for(Class<?> oclass : this.toIgnoreDamage) {\n               if (oclass.isAssignableFrom(livingentity.getClass())) {\n                  return false;\n               }\n            }\n\n            return this.canAttack(livingentity, HURT_BY_TARGETING);\n         }\n      } else {\n         return false;\n      }\n   }\n\n   public HurtByTargetGoal setAlertOthers(Class<?>... p_26045_) {\n      this.alertSameType = true;\n      this.toIgnoreAlert = p_26045_;\n      return this;\n   }\n\n   public void start() {\n      this.mob.setTarget(this.mob.getLastHurtByMob());\n      this.targetMob = this.mob.getTarget();\n      this.timestamp = this.mob.getLastHurtByMobTimestamp();\n      this.unseenMemoryTicks = 300;\n      if (this.alertSameType) {\n         this.alertOthers();\n      }\n\n      super.start();\n   }\n\n   protected void alertOthers() {\n      double d0 = this.getFollowDistance();\n      AABB aabb = AABB.unitCubeFromLowerCorner(this.mob.position()).inflate(d0, 10.0D, d0);\n      List<? extends Mob> list = this.mob.level().getEntitiesOfClass(this.mob.getClass(), aabb, EntitySelector.NO_SPECTATORS);\n      Iterator iterator = list.iterator();\n\n      while(true) {\n         Mob mob;\n         while(true) {\n            if (!iterator.hasNext()) {\n               return;\n            }\n\n            mob = (Mob)iterator.next();\n            if (this.mob != mob && mob.getTarget() == null && (!(this.mob instanceof TamableAnimal) || ((TamableAnimal)this.mob).getOwner() == ((TamableAnimal)mob).getOwner()) && !mob.isAlliedTo(this.mob.getLastHurtByMob())) {\n               if (this.toIgnoreAlert == null) {\n                  break;\n               }\n\n               boolean flag = false;\n\n               for(Class<?> oclass : this.toIgnoreAlert) {\n                  if (mob.getClass() == oclass) {\n                     flag = true;\n                     break;\n                  }\n               }\n\n               if (!flag) {\n                  break;\n               }\n            }\n         }\n\n         this.alertOther(mob, this.mob.getLastHurtByMob());\n      }\n   }\n\n   protected void alertOther(Mob p_26042_, LivingEntity p_26043_) {\n      p_26042_.setTarget(p_26043_);\n   }\n}"
+        }
+      ],
+      "archive_member": "net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/living/LivingChangeTargetEvent.java",
+        "sha256": "369f1447daae1ba370ecd17be534da95c0ccb28383cf8ac9c8fb6598f07c6e30",
+        "bytes": 3515
+      },
+      "source_total_lines": 109,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 109,
+          "bytes": 3515,
+          "sha256": "369f1447daae1ba370ecd17be534da95c0ccb28383cf8ac9c8fb6598f07c6e30",
+          "raw_utf8_keepends": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity.living;\n\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.behavior.StartAttacking;\nimport net.minecraftforge.common.ForgeHooks;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Cancelable;\n\n/**\n * This event allows you to change the target an entity has. <br>\n * This event is fired before {@link LivingSetAttackTargetEvent}. <br>\n * <br>\n * This event is fired via the {@link ForgeHooks#onLivingChangeTarget(LivingEntity, LivingEntity, ILivingTargetType)}<br>\n * <br>\n * {@link #getOriginalTarget()} returns the target that should originally be set.\n * The return value cannot be affected by calling {@link #setNewTarget(LivingEntity)}.<br>\n * {@link #getNewTarget()} returns the new target that this entity will have.\n * The return value can be affected by calling {@link #setNewTarget(LivingEntity)}.<br>\n * {@link #getTargetType()} returns the target type that caused the change of targets.<br>\n * <br>\n * This event is {@link net.minecraftforge.eventbus.api.Cancelable}.<br>\n * <br>\n * If you cancel this event, the target will not be changed and it will stay the same.\n * Cancelling this event will prevent {@link LivingSetAttackTargetEvent} from being posted.<br>\n * <br>\n * This event does not have a result. {@link HasResult}<br>\n * <br>\n * This event is fired on the {@link MinecraftForge#EVENT_BUS}.\n */\n@Cancelable\npublic class LivingChangeTargetEvent extends LivingEvent\n{\n    private final ILivingTargetType targetType;\n    private final LivingEntity originalTarget;\n    private LivingEntity newTarget;\n    \n    public LivingChangeTargetEvent(LivingEntity entity, LivingEntity originalTarget, ILivingTargetType targetType)\n    {\n        super(entity);\n        this.originalTarget = originalTarget;\n        this.newTarget = originalTarget;\n        this.targetType = targetType;\n    }\n\n    /**\n     * {@return the new target of this entity.}\n     */\n    public LivingEntity getNewTarget()\n    {\n        return newTarget;\n    }\n\n    /**\n     * Sets the new target this entity shall have.\n     * @param newTarget The new target of this entity.\n     */\n    public void setNewTarget(LivingEntity newTarget)\n    {\n        this.newTarget = newTarget;\n    }\n    \n    /**\n     * {@return the living target type.}\n     */\n    public ILivingTargetType getTargetType()\n    {\n        return targetType;\n    }\n\n    /**\n     * {@return the original entity MC intended to use as a target before firing this event.}\n     */\n    public LivingEntity getOriginalTarget()\n    {\n        return originalTarget;\n    }\n    \n    \n    /**\n     * A living target type indicates what kind of system caused a change of\n     * targets. For a list of default target types, take a look at\n     * {@link LivingTargetType}.\n     */\n    public static interface ILivingTargetType\n    {\n        \n    }\n    \n    /**\n     * This enum contains two default living target types.\n     */\n    public static enum LivingTargetType implements ILivingTargetType\n    {\n        /**\n         * This target type indicates that the target has been set by calling {@link Mob#setTarget(LivingEntity)}.\n         */\n        MOB_TARGET,\n        /**\n         * This target type indicates that the target has been set by the {@link StartAttacking} behavior.\n         */\n        BEHAVIOR_TARGET;\n    }\n}\n"
+        }
+      ],
+      "archive_member": "net/minecraftforge/event/entity/living/LivingChangeTargetEvent.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/common/ForgeHooks.java",
+        "sha256": "e21acd3d13778b54be47ed9b4f8407bfbad3957206281c085219c166e405102c",
+        "bytes": 71532
+      },
+      "source_total_lines": 1641,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 222,
+          "end": 229,
+          "bytes": 253,
+          "sha256": "f048d95ba433949a0e12e6e98df179d38fe630ed3c0e8f6f24b4bf2829c76f34",
+          "raw_utf8_keepends": "    public static boolean canContinueUsing(@NotNull ItemStack from, @NotNull ItemStack to)\n    {\n        if (!from.isEmpty() && !to.isEmpty())\n        {\n            return from.getItem().canContinueUsing(from, to);\n        }\n        return false;\n    }\n"
+        },
+        {
+          "start": 249,
+          "end": 256,
+          "bytes": 330,
+          "sha256": "abc21df5ceae0aa5f38fde651adb0039bd7c994ef42220aca864013f0b5198db",
+          "raw_utf8_keepends": "    public static LivingChangeTargetEvent onLivingChangeTarget(LivingEntity entity, LivingEntity originalTarget, ILivingTargetType targetType)\n    {\n        LivingChangeTargetEvent event = new LivingChangeTargetEvent(entity, originalTarget, targetType);\n        MinecraftForge.EVENT_BUS.post(event);\n\n        return event;\n    }\n\n"
+        },
+        {
+          "start": 270,
+          "end": 290,
+          "bytes": 975,
+          "sha256": "48abc064af5e19e88bc00be9e1ded0201587f3f99a4719659eeb7a673f8859e9",
+          "raw_utf8_keepends": "    public static boolean onLivingAttack(LivingEntity entity, DamageSource src, float amount)\n    {\n        return entity instanceof Player || !MinecraftForge.EVENT_BUS.post(new LivingAttackEvent(entity, src, amount));\n    }\n\n    public static boolean onPlayerAttack(LivingEntity entity, DamageSource src, float amount)\n    {\n        return !MinecraftForge.EVENT_BUS.post(new LivingAttackEvent(entity, src, amount));\n    }\n\n    public static LivingKnockBackEvent onLivingKnockBack(LivingEntity target, float strength, double ratioX, double ratioZ)\n    {\n        LivingKnockBackEvent event = new LivingKnockBackEvent(target, strength, ratioX, ratioZ);\n        MinecraftForge.EVENT_BUS.post(event);\n        return event;\n    }\n\n    public static boolean onLivingUseTotem(LivingEntity entity, DamageSource damageSource, ItemStack totem, InteractionHand hand)\n    {\n        return !MinecraftForge.EVENT_BUS.post(new LivingUseTotemEvent(entity, damageSource, totem, hand));\n    }\n"
+        },
+        {
+          "start": 292,
+          "end": 302,
+          "bytes": 517,
+          "sha256": "5c8cd3d67ab84cc9555d4373b7fa8d7c7df030c0973789d3db5dec2245f327e2",
+          "raw_utf8_keepends": "    public static float onLivingHurt(LivingEntity entity, DamageSource src, float amount)\n    {\n        LivingHurtEvent event = new LivingHurtEvent(entity, src, amount);\n        return (MinecraftForge.EVENT_BUS.post(event) ? 0 : event.getAmount());\n    }\n\n    public static float onLivingDamage(LivingEntity entity, DamageSource src, float amount)\n    {\n        LivingDamageEvent event = new LivingDamageEvent(entity, src, amount);\n        return (MinecraftForge.EVENT_BUS.post(event) ? 0 : event.getAmount());\n    }\n"
+        }
+      ],
+      "archive_member": "net/minecraftforge/common/ForgeHooks.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/damagesource/DamageSources.java",
+        "sha256": "06b6582513dec5205fce30f684992b4dad54788bf0de21855aa527815b6877ea",
+        "bytes": 8519
+      },
+      "source_total_lines": 254,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 28,
+          "end": 56,
+          "bytes": 1340,
+          "sha256": "7c9bcd852b5d6dcc54a6a1164308ab137ca4931f9e447d5df671b3b2fa0a227b",
+          "raw_utf8_keepends": "   private final DamageSource starve;\n   private final DamageSource cactus;\n   private final DamageSource fall;\n   private final DamageSource flyIntoWall;\n   private final DamageSource fellOutOfWorld;\n   private final DamageSource generic;\n   private final DamageSource magic;\n   private final DamageSource wither;\n   private final DamageSource dragonBreath;\n   private final DamageSource dryOut;\n   private final DamageSource sweetBerryBush;\n   private final DamageSource freeze;\n   private final DamageSource stalagmite;\n   private final DamageSource outsideBorder;\n   private final DamageSource genericKill;\n\n   public DamageSources(RegistryAccess p_270740_) {\n      this.damageTypes = p_270740_.registryOrThrow(Registries.DAMAGE_TYPE);\n      this.inFire = this.source(DamageTypes.IN_FIRE);\n      this.lightningBolt = this.source(DamageTypes.LIGHTNING_BOLT);\n      this.onFire = this.source(DamageTypes.ON_FIRE);\n      this.lava = this.source(DamageTypes.LAVA);\n      this.hotFloor = this.source(DamageTypes.HOT_FLOOR);\n      this.inWall = this.source(DamageTypes.IN_WALL);\n      this.cramming = this.source(DamageTypes.CRAMMING);\n      this.drown = this.source(DamageTypes.DROWN);\n      this.starve = this.source(DamageTypes.STARVE);\n      this.cactus = this.source(DamageTypes.CACTUS);\n      this.fall = this.source(DamageTypes.FALL);\n"
+        },
+        {
+          "start": 131,
+          "end": 145,
+          "bytes": 279,
+          "sha256": "cf3c7be1825f3b7179e30d67dc0e938912844538cd7d0bbbf43f54789973f6c2",
+          "raw_utf8_keepends": "   public DamageSource fellOutOfWorld() {\n      return this.fellOutOfWorld;\n   }\n\n   public DamageSource generic() {\n      return this.generic;\n   }\n\n   public DamageSource magic() {\n      return this.magic;\n   }\n\n   public DamageSource wither() {\n      return this.wither;\n   }\n"
+        },
+        {
+          "start": 183,
+          "end": 185,
+          "bytes": 125,
+          "sha256": "01e551788fae667b33ca1471a049b2fc0d6e09a62a6f68ecf62613922260bc3d",
+          "raw_utf8_keepends": "   public DamageSource mobAttack(LivingEntity p_270357_) {\n      return this.source(DamageTypes.MOB_ATTACK, p_270357_);\n   }\n"
+        }
+      ],
+      "archive_member": "net/minecraft/world/damagesource/DamageSources.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/Monster.java",
+        "sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+        "bytes": 5012
+      },
+      "source_total_lines": 129,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 129,
+          "bytes": 5012,
+          "sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.monster;\n\nimport java.util.function.Predicate;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.ProjectileWeaponItem;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.LightLayer;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.dimension.DimensionType;\n\npublic abstract class Monster extends PathfinderMob implements Enemy {\n   protected Monster(EntityType<? extends Monster> p_33002_, Level p_33003_) {\n      super(p_33002_, p_33003_);\n      this.xpReward = 5;\n   }\n\n   public SoundSource getSoundSource() {\n      return SoundSource.HOSTILE;\n   }\n\n   public void aiStep() {\n      this.updateSwingTime();\n      this.updateNoActionTime();\n      super.aiStep();\n   }\n\n   protected void updateNoActionTime() {\n      float f = this.getLightLevelDependentMagicValue();\n      if (f > 0.5F) {\n         this.noActionTime += 2;\n      }\n\n   }\n\n   protected boolean shouldDespawnInPeaceful() {\n      return true;\n   }\n\n   protected SoundEvent getSwimSound() {\n      return SoundEvents.HOSTILE_SWIM;\n   }\n\n   protected SoundEvent getSwimSplashSound() {\n      return SoundEvents.HOSTILE_SPLASH;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_33034_) {\n      return SoundEvents.HOSTILE_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.HOSTILE_DEATH;\n   }\n\n   public LivingEntity.Fallsounds getFallSounds() {\n      return new LivingEntity.Fallsounds(SoundEvents.HOSTILE_SMALL_FALL, SoundEvents.HOSTILE_BIG_FALL);\n   }\n\n   public float getWalkTargetValue(BlockPos p_33013_, LevelReader p_33014_) {\n      return -p_33014_.getPathfindingCostFromLightLevels(p_33013_);\n   }\n\n   public static boolean isDarkEnoughToSpawn(ServerLevelAccessor p_219010_, BlockPos p_219011_, RandomSource p_219012_) {\n      if (p_219010_.getBrightness(LightLayer.SKY, p_219011_) > p_219012_.nextInt(32)) {\n         return false;\n      } else {\n         DimensionType dimensiontype = p_219010_.dimensionType();\n         int i = dimensiontype.monsterSpawnBlockLightLimit();\n         if (i < 15 && p_219010_.getBrightness(LightLayer.BLOCK, p_219011_) > i) {\n            return false;\n         } else {\n            int j = p_219010_.getLevel().isThundering() ? p_219010_.getMaxLocalRawBrightness(p_219011_, 10) : p_219010_.getMaxLocalRawBrightness(p_219011_);\n            return j <= dimensiontype.monsterSpawnLightTest().sample(p_219012_);\n         }\n      }\n   }\n\n   public static boolean checkMonsterSpawnRules(EntityType<? extends Monster> p_219014_, ServerLevelAccessor p_219015_, MobSpawnType p_219016_, BlockPos p_219017_, RandomSource p_219018_) {\n      return p_219015_.getDifficulty() != Difficulty.PEACEFUL && isDarkEnoughToSpawn(p_219015_, p_219017_, p_219018_) && checkMobSpawnRules(p_219014_, p_219015_, p_219016_, p_219017_, p_219018_);\n   }\n\n   public static boolean checkAnyLightMonsterSpawnRules(EntityType<? extends Monster> p_219020_, LevelAccessor p_219021_, MobSpawnType p_219022_, BlockPos p_219023_, RandomSource p_219024_) {\n      return p_219021_.getDifficulty() != Difficulty.PEACEFUL && checkMobSpawnRules(p_219020_, p_219021_, p_219022_, p_219023_, p_219024_);\n   }\n\n   public static AttributeSupplier.Builder createMonsterAttributes() {\n      return Mob.createMobAttributes().add(Attributes.ATTACK_DAMAGE);\n   }\n\n   public boolean shouldDropExperience() {\n      return true;\n   }\n\n   protected boolean shouldDropLoot() {\n      return true;\n   }\n\n   public boolean isPreventingPlayerRest(Player p_33036_) {\n      return true;\n   }\n\n   public ItemStack getProjectile(ItemStack p_33038_) {\n      if (p_33038_.getItem() instanceof ProjectileWeaponItem) {\n         Predicate<ItemStack> predicate = ((ProjectileWeaponItem)p_33038_.getItem()).getSupportedHeldProjectiles();\n         ItemStack itemstack = ProjectileWeaponItem.getHeldProjectile(this, predicate);\n         return net.minecraftforge.common.ForgeHooks.getProjectile(this, p_33038_, itemstack.isEmpty() ? new ItemStack(Items.ARROW) : itemstack);\n      } else {\n         return net.minecraftforge.common.ForgeHooks.getProjectile(this, p_33038_, ItemStack.EMPTY);\n      }\n   }\n}\n"
+        }
+      ],
+      "archive_member": "net/minecraft/world/entity/monster/Monster.java",
+      "new_mechanism_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/PathfinderMob.java",
+        "sha256": "f5b757c08ebe4c0813064a261f0425d2db803af2e91a7a2aa9fd6e9eb01e7839",
+        "bytes": 2790
+      },
+      "source_total_lines": 77,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mappedForge_source_archive_member",
+      "ranges": [
+        {
+          "start": 1,
+          "end": 77,
+          "bytes": 2790,
+          "sha256": "f5b757c08ebe4c0813064a261f0425d2db803af2e91a7a2aa9fd6e9eb01e7839",
+          "raw_utf8_keepends": "package net.minecraft.world.entity;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.phys.Vec3;\n\npublic abstract class PathfinderMob extends Mob {\n   protected static final float DEFAULT_WALK_TARGET_VALUE = 0.0F;\n\n   protected PathfinderMob(EntityType<? extends PathfinderMob> p_21683_, Level p_21684_) {\n      super(p_21683_, p_21684_);\n   }\n\n   public float getWalkTargetValue(BlockPos p_21693_) {\n      return this.getWalkTargetValue(p_21693_, this.level());\n   }\n\n   public float getWalkTargetValue(BlockPos p_21688_, LevelReader p_21689_) {\n      return 0.0F;\n   }\n\n   public boolean checkSpawnRules(LevelAccessor p_21686_, MobSpawnType p_21687_) {\n      return this.getWalkTargetValue(this.blockPosition(), p_21686_) >= 0.0F;\n   }\n\n   public boolean isPathFinding() {\n      return !this.getNavigation().isDone();\n   }\n\n   protected void tickLeash() {\n      super.tickLeash();\n      Entity entity = this.getLeashHolder();\n      if (entity != null && entity.level() == this.level()) {\n         this.restrictTo(entity.blockPosition(), 5);\n         float f = this.distanceTo(entity);\n         if (this instanceof TamableAnimal && ((TamableAnimal)this).isInSittingPose()) {\n            if (f > 10.0F) {\n               this.dropLeash(true, true);\n            }\n\n            return;\n         }\n\n         this.onLeashDistance(f);\n         if (f > 10.0F) {\n            this.dropLeash(true, true);\n            this.goalSelector.disableControlFlag(Goal.Flag.MOVE);\n         } else if (f > 6.0F) {\n            double d0 = (entity.getX() - this.getX()) / (double)f;\n            double d1 = (entity.getY() - this.getY()) / (double)f;\n            double d2 = (entity.getZ() - this.getZ()) / (double)f;\n            this.setDeltaMovement(this.getDeltaMovement().add(Math.copySign(d0 * d0 * 0.4D, d0), Math.copySign(d1 * d1 * 0.4D, d1), Math.copySign(d2 * d2 * 0.4D, d2)));\n            this.checkSlowFallDistance();\n         } else if (this.shouldStayCloseToLeashHolder()) {\n            this.goalSelector.enableControlFlag(Goal.Flag.MOVE);\n            float f1 = 2.0F;\n            Vec3 vec3 = (new Vec3(entity.getX() - this.getX(), entity.getY() - this.getY(), entity.getZ() - this.getZ())).normalize().scale((double)Math.max(f - 2.0F, 0.0F));\n            this.getNavigation().moveTo(this.getX() + vec3.x, this.getY() + vec3.y, this.getZ() + vec3.z, this.followLeashSpeed());\n         }\n      }\n\n   }\n\n   protected boolean shouldStayCloseToLeashHolder() {\n      return true;\n   }\n\n   protected double followLeashSpeed() {\n      return 1.0D;\n   }\n\n   protected void onLeashDistance(float p_21694_) {\n   }\n}"
+        }
+      ],
+      "archive_member": "net/minecraft/world/entity/PathfinderMob.java",
+      "new_mechanism_credit": 0
+    }
+  ],
+  "source_identity": {
+    "G_source": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/guard-ownership-research/.work/sources/AlexModGuy__AlexsMobs/source.json",
+      "sha256": "2b1d2fa967e31ca4a4f981a862bb8890a57913719acb55be62f56186a1fadf9b",
+      "bytes": 236
+    },
+    "L_source": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/source.json",
+      "sha256": "503e8b933d51581f2949312697f14f503a3af77ba1b92589f443f6dfd7196084",
+      "bytes": 235
+    },
+    "L_tree": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/tree.json",
+      "sha256": "8e36c9680713d8ff86cab4cdb9c2c404089532dadeca22b2aaa7cc0d6102e8c3",
+      "bytes": 1442233
+    },
+    "G_tree_missing_history_preserved": true,
+    "mapped_archive": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    }
+  },
+  "actual_reading_coverage": {
+    "files": 17,
+    "ranges": 32,
+    "unique_lines": 1956,
+    "whole_files": 11,
+    "new_mechanism_credit": 0,
+    "note": "Coverage within170 only; canonical nonoverlapping848..874 combines actually displayed848..864 and862..874. Oldbody/head and native helper rereads do not become distinct implementation credit."
+  },
+  "whole_lifecycle_observations": [
+    "Whole ownership is already formal index421 at identical09755 source bytes. Entire old four-business judgment actually read after broader metadata semantic screening; exact Murmur-name screen had missed generic id/key wording. Discoveryabsence was not noveltyproof and is now separately corrected, originaldiscovery/checkpoint unchanged.",
+    "Old421 already owns bodyhalfamount true→return versus false/missing→independenthead fullamount, ownhead IN_WALL refusal, linkspawn/UUIDsync/missingbodycleanup and presentation limits. No second credit for head/body/timing/sound/Maths/registry/nativeparent expansion.",
+    "New targetboundary support: Mob.setTarget posts cancellable LivingChangeTargetEvent and uses mutable getNewTarget. Head→body andbody→head requests maycancel/redirect independently; clearboth requests neednotclear. No proven atomicsharedtarget or fixedvictimlease.",
+    "Living.canAttack rejectsPlayerinPEACEFUL else canBeSeenAsEnemy, which requires !invulnerable,!spectator,alive. It isnot hurt(source) acceptance or allallied/controlguard. HeadisAllied/bodyisAllied UUID checks not automaticallysame as thiscanAttack method.",
+    "EntityAINearestTarget3D onlyoverrides fullXYZ searchbox; inherited nearest playerquery uses separategetNearestPlayer path. NativeNearestAttackableTargetGoal.findTarget directlyuses targetConditions; mustReachtrue storeddoesnot itselfprove pathchecked inthisfindTarget. Full TargetingConditions/worldquery/sensingnotread.",
+    "NativeTargetGoal continue re-reads mobtarget orcachedtargetMob, testscanAttack/team/followrange/optionalsight thenrequestssetTarget andtrue. stoprequestsnullcleartargetMob; Forgeeventcancellation canretainmobtarget. No stable pairing guarantee.",
+    "HurtByTargetGoal uses changedlastHurtByMobtimestamp andtargetingconditions, startrequestssetTarget/readsactualtarget into targetMob, setsunseenmemory300. FullnativeLivinghurtsource actor updates canprecedefinalbool. Alerthelpersnotseparatereference.",
+    "AttackGoal inherits Goalcontinue→canUse currentlive target, requireseverytickfalse. time30/bite5..19 are deliveredgoalcallback counts, notwallseconds. start resetsbite/time, ownstopdoesnotclearall target/nav/cooldown state.",
+    "InactualheadAttack tick, outboundinitialcircle canalreadybite wheneye-distance<1.5+hasLineOfSight; bitecheck isoutside time>30 branch. Withbodydist>64 itpullsin andskipsbite branch. bodydist>16/time>30 firstrequestsbodytarget+nav; these setters/moves are not finaldamage/controlresults.",
+    "NativeLOS checks samelevel, eye-distance<=128 thenblockCOLLIDER/fluidNONEclipMISS. Worldclipinternals/loadedchunksnotread; no actualreach/contact/visibility or movementreceipt.",
+    "Attackcue andrandomcooldown assignedbefore targethurt5 ignoringbool; cooldown decrements samecallback. ParentLivinghurt Attackevent/guard/cooldown/shield canreturnfalse afterearliersleeps/noAction/shield/animation sideeffects, so bodyfalse doesnot certify nosideeffects beforeheadfallback.",
+    "ParentactuallyHurt hook<=0canreturnwithoutHP, laterarmor/magic/absorption/finaldamagehooks separate. Outerhurtbool cantrue despitezeroHP; ifbodytrue, headfallback is skipped evenwhen noHPdelta. Converselybodyfalse permitshead attempt, not automaticheadHP. This explains existing421 finalrefusalsemantics, support0.",
+    "Headhurt has no localserversideguard aheadbodycall beyondowninvulnerability. NativeLivinghurt serverguard applies withinrecipient, butexternal hooks/overrides canmutate beforeguard. No clientdoublebenefit or runtimeproof.",
+    "HeadgetBody returnsanyentityresolvedUUID server/currentnumericIDclient. headhurt onlynonnull, tickmatchesEntityMurmur. NativebaseEntityhurt maymarkHurt thenfalse, whichcouldleadheadfallback forwrongtype. Static corrupt/mutatedlinkcondition only, no reproducedwrongownerattack.",
+    "BodycreateHead ignoresaddbool thenwritesheadUUID/ID. Headtick onlymatchingbodyupdatesBODY_ID andrequestspull; nullbodytickCount>20removes. Neither ownbody/head saves numericIDs, onlypairedUUIDafterparent. Fullload/lookup/worldadmission/outsidecleanupnotclosed; nonewNBT/migrationcredit.",
+    "Entityremove retainsfirstremovalreason, asksstopRiding/passengerstop andlevelcallback; Livingremove clearsBrain. Fulloutsidelevelcallback/cancellablemount/nativeworldconsumer notclosed this170. No universal orphancleanup/atomic release or actualremovedreceipt.",
+    "Sound/angry/hurt/death counters andnav/noPhysics are requests/presentation. No Boss-control refusalreason, ordinarytype9graytext, authoritativeHP, pixel/sound/TCP/nativeacceptance. BackgroundandoriginalUIstillunimplemented."
+  ],
+  "limits": [
+    "MERGE0 intoalreadyaccepted421 only. Native target/recipient/helper expansion cannot be split into newreference, noID/reservation/append or newformalcredit.",
+    "Coverage17files/ranges/whole descriptive only; no new1000 implementation credit. Oldsources/readhistory notreset.",
+    "Fixed09755 localtree/blob/manifest andmappedForgearchive identityonly, nofreshremote/currentinstalledbinary/config/mixin/tagmembership/nativeexecutionproof.",
+    "Complete Mob/Living/Entity outerAI/NoAI/GoalSelector/targetingconditions/worldqueries/chunkload/collision/pathadmission notread. Whole helperfilesnotcompletegamebehavior.",
+    "Listeners/mutabletarget/caps/overrides/reentry/exceptions canalter all normalreturnconditions. BoolnotHP/effectcontrol/transaction or exactlyonce.",
+    "Old421 completebusiness read plus5prospectiveoldbusiness; oldnestedrawsources/renderer/helperchains notnewlyread. Broadmetadata16hitsnotall525manualsemanticreading/globalnovelty.",
+    "Wrongtypenonnull/missingbody/rejectedspawn/reloadID/cooldown paths static only; noruntimebug/exploit/fix/asset/gameplaychangeauthorized.",
+    "Old170checkpoint sourceproof attempt G/tree.json failedbeforenativeprint; thissupplementusesactual L/tree.json withG/source.json pinned09755 andexactGblob. Olderrornotrewrittenorclaimedabsentelsewhere.",
+    "OnlynewimmutableprivateJSON; noformal/master/session/active/pending/ownership/externalprompts/sharedJar/production/asset writes, noexecutor/validator/game/Java/Gradle/network/process/display/audio/brightness/wake/focus/Git/newchat/automation/taskdeletion.",
+    "Program525/253/gap475false andecology65/gap935false unchanged; historical63discoveryunchanged. No ecology/material/quest/native/tenhours/alltaskcompletioncredit."
+  ],
+  "existing421_complete_four_business_actually_read": {
+    "full_chain_observation": "实际Mod/实体注册已在旧VoidWorm研究闭合；具体MURMUR/MURMUR_HEAD两个EntityType与两者属性注册、ClientProxy renderer绑定本批核对。body native tick发现head缺失即createHead构造独立Monster并调用addFreshEntity、写UUID与同步ID；head native hurt先自身isInvulnerableTo(super或IN_WALL)拒绝，再对解析到的body以同source半伤调用hurt。只有body true才返回true；body false或不存在则对独立head调用super.hurt原始全伤。服务端head tick维护链接、缺body>20tickdiscard；客户端parent hurt/death计时复制到head，head/neck渲染读head overlay，body临时fakehead另读body overlay。",
+    "concrete_observation": "条件转交失败后改用另一实体结算，是一整条实际最终伤害准入家族1。与Hydra父级专用attackEntityFromPart统一结算、Endergetic弱点绕body override、随机child转伤且原父恒false、Wizardry附身无条件cancel、Bewitchment替身true才归零不同：同一source先试body半伤，明确false后再试head全伤。故body拒伤并不是整次目标免疫；head自身IN_WALL先行拒绝则不试body。两个均30最大血但独立Monster，不由倍率或两实体各加数。head有body引用时hurt/death sound为null，即使fallback可能本地承伤；client拷贝body计时也不能证明伤落在哪个血池。头攻击声在target.hurt前且忽略结果，只作0额外反例。",
+    "application_to_boss_immune": "Boss免疫字只能由明确最终拒控语义生产，委托接收者的false不等于整次事件最终拒绝；若有fallback要观察最终分支/归属。受击声有意抑制或红闪共享不能替代权威结果。不引入多部件机制或改变普通阴阳type9反馈，不借用模型资产。",
+    "limitations": "主岗全文501行Head、211行Body及两renderer和所有helper所列完整方法/具体注册语句已实际阅读，fixed09755dade2cfbdf14839e026d3af446f9d3ff843 tree/blob/SHA/URL已核。原版Monster/LivingEntity hurt、SynchedEntityData网络和具体pipeline继承内部未按该版本全展开；不声称实测HP或双端像素/音效。hurt对body仅非null，不验类型/互指UUID/alive/generation；tick另有EntityMurmur类型门，不能虚构所有入口校验。当前ServerLevel UUID/client本world整数查找，无维度epoch校验。body createHead忽略spawn boolean、错误类型非null未自动重建；缺body有20tick清理，不能说永久孤儿。拷贝计时/renderer早已VoidWorm覆盖0，不重复计数。"
+  },
+  "existing421_whole_old_object_preserved": {
+    "id": "alexsmobs-native-linked-body-refusal-falls-back-to-independent-head-damage",
+    "status": "reviewed_effective",
+    "repo": "AlexModGuy/AlexsMobs",
+    "commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+    "category": "native_conditional_damage_delegation_and_final_refusal_semantics",
+    "semantic_dedup_key": "alexsmobs-native-linked-body-refusal-falls-back-to-independent-head-damage",
+    "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+    "source_refs": [
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          277,
+          286
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L277-L286"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          288,
+          290
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L288-L290"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          175,
+          183
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L175-L183"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          167,
+          169
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L167-L169"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          171,
+          173
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L171-L173"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          90,
+          96
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L90-L96"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          185,
+          190
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L185-L190"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          193,
+          198
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L193-L198"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          349,
+          351
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L349-L351"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          353,
+          355
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L353-L355"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          98,
+          100
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L98-L100"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          62,
+          66
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L62-L66"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          205,
+          270
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L205-L270"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          124,
+          137
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L124-L137"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          198,
+          202
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L198-L202"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          110,
+          118
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L110-L118"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          102,
+          104
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L102-L104"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          106,
+          108
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L106-L108"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          95,
+          99
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L95-L99"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          183,
+          188
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L183-L188"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          191,
+          196
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L191-L196"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          58,
+          60
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L58-L60"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          62,
+          64
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L62-L64"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          41,
+          44
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L41-L44"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "lines": [
+          50,
+          78
+        ],
+        "file_sha256": "07580362f09128f1b84fb83595cf5676a3e35bf5077b6b4277bc71348a055b29",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java#L50-L78"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "lines": [
+          34,
+          44
+        ],
+        "file_sha256": "07580362f09128f1b84fb83595cf5676a3e35bf5077b6b4277bc71348a055b29",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java#L34-L44"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "lines": [
+          87,
+          97
+        ],
+        "file_sha256": "07580362f09128f1b84fb83595cf5676a3e35bf5077b6b4277bc71348a055b29",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java#L87-L97"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "lines": [
+          115,
+          117
+        ],
+        "file_sha256": "07580362f09128f1b84fb83595cf5676a3e35bf5077b6b4277bc71348a055b29",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java#L115-L117"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "lines": [
+          26,
+          28
+        ],
+        "file_sha256": "07580362f09128f1b84fb83595cf5676a3e35bf5077b6b4277bc71348a055b29",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java#L26-L28"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java",
+        "lines": [
+          30,
+          53
+        ],
+        "file_sha256": "cbadf56f21970bd6ed777433f2794dfa3f956fb9365c9557251ed62e7c20d452",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java#L30-L53"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java",
+        "lines": [
+          55,
+          57
+        ],
+        "file_sha256": "cbadf56f21970bd6ed777433f2794dfa3f956fb9365c9557251ed62e7c20d452",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java#L55-L57"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java",
+        "lines": [
+          22,
+          24
+        ],
+        "file_sha256": "cbadf56f21970bd6ed777433f2794dfa3f956fb9365c9557251ed62e7c20d452",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java#L22-L24"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "lines": [
+          139,
+          140
+        ],
+        "file_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L139-L140"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "lines": [
+          332,
+          333
+        ],
+        "file_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L332-L333"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "lines": [
+          149,
+          151
+        ],
+        "file_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L149-L151"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/ClientProxy.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/ClientProxy.java",
+        "lines": [
+          222,
+          223
+        ],
+        "file_sha256": "f9777f5cbdfe27d6d4057d78d42f1ae37cab5f1e16e13ddc12840d72feb45c17",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/ClientProxy.java#L222-L223"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "lines": [
+          1,
+          501
+        ],
+        "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java#L1-L501"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "lines": [
+          1,
+          211
+        ],
+        "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java#L1-L211"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java",
+        "lines": [
+          1,
+          118
+        ],
+        "file_sha256": "07580362f09128f1b84fb83595cf5676a3e35bf5077b6b4277bc71348a055b29",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurHead.java#L1-L118"
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java",
+        "source_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java",
+        "lines": [
+          1,
+          58
+        ],
+        "file_sha256": "cbadf56f21970bd6ed777433f2794dfa3f956fb9365c9557251ed62e7c20d452",
+        "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderMurmurBody.java#L1-L58"
+      }
+    ],
+    "full_chain_observation": "实际Mod/实体注册已在旧VoidWorm研究闭合；具体MURMUR/MURMUR_HEAD两个EntityType与两者属性注册、ClientProxy renderer绑定本批核对。body native tick发现head缺失即createHead构造独立Monster并调用addFreshEntity、写UUID与同步ID；head native hurt先自身isInvulnerableTo(super或IN_WALL)拒绝，再对解析到的body以同source半伤调用hurt。只有body true才返回true；body false或不存在则对独立head调用super.hurt原始全伤。服务端head tick维护链接、缺body>20tickdiscard；客户端parent hurt/death计时复制到head，head/neck渲染读head overlay，body临时fakehead另读body overlay。",
+    "concrete_observation": "条件转交失败后改用另一实体结算，是一整条实际最终伤害准入家族1。与Hydra父级专用attackEntityFromPart统一结算、Endergetic弱点绕body override、随机child转伤且原父恒false、Wizardry附身无条件cancel、Bewitchment替身true才归零不同：同一source先试body半伤，明确false后再试head全伤。故body拒伤并不是整次目标免疫；head自身IN_WALL先行拒绝则不试body。两个均30最大血但独立Monster，不由倍率或两实体各加数。head有body引用时hurt/death sound为null，即使fallback可能本地承伤；client拷贝body计时也不能证明伤落在哪个血池。头攻击声在target.hurt前且忽略结果，只作0额外反例。",
+    "application_to_boss_immune": "Boss免疫字只能由明确最终拒控语义生产，委托接收者的false不等于整次事件最终拒绝；若有fallback要观察最终分支/归属。受击声有意抑制或红闪共享不能替代权威结果。不引入多部件机制或改变普通阴阳type9反馈，不借用模型资产。",
+    "limitations": "主岗全文501行Head、211行Body及两renderer和所有helper所列完整方法/具体注册语句已实际阅读，fixed09755dade2cfbdf14839e026d3af446f9d3ff843 tree/blob/SHA/URL已核。原版Monster/LivingEntity hurt、SynchedEntityData网络和具体pipeline继承内部未按该版本全展开；不声称实测HP或双端像素/音效。hurt对body仅非null，不验类型/互指UUID/alive/generation；tick另有EntityMurmur类型门，不能虚构所有入口校验。当前ServerLevel UUID/client本world整数查找，无维度epoch校验。body createHead忽略spawn boolean、错误类型非null未自动重建；缺body有20tick清理，不能说永久孤儿。拷贝计时/renderer早已VoidWorm覆盖0，不重复计数。",
+    "research_credit": 1,
+    "reviewed_utc": "2026-10-28T17:20:50.894914+00:00"
+  },
+  "existing421_whole_canonical_sha256": "403790bb40b56c1e3ff7cea4f6d82e2c81e1daa0dfbf3ce6de4eaa49b0ca0d77",
+  "existing421_same_fixed_body_head_source_identity": [
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        277,
+        286
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        288,
+        290
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        175,
+        183
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        167,
+        169
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        171,
+        173
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        90,
+        96
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        185,
+        190
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        193,
+        198
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        349,
+        351
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        353,
+        355
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        98,
+        100
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        62,
+        66
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        205,
+        270
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        124,
+        137
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        198,
+        202
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        110,
+        118
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        102,
+        104
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        106,
+        108
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        95,
+        99
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        183,
+        188
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        191,
+        196
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        58,
+        60
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        62,
+        64
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        41,
+        44
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+      "old_lines": [
+        1,
+        501
+      ],
+      "file_sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmurHead.java",
+        "sha256": "6f3739dab921f4432a3065d77f9dbaa8853f96ed5a90659250d9306d176d8877",
+        "bytes": 20063
+      }
+    },
+    {
+      "old_source_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+      "old_lines": [
+        1,
+        211
+      ],
+      "file_sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+      "current_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMurmur.java",
+        "sha256": "5a762c6e0a406327b3fe3a0be76b4a9c0074e8831a350d66cb92da0df53920a2",
+        "bytes": 7871
+      }
+    }
+  ],
+  "five_prior_business_comparison_preserved_at": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-170-murmur-body-head-actual-bounded-source-checkpoint-20261114.json",
+    "sha256": "7e38983f066a8ce84b181d89a9e369db8ea888bba770f79f193e444510701086",
+    "bytes": 479762
+  },
+  "metadata_screen_scope": "Primaryid/category/semantic-key/count-unit pattern afteractualbodyread revealed421; namescan alone0, notexhaustiveall525sourceinspection. Existing421owns entire relevantwhole; extraoriginalprogramchain onlysupport0.",
+  "application_to_Dynasty": [
+    "Feedback must follow finalrecipient/result/cause when delegatedbodyfalse canfallbackhead; presentation/cost/nav/targetsetter notacceptance. Existing421application retained, no production.",
+    "Mutablepaired target requests andownUUIDlookup do not imply actualtwo-way targetidentity orcleanup; preserve ordinarytype9 andoriginalUI/background constraints. No newgamefeature."
+  ],
+  "current_program": {
+    "count": 525,
+    "groups": 253,
+    "gap": 475,
+    "gate": false,
+    "bindings3": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "3182181b14ca390f633ca12b5e977c46aca9a1aecb4204c4db4a2314f9b00506",
+        "bytes": 56726208
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "b1d2bf7a148480fc2a2034a8523b79617cf6313b28bd3e8d4a1e1cfc953268d2",
+        "bytes": 434378
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "0efda02919efd7e7331cfaa2ed7916d25b9808734f3798831c7d535c987d9b12",
+        "bytes": 631
+      }
+    ]
+  },
+  "current_ecology": {
+    "count": 65,
+    "gap": 935,
+    "gate": false,
+    "receipt": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-allay-EA0066-Main-actual65-data-application-20261114.json",
+      "sha256": "b423c0e1460fd46770b06eb5d11e5783c5c0d0b855ac643c01abefd93994e50b",
+      "bytes": 8554
+    },
+    "bindings5": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "84f486555031c59b82e5bfda40079e93325fd5b4e3016a34d18ea399c4e58317",
+        "bytes": 4259532
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "3f8cae6aaa161cb89795500543250d1c90d2f0ad1d93c9eaca08f48e2078c837",
+        "bytes": 4084996
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "347a44ac8c3ca5bc63a13a33f9132623293a5637be12c4b3136cdfca4f0a45ad",
+        "bytes": 1323503
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "6debd54bf1f7b1e29874d95e4421fa2e94bd7c8dc5dafad11e3e9c49507bcea2",
+        "bytes": 240250
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "d6186914ed258c225b4a617fd89967117526a17c35549043ddfd24e14404ac5a",
+        "bytes": 1014941
+      }
+    ]
+  },
+  "protected8": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "checks": [
+    {
+      "check": "mapped archive exact",
+      "pass": true
+    },
+    {
+      "check": "fixed09755 localtree",
+      "pass": true
+    },
+    {
+      "check": "tree/blob src/main/java/com/github/alexthe666/alexsmobs/entity/ai/EntityAINearestTarget3D.java",
+      "pass": true
+    },
+    {
+      "check": "tree/blob src/main/java/com/github/alexthe666/alexsmobs/entity/util/Maths.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/entity/ai/goal/Goal.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/entity/Mob.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/entity/LivingEntity.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/entity/Entity.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/entity/ai/goal/target/NearestAttackableTargetGoal.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/entity/ai/goal/target/TargetGoal.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraftforge/event/entity/living/LivingChangeTargetEvent.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraftforge/common/ForgeHooks.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/damagesource/DamageSources.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/entity/monster/Monster.java",
+      "pass": true
+    },
+    {
+      "check": "ZIP exact net/minecraft/world/entity/PathfinderMob.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 owner",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmurHead.java",
+      "pass": true
+    },
+    {
+      "check": "existing421 identical EntityMurmur.java",
+      "pass": true
+    },
+    {
+      "check": "botholdsourceclassesbound",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "pass": true
+    },
+    {
+      "check": "current guard /Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "pass": true
+    }
+  ],
+  "checks_count": 60,
+  "formal_id": null,
+  "reserved_identifiers": [],
+  "append_authorized": false,
+  "new_source_implementation_credit": 0,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "merge_into_existing_index": 421,
+  "production_changes": 0,
+  "native_acceptance": false,
+  "old_once_replayed": false,
+  "tasks_deleted": 0,
+  "active_hours_claimed": null,
+  "all_tasks_complete": false,
+  "original_UI_implemented": false,
+  "next": "NotifyMain170MERGE0 andavoidnewcandidate. Startnewdirection onlyafterexistingsemanticmetadataandwholeownercomparison so namesabsencecannotcreatefalse novelty."
+}

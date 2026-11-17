@@ -1,0 +1,117 @@
+{
+  "batch": 168,
+  "recorded_at": "2026-11-11T22:28:12.344057+00:00",
+  "status": "PARTIAL_ACTUAL_READING_CHECKPOINT_INTERRUPTED_FOR_MAIN164_ACK_PRIORITY",
+  "source_refs": [
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/FishingHook.java",
+        "sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+        "bytes": 22729
+      },
+      "source_total_lines": 535,
+      "whole_file_actually_read": false,
+      "lines": [
+        1,
+        192
+      ],
+      "bytes": 8360,
+      "sha256": "e80075543cd8ce1ce65e3f9e7bc2f326bd769f44503623d1e7f6a7824b344644",
+      "raw_utf8_keepends": "package net.minecraft.world.entity.projectile;\n\nimport com.mojang.logging.LogUtils;\nimport java.util.Collections;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.protocol.Packet;\nimport net.minecraft.network.protocol.game.ClientGamePacketListener;\nimport net.minecraft.network.protocol.game.ClientboundAddEntityPacket;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.tags.FluidTags;\nimport net.minecraft.tags.ItemTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.ExperienceOrb;\nimport net.minecraft.world.entity.MoverType;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.material.FluidState;\nimport net.minecraft.world.level.storage.loot.BuiltInLootTables;\nimport net.minecraft.world.level.storage.loot.LootParams;\nimport net.minecraft.world.level.storage.loot.LootTable;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParams;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\nimport org.slf4j.Logger;\n\npublic class FishingHook extends Projectile {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private final RandomSource syncronizedRandom = RandomSource.create();\n   private boolean biting;\n   private int outOfWaterTime;\n   private static final int MAX_OUT_OF_WATER_TIME = 10;\n   private static final EntityDataAccessor<Integer> DATA_HOOKED_ENTITY = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.INT);\n   private static final EntityDataAccessor<Boolean> DATA_BITING = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.BOOLEAN);\n   private int life;\n   private int nibble;\n   private int timeUntilLured;\n   private int timeUntilHooked;\n   private float fishAngle;\n   private boolean openWater = true;\n   @Nullable\n   private Entity hookedIn;\n   private FishingHook.FishHookState currentState = FishingHook.FishHookState.FLYING;\n   private final int luck;\n   private final int lureSpeed;\n\n   private FishingHook(EntityType<? extends FishingHook> p_150141_, Level p_150142_, int p_150143_, int p_150144_) {\n      super(p_150141_, p_150142_);\n      this.noCulling = true;\n      this.luck = Math.max(0, p_150143_);\n      this.lureSpeed = Math.max(0, p_150144_);\n   }\n\n   public FishingHook(EntityType<? extends FishingHook> p_150138_, Level p_150139_) {\n      this(p_150138_, p_150139_, 0, 0);\n   }\n\n   public FishingHook(Player p_37106_, Level p_37107_, int p_37108_, int p_37109_) {\n      this(EntityType.FISHING_BOBBER, p_37107_, p_37108_, p_37109_);\n      this.setOwner(p_37106_);\n      float f = p_37106_.getXRot();\n      float f1 = p_37106_.getYRot();\n      float f2 = Mth.cos(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);\n      float f3 = Mth.sin(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);\n      float f4 = -Mth.cos(-f * ((float)Math.PI / 180F));\n      float f5 = Mth.sin(-f * ((float)Math.PI / 180F));\n      double d0 = p_37106_.getX() - (double)f3 * 0.3D;\n      double d1 = p_37106_.getEyeY();\n      double d2 = p_37106_.getZ() - (double)f2 * 0.3D;\n      this.moveTo(d0, d1, d2, f1, f);\n      Vec3 vec3 = new Vec3((double)(-f3), (double)Mth.clamp(-(f5 / f4), -5.0F, 5.0F), (double)(-f2));\n      double d3 = vec3.length();\n      vec3 = vec3.multiply(0.6D / d3 + this.random.triangle(0.5D, 0.0103365D), 0.6D / d3 + this.random.triangle(0.5D, 0.0103365D), 0.6D / d3 + this.random.triangle(0.5D, 0.0103365D));\n      this.setDeltaMovement(vec3);\n      this.setYRot((float)(Mth.atan2(vec3.x, vec3.z) * (double)(180F / (float)Math.PI)));\n      this.setXRot((float)(Mth.atan2(vec3.y, vec3.horizontalDistance()) * (double)(180F / (float)Math.PI)));\n      this.yRotO = this.getYRot();\n      this.xRotO = this.getXRot();\n   }\n\n   protected void defineSynchedData() {\n      this.getEntityData().define(DATA_HOOKED_ENTITY, 0);\n      this.getEntityData().define(DATA_BITING, false);\n   }\n\n   public void onSyncedDataUpdated(EntityDataAccessor<?> p_37153_) {\n      if (DATA_HOOKED_ENTITY.equals(p_37153_)) {\n         int i = this.getEntityData().get(DATA_HOOKED_ENTITY);\n         this.hookedIn = i > 0 ? this.level().getEntity(i - 1) : null;\n      }\n\n      if (DATA_BITING.equals(p_37153_)) {\n         this.biting = this.getEntityData().get(DATA_BITING);\n         if (this.biting) {\n            this.setDeltaMovement(this.getDeltaMovement().x, (double)(-0.4F * Mth.nextFloat(this.syncronizedRandom, 0.6F, 1.0F)), this.getDeltaMovement().z);\n         }\n      }\n\n      super.onSyncedDataUpdated(p_37153_);\n   }\n\n   public boolean shouldRenderAtSqrDistance(double p_37125_) {\n      double d0 = 64.0D;\n      return p_37125_ < 4096.0D;\n   }\n\n   public void lerpTo(double p_37127_, double p_37128_, double p_37129_, float p_37130_, float p_37131_, int p_37132_, boolean p_37133_) {\n   }\n\n   public void tick() {\n      this.syncronizedRandom.setSeed(this.getUUID().getLeastSignificantBits() ^ this.level().getGameTime());\n      super.tick();\n      Player player = this.getPlayerOwner();\n      if (player == null) {\n         this.discard();\n      } else if (this.level().isClientSide || !this.shouldStopFishing(player)) {\n         if (this.onGround()) {\n            ++this.life;\n            if (this.life >= 1200) {\n               this.discard();\n               return;\n            }\n         } else {\n            this.life = 0;\n         }\n\n         float f = 0.0F;\n         BlockPos blockpos = this.blockPosition();\n         FluidState fluidstate = this.level().getFluidState(blockpos);\n         if (fluidstate.is(FluidTags.WATER)) {\n            f = fluidstate.getHeight(this.level(), blockpos);\n         }\n\n         boolean flag = f > 0.0F;\n         if (this.currentState == FishingHook.FishHookState.FLYING) {\n            if (this.hookedIn != null) {\n               this.setDeltaMovement(Vec3.ZERO);\n               this.currentState = FishingHook.FishHookState.HOOKED_IN_ENTITY;\n               return;\n            }\n\n            if (flag) {\n               this.setDeltaMovement(this.getDeltaMovement().multiply(0.3D, 0.2D, 0.3D));\n               this.currentState = FishingHook.FishHookState.BOBBING;\n               return;\n            }\n\n            this.checkCollision();\n         } else {\n            if (this.currentState == FishingHook.FishHookState.HOOKED_IN_ENTITY) {\n               if (this.hookedIn != null) {\n                  if (!this.hookedIn.isRemoved() && this.hookedIn.level().dimension() == this.level().dimension()) {\n                     this.setPos(this.hookedIn.getX(), this.hookedIn.getY(0.8D), this.hookedIn.getZ());\n                  } else {\n                     this.setHookedEntity((Entity)null);\n                     this.currentState = FishingHook.FishHookState.FLYING;\n                  }\n               }\n\n               return;\n            }\n\n            if (this.currentState == FishingHook.FishHookState.BOBBING) {\n               Vec3 vec3 = this.getDeltaMovement();\n               double d0 = this.getY() + vec3.y - (double)blockpos.getY() - (double)f;\n               if (Math.abs(d0) < 0.01D) {\n                  d0 += Math.signum(d0) * 0.1D;\n               }\n\n               this.setDeltaMovement(vec3.x * 0.9D, vec3.y - d0 * (double)this.random.nextFloat() * 0.2D, vec3.z * 0.9D);\n               if (this.nibble <= 0 && this.timeUntilHooked <= 0) {\n",
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/item/FishingRodItem.java",
+        "sha256": "365e22dfa7ebae6c2560bf56f220a27d7cba5adf1dcbc7e2c63985f2101f1f82",
+        "bytes": 2456
+      },
+      "source_total_lines": 56,
+      "whole_file_actually_read": true,
+      "lines": [
+        1,
+        56
+      ],
+      "bytes": 2456,
+      "sha256": "365e22dfa7ebae6c2560bf56f220a27d7cba5adf1dcbc7e2c63985f2101f1f82",
+      "raw_utf8_keepends": "package net.minecraft.world.item;\n\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.FishingHook;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.gameevent.GameEvent;\n\npublic class FishingRodItem extends Item implements Vanishable {\n   public FishingRodItem(Item.Properties p_41285_) {\n      super(p_41285_);\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_41290_, Player p_41291_, InteractionHand p_41292_) {\n      ItemStack itemstack = p_41291_.getItemInHand(p_41292_);\n      if (p_41291_.fishing != null) {\n         if (!p_41290_.isClientSide) {\n            int i = p_41291_.fishing.retrieve(itemstack);\n            itemstack.hurtAndBreak(i, p_41291_, (p_41288_) -> {\n               p_41288_.broadcastBreakEvent(p_41292_);\n            });\n         }\n\n         p_41290_.playSound((Player)null, p_41291_.getX(), p_41291_.getY(), p_41291_.getZ(), SoundEvents.FISHING_BOBBER_RETRIEVE, SoundSource.NEUTRAL, 1.0F, 0.4F / (p_41290_.getRandom().nextFloat() * 0.4F + 0.8F));\n         p_41291_.gameEvent(GameEvent.ITEM_INTERACT_FINISH);\n      } else {\n         p_41290_.playSound((Player)null, p_41291_.getX(), p_41291_.getY(), p_41291_.getZ(), SoundEvents.FISHING_BOBBER_THROW, SoundSource.NEUTRAL, 0.5F, 0.4F / (p_41290_.getRandom().nextFloat() * 0.4F + 0.8F));\n         if (!p_41290_.isClientSide) {\n            int k = EnchantmentHelper.getFishingSpeedBonus(itemstack);\n            int j = EnchantmentHelper.getFishingLuckBonus(itemstack);\n            p_41290_.addFreshEntity(new FishingHook(p_41291_, p_41290_, j, k));\n         }\n\n         p_41291_.awardStat(Stats.ITEM_USED.get(this));\n         p_41291_.gameEvent(GameEvent.ITEM_INTERACT_START);\n      }\n\n      return InteractionResultHolder.sidedSuccess(itemstack, p_41290_.isClientSide());\n   }\n\n   public int getEnchantmentValue() {\n      return 1;\n   }\n\n    /* ******************** FORGE START ******************** */\n\n    @Override\n   public boolean canPerformAction(ItemStack stack, net.minecraftforge.common.ToolAction toolAction) {\n      return net.minecraftforge.common.ToolActions.DEFAULT_FISHING_ROD_ACTIONS.contains(toolAction);\n   }\n}\n",
+      "semantic_credit": 0
+    }
+  ],
+  "actually_read_lines": 248,
+  "whole_files": 1,
+  "remaining_FishingHook_lines": [
+    193,
+    535
+  ],
+  "candidate_chain_complete": false,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "formal_id": null,
+  "append_authorized": false,
+  "checkpoint_scope": "FishingHook1..192 of535 plus fullFishingRodItem56 only. No retrieval/remove/ownercleanup source conclusions yet; investigation questions are not findings. Main164 actual38 responses are next priority.",
+  "current_program": {
+    "count": 524,
+    "groups": 252,
+    "gap": 476,
+    "gate": false,
+    "bindings": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "f23a93a8c5201f4e6b89af4fdd83903fd3170cbbb0b61354637a9f5578316ae1",
+        "bytes": 56347366
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "aff7ae82b78794a82dbedb5f5018cadef41cedf217e84478a9585de4575e7dc8",
+        "bytes": 429903
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "dd47f20db628646eef569de8919ebed7dfa59677d1e84f82772b12ece21d6e82",
+        "bytes": 631
+      }
+    ]
+  },
+  "current_ecology": {
+    "Main_count": 62,
+    "gap": 938,
+    "gate": false,
+    "actual_Main_receipt": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-fox-EA0063-Main-actual62-data-application-20261112.json",
+      "sha256": "7f88fd6ed638484b36f9319ab447e19265ddbc6eadfeb6b70184c37f5aa1700d",
+      "bytes": 6578
+    },
+    "bindings5": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "a7e12a9e2300e545c025d0171d4642381ab32a8d6dc0b4ea9e8782f00fcf8082",
+        "bytes": 3651078
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "b1b6513e04dd57a4194b2f49b6841bdd4f4f42df23d3bf2a99576bb6c4b89709",
+        "bytes": 3494525
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "9fb055acd46cb8ec1ed7bcc6b5a079358fce4347ea7014b40e8383165e35a8b4",
+        "bytes": 949426
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "a5cc79d00f355f5e1b14315c990336ed40e9f41fbeee3dcf68466b4d68cc50c1",
+        "bytes": 208133
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "6b93c5e2f5ce5b491a9de81d8008203bf368972d7c501f9ab159716e023fc585",
+        "bytes": 970123
+      }
+    ],
+    "new_source_credit": 0
+  },
+  "production_changes": false,
+  "native_acceptance": false,
+  "tasks_deleted": 0
+}

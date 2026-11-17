@@ -1,0 +1,194 @@
+{
+  "batch": 169,
+  "recorded_at": "2026-11-13T15:19:33.067700+00:00",
+  "status": "WHOLE_ENTITY_CLASS_ACTUALLY_READ_CHAIN_INCOMPLETE_HOLD0",
+  "prior_partial_checkpoint": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-169-mimicube-equipment-response-actual-reading-partial-checkpoint-20261113.json",
+    "sha256": "13f0770a9461b0b1fd867119e6a947347bb914f8e0736dda6d4aa0dabfa7c673",
+    "bytes": 12876
+  },
+  "source_identity": {
+    "repo": "AlexModGuy/AlexsMobs",
+    "commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+    "source_manifest": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/source.json",
+      "sha256": "96d942e4d07a12c6d8710a7733eab737f0b787b61b7efa28245eddf8a2948a79",
+      "bytes": 67902
+    },
+    "exact_manifest_entry": {
+      "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMimicube.java",
+      "sha256": "01c8113317c9a6aedc6c76e59666722081f44b13d30884be22ca2ce8ead5acb3",
+      "git_blob_sha1": "4752be2c9f13b000f4acae4e4f3fc0c474f1a2f3"
+    },
+    "raw_sha256_and_git_blob_header_match": true,
+    "fresh_remote_proof": false
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityMimicube.java",
+        "sha256": "01c8113317c9a6aedc6c76e59666722081f44b13d30884be22ca2ce8ead5acb3",
+        "bytes": 18952
+      },
+      "lines": [
+        1,
+        415
+      ],
+      "whole_class_actually_read": true,
+      "raw_utf8_keepends": "package com.github.alexthe666.alexsmobs.entity;\n\nimport com.github.alexthe666.alexsmobs.config.AMConfig;\nimport com.github.alexthe666.alexsmobs.entity.ai.AnimalAIWanderRanged;\nimport com.github.alexthe666.alexsmobs.entity.ai.DirectPathNavigator;\nimport com.github.alexthe666.alexsmobs.entity.ai.MimiCubeAIRangedAttack;\nimport com.github.alexthe666.alexsmobs.item.AMItemRegistry;\nimport com.github.alexthe666.alexsmobs.misc.AMSoundRegistry;\nimport net.minecraft.core.particles.ItemParticleOption;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.control.MoveControl;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.MeleeAttackGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.monster.RangedAttackMob;\nimport net.minecraft.world.entity.npc.AbstractVillager;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.AbstractArrow;\nimport net.minecraft.world.entity.projectile.ProjectileUtil;\nimport net.minecraft.world.entity.projectile.ThrownTrident;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.ProjectileWeaponItem;\nimport net.minecraft.world.item.TridentItem;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\nimport net.minecraftforge.common.ToolActions;\n\npublic class EntityMimicube extends Monster implements RangedAttackMob {\n\n    private static final EntityDataAccessor<Integer> ATTACK_TICK = SynchedEntityData.defineId(EntityMimicube.class, EntityDataSerializers.INT);\n    private final MimiCubeAIRangedAttack aiArrowAttack = new MimiCubeAIRangedAttack(this, 1.0D, 10, 15.0F);\n    private final MeleeAttackGoal aiAttackOnCollide = new MeleeAttackGoal(this, 1.2D, false);\n    public float squishAmount;\n    public float squishFactor;\n    public float prevSquishFactor;\n    public float leftSwapProgress = 0;\n    public float prevLeftSwapProgress = 0;\n    public float rightSwapProgress = 0;\n    public float prevRightSwapProgress = 0;\n    public float helmetSwapProgress = 0;\n    public float prevHelmetSwapProgress = 0;\n    public float prevAttackProgress;\n    public float attackProgress;\n    private boolean wasOnGround;\n    private int eatingTicks;\n\n    protected EntityMimicube(EntityType type, Level world) {\n        super(type, world);\n        this.moveControl = new MimicubeMoveHelper(this);\n        this.navigation = new DirectPathNavigator(this, world);\n        this.setCombatTask();\n    }\n\n    public static AttributeSupplier.Builder bakeAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 30.0D).add(Attributes.FOLLOW_RANGE, 32.0D).add(Attributes.ATTACK_DAMAGE, 2.0D).add(Attributes.MOVEMENT_SPEED, 0.45F);\n    }\n\n\n    public boolean checkSpawnRules(LevelAccessor worldIn, MobSpawnType spawnReasonIn) {\n        return AMEntityRegistry.rollSpawn(AMConfig.mimicubeSpawnRolls, this.getRandom(), spawnReasonIn);\n    }\n\n    @Override\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(ATTACK_TICK, 0);\n\n    }\n\n    public boolean doHurtTarget(Entity entityIn) {\n        this.entityData.set(ATTACK_TICK, 5);\n        return true;\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(1, new AnimalAIWanderRanged(this, 60, 1.0D, 10, 7));\n        this.goalSelector.addGoal(2, new LookAtPlayerGoal(this, Player.class, 8.0F));\n        this.goalSelector.addGoal(2, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, new HurtByTargetGoal(this));\n        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));\n        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, true));\n    }\n\n    public void setCombatTask() {\n        if (this.level() != null && !this.level().isClientSide) {\n            this.goalSelector.removeGoal(this.aiAttackOnCollide);\n            this.goalSelector.removeGoal(this.aiArrowAttack);\n            ItemStack itemstack = this.getMainHandItem();\n            if (itemstack.getItem() instanceof ProjectileWeaponItem || itemstack.getItem() instanceof TridentItem) {\n                int i = 10;\n                if (this.level().getDifficulty() != Difficulty.HARD) {\n                    i = 30;\n                }\n\n                this.aiArrowAttack.setAttackCooldown(i);\n                this.goalSelector.addGoal(4, this.aiArrowAttack);\n            } else {\n                this.goalSelector.addGoal(4, this.aiAttackOnCollide);\n            }\n\n        }\n    }\n\n    public void attackEntityWithRangedAttackTrident(LivingEntity target, float distanceFactor) {\n        ThrownTrident tridententity = new ThrownTrident(this.level(), this, new ItemStack(Items.TRIDENT));\n        double d0 = target.getX() - this.getX();\n        double d1 = target.getY(0.3333333333333333D) - tridententity.getY();\n        double d2 = target.getZ() - this.getZ();\n        double d3 = Mth.sqrt((float)(d0 * d0 + d2 * d2));\n        tridententity.shoot(d0, d1 + d3 * (double) 0.2F, d2, 1.6F, (float) (14 - this.level().getDifficulty().getId() * 4));\n        this.gameEvent(GameEvent.PROJECTILE_SHOOT);\n        this.playSound(SoundEvents.DROWNED_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));\n        this.level().addFreshEntity(tridententity);\n    }\n\n    public void performRangedAttack(LivingEntity target, float distanceFactor) {\n        if (this.getMainHandItem().getItem() instanceof TridentItem) {\n            attackEntityWithRangedAttackTrident(target, distanceFactor);\n            return;\n        }\n        ItemStack itemstack = this.getProjectile(this.getMainHandItem());\n        AbstractArrow abstractarrowentity = this.fireArrow(itemstack, distanceFactor);\n        if (this.getMainHandItem().getItem() instanceof net.minecraft.world.item.BowItem)\n            abstractarrowentity = ((net.minecraft.world.item.BowItem) this.getMainHandItem().getItem()).customArrow(abstractarrowentity);\n        double d0 = target.getX() - this.getX();\n        double d1 = target.getY(0.3333333333333333D) - abstractarrowentity.getY();\n        double d2 = target.getZ() - this.getZ();\n        double d3 = Mth.sqrt((float)(d0 * d0 + d2 * d2));\n        abstractarrowentity.shoot(d0, d1 + d3 * (double) 0.2F, d2, 1.6F, (float) (14 - this.level().getDifficulty().getId() * 4));\n        this.gameEvent(GameEvent.PROJECTILE_SHOOT);\n        this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));\n        this.level().addFreshEntity(abstractarrowentity);\n    }\n\n    protected AbstractArrow fireArrow(ItemStack arrowStack, float distanceFactor) {\n        return ProjectileUtil.getMobArrow(this, arrowStack, distanceFactor);\n    }\n\n    public boolean canFireProjectileWeapon(ProjectileWeaponItem p_230280_1_) {\n        return p_230280_1_ == Items.BOW;\n    }\n\n    public void setItemSlot(EquipmentSlot slotIn, ItemStack stack) {\n        switch (slotIn) {\n            case HEAD -> {\n                if (!ItemStack.isSameItem(stack, this.getItemBySlot(EquipmentSlot.HEAD))) {\n                    helmetSwapProgress = 5;\n                    this.level().broadcastEntityEvent(this, (byte) 45);\n                }\n            }\n            case MAINHAND -> {\n                if (!ItemStack.isSameItem(stack, this.getItemBySlot(EquipmentSlot.MAINHAND))) {\n                    rightSwapProgress = 5;\n                    this.level().broadcastEntityEvent(this, (byte) 46);\n                }\n            }\n            case OFFHAND -> {\n                if (!ItemStack.isSameItem(stack, this.getItemBySlot(EquipmentSlot.OFFHAND))) {\n                    leftSwapProgress = 5;\n                    this.level().broadcastEntityEvent(this, (byte) 47);\n                }\n            }\n        }\n        super.setItemSlot(slotIn, stack);\n        if (!this.level().isClientSide) {\n            this.setCombatTask();\n        }\n    }\n\n    @OnlyIn(Dist.CLIENT)\n    public void handleEntityEvent(byte id) {\n        super.handleEntityEvent(id);\n        switch (id) {\n            case 45 -> helmetSwapProgress = 5;\n            case 46 -> rightSwapProgress = 5;\n            case 47 -> leftSwapProgress = 5;\n            default -> {}\n        }\n    }\n\n    public boolean isBlocking() {\n        return this.getMainHandItem().canPerformAction(ToolActions.SHIELD_BLOCK) || this.getOffhandItem().canPerformAction(ToolActions.SHIELD_BLOCK);\n    }\n\n    public boolean hurt(DamageSource source, float amount) {\n        Entity trueSource = source.getEntity();\n        if (trueSource != null && trueSource instanceof LivingEntity attacker) {\n            if (!attacker.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {\n                this.setItemSlot(EquipmentSlot.HEAD, mimicStack(attacker.getItemBySlot(EquipmentSlot.HEAD)));\n            }\n            if (!attacker.getItemBySlot(EquipmentSlot.OFFHAND).isEmpty()) {\n                this.setItemSlot(EquipmentSlot.OFFHAND, mimicStack(attacker.getItemBySlot(EquipmentSlot.OFFHAND)));\n            }\n            if (!attacker.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty()) {\n                this.setItemSlot(EquipmentSlot.MAINHAND, mimicStack(attacker.getItemBySlot(EquipmentSlot.MAINHAND)));\n            }\n        }\n        return super.hurt(source, amount);\n    }\n\n    private ItemStack mimicStack(ItemStack stack){\n        ItemStack copy = stack.copy();\n        if(copy.isDamageableItem()){\n            copy.setDamageValue(copy.getMaxDamage());\n        }\n        return copy;\n    }\n\n    public void tick() {\n        super.tick();\n        this.squishFactor += (this.squishAmount - this.squishFactor) * 0.5F;\n        this.prevSquishFactor = this.squishFactor;\n        this.prevHelmetSwapProgress = this.helmetSwapProgress;\n        this.prevRightSwapProgress = this.rightSwapProgress;\n        this.prevLeftSwapProgress = this.leftSwapProgress;\n        this.prevAttackProgress = attackProgress;\n        if (rightSwapProgress > 0F) {\n            rightSwapProgress -= 0.5F;\n        }\n        if (leftSwapProgress > 0F) {\n            leftSwapProgress -= 0.5F;\n        }\n        if (helmetSwapProgress > 0F) {\n            helmetSwapProgress -= 0.5F;\n        }\n        if (this.onGround() && !this.wasOnGround) {\n\n            for (int j = 0; j < 8; ++j) {\n                float f = this.random.nextFloat() * Mth.TWO_PI;\n                float f1 = this.random.nextFloat() * 0.5F + 0.5F;\n                float f2 = Mth.sin(f) * 0.5F * f1;\n                float f3 = Mth.cos(f) * 0.5F * f1;\n                this.level().addParticle(new ItemParticleOption(ParticleTypes.ITEM, new ItemStack(AMItemRegistry.MIMICREAM.get())), this.getX() + (double)f2, this.getY(), this.getZ() + (double)f3, 0.0D, 0.0D, 0.0D);\n            }\n\n            this.playSound(this.getSquishSound(), this.getSoundVolume(), ((this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F) / 0.8F);\n            this.squishAmount = -0.35F;\n        } else if (!this.onGround() && this.wasOnGround) {\n            this.squishAmount = 2F;\n        }\n        if(this.isInWater()){\n            this.setDeltaMovement(this.getDeltaMovement().add(0, 0.05D, 0));\n        }\n        if (this.getOffhandItem().getItem().isEdible() && this.getHealth() < this.getMaxHealth()) {\n            if (eatingTicks < 100) {\n                for (int i = 0; i < 3; i++) {\n                    double d2 = this.random.nextGaussian() * 0.02D;\n                    double d0 = this.random.nextGaussian() * 0.02D;\n                    double d1 = this.random.nextGaussian() * 0.02D;\n                    this.level().addParticle(new ItemParticleOption(ParticleTypes.ITEM, this.getItemInHand(InteractionHand.OFF_HAND)), this.getX() + (double) (this.random.nextFloat() * this.getBbWidth()) - (double) this.getBbWidth() * 0.5F, this.getY() + this.getBbHeight() * 0.5F + (double) (this.random.nextFloat() * this.getBbHeight() * 0.5F), this.getZ() + (double) (this.random.nextFloat() * this.getBbWidth()) - (double) this.getBbWidth() * 0.5F, d0, d1, d2);\n                }\n                if (eatingTicks % 6 == 0) {\n                    this.gameEvent(GameEvent.EAT);\n                    this.playSound(SoundEvents.GENERIC_EAT, this.getSoundVolume(), this.getVoicePitch());\n                }\n                eatingTicks++;\n            }\n            if (eatingTicks == 100) {\n                this.gameEvent(GameEvent.EAT);\n                this.playSound(SoundEvents.PLAYER_BURP, this.getSoundVolume(), this.getVoicePitch());\n                this.getOffhandItem().shrink(1);\n                this.heal(5);\n                eatingTicks = 0;\n            }\n        } else if (this.getMainHandItem().getItem().isEdible() && this.getHealth() < this.getMaxHealth()) {\n            if (eatingTicks < 100) {\n                for (int i = 0; i < 3; i++) {\n                    double d2 = this.random.nextGaussian() * 0.02D;\n                    double d0 = this.random.nextGaussian() * 0.02D;\n                    double d1 = this.random.nextGaussian() * 0.02D;\n                    this.level().addParticle(new ItemParticleOption(ParticleTypes.ITEM, this.getItemInHand(InteractionHand.MAIN_HAND)), this.getX() + (double) (this.random.nextFloat() * this.getBbWidth()) - (double) this.getBbWidth() * 0.5F, this.getY() + this.getBbHeight() * 0.5F + (double) (this.random.nextFloat() * this.getBbHeight() * 0.5F), this.getZ() + (double) (this.random.nextFloat() * this.getBbWidth()) - (double) this.getBbWidth() * 0.5F, d0, d1, d2);\n                }\n                this.gameEvent(GameEvent.EAT);\n                this.playSound(SoundEvents.GENERIC_EAT, this.getSoundVolume(), this.getVoicePitch());\n                if (eatingTicks % 6 == 0) {\n                    this.gameEvent(GameEvent.EAT);\n                    this.playSound(SoundEvents.GENERIC_EAT, this.getSoundVolume(), this.getVoicePitch());\n                }\n                eatingTicks++;\n            }\n            if (eatingTicks == 100) {\n                this.gameEvent(GameEvent.EAT);\n                this.playSound(SoundEvents.PLAYER_BURP, this.getSoundVolume(), this.getVoicePitch());\n                this.getMainHandItem().shrink(1);\n                this.heal(5);\n            }\n        } else {\n            eatingTicks = 0;\n        }\n        this.wasOnGround = this.onGround();\n        this.alterSquishAmount();\n        LivingEntity livingentity = this.getTarget();\n        if (livingentity != null && this.distanceToSqr(livingentity) < 144D) {\n            this.moveControl.setWantedPosition(livingentity.getX(), livingentity.getY(), livingentity.getZ(), this.moveControl.getSpeedModifier());\n            this.wasOnGround = true;\n        }\n        if (this.entityData.get(ATTACK_TICK) > 0) {\n            if (this.entityData.get(ATTACK_TICK) == 2 && this.getTarget() != null && this.distanceTo(this.getTarget()) < 2.3D) {\n                super.doHurtTarget(this.getTarget());\n            }\n            this.entityData.set(ATTACK_TICK, this.entityData.get(ATTACK_TICK) - 1);\n            if (attackProgress < 3F) {\n                attackProgress++;\n            }\n        } else {\n            if (attackProgress > 0F) {\n                attackProgress--;\n            }\n        }\n\n    }\n\n    protected float getEquipmentDropChance(EquipmentSlot slotIn) {\n        return 0;\n    }\n\n    private SoundEvent getSquishSound() {\n        return AMSoundRegistry.MIMICUBE_JUMP.get();\n    }\n\n    private SoundEvent getJumpSound() {\n        return AMSoundRegistry.MIMICUBE_JUMP.get();\n    }\n\n    protected void jumpFromGround() {\n        Vec3 vector3d = this.getDeltaMovement();\n        this.setDeltaMovement(vector3d.x, this.getJumpPower(), vector3d.z);\n        this.hasImpulse = true;\n    }\n\n    protected int getJumpDelay() {\n        return this.random.nextInt(20) + 10;\n    }\n\n    protected void alterSquishAmount() {\n        this.squishAmount *= 0.6F;\n    }\n\n    public boolean shouldShoot() {\n        return this.getMainHandItem().getItem() instanceof ProjectileWeaponItem || this.getMainHandItem().getItem() instanceof TridentItem;\n    }\n\n    private static class MimicubeMoveHelper extends MoveControl {\n        private final EntityMimicube slime;\n        private float yRot;\n        private int jumpDelay;\n        private boolean isAggressive;\n\n        public MimicubeMoveHelper(EntityMimicube slimeIn) {\n            super(slimeIn);\n            this.slime = slimeIn;\n            this.yRot = 180.0F * slimeIn.getYRot() / Mth.PI;\n        }\n\n        public void setDirection(float yRotIn, boolean aggressive) {\n            this.yRot = yRotIn;\n            this.isAggressive = aggressive;\n        }\n\n        public void setSpeed(double speedIn) {\n            this.speedModifier = speedIn;\n            this.operation = MoveControl.Operation.MOVE_TO;\n        }\n\n        public void tick() {\n            if (this.mob.onGround()) {\n                this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));\n                if (this.jumpDelay-- <= 0 && this.operation != Operation.WAIT) {\n                    this.jumpDelay = this.slime.getJumpDelay();\n                    if (this.mob.getTarget() != null) {\n                        this.jumpDelay /= 3;\n                    }\n\n                    this.slime.getJumpControl().jump();\n                    this.slime.playSound(this.slime.getJumpSound(), this.slime.getSoundVolume(), this.slime.getVoicePitch());\n                } else {\n                    this.slime.xxa = 0.0F;\n                    this.slime.zza = 0.0F;\n                    this.mob.setSpeed(0.0F);\n                }\n            }\n            super.tick();\n        }\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSourceIn) {\n        return AMSoundRegistry.MIMICUBE_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return AMSoundRegistry.MIMICUBE_HURT.get();\n    }\n\n}\n\n",
+      "sha256": "01c8113317c9a6aedc6c76e59666722081f44b13d30884be22ca2ce8ead5acb3",
+      "bytes": 18952
+    }
+  ],
+  "actual_reading_coverage": {
+    "source_files": 1,
+    "ranges": 1,
+    "unique_lines": 415,
+    "whole_files": 1,
+    "prior_partial": 210,
+    "fresh_remainder": 205,
+    "semantic_credit": 0
+  },
+  "observations": [
+    "实际完整EntityMimicube415行，只是source subclass全文，不代表完整继承/远程AI/physics/伤害结算链已审。",
+    "hurt使用causing source.getEntity的Living attacker；HEAD、OFFHAND、MAINHAND只在攻击者对应槽非empty时依次mimicStack并setItemSlot，先于super.hurt返回，方法本地无逻辑sideguard。空槽不会清已有copy；不证明实际拒伤后已发生运行复制。",
+    "mimicStack调用stack.copy，若copy.isDamageableItem则setDamageValue(getMaxDamage)。ItemStack具体copy/capability/损坏语义未展开，不能把最大damage赋值等同已经break或已损坏物品验收。",
+    "setItemSlot先按isSameItem比较决定HEAD/MAIN/OFF swap5和event45/46/47，再super赋槽，server setCombatTask。isSameItem具体定义未读；不假定NBT/数目/伤损不同必有cue。",
+    "server setCombatTask每次先remove两goal，再按mainhand ProjectileWeaponItem/Trident选ranged否则melee，difficulty HARD设10其他30。goal内部/调度/当前路径结果未展开。",
+    "isBlocking只检查任一手canPerformAction(SHIELD_BLOCK)，没有own raised-use/持续时间门；父类shield伤害角度与使用物品链未读，不声称无条件免伤。",
+    "doHurtTarget只写ATTACK_TICK5并return true；own tick到2时在当前target非空/距离<2.3调用super.doHurtTarget并忽略bool，无原始victimUUID锁。初始true不证明命中。",
+    "同一eatingTicks优先offhand edible且缺血；小于100加计数，到100shrink1/heal5后清0。mainhand branch到100也shrink1/heal5，但不清eatingTicks；其他分支才清0。",
+    "因此条件上，mainhand计数保持100且随后每次仍食物/缺血，会再次请求shrink/heal；换物/换手未独立清共享计数。这是固定source条件路径，不是已复现刷血/食物消耗bug，也不是无限回复保证。",
+    "进食两分支本地均无server-onlyguard；mainhand每次eat循环额外无条件EAT/sound又可能%6一次，offhand仅%6；提示/粒子数量与成功heal独立，外部heal/实际音像未执行。",
+    "ranged trident构造全新Items.TRIDENT而非heldcopy，箭用getProjectile/fireArrow可Bow.customArrow后shoot，均play/gameevent和uncheckedadd，未在这些own方法中扣手持stack/弹药。缺AI无法确认全部正常调用时序。",
+    "wholegetEquipmentDropChance返回0仅默认掉率方法，native父类强制拾取/附魔/特殊死亡逻辑未读，不等于所有复制装备绝不会掉落。",
+    "jump/movehelper有onGround/jumpDelay和currenttarget加快，之后调用super.tick；target距平方<144则wantedposition，wasOnGround写true。没有移动/导航接纳回执或实测位移。",
+    "own类无save/load override，不能凭此断言装备/ATTACK/eatingTimers全部持久或全丢；必须分别读parent equipment与自身瞬态重建。"
+  ],
+  "limits": [
+    "MimiCubeAIRangedAttack、DirectPathNavigator、AnimalAIWanderRanged在tools/cod4文件清单未找到，未下载/编造；无闭合ranged/导航source新whole候选。",
+    "NativeItemStack.copy/isSameItem/damage、Mob装备/攻击/继承伤害、LivingEntity shield/heal与当前listener未在169展开。",
+    "初筛普通关键词出现不代表命中完整同族；program331/499/522和其他preparent/heldcurrentclock只列待读比较，未称完整旧业务阅读。",
+    "全415行实际读完与本地manifest raw/blob相等只身份；不是远端Git/现Jar/装备模型/实机证明。",
+    "仅本体程序只读，未看/改renderer/model/贴图/UV，不计贴图1000或建筑信用。",
+    "已跳过preowned leash502/dragon495/trident405/firework614，不把这些metadata发现当source阅读；Guster本地实体body缺失不展开。",
+    "当前program524/252/gap476false，生态Main63/937false；旧168context62是历史原件不重写。",
+    "不正式入账/分配ID/执行once/新executor/改生产或Main状态清单，不称完成原UI或已确认并修复bug。"
+  ],
+  "chain_complete": false,
+  "new_whole_candidate_submitted": false,
+  "author_prospective_credit": 0,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "formal_id": null,
+  "append_authorized": false,
+  "current_program": {
+    "count": 524,
+    "groups": 252,
+    "gap": 476,
+    "gate": false,
+    "bindings": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "f23a93a8c5201f4e6b89af4fdd83903fd3170cbbb0b61354637a9f5578316ae1",
+        "bytes": 56347366
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "aff7ae82b78794a82dbedb5f5018cadef41cedf217e84478a9585de4575e7dc8",
+        "bytes": 429903
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "dd47f20db628646eef569de8919ebed7dfa59677d1e84f82772b12ece21d6e82",
+        "bytes": 631
+      }
+    ]
+  },
+  "current_ecology": {
+    "Main_count": 63,
+    "gap": 937,
+    "gate": false,
+    "actual_receipt": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-panda-EA0064-Main-actual63-data-application-20261113.json",
+      "sha256": "2a1a51690608ae2414d454008a7012b0e98cde3fac30519d921769cd67a4507e",
+      "bytes": 6755
+    },
+    "bindings5": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "52b90a4e61367f9b707137663c64ba71c361b47dd7038da8afd81d6d4c89b455",
+        "bytes": 3790352
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "6c3e6ef2174919469e21e0645811ca6478ae63d128d87adebc138b57fc7b8f55",
+        "bytes": 3629500
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "a7cc30aad69773af017eeb352606f1d2eddc649f8563fca23529dc4a3cebd524",
+        "bytes": 1026673
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "24244c498333b046307c1bec9dd230977d0533cd581798c523567d8922be7a79",
+        "bytes": 217178
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "d8d78578cb06572edbff2b6ac5423635d89620dab8103f660ab9f782e0b4f9ce",
+        "bytes": 982621
+      }
+    ]
+  },
+  "protected8": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "production_changes": false,
+  "native_acceptance": false,
+  "original_UI_implemented": false,
+  "tasks_deleted": 0,
+  "all_tasks_complete": false,
+  "active_hours_claimed": null,
+  "next": "Read specific native equipment/copy/admission/shield/attack/heal consumers and closest complete program331/499/522 judgments; missing required custom AI remains explicit, no count or transplant. Main164 private preview already delivered."
+}

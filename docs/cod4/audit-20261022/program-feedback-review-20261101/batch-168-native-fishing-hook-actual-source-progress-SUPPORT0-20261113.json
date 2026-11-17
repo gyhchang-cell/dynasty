@@ -1,0 +1,347 @@
+{
+  "batch": 168,
+  "recorded_at": "2026-11-13T15:07:31.629786+00:00",
+  "status": "ACTUAL_READING_COMPLETE_CROSS_AREA_DUPLICATE_SUPPORT0",
+  "previous_partial_checkpoint": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-168-native-fishing-hook-actual-reading-partial-checkpoint-20261112.json",
+    "sha256": "b498224b8fc6010d145f7f7575cc4af7d8bdb03f030a1c1e739138bf981780cf",
+    "bytes": 15666
+  },
+  "source_archive": {
+    "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/FishingHook.java",
+        "sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+        "bytes": 22729
+      },
+      "archive_member": "net/minecraft/world/entity/projectile/FishingHook.java",
+      "whole_file_actually_read": true,
+      "source_total_lines": 535,
+      "ranges": [
+        {
+          "lines": [
+            1,
+            535
+          ],
+          "sha256": "12b43867ef94b6173b08114b2bde593ed0575e80c7ca2b5592aa2955e38cf1e8",
+          "bytes": 22729,
+          "raw_utf8_keepends": "package net.minecraft.world.entity.projectile;\n\nimport com.mojang.logging.LogUtils;\nimport java.util.Collections;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.protocol.Packet;\nimport net.minecraft.network.protocol.game.ClientGamePacketListener;\nimport net.minecraft.network.protocol.game.ClientboundAddEntityPacket;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.tags.FluidTags;\nimport net.minecraft.tags.ItemTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.ExperienceOrb;\nimport net.minecraft.world.entity.MoverType;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.material.FluidState;\nimport net.minecraft.world.level.storage.loot.BuiltInLootTables;\nimport net.minecraft.world.level.storage.loot.LootParams;\nimport net.minecraft.world.level.storage.loot.LootTable;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParams;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\nimport org.slf4j.Logger;\n\npublic class FishingHook extends Projectile {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private final RandomSource syncronizedRandom = RandomSource.create();\n   private boolean biting;\n   private int outOfWaterTime;\n   private static final int MAX_OUT_OF_WATER_TIME = 10;\n   private static final EntityDataAccessor<Integer> DATA_HOOKED_ENTITY = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.INT);\n   private static final EntityDataAccessor<Boolean> DATA_BITING = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.BOOLEAN);\n   private int life;\n   private int nibble;\n   private int timeUntilLured;\n   private int timeUntilHooked;\n   private float fishAngle;\n   private boolean openWater = true;\n   @Nullable\n   private Entity hookedIn;\n   private FishingHook.FishHookState currentState = FishingHook.FishHookState.FLYING;\n   private final int luck;\n   private final int lureSpeed;\n\n   private FishingHook(EntityType<? extends FishingHook> p_150141_, Level p_150142_, int p_150143_, int p_150144_) {\n      super(p_150141_, p_150142_);\n      this.noCulling = true;\n      this.luck = Math.max(0, p_150143_);\n      this.lureSpeed = Math.max(0, p_150144_);\n   }\n\n   public FishingHook(EntityType<? extends FishingHook> p_150138_, Level p_150139_) {\n      this(p_150138_, p_150139_, 0, 0);\n   }\n\n   public FishingHook(Player p_37106_, Level p_37107_, int p_37108_, int p_37109_) {\n      this(EntityType.FISHING_BOBBER, p_37107_, p_37108_, p_37109_);\n      this.setOwner(p_37106_);\n      float f = p_37106_.getXRot();\n      float f1 = p_37106_.getYRot();\n      float f2 = Mth.cos(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);\n      float f3 = Mth.sin(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);\n      float f4 = -Mth.cos(-f * ((float)Math.PI / 180F));\n      float f5 = Mth.sin(-f * ((float)Math.PI / 180F));\n      double d0 = p_37106_.getX() - (double)f3 * 0.3D;\n      double d1 = p_37106_.getEyeY();\n      double d2 = p_37106_.getZ() - (double)f2 * 0.3D;\n      this.moveTo(d0, d1, d2, f1, f);\n      Vec3 vec3 = new Vec3((double)(-f3), (double)Mth.clamp(-(f5 / f4), -5.0F, 5.0F), (double)(-f2));\n      double d3 = vec3.length();\n      vec3 = vec3.multiply(0.6D / d3 + this.random.triangle(0.5D, 0.0103365D), 0.6D / d3 + this.random.triangle(0.5D, 0.0103365D), 0.6D / d3 + this.random.triangle(0.5D, 0.0103365D));\n      this.setDeltaMovement(vec3);\n      this.setYRot((float)(Mth.atan2(vec3.x, vec3.z) * (double)(180F / (float)Math.PI)));\n      this.setXRot((float)(Mth.atan2(vec3.y, vec3.horizontalDistance()) * (double)(180F / (float)Math.PI)));\n      this.yRotO = this.getYRot();\n      this.xRotO = this.getXRot();\n   }\n\n   protected void defineSynchedData() {\n      this.getEntityData().define(DATA_HOOKED_ENTITY, 0);\n      this.getEntityData().define(DATA_BITING, false);\n   }\n\n   public void onSyncedDataUpdated(EntityDataAccessor<?> p_37153_) {\n      if (DATA_HOOKED_ENTITY.equals(p_37153_)) {\n         int i = this.getEntityData().get(DATA_HOOKED_ENTITY);\n         this.hookedIn = i > 0 ? this.level().getEntity(i - 1) : null;\n      }\n\n      if (DATA_BITING.equals(p_37153_)) {\n         this.biting = this.getEntityData().get(DATA_BITING);\n         if (this.biting) {\n            this.setDeltaMovement(this.getDeltaMovement().x, (double)(-0.4F * Mth.nextFloat(this.syncronizedRandom, 0.6F, 1.0F)), this.getDeltaMovement().z);\n         }\n      }\n\n      super.onSyncedDataUpdated(p_37153_);\n   }\n\n   public boolean shouldRenderAtSqrDistance(double p_37125_) {\n      double d0 = 64.0D;\n      return p_37125_ < 4096.0D;\n   }\n\n   public void lerpTo(double p_37127_, double p_37128_, double p_37129_, float p_37130_, float p_37131_, int p_37132_, boolean p_37133_) {\n   }\n\n   public void tick() {\n      this.syncronizedRandom.setSeed(this.getUUID().getLeastSignificantBits() ^ this.level().getGameTime());\n      super.tick();\n      Player player = this.getPlayerOwner();\n      if (player == null) {\n         this.discard();\n      } else if (this.level().isClientSide || !this.shouldStopFishing(player)) {\n         if (this.onGround()) {\n            ++this.life;\n            if (this.life >= 1200) {\n               this.discard();\n               return;\n            }\n         } else {\n            this.life = 0;\n         }\n\n         float f = 0.0F;\n         BlockPos blockpos = this.blockPosition();\n         FluidState fluidstate = this.level().getFluidState(blockpos);\n         if (fluidstate.is(FluidTags.WATER)) {\n            f = fluidstate.getHeight(this.level(), blockpos);\n         }\n\n         boolean flag = f > 0.0F;\n         if (this.currentState == FishingHook.FishHookState.FLYING) {\n            if (this.hookedIn != null) {\n               this.setDeltaMovement(Vec3.ZERO);\n               this.currentState = FishingHook.FishHookState.HOOKED_IN_ENTITY;\n               return;\n            }\n\n            if (flag) {\n               this.setDeltaMovement(this.getDeltaMovement().multiply(0.3D, 0.2D, 0.3D));\n               this.currentState = FishingHook.FishHookState.BOBBING;\n               return;\n            }\n\n            this.checkCollision();\n         } else {\n            if (this.currentState == FishingHook.FishHookState.HOOKED_IN_ENTITY) {\n               if (this.hookedIn != null) {\n                  if (!this.hookedIn.isRemoved() && this.hookedIn.level().dimension() == this.level().dimension()) {\n                     this.setPos(this.hookedIn.getX(), this.hookedIn.getY(0.8D), this.hookedIn.getZ());\n                  } else {\n                     this.setHookedEntity((Entity)null);\n                     this.currentState = FishingHook.FishHookState.FLYING;\n                  }\n               }\n\n               return;\n            }\n\n            if (this.currentState == FishingHook.FishHookState.BOBBING) {\n               Vec3 vec3 = this.getDeltaMovement();\n               double d0 = this.getY() + vec3.y - (double)blockpos.getY() - (double)f;\n               if (Math.abs(d0) < 0.01D) {\n                  d0 += Math.signum(d0) * 0.1D;\n               }\n\n               this.setDeltaMovement(vec3.x * 0.9D, vec3.y - d0 * (double)this.random.nextFloat() * 0.2D, vec3.z * 0.9D);\n               if (this.nibble <= 0 && this.timeUntilHooked <= 0) {\n                  this.openWater = true;\n               } else {\n                  this.openWater = this.openWater && this.outOfWaterTime < 10 && this.calculateOpenWater(blockpos);\n               }\n\n               if (flag) {\n                  this.outOfWaterTime = Math.max(0, this.outOfWaterTime - 1);\n                  if (this.biting) {\n                     this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.1D * (double)this.syncronizedRandom.nextFloat() * (double)this.syncronizedRandom.nextFloat(), 0.0D));\n                  }\n\n                  if (!this.level().isClientSide) {\n                     this.catchingFish(blockpos);\n                  }\n               } else {\n                  this.outOfWaterTime = Math.min(10, this.outOfWaterTime + 1);\n               }\n            }\n         }\n\n         if (!fluidstate.is(FluidTags.WATER)) {\n            this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.03D, 0.0D));\n         }\n\n         this.move(MoverType.SELF, this.getDeltaMovement());\n         this.updateRotation();\n         if (this.currentState == FishingHook.FishHookState.FLYING && (this.onGround() || this.horizontalCollision)) {\n            this.setDeltaMovement(Vec3.ZERO);\n         }\n\n         double d1 = 0.92D;\n         this.setDeltaMovement(this.getDeltaMovement().scale(0.92D));\n         this.reapplyPosition();\n      }\n   }\n\n   private boolean shouldStopFishing(Player p_37137_) {\n      ItemStack itemstack = p_37137_.getMainHandItem();\n      ItemStack itemstack1 = p_37137_.getOffhandItem();\n      boolean flag = itemstack.canPerformAction(net.minecraftforge.common.ToolActions.FISHING_ROD_CAST);\n      boolean flag1 = itemstack1.canPerformAction(net.minecraftforge.common.ToolActions.FISHING_ROD_CAST);\n      if (!p_37137_.isRemoved() && p_37137_.isAlive() && (flag || flag1) && !(this.distanceToSqr(p_37137_) > 1024.0D)) {\n         return false;\n      } else {\n         this.discard();\n         return true;\n      }\n   }\n\n   private void checkCollision() {\n      HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);\n      if (hitresult.getType() == HitResult.Type.MISS || !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, hitresult)) this.onHit(hitresult);\n   }\n\n   protected boolean canHitEntity(Entity p_37135_) {\n      return super.canHitEntity(p_37135_) || p_37135_.isAlive() && p_37135_ instanceof ItemEntity;\n   }\n\n   protected void onHitEntity(EntityHitResult p_37144_) {\n      super.onHitEntity(p_37144_);\n      if (!this.level().isClientSide) {\n         this.setHookedEntity(p_37144_.getEntity());\n      }\n\n   }\n\n   protected void onHitBlock(BlockHitResult p_37142_) {\n      super.onHitBlock(p_37142_);\n      this.setDeltaMovement(this.getDeltaMovement().normalize().scale(p_37142_.distanceTo(this)));\n   }\n\n   private void setHookedEntity(@Nullable Entity p_150158_) {\n      this.hookedIn = p_150158_;\n      this.getEntityData().set(DATA_HOOKED_ENTITY, p_150158_ == null ? 0 : p_150158_.getId() + 1);\n   }\n\n   private void catchingFish(BlockPos p_37146_) {\n      ServerLevel serverlevel = (ServerLevel)this.level();\n      int i = 1;\n      BlockPos blockpos = p_37146_.above();\n      if (this.random.nextFloat() < 0.25F && this.level().isRainingAt(blockpos)) {\n         ++i;\n      }\n\n      if (this.random.nextFloat() < 0.5F && !this.level().canSeeSky(blockpos)) {\n         --i;\n      }\n\n      if (this.nibble > 0) {\n         --this.nibble;\n         if (this.nibble <= 0) {\n            this.timeUntilLured = 0;\n            this.timeUntilHooked = 0;\n            this.getEntityData().set(DATA_BITING, false);\n         }\n      } else if (this.timeUntilHooked > 0) {\n         this.timeUntilHooked -= i;\n         if (this.timeUntilHooked > 0) {\n            this.fishAngle += (float)this.random.triangle(0.0D, 9.188D);\n            float f = this.fishAngle * ((float)Math.PI / 180F);\n            float f1 = Mth.sin(f);\n            float f2 = Mth.cos(f);\n            double d0 = this.getX() + (double)(f1 * (float)this.timeUntilHooked * 0.1F);\n            double d1 = (double)((float)Mth.floor(this.getY()) + 1.0F);\n            double d2 = this.getZ() + (double)(f2 * (float)this.timeUntilHooked * 0.1F);\n            BlockState blockstate = serverlevel.getBlockState(BlockPos.containing(d0, d1 - 1.0D, d2));\n            if (blockstate.is(Blocks.WATER)) {\n               if (this.random.nextFloat() < 0.15F) {\n                  serverlevel.sendParticles(ParticleTypes.BUBBLE, d0, d1 - (double)0.1F, d2, 1, (double)f1, 0.1D, (double)f2, 0.0D);\n               }\n\n               float f3 = f1 * 0.04F;\n               float f4 = f2 * 0.04F;\n               serverlevel.sendParticles(ParticleTypes.FISHING, d0, d1, d2, 0, (double)f4, 0.01D, (double)(-f3), 1.0D);\n               serverlevel.sendParticles(ParticleTypes.FISHING, d0, d1, d2, 0, (double)(-f4), 0.01D, (double)f3, 1.0D);\n            }\n         } else {\n            this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);\n            double d3 = this.getY() + 0.5D;\n            serverlevel.sendParticles(ParticleTypes.BUBBLE, this.getX(), d3, this.getZ(), (int)(1.0F + this.getBbWidth() * 20.0F), (double)this.getBbWidth(), 0.0D, (double)this.getBbWidth(), (double)0.2F);\n            serverlevel.sendParticles(ParticleTypes.FISHING, this.getX(), d3, this.getZ(), (int)(1.0F + this.getBbWidth() * 20.0F), (double)this.getBbWidth(), 0.0D, (double)this.getBbWidth(), (double)0.2F);\n            this.nibble = Mth.nextInt(this.random, 20, 40);\n            this.getEntityData().set(DATA_BITING, true);\n         }\n      } else if (this.timeUntilLured > 0) {\n         this.timeUntilLured -= i;\n         float f5 = 0.15F;\n         if (this.timeUntilLured < 20) {\n            f5 += (float)(20 - this.timeUntilLured) * 0.05F;\n         } else if (this.timeUntilLured < 40) {\n            f5 += (float)(40 - this.timeUntilLured) * 0.02F;\n         } else if (this.timeUntilLured < 60) {\n            f5 += (float)(60 - this.timeUntilLured) * 0.01F;\n         }\n\n         if (this.random.nextFloat() < f5) {\n            float f6 = Mth.nextFloat(this.random, 0.0F, 360.0F) * ((float)Math.PI / 180F);\n            float f7 = Mth.nextFloat(this.random, 25.0F, 60.0F);\n            double d4 = this.getX() + (double)(Mth.sin(f6) * f7) * 0.1D;\n            double d5 = (double)((float)Mth.floor(this.getY()) + 1.0F);\n            double d6 = this.getZ() + (double)(Mth.cos(f6) * f7) * 0.1D;\n            BlockState blockstate1 = serverlevel.getBlockState(BlockPos.containing(d4, d5 - 1.0D, d6));\n            if (blockstate1.is(Blocks.WATER)) {\n               serverlevel.sendParticles(ParticleTypes.SPLASH, d4, d5, d6, 2 + this.random.nextInt(2), (double)0.1F, 0.0D, (double)0.1F, 0.0D);\n            }\n         }\n\n         if (this.timeUntilLured <= 0) {\n            this.fishAngle = Mth.nextFloat(this.random, 0.0F, 360.0F);\n            this.timeUntilHooked = Mth.nextInt(this.random, 20, 80);\n         }\n      } else {\n         this.timeUntilLured = Mth.nextInt(this.random, 100, 600);\n         this.timeUntilLured -= this.lureSpeed * 20 * 5;\n      }\n\n   }\n\n   private boolean calculateOpenWater(BlockPos p_37159_) {\n      FishingHook.OpenWaterType fishinghook$openwatertype = FishingHook.OpenWaterType.INVALID;\n\n      for(int i = -1; i <= 2; ++i) {\n         FishingHook.OpenWaterType fishinghook$openwatertype1 = this.getOpenWaterTypeForArea(p_37159_.offset(-2, i, -2), p_37159_.offset(2, i, 2));\n         switch (fishinghook$openwatertype1) {\n            case INVALID:\n               return false;\n            case ABOVE_WATER:\n               if (fishinghook$openwatertype == FishingHook.OpenWaterType.INVALID) {\n                  return false;\n               }\n               break;\n            case INSIDE_WATER:\n               if (fishinghook$openwatertype == FishingHook.OpenWaterType.ABOVE_WATER) {\n                  return false;\n               }\n         }\n\n         fishinghook$openwatertype = fishinghook$openwatertype1;\n      }\n\n      return true;\n   }\n\n   private FishingHook.OpenWaterType getOpenWaterTypeForArea(BlockPos p_37148_, BlockPos p_37149_) {\n      return BlockPos.betweenClosedStream(p_37148_, p_37149_).map(this::getOpenWaterTypeForBlock).reduce((p_37139_, p_37140_) -> {\n         return p_37139_ == p_37140_ ? p_37139_ : FishingHook.OpenWaterType.INVALID;\n      }).orElse(FishingHook.OpenWaterType.INVALID);\n   }\n\n   private FishingHook.OpenWaterType getOpenWaterTypeForBlock(BlockPos p_37164_) {\n      BlockState blockstate = this.level().getBlockState(p_37164_);\n      if (!blockstate.isAir() && !blockstate.is(Blocks.LILY_PAD)) {\n         FluidState fluidstate = blockstate.getFluidState();\n         return fluidstate.is(FluidTags.WATER) && fluidstate.isSource() && blockstate.getCollisionShape(this.level(), p_37164_).isEmpty() ? FishingHook.OpenWaterType.INSIDE_WATER : FishingHook.OpenWaterType.INVALID;\n      } else {\n         return FishingHook.OpenWaterType.ABOVE_WATER;\n      }\n   }\n\n   public boolean isOpenWaterFishing() {\n      return this.openWater;\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_37161_) {\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_37151_) {\n   }\n\n   public int retrieve(ItemStack p_37157_) {\n      Player player = this.getPlayerOwner();\n      if (!this.level().isClientSide && player != null && !this.shouldStopFishing(player)) {\n         int i = 0;\n         net.minecraftforge.event.entity.player.ItemFishedEvent event = null;\n         if (this.hookedIn != null) {\n            this.pullEntity(this.hookedIn);\n            CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)player, p_37157_, this, Collections.emptyList());\n            this.level().broadcastEntityEvent(this, (byte)31);\n            i = this.hookedIn instanceof ItemEntity ? 3 : 5;\n         } else if (this.nibble > 0) {\n            LootParams lootparams = (new LootParams.Builder((ServerLevel)this.level())).withParameter(LootContextParams.ORIGIN, this.position()).withParameter(LootContextParams.TOOL, p_37157_).withParameter(LootContextParams.THIS_ENTITY, this).withParameter(LootContextParams.KILLER_ENTITY, this.getOwner()).withParameter(LootContextParams.THIS_ENTITY, this).withLuck((float)this.luck + player.getLuck()).create(LootContextParamSets.FISHING);\n            LootTable loottable = this.level().getServer().getLootData().getLootTable(BuiltInLootTables.FISHING);\n            List<ItemStack> list = loottable.getRandomItems(lootparams);\n            event = new net.minecraftforge.event.entity.player.ItemFishedEvent(list, this.onGround() ? 2 : 1, this);\n            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event);\n            if (event.isCanceled()) {\n               this.discard();\n               return event.getRodDamage();\n            }\n            CriteriaTriggers.FISHING_ROD_HOOKED.trigger((ServerPlayer)player, p_37157_, this, list);\n\n            for(ItemStack itemstack : list) {\n               ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), itemstack);\n               double d0 = player.getX() - this.getX();\n               double d1 = player.getY() - this.getY();\n               double d2 = player.getZ() - this.getZ();\n               double d3 = 0.1D;\n               itementity.setDeltaMovement(d0 * 0.1D, d1 * 0.1D + Math.sqrt(Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2)) * 0.08D, d2 * 0.1D);\n               this.level().addFreshEntity(itementity);\n               player.level().addFreshEntity(new ExperienceOrb(player.level(), player.getX(), player.getY() + 0.5D, player.getZ() + 0.5D, this.random.nextInt(6) + 1));\n               if (itemstack.is(ItemTags.FISHES)) {\n                  player.awardStat(Stats.FISH_CAUGHT, 1);\n               }\n            }\n\n            i = 1;\n         }\n\n         if (this.onGround()) {\n            i = 2;\n         }\n\n         this.discard();\n         return event == null ? i : event.getRodDamage();\n      } else {\n         return 0;\n      }\n   }\n\n   public void handleEntityEvent(byte p_37123_) {\n      if (p_37123_ == 31 && this.level().isClientSide && this.hookedIn instanceof Player && ((Player)this.hookedIn).isLocalPlayer()) {\n         this.pullEntity(this.hookedIn);\n      }\n\n      super.handleEntityEvent(p_37123_);\n   }\n\n   protected void pullEntity(Entity p_150156_) {\n      Entity entity = this.getOwner();\n      if (entity != null) {\n         Vec3 vec3 = (new Vec3(entity.getX() - this.getX(), entity.getY() - this.getY(), entity.getZ() - this.getZ())).scale(0.1D);\n         p_150156_.setDeltaMovement(p_150156_.getDeltaMovement().add(vec3));\n      }\n   }\n\n   protected Entity.MovementEmission getMovementEmission() {\n      return Entity.MovementEmission.NONE;\n   }\n\n   public void remove(Entity.RemovalReason p_150146_) {\n      this.updateOwnerInfo((FishingHook)null);\n      super.remove(p_150146_);\n   }\n\n   public void onClientRemoval() {\n      this.updateOwnerInfo((FishingHook)null);\n   }\n\n   public void setOwner(@Nullable Entity p_150154_) {\n      super.setOwner(p_150154_);\n      this.updateOwnerInfo(this);\n   }\n\n   private void updateOwnerInfo(@Nullable FishingHook p_150148_) {\n      Player player = this.getPlayerOwner();\n      if (player != null) {\n         player.fishing = p_150148_;\n      }\n\n   }\n\n   @Nullable\n   public Player getPlayerOwner() {\n      Entity entity = this.getOwner();\n      return entity instanceof Player ? (Player)entity : null;\n   }\n\n   @Nullable\n   public Entity getHookedIn() {\n      return this.hookedIn;\n   }\n\n   public boolean canChangeDimensions() {\n      return false;\n   }\n\n   public Packet<ClientGamePacketListener> getAddEntityPacket() {\n      Entity entity = this.getOwner();\n      return new ClientboundAddEntityPacket(this, entity == null ? this.getId() : entity.getId());\n   }\n\n   public void recreateFromPacket(ClientboundAddEntityPacket p_150150_) {\n      super.recreateFromPacket(p_150150_);\n      if (this.getPlayerOwner() == null) {\n         int i = p_150150_.getData();\n         LOGGER.error(\"Failed to recreate fishing hook on client. {} (id: {}) is not a valid owner.\", this.level().getEntity(i), i);\n         this.kill();\n      }\n\n   }\n\n   static enum FishHookState {\n      FLYING,\n      HOOKED_IN_ENTITY,\n      BOBBING;\n   }\n\n   static enum OpenWaterType {\n      ABOVE_WATER,\n      INSIDE_WATER,\n      INVALID;\n   }\n}\n"
+        }
+      ],
+      "native_archive_entry_exact": true
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/item/FishingRodItem.java",
+        "sha256": "365e22dfa7ebae6c2560bf56f220a27d7cba5adf1dcbc7e2c63985f2101f1f82",
+        "bytes": 2456
+      },
+      "archive_member": "net/minecraft/world/item/FishingRodItem.java",
+      "whole_file_actually_read": true,
+      "source_total_lines": 56,
+      "ranges": [
+        {
+          "lines": [
+            1,
+            56
+          ],
+          "sha256": "365e22dfa7ebae6c2560bf56f220a27d7cba5adf1dcbc7e2c63985f2101f1f82",
+          "bytes": 2456,
+          "raw_utf8_keepends": "package net.minecraft.world.item;\n\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.FishingHook;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.gameevent.GameEvent;\n\npublic class FishingRodItem extends Item implements Vanishable {\n   public FishingRodItem(Item.Properties p_41285_) {\n      super(p_41285_);\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_41290_, Player p_41291_, InteractionHand p_41292_) {\n      ItemStack itemstack = p_41291_.getItemInHand(p_41292_);\n      if (p_41291_.fishing != null) {\n         if (!p_41290_.isClientSide) {\n            int i = p_41291_.fishing.retrieve(itemstack);\n            itemstack.hurtAndBreak(i, p_41291_, (p_41288_) -> {\n               p_41288_.broadcastBreakEvent(p_41292_);\n            });\n         }\n\n         p_41290_.playSound((Player)null, p_41291_.getX(), p_41291_.getY(), p_41291_.getZ(), SoundEvents.FISHING_BOBBER_RETRIEVE, SoundSource.NEUTRAL, 1.0F, 0.4F / (p_41290_.getRandom().nextFloat() * 0.4F + 0.8F));\n         p_41291_.gameEvent(GameEvent.ITEM_INTERACT_FINISH);\n      } else {\n         p_41290_.playSound((Player)null, p_41291_.getX(), p_41291_.getY(), p_41291_.getZ(), SoundEvents.FISHING_BOBBER_THROW, SoundSource.NEUTRAL, 0.5F, 0.4F / (p_41290_.getRandom().nextFloat() * 0.4F + 0.8F));\n         if (!p_41290_.isClientSide) {\n            int k = EnchantmentHelper.getFishingSpeedBonus(itemstack);\n            int j = EnchantmentHelper.getFishingLuckBonus(itemstack);\n            p_41290_.addFreshEntity(new FishingHook(p_41291_, p_41290_, j, k));\n         }\n\n         p_41291_.awardStat(Stats.ITEM_USED.get(this));\n         p_41291_.gameEvent(GameEvent.ITEM_INTERACT_START);\n      }\n\n      return InteractionResultHolder.sidedSuccess(itemstack, p_41290_.isClientSide());\n   }\n\n   public int getEnchantmentValue() {\n      return 1;\n   }\n\n    /* ******************** FORGE START ******************** */\n\n    @Override\n   public boolean canPerformAction(ItemStack stack, net.minecraftforge.common.ToolAction toolAction) {\n      return net.minecraftforge.common.ToolActions.DEFAULT_FISHING_ROD_ACTIONS.contains(toolAction);\n   }\n}\n"
+        }
+      ],
+      "native_archive_entry_exact": true
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/Projectile.java",
+        "sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+        "bytes": 8381
+      },
+      "archive_member": "net/minecraft/world/entity/projectile/Projectile.java",
+      "whole_file_actually_read": true,
+      "source_total_lines": 220,
+      "ranges": [
+        {
+          "lines": [
+            1,
+            220
+          ],
+          "sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+          "bytes": 8381,
+          "raw_utf8_keepends": "package net.minecraft.world.entity.projectile;\n\nimport com.google.common.base.MoreObjects;\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.protocol.Packet;\nimport net.minecraft.network.protocol.game.ClientGamePacketListener;\nimport net.minecraft.network.protocol.game.ClientboundAddEntityPacket;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.TraceableEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\n\npublic abstract class Projectile extends Entity implements TraceableEntity {\n   @Nullable\n   private UUID ownerUUID;\n   @Nullable\n   private Entity cachedOwner;\n   private boolean leftOwner;\n   private boolean hasBeenShot;\n\n   protected Projectile(EntityType<? extends Projectile> p_37248_, Level p_37249_) {\n      super(p_37248_, p_37249_);\n   }\n\n   public void setOwner(@Nullable Entity p_37263_) {\n      if (p_37263_ != null) {\n         this.ownerUUID = p_37263_.getUUID();\n         this.cachedOwner = p_37263_;\n      }\n\n   }\n\n   @Nullable\n   public Entity getOwner() {\n      if (this.cachedOwner != null && !this.cachedOwner.isRemoved()) {\n         return this.cachedOwner;\n      } else if (this.ownerUUID != null && this.level() instanceof ServerLevel) {\n         this.cachedOwner = ((ServerLevel)this.level()).getEntity(this.ownerUUID);\n         return this.cachedOwner;\n      } else {\n         return null;\n      }\n   }\n\n   public Entity getEffectSource() {\n      return MoreObjects.firstNonNull(this.getOwner(), this);\n   }\n\n   protected void addAdditionalSaveData(CompoundTag p_37265_) {\n      if (this.ownerUUID != null) {\n         p_37265_.putUUID(\"Owner\", this.ownerUUID);\n      }\n\n      if (this.leftOwner) {\n         p_37265_.putBoolean(\"LeftOwner\", true);\n      }\n\n      p_37265_.putBoolean(\"HasBeenShot\", this.hasBeenShot);\n   }\n\n   protected boolean ownedBy(Entity p_150172_) {\n      return p_150172_.getUUID().equals(this.ownerUUID);\n   }\n\n   protected void readAdditionalSaveData(CompoundTag p_37262_) {\n      if (p_37262_.hasUUID(\"Owner\")) {\n         this.ownerUUID = p_37262_.getUUID(\"Owner\");\n         this.cachedOwner = null;\n      }\n\n      this.leftOwner = p_37262_.getBoolean(\"LeftOwner\");\n      this.hasBeenShot = p_37262_.getBoolean(\"HasBeenShot\");\n   }\n\n   public void tick() {\n      if (!this.hasBeenShot) {\n         this.gameEvent(GameEvent.PROJECTILE_SHOOT, this.getOwner());\n         this.hasBeenShot = true;\n      }\n\n      if (!this.leftOwner) {\n         this.leftOwner = this.checkLeftOwner();\n      }\n\n      super.tick();\n   }\n\n   private boolean checkLeftOwner() {\n      Entity entity = this.getOwner();\n      if (entity != null) {\n         for(Entity entity1 : this.level().getEntities(this, this.getBoundingBox().expandTowards(this.getDeltaMovement()).inflate(1.0D), (p_37272_) -> {\n            return !p_37272_.isSpectator() && p_37272_.isPickable();\n         })) {\n            if (entity1.getRootVehicle() == entity.getRootVehicle()) {\n               return false;\n            }\n         }\n      }\n\n      return true;\n   }\n\n   public void shoot(double p_37266_, double p_37267_, double p_37268_, float p_37269_, float p_37270_) {\n      Vec3 vec3 = (new Vec3(p_37266_, p_37267_, p_37268_)).normalize().add(this.random.triangle(0.0D, 0.0172275D * (double)p_37270_), this.random.triangle(0.0D, 0.0172275D * (double)p_37270_), this.random.triangle(0.0D, 0.0172275D * (double)p_37270_)).scale((double)p_37269_);\n      this.setDeltaMovement(vec3);\n      double d0 = vec3.horizontalDistance();\n      this.setYRot((float)(Mth.atan2(vec3.x, vec3.z) * (double)(180F / (float)Math.PI)));\n      this.setXRot((float)(Mth.atan2(vec3.y, d0) * (double)(180F / (float)Math.PI)));\n      this.yRotO = this.getYRot();\n      this.xRotO = this.getXRot();\n   }\n\n   public void shootFromRotation(Entity p_37252_, float p_37253_, float p_37254_, float p_37255_, float p_37256_, float p_37257_) {\n      float f = -Mth.sin(p_37254_ * ((float)Math.PI / 180F)) * Mth.cos(p_37253_ * ((float)Math.PI / 180F));\n      float f1 = -Mth.sin((p_37253_ + p_37255_) * ((float)Math.PI / 180F));\n      float f2 = Mth.cos(p_37254_ * ((float)Math.PI / 180F)) * Mth.cos(p_37253_ * ((float)Math.PI / 180F));\n      this.shoot((double)f, (double)f1, (double)f2, p_37256_, p_37257_);\n      Vec3 vec3 = p_37252_.getDeltaMovement();\n      this.setDeltaMovement(this.getDeltaMovement().add(vec3.x, p_37252_.onGround() ? 0.0D : vec3.y, vec3.z));\n   }\n\n   protected void onHit(HitResult p_37260_) {\n      HitResult.Type hitresult$type = p_37260_.getType();\n      if (hitresult$type == HitResult.Type.ENTITY) {\n         this.onHitEntity((EntityHitResult)p_37260_);\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, p_37260_.getLocation(), GameEvent.Context.of(this, (BlockState)null));\n      } else if (hitresult$type == HitResult.Type.BLOCK) {\n         BlockHitResult blockhitresult = (BlockHitResult)p_37260_;\n         this.onHitBlock(blockhitresult);\n         BlockPos blockpos = blockhitresult.getBlockPos();\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, blockpos, GameEvent.Context.of(this, this.level().getBlockState(blockpos)));\n      }\n\n   }\n\n   protected void onHitEntity(EntityHitResult p_37259_) {\n   }\n\n   protected void onHitBlock(BlockHitResult p_37258_) {\n      BlockState blockstate = this.level().getBlockState(p_37258_.getBlockPos());\n      blockstate.onProjectileHit(this.level(), blockstate, p_37258_, this);\n   }\n\n   public void lerpMotion(double p_37279_, double p_37280_, double p_37281_) {\n      this.setDeltaMovement(p_37279_, p_37280_, p_37281_);\n      if (this.xRotO == 0.0F && this.yRotO == 0.0F) {\n         double d0 = Math.sqrt(p_37279_ * p_37279_ + p_37281_ * p_37281_);\n         this.setXRot((float)(Mth.atan2(p_37280_, d0) * (double)(180F / (float)Math.PI)));\n         this.setYRot((float)(Mth.atan2(p_37279_, p_37281_) * (double)(180F / (float)Math.PI)));\n         this.xRotO = this.getXRot();\n         this.yRotO = this.getYRot();\n         this.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());\n      }\n\n   }\n\n   protected boolean canHitEntity(Entity p_37250_) {\n      if (!p_37250_.canBeHitByProjectile()) {\n         return false;\n      } else {\n         Entity entity = this.getOwner();\n         return entity == null || this.leftOwner || !entity.isPassengerOfSameVehicle(p_37250_);\n      }\n   }\n\n   protected void updateRotation() {\n      Vec3 vec3 = this.getDeltaMovement();\n      double d0 = vec3.horizontalDistance();\n      this.setXRot(lerpRotation(this.xRotO, (float)(Mth.atan2(vec3.y, d0) * (double)(180F / (float)Math.PI))));\n      this.setYRot(lerpRotation(this.yRotO, (float)(Mth.atan2(vec3.x, vec3.z) * (double)(180F / (float)Math.PI))));\n   }\n\n   protected static float lerpRotation(float p_37274_, float p_37275_) {\n      while(p_37275_ - p_37274_ < -180.0F) {\n         p_37274_ -= 360.0F;\n      }\n\n      while(p_37275_ - p_37274_ >= 180.0F) {\n         p_37274_ += 360.0F;\n      }\n\n      return Mth.lerp(0.2F, p_37274_, p_37275_);\n   }\n\n   public Packet<ClientGamePacketListener> getAddEntityPacket() {\n      Entity entity = this.getOwner();\n      return new ClientboundAddEntityPacket(this, entity == null ? 0 : entity.getId());\n   }\n\n   public void recreateFromPacket(ClientboundAddEntityPacket p_150170_) {\n      super.recreateFromPacket(p_150170_);\n      Entity entity = this.level().getEntity(p_150170_.getData());\n      if (entity != null) {\n         this.setOwner(entity);\n      }\n\n   }\n\n   public boolean mayInteract(Level p_150167_, BlockPos p_150168_) {\n      Entity entity = this.getOwner();\n      if (entity instanceof Player) {\n         return entity.mayInteract(p_150167_, p_150168_);\n      } else {\n         return entity == null || net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(p_150167_, entity);\n      }\n   }\n}\n"
+        }
+      ],
+      "native_archive_entry_exact": true
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/player/ItemFishedEvent.java",
+        "sha256": "637bf3785d708652bd83973ddf9d4053ebf4245ffa009cb3a2dc8466f2164e37",
+        "bytes": 2160
+      },
+      "archive_member": "net/minecraftforge/event/entity/player/ItemFishedEvent.java",
+      "whole_file_actually_read": true,
+      "source_total_lines": 76,
+      "ranges": [
+        {
+          "lines": [
+            1,
+            76
+          ],
+          "sha256": "637bf3785d708652bd83973ddf9d4053ebf4245ffa009cb3a2dc8466f2164e37",
+          "bytes": 2160,
+          "raw_utf8_keepends": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity.player;\n\nimport com.google.common.base.Preconditions;\nimport net.minecraft.world.entity.projectile.FishingHook;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.core.NonNullList;\nimport net.minecraftforge.eventbus.api.Cancelable;\n\nimport javax.annotation.Nonnegative;\nimport java.util.List;\n\n/**\n * This event is called when a player fishes an item.\n *\n * This event is {@link net.minecraftforge.eventbus.api.Cancelable}\n * Canceling the event will cause the player to receive no items at all.\n * The hook will still take the damage specified\n */\n@Cancelable\npublic class ItemFishedEvent extends PlayerEvent\n{\n    private final NonNullList<ItemStack> stacks = NonNullList.create();\n    private final FishingHook hook;\n    private int rodDamage;\n\n    public ItemFishedEvent(List<ItemStack> stacks, int rodDamage, FishingHook hook)\n    {\n        super(hook.getPlayerOwner());\n        this.stacks.addAll(stacks);\n        this.rodDamage = rodDamage;\n        this.hook = hook;\n    }\n\n    /**\n     * Get the damage the rod will take.\n     * @return The damage the rod will take\n     */\n    public int getRodDamage()\n    {\n        return rodDamage;\n    }\n\n    /**\n     * Specifies the amount of damage that the fishing rod should take.\n     * This is not added to the pre-existing damage to be taken.\n     * @param rodDamage The damage the rod will take. Must be nonnegative\n     */\n    public void damageRodBy(@Nonnegative int rodDamage)\n    {\n        Preconditions.checkArgument(rodDamage >= 0);\n        this.rodDamage = rodDamage;\n    }\n\n    /**\n     * Use this to get the items the player will receive.\n     * You cannot use this to modify the drops the player will get.\n     * If you want to affect the loot, you should use LootTables.\n     */\n    public NonNullList<ItemStack> getDrops()\n    {\n        return stacks;\n    }\n\n    /**\n     * Use this to stuff related to the hook itself, like the position of the bobber.\n     */\n    public FishingHook getHookEntity()\n    {\n        return hook;\n    }\n}\n"
+        }
+      ],
+      "native_archive_entry_exact": true
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+        "sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+        "bytes": 46418
+      },
+      "archive_member": "net/minecraftforge/event/ForgeEventFactory.java",
+      "whole_file_actually_read": false,
+      "source_total_lines": 997,
+      "ranges": [
+        {
+          "lines": [
+            672,
+            711
+          ],
+          "sha256": "450f4206cc762d97443aec06702b4afbd1efe50feeb08429a3147402d608f90f",
+          "bytes": 2007,
+          "raw_utf8_keepends": "    public static ProjectileImpactEvent.ImpactResult onProjectileImpactResult(Projectile projectile, HitResult ray)\n    {\n        ProjectileImpactEvent event = new ProjectileImpactEvent(projectile, ray);\n\n        // Remove this when the event is no longer cancelable\n        if (MinecraftForge.EVENT_BUS.post(event))\n            return ProjectileImpactEvent.ImpactResult.SKIP_ENTITY;\n\n        return event.getImpactResult();\n    }\n\n    /**\n     * This sister method exists due to an oversight in the original introduction of adding\n     * {@link ProjectileImpactEvent.ImpactResult ImpactResult} to {@link ProjectileImpactEvent}. Prior to its addition,\n     * the cancelling of this event would call <i>all</i> behavior within the if-clause of the while loop to stop and\n     * then break out of the loop early. When the result was added, the default cancellation was changed to\n     * {@link ProjectileImpactEvent.ImpactResult#SKIP_ENTITY}, breaking the ability to use\n     * {@link Event#setCanceled(boolean)} to actually cancel the event logic.\n     * <p>\n     * While not entirely ideal, this preserves compatibility with older 1.20.1 mods that rely on the cancellation of\n     * the projectile impact event.\n     *\n     * @return The result of the event, or {@code null} if it was cancelled.\n     * @see <a href=\"https://github.com/MinecraftForge/MinecraftForge/pull/10481\">PR #10481</a>\n     */\n    public static @Nullable ProjectileImpactEvent.ImpactResult onProjectileImpactResultNullable(Projectile projectile, HitResult ray)\n    {\n        ProjectileImpactEvent event = new ProjectileImpactEvent(projectile, ray);\n\n        // Remove this when the event is no longer cancelable\n        if (MinecraftForge.EVENT_BUS.post(event))\n            return null;\n\n        return event.getImpactResult();\n    }\n\n    public static boolean onProjectileImpact(Projectile projectile, HitResult ray)\n    {\n        return onProjectileImpactResult(projectile, ray) != ProjectileImpactEvent.ImpactResult.DEFAULT;\n    }\n"
+        }
+      ],
+      "native_archive_entry_exact": true
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+        "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+        "bytes": 128890
+      },
+      "archive_member": "net/minecraft/world/entity/Entity.java",
+      "whole_file_actually_read": false,
+      "source_total_lines": 3566,
+      "ranges": [
+        {
+          "lines": [
+            331,
+            333
+          ],
+          "sha256": "ade4809d60e859037c6bfbb399944e86fa1f72281e29b59b6549d3b29c689898",
+          "bytes": 89,
+          "raw_utf8_keepends": "   public final void discard() {\n      this.remove(Entity.RemovalReason.DISCARDED);\n   }\n"
+        },
+        {
+          "lines": [
+            353,
+            356
+          ],
+          "sha256": "bcee6e6776f297fa92e33e7505d760ca161a35c283699776f86ebd5118b1f114",
+          "bytes": 124,
+          "raw_utf8_keepends": "   public void remove(Entity.RemovalReason p_146834_) {\n      this.setRemoved(p_146834_);\n      this.invalidateCaps();\n   }\n"
+        },
+        {
+          "lines": [
+            3182,
+            3197
+          ],
+          "sha256": "72abf618dade238e4eae460ca9a18a2ccae4f327cb22eafe5d434b7a284c9769",
+          "bytes": 452,
+          "raw_utf8_keepends": "   public Vec3 getDeltaMovement() {\n      return this.deltaMovement;\n   }\n\n   public void setDeltaMovement(Vec3 p_20257_) {\n      this.deltaMovement = p_20257_;\n   }\n\n   public void addDeltaMovement(Vec3 p_250128_) {\n      this.setDeltaMovement(this.getDeltaMovement().add(p_250128_));\n   }\n\n   public void setDeltaMovement(double p_20335_, double p_20336_, double p_20337_) {\n      this.setDeltaMovement(new Vec3(p_20335_, p_20336_, p_20337_));\n   }\n\n"
+        },
+        {
+          "lines": [
+            3357,
+            3368
+          ],
+          "sha256": "c7eff0ea653e026e6b60bd82c0d55dc9fba94a9b7cad1b5f884b63579a82b0dd",
+          "bytes": 348,
+          "raw_utf8_keepends": "   public final void setRemoved(Entity.RemovalReason p_146876_) {\n      if (this.removalReason == null) {\n         this.removalReason = p_146876_;\n      }\n\n      if (this.removalReason.shouldDestroy()) {\n         this.stopRiding();\n      }\n\n      this.getPassengers().forEach(Entity::stopRiding);\n      this.levelCallback.onRemove(p_146876_);\n   }\n"
+        }
+      ],
+      "native_archive_entry_exact": true
+    }
+  ],
+  "actual_reading_coverage": {
+    "files": 6,
+    "ranges": 9,
+    "whole_files": 4,
+    "distinct_cited_lines": 962,
+    "prior_partial_line_occurrences": 248,
+    "this_turn_line_occurrences": 770,
+    "overlap_Rod_lines": 56,
+    "counts_are_not_semantic_credit": true
+  },
+  "findings": [
+    "同一条原生 owner-bound cast→环境/天气机会→临时 bite→显式 reel→事件/产物/耐久请求完整政策已由 EA-0049 归属；当前补读0，不按控制视角重新拆数。",
+    "FishingRodItem.use 用当前 player.fishing 决定收回；服务端构造器 setOwner 先写 player.fishing，再到调用者 addFreshEntity；addbool 未检查，声音、stat 与 sidedSuccess 不表示实体入场或目标接纳。",
+    "正常 server 续存需 owner alive/notremoved、任一手 FISHING_ROD_CAST action、距离平方<=1024；不是原 casting stack。无 owner discard；onGround life 连续达到1200才丢弃，离地清0。",
+    "FLYING 碰撞 onProjectileImpact 只在 MISS 或 factory返回false时执行 onHit。factory 返回 impactResult!=DEFAULT，取消映射SKIP_ENTITY，因此任一非DEFAULT均跳过此处onHit，不是专门判读STOP枚举；完整世界碰撞未运行。",
+    "FishingHook.canHitEntity 为 parent许可 OR alive ItemEntity；parent 有 canBeHitByProjectile 与 leftOwner/rootvehicle关系门。item例外与一般Living门不能混淆，无Boss专用拒控原因。",
+    "服务端onHitEntity设置hookedIn和同步id+1，client metadata按当前level数字ID解析。HOOKED_IN 状态仅在目标nonremoved且dimension key相同时跟随，否则清引用回FLYING；这是本地关系非UUID/session接收证明。",
+    "BOBBING openWater在非nibble/approach时重置true，活动期AND旧值、旧outwater<10和geometry，再更新outwater。4层5x5逐层同类；全INSIDE也允许，不要求固定两水两气。",
+    "天气/遮天使lure/approach每次有效catching调用减0..2，nibble减1；水外暂停，lure100..600减lureSpeed*100可能非正并重复初始化；均非墙钟/产量保证。",
+    "retrieve服务端且有效owner才处理。hookedIn非空先pullEntity，再criterion(emptylist)和broadcast31，默认item3/其他5；不走table鱼分支，无 hurt成功或LivingKnockBack事件读取。",
+    "pullEntity只取当前getOwner，按owner位置减hook位置乘.1，加到目标已有deltaMovement；不是按owner减target位置。基类setter仅赋字段，虚调用/实际物理/目标override仍是边界，速度请求不证明位移。",
+    "客户端byte31仅当当前hookedIn为local Player才重复pullEntity，随后super事件处理。server广播与本地速度更新未带attemptID/UUID/拒控reason/最终位移ACK，不是通用玩家拉动接收证明。",
+    "nibble loot event复制list结构保留stack引用；后续仍迭代原list。cancel丢弃hook并返回eventRodDamage；damageRodBy使用Preconditions拒负值，不是clamp0。未取消时criterion早于uncheckedItem/XP生成；不等于库存获得。",
+    "最后discard早于调用者hurtAndBreak；onGround仅覆盖局部i，event非空仍返回eventDamage。声音、criterion、stat、返回损耗与实际物品/付款独立，完整耐久底层不在本批新展开。",
+    "remove先updateOwnerInfo(null)再super.remove；onClientRemoval也写null；没有player.fishing==this身份门。旧EA0049已记录，不能声明新故障或已复现竞态。",
+    "FishingHook.setOwner先super再updateOwnerInfo(this)。Projectile.setOwner(null)不清已有ownerUUID/cache，因此若已有owner且调用此setter null，仍可能把本钩写回旧owner.fishing；无正常调用可达性/漏洞证明，不单列信用。",
+    "Projectile.getOwner优先nonremoved缓存，否则当前ServerLevel按UUID查；没有同步核对cachedOwner同level/alive。discard路径不在所示方法中显式清Owner，parentremove转setRemoved并回调；外部callbacks未穷尽，不能说所有情况下保留/删除关系。",
+    "钩 own add/read save空且不调用super，canChangeDimensions=false。packet getData使用ownerID或selfID；recreate先parent尝试当前level lookup/setOwner，之后无Playerowner kill。没有实体ID分配/复用/跨世界网络实验或完整持久化验收。",
+    "旧385Siren实时来源撤销、403双钩关系拒伤、482移动授予FALL单消费、500活塞共享有符号请求预算、509偷取拒绝回退身体pull各保留完整旧对象。当前native钓鱼视角仍EA0049整体内的支持，不因更多源码细节新增。"
+  ],
+  "limits": [
+    "固定本地Forge1.20.1-47.4.10源JAR逐条ZIP相等，仅本地身份，非远端版本/当前安装配置/游戏行为证明。",
+    "4整文件和6文件9范围962去重引用行属于阅读范围，非962参考；prior168 partial248与本轮重读770有Rod56重叠，union962。Projectile和factory含既有167阅读，不声称全新。",
+    "主审20/12、General32/16/13/2原文完整保留；原O20clamp与Main拒负纠正并存，旧历史47上下文不刷新。当前62单列。",
+    "全EA0049已接受对象保存并匹配当前master；只是数据完整性，不声明master所有62来源重读。五program旧对象只重读4业务字段，不重放全部旧源码链。",
+    "旧104已明确同whole归并0和停止展开，本次恢复较晚才发现该跨区证据；不新建候选/请求独立Main审查，也不继续钓鱼扩展。",
+    "完整目标move/physics/vehicle/网络包consumer/事件listener/arbitration/Entity overrides/世界manager未展开或运行；void速度/移除请求不是最终控制/清理ACK。",
+    "现有owner null setter及清pointer均条件性源码边界，不称必现、race、跨人越权、bug修复或允许生产改动。",
+    "没有读取本批全部loot graph/resources/当前FISHES tag/ItemStack底层耐久，不挪用旧EA作者已经读过的范围冒充本人新阅读。",
+    "没有primitive item冒充NBT变体/任务接入/支付/奖励/库存同UUID回执，也没有生态新增信用。",
+    "当前program524和Main生态62均门槛未满足，accepted/formal0、IDnull、无append/plan/once/旧marker刷新重放。",
+    "仅新建不可变私有JSON；生产/assets/Jar/原档/用户实例/Main主清单与session无写入，无运行验证器/Java/Gradle/游戏/网络/Git/UI/声音/亮度/唤醒/焦点操作。",
+    "无任务删除/全部cod完成/实机验收/主动工时完成声明。"
+  ],
+  "application_to_Dynasty": [
+    "Boss拒控提示应来自最终明确的拒绝原因；拉拽速度写入、碰撞跳过、byte31及掉落/耐久请求不能互相充当结果回执；普通阴阳类型9不新增灰字。",
+    "既有任务需材料来源→前置→实际付款/产出接纳→目标玩家原生获取，保留ID/NBT/奖励/进度，不用钓鱼stat/SUCCESS替代。",
+    "适用1000未满前保持生产不动；用户主界面背景保持、按钮棱角/世界页/无用提示的原范围仍待实际实现与验收。"
+  ],
+  "complete_owner_comparison": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-168-native-fishing-hook-complete-owner-comparison-SUPPORT0-20261113.json",
+    "sha256": "e9a10fe4f5b66a0fe801635845a36297378ce07cd654d649627238d2fba24f8c",
+    "bytes": 822363
+  },
+  "decision": "Duplicate of existing EA-0049 whole already resolved by104; support0 only, no separate Main whole-review request.",
+  "author_maximum_prospective_whole_credit": 0,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "formal_id": null,
+  "append_authorized": false,
+  "current_program": {
+    "count": 524,
+    "groups": 252,
+    "gap": 476,
+    "gate": false,
+    "bindings": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "f23a93a8c5201f4e6b89af4fdd83903fd3170cbbb0b61354637a9f5578316ae1",
+        "bytes": 56347366
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "aff7ae82b78794a82dbedb5f5018cadef41cedf217e84478a9585de4575e7dc8",
+        "bytes": 429903
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "dd47f20db628646eef569de8919ebed7dfa59677d1e84f82772b12ece21d6e82",
+        "bytes": 631
+      }
+    ]
+  },
+  "current_ecology": {
+    "Main_count": 62,
+    "gap": 938,
+    "gate": false,
+    "actual_Main_receipt": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-fox-EA0063-Main-actual62-data-application-20261112.json",
+      "sha256": "7f88fd6ed638484b36f9319ab447e19265ddbc6eadfeb6b70184c37f5aa1700d",
+      "bytes": 6578
+    },
+    "bindings5": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "a7e12a9e2300e545c025d0171d4642381ab32a8d6dc0b4ea9e8782f00fcf8082",
+        "bytes": 3651078
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "b1b6513e04dd57a4194b2f49b6841bdd4f4f42df23d3bf2a99576bb6c4b89709",
+        "bytes": 3494525
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "9fb055acd46cb8ec1ed7bcc6b5a079358fce4347ea7014b40e8383165e35a8b4",
+        "bytes": 949426
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "a5cc79d00f355f5e1b14315c990336ed40e9f41fbeee3dcf68466b4d68cc50c1",
+        "bytes": 208133
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "6b93c5e2f5ce5b491a9de81d8008203bf368972d7c501f9ab159716e023fc585",
+        "bytes": 970123
+      }
+    ],
+    "new_source_credit": 0
+  },
+  "protected8": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "production_changes": false,
+  "native_acceptance": false,
+  "original_UI_implemented": false,
+  "tasks_deleted": 0,
+  "all_tasks_complete": false,
+  "active_hours_claimed": null,
+  "consumed_once_replayed": false,
+  "next": "Stop further fishing/source/branch proof expansion. Choose another bounded original-program whole after cross-area pending and accepted owner prescreen."
+}

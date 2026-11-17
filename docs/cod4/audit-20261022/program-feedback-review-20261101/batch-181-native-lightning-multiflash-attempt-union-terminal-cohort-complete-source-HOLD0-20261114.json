@@ -1,0 +1,1212 @@
+{
+  "schema": "dynasty-program181-native-lightning-multiflash-attempt-union-complete-source-study-v1",
+  "recorded_at": "2026-11-14T03:13:37.139151+00:00",
+  "status": "COMPLETE_BOUNDED_SOURCE_STUDY_HOLD0_PENDING_MAIN_ACTUAL_WHOLE_REVIEW_RELATED_OR_MERGE0",
+  "formal_id": null,
+  "research_credit": 0,
+  "formal_append": false,
+  "maximum_proposed_wholes_pending_Main": 1,
+  "scope": "One autonomous multi-flash native lightning lifecycle: repeated per-pass target callbacks, cumulative attempted-selection set versus terminal current-bystander/predicate cohort and local presentation.",
+  "archive": {
+    "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "source_coverage": {
+    "current_members": 13,
+    "current_ranges": 15,
+    "current_unique_lines": 919,
+    "current_whole_files": 8,
+    "prior180_Entity_equals_lines_reused0": 11,
+    "semantic_credit": 0
+  },
+  "actual_sources": [
+    {
+      "member": "net/minecraft/world/entity/LightningBolt.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LightningBolt.java",
+      "sha256": "b5a170bf908b3f5f620e35eed7fd8e93246fc39cb2db80874b3812031fe86c25",
+      "bytes": 9136,
+      "total_lines": 247,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 247,
+          "raw_utf8": "package net.minecraft.world.entity;\n\nimport com.google.common.collect.Sets;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.Set;\nimport java.util.stream.Stream;\nimport javax.annotation.Nullable;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.BaseFireBlock;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.LightningRodBlock;\nimport net.minecraft.world.level.block.WeatheringCopper;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.Vec3;\n\npublic class LightningBolt extends Entity {\n   private static final int START_LIFE = 2;\n   private static final double DAMAGE_RADIUS = 3.0D;\n   private static final double DETECTION_RADIUS = 15.0D;\n   private int life;\n   public long seed;\n   private int flashes;\n   private boolean visualOnly;\n   @Nullable\n   private ServerPlayer cause;\n   private final Set<Entity> hitEntities = Sets.newHashSet();\n   private int blocksSetOnFire;\n   private float damage = 5.0F;\n\n   public LightningBolt(EntityType<? extends LightningBolt> p_20865_, Level p_20866_) {\n      super(p_20865_, p_20866_);\n      this.noCulling = true;\n      this.life = 2;\n      this.seed = this.random.nextLong();\n      this.flashes = this.random.nextInt(3) + 1;\n   }\n\n   public void setVisualOnly(boolean p_20875_) {\n      this.visualOnly = p_20875_;\n   }\n\n   public SoundSource getSoundSource() {\n      return SoundSource.WEATHER;\n   }\n\n   @Nullable\n   public ServerPlayer getCause() {\n      return this.cause;\n   }\n\n   public void setCause(@Nullable ServerPlayer p_20880_) {\n      this.cause = p_20880_;\n   }\n\n   private void powerLightningRod() {\n      BlockPos blockpos = this.getStrikePosition();\n      BlockState blockstate = this.level().getBlockState(blockpos);\n      if (blockstate.is(Blocks.LIGHTNING_ROD)) {\n         ((LightningRodBlock)blockstate.getBlock()).onLightningStrike(blockstate, this.level(), blockpos);\n      }\n\n   }\n\n   public void setDamage(float damage) {\n      this.damage = damage;\n   }\n\n   public float getDamage() {\n      return this.damage;\n   }\n\n   public void tick() {\n      super.tick();\n      if (this.life == 2) {\n         if (this.level().isClientSide()) {\n            this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 10000.0F, 0.8F + this.random.nextFloat() * 0.2F, false);\n            this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.WEATHER, 2.0F, 0.5F + this.random.nextFloat() * 0.2F, false);\n         } else {\n            Difficulty difficulty = this.level().getDifficulty();\n            if (difficulty == Difficulty.NORMAL || difficulty == Difficulty.HARD) {\n               this.spawnFire(4);\n            }\n\n            this.powerLightningRod();\n            clearCopperOnLightningStrike(this.level(), this.getStrikePosition());\n            this.gameEvent(GameEvent.LIGHTNING_STRIKE);\n         }\n      }\n\n      --this.life;\n      if (this.life < 0) {\n         if (this.flashes == 0) {\n            if (this.level() instanceof ServerLevel) {\n               List<Entity> list = this.level().getEntities(this, new AABB(this.getX() - 15.0D, this.getY() - 15.0D, this.getZ() - 15.0D, this.getX() + 15.0D, this.getY() + 6.0D + 15.0D, this.getZ() + 15.0D), (p_147140_) -> {\n                  return p_147140_.isAlive() && !this.hitEntities.contains(p_147140_);\n               });\n\n               for(ServerPlayer serverplayer : ((ServerLevel)this.level()).getPlayers((p_147157_) -> {\n                  return p_147157_.distanceTo(this) < 256.0F;\n               })) {\n                  CriteriaTriggers.LIGHTNING_STRIKE.trigger(serverplayer, this, list);\n               }\n            }\n\n            this.discard();\n         } else if (this.life < -this.random.nextInt(10)) {\n            --this.flashes;\n            this.life = 1;\n            this.seed = this.random.nextLong();\n            this.spawnFire(0);\n         }\n      }\n\n      if (this.life >= 0) {\n         if (!(this.level() instanceof ServerLevel)) {\n            this.level().setSkyFlashTime(2);\n         } else if (!this.visualOnly) {\n            List<Entity> list1 = this.level().getEntities(this, new AABB(this.getX() - 3.0D, this.getY() - 3.0D, this.getZ() - 3.0D, this.getX() + 3.0D, this.getY() + 6.0D + 3.0D, this.getZ() + 3.0D), Entity::isAlive);\n\n            for(Entity entity : list1) {\n               if (!net.minecraftforge.event.ForgeEventFactory.onEntityStruckByLightning(entity, this))\n               entity.thunderHit((ServerLevel)this.level(), this);\n            }\n\n            this.hitEntities.addAll(list1);\n            if (this.cause != null) {\n               CriteriaTriggers.CHANNELED_LIGHTNING.trigger(this.cause, list1);\n            }\n         }\n      }\n\n   }\n\n   private BlockPos getStrikePosition() {\n      Vec3 vec3 = this.position();\n      return BlockPos.containing(vec3.x, vec3.y - 1.0E-6D, vec3.z);\n   }\n\n   private void spawnFire(int p_20871_) {\n      if (!this.visualOnly && !this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {\n         BlockPos blockpos = this.blockPosition();\n         BlockState blockstate = BaseFireBlock.getState(this.level(), blockpos);\n         if (this.level().getBlockState(blockpos).isAir() && blockstate.canSurvive(this.level(), blockpos)) {\n            this.level().setBlockAndUpdate(blockpos, blockstate);\n            ++this.blocksSetOnFire;\n         }\n\n         for(int i = 0; i < p_20871_; ++i) {\n            BlockPos blockpos1 = blockpos.offset(this.random.nextInt(3) - 1, this.random.nextInt(3) - 1, this.random.nextInt(3) - 1);\n            blockstate = BaseFireBlock.getState(this.level(), blockpos1);\n            if (this.level().getBlockState(blockpos1).isAir() && blockstate.canSurvive(this.level(), blockpos1)) {\n               this.level().setBlockAndUpdate(blockpos1, blockstate);\n               ++this.blocksSetOnFire;\n            }\n         }\n\n      }\n   }\n\n   private static void clearCopperOnLightningStrike(Level p_147151_, BlockPos p_147152_) {\n      BlockState blockstate = p_147151_.getBlockState(p_147152_);\n      BlockPos blockpos;\n      BlockState blockstate1;\n      if (blockstate.is(Blocks.LIGHTNING_ROD)) {\n         blockpos = p_147152_.relative(blockstate.getValue(LightningRodBlock.FACING).getOpposite());\n         blockstate1 = p_147151_.getBlockState(blockpos);\n      } else {\n         blockpos = p_147152_;\n         blockstate1 = blockstate;\n      }\n\n      if (blockstate1.getBlock() instanceof WeatheringCopper) {\n         p_147151_.setBlockAndUpdate(blockpos, WeatheringCopper.getFirst(p_147151_.getBlockState(blockpos)));\n         BlockPos.MutableBlockPos blockpos$mutableblockpos = p_147152_.mutable();\n         int i = p_147151_.random.nextInt(3) + 3;\n\n         for(int j = 0; j < i; ++j) {\n            int k = p_147151_.random.nextInt(8) + 1;\n            randomWalkCleaningCopper(p_147151_, blockpos, blockpos$mutableblockpos, k);\n         }\n\n      }\n   }\n\n   private static void randomWalkCleaningCopper(Level p_147146_, BlockPos p_147147_, BlockPos.MutableBlockPos p_147148_, int p_147149_) {\n      p_147148_.set(p_147147_);\n\n      for(int i = 0; i < p_147149_; ++i) {\n         Optional<BlockPos> optional = randomStepCleaningCopper(p_147146_, p_147148_);\n         if (!optional.isPresent()) {\n            break;\n         }\n\n         p_147148_.set(optional.get());\n      }\n\n   }\n\n   private static Optional<BlockPos> randomStepCleaningCopper(Level p_147154_, BlockPos p_147155_) {\n      for(BlockPos blockpos : BlockPos.randomInCube(p_147154_.random, 10, p_147155_, 1)) {\n         BlockState blockstate = p_147154_.getBlockState(blockpos);\n         if (blockstate.getBlock() instanceof WeatheringCopper) {\n            WeatheringCopper.getPrevious(blockstate).ifPresent((p_147144_) -> {\n               p_147154_.setBlockAndUpdate(blockpos, p_147144_);\n            });\n            p_147154_.levelEvent(3002, blockpos, -1);\n            return Optional.of(blockpos);\n         }\n      }\n\n      return Optional.empty();\n   }\n\n   public boolean shouldRenderAtSqrDistance(double p_20869_) {\n      double d0 = 64.0D * getViewScale();\n      return p_20869_ < d0 * d0;\n   }\n\n   protected void defineSynchedData() {\n   }\n\n   protected void readAdditionalSaveData(CompoundTag p_20873_) {\n   }\n\n   protected void addAdditionalSaveData(CompoundTag p_20877_) {\n   }\n\n   public int getBlocksSetOnFire() {\n      return this.blocksSetOnFire;\n   }\n\n   public Stream<Entity> getHitEntities() {\n      return this.hitEntities.stream().filter(Entity::isAlive);\n   }\n}\n",
+          "excerpt_sha256": "b5a170bf908b3f5f620e35eed7fd8e93246fc39cb2db80874b3812031fe86c25"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/world/entity/projectile/ThrownTrident.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ThrownTrident.java",
+      "sha256": "e0da184ba0cc0c6c09ade6da254c9866eb1689e50c29a834b482f891fe568315",
+      "bytes": 7510,
+      "total_lines": 203,
+      "whole_file_actually_read": false,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 104,
+          "last_line": 155,
+          "raw_utf8": "      return this.dealtDamage ? null : super.findHitEntity(p_37575_, p_37576_);\n   }\n\n   protected void onHitEntity(EntityHitResult p_37573_) {\n      Entity entity = p_37573_.getEntity();\n      float f = 8.0F;\n      if (entity instanceof LivingEntity livingentity) {\n         f += EnchantmentHelper.getDamageBonus(this.tridentItem, livingentity.getMobType());\n      }\n\n      Entity entity1 = this.getOwner();\n      DamageSource damagesource = this.damageSources().trident(this, (Entity)(entity1 == null ? this : entity1));\n      this.dealtDamage = true;\n      SoundEvent soundevent = SoundEvents.TRIDENT_HIT;\n      if (entity.hurt(damagesource, f)) {\n         if (entity.getType() == EntityType.ENDERMAN) {\n            return;\n         }\n\n         if (entity instanceof LivingEntity) {\n            LivingEntity livingentity1 = (LivingEntity)entity;\n            if (entity1 instanceof LivingEntity) {\n               EnchantmentHelper.doPostHurtEffects(livingentity1, entity1);\n               EnchantmentHelper.doPostDamageEffects((LivingEntity)entity1, livingentity1);\n            }\n\n            this.doPostHurtEffects(livingentity1);\n         }\n      }\n\n      this.setDeltaMovement(this.getDeltaMovement().multiply(-0.01D, -0.1D, -0.01D));\n      float f1 = 1.0F;\n      if (this.level() instanceof ServerLevel && this.level().isThundering() && this.isChanneling()) {\n         BlockPos blockpos = entity.blockPosition();\n         if (this.level().canSeeSky(blockpos)) {\n            LightningBolt lightningbolt = EntityType.LIGHTNING_BOLT.create(this.level());\n            if (lightningbolt != null) {\n               lightningbolt.moveTo(Vec3.atBottomCenterOf(blockpos));\n               lightningbolt.setCause(entity1 instanceof ServerPlayer ? (ServerPlayer)entity1 : null);\n               this.level().addFreshEntity(lightningbolt);\n               soundevent = SoundEvents.TRIDENT_THUNDER;\n               f1 = 5.0F;\n            }\n         }\n      }\n\n      this.playSound(soundevent, f1, 1.0F);\n   }\n\n   public boolean isChanneling() {\n      return EnchantmentHelper.hasChanneling(this.tridentItem);\n   }\n",
+          "excerpt_sha256": "a81af542efcfaa75f69ef566884f4115e29440bebf832443815bb9685a676c49"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/world/entity/Entity.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+      "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "bytes": 128890,
+      "total_lines": 3566,
+      "whole_file_actually_read": false,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 2294,
+          "last_line": 2305,
+          "raw_utf8": "   public void thunderHit(ServerLevel p_19927_, LightningBolt p_19928_) {\n      this.setRemainingFireTicks(this.remainingFireTicks + 1);\n      if (this.remainingFireTicks == 0) {\n         this.setSecondsOnFire(8);\n      }\n\n      this.hurt(this.damageSources().lightningBolt(), p_19928_.getDamage());\n   }\n\n   public void onAboveBubbleCol(boolean p_20313_) {\n      Vec3 vec3 = this.getDeltaMovement();\n      double d0;\n",
+          "excerpt_sha256": "c66febd0df0c7125f1c16e384397f32e2c8d458333b36028791d20d7eb120819"
+        },
+        {
+          "first_line": 3150,
+          "last_line": 3153,
+          "raw_utf8": "   public Packet<ClientGamePacketListener> getAddEntityPacket() {\n      return new ClientboundAddEntityPacket(this);\n   }\n\n",
+          "excerpt_sha256": "3412e1d0a71caa12c4e16d8d3b73ece3a8a5e74679b7000e21295a38eeec157e"
+        },
+        {
+          "first_line": 3277,
+          "last_line": 3295,
+          "raw_utf8": "   public void recreateFromPacket(ClientboundAddEntityPacket p_146866_) {\n      int i = p_146866_.getId();\n      double d0 = p_146866_.getX();\n      double d1 = p_146866_.getY();\n      double d2 = p_146866_.getZ();\n      this.syncPacketPositionCodec(d0, d1, d2);\n      this.moveTo(d0, d1, d2);\n      this.setXRot(p_146866_.getXRot());\n      this.setYRot(p_146866_.getYRot());\n      this.setId(i);\n      this.setUUID(p_146866_.getUUID());\n   }\n\n   @Nullable\n   public ItemStack getPickResult() {\n      return null;\n   }\n\n   public void setIsInPowderSnow(boolean p_146925_) {\n",
+          "excerpt_sha256": "b1e682473a66cfe7d85e56fa06a5a48da8e731760b1e4ac445d8ff4ddd14dc08"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraftforge/event/ForgeEventFactory.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+      "sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "bytes": 46418,
+      "total_lines": 997,
+      "whole_file_actually_read": false,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 371,
+          "last_line": 375,
+          "raw_utf8": "    public static boolean onEntityStruckByLightning(Entity entity, LightningBolt bolt)\n    {\n        return MinecraftForge.EVENT_BUS.post(new EntityStruckByLightningEvent(entity, bolt));\n    }\n\n",
+          "excerpt_sha256": "a8f5543f5b61f6bf46a3afab4e7e664d120ec55e586ecd5772fe7ff9922c7e00"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/world/entity/EntityType.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+      "sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "bytes": 52218,
+      "total_lines": 775,
+      "whole_file_actually_read": false,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 227,
+          "last_line": 227,
+          "raw_utf8": "   public static final EntityType<LightningBolt> LIGHTNING_BOLT = register(\"lightning_bolt\", EntityType.Builder.of(LightningBolt::new, MobCategory.MISC).noSave().sized(0.0F, 0.0F).clientTrackingRange(16).updateInterval(Integer.MAX_VALUE));\n",
+          "excerpt_sha256": "0c1fea0260adc39be085ec2d80fd496a850e9257ecc4d097aa9d08e09d581d2a"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraftforge/event/entity/EntityStruckByLightningEvent.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/EntityStruckByLightningEvent.java",
+      "sha256": "80aa9d202cb8c3e326da77a79e63e5a01784acb4b665c25ad6b64ebf1ded31d9",
+      "bytes": 1468,
+      "total_lines": 43,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 43,
+          "raw_utf8": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity;\n\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LightningBolt;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.event.ForgeEventFactory;\nimport net.minecraftforge.eventbus.api.Cancelable;\n\n/**\n * EntityStruckByLightningEvent is fired when an Entity is about to be struck by lightening.<br>\n * This event is fired whenever an EntityLightningBolt is updated to strike an Entity in\n * {@link LightningBolt#tick()} via {@link ForgeEventFactory#onEntityStruckByLightning(Entity, LightningBolt)}.<br>\n * <br>\n * {@link #lightning} contains the instance of EntityLightningBolt attempting to strike an entity.<br>\n * <br>\n * This event is {@link Cancelable}.<br>\n * If this event is canceled, the Entity is not struck by the lightening.<br>\n * <br>\n * This event does not have a result. {@link HasResult}<br>\n * <br>\n * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n **/\n@net.minecraftforge.eventbus.api.Cancelable\npublic class EntityStruckByLightningEvent extends EntityEvent\n{\n    private final LightningBolt lightning;\n\n    public EntityStruckByLightningEvent(Entity entity, LightningBolt lightning)\n    {\n        super(entity);\n        this.lightning = lightning;\n    }\n\n    public LightningBolt getLightning()\n    {\n        return lightning;\n    }\n}\n",
+          "excerpt_sha256": "80aa9d202cb8c3e326da77a79e63e5a01784acb4b665c25ad6b64ebf1ded31d9"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/advancements/critereon/ChanneledLightningTrigger.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/advancements/critereon/ChanneledLightningTrigger.java",
+      "sha256": "711d22bd36dc25b09afea58fd7ecda64ed11cd98340eb61507fb9d396dbe6499",
+      "bytes": 2864,
+      "total_lines": 73,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 73,
+          "raw_utf8": "package net.minecraft.advancements.critereon;\n\nimport com.google.gson.JsonObject;\nimport java.util.Collection;\nimport java.util.List;\nimport java.util.stream.Collectors;\nimport java.util.stream.Stream;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.level.storage.loot.LootContext;\n\npublic class ChanneledLightningTrigger extends SimpleCriterionTrigger<ChanneledLightningTrigger.TriggerInstance> {\n   static final ResourceLocation ID = new ResourceLocation(\"channeled_lightning\");\n\n   public ResourceLocation getId() {\n      return ID;\n   }\n\n   public ChanneledLightningTrigger.TriggerInstance createInstance(JsonObject p_286858_, ContextAwarePredicate p_286240_, DeserializationContext p_286562_) {\n      ContextAwarePredicate[] acontextawarepredicate = EntityPredicate.fromJsonArray(p_286858_, \"victims\", p_286562_);\n      return new ChanneledLightningTrigger.TriggerInstance(p_286240_, acontextawarepredicate);\n   }\n\n   public void trigger(ServerPlayer p_21722_, Collection<? extends Entity> p_21723_) {\n      List<LootContext> list = p_21723_.stream().map((p_21720_) -> {\n         return EntityPredicate.createContext(p_21722_, p_21720_);\n      }).collect(Collectors.toList());\n      this.trigger(p_21722_, (p_21730_) -> {\n         return p_21730_.matches(list);\n      });\n   }\n\n   public static class TriggerInstance extends AbstractCriterionTriggerInstance {\n      private final ContextAwarePredicate[] victims;\n\n      public TriggerInstance(ContextAwarePredicate p_286697_, ContextAwarePredicate[] p_286366_) {\n         super(ChanneledLightningTrigger.ID, p_286697_);\n         this.victims = p_286366_;\n      }\n\n      public static ChanneledLightningTrigger.TriggerInstance channeledLightning(EntityPredicate... p_21747_) {\n         return new ChanneledLightningTrigger.TriggerInstance(ContextAwarePredicate.ANY, Stream.of(p_21747_).map(EntityPredicate::wrap).toArray((p_286116_) -> {\n            return new ContextAwarePredicate[p_286116_];\n         }));\n      }\n\n      public boolean matches(Collection<? extends LootContext> p_21745_) {\n         for(ContextAwarePredicate contextawarepredicate : this.victims) {\n            boolean flag = false;\n\n            for(LootContext lootcontext : p_21745_) {\n               if (contextawarepredicate.matches(lootcontext)) {\n                  flag = true;\n                  break;\n               }\n            }\n\n            if (!flag) {\n               return false;\n            }\n         }\n\n         return true;\n      }\n\n      public JsonObject serializeToJson(SerializationContext p_21743_) {\n         JsonObject jsonobject = super.serializeToJson(p_21743_);\n         jsonobject.add(\"victims\", ContextAwarePredicate.toJson(this.victims, p_21743_));\n         return jsonobject;\n      }\n   }\n}",
+          "excerpt_sha256": "711d22bd36dc25b09afea58fd7ecda64ed11cd98340eb61507fb9d396dbe6499"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/advancements/critereon/LightningStrikeTrigger.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/advancements/critereon/LightningStrikeTrigger.java",
+      "sha256": "bfb6af02abbc8290794387e80187b4a8884a5d95a6b47e5841a87176fc0b0470",
+      "bytes": 3017,
+      "total_lines": 64,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 64,
+          "raw_utf8": "package net.minecraft.advancements.critereon;\n\nimport com.google.gson.JsonObject;\nimport java.util.List;\nimport java.util.stream.Collectors;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LightningBolt;\nimport net.minecraft.world.level.storage.loot.LootContext;\n\npublic class LightningStrikeTrigger extends SimpleCriterionTrigger<LightningStrikeTrigger.TriggerInstance> {\n   static final ResourceLocation ID = new ResourceLocation(\"lightning_strike\");\n\n   public ResourceLocation getId() {\n      return ID;\n   }\n\n   public LightningStrikeTrigger.TriggerInstance createInstance(JsonObject p_286889_, ContextAwarePredicate p_286650_, DeserializationContext p_286384_) {\n      ContextAwarePredicate contextawarepredicate = EntityPredicate.fromJson(p_286889_, \"lightning\", p_286384_);\n      ContextAwarePredicate contextawarepredicate1 = EntityPredicate.fromJson(p_286889_, \"bystander\", p_286384_);\n      return new LightningStrikeTrigger.TriggerInstance(p_286650_, contextawarepredicate, contextawarepredicate1);\n   }\n\n   public void trigger(ServerPlayer p_153392_, LightningBolt p_153393_, List<Entity> p_153394_) {\n      List<LootContext> list = p_153394_.stream().map((p_153390_) -> {\n         return EntityPredicate.createContext(p_153392_, p_153390_);\n      }).collect(Collectors.toList());\n      LootContext lootcontext = EntityPredicate.createContext(p_153392_, p_153393_);\n      this.trigger(p_153392_, (p_153402_) -> {\n         return p_153402_.matches(lootcontext, list);\n      });\n   }\n\n   public static class TriggerInstance extends AbstractCriterionTriggerInstance {\n      private final ContextAwarePredicate lightning;\n      private final ContextAwarePredicate bystander;\n\n      public TriggerInstance(ContextAwarePredicate p_286747_, ContextAwarePredicate p_286287_, ContextAwarePredicate p_286566_) {\n         super(LightningStrikeTrigger.ID, p_286747_);\n         this.lightning = p_286287_;\n         this.bystander = p_286566_;\n      }\n\n      public static LightningStrikeTrigger.TriggerInstance lighthingStrike(EntityPredicate p_153414_, EntityPredicate p_153415_) {\n         return new LightningStrikeTrigger.TriggerInstance(ContextAwarePredicate.ANY, EntityPredicate.wrap(p_153414_), EntityPredicate.wrap(p_153415_));\n      }\n\n      public boolean matches(LootContext p_153419_, List<LootContext> p_153420_) {\n         if (!this.lightning.matches(p_153419_)) {\n            return false;\n         } else {\n            return this.bystander == ContextAwarePredicate.ANY || !p_153420_.stream().noneMatch(this.bystander::matches);\n         }\n      }\n\n      public JsonObject serializeToJson(SerializationContext p_153417_) {\n         JsonObject jsonobject = super.serializeToJson(p_153417_);\n         jsonobject.add(\"lightning\", this.lightning.toJson(p_153417_));\n         jsonobject.add(\"bystander\", this.bystander.toJson(p_153417_));\n         return jsonobject;\n      }\n   }\n}",
+          "excerpt_sha256": "bfb6af02abbc8290794387e80187b4a8884a5d95a6b47e5841a87176fc0b0470"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/client/renderer/entity/LightningBoltRenderer.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/LightningBoltRenderer.java",
+      "sha256": "b7afdbf4bed443c1e559dd566e9f980e94d024e966325b4bed119ae82556a640",
+      "bytes": 4582,
+      "total_lines": 100,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 100,
+          "raw_utf8": "package net.minecraft.client.renderer.entity;\n\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport com.mojang.blaze3d.vertex.VertexConsumer;\nimport net.minecraft.client.renderer.MultiBufferSource;\nimport net.minecraft.client.renderer.RenderType;\nimport net.minecraft.client.renderer.texture.TextureAtlas;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.LightningBolt;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\nimport org.joml.Matrix4f;\n\n@OnlyIn(Dist.CLIENT)\npublic class LightningBoltRenderer extends EntityRenderer<LightningBolt> {\n   public LightningBoltRenderer(EntityRendererProvider.Context p_174286_) {\n      super(p_174286_);\n   }\n\n   public void render(LightningBolt p_115266_, float p_115267_, float p_115268_, PoseStack p_115269_, MultiBufferSource p_115270_, int p_115271_) {\n      float[] afloat = new float[8];\n      float[] afloat1 = new float[8];\n      float f = 0.0F;\n      float f1 = 0.0F;\n      RandomSource randomsource = RandomSource.create(p_115266_.seed);\n\n      for(int i = 7; i >= 0; --i) {\n         afloat[i] = f;\n         afloat1[i] = f1;\n         f += (float)(randomsource.nextInt(11) - 5);\n         f1 += (float)(randomsource.nextInt(11) - 5);\n      }\n\n      VertexConsumer vertexconsumer = p_115270_.getBuffer(RenderType.lightning());\n      Matrix4f matrix4f = p_115269_.last().pose();\n\n      for(int j = 0; j < 4; ++j) {\n         RandomSource randomsource1 = RandomSource.create(p_115266_.seed);\n\n         for(int k = 0; k < 3; ++k) {\n            int l = 7;\n            int i1 = 0;\n            if (k > 0) {\n               l = 7 - k;\n            }\n\n            if (k > 0) {\n               i1 = l - 2;\n            }\n\n            float f2 = afloat[l] - f;\n            float f3 = afloat1[l] - f1;\n\n            for(int j1 = l; j1 >= i1; --j1) {\n               float f4 = f2;\n               float f5 = f3;\n               if (k == 0) {\n                  f2 += (float)(randomsource1.nextInt(11) - 5);\n                  f3 += (float)(randomsource1.nextInt(11) - 5);\n               } else {\n                  f2 += (float)(randomsource1.nextInt(31) - 15);\n                  f3 += (float)(randomsource1.nextInt(31) - 15);\n               }\n\n               float f6 = 0.5F;\n               float f7 = 0.45F;\n               float f8 = 0.45F;\n               float f9 = 0.5F;\n               float f10 = 0.1F + (float)j * 0.2F;\n               if (k == 0) {\n                  f10 *= (float)j1 * 0.1F + 1.0F;\n               }\n\n               float f11 = 0.1F + (float)j * 0.2F;\n               if (k == 0) {\n                  f11 *= ((float)j1 - 1.0F) * 0.1F + 1.0F;\n               }\n\n               quad(matrix4f, vertexconsumer, f2, f3, j1, f4, f5, 0.45F, 0.45F, 0.5F, f10, f11, false, false, true, false);\n               quad(matrix4f, vertexconsumer, f2, f3, j1, f4, f5, 0.45F, 0.45F, 0.5F, f10, f11, true, false, true, true);\n               quad(matrix4f, vertexconsumer, f2, f3, j1, f4, f5, 0.45F, 0.45F, 0.5F, f10, f11, true, true, false, true);\n               quad(matrix4f, vertexconsumer, f2, f3, j1, f4, f5, 0.45F, 0.45F, 0.5F, f10, f11, false, true, false, false);\n            }\n         }\n      }\n\n   }\n\n   private static void quad(Matrix4f p_253966_, VertexConsumer p_115274_, float p_115275_, float p_115276_, int p_115277_, float p_115278_, float p_115279_, float p_115280_, float p_115281_, float p_115282_, float p_115283_, float p_115284_, boolean p_115285_, boolean p_115286_, boolean p_115287_, boolean p_115288_) {\n      p_115274_.vertex(p_253966_, p_115275_ + (p_115285_ ? p_115284_ : -p_115284_), (float)(p_115277_ * 16), p_115276_ + (p_115286_ ? p_115284_ : -p_115284_)).color(p_115280_, p_115281_, p_115282_, 0.3F).endVertex();\n      p_115274_.vertex(p_253966_, p_115278_ + (p_115285_ ? p_115283_ : -p_115283_), (float)((p_115277_ + 1) * 16), p_115279_ + (p_115286_ ? p_115283_ : -p_115283_)).color(p_115280_, p_115281_, p_115282_, 0.3F).endVertex();\n      p_115274_.vertex(p_253966_, p_115278_ + (p_115287_ ? p_115283_ : -p_115283_), (float)((p_115277_ + 1) * 16), p_115279_ + (p_115288_ ? p_115283_ : -p_115283_)).color(p_115280_, p_115281_, p_115282_, 0.3F).endVertex();\n      p_115274_.vertex(p_253966_, p_115275_ + (p_115287_ ? p_115284_ : -p_115284_), (float)(p_115277_ * 16), p_115276_ + (p_115288_ ? p_115284_ : -p_115284_)).color(p_115280_, p_115281_, p_115282_, 0.3F).endVertex();\n   }\n\n   public ResourceLocation getTextureLocation(LightningBolt p_115264_) {\n      return TextureAtlas.LOCATION_BLOCKS;\n   }\n}",
+          "excerpt_sha256": "b7afdbf4bed443c1e559dd566e9f980e94d024e966325b4bed119ae82556a640"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/advancements/critereon/LighthingBoltPredicate.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/advancements/critereon/LighthingBoltPredicate.java",
+      "sha256": "80c2c0f9ba53899b4a7162e51ee1453b8ed309455cce7dc786ee498eb81b70a0",
+      "bytes": 2063,
+      "total_lines": 49,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 49,
+          "raw_utf8": "package net.minecraft.advancements.critereon;\n\nimport com.google.gson.JsonObject;\nimport javax.annotation.Nullable;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LightningBolt;\nimport net.minecraft.world.phys.Vec3;\n\npublic class LighthingBoltPredicate implements EntitySubPredicate {\n   private static final String BLOCKS_SET_ON_FIRE_KEY = \"blocks_set_on_fire\";\n   private static final String ENTITY_STRUCK_KEY = \"entity_struck\";\n   private final MinMaxBounds.Ints blocksSetOnFire;\n   private final EntityPredicate entityStruck;\n\n   private LighthingBoltPredicate(MinMaxBounds.Ints p_153239_, EntityPredicate p_153240_) {\n      this.blocksSetOnFire = p_153239_;\n      this.entityStruck = p_153240_;\n   }\n\n   public static LighthingBoltPredicate blockSetOnFire(MinMaxBounds.Ints p_153251_) {\n      return new LighthingBoltPredicate(p_153251_, EntityPredicate.ANY);\n   }\n\n   public static LighthingBoltPredicate fromJson(JsonObject p_220333_) {\n      return new LighthingBoltPredicate(MinMaxBounds.Ints.fromJson(p_220333_.get(\"blocks_set_on_fire\")), EntityPredicate.fromJson(p_220333_.get(\"entity_struck\")));\n   }\n\n   public JsonObject serializeCustomData() {\n      JsonObject jsonobject = new JsonObject();\n      jsonobject.add(\"blocks_set_on_fire\", this.blocksSetOnFire.serializeToJson());\n      jsonobject.add(\"entity_struck\", this.entityStruck.serializeToJson());\n      return jsonobject;\n   }\n\n   public EntitySubPredicate.Type type() {\n      return EntitySubPredicate.Types.LIGHTNING;\n   }\n\n   public boolean matches(Entity p_153247_, ServerLevel p_153248_, @Nullable Vec3 p_153249_) {\n      if (!(p_153247_ instanceof LightningBolt lightningbolt)) {\n         return false;\n      } else {\n         return this.blocksSetOnFire.matches(lightningbolt.getBlocksSetOnFire()) && (this.entityStruck == EntityPredicate.ANY || lightningbolt.getHitEntities().anyMatch((p_153245_) -> {\n            return this.entityStruck.matches(p_153248_, p_153249_, p_153245_);\n         }));\n      }\n   }\n}",
+          "excerpt_sha256": "80c2c0f9ba53899b4a7162e51ee1453b8ed309455cce7dc786ee498eb81b70a0"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/advancements/critereon/SimpleCriterionTrigger.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/advancements/critereon/SimpleCriterionTrigger.java",
+      "sha256": "1989477fb43dafac078351702d1e7aa2d48c7ccc6a78e8324829da6304856f95",
+      "bytes": 2805,
+      "total_lines": 73,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 73,
+          "raw_utf8": "package net.minecraft.advancements.critereon;\n\nimport com.google.common.collect.Lists;\nimport com.google.common.collect.Maps;\nimport com.google.common.collect.Sets;\nimport com.google.gson.JsonObject;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.Set;\nimport java.util.function.Predicate;\nimport net.minecraft.advancements.CriterionTrigger;\nimport net.minecraft.server.PlayerAdvancements;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.level.storage.loot.LootContext;\n\npublic abstract class SimpleCriterionTrigger<T extends AbstractCriterionTriggerInstance> implements CriterionTrigger<T> {\n   private final Map<PlayerAdvancements, Set<CriterionTrigger.Listener<T>>> players = Maps.newIdentityHashMap();\n\n   public final void addPlayerListener(PlayerAdvancements p_66243_, CriterionTrigger.Listener<T> p_66244_) {\n      this.players.computeIfAbsent(p_66243_, (p_66252_) -> {\n         return Sets.newHashSet();\n      }).add(p_66244_);\n   }\n\n   public final void removePlayerListener(PlayerAdvancements p_66254_, CriterionTrigger.Listener<T> p_66255_) {\n      Set<CriterionTrigger.Listener<T>> set = this.players.get(p_66254_);\n      if (set != null) {\n         set.remove(p_66255_);\n         if (set.isEmpty()) {\n            this.players.remove(p_66254_);\n         }\n      }\n\n   }\n\n   public final void removePlayerListeners(PlayerAdvancements p_66241_) {\n      this.players.remove(p_66241_);\n   }\n\n   protected abstract T createInstance(JsonObject p_66248_, ContextAwarePredicate p_286603_, DeserializationContext p_66250_);\n\n   public final T createInstance(JsonObject p_66246_, DeserializationContext p_66247_) {\n      ContextAwarePredicate contextawarepredicate = EntityPredicate.fromJson(p_66246_, \"player\", p_66247_);\n      return this.createInstance(p_66246_, contextawarepredicate, p_66247_);\n   }\n\n   protected void trigger(ServerPlayer p_66235_, Predicate<T> p_66236_) {\n      PlayerAdvancements playeradvancements = p_66235_.getAdvancements();\n      Set<CriterionTrigger.Listener<T>> set = this.players.get(playeradvancements);\n      if (set != null && !set.isEmpty()) {\n         LootContext lootcontext = EntityPredicate.createContext(p_66235_, p_66235_);\n         List<CriterionTrigger.Listener<T>> list = null;\n\n         for(CriterionTrigger.Listener<T> listener : set) {\n            T t = listener.getTriggerInstance();\n            if (p_66236_.test(t) && t.getPlayerPredicate().matches(lootcontext)) {\n               if (list == null) {\n                  list = Lists.newArrayList();\n               }\n\n               list.add(listener);\n            }\n         }\n\n         if (list != null) {\n            for(CriterionTrigger.Listener<T> listener1 : list) {\n               listener1.run(playeradvancements);\n            }\n         }\n\n      }\n   }\n}",
+          "excerpt_sha256": "1989477fb43dafac078351702d1e7aa2d48c7ccc6a78e8324829da6304856f95"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/client/multiplayer/ClientPacketListener.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/multiplayer/ClientPacketListener.java",
+      "sha256": "397cccc120d7d8884f1327ddd5bef8fcc601fefee9b98f02f5eaaf65c57d7980",
+      "bytes": 125790,
+      "total_lines": 2483,
+      "whole_file_actually_read": false,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 445,
+          "last_line": 476,
+          "raw_utf8": "   public void handleAddEntity(ClientboundAddEntityPacket p_104958_) {\n      PacketUtils.ensureRunningOnSameThread(p_104958_, this, this.minecraft);\n      EntityType<?> entitytype = p_104958_.getType();\n      Entity entity = entitytype.create(this.level);\n      if (entity != null) {\n         entity.recreateFromPacket(p_104958_);\n         int i = p_104958_.getId();\n         this.level.putNonPlayerEntity(i, entity);\n         this.postAddEntitySoundInstance(entity);\n      } else {\n         LOGGER.warn(\"Skipping Entity with id {}\", (Object)entitytype);\n      }\n\n   }\n\n   private void postAddEntitySoundInstance(Entity p_233664_) {\n      if (p_233664_ instanceof AbstractMinecart) {\n         this.minecraft.getSoundManager().play(new MinecartSoundInstance((AbstractMinecart)p_233664_));\n      } else if (p_233664_ instanceof Bee) {\n         boolean flag = ((Bee)p_233664_).isAngry();\n         BeeSoundInstance beesoundinstance;\n         if (flag) {\n            beesoundinstance = new BeeAggressiveSoundInstance((Bee)p_233664_);\n         } else {\n            beesoundinstance = new BeeFlyingSoundInstance((Bee)p_233664_);\n         }\n\n         this.minecraft.getSoundManager().queueTickingSound(beesoundinstance);\n      }\n\n   }\n\n",
+          "excerpt_sha256": "817bb37752f902d8ce5d2cb1669f6c7c7fbde41be96171c222bd9807e3a4e0e1"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    },
+    {
+      "member": "net/minecraft/network/protocol/game/ClientboundAddEntityPacket.java",
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/network/protocol/game/ClientboundAddEntityPacket.java",
+      "sha256": "aa3ad37dd7dd61aa9728456eec1972ac4c43c975ce1d912999465e7dfe2564c3",
+      "bytes": 4746,
+      "total_lines": 145,
+      "whole_file_actually_read": true,
+      "archive_exact_match": true,
+      "ranges": [
+        {
+          "first_line": 1,
+          "last_line": 145,
+          "raw_utf8": "package net.minecraft.network.protocol.game;\n\nimport java.util.UUID;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.network.protocol.Packet;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.phys.Vec3;\n\npublic class ClientboundAddEntityPacket implements Packet<ClientGamePacketListener> {\n   private static final double MAGICAL_QUANTIZATION = 8000.0D;\n   private static final double LIMIT = 3.9D;\n   private final int id;\n   private final UUID uuid;\n   private final EntityType<?> type;\n   private final double x;\n   private final double y;\n   private final double z;\n   private final int xa;\n   private final int ya;\n   private final int za;\n   private final byte xRot;\n   private final byte yRot;\n   private final byte yHeadRot;\n   private final int data;\n\n   public ClientboundAddEntityPacket(Entity p_131481_) {\n      this(p_131481_, 0);\n   }\n\n   public ClientboundAddEntityPacket(Entity p_131483_, int p_131484_) {\n      this(p_131483_.getId(), p_131483_.getUUID(), p_131483_.getX(), p_131483_.getY(), p_131483_.getZ(), p_131483_.getXRot(), p_131483_.getYRot(), p_131483_.getType(), p_131484_, p_131483_.getDeltaMovement(), (double)p_131483_.getYHeadRot());\n   }\n\n   public ClientboundAddEntityPacket(Entity p_237558_, int p_237559_, BlockPos p_237560_) {\n      this(p_237558_.getId(), p_237558_.getUUID(), (double)p_237560_.getX(), (double)p_237560_.getY(), (double)p_237560_.getZ(), p_237558_.getXRot(), p_237558_.getYRot(), p_237558_.getType(), p_237559_, p_237558_.getDeltaMovement(), (double)p_237558_.getYHeadRot());\n   }\n\n   public ClientboundAddEntityPacket(int p_237546_, UUID p_237547_, double p_237548_, double p_237549_, double p_237550_, float p_237551_, float p_237552_, EntityType<?> p_237553_, int p_237554_, Vec3 p_237555_, double p_237556_) {\n      this.id = p_237546_;\n      this.uuid = p_237547_;\n      this.x = p_237548_;\n      this.y = p_237549_;\n      this.z = p_237550_;\n      this.xRot = (byte)Mth.floor(p_237551_ * 256.0F / 360.0F);\n      this.yRot = (byte)Mth.floor(p_237552_ * 256.0F / 360.0F);\n      this.yHeadRot = (byte)Mth.floor(p_237556_ * 256.0D / 360.0D);\n      this.type = p_237553_;\n      this.data = p_237554_;\n      this.xa = (int)(Mth.clamp(p_237555_.x, -3.9D, 3.9D) * 8000.0D);\n      this.ya = (int)(Mth.clamp(p_237555_.y, -3.9D, 3.9D) * 8000.0D);\n      this.za = (int)(Mth.clamp(p_237555_.z, -3.9D, 3.9D) * 8000.0D);\n   }\n\n   public ClientboundAddEntityPacket(FriendlyByteBuf p_178562_) {\n      this.id = p_178562_.readVarInt();\n      this.uuid = p_178562_.readUUID();\n      this.type = p_178562_.readById(BuiltInRegistries.ENTITY_TYPE);\n      this.x = p_178562_.readDouble();\n      this.y = p_178562_.readDouble();\n      this.z = p_178562_.readDouble();\n      this.xRot = p_178562_.readByte();\n      this.yRot = p_178562_.readByte();\n      this.yHeadRot = p_178562_.readByte();\n      this.data = p_178562_.readVarInt();\n      this.xa = p_178562_.readShort();\n      this.ya = p_178562_.readShort();\n      this.za = p_178562_.readShort();\n   }\n\n   public void write(FriendlyByteBuf p_131498_) {\n      p_131498_.writeVarInt(this.id);\n      p_131498_.writeUUID(this.uuid);\n      p_131498_.writeId(BuiltInRegistries.ENTITY_TYPE, this.type);\n      p_131498_.writeDouble(this.x);\n      p_131498_.writeDouble(this.y);\n      p_131498_.writeDouble(this.z);\n      p_131498_.writeByte(this.xRot);\n      p_131498_.writeByte(this.yRot);\n      p_131498_.writeByte(this.yHeadRot);\n      p_131498_.writeVarInt(this.data);\n      p_131498_.writeShort(this.xa);\n      p_131498_.writeShort(this.ya);\n      p_131498_.writeShort(this.za);\n   }\n\n   public void handle(ClientGamePacketListener p_131495_) {\n      p_131495_.handleAddEntity(this);\n   }\n\n   public int getId() {\n      return this.id;\n   }\n\n   public UUID getUUID() {\n      return this.uuid;\n   }\n\n   public EntityType<?> getType() {\n      return this.type;\n   }\n\n   public double getX() {\n      return this.x;\n   }\n\n   public double getY() {\n      return this.y;\n   }\n\n   public double getZ() {\n      return this.z;\n   }\n\n   public double getXa() {\n      return (double)this.xa / 8000.0D;\n   }\n\n   public double getYa() {\n      return (double)this.ya / 8000.0D;\n   }\n\n   public double getZa() {\n      return (double)this.za / 8000.0D;\n   }\n\n   public float getXRot() {\n      return (float)(this.xRot * 360) / 256.0F;\n   }\n\n   public float getYRot() {\n      return (float)(this.yRot * 360) / 256.0F;\n   }\n\n   public float getYHeadRot() {\n      return (float)(this.yHeadRot * 360) / 256.0F;\n   }\n\n   public int getData() {\n      return this.data;\n   }\n}",
+          "excerpt_sha256": "aa3ad37dd7dd61aa9728456eec1972ac4c43c975ce1d912999465e7dfe2564c3"
+        }
+      ],
+      "actual_read_this_turn": true,
+      "generic_shared_helpers_semantic_credit": 0
+    }
+  ],
+  "prior180_runtime_id_equality_support_reused0": {
+    "source180_binding": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-180-native-area-cloud-recipient-predebit-actual1266-complete-source-HOLD0-20261114.json",
+      "sha256": "6ba92bd1495d1331b9ff6e919de39b57244f80dc2b4f1ef4c36a2f4bccd80f81",
+      "bytes": 190988
+    },
+    "member": "net/minecraft/world/entity/Entity.java",
+    "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+    "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+    "bytes": 128890,
+    "ranges": [
+      {
+        "first_line": 341,
+        "last_line": 351,
+        "raw_utf8": "   public boolean equals(Object p_20245_) {\n      if (p_20245_ instanceof Entity) {\n         return ((Entity)p_20245_).id == this.id;\n      } else {\n         return false;\n      }\n   }\n\n   public int hashCode() {\n      return this.id;\n   }\n",
+        "excerpt_sha256": "d0d0903021214c4b8f6b0fe1334a6522c96770975fe4504ec1ff35a6ee26ac44"
+      }
+    ],
+    "new_source_or_semantic_credit": 0,
+    "note": "Prior180 Entity341..351 equals/hash runtime-id support reused0; not included in current919 lines."
+  },
+  "complete_old_before_source_checkpoint_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-181-actual533-ecology73-old75-472-group23-before-source-20261114.json",
+    "sha256": "07d56331ec06268a4b9dc5df04bc073f41c0c558d17c86e26ba66e3e5f4a717d",
+    "bytes": 22526
+  },
+  "complete_old_before_source_checkpoint_unchanged": {
+    "schema": "dynasty-program181-before-source-complete-old-and-current533-checkpoint-v1",
+    "recorded_at": "2026-11-14T03:08:37.080010+00:00",
+    "Main179_actual533_receipt": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program179-Main-actual533-three-data-application-20261114.json",
+      "sha256": "a4dbc197e8dab196b0e25b4f72129e8402aa0047d3ca3651368485f2991926f3",
+      "bytes": 20286
+    },
+    "current_context": {
+      "program": 533,
+      "groups": 261,
+      "program_gap": 467,
+      "program_gate": false,
+      "ecology": 73,
+      "ecology_gap": 927,
+      "ecology_gate": false
+    },
+    "fresh16": [
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+          "sha256": "4c3b575e53c876fd145601c9f203131b2597a8016739e5117224bc4bd2ec421d",
+          "bytes": 71715445
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+          "sha256": "4c3b575e53c876fd145601c9f203131b2597a8016739e5117224bc4bd2ec421d",
+          "bytes": 71715445
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+          "sha256": "79ca3213d1f78e2ec23b9e461894897a0236e2779b77285b51bbb12096a73f76",
+          "bytes": 2821347
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+          "sha256": "79ca3213d1f78e2ec23b9e461894897a0236e2779b77285b51bbb12096a73f76",
+          "bytes": 2821347
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+          "sha256": "7c1935c2fcb41d5530354453091e1d64a3f62f140b05d81db5d6b37a37566774",
+          "bytes": 631
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+          "sha256": "7c1935c2fcb41d5530354453091e1d64a3f62f140b05d81db5d6b37a37566774",
+          "bytes": 631
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+          "sha256": "92a5a7b6f6866b0a61bf9e3ce6b8f8c976aa0dc1b63103cf689071c35b80c9ee",
+          "bytes": 21113588
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+          "sha256": "92a5a7b6f6866b0a61bf9e3ce6b8f8c976aa0dc1b63103cf689071c35b80c9ee",
+          "bytes": 21113588
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+          "sha256": "431e736387329cde303facbf4099924c7fc3fd2a6b8b6e15688bebd384993524",
+          "bytes": 20586363
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+          "sha256": "431e736387329cde303facbf4099924c7fc3fd2a6b8b6e15688bebd384993524",
+          "bytes": 20586363
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+          "sha256": "4d1a541d31713c29f9afb21d901124d8102925291648108064959bdd373bdad4",
+          "bytes": 2318673
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+          "sha256": "4d1a541d31713c29f9afb21d901124d8102925291648108064959bdd373bdad4",
+          "bytes": 2318673
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+          "sha256": "be30744c14329682d1d45009acb80d362debd0a3fb9f7d6a98d59ef953ee48a5",
+          "bytes": 333207
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+          "sha256": "be30744c14329682d1d45009acb80d362debd0a3fb9f7d6a98d59ef953ee48a5",
+          "bytes": 333207
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+          "sha256": "6da6114698519f6d90281ce1d7cc1f68509ee34b33046a4e817d3dbc5b763049",
+          "bytes": 1162124
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+          "sha256": "6da6114698519f6d90281ce1d7cc1f68509ee34b33046a4e817d3dbc5b763049",
+          "bytes": 1162124
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+          "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+          "bytes": 264172604
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+          "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+          "bytes": 264172604
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+          "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+          "bytes": 16879
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+          "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+          "bytes": 16879
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+          "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+          "bytes": 60249
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+          "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+          "bytes": 60249
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+          "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+          "bytes": 176564
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+          "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+          "bytes": 176564
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+          "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+          "bytes": 88472
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+          "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+          "bytes": 88472
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+          "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+          "bytes": 114611
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+          "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+          "bytes": 114611
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+          "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+          "bytes": 13391
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+          "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+          "bytes": 13391
+        },
+        "match": true
+      },
+      {
+        "expected": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+          "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+          "bytes": 63710
+        },
+        "observed": {
+          "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+          "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+          "bytes": 63710
+        },
+        "match": true
+      }
+    ],
+    "complete_old_comparisons": [
+      {
+        "index": 75,
+        "id": "wizardry-lightning-conversion-consumable-duplicate-suppression",
+        "complete_four_business": {
+          "full_chain_observation": "SpellRay落点有露天资格，服务端创建天气闪电并写summoner UUID及potency；Struck事件重建SHOCK伤害、保存恢复速度调用attackEntityFrom，随后目标置immuneToLightning标记；LivingAttack HIGHEST只在原生LIGHTNING_BOLT且有标记时取消并去标记。",
+          "concrete_observation": "这不是Boss免疫，是替换一次原生结算避免双伤，且自定义伤害结果没读仍置标记。标记无时间戳/维度代际；若未紧跟原生伤害会残留，未来一次普通闪电也可能被取消。caster只在当前world.loadedEntityList按UUID查，失踪与无owner路径不同。",
+          "application_to_boss_immune": "临时消费标记与常驻Boss免控必须区分；回执必须来自真正拒控分支，避免把重复结算抑制写成免疫。",
+          "limitations": "固定提交全文方法/自有原生链静态研究，未启动游戏、不证明画面、声音或跨端。普通阴阳体质不新增灰字。"
+        },
+        "business_canonical_sha256": "6a7324777228b46070a9d771b95b4fb5ca1989e66fada084dee1f0593052c949",
+        "whole_row_canonical_sha256": "22e0c40a65d8952d1d7175e93705f61e2283d2b58dcd5f0f7e24e6aa9b03ff9f",
+        "actually_read_complete_before_new_source": true,
+        "old_raw_source_ancestors_newly_read": false
+      },
+      {
+        "index": 472,
+        "id": "evilcraft-native-lightning-item-empowerment-switches-live-damage-predicate-without-reinitializing-construction-selected-lifetime",
+        "complete_four_business": {
+          "full_chain_observation": "registered item/custom entity/event: Actual EvilCraft config list creates normal and empowered InvertedPotentia, lightning grenade and item_empowerable entity. ItemConfig/EntityConfig shared factories and register/getRender pipeline reused exactly. New CommonProxy.registerEventHooks registers EntityStruckByLightningEventHook; ClientProxy constructs delegated CommonProxy and Core ClientProxyComponent forwards registerEventHooks. Existing ModBase setup calls actual selected proxy. No explicit server guard in empowerItem hook itself; native event dispatch/thread not inferred from grenade source.\nactual lightning producer and attempt cues: ItemAbstractGrenade.use server shrinks1 unless creative, calls ARROW_SHOOT then actual getThrowableEntity→EntityLightningGrenade, shoots andaddFreshEntity ignoring result; returns SUCCESS helper on both sides. Impact ENTITY calls hurt(thrown,0) without checking result; server with ServerPlayer owner calls EntityHelpers.onEntityCollided→block.stepOn, creates LightningBolt, positions at grenade coordinates, requests add ignoringresult, then discards grenade. Other serverowners still discard without bolt. Client onHit emits32CRIT without proving bolt/empowerment. No nullbolt/rollback/receipt; native collision/strike dispatch unexpanded.\nconcrete conversion and event termination: Hook receives ItemEntity with IItemEmpowerable and !isEmpowered, calls empower then entity.setItem(result), cancels strike event, discards lightning. Concrete InvertedPotentia.empower creates new empowered registered ItemStack with old count, doesnot copy tags/caps/name/damage. Predicate is finalboolean on item type, not mutable perstackNBT. No owner/weather/samebolt set or damage-result precondition in item branch. Already empowered skips replacement, cancel and bolt removal. Sameentity repeated event after successful replacement sees new true state; no universal oneitem-perbolt claim because native iteration after remove notread.\ncustom dropped entity construction and current predicate: Both Potentia types hasCustomEntitytrue; createEntity casts locationItemEntity and creates EntityItemEmpowerable(world,original), ignoring separate itemStack parameter. Extended original constructor sets pickupDelay40, copies motion/position and original stack reference before Indestructable.init. It doesnot explicitly copy original age/owner/thrower/pickupdelay. isIndestructable reads current item everyquery: IItemEmpowerable uses its isEmpowered, otherwise supertrue. isInvulnerableTo returns that OR super. fireImmune always true independent of empowerment. Hook accepts any ItemEntity, so conversion doesnot itself guarantee custom subclass or this protection override was installed.\nconstruction-selected lifetime stays separate: Indestructable.init calls virtual isUndespawnable, which defaults to isIndestructable, and only then sets lifespan Integer.MAX_VALUE when true. Original ordinary Potentia is set before init, so false doesnot request this lifetime override; empowered originaltrue requestsMAX. Later lightning entity.setItem switches live protection predicate but invokes no init/age/lifespan reset. Re-dropping an empowered item through customconstructor can selectMAX. Default type/world constructor and clientcopy construct before caller assigns finalstack; exact initial native ItemEntity stack and native load/lifespan decode are unexpanded, so no asserted load-time infinity. Undespawnable sibling forces lifespan branchtrue but isIndestructablefalse while fireImmune remainstrue; whole sibling only support0.\nactual feedback consumer and end limits: InvertedPotentia.isFoil delegates to isEmpowered; entity config registers native ItemEntityRenderer, and Extended.getAddEntityPacket delegates to NetworkHooks. Client copy creates bytype then copies stack andposition but notage fields (commented). These are actual mod presentation inputs, not native tracked-stack/renderer/foil delivery proof. No dedicated item refusal/upgrade message/sound/particle receipt or cooldown. Arrow sound precedes projectile acceptance and CRIT derives localimpact. Permanent item type state has no de-empower/timedreset in these classes. Pickup/merge/despawn/removal remain inherited native paths not expanded; damage predicate true is not proof every native source/removal is denied.",
+          "concrete_observation": "Generic lightning cancellation already Wizardry; retained hurt-vs-lifetime state split differs from timed vulnerability, actor/statue replacement, spirit freeze, observer cleanup and current-stack wear clamp. Whole dropped-item type conversion changes live protection while old construction-selected lifetime stays; metadata loss and native presentation inputs are supporting0. Existing Werewolf transformation and Crafter NBT schema/upgrade remain old migration owners0extra.",
+          "application_to_boss_immune": "Separate protection derived from live payload from constructor-only lifetime settings. When replacing contents in place, explicitly decide whether lifetime and ownership should change; distinguish attempted conversion cues from authoritative success.",
+          "limitations": "One maximum whole lightning replacement/live protection/constructor lifetime policy. Native fireImmune, lifespan, two itemvariants, helpers and concrete grenade add0 separately.\nEvent canceled and lightning removal are actual mod calls after stack replacement; not receipt of final immunity, world-add success, correct native drop installation or upgrade transaction.\nSame ItemEntity object is reused by empowerment. Concrete Potentia preserves count only; no claim all IItemEmpowerable implementations preserve it.\nCurrent predicate may change without constructor lifetime recomputation. No fixed duration/wall-clock despawn result or mathematical immortality claim; underlying ItemEntity path not bound/read.\nNative isInvulnerableTo override may be only part of actual hurt/remove pipeline. No universal out-of-world/creative/command/unload immunity assertion.\nVillager samebolt/RNG/cancel-false arm and ExaltedCrafter schema are existing-owner context0, not extra policies.\nNo new native archive source used: readable candidate exists but exact47.4.10 dependency correspondence not established. Core tag/build750 limit unchanged.\nExact pinned EvilCraft Forge/Minecraft dependency binding and native ItemEntity.hurt/tick/NBT/custom-drop replacement. Bounded mod-owned overridden predicates and lifespan writes only; no final all-source immunity, exact remaining despawn or save/load behavior.\nNative LightningBolt strike/event ordering and world add/removal. No proved only-one-item upgrade per bolt, no natural weather guarantee, no guaranteed original hurt suppression after all mods.\nNative tracked ItemStack packet receiver/ItemEntityRenderer/isFoil call and actual pixels/audio. Inputs and register/copy hooks only, no delivered feedback receipt. No assets inspected or changed.\nIndependent proof Core tag exactly matches build750 binary. Pinned source support0 only.\nMain actually read all22 new ranges907lines in three bounded outputs.16 exact034 support ranges reused unchanged and all38 bindings verified; source/range/file counts0. Three closest prior full semantic decisions newly read; unchanged034/035/036 main complete prior judgments reused without claiming rereading old source chains. All6 snapshot shared fields equal current472. Two complete migration overlap judgments actually read and checked, their existing schema/transformation credits retained0extra.\nClientProxy1..86 contains complete constructor/registerEventHooks but ends within onModelLoad; EntityHelpers1..49 contains complete onEntityCollided, not whole helper. Actual grenade→stepOn call is a request with null-guard onpos only. Vanilla collision/event/hurt pipeline not bound to this fixed dependency; no new engine execution or exact protocol pixels claimed.\nEntityItemEmpowerable non-IItemEmpowerable stack path calls base true. Thus source predicate is not simply current itemempowered for every possible foreign stack; fallback is protected in this class. Missing/native default constructor initial ItemStack, native load serialization and copied client constructor remain outside proof. Count-only Potentia conversion must not be generalized to all interface implementations or to exact native custom-drop installation.\nOne full split lifetime policy accepted: lightning replaces count-preserving/non-NBT-preserving concrete item in same dropped entity; live isIndestructable changes, existing constructor-selected lifespan is not reinitialized. Source fireImmune unconditional and undespawnable sibling are0. No final all-source invulnerability, infinite remaining lifespan, actual natural weather upgrade, native save/load repair or completion of Boss Immune.033 remains0."
+        },
+        "business_canonical_sha256": "cb4e3f0161c09036cc1a86262f9bc9faa93a2da6548ac1234cc68fdc49d40aee",
+        "whole_row_canonical_sha256": "f77d704837161c3ab789ee5af23baecf2b5ceadec33710923be01a317ef4be40",
+        "actually_read_complete_before_new_source": true,
+        "old_raw_source_ancestors_newly_read": false
+      }
+    ],
+    "complete_old_groups": [
+      {
+        "index": 23,
+        "complete_group": {
+          "family": "wizardry-native-rejection-batch20",
+          "credited_chains": [
+            "wizardry-charge-contact-window-native-attack-refusal",
+            "wizardry-lightning-conversion-consumable-duplicate-suppression",
+            "wizardry-transience-bidirectional-source-target-immunity",
+            "wizardry-anchoring-final-displacement-refusal-and-resist-text",
+            "wizardry-shadowward-retaliatory-split-and-recursion-exclusion",
+            "wizardry-game-attack-interception-recursion-abort-window"
+          ],
+          "rationale": "锚定GreaterTelekinesis/Whirlwind相同资格/回执合并1，不计颜色/粒子/速度包装；Charge窗口防伤、闪电替代原生结算、双向瞬态、反伤重分配与实际重入中止分别有不同最终结果。DamageSafety只因真实游戏伤害拦截原生使用计1，辅助通用库存/变量方法不计。"
+        },
+        "canonical_sha256": "e6fd9b756f5555f88dff63df048ee6cdb2e288c9585b63f9c10b75e7fe2c5140",
+        "actually_read_complete_before_source": true
+      }
+    ],
+    "old472_direct_group_id_lookup_found": false,
+    "old472_group_mapping_not_invented": true,
+    "candidate_scope": "Native lightning autonomous multi-flash source state and repeated per-flash target callbacks versus terminal attempted-target union/current-bystander criterion and client local seed/flash. At most1 RELATED orMERGE0 only after actual source study.",
+    "new_native_lightning_body_read_before_this_receipt": false,
+    "fixed_current_native_will_not_backfill_old_EvilCraft_Core_version_or_dispatch_unknown": true,
+    "Main_Copper_other_scope_native_lightning_block_helpers_semantic_credit": 0,
+    "source180_complete_HOLD0_binding_unchanged": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-180-native-area-cloud-recipient-predebit-actual1266-complete-source-HOLD0-20261114.json",
+      "sha256": "6ba92bd1495d1331b9ff6e919de39b57244f80dc2b4f1ef4c36a2f4bccd80f81",
+      "bytes": 190988
+    },
+    "source180_original532_context_remains_historical": true,
+    "program179_consumed_once_not_replayed": true,
+    "mushroom_private532_original_not_touched": true,
+    "formal_id": null,
+    "research_credit": 0,
+    "formal_append": false,
+    "production_changes": 0,
+    "game_starts": 0,
+    "UI_or_asset_changes": 0,
+    "new_once_intent_executor_validator": false,
+    "task_deletions": 0,
+    "session_or_master_writes": false,
+    "active_hours_claimed": null,
+    "all_tasks_complete": false
+  },
+  "complete_old_comparisons": [
+    {
+      "index": 75,
+      "id": "wizardry-lightning-conversion-consumable-duplicate-suppression",
+      "complete_four_business_actually_read_this_turn": {
+        "full_chain_observation": "SpellRay落点有露天资格，服务端创建天气闪电并写summoner UUID及potency；Struck事件重建SHOCK伤害、保存恢复速度调用attackEntityFrom，随后目标置immuneToLightning标记；LivingAttack HIGHEST只在原生LIGHTNING_BOLT且有标记时取消并去标记。",
+        "concrete_observation": "这不是Boss免疫，是替换一次原生结算避免双伤，且自定义伤害结果没读仍置标记。标记无时间戳/维度代际；若未紧跟原生伤害会残留，未来一次普通闪电也可能被取消。caster只在当前world.loadedEntityList按UUID查，失踪与无owner路径不同。",
+        "application_to_boss_immune": "临时消费标记与常驻Boss免控必须区分；回执必须来自真正拒控分支，避免把重复结算抑制写成免疫。",
+        "limitations": "固定提交全文方法/自有原生链静态研究，未启动游戏、不证明画面、声音或跨端。普通阴阳体质不新增灰字。"
+      },
+      "business_canonical_sha256": "6a7324777228b46070a9d771b95b4fb5ca1989e66fada084dee1f0593052c949",
+      "whole_row_canonical_sha256": "22e0c40a65d8952d1d7175e93705f61e2283d2b58dcd5f0f7e24e6aa9b03ff9f",
+      "comparison": "旧Wizardry完整替代SHOCK结算与消耗immuneToLightning标记防原生重复伤害持有原信用；此候选不重新计cancel或伤源转换，只研究固定原生LightningBolt自主flash生命周期、每轮尝试列表与终止cohort/当前bystander判据之间的耦合。不能把旧无期限标记与当前hitEntities表当同一预算。",
+      "old_raw_source_ancestors_newly_read": false
+    },
+    {
+      "index": 472,
+      "id": "evilcraft-native-lightning-item-empowerment-switches-live-damage-predicate-without-reinitializing-construction-selected-lifetime",
+      "complete_four_business_actually_read_this_turn": {
+        "full_chain_observation": "registered item/custom entity/event: Actual EvilCraft config list creates normal and empowered InvertedPotentia, lightning grenade and item_empowerable entity. ItemConfig/EntityConfig shared factories and register/getRender pipeline reused exactly. New CommonProxy.registerEventHooks registers EntityStruckByLightningEventHook; ClientProxy constructs delegated CommonProxy and Core ClientProxyComponent forwards registerEventHooks. Existing ModBase setup calls actual selected proxy. No explicit server guard in empowerItem hook itself; native event dispatch/thread not inferred from grenade source.\nactual lightning producer and attempt cues: ItemAbstractGrenade.use server shrinks1 unless creative, calls ARROW_SHOOT then actual getThrowableEntity→EntityLightningGrenade, shoots andaddFreshEntity ignoring result; returns SUCCESS helper on both sides. Impact ENTITY calls hurt(thrown,0) without checking result; server with ServerPlayer owner calls EntityHelpers.onEntityCollided→block.stepOn, creates LightningBolt, positions at grenade coordinates, requests add ignoringresult, then discards grenade. Other serverowners still discard without bolt. Client onHit emits32CRIT without proving bolt/empowerment. No nullbolt/rollback/receipt; native collision/strike dispatch unexpanded.\nconcrete conversion and event termination: Hook receives ItemEntity with IItemEmpowerable and !isEmpowered, calls empower then entity.setItem(result), cancels strike event, discards lightning. Concrete InvertedPotentia.empower creates new empowered registered ItemStack with old count, doesnot copy tags/caps/name/damage. Predicate is finalboolean on item type, not mutable perstackNBT. No owner/weather/samebolt set or damage-result precondition in item branch. Already empowered skips replacement, cancel and bolt removal. Sameentity repeated event after successful replacement sees new true state; no universal oneitem-perbolt claim because native iteration after remove notread.\ncustom dropped entity construction and current predicate: Both Potentia types hasCustomEntitytrue; createEntity casts locationItemEntity and creates EntityItemEmpowerable(world,original), ignoring separate itemStack parameter. Extended original constructor sets pickupDelay40, copies motion/position and original stack reference before Indestructable.init. It doesnot explicitly copy original age/owner/thrower/pickupdelay. isIndestructable reads current item everyquery: IItemEmpowerable uses its isEmpowered, otherwise supertrue. isInvulnerableTo returns that OR super. fireImmune always true independent of empowerment. Hook accepts any ItemEntity, so conversion doesnot itself guarantee custom subclass or this protection override was installed.\nconstruction-selected lifetime stays separate: Indestructable.init calls virtual isUndespawnable, which defaults to isIndestructable, and only then sets lifespan Integer.MAX_VALUE when true. Original ordinary Potentia is set before init, so false doesnot request this lifetime override; empowered originaltrue requestsMAX. Later lightning entity.setItem switches live protection predicate but invokes no init/age/lifespan reset. Re-dropping an empowered item through customconstructor can selectMAX. Default type/world constructor and clientcopy construct before caller assigns finalstack; exact initial native ItemEntity stack and native load/lifespan decode are unexpanded, so no asserted load-time infinity. Undespawnable sibling forces lifespan branchtrue but isIndestructablefalse while fireImmune remainstrue; whole sibling only support0.\nactual feedback consumer and end limits: InvertedPotentia.isFoil delegates to isEmpowered; entity config registers native ItemEntityRenderer, and Extended.getAddEntityPacket delegates to NetworkHooks. Client copy creates bytype then copies stack andposition but notage fields (commented). These are actual mod presentation inputs, not native tracked-stack/renderer/foil delivery proof. No dedicated item refusal/upgrade message/sound/particle receipt or cooldown. Arrow sound precedes projectile acceptance and CRIT derives localimpact. Permanent item type state has no de-empower/timedreset in these classes. Pickup/merge/despawn/removal remain inherited native paths not expanded; damage predicate true is not proof every native source/removal is denied.",
+        "concrete_observation": "Generic lightning cancellation already Wizardry; retained hurt-vs-lifetime state split differs from timed vulnerability, actor/statue replacement, spirit freeze, observer cleanup and current-stack wear clamp. Whole dropped-item type conversion changes live protection while old construction-selected lifetime stays; metadata loss and native presentation inputs are supporting0. Existing Werewolf transformation and Crafter NBT schema/upgrade remain old migration owners0extra.",
+        "application_to_boss_immune": "Separate protection derived from live payload from constructor-only lifetime settings. When replacing contents in place, explicitly decide whether lifetime and ownership should change; distinguish attempted conversion cues from authoritative success.",
+        "limitations": "One maximum whole lightning replacement/live protection/constructor lifetime policy. Native fireImmune, lifespan, two itemvariants, helpers and concrete grenade add0 separately.\nEvent canceled and lightning removal are actual mod calls after stack replacement; not receipt of final immunity, world-add success, correct native drop installation or upgrade transaction.\nSame ItemEntity object is reused by empowerment. Concrete Potentia preserves count only; no claim all IItemEmpowerable implementations preserve it.\nCurrent predicate may change without constructor lifetime recomputation. No fixed duration/wall-clock despawn result or mathematical immortality claim; underlying ItemEntity path not bound/read.\nNative isInvulnerableTo override may be only part of actual hurt/remove pipeline. No universal out-of-world/creative/command/unload immunity assertion.\nVillager samebolt/RNG/cancel-false arm and ExaltedCrafter schema are existing-owner context0, not extra policies.\nNo new native archive source used: readable candidate exists but exact47.4.10 dependency correspondence not established. Core tag/build750 limit unchanged.\nExact pinned EvilCraft Forge/Minecraft dependency binding and native ItemEntity.hurt/tick/NBT/custom-drop replacement. Bounded mod-owned overridden predicates and lifespan writes only; no final all-source immunity, exact remaining despawn or save/load behavior.\nNative LightningBolt strike/event ordering and world add/removal. No proved only-one-item upgrade per bolt, no natural weather guarantee, no guaranteed original hurt suppression after all mods.\nNative tracked ItemStack packet receiver/ItemEntityRenderer/isFoil call and actual pixels/audio. Inputs and register/copy hooks only, no delivered feedback receipt. No assets inspected or changed.\nIndependent proof Core tag exactly matches build750 binary. Pinned source support0 only.\nMain actually read all22 new ranges907lines in three bounded outputs.16 exact034 support ranges reused unchanged and all38 bindings verified; source/range/file counts0. Three closest prior full semantic decisions newly read; unchanged034/035/036 main complete prior judgments reused without claiming rereading old source chains. All6 snapshot shared fields equal current472. Two complete migration overlap judgments actually read and checked, their existing schema/transformation credits retained0extra.\nClientProxy1..86 contains complete constructor/registerEventHooks but ends within onModelLoad; EntityHelpers1..49 contains complete onEntityCollided, not whole helper. Actual grenade→stepOn call is a request with null-guard onpos only. Vanilla collision/event/hurt pipeline not bound to this fixed dependency; no new engine execution or exact protocol pixels claimed.\nEntityItemEmpowerable non-IItemEmpowerable stack path calls base true. Thus source predicate is not simply current itemempowered for every possible foreign stack; fallback is protected in this class. Missing/native default constructor initial ItemStack, native load serialization and copied client constructor remain outside proof. Count-only Potentia conversion must not be generalized to all interface implementations or to exact native custom-drop installation.\nOne full split lifetime policy accepted: lightning replaces count-preserving/non-NBT-preserving concrete item in same dropped entity; live isIndestructable changes, existing constructor-selected lifespan is not reinitialized. Source fireImmune unconditional and undespawnable sibling are0. No final all-source invulnerability, infinite remaining lifespan, actual natural weather upgrade, native save/load repair or completion of Boss Immune.033 remains0."
+      },
+      "business_canonical_sha256": "cb4e3f0161c09036cc1a86262f9bc9faa93a2da6548ac1234cc68fdc49d40aee",
+      "whole_row_canonical_sha256": "f77d704837161c3ab789ee5af23baecf2b5ceadec33710923be01a317ef4be40",
+      "comparison": "旧EvilCraft整体是同一掉落实体中替换具体物品类型，改变实时保护谓词却不重算构造选定寿命；其原生strike排序、依赖/Core750未知完整保留。当前固定1.20.1Forge研究不能回填旧依赖或证明其一bolt只强化一item/实际事件后果；此条最多一个原生多flash尝试记录/最终候选判据生命周期，generic helper/upgrade/取消/铜块操作0额外。",
+      "old_raw_source_ancestors_newly_read": false
+    }
+  ],
+  "complete_old_groups": [
+    {
+      "index": 23,
+      "complete_group_actually_read_this_turn": {
+        "family": "wizardry-native-rejection-batch20",
+        "credited_chains": [
+          "wizardry-charge-contact-window-native-attack-refusal",
+          "wizardry-lightning-conversion-consumable-duplicate-suppression",
+          "wizardry-transience-bidirectional-source-target-immunity",
+          "wizardry-anchoring-final-displacement-refusal-and-resist-text",
+          "wizardry-shadowward-retaliatory-split-and-recursion-exclusion",
+          "wizardry-game-attack-interception-recursion-abort-window"
+        ],
+        "rationale": "锚定GreaterTelekinesis/Whirlwind相同资格/回执合并1，不计颜色/粒子/速度包装；Charge窗口防伤、闪电替代原生结算、双向瞬态、反伤重分配与实际重入中止分别有不同最终结果。DamageSafety只因真实游戏伤害拦截原生使用计1，辅助通用库存/变量方法不计。"
+      },
+      "canonical_sha256": "e6fd9b756f5555f88dff63df048ee6cdb2e288c9585b63f9c10b75e7fe2c5140"
+    }
+  ],
+  "old472_direct_group_mapping_not_invented": true,
+  "old_EvilCraft_Core750_or_dispatch_unknown_not_backfilled": true,
+  "findings": [
+    {
+      "id": 1,
+      "title": "actual-factory-and-channeling-producer",
+      "anchor": "EntityType227; ThrownTrident107..155",
+      "observation": "原生注册LIGHTNING_BOLT factory/noSave/0尺寸。trident先写dealtDamage并请求hurt；hurttrue且ENDERMAN提前return，否则正常路径减速后server+雷暴+channeling+目标位置可见天时create非null、设位置/cause并uncheckedadd，再换雷击声。hurtfalse不自动阻止该后续源请求；source add/声音非世界接纳或目标控制回执，producer/返回值支持0。"
+    },
+    {
+      "id": 2,
+      "title": "autonomous-source-state",
+      "anchor": "LightningBolt28..65/84..144",
+      "observation": "构造life2、随机seed、flashes1..3、visualOnly默认false，独立cause ServerPlayer与hitEntities集合。source随后按自有tick推进，没有原trident/当前装备存续资格检查；cause不是目标伤害接纳。字段与随机数不拆信用。"
+    },
+    {
+      "id": 3,
+      "title": "initial-side-effects-not-visual-only-blanket",
+      "anchor": "LightningBolt84..100/151..224",
+      "observation": "life==2客户端请求雷声和撞击声；server按难度请求初始fire，再powerRod/clearCopper/gameEvent。visualOnly只在spawnFire内及server entity strike分支限制，不包围初始powerRod/copper/gameEvent或终止criterion。块/铜/rod机制归其它既有范围支持0，本轮不新增生态参考或全visualOnly无副作用结论。"
+    },
+    {
+      "id": 4,
+      "title": "decrement-reset-and-active-same-tick",
+      "anchor": "LightningBolt102..142",
+      "observation": "先--life；负值且有flashes时在随机负阈值后--flashes、life=1、换seed并spawnFire0，之后同次仍可进life>=0的active分支。reset不是再写2，不会从此重进life==2初始声/块分支；默认初始2也先减为1再active。不是墙钟、固定所有调用次数或运行同步验收。"
+    },
+    {
+      "id": 5,
+      "title": "per-active-pass-current-victim-list",
+      "anchor": "LightningBolt126..141",
+      "observation": "ServerLevel且!visualOnly时，每active pass重新以x/z±3、y-3到y+9 AABB查询当前alive实体。选择谓词不查hitEntities，故集合不是每bolt一次去重伤害预算；同目标之后是否再被选/实际伤害依赖当前状态与接收链，不能宣称每pass必有damage或重复伤害漏洞。"
+    },
+    {
+      "id": 6,
+      "title": "strike-event-local-denial",
+      "anchor": "LightningBolt132..135; ForgeEventFactory371..375; EntityStruckByLightningEvent全文",
+      "observation": "每个已选目标post可取消strike事件，只有返回false才调entity.thunderHit。取消只抑制此caller的该调用，不自动回滚之前block/source动作，也不证明所有监听器都未产生效果。监听器discard bolt后本for没有本地removed/break检查，正常返回下仍可继续余项；事件异常/重入或旧EvilCraft版本效果未证明。"
+    },
+    {
+      "id": 7,
+      "title": "attempt-union-not-damage-receipt",
+      "anchor": "LightningBolt132..140/244..246",
+      "observation": "for正常完成后hitEntities.addAll(list1)，包含被strike事件取消的选择目标，不核thunderHit结果；cause非null还以同一list1发CHANNELED_LIGHTNING。该当前list可含先前过程中变化的实体，不是实际HP损失集合。之后再strike仍不按union排除；运行中异常可阻止addAll/criterion，不承诺事务。"
+    },
+    {
+      "id": 8,
+      "title": "base-recipient-fire-before-hurt",
+      "anchor": "Entity2294..2301; LightningBolt76..82",
+      "observation": "已读基类thunderHit先remainingFireTicks+1，若结果0再setSecondsOnFire8，随后hurt(lightningBolt,bolt.getDamage)且忽略bool；damage默认5且public可写。最终hurt拒绝不能反推之前未改火状态；虚子类/所有接收hooks未穷尽，不把基类泛化为所有target。"
+    },
+    {
+      "id": 9,
+      "title": "terminal-bystanders-current-not-historical",
+      "anchor": "LightningBolt103..117",
+      "observation": "life<0且flashes0时，server重查x/z±15、y-15到y+21的当前alive且不在hitEntities实体，向距bolt<256的当前玩家发LIGHTNING_STRIKE，再discard。bystanders不是初始附近名单，也不是“从未受伤”证明；cancelled但曾选择的目标已入union会被排除，死亡/移动会改变当前集合。"
+    },
+    {
+      "id": 10,
+      "title": "criterion-consumer-and-listener-gates",
+      "anchor": "ChanneledLightningTrigger全文; LightningStrikeTrigger全文; SimpleCriterionTrigger全文",
+      "observation": "channel trigger将所给victims建context，每个要求predicate只需匹配某context；strike trigger先匹配bolt context，再ANY或任一当前bystander。SimpleCriterionTrigger还需已登记listener及player predicate通过，才run匹配listener。这里不查实际hurt/控制结果；触发调用不是所有任务已发奖、native拾取或进度验收，通用criterion支持0。"
+    },
+    {
+      "id": 11,
+      "title": "subpredicate-current-alive-attempt-members",
+      "anchor": "LighthingBoltPredicate全文; LightningBolt240..246",
+      "observation": "实际拼写LighthingBoltPredicate按blocksSetOnFire范围及可选getHitEntities().anyMatch目标predicate；getHitEntities另过滤当前isAlive。它观察的仍是源记录的选择/尝试集合中当前存活者，不是最终受伤者。一个predicate集合匹配不是为目标提交拒控或证实命中。"
+    },
+    {
+      "id": 12,
+      "title": "fire-count-is-request-counter",
+      "anchor": "LightningBolt151..170/240..242",
+      "observation": "spawnFire受!visualOnly、server和DOFIRETICK，要求air与fire能存活后setBlockAndUpdate并无视返回即++blocksSetOnFire；随机周边同样。故计数表示该源码路径尝试写火，不能独立保证最终实际火块数/保持状态/付款或生态验收；block helpers0额外。"
+    },
+    {
+      "id": 13,
+      "title": "visual-only-and-termination-selection",
+      "anchor": "LightningBolt50..52/103..144",
+      "observation": "visualOnly阻止server strike list分支，因而本体通常不由该分支填hitEntities，但不跳终止bystander/玩家criterion；动态setter可改变后续分支。不据名字声称纯视觉与零准入/进度副作用，实际配置/改旗时序仍未运行。"
+    },
+    {
+      "id": 14,
+      "title": "client-construction-and-generic-packet-boundary",
+      "anchor": "Entity3150..3153/3277..3288; ClientboundAddEntityPacket全文; ClientPacketListener445..476; LightningBolt231..238",
+      "observation": "LightningBolt无自有synched字段/自有recreate；generic add packet含id/UUID/type/位置旋转/运动/data默认0，未携带life/flashes/seed/visualOnly/cause/hitEntities。client按type.create本地构造后generic重设身份/位置，不在该路径恢复上述源字段。限所读生产消费链，不认证其它模组/引擎所有同步或实际失败。"
+    },
+    {
+      "id": 15,
+      "title": "local-sky-sound-seed-render",
+      "anchor": "LightningBolt84..89/118..128/226..238; LightningBoltRenderer全文",
+      "observation": "非ServerLevel active本体请求skyFlashTime2，初始life2本地sound；reset1换本地seed。renderer以seed建随机几何并直接提交lightning quads，不核server接纳/target outcome。无像素/声音/跨端观感验收，也不把各flash/几何/音量/颜色计独立参考。"
+    },
+    {
+      "id": 16,
+      "title": "transient-own-save-and-runtime-set",
+      "anchor": "LightningBolt231..246; EntityType227; prior180 Entity341..351 reused0",
+      "observation": "注册noSave，own read/write为空，没有自有source budget/hit/cause/seed持久化或同步回执。Set<Entity>相等/hash的runtime-id支持来自180已读段复用0，非稳定目标UUID代次表；不推全继承/Clone/旧世界保存或任意重建安全，也不新计NBT。"
+    },
+    {
+      "id": 17,
+      "title": "whole-comparison-version-not-backfilled",
+      "anchor": "complete old75/472 fourbusiness and group23; before-source checkpoint",
+      "observation": "旧75替换伤害+消费抑制标记，旧472同实体物品转化使live保护与构造寿命分离，保持完整所有权。候选最多一个原生多flash重复尝试、累积选择union、结束当前bystander/谓词与本地表现生命周期耦合，Main可MERGE0。当前fixed native不回填旧EvilCraft/Core750依赖及dispatch未知；472直链group未命中不编造归属，未穷尽全533原始源码。"
+    },
+    {
+      "id": 18,
+      "title": "current-context-and-unfinished-user-ui",
+      "anchor": "Main179 actual533 receipt; source180 complete saved binding",
+      "observation": "当前观察Main533/groups261/gap467false，生态73/gap927false；180完整候选仍原532历史不重写，179once已消费不重放。此条formalnull/credit0/appendfalse。原背景/按钮/世界选项/无用tooltip删除和Boss反馈未因此实现，无生产/native/任务/工时完成声明。"
+    }
+  ],
+  "limitations": [
+    "最多一个完整RELATED源生命周期或MERGE0待Main独立实际源码审阅。formalnull/credit0/appendfalse；helpers/计时数值/字段/入口/target集合/criterion/包/渲染几何/名称/变体0额外信用，919行和任何检查不抵1000参考。",
+    "固定本地mapped1.20.1Forge47.4.10 source archive，非远端最新或用户部署运行配置；当前native不能证旧Wizardry/EvilCraft依赖同构，Core tag/build750与native dispatch缺口仍保留。",
+    "当前13成员15段919unique/8全文；Entity/ThrownTrident/Factory/client handler/registry仅所列段，不穷尽全部父类、虚thunderHit目标、伤害火焰免疫、事件订阅、空间查询和实际transport/renderer运行。旧180Entity equals11行复用0另列，不加当前919。",
+    "严格先完整读旧75/472四业务与group23并存before-source checkpoint，之后才读LightningBolt247并扩链。472直接group键未检到，不造归属；全533元数据筛选非全533源码/全局语义新颖证明。",
+    "per-pass query可重复，hitEntities只是终止匹配参考；事件取消、hurtfalse、受伤、HP、存活、控制、目标变化和任务进度不互相替代。所有listener/targetoverride/移除或异常重入未穷尽，不声称必现多次伤害或一bolt只处理一item。",
+    "listener discard后for无本地break/removed门是条件源码事实；其它回调、list后续变化、异常可改变路径。不能将当前native局部正常返回逻辑当旧472实际事件顺序、运行漏洞或全局幂等保证。",
+    "life2先减、负值随机等待/reset1、当前active分支是tick调用顺序；未证明墙钟期限、所有调度下固定次数、client/server相同seed/flash或任何真实不同步故障。",
+    "visualOnly并非包围所有powerRod/copper/gameevent/终止criterion；这些块侧已有其它研究范围持有0新增，不改生态与材料/世界内容，未跑真实天气/铜块或目标试验。",
+    "criterion消费的是source选择/当前alive/当前bystander及predicate/listener，仍非实际hurt、Boss控制拒绝、击杀、奖励或原生拾取回执；任何任务接入/实际发奖未改。",
+    "noSave/own空IO/空synched和generic packet字段仅所读类链；不是全继承save/load/Clone/外部tracker/模组包或持久预算安全证明，0新NBT/迁移信用。",
+    "Channeling producer uncheckedadd与声请求不证明源入世，trident先hurt且Enderman成功早退是既有caller返回支持0，不把该producer本身拆新whole。未审所有自然天气/命令/模组构造入口。",
+    "当前input16仅观察，旧533/73或180的532历史不静默重绑定。179 marker永久消费，蘑菇private保持原样，无自动once/plan/validator/executor或私有三表授权。",
+    "无Java/JVM/Gradle/项目脚本/import/help/网络、进程/UI/显示/唤醒/音量亮度焦点、游戏/用户实例原档/Jar/专业资产、生产/正式研究表/session/active/pending/ownership/外部提示词写删、Git提交推送发布、新chat/定时或任务删除。主动工时null/十小时未核实/全部完成false。"
+  ],
+  "applications": [
+    "Boss免控反馈必须绑定当前target/attempt的真实控制拒绝；雷击source存在、亮屏/雷声、被候选选中、进入hit集合、criterion调用或hurtfalse都不是这一回执。提示与权威源/目标结果分层，普通重复结算抑制不叫免疫。",
+    "多轮危险源应显式区分每轮尝试名单、累计选择记录、实际接纳记录以及结束时当前资格；取消一个目标调用不自动移除源或使余轮终止。生命周期与有限反馈需自己的当前attempt及终止语义，不由本地seed/flash替代。",
+    "保持原ID/奖励/进度，未来仍按材料来源→既有任务前置→实际付款/制作→明确typed产物→预期原生获取回执。通用雷击cancel/物品转化/铜块操作/helper/包和渲染留旧所有权0；整体不足即MERGE0。"
+  ],
+  "current_context_receipt": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program179-Main-actual533-three-data-application-20261114.json",
+    "sha256": "a4dbc197e8dab196b0e25b4f72129e8402aa0047d3ca3651368485f2991926f3",
+    "bytes": 20286
+  },
+  "current_context_from_receipt": {
+    "program": 533,
+    "groups": 261,
+    "program_gap": 467,
+    "program_gate": false,
+    "ecology": 73,
+    "ecology_gap": 927,
+    "ecology_gate": false
+  },
+  "actual_program_data_observation": {
+    "rows": 533,
+    "groups": 261,
+    "progress": {
+      "target": 1000,
+      "reviewed_effective_semantic_dedup": 533,
+      "remaining": 467,
+      "source_projects_acquired": 79,
+      "acquisition_credit": 0,
+      "formal_design_gate_satisfied": false,
+      "production_changes": false,
+      "game_started": false,
+      "counting_note": "Each manually reviewed semantically independent game implementation site earns 1; full containing methods and native chain context are evidence, not extra credits. Method/file counts, wrappers, ports, constant-only variants and candidate hits earn 0. Semantic cross-project review still requires human-agent judgment; verifier checks key uniqueness and hashes only."
+    }
+  },
+  "fresh16": [
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "4c3b575e53c876fd145601c9f203131b2597a8016739e5117224bc4bd2ec421d",
+        "bytes": 71715445
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "4c3b575e53c876fd145601c9f203131b2597a8016739e5117224bc4bd2ec421d",
+        "bytes": 71715445
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "79ca3213d1f78e2ec23b9e461894897a0236e2779b77285b51bbb12096a73f76",
+        "bytes": 2821347
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "79ca3213d1f78e2ec23b9e461894897a0236e2779b77285b51bbb12096a73f76",
+        "bytes": 2821347
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "7c1935c2fcb41d5530354453091e1d64a3f62f140b05d81db5d6b37a37566774",
+        "bytes": 631
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "7c1935c2fcb41d5530354453091e1d64a3f62f140b05d81db5d6b37a37566774",
+        "bytes": 631
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "92a5a7b6f6866b0a61bf9e3ce6b8f8c976aa0dc1b63103cf689071c35b80c9ee",
+        "bytes": 21113588
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "9939ce72be7092fee7bf216c1903c9e930776457cbe720a5cef0cae4a9a46ec8",
+        "bytes": 27879406
+      },
+      "match": false
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "431e736387329cde303facbf4099924c7fc3fd2a6b8b6e15688bebd384993524",
+        "bytes": 20586363
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "83b6e95ba3c9adf656a1bec9fe9feb59c6f40a863c5f6a87815fb5c74b96ea16",
+        "bytes": 27095560
+      },
+      "match": false
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "4d1a541d31713c29f9afb21d901124d8102925291648108064959bdd373bdad4",
+        "bytes": 2318673
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "265c868a1dae0243b66def7c6778b27425c902efb028ec809635496e8a176beb",
+        "bytes": 2457776
+      },
+      "match": false
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "be30744c14329682d1d45009acb80d362debd0a3fb9f7d6a98d59ef953ee48a5",
+        "bytes": 333207
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "af89a05fdfc9fe7cd9e0faa6b0f67d9294199d9ca3e6fbcebb429834baffdeb2",
+        "bytes": 343356
+      },
+      "match": false
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "6da6114698519f6d90281ce1d7cc1f68509ee34b33046a4e817d3dbc5b763049",
+        "bytes": 1162124
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "de3c63f9b169242621052b28c4a2f6d9d99ca2ffab451b702f4a0f8ad3c4fb76",
+        "bytes": 1180430
+      },
+      "match": false
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+        "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+        "bytes": 264172604
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+        "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+        "bytes": 264172604
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+        "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+        "bytes": 16879
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+        "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+        "bytes": 16879
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+        "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+        "bytes": 60249
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+        "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+        "bytes": 60249
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+        "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+        "bytes": 176564
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+        "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+        "bytes": 176564
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+        "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+        "bytes": 88472
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+        "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+        "bytes": 88472
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+        "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+        "bytes": 114611
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+        "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+        "bytes": 114611
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+        "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+        "bytes": 13391
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+        "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+        "bytes": 13391
+      },
+      "match": true
+    },
+    {
+      "receipt_binding": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+        "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+        "bytes": 63710
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+        "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+        "bytes": 63710
+      },
+      "match": true
+    }
+  ],
+  "all16_match_Main533_ec73_receipt": false,
+  "source180_complete_saved_original_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-180-native-area-cloud-recipient-predebit-actual1266-complete-source-HOLD0-20261114.json",
+    "sha256": "6ba92bd1495d1331b9ff6e919de39b57244f80dc2b4f1ef4c36a2f4bccd80f81",
+    "bytes": 190988
+  },
+  "source180_original532_context_not_rewritten": true,
+  "metadata_only_discovery_credit": 0,
+  "data_checks_semantic_credit": 0,
+  "checks": [
+    {
+      "name": "complete old-before-source checkpoint exact",
+      "pass": true
+    },
+    {
+      "name": "old whole-first complete",
+      "pass": true
+    },
+    {
+      "name": "actual533 Main receipt binding",
+      "pass": true
+    },
+    {
+      "name": "180 saved candidate unchanged",
+      "pass": true
+    },
+    {
+      "name": "fixed archive exact",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/world/entity/LightningBolt.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/world/entity/LightningBolt.java:1",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/world/entity/projectile/ThrownTrident.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/world/entity/projectile/ThrownTrident.java:104",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/world/entity/Entity.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/world/entity/Entity.java:2294",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/world/entity/Entity.java:3150",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/world/entity/Entity.java:3277",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraftforge/event/ForgeEventFactory.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraftforge/event/ForgeEventFactory.java:371",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/world/entity/EntityType.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/world/entity/EntityType.java:227",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraftforge/event/entity/EntityStruckByLightningEvent.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraftforge/event/entity/EntityStruckByLightningEvent.java:1",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/advancements/critereon/ChanneledLightningTrigger.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/advancements/critereon/ChanneledLightningTrigger.java:1",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/advancements/critereon/LightningStrikeTrigger.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/advancements/critereon/LightningStrikeTrigger.java:1",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/client/renderer/entity/LightningBoltRenderer.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/client/renderer/entity/LightningBoltRenderer.java:1",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/advancements/critereon/LighthingBoltPredicate.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/advancements/critereon/LighthingBoltPredicate.java:1",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/advancements/critereon/SimpleCriterionTrigger.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/advancements/critereon/SimpleCriterionTrigger.java:1",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/client/multiplayer/ClientPacketListener.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/client/multiplayer/ClientPacketListener.java:445",
+      "pass": true
+    },
+    {
+      "name": "fixed archive member net/minecraft/network/protocol/game/ClientboundAddEntityPacket.java",
+      "pass": true
+    },
+    {
+      "name": "actually read bounds net/minecraft/network/protocol/game/ClientboundAddEntityPacket.java:1",
+      "pass": true
+    },
+    {
+      "name": "actual13members15ranges919unique8whole",
+      "pass": true
+    },
+    {
+      "name": "18findings13limits3apps",
+      "pass": true
+    },
+    {
+      "name": "16 current dependency observations",
+      "pass": true
+    },
+    {
+      "name": "old whole still exact 75",
+      "pass": true
+    },
+    {
+      "name": "old whole still exact 472",
+      "pass": true
+    },
+    {
+      "name": "old group still exact 23",
+      "pass": true
+    }
+  ],
+  "check_count": 39,
+  "no_authority": {
+    "formal_writes": 0,
+    "production_changes": 0,
+    "UI_completed": false,
+    "native_credit": 0,
+    "new_private_three_once_intent_executor_validator": false,
+    "task_deletions": 0,
+    "session_or_master_writes": false,
+    "active_hours_claimed": null,
+    "all_tasks_complete": false,
+    "old179_once_permanently_consumed": true,
+    "mushroom_private_not_changed": true
+  }
+}

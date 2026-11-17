@@ -1,0 +1,88 @@
+{
+  "schema": "dynasty-program180-complete-oldwhole-before-source-reading-receipt-v1",
+  "recorded_at": "2026-11-14T02:46:29.670306+00:00",
+  "complete_old_comparisons": [
+    {
+      "index": 166,
+      "id": "spellengine-cloud-active-only-hit-budget-and-idempotent-winddown-feedback",
+      "complete_four_business": {
+        "full_chain_observation": "SpellDelivery.deliver CLOUD→CloudPlacer.placeCloud→onCreatedFromSpell→world.spawnEntity→原生tick ACTIVE范围尝试→onImpactPerformed/Cap→beginDespawn→setPhase/FX→DataTracker→setupAnimationStates→TTL discard",
+        "concrete_observation": "CloudPlacer实际生成cloud，onCreated将active秒换ticks并加spawn/despawn时段。server原生tick仅ACTIVE且age%impact_tick_interval==0尝试范围，成功回调累计cap并beginDespawn；后者server且未已despawn才把TTL改为age+ticks，立即setPhase避免多一帧ACTIVE。setPhase仅阶段变化时触发despawn FX，tracker同时发布阶段结束绝对age。客户端按phase驱动spawn/idle/despawn动画，环境particles/presence声并不限定ACTIVE。 主岗：实际Cloud ACTIVE成功循环预算/三阶段幂等winddown控制和反馈合计1，区别已有Wall逐目标窗口和本批AOE聚合；interval=0/数据缺失/owner预算不持久化缺口保留，不按音粒子/变换/阶段拆计。",
+        "application_to_boss_immune": "有效命中窗口与外观存在期分开；权威阶段转换生产一次结束反馈，临时控制/提示退出不能凭客户端环境粒子停止来判断。",
+        "limitations": "该预算消费受上一条AOE返回语义影响，不代表实际伤害次数；getCloudData缺失会return而非discard，interval=0没有本地防护，不能声称任意配置安全。NBT未保存impactsPerformed/impactCap/owner/context，虽然保留时段，不能声明完整预算/所属跨加载恢复。未运行。 主岗已逐项读取完整方法/原生调用上下文；005Java来源blob核验，common注册资源只有固定commit完整web观察，原始资源TLS失败后停止请求，未宣称raw资源hash或Mixin运行通过。纯渲染数学/包装0，无游戏/TCP/观感验收；普通阴阳无灰字，守卫旧账0。"
+      },
+      "canonical_sha256": "b6cd2fe117a93d16e13910d186c10b45f61d4280f187a1615eb5c354c4f4db17",
+      "whole_row_canonical_sha256": "91894084319fadc0e4dbfb4a7bf5f9b38cd6da7fe51ffbf2b4ad73cd3e2511ba",
+      "actually_read_in_complete_unclipped_outputs_before_new_source": true
+    },
+    {
+      "index": 177,
+      "id": "cyclic-native-potion-refusal-versus-recursive-replacement",
+      "complete_four_business": {
+        "full_chain_observation": "实际Applicable监听先启用antiPotion→DO_NOT_APPLY并耐久调用；否则stealth/boost装备决定拒绝原实例、设置递归guard、重新addEffect修改粒子可见性/时长，finally清guard。",
+        "concrete_observation": "同最终监听与重入保护语义合并1，不将三个charm名字多计。antipotion拦所有效果含有益；相同DO_NOT_APPLY也可能是隐藏粒子/延时替换而非免疫。重入guard是监听实例全局bool而非目标/线程局部，同步嵌套其它玩家请求可绕过本监听。replacement addEffect返回未查，其它监听仍可拒绝，因此不能把原事件拒绝当新效果已接纳。",
+        "application_to_boss_immune": "Boss灰字仅明确Boss拒控分支触发；普通重写/替换/资源失败不显示免疫。",
+        "limitations": "固定b2213600474fa088702dec68a783549e44dfa6ae；实际完整方法及原生事件调用全文观察，非运行/TCP/像素/声音验收。通用外部library调用只记调用事实，不假定其内部效果/耐久扣除成功；不改正式代码、资产、待办，不给普通阴阳加灰字。"
+      },
+      "canonical_sha256": "7e1d052ee8feb3a5e1585fd1866955c20476c72570a68e2f894137f5be272590",
+      "whole_row_canonical_sha256": "ba7c20df529fe16c4ff95cfdfc1f3b30b3c0668fedfa9db1ae328e7bd9271b92",
+      "actually_read_in_complete_unclipped_outputs_before_new_source": true
+    },
+    {
+      "index": 483,
+      "id": "astralsorcery-native-area-tick-list-capture-with-position-dedup-and-class-qualified-stale-object-release",
+      "complete_four_business": {
+        "full_chain_observation": "One complete autonomous area-control policy, not an entity-versus-block variant: registered Horologium mantle reacts to qualified native player hurt, creates a fixed-center zone excluding current player numeric ID, commits shared mantle cooldown, then attempts400 charge drain. Gate includes actual chest mantle/weak registered constellation/enabled effect, server/nonfire/no cooldown/affordability. Original hurt is not canceled. No intervening shown charge mutation supports a free-zone claim; ignored drain result is only a transaction boundary. Defaults range20/life180/cooldown1000 are not installed configuration.\nTimeStopController appends newly created zone into dimension list and separately requests provider ADD; return zone/non-null is not an accepted-target receipt. Zone lifetime decrements at SERVER START, then scans until expired; controller checks before and after tick, so last positive lifetime pass can capture and release within the same call. Producer removal or mantle swap does not revoke the autonomous zone.\nTimeStopZone scans bounding chunks with world.getChunk, not a demonstrated loaded-only query. In-sphere tiles must be ITickable, permitted by blacklist and currently in world.tickableTileEntities. It removes the actual object before safeCacheTile. Cache deduplicates by BlockPos only. A same-position replacement can be removed without another cache record; overlapping zones observe the already-removed tick participant. No source-owned reference-counted lease.\nOn stop, retained object is reinserted only when current block reports a tile and constructing a fresh current-block tile yields a class assignable from the cached class. It reinserts the old cached object, not that new factory object or verified current tile. No current-instance identity, removal flag, generation, active overlapping owner or existing list-membership check. Cache is cleared and zone deactivated. Compatible replacement or overlapping lifetime issues are conditional static ownership boundaries, not reproduced duplication/permanent freeze.\nEligibility blacklist includes exact/subclass errored classes and configured type/prefix decisions. Defaults exclude storage and several Astral tiles. ConfigDataAdapter before build exposes empty generated data; postbuild class resolution/cached lists depend on external config lifecycle. Acceleration exception path can blacklist class for future scans; no retroactive release of already cached tiles is shown. No claim about actual installed target eligibility.\nConcrete corrupted CEffectHorologium reuses center-containing zone without producer/range identity match and refreshes100, else creates a100 no-player zone. Full concrete class actually read, but parent ritual activation remains outside this new entry proof,0 extra producer credit. Normal acceleration uses bounded4..5 manual updates and exception blacklist; mode/constants/helpers0 extra.\nExisting Main045 living/knockback update veto and selected maintenance are reused0. Area containment differs from direct freeze-ID membership, skips current excluded ID/dead/dying dragon/player-policy cases, uses current position geometry. LivingDestroyBlock direct-membership path does not become area tile-control evidence. This is native update participation control, not total motion stop, damage immunity or a Boss refusal implementation.\nDataTimeFreezeEffects stores per-dimension helper list plus queued ADD/REMOVE; helper equality uses center/range but omits controller/owner/TTL/nonce. Equal geometry removal can remove a different helper. Per-world clear removes server display state without dirty/queued-clear operation, while server/client cleanup paths differ. No universal area-owner release acknowledgement.\nClient helper read applies dimension area snapshots by clearing all, unlike prior direct entity-set reader absent-dimension behavior. Visual helper queries current nearby living/tile objects, not actual server tick cache. Controller identifier/geometry packet lacks accepted target identity, reason, expiry or release-result acknowledgement; particles and network transmission establish no authoritative freeze/restore.\nWorld unload clears sync world state and asks controller to stop/release cached zones, then removes map; no explicit CLEAR display action. Client disconnect clears its local maps; server stop cleanup and world unload ordering remain native-engine boundaries. No source-owned durable zone/cache NBT: helper NBT is transport only, not a tested save/restore transaction.\nCompared complete current saved SlowTime orphan cleanup, reversible statue actor host and replenished consumed Roots control-token decisions. Exact own prior Main045 Vortex whole judgment reused unchanged, not newly reread as another mechanism. Vortex renews a retained entity timeout/numeric membership; this policy removes tick-list objects, deduplicates positions and explicitly releases retained instances after a class-qualified current-block test. Combined capture/ownership/release differs; the shared entity veto/particles/registry/cooldown/config/resource/NBT helpers alone earn0.\nApplicable to Dynasty final control admission and finite feedback ownership: authoritative refusal must be tied to the actual selected target and operation; area/source success is insufficient. Restore only the state this operation still owns, distinguish replacement and overlapping controllers, and use expiry/unload/client teardown receipts. This is one research reference only; no new gray text, Boss behavior, quest, art or production change.",
+        "concrete_observation": "Actual tile tick participation removed before position-only caching, later old object reinserted under current block factory class check without current object identity/overlap lease. Whole admission/capture/ownership/release policy distinct from prior retained entity timeout, live-entity updateBlocked restoration, reversible statue or disposable token replenishment.",
+        "application_to_boss_immune": "Applicable to Dynasty final control admission and finite feedback ownership: authoritative refusal must be tied to the actual selected target and operation; area/source success is insufficient. Restore only the state this operation still owns, distinguish replacement and overlapping controllers, and use expiry/unload/client teardown receipts. This is one research reference only; no new gray text, Boss behavior, quest, art or production change.",
+        "limitations": "Historical fixed Astral1.16-indev and ObserverLib1.5.2 sources, not current installed Dynasty1.20.1 native runtime/config. Native event cancellation/dispatch, ITickable list iteration, block factory behavior, unload ordering, world chunk access, rendering/network and ritual parent activation not executed or expanded.\n53 cited ranges46files39whole4279 unique cited lines bound;17 freshly read ranges1469lines and36 previously Main-read ranges reused0. Also reread complete old DataTimeFreezeEffects181/TimeStopController179/TimeStopZone210 only for context0. Prior clipped exploratory/combined output recovered with bounded original source; no clipped or metadata-only output counted as actual source reading.\nAll current source SHA/blob/tree/commit/manifest/excerpts verified once inline for this new delta. Three closest whole substantive decisions freshly read; own Main045 whole source/judgment reused0. Broad483 text screen is not483 original implementation rereads. Binding/file/range counts0semanticcredit.\nNo reproduction of overlapping-zone/replacement/negative-lifetime/missing-provider effects, actual cost failure or tile corruption. No assertion of exact visual correspondence, duration in wall time, loaded-only scans or universal player/Boss immunity. Comments and nullable annotation do not override actual nonnull construction.\nNo old author test suite/verifier/source chain rerun; no Java/Gradle/native game/ps/display/wake/audio/brightness/focus/world/shared Jar/assets/main task deletion/automation/hour claim."
+      },
+      "canonical_sha256": "c385f44e4e79a66e9a2901f3352f2bc8b4403880eb9743c7147234e482246ebe",
+      "whole_row_canonical_sha256": "29a1f4e788fbee0696f3c9293a6c97543ee80959cc3f5cc5921b3225987add17",
+      "actually_read_in_complete_unclipped_outputs_before_new_source": true
+    }
+  ],
+  "complete_old_groups": [
+    {
+      "index": 36,
+      "complete_group": {
+        "family": "herschel-005-primary-reviewed",
+        "credited_chains": [
+          "iron-counterspell-busy-own-summon-final-refusal-and-unconditional-beam",
+          "iron-interrupted-cast-explicit-uuid-receipt-and-client-teardown",
+          "spellengine-impact-fx-detached-anchor-survives-source-removal",
+          "spellengine-area-result-last-target-not-any-and-unconditional-fx",
+          "spellengine-combat-attached-model-worldtime-lease-and-first-person-policy",
+          "spellengine-combat-standalone-model-native-age-lifetime-and-reload-gap",
+          "spellengine-cloud-active-only-hit-budget-and-idempotent-winddown-feedback"
+        ],
+        "rationale": "7独立游戏职责：busy自有反制门；cancelled回执清退；detached坐标FX；AOE聚合结果；附着worldTime表；独立age实体；cloud三阶段预算反馈。各方法/平台/几何0额外，弹历史并已有家族0，注册补证0。"
+      },
+      "canonical_sha256": "775d34c93dad6f1945b85195eb9c8250cb4b37f590ba92a822eb8ce145f98e96",
+      "actually_read_complete_before_new_source": true
+    },
+    {
+      "index": 40,
+      "complete_group": {
+        "family": "cyclic-native-batch33",
+        "credited_chains": [
+          "cyclic-native-antibeacon-cached-region-effect-refusal",
+          "cyclic-native-knockback-charm-final-event-cancellation",
+          "cyclic-native-potion-refusal-versus-recursive-replacement",
+          "cyclic-native-render-produced-laser-server-target-validation"
+        ],
+        "rationale": "区域缓存拒附加；原生击退取消；拒绝与递归替换语义；真实激光C2S验证/结果链共4。方法、装备常量、粒子及注册均非额外信用。守卫旧账0，助手来源未占。"
+      },
+      "canonical_sha256": "8baed549364eae243991f308bd2597822d248d59a28e66c828a5cb8c56accab0",
+      "actually_read_complete_before_new_source": true
+    }
+  ],
+  "old483_exact_direct_group_id_lookup_found": false,
+  "old483_group_mapping_not_invented": true,
+  "no_exhaustive532_source_novelty_claim": true,
+  "new_source_body_read_before_this_receipt": false,
+  "formal_credit": 0,
+  "formal_id": null,
+  "append_authorized": false,
+  "production_changes": false
+}

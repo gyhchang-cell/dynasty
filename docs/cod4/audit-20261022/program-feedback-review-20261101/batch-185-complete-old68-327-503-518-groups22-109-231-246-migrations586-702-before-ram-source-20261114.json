@@ -1,0 +1,557 @@
+{
+  "schema": "dynasty-185-complete-old68-327-503-518-groups22-109-231-246-migration586-702-before-ram-source-v1",
+  "recorded_at": "2026-11-14T04:23:38.452775+00:00",
+  "status": "COMPLETE_SELECTED_OLD_WHOLE_COMPARISONS_READ_BEFORE_NEW_RAM_SOURCE",
+  "complete_old_comparisons": [
+    {
+      "index0": 68,
+      "id": "ars-knockback-resistance-final-motion-gate",
+      "complete_four_business_actually_read_this_turn": {
+        "full_chain_observation": "EffectKnockback.onResolveEntity→caster/turret方向→final strength gate→setDeltaMovement",
+        "concrete_observation": "onResolveEntity经方向计算重载到最终knockback(Entity,double,..)，living strength乘1-resistance，仅strength>0时写hasImpulse及速度；调用方无条件hurtMarked。 主岗复核：最终knockback按目标阻力乘算且strength>0才写运动；与下限0.2/0.3仍强制移动的策略有实质区别。",
+        "application_to_boss_immune": "最终物理写入门可以明确说明阻力1导致无位移；拒绝运动与网络脏标记不是一回事。",
+        "limitations": "伤害系统未调用，零强度也可能来自配置或负amp；不能将每个不动目标都叫Boss免疫。 静态源码研究，不证明画面/声音或TCP。普通阴阳体质不要求灰字；守卫旧账0自动转入。"
+      },
+      "business_canonical_sha256": "b1454899db3f62899fc57328a24ac2ad49ef5b7d6c5879d838abf83761bb4766",
+      "whole_row_canonical_sha256": "eecc13833983a01bf98c88e50c55f232f9a8011d4f4ba445b26a036f8a087309",
+      "old_raw_source_ancestors_newly_read": false
+    },
+    {
+      "index0": 327,
+      "id": "lycanites-native-melee-temporary-knockback-resistance-restore-skipped-on-failed-hit",
+      "complete_four_business_actually_read_this_turn": {
+        "full_chain_observation": "实际wraamon JSON→反射注册，initEntityAI装原生meleeGoal。Goal.updateTask范围/攻击冷却触发host.attackMelee。Wraamon先保存目标KNOCKBACK_RESISTANCE.getAttributeValue()并setBaseValue(1)，再super.attackMelee；父方法挡格不可攻击或attackEntityAsMob失败立即false。只有父返回true才恢复target baseValue为保存值；attackEntityAsMob有alive/target/LOS gate，穿透与普通伤害分段且返回第二段结果。",
+        "concrete_observation": "计1：一次攻击期间目标属性临时拒击退及恢复条件的独立结算位点，区别Goety单次event stamp清除。父false时无finally，目标baseValue可残留1；保存的是总attributeValue而恢复到base，并非原base，带modifier时亦非精确回滚。穿透首段可能已成功而第二段false，不能据最终false认定完全未受伤或Boss免控；未实机验证该源缺陷。粒子/伤害段/Goal包装不另计。",
+        "application_to_boss_immune": "避免用临时改目标属性模拟Boss免控；拒绝反馈只由明确控制准入产生。若必须临时修改，保存原base并覆盖所有返回路径恢复，不能用hurt布尔决定清理。",
+        "limitations": "完整Wraamon、meleeGoal、父attackMelee及attackEntityAsMob已读；CreatureInfo完整注册方法复用。原版属性聚合/目标hurt内部依赖未独立计数；无正式修改。"
+      },
+      "business_canonical_sha256": "c1ac9633b0716a56d0fe839530e038aee1d2cee9a3f83b9d2754133af2274968",
+      "whole_row_canonical_sha256": "724ce754528410f04f41772665e841ae46ccec3bb6f1a7ea7fffdf2de1ddb24f",
+      "old_raw_source_ancestors_newly_read": false
+    },
+    {
+      "index0": 503,
+      "id": "native-brain-running-attempt-with-expiring-memory-release-predebit-before-current-target-requalification-and-result-independent-sonic-settlement",
+      "complete_four_business_actually_read_this_turn": {
+        "full_chain_observation": "One related native attack-attempt lifecycle is substantively supported: qualified entry begins a gameTime-bounded RUNNING behavior; separately expiring memory gates a release latch, debited before current target requalification; normal damage return does not gate push; stop writes shared cooldown. At most1 whole, not separate Brain/timer/ray/force/event/codec/file/entity references. Brain starts STOPPED behaviors only IN ACTIVE eligible activities, then ticks all RUNNING behaviors without that active filter. This is the explicit corrected interpretation of original concatenated in+active wording; original observation retained plus additive clarification. setActiveActivity erases configured other-activity memories but does not itself stop behaviors. Explicit stopAll does call doStop. At release, both sound delay and sound cooldown must be absent. Sonic writes SOUND_COOLDOWN TTL26 BEFORE current ATTACK_TARGET retrieval/filter. No eligible current target can therefore consume the normal opportunity without particles/damage. It is a local release latch, not payment, conserved ammunition, refund, irrevocable global once-only transaction or guaranteed shot. Sonic.stop sets only SONIC_BOOM_COOLDOWN40; it does not clear all attack/sound memories, refund a spent release or issue a victim-specific failure receipt. Warden.setAttackTarget writes target and cooldown200, and doHurtTarget writes cooldown40 before parent result. Shared memory can be changed by other actions; not a private per-target escrow.",
+        "concrete_observation": "Original observation 1: ONE proposed native Brain attack-attempt lifecycle whole: memory-qualified entry and gametime-bounded RUNNING attempt separate from expiring-memory delay/release latch; consume release opportunity before current target requalification; independent shot/hurt/push/cue then stop cooldown. Atmost1relatedorMainmerge0, no extra ray/threshold/timer/Brain/helper/species/event/codec credit.\nOriginal observation 2: Actual EntityType.WARDEN constructsWarden. Warden.makeBrain delegatesWardenAi, whose full156lines register allSonic memories, core/defaultactivities andFight list. Actual customServerAiStep ticksBrain before ordinary parent/darkness/anger andupdateActivity; containingWarden andfullouterMob/NoAI invocation notwhole read/run.\nOriginal observation 3: Fight is activity requiringATTACK_TARGET andconfigured to erase it onactivityexit. Ordered list includes digcooldownsetter, StopAttackingIfTargetInvalid, look/walk, newSonicBoom thenMeleeAttack18. BraincreatePriorityPairs increments priorities, TreeMap traversesascending; genericdeclarativebuilder/sensors/hooks canaffectconditions, not fullyexpanded. No separateactivity/goalcredit.\nOriginal observation 4: CompleteBehavior constructor andSonic entry: ATTACK_TARGETpresent, SONIC_BOOM_COOLDOWNabsent, other2soundmemoriesREGISTERED; stricthorizontalXZdistance<15 andverticaldifference²<20² throughEntity.closerThan. REGISTERED onlymeansslotexists, notsoundlatchesabsent. No directLOS/raycast inownSonicstartcondition; external targetselection mayapplyothergates.\nOriginal observation 5: Behavior.tryStart checksentry+extra once, marksRUNNING, drawsfixedduration60 fromequalmin/max andstoresendTimestamp=currentgameTime+duration beforestart. tickOrStop lateronlytimeout andcanStillUse; Sonicreturns true unconditionally. Entrymemoryconditions/range notautomaticallyrechecked there eachrunningtick. Timeout usesstrictgameTime>endTimestamp, not>= or guaranteed60wallticks.\nOriginal observation 6: Sonic.start writesATTACK_COOLING_DOWN trueTTL60 andSOUND_DELAY UnitTTL34, requestsentityevent62 andWARDEN_SONIC_CHARGE sound. These precede eventualcurrent-target eligibility. No immutablevictim/attemptUUID captured inSonic fields; laterbodyrereadsATTACK_TARGET. Charge/animation notsuccessfulshot/refusal receipt.\nOriginal observation 7: Brain.tick firstforgetOutdatedMemories, ticksensors, startsnonrunningbehaviors inactiveeligibleactivities, thenticksallRUNNINGbehaviors. getRunningBehaviors traversesallactivitieswithoutactivefilter. setActiveActivity erasesconfiguredmemoriesbutdoesnotcallstop here. Target/activityloss alone therefore doesnot prove immediatestop ofthiscanStillUsetrueattempt; explicitstopAll doesinvoke doStop. Wholeengine/overrides canstillstop/remove behavior.\nOriginal observation 8: ExpirableValue storesrawlongTTL, decrementswhenfinite andhasExpired iff<=0. Brain sweepexaminesexpired BEFORE decrement; slotsetter/getter/checkMemory useOptionalpresent withoutanexpirytest. Avaluebecoming0bydecrementremains untilnextsweep. This is delivered-Brain-update countdown, separatefromBehavior gameTime timestamp; no exact1.7seconds/dualclock atomicity/runtimeoffbyone orpause exploit asserted.\nOriginal observation 9: Each Sonic.tick firstlooks atcurrentattacktargetposition ifpresent. WhenbothSOUND_DELAY andSOUND_COOLDOWN absent, it writesSOUND_COOLDOWN UnitTTL26 BEFORE fetching/filteringcurrenttarget. Missing/ineligible/outofrange target cantherefore spendthisreleaseopportunity withnoray. Within normaldurationthelatchsuppressesownretry; externalmemorywriters/removal/callbacks remainoutside, notguaranteedexactlyonce.\nOriginal observation 10: ActualreleasecanTargetEntity requiresLivingEntitysamelevel, nativeNO_CREATIVE_OR_SPECTATOR predicate, notallied/notARMOR_STAND/notWARDEN/notinvulnerable/notdeadordying andworldbordercontainsboundingbox; thencloserThanstrictXZ15/Y20 again. These aredifferentfromentry/anger/currentloadedBosscontrolpredicates. NO_CREATIVE selector/alliances/worldborder/subclass internals notexhaustivelyaudited.\nOriginal observation 11: Qualifyingrelease usesemitterposition+y(double)1.6F tocurrentvictimeyes, normalizesvector, requestsSONIC_BOOMparticles fori1..<floor(length)+7 thenplaysboomsound. Itdoesnottraceblocksorcollidealongray inownbody. Sourceparticlepattern notworldadmission/visiblepixels/physicalprojectile orallterrainhitguarantee; vectors/math/backend remainboundaries.\nOriginal observation 12: Thenhurt(sonicBoom(emitter),10) booleanignored; normalreturnalwaysreadsKBRandpushesdirection*(2.5horizontal,.5vertical)*(1-KBR). BaseEntity.push addsdeltaMovement andsetsImpulse, notdirectsetPos/actualmotion. Parenthurtfalse notcancelthese laterrequests. This genericresult-independentray/force part isalreadyknownArs/Guardian/sharedsupport0, notthestatednewwhole byitself.\nOriginal observation 13: Sonic.stop onlysetsSONIC_BOOM_COOLDOWN TTL40; ownbodydoesnotclearothersound/attackcoolingmemoriesorissueaborted-victimreceipt. Warden.setAttackTarget separatelyclearsroar/cantreach, writesnewtarget, resetsSoniccooldown200. Warden.doHurtTarget setsSoniccooldown40 BEFOREsuperhurtresult. Sharedmemorycanbeaffected byotheractions, notprivatepervictimrefund/transaction.\nOriginal observation 14: WholeMeleeAttack builder requiresATTACK_COOLING_DOWNabsent+target+nearestvisible, thenrange/usableweapon check, swings/doHurtTargetignoredbool andwrites18cooldown. Sonicstart cooling60canwithholdthatlocalMelee branch. FullcommonMobattack/behaviorbuilder/externalcallers unexpanded; no universalmelee-lock guarantee orallattacksblockedclaim.\nOriginal observation 15: WholeStopAttackingIfTargetInvalid useslivingtarget/currentlevel/canAttack/custompredicate; Warden passesfalse tiredreachflag andanger/canTargetpredicate, invalidconsumer optionallyclearsanger/setdigcooldown thenerasestarget. This canchangeATTACK_TARGET independentlyofalreadyRUNNINGSonic. Sourceorderingnormalcallbacks only, no reproducedstaletargetattack/race.\nOriginal observation 16: Warden.handleEntityEvent62 startsownsonicAnimationState atcurrentclienttick; unlikeGuardianbeam noimmutablevictimID inthatowncue. Sound/particles originateemitter/rayrequests, notdeniedvictimtext. Model/animationclip/particlefactory/fullnetworkconsumer/actualpixelsunexpanded, no animationleak/loop orBossgraytext acceptance.\nOriginal observation 17: MemoryModuleType ATTACK_TARGET/ATTACK_COOLING_DOWN plainregister whilethreeSonicUnit slots explicitlyregistercodec. WholeExpirableValue exposesvalue+optionalttlcodec. FullSonic/Behavior have noownIO, but doNOTinferallSonicmemoryistransient orcompleteinflightreloadresume. Brainpartialcodecexplorationnotcitedascompleteroundtrip; save/world/recreatedbehaviorclocks unverified, migrationcredit0.\nOriginal observation 18: FullGuardianfourfields andgroup16Mainfindings8limits recoveredbeforeanynewSonic source. GuardianownsLOS-progressedselectorrelease, separateID/cache/localclockbeam/sound anddualhurt; proposedSonicownsBrainRUNNINGversusmemoryTTL/latepredebitqualification/stopcooldown lifecycle ifMainfindssubstantivedifferent. Newbeam/sound/damageconstantsalonewould0.\nOriginal observation 19: CompleteArsSonic/Forsaken/Bumblezone judgments/groups read orpriorsealedjudgmentreused0: actor-checkedcounterrayaftercancellation, refusaltocoalescedcharge, combat-revokedpacificationretainfullpolicies. Fourmigrationjudgments (Wardenanger,Shriekerwarning,Ravagerphase,Skreecherlifetimeattempt), completeEA16Main15/9+corrections andhistoricalpending54/actualaccepted826 compared; nativeSoniccooldownhelpersalreadyEA16support0, notnewclasscredit.\nOriginal observation 20: Fresh382crossarea candidate/proposal/whole-review/handoffsemanticdocuments and49receiptsselectedfields screened;13/5matches mostlynestedEA16comparison, notallwholesource review/globalnovelty. Ownpending089/098/108 andaccepted105107/Milk savedfullcontexts retained0. Main10822/12+authorplan presentlypendingformal0; current502/ecology49historicalexact, noindependentcandidatecredit orproduction authorization.\nMain finding 1: One related native attack-attempt lifecycle is substantively supported: qualified entry begins a gameTime-bounded RUNNING behavior; separately expiring memory gates a release latch, debited before current target requalification; normal damage return does not gate push; stop writes shared cooldown. At most1 whole, not separate Brain/timer/ray/force/event/codec/file/entity references.\nMain finding 2: Main actually read all24 cited ranges913distinct lines from12 fixed entries, including six complete declarations SonicBoom, Behavior, WardenAi, ExpirableValue, StopAttackingIfTargetInvalid and MeleeAttack. Remaining containing classes are bounded partials. Inherited or generic helpers are not new credit. All raw keepends/normalized excerpt/private-copy/archive bindings independently verified.\nMain finding 3: Warden EntityType constructor and makeBrain delegate establish local provenance. Full WardenAi registers memories/sensors, initializes core/default and specialized activities; Fight requires ATTACK_TARGET and erases it on exit. Ordered priorities place invalid-target behavior, look/walk, Sonic then Melee; source construction is not current loaded-pack execution.\nMain finding 4: Sonic entry requires target present, sonic cooldown absent and two sound memories REGISTERED. REGISTERED means registered slot, not absence or permission. Extra distance uses strict XZ radius15 and vertical difference20, not a sphere or inclusive boundary. Own start condition has no line-of-sight ray test; upstream target selection remains a boundary.\nMain finding 5: Behavior.tryStart checks entry memories/extra once, sets RUNNING and endTimestamp from current gameTime plus random duration with equal60 bounds, then start. Later tickOrStop uses strict gameTime>endTimestamp and canStillUse, which Sonic returns true. It does not automatically repeat entry memory predicates each tick or capture a target identity.\nMain finding 6: Sonic.start sets ATTACK_COOLING_DOWN trueTTL60 and SOUND_DELAY UnitTTL34, then event62 and charge sound. These requests precede release and do not prove eligible victim, damage, accepted control or paid acquisition. No immutable victim/attempt identifier is stored by this class.\nMain finding 7: Brain starts STOPPED behaviors only IN ACTIVE eligible activities, then ticks all RUNNING behaviors without that active filter. This is the explicit corrected interpretation of original concatenated in+active wording; original observation retained plus additive clarification. setActiveActivity erases configured other-activity memories but does not itself stop behaviors. Explicit stopAll does call doStop.\nMain finding 8: Brain forgetOutdatedMemories precedes sensors/start/run, checks hasExpired before decrementing; ExpirableValue expires at<=0, decrements finite rawlong TTL, MAX_VALUE stays infinite. Setter/getter/checkMemory do not themselves remove expired entries; decrement to0 remains until a subsequent sweep. These update clocks differ from Behavior gameTime, so exact walltime or universal off-by-one behavior is unproved.\nMain finding 9: At release, both sound delay and sound cooldown must be absent. Sonic writes SOUND_COOLDOWN TTL26 BEFORE current ATTACK_TARGET retrieval/filter. No eligible current target can therefore consume the normal opportunity without particles/damage. It is a local release latch, not payment, conserved ammunition, refund, irrevocable global once-only transaction or guaranteed shot.\nMain finding 10: Current target is re-read after warmup and validated by Warden.canTargetEntity and strict distance: same level, native no creative/spectator predicate, not allied/armorstand/Warden/invulnerable/dead-or-dying, world-border bounding box. It need not be the starting target. Selector, alliance, border and subclass internals are not fully expanded; no global Boss-control predicate claim.\nMain finding 11: Qualified ray requests particles from emitter+y(double)1.6F toward current victim eyes, with normalized direction and i=1..<floor(length)+7, then boom sound. Own method does not block-raycast. Source geometry is not an admitted physical projectile, guaranteed wall penetration, drawn pixels, audible output or terrain-wide hit proof.\nMain finding 12: hurt(sonicBoom(emitter),10) Boolean is ignored; on ordinary return KBR then push follows, even if hurt returns false. Base Entity.push adds deltaMovement and sets impulse, not actual displacement/setPos. KBR-dependent requests and parent hurt engine are not an independent new credit or native accepted damage/knockback test.\nMain finding 13: Sonic.stop sets only SONIC_BOOM_COOLDOWN40; it does not clear all attack/sound memories, refund a spent release or issue a victim-specific failure receipt. Warden.setAttackTarget writes target and cooldown200, and doHurtTarget writes cooldown40 before parent result. Shared memory can be changed by other actions; not a private per-target escrow.\nMain finding 14: Whole MeleeAttack requires attack-cooling absent/target/nearest-visible, tests range and usable projectile weapon, then swing/doHurtTarget and cooldown18 without conditioning on damage Boolean. Sonic60 memory can suppress this local branch, not every attack caller. StopAttackingIfTargetInvalid can erase target after predicate/callback; Warden false flag disables its tired-reach check, not all invalidation.\nMain finding 15: Warden server step ticks Brain before parent AI/darkness/anger/updateActivity. Event62 starts its own sonic animation state at current client tick; that own cue carries no immutable victim ID. Source call order is not two-client packet/order/owner identity, rendered clip lifetime or denial-feedback acceptance.\nMain finding 16: Three Sonic Unit memories explicitly register codecs, unlike plain target/attack-cooling registrations; whole ExpirableValue has optional TTL codec. No own Sonic/Behavior IO and partial Brain codec exploration do not prove all sound memory transient, complete in-flight restoration or absent hidden state. Migration credit remains0.\nMain finding 17: Full Guardian four-field judgment and full group including distinct Main16findings8limits were actually compared. Guardian whole is LOS-progressed selector windup/release plus server target versus client ID/cache/local beam clock and split damage/local sound lifetime. Brain RUNNING versus TTL and late predebit current-target qualification is a different whole; generic beam/force/cue alone remains0. Preserve literal Guardian sound target predicate, not an invented hasActiveAttackTarget guard.\nMain finding 18: Full Ars cancellation-before-actor-validation/paid return-ray, Forsaken coalesced refusal-to-countercharge, and Bumblezone combat-revoked pacification judgments and groups were read. Their entire qualification/settlement policies remain owned. This recommendation does not split their shared Sonic/ray/cooldown primitives into new references.\nMain finding 19: Four complete migration saved non-evidence judgments were compared: Shrieker warning, Warden anger UUID state, Ravager resumed phases and Skreecher lifetime attempt. EA16 complete Main15/9/fourcorrections/floor clarification and historical pending54 full findings/distinctions/limits were read. Missing sturdy floor is NOT an explicit Skreecher rejection gate; old Sonic cooldown helpers are EA16support0. Historical826 is accepted now, not newly pending.\nMain finding 20: Candidate assembly history502/108pending remains verbatim, but current actual formal baseline is503/gap497/231 groups following Main108 exact closure. Current ecology49 remains; V2 research install adds no acceptance. Current whole recommendation formal0 pending real author acknowledgment and separately reviewed exact append plan. Old consumed proofs/append markers were not replayed.\nMain finding 21: Dynasty integration would require actual refusal versus actual control and identity-correlated original acquisition/payment receipts, preserving IDs/rewards. Warmup cue, damage request or release-latch consumption cannot satisfy those native gameplay tasks. Applicable1000 gate remainsfalse; no production or checklist deletion is supported by this source review.",
+        "application_to_boss_immune": "Separate start qualification, continuing attempt lifetime, opportunity debit, current-target finalqualification, actualacceptedcontrol andtarget-boundcue. GrayBossrefusal requiresactualfinaldecision; charge/beam/push/animation alone notproof. Researchonly.",
+        "limitations": "Original limit 1: Fixedlocallycached mappedForge1.20.1/47.4.10 exactarchive/extractedbytes only; no freshremote/Git/tree/currentpack/API/tag/config/loadedregistry/brainbuilder/listener compatibility guarantee.\nOriginal limit 2: 24citedranges913lineoccurrences12entries6whole declarations actuallyread; Brain/Warden/Entity/DamageSources/MemoryModuleType/EntityType boundedpartials, notfullengine. Checkpoint25/981incidentalcodecandadjacentread exclusions explicit; helper/file/range/numericcounts0credit.\nOriginal limit 3: One proposedwholememory-qualifiedattempt/latepredebitcurrenttargetsettlement versuscue atmost1orMainmerge0. Genericray/force/particles/ignoredbool, warmup/slots/constants/Brain/codec/helper/entitynamecannotearnanotherreference.\nOriginal limit 4: No Java/Gradle/runtime/AI/combat/world/game/physics/render/audio/networkexecutions. Sourcewrite/request/boolean/cue notactualacceptedHP/displacement/targetidentity/denial/material/quest acceptance.\nOriginal limit 5: BehaviorgameTimebound andmemoryTTLs aredifferentconditionalclocks; owncanStillUsetrue/Brainallrunningdoesnot establishuniversaluncancelableattack. ExternalstopAll, removedbehavior,NoAI/scheduler/timechange/subclasses/hooks unexpanded. No exactwalltime/guaranteedsingle shot/exploitorrace.\nOriginal limit 6: SOUND_COOLDOWNpredebitbeforetargetfiltermaywasteopportunity normally, but externalmemorywriters/composition/callbackfailures unexpanded. No refund/atomicity/exactlyonce/conservedresource orpervictimwindowproof.\nOriginal limit 7: NativecanTarget/start/range checksnotglobalBosscontrolorLOScoverage; fullselectors/sensors/canAttack/alliance/border/mathtype/tagcontents/customrecipients/attributeclamping/hurt backend unexpanded. No universalwallpenetration oralltargeteligibility claim.\nOriginal limit 8: Hurtfalse followednormalreturnpush issharedsupport, notnewsemanticcountoractualknockback. Sound/event62/particlesnotrefusalreason, victimUUID, finalvisibleclip/graytext/microglow/audio acceptance. No model/texture/UV work.\nOriginal limit 9: Brainmemorycodecpartialread+typedUnitregistrations/wholeExpirablecodecnotcompletebrainworld/hiddenstate/persistence/clone/restore. DoNOTclaimallSonicmemoriesnonpersistent; BehaviorfreshendTimestamp/sourceownIOabsencealonecannotproveinflightresumability. No newmigrationcredit.\nOriginal limit 10: Complete4formaljudgments4groups/4migration/EA16Main15/9andhistoricalpending54 judgmentsread; oldunderlyingsourcechainsnotreplayed.382metadata/selected49receiptchecks arediscoveryonly, no exhaustiveglobalnovelty. OriginalclippedGuardianmetadata fullyrecovered beforeprescreen; no clippedoutputcredit.\nOriginal limit 11: Originalcurrent502 and49contexts/108authorplan retainedhistory;108hasnoappendgrantatassembly andnew110formal0. Applicable1000unmet gatefalse. No production/programUI/background/quest/texture/model/UV/building/sharedJar/originalworld/Mainstate/pending/taskchecklist edits.\nOriginal limit 12: No process/display/volume/brightness/focus/wake/network/Git/commit/push/publish/newchat/automation/providerbypass, nooldvalidators/consumedmarkers/appendsscriptsreplay. No quantifiedactivehours/tenhourcompletion orcompletedgamefeature/taskdeletion claim.\nMain limit 1: At most1 whole related research recommendation; formal/applied0 until actual original author acknowledgment and separate exact append-plan review. No production permission or completed game task.\nMain limit 2: Fixed cached mapped Forge1.20.1-47.4.10 source bytes only. No fresh remote/Git/tree/current-pack configuration/tag/listener/loaded registry guarantee.\nMain limit 3: 24ranges913distinctlines12entries6whole are bookkeeping0. Brain/Warden/Entity/DamageSources/MemoryModuleType/EntityType are bounded partials; full engine/NoAI/sensors/builders/hooks are not newly audited.\nMain limit 4: Exploratory25ranges981 occurrences included excluded partial codec and adjacent material, not formal whole scope. Earlier locator printed metadata only; it was not counted as source reading. Selected source and full comparison outputs were recovered in bounded calls.\nMain limit 5: GameTime timeout and expiring memory countdown differ. External stopAll/removal/scheduler/time changes/other writers may stop/rearm/alter an attempt; no uncancelable or guaranteed once-only shot, universal exploit or exact walltime proof.\nMain limit 6: Predebit is a local memory write before current-target filtering, not material debit, conserved budget, atomically committed damage or per-victim refund. Callback exceptions/listeners are not expanded.\nMain limit 7: Entry/release predicates and strict distances do not establish all Boss control rules, full line-of-sight coverage, terrain collision, selector contents or attribute clamping/backend acceptance.\nMain limit 8: Hurt-false ordinary-return push is shared source support0 and a delta-velocity request only. Event62/charge/ray sound/particles are not accepted refusal text, immutable target identity, rendered pixels, audible outcome or actual motion.\nMain limit 9: Unit codecs plus partial Brain/whole ExpirableValue do not establish complete persistence/world/clone/reload or resume behavior. Do not call all Sonic memories nonpersistent; no migration credit.\nMain limit 10: Complete selected4formal/group4/migration4/EA16/historical54 judgments read, not all their original source chains. Own old089/098/108/105107/Milk saved contexts reused0.382document metadata49selected receipts are discovery0, not exhaustive global semantic novelty.\nMain limit 11: No Java/Gradle/game/server/world/process/display/audio/brightness/focus/wake/network/Git/commit/push/publish/newchat/automation/provider-bypass or production/sharedJar/proasset/originalsave changes. Ecological24/30+9/10 and originalrun12false limits remain.\nMain limit 12: No quantified active hours or ten-hour completion; no COD1-6 all-complete claim, no fabricated cod5, no task deletion. Old108 pending wording preserved solely as historical assembly, superseded by actual503 closure."
+      },
+      "business_canonical_sha256": "694fb2bad82574789eb273f1bb5f0d01858cad2b6cd100b52a53e4ce0381f6b2",
+      "whole_row_canonical_sha256": "1279ebeeb80ef9b12389d01049b21ad09f6c1d0603ec5505ebbaf496b85d2363",
+      "old_raw_source_ancestors_newly_read": false
+    },
+    {
+      "index0": 518,
+      "id": "native-ravager-defender-shield-callback-attacker-self-stun-delayed-roar-release-policy",
+      "complete_four_business_actually_read_this_turn": {
+        "full_chain_observation": "原生注册和完整goal：距离/冷却合格先reset及swing，Ravager先attack10/event4/攻击声才父攻击，不能当命中。父Mob可先点火，普通击退/附魔/lastHurtMob限hurt true。\nPlayer先onPlayerAttack/能力无敌/死亡/难度零伤，Living再onLivingAttack/源无敌/client/death/fireResistance，外门未入不能要求必有盾反。\n正原伤且盾方向/能力/至少5tick/穿透等门满足才ShieldBlockEvent；未cancel才盾耐久和blocked扣减、非projectile且directLiving才callback。callback先于iframe与actuallyHurt。\nblocked量可夹0而不cancel，源码仍callback；没有实际0监听器证据，不能称漏洞已复现。取消事件或projectile保留不同边界。\nLiving.blockUsingShield委托攻击者blockedByShield(defender)，Player先super再canDisableShield；这是另一处禁盾条件，不能与Mob成功伤害后禁盾混同。\nRavager只roar==0，随机<.5重设stun40/event39/声及defender.push(this)，否则strongKnockback(defender)，两支hurtMarked；无stun==0不等于自然AI可无限重入。\n实体互推仍有同车/noPhysics/距离/isVehicle/isPushable和Living睡眠门；stun分支不保证双方移动。\n强推按dx/max(dx²+dz²,.001)*4/.2/dz公式调用push(double)，基类加delta及hasImpulse，绕过已读Living.knockback的Forge/KBR路径；自定义覆写与最终运动未知。\nimmobile含attack/stun/roar，Living局部清jump/xxa/zza跳serverAiStep，但Ravager自己super后存活分支继续计时；不推断全部物理/外力冻结。\n先roar--/==10释放，再attack--，再stun--变0设roar20，新roar同次不再减；加载/调度/NoAI/墙钟不等价，非exactlyonce。\nroar查询存活非Ravager，AbstractIllager跳hurt仍推；其他hurt6结果忽略再推，伤害拒绝不等价拒控。\n事件整数entityId+byte4/39在当前client level解析，缺实体丢弃；改攻击者本地counter并自行推进，没有受害者UUID/reason/attempt/维度代际。\n完整model实际attack优先于stun再roar，renderer构造/登记已读，不是像素/声画/初始追踪通过。\n完整迁移99三计数存取/恢复副作用/nonexactlyonce和133Goety付费装备所有权保留，不转新增信用。\n完整旧266/307/423/298/337/327业务判断已逐项对照。候选仅一个防御者盾callback→攻击者自身受控→延期释放整体；不同于旧受害者防御预算或伤害取消后独立控制，不拆NBT/随机/音/模型/推力计数。",
+        "concrete_observation": "One defender shield callback admission→attacker self-stun→later roar release and concrete cue consumer lifecycle. Six full previous defensive budgets/resource/false-after-control policies and two migration wholes retained with zero added overlap. Timers/NBT/physics/packets/model not split. No global518semantic exhaustive novelty claim.",
+        "application_to_boss_immune": "Boss拒控回执应由权威控制准入和目标身份产生，不能据hurtfalse或攻击动画推断；拒绝前不得先下马或施推力。\n分开尝试/盾反callback/攻击者状态转移/延期释放/实际生命结算，整体去重。",
+        "limitations": "固定本地mapped Forge1.20.1-47.4.10归档，不声称Git commit认证或当前Dynasty运行兼容。\n16文件24范围1219去重行六whole是实际覆盖不是信用；原ZIP/源码/含行尾raw bytes/base64/text独立核相同。\nServerPlayer.hurt外层、Player.actuallyHurt覆写、全部Forge监听器、自定义push、完整物理及初始跟踪未展开。\n源码stun重设条件不等于天然无限眩晕/实际双重击退/刷屏复现。\nhurt布尔/HP/盾耗/控制请求/实际移动/声画提交/原生接受分层，0实机双端性能验收。\n六旧whole和两迁移whole完整对象保留不缩窄；未语义重读其余518全部，不能称全球穷尽新颖。\n至多1整体供作者确认；本收据正式及accepted0，无ID/append授权，仍可MERGE0。\n免疫不足1000不改生产；不改共享Jar/专业资产/用户原档/主清单/pending/ownership。\n无游戏/Java/Gradle/网络/ps/display/唤醒/声亮/焦点/提交发布/新聊天/定时，无工时完成主张；旧once/grant/marker永久不可重放。\nPlayer.disableShield(true)中f=.25+.05*BlockEfficiency+.75=1+.05*BlockEfficiency，源码保留random<f；在非负效率条件下不应把这说成必有随机失败。效率函数/真实canDisableShield资格未展开，不保证空手Ravager导致盾停用。"
+      },
+      "business_canonical_sha256": "4fb3e40228e7bc9e80543bcd63d2e9611273e345413e259e0328f968e2c9739f",
+      "whole_row_canonical_sha256": "92bb2d419fa67687bb1d2a5fcfbc79698f08276679da89651dd3644b70081324",
+      "old_raw_source_ancestors_newly_read": false
+    }
+  ],
+  "complete_old_groups": [
+    {
+      "index0": 22,
+      "complete_group_actually_read_this_turn": {
+        "family": "herschel-001-primary-reviewed",
+        "credited_chains": [
+          "iron-spell-event-friendlyfire-native-result",
+          "iron-post-damage-freeze-eligibility",
+          "iron-incoming-tomb-redirect-fireward",
+          "iron-blackhole-soft-boss-resistance-and-expiry-bypass",
+          "iron-root-cant-root-mount-control",
+          "iron-fireboss-parry-authoritative-receipt",
+          "iron-fireboss-stagger-control-rejection",
+          "iron-shield-multipart-parent-throttle-false-result",
+          "ars-wilden-phase-and-defense-rejection",
+          "ars-rewind-blacklist-start-and-record",
+          "ars-exchange-nonatomic-two-target-teleport-gates",
+          "ars-snare-status-rejection-does-not-stop-motion-write",
+          "ars-knockback-resistance-final-motion-gate",
+          "ars-damage-pre-post-receipt-is-not-actual-hp-delta",
+          "ars-dispel-pre-deny-allow-and-post-order",
+          "ars-gravity-duration-vs-direct-motion-control",
+          "ars-rewind-control-lifecycle-crossdimension-cleanup",
+          "iron-precast-target-feedback-not-control-success"
+        ],
+        "rationale": "30个建议逐项全文复核，18晋级；友伤生产/原生incoming归属合并，击退时间戳消费及移植telekinesis/纯phase/元素换壳不重复；3项链不完整待补，不使用守卫旧账。"
+      },
+      "canonical_sha256": "3aa1b552c89d510be8ce36af2749a1b6232f9c178b15e6f5d8d4569264e1e8d7"
+    },
+    {
+      "index0": 109,
+      "complete_group_actually_read_this_turn": {
+        "family": "lycanites-batch100-cross-rider-cleanse-scoped-knockback-final-instability",
+        "credited_chains": [
+          "lycanites-native-mounted-rider-inherits-final-effect-denials-via-tick-cleanse",
+          "lycanites-native-melee-temporary-knockback-resistance-restore-skipped-on-failed-hit",
+          "lycanites-native-instability-final-boss-exclusion-and-independent-client-impulse"
+        ],
+        "rationale": "Cross-entity immunity projection via post-admission cleanse; one-hit temporary attribute mutation and all-return cleanup; final Boss-control skip plus native motion receipt are separate policies. Within each whole producer/consumer chain wrappers, statuses and entity skins are zero."
+      },
+      "canonical_sha256": "b3d00660a6a342431c57e29d79e95fbf1a1da4746f73bfa1223160d97dbbe7f3"
+    },
+    {
+      "index0": 231,
+      "complete_group_actually_read_this_turn": {
+        "family": "native-running-attempt-expiring-memory-release-predebit-and-current-target-settlement-whole",
+        "credited_chain": "native-brain-running-attempt-with-expiring-memory-release-predebit-before-current-target-requalification-and-result-independent-sonic-settlement",
+        "rationale": "One complete Brain RUNNING versus finiteTTL current-target predebit release lifecycle; all4formal/group4/migration4/EA16Main15/9+corrections/floor/historical54 preserved. Genericray/force/expiry/codec/packet/species/sourcehelpers0, boundedrelated applicability notglobalnovelty.",
+        "retained_Main_findings": [
+          "One related native attack-attempt lifecycle is substantively supported: qualified entry begins a gameTime-bounded RUNNING behavior; separately expiring memory gates a release latch, debited before current target requalification; normal damage return does not gate push; stop writes shared cooldown. At most1 whole, not separate Brain/timer/ray/force/event/codec/file/entity references.",
+          "Main actually read all24 cited ranges913distinct lines from12 fixed entries, including six complete declarations SonicBoom, Behavior, WardenAi, ExpirableValue, StopAttackingIfTargetInvalid and MeleeAttack. Remaining containing classes are bounded partials. Inherited or generic helpers are not new credit. All raw keepends/normalized excerpt/private-copy/archive bindings independently verified.",
+          "Warden EntityType constructor and makeBrain delegate establish local provenance. Full WardenAi registers memories/sensors, initializes core/default and specialized activities; Fight requires ATTACK_TARGET and erases it on exit. Ordered priorities place invalid-target behavior, look/walk, Sonic then Melee; source construction is not current loaded-pack execution.",
+          "Sonic entry requires target present, sonic cooldown absent and two sound memories REGISTERED. REGISTERED means registered slot, not absence or permission. Extra distance uses strict XZ radius15 and vertical difference20, not a sphere or inclusive boundary. Own start condition has no line-of-sight ray test; upstream target selection remains a boundary.",
+          "Behavior.tryStart checks entry memories/extra once, sets RUNNING and endTimestamp from current gameTime plus random duration with equal60 bounds, then start. Later tickOrStop uses strict gameTime>endTimestamp and canStillUse, which Sonic returns true. It does not automatically repeat entry memory predicates each tick or capture a target identity.",
+          "Sonic.start sets ATTACK_COOLING_DOWN trueTTL60 and SOUND_DELAY UnitTTL34, then event62 and charge sound. These requests precede release and do not prove eligible victim, damage, accepted control or paid acquisition. No immutable victim/attempt identifier is stored by this class.",
+          "Brain starts STOPPED behaviors only IN ACTIVE eligible activities, then ticks all RUNNING behaviors without that active filter. This is the explicit corrected interpretation of original concatenated in+active wording; original observation retained plus additive clarification. setActiveActivity erases configured other-activity memories but does not itself stop behaviors. Explicit stopAll does call doStop.",
+          "Brain forgetOutdatedMemories precedes sensors/start/run, checks hasExpired before decrementing; ExpirableValue expires at<=0, decrements finite rawlong TTL, MAX_VALUE stays infinite. Setter/getter/checkMemory do not themselves remove expired entries; decrement to0 remains until a subsequent sweep. These update clocks differ from Behavior gameTime, so exact walltime or universal off-by-one behavior is unproved.",
+          "At release, both sound delay and sound cooldown must be absent. Sonic writes SOUND_COOLDOWN TTL26 BEFORE current ATTACK_TARGET retrieval/filter. No eligible current target can therefore consume the normal opportunity without particles/damage. It is a local release latch, not payment, conserved ammunition, refund, irrevocable global once-only transaction or guaranteed shot.",
+          "Current target is re-read after warmup and validated by Warden.canTargetEntity and strict distance: same level, native no creative/spectator predicate, not allied/armorstand/Warden/invulnerable/dead-or-dying, world-border bounding box. It need not be the starting target. Selector, alliance, border and subclass internals are not fully expanded; no global Boss-control predicate claim.",
+          "Qualified ray requests particles from emitter+y(double)1.6F toward current victim eyes, with normalized direction and i=1..<floor(length)+7, then boom sound. Own method does not block-raycast. Source geometry is not an admitted physical projectile, guaranteed wall penetration, drawn pixels, audible output or terrain-wide hit proof.",
+          "hurt(sonicBoom(emitter),10) Boolean is ignored; on ordinary return KBR then push follows, even if hurt returns false. Base Entity.push adds deltaMovement and sets impulse, not actual displacement/setPos. KBR-dependent requests and parent hurt engine are not an independent new credit or native accepted damage/knockback test.",
+          "Sonic.stop sets only SONIC_BOOM_COOLDOWN40; it does not clear all attack/sound memories, refund a spent release or issue a victim-specific failure receipt. Warden.setAttackTarget writes target and cooldown200, and doHurtTarget writes cooldown40 before parent result. Shared memory can be changed by other actions; not a private per-target escrow.",
+          "Whole MeleeAttack requires attack-cooling absent/target/nearest-visible, tests range and usable projectile weapon, then swing/doHurtTarget and cooldown18 without conditioning on damage Boolean. Sonic60 memory can suppress this local branch, not every attack caller. StopAttackingIfTargetInvalid can erase target after predicate/callback; Warden false flag disables its tired-reach check, not all invalidation.",
+          "Warden server step ticks Brain before parent AI/darkness/anger/updateActivity. Event62 starts its own sonic animation state at current client tick; that own cue carries no immutable victim ID. Source call order is not two-client packet/order/owner identity, rendered clip lifetime or denial-feedback acceptance.",
+          "Three Sonic Unit memories explicitly register codecs, unlike plain target/attack-cooling registrations; whole ExpirableValue has optional TTL codec. No own Sonic/Behavior IO and partial Brain codec exploration do not prove all sound memory transient, complete in-flight restoration or absent hidden state. Migration credit remains0.",
+          "Full Guardian four-field judgment and full group including distinct Main16findings8limits were actually compared. Guardian whole is LOS-progressed selector windup/release plus server target versus client ID/cache/local beam clock and split damage/local sound lifetime. Brain RUNNING versus TTL and late predebit current-target qualification is a different whole; generic beam/force/cue alone remains0. Preserve literal Guardian sound target predicate, not an invented hasActiveAttackTarget guard.",
+          "Full Ars cancellation-before-actor-validation/paid return-ray, Forsaken coalesced refusal-to-countercharge, and Bumblezone combat-revoked pacification judgments and groups were read. Their entire qualification/settlement policies remain owned. This recommendation does not split their shared Sonic/ray/cooldown primitives into new references.",
+          "Four complete migration saved non-evidence judgments were compared: Shrieker warning, Warden anger UUID state, Ravager resumed phases and Skreecher lifetime attempt. EA16 complete Main15/9/fourcorrections/floor clarification and historical pending54 full findings/distinctions/limits were read. Missing sturdy floor is NOT an explicit Skreecher rejection gate; old Sonic cooldown helpers are EA16support0. Historical826 is accepted now, not newly pending.",
+          "Candidate assembly history502/108pending remains verbatim, but current actual formal baseline is503/gap497/231 groups following Main108 exact closure. Current ecology49 remains; V2 research install adds no acceptance. Current whole recommendation formal0 pending real author acknowledgment and separately reviewed exact append plan. Old consumed proofs/append markers were not replayed.",
+          "Dynasty integration would require actual refusal versus actual control and identity-correlated original acquisition/payment receipts, preserving IDs/rewards. Warmup cue, damage request or release-latch consumption cannot satisfy those native gameplay tasks. Applicable1000 gate remainsfalse; no production or checklist deletion is supported by this source review."
+        ],
+        "retained_Main_limits": [
+          "At most1 whole related research recommendation; formal/applied0 until actual original author acknowledgment and separate exact append-plan review. No production permission or completed game task.",
+          "Fixed cached mapped Forge1.20.1-47.4.10 source bytes only. No fresh remote/Git/tree/current-pack configuration/tag/listener/loaded registry guarantee.",
+          "24ranges913distinctlines12entries6whole are bookkeeping0. Brain/Warden/Entity/DamageSources/MemoryModuleType/EntityType are bounded partials; full engine/NoAI/sensors/builders/hooks are not newly audited.",
+          "Exploratory25ranges981 occurrences included excluded partial codec and adjacent material, not formal whole scope. Earlier locator printed metadata only; it was not counted as source reading. Selected source and full comparison outputs were recovered in bounded calls.",
+          "GameTime timeout and expiring memory countdown differ. External stopAll/removal/scheduler/time changes/other writers may stop/rearm/alter an attempt; no uncancelable or guaranteed once-only shot, universal exploit or exact walltime proof.",
+          "Predebit is a local memory write before current-target filtering, not material debit, conserved budget, atomically committed damage or per-victim refund. Callback exceptions/listeners are not expanded.",
+          "Entry/release predicates and strict distances do not establish all Boss control rules, full line-of-sight coverage, terrain collision, selector contents or attribute clamping/backend acceptance.",
+          "Hurt-false ordinary-return push is shared source support0 and a delta-velocity request only. Event62/charge/ray sound/particles are not accepted refusal text, immutable target identity, rendered pixels, audible outcome or actual motion.",
+          "Unit codecs plus partial Brain/whole ExpirableValue do not establish complete persistence/world/clone/reload or resume behavior. Do not call all Sonic memories nonpersistent; no migration credit.",
+          "Complete selected4formal/group4/migration4/EA16/historical54 judgments read, not all their original source chains. Own old089/098/108/105107/Milk saved contexts reused0.382document metadata49selected receipts are discovery0, not exhaustive global semantic novelty.",
+          "No Java/Gradle/game/server/world/process/display/audio/brightness/focus/wake/network/Git/commit/push/publish/newchat/automation/provider-bypass or production/sharedJar/proasset/originalsave changes. Ecological24/30+9/10 and originalrun12false limits remain.",
+          "No quantified active hours or ten-hour completion; no COD1-6 all-complete claim, no fabricated cod5, no task deletion. Old108 pending wording preserved solely as historical assembly, superseded by actual503 closure."
+        ],
+        "retained_original_author_observations": [
+          "ONE proposed native Brain attack-attempt lifecycle whole: memory-qualified entry and gametime-bounded RUNNING attempt separate from expiring-memory delay/release latch; consume release opportunity before current target requalification; independent shot/hurt/push/cue then stop cooldown. Atmost1relatedorMainmerge0, no extra ray/threshold/timer/Brain/helper/species/event/codec credit.",
+          "Actual EntityType.WARDEN constructsWarden. Warden.makeBrain delegatesWardenAi, whose full156lines register allSonic memories, core/defaultactivities andFight list. Actual customServerAiStep ticksBrain before ordinary parent/darkness/anger andupdateActivity; containingWarden andfullouterMob/NoAI invocation notwhole read/run.",
+          "Fight is activity requiringATTACK_TARGET andconfigured to erase it onactivityexit. Ordered list includes digcooldownsetter, StopAttackingIfTargetInvalid, look/walk, newSonicBoom thenMeleeAttack18. BraincreatePriorityPairs increments priorities, TreeMap traversesascending; genericdeclarativebuilder/sensors/hooks canaffectconditions, not fullyexpanded. No separateactivity/goalcredit.",
+          "CompleteBehavior constructor andSonic entry: ATTACK_TARGETpresent, SONIC_BOOM_COOLDOWNabsent, other2soundmemoriesREGISTERED; stricthorizontalXZdistance<15 andverticaldifference²<20² throughEntity.closerThan. REGISTERED onlymeansslotexists, notsoundlatchesabsent. No directLOS/raycast inownSonicstartcondition; external targetselection mayapplyothergates.",
+          "Behavior.tryStart checksentry+extra once, marksRUNNING, drawsfixedduration60 fromequalmin/max andstoresendTimestamp=currentgameTime+duration beforestart. tickOrStop lateronlytimeout andcanStillUse; Sonicreturns true unconditionally. Entrymemoryconditions/range notautomaticallyrechecked there eachrunningtick. Timeout usesstrictgameTime>endTimestamp, not>= or guaranteed60wallticks.",
+          "Sonic.start writesATTACK_COOLING_DOWN trueTTL60 andSOUND_DELAY UnitTTL34, requestsentityevent62 andWARDEN_SONIC_CHARGE sound. These precede eventualcurrent-target eligibility. No immutablevictim/attemptUUID captured inSonic fields; laterbodyrereadsATTACK_TARGET. Charge/animation notsuccessfulshot/refusal receipt.",
+          "Brain.tick firstforgetOutdatedMemories, ticksensors, startsnonrunningbehaviors inactiveeligibleactivities, thenticksallRUNNINGbehaviors. getRunningBehaviors traversesallactivitieswithoutactivefilter. setActiveActivity erasesconfiguredmemoriesbutdoesnotcallstop here. Target/activityloss alone therefore doesnot prove immediatestop ofthiscanStillUsetrueattempt; explicitstopAll doesinvoke doStop. Wholeengine/overrides canstillstop/remove behavior.",
+          "ExpirableValue storesrawlongTTL, decrementswhenfinite andhasExpired iff<=0. Brain sweepexaminesexpired BEFORE decrement; slotsetter/getter/checkMemory useOptionalpresent withoutanexpirytest. Avaluebecoming0bydecrementremains untilnextsweep. This is delivered-Brain-update countdown, separatefromBehavior gameTime timestamp; no exact1.7seconds/dualclock atomicity/runtimeoffbyone orpause exploit asserted.",
+          "Each Sonic.tick firstlooks atcurrentattacktargetposition ifpresent. WhenbothSOUND_DELAY andSOUND_COOLDOWN absent, it writesSOUND_COOLDOWN UnitTTL26 BEFORE fetching/filteringcurrenttarget. Missing/ineligible/outofrange target cantherefore spendthisreleaseopportunity withnoray. Within normaldurationthelatchsuppressesownretry; externalmemorywriters/removal/callbacks remainoutside, notguaranteedexactlyonce.",
+          "ActualreleasecanTargetEntity requiresLivingEntitysamelevel, nativeNO_CREATIVE_OR_SPECTATOR predicate, notallied/notARMOR_STAND/notWARDEN/notinvulnerable/notdeadordying andworldbordercontainsboundingbox; thencloserThanstrictXZ15/Y20 again. These aredifferentfromentry/anger/currentloadedBosscontrolpredicates. NO_CREATIVE selector/alliances/worldborder/subclass internals notexhaustivelyaudited.",
+          "Qualifyingrelease usesemitterposition+y(double)1.6F tocurrentvictimeyes, normalizesvector, requestsSONIC_BOOMparticles fori1..<floor(length)+7 thenplaysboomsound. Itdoesnottraceblocksorcollidealongray inownbody. Sourceparticlepattern notworldadmission/visiblepixels/physicalprojectile orallterrainhitguarantee; vectors/math/backend remainboundaries.",
+          "Thenhurt(sonicBoom(emitter),10) booleanignored; normalreturnalwaysreadsKBRandpushesdirection*(2.5horizontal,.5vertical)*(1-KBR). BaseEntity.push addsdeltaMovement andsetsImpulse, notdirectsetPos/actualmotion. Parenthurtfalse notcancelthese laterrequests. This genericresult-independentray/force part isalreadyknownArs/Guardian/sharedsupport0, notthestatednewwhole byitself.",
+          "Sonic.stop onlysetsSONIC_BOOM_COOLDOWN TTL40; ownbodydoesnotclearothersound/attackcoolingmemoriesorissueaborted-victimreceipt. Warden.setAttackTarget separatelyclearsroar/cantreach, writesnewtarget, resetsSoniccooldown200. Warden.doHurtTarget setsSoniccooldown40 BEFOREsuperhurtresult. Sharedmemorycanbeaffected byotheractions, notprivatepervictimrefund/transaction.",
+          "WholeMeleeAttack builder requiresATTACK_COOLING_DOWNabsent+target+nearestvisible, thenrange/usableweapon check, swings/doHurtTargetignoredbool andwrites18cooldown. Sonicstart cooling60canwithholdthatlocalMelee branch. FullcommonMobattack/behaviorbuilder/externalcallers unexpanded; no universalmelee-lock guarantee orallattacksblockedclaim.",
+          "WholeStopAttackingIfTargetInvalid useslivingtarget/currentlevel/canAttack/custompredicate; Warden passesfalse tiredreachflag andanger/canTargetpredicate, invalidconsumer optionallyclearsanger/setdigcooldown thenerasestarget. This canchangeATTACK_TARGET independentlyofalreadyRUNNINGSonic. Sourceorderingnormalcallbacks only, no reproducedstaletargetattack/race.",
+          "Warden.handleEntityEvent62 startsownsonicAnimationState atcurrentclienttick; unlikeGuardianbeam noimmutablevictimID inthatowncue. Sound/particles originateemitter/rayrequests, notdeniedvictimtext. Model/animationclip/particlefactory/fullnetworkconsumer/actualpixelsunexpanded, no animationleak/loop orBossgraytext acceptance.",
+          "MemoryModuleType ATTACK_TARGET/ATTACK_COOLING_DOWN plainregister whilethreeSonicUnit slots explicitlyregistercodec. WholeExpirableValue exposesvalue+optionalttlcodec. FullSonic/Behavior have noownIO, but doNOTinferallSonicmemoryistransient orcompleteinflightreloadresume. Brainpartialcodecexplorationnotcitedascompleteroundtrip; save/world/recreatedbehaviorclocks unverified, migrationcredit0.",
+          "FullGuardianfourfields andgroup16Mainfindings8limits recoveredbeforeanynewSonic source. GuardianownsLOS-progressedselectorrelease, separateID/cache/localclockbeam/sound anddualhurt; proposedSonicownsBrainRUNNINGversusmemoryTTL/latepredebitqualification/stopcooldown lifecycle ifMainfindssubstantivedifferent. Newbeam/sound/damageconstantsalonewould0.",
+          "CompleteArsSonic/Forsaken/Bumblezone judgments/groups read orpriorsealedjudgmentreused0: actor-checkedcounterrayaftercancellation, refusaltocoalescedcharge, combat-revokedpacificationretainfullpolicies. Fourmigrationjudgments (Wardenanger,Shriekerwarning,Ravagerphase,Skreecherlifetimeattempt), completeEA16Main15/9+corrections andhistoricalpending54/actualaccepted826 compared; nativeSoniccooldownhelpersalreadyEA16support0, notnewclasscredit.",
+          "Fresh382crossarea candidate/proposal/whole-review/handoffsemanticdocuments and49receiptsselectedfields screened;13/5matches mostlynestedEA16comparison, notallwholesource review/globalnovelty. Ownpending089/098/108 andaccepted105107/Milk savedfullcontexts retained0. Main10822/12+authorplan presentlypendingformal0; current502/ecology49historicalexact, noindependentcandidatecredit orproduction authorization."
+        ],
+        "retained_original_author_limits": [
+          "Fixedlocallycached mappedForge1.20.1/47.4.10 exactarchive/extractedbytes only; no freshremote/Git/tree/currentpack/API/tag/config/loadedregistry/brainbuilder/listener compatibility guarantee.",
+          "24citedranges913lineoccurrences12entries6whole declarations actuallyread; Brain/Warden/Entity/DamageSources/MemoryModuleType/EntityType boundedpartials, notfullengine. Checkpoint25/981incidentalcodecandadjacentread exclusions explicit; helper/file/range/numericcounts0credit.",
+          "One proposedwholememory-qualifiedattempt/latepredebitcurrenttargetsettlement versuscue atmost1orMainmerge0. Genericray/force/particles/ignoredbool, warmup/slots/constants/Brain/codec/helper/entitynamecannotearnanotherreference.",
+          "No Java/Gradle/runtime/AI/combat/world/game/physics/render/audio/networkexecutions. Sourcewrite/request/boolean/cue notactualacceptedHP/displacement/targetidentity/denial/material/quest acceptance.",
+          "BehaviorgameTimebound andmemoryTTLs aredifferentconditionalclocks; owncanStillUsetrue/Brainallrunningdoesnot establishuniversaluncancelableattack. ExternalstopAll, removedbehavior,NoAI/scheduler/timechange/subclasses/hooks unexpanded. No exactwalltime/guaranteedsingle shot/exploitorrace.",
+          "SOUND_COOLDOWNpredebitbeforetargetfiltermaywasteopportunity normally, but externalmemorywriters/composition/callbackfailures unexpanded. No refund/atomicity/exactlyonce/conservedresource orpervictimwindowproof.",
+          "NativecanTarget/start/range checksnotglobalBosscontrolorLOScoverage; fullselectors/sensors/canAttack/alliance/border/mathtype/tagcontents/customrecipients/attributeclamping/hurt backend unexpanded. No universalwallpenetration oralltargeteligibility claim.",
+          "Hurtfalse followednormalreturnpush issharedsupport, notnewsemanticcountoractualknockback. Sound/event62/particlesnotrefusalreason, victimUUID, finalvisibleclip/graytext/microglow/audio acceptance. No model/texture/UV work.",
+          "Brainmemorycodecpartialread+typedUnitregistrations/wholeExpirablecodecnotcompletebrainworld/hiddenstate/persistence/clone/restore. DoNOTclaimallSonicmemoriesnonpersistent; BehaviorfreshendTimestamp/sourceownIOabsencealonecannotproveinflightresumability. No newmigrationcredit.",
+          "Complete4formaljudgments4groups/4migration/EA16Main15/9andhistoricalpending54 judgmentsread; oldunderlyingsourcechainsnotreplayed.382metadata/selected49receiptchecks arediscoveryonly, no exhaustiveglobalnovelty. OriginalclippedGuardianmetadata fullyrecovered beforeprescreen; no clippedoutputcredit.",
+          "Originalcurrent502 and49contexts/108authorplan retainedhistory;108hasnoappendgrantatassembly andnew110formal0. Applicable1000unmet gatefalse. No production/programUI/background/quest/texture/model/UV/building/sharedJar/originalworld/Mainstate/pending/taskchecklist edits.",
+          "No process/display/volume/brightness/focus/wake/network/Git/commit/push/publish/newchat/automation/providerbypass, nooldvalidators/consumedmarkers/appendsscriptsreplay. No quantifiedactivehours/tenhourcompletion orcompletedgamefeature/taskdeletion claim."
+        ],
+        "word_boundary_clarification": {
+          "schema_version": 1,
+          "created_utc": "2026-11-09T19:12:23.278431+00:00",
+          "batch": 110,
+          "status": "ADDITIVE_WORD_BOUNDARY_CLARIFICATION_ORIGINAL_CANDIDATE_UNCHANGED",
+          "candidate": {
+            "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/immune-reference-batch-110.json",
+            "sha256": "2c759d49c1c3931de038a1237ed345f5a53a4e43f28cd23322a0296438abd7c5",
+            "bytes": 185356
+          },
+          "observation_index_one_based": 7,
+          "original_observation_verbatim": "Brain.tick firstforgetOutdatedMemories, ticksensors, startsnonrunningbehaviors inactiveeligibleactivities, thenticksallRUNNINGbehaviors. getRunningBehaviors traversesallactivitieswithoutactivefilter. setActiveActivity erasesconfiguredmemoriesbutdoesnotcallstop here. Target/activityloss alone therefore doesnot prove immediatestop ofthiscanStillUsetrueattempt; explicitstopAll doesinvoke doStop. Wholeengine/overrides canstillstop/remove behavior.",
+          "ambiguous_literal": "startsnonrunningbehaviors inactiveeligibleactivities",
+          "exact_interpretation": "Starts non-running behaviors IN ACTIVE eligible activities only. The concatenated phrase in+active must not be read as inactive. Brain423-439 checks activeActivities.contains(activity) before tryStart. Then tickEachRunningBehavior uses all RUNNING regardless activity; these are distinct loops.",
+          "corrected_observation": "Brain.tick first forgets outdated memories, ticks sensors, starts non-running behaviors only in currently active eligible activities, then ticks all RUNNING behaviors. getRunningBehaviors traverses all activities without an active-activity filter. setActiveActivity erases configured memories but does not call stop here. Target/activity loss alone therefore does not prove immediate stop of this canStillUse-true attempt; explicit stopAll invokes doStop. Engine/overrides can still stop/remove behavior.",
+          "source_scope": "Already actually read and sealed native Brain386-479; no source proof/validator rerun, no new lines or credit.",
+          "new_formal_credit": 0,
+          "new_migration_credit": 0,
+          "production_changes": 0,
+          "formal_mutations": 0
+        },
+        "current_ecology50_V2_context": {
+          "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-110-current50-context-v2-20261110.json",
+          "sha256": "050e185063bd796cbc35af63dfa66431b88871d381ea0d2f1b986a5f5c393cff",
+          "bytes": 250518
+        },
+        "actual_author_V2_ack_addendum": {
+          "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-110-author-ack-addendum-v2-20261110.json",
+          "sha256": "df70700e0a6b483ff8642e199a1999420a635203e9980cd7932415e0f7572b07",
+          "bytes": 346945
+        }
+      },
+      "canonical_sha256": "71a8ac3e2df53993431028a4ee6e5198132bb94910a9bf5bcdf25918ea6e010d"
+    },
+    {
+      "index0": 246,
+      "complete_group_actually_read_this_turn": {
+        "family": "native-ravager-shield-callback-attacker-self-stun-delayed-roar-whole",
+        "credited_chain": "native-ravager-defender-shield-callback-attacker-self-stun-delayed-roar-release-policy",
+        "rationale": "One defender shield callback admission→attacker self-stun→later roar release and concrete cue consumer lifecycle. Six full previous defensive budgets/resource/false-after-control policies and two migration wholes retained with zero added overlap. Timers/NBT/physics/packets/model not split. No global518semantic exhaustive novelty claim.",
+        "Main_actual_author_ack_review": {
+          "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program151-actual-author-ACK-final-preformal-20261112.json",
+          "sha256": "9f601dc6c157b5769013a55ed6e731a471fdea1cee604718ee6e440e402dee70",
+          "bytes": 21285
+        },
+        "actual_source_review": {
+          "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program151-ravager-shield-callback-actual-whole-review-20261112.json",
+          "sha256": "c194abb14bb72f784f7f5a0470ea2e215b88e030f10867386f6815373c67ea94",
+          "bytes": 241836
+        },
+        "overlapping_helpers_and_six_prior_wholes_and_two_migration_wholes_credit": 0
+      },
+      "canonical_sha256": "39a138288df020894d7235500e7531c18c06b4ecdc4c85643c1ae7c84ef136de"
+    }
+  ],
+  "complete_old_migrations": [
+    {
+      "line1": 586,
+      "complete_object_actually_read_this_turn": {
+        "candidate_id": "b5cf8998b62cb8f65d45",
+        "status": "accepted",
+        "family": "native-goat-finite-horn-resource-legacy-availability-upgrade",
+        "trigger": "Whole EntityGoatMissingStateFix + DataFixers3093 + Goat complete writer/reader/dropHorn/add/remove/ageBoundaryReached",
+        "input": "pre-horn-format goat with no saved left/right horn availability",
+        "output": "versioned upgrade sets both available true; current reader restores two actual finite horn receipts; dropHorn clears selected receipt before spawning actual horn item",
+        "preservation": "Actual consumable resource restored, not merely visible model horns. Missing current booleans alone would override synchronized true defaults tofalse, so version gate carries compatibility semantics. Horn sides and screaming variant not separate credits.",
+        "application_limit": "Fix unconditionally sets true; running against current false receipt would replenish resources, so never general missing-data fallback. Drop clears before unchecked entity spawn; age transitions intentionally reset horn availability. Horn instrument selection internals not read, not needed to claim receipt behavior.",
+        "supporting_candidates": [],
+        "credit": 1,
+        "evidence": [
+          {
+            "candidate_id": "b5cf8998b62cb8f65d45",
+            "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+            "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+            "path": "net/minecraft/util/datafix/fixes/EntityGoatMissingStateFix.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/util/datafix/fixes/EntityGoatMissingStateFix.java",
+            "start_line": 12,
+            "end_line": 16,
+            "method": "fix",
+            "file_sha256": "ac99901eab19a7a32a6e6a8dda6e8ac1cdf09dd958a1224ac62db49dc994fee0",
+            "method_sha256": "0603358509bef32f965601c829b872df00bc75e32980a5d8acac86230721deb5",
+            "structural_fingerprint": "a03b423da031e1e43a0553993abe56f987aec383327c40fa3a1c9d2671577dbf",
+            "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+            "context": "protected Typed<?> fix(Typed<?> p_238295_) {\n      return p_238295_.update(DSL.remainderFinder(), (p_238370_) -> {\n         return p_238370_.set(\"HasLeftHorn\", p_238370_.createBoolean(true)).set(\"HasRightHorn\", p_238370_.createBoolean(true));\n      });\n   }",
+            "parse_has_error": false
+          }
+        ]
+      },
+      "canonical_sha256": "b74b8a55ff48fd54a4f5db46cd5abb4bf54a2e35d2fb2319bf923c800959aa2e"
+    },
+    {
+      "line1": 702,
+      "complete_object_actually_read_this_turn": {
+        "candidate_id": "e6b2adbfde8d62b2441f",
+        "status": "duplicate",
+        "family": "native-goat-finite-horn-depletion-and-instrument-selection-owner",
+        "trigger": "Goat pair/dropHorn/createHorn/ageBoundaryReached/finalizeSpawn",
+        "input": "two saved horn availability booleans; screaming instrument class",
+        "output": "depleted flags survive disk; drop chooses only remaining horn and marks absent BEFORE spawned item; UUIDseed stable horn instrument choice from proper registrytag",
+        "preservation": "Supplementary instrument-selection/source findings for already credited b5 whole finite-horn owner; no second reference credit.",
+        "application_limit": "Missing legacy booleans false unless DFU fixes upstream; item addFreshEntity unchecked after depletion so loss possible. Empty instrumenttag optional.get throws; ageBoundaryReached regrows horns on adult transition, not immutable lifetime ledger. No runtime claim.",
+        "supporting_candidates": [],
+        "duplicate_of": "b5cf8998b62cb8f65d45",
+        "reason": "Coordinator actual full Goat334 + MissingStateFix17 + DataFixers3093 registration6 independently re-read357 lines, agrees independent audit: batch075 b5 explicitly awarded complete finite horn resource availability restore/depletion-before-itemspawn and age regeneration along with versioned upgrade. Later e6 same saved resource pair and drop consumer is therefore same credited whole owner. UUID-derived instrument tag selection adds no independently retained earned receipt. Earlier e6 statement that b5 only adds missing flags was inaccurate. Keep substantive current-source observations as support0, do not reclassify earlier grant narrowly to manufacture second credit. No general claim all distinct version converters must merge; this correction follows actual already-awarded wholeowner scope.",
+        "correction_receipt": "coordinator-goat-horn-whole-owner-dedup-correction-20261101.json",
+        "credit": 0,
+        "evidence": [
+          {
+            "candidate_id": "e6b2adbfde8d62b2441f",
+            "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+            "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+            "path": "net/minecraft/world/entity/animal/goat/Goat.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/goat/Goat.java",
+            "start_line": 238,
+            "end_line": 243,
+            "method": "readAdditionalSaveData",
+            "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+            "method_sha256": "d810a2abfd6d5341fd2f43eddfb222e316826f6899e9c09801f7c28b16c8fefb",
+            "structural_fingerprint": "3abba3a001f04b91dbff0b13b78c6d300893fa83348946249343544149c8edfa",
+            "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+            "context": "public void readAdditionalSaveData(CompoundTag p_149373_) {\n      super.readAdditionalSaveData(p_149373_);\n      this.setScreamingGoat(p_149373_.getBoolean(\"IsScreamingGoat\"));\n      this.entityData.set(DATA_HAS_LEFT_HORN, p_149373_.getBoolean(\"HasLeftHorn\"));\n      this.entityData.set(DATA_HAS_RIGHT_HORN, p_149373_.getBoolean(\"HasRightHorn\"));\n   }",
+            "parse_has_error": false
+          }
+        ]
+      },
+      "canonical_sha256": "729ee966bc467039614a3756f247e56b7bcd4510ba89c3aea2a5130105f4bacf"
+    }
+  ],
+  "current_program": {
+    "rows": 534,
+    "groups": 262,
+    "progress": {
+      "target": 1000,
+      "reviewed_effective_semantic_dedup": 534,
+      "remaining": 466,
+      "source_projects_acquired": 79,
+      "acquisition_credit": 0,
+      "formal_design_gate_satisfied": false,
+      "production_changes": false,
+      "game_started": false,
+      "counting_note": "Each manually reviewed semantically independent game implementation site earns 1; full containing methods and native chain context are evidence, not extra credits. Method/file counts, wrappers, ports, constant-only variants and candidate hits earn 0. Semantic cross-project review still requires human-agent judgment; verifier checks key uniqueness and hashes only."
+    }
+  },
+  "expected_program534_ec76": true,
+  "latest_ecology_receipt": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-campfire-EA0077-Main-actual76-data-application-20261114.json",
+    "sha256": "0633c892fdd6390a3f044a251d4395900c158c5f77b470c1395953f09feb2497",
+    "bytes": 15402
+  },
+  "fresh16": [
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "998a775d7aaaafe1c9807a14bec276b9aa044386299fc00e22988a96f0719a0f",
+        "bytes": 51326682
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "998a775d7aaaafe1c9807a14bec276b9aa044386299fc00e22988a96f0719a0f",
+        "bytes": 51326682
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "4080b3d6c4e1b35568b3f51292d245f04cf3d71b5f30234b17ea9dcc4b5906c8",
+        "bytes": 49894126
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "4080b3d6c4e1b35568b3f51292d245f04cf3d71b5f30234b17ea9dcc4b5906c8",
+        "bytes": 49894126
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "4f8d7e09c1bd8c65c36364b0571d01dea01fe06dcd85db6a0e4ca52ba5380692",
+        "bytes": 2658746
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "4f8d7e09c1bd8c65c36364b0571d01dea01fe06dcd85db6a0e4ca52ba5380692",
+        "bytes": 2658746
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "29618f5b211f93ba409b72ef0707e3371b3ab8e7c474355c5257aa0867cf27fb",
+        "bytes": 359170
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "29618f5b211f93ba409b72ef0707e3371b3ab8e7c474355c5257aa0867cf27fb",
+        "bytes": 359170
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "f2d26eac0c14ae861ee24b12b59c83352d42a857217cc9dc2dea0f1e81f5e68b",
+        "bytes": 1208961
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "f2d26eac0c14ae861ee24b12b59c83352d42a857217cc9dc2dea0f1e81f5e68b",
+        "bytes": 1208961
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "3c605cd16407162689fa4450a7642ca98841e08a354f5473926c624c6e96e7e9",
+        "bytes": 71863126
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "3c605cd16407162689fa4450a7642ca98841e08a354f5473926c624c6e96e7e9",
+        "bytes": 71863126
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "8d41da3a32f541b853fe67d9722f67361ac55775e80d5d6a1d79d5e72394bb3e",
+        "bytes": 2886247
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "8d41da3a32f541b853fe67d9722f67361ac55775e80d5d6a1d79d5e72394bb3e",
+        "bytes": 2886247
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "f3b497b68b4a107455f8fdd022496a4baf96bc30609bfc986092e5b8ad18ecb0",
+        "bytes": 631
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "f3b497b68b4a107455f8fdd022496a4baf96bc30609bfc986092e5b8ad18ecb0",
+        "bytes": 631
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+        "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+        "bytes": 264172604
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+        "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+        "bytes": 264172604
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+        "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+        "bytes": 16879
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+        "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+        "bytes": 16879
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+        "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+        "bytes": 60249
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+        "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+        "bytes": 60249
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+        "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+        "bytes": 176564
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+        "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+        "bytes": 176564
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+        "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+        "bytes": 88472
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+        "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+        "bytes": 88472
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+        "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+        "bytes": 114611
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+        "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+        "bytes": 114611
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+        "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+        "bytes": 13391
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+        "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+        "bytes": 13391
+      },
+      "match": true
+    },
+    {
+      "expected": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+        "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+        "bytes": 63710
+      },
+      "observed": {
+        "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+        "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+        "bytes": 63710
+      },
+      "match": true
+    }
+  ],
+  "all16_match": true,
+  "preliminary_scope": "Candidate goat prepared run-up/latched spatial destination/first collision and terminal opportunity cleanup, only if whole genuinely differs. Complete finite horn restore/depletion/regrowth remains migration586 owner1 and702duplicate0. Generic Brain lifecycle, hurt-independent push, KBR result, shield callbacks and cue remain existing owners0. No novelty established before new source.",
+  "old_source_ancestors_not_newly_read": true,
+  "top_level_prescreen_not_exhaustive": true,
+  "new_ram_source_read_yet": false,
+  "formal_id": null,
+  "research_credit": 0,
+  "formal_append": false,
+  "maximum_related_wholes_pending_Main": 1,
+  "formal_writes": 0,
+  "production_changes": 0,
+  "game_starts": 0,
+  "UI_or_asset_changes": 0,
+  "native_credit": 0,
+  "task_deletions": 0,
+  "new_once_intent_executor_validator": false,
+  "active_hours_claimed": null,
+  "all_tasks_complete": false
+}

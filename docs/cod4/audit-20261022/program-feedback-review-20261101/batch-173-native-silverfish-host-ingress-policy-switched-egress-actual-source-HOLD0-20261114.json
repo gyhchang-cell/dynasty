@@ -1,0 +1,739 @@
+{
+  "schema": "dynasty.private.actual-source-research.v1",
+  "created_utc": "2026-11-13T22:16:38.901015+00:00",
+  "batch": 173,
+  "status": "ACTUAL_BOUNDED_SOURCE_CHECKPOINT_HOLD0_PENDING_MAIN_AND_CROSS_AREA_OWNERSHIP",
+  "formal_credit": 0,
+  "formal_id": null,
+  "maximum_possible_related_wholes": 1,
+  "MERGE0_permitted": true,
+  "global_novelty_claimed": false,
+  "semantic_scope": "native-host-property-ingress-discard-versus-grief-policy-switched-egress-new-actor-attempt",
+  "source_identity": {
+    "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+    "artifact": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    },
+    "fresh_upstream_Git_or_deployed_binary_proof": false
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/Silverfish.java",
+        "sha256": "abaaca137b096f398a12d1d502d5f010bee681d22eeef072419ae873a32a00c2",
+        "bytes": 8871
+      },
+      "archive_member": "net/minecraft/world/entity/monster/Silverfish.java",
+      "archive_member_equal": true,
+      "total_file_lines": 229,
+      "whole_file_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            229
+          ],
+          "raw_utf8_keepends": "package net.minecraft.world.entity.monster;\n\nimport java.util.EnumSet;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.tags.DamageTypeTags;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.MobType;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.ClimbOnTopOfPowderSnowGoal;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.goal.MeleeAttackGoal;\nimport net.minecraft.world.entity.ai.goal.RandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.InfestedBlock;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic class Silverfish extends Monster {\n   @Nullable\n   private Silverfish.SilverfishWakeUpFriendsGoal friendsGoal;\n\n   public Silverfish(EntityType<? extends Silverfish> p_33523_, Level p_33524_) {\n      super(p_33523_, p_33524_);\n   }\n\n   protected void registerGoals() {\n      this.friendsGoal = new Silverfish.SilverfishWakeUpFriendsGoal(this);\n      this.goalSelector.addGoal(1, new FloatGoal(this));\n      this.goalSelector.addGoal(1, new ClimbOnTopOfPowderSnowGoal(this, this.level()));\n      this.goalSelector.addGoal(3, this.friendsGoal);\n      this.goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.0D, false));\n      this.goalSelector.addGoal(5, new Silverfish.SilverfishMergeWithStoneGoal(this));\n      this.targetSelector.addGoal(1, (new HurtByTargetGoal(this)).setAlertOthers());\n      this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));\n   }\n\n   public double getMyRidingOffset() {\n      return 0.1D;\n   }\n\n   protected float getStandingEyeHeight(Pose p_33540_, EntityDimensions p_33541_) {\n      return 0.13F;\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 8.0D).add(Attributes.MOVEMENT_SPEED, 0.25D).add(Attributes.ATTACK_DAMAGE, 1.0D);\n   }\n\n   protected Entity.MovementEmission getMovementEmission() {\n      return Entity.MovementEmission.EVENTS;\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return SoundEvents.SILVERFISH_AMBIENT;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_33549_) {\n      return SoundEvents.SILVERFISH_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.SILVERFISH_DEATH;\n   }\n\n   protected void playStepSound(BlockPos p_33543_, BlockState p_33544_) {\n      this.playSound(SoundEvents.SILVERFISH_STEP, 0.15F, 1.0F);\n   }\n\n   public boolean hurt(DamageSource p_33527_, float p_33528_) {\n      if (this.isInvulnerableTo(p_33527_)) {\n         return false;\n      } else {\n         if ((p_33527_.getEntity() != null || p_33527_.is(DamageTypeTags.ALWAYS_TRIGGERS_SILVERFISH)) && this.friendsGoal != null) {\n            this.friendsGoal.notifyHurt();\n         }\n\n         return super.hurt(p_33527_, p_33528_);\n      }\n   }\n\n   public void tick() {\n      this.yBodyRot = this.getYRot();\n      super.tick();\n   }\n\n   public void setYBodyRot(float p_33553_) {\n      this.setYRot(p_33553_);\n      super.setYBodyRot(p_33553_);\n   }\n\n   public float getWalkTargetValue(BlockPos p_33530_, LevelReader p_33531_) {\n      return InfestedBlock.isCompatibleHostBlock(p_33531_.getBlockState(p_33530_.below())) ? 10.0F : super.getWalkTargetValue(p_33530_, p_33531_);\n   }\n\n   public static boolean checkSilverfishSpawnRules(EntityType<Silverfish> p_219077_, LevelAccessor p_219078_, MobSpawnType p_219079_, BlockPos p_219080_, RandomSource p_219081_) {\n      if (checkAnyLightMonsterSpawnRules(p_219077_, p_219078_, p_219079_, p_219080_, p_219081_)) {\n         Player player = p_219078_.getNearestPlayer((double)p_219080_.getX() + 0.5D, (double)p_219080_.getY() + 0.5D, (double)p_219080_.getZ() + 0.5D, 5.0D, true);\n         return player == null;\n      } else {\n         return false;\n      }\n   }\n\n   public MobType getMobType() {\n      return MobType.ARTHROPOD;\n   }\n\n   static class SilverfishMergeWithStoneGoal extends RandomStrollGoal {\n      @Nullable\n      private Direction selectedDirection;\n      private boolean doMerge;\n\n      public SilverfishMergeWithStoneGoal(Silverfish p_33558_) {\n         super(p_33558_, 1.0D, 10);\n         this.setFlags(EnumSet.of(Goal.Flag.MOVE));\n      }\n\n      public boolean canUse() {\n         if (this.mob.getTarget() != null) {\n            return false;\n         } else if (!this.mob.getNavigation().isDone()) {\n            return false;\n         } else {\n            RandomSource randomsource = this.mob.getRandom();\n            if (net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.mob.level(), this.mob) && randomsource.nextInt(reducedTickDelay(10)) == 0) {\n               this.selectedDirection = Direction.getRandom(randomsource);\n               BlockPos blockpos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5D, this.mob.getZ()).relative(this.selectedDirection);\n               BlockState blockstate = this.mob.level().getBlockState(blockpos);\n               if (InfestedBlock.isCompatibleHostBlock(blockstate)) {\n                  this.doMerge = true;\n                  return true;\n               }\n            }\n\n            this.doMerge = false;\n            return super.canUse();\n         }\n      }\n\n      public boolean canContinueToUse() {\n         return this.doMerge ? false : super.canContinueToUse();\n      }\n\n      public void start() {\n         if (!this.doMerge) {\n            super.start();\n         } else {\n            LevelAccessor levelaccessor = this.mob.level();\n            BlockPos blockpos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5D, this.mob.getZ()).relative(this.selectedDirection);\n            BlockState blockstate = levelaccessor.getBlockState(blockpos);\n            if (InfestedBlock.isCompatibleHostBlock(blockstate)) {\n               levelaccessor.setBlock(blockpos, InfestedBlock.infestedStateByHost(blockstate), 3);\n               this.mob.spawnAnim();\n               this.mob.discard();\n            }\n\n         }\n      }\n   }\n\n   static class SilverfishWakeUpFriendsGoal extends Goal {\n      private final Silverfish silverfish;\n      private int lookForFriends;\n\n      public SilverfishWakeUpFriendsGoal(Silverfish p_33565_) {\n         this.silverfish = p_33565_;\n      }\n\n      public void notifyHurt() {\n         if (this.lookForFriends == 0) {\n            this.lookForFriends = this.adjustedTickDelay(20);\n         }\n\n      }\n\n      public boolean canUse() {\n         return this.lookForFriends > 0;\n      }\n\n      public void tick() {\n         --this.lookForFriends;\n         if (this.lookForFriends <= 0) {\n            Level level = this.silverfish.level();\n            RandomSource randomsource = this.silverfish.getRandom();\n            BlockPos blockpos = this.silverfish.blockPosition();\n\n            for(int i = 0; i <= 5 && i >= -5; i = (i <= 0 ? 1 : 0) - i) {\n               for(int j = 0; j <= 10 && j >= -10; j = (j <= 0 ? 1 : 0) - j) {\n                  for(int k = 0; k <= 10 && k >= -10; k = (k <= 0 ? 1 : 0) - k) {\n                     BlockPos blockpos1 = blockpos.offset(j, i, k);\n                     BlockState blockstate = level.getBlockState(blockpos1);\n                     Block block = blockstate.getBlock();\n                     if (block instanceof InfestedBlock) {\n                        if (net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(level, this.silverfish)) {\n                           level.destroyBlock(blockpos1, true, this.silverfish);\n                        } else {\n                           level.setBlock(blockpos1, ((InfestedBlock)block).hostStateByInfested(level.getBlockState(blockpos1)), 3);\n                        }\n\n                        if (randomsource.nextBoolean()) {\n                           return;\n                        }\n                     }\n                  }\n               }\n            }\n         }\n\n      }\n   }\n}\n",
+          "sha256": "abaaca137b096f398a12d1d502d5f010bee681d22eeef072419ae873a32a00c2",
+          "bytes": 8871
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/InfestedBlock.java",
+        "sha256": "146f756fef5a9ca9459f9e79965bc0fe7c9a91178787d1014edee989c096452d",
+        "bytes": 3420
+      },
+      "archive_member": "net/minecraft/world/level/block/InfestedBlock.java",
+      "archive_member_equal": true,
+      "total_file_lines": 79,
+      "whole_file_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            79
+          ],
+          "raw_utf8_keepends": "package net.minecraft.world.level.block;\n\nimport com.google.common.collect.Maps;\nimport java.util.Map;\nimport java.util.function.Supplier;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.monster.Silverfish;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.item.enchantment.Enchantments;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.block.state.BlockBehaviour;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.properties.Property;\n\npublic class InfestedBlock extends Block {\n   private final Block hostBlock;\n   private static final Map<Block, Block> BLOCK_BY_HOST_BLOCK = Maps.newIdentityHashMap();\n   private static final Map<BlockState, BlockState> HOST_TO_INFESTED_STATES = Maps.newIdentityHashMap();\n   private static final Map<BlockState, BlockState> INFESTED_TO_HOST_STATES = Maps.newIdentityHashMap();\n\n   public InfestedBlock(Block p_54178_, BlockBehaviour.Properties p_54179_) {\n      super(p_54179_.destroyTime(p_54178_.defaultDestroyTime() / 2.0F).explosionResistance(0.75F));\n      this.hostBlock = p_54178_;\n      BLOCK_BY_HOST_BLOCK.put(p_54178_, this);\n   }\n\n   public Block getHostBlock() {\n      return this.hostBlock;\n   }\n\n   public static boolean isCompatibleHostBlock(BlockState p_54196_) {\n      return BLOCK_BY_HOST_BLOCK.containsKey(p_54196_.getBlock());\n   }\n\n   private void spawnInfestation(ServerLevel p_54181_, BlockPos p_54182_) {\n      Silverfish silverfish = EntityType.SILVERFISH.create(p_54181_);\n      if (silverfish != null) {\n         silverfish.moveTo((double)p_54182_.getX() + 0.5D, (double)p_54182_.getY(), (double)p_54182_.getZ() + 0.5D, 0.0F, 0.0F);\n         p_54181_.addFreshEntity(silverfish);\n         silverfish.spawnAnim();\n      }\n\n   }\n\n   public void spawnAfterBreak(BlockState p_221360_, ServerLevel p_221361_, BlockPos p_221362_, ItemStack p_221363_, boolean p_221364_) {\n      super.spawnAfterBreak(p_221360_, p_221361_, p_221362_, p_221363_, p_221364_);\n      if (p_221361_.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS) && EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, p_221363_) == 0) {\n         this.spawnInfestation(p_221361_, p_221362_);\n      }\n\n   }\n\n   public static BlockState infestedStateByHost(BlockState p_153431_) {\n      return getNewStateWithProperties(HOST_TO_INFESTED_STATES, p_153431_, () -> {\n         return BLOCK_BY_HOST_BLOCK.get(p_153431_.getBlock()).defaultBlockState();\n      });\n   }\n\n   public BlockState hostStateByInfested(BlockState p_153433_) {\n      return getNewStateWithProperties(INFESTED_TO_HOST_STATES, p_153433_, () -> {\n         return this.getHostBlock().defaultBlockState();\n      });\n   }\n\n   private static BlockState getNewStateWithProperties(Map<BlockState, BlockState> p_153424_, BlockState p_153425_, Supplier<BlockState> p_153426_) {\n      return p_153424_.computeIfAbsent(p_153425_, (p_153429_) -> {\n         BlockState blockstate = p_153426_.get();\n\n         for(Property property : p_153429_.getProperties()) {\n            blockstate = blockstate.hasProperty(property) ? blockstate.setValue(property, p_153429_.getValue(property)) : blockstate;\n         }\n\n         return blockstate;\n      });\n   }\n}",
+          "sha256": "146f756fef5a9ca9459f9e79965bc0fe7c9a91178787d1014edee989c096452d",
+          "bytes": 3420
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/Level.java",
+        "sha256": "a88ba79f97447f85f40c1029d34412788b3af3aeb65aabe12cf4a73fa29492d2",
+        "bytes": 40414
+      },
+      "archive_member": "net/minecraft/world/level/Level.java",
+      "archive_member_equal": true,
+      "total_file_lines": 971,
+      "whole_file_read": false,
+      "evidence": [
+        {
+          "lines": [
+            195,
+            320
+          ],
+          "raw_utf8_keepends": "   public boolean setBlock(BlockPos p_46601_, BlockState p_46602_, int p_46603_) {\n      return this.setBlock(p_46601_, p_46602_, p_46603_, 512);\n   }\n\n   public boolean setBlock(BlockPos p_46605_, BlockState p_46606_, int p_46607_, int p_46608_) {\n      if (this.isOutsideBuildHeight(p_46605_)) {\n         return false;\n      } else if (!this.isClientSide && this.isDebug()) {\n         return false;\n      } else {\n         LevelChunk levelchunk = this.getChunkAt(p_46605_);\n         Block block = p_46606_.getBlock();\n\n         p_46605_ = p_46605_.immutable(); // Forge - prevent mutable BlockPos leaks\n         net.minecraftforge.common.util.BlockSnapshot blockSnapshot = null;\n         if (this.captureBlockSnapshots && !this.isClientSide) {\n             blockSnapshot = net.minecraftforge.common.util.BlockSnapshot.create(this.dimension, this, p_46605_, p_46607_);\n             this.capturedBlockSnapshots.add(blockSnapshot);\n         }\n\n         BlockState old = getBlockState(p_46605_);\n         int oldLight = old.getLightEmission(this, p_46605_);\n         int oldOpacity = old.getLightBlock(this, p_46605_);\n\n         BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, (p_46607_ & 64) != 0);\n         if (blockstate == null) {\n            if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);\n            return false;\n         } else {\n            BlockState blockstate1 = this.getBlockState(p_46605_);\n\n            if (blockSnapshot == null) { // Don't notify clients or update physics while capturing blockstates\n               this.markAndNotifyBlock(p_46605_, levelchunk, blockstate, p_46606_, p_46607_, p_46608_);\n            }\n\n            return true;\n         }\n      }\n   }\n\n   // Split off from original setBlockState(BlockPos, BlockState, int, int) method in order to directly send client and physic updates\n   public void markAndNotifyBlock(BlockPos p_46605_, @Nullable LevelChunk levelchunk, BlockState blockstate, BlockState p_46606_, int p_46607_, int p_46608_) {\n      Block block = p_46606_.getBlock();\n      BlockState blockstate1 = getBlockState(p_46605_);\n      {\n         {\n            if (blockstate1 == p_46606_) {\n               if (blockstate != blockstate1) {\n                  this.setBlocksDirty(p_46605_, blockstate, blockstate1);\n               }\n\n               if ((p_46607_ & 2) != 0 && (!this.isClientSide || (p_46607_ & 4) == 0) && (this.isClientSide || levelchunk.getFullStatus() != null && levelchunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING))) {\n                  this.sendBlockUpdated(p_46605_, blockstate, p_46606_, p_46607_);\n               }\n\n               if ((p_46607_ & 1) != 0) {\n                  this.blockUpdated(p_46605_, blockstate.getBlock());\n                  if (!this.isClientSide && p_46606_.hasAnalogOutputSignal()) {\n                     this.updateNeighbourForOutputSignal(p_46605_, block);\n                  }\n               }\n\n               if ((p_46607_ & 16) == 0 && p_46608_ > 0) {\n                  int i = p_46607_ & -34;\n                  blockstate.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);\n                  p_46606_.updateNeighbourShapes(this, p_46605_, i, p_46608_ - 1);\n                  p_46606_.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);\n               }\n\n               this.onBlockStateChange(p_46605_, blockstate, blockstate1);\n               p_46606_.onBlockStateChange(this, p_46605_, blockstate);\n            }\n         }\n      }\n   }\n\n   public void onBlockStateChange(BlockPos p_46609_, BlockState p_46610_, BlockState p_46611_) {\n   }\n\n   public boolean removeBlock(BlockPos p_46623_, boolean p_46624_) {\n      FluidState fluidstate = this.getFluidState(p_46623_);\n      return this.setBlock(p_46623_, fluidstate.createLegacyBlock(), 3 | (p_46624_ ? 64 : 0));\n   }\n\n   public boolean destroyBlock(BlockPos p_46626_, boolean p_46627_, @Nullable Entity p_46628_, int p_46629_) {\n      BlockState blockstate = this.getBlockState(p_46626_);\n      if (blockstate.isAir()) {\n         return false;\n      } else {\n         FluidState fluidstate = this.getFluidState(p_46626_);\n         if (!(blockstate.getBlock() instanceof BaseFireBlock)) {\n            this.levelEvent(2001, p_46626_, Block.getId(blockstate));\n         }\n\n         if (p_46627_) {\n            BlockEntity blockentity = blockstate.hasBlockEntity() ? this.getBlockEntity(p_46626_) : null;\n            Block.dropResources(blockstate, this, p_46626_, blockentity, p_46628_, ItemStack.EMPTY);\n         }\n\n         boolean flag = this.setBlock(p_46626_, fluidstate.createLegacyBlock(), 3, p_46629_);\n         if (flag) {\n            this.gameEvent(GameEvent.BLOCK_DESTROY, p_46626_, GameEvent.Context.of(p_46628_, blockstate));\n         }\n\n         return flag;\n      }\n   }\n\n   public void addDestroyBlockEffect(BlockPos p_151531_, BlockState p_151532_) {\n   }\n\n   public boolean setBlockAndUpdate(BlockPos p_46598_, BlockState p_46599_) {\n      return this.setBlock(p_46598_, p_46599_, 3);\n   }\n\n   public abstract void sendBlockUpdated(BlockPos p_46612_, BlockState p_46613_, BlockState p_46614_, int p_46615_);\n\n   public void setBlocksDirty(BlockPos p_46678_, BlockState p_46679_, BlockState p_46680_) {\n   }\n\n   public void updateNeighborsAt(BlockPos p_46673_, Block p_46674_) {\n      net.minecraftforge.event.ForgeEventFactory.onNeighborNotify(this, p_46673_, this.getBlockState(p_46673_), java.util.EnumSet.allOf(Direction.class), false).isCanceled();\n   }\n\n   public void updateNeighborsAtExceptFromFacing(BlockPos p_46591_, Block p_46592_, Direction p_46593_) {\n   }\n",
+          "sha256": "9073abbfcb66cbfaeb48cbf104963cde93d53c1108114bab40f12fac7e60caf8",
+          "bytes": 5629
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/LevelWriter.java",
+        "sha256": "91b2a2c64c1961679f662072218d8f7df609176953295c5131c398aaac14f924",
+        "bytes": 1039
+      },
+      "archive_member": "net/minecraft/world/level/LevelWriter.java",
+      "archive_member_equal": true,
+      "total_file_lines": 30,
+      "whole_file_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            30
+          ],
+          "raw_utf8_keepends": "package net.minecraft.world.level;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic interface LevelWriter {\n   boolean setBlock(BlockPos p_46947_, BlockState p_46948_, int p_46949_, int p_46950_);\n\n   default boolean setBlock(BlockPos p_46944_, BlockState p_46945_, int p_46946_) {\n      return this.setBlock(p_46944_, p_46945_, p_46946_, 512);\n   }\n\n   boolean removeBlock(BlockPos p_46951_, boolean p_46952_);\n\n   default boolean destroyBlock(BlockPos p_46962_, boolean p_46963_) {\n      return this.destroyBlock(p_46962_, p_46963_, (Entity)null);\n   }\n\n   default boolean destroyBlock(BlockPos p_46954_, boolean p_46955_, @Nullable Entity p_46956_) {\n      return this.destroyBlock(p_46954_, p_46955_, p_46956_, 512);\n   }\n\n   boolean destroyBlock(BlockPos p_46957_, boolean p_46958_, @Nullable Entity p_46959_, int p_46960_);\n\n   default boolean addFreshEntity(Entity p_46964_) {\n      return false;\n   }\n}",
+          "sha256": "91b2a2c64c1961679f662072218d8f7df609176953295c5131c398aaac14f924",
+          "bytes": 1039
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+        "sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+        "bytes": 46418
+      },
+      "archive_member": "net/minecraftforge/event/ForgeEventFactory.java",
+      "archive_member_equal": true,
+      "total_file_lines": 997,
+      "whole_file_read": false,
+      "evidence": [
+        {
+          "lines": [
+            743,
+            760
+          ],
+          "raw_utf8_keepends": "    public static boolean onEntityDestroyBlock(LivingEntity entity, BlockPos pos, BlockState state)\n    {\n        return !MinecraftForge.EVENT_BUS.post(new LivingDestroyBlockEvent(entity, pos, state));\n    }\n\n    public static boolean getMobGriefingEvent(Level level, @Nullable Entity entity)\n    {\n        if (entity == null)\n            return level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);\n\n        EntityMobGriefingEvent event = new EntityMobGriefingEvent(entity);\n        MinecraftForge.EVENT_BUS.post(event);\n\n        Result result = event.getResult();\n        return result == Result.DEFAULT ? level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) : result == Result.ALLOW;\n    }\n\n    public static SaplingGrowTreeEvent blockGrowFeature(LevelAccessor level, RandomSource randomSource, BlockPos pos, @Nullable Holder<ConfiguredFeature<?, ?>> holder)\n",
+          "sha256": "1f84350c9f15f7ce3ee6b3644e235e4e7db2d1ef8969fd8c36f78ba85369e505",
+          "bytes": 876
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Mob.java",
+        "sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+        "bytes": 54074
+      },
+      "archive_member": "net/minecraft/world/entity/Mob.java",
+      "archive_member_equal": true,
+      "total_file_lines": 1534,
+      "whole_file_read": false,
+      "evidence": [
+        {
+          "lines": [
+            308,
+            330
+          ],
+          "raw_utf8_keepends": "         return this.xpReward;\n      }\n   }\n\n   public void spawnAnim() {\n      if (this.level().isClientSide) {\n         for(int i = 0; i < 20; ++i) {\n            double d0 = this.random.nextGaussian() * 0.02D;\n            double d1 = this.random.nextGaussian() * 0.02D;\n            double d2 = this.random.nextGaussian() * 0.02D;\n            double d3 = 10.0D;\n            this.level().addParticle(ParticleTypes.POOF, this.getX(1.0D) - d0 * 10.0D, this.getRandomY() - d1 * 10.0D, this.getRandomZ(1.0D) - d2 * 10.0D, d0, d1, d2);\n         }\n      } else {\n         this.level().broadcastEntityEvent(this, (byte)20);\n      }\n\n   }\n\n   public void handleEntityEvent(byte p_21375_) {\n      if (p_21375_ == 20) {\n         this.spawnAnim();\n      } else {\n",
+          "sha256": "304829e7beb791637960a37d16a4c80b61451b8d4b844018edbba7b2037086a2",
+          "bytes": 752
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/RandomStrollGoal.java",
+        "sha256": "808a65d645d26885a7ae0eb5ed22a6b80913eb6d2cbc85af4f5dfa63e68d7980",
+        "bytes": 2469
+      },
+      "archive_member": "net/minecraft/world/entity/ai/goal/RandomStrollGoal.java",
+      "archive_member_equal": true,
+      "total_file_lines": 88,
+      "whole_file_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            88
+          ],
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.ai.util.DefaultRandomPos;\nimport net.minecraft.world.phys.Vec3;\n\npublic class RandomStrollGoal extends Goal {\n   public static final int DEFAULT_INTERVAL = 120;\n   protected final PathfinderMob mob;\n   protected double wantedX;\n   protected double wantedY;\n   protected double wantedZ;\n   protected final double speedModifier;\n   protected int interval;\n   protected boolean forceTrigger;\n   private final boolean checkNoActionTime;\n\n   public RandomStrollGoal(PathfinderMob p_25734_, double p_25735_) {\n      this(p_25734_, p_25735_, 120);\n   }\n\n   public RandomStrollGoal(PathfinderMob p_25737_, double p_25738_, int p_25739_) {\n      this(p_25737_, p_25738_, p_25739_, true);\n   }\n\n   public RandomStrollGoal(PathfinderMob p_25741_, double p_25742_, int p_25743_, boolean p_25744_) {\n      this.mob = p_25741_;\n      this.speedModifier = p_25742_;\n      this.interval = p_25743_;\n      this.checkNoActionTime = p_25744_;\n      this.setFlags(EnumSet.of(Goal.Flag.MOVE));\n   }\n\n   public boolean canUse() {\n      if (this.mob.isVehicle()) {\n         return false;\n      } else {\n         if (!this.forceTrigger) {\n            if (this.checkNoActionTime && this.mob.getNoActionTime() >= 100) {\n               return false;\n            }\n\n            if (this.mob.getRandom().nextInt(reducedTickDelay(this.interval)) != 0) {\n               return false;\n            }\n         }\n\n         Vec3 vec3 = this.getPosition();\n         if (vec3 == null) {\n            return false;\n         } else {\n            this.wantedX = vec3.x;\n            this.wantedY = vec3.y;\n            this.wantedZ = vec3.z;\n            this.forceTrigger = false;\n            return true;\n         }\n      }\n   }\n\n   @Nullable\n   protected Vec3 getPosition() {\n      return DefaultRandomPos.getPos(this.mob, 10, 7);\n   }\n\n   public boolean canContinueToUse() {\n      return !this.mob.getNavigation().isDone() && !this.mob.isVehicle();\n   }\n\n   public void start() {\n      this.mob.getNavigation().moveTo(this.wantedX, this.wantedY, this.wantedZ, this.speedModifier);\n   }\n\n   public void stop() {\n      this.mob.getNavigation().stop();\n      super.stop();\n   }\n\n   public void trigger() {\n      this.forceTrigger = true;\n   }\n\n   public void setInterval(int p_25747_) {\n      this.interval = p_25747_;\n   }\n}",
+          "sha256": "808a65d645d26885a7ae0eb5ed22a6b80913eb6d2cbc85af4f5dfa63e68d7980",
+          "bytes": 2469
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/Block.java",
+        "sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+        "bytes": 27752
+      },
+      "archive_member": "net/minecraft/world/level/block/Block.java",
+      "archive_member_equal": true,
+      "total_file_lines": 600,
+      "whole_file_read": false,
+      "evidence": [
+        {
+          "lines": [
+            246,
+            295
+          ],
+          "raw_utf8_keepends": "   }\n\n   public void destroy(LevelAccessor p_49860_, BlockPos p_49861_, BlockState p_49862_) {\n   }\n\n   public static List<ItemStack> getDrops(BlockState p_49870_, ServerLevel p_49871_, BlockPos p_49872_, @Nullable BlockEntity p_49873_) {\n      LootParams.Builder lootparams$builder = (new LootParams.Builder(p_49871_)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(p_49872_)).withParameter(LootContextParams.TOOL, ItemStack.EMPTY).withOptionalParameter(LootContextParams.BLOCK_ENTITY, p_49873_);\n      return p_49870_.getDrops(lootparams$builder);\n   }\n\n   public static List<ItemStack> getDrops(BlockState p_49875_, ServerLevel p_49876_, BlockPos p_49877_, @Nullable BlockEntity p_49878_, @Nullable Entity p_49879_, ItemStack p_49880_) {\n      LootParams.Builder lootparams$builder = (new LootParams.Builder(p_49876_)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(p_49877_)).withParameter(LootContextParams.TOOL, p_49880_).withOptionalParameter(LootContextParams.THIS_ENTITY, p_49879_).withOptionalParameter(LootContextParams.BLOCK_ENTITY, p_49878_);\n      return p_49875_.getDrops(lootparams$builder);\n   }\n\n   public static void dropResources(BlockState p_49951_, Level p_49952_, BlockPos p_49953_) {\n      if (p_49952_ instanceof ServerLevel) {\n         getDrops(p_49951_, (ServerLevel)p_49952_, p_49953_, (BlockEntity)null).forEach((p_152406_) -> {\n            popResource(p_49952_, p_49953_, p_152406_);\n         });\n         p_49951_.spawnAfterBreak((ServerLevel)p_49952_, p_49953_, ItemStack.EMPTY, true);\n      }\n\n   }\n\n   public static void dropResources(BlockState p_49893_, LevelAccessor p_49894_, BlockPos p_49895_, @Nullable BlockEntity p_49896_) {\n      if (p_49894_ instanceof ServerLevel) {\n         getDrops(p_49893_, (ServerLevel)p_49894_, p_49895_, p_49896_).forEach((p_49859_) -> {\n            popResource((ServerLevel)p_49894_, p_49895_, p_49859_);\n         });\n         p_49893_.spawnAfterBreak((ServerLevel)p_49894_, p_49895_, ItemStack.EMPTY, true);\n      }\n\n   }\n\n   public static void dropResources(BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_) {\n      dropResources(p_49882_, p_49883_, p_49884_, p_49885_, p_49886_, p_49887_, true);\n   }\n   public static void dropResources(BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_, boolean dropXp) {\n      if (p_49883_ instanceof ServerLevel) {\n         getDrops(p_49882_, (ServerLevel)p_49883_, p_49884_, p_49885_, p_49886_, p_49887_).forEach((p_49944_) -> {\n            popResource(p_49883_, p_49884_, p_49944_);\n         });\n         p_49882_.spawnAfterBreak((ServerLevel)p_49883_, p_49884_, p_49887_, dropXp);\n      }\n\n   }\n\n   public static void popResource(Level p_49841_, BlockPos p_49842_, ItemStack p_49843_) {\n      double d0 = (double)EntityType.ITEM.getHeight() / 2.0D;\n",
+          "sha256": "8f8c297d1011e996e9c379ca7da95bf8324eaac1ac4b02be3174efaf9343506f",
+          "bytes": 2948
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/EntityMobGriefingEvent.java",
+        "sha256": "beda13c7e10228f0c952a9479b1f07475d8177e35d0346a8c11301a13bdd8b9a",
+        "bytes": 1094
+      },
+      "archive_member": "net/minecraftforge/event/entity/EntityMobGriefingEvent.java",
+      "archive_member_equal": true,
+      "total_file_lines": 31,
+      "whole_file_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            31
+          ],
+          "raw_utf8_keepends": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity;\n\nimport net.minecraft.world.entity.Entity;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Event.HasResult;\n\n/**\n * EntityMobGriefingEvent is fired when mob griefing is about to occur and allows an event listener to specify whether it should or not.<br>\n * This event is fired when ever the {@code mobGriefing} game rule is checked.<br>\n * <br>\n * This event has a {@link HasResult result}:\n * <ul>\n * <li>{@link Result#ALLOW} means this instance of mob griefing is allowed.</li>\n * <li>{@link Result#DEFAULT} means the {@code mobGriefing} game rule is used to determine the behaviour.</li>\n * <li>{@link Result#DENY} means this instance of mob griefing is not allowed.</li>\n * </ul>\n * This event is fired on the {@link MinecraftForge#EVENT_BUS}.\n */\n@HasResult\npublic class EntityMobGriefingEvent extends EntityEvent\n{\n    public EntityMobGriefingEvent(Entity entity)\n    {\n        super(entity);\n    }\n}\n",
+          "sha256": "beda13c7e10228f0c952a9479b1f07475d8177e35d0346a8c11301a13bdd8b9a",
+          "bytes": 1094
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/level/ServerLevel.java",
+        "sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+        "bytes": 67036
+      },
+      "archive_member": "net/minecraft/server/level/ServerLevel.java",
+      "archive_member_equal": true,
+      "total_file_lines": 1567,
+      "whole_file_read": false,
+      "evidence": [
+        {
+          "lines": [
+            808,
+            872
+          ],
+          "raw_utf8_keepends": "   @Nullable\n   public ServerPlayer getRandomPlayer() {\n      List<ServerPlayer> list = this.getPlayers(LivingEntity::isAlive);\n      return list.isEmpty() ? null : list.get(this.random.nextInt(list.size()));\n   }\n\n   public boolean addFreshEntity(Entity p_8837_) {\n      return this.addEntity(p_8837_);\n   }\n\n   public boolean addWithUUID(Entity p_8848_) {\n      return this.addEntity(p_8848_);\n   }\n\n   public void addDuringTeleport(Entity p_143335_) {\n      this.addEntity(p_143335_);\n   }\n\n   public void addDuringCommandTeleport(ServerPlayer p_8623_) {\n      this.addPlayer(p_8623_);\n   }\n\n   public void addDuringPortalTeleport(ServerPlayer p_8818_) {\n      this.addPlayer(p_8818_);\n   }\n\n   public void addNewPlayer(ServerPlayer p_8835_) {\n      this.addPlayer(p_8835_);\n   }\n\n   public void addRespawnedPlayer(ServerPlayer p_8846_) {\n      this.addPlayer(p_8846_);\n   }\n\n   private void addPlayer(ServerPlayer p_8854_) {\n      if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityJoinLevelEvent(p_8854_, this))) return;\n      Entity entity = this.getEntities().get(p_8854_.getUUID());\n      if (entity != null) {\n         LOGGER.warn(\"Force-added player with duplicate UUID {}\", (Object)p_8854_.getUUID().toString());\n         entity.unRide();\n         this.removePlayerImmediately((ServerPlayer)entity, Entity.RemovalReason.DISCARDED);\n      }\n\n      this.entityManager.addNewEntityWithoutEvent(p_8854_);\n      p_8854_.onAddedToWorld();\n   }\n\n   private boolean addEntity(Entity p_8873_) {\n      if (p_8873_.isRemoved()) {\n         LOGGER.warn(\"Tried to add entity {} but it was marked as removed already\", (Object)EntityType.getKey(p_8873_.getType()));\n         return false;\n      } else {\n         if (this.entityManager.addNewEntity(p_8873_)) {\n            p_8873_.onAddedToWorld();\n            return true;\n         } else {\n            return false;\n         }\n      }\n   }\n\n   public boolean tryAddFreshEntityWithPassengers(Entity p_8861_) {\n      if (p_8861_.getSelfAndPassengers().map(Entity::getUUID).anyMatch(this.entityManager::isLoaded)) {\n         return false;\n      } else {\n",
+          "sha256": "6d8b7da6e12796e3f67a362bb304aa9825085e377f485b38d344e78a7ec6a734",
+          "bytes": 2149
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+        "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+        "bytes": 128890
+      },
+      "archive_member": "net/minecraft/world/entity/Entity.java",
+      "archive_member_equal": true,
+      "total_file_lines": 3566,
+      "whole_file_read": false,
+      "evidence": [
+        {
+          "lines": [
+            325,
+            337
+          ],
+          "raw_utf8_keepends": "\n   public void kill() {\n      this.remove(Entity.RemovalReason.KILLED);\n      this.gameEvent(GameEvent.ENTITY_DIE);\n   }\n\n   public final void discard() {\n      this.remove(Entity.RemovalReason.DISCARDED);\n   }\n\n   protected abstract void defineSynchedData();\n\n   public SynchedEntityData getEntityData() {\n",
+          "sha256": "c4eeb3e843e35c31f1b8be78599ccef88f2d2c9e4b09b68d784a3680193a4fc9",
+          "bytes": 308
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/state/BlockBehaviour.java",
+        "sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+        "bytes": 51080
+      },
+      "archive_member": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "archive_member_equal": true,
+      "total_file_lines": 1286,
+      "whole_file_read": false,
+      "evidence": [
+        {
+          "lines": [
+            369,
+            381
+          ],
+          "raw_utf8_keepends": "         int i = net.minecraftforge.common.ForgeHooks.isCorrectToolForDrops(p_60466_, p_60467_) ? 30 : 100;\n         return p_60467_.getDigSpeed(p_60466_, p_60469_) / f / (float)i;\n      }\n   }\n\n   /** @deprecated */\n   @Deprecated\n   public void spawnAfterBreak(BlockState p_222949_, ServerLevel p_222950_, BlockPos p_222951_, ItemStack p_222952_, boolean p_222953_) {\n      if (p_222953_) net.minecraftforge.common.ForgeHooks.dropXpForBlock(p_222949_, p_222950_, p_222951_, p_222952_);\n   }\n\n   /** @deprecated */\n   @Deprecated\n",
+          "sha256": "296d0eab7746628a9e5c5230e4ef7f034f132655357211953595d7ab760c3389",
+          "bytes": 531
+        },
+        {
+          "lines": [
+            764,
+            775
+          ],
+          "raw_utf8_keepends": "\n      public void entityInside(Level p_60683_, BlockPos p_60684_, Entity p_60685_) {\n         this.getBlock().entityInside(this.asState(), p_60683_, p_60684_, p_60685_);\n      }\n\n      public void spawnAfterBreak(ServerLevel p_222968_, BlockPos p_222969_, ItemStack p_222970_, boolean p_222971_) {\n         this.getBlock().spawnAfterBreak(this.asState(), p_222968_, p_222969_, p_222970_, p_222971_);\n      }\n\n      public List<ItemStack> getDrops(LootParams.Builder p_287688_) {\n         return this.getBlock().getDrops(this.asState(), p_287688_);\n      }\n",
+          "sha256": "11e02c31ba8815cefea6fad733ddcdd385e40bfaccbdc9604bead474881c0f4c",
+          "bytes": 557
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+        "sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+        "bytes": 52218
+      },
+      "archive_member": "net/minecraft/world/entity/EntityType.java",
+      "archive_member_equal": true,
+      "total_file_lines": 775,
+      "whole_file_read": false,
+      "evidence": [
+        {
+          "lines": [
+            253,
+            253
+          ],
+          "raw_utf8_keepends": "   public static final EntityType<Silverfish> SILVERFISH = register(\"silverfish\", EntityType.Builder.of(Silverfish::new, MobCategory.MONSTER).sized(0.4F, 0.3F).clientTrackingRange(8));\n",
+          "sha256": "79a2ca88eca6e5b6d752cd7e94ccf6120fe1f8559f3521b72a06ec338f8be8d2",
+          "bytes": 185
+        }
+      ]
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/Blocks.java",
+        "sha256": "f56e75c83075cb1eff308d9f0326766919e03c461c80e2e8b5b3ab4a8949e9a6",
+        "bytes": 237801
+      },
+      "archive_member": "net/minecraft/world/level/block/Blocks.java",
+      "archive_member_equal": true,
+      "total_file_lines": 1257,
+      "whole_file_read": false,
+      "evidence": [
+        {
+          "lines": [
+            373,
+            378
+          ],
+          "raw_utf8_keepends": "   public static final Block INFESTED_STONE = register(\"infested_stone\", new InfestedBlock(STONE, BlockBehaviour.Properties.of().mapColor(MapColor.CLAY)));\n   public static final Block INFESTED_COBBLESTONE = register(\"infested_cobblestone\", new InfestedBlock(COBBLESTONE, BlockBehaviour.Properties.of().mapColor(MapColor.CLAY)));\n   public static final Block INFESTED_STONE_BRICKS = register(\"infested_stone_bricks\", new InfestedBlock(STONE_BRICKS, BlockBehaviour.Properties.of().mapColor(MapColor.CLAY)));\n   public static final Block INFESTED_MOSSY_STONE_BRICKS = register(\"infested_mossy_stone_bricks\", new InfestedBlock(MOSSY_STONE_BRICKS, BlockBehaviour.Properties.of().mapColor(MapColor.CLAY)));\n   public static final Block INFESTED_CRACKED_STONE_BRICKS = register(\"infested_cracked_stone_bricks\", new InfestedBlock(CRACKED_STONE_BRICKS, BlockBehaviour.Properties.of().mapColor(MapColor.CLAY)));\n   public static final Block INFESTED_CHISELED_STONE_BRICKS = register(\"infested_chiseled_stone_bricks\", new InfestedBlock(CHISELED_STONE_BRICKS, BlockBehaviour.Properties.of().mapColor(MapColor.CLAY)));\n",
+          "sha256": "d3432852c790272f008d9106163ebefdf54d43edbf3b3dd3514eaf852f32dec7",
+          "bytes": 1107
+        },
+        {
+          "lines": [
+            1127,
+            1127
+          ],
+          "raw_utf8_keepends": "   public static final Block INFESTED_DEEPSLATE = register(\"infested_deepslate\", new InfestedRotatedPillarBlock(DEEPSLATE, BlockBehaviour.Properties.of().mapColor(MapColor.DEEPSLATE).sound(SoundType.DEEPSLATE)));\n",
+          "sha256": "11f55416b8a5f8512be1428a796d4ab6c30e58b847d62c58c1178dc48e1f0c58",
+          "bytes": 213
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "files": 14,
+    "ranges": 16,
+    "distinct_lines": 785,
+    "whole_files": 5,
+    "counts_semantic_credit": 0
+  },
+  "exact172_scheduler_reused0": {
+    "artifact": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-172-native-illusioner-start-stamped-target-current-effect-actual-source-HOLD0-20261114.json",
+      "sha256": "184a628e5e39edaf2a1080884e284436bb0ccf9e2264d846830e7ac59b465bed",
+      "bytes": 184005
+    },
+    "scope": "wholeGoal59/Wrapped89/Selector158 and Mob742..780 within726..789",
+    "new_source_lines_or_credit": 0
+  },
+  "whole_chain_findings": [
+    {
+      "source": "EntityType253; Silverfish1..53; Blocks373..378/1127; InfestedBlock24..35",
+      "observation": "Native factory installs wakefriends3/melee4/merge5. BaseInfested constructor populates host mapping; selected variants register base InfestedBlock or RotatedPillar subclass. Rotated subclass/all registries/loaded runtime unexpanded; types/constants0newcredit."
+    },
+    {
+      "source": "Silverfish87..97/187..196; Goal reused172",
+      "observation": "Own isInvulnerableTo short-circuits withoutalarm. Otherwise causingentity OR ALWAYS_TRIGGERS_SILVERFISH tag notifies BEFORE parenthurt. Alarm onlywhen0 setsadjusted20; positivewindow notrefreshed. DefaultGoalfalse turns20 into10 deliveredbodycalls, not10worldticks. Parenthurtfalse/zeroHP doesnotitselfrollback prewrite; exactloadedtag/parentlisteners unknown."
+    },
+    {
+      "source": "Silverfish179..229; scheduler172 reused0",
+      "observation": "Wakegoal hasnoownflags/everytick/stop. Positivecounter entry, predecrement then<=0 scans centered CURRENT sourceblockpos, alternating0,+1,-1,+2,-2... Y±5 X/Z±10. Notlatched initialcenter/nearestvictimorder; numericgeometry notnewreference orsafechunk/runtimeclaim."
+    },
+    {
+      "source": "Silverfish205..225; ForgeEventFactory748..758; EntityMobGriefingEvent whole31",
+      "observation": "For EACH InfestedBlock, CURRENT mobgriefresult selects destroyBlock(pos,true,source) whenallowed OR conversion to hoststate by setBlock flags3 whendenied. DENY selectsanotherworldwrite ratherthan universalno-op. ALLOW overridesgamerule/DEFAULT readsrule. BothactionBooleansignored."
+    },
+    {
+      "source": "Silverfish211..220",
+      "observation": "RandomBoolean canendscan after EITHER requestedoperation regardlessresult; no local retryreceipt/successcount/refund. Failedoperation maystillspend alarm literally; no actualfailure/dupe/stuckworldproof."
+    },
+    {
+      "source": "Silverfish126..160; RandomStrollGoal whole88",
+      "observation": "Mergeentry rejectsnonnulltarget orunfinishednav. Onlygriefallowed+RNG selects direction/compatiblehost anddoMergetrue. Else doMergefalse usesnormalstroll. Mergecontinuationfalse; inheritedstroll/callback/scheduler remainqualified, notdirectbodybypass."
+    },
+    {
+      "source": "Silverfish162..176",
+      "observation": "Mergestart recomputeshostposition from CURRENT source+savedDirection and recheckscompatibility; doesnotrecheckgriefpermission or latchoriginalblockpos. Calls setBlock(infestedstate,3),spawnAnim,discard inordinaryreturnorder withoutusingblockwritebool. Thisisnotproofnaturallyreachablepermissionexploit or acceptedreplacement."
+    },
+    {
+      "source": "InfestedBlock18..35/56..79",
+      "observation": "Identitykeyed caches maphost/infestedstates andcopyProperties presentonbothdestinations. NotactorNBT/UUID/HP/gear/owner/questcapture. NoownstoredSilverfishpayload here; fullblock/BEserializationnotaudited andnoNBT/migrationcredit."
+    },
+    {
+      "source": "LevelWriter whole30; Level195..233/279..301",
+      "observation": "Overloadsdepth512; LevelsetBlock mayfalseforheight/debug/chunksetnull andmaycapturesnapshots. destroyBlock event2001/dropResources precede finalfluidstateset; BLOCK_DESTROY onlyiffinaltrue. Returnbooldoesnotwrapearliercallbacksastransaction. Fullchunk/snapshot/listenersunexpanded."
+    },
+    {
+      "source": "Block261..290; BlockBehaviour769..775; InfestedBlock48..54",
+      "observation": "ServerdropResources obtainsloot thenstate.spawnAfterBreak delegates actualblockoverride. Infested firstsuperXPhelper then DOBLOCKDROPS andzeroSILK_TOUCH gates spawnInfestation. Wakedestroytrue usesEMPTYtool inshownLevelcall. Notallloot/enchantment/backend/currentruleadmission audited."
+    },
+    {
+      "source": "InfestedBlock38..46; ServerLevel814..816/855..867",
+      "observation": "Creates NEW Silverfish byfactory, nullguard, movetoblockcenter, uncheckedaddFreshEntity, thenspawnAnim evenifaddfalse normally. ServerLevelfalseifremoved ormanageraddfalse; trueonlyonAddedToWorld. Nooriginalactorrestoration/losslessidentity/oneforoneinhabitantconservation."
+    },
+    {
+      "source": "Mob312..330; Entity331..333",
+      "observation": "Server spawnAnim requests event20; clientspawnAnim20POOF/handler20delegation. Noacceptedblockchange/entity/materialreceipt. Discard delegates remove(DISCARDED), distinctfromkillENTITY_DIE; fullremoval/transport/renderbackendunexpanded."
+    },
+    {
+      "source": "Completeold519/512 fourbusiness",
+      "observation": "Nonrefreshingpreparentalarm, worldwrites/uncheckedspawn andFXadmission areowned overlap0. Notcountingtriggerorder/timer/geometry/entityname/helpers."
+    },
+    {
+      "source": "Completeold390/516 fourbusiness",
+      "observation": "390ownsreversibleactorstatue/blockhostplacementandactorrestore;516ownsmovementthenoldspacedensity/newbornattempt. Potentialremainingwhole is propertyonlyhosting/unconditionalingressdiscard versus permissionswitcheddeinfest/destructiveegresswithNEWactor, notlosslesscaptiveorchildhelper. MainmayMERGE0."
+    },
+    {
+      "source": "173wholeboundedcheckpoint",
+      "observation": "HOLD0 until independentMainwholejudgment andcrossareaecology/migrationownership closure. Atmost1orMERGE0; no global527/66semanticabsence,1000gate/nativecompletion/newproduction or formalcredit. ExistingVexmigration706 and172pending remain0new."
+    }
+  ],
+  "complete_selected_old_four_business": [
+    {
+      "index_zero_based": 390,
+      "id": "wizardry-native-block-hosted-statue-placement-denial-and-actor-restoration",
+      "whole_object_canonical_sha256": "2beae71ae1597d34c8557efa2a4015004331a381176fb42edf80f221f125b30b",
+      "complete_four_business_actually_read": {
+        "full_chain_observation": "已注册IceStatue/Petrify→SpellRay命中Living服务端→BlockStatue.convertToStatue：death/client拒绝后先hurtTime0/灭火，再按1/2/3方块替换与逐格权限门→放方块/TE捕获同一生物与部位，底部记录寿命→标frozen或petrified/setDead。注册TileEntityStatue实际ITickable按NBT实体名重建代理，冰timer>lifetime底部销毁，石额外200tick间隔与实际光照随机条件→breakBlock移除伴随块，底部清petrified、isDead=false并spawn原生物。TE原生update tag/packet读写完整actor NBT/时间/parts；preInit绑TESR，postInit加Frost/Stone层，RenderStatue按底部方块坐标renderEntity代理。",
+        "concrete_observation": "可逆方块承载演员控制/放置否决/原生时限与破坏释放家族1，与Gorgon雕像实体替换/不恢复目标、已账entrapment骑乘和possession不同。冰石/1至3块/TE包/模型层全合并。canPlaceBlock实际含config/玩家edit/world保护/Forge事件/mobGriefing；短分支失败可落到高分支，不是身高唯一选项。setBlockState和spawn结果均忽略，convert也不验证每TE完成捕获；施法忽略false、onMiss true，声光不证明成功转换。释放仅清PETRIFIED未清FROZEN；石renderer暂隐后无条件false而非恢复旧值；LayerFrost条件(!invisible && frostPotion)||frozenTag，不能推导隐身一定不画。石光照注释与实际light<rand.nextInt(12)-3不同，只据代码。",
+        "application_to_boss_immune": "Boss拒控要在实际演员替换入口作最终准入并专门回执；放置/生成失败与Boss拒控原因不可混用。有限灰字锚定活目标，清理需对称恢复所有状态/身份，不以施法声光或TE非空代替释放/像素验收。普通阴阳不扩展。",
+        "limitations": "本次主岗逐个全文读spell/block/TE/renderer/layer及权限方法，固定版本哈希，注册按实际调用核对。Forge事件和vanilla块回调顺序/序列化/生成准入未运行；不宣称复制、永久冰纹、Boss可捕获或多端一致已经复现。NBTExtras只防对象环，底层图形/序列化辅助0。无建筑/模型/贴图制作。"
+      },
+      "raw_old_source_newly_read": false
+    },
+    {
+      "index_zero_based": 512,
+      "id": "native-wither-skull-projectile-admission-to-world-start-and-native-protocol-continuation",
+      "whole_object_canonical_sha256": "0e1c79fa0947e05ea9bcccdc75b4443389bd927c3b6ded4ba8ffcc29468bb2e6",
+      "complete_four_business_actually_read": {
+        "full_chain_observation": "One whole native Wither ranged-skull conditional settlement policy at most: actual ranged producer → inherited collision admission → damage/effect/heal requests → separate world explosion admission/calculation → actual protocol consumer. Helpers/classes/difficulties/thresholds are not extra references.\nMain actually read original3full classes519lines, all37 supplement ranges1451distinct lines including7wholeclasses, and existing3 Living ranges259lines; all original archive member bytes/excerpts verified. Reused native recipients remain owned by historical Pufferfish/Dragon references, not new259 credit.\nRangedAttackGoal actual constructor is MOVE/LOOK and every-tick requested; canUse caches alive target, stop clears it/counters. Sight gates the zero counter shot, radius primarily navigation/cooldown factor. Installed1/40/20 parameters do not prove final AI scheduling, real shots or entity birth.\nActual three Wither ranged overloads emit levelEvent1024 before ignored addFreshEntity result; head coordinates and dangerous state configured. Constructor/owner/id/cue are source requests, not server admission or gameplay outcome.\nAbstractHurtingProjectile queries motion vector from current position and dispatches only nonMISS plus DEFAULT Forge impact result. Projectile onHit has no success return; child callback precedes land game event. Current projectile coordinate rather than ray point feeds later explosion.\nForge canceled impact maps SKIP_ENTITY; onProjectileImpact is result!=DEFAULT. All nonDEFAULT enum values suppress this particular caller onHit branch. STOP enum documentation does not itself cause this caller to stop/discard; nullable sister API not used here.\nServer skull living owner uses WITHER_SKULL8; successful hurt gates alive-target enchantment or currently-not-alive owner heal5. Ownerless/nonliving uses magic5. Heal event can cancel/alter amount, dead owner not healed, clamp applies; no HP delta or causal kill certification.\nhurttrue plus Living target requests amp1WITHER for NORMAL200/HARD800, without separate alive gate; addEffect result ignored. Wither own exactWITHER rejection occurs before base Applicable event, separate from incoming source/tag/mobtype/arrow/charge hurt predicates.\nLiving hurt can return true despite actuallyHurt doing no HP reduction after hook/absorption. Wither pre-super accepted branches update destruction/head counters before final super result. No single generic bool identifies control refusal or makes earlier mutations transactional.\nEffect add/update may return false after weaker-longer hiddenEffect mutation; presentation changes can make true. Tick uses remaining duration or tickCount for infinite, applies before decrement, restores hidden state; amp1WITHER base requests1damage each duration%20 opportunity without original creator attribution. No universal worldtick cadence or HP loss claim.\nMobGriefing false selects KEEP block policy; it does not disable entity explosion calculation. Dangerous skull resistance cap only applies through actual calculator predicate; nonfire suppresses this source fire branch. No block/target permission can be inferred from source name.\nWhole Explosion publishes live Detonate lists, computes radius/visibility, ignores each hurt return then directly adds adjusted delta. getHitPlayers excludes spectator and flyingcreative from map; direct entity movement request already precedes this map condition. This is not a final control-reason result or proven displacement.\nExplosion source DamageSources selection uses presence of both direct/indirect entity to choose PLAYER_EXPLOSION constant, not an explicit player-instance test. Current loaded damage tags and receiver overrides remain unknown; constant name is not player attribution proof.\nLevel Start cancellation returns the constructed explosion before explode/finalize. ServerLevel outer nine-arg override still conditionally clears KEEP block list and sends within distanceSq<4096 after normal return. With cancel-only nonmutating listener, initialized empty blocks/hitPlayers yield empty block packet and null-motion→zero; arbitrary listeners may mutate/reenter/throw so not a universal canceled-explosion guarantee.\nFull packet copies block list, serializes position/power and signed-byte relative block offsets plus3motion floats; no targetUUID/reason/canceled/effect/damage-admission flag. Actual client ensures main thread, reconstructs client explosion/finalize(true), then adds current-player motion. Source requests local sound/particle even empty list; distinct client/server objects, no same-object double-impulse claim.\nSkull discard follows normal server explosion return irrespective of entity hurt/effect admission; parent tick locally continues movement/trail code without early return. Exceptions/reentry/discard lifecycle not fully expanded, so no real continued-flight, duplication or exactly-once conclusion.\nNine complete current program judgments actually read and matched exactly plus BlackBeast sweep and whole Wither/Ravager migration judgments retained. Goety31 owns damage-independent push/refusedstun, Embers whole worldcancel/customcue, Bubble mixedbudget/defuse, Create scopedrollback, Undergarden effectarbitration, Ironpostfreeze, Occultismsupport, AoApartdeflection and Mekanismbeam. This candidate distinction is concrete native projectile→worldStart→nativeprotocol continuation across two admission layers; generic hurt-independent force or a new entity name alone earns0.",
+        "concrete_observation": "Native Wither ranged producer and inherited impact admission conditionally request hurt/effects/heal. Independent worldStart/explosion admission can return normally into ServerLevel native packet emission and client explosion finalization. Only concrete continuous policy across two admission layers; canceled empty protocol case requires cancel-only nonmutating listener, no manual execution and normal return.",
+        "application_to_boss_immune": "Boss feedback follows authoritative control refusal reason and exact target; projectile damage/effect/world admission, packet/FX requests and actual control remain separate. No Dynasty feedback/UI/ordinary-body greyword implemented.",
+        "limitations": "Preformal independent whole review maximum1 only; actual original-author indexed responses to all17findings/12limits required before final acceptance. No formalID/append/install/grant/marker authority.\nOriginal136 HELD0 judgments retain exact old scope and gaps; supplement adds later reading without rewriting historical assertions. Original source/whole authorship preserved.\nLocal cached mappedForge1.20.1-47.4.10 archive identity only, no current installed Dynasty API or fresh remote authenticity; no fabricated Git provenance.\nFull old comparator source chains were not newly reread, only complete saved non-evidence judgments and exact current whole rows; no all512 exhaustive semantic originality claim.\nNative GoalSelector scheduling/target selection, full world clip/physics/chunk behavior, event bus listeners, final receiver overrides and loaded source tags not whole-reviewed.\nStart-cancel→empty packet case requires cancel-only listener without mutation or manual execution and normal returning outer method. Live object/list/map access, exceptions and reentrancy forbid universal rollback/sound guarantees.\nBase effectAdded/Updated and ServerPlayer sync methods read; actual packet delivery, particle/audio renderer, registry remapping and client thread transport internals not validated by source request.\nNo runtime shot/birth/HPdelta/effect admission/control refusal/displacement/strictkill/sameUUIDpickup/material-payment/quest or intended-player receipt acceptance.\nNo world resume/idempotence/atomic retirement/paid entitlement or player Clone whitelist extension follows from transient owner/power save fields.\nNo production/UI/background/armor/model/architecture/assets/sharedJar/userworld changes, process/display/game/network/Java/Gradle invocations, source executor/import/help calls or oldonce replay in this passive review.\nProgram remains512/240/gap488false and ecology52/gap948false; applicable1000 production threshold unmet. Files/classes/ranges/lines/events/packets not semantic counts.\nNo task/prompt deletion, allCOD completion or active-hours claim; cod5 absent remains absent. This research is not completed Boss feedback or any finished game feature.\nPrivate proposed row only: research_credit1 contingent on separately reviewed future one-use authority. Current512/240/ecology52 unchanged; all original historical HELD0/preformal/count/LF statements retained.137/138 excluded."
+      },
+      "raw_old_source_newly_read": false
+    },
+    {
+      "index_zero_based": 516,
+      "id": "native-shulker-accepted-hit-branch-precedence-and-open-shell-teleport-before-oldspace-density-qualified-newborn-admission-attempt",
+      "whole_object_canonical_sha256": "34551a362395dc99cd6e9caaf9fc62ed6f6f40fb8e70eae524a1f89f3fafbee2",
+      "complete_four_business_actually_read": {
+        "full_chain_observation": "Native shell DATA_PEEK byte defaults0 and isClosed tests exactly==0, not visual lid interpolation or health threshold. setRawPeekAmount server removes covered armor modifier then readds+20 onzero andrequests close/open cue before writing byte. Damage phase/armor/cue are related but different results; native scheduling/sync/attribute outcome not run.\nRegistered own AttackGoal startsraw100 andattackTime20, stopsraw0; tick currenttarget/difficulty/distance<400 can request newly constructed ownerShulker-targeted bullet andshootsound with unchecked addFreshEntity. Look-at/currenttarget behavior is studycontext0, not a production suggestion or guaranteed natural activation.\nOwn hurt first ifclosed rejects direct AbstractArrow before parenthurt without an explicit tag/bypass exception. This exact closed/arrow rule overlaps prior45 helmet-phase refusal and earns0alone. Nonarrow, openarrow and laterparenthook outcomes remain separate.\nOnly parenthurttrue enters own aftermath. If post-parenthealth<halfmax andnextInt4==0, attempt teleport takes precedence and itsboolignored. Because next case is else-if, that chosen branch suppresses reproduction even when teleportfalse; allnormallyreturningparenttrue paths stillreturntrue.\nOtherwise only IS_PROJECTILE-tagged source with nonnull directentity exact EntityType.SHULKER_BULLET calls hitByShulkerBullet. Owner same-as-target is not checked; a same-species typed projectile need not have been fired by this victim. Actual merged tag membership/nativehits remain conditional.\nhitBy snapshots positionVec3 andAABB before requiring !closed andteleportSomewheretrue. Thus movement/target-clear/peekclose commit requests occur before density/RNG/create/add. Failure laterdoesnotrollbackparentdamage ormovement, and hurtstilltrue onnormalreturn.\nDensity query occurs aftermovement butuses OLD aabb.inflate8 andaliveEntityType.SHULKER entries. Threshold f=(i-1)/5 isnotclamped; candidateuserRandom.nextFloat<f deniesattempt. It is a localrandom density rule, not an atomic reservation/globalfive-shulker cap or allworldcount. Parent inclusion depends liveposition/query/listeners, no runtimeprobability/limit measured.\nIf random permits, EntityType.SHULKER.create maynull; otherwise onlyownsetVariant(currentparentvariant), moveTo(OLDvec3) andunchecked addFreshEntity shown. Original parent remains at requestednewposition while newbornattempt placedoldspace. OwnmethoddoesnotcopyarbitraryNBT/UUID/owner orreturnadmissionresult; no successfulbirth/refund/identityconservation claimed.\nteleportSomewhere gates !NoAi && alive, triesup-to5 integeroffsets±8 aroundinitialblockpos, prechecksbuildheight/empty/worldborder/collision andattachablesurface. No top-levelserverguard here; parentdamage/AI actual scheduling notsubstituted.\nfindAttachableSurface scansdirections, canStayAt checksunblockedcell andloadedface support plusfully-openprogressAABBcollision. Positionblocked hasonlyair orsamecurrentMOVING_PISTON exception. These are pre-eventcandidatechecks, not allworld/physicsvalidatorproof.\nForgeevent maycancel ormutateXYZ. Methodsets directionnulloncancel, floorsmutateddestination toBlockPos, then onlydirectionnonnull path unRide/setAttachFace/sound/setPos/gameevent/rawpeek0/targetnull/true. Cancelediterationmaycontinuetonextcandidate. Sameoriginalattachdirection/prechecks notrerun onmutatedXYZ inthismethod; Entity.setPos/worldbackendunexpanded, no reproducedinvalidlandingbug.\nShulker ownsetPos delegates snappedcoordinates toparent, andaftertick0 changedblock writesrawpeek0/impulse/clientoldpos/interpolation6. Boththisandteleport writeentityData directly, bypassingsetRawPeekAmount armor/cue helper there. No finalarmor/render/clientdesync conclusion; latergoalstop/nativeattributesmayintervene.\nActual ShulkerBullet constructorstoresowner,initialmouth-centerposition,finalTarget andUPdirection beforeselectNextMoveDirection. Oldmigration668 alreadyowns route/targetcheckpoint, no newhoming/persistence/ownercredit.\nNativeProjectile.onHit dispatchesonHitEntity beforePROJECTILE_LAND event. Bullet.onHitEntity callstargethurt(mobProjectile(this,livingowner),4); trueonlyattemptsenchantandeffectLEVITATION200withsourceowner-orbullet, ignoresaddEffectbool. Targethurttrue/teleport/newbornattempt is not acceptedlevitation orHP proof.\nBullet.onHit afterparentsuper normallyreturns callsdestroy: discardthenENTITY_DAMAGEgameevent. Thereforetargethurtfalse doesnotitselfpreventbulletdestruction; exceptioncaninterrupt. Ownbul lethurtserversound/particles/destroythenreturnstrue withoutitselfHPwrite; thisgenericbool/cuecontext0, notnewsecondpolicy.\nNinewholepriorfourfieldjudgments, completepending140candidate andmigration668businessowner compared. Onlyproposedwhole distinction is accepted-hit/openshell route andbranchprecedence into oldspace population-qualifiednewbornattempt after parentmovement; genericarrowrefusal/teleport/effect/childwrapper/truebool/cue alreadyowned0.\nForDynasty, distinguishactualrefusal, acceptedhit, movementstate, actoridentity/newbornadmission andeffectrequest. No shownBossreason/UUIDepoch/lifetime immuneack orfee/paidresource policy; thisresearchdoesnotaddreproduction/capture/rotationmechanicsorordinaryconstitutiongraytext.",
+        "concrete_observation": "Closed-arrowveto(old0) -> parenthurt acceptance -> lowHPteleportpriority OR taggedtypedbullet/openphase -> snapshotoldspace -> teleportclose/targetclear -> liveoldspace density/RNG -> freshvariantoldposuncheckedadmission. Returnedhurtbool/effectcaller/destruction allseparate. Atmost1adjacentwhole orMainmerge0.",
+        "application_to_boss_immune": "Trackactualcontrolreason/phase/recipientidentity separatelyfromparenthurt,movement, actoradmissionandeffectrequests. Studyonly; no newgameplay orgrayfeedbackbeforeapplicable1000.",
+        "limitations": "Atmost1adjacent lifecyclewhole pendingindependentMain, accepted/formal0/IDnull; Mainmaymerge0especiallywith45/140/443/505. Cannotcountnewspecies/arrowphase/5or8constants/helpers/branches/offpsring/goal/ranges/bugseparately.\nFixedlocalForge1.20.1-47.4.10 mappedarchive4entrybytes exactonly, nofreshremote/Gitcommit-tree/currentDynastybinary/config/runtime/nativeacceptance. No upstreamcode executed.\nExactmerged IS_PROJECTILE/MOB_PROJECTILE tags/DamageType/effect/immunity/nativeparenthurt/effectlistenersnotclosed. TypedBulletrouteconditional; directentityandowner distinct, notimmutableattackeridentity.\nFullShulker694/Bullet319/nativeengine notread; explicit4files10ranges373lines/0wholefiles, onecompleteinnerAttackGoal only. Partialincidentalmethods andearlierexcesslineattemptnotcredited.\nActualGoalSelector/NoAI scheduling/targetarbitration, inheritance/constructorinit/attributeoperationsandloadedstateunexpanded; raw0notpixelclosed/actualarmorproof, attacksoundnotbulletadmission.\nOldspace localpopulationquery/randomthreshold nothardglobalcap/atomicreservation/deterministicprobability. Membershipafterlistener/movement/queryconcurrencyunverified, noactualduplication/exploit/collisionfailureclaim.\nFactory/moveTo/addFreshEntity/backendadmission/persistence/trackingnotallreadorrun. Ignoredaddresultnotadmittednewborn, originalidentitycarryover/resourceconservation/pickup/payment/questreward/Clonewhitelist.\nteleportevent cancellation/rewrite/sourceorderonly; nativeunRide/dismountcanberefused viaexternalcontracts, destinationpostrewritephysics/EntitysetPosnotclosed. Noatomicteleport/restore/currentpackallcontrolguarantee.\nlowHPquarterchance branchsuppresseselse-if evenfailedteleport; hurttrueonlyparentnormalreturn plusaftermathnormalreturn, notpositiveHP/teleport/newborn/stun/levitationreceipt.\nSharedForgeevent/DamageSource helpersreuse140exactoldrefs0. Commonarrow/effect/child/successfeedback/nativepacketsemanticownerspreserved0;139FabricprovenanceHOLDnotimprovedbythisForgeevidence.\nNinewholejudgmentfourfieldsreadbounded;505concreteverifiedliteraljoinofall46alreadyreadentries, nothash-onlysemanticcredit. All515keywordnavigationnotmanualallsource/globaluniqueness, nestedoldsourcechainsnotreread.\nMigration668completeoldtarget/routeownerretained; sourceBulletselectedrangescontext0, no newNBT/migration/UUID/ownerpolicycredit. NewbornownsetVariantnotlosslesscopy/backupstrategy.\nGameevent/sound/particle/peek/interpolationrequestsnotdeliveredgraytext/lifetimes/packetACK/pixels/audio. Ordinaryconstitutiongraytextunchanged, nolookrotationgameplayimplemented.\nOnlynewimmutableprivateartifacts; noformalappendplan/grant/token/marker/proof/executor/import/help/run/production/UIbackground/assets/UV/model/building/sharedJar/userinstance/worldsave/process/network/Java/Gradle/Git/automation/display/audio/brightness/wake/focus/masterpendingownership/taskdeletion. Applicable1000false; nohours/allcomplete.\nMain bounded limits:\nMax1 adjacentwhole orboundedmerge0 pendingactual originalauthor ACK to17Mainfindings+14limits; original17observations14limits retained. Formal0/IDnull/noappend oronce authority.\nFixedlocal mappedForge1.20.1/47.4.10 archive4entrybytes only; notfreshremote/Git/currentinstalledDynastybinary/config proof. Source notexecuted.\n4files10boundedranges373lines/0wholefiles andoneinnergoal, not10mechanisms. Fullparent/native engine/GoalSelector/currentloadedtags outside.\nAlltags/DamageTypes/parentdamage/effectlisteners conditional; parenthurttrue not positiveHP, ownnormalreturn bool notmovement/newborn/control receipt.\nLowHP selectedbranch mayfailmovement while suppressing reproduction; randomstatement isnot empiricalchance, ticktime/wholeAI schedule notproven.\nOldspacequery f unclamped/notatomic/noreservation; entity identity/inclusion/concurrentchanges unmeasured. No cap/ecologyprobability/production proposal.\nFactory/moveTo/add/tracking/save/pickup/backend unexpanded. Newbornvariant request notadmitted orlosslessactorcopy/material/payment/questreceipt.\nEventediteddestination notsameasprecheckedcandidate; nativeunRide/EntitysetPos external. No globalphysics/atomicrollback/exploit/runtimefailure conclusion.\nRawpeek/armorhelper/cue/interpolation paths sourceonly. Directraw maybypasshelper but not provenfinalwrongarmor/clientdesync or needtofix.\nBullet hurt/destroy/enchant/effect/gameevent/sourceowner context0. No renderedpixels/audio/graytext/lifetime/UUIDepoch/packetACK/native/TCP acceptance.\nNine complete savedfourfield judgments andmigration668business actuallyread; oldfullsourcebodies onlyboundexcept4explicitnewfiles. Lexicalnavigation notall515/globalnovelty. Pending140oldsource/contextreuse0.\nShared140Forgeevent/factory/DamageSource currentbound0;139Spectrum provenanceHOLD unaffected. No source/helper/constant/branch/file/AI/species splitcredit.\nCandidate sealedhistoric515/eco53 preserved; currentMain515/eco54 separatebinding, notoldproposalrewrite/rebase/consumedplan replay.\nNo production/Java/Gradle/game/process/display/network/UI/audio/brightness/wake/unlock/focus/userinstance/save/sharedJar/proassets/quest/masterlists/pending/ownership/Git/automation changes; taskdelete0/hoursnull/allcompletefalse."
+      },
+      "raw_old_source_newly_read": false
+    },
+    {
+      "index_zero_based": 519,
+      "id": "native-wither-nonrefreshing-destruction-window-dual-head-accumulated-budget-consumer-policy",
+      "whole_object_canonical_sha256": "004a4e717981d02f0951ce57e2500132aa117681f01dc055e18c92179b970573",
+      "complete_four_business_actually_read": {
+        "full_chain_observation": "Wither整个522行、正常结构召唤103行以及具体注册已读。创建后先清结构/定位/设置220与maxHP/3/criterion再忽略add结果；不重复计出生、付款或召唤任务。\n本体hurt门依序源invulnerable、WITHER_IMMUNE_TO、causingWither、召唤invul、低HPdirectArrow、非Player同MobTypeLiving；bypassinvul只跳相应门不是跳全部。实际tag内容未知。\n本体准入后destroyBlocksTick<=0才20，不刷新正窗口；两idleHeads每次+3；然后superhurt。没有本地正量/server/alive门；父onLivingAttack/iframe/actuallyHurt可拒或0HP，前写不回滚。\n破坏预算只正常customServerAiStep递减，0且griefing允许后当前坐标3×3×4逐格canEntityDestroy及Forge事件再destroyBlock；布尔OR不短路跳过下一格destroy调用。至少一真实true才event1022。\n侧头各nextHeadUpdate门，先下一10+random10；Normal/Hard取旧计数再+1，旧>15才随机危险弹并清0。不能把新值>15提前一轮，或将+3当立即三弹。\n同次随机发射后仍可检查目标并目标发射，更新next40+random20清0；无效目标清ID，无目标采样候选只置ID。源码两条发射路径非互斥，不是已实际双发证明。\n破坏预算合并未延后截止，侧头积累可被正常AI采样或目标发射消费/清零；最后父bool不是准入写入的事务提交标记，存活/AI/门条件仍限制实际消费。\nMob.serverAiStep在goal/nav后调用customServerAiStep，Living immobile会跳它。召唤invul分支不处理普通两预算，先到期爆炸/1023再计数写回；tickCount整除10/20回血不等于墙钟或重开精确节律。\n射击声1024在构造/setOwner/设置危险及忽略addFreshEntity之前；实际出生、碰撞、爆炸和伤害非本次新增。\n普通level事件64范围+当前dimension；global依规则broadcastAll或fallback。包仅type/pos/data/global；client当前level分派，完整局部1022/1024与global1023已读，普通1023fallback未读不能承诺可闻。\n低HPisPowered护罩走EnergySwirl实际buffer提交，invul控制另一贴图/缩放；模型侧头读角度。状态展示不是某次箭拒绝或Boss控制免疫明确回执，无声画验收。\n完整旧234/262/495/147/378/473/309/319四字段保留：源/阶段盾、HP实测累计、前置smite、库存消耗、独立随机状态、拒绝合并boolean反击和成功名义伤累计各不同边界。\n另实际完整读取正式512四业务字段和count_unit/sourceRefs。512已拥有同Wither hurt410..442及发射381..408，前置写入与射声/忽略add均重叠0；不得从原owner删掉这些支持边界或再计。\n本候选至多1限完整新增破坏窗口不刷新与双侧头数值积累两种合并预算及217..315真实消费者的整体，sourceRefs显示512此前未读该消费者。不同于309拒绝boolean消费，仍接受最终MERGE0，不以不同实体名计数。\n完整迁移93保留Invul持久化、召唤恢复/副作用与无crashatomic边界；两普通budget在当前类自己存取未保存只是本地源事实，不扩Clone白名单、不加迁移信用。",
+        "concrete_observation": "One non-refreshing delayed world-destruction window coupled with dual-head numeric accumulated-budget consumption in complete native customServerAiStep217..315. Distinct actual consumer organization from refusal-to-boolean-charge, success-fed nominal-damage budget, observed-HP phase retirement and independent random protection state. Exactly one whole across both budgets; new99source lines alone are not the reason. Original512 entire producer/pre-super writes/shot cue/ignored add/impact/world/protocol and migration93 phase checkpoint are retained overlapping support0, not narrowed or recounted. No global519 semantic exhaustion claim.",
+        "application_to_boss_immune": "按实际控制准入生成拒绝回执，伤害bool不承担所有前置副作用的事务回滚。\n非刷新延时窗口、累计队列和持续状态各使用明确消费/清理边界，不把发声当作输出加入或到账。",
+        "limitations": "固定mappedForge本地归档身份，非认证Git/当前整包兼容结论。\n15文件18范围1164去重行7whole，覆盖不计信用。首次合并输出Wither中部截断3tokens，随后完整1..522逐行重新输出覆盖，不能把初次截断称全文。\n独立原ZIP/文件SHA与18raw bytes/base64/UTF8含行尾相同；八完整旧owner及迁移93原对象deep-equal。\n额外512完整四业务字段/来源范围实际读，保存全旧对象但其余嵌套历史源链不声称重新语义阅读。\n具体damage tag/Forge监听器/毁块内部资格、完整AI调度/目标选择、完整bossbar及声音渲染网络未展开。\n本体门未入不写预算；父hurtfalse可能已写但不保证生存消费、地形变化、弹实际出生、严格击杀、控制接受或实际奖励。\n其余条目的ID/metadata预筛不是全球全量语义审阅，本次实际正式518，生态57仅当前存量背景；作者ecology55旧上下文保留。\n至多一个整体preauthor提案，accepted/formal0、无ID/append授权，旧源/帮手/数值/两预算不各拆数；可MERGE0。\n不改正式Java/资产/共享Jar/清单/pending/ownership/原档；无游戏/Java/Gradle/网络/设备/旧once或marker执行。\n没有任务或native完成，没有主动工时总量宣称；免疫1000仍不足，不能生产。"
+      },
+      "raw_old_source_newly_read": false
+    }
+  ],
+  "selected_group_rationales_only_read_not_whole_ancestors": [
+    {
+      "index_zero_based": 146,
+      "family": "batch137-herschel021-main-full-chain-review",
+      "rationale": "MindTrick immediate target-null before potion admission + attack-attempt release differs from UUID retargeting MindControl. Reversible block-hosted actor capture with placement gate/native TE release differs from Gorgon entity statue and mounted binding. Ice/stone, block sizes, common Ray/GL/TE packet wrappers merged.",
+      "whole_object_canonical_sha256": "b0a2ea9a58402c5536a1eee4a33e77b42aca944a52d0fb783b2c49262f05e425"
+    },
+    {
+      "index_zero_based": 240,
+      "family": "native-wither-projectile-world-admission-protocol-continuation",
+      "rationale": "Only concrete native Wither projectile admission -> worldStart -> native explosion protocol continuation across two admission layers; not generic force outside hurt, a projectile name or split packet/helper credit. Main must independently approve the exact proposed family/row; closure grants no formalID or append authority.",
+      "whole_object_canonical_sha256": "9ee47cdee7dbfe617575d0dcaffc7de888db8904ffb98c86007656a057fd482f"
+    },
+    {
+      "index_zero_based": 244,
+      "family": "native-shulker-accepted-hit-open-shell-movement-before-oldspace-qualified-newborn-attempt",
+      "rationale": "Closed-arrowveto(old0) -> parenthurt acceptance -> lowHPteleportpriority OR taggedtypedbullet/openphase -> snapshotoldspace -> teleportclose/targetclear -> liveoldspace density/RNG -> freshvariantoldposuncheckedadmission. Returnedhurtbool/effectcaller/destruction allseparate. Atmost1adjacentwhole orMainmerge0.",
+      "whole_object_canonical_sha256": "323c914eb21acf52c66290df141d14504cc21a126b354615bbfc1f7d42c1d4c0"
+    },
+    {
+      "index_zero_based": 247,
+      "family": "native-wither-combined-nonrefreshing-destruction-window-dual-head-budget-consumers",
+      "rationale": "One non-refreshing delayed world-destruction window coupled with dual-head numeric accumulated-budget consumption in complete native customServerAiStep217..315. Distinct actual consumer organization from refusal-to-boolean-charge, success-fed nominal-damage budget, observed-HP phase retirement and independent random protection state. Exactly one whole across both budgets; new99source lines alone are not the reason. Original512 entire producer/pre-super writes/shot cue/ignored add/impact/world/protocol and migration93 phase checkpoint are retained overlapping support0, not narrowed or recounted. No global519 semantic exhaustion claim.",
+      "whole_object_canonical_sha256": "5480beec1a0f6969c5e7dd2f66e844b125ea5ea30df48ad6a49c71fff1d2df70"
+    }
+  ],
+  "substantive_comparisons": [
+    {
+      "old_index": 390,
+      "comparison": "Entire reversible actor-blockhost placement/refusal/restoration preserved. Currenthoststate propertymap doesnotstoreactor; thisdifference supportsatmostrelatedwhole,notsplitBlock/BE/copy/NBTcredit."
+    },
+    {
+      "old_index": 512,
+      "comparison": "Multipleworld/projectileadmissionlayers andresult-independentcue alreadyowned. Destroy-before-add/POOF/newtypealone0; no additionalprotocolclaim."
+    },
+    {
+      "old_index": 516,
+      "comparison": "Movementcommitbeforeoldspacequalifiedfreshactor alreadyowned. Uncheckedadd/newtype0alone; onlycompletepermissionswitchedhostconversioncoulddiffer."
+    },
+    {
+      "old_index": 519,
+      "comparison": "Withernonrefreshingwindow+dualheadbudgetwholeowned. Silverfishalarmcounter/scan0alone; Maindecideswhethertwo-wayhostpolicywholeisrelatedorduplicate."
+    }
+  ],
+  "applications": [
+    "权限拒绝可能选择替代转换而非无操作；未来控制与采集流程应明确最终准入、输出身份与原实体保留，不以声音粒子代替到账。仅研究。",
+    "分别核验原实体移除、方块变化和新实体加入，保护ID/NBT/材料付款与玩家任务奖励。属性映射不是完整生物保管，不新增玩法。",
+    "界面未实施：背景保留，主界面只改按钮，世界选项另作特色，删除无用刷怪蛋及基础教程提示。研究不是UI验收。"
+  ],
+  "limits": [
+    "固定本地mappedForge1.20.1/47.4.10源ZIP逐成员相等，不是认证Git/新版本兼容/当前共享Jar、加载tag/config/监听器证明。",
+    "14文件16段785行5全文；Level/ServerLevel/Block/BlockBehaviour/Entity/Mob/registries/ForgeFactory部分，RotatedPillarSubclass/damagetag/world/chunk/entityManager/loot/listener/removal/transport/backend未读全。",
+    "四旧完整四业务实际读，四组仅rationale/metadata，祖先raw源码未重读；跨生态66/迁移完整所有权仍待查，不作全球不存在或独立参考通过决定。",
+    "实际worldwrite/add/HP/身份恢复/出生/击杀/物品付款/任务/声画灰字未验证。缺复查不等于自然可达绕过，静态无回滚不等于已复现丢失/复制。",
+    "最多1或MERGE0，本批formal0/IDnull，无append/plan/once/grant/marker/executor；172/171pending和migration706不重新计数。",
+    "仅新不可变私有JSON。无生产UI/Java/贴图/UV/模型/建筑/共享Jar/实例/存档/正式表/session/active/pending/ownership/外部提示词改动。无Java/Gradle/game/script/import/help/validator/process/display/wake/unlock/sound/brightness/focus/Git/network/newchat/automation/taskdelete。工时null/未完成声明。"
+  ],
+  "historical_guard_failure_preserved": {
+    "expected_old_ecology65_receipt": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program167-169-Main-actual527-data-application-20261114.json",
+      "sha256": "879c239c490b29ab79e24eb54d25ac209e29bbf56b76cd1e815566d772579080",
+      "bytes": 6106
+    },
+    "first_mismatch_path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "expected65": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "sha256": "84f486555031c59b82e5bfda40079e93325fd5b4e3016a34d18ea399c4e58317",
+      "bytes": 4259532
+    },
+    "actual66_by_Main": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "sha256": "5c9f20d0519fefc57946332a9972d50facb61fdbdcb00d3beb72d6c7ee1ffc78",
+      "bytes": 4663669
+    },
+    "result": "Assertion before any173write; noJSONsaved, noformaldatachanged. Read freshMainactual66receipt then bound only new private173 checkpoint. No oldonce/planrefresh/replay. 172immutable65historyunchanged."
+  },
+  "current_Main_actual66_receipt": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-golem-EA0067-Main-actual66-data-application-20261114.json",
+    "sha256": "9b62724a4a48951705647bd9c0e2975210af79eda4b51be3530a6c2ce53ae6c0",
+    "bytes": 7723
+  },
+  "protected_before": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "99b4236aa080fbbc293459ea3e5a4bb1c697e9e33f8cb68b9248bd28be06b4c0",
+      "bytes": 68461643
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+      "sha256": "1562f9bb9b37723507da1f68a55eb090879d7f1702add319ef3f3f81a006f7b2",
+      "bytes": 438454
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+      "sha256": "34e67d46ec440adb156ddd5d5a80f830d0b96a3ebbdc62a00e2b191184312b70",
+      "bytes": 631
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "sha256": "5c9f20d0519fefc57946332a9972d50facb61fdbdcb00d3beb72d6c7ee1ffc78",
+      "bytes": 4663669
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+      "sha256": "47cabe8d93ea9276f6b91fab08ecdabbf343a101fc40ee2a90b1291319f208dc",
+      "bytes": 4478781
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+      "sha256": "3aab4c6ad55a1c43a4dd0a53e2f8b30577b15c68e8373ed147dc2f3428fb960e",
+      "bytes": 1551802
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+      "sha256": "deed8bf3f0e34114b34a89c4e95445108231bfdea1351c239db5a13d1d8f909c",
+      "bytes": 266014
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+      "sha256": "1cd8d182e684cbd9043d9f30d3e094d7721ab0d8188f669779afb4bd50999468",
+      "bytes": 1055512
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "protected_after": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "99b4236aa080fbbc293459ea3e5a4bb1c697e9e33f8cb68b9248bd28be06b4c0",
+      "bytes": 68461643
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+      "sha256": "1562f9bb9b37723507da1f68a55eb090879d7f1702add319ef3f3f81a006f7b2",
+      "bytes": 438454
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+      "sha256": "34e67d46ec440adb156ddd5d5a80f830d0b96a3ebbdc62a00e2b191184312b70",
+      "bytes": 631
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "sha256": "5c9f20d0519fefc57946332a9972d50facb61fdbdcb00d3beb72d6c7ee1ffc78",
+      "bytes": 4663669
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+      "sha256": "47cabe8d93ea9276f6b91fab08ecdabbf343a101fc40ee2a90b1291319f208dc",
+      "bytes": 4478781
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+      "sha256": "3aab4c6ad55a1c43a4dd0a53e2f8b30577b15c68e8373ed147dc2f3428fb960e",
+      "bytes": 1551802
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+      "sha256": "deed8bf3f0e34114b34a89c4e95445108231bfdea1351c239db5a13d1d8f909c",
+      "bytes": 266014
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+      "sha256": "1cd8d182e684cbd9043d9f30d3e094d7721ab0d8188f669779afb4bd50999468",
+      "bytes": 1055512
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "actual_program": {
+    "count": 527,
+    "groups": 255,
+    "gap": 473,
+    "gate_met": false
+  },
+  "actual_ecology": {
+    "count": 66,
+    "gap": 934,
+    "gate_met": false
+  },
+  "native_credit": 0,
+  "production_changes": 0,
+  "task_deletions": 0,
+  "active_hours_claimed": null,
+  "all_old_and_Main66_once_forever_consumed": true,
+  "next_work": "Close ecology66 and migration whole ownership before recommendation; no formal append authority."
+}
