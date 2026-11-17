@@ -1,0 +1,19 @@
+"""Read fixed original item registrations, default material branches and model layer links."""
+from pathlib import Path
+import json,re,hashlib
+D=Path(__file__).resolve().parent;J=D/'source/Xplat/src/main/java/vazkii/botania';RES=D/'source/Xplat/src/main/resources/assets/botania';GEN=D/'source/Xplat/src/generated/resources/assets/botania'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def main():
+ items=(J/'common/item/BotaniaItems.java').read_text();names=(J/'common/lib/LibItemNames.java').read_text();lib=(J/'client/lib/ResourcesLib.java').read_text();layers=(J/'client/model/BotaniaLayerDefinitions.java').read_text();models=(J/'client/model/armor/ArmorModels.java').read_text();rows=[]
+ assert 'ALL.put(id, item)' in items and 'r.accept(e.getValue(), e.getKey())' in items
+ for m in ['manasteel','elementium','terrasteel','manaweave']:
+  cap=m.title();klass=cap+('RobeModel' if m=='manaweave' else 'ArmorModel');base=J/f'common/item/equipment/armor/{m}/{cap}ArmorItem.java';src=base.read_text();constant=f'MODEL_{m.upper()}_NEW';assert constant in src
+  resource=re.search(rf'{constant} = PREFIX_MODEL \+ "([^"]+)"',lib).group(1);assert resource==f'armor_{m}.png'
+  defs=[line.strip() for line in layers.splitlines() if f'{m.upper()}_' in line and 'ARMOR' in line];assert len(defs)==2 and all(klass in s and ', 64, 128)' in s for s in defs)
+  assert f'{m} = make(ctx, BotaniaModelLayers.{m.upper()}_INNER_ARMOR, BotaniaModelLayers.{m.upper()}_OUTER_ARMOR)' in models
+  for s,typ,suffix in [('helmet','HELMET','HELM'),('chestplate','CHESTPLATE','CHEST'),('leggings','LEGGINGS','LEGS'),('boots','BOOTS','BOOTS')]:
+   const=f'{m.upper()}_{suffix}';assert f'{const} = "{m}_{s}"' in names;line=next(t.strip() for t in items.splitlines() if f'make(prefix(LibItemNames.{const}),' in t);concrete=re.search(r'new (\w+)\(',line).group(1);cl=J/f'common/item/equipment/armor/{m}/{concrete}.java';constructor=cl.read_text();explicit=f'Type.{typ}' in line or f'Type.{typ}' in constructor;assert explicit
+   model=GEN/f'models/item/{m}_{s}.json';modeljson=json.loads(model.read_text());assert modeljson['textures']['layer0']==f'botania:item/{m}_{s}';icon=RES/f'textures/item/{m}_{s}.png';atlas=RES/f'textures/model/{resource}'
+   rows.append({'case_key':'botania:'+m,'id':'botania:'+m+'_'+s,'slot_type':typ,'registration_excerpt':line,'concrete_class':str(cl.relative_to(D)),'concrete_class_sha256':sha(cl),'explicit_type_in_declaration_or_constructor':explicit,'model':str(model.relative_to(D)),'model_sha256':sha(model),'default_icon':str(icon.relative_to(D)),'icon_sha256':sha(icon),'default_worn_texture':str(atlas.relative_to(D)),'worn_texture_sha256':sha(atlas),'layer_declarations':defs,'model_source':str((J/f'client/model/armor/{klass}.java').relative_to(D)),'conditional_limits':['Phantom ink selects invisible texture; ordinary uninked default studied']+(['Holiday predicate selects alternate icon/material; not studied or counted separately'] if m=='manaweave' else [])})
+ evidence={'slot_chains':rows,'count':len(rows),'static_mesh_sources':4,'client_model_selection_source':str((J/'client/model/armor/ArmorModels.java').relative_to(D)),'Forge_model_extension_source':'source/Forge/src/main/java/vazkii/botania/forge/mixin/client/ItemManasteelArmorForgeMixin.java','source_reading_scope':'Default uninked, non-holiday source branches; original registration map, explicit type, generated icon declaration, subclass texture and client model layers','not_proven':['Actual Forge mixin activation/runtime resource resolution','Software or game 3D native model reconstruction and worn seams','1000 independent design acceptance'],'reference_credit':0,'production_changes':0,'game_starts':0};(D/'static-bindings.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n');print('16 default static slot/icon/material/model-declaration chains; runtime not claimed.')
+if __name__=='__main__':main()

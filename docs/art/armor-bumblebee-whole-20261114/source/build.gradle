@@ -1,0 +1,266 @@
+plugins {
+    id "architectury-plugin" version "3.4-SNAPSHOT"
+    id "dev.architectury.loom" version "1.6-SNAPSHOT" apply false
+    id 'io.github.juuxel.loom-vineflower' version '1.11.0' apply false
+    id "com.modrinth.minotaur" version "2.+"
+    id "com.matthewprenger.cursegradle" version "1.4.0"
+}
+
+architectury {
+    minecraft = rootProject.minecraft_version
+}
+
+subprojects {
+    apply plugin: "dev.architectury.loom"
+    apply plugin: "com.modrinth.minotaur"
+    apply plugin: "com.matthewprenger.cursegradle"
+
+    version = "${rootProject.mod_version}+${rootProject.minecraft_version}-${name}"
+
+    loom {
+        silentMojangMappingsLicense()
+    }
+
+    dependencies {
+        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+        mappings loom.officialMojangMappings()
+    }
+
+    Map<String, Map<String, String>> platformSettings = [
+            "fabric": [
+                    "curse-id": "363949",
+                    "modrinth-id": "eA8SXqWL"
+            ],
+            "neoforge": [
+                    "curse-id": "362479",
+                    "modrinth-id": "38tpSycf"
+            ]
+    ]
+
+    Map<String, Map<String, Boolean>> platformDependencies = [
+            "fabric": [
+                    "fabric-api": true,
+                    "midnightlib": true,
+                    "resourceful-lib": true,
+                    "better-advancements": false
+            ],
+            "neoforge": [
+                    "resourceful-lib": true
+            ]
+    ]
+
+    var env = System.getenv()
+    def uploadSettings = platformSettings.get(name)
+    def uploadDependencies = platformDependencies.get(name)
+
+    if (uploadSettings != null && uploadDependencies != null) {
+
+        File changeLog = rootProject.file("CHANGELOG.md")
+        String changeLogText = changeLog.exists() ? changeLog.text : ""
+
+        if (env.MODRINTH_TOKEN) {
+            modrinth {
+                token = env.MODRINTH_TOKEN
+                versionName = "The Bumblezone"
+                versionNumber = "${project.version}"
+                changelog = changeLogText
+                projectId = uploadSettings["modrinth-id"]
+
+                gameVersions = ["${rootProject.minecraft_version}"]
+                loaders = [name]
+                versionType = "RELEASE"
+
+                uploadFile = tasks.remapJar
+
+                dependencies {
+                    def optionalContainer = getOptional()
+                    def requiredContainer = getRequired()
+                    uploadDependencies.each { dep, required ->
+                        if (required) {
+                            requiredContainer.project(dep)
+                        }
+                        else {
+                            optionalContainer.project(dep)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (env.CURSEFORGEKEY) {
+            curseforge {
+                apiKey = env.CURSEFORGEKEY
+                project { proj ->
+                    id = uploadSettings["curse-id"]
+                    changelogType = "markdown"
+                    changelog = changeLogText
+                    releaseType = "release"
+
+                    addGameVersion("${rootProject.minecraft_version}")
+                    if (name == "neoforge") {
+                        addGameVersion("NeoForge")
+                    }
+                    else {
+                        addGameVersion(name.capitalize())
+                    }
+
+                    mainArtifact(tasks.remapJar) {
+                        displayName = "The Bumblezone v${rootProject.mod_version} (${rootProject.minecraft_version} MC ${name.capitalize()})"
+                    }
+
+                    if (uploadDependencies.size() > 0) {
+                        relations {
+                            uploadDependencies.each { dep, required ->
+                                if (required) {
+                                    requiredDependency(dep)
+                                }
+                                else {
+                                    optionalDependency(dep)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+allprojects {
+    apply plugin: "java"
+    apply plugin: "architectury-plugin"
+    apply plugin: "maven-publish"
+
+    archivesBaseName = rootProject.mod_id
+    version = "${rootProject.mod_version}+${rootProject.minecraft_version}-${name}"
+    group = rootProject.maven_group
+
+    repositories {
+        mavenLocal()
+        maven {
+            url "https://maven.neoforged.net/releases/"
+        }
+        maven {
+            url = 'https://maven.shedaniel.me'
+            content {
+                includeGroup 'me.shedaniel.cloth'
+                includeGroup 'me.shedaniel'
+            }
+        }
+        maven {
+            url = 'https://nexus.resourcefulbees.com/repository/maven-public/'
+            content {
+                includeGroup 'com.telepathicgrunt'
+                includeGroup 'com.teamresourceful.resourcefullib'
+                includeGroup 'com.teamresourceful'
+                includeGroup 'earth.terrarium.athena'
+            }
+        }
+        maven {
+            url = 'https://api.modrinth.com/maven/'
+            content {
+                includeGroup 'maven.modrinth'
+            }
+        }
+        maven {
+            url = 'https://www.cursemaven.com'
+            content {
+                includeGroup 'curse.maven'
+            }
+        }
+        maven {
+            url = 'https://beta.cursemaven.com'
+            content {
+                includeGroup 'curse.maven'
+            }
+        }
+        maven {
+            name = "TerraformersMC"
+            url = "https://maven.terraformersmc.com/"
+            content {
+                includeGroupByRegex 'dev\\.emi.*'
+            }
+        }
+        maven {
+            url = 'https://maven.blamejared.com'
+            content {
+                includeGroup 'mezz.jei'
+            }
+        }
+        maven {
+            url = "https://maven.theillusivec4.top/"
+            content {
+                includeGroup 'top.theillusivec4.curios'
+            }
+        }
+        maven {
+            url "https://maven.jamieswhiteshirt.com/libs-release"
+            content {
+                includeGroup "com.jamieswhiteshirt"
+            }
+        }
+        maven {
+            name = "ModMaven"
+            url = "https://modmaven.dev"
+            content {
+                includeGroup 'com.hollingsworth.ars_nouveau'
+            }
+        }
+        maven {
+            url 'https://modmaven.dev/'
+            content {
+                includeGroup 'mekanism'
+            }
+        }
+        maven {
+            url = 'https://maven.cafeteria.dev/releases/'
+            content {
+                includeGroup 'me.luligabi'
+            }
+        }
+        maven {
+            name = "Ladysnake Mods"
+            url = 'https://maven.ladysnake.org/releases'
+            content {
+                includeGroup 'dev.onyxstudios.cardinal-components-api'
+            }
+        }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+        options.release = 21
+    }
+
+    java {
+        withSourcesJar()
+    }
+
+    task optimizePng {
+        def pngPatterns = ["**/*.png"]
+        doFirst {
+            println 'Executing oxipng task...'
+        }
+        doLast {
+            //Ensure the logo is minimized (we add this file to each jar)
+            //Minimize any PNGs in the source sets
+            for (dir in sourceSets.main.resources.srcDirs) {
+                fileTree(dir: dir, includes: pngPatterns).each { minimizePNGFile(it) }
+            }
+            println 'Finished oxipng task...'
+        }
+    }
+}
+
+//Minimize/optimize all png files, requires optipng on the PATH
+// Credits: BrainStone
+void minimizePNGFile(File file) {
+    exec {
+        executable "./oxipng.exe"
+        args "-o", "6", "-i", "0", "--strip", "all", "-a", "-Z", file
+    }
+}
+
+task buildAndReleaseAll{
+    dependsOn(':common:buildAndRelease', ':neoforge:buildAndRelease', ':fabric:buildAndRelease')
+}
