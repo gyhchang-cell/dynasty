@@ -1,0 +1,1 @@
+186F04完整SkyVillages mason1岛上外冷工/内床箱室研究，7PNG实际看，56pal/6BE/entities[]、上15..25的2475完整原索引网格、下0..14的3375原索引RLE实际读，5完整JSON+2metadata全文读。自身石岛/地板/单门屋盖关系保存，不依名补地面；原箱loot是fletcher。与174独立工厅/卧室+公路及182HOLD0外冷工/生活室比较完整原判词复用保存，最大1待独立全案判断，正式0。F01/F02机器roleoccupancy排除；F03读10原层525/375省略、23pal/6BE但同155矩形共间family0无图。未Java/游戏/产品/清单；157pending保留，历史carry0。

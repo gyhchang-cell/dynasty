@@ -1,0 +1,1 @@
+176 ocean armorer_house_1：9原始全索引层362已存/286省略、29palette/2BE/空实体及1selectedpool片段实际阅读，0PNG/0fullcontext。单室北东折台/南中高炉原工作组织与068F01同家族，水/滴水石不构成新参考，0信用。068F01完整7观察和原family比较实际读取保存，未重开旧图或源链。Main173carry完整核验6849B全文实际读并原样保存在Main173-carry-integrity-only.json及admissions，当前carry0；173遗留relevance字样以完整family-zero判词为准。157与174仍pending，无Java/产品/清单变动。

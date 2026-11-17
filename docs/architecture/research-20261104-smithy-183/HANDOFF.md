@@ -1,0 +1,1 @@
+183F01 birch_forest_mason_1原名house实际露天材料堆/切石场，无屋壳/屋顶，0信用不交新待审。原5层245索引/19pal/3BE/entities[]全读，仅1整源四向PNG实际看，生成7其余6未看；2contextJSON/3metadata仅机器保存未读。完整建筑研究数0，不以完整露天场地偷换1000建筑。182已封存待独立审查；157仍pending。无Java/游戏/资产/Jar/主清单操作。

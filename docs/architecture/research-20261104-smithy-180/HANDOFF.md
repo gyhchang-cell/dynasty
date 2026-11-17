@@ -1,0 +1,1 @@
+180：3机器早排0(jungle armorer1→旧bamboo、oak armorerhouse1→旧birch、warped armorerhouse1→旧crimson)，无这些源palette/BE/planes语义阅读。F04 darkforest weaponsmith1全8原索引层476已存/316省略、34pal/4BE/空实体、2selectedpool片段实际读；0PNG/0全context/0whole，前工作棚→后共同室凹箱既有家族0。旧067/057完整实际阅读及比较复用172保存全对象，不重开旧图源链或新计阅读。174首次177+1后当前carry0，仅157pending。无Java/游戏/资产/主清单改动。

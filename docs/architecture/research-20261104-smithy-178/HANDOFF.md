@@ -1,0 +1,1 @@
+178三个新候选在语义阅读前按role/occupancy指纹与旧源匹配排除：cherry armorer_house1→068 mountains armorer_house1；dark_forest tool_smith1→107 birch tool_smith1；oak weaponsmith1→147 birch weaponsmith1。归一空间指纹相同非NBT字节相同，非新语义研究/完整参考；eligible false后未读palette/BE/planes、未渲染。三个机器排除0信用。174完整独立接受沿用177全对象，当前carry0，只有157pending。无Java/游戏/生产/任务删除。

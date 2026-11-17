@@ -1,0 +1,1 @@
+182F01完整nilotic mason小屋实际研究完成：7PNG全看、6层486原索引、28pal/5BE/entities[]、3metadata全文读。0contextJSON，vanilla池/loot缺失及注入/root链未读。北西外切石台；西单门后床/箱生活室，没有内部工作台/热作。与060F03七维原观察完整比较并保留，潜在工作全外置/生活内置差异，提交最大1待Main独立语义全案判断，正式0。不靠名字/材质/指纹判新颖。157W01仍pending、历史174first177后carry0。未Java/游戏/资产/Jar/主清单。

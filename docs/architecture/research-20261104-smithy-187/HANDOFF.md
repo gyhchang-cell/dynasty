@@ -1,0 +1,1 @@
+187F01 tribal四柱草顶切石棚完整源研究：7图/6原层486索引/25pal3BE/entities[]/2JSON3metadata全读；完整地基和两级草盖，但沿086完整小职业亭适用性不足保守0，062F03与086F01完整旧7维和比较保存。不因草顶/脚手/职业算新reference。首携Main186完整480635B：新7obs6limits/26RLEpalBE等实际读，完整174/182嵌套与186sourcecontext精确相等复用先前实读，三表示原样；只一次NPC01+1首次187，当前新源0/COD4153/NPC050，不推断NPC01累计。186从待审移入已独立接受，157pending、182HOLD不变，sealed186未改。未Java/游戏/资产/Jar/主清单。
