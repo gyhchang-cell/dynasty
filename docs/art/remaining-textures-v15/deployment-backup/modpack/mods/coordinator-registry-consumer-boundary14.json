@@ -1,0 +1,121 @@
+{
+  "recorded_at": "2026-11-02T10:52:19.661180+00:00",
+  "status": "STATIC_NATIVE_REGISTRY_CONSUMER_BOUNDARY_REVIEW_COMPLETE",
+  "forge_version": "1.20.1-47.4.10",
+  "archive_sha256": "918a11bdfceace2752d4c29bddbdf327981e1f6a1e1f0675f23e5fbf01e226c0",
+  "actual_read_ranges": [
+    {
+      "archive": "tools/cod4/ecology-acceptance/.work/client-build/gradle-home/caches/forge_gradle/maven_downloader/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-sources.jar",
+      "entry": "net/minecraftforge/registries/GameData.java",
+      "entry_sha256": "2de4043f6cda32f5417eef5d2f8890e417bfeab82d2c52fe3f8fe55b55b78a9c",
+      "start_line": 580,
+      "end_line": 755,
+      "range_sha256": "737978db1a4f393a7434edf9bb7eb4ace8b16d9f243f2b56842b8c78b6cef8a0"
+    },
+    {
+      "archive": "tools/cod4/ecology-acceptance/.work/client-build/gradle-home/caches/forge_gradle/maven_downloader/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-sources.jar",
+      "entry": "net/minecraftforge/registries/ForgeRegistry.java",
+      "entry_sha256": "166d4d874bb6f3a7e3f0e6317d5ee627edaf9e0bc62ea0aebb32d852e9ba30c8",
+      "start_line": 205,
+      "end_line": 225,
+      "range_sha256": "c453ff3e7104327089b291f26eb89247973c926ded4bec83a4e1167ea4bc99a3"
+    },
+    {
+      "archive": "tools/cod4/ecology-acceptance/.work/client-build/gradle-home/caches/forge_gradle/maven_downloader/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-sources.jar",
+      "entry": "net/minecraftforge/registries/ForgeRegistry.java",
+      "entry_sha256": "166d4d874bb6f3a7e3f0e6317d5ee627edaf9e0bc62ea0aebb32d852e9ba30c8",
+      "start_line": 312,
+      "end_line": 341,
+      "range_sha256": "25cd19dbab306c098586d7d9ecafea51376d2012de4c0f84e82569ae6878ed1b"
+    },
+    {
+      "archive": "tools/cod4/ecology-acceptance/.work/client-build/gradle-home/caches/forge_gradle/maven_downloader/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-sources.jar",
+      "entry": "net/minecraftforge/registries/ForgeRegistry.java",
+      "entry_sha256": "166d4d874bb6f3a7e3f0e6317d5ee627edaf9e0bc62ea0aebb32d852e9ba30c8",
+      "start_line": 363,
+      "end_line": 462,
+      "range_sha256": "dac3b5db4854af731667e4883ed72161041a6863ad440895a52d8c1bcb932bf1"
+    },
+    {
+      "archive": "tools/cod4/ecology-acceptance/.work/client-build/gradle-home/caches/forge_gradle/maven_downloader/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-sources.jar",
+      "entry": "net/minecraftforge/registries/ForgeRegistry.java",
+      "entry_sha256": "166d4d874bb6f3a7e3f0e6317d5ee627edaf9e0bc62ea0aebb32d852e9ba30c8",
+      "start_line": 723,
+      "end_line": 804,
+      "range_sha256": "68dc9e8a2e67cb38179942d198b111fcfb8932e7aa6dbadd9e2afc733e32c596"
+    },
+    {
+      "archive": "tools/cod4/ecology-acceptance/.work/client-build/gradle-home/caches/forge_gradle/maven_downloader/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-sources.jar",
+      "entry": "net/minecraftforge/registries/ForgeRegistry.java",
+      "entry_sha256": "166d4d874bb6f3a7e3f0e6317d5ee627edaf9e0bc62ea0aebb32d852e9ba30c8",
+      "start_line": 947,
+      "end_line": 1002,
+      "range_sha256": "b68a2916f5937b9386c9320d28ddc9245043c58d9cdc21cf4c3c460703b3dd73"
+    }
+  ],
+  "prior_receipt": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-static-migration-review12.json",
+  "prior_receipt_sha256": "ecb58c0efb706750db500b5d2c0458a50e8659464b940bdabb0d45a6ff460a46",
+  "findings": [
+    {
+      "boundary": "Snapshot injection and event reachability",
+      "evidence": [
+        "GameData580-621",
+        "GameData624-655",
+        "GameData687-721"
+      ],
+      "finding": "Existing snapshot IDs first load into STAGING from ACTIVE; only actually missing entries create a MissingMappingsEvent on MinecraftForge.EVENT_BUS. After processing, frozen new data can be injected, STAGING validated/copied to ACTIVE, baked, and remap/objectholder notifications fired. An annotated compiled handler alone does not prove that a real saved legacy ID reaches it."
+    },
+    {
+      "boundary": "Recognized mapping is alias plus registered object",
+      "evidence": [
+        "ForgeRegistry954-978",
+        "ForgeRegistry433-462",
+        "ForgeRegistry797-804"
+      ],
+      "finding": "REMAP removes the key from missing, attempts registration under the target canonical name with the old numeric ID, and adds old-key to target-name alias. The alias is included in later registry snapshots; getValue/getRaw traverse aliases when no direct entry exists. This does not register a newly recreated healing behavior or copy a separate item implementation."
+    },
+    {
+      "boundary": "Numeric ID preservation has a native caveat",
+      "evidence": [
+        "ForgeRegistry368-398",
+        "ForgeRegistry969-977"
+      ],
+      "finding": "If the exact target object is already registered under the target name, add returns its previous ID; occupied requested IDs can also select a free ID. The REMAP branch warns when the returned ID differs from the requested old ID. Do not claim exact numeric-ID preservation or warning-free migration from static code."
+    },
+    {
+      "boundary": "Unresolved mappings are not accepted compatibility",
+      "evidence": [
+        "ForgeRegistry979-997",
+        "GameData657-683"
+      ],
+      "finding": "Without a handler-supplied valid target, DEFAULT can create a registry dummy or append defaulted and block the numeric ID. Local-world logging may continue through unidentified entries; a non-crashing load is not proof that the old item survived. Validation needs actual item identity, count and NBT after load/save/reopen."
+    },
+    {
+      "boundary": "Snapshot aliases do not eliminate required reload check",
+      "evidence": [
+        "GameData729-737",
+        "ForgeRegistry723-741",
+        "ForgeRegistry328-329"
+      ],
+      "finding": "Snapshot aliases are copied into staging before loadIds. Missing ID detection consults the ACTIVE registry raw name-to-ID lookup, which does not traverse aliases, so saved alias presence alone is insufficient to prove that future loads avoid missing-mapping processing."
+    }
+  ],
+  "qa_acceptance_requirements": [
+    "Use only a separately owned old-world copy; leave the user original unchanged.",
+    "Exercise quest_ledger both with registered FTB book and with actual registered guide fallback; read final native item identity, count and NBT, not merely listener logs.",
+    "For healing_talisman confirm registered vajra_talisman compatibility target, not a resurrected healing effect.",
+    "Keep malformed/unresolved and unrelated mappings visible as negatives; normal exit is not a green result.",
+    "Save and reopen the same isolated copy, with current inputs and one-time execution constraints fully bound before any run."
+  ],
+  "limits": [
+    "This is coordinator static primary-source reading, not an independent peer review or runtime test.",
+    "GameData628-653 and ForgeRegistry947-964 overlap earlier bus review; this record earns zero fresh 1000-reference credit.",
+    "No native event dispatched, registry initialized, game launched, ready/marker consumed, source or sharedJar modified."
+  ],
+  "production_mutations": 0,
+  "new_reference_credit": 0,
+  "native_acceptance_credit": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "duration_hours_claimed": 0
+}

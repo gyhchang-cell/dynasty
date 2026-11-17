@@ -1,0 +1,752 @@
+{
+  "recorded_utc": "2026-11-09T17:11:56.481307+00:00",
+  "status": "ONE_EXISTING_BODY_STATE_STATIC_TRIGGER_POSE_EXIT_RELOAD_CHAIN_REVIEWED_RUNTIME_PENDING",
+  "target": "dynasty:swindler",
+  "source_pinning": "Actual current local files fixed bySHA256; not a new external creature/reference family.",
+  "sources": [
+    {
+      "path": "src/main/java/com/dynasty/expansion/SecondaryMob.java",
+      "sha256": "53c7c824aa539c8e8af52c941d292ff1fd146d76b948cb854a2aec73d82d7cb1",
+      "read_scope": "26-44 field initialization;49-114 constructor/goals/state mapping;136-228 full aiStep and ranged-path exclusion;296-359 hurt, entire interaction/swinde/save/load/controller scope"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/SecondaryMobs.java",
+      "sha256": "04d7e3c61a4a386adfc34cd221c8a4a29cd4689d5b4ab9fd0f0ee14671bbd385",
+      "read_scope": "1-30 record layout and existing swindler spec only"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/SecondaryCombatActions.java",
+      "sha256": "fca8a62780036e4f6d054dc64e951f00de1262b8edcf59c57d9364011a04ef6b",
+      "read_scope": "1-100 source context, especially begin switch and empty-action tick;154-176 entire evade/cancel/reset tail. Other actions not counted as reviewed mechanisms."
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/ExpansionClient.java",
+      "sha256": "379c3355d2d52a815c7da6bf195f7163f52993f0291d03bc77eba39bb5f8f9f9",
+      "read_scope": "prior model/renderer17-58 evidence reused; no new particle/texture work"
+    },
+    {
+      "path": "tools/art/secondary-cuboid/build_humans.py",
+      "sha256": "56d038bf76c80f46880923e596cf8945569561c4014c197351ffb3a2b5906b64",
+      "read_scope": "1-60 core skeleton;104-115 swindler attachment parent only;138-183 entire animation generator, excluding object geometry from study credit"
+    },
+    {
+      "path": "src/main/resources/assets/dynasty/geo/secondary/swindler.geo.json",
+      "sha256": "620240db883b06a825e43b5e2666f7433eb20d268e7a071a6fecc4ff5f34c8a6",
+      "read_scope": "body/head/right-arm/right-hand/leg ancestry and pivots only; object cubes not redesigned"
+    },
+    {
+      "path": "src/main/resources/assets/dynasty/animations/secondary/swindler.animation.json",
+      "sha256": "d8f5556949942bf1f2d26fe99228872b4cd88f65e7d1b614c68ae9698fc86066",
+      "read_scope": "complete special/flee/idle clip channels inspected; other16 clips not newly reviewed"
+    }
+  ],
+  "findings": [
+    "Existing registered swindler is human family, neutral=true, not flying/aquatic. Fresh deceptionStage/fleeTicks/animationTicks are zero; synced STATE defaults0. No new entity, shape or production target introduced.",
+    "On each alive server aiStep, while deceptionStage<3, the mob clears target, stops navigation and requests animate(5,2), selecting special. This already happens at stage0 before first interaction. Two ticks is a refreshed state hold, not the1.2-second clip duration or proof that the animation restarts every2ticks.",
+    "Interaction dispatcher calls swindle only for swindler. Offhand returns PASS; client returns SUCCESS without performing transaction state mutation. First server mainhand interaction stage0->1 requests special and injured message. Message identity does not prove an injury-specific body pose.",
+    "At stage1 mainhand copper_coin sets customer UUID and stage2; noncreative splits one coin into stolen, creates tagged false medicine and inserts/drops it. Body stays special via next aiStep. Item/NBT predicates are read only as state triggers; no item art, economy or reward logic altered.",
+    "At stage2 only the stored customer sneaking with DEAD_BUSH whose cod4Swindler UUID equals this actor can expose it: stage3, fleeTicks200, target cleared, navigation stopped, STATE3/flee requested200. Wrong player, wrong actor token or unsneaked interaction does not take that branch.",
+    "Alternative accepted hurt exits deception: after super.hurt succeeds, neutral branch requests flee80/hold30, then swindler branch overwrites stage3/flee200/hold200; player attacker also becomes customer. Generic evade call does not override this actor: SecondaryCombatActions.evade is red_fox-only. Other specialized combat begin switch has no swindler action.",
+    "Synced integer STATE is the body presentation channel; deceptionStage/customer/fleeTicks are separate server fields. The single body controller with transition4 requests thenLoop(animation()). STATE5 selects special; STATE3 selects flee. Exact4.8.4 controller blending/repeated-equal-RawAnimation internals remain unreviewed; do not substitute cached4.4.4 core behavior.",
+    "Complete special clip is looptrue/1.2sec: head yaw-3,+3,-3; otherwise static thighs/knees and left arm; right upper arm pitch0,-25,65,0 at0,.4,.8,1.2sec; right elbow0,20,35,0; chest yaw0,-12,15,0. This reads as turning/presenting/raising a hand, not a separately authored limp, crouch or wound-clutch pose. No shape/action was changed.",
+    "Complete flee clip is looptrue/.5sec: opposite arm/thigh pitch+/-32, knees0,10.6667,0 and head yaw-3,+3,-3. This is a speed-independent looping run request, not measured foot-ground locomotion. idle is1.8sec with amplitude2. Existing line-frame sheets were visually reinspected only for special/flee; no new reference credit or gameplay proof.",
+    "Chest is below waist/pelvis/body/root; right hand inherits chest -> right_upper_arm -> right_elbow -> right_forearm -> right_wrist -> right_hand. No right_hand/wrist track in special/flee. Existing abacus attachment parent is right_hand at[-4,9,-1]; it inherits this chain, no object model/PNG/UV authored.",
+    "Flee navigation Goal MOVE/LOOK runs while fleeTicks>0, selects lastHurtByMob or customer player and requests a point8 units away at1.4 navigation speed. If neither resolves it issues no new navigation request, while flee STATE/timer may continue. No collision/path success or guaranteed movement asserted.",
+    "Exit order matters: aiStep decrements fleeTicks and animationTicks before STATE fallback. With fresh animate(3,200), the last hold tick may leave STATEflee even when both counters reach0; following fallback evaluates flee/target/horizontal motion -> flee/hunt/wander/idle. It does not reset deceptionStage3 or reenter special. Existing retaliation target can yield hunt even though swindler melee canUse is excluded.",
+    "Save writes Cod4Deception/Cod4Flee/Cod4Customer, stolen and friendly/cooldown. Read clamps deception0..3 and flee0..200 and resets combat action state; it does not persist STATE, animationTicks or clip phase. Reload stage0..2 re-requests special on next alive server aiStep. Reload stage3 with positive remaining flee reselects flee after decrement, but saved flee1 expires before fallback and may select another state. No guaranteed same-phase or4-tick blend continuity across load.",
+    "Death: custom aiStep state update returns when not alive; state does not select a dedicated death clip. Previous exact GeckoLib4.8.4 renderer study supplies separate native-style overlay and whole-model death roll. This is source linkage, not new death runtime acceptance or a reason to remodel approved assets."
+  ],
+  "complete_reviewed_clips": {
+    "special": {
+      "loop": true,
+      "animation_length": 1.2,
+      "bones": {
+        "head": {
+          "rotation": {
+            "0.0": [
+              0,
+              -3,
+              0
+            ],
+            "0.6": [
+              0,
+              3,
+              0
+            ],
+            "1.2": [
+              0,
+              -3,
+              0
+            ]
+          }
+        },
+        "left_upper_arm": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.6": [
+              0,
+              0,
+              0
+            ],
+            "1.2": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "left_thigh": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.6": [
+              0,
+              0,
+              0
+            ],
+            "1.2": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "left_knee": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.6": [
+              0.0,
+              0,
+              0
+            ],
+            "1.2": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "right_upper_arm": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.4": [
+              -25,
+              0,
+              0
+            ],
+            "0.8": [
+              65,
+              0,
+              0
+            ],
+            "1.2": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "right_thigh": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.6": [
+              0,
+              0,
+              0
+            ],
+            "1.2": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "right_knee": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.6": [
+              0.0,
+              0,
+              0
+            ],
+            "1.2": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "right_elbow": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.4": [
+              20,
+              0,
+              0
+            ],
+            "0.8": [
+              35,
+              0,
+              0
+            ],
+            "1.2": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "chest": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.4": [
+              0,
+              -12,
+              0
+            ],
+            "0.8": [
+              0,
+              15,
+              0
+            ],
+            "1.2": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "flee": {
+      "loop": true,
+      "animation_length": 0.5,
+      "bones": {
+        "head": {
+          "rotation": {
+            "0.0": [
+              0,
+              -3,
+              0
+            ],
+            "0.25": [
+              0,
+              3,
+              0
+            ],
+            "0.5": [
+              0,
+              -3,
+              0
+            ]
+          }
+        },
+        "left_upper_arm": {
+          "rotation": {
+            "0.0": [
+              32,
+              0,
+              0
+            ],
+            "0.25": [
+              -32,
+              0,
+              0
+            ],
+            "0.5": [
+              32,
+              0,
+              0
+            ]
+          }
+        },
+        "left_thigh": {
+          "rotation": {
+            "0.0": [
+              -32,
+              0,
+              0
+            ],
+            "0.25": [
+              32,
+              0,
+              0
+            ],
+            "0.5": [
+              -32,
+              0,
+              0
+            ]
+          }
+        },
+        "left_knee": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.25": [
+              10.666666666666666,
+              0,
+              0
+            ],
+            "0.5": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "right_upper_arm": {
+          "rotation": {
+            "0.0": [
+              -32,
+              0,
+              0
+            ],
+            "0.25": [
+              32,
+              0,
+              0
+            ],
+            "0.5": [
+              -32,
+              0,
+              0
+            ]
+          }
+        },
+        "right_thigh": {
+          "rotation": {
+            "0.0": [
+              32,
+              0,
+              0
+            ],
+            "0.25": [
+              -32,
+              0,
+              0
+            ],
+            "0.5": [
+              32,
+              0,
+              0
+            ]
+          }
+        },
+        "right_knee": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.25": [
+              10.666666666666666,
+              0,
+              0
+            ],
+            "0.5": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "idle": {
+      "loop": true,
+      "animation_length": 1.8,
+      "bones": {
+        "head": {
+          "rotation": {
+            "0.0": [
+              0,
+              -3,
+              0
+            ],
+            "0.9": [
+              0,
+              3,
+              0
+            ],
+            "1.8": [
+              0,
+              -3,
+              0
+            ]
+          }
+        },
+        "left_upper_arm": {
+          "rotation": {
+            "0.0": [
+              2,
+              0,
+              0
+            ],
+            "0.9": [
+              -2,
+              0,
+              0
+            ],
+            "1.8": [
+              2,
+              0,
+              0
+            ]
+          }
+        },
+        "left_thigh": {
+          "rotation": {
+            "0.0": [
+              -2,
+              0,
+              0
+            ],
+            "0.9": [
+              2,
+              0,
+              0
+            ],
+            "1.8": [
+              -2,
+              0,
+              0
+            ]
+          }
+        },
+        "left_knee": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.9": [
+              0.6666666666666666,
+              0,
+              0
+            ],
+            "1.8": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "right_upper_arm": {
+          "rotation": {
+            "0.0": [
+              -2,
+              0,
+              0
+            ],
+            "0.9": [
+              2,
+              0,
+              0
+            ],
+            "1.8": [
+              -2,
+              0,
+              0
+            ]
+          }
+        },
+        "right_thigh": {
+          "rotation": {
+            "0.0": [
+              2,
+              0,
+              0
+            ],
+            "0.9": [
+              -2,
+              0,
+              0
+            ],
+            "1.8": [
+              2,
+              0,
+              0
+            ]
+          }
+        },
+        "right_knee": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.9": [
+              0.6666666666666666,
+              0,
+              0
+            ],
+            "1.8": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    }
+  },
+  "body_ancestry": [
+    {
+      "name": "root",
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "body",
+      "parent": "root",
+      "pivot": [
+        0,
+        14,
+        0
+      ]
+    },
+    {
+      "name": "pelvis",
+      "parent": "body",
+      "pivot": [
+        0,
+        13,
+        0
+      ]
+    },
+    {
+      "name": "waist",
+      "parent": "pelvis",
+      "pivot": [
+        0,
+        14,
+        0
+      ]
+    },
+    {
+      "name": "chest",
+      "parent": "waist",
+      "pivot": [
+        0,
+        16,
+        0
+      ]
+    },
+    {
+      "name": "neck",
+      "parent": "chest",
+      "pivot": [
+        0,
+        21,
+        0
+      ]
+    },
+    {
+      "name": "head",
+      "parent": "neck",
+      "pivot": [
+        0,
+        22,
+        0
+      ]
+    },
+    {
+      "name": "left_thigh",
+      "parent": "pelvis",
+      "pivot": [
+        1.75,
+        12,
+        0
+      ]
+    },
+    {
+      "name": "left_knee",
+      "parent": "left_thigh",
+      "pivot": [
+        1.75,
+        7,
+        0
+      ]
+    },
+    {
+      "name": "right_upper_arm",
+      "parent": "chest",
+      "pivot": [
+        -3.5,
+        20,
+        0
+      ]
+    },
+    {
+      "name": "right_elbow",
+      "parent": "right_upper_arm",
+      "pivot": [
+        -4,
+        15,
+        0
+      ]
+    },
+    {
+      "name": "right_forearm",
+      "parent": "right_elbow",
+      "pivot": [
+        -4,
+        14,
+        0
+      ]
+    },
+    {
+      "name": "right_wrist",
+      "parent": "right_forearm",
+      "pivot": [
+        -4,
+        10,
+        0
+      ]
+    },
+    {
+      "name": "right_hand",
+      "parent": "right_wrist",
+      "pivot": [
+        -4,
+        9,
+        -1
+      ]
+    },
+    {
+      "name": "right_thigh",
+      "parent": "pelvis",
+      "pivot": [
+        -1.75,
+        12,
+        0
+      ]
+    },
+    {
+      "name": "right_knee",
+      "parent": "right_thigh",
+      "pivot": [
+        -1.75,
+        7,
+        0
+      ]
+    },
+    {
+      "name": "abacus",
+      "parent": "right_hand",
+      "pivot": [
+        -4,
+        9,
+        -1
+      ]
+    }
+  ],
+  "visual_observations": [
+    {
+      "path": "docs/art/bestiary-v43/body-joints-20261102/swindler-special-frames.png",
+      "sha256": "d80d733b456799f0245ed10958c672375782720a343264e2fa4cd51778215275",
+      "viewed_this_turn": true,
+      "observation": "0/8/16/24tick front/side: torso turns and right arm extends/returns; legs remain near standing. No dedicated injured hunch demonstrated.",
+      "new_reference_credit": 0
+    },
+    {
+      "path": "docs/art/bestiary-v43/body-joints-20261102/swindler-flee-frames.png",
+      "sha256": "4d205b41e266c4f9b541c6b68b89ac1cdf7fd231059d599fcc969f20fe8598a0",
+      "viewed_this_turn": true,
+      "observation": "0/3.3/6.7/10tick front/side: alternating arms/legs; line diagnostic contains no PNG, terrain path, runtime blend or contact proof.",
+      "new_reference_credit": 0
+    }
+  ],
+  "state_cases_not_executed_game_tests": [
+    {
+      "case": "fresh before interaction",
+      "server_stage": 0,
+      "body_request": "special after first custom alive server step"
+    },
+    {
+      "case": "paid/not exposed",
+      "server_stage": 2,
+      "body_request": "special refreshed; no separate purchase body pose"
+    },
+    {
+      "case": "valid expose or accepted hurt",
+      "server_stage": 3,
+      "body_request": "flee/hold200 requested; no new weapon animation"
+    },
+    {
+      "case": "flee count exhausted",
+      "server_stage": 3,
+      "body_request": "fallback based on target/motion after hold; never implicit return to deception"
+    },
+    {
+      "case": "reload stage2",
+      "body_request": "STATE starts default; special selected next server aiStep; clip phase not persisted"
+    },
+    {
+      "case": "reload stage3/flee1",
+      "body_request": "decrement expires remaining timer before fallback; no promise of another flee cycle"
+    }
+  ],
+  "limits": [
+    "Static entire selected trigger/pose/exit/save-load mechanism, not runtime execution or complete framework controller internals.",
+    "No PNG/material/playback occlusion, collision, multiplayer or save-reload game acceptance newly claimed.",
+    "No300-card rescan; only two directly relevant existing body line sheets viewed.",
+    "No approved production model, bone, clip, timing, skill, collision or object asset modified.",
+    "No Java/game/sound/brightness/focus/sharedJar/world operation."
+  ],
+  "credit": {
+    "whole_static_state_mechanisms_reviewed_this_turn": 1,
+    "new_distinct_creature_family": 0,
+    "new_accepted_reference_credit": 0,
+    "applicable_whole_accepted_total": null,
+    "applicable_gap": null,
+    "historical_static1000_and_target100_preserved": true,
+    "dedup": "Same swindler already studied in body-joints and prior source fragments; this closes state linkage, not another body. Clips, keyframes and source files are not references."
+  },
+  "ownership": {
+    "body": "Trigger-to-body state/controller selection, skeletal channel/ancestor transformations and attachment-parent interface.",
+    "objects": "All armor textures/wornUV and abacus/held/hanging item model/PNG/UV remain texture specialist, untouched."
+  }
+}

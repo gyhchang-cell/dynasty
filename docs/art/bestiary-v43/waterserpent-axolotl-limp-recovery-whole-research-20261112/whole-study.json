@@ -1,0 +1,36 @@
+{
+  "family": "minecraft:axolotl",
+  "target": "dynasty:bishui_xuanjiao_youzi",
+  "title": "临时失力姿态、每实体缓存与水陆恢复；不移植装死技能",
+  "source_state_production": [
+    "Axolotl.hurt 286–292在super.hurt之前，以服务器/非NoAI/随机/非致死量/水中/攻击来源/未装死条件写PLAY_DEAD_TICKS=200；不是确认扣血回执，后续super.hurt仍可能拒绝。",
+    "PlayDead要求PLAY_DEAD_TICKS与HURT_BY_ENTITY同时存在，起用及维持条件为水/气泡。start清WALK_TARGET/LOOK_TARGET并给200tick再生；ValidatePlayDead逐次减计数，<=0清两项记忆并返回默认活动。",
+    "customServerAiStep先Brain.tick再updateActivity，非NoAI时才由记忆正值写同步装死布尔。Ai活动优先PLAY_DEAD/FIGHT/IDLE；离开PLAY_DEAD清记忆，繁殖可以清记忆。不是死亡移除。",
+    "MoveControl/LookControl装死时跳过父tick，但travel仍可执行输入与既有速度；不能据此宣称速度立即清零。canBeSeenAsEnemy装死时false。"
+  ],
+  "model_renderer_consumption": [
+    "AxolotlModel每实体Map保存十个部件的rotation三元组，不保存position/scale/visible。每次setup重置body.x、body.y、head.y，再从该实体Map恢复或初始化。",
+    "setupAnim优先playDead，其次水中游动/悬停，再陆地爬行/静止；既不在水中也不接地时没有新的地面姿态分支。转头或俯仰变化也算活动，不能等同位移速度。",
+    "playDead将body俯仰趋向-.15、roll趋向.35弧度，头尾鳃趋零并收腿；下一普通状态逐次插值恢复，而非另一个活实体。",
+    "默认lerp系数.05按每次模型调用，不是每秒不变弹簧。实际调用Mth.rotLerp，helper内部为wrapDegrees；保留源码数值，不臆改成另一个弧度插值实现。",
+    "AxolotlRenderer只有变种纹理选择及shadow.5；五种皮肤合并一个whole候选，不拆五个。未查看PNG或实机。"
+  ],
+  "current_existing_output_comparison": [
+    "幼蛟当前骨架root→spine_0…spine_13，鳍有fin_spring包装；无足，不能移植Axolotl四足造型。现有hurt/coil/death原始JSON保留在本研究，不是新制作。",
+    "现有coil3.2秒=64tick，接触18tick；24tick控制效果、5次蹲伏挣脱、伤害>=2释放及死亡释放已在WaterSerpentBehavior。release清捕获与syncHook并可interrupt21，卸载不序列化captive。",
+    "当前death2.2秒的spine_0.scaleY到.35继承整条子链，head转20度；这不是逐节失力的直接证据。cod1写逐节死亡，但静态三通道差异不证明整个已认可模型失败。",
+    "当前visualAnimation死亡优先，技能中hurt不抢技能；释放后恢复由既有控制器/时代seek处理。Axolotl提供暂态隔离与恢复的观察方法，不提供幼蛟14节反腹死亡的直接成品。"
+  ],
+  "unknowns": [
+    "未执行Brain底层调度或内存持久化编解码；不推断每次behavior实际调度频率。",
+    "GeckoLib骨骼复用及动画切换残留需实际回放；当前未证明幼蛟有姿态串扰。",
+    "水/陆死亡完整动态、鳍惯性与接地未实机验证。"
+  ],
+  "forbidden_transfer": [
+    "不增加装死、再生、敌人不可见、强制沉水或伤害机制。",
+    "不改变既定14节无足形态，不据一个scale通道就重做骨架。"
+  ],
+  "status": "whole source family studied; target applicability limited, pending independent review",
+  "whole_asset_failed": false,
+  "permission_to_produce": false
+}

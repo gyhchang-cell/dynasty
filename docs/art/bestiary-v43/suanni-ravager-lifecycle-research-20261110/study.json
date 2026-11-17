@@ -1,0 +1,44 @@
+{
+  "status": "SELECTED_ANIMATION_END_AND_HOLD_BOUNDARY_STUDIED_NATIVE_REMOVAL_NOT_CERTIFIED",
+  "pin": "a78aa24b72e90a9d09f5fd61925e4369d117abaf",
+  "predecessor_receipt": {
+    "path": "docs/art/bestiary-v43/suanni-quadruped-next-source-research-20261110/handoff-metadata.json",
+    "sha256": "ee66691913f99712126e0ce9b19450774d630b2d826a27ec1ac7ed8e96eeec08"
+  },
+  "read_ranges": {
+    "AnimationPlayer.java": [
+      "27–80 tick/reset/setPlayAnimation",
+      "131–132 isEnd via search"
+    ],
+    "Animator.java": "94–115 death animation lookup",
+    "ServerAnimator.java": [
+      "28–53 setup/playAnimation",
+      "89–124 tick/getPlayerFor"
+    ],
+    "ClientAnimator.java": [
+      "188–220 tick selected",
+      "245–260 death selected"
+    ],
+    "dependencies_read_from_predecessor": {
+      "StaticAnimation.java": "162–194 link timing",
+      "DynamicAnimation.java": "121–132 total/transition time",
+      "LivingEntityPatch.java": "145–182 preTick selected previously sealed"
+    }
+  },
+  "findings": [
+    "Animator的死亡选择使用注册DEATH，否则默认BIPED_DEATH；RavagerPatch已有RAVAGER_DEATH映射，不依赖人形fallback。",
+    "AnimationPlayer按A_TICK×播放速度累加，支持速度/时间modifier。非循环仅在elapsedTime严格大于totalTime时clamp末端、调用end并设isEnd；相等不触发该分支。",
+    "服务器playAnimation先建立link再排nextAnimation。ServerAnimator.tick结束link时切到nextAnimation；完成末动画且无next时置EMPTY并softPaused。getPlayerFor返回这一player。",
+    "因此preTick的死亡计时延缓条件覆盖未结束的link/clip；player变EMPTY后条件失效，可继续原生死亡计时。不能把1.1667秒clip直接换算固定remove tick。",
+    "0.11秒transition并不保证运行恰好2.2tick：StaticAnimation.setLinkAnimation按playTime向上取整，并把多出时长补到nextStartTime。播放速度/modifier/回调先后都会影响离散边界。",
+    "客户端playDeathAnimation切到DEATH并设currentMotion；正常结束后回到living motion的分支排除currentMotion DEATH。未读完整Layer，不能声称所有层绝不混合/重启。"
+  ],
+  "limits": [
+    "未核同版本原生LivingEntity tickDeath实际移除、client Layer/LinkAnimation完整时序、网络及游戏；没有准确remove tick认证。",
+    "共享生命周期属于前例的依赖补齐，不是新怪/新独立实现信用。",
+    "首次AnimationPlayer/ServerAnimator TLS35，正常TLS各重试一次成功；原失败记录保留。"
+  ],
+  "new_candidate_credit": 0,
+  "new_accepted_credit": 0,
+  "production_changed": false
+}

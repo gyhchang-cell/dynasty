@@ -1,0 +1,80 @@
+{
+  "recorded_at": "2026-11-01T06:11:54.479302+00:00",
+  "decision": "SUPPLEMENT_EXISTING_BRUSHABLE_OWNER_ZERO_NEW_CREDIT",
+  "candidate": {
+    "candidate_id": "1396d5236e7647ac0e56",
+    "status": "candidate_not_reviewed",
+    "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+    "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "path": "net/minecraft/world/level/block/entity/BrushableBlockEntity.java",
+    "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/entity/BrushableBlockEntity.java",
+    "method": "tryLoadLootTable",
+    "start_line": 176,
+    "end_line": 184,
+    "file_sha256": "adaa55d804b826012483fc4bf57d00f9f3886d8df6a85301d8c7ca4364525a48",
+    "method_sha256": "a37fa6784f8e2a39b7bddc2eb2ec61ee6819d7b93938ee39d1d1ee6372348f22",
+    "structural_fingerprint": "bc96439bda227d0200a74d182b5640b539692389ab03c533503381ddc4995a08",
+    "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+    "ast_calls": [
+      "contains",
+      "getString",
+      "getLong"
+    ],
+    "ast_guards": [
+      "(p_277740_.contains(\"LootTable\", 8))"
+    ],
+    "context": "private boolean tryLoadLootTable(CompoundTag p_277740_) {\n      if (p_277740_.contains(\"LootTable\", 8)) {\n         this.lootTable = new ResourceLocation(p_277740_.getString(\"LootTable\"));\n         this.lootTableSeed = p_277740_.getLong(\"LootTableSeed\");\n         return true;\n      } else {\n         return false;\n      }\n   }",
+    "class_has_migration_marker": false,
+    "parse_has_error": false
+  },
+  "comparator_id": "bb639910c0206a63b71f",
+  "actual_read_ranges": [
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/entity/BrushableBlockEntity.java",
+      "start_line": 1,
+      "end_line": 254,
+      "file_sha256": "adaa55d804b826012483fc4bf57d00f9f3886d8df6a85301d8c7ca4364525a48",
+      "range_sha256": "adaa55d804b826012483fc4bf57d00f9f3886d8df6a85301d8c7ca4364525a48",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "revision_kind": "Mapped artifact identity not Git commit",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/BrushableBlock.java",
+      "start_line": 1,
+      "end_line": 102,
+      "file_sha256": "94b774a9a32398f245b905e460608bf065428a60a6e1c401c25e5bd9db07e850",
+      "range_sha256": "94b774a9a32398f245b905e460608bf065428a60a6e1c401c25e5bd9db07e850",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "revision_kind": "Mapped artifact identity not Git commit",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/item/BrushItem.java",
+      "start_line": 1,
+      "end_line": 154,
+      "file_sha256": "3e7fab36ade254664978bd78d5abff158e943b2994e1512ab69d202d49ff8fcb",
+      "range_sha256": "3e7fab36ade254664978bd78d5abff158e943b2994e1512ab69d202d49ff8fcb",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "revision_kind": "Mapped artifact identity not Git commit",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources"
+    }
+  ],
+  "actual_lines": 510,
+  "research_credit_added": 0,
+  "dedup": "Same placed unopened-loot/resolved-item ownership chain already accepted; expanding reader to actual consumer is evidence improvement, not a second owner. No new credit for tryLoadLootTable helper or dust/counter fields.",
+  "mechanism": "Actual brush item fires every10 use ticks at modulo5, server BE brush enforces10tick cooldown; every call extends reset to+40 before cooldown test. First acceptedbrush resolves loot using actor luck/player context and fixed seed, fires GENERATE_LOOT trigger before random selection, keeps first result if multiple, sets lootTable null and dirty. Persistent writer keeps pending table or resolved item only. brushCount/timers omitted; hit_direction network update only not disk writer. Completion at10 drops split random10..30 item count, then forcibly empties remainder, adds world entity without checking success and replaces source block without checking success. Decay after40 subtracts2 then resets at4tick intervals, clears direction/timers at0. Block tick drives decay and unsupported block falls with disableDrop. Brush durability is consumed only when completion boolean true.",
+  "limits": [
+    "Entire3classes actually read; item hurtAndBreak, loot internals, global serialization/runtime not newly audited.",
+    "GENERATE_LOOT trigger is pre-output resolution, not successful item delivery/pickup/native earned artifact receipt; no FTB autoaward on that alone.",
+    "New blockentity reload resets brushCount0 but persisted blockstate DUSTED may initially remain nonzero; checkReset at count0 does not explicitly reset blockstate DUSTED, next brush may change it. No runtime reproduction asserted.",
+    "Cooldown-denied calls still extend reset and first-hit direction can be set before server check. No player per-brush contribution receipt.",
+    "Only first loottable result retained; excessive count remainder destroyed at completion; ignored spawn/block acknowledgements mean neither losslessness nor exactly-once guarantee.",
+    "Malformed ResourceLocation/direction unchecked; reused object missing fields does not clear olditem/direction/loottable. No general native migration whitelist inferred."
+  ],
+  "quest_integration": "Any future owned artifact excavation task must require actual resolved artifact identity and intended native acquisition receipt rather than dust appearance or GENERATE_LOOT event. Existing production unchanged until own research gate met.",
+  "production_changes": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "duration_hours_claimed": 0
+}

@@ -1,0 +1,26 @@
+"""Observed material PNGs only; no game, geometry or GUI implementation claims."""
+from pathlib import Path
+from datetime import datetime, timezone
+import json
+D = Path(__file__).resolve().parent
+path = D / 'existing-workshop-material-source.json'
+source = json.loads(path.read_text()); source['sheet_actually_opened'] = True
+path.write_text(json.dumps(source, ensure_ascii=False, indent=2) + '\n')
+review = dict(recorded_at=datetime.now(timezone.utc).isoformat(), source_sheet=source['sheet'],
+    source_sheet_actually_opened=True, existing_machine_count=8, unique_source_pngs=12,
+    declared_faces=300, faces_without_explicit_uv=300, production_changes=0, new_reference_credit=0,
+    observations_zh=[
+      '已打开全12张原始PNG整数放大页；9张项目材料、3张固定原版client.jar材料，不是新绘制资产。',
+      '化髓槽灰骨砂碎块；凝精器青绿宽框/内短竖槽配原版紫水晶；补玉炉深灰青碎面，不把三者同称灰石。',
+      '生机神龛浅石底、金方框及中央绿十字，另引用朱红竖木纹和碎块青玉。',
+      '绷皮架引用朱红木纹和原版棕陶瓦；木和皮由材质别名区分。药浴盆引用白灰大理石与青玉带，不因其名期待单独药水PNG。',
+      '琢玉台使用朱红木、灰绿砖与青玉；余烬火盆使用铜块与原版煤块，两材分别是框和燃料声明，不足以证明动态火焰。',
+      '8个物品JSON均直接继承各自方块模型，无独立2D物品纹理声明；已读blockstate只声明同名块模型，不能据此否认动态渲染。',
+      '300个显式face没有uv字段；本轮只记录源默认UV情况，未核对默认展开算法，不把无字段当越界/缺面。',
+      'textures/gui下未匹配8个机器ID文件名，但界面可能由共用图或程序绘制；只列贴图路由待核，不报告8个GUI功能缺失。'],
+    remaining_zh=[
+      '程序负责方确认各界面的实际背景/图标引用、绘制及槽位坐标，贴图方再校准纹样、框和读图区域。',
+      '现有默认UV的像素采样、接缝、旋转及3D/游戏状态尚未验；保持世界和物品资产原样。',
+      'cod3要求的黑漆木/青铜玉框/完成金印/危险朱红等是待实现视觉要求，不用现有PNG数量宣称已完成。'])
+(D / 'existing-workshop-material-manual-review.json').write_text(json.dumps(review, ensure_ascii=False, indent=2) + '\n')
+print('Eight workshop material declarations recorded, production unchanged.')

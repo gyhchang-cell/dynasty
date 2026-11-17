@@ -1,0 +1,47 @@
+153:     private static final class TreeSpirit extends Base {
+154:         net.minecraft.core.BlockPos rootPoint=net.minecraft.core.BlockPos.ZERO;
+155:         boolean waking;long nextWakeScan;
+156:         TreeSpirit(TemplateMob mob){super(mob);}
+157:         public boolean allows(int id){return id==ArmySkills.TREE_WAKE||id==ArmySkills.TREE_SWEEP||id==ArmySkills.TREE_ROOTS;}
+158:         public boolean canStart(int id,LivingEntity target){return mob.treeAwake()&&(id!=ArmySkills.TREE_WAKE||waking);}
+159:         public int choose(LivingEntity target,long now){
+160:             if(!mob.treeAwake())return 0;
+161:             return mob.distanceToSqr(target)>9&&mob.attack().ready(ArmySkills.TREE_ROOTS,now)?ArmySkills.TREE_ROOTS:ArmySkills.TREE_SWEEP;
+162:         }
+163:         private void awaken(LivingEntity target){
+164:             if(mob.treeAwake()||!mob.validEnemy(target))return;
+165:             mob.setTreeAwake(true);mob.setTarget(target);waking=true;
+166:             try{mob.startSkill(ArmySkills.TREE_WAKE,target);}finally{waking=false;}
+167:             mob.playSound(SoundEvents.WOOD_BREAK,.9F,.55F);
+168:         }
+169:         public void tick(long now){
+170:             if(mob.skillId()==ArmySkills.TREE_ROOTS&&mob.actionAge(0)<28&&now%5==0&&level().hasChunkAt(rootPoint))
+171:                 level().sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK,net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState()),rootPoint.getX()+.5,rootPoint.getY()+.1,rootPoint.getZ()+.5,5,.6,.03,.6,.015);
+172:             if(mob.treeAwake()||now<nextWakeScan)return;nextWakeScan=now+10;
+173:             var enemy=mob.getTarget();if(mob.validEnemy(enemy)&&mob.distanceToSqr(enemy)<=25&&mob.hasLineOfSight(enemy)){awaken(enemy);return;}
+174:             level().getEntitiesOfClass(net.minecraft.server.level.ServerPlayer.class,mob.getBoundingBox().inflate(5),p->mob.validEnemy(p)&&mob.distanceToSqr(p)<=25&&mob.hasLineOfSight(p))
+175:                 .stream().min(java.util.Comparator.comparingDouble(mob::distanceToSqr)).ifPresent(this::awaken);
+176:         }
+177:         public void hurtAccepted(DamageSource source,boolean frontal){
+178:             if(source.getEntity() instanceof LivingEntity living)awaken(living);
+179:         }
+180:         public void move(LivingEntity target,long now){
+181:             mob.setSprinting(false);if(!mob.treeAwake()){mob.getNavigation().stop();return;}mob.getNavigation().moveTo(target,.7);
+182:         }
+183:         public void started(int id,LivingEntity target){
+184:             if(id==ArmySkills.TREE_ROOTS)rootPoint=target.blockPosition();
+185:         }
+186:         public void impact(SkillDefinition skill,int frame){
+187:             if(skill.id()==ArmySkills.TREE_WAKE)return;
+188:             if(skill.id()==ArmySkills.TREE_SWEEP){hit(skill,CombatGeometry.Shape.SECTOR,1.4,1,.65,false);return;}
+189:             if(!level().hasChunkAt(rootPoint)||!level().getFluidState(rootPoint).isEmpty()
+190:                     ||!level().getBlockState(rootPoint.below()).isFaceSturdy(level(),rootPoint.below(),net.minecraft.core.Direction.UP))return;
+191:             Vec3 at=Vec3.atBottomCenterOf(rootPoint);
+192:             if(level().clip(new net.minecraft.world.level.ClipContext(mob.getEyePosition(),at.add(0,.5,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,mob)).getType()!=net.minecraft.world.phys.HitResult.Type.MISS)return;
+193:             var box=BlueprintEntities.ROOT_SNARE.get().getDimensions().makeBoundingBox(at.x,at.y,at.z);
+194:             if(!level().noCollision(null,box)||level().getEntitiesOfClass(RootSnare.class,box.inflate(16)).size()>=2)return;
+195:             var cage=new RootSnare(BlueprintEntities.ROOT_SNARE.get(),level());cage.setPos(at);cage.activate(mob);level().addFreshEntity(cage);
+196:         }
+197:         public CompoundTag save(){var t=new CompoundTag();t.putLong("RootPoint",rootPoint.asLong());return t;}
+198:         public void load(CompoundTag t){rootPoint=net.minecraft.core.BlockPos.of(t.getLong("RootPoint"));}
+199:     }

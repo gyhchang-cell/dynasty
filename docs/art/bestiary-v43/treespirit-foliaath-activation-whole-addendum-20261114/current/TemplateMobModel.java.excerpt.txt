@@ -1,0 +1,58 @@
+1: package com.dynasty.blueprint.client;
+2: 
+3: import com.dynasty.blueprint.TemplateMob;
+4: import net.minecraft.resources.ResourceLocation;
+5: import software.bernie.geckolib.model.GeoModel;
+6: import software.bernie.geckolib.core.animation.AnimationState;
+7: 
+8: /** Shared loading; each profession owns an independently authored articulated rig. */
+9: public final class TemplateMobModel extends GeoModel<TemplateMob> {
+10:     @Override public void setCustomAnimations(TemplateMob mob, long instanceId, AnimationState<TemplateMob> state) {
+11:         super.setCustomAnimations(mob, instanceId, state);
+12:         TemplateSecondaryMotion.apply(this, mob, state.getPartialTick());
+13:         if(mob.kind()==TemplateMob.Kind.DROWNER&&mob.isAlive()){
+14:             boolean pool=mob.waterPool();
+15:             getBone("body").ifPresent(b->{b.setScaleY(pool?.12F:1);b.setScaleX(pool?2.5F:1);b.setScaleZ(pool?2.5F:1);});
+16:         }
+17:         if(mob.kind()==TemplateMob.Kind.TOAD)
+18:             // Independent identity wrapper: never multiply a shared animated bone across draws.
+19:             getBone("tongue_reach").ifPresent(b->b.setScaleZ(mob.skillId()==com.dynasty.blueprint.ArmySkills.TOAD_TONGUE?mob.tongueReach()/5:1));
+20:     }
+21:     @Override public ResourceLocation getModelResource(TemplateMob mob) {
+22:         return new ResourceLocation("dynasty", "geo/" + artDirectory(mob) + mob.blueprintId() + ".geo.json");
+23:     }
+24: 
+25:     @Override public ResourceLocation getAnimationResource(TemplateMob mob) {
+26:         return new ResourceLocation("dynasty", "animations/" + artDirectory(mob) + mob.blueprintId() + ".animation.json");
+27:     }
+28: 
+29:     // Preserve the concurrent legacy UV files; these two rigs have separate authored resources.
+30:     private static String artDirectory(TemplateMob mob) {
+31:         return mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER
+32:             ? "blueprint/cod2_voxel/" : "blueprint/";
+33:     }
+34: 
+35:     @Override public ResourceLocation getTextureResource(TemplateMob mob) {
+36:         if(mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER)
+37:             return new ResourceLocation("dynasty", "textures/entity/" + artDirectory(mob) + mob.blueprintId() + ".png");
+38:         if (switch (mob.kind()) {
+39:             case STONE_GUARD, BIXI, YECHA, LANTERN_BAT, BLIND_FISH, DROWNER,
+40:                  BRONZE_SNAKE, CLOCKWORK_DOG, MINING_SPIDER, SCORPION,
+41:                  CENTIPEDE, SERPENT, TOAD, PRIEST,
+42:                  SPEAR, POWDER, TREE, CROSSBOW, SHIELD, SKULL, AXE_GUARD, SCOUT,
+43:                  CORPSE, GHOST, PALANQUIN, FLAG, BEAST, SWORD -> true;
+44:             default -> false;
+45:         }) return new ResourceLocation("dynasty", "textures/entity/blueprint/" + mob.blueprintId() + ".png");
+46:         // Continuous opaque native swatches preserve pixel grain without replacing legacy artwork.
+47:         String atlas = switch (mob.blueprintId()) {
+48:             case "juli_bixi_kuilei", "xueju_mangguyu", "jubi_shigandang", "zuwu_daoshou", "ludun_jiashi", "zhenwang_zhangqiguan", "pijia_panjiang_huwei", "yinbing_guizu" -> "royal_guard";
+49:             case "juma_changqiangbing" -> "archer";
+50:             case "bazu_digongzhu", "qingtong_shuangtoushekui", "xunshan_mujiaquan", "liannu_zhenzu", "kuijun_sishi" -> "rebel_soldier";
+51:             case "tiesuo_chihou" -> "assassin";
+52:             case "fuhun_baibu_tongzi" -> "imperial_soldier";
+53:             case "bishui_xuanjiao_youzi", "shibian_lishi", "chimu_zhuha", "kumu_shujing", "mingsha_shixie" -> "nian_beast";
+54:             case "tongbi_feitian_yecha", "baimu_mowu", "youdeng_guimianfu", "shanjing_shanxiao" -> "nian_beast";
+55:             default -> "imperial_soldier";
+56:         };
+57:         return new ResourceLocation("dynasty", "textures/entity/" + atlas + ".png");
+58:     }

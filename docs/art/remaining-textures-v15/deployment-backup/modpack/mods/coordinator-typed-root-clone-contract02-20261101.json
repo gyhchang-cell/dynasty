@@ -1,0 +1,368 @@
+{
+  "recorded_at": "2026-11-01T10:34:29.940468+00:00",
+  "status": "CORRECTED_IMPLEMENTATION_CONTRACT_PENDING_INDEPENDENT_SOURCE_REVIEW",
+  "gate": {
+    "target": 1000,
+    "accepted_unique_implementations": 999,
+    "gap": 1,
+    "review_decisions": {
+      "accepted": 999,
+      "rejected": 133,
+      "duplicate": 193,
+      "pending": 3
+    },
+    "candidate_methods": 29250,
+    "unreviewed_candidates": 27922,
+    "production_change_gate_met": false,
+    "candidate_count_is_not_review_count": true,
+    "counting": "explicit semantic family + AST collision check; identical reader requires explicit reviewed distinct gameplay-owner/consumer justification; same-chain supports and key-only clones give no extra credit",
+    "ledger_sha256": "107f7a2a8103942ab206e14b68a23cb5c70be05a9dd89705ac8f8512ed75cb99"
+  },
+  "prior_semantic_receipts": [
+    {
+      "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-root-persisted-clone-boundary-20261101.json",
+      "sha256": "e7311724f60ea26e942c96b64da5079ac7b0094edee88c52171314e7d30a5e40"
+    },
+    {
+      "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-festival-merit-clone-supplement-20261101.json",
+      "sha256": "70bc41e55d0dd2e0d2b2dd568fb608d38f6821241bc1756aff40fa9124cd824f"
+    },
+    {
+      "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-secret-receipt-ownership-supplement-20261101.json",
+      "sha256": "e32d46859b0d9281a0c2bf382d3f3c5f698a3b1a896f84e579ecdb704c8b6190"
+    },
+    {
+      "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-world-event-root-receipt-review-20261101.json",
+      "sha256": "84f3392040a42c61fdd07859c7ccde4eab7b0dc9a23ecfba02268cdf54c84575"
+    }
+  ],
+  "historical_sources_freshly_read": [
+    {
+      "snapshot": "docs/cod4/audit-20261022/legacy-migration-acceptance/historical-DynastyQuestManager.java.txt",
+      "sha256": "fdedeb1194859f15bee3d2c3d44cf24636967edc09e3ed39454043ac04e2fcbc",
+      "commit": "9645701543cf01a0cb044ba02af7549623b6d5b2",
+      "blob": "c12d7737a3b6e8a4536d8f5ae21baa2a18946498",
+      "read_range": [
+        1,
+        142
+      ],
+      "excerpt": "package com.dynasty;\n\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraftforge.registries.ForgeRegistries;\n\n/**\n * 任务进度与奖励结算（服务端）。进度保存在玩家数据中。\n * Quest progress and reward claiming (server side), stored in the player's persistent data.\n */\n@SuppressWarnings(\"null\")\npublic final class DynastyQuestManager {\n\n    private DynastyQuestManager() {\n    }\n\n    private static final String PROGRESS = \"dq_p_\";\n    private static final String CLAIMED = \"dq_c_\";\n    private static final String FLAG = \"dq_e_\";\n\n    // ---------------------------------------------------------------- 进度\n    public static int progress(ServerPlayer player, DynastyQuests.Quest quest) {\n        switch (quest.type) {\n            case ITEM -> {\n                int have = countItem(player, quest.target);\n                return Math.min(quest.need, have);\n            }\n            case KILL -> {\n                return Math.min(quest.need, player.getPersistentData().getInt(PROGRESS + quest.index));\n            }\n            default -> {\n                int stored = player.getPersistentData().getInt(PROGRESS + quest.index);\n                return Math.min(quest.need, Math.max(stored, derivedEvent(player, quest.target)));\n            }\n        }\n    }\n\n    private static int derivedEvent(ServerPlayer player, String key) {\n        return switch (key) {\n            case \"rank1\" -> DynastyStats.getRank(player) >= 1 ? 1 : 0;\n            case \"rank9\" -> DynastyStats.getRank(player) >= 9 ? 1 : 0;\n            case \"calm\" -> DynastyStats.getRebellion(player) <= 20 ? 1 : 0;\n            default -> 0;\n        };\n    }\n\n    public static boolean claimed(ServerPlayer player, int index) {\n        return player.getPersistentData().getBoolean(CLAIMED + index);\n    }\n\n    /** 前置任务是否都已领取 / whether all prerequisite quests were claimed. */\n    public static boolean unlocked(ServerPlayer player, DynastyQuests.Quest quest) {\n        for (int req : quest.requires) {\n            if (!claimed(player, req)) {\n                return false;\n            }\n        }\n        return true;\n    }\n\n    public static boolean ready(ServerPlayer player, DynastyQuests.Quest quest) {\n        return progress(player, quest) >= quest.need;\n    }\n\n    // ---------------------------------------------------------------- 领奖\n    public static boolean claim(ServerPlayer player, int index) {\n        DynastyQuests.Quest quest = DynastyQuests.get(index);\n        if (quest == null || claimed(player, index) || !unlocked(player, quest) || !ready(player, quest)) {\n            return false;\n        }\n        player.getPersistentData().putBoolean(CLAIMED + index, true);\n        for (ItemStack reward : quest.rewards()) {\n            if (!player.getInventory().add(reward)) {\n                player.drop(reward, false);\n            }\n        }\n        DynastyStats.addMerit(player, 50);\n        player.sendSystemMessage(Component.literal(\"§6[任务] §r已完成：§e\" + quest.title + \" §7（功名 +50）\"));\n        return true;\n    }\n\n    // ---------------------------------------------------------------- 事件与击杀\n    public static void notifyEvent(ServerPlayer player, String key) {\n        for (DynastyQuests.Quest quest : DynastyQuests.all()) {\n            if (quest.type == DynastyQuests.Type.EVENT && quest.target.equals(key)) {\n                int stored = player.getPersistentData().getInt(PROGRESS + quest.index);\n                player.getPersistentData().putInt(PROGRESS + quest.index, Math.min(quest.need, stored + 1));\n            }\n        }\n        player.getPersistentData().putBoolean(FLAG + key, true);\n    }\n\n    public static void onKill(ServerPlayer player, String entityId) {\n        for (DynastyQuests.Quest quest : DynastyQuests.all()) {\n            if (quest.type == DynastyQuests.Type.KILL && quest.target.equals(entityId)) {\n                int stored = player.getPersistentData().getInt(PROGRESS + quest.index);\n                player.getPersistentData().putInt(PROGRESS + quest.index, Math.min(quest.need, stored + 1));\n            }\n        }\n    }\n\n    public static boolean hasFlag(ServerPlayer player, String key) {\n        return player.getPersistentData().getBoolean(FLAG + key);\n    }\n\n    // ---------------------------------------------------------------- 同步数据\n    public static int[] progressArray(ServerPlayer player) {\n        int n = DynastyQuests.count();\n        int[] out = new int[n];\n        for (int i = 0; i < n; i++) {\n            out[i] = progress(player, DynastyQuests.get(i));\n        }\n        return out;\n    }\n\n    public static boolean[] claimedArray(ServerPlayer player) {\n        int n = DynastyQuests.count();\n        boolean[] out = new boolean[n];\n        for (int i = 0; i < n; i++) {\n            out[i] = claimed(player, i);\n        }\n        return out;\n    }\n\n    private static int countItem(ServerPlayer player, String itemId) {\n        Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(itemId));\n        if (item == null) {\n            return 0;\n        }\n        int count = 0;\n        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {\n            ItemStack stack = player.getInventory().getItem(i);\n            if (!stack.isEmpty() && stack.getItem() == item) {\n                count += stack.getCount();\n            }\n        }\n        return count;\n    }\n}\n"
+    },
+    {
+      "snapshot": "docs/cod4/audit-20261022/legacy-migration-acceptance/historical-DynastyQuests.java.txt",
+      "sha256": "5596626c65da79fd89bc1c772c1d25e887c4ce948782d2ebe9855c0fe776b02c",
+      "commit": "9645701543cf01a0cb044ba02af7549623b6d5b2",
+      "blob": "4b2bc25f321b1f1d968961e8367b9ee5666f9365",
+      "read_range": [
+        1,
+        125
+      ],
+      "excerpt": "package com.dynasty;\n\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\n/**\n * 王朝任务数据：章节 → 任务（目标 / 奖励 / 前置）。\n * Dynasty quest data: chapters -> quests (objective / rewards / prerequisites).\n * 目标类型：ITEM 收集、KILL 击杀、EVENT 自定义事件（科举 / 列阵 / 拜访等）。\n */\npublic final class DynastyQuests {\n\n    private DynastyQuests() {\n    }\n\n    public enum Type { ITEM, KILL, EVENT }\n\n    public static final class Quest {\n        public final int index;\n        public final String chapter;\n        public final String title;\n        public final String desc;\n        public final Type type;\n        public final String target;\n        public final int need;\n        public final int[] requires;\n        private ItemStack[] rewards;\n\n        Quest(int index, String chapter, String title, String desc, Type type, String target,\n              int need, int[] requires) {\n            this.index = index;\n            this.chapter = chapter;\n            this.title = title;\n            this.desc = desc;\n            this.type = type;\n            this.target = target;\n            this.need = need;\n            this.requires = requires;\n        }\n\n        public ItemStack[] rewards() {\n            if (rewards == null) {\n                rewards = DynastyQuestRewards.build(index);\n            }\n            ItemStack[] copy = new ItemStack[rewards.length];\n            for (int i = 0; i < rewards.length; i++) {\n                copy[i] = rewards[i].copy();\n            }\n            return copy;\n        }\n\n        public Item icon() {\n            if (type == Type.ITEM) {\n                Item item = net.minecraftforge.registries.ForgeRegistries.ITEMS.getValue(new ResourceLocation(target));\n                return item == null ? Items.PAPER : item;\n            }\n            if (type == Type.KILL) {\n                return Items.IRON_SWORD;\n            }\n            ItemStack[] r = rewards();\n            return r.length > 0 ? r[0].getItem() : Items.NETHER_STAR;\n        }\n    }\n\n    public static final String[] CHAPTERS = {\n            \"一、初入王朝\", \"二、朝堂之路\", \"三、军旅生涯\", \"四、天朝·龙庭\", \"五、地府幽冥\", \"六、神兽与帝王\"\n    };\n\n    private static List<Quest> quests;\n\n    public static List<Quest> all() {\n        if (quests == null) {\n            quests = build();\n        }\n        return quests;\n    }\n\n    public static Quest get(int index) {\n        List<Quest> list = all();\n        return index >= 0 && index < list.size() ? list.get(index) : null;\n    }\n\n    public static int count() {\n        return all().size();\n    }\n\n    private static List<Quest> build() {\n        List<Quest> q = new ArrayList<>();\n        q.add(new Quest(0, CHAPTERS[0], \"玉石在手\", \"挖掘玉矿，收集 4 块玉。\", Type.ITEM, \"dynasty:jade\", 4, new int[]{}));\n        q.add(new Quest(1, CHAPTERS[0], \"第一桶金\", \"收集 8 枚铜钱。\", Type.ITEM, \"dynasty:copper_coin\", 8, new int[]{0}));\n        q.add(new Quest(2, CHAPTERS[0], \"熔铸青铜\", \"收集 4 块青铜锭。\", Type.ITEM, \"dynasty:bronze_ingot\", 4, new int[]{0}));\n        q.add(new Quest(3, CHAPTERS[0], \"铸剑为凭\", \"打造一把青铜剑。\", Type.ITEM, \"dynasty:sword_bronze\", 1, new int[]{2}));\n        q.add(new Quest(4, CHAPTERS[0], \"造纸制符\", \"制作 2 张符纸。\", Type.ITEM, \"dynasty:talisman_paper\", 2, new int[]{0}));\n\n        q.add(new Quest(5, CHAPTERS[1], \"科举中第\", \"用科举试卷答题并答对。\", Type.EVENT, \"keju\", 1, new int[]{4}));\n        q.add(new Quest(6, CHAPTERS[1], \"官阶初授\", \"功名累积晋升为秀才。\", Type.EVENT, \"rank1\", 1, new int[]{5}));\n        q.add(new Quest(7, CHAPTERS[1], \"拜见大臣\", \"找到大臣并与之交谈。\", Type.EVENT, \"minister\", 1, new int[]{5}));\n        q.add(new Quest(8, CHAPTERS[1], \"玉玺在手\", \"制作或获得一枚玉玺。\", Type.ITEM, \"dynasty:jade_seal\", 1, new int[]{6}));\n\n        q.add(new Quest(9, CHAPTERS[2], \"虎符调兵\", \"用虎符列阵，召集至少 8 名禁军。\", Type.EVENT, \"army\", 1, new int[]{7}));\n        q.add(new Quest(10, CHAPTERS[2], \"龙鳞披甲\", \"获得一件龙鳞胸甲。\", Type.ITEM, \"dynasty:dragon_scale_chestplate\", 1, new int[]{9}));\n        q.add(new Quest(11, CHAPTERS[2], \"讨伐叛军\", \"斩杀 10 名叛军。\", Type.KILL, \"dynasty:rebel_soldier\", 10, new int[]{9}));\n        q.add(new Quest(12, CHAPTERS[2], \"安抚民心\", \"把叛乱值降到 20 以下。\", Type.EVENT, \"calm\", 1, new int[]{11}));\n\n        q.add(new Quest(13, CHAPTERS[3], \"踏入天朝\", \"穿过玉门，进入天朝·龙庭。\", Type.EVENT, \"dim_celestial\", 1, new int[]{8}));\n        q.add(new Quest(14, CHAPTERS[3], \"龙晶之美\", \"在天朝采集 4 颗龙晶。\", Type.ITEM, \"dynasty:dragon_crystal\", 4, new int[]{13}));\n        q.add(new Quest(15, CHAPTERS[3], \"龙晶神兵\", \"打造一把龙晶剑。\", Type.ITEM, \"dynasty:sword_dragon_crystal\", 1, new int[]{14}));\n        q.add(new Quest(16, CHAPTERS[3], \"营造宫室\", \"收集 16 块宫殿砖。\", Type.ITEM, \"dynasty:palace_bricks\", 16, new int[]{13}));\n\n        q.add(new Quest(17, CHAPTERS[4], \"下探地府\", \"穿过冥门，进入地府。\", Type.EVENT, \"dim_underworld\", 1, new int[]{15}));\n        q.add(new Quest(18, CHAPTERS[4], \"幽冥斩妖\", \"斩杀 4 只九尾狐。\", Type.KILL, \"dynasty:nine_tailed_fox\", 4, new int[]{17}));\n        q.add(new Quest(19, CHAPTERS[4], \"帝陵取宝\", \"寻得 4 枚龙钱。\", Type.ITEM, \"dynasty:dragon_coin\", 4, new int[]{17}));\n\n        q.add(new Quest(20, CHAPTERS[5], \"祥瑞麒麟\", \"以仙桃结交麒麟。\", Type.EVENT, \"qilin\", 1, new int[]{16}));\n        q.add(new Quest(21, CHAPTERS[5], \"凤羽在手\", \"获得一根凤凰羽。\", Type.ITEM, \"dynasty:phoenix_feather\", 1, new int[]{18}));\n        q.add(new Quest(22, CHAPTERS[5], \"龙帝陨落\", \"在天朝击败龙帝。\", Type.KILL, \"dynasty:dragon_emperor\", 1, new int[]{20}));\n        q.add(new Quest(23, CHAPTERS[5], \"天下共主\", \"晋升至大学士。\", Type.EVENT, \"rank9\", 1, new int[]{22}));\n        return q;\n    }\n}\n"
+    }
+  ],
+  "typed_groups": [
+    {
+      "keys": [
+        "dynasty_merit",
+        "dynasty_rank",
+        "dynasty_loyalty",
+        "dynasty_rebellion"
+      ],
+      "nbt_type": "IntTag",
+      "source": "src/main/java/com/dynasty/DynastyStats.java",
+      "source_sha256": "3cffd583d361bc5a8c56bcc001df18316cde70135621df0d410e57ab6ee53ac8",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "dynasty_manual_given"
+      ],
+      "nbt_type": "ByteTag",
+      "source": "src/main/java/com/dynasty/DynastyManual.java",
+      "source_sha256": "89568cca2710803348e6b849f97cc3833757dc9f9795a4121fae9b05565c6ee2",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "dynasty_merit_evt_keju",
+        "dynasty_merit_evt_minister",
+        "dynasty_merit_evt_army",
+        "dynasty_merit_evt_qilin",
+        "dynasty_merit_evt_dim_celestial",
+        "dynasty_merit_evt_dim_underworld"
+      ],
+      "nbt_type": "ByteTag",
+      "source": "src/main/java/com/dynasty/DynastyMerit.java",
+      "source_sha256": "e39984e630fc8dab78a97ad196a89e04baa532e9605d622426b015a8cc5a14fe",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "dynasty_merit_seen_dragon_crystal",
+        "dynasty_merit_seen_xuantian_jade",
+        "dynasty_merit_seen_dragon_emperor_seal",
+        "dynasty_merit_seen_emperor_bone",
+        "dynasty_merit_seen_jade",
+        "dynasty_merit_seen_phoenix_feather",
+        "dynasty_merit_seen_rebel_head",
+        "dynasty_merit_seen_eunuch_token",
+        "dynasty_merit_seen_sky_token",
+        "dynasty_merit_seen_jade_seal",
+        "dynasty_merit_seen_official_seal",
+        "dynasty_merit_seen_edict",
+        "dynasty_merit_seen_tiger_tally",
+        "dynasty_merit_seen_blueprint",
+        "dynasty_merit_seen_bronze_ingot",
+        "dynasty_merit_seen_silver_ingot",
+        "dynasty_merit_seen_refined_steel",
+        "dynasty_merit_seen_cinnabar"
+      ],
+      "nbt_type": "ByteTag",
+      "source": "src/main/java/com/dynasty/DynastyMerit.java",
+      "source_sha256": "e39984e630fc8dab78a97ad196a89e04baa532e9605d622426b015a8cc5a14fe",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "dynasty_gift_gilded_mace",
+        "dynasty_gift_supreme_sword",
+        "dynasty_gift_seven_star_saber",
+        "dynasty_gift_sunbow"
+      ],
+      "nbt_type": "ByteTag",
+      "source": "src/main/java/com/dynasty/DynastyWeaponGifts.java",
+      "source_sha256": "683aea37c53b1dc93b843494c7cacbc80dd55b95b8b1dc8efbb6464a2d2ab187",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "dynasty_boss_kinds"
+      ],
+      "nbt_type": "IntTag",
+      "source": "src/main/java/com/dynasty/DynastyWeaponGifts.java",
+      "source_sha256": "683aea37c53b1dc93b843494c7cacbc80dd55b95b8b1dc8efbb6464a2d2ab187",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "dynasty_boss_kinds_list"
+      ],
+      "nbt_type": "StringTag",
+      "source": "src/main/java/com/dynasty/DynastyWeaponGifts.java",
+      "source_sha256": "683aea37c53b1dc93b843494c7cacbc80dd55b95b8b1dc8efbb6464a2d2ab187",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "dynasty_festival_day"
+      ],
+      "nbt_type": "StringTag",
+      "source": "src/main/java/com/dynasty/DynastyWorldEvents.java",
+      "source_sha256": "d1a9fd8a162f532a12140cb89078bd30efe1afb059f8cbbd5c432592c5c320cd",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "dynasty_firstkill_dragon_emperor",
+        "dynasty_firstkill_undead_first_emperor",
+        "dynasty_firstkill_nine_heaven_general",
+        "dynasty_firstkill_dragon_king",
+        "dynasty_firstkill_rebel_general",
+        "dynasty_firstkill_eunuch_mastermind",
+        "dynasty_firstkill_phoenix",
+        "dynasty_firstkill_qilin",
+        "dynasty_firstkill_nian_beast",
+        "dynasty_firstkill_nine_tailed_fox"
+      ],
+      "nbt_type": "ByteTag",
+      "source": "src/main/java/com/dynasty/DynastyBossCombat.java",
+      "source_sha256": "1c7bed37e85f85f29cf5c3cbb8a6ae7859f19ea75e053c8061a2a37840921850",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "DynastyEventMonsterKills"
+      ],
+      "nbt_type": "IntTag",
+      "source": "src/main/java/com/dynasty/worldevent/DynastyWorldEventManager.java",
+      "source_sha256": "2c0e266d104fad45366324648d74c051e0ffc045f434aa8bc90448d98244bf92",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "DynastyXuanniaoBlessing"
+      ],
+      "nbt_type": "IntArrayTag(UUID)",
+      "source": "src/main/java/com/dynasty/worldevent/DynastyWorldEventManager.java",
+      "source_sha256": "2c0e266d104fad45366324648d74c051e0ffc045f434aa8bc90448d98244bf92",
+      "restore": "copy exact existing well-typed old tag independently; never invoke a reward/progression mutator",
+      "provenance": "prior field enumeration plus bound consumer supplements; not a fresh full source reread for each row"
+    },
+    {
+      "keys": [
+        "dynasty_merit_kill_window",
+        "dynasty_merit_kill_earned"
+      ],
+      "nbt_types": [
+        "LongTag",
+        "IntTag"
+      ],
+      "restore": "preserve original pair only when BOTH well-typed; do not reset timestamp to now or zero earned; malformed/partial pair requires diagnostic branch, not manufactured credit",
+      "supersedes": "old exclude_temporary_rate_window is insufficient for paid-income anti-reset protection; this is an economic budget, not an active control buff"
+    },
+    {
+      "keys": [
+        "dq_p_0",
+        "dq_p_1",
+        "dq_p_2",
+        "dq_p_3",
+        "dq_p_4",
+        "dq_p_5",
+        "dq_p_6",
+        "dq_p_7",
+        "dq_p_8",
+        "dq_p_9",
+        "dq_p_10",
+        "dq_p_11",
+        "dq_p_12",
+        "dq_p_13",
+        "dq_p_14",
+        "dq_p_15",
+        "dq_p_16",
+        "dq_p_17",
+        "dq_p_18",
+        "dq_p_19",
+        "dq_p_20",
+        "dq_p_21",
+        "dq_p_22",
+        "dq_p_23"
+      ],
+      "nbt_type": "IntTag",
+      "restore": "preserve exact raw count, no clamp-to-complete or inventory reconstruction"
+    },
+    {
+      "keys": [
+        "dq_c_0",
+        "dq_c_1",
+        "dq_c_2",
+        "dq_c_3",
+        "dq_c_4",
+        "dq_c_5",
+        "dq_c_6",
+        "dq_c_7",
+        "dq_c_8",
+        "dq_c_9",
+        "dq_c_10",
+        "dq_c_11",
+        "dq_c_12",
+        "dq_c_13",
+        "dq_c_14",
+        "dq_c_15",
+        "dq_c_16",
+        "dq_c_17",
+        "dq_c_18",
+        "dq_c_19",
+        "dq_c_20",
+        "dq_c_21",
+        "dq_c_22",
+        "dq_c_23",
+        "dq_e_keju",
+        "dq_e_rank1",
+        "dq_e_minister",
+        "dq_e_army",
+        "dq_e_calm",
+        "dq_e_dim_celestial",
+        "dq_e_dim_underworld",
+        "dq_e_qilin",
+        "dq_e_rank9"
+      ],
+      "nbt_type": "ByteTag",
+      "restore": "preserve raw receipt tags without claim/notifyEvent or FTB reward dispatch"
+    }
+  ],
+  "ownership_and_alias_rules": [
+    "Only real server-side Clone for same UUID old/new player objects; distinct ownership must be checked before copying. Do not copy between peers. Preserve on death and End-return Clone; real dimension event without Clone does not re-run this copier.",
+    "Use Tag.getId exact type, not numeric wildcard99; booleans are ByteTag, timestamps LongTag, counts IntTag and history StringTag. Blessing UUID requires hasUUID, not arbitrary IntArray. For malformed old values do not reinterpret/coerce, do not overwrite another subsystem, and preserve source for diagnosis.",
+    "Root old well-typed fields are the authoritative snapshot for the audited root subset. Copy tag.copy into the new root; do not replace old root, entire new root, or PlayerPersisted. Do not invoke setters with merit multipliers/awards/effects, gift grant, boss award, festival, claim, kill or payment callbacks.",
+    "Known firstkill root/nested pair needs an explicit alias repair independent of reward delivery: a valid true receipt in either old root or inherited nested Persisted means known-kill true for root consumers. Do not infer kill from owned item. Do not change absent false into a new true. Only these ten audited keys qualify; any new source keys need another review.",
+    "Known firstkill alias repair writes ONLY new root from valid true old root/nested receipts; never writes inherited PlayerPersisted. Existing whole-container deep-copy handlers may run before or after without overwriting the repaired root. Snapshot-only does not solve nested shared reference/write ordering, so old proposed nested in-place dual-write is rejected.",
+    "Existing ContentProgress/SecretTracker/Slot nested deep-copy, School and Army own handlers remain authoritative. No duplicated copier for cod3_progress_8/30, no continuous challenge wildcard, no guide/warm/stance/control/cooldown copy.",
+    "World event, Bounty and Dungeon SavedData are world truth; external FTB progression is its own owner. Restore player facts without inventing FTB completion IDs or escrow copies. Historical claim receipts remain available even if no current quest uses them."
+  ],
+  "known_firstkill_alias_keys": [
+    "dynasty_firstkill_dragon_emperor",
+    "dynasty_firstkill_undead_first_emperor",
+    "dynasty_firstkill_nine_heaven_general",
+    "dynasty_firstkill_dragon_king",
+    "dynasty_firstkill_rebel_general",
+    "dynasty_firstkill_eunuch_mastermind",
+    "dynasty_firstkill_phoenix",
+    "dynasty_firstkill_qilin",
+    "dynasty_firstkill_nian_beast",
+    "dynasty_firstkill_nine_tailed_fox"
+  ],
+  "historical_semantic_corrections": [
+    "All24 historical indices are fixed to actual catalog0..23, with9 EVENT keys. Index18 is fox kill need4: raw dq_p_18=1 stays partial1/4, not completion or claimed.",
+    "Historical ITEM progress was current inventory count capped to need, not stored dq_p truth. A restored dq_p integer on an ITEM index cannot prove past delivery or a particular NBT variant.",
+    "Historical prerequisites check CLAIMED flags, not merely progress ready. claim writes dq_c before item grant/drop then adds50 merit. Restoring progress must not call claim and must not auto-claim any dependent task.",
+    "Historical EVENT progress takes max(stored, derived rank/calm fact), but notifyEvent separately writes dq_e. Do not collapse these two stored channels or execute notifyEvent as restoration.",
+    "Historical title rank1 says秀才 whereas code checks rank>=1, and rank9 title大学士 while code checks>=9; source authority is numeric threshold. Do not map to new quest by title alone."
+  ],
+  "acceptance_matrix_not_executed": [
+    {
+      "input": "death with four typed stats, once-event/item/gift/manual, paired economicwindow",
+      "expected": "same exact values; no awards, inventory adds or time rebasing"
+    },
+    {
+      "input": "known firstkill roottrue/nestedabsent and rootabsent/nestedtrue",
+      "expected": "known root eligibility restored without regrant and other nested state unchanged"
+    },
+    {
+      "input": "partial dq_p_18=1,claimedfalse,otherplayerdifferenthistory",
+      "expected": "A stayspartial, no task/reward auto-submit; B untouched"
+    },
+    {
+      "input": "wrong NBT numeric type/negative values/invalidUUID/partialwindow",
+      "expected": "typed invalid skipped and diagnosable, no fallback reward; valid raw negative value preservation versus sanitization explicit, not silently coerced"
+    },
+    {
+      "input": "same Clone applied twice and End return",
+      "expected": "idempotent value copy; no duplicates/merit changes; all intentional transient resets still work"
+    },
+    {
+      "input": "modify nested claim/list/UUID after copy",
+      "expected": "old object unchanged for newly copied fields; external handlers preserve deep independence"
+    },
+    {
+      "input": "real two clients+real death respawn/relog+old copiedworld",
+      "expected": "original worlds untouched; owner, firstkill, quest counts and economic cap native readback; no reuse of old QA marker"
+    }
+  ],
+  "pending_before_production": [
+    "reach1000 strict actual migration references",
+    "independent implementation/design review for alias order and malformed branch",
+    "revalidate current sources before editing",
+    "historical missing item mapping target and actual current FTB entry point independently bound",
+    "offline compile and focused native QA after implementation; these proposed cases have NOT run"
+  ],
+  "production_changes": 0,
+  "runtime_credit": 0,
+  "external_reference_credit": 0,
+  "checklist_deletions": 0,
+  "active_hours_claimed": 0,
+  "supersedes_design_sha256": "3e3c1e234d4a91a97b96e1b746192fe511e24a8d0b0cd60dbe01d8c025d0d7db",
+  "corrections": [
+    "Peer found native shared nested Tag + later whole-container copies invalidates previous ordering-independent nested-write claim; implementation performs root-only alias repair.",
+    "Malformed/partial economic pair diagnosed and skipped; normal valid-pair preserves exact old timestamp/earned. No claim malformed/partial pair cannot reset native income budget; choosing a new fail-closed/reset policy would alter behavior and is outside this repair."
+  ]
+}

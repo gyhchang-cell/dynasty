@@ -1,0 +1,33 @@
+{
+  "identity": "AlexModGuy/AlexsMobs:Terrapin@09755dade2cfbdf14839e026d3af446f9d3ff843",
+  "whole_unit": "Complete named body model, entity including MateGoal/LayEggGoal, renderer including overlay, water controller and navigator. Not five independent references, not each limb/state/variant as a separate reference.",
+  "rig": "13 named nodes:root→body→head,tail,shell,4limbs; each limb→separate planar hand/foot. Unlike Komodo embedded footplanes, these four endpoints independently counterrotate. No jaw/piston bones. All limb supports inherit body motion unlike Ravager root-sibling legs.",
+  "state_blending": "reset default eachsetup. Partial=age-tickCount; retreat=max(interpolated spin,retreat), swim=interpolated swim*(5-retreat)*.2. StandUnderwater=max(0,(1-min(limbAmount*3,1))*swim-retreat). Retreat thus suppresses swim and stand, without independent keyframeclip. Fourprogresses/states not independent animals.",
+  "retraction": "Retreat bodyY+1;headY+1/Z+3;tailY-.1/Z-4;forelimb inwardX±3/Y-.1/Z+3;hindlimb inwardX±3/Y-.1/Z-2,roll±90. Head returns inside shell via transform, no neck-length scaling or bite. No geometry copied.",
+  "land_support": "When !spinning and swimProgress<=0 model adds bodyflap/yaw and opposing head/tailmotion, diagonal limbwalk, then each endpointX subtracts limbX+bodyX and endpointZ subtracts bodyZ. Local lift added after counterrotation at limbY using sine-minusconstant. This is selected-axis compensation, not full inverse Euler or world footplant; yaw/translation remain. No terrain sampling/IK and planar feet not heavy armored support proof.",
+  "water_support": "Swimming ±70 limbroll counteracted by ±70 endpointroll, frontX-20/rearX30. StandUnderwater bodyX-30 countered head/tailX30 plusbodyY-1. This solves aquatic pose organization, not Bixi landsupport directly.",
+  "spin_consumer": "Model only faceTargets if neither retreat nor spin flags. While spinning bodyYaw=(spinCounter+partial)*.2*spinProgress*.6 and writes entity.clientSpin; bob overlay. After spin uses wrapDegrees(clientSpin) scaled byspinProgress*.2, with gait allowed. Entity tick copies prevprogress then±1/5, calls handleSpin if flagwastrue. handleSpin incrementscounter on bothsides but server alone resetscounter when>maxRollTime. No claim clientcounter fullyreset; rendering mutates clientSpin, multiplepasses maywrite. Server spin setsretreatedtrue but end-of-tick setRetreated(hide>0&&!spinning) canoverwritefalse: model maxspinprogress ensuresvisualretraction independently.",
+  "physics_and_damage": "Server launch on player aboveeye and jumping/airborne, with retreat/state/timer distinctions. spinFor100..199 and spinDelta speedadult.5/baby.3; servermaintains X/Z velocity while y preserved after firsttick, collision changesheading withcooldown10 or reducesmax30. Damage loop outside explicitserver-side guard, alive counter>5 adult only, living bbox.inflate.3 excludes allied/Terrapin damage4+random*4 attributed launcher ifpresent; basehurt/clientauthority not expanded. No mouth-bone contact.",
+  "movement_consumer": "shouldStopMoving spin||retreat. travel stops nav and supplies zero input to super, doesnot zero preexistingvelocity. Water controller earlyreturn setsSpeed0 before moving; native-ground controller not reread. Normal watertravel damps.9 and sinks-.005 withouttarget. Ground/water navigator switches server-side; navclass usesamphibiousevaluator andcollisionray, not footanchors.",
+  "render_and_lifecycle": "Render skips ordinary actorYaw when spinning; death uses own sqrt elapsed Z flip before autospin/upsideDown. Model render adultheadscale.9; younghead1.35,whole.5 plusY1.5 thenhead reset.9; constructor default geometry alone not finalheadproportion. Three color-overlaypasses use parentmodel; no PNG read or texture-quality claim. Savedown fields phenotype/egg/bucket, not spin/retractflags/progress/counter/velocity/launcher/timers, so exact reloadphasecontinuity not established. Entity no custom die/tickDeath bodyanimation.",
+  "bixi_applicability": [
+    "Endpoint bones can separately compensate limb/body pitch, but full chain transforms and local translations must still be checked.",
+    "State priority can suppress competing swim/retreat layers; render-time state writes and client/server counters require disclosure.",
+    "Whole shell anatomy is relevant to shell/support organization; small aquatic species excluded from direct heavy-mass, piston, neck-bite or death-ground-contact proof."
+  ],
+  "near_family_differences": [
+    {
+      "comparison": "KomodoDragon",
+      "difference": "Komodo has limb-wrapper topology but embedded footplanes and sit/jostle overlays; Terrapin independently rotates endpoint bones and retracts into shell."
+    },
+    {
+      "comparison": "Crocodile",
+      "difference": "Crocodile basks with lateral limb/foot roll compensation and authored lunge/deadroll, final jaw overwrite; Terrapin has nojaw/ModelAnimator, uses gated procedural shell retraction and render/entity spin handshake."
+    },
+    {
+      "comparison": "Ravager",
+      "difference": "Ravager legs are root siblings and neck cubic extension; Terrapin legs are body children, independent distal endpoints and shell-retraction not attackneck."
+    }
+  ],
+  "limits": "Source research only: no screenshot/visual approval/native replay/production edits. Does not prove current Bixi feet planted, pistons continuous, mouth contact or deathsettled. Related mechanisms not split for credit."
+}

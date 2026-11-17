@@ -1,0 +1,80 @@
+{
+  "recorded_utc": "2026-11-09T17:51:49.099271+00:00",
+  "original_task": "cod1.txt §9 伏波巡海夜叉",
+  "runtime_id": "dynasty:fubo_xunhai_yecha",
+  "sources": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/elite/TideYasha.java",
+      "sha256": "6b6a1d1b78e06b632e0afc1cb5d6cc7b8f198d42f00903f9f53405035266224b",
+      "read_scope": "entire class, all action selection/priority/cancel/death/load paths"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/elite/client/TideYashaRenderer.java",
+      "sha256": "4900e3ac9a629cb400e66cfc6569a9eb2262b88b119b5bd71f9562a989faebeb",
+      "read_scope": "entire class: own body bindings and visibility/death handling; vortex renderer context only"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/geo/blueprint/elite/fubo_xunhai_yecha.geo.json",
+      "sha256": "37b824259041765c0bff585bd14d4ff0cdc45704c7510ecfb5ed79318922385a",
+      "read_scope": "all bone names, parents, pivots and rotations, not object cube authoring"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/animations/blueprint/elite/fubo_xunhai_yecha.animation.json",
+      "sha256": "a436753c82d7c3c11ab8ab1e0ce8b9a28f472879310ebcf90ea3b6303af6aebd",
+      "read_scope": "all seven existing clips read; no new interpolation/runtime acceptance"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/creature-reference-1000/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityLobster.java",
+      "sha256": "3eec30206f5ed70965f0bd1a6f90b09451f1091f7bacb9a13125789d14ea88be",
+      "read_scope": "entire class, claw attack trigger/count/progress/exit and custom save/load"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/creature-reference-1000/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/model/ModelLobster.java",
+      "sha256": "15150465f9c8e99ebcab1e11d32ebc6b4f5cfdc582ae0495a33163adcf3e8ded",
+      "read_scope": "entire class: hierarchy and attack-progress body application; dependency helper internals excluded"
+    }
+  ],
+  "unchanged_reused_helpers": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/combat/TimedAttack.java",
+      "sha256": "8f264c4e4846bae36d273c1c4c32d43b2ad43e807259a0b03d41b244253147f4",
+      "current_hash_matches": true,
+      "reuse_scope": "Previously entire source reviewed. Same unchanged helper, not new semantic credit."
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/combat/SkillDefinition.java",
+      "sha256": "5c061eb3b76333c762127f2ca64f1470e9612b2a8fd3aedaef81463923d79090",
+      "current_hash_matches": true,
+      "reuse_scope": "Previously entire source reviewed. Same unchanged helper, not new semantic credit."
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/combat/AttackState.java",
+      "sha256": "54122f3b9ecd9ff4e2eeb09e30068c1e62622f7c8fcaf830cbfab511c838f108",
+      "current_hash_matches": true,
+      "reuse_scope": "Previously entire source reviewed. Same unchanged helper, not new semantic credit."
+    }
+  ],
+  "external_pin": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+  "findings": {
+    "trigger_and_selection": "Server only startSkill validates alive/registered skill/enemy/sight/horizontal range, plus real surface for DIVE and no existing owned vortex for WAVE. TimedAttack tryStart is the same unchanged idle/cooldown/finite-input contract already reviewed. AI tries combo at squared distance<=20.25, then dive when>16, then wave; actual skill min/max range gates still apply.",
+    "combo_whole_action": "Skill393 total84ticks: WINDUP0..9, ACTIVE10..43, RECOVERY44..83. Three movement windows10..19,22..31,34..43 inclusive, each10steps*.2=2blocks if unobstructed. Step is collision move before impact19/31/43; unloaded next cell or displacement squared<.005 cancels to30tick stun. Third window at34 adds vertical.38 only onGround. This is a conditional intended distance, not actual path/contact acceptance.",
+    "combo_body": "carapace->fork_hinge->fork_foresegment->fork_clamp->trident. Local hinge yaw -35at10/+18at19, -30at22/+18at31, -35at34/+15at43; returns0at50. Foresegment roll -10at10/+15at19, -10at22/+15at31, -20at34/+30at39/+5at43, return0at54. Carapace and tail-tip provide smaller counter-motion. Tip attack query is body-position plus fixed right/forward offset, not sampled from rendered bone; matching fork tip to query is unverified.",
+    "dive_whole_action": "Skill392 total71ticks:30windup/1active/40recovery; impact30. Pool follows valid target surface through age<=20, then locks. Renderer root+children hidden iff392 and age>=9 and<30 and notdead. Authored root Y scale1->.08at8, holds through30, restores1at34. At30 emergence seeks one loaded unobstructed nearby location with height/home/distance/sight checks; failed emergence cancels30tick stun; valid emergence teleports once, faces pool and adds vertical.3. Animation alone is not server teleport/hit source.",
+    "wave_context": "Skill391 total82ticks; impact18; hinge windup yaw-12at12 then+10at18, vent scales peak1.25at17 and return18. Existing trident rotation channel is read as attachment transform only; no weapon object modifications.",
+    "body_priority": "death wins, then active skill391/392/393, then hurtTime hurt, horizontal motion walk, idle. Incoming ordinary hurt does not visually replace an active skill. No separate STUN clip branch. Gameplay stun may outlast hurt clip and display idle/walk.",
+    "interrupt_exit": "Accepted server damage while alive with actual health loss>=8 and WINDUP stuns20 and immediately syncs. ACTIVE/RECOVERY do not use this custom interrupt. Death cancels attack, clears owned effects, navigation/target, syncs deathStart and chooses death; getDeathMaxRotation0 avoids additional whole-model death roll. Server removes at80ticks. No sound/game operation executed.",
+    "visibility_death": "Renderer recomputes root/children hidden every custom animation call, so current skill cancellation or dead state clears dive hiding on next invocation. Reef shell+children hidden while alive, visible flag while dead; death scale then fades reef0 through24 to1at32. Live carapace scales1 through24 to0at32. Six root-parented legs remain until54 and scale0at76. Death effect fragments inherit reef_shell; not new server entities. Planted weapon/normal weapon visibility is an interface read only, not item production.",
+    "clock_and_load": "Same0-transition controller as giant ape: reset on START change, loop idle/walk, hold-last others, RUNNING age from gameTime-START+partial except initial reset pass. Source save/load stores EliteAttack, pool, LastCombatTick, deathStart, loot flag/home. Invalid distant saved pool cancels DIVE; time gap>1 or reversal cancels active action on next combat. TimedAttack retains consumed frames/cooldowns, does not dump delayed hits. Not a seamless controller phase/blend persistence claim.",
+    "external_whole_comparison": "Pinned Alex Lobster ticks target proximity<=1 and cooldown0 -> doHurtTarget writes ATTACK_TICK5 and calls super.doHurtTarget immediately; same class later applies target hurt2 when count2 and distance<1.3. Counter decrements and attackProgress ramps0..5 then decays; model interpolates prev/current progress, yaws paired arms+/-45 and hands-/+30, layered with idle/locomotion. Counter/damage tick block lacks its own explicit side guard; inherited damage behavior is not proved here. Do not transplant this double-path hit logic or treat visual peak as authoritative hit. Own custom NBT only variant/fromBucket, not counter/progress/cooldown; no own hurt/death cancel override. Inherited death/network/math helpers unreviewed, no complete engine/runtime claim.",
+    "comparison_boundary": "Lobster is relevant low aquatic shell with linked claw articulation; it is not an underwater teleport/combo boss and supplies no proof for Yasha dive timing or balance. Transfer only connected parent-child body articulation and explicit attack-progress/return assessment. Existing Yasha body is six-foot shell, not Steve and not being converted."
+  },
+  "completed": "One selected existing actor whole static body action policy including priority/interruption/death/reload, not runtime/full engine acceptance.",
+  "new_accepted_credit": 0,
+  "applicable_whole_accepted_total": null,
+  "gap": null,
+  "production_modified": false,
+  "java_or_game_started": false,
+  "main_checklist_modified": false,
+  "no_new_entities_or_objects": true,
+  "task_deletion_permitted": false
+}

@@ -1,0 +1,77 @@
+{
+  "recorded_at": "2026-11-02T10:36:15.658299+00:00",
+  "status": "COORDINATOR_STATIC_BYTECODE_AND_EVENT_BUS_REVIEW_COMPLETE",
+  "scope": "Two legacy classes only; not independent peer or native runtime acceptance",
+  "bytecode_inputs": {
+    "build/cod4-legacy-fix-20261102/reobf08/LegacyItemMappings.javap.txt": {
+      "sha256": "5127dcca54199bbe6133deb439a82ab197f236f02f7eb6e7875ad948e1392f0c",
+      "lines": 155
+    },
+    "build/cod4-legacy-fix-20261102/reobf08/LegacyPlayerProgression.javap.txt": {
+      "sha256": "3d613cb3c4d2daa5973ea696e15efd198e8fcf07d4fe378c163442b61104e7a4",
+      "lines": 534
+    },
+    "build/cod4-legacy-fix-20261102/reobf08/LegacyItemMappings.verbose.javap.txt": {
+      "sha256": "fe1da4c335b02eea7fecb27732bb0bbda76c3a3073061ebc6786c9fc93583065",
+      "lines": 419
+    },
+    "build/cod4-legacy-fix-20261102/reobf08/LegacyPlayerProgression.verbose.javap.txt": {
+      "sha256": "26d7efe54edcb6dfee3f3a4b779c43faccb7fb4da9b3a736d730733970d0ee6d",
+      "lines": 1134
+    },
+    "build/cod4-legacy-fix-20261102/reobf08/EventBusSubscriber.verbose.javap.txt": {
+      "sha256": "8d056250ed2a385a22cf6c21677a8993ac9d34fda69eb80a310e602f4d953a3d",
+      "lines": 84
+    }
+  },
+  "source_archive": {
+    "path": "tools/cod4/ecology-acceptance/.work/client-build/gradle-home/caches/forge_gradle/maven_downloader/net/minecraftforge/forge/1.20.1-47.4.10/forge-1.20.1-47.4.10-sources.jar",
+    "sha256": "918a11bdfceace2752d4c29bddbdf327981e1f6a1e1f0675f23e5fbf01e226c0"
+  },
+  "actual_source_ranges_read": [
+    {
+      "path": "net/minecraftforge/registries/MissingMappingsEvent.java",
+      "start": 1,
+      "end": 180,
+      "source_entry_sha256": "5f97b1976cd583aa4cda59f9abf3abfb7ebeb806b215717c6ce8e0ea38ab65cb",
+      "excerpt": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.registries;\n\nimport net.minecraft.core.Registry;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraftforge.eventbus.api.Event;\nimport org.apache.commons.lang3.Validate;\n\nimport java.util.Collection;\nimport java.util.List;\nimport java.util.Locale;\n\n/**\n * Fired on the {@link net.minecraftforge.common.MinecraftForge#EVENT_BUS forge bus}.\n */\npublic class MissingMappingsEvent extends Event\n{\n    private final ResourceKey<? extends Registry<?>> key;\n    private final IForgeRegistry<?> registry;\n    private final List<Mapping<?>> mappings;\n\n    public MissingMappingsEvent(ResourceKey<? extends Registry<?>> key, IForgeRegistry<?> registry, Collection<Mapping<?>> missed)\n    {\n        this.key = key;\n        this.registry = registry;\n        this.mappings = List.copyOf(missed);\n    }\n\n    public ResourceKey<? extends Registry<?>> getKey()\n    {\n        return this.key;\n    }\n\n    public IForgeRegistry<?> getRegistry()\n    {\n        return this.registry;\n    }\n\n    /**\n     * @return An immutable list of missing mappings for the given namespace.\n     * Empty if the registry key doesn't match {@link #getKey()}.\n     */\n    @SuppressWarnings(\"unchecked\")\n    public <T> List<Mapping<T>> getMappings(ResourceKey<? extends Registry<T>> registryKey, String namespace)\n    {\n        return registryKey == this.key\n                ? (List<Mapping<T>>) (List<?>) this.mappings.stream().filter(e -> e.key.m_135827_().equals(namespace)).toList()\n                : List.of();\n    }\n\n    /**\n     * @return An immutable list of all missing mappings.\n     * Empty if the registry key doesn't match {@link #getKey()}.\n     */\n    @SuppressWarnings(\"unchecked\")\n    public <T> List<Mapping<T>> getAllMappings(ResourceKey<? extends Registry<T>> registryKey)\n    {\n        return registryKey == this.key ? (List<Mapping<T>>) (List<?>) this.mappings : List.of();\n    }\n\n    /**\n     * Actions you can take with this missing mapping.\n     * <ul>\n     * <li>{@link #IGNORE} means this missing mapping will be ignored.\n     * <li>{@link #WARN} means this missing mapping will generate a warning.\n     * <li>{@link #FAIL} means this missing mapping will prevent the world from loading.\n     * </ul>\n     */\n    public enum Action\n    {\n        /**\n         * Take the default action\n         */\n        DEFAULT,\n        /**\n         * Ignore this missing mapping. This means the mapping will be abandoned\n         */\n        IGNORE,\n        /**\n         * Generate a warning but allow loading to continue\n         */\n        WARN,\n        /**\n         * Fail to load\n         */\n        FAIL,\n        /**\n         * Remap this name to a new name (add a migration mapping)\n         */\n        REMAP\n    }\n\n    public static class Mapping<T> implements Comparable<Mapping<T>>\n    {\n        private final IForgeRegistry<T> registry;\n        private final IForgeRegistry<T> pool;\n        final ResourceLocation key;\n        final int id;\n        Action action = Action.DEFAULT;\n        T target;\n\n        public Mapping(IForgeRegistry<T> registry, IForgeRegistry<T> pool, ResourceLocation key, int id)\n        {\n            this.registry = registry;\n            this.pool = pool;\n            this.key = key;\n            this.id = id;\n        }\n\n        /**\n         * Ignore the missing item.\n         */\n        public void ignore()\n        {\n            action = Action.IGNORE;\n        }\n\n        /**\n         * Warn the user about the missing item.\n         */\n        public void warn()\n        {\n            action = Action.WARN;\n        }\n\n        /**\n         * Prevent the world from loading due to the missing item.\n         */\n        public void fail()\n        {\n            action = Action.FAIL;\n        }\n\n        /**\n         * Remap the missing entry to the specified object.\n         * <p>\n         * Use this if you have renamed an entry.\n         * Existing references using the old name will point to the new one.\n         *\n         * @param target Entry to remap to.\n         */\n        public void remap(T target)\n        {\n            Validate.notNull(target, \"Remap target can not be null\");\n            Validate.isTrue(pool.getKey(target) != null,\n                    String.format(Locale.ENGLISH, \"The specified entry %s hasn't been registered in registry yet.\", target));\n            action = Action.REMAP;\n            this.target = target;\n        }\n\n        public IForgeRegistry<T> getRegistry()\n        {\n            return this.registry;\n        }\n\n        public ResourceLocation getKey()\n        {\n            return key;\n        }\n\n        public int getId()\n        {\n            return this.id;\n        }\n\n        @Override\n        public int compareTo(Mapping<T> o)\n        {\n            int ret = this.registry.getRegistryName().compareNamespaced(o.registry.getRegistryName());\n            if (ret == 0)\n                ret = this.key.compareNamespaced(o.key);\n            return ret;\n        }\n    }\n}"
+    },
+    {
+      "path": "net/minecraftforge/registries/GameData.java",
+      "start": 628,
+      "end": 653,
+      "source_entry_sha256": "2de4043f6cda32f5417eef5d2f8890e417bfeab82d2c52fe3f8fe55b55b78a9c",
+      "excerpt": "            Multimap<ResourceLocation, ResourceLocation> defaulted = ArrayListMultimap.create();\n            Multimap<ResourceLocation, ResourceLocation> failed = ArrayListMultimap.create();\n\n            missing.entrySet().stream().filter(e -> !e.getValue().isEmpty()).forEach(m ->\n            {\n                ResourceLocation name = m.getKey();\n                ForgeRegistry<?> reg = STAGING.getRegistry(name);\n                Object2IntMap<ResourceLocation> missingIds = m.getValue();\n                MissingMappingsEvent event = reg.getMissingEvent(name, missingIds);\n                MinecraftForge.EVENT_BUS.post(event);\n\n                List<MissingMappingsEvent.Mapping<?>> lst = event.getAllMappings(reg.getRegistryKey()).stream()\n                        .filter(e -> e.action == MissingMappingsEvent.Action.DEFAULT)\n                        .sorted(Comparator.comparing(Object::toString))\n                        .collect(Collectors.toList());\n                if (!lst.isEmpty())\n                {\n                    LOGGER.error(REGISTRIES, () -> LogMessageAdapter.adapt(sb -> {\n                       sb.append(\"Unidentified mapping from registry \").append(name).append('\\n');\n                       lst.stream().sorted().forEach(map -> sb.append('\\t').append(map.key).append(\": \").append(map.id).append('\\n'));\n                    }));\n                }\n                event.getAllMappings(reg.getRegistryKey()).stream()\n                        .filter(e -> e.action == MissingMappingsEvent.Action.FAIL)\n                        .forEach(fail -> failed.put(name, fail.key));\n"
+    },
+    {
+      "path": "net/minecraftforge/registries/ForgeRegistry.java",
+      "start": 946,
+      "end": 964,
+      "source_entry_sha256": "166d4d874bb6f3a7e3f0e6317d5ee627edaf9e0bc62ea0aebb32d852e9ba30c8",
+      "excerpt": "    @SuppressWarnings(\"unchecked\")\n    public MissingMappingsEvent getMissingEvent(ResourceLocation name, Object2IntMap<ResourceLocation> map) {\n        List<MissingMappingsEvent.Mapping<V>> lst = new ArrayList<>();\n        ForgeRegistry<V> pool = RegistryManager.ACTIVE.getRegistry(name);\n        map.object2IntEntrySet().forEach(entry -> lst.add(new MissingMappingsEvent.Mapping<>(this, pool, entry.getKey(), entry.getIntValue())));\n        return new MissingMappingsEvent(ResourceKey.m_135788_(name), this, (Collection<MissingMappingsEvent.Mapping<?>>) (Collection<?>) lst);\n    }\n\n    void processMissingEvent(ResourceLocation name, ForgeRegistry<V> pool, List<MissingMappingsEvent.Mapping<V>> mappings, Object2IntMap<ResourceLocation> missing, Map<ResourceLocation, IdMappingEvent.IdRemapping> remaps, Collection<ResourceLocation> defaulted, Collection<ResourceLocation> failed, boolean injectNetworkDummies) {\n        LOGGER.debug(REGISTRIES,\"Processing missing event for {}:\", name);\n        int ignored = 0;\n\n        for (MissingMappingsEvent.Mapping<V> remap : mappings) {\n            MissingMappingsEvent.Action action = remap.action;\n\n            if (action == MissingMappingsEvent.Action.REMAP) {\n                // entry re-mapped, finish the registration with the new name/object, but the old id\n                int currId = getID(remap.target);\n                ResourceLocation newName = pool.getKey(remap.target);"
+    }
+  ],
+  "findings": [
+    "Both handlers retain public static SubscribeEvent and class EventBusSubscriber modid dynasty annotations. EventBusSubscriber default bus is actual FORGE annotation default.",
+    "MissingMappingsEvent documentation and actual GameData lines636-637 post to MinecraftForge.EVENT_BUS; class subscriber bus matches. No MOD bus change is needed.",
+    "Both constructors are private; bytecode adds no ItemStack, payment, inventory, world, reward or mutable PlayerPersisted write.",
+    "Clone first guards two distinct ServerPlayer instances sharing UUID; typed Tag.copy uses SRG members verified against actual47.4.10 patched SRG classes.",
+    "The compiled exact two-ID item switch leaves unrecognized IDs alone; real registered nonAIR target check precedes remap.",
+    "Renamer LivingEntity lambda propagation warning retained. Neither legacy class defines or calls that lambda. No blanket warning-free claim.",
+    "Static linkage09 found71 references; current-owner11 separately resolves two LOGGER uses against the actual current package after the old-owner SHA guard rejected private preparation."
+  ],
+  "linked_receipts": {
+    "legacy-migration-srg-linkage09.json": "61b43f6bbdbed1726c8cd30b5239cbcc74ba03d1fbe75494f897e13f5e996dac",
+    "legacy-migration-current-owner11.json": "7b11d1243ab9f84e12fab40f24d96a2c83f2160380f2cfae12b6d114922f34e5",
+    "legacy-migration-private-bundle10.json": "b49587013f525f5b44b036dea4a6909a9b359d2d80629703decd8bb3e15547d6"
+  },
+  "limitations": [
+    "No actual Forge event delivery, old-world item load, player Clone or TCP run.",
+    "Malformed or partial kill-budget pairs are skipped diagnostically; only well-typed pairs have anti-reset preservation.",
+    "No current independent reviewer acceptance; historical contract review is not source review for these two classes."
+  ],
+  "reference_credit": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "shared_jar_written": false
+}

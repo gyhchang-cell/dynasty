@@ -1,0 +1,173 @@
+[
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/ArmyBehaviors.java",
+    "sha256": "8330d2b58a49e23c90e085721f481b7c22e703869be18b810c24c5dfd2bc3a25",
+    "read": [
+      [
+        201,
+        284
+      ]
+    ],
+    "text": [
+      {
+        "lines": [
+          201,
+          284
+        ],
+        "text": "    private static final class RedToad extends Base {\n        Vec3 tongueDirection=new Vec3(0,0,1),landing=Vec3.ZERO;\n        UUID pulled;long pullUntil,burstUntil;boolean leaping,landed;\n        RedToad(TemplateMob mob){super(mob);}\n        public boolean allows(int id){return id==ArmySkills.TOAD_TONGUE||id==ArmySkills.TOAD_LEAP||id==ArmySkills.TOAD_BURST;}\n        public boolean canStart(int id,LivingEntity target){\n            if(id==ArmySkills.TOAD_BURST)return level().getGameTime()<burstUntil;\n            return (mob.onGround()||mob.isInWater())&&(id!=ArmySkills.TOAD_LEAP||mob.distanceToSqr(target)>12.25);\n        }\n        public int choose(LivingEntity target,long now){\n            if(now<burstUntil&&mob.attack().ready(ArmySkills.TOAD_BURST,now))return ArmySkills.TOAD_BURST;\n            return mob.distanceToSqr(target)<=25?ArmySkills.TOAD_TONGUE:ArmySkills.TOAD_LEAP;\n        }\n        public void move(LivingEntity target,long now){mob.getNavigation().stop();mob.setSprinting(false);}\n        public void started(int id,LivingEntity target){\n            if(id==ArmySkills.TOAD_TONGUE){\n                tongueDirection=target.position().add(0,Math.min(.55,target.getBbHeight()*.5),0).subtract(mob.position().add(0,.55,0)).normalize();\n                mob.setTongueReach(5);\n            }\n            if(id==ArmySkills.TOAD_LEAP){\n                Vec3 delta=target.position().subtract(mob.position()).multiply(1,0,1);\n                landing=mob.position().add(delta.normalize().scale(Math.min(6,delta.length())));leaping=false;landed=false;\n            }\n        }\n        public void tick(long now){\n            if(leaping&&!landed&&mob.actionAge(0)>12&&(mob.onGround()||mob.isInWater())){\n                landed=true;leaping=false;\n                for(var enemy:CombatGeometry.query(level(),mob.position(),Vec3.ZERO,CombatGeometry.Shape.CIRCLE,1.8,0,360,1.4,\n                    e->mob.validEnemy(e)&&mob.hasLineOfSight(e)))enemy.hurt(mob.damageSources().mobAttack(mob),4);\n                level().sendParticles(net.minecraft.core.particles.ParticleTypes.POOF,mob.getX(),mob.getY()+.1,mob.getZ(),8,.6,.05,.6,.02);\n            }\n            if(mob.skillId()!=ArmySkills.TOAD_LEAP)leaping=false;\n            if(pulled==null)return;\n            var target=mob.resolve(pulled);\n            if(now>=pullUntil||!mob.validEnemy(target)||mob.skillId()!=ArmySkills.TOAD_TONGUE||mob.distanceToSqr(target)>36||!mob.hasLineOfSight(target)){\n                if(target!=null&&now>=pullUntil){target.setDeltaMovement(target.getDeltaMovement().multiply(0,1,0));target.hurtMarked=true;}\n                pulled=null;return;\n            }\n            double resistance=Math.max(0,Math.min(1,target.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE)));\n            Vec3 delta=mob.position().subtract(target.position()).multiply(1,0,1);\n            if(delta.lengthSqr()<2.25){pulled=null;return;}\n            Vec3 step=delta.normalize().scale(.22*(1-resistance));\n            if(!level().hasChunkAt(net.minecraft.core.BlockPos.containing(target.position().add(step)))||!level().noCollision(target,target.getBoundingBox().move(step))){pulled=null;return;}\n            target.setDeltaMovement(step.x,target.getDeltaMovement().y,step.z);target.hurtMarked=true;\n        }\n        public void impact(SkillDefinition skill,int frame){\n            if(skill.id()==ArmySkills.TOAD_LEAP){\n                Vec3 delta=landing.subtract(mob.position()).multiply(1,0,1);\n                if(!level().hasChunkAt(net.minecraft.core.BlockPos.containing(landing)))return;\n                // Vanilla gravity and air drag integrate this impulse; no teleport or noclip.\n                mob.setOnGround(false);mob.setDeltaMovement(delta.scale(1/8.68).add(0,.65,0));mob.hasImpulse=true;leaping=true;return;\n            }\n            if(skill.id()==ArmySkills.TOAD_BURST){\n                burstUntil=0;\n                int existing=level().getEntitiesOfClass(TemplateProjectile.class,mob.getBoundingBox().inflate(16),p->p.armyMode()==3).size();\n                int shots=Math.min(6,Math.max(0,12-existing));\n                for(int i=0;i<shots;i++)TemplateProjectile.shootVenom(mob,i*Math.PI/3);\n                return;\n            }\n            Vec3 from=mob.position().add(0,.55,0),end=from.add(tongueDirection.scale(5));\n            var wall=level().clip(new net.minecraft.world.level.ClipContext(from,end,net.minecraft.world.level.ClipContext.Block.COLLIDER,\n                net.minecraft.world.level.ClipContext.Fluid.NONE,mob));\n            if(wall.getType()!=net.minecraft.world.phys.HitResult.Type.MISS)end=wall.getLocation();\n            LivingEntity hit=null;double nearest=from.distanceToSqr(end);\n            for(var candidate:level().getEntitiesOfClass(LivingEntity.class,new net.minecraft.world.phys.AABB(from,end).inflate(.25),e->e!=mob&&e.isAlive()&&!e.isSpectator())){\n                var point=candidate.getBoundingBox().inflate(.15).clip(from,end);\n                if(point.isPresent()&&from.distanceToSqr(point.get())<nearest){nearest=from.distanceToSqr(point.get());hit=candidate;}\n            }\n            mob.setTongueReach((float)Math.sqrt(nearest));\n            if(mob.validEnemy(hit)&&hit.hurt(mob.damageSources().mobAttack(mob),(float)mob.getAttributeValue(Attributes.ATTACK_DAMAGE))\n                    &&!(hit instanceof com.dynasty.DynastyBossCombat.BarHolder)){\n                pulled=hit.getUUID();pullUntil=level().getGameTime()+6;\n            }\n        }\n        public void hurtAccepted(DamageSource source,boolean frontal,float healthLost){\n            if(healthLost>=6&&mob.attack().ready(ArmySkills.TOAD_BURST,level().getGameTime()))burstUntil=level().getGameTime()+80;\n        }\n        public CompoundTag save(){var t=new CompoundTag();t.putDouble(\"TongueX\",tongueDirection.x);t.putDouble(\"TongueY\",tongueDirection.y);t.putDouble(\"TongueZ\",tongueDirection.z);\n            t.putDouble(\"LandX\",landing.x);t.putDouble(\"LandY\",landing.y);t.putDouble(\"LandZ\",landing.z);t.putBoolean(\"Leaping\",leaping);t.putBoolean(\"Landed\",landed);\n            t.putLong(\"BurstUntil\",burstUntil);t.putLong(\"PullUntil\",pullUntil);if(pulled!=null)t.putUUID(\"Pulled\",pulled);return t;}\n        public void load(CompoundTag t){tongueDirection=new Vec3(t.getDouble(\"TongueX\"),t.getDouble(\"TongueY\"),t.getDouble(\"TongueZ\")).normalize();\n            landing=new Vec3(t.getDouble(\"LandX\"),t.getDouble(\"LandY\"),t.getDouble(\"LandZ\"));leaping=t.getBoolean(\"Leaping\");landed=t.getBoolean(\"Landed\");\n            burstUntil=t.getLong(\"BurstUntil\");pullUntil=t.getLong(\"PullUntil\");pulled=t.hasUUID(\"Pulled\")&&pullUntil>level().getGameTime()?t.getUUID(\"Pulled\"):null;}\n    }"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/TemplateMob.java",
+    "sha256": "05c621d3919ac77eccc1c0016a1db0b02b7d7aba987aec0b92c2a99977faeb0c",
+    "read": [
+      [
+        640,
+        674
+      ],
+      [
+        789,
+        818
+      ]
+    ],
+    "text": [
+      {
+        "lines": [
+          640,
+          674
+        ],
+        "text": "    }\n    @Override public boolean onClimbable() {\n        if(kind==Kind.CENTIPEDE)return isAlive()&&(horizontalCollision||hanging());\n        // A dead wall-climber must fall under ordinary gravity. Keeping the last synchronized\n        // climbing flag would continue vanilla's wall boost / slow-fall during its death clip.\n        if (kind == Kind.BEAST || kind == Kind.BRONZE_SNAKE) return isAlive() && (entityData.get(CLIMBING) || super.onClimbable());\n        return super.onClimbable();\n    }\n    @Override public boolean canBreatheUnderwater(){return kind==Kind.TOAD||kind==Kind.SERPENT||kind==Kind.DROWNER||super.canBreatheUnderwater();}\n    @Override public boolean checkSpawnObstruction(net.minecraft.world.level.LevelReader reader){\n        return (kind==Kind.TOAD||kind==Kind.SERPENT||kind==Kind.DROWNER)?reader.isUnobstructed(this):super.checkSpawnObstruction(reader);\n    }\n    @Override public void travel(Vec3 input) {\n        if(kind==Kind.TREE&&!treeAwake()&&isAlive()){\n            setDeltaMovement(0,getDeltaMovement().y,0);super.travel(Vec3.ZERO);return;\n        }\n        if((kind==Kind.TOAD||kind==Kind.SERPENT||kind==Kind.DROWNER)&&isAlive()&&isInWater()&&isControlledByLocalInstance()){\n            moveRelative(.1F,input);move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());\n            setDeltaMovement(getDeltaMovement().scale(.8));calculateEntityAnimation(false);return;\n        }\n        if ((kind != Kind.SKULL && kind != Kind.LANTERN_BAT && kind != Kind.BLIND_FISH && kind != Kind.YECHA) || !isAlive() || isInWater() || isInLava()) {\n            super.travel(input); return;\n        }\n        // FlyingMoveControl supplies vertical input; ground travel uses ground friction\n        // and cannot provide a controlled ascent after the bite. Keep normal collision.\n        if (isControlledByLocalInstance()) {\n            moveRelative(.1F, input);\n            move(net.minecraft.world.entity.MoverType.SELF, getDeltaMovement());\n            setDeltaMovement(getDeltaMovement().scale(.85));\n        }\n        calculateEntityAnimation(true);\n    }\n\n    @Override public boolean causeFallDamage(float distance, float multiplier, DamageSource source) {\n        return kind == Kind.BEAST || kind == Kind.TOAD ? super.causeFallDamage(Math.max(0, distance - 5), multiplier, source) : super.causeFallDamage(distance, multiplier, source);"
+      },
+      {
+        "lines": [
+          789,
+          818
+        ],
+        "text": "    public String visualAnimation() {\n        if (isDeadOrDying()) return \"death\";\n        if(kind==Kind.SCORPION&&burrowed())return \"burrow\";\n        if(kind==Kind.TREE&&!treeAwake())return \"camouflage\";\n        if (hurtTime > 0 && skillId() == 0) return \"hurt\";\n        if(army!=null&&skillId()!=0)return army.animation(skillId());\n        if (skillId() == TemplateSkills.POSSESSION) return \"buff\";\n        if (skillId() == TemplateSkills.ROCK_THROW) return \"rock\";\n        if (skillId() == TemplateSkills.POUNCE) return \"skill\";\n        if (skillId() != 0) return \"attack\";\n        if (kind == Kind.BEAST && onClimbable() && climbFace() != null) return \"climb\";\n        if(kind==Kind.BRONZE_SNAKE&&onClimbable())return \"climb\";\n        if (getDeltaMovement().horizontalDistanceSqr() > .001) return isSprinting() ? \"run\" : \"walk\";\n        return \"idle\";\n    }\n    public AnimationProfile animationProfile(){return AnimationProfile.forKind(kind);}\n    @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return animationCache; }\n    @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {\n        controllers.add(new AnimationController<TemplateMob>(this, \"body\", 0, state -> {\n            String animation = visualAnimation();\n            state.getController().setAnimationSpeed(animationProfile().playbackRate(animation,getDeltaMovement().horizontalDistance(),getAttributeValue(Attributes.MOVEMENT_SPEED),isSprinting()));\n            animationPartial = state.getPartialTick();\n            if (lastAnimationStart != skillStartTime()) {\n                lastAnimationStart = skillStartTime(); state.getController().forceAnimationReset();\n            }\n            RawAnimation sequence = RawAnimation.begin();\n            String key = \"animation.\" + blueprintId() + \".\" + animation;\n            return state.setAndContinue(animationProfile().loops(animation)\n                    ? sequence.thenLoop(key) : sequence.thenPlayAndHold(key));\n        }) {"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/client/TemplateMobModel.java",
+    "sha256": "7defda78a7d640b2103d8f03832dd8330dd3d321af759789a117088c1321d2e1",
+    "read": "whole",
+    "text": "package com.dynasty.blueprint.client;\n\nimport com.dynasty.blueprint.TemplateMob;\nimport net.minecraft.resources.ResourceLocation;\nimport software.bernie.geckolib.model.GeoModel;\nimport software.bernie.geckolib.core.animation.AnimationState;\n\n/** Shared loading; each profession owns an independently authored articulated rig. */\npublic final class TemplateMobModel extends GeoModel<TemplateMob> {\n    @Override public void setCustomAnimations(TemplateMob mob, long instanceId, AnimationState<TemplateMob> state) {\n        super.setCustomAnimations(mob, instanceId, state);\n        TemplateSecondaryMotion.apply(this, mob, state.getPartialTick());\n        if(mob.kind()==TemplateMob.Kind.DROWNER&&mob.isAlive()){\n            boolean pool=mob.waterPool();\n            getBone(\"body\").ifPresent(b->{b.setScaleY(pool?.12F:1);b.setScaleX(pool?2.5F:1);b.setScaleZ(pool?2.5F:1);});\n        }\n        if(mob.kind()==TemplateMob.Kind.TOAD)\n            // Independent identity wrapper: never multiply a shared animated bone across draws.\n            getBone(\"tongue_reach\").ifPresent(b->b.setScaleZ(mob.skillId()==com.dynasty.blueprint.ArmySkills.TOAD_TONGUE?mob.tongueReach()/5:1));\n    }\n    @Override public ResourceLocation getModelResource(TemplateMob mob) {\n        return new ResourceLocation(\"dynasty\", \"geo/\" + artDirectory(mob) + mob.blueprintId() + \".geo.json\");\n    }\n\n    @Override public ResourceLocation getAnimationResource(TemplateMob mob) {\n        return new ResourceLocation(\"dynasty\", \"animations/\" + artDirectory(mob) + mob.blueprintId() + \".animation.json\");\n    }\n\n    // Preserve the concurrent legacy UV files; these two rigs have separate authored resources.\n    private static String artDirectory(TemplateMob mob) {\n        return mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER\n            ? \"blueprint/cod2_voxel/\" : \"blueprint/\";\n    }\n\n    @Override public ResourceLocation getTextureResource(TemplateMob mob) {\n        if(mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER)\n            return new ResourceLocation(\"dynasty\", \"textures/entity/\" + artDirectory(mob) + mob.blueprintId() + \".png\");\n        if (switch (mob.kind()) {\n            case STONE_GUARD, BIXI, YECHA, LANTERN_BAT, BLIND_FISH, DROWNER,\n                 BRONZE_SNAKE, CLOCKWORK_DOG, MINING_SPIDER, SCORPION,\n                 CENTIPEDE, SERPENT, TOAD, PRIEST,\n                 SPEAR, POWDER, TREE, CROSSBOW, SHIELD, SKULL, AXE_GUARD, SCOUT,\n                 CORPSE, GHOST, PALANQUIN, FLAG, BEAST, SWORD -> true;\n            default -> false;\n        }) return new ResourceLocation(\"dynasty\", \"textures/entity/blueprint/\" + mob.blueprintId() + \".png\");\n        // Continuous opaque native swatches preserve pixel grain without replacing legacy artwork.\n        String atlas = switch (mob.blueprintId()) {\n            case \"juli_bixi_kuilei\", \"xueju_mangguyu\", \"jubi_shigandang\", \"zuwu_daoshou\", \"ludun_jiashi\", \"zhenwang_zhangqiguan\", \"pijia_panjiang_huwei\", \"yinbing_guizu\" -> \"royal_guard\";\n            case \"juma_changqiangbing\" -> \"archer\";\n            case \"bazu_digongzhu\", \"qingtong_shuangtoushekui\", \"xunshan_mujiaquan\", \"liannu_zhenzu\", \"kuijun_sishi\" -> \"rebel_soldier\";\n            case \"tiesuo_chihou\" -> \"assassin\";\n            case \"fuhun_baibu_tongzi\" -> \"imperial_soldier\";\n            case \"bishui_xuanjiao_youzi\", \"shibian_lishi\", \"chimu_zhuha\", \"kumu_shujing\", \"mingsha_shixie\" -> \"nian_beast\";\n            case \"tongbi_feitian_yecha\", \"baimu_mowu\", \"youdeng_guimianfu\", \"shanjing_shanxiao\" -> \"nian_beast\";\n            default -> \"imperial_soldier\";\n        };\n        return new ResourceLocation(\"dynasty\", \"textures/entity/\" + atlas + \".png\");\n    }\n}\n"
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/animations/blueprint/chimu_zhuha.animation.json",
+    "sha256": "96f9db9b0d375b51f3554a0b6852912b31ec29bf57adf23681f536e5144d5ade",
+    "read": "All animation names/durations/channel counts; only explicitly selected full clips below",
+    "inventory": [
+      {
+        "name": "animation.chimu_zhuha.idle",
+        "length": 2.4,
+        "bones": [
+          "tongue_root",
+          "throat_sac",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.chimu_zhuha.walk",
+        "length": 1.2,
+        "bones": [
+          "tongue_root",
+          "throat_sac",
+          "left_front_thigh",
+          "left_front_knee",
+          "left_front_foot",
+          "right_front_thigh",
+          "right_front_knee",
+          "right_front_foot",
+          "left_hind_thigh",
+          "left_hind_knee",
+          "left_hind_foot",
+          "right_hind_thigh",
+          "right_hind_knee",
+          "right_hind_foot",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.chimu_zhuha.run",
+        "length": 1.0,
+        "bones": [
+          "tongue_root",
+          "throat_sac",
+          "left_front_thigh",
+          "left_front_knee",
+          "left_front_foot",
+          "right_front_thigh",
+          "right_front_knee",
+          "right_front_foot",
+          "left_hind_thigh",
+          "left_hind_knee",
+          "left_hind_foot",
+          "right_hind_thigh",
+          "right_hind_knee",
+          "right_hind_foot",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.chimu_zhuha.attack",
+        "length": 1.4,
+        "bones": [
+          "tongue_root",
+          "mouth_jaw",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.chimu_zhuha.leap",
+        "length": 2.0,
+        "bones": [
+          "tongue_root",
+          "left_hind_thigh",
+          "left_hind_knee",
+          "right_hind_thigh",
+          "right_hind_knee",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.chimu_zhuha.burst",
+        "length": 1.6,
+        "bones": [
+          "tongue_root",
+          "throat_sac",
+          "venom_gland_0",
+          "venom_gland_1",
+          "venom_gland_2",
+          "venom_gland_3",
+          "venom_gland_4",
+          "venom_gland_5",
+          "venom_gland_6",
+          "venom_gland_7",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.chimu_zhuha.hurt",
+        "length": 0.4,
+        "bones": [
+          "tongue_root",
+          "head",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.chimu_zhuha.death",
+        "length": 2.2,
+        "bones": [
+          "tongue_root",
+          "body",
+          "head",
+          "root"
+        ]
+      }
+    ],
+    "full_clips": {}
+  }
+]

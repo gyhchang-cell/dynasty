@@ -1,0 +1,60 @@
+130:             .filter(g->g instanceof WaterAvoidingRandomStrollGoal).toList().forEach(goalSelector::removeGoal);
+131:         this.xpReward = kind == Kind.SHIELD ? 8 : 5;
+132:         setMaxUpStep(kind == Kind.BEAST ? 1.0F : .6F);
+133:         if(kind==Kind.BRONZE_SNAKE||kind==Kind.CENTIPEDE)this.navigation=new net.minecraft.world.entity.ai.navigation.WallClimberNavigation(this,level);
+134:         if (kind == Kind.BEAST) this.navigation = new com.dynasty.blueprint.combat.SummitClimberNavigation(this, level);
+135:         else if(kind==Kind.TREE){
+136:             goalSelector.getAvailableGoals().stream().map(net.minecraft.world.entity.ai.goal.WrappedGoal::getGoal)
+137:                 .filter(g->g instanceof WaterAvoidingRandomStrollGoal||g instanceof LookAtPlayerGoal||g instanceof RandomLookAroundGoal)
+138:                 .toList().forEach(goalSelector::removeGoal);
+139:         }
+140:         else if (kind == Kind.TOAD || kind == Kind.SERPENT || kind == Kind.DROWNER) {
+141:             if(kind==Kind.SERPENT||kind==Kind.DROWNER)goalSelector.getAvailableGoals().stream().map(net.minecraft.world.entity.ai.goal.WrappedGoal::getGoal)
+653:         if(kind==Kind.TREE&&!treeAwake()&&isAlive()){
+654:             setDeltaMovement(0,getDeltaMovement().y,0);super.travel(Vec3.ZERO);return;
+655:         }
+656:         if((kind==Kind.TOAD||kind==Kind.SERPENT||kind==Kind.DROWNER)&&isAlive()&&isInWater()&&isControlledByLocalInstance()){
+788: 
+789:     public String visualAnimation() {
+790:         if (isDeadOrDying()) return "death";
+791:         if(kind==Kind.SCORPION&&burrowed())return "burrow";
+792:         if(kind==Kind.TREE&&!treeAwake())return "camouflage";
+793:         if (hurtTime > 0 && skillId() == 0) return "hurt";
+794:         if(army!=null&&skillId()!=0)return army.animation(skillId());
+795:         if (skillId() == TemplateSkills.POSSESSION) return "buff";
+796:         if (skillId() == TemplateSkills.ROCK_THROW) return "rock";
+797:         if (skillId() == TemplateSkills.POUNCE) return "skill";
+798:         if (skillId() != 0) return "attack";
+799:         if (kind == Kind.BEAST && onClimbable() && climbFace() != null) return "climb";
+800:         if(kind==Kind.BRONZE_SNAKE&&onClimbable())return "climb";
+801:         if (getDeltaMovement().horizontalDistanceSqr() > .001) return isSprinting() ? "run" : "walk";
+802:         return "idle";
+803:     }
+804:     public AnimationProfile animationProfile(){return AnimationProfile.forKind(kind);}
+805:     @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return animationCache; }
+806:     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+807:         controllers.add(new AnimationController<TemplateMob>(this, "body", 0, state -> {
+808:             String animation = visualAnimation();
+809:             state.getController().setAnimationSpeed(animationProfile().playbackRate(animation,getDeltaMovement().horizontalDistance(),getAttributeValue(Attributes.MOVEMENT_SPEED),isSprinting()));
+810:             animationPartial = state.getPartialTick();
+811:             if (lastAnimationStart != skillStartTime()) {
+812:                 lastAnimationStart = skillStartTime(); state.getController().forceAnimationReset();
+813:             }
+814:             RawAnimation sequence = RawAnimation.begin();
+815:             String key = "animation." + blueprintId() + "." + animation;
+816:             return state.setAndContinue(animationProfile().loops(animation)
+817:                     ? sequence.thenLoop(key) : sequence.thenPlayAndHold(key));
+818:         }) {
+819:             @Override protected double adjustTick(double tick) {
+820:                 boolean resetting = shouldResetTick;
+821:                 double local = super.adjustTick(tick);
+822:                 // GeckoLib polls a new queued clip only at transition tick zero. Replacing that
+823:                 // zero with a nonzero server age leaves the old idle clip installed forever.
+824:                 if (resetting || getAnimationState() != AnimationController.State.RUNNING) return local;
+825:                 if (kind == Kind.BEAST && climbFace() != null && climbStartTime() >= 0 && skillId() == 0 && isAlive())
+826:                     return Math.max(0, level().getGameTime() - climbStartTime() + animationPartial);
+827:                 // Late observers seek to the authoritative contact frame instead of restarting the clip.
+828:                 return skillStartTime() >= 0 && (skillId() != 0 || isDeadOrDying()) ? actionAge(animationPartial) : local;
+829:             }
+830:         });
+831:     }

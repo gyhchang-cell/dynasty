@@ -1,0 +1,82 @@
+{
+  "status": "RAVAGER_SELECTED_DEATH_BODY_CHAIN_STUDIED_OFFLINE_WITH_NATIVE_CONSUMER_GAPS",
+  "upstream": {
+    "repo": "Antikythera-Studios/epicfight",
+    "revision": "a78aa24b72e90a9d09f5fd61925e4369d117abaf",
+    "branch": "1.21.1",
+    "version_boundary": "NeoForge1.21.1参考，不导入或升级Dynasty Forge1.20.1/GeckoLib"
+  },
+  "actual_read": {
+    "RavagerArmature.java": "complete19joint fields/binding",
+    "RavagerPatch.java": "complete initAnimator/death mapping/updateMotion",
+    "PRavagerRenderer.java": "complete mesh binding",
+    "Animations.java": "declarations290;registration1656 LongHit0.11",
+    "ravager-death.json": "all19channel timestamps,first/last matrices analyzed; not all intermediate pose playback",
+    "ravager.json": "complete armature hierarchy/144position/rigid weights/part-index structure parsed for probe, no textures",
+    "LongHitAnimation.java": "complete locking flags/states",
+    "LivingEntityPatch.java": [
+      "145–202 preTick/poseTick",
+      "344–346 onDeath",
+      "602–617 model matrix"
+    ],
+    "MobPatch.java": "76–98 health/motion priority",
+    "JsonAssetLoader.java": [
+      "55–59 coordinates",
+      "323–378 mesh parse",
+      "436–550 hierarchy parser",
+      "678–705 clip parser",
+      "739–760 matrix-to-local normalization"
+    ],
+    "JointTransform.java": "105–143 transform binding/toMatrix",
+    "AnimationTransformEntry.java": "complete multiply priority",
+    "Armature.java": "60–94 pose recursion/inverse bind use",
+    "StaticAnimation.java": "355–365 fixed-head consumer",
+    "DynamicAnimation.java": "175–190 base method",
+    "VertexBuilder.java": "complete position/UV/normal indices",
+    "PatchedLivingEntityRenderer.java": [
+      "render selected100–145",
+      "263–270 crouch adjustment"
+    ],
+    "PatchedEntityRenderer.java": "26–42 model transform/flip logic",
+    "NeoForgeEntityEvent.java": "24–50 pre/post/death event routing",
+    "VanillaEntityEventHooks.java": [
+      "90–110 tick dispatch",
+      "122–132 death dispatch"
+    ],
+    "MixinLivingEntity.java": "122–133 death removal event hook, unrelated sections not claimed"
+  },
+  "observations": [
+    "真正四足结构：Root/Torso，前后四腿各有Foot和附加Leg_F；Head_Root→Head→Chin/ears独立。骨骼数19不是19条参考。",
+    "死亡clip末端1.1667秒约23.334tick；Root从初帧到末帧旋转差约80.53deg，Torso约7.28deg，Head_Root约3.83deg，Head约5.16deg，Chin约27.64deg。它是偏侧倒伏而非所有四腿同时垂直收缩。",
+    "RF三通道首尾基本保持，LF/后腿分段变化；后腿辅助链有局部平移。不能称四腿全都重做成相同折角。各时间与局部首末矩阵见ravager-channel-review.json。",
+    "LongHit标志停止移动/移除delta/fixed head；StaticAnimation按该flag禁止headfollow，LivingEntityPatch.poseTick据此跳过头部观察注入。区别于蛛母DEATH之后绝对覆盖头角。",
+    "RavagerPatch把DEATH映射到独立clip；health<=0 motion优先DEATH。NeoForge death event→hook→onDeath→playDeathAnimation。preTick事件每次调用patch。",
+    "preTick在health<=0且deathTime>=19、player非空且未结束时deathTime--，因此代码意图延缓默认死亡计时越过移除阈值；动画完成再放行。不能根据clip长度直接编造准确移除tick。",
+    "patched renderer采用自有mesh/armature，model transform只做yaw/scale/特殊倒置名，不是直接再加vanilla常规death flip。最终游戏事件和其他渲染层仍未实机验收。",
+    "源网格单末关键帧近似：body最低Y0.109718，head整体最低Y-0.041857，LF/RB等支撑并不全贴名义Y0；leftBack-0.198028,leftFront-0.189374。应读作偏侧重心转移，不能宣传成精确贴地标准。"
+  ],
+  "offline": {
+    "probe": "ravager_terminal_probe.py",
+    "result": "ravager-terminal-observation.json",
+    "visual": "ravager-source-side.png",
+    "visual_actually_opened": true,
+    "notes": "同尺度bind与末帧侧投影，灰色真实源三角网格，无贴图/粒子/游戏；看见侧倒后头前置、上侧腿抬起，下侧腿临地。",
+    "validation": "19joint全覆盖，144点单权重1，bind回代误差0；rawmatrix/无blend近似，不取代原生skin实现。"
+  },
+  "remaining": [
+    "AnimatedMesh消费权重实现固定raw下载exit56未读；单权重pair解释已按资产结构验证，仍为离线假设。",
+    "原生1.21.1死亡移除方法与动画播放器isEnd/transition的完整生命周期未闭合，不宣称确切服务器移除tick。",
+    "无完整中间姿态回放/地形/运行包验收；当前仅bind和末帧。"
+  ],
+  "failures_and_corrections": [
+    "Armature首次TLS35，安全curl重试成功，原失败记录保留。",
+    "ImageMagick SVG字体失败两次，无成品输出；用现成Pillow对同SVG三角形/文本离线栅格化成功并实际查看。"
+  ],
+  "applicability": {
+    "related_complete_body_death_candidate": 1,
+    "direct_suanni_contact_accepted": false,
+    "new_accepted_credit": 0,
+    "reuse": "可借鉴下侧支撑/上侧抬足、头颈与下颚分工、固定look和clip完成前延迟移除；不能直接用其矩阵/比例/名义穿地量修狻猊"
+  },
+  "production_modified": false
+}

@@ -1,0 +1,24 @@
+{
+  "title": "赤目朱蛤：陆地/游泳动作分流与复位",
+  "target": "dynasty:chimu_zhuha",
+  "observations": [
+    "整体压低躯干body7×3×9与head7×3×9相叠，双眼各3×2×3，四肢有子手/足面片。后腿挂root、前臂挂body，便于主体俯仰与后蹬分工；不是普通人形走路骨架。",
+    "FrogAi以IS_IN_WATER memory分IDLE/SWIM活动，优先级TONGUE→LAY_SPAWN→LONG_JUMP→SWIM→IDLE。IsInWaterSensor通过isInWater写/擦memory；Sensor默认20tick扫描且随机初相。模型却每次直接用isInWaterOrBubble分walk/swim，因此不能声称AI与渲染切换条件和时刻完全一致。",
+    "FrogModel每次先resetPose，然后叠jump、croak、tongue，再按水态选FROG_SWIM或FROG_WALK，最后叠水中idle；croaking_body显隐另由croak状态控制。resetPose复位位置/旋转/scale=1，不负责visible，显隐必须独立清理。",
+    "陆地walk为1.25秒循环的四肢交替迈步与躯干轻扭；swim为1.04167秒循环，后腿旋转外展回收、前臂划水、body俯仰±10度；water-idle3秒循环并非陆地walk放慢。片段只是形态方法，不能把它们的时间作为朱蛤服务器技能时钟。",
+    "animateWalk把limb position×50×速度因子转为毫秒（walk1.5/swim1.0），幅度min(limbAmount×2.5,1)。它是位移驱动，不是按现实秒固定循环。水中idle由客户端在水/气泡且walkAnimation不moving时启动，否则停止。",
+    "Pose同步更新分别start/stop jump/croak/tongue AnimationState；jump时updateWalkAnimation输入置0但walkAnimation以0.4平滑衰减，并非立刻清零。LongJumpMidJump结束重置standing、摩擦与mid-jump memory并重设冷却；Croak停止也回standing。",
+    "KeyframeAnimations对ModelPart用offsetPos/Rotation/Scale累加，scaleVec返回scale-1、posVec反Y、degreeVec转弧度。FROG_TONGUE的head SCALE通道原文使用degreeVec，不能美化成正确scaleVec或照抄。泛用查骨名缺失时跳过，不意味着我们导出的骨名自然匹配。",
+    "水中travel在控制端moveRelative(getSpeed)、SELFmove、阻尼0.9；SmoothSwimmingMoveControl水中上浮0.005并限俯仰、逐步转向，陆地另有转弯速度因子。此处不全审Brain调度或两栖父导航算法。"
+  ],
+  "current_application": [
+    "现有RedToad停止普通导航，技能控制跳跃/舌头；有真实落地/入水触发、6tick拉扯与重击喷毒门槛。旧WarpedToad整体研究处理舌头与跳跃，此批只补水陆动画选择/复位机制，不能把同一朱蛤当新物种。",
+    "实际TemplateMob.travel对TOAD活体水中走SELF移动并乘0.8阻尼；visualAnimation当前仅death/hurt/技能/水平速度选择walk/run/idle，没有独立游泳选择。实际图集中8条动画没有swim或water-idle；这是读源发现的待补覆盖，不是宣称实机故障。",
+    "后续只能在合格研究门槛后让现有骨架响应水/陆状态、保留技能优先与落地伤害。现有tongue_reach缩放包装不可被全身复位误清；不新增水上攻击、不换AI。"
+  ],
+  "limits": [
+    "没有完整阅读ShootTongue、LongJumpToRandomPos、Brain执行器或AmphibiousNodeEvaluator；本闭环只对水态感知→AI活动选择、客户端水态→模型→关键帧/复位成立。",
+    "无死亡翻腹/脓包塌陷参考覆盖；没有查看新PNG、逐面UV或游戏。"
+  ],
+  "production": false
+}

@@ -1,0 +1,50 @@
+{
+  "status": "NATIVE_RAVAGER_RENDER_GROUND_SUPPLEMENT_NOT_PRODUCTION",
+  "reference_owner": "Minecraft+Forge native1.20.1-47.4.10 mapped source archive",
+  "actual_read": {
+    "RavagerModel.java": "entire constructor, hierarchy, setupAnim, prepareMobModel",
+    "RavagerRenderer.java": "whole file, no scale/death override",
+    "LivingEntityRenderer.java": [
+      "51-125 render pipeline",
+      "179-221 rotation and getFlipDegrees",
+      "228-229 empty scale"
+    ],
+    "Ravager.java": [
+      "131-179 alive-gated timers",
+      "192-193 immobile",
+      "216-236 roar",
+      "247-274 event/getters/attack",
+      "declaration and tickDeath override scan only outside selected ranges"
+    ],
+    "LivingEntity.java": [
+      "410-412 death dispatch",
+      "546-553 death tick removal"
+    ],
+    "Raider.java / PatrollingMonster.java / Monster.java / PathfinderMob.java / Mob.java": "complete class-text search for tickDeath declarations; superclass declarations inspected; not whole AI review",
+    "ModelPart.java": [
+      "115-126 recursive render",
+      "153-160 T then rotationZYX then scale",
+      "289-294 vertex /16"
+    ],
+    "HierarchicalModel.java": "30-34 root render",
+    "MobRenderer.java": "superclass and absence of setupRotations/scale overrides checked; not whole leash behavior"
+  },
+  "body": "11 parts including empty root;12 cuboids; independent neck→head→mouth/horns, body and four 8x37x8 legs rooted separately. No separate knee/paw.",
+  "death_chain": [
+    "Ravager→Raider→PatrollingMonster→Monster→PathfinderMob→Mob→LivingEntity has no intermediate tickDeath override in extracted source.",
+    "LivingEntity.baseTick calls virtual tickDeath only if isDeadOrDying and level.shouldTickDeath. Default deathTime++ then server remove when>=20 and not removed; no unconditional exact wall-time claim.",
+    "RavagerRenderer→MobRenderer→LivingEntityRenderer: default90deg roll, clamped sqrt((deathTime+partial-1)/20*1.6); no Ravager floor-compensation translation.",
+    "LivingEntityRenderer supplies zero walk inputs unless alive and not riding. Model still runs prepareMobModel and head look setup on death; no claim that all layers disabled.",
+    "Ravager aiStep timers decrement only in isAlive block. Retained attack/stun/roar are distinct old program owner, not new credit; zero-state probe does not cover them."
+  ],
+  "geometry_probe": {
+    "scope": "single neutral deathTime19 fully flipped endpoint versus neutral pre-flip at equal ground, plus all actual model/render transforms; not EpicFight resampling",
+    "constructor": "every chained addBox and PartPose parsed,12cuboids/11parts asserted; worldpoint recursive RzRyRx then /16, render scale(-1,-1,1),translate and deathroll",
+    "result": "neutral foot minima+0.001m. Full roll head/mouth -0.5m; left horn -0.625m; left legs -0.75m and right legs+0.25m relative assumed entity groundY0. The source uses side-roll around entity origin, not all-body geometric support solver.",
+    "significance": "Native death aesthetics alone cannot be used as evidence of precise foot/head-ground contact for Suanni. Do not transplant native roll to fix current head gap.",
+    "runtime_limit": "No actual frame captured; simplified neutral state, no Forge render event overrides, custom terrain, frozen/shaking/bed/upside-down/passenger or arbitrary look state. No new bug claim about native Minecraft."
+  },
+  "visual_actually_opened": true,
+  "production_changes": 0,
+  "new_accepted_credit": 0
+}
