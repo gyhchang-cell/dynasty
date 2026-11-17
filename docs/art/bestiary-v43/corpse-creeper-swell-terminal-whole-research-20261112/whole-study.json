@@ -1,0 +1,22 @@
+{
+  "title": "尸变力士：膨胀回退与终止路径边界",
+  "target": "dynasty:shibian_lishi",
+  "observations": [
+    "SwellGoal拥有MOVE，进入停止导航并锁存当时target；距离平方<9或已正膨胀时可启动，tick在无目标、距离平方>49或失去视线时把方向改-1，否则+1。stop仅清局部target，不直接归零swell；ignite在实体tick强制方向+1，所以点燃不能像普通接近蓄势那样取消。",
+    "Creeper活体tick先oldSwell=swell，再按方向加减并夹下限0，达到默认maxSwell30则服务端explode。getSwelling以(old,current)插值除(maxSwell-2)；默认临界值可大于1，renderer后续自己夹持。fall damage后另加fall×1.5，最高fuse-5。",
+    "Renderer先以未clamp的f算1+sin(100f)×f×0.01抖动，再夹0..1、四次方。XZ=(1+0.4f^4)×抖动、Y=(1+0.1f^4)/抖动；这是全身渲染缩放，不是腹部骨骼膨胀，更不是碰撞变形。白叠层按int(swelling×10)奇偶闪烁，不能拿它当死亡形体。",
+    "爆炸路径是服务端dead=true→level.explode→discard→spawnLingeringCloud，并无等待腹部瘪塌的自定义死亡clip。cloud只在已有药水效果非空时产生：半原duration、wait10、radius2.5并按时缩小；未全审AreaEffectCloud运行逻辑，不宣称清理已实测。普通被杀不等于执行explodeCreeper。",
+    "自身NBT保存powered、Fuse、ExplosionRadius、ignited，没保存swell/oldSwell瞬时进度。不能靠这个例子证明重载保留蓄势精确帧。doHurtTarget只返回true，没有普通近战扣血调用。",
+    "CreeperModel只有头、体和四根腿，leg字段与child左右命名交叉映射，动作是余弦对角步态；没写受伤抽搐/塌陷恢复。PowerLayer由构造器注册，本批未读其实现或贴图，不能声称已审附加光效。"
+  ],
+  "current_application": [
+    "这是一条活体可回退蓄势→不可逆终止的完整对照，不能冒称尸变力士死亡完成参考。和Mungus膨胀有共同表现手法，机制增量仅目标失效回退/点燃覆盖/服务端终止与显示插值边界，不多算一个新材质或物种。",
+    "当前Corpse受伤毒斑25tick cooldown、附近最多3片和合法地面规则，死亡16至17tick仅发烟；TemplateMob死亡44tick/2.2秒保留动画，停止行为并最终remove(KILLED)。绝不能搬入苦力怕爆炸伤害、discard或新药云来取代。",
+    "已读取现有death片段全部7骨通道：pelvis下移、waist/head/腿与jaw旋转、root接地补偿，未含腹部scale。可确证当前片段没有膨胀→瘪塌scale通道，不凭0tick截图判定全部死亡动作。以后应围绕既有死亡epoch局部腹部表现，而非全身缩放或重做人形。"
+  ],
+  "limits": [
+    "本例没有“死后膨胀再瘪塌”成品动作，未覆盖尸变力士完整死亡需求；只能作为终止路径反例与局部显示方法。",
+    "药云、世界爆炸实现、GoalSelector调度和PowerLayer不是全链审计，不能据本批改变玩法/清理策略；无新PNG或游戏验证。"
+  ],
+  "production": false
+}

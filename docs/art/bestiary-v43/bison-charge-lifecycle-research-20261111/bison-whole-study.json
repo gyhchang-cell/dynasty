@@ -1,0 +1,55 @@
+{
+  "identity": "AlexModGuy/AlexsMobs:Bison",
+  "full_read": [
+    "ModelBison.java",
+    "EntityBison.java including all inner AIChargeFurthest and AIAttackNearPlayers",
+    "RenderBison.java including LayerSnow",
+    "ModelBisonBaby.java"
+  ],
+  "adult_structure": [
+    "14 nodes/13 edges/16 boxes, root→body→torso→head, rear supports under body and fore supports under torso. Tail and beard are zero-thickness planes.",
+    "20×27×26 foretorso dominates18×20×19 hindbody. Head combines two broad/muzzle masses; four horn boxes are children of one rotated horn node, not four independent articulated horns.",
+    "No knee/jaw/held-item socket or terrain-contact solver. Name arm means foreleg, not humanoid arm."
+  ],
+  "adult_layers": [
+    "Default reset→animator→interpolated chargeProgress headY+1/Z-3.5/pitch+30 over5→charge/walk branch→idle→head input yaw×.35/pitch×1.",
+    "Chargeprogress is prev/current interpolation with partialTick=age-tickCount. Entity increments to5 whilecharging and decreases to0 whennot; this is pose ramp, not server damage clock.",
+    "Gait still switches discretely at progress>0; running pairs both forelegs together vs rear pair, walking diagonal. On interruption remaining positive progress retains charge gait until zero. It is not demonstrated to be a smooth full-body blend.",
+    "Prepare-charge eight5tick keyframe/reset segments=40; alternating body/torso/head yaw and fore support raise, later headpitch40. Eat6×5+reset5=35; attack5+5+reset5=15. All match declarations by literal sums."
+  ],
+  "entity_lifecycle": [
+    "Player combat far dist>=width+3: ifNOANIMATION prepare; whileprepare stopnav; tick>30setscharging, before40clipends. Near attackdamageattempt ifANIMATIONATTACK tick>8,range<width+1andLOS. DoHurtTarget only startsattackifNOANIM but returns true regardless.",
+    "Charging speed base.65, restoration.25 via hasChargedSpeed in server tick; on attack first qualifying charging tick adds3damage, huge launch then clearscharging. Following qualifying ticks no longer usechargebonus but stillattempt ordinaryattack; successfulhurtfrequency not established.",
+    "State update order: prev/progress before server logic changescharging, then AnimationHandler at end. Toggle duringserverlogic doesnot change alreadycomputedprogress untilnexttick.",
+    "Endserverchargeclear: (targetnull and partnernull) orwater; does not explicitly clear merelybecause targetdead. Chargeprogress ramps down separately afterflagclears.",
+    "Herdgoal usesMOVE+LOOK. canUse requiresadult/alive/cooldown0/notwater andvalidpartner orrandom1/100 picksfurthestcandidate. tick may setcharging immediatelyfromNOANIM; existingpreparemust tick>35. Hence combat and herd entry are different; do not invent a universal40tickprepare requirement.",
+    "Herdcontact requiresdist<width+1,LOS,ATTACK tick>8. Groundedparticipants push apart; flagtrue resetsowncharge flag/partner/cooldown1000..2999. Startingattackat<width+3 may replace anynonATTACK animation; ownsetAnimation onlyassigns.",
+    "No own stop override in herdgoal. Invalidpartner could endgoal withoutclearing its retained field; ordinarytick onlychecksnull notpartnerliveness. This is a source-level cleanup question, not a native reproduced bug.",
+    "Eatentry lowvelocity²<.05/NOANIM/noactiveattacktarget/random1/600grass;tick30eatsgrass. Feedingcounter canregrowfur, not newmodelgeometry.",
+    "NBTsavesSnowy/Sheared/SnowPerm/ChargeCooldown/Feedings, notpartner,CHARGING,chargeprogress oranimation. No claimofcontinuouschargesurvivingreload."
+  ],
+  "render_and_baby": [
+    "Renderer swapsbetween distinctadultandbabymodel in scale hook; noownuniformscale. Shadow.8; babytexturepriority thenadultsheartoggle. Snowcutout rerenderscurrentparentmodelatpackedlight, notnewgeometry/strongemission.",
+    "Baby11nodes/10edges/10boxes; separate7×9×9front/6×8×10rear, hornlesshead,solidtail, noadultbeard. Eat35only, nocharge/attack keyframebranches. Body-specificchildrig notadultmodelheadscaled.",
+    "Babyuseswalkspeed.4degree.7 andheadyaw×.75, nochargeprogress branch. Howrendererbaseordersscaleandsetupisnotreadhere; notrepresentedasnativeproof."
+  ],
+  "visual_card_review": {
+    "path": "/Users/a15356015027/Desktop/dynasty/build/bestiary-v43/marshal-reference/007-AlexModGuy__AlexsMobs-Bison.png",
+    "actually_viewed": true,
+    "observation": "High broad shoulder merges into lower head, rear mass recedes; originalatlas uses largerfront/backbrownvalueblocks andpalehorns. Coarsegrayreconstructioncannotestablishalphabeardoutline oranimatedcontact.",
+    "not_runtime": true
+  },
+  "application": [
+    "Favoronejoinedforemassanditsactualsupportparentoverseparatelyborderedboxes; preserveprojectapprovedshape.",
+    "Treatposeprogress,servereffectwindowandmodelclipas3differentclocks; writeexit/interruptionchecksagainsttheiractualorder.",
+    "Ananimatorresetdoesnotprovestatecleanup orfootcontact. Requirecompleteentry/exitincludingAIstop beforeusingasareferenceforrepair."
+  ],
+  "limits": [
+    "No own dedicated death/hurt animation; inherited death not closed. No contribution to quadruped death/contact accepted register.",
+    "Exact Citadel5633260 lifecycle/interpolation helpers not read; native renderer, collision, animation replay not run.",
+    "Babybranch is not a second independent creature credit; snow/sheared textures are not separate design references."
+  ],
+  "author_new_accepted": 0,
+  "main_independent_accepted": false,
+  "production_changes": []
+}

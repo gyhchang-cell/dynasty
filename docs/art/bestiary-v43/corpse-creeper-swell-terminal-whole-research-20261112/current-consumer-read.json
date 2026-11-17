@@ -1,0 +1,342 @@
+[
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/ArmyBehaviors.java",
+    "sha256": "8330d2b58a49e23c90e085721f481b7c22e703869be18b810c24c5dfd2bc3a25",
+    "read": [
+      [
+        466,
+        510
+      ]
+    ],
+    "text": [
+      {
+        "lines": [
+          466,
+          510
+        ],
+        "text": "    private static final class Corpse extends Base {\n        long spillCooldown, nextBound;\n        Corpse(TemplateMob mob){super(mob);}\n        public boolean allows(int id){return id==ArmySkills.CORPSE_SMASH;}\n        public int choose(LivingEntity target,long now){return ArmySkills.CORPSE_SMASH;}\n        public void impact(SkillDefinition skill,int frame){\n            hit(skill,CombatGeometry.Shape.CONE,1.3,1.5F,.7,false);\n            var floor=level().getBlockState(mob.blockPosition().below());\n            if(!floor.isAir())level().sendParticles(new net.minecraft.core.particles.BlockParticleOption(\n                net.minecraft.core.particles.ParticleTypes.BLOCK,floor),mob.getX(),mob.getY()+.1,mob.getZ(),18,1,.15,1,.08);\n            mob.playSound(SoundEvents.ZOMBIE_ATTACK_IRON_DOOR,.7F,.6F);\n        }\n        public void move(LivingEntity target,long now){\n            boolean rush=mob.distanceToSqr(target)>9&&mob.hasLineOfSight(target);\n            mob.setSprinting(rush);mob.getNavigation().moveTo(target,rush?1.65:.8);\n            if(rush&&mob.onGround()&&now>=nextBound&&!mob.getNavigation().isDone()){\n                Vec3 direction=target.position().subtract(mob.position()).multiply(1,0,1).normalize();\n                mob.setDeltaMovement(direction.scale(.33).add(0,.25,0));mob.hasImpulse=true;nextBound=now+14;\n            }\n        }\n        public void tick(long now){if(!mob.validEnemy(mob.getTarget())||mob.skillId()!=0)mob.setSprinting(false);}\n        public void hurtAccepted(DamageSource source,boolean frontal){\n            long now=level().getGameTime();if(now<spillCooldown)return;\n            spillCooldown=now+25;\n            // Damage-triggered bounded query only; three patches shared by nearby corpses.\n            if(level().getEntitiesOfClass(CorpseMiasma.class,mob.getBoundingBox().inflate(8)).size()>=3)return;\n            var floor=mob.blockPosition();\n            for(int i=0;i<6;i++,floor=floor.below()){\n                if(!level().hasChunkAt(floor))return;\n                if(!level().getBlockState(floor.below()).isFaceSturdy(level(),floor.below(),net.minecraft.core.Direction.UP)\n                        ||!level().getBlockState(floor).getCollisionShape(level(),floor).isEmpty()||!level().getFluidState(floor).isEmpty())continue;\n                var cloud=new CorpseMiasma(BlueprintEntities.CORPSE_MIASMA.get(),level());\n                cloud.moveTo(mob.getX(),floor.getY()+.02,mob.getZ());cloud.setOwner(mob);cloud.activate(now);\n                level().addFreshEntity(cloud);\n                level().sendParticles(net.minecraft.core.particles.ParticleTypes.WITCH,mob.getX(),mob.getY()+1,mob.getZ(),9,.5,.5,.5,0);\n                return;\n            }\n        }\n        public void tickDead(long now){if(mob.actionAge(0)>=16&&mob.actionAge(0)<17)\n            level().sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE,mob.getX(),mob.getY()+1,mob.getZ(),24,.7,.6,.7,.035);}\n        public CompoundTag save(){var tag=new CompoundTag();tag.putLong(\"SpillCooldown\",spillCooldown);tag.putLong(\"NextBound\",nextBound);return tag;}\n        public void load(CompoundTag tag){spillCooldown=tag.getLong(\"SpillCooldown\");nextBound=tag.getLong(\"NextBound\");}\n    }\n    private static final class Ghost extends Base {\n        boolean evadeReady;"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/TemplateMob.java",
+    "sha256": "05c621d3919ac77eccc1c0016a1db0b02b7d7aba987aec0b92c2a99977faeb0c",
+    "read": [
+      [
+        614,
+        633
+      ],
+      [
+        694,
+        739
+      ],
+      [
+        789,
+        818
+      ]
+    ],
+    "text": [
+      {
+        "lines": [
+          614,
+          633
+        ],
+        "text": "    @Override public boolean hurt(DamageSource source, float amount) {\n        if (level().isClientSide) return false;\n        if (amount > 0 && isAlive() && army != null && army.evade(source)) return false;\n        Entity direct = source.getDirectEntity();\n        boolean projectile = source.is(DamageTypeTags.IS_PROJECTILE) || direct instanceof Projectile;\n        Vec3 sourcePosition = direct == null ? source.getSourcePosition() : direct.position();\n        boolean frontal = sourcePosition != null && CombatGeometry.inFront(position(), getLookAngle(), sourcePosition, 120);\n        if (kind == Kind.SHIELD && frontal) {\n            if (projectile) {\n                if (direct instanceof Projectile) direct.discard();\n                playSound(SoundEvents.SHIELD_BLOCK, .7F, .7F); return false;\n            }\n            if (direct instanceof LivingEntity && source.getEntity() == direct) amount *= .2F;\n        }\n        if (!isAlive()) return false;\n        if (kind == Kind.SWORD && formation && direct instanceof AbstractArrow) amount *= .8F;\n        float before=getHealth();\n        boolean damaged = super.hurt(source, amount);\n        if (damaged && isAlive() && army != null) army.hurtAccepted(source, frontal, Math.max(0,before-getHealth()));\n        if (damaged && isAlive() && attack.current() != null && attack.current().interruptible()"
+      },
+      {
+        "lines": [
+          694,
+          739
+        ],
+        "text": "    @Override public void die(DamageSource source) {\n        if (deathStarted >= 0) return;\n        super.die(source);\n        if (!isDeadOrDying()) return;\n        if(kind==Kind.SKULL||kind==Kind.LANTERN_BAT||kind==Kind.BLIND_FISH||kind==Kind.YECHA)setNoGravity(false);\n        deathStarted = level().getGameTime(); attack.cancel(); navigation.stop(); setTarget(null); releaseSupport(); clearPossession();\n        syncHook(null,-1);\n        entityData.set(CLIMBING, false);\n        if(kind==Kind.MINING_SPIDER||kind==Kind.CENTIPEDE)setNoGravity(false);\n        clearClimbContact();\n        entityData.set(SKILL, 0); entityData.set(START, deathStarted); entityData.set(SPEED, 1F);\n        BlueprintVisualEvent.cancel(this);\n        BlueprintVisualEvent.death(this);\n        if(!level().isClientSide&&army!=null)army.died(source);\n    }\n    public int deathDuration() { return kind == Kind.PAPER ? 10 : kind == Kind.SHIELD ? 200 : kind == Kind.SWORD ? 60 : 44; }\n    void onArmyHookHit(LivingEntity target,long epoch) {\n        if(!level().isClientSide&&army!=null&&isAlive()&&skillId()==ArmySkills.GRAPPLE&&skillStartTime()==epoch)\n            army.hookHit(target);\n    }\n    @Override protected void dropAllDeathLoot(DamageSource source) {\n        if (lootDropped) return;\n        lootDropped = true; super.dropAllDeathLoot(source);\n    }\n    @Override protected void tickDeath() {\n        ++deathTime;\n        if(!level().isClientSide&&army!=null)army.tickDead(level().getGameTime());\n        if (!level().isClientSide && deathStarted >= 0)\n            deathTime = (int)Math.min(240, Math.max(deathTime, level().getGameTime() - deathStarted));\n        if (kind == Kind.SHIELD) setDeltaMovement(Vec3.ZERO);\n        else if(!level().isClientSide&&!isNoGravity()){\n            // LivingEntity stops ordinary travel once dead. Gravity alone cannot drop a flying\n            // corpse or a ceiling climber; keep the normal block/world-border collision path.\n            var velocity=getDeltaMovement();\n            if(onGround())setDeltaMovement(Vec3.ZERO);\n            else{\n                setDeltaMovement(velocity.x*.8,Math.max(-.8,velocity.y-.08),velocity.z*.8);\n                move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());\n                if(onGround())setDeltaMovement(Vec3.ZERO);\n            }\n        }\n        int duration = deathDuration();\n        if (deathTime >= duration && !level().isClientSide && !isRemoved()) {\n            level().broadcastEntityEvent(this, (byte)60); remove(RemovalReason.KILLED);\n        }\n    }"
+      },
+      {
+        "lines": [
+          789,
+          818
+        ],
+        "text": "    public String visualAnimation() {\n        if (isDeadOrDying()) return \"death\";\n        if(kind==Kind.SCORPION&&burrowed())return \"burrow\";\n        if(kind==Kind.TREE&&!treeAwake())return \"camouflage\";\n        if (hurtTime > 0 && skillId() == 0) return \"hurt\";\n        if(army!=null&&skillId()!=0)return army.animation(skillId());\n        if (skillId() == TemplateSkills.POSSESSION) return \"buff\";\n        if (skillId() == TemplateSkills.ROCK_THROW) return \"rock\";\n        if (skillId() == TemplateSkills.POUNCE) return \"skill\";\n        if (skillId() != 0) return \"attack\";\n        if (kind == Kind.BEAST && onClimbable() && climbFace() != null) return \"climb\";\n        if(kind==Kind.BRONZE_SNAKE&&onClimbable())return \"climb\";\n        if (getDeltaMovement().horizontalDistanceSqr() > .001) return isSprinting() ? \"run\" : \"walk\";\n        return \"idle\";\n    }\n    public AnimationProfile animationProfile(){return AnimationProfile.forKind(kind);}\n    @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return animationCache; }\n    @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {\n        controllers.add(new AnimationController<TemplateMob>(this, \"body\", 0, state -> {\n            String animation = visualAnimation();\n            state.getController().setAnimationSpeed(animationProfile().playbackRate(animation,getDeltaMovement().horizontalDistance(),getAttributeValue(Attributes.MOVEMENT_SPEED),isSprinting()));\n            animationPartial = state.getPartialTick();\n            if (lastAnimationStart != skillStartTime()) {\n                lastAnimationStart = skillStartTime(); state.getController().forceAnimationReset();\n            }\n            RawAnimation sequence = RawAnimation.begin();\n            String key = \"animation.\" + blueprintId() + \".\" + animation;\n            return state.setAndContinue(animationProfile().loops(animation)\n                    ? sequence.thenLoop(key) : sequence.thenPlayAndHold(key));\n        }) {"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/client/TemplateMobModel.java",
+    "sha256": "7defda78a7d640b2103d8f03832dd8330dd3d321af759789a117088c1321d2e1",
+    "read": "whole",
+    "text": "package com.dynasty.blueprint.client;\n\nimport com.dynasty.blueprint.TemplateMob;\nimport net.minecraft.resources.ResourceLocation;\nimport software.bernie.geckolib.model.GeoModel;\nimport software.bernie.geckolib.core.animation.AnimationState;\n\n/** Shared loading; each profession owns an independently authored articulated rig. */\npublic final class TemplateMobModel extends GeoModel<TemplateMob> {\n    @Override public void setCustomAnimations(TemplateMob mob, long instanceId, AnimationState<TemplateMob> state) {\n        super.setCustomAnimations(mob, instanceId, state);\n        TemplateSecondaryMotion.apply(this, mob, state.getPartialTick());\n        if(mob.kind()==TemplateMob.Kind.DROWNER&&mob.isAlive()){\n            boolean pool=mob.waterPool();\n            getBone(\"body\").ifPresent(b->{b.setScaleY(pool?.12F:1);b.setScaleX(pool?2.5F:1);b.setScaleZ(pool?2.5F:1);});\n        }\n        if(mob.kind()==TemplateMob.Kind.TOAD)\n            // Independent identity wrapper: never multiply a shared animated bone across draws.\n            getBone(\"tongue_reach\").ifPresent(b->b.setScaleZ(mob.skillId()==com.dynasty.blueprint.ArmySkills.TOAD_TONGUE?mob.tongueReach()/5:1));\n    }\n    @Override public ResourceLocation getModelResource(TemplateMob mob) {\n        return new ResourceLocation(\"dynasty\", \"geo/\" + artDirectory(mob) + mob.blueprintId() + \".geo.json\");\n    }\n\n    @Override public ResourceLocation getAnimationResource(TemplateMob mob) {\n        return new ResourceLocation(\"dynasty\", \"animations/\" + artDirectory(mob) + mob.blueprintId() + \".animation.json\");\n    }\n\n    // Preserve the concurrent legacy UV files; these two rigs have separate authored resources.\n    private static String artDirectory(TemplateMob mob) {\n        return mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER\n            ? \"blueprint/cod2_voxel/\" : \"blueprint/\";\n    }\n\n    @Override public ResourceLocation getTextureResource(TemplateMob mob) {\n        if(mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER)\n            return new ResourceLocation(\"dynasty\", \"textures/entity/\" + artDirectory(mob) + mob.blueprintId() + \".png\");\n        if (switch (mob.kind()) {\n            case STONE_GUARD, BIXI, YECHA, LANTERN_BAT, BLIND_FISH, DROWNER,\n                 BRONZE_SNAKE, CLOCKWORK_DOG, MINING_SPIDER, SCORPION,\n                 CENTIPEDE, SERPENT, TOAD, PRIEST,\n                 SPEAR, POWDER, TREE, CROSSBOW, SHIELD, SKULL, AXE_GUARD, SCOUT,\n                 CORPSE, GHOST, PALANQUIN, FLAG, BEAST, SWORD -> true;\n            default -> false;\n        }) return new ResourceLocation(\"dynasty\", \"textures/entity/blueprint/\" + mob.blueprintId() + \".png\");\n        // Continuous opaque native swatches preserve pixel grain without replacing legacy artwork.\n        String atlas = switch (mob.blueprintId()) {\n            case \"juli_bixi_kuilei\", \"xueju_mangguyu\", \"jubi_shigandang\", \"zuwu_daoshou\", \"ludun_jiashi\", \"zhenwang_zhangqiguan\", \"pijia_panjiang_huwei\", \"yinbing_guizu\" -> \"royal_guard\";\n            case \"juma_changqiangbing\" -> \"archer\";\n            case \"bazu_digongzhu\", \"qingtong_shuangtoushekui\", \"xunshan_mujiaquan\", \"liannu_zhenzu\", \"kuijun_sishi\" -> \"rebel_soldier\";\n            case \"tiesuo_chihou\" -> \"assassin\";\n            case \"fuhun_baibu_tongzi\" -> \"imperial_soldier\";\n            case \"bishui_xuanjiao_youzi\", \"shibian_lishi\", \"chimu_zhuha\", \"kumu_shujing\", \"mingsha_shixie\" -> \"nian_beast\";\n            case \"tongbi_feitian_yecha\", \"baimu_mowu\", \"youdeng_guimianfu\", \"shanjing_shanxiao\" -> \"nian_beast\";\n            default -> \"imperial_soldier\";\n        };\n        return new ResourceLocation(\"dynasty\", \"textures/entity/\" + atlas + \".png\");\n    }\n}\n"
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/animations/blueprint/shibian_lishi.animation.json",
+    "sha256": "1718d3d41f8151e2a6bbfee9d1f86f4b9e656c46a74aa67b5db61c2b9f080b04",
+    "read": "All animation names/durations/channel counts; only explicitly selected full clips below",
+    "inventory": [
+      {
+        "name": "animation.shibian_lishi.idle",
+        "length": 3.0,
+        "bones": [
+          "chest",
+          "corpse_jaw",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.shibian_lishi.walk",
+        "length": 2.0,
+        "bones": [
+          "chest",
+          "corpse_jaw",
+          "right_thigh",
+          "right_knee",
+          "right_ankle",
+          "right_shoulder",
+          "right_elbow",
+          "left_thigh",
+          "left_knee",
+          "left_ankle",
+          "left_shoulder",
+          "left_elbow",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.shibian_lishi.run",
+        "length": 0.7,
+        "bones": [
+          "chest",
+          "corpse_jaw",
+          "right_thigh",
+          "right_knee",
+          "right_ankle",
+          "right_shoulder",
+          "right_elbow",
+          "left_thigh",
+          "left_knee",
+          "left_ankle",
+          "left_shoulder",
+          "left_elbow",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.shibian_lishi.attack",
+        "length": 2.3,
+        "bones": [
+          "waist_upper",
+          "corpse_jaw",
+          "right_shoulder",
+          "right_elbow",
+          "left_shoulder",
+          "left_elbow",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.shibian_lishi.hurt",
+        "length": 0.5,
+        "bones": [
+          "chest",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.shibian_lishi.death",
+        "length": 2.2,
+        "bones": [
+          "pelvis",
+          "waist_upper",
+          "head",
+          "right_thigh",
+          "left_thigh",
+          "corpse_jaw",
+          "root"
+        ]
+      }
+    ],
+    "full_clips": {
+      "death": {
+        "loop": false,
+        "animation_length": 2.2,
+        "bones": {
+          "pelvis": {
+            "position": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "1.4": [
+                0,
+                -5,
+                0
+              ],
+              "2.2": [
+                0,
+                -5,
+                0
+              ]
+            }
+          },
+          "waist_upper": {
+            "rotation": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "1.4": [
+                32,
+                0,
+                0
+              ],
+              "2.2": [
+                32,
+                0,
+                0
+              ]
+            }
+          },
+          "head": {
+            "rotation": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "1.4": [
+                18,
+                0,
+                0
+              ],
+              "2.2": [
+                18,
+                0,
+                0
+              ]
+            }
+          },
+          "right_thigh": {
+            "rotation": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "1.4": [
+                0,
+                0,
+                -32
+              ],
+              "2.2": [
+                0,
+                0,
+                -32
+              ]
+            }
+          },
+          "left_thigh": {
+            "rotation": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "1.4": [
+                0,
+                0,
+                32
+              ],
+              "2.2": [
+                0,
+                0,
+                32
+              ]
+            }
+          },
+          "corpse_jaw": {
+            "rotation": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "1.4": [
+                35,
+                0,
+                0
+              ],
+              "2.2": [
+                35,
+                0,
+                0
+              ]
+            }
+          },
+          "root": {
+            "position": {
+              "0.0": [
+                0.0,
+                0.12,
+                0.0
+              ],
+              "0.15": [
+                0.0,
+                0.86928,
+                0.0
+              ],
+              "0.3": [
+                0.0,
+                1.56173,
+                0.0
+              ],
+              "0.45": [
+                0.0,
+                2.19677,
+                0.0
+              ],
+              "0.59375": [
+                0.0,
+                2.75116,
+                0.0
+              ],
+              "0.74375": [
+                0.0,
+                3.27295,
+                0.0
+              ],
+              "0.8875": [
+                0.0,
+                3.7187,
+                0.0
+              ],
+              "1.03125": [
+                0.0,
+                4.11155,
+                0.0
+              ],
+              "1.18125": [
+                0.0,
+                4.46549,
+                0.0
+              ],
+              "1.2875": [
+                0.0,
+                4.68195,
+                0.0
+              ],
+              "1.4": [
+                0.0,
+                4.88055,
+                0.0
+              ],
+              "2.2": [
+                0.0,
+                4.88055,
+                0.0
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+]

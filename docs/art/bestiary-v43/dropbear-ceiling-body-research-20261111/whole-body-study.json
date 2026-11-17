@@ -1,0 +1,63 @@
+{
+  "recorded_utc": "2026-11-11T13:22:12.079085+00:00",
+  "identity": "AlexModGuy/AlexsMobs:DropBear",
+  "pin": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+  "whole_read": [
+    "ModelDropBear.java",
+    "EntityDropBear.java including both inner goals, own event/landing/spawn helpers",
+    "RenderDropBear.java including EyeLayer",
+    "DirectPathNavigator.java",
+    "FlightMoveController.java",
+    "GroundPathNavigatorWide.java",
+    "EntityAINearestTarget3D.java",
+    "RandomStrollGoal.java (cached inherited context Forge47.4.10)"
+  ],
+  "structure": [
+    "14 named nodes/13 parent edges/15 literal box calls. root→body→front_body→head and front supports; rear supports stay on body. head→nose/ears/jaw; each front limb→claw. No knee/elbow chains or held-item attachment function.",
+    "Forebody16×16×14 is joined to rear12×13×13; head10×8×9 plus jaw10×4×9 share head pivot. Front arms5×14×5 end in6×2×5 claw masses; hind legs5×8×5. Body identity is a heavy quadruped, not Steve arms/legs renamed.",
+    "UV declared128×128; static card distinguishes source atlas from gray reconstructed geometry; no full native UV/alpha/contact claim."
+  ],
+  "animation_model": [
+    "Each model animate resets default pose and updates animator, then BITE9=5+hold1+2+reset1; SWIPE L/R15=7+5+reset3; JUMPUP20=10+hold5+reset5. All literal sums match entity durations. No own death/hurt/landing-recovery clip.",
+    "Bite opens head/jaw and retracts ears, holds then closes; swipe swings forebody/one arm and translates attack limbZ-6 before reset. Jump-up crouches bodyY+5 and splays limbs, not a baked downward fall animation.",
+    "After keyframes, partial age-tickCount interpolates upsideDownProgress0..5. Body roll adds ±180×weight/5 andY+1×weight/5; roll sign uses per-instance fallRotation. Gait, idle nose/ear and head-look overlays apply afterward.",
+    "Head look sign flips whenever sampled upsideDownProgress>0, not gradual continuous cosine sign; this remains a discrete rule even while roll ramps. Existing Citadel5633260 helper study supplies additive weight semantics, not a new creature reference."
+  ],
+  "state_production_consumption": [
+    "Entity own tick order: super.tick → AnimationHandler → previous/progress update → server collision/support/attack/jump/hanging logic → navigator switch. Server state changes later in tick affect next pose-progress update, not already calculated current weight.",
+    "UPSIDE_DOWN is a synced Boolean, progress is local0..5 ramp; fallRotation random Boolean not synced/saved in own class. jumpingUp, upwardsFallingTicks, navigator mode and animation fields are transient own fields. No own NBT read/write overrides; inherited serialization not newly closed.",
+    "Constructor starts ground MoveControl+GroundPathNavigatorWide. Flag true switches server control to FlightMoveController(1.1,false) and DirectPathNavigator; flag false constructs ground pair again. Switch replaces references without explicit old navigation.stop or velocity clear in own method.",
+    "Holding inverted sets noGravity=!onGround, horizontal damping.91. Without vertical collision, ground/solidbelow/unsupportedcounter>5 clears upsideDown and counter; otherwise invalid roof increments counter and addsY+.2. Vertical collision resets counter. Horizontal collision resets counter and addsY-.3. New right-side-up gravity false-reset happens in a later else branch on a later tick if flag cleared inside current upside branch.",
+    "A supported roof can enable flag while currently right-side-up. Above position uses int casts rather than BlockPos.containing; negative-coordinate support edge behavior not native tested. World-height search caps320 and target search boundsY0..256 in own inner targets; no claim of dimension-general support."
+  ],
+  "attack_and_landing": [
+    "AIDropMelee usesMOVE+LOOK, canUse only targetnonnull, inherits default continuation canUse and empty stop. Upside target tracking sets FlightMoveControl wanted position near targetXZ and below currentY; xz distance²<2.5 clears inverted flag. Ground branch navigation moves only onGround. Distance<3 requests attack, then own tick contact again checks width-sum+1 andLOS.",
+    "Handler advances before own contact checks. Bite damage at animationtick6; swipe L/R at9, separate side-oriented knockback. These fit declared clip spans, but full native contact and network phase not verified.",
+    "Jump-up entry requires no living target, random1/300, onGround, not inverted and at least2below heightmap. OnGround JUMPUP tick>10 or jumpingUp+NO_ANIMATION addsY+2. jumpingUp clears above heightmap or in inverted branch. Ending jump clip is not alone a complete movement cleanup.",
+    "Landing effect is called from overridden playBlockFallSound, not from either declared prevOnGround field, both unused. own onLand server sends event39 and hurts non-allied non-DropBear living entities in inflated2.5 AABB, then grounded targets launch. No dedicated attack-token/once-only guard in this helper.",
+    "Saved inherited context shows LivingEntity causeFallDamage calls playBlockFallSound when computed fall damage>0, before hurt attempt; fall immunity in isInvulnerableTo does not by itself skip that preceding callback. Forge event can cancel/alter values and block fallOn can differ; exact reference Forge47.1.65 patches not proved. Do not claim every short landing triggers impact or that impact can only happen during an ambush."
+  ],
+  "movement_exit": [
+    "AIUpsideDownWander inherits RandomStroll interval50 andMOVE flag. Inverted getPosition samples15candidate roofs, continuation usesXZdistance²>4 without navigation completion; start writes MoveControl directly at.7speed. stop calls parent RandomStrollGoal.stop, then clears wantedXYZ.",
+    "Parent RandomStroll stop calls navigator.stop; on DirectPathNavigator inherited stop clears path rather than flight-controller MOVE_TO target. Direct navigator tick only increments tick; moveTo directly commands MoveControl, not a path. Thus navigator.stop is not evidence that active flight wanted position/velocity was cleared.",
+    "FlightMoveController MOVE_TO adds normalized acceleration .05×speedModifier×speedGeneral; near bbox size changes toWAIT and halves velocity. No explicit solid-collision test in active tick; private canReach helper exists but is not called by this tick. For this entity needsYSupportfalse and shouldLookAtTargetfalse; yaw follows current velocity.",
+    "GroundPathNavigatorWide uses width×.75 waypoint threshold and base stuck detection; own follow-path code is distinct from direct flight. Full inherited Mob/physics/MoveControl/network scheduling remains a separate boundary."
+  ],
+  "render_socket": [
+    "Renderer scale hook empty, shadow.7, fixed original texture and EyeLayer. EyeLayer renders same model through eyes render type, not extra anatomy or world particle proof. No body held-item socket transform is defined here; no held object/UV/assets work."
+  ],
+  "application": [
+    "For existing mining-spider body, distinguish body inversion weight, support flag, movement mode, gravity and actual landing event rather than equating one animation ending with landing. Preserve current33bone geometry and skill timing.",
+    "A compatible reference can have useful whole movement organization and still lack complete interruption or grounded recovery. Record its limits instead of treating it as a finished death/contact template."
+  ],
+  "limitations": [
+    "No Java/game/build; no native animation, collision, feet contact or server/client replay.",
+    "RandomStroll and selected base fall callbacks read from local Forge47.4.10 source, while pinned AlexMobs build uses47.1.65; version delta retained.",
+    "Source card is reconstructed gray bind pose plus separate atlas, not an author game screenshot or a newly rendered full texture preview.",
+    "Body-source lifecycle candidate pending independent semantic review. No new species/static/helper credit assigned. No four-leg corpse-ground contact implementation; accepted death/contact remains0/1000.",
+    "Moose alpha-texture antler silhouette limitation from prior batch remains unchanged."
+  ],
+  "production_changes": [],
+  "new_independent_accepted": 0,
+  "main_acceptance": false
+}

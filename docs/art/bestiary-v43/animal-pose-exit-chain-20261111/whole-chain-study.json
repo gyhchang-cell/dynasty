@@ -1,0 +1,67 @@
+{
+  "recorded_utc": "2026-11-11T13:04:12.791531+00:00",
+  "scope": "Gorilla sitting/standing/forage/charge-look exit and Bison charging exit: body/model/AI lifecycle supplement, not new creature designs",
+  "read_scope": {
+    "whole_additional_support_sources": [
+      "SitWhenOrderedToGoal",
+      "TamableAnimal",
+      "MoveToBlockGoal",
+      "Goal",
+      "WrappedGoal",
+      "GoalSelector",
+      "MeleeAttackGoal",
+      "PathNavigation",
+      "AdvancedPathNavigateNoTeleport at AlexMobs09755dade2cfbdf14839e026d3af446f9d3ff843"
+    ],
+    "prior_whole_body_model_render_sources": "10 saved paths and hashes in reused-body-sources.json; targeted passages rechecked, do not multiply their existing credit",
+    "dependency_methods": "Citadel5633260 selected stop/cancel/status, progress-addition and box reset bodies only; not whole navigator classes"
+  },
+  "gorilla": {
+    "state_ownership": "Custom SITTING accessor is read by isSitting and written by overridden setOrderedToSit, without super call. No isOrderedToSit or setInSittingPose override in saved EntityGorilla. Base TamableAnimal has separate private orderedToSit and DATA_FLAGS_ID sitting-pose bit. Do not conflate these three channels.",
+    "sit_goal": "SitWhenOrderedToGoal starts only tame/dry/grounded; missing owner can admit entry even if ordered false. With owner present the return depends on base isOrderedToSit except near injured-owner exclusion. Continuation reads base command. Start stops navigation and sets base sitting bit; stop clears base bit, neither writes custom SITTING nor forcedSit.",
+    "movement_exit": "Gorilla.travel checks custom isSitting; stops navigator only when getPath()!=null, then replaces requested travel vector with ZERO and calls super.travel. This is not proof of zero existing velocity, canceled pending job when path is null, or anchored feet.",
+    "hurt_and_forced_rest": "hurt clears custom sitting before superclass damage, leaving forcedSit. own tick later reasserts sitting for tame/not-vehicle forced rest; progress is computed before that reassertion. Conditional trace records9 then10, not a native flicker reproduction.",
+    "independent_clocks": "Sit and stand progress each ramp0..10. standingTime retained through setStanding(false), setAnimation and intermittent standing except timed expiry reset. ATTACK requestsmax10 and POUNDCHESTmax45 without resetting accumulated standingTime. Goal stopping and clip NO_ANIMATION do not themselves clear these counters or force weights to0.",
+    "forage_parent": "MoveToBlockGoal start moves, clears tryTicks and sets stay limit; continuation checks tryTicks bounds and current valid leaf, not hand-empty/adult entry predicates. Parent has no stop override; Goal.stop is empty. Child stop only clears idleAtLeavesTime. Goal termination does not automatically stop navigation or clear standing/animation.",
+    "forage_two_reach_tests": "Parent tick uses3D center distance and adjusts tryTicks; child then uses horizontal XZ distance and adjusts same tryTicks again. With horizontal-near/vertical-far tests disagreeing, the two counter changes can cancel. Child reaching/action also gates absolute Y delta<=3. This is a conditional reading, not reproduced stuck-goal claim.",
+    "charge_look": "Own stop clears starer/sprinting and resets runDelay300..499, not navigation/standing/current clip. Near-target path explicitly calls navigation.stop before pound; preemption while far is not equivalent. Internal stop() at animationTick>=10 changes fields but does not set WrappedGoal.isRunning false; selector cleanup occurs on its next relevant pass.",
+    "save_load": "super saves Sitting from base private command, subclass saves GorillaSitting/Standing/ForcedToSit separately. super read restores base command and base pose bit, then subclass restores custom flags. Clocks/progress/currentAnimation are not saved in these bodies. Save/load can retain independent flags without preserving animation phase; do not count as a new migration policy.",
+    "model_reset": "Box reset restores rotationsXYZ and pivotsXYZ; model then adds keyframes, head look, ride, sit, stand and gait/eat. progressRotationPrev and progressPositionPrev add progress*target/divisor without normalization. Two independent positive sit/stand weights can coexist; default reset alone does not enforce mutually exclusive posture.",
+    "socket_boundary": "Existing LayerGorillaItem body socket transforms remain prior receipt scope. No held-object geometry/UV/texture work or new socket-world matrix/contact validation."
+  },
+  "bison": {
+    "state_speed_pose_order": "super.tick first; chargeProgress computed next; server speed uses current charge flag; late cancellation checks null target AND null partner, or water; AnimationHandler runs last. Under fixed no-target/no-partner condition initial speed.65 and progress5 can remain through the flag-clearing tick; speed restores next own tick and pose decays separately.",
+    "goal_exit": "AIChargeFurthest has no own stop override. Base Goal.stop is empty; WrappedGoal only clears isRunning and delegates. GoalSelector releases locks but does not know charging, chargePartner, cooldown or animator. Invalid partner ending continuation cannot be assumed to invoke resetChargeCooldown.",
+    "normal_contact": "resetChargeCooldown clears own charging/partner and assigns1000..2999 cooldown, not partner state and not own navigation or clip. Both participants may execute their own independent logic; do not infer simultaneous pair cleanup.",
+    "gait_exit": "Model uses interpolated progress>0 to select charge gait. It can continue charge gait after flag false and speed restored until sampled progress reaches0; not a full-body continuous gait crossfade. Head ramps use same weight, no foot contact solver.",
+    "save_load": "Own saved fields do not retain chargePartner/CHARGING/progress/clip, as prior whole receipt. This batch does not expand into other entity serialization owners or claim continuous charge across reload."
+  },
+  "common_navigation": {
+    "selector": "Goal.stop itself empty; WrappedGoal.stop idempotently clears wrapper flag and invokes actual goal. Cleanup on disabled flags or failed continuation and priority replacement does not synthesize missing entity cleanup. removeGoal stops matching running wrappers; removeAllGoals predicate removal shown here has no explicit stop call. No production change proposed from this alone.",
+    "melee": "Gorilla registers vanilla MeleeAttackGoal priority2. Its stop clears aggressive and navigation, optionally clears invalid creative/spectator target; it does not clear custom animation or sit/stand. AI melee reach starts doHurtTarget; later Gorilla own attacktick10 damage has separate conditions, so initial reach cannot be assumed to guarantee contact-frame reach.",
+    "concrete_navigation": "Both animals construct fixed AlexMobs AdvancedPathNavigateNoTeleport, which does not override stop. Exact Citadel5633260 AdvancedPathNavigate.m_26573_ cancels path result, sets CANCELLED, clears pathResult/destination and calls inherited stop. PathResult.cancel invokes Future.cancel(false), ignores return, clears future and marks done; no claim that worker execution is interrupted.",
+    "base_navigation": "Cached GroundPathNavigation own-stop lexical check negative. Base PathNavigation.stop sets path=null; no own velocity reset, posture reset, timer cleanup or entityAI cleanup. Full async future completion, MoveControl, Mob.tick and transport ordering not read in this batch."
+  },
+  "concrete_limits": [
+    "Base generated source is Minecraft1.20.1 Forge47.4.10 while AlexMobs pinned build declares47.1.65. Exact patch equivalence not proved; inherited support observations are version-labelled.",
+    "No JVM/Java/game/build invoked. Scalar order traces are conditional Python arithmetic, not animation/native/contact verification.",
+    "No new four-leg death-ground contact implementation. Moose antler opacity/UV silhouette limit preserved. No grounded corpse or support-foot acceptance.",
+    "Full native Mob/MoveControl scheduling, async navigator completion, hierarchy matrices, rotated UV sampling and per-face rendering remain outside this batch.",
+    "Existing body/source owners retained. Supplemental helper and lifecycle reading are not new semantic creature counts."
+  ],
+  "credit": {
+    "new_creature_references": 0,
+    "new_independent_accepted": 0,
+    "main_acceptance": false,
+    "global_body_total": null,
+    "global_body_gap": null,
+    "prior_accepted_preserved": true,
+    "quadruped_death_contact": {
+      "accepted": 0,
+      "required": 1000,
+      "gap": 1000
+    }
+  },
+  "production_changes": [],
+  "next": "Prioritize independently different complete body state interruption/recovery or authored quadruped death-contact systems; use current delta as helper context, not multiplied new references."
+}

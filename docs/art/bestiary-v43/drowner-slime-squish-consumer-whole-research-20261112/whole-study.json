@@ -1,0 +1,25 @@
+{
+  "title": "煞水浮溺鬼：软体显示与物理分离",
+  "family": "Vanilla Slime",
+  "target": "dynasty:shashui_funigui",
+  "observations": [
+    "内部模型root加内体、双眼和嘴共5节点，外层root加8立方壳共2节点；setupAnim为空。软体来自Renderer缩放，不是多关节流体骨架。",
+    "令N为size、s为插值squish/(0.5N+1)、k=1/(1+s)，主缩放为(kN,N/k,kN)，之前另有0.999统一缩放及0.001Y平移。缩放乘积kN³，并非守体积物理解算。",
+    "Slime.tick先把squish朝targetSquish走0.5，再把oSquish设成已更新的squish，然后super.tick；落地target=-0.5、离地target=1、末尾目标乘0.6。不要把该oSquish赋值写成通常的前帧快照。",
+    "外层复制姿态、prepare/setup后共享当前PoseStack，以entityTranslucent显示；不可见但发光轮廓用outline。模型和图层都不是独立服务器实体，透明PNG实际像素本批未看。",
+    "同步size夹在1到127，实体尺寸只按0.255N缩放，并不跟随squish。size同时影响生命N²、速度0.2+0.1N和伤害；不能为了形变直接改目标碰撞或数值。",
+    "MoveControl地面跳跃间隔随机10至29（攻击时除3），间隙停止移动输入；空中维持速度。浮水目标用0.8概率请求跳跃，keep-jumping提供持续期望速度。攻击朝向由LOOK和movecontrol协同，不存在独立攻击骨骼关键帧。",
+    "伤害来自playerTouch或与铁傀儡push接触，要求有效AI、size>1、距离与视线；不是squish落地帧伤害。死亡且size>1服务端remove会产生2至4只size/2子体，不能挪给水鬼。自身NBT存size-1与wasOnGround，未存squish/跳跃延迟。"
+  ],
+  "actual_consumer_mapping": [
+    "只借鉴外层与内部驱动力的区分，以及形变回弹状态；水鬼不能因此变成史莱姆方壳、眼嘴或分裂怪。",
+    "现有DrownerBehavior维持同一实体：深水需当前及下方均为水；pool在24≤age<84作用，隔4tick在锁定中心±2范围处理水中且有视线目标。没有替换世界水块。",
+    "水鞭扇区3.5、65度、伤害5及pool中止/气量保底40规则保留。形变只应读取既有技能时间轴，不把Renderer缩放当物理范围。"
+  ],
+  "limits": [
+    "不覆盖三段水体骨节、水鞭末端或化水再凝结动画，父类完整移动/透明渲染管线未审。",
+    "本批没有PNG、UV、原生透明排序或实机验收。"
+  ],
+  "copied_external_art": false,
+  "production_started": false
+}

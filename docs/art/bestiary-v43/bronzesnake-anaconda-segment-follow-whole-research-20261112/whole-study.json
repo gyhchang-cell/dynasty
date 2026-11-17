@@ -1,0 +1,40 @@
+{
+  "identity": "AlexModGuy/AlexsMobs:Anaconda@09755dade2cfbdf14839e026d3af446f9d3ff843",
+  "anatomy": [
+    "Head model root→part→jaw; other types root→part only. Four model types HEAD/NECK/BODY/TAIL, not a single model bone chain. Literal jaw node name contains leading spaces.",
+    "Parent head entity creates seven additional LivingEntity segment actors. sizeAt(1..7)=NECK,BODY,BODY,BODY,NECK,NECK,TAIL. Perpart render switchesmodel type and applies baby.75/adult1scale. Not a dualheaded single-actor implementation."
+  ],
+  "follow_consumer": [
+    "Head keeps64entry yaw ringbuffer initializedallcurrentyaw, records getYRot eachtick. Segment i reads yawhistoryoffset4+2i atpartial1, adds bodywave calcPartRotation. getRingBuffer wraps finalangle, not shortest-wrappeddifference before interpolation. Deadsets partial0 internally; no native replay performed.",
+    "calcPartRotation(i): normal40*-sin(walkDist*3-i)*(1-strangle*.2) pluscoil strangle*.2*i*clamp(strangleTimer*3,0,100)*(1+.2*sin(.15*timer)). Inputiswalkdistance notclocktime; coilreplaceslocomotionwave progressively.",
+    "tickMultipartPosition computes parent-back and current-back offsets using type backOffset, actor bboxwidth and scale; midpoint is actual actorposition. ComputesYawfrom end-to-endXZ, pitchfrom terrainheight/distance and limits10degrees. ParentX passedchainwise; bodysegments follow ownstates, no implemented local-boneIK claim.",
+    "Terrainlow searches downward.2 up to-3; high upward.2 up to3 using thin1x1 horizontal sample; anyfluid returns0. hgt is low+high, prevHeight updatesonlydifference>.2, clampedscaleheight ±.6. Doesnotbyitself prove gapfree groundcontact.",
+    "Opaquecheck literalcollisionShape.move(vec3.x,y,z), not integerblockposition; no correction/transplant. Readwholecode, no native collisionorcoordinateacceptance."
+  ],
+  "strangle_and_head": [
+    "STRANGLING synched, modelprogress0..5 interpolated. Fullstate headpartY+4/X+10deg, jawZ+1/X+160deg plusproceduralbreathing; headnetyaw additive and headpitch onlymin0. Otheractors X/Yscale=parity1/1.01+swell*.15, Zparityonly.",
+    "AIMelee initialdamage4 within1+targetwidth, coilenabled targetwidth<=2 exceptAnaconda; attemptcooldown5..9, no explicitLOSgate here. CoilstoponlysetStranglingfalse; timer notreset in stop.",
+    "Coil headactor moves toward targettop at radiusnegativehalfwidth, anglebodyYaw-45; sets targetvelocity0 onground or(0,-.08,0) otherwise; gravityoff/falldistance0. Every20tick once timer>=40 damage max4/25percentclampedmaxhealth4..50. Not visualboneclamp/safePlayergrabproof.",
+    "If targetinvalid before nestedvalidtargetblock, timer reset branch not entered; goalstop lifecycle matters. No target code changes."
+  ],
+  "segment_lifecycle": [
+    "Eachpart UUIDparent/child, serverresolveschain; hurtforward via cachedheadEntityId setduring positioning. Parenthurt/deathtime copied and MessageHurtMultipart broadcast; packet source notread inthisbatch. Cannotclaim networkthreading/lifecyclecompleteness.",
+    "Parttick super, zeroesvelocity, resetsportalstate; aftertick1 servermissingparent discard; removedparent discard. Partspositionedbyheadloop. isNoGravityfalse doesnotmean freephysics because directmovement/zerovelocity apply.",
+    "Swell digestion .25 transfers to nextnon-tail onlywhenpreviousunswollen; terminalbeforetail feedshead atlast.25. Headfeedsheal10 andeverynthird feeding may shed. Not individualmodelbones or newreferencecredits.",
+    "Headsave childUUID/feeding/shedding/yellow/cooldown/passive, notstrangleprogress/timer/ringbuffer/localpartsarray. Partsave parent/child/type/index, notswell/headcachedID. Reconstruction traversesexistingchildchain or spawnswhenmissing; completeworldreload safety untested.",
+    "Headswitch groundMoveControl/GroundPathNavigatorWide vs swimcontroller1.3/1+SemiAquatic; selectedhelpers reusedfromearlierstudies, nofreshfullreadcredit. OtherAIgoals/baseclassesnotread."
+  ],
+  "render": [
+    "Part renderer uses yHeadRot directly, not interpolatedincomingyaw; applies180-yaw,Y thenactorX. deathZ sqrtprogressclamped1; selectedownrender method not full inheritedmodelmatrix.",
+    "Four texturepaths yellow/shedding combinations samewholeimplementation. Originalanaconda.png viewed128x128, olivebandedscale patches/warmunderside organizedstrips; no UVrasterization/texturednativeview. Rendererbinding confirmed; noPNGcopiedorpainted."
+  ],
+  "actual_target": [
+    "BronzeSnakeBehavior keeps singlemob andhealth, front/rear chosen by targetdotbodyforward. Breathcooldown180; rearpoison/frontfire; impactuseslocked attackorigin/direction/sector+LOS. Twoheadvisualsnotserveractors.",
+    "Reuseconnectedcurveandorientationlagprinciples only. Do not copy sevenadditionalactors, swallowdamage, fluidAI, skinvariants orsingleheadjawshape. Target10-jointIK requirement not metbyreference; must find moredirectwholeIKmechanisms."
+  ],
+  "limits": [
+    "No game/JVM/oldposegrid, no body/texture/helditem production.",
+    "This one anaconda mechanism distinctfromcentipedelegwave and twoheadedtarget; sameparttype/modelsnotseparatecount.",
+    "Readscopefullselectedsixclasses, notallAI/network/basehierarchy."
+  ]
+}

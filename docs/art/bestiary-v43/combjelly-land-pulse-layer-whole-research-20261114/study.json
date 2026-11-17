@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-14",
+  "family": "AlexsMobs:CombJelly",
+  "scope": "Body/bones/animation and direct render consumer; no held/accessory asset design; no production target selected",
+  "whole_sources_read": [
+    "EntityCombJelly.java:312 lines",
+    "ModelCombJelly.java:67 lines",
+    "RenderCombJelly.java:65 lines (actual file hash authoritative)"
+  ],
+  "support_read": "AMRenderTypes selected scopes recorded in source-pin.json; not whole class",
+  "observations": [
+    {
+      "phase": "construction",
+      "finding": "Synced variant0,pitch0,fromBucketfalse,scale1.0. Model64x64 root(0,24,0)→body(0,-13,0)10x15x10→inner_body(0,-3,0)6x13x6; two nested cuboids, not a multi-joint tentacle solver. Default pose captured once."
+    },
+    {
+      "phase": "water producer",
+      "finding": "Server water branch disables gravity, selects/refreshes water target with two water cells, turns at most1deg per tick, adds normalized target acceleration0.004. Horizontal absolute velocity sum*30 increases synced pitch, then returns toward0 by at most0.5. Pitch getter/setter clamp±90. Horizontal collision adds0.2Y. Line-of-sight ray is for target selection, not articulated body collision."
+    },
+    {
+      "phase": "exit and return",
+      "finding": "Every local tick records previous land progress and pitch; !isInWater ramps land progress by1 to5, water reduces by1 to0. On land server restores gravity but does not explicitly clear moveTarget or reset synced pitch. Re-entry resumes water branch and target-validation logic. Local progress is environment-derived, not saved or a synced clock."
+    },
+    {
+      "phase": "model consumer",
+      "finding": "Every setup resets pose then interpolates pitch/land progress. Phase=.1*age*(1-.2*land). width=.95+.1*sin(phase), height=.95+.1*cos(phase), xScale=width-.1*land. Body and nested inner_body each receive (xScale,height,width). Parent-child scale inheritance depends Citadel behavior not re-proven here; do not claim measured inner dimensions."
+    },
+    {
+      "phase": "land endpoint",
+      "finding": "At land=5, phase0: each assigned scale(.45,1.05,.95), bodyZ rotation90deg, model pitch contribution0, Y+=9.25+abs(pitch*.07), X+=5; bob amplitude0. These are formula endpoints, not native rendered or collision-validated poses. Return to water reverses blend. Pitch is suppressed visually while its stored value may persist."
+    },
+    {
+      "phase": "renderer",
+      "finding": "Global JellyScale applied uniformly to mesh; variant picks blue/green/red PNG. Normal main render entityTranslucent, invis argument itemEntityTranslucentCull, otherwise outline/null. getFlipDegrees=0 suppresses renderer flop amount. No custom collapse timeline here; superclass behavior unread. No scale-driven bbox/dimensions update found in this complete entity class."
+    },
+    {
+      "phase": "overlay consumer",
+      "finding": "Static STRIPES_MODEL has inflation.05 vs base0, independently calls setupAnim before renderToBuffer. Merges rainbow-glint and cutout-overlay consumers; forwards packedLight, alpha1, no per-entity death alpha. Layer itself has no invisibility guard; parent layer dispatch policy not reviewed, so no claim about final invisible-entity appearance."
+    },
+    {
+      "phase": "selected helper boundary",
+      "finding": "COMBJELLY glint uses equal-depth test and COLOR_DEPTH_WRITE, no transparency; texture state runs setupRainbowTexturing(2,16), then resets texture matrix. setup uses wall-clock milliseconds*16 modulo30000 for vertical texture motion and scale2; computed first modulo variable unused. Not server attack timing or texture-frame sequence. Merge helper catches consumer creation exception, falls back to consumer2, sets global static error flag; it does not catch all later vertex-render failures."
+    },
+    {
+      "phase": "persistence",
+      "finding": "NBT saves bucket flag,scale,variant; bucket tag saves scale,variant and default bucket data. Does not explicitly save land progress,pitch,target or pulse phase. Spawn randomizes three variants and .8..1.2 scale. Variants and scale choices count as one identity, no independent references."
+    }
+  ],
+  "application": "Future gel/softbody review should test land endpoint, return-to-water, nested scale inheritance and overlay alignment separately. Reuse lifecycle principles only; no external model/texture copy and no current Dynasty asset changes.",
+  "limitations": [
+    "No new PNG/image/video/game viewed. This is source research, not visual reference acceptance.",
+    "Citadel scale inheritance, render pipeline/shader internals, vanilla sync scheduling and exact physical contact remain unverified.",
+    "No applicable1000 completion, native QA or production readiness claim."
+  ],
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "production_modified": false,
+  "complete": false
+}

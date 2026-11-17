@@ -1,0 +1,23 @@
+{
+  "title": "青铜双头蛇：世界朝向转局部骨骼与挂点",
+  "target": "dynasty:qingtong_shuangtoushekui",
+  "observations": [
+    "Wither整体一个实体/生命池，3个同步目标ID，侧头2组当前/旧yaw与pitch数组。aiStep根据目标与该侧getHead位置解atan2世界yaw/pitch；角差wrapDegrees后每步pitch最多40度、yaw最多10度；无目标只让yaw回bodyYaw，pitch不在此分支归零。",
+    "WitherBossModel.prepareMobModel把侧头局部yaw设为getHeadYRot(i)-yBodyRot、pitch直转弧度；中心头在setupAnim用传入头朝向。LivingEntityRenderer先prepare再setup，因此只改setup不足以代表整个姿态写入闭环。侧头旧角数组虽保存，在这条model消费中没有partial插值，不能凭字段存在宣称已平滑插帧。",
+    "骨架肩/胸/尾/3头均挂root，tail位置在setup里显式由ribcage角算出，并非parent继承。胸部俯仰(0.065+0.05cos(age×0.1))π，尾(0.265+0.1cos)π；可见连续连接既可层级也可明确重算，但不能重复两套叠加。",
+    "服务端getHeadX/Z按bodyYaw+180×(index-1)在半径1.3转位；主头Y+3，侧头Y+2.2。粒子和performRangedAttack用这些解析世界坐标，不读客户端骨矩阵。Renderer常态全身scale2，模型侧头pivot(-8,4,0)/(10,4,0)；不能假定服务器挂点就是渲染骨pivot或正好落在嘴端。",
+    "调用中侧头target循环i=1,2，但performRangedAttack接收i+1（2,3）；look/烟点为1,2。位置函数周期180使3与1同位。忠实保留原文索引，不能擅自把目标槽、模型侧、发射口都叫同一i来掩盖核对需求；这不是已证明的项目bug。",
+    "发射口取完世界坐标后以目标点减发射点构造WitherSkull，设置owner/危险位/posRaw再addFreshEntity。该类接触后服务端爆炸discard；物件造型不属于本岗，WitherSkull只用于追踪接口消费者，不把它当新身体/新参考计数。",
+    "Wither按主目标与独立侧目标运行，invul/powered影响自身攻击、护甲与显示；不能把三头多目标AI、回血、爆炸和伤害带入双头蛇。实体自身只保存Invul，侧头临时目标/角度并未在自身NBT写入。"
+  ],
+  "current_application": [
+    "实际BronzeSnakeBehavior按目标相对yBodyRot点积选择前/后刺或火毒；同一生命池。TemplateMob.face对后刺/毒把锁定方向反转一次。世界yaw转局部头yaw时必须扣bodyYaw并尊重已有后端180度，不能重复反向。",
+    "当前命中用attack.origin与锁定direction扇区，不是客户端嘴骨位置；研究挂点仅服务显示对齐，不移动伤害原点或改攻击范围。看向目标、喷口特效方向与既有锁定攻击方向应明确区分。",
+    "现有fire片段有front_head、front_jaw、front_nozzle和root，rear_attack有rear_head、rear_jaw和root。可保留原时序，在合法接口中保证头与喷口父链跟随，禁止把挂件/喷管另交本岗生产；没有实测穿插或口部对齐结论。"
+  ],
+  "limits": [
+    "未全读WitherArmorLayer、RangedAttackGoal和AbstractHurtingProjectile/Projectile；闭环止于目标ID→本体朝向/解析挂点→模型及创建发射物接口，不声称弹道/伤害系统全审。",
+    "该参考没有两端蛇身链式IK或珠节死亡散落；服务器解析挂点与客户端骨矩阵并不天然一致，未做原生朝向/嘴端对齐验收。"
+  ],
+  "production": false
+}

@@ -1,0 +1,138 @@
+{
+  "recorded_utc": "2026-11-09T16:46:01.120894+00:00",
+  "status": "BOUNDED_CROSSBOW_STATE_TO_STEVE_ARMS_SLEEVES_AND_ATTACHMENT_INTERFACE_REVIEWED",
+  "source_commit": "e51a69df6784be5ab6368e2a774bfd71971d5f76",
+  "sources": [
+    {
+      "path": "build/bestiary-v43/references/justinwon777__HumanCompanions/forge 1.20.1/src/main/java/com/github/justinwon777/humancompanions/entity/Arbalist.java",
+      "sha256": "652a03bb2cd2783f1f37160ae08669df6a6ae05f783ce16da953c0397a0c528b",
+      "read_scope": "entire file",
+      "url": "https://github.com/justinwon777/HumanCompanions/blob/e51a69df6784be5ab6368e2a774bfd71971d5f76/forge%201.20.1/src/main/java/com/github/justinwon777/humancompanions/entity/Arbalist.java"
+    },
+    {
+      "path": "build/bestiary-v43/references/justinwon777__HumanCompanions/forge 1.20.1/src/main/java/com/github/justinwon777/humancompanions/entity/ai/ArbalistRangedCrossbowAttackGoal.java",
+      "sha256": "cd3addc941db1cb68fbef2c4e6807530986001126fb7c86c6de5dffa69587790",
+      "read_scope": "entire file",
+      "url": "https://github.com/justinwon777/HumanCompanions/blob/e51a69df6784be5ab6368e2a774bfd71971d5f76/forge%201.20.1/src/main/java/com/github/justinwon777/humancompanions/entity/ai/ArbalistRangedCrossbowAttackGoal.java"
+    },
+    {
+      "path": "build/bestiary-v43/references/justinwon777__HumanCompanions/forge 1.20.1/src/main/java/com/github/justinwon777/humancompanions/client/renderer/CompanionRenderer.java",
+      "sha256": "81e4a33d6cd658580f156d30c4baca321d6a9b1c01090ef3ed5398d688d851f6",
+      "read_scope": "entire file; reused prior read",
+      "url": "https://github.com/justinwon777/HumanCompanions/blob/e51a69df6784be5ab6368e2a774bfd71971d5f76/forge%201.20.1/src/main/java/com/github/justinwon777/humancompanions/client/renderer/CompanionRenderer.java"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-crossbow-1.20.1/net/minecraft/client/model/AnimationUtils.java",
+      "sha256": "291687182f2ca3ca0a51ac300e9eee28bb17d3da6a2404aec71a208990f0ae33",
+      "read_scope": "1-90; entire file"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-crossbow-1.20.1/net/minecraft/world/entity/monster/CrossbowAttackMob.java",
+      "sha256": "c9d42605e39583a780aaea78330c9affd09da9a1a2e2f4aa80be500195b5709b",
+      "read_scope": "entire file; only actual hand and attack handoff relevant"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-crossbow-1.20.1/net/minecraft/world/item/CrossbowItem.java",
+      "sha256": "230003566e34751528a311b9975f28dd3a11d504cfbd2b4d60a9955773d02482",
+      "read_scope": "78-94,134-148,158-204,307-327 only; item model/textures not studied or modified"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/world/entity/LivingEntity.java",
+      "sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "read_scope": "2854-2970,3035-3087; use flags, start/stop/release and tick consumers only"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-human-1.20.1/net/minecraft/client/model/HumanoidModel.java",
+      "sha256": "21197992734cfbf4a79eead6158ec7a47678bd509fbd039df6b83e432b06e707",
+      "read_scope": "135-161,233-310 reused arm selection/pose consumers"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-human-1.20.1/net/minecraft/client/model/PlayerModel.java",
+      "sha256": "c3abd11357a47d8e172ec7fa529762349f43c4203d9678fdb410c6bb4e7e1c93",
+      "read_scope": "53-115 reused garment copying"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-human-1.20.1/net/minecraft/client/renderer/entity/layers/ItemInHandLayer.java",
+      "sha256": "d6554e76e1082bf4e80a74ff4ba2bac6d55f3709aabaf0760b5244e1ed9d9bb1",
+      "read_scope": "entire file reused interface study"
+    }
+  ],
+  "findings": [
+    "One shared wide Steve body. Arbalist role adds a four-phase attack-state machine, not another independently modeled creature.",
+    "UNCHARGED waits for range/visibility condition, starts using the actual crossbow-holding hand, enters CHARGING and sets charging flag. Navigation may move while uncharged; charge movement uses half configured speed.",
+    "CHARGING compares getTicksUsingItem against CrossbowItem.getChargeDuration. Normal duration25 ticks, Quick Charge modifies it. releaseUsingItem triggers item loading, then CHARGED delay20..39 ticks. Do not hardcode a 25-tick body clip as universal.",
+    "Actual use hand is synced via LivingEntity flag bits; client initializes useItem from that hand and local remaining duration. The separate Arbalist IS_CHARGING_CROSSBOW flag is not read by CompanionRenderer.getArmPose.",
+    "Renderer selects CROSSBOW_CHARGE when used hand/use ticks and UseAnim.CROSSBOW agree. AnimationUtils fixes holding arm yaw to +/-.8 and pitch-.97079635; support arm interpolates yaw .4 to .85 and pitch to -pi/2 as normalized use duration increases. This charging branch does not add head yaw/pitch.",
+    "After successful load, CrossbowItem Charged NBT makes renderer select CROSSBOW_HOLD while not swinging. Hold branch follows head yaw/pitch with asymmetric holding/support arm offsets. It is distinct from the server CHARGED enum.",
+    "CHARGED decrements randomized attackDelay; READY_TO_ATTACK fires only with visibility. AI calls performRangedAttack and clears charged tag on actual holding stack before returning UNCHARGED. This is state timing research only; no damage or projectile modification.",
+    "PlayerModel copies animated arm transforms to sleeves. ItemInHandLayer consumes translateToHand plus third-person left/right context; shared body attachment ownership stays separate from weapon object authorship.",
+    "canUse blocks eating, but canContinue can remain true if navigation is unfinished and target remains valid. Do not assume immediate cancellation merely from eating flag.",
+    "Source stop clears target and seeTime but does not explicitly reset crossbowState/attackDelay. If using item, it calls stopUsingItem before CrossbowItem.setCharged(getUseItem(),false); native stopUsingItem empties getUseItem. Record this cleanup-order risk, do not assume held stack was cleared. No runtime failure asserted.",
+    "AI entering CHARGED does not itself prove item loading succeeded: native release handler sets Charged only if load condition succeeds and Forge may intercept item stop. Body display should consume actual presentation state, not blindly mirror server enum."
+  ],
+  "analytic_pose_samples_not_full_animation": [
+    {
+      "holding_arm": "right",
+      "charge_fraction": 0,
+      "holding_pitch_deg": -55.6225,
+      "holding_yaw_deg": -45.8366,
+      "support_pitch_deg": -55.6225,
+      "support_yaw_deg": 22.9183
+    },
+    {
+      "holding_arm": "right",
+      "charge_fraction": 0.5,
+      "holding_pitch_deg": -55.6225,
+      "holding_yaw_deg": -45.8366,
+      "support_pitch_deg": -72.8113,
+      "support_yaw_deg": 35.8099
+    },
+    {
+      "holding_arm": "right",
+      "charge_fraction": 1,
+      "holding_pitch_deg": -55.6225,
+      "holding_yaw_deg": -45.8366,
+      "support_pitch_deg": -90.0,
+      "support_yaw_deg": 48.7014
+    },
+    {
+      "holding_arm": "left",
+      "charge_fraction": 0,
+      "holding_pitch_deg": -55.6225,
+      "holding_yaw_deg": 45.8366,
+      "support_pitch_deg": -55.6225,
+      "support_yaw_deg": -22.9183
+    },
+    {
+      "holding_arm": "left",
+      "charge_fraction": 0.5,
+      "holding_pitch_deg": -55.6225,
+      "holding_yaw_deg": 45.8366,
+      "support_pitch_deg": -72.8113,
+      "support_yaw_deg": -35.8099
+    },
+    {
+      "holding_arm": "left",
+      "charge_fraction": 1,
+      "holding_pitch_deg": -55.6225,
+      "holding_yaw_deg": 45.8366,
+      "support_pitch_deg": -90.0,
+      "support_yaw_deg": -48.7014
+    }
+  ],
+  "counting": {
+    "body_family": "Human Companions wide PlayerModel; same as prior batch",
+    "new_distinct_creature_families": 0,
+    "new_accepted_credit": 0,
+    "accepted_total": null,
+    "gap_to_1000": null
+  },
+  "limits": [
+    "No weapon/accessory model, texture or UV authored.",
+    "No Dynasty approved asset altered.",
+    "No Java/game/audio/focus/brightness operation.",
+    "No full runtime reproduction or proof of source bugs.",
+    "Phase samples are analytic angles, not six creatures or six references.",
+    "No packet transport timing/equipment synchronization acceptance claimed."
+  ]
+}

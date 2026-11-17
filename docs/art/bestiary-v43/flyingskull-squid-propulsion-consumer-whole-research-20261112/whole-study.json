@@ -1,0 +1,35 @@
+{
+  "family": "minecraft:squid",
+  "target": "dynasty:muxue_feilu",
+  "title": "柔性附体节奏、躯体朝向与推进/减速分离",
+  "source_state_production": [
+    "Squid构造按实体ID设随机种，tentacleSpeed=1/(random+1)*.2；每tick保存旧旋转/旧tentacleAngle，累加movement；服务端跨2π减周期并广播event19，客户端到界则钳制，收到19归0。不是整段连续服务端浮点同步。",
+    "水中前半周期角度sin(f²π)*π/4，f>.75激发speed/rotateSpeed；后半角度0且speed*.9、rotateSpeed*.99。服务端用tx/ty/tz×speed写delta，身体俯仰/方位平滑追delta，旋转量另累加。",
+    "离水角度abs(sin)*π/4；服务器水平清0，纵向按漂浮或重力*.98，bodyX渐趋-90。不是飞行导航规则。",
+    "hurt先super成功且lastHurtByMob不空才喷墨；spawnInk位置/向量依旧身体角旋转。FleeGoal中vec3.normalize()返回值未接回，不能描述成可靠单位化逃跑实现，更不能照抄。"
+  ],
+  "model_renderer_consumption": [
+    "SquidModel单躯12×16×12、八根独节2×18×2触须根围圆排列；setupAnim把传入第四动画参数赋各触须xRot。模型没有读取速度、没有4节软体求解。",
+    "必须连看Renderer.getBob：它返回oldTentacleAngle→tentacleAngle的partial插值，而非默认age；LivingEntityRenderer.render把getBob值传给setupAnim第四动画参数，这才闭合来源。",
+    "SquidRenderer.setupRotations插值xBodyRot/zBodyRot，平移后做Y(180-yaw)、X(bodyX)、Y(zBodyRot)，最后再平移。变量zBodyRot实际围Y消费，不根据名字改成Z轴。",
+    "旧角+partial保障帧内插值，server event19只复位触须周期；不推断这是确定性锁步或无网络延迟。"
+  ],
+  "current_existing_output_comparison": [
+    "飞颅当前head下有四组viscera_spring，各带4节viscera链；jaw和helmet均已存在。惯性包装与 authored内脏摆动分离，不是八根鱿鱼触须。",
+    "TemplateSecondaryMotion 1–150：每draw先reset包装骨；UUID状态最多64，过期/换世界/登出清理；远距及死亡先reset后退出。SKULL包装受加速度/yaw响应，最大7度，子节已有周期摆动。不能声称它只静态平移或没有附体。",
+    "FlyingSkull起手锁divePoint=目标+.65Y，14tick发起，14≤age<26一次命中，障碍/接近终点停止；不持续追受者。attack2.2秒=44tick，head/jaw在.7秒与1.3秒有关键帧；blood2.5秒=50tick接触20。",
+    "原飞行travel moveRelative .1、SELF、drag .85；Floating动画档位不按水平速度改速。死亡走统一44tick，现有head落下与jaw/root通道保留。触须动态应跟随既有飞行起停，不能搬水下推进来替换AI。"
+  ],
+  "unknowns": [
+    "当前4×4内脏在14tick俯冲、一次接触、26tick退出及死亡时穿插需完整回放；未运行游戏。",
+    "没有评判水母体型/喷墨艺术，也未声称Squid完整父类生命周期全部读完。",
+    "现有动画JSON结构检查不等于渲染器逐帧采样或游戏截图验收。"
+  ],
+  "forbidden_transfer": [
+    "不增喷墨、水生条件、八触须或额外血滩；不改变锁点/一次伤害。",
+    "不改既有骨架、武器或挂件对象，不执行旧预览生成器。"
+  ],
+  "status": "whole source family studied; target applicability limited, pending independent review",
+  "whole_asset_failed": false,
+  "permission_to_produce": false
+}

@@ -1,0 +1,49 @@
+1: package com.github.alexthe666.alexsmobs.client.render;
+2: 
+3: import com.github.alexthe666.alexsmobs.AlexsMobs;
+4: import com.mojang.blaze3d.platform.GlStateManager;
+5: import com.mojang.blaze3d.systems.RenderSystem;
+6: import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+7: import com.mojang.blaze3d.vertex.VertexConsumer;
+8: import com.mojang.blaze3d.vertex.VertexFormat;
+9: import com.mojang.blaze3d.vertex.VertexMultiConsumer;
+10: import net.minecraft.Util;
+11: import net.minecraft.client.renderer.RenderStateShard;
+12: import net.minecraft.client.renderer.RenderType;
+13: import net.minecraft.client.renderer.blockentity.TheEndPortalRenderer;
+14: import net.minecraft.resources.ResourceLocation;
+15: import org.joml.Matrix4f;
+16: 
+17: public class AMRenderTypes extends RenderType {
+18: 
+19:     public static final ResourceLocation STATIC_TEXTURE = new ResourceLocation("alexsmobs:textures/static.png");
+20: 
+21:     private static boolean encounteredMultiConsumerError = false;
+28:     protected static final RenderStateShard.TexturingStateShard COMB_JELLY_TEXTURING = new RenderStateShard.TexturingStateShard("entity_glint_texturing", () -> {
+29:         setupRainbowTexturing(2F, 16L);
+30:     }, () -> {
+31:         RenderSystem.resetTextureMatrix();
+32:     });
+61:     public static final RenderType COMBJELLY_RAINBOW_GLINT = create("cj_rainbow_glint", DefaultVertexFormat.POSITION_TEX, VertexFormat.Mode.QUADS, 256, false, false, RenderType.CompositeState.builder().setShaderState(RENDERTYPE_ENTITY_GLINT_SHADER).setTextureState(new RenderStateShard.TextureStateShard(new ResourceLocation("alexsmobs:textures/entity/rainbow_jelly_overlays/glint_rainbow.png"), true, false)).setWriteMaskState(COLOR_DEPTH_WRITE).setCullState(NO_CULL).setDepthTestState(EQUAL_DEPTH_TEST).setTransparencyState(NO_TRANSPARENCY).setTexturingState(COMB_JELLY_TEXTURING).createCompositeState(false));
+210:     private static void setupRainbowTexturing(float in, long time) {
+211:         long i = Util.getMillis() * time;
+212:         float f = (float)(i % 110000L) / 110000.0F;
+213:         float f1 = (float)(i % 30000L) / 30000.0F;
+214:         Matrix4f matrix4f = (new Matrix4f()).translation(0, f1, 0.0F);
+215:         matrix4f.scale(in);
+216:         RenderSystem.setTextureMatrix(matrix4f);
+217:     }
+218: 
+255:     public static VertexConsumer createMergedVertexConsumer(VertexConsumer consumer1, VertexConsumer consumer2){
+256:         VertexConsumer vertexConsumer = consumer2;
+257:         if(!encounteredMultiConsumerError){
+258:             try{
+259:                 vertexConsumer = VertexMultiConsumer.create(consumer1, consumer2);
+260:             }catch (Exception e){
+261:                 AlexsMobs.LOGGER.warn("Encountered issue mixing two render types together. Likely an issue with Optifine or other rendering mod. This warning will only display once.");
+262:                 encounteredMultiConsumerError = true;
+263:             }
+264:         }
+265:         return vertexConsumer;
+266:     }
+267: }

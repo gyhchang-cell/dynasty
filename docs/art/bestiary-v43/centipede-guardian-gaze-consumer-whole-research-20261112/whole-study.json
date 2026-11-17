@@ -1,0 +1,34 @@
+{
+  "family": "minecraft:guardian",
+  "target": "dynasty:baimu_mowu",
+  "title": "观察目标、眼部消费、蓄力与服务器接触分离",
+  "source_state_production": [
+    "Guardian同步moving布尔与activeAttackTarget实体ID；目标ID更新清客户端attackTime和cachedTarget。客户端按ID解析LivingEntity，服务端返回getTarget；未成功解析仍可能有非零ID。",
+    "AttackGoal起始计数-10，导航停止并看向目标；可见时每tick增加，0刻写ID，>=80刻两次hurt后清target；失去LOS清target，stop清ID和target。普通Guardian续用距离>3，Elder例外；不拆Elder第二个候选。",
+    "客户端alive aiStep把attackTime累到80并lookAt；将实体yaw跟headYaw；tail/spikes依水和moving分别响应。边界不能用hurtTime当蓄力。"
+  ],
+  "model_renderer_consumption": [
+    "GuardianModel头pitch/yaw由渲染参数直接赋值；眼部优先activeAttackTarget，否则cameraEntity，眼高度按眼位差二选，横移为横向点积的sqrt绝对值×2×sign。不是每帧无限旋转整张脸。",
+    "没有camera/active target时该分支不写eye.x/y；源码只强制eye.visible=true，不能自行宣称完整reset保障。尾部三节sin振幅.05/.1/.15π，十二棘位置缩展+少量cos变化；这些部件不是独立生物参考。",
+    "Renderer beam从实体eyeHeight到目标半高世界点做插值与旋转，长度额外+1；不从眼ModelPart矩阵计算。平方蓄力改RGB，uv滚动并全亮15728880，无发光贴图复制。",
+    "shouldRender可额外测光束两端AABB；仅是光束可见性，不是服务器碰撞扩大或伤害范围。"
+  ],
+  "current_existing_output_comparison": [
+    "百目魔蜈已有16段和eye_0…eye_15子骨。gaze2.6秒=52tick，16个eye scale通道已有睁眼动作；Renderer仅在gaze为眼组加全亮。不能称眼骨/睁眼完全缺失。",
+    "服务器gaze接触26tick查询8格范围、LOS及受者lookAngle与指向虫背上方单位向量dot>.65；作用为3秒减速与glare，不是跟踪单一目标的伤害射线。",
+    "当前gaze的眼部仅scale，无Guardian式瞳孔横移记录；此为通道差异，不等于需给16眼新增人脸、全身转向或新beam。",
+    "若后续获准视觉改进，先看眼群开合与26tick视觉峰值及倒挂可读性；保留相位多足、单实体碰撞、原对视判定。"
+  ],
+  "unknowns": [
+    "目标换ID/短时丢失/摄像机不存在的视觉残值未实机验证。",
+    "百目眼部贴图方向与观察方向是否误导需真实PNG逐面预览；本批未做贴图研究。",
+    "倒挂后的眼群、对视点与动画峰值是否一致未回放，不据静态JSON下结论。"
+  ],
+  "forbidden_transfer": [
+    "不把原AOE对视改成守卫者光束，不加反伤/伤害/冷却。",
+    "不复制单眼鱼身、12棘或纹理，眼骨数量不是参考信用。"
+  ],
+  "status": "whole source family studied; target applicability limited, pending independent review",
+  "whole_asset_failed": false,
+  "permission_to_produce": false
+}

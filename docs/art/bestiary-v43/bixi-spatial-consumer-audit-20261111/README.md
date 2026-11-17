@@ -1,0 +1,19 @@
+# 赑屃：嘴部、足底与活塞离线空间核查
+
+仅核查已有模型，生产资源未改。
+
+**target**：dynasty:juli_bixi_kuilei, cod1 §27; existing approved geometry preserved
+
+**mouth**：At attack18tick in settled-state diagnostic upper lip=(0,.524142,-2.041637)blocks, lower lip=(0,.525380,-2.041811), marker separation.00125blocks (inflated top overlaps by.02 model units). Jaw foremostZ=-2.106352, jaw lowestY=.337055. This is closure/extension geometry, not proof a target is touched.
+
+**damage_relation**：TemplateMob passes actor position and normalized target direction to TimedAttack.tryStart; origin/direction frozen there. BixiBehavior queries65degree sector3.6blocks,height1.5 with entity AABB padding through CombatGeometry; not bone hitbox. Mouth reach~2.106blocks and sector3.6 differ. No damage/range correction or pass claimed.
+
+**feet**：At stomp25..31tick shell rise4units and pitch-14degrees lift whole descendant legs: front minimumY=.369218887blocks,rear.066816516. At32tick front.015000,rear.0165956; recovery38..68tick all.015. Relative to actor-foot referenceY0 including renderer+.01. Actual descendant motion, no foot-planting/terrain pass. Lift can be intentional; all-four airborne appearance is a native-review point, not automatically a defect.
+
+**piston**：Hip->piston->foot are actual parents. No hierarchy disconnection. Main foot top2.55units vs inflated piston bottom2.98 gives positive axial mesh gap.43units=.026875blocks without foot offset;.019375blocks with baseline.12offset. In stomp front foot.67286offset changes it to -.01517875blocks overlap at32tick; rear gap remainspositive. Adjacent main boxes overlap in X/Z, so axial positive gap is actual box separation in this settled frame, not pivot distance. Decorative claws lie forward and do not bridge it. Texture/lighting perception and native visibility remain unverified.
+
+**limits**：No continuous extrema proof: attack737 and stomp1089 sampled poses at exported keys, midpoints and<=1/320second grid. No state-history simulation, native loaded-resource verification, render orientation, victim contact, collision or ground integration. No complete binary/source equivalence proof. New1000 credit0; applicable total/gap null.
+
+**repair_boundary**：No assets modified. Repairs need applicable reference gate and current scope; no impact timing/remnant/accessory change. No completion or prompt deletion.
+
+复算：`build/courtyard-tools/bin/python docs/art/bestiary-v43/bixi-spatial-consumer-audit-20261111/evaluate.py`。图是坐标线框，不是贴图预览或实机截图。

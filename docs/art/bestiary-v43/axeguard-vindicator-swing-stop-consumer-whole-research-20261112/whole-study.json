@@ -1,0 +1,40 @@
+{
+  "family": "minecraft:vindicator",
+  "target": "dynasty:pijia_panjiang_huwei",
+  "mechanism": "追击举斧姿态与短挥击独立；停手、死亡、重载后的身体消费者及双斧反击对照",
+  "native_producer": [
+    "Vindicator攻击goal4，开门/破门与HoldGround优先1/2/3。VindicatorMeleeAttackGoal继承MeleeAttackGoal(速度1,followingTargetEvenIfNotSeen=false)，骑Ravager时改距离平方；不把坐骑变体另计一只。",
+    "MeleeAttackGoal canUse每20游戏tick节流一次，目标存活且可寻路或已达近战距离可开始。start置aggressive=true、attackTimer0；每tick lookAt和路径更新，达距离且timer0时同次swing(MAIN_HAND)与doHurtTarget，重置20tick冷却。requiresUpdateEveryTick=true，不套默认goal半频率。",
+    "stop把aggressive=false并停导航，仅不满足NO_CREATIVE_OR_SPECTATOR时清目标；不等同必定target=null，也不立即清swinging。canContinue在following=false时看导航未结束，不直接等同LOS。",
+    "Mob同步flags第4位存aggressive，mainArm由LeftHanded确定；getArmPose aggressive优先ATTACKING，否则庆祝/CROSSED。持续举斧是追击姿态，短挥击是attackTime；同一布尔不能替代两个状态。",
+    "LivingEntity.swing经物品onEntitySwing可被拦截，否则在允许重启时swingTime=-1/swinging=true并发AnimatePacket0或3；客户端handleAnimate再调用相应手swing。Monster.aiStep每tick调用updateSwingTime，普通时长6tick，挖掘速度/缓慢效果可改变时长，attackAnim=swingTime/duration，末尾归0。",
+    "原生近战伤害在doHurtTarget同次直接hurt，不等待动画刃面接触；不能据此把Dynasty有前摇的伤害改成立即命中，也不能声称原生斧骨负责碰撞。"
+  ],
+  "native_body_stop_death_reload": [
+    "LivingEntityRenderer将插值getAttackAnim赋给model.attackTime。IllagerModel ATTACKING有物品时调用AnimationUtils.swingWeaponDown，以mainArm选择抬斧侧并叠sin进度和bob；空手换zombieArms。每次setup先写基础手腿角，CROSSED切交叉arms/独立手臂显隐。",
+    "VindicatorRenderer只在aggressive显示ItemInHandLayer；停止追击即使剩余swingTime尚未结束，姿态和武器可见条件也会切回。手层经arm矩阵和第三人称左右context，不以物件坐标作服务器近战范围。",
+    "原生LivingEntity.tickDeath从deathTime到20tick移除；LivingEntityRenderer按deathTime开平方渐变Z轴翻转至默认90度。不等同完整 authored倒地骨骼动画。已读baseTick death入口，但Raider自身死亡覆写/全部父链未完整闭合，因此这里只是已核实的基础消费者。",
+    "LivingEntity save/load保存Health/HurtTime/DeathTime/Attributes/Effects/Brain，无swingTime、attackAnim或swinging；Mob保存/恢复HandItems/LeftHanded等，不保存aggressive flag或MeleeAttackGoal timer；Vindicator仅另存Johnny。原生读档不是从旧挥斧接触帧续播。实体卸载到重建的网络管理全部流程未读，不把新观察者/同UUID视为已验证重播。"
+  ],
+  "current_consumer": [
+    "现有护卫为已批准Steve基础分层骨架，左右肩/肘/腕/手及兽吞、护心镜、披风保持；双axe和trail挂各hand，grip是接口。只核接口，不代做斧的模型PNG/UV。",
+    "AXE_CLAMP16+7+19=42tick、接触16/22；attack2.1秒，左右肩在.8秒±25向内合夹、1.1秒±35回摆，waist扭转同步，肘有收展。AXE_COUNTER10+1+23=34tick、接触10；counter1.7秒，waist .3秒-35/.5秒120/.9秒240/末360，左右肩外扩至±70。不能改回原生单斧短摆。",
+    "hurtAccepted经真正伤害成功、存活、正面120度来源、有效敌人且反击ready后计数，60tick窗口第3击armed并cancelAction再startCounter。started消费armed/target并加瞬态击退抗性；canInterrupt拒绝反击；COUNTER显式排除1.3加速，普通CLAMP仍可能加速。",
+    "近战hit使用服务器实体position/attack.direction和CIRCLE或SECTOR查询，不读取斧刃世界矩阵。模型旋转360度不能宣称服务器伤害360次；每contact一次query，按有效目标结算。",
+    "正常结束/取消由finishAction清skill/epoch/speed与视觉事件；AxeGuard.tick按counter是否仍有current维护POISE，否则移除。未运行验证cancel到下一tick的瞬态属性间隙，不擅自改状态机。",
+    "AxeGuard.save/load有FrontalHits/WindowUntil/CounterArmed/CounterTarget，load窗口上界now+60、计数夹0..2，再按当前counter且存活恢复POISE；主要动作通过TimedAttack存epoch/fired并拒绝离线补打。死亡died主动setPoise(false)，common die取消攻击/目标/导航，death44tick。",
+    "Renderer getDeathMaxRotation=0，倒地必须来自本地death clip，不能指望原版90度侧倒补足。当前death2.2秒与44tick一致，但只有pelvis下沉、waist/head俯屈和双腿外展/root Y补偿；没有任何肩肘手/axe死亡键。"
+  ],
+  "concrete_remaining_body_gap": [
+    "外部cod1明确死亡为单手捂护心镜、后仰、仰面倒下。当前death字面通道无法产生手臂捂胸；Renderer禁用原版翻倒，当前骨骼也没有使主躯干达到完整仰躺姿态的关键帧。记录为明确未完成子范围，不误删cod1，不直接认定整体模型未认可。",
+    "双斧脱手插地涉及手持物件与挂点协作；现有death无axe独立键，不能宣称已完成脱手。但脱离对象的模型/贴图归贴图专岗，身体岗未来只负责手松开/捂胸/躯干倒下和接口契约。",
+    "若达到适用参考门槛后的最小修复，应仅在现有death长度44tick和既有骨架内补身体动作，保留注册、体型、合夹/反击技能；目前不制作、不改资源。",
+    "完整回放仍需确认合夹接触遮挡/手握/恢复、反击转体脚底稳定、死亡地面关系、取消与读档多实体残姿。源代码研究不等于软件预览或实机通过。无参考PNG查看，不虚报视觉参考。"
+  ],
+  "whole_candidate_max": 1,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "production_modified": false,
+  "task_complete": false
+}

@@ -1,0 +1,38 @@
+{
+  "family": "minecraft:pillager",
+  "target": "dynasty:liannu_zhenzu",
+  "mechanism": "装填状态→双臂消费→发射→停止与读档边界；对照既有三连发与翻滚，不迁移武器对象资产",
+  "native_producer": [
+    "Pillager同步IS_CHARGING_CROSSBOW。姿态优先charging→CROSSBOW_CHARGE，其次holding CrossbowItem→CROSSBOW_HOLD，再aggressive→ATTACKING；HOLD不等于物品Charged为真。目标攻击goal优先3，另有优先2 HoldGroundAttackGoal，其内部本批未读。",
+    "RangedCrossbowAttackGoal requiresUpdateEveryTick=true；UNCHARGED/CHARGING/CHARGED/READY_TO_ATTACK为goal本地状态。看见目标累计5次后在射程内停走装填；CHARGING按getTicksUsingItem>=chargeDuration释放使用，置CHARGED并等待20..39次更新，READY有LOS才发射。LOS丢失与目标消失分支不同。",
+    "CrossbowItem标准chargeDuration25，QuickCharge每级减5；releaseUsing先判断蓄力与tryLoad成功再写Charged。一次performShooting中的multishot为同次调用0/-10/+10度散射，不是三个时间接触帧。onCrossbowShot末尾清ChargedProjectiles。未完整读整个CrossbowItem，不宣称物品所有NBT/Forge事件分支已验。",
+    "stop写aggressive=false、target=null、seeTime=0；仅isUsingItem分支stopUsingItem后清charging并setCharged(getUseItem,false)，没有显式重置crossbowState/attackDelay/updatePathDelay。LivingEntity3034..3073证实stopUsingItem把useItem置EMPTY，所以后续getUseItem不是原使用栈；本批仅记录顺序，不把它当已运行复现或建议复制的清理方案。",
+    "Pillager子类保存inventory但未保存goal状态、seeTime/attackDelay或charging byte；继承装备持久化、Raider死亡全链未完整阅读，不能称原生完整动作续播或死亡复位已验证。"
+  ],
+  "native_body_and_origin": [
+    "复用已读IllagerModel：crossbow hold/charge调用AnimationUtils且参数true固定右侧，头转向参与hold，charge由ticksUsing/chargeDuration夹紧插值支持臂；不是单纯把整条手臂竖起来。ItemInHandLayer则根据dominantArm选左右物品，二者边界应分开，不宣称完整左右手兼容已验。",
+    "PillagerRenderer常规ItemInHandLayer不像Evoker只在施法显示。手层经过translateToHand/ModelPart局部矩阵、X-90/Y180与±1/16/.125/-.625偏移，属于显示链；不迁移原生物件模型/PNG/UV。",
+    "ArrowItem.createArrow→new Arrow(level,owner)→AbstractArrow(owner)以ownerX/eyeY-.1/Z建立箭；CrossbowAttackMob朝目标1/3高度加距离补偿。烟花支路eyeY-.15。原生也没有把客户端手骨矩阵交给服务器作弹道起点。"
+  ],
+  "current_consumer": [
+    "既有Steve基础分层骨架保持。crossbow挂right_hand，lever/magazine/tongue挂crossbow；left_hand和left_grip是独立支持接口。左右grip/武器对象均不新增修改。",
+    "VOLLEY14+9+23=46tick，contacts14/18/22，attack2.3秒。chest在.7/.9/1.1秒-3度后坐；lever/tongue同接触有键。左肩肘腕各clip解析最大绝对值0，不能忽略静态几何/父级变换据此断言没握住。SecondaryMotion仅给三个gear_pouch惯性，不提供额外弩瞄准IK。",
+    "真实射击每接触重新验证敌人、24格/LOS，shootArmy(false)从ownerX/eyeY-.3/Z朝目标AABB中心，speed1.65/不精度0。hand/grip位置不能冒充服务器弹道口，也不授权改伤害、射程或物件本体。",
+    "ROLL6+15+11=32tick，contacts6和20：前者后退冲量并noCollision检查，后者ArmyCaltrop.spawn；不是此前可能误读的14tick第二接触。actionAge>6且<14 ACTIVE期间有后退推力。roll1.6秒pelvis0→15→100→225→350→360，膝盖抬收，root只做可视Y起落；360与0姿态等价，不擅改结尾。",
+    "兵煞加速分支没有排除CROSSBOW或ROLL，因此既有speed1.3会改变effective contact/持续时间；不能把14/18/22或6/20写成所有情况下绝对墙钟。动作使用server epoch/actionAge seek。",
+    "盾后双弩通过同target且另一弩actionAge<7延后起手，扫描20tick、最多8UUID；不是更改每人的伤害时钟。进入自身行动锁方向/停导航，ROLL免水平*.35限制。",
+    "默认ArmyActionState空，没有Crossbow自定义save/load；主要动作保存于BlueprintAttack和BlueprintSpeed。TimedAttack保存fired与epoch，错过帧标记已消费而不补射，合法中段可恢复，超末期取消；不是把原生goal四阶段NBT直接照搬。",
+    "death取消攻击/导航/目标、清support与hook并切death epoch；本体44tick移除，death clip2秒，末4tickhold仍需回放。visualAnimation优先death，armyROLL→roll，其余→attack；受伤仅skill0抢占。GeckoLib内部残留和不同实体复用后的最终姿态未运行验证。"
+  ],
+  "remaining_checks": [
+    "普通距离完整回放装填到三发、取消、死亡、读档，查支持手与弩重合、翻滚中物件是否遮脸/穿体；仅静态源不能宣布通过或失败。",
+    "不把原生multishot改成现有三连发，也不把当前三次动画改回单发；不为视觉接口修改弹道机制。",
+    "无新参考图片/PNG查看，无贴图或模型生产，无游戏截图。当前只是可复查来源研究，未达到独立验收1000门槛，不删除任务。"
+  ],
+  "whole_candidate_max": 1,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "production_modified": false,
+  "task_complete": false
+}

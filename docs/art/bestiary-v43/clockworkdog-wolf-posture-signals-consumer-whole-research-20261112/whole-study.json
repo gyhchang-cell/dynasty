@@ -1,0 +1,47 @@
+{
+  "family": "minecraft:wolf",
+  "target": "dynasty:xunshan_mujiaquan",
+  "purpose": "四足状态信号、局部观察与躯干/尾部复位；不能冒充机械犬张颌鸣警的直接动作实现",
+  "native_trigger_priority_exit": [
+    "registerGoals：Float与Panic优先级1，Sit2，AvoidLlama3，Leap4，Melee5，Follow6，Breed7，Stroll8，Beg9，Look10；这里只核注册与选定goal方法，不声称完整GoalSelector调度全部读完。",
+    "BegGoal仅LOOK锁；最近合适玩家持骨/肉时启动interested同步布尔，lookTime adjusted40..79，存活/距离/持物持续，stop清interested和player。没有声波或咆哮技能。",
+    "SitWhenOrderedToGoal start停导航并置同步pose，stop清pose。入口需驯服、非水、接地；owner不存在返回true，有主人且12格内受袭则拒绝，否则按ordered。续用仅ordered，不能描述为每tick完整重验入口。TamableAnimal pose bit1与tame bit4分别控制。",
+    "LeapAtTargetGoal需非载具、有目标、2..4格、接地与随机门；start水平目标单位向量*.4+旧速度*.2，Y=.4；canContinue为离地。方法本身没有造成伤害，Wolf.doHurtTarget另走实际hurt结果，不存在可直接搬用的张颌接触帧。",
+    "Wolf湿身来自水雨气泡；服务端湿且未shake、无寻路且接地时发event8并清时间；重进水服务端发56取消，death清所有湿摇状态。客户端通过事件而非统一服务器epoch起播，湿摇不是示警。",
+    "每tick interested向0/1以.4靠拢；shakeAnim每tick+.05，到旧值>=2归零并清湿。getBodyRollAngle基于partial时间和各部位offset做有包络的sin波，headroll另由interested量提供。"
+  ],
+  "actual_model_renderer_consumer": [
+    "WolfModel head包装下real_head，tail包装下real_tail，upper_body与body分开；四足相对主体为root同层。头朝向与real_head.zRoll解耦，尾x姿态与real_tail.zRoll解耦，不需要将观察/摇身动作混到同一轴。",
+    "prepareMobModel先按anger把tail.yRot钳0或采用走路摆尾；sit分支改body/upperBody/legs/tail位置与角，非sit分支明确写回位置及四足对角相位。不能把四条同相腿当原版步态。",
+    "realHead滚动=interested roll+shake offset0；upperBody/body/realTail分别getBodyRollAngle偏移-.08/-.16/-.2，顺序形成传播。不是多只参考，也不是完整软体求解。",
+    "setupAnim head.x/y由渲染参数赋值，tail.x由第四动画参数。WolfRenderer.getBob返回getTailAngle；LivingEntityRenderer88..133将该值转交setupAnim。因此不能把tail.x误当age秒数。",
+    "怒尾角1.5393804rad；非怒驯服尾角随缺血变化，野狼PI/5。是状态信号而非物理尾力。Renderer湿身乘getWetShade灰度、绘后恢复RGB1；纹理tame优先再angry/wild，collar独立条件层。未查看原PNG、不计新贴图研究。"
+  ],
+  "current_policy_and_timeline": [
+    "木甲犬已有chest→waist→haunch、neck→head→jaw→jaw_piston、四组leg→knee→foot、gear/key与两节tail。原作机械结构已存在，不改成狼毛皮或新增普通动物四肢。",
+    "ClockworkDogBehavior无敌/无技能且有restrictCenter时每60tick尝试四方向已加载可达patrol；有敌导航1.1，choose优先ready的ALARM否则BITE。两技能start走TemplateMob的server/alive/目标/range/LOS/common攻击门。",
+    "DOG_BITE8+1+13=22tick，现有attack1.1秒；jaw.3秒开30度、.4秒闭0，neck同.4秒向前-2并俯15度，8tick命中有可对照关键帧。实际sector/world-origin/LOS不从jaw模型矩阵算伤害，不能声称每一齿是服务器实体。",
+    "DOG_ALARM20+1+19=40tick，alarm2秒。neck.8..1.7秒-30度，jaw1秒32度，tail.8..1.7秒-20，2秒回0。服务器20tick触发增速和同encounterSite最多16名已加载构装/王朝成员告警；不是全区块广播。",
+    "ALARM impact开头仍要求锁定目标有效、LOS和范围，目标失效可以有视觉但没有本次集结；不能据抬头帧断言已成功唤醒。BITE与ALARM被BINGSHA加速排除，名义时长这里可直接对照。",
+    "AnimationProfile QUADRUPED仅locomotion变速；visualAnimation death优先、burrow/tree仅各自种类、技能中hurt不抢，army选alarm/attack；controller用服务器actionAge seek并thenPlayAndHold。2秒回零是 authored末端，不证明中断跨clip无残留，需回放。",
+    "walk/run腿0与3同相、1与2反相，knee与foot反向抵偿；有方向和次关节，不是四腿一起摆。No DOG专用SecondaryMotion gear，原gear/key动作在JSON；不能声称已有程序化犬齿传动。"
+  ],
+  "scope_and_unknowns": [
+    "这是局部状态/复位与四足消费的有限参考，不能填足机械颌活塞/发条旋转/抬头鸣警完整艺术缺口；原版狼没有对应 authored howl或jaw骨。",
+    "未完整读MeleeAttackGoal/NeutralMob/TamableAnimal父类及全部GoalSelector；不宣称攻击damage周期或底层所有状态机已验。",
+    "当前jaw_piston无独立动画通道而继承jaw；这不是已证实连接错误。必须看真实关节运动后再决定，不依据静态名字补零件。",
+    "death2.2秒现有chest下降、neck24度、四腿±30度及root位移，gear/key无death专用通道；与cod1文字失控狂转的差异仅记录待视觉核对，不宣称已认可模型全盘失败。",
+    "未运行Java/游戏/预览，未实测接地滑动、真实头朝向、早中断复位或多人late observer；不以JSON替代动态验收。"
+  ],
+  "do_not_transfer": [
+    "不新增狼的驯服/坐下/食物/湿身甩毛/跳扑/愤怒规则，机械犬保留原身份、技能与碰撞。",
+    "不做手持物/挂件物件模型纹理，挂点仅记录既有骨接口；不改专业认可资产。"
+  ],
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "whole_candidate_max": 1,
+  "whole_asset_failed": false,
+  "production_authorized": false,
+  "task_complete": false
+}

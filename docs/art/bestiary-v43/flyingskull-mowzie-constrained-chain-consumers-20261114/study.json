@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-14",
+  "target": "dynasty:muxue_feilu hanging-body chain boundary",
+  "production_modified": false,
+  "complete": false,
+  "semantic_counting": {
+    "candidate_families": [
+      "BobMowzie/MowziesMobs-Public:Sculptor",
+      "BobMowzie/MowziesMobs-Public:Naga"
+    ],
+    "new_independently_accepted": 0,
+    "cumulative_applicable": null,
+    "true_gap": null,
+    "global_dedup_verified": false,
+    "rule": "Libraries, renderer helpers, bones, chain points and different constraints do not each count as creatures. Not Twilight Forest Naga. Existing credits are not cleared."
+  },
+  "sculptor_complete_direct_chain": [
+    {
+      "producer": "EntitySculptor constructor178-212",
+      "fact": "Client constructs one GeckoDynamicChain per entity and publishes it through dynamicChains."
+    },
+    {
+      "producer": "EntityPillar.EntityPillarSculptor tick266-337; EntitySculptor748-764,469",
+      "fact": "Pillar tick binds itself to caster sculptor; synced RISING/FALLING booleans and setters150-222 feed client entity tick. Simulation enabled if pillar absent/removed or neither rising nor falling. Caster superclass resolution and network delivery not fully read."
+    },
+    {
+      "binding": "ModelSculptor1-90; selected sculptor.geo",
+      "fact": "beard3→beard4→beard5Rot→beard6 are four ordered points. Model creates shared arrays once, passes into entity chain on animation setup. First two selected bones have cubes, next two are no-cube orientation endpoints; four points are not four separately rendered pieces."
+    },
+    {
+      "solver": "GeckoDynamicChain whole",
+      "fact": "Root interpolates previous anchor to authored current anchor over10 substeps. Non-root position uses previous-position displacement damping0.02 plus gravity0.1, mass1; projection enforces authored segment distance. Optional attraction disabled by default. Per-frame time derives tickCount+partial; paused skips solve. Gap>1 resets non-root p,p0,a to authored points."
+    },
+    {
+      "consumer": "MowzieGeoEntityRenderer whole;MowzieGeoBone whole",
+      "fact": "Main pass hides original chain geometry and tracks bone matrices; then setChain/updateChain and recursively render parentless cloned bones under forced world matrices. Clone excludes dynamic-joint children to avoid repeat chain rendering. Afterwards original hidden state restored. Per-bone tracking is captured before translate-away-from-pivot."
+    },
+    {
+      "pose_output": "GeckoDynamicChain setChainFromRenderPos",
+      "fact": "alpha interpolates authored position toward simulated position; this is POSE BLEND, not opacity. Direction quaternion aims segments; scale comes from model-space matrix. Dynamic final endpoint has no aim to next point. No claim of exact pixels or normal correctness without runtime."
+    }
+  ],
+  "sculptor_limits": [
+    "floorCollision and stiffness fields/setters exist, but neither participates in active Gecko solver: stiffness force line commented out. No block query, per-point terrain shape collision, self-collision or body pile.",
+    "Non-simulating branch snaps root to authored and blends other positions differently; it is not an independently verified stable reverse constraint. On death there is no dedicated chain cleanup/settling logic in the selected entity producer; no full death lifecycle claim.",
+    "Culled time gap reset is code-proven, not a verified teleport/late-observer guarantee. Reversed directions and coincident points may make quaternion normalization degenerate; no numerical execution performed.",
+    "Shared model arrays and per-entity state coexist; multi-entity/alternate render layer behavior requires runtime validation. No production adoption."
+  ],
+  "naga_complete_direct_chain": [
+    {
+      "producer": "EntityNaga105-150;73",
+      "fact": "Client entity creates DynamicChain dc. Model setDefaultAngle assigns tail=entity.dc and resets authored pose."
+    },
+    {
+      "binding": "ModelNaga593-677",
+      "fact": "tailOriginal six points tail1..tail5,tailEnd; tailDynamic same length. renderToBuffer draws root, then tail.render cloned chain, and hides original showModel."
+    },
+    {
+      "call": "ModelNaga770-798;1200-1260",
+      "fact": "Animate calls setDefaultAngle first; dynamic update inside not-frozen branch after jawControls/wingFoldControls. Actual params gravity0.5,stiffness0.5,falloff0.5,damping0.97,substeps30,useFloor=true."
+    },
+    {
+      "solver": "DynamicChain whole",
+      "fact": "Each new entity tick reads authored point world positions; bend solver calculates angular restoring torque, gravity and damped angular velocities, reconstructing segment endpoints at fixed d. Render extrapolates p+v*partial+a*partial²/2. Outputs world positions converted to model space, plus pitch/yaw; renders all but terminal endpoint."
+    },
+    {
+      "world_transform": "AdvancedModelRenderer selected400-462",
+      "fact": "getWorldPos builds interpolated entity transform then calls MowzieRenderUtils.matrixStackFromModel; setWorldPos inverts entity transform and converts to16units/block. MowzieRenderUtils implementation missing in cached source: exact parent-transform traversal remains dependency gap."
+    },
+    {
+      "renderer": "RenderNaga whole",
+      "fact": "MobRenderer binds ModelNaga; model dynamic tail is consumed by renderToBuffer. Mouth attachment updated after render for SPIT animation; no held/accessory asset work performed."
+    }
+  ],
+  "naga_limits": [
+    "useFloor active only if entity.onGround and pointY<entity.getY; then subtracts a floor torque. No collision-shape sampling or position clamp. Not reliable terrain collision, not pile support.",
+    "Update once per entity tick; missed render ticks are not iterated as catch-up. Unlike GeckoDynamicChain no explicit time-gap reset. NaN check covers p[1].x and length mismatch; does not establish teleport stability.",
+    "Alternate updateSpringConstraint is not called by Naga updateChain; maxForce normalization result unassigned there. Do not treat that unused method as active mechanism.",
+    "Frozen branch and death animations not fully replayed. No gameplay, world screenshots or authored PNGs viewed."
+  ],
+  "independent_gate": {
+    "research_acceptance": "pending coordinator independent review; newcredit0",
+    "before_production": [
+      "Applicable1000 verified references and semantic dedup",
+      "Read missing parent matrix helper/framework consumers at same pinned revision",
+      "Validate root, child orientation and last endpoint behavior",
+      "Distinguish authored motion, dynamics, floor heuristic, true terrain collision",
+      "Verify pause, render gap, teleport, multi-entity and death transitions without altering server timing"
+    ],
+    "scope": "Body/bones/animation/attachment interface only; object/weapon assets remain texture specialist."
+  },
+  "next": "Find actual terrain-shape query consumer used per chain node; neither current study is that implementation. Preserve these as bounded constraint references, do not reread periodic Murmur/BoneSerpent helpers."
+}

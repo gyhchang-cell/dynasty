@@ -1,0 +1,13 @@
+# 青铜双头蛇：世界朝向转局部骨骼与挂点
+
+实际BronzeSnakeBehavior按目标相对yBodyRot点积选择前/后刺或火毒；同一生命池。TemplateMob.face对后刺/毒把锁定方向反转一次。世界yaw转局部头yaw时必须扣bodyYaw并尊重已有后端180度，不能重复反向。
+
+当前命中用attack.origin与锁定direction扇区，不是客户端嘴骨位置；研究挂点仅服务显示对齐，不移动伤害原点或改攻击范围。看向目标、喷口特效方向与既有锁定攻击方向应明确区分。
+
+现有fire片段有front_head、front_jaw、front_nozzle和root，rear_attack有rear_head、rear_jaw和root。可保留原时序，在合法接口中保证头与喷口父链跟随，禁止把挂件/喷管另交本岗生产；没有实测穿插或口部对齐结论。
+
+未全读WitherArmorLayer、RangedAttackGoal和AbstractHurtingProjectile/Projectile；闭环止于目标ID→本体朝向/解析挂点→模型及创建发射物接口，不声称弹道/伤害系统全审。
+
+该参考没有两端蛇身链式IK或珠节死亡散落；服务器解析挂点与客户端骨矩阵并不天然一致，未做原生朝向/嘴端对齐验收。
+
+本批1项完整机制候选，独立已验适用0；累计与真实缺口未建立，不能拿候选或文件数代替。旧适用记录保留，不清零。没有正式资源改动。

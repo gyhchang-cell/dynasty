@@ -1,0 +1,39 @@
+{
+  "target": "dynasty:muxue_feilu",
+  "family": "alexsmobs:murmur",
+  "purpose": "Suspended head/body endpoint continuity, secondary motion, attack-return and death-phase connection; no creature production.",
+  "body_lifecycle": [
+    "Body server tick resolves head UUID, creates head if lookup returnsnull, sets UUID/runtimeID. Body initially permits fake head but clears flag on first tick. Server resolves UUID; client resolves runtime entityID. Only UUID saved; no demonstrated transactional duplicate prevention across unload/reload.",
+    "Head constructor bindsbodyUUID and spawns at body.getNeckBottom(1)+Y.5. Body endpoint includes partial position interpolation and walk bounce. During death it explicitly rotates endpoint using sqrt/clamped death curve and bodyyaw; this keeps neck attached to rolling corpse rather than a constant upright origin.",
+    "Head getter resolves serverUUID/clientID; server writes BODY_ID whilebodypresent, returns pulled-in head tobase+.55, snaps inside distance1 else moves toward it with noPhysics during return. Orphan lookupnull after20ticks discards. body.isRemoved check is only inside instanceofbody branch. Do not promise full unload ordering/network cleanup.",
+    "Client copies bodyhurt/death counters only when bodycounter>0; not a universal independent reset proof. Whole head has no death falling/pile consumer and isNoGravity true."
+  ],
+  "state_and_attack": [
+    "AttackGoal.start clears localtime/cooldown andunpulls head; stop resets time/pulled-in/angry. Initial30ticks orbit around captured emergepoint; then pursues eye position. Bite hits within1.5+lineofsight and sets5..19 cooldown. During cooldown pulled-in and angerfalse. These are foreign combat rules, not tocopyintoDynasty.",
+    "MoveController bypasses control whilepulled-in; otherwise adds target-directed acceleration and sinusoidal strafe. It is not a pendulum/gravity simulation. Direction normalization divides bydistance without explicit0guard inreadcode.",
+    "Head.isAngry also truewhen notalive; progress0..5 ticksinterpolated bymodel. Renderer swaps whole texture byangry. Headmodel contains root/head/threehairparts, no jaw bone. Do not infer actual jaw animation from bite damage or angrytexture."
+  ],
+  "renderer_chain": [
+    "Headrenderer culls bynormalentityor endpointAABB; renders headwith flipdegrees0. Draws neck separately byinterpolated top/bottom relative torender origin, max128segments whiledistance>.2. Segment direction uses componentwise sign*clamp(abs^.1,.01abs,abs), normalizedto<=1; lastsegmentlinear. This is proceduralpolyline approximation, not collision/spring/SplineIK.",
+    "Eachsegment computes localyaw/pitchfromits endpoints, sets neckYscale tolength and thin optionalXZ. Neckmodel.setAttributes resetsdefaultpose and showModel for allparts, thenrender. Positionallyadjacentsegments canconnect; texturedseams, exactnormals, occlusion andnativepixels notviewed.",
+    "Per-segment light comesfrom current/aboveblock lightmaximum ifchunkloaded; AMBlockPos conversionhelper notread. Rendererstatic neckmodel reused andreset eachsegment, globalTHIN/HIDE flags notperentity. They are not safeperinstance deathstate storage.",
+    "Body fakeheadrender resetsheadpose thenidlehair andneckattributes. Body/headrender use .85scale andsharedtexturethemes. No alpha-fade curve in these renderers. ExternalCitadel renderer/model helperinternals notnewlyreadthisbatch."
+  ],
+  "secondary_motion": [
+    "Entity.moveHair stores previousfilteredposition; approaches current by.25 per tick after axisdelta threshold±10 checks. Model uses partialinterpolated hair-vshead offset transformed bybodyyaw, clamps vertical[-6,32], forward[0,150], side[-20,20], rampsin5..15ticks, applies sharedorientation tothreehairpieces plus idlewave andanger.",
+    "Thresholdreset sets filtered/previous position tocurrent but doesnot recompute originaldelta beforeaddingdelta*.25: teleportcanstillovershoot. Do notdescribeas complete teleport-safe reset. No perstrandgravity, contact or4jointflexiblechain."
+  ],
+  "dedup_and_application": [
+    "Prior squid study for sameDynasty target alreadycovers thrust/cycle/bodyorientation. This adds anotherfamily head/connection/secondary state consumer scope, notmorecredit forMurmurhead/body/neck separately. Existingimmunehelperreaders own cachedrenderer evidence; source reuse disclosed. Globalsemanticdedupnotindependentlyaccepted.",
+    "Dynasty flyingskull is oneacceptedbody with hangingsoftparts; do not addMurmurbody ornewserverhead entity. Methods useful for attachmentendpointspace, visiblepathbounds andstate-basedreturn. Needseparate4-boneflexiblestrand andrealjawcontact-timeconsumer evidence; approvedbodyshape remains.",
+    "Ghostarmordeath stack chain remains missing. A neckconnectionpolyline or normal deathroll doesnotfill thatgap. No newarmor/weapon/accessorymesh,PNG orUVwritten."
+  ],
+  "acceptance": {
+    "family_candidate_maximum": 1,
+    "new_independently_accepted": 0,
+    "cumulative_applicable": null,
+    "true_gap": null,
+    "full_runtime_or_network_proof": false,
+    "task_complete": false
+  }
+}

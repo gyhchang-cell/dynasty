@@ -1,0 +1,40 @@
+{
+  "family": "AlexsMobs:Blobfish",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "scope": "身体/骨骼/环境状态恢复研究；不制作外部物品，不选择新生产角色。",
+  "prior_full_comparison": [
+    "完整比较 CombJelly study：后者同一模型用 landProgress 抑制脉动与倾斜；Blobfish 环境标志直接换不同主模型，没有对应连续 morph。",
+    "完整比较 Mimicube study：同样回弹公式不是新语义信用；Blobfish prevFactor 在平滑之前缓存、仅失压模型读取，且没有内体装备挂点。",
+    "v43 study/dedup 有界检索未发现具名 Blobfish 整链记录；不保证全局首次。"
+  ],
+  "actual_body_and_model_consumer": [
+    "常压模型32×32，7节点：root→body6×5×8→nose4×2×1、tail4×4×4→零厚 tail_fin，body 两侧各一片零厚胸鳍。失压模型64×64仍7节点但 body8×6×9、tail6×5×4，鼻变窄、胸鳍转向、尾鳍枢轴后移。两者属于同一生物，不能算两个参考。PNG未查看。",
+    "常压 setup reset，bodyX=headPitch，尾与尾鳍水平摆，胸鳍镜像摆。失压 reset 后只在 !onGround 时用 headPitch；尾摆幅度减半，胸鳍使用 flap。没有独立攻击、受伤、死亡 clip，也没有命名头部 faceTarget。",
+    "失压模型插值 prev/current squishFactor，bodyYScale=1+factor，bodyY位移=−5*factor，设置 scaleChildren=true；X/Z不补偿体积。子节点缩放最终行为依赖 Citadel，不声称已经实测顶点。常压模型不读取 squish。"
+  ],
+  "producer_and_qualification": [
+    "hasClearance 从当前 Y 向上检查10格；只要某格既不是水流体、也不是 solid 就失败。固体也算通过，不等价水深或空气压力物理模拟，不能简写成水下10格必然/仅此变体。每 tick 计算，不见服务端独占保护。clear=true取消失压，否则设置失压。",
+    "tick 先 super，prevSquishFactor=当前，再向 squishAmount 平滑0.5。只在 !isInWater：首次落地 amount=−.35，首次离地=2；wasOnGround 每 tick 更新，amount每 tick*.6。离水不是自动跳跃，未见主动陆地弹跳冲量。",
+    "body pitch 每 tick 从 −vy*2.2*RAD_TO_DEG 设置；失压落地模型抑制读取 pitch，但实体角仍更新。回到水中或恢复常压没有清 squishAmount/factor/wasOnGround；残留可继续衰减，未来再次失压可能复用历史。"
+  ],
+  "ai_and_exit_boundaries": [
+    "WaterBoundPathNavigation+AquaticMoveController(1)，注册 TryFindWater、Panic、AnimalAISwimBottom。水下 moveRelative→move当前delta→delta*.9；target=null追加Y−.005。控制器加Y+.005在分支之前，导航不活动只speed0，不清速度。没有失压、slimed专属导航停止/目标清理。",
+    "AnimalAISwimBottom 已整读复用：采样可水路位置后向底部下降再上浮1..3；循环路径检查部分仍用原vec坐标，不证明全身可通行。继承 RandomStrollGoal、PanicGoal、TryFindWaterGoal 的资格和stop未完整读取，保留缺口，不能按名字宣称退出恢复。",
+    "slimed 由活体交互设置，影响离水空气供应和持久性，并非新骨架/动作。handleAirSupply 离水/气泡且未slimed时递减，−20重置0并随机1或0伤害；未见该状态定制濒死动作、清目标或速度归零。"
+  ],
+  "binding_and_persistence": [
+    "RenderBlobfish scale 方法切 modelFish/modelDepressurized，与纹理选择共用 isDepressurized；同一renderer缓存两模型，无形体过渡权重。根据自己的scale整体缩放，shadow.35。不能仅凭绑定推定帧内调用顺序或无串模，原生渲染生命周期未运行。",
+    "getDimensions返回super尺寸*BlobfishScale，但setter只写同步数据，本类未见 onSyncedDataUpdated/refreshDimensions；不能声称每次scale变更后碰撞已即时刷新。失压切不同几何本身也没有专属尺寸分支。",
+    "NBT保存FromBucket、Depressurized、Slimed、BlobfishScale；桶保存BucketScale/Slimed与默认桶数据，不显式保存失压及squish历史。finalizeSpawn .75..1.25随机scale；两种模型、scale与桶状态不增加参考身份。",
+    "没有手持物/挂件层，也无server effector随骨骼移动接口。原生death/hurt与父类Bucketable、MoveControl未整链验证。"
+  ],
+  "application_and_limits": [
+    "适合核对环境导致的模型切换、视觉抑制与实际状态清理的差别；不要为现存 Dynasty 水生模型直接添加第二外形或修改玩法。",
+    "没有查看PNG、视频或实际模型画面，没有动画回放、Java、游戏或贴图制作。适用参考累计未知，新增独立验收0，未达到1000制作门槛。"
+  ],
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "complete": false
+}

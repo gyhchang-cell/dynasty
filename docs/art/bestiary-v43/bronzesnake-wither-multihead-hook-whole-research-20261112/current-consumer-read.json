@@ -1,0 +1,485 @@
+[
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/BronzeSnakeBehavior.java",
+    "sha256": "430f8b4498598764a47437e9f75f3e237d64b998dc2341a8fff2eeb1fc1e7e15",
+    "read": "whole",
+    "text": "package com.dynasty.blueprint;\n\nimport com.dynasty.blueprint.combat.*;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.phys.Vec3;\n\n/** Two heads, one body/health pool; direction and breath cone lock before contact. */\nfinal class BronzeSnakeBehavior implements ArmyBehaviors.Behavior {\n    private final TemplateMob mob;\n    private long breathUntil;\n    BronzeSnakeBehavior(TemplateMob mob){this.mob=mob;}\n    static boolean breath(int id){return id==ArmySkills.BRONZE_FIRE||id==ArmySkills.BRONZE_POISON;}\n    public boolean allows(int id){return id>=ArmySkills.BRONZE_FRONT_STAB&&id<=ArmySkills.BRONZE_POISON;}\n    public String animation(int id){return switch(id){case ArmySkills.BRONZE_REAR_STAB->\"rear_attack\";case ArmySkills.BRONZE_FIRE->\"fire\";case ArmySkills.BRONZE_POISON->\"poison\";default->\"attack\";};}\n    private boolean behind(LivingEntity target){\n        Vec3 forward=Vec3.directionFromRotation(0,mob.yBodyRot);\n        return target.position().subtract(mob.position()).multiply(1,0,1).dot(forward)<0;\n    }\n    public boolean canStart(int id,LivingEntity target){return !breath(id)||mob.level().getGameTime()>=breathUntil;}\n    public void started(int id,LivingEntity target){if(breath(id))breathUntil=mob.level().getGameTime()+180;}\n    public int choose(LivingEntity target,long now){\n        boolean rear=behind(target);\n        if(now>=breathUntil&&mob.distanceToSqr(target)<=25)return rear?ArmySkills.BRONZE_POISON:ArmySkills.BRONZE_FIRE;\n        return rear?ArmySkills.BRONZE_REAR_STAB:ArmySkills.BRONZE_FRONT_STAB;\n    }\n    public void move(LivingEntity target,long now){mob.getNavigation().moveTo(target,.9);}\n    public void impact(SkillDefinition skill,int frame){\n        var direction=mob.attack().direction();boolean cloud=breath(skill.id());\n        for(var target:CombatGeometry.query((ServerLevel)mob.level(),mob.attack().origin(),direction,CombatGeometry.Shape.SECTOR,\n            skill.maxRange(),1,skill.angleDegrees(),1.3,e->mob.validEnemy(e)&&mob.hasLineOfSight(e))){\n            if(target.hurt(mob.damageSources().mobAttack(mob),cloud?2.4F:6F)){\n                if(skill.id()==ArmySkills.BRONZE_FIRE)target.setSecondsOnFire(2);\n                if(skill.id()==ArmySkills.BRONZE_POISON)target.addEffect(new MobEffectInstance(MobEffects.POISON,45),mob);\n            }\n            if(!mob.isAlive()||mob.attack().current()!=skill)break;\n        }\n    }\n    public CompoundTag save(){var tag=new CompoundTag();tag.putLong(\"BreathUntil\",breathUntil);return tag;}\n    public void load(CompoundTag tag){breathUntil=Math.min(tag.getLong(\"BreathUntil\"),mob.level().getGameTime()+180);}\n}\n"
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/TemplateMob.java",
+    "sha256": "05c621d3919ac77eccc1c0016a1db0b02b7d7aba987aec0b92c2a99977faeb0c",
+    "read": [
+      [
+        600,
+        612
+      ],
+      [
+        640,
+        674
+      ],
+      [
+        694,
+        739
+      ],
+      [
+        789,
+        818
+      ]
+    ],
+    "text": [
+      {
+        "lines": [
+          600,
+          612
+        ],
+        "text": "        attack.cancel(); finishAction(); entityData.set(PHASE, attack.state(level().getGameTime()).ordinal());\n    }\n    private void finishAction() {\n        entityData.set(SKILL, 0); entityData.set(START, -1L); entityData.set(SPEED, 1F);\n        syncHook(null,-1);\n        if (linkUntil == 0) entityData.set(BUFF_TARGET, -1);\n        BlueprintVisualEvent.cancel(this);\n    }\n    private void face(Vec3 direction) {\n        if(kind==Kind.BRONZE_SNAKE&&(skillId()==ArmySkills.BRONZE_REAR_STAB||skillId()==ArmySkills.BRONZE_POISON))direction=direction.scale(-1);\n        float yaw = (float)(Math.atan2(direction.z, direction.x) * 180 / Math.PI) - 90;\n        setYRot(yaw); yBodyRot = yaw; yHeadRot = yaw;\n    }"
+      },
+      {
+        "lines": [
+          640,
+          674
+        ],
+        "text": "    }\n    @Override public boolean onClimbable() {\n        if(kind==Kind.CENTIPEDE)return isAlive()&&(horizontalCollision||hanging());\n        // A dead wall-climber must fall under ordinary gravity. Keeping the last synchronized\n        // climbing flag would continue vanilla's wall boost / slow-fall during its death clip.\n        if (kind == Kind.BEAST || kind == Kind.BRONZE_SNAKE) return isAlive() && (entityData.get(CLIMBING) || super.onClimbable());\n        return super.onClimbable();\n    }\n    @Override public boolean canBreatheUnderwater(){return kind==Kind.TOAD||kind==Kind.SERPENT||kind==Kind.DROWNER||super.canBreatheUnderwater();}\n    @Override public boolean checkSpawnObstruction(net.minecraft.world.level.LevelReader reader){\n        return (kind==Kind.TOAD||kind==Kind.SERPENT||kind==Kind.DROWNER)?reader.isUnobstructed(this):super.checkSpawnObstruction(reader);\n    }\n    @Override public void travel(Vec3 input) {\n        if(kind==Kind.TREE&&!treeAwake()&&isAlive()){\n            setDeltaMovement(0,getDeltaMovement().y,0);super.travel(Vec3.ZERO);return;\n        }\n        if((kind==Kind.TOAD||kind==Kind.SERPENT||kind==Kind.DROWNER)&&isAlive()&&isInWater()&&isControlledByLocalInstance()){\n            moveRelative(.1F,input);move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());\n            setDeltaMovement(getDeltaMovement().scale(.8));calculateEntityAnimation(false);return;\n        }\n        if ((kind != Kind.SKULL && kind != Kind.LANTERN_BAT && kind != Kind.BLIND_FISH && kind != Kind.YECHA) || !isAlive() || isInWater() || isInLava()) {\n            super.travel(input); return;\n        }\n        // FlyingMoveControl supplies vertical input; ground travel uses ground friction\n        // and cannot provide a controlled ascent after the bite. Keep normal collision.\n        if (isControlledByLocalInstance()) {\n            moveRelative(.1F, input);\n            move(net.minecraft.world.entity.MoverType.SELF, getDeltaMovement());\n            setDeltaMovement(getDeltaMovement().scale(.85));\n        }\n        calculateEntityAnimation(true);\n    }\n\n    @Override public boolean causeFallDamage(float distance, float multiplier, DamageSource source) {\n        return kind == Kind.BEAST || kind == Kind.TOAD ? super.causeFallDamage(Math.max(0, distance - 5), multiplier, source) : super.causeFallDamage(distance, multiplier, source);"
+      },
+      {
+        "lines": [
+          694,
+          739
+        ],
+        "text": "    @Override public void die(DamageSource source) {\n        if (deathStarted >= 0) return;\n        super.die(source);\n        if (!isDeadOrDying()) return;\n        if(kind==Kind.SKULL||kind==Kind.LANTERN_BAT||kind==Kind.BLIND_FISH||kind==Kind.YECHA)setNoGravity(false);\n        deathStarted = level().getGameTime(); attack.cancel(); navigation.stop(); setTarget(null); releaseSupport(); clearPossession();\n        syncHook(null,-1);\n        entityData.set(CLIMBING, false);\n        if(kind==Kind.MINING_SPIDER||kind==Kind.CENTIPEDE)setNoGravity(false);\n        clearClimbContact();\n        entityData.set(SKILL, 0); entityData.set(START, deathStarted); entityData.set(SPEED, 1F);\n        BlueprintVisualEvent.cancel(this);\n        BlueprintVisualEvent.death(this);\n        if(!level().isClientSide&&army!=null)army.died(source);\n    }\n    public int deathDuration() { return kind == Kind.PAPER ? 10 : kind == Kind.SHIELD ? 200 : kind == Kind.SWORD ? 60 : 44; }\n    void onArmyHookHit(LivingEntity target,long epoch) {\n        if(!level().isClientSide&&army!=null&&isAlive()&&skillId()==ArmySkills.GRAPPLE&&skillStartTime()==epoch)\n            army.hookHit(target);\n    }\n    @Override protected void dropAllDeathLoot(DamageSource source) {\n        if (lootDropped) return;\n        lootDropped = true; super.dropAllDeathLoot(source);\n    }\n    @Override protected void tickDeath() {\n        ++deathTime;\n        if(!level().isClientSide&&army!=null)army.tickDead(level().getGameTime());\n        if (!level().isClientSide && deathStarted >= 0)\n            deathTime = (int)Math.min(240, Math.max(deathTime, level().getGameTime() - deathStarted));\n        if (kind == Kind.SHIELD) setDeltaMovement(Vec3.ZERO);\n        else if(!level().isClientSide&&!isNoGravity()){\n            // LivingEntity stops ordinary travel once dead. Gravity alone cannot drop a flying\n            // corpse or a ceiling climber; keep the normal block/world-border collision path.\n            var velocity=getDeltaMovement();\n            if(onGround())setDeltaMovement(Vec3.ZERO);\n            else{\n                setDeltaMovement(velocity.x*.8,Math.max(-.8,velocity.y-.08),velocity.z*.8);\n                move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());\n                if(onGround())setDeltaMovement(Vec3.ZERO);\n            }\n        }\n        int duration = deathDuration();\n        if (deathTime >= duration && !level().isClientSide && !isRemoved()) {\n            level().broadcastEntityEvent(this, (byte)60); remove(RemovalReason.KILLED);\n        }\n    }"
+      },
+      {
+        "lines": [
+          789,
+          818
+        ],
+        "text": "    public String visualAnimation() {\n        if (isDeadOrDying()) return \"death\";\n        if(kind==Kind.SCORPION&&burrowed())return \"burrow\";\n        if(kind==Kind.TREE&&!treeAwake())return \"camouflage\";\n        if (hurtTime > 0 && skillId() == 0) return \"hurt\";\n        if(army!=null&&skillId()!=0)return army.animation(skillId());\n        if (skillId() == TemplateSkills.POSSESSION) return \"buff\";\n        if (skillId() == TemplateSkills.ROCK_THROW) return \"rock\";\n        if (skillId() == TemplateSkills.POUNCE) return \"skill\";\n        if (skillId() != 0) return \"attack\";\n        if (kind == Kind.BEAST && onClimbable() && climbFace() != null) return \"climb\";\n        if(kind==Kind.BRONZE_SNAKE&&onClimbable())return \"climb\";\n        if (getDeltaMovement().horizontalDistanceSqr() > .001) return isSprinting() ? \"run\" : \"walk\";\n        return \"idle\";\n    }\n    public AnimationProfile animationProfile(){return AnimationProfile.forKind(kind);}\n    @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return animationCache; }\n    @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {\n        controllers.add(new AnimationController<TemplateMob>(this, \"body\", 0, state -> {\n            String animation = visualAnimation();\n            state.getController().setAnimationSpeed(animationProfile().playbackRate(animation,getDeltaMovement().horizontalDistance(),getAttributeValue(Attributes.MOVEMENT_SPEED),isSprinting()));\n            animationPartial = state.getPartialTick();\n            if (lastAnimationStart != skillStartTime()) {\n                lastAnimationStart = skillStartTime(); state.getController().forceAnimationReset();\n            }\n            RawAnimation sequence = RawAnimation.begin();\n            String key = \"animation.\" + blueprintId() + \".\" + animation;\n            return state.setAndContinue(animationProfile().loops(animation)\n                    ? sequence.thenLoop(key) : sequence.thenPlayAndHold(key));\n        }) {"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/client/TemplateMobModel.java",
+    "sha256": "7defda78a7d640b2103d8f03832dd8330dd3d321af759789a117088c1321d2e1",
+    "read": "whole",
+    "text": "package com.dynasty.blueprint.client;\n\nimport com.dynasty.blueprint.TemplateMob;\nimport net.minecraft.resources.ResourceLocation;\nimport software.bernie.geckolib.model.GeoModel;\nimport software.bernie.geckolib.core.animation.AnimationState;\n\n/** Shared loading; each profession owns an independently authored articulated rig. */\npublic final class TemplateMobModel extends GeoModel<TemplateMob> {\n    @Override public void setCustomAnimations(TemplateMob mob, long instanceId, AnimationState<TemplateMob> state) {\n        super.setCustomAnimations(mob, instanceId, state);\n        TemplateSecondaryMotion.apply(this, mob, state.getPartialTick());\n        if(mob.kind()==TemplateMob.Kind.DROWNER&&mob.isAlive()){\n            boolean pool=mob.waterPool();\n            getBone(\"body\").ifPresent(b->{b.setScaleY(pool?.12F:1);b.setScaleX(pool?2.5F:1);b.setScaleZ(pool?2.5F:1);});\n        }\n        if(mob.kind()==TemplateMob.Kind.TOAD)\n            // Independent identity wrapper: never multiply a shared animated bone across draws.\n            getBone(\"tongue_reach\").ifPresent(b->b.setScaleZ(mob.skillId()==com.dynasty.blueprint.ArmySkills.TOAD_TONGUE?mob.tongueReach()/5:1));\n    }\n    @Override public ResourceLocation getModelResource(TemplateMob mob) {\n        return new ResourceLocation(\"dynasty\", \"geo/\" + artDirectory(mob) + mob.blueprintId() + \".geo.json\");\n    }\n\n    @Override public ResourceLocation getAnimationResource(TemplateMob mob) {\n        return new ResourceLocation(\"dynasty\", \"animations/\" + artDirectory(mob) + mob.blueprintId() + \".animation.json\");\n    }\n\n    // Preserve the concurrent legacy UV files; these two rigs have separate authored resources.\n    private static String artDirectory(TemplateMob mob) {\n        return mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER\n            ? \"blueprint/cod2_voxel/\" : \"blueprint/\";\n    }\n\n    @Override public ResourceLocation getTextureResource(TemplateMob mob) {\n        if(mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER)\n            return new ResourceLocation(\"dynasty\", \"textures/entity/\" + artDirectory(mob) + mob.blueprintId() + \".png\");\n        if (switch (mob.kind()) {\n            case STONE_GUARD, BIXI, YECHA, LANTERN_BAT, BLIND_FISH, DROWNER,\n                 BRONZE_SNAKE, CLOCKWORK_DOG, MINING_SPIDER, SCORPION,\n                 CENTIPEDE, SERPENT, TOAD, PRIEST,\n                 SPEAR, POWDER, TREE, CROSSBOW, SHIELD, SKULL, AXE_GUARD, SCOUT,\n                 CORPSE, GHOST, PALANQUIN, FLAG, BEAST, SWORD -> true;\n            default -> false;\n        }) return new ResourceLocation(\"dynasty\", \"textures/entity/blueprint/\" + mob.blueprintId() + \".png\");\n        // Continuous opaque native swatches preserve pixel grain without replacing legacy artwork.\n        String atlas = switch (mob.blueprintId()) {\n            case \"juli_bixi_kuilei\", \"xueju_mangguyu\", \"jubi_shigandang\", \"zuwu_daoshou\", \"ludun_jiashi\", \"zhenwang_zhangqiguan\", \"pijia_panjiang_huwei\", \"yinbing_guizu\" -> \"royal_guard\";\n            case \"juma_changqiangbing\" -> \"archer\";\n            case \"bazu_digongzhu\", \"qingtong_shuangtoushekui\", \"xunshan_mujiaquan\", \"liannu_zhenzu\", \"kuijun_sishi\" -> \"rebel_soldier\";\n            case \"tiesuo_chihou\" -> \"assassin\";\n            case \"fuhun_baibu_tongzi\" -> \"imperial_soldier\";\n            case \"bishui_xuanjiao_youzi\", \"shibian_lishi\", \"chimu_zhuha\", \"kumu_shujing\", \"mingsha_shixie\" -> \"nian_beast\";\n            case \"tongbi_feitian_yecha\", \"baimu_mowu\", \"youdeng_guimianfu\", \"shanjing_shanxiao\" -> \"nian_beast\";\n            default -> \"imperial_soldier\";\n        };\n        return new ResourceLocation(\"dynasty\", \"textures/entity/\" + atlas + \".png\");\n    }\n}\n"
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/animations/blueprint/qingtong_shuangtoushekui.animation.json",
+    "sha256": "b2093ccb8a57ca46f5cf13b0ead3daa4f084b125d523ea7aa183fe7fb17a1e5a",
+    "read": "All animation names/durations/channel counts; only explicitly selected full clips below",
+    "inventory": [
+      {
+        "name": "animation.qingtong_shuangtoushekui.idle",
+        "length": 3.0,
+        "bones": [
+          "joint_0",
+          "joint_1",
+          "joint_2",
+          "joint_3",
+          "joint_4",
+          "joint_5",
+          "joint_6",
+          "joint_7",
+          "joint_8",
+          "joint_9",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.qingtong_shuangtoushekui.walk",
+        "length": 1.8,
+        "bones": [
+          "joint_0",
+          "joint_1",
+          "joint_2",
+          "joint_3",
+          "joint_4",
+          "joint_5",
+          "joint_6",
+          "joint_7",
+          "joint_8",
+          "joint_9",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.qingtong_shuangtoushekui.run",
+        "length": 1.2,
+        "bones": [
+          "joint_0",
+          "joint_1",
+          "joint_2",
+          "joint_3",
+          "joint_4",
+          "joint_5",
+          "joint_6",
+          "joint_7",
+          "joint_8",
+          "joint_9",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.qingtong_shuangtoushekui.climb",
+        "length": 1.6,
+        "bones": [
+          "joint_0",
+          "joint_1",
+          "joint_2",
+          "joint_3",
+          "joint_4",
+          "joint_5",
+          "joint_6",
+          "joint_7",
+          "joint_8",
+          "joint_9",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.qingtong_shuangtoushekui.attack",
+        "length": 1.3,
+        "bones": [
+          "front_head",
+          "front_jaw",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.qingtong_shuangtoushekui.rear_attack",
+        "length": 1.3,
+        "bones": [
+          "rear_head",
+          "rear_jaw",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.qingtong_shuangtoushekui.fire",
+        "length": 5.1,
+        "bones": [
+          "front_head",
+          "front_jaw",
+          "front_nozzle",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.qingtong_shuangtoushekui.poison",
+        "length": 5.1,
+        "bones": [
+          "rear_head",
+          "rear_jaw",
+          "rear_nozzle",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.qingtong_shuangtoushekui.hurt",
+        "length": 0.5,
+        "bones": [
+          "joint_0",
+          "root"
+        ]
+      },
+      {
+        "name": "animation.qingtong_shuangtoushekui.death",
+        "length": 2.2,
+        "bones": [
+          "root",
+          "front_head",
+          "rear_head"
+        ]
+      }
+    ],
+    "full_clips": {
+      "fire": {
+        "loop": false,
+        "animation_length": 5.1,
+        "bones": {
+          "front_head": {
+            "rotation": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "0.7": [
+                14,
+                0,
+                0
+              ],
+              "0.9": [
+                7,
+                0,
+                0
+              ],
+              "3.9": [
+                7,
+                0,
+                0
+              ],
+              "5.1": [
+                0,
+                0,
+                0
+              ]
+            }
+          },
+          "front_jaw": {
+            "rotation": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "0.8": [
+                24,
+                0,
+                0
+              ],
+              "3.9": [
+                24,
+                0,
+                0
+              ],
+              "5.1": [
+                0,
+                0,
+                0
+              ]
+            }
+          },
+          "front_nozzle": {
+            "scale": {
+              "0.0": [
+                1,
+                1,
+                1
+              ],
+              "0.9": [
+                1.4,
+                1.4,
+                1
+              ],
+              "3.9": [
+                1.4,
+                1.4,
+                1
+              ],
+              "5.1": [
+                1,
+                1,
+                1
+              ]
+            }
+          },
+          "root": {
+            "position": {
+              "0.0": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "0.45": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "0.45625": [
+                0.0,
+                0.11422,
+                0.0
+              ],
+              "0.5": [
+                0.0,
+                0.36808,
+                0.0
+              ],
+              "0.6": [
+                0.0,
+                0.9194,
+                0.0
+              ],
+              "0.7": [
+                0.0,
+                1.42755,
+                0.0
+              ],
+              "0.8": [
+                0.0,
+                1.23412,
+                0.0
+              ],
+              "0.9": [
+                0.0,
+                0.77775,
+                0.0
+              ],
+              "3.9": [
+                0.0,
+                0.77775,
+                0.0
+              ],
+              "4.15": [
+                0.0,
+                0.11366,
+                0.0
+              ],
+              "4.15625": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "5.1": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          }
+        }
+      },
+      "rear_attack": {
+        "loop": false,
+        "animation_length": 1.3,
+        "bones": {
+          "rear_head": {
+            "position": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "0.35": [
+                0,
+                1,
+                -2
+              ],
+              "0.5": [
+                0,
+                0,
+                5
+              ],
+              "0.7": [
+                0,
+                0,
+                4
+              ],
+              "1.3": [
+                0,
+                0,
+                0
+              ]
+            },
+            "rotation": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "0.35": [
+                -10,
+                0,
+                0
+              ],
+              "0.5": [
+                8,
+                0,
+                0
+              ],
+              "1.3": [
+                0,
+                0,
+                0
+              ]
+            }
+          },
+          "rear_jaw": {
+            "rotation": {
+              "0.0": [
+                0,
+                0,
+                0
+              ],
+              "0.35": [
+                -28,
+                0,
+                0
+              ],
+              "0.5": [
+                0,
+                0,
+                0
+              ],
+              "1.3": [
+                0,
+                0,
+                0
+              ]
+            }
+          },
+          "root": {
+            "position": {
+              "0.0": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "0.18125": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "0.1875": [
+                0.0,
+                0.15153,
+                0.0
+              ],
+              "0.2375": [
+                0.0,
+                0.6145,
+                0.0
+              ],
+              "0.29375": [
+                0.0,
+                1.08112,
+                0.0
+              ],
+              "0.35": [
+                0.0,
+                1.48429,
+                0.0
+              ],
+              "0.3625": [
+                0.0,
+                1.1986,
+                0.0
+              ],
+              "0.375": [
+                0.0,
+                0.88614,
+                0.0
+              ],
+              "0.3875": [
+                0.0,
+                0.54841,
+                0.0
+              ],
+              "0.40625": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "1.3": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+]
